@@ -216,16 +216,35 @@ const EditorWrapper = ({
         end: { line: number; column: number };
       }>,
     ) => {
-      if (editorHandleRef.current && selections.length > 0) {
-        const selectedText = editorHandleRef.current.getSelectedText();
-        if (
-          selectedText !== currentSelectionCache.current &&
-          selectedText.length !== 1
-        ) {
-          dispatch(queryEditorSetSelectedText(queryEditor, selectedText));
-        }
-        currentSelectionCache.current = selectedText;
+      if (!editorHandleRef.current || selections.length === 0) {
+        return;
       }
+
+      const selectedText = editorHandleRef.current.getSelectedText();
+
+      // Always clear selection state when text is empty, regardless of cache
+      if (!selectedText) {
+        if (currentSelectionCache.current) {
+          dispatch(queryEditorSetSelectedText(queryEditor, null));
+        }
+        currentSelectionCache.current = '';
+        return;
+      }
+
+      // Skip 1-character selections to avoid noise from backspace operations
+      // which briefly select single characters. Trade-off: genuine single-char
+      // selections won't update Redux, but this is acceptable since running
+      // a single character as a query is not a practical use case.
+      if (selectedText.length === 1) {
+        currentSelectionCache.current = selectedText;
+        return;
+      }
+
+      // Only dispatch if selection actually changed
+      if (selectedText !== currentSelectionCache.current) {
+        dispatch(queryEditorSetSelectedText(queryEditor, selectedText));
+      }
+      currentSelectionCache.current = selectedText;
     },
     [dispatch, queryEditor],
   );

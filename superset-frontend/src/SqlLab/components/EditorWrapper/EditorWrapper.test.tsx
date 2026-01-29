@@ -17,7 +17,12 @@
  * under the License.
  */
 import reducerIndex from 'spec/helpers/reducerIndex';
-import { render, waitFor, createStore } from 'spec/helpers/testing-library';
+import {
+  render,
+  waitFor,
+  createStore,
+  act,
+} from 'spec/helpers/testing-library';
 import { QueryEditor } from 'src/SqlLab/types';
 import { Store } from 'redux';
 import { initialState, defaultQueryEditor } from 'src/SqlLab/fixtures';
@@ -26,6 +31,7 @@ import type { editors } from '@apache-superset/core';
 import {
   queryEditorSetCursorPosition,
   queryEditorSetDb,
+  queryEditorSetSelectedText,
 } from 'src/SqlLab/actions/sqlLab';
 import fetchMock from 'fetch-mock';
 
@@ -123,5 +129,52 @@ describe('EditorWrapper', () => {
     expect(MockEditorHost).toHaveBeenCalledTimes(renderCount);
     store.dispatch(queryEditorSetDb(defaultQueryEditor, 2));
     expect(MockEditorHost).toHaveBeenCalledTimes(renderCount + 1);
+  });
+
+  test('clears selectedText when selection becomes empty', async () => {
+    const store = createStore(initialState, reducerIndex);
+    // Set initial selected text in store
+    store.dispatch(
+      queryEditorSetSelectedText(defaultQueryEditor, 'SELECT * FROM table'),
+    );
+    setup(defaultQueryEditor, store);
+
+    await waitFor(() => expect(MockEditorHost).toHaveBeenCalled());
+
+    // Get the onSelectionChange and onReady callbacks from the mock
+    const lastCall =
+      MockEditorHost.mock.calls[MockEditorHost.mock.calls.length - 1][0];
+    const { onSelectionChange, onReady } = lastCall;
+
+    // Simulate editor ready with a mock handle that returns empty selection
+    const mockHandle = {
+      getSelectedText: jest.fn().mockReturnValue(''),
+      getValue: jest.fn().mockReturnValue(''),
+      setValue: jest.fn(),
+      focus: jest.fn(),
+      moveCursorToPosition: jest.fn(),
+      scrollToLine: jest.fn(),
+    };
+    act(() => {
+      onReady(mockHandle);
+    });
+
+    // Simulate selection change with empty selection (cursor moved without selecting)
+    act(() => {
+      onSelectionChange([
+        { start: { line: 0, column: 5 }, end: { line: 0, column: 5 } },
+      ]);
+    });
+
+    // Verify selectedText was cleared in the store
+    await waitFor(() => {
+      const state = store.getState() as unknown as {
+        sqlLab: { queryEditors: QueryEditor[] };
+      };
+      const editor = state.sqlLab.queryEditors.find(
+        qe => qe.id === defaultQueryEditor.id,
+      );
+      expect(editor?.selectedText).toBeFalsy();
+    });
   });
 });

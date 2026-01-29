@@ -31,6 +31,7 @@ import {
   useCallback,
   useImperativeHandle,
   forwardRef,
+  useMemo,
   type Ref,
 } from 'react';
 import type AceEditor from 'react-ace';
@@ -222,15 +223,42 @@ const AceEditorProvider = forwardRef<EditorHandle, EditorProps>(
       new Map(),
     );
 
-    // Create the handle
-    const handle = createAceEditorHandle(aceEditorRef, completionProviders);
+    // Use refs to store latest callbacks to avoid stale closures in event listeners
+    const onCursorPositionChangeRef = useRef(onCursorPositionChange);
+    const onSelectionChangeRef = useRef(onSelectionChange);
+
+    // Keep refs up to date
+    useEffect(() => {
+      onCursorPositionChangeRef.current = onCursorPositionChange;
+    }, [onCursorPositionChange]);
+
+    useEffect(() => {
+      onSelectionChangeRef.current = onSelectionChange;
+    }, [onSelectionChange]);
+
+    // Create the handle (memoized to prevent recreation on every render)
+    const handle = useMemo(
+      () => createAceEditorHandle(aceEditorRef, completionProviders),
+      [],
+    );
 
     // Expose handle via ref
-    useImperativeHandle(ref, () => handle, []);
+    useImperativeHandle(ref, () => handle, [handle]);
 
-    // Notify when ready
+    // Track if onReady has been called to prevent multiple calls
+    const onReadyCalledRef = useRef(false);
+
+    // Track if event listeners have been registered to prevent duplicates
+    const listenersRegisteredRef = useRef(false);
+
+    // Notify when ready (only once)
     useEffect(() => {
-      if (onReady && aceEditorRef.current?.editor) {
+      if (
+        onReady &&
+        aceEditorRef.current?.editor &&
+        !onReadyCalledRef.current
+      ) {
+        onReadyCalledRef.current = true;
         onReady(handle);
       }
     }, [onReady, handle]);
@@ -249,34 +277,39 @@ const AceEditorProvider = forwardRef<EditorHandle, EditorProps>(
           });
         }
 
-        // Set up cursor position change listener
-        if (onCursorPositionChange) {
-          editor.selection.on('changeCursor', () => {
-            const cursor = editor.getCursorPosition();
-            onCursorPositionChange({
-              line: cursor.row,
-              column: cursor.column,
-            });
-          });
-        }
+        // Only register event listeners once to prevent duplicates
+        if (!listenersRegisteredRef.current) {
+          listenersRegisteredRef.current = true;
 
-        // Set up selection change listener
-        if (onSelectionChange) {
+          // Set up cursor position change listener using ref to avoid stale closures
+          editor.selection.on('changeCursor', () => {
+            if (onCursorPositionChangeRef.current) {
+              const cursor = editor.getCursorPosition();
+              onCursorPositionChangeRef.current({
+                line: cursor.row,
+                column: cursor.column,
+              });
+            }
+          });
+
+          // Set up selection change listener using ref to avoid stale closures
           editor.selection.on('changeSelection', () => {
-            const range = editor.getSelection().getRange();
-            onSelectionChange([
-              {
-                start: { line: range.start.row, column: range.start.column },
-                end: { line: range.end.row, column: range.end.column },
-              },
-            ]);
+            if (onSelectionChangeRef.current) {
+              const range = editor.getSelection().getRange();
+              onSelectionChangeRef.current([
+                {
+                  start: { line: range.start.row, column: range.start.column },
+                  end: { line: range.end.row, column: range.end.column },
+                },
+              ]);
+            }
           });
         }
 
         // Focus the editor
         editor.focus();
       },
-      [hotkeys, onCursorPositionChange, onSelectionChange, handle],
+      [hotkeys, handle],
     );
 
     // Handle blur
