@@ -74,7 +74,8 @@ export const TreeFolderContainer = styled(TreeItemContainer)<{
   ${({ theme, depth, isForbiddenDropTarget, isOverlay }) => `
     margin-top: 0;
     margin-bottom: 0;
-    padding-top: ${theme.marginXS}px;
+    padding-top: ${theme.paddingSM}px;
+    padding-bottom: ${theme.paddingSM}px;
     margin-left: ${depth * FOLDER_INDENTATION_WIDTH}px;
     border-radius: ${theme.borderRadius}px;
     padding-left: ${theme.paddingSM}px;
@@ -186,7 +187,7 @@ export const EmptyFolderDropZone = styled.div<{
   isForbidden: boolean;
 }>`
   ${({ theme, depth, isOver, isForbidden }) => css`
-    margin: 0 ${depth * ITEM_INDENTATION_WIDTH + theme.marginMD}px;
+    margin: ${theme.marginXS}px ${depth * ITEM_INDENTATION_WIDTH + theme.marginMD}px 0;
     padding: ${theme.paddingLG}px;
     border: 2px dashed
       ${isOver

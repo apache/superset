@@ -54,8 +54,8 @@ function calculateItemHeights(theme: SupersetTheme): ItemHeights {
   // The OptionControlContainer sets the actual content height
   const regularItem = 32;
 
-  // Folder header - same base height + small top margin for visual separation
-  const folderHeader = 32 + theme.marginXS;
+  // Folder header - base height + vertical padding (for taller highlight) + bottom spacing
+  const folderHeader = 32 + theme.paddingSM + theme.marginXS;
 
   // Separator visible: 1px line + vertical margins (marginSM above and below)
   const separatorVisible = 1 + theme.marginSM * 2;

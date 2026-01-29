@@ -34,6 +34,7 @@ import {
   TreeItem as TreeItemType,
   FlattenedTreeItem,
   DRAG_INDENTATION_WIDTH,
+  MAX_DEPTH,
 } from '../constants';
 import { buildTree, getProjection, serializeForAPI } from '../treeUtils';
 
@@ -302,6 +303,65 @@ export function useDragHandlers({
       return;
     }
 
+    // Check max depth for folders
+    const hasDraggedFolder = draggedItems.some(
+      item => item.type === FoldersEditorItemType.Folder,
+    );
+    if (hasDraggedFolder && projectedPosition) {
+      // Build a children map for O(1) lookups
+      const childrenByParentId = new Map<string, FlattenedTreeItem[]>();
+      fullFlattenedItems.forEach((item: FlattenedTreeItem) => {
+        if (item.parentId) {
+          const children = childrenByParentId.get(item.parentId) ?? [];
+          children.push(item);
+          childrenByParentId.set(item.parentId, children);
+        }
+      });
+
+      // Calculate the maximum depth among FOLDER descendants only
+      // (items like columns/metrics don't count toward the folder nesting limit)
+      const getMaxFolderDescendantDepth = (
+        parentId: string,
+        baseDepth: number,
+      ): number => {
+        const children = childrenByParentId.get(parentId);
+        if (!children || children.length === 0) {
+          return baseDepth;
+        }
+        let maxDepth = baseDepth;
+        for (const child of children) {
+          // Only count folder depths, not items (columns/metrics)
+          if (child.type === FoldersEditorItemType.Folder) {
+            maxDepth = Math.max(maxDepth, child.depth);
+            maxDepth = Math.max(
+              maxDepth,
+              getMaxFolderDescendantDepth(child.uuid, child.depth),
+            );
+          }
+        }
+        return maxDepth;
+      };
+
+      for (const draggedItem of draggedItems) {
+        if (draggedItem.type === FoldersEditorItemType.Folder) {
+          const currentDepth = draggedItem.depth;
+          const maxFolderDescendantDepth = getMaxFolderDescendantDepth(
+            draggedItem.uuid,
+            currentDepth,
+          );
+          const descendantDepthOffset = maxFolderDescendantDepth - currentDepth;
+          const newDepth = projectedPosition.depth;
+          const newMaxDescendantDepth = newDepth + descendantDepthOffset;
+
+          // MAX_DEPTH is 3, meaning we allow depths 0, 1, 2 (3 levels total)
+          if (newMaxDescendantDepth >= MAX_DEPTH) {
+            addWarningToast(t('Maximum folder nesting depth reached'));
+            return;
+          }
+        }
+      }
+    }
+
     let newItems = fullFlattenedItems;
 
     if (projectedPosition) {
@@ -477,12 +537,48 @@ export function useDragHandlers({
       return forbidden;
     }
 
+    // Build a children map for O(1) lookups instead of O(n) scans
+    const childrenByParentId = new Map<string, FlattenedTreeItem[]>();
+    const itemsByUuid = new Map<string, FlattenedTreeItem>();
+    fullFlattenedItems.forEach((item: FlattenedTreeItem) => {
+      itemsByUuid.set(item.uuid, item);
+      if (item.parentId) {
+        const children = childrenByParentId.get(item.parentId) ?? [];
+        children.push(item);
+        childrenByParentId.set(item.parentId, children);
+      }
+    });
+
+    // Helper to calculate max FOLDER descendant depth offset (items don't count)
+    const getMaxFolderDescendantDepthOffset = (
+      parentId: string,
+      baseDepth: number,
+    ): number => {
+      const children = childrenByParentId.get(parentId);
+      if (!children || children.length === 0) {
+        return 0;
+      }
+      let maxOffset = 0;
+      for (const child of children) {
+        // Only count folder depths, not items (columns/metrics)
+        if (child.type === FoldersEditorItemType.Folder) {
+          const offset = child.depth - baseDepth;
+          maxOffset = Math.max(maxOffset, offset);
+          maxOffset = Math.max(
+            maxOffset,
+            getMaxFolderDescendantDepthOffset(child.uuid, baseDepth),
+          );
+        }
+      }
+      return maxOffset;
+    };
+
     const draggedTypes = new Set<FoldersEditorItemType>();
     let hasDraggedDefaultFolder = false;
+    let maxDraggedFolderDescendantOffset = 0;
+
     draggedItemIds.forEach((id: string) => {
-      const item = fullFlattenedItems.find(
-        (i: FlattenedTreeItem) => i.uuid === id,
-      );
+      const item = itemsByUuid.get(id);
       if (item) {
         draggedTypes.add(item.type);
         if (
@@ -491,8 +587,21 @@ export function useDragHandlers({
         ) {
           hasDraggedDefaultFolder = true;
         }
+        // Track the deepest folder descendant offset for dragged folders
+        if (item.type === FoldersEditorItemType.Folder) {
+          const descendantOffset = getMaxFolderDescendantDepthOffset(
+            item.uuid,
+            item.depth,
+          );
+          maxDraggedFolderDescendantOffset = Math.max(
+            maxDraggedFolderDescendantOffset,
+            descendantOffset,
+          );
+        }
       }
     });
+
+    const hasDraggedFolder = draggedTypes.has(FoldersEditorItemType.Folder);
 
     fullFlattenedItems.forEach((item: FlattenedTreeItem) => {
       if (item.type !== FoldersEditorItemType.Folder) {
@@ -513,7 +622,7 @@ export function useDragHandlers({
 
       if (
         (isDefaultMetricsFolder || isDefaultColumnsFolder) &&
-        draggedTypes.has(FoldersEditorItemType.Folder)
+        hasDraggedFolder
       ) {
         forbidden.add(item.uuid);
         return;
@@ -531,6 +640,18 @@ export function useDragHandlers({
         draggedTypes.has(FoldersEditorItemType.Metric)
       ) {
         forbidden.add(item.uuid);
+        return;
+      }
+
+      // Check max depth for folders: dropping into this folder would put the item at depth + 1
+      // If that would exceed MAX_DEPTH - 1 (accounting for descendants), forbid it
+      if (hasDraggedFolder) {
+        const newFolderDepth = item.depth + 1;
+        const newMaxDescendantDepth =
+          newFolderDepth + maxDraggedFolderDescendantOffset;
+        if (newMaxDescendantDepth >= MAX_DEPTH) {
+          forbidden.add(item.uuid);
+        }
       }
     });
 
