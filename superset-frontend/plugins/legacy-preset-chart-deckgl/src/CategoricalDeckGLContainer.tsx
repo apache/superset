@@ -153,10 +153,17 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
       const colorFn = getScale(appliedScheme);
       let color: ColorType;
 
+<<<<<<< HEAD
+    return data.map(d => {
+      let color;
+      if (fd.dimension) {
+        color = hexToRGB(colorFn(d.cat_color, fd.slice_id), c.a * 255);
+=======
       switch (selectedColorScheme) {
         case COLOR_SCHEME_TYPES.fixed_color: {
           color = fd.color_picker || { r: 0, g: 0, b: 0, a: 100 };
           const colorArray = [color.r, color.g, color.b, color.a * 255];
+>>>>>>> origin/master
 
           return data.map(d => ({ ...d, color: colorArray }));
         }

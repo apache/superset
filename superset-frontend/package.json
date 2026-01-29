@@ -1,6 +1,6 @@
 {
   "name": "superset",
-  "version": "0.0.0-dev",
+  "version": "5.0.0",
   "description": "Superset is a data exploration platform designed to be visual, intuitive, and interactive.",
   "keywords": [
     "big",
@@ -385,6 +385,12 @@
     "puppeteer": "^22.4.1",
     "remark-gfm": "^3.0.1",
     "underscore": "^1.13.7",
+<<<<<<< HEAD
+    "jspdf": "^3.0.1",
+    "fast-glob": {
+      "micromatch": "^4.0.6"
+    }
+=======
     "jspdf": "^3.0.2",
     "nwsapi": "^2.2.13",
     "@deck.gl/aggregation-layers": "~9.2.2",
@@ -400,6 +406,7 @@
     "@luma.gl/engine": "~9.2.2",
     "@luma.gl/shadertools": "~9.2.2",
     "@luma.gl/webgl": "~9.2.2"
+>>>>>>> origin/master
   },
   "readme": "ERROR: No README data found!",
   "scarfSettings": {

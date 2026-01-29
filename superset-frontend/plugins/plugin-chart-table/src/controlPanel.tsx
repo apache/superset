@@ -413,6 +413,8 @@ const config: ControlPanelConfig = {
         ],
         [
           {
+<<<<<<< HEAD
+=======
             name: 'row_limit',
             config: {
               type: 'SelectControl',
@@ -462,6 +464,7 @@ const config: ControlPanelConfig = {
 
         [
           {
+>>>>>>> origin/master
             name: 'show_totals',
             config: {
               type: 'CheckboxControl',
@@ -569,8 +572,15 @@ const config: ControlPanelConfig = {
                 return true;
               },
               mapStateToProps(explore, _, chart) {
+<<<<<<< HEAD
+                const timeComparisonStatus = !isEmpty(
+                  explore?.controls?.time_compare?.value,
+                );
+
+=======
                 const timeComparisonValue =
                   explore?.controls?.time_compare?.value;
+>>>>>>> origin/master
                 const { colnames: _colnames, coltypes: _coltypes } =
                   chart?.queriesResponse?.[0] ?? {};
                 let colnames: string[] = _colnames || [];
@@ -799,6 +809,19 @@ const config: ControlPanelConfig = {
                   chart?.queriesResponse?.[0] ?? {};
                 const numericColumns =
                   Array.isArray(colnames) && Array.isArray(coltypes)
+<<<<<<< HEAD
+                    ? colnames
+                        .filter(
+                          (colname: string, index: number) =>
+                            coltypes[index] === GenericDataType.Numeric,
+                        )
+                        .map((colname: string) => ({
+                          value: colname,
+                          label: Array.isArray(verboseMap)
+                            ? colname
+                            : (verboseMap[colname] ?? colname),
+                        }))
+=======
                     ? colnames.reduce((acc, colname, index) => {
                         if (
                           coltypes[index] === GenericDataType.Numeric ||
@@ -816,6 +839,7 @@ const config: ControlPanelConfig = {
                         }
                         return acc;
                       }, [])
+>>>>>>> origin/master
                     : [];
                 const columnOptions = hasTimeComparison
                   ? processComparisonColumns(

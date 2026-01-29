@@ -144,8 +144,13 @@ class Superset(BaseSupersetView):
         endpoint_params = {"form_data": f"{form_data}"}
 
         if ReservedUrlParameters.is_standalone_mode():
+<<<<<<< HEAD
+            endpoint += f"&{ReservedUrlParameters.STANDALONE.value}=true"
+        return redirect(endpoint)
+=======
             endpoint_params[ReservedUrlParameters.STANDALONE.value] = "true"
         return redirect(url_for("ExploreView.root", **endpoint_params))
+>>>>>>> origin/master
 
     def get_query_string_response(self, viz_obj: BaseViz) -> FlaskResponse:
         query = None

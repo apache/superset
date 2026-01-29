@@ -23,7 +23,11 @@ from typing import Any
 
 from flask_appbuilder.models.sqla import Model
 
+<<<<<<< HEAD
+from superset import db, is_feature_enabled, security_manager
+=======
 from superset import db
+>>>>>>> origin/master
 from superset.commands.base import BaseCommand
 from superset.commands.database.exceptions import (
     DatabaseExistsValidationError,
@@ -88,7 +92,11 @@ class UpdateDatabaseCommand(BaseCommand):
         # build new DB
         database = DatabaseDAO.update(self._model, self._properties)
         database.set_sqlalchemy_uri(database.sqlalchemy_uri)
+<<<<<<< HEAD
+        ssh_tunnel = self._handle_ssh_tunnel(database)
+=======
 
+>>>>>>> origin/master
         new_catalog = database.get_default_catalog()
 
         # update assets when the database catalog changes, if the database was not
@@ -150,7 +158,60 @@ class UpdateDatabaseCommand(BaseCommand):
                 self._model.purge_oauth2_tokens()
                 break
 
+<<<<<<< HEAD
+    def _handle_ssh_tunnel(self, database: Database) -> SSHTunnel | None:
+        """
+        Delete, create, or update an SSH tunnel.
+        """
+        if "ssh_tunnel" not in self._properties:
+            return None
+
+        if not is_feature_enabled("SSH_TUNNELING"):
+            raise SSHTunnelingNotEnabledError()
+
+        current_ssh_tunnel = DatabaseDAO.get_ssh_tunnel(database.id)
+        ssh_tunnel_properties = self._properties["ssh_tunnel"]
+
+        if ssh_tunnel_properties is None:
+            if current_ssh_tunnel:
+                DeleteSSHTunnelCommand(current_ssh_tunnel.id).run()
+            return None
+
+        if current_ssh_tunnel is None:
+            return CreateSSHTunnelCommand(database, ssh_tunnel_properties).run()
+
+        return UpdateSSHTunnelCommand(
+            current_ssh_tunnel.id,
+            ssh_tunnel_properties,
+        ).run()
+
     def _update_catalog_attribute(
+        self,
+        database_id: int,
+        new_catalog: str | None,
+    ) -> None:
+        """
+        Update the catalog of the datasets that are associated with database.
+        """
+        from superset.connectors.sqla.models import SqlaTable
+        from superset.models.sql_lab import Query, SavedQuery, TableSchema, TabState
+
+        for model in [
+            SqlaTable,
+            Query,
+            SavedQuery,
+            TabState,
+            TableSchema,
+        ]:
+            fk = "db_id" if model == SavedQuery else "database_id"
+            predicate = {fk: database_id}
+            update = {"catalog": new_catalog}
+            db.session.query(model).filter_by(**predicate).update(update)
+
+    def _get_catalog_names(
+=======
+    def _update_catalog_attribute(
+>>>>>>> origin/master
         self,
         database_id: int,
         new_catalog: str | None,

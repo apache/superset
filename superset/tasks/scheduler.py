@@ -106,7 +106,11 @@ def scheduler(self: Task) -> None:  # pylint: disable=unused-argument
 
 @celery_app.task(name="reports.execute", bind=True)
 def execute(self: Task, report_schedule_id: int) -> None:
+<<<<<<< HEAD
+    stats_logger: BaseStatsLogger = app.config["STATS_LOGGER"]
+=======
     stats_logger: BaseStatsLogger = current_app.config["STATS_LOGGER"]
+>>>>>>> origin/master
     stats_logger.incr("reports.execute")
 
     task_id = None
@@ -156,7 +160,11 @@ def prune_log() -> None:
 def prune_query(
     self: Task, retention_period_days: int | None = None, **kwargs: Any
 ) -> None:
+<<<<<<< HEAD
+    stats_logger: BaseStatsLogger = app.config["STATS_LOGGER"]
+=======
     stats_logger: BaseStatsLogger = current_app.config["STATS_LOGGER"]
+>>>>>>> origin/master
     stats_logger.incr("prune_query")
 
     # TODO: Deprecated: Remove support for passing retention period via options in 6.0
@@ -177,12 +185,18 @@ def prune_query(
 
 @celery_app.task(name="prune_logs", bind=True)
 def prune_logs(
+<<<<<<< HEAD
+    self: Task, retention_period_days: int | None = None, **kwargs: Any
+) -> None:
+    stats_logger: BaseStatsLogger = app.config["STATS_LOGGER"]
+=======
     self: Task,
     retention_period_days: int | None = None,
     max_rows_per_run: int | None = None,
     **kwargs: Any,
 ) -> None:
     stats_logger: BaseStatsLogger = current_app.config["STATS_LOGGER"]
+>>>>>>> origin/master
     stats_logger.incr("prune_logs")
 
     # TODO: Deprecated: Remove support for passing retention period via options in 6.0
@@ -196,6 +210,10 @@ def prune_logs(
         )
 
     try:
+<<<<<<< HEAD
+        LogPruneCommand(retention_period_days).run()
+=======
         LogPruneCommand(retention_period_days, max_rows_per_run).run()
+>>>>>>> origin/master
     except CommandException as ex:
         logger.exception("An error occurred while pruning logs: %s", ex)

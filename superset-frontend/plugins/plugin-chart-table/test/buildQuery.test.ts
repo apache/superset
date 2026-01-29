@@ -148,6 +148,8 @@ describe('plugin-chart-table', () => {
       expect(queries[1].extras?.time_grain_sqla).toEqual(TimeGranularity.MONTH);
       expect(queries[1].extras?.where).toEqual("(status IN ('In Process'))");
     });
+<<<<<<< HEAD
+=======
 
     describe('Percent Metric Calculation Modes', () => {
       const baseFormDataWithPercents: TableChartFormData = {
@@ -279,5 +281,6 @@ describe('plugin-chart-table', () => {
         expect(queries[0].filters?.some(f => f.op === 'ILIKE')).toBeFalsy();
       });
     });
+>>>>>>> origin/master
   });
 });

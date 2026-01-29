@@ -28,7 +28,11 @@ from superset.migrations.shared.utils import paginated_update, try_load_json
 from superset.utils import json
 from superset.utils.date_parser import get_since_until
 
+<<<<<<< HEAD
+logger = logging.getLogger("alembic")
+=======
 logger = logging.getLogger("alembic.env")
+>>>>>>> origin/master
 
 Base = declarative_base()
 
@@ -180,7 +184,11 @@ class MigrateViz:
             slc.params = json.dumps({**clz.data, **backup})
 
         except Exception as e:
+<<<<<<< HEAD
+            logger.warning(f"Failed to migrate slice {slc.id}: {e}")
+=======
             logger.warning("Failed to migrate slice %s: %s", slc.id, e)
+>>>>>>> origin/master
 
     @classmethod
     def downgrade_slice(cls, slc: Slice) -> None:
@@ -202,14 +210,22 @@ class MigrateViz:
                     slc.query_context = None
 
         except Exception as e:
+<<<<<<< HEAD
+            logger.warning(f"Failed to downgrade slice {slc.id}: {e}")
+=======
             logger.warning("Failed to downgrade slice %s: %s", slc.id, e)
+>>>>>>> origin/master
 
     @classmethod
     def upgrade(cls, session: Session) -> None:
         slices = session.query(Slice).filter(Slice.viz_type == cls.source_viz_type)
         for slc in paginated_update(
             slices,
+<<<<<<< HEAD
+            lambda current, total: logger.info(f"Upgraded {current}/{total} charts"),
+=======
             lambda current, total: logger.info("Upgraded %s/%s charts", current, total),
+>>>>>>> origin/master
         ):
             cls.upgrade_slice(slc)
 
@@ -223,9 +239,13 @@ class MigrateViz:
         )
         for slc in paginated_update(
             slices,
+<<<<<<< HEAD
+            lambda current, total: logger.info(f"Downgraded {current}/{total} charts"),
+=======
             lambda current, total: logger.info(
                 "Downgraded %s/%s charts", current, total
             ),
+>>>>>>> origin/master
         ):
             cls.downgrade_slice(slc)
 

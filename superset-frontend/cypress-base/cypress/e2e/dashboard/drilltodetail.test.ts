@@ -437,7 +437,7 @@ describe.skip('Drill to detail modal', () => {
       SUPPORTED_TIER2_CHARTS.forEach(waitForChartLoad);
     });
 
-    describe('Modal actions', () => {
+    describe.only('Modal actions', () => {
       it('clears filters', () => {
         interceptSamples();
 

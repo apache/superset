@@ -23,6 +23,10 @@ from zipfile import is_zipfile
 
 import prison
 import pytest
+<<<<<<< HEAD
+import yaml
+=======
+>>>>>>> origin/master
 from flask_babel import lazy_gettext as _
 from parameterized import parameterized
 from sqlalchemy import and_

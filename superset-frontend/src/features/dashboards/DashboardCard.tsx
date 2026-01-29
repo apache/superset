@@ -172,9 +172,13 @@ function DashboardCard({
         url={bulkSelectEnabled ? undefined : dashboard.url}
         linkComponent={Link}
         imgURL={thumbnailUrl}
+<<<<<<< HEAD
+        imgFallbackURL="/static/assets/images/dashboard-card-fallback.svg"
+=======
         imgFallbackURL={assetUrl(
           '/static/assets/images/dashboard-card-fallback.svg',
         )}
+>>>>>>> origin/master
         description={t('Modified %s', dashboard.changed_on_delta_humanized)}
         coverLeft={<FacePile users={dashboard.owners || []} />}
         actions={

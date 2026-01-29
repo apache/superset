@@ -537,6 +537,42 @@ CURRENCIES = ["USD", "EUR", "GBP", "INR", "MXN", "JPY", "CNY"]
 #   - deprecated: Will be removed in a future major release
 
 DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
+<<<<<<< HEAD
+    # When using a recent version of Druid that supports JOINs turn this on
+    "DRUID_JOINS": False,
+    "DYNAMIC_PLUGINS": False,
+    "ENABLE_TEMPLATE_PROCESSING": False,
+    # Allow for javascript controls components
+    # this enables programmers to customize certain charts (like the
+    # geospatial ones) by inputting javascript in controls. This exposes
+    # an XSS security vulnerability
+    "ENABLE_JAVASCRIPT_CONTROLS": False,  # deprecated
+    # When this feature is enabled, nested types in Presto will be
+    # expanded into extra columns and/or arrays. This is experimental,
+    # and doesn't work with all nested types.
+    "PRESTO_EXPAND_DATA": False,
+    # Exposes API endpoint to compute thumbnails
+    "THUMBNAILS": False,
+    # Enables the endpoints to cache and retrieve dashboard screenshots via webdriver.
+    # Requires configuring Celery and a cache using THUMBNAIL_CACHE_CONFIG.
+    "ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS": False,
+    # Generate screenshots (PDF or JPG) of dashboards using the web driver.
+    # When disabled, screenshots are generated on the fly by the browser.
+    # This feature flag is used by the download feature in the dashboard view.
+    # It is dependent on ENABLE_DASHBOARD_SCREENSHOT_ENDPOINT being enabled.
+    "ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT": False,
+    "TAGGING_SYSTEM": False,
+    "SQLLAB_BACKEND_PERSISTENCE": True,
+    "LISTVIEWS_DEFAULT_CARD_VIEW": False,
+    # When True, this escapes HTML (rather than rendering it) in Markdown components
+    "ESCAPE_MARKDOWN_HTML": False,
+    "DASHBOARD_VIRTUALIZATION": True,
+    # This feature flag is stil in beta and is not recommended for production use.
+    "GLOBAL_ASYNC_QUERIES": False,
+    "EMBEDDED_SUPERSET": False,
+    # Enables Alerts and reports new implementation
+    "ALERT_REPORTS": False,
+=======
     # =================================================================
     # IN DEVELOPMENT
     # =================================================================
@@ -548,6 +584,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "AG_GRID_TABLE_ENABLED": False,
     # Enables experimental tabs UI for Alerts and Reports
     # @lifecycle: development
+>>>>>>> origin/master
     "ALERT_REPORT_TABS": False,
     # Enables experimental chart plugins
     # @lifecycle: development
@@ -1381,12 +1418,16 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         # "prune_logs": {
         #     "task": "prune_logs",
         #     "schedule": crontab(minute="*", hour="*"),
+<<<<<<< HEAD
+        #     "kwargs": {"retention_period_days": 180},
+=======
         #     "kwargs": {"retention_period_days": 180, "max_rows_per_run": 10000},
         # },
         # Uncomment to enable Slack channel cache warm-up
         # "slack.cache_channels": {
         #     "task": "slack.cache_channels",
         #     "schedule": crontab(minute="0", hour="*"),
+>>>>>>> origin/master
         # },
     }
 

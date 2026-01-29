@@ -101,6 +101,116 @@ describe('DashboardList', () => {
       feature => feature === 'LISTVIEWS_DEFAULT_CARD_VIEW',
     );
     fetchMock.resetHistory();
+<<<<<<< HEAD
+    wrapper = mount(
+      <MemoryRouter>
+        <reactRedux.Provider store={store}>
+          <DashboardList {...mockedProps} user={mockUser} />
+        </reactRedux.Provider>
+      </MemoryRouter>,
+    );
+
+    await waitForComponentToPaint(wrapper);
+  });
+
+  it('renders', () => {
+    expect(wrapper.find(DashboardList)).toExist();
+  });
+
+  it('renders a ListView', () => {
+    expect(wrapper.find(ListView)).toExist();
+  });
+
+  it('fetches info', () => {
+    const callsI = fetchMock.calls(/dashboard\/_info/);
+    expect(callsI).toHaveLength(1);
+  });
+
+  it('fetches data', () => {
+    wrapper.update();
+    const callsD = fetchMock.calls(/dashboard\/\?q/);
+    expect(callsD).toHaveLength(1);
+    expect(callsD[0][0]).toMatchInlineSnapshot(
+      `"http://localhost/api/v1/dashboard/?q=(order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25,select_columns:!(id,dashboard_title,published,url,slug,changed_by,changed_by.id,changed_by.first_name,changed_by.last_name,changed_on_delta_humanized,owners,owners.id,owners.first_name,owners.last_name,tags.id,tags.name,tags.type,status,certified_by,certification_details,changed_on))"`,
+    );
+  });
+
+  it('renders a card view', () => {
+    expect(wrapper.find(ListViewCard)).toExist();
+  });
+
+  it('renders a table view', async () => {
+    wrapper.find('[aria-label="list-view"]').first().simulate('click');
+    await waitForComponentToPaint(wrapper);
+    expect(wrapper.find('table')).toExist();
+  });
+
+  it('edits', async () => {
+    expect(wrapper.find(PropertiesModal)).not.toExist();
+    wrapper.find('[data-test="edit-alt"]').first().simulate('click');
+    await waitForComponentToPaint(wrapper);
+    expect(wrapper.find(PropertiesModal)).toExist();
+  });
+
+  it('card view edits', async () => {
+    wrapper.find('[data-test="edit-alt"]').last().simulate('click');
+    await waitForComponentToPaint(wrapper);
+    expect(wrapper.find(PropertiesModal)).toExist();
+  });
+
+  it('delete', async () => {
+    wrapper
+      .find('[data-test="dashboard-list-trash-icon"]')
+      .first()
+      .simulate('click');
+    await waitForComponentToPaint(wrapper);
+    expect(wrapper.find(ConfirmStatusChange)).toExist();
+  });
+
+  it('card view delete', async () => {
+    wrapper
+      .find('[data-test="dashboard-list-trash-icon"]')
+      .last()
+      .simulate('click');
+    await waitForComponentToPaint(wrapper);
+    expect(wrapper.find(ConfirmStatusChange)).toExist();
+  });
+
+  it('renders the Favorite Star column in list view for logged in user', async () => {
+    wrapper.find('[aria-label="list-view"]').first().simulate('click');
+    await waitForComponentToPaint(wrapper);
+    expect(wrapper.find(TableCollection).find(FaveStar)).toExist();
+  });
+
+  it('renders the Favorite Star in card view for logged in user', async () => {
+    wrapper.find('[aria-label="card-view"]').first().simulate('click');
+    await waitForComponentToPaint(wrapper);
+    expect(wrapper.find(CardCollection).find(FaveStar)).toExist();
+  });
+});
+
+describe('RTL', () => {
+  async function renderAndWait() {
+    const mounted = act(async () => {
+      const mockedProps = {};
+      render(
+        <MemoryRouter>
+          <QueryParamProvider>
+            <DashboardList {...mockedProps} user={mockUser} />
+          </QueryParamProvider>
+        </MemoryRouter>,
+        { useRedux: true },
+      );
+    });
+
+    return mounted;
+  }
+
+  beforeEach(async () => {
+    isFeatureEnabled.mockImplementation(() => true);
+    await renderAndWait();
+=======
+>>>>>>> origin/master
   });
 
   afterEach(() => {

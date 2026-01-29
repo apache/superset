@@ -66,6 +66,10 @@ export default function AllEntitiesTable({
 }: AllEntitiesTableProps) {
   type objectType = 'dashboard' | 'chart' | 'query';
 
+<<<<<<< HEAD
+  const [tagId] = useQueryParam('id', NumberParam);
+=======
+>>>>>>> origin/master
   const showDashboardList = objects.dashboard.length > 0;
   const showChartList = objects.chart.length > 0;
   const showQueryList = objects.query.length > 0;

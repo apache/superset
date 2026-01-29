@@ -486,6 +486,10 @@ class WebDriverSelenium(WebDriverProxy):
         # We need to pop it from the dict due to selenium_version < 4.10.0
         options.binary_location = webdriver_config.pop("binary_location", "")
 
+        # Set the binary location if provided
+        # We need to pop it from the dict due to selenium_version < 4.10.0
+        options.binary_location = webdriver_conf.pop("binary_location", "")
+
         if version.parse(selenium_version) < version.parse("4.10.0"):
             kwargs |= webdriver_config
         else:

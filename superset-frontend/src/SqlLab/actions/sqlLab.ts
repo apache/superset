@@ -402,10 +402,14 @@ export function querySuccess(query: Query, results: SqlExecuteResponse) {
   return { type: QUERY_SUCCESS, query, results } as const;
 }
 
+<<<<<<< HEAD:superset-frontend/src/SqlLab/actions/sqlLab.js
+export function logFailedQuery(query, errors) {
+=======
 export function logFailedQuery(
   query: Query,
   errors?: SupersetError[],
 ): SqlLabThunkAction<void> {
+>>>>>>> origin/master:superset-frontend/src/SqlLab/actions/sqlLab.ts
   return function (dispatch) {
     const eventData = {
       has_err: true,
@@ -413,9 +417,13 @@ export function logFailedQuery(
       ts: new Date().getTime(),
     };
     errors?.forEach(({ error_type: errorType, message, extra }) => {
+<<<<<<< HEAD:superset-frontend/src/SqlLab/actions/sqlLab.js
+      const issueCodes = extra?.issue_codes?.map(({ code }) => code) || [-1];
+=======
       const issueCodes = (
         extra as { issue_codes?: { code: number }[] }
       )?.issue_codes?.map(({ code }) => code) || [-1];
+>>>>>>> origin/master:superset-frontend/src/SqlLab/actions/sqlLab.ts
       dispatch(
         logEvent(LOG_ACTIONS_SQLLAB_FETCH_FAILED_QUERY, {
           ...eventData,
@@ -425,6 +433,16 @@ export function logFailedQuery(
         }),
       );
     });
+<<<<<<< HEAD:superset-frontend/src/SqlLab/actions/sqlLab.js
+  };
+}
+
+export function queryFailed(query, msg, link, errors) {
+  return function (dispatch) {
+    dispatch(logFailedQuery(query, errors));
+    dispatch({ type: QUERY_FAILED, query, msg, link, errors });
+=======
+>>>>>>> origin/master:superset-frontend/src/SqlLab/actions/sqlLab.ts
   };
 }
 

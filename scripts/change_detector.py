@@ -141,10 +141,14 @@ def main(event_type: str, sha: str, repo: str) -> None:
     output_path = os.getenv("GITHUB_OUTPUT") or "/tmp/GITHUB_OUTPUT.txt"  # noqa: S108
     with open(output_path, "a") as f:
         for check, changed in changes_detected.items():
+<<<<<<< HEAD
+            if changed:
+=======
             # NOTE: as noted above, we assume that if 100 files are touched, we should
             # trigger all checks. This is a workaround for the GitHub API limit of 100
             # files. Using >= 99 because off-by-one errors are not uncommon
             if changed or len(files) >= 99:
+>>>>>>> origin/master
                 print(f"{check}=true", file=f)
                 print(f"Triggering group: {check}")
 

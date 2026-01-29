@@ -26,6 +26,10 @@ import customParseFormat from 'dayjs/plugin/customParseFormat';
 import duration from 'dayjs/plugin/duration';
 import updateLocale from 'dayjs/plugin/updateLocale';
 import localizedFormat from 'dayjs/plugin/localizedFormat';
+<<<<<<< HEAD:superset-frontend/src/utils/dates.ts
+import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
+=======
+>>>>>>> origin/master:superset-frontend/packages/superset-ui-core/src/utils/dates.ts
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -35,6 +39,10 @@ dayjs.extend(customParseFormat);
 dayjs.extend(duration);
 dayjs.extend(updateLocale);
 dayjs.extend(localizedFormat);
+<<<<<<< HEAD:superset-frontend/src/utils/dates.ts
+dayjs.extend(isSameOrBefore);
+=======
+>>>>>>> origin/master:superset-frontend/packages/superset-ui-core/src/utils/dates.ts
 
 dayjs.updateLocale('en', {
   invalidDate: 'Invalid date',

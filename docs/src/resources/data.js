@@ -134,7 +134,11 @@ export const Databases = [
   },
   {
     title: 'TDengine',
+<<<<<<< HEAD
+    href: 'https://www.tdengine.com/',
+=======
     href: 'https://tdengine.com/',
+>>>>>>> origin/master
     imgName: 'tdengine.png',
   },
 ];

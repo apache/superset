@@ -27,7 +27,10 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_data,  # noqa: F401
 )
 
+<<<<<<< HEAD
+=======
 from flask import current_app, Flask, g  # noqa: F401
+>>>>>>> origin/master
 import pandas as pd
 import pytest
 import marshmallow

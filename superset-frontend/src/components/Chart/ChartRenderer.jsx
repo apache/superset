@@ -127,7 +127,10 @@ class ChartRenderer extends Component {
         this.props.actions?.updateDataMask(this.props.chartId, dataMask);
       },
       onLegendScroll: this.handleLegendScroll,
+<<<<<<< HEAD
+=======
       onChartStateChange: this.props.onChartStateChange,
+>>>>>>> origin/master
     };
 
     // TODO: queriesResponse comes from Redux store but it's being edited by
@@ -409,7 +412,10 @@ class ChartRenderer extends Component {
             postTransformProps={postTransformProps}
             emitCrossFilters={emitCrossFilters}
             legendState={this.state.legendState}
+<<<<<<< HEAD
+=======
             enableNoResults={bypassNoResult}
+>>>>>>> origin/master
             legendIndex={this.state.legendIndex}
             {...drillToDetailProps}
           />

@@ -1516,9 +1516,13 @@ def test_slack_chart_report_schedule_v2(
     screenshot_mock.return_value = SCREENSHOT_FILE
 
     with freeze_time("2020-01-01T00:00:00Z"):
+<<<<<<< HEAD
+        with patch.object(current_app.config["STATS_LOGGER"], "gauge") as statsd_mock:
+=======
         with patch(
             "superset.extensions.stats_logger_manager.instance.gauge"
         ) as statsd_mock:
+>>>>>>> origin/master
             AsyncExecuteReportScheduleCommand(
                 TEST_ID, create_report_slack_chartv2.id, datetime.utcnow()
             ).run()

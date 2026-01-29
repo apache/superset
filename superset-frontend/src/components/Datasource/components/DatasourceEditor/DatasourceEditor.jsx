@@ -19,8 +19,15 @@
 import rison from 'rison';
 import { PureComponent, useCallback } from 'react';
 import PropTypes from 'prop-types';
+<<<<<<< HEAD:superset-frontend/src/components/Datasource/DatasourceEditor.jsx
+import { Radio } from 'src/components/Radio';
+import Card from 'src/components/Card';
+import Alert from 'src/components/Alert';
+import Badge from 'src/components/Badge';
+=======
 import { connect } from 'react-redux';
 import { Radio } from '@superset-ui/core/components/Radio';
+>>>>>>> origin/master:superset-frontend/src/components/Datasource/components/DatasourceEditor/DatasourceEditor.jsx
 import {
   isFeatureEnabled,
   getCurrencySymbol,
@@ -48,6 +55,12 @@ import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import SpatialControl from 'src/explore/components/controls/SpatialControl';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import CurrencyControl from 'src/explore/components/controls/CurrencyControl';
+<<<<<<< HEAD:superset-frontend/src/components/Datasource/DatasourceEditor.jsx
+import CollectionTable from './CollectionTable';
+import Fieldset from './Fieldset';
+import Field from './Field';
+import { fetchSyncedColumns, updateColumns } from './utils';
+=======
 import {
   AsyncSelect,
   Badge,
@@ -84,6 +97,7 @@ import { fetchSyncedColumns, updateColumns } from '../../utils';
 import DatasetUsageTab from './components/DatasetUsageTab';
 
 const extensionsRegistry = getExtensionsRegistry();
+>>>>>>> origin/master:superset-frontend/src/components/Datasource/components/DatasourceEditor/DatasourceEditor.jsx
 
 const DatasourceContainer = styled.div`
   .change-warning {
@@ -194,6 +208,14 @@ const StyledButtonWrapper = styled.span`
     }
   `}
 `;
+
+const sqlTooltipOptions = {
+  placement: 'topRight',
+  title: t(
+    'If changes are made to your SQL query, ' +
+      'columns in your dataset will be synced when saving the dataset.',
+  ),
+};
 
 const checkboxGenerator = (d, onChange) => (
   <CheckboxControl value={d} onChange={onChange} />
@@ -797,6 +819,13 @@ class DatasourceEditor extends PureComponent {
     });
   }
 
+<<<<<<< HEAD:superset-frontend/src/components/Datasource/DatasourceEditor.jsx
+  async syncMetadata() {
+    const { datasource } = this.state;
+    this.setState({ metadataLoading: true });
+    try {
+      const newCols = await fetchSyncedColumns(datasource);
+=======
   /**
    * Formats SQL query using the SQL format API endpoint.
    * Aborts any pending format requests before starting a new one.
@@ -862,6 +891,7 @@ class DatasourceEditor extends PureComponent {
     try {
       const newCols = await fetchSyncedColumns(datasource, signal);
 
+>>>>>>> origin/master:superset-frontend/src/components/Datasource/components/DatasourceEditor/DatasourceEditor.jsx
       const columnChanges = updateColumns(
         datasource.columns,
         newCols,
@@ -872,6 +902,13 @@ class DatasourceEditor extends PureComponent {
           col => !col.expression, // remove calculated columns
         ),
       });
+<<<<<<< HEAD:superset-frontend/src/components/Datasource/DatasourceEditor.jsx
+      this.props.addSuccessToast(t('Metadata has been synced'));
+      this.setState({ metadataLoading: false });
+    } catch (error) {
+      const { error: clientError, statusText } =
+        await getClientErrorObject(error);
+=======
 
       clearDatasetCache(datasource.id);
 
@@ -889,10 +926,13 @@ class DatasourceEditor extends PureComponent {
       const { error: clientError, statusText } =
         await getClientErrorObject(error);
 
+>>>>>>> origin/master:superset-frontend/src/components/Datasource/components/DatasourceEditor/DatasourceEditor.jsx
       this.props.addDangerToast(
         clientError || statusText || t('An error has occurred'),
       );
       this.setState({ metadataLoading: false });
+<<<<<<< HEAD:superset-frontend/src/components/Datasource/DatasourceEditor.jsx
+=======
     } finally {
       this.abortControllers.syncMetadata = null;
     }
@@ -1008,6 +1048,7 @@ class DatasourceEditor extends PureComponent {
       };
     } finally {
       this.abortControllers.fetchUsageData = null;
+>>>>>>> origin/master:superset-frontend/src/components/Datasource/components/DatasourceEditor/DatasourceEditor.jsx
     }
   }
 
@@ -1513,6 +1554,17 @@ class DatasourceEditor extends PureComponent {
                         'columns in your dataset will be synced when saving the dataset.',
                     )}
                     control={
+<<<<<<< HEAD:superset-frontend/src/components/Datasource/DatasourceEditor.jsx
+                      <TextAreaControl
+                        language="sql"
+                        offerEditInModal={false}
+                        minLines={20}
+                        maxLines={Infinity}
+                        readOnly={!this.state.isEditMode}
+                        resize="both"
+                        tooltipOptions={sqlTooltipOptions}
+                      />
+=======
                       this.props.database?.isLoading ? (
                         <>
                           {this.renderSqlEditorOverlay()}
@@ -1588,6 +1640,7 @@ class DatasourceEditor extends PureComponent {
                           icon={<Icons.CaretRightFilled iconSize="s" />}
                         />
                       </div>
+>>>>>>> origin/master:superset-frontend/src/components/Datasource/components/DatasourceEditor/DatasourceEditor.jsx
                     }
                   />
                   {this.props.database?.queryResult && (

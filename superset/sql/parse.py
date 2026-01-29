@@ -35,6 +35,11 @@ from sqlglot.dialects.dialect import (
 )
 from sqlglot.dialects.singlestore import SingleStore
 from sqlglot.errors import ParseError
+<<<<<<< HEAD
+from sqlglot.expressions import Func
+from sqlglot.optimizer.pushdown_predicates import pushdown_predicates
+from sqlglot.optimizer.scope import Scope, ScopeType, traverse_scope
+=======
 from sqlglot.optimizer.pushdown_predicates import (
     pushdown_predicates,
 )
@@ -49,6 +54,7 @@ from superset.sql.dialects import DB2, Dremio, Firebolt, Pinot
 
 if TYPE_CHECKING:
     from superset.models.core import Database
+>>>>>>> origin/master
 
 
 logger = logging.getLogger(__name__)
@@ -904,6 +910,23 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         transformer = transformers[method](catalog, schema, predicates)
         self._parsed = self._parsed.transform(transformer)
 
+    def check_functions_present(self, functions: set[str]) -> bool:
+        """
+        Check if any of the given functions are present in the script.
+
+        :param functions: List of functions to check for
+        :return: True if any of the functions are present
+        """
+        present = {
+            (
+                function.sql_name()
+                if function.sql_name() != "ANONYMOUS"
+                else function.name.upper()
+            )
+            for function in self._parsed.find_all(Func)
+        }
+        return any(function.upper() in present for function in functions)
+
 
 class KQLSplitState(enum.Enum):
     """
@@ -1236,6 +1259,16 @@ class KustoKQLStatement(BaseSQLStatement[str]):
         """
         return predicate
 
+    def check_functions_present(self, functions: set[str]) -> bool:
+        """
+        Check if any of the given functions are present in the script.
+
+        :param functions: List of functions to check for
+        :return: True if any of the functions are present
+        """
+        logger.warning("Kusto KQL doesn't support checking for functions present.")
+        return True
+
 
 class SQLScript:
     """
@@ -1313,6 +1346,8 @@ class SQLScript:
             for statement in self.statements
         )
 
+<<<<<<< HEAD
+=======
     def is_valid_ctas(self) -> bool:
         """
         Check if the script contains a valid CTAS statement.
@@ -1331,6 +1366,7 @@ class SQLScript:
         """
         return len(self.statements) == 1 and self.statements[0].is_select()
 
+>>>>>>> origin/master
 
 def extract_tables_from_statement(
     statement: exp.Expression,

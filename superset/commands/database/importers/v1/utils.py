@@ -78,7 +78,10 @@ def import_database(  # noqa: C901
 
     # set SQLAlchemy URI via `set_sqlalchemy_uri` so that the password gets masked
     sqlalchemy_uri = config.pop("sqlalchemy_uri")
+<<<<<<< HEAD
+=======
     # TODO (betodealmeida): we should use the `CreateDatabaseCommand` for imports
+>>>>>>> origin/master
     database: Database = Database.import_from_dict(config, recursive=False)
     database.set_sqlalchemy_uri(sqlalchemy_uri)
 

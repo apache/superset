@@ -206,6 +206,10 @@ beforeEach(() => {
   window.history.pushState({}, 'Test page', '/dashboard?standalone=1');
 });
 
+beforeEach(() => {
+  window.history.pushState({}, 'Test page', '/dashboard?standalone=1');
+});
+
 test('should render', () => {
   const { container } = setup();
   expect(container).toBeInTheDocument();
@@ -599,7 +603,11 @@ test('should hide edit button and navbar, and show Exit fullscreen when in fulls
 test('should show Exit fullscreen when in fullscreen mode', async () => {
   setup();
 
+<<<<<<< HEAD
+  fireEvent.click(screen.getByTestId('actions-trigger'));
+=======
   userEvent.click(screen.getByTestId('actions-trigger'));
+>>>>>>> origin/master
 
   expect(await screen.findByText('Exit fullscreen')).toBeInTheDocument();
 });

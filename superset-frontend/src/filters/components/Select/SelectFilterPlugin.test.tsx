@@ -307,6 +307,14 @@ describe('SelectFilterPlugin', () => {
         coltypeMap={{ bval: 1 }}
         data={[{ bval: bigValue }]}
         setDataMask={jest.fn()}
+<<<<<<< HEAD
+      />,
+    );
+    userEvent.click(screen.getByRole('combobox'));
+    expect(await screen.findByRole('combobox')).toBeInTheDocument();
+    await userEvent.type(screen.getByRole('combobox'), '1');
+    expect(screen.queryByLabelText(String(bigValue))).toBeInTheDocument();
+=======
         showOverflow={false}
       />,
       {
@@ -1129,5 +1137,6 @@ test('Clear boolean TRUE value', async () => {
         excludeFilterValues: true,
       },
     });
+>>>>>>> origin/master
   });
 });

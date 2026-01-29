@@ -700,6 +700,8 @@ def test_get_oauth2_config_token_request_type_from_db_engine_specs(
     }
 
 
+<<<<<<< HEAD
+=======
 def test_get_oauth2_config_custom_token_request_type_extra(app_context: None) -> None:
     """
     Test passing a custom ``token_request_type`` via ``encrypted_extra``
@@ -753,6 +755,7 @@ def test_get_oauth2_config_redirect_uri_from_config(
     assert config["redirect_uri"] == custom_redirect_uri
 
 
+>>>>>>> origin/master
 def test_raw_connection_oauth_engine(mocker: MockerFixture) -> None:
     """
     Test that we can start OAuth2 from `raw_connection()` errors.

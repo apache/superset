@@ -425,8 +425,13 @@ class ExtraCache:
                     # IS_NULL and IS_NOT_NULL operators do not have a value
                     or op
                     in (
+<<<<<<< HEAD
+                        FilterOperator.IS_NULL.value,
+                        FilterOperator.IS_NOT_NULL.value,
+=======
                         FilterOperator.IS_NULL,
                         FilterOperator.IS_NOT_NULL,
+>>>>>>> origin/master
                     )
                 )
             ):
@@ -768,13 +773,18 @@ class BaseTemplateProcessor:
 
         kwargs.update(self._context)
         context = validate_template_context(self.engine, kwargs)
+<<<<<<< HEAD
+=======
 
+>>>>>>> origin/master
         try:
             return template.render(context)
         except RecursionError as ex:
             raise SupersetTemplateException(
                 "Infinite recursion detected in template"
             ) from ex
+<<<<<<< HEAD
+=======
         except UndefinedError as ex:
             match = re.search(r'["\']([^"\']+)["\']\s+is undefined', str(ex))
             undefined_name = match.group(1) if match else None
@@ -783,6 +793,7 @@ class BaseTemplateProcessor:
             ):
                 raise UndefinedTemplateFunctionException(str(ex)) from ex
             raise
+>>>>>>> origin/master
 
 
 class JinjaTemplateProcessor(BaseTemplateProcessor):
@@ -1084,7 +1095,11 @@ def metric_macro(
     env: Environment,
     context: dict[str, Any],
     metric_key: str,
+<<<<<<< HEAD
+    dataset_id: Optional[int] = None,
+=======
     dataset_id: int | None = None,
+>>>>>>> origin/master
 ) -> str:
     """
     Given a metric key, returns its syntax.

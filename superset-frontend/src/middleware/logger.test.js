@@ -84,7 +84,11 @@ describe('logger middleware', () => {
     );
   });
 
+<<<<<<< HEAD
+  it('should include ts, start_offset, event_name, impression_id, source, and source_id in every event', () => {
+=======
   test('should include ts, start_offset, event_name, impression_id, source, and source_id in every event', () => {
+>>>>>>> origin/master
     const fetchLog = logger(mockStore)(next);
     fetchLog({
       type: LOG_EVENT,

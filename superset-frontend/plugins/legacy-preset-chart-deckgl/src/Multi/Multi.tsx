@@ -63,6 +63,8 @@ import { getPoints as getPointsHex } from '../layers/Hex/Hex';
 import { getPoints as getPointsGeojson } from '../layers/Geojson/Geojson';
 import { getPoints as getPointsScreengrid } from '../layers/Screengrid/Screengrid';
 
+<<<<<<< HEAD
+=======
 type DataMaskState = Record<
   string,
   DataMask & {
@@ -70,6 +72,7 @@ type DataMaskState = Record<
   }
 >;
 
+>>>>>>> origin/master
 export type DeckMultiProps = {
   formData: QueryFormData;
   payload: JsonObject;
@@ -104,6 +107,30 @@ const selectDataMask = createSelector(
 const DeckMulti = (props: DeckMultiProps) => {
   const containerRef = useRef<DeckGLContainerHandle>();
 
+<<<<<<< HEAD
+  const getAdjustedViewport = useCallback(() => {
+    let viewport = { ...props.viewport };
+    const points = [
+      ...getPointsPolygon(props.payload.data.features.deck_polygon || []),
+      ...getPointsPath(props.payload.data.features.deck_path || []),
+      ...getPointsGrid(props.payload.data.features.deck_grid || []),
+      ...getPointsScatter(props.payload.data.features.deck_scatter || []),
+      ...getPointsContour(props.payload.data.features.deck_contour || []),
+      ...getPointsHeatmap(props.payload.data.features.deck_heatmap || []),
+      ...getPointsHex(props.payload.data.features.deck_hex || []),
+      ...getPointsArc(props.payload.data.features.deck_arc || []),
+      ...getPointsGeojson(props.payload.data.features.deck_geojson || []),
+      ...getPointsScreengrid(props.payload.data.features.deck_screengrid || []),
+    ];
+
+    if (props.formData) {
+      viewport = fitViewport(viewport, {
+        width: props.width,
+        height: props.height,
+        points,
+      });
+    }
+=======
   const dataMask = useSelector(selectDataMask);
 
   const layerVisibilityFilter = Object.values(dataMask).find(
@@ -142,6 +169,7 @@ const DeckMulti = (props: DeckMultiProps) => {
       }
     }
 
+>>>>>>> origin/master
     if (viewport.zoom < 0) {
       viewport.zoom = 0;
     }
@@ -312,6 +340,36 @@ const DeckMulti = (props: DeckMultiProps) => {
   );
 
   const loadLayers = useCallback(
+<<<<<<< HEAD
+    (formData: QueryFormData, payload: JsonObject, viewport?: Viewport) => {
+      setViewport(getAdjustedViewport());
+      setSubSlicesLayers({});
+      payload.data.slices.forEach(
+        (subslice: { slice_id: number } & JsonObject) => {
+          // Filters applied to multi_deck are passed down to underlying charts
+          // note that dashboard contextual information (filter_immune_slices and such) aren't
+          // taken into consideration here
+          const extra_filters = [
+            ...(subslice.form_data.extra_filters || []),
+            ...(formData.extra_filters || []),
+            ...(formData.extra_form_data?.filters || []),
+          ];
+
+          const adhoc_filters = [
+            ...(formData.adhoc_filters || []),
+            ...(subslice.formData?.adhoc_filters || []),
+            ...(formData.extra_form_data?.adhoc_filters || []),
+          ];
+
+          const subsliceCopy = {
+            ...subslice,
+            form_data: {
+              ...subslice.form_data,
+              extra_filters,
+              adhoc_filters,
+            },
+          };
+=======
     (
       formData: QueryFormData,
       payload: JsonObject,
@@ -319,6 +377,7 @@ const DeckMulti = (props: DeckMultiProps) => {
     ): void => {
       setViewport(getAdjustedViewport());
       setSubSlicesLayers({});
+>>>>>>> origin/master
 
       let visibleDeckLayers = visibleLayers;
 
@@ -357,7 +416,17 @@ const DeckMulti = (props: DeckMultiProps) => {
 
       setLayerOrder(orderedSliceIds);
     },
+<<<<<<< HEAD
+    [
+      props.datasource,
+      props.onAddFilter,
+      props.onSelect,
+      setTooltip,
+      getAdjustedViewport,
+    ],
+=======
     [getAdjustedViewport, loadSingleLayer],
+>>>>>>> origin/master
   );
 
   const prevDeckSlices = usePrevious(props.formData.deck_slices);
@@ -394,6 +463,19 @@ const DeckMulti = (props: DeckMultiProps) => {
   );
 
   return (
+<<<<<<< HEAD
+    <DeckGLContainerStyledWrapper
+      ref={containerRef}
+      mapboxApiAccessToken={payload.data.mapboxApiKey}
+      viewport={viewport}
+      layers={layers}
+      mapStyle={formData.mapbox_style}
+      setControlValue={setControlValue}
+      onViewportChange={setViewport}
+      height={height}
+      width={width}
+    />
+=======
     <MultiWrapper height={height} width={width}>
       <DeckGLContainerStyledWrapper
         ref={containerRef}
@@ -407,6 +489,7 @@ const DeckMulti = (props: DeckMultiProps) => {
         width={width}
       />
     </MultiWrapper>
+>>>>>>> origin/master
   );
 };
 

@@ -32,7 +32,11 @@ import { Maybe } from '../../types';
 import { PostProcessingRule } from './PostProcessing';
 import { JsonObject } from '../../connection';
 import { TimeGranularity } from '../../time-format';
+<<<<<<< HEAD
+import { GenericDataType, DataRecordValue } from './QueryResponse';
+=======
 import { DataRecordValue } from './QueryResponse';
+>>>>>>> origin/master
 
 export type BaseQueryObjectFilterClause = {
   col: QueryFormColumn;

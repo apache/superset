@@ -297,6 +297,9 @@ describe('DashboardBuilder', () => {
     expect(filterbar).toHaveStyleRule('width', `${expectedValue}px`);
   });
 
+<<<<<<< HEAD
+  it('should not render the filter bar when nativeFiltersEnabled is false', () => {
+=======
   test('should set header max width based on open filter bar width', () => {
     const expectedValue = 320;
     const setter = jest.fn();
@@ -417,6 +420,7 @@ describe('DashboardBuilder', () => {
   });
 
   test('should not render the filter bar when nativeFiltersEnabled is false', () => {
+>>>>>>> origin/master
     jest.spyOn(useNativeFiltersModule, 'useNativeFilters').mockReturnValue({
       showDashboard: true,
       missingInitialFilters: [],
@@ -429,7 +433,11 @@ describe('DashboardBuilder', () => {
     expect(queryByTestId('dashboard-filters-panel')).not.toBeInTheDocument();
   });
 
+<<<<<<< HEAD
+  it('should render the filter bar when nativeFiltersEnabled is true and not in edit mode', () => {
+=======
   test('should render the filter bar when nativeFiltersEnabled is true and not in edit mode', () => {
+>>>>>>> origin/master
     jest.spyOn(useNativeFiltersModule, 'useNativeFilters').mockReturnValue({
       showDashboard: true,
       missingInitialFilters: [],
@@ -442,7 +450,11 @@ describe('DashboardBuilder', () => {
     expect(queryByTestId('dashboard-filters-panel')).toBeInTheDocument();
   });
 
+<<<<<<< HEAD
+  it('should not render the filter bar when in edit mode even if nativeFiltersEnabled is true', () => {
+=======
   test('should not render the filter bar when in edit mode even if nativeFiltersEnabled is true', () => {
+>>>>>>> origin/master
     jest.spyOn(useNativeFiltersModule, 'useNativeFilters').mockReturnValue({
       showDashboard: true,
       missingInitialFilters: [],
@@ -456,6 +468,8 @@ describe('DashboardBuilder', () => {
 
     expect(queryByTestId('dashboard-filters-panel')).not.toBeInTheDocument();
   });
+<<<<<<< HEAD
+=======
 });
 
 test('should render ParentSize wrapper with height 100% for tabs', async () => {
@@ -520,4 +534,5 @@ test('should maintain layout when switching between tabs', async () => {
 
   expect(gridContainer).toBeInTheDocument();
   expect(tabPanels.length).toBeGreaterThan(0);
+>>>>>>> origin/master
 });

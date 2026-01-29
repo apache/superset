@@ -30,14 +30,24 @@ RUN apt-get install -y apt-transport-https apt-utils
 # Install superset dependencies
 # https://superset.apache.org/docs/installation/installing-superset-from-scratch
 RUN apt-get install -y build-essential libssl-dev \
+<<<<<<< HEAD
+    libffi-dev python3-dev libsasl2-dev libldap2-dev libxi-dev chromium zstd
+=======
   libffi-dev python3-dev libsasl2-dev libldap2-dev libxi-dev chromium zstd
+>>>>>>> origin/master
 
 # Install nodejs for custom build
 # https://nodejs.org/en/download/package-manager/
 RUN set -eux; \
+<<<<<<< HEAD
+    curl -sL https://deb.nodesource.com/setup_20.x | bash -; \
+    apt-get install -y nodejs; \
+    node --version;
+=======
   curl -sL https://deb.nodesource.com/setup_20.x | bash -; \
   apt-get install -y nodejs; \
   node --version;
+>>>>>>> origin/master
 RUN if ! which npm; then apt-get install -y npm; fi
 
 RUN mkdir -p /home/superset
@@ -64,7 +74,12 @@ RUN pip install --upgrade setuptools pip \
 RUN flask fab babel-compile --target superset/translations
 
 ENV PATH=/home/superset/superset/bin:$PATH \
+<<<<<<< HEAD
+    PYTHONPATH=/home/superset/superset/ \
+    SUPERSET_TESTENV=true
+=======
   PYTHONPATH=/home/superset/superset/ \
   SUPERSET_TESTENV=true
+>>>>>>> origin/master
 COPY from_tarball_entrypoint.sh /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]

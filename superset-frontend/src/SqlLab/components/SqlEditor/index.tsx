@@ -290,6 +290,8 @@ const SqlEditor: FC<Props> = ({
 
   const SqlFormExtension = extensionsRegistry.get('sqleditor.extension.form');
 
+  const isTempId = (value: unknown): boolean => Number.isNaN(Number(value));
+
   const startQuery = useCallback(
     (ctasArg = false, ctas_method = CtasEnum.Table) => {
       if (!database) {
@@ -925,6 +927,21 @@ const SqlEditor: FC<Props> = ({
               startQuery={startQuery}
             />
           )}
+<<<<<<< HEAD
+          {isActive && (
+            <AceEditorWrapper
+              autocomplete={autocompleteEnabled && !isTempId(queryEditor.id)}
+              onBlur={onSqlChanged}
+              onChange={onSqlChanged}
+              queryEditorId={queryEditor.id}
+              onCursorPositionChange={handleCursorPositionChange}
+              height={`${aceEditorHeight}px`}
+              hotkeys={hotkeys}
+            />
+          )}
+          {renderEditorBottomBar(showEmptyState)}
+=======
+>>>>>>> origin/master
         </div>
       </Splitter.Panel>
       <Splitter.Panel className="queryPane">

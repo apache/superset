@@ -1463,6 +1463,42 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         state = decode_oauth2_state(parameters["state"])
         tab_id = state["tab_id"]
 
+<<<<<<< HEAD
+        # exchange code for access/refresh tokens
+        database = DatabaseDAO.find_by_id(state["database_id"], skip_base_filter=True)
+        if database is None:
+            return self.response_404()
+
+        oauth2_config = database.get_oauth2_config()
+        if oauth2_config is None:
+            raise OAuth2Error("No configuration found for OAuth2")
+
+        token_response = database.db_engine_spec.get_oauth2_token(
+            oauth2_config,
+            parameters["code"],
+        )
+
+        # delete old tokens
+        existing = DatabaseUserOAuth2TokensDAO.find_one_or_none(
+            user_id=state["user_id"],
+            database_id=state["database_id"],
+        )
+        if existing:
+            DatabaseUserOAuth2TokensDAO.delete([existing])
+
+        # store tokens
+        expiration = datetime.now() + timedelta(seconds=token_response["expires_in"])
+        DatabaseUserOAuth2TokensDAO.create(
+            attributes={
+                "user_id": state["user_id"],
+                "database_id": state["database_id"],
+                "access_token": token_response["access_token"],
+                "access_token_expiration": expiration,
+                "refresh_token": token_response.get("refresh_token"),
+            },
+        )
+=======
+>>>>>>> origin/master
         # return blank page that closes itself
         return make_response(
             render_template("superset/oauth2.html", tab_id=tab_id),

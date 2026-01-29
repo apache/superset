@@ -28,6 +28,8 @@ import {
 } from '../../utilities/tooltipUtils';
 import { HIGHLIGHT_COLOR_ARRAY, TRANSPARENT_COLOR_ARRAY } from '../../utils';
 
+<<<<<<< HEAD
+=======
 interface ArcDataItem {
   sourceColor?: number[];
   targetColor?: number[];
@@ -37,6 +39,7 @@ interface ArcDataItem {
   [key: string]: unknown;
 }
 
+>>>>>>> origin/master
 export function getPoints(data: JsonObject[]) {
   const points: Point[] = [];
   data.forEach(d => {
@@ -100,6 +103,9 @@ export const getLayer: GetLayerType<ArcLayer> = function ({
     },
     id: `path-layer-${fd.slice_id}` as const,
     getWidth: fd.stroke_width ? fd.stroke_width : 3,
+<<<<<<< HEAD
+    ...commonLayerProps(fd, setTooltip, setTooltipContent(fd)),
+=======
     ...commonLayerProps({
       formData: fd,
       setTooltip,
@@ -110,6 +116,7 @@ export const getLayer: GetLayerType<ArcLayer> = function ({
       emitCrossFilters,
     }),
     opacity: filterState?.value ? 0.1 : 1,
+>>>>>>> origin/master
   });
 };
 

@@ -18,7 +18,10 @@
 import copy
 import time
 import unittest
+<<<<<<< HEAD
+=======
 from contextlib import contextmanager
+>>>>>>> origin/master
 from datetime import datetime
 from io import BytesIO
 from typing import Any, Optional
@@ -33,7 +36,10 @@ from superset.charts.data.api import ChartDataRestApi
 from superset.commands.chart.data.get_data_command import ChartDataCommand
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.connectors.sqla.models import SqlaTable, TableColumn
+<<<<<<< HEAD
+=======
 from superset.constants import CACHE_DISABLED_TIMEOUT
+>>>>>>> origin/master
 from superset.errors import SupersetErrorType
 from superset.extensions import async_query_manager_factory, db
 from superset.models.annotations import AnnotationLayer
@@ -50,7 +56,10 @@ from superset.utils.core import (
 )
 from superset.utils.database import get_example_database, get_main_database
 from tests.common.query_context_generator import ANNOTATION_LAYERS
+<<<<<<< HEAD
+=======
 from tests.conftest import with_config
+>>>>>>> origin/master
 from tests.integration_tests.annotation_layers.fixtures import (
     create_annotation_layers,  # noqa: F401
 )

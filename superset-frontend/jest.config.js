@@ -79,5 +79,9 @@ module.exports = {
       },
     ],
   ],
+<<<<<<< HEAD
+  testTimeout: 10000,
+=======
   testTimeout: 20000,
+>>>>>>> origin/master
 };

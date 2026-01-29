@@ -1621,9 +1621,18 @@ class DeckGLMultiLayer(BaseViz):
 
         features: dict[str, list[Any]] = {}
 
+<<<<<<< HEAD
+        for slc in slices:
+            form_data = slc.form_data
+
+            form_data["extra_filters"] = self.form_data.get("extra_filters", [])
+            form_data["extra_form_data"] = self.form_data.get("extra_form_data", {})
+            form_data["adhoc_filters"] = self.form_data.get("adhoc_filters")
+=======
         for layer_index, slc in enumerate(slices):
             form_data = slc.form_data
             form_data = self._apply_layer_filtering(form_data, layer_index)
+>>>>>>> origin/master
 
             viz_type_name = form_data.get("viz_type")
             viz_class = viz_types.get(viz_type_name)
@@ -1633,20 +1642,29 @@ class DeckGLMultiLayer(BaseViz):
             viz_instance = viz_class(datasource=slc.datasource, form_data=form_data)
             payload = viz_instance.get_payload()
 
+<<<<<<< HEAD
+            if payload and "data" in payload and "features" in payload["data"]:
+=======
             if (
                 payload
                 and "data" in payload
                 and payload["data"] is not None
                 and "features" in payload["data"]
             ):
+>>>>>>> origin/master
                 if viz_type_name not in features:
                     features[viz_type_name] = []
                 features[viz_type_name].extend(payload["data"]["features"])
 
         return {
             "features": features,
+<<<<<<< HEAD
+            "mapboxApiKey": config["MAPBOX_API_KEY"],
+            "slices": [slc.data for slc in slices],
+=======
             "mapboxApiKey": current_app.config["MAPBOX_API_KEY"],
             "slices": [slc.data for slc in slices if slc.data is not None],
+>>>>>>> origin/master
         }
 
 

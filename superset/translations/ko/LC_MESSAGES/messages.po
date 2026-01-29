@@ -589,6 +589,12 @@ msgstr ""
 msgid "A Big Number"
 msgstr "테이블 명"
 
+<<<<<<< HEAD
+msgid "Select column names from a dropdown list that should be parsed as dates."
+msgstr "드롭다운 목록에서 날짜로 처리할 열 이름을 선택합니다."
+
+=======
+>>>>>>> origin/master
 msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr ""
 

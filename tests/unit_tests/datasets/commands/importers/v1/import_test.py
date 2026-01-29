@@ -33,6 +33,12 @@ from superset import db, security_manager
 from superset.commands.dataset.exceptions import (
     DatasetForbiddenDataURI,
 )
+<<<<<<< HEAD
+from superset.commands.dataset.importers.v1.utils import validate_data_uri
+from superset.commands.exceptions import ImportFailedError
+from superset.utils import json
+from superset.utils.core import override_user
+=======
 from superset.commands.dataset.importers.v1.utils import (
     import_dataset,
     validate_data_uri,
@@ -46,6 +52,7 @@ from superset.utils.core import override_user
 from tests.integration_tests.fixtures.importexport import (
     dataset_config as dataset_fixture,
 )
+>>>>>>> origin/master
 
 
 def test_import_dataset(mocker: MockerFixture, session: Session) -> None:
@@ -671,6 +678,8 @@ def test_import_dataset_managed_externally(
     assert sqla_table.external_url == "https://example.org/my_table"
 
 
+<<<<<<< HEAD
+=======
 def test_import_dataset_column_datetime_format(
     mocker: MockerFixture,
     session: Session,
@@ -701,6 +710,7 @@ def test_import_dataset_column_datetime_format(
         assert column.datetime_format == "%Y-%m-%d"
 
 
+>>>>>>> origin/master
 def test_import_dataset_without_owner_permission(
     mocker: MockerFixture,
     session: Session,
@@ -708,6 +718,15 @@ def test_import_dataset_without_owner_permission(
     """
     Test importing a dataset that is managed externally.
     """
+<<<<<<< HEAD
+    from superset import security_manager
+    from superset.commands.dataset.importers.v1.utils import import_dataset
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.core import Database
+    from tests.integration_tests.fixtures.importexport import dataset_config
+
+=======
+>>>>>>> origin/master
     mock_can_access = mocker.patch.object(
         security_manager, "can_access", return_value=True
     )
@@ -719,7 +738,11 @@ def test_import_dataset_without_owner_permission(
     db.session.add(database)
     db.session.flush()
 
+<<<<<<< HEAD
+    config = copy.deepcopy(dataset_config)
+=======
     config = copy.deepcopy(dataset_fixture)
+>>>>>>> origin/master
     config["database_id"] = database.id
 
     import_dataset(config)

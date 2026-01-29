@@ -28,6 +28,10 @@ import { unitToRadius } from '../../utils/geo';
 import { HIGHLIGHT_COLOR_ARRAY } from '../../utils';
 import { isMetricValue, extractMetricKey } from '../utils/metricUtils';
 
+<<<<<<< HEAD
+export function getPoints(data: JsonObject[]) {
+  return data.map(d => d.position);
+=======
 function getMetricLabel(metric: any) {
   if (typeof metric === 'string') {
     return metric;
@@ -39,6 +43,7 @@ function getMetricLabel(metric: any) {
     return metric.verbose_name;
   }
   return metric?.value || 'Metric';
+>>>>>>> origin/master
 }
 
 function setTooltipContent(

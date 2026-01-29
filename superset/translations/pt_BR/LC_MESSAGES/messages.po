@@ -630,6 +630,14 @@ msgstr ">= (Maior ou igual)"
 msgid "A Big Number"
 msgstr "Um grande número"
 
+<<<<<<< HEAD
+msgid "Select column names from a dropdown list that should be parsed as dates."
+msgstr ""
+"Selecione os nomes das colunas a serem analisadas como datas na lista "
+"pendente"
+
+=======
+>>>>>>> origin/master
 msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr ""
 "Uma lista separada por vírgulas de esquemas para os quais os arquivos têm"

@@ -287,6 +287,20 @@ export default function transformProps(
     {
       name: metricLabel,
       type: 'heatmap',
+<<<<<<< HEAD
+      data: data.map(row =>
+        colnames.map(col => {
+          const value = row[col];
+          if (value === null || value === undefined) {
+            return NULL_STRING;
+          }
+          if (typeof value === 'boolean' || typeof value === 'bigint') {
+            return String(value);
+          }
+          return value;
+        }),
+      ),
+=======
       data: data.flatMap(row => {
         const xValue = row[xAxisColumnName];
         const yValue = row[yAxisColumnName];
@@ -306,6 +320,7 @@ export default function transformProps(
         }
         return [[xIndex, yIndex, metricValue] as [number, number, any]];
       }),
+>>>>>>> origin/master
       label: {
         show: showValues,
         formatter: (params: CallbackDataParams) => {

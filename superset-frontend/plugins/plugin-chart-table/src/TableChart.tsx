@@ -740,6 +740,10 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       // Calculate the number of placeholder columns needed before the current header
       const startPosition = value[0];
       const colSpan = value.length;
+<<<<<<< HEAD
+      // Retrieve the originalLabel from the first column in this group
+      const originalLabel = columnsMeta[value[0]]?.originalLabel || key;
+=======
       // Retrieve the originalLabel from the first column in this group.
       // Use visibleColumnsMeta to ensure consistent indexing with the actual table columns.
       const firstColumnInGroup = visibleColumnsMeta[startPosition];
@@ -747,6 +751,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         ? columnsMeta.find(col => col.key === firstColumnInGroup.key)
             ?.originalLabel || key
         : key;
+>>>>>>> origin/master
 
       // Add placeholder <th> for columns before this header
       for (let i = currentColumnIndex; i < startPosition; i += 1) {
@@ -1186,9 +1191,13 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             </th>
           ) : (
             <td key={`footer-total-${i}`} style={sharedStyle}>
+<<<<<<< HEAD
+              <strong>{formatColumnValue(column, totals[key])[1]}</strong>
+=======
               <strong>
                 {formatColumnValue(column, displayedTotals[key])[1]}
               </strong>
+>>>>>>> origin/master
             </td>
           )
         ) : undefined,

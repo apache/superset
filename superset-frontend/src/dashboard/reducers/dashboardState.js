@@ -228,17 +228,23 @@ export default function dashboardStateReducer(state = {}, action) {
         .difference(new Set(action.activeTabs))
         .union(new Set(action.inactiveTabs));
 
+<<<<<<< HEAD
+=======
       // Track when each tab was last activated
       const tabActivationTimes = { ...state.tabActivationTimes };
       action.activeTabs.forEach(tabId => {
         tabActivationTimes[tabId] = Date.now();
       });
 
+>>>>>>> origin/master
       return {
         ...state,
         inactiveTabs: Array.from(newInactiveTabs),
         activeTabs: Array.from(newActiveTabs.union(new Set(action.activeTabs))),
+<<<<<<< HEAD
+=======
         tabActivationTimes,
+>>>>>>> origin/master
       };
     },
     [SET_ACTIVE_TABS]() {

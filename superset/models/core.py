@@ -84,7 +84,11 @@ from superset.superset_typing import (
 )
 from superset.utils import cache as cache_util, core as utils, json
 from superset.utils.backports import StrEnum
+<<<<<<< HEAD
+from superset.utils.core import get_username
+=======
 from superset.utils.core import get_query_source_from_request, get_username
+>>>>>>> origin/master
 from superset.utils.oauth2 import (
     check_for_oauth2,
     get_oauth2_access_token,

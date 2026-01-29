@@ -254,7 +254,11 @@ flask==2.3.3
     #   flask-sqlalchemy
     #   flask-testing
     #   flask-wtf
+<<<<<<< HEAD
+flask-appbuilder==4.5.5
+=======
 flask-appbuilder==5.0.2
+>>>>>>> origin/master
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -374,7 +378,11 @@ greenlet==3.1.1
     #   gevent
     #   shillelagh
     #   sqlalchemy
+<<<<<<< HEAD
+grpcio==1.68.0
+=======
 grpcio==1.71.0
+>>>>>>> origin/master
     # via
     #   apache-superset
     #   google-api-core
@@ -571,7 +579,6 @@ numpy==1.26.4
     #   pandas
     #   pandas-gbq
     #   prophet
-    #   pyarrow
 oauthlib==3.2.2
     # via requests-oauthlib
 odfpy==1.4.1
@@ -981,7 +988,11 @@ sqlalchemy-utils==0.38.3
     #   apache-superset
     #   apache-superset-core
     #   flask-appbuilder
+<<<<<<< HEAD
+sqlglot==26.11.1
+=======
 sqlglot==27.15.2
+>>>>>>> origin/master
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset

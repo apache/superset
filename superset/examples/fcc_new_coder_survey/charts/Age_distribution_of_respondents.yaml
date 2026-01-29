@@ -21,21 +21,33 @@ dataset_uuid: d95a2865-53ce-1f82-a53d-8e3c89331469
 description: null
 params:
   adhoc_filters: []
+<<<<<<< HEAD:superset/examples/configs/charts/FCC New Coder Survey/Age_distribution_of_respondents.yaml
+  column: age
+=======
   annotation_layers: []
+>>>>>>> origin/master:superset/examples/fcc_new_coder_survey/charts/Age_distribution_of_respondents.yaml
   color_scheme: supersetColors
   column: age
   datasource: 42__table
   groupby: []
   label_colors: {}
+<<<<<<< HEAD:superset/examples/configs/charts/FCC New Coder Survey/Age_distribution_of_respondents.yaml
+  link_length: "25"
+=======
   link_length: '25'
+>>>>>>> origin/master:superset/examples/fcc_new_coder_survey/charts/Age_distribution_of_respondents.yaml
   row_limit: 10000
   slice_id: 1380
   url_params: {}
   viz_type: histogram_v2
   x_axis_title: age
   y_axis_title: count
+<<<<<<< HEAD:superset/examples/configs/charts/FCC New Coder Survey/Age_distribution_of_respondents.yaml
+cache_timeout: null
+=======
 query_context: null
 slice_name: Age distribution of respondents
+>>>>>>> origin/master:superset/examples/fcc_new_coder_survey/charts/Age_distribution_of_respondents.yaml
 uuid: 5f1ea868-604e-f69d-a241-5daa83ff33be
 version: 1.0.0
 viz_type: histogram_v2

@@ -226,7 +226,11 @@ describe('AdhocFilter', () => {
     });
     expect(adhocFilter2.translateToSql()).toBe('SUM(value) <> 5');
   });
+<<<<<<< HEAD:superset-frontend/src/explore/components/controls/FilterControl/AdhocFilter/AdhocFilter.test.js
+  it('sets comparator to undefined when operator is IS_NULL', () => {
+=======
   test('sets comparator to undefined when operator is IS_NULL', () => {
+>>>>>>> origin/master:superset-frontend/src/explore/components/controls/FilterControl/AdhocFilter/AdhocFilter.test.ts
     const adhocFilter = new AdhocFilter({
       expressionType: ExpressionTypes.Simple,
       subject: 'SUM(value)',
@@ -237,7 +241,11 @@ describe('AdhocFilter', () => {
     });
     expect(adhocFilter.comparator).toBe(undefined);
   });
+<<<<<<< HEAD:superset-frontend/src/explore/components/controls/FilterControl/AdhocFilter/AdhocFilter.test.js
+  it('sets comparator to undefined when operator is IS_NOT_NULL', () => {
+=======
   test('sets comparator to undefined when operator is IS_NOT_NULL', () => {
+>>>>>>> origin/master:superset-frontend/src/explore/components/controls/FilterControl/AdhocFilter/AdhocFilter.test.ts
     const adhocFilter = new AdhocFilter({
       expressionType: ExpressionTypes.Simple,
       subject: 'SUM(value)',
@@ -247,6 +255,32 @@ describe('AdhocFilter', () => {
       clause: Clauses.Having,
     });
     expect(adhocFilter.comparator).toBe(undefined);
+<<<<<<< HEAD:superset-frontend/src/explore/components/controls/FilterControl/AdhocFilter/AdhocFilter.test.js
+  });
+  it('sets comparator to undefined when operator is IS_TRUE', () => {
+    const adhocFilter = new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: 'col',
+      operator: 'IS TRUE',
+      operatorId: Operators.IsTrue,
+      comparator: '5',
+      clause: Clauses.Having,
+    });
+    expect(adhocFilter.comparator).toBe(undefined);
+  });
+  it('sets comparator to undefined when operator is IS_FALSE', () => {
+    const adhocFilter = new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: 'col',
+      operator: 'IS FALSE',
+      operatorId: Operators.IsFalse,
+      comparator: '5',
+      clause: Clauses.Having,
+    });
+    expect(adhocFilter.comparator).toBe(undefined);
+  });
+  it('sets the label properly if subject is a string', () => {
+=======
   });
   test('sets comparator to undefined when operator is IS_TRUE', () => {
     const adhocFilter = new AdhocFilter({
@@ -271,13 +305,18 @@ describe('AdhocFilter', () => {
     expect(adhocFilter.comparator).toBe(undefined);
   });
   test('sets the label properly if subject is a string', () => {
+>>>>>>> origin/master:superset-frontend/src/explore/components/controls/FilterControl/AdhocFilter/AdhocFilter.test.ts
     const adhocFilter = new AdhocFilter({
       expressionType: ExpressionTypes.Simple,
       subject: 'order_date',
     });
     expect(adhocFilter.getDefaultLabel()).toBe('order_date');
   });
+<<<<<<< HEAD:superset-frontend/src/explore/components/controls/FilterControl/AdhocFilter/AdhocFilter.test.js
+  it('sets the label properly if subject is an object with the column_date property', () => {
+=======
   test('sets the label properly if subject is an object with the column_date property', () => {
+>>>>>>> origin/master:superset-frontend/src/explore/components/controls/FilterControl/AdhocFilter/AdhocFilter.test.ts
     const adhocFilter = new AdhocFilter({
       expressionType: ExpressionTypes.Simple,
       subject: {
@@ -286,7 +325,11 @@ describe('AdhocFilter', () => {
     });
     expect(adhocFilter.getDefaultLabel()).toBe('year');
   });
+<<<<<<< HEAD:superset-frontend/src/explore/components/controls/FilterControl/AdhocFilter/AdhocFilter.test.js
+  it('sets the label to empty is there is no column_name in the object', () => {
+=======
   test('sets the label to empty is there is no column_name in the object', () => {
+>>>>>>> origin/master:superset-frontend/src/explore/components/controls/FilterControl/AdhocFilter/AdhocFilter.test.ts
     const adhocFilter = new AdhocFilter({
       expressionType: ExpressionTypes.Simple,
       subject: {
@@ -295,7 +338,11 @@ describe('AdhocFilter', () => {
     });
     expect(adhocFilter.getDefaultLabel()).toBe('');
   });
+<<<<<<< HEAD:superset-frontend/src/explore/components/controls/FilterControl/AdhocFilter/AdhocFilter.test.js
+  it('sets the label to empty is there is no subject', () => {
+=======
   test('sets the label to empty is there is no subject', () => {
+>>>>>>> origin/master:superset-frontend/src/explore/components/controls/FilterControl/AdhocFilter/AdhocFilter.test.ts
     const adhocFilter = new AdhocFilter({
       expressionType: ExpressionTypes.Simple,
       subject: undefined,

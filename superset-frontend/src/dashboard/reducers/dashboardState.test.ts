@@ -22,6 +22,14 @@ import dashboardStateReducer from './dashboardState';
 import { setActiveTab, setActiveTabs } from '../actions/dashboardState';
 import { DashboardState } from '../types';
 
+<<<<<<< HEAD
+const middlewares = [thunk];
+const mockStore = configureMockStore(middlewares);
+
+describe('DashboardState reducer', () => {
+  describe('SET_ACTIVE_TAB', () => {
+    it('switches a single tab', () => {
+=======
 // Type the reducer function properly since it's imported from JS
 type DashboardStateReducer = (
   state: Partial<DashboardState> | undefined,
@@ -58,6 +66,7 @@ describe('DashboardState reducer', () => {
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('SET_ACTIVE_TAB', () => {
     test('switches a single tab', () => {
+>>>>>>> origin/master
       const store = mockStore({
         dashboardState: { activeTabs: [] },
         dashboardLayout: { present: { tab1: { parents: [] } } },
@@ -65,6 +74,12 @@ describe('DashboardState reducer', () => {
       const request = setActiveTab('tab1');
       const thunkAction = request(store.dispatch, store.getState);
 
+<<<<<<< HEAD
+      expect(dashboardStateReducer({ activeTabs: [] }, thunkAction)).toEqual({
+        activeTabs: ['tab1'],
+        inactiveTabs: [],
+      });
+=======
       expect(
         typedDashboardStateReducer(
           createMockDashboardState({ activeTabs: [] }),
@@ -76,10 +91,18 @@ describe('DashboardState reducer', () => {
           inactiveTabs: [],
         }),
       );
+>>>>>>> origin/master
 
       const request2 = setActiveTab('tab2', 'tab1');
       const thunkAction2 = request2(store.dispatch, store.getState);
       expect(
+<<<<<<< HEAD
+        dashboardStateReducer({ activeTabs: ['tab1'] }, thunkAction2),
+      ).toEqual({ activeTabs: ['tab2'], inactiveTabs: [] });
+    });
+
+    it('switches a multi-depth tab', () => {
+=======
         typedDashboardStateReducer(
           createMockDashboardState({ activeTabs: ['tab1'] }),
           thunkAction2,
@@ -90,6 +113,7 @@ describe('DashboardState reducer', () => {
     });
 
     test('switches a multi-depth tab', () => {
+>>>>>>> origin/master
       const initState = { activeTabs: ['TAB-1', 'TAB-A', 'TAB-__a'] };
       const store = mockStore({
         dashboardState: initState,
@@ -106,6 +130,66 @@ describe('DashboardState reducer', () => {
       });
       let request = setActiveTab('TAB-B', 'TAB-A');
       let thunkAction = request(store.dispatch, store.getState);
+<<<<<<< HEAD
+      let result = dashboardStateReducer(
+        { activeTabs: ['TAB-1', 'TAB-A', 'TAB-__a'] },
+        thunkAction,
+      );
+      expect(result).toEqual({
+        activeTabs: expect.arrayContaining(['TAB-1', 'TAB-B']),
+        inactiveTabs: ['TAB-__a'],
+      });
+      request = setActiveTab('TAB-2', 'TAB-1');
+      thunkAction = request(store.dispatch, () => ({
+        ...(store.getState() ?? {}),
+        dashboardState: result,
+      }));
+      result = dashboardStateReducer(result, thunkAction);
+      expect(result).toEqual({
+        activeTabs: ['TAB-2'],
+        inactiveTabs: expect.arrayContaining(['TAB-B', 'TAB-__a']),
+      });
+      request = setActiveTab('TAB-1', 'TAB-2');
+      thunkAction = request(store.dispatch, () => ({
+        ...(store.getState() ?? {}),
+        dashboardState: result,
+      }));
+      result = dashboardStateReducer(result, thunkAction);
+      expect(result).toEqual({
+        activeTabs: expect.arrayContaining(['TAB-1', 'TAB-B']),
+        inactiveTabs: ['TAB-__a'],
+      });
+      request = setActiveTab('TAB-A', 'TAB-B');
+      thunkAction = request(store.dispatch, () => ({
+        ...(store.getState() ?? {}),
+        dashboardState: result,
+      }));
+      result = dashboardStateReducer(result, thunkAction);
+      expect(result).toEqual({
+        activeTabs: expect.arrayContaining(['TAB-1', 'TAB-A', 'TAB-__a']),
+        inactiveTabs: [],
+      });
+      request = setActiveTab('TAB-2', 'TAB-1');
+      thunkAction = request(store.dispatch, () => ({
+        ...(store.getState() ?? {}),
+        dashboardState: result,
+      }));
+      result = dashboardStateReducer(result, thunkAction);
+      expect(result).toEqual({
+        activeTabs: expect.arrayContaining(['TAB-2']),
+        inactiveTabs: ['TAB-A', 'TAB-__a'],
+      });
+      request = setActiveTab('TAB-1', 'TAB-2');
+      thunkAction = request(store.dispatch, () => ({
+        ...(store.getState() ?? {}),
+        dashboardState: result,
+      }));
+      result = dashboardStateReducer(result, thunkAction);
+      expect(result).toEqual({
+        activeTabs: expect.arrayContaining(['TAB-1', 'TAB-A', 'TAB-__a']),
+        inactiveTabs: [],
+      });
+=======
       let result = typedDashboardStateReducer(
         createMockDashboardState({ activeTabs: ['TAB-1', 'TAB-A', 'TAB-__a'] }),
         thunkAction,
@@ -176,6 +260,7 @@ describe('DashboardState reducer', () => {
           inactiveTabs: [],
         }),
       );
+>>>>>>> origin/master
     });
   });
   test('SET_ACTIVE_TABS', () => {

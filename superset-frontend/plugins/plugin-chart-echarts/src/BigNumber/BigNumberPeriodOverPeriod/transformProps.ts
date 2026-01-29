@@ -16,8 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+<<<<<<< HEAD
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+=======
 // Type augmentation for dayjs plugins
 import 'dayjs/plugin/utc';
+>>>>>>> origin/master
 import { Metric } from '@superset-ui/chart-controls';
 import {
   ChartProps,

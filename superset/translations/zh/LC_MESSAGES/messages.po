@@ -606,6 +606,13 @@ msgid "A Big Number"
 msgstr "大数字"
 
 #, fuzzy
+<<<<<<< HEAD
+msgid "Select column names from a dropdown list that should be parsed as dates."
+msgstr "从下拉列表中选择要作为日期处理的列名称。"
+
+#, fuzzy
+=======
+>>>>>>> origin/master
 msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr "允许以逗号分割的CSV文件上传"
 

@@ -25,6 +25,13 @@ from typing import Any, Callable, TYPE_CHECKING
 import wtforms_json
 from colorama import Fore, Style
 from deprecation import deprecated
+<<<<<<< HEAD
+from flask import abort, Flask, redirect, request, session
+from flask_appbuilder import expose, IndexView
+from flask_appbuilder.api import safe
+from flask_appbuilder.utils.base import get_safe_redirect
+from flask_babel import gettext as __, refresh
+=======
 from flask import abort, current_app, Flask, redirect, request, session, url_for
 from flask_appbuilder import expose, IndexView
 from flask_appbuilder.api import safe
@@ -33,6 +40,7 @@ from flask_appbuilder.utils.base import get_safe_redirect
 # using lazy_gettext since initialization happens prior to the request scope
 # and confuses flask-babel
 from flask_babel import lazy_gettext as _, refresh
+>>>>>>> origin/master
 from flask_compress import Compress
 from flask_session import Session
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -940,7 +948,11 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 class SupersetIndexView(IndexView):
     @expose("/")
     def index(self) -> FlaskResponse:
+<<<<<<< HEAD
+        return redirect("/superset/welcome/")
+=======
         return redirect(url_for("Superset.welcome"))
+>>>>>>> origin/master
 
     @expose("/lang/<string:locale>")
     @safe

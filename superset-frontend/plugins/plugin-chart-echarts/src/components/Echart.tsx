@@ -29,8 +29,14 @@ import {
 } from 'react';
 import { useSelector } from 'react-redux';
 
+<<<<<<< HEAD
+import { useSelector } from 'react-redux';
+
+import { styled } from '@superset-ui/core';
+=======
 import { mergeReplaceArrays } from '@superset-ui/core';
 import { styled, useTheme } from '@apache-superset/core/ui';
+>>>>>>> origin/master
 import { use, init, EChartsType, registerLocale } from 'echarts/core';
 import {
   SankeyChart,
@@ -116,8 +122,13 @@ const loadLocale = async (locale: string) => {
   let lang;
   try {
     lang = await import(`echarts/lib/i18n/lang${locale}`);
+<<<<<<< HEAD
+  } catch (e) {
+    console.error(`Locale ${locale} not supported in ECharts`, e);
+=======
   } catch {
     // Locale not supported in ECharts
+>>>>>>> origin/master
   }
   return lang?.default;
 };
@@ -175,11 +186,17 @@ function Echart(
       if (!chartRef.current) {
         chartRef.current = init(divRef.current, null, { locale });
       }
+<<<<<<< HEAD
+      setDidMount(true);
+    });
+  }, [locale]);
+=======
       // did mount
       handleSizeChange({ width, height });
       setDidMount(true);
     });
   }, [locale, width, height, handleSizeChange]);
+>>>>>>> origin/master
 
   useEffect(() => {
     if (didMount) {
@@ -193,6 +210,14 @@ function Echart(
         chartRef.current?.getZr().on(name, handler);
       });
 
+<<<<<<< HEAD
+      chartRef.current?.setOption(echartOptions, true);
+
+      // did mount
+      handleSizeChange({ width, height });
+    }
+  }, [didMount, echartOptions, eventHandlers, zrEventHandlers]);
+=======
       const getEchartsTheme = (options: any) => {
         const antdTheme = theme;
         const echartsTheme = {
@@ -254,6 +279,7 @@ function Echart(
       chartRef.current?.setOption(themedEchartOptions, true);
     }
   }, [didMount, echartOptions, eventHandlers, zrEventHandlers, theme, vizType]);
+>>>>>>> origin/master
 
   useEffect(() => () => chartRef.current?.dispose(), []);
 
@@ -273,7 +299,11 @@ function Echart(
       });
     }
     previousSelection.current = currentSelection;
+<<<<<<< HEAD
+  }, [currentSelection, chartRef.current]);
+=======
   }, [currentSelection]);
+>>>>>>> origin/master
 
   useLayoutEffect(() => {
     handleSizeChange({ width, height });

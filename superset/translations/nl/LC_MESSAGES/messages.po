@@ -612,6 +612,14 @@ msgstr ">= (Groter of gelijk)"
 msgid "A Big Number"
 msgstr "Een groot getal"
 
+<<<<<<< HEAD
+msgid "Select column names from a dropdown list that should be parsed as dates."
+msgstr ""
+"Selecteer de kolomnamen die moeten worden behandeld als datums "
+"in de vervolgkeuzelijst"
+
+=======
+>>>>>>> origin/master
 msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr ""
 "Een komma gescheiden lijst van schema's waar bestanden naar mogen "

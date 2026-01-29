@@ -18,7 +18,11 @@
 ######################################################################
 # Node stage to deal with static asset construction
 ######################################################################
+<<<<<<< HEAD
+ARG PY_VER=3.11.13-slim-bookworm
+=======
 ARG PY_VER=3.11.14-slim-trixie
+>>>>>>> origin/master
 
 # If BUILDPLATFORM is null, set it to 'amd64' (or leave as is otherwise).
 ARG BUILDPLATFORM=${BUILDPLATFORM:-amd64}
@@ -29,7 +33,11 @@ ARG BUILD_TRANSLATIONS="false"
 ######################################################################
 # superset-node-ci used as a base for building frontend assets and CI
 ######################################################################
+<<<<<<< HEAD
+FROM --platform=${BUILDPLATFORM} node:20-bookworm-slim AS superset-node-ci
+=======
 FROM --platform=${BUILDPLATFORM} node:20-trixie-slim AS superset-node-ci
+>>>>>>> origin/master
 ARG BUILD_TRANSLATIONS
 ENV BUILD_TRANSLATIONS=${BUILD_TRANSLATIONS}
 ARG DEV_MODE="false"           # Skip frontend build in dev mode

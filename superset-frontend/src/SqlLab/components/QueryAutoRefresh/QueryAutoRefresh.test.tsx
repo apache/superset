@@ -16,13 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+<<<<<<< HEAD
+=======
 import { act } from 'react-dom/test-utils';
+>>>>>>> origin/master
 import { QueryState } from '@superset-ui/core';
 import fetchMock from 'fetch-mock';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { render, waitFor } from 'spec/helpers/testing-library';
+<<<<<<< HEAD
+=======
 import { cleanup } from '@testing-library/react';
+>>>>>>> origin/master
 import { LOG_ACTIONS_SQLLAB_FETCH_FAILED_QUERY } from 'src/logger/LogUtils';
 import {
   CLEAR_INACTIVE_QUERIES,
@@ -110,9 +116,16 @@ describe('QueryAutoRefresh', () => {
     ).toBe(false);
   });
 
+<<<<<<< HEAD
+  it('Attempts to refresh when given pending query', async () => {
+    const store = mockStore({
+      sqlLab: { ...mockState },
+    });
+=======
   test('Attempts to refresh when given pending query', async () => {
     const store = mockStore({ sqlLab: { ...mockState } });
 
+>>>>>>> origin/master
     fetchMock.get(refreshApi, {
       result: [{ id: runningQuery.id, status: 'success' }],
     });
@@ -136,10 +149,18 @@ describe('QueryAutoRefresh', () => {
     );
   });
 
+<<<<<<< HEAD
+  it('Attempts to clear inactive queries when updated queries are empty', async () => {
+    const store = mockStore({ sqlLab: { ...mockState } });
+    fetchMock.get(refreshApi, {
+      result: [],
+    });
+=======
   test('Attempts to clear inactive queries when updated queries are empty', async () => {
     const store = mockStore({ sqlLab: { ...mockState } });
 
     fetchMock.get(refreshApi, { result: [] });
+>>>>>>> origin/master
 
     render(
       <QueryAutoRefresh
@@ -165,9 +186,14 @@ describe('QueryAutoRefresh', () => {
     expect(fetchMock.calls(refreshApi)).toHaveLength(1);
   });
 
+<<<<<<< HEAD
+  it('Does not fail and attempts to refresh when given pending query and invalid query', async () => {
+    const store = mockStore({ sqlLab: { ...mockState } });
+=======
   test('Does not fail and attempts to refresh with mixed valid/invalid queries', async () => {
     const store = mockStore({ sqlLab: { ...mockState } });
 
+>>>>>>> origin/master
     fetchMock.get(refreshApi, {
       result: [{ id: runningQuery.id, status: 'success' }],
     });
@@ -192,9 +218,14 @@ describe('QueryAutoRefresh', () => {
     );
   });
 
+<<<<<<< HEAD
+  it('Does NOT Attempt to refresh when given only completed queries', async () => {
+    const store = mockStore({ sqlLab: { ...mockState } });
+=======
   test('Does NOT Attempt to refresh when given only completed queries', async () => {
     const store = mockStore({ sqlLab: { ...mockState } });
 
+>>>>>>> origin/master
     fetchMock.get(refreshApi, {
       result: [{ id: runningQuery.id, status: 'success' }],
     });
@@ -220,9 +251,14 @@ describe('QueryAutoRefresh', () => {
     expect(fetchMock.calls(refreshApi)).toHaveLength(0);
   });
 
+<<<<<<< HEAD
+  it('logs the failed error for async queries', async () => {
+    const store = mockStore({ sqlLab: { ...mockState } });
+=======
   test('logs the failed error for async queries', async () => {
     const store = mockStore({ sqlLab: { ...mockState } });
 
+>>>>>>> origin/master
     fetchMock.get(refreshApi, {
       result: [
         {
@@ -249,7 +285,10 @@ describe('QueryAutoRefresh', () => {
         },
       ],
     });
+<<<<<<< HEAD
+=======
 
+>>>>>>> origin/master
     render(
       <QueryAutoRefresh
         queries={runningQueries}
@@ -257,6 +296,23 @@ describe('QueryAutoRefresh', () => {
       />,
       { useRedux: true, store },
     );
+<<<<<<< HEAD
+    await waitFor(
+      () =>
+        expect(store.getActions()).toContainEqual(
+          expect.objectContaining({
+            payload: expect.objectContaining({
+              eventName: LOG_ACTIONS_SQLLAB_FETCH_FAILED_QUERY,
+              eventData: expect.objectContaining({
+                error_type: 'TEST_ERROR',
+                error_details: 'Syntax invalid',
+                issue_codes: [102],
+              }),
+            }),
+          }),
+        ),
+      { timeout: QUERY_UPDATE_FREQ + 100 },
+=======
 
     await act(async () => {
       jest.advanceTimersByTime(QUERY_UPDATE_FREQ + 100);
@@ -275,6 +331,7 @@ describe('QueryAutoRefresh', () => {
           }),
         }),
       ),
+>>>>>>> origin/master
     );
   });
 });

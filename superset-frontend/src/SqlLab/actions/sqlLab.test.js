@@ -492,7 +492,11 @@ describe('async actions', () => {
       });
     });
 
+<<<<<<< HEAD
+    it('calls queryFailed on fetch error and logs the error details', () => {
+=======
     test('calls queryFailed on fetch error and logs the error details', () => {
+>>>>>>> origin/master
       expect.assertions(2);
 
       fetchMock.post(

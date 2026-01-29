@@ -374,6 +374,25 @@ export function DatabaseSelector({
         tooltipContent={t('Force refresh catalog list')}
       />
     );
+<<<<<<< HEAD
+    return renderSelectRow(
+      <Select
+        ariaLabel={t('Select catalog or type to search catalogs')}
+        disabled={!currentDb || readOnly}
+        header={<FormLabel>{t('Catalog')}</FormLabel>}
+        labelInValue
+        loading={loadingCatalogs}
+        name="select-catalog"
+        notFoundContent={t('No compatible catalog found')}
+        placeholder={t('Select catalog or type to search catalogs')}
+        onChange={item => changeCatalog(item as CatalogOption)}
+        options={catalogOptions}
+        showSearch
+        value={currentCatalog || undefined}
+        allowClear
+      />,
+      refreshIcon,
+=======
     return (
       <>
         <StyledFormLabel>{t('Catalog')}</StyledFormLabel>
@@ -395,6 +414,7 @@ export function DatabaseSelector({
           refreshIcon,
         )}
       </>
+>>>>>>> origin/master
     );
   }
 
@@ -405,6 +425,25 @@ export function DatabaseSelector({
         tooltipContent={t('Force refresh schema list')}
       />
     );
+<<<<<<< HEAD
+    return renderSelectRow(
+      <Select
+        ariaLabel={t('Select schema or type to search schemas')}
+        disabled={!currentDb || readOnly}
+        header={<FormLabel>{t('Schema')}</FormLabel>}
+        labelInValue
+        loading={loadingSchemas}
+        name="select-schema"
+        notFoundContent={t('No compatible schema found')}
+        placeholder={t('Select schema or type to search schemas')}
+        onChange={item => changeSchema(item as SchemaOption)}
+        options={schemaOptions}
+        showSearch
+        value={currentSchema}
+        allowClear
+      />,
+      refreshIcon,
+=======
     return (
       <>
         <StyledFormLabel>{t('Schema')}</StyledFormLabel>
@@ -426,6 +465,7 @@ export function DatabaseSelector({
           refreshIcon,
         )}
       </>
+>>>>>>> origin/master
     );
   }
 

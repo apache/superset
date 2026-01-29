@@ -263,11 +263,17 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         """Return metrics names (labels), coerce adhoc metrics to strings."""
         return get_metric_names(
             self.metrics or [],
+<<<<<<< HEAD
+            self.datasource.verbose_map
+            if self.datasource and hasattr(self.datasource, "verbose_map")
+            else None,
+=======
             (
                 self.datasource.verbose_map
                 if self.datasource and hasattr(self.datasource, "verbose_map")
                 else None
             ),
+>>>>>>> origin/master
         )
 
     @property

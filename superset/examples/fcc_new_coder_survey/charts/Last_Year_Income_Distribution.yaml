@@ -21,6 +21,27 @@ dataset_uuid: d95a2865-53ce-1f82-a53d-8e3c89331469
 description: null
 params:
   adhoc_filters:
+<<<<<<< HEAD:superset/examples/configs/charts/FCC New Coder Survey/Last_Year_Income_Distribution.yaml
+    - clause: WHERE
+      comparator: Currently A Developer
+      expressionType: SIMPLE
+      filterOptionName: filter_fvi0jg9aii_2lekqrhy7qk
+      isExtra: false
+      isNew: false
+      operator: ==
+      sqlExpression: null
+      subject: developer_type
+    - clause: WHERE
+      comparator: "100000"
+      expressionType: SIMPLE
+      filterOptionName: filter_khdc3iypzjg_3g6h02b4f2p
+      isExtra: false
+      isNew: false
+      operator: <=
+      sqlExpression: null
+      subject: last_yr_income
+  column: last_yr_income
+=======
   - clause: WHERE
     comparator: Currently A Developer
     expressionType: SIMPLE
@@ -40,12 +61,17 @@ params:
     sqlExpression: null
     subject: last_yr_income
   annotation_layers: []
+>>>>>>> origin/master:superset/examples/fcc_new_coder_survey/charts/Last_Year_Income_Distribution.yaml
   color_scheme: supersetColors
   column: last_yr_income
   datasource: 42__table
   groupby: []
   label_colors: {}
+<<<<<<< HEAD:superset/examples/configs/charts/FCC New Coder Survey/Last_Year_Income_Distribution.yaml
+  link_length: "10"
+=======
   link_length: '10'
+>>>>>>> origin/master:superset/examples/fcc_new_coder_survey/charts/Last_Year_Income_Distribution.yaml
   row_limit: null
   url_params: {}
   viz_type: histogram_v2

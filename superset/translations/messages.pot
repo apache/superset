@@ -575,6 +575,12 @@ msgstr ""
 msgid "A Big Number"
 msgstr ""
 
+<<<<<<< HEAD
+msgid "Select column names from a dropdown list that should be parsed as dates."
+msgstr ""
+
+=======
+>>>>>>> origin/master
 msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr ""
 

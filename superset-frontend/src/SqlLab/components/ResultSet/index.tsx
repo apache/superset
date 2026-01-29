@@ -515,10 +515,48 @@ const ResultSet = ({
       rows,
     });
 
+<<<<<<< HEAD
+    const tooltipText = `${rowsReturnedMessage}. ${limitMessage}`;
+
+    if (alertMessage) {
+      return (
+        <>
+          {!limitReached && shouldUseDefaultDropdownAlert && (
+            <div ref={calculateAlertRefHeight}>
+              <Alert
+                type="warning"
+                onClose={() => setAlertIsOpen(false)}
+                message={t(
+                  'The number of rows displayed is limited to %(rows)d by the dropdown.',
+                  { rows },
+                )}
+              />
+            </div>
+          )}
+          {limitReached && (
+            <div ref={calculateAlertRefHeight}>
+              <Alert
+                type="warning"
+                onClose={() => setAlertIsOpen(false)}
+                message={
+                  isAdmin
+                    ? displayMaxRowsReachedMessage.withAdmin
+                    : displayMaxRowsReachedMessage.withoutAdmin
+                }
+              />
+            </div>
+          )}
+        </>
+      );
+    }
+    const showRowsReturned =
+      showSqlInline || (!limitReached && !shouldUseDefaultDropdownAlert);
+=======
     const hasWarning = !!limitMessage;
     const tooltipText = hasWarning
       ? `${rowsReturnedMessage}. ${limitMessage}`
       : rowsReturnedMessage;
+>>>>>>> origin/master
 
     return (
       <ReturnedRows>

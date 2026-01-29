@@ -165,4 +165,12 @@ export const getHighlightLayer: GetLayerType<GridLayer> = function ({
   });
 };
 
+<<<<<<< HEAD
+export function getPoints(data: JsonObject[]) {
+  return data.map(d => d.position);
+}
+
+export default createDeckGLComponent(getLayer, getPoints);
+=======
 export default createDeckGLComponent(getLayer, getPoints, getHighlightLayer);
+>>>>>>> origin/master

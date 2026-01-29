@@ -25,7 +25,7 @@ from unittest.mock import patch
 
 import pytest
 from pytest_mock import MockerFixture
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm.session import Session
 from sqlalchemy.pool import StaticPool
 from sqlalchemy.sql.elements import ColumnElement
@@ -269,6 +269,19 @@ def test_apply_series_others_grouping(database: Database) -> None:
             TableColumn(column_name="other_col", type="TEXT"),
         ],
     )
+<<<<<<< HEAD
+    # make sure final query has single percents
+    with database.get_sqla_engine() as engine:
+        expected_sql = text(
+            "SELECT DISTINCT CASE WHEN b LIKE 'A%' THEN 'yes' ELSE 'nope' END "
+            "AS column_values \nFROM t\n LIMIT 10000 OFFSET 0"
+        )
+        called_sql = pd.read_sql_query.call_args.kwargs["sql"]
+        called_conn = pd.read_sql_query.call_args.kwargs["con"]
+
+        assert called_sql.compare(expected_sql) is True
+        assert called_conn == engine
+=======
 
     # Mock SELECT expressions
     category_expr = Mock()
@@ -1703,3 +1716,4 @@ def test_adhoc_column_with_spaces_in_full_query(database: Database) -> None:
     # Verify SELECT and FROM clauses are present
     assert "SELECT" in sql
     assert "FROM" in sql
+>>>>>>> origin/master

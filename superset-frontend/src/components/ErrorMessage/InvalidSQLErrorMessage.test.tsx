@@ -50,6 +50,16 @@ const missingExtraProps = {
     },
   },
 };
+<<<<<<< HEAD
+
+const renderComponent = (overrides = {}) =>
+  render(
+    <ThemeProvider theme={supersetTheme}>
+      <InvalidSQLErrorMessage {...defaultProps} {...overrides} />
+    </ThemeProvider>,
+  );
+=======
+>>>>>>> origin/master
 
 const renderComponent = (overrides = {}) =>
   render(<InvalidSQLErrorMessage {...defaultProps} {...overrides} />);
@@ -76,14 +86,23 @@ describe('InvalidSQLErrorMessage', () => {
     unmount();
   });
 
+<<<<<<< HEAD
+  it('renders the error message with the empty extra properties', () => {
+=======
   test('renders the error message with the empty extra properties', () => {
+>>>>>>> origin/master
     const { getByText } = renderComponent(missingExtraProps);
     expect(getByText('Unable to parse SQL')).toBeInTheDocument();
     expect(getByText(missingExtraProps.error.message)).toBeInTheDocument();
   });
 
+<<<<<<< HEAD
+  it('displays the SQL error line and column indicator', () => {
+    const { getByText, container } = renderComponent();
+=======
   test('displays the SQL error line and column indicator', async () => {
     const { getByText, container, unmount } = renderComponent();
+>>>>>>> origin/master
 
     // Validate SQL and caret indicator
     expect(getByText('SELECT * FFROM table')).toBeInTheDocument();

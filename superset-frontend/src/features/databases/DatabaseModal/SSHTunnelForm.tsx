@@ -17,6 +17,15 @@
  * under the License.
  */
 import { useState } from 'react';
+<<<<<<< HEAD
+import { t, styled } from '@superset-ui/core';
+import { AntdForm, Col, Row } from 'src/components';
+import { Form, FormLabel } from 'src/components/Form';
+import { Radio } from 'src/components/Radio';
+import { Input, TextArea } from 'src/components/Input';
+import { Input as AntdInput, Tooltip } from 'antd';
+import Icons from 'src/components/Icons';
+=======
 import { t } from '@apache-superset/core';
 import { styled } from '@apache-superset/core/ui';
 import {
@@ -29,6 +38,7 @@ import {
 import { Input } from '@superset-ui/core/components/Input';
 import { Radio } from '@superset-ui/core/components/Radio';
 import { Icons } from '@superset-ui/core/components/Icons';
+>>>>>>> origin/master
 import { DatabaseObject, FieldPropTypes } from '../types';
 import { AuthType } from '.';
 

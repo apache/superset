@@ -251,6 +251,39 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
     class_permission_name = "Dashboard"
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
 
+<<<<<<< HEAD
+    list_columns = [
+        "id",
+        "published",
+        "status",
+        "slug",
+        "url",
+        "thumbnail_url",
+        "certified_by",
+        "certification_details",
+        "changed_by.first_name",
+        "changed_by.last_name",
+        "changed_by.id",
+        "changed_by_name",
+        "changed_on_utc",
+        "changed_on_delta_humanized",
+        "created_on_delta_humanized",
+        "created_by.first_name",
+        "created_by.id",
+        "created_by.last_name",
+        "dashboard_title",
+        "owners.id",
+        "owners.first_name",
+        "owners.last_name",
+        "roles.id",
+        "roles.name",
+        "is_managed_externally",
+        "tags.id",
+        "tags.name",
+        "tags.type",
+        "uuid",
+    ]
+=======
     # Default list_columns (used if config not set)
     list_columns = FULL_TAG_LIST_COLUMNS
 
@@ -328,6 +361,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         return super().get_list(**kwargs)
+>>>>>>> origin/master
 
     list_select_columns = list_columns + ["changed_on", "created_on", "changed_by_fk"]
     order_columns = [

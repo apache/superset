@@ -671,6 +671,130 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
                       </Col>
                     </Row>
                   )}
+<<<<<<< HEAD
+                </p>
+              </div>
+            }
+            key="2"
+          >
+            <Row>
+              <Col span={24}>
+                <StyledFormItemWithTip
+                  label={t('If table already exists')}
+                  tip={t('What should happen if the table already exists')}
+                  name="already_exists"
+                >
+                  <Select
+                    ariaLabel={t('Choose already exists')}
+                    options={tableAlreadyExistsOptions}
+                    onChange={() => {}}
+                  />
+                </StyledFormItemWithTip>
+              </Col>
+            </Row>
+            {isFieldATypeSpecificField('column_dates', type) && (
+              <Row>
+                <Col span={24}>
+                  <StyledFormItem
+                    label={t('Columns to be parsed as dates')}
+                    name="column_dates"
+                  >
+                    <Select
+                      ariaLabel={t('Choose columns to be parsed as dates')}
+                      mode="multiple"
+                      options={columnsToOptions()}
+                      allowClear
+                      allowNewOptions
+                      placeholder={t(
+                        'Select column names from a dropdown list that should be parsed as dates.',
+                      )}
+                    />
+                  </StyledFormItem>
+                </Col>
+              </Row>
+            )}
+            {isFieldATypeSpecificField('decimal_character', type) && (
+              <Row>
+                <Col span={24}>
+                  <StyledFormItemWithTip
+                    label={t('Decimal character')}
+                    tip={t('Character to interpret as decimal point')}
+                    name="decimal_character"
+                  >
+                    <Input type="text" />
+                  </StyledFormItemWithTip>
+                </Col>
+              </Row>
+            )}
+            {isFieldATypeSpecificField('null_values', type) && (
+              <Row>
+                <Col span={24}>
+                  <StyledFormItemWithTip
+                    label={t('Null Values')}
+                    tip={t(
+                      'Choose values that should be treated as null. Warning: Hive database supports only a single value',
+                    )}
+                    name="null_values"
+                  >
+                    <Select
+                      mode="multiple"
+                      options={nullValuesOptions}
+                      allowClear
+                      allowNewOptions
+                    />
+                  </StyledFormItemWithTip>
+                </Col>
+              </Row>
+            )}
+            {isFieldATypeSpecificField('skip_initial_space', type) && (
+              <Row>
+                <Col span={24}>
+                  <StyledFormItem name="skip_initial_space">
+                    <SwitchContainer
+                      label={t('Skip spaces after delimiter')}
+                      dataTest="skipInitialSpace"
+                    />
+                  </StyledFormItem>
+                </Col>
+              </Row>
+            )}
+            {isFieldATypeSpecificField('skip_blank_lines', type) && (
+              <Row>
+                <Col span={24}>
+                  <StyledFormItem name="skip_blank_lines">
+                    <SwitchContainer
+                      label={t(
+                        'Skip blank lines rather than interpreting them as Not A Number values',
+                      )}
+                      dataTest="skipBlankLines"
+                    />
+                  </StyledFormItem>
+                </Col>
+              </Row>
+            )}
+            {isFieldATypeSpecificField('day_first', type) && (
+              <Row>
+                <Col span={24}>
+                  <StyledFormItem name="day_first">
+                    <SwitchContainer
+                      label={t(
+                        'DD/MM format dates, international and European format',
+                      )}
+                      dataTest="dayFirst"
+                    />
+                  </StyledFormItem>
+                </Col>
+              </Row>
+            )}
+          </Collapse.Panel>
+          <Collapse.Panel
+            header={
+              <div>
+                <h4>{t('Columns')}</h4>
+                <p className="helper">
+                  {t(
+                    'Adjust column settings such as specifying the columns to read, how duplicates are handled, column data types, and more.',
+=======
                   <Row>
                     <Col span={24}>
                       <StyledFormItem
@@ -743,6 +867,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
                         </StyledFormItemWithTip>
                       </Col>
                     </Row>
+>>>>>>> origin/master
                   )}
                   {isFieldATypeSpecificField('sheet_name', type) && (
                     <Row>

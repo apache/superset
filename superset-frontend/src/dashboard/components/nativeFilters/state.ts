@@ -200,6 +200,15 @@ export function useIsFilterInScope() {
   // Chart is in an active tab tree if all of its ancestors of type TAB are active
   // Dividers are always in scope
   return useCallback(
+<<<<<<< HEAD
+    (filter: Filter | Divider) => {
+      if (isFilterDivider(filter)) return true;
+
+      const isChartInScope =
+        Array.isArray(filter.chartsInScope) &&
+        filter.chartsInScope.length > 0 &&
+        filter.chartsInScope.some((chartId: number) => {
+=======
     (filter: FilterElement | Divider) => {
       if (filter.type === NativeFilterType.Divider) return true;
 
@@ -209,6 +218,7 @@ export function useIsFilterInScope() {
       let isChartInScope = false;
       if (hasChartsInScope) {
         isChartInScope = filter.chartsInScope!.some((chartId: number) => {
+>>>>>>> origin/master
           const tabParents = selectChartTabParents(chartId);
           return (
             !tabParents ||
@@ -216,6 +226,14 @@ export function useIsFilterInScope() {
             tabParents.every(tab => activeTabs.includes(tab))
           );
         });
+<<<<<<< HEAD
+
+      const isFilterInActiveTab =
+        filter.scope?.rootPath &&
+        filter.scope.rootPath.some(tab => activeTabs.includes(tab));
+
+      return isChartInScope || isFilterInActiveTab;
+=======
       }
 
       if (isChartCustomization(filter)) {
@@ -232,6 +250,7 @@ export function useIsFilterInScope() {
       return (
         filter.scope?.rootPath?.some(tab => activeTabs.includes(tab)) ?? false
       );
+>>>>>>> origin/master
     },
     [selectChartTabParents, activeTabs],
   );

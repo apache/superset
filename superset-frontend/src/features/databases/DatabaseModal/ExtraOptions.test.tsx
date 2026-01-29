@@ -23,7 +23,11 @@ import {
   screen,
   waitFor,
 } from 'spec/helpers/testing-library';
+<<<<<<< HEAD
+import { t } from '@superset-ui/core';
+=======
 import { t } from '@apache-superset/core';
+>>>>>>> origin/master
 import * as ace from 'ace-builds';
 
 import ExtraOptions from './ExtraOptions';
@@ -67,7 +71,10 @@ const defaultDb = {
   parameters: {}, // added dummy value for parameters
 };
 
+<<<<<<< HEAD
+=======
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+>>>>>>> origin/master
 describe('ExtraOptions Component', () => {
   const onInputChange = jest.fn();
   const onTextChange = jest.fn();
@@ -92,7 +99,11 @@ describe('ExtraOptions Component', () => {
     jest.clearAllMocks();
   });
 
+<<<<<<< HEAD
+  it('renders all main panels', () => {
+=======
   test('renders all main panels', () => {
+>>>>>>> origin/master
     renderComponent();
 
     expect(screen.getByText(t('SQL Lab'))).toBeInTheDocument();
@@ -101,7 +112,11 @@ describe('ExtraOptions Component', () => {
     expect(screen.getByText(t('Other'))).toBeInTheDocument();
   });
 
+<<<<<<< HEAD
+  it('calls onInputChange when "Expose database in SQL Lab" checkbox is clicked', () => {
+=======
   test('calls onInputChange when "Expose database in SQL Lab" checkbox is clicked', () => {
+>>>>>>> origin/master
     renderComponent();
     const sqlLabText = screen.getByText(t('SQL Lab'));
     fireEvent.click(sqlLabText);
@@ -111,7 +126,11 @@ describe('ExtraOptions Component', () => {
     expect(onInputChange).toHaveBeenCalled();
   });
 
+<<<<<<< HEAD
+  it('calls onExtraInputChange when "Enable query cost estimation" checkbox is clicked', () => {
+=======
   test('calls onExtraInputChange when "Enable query cost estimation" checkbox is clicked', () => {
+>>>>>>> origin/master
     renderComponent();
     const sqlLabText = screen.getByText(t('SQL Lab'));
     fireEvent.click(sqlLabText);
@@ -120,7 +139,11 @@ describe('ExtraOptions Component', () => {
     expect(onExtraInputChange).toHaveBeenCalled();
   });
 
+<<<<<<< HEAD
+  it('calls onExtraEditorChange when metadata_params json editor changes', async () => {
+=======
   test('calls onExtraEditorChange when metadata_params json editor changes', async () => {
+>>>>>>> origin/master
     renderComponent();
 
     // Click to open the editor tab/section
@@ -164,7 +187,11 @@ describe('ExtraOptions Component', () => {
     });
   });
 
+<<<<<<< HEAD
+  it('calls onTextChange when server certificate textarea is changed', () => {
+=======
   test('calls onTextChange when server certificate textarea is changed', () => {
+>>>>>>> origin/master
     renderComponent();
     // Click to open the security tab/section
     const securityHeader = screen.getByText(t('Security'));
@@ -175,7 +202,11 @@ describe('ExtraOptions Component', () => {
     expect(onTextChange).toHaveBeenCalled();
   });
 
+<<<<<<< HEAD
+  it('handles input change for schema cache timeout', () => {
+=======
   test('handles input change for schema cache timeout', () => {
+>>>>>>> origin/master
     renderComponent();
     const performanceHeader = screen.getByText(t('Performance'));
     fireEvent.click(performanceHeader);
@@ -184,7 +215,11 @@ describe('ExtraOptions Component', () => {
     expect(onExtraInputChange).toHaveBeenCalled();
   });
 
+<<<<<<< HEAD
+  it('handles input change for table cache timeout', () => {
+=======
   test('handles input change for table cache timeout', () => {
+>>>>>>> origin/master
     renderComponent();
     const performanceHeader = screen.getByText(t('Performance'));
     fireEvent.click(performanceHeader);
@@ -192,6 +227,8 @@ describe('ExtraOptions Component', () => {
     fireEvent.change(input, { target: { value: '1000' } });
     expect(onExtraInputChange).toHaveBeenCalled();
   });
+<<<<<<< HEAD
+=======
 
   test('renders the collaps tab correctly and resets to default tab after closing', () => {
     const { rerender } = renderComponent();
@@ -237,4 +274,5 @@ describe('ExtraOptions Component', () => {
       expect(panelTab).toHaveAttribute('aria-expanded', 'false');
     });
   });
+>>>>>>> origin/master
 });

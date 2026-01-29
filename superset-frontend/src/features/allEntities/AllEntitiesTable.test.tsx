@@ -92,7 +92,11 @@ describe('AllEntitiesTable', () => {
     jest.restoreAllMocks();
   });
 
+<<<<<<< HEAD
+  it('renders when empty with button to tag if user has perm', () => {
+=======
   test('renders when empty with button to tag if user has perm', () => {
+>>>>>>> origin/master
     render(
       <AllEntitiesTable
         search=""
@@ -110,7 +114,11 @@ describe('AllEntitiesTable', () => {
     expect(screen.getByText('Add tag to entities')).toBeInTheDocument();
   });
 
+<<<<<<< HEAD
+  it('renders when empty without button to tag if user does not have perm', () => {
+=======
   test('renders when empty without button to tag if user does not have perm', () => {
+>>>>>>> origin/master
     render(
       <AllEntitiesTable
         search=""
@@ -128,7 +136,11 @@ describe('AllEntitiesTable', () => {
     expect(screen.queryByText('Add tag to entities')).not.toBeInTheDocument();
   });
 
+<<<<<<< HEAD
+  it('renders the correct tags for each object type, excluding the current tag', () => {
+=======
   test('renders the correct tags for each object type', () => {
+>>>>>>> origin/master
     render(
       <AllEntitiesTable
         search=""
@@ -153,6 +165,29 @@ describe('AllEntitiesTable', () => {
   });
 
   test('Only list asset types that have entities', () => {
+    const mockObjects = {
+      dashboard: [],
+      chart: [mockObjectsWithTags.chart[0]],
+      query: [],
+    };
+
+    render(
+      <AllEntitiesTable
+        search=""
+        setShowTagModal={mockSetShowTagModal}
+        objects={mockObjects}
+        canEditTag
+      />,
+      { useRouter: true },
+    );
+
+    expect(screen.queryByText('Dashboards')).not.toBeInTheDocument();
+    expect(screen.getByText('Charts')).toBeInTheDocument();
+    expect(screen.getByText('Monthly Revenue')).toBeInTheDocument();
+    expect(screen.queryByText('Queries')).not.toBeInTheDocument();
+  });
+
+  it('Only list asset types that have entities', () => {
     const mockObjects = {
       dashboard: [],
       chart: [mockObjectsWithTags.chart[0]],

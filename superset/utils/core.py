@@ -1946,12 +1946,47 @@ def normalize_dttm_col(
         if _col.col_label not in df.columns:
             continue
 
+<<<<<<< HEAD
+        if _col.timestamp_format in ("epoch_s", "epoch_ms"):
+            dttm_series = df[_col.col_label]
+            if is_numeric_dtype(dttm_series):
+                # Column is formatted as a numeric value
+                unit = _col.timestamp_format.replace("epoch_", "")
+                df[_col.col_label] = pd.to_datetime(
+                    dttm_series,
+                    utc=False,
+                    unit=unit,
+                    origin="unix",
+                    errors="coerce",
+                    exact=False,
+                )
+            else:
+                # Column has already been formatted as a timestamp.
+                try:
+                    df[_col.col_label] = dttm_series.apply(
+                        lambda x: pd.Timestamp(x) if pd.notna(x) else pd.NaT
+                    )
+                except ValueError:
+                    logger.warning(
+                        "Unable to convert column %s to datetime, ignoring",
+                        _col.col_label,
+                    )
+        else:
+            df[_col.col_label] = pd.to_datetime(
+                df[_col.col_label],
+                utc=False,
+                format=_col.timestamp_format,
+                errors="coerce",
+                exact=False,
+            )
+=======
         # Use format from format_map if available and not already set
         if format_map and _col.col_label in format_map and not _col.timestamp_format:
             _col.timestamp_format = format_map[_col.col_label]
 
         _process_datetime_column(df, _col)
 
+>>>>>>> origin/master
         if _col.offset:
             df[_col.col_label] += timedelta(hours=_col.offset)
         if _col.time_shift is not None:

@@ -228,6 +228,8 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       moreProps.row_offset = 0;
     }
 
+<<<<<<< HEAD
+=======
     if (!isDownloadQuery && formDataCopy.server_pagination) {
       const pageSize = ownState.pageSize ?? formDataCopy.server_page_length;
       const currentPage = ownState.currentPage ?? 0;
@@ -243,6 +245,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       sortByFromOwnState = [[sortByItem?.key, !sortByItem?.desc]];
     }
 
+>>>>>>> origin/master
     let queryObject = {
       ...baseQueryObject,
       columns,

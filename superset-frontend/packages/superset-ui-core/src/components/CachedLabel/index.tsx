@@ -18,12 +18,20 @@
  */
 import { useState, FC } from 'react';
 
+<<<<<<< HEAD:superset-frontend/src/components/CachedLabel/index.tsx
+import { css, t } from '@superset-ui/core';
+import Label from 'src/components/Label';
+import { Tooltip } from 'src/components/Tooltip';
+import { TooltipContent } from './TooltipContent';
+import Icons from '../Icons';
+=======
 import { t } from '@apache-superset/core';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Label } from '../Label';
 import { Tooltip } from '../Tooltip';
 import { TooltipContent } from './TooltipContent';
 import type { CacheLabelProps } from './types';
+>>>>>>> origin/master:superset-frontend/packages/superset-ui-core/src/components/CachedLabel/index.tsx
 
 export const CachedLabel: FC<CacheLabelProps> = ({
   className,
@@ -40,6 +48,9 @@ export const CachedLabel: FC<CacheLabelProps> = ({
     >
       <Label
         className={`${className}`}
+        css={theme => css`
+          gap: ${theme.gridUnit * 0.5}px;
+        `}
         type={labelType}
         onClick={onClick}
         onMouseOver={() => setHovered(true)}
@@ -47,6 +58,10 @@ export const CachedLabel: FC<CacheLabelProps> = ({
         icon={<Icons.SyncOutlined iconSize="m" />}
       >
         {t('Cached')}
+<<<<<<< HEAD:superset-frontend/src/components/CachedLabel/index.tsx
+        <Icons.SyncOutlined iconSize="m" />
+=======
+>>>>>>> origin/master:superset-frontend/packages/superset-ui-core/src/components/CachedLabel/index.tsx
       </Label>
     </Tooltip>
   );

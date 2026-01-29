@@ -653,6 +653,440 @@ describe('UploadDataModal Collapse Tabs', () => {
     expect(generalInfoTab).toHaveAttribute('aria-expanded', 'true');
   });
 
+<<<<<<< HEAD
+  const visibleComponents = [
+    selectIndexColumn,
+    switchDataFrameIndex,
+    inputColumnLabels,
+    selectColumnsToRead,
+    inputColumnDataTypes,
+  ];
+  visibleComponents.forEach(component => {
+    expect(component).toBeInTheDocument();
+  });
+});
+
+test('Excel, renders the columns elements correctly', () => {
+  render(<UploadDataModal {...excelProps} />, {
+    useRedux: true,
+  });
+
+  const panelHeader = screen.getByRole('heading', {
+    name: /columns/i,
+  });
+  userEvent.click(panelHeader);
+  const switchDataFrameIndex = screen.getByTestId('dataFrameIndex');
+  userEvent.click(switchDataFrameIndex);
+  const selectIndexColumn = screen.getByRole('combobox', {
+    name: /Choose index column/i,
+  });
+  const inputIndexLabel = screen.getByRole('textbox', {
+    name: /Index label/i,
+  });
+  const selectColumnsToRead = screen.getByRole('combobox', {
+    name: /Choose columns to read/i,
+  });
+  userEvent.click(selectColumnsToRead);
+
+  const columnDataTypes = screen.queryByRole('textbox', {
+    name: /Column data types/i,
+  });
+
+  expect(columnDataTypes).not.toBeInTheDocument();
+
+  const visibleComponents = [
+    selectIndexColumn,
+    switchDataFrameIndex,
+    inputIndexLabel,
+    selectColumnsToRead,
+  ];
+  visibleComponents.forEach(component => {
+    expect(component).toBeInTheDocument();
+  });
+});
+
+test('Columnar, renders the columns elements correctly', () => {
+  render(<UploadDataModal {...columnarProps} />, {
+    useRedux: true,
+  });
+
+  const panelHeader = screen.getByRole('heading', {
+    name: /columns/i,
+  });
+  userEvent.click(panelHeader);
+  const selectIndexColumn = screen.queryByRole('combobox', {
+    name: /Choose index column/i,
+  });
+  expect(selectIndexColumn).not.toBeInTheDocument();
+  const switchDataFrameIndex = screen.getByTestId('dataFrameIndex');
+  userEvent.click(switchDataFrameIndex);
+  const inputIndexLabel = screen.getByRole('textbox', {
+    name: /Index label/i,
+  });
+  const selectColumnsToRead = screen.getByRole('combobox', {
+    name: /Choose columns to read/i,
+  });
+  userEvent.click(selectColumnsToRead);
+
+  const columnDataTypes = screen.queryByRole('textbox', {
+    name: /Column data types/i,
+  });
+  expect(columnDataTypes).not.toBeInTheDocument();
+
+  const visibleComponents = [
+    switchDataFrameIndex,
+    inputIndexLabel,
+    selectColumnsToRead,
+  ];
+  visibleComponents.forEach(component => {
+    expect(component).toBeInTheDocument();
+  });
+});
+
+test('renders the rows elements correctly', () => {
+  render(<UploadDataModal {...csvProps} />, {
+    useRedux: true,
+  });
+
+  const panelHeader = screen.getByRole('heading', {
+    name: /rows/i,
+  });
+  userEvent.click(panelHeader);
+  const inputHeaderRow = screen.getByRole('spinbutton', {
+    name: /header row/i,
+  });
+  const inputRowsToRead = screen.getByRole('spinbutton', {
+    name: /rows to read/i,
+  });
+  const inputSkipRows = screen.getByRole('spinbutton', {
+    name: /skip rows/i,
+  });
+
+  const visibleComponents = [inputHeaderRow, inputRowsToRead, inputSkipRows];
+  visibleComponents.forEach(component => {
+    expect(component).toBeInTheDocument();
+  });
+});
+
+test('Columnar, does not render the rows', () => {
+  render(<UploadDataModal {...columnarProps} />, {
+    useRedux: true,
+  });
+
+  const panelHeader = screen.queryByRole('heading', {
+    name: /rows/i,
+  });
+  expect(panelHeader).not.toBeInTheDocument();
+});
+
+test('database and schema are correctly populated', async () => {
+  render(<UploadDataModal {...csvProps} />, {
+    useRedux: true,
+  });
+
+  const selectDatabase = screen.getByRole('combobox', {
+    name: /select a database/i,
+  });
+  const selectSchema = screen.getByRole('combobox', {
+    name: /schema/i,
+  });
+
+  userEvent.click(selectDatabase);
+
+  await waitFor(() => screen.getByText('database1'));
+  await waitFor(() => screen.getByText('database2'));
+
+  screen.getByText('database1').click();
+  userEvent.click(selectSchema);
+  // make sure the schemas for database1 are displayed
+  await waitFor(() => screen.getAllByText('information_schema'));
+  await waitFor(() => screen.getAllByText('public'));
+
+  screen.getByText('database2').click();
+  userEvent.click(selectSchema);
+  // make sure the schemas for database2 are displayed
+  await waitFor(() => screen.getAllByText('schema1'));
+  await waitFor(() => screen.getAllByText('schema2'));
+});
+
+test('form without required fields', async () => {
+  render(<UploadDataModal {...csvProps} />, {
+    useRedux: true,
+  });
+
+  const uploadButton = screen.getByRole('button', {
+    name: 'Upload',
+  });
+
+  // Submit form without filling any fields
+  userEvent.click(uploadButton);
+
+  await waitFor(() => screen.getByText('Uploading a file is required'));
+  await waitFor(() => screen.getByText('Selecting a database is required'));
+  await waitFor(() => screen.getByText('Table name is required'));
+});
+
+test('CSV form post', async () => {
+  render(<UploadDataModal {...csvProps} />, {
+    useRedux: true,
+  });
+
+  const selectButton = screen.getByRole('button', {
+    name: 'Select',
+  });
+  userEvent.click(selectButton);
+
+  // Select a file from the file dialog
+  const file = new File(['test'], 'test.csv', { type: 'text' });
+  const inputElement = screen.getByTestId('model-file-input');
+
+  if (inputElement) {
+    userEvent.upload(inputElement as HTMLElement, file);
+  }
+
+  const selectDatabase = screen.getByRole('combobox', {
+    name: /select a database/i,
+  });
+  userEvent.click(selectDatabase);
+  await screen.findByText('database1');
+  await screen.findByText('database2');
+
+  screen.getByText('database1').click();
+  const selectSchema = screen.getByRole('combobox', {
+    name: /schema/i,
+  });
+  userEvent.click(selectSchema);
+  await screen.findAllByText('public');
+  screen.getAllByText('public')[1].click();
+
+  // Fill out form fields
+  const inputTableName = screen.getByRole('textbox', {
+    name: /table name/i,
+  });
+  userEvent.type(inputTableName, 'table1');
+  const uploadButton = screen.getByRole('button', {
+    name: 'Upload',
+  });
+
+  userEvent.click(uploadButton);
+  await waitFor(() => fetchMock.called('glob:*api/v1/database/1/upload/'));
+
+  // Get the matching fetch calls made
+  const matchingCalls = fetchMock.calls('glob:*api/v1/database/1/upload/');
+  expect(matchingCalls).toHaveLength(1);
+  const [, options] = matchingCalls[0];
+  const formData = options?.body as FormData;
+  expect(formData.get('type')).toBe('csv');
+  expect(formData.get('table_name')).toBe('table1');
+  expect(formData.get('schema')).toBe('public');
+  expect(formData.get('table_name')).toBe('table1');
+  const fileData = formData.get('file') as File;
+  expect(fileData.name).toBe('test.csv');
+}, 10000); // longer timeout to decrease flakiness
+
+test('Excel form post', async () => {
+  render(<UploadDataModal {...excelProps} />, {
+    useRedux: true,
+  });
+
+  const selectButton = screen.getByRole('button', {
+    name: 'Select',
+  });
+  userEvent.click(selectButton);
+
+  // Select a file from the file dialog
+  const file = new File(['test'], 'test.xls', { type: 'text' });
+  const inputElement = screen.getByTestId('model-file-input');
+
+  if (inputElement) {
+    userEvent.upload(inputElement as HTMLElement, file);
+  }
+
+  const selectDatabase = screen.getByRole('combobox', {
+    name: /select a database/i,
+  });
+  userEvent.click(selectDatabase);
+  await screen.findByText('database1');
+  await screen.findByText('database2');
+
+  screen.getByText('database1').click();
+  const selectSchema = screen.getByRole('combobox', {
+    name: /schema/i,
+  });
+  userEvent.click(selectSchema);
+  await screen.findAllByText('public');
+  screen.getAllByText('public')[1].click();
+
+  // Fill out form fields
+  const inputTableName = screen.getByRole('textbox', {
+    name: /table name/i,
+  });
+  userEvent.type(inputTableName, 'table1');
+  const uploadButton = screen.getByRole('button', {
+    name: 'Upload',
+  });
+
+  userEvent.click(uploadButton);
+  await waitFor(() => fetchMock.called('glob:*api/v1/database/1/upload/'));
+
+  // Get the matching fetch calls made
+  const matchingCalls = fetchMock.calls('glob:*api/v1/database/1/upload/');
+  expect(matchingCalls).toHaveLength(1);
+  const [, options] = matchingCalls[0];
+  const formData = options?.body as FormData;
+  expect(formData.get('type')).toBe('excel');
+  expect(formData.get('table_name')).toBe('table1');
+  expect(formData.get('schema')).toBe('public');
+  expect(formData.get('table_name')).toBe('table1');
+  const fileData = formData.get('file') as File;
+  expect(fileData.name).toBe('test.xls');
+}, 10000); // longer timeout to decrease flakiness
+
+test('Columnar form post', async () => {
+  render(<UploadDataModal {...columnarProps} />, {
+    useRedux: true,
+  });
+
+  const selectButton = screen.getByRole('button', {
+    name: 'Select',
+  });
+  userEvent.click(selectButton);
+
+  // Select a file from the file dialog
+  const file = new File(['test'], 'test.parquet', { type: 'text' });
+  const inputElement = screen.getByTestId('model-file-input');
+
+  if (inputElement) {
+    userEvent.upload(inputElement as HTMLElement, file);
+  }
+
+  const selectDatabase = screen.getByRole('combobox', {
+    name: /select a database/i,
+  });
+  userEvent.click(selectDatabase);
+  await screen.findByText('database1');
+  await screen.findByText('database2');
+
+  screen.getByText('database1').click();
+  const selectSchema = screen.getByRole('combobox', {
+    name: /schema/i,
+  });
+  userEvent.click(selectSchema);
+  await screen.findAllByText('public');
+  screen.getAllByText('public')[1].click();
+
+  // Fill out form fields
+  const inputTableName = screen.getByRole('textbox', {
+    name: /table name/i,
+  });
+  userEvent.type(inputTableName, 'table1');
+  const uploadButton = screen.getByRole('button', {
+    name: 'Upload',
+  });
+
+  userEvent.click(uploadButton);
+  await waitFor(() => fetchMock.called('glob:*api/v1/database/1/upload/'));
+
+  // Get the matching fetch calls made
+  const matchingCalls = fetchMock.calls('glob:*api/v1/database/1/upload/');
+  expect(matchingCalls).toHaveLength(1);
+  const [, options] = matchingCalls[0];
+  const formData = options?.body as FormData;
+  expect(formData.get('type')).toBe('columnar');
+  expect(formData.get('table_name')).toBe('table1');
+  expect(formData.get('schema')).toBe('public');
+  expect(formData.get('table_name')).toBe('table1');
+  const fileData = formData.get('file') as File;
+  expect(fileData.name).toBe('test.parquet');
+}, 10000); // longer timeout to decrease flakiness
+
+test('CSV, validate file extension returns false', () => {
+  const invalidFileNames = ['out', 'out.exe', 'out.csv.exe', '.csv', 'out.xls'];
+  invalidFileNames.forEach(fileName => {
+    const file: UploadFile<any> = {
+      name: fileName,
+      uid: 'xp',
+      size: 100,
+      type: 'text/csv',
+    };
+    expect(validateUploadFileExtension(file, ['csv', 'tsv'])).toBe(false);
+  });
+});
+
+test('Excel, validate file extension returns false', () => {
+  const invalidFileNames = ['out', 'out.exe', 'out.xls.exe', '.csv', 'out.csv'];
+  invalidFileNames.forEach(fileName => {
+    const file: UploadFile<any> = {
+      name: fileName,
+      uid: 'xp',
+      size: 100,
+      type: 'text/csv',
+    };
+    expect(validateUploadFileExtension(file, ['xls', 'xlsx'])).toBe(false);
+  });
+});
+
+test('Columnar, validate file extension returns false', () => {
+  const invalidFileNames = [
+    'out',
+    'out.exe',
+    'out.parquet.exe',
+    '.parquet',
+    'out.excel',
+  ];
+  invalidFileNames.forEach(fileName => {
+    const file: UploadFile<any> = {
+      name: fileName,
+      uid: 'xp',
+      size: 100,
+      type: 'text/csv',
+    };
+    expect(validateUploadFileExtension(file, ['parquet', 'zip'])).toBe(false);
+  });
+});
+
+test('CSV, validate file extension returns true', () => {
+  const invalidFileNames = ['out.csv', 'out.tsv', 'out.exe.csv', 'out a.csv'];
+  invalidFileNames.forEach(fileName => {
+    const file: UploadFile<any> = {
+      name: fileName,
+      uid: 'xp',
+      size: 100,
+      type: 'text/csv',
+    };
+    expect(validateUploadFileExtension(file, ['csv', 'tsv'])).toBe(true);
+  });
+});
+
+test('Excel, validate file extension returns true', () => {
+  const invalidFileNames = ['out.xls', 'out.xlsx', 'out.exe.xls', 'out a.xls'];
+  invalidFileNames.forEach(fileName => {
+    const file: UploadFile<any> = {
+      name: fileName,
+      uid: 'xp',
+      size: 100,
+      type: 'text/csv',
+    };
+    expect(validateUploadFileExtension(file, ['xls', 'xlsx'])).toBe(true);
+  });
+});
+
+test('Columnar, validate file extension returns true', () => {
+  const invalidFileNames = [
+    'out.parquet',
+    'out.zip',
+    'out.exe.zip',
+    'out a.parquet',
+  ];
+  invalidFileNames.forEach(fileName => {
+    const file: UploadFile<any> = {
+      name: fileName,
+      uid: 'xp',
+      size: 100,
+      type: 'text/csv',
+    };
+    expect(validateUploadFileExtension(file, ['parquet', 'zip'])).toBe(true);
+=======
   test('renders the collaps tab Columnar correctly and resets to default tab after closing', async () => {
     const { rerender } = render(<UploadDataModal {...columnarProps} />, {
       useRedux: true,
@@ -671,5 +1105,6 @@ describe('UploadDataModal Collapse Tabs', () => {
     rerender(<UploadDataModal {...columnarProps} show={false} />);
     rerender(<UploadDataModal {...columnarProps} />);
     expect(generalInfoTab).toHaveAttribute('aria-expanded', 'true');
+>>>>>>> origin/master
   });
 });

@@ -22,6 +22,10 @@ import {
   SupersetClient,
   SupersetClientResponse,
   getClientErrorObject,
+<<<<<<< HEAD
+  t,
+=======
+>>>>>>> origin/master
   lruCache,
 } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';

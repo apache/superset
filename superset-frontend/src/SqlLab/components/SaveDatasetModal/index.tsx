@@ -106,6 +106,35 @@ interface SaveDatasetModalProps {
 
 const Styles = styled.div`
   ${({ theme }) => `
+<<<<<<< HEAD
+  .sdm-body {
+    margin: 0 ${theme.gridUnit * 2}px;
+  }
+  .sdm-input {
+    margin-left: ${theme.gridUnit * 10}px;
+    width: 401px;
+  }
+  .sdm-autocomplete {
+    width: 401px;
+    align-self: center;
+    margin-left: ${theme.gridUnit}px;
+  }
+  .sdm-radio {
+    height: 30px;
+    margin: 10px 0px;
+    line-height: 30px;
+  }
+  .sdm-radio span {
+    display: inline-flex;
+    padding-right: 0px;
+  }
+  .sdm-overwrite-msg {
+    margin: ${theme.gridUnit * 2}px;
+  }
+  .sdm-overwrite-container {
+    flex: 1 1 auto;
+    display: flex;
+=======
     .sdm-body {
       padding: ${theme.sizeUnit * 4}px ${theme.sizeUnit * 6}px;
     }
@@ -147,6 +176,7 @@ const Styles = styled.div`
       text-align: center;
       color: ${theme.colorText};
     }
+>>>>>>> origin/master
   `}
 `;
 const updateDataset = async (

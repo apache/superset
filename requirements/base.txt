@@ -116,11 +116,17 @@ flask==2.3.3
     #   flask-session
     #   flask-sqlalchemy
     #   flask-wtf
+<<<<<<< HEAD
+flask-appbuilder==4.5.5
+    # via apache-superset (pyproject.toml)
+flask-babel==2.0.0
+=======
 flask-appbuilder==5.0.2
     # via
     #   apache-superset (pyproject.toml)
     #   apache-superset-core
 flask-babel==3.1.0
+>>>>>>> origin/master
     # via flask-appbuilder
 flask-caching==2.3.1
     # via apache-superset (pyproject.toml)
@@ -243,7 +249,6 @@ numpy==1.26.4
     #   bottleneck
     #   numexpr
     #   pandas
-    #   pyarrow
 odfpy==1.4.1
     # via pandas
 openapi-schema-validator==0.6.3
@@ -400,10 +405,17 @@ sqlalchemy-utils==0.38.3
     #   apache-superset (pyproject.toml)
     #   apache-superset-core
     #   flask-appbuilder
+<<<<<<< HEAD
+sqlglot==26.11.1
+    # via apache-superset (pyproject.toml)
+sqlparse==0.5.2
+    # via apache-superset (pyproject.toml)
+=======
 sqlglot==27.15.2
     # via
     #   apache-superset (pyproject.toml)
     #   apache-superset-core
+>>>>>>> origin/master
 sshtunnel==0.4.0
     # via apache-superset (pyproject.toml)
 tabulate==0.9.0

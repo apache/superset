@@ -39,6 +39,10 @@ from superset.exceptions import (
 from superset.explorables.base import Explorable
 from superset.extensions import cache_manager, security_manager
 from superset.models.helpers import QueryResult
+<<<<<<< HEAD
+from superset.models.sql_lab import Query
+=======
+>>>>>>> origin/master
 from superset.superset_typing import AdhocColumn, AdhocMetric
 from superset.utils import csv, excel
 from superset.utils.cache import generate_cache_key, set_and_log_cache
@@ -49,8 +53,17 @@ from superset.utils.core import (
     GenericDataType,
     get_column_names_from_columns,
     get_column_names_from_metrics,
+<<<<<<< HEAD
+    get_metric_names,
+    get_x_axis_label,
     is_adhoc_column,
     is_adhoc_metric,
+    normalize_dttm_col,
+    TIME_COMPARISON,
+=======
+    is_adhoc_column,
+    is_adhoc_metric,
+>>>>>>> origin/master
 )
 from superset.utils.pandas_postprocessing.utils import unescape_separator
 from superset.views.utils import get_viz
@@ -143,11 +156,17 @@ class QueryContextProcessor:
         label_map.update(
             {
                 column_name: [
+<<<<<<< HEAD
+                    str(query_obj.columns[idx])
+                    if not is_adhoc_column(query_obj.columns[idx])
+                    else cast(AdhocColumn, query_obj.columns[idx])["sqlExpression"],
+=======
                     (
                         str(query_obj.columns[idx])
                         if not is_adhoc_column(query_obj.columns[idx])
                         else cast(AdhocColumn, query_obj.columns[idx])["sqlExpression"]
                     ),
+>>>>>>> origin/master
                 ]
                 for idx, column_name in enumerate(query_obj.column_names)
             }
@@ -155,6 +174,14 @@ class QueryContextProcessor:
         label_map.update(
             {
                 metric_name: [
+<<<<<<< HEAD
+                    str(query_obj.metrics[idx])
+                    if not is_adhoc_metric(query_obj.metrics[idx])
+                    else str(cast(AdhocMetric, query_obj.metrics[idx])["sqlExpression"])
+                    if cast(AdhocMetric, query_obj.metrics[idx])["expressionType"]
+                    == "SQL"
+                    else metric_name,
+=======
                     (
                         str(query_obj.metrics[idx])
                         if not is_adhoc_metric(query_obj.metrics[idx])
@@ -171,6 +198,7 @@ class QueryContextProcessor:
                             else metric_name
                         )
                     ),
+>>>>>>> origin/master
                 ]
                 for idx, metric_name in enumerate(query_obj.metric_names)
                 if query_obj and query_obj.metrics

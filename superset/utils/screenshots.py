@@ -285,6 +285,10 @@ class BaseScreenshot:
         thumb_size = thumb_size or self.thumb_size
         logger.info("Processing url for thumbnail: %s", cache_key)
         cache_payload.computing()
+<<<<<<< HEAD
+        self.cache.set(cache_key, cache_payload.to_dict())
+=======
+>>>>>>> origin/master
         image = None
         # Assuming all sorts of things can go wrong with Selenium
         try:
@@ -306,8 +310,11 @@ class BaseScreenshot:
         if image:
             with event_logger.log_context(f"screenshot.cache.{self.thumbnail_type}"):
                 cache_payload.update(image)
+<<<<<<< HEAD
+=======
 
         logger.info("Caching thumbnail: %s", cache_key)
+>>>>>>> origin/master
         self.cache.set(cache_key, cache_payload.to_dict())
         logger.info("Updated thumbnail cache; Status: %s", cache_payload.get_status())
         return

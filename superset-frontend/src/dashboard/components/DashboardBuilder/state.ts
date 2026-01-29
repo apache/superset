@@ -33,9 +33,14 @@ export const useNativeFilters = () => {
   const dispatch = useDispatch();
 
   const [isInitialized, setIsInitialized] = useState(false);
+<<<<<<< HEAD
+  const showNativeFilters = useSelector<RootState, boolean>(
+    state => getUrlParam(URL_PARAMS.showFilters) ?? true,
+=======
 
   const showNativeFilters = useSelector<RootState, boolean>(
     () => getUrlParam(URL_PARAMS.showFilters) ?? true,
+>>>>>>> origin/master
   );
   const canEdit = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
@@ -50,10 +55,14 @@ export const useNativeFilters = () => {
   const chartCustomizations = useChartCustomizationFromRedux();
 
   const nativeFiltersEnabled =
+<<<<<<< HEAD
+    showNativeFilters && (canEdit || (!canEdit && filterValues.length !== 0));
+=======
     showNativeFilters &&
     (canEdit ||
       (!canEdit &&
         (filterValues.length !== 0 || chartCustomizations.length !== 0)));
+>>>>>>> origin/master
 
   const requiredFirstFilter = useMemo(
     () =>

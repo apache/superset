@@ -378,9 +378,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         ("menu_access", "Query Search"),
         ("can_read", "SqlLabPermalinkRestApi"),
         ("can_write", "SqlLabPermalinkRestApi"),
+<<<<<<< HEAD
+=======
         ("can_post", "TableSchemaView"),
         ("can_expanded", "TableSchemaView"),
         ("can_delete", "TableSchemaView"),
+>>>>>>> origin/master
     }
 
     SQLLAB_EXTRA_PERMISSION_VIEWS = {
@@ -1315,7 +1318,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
         Find a List of models by a list of ids, if defined applies `base_filter`
         """
+<<<<<<< HEAD
+        query = self.get_session.query(self.role_model).filter(
+=======
         query = self.session.query(self.role_model).filter(
+>>>>>>> origin/master
             self.role_model.id.in_(role_ids)
         )
         return query.all()

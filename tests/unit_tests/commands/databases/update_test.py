@@ -46,6 +46,11 @@ def test_update_with_catalog(
     When update is called, only `catalog2.schema3` has permissions associated with it,
     so `catalog1.*` and `catalog2.schema4` are added.
     """
+<<<<<<< HEAD
+    databaseDao = mocker.patch("superset.commands.database.update.DatabaseDAO")  # noqa: N806
+    databaseDao.find_by_id.return_value = database_with_catalog
+    databaseDao.update.return_value = database_with_catalog
+=======
     database_dao = mocker.patch("superset.commands.database.update.DatabaseDAO")
     database_dao.find_by_id.return_value = database_with_catalog
     database_dao.update.return_value = database_with_catalog
@@ -55,6 +60,7 @@ def test_update_with_catalog(
     sync_db_perms_dao.find_by_id.return_value = database_with_catalog
     mocker.patch("superset.commands.database.update.get_username")
     mocker.patch("superset.security_manager.get_user_by_username")
+>>>>>>> origin/master
 
     find_permission_view_menu = mocker.patch.object(
         security_manager,
@@ -144,6 +150,11 @@ def test_update_without_catalog(
     When update is called, only `schema2` has permissions associated with it, so `schema1`
     is added.
     """  # noqa: E501
+<<<<<<< HEAD
+    databaseDao = mocker.patch("superset.commands.database.update.DatabaseDAO")  # noqa: N806
+    databaseDao.find_by_id.return_value = database_without_catalog
+    databaseDao.update.return_value = database_without_catalog
+=======
     database_dao = mocker.patch("superset.commands.database.update.DatabaseDAO")
     database_dao.find_by_id.return_value = database_without_catalog
     database_dao.update.return_value = database_without_catalog
@@ -153,6 +164,7 @@ def test_update_without_catalog(
     sync_db_perms_dao.find_by_id.return_value = database_without_catalog
     mocker.patch("superset.commands.database.update.get_username")
     mocker.patch("superset.security_manager.get_user_by_username")
+>>>>>>> origin/master
 
     find_permission_view_menu = mocker.patch.object(
         security_manager,
@@ -194,6 +206,20 @@ def test_rename_with_catalog(
     so `catalog1.*` and `catalog2.schema4` are added. Additionally, the database has
     been renamed from `my_db` to `my_other_db`.
     """
+<<<<<<< HEAD
+    databaseDao = mocker.patch("superset.commands.database.update.DatabaseDAO")  # noqa: N806
+    original_database = mocker.MagicMock()
+    original_database.database_name = "my_db"
+    databaseDao.find_by_id.return_value = original_database
+    database_with_catalog.database_name = "my_other_db"
+    databaseDao.update.return_value = database_with_catalog
+
+    dataset = mocker.MagicMock()
+    chart = mocker.MagicMock()
+    databaseDao.get_datasets.return_value = [dataset]
+    DatasetDAO = mocker.patch("superset.commands.database.update.DatasetDAO")  # noqa: N806
+    DatasetDAO.get_related_objects.return_value = {"charts": [chart]}
+=======
     original_database = mocker.MagicMock()
     original_database.database_name = "my_db"
     database_dao = mocker.patch("superset.commands.database.update.DatabaseDAO")
@@ -212,6 +238,7 @@ def test_rename_with_catalog(
     sync_db_perms_dao.get_datasets.return_value = [dataset]
     dataset_dao = mocker.patch("superset.commands.database.sync_permissions.DatasetDAO")
     dataset_dao.get_related_objects.return_value = {"charts": [chart]}
+>>>>>>> origin/master
 
     find_permission_view_menu = mocker.patch.object(
         security_manager,
@@ -295,6 +322,15 @@ def test_rename_without_catalog(
     When update is called, only `schema2` has permissions associated with it, so `schema1`
     is added. Additionally, the database has been renamed from `my_db` to `my_other_db`.
     """  # noqa: E501
+<<<<<<< HEAD
+    databaseDao = mocker.patch("superset.commands.database.update.DatabaseDAO")  # noqa: N806
+    original_database = mocker.MagicMock()
+    original_database.database_name = "my_db"
+    databaseDao.find_by_id.return_value = original_database
+    database_without_catalog.database_name = "my_other_db"
+    databaseDao.update.return_value = database_without_catalog
+    databaseDao.get_datasets.return_value = []
+=======
     database_dao = mocker.patch("superset.commands.database.update.DatabaseDAO")
     original_database = mocker.MagicMock()
     original_database.database_name = "my_db"
@@ -308,6 +344,7 @@ def test_rename_without_catalog(
     sync_db_perms_dao.get_datasets.return_value = []
     mocker.patch("superset.commands.database.update.get_username")
     mocker.patch("superset.security_manager.get_user_by_username")
+>>>>>>> origin/master
 
     find_permission_view_menu = mocker.patch.object(
         security_manager,
@@ -390,6 +427,11 @@ def test_update_with_oauth2(
     """
     Test that the database can be updated even if OAuth2 is needed to connect.
     """
+<<<<<<< HEAD
+    databaseDao = mocker.patch("superset.commands.database.update.DatabaseDAO")  # noqa: N806
+    databaseDao.find_by_id.return_value = database_needs_oauth2
+    databaseDao.update.return_value = database_needs_oauth2
+=======
     database_dao = mocker.patch("superset.commands.database.update.DatabaseDAO")
     database_dao.find_by_id.return_value = database_needs_oauth2
     database_dao.update.return_value = database_needs_oauth2
@@ -399,6 +441,7 @@ def test_update_with_oauth2(
     sync_db_perms_dao.find_by_id.return_value = database_needs_oauth2
     mocker.patch("superset.commands.database.update.get_username")
     mocker.patch("superset.security_manager.get_user_by_username")
+>>>>>>> origin/master
 
     find_permission_view_menu = mocker.patch.object(
         security_manager,
@@ -423,6 +466,11 @@ def test_update_with_oauth2_changed(
     """
     Test that the database can be updated even if OAuth2 is needed to connect.
     """
+<<<<<<< HEAD
+    databaseDao = mocker.patch("superset.commands.database.update.DatabaseDAO")  # noqa: N806
+    databaseDao.find_by_id.return_value = database_needs_oauth2
+    databaseDao.update.return_value = database_needs_oauth2
+=======
     database_dao = mocker.patch("superset.commands.database.update.DatabaseDAO")
     database_dao.find_by_id.return_value = database_needs_oauth2
     database_dao.update.return_value = database_needs_oauth2
@@ -432,6 +480,7 @@ def test_update_with_oauth2_changed(
     sync_db_perms_dao.find_by_id.return_value = database_needs_oauth2
     mocker.patch("superset.commands.database.update.get_username")
     mocker.patch("superset.security_manager.get_user_by_username")
+>>>>>>> origin/master
 
     find_permission_view_menu = mocker.patch.object(
         security_manager,
@@ -466,6 +515,11 @@ def test_remove_oauth_config_purges_tokens(
     """
     Test that removing the OAuth config from a database purges existing tokens.
     """
+<<<<<<< HEAD
+    databaseDao = mocker.patch("superset.commands.database.update.DatabaseDAO")  # noqa: N806
+    databaseDao.find_by_id.return_value = database_needs_oauth2
+    databaseDao.update.return_value = database_needs_oauth2
+=======
     database_dao = mocker.patch("superset.commands.database.update.DatabaseDAO")
     database_dao.find_by_id.return_value = database_needs_oauth2
     database_dao.update.return_value = database_needs_oauth2
@@ -475,6 +529,7 @@ def test_remove_oauth_config_purges_tokens(
     sync_db_perms_dao.find_by_id.return_value = database_needs_oauth2
     mocker.patch("superset.commands.database.update.get_username")
     mocker.patch("superset.security_manager.get_user_by_username")
+>>>>>>> origin/master
 
     find_permission_view_menu = mocker.patch.object(
         security_manager,
@@ -504,6 +559,11 @@ def test_update_oauth2_removes_masked_encrypted_extra_key(
     """
     Test that the ``masked_encrypted_extra`` key is properly purged from the properties.
     """
+<<<<<<< HEAD
+    databaseDao = mocker.patch("superset.commands.database.update.DatabaseDAO")  # noqa: N806
+    databaseDao.find_by_id.return_value = database_needs_oauth2
+    databaseDao.update.return_value = database_needs_oauth2
+=======
     database_dao = mocker.patch("superset.commands.database.update.DatabaseDAO")
     database_dao.find_by_id.return_value = database_needs_oauth2
     database_dao.update.return_value = database_needs_oauth2
@@ -513,6 +573,7 @@ def test_update_oauth2_removes_masked_encrypted_extra_key(
     sync_db_perms_dao.find_by_id.return_value = database_needs_oauth2
     mocker.patch("superset.commands.database.update.get_username")
     mocker.patch("superset.security_manager.get_user_by_username")
+>>>>>>> origin/master
 
     find_permission_view_menu = mocker.patch.object(
         security_manager,
@@ -538,7 +599,11 @@ def test_update_oauth2_removes_masked_encrypted_extra_key(
 
     add_pvm.assert_not_called()
     database_needs_oauth2.purge_oauth2_tokens.assert_called()
+<<<<<<< HEAD
+    databaseDao.update.assert_called_with(
+=======
     database_dao.update.assert_called_with(
+>>>>>>> origin/master
         database_needs_oauth2,
         {
             "encrypted_extra": json.dumps(
@@ -556,6 +621,11 @@ def test_update_other_fields_dont_affect_oauth(
     Test that not including ``masked_encrypted_extra`` in the payload does not
     touch the OAuth config.
     """
+<<<<<<< HEAD
+    databaseDao = mocker.patch("superset.commands.database.update.DatabaseDAO")  # noqa: N806
+    databaseDao.find_by_id.return_value = database_needs_oauth2
+    databaseDao.update.return_value = database_needs_oauth2
+=======
     database_dao = mocker.patch("superset.commands.database.update.DatabaseDAO")
     database_dao.find_by_id.return_value = database_needs_oauth2
     database_dao.update.return_value = database_needs_oauth2
@@ -565,6 +635,7 @@ def test_update_other_fields_dont_affect_oauth(
     sync_db_perms_dao.find_by_id.return_value = database_needs_oauth2
     mocker.patch("superset.commands.database.update.get_username")
     mocker.patch("superset.security_manager.get_user_by_username")
+>>>>>>> origin/master
 
     find_permission_view_menu = mocker.patch.object(
         security_manager,
@@ -597,7 +668,10 @@ def test_update_with_catalog_change(mocker: MockerFixture) -> None:
     database_dao.find_by_id.return_value = old_database
     database_dao.update.return_value = new_database
 
+<<<<<<< HEAD
+=======
     mocker.patch("superset.commands.database.update.SyncPermissionsCommand")
+>>>>>>> origin/master
     mocker.patch.object(
         UpdateDatabaseCommand,
         "validate",
@@ -629,7 +703,10 @@ def test_update_without_catalog_change(mocker: MockerFixture) -> None:
     database_dao.find_by_id.return_value = old_database
     database_dao.update.return_value = new_database
 
+<<<<<<< HEAD
+=======
     mocker.patch("superset.commands.database.update.SyncPermissionsCommand")
+>>>>>>> origin/master
     mocker.patch.object(
         UpdateDatabaseCommand,
         "validate",
@@ -658,7 +735,10 @@ def test_update_broken_connection(mocker: MockerFixture) -> None:
     database_dao = mocker.patch("superset.commands.database.update.DatabaseDAO")
     database_dao.find_by_id.return_value = database
     database_dao.update.return_value = new_db
+<<<<<<< HEAD
+=======
     mocker.patch("superset.commands.database.update.SyncPermissionsCommand")
+>>>>>>> origin/master
 
     update_catalog_attribute = mocker.patch.object(
         UpdateDatabaseCommand,

@@ -41,12 +41,15 @@ import {
   CommonTooltipRows,
 } from '../../utilities/tooltipUtils';
 
+<<<<<<< HEAD
+=======
 const MoreRecordsIndicator = styled.div`
   margin-top: ${({ theme }) => theme.sizeUnit}px;
   font-size: ${({ theme }) => theme.fontSizeSM}px;
   color: ${({ theme }) => theme.colorTextSecondary};
 `;
 
+>>>>>>> origin/master
 export function getPoints(data: JsonObject[]) {
   return data.map(d => d.position);
 }

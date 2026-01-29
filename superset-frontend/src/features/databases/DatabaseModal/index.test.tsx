@@ -20,6 +20,10 @@
 // TODO: These tests should be made atomic in separate files
 
 import fetchMock from 'fetch-mock';
+<<<<<<< HEAD
+import userEvent from '@testing-library/user-event';
+import { render, screen, within, waitFor } from 'spec/helpers/testing-library';
+=======
 import {
   render,
   screen,
@@ -28,6 +32,7 @@ import {
   waitFor,
   fireEvent,
 } from 'spec/helpers/testing-library';
+>>>>>>> origin/master
 import { getExtensionsRegistry } from '@superset-ui/core';
 import setupCodeOverrides from 'src/setup/setupCodeOverrides';
 import * as hooks from 'src/views/CRUD/hooks';
@@ -322,6 +327,14 @@ describe('DatabaseModal', () => {
   afterEach(() => {
     fetchMock.restore();
   });
+<<<<<<< HEAD
+
+  const setup = (propsOverwrite: Partial<DatabaseModalProps> = {}) =>
+    render(<DatabaseModal {...dbProps} {...propsOverwrite} />, {
+      useRedux: true,
+    });
+=======
+>>>>>>> origin/master
 
   const setup = (propsOverwrite: Partial<DatabaseModalProps> = {}) =>
     render(<DatabaseModal {...dbProps} {...propsOverwrite} />, {
@@ -335,8 +348,12 @@ describe('DatabaseModal', () => {
 
       // ---------- Components ----------
       // <TabHeader> - AntD header
+<<<<<<< HEAD
+      const closeButton = await screen.findByLabelText('Close');
+=======
       const closeButtons = await screen.findAllByLabelText('Close');
       const closeButton = closeButtons[0];
+>>>>>>> origin/master
       const step1Header = screen.getByRole('heading', {
         name: /connect a database/i,
       });
@@ -422,6 +439,8 @@ describe('DatabaseModal', () => {
       });
       // there should be a footer but it should not have any buttons in it
       expect(footer).toBeEmptyDOMElement();
+<<<<<<< HEAD
+=======
     });
 
     test('shows database options when pasting text in the select', async () => {
@@ -443,6 +462,7 @@ describe('DatabaseModal', () => {
           clipboardData: { getData: () => 'post' },
         }),
       ).not.toThrow();
+>>>>>>> origin/master
     });
 
     test('renders the "Basic" tab of SQL Alchemy form (step 2 of 2) correctly', async () => {
@@ -458,7 +478,11 @@ describe('DatabaseModal', () => {
 
       // ---------- Components ----------
       // <TabHeader> - AntD header
+<<<<<<< HEAD
+      const closeButton = await screen.findByRole('button', { name: 'Close' });
+=======
       const closeButton = screen.getByRole('img', { name: 'close' });
+>>>>>>> origin/master
 
       const basicHeader = screen.getByRole('heading', {
         name: /connect a database/i,
@@ -648,7 +672,15 @@ describe('DatabaseModal', () => {
       // Click the "Advanced" tab
       userEvent.click(await screen.findByRole('tab', { name: /advanced/i }));
       // Click the "SQL Lab" tab
+<<<<<<< HEAD
+      userEvent.click(
+        await screen.findByRole('tab', {
+          name: /right sql lab adjust how this database will interact with sql lab\./i,
+        }),
+      );
+=======
       userEvent.click(screen.getByTestId('sql-lab-label-test'));
+>>>>>>> origin/master
       expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
 
       // ----- BEGIN STEP 2 (ADVANCED - SQL LAB)
@@ -931,7 +963,11 @@ describe('DatabaseModal', () => {
       expect(schemasForFileUploadText).not.toBeInTheDocument();
     });
 
+<<<<<<< HEAD
+    it('renders the "Advanced" - SECURITY tab correctly after selecting Allow file uploads', async () => {
+=======
     test('renders the "Advanced" - SECURITY tab correctly after selecting Allow file uploads', async () => {
+>>>>>>> origin/master
       setup();
 
       // ---------- Components ----------
@@ -1442,13 +1478,21 @@ describe('DatabaseModal', () => {
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('DatabaseModal w/ GSheet Engine', () => {
+<<<<<<< HEAD
+    it('enters step 2 of 2 when proper database is selected', async () => {
+=======
     test('enters step 2 of 2 when proper database is selected', async () => {
+>>>>>>> origin/master
       setup({ dbEngine: 'Google Sheets' });
       const step2of2text = await screen.findByText(/step 2 of 2/i);
       expect(step2of2text).toBeInTheDocument();
     });
 
+<<<<<<< HEAD
+    it('renders the "Advanced" - SECURITY tab without Allow File Upload Checkbox', async () => {
+=======
     test('renders the "Advanced" - SECURITY tab without Allow File Upload Checkbox', async () => {
+>>>>>>> origin/master
       setup({ dbEngine: 'Google Sheets' });
 
       // Click the "Advanced" tab
@@ -1486,7 +1530,11 @@ describe('DatabaseModal', () => {
       expect(schemasForFileUploadText).not.toBeInTheDocument();
     });
 
+<<<<<<< HEAD
+    it('if the SSH Tunneling toggle is not displayed, nothing should get displayed', async () => {
+=======
     test('if the SSH Tunneling toggle is not displayed, nothing should get displayed', async () => {
+>>>>>>> origin/master
       setup({ dbEngine: 'Google Sheets' });
 
       const SSHTunnelingToggle = screen.queryByTestId('ssh-tunnel-switch');
@@ -1573,7 +1621,11 @@ describe('DatabaseModal', () => {
         <>ssh_tunnel.form.switch extension component</>
       ));
 
+<<<<<<< HEAD
+      setupExtensions();
+=======
       setupCodeOverrides();
+>>>>>>> origin/master
     });
 
     test('should render an extension component if one is supplied', async () => {

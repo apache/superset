@@ -245,6 +245,24 @@ export default function transformProps(
     metricEntry?.d3format,
   );
 
+<<<<<<< HEAD
+  const numberFormatter = getValueFormatter(
+    metric,
+    currencyFormats,
+    columnFormats,
+    metricEntry?.d3format || yAxisFormat,
+    currencyFormat,
+  );
+
+  const headerFormatter =
+    metricColtype === GenericDataType.Temporal ||
+    metricColtype === GenericDataType.String ||
+    forceTimestampFormatting
+      ? formatTime
+      : numberFormatter;
+
+=======
+>>>>>>> origin/master
   if (trendLineData && timeRangeFixed && fromDatetime) {
     const toDatetimeOrToday = toDatetime ?? Date.now();
     if (!trendLineData[0][0] || trendLineData[0][0] > fromDatetime) {

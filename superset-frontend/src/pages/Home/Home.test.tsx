@@ -175,7 +175,11 @@ test('With sql role - renders all panels on the page on page load', async () => 
 
 test('With sql role - renders distinct recent activities', async () => {
   await renderWelcome();
+<<<<<<< HEAD
+  const recentPanel = screen.getByRole('button', { name: 'right Recents' });
+=======
   const recentPanel = screen.getByRole('button', { name: 'collapsed Recents' });
+>>>>>>> origin/master
   userEvent.click(recentPanel);
   await waitFor(() =>
     expect(

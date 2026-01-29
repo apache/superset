@@ -197,11 +197,14 @@ const Chart = props => {
   const maxRows = useSelector(
     state => state.dashboardInfo.common.conf.SQL_MAX_ROW,
   );
+<<<<<<< HEAD:superset-frontend/src/dashboard/components/gridComponents/Chart.jsx
+=======
   const streamingThreshold = useSelector(
     state =>
       state.dashboardInfo.common.conf.CSV_STREAMING_ROW_THRESHOLD ||
       DEFAULT_CSV_STREAMING_ROW_THRESHOLD,
   );
+>>>>>>> origin/master:superset-frontend/src/dashboard/components/gridComponents/Chart/Chart.jsx
   const datasource = useSelector(
     state =>
       (chart &&
@@ -210,6 +213,8 @@ const Chart = props => {
       PLACEHOLDER_DATASOURCE,
   );
   const dashboardInfo = useSelector(state => state.dashboardInfo);
+<<<<<<< HEAD:superset-frontend/src/dashboard/components/gridComponents/Chart.jsx
+=======
   const showChartTimestamps = useSelector(
     state => state.dashboardInfo?.metadata?.show_chart_timestamps ?? false,
   );
@@ -219,6 +224,7 @@ const Chart = props => {
     () => queriesResponse?.map(({ is_cached }) => is_cached) || [],
     [queriesResponse],
   );
+>>>>>>> origin/master:superset-frontend/src/dashboard/components/gridComponents/Chart/Chart.jsx
 
   const [descriptionHeight, setDescriptionHeight] = useState(0);
   const [height, setHeight] = useState(props.height);
@@ -427,6 +433,8 @@ const Chart = props => {
 
   formData.dashboardId = dashboardInfo.id;
 
+<<<<<<< HEAD:superset-frontend/src/dashboard/components/gridComponents/Chart.jsx
+=======
   const ownState = useMemo(() => {
     const baseOwnState = dataMask[props.id]?.ownState || EMPTY_OBJECT;
     return createOwnStateWithChartState(
@@ -441,6 +449,7 @@ const Chart = props => {
     chartState?.state,
   ]);
 
+>>>>>>> origin/master:superset-frontend/src/dashboard/components/gridComponents/Chart/Chart.jsx
   const onExploreChart = useCallback(
     async clickEvent => {
       const isOpenInNewTab =
@@ -542,8 +551,13 @@ const Chart = props => {
         : baseOwnState;
 
       exportChart({
+<<<<<<< HEAD:superset-frontend/src/dashboard/components/gridComponents/Chart.jsx
+        formData: isFullCSV ? { ...formData, row_limit: maxRows } : formData,
+        resultType: isPivot ? 'post_processed' : 'full',
+=======
         formData: exportFormData,
         resultType,
+>>>>>>> origin/master:superset-frontend/src/dashboard/components/gridComponents/Chart/Chart.jsx
         resultFormat: format,
         force: true,
         ownState,

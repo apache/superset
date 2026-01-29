@@ -1421,6 +1421,12 @@ def test_firebolt_old_escape_string() -> None:
     # but they normalize to ''
     assert (
         SQLStatement(sql, "firebolt").format()
+<<<<<<< HEAD
+        == """SELECT
+  'foo''bar',
+  'foo''bar'"""
+    )
+=======
         == """
 SELECT
   'foo''bar',
@@ -3084,3 +3090,4 @@ def test_backtick_invalid_sql_still_fails() -> None:
     sql = "SELECT * FROM `table` WHERE"
     with pytest.raises(SupersetParseError):
         SQLScript(sql, "base")
+>>>>>>> origin/master

@@ -453,9 +453,12 @@ cd ../
 
 # Compile translations for the backend
 ./scripts/translations/generate_mo_files.sh
+<<<<<<< HEAD
+=======
 
 # update build version number
 sed -i '' "s/version_string = .*/version_string = \"$SUPERSET_VERSION\"/" setup.py
+>>>>>>> origin/master
 
 # build the python distribution
 python setup.py sdist
