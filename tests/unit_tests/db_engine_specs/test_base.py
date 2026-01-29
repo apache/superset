@@ -889,7 +889,6 @@ def test_get_oauth2_authorization_uri_standard_params(mocker: MockerFixture) -> 
     assert "access_type" not in query
     assert "include_granted_scopes" not in query
 
-
     # Verify PKCE parameters are NOT included when code_verifier is not provided
     assert "code_challenge" not in query
     assert "code_challenge_method" not in query
@@ -903,7 +902,6 @@ def test_get_oauth2_authorization_uri_with_pkce(mocker: MockerFixture) -> None:
     from urllib.parse import parse_qs, urlparse
 
     from superset.db_engine_specs.base import BaseEngineSpec
-    from superset.superset_typing import OAuth2ClientConfig, OAuth2State
     from superset.utils.oauth2 import generate_code_challenge, generate_code_verifier
 
     config: OAuth2ClientConfig = {
@@ -943,7 +941,6 @@ def test_get_oauth2_token_without_pkce(mocker: MockerFixture) -> None:
     Test that BaseEngineSpec.get_oauth2_token works without PKCE code_verifier.
     """
     from superset.db_engine_specs.base import BaseEngineSpec
-    from superset.superset_typing import OAuth2ClientConfig
 
     mocker.patch(
         "flask.current_app.config",
@@ -979,7 +976,6 @@ def test_get_oauth2_token_with_pkce(mocker: MockerFixture) -> None:
     Test BaseEngineSpec.get_oauth2_token includes code_verifier when provided.
     """
     from superset.db_engine_specs.base import BaseEngineSpec
-    from superset.superset_typing import OAuth2ClientConfig
     from superset.utils.oauth2 import generate_code_verifier
 
     mocker.patch(
@@ -1026,6 +1022,8 @@ def test_start_oauth2_dance_uses_config_redirect_uri(mocker: MockerFixture) -> N
             "DATABASE_OAUTH2_JWT_ALGORITHM": "HS256",
         },
     )
+    mocker.patch("superset.daos.key_value.KeyValueDAO")
+    mocker.patch("superset.db_engine_specs.base.db")
 
     g = mocker.patch("superset.db_engine_specs.base.g")
     g.user.id = 1
@@ -1066,6 +1064,8 @@ def test_start_oauth2_dance_falls_back_to_url_for(mocker: MockerFixture) -> None
         "superset.db_engine_specs.base.url_for",
         return_value=fallback_uri,
     )
+    mocker.patch("superset.daos.key_value.KeyValueDAO")
+    mocker.patch("superset.db_engine_specs.base.db")
 
     g = mocker.patch("superset.db_engine_specs.base.g")
     g.user.id = 1

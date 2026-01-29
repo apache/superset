@@ -109,7 +109,6 @@ def test_get_oauth2_access_token_base_no_refresh(mocker: MockerFixture) -> None:
     db.session.delete.assert_called_with(token)
 
 
-
 def test_refresh_oauth2_token_deletes_token_on_oauth2_exception(
     mocker: MockerFixture,
 ) -> None:

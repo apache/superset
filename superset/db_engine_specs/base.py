@@ -149,9 +149,7 @@ builtin_time_grains: dict[str | None, str] = {
 }
 
 
-class TimestampExpression(
-    ColumnClause
-):  # pylint: disable=abstract-method, too-many-ancestors
+class TimestampExpression(ColumnClause):  # pylint: disable=abstract-method, too-many-ancestors
     def __init__(self, expr: str, col: ColumnClause, **kwargs: Any) -> None:
         """Sqlalchemy class that can be used to render native column elements respecting
         engine-specific quoting rules as part of a string-based expression.
@@ -530,9 +528,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     max_column_name_length: int | None = None
     try_remove_schema_from_table_name = True  # pylint: disable=invalid-name
     run_multiple_statements_as_one = False
-    custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = (
-        {}
-    )
+    custom_errors: dict[
+        Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]
+    ] = {}
 
     # List of JSON path to fields in `encrypted_extra` that should be masked when the
     # database is edited. By default everything is masked.
