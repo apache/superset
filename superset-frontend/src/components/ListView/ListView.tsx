@@ -29,9 +29,9 @@ import {
   EmptyState,
   Loading,
   Tooltip,
-  Pagination,
   type EmptyStateProps,
 } from '@superset-ui/core/components';
+import { Pagination } from 'antd';
 import CardCollection from './CardCollection';
 import FilterControls from './Filters';
 import { CardSortSelect } from './CardSortSelect';
@@ -277,7 +277,7 @@ export function ListView<T extends object = any>({
   filters = [],
   bulkActions = [],
   bulkSelectEnabled = false,
-  disableBulkSelect = () => {},
+  disableBulkSelect = () => { },
   renderBulkSelectCopy = selected => t('%s Selected', selected.length),
   renderCard,
   showThumbnails,
@@ -291,6 +291,7 @@ export function ListView<T extends object = any>({
   addSuccessToast,
   addDangerToast,
 }: ListViewProps<T>) {
+  const [, setPage] = useState<number>(1);
   const {
     getTableProps,
     getTableBodyProps,
@@ -468,8 +469,8 @@ export function ListView<T extends object = any>({
                     current={pageIndex + 1}
                     pageSize={pageSize}
                     total={count}
-                    onChange={page => {
-                      gotoPage(page - 1);
+                    onChange={(page: number) => {
+                      setPage(page);
                     }}
                     size="default"
                     showSizeChanger={false}
