@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import type { StoryObj } from '@storybook/react';
 import { css } from '@apache-superset/core/ui';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Space } from '../Space';
@@ -88,7 +89,7 @@ const radioGroupWrapperArgsType = {
   },
 };
 
-export const RadioStory = {
+export const RadioStory: StoryObj<typeof Radio> = {
   args: {
     value: 'radio1',
     disabled: false,
