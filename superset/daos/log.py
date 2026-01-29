@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import humanize
@@ -142,7 +142,7 @@ class LogDAO(BaseDAO[Log]):
                     "item_title": item_title,
                     "time": datetime_to_epoch(log.dttm),
                     "time_delta_humanized": humanize.naturaltime(
-                        datetime.utcnow() - log.dttm
+                        datetime.now(timezone.utc) - log.dttm
                     ),
                 }
             )

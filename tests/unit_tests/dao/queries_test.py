@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import pytest
@@ -69,7 +69,7 @@ def test_query_dao_get_queries_changed_after(session: Session) -> None:
 
     database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     old_query_obj = Query(
         client_id="foo",

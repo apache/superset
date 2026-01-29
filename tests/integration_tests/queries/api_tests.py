@@ -17,7 +17,7 @@
 # isort:skip_file
 """Unit tests for Superset"""
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import random
 import string
 
@@ -403,7 +403,7 @@ class TestQueryApi(SupersetTestCase):
         """
         Query API: Test get queries updated since timestamp
         """
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         client_id = self.get_random_string()
 
         admin = self.get_user("admin")
@@ -485,7 +485,7 @@ class TestQueryApi(SupersetTestCase):
             sql="SELECT col1, col2 from table1",
             select_sql="SELECT col1, col2 from table1",
             executed_sql="SELECT col1, col2 from table1 LIMIT 100",
-            changed_on=datetime.utcnow() - timedelta(days=1),
+            changed_on=datetime.now(timezone.utc) - timedelta(days=1),
         )
         self.login(ADMIN_USERNAME)
         rv = self.client.post(

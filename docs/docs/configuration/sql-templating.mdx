@@ -189,7 +189,7 @@ class CustomPrestoTemplateProcessor(PrestoTemplateProcessor):
         """Processes a sql template with $ style macro using regex."""
         # Add custom macros functions.
         macros = {
-            "DATE": partial(DATE, datetime.utcnow())
+            "DATE": partial(DATE, datetime.now(timezone.utc))
         }  # type: Dict[str, Any]
         # Update with macros defined in context and kwargs.
         macros.update(self.context)
