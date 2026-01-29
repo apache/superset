@@ -576,7 +576,7 @@ function ExploreViewContainer(props) {
         const xAxisTitle = props.controls.x_axis_title?.value || '';
         const currentMargin = props.controls.x_axis_title_margin?.value ?? 0;
 
-        if (xAxisTitle && currentMargin === 0) {
+        if (xAxisTitle && currentMargin < 30) {
           props.actions.setControlValue('x_axis_title_margin', 30);
         } else if (!xAxisTitle && currentMargin !== 0) {
           props.actions.setControlValue('x_axis_title_margin', 0);
@@ -587,7 +587,7 @@ function ExploreViewContainer(props) {
         const yAxisTitle = props.controls.y_axis_title?.value || '';
         const currentMargin = props.controls.y_axis_title_margin?.value ?? 0;
 
-        if (yAxisTitle && currentMargin === 0) {
+        if (yAxisTitle && currentMargin < 30) {
           props.actions.setControlValue('y_axis_title_margin', 30);
         } else if (!yAxisTitle && currentMargin !== 0) {
           props.actions.setControlValue('y_axis_title_margin', 0);

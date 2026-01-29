@@ -708,6 +708,54 @@ test('automatic axis title margin adjustment does not change X axis margin when 
   }
 });
 
+test('automatic axis title margin adjustment changes X axis margin when title is added and margin is less than 30', async () => {
+  setupTableChartControlPanel();
+  try {
+    const setControlValueSpy = jest.spyOn(exploreActions, 'setControlValue');
+
+    const initialState = {
+      ...reduxState,
+      explore: {
+        ...reduxState.explore,
+        form_data: {
+          datasource: '1__table',
+          viz_type: VizType.Table,
+          metrics: [],
+        },
+        controls: {
+          ...reduxState.explore.controls,
+          x_axis_title: { value: '' },
+          x_axis_title_margin: { value: 20 },
+        },
+      },
+    };
+
+    const store = createStore(initialState, reducerIndex);
+    renderWithRouter({ initialState, store: store as Store });
+
+    // Clear any calls from initial render
+    setControlValueSpy.mockClear();
+
+    // Simulate title being added by dispatching action
+    store.dispatch(
+      exploreActions.setControlValue('x_axis_title', 'X Axis Label'),
+    );
+
+    // Wait a bit to ensure useEffect has run
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId('query-error-tooltip-trigger'),
+      ).not.toBeInTheDocument();
+    });
+
+    // Should call setControlValue since margin is less than 30
+    expect(setControlValueSpy).toHaveBeenCalledWith('x_axis_title_margin', 30);
+  } finally {
+    getChartControlPanelRegistry().remove('table');
+    jest.restoreAllMocks();
+  }
+});
+
 test('automatic axis title margin adjustment does not change Y axis margin when title is added but margin is already non-zero', async () => {
   setupTableChartControlPanel();
   try {
@@ -753,6 +801,54 @@ test('automatic axis title margin adjustment does not change Y axis margin when 
       'y_axis_title_margin',
       expect.any(Number),
     );
+  } finally {
+    getChartControlPanelRegistry().remove('table');
+    jest.restoreAllMocks();
+  }
+});
+
+test('automatic axis title margin adjustment changes Y axis margin when title is added and margin is less than 30', async () => {
+  setupTableChartControlPanel();
+  try {
+    const setControlValueSpy = jest.spyOn(exploreActions, 'setControlValue');
+
+    const initialState = {
+      ...reduxState,
+      explore: {
+        ...reduxState.explore,
+        form_data: {
+          datasource: '1__table',
+          viz_type: VizType.Table,
+          metrics: [],
+        },
+        controls: {
+          ...reduxState.explore.controls,
+          y_axis_title: { value: '' },
+          y_axis_title_margin: { value: 20 },
+        },
+      },
+    };
+
+    const store = createStore(initialState, reducerIndex);
+    renderWithRouter({ initialState, store: store as Store });
+
+    // Clear any calls from initial render
+    setControlValueSpy.mockClear();
+
+    // Simulate title being added by dispatching action
+    store.dispatch(
+      exploreActions.setControlValue('y_axis_title', 'Y Axis Label'),
+    );
+
+    // Wait a bit to ensure useEffect has run
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId('query-error-tooltip-trigger'),
+      ).not.toBeInTheDocument();
+    });
+
+    // Should call setControlValue since margin is less than 30
+    expect(setControlValueSpy).toHaveBeenCalledWith('y_axis_title_margin', 30);
   } finally {
     getChartControlPanelRegistry().remove('table');
     jest.restoreAllMocks();
