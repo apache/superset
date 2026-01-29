@@ -171,7 +171,7 @@ function TreeItemComponent({
 
   const columnType = useMemo(() => {
     if (type === FoldersEditorItemType.Metric) {
-      return 'expression';
+      return 'metric';
     }
     if (type === FoldersEditorItemType.Column && column) {
       const hasExpression =
