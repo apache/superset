@@ -43,29 +43,29 @@ export interface ItemHeights {
 
 /**
  * Calculates item heights based on theme tokens.
- * These heights include margins since react-window uses absolute positioning
- * where margins don't collapse.
+ * These heights include spacing since react-window uses absolute positioning
+ * where CSS margins don't collapse.
+ *
+ * The spacing is built into the height calculation, NOT the CSS margins,
+ * to avoid double-spacing issues with absolute positioning.
  */
 function calculateItemHeights(theme: SupersetTheme): ItemHeights {
-  // Base content height (line height * font size + vertical padding)
-  const baseContentHeight =
-    theme.lineHeight * theme.fontSize + theme.paddingSM * 2;
+  // Regular item height - just the row height, minimal spacing
+  // The OptionControlContainer sets the actual content height
+  const regularItem = 32;
 
-  // Regular item: content + marginXXS top + marginXXS bottom
-  const regularItem = baseContentHeight + theme.marginXXS * 2;
+  // Folder header - same base height + small top margin for visual separation
+  const folderHeader = 32 + theme.marginXS;
 
-  // Folder header: content + marginLG top + margin bottom
-  const folderHeader = baseContentHeight + theme.marginLG + theme.margin;
+  // Separator visible: 1px line + vertical margins (marginSM above and below)
+  const separatorVisible = 1 + theme.marginSM * 2;
 
-  // Separator visible: 1px line + marginLG top + marginLG bottom
-  const separatorVisible = 1 + theme.marginLG * 2;
+  // Separator transparent: 1px line + small vertical margin
+  const separatorTransparent = 1 + theme.marginXS * 2;
 
-  // Separator transparent: 1px line + marginSM top + marginSM bottom
-  const separatorTransparent = 1 + theme.marginSM * 2;
-
-  // Empty folder with EmptyState: estimate based on typical EmptyState rendering
-  // This includes paddingLG around the container plus the EmptyState content
-  const emptyFolderBase = theme.paddingLG * 2 + 120;
+  // Empty folder with EmptyState: measured from actual rendering (~236px)
+  // EmptyFolderDropZone padding (24*2) + EmptyState content (~188px)
+  const emptyFolderBase = 240;
 
   return {
     regularItem,
