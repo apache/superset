@@ -42,7 +42,11 @@ export const FaveStar = ({
 }: FaveStarProps) => {
   const theme = useTheme();
   useEffect(() => {
-    fetchFaveStar?.(itemId);
+    // Only attempt to fetch favorite status if itemId is valid
+    // This prevents unnecessary API calls for deleted or invalid items
+    if (itemId && fetchFaveStar) {
+      fetchFaveStar(itemId);
+    }
   }, [fetchFaveStar, itemId]);
 
   const onClick = useCallback(
