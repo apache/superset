@@ -451,7 +451,7 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
             <div className="search-container">
               {serverPagination && (
                 <div className="search-by-text-container">
-                  <span className="search-by-text"> Search by :</span>
+                  <span className="search-by-text">{t('Search by:')}</span>
                   <SearchSelectDropdown
                     onChange={onSearchColChange}
                     searchOptions={searchOptions}
@@ -593,11 +593,7 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
         {serverPagination && (
           <Pagination
             currentPage={serverPaginationData?.currentPage || 0}
-            pageSize={
-              hasServerPageLengthChanged
-                ? serverPageLength
-                : serverPaginationData?.pageSize || 10
-            }
+            pageSize={serverPaginationData?.pageSize ?? serverPageLength}
             totalRows={rowCount || 0}
             pageSizeOptions={[10, 20, 50, 100, 200]}
             onServerPaginationChange={onServerPaginationChange}
