@@ -50,7 +50,10 @@ import {
   DEFAULT_FORM_DATA,
   TIME_SERIES_DESCRIPTION_TEXT,
 } from '../../constants';
-import { BarChartStackControlOptions, StackControlsValue } from '../../../constants';
+import {
+  BarChartStackControlOptions,
+  StackControlsValue,
+} from '../../../constants';
 
 const { logAxis, minorSplitLine, truncateYAxis, yAxisBounds, orientation } =
   DEFAULT_FORM_DATA;
