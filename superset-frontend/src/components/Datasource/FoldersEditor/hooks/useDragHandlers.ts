@@ -184,12 +184,7 @@ export function useDragHandlers({
         setCurrentDropTargetId(null);
       }
     },
-    [
-      activeId,
-      flattenedItems,
-      flattenedItemsIndexMap,
-      setCurrentDropTargetId,
-    ],
+    [activeId, flattenedItems, flattenedItemsIndexMap, setCurrentDropTargetId],
   );
 
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
