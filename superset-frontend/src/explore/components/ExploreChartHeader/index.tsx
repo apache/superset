@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { FC, useCallback, useEffect, useMemo, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import PropTypes from 'prop-types';
+import { QueryFormData, JsonObject } from '@superset-ui/core';
 import {
   Tooltip,
   Button,
@@ -27,10 +27,13 @@ import {
   UnsavedChangesModal,
 } from '@superset-ui/core/components';
 import { AlteredSliceTag } from 'src/components';
-import { SupersetClient, isMatrixifyEnabled } from '@superset-ui/core';
+import {
+  SupersetClient,
+  isMatrixifyEnabled,
+  MatrixifyFormData,
+} from '@superset-ui/core';
 import { logging } from '@apache-superset/core';
-import { css, t } from '@apache-superset/core/ui';
-import { chartPropShape } from 'src/dashboard/util/propShapes';
+import { css, t, SupersetTheme } from '@apache-superset/core/ui';
 import { Icons } from '@superset-ui/core/components/Icons';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import { sliceUpdated } from 'src/explore/actions/exploreActions';
@@ -43,35 +46,52 @@ import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import { getChartFormDiffs } from 'src/utils/getChartFormDiffs';
 import { StreamingExportModal } from 'src/components/StreamingExportModal';
 import { Tag } from 'src/components/Tag';
+import { ChartState, ExplorePageInitialData } from 'src/explore/types';
+import { Slice } from 'src/types/Chart';
+import { AlertObject } from 'src/features/alerts/types';
+import { ReportObject } from 'src/features/reports/types';
+import { User } from 'src/types/bootstrapTypes';
 import { useExploreAdditionalActionsMenu } from '../useExploreAdditionalActionsMenu';
 import { useExploreMetadataBar } from './useExploreMetadataBar';
 
-const propTypes = {
-  actions: PropTypes.object.isRequired,
-  canOverwrite: PropTypes.bool.isRequired,
-  canDownload: PropTypes.bool.isRequired,
-  dashboardId: PropTypes.number,
-  colorScheme: PropTypes.string,
-  isStarred: PropTypes.bool.isRequired,
-  slice: PropTypes.object,
-  sliceName: PropTypes.string,
-  table_name: PropTypes.string,
-  formData: PropTypes.object,
-  ownState: PropTypes.object,
-  timeout: PropTypes.number,
-  chart: chartPropShape,
-  saveDisabled: PropTypes.bool,
-  isSaveModalVisible: PropTypes.bool,
-};
+interface ExploreActions {
+  updateChartTitle: (title: string) => void;
+  fetchFaveStar: (sliceId: number) => void;
+  saveFaveStar: (sliceId: number, isStarred: boolean) => void;
+  redirectSQLLab: (
+    formData: QueryFormData,
+    history?: ReturnType<typeof useHistory> | false,
+  ) => void;
+}
 
-const saveButtonStyles = theme => css`
+export interface ExploreChartHeaderProps {
+  actions: ExploreActions;
+  canOverwrite: boolean;
+  canDownload: boolean;
+  dashboardId?: number;
+  colorScheme?: string;
+  isStarred: boolean;
+  slice?: Slice | null;
+  sliceName?: string;
+  table_name?: string;
+  formData?: QueryFormData;
+  ownState?: JsonObject;
+  timeout?: number;
+  chart: ChartState;
+  user: User;
+  saveDisabled?: boolean;
+  metadata?: ExplorePageInitialData['metadata'];
+  isSaveModalVisible?: boolean;
+}
+
+const saveButtonStyles = (theme: SupersetTheme) => css`
   color: ${theme.colorPrimaryText};
   & > span[role='img'] {
     margin-right: 0;
   }
 `;
 
-const additionalItemsStyles = theme => css`
+const additionalItemsStyles = (theme: SupersetTheme) => css`
   display: flex;
   align-items: center;
   margin-left: ${theme.sizeUnit}px;
@@ -80,7 +100,7 @@ const additionalItemsStyles = theme => css`
   }
 `;
 
-export const ExploreChartHeader = ({
+export const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
   dashboardId,
   colorScheme: dashboardColorScheme,
   slice,
@@ -101,7 +121,8 @@ export const ExploreChartHeader = ({
   const { latestQueryFormData, sliceFormData } = chart;
   const [isPropertiesModalOpen, setIsPropertiesModalOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
-  const [currentReportDeleting, setCurrentReportDeleting] = useState(null);
+  const [currentReportDeleting, setCurrentReportDeleting] =
+    useState<AlertObject | null>(null);
   const [shouldForceCloseModal, setShouldForceCloseModal] = useState(false);
 
   const updateCategoricalNamespace = useCallback(async () => {
@@ -155,14 +176,14 @@ export const ExploreChartHeader = ({
   };
 
   const updateSlice = useCallback(
-    slice => {
-      dispatch(sliceUpdated(slice));
+    (updatedSlice: Slice) => {
+      dispatch(sliceUpdated(updatedSlice));
     },
     [dispatch],
   );
 
-  const handleReportDelete = async report => {
-    await dispatch(deleteActiveReport(report));
+  const handleReportDelete = async (report: AlertObject) => {
+    await dispatch(deleteActiveReport(report as unknown as ReportObject));
     setCurrentReportDeleting(null);
   };
 
@@ -170,8 +191,8 @@ export const ExploreChartHeader = ({
   const { redirectSQLLab } = actions;
 
   const redirectToSQLLab = useCallback(
-    (formData, openNewWindow = false) => {
-      redirectSQLLab(formData, !openNewWindow && history);
+    (redirectFormData: QueryFormData, openNewWindow = false) => {
+      redirectSQLLab(redirectFormData, !openNewWindow && history);
     },
     [redirectSQLLab, history],
   );
@@ -189,7 +210,7 @@ export const ExploreChartHeader = ({
       setCurrentReportDeleting,
     );
 
-  const metadataBar = useExploreMetadataBar(metadata, slice);
+  const metadataBar = useExploreMetadataBar(metadata, slice ?? null);
   const oldSliceName = slice?.slice_name;
 
   const originalFormData = useMemo(() => {
@@ -218,7 +239,9 @@ export const ExploreChartHeader = ({
     triggerManualSave,
   } = useUnsavedChangesPrompt({
     hasUnsavedChanges: Object.keys(formDiffs).length > 0,
-    onSave: () => dispatch(setSaveChartModalVisibility(true)),
+    onSave: () => {
+      dispatch(setSaveChartModalVisibility(true));
+    },
     isSaveModalVisible,
     manualSaveOnUnsavedChanges: true,
   });
@@ -245,7 +268,8 @@ export const ExploreChartHeader = ({
           canEdit:
             !slice ||
             canOverwrite ||
-            (slice?.owners || []).includes(user?.userId),
+            (user?.userId !== undefined &&
+              (slice?.owners || []).includes(user.userId)),
           onSave: actions.updateChartTitle,
           placeholder: t('Add the name of the chart'),
           label: t('Chart title'),
@@ -255,9 +279,9 @@ export const ExploreChartHeader = ({
           certifiedBy: slice?.certified_by,
           details: slice?.certification_details,
         }}
-        showFaveStar={!!user?.userId}
+        showFaveStar={!!user?.userId && slice?.slice_id !== undefined}
         faveStarProps={{
-          itemId: slice?.slice_id,
+          itemId: slice?.slice_id ?? 0,
           fetchFaveStar: actions.fetchFaveStar,
           saveFaveStar: actions.saveFaveStar,
           isStarred,
@@ -269,11 +293,11 @@ export const ExploreChartHeader = ({
               <AlteredSliceTag
                 className="altered"
                 diffs={formDiffs}
-                origFormData={originalFormData}
-                currentFormData={currentFormData}
+                origFormData={originalFormData as QueryFormData}
+                currentFormData={currentFormData as QueryFormData}
               />
             ) : null}
-            {formData && isMatrixifyEnabled(formData) && (
+            {formData && isMatrixifyEnabled(formData as MatrixifyFormData) && (
               <Tag name="Matrixified" color="purple" />
             )}
             {metadataBar}
@@ -363,7 +387,5 @@ export const ExploreChartHeader = ({
     </>
   );
 };
-
-ExploreChartHeader.propTypes = propTypes;
 
 export default ExploreChartHeader;

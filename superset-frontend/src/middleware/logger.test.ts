@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import sinon from 'sinon';
+import sinon, { SinonSpy, SinonStub } from 'sinon';
 import { SupersetClient } from '@superset-ui/core';
 import logger from 'src/middleware/loggerMiddleware';
 import { LOG_EVENT } from 'src/logger/actions';
@@ -24,11 +24,21 @@ import {
   LOG_ACTIONS_LOAD_CHART,
   LOG_ACTIONS_SPA_NAVIGATION,
 } from 'src/logger/LogUtils';
+import { Dispatch } from 'redux';
+
+interface LogEventAction {
+  type: typeof LOG_EVENT;
+  payload: {
+    eventName: string;
+    eventData: Record<string, unknown>;
+  };
+}
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('logger middleware', () => {
   const dashboardId = 123;
-  const next = sinon.spy();
+  const next: SinonSpy = sinon.spy();
+  // Mock store with minimal state needed for tests
   const mockStore = {
     getState: () => ({
       dashboardInfo: {
@@ -36,8 +46,9 @@ describe('logger middleware', () => {
       },
       impressionId: 'impression_id',
     }),
+    dispatch: ((action: unknown) => action) as Dispatch,
   };
-  const action = {
+  const action: LogEventAction = {
     type: LOG_EVENT,
     payload: {
       eventName: LOG_ACTIONS_LOAD_CHART,
@@ -52,7 +63,7 @@ describe('logger middleware', () => {
     useFakeTimers: true,
   });
 
-  let postStub;
+  let postStub: SinonStub;
   beforeEach(() => {
     postStub = sinon.stub(SupersetClient, 'post');
   });
@@ -69,61 +80,72 @@ describe('logger middleware', () => {
         some: 'data',
       },
     };
-    logger(mockStore)(next)(action1);
+    (logger as Function)(mockStore)(next)(action1);
     expect(next.callCount).toBe(1);
   });
 
   test('should POST an event to /superset/log/ when called', () => {
-    logger(mockStore)(next)(action);
+    (logger as Function)(mockStore)(next)(action);
     expect(next.callCount).toBe(0);
 
     timeSandbox.clock.tick(2000);
-    expect(SupersetClient.post.callCount).toBe(1);
-    expect(SupersetClient.post.getCall(0).args[0].endpoint).toMatch(
-      '/superset/log/',
-    );
+    expect(postStub.callCount).toBe(1);
+    expect(postStub.getCall(0).args[0].endpoint).toMatch('/superset/log/');
   });
 
   test('should include ts, start_offset, event_name, impression_id, source, and source_id in every event', () => {
-    const fetchLog = logger(mockStore)(next);
-    fetchLog({
-      type: LOG_EVENT,
-      payload: {
-        eventName: LOG_ACTIONS_SPA_NAVIGATION,
-        eventData: { path: `/dashboard/${dashboardId}/` },
-      },
-    });
-    timeSandbox.clock.tick(2000);
-    fetchLog(action);
-    timeSandbox.clock.tick(2000);
-    expect(SupersetClient.post.callCount).toBe(2);
-    const { events } = SupersetClient.post.getCall(1).args[0].postPayload;
-    const mockEventdata = action.payload.eventData;
-    const mockEventname = action.payload.eventName;
-    expect(events[0]).toMatchObject({
-      key: mockEventdata.key,
-      event_name: mockEventname,
-      impression_id: mockStore.getState().impressionId,
-      source: 'dashboard',
-      source_id: mockStore.getState().dashboardInfo.id,
-      event_type: 'timing',
-      dashboard_id: mockStore.getState().dashboardInfo.id,
+    // Set window.location to include /dashboard/ so the middleware adds dashboard context
+    const originalHref = window.location.href;
+    Object.defineProperty(window, 'location', {
+      value: { href: `http://localhost/dashboard/${dashboardId}/` },
+      writable: true,
     });
 
-    expect(typeof events[0].ts).toBe('number');
-    expect(typeof events[0].start_offset).toBe('number');
+    try {
+      const fetchLog = (logger as Function)(mockStore)(next);
+      fetchLog({
+        type: LOG_EVENT,
+        payload: {
+          eventName: LOG_ACTIONS_SPA_NAVIGATION,
+          eventData: { path: `/dashboard/${dashboardId}/` },
+        },
+      });
+      timeSandbox.clock.tick(2000);
+      fetchLog(action);
+      timeSandbox.clock.tick(2000);
+      expect(postStub.callCount).toBe(2);
+      const { events } = postStub.getCall(1).args[0].postPayload;
+      const mockEventdata = action.payload.eventData;
+      const mockEventname = action.payload.eventName;
+      expect(events[0]).toMatchObject({
+        key: mockEventdata.key,
+        event_name: mockEventname,
+        impression_id: mockStore.getState().impressionId,
+        source: 'dashboard',
+        source_id: mockStore.getState().dashboardInfo.id,
+        event_type: 'timing',
+        dashboard_id: mockStore.getState().dashboardInfo.id,
+      });
+
+      expect(typeof events[0].ts).toBe('number');
+      expect(typeof events[0].start_offset).toBe('number');
+    } finally {
+      // Restore original location
+      Object.defineProperty(window, 'location', {
+        value: { href: originalHref },
+        writable: true,
+      });
+    }
   });
 
   test('should debounce a few log requests to one', () => {
-    logger(mockStore)(next)(action);
-    logger(mockStore)(next)(action);
-    logger(mockStore)(next)(action);
+    (logger as Function)(mockStore)(next)(action);
+    (logger as Function)(mockStore)(next)(action);
+    (logger as Function)(mockStore)(next)(action);
     timeSandbox.clock.tick(2000);
 
-    expect(SupersetClient.post.callCount).toBe(1);
-    expect(
-      SupersetClient.post.getCall(0).args[0].postPayload.events,
-    ).toHaveLength(3);
+    expect(postStub.callCount).toBe(1);
+    expect(postStub.getCall(0).args[0].postPayload.events).toHaveLength(3);
   });
 
   test('should use navigator.sendBeacon if it exists', () => {
@@ -133,7 +155,7 @@ describe('logger middleware', () => {
       value: beaconMock,
     });
 
-    logger(mockStore)(next)(action);
+    (logger as Function)(mockStore)(next)(action);
     expect(beaconMock.mock.calls.length).toBe(0);
     timeSandbox.clock.tick(2000);
 
@@ -150,7 +172,7 @@ describe('logger middleware', () => {
     });
     SupersetClient.configure({ guestToken: 'token' });
 
-    logger(mockStore)(next)(action);
+    (logger as Function)(mockStore)(next)(action);
     expect(beaconMock.mock.calls.length).toBe(0);
     timeSandbox.clock.tick(2000);
     expect(beaconMock.mock.calls.length).toBe(1);
