@@ -19,12 +19,35 @@
 
 import { CSSProperties, memo } from 'react';
 import type { ListChildComponentProps } from 'react-window';
+import { useDroppable } from '@dnd-kit/core';
 import type { UniqueIdentifier } from '@dnd-kit/core';
 import type { Metric, ColumnMeta } from '@superset-ui/chart-controls';
 import { FoldersEditorItemType } from '../types';
 import type { FlattenedTreeItem } from './constants';
 import { isDefaultFolder } from './constants';
 import { TreeItem } from './TreeItem';
+
+// Invisible placeholder that keeps the droppable area for horizontal drag depth changes
+interface DragPlaceholderProps {
+  id: string;
+  style: CSSProperties;
+  type: FoldersEditorItemType;
+  isFolder: boolean;
+}
+
+const DragPlaceholder = memo(function DragPlaceholder({
+  id,
+  style,
+  type,
+  isFolder,
+}: DragPlaceholderProps) {
+  const { setNodeRef } = useDroppable({
+    id,
+    data: { type, isFolder },
+  });
+
+  return <div ref={setNodeRef} style={{ ...style, visibility: 'hidden' }} />;
+});
 
 export interface VirtualizedTreeItemData {
   flattenedItems: FlattenedTreeItem[];
@@ -149,9 +172,17 @@ function VirtualizedTreeItemComponent({
     return null;
   }
 
-  // Hide the active dragged item - it's rendered in DragOverlay
+  // Render invisible placeholder for active dragged item - keeps droppable area
+  // for horizontal drag depth changes while visual is in DragOverlay
   if (activeId === item.uuid) {
-    return null;
+    return (
+      <DragPlaceholder
+        id={item.uuid}
+        style={style}
+        type={item.type}
+        isFolder={isFolder}
+      />
+    );
   }
 
   const childCount = isFolder ? (folderChildCounts.get(item.uuid) ?? 0) : 0;
