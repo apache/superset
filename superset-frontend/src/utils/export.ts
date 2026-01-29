@@ -29,7 +29,7 @@ const MAX_BLOB_SIZE = 100 * 1024 * 1024;
  * @param blob - The blob to download
  * @param fileName - The filename to use for the download
  */
-function downloadBlob(blob: Blob, fileName: string): void {
+export function downloadBlob(blob: Blob, fileName: string): void {
   const url = window.URL.createObjectURL(blob);
   try {
     const a = document.createElement('a');

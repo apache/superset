@@ -31,6 +31,7 @@ import { availableDomains } from 'src/utils/hostNamesConfig';
 import { safeStringify } from 'src/utils/safeStringify';
 import { optionLabel } from 'src/utils/common';
 import { ensureAppRoot } from 'src/utils/pathUtils';
+import { downloadBlob } from 'src/utils/export';
 import { URL_PARAMS } from 'src/constants';
 import {
   DISABLE_INPUT_OPERATORS,
@@ -285,8 +286,58 @@ export const exportChart = async ({
       exportType: resultFormat,
     });
   } else {
-    // Fallback to original behavior for non-streaming exports
-    SupersetClient.postForm(url, { form_data: safeStringify(payload) });
+    // Use AJAX blob download instead of form submission to enable error handling
+    try {
+      const response = await SupersetClient.postBlob(url, {
+        form_data: payload,
+      });
+
+      // Check if response is OK (status 200-299)
+      if (!response.ok) {
+        // Create error object with status for proper handling
+        const error = new Error(
+          `HTTP ${response.status} ${response.statusText}`,
+        );
+        error.status = response.status;
+        error.statusText = response.statusText;
+        error.response = response;
+        throw error;
+      }
+
+      // Generate filename based on format and current date
+      const extension = resultFormat === 'xlsx' ? 'xlsx' : resultFormat;
+      const timestamp = new Date()
+        .toISOString()
+        .replace(/[:.]/g, '-')
+        .slice(0, -5);
+      const filename = `chart_export_${timestamp}.${extension}`;
+
+      // Convert to blob and trigger download
+      const blob = await response.blob();
+      downloadBlob(blob, filename);
+    } catch (error) {
+      // Handle Response objects thrown by SupersetClient
+      if (error instanceof Response) {
+        const responseError = new Error(
+          `HTTP ${error.status} ${error.statusText}`,
+        );
+        responseError.status = error.status;
+        responseError.statusText = error.statusText;
+        responseError.response = error;
+        throw responseError;
+      }
+
+      // Ensure error has status property for proper error handling
+      if (!error.status) {
+        const enhancedError = new Error(error.message || 'Export failed');
+        enhancedError.status = 500;
+        enhancedError.originalError = error;
+        throw enhancedError;
+      }
+
+      // Re-throw error so calling code can handle it (e.g., show toast)
+      throw error;
+    }
   }
 };
 
