@@ -18,6 +18,7 @@
  */
 
 import { Locator, Page } from '@playwright/test';
+import { TIMEOUT } from '../../utils/constants';
 
 /**
  * Menu component for Ant Design dropdown menus.
@@ -45,9 +46,11 @@ export class Menu {
     SUBMENU_TITLE: '.ant-dropdown-menu-submenu-title',
   } as const;
 
-  private static readonly TIMEOUTS = {
-    SUBMENU_OPEN: 5000,
-  } as const;
+  /**
+   * Ant Design animation delay - allows slide-in animation to complete.
+   * Without this, elements may be "not stable" and clicks can fail.
+   */
+  private static readonly ANIMATION_DELAY = 150;
 
   constructor(page: Page, selector: string);
   constructor(page: Page, locator: Locator);
@@ -73,7 +76,7 @@ export class Menu {
     itemText: string,
     options?: { timeout?: number },
   ): Promise<void> {
-    const timeout = options?.timeout ?? Menu.TIMEOUTS.SUBMENU_OPEN;
+    const timeout = options?.timeout ?? TIMEOUT.FORM_LOAD;
 
     // Try hover first (most natural user interaction)
     let popup = await this.openSubmenuWithHover(submenuText, itemText, timeout);
@@ -105,9 +108,7 @@ export class Menu {
     // Use dispatchEvent instead of click to bypass viewport and pointer interception
     // issues. Ant Design renders submenu popups in a portal that can be positioned
     // outside the viewport or behind chart content (e.g., large tables with z-index).
-    await popup
-      .getByText(itemText, { exact: true })
-      .dispatchEvent('click', { timeout });
+    await popup.getByText(itemText, { exact: true }).dispatchEvent('click');
   }
 
   /**
@@ -131,7 +132,7 @@ export class Menu {
 
       // Allow Ant Design's slide-in animation to complete before clicking.
       // Without this, the element may be "not stable" and clicks can fail.
-      await this.page.waitForTimeout(150);
+      await this.page.waitForTimeout(Menu.ANIMATION_DELAY);
 
       return popup;
     } catch {
