@@ -33,6 +33,8 @@ from superset.commands.tasks.exceptions import (
     TaskUpdateFailedError,
 )
 from superset.exceptions import SupersetSecurityException
+from superset.tasks.locks import task_lock
+from superset.tasks.utils import get_active_dedup_key
 from superset.utils.decorators import on_error, transaction
 
 if TYPE_CHECKING:
@@ -47,6 +49,9 @@ class UpdateTaskCommand(BaseCommand):
 
     Uses explicit typed parameters to avoid confusion between
     payload (task output) and properties (runtime state/config).
+
+    This command acquires a distributed lock to prevent race conditions with
+    concurrent submit/cancel operations on the same logical task.
     """
 
     def __init__(
@@ -85,11 +90,48 @@ class UpdateTaskCommand(BaseCommand):
 
     @transaction(on_error=partial(on_error, reraise=TaskUpdateFailedError))
     def run(self) -> Task:
-        """Execute the command."""
-        from superset.daos.tasks import TaskDAO
+        """
+        Execute the update command with distributed locking.
+
+        Acquires lock based on dedup_key to prevent race conditions with
+        concurrent submit/cancel operations on the same logical task.
+
+        :returns: The updated task model
+        """
 
         self.validate()
         assert self._model
+
+        # Build lock key from task properties (same structure as dedup_key)
+        dedup_key = get_active_dedup_key(
+            scope=self._model.scope,
+            task_type=self._model.task_type,
+            task_key=self._model.task_key,
+            user_id=self._model.user_id if self._model.is_private else None,
+        )
+
+        # Acquire lock to prevent race with submit/cancel operations
+        with task_lock(dedup_key):
+            return self._execute_update()
+
+    def _execute_update(self) -> "Task":
+        """
+        Execute the update operation under lock.
+
+        :returns: The updated task model
+        """
+        from superset.daos.tasks import TaskDAO
+
+        assert self._model
+
+        # Re-fetch model under lock to get fresh state
+        fresh_model = TaskDAO.find_one_or_none(
+            skip_base_filter=self._skip_security_check,
+            uuid=self._task_uuid,
+        )
+        if not fresh_model:
+            raise TaskNotFoundError()
+        self._model = fresh_model
 
         # Update status via set_status() for proper timestamp handling
         if self._status is not None:

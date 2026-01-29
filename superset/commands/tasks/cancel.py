@@ -30,6 +30,8 @@ from superset.commands.tasks.exceptions import (
     TaskPermissionDeniedError,
 )
 from superset.extensions import security_manager
+from superset.tasks.locks import task_lock
+from superset.tasks.utils import get_active_dedup_key
 from superset.utils.core import get_user_id
 from superset.utils.decorators import on_error, transaction
 
@@ -49,6 +51,9 @@ class CancelTaskCommand(BaseCommand):
     - For shared tasks with force=True (admin only): aborts for all subscribers
 
     The term "cancel" is user-facing; internally this may abort or unsubscribe.
+
+    This command acquires a distributed lock to prevent race conditions with
+    concurrent submit/cancel operations on the same logical task.
     """
 
     def __init__(self, task_uuid: str, force: bool = False):
@@ -69,16 +74,47 @@ class CancelTaskCommand(BaseCommand):
     @transaction(on_error=partial(on_error, reraise=TaskAbortFailedError))
     def run(self) -> "Task":
         """
-        Execute the cancel command.
+        Execute the cancel command with distributed locking.
+
+        Acquires lock based on dedup_key to prevent race conditions with
+        concurrent submit operations (e.g., user subscribing while another cancels).
+
+        :returns: The updated task model
+        """
+
+        self.validate()
+        assert self._model
+
+        # Build lock key from task properties (same structure as dedup_key)
+        dedup_key = get_active_dedup_key(
+            scope=self._model.scope,
+            task_type=self._model.task_type,
+            task_key=self._model.task_key,
+            user_id=self._model.user_id if self._model.is_private else None,
+        )
+
+        # Acquire lock to prevent race with submit/subscribe operations
+        with task_lock(dedup_key):
+            return self._execute_cancel()
+
+    def _execute_cancel(self) -> "Task":
+        """
+        Execute the cancel operation under lock.
 
         :returns: The updated task model
         """
         from superset.daos.tasks import TaskDAO
 
-        self.validate()
         assert self._model
-
         user_id = get_user_id()
+
+        # Re-fetch model under lock to get fresh subscriber count
+        fresh_model = TaskDAO.find_one_or_none(
+            skip_base_filter=self._is_admin, uuid=self._task_uuid
+        )
+        if not fresh_model:
+            raise TaskNotFoundError()
+        self._model = fresh_model
 
         # Determine action based on task scope and force flag
         should_abort_directly = (
@@ -93,42 +129,9 @@ class CancelTaskCommand(BaseCommand):
         )
 
         if should_abort_directly:
-            # Direct abort
-            try:
-                aborted = TaskDAO.abort_task(
-                    self._task_uuid, skip_base_filter=self._is_admin
-                )
-            except TaskNotAbortableError:
-                raise
-
-            if not aborted:
-                # abort_task returned False - task wasn't aborted
-                # This can happen if task is already finished or has
-                # remaining subscribers
-                raise TaskAbortFailedError()
-
-            self._action_taken = "aborted"
-            logger.info(
-                "Task aborted: %s (scope: %s, force: %s)",
-                self._task_uuid,
-                self._model.scope,
-                self._force,
-            )
+            self._do_abort()
         else:
-            # Shared task with multiple subscribers - unsubscribe user
-            self._action_taken = "unsubscribed"
-            if user_id and self._model.has_subscriber(user_id):
-                TaskDAO.remove_subscriber(self._model.id, user_id)
-                logger.info(
-                    "User %s unsubscribed from shared task: %s",
-                    user_id,
-                    self._task_uuid,
-                )
-            else:
-                # User not subscribed - they shouldn't be able to cancel
-                raise TaskPermissionDeniedError(
-                    "You are not subscribed to this shared task"
-                )
+            self._do_unsubscribe(user_id)
 
         # Refresh model to get updated status
         refreshed = TaskDAO.find_one_or_none(
@@ -139,6 +142,52 @@ class CancelTaskCommand(BaseCommand):
         self._model = refreshed
 
         return self._model
+
+    def _do_abort(self) -> None:
+        """Execute abort operation."""
+        from superset.daos.tasks import TaskDAO
+
+        assert self._model
+
+        try:
+            aborted = TaskDAO.abort_task(
+                self._task_uuid, skip_base_filter=self._is_admin
+            )
+        except TaskNotAbortableError:
+            raise
+
+        if not aborted:
+            # abort_task returned False - task wasn't aborted
+            # This can happen if task is already finished
+            raise TaskAbortFailedError()
+
+        self._action_taken = "aborted"
+        logger.info(
+            "Task aborted: %s (scope: %s, force: %s)",
+            self._task_uuid,
+            self._model.scope,
+            self._force,
+        )
+
+    def _do_unsubscribe(self, user_id: int | None) -> None:
+        """Execute unsubscribe operation."""
+        from superset.daos.tasks import TaskDAO
+
+        assert self._model
+
+        self._action_taken = "unsubscribed"
+        if user_id and self._model.has_subscriber(user_id):
+            TaskDAO.remove_subscriber(self._model.id, user_id)
+            logger.info(
+                "User %s unsubscribed from shared task: %s",
+                user_id,
+                self._task_uuid,
+            )
+        else:
+            # User not subscribed - they shouldn't be able to cancel
+            raise TaskPermissionDeniedError(
+                "You are not subscribed to this shared task"
+            )
 
     @property
     def action_taken(self) -> str:

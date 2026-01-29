@@ -24,7 +24,7 @@ under the License.
 
 # Global Task Framework
 
-The Global Task Framework (GTF) provides a unified way to manage background tasks. It handles task execution, progress tracking, cancellation, and deduplication for both synchronous and asynchronous execution.
+The Global Task Framework (GTF) provides a unified way to manage background tasks. It handles task execution, progress tracking, cancellation, and deduplication for both synchronous and asynchronous execution. The framework uses distributed locking internally to ensure race-free operations—you don't need to worry about concurrent task creation or cancellation conflicts.
 
 ## Quick Start
 
@@ -113,7 +113,7 @@ def my_task(items: list[int]) -> None:
 ```
 
 :::tip
-Call `update_task()` once per iteration for best performance: each call writes to the database.
+Call `update_task()` once per iteration for best performance. Each call acquires a distributed lock and writes to the database, so batching progress and payload updates together minimizes overhead.
 :::
 
 #### Progress Formats
@@ -277,7 +277,7 @@ Timeouts require an abort handler to be effective. Without one, the timeout trig
 
 ## Deduplication
 
-Use `task_key` to prevent duplicate task execution. Behavior varies by scope:
+Use `task_key` to prevent duplicate task execution:
 
 ```python
 from superset_core.api.types import TaskOptions
@@ -286,16 +286,12 @@ from superset_core.api.types import TaskOptions
 task1 = my_task.schedule(x=1)
 task2 = my_task.schedule(x=1)  # Different task
 
-# With key - deduplication behavior depends on scope
+# With key - joins existing task if active
 task1 = my_task.schedule(x=1, options=TaskOptions(task_key="report_123"))
-task2 = my_task.schedule(x=1, options=TaskOptions(task_key="report_123"))
+task2 = my_task.schedule(x=1, options=TaskOptions(task_key="report_123"))  # Returns same task
 ```
 
-| Scope | Duplicate Key Behavior |
-|-------|----------------------|
-| `PRIVATE` | Returns existing task (same user only) |
-| `SHARED` | Subscribes user to existing task |
-| `SYSTEM` | Returns existing task |
+When a task with matching key already exists, the user is added as a subscriber and the existing task is returned. This behavior is consistent across all scopes—private tasks naturally have only one subscriber since their deduplication key includes the user ID.
 
 Deduplication only applies to active tasks (pending/in-progress). Once a task completes, a new task with the same key can be created.
 

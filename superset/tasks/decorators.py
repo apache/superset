@@ -254,7 +254,7 @@ class TaskWrapper(Generic[P]):
         Raises:
             ValueError: If task validation fails
         """
-        from superset.commands.tasks.create import CreateTaskCommand
+        from superset.commands.tasks.submit import SubmitTaskCommand
         from superset.commands.tasks.update import UpdateTaskCommand
 
         # Extract and merge options (decorator defaults + call-time overrides)
@@ -276,7 +276,7 @@ class TaskWrapper(Generic[P]):
         if options.timeout:
             properties["timeout"] = options.timeout
 
-        task = CreateTaskCommand(
+        task = SubmitTaskCommand(
             {
                 "task_type": self.name,
                 "task_key": task_key,

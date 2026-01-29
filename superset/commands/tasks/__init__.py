@@ -16,13 +16,13 @@
 # under the License.
 
 from superset.commands.tasks.cancel import CancelTaskCommand
-from superset.commands.tasks.create import CreateTaskCommand
 from superset.commands.tasks.prune import TaskPruneCommand
+from superset.commands.tasks.submit import SubmitTaskCommand
 from superset.commands.tasks.update import UpdateTaskCommand
 
 __all__ = [
     "CancelTaskCommand",
-    "CreateTaskCommand",
+    "SubmitTaskCommand",
     "TaskPruneCommand",
     "UpdateTaskCommand",
 ]

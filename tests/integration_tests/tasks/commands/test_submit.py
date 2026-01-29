@@ -19,18 +19,17 @@ import pytest
 from superset_core.api.tasks import TaskStatus
 
 from superset import db
-from superset.commands.tasks import CreateTaskCommand
+from superset.commands.tasks import SubmitTaskCommand
 from superset.commands.tasks.exceptions import (
-    TaskCreateFailedError,
     TaskInvalidError,
 )
 
 
-def test_create_task_success(app_context, login_as) -> None:
-    """Test successful task creation"""
+def test_submit_task_success(app_context, login_as) -> None:
+    """Test successful task submission"""
     login_as("admin")
 
-    command = CreateTaskCommand(
+    command = SubmitTaskCommand(
         data={
             "task_type": "test-type",
             "task_key": "test-key",
@@ -58,12 +57,12 @@ def test_create_task_success(app_context, login_as) -> None:
         db.session.commit()
 
 
-def test_create_task_with_all_fields(app_context, login_as, get_user) -> None:
-    """Test task creation with all optional fields"""
+def test_submit_task_with_all_fields(app_context, login_as, get_user) -> None:
+    """Test task submission with all optional fields"""
     login_as("admin")
     admin = get_user("admin")
 
-    command = CreateTaskCommand(
+    command = SubmitTaskCommand(
         data={
             "task_type": "test-type",
             "task_key": "test-key-full",
@@ -91,11 +90,11 @@ def test_create_task_with_all_fields(app_context, login_as, get_user) -> None:
         db.session.commit()
 
 
-def test_create_task_missing_task_type(app_context, login_as) -> None:
-    """Test creation fails when task_type is missing"""
+def test_submit_task_missing_task_type(app_context, login_as) -> None:
+    """Test submission fails when task_type is missing"""
     login_as("admin")
 
-    command = CreateTaskCommand(data={})
+    command = SubmitTaskCommand(data={})
 
     with pytest.raises(TaskInvalidError) as exc_info:
         command.run()
@@ -104,44 +103,45 @@ def test_create_task_missing_task_type(app_context, login_as) -> None:
     assert "task_type" in exc_info.value._exceptions[0].field_name
 
 
-def test_create_task_duplicate_task_key(app_context, login_as) -> None:
-    """Test creation fails when task_key already exists"""
+def test_submit_task_joins_existing(app_context, login_as) -> None:
+    """Test that submitting with duplicate key joins existing task"""
     login_as("admin")
 
     # Create first task
-    command1 = CreateTaskCommand(
+    command1 = SubmitTaskCommand(
         data={
             "task_type": "test-type",
-            "task_key": "duplicate-key",
+            "task_key": "shared-key",
             "task_name": "First Task",
         }
     )
     task1 = command1.run()
 
     try:
-        # Try to create second task with same task_key and type
-        command2 = CreateTaskCommand(
+        # Submit second task with same task_key and type
+        command2 = SubmitTaskCommand(
             data={
                 "task_type": "test-type",
-                "task_key": "duplicate-key",
+                "task_key": "shared-key",
                 "task_name": "Second Task",
             }
         )
 
-        # Should fail due to duplicate task_key
-        with pytest.raises(TaskCreateFailedError):
-            command2.run()
+        # Should return existing task, not create new one
+        task2 = command2.run()
+        assert task2.id == task1.id
+        assert task2.uuid == task1.uuid
     finally:
         # Cleanup
         db.session.delete(task1)
         db.session.commit()
 
 
-def test_create_task_without_task_key(app_context, login_as) -> None:
-    """Test task creation without task_key (DAO generates UUID)"""
+def test_submit_task_without_task_key(app_context, login_as) -> None:
+    """Test task submission without task_key (command generates UUID)"""
     login_as("admin")
 
-    command = CreateTaskCommand(
+    command = SubmitTaskCommand(
         data={
             "task_type": "test-type",
             "task_name": "Test Task No ID",
@@ -151,10 +151,10 @@ def test_create_task_without_task_key(app_context, login_as) -> None:
     try:
         result = command.run()
 
-        # Verify task was created and DAO generated a task_key
+        # Verify task was created and command generated a task_key
         assert result.task_type == "test-type"
         assert result.task_name == "Test Task No ID"
-        assert result.task_key is not None  # DAO generated UUID
+        assert result.task_key is not None  # Command generated UUID
         assert result.uuid is not None
     finally:
         # Cleanup

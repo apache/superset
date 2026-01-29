@@ -26,7 +26,6 @@ import redis
 from redis.sentinel import Sentinel
 from superset_core.api.tasks import TaskProperties, TaskScope, TaskStatus
 
-from superset.commands.tasks.exceptions import TaskCreateFailedError
 from superset.tasks.utils import generate_random_task_key
 
 if TYPE_CHECKING:
@@ -562,11 +561,13 @@ class TaskManager:
         Create task entry and schedule for async execution.
 
         Flow:
-        1. Generate task_id if not provided (random UUID)
-        2. Create Task record in metastore (with PENDING status)
-        3. If duplicate active task exists, return it instead
-        4. Submit to Celery for background execution
-        5. Return Task model to caller
+        1. Generate task_key if not provided (random UUID)
+        2. Submit to SubmitTaskCommand which handles locking and create-vs-join
+        3. Schedule Celery task for async execution
+        4. Return Task model to caller
+
+        The SubmitTaskCommand uses a distributed lock to prevent race conditions,
+        returning either a new task or an existing active task with the same key.
 
         :param task_type: Task type identifier (e.g., "superset.generate_thumbnail")
         :param task_key: Optional deduplication key (None for random UUID)
@@ -577,8 +578,7 @@ class TaskManager:
         :param kwargs: Keyword arguments for the task function
         :returns: Task model representing the scheduled task
         """
-        from superset.commands.tasks.create import CreateTaskCommand
-        from superset.daos.tasks import TaskDAO
+        from superset.commands.tasks.submit import SubmitTaskCommand
 
         if task_key is None:
             task_key = generate_random_task_key()
@@ -588,62 +588,36 @@ class TaskManager:
         if timeout:
             properties["timeout"] = timeout
 
-        try:
-            # Create task entry in metastore
-            # Command automatically extracts current user for subscription
-            task = CreateTaskCommand(
-                {
-                    "task_key": task_key,
-                    "task_type": task_type,
-                    "task_name": task_name,
-                    "scope": scope.value,
-                    "properties": properties,
-                }
-            ).run()
+        # Create or join task entry in metastore
+        # SubmitTaskCommand handles locking and create-vs-join logic:
+        # - Acquires distributed lock on dedup_key
+        # - If active task exists: adds subscriber and returns existing task
+        # - If no active task: creates new task
+        task = SubmitTaskCommand(
+            {
+                "task_key": task_key,
+                "task_type": task_type,
+                "task_name": task_name,
+                "scope": scope.value,
+                "properties": properties,
+            }
+        ).run()
 
-            # Import here to avoid circular dependency
-            from superset.tasks.scheduler import execute_task
+        # Import here to avoid circular dependency
+        from superset.tasks.scheduler import execute_task
 
-            # Schedule Celery task for async execution
-            execute_task.delay(
-                task_uuid=task.uuid,
-                task_type=task_type,
-                args=args,
-                kwargs=kwargs,
-            )
+        # Schedule Celery task for async execution
+        execute_task.delay(
+            task_uuid=task.uuid,
+            task_type=task_type,
+            args=args,
+            kwargs=kwargs,
+        )
 
-            logger.info(
-                "Scheduled task %s (uuid=%s) for async execution",
-                task_type,
-                task.uuid,
-            )
+        logger.info(
+            "Scheduled task %s (uuid=%s) for async execution",
+            task_type,
+            task.uuid,
+        )
 
-            return task
-
-        except TaskCreateFailedError as ex:
-            # Task with same task_key already exists and is active
-            # Return existing task instead of creating duplicate
-
-            existing = TaskDAO.find_by_task_key(task_type, task_key, scope.value)
-            if existing:
-                logger.info(
-                    "Task %s with key '%s' and scope '%s' already exists (uuid=%s), "
-                    "returning existing task",
-                    task_type,
-                    task_key,
-                    scope.value,
-                    existing.uuid,
-                )
-                return existing
-
-            # Race condition: task completed between check and here
-            # Do not recurse indefinitely; surface failure so caller can handle
-            # retry if desired
-            logger.error(
-                "Race condition detected for task %s with key '%s' and scope '%s' "
-                "- failing task creation",
-                task_type,
-                task_key,
-                scope.value,
-            )
-            raise TaskCreateFailedError() from ex
+        return task
