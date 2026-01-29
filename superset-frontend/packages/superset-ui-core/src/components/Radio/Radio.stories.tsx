@@ -113,12 +113,14 @@ export const RadioStory = {
       description: 'Label text displayed next to the radio button.',
     },
   },
-  parameters: {
-    docs: {
-      examples: [
-        {
-          title: 'Radio Button Variants',
-          code: `function RadioButtonDemo() {
+};
+
+RadioStory.parameters = {
+  docs: {
+    examples: [
+      {
+        title: 'Radio Button Variants',
+        code: `function RadioButtonDemo() {
   const [value, setValue] = React.useState('line');
   return (
     <Radio.Group value={value} onChange={e => setValue(e.target.value)}>
@@ -128,10 +130,10 @@ export const RadioStory = {
     </Radio.Group>
   );
 }`,
-        },
-        {
-          title: 'Vertical Radio Group',
-          code: `function VerticalDemo() {
+      },
+      {
+        title: 'Vertical Radio Group',
+        code: `function VerticalDemo() {
   const [value, setValue] = React.useState('option1');
   return (
     <Radio.Group value={value} onChange={e => setValue(e.target.value)}>
@@ -143,9 +145,8 @@ export const RadioStory = {
     </Radio.Group>
   );
 }`,
-        },
-      ],
-    },
+      },
+    ],
   },
 };
 

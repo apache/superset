@@ -345,16 +345,28 @@ function parseArgsContent(argsContent, args) {
   // Split into lines and process each line for simple key-value pairs
   const lines = argsContent.split('\n');
 
-  for (const line of lines) {
-    const trimmed = line.trim();
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = lines[i].trim();
     if (!trimmed || trimmed.startsWith('//')) continue;
 
     // Match: key: value pattern at start of line
     const propMatch = trimmed.match(/^([a-zA-Z_$][a-zA-Z0-9_$]*):\s*(.+?)[\s,]*$/);
-    if (!propMatch) continue;
+    // Also match key with value on the next line (e.g., prettier wrapping long strings)
+    const keyOnlyMatch = !propMatch && trimmed.match(/^([a-zA-Z_$][a-zA-Z0-9_$]*):$/);
+    if (!propMatch && !keyOnlyMatch) continue;
 
-    const key = propMatch[1];
-    const valueStr = propMatch[2];
+    let key, valueStr;
+    if (propMatch) {
+      key = propMatch[1];
+      valueStr = propMatch[2];
+    } else {
+      // Value is on the next line
+      key = keyOnlyMatch[1];
+      const nextLine = i + 1 < lines.length ? lines[i + 1].trim().replace(/,\s*$/, '') : '';
+      if (!nextLine) continue;
+      valueStr = nextLine;
+      i++; // Skip the next line since we consumed it
+    }
 
     // Parse the value
     // Double-quoted string (handles apostrophes inside)
@@ -760,7 +772,8 @@ function extractDocsConfig(content, storyNames) {
             }
           }
           if (endIndex < parametersContent.length) {
-            liveExample = parametersContent.slice(startIndex, endIndex);
+            // Unescape template literal escapes (source text has \` and \$ for literal backticks/dollars)
+            liveExample = parametersContent.slice(startIndex, endIndex).replace(/\\`/g, '`').replace(/\\\$/g, '$');
           }
         }
 
@@ -804,7 +817,8 @@ function extractDocsConfig(content, storyNames) {
                   codeEndIndex++;
                 }
               }
-              const code = examplesArrayContent.slice(codeStartIndex, codeEndIndex);
+              // Unescape template literal escapes (source text has \` and \$ for literal backticks/dollars)
+              const code = examplesArrayContent.slice(codeStartIndex, codeEndIndex).replace(/\\`/g, '`').replace(/\\\$/g, '$');
               examples.push({ title, code });
             }
           }

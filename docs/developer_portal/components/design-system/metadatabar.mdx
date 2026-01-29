@@ -33,6 +33,10 @@ MetadataBar displays a row of metadata items (SQL info, owners, last modified, t
 <StoryWithControls
   component="MetadataBar"
   props={{
+  title: "Added to 3 dashboards",
+  createdBy: "Jane Smith",
+  modifiedBy: "Jane Smith",
+  description: "To preview the list of dashboards go to More settings.",
   items: [
     {
       type: "sql",
@@ -67,7 +71,28 @@ MetadataBar displays a row of metadata items (SQL info, owners, last modified, t
     }
   ]
 }}
-  controls={[]}
+  controls={[
+  {
+    name: "title",
+    label: "Title",
+    type: "text"
+  },
+  {
+    name: "createdBy",
+    label: "Created By",
+    type: "text"
+  },
+  {
+    name: "modifiedBy",
+    label: "Modified By",
+    type: "text"
+  },
+  {
+    name: "description",
+    label: "Description",
+    type: "text"
+  }
+]}
 />
 
 ## Try It
@@ -125,7 +150,15 @@ function FullMetadata() {
 }
 ```
 
+## Props
 
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `title` | `string` | `"Added to 3 dashboards"` | - |
+| `createdBy` | `string` | `"Jane Smith"` | - |
+| `modifiedBy` | `string` | `"Jane Smith"` | - |
+| `description` | `string` | `"To preview the list of dashboards go to More settings."` | - |
+| `items` | `any` | `[{"type":"sql","title":"Click to view query"},{"type":"owner","createdBy":"Jane Smith","owners":["John Doe","Mary Wilson"],"createdOn":"a week ago"},{"type":"lastModified","value":"a week ago","modifiedBy":"Jane Smith"},{"type":"tags","values":["management","research","poc"]},{"type":"dashboards","title":"Added to 3 dashboards","description":"To preview the list of dashboards go to More settings."}]` | - |
 
 ## Import
 

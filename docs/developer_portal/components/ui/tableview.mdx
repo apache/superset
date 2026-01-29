@@ -39,6 +39,7 @@ A data table component with sorting, pagination, text wrapping, and empty state 
   id: 456,
   age: 10,
   name: "John Smith",
+  summary: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam id porta neque, a vehicula orci. Maecenas rhoncus elit sit amet purus convallis placerat in at nunc. Nulla nec viverra augue.",
   noDataText: "No data here",
   pageSize: 2,
   showRowCount: true,
@@ -117,6 +118,11 @@ A data table component with sorting, pagination, text wrapping, and empty state 
   {
     name: "name",
     label: "Name",
+    type: "text"
+  },
+  {
+    name: "summary",
+    label: "Summary",
     type: "text"
   },
   {
@@ -265,6 +271,7 @@ function SortingDemo() {
 | `id` | `number` | `456` | - |
 | `age` | `number` | `10` | - |
 | `name` | `string` | `"John Smith"` | - |
+| `summary` | `string` | `"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam id porta neque, a vehicula orci. Maecenas rhoncus elit sit amet purus convallis placerat in at nunc. Nulla nec viverra augue."` | - |
 | `noDataText` | `string` | `"No data here"` | Text displayed when the table has no data. |
 | `pageSize` | `number` | `2` | Number of rows displayed per page. |
 | `showRowCount` | `boolean` | `true` | Whether to display the total row count alongside pagination. |

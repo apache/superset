@@ -115,7 +115,7 @@ function StatusBadgeDemo() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       {statuses.map(status => (
-        <Badge key={status} status={status} text={\`Status: \${status}\`} />
+        <Badge key={status} status={status} text={`Status: ${status}`} />
       ))}
     </div>
   );
