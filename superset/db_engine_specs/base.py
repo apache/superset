@@ -60,7 +60,6 @@ from sqlalchemy.types import TypeEngine
 
 from superset import db
 from superset.constants import QUERY_CANCEL_KEY, TimeGrain as TimeGrainConstants
-from superset.daos.key_value import KeyValueDAO
 from superset.databases.utils import get_table_metadata, make_url_safe
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import OAuth2Error, OAuth2RedirectError
@@ -622,6 +621,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         while the code_challenge (derived from the verifier) is sent to the
         authorization server.
         """
+        # prevent circular import
+        from superset.daos.key_value import KeyValueDAO
+
         tab_id = str(uuid4())
         default_redirect_uri = app.config.get(
             "DATABASE_OAUTH2_REDIRECT_URI",
