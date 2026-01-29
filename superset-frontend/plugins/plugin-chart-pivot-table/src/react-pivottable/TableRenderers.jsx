@@ -27,6 +27,61 @@ import { FaSortUp as FaSortAsc } from '@react-icons/all-files/fa/FaSortUp';
 import { PivotData, flatKey } from './utilities';
 import { Styles } from './Styles';
 
+/**
+ * Computes the initial collapsed state map for a given set of keys and depth.
+ * Keys at the specified depth will be marked as collapsed, hiding their children.
+ *
+ * Semantics:
+ *   - depth = 0 (or invalid): disabled / fully expanded (returns empty map)
+ *   - depth = 1: collapse at level 1 (show only top-level rows/columns)
+ *   - depth = N: collapse at level N (show N levels expanded)
+ *
+ * @param {Array<Array>} keys - Array of key arrays (e.g., rowKeys or colKeys)
+ * @param {number} depth - The depth at which to collapse (positive integer).
+ *                         Must be >= 1 to apply any collapse.
+ * @param {number} [maxDepth] - Optional. Total number of grouping levels (e.g., rows.length or cols.length).
+ *                              If not provided, it's inferred from the longest key.
+ * @returns {Object} A map of flatKey => true for all keys that should be collapsed
+ */
+export function computeCollapsedMap(keys, depth, maxDepth = undefined) {
+  // depth must be a positive integer (>= 1) to apply collapse.
+  // depth = 0 means "fully expanded" / disabled - return empty map.
+  if (!Number.isInteger(depth) || depth <= 0) {
+    return {};
+  }
+
+  // We never need to collapse the leaf level (maxDepth), only intermediate nodes.
+  // Collapsing all levels from `depth` up to `maxDepth - 1` ensures that expanding a
+  // group reveals only the next level, and deeper levels remain collapsed until clicked.
+  const effectiveMaxDepth = Number.isInteger(maxDepth)
+    ? maxDepth
+    : Math.max(
+        0,
+        ...keys.map(k => (Array.isArray(k) ? k.length : 0)),
+      );
+  if (effectiveMaxDepth <= depth) {
+    return {};
+  }
+
+  const collapsed = {};
+  const seen = new Set();
+  keys.forEach(k => {
+    if (!Array.isArray(k) || k.length < depth) {
+      return;
+    }
+
+    const limit = Math.min(k.length, effectiveMaxDepth - 1);
+    for (let i = depth; i <= limit; i += 1) {
+      const keyStr = flatKey(k.slice(0, i));
+      if (!seen.has(keyStr)) {
+        seen.add(keyStr);
+        collapsed[keyStr] = true;
+      }
+    }
+  });
+  return collapsed;
+}
+
 const parseLabel = value => {
   if (typeof value === 'string') {
     if (value === 'metric') return t('metric');
@@ -168,6 +223,65 @@ export class TableRenderer extends Component {
     this.sortCache = new Map();
     this.clickHeaderHandler = this.clickHeaderHandler.bind(this);
     this.clickHandler = this.clickHandler.bind(this);
+  }
+
+  componentDidMount() {
+    // Apply initial collapse based on defaultRowExpansionDepth and defaultColExpansionDepth.
+    //
+    // Semantics:
+    //   - 0 = fully expanded (no collapse applied)
+    //   - 1 = show 1 level expanded (top-level visible, children collapsed)
+    //   - N = show N levels expanded
+    //
+    // Only positive integers (>= 1) trigger collapse logic.
+    const { defaultRowExpansionDepth, defaultColExpansionDepth } = this.props;
+
+    const rowDepth = Number(defaultRowExpansionDepth);
+    const colDepth = Number(defaultColExpansionDepth);
+    const hasValidRowDepth = Number.isInteger(rowDepth) && rowDepth > 0;
+    const hasValidColDepth = Number.isInteger(colDepth) && colDepth > 0;
+
+    if (!hasValidRowDepth && !hasValidColDepth) {
+      return;
+    }
+
+    const {
+      rowKeys,
+      colKeys,
+      rowAttrs,
+      colAttrs,
+      rowSubtotalDisplay,
+      colSubtotalDisplay,
+    } = this.getBasePivotSettings();
+
+    // Apply row collapse if subtotals are enabled and we have enough depth
+    const collapsedRows =
+      hasValidRowDepth &&
+      rowSubtotalDisplay.enabled &&
+      rowAttrs.length > 1 &&
+      rowDepth < rowAttrs.length
+        ? computeCollapsedMap(rowKeys, rowDepth, rowAttrs.length)
+        : {};
+
+    // Apply column collapse if subtotals are enabled and we have enough depth
+    const collapsedCols =
+      hasValidColDepth &&
+      colSubtotalDisplay.enabled &&
+      colAttrs.length > 1 &&
+      colDepth < colAttrs.length
+        ? computeCollapsedMap(colKeys, colDepth, colAttrs.length)
+        : {};
+
+    // Only update state when collapsed maps actually contain entries
+    const hasCollapsedRows = Object.keys(collapsedRows).length > 0;
+    const hasCollapsedCols = Object.keys(collapsedCols).length > 0;
+
+    if (hasCollapsedRows || hasCollapsedCols) {
+      const stateUpdate = {};
+      if (hasCollapsedRows) stateUpdate.collapsedRows = collapsedRows;
+      if (hasCollapsedCols) stateUpdate.collapsedCols = collapsedCols;
+      this.setState(stateUpdate);
+    }
   }
 
   getBasePivotSettings() {
@@ -1180,5 +1294,13 @@ TableRenderer.propTypes = {
   ...PivotData.propTypes,
   tableOptions: PropTypes.object,
   onContextMenu: PropTypes.func,
+  defaultRowExpansionDepth: PropTypes.number,
+  defaultColExpansionDepth: PropTypes.number,
 };
-TableRenderer.defaultProps = { ...PivotData.defaultProps, tableOptions: {} };
+TableRenderer.defaultProps = {
+  ...PivotData.defaultProps,
+  tableOptions: {},
+  // 0 = fully expanded (no initial collapse). Use >= 1 to collapse deeper levels.
+  defaultRowExpansionDepth: 0,
+  defaultColExpansionDepth: 0,
+};
