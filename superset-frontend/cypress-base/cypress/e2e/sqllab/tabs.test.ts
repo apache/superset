@@ -61,8 +61,8 @@ describe('SqlLab query tabs', () => {
   });
 
   it('opens a new tab by a button and a shortcut', () => {
-    const editorContent = '#ace-editor .ace_content';
-    const editorInput = '#ace-editor textarea';
+    const editorContent = '.ace_editor .ace_content';
+    const editorInput = '.ace_editor textarea';
     const queryLimitSelector = '#js-sql-toolbar .limitDropdown';
     cy.get(tabSelector).then(tabs => {
       const initialTabCount = tabs.length;

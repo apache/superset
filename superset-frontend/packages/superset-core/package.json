@@ -17,7 +17,7 @@
     "@babel/preset-react": "^7.28.5",
     "@babel/preset-typescript": "^7.28.5",
     "install": "^0.13.0",
-    "npm": "^11.7.0",
+    "npm": "^11.8.0",
     "typescript": "^5.0.0",
     "@emotion/styled": "^11.14.1",
     "@types/lodash": "^4.17.23",
