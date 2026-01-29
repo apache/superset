@@ -230,6 +230,45 @@ test('should render radio buttons', async () => {
   expect(tableRadio).toBeChecked();
 });
 
+test('should use label_map for results table columns', async () => {
+  fetchMock.post(
+    CHART_DATA_ENDPOINT,
+    {
+      result: [
+        {
+          data: [{ name: 'Alice', sum__num: 10 }],
+          colnames: ['name', 'sum__num'],
+          coltypes: [1, 0],
+          label_map: {
+            'Person Name': ['name'],
+          },
+        },
+      ],
+    },
+    { overwriteRoutes: true },
+  );
+
+  await renderModal({
+    column: { column_name: 'name', verbose_name: null },
+    drillByConfig: {
+      filters: [{ col: 'gender', op: '==', val: 'boy' }],
+      groupbyFieldName: 'groupby',
+    },
+  });
+
+  const tableRadio = await screen.findByRole('radio', { name: /table/i });
+  userEvent.click(tableRadio);
+
+  await waitFor(() => {
+    expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument();
+  });
+
+  expect(
+    screen.getByRole('columnheader', { name: 'Person Name' }),
+  ).toBeInTheDocument();
+  expect(screen.getByText('Alice')).toBeInTheDocument();
+});
+
 test('render breadcrumbs', async () => {
   await renderModal({
     column: { column_name: 'name', verbose_name: null },
@@ -371,6 +410,7 @@ describe('Table view with pagination', () => {
           })),
           colnames: ['state', 'sum__num'],
           coltypes: [1, 0],
+          label_map: {},
         },
       ],
     };
@@ -514,6 +554,7 @@ describe('Table view with pagination', () => {
             data: [],
             colnames: ['state', 'sum__num'],
             coltypes: [1, 0],
+            label_map: {},
           },
         ],
       },
@@ -554,6 +595,7 @@ describe('Table view with pagination', () => {
     userEvent.click(tableRadio);
 
     await waitFor(() => {
+      expect(screen.getByTestId('drill-by-display-toggle')).toBeInTheDocument();
       expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument();
     });
 
