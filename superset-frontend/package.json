@@ -74,6 +74,7 @@
     "playwright:headed": "playwright test --headed",
     "playwright:debug": "playwright test --debug",
     "playwright:report": "playwright show-report",
+    "docs:screenshots": "playwright test --config=playwright/generators/playwright.config.ts docs/",
     "prettier": "npm run _prettier -- --write",
     "prettier-check": "npm run _prettier -- --check",
     "prod": "npm run build",
