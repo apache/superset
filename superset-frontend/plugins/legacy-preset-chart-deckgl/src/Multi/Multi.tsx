@@ -248,6 +248,8 @@ const DeckMulti = (props: DeckMultiProps) => {
           ...subslice.form_data,
           extra_filters: extraFilters,
           adhoc_filters: adhocFilters,
+          // Preserve dashboard context for embedded mode permissions
+          ...(formData.dashboardId && { dashboardId: formData.dashboardId }),
         },
       } as any as JsonObject & { slice_id: number };
 
