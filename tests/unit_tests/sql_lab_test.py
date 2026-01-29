@@ -295,7 +295,7 @@ def test_get_predicates_for_table(mocker: MockerFixture) -> None:
     dataset = mocker.MagicMock()
     predicate = mocker.MagicMock()
     predicate.compile.return_value = "c1 = 1"
-    dataset.get_sqla_row_level_filters.return_value = [predicate]
+    dataset._get_sqla_row_level_filters_internal.return_value = [predicate]
     db = mocker.patch("superset.utils.rls.db")
     db.session.query().filter().one_or_none.return_value = dataset
 
