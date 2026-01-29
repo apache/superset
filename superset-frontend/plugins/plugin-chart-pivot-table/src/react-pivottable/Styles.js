@@ -122,6 +122,10 @@ export const Styles = styled.div`
       vertical-align: baseline;
     }
 
+    table.pvtTable tbody tr th.pvtRowLabel.pvtRowLabelLast {
+      border-bottom: 1px solid ${theme.colorSplit};
+    }
+
     .pvtTotal,
     .pvtGrandTotal {
       font-weight: ${theme.fontWeightStrong};
