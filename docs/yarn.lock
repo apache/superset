@@ -4550,9 +4550,9 @@
   integrity sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==
 
 "@types/lodash@^4.14.146":
-  version "4.17.20"
-  resolved "https://registry.yarnpkg.com/@types/lodash/-/lodash-4.17.20.tgz#1ca77361d7363432d29f5e55950d9ec1e1c6ea93"
-  integrity sha512-H3MHACvFUEiujabxhaI/ImO6gUrd8oOurg7LQtS7mbwIXA/cUqWrvBsaeJ23aZEPk1TAYkurjfMbSELfoCXlGA==
+  version "4.17.21"
+  resolved "https://registry.yarnpkg.com/@types/lodash/-/lodash-4.17.21.tgz#b806831543d696b14f8112db600ea9d3a1df6ea4"
+  integrity sha512-FOvQ0YPD5NOfPgMzJihoT+Za5pdkDJWcbpuj1DjaKZIr/gxodQjY/uWEFlTNqW2ugXHUiL8lRQgw63dzKHZdeQ==
 
 "@types/mdast@^3.0.0":
   version "3.0.15"
@@ -12253,9 +12253,9 @@ pretty-error@^4.0.0:
     renderkid "^3.0.0"
 
 pretty-ms@^9.2.0:
-  version "9.2.0"
-  resolved "https://registry.yarnpkg.com/pretty-ms/-/pretty-ms-9.2.0.tgz#e14c0aad6493b69ed63114442a84133d7e560ef0"
-  integrity sha512-4yf0QO/sllf/1zbZWYnvWw3NxCQwLXKzIj0G849LSufP15BXKM0rbD2Z3wVnkMfjdn/CB0Dpp444gYAACdsplg==
+  version "9.3.0"
+  resolved "https://registry.yarnpkg.com/pretty-ms/-/pretty-ms-9.3.0.tgz#dd2524fcb3c326b4931b2272dfd1e1a8ed9a9f5a"
+  integrity sha512-gjVS5hOP+M3wMm5nmNOucbIrqudzs9v/57bWRHQWLYklXqoXKrVfYW2W9+glfGsqtPgpiz5WwyEEB+ksXIx3gQ==
   dependencies:
     parse-ms "^4.0.0"
 

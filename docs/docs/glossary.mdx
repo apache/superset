@@ -1,0 +1,115 @@
+---
+title: Glossary
+hide_title: true
+sidebar_position: 10
+---
+
+import { getAllGlossaryTopics } from '../../superset-frontend/packages/superset-ui-core/src/glossary';
+import { Table, ConfigProvider, theme } from 'antd';
+import { useColorMode } from '@docusaurus/theme-common';
+import { useEffect, useRef } from 'react';
+
+export const GlossaryStructure = [
+  {
+    title: 'Term',
+    dataIndex: 'title',
+    key: 'title',
+    width: 200,
+  },
+  {
+    title: 'Short Description',
+    dataIndex: 'short',
+    key: 'short',
+  },
+];
+
+export const GlossaryContent = () => {
+  const { colorMode } = useColorMode();
+  const isDark = colorMode === 'dark';
+  const tableRefs = useRef({});
+
+  const scrollToRow = (topic, rowKey) => {
+    const topicId = encodeURIComponent(topic);
+    const encRowKey = encodeURIComponent(rowKey);
+    const row = tableRefs.current[topicId]?.[encRowKey];
+    if (row) {
+      row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      row.classList.add('table-row-highlight');
+      setTimeout(() => row.classList.remove('table-row-highlight'), 2000);
+    }
+  };
+
+  useEffect(() => {
+    const hash = decodeURIComponent(window.location.hash.slice(1));
+    if (!hash) return;
+
+    const [topic, term] = hash.split('__');
+    if (topic && term) scrollToRow(topic, hash);
+  }, []);
+
+  return (
+    <div>
+      <ConfigProvider
+        theme={{
+          algorithm: isDark ? theme.darkAlgorithm : theme.defaultAlgorithm,
+        }}
+      >
+        {getAllGlossaryTopics().map((topic) => {
+          const topicName = topic.getName();
+          const topicFragment = encodeURIComponent(topicName);
+          const terms = topic.getAllTerms();
+          return (
+            <div key={topicName} id={topicFragment}>
+              <h3>{topic.getDisplayName()}</h3>
+              <Table
+                dataSource={terms
+                  .map((term) => {
+                    const key = term.getTitle()
+                      ? encodeURIComponent(`${topicName}__${term.getTitle()}`)
+                      : undefined;
+                    return key
+                      ? {
+                          title: term.getDisplayTitle(),
+                          short: term.getShort(),
+                          key,
+                        }
+                      : null;
+                  })
+                  .filter(Boolean)}
+                columns={GlossaryStructure}
+                rowKey="key"
+                pagination={false}
+                showHeader
+                bordered
+                onRow={(record) => {
+                  if (!record?.key) return {};
+                  const topicId = topicFragment;
+
+                  return {
+                    ref: (node) => {
+                      if (!tableRefs.current[topicId]) tableRefs.current[topicId] = {};
+                      if (node) {
+                        tableRefs.current[topicId][record.key] = node;
+                      } else {
+                        // cleanup stale reference when row unmounts
+                        delete tableRefs.current[topicId][record.key];
+                        if (Object.keys(tableRefs.current[topicId]).length === 0) {
+                          delete tableRefs.current[topicId];
+                        }
+                      }
+                    },
+                  };
+                }}
+              />
+            </div>
+          );
+        })}
+      </ConfigProvider>
+    </div>
+  );
+};
+
+
+## Glossary
+
+<GlossaryContent />
