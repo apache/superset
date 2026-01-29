@@ -16,162 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Meta, StoryObj } from '@storybook/react';
+import { StoryObj } from '@storybook/react';
 import { Icons } from '@superset-ui/core/components/Icons';
 import Tree, { TreeProps, type TreeDataNode } from './index';
 
-const meta = {
+export default {
   title: 'Components/Tree',
   component: Tree,
-  argTypes: {
-    autoExpandParent: {
-      control: 'boolean',
-      description: 'Whether to automatically expand a parent treeNode	',
-      table: {
-        category: 'Tree',
-        type: { summary: 'boolean' },
-        defaultValue: { summary: 'false' },
-      },
-    },
-    checkable: {
-      control: 'boolean',
-      description: 'Add a Checkbox before the treeNodes',
-      table: {
-        category: 'Tree',
-        type: { summary: 'boolean' },
-        defaultValue: { summary: 'false' },
-      },
-    },
-    checkStrictly: {
-      control: 'boolean',
-      description:
-        'Check treeNode precisely; parent treeNode and children treeNodes are not associated',
-      table: {
-        category: 'Tree',
-        type: { summary: 'boolean' },
-        defaultValue: { summary: 'false' },
-      },
-    },
-    defaultExpandAll: {
-      control: 'boolean',
-      description: 'Whether to expand all treeNodes by default',
-      table: {
-        category: 'Tree',
-        type: { summary: 'boolean' },
-        defaultValue: { summary: 'false' },
-      },
-    },
-    defaultExpandParent: {
-      control: 'boolean',
-      description: 'If auto expand parent treeNodes when init	',
-      table: {
-        category: 'Tree',
-        type: { summary: 'boolean' },
-        defaultValue: { summary: 'false' },
-      },
-    },
-    disabled: {
-      control: 'boolean',
-      description: 'Whether disabled the tree',
-      table: {
-        category: 'Tree',
-        type: { summary: 'boolean' },
-        defaultValue: { summary: 'false' },
-      },
-    },
-    draggable: {
-      control: 'boolean',
-      description:
-        'Specifies whether this Tree or the node is draggable. Use icon: false to disable drag handler icon',
-      table: {
-        category: 'Tree',
-        type: { summary: 'boolean' },
-        defaultValue: { summary: 'false' },
-      },
-    },
-    height: {
-      control: 'number',
-      description:
-        'Config virtual scroll height. Will not support horizontal scroll when enable this',
-      table: {
-        category: 'Tree',
-        type: { summary: 'number' },
-      },
-    },
-    multiple: {
-      control: 'boolean',
-      description: 'Allows selecting multiple treeNodes	',
-      table: {
-        category: 'Tree',
-        type: { summary: 'boolean' },
-        defaultValue: { summary: 'false' },
-      },
-    },
-    selectable: {
-      control: 'boolean',
-      description: 'Whether can be selected',
-      table: {
-        category: 'Tree',
-        type: { summary: 'boolean' },
-        defaultValue: { summary: 'true' },
-      },
-    },
-    showIcon: {
-      control: 'boolean',
-      description:
-        'Controls whether to display the icon node, no default style',
-      table: {
-        category: 'Tree',
-        type: { summary: 'boolean' },
-        defaultValue: { summary: 'false' },
-      },
-    },
-    showLine: {
-      control: 'boolean',
-      description: 'Shows a connecting line',
-      table: {
-        category: 'Tree',
-        type: { summary: 'boolean' },
-        defaultValue: { summary: 'false' },
-      },
-    },
-    virtual: {
-      control: 'boolean',
-      description: 'Disable virtual scroll when set to false',
-      table: {
-        category: 'Tree',
-        type: { summary: 'boolean' },
-        defaultValue: { summary: 'true' },
-      },
-    },
-    // Exclude unwanted properties
-    defaultExpandedKeys: {
-      table: {
-        disable: true,
-      },
-    },
-    defaultSelectedKeys: {
-      table: {
-        disable: true,
-      },
-    },
-    treeData: {
-      table: {
-        disable: true,
-      },
-    },
-  },
   parameters: {
     docs: {
       description: {
         component:
-          'The Tree component is used to display hierarchical data in a tree structure. It allows for features such as selection, expansion, and drag-and-drop functionality.',
+          'The Tree component is used to display hierarchical data in a tree structure. ' +
+          'It allows for features such as selection, expansion, and drag-and-drop functionality.',
       },
     },
   },
-} as Meta<typeof Tree>;
-
-export default meta;
+};
 
 const treeData: TreeDataNode[] = [
   {
@@ -236,4 +97,175 @@ export const TreeStory: Story = {
     treeData,
   },
   render: (args: TreeProps) => <Tree {...args} />,
+};
+
+// Interactive story with primitive args for documentation
+export const InteractiveTree = (args: TreeProps) => (
+  <Tree {...args} treeData={treeData} />
+);
+
+InteractiveTree.args = {
+  checkable: false,
+  defaultExpandAll: false,
+  disabled: false,
+  draggable: false,
+  multiple: false,
+  selectable: true,
+  showIcon: false,
+  showLine: false,
+};
+
+InteractiveTree.argTypes = {
+  checkable: {
+    description: 'Add a Checkbox before the treeNodes',
+    control: { type: 'boolean' },
+  },
+  defaultExpandAll: {
+    description: 'Whether to expand all treeNodes by default',
+    control: { type: 'boolean' },
+  },
+  disabled: {
+    description: 'Whether disabled the tree',
+    control: { type: 'boolean' },
+  },
+  draggable: {
+    description: 'Specifies whether this Tree or the node is draggable',
+    control: { type: 'boolean' },
+  },
+  multiple: {
+    description: 'Allows selecting multiple treeNodes',
+    control: { type: 'boolean' },
+  },
+  selectable: {
+    description: 'Whether can be selected',
+    control: { type: 'boolean' },
+  },
+  showIcon: {
+    description: 'Controls whether to display the icon node',
+    control: { type: 'boolean' },
+  },
+  showLine: {
+    description: 'Shows a connecting line',
+    control: { type: 'boolean' },
+  },
+};
+
+InteractiveTree.parameters = {
+  docs: {
+    staticProps: {
+      treeData: [
+        {
+          title: 'parent 1',
+          key: '0-0',
+          children: [
+            {
+              title: 'parent 1-0',
+              key: '0-0-0',
+              children: [
+                { title: 'leaf', key: '0-0-0-0' },
+                { title: 'leaf', key: '0-0-0-1' },
+                { title: 'leaf', key: '0-0-0-2' },
+              ],
+            },
+            {
+              title: 'parent 1-1',
+              key: '0-0-1',
+              children: [{ title: 'leaf', key: '0-0-1-0' }],
+            },
+            {
+              title: 'parent 1-2',
+              key: '0-0-2',
+              children: [
+                { title: 'leaf', key: '0-0-2-0' },
+                { title: 'leaf', key: '0-0-2-1' },
+              ],
+            },
+          ],
+        },
+      ],
+      defaultExpandedKeys: ['0-0', '0-0-0'],
+    },
+    liveExample: `function Demo() {
+  const treeData = [
+    {
+      title: 'Databases',
+      key: 'databases',
+      children: [
+        { title: 'PostgreSQL', key: 'postgres' },
+        { title: 'MySQL', key: 'mysql' },
+        { title: 'SQLite', key: 'sqlite' },
+      ],
+    },
+    {
+      title: 'Charts',
+      key: 'charts',
+      children: [
+        { title: 'Bar Chart', key: 'bar' },
+        { title: 'Line Chart', key: 'line' },
+        { title: 'Pie Chart', key: 'pie' },
+      ],
+    },
+  ];
+  return <Tree treeData={treeData} defaultExpandAll />;
+}`,
+    examples: [
+      {
+        title: 'Checkable Tree',
+        code: `function CheckableTree() {
+  const [checkedKeys, setCheckedKeys] = React.useState(['postgres']);
+  const treeData = [
+    {
+      title: 'Databases',
+      key: 'databases',
+      children: [
+        { title: 'PostgreSQL', key: 'postgres' },
+        { title: 'MySQL', key: 'mysql' },
+      ],
+    },
+    {
+      title: 'Charts',
+      key: 'charts',
+      children: [
+        { title: 'Bar Chart', key: 'bar' },
+        { title: 'Line Chart', key: 'line' },
+      ],
+    },
+  ];
+  return (
+    <Tree
+      treeData={treeData}
+      checkable
+      defaultExpandAll
+      checkedKeys={checkedKeys}
+      onCheck={setCheckedKeys}
+    />
+  );
+}`,
+      },
+      {
+        title: 'With Lines and Icons',
+        code: `function LinesAndIcons() {
+  const treeData = [
+    {
+      title: 'Dashboards',
+      key: 'dashboards',
+      children: [
+        { title: 'Sales Dashboard', key: 'sales' },
+        { title: 'Marketing Dashboard', key: 'marketing' },
+      ],
+    },
+    {
+      title: 'Reports',
+      key: 'reports',
+      children: [
+        { title: 'Weekly Report', key: 'weekly' },
+        { title: 'Monthly Report', key: 'monthly' },
+      ],
+    },
+  ];
+  return <Tree treeData={treeData} showLine showIcon defaultExpandAll />;
+}`,
+      },
+    ],
+  },
 };

@@ -135,6 +135,12 @@ if (!versionsConfig.developer_portal.disabled && !versionsConfig.developer_porta
       {
         type: 'doc',
         docsPluginId: 'developer_portal',
+        docId: 'contributing/overview',
+        label: 'Contributing',
+      },
+      {
+        type: 'doc',
+        docsPluginId: 'developer_portal',
         docId: 'extensions/overview',
         label: 'Extensions',
       },
@@ -147,14 +153,8 @@ if (!versionsConfig.developer_portal.disabled && !versionsConfig.developer_porta
       {
         type: 'doc',
         docsPluginId: 'developer_portal',
-        docId: 'guidelines/design-guidelines',
-        label: 'Guidelines',
-      },
-      {
-        type: 'doc',
-        docsPluginId: 'developer_portal',
-        docId: 'contributing/overview',
-        label: 'Contributing',
+        docId: 'components/index',
+        label: 'UI Components',
       },
       {
         label: 'API Reference',

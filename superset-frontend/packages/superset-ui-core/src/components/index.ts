@@ -144,14 +144,30 @@ export {
   type ListViewCardProps,
 } from './ListViewCard';
 export { Loading, type LoadingProps } from './Loading';
+export { default as MetadataBar, type MetadataBarProps } from './MetadataBar';
 
 export { Progress, type ProgressProps } from './Progress';
+export { default as ProgressBar, type ProgressBarProps } from './ProgressBar';
 
 export { Pagination, type PaginationProps } from './Pagination';
 
 export { Skeleton, type SkeletonProps } from './Skeleton';
+export {
+  default as Slider,
+  type SliderSingleProps,
+  type SliderRangeProps,
+} from './Slider';
 
 export { Switch, type SwitchProps } from './Switch';
+
+export {
+  default as Tabs,
+  EditableTabs,
+  LineEditableTabs,
+  type TabsProps,
+} from './Tabs';
+
+export { default as Tree, type TreeProps, type TreeDataNode } from './Tree';
 
 export { TreeSelect, type TreeSelectProps } from './TreeSelect';
 

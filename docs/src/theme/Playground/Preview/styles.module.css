@@ -17,26 +17,7 @@
  * under the License.
  */
 
-declare module '@theme/Layout' {
-  import type { ReactNode } from 'react';
-
-  export interface Props {
-    readonly children?: ReactNode;
-    readonly noFooter?: boolean;
-    readonly wrapperClassName?: string;
-    readonly title?: string;
-    readonly description?: string;
-  }
-
-  export default function Layout(props: Props): ReactNode;
-}
-
-declare module '@theme/Playground/Header' {
-  import type { ReactNode } from 'react';
-
-  export interface Props {
-    readonly children?: ReactNode;
-  }
-
-  export default function PlaygroundHeader(props: Props): ReactNode;
+.playgroundPreview {
+  padding: 1rem;
+  background-color: var(--ifm-pre-background);
 }
