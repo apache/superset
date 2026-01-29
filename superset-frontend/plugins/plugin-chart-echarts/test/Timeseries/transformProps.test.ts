@@ -22,11 +22,13 @@ import {
   AnnotationType,
   ChartProps,
   ComparisonType,
+  DataRecord,
   EventAnnotationLayer,
   FormulaAnnotationLayer,
   IntervalAnnotationLayer,
   SqlaFormData,
   TimeseriesAnnotationLayer,
+  ChartDataResponseResult,
 } from '@superset-ui/core';
 import { supersetTheme } from '@apache-superset/core/ui';
 import { EchartsTimeseriesChartProps } from '../../src/types';
@@ -34,8 +36,42 @@ import transformProps from '../../src/Timeseries/transformProps';
 import {
   EchartsTimeseriesSeriesType,
   OrientationType,
+  EchartsTimeseriesFormData,
 } from '../../src/Timeseries/types';
+import { DEFAULT_FORM_DATA } from '../../src/Timeseries/constants';
 import { BASE_TIMESTAMP, createTestData } from './helpers';
+
+/**
+ * Creates a partial ChartDataResponseResult for testing.
+ * Only includes the fields needed for tests, with sensible defaults for required fields.
+ */
+function createTestQueryData(
+  data: unknown[],
+  overrides?: Partial<ChartDataResponseResult>,
+): ChartDataResponseResult {
+  return {
+    annotation_data: null,
+    cache_key: null,
+    cache_timeout: null,
+    cached_dttm: null,
+    queried_dttm: null,
+    data: data as DataRecord[],
+    colnames: [],
+    coltypes: [],
+    error: null,
+    is_cached: false,
+    query: '',
+    rowcount: data.length,
+    sql_rowcount: data.length,
+    stacktrace: null,
+    status: 'success',
+    from_dttm: null,
+    to_dttm: null,
+    label_map: {},
+    ...overrides,
+  } as ChartDataResponseResult & { label_map?: Record<string, string[]> };
+}
+import type { SeriesOption } from 'echarts';
 
 type YAxisFormatter = (value: number, index: number) => string;
 
@@ -49,6 +85,60 @@ function getYAxisFormatter(
   expect(yAxis.axisLabel).toBeDefined();
   expect(yAxis.axisLabel?.formatter).toBeDefined();
   return yAxis.axisLabel!.formatter!;
+}
+
+/**
+ * Creates a properly typed EchartsTimeseriesChartProps for testing.
+ * Merges partial formData with DEFAULT_FORM_DATA to ensure all required fields are present.
+ */
+function createTestChartProps(config: {
+  formData?: Partial<EchartsTimeseriesFormData>;
+  queriesData?: ChartDataResponseResult[];
+  datasource?: {
+    verboseMap?: Record<string, string>;
+    columnFormats?: Record<string, string>;
+    currencyFormats?: Record<
+      string,
+      { symbol: string; symbolPosition: string }
+    >;
+    currencyCodeColumn?: string;
+  };
+  width?: number;
+  height?: number;
+}): EchartsTimeseriesChartProps {
+  const {
+    formData: partialFormData = {},
+    queriesData: customQueriesData,
+    datasource: customDatasource,
+    width = 800,
+    height = 600,
+  } = config;
+
+  const fullFormData: EchartsTimeseriesFormData = {
+    ...DEFAULT_FORM_DATA,
+    ...partialFormData,
+    datasource: partialFormData.datasource || '3__table',
+    viz_type: partialFormData.viz_type || 'my_viz',
+  } as EchartsTimeseriesFormData;
+
+  const chartProps = new ChartProps({
+    formData: fullFormData,
+    width,
+    height,
+    queriesData: customQueriesData || queriesData,
+    theme: supersetTheme,
+    datasource: customDatasource || {
+      verboseMap: {},
+      columnFormats: {},
+      currencyFormats: {},
+    },
+  });
+
+  return {
+    ...chartProps,
+    formData: fullFormData,
+    queriesData: customQueriesData || queriesData,
+  } as EchartsTimeseriesChartProps;
 }
 
 const formData: SqlaFormData = {
@@ -80,8 +170,8 @@ const chartPropsConfig = {
 
 describe('EchartsTimeseries transformProps', () => {
   it('should transform chart props for viz', () => {
-    const chartProps = new ChartProps(chartPropsConfig);
-    expect(transformProps(chartProps as EchartsTimeseriesChartProps)).toEqual(
+    const chartProps = createTestChartProps({});
+    expect(transformProps(chartProps)).toEqual(
       expect.objectContaining({
         width: 800,
         height: 600,
@@ -197,6 +287,137 @@ describe('EchartsTimeseries transformProps', () => {
         }),
       }),
     );
+  });
+
+  it('should add a formula annotation when X-axis column has dataset-level label', () => {
+    const formula: FormulaAnnotationLayer = {
+      name: 'My Formula',
+      annotationType: AnnotationType.Formula,
+      value: 'x*2',
+      style: AnnotationStyle.Solid,
+      show: true,
+      showLabel: true,
+    };
+    const timeColumnName = 'ds';
+    const timeColumnLabel = 'Time Label';
+    const testData = [
+      {
+        [timeColumnLabel]: new Date(BASE_TIMESTAMP).toISOString(),
+        'San Francisco': 1,
+        'New York': 2,
+      },
+      {
+        [timeColumnLabel]: new Date(BASE_TIMESTAMP + 300000000).toISOString(),
+        'San Francisco': 3,
+        'New York': 4,
+      },
+    ];
+    const chartProps = createTestChartProps({
+      formData: {
+        ...formData,
+        x_axis: timeColumnName,
+        granularity_sqla: timeColumnName,
+        annotationLayers: [formula],
+      },
+      queriesData: [createTestQueryData(testData)],
+      datasource: {
+        verboseMap: {
+          [timeColumnName]: timeColumnLabel,
+        },
+        columnFormats: {},
+        currencyFormats: {},
+      },
+    });
+    const result = transformProps(chartProps);
+    const formulaSeries = (
+      result.echartOptions.series as SeriesOption[] | undefined
+    )?.find((s: SeriesOption) => s.name === 'My Formula');
+    expect(formulaSeries).toBeDefined();
+    expect(formulaSeries?.data).toBeDefined();
+    expect(Array.isArray(formulaSeries?.data)).toBe(true);
+    expect((formulaSeries?.data as unknown[]).length).toBeGreaterThan(0);
+    const firstDataPoint = (formulaSeries?.data as [number, number][])[0];
+    expect(firstDataPoint).toBeDefined();
+    expect(firstDataPoint[1]).toBe(firstDataPoint[0] * 2);
+  });
+
+  it('should add a formula annotation when X-axis column has dataset-level label and verboseMap is empty (backward compatibility)', () => {
+    const formula: FormulaAnnotationLayer = {
+      name: 'My Formula',
+      annotationType: AnnotationType.Formula,
+      value: 'x+1',
+      style: AnnotationStyle.Solid,
+      show: true,
+      showLabel: true,
+    };
+    const chartProps = createTestChartProps({
+      formData: {
+        ...formData,
+        annotationLayers: [formula],
+      },
+      datasource: {
+        verboseMap: {},
+        columnFormats: {},
+        currencyFormats: {},
+      },
+    });
+    const result = transformProps(chartProps);
+    const formulaSeries = (
+      result.echartOptions.series as SeriesOption[] | undefined
+    )?.find((s: SeriesOption) => s.name === 'My Formula');
+    expect(formulaSeries).toBeDefined();
+    expect(formulaSeries?.data).toBeDefined();
+    expect(Array.isArray(formulaSeries?.data)).toBe(true);
+  });
+
+  it('should add a formula annotation when X-axis column has dataset-level label in horizontal orientation', () => {
+    const formula: FormulaAnnotationLayer = {
+      name: 'My Formula',
+      annotationType: AnnotationType.Formula,
+      value: 'x*2',
+      style: AnnotationStyle.Solid,
+      show: true,
+      showLabel: true,
+    };
+    const timeColumnName = 'ds';
+    const timeColumnLabel = 'Time Label';
+    const testData = [
+      {
+        [timeColumnLabel]: new Date(BASE_TIMESTAMP).toISOString(),
+        'San Francisco': 1,
+        'New York': 2,
+      },
+      {
+        [timeColumnLabel]: new Date(BASE_TIMESTAMP + 300000000).toISOString(),
+        'San Francisco': 3,
+        'New York': 4,
+      },
+    ];
+    const chartProps = createTestChartProps({
+      formData: {
+        ...formData,
+        x_axis: timeColumnName,
+        granularity_sqla: timeColumnName,
+        orientation: OrientationType.Horizontal,
+        annotationLayers: [formula],
+      },
+      queriesData: [createTestQueryData(testData)],
+      datasource: {
+        verboseMap: {
+          [timeColumnName]: timeColumnLabel,
+        },
+        columnFormats: {},
+        currencyFormats: {},
+      },
+    });
+    const result = transformProps(chartProps);
+    const formulaSeries = (
+      result.echartOptions.series as SeriesOption[] | undefined
+    )?.find((s: SeriesOption) => s.name === 'My Formula');
+    expect(formulaSeries).toBeDefined();
+    const firstDataPoint = (formulaSeries?.data as [number, number][])[0];
+    expect(firstDataPoint).toBeDefined();
+    expect(firstDataPoint[0]).toBe(firstDataPoint[1] * 2);
   });
 
   it('should add an interval, event and timeseries annotation to viz', () => {
@@ -749,25 +970,15 @@ const timeCompareFormData: SqlaFormData = {
   viz_type: 'my_viz',
 };
 
-const timeCompareChartPropsConfig = {
-  formData: timeCompareFormData,
-  width: 800,
-  height: 600,
-  theme: supersetTheme,
-};
-
 test('should apply dashed line style to time comparison series with single metric', () => {
   const queriesDataWithTimeCompare = [
-    {
-      data: [
-        { sum__num: 100, '1 week ago': 80, __timestamp: 599616000000 },
-        { sum__num: 150, '1 week ago': 120, __timestamp: 599916000000 },
-      ],
-    },
+    createTestQueryData([
+      { sum__num: 100, '1 week ago': 80, __timestamp: 599616000000 },
+      { sum__num: 150, '1 week ago': 120, __timestamp: 599916000000 },
+    ]),
   ];
 
-  const chartProps = new ChartProps({
-    ...timeCompareChartPropsConfig,
+  const chartProps = createTestChartProps({
     formData: {
       ...timeCompareFormData,
       time_compare: ['1 week ago'],
@@ -776,44 +987,51 @@ test('should apply dashed line style to time comparison series with single metri
     queriesData: queriesDataWithTimeCompare,
   });
 
-  const transformed = transformProps(
-    chartProps as unknown as EchartsTimeseriesChartProps,
-  );
-  const series = transformed.echartOptions.series as any[];
+  const transformed = transformProps(chartProps);
+  const series = (transformed.echartOptions.series as SeriesOption[]) || [];
 
-  const mainSeries = series.find(s => s.name === 'sum__num');
-  const comparisonSeries = series.find(s => s.name === '1 week ago');
+  const mainSeries = series.find(s => s.name === 'sum__num') as
+    | (SeriesOption & { lineStyle?: { type?: number[] | string } })
+    | undefined;
+  const comparisonSeries = series.find(s => s.name === '1 week ago') as
+    | (SeriesOption & { lineStyle?: { type?: number[] | string } })
+    | undefined;
 
   expect(mainSeries).toBeDefined();
   expect(comparisonSeries).toBeDefined();
   // Main series should not have a dash pattern array
-  expect(Array.isArray(mainSeries.lineStyle?.type)).toBe(false);
+  expect(Array.isArray(mainSeries?.lineStyle?.type)).toBe(false);
   // Comparison series should have a visible dash pattern array [dash, gap]
-  expect(Array.isArray(comparisonSeries.lineStyle?.type)).toBe(true);
-  expect(comparisonSeries.lineStyle?.type[0]).toBeGreaterThanOrEqual(4);
-  expect(comparisonSeries.lineStyle?.type[1]).toBeGreaterThanOrEqual(3);
+  expect(Array.isArray(comparisonSeries?.lineStyle?.type)).toBe(true);
+  expect(
+    Array.isArray(comparisonSeries?.lineStyle?.type)
+      ? comparisonSeries.lineStyle.type[0]
+      : undefined,
+  ).toBeGreaterThanOrEqual(4);
+  expect(
+    Array.isArray(comparisonSeries?.lineStyle?.type)
+      ? comparisonSeries.lineStyle.type[1]
+      : undefined,
+  ).toBeGreaterThanOrEqual(3);
 });
 
 test('should apply dashed line style to time comparison series with metric__offset pattern', () => {
   const queriesDataWithTimeCompare = [
-    {
-      data: [
-        {
-          sum__num: 100,
-          'sum__num__1 week ago': 80,
-          __timestamp: 599616000000,
-        },
-        {
-          sum__num: 150,
-          'sum__num__1 week ago': 120,
-          __timestamp: 599916000000,
-        },
-      ],
-    },
+    createTestQueryData([
+      {
+        sum__num: 100,
+        'sum__num__1 week ago': 80,
+        __timestamp: 599616000000,
+      },
+      {
+        sum__num: 150,
+        'sum__num__1 week ago': 120,
+        __timestamp: 599916000000,
+      },
+    ]),
   ];
 
-  const chartProps = new ChartProps({
-    ...timeCompareChartPropsConfig,
+  const chartProps = createTestChartProps({
     formData: {
       ...timeCompareFormData,
       time_compare: ['1 week ago'],
@@ -822,37 +1040,46 @@ test('should apply dashed line style to time comparison series with metric__offs
     queriesData: queriesDataWithTimeCompare,
   });
 
-  const transformed = transformProps(
-    chartProps as unknown as EchartsTimeseriesChartProps,
-  );
-  const series = transformed.echartOptions.series as any[];
+  const transformed = transformProps(chartProps);
+  const series = (transformed.echartOptions.series as SeriesOption[]) || [];
 
-  const mainSeries = series.find(s => s.name === 'sum__num');
-  const comparisonSeries = series.find(s => s.name === 'sum__num__1 week ago');
+  const mainSeries = series.find(s => s.name === 'sum__num') as
+    | (SeriesOption & { lineStyle?: { type?: number[] | string } })
+    | undefined;
+  const comparisonSeries = series.find(
+    s => s.name === 'sum__num__1 week ago',
+  ) as
+    | (SeriesOption & { lineStyle?: { type?: number[] | string } })
+    | undefined;
 
   expect(mainSeries).toBeDefined();
   expect(comparisonSeries).toBeDefined();
   // Main series should not have a dash pattern array
-  expect(Array.isArray(mainSeries.lineStyle?.type)).toBe(false);
+  expect(Array.isArray(mainSeries?.lineStyle?.type)).toBe(false);
   // Comparison series should have a visible dash pattern array [dash, gap]
-  expect(Array.isArray(comparisonSeries.lineStyle?.type)).toBe(true);
-  expect(comparisonSeries.lineStyle?.type[0]).toBeGreaterThanOrEqual(4);
-  expect(comparisonSeries.lineStyle?.type[1]).toBeGreaterThanOrEqual(3);
+  expect(Array.isArray(comparisonSeries?.lineStyle?.type)).toBe(true);
+  expect(
+    Array.isArray(comparisonSeries?.lineStyle?.type)
+      ? comparisonSeries.lineStyle.type[0]
+      : undefined,
+  ).toBeGreaterThanOrEqual(4);
+  expect(
+    Array.isArray(comparisonSeries?.lineStyle?.type)
+      ? comparisonSeries.lineStyle.type[1]
+      : undefined,
+  ).toBeGreaterThanOrEqual(3);
 });
 
 test('should apply connectNulls to time comparison series', () => {
   const queriesDataWithNulls = [
-    {
-      data: [
-        { sum__num: 100, '1 week ago': null, __timestamp: 599616000000 },
-        { sum__num: 150, '1 week ago': 120, __timestamp: 599916000000 },
-        { sum__num: 200, '1 week ago': null, __timestamp: 600216000000 },
-      ],
-    },
+    createTestQueryData([
+      { sum__num: 100, '1 week ago': null, __timestamp: 599616000000 },
+      { sum__num: 150, '1 week ago': 120, __timestamp: 599916000000 },
+      { sum__num: 200, '1 week ago': null, __timestamp: 600216000000 },
+    ]),
   ];
 
-  const chartProps = new ChartProps({
-    ...timeCompareChartPropsConfig,
+  const chartProps = createTestChartProps({
     formData: {
       ...timeCompareFormData,
       time_compare: ['1 week ago'],
@@ -861,29 +1088,26 @@ test('should apply connectNulls to time comparison series', () => {
     queriesData: queriesDataWithNulls,
   });
 
-  const transformed = transformProps(
-    chartProps as unknown as EchartsTimeseriesChartProps,
-  );
-  const series = transformed.echartOptions.series as any[];
+  const transformed = transformProps(chartProps);
+  const series = (transformed.echartOptions.series as SeriesOption[]) || [];
 
-  const comparisonSeries = series.find(s => s.name === '1 week ago');
+  const comparisonSeries = series.find(s => s.name === '1 week ago') as
+    | (SeriesOption & { connectNulls?: boolean })
+    | undefined;
 
   expect(comparisonSeries).toBeDefined();
-  expect(comparisonSeries.connectNulls).toBe(true);
+  expect(comparisonSeries?.connectNulls).toBe(true);
 });
 
 test('should not apply dashed line style for non-Values comparison types', () => {
   const queriesDataWithTimeCompare = [
-    {
-      data: [
-        { sum__num: 100, '1 week ago': 80, __timestamp: 599616000000 },
-        { sum__num: 150, '1 week ago': 120, __timestamp: 599916000000 },
-      ],
-    },
+    createTestQueryData([
+      { sum__num: 100, '1 week ago': 80, __timestamp: 599616000000 },
+      { sum__num: 150, '1 week ago': 120, __timestamp: 599916000000 },
+    ]),
   ];
 
-  const chartProps = new ChartProps({
-    ...timeCompareChartPropsConfig,
+  const chartProps = createTestChartProps({
     formData: {
       ...timeCompareFormData,
       time_compare: ['1 week ago'],
@@ -892,22 +1116,24 @@ test('should not apply dashed line style for non-Values comparison types', () =>
     queriesData: queriesDataWithTimeCompare,
   });
 
-  const transformed = transformProps(
-    chartProps as unknown as EchartsTimeseriesChartProps,
-  );
-  const series = transformed.echartOptions.series as any[];
+  const transformed = transformProps(chartProps);
+  const series = (transformed.echartOptions.series as SeriesOption[]) || [];
 
-  const comparisonSeries = series.find(s => s.name === '1 week ago');
+  const comparisonSeries = series.find(s => s.name === '1 week ago') as
+    | (SeriesOption & {
+        lineStyle?: { type?: number[] | string };
+        connectNulls?: boolean;
+      })
+    | undefined;
 
   expect(comparisonSeries).toBeDefined();
   // Non-Values comparison types don't get dashed styling (isDerivedSeries returns false)
-  expect(Array.isArray(comparisonSeries.lineStyle?.type)).toBe(false);
-  expect(comparisonSeries.connectNulls).toBeFalsy();
+  expect(Array.isArray(comparisonSeries?.lineStyle?.type)).toBe(false);
+  expect(comparisonSeries?.connectNulls).toBeFalsy();
 });
 
 test('EchartsTimeseries AUTO mode should detect single currency and format with $ for USD', () => {
-  const chartProps = new ChartProps<SqlaFormData>({
-    ...chartPropsConfig,
+  const chartProps = createTestChartProps({
     formData: {
       ...formData,
       metrics: ['sum__num'],
@@ -920,8 +1146,8 @@ test('EchartsTimeseries AUTO mode should detect single currency and format with 
       verboseMap: {},
     },
     queriesData: [
-      {
-        data: [
+      createTestQueryData(
+        [
           {
             'San Francisco': 1000,
             __timestamp: 599616000000,
@@ -933,19 +1159,19 @@ test('EchartsTimeseries AUTO mode should detect single currency and format with 
             currency_code: 'USD',
           },
         ],
-      },
+        { detected_currency: 'USD' },
+      ),
     ],
   });
 
-  const transformed = transformProps(chartProps as EchartsTimeseriesChartProps);
+  const transformed = transformProps(chartProps);
 
   const formatter = getYAxisFormatter(transformed);
   expect(formatter(1000, 0)).toContain('$');
 });
 
 test('EchartsTimeseries AUTO mode should use neutral formatting for mixed currencies', () => {
-  const chartProps = new ChartProps<SqlaFormData>({
-    ...chartPropsConfig,
+  const chartProps = createTestChartProps({
     formData: {
       ...formData,
       metrics: ['sum__num'],
@@ -958,24 +1184,22 @@ test('EchartsTimeseries AUTO mode should use neutral formatting for mixed curren
       verboseMap: {},
     },
     queriesData: [
-      {
-        data: [
-          {
-            'San Francisco': 1000,
-            __timestamp: 599616000000,
-            currency_code: 'USD',
-          },
-          {
-            'San Francisco': 2000,
-            __timestamp: 599916000000,
-            currency_code: 'EUR',
-          },
-        ],
-      },
+      createTestQueryData([
+        {
+          'San Francisco': 1000,
+          __timestamp: 599616000000,
+          currency_code: 'USD',
+        },
+        {
+          'San Francisco': 2000,
+          __timestamp: 599916000000,
+          currency_code: 'EUR',
+        },
+      ]),
     ],
   });
 
-  const transformed = transformProps(chartProps as EchartsTimeseriesChartProps);
+  const transformed = transformProps(chartProps);
 
   // With mixed currencies, Y-axis should use neutral formatting
   const formatter = getYAxisFormatter(transformed);
@@ -985,8 +1209,7 @@ test('EchartsTimeseries AUTO mode should use neutral formatting for mixed curren
 });
 
 test('EchartsTimeseries should preserve static currency format with £ for GBP', () => {
-  const chartProps = new ChartProps<SqlaFormData>({
-    ...chartPropsConfig,
+  const chartProps = createTestChartProps({
     formData: {
       ...formData,
       metrics: ['sum__num'],
@@ -999,24 +1222,22 @@ test('EchartsTimeseries should preserve static currency format with £ for GBP',
       verboseMap: {},
     },
     queriesData: [
-      {
-        data: [
-          {
-            'San Francisco': 1000,
-            __timestamp: 599616000000,
-            currency_code: 'USD',
-          },
-          {
-            'San Francisco': 2000,
-            __timestamp: 599916000000,
-            currency_code: 'EUR',
-          },
-        ],
-      },
+      createTestQueryData([
+        {
+          'San Francisco': 1000,
+          __timestamp: 599616000000,
+          currency_code: 'USD',
+        },
+        {
+          'San Francisco': 2000,
+          __timestamp: 599916000000,
+          currency_code: 'EUR',
+        },
+      ]),
     ],
   });
 
-  const transformed = transformProps(chartProps as EchartsTimeseriesChartProps);
+  const transformed = transformProps(chartProps);
 
   // Static mode should always show £
   const formatter = getYAxisFormatter(transformed);
