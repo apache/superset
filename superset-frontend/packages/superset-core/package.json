@@ -35,7 +35,7 @@
     "@emotion/cache": "^11.4.0",
     "@emotion/react": "^11.4.1",
     "@emotion/styled": "^11.14.1",
-    "@fontsource/ibm-plex-mono": "^5.2.6",
+    "@fontsource/ibm-plex-mono": "^5.2.7",
     "@fontsource/inter": "^5.2.6",
     "nanoid": "^5.0.9",
     "react": "^17.0.2",
