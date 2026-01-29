@@ -31,7 +31,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 from flask import current_app as app, g
 from sqlalchemy import Column, text, types
-from sqlalchemy.engine.base import Engine
+from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.sql.expression import ColumnClause, Select
@@ -508,7 +508,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         cls,
         database: Database,
         table: Table,
-        engine: Engine,
+        dialect: Dialect,
         limit: int = 100,
         show_cols: bool = False,
         indent: bool = True,
@@ -521,7 +521,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         return super(PrestoEngineSpec, cls).select_star(
             database,
             table,
-            engine,
+            dialect,
             limit,
             show_cols,
             indent,
