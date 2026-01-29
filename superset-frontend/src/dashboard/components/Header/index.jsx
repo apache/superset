@@ -592,9 +592,9 @@ const Header = () => {
   const faveStarProps = useMemo(
     () => ({
       itemId: dashboardInfo.id,
-      // Only fetch favorite status for valid, existing dashboards
-      // Skip fetch entirely if dashboard ID is falsy to prevent
-      // 404 errors when navigating after dashboard deletion
+      // Only fetch favorite status when dashboard ID exists.
+      // Falsy IDs indicate the dashboard hasn't been created yet or the component
+      // is unmounting. The fetchFaveStar action handles 404s for deleted dashboards.
       fetchFaveStar: dashboardInfo.id
         ? boundActionCreators.fetchFaveStar
         : undefined,

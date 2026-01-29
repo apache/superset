@@ -27,6 +27,7 @@ import {
   fetchFaveStar,
   TOGGLE_FAVE_STAR,
 } from 'src/dashboard/actions/dashboardState';
+import { ADD_TOAST } from 'src/components/MessageToasts/actions';
 import { UPDATE_COMPONENTS_PARENTS_LIST } from 'src/dashboard/actions/dashboardLayout';
 import {
   DASHBOARD_GRID_ID,
@@ -261,10 +262,15 @@ describe('dashboardState actions', () => {
     test('does not dispatch error toast on 404 response', async () => {
       const dashboardId = 999;
       const dispatch = sinon.stub();
-      
+
       getStub.restore();
-      const error404 = new Error('Not found');
-      error404.status = 404;
+      const error404 = {
+        response: {
+          status: 404,
+          statusText: 'Not Found',
+          bodyUsed: false,
+        },
+      };
       getStub = sinon.stub(SupersetClient, 'get').rejects(error404);
 
       const thunk = fetchFaveStar(dashboardId);
@@ -277,10 +283,15 @@ describe('dashboardState actions', () => {
     test('dispatches error toast on non-404 errors', async () => {
       const dashboardId = 123;
       const dispatch = sinon.stub();
-      
+
       getStub.restore();
-      const error500 = new Error('Internal server error');
-      error500.status = 500;
+      const error500 = {
+        response: {
+          status: 500,
+          statusText: 'Internal Server Error',
+          bodyUsed: false,
+        },
+      };
       getStub = sinon.stub(SupersetClient, 'get').rejects(error500);
 
       const thunk = fetchFaveStar(dashboardId);
@@ -289,7 +300,7 @@ describe('dashboardState actions', () => {
       await waitFor(() => expect(dispatch.callCount).toBe(1));
       // Verify error toast action was dispatched (ADD_TOAST with danger type)
       const dispatchedAction = dispatch.getCall(0).args[0];
-      expect(dispatchedAction.type).toBe('ADD_TOAST');
+      expect(dispatchedAction.type).toBe(ADD_TOAST);
       expect(dispatchedAction.payload.toastType).toBe('danger');
     });
   });
