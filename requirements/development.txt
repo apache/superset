@@ -179,6 +179,7 @@ cryptography==44.0.3
     #   paramiko
     #   pyjwt
     #   pyopenssl
+    #   secretstorage
 cycler==0.12.1
     # via matplotlib
 cyclopts==4.2.4
@@ -374,6 +375,7 @@ greenlet==3.1.1
     #   apache-superset
     #   gevent
     #   shillelagh
+    #   sqlalchemy
 grpcio==1.71.0
     # via
     #   apache-superset
@@ -448,6 +450,10 @@ jaraco-context==6.0.1
     # via keyring
 jaraco-functools==4.3.0
     # via keyring
+jeepney==0.9.0
+    # via
+    #   keyring
+    #   secretstorage
 jinja2==3.1.6
     # via
     #   -c requirements/base-constraint.txt
@@ -909,6 +915,8 @@ rsa==4.9.1
     #   google-auth
 ruff==0.9.7
     # via apache-superset
+secretstorage==3.5.0
+    # via keyring
 selenium==4.32.0
     # via
     #   -c requirements/base-constraint.txt
