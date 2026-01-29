@@ -616,3 +616,118 @@ test('Should pass formData to Share menu for embed code feature', () => {
   openMenu();
   expect(screen.getByText('Share')).toBeInTheDocument();
 });
+
+test('Should show single fetched query tooltip with timestamp', () => {
+  const updatedDttm = Date.parse('2024-01-28T10:00:00.000Z');
+  const props = createProps();
+  props.isCached = [false];
+  props.cachedDttm = [''];
+  props.updatedDttm = updatedDttm;
+
+  renderWrapper(props);
+  openMenu();
+
+  const refreshButton = screen.getByText('Force refresh');
+  expect(refreshButton).toBeInTheDocument();
+
+  const tooltipContainer = refreshButton.closest('div');
+  expect(tooltipContainer?.textContent).toMatch(/Fetched/);
+});
+
+test('Should show single cached query tooltip with timestamp', () => {
+  const cachedDttm = '2024-01-28T10:00:00.000Z';
+  const props = createProps();
+  props.isCached = [true];
+  props.cachedDttm = [cachedDttm];
+  props.updatedDttm = null;
+
+  renderWrapper(props);
+  openMenu();
+
+  const refreshButton = screen.getByText('Force refresh');
+  expect(refreshButton).toBeInTheDocument();
+
+  const tooltipContainer = refreshButton.closest('div');
+  expect(tooltipContainer?.textContent).toMatch(/Cached/);
+});
+
+test('Should show multiple per-query tooltips when all queries are fetched', () => {
+  const cachedDttm1 = '';
+  const cachedDttm2 = '';
+  const updatedDttm = Date.parse('2024-01-28T10:10:00.000Z');
+  const props = createProps(VizType.Table);
+  props.isCached = [false, false];
+  props.cachedDttm = [cachedDttm1, cachedDttm2];
+  props.updatedDttm = updatedDttm;
+
+  renderWrapper(props);
+  openMenu();
+
+  const refreshButton = screen.getByText('Force refresh');
+  expect(refreshButton).toBeInTheDocument();
+
+  const tooltipContainer = refreshButton.closest('div');
+  expect(tooltipContainer?.textContent).toMatch(/Fetched/);
+});
+
+test('Should show multiple per-query tooltips when all queries are cached', () => {
+  const cachedDttm1 = '2025-01-28T10:00:00.000Z';
+  const cachedDttm2 = '2024-01-28T10:05:00.000Z';
+  const props = createProps(VizType.Table);
+  props.isCached = [true, true];
+  props.cachedDttm = [cachedDttm1, cachedDttm2];
+  props.updatedDttm = null;
+
+  renderWrapper(props);
+  openMenu();
+
+  const refreshButton = screen.getByText('Force refresh');
+  expect(refreshButton).toBeInTheDocument();
+
+  const tooltipContainer = refreshButton.closest('div');
+  expect(tooltipContainer?.textContent).toMatch(/Query 1:/);
+  expect(tooltipContainer?.textContent).toMatch(/Query 2:/);
+  expect(tooltipContainer?.textContent).toMatch(/Cached/);
+});
+
+
+test('Should deduplicate identical cache times in tooltip', () => {
+  const sameCachedDttm = '2024-01-28T10:00:00.000Z';
+  const props = createProps(VizType.Table);
+  props.isCached = [true, true];
+  props.cachedDttm = [sameCachedDttm, sameCachedDttm];
+  props.updatedDttm = null;
+
+  renderWrapper(props);
+  openMenu();
+
+  const refreshButton = screen.getByText('Force refresh');
+  expect(refreshButton).toBeInTheDocument();
+
+  const tooltipContainer = refreshButton.closest('div');
+  const tooltipText = tooltipContainer?.textContent || '';
+  expect(tooltipText).toMatch(/Cached/);
+  expect(tooltipText).not.toMatch(/Query 1:/);
+});
+
+test('Should handle three or more queries with different cache states', () => {
+  const cachedDttm1 = '2024-01-28T10:00:00.000Z';
+  const cachedDttm2 = '2024-01-28T10:05:00.000Z';
+  const cachedDttm3 = '';
+  const updatedDttm = Date.parse('2024-01-28T10:15:00.000Z');
+  const props = createProps(VizType.Table);
+  props.isCached = [true, false, true];
+  props.cachedDttm = [cachedDttm1, cachedDttm2, cachedDttm3];
+  props.updatedDttm = updatedDttm;
+
+  renderWrapper(props);
+  openMenu();
+
+  const refreshButton = screen.getByText('Force refresh');
+  expect(refreshButton).toBeInTheDocument();
+
+  const tooltipContainer = refreshButton.closest('div');
+  expect(tooltipContainer?.textContent).toMatch(/Query 1:/);
+  expect(tooltipContainer?.textContent).toMatch(/Query 2:/);
+  expect(tooltipContainer?.textContent).toMatch(/Query 3:/);
+});
