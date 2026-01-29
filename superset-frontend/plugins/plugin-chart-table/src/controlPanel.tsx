@@ -441,7 +441,7 @@ const config: ControlPanelConfig = {
                   ),
               ],
               // Re run the validations when this control value
-              validationDependancies: ['server_pagination'],
+              validationDependencies: ['server_pagination'],
               default: 10000,
               choices: formatSelectOptions(ROW_LIMIT_OPTIONS_TABLE),
               description: t(
