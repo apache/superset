@@ -42,7 +42,7 @@ const createProps = (): DatabaseSelectorProps => ({
   readOnly: false,
   catalog: null,
   schema: 'public',
-  sqlLabMode: true,
+  sqlLabMode: false,
   getDbList: jest.fn(),
   handleError: jest.fn(),
   onDbChange: jest.fn(),

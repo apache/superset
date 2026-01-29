@@ -16,12 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export enum ViewContribution {
-  LeftSidebar = 'sqllab.leftSidebar',
-  RightSidebar = 'sqllab.rightSidebar',
-  Panels = 'sqllab.panels',
-  Editor = 'sqllab.editor',
-  StatusBar = 'sqllab.statusBar',
-  Results = 'sqllab.results',
-  QueryHistory = 'sqllab.queryHistory',
-}
+import type { SegmentedProps } from './types';
+
+export { Segmented } from 'antd';
+export type { SegmentedProps };

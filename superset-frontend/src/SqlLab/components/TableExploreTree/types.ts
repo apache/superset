@@ -16,12 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export enum ViewContribution {
-  LeftSidebar = 'sqllab.leftSidebar',
-  RightSidebar = 'sqllab.rightSidebar',
-  Panels = 'sqllab.panels',
-  Editor = 'sqllab.editor',
-  StatusBar = 'sqllab.statusBar',
-  Results = 'sqllab.results',
-  QueryHistory = 'sqllab.queryHistory',
+import type { ColumnKeyTypeType } from 'src/SqlLab/components/ColumnElement';
+
+export interface TreeNodeData {
+  id: string;
+  name: string;
+  type: 'schema' | 'table' | 'column' | 'empty';
+  tableType?: string;
+  columnData?: {
+    name: string;
+    keys?: { type: ColumnKeyTypeType }[];
+    type: string;
+  };
+  children?: TreeNodeData[];
+  disableCheckbox?: boolean;
+}
+
+export interface FetchLazyTablesParams {
+  dbId: string | number;
+  catalog: string | null | undefined;
+  schema: string;
+  forceRefresh: boolean;
 }
