@@ -30,10 +30,12 @@ import {
   Tooltip,
 } from '@superset-ui/core/components';
 import {
+  ColumnLabelExtendedType,
   ColumnMeta,
   ColumnTypeLabel,
   Metric,
 } from '@superset-ui/chart-controls';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import {
   OptionControlContainer,
   Label,
@@ -169,17 +171,18 @@ function TreeItemComponent({
     return name;
   }, [type, metric, column, name]);
 
-  const columnType = useMemo(() => {
-    if (type === FoldersEditorItemType.Metric) {
-      return 'metric';
-    }
-    if (type === FoldersEditorItemType.Column && column) {
-      const hasExpression =
-        column.expression && column.expression !== column.column_name;
-      return hasExpression ? 'expression' : column.type_generic;
-    }
-    return undefined;
-  }, [type, column]);
+  const columnType: ColumnLabelExtendedType | GenericDataType | undefined =
+    useMemo(() => {
+      if (type === FoldersEditorItemType.Metric) {
+        return 'metric';
+      }
+      if (type === FoldersEditorItemType.Column && column) {
+        const hasExpression =
+          column.expression && column.expression !== column.column_name;
+        return hasExpression ? 'expression' : column.type_generic;
+      }
+      return undefined;
+    }, [type, column]);
 
   const hasEmptyName = !name || name.trim() === '';
 

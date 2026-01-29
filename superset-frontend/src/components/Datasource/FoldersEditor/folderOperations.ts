@@ -362,27 +362,21 @@ export const ensureDefaultFolders = (
 
   const result = [...enrichedFolders];
 
-  const isItemInFolders = (uuid: string): boolean => {
-    const checkFolder = (folder: DatasourceFolder): boolean => {
-      if (!folder.children) return false;
-
-      return folder.children.some(child => {
-        if (child.uuid === uuid) return true;
-        if (
-          child.type === FoldersEditorItemType.Folder &&
-          'children' in child
-        ) {
-          return checkFolder(child as DatasourceFolder);
-        }
-        return false;
-      });
-    };
-
-    return enrichedFolders.some(checkFolder);
+  // Build a Set of all assigned UUIDs in a single pass for O(1) lookups
+  const assignedIds = new Set<string>();
+  const collectAssignedIds = (folder: DatasourceFolder) => {
+    if (!folder.children) return;
+    for (const child of folder.children) {
+      assignedIds.add(child.uuid);
+      if (child.type === FoldersEditorItemType.Folder && 'children' in child) {
+        collectAssignedIds(child as DatasourceFolder);
+      }
+    }
   };
+  enrichedFolders.forEach(collectAssignedIds);
 
   if (!hasMetricsFolder) {
-    const unassignedMetrics = metrics.filter(m => !isItemInFolders(m.uuid));
+    const unassignedMetrics = metrics.filter(m => !assignedIds.has(m.uuid));
 
     result.push({
       uuid: DEFAULT_METRICS_FOLDER_UUID,
@@ -397,7 +391,7 @@ export const ensureDefaultFolders = (
   }
 
   if (!hasColumnsFolder) {
-    const unassignedColumns = columns.filter(c => !isItemInFolders(c.uuid));
+    const unassignedColumns = columns.filter(c => !assignedIds.has(c.uuid));
 
     result.push({
       uuid: DEFAULT_COLUMNS_FOLDER_UUID,

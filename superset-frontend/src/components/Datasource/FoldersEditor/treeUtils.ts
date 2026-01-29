@@ -94,23 +94,31 @@ export function getProjection(
 
   let previousItem: FlattenedTreeItem | undefined;
   let nextItem: FlattenedTreeItem | undefined;
+  let previousItemIndex: number;
+  let nextItemIndex: number;
 
   if (activeItemIndex < overItemIndex) {
-    previousItem = items[overItemIndex];
-    nextItem = items[overItemIndex + 1];
+    previousItemIndex = overItemIndex;
+    nextItemIndex = overItemIndex + 1;
   } else if (activeItemIndex > overItemIndex) {
-    previousItem = items[overItemIndex - 1];
-    nextItem = items[overItemIndex];
+    previousItemIndex = overItemIndex - 1;
+    nextItemIndex = overItemIndex;
   } else {
-    previousItem = items[overItemIndex - 1];
-    nextItem = items[overItemIndex + 1];
+    previousItemIndex = overItemIndex - 1;
+    nextItemIndex = overItemIndex + 1;
   }
 
+  previousItem = items[previousItemIndex];
+  nextItem = items[nextItemIndex];
+
+  // Skip over the active item if it's adjacent
   if (previousItem?.uuid === activeId) {
-    previousItem = items[items.indexOf(previousItem) - 1];
+    previousItemIndex -= 1;
+    previousItem = items[previousItemIndex];
   }
   if (nextItem?.uuid === activeId) {
-    nextItem = items[items.indexOf(nextItem) + 1];
+    nextItemIndex += 1;
+    nextItem = items[nextItemIndex];
   }
 
   const dragDepth = getDragDepth(dragOffset, indentationWidth);
@@ -128,7 +136,7 @@ export function getProjection(
   let parentId: string | null = null;
   if (depth > 0 && previousItem) {
     if (depth === previousItem.depth) {
-      parentId = previousItem.parentId;
+      ({ parentId } = previousItem);
     } else if (depth > previousItem.depth) {
       parentId = previousItem.uuid;
     } else {
@@ -136,7 +144,7 @@ export function getProjection(
         activeItemIndex < overItemIndex ? overItemIndex : overItemIndex - 1;
       for (let i = searchEnd; i >= 0; i -= 1) {
         if (items[i].uuid !== activeId && items[i].depth === depth) {
-          parentId = items[i].parentId;
+          ({ parentId } = items[i]);
           break;
         }
       }
@@ -191,11 +199,10 @@ export function flattenTree(items: TreeItem[]): FlattenedTreeItem[] {
 
 export function buildTree(flattenedItems: FlattenedTreeItem[]): TreeItem[] {
   const root: TreeItem[] = [];
-  const nodes: Record<string, TreeItem> = {};
+  const nodes = new Map<string, TreeItem>();
 
-  const sortedItems = [...flattenedItems].sort((a, b) => a.depth - b.depth);
-
-  for (const item of sortedItems) {
+  // First pass: create all nodes
+  for (const item of flattenedItems) {
     const { uuid, type, name, description } = item;
 
     const treeItem: TreeItem =
@@ -213,17 +220,18 @@ export function buildTree(flattenedItems: FlattenedTreeItem[]): TreeItem[] {
             name,
           } as DatasourceFolderItem);
 
-    nodes[uuid] = treeItem;
+    nodes.set(uuid, treeItem);
   }
 
-  for (const item of sortedItems) {
+  // Second pass: link children to parents (iteration order preserves structure)
+  for (const item of flattenedItems) {
     const { uuid, parentId } = item;
-    const treeItem = nodes[uuid];
+    const treeItem = nodes.get(uuid)!;
 
     if (!parentId) {
       root.push(treeItem);
     } else {
-      const parent = nodes[parentId];
+      const parent = nodes.get(parentId);
       if (
         parent &&
         parent.type === FoldersEditorItemType.Folder &&
@@ -267,12 +275,12 @@ export function removeChildrenOf(
   items: FlattenedTreeItem[],
   ids: UniqueIdentifier[],
 ): FlattenedTreeItem[] {
-  const excludeParentIds = [...ids];
+  const excludeParentIds = new Set<UniqueIdentifier>(ids);
 
   return items.filter(item => {
-    if (item.parentId && excludeParentIds.includes(item.parentId)) {
+    if (item.parentId && excludeParentIds.has(item.parentId)) {
       if (item.children?.length) {
-        excludeParentIds.push(item.uuid);
+        excludeParentIds.add(item.uuid);
       }
       return false;
     }

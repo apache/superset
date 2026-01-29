@@ -163,7 +163,6 @@ export function VirtualizedTreeList({
       itemSeparatorInfo,
       visibleItemIds,
       searchTerm,
-      activeId,
     ],
   );
 
