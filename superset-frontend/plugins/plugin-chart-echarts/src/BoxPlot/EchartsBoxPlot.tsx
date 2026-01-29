@@ -25,6 +25,19 @@ export default function EchartsBoxPlot(props: BoxPlotChartTransformedProps) {
     props;
 
   const eventHandlers = allEventHandlers(props);
+  if (formData.showRangeFilter) {
+    echartOptions.dataZoom = [
+      {
+        show: true,
+        type: 'slider',
+        left: '0rem', // Adjust the left position as needed
+        yAxisIndex: [0],
+        width: '20rem', // Adjust the width as needed
+        filterMode: 'filter',
+        labelFormatter: () => '', // Hide labels on the data zoom slider
+      },
+    ];
+  }
 
   return (
     <Echart
