@@ -203,7 +203,10 @@ export const useHeaderActionsMenu = ({
       // Auto-refresh settings (session-only in view mode)
       menuItems.push({
         key: MenuKeys.AutorefreshModal,
-        label: t('Set auto-refresh'),
+        label:
+          refreshFrequency > 0
+            ? t('Update auto-refresh')
+            : t('Set auto-refresh'),
         disabled: isLoading,
       });
     }
