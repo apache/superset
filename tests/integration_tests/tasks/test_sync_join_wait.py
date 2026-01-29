@@ -24,7 +24,6 @@ limitations that prevent cross-thread database access.
 import threading
 import time
 from typing import Any
-from unittest.mock import patch
 
 from superset_core.api.tasks import TaskStatus
 
@@ -185,6 +184,8 @@ def test_wait_for_completion_timeout(app_context, login_as) -> None:
     """
     Test that wait_for_completion raises TimeoutError on timeout.
     """
+    import pytest
+
     login_as("admin")
 
     # Create a pending task (won't complete)
@@ -196,18 +197,20 @@ def test_wait_for_completion_timeout(app_context, login_as) -> None:
         }
     ).run_with_info()
 
-    try:
-        # Mock Redis to force polling mode
-        with patch.object(TaskManager, "_get_redis_client", return_value=None):
-            import pytest
+    # Save original Redis state and force polling mode
+    original_redis = TaskManager._redis
+    TaskManager._redis = None
 
-            with pytest.raises(TimeoutError):
-                TaskManager.wait_for_completion(
-                    task.uuid,
-                    timeout=0.2,
-                    poll_interval=0.05,
-                )
+    try:
+        with pytest.raises(TimeoutError):
+            TaskManager.wait_for_completion(
+                task.uuid,
+                timeout=0.2,
+                poll_interval=0.05,
+            )
     finally:
+        # Restore original Redis state
+        TaskManager._redis = original_redis
         db.session.delete(task)
         db.session.commit()
 
