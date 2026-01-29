@@ -92,7 +92,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  fetchMock.restore();
+  fetchMock.clearHistory().removeRoutes();
   jest.clearAllMocks();
 });
 
@@ -352,9 +352,9 @@ test('display no compatible schema found when schema api throws errors', async (
     reduxState,
   );
   await waitFor(() =>
-    expect(fetchMock.calls('glob:*/api/v1/database/3/schemas/?*')).toHaveLength(
-      1,
-    ),
+    expect(
+      fetchMock.callHistory.calls('glob:*/api/v1/database/3/schemas/?*'),
+    ).toHaveLength(1),
   );
   const select = screen.getByRole('combobox', {
     name: 'Select schema or type to search schemas',
@@ -386,7 +386,7 @@ test('ignore schema api when current schema is deprecated', async () => {
   });
 
   expect(await screen.findByText(/Database/i)).toBeInTheDocument();
-  expect(fetchMock.calls()).not.toContainEqual(
+  expect(fetchMock.callHistory.calls()).not.toContainEqual(
     expect.arrayContaining([
       expect.stringContaining(
         `/tables/${mockData.database.id}/${invalidSchemaName}/`,

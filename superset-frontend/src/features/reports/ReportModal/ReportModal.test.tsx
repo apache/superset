@@ -160,9 +160,11 @@ describe('Email Report Modal', () => {
       // 🐞 ----- There are 2 POST calls at this point ----- 🐞
 
       // addReport's mocked POST return should match the mocked values
-      expect(fetchMock.lastOptions()?.body).toEqual(stringyReportValues);
+      expect(fetchMock.callHistory.lastCall()?.options?.body).toEqual(
+        stringyReportValues,
+      );
       expect(dispatch.callCount).toBe(2);
-      const reportCalls = fetchMock.calls(REPORT_ENDPOINT);
+      const reportCalls = fetchMock.callHistory.calls(REPORT_ENDPOINT);
       expect(reportCalls).toHaveLength(2);
     });
   });

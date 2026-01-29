@@ -174,7 +174,7 @@ const store = mockStore({});
 let isFeatureEnabledMock: jest.SpyInstance;
 
 beforeEach(() => {
-  fetchMock.resetHistory();
+  fetchMock.clearHistory();
   isFeatureEnabledMock = mockedIsFeatureEnabled.mockImplementation(
     (featureFlag: FeatureFlag) =>
       featureFlag === FeatureFlag.EnableAdvancedDataTypes,
@@ -460,7 +460,9 @@ test('should not call API when column has no advanced data type', async () => {
   });
 
   await waitFor(() =>
-    expect(fetchMock.calls(ADVANCED_DATA_TYPE_ENDPOINT_VALID)).toHaveLength(0),
+    expect(
+      fetchMock.callHistory.calls(ADVANCED_DATA_TYPE_ENDPOINT_VALID),
+    ).toHaveLength(0),
   );
 });
 
@@ -499,7 +501,9 @@ test('should call API when column has advanced data type', async () => {
   });
 
   await waitFor(() =>
-    expect(fetchMock.calls(ADVANCED_DATA_TYPE_ENDPOINT_VALID)).toHaveLength(1),
+    expect(
+      fetchMock.callHistory.calls(ADVANCED_DATA_TYPE_ENDPOINT_VALID),
+    ).toHaveLength(1),
   );
   expect(props.validHandler.lastCall.args[0]).toBe(true);
 });
@@ -539,9 +543,9 @@ test('save button should be disabled if error message from API is returned', asy
   });
 
   await waitFor(() =>
-    expect(fetchMock.calls(ADVANCED_DATA_TYPE_ENDPOINT_INVALID)).toHaveLength(
-      1,
-    ),
+    expect(
+      fetchMock.callHistory.calls(ADVANCED_DATA_TYPE_ENDPOINT_INVALID),
+    ).toHaveLength(1),
   );
   expect(props.validHandler.lastCall.args[0]).toBe(false);
 });
@@ -581,7 +585,9 @@ test('advanced data type operator list should update after API response', async 
   });
 
   await waitFor(() =>
-    expect(fetchMock.calls(ADVANCED_DATA_TYPE_ENDPOINT_VALID)).toHaveLength(1),
+    expect(
+      fetchMock.callHistory.calls(ADVANCED_DATA_TYPE_ENDPOINT_VALID),
+    ).toHaveLength(1),
   );
   expect(props.validHandler.lastCall.args[0]).toBe(true);
 

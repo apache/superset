@@ -178,7 +178,7 @@ beforeEach(() => {
 });
 
 afterAll(() => {
-  fetchMock.restore();
+  fetchMock.clearHistory().removeRoutes();
 });
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks

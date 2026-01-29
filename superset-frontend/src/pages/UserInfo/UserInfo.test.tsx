@@ -73,7 +73,7 @@ describe('UserInfo', () => {
     });
 
   beforeEach(() => {
-    fetchMock.restore();
+    fetchMock.clearHistory().removeRoutes();
     fetchMock.get(meEndpoint, {
       result: {
         ...mockUser,
@@ -84,7 +84,7 @@ describe('UserInfo', () => {
   });
 
   afterEach(() => {
-    fetchMock.restore();
+    fetchMock.clearHistory().removeRoutes();
   });
 
   test('renders the user info page', async () => {
@@ -105,7 +105,7 @@ describe('UserInfo', () => {
   test('calls the /me endpoint on mount', async () => {
     await renderPage();
     await waitFor(() => {
-      expect(fetchMock.called(meEndpoint)).toBe(true);
+      expect(fetchMock.callHistory.called(meEndpoint)).toBe(true);
     });
   });
 

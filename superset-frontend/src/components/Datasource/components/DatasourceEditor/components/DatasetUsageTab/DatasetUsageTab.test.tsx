@@ -119,14 +119,14 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
-  fetchMock.reset();
+  fetchMock.clearHistory().removeRoutes();
   jest.clearAllMocks();
   // Mock scrollTo for all tests
   Element.prototype.scrollTo = jest.fn();
 });
 
 afterEach(() => {
-  fetchMock.restore();
+  fetchMock.clearHistory().removeRoutes();
   // Restore original scrollTo implementation after each test
   Element.prototype.scrollTo = originalScrollTo;
   // Restore console.error if it was spied on

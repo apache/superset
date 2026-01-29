@@ -144,9 +144,6 @@ const createProps = (additionalProps = {}) => ({
 fetchMock.post(
   'http://api/v1/chart/data?form_data=%7B%22slice_id%22%3A318%7D',
   { body: {} },
-  {
-    sendAsJson: false,
-  },
 );
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ExploreChartHeader', () => {
