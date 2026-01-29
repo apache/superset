@@ -139,7 +139,7 @@ export default function transformProps(
     columnFormats = {},
     currencyFormats = {},
     currencyCodeColumn,
-  } = datasource as typeof datasource & { currencyCodeColumn?: string };
+  } = datasource;
   const [queryData] = queriesData;
   const {
     data = [],

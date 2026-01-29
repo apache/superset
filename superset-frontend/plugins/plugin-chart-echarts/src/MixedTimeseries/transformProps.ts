@@ -140,7 +140,7 @@ export default function transformProps(
     currencyFormats = {},
     columnFormats = {},
     currencyCodeColumn,
-  } = datasource as typeof datasource & { currencyCodeColumn?: string };
+  } = datasource;
   const { label_map: labelMap, detected_currency: backendDetectedCurrency } =
     queriesData[0] as TimeseriesChartDataResponseResult;
   const { label_map: labelMapB, detected_currency: backendDetectedCurrencyB } =
