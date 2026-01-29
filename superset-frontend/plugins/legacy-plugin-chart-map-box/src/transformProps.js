@@ -32,7 +32,6 @@ export default function transformProps(chartProps) {
     mapboxColor,
     mapboxStyle,
     pandasAggfunc,
-    pointRadius,
     pointRadiusUnit,
     renderWhileDragging,
   } = formData;
@@ -90,7 +89,9 @@ export default function transformProps(chartProps) {
       setControlValue('viewport_latitude', latitude);
       setControlValue('viewport_zoom', zoom);
     },
-    pointRadius: pointRadius === 'Auto' ? DEFAULT_POINT_RADIUS : pointRadius,
+    // Always use DEFAULT_POINT_RADIUS as the base radius for cluster sizing
+    // Individual point radii come from geoJSON properties.radius
+    pointRadius: DEFAULT_POINT_RADIUS,
     pointRadiusUnit,
     renderWhileDragging,
     rgb,
