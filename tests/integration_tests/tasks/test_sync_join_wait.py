@@ -92,12 +92,22 @@ def test_sync_joiner_waits_for_completion(app_context, login_as) -> None:
     This test creates a task in a background thread, then has another "joiner"
     call wait_for_completion. The joiner should block until the task completes.
     """
+    from flask import current_app
+    from flask_login import login_user
+
+    from superset.extensions import security_manager
+
     # SQLite doesn't support cross-thread database connections reliably
     if backend() == "sqlite":
         return
 
     login_as("admin")
 
+    # Get the Flask app instance for use in background threads
+    app = current_app._get_current_object()
+
+    # Get admin user for thread login
+    admin_user = security_manager.find_user(username="admin")
     task_uuid: str | None = None
     joiner_result: dict[str, Any] = {}
     errors: list[Exception] = []
@@ -105,52 +115,57 @@ def test_sync_joiner_waits_for_completion(app_context, login_as) -> None:
     def background_task_creator():
         """Create and complete a task in a background thread."""
         nonlocal task_uuid
-        try:
-            # Create task
-            task, _ = SubmitTaskCommand(
-                data={
-                    "task_type": "test-wait",
-                    "task_key": "wait-test-key",
-                    "task_name": "Background Task",
-                }
-            ).run_with_info()
-            task_uuid = task.uuid
+        with app.app_context():
+            try:
+                # Log in user in this thread's context
+                login_user(admin_user)
 
-            # Simulate some work
-            time.sleep(0.5)
+                # Create task
+                task, _ = SubmitTaskCommand(
+                    data={
+                        "task_type": "test-wait",
+                        "task_key": "wait-test-key",
+                        "task_name": "Background Task",
+                    }
+                ).run_with_info()
+                task_uuid = task.uuid
 
-            # Complete the task
-            TaskDAO.update(
-                task,
-                {"status": TaskStatus.SUCCESS.value},
-            )
-            db.session.commit()
+                # Simulate some work
+                time.sleep(0.5)
 
-            # Publish completion signal
-            TaskManager.publish_completion(task.uuid)
-        except Exception as e:
-            errors.append(e)
+                # Complete the task
+                TaskDAO.update(
+                    task,
+                    {"status": TaskStatus.SUCCESS.value},
+                )
+                db.session.commit()
+
+                # Publish completion signal
+                TaskManager.publish_completion(task.uuid)
+            except Exception as e:
+                errors.append(e)
 
     def joiner_thread():
         """Wait for the task to complete."""
         nonlocal joiner_result
-        try:
-            # Wait for task to be created
-            while task_uuid is None:
-                time.sleep(0.05)
+        with app.app_context():
+            try:
+                # Wait for task to be created
+                while task_uuid is None:
+                    time.sleep(0.05)
 
-            start = time.time()
-            result_task = TaskManager.wait_for_completion(
-                task_uuid,
-                timeout=5.0,
-                poll_interval=0.1,
-            )
-            elapsed = time.time() - start
+                start = time.time()
+                result_task = TaskManager.wait_for_completion(
+                    task_uuid,
+                    timeout=5.0,
+                    poll_interval=0.1,
+                )
+                elapsed = time.time() - start
 
-            joiner_result["task"] = result_task
-            joiner_result["elapsed"] = elapsed
-        except Exception as e:
-            errors.append(e)
+                joiner_result["task"] = result_task
+                joiner_result["elapsed"] = elapsed
+            except Exception as e:
+                errors.append(e)
 
     # Start background task
     creator = threading.Thread(target=background_task_creator)
