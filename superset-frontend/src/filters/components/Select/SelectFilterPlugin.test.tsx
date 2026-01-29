@@ -684,13 +684,13 @@ describe('SelectFilterPlugin', () => {
     expect(options[2]).toHaveTextContent('beta');
   });
 
-  test('allowSelectAll is disabled when searchAllOptions is enabled and data is truncated at 1000 rows', () => {
+  test('allowSelectAll is disabled when searchAllOptions is enabled and data is truncated at 1000 rows', async () => {
     // Create mock data with 1000 rows to simulate truncation
     const largeData = Array.from({ length: 1000 }, (_, i) => ({
       gender: `value_${i}`,
     }));
 
-    const { container } = getWrapper({
+    getWrapper({
       searchAllOptions: true,
       multiSelect: true,
       queriesData: [
@@ -704,31 +704,56 @@ describe('SelectFilterPlugin', () => {
         },
       ],
     });
-    // Verify the Select component is rendered with multiSelect mode
-    const selectElement = container.querySelector('.ant-select-multiple');
-    expect(selectElement).toBeInTheDocument();
-    // Note: allowSelectAll is disabled because with searchAllOptions + 1000 rows,
-    // data is likely truncated, so "Select All" would be misleading
+
+    // Open the dropdown
+    const filterSelect = screen.getAllByRole('combobox')[0];
+    userEvent.click(filterSelect);
+
+    // Wait for dropdown to be visible
+    await waitFor(() => {
+      expect(screen.getByRole('combobox')).toBeInTheDocument();
+    });
+
+    // Verify "Select All" button is NOT present (disabled due to truncation)
+    expect(screen.queryByText(/Select all/i)).not.toBeInTheDocument();
   });
 
-  test('allowSelectAll is enabled when searchAllOptions is enabled but data is less than 1000 rows', () => {
-    const { container } = getWrapper({
+  test('allowSelectAll is enabled when searchAllOptions is enabled but data is less than 1000 rows', async () => {
+    getWrapper({
       searchAllOptions: true,
       multiSelect: true,
     });
-    // With only 3 rows (default test data), Select All should work fine
-    const selectElement = container.querySelector('.ant-select-multiple');
-    expect(selectElement).toBeInTheDocument();
+
+    // Open the dropdown
+    const filterSelect = screen.getAllByRole('combobox')[0];
+    userEvent.click(filterSelect);
+
+    // Wait for dropdown to be visible
+    await waitFor(() => {
+      expect(screen.getByRole('combobox')).toBeInTheDocument();
+    });
+
+    // With only 3 rows (default test data), "Select all" button should be present
+    expect(await screen.findByText('Select all (3)')).toBeInTheDocument();
   });
 
-  test('allowSelectAll is enabled for multi-select without searchAllOptions', () => {
-    const { container } = getWrapper({
+  test('allowSelectAll is enabled for multi-select without searchAllOptions', async () => {
+    getWrapper({
       searchAllOptions: false,
       multiSelect: true,
     });
-    // Verify the Select component is rendered with multiSelect mode
-    const selectElement = container.querySelector('.ant-select-multiple');
-    expect(selectElement).toBeInTheDocument();
+
+    // Open the dropdown
+    const filterSelect = screen.getAllByRole('combobox')[0];
+    userEvent.click(filterSelect);
+
+    // Wait for dropdown to be visible
+    await waitFor(() => {
+      expect(screen.getByRole('combobox')).toBeInTheDocument();
+    });
+
+    // "Select all" button should be present for static filters
+    expect(await screen.findByText('Select all (3)')).toBeInTheDocument();
   });
 
   test('allowSelectAll is not enabled for single-select filters', () => {
