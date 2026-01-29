@@ -25,6 +25,7 @@ export { default as isEqualArray } from './isEqualArray';
 export { default as makeSingleton } from './makeSingleton';
 export { default as promiseTimeout } from './promiseTimeout';
 export { default as removeDuplicates } from './removeDuplicates';
+export { default as withLabel } from './withLabel';
 export { lruCache } from './lruCache';
 export { getSelectedText } from './getSelectedText';
 export * from './featureFlags';
