@@ -73,6 +73,9 @@ function Calendar(element, props) {
     valueFormatter,
     verboseMap,
     theme,
+    colorRangeEnd,
+    colorRangeStart,
+    useCustomColorRange,
   } = props;
 
   const container = d3Select(element)
@@ -95,7 +98,9 @@ function Calendar(element, props) {
       calContainer.text(`${METRIC_TEXT}: ${verboseMap[metric] || metric}`);
     }
     const timestamps = metricsData[metric];
-    const extents = d3Extent(Object.keys(timestamps), key => timestamps[key]);
+    const extents = useCustomColorRange
+      ? [colorRangeStart, colorRangeEnd - 1]
+      : d3Extent(Object.keys(timestamps), key => timestamps[key]);
     const step = (extents[1] - extents[0]) / (steps - 1);
     const colorScale = getSequentialSchemeRegistry()
       .get(linearColorScheme)
