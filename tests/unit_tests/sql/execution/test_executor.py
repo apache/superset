@@ -350,6 +350,64 @@ def test_execute_allowed_functions(
     assert result.status == QueryStatus.SUCCESS
 
 
+def test_execute_disallowed_tables(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """Test that disallowed SQL tables are blocked."""
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "SQL_QUERY_MUTATOR": None,
+            "SQLLAB_TIMEOUT": 30,
+            "DISALLOWED_SQL_FUNCTIONS": {},
+            "DISALLOWED_SQL_TABLES": {"sqlite": {"pg_stat_activity", "pg_roles"}},
+        },
+    )
+
+    result = database.execute("SELECT * FROM pg_stat_activity")
+
+    assert result.status == QueryStatus.FAILED
+    assert result.error_message is not None
+    assert "Disallowed SQL tables" in result.error_message
+
+
+def test_execute_allowed_tables(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """Test that allowed SQL tables work normally."""
+    mock_query_execution(mocker, database, return_data=[(1,)], column_names=["id"])
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "SQL_QUERY_MUTATOR": None,
+            "SQLLAB_TIMEOUT": 30,
+            "SQL_MAX_ROW": None,
+            "DISALLOWED_SQL_FUNCTIONS": {},
+            "DISALLOWED_SQL_TABLES": {"sqlite": {"pg_stat_activity", "pg_roles"}},
+            "QUERY_LOGGER": None,
+        },
+    )
+
+    result = database.execute("SELECT * FROM users")
+
+    assert result.status == QueryStatus.SUCCESS
+
+
+def test_check_disallowed_tables_no_config(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """Test disallowed tables check when no config exists."""
+    from superset.sql.execution.executor import SQLExecutor
+
+    mocker.patch.dict(current_app.config, {"DISALLOWED_SQL_TABLES": {}})
+
+    executor = SQLExecutor(database)
+    script = MagicMock()
+    result = executor._check_disallowed_tables(script)
+
+    assert result is None
+
+
 # =============================================================================
 # Row-Level Security Tests
 # =============================================================================
