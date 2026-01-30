@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -17,17 +17,27 @@
  * under the License.
  */
 
-import { t } from '../translation';
+import type { ValidatorFunction } from '../validator';
 
-export default function validateInteger(v: unknown): string | false {
-  if (
-    (typeof v === 'string' &&
-      v.trim().length > 0 &&
-      Number.isInteger(Number(v.trim()))) ||
-    (typeof v === 'number' && Number.isInteger(v))
-  ) {
-    return false;
-  }
-
-  return t('is expected to be an integer');
+/**
+ * Wraps a validator function to prepend a label to its error message.
+ *
+ * @param validator - The validator function to wrap
+ * @param label - The label to prepend to error messages
+ * @returns A new validator function that includes the label in error messages
+ *
+ * @example
+ * validators: [
+ *   withLabel(validateInteger, t('Row limit')),
+ * ]
+ * // Returns: "Row limit is expected to be an integer"
+ */
+export default function withLabel<V = unknown, S = unknown>(
+  validator: ValidatorFunction<V, S>,
+  label: string,
+): ValidatorFunction<V, S> {
+  return (value: V, state?: S): string | false => {
+    const error = validator(value, state);
+    return error ? `${label} ${error}` : false;
+  };
 }

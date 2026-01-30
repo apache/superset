@@ -17,17 +17,11 @@
  * under the License.
  */
 
-import { t } from '../translation';
-
-export default function validateInteger(v: unknown): string | false {
-  if (
-    (typeof v === 'string' &&
-      v.trim().length > 0 &&
-      Number.isInteger(Number(v.trim()))) ||
-    (typeof v === 'number' && Number.isInteger(v))
-  ) {
-    return false;
-  }
-
-  return t('is expected to be an integer');
-}
+/**
+ * Type definition for a validator function.
+ * Returns an error message string if validation fails, or false if validation passes.
+ */
+export type ValidatorFunction<V = unknown, S = unknown> = (
+  value: V,
+  state?: S,
+) => string | false;

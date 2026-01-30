@@ -19,7 +19,7 @@
 
 import { t } from '../translation';
 
-export default function validateInteger(v: any) {
+export default function validateNumber(v: unknown): string | false {
   if (
     (typeof v === 'string' &&
       v.trim().length > 0 &&
