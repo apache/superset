@@ -17,7 +17,7 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-# Superset
+# Superset / Суперсет
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/license/apache-2-0)
 [![Latest Release on Github](https://img.shields.io/github/v/release/apache/superset?sort=semver)](https://github.com/apache/superset/releases/latest)
