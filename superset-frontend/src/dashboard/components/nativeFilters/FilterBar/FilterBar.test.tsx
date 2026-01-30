@@ -80,7 +80,7 @@ const addFilterFlow = async () => {
   // open filter config modals
   userEvent.click(screen.getByTestId(getTestId('collapsable')));
   userEvent.click(screen.getByLabelText('setting'));
-  userEvent.click(screen.getByText('Filters and customizations'));
+  userEvent.click(screen.getByText('Add or edit filters and controls'));
   // select filter
   userEvent.click(screen.getByText('Value'));
   userEvent.click(screen.getByText('Time range'));
@@ -200,9 +200,9 @@ describe('FilterBar', () => {
     expect(container).toBeInTheDocument();
   });
 
-  test('should render the "Actions" heading', () => {
+  test('should render the "Filters and controls" heading', () => {
     renderWrapper();
-    expect(screen.getByText('Actions')).toBeInTheDocument();
+    expect(screen.getByText('Filters and controls')).toBeInTheDocument();
   });
 
   test('should render the "Clear all" option', () => {

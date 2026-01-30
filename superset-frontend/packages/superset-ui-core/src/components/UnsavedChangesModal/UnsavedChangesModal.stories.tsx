@@ -33,15 +33,71 @@ export const InteractiveUnsavedChangesModal = (
 );
 
 InteractiveUnsavedChangesModal.args = {
-  showModal: true,
-  onHide: () => {},
-  handleSave: () => {},
-  onConfirmNavigation: () => {},
+  showModal: false,
   title: 'Unsaved Changes',
 };
 
 InteractiveUnsavedChangesModal.argTypes = {
+  showModal: {
+    control: { type: 'boolean' },
+    description: 'Whether the modal is visible.',
+  },
+  title: {
+    control: { type: 'text' },
+    description: 'Title text displayed in the modal header.',
+  },
   onHide: { action: 'onHide' },
   handleSave: { action: 'handleSave' },
   onConfirmNavigation: { action: 'onConfirmNavigation' },
+};
+
+InteractiveUnsavedChangesModal.parameters = {
+  docs: {
+    triggerProp: 'showModal',
+    onHideProp: 'onHide,handleSave,onConfirmNavigation',
+    liveExample: `function Demo() {
+  const [show, setShow] = React.useState(false);
+  return (
+    <div>
+      <Button onClick={() => setShow(true)}>
+        Navigate Away (Unsaved Changes)
+      </Button>
+      <UnsavedChangesModal
+        showModal={show}
+        onHide={() => setShow(false)}
+        handleSave={() => { alert('Saved!'); setShow(false); }}
+        onConfirmNavigation={() => { alert('Discarded changes'); setShow(false); }}
+        title="Unsaved Changes"
+      >
+        If you don&apos;t save, changes will be lost.
+      </UnsavedChangesModal>
+    </div>
+  );
+}`,
+    examples: [
+      {
+        title: 'Custom Title',
+        code: `function CustomTitle() {
+  const [show, setShow] = React.useState(false);
+  return (
+    <div>
+      <Button onClick={() => setShow(true)}>
+        Close Without Saving
+      </Button>
+      <UnsavedChangesModal
+        showModal={show}
+        onHide={() => setShow(false)}
+        handleSave={() => setShow(false)}
+        onConfirmNavigation={() => setShow(false)}
+        title="You have unsaved dashboard changes"
+      >
+        Your dashboard layout and filter changes have not been saved.
+        Do you want to save before leaving?
+      </UnsavedChangesModal>
+    </div>
+  );
+}`,
+      },
+    ],
+  },
 };

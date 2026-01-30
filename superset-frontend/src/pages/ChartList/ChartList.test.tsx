@@ -252,7 +252,7 @@ describe('ChartList', () => {
 
     // Check that the Matrixify tag is present in this row
     const matrixifyTag = within(chart0Row as HTMLElement).getByText(
-      'Matrixify',
+      'Matrixified',
     );
     expect(matrixifyTag).toBeInTheDocument();
 
@@ -262,7 +262,7 @@ describe('ChartList', () => {
 
     // Check that the Matrixify tag is NOT present in this row
     expect(
-      within(chart1Row as HTMLElement).queryByText('Matrixify'),
+      within(chart1Row as HTMLElement).queryByText('Matrixified'),
     ).not.toBeInTheDocument();
   });
 

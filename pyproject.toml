@@ -437,6 +437,7 @@ authorized_licenses = [
     "apache software",
     "apache software, bsd",
     "bsd",
+    "bsd-2-clause",
     "bsd-3-clause",
     "isc license (iscl)",
     "isc license",
