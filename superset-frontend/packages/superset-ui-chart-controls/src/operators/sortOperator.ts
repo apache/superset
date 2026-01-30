@@ -24,6 +24,7 @@ import {
   isDefined,
   PostProcessingSort,
 } from '@superset-ui/core';
+import { SortSeriesType } from '../types';
 import { PostProcessingFactory } from './types';
 import { extractExtraMetrics } from './utils';
 
@@ -40,27 +41,34 @@ export const sortOperator: PostProcessingFactory<
   if (
     isDefined(formData?.x_axis_sort) &&
     isDefined(formData?.x_axis_sort_asc) &&
-    sortableLabels.includes(formData.x_axis_sort) &&
     // the sort operator doesn't support sort-by multiple series.
     isEmpty(formData.groupby)
   ) {
-    if (formData.x_axis_sort === getXAxisLabel(formData)) {
+    // Handle QuerySort: don't apply post-processing sort, backend already sorted via orderby
+    if (formData.x_axis_sort === SortSeriesType.QuerySort) {
+      // Return undefined - backend query has already sorted the data
+      return undefined;
+    }
+
+    if (sortableLabels.includes(formData.x_axis_sort)) {
+      if (formData.x_axis_sort === getXAxisLabel(formData)) {
+        return {
+          operation: 'sort',
+          options: {
+            is_sort_index: true,
+            ascending: formData.x_axis_sort_asc,
+          },
+        };
+      }
+
       return {
         operation: 'sort',
         options: {
-          is_sort_index: true,
+          by: formData.x_axis_sort,
           ascending: formData.x_axis_sort_asc,
         },
       };
     }
-
-    return {
-      operation: 'sort',
-      options: {
-        by: formData.x_axis_sort,
-        ascending: formData.x_axis_sort_asc,
-      },
-    };
   }
   return undefined;
 };

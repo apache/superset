@@ -547,3 +547,136 @@ test('handles AbortError without setState after unmount', async () => {
 
   consoleErrorSpy.mockRestore();
 });
+
+test('can search charts by chart name', async () => {
+  setupTest();
+
+  await waitFor(() => {
+    expect(screen.getByText('Test Chart 1')).toBeInTheDocument();
+    expect(screen.getByText('Test Chart 2')).toBeInTheDocument();
+  });
+
+  const searchInput = screen.getByPlaceholderText(
+    'Search charts by name, owner, or dashboard',
+  );
+  expect(searchInput).toBeInTheDocument();
+
+  await userEvent.type(searchInput, 'Chart 1');
+
+  await waitFor(() => {
+    expect(screen.getByText('Test Chart 1')).toBeInTheDocument();
+    expect(screen.queryByText('Test Chart 2')).not.toBeInTheDocument();
+  });
+
+  await userEvent.clear(searchInput);
+
+  await waitFor(() => {
+    expect(screen.getByText('Test Chart 1')).toBeInTheDocument();
+    expect(screen.getByText('Test Chart 2')).toBeInTheDocument();
+  });
+});
+
+test('can search charts by owner name', async () => {
+  setupTest();
+
+  await waitFor(() => {
+    expect(screen.getByText('Test Chart 1')).toBeInTheDocument();
+  });
+
+  const searchInput = screen.getByPlaceholderText(
+    'Search charts by name, owner, or dashboard',
+  );
+
+  await userEvent.type(searchInput, 'Bob');
+
+  await waitFor(() => {
+    expect(screen.queryByText('Test Chart 1')).not.toBeInTheDocument();
+    expect(screen.getByText('Test Chart 2')).toBeInTheDocument();
+  });
+});
+
+test('can search charts by dashboard title', async () => {
+  setupTest();
+
+  await waitFor(() => {
+    expect(screen.getByText('Test Chart 1')).toBeInTheDocument();
+  });
+
+  const searchInput = screen.getByPlaceholderText(
+    'Search charts by name, owner, or dashboard',
+  );
+
+  await userEvent.type(searchInput, 'Test Dashboard');
+
+  await waitFor(() => {
+    expect(screen.getByText('Test Chart 1')).toBeInTheDocument();
+    expect(screen.queryByText('Test Chart 2')).not.toBeInTheDocument();
+  });
+});
+
+test('chart search is case-insensitive', async () => {
+  setupTest();
+
+  await waitFor(() => {
+    expect(screen.getByText('Test Chart 1')).toBeInTheDocument();
+  });
+
+  const searchInput = screen.getByPlaceholderText(
+    'Search charts by name, owner, or dashboard',
+  );
+
+  await userEvent.type(searchInput, 'CHART 1');
+
+  await waitFor(() => {
+    expect(screen.getByText('Test Chart 1')).toBeInTheDocument();
+    expect(screen.queryByText('Test Chart 2')).not.toBeInTheDocument();
+  });
+});
+
+test('shows No items when search has no results', async () => {
+  setupTest();
+
+  await waitFor(() => {
+    expect(screen.getByText('Test Chart 1')).toBeInTheDocument();
+  });
+
+  const searchInput = screen.getByPlaceholderText(
+    'Search charts by name, owner, or dashboard',
+  );
+
+  await userEvent.type(searchInput, 'nonexistent chart');
+
+  await waitFor(() => {
+    expect(screen.queryByText('Test Chart 1')).not.toBeInTheDocument();
+    expect(screen.queryByText('Test Chart 2')).not.toBeInTheDocument();
+    expect(screen.getByText('No items')).toBeInTheDocument();
+  });
+});
+
+test('updates pagination total when filtering', async () => {
+  setupTest();
+
+  await waitFor(() => {
+    expect(screen.getByText('Test Chart 1')).toBeInTheDocument();
+  });
+
+  const searchInput = screen.getByPlaceholderText(
+    'Search charts by name, owner, or dashboard',
+  );
+
+  await userEvent.type(searchInput, 'Chart 1');
+
+  // When searching, pagination should reflect filtered count
+  await waitFor(() => {
+    const paginationText = screen.getByText(/1 \/ 1/);
+    expect(paginationText).toBeInTheDocument();
+  });
+
+  await userEvent.clear(searchInput);
+
+  // When not searching, pagination should show total count
+  await waitFor(() => {
+    const paginationText = screen.getByText(/1 \/ 1/);
+    expect(paginationText).toBeInTheDocument();
+  });
+});

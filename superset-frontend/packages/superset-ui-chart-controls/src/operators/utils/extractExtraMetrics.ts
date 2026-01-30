@@ -26,16 +26,21 @@ import {
 export function extractExtraMetrics(
   formData: QueryFormData,
 ): QueryFormMetric[] {
-  const { groupby, timeseries_limit_metric, x_axis_sort, metrics } = formData;
+  const { groupby, timeseries_limit_metric, metrics } = formData;
   const extra_metrics: QueryFormMetric[] = [];
   const limitMetric = ensureIsArray(timeseries_limit_metric)[0];
-  if (
-    !(groupby || []).length &&
-    limitMetric &&
-    getMetricLabel(limitMetric) === x_axis_sort &&
-    !metrics?.some(metric => getMetricLabel(metric) === x_axis_sort)
-  ) {
-    extra_metrics.push(limitMetric);
+
+  if (!(groupby || []).length && limitMetric) {
+    const limitMetricLabel = getMetricLabel(limitMetric);
+    const isLimitMetricInMetrics = metrics?.some(
+      metric => getMetricLabel(metric) === limitMetricLabel,
+    );
+
+    // Add limit metric as extra if it's not already in display metrics
+    // This ensures it's fetched for sorting but not displayed as a separate series
+    if (!isLimitMetricInMetrics) {
+      extra_metrics.push(limitMetric);
+    }
   }
   return extra_metrics;
 }
