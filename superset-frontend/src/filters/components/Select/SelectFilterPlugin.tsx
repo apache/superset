@@ -31,7 +31,7 @@ import {
 import { tn } from '@apache-superset/core';
 import { styled } from '@apache-superset/core/ui';
 import { GenericDataType } from '@apache-superset/core/api/core';
-import { debounce, isUndefined } from 'lodash';
+import { debounce } from 'lodash';
 import { useImmerReducer } from 'use-immer';
 import {
   FormItem,
@@ -166,7 +166,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     [data, col],
   );
   const [excludeFilterValues, setExcludeFilterValues] = useState(
-    isUndefined(filterState?.excludeFilterValues)
+    filterState?.excludeFilterValues === undefined
       ? true
       : filterState?.excludeFilterValues,
   );

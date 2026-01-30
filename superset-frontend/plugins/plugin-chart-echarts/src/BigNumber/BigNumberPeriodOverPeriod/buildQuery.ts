@@ -26,7 +26,7 @@ import {
   isTimeComparison,
   timeCompareOperator,
 } from '@superset-ui/chart-controls';
-import { isEmpty } from 'lodash';
+import { isEmpty } from 'es-toolkit/compat';
 
 export default function buildQuery(formData: QueryFormData) {
   const { cols: groupby } = formData;

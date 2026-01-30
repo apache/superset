@@ -17,7 +17,7 @@
  * under the License.
  */
 import { isValidElement, cloneElement, useMemo, useRef, useState } from 'react';
-import { isNil } from 'lodash';
+import { isNil } from 'es-toolkit';
 import { t } from '@apache-superset/core';
 import { css, styled, useTheme } from '@apache-superset/core/ui';
 import { Modal as AntdModal, ModalProps as AntdModalProps } from 'antd';

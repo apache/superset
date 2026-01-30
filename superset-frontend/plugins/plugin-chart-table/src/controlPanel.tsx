@@ -54,7 +54,8 @@ import {
   validateServerPagination,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/api/core';
-import { isEmpty, last } from 'lodash';
+import { last } from 'es-toolkit';
+import { isEmpty } from 'es-toolkit/compat';
 import { PAGE_SIZE_OPTIONS, SERVER_PAGE_SIZE_OPTIONS } from './consts';
 import { ColorSchemeEnum } from './types';
 

@@ -18,7 +18,7 @@
  */
 import { histogramOperator } from '@superset-ui/chart-controls';
 import { SqlaFormData, VizType } from '@superset-ui/core';
-import { omit } from 'lodash';
+import { omit } from 'es-toolkit';
 
 const formData: SqlaFormData = {
   bins: 5,

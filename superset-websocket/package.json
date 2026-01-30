@@ -21,7 +21,7 @@
     "hot-shots": "^13.1.0",
     "ioredis": "^5.9.2",
     "jsonwebtoken": "^9.0.3",
-    "lodash": "^4.17.23",
+    "es-toolkit": "^1.44.0",
     "uuid": "^11.1.0",
     "winston": "^3.19.0",
     "ws": "^8.19.0"
@@ -32,7 +32,6 @@
     "@types/ioredis": "^5.0.0",
     "@types/jest": "^29.5.14",
     "@types/jsonwebtoken": "^9.0.10",
-    "@types/lodash": "^4.17.23",
     "@types/node": "^25.0.10",
     "@types/uuid": "^10.0.0",
     "@types/ws": "^8.18.1",

@@ -18,7 +18,7 @@
  */
 
 import { useCallback } from 'react';
-import { debounce } from 'lodash';
+import { debounce } from 'es-toolkit';
 import { t } from '@apache-superset/core';
 import { useTheme } from '@apache-superset/core/ui';
 import { InfoTooltip, Constants } from '@superset-ui/core/components';

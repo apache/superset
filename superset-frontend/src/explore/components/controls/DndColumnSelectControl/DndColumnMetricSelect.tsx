@@ -29,7 +29,6 @@ import {
 } from '@superset-ui/core';
 import { tn } from '@apache-superset/core';
 import { ColumnMeta, isColumnMeta } from '@superset-ui/chart-controls';
-import { isString } from 'lodash';
 import DndSelectLabel from 'src/explore/components/controls/DndColumnSelectControl/DndSelectLabel';
 import OptionWrapper from 'src/explore/components/controls/DndColumnSelectControl/OptionWrapper';
 import { DatasourcePanelDndItem } from 'src/explore/components/DatasourcePanel/types';
@@ -148,7 +147,7 @@ function DndColumnMetricSelect(props: DndColumnMetricSelectProps) {
       }
 
       return selectedMetrics.some(metric => {
-        if (isString(metric)) {
+        if (typeof metric === 'string') {
           return metric === metricName;
         }
         if (metric instanceof AdhocMetric) {
@@ -171,11 +170,14 @@ function DndColumnMetricSelect(props: DndColumnMetricSelectProps) {
 
     const valueArray = ensureIsArray(value);
     return valueArray.map(item => {
-      if (isString(item) && combinedOptionsMap[item]) {
+      if (typeof item === 'string' && combinedOptionsMap[item]) {
         return item;
       }
 
-      if (isString(item) && savedMetrics.some(m => m.metric_name === item)) {
+      if (
+        typeof item === 'string' &&
+        savedMetrics.some(m => m.metric_name === item)
+      ) {
         return item;
       }
 
@@ -268,7 +270,7 @@ function DndColumnMetricSelect(props: DndColumnMetricSelectProps) {
   );
 
   const isColumnValue = (val: unknown): val is string =>
-    isString(val) && !!combinedOptionsMap[val];
+    typeof val === 'string' && !!combinedOptionsMap[val];
 
   const valuesRenderer = useCallback(
     () =>

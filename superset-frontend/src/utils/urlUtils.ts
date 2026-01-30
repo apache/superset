@@ -24,7 +24,7 @@ import {
 } from '@superset-ui/core';
 import Switchboard from '@superset-ui/switchboard';
 import rison from 'rison';
-import { isEmpty } from 'lodash';
+import { isEmpty } from 'es-toolkit/compat';
 import {
   RESERVED_CHART_URL_PARAMS,
   RESERVED_DASHBOARD_URL_PARAMS,

@@ -32,7 +32,6 @@ import { t } from '@apache-superset/core';
 import { styled, css } from '@apache-superset/core/ui';
 import { TableSelectorMultiple } from 'src/components/TableSelector';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
-import { noop } from 'lodash';
 import TableElement from '../TableElement';
 import useDatabaseSelector from '../SqlEditorTopBar/useDatabaseSelector';
 
@@ -83,7 +82,7 @@ const SqlEditorLeftBar = ({ queryEditorId }: SqlEditorLeftBarProps) => {
     [allSelectedTables, dbId, schema],
   );
 
-  noop(_emptyResultsWithSearch); // This is to avoid unused variable warning, can be removed if not needed
+  _emptyResultsWithSearch; // This is to avoid unused variable warning, can be removed if not needed
 
   const onEmptyResults = useCallback((searchText?: string) => {
     setEmptyResultsWithSearch(!!searchText);

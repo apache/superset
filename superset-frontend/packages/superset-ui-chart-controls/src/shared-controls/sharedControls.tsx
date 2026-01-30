@@ -32,7 +32,7 @@
  * here's a list of the keys that are common to all controls, and as a result define the
  * control interface.
  */
-import { isEmpty } from 'lodash';
+import { isEmpty } from 'es-toolkit/compat';
 import { t } from '@apache-superset/core';
 import {
   getCategoricalSchemeRegistry,

@@ -22,7 +22,7 @@ import { Link, useHistory } from 'react-router-dom';
 import { t } from '@apache-superset/core';
 import { styled, SupersetTheme, css, useTheme } from '@apache-superset/core/ui';
 import cx from 'classnames';
-import { debounce } from 'lodash';
+import { debounce } from 'es-toolkit';
 import { Menu, MenuMode, MainNav } from '@superset-ui/core/components/Menu';
 import {
   Button,

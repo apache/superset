@@ -38,7 +38,6 @@ import {
   isTimeComparison,
   timeCompareOperator,
 } from '@superset-ui/chart-controls';
-import { isEmpty } from 'lodash';
 import { TableChartFormData } from './types';
 import { updateTableOwnState } from './utils/externalAPIs';
 
@@ -102,7 +101,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
     // Shifts for non-custom or non inherit time comparison
     if (
       isTimeComparison(formData, baseQueryObject) &&
-      !isEmpty(nonCustomNorInheritShifts)
+      nonCustomNorInheritShifts.length > 0
     ) {
       timeOffsets = nonCustomNorInheritShifts;
     }
@@ -110,7 +109,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
     // Shifts for custom or inherit time comparison
     if (
       isTimeComparison(formData, baseQueryObject) &&
-      !isEmpty(customOrInheritShifts)
+      nonCustomNorInheritShifts.length > 0
     ) {
       if (customOrInheritShifts.includes('custom')) {
         timeOffsets = timeOffsets.concat([formData.start_date_offset]);
@@ -168,7 +167,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         ];
       }
       // Add the operator for the time comparison if some is selected
-      if (!isEmpty(timeOffsets)) {
+      if (timeOffsets.length > 0) {
         postProcessing.push(timeCompareOperator(formData, baseQueryObject));
       }
 

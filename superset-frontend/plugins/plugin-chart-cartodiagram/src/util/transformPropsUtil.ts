@@ -22,7 +22,7 @@ import {
   convertKeysToCamelCase,
   DataRecord,
 } from '@superset-ui/core';
-import { isObject } from 'lodash';
+import { isObject } from 'es-toolkit/compat';
 import {
   LocationConfigMapping,
   SelectedChartConfig,

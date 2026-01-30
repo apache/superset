@@ -28,7 +28,6 @@ import { styled, useTheme, css } from '@apache-superset/core/ui';
 import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { FilterBarOrientation } from 'src/dashboard/types';
 // import Metadata from '@superset-ui/core/components/Metadata';
-import { isNumber } from 'lodash';
 import { InputNumber } from '@superset-ui/core/components/Input';
 import Slider from '@superset-ui/core/components/Slider';
 import { FormItem, Tooltip, Icons } from '@superset-ui/core/components';
@@ -165,11 +164,11 @@ const validateRange = (
       enableSingleValue === SingleValueType.Exact;
     const value = isSingleMin ? inputMin : inputMax;
 
-    if (!isNumber(value)) {
+    if (typeof value !== 'number') {
       return { isValid: false, errorMessage: requiredError };
     }
 
-    if (isNumber(value) && (value < min || value > max)) {
+    if (typeof value === 'number' && (value < min || value > max)) {
       return { isValid: false, errorMessage: rangeError };
     }
 

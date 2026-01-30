@@ -22,7 +22,7 @@ import { Redirect } from 'react-router-dom';
 import Mousetrap from 'mousetrap';
 import { t } from '@apache-superset/core';
 import { css, styled } from '@apache-superset/core/ui';
-import { throttle } from 'lodash';
+import { throttle } from 'es-toolkit';
 import {
   LOCALSTORAGE_MAX_USAGE_KB,
   LOCALSTORAGE_WARNING_THRESHOLD,
@@ -126,7 +126,7 @@ class App extends PureComponent<AppProps, AppState> {
     this.showLocalStorageUsageWarning = throttle(
       this.showLocalStorageUsageWarning,
       LOCALSTORAGE_WARNING_MESSAGE_THROTTLE_MS,
-      { trailing: false },
+      { edges: ['leading'] },
     );
   }
 

@@ -27,7 +27,7 @@ import {
   CategoricalColorNamespace,
 } from '@superset-ui/core';
 import { css, useTheme } from '@apache-superset/core/ui';
-import { sortBy } from 'lodash';
+import { sortBy } from 'es-toolkit/compat';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import {
   Tooltip,

@@ -18,7 +18,7 @@
  */
 import { Component, ChangeEvent } from 'react';
 import { legacyValidateNumber, legacyValidateInteger } from '@superset-ui/core';
-import { debounce } from 'lodash';
+import { debounce } from 'es-toolkit';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { Constants, Input } from '@superset-ui/core/components';
 

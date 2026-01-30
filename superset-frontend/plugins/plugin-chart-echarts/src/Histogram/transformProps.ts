@@ -20,7 +20,7 @@ import type { ComposeOption } from 'echarts/core';
 import type { BarSeriesOption } from 'echarts/charts';
 import type { GridComponentOption } from 'echarts/components';
 import type { CallbackDataParams } from 'echarts/types/src/util/types';
-import { isEmpty } from 'lodash';
+import { isEmpty } from 'es-toolkit/compat';
 import {
   CategoricalColorNamespace,
   NumberFormats,

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useRef, useCallback, useState } from 'react';
-import { isEqual } from 'lodash';
+import { isEqual } from 'es-toolkit';
 import { css } from '@apache-superset/core/ui';
 import { Button } from '../Button';
 import { Select } from '../Select';

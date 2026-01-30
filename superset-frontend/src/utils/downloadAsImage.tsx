@@ -18,7 +18,7 @@
  */
 import { SyntheticEvent } from 'react';
 import domToImage from 'dom-to-image-more';
-import { kebabCase } from 'lodash';
+import { kebabCase } from 'es-toolkit';
 // eslint-disable-next-line no-restricted-imports
 import { t } from '@apache-superset/core';
 import { SupersetTheme } from '@apache-superset/core/ui';

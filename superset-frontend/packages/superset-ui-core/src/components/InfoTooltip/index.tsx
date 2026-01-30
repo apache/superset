@@ -18,7 +18,7 @@
  */
 import { KeyboardEvent, useMemo } from 'react';
 import { SerializedStyles, CSSObject } from '@emotion/react';
-import { kebabCase } from 'lodash';
+import { kebabCase } from 'es-toolkit';
 import { t } from '@apache-superset/core';
 import { css, useTheme, getFontSize } from '@apache-superset/core/ui';
 import {
@@ -118,7 +118,7 @@ export const InfoTooltip = ({
 
   return (
     <Tooltip
-      id={`${kebabCase(label) || Math.floor(Math.random() * 10000)}-tooltip`}
+      id={`${kebabCase(label ?? '') || Math.floor(Math.random() * 10000)}-tooltip`}
       title={tooltip}
       placement={placement}
     >

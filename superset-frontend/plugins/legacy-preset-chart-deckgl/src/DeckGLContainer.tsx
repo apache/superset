@@ -32,7 +32,7 @@ import {
   isValidElement,
   useRef,
 } from 'react';
-import { isEqual } from 'lodash';
+import { isEqual } from 'es-toolkit';
 import { StaticMap } from 'react-map-gl';
 import DeckGL from '@deck.gl/react';
 import type { Layer } from '@deck.gl/core';

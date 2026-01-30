@@ -21,7 +21,7 @@ import cloudLayout from 'd3-cloud';
 import { scaleLinear } from 'd3-scale';
 import { seed, CategoricalColorNamespace } from '@superset-ui/core';
 import { SupersetTheme, withTheme } from '@apache-superset/core/ui';
-import { isEqual } from 'lodash';
+import { isEqual } from 'es-toolkit';
 
 const seedRandom = seed('superset-ui');
 

@@ -24,7 +24,7 @@ import { View } from 'ol';
 import BaseEvent from 'ol/events/Event';
 import { unByKey } from 'ol/Observable';
 import { toLonLat } from 'ol/proj';
-import { debounce } from 'lodash';
+import { debounce } from 'es-toolkit';
 import { fitMapToCharts } from '../util/mapUtil';
 import { ChartLayer } from './ChartLayer';
 import { createLayer } from '../util/layerUtil';

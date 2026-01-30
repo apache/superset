@@ -43,7 +43,7 @@ import {
   Popover,
   Icons,
 } from '@superset-ui/core/components';
-import { debounce } from 'lodash';
+import { debounce } from 'es-toolkit';
 import { FixedSizeList as List } from 'react-window';
 import { InputRef } from 'antd';
 import { MenuItemTooltip } from '../DisabledMenuItemTooltip';

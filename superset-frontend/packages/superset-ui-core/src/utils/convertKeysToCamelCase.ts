@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { camelCase, isPlainObject, mapKeys } from 'lodash';
+import { camelCase, isPlainObject, mapKeys } from 'es-toolkit';
 
 export default function convertKeysToCamelCase<T>(object: T) {
   if (object === null || object === undefined) {
@@ -26,7 +26,7 @@ export default function convertKeysToCamelCase<T>(object: T) {
   if (isPlainObject(object)) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return mapKeys(object as { [key: string]: any }, (_, k) =>
-      camelCase(k),
+      camelCase(String(k)),
     ) as T;
   }
   throw new Error(`Cannot convert input that is not a plain object: ${object}`);

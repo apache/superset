@@ -45,7 +45,7 @@
     "fetch-retry": "^6.0.0",
     "handlebars": "^4.7.8",
     "jed": "^1.1.1",
-    "lodash": "^4.17.23",
+    "es-toolkit": "^1.44.0",
     "math-expression-evaluator": "^2.0.7",
     "pretty-ms": "^9.3.0",
     "re-resizable": "^6.11.2",

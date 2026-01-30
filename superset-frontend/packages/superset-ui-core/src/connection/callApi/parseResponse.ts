@@ -17,7 +17,7 @@
  * under the License.
  */
 import _JSONbig from 'json-bigint';
-import { cloneDeepWith } from 'lodash';
+import { cloneDeepWith } from 'es-toolkit';
 
 import { ParseMethod, TextResponse, JsonResponse } from '../types';
 

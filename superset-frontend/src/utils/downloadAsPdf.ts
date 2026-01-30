@@ -18,7 +18,7 @@
  */
 import { SyntheticEvent } from 'react';
 import domToPdf from 'dom-to-pdf';
-import { kebabCase } from 'lodash';
+import { kebabCase } from 'es-toolkit';
 import { t } from '@apache-superset/core';
 import { logging } from '@apache-superset/core';
 import { addWarningToast } from 'src/components/MessageToasts/actions';

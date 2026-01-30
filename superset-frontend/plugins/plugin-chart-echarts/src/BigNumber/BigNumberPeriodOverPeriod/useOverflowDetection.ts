@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useEffect, useRef, useState } from 'react';
-import { debounce } from 'lodash';
+import { debounce } from 'es-toolkit';
 
 export const useOverflowDetection = (flexGap: number) => {
   const symbolContainerRef = useRef<HTMLDivElement>(null);

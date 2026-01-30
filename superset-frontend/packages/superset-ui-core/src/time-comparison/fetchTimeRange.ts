@@ -17,7 +17,6 @@
  * under the License.
  */
 import rison from 'rison';
-import { isEmpty } from 'lodash';
 import {
   SupersetClient,
   getClientErrorObject,
@@ -67,7 +66,7 @@ export const fetchTimeRange = async (
 ) => {
   let query;
   let endpoint;
-  if (!isEmpty(shifts)) {
+  if (shifts && shifts.length > 0) {
     const timeRanges = ensureIsArray(shifts).map(shift => ({
       timeRange,
       shift,
@@ -80,7 +79,7 @@ export const fetchTimeRange = async (
   }
   try {
     const response = await SupersetClient.get({ endpoint });
-    if (isEmpty(shifts)) {
+    if (!shifts || shifts.length === 0) {
       const timeRangeString = buildTimeRangeString(
         response?.json?.result[0]?.since || '',
         response?.json?.result[0]?.until || '',

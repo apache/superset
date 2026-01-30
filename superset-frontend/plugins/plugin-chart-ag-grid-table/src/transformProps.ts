@@ -36,7 +36,7 @@ import {
   TimeFormatter,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/api/core';
-import { isEmpty, isEqual, merge } from 'lodash';
+import { isEmpty, isEqual, merge } from 'es-toolkit/compat';
 import {
   ConditionalFormattingConfig,
   getColorFormatters,

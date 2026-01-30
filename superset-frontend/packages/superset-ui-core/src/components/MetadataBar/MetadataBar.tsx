@@ -18,7 +18,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useResizeDetector } from 'react-resize-detector';
-import { uniqWith } from 'lodash';
+import { uniqWith } from 'es-toolkit';
 import { styled } from '@apache-superset/core/ui';
 import { Tooltip } from '../Tooltip';
 import { TooltipPlacement } from '../Tooltip/types';

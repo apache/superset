@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { throttle } from 'lodash';
+import { throttle } from 'es-toolkit';
 import { DropTargetMonitor } from 'react-dnd';
 import { DASHBOARD_ROOT_TYPE } from 'src/dashboard/util/componentTypes';
 import getDropPosition from 'src/dashboard/util/getDropPosition';

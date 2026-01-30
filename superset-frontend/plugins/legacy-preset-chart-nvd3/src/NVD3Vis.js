@@ -17,7 +17,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { kebabCase, throttle } from 'lodash';
+import { kebabCase, throttle } from 'es-toolkit';
 import d3 from 'd3';
 import utc from 'dayjs/plugin/utc';
 import nv from 'nvd3-fork';

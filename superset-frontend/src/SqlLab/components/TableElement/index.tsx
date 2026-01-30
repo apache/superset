@@ -33,7 +33,7 @@ import {
 import { CopyToClipboard } from 'src/components';
 import { t } from '@apache-superset/core';
 import { styled, useTheme } from '@apache-superset/core/ui';
-import { debounce } from 'lodash';
+import { debounce } from 'es-toolkit';
 
 import {
   removeDataPreview,

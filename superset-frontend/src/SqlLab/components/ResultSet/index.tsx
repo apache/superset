@@ -29,7 +29,7 @@ import {
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { useHistory } from 'react-router-dom';
-import { pick } from 'lodash';
+import { pick } from 'es-toolkit';
 import {
   Button,
   ButtonGroup,

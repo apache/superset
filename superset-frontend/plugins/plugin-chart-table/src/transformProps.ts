@@ -43,7 +43,7 @@ import {
   getColorFormatters,
 } from '@superset-ui/chart-controls';
 
-import { isEmpty, merge } from 'lodash';
+import { isEmpty, merge } from 'es-toolkit/compat';
 import isEqualColumns from './utils/isEqualColumns';
 import DateWithFormatter from './utils/DateWithFormatter';
 import {

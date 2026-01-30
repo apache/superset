@@ -32,7 +32,7 @@ import {
 import { logging } from '@apache-superset/core';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import memoizeOne from 'memoize-one';
-import { maxBy, minBy } from 'lodash';
+import { maxBy, minBy } from 'es-toolkit/compat';
 import type { ComposeOption } from 'echarts/core';
 import type { HeatmapSeriesOption } from 'echarts/charts';
 import type { CallbackDataParams } from 'echarts/types/src/util/types';

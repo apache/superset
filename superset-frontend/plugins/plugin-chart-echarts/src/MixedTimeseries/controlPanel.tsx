@@ -18,7 +18,7 @@
  */
 import { t } from '@apache-superset/core';
 import { ensureIsArray } from '@superset-ui/core';
-import { cloneDeep } from 'lodash';
+import { cloneDeep } from 'es-toolkit';
 import {
   ControlPanelsContainerProps,
   ControlPanelConfig,

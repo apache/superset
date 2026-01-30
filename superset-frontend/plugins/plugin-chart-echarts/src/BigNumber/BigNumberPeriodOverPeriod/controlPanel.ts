@@ -24,7 +24,7 @@ import {
   sharedControls,
   sections,
 } from '@superset-ui/chart-controls';
-import { noop } from 'lodash';
+import { noop } from 'es-toolkit/compat';
 import {
   headerFontSize,
   subheaderFontSize,

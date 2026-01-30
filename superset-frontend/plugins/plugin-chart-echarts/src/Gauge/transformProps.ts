@@ -30,7 +30,7 @@ import type { EChartsCoreOption } from 'echarts/core';
 import type { GaugeSeriesOption } from 'echarts/charts';
 import type { GaugeDataItemOption } from 'echarts/types/src/chart/gauge/GaugeSeries';
 import type { CallbackDataParams } from 'echarts/types/src/util/types';
-import { range } from 'lodash';
+import { range } from 'es-toolkit/compat';
 import { parseNumbersList } from '../utils/controls';
 import {
   DEFAULT_FORM_DATA as DEFAULT_GAUGE_FORM_DATA,
@@ -242,7 +242,8 @@ export default function transformProps(
   const max = isValidNumber(maxVal)
     ? Number(maxVal)
     : calculateMax(transformedData);
-  const axisLabels = range(min, max, (max - min) / splitNumber);
+  const step = (max - min) / splitNumber;
+  const axisLabels = range(min, max, step);
   const axisLabelLength = Math.max(
     ...axisLabels.map(label => numberFormatter(label).length).concat([1]),
   );

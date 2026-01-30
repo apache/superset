@@ -41,7 +41,7 @@ import {
   LabeledValue as AntdLabeledValue,
   RefSelectProps,
 } from 'antd/es/select';
-import { debounce, isEqual, uniq } from 'lodash';
+import { debounce, isEqual, uniq } from 'es-toolkit';
 import { Constants, Icons } from '@superset-ui/core/components';
 import { Space } from '../Space';
 import {

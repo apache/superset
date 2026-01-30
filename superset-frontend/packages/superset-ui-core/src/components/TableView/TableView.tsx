@@ -17,7 +17,7 @@
  * under the License.
  */
 import { memo, useEffect, useRef, useMemo, useCallback } from 'react';
-import { isEqual } from 'lodash';
+import { isEqual } from 'es-toolkit';
 import { styled } from '@apache-superset/core/ui';
 import { useFilters, usePagination, useSortBy, useTable } from 'react-table';
 import { Empty } from '@superset-ui/core/components';

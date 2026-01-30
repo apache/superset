@@ -19,7 +19,7 @@
 import { useCallback, useState } from 'react';
 import { t } from '@apache-superset/core';
 import { ensureIsArray, SupersetClient } from '@superset-ui/core';
-import { debounce } from 'lodash';
+import { debounce } from 'es-toolkit';
 import rison from 'rison';
 import { AdvancedDataTypesState, Props } from './index';
 

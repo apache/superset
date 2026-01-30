@@ -26,7 +26,7 @@ import {
 import { css, styled, useTheme } from '@apache-superset/core/ui';
 import { Tooltip } from '@superset-ui/core/components';
 import { DEFAULT_DATE_PATTERN } from '@superset-ui/chart-controls';
-import { isEmpty } from 'lodash';
+import { isEmpty } from 'es-toolkit/compat';
 import {
   ColorSchemeEnum,
   PopKPIComparisonSymbolStyleProps,

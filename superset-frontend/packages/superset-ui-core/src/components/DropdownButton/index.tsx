@@ -17,7 +17,7 @@
  * under the License.
  */
 import { Dropdown } from 'antd';
-import { kebabCase } from 'lodash';
+import { kebabCase } from 'es-toolkit';
 import { css, useTheme } from '@apache-superset/core/ui';
 import { Tooltip } from '../Tooltip';
 import type { DropdownButtonProps } from './types';

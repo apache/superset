@@ -18,7 +18,7 @@
  */
 import { Component } from 'react';
 import PropTypes from 'prop-types';
-import { debounce } from 'lodash';
+import { debounce } from 'es-toolkit';
 import {
   Input,
   Tooltip,

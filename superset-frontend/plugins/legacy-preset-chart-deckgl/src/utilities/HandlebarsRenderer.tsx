@@ -22,7 +22,7 @@ import { sanitizeHtml } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';
 import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
 import Handlebars from 'handlebars';
-import { isPlainObject } from 'lodash';
+import { isPlainObject } from 'es-toolkit';
 
 export interface HandlebarsRendererProps {
   templateSource: string;

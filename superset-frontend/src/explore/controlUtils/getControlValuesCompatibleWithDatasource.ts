@@ -27,7 +27,7 @@ import {
   JsonValue,
   SimpleAdhocFilter,
 } from '@superset-ui/core';
-import { isEmpty } from 'lodash';
+import { isEmpty } from 'es-toolkit/compat';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 
 const isControlValueCompatibleWithDatasource = (

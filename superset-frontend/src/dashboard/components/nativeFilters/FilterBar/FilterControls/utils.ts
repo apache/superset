@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { debounce } from 'lodash';
+import { debounce } from 'es-toolkit';
 import { Dispatch } from 'react';
 import {
   setFocusedNativeFilter,

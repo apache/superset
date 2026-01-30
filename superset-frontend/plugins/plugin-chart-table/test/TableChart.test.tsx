@@ -24,7 +24,7 @@ import {
   waitFor,
   within,
 } from '@superset-ui/core/spec';
-import { cloneDeep } from 'lodash';
+import { cloneDeep } from 'es-toolkit';
 import TableChart, { sanitizeHeaderId } from '../src/TableChart';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import transformProps from '../src/transformProps';

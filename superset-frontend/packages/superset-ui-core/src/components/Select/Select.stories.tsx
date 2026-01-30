@@ -17,7 +17,6 @@
  * under the License.
  */
 import { StoryObj } from '@storybook/react';
-import { noop } from 'lodash';
 import { SelectOptionsType, SelectProps } from './types';
 import { Select } from '.';
 
@@ -95,7 +94,7 @@ export const InteractiveSelect: StoryObj = {
     optionsCount,
     ...args
   }: SelectProps & { header: string; optionsCount: number }) => {
-    noop(header);
+    () => header;
     return (
       <div
         style={{

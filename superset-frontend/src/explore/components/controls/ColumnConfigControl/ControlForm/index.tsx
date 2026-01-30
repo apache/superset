@@ -25,7 +25,7 @@ import {
 import { JsonObject, JsonValue } from '@superset-ui/core';
 import { useTheme } from '@apache-superset/core/ui';
 import { Constants } from '@superset-ui/core/components';
-import { debounce } from 'lodash';
+import { debounce } from 'es-toolkit';
 import { ControlFormItemNode } from './ControlFormItem';
 
 export * from './ControlFormItem';

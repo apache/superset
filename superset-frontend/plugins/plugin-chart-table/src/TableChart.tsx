@@ -73,7 +73,8 @@ import {
   PlusCircleOutlined,
   TableOutlined,
 } from '@ant-design/icons';
-import { isEmpty, debounce, isEqual } from 'lodash';
+import { isEmpty } from 'es-toolkit/compat';
+import { debounce, isEqual } from 'es-toolkit';
 import { ColorFormatters } from '@superset-ui/chart-controls';
 import {
   ColorSchemeEnum,

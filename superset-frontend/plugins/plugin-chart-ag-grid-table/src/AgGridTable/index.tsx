@@ -50,7 +50,7 @@ import {
   JsonObject,
 } from '@superset-ui/core';
 import { SearchOutlined } from '@ant-design/icons';
-import { debounce, isEqual } from 'lodash';
+import { debounce, isEqual } from 'es-toolkit';
 import Pagination from './components/Pagination';
 import SearchSelectDropdown from './components/SearchSelectDropdown';
 import { SearchOption, SortByItem } from '../types';

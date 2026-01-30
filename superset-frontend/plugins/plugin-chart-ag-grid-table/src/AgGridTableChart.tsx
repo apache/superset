@@ -24,7 +24,7 @@ import {
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import { useCallback, useEffect, useState, useMemo } from 'react';
-import { isEqual } from 'lodash';
+import { isEqual } from 'es-toolkit';
 
 import {
   CellClickedEvent,

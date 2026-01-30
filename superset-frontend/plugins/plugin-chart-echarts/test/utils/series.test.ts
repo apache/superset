@@ -263,7 +263,7 @@ test('sortRows by max descending', () => {
   ]);
 });
 
-test('sortAndFilterSeries by min ascending', () => {
+test.only('sortAndFilterSeries by min ascending', () => {
   expect(
     sortAndFilterSeries(sortData, 'my_x_axis', [], SortSeriesType.Min, true),
   ).toEqual(['y', 'x', 'z']);

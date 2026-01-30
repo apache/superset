@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { kebabCase } from 'lodash';
+import { kebabCase } from 'es-toolkit';
 import { t } from '@apache-superset/core';
 import { useTheme, styled } from '@apache-superset/core/ui';
 import { Tooltip } from '@superset-ui/core/components';

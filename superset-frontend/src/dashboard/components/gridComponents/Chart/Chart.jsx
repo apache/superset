@@ -21,7 +21,7 @@ import { useCallback, useEffect, useRef, useMemo, useState, memo } from 'react';
 import PropTypes from 'prop-types';
 import { logging } from '@apache-superset/core';
 import { styled, t } from '@apache-superset/core/ui';
-import { debounce } from 'lodash';
+import { debounce } from 'es-toolkit';
 import { useHistory } from 'react-router-dom';
 import { bindActionCreators } from 'redux';
 import { useDispatch, useSelector } from 'react-redux';

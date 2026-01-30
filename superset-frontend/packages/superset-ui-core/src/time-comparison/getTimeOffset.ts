@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { isEmpty } from 'lodash';
 import { ensureIsArray } from '../utils';
 import { customTimeRangeDecode } from './customTimeRangeDecode';
 
@@ -116,7 +115,7 @@ export const parseDttmToDate = (
   }
   const parts = dttm?.split('-');
   let parsed: Date | null = null;
-  if (parts && !isEmpty(parts)) {
+  if (parts && parts.length > 0) {
     if (parts.length === 1) {
       parsed = new Date(Date.UTC(parseInt(parts[0], 10), 0));
     } else if (parts.length === 2) {

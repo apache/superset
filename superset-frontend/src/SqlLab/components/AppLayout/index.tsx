@@ -17,7 +17,6 @@
  * under the License.
  */
 import { useSelector } from 'react-redux';
-import { noop } from 'lodash';
 import type { SqlLabRootState } from 'src/SqlLab/types';
 import { css, styled } from '@apache-superset/core';
 import { useComponentDidUpdate } from '@superset-ui/core';
@@ -105,7 +104,7 @@ const AppLayout: React.FC = ({ children }) => {
         `}
         lazy
         onResizeEnd={onSidebarChange}
-        onResize={noop}
+        onResize={(_: number[]) => {}}
       >
         <Splitter.Panel
           collapsible={{

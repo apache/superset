@@ -22,7 +22,7 @@ import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 // remark-gfm v4+ requires react-markdown v9+, which requires React 18.
 // Currently pinned to v3.0.1 for compatibility with react-markdown v8 and React 17.
 import remarkGfm from 'remark-gfm';
-import { mergeWith } from 'lodash';
+import { mergeWith } from 'es-toolkit/compat';
 import { FeatureFlag, isFeatureEnabled } from '../../utils';
 
 interface SafeMarkdownProps {
