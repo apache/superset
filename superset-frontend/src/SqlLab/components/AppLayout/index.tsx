@@ -53,7 +53,11 @@ const StyledContainer = styled.div`
 
 const StyledSidebar = styled.div`
   position: relative;
-  padding: ${({ theme }) => theme.sizeUnit * 2.5}px;
+  padding: ${({ theme }) => theme.sizeUnit * 2.5}px 0;
+  margin: 0 ${({ theme }) => theme.sizeUnit * 2.5}px;
+  flex: 1;
+  height: 100%;
+  background-color: ${({ theme }) => theme.colorBgBase};
 `;
 
 const ContentWrapper = styled.div`

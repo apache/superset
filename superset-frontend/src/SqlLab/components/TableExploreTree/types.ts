@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -16,14 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import type { ColumnKeyTypeType } from 'src/SqlLab/components/ColumnElement';
 
-export * from './types';
-export { default as legacyValidateInteger } from './legacyValidateInteger';
-export { default as legacyValidateNumber } from './legacyValidateNumber';
-export { default as validateInteger } from './validateInteger';
-export { default as validateNumber } from './validateNumber';
-export { default as validateNonEmpty } from './validateNonEmpty';
-export { default as validateMaxValue } from './validateMaxValue';
-export { default as validateMapboxStylesUrl } from './validateMapboxStylesUrl';
-export { default as validateTimeComparisonRangeValues } from './validateTimeComparisonRangeValues';
-export { default as validateServerPagination } from './validateServerPagination';
+export interface TreeNodeData {
+  id: string;
+  name: string;
+  type: 'schema' | 'table' | 'column' | 'empty';
+  tableType?: string;
+  columnData?: {
+    name: string;
+    keys?: { type: ColumnKeyTypeType }[];
+    type: string;
+  };
+  children?: TreeNodeData[];
+  disableCheckbox?: boolean;
+}
+
+export interface FetchLazyTablesParams {
+  dbId: string | number;
+  catalog: string | null | undefined;
+  schema: string;
+  forceRefresh: boolean;
+}

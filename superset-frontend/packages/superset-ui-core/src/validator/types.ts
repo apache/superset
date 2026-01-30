@@ -17,13 +17,11 @@
  * under the License.
  */
 
-export * from './types';
-export { default as legacyValidateInteger } from './legacyValidateInteger';
-export { default as legacyValidateNumber } from './legacyValidateNumber';
-export { default as validateInteger } from './validateInteger';
-export { default as validateNumber } from './validateNumber';
-export { default as validateNonEmpty } from './validateNonEmpty';
-export { default as validateMaxValue } from './validateMaxValue';
-export { default as validateMapboxStylesUrl } from './validateMapboxStylesUrl';
-export { default as validateTimeComparisonRangeValues } from './validateTimeComparisonRangeValues';
-export { default as validateServerPagination } from './validateServerPagination';
+/**
+ * Type definition for a validator function.
+ * Returns an error message string if validation fails, or false if validation passes.
+ */
+export type ValidatorFunction<V = unknown, S = unknown> = (
+  value: V,
+  state?: S,
+) => string | false;

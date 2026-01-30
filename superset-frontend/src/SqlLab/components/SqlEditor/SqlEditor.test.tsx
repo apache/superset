@@ -75,6 +75,15 @@ jest.mock('@superset-ui/core/components/AsyncAceEditor', () => ({
 }));
 jest.mock('src/SqlLab/components/ResultSet', () => jest.fn());
 
+jest.mock('src/components/DatabaseSelector', () => ({
+  __esModule: true,
+  DatabaseSelector: ({ sqlLabMode }: { sqlLabMode?: boolean }) => (
+    <div data-test="mock-database-selector" data-sqllab-mode={sqlLabMode}>
+      Mock DatabaseSelector
+    </div>
+  ),
+}));
+
 fetchMock.get('glob:*/api/v1/database/*/function_names/', {
   function_names: [],
 });
