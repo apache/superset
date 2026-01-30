@@ -107,6 +107,18 @@ class Explorable(Protocol):
     # =========================================================================
 
     @property
+    def id(self) -> int:
+        """
+        Primary key identifier for this explorable.
+
+        Used for database lookups such as row-level security filter resolution.
+        Must be accessible without triggering expensive operations like
+        database engine connections.
+
+        :return: Integer primary key
+        """
+
+    @property
     def uid(self) -> str:
         """
         Unique identifier for this explorable.
