@@ -68,7 +68,7 @@ const createProps = (extraProps: JsonObject = {}) => ({
 });
 
 afterAll(() => {
-  fetchMock.restore();
+  fetchMock.clearHistory().removeRoutes();
 });
 
 test('Should render', async () => {

@@ -74,13 +74,13 @@ const findFilterByLabel = (labelText: string) => {
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ChartList', () => {
   beforeEach(() => {
+    fetchMock.removeRoutes();
     setupMocks();
     mockPush.mockClear();
   });
 
   afterEach(() => {
-    fetchMock.resetHistory();
-    fetchMock.restore();
+    fetchMock.clearHistory();
     // Reset feature flag mock
     (
       isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
@@ -133,12 +133,14 @@ describe('ChartList', () => {
 
   test('shows loading state during initial data fetch', async () => {
     // Delay the chart data response to test loading state
+    // fetchMock.removeRoute(API_ENDPOINTS.CHARTS)
+    fetchMock.removeRoutes();
     fetchMock.get(
       API_ENDPOINTS.CHARTS,
       new Promise(resolve =>
         setTimeout(() => resolve({ result: mockCharts, chart_count: 3 }), 200),
       ),
-      { overwriteRoutes: true },
+      { name: API_ENDPOINTS.CHARTS },
     );
 
     renderChartList(mockUser);
@@ -159,12 +161,12 @@ describe('ChartList', () => {
     renderChartList(mockUser);
 
     await waitFor(() => {
-      const infoCalls = fetchMock.calls(/chart\/_info/);
-      const dataCalls = fetchMock.calls(/chart\/\?q/);
+      const infoCalls = fetchMock.callHistory.calls(/chart\/_info/);
+      const dataCalls = fetchMock.callHistory.calls(/chart\/\?q/);
 
       expect(infoCalls).toHaveLength(1);
       expect(dataCalls).toHaveLength(1);
-      expect(dataCalls[0][0]).toContain(
+      expect(dataCalls[0].url).toContain(
         'order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25',
       );
     });
@@ -172,6 +174,8 @@ describe('ChartList', () => {
 
   test('shows loading state while API calls are in progress', async () => {
     // Mock delayed API responses
+    // fetchMock.removeRoute(API_ENDPOINTS.CHARTS_INFO)
+    fetchMock.removeRoutes();
     fetchMock.get(
       API_ENDPOINTS.CHARTS_INFO,
       new Promise(resolve =>
@@ -180,15 +184,16 @@ describe('ChartList', () => {
           100,
         ),
       ),
-      { overwriteRoutes: true },
+      { name: API_ENDPOINTS.CHARTS_INFO },
     );
 
+    // fetchMock.removeRoute(API_ENDPOINTS.CHARTS)
     fetchMock.get(
       API_ENDPOINTS.CHARTS,
       new Promise(resolve =>
         setTimeout(() => resolve({ result: mockCharts, chart_count: 3 }), 150),
       ),
-      { overwriteRoutes: true },
+      { name: API_ENDPOINTS.CHARTS },
     );
 
     renderChartList(mockUser);
@@ -199,8 +204,8 @@ describe('ChartList', () => {
     // Eventually data should load
     await waitFor(
       () => {
-        const infoCalls = fetchMock.calls(/chart\/_info/);
-        const dataCalls = fetchMock.calls(/chart\/\?q/);
+        const infoCalls = fetchMock.callHistory.calls(/chart\/_info/);
+        const dataCalls = fetchMock.callHistory.calls(/chart\/\?q/);
 
         expect(infoCalls).toHaveLength(1);
         expect(dataCalls).toHaveLength(1);
@@ -210,15 +215,6 @@ describe('ChartList', () => {
   });
 
   test('maintains component structure during loading', async () => {
-    // Only delay data loading, not permissions
-    fetchMock.get(
-      API_ENDPOINTS.CHARTS,
-      new Promise(resolve =>
-        setTimeout(() => resolve({ result: mockCharts, chart_count: 3 }), 200),
-      ),
-      { overwriteRoutes: true },
-    );
-
     renderChartList(mockUser);
 
     // Core structure should be available immediately
@@ -232,22 +228,14 @@ describe('ChartList', () => {
     ).toBeInTheDocument();
 
     // Wait for permissions to load, then action buttons should appear
-    await waitFor(
-      () => {
-        expect(
-          screen.getByRole('button', { name: 'Bulk select' }),
-        ).toBeInTheDocument();
-      },
-      { timeout: 500 },
-    );
+    expect(
+      await screen.findByRole('button', { name: 'Bulk select' }),
+    ).toBeInTheDocument();
 
     // Wait for data to eventually load
-    await waitFor(
-      () => {
-        expect(screen.getByText(mockCharts[0].slice_name)).toBeInTheDocument();
-      },
-      { timeout: 1000 },
-    );
+    expect(
+      await screen.findByText(mockCharts[0].slice_name),
+    ).toBeInTheDocument();
   });
 
   test('displays Matrixify tag for charts with matrixify enabled', async () => {
@@ -280,10 +268,11 @@ describe('ChartList', () => {
 
   test('handles API errors gracefully', async () => {
     // Mock API failure
+    fetchMock.removeRoutes();
     fetchMock.get(
       API_ENDPOINTS.CHARTS_INFO,
       { throws: new Error('API Error') },
-      { overwriteRoutes: true },
+      { name: API_ENDPOINTS.CHARTS_INFO },
     );
 
     renderChartList(mockUser);
@@ -295,10 +284,11 @@ describe('ChartList', () => {
 
   test('handles empty results', async () => {
     // Mock empty chart data (not permissions)
+    fetchMock.removeRoute(API_ENDPOINTS.CHARTS);
     fetchMock.get(
       API_ENDPOINTS.CHARTS,
       { result: [], chart_count: 0 },
-      { overwriteRoutes: true },
+      { name: API_ENDPOINTS.CHARTS },
     );
 
     renderChartList(mockUser);
@@ -321,12 +311,12 @@ describe('ChartList', () => {
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ChartList - Global Filter Interactions', () => {
   beforeEach(() => {
+    fetchMock.removeRoutes();
     setupMocks();
   });
 
   afterEach(() => {
-    fetchMock.resetHistory();
-    fetchMock.restore();
+    fetchMock.clearHistory();
     // Reset feature flag mock
     (
       isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
