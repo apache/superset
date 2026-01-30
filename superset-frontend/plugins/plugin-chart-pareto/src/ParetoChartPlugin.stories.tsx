@@ -18,7 +18,6 @@
  */
 import { Meta, StoryObj } from '@storybook/react';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
-import React from 'react';
 import ParetoChartPlugin from './ParetoChartPlugin';
 
 const meta: Meta<typeof ParetoChartPlugin> = {

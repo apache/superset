@@ -2,6 +2,20 @@
   "name": "@superset-ui/plugin-chart-pareto",
   "version": "0.1.0",
   "description": "Pareto Chart visualization plugin for Apache Superset",
+  "keywords": [
+    "superset"
+  ],
+  "homepage": "https://github.com/ooeintellisuite/superset/tree/master/superset-frontend/plugins/plugin-chart-pareto#readme",
+  "bugs": {
+    "url": "https://github.com/ooeintellisuite/superset/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ooeintellisuite/superset.git",
+    "directory": "superset-frontend/plugins/plugin-chart-pareto"
+  },
+  "license": "Apache-2.0",
+  "author": "Superset",
   "sideEffects": false,
   "main": "lib/index.js",
   "module": "esm/index.js",
@@ -9,27 +23,17 @@
     "esm",
     "lib"
   ],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/ooeintellisuite/superset.git",
-    "directory": "superset-frontend/plugins/plugin-chart-pareto"
-  },
-  "license": "Apache-2.0",
   "dependencies": {
     "recharts": "^2.15.4"
   },
   "peerDependencies": {
+    "@apache-superset/core": "*",
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
-    "prop-types": "^15.8.1",
     "react": "^17.0.2",
-    "react-redux": "^7.2.9"
+    "react-dom": "^17.0.2"
   },
-  "devDependencies": {
-    "@babel/core": "^7.28.4",
-    "@babel/preset-env": "^7.28.3",
-    "@babel/preset-react": "^7.27.1",
-    "@babel/preset-typescript": "^7.27.1",
-    "typescript": "^4.1.2"
+  "publishConfig": {
+    "access": "public"
   }
 }

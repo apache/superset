@@ -17,7 +17,6 @@
  * under the License.
  */
 import { getNumberFormatter, styled } from '@superset-ui/core';
-import React from 'react';
 import {
   Bar,
   CartesianGrid,
@@ -41,8 +40,8 @@ import { type ParetoChartPluginProps, type ParetoChartPluginStylesProps } from '
 // https://github.com/apache-superset/superset-ui/blob/master/packages/superset-ui-core/src/theme/index.ts
 
 const Styles = styled.div<ParetoChartPluginStylesProps>`
-  background-color: ${({ theme }) => theme?.colors?.grayscale?.light5 || '#f5f5f5'};
-  padding: ${({ theme }) => (theme?.gridUnit || 4) * 4}px;
+  background-color: ${({ theme }) => theme?.colorBgContainer || '#f5f5f5'};
+  padding: 16px;
   border-radius: ${({ theme }) => theme?.borderRadius || 4}px;
   height: ${({ height }) => height}px;
   width: ${({ width }) => width}px;
@@ -55,10 +54,10 @@ const Styles = styled.div<ParetoChartPluginStylesProps>`
   }
 
   .pareto-header {
-    margin-bottom: ${({ theme }) => (theme?.gridUnit || 4) * 2}px;
+    margin-bottom: 8px;
     font-weight: ${({ boldText }) => (boldText ? '700' : '400')};
     font-size: 16px;
-    color: ${({ theme }) => theme?.colors?.grayscale?.dark1 || '#000'};
+    color: ${({ theme }) => theme?.colorText || '#000'};
   }
 
   .pareto-tooltip {
