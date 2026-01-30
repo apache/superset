@@ -575,6 +575,22 @@ def test_in_app_context():
     )
 
 
+def test_teardown_without_app_context():
+    """Test teardown signal handler doesn't raise when called outside app context.
+
+    Regression test for https://github.com/apache/superset/issues/36892
+    The task_postrun signal can fire after the app context is torn down,
+    so teardown() must check has_app_context() before calling db.session.remove().
+    """
+    from superset.tasks.celery_app import teardown
+
+    # Ensure we're outside of an app context
+    assert not has_app_context(), "Test must run outside of app context"
+
+    # This should not raise RuntimeError: Working outside of application context
+    teardown(retval="success")
+
+
 def delete_tmp_view_or_table(name: str, ctas_method: CTASMethod):
     db.get_engine().execute(f"DROP {ctas_method.name} IF EXISTS {name}")
 

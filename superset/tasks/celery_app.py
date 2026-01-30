@@ -28,6 +28,8 @@ from celery.signals import task_postrun, worker_process_init
 from superset import create_app
 from superset.extensions import celery_app, db
 
+from flask import has_app_context
+
 # Init the Flask app / configure everything
 flask_app = create_app()
 
@@ -68,4 +70,6 @@ def teardown(  # pylint: disable=unused-argument
             db.session.commit()  # pylint: disable=consider-using-transaction
 
     if not flask_app.config.get("CELERY_ALWAYS_EAGER"):
-        db.session.remove()
+        # Ensure session is removed only inside app context
+        if has_app_context():
+            db.session.remove()
