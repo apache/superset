@@ -366,7 +366,7 @@ def test_apply_iam_authentication_default_port() -> None:
 
 
 def test_get_iam_credentials_boto3_not_installed() -> None:
-    import sys
+    import builtins
 
     from superset.db_engine_specs.aws_iam import (
         _credentials_cache,
@@ -377,24 +377,22 @@ def test_get_iam_credentials_boto3_not_installed() -> None:
     with _credentials_lock:
         _credentials_cache.clear()
 
-    # Temporarily hide boto3
-    boto3_module = sys.modules.get("boto3")
-    sys.modules["boto3"] = None  # type: ignore
+    # Patch the import mechanism to simulate boto3 not being installed
+    real_import = builtins.__import__
 
-    try:
+    def fake_import(name: str, *args: Any, **kwargs: Any) -> Any:
+        if name == "boto3" or name.startswith("boto3."):
+            raise ImportError("No module named 'boto3'")
+        return real_import(name, *args, **kwargs)
+
+    with patch.object(builtins, "__import__", side_effect=fake_import):
         with pytest.raises(SupersetSecurityException) as exc_info:
             AWSIAMAuthMixin.get_iam_credentials(
                 role_arn="arn:aws:iam::123456789012:role/TestRole",
                 region="us-east-1",
             )
 
-        assert "boto3 is required" in str(exc_info.value)
-    finally:
-        # Restore boto3
-        if boto3_module is not None:
-            sys.modules["boto3"] = boto3_module
-        else:
-            del sys.modules["boto3"]
+    assert "boto3 is required" in str(exc_info.value)
 
 
 def test_get_iam_credentials_caching() -> None:

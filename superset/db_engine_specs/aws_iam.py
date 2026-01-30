@@ -51,9 +51,11 @@ DEFAULT_POSTGRES_PORT = 5432
 DEFAULT_MYSQL_PORT = 3306
 DEFAULT_REDSHIFT_PORT = 5439
 
-# Cache STS credentials: key = (role_arn, region, external_id), TTL = 50 min
+# Cache STS credentials: key = (role_arn, region, external_id), TTL = 10 min
+# Using a TTL shorter than the minimum supported session duration (900s) avoids
+# reusing expired STS credentials when a short session_duration is configured.
 _credentials_cache: TTLCache[tuple[str, str, str | None], dict[str, Any]] = TTLCache(
-    maxsize=100, ttl=3000
+    maxsize=100, ttl=600
 )
 _credentials_lock = threading.RLock()
 

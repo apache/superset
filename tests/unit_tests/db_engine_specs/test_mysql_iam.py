@@ -121,7 +121,8 @@ def test_mysql_update_params_with_iam() -> None:
     assert "connect_args" in params
     assert params["connect_args"]["password"] == "iam-auth-token"  # noqa: S105
     assert params["connect_args"]["user"] == "superset_iam_user"
-    assert params["connect_args"]["ssl_mode"] == "REQUIRED"
+    # Note: ssl_mode is not set because MySQL drivers don't support it.
+    # SSL should be configured via the database's extra settings.
 
 
 def test_mysql_update_params_iam_uses_mysql_port() -> None:

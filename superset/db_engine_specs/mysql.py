@@ -303,7 +303,9 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
         "mysqlconnector": {"allow_local_infile": 0},
     }
 
-    # Sensitive fields that should be masked in encrypted_extra
+    # Sensitive fields that should be masked in encrypted_extra.
+    # This follows the pattern used by other engine specs (bigquery, snowflake, etc.)
+    # that specify exact paths rather than using the base class's catch-all "$.*".
     encrypted_extra_sensitive_fields = {
         "$.aws_iam.external_id",
         "$.aws_iam.role_arn",
@@ -338,7 +340,10 @@ class MySQLEngineSpec(BasicParametersMixin, BaseEngineSpec):
                 database,
                 params,
                 iam_config,
-                ssl_args={"ssl_mode": "REQUIRED"},
+                # MySQL drivers (mysqlclient) use 'ssl' dict, not 'ssl_mode'.
+                # SSL is typically configured via the database's extra settings,
+                # so we pass empty ssl_args here to avoid driver compatibility issues.
+                ssl_args={},
                 default_port=3306,
             )
 

@@ -359,7 +359,9 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
     max_column_name_length = 63
     try_remove_schema_from_table_name = False  # pylint: disable=invalid-name
 
-    # Sensitive fields that should be masked in encrypted_extra
+    # Sensitive fields that should be masked in encrypted_extra.
+    # This follows the pattern used by other engine specs (bigquery, snowflake, etc.)
+    # that specify exact paths rather than using the base class's catch-all "$.*".
     encrypted_extra_sensitive_fields = {
         "$.aws_iam.external_id",
         "$.aws_iam.role_arn",
@@ -492,6 +494,10 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         if iam_config and iam_config.get("enabled"):
             from superset.db_engine_specs.aws_iam import AWSIAMAuthMixin
 
+            # Preserve a stricter existing sslmode (e.g. verify-full) if present
+            connect_args = params.get("connect_args") or {}
+            previous_sslmode = connect_args.get("sslmode")
+
             AWSIAMAuthMixin._apply_iam_authentication(
                 database,
                 params,
@@ -499,6 +505,10 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
                 ssl_args={"sslmode": "require"},
                 default_port=5432,
             )
+
+            # Restore stricter sslmode if it was previously configured
+            if previous_sslmode in ("verify-ca", "verify-full"):
+                params.setdefault("connect_args", {})["sslmode"] = previous_sslmode
 
         # Standard behavior: merge remaining keys into params
         if encrypted_extra:
