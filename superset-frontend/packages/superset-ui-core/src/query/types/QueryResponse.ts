@@ -91,8 +91,8 @@ export interface ChartDataResponseResult {
     validate_ms: number;
     /** Cache lookup time */
     cache_lookup_ms: number;
-    /** Database execution time (only present on cache miss) */
-    db_execution_ms?: number;
+    /** Database execution time (null when served from cache) */
+    db_execution_ms: number | null;
     /** Result processing and serialization time */
     result_processing_ms: number;
     /** Total request time */
