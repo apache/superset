@@ -85,7 +85,7 @@ def test_terminal_states_recognized_correctly(app_context) -> None:
     assert TaskStatus.ABORTING.value not in TaskManager.TERMINAL_STATES
 
 
-def test_sync_joiner_waits_for_completion(app_context, login_as) -> None:
+def test_sync_joiner_waits_for_completion(app_context, login_as) -> None:  # noqa: C901
     """
     Test that a sync caller joining an existing task blocks until completion.
 
@@ -93,9 +93,9 @@ def test_sync_joiner_waits_for_completion(app_context, login_as) -> None:
     call wait_for_completion. The joiner should block until the task completes.
     """
     from flask import current_app
-    from flask_login import login_user
 
     from superset.extensions import security_manager
+    from superset.utils.core import override_user
 
     # SQLite doesn't support cross-thread database connections reliably
     if backend() == "sqlite":
@@ -106,42 +106,42 @@ def test_sync_joiner_waits_for_completion(app_context, login_as) -> None:
     # Get the Flask app instance for use in background threads
     app = current_app._get_current_object()
 
-    # Get admin user for thread login
+    # Get admin user for use in background threads via override_user
     admin_user = security_manager.find_user(username="admin")
     task_uuid: str | None = None
     joiner_result: dict[str, Any] = {}
     errors: list[Exception] = []
+    stop_joiner = threading.Event()
 
     def background_task_creator():
         """Create and complete a task in a background thread."""
         nonlocal task_uuid
         with app.app_context():
             try:
-                # Log in user in this thread's context
-                login_user(admin_user)
+                # Use override_user context manager (like celery tasks do)
+                with override_user(admin_user):
+                    # Create task
+                    task, _ = SubmitTaskCommand(
+                        data={
+                            "task_type": "test-wait",
+                            "task_key": "wait-test-key",
+                            "task_name": "Background Task",
+                        }
+                    ).run_with_info()
+                    task_uuid = task.uuid
 
-                # Create task
-                task, _ = SubmitTaskCommand(
-                    data={
-                        "task_type": "test-wait",
-                        "task_key": "wait-test-key",
-                        "task_name": "Background Task",
-                    }
-                ).run_with_info()
-                task_uuid = task.uuid
+                    # Simulate some work
+                    time.sleep(0.5)
 
-                # Simulate some work
-                time.sleep(0.5)
+                    # Complete the task
+                    TaskDAO.update(
+                        task,
+                        {"status": TaskStatus.SUCCESS.value},
+                    )
+                    db.session.commit()
 
-                # Complete the task
-                TaskDAO.update(
-                    task,
-                    {"status": TaskStatus.SUCCESS.value},
-                )
-                db.session.commit()
-
-                # Publish completion signal
-                TaskManager.publish_completion(task.uuid)
+                    # Publish completion signal
+                    TaskManager.publish_completion(task.uuid, task.status)
             except Exception as e:
                 errors.append(e)
 
@@ -150,9 +150,16 @@ def test_sync_joiner_waits_for_completion(app_context, login_as) -> None:
         nonlocal joiner_result
         with app.app_context():
             try:
-                # Wait for task to be created
-                while task_uuid is None:
+                # Wait for task to be created (with timeout to avoid hanging)
+                wait_count = 0
+                while task_uuid is None and wait_count < 100:
+                    if stop_joiner.is_set():
+                        return
                     time.sleep(0.05)
+                    wait_count += 1
+
+                if task_uuid is None:
+                    return  # Bail out if task never created
 
                 start = time.time()
                 result_task = TaskManager.wait_for_completion(
@@ -168,8 +175,8 @@ def test_sync_joiner_waits_for_completion(app_context, login_as) -> None:
                 errors.append(e)
 
     # Start background task
-    creator = threading.Thread(target=background_task_creator)
-    joiner = threading.Thread(target=joiner_thread)
+    creator = threading.Thread(target=background_task_creator, daemon=True)
+    joiner = threading.Thread(target=joiner_thread, daemon=True)
 
     try:
         creator.start()
@@ -187,6 +194,8 @@ def test_sync_joiner_waits_for_completion(app_context, login_as) -> None:
         # Joiner should have waited at least as long as the background task took
         assert joiner_result["elapsed"] >= 0.4  # Some margin for timing
     finally:
+        # Signal joiner to stop if still waiting
+        stop_joiner.set()
         # Cleanup
         if task_uuid:
             task = TaskDAO.find_one_or_none(uuid=task_uuid)
