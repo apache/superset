@@ -19,7 +19,7 @@
 
 import {
   DASHBOARD_UI_FILTER_CONFIG_URL_PARAM_KEY,
-  IFRAME_COMMS_MESSAGE_TYPE
+  IFRAME_COMMS_MESSAGE_TYPE,
 } from './const';
 
 // We can swap this out for the actual switchboard package once it gets published
@@ -34,48 +34,83 @@ import { getGuestTokenRefreshTiming } from './guestTokenRefresh';
 export type GuestTokenFetchFn = () => Promise<string>;
 
 export type UiConfigType = {
-  hideTitle?: boolean
-  hideTab?: boolean
-  hideChartControls?: boolean
+  hideTitle?: boolean;
+  hideTab?: boolean;
+  hideChartControls?: boolean;
+  emitDataMasks?: boolean;
   filters?: {
-    [key: string]: boolean | undefined
-    visible?: boolean
-    expanded?: boolean
-  }
+    [key: string]: boolean | undefined;
+    visible?: boolean;
+    expanded?: boolean;
+  };
   urlParams?: {
-    [key: string]: any
-  }
-}
+    [key: string]: any;
+  };
+  showRowLimitWarning?: boolean;
+};
 
 export type EmbedDashboardParams = {
   /** The id provided by the embed configuration UI in Superset */
-  id: string
+  id: string;
   /** The domain where Superset can be located, with protocol, such as: https://superset.example.com */
-  supersetDomain: string
+  supersetDomain: string;
   /** The html element within which to mount the iframe */
-  mountPoint: HTMLElement
+  mountPoint: HTMLElement;
   /** A function to fetch a guest token from the Host App's backend server */
-  fetchGuestToken: GuestTokenFetchFn
+  fetchGuestToken: GuestTokenFetchFn;
   /** The dashboard UI config: hideTitle, hideTab, hideChartControls, filters.visible, filters.expanded **/
-  dashboardUiConfig?: UiConfigType
+  dashboardUiConfig?: UiConfigType;
   /** Are we in debug mode? */
-  debug?: boolean
+  debug?: boolean;
   /** The iframe title attribute */
-  iframeTitle?: string
+  iframeTitle?: string;
   /** additional iframe sandbox attributes ex (allow-top-navigation, allow-popups-to-escape-sandbox) **/
-  iframeSandboxExtras?: string[]
-}
+  iframeSandboxExtras?: string[];
+  /** iframe allow attribute for Permissions Policy (e.g., ['clipboard-write', 'fullscreen']) **/
+  iframeAllowExtras?: string[];
+  /** force a specific refererPolicy to be used in the iframe request **/
+  referrerPolicy?: ReferrerPolicy;
+  /** Callback to resolve permalink URLs. If provided, this will be called when generating permalinks
+   * to allow the host app to customize the URL. If not provided, Superset's default URL is used. */
+  resolvePermalinkUrl?: ResolvePermalinkUrlFn;
+};
 
 export type Size = {
-  width: number, height: number
-}
+  width: number;
+  height: number;
+};
+
+export type ObserveDataMaskCallbackFn = (
+  dataMask: Record<string, any> & {
+    crossFiltersChanged: boolean;
+    nativeFiltersChanged: boolean;
+  },
+) => void;
+export type ThemeMode = 'default' | 'dark' | 'system';
+
+/**
+ * Callback to resolve permalink URLs.
+ * Receives the permalink key and returns the full URL to use for the permalink.
+ */
+export type ResolvePermalinkUrlFn = (params: {
+  /** The permalink key (e.g., "xyz789") */
+  key: string;
+}) => string | Promise<string>;
 
 export type EmbeddedDashboard = {
-  getScrollSize: () => Promise<Size>
-  unmount: () => void
-  getDashboardPermalink: (anchor: string) => Promise<string>
-  getActiveTabs: () => Promise<string[]>
-}
+  getScrollSize: () => Promise<Size>;
+  unmount: () => void;
+  getDashboardPermalink: (anchor: string) => Promise<string>;
+  getActiveTabs: () => Promise<string[]>;
+  observeDataMask: (
+    callbackFn: ObserveDataMaskCallbackFn,
+  ) => void;
+  getDataMask: () => Promise<Record<string, any>>;
+  getChartStates: () => Promise<Record<string, any>>;
+  getChartDataPayloads: (params?: { chartId?: number }) => Promise<Record<string, any>>;
+  setThemeConfig: (themeConfig: Record<string, any>) => void;
+  setThemeMode: (mode: ThemeMode) => void;
+};
 
 /**
  * Embeds a Superset dashboard into the page using an iframe.
@@ -87,8 +122,11 @@ export async function embedDashboard({
   fetchGuestToken,
   dashboardUiConfig,
   debug = false,
-  iframeTitle = "Embedded Dashboard",
-  iframeSandboxExtras = []
+  iframeTitle = 'Embedded Dashboard',
+  iframeSandboxExtras = [],
+  iframeAllowExtras = [],
+  referrerPolicy,
+  resolvePermalinkUrl,
 }: EmbedDashboardParams): Promise<EmbeddedDashboard> {
   function log(...info: unknown[]) {
     if (debug) {
@@ -98,50 +136,72 @@ export async function embedDashboard({
 
   log('embedding');
 
-  if (supersetDomain.endsWith("/")) {
+  if (supersetDomain.endsWith('/')) {
     supersetDomain = supersetDomain.slice(0, -1);
   }
 
   function calculateConfig() {
-    let configNumber = 0
-    if(dashboardUiConfig) {
-      if(dashboardUiConfig.hideTitle) {
-        configNumber += 1
+    let configNumber = 0;
+    if (dashboardUiConfig) {
+      if (dashboardUiConfig.hideTitle) {
+        configNumber += 1;
       }
-      if(dashboardUiConfig.hideTab) {
-        configNumber += 2
+      if (dashboardUiConfig.hideTab) {
+        configNumber += 2;
       }
-      if(dashboardUiConfig.hideChartControls) {
-        configNumber += 8
+      if (dashboardUiConfig.hideChartControls) {
+        configNumber += 8;
+      }
+      if (dashboardUiConfig.emitDataMasks) {
+        configNumber += 16;
+      }
+      if (dashboardUiConfig.showRowLimitWarning) {
+        configNumber += 32;
       }
     }
-    return configNumber
+    return configNumber;
   }
 
   async function mountIframe(): Promise<Switchboard> {
     return new Promise(resolve => {
       const iframe = document.createElement('iframe');
-      const dashboardConfigUrlParams = dashboardUiConfig ? {uiConfig: `${calculateConfig()}`} : undefined;
-      const filterConfig = dashboardUiConfig?.filters || {}
-      const filterConfigKeys = Object.keys(filterConfig)
-      const filterConfigUrlParams = Object.fromEntries(filterConfigKeys.map(
-        key => [DASHBOARD_UI_FILTER_CONFIG_URL_PARAM_KEY[key], filterConfig[key]]))
+      const dashboardConfigUrlParams = dashboardUiConfig
+        ? { uiConfig: `${calculateConfig()}` }
+        : undefined;
+      const filterConfig = dashboardUiConfig?.filters || {};
+      const filterConfigKeys = Object.keys(filterConfig);
+      const filterConfigUrlParams = Object.fromEntries(
+        filterConfigKeys.map(key => [
+          DASHBOARD_UI_FILTER_CONFIG_URL_PARAM_KEY[key],
+          filterConfig[key],
+        ]),
+      );
 
       // Allow url query parameters from dashboardUiConfig.urlParams to override the ones from filterConfig
-      const urlParams = {...dashboardConfigUrlParams, ...filterConfigUrlParams, ...dashboardUiConfig?.urlParams}
-      const urlParamsString = Object.keys(urlParams).length ? '?' + new URLSearchParams(urlParams).toString() : ''
+      const urlParams = {
+        ...dashboardConfigUrlParams,
+        ...filterConfigUrlParams,
+        ...dashboardUiConfig?.urlParams,
+      };
+      const urlParamsString = Object.keys(urlParams).length
+        ? '?' + new URLSearchParams(urlParams).toString()
+        : '';
 
       // set up the iframe's sandbox configuration
-      iframe.sandbox.add("allow-same-origin"); // needed for postMessage to work
-      iframe.sandbox.add("allow-scripts"); // obviously the iframe needs scripts
-      iframe.sandbox.add("allow-presentation"); // for fullscreen charts
-      iframe.sandbox.add("allow-downloads"); // for downloading charts as image
-      iframe.sandbox.add("allow-forms"); // for forms to submit
-      iframe.sandbox.add("allow-popups"); // for exporting charts as csv
+      iframe.sandbox.add('allow-same-origin'); // needed for postMessage to work
+      iframe.sandbox.add('allow-scripts'); // obviously the iframe needs scripts
+      iframe.sandbox.add('allow-presentation'); // for fullscreen charts
+      iframe.sandbox.add('allow-downloads'); // for downloading charts as image
+      iframe.sandbox.add('allow-forms'); // for forms to submit
+      iframe.sandbox.add('allow-popups'); // for exporting charts as csv
       // additional sandbox props
       iframeSandboxExtras.forEach((key: string) => {
         iframe.sandbox.add(key);
       });
+      // force a specific refererPolicy to be used in the iframe request
+      if (referrerPolicy) {
+        iframe.referrerPolicy = referrerPolicy;
+      }
 
       // add the event listener before setting src, to be 100% sure that we capture the load event
       iframe.addEventListener('load', () => {
@@ -155,20 +215,29 @@ export async function embedDashboard({
         // See https://developer.mozilla.org/en-US/docs/Web/API/Window/postMessage
         // we know the content window isn't null because we are in the load event handler.
         iframe.contentWindow!.postMessage(
-          { type: IFRAME_COMMS_MESSAGE_TYPE, handshake: "port transfer" },
+          { type: IFRAME_COMMS_MESSAGE_TYPE, handshake: 'port transfer' },
           supersetDomain,
           [theirPort],
-        )
+        );
         log('sent message channel to the iframe');
 
         // return our port from the promise
-        resolve(new Switchboard({ port: ourPort, name: 'superset-embedded-sdk', debug }));
+        resolve(
+          new Switchboard({
+            port: ourPort,
+            name: 'superset-embedded-sdk',
+            debug,
+          }),
+        );
       });
       iframe.src = `${supersetDomain}/embedded/${id}${urlParamsString}`;
       iframe.title = iframeTitle;
+      if (iframeAllowExtras.length > 0) {
+        iframe.setAttribute('allow', iframeAllowExtras.join('; '));
+      }
       //@ts-ignore
       mountPoint.replaceChildren(iframe);
-      log('placed the iframe')
+      log('placed the iframe');
     });
   }
 
@@ -188,6 +257,24 @@ export async function embedDashboard({
 
   setTimeout(refreshGuestToken, getGuestTokenRefreshTiming(guestToken));
 
+  // Register the resolvePermalinkUrl method for the iframe to call
+  // Returns null if no callback provided or on error, allowing iframe to use default URL
+  ourPort.start();
+  ourPort.defineMethod(
+    'resolvePermalinkUrl',
+    async ({ key }: { key: string }): Promise<string | null> => {
+      if (!resolvePermalinkUrl) {
+        return null;
+      }
+      try {
+        return await resolvePermalinkUrl({ key });
+      } catch (error) {
+        log('Error in resolvePermalinkUrl callback:', error);
+        return null;
+      }
+    },
+  );
+
   function unmount() {
     log('unmounting');
     //@ts-ignore
@@ -197,12 +284,51 @@ export async function embedDashboard({
   const getScrollSize = () => ourPort.get<Size>('getScrollSize');
   const getDashboardPermalink = (anchor: string) =>
     ourPort.get<string>('getDashboardPermalink', { anchor });
-  const getActiveTabs = () => ourPort.get<string[]>('getActiveTabs')
+  const getActiveTabs = () => ourPort.get<string[]>('getActiveTabs');
+  const getDataMask = () => ourPort.get<Record<string, any>>('getDataMask');
+  const getChartStates = () => ourPort.get<Record<string, any>>('getChartStates');
+  const getChartDataPayloads = (params?: { chartId?: number }) =>
+    ourPort.get<Record<string, any>>('getChartDataPayloads', params);
+  const observeDataMask = (
+    callbackFn: ObserveDataMaskCallbackFn,
+  ) => {
+    ourPort.defineMethod('observeDataMask', callbackFn);
+  };
+  // TODO: Add proper types once theming branch is merged
+  const setThemeConfig = async (themeConfig: Record<string, any>): Promise<void> => {
+    try {
+      ourPort.emit('setThemeConfig', { themeConfig });
+      log('Theme config sent successfully (or at least message dispatched)');
+    } catch (error) {
+      log(
+        'Error sending theme config. Ensure the iframe side implements the "setThemeConfig" method.',
+      );
+      throw error;
+    }
+  };
+
+  const setThemeMode = (mode: ThemeMode): void => {
+    try {
+      ourPort.emit('setThemeMode', { mode });
+      log(`Theme mode set to: ${mode}`);
+    } catch (error) {
+      log(
+        'Error sending theme mode. Ensure the iframe side implements the "setThemeMode" method.',
+      );
+      throw error;
+    }
+  };
 
   return {
     getScrollSize,
     unmount,
     getDashboardPermalink,
     getActiveTabs,
+    observeDataMask,
+    getDataMask,
+    getChartStates,
+    getChartDataPayloads,
+    setThemeConfig,
+    setThemeMode,
   };
 }

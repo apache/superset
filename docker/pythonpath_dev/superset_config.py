@@ -49,11 +49,17 @@ from celery.schedules import crontab
 #     f"{DATABASE_HOST}:{DATABASE_PORT}/{DATABASE_DB}"
 # )
 
-# SQLALCHEMY_EXAMPLES_URI = (
-#     f"{DATABASE_DIALECT}://"
-#     f"{EXAMPLES_USER}:{EXAMPLES_PASSWORD}@"
-#     f"{EXAMPLES_HOST}:{EXAMPLES_PORT}/{EXAMPLES_DB}"
-# )
+# Use environment variable if set, otherwise construct from components
+# This MUST take precedence over any other configuration
+SQLALCHEMY_EXAMPLES_URI = os.getenv(
+    "SUPERSET__SQLALCHEMY_EXAMPLES_URI",
+    (
+        f"{DATABASE_DIALECT}://"
+        f"{EXAMPLES_USER}:{EXAMPLES_PASSWORD}@"
+        f"{EXAMPLES_HOST}:{EXAMPLES_PORT}/{EXAMPLES_DB}"
+    ),
+)
+
 
 REDIS_HOST = os.getenv("REDIS_HOST", "redis")
 REDIS_PORT = os.getenv("REDIS_PORT", "6379")
@@ -62,15 +68,16 @@ REDIS_RESULTS_DB = os.getenv("REDIS_RESULTS_DB", "1")
 
 # RESULTS_BACKEND = FileSystemCache("/app/superset_home/sqllab")
 
-# CACHE_CONFIG = {
-#     "CACHE_TYPE": "RedisCache",
-#     "CACHE_DEFAULT_TIMEOUT": 300,
-#     "CACHE_KEY_PREFIX": "superset_",
-#     "CACHE_REDIS_HOST": REDIS_HOST,
-#     "CACHE_REDIS_PORT": REDIS_PORT,
-#     "CACHE_REDIS_DB": REDIS_RESULTS_DB,
-# }
-# DATA_CACHE_CONFIG = CACHE_CONFIG
+CACHE_CONFIG = {
+    "CACHE_TYPE": "RedisCache",
+    "CACHE_DEFAULT_TIMEOUT": 300,
+    "CACHE_KEY_PREFIX": "superset_",
+    "CACHE_REDIS_HOST": REDIS_HOST,
+    "CACHE_REDIS_PORT": REDIS_PORT,
+    "CACHE_REDIS_DB": REDIS_RESULTS_DB,
+}
+DATA_CACHE_CONFIG = CACHE_CONFIG
+THUMBNAIL_CACHE_CONFIG = CACHE_CONFIG
 
 
 class CeleryConfig:
@@ -98,12 +105,14 @@ class CeleryConfig:
 
 CELERY_CONFIG = CeleryConfig
 
-# FEATURE_FLAGS = {"ALERT_REPORTS": True}
-# ALERT_REPORTS_NOTIFICATION_DRY_RUN = True
-# WEBDRIVER_BASEURL = "http://superset_app:8089"  # When using docker compose baseurl should be http://superset_app:8088/  # noqa: E501
-# # The base URL for the email report hyperlinks.
-# WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
-# SQLLAB_CTAS_NO_LIMIT = True
+FEATURE_FLAGS = {"ALERT_REPORTS": True}
+ALERT_REPORTS_NOTIFICATION_DRY_RUN = True
+WEBDRIVER_BASEURL = f"http://superset_app{os.environ.get('SUPERSET_APP_ROOT', '/')}/"  # When using docker compose baseurl should be http://superset_nginx{ENV{BASEPATH}}/  # noqa: E501
+# The base URL for the email report hyperlinks.
+WEBDRIVER_BASEURL_USER_FRIENDLY = (
+    f"http://localhost:8888/{os.environ.get('SUPERSET_APP_ROOT', '/')}/"
+)
+SQLLAB_CTAS_NO_LIMIT = True
 
 # log_level_text = os.getenv("SUPERSET_LOG_LEVEL", "INFO")
 # LOG_LEVEL = getattr(logging, log_level_text.upper(), logging.INFO)
@@ -123,16 +132,16 @@ CELERY_CONFIG = CeleryConfig
 #
 # Optionally import superset_config_docker.py (which will have been included on
 # the PYTHONPATH) in order to allow for local settings to be overridden
+#
+try:
+    import superset_config_docker
+    from superset_config_docker import *  # noqa: F403
 
-# try:
-#     import superset_config_docker
-#     from superset_config_docker import *  # noqa
-
-#     logger.info(
-#         f"Loaded your Docker configuration at " f"[{superset_config_docker.__file__}]"
-#     )
-# except ImportError:
-#     logger.info("Using default Docker config...")
+    logger.info(
+        "Loaded your Docker configuration at [%s]", superset_config_docker.__file__
+    )
+except ImportError:
+    logger.info("Using default Docker config...")
 
 
 # Define a function to initialize plugins

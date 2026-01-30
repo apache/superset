@@ -27,15 +27,15 @@ jobs:
     name: Generate Reports
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version-file: './superset-frontend/.nvmrc'
 
       - name: Install Dependencies
-        run: npm install
+        run: npm ci
         working-directory: ./superset-frontend
 
       - name: Run Script
