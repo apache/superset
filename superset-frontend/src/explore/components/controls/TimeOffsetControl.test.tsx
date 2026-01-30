@@ -48,7 +48,7 @@ describe('TimeOffsetControls', () => {
             start_date_offset: '2023-01-01',
             ...initialState,
           },
-        future: [],
+          future: [],
         },
       },
     });
