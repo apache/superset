@@ -383,6 +383,14 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         conn = engine.connect()
         idx = 0
 
+        # Check for OAuth2 config. Skip URL access for OAuth2 connections (user
+        # might not have a token, or admin adding a sheet they don't have access to)
+        oauth2_config_in_params = parameters.get("oauth2_client_info")
+        oauth2_config_in_secure_extra = json.loads(
+            properties.get("masked_encrypted_extra", "{}")
+        ).get("oauth2_client_info")
+        is_oauth2_conn = bool(oauth2_config_in_params or oauth2_config_in_secure_extra)
+
         for name, url in table_catalog.items():
             if not name:
                 errors.append(
@@ -406,20 +414,14 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
                 )
                 return errors
 
+            if is_oauth2_conn:
+                continue
+
             try:
                 url = url.replace('"', '""')
                 results = conn.execute(f'SELECT * FROM "{url}" LIMIT 1')  # noqa: S608
                 results.fetchall()
             except Exception:  # pylint: disable=broad-except
-                # OAuth2 connection check
-                # Check `parameters` first (used by frontend during form validation)
-                if parameters.get("oauth2_client_info"):
-                    continue
-                # Check `masked_encrypted_extra` (for create/update events)
-                encrypted = json.loads(properties.get("masked_encrypted_extra", "{}"))
-                if encrypted.get("oauth2_client_info"):
-                    continue
-
                 errors.append(
                     SupersetError(
                         message=(

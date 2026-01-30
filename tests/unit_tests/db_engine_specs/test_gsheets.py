@@ -944,6 +944,7 @@ def test_validate_parameters_skips_oauth2_connections_with_parameters(
     errors = GSheetsEngineSpec.validate_parameters(properties)
 
     assert errors == []
+    conn.execute.assert_not_called()
 
 
 def test_validate_parameters_skips_oauth2_connections_with_masked_encrypted_extra(
@@ -987,3 +988,4 @@ def test_validate_parameters_skips_oauth2_connections_with_masked_encrypted_extr
     errors = GSheetsEngineSpec.validate_parameters(properties)
 
     assert errors == []
+    conn.execute.assert_not_called()
