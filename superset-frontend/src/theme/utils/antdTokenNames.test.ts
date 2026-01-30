@@ -51,6 +51,7 @@ test('isSupersetCustomToken identifies Superset-specific tokens', () => {
   expect(isSupersetCustomToken('brandLogoUrl')).toBe(true);
   expect(isSupersetCustomToken('brandSpinnerSvg')).toBe(true);
   expect(isSupersetCustomToken('fontSizeXS')).toBe(true);
+  expect(isSupersetCustomToken('fontUrls')).toBe(true);
 });
 
 test('isSupersetCustomToken returns false for Ant Design tokens', () => {
@@ -76,8 +77,8 @@ test('getAllValidTokenNames has reasonable token counts', () => {
   // Ant Design has ~500+ tokens
   expect(result.antdTokens.length).toBeGreaterThan(400);
 
-  // Superset has 15 custom tokens (from SupersetSpecificTokens interface)
-  expect(result.supersetTokens.length).toBe(15);
+  // Superset has 16 custom tokens (from SupersetSpecificTokens interface + fontUrls)
+  expect(result.supersetTokens.length).toBe(16);
 
   // Total should be sum of both
   expect(result.total).toBe(

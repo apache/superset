@@ -143,8 +143,26 @@ export class ThemeController {
     // Setup change callback
     if (onChange) this.onChangeCallbacks.add(onChange);
 
-    // Apply initial theme and persist mode
-    this.applyTheme(initialTheme);
+    // Apply initial theme with recovery for corrupted stored themes
+    try {
+      this.applyTheme(initialTheme);
+    } catch (error) {
+      // Corrupted dev override or CRUD theme in storage - clear and retry with defaults
+      console.warn(
+        'Failed to apply stored theme, clearing invalid overrides:',
+        error,
+      );
+      this.devThemeOverride = null;
+      this.crudThemeId = null;
+      this.storage.removeItem(STORAGE_KEYS.DEV_THEME_OVERRIDE);
+      this.storage.removeItem(STORAGE_KEYS.CRUD_THEME_ID);
+      this.storage.removeItem(STORAGE_KEYS.APPLIED_THEME_ID);
+
+      // Retry with clean default theme
+      this.currentMode = ThemeMode.DEFAULT;
+      const safeTheme = this.defaultTheme || {};
+      this.applyTheme(safeTheme);
+    }
     this.persistMode();
   }
 

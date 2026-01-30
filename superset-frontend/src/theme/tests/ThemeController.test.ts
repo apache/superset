@@ -833,6 +833,59 @@ test('ThemeController handles theme application errors', () => {
   fallbackSpy.mockRestore();
 });
 
+test('ThemeController constructor recovers from corrupted stored theme', () => {
+  // Simulate corrupted dev theme override in storage
+  const corruptedTheme = { token: { colorPrimary: '#ff0000' } };
+  mockLocalStorage.getItem.mockImplementation((key: string) => {
+    if (key === 'superset-dev-theme-override') {
+      return JSON.stringify(corruptedTheme);
+    }
+    return null;
+  });
+
+  // Mock Theme.fromConfig to return object with toSerializedConfig
+  mockThemeFromConfig.mockReturnValue({
+    ...mockThemeObject,
+    toSerializedConfig: () => corruptedTheme,
+  });
+
+  // First call throws (corrupted theme), second call succeeds (fallback)
+  let callCount = 0;
+  mockSetConfig.mockImplementation(() => {
+    callCount += 1;
+    if (callCount === 1) {
+      throw new Error('Invalid theme configuration');
+    }
+  });
+
+  const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
+
+  // Should not throw - constructor should recover
+  const controller = createController();
+
+  // Verify recovery happened
+  expect(consoleWarnSpy).toHaveBeenCalledWith(
+    'Failed to apply stored theme, clearing invalid overrides:',
+    expect.any(Error),
+  );
+
+  // Verify invalid overrides were cleared from storage
+  expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(
+    'superset-dev-theme-override',
+  );
+  expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(
+    'superset-crud-theme-id',
+  );
+  expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(
+    'superset-applied-theme-id',
+  );
+
+  // Verify controller is in a valid state
+  expect(controller.getCurrentMode()).toBe(ThemeMode.DEFAULT);
+
+  consoleWarnSpy.mockRestore();
+});
+
 // Cleanup tests
 test('ThemeController cleans up listeners on destroy', () => {
   const mockMediaQueryInstance = {

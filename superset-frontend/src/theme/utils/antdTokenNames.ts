@@ -45,6 +45,9 @@ const SUPERSET_CUSTOM_TOKENS: Set<string> = new Set([
   // ECharts tokens
   'echartsOptionsOverrides',
   'echartsOptionsOverridesByChartType',
+
+  // Font loading
+  'fontUrls',
 ]);
 
 /**
