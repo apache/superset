@@ -24,13 +24,14 @@ import TableCollection from '@superset-ui/core/components/TableCollection';
 import BulkTagModal from 'src/features/tags/BulkTagModal';
 import {
   Button,
+  Tooltip,
   Checkbox,
   Icons,
   EmptyState,
   Loading,
-  Pagination,
   type EmptyStateProps,
 } from '@superset-ui/core/components';
+import { Pagination } from 'antd';
 import CardCollection from './CardCollection';
 import FilterControls from './Filters';
 import { CardSortSelect } from './CardSortSelect';
@@ -201,31 +202,34 @@ const ViewModeToggle = ({
   setMode: (mode: 'table' | 'card') => void;
 }) => (
   <ViewModeContainer>
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={e => {
-        e.currentTarget.blur();
-        setMode('card');
-      }}
-      className={cx('toggle-button', { active: mode === 'card' })}
-    >
-      <Icons.AppstoreOutlined iconSize="xl" />
-    </div>
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={e => {
-        e.currentTarget.blur();
-        setMode('table');
-      }}
-      className={cx('toggle-button', { active: mode === 'table' })}
-    >
-      <Icons.UnorderedListOutlined iconSize="xl" />
-    </div>
+    <Tooltip title={t('Grid view')}>
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={e => {
+          e.currentTarget.blur();
+          setMode('card');
+        }}
+        className={cx('toggle-button', { active: mode === 'card' })}
+      >
+        <Icons.AppstoreOutlined iconSize="xl" />
+      </div>
+    </Tooltip>
+    <Tooltip title={t('List view')}>
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={e => {
+          e.currentTarget.blur();
+          setMode('table');
+        }}
+        className={cx('toggle-button', { active: mode === 'table' })}
+      >
+        <Icons.UnorderedListOutlined iconSize="xl" />
+      </div>
+    </Tooltip>
   </ViewModeContainer>
 );
-
 export interface ListViewProps<T extends object = any> {
   columns: any[];
   data: T[];
@@ -272,7 +276,7 @@ export function ListView<T extends object = any>({
   filters = [],
   bulkActions = [],
   bulkSelectEnabled = false,
-  disableBulkSelect = () => {},
+  disableBulkSelect = () => { },
   renderBulkSelectCopy = selected => t('%s Selected', selected.length),
   renderCard,
   showThumbnails,
@@ -463,7 +467,7 @@ export function ListView<T extends object = any>({
                     current={pageIndex + 1}
                     pageSize={pageSize}
                     total={count}
-                    onChange={page => {
+                    onChange={(page: number) => {
                       gotoPage(page - 1);
                     }}
                     size="default"
