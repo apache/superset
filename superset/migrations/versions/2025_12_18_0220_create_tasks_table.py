@@ -66,14 +66,12 @@ def upgrade():
         TASKS_TABLE,
         Column("id", Integer, primary_key=True),
         Column("uuid", String(36), nullable=False, unique=True),
-        Column("task_key", String(256), nullable=False),  # For deduplication
-        Column("task_type", String(100), nullable=False),  # e.g., 'sql_execution'
-        Column("task_name", String(256), nullable=True),  # Human readable name
-        Column(
-            "scope", String(20), nullable=False, server_default="private"
-        ),  # private/shared/system
-        Column("status", String(50), nullable=False),  # PENDING, IN_PROGRESS, etc.
-        Column("dedup_key", String(512), nullable=False),  # Computed deduplication key
+        Column("task_key", String(256), nullable=False),
+        Column("task_type", String(100), nullable=False),
+        Column("task_name", String(256), nullable=True),
+        Column("scope", String(20), nullable=False, server_default="private"),
+        Column("status", String(50), nullable=False),
+        Column("dedup_key", String(64), nullable=False),
         # AuditMixinNullable columns
         Column("created_on", DateTime, nullable=True),
         Column("changed_on", DateTime, nullable=True),
@@ -82,9 +80,9 @@ def upgrade():
         # Task-specific columns
         Column("started_at", DateTime, nullable=True),
         Column("ended_at", DateTime, nullable=True),
-        Column("user_id", Integer, nullable=True),  # User context for execution
-        Column("payload", Text, nullable=True),  # JSON serialized task-specific data
-        Column("properties", Text, nullable=True),  # JSON serialized properties
+        Column("user_id", Integer, nullable=True),
+        Column("payload", Text, nullable=True),
+        Column("properties", Text, nullable=True),
     )
 
     # Create indexes for optimal query performance
@@ -177,7 +175,6 @@ def downgrade():
     """
     Drop tasks and task_subscribers tables and all related indexes and foreign keys.
     """
-    # Drop task_subscribers table first (has FK to tasks)
     drop_fks_for_table(
         TASK_SUBSCRIBERS_TABLE,
         [
@@ -188,13 +185,9 @@ def downgrade():
         ],
     )
 
-    # Note: Unique constraint is dropped automatically with the table
-    # since it was created as part of the table definition
-
     drop_index(TASK_SUBSCRIBERS_TABLE, "idx_task_subscribers_user_id")
     drop_table(TASK_SUBSCRIBERS_TABLE)
 
-    # Drop tasks table
     drop_fks_for_table(
         TASKS_TABLE,
         [
@@ -203,7 +196,6 @@ def downgrade():
         ],
     )
 
-    # Drop indexes
     drop_index(TASKS_TABLE, "idx_tasks_dedup_key")
     drop_index(TASKS_TABLE, "idx_tasks_status")
     drop_index(TASKS_TABLE, "idx_tasks_scope")
@@ -213,5 +205,4 @@ def downgrade():
     drop_index(TASKS_TABLE, "idx_tasks_task_type")
     drop_index(TASKS_TABLE, "idx_tasks_uuid")
 
-    # Drop table
     drop_table(TASKS_TABLE)

@@ -34,6 +34,7 @@ from superset.tasks.utils import (
     progress_update,
     serialize_properties,
 )
+from superset.utils.hashing import hash_from_str
 
 FIXED_USER_ID = 1234
 FIXED_USERNAME = "admin"
@@ -342,7 +343,7 @@ def test_get_executor(
 
 
 @pytest.mark.parametrize(
-    "scope,task_type,task_key,user_id,expected",
+    "scope,task_type,task_key,user_id,expected_composite_key",
     [
         # Private tasks with TaskScope enum
         (
@@ -415,13 +416,24 @@ def test_get_executor(
         ),
     ],
 )
-def test_get_active_dedup_key(scope, task_type, task_key, user_id, expected, mocker):
-    """Test get_active_dedup_key generates correct format for all scopes"""
+def test_get_active_dedup_key(
+    scope, task_type, task_key, user_id, expected_composite_key, mocker, app_context
+):
+    """Test get_active_dedup_key generates a hash of the composite key.
+
+    The function hashes the composite key using the configured HASH_ALGORITHM
+    to produce a fixed-length dedup_key for database storage. The result is
+    truncated to 64 chars to fit the database column.
+    """
     # Mock get_user_id to return the specified user_id
     mocker.patch("superset.utils.core.get_user_id", return_value=user_id)
 
     result = get_active_dedup_key(scope, task_type, task_key)
-    assert result == expected
+
+    # The result should be a hash of the expected composite key, truncated to 64 chars
+    expected_hash = hash_from_str(expected_composite_key)[:64]
+    assert result == expected_hash
+    assert len(result) <= 64
 
 
 def test_get_active_dedup_key_private_requires_user_id(mocker):

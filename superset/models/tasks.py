@@ -76,8 +76,8 @@ class Task(CoreTask, AuditMixinNullable, Model):
         String(50), nullable=False, index=True, default=TaskStatus.PENDING.value
     )
     dedup_key = Column(
-        String(512), nullable=False, unique=True, index=True
-    )  # Computed deduplication key
+        String(64), nullable=False, unique=True, index=True
+    )  # Hashed deduplication key (SHA-256 = 64 chars, UUID = 36 chars)
 
     # Timestamps
     started_at = Column(DateTime, nullable=True)

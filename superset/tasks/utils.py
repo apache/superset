@@ -36,6 +36,7 @@ from superset.tasks.types import (
     FixedExecutor,
 )
 from superset.utils import json
+from superset.utils.hashing import hash_from_str
 from superset.utils.urls import get_url_path
 
 if TYPE_CHECKING:
@@ -174,32 +175,28 @@ def get_active_dedup_key(
     Build a deduplication key for active tasks.
 
     The dedup_key enforces uniqueness at the database level via a unique index.
-    Active tasks use a composite key based on scope, while finished tasks use
-    their UUID to free up the slot for new tasks.
+    Active tasks use a composite key based on scope, which is then hashed using
+    the configured HASH_ALGORITHM to produce a fixed-length key.
 
-    Format by scope:
+    The composite key format before hashing is:
     - Private: private|task_type|task_key|user_id
     - Shared: shared|task_type|task_key
     - System: system|task_type|task_key
+
+    The final key is a hash digest (64 chars for sha256, 32 chars for md5).
 
     :param scope: Task scope (PRIVATE/SHARED/SYSTEM) as TaskScope enum or string
     :param task_type: Type of task (e.g., 'sql_execution')
     :param task_key: Task identifier for deduplication
     :param user_id: User ID for private tasks (falls back to g.user if not provided)
-    :returns: Deduplication key string
+    :returns: Hashed deduplication key string
     :raises ValueError: If user_id is missing for private scope
-
-    Example:
-        >>> from superset_core.api.tasks import TaskScope
-        >>> get_active_dedup_key(TaskScope.PRIVATE, "sql_exec", "chart_123", user_id=1)
-        'private|sql_exec|chart_123|1'
-        >>> get_active_dedup_key(TaskScope.SHARED, "report", "monthly")
-        'shared|report|monthly'
     """
     # Convert string to TaskScope if needed
     if isinstance(scope, str):
         scope = TaskScope(scope)
 
+    # Build composite key
     match scope:
         case TaskScope.PRIVATE:
             # Use provided user_id, or fall back to current user from Flask context
@@ -210,13 +207,18 @@ def get_active_dedup_key(
                 effective_user_id = get_user_id()
             if effective_user_id is None:
                 raise ValueError("user_id required for private tasks")
-            return f"{scope.value}|{task_type}|{task_key}|{effective_user_id}"
+            composite_key = f"{scope.value}|{task_type}|{task_key}|{effective_user_id}"
         case TaskScope.SHARED:
-            return f"{scope.value}|{task_type}|{task_key}"
+            composite_key = f"{scope.value}|{task_type}|{task_key}"
         case TaskScope.SYSTEM:
-            return f"{scope.value}|{task_type}|{task_key}"
+            composite_key = f"{scope.value}|{task_type}|{task_key}"
         case _:
             raise ValueError(f"Invalid scope: {scope}")
+
+    # Hash the composite key to produce a fixed-length dedup_key
+    # Truncate to 64 chars max to fit the database column in case
+    # a hash algo is used that generates hashes that exceed 64 chars
+    return hash_from_str(composite_key)[:64]
 
 
 def get_finished_dedup_key(task_uuid: str) -> str:
