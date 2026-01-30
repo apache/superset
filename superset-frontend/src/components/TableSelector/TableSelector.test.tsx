@@ -77,7 +77,7 @@ afterEach(async () => {
   act(() => {
     store.dispatch(api.util.resetApiState());
   });
-  fetchMock.reset();
+  fetchMock.clearHistory().removeRoutes();
   // Wait for any pending effects to complete
   await new Promise(resolve => setTimeout(resolve, 0));
 });
@@ -289,4 +289,45 @@ test('TableOption renders correct icons for different table types', () => {
     <TableOption table={materializedViewTable} />,
   );
   expect(mvContainer.querySelector('.anticon')).toBeInTheDocument();
+});
+
+test('handles OAuth2 error by displaying ErrorMessageWithStackTrace instead of calling handleError', async () => {
+  const oauth2ErrorResponse = {
+    errors: [
+      {
+        error_type: 'OAUTH2_REDIRECT',
+        message: 'OAuth token needed.',
+        level: 'warning',
+        extra: {
+          url: 'https://oauth.example.com/authorize',
+          tab_id: 'test-tab-id',
+          redirect_uri: 'https://superset.example.com/oauth2/',
+        },
+      },
+    ],
+  };
+
+  fetchMock.get(catalogApiRoute, { result: [] });
+  fetchMock.get(schemaApiRoute, { result: ['test_schema'] });
+  fetchMock.get(tablesApiRoute, {
+    status: 500,
+    body: oauth2ErrorResponse,
+  });
+
+  const handleError = jest.fn();
+  const props = createProps({ handleError });
+  render(<TableSelector {...props} />, { useRedux: true, store });
+
+  // Wait for the API call to complete and error to be processed
+  await waitFor(
+    () => {
+      // The ErrorMessageWithStackTrace component should render when errors array is present
+      // handleError should NOT be called when errors array exists (OAuth2 pattern)
+      expect(handleError).not.toHaveBeenCalled();
+    },
+    { timeout: 10000 },
+  );
+
+  // Verify the error alert component is rendered
+  expect(screen.getByRole('alert')).toBeInTheDocument();
 });

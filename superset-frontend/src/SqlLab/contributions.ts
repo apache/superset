@@ -21,4 +21,6 @@ export enum ViewContribution {
   Panels = 'sqllab.panels',
   Editor = 'sqllab.editor',
   StatusBar = 'sqllab.statusBar',
+  Results = 'sqllab.results',
+  QueryHistory = 'sqllab.queryHistory',
 }

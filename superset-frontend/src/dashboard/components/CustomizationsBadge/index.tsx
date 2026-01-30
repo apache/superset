@@ -243,7 +243,7 @@ export const CustomizationsBadge = ({ chartId }: CustomizationsBadgeProps) => {
     <TooltipContent>
       <div>
         <SectionName>
-          {t('Chart Customization (%d)', effectiveCustomizations.length)}
+          {t('Display controls (%d)', effectiveCustomizations.length)}
         </SectionName>
         <GroupByInfo>
           {effectiveCustomizations.map(customization => {
@@ -291,7 +291,7 @@ export const CustomizationsBadge = ({ chartId }: CustomizationsBadgeProps) => {
     >
       <StyledTag
         ref={triggerRef}
-        aria-label={t('Chart customizations (%s)', customizationsCount)}
+        aria-label={t('Display controls (%s)', customizationsCount)}
         role="button"
         tabIndex={0}
       >

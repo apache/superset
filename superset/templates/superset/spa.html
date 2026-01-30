@@ -24,6 +24,8 @@
       {% block title %}
         {% if title %}
           {{ title }}
+        {% else %}
+          {{ default_title | default('Superset') }}
         {% endif %}
       {% endblock %}
     </title>
@@ -65,15 +67,16 @@
 
     {{ js_bundle(assets_prefix, 'theme') }}
 
+    {% block head_js %}
+      {% include "head_custom_extra.html" %}
+    {% endblock %}
+
     <input
       type="hidden"
       name="csrf_token"
       id="csrf_token"
       value="{{ csrf_token() if csrf_token else '' }}"
     />
-    {% block head_js %}
-      {% include "head_custom_extra.html" %}
-    {% endblock %}
   </head>
 
   <body {% if standalone_mode %}class="standalone"{% endif %}>

@@ -74,13 +74,13 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  fetchMock.reset();
+  fetchMock.clearHistory().removeRoutes();
 });
 
 test('sync the unsaved editor tab state when there are new changes since the last update', async () => {
   const updateEditorTabState = `glob:*/tabstateview/${defaultQueryEditor.id}`;
   fetchMock.put(updateEditorTabState, 200);
-  expect(fetchMock.calls(updateEditorTabState)).toHaveLength(0);
+  expect(fetchMock.callHistory.calls(updateEditorTabState)).toHaveLength(0);
   render(<EditorAutoSync />, {
     useRedux: true,
     initialState: {
@@ -91,14 +91,14 @@ test('sync the unsaved editor tab state when there are new changes since the las
   await act(async () => {
     jest.advanceTimersByTime(INTERVAL);
   });
-  expect(fetchMock.calls(updateEditorTabState)).toHaveLength(1);
-  fetchMock.restore();
+  expect(fetchMock.callHistory.calls(updateEditorTabState)).toHaveLength(1);
+  fetchMock.clearHistory().removeRoutes();
 });
 
 test('sync the unsaved NEW editor state when there are new in local storage', async () => {
   const createEditorTabState = `glob:*/tabstateview/`;
   fetchMock.post(createEditorTabState, { id: 123 });
-  expect(fetchMock.calls(createEditorTabState)).toHaveLength(0);
+  expect(fetchMock.callHistory.calls(createEditorTabState)).toHaveLength(0);
   render(<EditorAutoSync />, {
     useRedux: true,
     initialState: {
@@ -119,12 +119,14 @@ test('sync the unsaved NEW editor state when there are new in local storage', as
   await act(async () => {
     jest.advanceTimersByTime(INTERVAL);
   });
-  expect(fetchMock.calls(createEditorTabState)).toHaveLength(1);
-  fetchMock.restore();
+  expect(fetchMock.callHistory.calls(createEditorTabState)).toHaveLength(1);
+  fetchMock.clearHistory().removeRoutes();
 });
 
 test('sync the active editor id when there are updates in tab history', async () => {
-  expect(fetchMock.calls(updateActiveEditorTabState)).toHaveLength(0);
+  expect(fetchMock.callHistory.calls(updateActiveEditorTabState)).toHaveLength(
+    0,
+  );
   render(<EditorAutoSync />, {
     useRedux: true,
     initialState: {
@@ -147,18 +149,22 @@ test('sync the active editor id when there are updates in tab history', async ()
   await act(async () => {
     jest.advanceTimersByTime(INTERVAL);
   });
-  expect(fetchMock.calls(updateActiveEditorTabState)).toHaveLength(1);
+  expect(fetchMock.callHistory.calls(updateActiveEditorTabState)).toHaveLength(
+    1,
+  );
   await act(async () => {
     jest.advanceTimersByTime(INTERVAL);
   });
-  expect(fetchMock.calls(updateActiveEditorTabState)).toHaveLength(1);
+  expect(fetchMock.callHistory.calls(updateActiveEditorTabState)).toHaveLength(
+    1,
+  );
 });
 
 test('sync the destroyed editor id when there are updates in destroyed editors', async () => {
   const removeId = 'removed-tab-id';
   const deleteEditorState = `glob:*/tabstateview/${removeId}`;
   fetchMock.delete(deleteEditorState, { id: removeId });
-  expect(fetchMock.calls(deleteEditorState)).toHaveLength(0);
+  expect(fetchMock.callHistory.calls(deleteEditorState)).toHaveLength(0);
   render(<EditorAutoSync />, {
     useRedux: true,
     initialState: {
@@ -174,17 +180,17 @@ test('sync the destroyed editor id when there are updates in destroyed editors',
   await act(async () => {
     jest.advanceTimersByTime(INTERVAL);
   });
-  expect(fetchMock.calls(deleteEditorState)).toHaveLength(1);
+  expect(fetchMock.callHistory.calls(deleteEditorState)).toHaveLength(1);
   await act(async () => {
     jest.advanceTimersByTime(INTERVAL);
   });
-  expect(fetchMock.calls(deleteEditorState)).toHaveLength(1);
+  expect(fetchMock.callHistory.calls(deleteEditorState)).toHaveLength(1);
 });
 
 test('skip syncing the unsaved editor tab state when the updates are already synced', async () => {
   const updateEditorTabState = `glob:*/tabstateview/${defaultQueryEditor.id}`;
   fetchMock.put(updateEditorTabState, 200);
-  expect(fetchMock.calls(updateEditorTabState)).toHaveLength(0);
+  expect(fetchMock.callHistory.calls(updateEditorTabState)).toHaveLength(0);
   render(<EditorAutoSync />, {
     useRedux: true,
     initialState: {
@@ -203,8 +209,8 @@ test('skip syncing the unsaved editor tab state when the updates are already syn
   await act(async () => {
     jest.advanceTimersByTime(INTERVAL);
   });
-  expect(fetchMock.calls(updateEditorTabState)).toHaveLength(0);
-  fetchMock.restore();
+  expect(fetchMock.callHistory.calls(updateEditorTabState)).toHaveLength(0);
+  fetchMock.clearHistory().removeRoutes();
 });
 
 test('renders an error toast when the sync failed', async () => {
@@ -212,7 +218,7 @@ test('renders an error toast when the sync failed', async () => {
   fetchMock.put(updateEditorTabState, {
     throws: new Error('errorMessage'),
   });
-  expect(fetchMock.calls(updateEditorTabState)).toHaveLength(0);
+  expect(fetchMock.callHistory.calls(updateEditorTabState)).toHaveLength(0);
   render(
     <>
       <EditorAutoSync />
@@ -235,5 +241,5 @@ test('renders an error toast when the sync failed', async () => {
     'An error occurred while saving your editor state.',
     expect.anything(),
   );
-  fetchMock.restore();
+  fetchMock.clearHistory().removeRoutes();
 });

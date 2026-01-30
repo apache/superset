@@ -26,172 +26,6 @@ export default {
   title: 'Design System/Components/Grid',
   component: Row,
   subcomponents: { Col },
-  argTypes: {
-    // Row properties
-    align: {
-      control: 'select',
-      options: ['top', 'middle', 'bottom', 'stretch'],
-      description: 'Vertical alignment of flex items.',
-      defaultValue: 'top',
-      table: {
-        category: 'Row',
-        type: { summary: 'string' },
-        defaultValue: { summary: 'top' },
-      },
-    },
-    justify: {
-      control: 'select',
-      options: [
-        'start',
-        'end',
-        'center',
-        'space-around',
-        'space-between',
-        'space-evenly',
-      ],
-      description: 'Horizontal arrangement of flex items.',
-      defaultValue: undefined,
-      table: {
-        category: 'Row',
-        type: { summary: 'string' },
-        defaultValue: { summary: 'start' },
-      },
-    },
-    gutter: {
-      control: false,
-      description: 'Spacing between grids (horizontal and vertical).',
-      defaultValue: 0,
-      table: {
-        category: 'Row',
-        type: { summary: 'number | object | array' },
-        defaultValue: { summary: '0' },
-      },
-    },
-    wrap: {
-      control: 'boolean',
-      description: 'Whether the flex container is allowed to wrap its items.',
-      defaultValue: true,
-      table: {
-        category: 'Row',
-        type: { summary: 'boolean' },
-        defaultValue: { summary: 'true' },
-      },
-    },
-    // Col properties
-    span: {
-      control: 'number',
-      description: 'Number of grid columns to span.',
-      defaultValue: 24,
-      table: {
-        category: 'Col',
-        type: { summary: 'number' },
-        defaultValue: { summary: 24 },
-      },
-    },
-    offset: {
-      control: 'number',
-      description: 'Number of grid columns to offset from the left.',
-      defaultValue: 0,
-      table: {
-        category: 'Col',
-        type: { summary: 'number' },
-        defaultValue: { summary: 0 },
-      },
-    },
-    order: {
-      control: 'number',
-      description: 'Flex order style of the grid column.',
-      defaultValue: 0,
-      table: {
-        category: 'Col',
-        type: { summary: 'number' },
-        defaultValue: { summary: 0 },
-      },
-    },
-    pull: {
-      control: 'number',
-      description: 'Number of grid columns to pull to the left.',
-      defaultValue: 0,
-      table: {
-        category: 'Col',
-        type: { summary: 'number' },
-        defaultValue: { summary: 0 },
-      },
-    },
-    push: {
-      control: 'number',
-      description: 'Number of grid columns to push to the right.',
-      defaultValue: 0,
-      table: {
-        category: 'Col',
-        type: { summary: 'number' },
-        defaultValue: { summary: 0 },
-      },
-    },
-    flex: {
-      control: 'text',
-      description: 'Flex layout style for the column.',
-      table: {
-        category: 'Col',
-        type: { summary: 'string | number' },
-      },
-    },
-    // Responsive properties (xs, sm, md, etc.)
-    xs: {
-      control: 'number',
-      description:
-        'Settings for extra small screens (< 576px). Can be a number (span) or object.',
-      table: {
-        category: 'Col',
-        type: { summary: 'number | object' },
-      },
-    },
-    sm: {
-      control: 'number',
-      description:
-        'Settings for small screens (≥ 576px). Can be a number (span) or object.',
-      table: {
-        category: 'Col',
-        type: { summary: 'number | object' },
-      },
-    },
-    md: {
-      control: 'number',
-      description:
-        'Settings for medium screens (≥ 768px). Can be a number (span) or object.',
-      table: {
-        category: 'Col',
-        type: { summary: 'number | object' },
-      },
-    },
-    lg: {
-      control: 'number',
-      description:
-        'Settings for large screens (≥ 992px). Can be a number (span) or object.',
-      table: {
-        category: 'Col',
-        type: { summary: 'number | object' },
-      },
-    },
-    xl: {
-      control: 'number',
-      description:
-        'Settings for extra-large screens (≥ 1200px). Can be a number (span) or object.',
-      table: {
-        category: 'Col',
-        type: { summary: 'number | object' },
-      },
-    },
-    xxl: {
-      control: 'number',
-      description:
-        'Settings for extra-extra-large screens (≥ 1600px). Can be a number (span) or object.',
-      table: {
-        category: 'Col',
-        type: { summary: 'number | object' },
-      },
-    },
-  },
   parameters: {
     docs: {
       description: {
@@ -204,6 +38,230 @@ export default {
 
 type Story = StoryObj<typeof Row>;
 
+export const InteractiveGrid: Story = {
+  args: {
+    align: 'top',
+    justify: 'start',
+    wrap: true,
+    gutter: 16,
+  },
+  argTypes: {
+    align: {
+      control: 'select',
+      options: ['top', 'middle', 'bottom', 'stretch'],
+      description: 'Vertical alignment of columns within the row.',
+    },
+    justify: {
+      control: 'select',
+      options: [
+        'start',
+        'end',
+        'center',
+        'space-around',
+        'space-between',
+        'space-evenly',
+      ],
+      description: 'Horizontal distribution of columns within the row.',
+    },
+    wrap: {
+      control: 'boolean',
+      description: 'Whether columns are allowed to wrap to the next line.',
+    },
+    gutter: {
+      control: 'number',
+      description: 'Spacing between columns in pixels.',
+    },
+  },
+  render: ({ align, justify, wrap, ...rest }: RowProps & ColProps) => {
+    const [gutter, setGutter] = useState(24);
+    const [vgutter, setVgutter] = useState(24);
+    const [colCount, setColCount] = useState(4);
+    const rowProps = { align, justify, wrap };
+    const colProps = rest;
+
+    const cols = Array.from({ length: colCount }, (_, i) => (
+      <Col
+        key={i}
+        style={{
+          background: '#ddd',
+          padding: '8px',
+        }}
+        {...colProps}
+      >
+        Column {i + 1}
+      </Col>
+    ));
+
+    return (
+      <div style={{ padding: '20px' }}>
+        <div style={{ marginBottom: '16px' }}>
+          <span>Horizontal Gutter: </span>
+          <Slider
+            min={8}
+            max={48}
+            step={8}
+            value={gutter}
+            onChange={setGutter}
+          />
+        </div>
+        <div style={{ marginBottom: '16px' }}>
+          <span>Vertical Gutter: </span>
+          <Slider
+            min={8}
+            max={48}
+            step={8}
+            value={vgutter}
+            onChange={setVgutter}
+          />
+        </div>
+        <div style={{ marginBottom: '16px' }}>
+          <span>Column Count: </span>
+          <Slider
+            min={2}
+            max={12}
+            step={1}
+            value={colCount}
+            onChange={setColCount}
+          />
+        </div>
+        <Row gutter={[gutter, vgutter]} {...rowProps}>
+          {cols}
+        </Row>
+      </div>
+    );
+  },
+};
+
+InteractiveGrid.parameters = {
+  docs: {
+    renderComponent: 'Row',
+    sampleChildren: [
+      {
+        component: 'Col',
+        props: {
+          span: 4,
+          children: 'col-4',
+          style: {
+            background: '#e6f4ff',
+            padding: '8px',
+            border: '1px solid #91caff',
+            textAlign: 'center',
+          },
+        },
+      },
+      {
+        component: 'Col',
+        props: {
+          span: 4,
+          children: 'col-4 (tall)',
+          style: {
+            background: '#e6f4ff',
+            padding: '24px 8px',
+            border: '1px solid #91caff',
+            textAlign: 'center',
+          },
+        },
+      },
+      {
+        component: 'Col',
+        props: {
+          span: 4,
+          children: 'col-4',
+          style: {
+            background: '#e6f4ff',
+            padding: '8px',
+            border: '1px solid #91caff',
+            textAlign: 'center',
+          },
+        },
+      },
+    ],
+    description: {
+      story:
+        'Grid layout system based on 24 columns with configurable gutters.',
+    },
+    liveExample: `function Demo() {
+  return (
+    <Row gutter={[16, 16]}>
+      <Col span={12}>
+        <div style={{ background: '#e6f4ff', padding: '8px', border: '1px solid #91caff' }}>col-12</div>
+      </Col>
+      <Col span={12}>
+        <div style={{ background: '#e6f4ff', padding: '8px', border: '1px solid #91caff' }}>col-12</div>
+      </Col>
+      <Col span={8}>
+        <div style={{ background: '#e6f4ff', padding: '8px', border: '1px solid #91caff' }}>col-8</div>
+      </Col>
+      <Col span={8}>
+        <div style={{ background: '#e6f4ff', padding: '8px', border: '1px solid #91caff' }}>col-8</div>
+      </Col>
+      <Col span={8}>
+        <div style={{ background: '#e6f4ff', padding: '8px', border: '1px solid #91caff' }}>col-8</div>
+      </Col>
+    </Row>
+  );
+}`,
+    examples: [
+      {
+        title: 'Responsive Grid',
+        code: `function ResponsiveGrid() {
+  return (
+    <Row gutter={[16, 16]}>
+      <Col xs={24} sm={12} md={8} lg={6}>
+        <div style={{ background: '#e6f4ff', padding: '16px', border: '1px solid #91caff', textAlign: 'center' }}>
+          Responsive
+        </div>
+      </Col>
+      <Col xs={24} sm={12} md={8} lg={6}>
+        <div style={{ background: '#e6f4ff', padding: '16px', border: '1px solid #91caff', textAlign: 'center' }}>
+          Responsive
+        </div>
+      </Col>
+      <Col xs={24} sm={12} md={8} lg={6}>
+        <div style={{ background: '#e6f4ff', padding: '16px', border: '1px solid #91caff', textAlign: 'center' }}>
+          Responsive
+        </div>
+      </Col>
+      <Col xs={24} sm={12} md={8} lg={6}>
+        <div style={{ background: '#e6f4ff', padding: '16px', border: '1px solid #91caff', textAlign: 'center' }}>
+          Responsive
+        </div>
+      </Col>
+    </Row>
+  );
+}`,
+      },
+      {
+        title: 'Alignment',
+        code: `function AlignmentDemo() {
+  const boxStyle = { background: '#e6f4ff', padding: '16px 0', border: '1px solid #91caff', textAlign: 'center' };
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <Row justify="start" gutter={8}>
+        <Col span={4}><div style={boxStyle}>start</div></Col>
+        <Col span={4}><div style={boxStyle}>start</div></Col>
+      </Row>
+      <Row justify="center" gutter={8}>
+        <Col span={4}><div style={boxStyle}>center</div></Col>
+        <Col span={4}><div style={boxStyle}>center</div></Col>
+      </Row>
+      <Row justify="end" gutter={8}>
+        <Col span={4}><div style={boxStyle}>end</div></Col>
+        <Col span={4}><div style={boxStyle}>end</div></Col>
+      </Row>
+      <Row justify="space-between" gutter={8}>
+        <Col span={4}><div style={boxStyle}>between</div></Col>
+        <Col span={4}><div style={boxStyle}>between</div></Col>
+      </Row>
+    </div>
+  );
+}`,
+      },
+    ],
+  },
+};
+
+// Keep original for backwards compatibility
 export const GridStory: Story = {
   render: ({ align, justify, wrap, ...rest }: RowProps & ColProps) => {
     const [gutter, setGutter] = useState(24);

@@ -22,6 +22,7 @@ import { select as d3Select } from 'd3-selection';
 import { getSequentialSchemeRegistry } from '@superset-ui/core';
 import { t } from '@apache-superset/core/ui';
 import CalHeatMap from './vendor/cal-heatmap';
+import { convertUTCTimestampToLocal } from './utils';
 
 const propTypes = {
   data: PropTypes.shape({
@@ -105,7 +106,7 @@ function Calendar(element, props) {
 
     const cal = new CalHeatMap();
     cal.init({
-      start: data.start,
+      start: convertUTCTimestampToLocal(data.start),
       data: timestamps,
       itemSelector: calContainer.node(),
       legendVerticalPosition: 'top',
