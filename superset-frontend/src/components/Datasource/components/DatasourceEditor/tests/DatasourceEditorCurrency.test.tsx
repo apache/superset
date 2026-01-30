@@ -23,6 +23,7 @@ import {
   userEvent,
   selectOption,
 } from 'spec/helpers/testing-library';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import type { DatasetObject } from 'src/features/datasets/types';
 import {
   createProps,
@@ -60,24 +61,24 @@ const setupCurrencySection = async () => {
 
   // Navigate to metrics tab - use findBy which has built-in waiting
   const metricButton = await screen.findByTestId('collection-tab-Metrics');
-  await userEvent.click(metricButton);
+  userEvent.click(metricButton);
 
   // Expand the metric row
   const expandToggles = await screen.findAllByLabelText(/expand row/i);
-  await userEvent.click(expandToggles[0]);
+  userEvent.click(expandToggles[0]);
 
   // Wait for currency section to be visible
   await screen.findByText('Metric currency');
 };
 
 beforeEach(() => {
-  fetchMock.get(DATASOURCE_ENDPOINT, [], { overwriteRoutes: true });
+  fetchMock.get(DATASOURCE_ENDPOINT, [], { name: DATASOURCE_ENDPOINT });
   setupDatasourceEditorMocks();
 });
 
 afterEach(async () => {
   await cleanupAsyncOperations();
-  fetchMock.restore();
+  fetchMock.clearHistory().removeRoutes();
 });
 
 test('renders currency section in metrics tab', async () => {
@@ -135,4 +136,70 @@ test('changes currency symbol from USD to GBP', async () => {
     (m: MetricType) => m.currency?.symbol === 'GBP',
   );
   expect(updatedMetric?.currency?.symbolPosition).toBe('prefix');
+}, 60000);
+
+test('currency code column dropdown shows only string columns', async () => {
+  const baseProps = createProps();
+  const testProps = {
+    ...baseProps,
+    datasource: {
+      ...baseProps.datasource,
+      columns: [
+        {
+          id: 100,
+          type: 'VARCHAR(255)',
+          type_generic: GenericDataType.String,
+          filterable: true,
+          is_dttm: false,
+          is_active: true,
+          expression: '',
+          groupby: true,
+          column_name: 'currency_code',
+        },
+        {
+          id: 101,
+          type: 'DECIMAL',
+          type_generic: GenericDataType.Numeric,
+          filterable: false,
+          is_dttm: false,
+          is_active: true,
+          expression: '',
+          groupby: false,
+          column_name: 'amount',
+        },
+        ...baseProps.datasource.columns,
+      ],
+    },
+    onChange: jest.fn(),
+  };
+
+  fastRender(testProps);
+  await dismissDatasourceWarning();
+
+  // Navigate to columns tab
+  const columnsTab = await screen.findByTestId('collection-tab-Columns');
+  await userEvent.click(columnsTab);
+
+  // Find the currency code column dropdown
+  const currencyCodeDropdown = await screen.findByRole('combobox', {
+    name: 'Currency code column',
+  });
+
+  await userEvent.click(currencyCodeDropdown);
+
+  // Verify STRING column is available
+  await waitFor(() => {
+    const options = document.querySelectorAll('.ant-select-item-option');
+    const currencyCodeOption = Array.from(options).find(o =>
+      o.textContent?.includes('currency_code'),
+    );
+    expect(currencyCodeOption).toBeDefined();
+  });
+
+  // Verify NUMERIC column is NOT available
+  const options = document.querySelectorAll('.ant-select-item-option');
+  const amountOption = Array.from(options).find(o =>
+    o.textContent?.includes('amount'),
+  );
+  expect(amountOption).toBeUndefined();
 }, 60000);

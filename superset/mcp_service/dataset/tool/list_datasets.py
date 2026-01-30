@@ -149,16 +149,16 @@ async def list_datasets(request: ListDatasetsRequest, ctx: Context) -> DatasetLi
         )
 
         # Apply field filtering via serialization context
-        # Use columns_requested from result (already resolved by ModelListCore)
+        # Always use columns_requested (either explicit select_columns or defaults)
+        # This triggers DatasetInfo._filter_fields_by_context for each dataset
         columns_to_filter = result.columns_requested
         await ctx.debug(
-            "Applying field filtering via serialization context: select_columns=%s"
+            "Applying field filtering via serialization context: columns=%s"
             % (columns_to_filter,)
         )
-        filtered = result.model_dump(
+        return result.model_dump(
             mode="json", context={"select_columns": columns_to_filter}
         )
-        return DatasetList.model_validate(filtered)
 
     except Exception as e:
         await ctx.error(

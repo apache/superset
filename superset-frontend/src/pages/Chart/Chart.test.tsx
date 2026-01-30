@@ -68,7 +68,7 @@ describe('ChartPage', () => {
   });
 
   afterEach(() => {
-    fetchMock.reset();
+    fetchMock.clearHistory().removeRoutes();
   });
 
   it('fetches metadata on mount', async () => {
@@ -86,7 +86,7 @@ describe('ChartPage', () => {
       useDnd: true,
     });
     await waitFor(() =>
-      expect(fetchMock.calls(exploreApiRoute).length).toBe(1),
+      expect(fetchMock.callHistory.calls(exploreApiRoute).length).toBe(1),
     );
     expect(getByTestId('mock-explore-chart-panel')).toBeInTheDocument();
     expect(getByTestId('mock-explore-chart-panel')).toHaveTextContent(
@@ -132,8 +132,10 @@ describe('ChartPage', () => {
         timeout: 5000,
       },
     );
-    expect(fetchMock.calls(chartApiRoute).length).toEqual(0);
-    expect(fetchMock.calls(exploreApiRoute).length).toBeGreaterThanOrEqual(1);
+    expect(fetchMock.callHistory.calls(chartApiRoute).length).toEqual(0);
+    expect(
+      fetchMock.callHistory.calls(exploreApiRoute).length,
+    ).toBeGreaterThanOrEqual(1);
   });
 
   it('fetches the chart api when explore metadata is prohibited and access from the chart link', async () => {
@@ -168,10 +170,15 @@ describe('ChartPage', () => {
       useRedux: true,
       useDnd: true,
     });
-    await waitFor(() => expect(fetchMock.calls(chartApiRoute).length).toBe(1), {
-      timeout: 5000,
-    });
-    expect(fetchMock.calls(exploreApiRoute).length).toBeGreaterThanOrEqual(1);
+    await waitFor(
+      () => expect(fetchMock.callHistory.calls(chartApiRoute).length).toBe(1),
+      {
+        timeout: 5000,
+      },
+    );
+    expect(
+      fetchMock.callHistory.calls(exploreApiRoute).length,
+    ).toBeGreaterThanOrEqual(1);
     expect(getByTestId('mock-explore-chart-panel')).toBeInTheDocument();
     expect(getByTestId('mock-explore-chart-panel')).toHaveTextContent(
       JSON.stringify({ datasource: 123 }).slice(1, -1),
@@ -218,7 +225,7 @@ describe('ChartPage', () => {
         useDnd: true,
       });
       await waitFor(() =>
-        expect(fetchMock.calls(exploreApiRoute).length).toBe(1),
+        expect(fetchMock.callHistory.calls(exploreApiRoute).length).toBe(1),
       );
       expect(getByTestId('mock-explore-chart-panel')).toHaveTextContent(
         JSON.stringify({ color_scheme: dashboardFormData.color_scheme }).slice(
@@ -266,7 +273,7 @@ describe('ChartPage', () => {
         },
       );
       await waitFor(() =>
-        expect(fetchMock.calls(exploreApiRoute).length).toBe(1),
+        expect(fetchMock.callHistory.calls(exploreApiRoute).length).toBe(1),
       );
       expect(getByTestId('mock-explore-chart-panel')).toHaveTextContent(
         JSON.stringify({
@@ -277,13 +284,13 @@ describe('ChartPage', () => {
         ...exploreFormData,
         show_cell_bars: false,
       };
-      fetchMock.reset();
+      fetchMock.clearHistory().removeRoutes();
       fetchMock.get(exploreApiRoute, {
         result: { dataset: { id: 1 }, form_data: updatedExploreFormData },
       });
       fireEvent.click(screen.getByText('Change route'));
       await waitFor(() =>
-        expect(fetchMock.calls(exploreApiRoute).length).toBe(1),
+        expect(fetchMock.callHistory.calls(exploreApiRoute).length).toBe(1),
       );
       expect(getByTestId('mock-explore-chart-panel')).toHaveTextContent(
         JSON.stringify({

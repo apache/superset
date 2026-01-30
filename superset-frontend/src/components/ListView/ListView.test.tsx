@@ -21,7 +21,6 @@ import userEvent from '@testing-library/user-event';
 import { QueryParamProvider } from 'use-query-params';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
-import fetchMock from 'fetch-mock';
 import { ReactNode } from 'react';
 import { ListView, type ListViewProps } from './ListView';
 import { ListViewFilterOperator, type ListViewFetchDataConfig } from './types';
@@ -225,13 +224,11 @@ const factory = (overrides?: Partial<ListViewProps>) => {
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ListView', () => {
   beforeEach(() => {
-    fetchMock.reset();
     jest.clearAllMocks();
     factory();
   });
 
   afterEach(() => {
-    fetchMock.reset();
     mockedPropsComprehensive.fetchData.mockClear();
     mockedPropsComprehensive.bulkActions.forEach(ba => {
       ba.onSelect.mockClear();

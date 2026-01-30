@@ -77,7 +77,6 @@ x-common-build: &common-build
     INCLUDE_CHROMIUM: ${INCLUDE_CHROMIUM:-false}
     INCLUDE_FIREFOX: ${INCLUDE_FIREFOX:-false}
     BUILD_TRANSLATIONS: ${BUILD_TRANSLATIONS:-false}
-    LOAD_EXAMPLES_DUCKDB: ${LOAD_EXAMPLES_DUCKDB:-true}
 
 services:
   db-light:
@@ -116,7 +115,6 @@ services:
       DATABASE_HOST: db-light
       DATABASE_DB: superset_light
       POSTGRES_DB: superset_light
-      SUPERSET__SQLALCHEMY_EXAMPLES_URI: "duckdb:////app/data/examples.duckdb"
       SUPERSET_CONFIG_PATH: /app/docker/pythonpath_dev/superset_config_docker_light.py
       GITHUB_HEAD_REF: ${GITHUB_HEAD_REF:-}
       GITHUB_SHA: ${GITHUB_SHA:-}
@@ -139,7 +137,6 @@ services:
       DATABASE_HOST: db-light
       DATABASE_DB: superset_light
       POSTGRES_DB: superset_light
-      SUPERSET__SQLALCHEMY_EXAMPLES_URI: "duckdb:////app/data/examples.duckdb"
       SUPERSET_CONFIG_PATH: /app/docker/pythonpath_dev/superset_config_docker_light.py
     healthcheck:
       disable: true
@@ -196,7 +193,6 @@ services:
       DATABASE_DB: test
       POSTGRES_DB: test
       SUPERSET__SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://superset:superset@db-light:5432/test
-      SUPERSET__SQLALCHEMY_EXAMPLES_URI: "duckdb:////app/data/examples.duckdb"
       SUPERSET_CONFIG: superset_test_config_light
       PYTHONPATH: /app/pythonpath:/app/docker/pythonpath_dev:/app
 

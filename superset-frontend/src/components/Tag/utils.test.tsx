@@ -42,11 +42,11 @@ describe('tagToSelectOption', () => {
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('loadTags', () => {
   beforeEach(() => {
-    fetchMock.reset();
+    fetchMock.clearHistory().removeRoutes();
   });
 
   afterEach(() => {
-    fetchMock.restore();
+    fetchMock.clearHistory().removeRoutes();
   });
 
   it('constructs correct API query with custom tag filter', async () => {
@@ -63,10 +63,10 @@ describe('loadTags', () => {
     await loadTags('analytics', 0, 25);
 
     // Verify the API was called with correct parameters
-    const calls = fetchMock.calls();
+    const calls = fetchMock.callHistory.calls();
     expect(calls).toHaveLength(1);
 
-    const [url] = calls[0];
+    const { url } = calls[0];
     expect(url).toContain('/api/v1/tag/?q=');
 
     // Extract and decode the query parameter
@@ -118,8 +118,8 @@ describe('loadTags', () => {
 
     await loadTags('financial-data', 0, 25);
 
-    const calls = fetchMock.calls();
-    const [url] = calls[0];
+    const calls = fetchMock.callHistory.calls();
+    const { url } = calls[0];
     const urlObj = new URL(url);
     const queryParam = urlObj.searchParams.get('q');
     expect(queryParam).not.toBeNull();
@@ -141,8 +141,8 @@ describe('loadTags', () => {
 
     await loadTags('', 2, 10);
 
-    const calls = fetchMock.calls();
-    const [url] = calls[0];
+    const calls = fetchMock.callHistory.calls();
+    const { url } = calls[0];
     const urlObj = new URL(url);
     const queryParam = urlObj.searchParams.get('q');
     expect(queryParam).not.toBeNull();
@@ -163,11 +163,11 @@ describe('loadTags', () => {
     await loadTags('search-term', 1, 50);
     await loadTags('another-search', 5, 100);
 
-    const calls = fetchMock.calls();
+    const calls = fetchMock.callHistory.calls();
 
     // Verify all calls include the custom tag filter
     calls.forEach(call => {
-      const [url] = call;
+      const { url } = calls[0];
       const urlObj = new URL(url);
       const queryParam = urlObj.searchParams.get('q');
       expect(queryParam).not.toBeNull();
@@ -190,8 +190,8 @@ describe('loadTags', () => {
 
     await loadTags('test', 0, 25);
 
-    const calls = fetchMock.calls();
-    const [url] = calls[0];
+    const calls = fetchMock.callHistory.calls();
+    const { url } = calls[0];
     const urlObj = new URL(url);
     const queryParam = urlObj.searchParams.get('q');
     expect(queryParam).not.toBeNull();

@@ -144,9 +144,6 @@ const createProps = (additionalProps = {}) => ({
 fetchMock.post(
   'http://api/v1/chart/data?form_data=%7B%22slice_id%22%3A318%7D',
   { body: {} },
-  {
-    sendAsJson: false,
-  },
 );
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ExploreChartHeader', () => {
@@ -382,6 +379,34 @@ describe('ExploreChartHeader', () => {
     userEvent.click(closeButton);
 
     expect(setShowModal).toHaveBeenCalledWith(false);
+  });
+
+  it('renders Matrixify tag when matrixify is enabled', async () => {
+    const props = createProps({
+      formData: {
+        ...createProps().chart.latestQueryFormData,
+        matrixify_enable_vertical_layout: true,
+        matrixify_mode_rows: 'metrics',
+        matrixify_rows: [{ label: 'COUNT(*)', expressionType: 'SIMPLE' }],
+      },
+    });
+    render(<ExploreHeader {...props} />, { useRedux: true });
+
+    const matrixifyTag = await screen.findByText('Matrixified');
+    expect(matrixifyTag).toBeInTheDocument();
+  });
+
+  it('does not render Matrixify tag when matrixify is disabled', async () => {
+    const props = createProps({
+      formData: {
+        ...createProps().chart.latestQueryFormData,
+      },
+    });
+    render(<ExploreHeader {...props} />, { useRedux: true });
+
+    await waitFor(() => {
+      expect(screen.queryByText('Matrixified')).not.toBeInTheDocument();
+    });
   });
 });
 

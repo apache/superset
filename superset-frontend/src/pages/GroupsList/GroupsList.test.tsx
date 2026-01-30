@@ -44,6 +44,7 @@ const mockUser = {
 
 const rolesEndpoint = 'glob:*/security/roles/?*';
 const usersEndpoint = 'glob:*/security/users/?*';
+const groupsEndpoint = 'glob:*/security/groups/*';
 
 const mockRoles = Array.from({ length: 3 }, (_, i) => ({
   id: i,
@@ -65,9 +66,11 @@ fetchMock.get(rolesEndpoint, {
   count: 3,
 });
 
+fetchMock.get(groupsEndpoint, { result: [] });
+
 jest.mock('src/dashboard/util/permissionUtils', () => ({
   ...jest.requireActual('src/dashboard/util/permissionUtils'),
-  isUserAdmin: jest.fn(() => true),
+  isUserAdmin: () => true,
 }));
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
@@ -86,7 +89,7 @@ describe('GroupsList', () => {
   };
 
   beforeEach(() => {
-    fetchMock.resetHistory();
+    fetchMock.clearHistory();
   });
 
   it('renders the page', async () => {
@@ -97,7 +100,9 @@ describe('GroupsList', () => {
   it('fetches roles on load', async () => {
     await renderComponent();
     await waitFor(() => {
-      expect(fetchMock.calls(rolesEndpoint).length).toBeGreaterThan(0);
+      expect(fetchMock.callHistory.calls(rolesEndpoint).length).toBeGreaterThan(
+        0,
+      );
     });
   });
 

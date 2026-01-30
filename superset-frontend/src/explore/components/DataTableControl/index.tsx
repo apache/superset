@@ -164,6 +164,7 @@ const DataTableTemporalHeaderCell = ({
   onTimeColumnChange,
   datasourceId,
   isOriginalTimeColumn,
+  displayLabel,
 }: {
   columnName: string;
   onTimeColumnChange: (
@@ -172,6 +173,7 @@ const DataTableTemporalHeaderCell = ({
   ) => void;
   datasourceId?: string;
   isOriginalTimeColumn: boolean;
+  displayLabel?: string;
 }) => {
   const theme = useTheme();
 
@@ -215,10 +217,10 @@ const DataTableTemporalHeaderCell = ({
           onClick={(e: React.MouseEvent<HTMLElement>) => e.stopPropagation()}
         />
       </Popover>
-      {columnName}
+      {displayLabel ?? columnName}
     </span>
   ) : (
-    <span>{columnName}</span>
+    <span>{displayLabel ?? columnName}</span>
   );
 };
 
@@ -258,6 +260,7 @@ export const useTableColumns = (
   isVisible?: boolean,
   moreConfigs?: { [key: string]: Partial<Column> },
   allowHTML?: boolean,
+  columnDisplayNames?: Record<string, string>,
 ) => {
   const [originalFormattedTimeColumns, setOriginalFormattedTimeColumns] =
     useState<string[]>(getTimeColumns(datasourceId));
@@ -302,6 +305,7 @@ export const useTableColumns = (
             .map((key, index) => {
               const colType = coltypes?.[index];
               const firstValue = data[0][key];
+              const headerLabel = columnDisplayNames?.[key] ?? key;
               const originalFormattedTimeColumnIndex =
                 colType === GenericDataType.Temporal
                   ? originalFormattedTimeColumns.indexOf(key)
@@ -320,9 +324,10 @@ export const useTableColumns = (
                       datasourceId={datasourceId}
                       onTimeColumnChange={onTimeColumnChange}
                       isOriginalTimeColumn={isOriginalTimeColumn}
+                      displayLabel={headerLabel}
                     />
                   ) : (
-                    key
+                    headerLabel
                   ),
                 Cell: ({ value }) => {
                   if (value === true) {
@@ -357,6 +362,7 @@ export const useTableColumns = (
       datasourceId,
       moreConfigs,
       originalFormattedTimeColumns,
+      columnDisplayNames,
     ],
   );
 };

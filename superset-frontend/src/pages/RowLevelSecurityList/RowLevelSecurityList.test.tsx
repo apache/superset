@@ -86,8 +86,16 @@ const mockRules = [
     ],
   },
 ];
-fetchMock.get(ruleListEndpoint, { result: mockRules, count: 2 });
-fetchMock.get(ruleInfoEndpoint, { permissions: ['can_read', 'can_write'] });
+fetchMock.get(
+  ruleListEndpoint,
+  { result: mockRules, count: 2 },
+  { name: ruleListEndpoint },
+);
+fetchMock.get(
+  ruleInfoEndpoint,
+  { permissions: ['can_read', 'can_write'] },
+  { name: ruleInfoEndpoint },
+);
 global.URL.createObjectURL = jest.fn();
 
 const mockUser = {
@@ -122,31 +130,27 @@ describe('RuleList RTL', () => {
   });
 
   it('fetched data', async () => {
-    fetchMock.resetHistory();
+    fetchMock.clearHistory();
     await renderAndWait();
-    const apiCalls = fetchMock.calls(/rowlevelsecurity\/\?q/);
+    const apiCalls = fetchMock.callHistory.calls(/rowlevelsecurity\/\?q/);
     expect(apiCalls).toHaveLength(1);
-    expect(apiCalls[0][0]).toMatchInlineSnapshot(
+    expect(apiCalls[0].url).toMatchInlineSnapshot(
       `"http://localhost/api/v1/rowlevelsecurity/?q=(order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25)"`,
     );
-    fetchMock.resetHistory();
+    fetchMock.clearHistory();
   });
 
   it('renders add rule button on empty state', async () => {
-    fetchMock.get(
-      ruleListEndpoint,
-      { result: [], count: 0 },
-      { overwriteRoutes: true },
-    );
+    fetchMock.modifyRoute(ruleListEndpoint, {
+      response: { result: [], count: 0 },
+    });
     await renderAndWait();
 
     const emptyAddRuleButton = await screen.findByTestId('add-rule-empty');
     expect(emptyAddRuleButton).toBeInTheDocument();
-    fetchMock.get(
-      ruleListEndpoint,
-      { result: mockRules, count: 2 },
-      { overwriteRoutes: true },
-    );
+    fetchMock.modifyRoute(ruleListEndpoint, {
+      response: { result: mockRules, count: 2 },
+    });
   });
 
   it('renders a "Rule" button to add a rule in bulk action', async () => {
@@ -200,11 +204,9 @@ describe('RuleList RTL', () => {
   });
 
   it('should not renders correct action buttons without write permission', async () => {
-    fetchMock.get(
-      ruleInfoEndpoint,
-      { permissions: ['can_read'] },
-      { overwriteRoutes: true },
-    );
+    fetchMock.modifyRoute(ruleInfoEndpoint, {
+      response: { permissions: ['can_read'] },
+    });
 
     await renderAndWait();
 
@@ -214,11 +216,9 @@ describe('RuleList RTL', () => {
     const editActionIcon = screen.queryByTestId('edit-alt');
     expect(editActionIcon).not.toBeInTheDocument();
 
-    fetchMock.get(
-      ruleInfoEndpoint,
-      { permissions: ['can_read', 'can_write'] },
-      { overwriteRoutes: true },
-    );
+    fetchMock.modifyRoute(ruleInfoEndpoint, {
+      response: { permissions: ['can_read', 'can_write'] },
+    });
   });
 
   it('renders popover on new clicking rule button', async () => {

@@ -206,7 +206,7 @@ describe('SqlEditor', () => {
   });
 
   // Update other similar tests with timeouts
-  it('render an AceEditorWrapper', async () => {
+  it('render an EditorWrapper', async () => {
     const { findByTestId, unmount } = setup(mockedProps, store);
 
     await waitFor(
@@ -217,7 +217,7 @@ describe('SqlEditor', () => {
     unmount();
   }, 15000);
 
-  it('skip rendering an AceEditorWrapper when the current tab is inactive', async () => {
+  it('skip rendering an EditorWrapper when the current tab is inactive', async () => {
     const { queryByTestId } = setup(
       {
         ...mockedProps,
@@ -389,8 +389,8 @@ describe('SqlEditor', () => {
       // click button
       fireEvent.click(button);
       await waitFor(() => {
-        expect(fetchMock.lastUrl()).toEqual(estimateApi);
-        expect(fetchMock.lastOptions()).toEqual(
+        expect(fetchMock.callHistory.lastCall()?.url).toEqual(estimateApi);
+        expect(fetchMock.callHistory.lastCall()?.options).toEqual(
           expect.objectContaining({
             body: JSON.stringify({
               database_id: 2023,
@@ -402,11 +402,11 @@ describe('SqlEditor', () => {
             cache: 'default',
             credentials: 'same-origin',
             headers: {
-              Accept: 'application/json',
-              'Content-Type': 'application/json',
-              'X-CSRFToken': '1234',
+              accept: 'application/json',
+              'content-type': 'application/json',
+              'x-csrftoken': '1234',
             },
-            method: 'POST',
+            method: 'post',
             mode: 'same-origin',
             redirect: 'follow',
             signal: undefined,
@@ -443,10 +443,12 @@ describe('SqlEditor', () => {
       const indicator = getByTestId('sqlEditor-loading');
       expect(indicator).toBeInTheDocument();
       await waitFor(() =>
-        expect(fetchMock.calls('glob:*/tabstateview/*').length).toBe(1),
+        expect(
+          fetchMock.callHistory.calls('glob:*/tabstateview/*').length,
+        ).toBe(1),
       );
       // it will be called from EditorAutoSync
-      expect(fetchMock.calls(switchTabApi).length).toBe(0);
+      expect(fetchMock.callHistory.calls(switchTabApi).length).toBe(0);
     });
   });
 });

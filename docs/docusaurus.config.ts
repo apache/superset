@@ -19,6 +19,7 @@
 
 import type { Config } from '@docusaurus/types';
 import type { Options, ThemeConfig } from '@docusaurus/preset-classic';
+import type * as OpenApiPlugin from 'docusaurus-plugin-openapi-docs';
 import { themes } from 'prism-react-renderer';
 import remarkImportPartial from 'remark-import-partial';
 import remarkLocalizeBadges from './plugins/remark-localize-badges.mjs';
@@ -134,7 +135,13 @@ if (!versionsConfig.developer_portal.disabled && !versionsConfig.developer_porta
       {
         type: 'doc',
         docsPluginId: 'developer_portal',
-        docId: 'extensions/architectural-principles',
+        docId: 'contributing/overview',
+        label: 'Contributing',
+      },
+      {
+        type: 'doc',
+        docsPluginId: 'developer_portal',
+        docId: 'extensions/overview',
         label: 'Extensions',
       },
       {
@@ -146,14 +153,12 @@ if (!versionsConfig.developer_portal.disabled && !versionsConfig.developer_porta
       {
         type: 'doc',
         docsPluginId: 'developer_portal',
-        docId: 'guidelines/design-guidelines',
-        label: 'Guidelines',
+        docId: 'components/index',
+        label: 'UI Components',
       },
       {
-        type: 'doc',
-        docsPluginId: 'developer_portal',
-        docId: 'contributing/overview',
-        label: 'Contributing',
+        label: 'API Reference',
+        href: '/docs/api',
       },
     ],
   });
@@ -177,6 +182,7 @@ const config: Config = {
     '@saucelabs/theme-github-codeblock',
     '@docusaurus/theme-mermaid',
     '@docusaurus/theme-live-codeblock',
+    'docusaurus-theme-openapi-docs',
   ],
   plugins: [
     require.resolve('./src/webpack.extend.ts'),
@@ -189,6 +195,29 @@ const config: Config = {
       },
     ],
     ...dynamicPlugins,
+    [
+      'docusaurus-plugin-openapi-docs',
+      {
+        id: 'api',
+        docsPluginId: 'classic',
+        config: {
+          superset: {
+            specPath: 'static/resources/openapi.json',
+            outputDir: 'docs/api',
+            sidebarOptions: {
+              groupPathsBy: 'tag',
+              categoryLinkSource: 'tag',
+              sidebarCollapsible: true,
+              sidebarCollapsed: true,
+            },
+            showSchemas: true,
+            hideSendButton: true,
+            showInfoPage: false,
+            showExtensions: true,
+          } satisfies OpenApiPlugin.Options,
+        },
+      },
+    ],
     [
       '@docusaurus/plugin-client-redirects',
       {
@@ -222,7 +251,7 @@ const config: Config = {
             from: '/gallery.html',
           },
           {
-            to: '/docs/configuration/databases',
+            to: '/docs/databases',
             from: '/druid.html',
           },
           {
@@ -274,7 +303,7 @@ const config: Config = {
             from: '/docs/contributing/contribution-page',
           },
           {
-            to: '/docs/configuration/databases',
+            to: '/docs/databases',
             from: '/docs/databases/yugabyte/',
           },
           {
@@ -362,6 +391,7 @@ const config: Config = {
           disableVersioning: false,
           showLastUpdateAuthor: true,
           showLastUpdateTime: true,
+          docItemComponent: '@theme/ApiItem', // Required for OpenAPI docs
         },
         blog: {
           showReadingTime: true,
@@ -409,6 +439,11 @@ const config: Config = {
               type: 'doc',
               docId: 'intro',
               label: 'Getting Started',
+            },
+            {
+              type: 'doc',
+              docId: 'databases/index',
+              label: 'Databases',
             },
             {
               type: 'doc',
@@ -468,8 +503,10 @@ const config: Config = {
     footer: {
       links: [],
       copyright: `
-          <div class="footer__applitools">
-            We use &nbsp;<a href="https://applitools.com/" target="_blank" rel="nofollow"><img src="/img/applitools.png" title="Applitools" /></a>
+          <div class="footer__ci-services">
+            <span>CI powered by</span>
+            <a href="https://applitools.com/" target="_blank" rel="nofollow noopener noreferrer"><img src="/img/applitools.png" alt="Applitools" title="Applitools - Visual Testing" /></a>
+            <a href="https://www.netlify.com/" target="_blank" rel="nofollow noopener noreferrer"><img src="/img/netlify.png" alt="Netlify" title="Netlify - Deploy Previews" /></a>
           </div>
           <p>Copyright © ${new Date().getFullYear()},
           The <a href="https://www.apache.org/" target="_blank" rel="noreferrer">Apache Software Foundation</a>,
