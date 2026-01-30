@@ -166,20 +166,26 @@ const mockUser = {
   lastName: 'user',
 };
 
-fetchMock.get(tasksInfoEndpoint, {
-  permissions: ['can_read', 'can_write'],
-});
-fetchMock.get(tasksCreatedByEndpoint, {
-  result: [],
-});
-fetchMock.get(tasksEndpoint, {
-  result: mockTasks,
-  count: 3,
-});
-fetchMock.post(taskCancelEndpoint, {
-  action: 'aborted',
-  message: 'Task cancelled',
-});
+fetchMock.get(
+  tasksInfoEndpoint,
+  { permissions: ['can_read', 'can_write'] },
+  { name: tasksInfoEndpoint },
+);
+fetchMock.get(
+  tasksCreatedByEndpoint,
+  { result: [] },
+  { name: tasksCreatedByEndpoint },
+);
+fetchMock.get(
+  tasksEndpoint,
+  { result: mockTasks, count: 3 },
+  { name: tasksEndpoint },
+);
+fetchMock.post(
+  taskCancelEndpoint,
+  { action: 'aborted', message: 'Task cancelled' },
+  { name: taskCancelEndpoint },
+);
 
 const renderTaskList = (props = {}, userProp = mockUser) =>
   render(
@@ -192,131 +198,67 @@ const renderTaskList = (props = {}, userProp = mockUser) =>
   );
 
 beforeEach(() => {
-  fetchMock.resetHistory();
+  fetchMock.clearHistory();
 });
 
-test('renders TaskList with title', async () => {
+test('renders TaskList with title, ListView, and fetches data from endpoints', async () => {
   renderTaskList();
+
+  // Wait for data to load and verify title
   expect(await screen.findByText('Tasks')).toBeInTheDocument();
+  expect(screen.getByTestId('task-list-view')).toBeInTheDocument();
+
+  // Verify API calls were made
+  expect(fetchMock.callHistory.calls(/task\/_info/).length).toBe(1);
+  expect(fetchMock.callHistory.calls(/task\/\?q/).length).toBe(1);
 });
 
-test('renders a ListView', async () => {
+test('displays task data including types, scope labels, and duration', async () => {
   renderTaskList();
-  expect(await screen.findByTestId('task-list-view')).toBeInTheDocument();
-});
 
-test('fetches info endpoint', async () => {
-  renderTaskList();
-  await waitFor(() => {
-    const calls = fetchMock.calls(/task\/_info/);
-    expect(calls).toHaveLength(1);
-  });
-});
+  // Wait for data to load
+  await screen.findByText('Export Data Task');
 
-test('fetches tasks data', async () => {
-  renderTaskList();
-  await waitFor(() => {
-    const calls = fetchMock.calls(/task\/\?q/);
-    expect(calls).toHaveLength(1);
-  });
-});
-
-test('displays task data in table', async () => {
-  renderTaskList();
-  // Wait for the table to be populated
-  await waitFor(() => {
-    expect(screen.getByText('Export Data Task')).toBeInTheDocument();
-  });
+  // Task types
   expect(screen.getByText('data_export')).toBeInTheDocument();
   expect(screen.getByText('report_generation')).toBeInTheDocument();
-});
 
-test('displays task scope labels', async () => {
-  renderTaskList();
-  // Wait for data to load, then check for scope labels
-  // Use getAllByText since there are multiple Private tasks
-  await waitFor(() => {
-    expect(screen.getAllByText('Private').length).toBeGreaterThan(0);
-  });
+  // Scope labels
+  expect(screen.getAllByText('Private').length).toBeGreaterThan(0);
   expect(screen.getByText('Shared')).toBeInTheDocument();
+
+  // Duration (299s = 4m 59s via prettyMs)
+  expect(screen.getByText('4m 59s')).toBeInTheDocument();
 });
 
-test('displays task duration for completed tasks', async () => {
-  renderTaskList();
-  // Wait for the table to be populated with duration data
-  // formatDuration uses prettyMs which formats 299s as "4m 59s"
-  await waitFor(() => {
-    expect(screen.getByText('4m 59s')).toBeInTheDocument();
-  });
-});
-
-test('shows cancel button for cancellable in-progress tasks', async () => {
-  renderTaskList();
-  await waitFor(() => {
-    expect(screen.getAllByRole('img', { name: 'stop' }).length).toBeGreaterThan(
-      0,
-    );
-  });
-});
-
-test('shows cancel confirmation modal when cancel button is clicked', async () => {
+test('shows cancel button and modal for cancellable tasks', async () => {
   renderTaskList();
 
   // Wait for data to load
   await screen.findByText('test_task_2');
 
-  // Find cancel button (StopOutlined icon)
-  const stopIcons = await screen.findAllByRole('img', { name: 'stop' });
-  // Click the first clickable cancel button
+  // Cancel buttons exist for in-progress and shared tasks
+  const stopIcons = screen.getAllByRole('img', { name: 'stop' });
+  expect(stopIcons.length).toBeGreaterThan(0);
+
+  // Click a cancel button to show confirmation modal
   const cancelButton = stopIcons.find(
     icon => icon.closest('[role="button"]') !== null,
   );
-
-  // Assert the cancel button exists - test should fail if UI doesn't render it
   expect(cancelButton).toBeDefined();
   fireEvent.click(cancelButton!);
 
-  // Check for confirmation modal
   expect(await screen.findByText('Cancel Task')).toBeInTheDocument();
 });
 
-test('shows cancel button for shared tasks where user is subscribed', async () => {
-  renderTaskList();
-
-  // Wait for data to load
-  await screen.findByText('Shared Bulk Task');
-
-  // For shared tasks, users see the cancel button
-  await waitFor(() => {
-    expect(screen.getAllByRole('img', { name: 'stop' }).length).toBeGreaterThan(
-      0,
-    );
-  });
-});
-
-test('displays subscribers via FacePile for shared tasks', async () => {
-  renderTaskList();
-
-  // Wait for data to load
-  await screen.findByText('Shared Bulk Task');
-
-  // FacePile should show subscriber avatars
-  // Look for avatar elements (FacePile renders user initials)
-  await waitFor(() => {
-    // The FacePile component shows user faces/initials
-    expect(screen.getByText('Shared Bulk Task')).toBeInTheDocument();
-  });
-});
-
 test('does not show cancel button for completed shared tasks', async () => {
-  // Create a completed shared task where user is subscribed
   const completedSharedTask = {
     id: 4,
     uuid: 'task-uuid-4',
     task_key: 'completed_shared_task',
     task_type: 'bulk_operation',
     task_name: 'Completed Shared Task',
-    status: TaskStatus.Success, // Terminal state
+    status: TaskStatus.Success,
     scope: TaskScope.Shared,
     created_on: '2024-01-15T12:00:00Z',
     changed_on: '2024-01-15T12:05:00Z',
@@ -348,41 +290,30 @@ test('does not show cancel button for completed shared tasks', async () => {
     },
   };
 
-  fetchMock.get(
-    tasksEndpoint,
-    { result: [completedSharedTask], count: 1 },
-    { overwriteRoutes: true },
-  );
+  fetchMock.modifyRoute(tasksEndpoint, {
+    response: { result: [completedSharedTask], count: 1 },
+  });
 
   renderTaskList();
-
-  // Wait for data to load
   await screen.findByText('Completed Shared Task');
 
-  // Verify that no cancel button is present in the actions column
-  // For completed shared tasks, cancel should not be shown
-  // Note: There might be stop icons elsewhere (e.g., status icons) but not as action buttons
+  // No action buttons with stop icons for completed tasks
   const stopIcons = screen.queryAllByRole('img', { name: 'stop' });
-  // Filter to only those that are action buttons
   const actionButtons = stopIcons.filter(
     icon => icon.closest('[role="button"]') !== null,
   );
   expect(actionButtons).toHaveLength(0);
 
   // Restore mock
-  fetchMock.get(
-    tasksEndpoint,
-    { result: mockTasks, count: 3 },
-    { overwriteRoutes: true },
-  );
+  fetchMock.modifyRoute(tasksEndpoint, {
+    response: { result: mockTasks, count: 3 },
+  });
 });
 
 test('displays empty state when no tasks', async () => {
-  fetchMock.get(
-    tasksEndpoint,
-    { result: [], count: 0 },
-    { overwriteRoutes: true },
-  );
+  fetchMock.modifyRoute(tasksEndpoint, {
+    response: { result: [], count: 0 },
+  });
 
   renderTaskList();
 
@@ -391,9 +322,7 @@ test('displays empty state when no tasks', async () => {
   });
 
   // Restore mock
-  fetchMock.get(
-    tasksEndpoint,
-    { result: mockTasks, count: 3 },
-    { overwriteRoutes: true },
-  );
+  fetchMock.modifyRoute(tasksEndpoint, {
+    response: { result: mockTasks, count: 3 },
+  });
 });
