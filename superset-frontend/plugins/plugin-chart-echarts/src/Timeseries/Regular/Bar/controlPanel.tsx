@@ -247,7 +247,7 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
           default: truncateYAxis,
           renderTrigger: true,
           description: t(
-              'It’s not recommended to truncate Y axis in Bar chart.',
+            'It’s not recommended to truncate Y axis in Bar chart.',
           ),
           visibility: ({ controls }: ControlPanelsContainerProps) =>
             isXAxis ? isHorizontal(controls) : isVertical(controls),
