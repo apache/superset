@@ -38,6 +38,7 @@ const formData = {
     a: 1,
   },
   compareLag: 1,
+  xAxis: '__timestamp',
   timeGrainSqla: TimeGranularity.QUARTER,
   granularitySqla: 'ds',
   compareSuffix: 'over last quarter',
@@ -57,11 +58,13 @@ const rawFormData: BigNumberWithTrendlineFormData = {
     a: 1,
   },
   compare_lag: 1,
+  x_axis: '__timestamp',
   time_grain_sqla: TimeGranularity.QUARTER,
   granularity_sqla: 'ds',
   compare_suffix: 'over last quarter',
   viz_type: VizType.BigNumber,
   y_axis_format: '.3s',
+  xAxis: '__timestamp',
 };
 
 function generateProps(

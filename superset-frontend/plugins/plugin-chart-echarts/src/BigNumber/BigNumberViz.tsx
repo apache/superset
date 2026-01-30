@@ -27,6 +27,7 @@ import {
   styled,
   BinaryQueryObjectFilterClause,
   useTheme,
+  DTTM_ALIAS,
 } from '@superset-ui/core';
 import Echart from '../components/Echart';
 import { BigNumberVizProps } from './types';
@@ -358,7 +359,10 @@ function BigNumberVis({
             const pointerEvent = eventParams.event.event;
             const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
             drillToDetailFilters.push({
-              col: formData?.granularitySqla,
+              col:
+                formData?.xAxis === DTTM_ALIAS
+                  ? formData?.granularitySqla
+                  : formData?.xAxis,
               grain: formData?.timeGrainSqla,
               op: '==',
               val: data[0],
