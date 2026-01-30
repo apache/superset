@@ -30,7 +30,7 @@ import {
   isFeatureEnabled,
   FeatureFlag,
 } from '@superset-ui/core';
-import { defaultControls, defaultState } from 'src/explore/store';
+import { defaultControls } from 'src/explore/store';
 import { ExplorePageState } from 'src/explore/types';
 import { getFormDataFromControls } from 'src/explore/controlUtils';
 import {
@@ -212,7 +212,16 @@ describe('ControlPanelsContainer', () => {
       </>,
       {
         useRedux: true,
-        initialState: { explore: { form_data: defaultState.form_data } },
+        initialState: {
+          explore: {
+            past: [],
+            present: {
+              form_data: {},
+              controlsTransferred: [],
+            },
+            future: [],
+          },
+        },
       },
     );
 

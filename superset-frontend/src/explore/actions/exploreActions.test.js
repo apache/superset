@@ -17,7 +17,7 @@
  * under the License.
  */
 import { defaultState } from 'src/explore/store';
-import exploreReducer from 'src/explore/reducers/exploreReducer';
+import exploreReducer from 'src/explore/reducers/undoableExploreReducer';
 import * as actions from 'src/explore/actions/exploreActions';
 
 const METRICS = [

@@ -27,7 +27,7 @@ import sliceEntities from 'src/dashboard/reducers/sliceEntities';
 import dashboardLayout from 'src/dashboard/reducers/undoableDashboardLayout';
 import messageToasts from 'src/components/MessageToasts/reducers';
 import saveModal from 'src/explore/reducers/saveModalReducer';
-import explore from 'src/explore/reducers/exploreReducer';
+import explore from 'src/explore/reducers/undoableExploreReducer';
 import sqlLab from 'src/SqlLab/reducers/sqlLab';
 import reports from 'src/features/reports/ReportModal/reducer';
 import getBootstrapData from 'src/utils/getBootstrapData';
