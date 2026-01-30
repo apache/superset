@@ -85,6 +85,8 @@ export const SingleQueryResultPane = ({
         isPaginationSticky
         showRowCount={false}
         small
+        initialPageIndex={0}
+        key={filterText}
       />
     </>
   );
