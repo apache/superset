@@ -74,6 +74,32 @@ After building and deploying Superset, the Pareto chart will be available in the
 
 3. Create a new chart and select "Pareto" from the visualization type dropdown
 
+## Troubleshooting
+
+### Plugin Not Appearing in UI
+
+If the Pareto chart doesn't appear in the visualization type selector after deployment:
+
+1. **Verify plugin is in compiled assets**:
+   ```bash
+   ssh <username>@<deployment-host> "docker exec superset_app grep -r 'Pareto' /app/superset/static/assets/*.js"
+   ```
+   For blue-dev environment, replace `<username>@<deployment-host>` with the appropriate deployment credentials.
+
+2. **Check if Docker build cache caused issue**:
+   - If no "Pareto" found in assets, the build used stale cache
+
+3. **Triggering a clean build**:
+   - Go to Azure DevOps → Pipelines → ApacheSuperset-ClientDeploy
+   - Click "Run pipeline"
+   - Check the "Clean Build (Disable Cache)" checkbox
+   - Click "Run"
+
+4. **Verify deployment**:
+   - Wait for pipeline to complete (will take longer due to no cache)
+   - Refresh Superset UI
+   - Create new chart → Look for "Pareto" in chart type selector
+
 ## Source
 
 Original plugin: https://github.com/ooeintellisuite/react-pareto-chart-plugin-superset
