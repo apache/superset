@@ -18,14 +18,14 @@ jobs:
   test-postgres-presto:
     runs-on: ubuntu-24.04
     env:
-      PYTHONPATH: ${{ github.workspace }}
+      PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/docker/pythonpath_dev
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
       REDIS_PORT: 16379
       SUPERSET__SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
       SUPERSET__SQLALCHEMY_EXAMPLES_URI: presto://localhost:15433/memory/default
     services:
       postgres:
-        image: postgres:16-alpine
+        image: postgres:15-alpine
         env:
           POSTGRES_USER: superset
           POSTGRES_PASSWORD: superset
@@ -48,7 +48,7 @@ jobs:
           - 16379:6379
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
           submodules: recursive
@@ -86,7 +86,7 @@ jobs:
   test-postgres-hive:
     runs-on: ubuntu-24.04
     env:
-      PYTHONPATH: ${{ github.workspace }}
+      PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/docker/pythonpath_dev
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
       REDIS_PORT: 16379
       SUPERSET__SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
@@ -94,7 +94,7 @@ jobs:
       UPLOAD_FOLDER: /tmp/.superset/uploads/
     services:
       postgres:
-        image: postgres:16-alpine
+        image: postgres:15-alpine
         env:
           POSTGRES_USER: superset
           POSTGRES_PASSWORD: superset
@@ -108,7 +108,7 @@ jobs:
           - 16379:6379
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
           submodules: recursive

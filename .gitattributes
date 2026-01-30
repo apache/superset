@@ -1,4 +1,3 @@
 docker/**/*.sh text eol=lf
 *.svg binary
 *.ipynb binary
-*.geojson binary

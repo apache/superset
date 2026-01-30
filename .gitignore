@@ -33,7 +33,6 @@ cover
 .env
 .envrc
 .idea
-.roo
 .mypy_cache
 .python-version
 .tox
@@ -44,7 +43,7 @@ _modules
 _static
 build
 app.db
-*.egg-info/
+apache_superset.egg-info/
 changelog.sh
 dist
 dump.rdb
@@ -61,7 +60,6 @@ tmp
 rat-results.txt
 superset/app/
 superset-websocket/config.json
-.direnv
 
 # Node.js, webpack artifacts, storybook
 *.entry.js
@@ -73,6 +71,10 @@ superset/static/assets/*
 superset/static/uploads/*
 !superset/static/uploads/.gitkeep
 superset/static/version_info.json
+superset-frontend/**/esm/*
+superset-frontend/**/lib/*
+superset-frontend/**/storybook-static/*
+superset-frontend/migration-storybook.log
 yarn-error.log
 *.map
 *.min.js
@@ -90,7 +92,6 @@ scripts/*.zip
 # IntelliJ
 *.iml
 venv
-.venv
 @eaDir/
 
 # PyCharm
@@ -106,7 +107,6 @@ ghostdriver.log
 testCSV.csv
 .terser-plugin-cache/
 apache-superset-*.tar.gz*
-apache_superset-*.tar.gz*
 release.json
 
 # Translation-related files
@@ -119,21 +119,10 @@ docker/requirements-local.txt
 
 cache/
 docker/*local*
-docker/superset-websocket/config.json
-docker-compose.override.yml
 
 .temp_cache
 
 # Jest test report
 test-report.html
 superset/static/stats/statistics.html
-
-# LLM-related
-CLAUDE.local.md
-PROJECT.md
 .aider*
-.claude_rc*
-.env.local
-oxc-custom-build/
-*.code-workspace
-*.duckdb

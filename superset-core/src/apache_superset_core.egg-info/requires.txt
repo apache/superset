@@ -1,0 +1,6 @@
+flask-appbuilder<6,>=5.0.2
+pydantic>=2.8.0
+sqlalchemy<2.0,>=1.4.0
+sqlalchemy-utils>=0.38.0
+sqlglot<28,>=27.15.2
+typing-extensions>=4.0.0

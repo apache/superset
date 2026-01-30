@@ -22,7 +22,7 @@ page.
 ### 1. Get Superset
 
 ```bash
-git clone https://github.com/apache/superset
+$ git clone https://github.com/apache/superset
 ```
 
 ### 2. Start the latest official release of Superset
@@ -32,7 +32,7 @@ git clone https://github.com/apache/superset
 $ cd superset
 
 # Set the repo to the state associated with the latest official version
-$ git checkout tags/6.0.0
+$ git checkout tags/4.1.1
 
 # Fire up Superset using Docker Compose
 $ docker compose -f docker-compose-image-tag.yml up
@@ -61,7 +61,7 @@ password: admin
 Once you're done with Superset, you can stop and delete just like any other container environment:
 
 ```bash
-docker compose down
+$ docker compose down
 ```
 
 :::tip
@@ -74,15 +74,9 @@ processes by running Docker Compose `stop` command. By doing so, you can avoid d
 From this point on, you can head on to:
 
 - [Create your first Dashboard](/docs/using-superset/creating-your-first-dashboard)
-- [Connect to a Database](/docs/databases)
+- [Connect to a Database](/docs/configuration/databases)
 - [Using Docker Compose](/docs/installation/docker-compose)
 - [Configure Superset](/docs/configuration/configuring-superset/)
 - [Installing on Kubernetes](/docs/installation/kubernetes/)
 
 Or just explore our [Documentation](https://superset.apache.org/docs/intro)!
-
-:::resources
-- [Video: Superset in 2 Minutes](https://www.youtube.com/watch?v=AqousXQ7YHw)
-- [Video: Superset 101](https://www.youtube.com/watch?v=mAIH3hUoxEE)
-- [Tutorial: Creating Your First Dashboard](/docs/using-superset/creating-your-first-dashboard)
-:::

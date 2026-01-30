@@ -25,9 +25,9 @@ jobs:
       pull-requests: write
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
       - name: Check and notify
-        uses: actions/github-script@v8
+        uses: actions/github-script@v7
         with:
           github-token: ${{ github.token }}
           script: |
@@ -69,7 +69,7 @@ jobs:
                     `❗ @${pull.user.login} Your base branch \`${currentBranch}\` has ` +
                     'also updated `superset/migrations`.\n' +
                     '\n' +
-                    '**Please consider rebasing your branch and [resolving potential db migration conflicts](https://superset.apache.org/docs/contributing/development#merging-db-migrations).**',
+                    '**Please consider rebasing your branch and [resolving potential db migration conflicts](https://github.com/apache/superset/blob/master/CONTRIBUTING.md#merging-db-migrations).**',
                 });
               }
             }

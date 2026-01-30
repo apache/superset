@@ -10,7 +10,7 @@ version: 1
 
 The latest documentation and tutorial are available at https://superset.apache.org/.
 
-The documentation site is built using [Docusaurus 3](https://docusaurus.io/), a modern
+The documentation site is built using [Docusaurus 2](https://docusaurus.io/), a modern
 static website generator, the source for which resides in `./docs`.
 
 ### Local Development
@@ -166,56 +166,6 @@ server:
 npm run dev-server
 ```
 
-#### Deploying your visualization plugin
-
-Once your plugin is complete, you will need to deploy it to your superset instance.
-
-This step assumes you are running your own Docker image as described [here](https://superset.apache.org/docs/installation/docker-builds/#building-your-own-production-docker-image).
-Instructions may vary for other kinds of deployments.
-
-If you have your own Superset Docker image, the first line is most likely:
-`FROM apache/superset:latest` or something similar. You will need to compile
-your own `"lean"` image and replace this FROM line with your own image.
-
-1. Publish your chart plugin to npm: it makes the build process simpler.
-
-Note: if your chart is not published to npm, then in the docker build below, you will need
-to edit the default Dockerfile to copy your plugin source code to the appropriate
-location in the container build environment.
-
-2. Install your chart in the frontend with `npm i <your_chart_package>`.
-3. Start with a base superset release.
-
-```bash
-git checkout tags/X.0.0
-```
-
-4. Install your chart with the instructions you followed during development.
-5. Navigate to the root of your superset directory.
-6. Run `docker build -t apache/superset:mychart --target lean .`
-7. Rebuild your production container using `FROM apache/superset:mychart`.
-
-This will create a new productized superset container with your new chart compiled in.
-Then you can recreate your custom production container based on a superset built with your chart.
-
-##### Troubleshooting
-
-
-- If you get the following NPM error:
-
-```
-npm error `npm ci` can only install packages when your package.json and package-lock.json
-```
-
-It's because your local nodejs/npm version is different than the one being used inside docker.
-
-You can resolve this by running npm install with the same version used by the container build process
-
-Replace XYZ in the following command with the node tag used in the Dockerfile (search for "node:" in the Dockerfile to find the tag).
-```bash
-docker run --rm -v $PWD/superset-frontend:/app node:XYZ /bin/bash -c "cd /app && npm i"
-```
-
 ## Testing
 
 ### Python Testing
@@ -273,59 +223,23 @@ To run a single test file:
 npm run test -- path/to/file.js
 ```
 
-### E2E Integration Testing
+### e2e Integration Testing
 
-**Note: We are migrating from Cypress to Playwright. Use Playwright for new tests.**
-
-#### Playwright (Recommended - NEW)
-
-For E2E testing with Playwright, use the same `docker compose` backend:
+For e2e testing, we recommend that you use a `docker compose` backend
 
 ```bash
 CYPRESS_CONFIG=true docker compose up --build
 ```
+`docker compose` will get to work and expose a Cypress-ready Superset app.
+This app uses a different database schema (`superset_cypress`) to keep it isolated from
+your other dev environmen(s)t, a specific set of examples, and a set of configurations that
+aligns with the expectations within the end-to-end tests.  Also note that it's served on a
+different port than the default port for the backend (`8088`).
 
-The backend setup is identical - this exposes a test-ready Superset app on port 8081 with isolated database schema (`superset_cypress`), test data, and configurations.
+Now in another terminal, let's get ready to execute some Cypress commands. First, tell cypress
+to connect to the Cypress-ready Superset backend.
 
-Now in another terminal, run Playwright tests:
-
-```bash
-# Navigate to frontend directory (Playwright config is here)
-cd superset-frontend
-
-# Run all Playwright tests
-npm run playwright:test
-# or: npx playwright test
-
-# Run with interactive UI for debugging
-npm run playwright:ui
-# or: npx playwright test --ui
-
-# Run in headed mode (see browser)
-npm run playwright:headed
-# or: npx playwright test --headed
-
-# Run specific test file
-npx playwright test tests/auth/login.spec.ts
-
-# Run with debug mode (step through tests)
-npm run playwright:debug tests/auth/login.spec.ts
-# or: npx playwright test --debug tests/auth/login.spec.ts
-
-# Generate test report
-npx playwright show-report
 ```
-
-Configuration is in `superset-frontend/playwright.config.ts`. Base URL is automatically set to `http://localhost:8088` but will use `PLAYWRIGHT_BASE_URL` if provided.
-
-#### Cypress (DEPRECATED - will be removed in Phase 5)
-
-:::warning
-Cypress is being phased out in favor of Playwright. Use Playwright for all new tests.
-:::
-
-```bash
-# Set base URL for Cypress
 CYPRESS_BASE_URL=http://localhost:8081
 ```
 
@@ -497,7 +411,7 @@ See [set capabilities for a container](https://kubernetes.io/docs/tasks/configur
 
 Once the pod is running as root and has the `SYS_PTRACE` capability it will be able to debug the Flask app.
 
-You can follow the same instructions as in `docker compose`. Enter the pod and install the required library and packages: gdb, netstat and debugpy.
+You can follow the same instructions as in `docker compose`. Enter the pod and install the required library and packages; gdb, netstat and debugpy.
 
 Often in a Kubernetes environment nodes are not addressable from outside the cluster. VSCode will thus be unable to remotely connect to port 5678 on a Kubernetes node. In order to do this you need to create a tunnel that port forwards 5678 to your local machine.
 
@@ -681,8 +595,8 @@ with `pre-commit install`
 ```bash
 cd superset-frontend
 npm ci
-# run linting checks
-npm run lint
+# run eslint checks
+npm run eslint -- .
 # run tsc (typescript) checks
 npm run type
 ```
@@ -693,28 +607,4 @@ If using the eslint extension with vscode, put the following in your workspace `
 "eslint.workingDirectories": [
   "superset-frontend"
 ]
-```
-
-## GitHub Ephemeral Environments
-
-On any given pull request on GitHub, it's possible to create a temporary environment/deployment
-by simply adding the label `testenv-up` to the PR.  Once you add the `testenv-up` label, a
-GitHub Action will be triggered that will:
-
-- build a docker image
-- deploy it in EC2 (sponsored by the folks at [Preset](https://preset.io))
-- write a comment on the PR with a link to the ephemeral environment
-
-For more advanced use cases, it's possible to set a feature flag on the PR body, which will
-take effect on the ephemeral environment. For example, if you want to set the `TAGGING_SYSTEM`
-feature flag to `true`, you can add the following line to the PR body/description:
-
-```
-FEATURE_TAGGING_SYSTEM=true
-```
-
-Similarly, it's possible to disable feature flags with:
-
-```
-FEATURE_TAGGING_SYSTEM=false
 ```

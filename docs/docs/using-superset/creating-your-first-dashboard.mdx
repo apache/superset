@@ -12,12 +12,8 @@ import useBaseUrl from "@docusaurus/useBaseUrl";
 This section is focused on documentation for end-users who will be using Superset
 for the data analysis and exploration workflow
  (data analysts, business analysts, data
-scientists, etc).
-
-:::tip
-In addition to this site, [Preset.io](http://preset.io/) maintains an updated set of end-user
+scientists, etc). In addition to this site, [Preset.io](http://preset.io/) maintains an updated set of end-user
 documentation at [docs.preset.io](https://docs.preset.io/).
-:::
 
 This tutorial targets someone who wants to create charts and dashboards in Superset. We’ll show you
 how to connect Superset to a new database and configure a table in that database for analysis.
@@ -51,6 +47,7 @@ or for the purposes of this walkthrough, you can click the link below all these 
 Please note, if you are trying to connect to another locally running database (whether on host or another container), and you get the message `The port is closed.`, then you need to adjust the HOST to `host.docker.internal`
 
 Once you've clicked that link you only need to specify two things (the database name and SQLAlchemy URI):
+
 
 <img src={useBaseUrl("/img/tutorial/tutorial_03b_connection_string_details.png" )} width="600" />{" "} <br/><br/>
 
@@ -107,18 +104,12 @@ Aggregate functions are allowed and encouraged for metrics.
 
 You can also certify metrics if you'd like for your team in this view.
 
-1. Virtual calculated columns: you can write SQL queries that
+2. Virtual calculated columns: you can write SQL queries that
 customize the appearance and behavior
 of a specific column (e.g. `CAST(recovery_rate as float)`).
 Aggregate functions aren't allowed in calculated columns.
 
 <img src={useBaseUrl("/img/tutorial/tutorial_calculated_column.png" )} />
-
-:::resources
-- [Using Metrics and Calculated Columns](https://docs.preset.io/docs/using-metrics-and-calculated-columns) - In-depth guide to the semantic layer
-- [Blog: Understanding the Superset Semantic Layer](https://preset.io/blog/understanding-superset-semantic-layer/)
-- [Blog: Unlocking the Power of Virtual Datasets](https://preset.io/blog/unlocking-the-power-of-virtual-datasets-in-apache-superset/)
-:::
 
 ### Creating charts in Explore view
 
@@ -185,38 +176,26 @@ into a position you like onto the underlying grid.
 
 Congrats! You’ve successfully linked, analyzed, and visualized data in Superset. There are a wealth
 of other table configuration and visualization options, so please start exploring and creating
-slices and dashboards of your own.
+slices and dashboards of your own
 
+ֿ
 ### Manage access to Dashboards
 
-Access to dashboards is managed via owners and permissions. Non-owner access can be controlled
-through dataset permissions or dashboard-level roles (using the `DASHBOARD_RBAC` feature flag).
 
-For detailed information on configuring dashboard access, see the
-[Dashboard Access Control](/docs/security/security#dashboard-access-control) section in the
-Security documentation.
+Access to dashboards is managed via owners (users that have edit permissions to the dashboard)
+
+Non-owner users access can be managed two different ways:
+
+1. Dataset permissions - if you add to the relevant role permissions to datasets it automatically grants implicit access to all dashboards that uses those permitted datasets
+2. Dashboard roles - if you enable **DASHBOARD_RBAC** [feature flag](/docs/configuration/configuring-superset#feature-flags) then you be able to manage which roles can access the dashboard
+   - Granting a role access to a dashboard will bypass dataset level checks. Having dashboard access implicitly grants read access to all the featured charts in the dashboard, and thereby also all the associated datasets.
+   - If no roles are specified for a dashboard, regular **Dataset permissions** will apply.
 
 <img src={useBaseUrl("/img/tutorial/tutorial_dashboard_access.png" )} />
-
-### Publishing a Dashboard
-
-If you would like to make your dashboard available to other users, click on the `Draft` button next to the
-title of your dashboard.
-
-<img src={useBaseUrl("/img/tutorial/publish_button_dashboard.png" )} />
-
-:::warning
-Draft dashboards are only visible to the dashboard owners and admins. Published dashboards are visible to all users with access to the underlying datasets or if RBAC is enabled, to the roles that have been granted access to the dashboard.
-:::
-
-### Mark a Dashboard as Favorite
-
-You can mark a dashboard as a favorite by clicking on the star icon next to the title of your dashboard. This makes it easier to find it in the list of dashboards or on the home page.
 
 ### Customizing dashboard
 
 The following URL parameters can be used to modify how the dashboard is rendered:
-
 - `standalone`:
   - `0` (default): dashboard is displayed normally
   - `1`: Top Navigation is hidden
@@ -233,8 +212,3 @@ The following URL parameters can be used to modify how the dashboard is rendered
 For example, when running the local development build, the following will disable the
 Top Nav and remove the Filter Bar:
 `http://localhost:8088/superset/dashboard/my-dashboard/?standalone=1&show_filters=0`
-
-:::resources
-- [Dashboard Customization](https://docs.preset.io/docs/dashboard-customization) - Advanced dashboard styling and layout options
-- [Blog: BI Dashboard Best Practices](https://preset.io/blog/bi-dashboard-best-practices/)
-:::

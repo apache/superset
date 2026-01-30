@@ -50,7 +50,7 @@ export const Databases = [
   },
   {
     title: 'Apache Druid',
-    href: 'https://druid.apache.org/',
+    href: 'http://druid.io/',
     imgName: 'druid.png',
   },
   {
@@ -69,12 +69,17 @@ export const Databases = [
   },
   {
     title: 'ClickHouse',
-    href: 'https://clickhouse.com/',
+    href: 'https://clickhouse.tech/',
     imgName: 'clickhouse.png',
   },
   {
+    title: 'Rockset',
+    href: 'https://rockset.com/',
+    imgName: 'rockset.png',
+  },
+  {
     title: 'Dremio',
-    href: 'https://www.dremio.com/',
+    href: 'https://dremio.com/',
     imgName: 'dremio.png',
   },
   {
@@ -99,12 +104,12 @@ export const Databases = [
   },
   {
     title: 'IBM Db2',
-    href: 'https://www.ibm.com/products/db2',
+    href: 'https://www.ibm.com/analytics/db2',
     imgName: 'ibmdb2.png',
   },
   {
     title: 'SAP Hana',
-    href: 'https://www.sap.com/products/data-cloud/hana.html',
+    href: 'https://www.sap.com/products/technology-platform/hana.html',
     imgName: 'sap-hana.jpg',
   },
   {
@@ -134,7 +139,7 @@ export const Databases = [
   },
   {
     title: 'TDengine',
-    href: 'https://tdengine.com/',
+    href: 'https://www.tdengine.com/',
     imgName: 'tdengine.png',
   },
 ];

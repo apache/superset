@@ -45,11 +45,6 @@ PATTERNS = {
     "docs": [
         r"^docs/",
     ],
-    "superset-extensions-cli": [
-        r"^\.github/workflows/superset-extensions-cli\.yml",
-        r"^superset-extensions-cli/",
-        r"^superset-core/",
-    ],
 }
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 
@@ -68,10 +63,7 @@ def fetch_files_github_api(url: str):  # type: ignore
 
 def fetch_changed_files_pr(repo: str, pr_number: str) -> List[str]:
     """Fetches files changed in a PR using the GitHub API."""
-
-    # NOTE: limited to 100 files ideally should page-through but instead resorting
-    # to assuming we should trigger when 100 files have been touched
-    url = f"https://api.github.com/repos/{repo}/pulls/{pr_number}/files?per_page=100"
+    url = f"https://api.github.com/repos/{repo}/pulls/{pr_number}/files"
     files = fetch_files_github_api(url)
     return [file_info["filename"] for file_info in files]
 
@@ -111,7 +103,7 @@ def main(event_type: str, sha: str, repo: str) -> None:
     """Main function to check for file changes based on event context."""
     print("SHA:", sha)
     print("EVENT_TYPE", event_type)
-    files = []
+    files = None
     if event_type == "pull_request":
         pr_number = os.getenv("GITHUB_REF", "").split("/")[-2]
         if is_int(pr_number):
@@ -141,11 +133,8 @@ def main(event_type: str, sha: str, repo: str) -> None:
     output_path = os.getenv("GITHUB_OUTPUT") or "/tmp/GITHUB_OUTPUT.txt"  # noqa: S108
     with open(output_path, "a") as f:
         for check, changed in changes_detected.items():
-            # NOTE: as noted above, we assume that if 100 files are touched, we should
-            # trigger all checks. This is a workaround for the GitHub API limit of 100
-            # files. Using >= 99 because off-by-one errors are not uncommon
-            if changed or len(files) >= 99:
-                print(f"{check}=true", file=f)
+            if changed:
+                print(f"{check}={str(changed).lower()}", file=f)
                 print(f"Triggering group: {check}")
 
 

@@ -30,13 +30,13 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
           submodules: recursive
           ref: master
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
           node-version-file: './superset-frontend/.nvmrc'
       - name: Install eyes-storybook dependencies

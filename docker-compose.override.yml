@@ -19,19 +19,20 @@ services:
   nginx:
     ports:
       - "8082:80"
-    networks: 
-      - tasks_app_network
   redis:
     ports:
       - "127.0.0.1:6379:6379"
-    networks: 
-      - tasks_app_network
   db:
-    networks: 
-      - tasks_app_network
+    ports:
+      - "0.0.0.0:5432:5432"
   superset:
+    build:
+      context: .
+      dockerfile: Dockerfile.ssh
+      target: dev
     ports:
       - 8089:8088
+      # When in cypress-mode ->
       - 8081:8081
     volumes:
       - /home/superset/repos/Ntherm-DW/:/app/Ntherm-DW
@@ -43,20 +44,6 @@ services:
       - 8080:8080
     environment:
       - REDIS_PORT=6379
-    networks: 
-      - tasks_app_network
-  superset-init:
-    networks:
-      - tasks_app_network
-  superset-worker:
-    networks:
-      - tasks_app_network
-  superset-worker-beat:
-    networks:
-      - tasks_app_network
-  superset-node:
-    networks:
-      - tasks_app_network
 
 networks:
   tasks_app_network:

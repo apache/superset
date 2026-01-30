@@ -18,6 +18,7 @@
  */
 
 const { execSync } = require('child_process');
+const axios = require('axios');
 const { name, version } = require('./package.json');
 
 function log(...args) {
@@ -35,7 +36,9 @@ function logError(...args) {
   // npm commands output a bunch of garbage in the edge cases,
   // and require sending semi-validated strings to the command line,
   // so let's just use good old http.
-  const { status } = await fetch(packageUrl);
+  const { status } = await axios.get(packageUrl, {
+    validateStatus: (status) => true // we literally just want the status so any status is valid
+  });
 
   if (status === 200) {
     log('version already exists on npm, exiting');

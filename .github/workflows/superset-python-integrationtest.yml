@@ -17,7 +17,7 @@ jobs:
   test-mysql:
     runs-on: ubuntu-24.04
     env:
-      PYTHONPATH: ${{ github.workspace }}
+      PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/docker/pythonpath_dev
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
       REDIS_PORT: 16379
       SUPERSET__SQLALCHEMY_DATABASE_URI: |
@@ -41,7 +41,7 @@ jobs:
           - 16379:6379
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
           submodules: recursive
@@ -73,49 +73,19 @@ jobs:
           flags: python,mysql
           token: ${{ secrets.CODECOV_TOKEN }}
           verbose: true
-      - name: Generate database diagnostics for docs
-        if: steps.check.outputs.python
-        env:
-          SUPERSET_CONFIG: tests.integration_tests.superset_test_config
-          SUPERSET__SQLALCHEMY_DATABASE_URI: |
-            mysql+mysqldb://superset:superset@127.0.0.1:13306/superset?charset=utf8mb4&binary_prefix=true
-        run: |
-          python -c "
-          import json
-          from superset.app import create_app
-          from superset.db_engine_specs.lib import generate_yaml_docs
-          app = create_app()
-          with app.app_context():
-              docs = generate_yaml_docs()
-              # Wrap in the expected format
-              output = {
-                  'generated': '$(date -Iseconds)',
-                  'databases': docs
-              }
-              with open('databases-diagnostics.json', 'w') as f:
-                  json.dump(output, f, indent=2, default=str)
-              print(f'Generated diagnostics for {len(docs)} databases')
-          "
-      - name: Upload database diagnostics artifact
-        if: steps.check.outputs.python
-        uses: actions/upload-artifact@v6
-        with:
-          name: database-diagnostics
-          path: databases-diagnostics.json
-          retention-days: 7
   test-postgres:
     runs-on: ubuntu-24.04
     strategy:
       matrix:
-        python-version: ["current", "previous", "next"]
+        python-version: ["current", "previous"]
     env:
-      PYTHONPATH: ${{ github.workspace }}
+      PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/docker/pythonpath_dev
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
       REDIS_PORT: 16379
       SUPERSET__SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
     services:
       postgres:
-        image: postgres:16-alpine
+        image: postgres:15-alpine
         env:
           POSTGRES_USER: superset
           POSTGRES_PASSWORD: superset
@@ -129,7 +99,7 @@ jobs:
           - 16379:6379
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
           submodules: recursive
@@ -168,7 +138,7 @@ jobs:
   test-sqlite:
     runs-on: ubuntu-24.04
     env:
-      PYTHONPATH: ${{ github.workspace }}
+      PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/docker/pythonpath_dev
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
       REDIS_PORT: 16379
       SUPERSET__SQLALCHEMY_DATABASE_URI: |
@@ -182,7 +152,7 @@ jobs:
           - 16379:6379
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
           submodules: recursive

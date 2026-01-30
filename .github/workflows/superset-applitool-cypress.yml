@@ -30,7 +30,7 @@ jobs:
       SUPERSET_ENV: development
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
       SUPERSET__SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
-      PYTHONPATH: ${{ github.workspace }}
+      PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/docker/pythonpath_dev
       REDIS_PORT: 16379
       GITHUB_TOKEN: ${{ github.token }}
       APPLITOOLS_APP_NAME: Superset
@@ -39,7 +39,7 @@ jobs:
       APPLITOOLS_BATCH_NAME: Superset Cypress
     services:
       postgres:
-        image: postgres:16-alpine
+        image: postgres:15-alpine
         env:
           POSTGRES_USER: superset
           POSTGRES_PASSWORD: superset
@@ -51,7 +51,7 @@ jobs:
           - 16379:6379
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
           submodules: recursive
@@ -63,7 +63,7 @@ jobs:
         with:
           run: testdata
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
           node-version-file: './superset-frontend/.nvmrc'
       - name: Install npm dependencies

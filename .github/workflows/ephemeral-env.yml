@@ -1,12 +1,4 @@
-name: Ephemeral env workflow [DEPRECATED]
-
-# ⚠️  DEPRECATION NOTICE ⚠️
-# This workflow is deprecated and will be removed in a future version.
-# Please use the new Superset Showtime workflow instead:
-# - Use label "🎪 trigger-start" instead of "testenv-up"
-# - Showtime provides better reliability and easier management
-# - See .github/workflows/showtime.yml for the replacement
-# - Migration guide: https://github.com/mistercrunch/superset-showtime
+name: Ephemeral env workflow
 
 # Example manual trigger:
 # gh workflow run ephemeral-env.yml --ref fix_ephemerals --field label_name="testenv-up" --field issue_number=666
@@ -63,7 +55,7 @@ jobs:
       - name: Get event SHA
         id: get-sha
         if: steps.eval-label.outputs.result == 'up'
-        uses: actions/github-script@v8
+        uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
@@ -94,7 +86,7 @@ jobs:
             core.setOutput("sha", prSha);
 
       - name: Looking for feature flags in PR description
-        uses: actions/github-script@v8
+        uses: actions/github-script@v7
         id: eval-feature-flags
         if: steps.eval-label.outputs.result == 'up'
         with:
@@ -116,7 +108,7 @@ jobs:
             return results;
 
       - name: Reply with confirmation comment
-        uses: actions/github-script@v8
+        uses: actions/github-script@v7
         if: steps.eval-label.outputs.result == 'up'
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -134,14 +126,7 @@ jobs:
               throw new Error("Issue number is not available.");
             }
 
-            const body = `⚠️ **DEPRECATED WORKFLOW** ⚠️\n\n@${user} This workflow is deprecated! Please use the new **Superset Showtime** system instead:\n\n` +
-              `- Replace "testenv-up" label with "🎪 trigger-start"\n` +
-              `- Better reliability and easier management\n` +
-              `- See https://github.com/mistercrunch/superset-showtime for details\n\n` +
-              `Processing your ephemeral environment request [here](${workflowUrl}). Action: **${action}**.` +
-              ` More information on [how to use or configure ephemeral environments]` +
-              `(https://superset.apache.org/docs/contributing/howtos/#github-ephemeral-environments)`;
-
+            const body = `@${user} Processing your ephemeral environment request [here](${workflowUrl}). Action: **${action}**.`;
 
             await github.rest.issues.createComment({
               owner: context.repo.owner,
@@ -160,7 +145,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ needs.ephemeral-env-label.outputs.sha }} : ${{steps.get-sha.outputs.sha}} )"
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           ref: ${{ needs.ephemeral-env-label.outputs.sha }}
           persist-credentials: false
@@ -189,7 +174,7 @@ jobs:
             --extra-flags "--build-arg INCLUDE_CHROMIUM=false"
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v5
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -220,12 +205,12 @@ jobs:
       pull-requests: write
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
         with:
           persist-credentials: false
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v5
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -248,7 +233,7 @@ jobs:
 
       - name: Fail on missing container image
         if: steps.check-image.outcome == 'failure'
-        uses: actions/github-script@v8
+        uses: actions/github-script@v7
         with:
           github-token: ${{ github.token }}
           script: |
@@ -311,14 +296,14 @@ jobs:
       - name: Get network interface
         id: get-eni
         run: |
-          echo "eni=$(aws ecs describe-tasks --cluster superset-ci --tasks ${{ steps.list-tasks.outputs.task }} | jq '.tasks[0].attachments[0].details | map(select(.name=="networkInterfaceId"))[0].value')" >> $GITHUB_OUTPUT
+          echo "eni=$(aws ecs describe-tasks --cluster superset-ci --tasks ${{ steps.list-tasks.outputs.task }} | jq '.tasks[0].attachments[0].details | map(select(.name==\"networkInterfaceId\"))[0].value')" >> $GITHUB_OUTPUT
       - name: Get public IP
         id: get-ip
         run: |
           echo "ip=$(aws ec2 describe-network-interfaces --network-interface-ids ${{ steps.get-eni.outputs.eni }} | jq -r '.NetworkInterfaces | first | .Association.PublicIp')" >> $GITHUB_OUTPUT
       - name: Comment (success)
         if: ${{ success() }}
-        uses: actions/github-script@v8
+        uses: actions/github-script@v7
         with:
           github-token: ${{github.token}}
           script: |
@@ -331,7 +316,7 @@ jobs:
             });
       - name: Comment (failure)
         if: ${{ failure() }}
-        uses: actions/github-script@v8
+        uses: actions/github-script@v7
         with:
           github-token: ${{github.token}}
           script: |

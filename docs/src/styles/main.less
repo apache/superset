@@ -57,7 +57,13 @@ html[data-theme='dark'] .docusaurus-highlight-code-line {
   font-weight: 400;
 }
 
-/* Legacy Swagger UI styles (for versioned docs that still use swagger-ui-react) */
+/* Hacks to disable Swagger UI's "try it out" interactive mode */
+.try-out,
+.auth-wrapper,
+.information-container {
+  display: none !important;
+}
+
 .swagger-ui table td,
 .swagger-ui table th,
 .swagger-ui table tr {
@@ -108,6 +114,7 @@ a > span > svg {
 .navbar {
   font-size: 14px;
   font-weight: 400;
+  background-color: #fff;
   transition: all 0.5s;
 
   .get-started-button {
@@ -183,7 +190,7 @@ a > span > svg {
 .navbar .DocSearch {
   --docsearch-text-color: #187384;
   --docsearch-muted-color: #187384;
-  --docsearch-searchbox-background: var(--ifm-navbar-background-color);
+  --docsearch-searchbox-background: #fff;
   border: 1px solid #187384;
   border-radius: 10px;
 
@@ -220,36 +227,17 @@ a > span > svg {
   font-size: 15px;
 }
 
-.footer__ci-services {
+.footer__applitools {
   background-color: #0d3e49;
   color: #e1e1e1;
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
-  padding: 12px 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-
-  span {
-    font-size: 13px;
-    opacity: 0.85;
-  }
-
-  a {
-    display: inline-flex;
-    align-items: center;
-    transition: opacity 0.2s;
-
-    &:hover {
-      opacity: 0.8;
-    }
-  }
+  padding: 16px 0;
 
   img {
-    height: 28px;
+    height: 34px;
   }
 }
 
@@ -265,16 +253,17 @@ a > span > svg {
 }
 
 @media only screen and (max-width: 996px) {
-  .footer__ci-services {
-    gap: 12px;
-    padding: 10px 16px;
-
-    span {
-      font-size: 12px;
-    }
-
-    img {
-      height: 22px;
-    }
+  .footer__applitools img {
+    height: 28px;
   }
+}
+
+/* Edit Button */
+
+.edit-page-link {
+  position: sticky;
+  bottom: 0px;
+  right: 0px;
+  border-radius: 10px;
+  background-color: #ccc;
 }

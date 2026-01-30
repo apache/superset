@@ -2,7 +2,7 @@
 
 # https://github.com/apache/superset/issues/13351
 
-/superset/migrations/ @mistercrunch @michael-s-molina @betodealmeida @eschutho @sadpandajoe
+/superset/migrations/ @mistercrunch @michael-s-molina @betodealmeida @eschutho
 
 # Notify some committers of changes in the components
 
@@ -16,11 +16,11 @@
 
 # Notify E2E test maintainers of changes
 
-/superset-frontend/cypress-base/ @sadpandajoe @geido @eschutho @rusackas @betodealmeida @mistercrunch
+/superset-frontend/cypress-base/ @sadpandajoe @geido @eschutho @rusackas @betodealmeida
 
 # Notify PMC members of changes to GitHub Actions
 
-/.github/ @villebro @geido @eschutho @rusackas @betodealmeida @nytai @mistercrunch @craig-rueda @kgabryje @dpgaspar @sadpandajoe
+/.github/ @villebro @geido @eschutho @rusackas @betodealmeida @nytai @mistercrunch @craig-rueda @kgabryje @dpgaspar
 
 # Notify PMC members of changes to required GitHub Actions
 
@@ -30,14 +30,3 @@
 
 **/*.geojson @villebro @rusackas
 /superset-frontend/plugins/legacy-plugin-chart-country-map/ @villebro @rusackas
-
-# Notify PMC members of changes to extension-related files
-
-/docs/developer_portal/extensions/ @michael-s-molina @villebro @rusackas
-/superset-core/ @michael-s-molina @villebro @geido @eschutho @rusackas @kgabryje
-/superset-extensions-cli/ @michael-s-molina @villebro @geido @eschutho @rusackas @kgabryje
-/superset/core/ @michael-s-molina @villebro @geido @eschutho @rusackas @kgabryje
-/superset/extensions/ @michael-s-molina @villebro @geido @eschutho @rusackas @kgabryje
-/superset-frontend/src/packages/superset-core/ @michael-s-molina @villebro @geido @eschutho @rusackas @kgabryje
-/superset-frontend/src/core/ @michael-s-molina @villebro @geido @eschutho @rusackas @kgabryje
-/superset-frontend/src/extensions/ @michael-s-molina @villebro @geido @eschutho @rusackas @kgabryje
