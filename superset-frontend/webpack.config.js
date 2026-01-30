@@ -205,7 +205,7 @@ if (!isDevMode) {
     new ForkTsCheckerWebpackPlugin({
       async: false,
       typescript: {
-        memoryLimit: 4096,
+        memoryLimit: 8192,
         build: true, // CRITICAL: Generate .d.ts files for plugins
         mode: 'write-references', // Handle project references
         configOverwrite: {
