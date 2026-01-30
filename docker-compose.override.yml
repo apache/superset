@@ -54,6 +54,9 @@ services:
   superset-worker-beat:
     networks:
       - tasks_app_network
+  superset-node:
+    networks:
+      - tasks_app_network
 
 networks:
   tasks_app_network:
