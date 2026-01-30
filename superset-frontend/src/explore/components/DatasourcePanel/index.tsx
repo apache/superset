@@ -112,19 +112,6 @@ const StyledInfoboxWrapper = styled.div`
 
 const BORDER_WIDTH = 2;
 
-const sortColumns = (slice: DatasourcePanelColumn[]) =>
-  [...slice]
-    .sort((col1, col2) => {
-      if (col1?.is_dttm && !col2?.is_dttm) {
-        return -1;
-      }
-      if (col2?.is_dttm && !col1?.is_dttm) {
-        return 1;
-      }
-      return 0;
-    })
-    .sort((a, b) => (b?.is_certified ?? 0) - (a?.is_certified ?? 0));
-
 export default function DataSourcePanel({
   datasource,
   formData,
@@ -212,28 +199,19 @@ export default function DataSourcePanel({
         },
       ],
       keepDiacritics: true,
-      baseSort: (a, b) =>
-        Number(b?.item?.is_certified ?? 0) -
-          Number(a?.item?.is_certified ?? 0) ||
-        String(a?.rankedValue ?? '').localeCompare(b?.rankedValue ?? ''),
     });
   }, [allowedMetrics, searchKeyword]);
-
-  const sortedColumns = useMemo(
-    () => sortColumns(filteredColumns),
-    [filteredColumns],
-  );
 
   const folders = useMemo(
     () =>
       transformDatasourceWithFolders(
         filteredMetrics,
-        sortedColumns,
+        filteredColumns,
         _folders,
         allowedMetrics,
         allowedColumns,
       ),
-    [_folders, filteredMetrics, sortedColumns],
+    [_folders, filteredMetrics, filteredColumns],
   );
 
   const showInfoboxCheck = () => {
