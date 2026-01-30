@@ -26,10 +26,10 @@ export default function useResizeDetectorByObserver() {
     ref,
   } = useResizeDetector({
     refreshMode: 'debounce',
-    refreshRate: 100,
+    refreshRate: 250,
     handleHeight: true,
     handleWidth: true,
-    skipOnMount: false,
+    skipOnMount: true,
   });
 
   // Round dimensions immediately to prevent sub-pixel render loops

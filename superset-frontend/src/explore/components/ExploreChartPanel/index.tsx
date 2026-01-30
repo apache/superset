@@ -105,10 +105,12 @@ const Styles = styled.div<{ showSplite: boolean }>`
   flex-direction: column;
   align-items: stretch;
   align-content: stretch;
-  overflow: hidden;
+  overflow: auto;
   box-shadow: none;
   height: 100%;
   width: 100%;
+  min-height: 400px;
+  min-width: 300px;
 
   & > div {
     height: 100%;
@@ -130,7 +132,6 @@ const Styles = styled.div<{ showSplite: boolean }>`
     display: ${({ showSplite }) => (showSplite ? 'block' : 'none')};
     cursor: row-resize;
     position: relative;
-    z-index: 1;
   }
 
   .split-pane {
@@ -267,17 +268,16 @@ const ExploreChartPanel = ({
     () => (
       <div
         css={css`
-          min-height: 0;
+          min-height: 260px;
+          min-width: 300px;
           flex: 1 1 auto;
           overflow: hidden;
           position: relative;
           box-sizing: border-box;
-          opacity: ${chartPanelWidth && chartPanelHeight ? 1 : 0};
-          transition: opacity 0.15s ease-in;
         `}
         ref={chartPanelRef}
       >
-        {chartPanelWidth && chartPanelHeight && (
+        {chartPanelWidth && chartPanelHeight ? (
           <ChartContainer
             width={chartPanelWidth}
             height={chartPanelHeight}
@@ -305,7 +305,7 @@ const ExploreChartPanel = ({
             })}
             {...(chart.chartStatus && { chartStatus: chart.chartStatus })}
           />
-        )}
+        ) : null}
       </div>
     ),
     [
@@ -345,7 +345,7 @@ const ExploreChartPanel = ({
           min-height: 0;
           width: 100%;
           box-sizing: border-box;
-          overflow: hidden;
+          overflow: auto;
         `}
       >
         {vizTypeNeedsDataset && (
@@ -430,20 +430,22 @@ const ExploreChartPanel = ({
           />
         </ChartHeaderExtension>
         {renderChart}
-        {!chart.chartStatus || chart.chartStatus !== 'loading' ? (
           <div
             css={css`
               display: flex;
               justify-content: flex-end;
               padding-top: ${theme.sizeUnit * 2}px;
-              flex-shrink: 0;
+            flex-shrink: 0;
+            min-height: ${theme.sizeUnit * 6}px;
+            visibility: ${!chart.chartStatus || chart.chartStatus !== 'loading'
+              ? 'visible'
+              : 'hidden'};
             `}
           >
             <LastQueriedLabel
               queriedDttm={chart.queriesResponse?.[0]?.queried_dttm ?? null}
             />
           </div>
-        ) : null}
       </div>
     ),
     [
@@ -514,43 +516,43 @@ const ExploreChartPanel = ({
 
   return (
     <ChartWrapper>
-      <Styles className="chart-container" showSplite={showSplite}>
-        <Split
-          sizes={splitSizes}
-          minSize={MIN_SIZES}
-          direction="vertical"
-          gutterSize={gutterHeight}
-          onDragEnd={onDragEnd}
-          elementStyle={elementStyle}
-          expandToMin
+    <Styles className="chart-container" showSplite={showSplite}>
+      <Split
+        sizes={splitSizes}
+        minSize={MIN_SIZES}
+        direction="vertical"
+        gutterSize={gutterHeight}
+        onDragEnd={onDragEnd}
+        elementStyle={elementStyle}
+        expandToMin
           snapOffset={0}
           cursor="row-resize"
-        >
-          {panelBody}
-          <DataTablesPane
-            ownState={ownState}
-            queryFormData={queryFormData}
-            datasource={datasource}
-            queryForce={Boolean(force)}
-            onCollapseChange={onCollapseChange}
-            chartStatus={chart.chartStatus}
-            errorMessage={errorMessage}
-            setForceQuery={actions.setForceQuery}
-            canDownload={canDownload}
-          />
-        </Split>
-        {showDatasetModal && (
-          <SaveDatasetModal
-            visible={showDatasetModal}
-            onHide={() => setShowDatasetModal(false)}
-            buttonTextOnSave={t('Save')}
-            buttonTextOnOverwrite={t('Overwrite')}
-            datasource={getDatasourceAsSaveableDataset(datasource)}
-            openWindow={false}
-            formData={formData}
-          />
-        )}
-      </Styles>
+      >
+        {panelBody}
+        <DataTablesPane
+          ownState={ownState}
+          queryFormData={queryFormData}
+          datasource={datasource}
+          queryForce={Boolean(force)}
+          onCollapseChange={onCollapseChange}
+          chartStatus={chart.chartStatus}
+          errorMessage={errorMessage}
+          setForceQuery={actions.setForceQuery}
+          canDownload={canDownload}
+        />
+      </Split>
+      {showDatasetModal && (
+        <SaveDatasetModal
+          visible={showDatasetModal}
+          onHide={() => setShowDatasetModal(false)}
+          buttonTextOnSave={t('Save')}
+          buttonTextOnOverwrite={t('Overwrite')}
+          datasource={getDatasourceAsSaveableDataset(datasource)}
+          openWindow={false}
+          formData={formData}
+        />
+      )}
+    </Styles>
     </ChartWrapper>
   );
 };
