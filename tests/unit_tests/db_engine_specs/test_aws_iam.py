@@ -25,6 +25,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from superset.exceptions import SupersetSecurityException
+from tests.unit_tests.conftest import with_feature_flags
 
 
 def test_get_iam_credentials_success() -> None:
@@ -180,6 +181,37 @@ def test_generate_rds_auth_token() -> None:
         )
 
 
+def test_apply_iam_authentication_feature_flag_disabled() -> None:
+    """Test that IAM auth is blocked when feature flag is disabled."""
+    from superset.db_engine_specs.aws_iam import AWSIAMAuthMixin, AWSIAMConfig
+
+    mock_database = MagicMock()
+    mock_database.sqlalchemy_uri_decrypted = (
+        "postgresql://user@mydb.cluster-xyz.us-east-1.rds.amazonaws.com:5432/mydb"
+    )
+
+    iam_config: AWSIAMConfig = {
+        "enabled": True,
+        "role_arn": "arn:aws:iam::123456789012:role/TestRole",
+        "region": "us-east-1",
+        "db_username": "superset_iam_user",
+    }
+
+    params: dict[str, Any] = {}
+
+    # Feature flag is disabled by default
+    with pytest.raises(SupersetSecurityException) as exc_info:
+        AWSIAMAuthMixin._apply_iam_authentication(
+            mock_database,
+            params,
+            iam_config,
+        )
+
+    assert "AWS IAM database authentication is not enabled" in str(exc_info.value)
+    assert "AWS_DATABASE_IAM_AUTH" in str(exc_info.value)
+
+
+@with_feature_flags(AWS_DATABASE_IAM_AUTH=True)
 def test_apply_iam_authentication() -> None:
     from superset.db_engine_specs.aws_iam import AWSIAMAuthMixin, AWSIAMConfig
 
@@ -235,6 +267,7 @@ def test_apply_iam_authentication() -> None:
     assert params["connect_args"]["sslmode"] == "require"
 
 
+@with_feature_flags(AWS_DATABASE_IAM_AUTH=True)
 def test_apply_iam_authentication_with_external_id() -> None:
     from superset.db_engine_specs.aws_iam import AWSIAMAuthMixin, AWSIAMConfig
 
@@ -280,6 +313,7 @@ def test_apply_iam_authentication_with_external_id() -> None:
     )
 
 
+@with_feature_flags(AWS_DATABASE_IAM_AUTH=True)
 def test_apply_iam_authentication_missing_role_arn() -> None:
     from superset.db_engine_specs.aws_iam import AWSIAMAuthMixin, AWSIAMConfig
 
@@ -302,6 +336,7 @@ def test_apply_iam_authentication_missing_role_arn() -> None:
     assert "role_arn" in str(exc_info.value)
 
 
+@with_feature_flags(AWS_DATABASE_IAM_AUTH=True)
 def test_apply_iam_authentication_missing_db_username() -> None:
     from superset.db_engine_specs.aws_iam import AWSIAMAuthMixin, AWSIAMConfig
 
@@ -324,6 +359,7 @@ def test_apply_iam_authentication_missing_db_username() -> None:
     assert "db_username" in str(exc_info.value)
 
 
+@with_feature_flags(AWS_DATABASE_IAM_AUTH=True)
 def test_apply_iam_authentication_default_port() -> None:
     from superset.db_engine_specs.aws_iam import AWSIAMAuthMixin, AWSIAMConfig
 
@@ -488,6 +524,7 @@ def test_get_iam_credentials_cache_different_keys() -> None:
         _credentials_cache.clear()
 
 
+@with_feature_flags(AWS_DATABASE_IAM_AUTH=True)
 def test_apply_iam_authentication_custom_ssl_args() -> None:
     from superset.db_engine_specs.aws_iam import AWSIAMAuthMixin, AWSIAMConfig
 
@@ -533,6 +570,7 @@ def test_apply_iam_authentication_custom_ssl_args() -> None:
     assert "sslmode" not in params["connect_args"]
 
 
+@with_feature_flags(AWS_DATABASE_IAM_AUTH=True)
 def test_apply_iam_authentication_custom_default_port() -> None:
     from superset.db_engine_specs.aws_iam import AWSIAMAuthMixin, AWSIAMConfig
 
@@ -647,6 +685,7 @@ def test_generate_redshift_credentials_client_error() -> None:
         assert "Failed to get Redshift Serverless credentials" in str(exc_info.value)
 
 
+@with_feature_flags(AWS_DATABASE_IAM_AUTH=True)
 def test_apply_redshift_iam_authentication() -> None:
     from superset.db_engine_specs.aws_iam import AWSIAMAuthMixin, AWSIAMConfig
 
@@ -709,6 +748,7 @@ def test_apply_redshift_iam_authentication() -> None:
     assert params["connect_args"]["sslmode"] == "verify-ca"
 
 
+@with_feature_flags(AWS_DATABASE_IAM_AUTH=True)
 def test_apply_redshift_iam_authentication_missing_workgroup() -> None:
     from superset.db_engine_specs.aws_iam import AWSIAMAuthMixin, AWSIAMConfig
 
@@ -732,6 +772,7 @@ def test_apply_redshift_iam_authentication_missing_workgroup() -> None:
     assert "workgroup_name" in str(exc_info.value)
 
 
+@with_feature_flags(AWS_DATABASE_IAM_AUTH=True)
 def test_apply_redshift_iam_authentication_missing_db_name() -> None:
     from superset.db_engine_specs.aws_iam import AWSIAMAuthMixin, AWSIAMConfig
 
@@ -862,6 +903,7 @@ def test_generate_redshift_cluster_credentials_client_error() -> None:
         assert "Failed to get Redshift cluster credentials" in str(exc_info.value)
 
 
+@with_feature_flags(AWS_DATABASE_IAM_AUTH=True)
 def test_apply_redshift_iam_authentication_provisioned_cluster() -> None:
     from superset.db_engine_specs.aws_iam import AWSIAMAuthMixin, AWSIAMConfig
 
@@ -926,6 +968,7 @@ def test_apply_redshift_iam_authentication_provisioned_cluster() -> None:
     assert params["connect_args"]["sslmode"] == "verify-ca"
 
 
+@with_feature_flags(AWS_DATABASE_IAM_AUTH=True)
 def test_apply_redshift_iam_authentication_provisioned_missing_db_username() -> None:
     from superset.db_engine_specs.aws_iam import AWSIAMAuthMixin, AWSIAMConfig
 
@@ -951,6 +994,7 @@ def test_apply_redshift_iam_authentication_provisioned_missing_db_username() -> 
     assert "db_username" in str(exc_info.value)
 
 
+@with_feature_flags(AWS_DATABASE_IAM_AUTH=True)
 def test_apply_redshift_iam_authentication_both_workgroup_and_cluster() -> None:
     from superset.db_engine_specs.aws_iam import AWSIAMAuthMixin, AWSIAMConfig
 
@@ -976,6 +1020,7 @@ def test_apply_redshift_iam_authentication_both_workgroup_and_cluster() -> None:
     assert "cannot have both" in str(exc_info.value)
 
 
+@with_feature_flags(AWS_DATABASE_IAM_AUTH=True)
 def test_apply_redshift_iam_authentication_neither_workgroup_nor_cluster() -> None:
     from superset.db_engine_specs.aws_iam import AWSIAMAuthMixin, AWSIAMConfig
 

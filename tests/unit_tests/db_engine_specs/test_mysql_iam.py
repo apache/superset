@@ -25,6 +25,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from superset.utils import json
+from tests.unit_tests.conftest import with_feature_flags
 
 
 def test_mysql_encrypted_extra_sensitive_fields() -> None:
@@ -79,6 +80,7 @@ def test_mysql_update_params_iam_disabled() -> None:
     assert params == {}
 
 
+@with_feature_flags(AWS_DATABASE_IAM_AUTH=True)
 def test_mysql_update_params_with_iam() -> None:
     from superset.db_engine_specs.aws_iam import AWSIAMAuthMixin
     from superset.db_engine_specs.mysql import MySQLEngineSpec
@@ -125,6 +127,7 @@ def test_mysql_update_params_with_iam() -> None:
     # SSL should be configured via the database's extra settings.
 
 
+@with_feature_flags(AWS_DATABASE_IAM_AUTH=True)
 def test_mysql_update_params_iam_uses_mysql_port() -> None:
     from superset.db_engine_specs.aws_iam import AWSIAMAuthMixin
     from superset.db_engine_specs.mysql import MySQLEngineSpec

@@ -408,6 +408,19 @@ class AWSIAMAuthMixin:
         :param default_port: Default port if not specified in URI
         :raises SupersetSecurityException: If any step fails
         """
+        from superset import feature_flag_manager
+
+        if not feature_flag_manager.is_feature_enabled("AWS_DATABASE_IAM_AUTH"):
+            raise SupersetSecurityException(
+                SupersetError(
+                    message="AWS IAM database authentication is not enabled. "
+                    "Set the AWS_DATABASE_IAM_AUTH feature flag to True in your "
+                    "Superset configuration to enable this feature.",
+                    error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+                    level=ErrorLevel.ERROR,
+                )
+            )
+
         if ssl_args is None:
             ssl_args = {"sslmode": "require"}
 
@@ -517,6 +530,19 @@ class AWSIAMAuthMixin:
         :param iam_config: IAM configuration from encrypted_extra
         :raises SupersetSecurityException: If any step fails
         """
+        from superset import feature_flag_manager
+
+        if not feature_flag_manager.is_feature_enabled("AWS_DATABASE_IAM_AUTH"):
+            raise SupersetSecurityException(
+                SupersetError(
+                    message="AWS IAM database authentication is not enabled. "
+                    "Set the AWS_DATABASE_IAM_AUTH feature flag to True in your "
+                    "Superset configuration to enable this feature.",
+                    error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+                    level=ErrorLevel.ERROR,
+                )
+            )
+
         # Extract configuration
         role_arn = iam_config.get("role_arn")
         region = iam_config.get("region")

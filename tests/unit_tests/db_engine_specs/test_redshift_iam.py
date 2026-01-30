@@ -25,6 +25,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from superset.utils import json
+from tests.unit_tests.conftest import with_feature_flags
 
 
 def test_redshift_encrypted_extra_sensitive_fields() -> None:
@@ -82,6 +83,7 @@ def test_redshift_update_params_iam_disabled() -> None:
     assert params == {}
 
 
+@with_feature_flags(AWS_DATABASE_IAM_AUTH=True)
 def test_redshift_update_params_with_iam() -> None:
     from superset.db_engine_specs.aws_iam import AWSIAMAuthMixin
     from superset.db_engine_specs.redshift import RedshiftEngineSpec
@@ -129,6 +131,7 @@ def test_redshift_update_params_with_iam() -> None:
     assert params["connect_args"]["sslmode"] == "verify-ca"
 
 
+@with_feature_flags(AWS_DATABASE_IAM_AUTH=True)
 def test_redshift_update_params_with_external_id() -> None:
     from superset.db_engine_specs.aws_iam import AWSIAMAuthMixin
     from superset.db_engine_specs.redshift import RedshiftEngineSpec
@@ -245,6 +248,7 @@ def test_redshift_mask_encrypted_extra() -> None:
     assert masked_config["aws_iam"]["db_name"] == "dev"
 
 
+@with_feature_flags(AWS_DATABASE_IAM_AUTH=True)
 def test_redshift_update_params_with_iam_provisioned_cluster() -> None:
     from superset.db_engine_specs.aws_iam import AWSIAMAuthMixin
     from superset.db_engine_specs.redshift import RedshiftEngineSpec
@@ -293,6 +297,7 @@ def test_redshift_update_params_with_iam_provisioned_cluster() -> None:
     assert params["connect_args"]["sslmode"] == "verify-ca"
 
 
+@with_feature_flags(AWS_DATABASE_IAM_AUTH=True)
 def test_redshift_update_params_provisioned_cluster_with_external_id() -> None:
     from superset.db_engine_specs.aws_iam import AWSIAMAuthMixin
     from superset.db_engine_specs.redshift import RedshiftEngineSpec

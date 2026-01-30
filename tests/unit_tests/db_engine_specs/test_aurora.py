@@ -25,6 +25,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from superset.utils import json
+from tests.unit_tests.conftest import with_feature_flags
 
 
 def test_aurora_postgres_engine_spec_properties() -> None:
@@ -76,6 +77,7 @@ def test_update_params_from_encrypted_extra_iam_disabled() -> None:
     assert params == {}
 
 
+@with_feature_flags(AWS_DATABASE_IAM_AUTH=True)
 def test_update_params_from_encrypted_extra_with_iam() -> None:
     from superset.db_engine_specs.aws_iam import AWSIAMAuthMixin
     from superset.db_engine_specs.postgres import PostgresEngineSpec
@@ -252,6 +254,7 @@ def test_aurora_mysql_has_iam_support() -> None:
     )
 
 
+@with_feature_flags(AWS_DATABASE_IAM_AUTH=True)
 def test_aurora_mysql_update_params_from_encrypted_extra_with_iam() -> None:
     from superset.db_engine_specs.aurora import AuroraMySQLEngineSpec
     from superset.db_engine_specs.aws_iam import AWSIAMAuthMixin
