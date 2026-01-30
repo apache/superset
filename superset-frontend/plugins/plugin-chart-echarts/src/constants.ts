@@ -93,7 +93,7 @@ export const AreaChartStackControlOptions: [
   Exclude<ReactNode, null | undefined | boolean>,
 ][] = [...StackControlOptions, [StackControlsValue.Expand, t('Expand')]];
 
-export const BarChartStackControlOptions: [
+export const StackControlOptionsWithoutStream: [
   JsonValue,
   Exclude<ReactNode, null | undefined | boolean>,
 ][] = [
