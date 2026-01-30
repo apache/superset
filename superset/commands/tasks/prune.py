@@ -37,10 +37,10 @@ class TaskPruneCommand(BaseCommand):
     Command to prune the tasks table by deleting rows older than the specified
     retention period.
 
-    This command deletes records from the `Task` table that have been completed
-    (success, failure, or aborted) and have not been changed within the specified
-    number of days. It helps in maintaining the database by removing outdated entries
-    and freeing up space.
+    This command deletes records from the `Task` table that are in terminal states
+    (success, failure, aborted, or timed_out) and have not been changed within the
+    specified number of days. It helps in maintaining the database by removing
+    outdated entries and freeing up space.
 
     Attributes:
         retention_period_days (int): The number of days for which records should be retained.
@@ -80,6 +80,7 @@ class TaskPruneCommand(BaseCommand):
                     TaskStatus.SUCCESS.value,
                     TaskStatus.FAILURE.value,
                     TaskStatus.ABORTED.value,
+                    TaskStatus.TIMED_OUT.value,
                 ]
             ),
         )
