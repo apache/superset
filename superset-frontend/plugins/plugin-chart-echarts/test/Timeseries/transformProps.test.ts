@@ -113,7 +113,7 @@ function createTestChartProps(config: {
   >({
     defaultFormData: DEFAULT_FORM_DATA,
     defaultVizType: 'my_viz',
-    defaultQueriesData: queriesData as unknown as ChartDataResponseResult[],
+    defaultQueriesData: queriesData,
     ...config,
   });
 }
@@ -126,16 +126,16 @@ const formData: SqlaFormData = {
   groupby: ['foo', 'bar'],
   viz_type: 'my_viz',
 };
-const queriesData = [
-  {
-    data: createTestData(
+const queriesData: ChartDataResponseResult[] = [
+  createTestQueryData(
+    createTestData(
       [
         { 'San Francisco': 1, 'New York': 2 },
         { 'San Francisco': 3, 'New York': 4 },
       ],
       { intervalMs: 300000000 },
     ),
-  },
+  ),
 ];
 const chartPropsConfig = {
   formData,

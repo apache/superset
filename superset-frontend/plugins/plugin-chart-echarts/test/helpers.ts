@@ -82,11 +82,12 @@ export function createEchartsTimeseriesTestChartProps<
     height = 600,
   } = config;
 
+  const partial = partialFormData as Partial<EchartsTimeseriesTestFormDataBase>;
   const fullFormData = {
     ...defaultFormData,
     ...partialFormData,
-    datasource: partialFormData.datasource ?? '3__table',
-    viz_type: partialFormData.viz_type ?? defaultVizType,
+    datasource: partial.datasource ?? '3__table',
+    viz_type: partial.viz_type ?? defaultVizType,
   } as TFormData;
 
   const chartProps = new ChartProps({
@@ -95,7 +96,7 @@ export function createEchartsTimeseriesTestChartProps<
     height,
     queriesData: customQueriesData ?? defaultQueriesData,
     theme: supersetTheme,
-    datasource: customDatasource ?? DEFAULT_DATASOURCE,
+    datasource: customDatasource ?? { ...DEFAULT_DATASOURCE },
   });
 
   return {
