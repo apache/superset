@@ -70,6 +70,7 @@ import {
   EchartsHeatmapChartPlugin,
   EchartsGanttChartPlugin,
 } from '@superset-ui/plugin-chart-echarts';
+import { ParetoChartPlugin } from '@superset-ui/plugin-chart-pareto';
 import {
   SelectFilterPlugin,
   RangeFilterPlugin,
