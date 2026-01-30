@@ -29,7 +29,7 @@ import {
 import { AlteredSliceTag } from 'src/components';
 import { SupersetClient, isMatrixifyEnabled } from '@superset-ui/core';
 import { logging } from '@apache-superset/core';
-import { css, t } from '@apache-superset/core/ui';
+import { css, t, styled } from '@apache-superset/core/ui';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import { Icons } from '@superset-ui/core/components/Icons';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
@@ -85,6 +85,28 @@ const additionalItemsStyles = theme => css`
   }
 `;
 
+const StyledUndoRedoButton = styled(Button)`
+  padding: 0;
+  &:hover {
+    background: transparent;
+  }
+`;
+
+const undoRedoStyle = theme => css`
+  color: ${theme.colorIcon};
+  &:hover {
+    color: ${theme.colorIconHover};
+  }
+`;
+
+const undoRedoEmphasized = theme => css`
+  color: ${theme.colorIcon};
+`;
+
+const undoRedoDisabled = theme => css`
+  color: ${theme.colorTextDisabled};
+`;
+
 export const ExploreChartHeader = ({
   dashboardId,
   colorScheme: dashboardColorScheme,
@@ -111,8 +133,8 @@ export const ExploreChartHeader = ({
 
   // Undo/Redo state
   const { undoLength, redoLength } = useSelector(state => ({
-    undoLength: state.explore.past?.length || 0,
-    redoLength: state.explore.future?.length || 0,
+    undoLength: state.explore?.past?.length ?? 0,
+    redoLength: state.explore?.future?.length ?? 0,
   }));
   const [emphasizeUndo, setEmphasizeUndo] = useState(false);
   const [emphasizeRedo, setEmphasizeRedo] = useState(false);
@@ -309,43 +331,45 @@ export const ExploreChartHeader = ({
           <>
             {/* Undo/Redo buttons */}
             <div
-              css={css`
+              className="undoRedo"
+              css={theme => css`
                 display: flex;
-                gap: 8px;
-                margin-right: 8px;
+                margin-right: ${theme.sizeUnit * 2}px;
               `}
             >
-              <Tooltip title={t('Undo')}>
-                <Button
+              <Tooltip title={t('Undo the action')}>
+                <StyledUndoRedoButton
                   buttonStyle="link"
                   disabled={undoLength < 1}
                   onClick={undoLength > 0 ? handleUndo : undefined}
                   data-test="undo-button"
-                  css={
-                    emphasizeUndo &&
-                    css`
-                      opacity: 0.5;
-                    `
-                  }
                 >
-                  <Icons.Undo iconSize="xl" />
-                </Button>
+                  <Icons.Undo
+                    css={[
+                      undoRedoStyle,
+                      emphasizeUndo && undoRedoEmphasized,
+                      undoLength < 1 && undoRedoDisabled,
+                    ]}
+                    iconSize="xl"
+                  />
+                </StyledUndoRedoButton>
               </Tooltip>
-              <Tooltip title={t('Redo')}>
-                <Button
+              <Tooltip title={t('Redo the action')}>
+                <StyledUndoRedoButton
                   buttonStyle="link"
                   disabled={redoLength < 1}
                   onClick={redoLength > 0 ? handleRedo : undefined}
                   data-test="redo-button"
-                  css={
-                    emphasizeRedo &&
-                    css`
-                      opacity: 0.5;
-                    `
-                  }
                 >
-                  <Icons.Redo iconSize="xl" />
-                </Button>
+                  <Icons.Redo
+                    css={[
+                      undoRedoStyle,
+                      emphasizeRedo && undoRedoEmphasized,
+                      redoLength < 1 && undoRedoDisabled,
+                    ]}
+                    iconSize="xl"
+                  />
+                </StyledUndoRedoButton>
               </Tooltip>
             </div>
 

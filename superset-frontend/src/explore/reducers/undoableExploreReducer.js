@@ -18,14 +18,7 @@
  */
 import undoable from 'redux-undo';
 import { UNDO_LIMIT } from 'src/dashboard/util/constants';
-import {
-  SET_FIELD_VALUE,
-  SET_FORM_DATA,
-  UPDATE_CHART_TITLE,
-  SET_EXPLORE_CONTROLS,
-  UPDATE_FORM_DATA_BY_DATASOURCE,
-  SET_STASH_FORM_DATA,
-} from '../actions/exploreActions';
+import { SET_FIELD_VALUE, UPDATE_CHART_TITLE } from '../actions/exploreActions';
 import { HYDRATE_EXPLORE } from '../actions/hydrateExplore';
 import exploreReducer from './exploreReducer';
 
@@ -34,11 +27,7 @@ import exploreReducer from './exploreReducer';
 const TRACKED_ACTIONS = [
   HYDRATE_EXPLORE, // Initial chart load
   SET_FIELD_VALUE, // Control value changes (most important!)
-  SET_FORM_DATA, // Direct form data updates
   UPDATE_CHART_TITLE, // Chart title changes
-  SET_EXPLORE_CONTROLS, // Control state updates
-  UPDATE_FORM_DATA_BY_DATASOURCE, // Datasource changes
-  SET_STASH_FORM_DATA, // Hidden form data changes
 ];
 
 /*
@@ -79,10 +68,18 @@ const TRACKED_ACTIONS = [
 
 // Wrapper reducer that filters actions before they reach the exploreReducer
 const exploreOnlyReducer = (state, action) => {
-  // Only allow configuration-related actions to reach the exploreReducer
-  if (!TRACKED_ACTIONS.includes(action.type)) return state;
+  // IMPORTANT: Always let the reducer handle the action if state is undefined
+  // This ensures proper initialization on first load
+  if (state === undefined) {
+    return exploreReducer(state, action);
+  }
 
-  // For configuration actions, proceed with normal exploreReducer reduction
+  // Only allow tracked actions to reach the exploreReducer
+  if (!TRACKED_ACTIONS.includes(action.type)) {
+    return state;
+  }
+
+  // For tracked actions, proceed with normal exploreReducer reduction
   return exploreReducer(state, action);
 };
 
