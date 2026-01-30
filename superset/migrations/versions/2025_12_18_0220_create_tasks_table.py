@@ -90,6 +90,8 @@ def upgrade():
     # Create indexes for optimal query performance
     create_index(TASKS_TABLE, "idx_tasks_dedup_key", ["dedup_key"], unique=True)
     create_index(TASKS_TABLE, "idx_tasks_status", ["status"])
+    create_index(TASKS_TABLE, "idx_tasks_scope", ["scope"])
+    create_index(TASKS_TABLE, "idx_tasks_ended_at", ["ended_at"])
     create_index(TASKS_TABLE, "idx_tasks_created_by", ["created_by_fk"])
     create_index(TASKS_TABLE, "idx_tasks_created_on", ["created_on"])
     create_index(TASKS_TABLE, "idx_tasks_task_type", ["task_type"])
@@ -131,7 +133,6 @@ def upgrade():
     )
 
     # Create indexes for task_subscribers table
-    create_index(TASK_SUBSCRIBERS_TABLE, "idx_task_subscribers_task_id", ["task_id"])
     create_index(TASK_SUBSCRIBERS_TABLE, "idx_task_subscribers_user_id", ["user_id"])
 
     # Create foreign key constraints for task_subscribers
@@ -190,7 +191,6 @@ def downgrade():
     # Note: Unique constraint is dropped automatically with the table
     # since it was created as part of the table definition
 
-    drop_index(TASK_SUBSCRIBERS_TABLE, "idx_task_subscribers_task_id")
     drop_index(TASK_SUBSCRIBERS_TABLE, "idx_task_subscribers_user_id")
     drop_table(TASK_SUBSCRIBERS_TABLE)
 
@@ -206,6 +206,8 @@ def downgrade():
     # Drop indexes
     drop_index(TASKS_TABLE, "idx_tasks_dedup_key")
     drop_index(TASKS_TABLE, "idx_tasks_status")
+    drop_index(TASKS_TABLE, "idx_tasks_scope")
+    drop_index(TASKS_TABLE, "idx_tasks_ended_at")
     drop_index(TASKS_TABLE, "idx_tasks_created_by")
     drop_index(TASKS_TABLE, "idx_tasks_created_on")
     drop_index(TASKS_TABLE, "idx_tasks_task_type")
