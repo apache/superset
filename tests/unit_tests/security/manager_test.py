@@ -1186,3 +1186,45 @@ def test_get_catalogs_accessible_by_user_schema_access(
     catalogs = {"catalog1", "catalog2"}
 
     assert sm.get_catalogs_accessible_by_user(database, catalogs) == {"catalog2"}
+
+
+def test_get_rls_filters_uses_table_id_not_data(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Test that get_rls_filters() uses table.id directly instead of table.data["id"].
+
+    Accessing table.data triggers the full data property chain including select_star,
+    which requires a live database engine connection. When the DB is unreachable, this
+    causes the entire dashboard GET endpoint to fail with a 500 error.
+
+    Regression introduced in #36245 (Explorable protocol) which changed table.id to
+    table.data["id"]. This test ensures we use the direct .id attribute for
+    BaseDatasource objects.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+
+    table = mocker.MagicMock()
+    table.id = 42
+    # Make .data raise an exception to prove it is never accessed
+    type(table).data = mocker.PropertyMock(
+        side_effect=Exception("should not access table.data")
+    )
+
+    mock_user = mocker.MagicMock()
+    mock_user.roles = [mocker.MagicMock(id=1)]
+    mocker.patch("superset.security.manager.g", user=mock_user)
+    mocker.patch.object(sm, "get_user_roles", return_value=mock_user.roles)
+
+    # The method issues DB queries via self.session; mock them to return empty results
+    mock_query = mocker.MagicMock()
+    mock_query.join.return_value = mock_query
+    mock_query.filter.return_value = mock_query
+    mock_query.all.return_value = []
+    mocker.patch.object(sm, "session", mocker.MagicMock())
+    sm.session.query.return_value = mock_query
+
+    result = sm.get_rls_filters(table)
+    assert result == []
+    # Verify .data was never accessed (the PropertyMock would have raised)

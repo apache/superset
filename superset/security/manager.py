@@ -2725,8 +2725,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             )
             .filter(RLSFilterRoles.c.role_id.in_(user_roles))
         )
+        table_id = table.id if hasattr(table, "id") else table.data["id"]
         filter_tables = self.session.query(RLSFilterTables.c.rls_filter_id).filter(
-            RLSFilterTables.c.table_id == table.data["id"]
+            RLSFilterTables.c.table_id == table_id
         )
         query = (
             self.session.query(
