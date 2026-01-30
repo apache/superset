@@ -17,9 +17,10 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 from flask import current_app as app
+from sqlalchemy.sql import compiler
 
 from superset.constants import EXAMPLES_DB_UUID
 
@@ -84,3 +85,21 @@ def remove_database(database: Database) -> None:
 
     db.session.delete(database)
     db.session.flush()
+
+
+def apply_mariadb_ddl_fix() -> None:
+    """
+    Fix MariaDB "NO CYCLE" syntax issue - MariaDB uses "NOCYCLE" (no space).
+
+    This fix will be included in SQLAlchemy v2.1.0.
+    See: https://github.com/sqlalchemy/sqlalchemy/blob/rel_2_1_0b1/lib/sqlalchemy/dialects/mysql/_mariadb_shim.py
+    """
+    original_visit_create_sequence = compiler.DDLCompiler.visit_create_sequence
+
+    def patched_visit_create_sequence(self: Any, create: Any, **kw: Any) -> str:
+        text = original_visit_create_sequence(self, create, **kw)
+        if self.dialect.name == "mariadb":
+            return text.replace("NO CYCLE", "NOCYCLE")
+        return text
+
+    compiler.DDLCompiler.visit_create_sequence = patched_visit_create_sequence

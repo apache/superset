@@ -45,10 +45,14 @@ from superset.extensions.ssh import SSHManagerFactory
 from superset.extensions.stats_logger import BaseStatsLoggerManager
 from superset.security.manager import SupersetSecurityManager
 from superset.utils.cache_manager import CacheManager
+from superset.utils.database import apply_mariadb_ddl_fix
 from superset.utils.encrypt import EncryptedFieldFactory
 from superset.utils.feature_flag_manager import FeatureFlagManager
 from superset.utils.machine_auth import MachineAuthProviderFactory
 from superset.utils.profiler import SupersetProfiler
+
+# Apply MariaDB DDL fix early in the import chain
+apply_mariadb_ddl_fix()
 
 
 class ResultsBackendManager:
