@@ -23,18 +23,12 @@ import { t } from '@apache-superset/core';
 import { SupersetClient, QueryFormData } from '@superset-ui/core';
 import { Dispatch } from 'redux';
 import { ActionCreators as UndoActionCreators } from 'redux-undo';
-import { isEqual } from 'lodash';
 import {
   addDangerToast,
   toastActions,
 } from 'src/components/MessageToasts/actions';
 import { Slice } from 'src/types/Chart';
 import { SaveActionType } from 'src/explore/types';
-import {
-  updateQueryFormData,
-  renderTriggered,
-} from 'src/components/Chart/chartAction';
-import { getFormDataFromControls } from 'src/explore/controlUtils';
 
 export const UPDATE_FORM_DATA_BY_DATASOURCE = 'UPDATE_FORM_DATA_BY_DATASOURCE';
 export function updateFormDataByDatasource(
@@ -161,82 +155,11 @@ export function setForceQuery(force: boolean) {
 }
 
 /**
- * Helper function to detect if the change between two control states
- * involves only renderTrigger controls (visual-only changes).
- *
- * @param controlsBefore - Control state before the change
- * @param controlsAfter - Control state after the change
- * @returns true if we should trigger a re-render (all changes are renderTrigger)
- */
-function detectRenderTriggerChange(
-  controlsBefore: Record<string, any>,
-  controlsAfter: Record<string, any>,
-): boolean {
-  // Find all controls that changed
-  const changedControlKeys = Object.keys(controlsAfter).filter(key => {
-    const before = controlsBefore[key];
-    const after = controlsAfter[key];
-
-    if (!before || !after) return false;
-
-    // Compare values
-    return !isEqual(before.value, after.value);
-  });
-
-  if (changedControlKeys.length === 0) {
-    return false; // Nothing changed
-  }
-
-  // Check if ALL changed controls have renderTrigger: true
-  const allAreRenderTrigger = changedControlKeys.every(
-    key => controlsAfter[key].renderTrigger === true,
-  );
-
-  return allAreRenderTrigger;
-}
-
-/**
  * Undo an explore action and sync chart state.
- *
- * This handles two scenarios:
- * 1. If the undone change was a renderTrigger control (visual-only),
- *    trigger a chart re-render without fetching new data
- * 2. If the undone change was a data control (metrics, filters, etc.),
- *    just update the state - user must click "Update Chart" to query
  */
 export function undoExploreAction() {
   return (dispatch: Dispatch, getState: () => any) => {
-    // 1. Get the current state BEFORE undo (to detect what changed)
-    const stateBefore = getState();
-    const exploreBefore = stateBefore.explore.present;
-
-    // 2. Perform the undo
     dispatch(UndoActionCreators.undo());
-
-    // 3. Get the state AFTER undo
-    const stateAfter = getState();
-    const exploreAfter = stateAfter.explore.present;
-
-    // 4. Get chart ID from the slice or charts state
-    const chartId =
-      exploreAfter.slice?.slice_id || Object.keys(stateAfter.charts)[0];
-
-    // 5. Sync chart state with undone explore state
-    const newFormData = getFormDataFromControls(exploreAfter.controls);
-    dispatch(updateQueryFormData(newFormData, chartId));
-
-    // 6. Detect if the undone change was a renderTrigger control
-    const shouldReRender = detectRenderTriggerChange(
-      exploreBefore.controls,
-      exploreAfter.controls,
-    );
-
-    if (shouldReRender) {
-      // Only visual changes - trigger re-render without fetching data
-      dispatch(renderTriggered(new Date().getTime(), chartId));
-    }
-    // Note: If it's a data change, we DON'T auto-trigger query
-    // The chart will show as "stale" and user can click "Update Chart"
   };
 }
 
@@ -245,34 +168,7 @@ export function undoExploreAction() {
  */
 export function redoExploreAction() {
   return (dispatch: Dispatch, getState: () => any) => {
-    // 1. Get the current state BEFORE redo
-    const stateBefore = getState();
-    const exploreBefore = stateBefore.explore.present;
-
-    // 2. Perform the redo
     dispatch(UndoActionCreators.redo());
-
-    // 3. Get the state AFTER redo
-    const stateAfter = getState();
-    const exploreAfter = stateAfter.explore.present;
-
-    // 4. Get chart ID
-    const chartId =
-      exploreAfter.slice?.slice_id || Object.keys(stateAfter.charts)[0];
-
-    // 5. Sync chart state
-    const newFormData = getFormDataFromControls(exploreAfter.controls);
-    dispatch(updateQueryFormData(newFormData, chartId));
-
-    // 6. Detect if the redone change was a renderTrigger control
-    const shouldReRender = detectRenderTriggerChange(
-      exploreBefore.controls,
-      exploreAfter.controls,
-    );
-
-    if (shouldReRender) {
-      dispatch(renderTriggered(new Date().getTime(), chartId));
-    }
   };
 }
 

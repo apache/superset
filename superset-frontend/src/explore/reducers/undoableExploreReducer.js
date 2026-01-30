@@ -18,7 +18,7 @@
  */
 import undoable, { includeAction } from 'redux-undo';
 import { UNDO_LIMIT } from 'src/dashboard/util/constants';
-import { SET_FIELD_VALUE,UPDATE_CHART_TITLE } from '../actions/exploreActions';
+import { SET_FIELD_VALUE, UPDATE_CHART_TITLE } from '../actions/exploreActions';
 import exploreReducer from './exploreReducer';
 
 const undoableReducer = undoable(exploreReducer, {
