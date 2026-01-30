@@ -74,10 +74,14 @@ test('should restore form data from fieldNames', async () => {
       useRedux: true,
       initialState: {
         explore: {
-          form_data: formData,
-          hiddenFormData: {
-            granularity_sqla,
+          past: [],
+          present: {
+            form_data: formData,
+            hiddenFormData: {
+              granularity_sqla,
+            },
           },
+          future: [],
         },
       },
     },
