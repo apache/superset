@@ -16,6 +16,7 @@
 # under the License.
 """Tests for superset.utils.database module."""
 
+import pytest
 from sqlalchemy import Sequence
 from sqlalchemy.dialects import mysql, postgresql
 from sqlalchemy.schema import CreateSequence
@@ -23,7 +24,11 @@ from sqlalchemy.sql.compiler import DDLCompiler
 
 from superset.utils.database import apply_mariadb_ddl_fix
 
-apply_mariadb_ddl_fix()
+
+@pytest.fixture(scope="module", autouse=True)
+def setup_mariadb_ddl_fix():
+    """Apply MariaDB DDL fix once per module before tests run."""
+    apply_mariadb_ddl_fix()
 
 
 def test_mariadb_nocycle_fix_applied():
