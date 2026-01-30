@@ -52,7 +52,7 @@ services:
     networks:
       - tasks_app_network
   superset-worker-beat:
-      networks:
+    networks:
       - tasks_app_network
 
 networks:
