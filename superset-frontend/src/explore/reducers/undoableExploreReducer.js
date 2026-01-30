@@ -18,7 +18,11 @@
  */
 import undoable from 'redux-undo';
 import { UNDO_LIMIT } from 'src/dashboard/util/constants';
-import { SET_FIELD_VALUE, UPDATE_CHART_TITLE } from '../actions/exploreActions';
+import {
+  SET_FIELD_VALUE,
+  UPDATE_CHART_TITLE,
+  SET_STASH_FORM_DATA,
+} from '../actions/exploreActions';
 import { HYDRATE_EXPLORE } from '../actions/hydrateExplore';
 import exploreReducer from './exploreReducer';
 
@@ -28,6 +32,12 @@ const TRACKED_ACTIONS = [
   HYDRATE_EXPLORE, // Initial chart load
   SET_FIELD_VALUE, // Control value changes (most important!)
   UPDATE_CHART_TITLE, // Chart title changes
+];
+
+// List of actions that should update state but NOT create undo history
+// These are UI state changes that don't affect chart configuration
+const PASSTHROUGH_ACTIONS = [
+  SET_STASH_FORM_DATA, // Temporarily hide/show form fields (UI state only)
 ];
 
 /*
@@ -74,12 +84,15 @@ const exploreOnlyReducer = (state, action) => {
     return exploreReducer(state, action);
   }
 
-  // Only allow tracked actions to reach the exploreReducer
-  if (!TRACKED_ACTIONS.includes(action.type)) {
+  // Allow both tracked actions (create undo history) and passthrough actions (no history)
+  if (
+    !TRACKED_ACTIONS.includes(action.type) &&
+    !PASSTHROUGH_ACTIONS.includes(action.type)
+  ) {
     return state;
   }
 
-  // For tracked actions, proceed with normal exploreReducer reduction
+  // For allowed actions, proceed with normal exploreReducer reduction
   return exploreReducer(state, action);
 };
 
@@ -88,6 +101,10 @@ const undoableReducer = undoable(exploreOnlyReducer, {
   // +1 again so we can detect if we've exceeded the limit
   limit: UNDO_LIMIT + 2,
   ignoreInitialState: true,
+  // Group passthrough actions together so they don't create new undo history entries
+  // This allows them to update state without being undoable
+  groupBy: action =>
+    PASSTHROUGH_ACTIONS.includes(action.type) ? 'passthrough' : null,
 });
 
 export default undoableReducer;
