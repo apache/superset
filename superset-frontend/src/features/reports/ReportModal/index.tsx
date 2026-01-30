@@ -25,7 +25,8 @@ import {
   ChangeEvent,
 } from 'react';
 
-import { t, getClientErrorObject, VizType } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { getClientErrorObject, VizType } from '@superset-ui/core';
 import { SupersetTheme, Alert } from '@apache-superset/core/ui';
 import { useDispatch, useSelector } from 'react-redux';
 import {

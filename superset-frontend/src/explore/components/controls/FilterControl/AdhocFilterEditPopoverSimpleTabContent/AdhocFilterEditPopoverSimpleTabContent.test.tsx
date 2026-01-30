@@ -41,6 +41,7 @@ import fetchMock from 'fetch-mock';
 import { TestDataset, Dataset } from '@superset-ui/chart-controls';
 import AdhocFilterEditPopoverSimpleTabContent, {
   useSimpleTabFilterProps,
+  Props,
 } from '.';
 import { Clauses, ExpressionTypes } from '../types';
 
@@ -56,10 +57,10 @@ const simpleAdhocFilter = new AdhocFilter({
 const advancedTypeTestAdhocFilterTest = new AdhocFilter({
   expressionType: ExpressionTypes.Simple,
   subject: 'advancedDataType',
-  operatorId: null,
-  operator: null,
-  comparator: null,
-  clause: null,
+  operatorId: undefined,
+  operator: undefined,
+  comparator: undefined,
+  clause: undefined,
 });
 
 const simpleMultiAdhocFilter = new AdhocFilter({
@@ -93,7 +94,7 @@ const options = [
   sumValueAdhocMetric,
 ];
 
-const getAdvancedDataTypeTestProps = (overrides?: Record<string, any>) => {
+const getAdvancedDataTypeTestProps = (overrides?: Record<string, unknown>) => {
   const onChange = sinon.spy();
   const validHandler = sinon.spy();
   const props = {
@@ -113,7 +114,7 @@ const getAdvancedDataTypeTestProps = (overrides?: Record<string, any>) => {
   return props;
 };
 
-function setup(overrides?: Record<string, any>) {
+function setup(overrides?: Record<string, unknown>) {
   const onChange = sinon.spy();
   const validHandler = sinon.spy();
   const spy = jest.spyOn(redux, 'useSelector');
@@ -132,7 +133,9 @@ function setup(overrides?: Record<string, any>) {
     ...overrides,
     validHandler,
   };
-  render(<AdhocFilterEditPopoverSimpleTabContent {...props} />);
+  render(
+    <AdhocFilterEditPopoverSimpleTabContent {...(props as unknown as Props)} />,
+  );
   return props;
 }
 
@@ -171,7 +174,7 @@ const store = mockStore({});
 let isFeatureEnabledMock: jest.SpyInstance;
 
 beforeEach(() => {
-  fetchMock.resetHistory();
+  fetchMock.clearHistory();
   isFeatureEnabledMock = mockedIsFeatureEnabled.mockImplementation(
     (featureFlag: FeatureFlag) =>
       featureFlag === FeatureFlag.EnableAdvancedDataTypes,
@@ -193,10 +196,10 @@ test('shows boolean only operators when subject is boolean', () => {
     adhocFilter: new AdhocFilter({
       expressionType: ExpressionTypes.Simple,
       subject: 'value',
-      operatorId: null,
-      operator: null,
-      comparator: null,
-      clause: null,
+      operatorId: undefined,
+      operator: undefined,
+      comparator: undefined,
+      clause: undefined,
     }),
     datasource: {
       columns: [
@@ -208,7 +211,9 @@ test('shows boolean only operators when subject is boolean', () => {
       ],
     },
   });
-  const { isOperatorRelevant } = useSimpleTabFilterProps(props);
+  const { isOperatorRelevant } = useSimpleTabFilterProps(
+    props as unknown as Props,
+  );
   [
     Operators.IsTrue,
     Operators.IsFalse,
@@ -222,10 +227,10 @@ test('shows boolean only operators when subject is number', () => {
     adhocFilter: new AdhocFilter({
       expressionType: ExpressionTypes.Simple,
       subject: 'value',
-      operatorId: null,
-      operator: null,
-      comparator: null,
-      clause: null,
+      operatorId: undefined,
+      operator: undefined,
+      comparator: undefined,
+      clause: undefined,
     }),
     datasource: {
       columns: [
@@ -237,7 +242,9 @@ test('shows boolean only operators when subject is number', () => {
       ],
     },
   });
-  const { isOperatorRelevant } = useSimpleTabFilterProps(props);
+  const { isOperatorRelevant } = useSimpleTabFilterProps(
+    props as unknown as Props,
+  );
   [
     Operators.IsTrue,
     Operators.IsFalse,
@@ -248,7 +255,9 @@ test('shows boolean only operators when subject is number', () => {
 
 test('will convert from individual comparator to array if the operator changes to multi', () => {
   const props = setup();
-  const { onOperatorChange } = useSimpleTabFilterProps(props);
+  const { onOperatorChange } = useSimpleTabFilterProps(
+    props as unknown as Props,
+  );
   onOperatorChange(Operators.In);
   expect(props.onChange.calledOnce).toBe(true);
   expect(props.onChange.lastCall.args[0].comparator).toEqual(['10']);
@@ -259,7 +268,9 @@ test('will convert from array to individual comparators if the operator changes 
   const props = setup({
     adhocFilter: simpleMultiAdhocFilter,
   });
-  const { onOperatorChange } = useSimpleTabFilterProps(props);
+  const { onOperatorChange } = useSimpleTabFilterProps(
+    props as unknown as Props,
+  );
   onOperatorChange(Operators.LessThan);
   expect(props.onChange.calledOnce).toBe(true);
   expect(props.onChange.lastCall.args[0]).toEqual(
@@ -273,7 +284,9 @@ test('will convert from array to individual comparators if the operator changes 
 
 test('passes the new adhocFilter to onChange after onComparatorChange', () => {
   const props = setup();
-  const { onComparatorChange } = useSimpleTabFilterProps(props);
+  const { onComparatorChange } = useSimpleTabFilterProps(
+    props as unknown as Props,
+  );
   onComparatorChange('20');
   expect(props.onChange.calledOnce).toBe(true);
   expect(props.onChange.lastCall.args[0]).toEqual(
@@ -283,7 +296,9 @@ test('passes the new adhocFilter to onChange after onComparatorChange', () => {
 
 test('will filter operators for table datasources', () => {
   const props = setup({ datasource: { type: 'table' as const } });
-  const { isOperatorRelevant } = useSimpleTabFilterProps(props);
+  const { isOperatorRelevant } = useSimpleTabFilterProps(
+    props as unknown as Props,
+  );
   expect(isOperatorRelevant(Operators.Like, 'value')).toBe(true);
 });
 
@@ -297,7 +312,9 @@ test('will show LATEST PARTITION operator', () => {
     adhocFilter: simpleCustomFilter,
     partitionColumn: 'ds',
   });
-  const { isOperatorRelevant } = useSimpleTabFilterProps(props);
+  const { isOperatorRelevant } = useSimpleTabFilterProps(
+    props as unknown as Props,
+  );
   expect(isOperatorRelevant(Operators.LatestPartition, 'ds')).toBe(true);
   expect(isOperatorRelevant(Operators.LatestPartition, 'value')).toBe(false);
 });
@@ -316,7 +333,9 @@ test('will generate custom sqlExpression for LATEST PARTITION operator', () => {
     adhocFilter: testAdhocFilter,
     partitionColumn: 'ds',
   });
-  const { onOperatorChange } = useSimpleTabFilterProps(props);
+  const { onOperatorChange } = useSimpleTabFilterProps(
+    props as unknown as Props,
+  );
   onOperatorChange(Operators.LatestPartition);
   expect(props.onChange.calledOnce).toBe(true);
   expect(props.onChange.lastCall.args[0]).toEqual(
@@ -342,7 +361,9 @@ test('will not display boolean operators when column type is string', () => {
     },
     adhocFilter: simpleAdhocFilter,
   });
-  const { isOperatorRelevant } = useSimpleTabFilterProps(props);
+  const { isOperatorRelevant } = useSimpleTabFilterProps(
+    props as unknown as Props,
+  );
   const booleanOnlyOperators = [Operators.IsTrue, Operators.IsFalse];
   booleanOnlyOperators.forEach(operator => {
     expect(isOperatorRelevant(operator, 'value')).toBe(false);
@@ -364,7 +385,9 @@ test('will display boolean operators when column is an expression', () => {
     },
     adhocFilter: simpleAdhocFilter,
   });
-  const { isOperatorRelevant } = useSimpleTabFilterProps(props);
+  const { isOperatorRelevant } = useSimpleTabFilterProps(
+    props as unknown as Props,
+  );
   const booleanOnlyOperators = [Operators.IsTrue, Operators.IsFalse];
   booleanOnlyOperators.forEach(operator => {
     expect(isOperatorRelevant(operator, 'value')).toBe(true);
@@ -373,7 +396,9 @@ test('will display boolean operators when column is an expression', () => {
 
 test('sets comparator to undefined when operator is IS_TRUE', () => {
   const props = setup();
-  const { onOperatorChange } = useSimpleTabFilterProps(props);
+  const { onOperatorChange } = useSimpleTabFilterProps(
+    props as unknown as Props,
+  );
   onOperatorChange(Operators.IsTrue);
   expect(props.onChange.calledOnce).toBe(true);
   expect(props.onChange.lastCall.args[0].operatorId).toBe(Operators.IsTrue);
@@ -383,7 +408,9 @@ test('sets comparator to undefined when operator is IS_TRUE', () => {
 
 test('sets comparator to undefined when operator is IS_FALSE', () => {
   const props = setup();
-  const { onOperatorChange } = useSimpleTabFilterProps(props);
+  const { onOperatorChange } = useSimpleTabFilterProps(
+    props as unknown as Props,
+  );
   onOperatorChange(Operators.IsFalse);
   expect(props.onChange.calledOnce).toBe(true);
   expect(props.onChange.lastCall.args[0].operatorId).toBe(Operators.IsFalse);
@@ -393,7 +420,9 @@ test('sets comparator to undefined when operator is IS_FALSE', () => {
 
 test('sets comparator to undefined when operator is IS_NULL or IS_NOT_NULL', () => {
   const props = setup();
-  const { onOperatorChange } = useSimpleTabFilterProps(props);
+  const { onOperatorChange } = useSimpleTabFilterProps(
+    props as unknown as Props,
+  );
   [Operators.IsNull, Operators.IsNotNull].forEach(op => {
     onOperatorChange(op);
     expect(props.onChange.called).toBe(true);
@@ -409,9 +438,14 @@ test('should not call API when column has no advanced data type', async () => {
   const props = getAdvancedDataTypeTestProps();
 
   await act(async () => {
-    render(<AdhocFilterEditPopoverSimpleTabContent {...props} />, {
-      store,
-    });
+    render(
+      <AdhocFilterEditPopoverSimpleTabContent
+        {...(props as unknown as Props)}
+      />,
+      {
+        store,
+      },
+    );
   });
 
   const filterValueField = screen.getByPlaceholderText(
@@ -426,7 +460,9 @@ test('should not call API when column has no advanced data type', async () => {
   });
 
   await waitFor(() =>
-    expect(fetchMock.calls(ADVANCED_DATA_TYPE_ENDPOINT_VALID)).toHaveLength(0),
+    expect(
+      fetchMock.callHistory.calls(ADVANCED_DATA_TYPE_ENDPOINT_VALID),
+    ).toHaveLength(0),
   );
 });
 
@@ -443,9 +479,14 @@ test('should call API when column has advanced data type', async () => {
   });
 
   await act(async () => {
-    render(<AdhocFilterEditPopoverSimpleTabContent {...props} />, {
-      store,
-    });
+    render(
+      <AdhocFilterEditPopoverSimpleTabContent
+        {...(props as unknown as Props)}
+      />,
+      {
+        store,
+      },
+    );
   });
 
   const filterValueField = screen.getByPlaceholderText(
@@ -460,7 +501,9 @@ test('should call API when column has advanced data type', async () => {
   });
 
   await waitFor(() =>
-    expect(fetchMock.calls(ADVANCED_DATA_TYPE_ENDPOINT_VALID)).toHaveLength(1),
+    expect(
+      fetchMock.callHistory.calls(ADVANCED_DATA_TYPE_ENDPOINT_VALID),
+    ).toHaveLength(1),
   );
   expect(props.validHandler.lastCall.args[0]).toBe(true);
 });
@@ -478,9 +521,14 @@ test('save button should be disabled if error message from API is returned', asy
   });
 
   await act(async () => {
-    render(<AdhocFilterEditPopoverSimpleTabContent {...props} />, {
-      store,
-    });
+    render(
+      <AdhocFilterEditPopoverSimpleTabContent
+        {...(props as unknown as Props)}
+      />,
+      {
+        store,
+      },
+    );
   });
 
   const filterValueField = screen.getByPlaceholderText(
@@ -495,9 +543,9 @@ test('save button should be disabled if error message from API is returned', asy
   });
 
   await waitFor(() =>
-    expect(fetchMock.calls(ADVANCED_DATA_TYPE_ENDPOINT_INVALID)).toHaveLength(
-      1,
-    ),
+    expect(
+      fetchMock.callHistory.calls(ADVANCED_DATA_TYPE_ENDPOINT_INVALID),
+    ).toHaveLength(1),
   );
   expect(props.validHandler.lastCall.args[0]).toBe(false);
 });
@@ -515,9 +563,14 @@ test('advanced data type operator list should update after API response', async 
   });
 
   await act(async () => {
-    render(<AdhocFilterEditPopoverSimpleTabContent {...props} />, {
-      store,
-    });
+    render(
+      <AdhocFilterEditPopoverSimpleTabContent
+        {...(props as unknown as Props)}
+      />,
+      {
+        store,
+      },
+    );
   });
 
   const filterValueField = screen.getByPlaceholderText(
@@ -532,7 +585,9 @@ test('advanced data type operator list should update after API response', async 
   });
 
   await waitFor(() =>
-    expect(fetchMock.calls(ADVANCED_DATA_TYPE_ENDPOINT_VALID)).toHaveLength(1),
+    expect(
+      fetchMock.callHistory.calls(ADVANCED_DATA_TYPE_ENDPOINT_VALID),
+    ).toHaveLength(1),
   );
   expect(props.validHandler.lastCall.args[0]).toBe(true);
 
@@ -581,7 +636,9 @@ test('dropdown should remain open when clicked after filter is configured', asyn
     validHandler,
   };
 
-  render(<AdhocFilterEditPopoverSimpleTabContent {...props} />);
+  render(
+    <AdhocFilterEditPopoverSimpleTabContent {...(props as unknown as Props)} />,
+  );
 
   const operatorDropdown = screen.getByRole('combobox', {
     name: 'Select operator',

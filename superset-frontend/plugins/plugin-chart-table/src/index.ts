@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Behavior, ChartMetadata, ChartPlugin, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { Behavior, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
 import thumbnailDark from './images/thumbnail-dark.png';
@@ -39,6 +40,7 @@ const metadata = new ChartMetadata({
     Behavior.InteractiveChart,
     Behavior.DrillToDetail,
     Behavior.DrillBy,
+    'EXPORT_CURRENT_VIEW' as any,
   ],
   category: t('Table'),
   canBeAnnotationTypes: ['EVENT', 'INTERVAL'],

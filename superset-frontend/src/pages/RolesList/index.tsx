@@ -18,7 +18,8 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { t, SupersetClient } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { SupersetClient } from '@superset-ui/core';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import RoleListAddModal from 'src/features/roles/RoleListAddModal';
 import RoleListEditModal from 'src/features/roles/RoleListEditModal';
@@ -300,6 +301,7 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
         id: 'name',
         input: 'search',
         operator: FilterOperator.Contains,
+        inputName: 'role_list_search',
       },
       {
         Header: t('Users'),

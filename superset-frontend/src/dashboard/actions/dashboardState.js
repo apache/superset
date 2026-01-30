@@ -24,9 +24,7 @@ import {
   isFeatureEnabled,
   FeatureFlag,
   getLabelsColorMap,
-  logging,
   SupersetClient,
-  t,
   getClientErrorObject,
   getCategoricalSchemeRegistry,
   promiseTimeout,
@@ -36,6 +34,8 @@ import {
   removeChart,
   refreshChart,
 } from 'src/components/Chart/chartAction';
+import { logging } from '@apache-superset/core';
+import { t } from '@apache-superset/core/ui';
 import { chart as initChart } from 'src/components/Chart/chartReducer';
 import { applyDefaultFormData } from 'src/explore/store';
 import {
@@ -603,13 +603,21 @@ export function onRefresh(
   force = false,
   interval = 0,
   dashboardId,
+  isLazyLoad = false,
 ) {
   return dispatch => {
-    dispatch({ type: ON_REFRESH });
+    // Only dispatch ON_REFRESH for dashboard-level refreshes
+    // Skip it for lazy-loaded tabs to prevent infinite loops
+    if (!isLazyLoad) {
+      dispatch({ type: ON_REFRESH });
+    }
+
     refreshCharts(chartList, force, interval, dashboardId, dispatch).then(
       () => {
         dispatch(onRefreshSuccess());
-        dispatch(onFiltersRefresh());
+        if (!isLazyLoad) {
+          dispatch(onFiltersRefresh());
+        }
       },
     );
   };
@@ -767,6 +775,11 @@ export function removeChartState(chartId) {
 export const RESTORE_CHART_STATES = 'RESTORE_CHART_STATES';
 export function restoreChartStates(chartStates) {
   return { type: RESTORE_CHART_STATES, chartStates };
+}
+
+export const CLEAR_ALL_CHART_STATES = 'CLEAR_ALL_CHART_STATES';
+export function clearAllChartStates() {
+  return { type: CLEAR_ALL_CHART_STATES };
 }
 
 // Undo history ---------------------------------------------------------------

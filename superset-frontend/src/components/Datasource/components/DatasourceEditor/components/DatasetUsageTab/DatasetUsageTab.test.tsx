@@ -119,16 +119,20 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
-  fetchMock.reset();
+  fetchMock.clearHistory().removeRoutes();
   jest.clearAllMocks();
   // Mock scrollTo for all tests
   Element.prototype.scrollTo = jest.fn();
 });
 
 afterEach(() => {
-  fetchMock.restore();
+  fetchMock.clearHistory().removeRoutes();
   // Restore original scrollTo implementation after each test
   Element.prototype.scrollTo = originalScrollTo;
+  // Restore console.error if it was spied on
+  if (jest.isMockFunction(console.error)) {
+    (console.error as jest.Mock).mockRestore();
+  }
 });
 
 test('renders empty state when no charts provided', () => {
@@ -497,4 +501,49 @@ test('cleans up animation frame on unmount during loading', async () => {
   expect(cancelAnimationFrameSpy).toHaveBeenCalled();
 
   cancelAnimationFrameSpy.mockRestore();
+});
+
+test('handles AbortError without setState after unmount', async () => {
+  const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+  let rejectPromise: (reason?: any) => void;
+  const abortedPromise = new Promise((_, reject) => {
+    rejectPromise = reject;
+  });
+
+  const mockOnFetchCharts = jest.fn(() => abortedPromise);
+
+  const { unmount } = setupTest({
+    onFetchCharts: mockOnFetchCharts,
+    totalCount: 100,
+  });
+
+  const nextButton = screen.getByTitle('Next Page');
+  await userEvent.click(nextButton);
+
+  // Should be loading
+  await waitFor(() => {
+    expect(screen.getByLabelText('Loading')).toBeInTheDocument();
+  });
+
+  // Unmount while loading
+  unmount();
+
+  // Reject with AbortError after unmount
+  const abortError = new Error('The operation was aborted');
+  abortError.name = 'AbortError';
+  rejectPromise!(abortError);
+
+  // Flush pending promises and animation frames
+  await new Promise(resolve => setTimeout(resolve, 0));
+
+  // CRITICAL: No setState warnings
+  expect(consoleErrorSpy).not.toHaveBeenCalledWith(
+    expect.stringContaining('setState'),
+  );
+  expect(consoleErrorSpy).not.toHaveBeenCalledWith(
+    expect.stringContaining('unmounted component'),
+  );
+
+  consoleErrorSpy.mockRestore();
 });

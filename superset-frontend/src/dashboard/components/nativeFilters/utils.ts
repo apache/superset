@@ -16,9 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@apache-superset/core';
 import {
   AdhocFilter,
   Behavior,
+  ChartCustomization,
   DataMaskStateWithId,
   EXTRA_FORM_DATA_APPEND_KEYS,
   EXTRA_FORM_DATA_OVERRIDE_KEYS,
@@ -26,14 +28,12 @@ import {
   Filter,
   getChartMetadataRegistry,
   QueryFormData,
-  t,
   ExtraFormDataOverride,
-  TimeGranularity,
   ExtraFormDataAppend,
 } from '@superset-ui/core';
 import { LayoutItem } from 'src/dashboard/types';
 import extractUrlParams from 'src/dashboard/util/extractUrlParams';
-import { isIterable, OnlyKeyWithType } from 'src/utils/types';
+import { isIterable } from 'src/utils/types';
 import { TAB_TYPE } from '../../util/componentTypes';
 import getBootstrapData from '../../../utils/getBootstrapData';
 
@@ -58,13 +58,15 @@ export const getFormData = ({
   type,
   dashboardId,
   id,
-}: Partial<Filter> & {
+}: (Partial<Filter> | Partial<ChartCustomization>) & {
   dashboardId: number;
   datasetId?: number;
   dependencies?: object;
   groupby?: string;
   adhoc_filters?: AdhocFilter[];
   time_range?: string;
+  sortMetric?: string | null;
+  granularity_sqla?: string;
 }): Partial<QueryFormData> => {
   const otherProps: {
     datasource?: string;
@@ -80,6 +82,9 @@ export const getFormData = ({
   if (sortMetric) {
     otherProps.sortMetric = sortMetric;
   }
+
+  const vizType = filterType;
+
   return {
     ...controlValues,
     ...otherProps,
@@ -94,7 +99,7 @@ export const getFormData = ({
     time_range,
     url_params: extractUrlParams('regular'),
     inView: true,
-    viz_type: filterType,
+    viz_type: vizType,
     type,
     dashboardId,
     native_filter_id: id,
@@ -105,7 +110,7 @@ export function mergeExtraFormData(
   originalExtra: ExtraFormData = {},
   newExtra: ExtraFormData = {},
 ): ExtraFormData {
-  const mergedExtra: ExtraFormData = {};
+  const mergedExtra: Record<string, unknown> = {};
   EXTRA_FORM_DATA_APPEND_KEYS.forEach((key: string) => {
     const originalExtraData = originalExtra[key as keyof ExtraFormDataAppend];
     const newExtraData = newExtra[key as keyof ExtraFormDataAppend];
@@ -114,22 +119,20 @@ export function mergeExtraFormData(
       ...(isIterable(newExtraData) ? newExtraData : []),
     ];
     if (mergedValues.length) {
-      mergedExtra[key as OnlyKeyWithType<ExtraFormData, any[]>] = mergedValues;
+      mergedExtra[key] = mergedValues;
     }
   });
-  EXTRA_FORM_DATA_OVERRIDE_KEYS.forEach((key: string) => {
-    const originalValue = originalExtra[key as keyof ExtraFormDataOverride];
+  EXTRA_FORM_DATA_OVERRIDE_KEYS.forEach((key: keyof ExtraFormDataOverride) => {
+    const originalValue = originalExtra[key];
     if (originalValue !== undefined) {
-      mergedExtra[key as OnlyKeyWithType<ExtraFormData, typeof originalValue>] =
-        originalValue as TimeGranularity;
+      mergedExtra[key] = originalValue;
     }
-    const newValue = newExtra[key as keyof ExtraFormDataOverride];
+    const newValue = newExtra[key];
     if (newValue !== undefined) {
-      mergedExtra[key as OnlyKeyWithType<ExtraFormData, typeof newValue>] =
-        newValue as TimeGranularity;
+      mergedExtra[key] = newValue;
     }
   });
-  return mergedExtra;
+  return mergedExtra as ExtraFormData;
 }
 
 export function isCrossFilter(vizType: string) {

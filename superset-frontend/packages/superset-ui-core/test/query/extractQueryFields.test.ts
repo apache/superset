@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { configure, QueryMode } from '@superset-ui/core';
+import { QueryMode } from '@superset-ui/core';
+import { configure } from '@apache-superset/core';
 import extractQueryFields from '../../src/query/extractQueryFields';
 import { NUM_METRIC } from '../fixtures';
 

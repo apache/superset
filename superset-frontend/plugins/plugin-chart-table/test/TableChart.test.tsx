@@ -26,6 +26,7 @@ import {
 } from '@superset-ui/core/spec';
 import { cloneDeep } from 'lodash';
 import TableChart, { sanitizeHeaderId } from '../src/TableChart';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import transformProps from '../src/transformProps';
 import DateWithFormatter from '../src/utils/DateWithFormatter';
 import testData from './testData';
@@ -679,6 +680,61 @@ describe('plugin-chart-table', () => {
         expectValidAriaLabels(container);
       });
 
+      test('should align group headers correctly when some comparison columns are hidden (#37074)', () => {
+        // Test that group headers align correctly when columns have visible: false
+        // This reproduces issue #37074 where headers became misaligned
+        const props = transformProps(testData.comparisonWithHiddenColumns);
+
+        const { container } = render(<TableChart {...props} sticky={false} />);
+
+        // Get all header rows - first row contains group headers, second row contains column headers
+        const headerRows = container.querySelectorAll('thead tr');
+        expect(headerRows.length).toBe(2);
+
+        // Get group headers from the first row (th elements with colSpan > 1 or group headers)
+        const groupHeaderRow = headerRows[0];
+        const groupHeaders = groupHeaderRow.querySelectorAll('th');
+
+        // Extract group header text content (filter out empty placeholder headers)
+        const groupHeaderTexts = Array.from(groupHeaders)
+          .map(th => th.textContent?.trim())
+          .filter(text => text && text.length > 0);
+
+        // Verify metric_1 group header appears before metric_2
+        // With hidden columns: metric_1 has 2 visible columns (△, %), metric_2 has 4 (Main, #, △, %)
+        const metric1Index = groupHeaderTexts.findIndex(
+          text => text?.includes('metric_1') || text?.includes('Metric 1'),
+        );
+        const metric2Index = groupHeaderTexts.findIndex(
+          text => text?.includes('metric_2') || text?.includes('Metric 2'),
+        );
+
+        // Both headers should exist and metric_1 should come before metric_2
+        expect(metric1Index).toBeGreaterThanOrEqual(0);
+        expect(metric2Index).toBeGreaterThanOrEqual(0);
+        expect(metric1Index).toBeLessThan(metric2Index);
+
+        // Verify colSpan values match the number of visible columns
+        const metric1Header = Array.from(groupHeaders).find(
+          th =>
+            th.textContent?.includes('metric_1') ||
+            th.textContent?.includes('Metric 1'),
+        );
+        const metric2Header = Array.from(groupHeaders).find(
+          th =>
+            th.textContent?.includes('metric_2') ||
+            th.textContent?.includes('Metric 2'),
+        );
+
+        // metric_1 should span 2 columns (△ and % are visible, Main and # are hidden)
+        expect(metric1Header?.getAttribute('colspan')).toBe('2');
+        // metric_2 should span 4 columns (all visible)
+        expect(metric2Header?.getAttribute('colspan')).toBe('4');
+
+        // Verify ARIA labels are still valid after filtering
+        expectValidAriaLabels(container);
+      });
+
       test('should set meaningful header IDs for regular table columns', () => {
         // Test regular (non-time-comparison) columns have proper IDs
         // Uses fallback to column.key since originalLabel is undefined
@@ -801,6 +857,77 @@ describe('plugin-chart-table', () => {
           }),
         );
         cells = document.querySelectorAll('td');
+      });
+
+      test('render cell bars even when column contains NULL values', () => {
+        const props = transformProps({
+          ...testData.raw,
+          queriesData: [
+            {
+              ...testData.raw.queriesData[0],
+              colnames: ['category', 'value1', 'value2', 'value3', 'value4'],
+              coltypes: [
+                GenericDataType.String,
+                GenericDataType.Numeric,
+                GenericDataType.Numeric,
+                GenericDataType.Numeric,
+                GenericDataType.Numeric,
+              ],
+              data: [
+                {
+                  category: 'Category A',
+                  value1: 10,
+                  value2: 20,
+                  value3: 30,
+                  value4: null,
+                },
+                {
+                  category: 'Category B',
+                  value1: 15,
+                  value2: 25,
+                  value3: 35,
+                  value4: 100,
+                },
+                {
+                  category: 'Category C',
+                  value1: 18,
+                  value2: 28,
+                  value3: 38,
+                  value4: null,
+                },
+              ],
+            },
+          ],
+          rawFormData: {
+            ...testData.raw.rawFormData,
+            show_cell_bars: true,
+            metrics: ['value1', 'value2', 'value3', 'value4'],
+          },
+        });
+
+        const { container } = render(
+          ProviderWrapper({
+            children: <TableChart {...props} sticky={false} />,
+          }),
+        );
+
+        // Get all cell bars - should exist for both columns with and without NULL values
+        const cellBars = container.querySelectorAll('div.cell-bar');
+
+        // Should have cell bars in all numeric columns, even those with NULL values
+        // value1, value2, value3 all have 3 values, value4 has 1 non-NULL value
+        // Total: 3 + 3 + 3 + 1 = 10 cell bars
+        expect(cellBars.length).toBeGreaterThan(0);
+
+        // Specifically check that value4 column (which has NULLs) still renders bars for non-NULL cells
+        const rows = container.querySelectorAll('tbody tr');
+        expect(rows.length).toBe(3);
+
+        // Row 2 should have a cell bar in value4 column (value: 100)
+        const row2Cells = rows[1].querySelectorAll('td');
+        const value4Cell = row2Cells[4]; // 5th column (0-indexed)
+        const value4Bar = value4Cell.querySelector('div.cell-bar');
+        expect(value4Bar).toBeTruthy();
       });
 
       test('render color with string column color formatter(operator begins with)', () => {

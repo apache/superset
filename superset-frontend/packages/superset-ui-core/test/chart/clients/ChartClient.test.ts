@@ -23,19 +23,22 @@ import {
   SupersetClient,
   buildQueryContext,
   QueryFormData,
-  configure as configureTranslation,
   ChartClient,
   getChartBuildQueryRegistry,
   getChartMetadataRegistry,
   ChartMetadata,
   VizType,
 } from '@superset-ui/core';
+import { configure as configureTranslation } from '@apache-superset/core';
 
 import { LOGIN_GLOB } from '../fixtures/constants';
 import { sankeyFormData } from '../fixtures/formData';
 import { SliceIdAndOrFormData } from '../../../src/chart/clients/ChartClient';
 
 configureTranslation();
+
+beforeAll(() => fetchMock.mockGlobal());
+afterAll(() => fetchMock.hardReset());
 
 describe('ChartClient', () => {
   let chartClient: ChartClient;
@@ -50,7 +53,7 @@ describe('ChartClient', () => {
     chartClient = new ChartClient();
   });
 
-  afterEach(() => fetchMock.restore());
+  afterEach(() => fetchMock.removeRoutes().clearHistory());
 
   describe('new ChartClient(config)', () => {
     it('creates a client without argument', () => {

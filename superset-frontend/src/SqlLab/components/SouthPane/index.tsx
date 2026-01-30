@@ -20,14 +20,16 @@ import { createRef, useCallback, useMemo } from 'react';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { nanoid } from 'nanoid';
 import Tabs from '@superset-ui/core/components/Tabs';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { css, styled, useTheme } from '@apache-superset/core/ui';
 
 import { removeTables, setActiveSouthPaneTab } from 'src/SqlLab/actions/sqlLab';
 
-import { Label } from '@superset-ui/core/components';
+import { Flex, Label } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { SqlLabRootState } from 'src/SqlLab/types';
+import { ViewContribution } from 'src/SqlLab/contributions';
+import PanelToolbar from 'src/components/PanelToolbar';
 import { useExtensionsContext } from 'src/extensions/ExtensionsContext';
 import ExtensionsManager from 'src/extensions/ExtensionsManager';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
@@ -72,6 +74,10 @@ const StyledPane = styled.div`
       overflow-y: auto;
     }
   }
+  .ant-tabs-extra-content {
+    margin: 0 ${({ theme }) => theme.sizeUnit * 4}px
+      ${({ theme }) => theme.sizeUnit * 2}px;
+  }
   .ant-tabs-tabpane {
     .scrollable {
       overflow-y: auto;
@@ -99,7 +105,9 @@ const SouthPane = ({
   const theme = useTheme();
   const dispatch = useDispatch();
   const contributions =
-    ExtensionsManager.getInstance().getViewContributions('sqllab.panels') || [];
+    ExtensionsManager.getInstance().getViewContributions(
+      ViewContribution.Panels,
+    ) || [];
   const { getView } = useExtensionsContext();
   const { offline, tables } = useSelector(
     ({ sqlLab: { offline, tables } }: SqlLabRootState) => ({
@@ -140,7 +148,9 @@ const SouthPane = ({
           ({ dbId, catalog, schema, name }) =>
             [dbId, catalog, schema, name].join(':') === key,
         );
-        dispatch(removeTables([table]));
+        if (table) {
+          dispatch(removeTables([table]));
+        }
       }
     },
     [dispatch, pinnedTables],
@@ -205,7 +215,18 @@ const SouthPane = ({
     ...contributions.map(contribution => ({
       key: contribution.id,
       label: contribution.name,
-      children: getView(contribution.id),
+      children: (
+        <div
+          css={css`
+            & > div:first-of-type {
+              padding-bottom: ${theme.sizeUnit * 2}px;
+            }
+          `}
+        >
+          <PanelToolbar viewId={contribution.id} />
+          {getView(contribution.id)}
+        </div>
+      ),
       forceRender: true,
       closable: false,
     })),
@@ -214,6 +235,17 @@ const SouthPane = ({
   return (
     <StyledPane data-test="south-pane" className="SouthPane" ref={southPaneRef}>
       <Tabs
+        tabBarExtraContent={{
+          right: (
+            <Flex
+              css={css`
+                padding: 8px;
+              `}
+            >
+              <PanelToolbar viewId={ViewContribution.Panels} />
+            </Flex>
+          ),
+        }}
         type="editable-card"
         activeKey={pinnedTableKeys[activeSouthPaneTab] || activeSouthPaneTab}
         className="SouthPaneTabs"

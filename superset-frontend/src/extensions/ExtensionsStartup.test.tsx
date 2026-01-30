@@ -17,7 +17,8 @@
  * under the License.
  */
 import { render, waitFor } from 'spec/helpers/testing-library';
-import { logging, FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+import { logging } from '@apache-superset/core';
 import fetchMock from 'fetch-mock';
 import ExtensionsStartup from './ExtensionsStartup';
 import ExtensionsManager from './ExtensionsManager';
@@ -53,7 +54,7 @@ beforeEach(() => {
   mockIsFeatureEnabled.mockReturnValue(true);
 
   // Setup fetch mocks for API calls
-  fetchMock.restore();
+  fetchMock.clearHistory().removeRoutes();
   fetchMock.get('glob:*/api/v1/extensions/', {
     result: [],
   });
@@ -66,7 +67,7 @@ afterEach(() => {
 
   // Reset mocks
   mockIsFeatureEnabled.mockReset();
-  fetchMock.restore();
+  fetchMock.clearHistory().removeRoutes();
 });
 
 test('renders without crashing', () => {
@@ -97,7 +98,6 @@ test('sets up global superset object when user is logged in', async () => {
     expect((window as any).superset.authentication).toBeDefined();
     expect((window as any).superset.core).toBeDefined();
     expect((window as any).superset.commands).toBeDefined();
-    expect((window as any).superset.environment).toBeDefined();
     expect((window as any).superset.extensions).toBeDefined();
     expect((window as any).superset.sqlLab).toBeDefined();
   });

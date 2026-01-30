@@ -111,7 +111,7 @@ from superset.superset_typing import (
 from superset.utils.backports import StrEnum
 from superset.utils.database import get_example_database
 from superset.utils.date_parser import parse_human_timedelta
-from superset.utils.hashing import md5_sha_from_dict, md5_sha_from_str
+from superset.utils.hashing import hash_from_dict, hash_from_str
 from superset.utils.pandas import detect_datetime_format
 
 if TYPE_CHECKING:
@@ -269,6 +269,7 @@ class FilterOperator(StrEnum):
     LIKE = "LIKE"
     NOT_LIKE = "NOT LIKE"
     ILIKE = "ILIKE"
+    NOT_ILIKE = "NOT ILIKE"
     IS_NULL = "IS NULL"
     IS_NOT_NULL = "IS NOT NULL"
     IN = "IN"
@@ -992,7 +993,7 @@ def simple_filter_to_adhoc(
     }
     if filter_clause.get("isExtra"):
         result["isExtra"] = True
-    result["filterOptionName"] = md5_sha_from_dict(cast(dict[Any, Any], result))
+    result["filterOptionName"] = hash_from_dict(cast(dict[Any, Any], result))
 
     return result
 
@@ -1005,7 +1006,7 @@ def form_data_to_adhoc(form_data: dict[str, Any], clause: str) -> AdhocFilterCla
         "expressionType": "SQL",
         "sqlExpression": form_data.get(clause),
     }
-    result["filterOptionName"] = md5_sha_from_dict(cast(dict[Any, Any], result))
+    result["filterOptionName"] = hash_from_dict(cast(dict[Any, Any], result))
 
     return result
 
@@ -1471,7 +1472,7 @@ def create_ssl_cert_file(certificate: str) -> str:
     :return: The path to the certificate file
     :raises CertificateException: If certificate is not valid/unparseable
     """
-    filename = f"{md5_sha_from_str(certificate)}.crt"
+    filename = f"{hash_from_str(certificate)}.crt"
     # pylint: disable=import-outside-toplevel
 
     cert_dir = app.config["SSL_CERT_PATH"]

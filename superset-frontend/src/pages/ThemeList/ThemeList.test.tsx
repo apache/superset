@@ -151,7 +151,7 @@ beforeEach(() => {
     getAppliedThemeId: mockGetAppliedThemeId,
   });
 
-  fetchMock.reset();
+  fetchMock.clearHistory().removeRoutes();
   fetchMock.get(themesInfoEndpoint, {
     permissions: ['can_read', 'can_write', 'can_export'],
   });
@@ -164,7 +164,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  fetchMock.restore();
+  fetchMock.clearHistory().removeRoutes();
   jest.clearAllMocks();
 });
 

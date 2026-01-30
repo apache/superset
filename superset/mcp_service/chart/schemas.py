@@ -36,6 +36,7 @@ from pydantic import (
     PositiveInt,
 )
 
+from superset.constants import TimeGrain
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.mcp_service.common.cache_schemas import (
     CacheStatus,
@@ -131,25 +132,6 @@ class ChartInfo(BaseModel):
         return data
 
 
-class GetChartAvailableFiltersRequest(BaseModel):
-    """
-    Request schema for get_chart_available_filters tool.
-
-    Currently has no parameters but provides consistent API for future extensibility.
-    """
-
-    model_config = ConfigDict(
-        extra="forbid",
-        str_strip_whitespace=True,
-    )
-
-
-class ChartAvailableFiltersResponse(BaseModel):
-    column_operators: Dict[str, Any] = Field(
-        ..., description="Available filter operators and metadata for each column"
-    )
-
-
 class ChartError(BaseModel):
     error: str = Field(..., description="Error message")
     error_type: str = Field(..., description="Type of error")
@@ -230,13 +212,13 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
     if not chart:
         return None
 
-    # Generate MCP service screenshot URL instead of chart's native URL
-    from superset.mcp_service.utils.url_utils import get_chart_screenshot_url
+    # Use the chart's native URL (explore URL) instead of screenshot URL
+    from superset.mcp_service.utils.url_utils import get_superset_base_url
 
     chart_id = getattr(chart, "id", None)
-    screenshot_url = None
+    chart_url = None
     if chart_id:
-        screenshot_url = get_chart_screenshot_url(chart_id)
+        chart_url = f"{get_superset_base_url()}/explore/?slice_id={chart_id}"
 
     return ChartInfo(
         id=chart_id,
@@ -244,7 +226,7 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
         viz_type=getattr(chart, "viz_type", None),
         datasource_name=getattr(chart, "datasource_name", None),
         datasource_type=getattr(chart, "datasource_type", None),
-        url=screenshot_url,
+        url=chart_url,
         description=getattr(chart, "description", None),
         cache_timeout=getattr(chart, "cache_timeout", None),
         form_data=getattr(chart, "form_data", None),
@@ -288,13 +270,13 @@ class ChartFilter(ColumnOperator):
         "datasource_name",
     ] = Field(
         ...,
-        description="Column to filter on. See get_chart_available_filters for "
-        "allowed values.",
+        description="Column to filter on. Use get_schema(model_type='chart') for "
+        "available filter columns.",
     )
     opr: ColumnOperatorEnum = Field(
         ...,
-        description="Operator to use. See get_chart_available_filters for "
-        "allowed values.",
+        description="Operator to use. Use get_schema(model_type='chart') for "
+        "available operators.",
     )
     value: str | int | float | bool | List[str | int | float | bool] = Field(
         ..., description="Value to filter by (type depends on col and opr)"
@@ -310,8 +292,22 @@ class ChartList(BaseModel):
     total_pages: int
     has_previous: bool
     has_next: bool
-    columns_requested: List[str] | None = None
-    columns_loaded: List[str] | None = None
+    columns_requested: List[str] = Field(
+        default_factory=list,
+        description="Requested columns for the response",
+    )
+    columns_loaded: List[str] = Field(
+        default_factory=list,
+        description="Columns that were actually loaded for each chart",
+    )
+    columns_available: List[str] = Field(
+        default_factory=list,
+        description="All columns available for selection via select_columns parameter",
+    )
+    sortable_columns: List[str] = Field(
+        default_factory=list,
+        description="Columns that can be used with order_column parameter",
+    )
     filters_applied: List[ChartFilter] = Field(
         default_factory=list,
         description="List of advanced filter dicts applied to the query.",
@@ -613,6 +609,14 @@ class TableChartConfig(BaseModel):
     chart_type: Literal["table"] = Field(
         ..., description="Chart type (REQUIRED: must be 'table')"
     )
+    viz_type: Literal["table", "ag-grid-table"] = Field(
+        "table",
+        description=(
+            "Visualization type: 'table' for standard table, 'ag-grid-table' for "
+            "AG Grid Interactive Table with advanced features like column resizing, "
+            "sorting, filtering, and server-side pagination"
+        ),
+    )
     columns: List[ColumnRef] = Field(
         ...,
         min_length=1,
@@ -674,6 +678,19 @@ class XYChartConfig(BaseModel):
     )
     kind: Literal["line", "bar", "area", "scatter"] = Field(
         "line", description="Chart visualization type"
+    )
+    time_grain: TimeGrain | None = Field(
+        None,
+        description=(
+            "Time granularity for the x-axis when it's a temporal column. "
+            "Common values: PT1S (second), PT1M (minute), PT1H (hour), "
+            "P1D (day), P1W (week), P1M (month), P3M (quarter), P1Y (year). "
+            "If not specified, Superset will use its default behavior."
+        ),
+    )
+    stacked: bool = Field(
+        False,
+        description="Stack bars/areas on top of each other instead of side-by-side",
     )
     group_by: ColumnRef | None = Field(None, description="Column to group by")
     x_axis: AxisConfig | None = Field(None, description="X-axis configuration")
@@ -749,18 +766,7 @@ class ListChartsRequest(MetadataCacheControl):
     select_columns: Annotated[
         List[str],
         Field(
-            default_factory=lambda: [
-                "id",
-                "slice_name",
-                "viz_type",
-                "datasource_name",
-                "description",
-                "changed_by_name",
-                "created_by_name",
-                "changed_on",
-                "created_on",
-                "uuid",
-            ],
+            default_factory=list,
             description="List of columns to select. Defaults to common columns if not "
             "specified.",
         ),
@@ -835,7 +841,7 @@ class GenerateChartRequest(QueryCacheControl):
     dataset_id: int | str = Field(..., description="Dataset identifier (ID, UUID)")
     config: ChartConfig = Field(..., description="Chart configuration")
     save_chart: bool = Field(
-        default=True,
+        default=False,
         description="Whether to permanently save the chart in Superset",
     )
     generate_preview: bool = Field(
@@ -859,6 +865,16 @@ class GenerateChartRequest(QueryCacheControl):
         ):
             raise ValueError(
                 "cache_timeout must be non-negative (0 or positive integer)"
+            )
+        return self
+
+    @model_validator(mode="after")
+    def validate_save_or_preview(self) -> "GenerateChartRequest":
+        """Ensure at least one of save_chart or generate_preview is enabled."""
+        if not self.save_chart and not self.generate_preview:
+            raise ValueError(
+                "At least one of 'save_chart' or 'generate_preview' must be True. "
+                "A request with both set to False would be a no-op."
             )
         return self
 
@@ -970,7 +986,11 @@ class GetChartDataRequest(QueryCacheControl):
 
     identifier: int | str = Field(description="Chart identifier (ID, UUID)")
     limit: int | None = Field(
-        default=100, description="Maximum number of data rows to return"
+        default=None,
+        description=(
+            "Maximum number of data rows to return. If not specified, uses the "
+            "chart's configured row limit."
+        ),
     )
     format: Literal["json", "csv", "excel"] = Field(
         default="json", description="Data export format"
@@ -1153,6 +1173,16 @@ class GenerateChartResponse(BaseModel):
     embed_code: str | None = Field(None, description="HTML embed snippet")
     api_endpoints: Dict[str, str] = Field(
         default_factory=dict, description="Related API endpoints for data/updates"
+    )
+
+    # Form data for rendering charts in external clients (chatbot rendering)
+    form_data: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Complete form_data configuration for rendering the chart",
+    )
+    form_data_key: str | None = Field(
+        None,
+        description="Cache key for the form_data, used in explore URLs",
     )
 
     # Performance and accessibility

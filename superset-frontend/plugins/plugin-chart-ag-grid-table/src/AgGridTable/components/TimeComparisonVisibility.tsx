@@ -20,7 +20,7 @@
 import { useState } from 'react';
 import { Dropdown } from 'antd';
 import { TableOutlined, DownOutlined, CheckOutlined } from '@ant-design/icons';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { InfoText, ColumnLabel, CheckIconWrapper } from '../../styles';
 
 interface ComparisonColumn {

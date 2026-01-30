@@ -75,7 +75,7 @@ def test_extension_json_template_renders_with_both_frontend_and_backend(
     frontend = parsed["frontend"]
     assert "contributions" in frontend
     assert "moduleFederation" in frontend
-    assert frontend["contributions"] == {"commands": [], "views": [], "menus": []}
+    assert frontend["contributions"] == {"commands": [], "views": {}, "menus": {}}
     assert frontend["moduleFederation"] == {"exposes": ["./index"]}
 
     # Verify backend section exists

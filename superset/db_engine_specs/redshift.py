@@ -25,7 +25,7 @@ import pandas as pd
 from flask_babel import gettext as __
 from sqlalchemy.types import NVARCHAR
 
-from superset.db_engine_specs.base import BasicParametersMixin
+from superset.db_engine_specs.base import BasicParametersMixin, DatabaseCategory
 from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
 from superset.errors import SupersetErrorType
 from superset.models.core import Database
@@ -69,6 +69,86 @@ class RedshiftEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
 
     encryption_parameters = {"sslmode": "verify-ca"}
 
+    metadata = {
+        "description": "Amazon Redshift is a fully managed data warehouse service.",
+        "logo": "redshift.png",
+        "homepage_url": "https://aws.amazon.com/redshift/",
+        "categories": [
+            DatabaseCategory.CLOUD_AWS,
+            DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.PROPRIETARY,
+        ],
+        "pypi_packages": ["sqlalchemy-redshift"],
+        "connection_string": "redshift+psycopg2://{username}:{password}@{host}:5439/{database}",
+        "default_port": 5439,
+        "parameters": {
+            "username": "Database username",
+            "password": "Database password",
+            "host": "AWS Endpoint",
+            "port": "Default 5439",
+            "database": "Database name",
+        },
+        "drivers": [
+            {
+                "name": "psycopg2",
+                "pypi_package": "psycopg2",
+                "connection_string": (
+                    "redshift+psycopg2://{username}:{password}@{host}:5439/{database}"
+                ),
+                "is_recommended": True,
+            },
+            {
+                "name": "redshift_connector",
+                "pypi_package": "redshift_connector",
+                "connection_string": (
+                    "redshift+redshift_connector://{username}:{password}"
+                    "@{host}:5439/{database}"
+                ),
+                "is_recommended": False,
+                "notes": "Supports IAM-based credentials for clusters and serverless.",
+            },
+        ],
+        "authentication_methods": [
+            {
+                "name": "IAM Credentials (Cluster)",
+                "description": (
+                    "Use IAM-based temporary database credentials for Redshift clusters"
+                ),
+                "requirements": (
+                    "IAM role must have redshift:GetClusterCredentials permission"
+                ),
+                "connection_string": "redshift+redshift_connector://",
+                "engine_parameters": {
+                    "connect_args": {
+                        "iam": True,
+                        "database": "<database>",
+                        "cluster_identifier": "<cluster_identifier>",
+                        "db_user": "<db_user>",
+                    }
+                },
+            },
+            {
+                "name": "IAM Credentials (Serverless)",
+                "description": "Use IAM-based credentials for Redshift Serverless",
+                "requirements": (
+                    "IAM role must have redshift-serverless:GetCredentials "
+                    "and redshift-serverless:GetWorkgroup permissions"
+                ),
+                "connection_string": "redshift+redshift_connector://",
+                "engine_parameters": {
+                    "connect_args": {
+                        "iam": True,
+                        "is_serverless": True,
+                        "serverless_acct_id": "<aws account number>",
+                        "serverless_work_group": "<redshift work group>",
+                        "database": "<database>",
+                        "user": "IAMR:<superset iam role name>",
+                    }
+                },
+            },
+        ],
+    }
+
     custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = {
         CONNECTION_ACCESS_DENIED_REGEX: (
             __('Either the username "%(username)s" or the password is incorrect.'),
@@ -102,6 +182,24 @@ class RedshiftEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
             {"invalid": ["database"]},
         ),
     }
+
+    @classmethod
+    def normalize_table_name_for_upload(
+        cls,
+        table_name: str,
+        schema_name: str | None = None,
+    ) -> tuple[str, str | None]:
+        """
+        Redshift folds unquoted identifiers to lowercase.
+
+        :param table_name: The table name to normalize
+        :param schema_name: The schema name to normalize (optional)
+        :return: Tuple of (normalized_table_name, normalized_schema_name)
+        """
+        return (
+            table_name.lower(),
+            schema_name.lower() if schema_name else None,
+        )
 
     @classmethod
     def df_to_sql(

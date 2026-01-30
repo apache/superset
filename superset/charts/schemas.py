@@ -1029,6 +1029,13 @@ class ChartDataExtrasSchema(Schema):
         },
         allow_none=True,
     )
+    transpile_to_dialect = fields.Boolean(
+        metadata={
+            "description": "If true, WHERE/HAVING clauses will be transpiled to the "
+            "target database dialect using SQLGlot."
+        },
+        allow_none=True,
+    )
 
 
 class AnnotationLayerSchema(Schema):
@@ -1464,6 +1471,13 @@ class ChartDataResponseResult(Schema):
         required=True,
         allow_none=True,
     )
+    queried_dttm = fields.String(
+        metadata={
+            "description": "UTC timestamp when the query was executed (ISO 8601 format)"
+        },
+        required=True,
+        allow_none=True,
+    )
     cache_timeout = fields.Integer(
         metadata={
             "description": "Cache timeout in following order: custom timeout, datasource "  # noqa: E501
@@ -1525,6 +1539,15 @@ class ChartDataResponseResult(Schema):
     )
     rejected_filters = fields.List(
         fields.Dict(), metadata={"description": "A list with rejected filters"}
+    )
+    detected_currency = fields.String(
+        metadata={
+            "description": "Detected ISO 4217 currency code when AUTO mode is used. "
+            "Returns the currency code if all filtered data contains a single currency "
+            "or null if multiple currencies are present."
+        },
+        allow_none=True,
+        load_default=None,
     )
     from_dttm = fields.Integer(
         metadata={"description": "Start timestamp of time range"},

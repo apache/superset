@@ -18,7 +18,8 @@
  */
 import { Children, cloneElement } from 'react';
 import { nanoid } from 'nanoid';
-import { SupersetClient, tn } from '@superset-ui/core';
+import { SupersetClient } from '@superset-ui/core';
+import { tn } from '@apache-superset/core/ui';
 import rison from 'rison';
 
 export function recurseReactClone(children, type, propExtender) {
@@ -132,7 +133,15 @@ export function updateColumns(prevCols, newCols, addSuccessToast) {
   return columnChanges;
 }
 
-export async function fetchSyncedColumns(datasource) {
+/**
+ * Fetches column metadata from the datasource's underlying table/view.
+ * Used to sync dataset columns with the database schema.
+ *
+ * @param {Object} datasource - The datasource object
+ * @param {AbortSignal} [signal] - Optional AbortSignal to cancel the request
+ * @returns {Promise<Array>} Array of column metadata objects
+ */
+export async function fetchSyncedColumns(datasource, signal) {
   const params = {
     datasource_type: datasource.type || datasource.datasource_type,
     database_name:
@@ -152,6 +161,6 @@ export async function fetchSyncedColumns(datasource) {
   const endpoint = `/datasource/external_metadata_by_name/?q=${rison.encode_uri(
     params,
   )}`;
-  const { json } = await SupersetClient.get({ endpoint });
+  const { json } = await SupersetClient.get({ endpoint, signal });
   return json;
 }

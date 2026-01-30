@@ -2891,6 +2891,20 @@ def test_singlestore_engine_mapping():
     assert "COUNT(*)" in formatted
 
 
+def test_awsathena_engine_mapping():
+    """
+    Test the `awsathena` dialect is properly mapped to ATHENA instead of PRESTO.
+    """
+    sql = (
+        "USING EXTERNAL FUNCTION my_func(x INT) RETURNS INT LAMBDA 'lambda_name' "
+        "SELECT my_func(id) FROM my_table"
+    )
+    statement = SQLStatement(sql, engine="awsathena")
+
+    # Should parse without errors using Athena dialect
+    statement.format()
+
+
 def test_remove_quotes() -> None:
     """
     Test the `remove_quotes` helper function.
@@ -2977,3 +2991,96 @@ def test_has_subquery(sql: str, engine: str, expected: bool) -> None:
     Test the `has_subquery` method.
     """
     assert SQLStatement(sql, engine).has_subquery() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected_tables",
+    [
+        # Issue #31853: Backtick-quoted table names with "Other" database type
+        (
+            "SELECT * FROM database.`6`",
+            "base",
+            {Table(table="6", schema="database")},
+        ),
+        (
+            "SELECT * FROM database.`6` LIMIT 100",
+            "base",
+            {Table(table="6", schema="database")},
+        ),
+        # Backtick-quoted table name without schema
+        (
+            "SELECT * FROM `my_table`",
+            "base",
+            {Table(table="my_table")},
+        ),
+        # Backtick-quoted schema and table
+        (
+            "SELECT * FROM `my_schema`.`my_table`",
+            "base",
+            {Table(table="my_table", schema="my_schema")},
+        ),
+        # Complex query with multiple backtick-quoted identifiers
+        (
+            "SELECT `col1`, `col2` FROM `schema`.`table` WHERE `id` = 1",
+            "base",
+            {Table(table="table", schema="schema")},
+        ),
+        # Unknown engine should also fall back
+        (
+            "SELECT * FROM `table_name`",
+            "unknown-engine",
+            {Table(table="table_name")},
+        ),
+        # Multiple tables with backticks
+        (
+            "SELECT * FROM `t1` JOIN `t2` ON `t1`.id = `t2`.id",
+            "base",
+            {Table(table="t1"), Table(table="t2")},
+        ),
+        # Backticks in subquery
+        (
+            "SELECT * FROM (SELECT * FROM `inner_table`) AS sub",
+            "base",
+            {Table(table="inner_table")},
+        ),
+    ],
+)
+def test_backtick_quoted_identifiers_base_dialect(
+    sql: str, engine: str, expected_tables: set[Table]
+) -> None:
+    """
+    Test that backtick-quoted identifiers work with base dialect.
+
+    This is a regression test for issue #31853 where SQL parsing fails
+    with "Other" database type when using backtick-quoted table names.
+    The fix adds a fallback to MySQL dialect when parsing fails with
+    base dialect and backticks are present in the SQL.
+    """
+    script = SQLScript(sql, engine)
+    assert len(script.statements) == 1
+    assert script.statements[0].tables == expected_tables
+
+
+def test_backtick_normal_sql_still_works() -> None:
+    """
+    Test that normal SQL without backticks still works with base dialect.
+
+    This ensures the backtick fallback doesn't break normal parsing.
+    """
+    sql = "SELECT col1, col2 FROM my_schema.my_table WHERE id = 1"
+    script = SQLScript(sql, "base")
+    assert len(script.statements) == 1
+    assert script.statements[0].tables == {Table(table="my_table", schema="my_schema")}
+
+
+def test_backtick_invalid_sql_still_fails() -> None:
+    """
+    Test that invalid SQL with backticks still raises an error.
+
+    The fallback should only succeed when the MySQL dialect can parse
+    the SQL successfully.
+    """
+    # Invalid SQL that should fail even with MySQL dialect
+    sql = "SELECT * FROM `table` WHERE"
+    with pytest.raises(SupersetParseError):
+        SQLScript(sql, "base")

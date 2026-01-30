@@ -17,14 +17,15 @@
  * under the License.
  */
 import { useState, useEffect, useRef, MouseEvent } from 'react';
+import { t } from '@apache-superset/core';
 import {
-  t,
   getNumberFormatter,
   getTimeFormatter,
   SMART_DATE_VERBOSE_ID,
   computeMaxFontSize,
   BRAND_COLOR,
   BinaryQueryObjectFilterClause,
+  DTTM_ALIAS,
 } from '@superset-ui/core';
 import { styled, useTheme } from '@apache-superset/core/ui';
 import Echart from '../components/Echart';
@@ -357,7 +358,10 @@ function BigNumberVis({
             const pointerEvent = eventParams.event.event;
             const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
             drillToDetailFilters.push({
-              col: formData?.granularitySqla,
+              col:
+                formData?.xAxis === DTTM_ALIAS
+                  ? formData?.granularitySqla
+                  : formData?.xAxis,
               grain: formData?.timeGrainSqla,
               op: '==',
               val: data[0],

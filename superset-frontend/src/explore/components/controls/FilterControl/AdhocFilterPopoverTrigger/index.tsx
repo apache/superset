@@ -93,7 +93,7 @@ class AdhocFilterPopoverTrigger extends PureComponent<
           datasource={this.props.datasource}
           partitionColumn={this.props.partitionColumn}
           onResize={this.onPopoverResize}
-          onClose={closePopover}
+          onClose={closePopover ?? (() => {})}
           sections={this.props.sections}
           operators={this.props.operators}
           onChange={this.props.onFilterEdit}

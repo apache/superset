@@ -18,6 +18,9 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
+// TODO: Upgrade to remark-gfm v4+ after migrating to React 18.
+// remark-gfm v4+ requires react-markdown v9+, which requires React 18.
+// Currently pinned to v3.0.1 for compatibility with react-markdown v8 and React 17.
 import remarkGfm from 'remark-gfm';
 import { mergeWith } from 'lodash';
 import { FeatureFlag, isFeatureEnabled } from '../../utils';

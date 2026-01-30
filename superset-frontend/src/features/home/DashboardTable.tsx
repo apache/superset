@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useEffect, useMemo, useState } from 'react';
-import { SupersetClient, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { SupersetClient } from '@superset-ui/core';
 import { useFavoriteStatus, useListViewResource } from 'src/views/CRUD/hooks';
 import { Dashboard, DashboardTableProps, TableTab } from 'src/views/CRUD/types';
 import handleResourceExport from 'src/utils/export';
@@ -242,6 +243,7 @@ function DashboardTable({
               addDangerToast,
               activeTab,
               user?.userId,
+              getData,
             );
             setDashboardToDelete(null);
           }}

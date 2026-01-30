@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import type React from 'react';
 import { Route } from 'react-router-dom';
 import fetchMock from 'fetch-mock';
 import { DatasourceType, JsonObject, SupersetClient } from '@superset-ui/core';
@@ -28,7 +29,7 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import { fallbackExploreInitialData } from 'src/explore/fixtures';
-import type { DatasetObject, ColumnObject } from 'src/features/datasets/types';
+import type { ColumnObject } from 'src/features/datasets/types';
 import DatasourceControl from '.';
 
 const SupersetClientGet = jest.spyOn(SupersetClient, 'get');
@@ -40,26 +41,41 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  // @ts-ignore
   window.location = originalLocation;
-  fetchMock.reset();
-  fetchMock.restore();
+  fetchMock.clearHistory().removeRoutes();
   jest.clearAllMocks(); // Clears mock history but keeps spy in place
 });
 
-type TestDatasource = Omit<
-  Partial<DatasetObject>,
-  'columns' | 'main_dttm_col'
-> & {
+interface TestDatasource {
+  id?: number;
   name: string;
-  database: { name: string };
+  datasource_name?: string;
+  database: {
+    id: number;
+    database_name: string;
+    name?: string;
+    backend?: string;
+  };
   columns?: Partial<ColumnObject>[];
   type?: DatasourceType;
   main_dttm_col?: string | null;
-};
+  owners?: Array<{
+    first_name: string;
+    last_name: string;
+    id: number;
+    username?: string;
+  }>;
+  sql?: string;
+  metrics?: Array<{ id: number; metric_name: string }>;
+  [key: string]: unknown;
+}
 
 const mockDatasource: TestDatasource = {
   id: 25,
   database: {
+    id: 1,
+    database_name: 'examples',
     name: 'examples',
   },
   name: 'channels',
@@ -69,56 +85,66 @@ const mockDatasource: TestDatasource = {
   owners: [{ first_name: 'john', last_name: 'doe', id: 1, username: 'jd' }],
   sql: 'SELECT * FROM mock_datasource_sql',
 };
-const createProps = (overrides: JsonObject = {}) => ({
-  hovered: false,
-  type: 'DatasourceControl',
-  label: 'Datasource',
-  default: null,
-  description: null,
-  value: '25__table',
-  form_data: {},
-  datasource: mockDatasource,
-  validationErrors: [],
-  name: 'datasource',
-  actions: {
-    changeDatasource: jest.fn(),
-    setControlValue: jest.fn(),
-  },
-  isEditable: true,
-  user: {
-    createdOn: '2021-04-27T18:12:38.952304',
-    email: 'admin',
-    firstName: 'admin',
-    isActive: true,
-    lastName: 'admin',
-    permissions: {},
-    roles: { Admin: Array(173) },
-    userId: 1,
-    username: 'admin',
-  },
-  onChange: jest.fn(),
-  onDatasourceSave: jest.fn(),
-  ...overrides,
-});
 
-async function openAndSaveChanges(datasource: TestDatasource) {
-  fetchMock.get(
-    'glob:*/api/v1/database/?q=*',
-    { result: [] },
-    { overwriteRoutes: true },
-  );
-  fetchMock.put(
-    'glob:*/api/v1/dataset/*',
-    {},
-    {
-      overwriteRoutes: true,
+// Use type assertion for test props since the component is wrapped with withTheme
+// The withTheme HOC makes the props type complex, so we cast through unknown to bypass type check
+type DatasourceControlComponentProps = React.ComponentProps<
+  typeof DatasourceControl
+>;
+const createProps = (
+  overrides: JsonObject = {},
+): DatasourceControlComponentProps =>
+  ({
+    hovered: false,
+    type: 'DatasourceControl',
+    label: 'Datasource',
+    default: null,
+    description: null,
+    value: '25__table',
+    form_data: {},
+    datasource: mockDatasource,
+    validationErrors: [],
+    name: 'datasource',
+    actions: {
+      changeDatasource: jest.fn(),
+      setControlValue: jest.fn(),
     },
-  );
+    isEditable: true,
+    user: {
+      createdOn: '2021-04-27T18:12:38.952304',
+      email: 'admin',
+      firstName: 'admin',
+      isActive: true,
+      lastName: 'admin',
+      permissions: {},
+      roles: { Admin: Array(173) },
+      userId: 1,
+      username: 'admin',
+    },
+    onChange: jest.fn(),
+    onDatasourceSave: jest.fn(),
+    ...overrides,
+  }) as unknown as DatasourceControlComponentProps;
+
+const getDbWithQuery = 'glob:*/api/v1/database/?q=*';
+const getDatasetWithAll = 'glob:*/api/v1/dataset/*';
+const putDatasetWithAll = 'glob:*/api/v1/dataset/*';
+
+async function openAndSaveChanges(
+  datasource: TestDatasource | Record<string, unknown>,
+) {
+  fetchMock.removeRoute(getDbWithQuery);
+  fetchMock.get(getDbWithQuery, { result: [] }, { name: getDbWithQuery });
+
+  fetchMock.removeRoute('put' + putDatasetWithAll);
+  fetchMock.put(putDatasetWithAll, {}, { name: 'put' + putDatasetWithAll });
+
+  fetchMock.removeRoute('get' + getDatasetWithAll);
   fetchMock.get(
-    'glob:*/api/v1/dataset/*',
+    getDatasetWithAll,
     { result: datasource },
     {
-      overwriteRoutes: true,
+      name: 'get' + getDatasetWithAll,
     },
   );
   await userEvent.click(screen.getByTestId('datasource-menu-trigger'));
@@ -235,19 +261,16 @@ test('Click on Edit dataset', async () => {
   SupersetClientGet.mockImplementationOnce(
     async () => ({ json: { result: [] } }) as any,
   );
-  fetchMock.get(
-    'glob:*/api/v1/database/?q=*',
-    { result: [] },
-    { overwriteRoutes: true },
-  );
+  fetchMock.removeRoute(getDbWithQuery);
+  fetchMock.get(getDbWithQuery, { result: [] }, { name: getDbWithQuery });
   render(<DatasourceControl {...props} />, {
     useRedux: true,
     useRouter: true,
   });
-  await userEvent.click(screen.getByTestId('datasource-menu-trigger'));
+  userEvent.click(screen.getByTestId('datasource-menu-trigger'));
 
   await act(async () => {
-    await userEvent.click(screen.getByText('Edit dataset'));
+    userEvent.click(screen.getByText('Edit dataset'));
   });
 
   expect(
@@ -259,7 +282,6 @@ test('Click on Edit dataset', async () => {
 
 test('Edit dataset should be disabled when user is not admin', async () => {
   const props = createProps();
-  // @ts-expect-error
   props.user.roles = {};
   props.datasource.owners = [];
   SupersetClientGet.mockImplementationOnce(
@@ -458,11 +480,11 @@ test('should not set the temporal column', async () => {
   const overrideProps = {
     ...props,
     form_data: {
-      granularity_sqla: null,
+      granularity_sqla: undefined,
     },
     datasource: {
       ...props.datasource,
-      main_dttm_col: null,
+      main_dttm_col: undefined,
       columns: [
         {
           column_name: 'test-col',
@@ -555,28 +577,16 @@ test('should allow creating new metrics in dataset editor', async () => {
   });
 
   // Mock API calls for dataset editor
-  fetchMock.get(
-    'glob:*/api/v1/database/?q=*',
-    { result: [] },
-    { overwriteRoutes: true },
-  );
+  fetchMock.get(getDbWithQuery, { response: { result: [] } });
 
-  fetchMock.get(
-    'glob:*/api/v1/dataset/*',
-    { result: mockDatasourceWithMetrics },
-    { overwriteRoutes: true },
-  );
+  fetchMock.get(getDatasetWithAll, { result: mockDatasourceWithMetrics });
 
-  fetchMock.put(
-    'glob:*/api/v1/dataset/*',
-    {
-      result: {
-        ...mockDatasourceWithMetrics,
-        metrics: [{ id: 1, metric_name: newMetricName }],
-      },
+  fetchMock.put(putDatasetWithAll, {
+    result: {
+      ...mockDatasourceWithMetrics,
+      metrics: [{ id: 1, metric_name: newMetricName }],
     },
-    { overwriteRoutes: true },
-  );
+  });
 
   SupersetClientGet.mockImplementationOnce(
     async () => ({ json: { result: [] } }) as any,
@@ -588,31 +598,31 @@ test('should allow creating new metrics in dataset editor', async () => {
   });
 
   // Open datasource menu and click edit dataset
-  await userEvent.click(screen.getByTestId('datasource-menu-trigger'));
-  await userEvent.click(await screen.findByTestId('edit-dataset'));
+  userEvent.click(screen.getByTestId('datasource-menu-trigger'));
+  userEvent.click(await screen.findByTestId('edit-dataset'));
 
   // Wait for modal to appear and navigate to Metrics tab
   await waitFor(() => {
     expect(screen.getByText('Metrics')).toBeInTheDocument();
   });
 
-  await userEvent.click(screen.getByText('Metrics'));
+  userEvent.click(screen.getByText('Metrics'));
 
   // Click add new metric button
   const addButton = await screen.findByTestId('crud-add-table-item');
-  await userEvent.click(addButton);
+  userEvent.click(addButton);
 
   // Find and fill in the metric name
   const nameInput = await screen.findByTestId('textarea-editable-title-input');
-  await userEvent.clear(nameInput);
-  await userEvent.type(nameInput, newMetricName);
+  userEvent.clear(nameInput);
+  userEvent.type(nameInput, newMetricName);
 
   // Save the modal
-  await userEvent.click(screen.getByTestId('datasource-modal-save'));
+  userEvent.click(screen.getByTestId('datasource-modal-save'));
 
   // Confirm the save
   const okButton = await screen.findByText('OK');
-  await userEvent.click(okButton);
+  userEvent.click(okButton);
 
   // Verify the onDatasourceSave callback was called
   await waitFor(() => {
@@ -632,23 +642,15 @@ test('should allow deleting metrics in dataset editor', async () => {
   });
 
   // Mock API calls
-  fetchMock.get(
-    'glob:*/api/v1/database/?q=*',
-    { result: [] },
-    { overwriteRoutes: true },
-  );
+  fetchMock.get('glob:*/api/v1/database/?q=*', { result: [] });
 
-  fetchMock.get(
-    'glob:*/api/v1/dataset/*',
-    { result: mockDatasourceWithMetrics },
-    { overwriteRoutes: true },
-  );
+  fetchMock.get('glob:*/api/v1/dataset/*', {
+    result: mockDatasourceWithMetrics,
+  });
 
-  fetchMock.put(
-    'glob:*/api/v1/dataset/*',
-    { result: { ...mockDatasourceWithMetrics, metrics: [] } },
-    { overwriteRoutes: true },
-  );
+  fetchMock.put('glob:*/api/v1/dataset/*', {
+    result: { ...mockDatasourceWithMetrics, metrics: [] },
+  });
 
   SupersetClientGet.mockImplementationOnce(
     async () => ({ json: { result: [] } }) as any,
@@ -696,23 +698,11 @@ test('should handle metric save confirmation modal', async () => {
   const props = createProps();
 
   // Mock API calls for dataset editor
-  fetchMock.get(
-    'glob:*/api/v1/database/?q=*',
-    { result: [] },
-    { overwriteRoutes: true },
-  );
+  fetchMock.get('glob:*/api/v1/database/?q=*', { result: [] });
 
-  fetchMock.get(
-    'glob:*/api/v1/dataset/*',
-    { result: mockDatasource },
-    { overwriteRoutes: true },
-  );
+  fetchMock.get('glob:*/api/v1/dataset/*', { result: mockDatasource });
 
-  fetchMock.put(
-    'glob:*/api/v1/dataset/*',
-    { result: mockDatasource },
-    { overwriteRoutes: true },
-  );
+  fetchMock.put('glob:*/api/v1/dataset/*', { result: mockDatasource });
 
   SupersetClientGet.mockImplementationOnce(
     async () => ({ json: { result: [] } }) as any,
@@ -756,23 +746,11 @@ test('should verify real DatasourceControl callback fires on save', async () => 
   });
 
   // Mock API calls with the same datasource (no changes needed for this test)
-  fetchMock.get(
-    'glob:*/api/v1/database/?q=*',
-    { result: [] },
-    { overwriteRoutes: true },
-  );
+  fetchMock.get('glob:*/api/v1/database/?q=*', { result: [] });
 
-  fetchMock.get(
-    'glob:*/api/v1/dataset/*',
-    { result: mockDatasource },
-    { overwriteRoutes: true },
-  );
+  fetchMock.get('glob:*/api/v1/dataset/*', { result: mockDatasource });
 
-  fetchMock.put(
-    'glob:*/api/v1/dataset/*',
-    { result: mockDatasource },
-    { overwriteRoutes: true },
-  );
+  fetchMock.put('glob:*/api/v1/dataset/*', { result: mockDatasource });
 
   SupersetClientGet.mockImplementationOnce(
     async () => ({ json: { result: [] } }) as any,

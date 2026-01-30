@@ -410,6 +410,121 @@ def test_get_all_catalog_names_needs_oauth2(mocker: MockerFixture) -> None:
     assert excinfo.value.error.error_type == SupersetErrorType.OAUTH2_REDIRECT
 
 
+def test_get_all_table_names_in_schema_needs_oauth2(mocker: MockerFixture) -> None:
+    """
+    Test the `get_all_table_names_in_schema` method when OAuth2 is needed.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="snowflake://:@abcd1234.snowflakecomputing.com/db",
+        encrypted_extra=json.dumps(oauth2_client_info),
+    )
+
+    class DriverSpecificError(Exception):
+        """
+        A custom exception that is raised by the Snowflake driver.
+        """
+
+    mocker.patch.object(
+        database.db_engine_spec,
+        "oauth2_exception",
+        DriverSpecificError,
+    )
+    mocker.patch.object(
+        database.db_engine_spec,
+        "get_table_names",
+        side_effect=DriverSpecificError("User needs to authenticate"),
+    )
+    mocker.patch.object(database, "get_inspector")
+    user = mocker.MagicMock()
+    user.id = 42
+    mocker.patch("superset.db_engine_specs.base.g", user=user)
+
+    with pytest.raises(OAuth2RedirectError) as excinfo:
+        database.get_all_table_names_in_schema(catalog=None, schema="public")
+
+    assert excinfo.value.message == "You don't have permission to access the data."
+    assert excinfo.value.error.error_type == SupersetErrorType.OAUTH2_REDIRECT
+
+
+def test_get_all_view_names_in_schema_needs_oauth2(mocker: MockerFixture) -> None:
+    """
+    Test the `get_all_view_names_in_schema` method when OAuth2 is needed.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="snowflake://:@abcd1234.snowflakecomputing.com/db",
+        encrypted_extra=json.dumps(oauth2_client_info),
+    )
+
+    class DriverSpecificError(Exception):
+        """
+        A custom exception that is raised by the Snowflake driver.
+        """
+
+    mocker.patch.object(
+        database.db_engine_spec,
+        "oauth2_exception",
+        DriverSpecificError,
+    )
+    mocker.patch.object(
+        database.db_engine_spec,
+        "get_view_names",
+        side_effect=DriverSpecificError("User needs to authenticate"),
+    )
+    mocker.patch.object(database, "get_inspector")
+    user = mocker.MagicMock()
+    user.id = 42
+    mocker.patch("superset.db_engine_specs.base.g", user=user)
+
+    with pytest.raises(OAuth2RedirectError) as excinfo:
+        database.get_all_view_names_in_schema(catalog=None, schema="public")
+
+    assert excinfo.value.message == "You don't have permission to access the data."
+    assert excinfo.value.error.error_type == SupersetErrorType.OAUTH2_REDIRECT
+
+
+def test_get_all_materialized_view_names_in_schema_needs_oauth2(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test the `get_all_materialized_view_names_in_schema` method when OAuth2 is needed.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="snowflake://:@abcd1234.snowflakecomputing.com/db",
+        encrypted_extra=json.dumps(oauth2_client_info),
+    )
+
+    class DriverSpecificError(Exception):
+        """
+        A custom exception that is raised by the Snowflake driver.
+        """
+
+    mocker.patch.object(
+        database.db_engine_spec,
+        "oauth2_exception",
+        DriverSpecificError,
+    )
+    mocker.patch.object(
+        database.db_engine_spec,
+        "get_materialized_view_names",
+        side_effect=DriverSpecificError("User needs to authenticate"),
+    )
+    mocker.patch.object(database, "get_inspector")
+    user = mocker.MagicMock()
+    user.id = 42
+    mocker.patch("superset.db_engine_specs.base.g", user=user)
+
+    with pytest.raises(OAuth2RedirectError) as excinfo:
+        database.get_all_materialized_view_names_in_schema(
+            catalog=None, schema="public"
+        )
+
+    assert excinfo.value.message == "You don't have permission to access the data."
+    assert excinfo.value.error.error_type == SupersetErrorType.OAUTH2_REDIRECT
+
+
 def test_get_sqla_engine(mocker: MockerFixture) -> None:
     """
     Test `_get_sqla_engine`.
@@ -553,8 +668,89 @@ def test_get_oauth2_config(app_context: None) -> None:
         "token_request_uri": "https://abcd1234.snowflakecomputing.com/oauth/token-request",
         "scope": "refresh_token session:role:USERADMIN",
         "redirect_uri": "http://example.com/api/v1/database/oauth2/",
+        "request_content_type": "data",  # Default value from BaseEngineSpec
+    }
+
+
+def test_get_oauth2_config_token_request_type_from_db_engine_specs(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    """
+    Test that DB Engine Spec overrides for ``oauth2_token_request_type`` are respected.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="postgresql://user:password@host:5432/examples",
+    )
+    mocker.patch.object(
+        database.db_engine_spec,
+        "oauth2_token_request_type",
+        "json",
+    )
+
+    database.encrypted_extra = json.dumps(oauth2_client_info)
+    assert database.get_oauth2_config() == {
+        "id": "my_client_id",
+        "secret": "my_client_secret",
+        "authorization_request_uri": "https://abcd1234.snowflakecomputing.com/oauth/authorize",
+        "token_request_uri": "https://abcd1234.snowflakecomputing.com/oauth/token-request",
+        "scope": "refresh_token session:role:USERADMIN",
+        "redirect_uri": "http://example.com/api/v1/database/oauth2/",
         "request_content_type": "json",
     }
+
+
+def test_get_oauth2_config_custom_token_request_type_extra(app_context: None) -> None:
+    """
+    Test passing a custom ``token_request_type`` via ``encrypted_extra``
+    takes precedence.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="postgresql://user:password@host:5432/examples",
+    )
+    custom_oauth2_client_info = {
+        "oauth2_client_info": {
+            **oauth2_client_info["oauth2_client_info"],
+            "request_content_type": "json",
+        }
+    }
+
+    database.encrypted_extra = json.dumps(custom_oauth2_client_info)
+    assert database.get_oauth2_config() == {
+        "id": "my_client_id",
+        "secret": "my_client_secret",
+        "authorization_request_uri": "https://abcd1234.snowflakecomputing.com/oauth/authorize",
+        "token_request_uri": "https://abcd1234.snowflakecomputing.com/oauth/token-request",
+        "scope": "refresh_token session:role:USERADMIN",
+        "redirect_uri": "http://example.com/api/v1/database/oauth2/",
+        "request_content_type": "json",
+    }
+
+
+def test_get_oauth2_config_redirect_uri_from_config(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Test that ``DATABASE_OAUTH2_REDIRECT_URI`` config takes precedence over
+    url_for default.
+    """
+    custom_redirect_uri = "https://custom.example.com/oauth/callback"
+    mocker.patch.dict(
+        "superset.utils.oauth2.app.config",
+        {"DATABASE_OAUTH2_REDIRECT_URI": custom_redirect_uri},
+    )
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="postgresql://user:password@host:5432/examples",
+    )
+    database.encrypted_extra = json.dumps(oauth2_client_info)
+
+    config = database.get_oauth2_config()
+
+    assert config is not None
+    assert config["redirect_uri"] == custom_redirect_uri
 
 
 def test_raw_connection_oauth_engine(mocker: MockerFixture) -> None:
@@ -1060,3 +1256,87 @@ def test_apply_limit_to_sql(
 
     limited = db.apply_limit_to_sql(sql, limit, force)
     assert limited == expected
+
+
+def test_database_execute_delegates_to_sql_executor(mocker: MockerFixture) -> None:
+    """Test that Database.execute() delegates to SQLExecutor.execute()."""
+    from unittest.mock import MagicMock
+
+    mock_executor_class = mocker.patch("superset.sql.execution.SQLExecutor")
+    mock_executor = MagicMock()
+    mock_executor_class.return_value = mock_executor
+
+    mock_result = MagicMock()
+    mock_executor.execute.return_value = mock_result
+
+    database = Database(database_name="test_db", sqlalchemy_uri="sqlite://")
+    mock_options = MagicMock()
+
+    result = database.execute("SELECT 1", mock_options)
+
+    mock_executor_class.assert_called_once_with(database)
+    mock_executor.execute.assert_called_once_with("SELECT 1", mock_options)
+    assert result == mock_result
+
+
+def test_database_execute_without_options(mocker: MockerFixture) -> None:
+    """Test that Database.execute() works without options."""
+    from unittest.mock import MagicMock
+
+    mock_executor_class = mocker.patch("superset.sql.execution.SQLExecutor")
+    mock_executor = MagicMock()
+    mock_executor_class.return_value = mock_executor
+
+    mock_result = MagicMock()
+    mock_executor.execute.return_value = mock_result
+
+    database = Database(database_name="test_db", sqlalchemy_uri="sqlite://")
+
+    result = database.execute("SELECT 1")
+
+    mock_executor_class.assert_called_once_with(database)
+    mock_executor.execute.assert_called_once_with("SELECT 1", None)
+    assert result == mock_result
+
+
+def test_database_execute_async_delegates_to_sql_executor(
+    mocker: MockerFixture,
+) -> None:
+    """Test that Database.execute_async() delegates to SQLExecutor.execute_async()."""
+    from unittest.mock import MagicMock
+
+    mock_executor_class = mocker.patch("superset.sql.execution.SQLExecutor")
+    mock_executor = MagicMock()
+    mock_executor_class.return_value = mock_executor
+
+    mock_handle = MagicMock()
+    mock_executor.execute_async.return_value = mock_handle
+
+    database = Database(database_name="test_db", sqlalchemy_uri="sqlite://")
+    mock_options = MagicMock()
+
+    result = database.execute_async("SELECT 1", mock_options)
+
+    mock_executor_class.assert_called_once_with(database)
+    mock_executor.execute_async.assert_called_once_with("SELECT 1", mock_options)
+    assert result == mock_handle
+
+
+def test_database_execute_async_without_options(mocker: MockerFixture) -> None:
+    """Test that Database.execute_async() works without options."""
+    from unittest.mock import MagicMock
+
+    mock_executor_class = mocker.patch("superset.sql.execution.SQLExecutor")
+    mock_executor = MagicMock()
+    mock_executor_class.return_value = mock_executor
+
+    mock_handle = MagicMock()
+    mock_executor.execute_async.return_value = mock_handle
+
+    database = Database(database_name="test_db", sqlalchemy_uri="sqlite://")
+
+    result = database.execute_async("SELECT 1")
+
+    mock_executor_class.assert_called_once_with(database)
+    mock_executor.execute_async.assert_called_once_with("SELECT 1", None)
+    assert result == mock_handle

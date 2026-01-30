@@ -23,12 +23,22 @@ import {
   FilterConfiguration,
   NativeFilterType,
   NativeFilterTarget,
-  logging,
   Filter,
   Divider,
+  ChartCustomizationType,
+  ChartCustomizationConfiguration,
+  ChartCustomization,
+  ChartCustomizationDivider,
 } from '@superset-ui/core';
+import { logging } from '@apache-superset/core';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
-import { FilterChangesType, FilterRemoval, NativeFiltersForm } from './types';
+import {
+  ChartCustomizationsForm,
+  FilterChangesType,
+  FilterRemoval,
+  NativeFiltersForm,
+  ItemType,
+} from './types';
 
 export const REMOVAL_DELAY_SECS = 5;
 
@@ -143,7 +153,6 @@ export const createHandleSave =
         type: formInputs.type,
         description: (formInputs.description || '').trim(),
       };
-      return undefined;
     };
 
     const transformedModified = filterChanges.modified
@@ -202,6 +211,13 @@ export const createHandleRemoveItem =
 
 export const NATIVE_FILTER_PREFIX = 'NATIVE_FILTER-';
 export const NATIVE_FILTER_DIVIDER_PREFIX = 'NATIVE_FILTER_DIVIDER-';
+
+export const isNativeFilter = (id: string): boolean =>
+  id.startsWith(NATIVE_FILTER_PREFIX);
+
+export const isNativeFilterDivider = (id: string): boolean =>
+  id.startsWith(NATIVE_FILTER_DIVIDER_PREFIX);
+
 export const generateFilterId = (type: NativeFilterType): string => {
   const prefix =
     type === NativeFilterType.NativeFilter
@@ -212,3 +228,143 @@ export const generateFilterId = (type: NativeFilterType): string => {
 
 export const getFilterIds = (config: FilterConfiguration) =>
   config.map(filter => filter.id);
+
+export const createHandleCustomizationSave =
+  (
+    saveForm: Function,
+    filterChanges: FilterChangesType,
+    values: ChartCustomizationsForm,
+    customizationsConfigMap: Record<
+      string,
+      ChartCustomization | ChartCustomizationDivider
+    >,
+  ) =>
+  async () => {
+    const transformCustomization = (id: string) => {
+      const formInputs = values.filters?.[id] || customizationsConfigMap[id];
+      if (!formInputs) {
+        return undefined;
+      }
+      if (formInputs.type === ChartCustomizationType.Divider) {
+        return {
+          id,
+          removed: false,
+          customization: {
+            name: formInputs.title,
+            dataset: null,
+            column: null,
+          },
+        };
+      }
+
+      const datasetValue =
+        formInputs.dataset && typeof formInputs.dataset === 'object'
+          ? formInputs.dataset.value
+          : formInputs.dataset;
+
+      return {
+        id,
+        title: formInputs.name,
+        description: (formInputs.description || '').trim(),
+        removed: false,
+        chartId:
+          (formInputs as any).chartId ||
+          (customizationsConfigMap[id] as any)?.chartId,
+        customization: {
+          name: formInputs.name || '',
+          dataset: datasetValue,
+          datasetInfo: formInputs.datasetInfo,
+          filterType: formInputs.filterType,
+          column: formInputs.column || null,
+          description: (formInputs.description || '').trim(),
+          hasDefaultValue: formInputs.hasDefaultValue,
+          defaultValue: formInputs.defaultValue,
+          isRequired: formInputs.controlValues?.enableEmptyFilter || false,
+          selectFirst: formInputs.selectFirst,
+          defaultDataMask: formInputs.defaultDataMask,
+          defaultValueQueriesData: formInputs.defaultValueQueriesData,
+          aggregation: formInputs.aggregation,
+          canSelectMultiple: formInputs.canSelectMultiple ?? true,
+          controlValues: formInputs.controlValues ?? {},
+        },
+      };
+    };
+
+    const transformedModified = filterChanges.modified
+      .map(transformCustomization)
+      .filter(Boolean);
+
+    const deletedCustomizations = filterChanges.deleted.map(id => ({
+      id,
+      removed: true,
+      customization: {
+        name: '',
+        dataset: null,
+        column: null,
+      },
+    }));
+
+    await saveForm([...transformedModified, ...deletedCustomizations]);
+  };
+
+export const CHART_CUSTOMIZATION_PREFIX = 'CHART_CUSTOMIZATION-';
+export const CHART_CUSTOMIZATION_DIVIDER_PREFIX =
+  'CHART_CUSTOMIZATION_DIVIDER-';
+
+export const isChartCustomization = (id: string): boolean =>
+  id.startsWith(CHART_CUSTOMIZATION_PREFIX);
+
+export const isChartCustomizationDivider = (id: string): boolean =>
+  id.startsWith(CHART_CUSTOMIZATION_DIVIDER_PREFIX);
+
+export const generateChartCustomizationId = (
+  type: ChartCustomizationType,
+): string => {
+  const prefix =
+    type === ChartCustomizationType.ChartCustomization
+      ? CHART_CUSTOMIZATION_PREFIX
+      : CHART_CUSTOMIZATION_DIVIDER_PREFIX;
+  return `${prefix}${nanoid()}`;
+};
+
+export const getChartCustomizationIds = (
+  config: ChartCustomizationConfiguration,
+) => config.map(filter => filter.id);
+
+export const isFilterId = (id: string): boolean =>
+  id.startsWith(NATIVE_FILTER_PREFIX) ||
+  id.startsWith(NATIVE_FILTER_DIVIDER_PREFIX);
+
+export const isChartCustomizationId = (id: string): boolean =>
+  id.startsWith(CHART_CUSTOMIZATION_PREFIX) ||
+  id.startsWith(CHART_CUSTOMIZATION_DIVIDER_PREFIX);
+
+export const getItemType = (id: string): ItemType => {
+  if (isFilterId(id)) return 'filter';
+  if (isChartCustomizationId(id)) return 'customization';
+  throw new Error(`Unknown item type for id: ${id}`);
+};
+
+export const getItemTypeInfo = (type: ItemType) => ({
+  dividerPrefix:
+    type === 'filter'
+      ? NATIVE_FILTER_DIVIDER_PREFIX
+      : CHART_CUSTOMIZATION_DIVIDER_PREFIX,
+  dividerType:
+    type === 'filter'
+      ? NativeFilterType.Divider
+      : ChartCustomizationType.Divider,
+  itemTypeName: type === 'filter' ? 'filter' : 'customization',
+});
+
+export const isDivider = (id: string): boolean =>
+  isNativeFilterDivider(id) || isChartCustomizationDivider(id);
+
+export const transformDividerId = (
+  oldId: string,
+  targetType: ItemType,
+): string => {
+  const hash = oldId.split('-').pop();
+  const { dividerPrefix } = getItemTypeInfo(targetType);
+  return `${dividerPrefix}${hash}`;
+};

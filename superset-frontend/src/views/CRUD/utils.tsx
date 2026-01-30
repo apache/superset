@@ -17,12 +17,11 @@
  * under the License.
  */
 
+import { t, logging } from '@apache-superset/core';
 import {
-  logging,
   SupersetClient,
   SupersetClientResponse,
   getClientErrorObject,
-  t,
   lruCache,
 } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';
@@ -310,6 +309,7 @@ export function handleDashboardDelete(
   addDangerToast: (arg0: string) => void,
   dashboardFilter?: string,
   userId?: string | number,
+  getData?: (tab: TableTab) => void,
 ) {
   return SupersetClient.delete({
     endpoint: `/api/v1/dashboard/${id}`,
@@ -333,6 +333,8 @@ export function handleDashboardDelete(
         ],
       };
       if (dashboardFilter === 'Mine') refreshData(filters);
+      else if (dashboardFilter === 'Other' && getData)
+        getData(dashboardFilter as TableTab);
       else refreshData();
       addSuccessToast(t('Deleted: %s', dashboardTitle));
     },

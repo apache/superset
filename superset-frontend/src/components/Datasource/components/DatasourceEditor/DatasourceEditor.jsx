@@ -27,16 +27,17 @@ import {
   ensureIsArray,
   FeatureFlag,
   SupersetClient,
-  t,
   getClientErrorObject,
   getExtensionsRegistry,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import {
   css,
   styled,
   themeObject,
   Alert,
   withTheme,
+  t,
 } from '@apache-superset/core/ui';
 import Tabs from '@superset-ui/core/components/Tabs';
 import WarningIconWithTooltip from '@superset-ui/core/components/WarningIconWithTooltip';
@@ -56,8 +57,10 @@ import {
   Col,
   Divider,
   EditableTitle,
+  Flex,
   FormLabel,
   Icons,
+  InfoTooltip,
   Loading,
   Row,
   Select,
@@ -72,6 +75,7 @@ import {
 } from 'src/database/actions';
 import Mousetrap from 'mousetrap';
 import { clearDatasetCache } from 'src/utils/cachedSupersetGet';
+import { makeUrl } from 'src/utils/pathUtils';
 import { DatabaseSelector } from '../../../DatabaseSelector';
 import CollectionTable from '../CollectionTable';
 import Fieldset from '../Fieldset';
@@ -156,6 +160,31 @@ const StyledTableTabWrapper = styled.div`
   }
 `;
 
+const DefaultColumnSettingsContainer = styled.div`
+  ${({ theme }) => css`
+    margin-bottom: ${theme.sizeUnit * 4}px;
+  `}
+`;
+
+const DefaultColumnSettingsTitle = styled.h4`
+  ${({ theme }) => css`
+    margin: 0 0 ${theme.sizeUnit * 2}px 0;
+    font-size: ${theme.fontSizeLG}px;
+    font-weight: ${theme.fontWeightMedium};
+    color: ${theme.colorText};
+  `}
+`;
+
+const FieldLabelWithTooltip = styled.div`
+  ${({ theme }) => css`
+    display: flex;
+    align-items: center;
+    gap: ${theme.sizeUnit}px;
+    font-size: ${theme.fontSizeSM}px;
+    color: ${theme.colorTextLabel};
+  `}
+`;
+
 const StyledButtonWrapper = styled.span`
   ${({ theme }) => `
     margin-top: ${theme.sizeUnit * 3}px;
@@ -233,18 +262,10 @@ function ColumnCollectionTable({
               'advanced_data_type',
               'type',
               'is_dttm',
-              'main_dttm_col',
               'filterable',
               'groupby',
             ]
-          : [
-              'column_name',
-              'type',
-              'is_dttm',
-              'main_dttm_col',
-              'filterable',
-              'groupby',
-            ]
+          : ['column_name', 'type', 'is_dttm', 'filterable', 'groupby']
       }
       sortColumns={
         isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)
@@ -253,18 +274,10 @@ function ColumnCollectionTable({
               'advanced_data_type',
               'type',
               'is_dttm',
-              'main_dttm_col',
               'filterable',
               'groupby',
             ]
-          : [
-              'column_name',
-              'type',
-              'is_dttm',
-              'main_dttm_col',
-              'filterable',
-              'groupby',
-            ]
+          : ['column_name', 'type', 'is_dttm', 'filterable', 'groupby']
       }
       allowDeletes
       allowAddItem={allowAddItem}
@@ -315,6 +328,7 @@ function ColumnCollectionTable({
                 control={
                   <Select
                     ariaLabel={t('Data type')}
+                    header={<FormLabel>{t('Data type')}</FormLabel>}
                     options={DATA_TYPES}
                     name="type"
                     allowNewOptions
@@ -402,7 +416,6 @@ function ColumnCollectionTable({
               type: t('Data type'),
               groupby: t('Is dimension'),
               is_dttm: t('Is temporal'),
-              main_dttm_col: t('Default datetime'),
               filterable: t('Is filterable'),
             }
           : {
@@ -410,7 +423,6 @@ function ColumnCollectionTable({
               type: t('Data type'),
               groupby: t('Is dimension'),
               is_dttm: t('Is temporal'),
-              main_dttm_col: t('Default datetime'),
               filterable: t('Is filterable'),
             }
       }
@@ -444,27 +456,6 @@ function ColumnCollectionTable({
                     {v}
                   </StyledLabelWrapper>
                 ),
-              main_dttm_col: (value, _onItemChange, _label, record) => {
-                const checked = datasource.main_dttm_col === record.column_name;
-                const disabled = !record?.is_dttm;
-                return (
-                  <Radio
-                    aria-label={t(
-                      'Set %s as default datetime column',
-                      record.column_name,
-                    )}
-                    data-test={`radio-default-dttm-${record.column_name}`}
-                    checked={checked}
-                    disabled={disabled}
-                    onChange={() =>
-                      onDatasourceChange({
-                        ...datasource,
-                        main_dttm_col: record.column_name,
-                      })
-                    }
-                  />
-                );
-              },
               type: d => (d ? <Label>{d}</Label> : null),
               advanced_data_type: d => (
                 <Label onChange={onColumnsChange}>{d}</Label>
@@ -496,27 +487,6 @@ function ColumnCollectionTable({
                     {v}
                   </StyledLabelWrapper>
                 ),
-              main_dttm_col: (value, _onItemChange, _label, record) => {
-                const checked = datasource.main_dttm_col === record.column_name;
-                const disabled = !record?.is_dttm;
-                return (
-                  <Radio
-                    aria-label={t(
-                      'Set %s as default datetime column',
-                      record.column_name,
-                    )}
-                    data-test={`radio-default-dttm-${record.column_name}`}
-                    checked={checked}
-                    disabled={disabled}
-                    onChange={() =>
-                      onDatasourceChange({
-                        ...datasource,
-                        main_dttm_col: record.column_name,
-                      })
-                    }
-                  />
-                );
-              },
               type: d => (d ? <Label>{d}</Label> : null),
               is_dttm: checkboxGenerator,
               filterable: checkboxGenerator,
@@ -667,6 +637,14 @@ class DatasourceEditor extends PureComponent {
       usageChartsCount: 0,
     };
 
+    this.isComponentMounted = false;
+    this.abortControllers = {
+      formatQuery: null,
+      formatSql: null,
+      syncMetadata: null,
+      fetchUsageData: null,
+    };
+
     this.onChange = this.onChange.bind(this);
     this.onChangeEditMode = this.onChangeEditMode.bind(this);
     this.onDatasourcePropChange = this.onDatasourcePropChange.bind(this);
@@ -757,24 +735,42 @@ class DatasourceEditor extends PureComponent {
     });
   }
 
+  /**
+   * Formats SQL query using the formatQuery action.
+   * Aborts any pending format requests before starting a new one.
+   */
   async onQueryFormat() {
     const { datasource } = this.state;
     if (!datasource.sql || !this.state.isEditMode) {
       return;
     }
 
+    // Abort previous formatQuery if still pending
+    if (this.abortControllers.formatQuery) {
+      this.abortControllers.formatQuery.abort();
+    }
+
+    this.abortControllers.formatQuery = new AbortController();
+    const { signal } = this.abortControllers.formatQuery;
+
     try {
-      const response = await this.props.formatQuery(datasource.sql);
+      const response = await this.props.formatQuery(datasource.sql, { signal });
+
       this.onDatasourcePropChange('sql', response.json.result);
       this.props.addSuccessToast(t('SQL was formatted'));
     } catch (error) {
+      if (error.name === 'AbortError') return;
+
       const { error: clientError, statusText } =
         await getClientErrorObject(error);
+
       this.props.addDangerToast(
         clientError ||
           statusText ||
           t('An error occurred while formatting SQL'),
       );
+    } finally {
+      this.abortControllers.formatQuery = null;
     }
   }
 
@@ -787,7 +783,7 @@ class DatasourceEditor extends PureComponent {
       autorun: true,
       isDataset: true,
     });
-    return `/sqllab/?${queryParams.toString()}`;
+    return makeUrl(`/sqllab/?${queryParams.toString()}`);
   }
 
   openOnSqlLab() {
@@ -801,36 +797,71 @@ class DatasourceEditor extends PureComponent {
     });
   }
 
+  /**
+   * Formats SQL query using the SQL format API endpoint.
+   * Aborts any pending format requests before starting a new one.
+   */
   async formatSql() {
     const { datasource } = this.state;
     if (!datasource.sql) {
       return;
     }
 
+    // Abort previous formatSql if still pending
+    if (this.abortControllers.formatSql) {
+      this.abortControllers.formatSql.abort();
+    }
+
+    this.abortControllers.formatSql = new AbortController();
+    const { signal } = this.abortControllers.formatSql;
+
     try {
       const response = await SupersetClient.post({
         endpoint: '/api/v1/sql/format',
         body: JSON.stringify({ sql: datasource.sql }),
         headers: { 'Content-Type': 'application/json' },
+        signal,
       });
+
       this.onDatasourcePropChange('sql', response.json.result);
       this.props.addSuccessToast(t('SQL was formatted'));
     } catch (error) {
+      if (error.name === 'AbortError') return;
+
       const { error: clientError, statusText } =
         await getClientErrorObject(error);
+
       this.props.addDangerToast(
         clientError ||
           statusText ||
           t('An error occurred while formatting SQL'),
       );
+    } finally {
+      this.abortControllers.formatSql = null;
     }
   }
 
+  /**
+   * Syncs dataset columns with the database schema.
+   * Fetches column metadata from the underlying table/view and updates the dataset.
+   * Aborts any pending sync requests before starting a new one.
+   */
   async syncMetadata() {
     const { datasource } = this.state;
+
+    // Abort previous syncMetadata if still pending
+    if (this.abortControllers.syncMetadata) {
+      this.abortControllers.syncMetadata.abort();
+    }
+
+    this.abortControllers.syncMetadata = new AbortController();
+    const { signal } = this.abortControllers.syncMetadata;
+
     this.setState({ metadataLoading: true });
+
     try {
-      const newCols = await fetchSyncedColumns(datasource);
+      const newCols = await fetchSyncedColumns(datasource, signal);
+
       const columnChanges = updateColumns(
         datasource.columns,
         newCols,
@@ -847,15 +878,36 @@ class DatasourceEditor extends PureComponent {
       this.props.addSuccessToast(t('Metadata has been synced'));
       this.setState({ metadataLoading: false });
     } catch (error) {
+      if (error.name === 'AbortError') {
+        // Only update state if still mounted (abort may happen during unmount)
+        if (this.isComponentMounted) {
+          this.setState({ metadataLoading: false });
+        }
+        return;
+      }
+
       const { error: clientError, statusText } =
         await getClientErrorObject(error);
+
       this.props.addDangerToast(
         clientError || statusText || t('An error has occurred'),
       );
       this.setState({ metadataLoading: false });
+    } finally {
+      this.abortControllers.syncMetadata = null;
     }
   }
 
+  /**
+   * Fetches chart usage data for this dataset (which charts use this dataset).
+   * Aborts any pending fetch requests before starting a new one.
+   *
+   * @param {number} page - Page number (1-indexed)
+   * @param {number} pageSize - Number of results per page
+   * @param {string} sortColumn - Column to sort by
+   * @param {string} sortDirection - Sort direction ('asc' or 'desc')
+   * @returns {Promise<{charts: Array, count: number, ids: Array}>} Chart usage data
+   */
   async fetchUsageData(
     page = 1,
     pageSize = 25,
@@ -863,6 +915,15 @@ class DatasourceEditor extends PureComponent {
     sortDirection = 'desc',
   ) {
     const { datasource } = this.state;
+
+    // Abort previous fetchUsageData if still pending
+    if (this.abortControllers.fetchUsageData) {
+      this.abortControllers.fetchUsageData.abort();
+    }
+
+    this.abortControllers.fetchUsageData = new AbortController();
+    const { signal } = this.abortControllers.fetchUsageData;
+
     try {
       const queryParams = rison.encode({
         columns: [
@@ -898,6 +959,7 @@ class DatasourceEditor extends PureComponent {
 
       const { json = {} } = await SupersetClient.get({
         endpoint: `/api/v1/chart/?q=${queryParams}`,
+        signal,
       });
 
       const charts = json?.result || [];
@@ -909,10 +971,13 @@ class DatasourceEditor extends PureComponent {
         id: ids[index],
       }));
 
-      this.setState({
-        usageCharts: chartsWithIds,
-        usageChartsCount: json?.count || 0,
-      });
+      // Only update state if not aborted and component still mounted
+      if (!signal.aborted && this.isComponentMounted) {
+        this.setState({
+          usageCharts: chartsWithIds,
+          usageChartsCount: json?.count || 0,
+        });
+      }
 
       return {
         charts: chartsWithIds,
@@ -920,8 +985,12 @@ class DatasourceEditor extends PureComponent {
         ids,
       };
     } catch (error) {
+      // Rethrow AbortError so callers can handle gracefully
+      if (error.name === 'AbortError') throw error;
+
       const { error: clientError, statusText } =
         await getClientErrorObject(error);
+
       this.props.addDangerToast(
         clientError ||
           statusText ||
@@ -931,11 +1000,14 @@ class DatasourceEditor extends PureComponent {
         usageCharts: [],
         usageChartsCount: 0,
       });
+
       return {
         charts: [],
         count: 0,
         ids: [],
       };
+    } finally {
+      this.abortControllers.fetchUsageData = null;
     }
   }
 
@@ -980,11 +1052,12 @@ class DatasourceEditor extends PureComponent {
       ),
     );
 
-    // validate currency code
+    // validate currency code (skip 'AUTO' - it's a placeholder for auto-detection)
     try {
       this.state.datasource.metrics?.forEach(
         metric =>
           metric.currency?.symbol &&
+          metric.currency.symbol !== 'AUTO' &&
           new Intl.NumberFormat('en-US', {
             style: 'currency',
             currency: metric.currency.symbol,
@@ -1003,6 +1076,86 @@ class DatasourceEditor extends PureComponent {
 
   sortMetrics(metrics) {
     return metrics.sort(({ id: a }, { id: b }) => b - a);
+  }
+
+  renderDefaultColumnSettings() {
+    const { datasource, databaseColumns, calculatedColumns } = this.state;
+    const { theme } = this.props;
+    const allColumns = [...databaseColumns, ...calculatedColumns];
+
+    // Get datetime-compatible columns for the default datetime dropdown
+    const datetimeColumns = allColumns
+      .filter(col => col.is_dttm)
+      .map(col => ({
+        value: col.column_name,
+        label: col.verbose_name || col.column_name,
+      }));
+
+    // Get string-type columns for the currency code dropdown
+    const stringColumns = allColumns
+      .filter(col => col.type_generic === GenericDataType.String)
+      .map(col => ({
+        value: col.column_name,
+        label: col.verbose_name || col.column_name,
+      }));
+
+    return (
+      <DefaultColumnSettingsContainer data-test="default-column-settings">
+        <DefaultColumnSettingsTitle>
+          {t('Default Column Settings')}
+        </DefaultColumnSettingsTitle>
+        <Flex vertical gap={theme.sizeUnit * 3}>
+          <Flex vertical gap={theme.sizeUnit}>
+            <FieldLabelWithTooltip>
+              <span>{t('Default datetime column')}</span>
+              <InfoTooltip
+                tooltip={t(
+                  'Sets the default temporal column for this dataset. Automatically selected as the time column when building charts that require a time dimension and used in dashboard level time filters.',
+                )}
+              />
+            </FieldLabelWithTooltip>
+            <Select
+              ariaLabel={t('Default datetime column')}
+              options={datetimeColumns}
+              value={datasource.main_dttm_col}
+              onChange={value =>
+                this.onDatasourceChange({
+                  ...datasource,
+                  main_dttm_col: value,
+                })
+              }
+              placeholder={t('Select datetime column')}
+              allowClear
+              data-test="default-datetime-column-select"
+            />
+          </Flex>
+          <Flex vertical gap={theme.sizeUnit}>
+            <FieldLabelWithTooltip>
+              <span>{t('Currency code column')}</span>
+              <InfoTooltip
+                tooltip={t(
+                  "Select the column containing currency codes such as USD, EUR, GBP, etc. Used when building charts when 'Auto-detect' currency formatting is enabled. If this column is not set or if a chart metric contains multiple currencies, charts will fall back to neutral numeric formatting.",
+                )}
+              />
+            </FieldLabelWithTooltip>
+            <Select
+              ariaLabel={t('Currency code column')}
+              options={stringColumns}
+              value={datasource.currency_code_column}
+              onChange={value =>
+                this.onDatasourceChange({
+                  ...datasource,
+                  currency_code_column: value,
+                })
+              }
+              placeholder={t('Select currency code column')}
+              allowClear
+              data-test="currency-code-column-select"
+            />
+          </Flex>
+        </Flex>
+      </DefaultColumnSettingsContainer>
+    );
   }
 
   renderSettingsFieldset() {
@@ -1786,6 +1939,10 @@ class DatasourceEditor extends PureComponent {
               ),
               children: (
                 <StyledTableTabWrapper>
+                  {this.renderDefaultColumnSettings()}
+                  <DefaultColumnSettingsTitle>
+                    {t('Column Settings')}
+                  </DefaultColumnSettingsTitle>
                   <ColumnButtonWrapper>
                     <StyledButtonWrapper>
                       <Button
@@ -1823,6 +1980,10 @@ class DatasourceEditor extends PureComponent {
               ),
               children: (
                 <StyledTableTabWrapper>
+                  {this.renderDefaultColumnSettings()}
+                  <DefaultColumnSettingsTitle>
+                    {t('Column Settings')}
+                  </DefaultColumnSettingsTitle>
                   <ColumnCollectionTable
                     columns={this.state.calculatedColumns}
                     onColumnsChange={calculatedColumns =>
@@ -1940,6 +2101,7 @@ class DatasourceEditor extends PureComponent {
   }
 
   componentDidMount() {
+    this.isComponentMounted = true;
     Mousetrap.bind('ctrl+shift+f', e => {
       e.preventDefault();
       if (this.state.isEditMode) {
@@ -1947,10 +2109,19 @@ class DatasourceEditor extends PureComponent {
       }
       return false;
     });
-    this.fetchUsageData();
+    this.fetchUsageData().catch(error => {
+      if (error?.name !== 'AbortError') throw error;
+    });
   }
 
   componentWillUnmount() {
+    this.isComponentMounted = false;
+
+    // Abort all pending requests
+    Object.values(this.abortControllers).forEach(controller => {
+      if (controller) controller.abort();
+    });
+
     Mousetrap.unbind('ctrl+shift+f');
     this.props.resetQuery();
   }
@@ -1964,7 +2135,7 @@ const DataSourceComponent = withTheme(DatasourceEditor);
 const mapDispatchToProps = dispatch => ({
   runQuery: payload => dispatch(executeQuery(payload)),
   resetQuery: () => dispatch(resetDatabaseState()),
-  formatQuery: sql => dispatch(formatQuery(sql)),
+  formatQuery: (sql, options) => dispatch(formatQuery(sql, options)),
 });
 const mapStateToProps = state => ({
   database: state?.database,

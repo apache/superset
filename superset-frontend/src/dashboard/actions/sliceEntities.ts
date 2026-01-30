@@ -17,10 +17,10 @@
  * under the License.
  */
 import rison from 'rison';
+import { t } from '@apache-superset/core';
 import {
   DatasourceType,
   SupersetClient,
-  t,
   getClientErrorObject,
 } from '@superset-ui/core';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
