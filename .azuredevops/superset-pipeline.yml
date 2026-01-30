@@ -115,6 +115,7 @@ stages:
             tags: |
               $(semanticTag)
               latest
+            arguments: $(dockerBuildArgs)
 
         - task: Docker@2
           displayName: Push Docker Image
