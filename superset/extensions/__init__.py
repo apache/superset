@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import json
+import logging
 import os
 from typing import Any, Callable, Optional
 
@@ -52,8 +53,10 @@ from superset.utils.machine_auth import MachineAuthProviderFactory
 from superset.utils.profiler import SupersetProfiler
 
 # Apply MariaDB DDL fix early in the import chain
-apply_mariadb_ddl_fix()
-
+try:
+    apply_mariadb_ddl_fix()
+except Exception as ex:
+    logging.exception("Applying MariaDB DDL fix failed; continuing without patch: %s", ex)
 
 class ResultsBackendManager:
     def __init__(self) -> None:
