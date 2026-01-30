@@ -72,13 +72,17 @@ const initialState = {
     isVisible: true,
   },
   explore: {
-    datasource: {},
-    slice: {
-      slice_id: 1,
-      slice_name: 'title',
-      owners: [1],
+    past: [],
+    present: {
+      datasource: {},
+      slice: {
+        slice_id: 1,
+        slice_name: 'title',
+        owners: [1],
+      },
+      alert: null,
     },
-    alert: null,
+    future: [],
   },
   user: {
     userId: 1,
@@ -118,9 +122,13 @@ const queryStore = mockStore({
     isVisible: true,
   },
   explore: {
-    datasource: { name: 'test', type: 'query' },
-    slice: null,
-    alert: null,
+    past: [],
+    present: {
+      datasource: { name: 'test', type: 'query' },
+      slice: null,
+      alert: null,
+    },
+    future: [],
   },
   user: {
     userId: 1,
@@ -247,7 +255,10 @@ test('disables overwrite option for new slice', () => {
       ...initialState,
       explore: {
         ...initialState.explore,
-        slice: null,
+        present: {
+          ...initialState.explore.present,
+          slice: null,
+        },
       },
     }),
   );

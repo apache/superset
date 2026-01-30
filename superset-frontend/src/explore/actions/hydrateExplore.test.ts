@@ -28,7 +28,11 @@ test('creates hydrate action from initial data', () => {
     charts: {},
     datasources: {},
     common: {},
-    explore: {},
+    explore: {
+      past: [],
+      present: {},
+      future: [],
+    },
   }));
   // ignore type check - we dont need exact explore state for this test
   // @ts-expect-error
@@ -101,7 +105,11 @@ test('creates hydrate action with existing state', () => {
     charts: {},
     datasources: {},
     common: {},
-    explore: { controlsTransferred: ['all_columns'] },
+    explore: {
+      past: [],
+      present: { controlsTransferred: ['all_columns'] },
+      future: [],
+    },
   }));
   // ignore type check - we dont need exact explore state for this test
   // @ts-expect-error
@@ -179,7 +187,11 @@ test('uses configured default time range if not set', () => {
         DEFAULT_TIME_FILTER: 'Last year',
       },
     },
-    explore: {},
+    explore: {
+      past: [],
+      present: {},
+      future: [],
+    },
   }));
   // @ts-expect-error
   hydrateExplore({ form_data: {}, slice: {}, dataset: {} })(dispatch, getState);
@@ -221,7 +233,11 @@ test('extracts currency formats from metrics in dataset', () => {
     charts: {},
     datasources: {},
     common: {},
-    explore: {},
+    explore: {
+      past: [],
+      present: {},
+      future: [],
+    },
   }));
 
   const datasetWithMetrics = {

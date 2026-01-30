@@ -47,28 +47,32 @@ jest.doMock('@superset-ui/core', () => ({
 
 const reduxState = {
   explore: {
-    controls: {
-      datasource: { value: '1__table' },
-      viz_type: { value: VizType.Table },
+    past: [],
+    present: {
+      controls: {
+        datasource: { value: '1__table' },
+        viz_type: { value: VizType.Table },
+      },
+      datasource: {
+        id: 1,
+        type: 'table',
+        columns: [{ is_dttm: false }],
+        metrics: [{ id: 1, metric_name: 'count' }],
+      },
+      isStarred: false,
+      slice: {
+        slice_id: 1,
+      },
+      metadata: {
+        created_on_humanized: 'a week ago',
+        changed_on_humanized: '2 days ago',
+        owners: ['John Doe'],
+        created_by: 'John Doe',
+        changed_by: 'John Doe',
+        dashboards: [{ id: 1, dashboard_title: 'Test' }],
+      },
     },
-    datasource: {
-      id: 1,
-      type: 'table',
-      columns: [{ is_dttm: false }],
-      metrics: [{ id: 1, metric_name: 'count' }],
-    },
-    isStarred: false,
-    slice: {
-      slice_id: 1,
-    },
-    metadata: {
-      created_on_humanized: 'a week ago',
-      changed_on_humanized: '2 days ago',
-      owners: ['John Doe'],
-      created_by: 'John Doe',
-      changed_by: 'John Doe',
-      dashboards: [{ id: 1, dashboard_title: 'Test' }],
-    },
+    future: [],
   },
   charts: {
     1: {
@@ -174,7 +178,13 @@ test('renders chart in standalone mode', () => {
   const { queryByTestId } = renderWithRouter({
     initialState: {
       ...reduxState,
-      explore: { ...reduxState.explore, standalone: true },
+      explore: {
+        ...reduxState.explore,
+        present: {
+          ...reduxState.explore.present,
+          standalone: true,
+        },
+      },
     },
   });
   expect(queryByTestId('standalone-app')).toBeInTheDocument();
@@ -247,17 +257,20 @@ test('retains query mode requirements when query_mode is enabled', async () => {
     ...reduxState,
     explore: {
       ...reduxState.explore,
-      controls: {
-        ...reduxState.explore.controls,
-        query_mode: { value: 'raw' },
-        optional_key1: { value: 'value1' },
-        all_columns: { value: ['all_columns'] },
-        groupby: { value: ['groupby'] },
-      },
-      hiddenFormData: {
-        all_columns: ['all_columns'],
-        groupby: ['groupby'],
-        optional_key1: 'value1',
+      present: {
+        ...reduxState.explore.present,
+        controls: {
+          ...reduxState.explore.present.controls,
+          query_mode: { value: 'raw' },
+          optional_key1: { value: 'value1' },
+          all_columns: { value: ['all_columns'] },
+          groupby: { value: ['groupby'] },
+        },
+        hiddenFormData: {
+          all_columns: ['all_columns'],
+          groupby: ['groupby'],
+          optional_key1: 'value1',
+        },
       },
     },
   };
@@ -274,7 +287,7 @@ test('retains query mode requirements when query_mode is enabled', async () => {
   const formData = JSON.parse(body.form_data);
 
   const queryModeFields = Object.keys(
-    customState.explore.hiddenFormData,
+    customState.explore.present.hiddenFormData,
   ).filter(key => QUERY_MODE_REQUISITES.has(key));
 
   queryModeFields.forEach(key => {
@@ -288,16 +301,19 @@ test('does omit hiddenFormData when query_mode is not enabled', async () => {
     ...reduxState,
     explore: {
       ...reduxState.explore,
-      controls: {
-        ...reduxState.explore.controls,
-        optional_key1: { value: 'value1' },
-        all_columns: { value: ['all_columns'] },
-        groupby: { value: ['groupby'] },
-      },
-      hiddenFormData: {
-        all_columns: ['all_columns'],
-        groupby: ['groupby'],
-        optional_key1: 'value1',
+      present: {
+        ...reduxState.explore.present,
+        controls: {
+          ...reduxState.explore.present.controls,
+          optional_key1: { value: 'value1' },
+          all_columns: { value: ['all_columns'] },
+          groupby: { value: ['groupby'] },
+        },
+        hiddenFormData: {
+          all_columns: ['all_columns'],
+          groupby: ['groupby'],
+          optional_key1: 'value1',
+        },
       },
     },
   };
@@ -313,7 +329,7 @@ test('does omit hiddenFormData when query_mode is not enabled', async () => {
   const body = JSON.parse(lastCall.options?.body as string);
   const formData = JSON.parse(body.form_data);
 
-  Object.keys(customState.explore.hiddenFormData).forEach(key => {
+  Object.keys(customState.explore.present.hiddenFormData).forEach(key => {
     expect(formData[key]).toBeUndefined();
   });
 });
@@ -327,10 +343,13 @@ test('does not show error indicator when no controls have validation errors', as
     ...reduxState,
     explore: {
       ...reduxState.explore,
-      controls: {
-        ...reduxState.explore.controls,
-        metric: { value: 'count', label: 'Metric' },
-        groupby: { value: ['category'], label: 'Group by' },
+      present: {
+        ...reduxState.explore.present,
+        controls: {
+          ...reduxState.explore.present.controls,
+          metric: { value: 'count', label: 'Metric' },
+          groupby: { value: ['category'], label: 'Group by' },
+        },
       },
     },
   };
@@ -351,12 +370,15 @@ test('shows error indicator when controls have validation errors', async () => {
     ...reduxState,
     explore: {
       ...reduxState.explore,
-      controls: {
-        ...reduxState.explore.controls,
-        metric: {
-          value: '',
-          label: 'Metric',
-          validationErrors: ['Metric is required'],
+      present: {
+        ...reduxState.explore.present,
+        controls: {
+          ...reduxState.explore.present.controls,
+          metric: {
+            value: '',
+            label: 'Metric',
+            validationErrors: ['Metric is required'],
+          },
         },
       },
     },
@@ -385,17 +407,20 @@ test('shows error indicator for multiple controls with validation errors', async
     ...reduxState,
     explore: {
       ...reduxState.explore,
-      controls: {
-        ...reduxState.explore.controls,
-        metric: {
-          value: '',
-          label: 'Metric',
-          validationErrors: ['Field is required'],
-        },
-        groupby: {
-          value: [],
-          label: 'Group by',
-          validationErrors: ['Field is required'],
+      present: {
+        ...reduxState.explore.present,
+        controls: {
+          ...reduxState.explore.present.controls,
+          metric: {
+            value: '',
+            label: 'Metric',
+            validationErrors: ['Field is required'],
+          },
+          groupby: {
+            value: [],
+            label: 'Group by',
+            validationErrors: ['Field is required'],
+          },
         },
       },
     },
@@ -423,12 +448,15 @@ test('shows error indicator for control with multiple validation errors', async 
     ...reduxState,
     explore: {
       ...reduxState.explore,
-      controls: {
-        ...reduxState.explore.controls,
-        metric: {
-          value: '',
-          label: 'Metric',
-          validationErrors: ['Field is required', 'Invalid format'],
+      present: {
+        ...reduxState.explore.present,
+        controls: {
+          ...reduxState.explore.present.controls,
+          metric: {
+            value: '',
+            label: 'Metric',
+            validationErrors: ['Field is required', 'Invalid format'],
+          },
         },
       },
     },
@@ -458,14 +486,17 @@ test('shows error indicator with function labels', async () => {
     ...reduxState,
     explore: {
       ...reduxState.explore,
-      someState: 'test',
-      controls: {
-        ...reduxState.explore.controls,
-        metric: {
-          value: '',
-          label: (exploreState: { someState: string }) =>
-            `Dynamic Metric (${exploreState.someState})`,
-          validationErrors: ['Metric is required'],
+      present: {
+        ...reduxState.explore.present,
+        someState: 'test',
+        controls: {
+          ...reduxState.explore.present.controls,
+          metric: {
+            value: '',
+            label: (exploreState: { someState: string }) =>
+              `Dynamic Metric (${exploreState.someState})`,
+            validationErrors: ['Metric is required'],
+          },
         },
       },
     },

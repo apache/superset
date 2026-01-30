@@ -20,7 +20,7 @@ import type { AnyAction } from 'redux';
 import { defaultState } from 'src/explore/store';
 import exploreReducer, {
   ExploreState,
-} from 'src/explore/reducers/exploreReducer';
+} from 'src/explore/reducers/undoableExploreReducer';
 import * as actions from 'src/explore/actions/exploreActions';
 
 const METRICS = [
