@@ -76,6 +76,12 @@ blinker==1.9.0
     # via
     #   -c requirements/base-constraint.txt
     #   flask
+boto3==1.42.39
+    # via apache-superset
+botocore==1.42.39
+    # via
+    #   boto3
+    #   s3transfer
 bottleneck==1.5.0
     # via
     #   -c requirements/base-constraint.txt
@@ -460,6 +466,10 @@ jinja2==3.1.6
     #   apache-superset-extensions-cli
     #   flask
     #   flask-babel
+jmespath==1.1.0
+    # via
+    #   boto3
+    #   botocore
 jsonpath-ng==1.7.0
     # via
     #   -c requirements/base-constraint.txt
@@ -812,6 +822,7 @@ python-dateutil==2.9.0.post0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
+    #   botocore
     #   celery
     #   croniter
     #   flask-appbuilder
@@ -915,6 +926,8 @@ rsa==4.9.1
     #   google-auth
 ruff==0.9.7
     # via apache-superset
+s3transfer==0.16.0
+    # via boto3
 secretstorage==3.5.0
     # via keyring
 selenium==4.32.0
@@ -1066,6 +1079,7 @@ url-normalize==2.2.1
 urllib3==2.6.3
     # via
     #   -c requirements/base-constraint.txt
+    #   botocore
     #   docker
     #   requests
     #   requests-cache

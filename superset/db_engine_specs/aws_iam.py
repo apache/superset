@@ -95,8 +95,6 @@ class AWSIAMAuthMixin:
     }
     """
 
-    supports_iam_authentication = True
-
     # AWS error patterns for actionable error messages
     aws_iam_custom_errors: dict[str, tuple[SupersetErrorType, str]] = {
         "AccessDenied": (
