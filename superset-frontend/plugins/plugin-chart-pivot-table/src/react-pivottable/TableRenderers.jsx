@@ -718,7 +718,7 @@ export class TableRenderer extends Component {
               true,
             )}
           >
-            {t('Subtotal')}
+            {t('Subvalue')}
           </th>,
         );
       }
@@ -931,7 +931,7 @@ export class TableRenderer extends Component {
             true,
           )}
         >
-          {t('Subtotal')}
+          {t('Subvalue')}
         </th>
       ) : null;
 

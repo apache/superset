@@ -9829,7 +9829,7 @@ msgstr "Sekme başlığı"
 msgid "Subtitle Font Size"
 msgstr ""
 
-msgid "Subtotal"
+msgid "Subvalue"
 msgstr ""
 
 msgid "Success"
