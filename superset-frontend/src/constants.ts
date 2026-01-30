@@ -200,6 +200,7 @@ export enum ChartCustomizationPlugins {
 export enum Actions {
   CREATE = 'create',
   UPDATE = 'update',
+  PASSWORD_CHANGE = 'password_change',
 }
 
 /**
