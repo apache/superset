@@ -54,6 +54,8 @@ export const LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE =
 export const LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_PDF =
   'dashboard_download_as_pdf';
 export const LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE = 'chart_download_as_image';
+export const LOG_ACTIONS_CHART_DOWNLOAD_AS_PNG = 'chart_download_as_png';
+export const LOG_ACTIONS_CHART_DOWNLOAD_AS_PDF = 'chart_download_as_pdf';
 export const LOG_ACTIONS_CHART_DOWNLOAD_AS_CSV = 'chart_download_as_csv';
 export const LOG_ACTIONS_CHART_DOWNLOAD_AS_CSV_PIVOTED =
   'chart_download_as_csv_pivoted';
