@@ -46,7 +46,7 @@ export default function FilterDefinitionOption({
   if (option.saved_metric_name) {
     return (
       <StyledColumnOption
-        column={{ column_name: option.saved_metric_name, type: 'expression' }}
+        column={{ column_name: option.saved_metric_name, type: 'metric' }}
         showType
       />
     );
@@ -62,7 +62,7 @@ export default function FilterDefinitionOption({
   if (option.label) {
     return (
       <StyledColumnOption
-        column={{ column_name: option.label, type: 'expression' }}
+        column={{ column_name: option.label, type: 'metric' }}
         showType
       />
     );
