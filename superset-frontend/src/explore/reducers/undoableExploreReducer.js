@@ -16,95 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import undoable from 'redux-undo';
+import undoable, { includeAction } from 'redux-undo';
 import { UNDO_LIMIT } from 'src/dashboard/util/constants';
-import {
-  SET_FIELD_VALUE,
-  UPDATE_CHART_TITLE,
-  SET_STASH_FORM_DATA,
-} from '../actions/exploreActions';
-import { HYDRATE_EXPLORE } from '../actions/hydrateExplore';
+import { SET_FIELD_VALUE,UPDATE_CHART_TITLE } from '../actions/exploreActions';
 import exploreReducer from './exploreReducer';
 
-// List of actions that should trigger undo history
-// These are user-initiated chart configuration changes
-const TRACKED_ACTIONS = [
-  HYDRATE_EXPLORE, // Initial chart load
-  SET_FIELD_VALUE, // Control value changes (most important!)
-  UPDATE_CHART_TITLE, // Chart title changes
-];
-
-// List of actions that should update state but NOT create undo history
-// These are UI state changes that don't affect chart configuration
-const PASSTHROUGH_ACTIONS = [
-  SET_STASH_FORM_DATA, // Temporarily hide/show form fields (UI state only)
-];
-
-/*
- * WORKAROUND FOR REDUX-UNDO FILTER BUG
- *
- * PROBLEM:
- * Redux-undo's filter functionality is broken in multiple versions. Users report that
- * actions are either incorrectly filtered out or incorrectly included in undo history,
- * making undo/redo buttons not work when they should.
- *
- * AFFECTED VERSIONS:
- * - Beta versions (like 1.0.0-beta9-9-7 currently used by Superset)
- * - Stable versions up to 1.1.0
- * Both includeAction/excludeAction helpers AND custom filter functions fail.
- *
- * WHY FILTERING MATTERS:
- * Without filtering, ALL Redux actions (API calls, toasts, favorites, etc.) would
- * create undo history entries, making undo/redo confusing and inefficient. We only want
- * chart configuration changes to be undoable.
- *
- * SOLUTION:
- * Instead of using redux-undo's broken filter system, we filter at the reducer level
- * by wrapping the base exploreReducer. This approach:
- * 1. Prevents non-configuration actions from reaching the reducer (so no state changes)
- * 2. Allows redux-undo to work without any filtering (which works fine)
- * 3. Results in only configuration actions being tracked in undo history
- * 4. Provides the same filtering result without hitting the redux-undo bug
- *
- * WHEN TO REMOVE:
- * This can be reverted when redux-undo fixes their filter functionality by:
- * 1. Removing the exploreOnlyReducer wrapper
- * 2. Using the base exploreReducer directly
- * 3. Adding back: filter: includeAction(TRACKED_ACTIONS)
- *
- * BUG REPORT:
- * - https://github.com/omnidan/redux-undo/issues/306
- */
-
-// Wrapper reducer that filters actions before they reach the exploreReducer
-const exploreOnlyReducer = (state, action) => {
-  // IMPORTANT: Always let the reducer handle the action if state is undefined
-  // This ensures proper initialization on first load
-  if (state === undefined) {
-    return exploreReducer(state, action);
-  }
-
-  // Allow both tracked actions (create undo history) and passthrough actions (no history)
-  if (
-    !TRACKED_ACTIONS.includes(action.type) &&
-    !PASSTHROUGH_ACTIONS.includes(action.type)
-  ) {
-    return state;
-  }
-
-  // For allowed actions, proceed with normal exploreReducer reduction
-  return exploreReducer(state, action);
-};
-
-const undoableReducer = undoable(exploreOnlyReducer, {
+const undoableReducer = undoable(exploreReducer, {
   // +1 because length of history seems max out at limit - 1
   // +1 again so we can detect if we've exceeded the limit
   limit: UNDO_LIMIT + 2,
-  ignoreInitialState: true,
-  // Group passthrough actions together so they don't create new undo history entries
-  // This allows them to update state without being undoable
-  groupBy: action =>
-    PASSTHROUGH_ACTIONS.includes(action.type) ? 'passthrough' : null,
+  filter: includeAction([SET_FIELD_VALUE, UPDATE_CHART_TITLE]),
 });
 
 export default undoableReducer;
