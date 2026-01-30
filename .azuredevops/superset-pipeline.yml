@@ -11,6 +11,11 @@ parameters:
     displayName: Docker Agent Pool
     default: 'Linux-Hosted'
 
+  - name: cleanBuild
+    type: boolean
+    default: false
+    displayName: 'Clean Build (Disable Cache)'
+
   # SECRET_KEY is now sourced from blue-dev secret (client-config JSON)
   # Removed hardcoded pipeline parameter - using centralized secret management
 
@@ -22,6 +27,9 @@ variables:
   dockerfilePath: '$(Build.SourcesDirectory)/Dockerfile'
   artifactName: superset-deployment
   vmImageName: 'ubuntu-latest'
+
+  # Conditionally disable cache based on cleanBuild parameter
+  system.cacheDisabled: ${{ parameters.cleanBuild }}
 
 stages:
 # =====================================================
