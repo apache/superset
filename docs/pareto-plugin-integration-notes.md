@@ -88,11 +88,21 @@ If the Pareto chart doesn't appear in the visualization type selector after depl
 
 2. **Check if Docker build cache caused issue**:
    - If no "Pareto" found in assets, the build used stale cache
+   - The cleanBuild parameter disables:
+     * Azure DevOps pipeline cache (system.cacheDisabled)
+     * Docker layer cache (--no-cache flag)
+     * npm cache inside container (fresh npm ci)
+   - Re-run pipeline with "Clean Build (Disable Cache)" checkbox checked
 
-3. **Triggering a clean build**:
+3. **Triggering a clean build (disables all caching)**:
    - Go to Azure DevOps → Pipelines → ApacheSuperset-ClientDeploy
    - Click "Run pipeline"
    - Check the "Clean Build (Disable Cache)" checkbox
+     * This sets cleanBuild=true
+     * Disables Azure DevOps pipeline cache
+     * Passes --no-cache to Docker build
+     * Forces fresh npm install inside container
+   - Select branch: fix/pipeline-setup
    - Click "Run"
 
 4. **Verify deployment**:
