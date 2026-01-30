@@ -18,7 +18,7 @@
  */
 import controlPanel from '../../../src/Timeseries/Regular/Bar/controlPanel';
 import {
-  BarChartStackControlOptions,
+  StackControlOptionsWithoutStream,
   StackControlsValue,
 } from '../../../src/constants';
 
@@ -129,11 +129,11 @@ test('should include stack control in the panel', () => {
   expect(stackControl).toBeDefined();
 });
 
-test('should use BarChartStackControlOptions for stack control', () => {
+test('should use StackControlOptionsWithoutStream for stack control', () => {
   const stackControl: any = getControl('stack');
   expect(stackControl).toBeDefined();
   expect(stackControl.config).toBeDefined();
-  expect(stackControl.config.choices).toBe(BarChartStackControlOptions);
+  expect(stackControl.config.choices).toBe(StackControlOptionsWithoutStream);
 });
 
 test('should not include Stream option in stack control choices', () => {
