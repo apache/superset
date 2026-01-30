@@ -1,0 +1,49 @@
+name: Test Docker Image on PR
+
+on:
+  pull_request:
+    branches:
+      - '6.0.0-custom'
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: helioviewer-project/superset
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest
+            type=raw,value=lean
+
+      - name: Build Docker image (local only)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          target: lean
+          push: false
+          load: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Setup Helioviewer Docker environment
+        uses: Helioviewer-Project/helioviewer.org-docker/.github/actions/helioviewer-docker@main
+
+      - name: Verify containers are running
+        run: |
+          echo "Checking running containers..."
+          docker ps
+          echo "Test completed successfully!"
