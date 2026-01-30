@@ -98,7 +98,8 @@ def apply_mariadb_ddl_fix() -> None:
 
     def patched_visit_create_sequence(self: Any, create: Any, **kw: Any) -> str:
         text = original_visit_create_sequence(self, create, **kw)
-        if self.dialect.name == "mariadb":
+        dialect_name = getattr(self.dialect, "name", "") or ""
+        if "mariadb" in dialect_name.lower():
             return text.replace("NO CYCLE", "NOCYCLE")
         return text
 
