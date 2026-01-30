@@ -77,14 +77,16 @@ const selectMultipleProps = {
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('SelectFilterPlugin', () => {
   const setDataMask = jest.fn();
-  const getWrapper = (props = {}) =>
-    render(
+  const getWrapper = (props: any = {}) => {
+    const { queriesData, ...formDataProps } = props;
+    return render(
       // @ts-ignore
       <SelectFilterPlugin
         // @ts-ignore
         {...transformProps({
           ...selectMultipleProps,
-          formData: { ...selectMultipleProps.formData, ...props },
+          formData: { ...selectMultipleProps.formData, ...formDataProps },
+          ...(queriesData && { queriesData }),
         })}
         setDataMask={setDataMask}
         showOverflow={false}
@@ -120,6 +122,7 @@ describe('SelectFilterPlugin', () => {
         },
       },
     );
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -679,6 +682,115 @@ describe('SelectFilterPlugin', () => {
     expect(options[0]).toHaveTextContent('zebra');
     expect(options[1]).toHaveTextContent('alpha');
     expect(options[2]).toHaveTextContent('beta');
+  });
+
+  test('allowSelectAll is disabled when searchAllOptions is enabled and data is truncated at 1000 rows', async () => {
+    // Create mock data with 1000 rows to simulate truncation
+    const largeData = Array.from({ length: 1000 }, (_, i) => ({
+      gender: `value_${i}`,
+    }));
+
+    getWrapper({
+      searchAllOptions: true,
+      multiSelect: true,
+      queriesData: [
+        {
+          rowcount: 1000,
+          colnames: ['gender'],
+          coltypes: [1],
+          data: largeData,
+          applied_filters: [{ column: 'gender' }],
+          rejected_filters: [],
+        },
+      ],
+    });
+
+    // Open the dropdown
+    const filterSelect = screen.getAllByRole('combobox')[0];
+    userEvent.click(filterSelect);
+
+    // Wait for dropdown to be visible
+    await waitFor(() => {
+      expect(screen.getByRole('combobox')).toBeInTheDocument();
+    });
+
+    // Verify "Select All" button is NOT present (disabled due to truncation)
+    expect(screen.queryByText(/Select all/i)).not.toBeInTheDocument();
+  });
+
+  test('allowSelectAll is enabled when searchAllOptions is enabled but data is less than 1000 rows', async () => {
+    getWrapper({
+      searchAllOptions: true,
+      multiSelect: true,
+    });
+
+    // Open the dropdown
+    const filterSelect = screen.getAllByRole('combobox')[0];
+    userEvent.click(filterSelect);
+
+    // Wait for dropdown to be visible
+    await waitFor(() => {
+      expect(screen.getByRole('combobox')).toBeInTheDocument();
+    });
+
+    // With only 3 rows (default test data), "Select all" button should be present
+    expect(await screen.findByText('Select all (3)')).toBeInTheDocument();
+  });
+
+  test('allowSelectAll is enabled for multi-select without searchAllOptions', async () => {
+    getWrapper({
+      searchAllOptions: false,
+      multiSelect: true,
+    });
+
+    // Open the dropdown
+    const filterSelect = screen.getAllByRole('combobox')[0];
+    userEvent.click(filterSelect);
+
+    // Wait for dropdown to be visible
+    await waitFor(() => {
+      expect(screen.getByRole('combobox')).toBeInTheDocument();
+    });
+
+    // "Select all" button should be present for static filters
+    expect(await screen.findByText('Select all (3)')).toBeInTheDocument();
+  });
+
+  test('allowSelectAll is not enabled for single-select filters', () => {
+    const { container } = getWrapper({
+      searchAllOptions: false,
+      multiSelect: false,
+    });
+    // Verify the Select component is rendered in single mode (not multiple)
+    const selectElement = container.querySelector('.ant-select-multiple');
+    expect(selectElement).not.toBeInTheDocument();
+  });
+
+  test('Can select multiple values when searchAllOptions is enabled', async () => {
+    getWrapper({ searchAllOptions: true, multiSelect: true });
+    const filterSelect = screen.getAllByRole('combobox')[0];
+    userEvent.click(filterSelect);
+
+    // Select first option
+    userEvent.click(screen.getByTitle('girl'));
+    expect(
+      await screen.findByRole('option', { name: /girl/i }),
+    ).toBeInTheDocument();
+
+    // Verify multi-select works with searchAllOptions enabled
+    expect(setDataMask).toHaveBeenCalledWith(
+      expect.objectContaining({
+        extraFormData: {
+          filters: [
+            {
+              col: 'gender',
+              op: 'IN',
+              val: expect.arrayContaining(['boy', 'girl']),
+            },
+          ],
+        },
+      }),
+    );
   });
 });
 
