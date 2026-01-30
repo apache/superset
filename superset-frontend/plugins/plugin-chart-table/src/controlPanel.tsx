@@ -52,6 +52,7 @@ import {
   t,
   validateMaxValue,
   validateServerPagination,
+  withLabel,
 } from '@superset-ui/core';
 
 import { isEmpty, last } from 'lodash';
@@ -407,7 +408,7 @@ const config: ControlPanelConfig = {
               description: t('Rows per page, 0 means no pagination'),
               visibility: ({ controls }: ControlPanelsContainerProps) =>
                 Boolean(controls?.server_pagination?.value),
-              validators: [validateInteger],
+              validators: [withLabel(validateInteger, t('Server Page Length'))],
             },
           },
         ],
@@ -426,7 +427,7 @@ const config: ControlPanelConfig = {
                   state?.common?.conf?.SQL_MAX_ROW,
               }),
               validators: [
-                validateInteger,
+                withLabel(validateInteger, t('Row limit')),
                 (v, state) =>
                   validateMaxValue(
                     v,
@@ -447,9 +448,6 @@ const config: ControlPanelConfig = {
               description: t(
                 'Limits the number of the rows that are computed in the query that is the source of the data used for this chart.',
               ),
-            },
-            override: {
-              default: 1000,
             },
           },
         ],

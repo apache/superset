@@ -19,7 +19,7 @@
 
 import { t } from '../translation';
 
-export default function validateNonEmpty(v: unknown) {
+export default function validateNonEmpty(v: unknown): string | false {
   if (
     v === null ||
     typeof v === 'undefined' ||
