@@ -28,10 +28,12 @@ import {
 import transformProps from '../../src/Timeseries/transformProps';
 import { EchartsTimeseriesChartProps } from '../../src/types';
 
-// Mock the colorScale function
-const mockColorScale = jest.fn(
-  () => '#1f77b4',
-) as Partial<CategoricalColorScale>;
+// Mock the colorScale function to return different colors based on key
+const mockColorScale = jest.fn((key: string) => {
+  if (key === 'test-key') return '#1f77b4'; // blue
+  if (key === 'series-key') return '#ff7f0e'; // orange
+  return '#2ca02c'; // green for any other key
+}) as unknown as CategoricalColorScale;
 
 describe('transformSeries', () => {
   const series = { name: 'test-series' };
@@ -45,7 +47,8 @@ describe('transformSeries', () => {
 
     const result = transformSeries(series, mockColorScale, 'test-key', opts);
 
-    expect((result as any)?.itemStyle.color).toBeDefined();
+    expect(mockColorScale).toHaveBeenCalledWith('test-key', 1);
+    expect((result as any)?.itemStyle.color).toBe('#1f77b4');
   });
 
   it('should use seriesKey if timeShiftColor is not enabled', () => {
@@ -57,7 +60,8 @@ describe('transformSeries', () => {
 
     const result = transformSeries(series, mockColorScale, 'test-key', opts);
 
-    expect((result as any)?.itemStyle.color).toBeDefined();
+    expect(mockColorScale).toHaveBeenCalledWith('series-key', 2);
+    expect((result as any)?.itemStyle.color).toBe('#ff7f0e');
   });
 
   it('should apply border styles for bar series with connectNulls', () => {
