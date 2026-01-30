@@ -35,7 +35,7 @@ import {
   minorTicks,
   richTooltipSection,
   seriesOrderSection,
-  showValueSection,
+  showValueSectionWithoutStream,
   truncateXAxis,
   xAxisBounds,
   xAxisLabelRotation,
@@ -325,7 +325,7 @@ const config: ControlPanelConfig = {
         ...seriesOrderSection,
         ['color_scheme'],
         ['time_shift_color'],
-        ...showValueSection,
+        ...showValueSectionWithoutStream,
         [
           {
             name: 'stackDimension',
@@ -373,11 +373,18 @@ const config: ControlPanelConfig = {
       ],
     },
   ],
-  formDataOverrides: formData => ({
-    ...formData,
-    metrics: getStandardizedControls().popAllMetrics(),
-    groupby: getStandardizedControls().popAllColumns(),
-  }),
+  formDataOverrides: formData => {
+    // Reset stack to null if it's Stream when switching to Bar chart
+    const formDataWithStack = formData as Record<string, unknown>;
+    return {
+      ...formData,
+      metrics: getStandardizedControls().popAllMetrics(),
+      groupby: getStandardizedControls().popAllColumns(),
+      ...(formDataWithStack.stack === StackControlsValue.Stream && {
+        stack: null,
+      }),
+    };
+  },
 };
 
 export default config;
