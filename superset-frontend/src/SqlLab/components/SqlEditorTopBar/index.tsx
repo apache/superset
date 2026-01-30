@@ -38,12 +38,14 @@ const SqlEditorTopBar = ({
   defaultSecondaryActions,
 }: SqlEditorTopBarProps) => (
   <StyledFlex justify="space-between" gap="small" id="js-sql-toolbar">
-    <Flex flex={1} gap="small" align="center">
-      <PanelToolbar
-        viewId={ViewContribution.Editor}
-        defaultPrimaryActions={defaultPrimaryActions}
-        defaultSecondaryActions={defaultSecondaryActions}
-      />
+    <Flex gap="small" align="center">
+      <Flex gap="small" align="center">
+        <PanelToolbar
+          viewId={ViewContribution.Editor}
+          defaultPrimaryActions={defaultPrimaryActions}
+          defaultSecondaryActions={defaultSecondaryActions}
+        />
+      </Flex>
     </Flex>
   </StyledFlex>
 );
