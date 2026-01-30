@@ -67,9 +67,9 @@ export default function useDatabaseSelector(queryEditorId: string) {
   );
 
   const handleCatalogChange = useCallback(
-    (catalog: string | null) => {
+    (catalog?: string | null) => {
       if (queryEditor) {
-        dispatch(queryEditorSetCatalog(queryEditor, catalog));
+        dispatch(queryEditorSetCatalog(queryEditor, catalog ?? null));
       }
     },
     [dispatch, queryEditor],

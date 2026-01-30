@@ -258,11 +258,13 @@ test('retains query mode requirements when query_mode is enabled', async () => {
 
   await waitFor(() => renderWithRouter({ initialState: customState }));
 
-  const formDataEndpointCalls = fetchMock.calls(/api\/v1\/explore\/form_data/);
+  const formDataEndpointCalls = fetchMock.callHistory.calls(
+    /api\/v1\/explore\/form_data/,
+  );
   expect(formDataEndpointCalls.length).toBeGreaterThan(0);
   const lastCall = formDataEndpointCalls[formDataEndpointCalls.length - 1];
 
-  const body = JSON.parse(lastCall[1]?.body as string);
+  const body = JSON.parse(lastCall.options?.body as string);
   const formData = JSON.parse(body.form_data);
 
   const queryModeFields = Object.keys(
@@ -296,11 +298,13 @@ test('does omit hiddenFormData when query_mode is not enabled', async () => {
 
   await waitFor(() => renderWithRouter({ initialState: customState }));
 
-  const formDataEndpointCalls = fetchMock.calls(/api\/v1\/explore\/form_data/);
+  const formDataEndpointCalls = fetchMock.callHistory.calls(
+    /api\/v1\/explore\/form_data/,
+  );
   expect(formDataEndpointCalls.length).toBeGreaterThan(0);
   const lastCall = formDataEndpointCalls[formDataEndpointCalls.length - 1];
 
-  const body = JSON.parse(lastCall[1]?.body as string);
+  const body = JSON.parse(lastCall.options?.body as string);
   const formData = JSON.parse(body.form_data);
 
   Object.keys(customState.explore.hiddenFormData).forEach(key => {

@@ -67,10 +67,7 @@ describe('ChartList Card View Tests', () => {
     );
   });
 
-  afterEach(() => {
-    fetchMock.resetHistory();
-    fetchMock.restore();
-  });
+  afterEach(() => fetchMock.clearHistory().removeRoutes());
 
   test('renders ChartList in card view', async () => {
     renderChartList(mockUser);

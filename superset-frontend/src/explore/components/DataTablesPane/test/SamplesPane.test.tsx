@@ -63,7 +63,7 @@ describe('SamplesPane', () => {
   const setForceQuery = jest.fn();
 
   afterAll(() => {
-    fetchMock.reset();
+    fetchMock.clearHistory().removeRoutes();
     jest.resetAllMocks();
   });
 

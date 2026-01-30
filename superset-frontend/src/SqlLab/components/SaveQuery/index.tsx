@@ -63,6 +63,7 @@ export type QueryPayload = {
 
 const Styles = styled.span`
   display: contents;
+  white-space: nowrap;
   span[role='img']:not([aria-label='down']) {
     display: flex;
     margin: 0;

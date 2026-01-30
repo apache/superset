@@ -128,17 +128,28 @@ describe('FilterBar', () => {
     };
   });
 
+  const getTimeRangeNoFilterMockUrl =
+    'glob:*/api/v1/time_range/?q=%27No%20filter%27';
+  const getTimeRangeLastDayMockUrl =
+    'glob:*/api/v1/time_range/?q=%27Last%20day%27';
+  const getTimeRangeLastWeekMockUrl =
+    'glob:*/api/v1/time_range/?q=%27Last%20week%27';
+
   beforeEach(() => {
     jest.clearAllMocks();
+
+    fetchMock.removeRoute(getTimeRangeNoFilterMockUrl);
     fetchMock.get(
-      'glob:*/api/v1/time_range/?q=%27No%20filter%27',
+      getTimeRangeNoFilterMockUrl,
       {
         result: { since: '', until: '', timeRange: 'No filter' },
       },
-      { overwriteRoutes: true },
+      { name: getTimeRangeNoFilterMockUrl },
     );
+
+    fetchMock.removeRoute(getTimeRangeLastDayMockUrl);
     fetchMock.get(
-      'glob:*/api/v1/time_range/?q=%27Last%20day%27',
+      getTimeRangeLastDayMockUrl,
       {
         result: {
           since: '2021-04-13T00:00:00',
@@ -146,10 +157,12 @@ describe('FilterBar', () => {
           timeRange: 'Last day',
         },
       },
-      { overwriteRoutes: true },
+      { name: getTimeRangeLastDayMockUrl },
     );
+
+    fetchMock.removeRoute(getTimeRangeLastWeekMockUrl);
     fetchMock.get(
-      'glob:*/api/v1/time_range/?q=%27Last%20week%27',
+      getTimeRangeLastWeekMockUrl,
       {
         result: {
           since: '2021-04-07T00:00:00',
@@ -157,7 +170,7 @@ describe('FilterBar', () => {
           timeRange: 'Last week',
         },
       },
-      { overwriteRoutes: true },
+      { name: getTimeRangeLastWeekMockUrl },
     );
 
     mockedMakeApi.mockReturnValue(mockApi);

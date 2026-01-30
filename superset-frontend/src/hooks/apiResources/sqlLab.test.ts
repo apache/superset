@@ -50,7 +50,7 @@ const expectedResult = fakeApiResult.result;
 const sqlLabInitialStateApiRoute = `glob:*/api/v1/sqllab/`;
 
 afterEach(() => {
-  fetchMock.reset();
+  fetchMock.clearHistory().removeRoutes();
   act(() => {
     store.dispatch(api.util.resetApiState());
   });
@@ -68,16 +68,22 @@ test('returns api response mapping json result', async () => {
     }),
   });
   await waitFor(() =>
-    expect(fetchMock.calls(sqlLabInitialStateApiRoute).length).toBe(1),
+    expect(fetchMock.callHistory.calls(sqlLabInitialStateApiRoute).length).toBe(
+      1,
+    ),
   );
   expect(result.current.data).toEqual(expectedResult);
-  expect(fetchMock.calls(sqlLabInitialStateApiRoute).length).toBe(1);
+  expect(fetchMock.callHistory.calls(sqlLabInitialStateApiRoute).length).toBe(
+    1,
+  );
   // clean up cache
   act(() => {
     store.dispatch(api.util.invalidateTags(['SqlLabInitialState']));
   });
   await waitFor(() =>
-    expect(fetchMock.calls(sqlLabInitialStateApiRoute).length).toBe(2),
+    expect(fetchMock.callHistory.calls(sqlLabInitialStateApiRoute).length).toBe(
+      2,
+    ),
   );
   expect(result.current.data).toEqual(expectedResult);
 });
@@ -93,8 +99,12 @@ test('returns cached data without api request', async () => {
     },
   );
   await waitFor(() => expect(result.current.data).toEqual(expectedResult));
-  expect(fetchMock.calls(sqlLabInitialStateApiRoute).length).toBe(1);
+  expect(fetchMock.callHistory.calls(sqlLabInitialStateApiRoute).length).toBe(
+    1,
+  );
   rerender();
   await waitFor(() => expect(result.current.data).toEqual(expectedResult));
-  expect(fetchMock.calls(sqlLabInitialStateApiRoute).length).toBe(1);
+  expect(fetchMock.callHistory.calls(sqlLabInitialStateApiRoute).length).toBe(
+    1,
+  );
 });

@@ -75,6 +75,7 @@ logos/*
 erd.puml
 erd.svg
 intro_header.txt
+TODO.md
 
 # for LLMs
 llm-context.md

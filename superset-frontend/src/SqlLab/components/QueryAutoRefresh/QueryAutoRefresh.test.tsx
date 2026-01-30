@@ -57,7 +57,7 @@ describe('QueryAutoRefresh', () => {
   });
 
   afterEach(() => {
-    fetchMock.reset();
+    fetchMock.clearHistory().removeRoutes();
     cleanup();
     jest.runOnlyPendingTimers();
     jest.useRealTimers();
@@ -162,7 +162,7 @@ describe('QueryAutoRefresh', () => {
     expect(
       store.getActions().filter(({ type }) => type === REFRESH_QUERIES),
     ).toHaveLength(0);
-    expect(fetchMock.calls(refreshApi)).toHaveLength(1);
+    expect(fetchMock.callHistory.calls(refreshApi)).toHaveLength(1);
   });
 
   test('Does not fail and attempts to refresh with mixed valid/invalid queries', async () => {
@@ -217,7 +217,7 @@ describe('QueryAutoRefresh', () => {
       ),
     );
 
-    expect(fetchMock.calls(refreshApi)).toHaveLength(0);
+    expect(fetchMock.callHistory.calls(refreshApi)).toHaveLength(0);
   });
 
   test('logs the failed error for async queries', async () => {

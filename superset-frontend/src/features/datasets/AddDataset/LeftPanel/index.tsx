@@ -211,7 +211,6 @@ export default function LeftPanel({
         onCatalogChange={setCatalog}
         onSchemaChange={setSchema}
         onTableSelectChange={setTable}
-        sqlLabMode={false}
         customTableOptionLabelRenderer={customTableOptionLabelRenderer}
         {...(dataset?.catalog && { catalog: dataset.catalog })}
         {...(dataset?.schema && { schema: dataset.schema })}

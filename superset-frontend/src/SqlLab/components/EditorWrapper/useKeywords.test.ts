@@ -94,7 +94,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  fetchMock.reset();
+  fetchMock.clearHistory().removeRoutes();
   act(() => {
     store.dispatch(api.util.resetApiState());
   });
@@ -120,7 +120,7 @@ test('returns keywords including fetched function_names data', async () => {
   );
 
   await waitFor(() =>
-    expect(fetchMock.calls(dbFunctionNamesApiRoute).length).toBe(1),
+    expect(fetchMock.callHistory.calls(dbFunctionNamesApiRoute).length).toBe(1),
   );
   fakeSchemaApiResult.forEach(schema => {
     expect(result.current).toContainEqual(
@@ -171,7 +171,7 @@ test('skip fetching if autocomplete skipped', () => {
     },
   );
   expect(result.current).toEqual([]);
-  expect(fetchMock.calls()).toEqual([]);
+  expect(fetchMock.callHistory.calls()).toEqual([]);
 });
 
 test('returns column keywords among selected tables', async () => {

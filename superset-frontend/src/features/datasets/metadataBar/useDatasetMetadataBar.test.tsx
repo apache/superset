@@ -39,7 +39,7 @@ const MOCK_DATASET = {
 };
 
 afterEach(() => {
-  fetchMock.restore();
+  fetchMock.clearHistory().removeRoutes();
   supersetGetCache.clear();
 });
 

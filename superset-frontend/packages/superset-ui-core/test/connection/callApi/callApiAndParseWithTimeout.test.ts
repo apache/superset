@@ -30,15 +30,16 @@ import { LOGIN_GLOB } from '../fixtures/constants';
 const mockGetUrl = '/mock/get/url';
 const mockGetPayload = { get: 'payload' };
 
+beforeAll(() => fetchMock.mockGlobal());
+afterAll(() => fetchMock.hardReset());
+
 describe('callApiAndParseWithTimeout()', () => {
   beforeAll(() => fetchMock.get(LOGIN_GLOB, { result: '1234' }));
 
   beforeEach(() => fetchMock.get(mockGetUrl, mockGetPayload));
 
-  afterAll(() => fetchMock.restore());
-
   afterEach(() => {
-    fetchMock.reset();
+    fetchMock.removeRoutes().clearHistory();
     jest.useRealTimers();
   });
 
@@ -108,7 +109,7 @@ describe('callApiAndParseWithTimeout()', () => {
       } catch (err) {
         error = err;
       } finally {
-        expect(fetchMock.calls(mockTimeoutUrl)).toHaveLength(1);
+        expect(fetchMock.callHistory.calls(mockTimeoutUrl)).toHaveLength(1);
         expect(error).toEqual({
           error: 'Request timed out',
           statusText: 'timeout',

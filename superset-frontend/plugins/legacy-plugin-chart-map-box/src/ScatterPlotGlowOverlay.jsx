@@ -145,6 +145,26 @@ class ScatterPlotGlowOverlay extends PureComponent {
 
     const maxLabel = Math.max(...clusterLabelMap.filter(v => !Number.isNaN(v)));
 
+    // Calculate min/max radius values for Pixels mode scaling
+    let minRadiusValue = Infinity;
+    let maxRadiusValue = -Infinity;
+    if (pointRadiusUnit === 'Pixels') {
+      locations.forEach(location => {
+        // Accept both null and undefined as "no value" and coerce potential numeric strings
+        if (
+          !location.properties.cluster &&
+          location.properties.radius != null
+        ) {
+          const radiusValueRaw = location.properties.radius;
+          const radiusValue = Number(radiusValueRaw);
+          if (Number.isFinite(radiusValue)) {
+            minRadiusValue = Math.min(minRadiusValue, radiusValue);
+            maxRadiusValue = Math.max(maxRadiusValue, radiusValue);
+          }
+        }
+      });
+    }
+
     ctx.clearRect(0, 0, width, height);
     ctx.globalCompositeOperation = compositeOperation;
 
@@ -232,6 +252,50 @@ class ScatterPlotGlowOverlay extends PureComponent {
                   pointLatitude,
                   zoom,
                 );
+              } else if (pointRadiusUnit === 'Pixels') {
+                // Scale pixel values to a reasonable range (radius/6 to radius/3)
+                // This ensures points are visible and proportional to their values
+                const MIN_POINT_RADIUS = radius / 6;
+                const MAX_POINT_RADIUS = radius / 3;
+
+                if (
+                  Number.isFinite(minRadiusValue) &&
+                  Number.isFinite(maxRadiusValue) &&
+                  maxRadiusValue > minRadiusValue
+                ) {
+                  // Normalize the value to 0-1 range, then scale to pixel range
+                  const numericPointRadius = Number(pointRadius);
+                  if (!Number.isFinite(numericPointRadius)) {
+                    // fallback to minimum visible size when the value is not a finite number
+                    pointRadius = MIN_POINT_RADIUS;
+                  } else {
+                    const normalizedValueRaw =
+                      (numericPointRadius - minRadiusValue) /
+                      (maxRadiusValue - minRadiusValue);
+                    const normalizedValue = Math.max(
+                      0,
+                      Math.min(1, normalizedValueRaw),
+                    );
+                    pointRadius =
+                      MIN_POINT_RADIUS +
+                      normalizedValue * (MAX_POINT_RADIUS - MIN_POINT_RADIUS);
+                  }
+                  pointLabel = `${roundDecimal(radiusProperty, 2)}`;
+                } else if (
+                  Number.isFinite(minRadiusValue) &&
+                  minRadiusValue === maxRadiusValue
+                ) {
+                  // All values are the same, use a fixed medium size
+                  pointRadius = (MIN_POINT_RADIUS + MAX_POINT_RADIUS) / 2;
+                  pointLabel = `${roundDecimal(radiusProperty, 2)}`;
+                } else {
+                  // Use raw pixel values if they're already in a reasonable range
+                  pointRadius = Math.max(
+                    MIN_POINT_RADIUS,
+                    Math.min(pointRadius, MAX_POINT_RADIUS),
+                  );
+                  pointLabel = `${roundDecimal(radiusProperty, 2)}`;
+                }
               }
             }
 

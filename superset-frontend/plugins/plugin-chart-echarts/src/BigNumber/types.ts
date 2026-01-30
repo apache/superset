@@ -47,6 +47,7 @@ export type BigNumberWithTrendlineFormData = BigNumberTotalFormData & {
     b: number;
   };
   compareLag?: string | number;
+  xAxis: string;
   showXAxis?: boolean;
   showXAxisMinMaxLabels?: boolean;
   showYAxis?: boolean;

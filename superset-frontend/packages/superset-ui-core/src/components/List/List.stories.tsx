@@ -38,7 +38,6 @@ export const InteractiveList = (args: ListProps<any>) => (
 InteractiveList.args = {
   bordered: false,
   split: true,
-  itemLayout: 'horizontal',
   size: 'default',
   loading: false,
 };
@@ -46,20 +45,42 @@ InteractiveList.args = {
 InteractiveList.argTypes = {
   bordered: {
     control: { type: 'boolean' },
+    description: 'Whether to show a border around the list.',
   },
   split: {
     control: { type: 'boolean' },
+    description: 'Whether to show a divider between items.',
   },
   loading: {
     control: { type: 'boolean' },
-  },
-  itemLayout: {
-    control: { type: 'select' },
-    options: ['horizontal', 'vertical'],
+    description: 'Whether to show a loading indicator.',
   },
   size: {
     control: { type: 'select' },
     options: ['default', 'small', 'large'],
+    description: 'Size of the list.',
+  },
+};
+
+InteractiveList.parameters = {
+  docs: {
+    description: {
+      story:
+        'A list component for displaying rows of data. Requires dataSource array and renderItem function.',
+    },
+    staticProps: {
+      dataSource: ['Dashboard Analytics', 'User Management', 'Data Sources'],
+    },
+    liveExample: `function Demo() {
+  const data = ['Dashboard Analytics', 'User Management', 'Data Sources'];
+  return (
+    <List
+      bordered
+      dataSource={data}
+      renderItem={(item) => <List.Item>{item}</List.Item>}
+    />
+  );
+}`,
   },
 };
 

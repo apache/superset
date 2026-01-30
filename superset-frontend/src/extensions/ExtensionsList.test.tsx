@@ -18,6 +18,9 @@
  */
 import { render, waitFor } from 'spec/helpers/testing-library';
 import ExtensionsList from './ExtensionsList';
+import fetchMock from 'fetch-mock';
+
+beforeAll(() => fetchMock.unmockGlobal());
 
 // Mock initial state for the store
 const mockInitialState = {
@@ -77,11 +80,14 @@ test('displays extension names in the list', async () => {
 test('displays contributions information', async () => {
   renderWithStore();
 
-  await waitFor(() => {
-    // Should show contributions-related content
-    const bodyText = document.body.textContent || '';
-    expect(bodyText).toMatch(/contribution/i);
-  });
+  await waitFor(
+    () => {
+      // Should show contributions-related content
+      const bodyText = document.body.textContent || '';
+      expect(bodyText).toMatch(/contribution/i);
+    },
+    { timeout: 4000 },
+  );
 });
 
 test('calls toast functions when provided', () => {

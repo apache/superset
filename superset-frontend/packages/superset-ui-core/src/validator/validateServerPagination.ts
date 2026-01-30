@@ -23,7 +23,7 @@ export default function validateServerPagination(
   serverPagination: boolean,
   maxValueWithoutServerPagination: number,
   maxServer: number,
-) {
+): string | false {
   if (
     Number(v) > +maxValueWithoutServerPagination &&
     Number(v) <= maxServer &&
