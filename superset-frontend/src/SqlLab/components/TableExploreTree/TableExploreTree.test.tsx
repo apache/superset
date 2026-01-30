@@ -72,8 +72,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  fetchMock.restore();
   jest.clearAllMocks();
+  fetchMock.clearHistory();
 });
 
 const getInitialState = (overrides = {}) => ({
@@ -209,9 +209,8 @@ test('shows empty state when no schemas match search', async () => {
 });
 
 test('shows loading skeleton while fetching schemas', async () => {
-  fetchMock.get(
-    'glob:*/api/v1/database/1/schemas/?*',
-    new Promise(resolve =>
+  fetchMock.get('glob:*/api/v1/database/1/schemas/?*', {
+    response: new Promise(resolve =>
       setTimeout(
         () =>
           resolve({
@@ -221,8 +220,7 @@ test('shows loading skeleton while fetching schemas', async () => {
         100,
       ),
     ),
-    { overwriteRoutes: true },
-  );
+  });
 
   renderComponent();
 
