@@ -62,6 +62,14 @@ export default class TextControl<
     };
   }
 
+  componentDidUpdate(prevProps: TextControlProps<T>) {
+    // Sync local state when props change (e.g., from undo/redo)
+    if (prevProps.value !== this.props.value) {
+      this.initialValue = this.props.value;
+      this.setState({ value: safeStringify(this.props.value) });
+    }
+  }
+
   onChange = (inputValue: string) => {
     let parsedValue: InputValueType = inputValue;
     // Validation & casting
