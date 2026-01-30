@@ -37,6 +37,7 @@ import {
   EchartsMixedTimeseriesProps,
 } from '../../src/MixedTimeseries/types';
 import { DEFAULT_FORM_DATA } from '../../src/MixedTimeseries/types';
+import { createEchartsTimeseriesTestChartProps } from '../helpers';
 import type { SeriesOption } from 'echarts';
 
 /**
@@ -74,7 +75,7 @@ function createTestQueryData(
 
 /**
  * Creates a properly typed EchartsMixedTimeseriesProps for testing.
- * Merges partial formData with DEFAULT_FORM_DATA to ensure all required fields are present.
+ * Uses shared createEchartsTimeseriesTestChartProps with Mixed Timeseries defaults.
  */
 function createTestChartProps(config: {
   formData?: Partial<EchartsMixedTimeseriesFormData>;
@@ -91,39 +92,15 @@ function createTestChartProps(config: {
   width?: number;
   height?: number;
 }): EchartsMixedTimeseriesProps {
-  const {
-    formData: partialFormData = {},
-    queriesData: customQueriesData,
-    datasource: customDatasource,
-    width = 800,
-    height = 600,
-  } = config;
-
-  const fullFormData: EchartsMixedTimeseriesFormData = {
-    ...DEFAULT_FORM_DATA,
-    ...partialFormData,
-    datasource: partialFormData.datasource || '3__table',
-    viz_type: partialFormData.viz_type || 'mixed_timeseries',
-  } as EchartsMixedTimeseriesFormData;
-
-  const chartProps = new ChartProps({
-    formData: fullFormData,
-    width,
-    height,
-    queriesData: customQueriesData || [],
-    theme: supersetTheme,
-    datasource: customDatasource || {
-      verboseMap: {},
-      columnFormats: {},
-      currencyFormats: {},
-    },
+  return createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    defaultFormData: DEFAULT_FORM_DATA,
+    defaultVizType: 'mixed_timeseries',
+    defaultQueriesData: [],
+    ...config,
   });
-
-  return {
-    ...chartProps,
-    formData: fullFormData,
-    queriesData: customQueriesData || [],
-  } as EchartsMixedTimeseriesProps;
 }
 
 const formData: EchartsMixedTimeseriesFormData = {

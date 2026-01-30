@@ -39,6 +39,7 @@ import {
   EchartsTimeseriesFormData,
 } from '../../src/Timeseries/types';
 import { DEFAULT_FORM_DATA } from '../../src/Timeseries/constants';
+import { createEchartsTimeseriesTestChartProps } from '../helpers';
 import { BASE_TIMESTAMP, createTestData } from './helpers';
 
 /**
@@ -89,7 +90,7 @@ function getYAxisFormatter(
 
 /**
  * Creates a properly typed EchartsTimeseriesChartProps for testing.
- * Merges partial formData with DEFAULT_FORM_DATA to ensure all required fields are present.
+ * Uses shared createEchartsTimeseriesTestChartProps with Timeseries defaults.
  */
 function createTestChartProps(config: {
   formData?: Partial<EchartsTimeseriesFormData>;
@@ -106,39 +107,15 @@ function createTestChartProps(config: {
   width?: number;
   height?: number;
 }): EchartsTimeseriesChartProps {
-  const {
-    formData: partialFormData = {},
-    queriesData: customQueriesData,
-    datasource: customDatasource,
-    width = 800,
-    height = 600,
-  } = config;
-
-  const fullFormData: EchartsTimeseriesFormData = {
-    ...DEFAULT_FORM_DATA,
-    ...partialFormData,
-    datasource: partialFormData.datasource || '3__table',
-    viz_type: partialFormData.viz_type || 'my_viz',
-  } as EchartsTimeseriesFormData;
-
-  const chartProps = new ChartProps({
-    formData: fullFormData,
-    width,
-    height,
-    queriesData: customQueriesData || queriesData,
-    theme: supersetTheme,
-    datasource: customDatasource || {
-      verboseMap: {},
-      columnFormats: {},
-      currencyFormats: {},
-    },
+  return createEchartsTimeseriesTestChartProps<
+    EchartsTimeseriesFormData,
+    EchartsTimeseriesChartProps
+  >({
+    defaultFormData: DEFAULT_FORM_DATA,
+    defaultVizType: 'my_viz',
+    defaultQueriesData: queriesData as unknown as ChartDataResponseResult[],
+    ...config,
   });
-
-  return {
-    ...chartProps,
-    formData: fullFormData,
-    queriesData: customQueriesData || queriesData,
-  } as EchartsTimeseriesChartProps;
 }
 
 const formData: SqlaFormData = {
