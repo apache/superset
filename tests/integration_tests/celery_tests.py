@@ -582,13 +582,19 @@ def test_teardown_without_app_context():
     The task_postrun signal can fire after the app context is torn down,
     so teardown() must check has_app_context() before calling db.session.remove().
     """
-    from superset.tasks.celery_app import teardown
+    from superset.tasks.celery_app import teardown, flask_app
 
     # Ensure we're outside of an app context
     assert not has_app_context(), "Test must run outside of app context"
 
-    # This should not raise RuntimeError: Working outside of application context
-    teardown(retval="success")
+    # Temporarily disable commit-on-teardown to avoid calling db.session.commit() outside app context
+    _orig = flask_app.config.get("SQLALCHEMY_COMMIT_ON_TEARDOWN", False)
+    flask_app.config["SQLALCHEMY_COMMIT_ON_TEARDOWN"] = False
+    try:
+        # This should not raise RuntimeError: Working outside of application context
+        teardown(retval="success")
+    finally:
+        flask_app.config["SQLALCHEMY_COMMIT_ON_TEARDOWN"] = _orig
 
 
 def delete_tmp_view_or_table(name: str, ctas_method: CTASMethod):
