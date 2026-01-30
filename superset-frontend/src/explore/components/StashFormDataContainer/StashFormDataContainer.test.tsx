@@ -40,7 +40,13 @@ test('should stash form data from fieldNames', () => {
     </StashFormDataContainer>,
     {
       useRedux: true,
-      initialState: { explore: { form_data: defaultState.form_data } },
+      initialState: {
+        explore: {
+          past: [],
+          present: { form_data: defaultState.form_data },
+          future: [],
+        },
+      },
     },
   );
   expect(container.querySelector('div')).toHaveTextContent('granularity_sqla');

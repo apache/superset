@@ -247,11 +247,15 @@ test('uses exploreBackend from Redux state when available', async () => {
   const stateWithBackend = {
     ...mockState(),
     explore: {
-      datasource: {
-        database: {
-          backend: 'postgresql',
+      past: [],
+      present: {
+        datasource: {
+          database: {
+            backend: 'postgresql',
+          },
         },
       },
+      future: [],
     },
   };
 
