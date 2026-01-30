@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/ui';
-import { ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import { ChartMetadata, ChartPlugin, Behavior } from '@superset-ui/core';
 import transformProps from './transformProps';
 import exampleUsa from './images/exampleUsa.jpg';
 import exampleUsaDark from './images/exampleUsa-dark.jpg';
@@ -49,6 +49,11 @@ const metadata = new ChartMetadata({
   thumbnail,
   thumbnailDark,
   useLegacyApi: true,
+  behaviors: [
+    Behavior.InteractiveChart,
+    Behavior.DrillToDetail,
+    Behavior.DrillBy,
+  ],
 });
 
 export default class CountryMapChartPlugin extends ChartPlugin {
