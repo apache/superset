@@ -455,7 +455,7 @@ Add the following to your `superset_config.py`:
 ```python
 # Enable extensions feature
 FEATURE_FLAGS = {
-    "EXTENSIONS": True,
+    "ENABLE_EXTENSIONS": True,
 }
 
 # Set the directory where extensions are stored

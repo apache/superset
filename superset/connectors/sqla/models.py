@@ -76,6 +76,7 @@ from superset.connectors.sqla.utils import (
     get_physical_table_metadata,
     get_virtual_table_metadata,
 )
+from superset.daos.exceptions import DatasourceNotFound
 from superset.db_engine_specs.base import BaseEngineSpec, TimestampExpression
 from superset.exceptions import (
     ColumnNotFoundException,
@@ -85,6 +86,7 @@ from superset.exceptions import (
     SupersetSecurityException,
     SupersetSyntaxErrorException,
 )
+from superset.explorables.base import TimeGrainDict
 from superset.jinja_context import (
     BaseTemplateProcessor,
     ExtraCache,
@@ -105,7 +107,7 @@ from superset.sql.parse import Table
 from superset.superset_typing import (
     AdhocColumn,
     AdhocMetric,
-    BaseDatasourceData,
+    ExplorableData,
     Metric,
     QueryObjectDict,
     ResultSetColumnType,
@@ -198,7 +200,7 @@ class BaseDatasource(
     is_featured = Column(Boolean, default=False)  # TODO deprecating
     filter_select_enabled = Column(Boolean, default=True)
     offset = Column(Integer, default=0)
-    cache_timeout = Column(Integer)
+    _cache_timeout = Column("cache_timeout", Integer)
     params = Column(String(1000))
     perm = Column(String(1000))
     schema_perm = Column(String(1000))
@@ -211,6 +213,78 @@ class BaseDatasource(
     update_from_object_fields: list[str]
 
     extra_import_fields = ["is_managed_externally", "external_url"]
+
+    @property
+    def cache_timeout(self) -> int | None:
+        """
+        Get the cache timeout for this datasource.
+
+        Implements the Explorable protocol by handling the fallback chain:
+        1. Datasource-specific timeout (if set)
+        2. Database default timeout (if no datasource timeout)
+        3. None (use system default)
+
+        This allows each datasource to override caching, while falling back
+        to database-level defaults when appropriate.
+        """
+        if self._cache_timeout is not None:
+            return self._cache_timeout
+
+        # database should always be set, but that's not true for v0 import
+        if self.database:
+            return self.database.cache_timeout
+
+        return None
+
+    @cache_timeout.setter
+    def cache_timeout(self, value: int | None) -> None:
+        """Set the datasource-specific cache timeout."""
+        self._cache_timeout = value
+
+    def has_drill_by_columns(self, column_names: list[str]) -> bool:
+        """
+        Check if the specified columns support drill-by operations.
+
+        For SQL datasources, drill-by is supported on columns that are marked
+        as groupable in the metadata. This allows users to navigate from
+        aggregated views to detailed data by grouping on these dimensions.
+
+        :param column_names: List of column names to check
+        :return: True if all columns support drill-by, False otherwise
+        """
+        if not column_names:
+            return False
+
+        # Get all groupable column names for this datasource
+        drillable_columns = {
+            row[0]
+            for row in db.session.query(TableColumn.column_name)
+            .filter(TableColumn.table_id == self.id)
+            .filter(TableColumn.groupby)
+            .all()
+        }
+
+        # Check if all requested columns are drillable
+        return set(column_names).issubset(drillable_columns)
+
+    def get_time_grains(self) -> list[TimeGrainDict]:
+        """
+        Get available time granularities from the database.
+
+        Implements the Explorable protocol by delegating to the database's
+        time grain definitions. Each database engine spec defines its own
+        set of supported time grains.
+
+        :return: List of time grain dictionaries with name, function, and duration
+        """
+        return [
+            {
+                "name": grain.name,
+                "function": grain.function,
+                "duration": grain.duration,
+            }
+            for grain in (self.database.grains() or [])
+        ]
 
     @property
     def kind(self) -> DatasourceKind:
@@ -363,7 +437,7 @@ class BaseDatasource(
         return verb_map
 
     @property
-    def data(self) -> BaseDatasourceData:
+    def data(self) -> ExplorableData:
         """Data representation of the datasource sent to the frontend"""
         return {
             # simple fields
@@ -440,7 +514,13 @@ class BaseDatasource(
             # for legacy dashboard imports which have the wrong query_context in them
             try:
                 query_context = slc.get_query_context()
-            except DatasetNotFoundError:
+            except (DatasetNotFoundError, DatasourceNotFound):
+                logger.warning(
+                    "Failed to load query_context for chart '%s' (id=%s): "
+                    "referenced datasource not found",
+                    slc.slice_name,
+                    slc.id,
+                )
                 query_context = None
 
             # legacy charts don't have query_context charts
@@ -1148,6 +1228,7 @@ class SqlaTable(
 
     table_name = Column(String(250), nullable=False)
     main_dttm_col = Column(String(250))
+    currency_code_column = Column(String(250))
     database_id = Column(Integer, ForeignKey("dbs.id"), nullable=False)
     fetch_values_predicate = Column(Text)
     owners = relationship(owner_class, secondary=sqlatable_user, backref="tables")
@@ -1171,6 +1252,7 @@ class SqlaTable(
     export_fields = [
         "table_name",
         "main_dttm_col",
+        "currency_code_column",
         "description",
         "default_endpoint",
         "database_id",
@@ -1258,7 +1340,8 @@ class SqlaTable(
     @property
     def link(self) -> Markup:
         name = escape(self.name)
-        anchor = f'<a target="_blank" href="{self.explore_url}">{name}</a>'
+        url = escape(self.explore_url)
+        anchor = f'<a target="_blank" href="{url}">{name}</a>'
         return Markup(anchor)
 
     def get_catalog_perm(self) -> str | None:
@@ -1369,12 +1452,13 @@ class SqlaTable(
         return [(g.duration, g.name) for g in self.database.grains() or []]
 
     @property
-    def data(self) -> BaseDatasourceData:
+    def data(self) -> ExplorableData:
         data_ = super().data
         if self.type == "table":
             data_["granularity_sqla"] = self.granularity_sqla
             data_["time_grain_sqla"] = self.time_grain_sqla
             data_["main_dttm_col"] = self.main_dttm_col
+            data_["currency_code_column"] = self.currency_code_column
             data_["fetch_values_predicate"] = self.fetch_values_predicate
             data_["template_params"] = self.template_params
             data_["is_sqllab_view"] = self.is_sqllab_view
@@ -1524,14 +1608,10 @@ class SqlaTable(
         has_timegrain = col.get("columnType") == "BASE_AXIS" and time_grain
         is_dttm = False
         pdf = None
-        is_column_reference = col.get("isColumnReference")
+        is_column_reference = col.get("isColumnReference", False)
 
         # First, check if this is a column reference that exists in metadata
-        col_in_metadata = None
-        if is_column_reference:
-            col_in_metadata = self.get_column(sql_expression)
-
-        if col_in_metadata:
+        if col_in_metadata := self.get_column(sql_expression):
             # Column exists in metadata - use it directly
             sqla_column = col_in_metadata.get_sqla_col(
                 template_processor=template_processor

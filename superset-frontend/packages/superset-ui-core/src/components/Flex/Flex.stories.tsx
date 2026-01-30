@@ -26,6 +26,17 @@ export default {
   component: Flex,
 };
 
+// Sample children used in both Storybook and auto-generated docs
+const SAMPLE_ITEMS = ['Item 1', 'Item 2', 'Item 3', 'Item 4', 'Item 5'];
+
+// Shared styling for sample items - matches docs site rendering
+const sampleItemStyle = {
+  padding: '8px 16px',
+  background: '#e6f4ff',
+  border: '1px solid #91caff',
+  borderRadius: '4px',
+};
+
 export const InteractiveFlex = (args: FlexProps) => (
   <Flex
     {...args}
@@ -34,8 +45,10 @@ export const InteractiveFlex = (args: FlexProps) => (
       height: 90vh;
     `}
   >
-    {new Array(20).fill(null).map((_, i) => (
-      <p key={i}>Item</p>
+    {SAMPLE_ITEMS.map((item, i) => (
+      <div key={i} style={sampleItemStyle}>
+        {item}
+      </div>
     ))}
   </Flex>
 );
@@ -83,5 +96,82 @@ InteractiveFlex.argTypes = {
     control: { type: 'select' },
     options: ['small', 'medium', 'large'],
     type: { name: 'string', required: false },
+  },
+};
+
+InteractiveFlex.parameters = {
+  docs: {
+    // Inline for the static parser (can't resolve variable references)
+    sampleChildren: ['Item 1', 'Item 2', 'Item 3', 'Item 4', 'Item 5'],
+    sampleChildrenStyle: {
+      padding: '8px 16px',
+      background: '#e6f4ff',
+      border: '1px solid #91caff',
+      borderRadius: '4px',
+    },
+    liveExample: `function Demo() {
+  return (
+    <Flex gap="small" wrap="wrap">
+      {['Item 1', 'Item 2', 'Item 3', 'Item 4', 'Item 5'].map(item => (
+        <div
+          key={item}
+          style={{
+            padding: '8px 16px',
+            background: '#e6f4ff',
+            border: '1px solid #91caff',
+            borderRadius: 4,
+          }}
+        >
+          {item}
+        </div>
+      ))}
+    </Flex>
+  );
+}`,
+    examples: [
+      {
+        title: 'Vertical Layout',
+        code: `function VerticalFlex() {
+  return (
+    <Flex vertical gap="small">
+      <Button buttonStyle="primary">Primary</Button>
+      <Button buttonStyle="dashed">Dashed</Button>
+      <Button buttonStyle="link">Link</Button>
+    </Flex>
+  );
+}`,
+      },
+      {
+        title: 'Justify and Align',
+        code: `function JustifyAlign() {
+  const boxStyle = {
+    width: '100%',
+    height: 120,
+    borderRadius: 6,
+    border: '1px solid #40a9ff',
+  };
+  const itemStyle = {
+    width: 60,
+    height: 40,
+    backgroundColor: '#1677ff',
+    borderRadius: 4,
+  };
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {['flex-start', 'center', 'flex-end', 'space-between', 'space-around'].map(justify => (
+        <div key={justify}>
+          <span style={{ marginBottom: 4, display: 'block', color: '#666' }}>{justify}</span>
+          <Flex style={boxStyle} justify={justify} align="center">
+            <div style={itemStyle} />
+            <div style={itemStyle} />
+            <div style={itemStyle} />
+          </Flex>
+        </div>
+      ))}
+    </div>
+  );
+}`,
+      },
+    ],
   },
 };

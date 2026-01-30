@@ -17,7 +17,8 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import { t, SupersetClient } from '@superset-ui/core';
+import { SupersetClient } from '@superset-ui/core';
+import { t } from '@apache-superset/core/ui';
 import rison from 'rison';
 import {
   addDangerToast,

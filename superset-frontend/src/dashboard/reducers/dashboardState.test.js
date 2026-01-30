@@ -29,6 +29,10 @@ import {
   TOGGLE_FAVE_STAR,
   TOGGLE_NATIVE_FILTERS_BAR,
   UNSET_FOCUSED_FILTER_FIELD,
+  UPDATE_CHART_STATE,
+  REMOVE_CHART_STATE,
+  RESTORE_CHART_STATES,
+  CLEAR_ALL_CHART_STATES,
 } from 'src/dashboard/actions/dashboardState';
 
 import dashboardStateReducer from 'src/dashboard/reducers/dashboardState';
@@ -214,5 +218,79 @@ describe('dashboardState reducer', () => {
         { type: TOGGLE_NATIVE_FILTERS_BAR, isOpen: false },
       ),
     ).toEqual({ nativeFiltersBarOpen: false });
+  });
+
+  test('should update chart state', () => {
+    const chartState = { columnState: [], filterModel: {} };
+    const result = dashboardStateReducer(
+      { chartStates: {} },
+      {
+        type: UPDATE_CHART_STATE,
+        chartId: 123,
+        vizType: 'ag-grid-table',
+        chartState,
+        lastModified: 1234567890,
+      },
+    );
+    expect(result.chartStates[123]).toEqual({
+      chartId: 123,
+      vizType: 'ag-grid-table',
+      state: chartState,
+      lastModified: 1234567890,
+    });
+  });
+
+  test('should remove chart state', () => {
+    const initState = {
+      chartStates: {
+        123: { chartId: 123, vizType: 'ag-grid-table', state: {} },
+        456: { chartId: 456, vizType: 'ag-grid-table', state: {} },
+      },
+    };
+    const result = dashboardStateReducer(initState, {
+      type: REMOVE_CHART_STATE,
+      chartId: 123,
+    });
+    expect(result.chartStates[123]).toBeUndefined();
+    expect(result.chartStates[456]).toBeDefined();
+  });
+
+  test('should restore chart states', () => {
+    const chartStates = {
+      123: { chartId: 123, vizType: 'ag-grid-table', state: {} },
+    };
+    const result = dashboardStateReducer(
+      { chartStates: {} },
+      { type: RESTORE_CHART_STATES, chartStates },
+    );
+    expect(result.chartStates).toEqual(chartStates);
+  });
+
+  test('should restore chart states to empty when given null', () => {
+    const initState = {
+      chartStates: {
+        123: { chartId: 123, vizType: 'ag-grid-table', state: {} },
+      },
+    };
+    const result = dashboardStateReducer(initState, {
+      type: RESTORE_CHART_STATES,
+      chartStates: null,
+    });
+    expect(result.chartStates).toEqual({});
+  });
+
+  test('should clear all chart states', () => {
+    const initState = {
+      chartStates: {
+        123: { chartId: 123, vizType: 'ag-grid-table', state: {} },
+        456: { chartId: 456, vizType: 'ag-grid-table', state: {} },
+      },
+      otherState: 'preserved',
+    };
+    const result = dashboardStateReducer(initState, {
+      type: CLEAR_ALL_CHART_STATES,
+    });
+    expect(result.chartStates).toEqual({});
+    expect(result.otherState).toEqual('preserved');
   });
 });

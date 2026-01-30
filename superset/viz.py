@@ -78,7 +78,7 @@ from superset.utils.core import (
     simple_filter_to_adhoc,
 )
 from superset.utils.date_parser import get_since_until, parse_past_timedelta
-from superset.utils.hashing import md5_sha_from_str
+from superset.utils.hashing import hash_from_str
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import BaseDatasource
@@ -473,7 +473,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         cache_dict["rls"] = security_manager.get_rls_cache_key(self.datasource)
         cache_dict["changed_on"] = self.datasource.changed_on
         json_data = self.json_dumps(cache_dict, sort_keys=True)
-        return md5_sha_from_str(json_data)
+        return hash_from_str(json_data)
 
     @deprecated(deprecated_in="3.0")
     def get_payload(self, query_obj: QueryObjectDict | None = None) -> VizPayload:
@@ -514,6 +514,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         ] + rejected_time_columns
         if df is not None:
             payload["colnames"] = list(df.columns)
+
         return payload
 
     @deprecated(deprecated_in="3.0")

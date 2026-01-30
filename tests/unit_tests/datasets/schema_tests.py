@@ -46,3 +46,32 @@ def test_validate_python_date_format(payload) -> None:
 def test_validate_python_date_format_raises(payload) -> None:
     with pytest.raises(ValidationError):
         validate_python_date_format(payload)
+
+
+def test_dataset_put_schema_includes_currency_code_column() -> None:
+    """Test that DatasetPutSchema properly handles currency_code_column field."""
+    from superset.datasets.schemas import DatasetPutSchema
+
+    schema = DatasetPutSchema()
+
+    # Dataset with currency code column
+    data = {
+        "currency_code_column": "currency",
+    }
+    result = schema.load(data)
+    assert result["currency_code_column"] == "currency"
+
+
+def test_dataset_put_schema_currency_code_column_optional() -> None:
+    """Test that currency_code_column is optional in DatasetPutSchema."""
+    from superset.datasets.schemas import DatasetPutSchema
+
+    schema = DatasetPutSchema()
+
+    # Dataset without currency code column (should not fail)
+    data: dict[str, str | None] = {}
+    result = schema.load(data)
+    assert (
+        "currency_code_column" not in result
+        or result.get("currency_code_column") is None
+    )

@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { QueryEditor } from '../types';
 
 const untitledQueryRegex = /^Untitled Query (\d+)$/; // Literal notation isn't recompiled

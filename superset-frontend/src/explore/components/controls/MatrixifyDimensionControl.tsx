@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useEffect, useState, useRef, useMemo } from 'react';
-import { t, SupersetClient, getColumnLabel } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { SupersetClient, getColumnLabel } from '@superset-ui/core';
 import { Select, Space } from '@superset-ui/core/components';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { optionLabel } from 'src/utils/common';
@@ -81,17 +82,21 @@ export default function MatrixifyDimensionControl(
 
   // Reset values when selection mode changes
   useEffect(() => {
-    if (prevSelectionMode.current !== selectionMode) {
-      prevSelectionMode.current = selectionMode;
-      if (value?.values && value.values.length > 0) {
-        onChange({
-          dimension: value.dimension,
-          values: [],
-          topNValues: [],
-        });
-      }
+    // Only clear values when actually switching between modes, not on initial load or re-render
+    if (
+      prevSelectionMode.current !== selectionMode &&
+      prevSelectionMode.current !== undefined &&
+      value?.dimension
+    ) {
+      // Clear values when switching between members and topn modes
+      onChange({
+        dimension: value.dimension,
+        values: [],
+        topNValues: [],
+      });
     }
-  }, [selectionMode, value]);
+    prevSelectionMode.current = selectionMode;
+  }, [selectionMode]);
 
   // Initialize dimension options from datasource
   useEffect(() => {
@@ -174,18 +179,6 @@ export default function MatrixifyDimensionControl(
   // Load TopN values when in TopN mode
   useEffect(() => {
     if (!value?.dimension || !datasource || selectionMode !== 'topn') {
-      // Clear values when switching away from topn mode
-      if (
-        selectionMode !== 'topn' &&
-        value?.values &&
-        value.values.length > 0
-      ) {
-        onChange({
-          dimension: value.dimension,
-          values: [],
-          topNValues: [],
-        });
-      }
       return undefined;
     }
 

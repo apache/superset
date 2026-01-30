@@ -18,7 +18,8 @@
  */
 import { useCallback, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { SupersetClient, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { SupersetClient } from '@superset-ui/core';
 import { styled, useTheme, css } from '@apache-superset/core/ui';
 import CodeSyntaxHighlighter, {
   preloadLanguages,
@@ -95,16 +96,6 @@ export const CardStyles = styled.div`
     height: 179px;
     background-repeat: no-repeat;
     vertical-align: middle;
-  }
-`;
-
-const QueryData = styled.div`
-  svg {
-    margin-left: ${({ theme }) => theme.sizeUnit * 10}px;
-  }
-  .query-title {
-    padding: ${({ theme }) => theme.sizeUnit * 2 + 2}px;
-    font-size: ${({ theme }) => theme.fontSizeLG}px;
   }
 `;
 
@@ -226,7 +217,6 @@ export const SavedQueries = ({
             iconSize="l"
             css={css`
               margin-right: ${theme.sizeUnit}px;
-              vertical-align: baseline;
             `}
           />
           {t('Share')}
@@ -348,25 +338,21 @@ export const SavedQueries = ({
                   )
                 }
                 actions={
-                  <QueryData>
-                    <ListViewCard.Actions
-                      onClick={e => {
-                        e.stopPropagation();
-                        e.preventDefault();
-                      }}
+                  <ListViewCard.Actions
+                    onClick={e => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                    }}
+                  >
+                    <Dropdown
+                      menu={{ items: menuItems(q) }}
+                      trigger={['click', 'hover']}
                     >
-                      <Dropdown
-                        menu={{
-                          items: menuItems(q),
-                        }}
-                        trigger={['click', 'hover']}
-                      >
-                        <Button buttonSize="xsmall" buttonStyle="link">
-                          <Icons.MoreOutlined iconColor={theme.colorText} />
-                        </Button>
-                      </Dropdown>
-                    </ListViewCard.Actions>
-                  </QueryData>
+                      <Button buttonSize="xsmall" buttonStyle="link">
+                        <Icons.MoreOutlined iconSize="xl" />
+                      </Button>
+                    </Dropdown>
+                  </ListViewCard.Actions>
                 }
               />
             </CardStyles>

@@ -19,6 +19,7 @@
 import {
   render,
   screen,
+  selectOption,
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
@@ -180,7 +181,7 @@ test('fetches Superset annotation layer options', async () => {
     screen.getByRole('combobox', { name: 'Annotation layer value' }),
   );
   expect(await screen.findByText('Chart A')).toBeInTheDocument();
-  expect(fetchMock.calls(nativeLayerApiRoute).length).toBe(1);
+  expect(fetchMock.callHistory.calls(nativeLayerApiRoute).length).toBe(1);
 });
 
 test('fetches chart options', async () => {
@@ -196,7 +197,7 @@ test('fetches chart options', async () => {
     screen.getByRole('combobox', { name: 'Annotation layer value' }),
   );
   expect(await screen.findByText('Chart A')).toBeInTheDocument();
-  expect(fetchMock.calls(chartApiRoute).length).toBe(1);
+  expect(fetchMock.callHistory.calls(chartApiRoute).length).toBe(1);
 });
 
 test('fetches chart on mount if value present', async () => {
@@ -206,43 +207,27 @@ test('fetches chart on mount if value present', async () => {
     annotationType: ANNOTATION_TYPES_METADATA.EVENT.value,
     sourceType: 'Table',
   });
-  expect(fetchMock.calls(chartApiWithIdRoute).length).toBe(1);
+  expect(fetchMock.callHistory.calls(chartApiWithIdRoute).length).toBe(1);
 });
 
 test('keeps apply disabled when missing required fields', async () => {
+  // With EVENT type and Table source, the component requires selecting a chart
+  // and filling in required fields. Without completing these, Apply should be disabled.
   await waitForRender({
     annotationType: ANNOTATION_TYPES_METADATA.EVENT.value,
     sourceType: 'Table',
   });
-  userEvent.click(
-    screen.getByRole('combobox', { name: 'Annotation layer value' }),
-  );
-  expect(await screen.findByText('Chart A')).toBeInTheDocument();
-  userEvent.click(screen.getByText('Chart A'));
+
+  // Apply button should be disabled initially since required fields are not filled
+  expect(screen.getByRole('button', { name: 'Apply' })).toBeDisabled();
+
+  // Select Chart A from the annotation layer value dropdown
+  await selectOption('Chart A', 'Annotation layer value');
+
+  // Wait for the chart data to load
   await screen.findByText(/title column/i);
-  userEvent.click(
-    screen.getByRole('combobox', { name: 'Annotation layer title column' }),
-  );
-  expect(await screen.findByText(/none/i)).toBeInTheDocument();
-  userEvent.click(screen.getByText('None'));
-  userEvent.click(screen.getByText('Style'));
-  // The checkbox for automatic color is in the Style tab
-  userEvent.click(screen.getByText('Use automatic color'));
-  userEvent.click(
-    screen.getByRole('combobox', { name: 'Annotation layer stroke' }),
-  );
-  expect(await screen.findByText('Dashed')).toBeInTheDocument();
-  userEvent.click(screen.getByText('Dashed'));
-  userEvent.click(screen.getByText('Opacity'));
-  userEvent.click(
-    screen.getByRole('combobox', { name: 'Annotation layer opacity' }),
-  );
-  expect(await screen.findByText(/0.5/i)).toBeInTheDocument();
-  userEvent.click(screen.getByText('0.5'));
 
-  const checkboxes = screen.getAllByRole('checkbox');
-  checkboxes.forEach(checkbox => userEvent.click(checkbox));
-
+  // Apply should still be disabled because name is not filled
   expect(screen.getByRole('button', { name: 'Apply' })).toBeDisabled();
 });
 

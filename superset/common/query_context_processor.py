@@ -29,7 +29,6 @@ from superset.common.db_query_status import QueryStatus
 from superset.common.query_actions import get_query_results
 from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.common.utils.time_range_utils import get_since_until_from_time_range
-from superset.connectors.sqla.models import BaseDatasource
 from superset.constants import CACHE_DISABLED_TIMEOUT, CacheRegion
 from superset.daos.annotation_layer import AnnotationLayerDAO
 from superset.daos.chart import ChartDAO
@@ -37,6 +36,7 @@ from superset.exceptions import (
     QueryObjectValidationError,
     SupersetException,
 )
+from superset.explorables.base import Explorable
 from superset.extensions import cache_manager, security_manager
 from superset.models.helpers import QueryResult
 from superset.superset_typing import AdhocColumn, AdhocMetric
@@ -70,7 +70,7 @@ class QueryContextProcessor:
     """
 
     _query_context: QueryContext
-    _qc_datasource: BaseDatasource
+    _qc_datasource: Explorable
 
     def __init__(self, query_context: QueryContext):
         self._query_context = query_context
@@ -181,6 +181,7 @@ class QueryContextProcessor:
         return {
             "cache_key": cache_key,
             "cached_dttm": cache.cache_dttm,
+            "queried_dttm": cache.queried_dttm,
             "cache_timeout": self.get_cache_timeout(),
             "df": cache.df,
             "applied_template_filters": cache.applied_template_filters,

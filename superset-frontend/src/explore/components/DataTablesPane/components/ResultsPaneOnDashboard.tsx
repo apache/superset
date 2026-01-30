@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { styled } from '@apache-superset/core/ui';
 import Tabs from '@superset-ui/core/components/Tabs';
 import { ResultTypes, ResultsPaneProps } from '../types';
@@ -55,6 +55,7 @@ export const ResultsPaneOnDashboard = ({
   isVisible,
   dataSize = 50,
   canDownload,
+  columnDisplayNames,
 }: ResultsPaneProps) => {
   const resultsPanes = useResultsPane({
     errorMessage,
@@ -66,6 +67,7 @@ export const ResultsPaneOnDashboard = ({
     dataSize,
     isVisible,
     canDownload,
+    columnDisplayNames,
   });
 
   if (resultsPanes.length === 1) {

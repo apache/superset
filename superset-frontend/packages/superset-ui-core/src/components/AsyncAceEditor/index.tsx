@@ -121,15 +121,12 @@ export function AsyncAceEditor(
   return AsyncEsmComponent(async () => {
     const reactAcePromise = import('react-ace');
     const aceBuildsConfigPromise = import('ace-builds');
-    const cssWorkerUrlPromise = import(
-      'ace-builds/src-min-noconflict/worker-css'
-    );
-    const javascriptWorkerUrlPromise = import(
-      'ace-builds/src-min-noconflict/worker-javascript'
-    );
-    const htmlWorkerUrlPromise = import(
-      'ace-builds/src-min-noconflict/worker-html'
-    );
+    const cssWorkerUrlPromise =
+      import('ace-builds/src-min-noconflict/worker-css');
+    const javascriptWorkerUrlPromise =
+      import('ace-builds/src-min-noconflict/worker-javascript');
+    const htmlWorkerUrlPromise =
+      import('ace-builds/src-min-noconflict/worker-html');
     const acequirePromise = import('ace-builds/src-min-noconflict/ace');
 
     const [
@@ -276,10 +273,8 @@ export function AsyncAceEditor(
               key="ace-tooltip-global"
               styles={css`
                 .ace_editor {
-                  border: 1px solid ${token.colorBorder} !important;
                   background-color: ${token.colorBgContainer} !important;
                 }
-
                 /* Basic editor styles with dark mode support */
                 .ace_editor.ace-github,
                 .ace_editor.ace-tm {
@@ -297,7 +292,8 @@ export function AsyncAceEditor(
                 }
                 /* Adjust selection color */
                 .ace_editor .ace_selection {
-                  background-color: ${token.colorPrimaryBgHover} !important;
+                  background-color: ${token.colorEditorSelection ??
+                  token.colorPrimaryBgHover} !important;
                 }
 
                 /* Improve active line highlighting */

@@ -18,6 +18,7 @@
  */
 
 import path from 'path';
+import webpack from 'webpack';
 import type { Plugin } from '@docusaurus/types';
 
 export default function webpackExtendPlugin(): Plugin<void> {
@@ -25,6 +26,74 @@ export default function webpackExtendPlugin(): Plugin<void> {
     name: 'custom-webpack-plugin',
     configureWebpack(config) {
       const isDev = process.env.NODE_ENV === 'development';
+
+      // Use NormalModuleReplacementPlugin to forcefully replace react-table
+      // This is necessary because regular aliases don't work for modules in nested node_modules
+      const reactTableShim = path.resolve(__dirname, './shims/react-table.js');
+      config.plugins?.push(
+        new webpack.NormalModuleReplacementPlugin(
+          /^react-table$/,
+          reactTableShim,
+        ),
+      );
+
+      // Stub out heavy third-party packages that are transitive dependencies of
+      // superset-frontend components. The barrel file (components/index.ts)
+      // re-exports all components, so webpack must resolve their imports even
+      // though these components are never rendered on the docs site.
+      const nullModuleShim = path.resolve(__dirname, './shims/null-module.js');
+      const heavyDepsPatterns = [
+        /^brace(\/|$)/, // ACE editor modes/themes
+        /^react-ace(\/|$)/,
+        /^ace-builds(\/|$)/,
+        /^react-js-cron(\/|$)/, // Cron picker + CSS
+        // react-resize-detector: NOT shimmed — DropdownContainer needs it at runtime
+        // for overflow detection. Resolves from superset-frontend/node_modules.
+        /^react-window(\/|$)/,
+        /^re-resizable(\/|$)/,
+        /^react-draggable(\/|$)/,
+        /^ag-grid-react(\/|$)/,
+        /^ag-grid-community(\/|$)/,
+      ];
+      heavyDepsPatterns.forEach(pattern => {
+        config.plugins?.push(
+          new webpack.NormalModuleReplacementPlugin(pattern, nullModuleShim),
+        );
+      });
+
+      // Add YAML loader rule directly to existing rules
+      config.module?.rules?.push({
+        test: /\.ya?ml$/,
+        use: 'js-yaml-loader',
+      });
+
+      // Add babel-loader rule for superset-frontend files
+      // This ensures Emotion CSS-in-JS is processed correctly for SSG
+      const supersetFrontendPath = path.resolve(
+        __dirname,
+        '../../superset-frontend',
+      );
+      config.module?.rules?.push({
+        test: /\.(tsx?|jsx?)$/,
+        include: supersetFrontendPath,
+        use: {
+          loader: 'babel-loader',
+          options: {
+            presets: [
+              [
+                '@babel/preset-react',
+                {
+                  runtime: 'automatic',
+                  importSource: '@emotion/react',
+                },
+              ],
+              '@babel/preset-typescript',
+            ],
+            plugins: ['@emotion/babel-plugin'],
+          },
+        },
+      });
+
       return {
         devtool: isDev ? 'eval-source-map' : config.devtool,
         ...(isDev && {
@@ -37,8 +106,16 @@ export default function webpackExtendPlugin(): Plugin<void> {
           },
         }),
         resolve: {
+          // Add superset-frontend node_modules to module resolution
+          modules: [
+            ...(config.resolve?.modules || []),
+            path.resolve(__dirname, '../../superset-frontend/node_modules'),
+          ],
           alias: {
             ...config.resolve.alias,
+            // Ensure single React instance across all modules (critical for hooks to work)
+            react: path.resolve(__dirname, '../node_modules/react'),
+            'react-dom': path.resolve(__dirname, '../node_modules/react-dom'),
             // Allow importing from superset-frontend
             src: path.resolve(__dirname, '../../superset-frontend/src'),
             // '@superset-ui/core': path.resolve(
@@ -50,6 +127,30 @@ export default function webpackExtendPlugin(): Plugin<void> {
             '@superset/components': path.resolve(
               __dirname,
               '../../superset-frontend/packages/superset-ui-core/src/components',
+            ),
+            // Also alias the full package path for internal imports within components
+            '@superset-ui/core/components': path.resolve(
+              __dirname,
+              '../../superset-frontend/packages/superset-ui-core/src/components',
+            ),
+            // Use a shim for react-table to handle CommonJS to ES module interop
+            // react-table v7 is CommonJS, but Superset components import it with ES module syntax
+            'react-table': path.resolve(__dirname, './shims/react-table.js'),
+            // Extension API package - resolve @apache-superset/core and its sub-paths
+            // to source so the docs build doesn't depend on pre-built lib/ artifacts.
+            // More specific sub-path aliases must come first; webpack matches the
+            // longest prefix.
+            '@apache-superset/core/ui': path.resolve(
+              __dirname,
+              '../../superset-frontend/packages/superset-core/src/ui',
+            ),
+            '@apache-superset/core/api/core': path.resolve(
+              __dirname,
+              '../../superset-frontend/packages/superset-core/src/api/core',
+            ),
+            '@apache-superset/core': path.resolve(
+              __dirname,
+              '../../superset-frontend/packages/superset-core/src',
             ),
             // Add proper Storybook aliases
             '@storybook/blocks': path.resolve(

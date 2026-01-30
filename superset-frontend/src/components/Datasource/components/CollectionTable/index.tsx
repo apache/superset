@@ -18,7 +18,7 @@
  */
 import { PureComponent, ReactNode } from 'react';
 import { nanoid } from 'nanoid';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { styled, css, SupersetTheme } from '@apache-superset/core/ui';
 import { Icons, Button, InfoTooltip } from '@superset-ui/core/components';
 import { FilterValue } from 'react-table';

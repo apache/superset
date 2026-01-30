@@ -27,6 +27,7 @@ import { FilterBarOrientation } from 'src/dashboard/types';
 import { FILTER_BAR_TEST_ID } from './utils';
 import FilterBar from '.';
 import { FILTERS_CONFIG_MODAL_TEST_ID } from '../FiltersConfigModal/FiltersConfigModal';
+import * as dataMaskActions from 'src/dataMask/actions';
 
 jest.useFakeTimers();
 
@@ -79,7 +80,7 @@ const addFilterFlow = async () => {
   // open filter config modals
   userEvent.click(screen.getByTestId(getTestId('collapsable')));
   userEvent.click(screen.getByLabelText('setting'));
-  userEvent.click(screen.getByText('Add or edit filters'));
+  userEvent.click(screen.getByText('Add or edit filters and controls'));
   // select filter
   userEvent.click(screen.getByText('Value'));
   userEvent.click(screen.getByText('Time range'));
@@ -103,39 +104,52 @@ describe('FilterBar', () => {
   };
 
   const mockApi = jest.fn(async data => {
-    const json = JSON.parse(data.json_metadata);
-    const filterId = json.native_filter_configuration[0].id;
+    if (!data?.modified?.length) {
+      return {
+        id: 1234,
+        result: [],
+      };
+    }
+    const filterId = data.modified[0].id;
     return {
       id: 1234,
-      result: {
-        json_metadata: `{
-            "label_colors":{"Girls":"#FF69B4","Boys":"#ADD8E6","girl":"#FF69B4","boy":"#ADD8E6"},
-            "native_filter_configuration":[{
-              "id":"${filterId}",
-              "name":"${FILTER_NAME}",
-              "filterType":"filter_time",
-              "targets":[{"datasetId":11,"column":{"name":"color"}}],
-              "defaultDataMask":{"filterState":{"value":null}},
-              "controlValues":{},
-              "cascadeParentIds":[],
-              "scope":{"rootPath":["ROOT_ID"],"excluded":[]}
-            }],
-          }`,
-      },
+      result: [
+        {
+          id: filterId,
+          name: FILTER_NAME,
+          filterType: 'filter_time',
+          targets: [{ datasetId: 11, column: { name: 'color' } }],
+          defaultDataMask: { filterState: { value: null } },
+          controlValues: {},
+          cascadeParentIds: [],
+          scope: { rootPath: ['ROOT_ID'], excluded: [] },
+        },
+      ],
     };
   });
 
+  const getTimeRangeNoFilterMockUrl =
+    'glob:*/api/v1/time_range/?q=%27No%20filter%27';
+  const getTimeRangeLastDayMockUrl =
+    'glob:*/api/v1/time_range/?q=%27Last%20day%27';
+  const getTimeRangeLastWeekMockUrl =
+    'glob:*/api/v1/time_range/?q=%27Last%20week%27';
+
   beforeEach(() => {
     jest.clearAllMocks();
+
+    fetchMock.removeRoute(getTimeRangeNoFilterMockUrl);
     fetchMock.get(
-      'glob:*/api/v1/time_range/?q=%27No%20filter%27',
+      getTimeRangeNoFilterMockUrl,
       {
         result: { since: '', until: '', timeRange: 'No filter' },
       },
-      { overwriteRoutes: true },
+      { name: getTimeRangeNoFilterMockUrl },
     );
+
+    fetchMock.removeRoute(getTimeRangeLastDayMockUrl);
     fetchMock.get(
-      'glob:*/api/v1/time_range/?q=%27Last%20day%27',
+      getTimeRangeLastDayMockUrl,
       {
         result: {
           since: '2021-04-13T00:00:00',
@@ -143,10 +157,12 @@ describe('FilterBar', () => {
           timeRange: 'Last day',
         },
       },
-      { overwriteRoutes: true },
+      { name: getTimeRangeLastDayMockUrl },
     );
+
+    fetchMock.removeRoute(getTimeRangeLastWeekMockUrl);
     fetchMock.get(
-      'glob:*/api/v1/time_range/?q=%27Last%20week%27',
+      getTimeRangeLastWeekMockUrl,
       {
         result: {
           since: '2021-04-07T00:00:00',
@@ -154,7 +170,7 @@ describe('FilterBar', () => {
           timeRange: 'Last week',
         },
       },
-      { overwriteRoutes: true },
+      { name: getTimeRangeLastWeekMockUrl },
     );
 
     mockedMakeApi.mockReturnValue(mockApi);
@@ -184,9 +200,9 @@ describe('FilterBar', () => {
     expect(container).toBeInTheDocument();
   });
 
-  test('should render the "Actions" heading', () => {
+  test('should render the "Filters and controls" heading', () => {
     renderWrapper();
-    expect(screen.getByText('Actions')).toBeInTheDocument();
+    expect(screen.getByText('Filters and controls')).toBeInTheDocument();
   });
 
   test('should render the "Clear all" option', () => {
@@ -273,6 +289,13 @@ describe('FilterBar', () => {
     };
     const stateWithDivider = {
       ...stateWithoutNativeFilters,
+      dashboardInfo: {
+        ...stateWithoutNativeFilters.dashboardInfo,
+        metadata: {
+          ...stateWithoutNativeFilters.dashboardInfo.metadata,
+          native_filter_configuration: [divider],
+        },
+      },
       nativeFilters: {
         filters: {
           'NATIVE_FILTER_DIVIDER-1': divider,
@@ -349,5 +372,119 @@ describe('FilterBar', () => {
 
     const { container } = renderWrapper(openedBarProps, stateWithFilter);
     expect(container).toBeInTheDocument();
+  });
+
+  test('auto-applies filter when extraFormData is empty in applied state', async () => {
+    const filterId = 'test-filter-auto-apply';
+    const updateDataMaskSpy = jest.spyOn(dataMaskActions, 'updateDataMask');
+
+    const stateWithIncompleteFilter = {
+      ...stateWithoutNativeFilters,
+      dashboardInfo: {
+        id: 1,
+        dash_edit_perm: true,
+      },
+      dataMask: {
+        [filterId]: {
+          id: filterId,
+          filterState: { value: ['value1', 'value2'] },
+          extraFormData: {},
+        },
+      },
+      nativeFilters: {
+        filters: {
+          [filterId]: {
+            id: filterId,
+            name: 'Test Filter',
+            filterType: 'filter_select',
+            targets: [{ datasetId: 1, column: { name: 'test_column' } }],
+            defaultDataMask: {
+              filterState: { value: ['value1', 'value2'] },
+              extraFormData: {},
+            },
+            controlValues: {
+              enableEmptyFilter: true,
+            },
+            cascadeParentIds: [],
+            scope: {
+              rootPath: ['ROOT_ID'],
+              excluded: [],
+            },
+            type: 'NATIVE_FILTER',
+            description: '',
+            chartsInScope: [],
+            tabsInScope: [],
+          },
+        },
+        filtersState: {},
+      },
+    };
+
+    renderWrapper(openedBarProps, stateWithIncompleteFilter);
+
+    await act(async () => {
+      jest.advanceTimersByTime(200);
+    });
+
+    expect(screen.getByTestId(getTestId('filter-icon'))).toBeInTheDocument();
+
+    updateDataMaskSpy.mockRestore();
+  });
+
+  test('renders correctly when filter has complete extraFormData', async () => {
+    const filterId = 'test-filter-complete';
+    const stateWithCompleteFilter = {
+      ...stateWithoutNativeFilters,
+      dashboardInfo: {
+        id: 1,
+        dash_edit_perm: true,
+      },
+      dataMask: {
+        [filterId]: {
+          id: filterId,
+          filterState: { value: ['value1'] },
+          extraFormData: {
+            filters: [{ col: 'test_column', op: 'IN', val: ['value1'] }],
+          },
+        },
+      },
+      nativeFilters: {
+        filters: {
+          [filterId]: {
+            id: filterId,
+            name: 'Test Filter',
+            filterType: 'filter_select',
+            targets: [{ datasetId: 1, column: { name: 'test_column' } }],
+            defaultDataMask: {
+              filterState: { value: ['value1'] },
+              extraFormData: {
+                filters: [{ col: 'test_column', op: 'IN', val: ['value1'] }],
+              },
+            },
+            controlValues: {
+              enableEmptyFilter: true,
+            },
+            cascadeParentIds: [],
+            scope: {
+              rootPath: ['ROOT_ID'],
+              excluded: [],
+            },
+            type: 'NATIVE_FILTER',
+            description: '',
+            chartsInScope: [],
+            tabsInScope: [],
+          },
+        },
+        filtersState: {},
+      },
+    };
+
+    renderWrapper(openedBarProps, stateWithCompleteFilter);
+
+    await act(async () => {
+      jest.advanceTimersByTime(100);
+    });
+
+    expect(screen.getByTestId(getTestId('filter-icon'))).toBeInTheDocument();
   });
 });

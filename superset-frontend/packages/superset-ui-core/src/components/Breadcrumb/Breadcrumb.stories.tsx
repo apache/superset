@@ -18,6 +18,13 @@
  */
 import type { Meta, StoryObj } from '@storybook/react';
 import { Breadcrumb } from '.';
+import type { BreadcrumbProps } from './types';
+
+const sampleItems = [
+  { title: 'Home', href: '/' },
+  { title: 'Library', href: '/library' },
+  { title: 'Data' },
+];
 
 export default {
   title: 'Components/Breadcrumb',
@@ -33,16 +40,16 @@ export default {
     },
     items: {
       control: false,
-      description: 'List of breadcrumb items',
+      description: 'Array of breadcrumb items with title and optional href',
       table: {
-        type: { summary: 'object' },
+        type: { summary: '{ title: string, href?: string }[]' },
       },
     },
   },
   parameters: {
     docs: {
       description: {
-        component: 'Breadcrumb component for displaying navigation paths',
+        component: 'Breadcrumb component for displaying navigation paths.',
       },
     },
   },
@@ -50,13 +57,55 @@ export default {
 
 type Story = StoryObj<typeof Breadcrumb>;
 
+export const InteractiveBreadcrumb = (args: BreadcrumbProps) => (
+  <Breadcrumb {...args} />
+);
+
+InteractiveBreadcrumb.args = {
+  items: sampleItems,
+  separator: '/',
+};
+
+InteractiveBreadcrumb.argTypes = {
+  separator: {
+    description: 'Custom separator between items.',
+    control: 'text',
+  },
+  items: {
+    description: 'Array of breadcrumb items with title and optional href.',
+    control: false,
+  },
+};
+
+InteractiveBreadcrumb.parameters = {
+  docs: {
+    staticProps: {
+      items: [
+        { title: 'Home', href: '/' },
+        { title: 'Library', href: '/library' },
+        { title: 'Data' },
+      ],
+      separator: '/',
+    },
+    liveExample: `function Demo() {
+  return (
+    <Breadcrumb
+      items={[
+        { title: 'Home', href: '/' },
+        { title: 'Library', href: '/library' },
+        { title: 'Data' },
+      ]}
+      separator="/"
+    />
+  );
+}`,
+  },
+};
+
+// Keep original for backwards compatibility
 export const Default: Story = {
   args: {
-    items: [
-      { title: 'Home', href: '/' },
-      { title: 'Library', href: '/library' },
-      { title: 'Data' },
-    ],
+    items: sampleItems,
   },
   render: args => <Breadcrumb {...args} />,
 };

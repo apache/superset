@@ -47,8 +47,7 @@ export type EchartsBubbleFormData = QueryFormData &
     y: string;
   };
 
-export interface EchartsBubbleChartProps
-  extends ChartProps<EchartsBubbleFormData> {
+export interface EchartsBubbleChartProps extends ChartProps<EchartsBubbleFormData> {
   formData: EchartsBubbleFormData;
   queriesData: ChartDataResponseResult[];
 }

@@ -195,11 +195,8 @@ async def test_list_datasets_basic(mock_list, mcp_server):
         assert data["datasets"][0]["id"] == 1
         assert data["datasets"][0]["table_name"] == "Test DatasetInfo"
         assert data["datasets"][0]["uuid"] == "test-dataset-uuid-1"
-        # Check that columns and metrics are included
-        assert len(data["datasets"][0]["columns"]) == 2
-        assert len(data["datasets"][0]["metrics"]) == 1
-        assert data["datasets"][0]["columns"][0]["column_name"] == "id"
-        assert data["datasets"][0]["metrics"][0]["metric_name"] == "count"
+        # Note: columns and metrics are not in minimal default columns
+        # (id, table_name, schema, uuid). Use select_columns to include them.
 
         # Verify UUID is in default columns (datasets don't have slugs)
         assert "uuid" in data["columns_requested"]
@@ -549,9 +546,7 @@ async def test_list_datasets_with_search(mock_list, mcp_server):
         assert len(data["datasets"]) == 1
         assert data["datasets"][0]["id"] == 1
         assert data["datasets"][0]["table_name"] == "search_table"
-        # Check that columns and metrics are included
-        assert len(data["datasets"][0]["columns"]) == 1
-        assert len(data["datasets"][0]["metrics"]) == 1
+        # Note: columns and metrics are not in minimal default columns
 
 
 @patch("superset.daos.dataset.DatasetDAO.list")
@@ -642,9 +637,7 @@ async def test_list_datasets_simple_with_search(mock_list, mcp_server):
         assert len(data["datasets"]) == 1
         assert data["datasets"][0]["id"] == 2
         assert data["datasets"][0]["table_name"] == "simple_search"
-        # Check that columns and metrics are included
-        assert len(data["datasets"][0]["columns"]) == 1
-        assert len(data["datasets"][0]["metrics"]) == 1
+        # Note: columns and metrics are not in minimal default columns
 
 
 @patch("superset.daos.dataset.DatasetDAO.list")
@@ -739,9 +732,7 @@ async def test_list_datasets_simple_basic(mock_list, mcp_server):
         assert len(data["datasets"]) == 1
         assert data["datasets"][0]["id"] == 1
         assert data["datasets"][0]["table_name"] == "Test DatasetInfo"
-        # Check that columns and metrics are included
-        assert len(data["datasets"][0]["columns"]) == 1
-        assert len(data["datasets"][0]["metrics"]) == 1
+        # Note: columns and metrics are not in minimal default columns
 
 
 @patch("superset.daos.dataset.DatasetDAO.list")
@@ -836,9 +827,7 @@ async def test_list_datasets_simple_with_filters(mock_list, mcp_server):
         assert len(data["datasets"]) == 1
         assert data["datasets"][0]["id"] == 2
         assert data["datasets"][0]["table_name"] == "Sales Dataset"
-        # Check that columns and metrics are included
-        assert len(data["datasets"][0]["columns"]) == 1
-        assert len(data["datasets"][0]["metrics"]) == 1
+        # Note: columns and metrics are not in minimal default columns
 
 
 @patch("superset.daos.dataset.DatasetDAO.list")
@@ -1031,10 +1020,16 @@ async def test_get_dataset_info_includes_columns_and_metrics(mock_info, mcp_serv
 @patch("superset.daos.dataset.DatasetDAO.list")
 @pytest.mark.asyncio
 async def test_list_datasets_includes_columns_and_metrics(mock_list, mcp_server):
+    """Test that columns and metrics are included when explicitly requested.
+
+    Note: columns and metrics are not in minimal default columns
+    (id, table_name, schema, uuid). Use select_columns to include them.
+    """
     dataset = MagicMock()
     dataset.id = 11
     dataset.table_name = "DatasetList With Columns"
     dataset.schema = "main"
+    dataset.uuid = "test-uuid-with-columns"
     dataset.database = MagicMock()
     dataset.database.database_name = "examples"
     dataset.description = "desc"
@@ -1079,7 +1074,12 @@ async def test_list_datasets_includes_columns_and_metrics(mock_list, mcp_server)
     ]
     mock_list.return_value = ([dataset], 1)
     async with Client(mcp_server) as client:
-        request = ListDatasetsRequest(page=1, page_size=10)
+        # Explicitly request columns and metrics (not in minimal defaults)
+        request = ListDatasetsRequest(
+            page=1,
+            page_size=10,
+            select_columns=["id", "table_name", "schema", "uuid", "columns", "metrics"],
+        )
         result = await client.call_tool(
             "list_datasets", {"request": request.model_dump()}
         )
@@ -1141,6 +1141,156 @@ async def test_get_dataset_info_by_uuid(mock_find_object, mcp_server):
         data = json.loads(result.content[0].text)
         assert data["id"] == 1
         assert data["table_name"] == "Test Dataset UUID"
+
+
+class TestDatasetDefaultColumnFiltering:
+    """Test default column filtering behavior for datasets."""
+
+    def test_minimal_default_columns_constant(self):
+        """Test that minimal default columns are properly defined."""
+        from superset.mcp_service.common.schema_discovery import DATASET_DEFAULT_COLUMNS
+
+        # Should have exactly 4 minimal columns
+        assert len(DATASET_DEFAULT_COLUMNS) == 4
+        assert set(DATASET_DEFAULT_COLUMNS) == {"id", "table_name", "schema", "uuid"}
+
+        # Heavy columns should NOT be in defaults
+        assert "columns" not in DATASET_DEFAULT_COLUMNS
+        assert "metrics" not in DATASET_DEFAULT_COLUMNS
+        assert "description" not in DATASET_DEFAULT_COLUMNS
+        assert "database_name" not in DATASET_DEFAULT_COLUMNS
+
+    @patch("superset.daos.dataset.DatasetDAO.list")
+    @pytest.mark.asyncio
+    async def test_default_columns_when_select_columns_empty(
+        self, mock_list, mcp_server
+    ):
+        """Test that only minimal default columns are returned when select_columns
+        is empty."""
+        dataset = create_mock_dataset()
+        mock_list.return_value = ([dataset], 1)
+
+        async with Client(mcp_server) as client:
+            # Empty select_columns should use minimal defaults
+            request = ListDatasetsRequest(page=1, page_size=10, select_columns=[])
+            result = await client.call_tool(
+                "list_datasets", {"request": request.model_dump()}
+            )
+            data = json.loads(result.content[0].text)
+
+            # Verify columns_requested uses defaults
+            assert set(data["columns_requested"]) == {
+                "id",
+                "table_name",
+                "schema",
+                "uuid",
+            }
+
+            # Verify heavy columns are NOT in columns_loaded
+            # The key check is that non-requested columns should not be loaded
+            assert "columns" not in data["columns_loaded"]
+            assert "metrics" not in data["columns_loaded"]
+
+    @patch("superset.daos.dataset.DatasetDAO.list")
+    @pytest.mark.asyncio
+    async def test_explicit_select_overrides_defaults(self, mock_list, mcp_server):
+        """Test that explicit select_columns overrides default columns."""
+        dataset = create_mock_dataset()
+        mock_list.return_value = ([dataset], 1)
+
+        async with Client(mcp_server) as client:
+            # Request only specific columns
+            request = ListDatasetsRequest(
+                page=1, page_size=10, select_columns=["id", "table_name", "description"]
+            )
+            result = await client.call_tool(
+                "list_datasets", {"request": request.model_dump()}
+            )
+            data = json.loads(result.content[0].text)
+
+            # Verify exactly requested columns
+            assert set(data["columns_requested"]) == {
+                "id",
+                "table_name",
+                "description",
+            }
+
+            # UUID not requested, should not be in columns_loaded
+            assert "uuid" not in data["columns_loaded"]
+
+    @patch("superset.daos.dataset.DatasetDAO.list")
+    @pytest.mark.asyncio
+    async def test_columns_available_metadata(self, mock_list, mcp_server):
+        """Test that columns_available shows all selectable columns."""
+        dataset = create_mock_dataset()
+        mock_list.return_value = ([dataset], 1)
+
+        async with Client(mcp_server) as client:
+            request = ListDatasetsRequest(page=1, page_size=10)
+            result = await client.call_tool(
+                "list_datasets", {"request": request.model_dump()}
+            )
+            data = json.loads(result.content[0].text)
+
+            # columns_available should have many more columns than defaults
+            assert len(data["columns_available"]) > 4
+            # Should include heavy columns that users can request
+            assert "columns" in data["columns_available"]
+            assert "metrics" in data["columns_available"]
+            assert "description" in data["columns_available"]
+
+    @patch("superset.daos.dataset.DatasetDAO.list")
+    @pytest.mark.asyncio
+    async def test_default_columns_filters_actual_response_data(
+        self, mock_list, mcp_server
+    ):
+        """Test that actual dataset items only contain default columns.
+
+        This verifies the fix for the bug where all 40+ columns were returned
+        with null values even when only default columns were requested.
+        See: https://github.com/apache/superset/pull/37213
+        """
+        dataset = create_mock_dataset()
+        mock_list.return_value = ([dataset], 1)
+
+        async with Client(mcp_server) as client:
+            # Empty select_columns = use default columns
+            request = ListDatasetsRequest(page=1, page_size=10, select_columns=[])
+            result = await client.call_tool(
+                "list_datasets", {"request": request.model_dump()}
+            )
+            data = json.loads(result.content[0].text)
+
+            # Get the actual dataset item
+            assert len(data["datasets"]) == 1
+            dataset_item = data["datasets"][0]
+
+            # Verify ONLY default columns are present in the response item
+            expected_keys = {"id", "table_name", "schema_name", "uuid"}
+            actual_keys = set(dataset_item.keys())
+
+            # The response should only contain the default columns, NOT all columns
+            # with null values (which was the bug)
+            assert actual_keys == expected_keys, (
+                f"Expected only default columns {expected_keys}, "
+                f"but got {actual_keys}. "
+                f"Extra columns: {actual_keys - expected_keys}"
+            )
+
+            # Verify non-default columns are NOT present (not even with null values)
+            non_default_columns = [
+                "description",
+                "database_name",
+                "changed_by",
+                "changed_on",
+                "columns",
+                "metrics",
+            ]
+            for col in non_default_columns:
+                assert col not in dataset_item, (
+                    f"Non-default column '{col}' should not be in response. "
+                    f"This indicates the column filtering is not working."
+                )
 
 
 class TestDatasetSortableColumns:

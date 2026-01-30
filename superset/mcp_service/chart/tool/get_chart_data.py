@@ -23,6 +23,7 @@ import logging
 from typing import Any, Dict, List, TYPE_CHECKING
 
 from fastmcp import Context
+from flask import current_app
 from superset_core.mcp import tool
 
 if TYPE_CHECKING:
@@ -36,11 +37,13 @@ from superset.mcp_service.chart.schemas import (
     PerformanceMetadata,
 )
 from superset.mcp_service.utils.cache_utils import get_cache_status_from_result
+from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
 
-@tool
+@tool(tags=["data"])
+@parse_request(GetChartDataRequest)
 async def get_chart_data(  # noqa: C901
     request: GetChartDataRequest, ctx: Context
 ) -> ChartData | ChartError:
@@ -52,6 +55,7 @@ async def get_chart_data(  # noqa: C901
     - Numeric ID or UUID lookup
     - Multiple formats: json, csv, excel
     - Cache control: use_cache, force_refresh, cache_timeout
+    - Optional row limit override (respects chart's configured limits)
 
     Returns underlying data in requested format with cache status.
     """
@@ -121,40 +125,88 @@ async def get_chart_data(  # noqa: C901
 
         try:
             await ctx.report_progress(2, 4, "Preparing data query")
-            # Get chart data using the existing API
+            from superset.charts.schemas import ChartDataQueryContextSchema
             from superset.commands.chart.data.get_data_command import ChartDataCommand
-            from superset.common.query_context_factory import QueryContextFactory
 
-            # Parse the form_data to get query context
-            form_data = utils_json.loads(chart.params) if chart.params else {}
-            await ctx.debug(
-                "Chart form data parsed: has_filters=%s, has_groupby=%s, has_metrics=%s"
-                % (
-                    bool(form_data.get("filters")),
-                    bool(form_data.get("groupby")),
-                    bool(form_data.get("metrics")),
+            # Use the chart's saved query_context - this is the key!
+            # The query_context contains all the information needed to reproduce
+            # the chart's data exactly as shown in the visualization
+            query_context_json = None
+            if chart.query_context:
+                try:
+                    query_context_json = utils_json.loads(chart.query_context)
+                    await ctx.debug(
+                        "Using chart's saved query_context for data retrieval"
+                    )
+                except (TypeError, ValueError) as e:
+                    await ctx.warning(
+                        "Failed to parse chart query_context: %s" % str(e)
+                    )
+
+            if query_context_json is None:
+                # Fallback: Chart has no saved query_context
+                # This can happen with older charts that haven't been re-saved
+                await ctx.warning(
+                    "Chart has no saved query_context. "
+                    "Data may not match the chart visualization exactly. "
+                    "Consider re-saving the chart to enable full data retrieval."
                 )
-            )
+                # Try to construct from form_data as a fallback
+                form_data = utils_json.loads(chart.params) if chart.params else {}
+                from superset.common.query_context_factory import QueryContextFactory
 
-            # Create a proper QueryContext using the factory with cache control
-            factory = QueryContextFactory()
-            query_context = factory.create(
-                datasource={"id": chart.datasource_id, "type": chart.datasource_type},
-                queries=[
-                    {
-                        "filters": form_data.get("filters", []),
-                        "columns": form_data.get("groupby", []),
-                        "metrics": form_data.get("metrics", []),
-                        "row_limit": request.limit or 100,
-                        "order_desc": True,
-                        # Apply cache control from request
-                        "cache_timeout": request.cache_timeout,
-                    }
-                ],
-                form_data=form_data,
-                # Use cache unless force_refresh is True
-                force=request.force_refresh,
-            )
+                factory = QueryContextFactory()
+                row_limit = (
+                    request.limit
+                    or form_data.get("row_limit")
+                    or current_app.config["ROW_LIMIT"]
+                )
+
+                # Handle different chart types that have different form_data structures
+                # Some charts use "metric" (singular), not "metrics" (plural):
+                # - big_number, big_number_total
+                # - pop_kpi (BigNumberPeriodOverPeriod)
+                # These charts also don't have groupby columns
+                viz_type = chart.viz_type or ""
+                if viz_type in ("big_number", "big_number_total", "pop_kpi"):
+                    # These chart types use "metric" (singular)
+                    metric = form_data.get("metric")
+                    metrics = [metric] if metric else []
+                    groupby_columns: list[str] = []  # These charts don't group by
+                else:
+                    # Standard charts use "metrics" (plural) and "groupby"
+                    metrics = form_data.get("metrics", [])
+                    groupby_columns = form_data.get("groupby", [])
+
+                query_context = factory.create(
+                    datasource={
+                        "id": chart.datasource_id,
+                        "type": chart.datasource_type,
+                    },
+                    queries=[
+                        {
+                            "filters": form_data.get("filters", []),
+                            "columns": groupby_columns,
+                            "metrics": metrics,
+                            "row_limit": row_limit,
+                            "order_desc": True,
+                        }
+                    ],
+                    form_data=form_data,
+                    force=request.force_refresh,
+                )
+            else:
+                # Apply request overrides to the saved query_context
+                query_context_json["force"] = request.force_refresh
+
+                # Apply row limit if specified (respects chart's configured limits)
+                if request.limit:
+                    for query in query_context_json.get("queries", []):
+                        query["row_limit"] = request.limit
+
+                # Create QueryContext from the saved context using the schema
+                # This is exactly how the API does it
+                query_context = ChartDataQueryContextSchema().load(query_context_json)
 
             await ctx.report_progress(3, 4, "Executing data query")
             await ctx.debug(

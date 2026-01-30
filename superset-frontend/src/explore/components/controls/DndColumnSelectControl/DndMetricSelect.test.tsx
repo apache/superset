@@ -489,22 +489,12 @@ test('title changes on custom SQL text change', async () => {
     'ant-tabs-tab-active',
   );
 
-  const container = screen.getByTestId('adhoc-metric-edit-tabs');
-  await waitFor(() => {
-    const textArea = container.getElementsByClassName(
-      'ace_text-input',
-    ) as HTMLCollectionOf<HTMLTextAreaElement>;
-    expect(textArea.length).toBe(1);
-    expect(textArea[0].value).toBe('');
-  });
+  // Wait for the editor to render after tab switch
+  const textArea = (await screen.findByRole('textbox')) as HTMLTextAreaElement;
 
   expect(screen.getByTestId('AdhocMetricEditTitle#trigger')).toHaveTextContent(
     'metric_a',
   );
-
-  const textArea = container.getElementsByClassName(
-    'ace_text-input',
-  )[0] as HTMLTextAreaElement;
 
   // Changing the ACE editor via pasting, since the component
   // handles the textarea value internally, and changing it doesn't

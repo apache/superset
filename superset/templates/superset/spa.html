@@ -24,6 +24,8 @@
       {% block title %}
         {% if title %}
           {{ title }}
+        {% else %}
+          {{ default_title | default('Superset') }}
         {% endif %}
       {% endblock %}
     </title>
@@ -61,16 +63,13 @@
         as="style"
       />
 
-      {# Load custom fonts from configuration #}
-      {% if appbuilder.app.config.get('CUSTOM_FONT_URLS') %}
-        {% for font_url in appbuilder.app.config['CUSTOM_FONT_URLS'] %}
-          <link rel="stylesheet" href="{{ font_url }}" />
-        {% endfor %}
-      {% endif %}
-
     {% endblock %}
 
     {{ js_bundle(assets_prefix, 'theme') }}
+
+    {% block head_js %}
+      {% include "head_custom_extra.html" %}
+    {% endblock %}
 
     <input
       type="hidden"
@@ -78,9 +77,6 @@
       id="csrf_token"
       value="{{ csrf_token() if csrf_token else '' }}"
     />
-    {% block head_js %}
-      {% include "head_custom_extra.html" %}
-    {% endblock %}
   </head>
 
   <body {% if standalone_mode %}class="standalone"{% endif %}>

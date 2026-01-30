@@ -16,16 +16,17 @@
 # under the License.
 
 """
-FastMCP app factory and initialization for Superset MCP service.
+FastMCP app factory and initialization for the MCP service.
 This file provides a configurable factory function to create FastMCP instances
 following the Flask application factory pattern. All tool modules should import
 mcp from here and use @mcp.tool decorators.
 """
 
 import logging
-from typing import Any, Callable, Dict, List, Set
+from typing import Any, Callable, Dict, List, Sequence, Set
 
 from fastmcp import FastMCP
+from fastmcp.server.middleware import Middleware
 
 logger = logging.getLogger(__name__)
 
@@ -50,21 +51,18 @@ Available tools:
 Dashboard Management:
 - list_dashboards: List dashboards with advanced filters (1-based pagination)
 - get_dashboard_info: Get detailed dashboard information by ID
-- get_dashboard_available_filters: List available dashboard filter fields/operators
 - generate_dashboard: Automatically create a dashboard from datasets with AI
 - add_chart_to_existing_dashboard: Add a chart to an existing dashboard
 
 Dataset Management:
 - list_datasets: List datasets with advanced filters (1-based pagination)
 - get_dataset_info: Get detailed dataset information by ID
-- get_dataset_available_filters: List available dataset filter fields/operators
 
 Chart Management:
 - list_charts: List charts with advanced filters (1-based pagination)
 - get_chart_info: Get detailed chart information by ID
 - get_chart_preview: Get a visual preview of a chart with image URL
 - get_chart_data: Get underlying chart data in text-friendly format
-- get_chart_available_filters: List available chart filter fields/operators
 - generate_chart: Create a new chart with AI assistance
 - update_chart: Update existing chart configuration
 - update_chart_preview: Update chart and get preview in one operation
@@ -76,16 +74,19 @@ SQL Lab Integration:
 Explore & Analysis:
 - generate_explore_link: Create pre-configured explore URL with dataset/metrics/filters
 
+Schema Discovery:
+- get_schema: Get schema metadata for chart/dataset/dashboard (columns, filters)
+
 System Information:
 - get_instance_info: Get instance-wide statistics and metadata
 - health_check: Simple health check tool (takes NO parameters, call without arguments)
 
 Available Resources:
-- superset://instance/metadata: Access instance configuration and metadata
-- superset://chart/templates: Access chart configuration templates
+- instance/metadata: Access instance configuration and metadata
+- chart/templates: Access chart configuration templates
 
 Available Prompts:
-- superset_quickstart: Interactive guide for getting started with the MCP service
+- quickstart: Interactive guide for getting started with the MCP service
 - create_chart_guided: Step-by-step chart creation wizard
 
 Common Chart Types (viz_type) and Behaviors:
@@ -124,13 +125,14 @@ Query Examples:
 
 General usage tips:
 - All listing tools use 1-based pagination (first page is 1)
-- Use 'filters' parameter for advanced queries (see *_available_filters tools)
+- Use get_schema to discover filterable columns, sortable columns, and default columns
+- Use 'filters' parameter for advanced queries with filter columns from get_schema
 - IDs can be integer or UUID format where supported
 - All tools return structured, Pydantic-typed responses
 - Chart previews are served as PNG images via custom screenshot endpoints
 
 If you are unsure which tool to use, start with get_instance_info
-or use the superset_quickstart prompt for an interactive guide.
+or use the quickstart prompt for an interactive guide.
 """
 
 
@@ -146,6 +148,7 @@ def _build_mcp_kwargs(
     tools: List[Any] | None,
     include_tags: Set[str] | None,
     exclude_tags: Set[str] | None,
+    middleware: Sequence[Middleware] | None = None,
     **kwargs: Any,
 ) -> Dict[str, Any]:
     """Build FastMCP constructor arguments."""
@@ -165,6 +168,8 @@ def _build_mcp_kwargs(
         mcp_kwargs["include_tags"] = include_tags
     if exclude_tags is not None:
         mcp_kwargs["exclude_tags"] = exclude_tags
+    if middleware is not None:
+        mcp_kwargs["middleware"] = middleware
 
     # Add any additional kwargs
     mcp_kwargs.update(kwargs)
@@ -197,7 +202,7 @@ def _log_instance_creation(
 
 
 def create_mcp_app(
-    name: str = "Superset MCP Server",
+    name: str | None = None,
     instructions: str | None = None,
     branding: str | None = None,
     auth: Any | None = None,
@@ -206,6 +211,7 @@ def create_mcp_app(
     include_tags: Set[str] | None = None,
     exclude_tags: Set[str] | None = None,
     config: Dict[str, Any] | None = None,
+    middleware: Sequence[Middleware] | None = None,
     **kwargs: Any,
 ) -> FastMCP:
     """
@@ -225,11 +231,16 @@ def create_mcp_app(
         include_tags: Set of tags to include (whitelist)
         exclude_tags: Set of tags to exclude (blacklist)
         config: Additional configuration dictionary
+        middleware: Sequence of middleware to apply to the server
         **kwargs: Additional FastMCP constructor arguments
 
     Returns:
         Configured FastMCP instance
     """
+    # Default name if not provided
+    if name is None:
+        name = "MCP Server"
+
     # Use default instructions if none provided
     if instructions is None:
         # If branding is provided, use it to generate instructions
@@ -240,7 +251,15 @@ def create_mcp_app(
 
     # Build FastMCP constructor arguments
     mcp_kwargs = _build_mcp_kwargs(
-        name, instructions, auth, lifespan, tools, include_tags, exclude_tags, **kwargs
+        name,
+        instructions,
+        auth,
+        lifespan,
+        tools,
+        include_tags,
+        exclude_tags,
+        middleware,
+        **kwargs,
     )
 
     # Create the FastMCP instance
@@ -256,7 +275,16 @@ def create_mcp_app(
 
 
 # Create default MCP instance for backward compatibility
-mcp = create_mcp_app(stateless_http=True)
+mcp = create_mcp_app()
+
+# Initialize MCP dependency injection BEFORE importing tools/prompts
+# This replaces the abstract @tool and @prompt decorators in superset_core.mcp
+# with concrete implementations that can register with the mcp instance
+from superset.core.mcp.core_mcp_injection import (  # noqa: E402
+    initialize_core_mcp_dependencies,
+)
+
+initialize_core_mcp_dependencies()
 
 # Import all MCP tools to register them with the mcp instance
 # NOTE: Always add new tool imports here when creating new MCP tools.
@@ -271,7 +299,6 @@ from superset.mcp_service.chart import (  # noqa: F401, E402
 )
 from superset.mcp_service.chart.tool import (  # noqa: F401, E402
     generate_chart,
-    get_chart_available_filters,
     get_chart_data,
     get_chart_info,
     get_chart_preview,
@@ -282,12 +309,10 @@ from superset.mcp_service.chart.tool import (  # noqa: F401, E402
 from superset.mcp_service.dashboard.tool import (  # noqa: F401, E402
     add_chart_to_existing_dashboard,
     generate_dashboard,
-    get_dashboard_available_filters,
     get_dashboard_info,
     list_dashboards,
 )
 from superset.mcp_service.dataset.tool import (  # noqa: F401, E402
-    get_dataset_available_filters,
     get_dataset_info,
     list_datasets,
 )
@@ -304,6 +329,7 @@ from superset.mcp_service.system import (  # noqa: F401, E402
 )
 from superset.mcp_service.system.tool import (  # noqa: F401, E402
     get_instance_info,
+    get_schema,
     health_check,
 )
 
@@ -317,23 +343,24 @@ def init_fastmcp_server(
     include_tags: Set[str] | None = None,
     exclude_tags: Set[str] | None = None,
     config: Dict[str, Any] | None = None,
+    middleware: Sequence[Middleware] | None = None,
     **kwargs: Any,
 ) -> FastMCP:
     """
     Initialize and configure the FastMCP server.
 
-    This function provides a way to create a custom FastMCP instance
-    instead of using the default global one. If parameters are provided,
-    a new instance will be created with those settings.
+    This function configures the global MCP instance (which has all tools
+    already registered) with auth, middleware, and other settings.
 
     Args:
         name: Server name (defaults to "{APP_NAME} MCP Server")
         instructions: Custom instructions (defaults to branded with APP_NAME)
         auth, lifespan, tools, include_tags, exclude_tags, config: FastMCP configuration
+        middleware: Sequence of middleware to apply to the server
         **kwargs: Additional FastMCP configuration
 
     Returns:
-        FastMCP instance (either the global one or a new custom one)
+        The global FastMCP instance configured with the provided settings
     """
     # Read branding from Flask config's APP_NAME
     from superset.mcp_service.flask_singleton import app as flask_app
@@ -349,36 +376,32 @@ def init_fastmcp_server(
     if instructions is None:
         instructions = get_default_instructions(branding)
 
-    # If any custom parameters are provided, create a new instance
-    custom_params_provided = any(
-        [
-            name != default_name,
-            instructions != get_default_instructions(branding),
-            auth is not None,
-            lifespan is not None,
-            tools is not None,
-            include_tags is not None,
-            exclude_tags is not None,
-            config is not None,
-            kwargs,
-        ]
-    )
+    # Configure the global mcp instance with provided settings.
+    # Tools are already registered on this instance via @tool decorator imports above.
+    # name and instructions are read-only properties that delegate to _mcp_server
+    mcp._mcp_server.name = name
+    mcp._mcp_server.instructions = instructions
 
-    if custom_params_provided:
-        logger.info("Creating custom FastMCP instance with provided configuration")
-        return create_mcp_app(
-            name=name,
-            instructions=instructions,
-            auth=auth,
-            lifespan=lifespan,
-            tools=tools,
-            include_tags=include_tags,
-            exclude_tags=exclude_tags,
-            config=config,
-            **kwargs,
-        )
-    else:
-        # Use the default global instance
-        logger.setLevel(logging.DEBUG)
-        logger.info("Using default FastMCP instance - scaffold version without auth")
-        return mcp
+    if auth is not None:
+        mcp.auth = auth
+        logger.info("Authentication configured on MCP instance")
+
+    if middleware is not None:
+        for mw in middleware:
+            mcp.add_middleware(mw)
+        logger.info("Added %d middleware(s) to MCP instance", len(middleware))
+
+    if lifespan is not None:
+        mcp.lifespan = lifespan
+
+    if include_tags is not None:
+        mcp.include_tags = include_tags
+
+    if exclude_tags is not None:
+        mcp.exclude_tags = exclude_tags
+
+    # Apply any additional configuration
+    _apply_config(mcp, config)
+
+    logger.info("Configured FastMCP instance: %s (auth=%s)", name, auth is not None)
+    return mcp

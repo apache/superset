@@ -17,10 +17,10 @@
  * under the License.
  */
 import { ReactNode, useMemo } from 'react';
+import { t } from '@apache-superset/core';
 import {
   ColorScheme,
   ColorSchemeGroup,
-  t,
   getCategoricalSchemeRegistry,
   CategoricalScheme,
 } from '@superset-ui/core';

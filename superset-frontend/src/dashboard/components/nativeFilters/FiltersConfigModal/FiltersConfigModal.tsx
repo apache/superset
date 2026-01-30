@@ -17,14 +17,13 @@
  * under the License.
  */
 import { memo, useEffect, useCallback, useMemo, useState, useRef } from 'react';
-import { uniq, isEqual, sortBy, debounce, isEmpty } from 'lodash';
-import { Filter, NativeFilterType, Divider, t } from '@superset-ui/core';
+import { uniq, debounce } from 'lodash';
+import { t } from '@apache-superset/core';
+import { ChartCustomizationType, NativeFilterType } from '@superset-ui/core';
 import { styled, css, useTheme } from '@apache-superset/core/ui';
-import { useDispatch } from 'react-redux';
-import { Constants, Form, Icons } from '@superset-ui/core/components';
+import { Constants, Form, Icons, Flex } from '@superset-ui/core/components';
 import { ErrorBoundary } from 'src/components';
 import { testWithId } from 'src/utils/testUtils';
-import { updateCascadeParentIds } from 'src/dashboard/actions/nativeFilters';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 import {
   BaseModalWrapper,
@@ -32,35 +31,47 @@ import {
   BaseForm,
   BaseExpandButtonWrapper,
 } from 'src/dashboard/components/nativeFilters/ConfigModal/SharedStyles';
-import { useFilterConfigMap, useFilterConfiguration } from '../state';
-import FilterConfigurePane from './FilterConfigurePane';
-import FiltersConfigForm, {
+import {
+  useChartCustomizationConfiguration,
+  useChartCustomizationConfigMap,
+  useFilterConfigMap,
+  useFilterConfiguration,
+} from '../state';
+import {
   FilterPanels,
+  FiltersConfigFormHandle,
 } from './FiltersConfigForm/FiltersConfigForm';
 import Footer from './Footer/Footer';
 import { useOpenModal, useRemoveCurrentFilter } from './state';
+import { NativeFiltersForm, SaveChangesType, FilterChangesType } from './types';
 import {
-  FilterChangesType,
-  FilterRemoval,
-  NativeFiltersForm,
-  SaveFilterChangesType,
-} from './types';
+  useItemStateManager,
+  useFilterOperations,
+  useCustomizationOperations,
+  useModalSaveLogic,
+  ALLOW_DEPENDENCIES,
+} from './hooks';
 import {
-  createHandleSave,
-  createHandleRemoveItem,
-  generateFilterId,
   getFilterIds,
-  validateForm,
-  NATIVE_FILTER_DIVIDER_PREFIX,
-  hasCircularDependency,
+  getChartCustomizationIds,
+  isFilterId,
+  isChartCustomizationId,
+  transformDividerId,
 } from './utils';
-import DividerConfigForm from './DividerConfigForm';
+import { ConfigModalContent } from './ConfigModalContent';
+import ConfigModalSidebar from './ConfigModalSidebar';
+
+export { ALLOW_DEPENDENCIES };
 
 const StyledModalBody = styled(BaseModalBody)`
   .filters-list {
     width: ${({ theme }) => theme.sizeUnit * 50}px;
     overflow: auto;
   }
+`;
+
+const StyledMainFlex = styled(Flex)`
+  height: 100%;
 `;
 
 export const FILTERS_CONFIG_MODAL_TEST_ID = 'filters-config-modal';
@@ -72,34 +83,17 @@ export interface FiltersConfigModalProps {
   isOpen: boolean;
   initialFilterId?: string;
   createNewOnOpen?: boolean;
-  onSave: (filterChanges: SaveFilterChangesType) => Promise<void>;
+  onSave: (changes: SaveChangesType) => Promise<void>;
   onCancel: () => void;
 }
-export const ALLOW_DEPENDENCIES = [
-  'filter_range',
-  'filter_select',
-  'filter_time',
-];
 
-const DEFAULT_EMPTY_FILTERS: string[] = [];
-const DEFAULT_REMOVED_FILTERS: Record<string, FilterRemoval> = {};
-const DEFAULT_FORM_VALUES: NativeFiltersForm = {
-  filters: {},
-};
-const DEFAULT_FILTER_CHANGES: FilterChangesType = {
-  modified: [],
-  deleted: [],
-  reordered: [],
-};
+function getInitialRenderedItems(
+  itemId: string | undefined,
+  predicate: (id: string) => boolean,
+): string[] {
+  return itemId && predicate(itemId) ? [itemId] : [];
+}
 
-/**
- * This is the modal to configure all the dashboard-native filters.
- * Manages modal-level state, such as what filters are in the list,
- * and which filter is currently being edited.
- *
- * Calls the `save` callback with the new FilterConfiguration object
- * when the user saves the filters.
- */
 function FiltersConfigModal({
   isOpen,
   initialFilterId,
@@ -107,108 +101,56 @@ function FiltersConfigModal({
   onSave,
   onCancel,
 }: FiltersConfigModalProps) {
-  const dispatch = useDispatch();
   const theme = useTheme();
-
   const [form] = Form.useForm<NativeFiltersForm>();
+  const configFormRef = useRef<FiltersConfigFormHandle>(null);
 
-  const configFormRef = useRef<any>();
-
-  // the filter config from redux state, this does not change until modal is closed.
   const filterConfig = useFilterConfiguration();
   const filterConfigMap = useFilterConfigMap();
+  const chartCustomizationConfig = useChartCustomizationConfiguration();
+  const chartCustomizationConfigMap = useChartCustomizationConfigMap();
 
-  // this state contains the changes that we'll be sent through the PATCH endpoint
-  const [filterChanges, setFilterChanges] = useState<FilterChangesType>(
-    DEFAULT_FILTER_CHANGES,
-  );
-
-  const resetFilterChanges = () => {
-    setFilterChanges(DEFAULT_FILTER_CHANGES);
-  };
-
-  const handleModifyFilter = useCallback(
-    (filterId: string) => {
-      if (!filterChanges.modified.includes(filterId)) {
-        setFilterChanges(prev => ({
-          ...prev,
-          modified: [...prev.modified, filterId],
-        }));
-      }
-    },
-    [filterChanges.modified],
-  );
-
-  // new filter ids belong to filters have been added during
-  // this configuration session, and only exist in the form state until we submit.
-  const [newFilterIds, setNewFilterIds] = useState<string[]>(
-    DEFAULT_EMPTY_FILTERS,
-  );
-
-  // store ids of filters that have been removed with the time they were removed
-  // so that we can disappear them after a few secs.
-  // filters are still kept in state until form is submitted.
-  const [removedFilters, setRemovedFilters] = useState<
-    Record<string, FilterRemoval>
-  >(DEFAULT_REMOVED_FILTERS);
-
-  const [saveAlertVisible, setSaveAlertVisible] = useState<boolean>(false);
-
-  // The full ordered set of ((original + new) - completely removed) filter ids
-  // Use this as the canonical list of what filters are being configured!
-  // This includes filter ids that are pending removal, so check for that.
-  const filterIds = useMemo(
-    () =>
-      uniq([...getFilterIds(filterConfig), ...newFilterIds]).filter(
-        id => !removedFilters[id] || removedFilters[id]?.isPending,
-      ),
-    [filterConfig, newFilterIds, removedFilters],
-  );
-
-  // open the first filter in the list to start
-  const initialCurrentFilterId = initialFilterId ?? filterIds[0];
-  const [currentFilterId, setCurrentFilterId] = useState(
-    initialCurrentFilterId,
-  );
-  const [erroredFilters, setErroredFilters] = useState<string[]>(
-    DEFAULT_EMPTY_FILTERS,
-  );
-
-  // the form values are managed by the antd form, but we copy them to here
-  // so that we can display them (e.g. filter titles in the tab headers)
-  const [formValues, setFormValues] =
-    useState<NativeFiltersForm>(DEFAULT_FORM_VALUES);
-
-  const unsavedFiltersIds = newFilterIds.filter(id => !removedFilters[id]);
-  // brings back a filter that was previously removed ("Undo")
-  const restoreFilter = useCallback(
-    (id: string) => {
-      const removal = removedFilters[id];
-      // Clear the removal timeout if the filter is pending deletion
-      if (removal?.isPending) clearTimeout(removal.timerId);
-
-      setRemovedFilters(current => ({ ...current, [id]: null }));
-
-      setFilterChanges(prev => ({
-        ...prev,
-        deleted: prev.deleted.filter(deletedId => deletedId !== id),
-      }));
-    },
-    [removedFilters, setRemovedFilters],
-  );
   const initialFilterOrder = useMemo(
     () => Object.keys(filterConfigMap),
     [filterConfigMap],
   );
+  const initialCustomizationOrder = useMemo(
+    () => Object.keys(chartCustomizationConfigMap),
+    [chartCustomizationConfigMap],
+  );
 
-  // State for tracking the re-ordering of filters
-  const [orderedFilters, setOrderedFilters] =
-    useState<string[]>(initialFilterOrder);
+  const filterState = useItemStateManager(initialFilterOrder, filterConfigMap);
+  const customizationState = useItemStateManager(
+    initialCustomizationOrder,
+    chartCustomizationConfigMap,
+  );
 
-  // State for rendered filter to improve performance
-  const [renderedFilters, setRenderedFilters] = useState<string[]>([
-    initialCurrentFilterId,
+  const [saveAlertVisible, setSaveAlertVisible] = useState<boolean>(false);
+  const [expanded, setExpanded] = useState(false);
+  const [activeCollapseKeys, setActiveCollapseKeys] = useState<string[]>([
+    'filters',
+    'chartCustomizations',
   ]);
+
+  const filterIds = useMemo(
+    () => uniq([...getFilterIds(filterConfig), ...filterState.newIds]),
+    [filterConfig, filterState.newIds],
+  );
+
+  const chartCustomizationIds = useMemo(
+    () =>
+      uniq([
+        ...getChartCustomizationIds(chartCustomizationConfig),
+        ...customizationState.newIds,
+      ]),
+    [chartCustomizationConfig, customizationState.newIds],
+  );
+
+  const initialCurrentFilterId =
+    initialFilterId ?? filterIds[0] ?? chartCustomizationIds[0] ?? '';
+  const [currentItemId, setCurrentItemId] = useState<string>(
+    initialCurrentFilterId,
+  );
 
   const getActiveFilterPanelKey = (filterId: string) => [
     `${filterId}-${FilterPanels.configuration.key}`,
@@ -217,477 +159,355 @@ function FiltersConfigModal({
 
   const [activeFilterPanelKey, setActiveFilterPanelKey] = useState<
     string | string[]
-  >(getActiveFilterPanelKey(initialCurrentFilterId));
-
-  const handleTabChange = (filterId: string) => {
-    setCurrentFilterId(filterId);
-    setActiveFilterPanelKey(getActiveFilterPanelKey(filterId));
-  };
-
-  // generates a new filter id and appends it to the newFilterIds
-  const addFilter = useCallback(
-    (type: NativeFilterType) => {
-      const newFilterId = generateFilterId(type);
-      setNewFilterIds([...newFilterIds, newFilterId]);
-      handleModifyFilter(newFilterId);
-      setCurrentFilterId(newFilterId);
-      setSaveAlertVisible(false);
-      setOrderedFilters([...orderedFilters, newFilterId]);
-      setActiveFilterPanelKey(getActiveFilterPanelKey(newFilterId));
-    },
-    [newFilterIds, handleModifyFilter, orderedFilters],
-  );
-
-  useOpenModal(isOpen, addFilter, createNewOnOpen);
-
-  useRemoveCurrentFilter(
-    removedFilters,
-    currentFilterId,
-    orderedFilters,
-    setCurrentFilterId,
-  );
-
-  const handleRemoveItem = createHandleRemoveItem(
-    setRemovedFilters,
-    setOrderedFilters,
-    setSaveAlertVisible,
-    filterId => {
-      setFilterChanges(prev => ({
-        ...prev,
-        deleted: [...prev.deleted, filterId],
-      }));
-    },
-  );
-
-  // After this, it should be as if the modal was just opened fresh.
-  // Called when the modal is closed.
-  const resetForm = (isSaving = false) => {
-    setNewFilterIds(DEFAULT_EMPTY_FILTERS);
-    setCurrentFilterId(initialCurrentFilterId);
-    setRemovedFilters(DEFAULT_REMOVED_FILTERS);
-    setSaveAlertVisible(false);
-    setFormValues(DEFAULT_FORM_VALUES);
-    resetFilterChanges();
-    setErroredFilters(DEFAULT_EMPTY_FILTERS);
-    if (filterIds.length > 0) {
-      setActiveFilterPanelKey(getActiveFilterPanelKey(filterIds[0]));
-    }
-    if (!isSaving) {
-      setOrderedFilters(initialFilterOrder);
-    }
-    setRenderedFilters([initialCurrentFilterId]);
-    form.resetFields(['filters']);
-    form.setFieldsValue({ changed: false });
-  };
-
-  const getFilterTitle = useCallback(
-    (id: string) => {
-      const formValue = formValues.filters[id];
-      const config = filterConfigMap[id];
-      return (
-        (formValue && 'name' in formValue && formValue.name) ||
-        (formValue && 'title' in formValue && formValue.title) ||
-        (config && 'name' in config && config.name) ||
-        (config && 'title' in config && config.title) ||
-        t('[untitled]')
-      );
-    },
-    [filterConfigMap, formValues.filters],
-  );
-
-  const canBeUsedAsDependency = useCallback(
-    (filterId: string) => {
-      if (removedFilters[filterId]) {
-        return false;
+  >(() => {
+    if (initialCurrentFilterId) {
+      if (isFilterId(initialCurrentFilterId)) {
+        return getActiveFilterPanelKey(initialCurrentFilterId);
       }
-      const component =
-        form.getFieldValue('filters')?.[filterId] || filterConfigMap[filterId];
-      return (
-        component &&
-        'filterType' in component &&
-        ALLOW_DEPENDENCIES.includes(component.filterType)
-      );
-    },
-    [filterConfigMap, form, removedFilters],
+      if (isChartCustomizationId(initialCurrentFilterId)) {
+        return [
+          `${initialCurrentFilterId}-${FilterPanels.configuration.key}`,
+          `${initialCurrentFilterId}-${FilterPanels.settings.key}`,
+        ];
+      }
+    }
+    return [];
+  });
+
+  const unsavedFiltersIds = useMemo(
+    () => filterState.newIds.filter(id => !filterState.removedItems[id]),
+    [filterState.newIds, filterState.removedItems],
   );
 
-  const buildDependencyMap = useCallback(() => {
-    const dependencyMap = new Map<string, string[]>();
-    const filters = form.getFieldValue('filters');
-    if (filters) {
-      Object.keys(filters).forEach(key => {
-        const formItem = filters[key];
-        const configItem = filterConfigMap[key];
-        let array: string[] = [];
-        if (formItem && 'dependencies' in formItem) {
-          array = [...formItem.dependencies];
-        } else if (configItem?.cascadeParentIds) {
-          array = [...configItem.cascadeParentIds];
-        }
-        dependencyMap.set(key, array);
-      });
+  const isItemActive = useCallback(
+    (id: string) => currentItemId === id,
+    [currentItemId],
+  );
+
+  const setActiveItem = useCallback((id: string) => {
+    setCurrentItemId(id);
+    if (isFilterId(id)) {
+      setActiveFilterPanelKey(getActiveFilterPanelKey(id));
+    } else if (isChartCustomizationId(id)) {
+      setActiveFilterPanelKey([
+        `${id}-${FilterPanels.configuration.key}`,
+        `${id}-${FilterPanels.settings.key}`,
+      ]);
     }
-    return dependencyMap;
-  }, [filterConfigMap, form]);
+  }, []);
 
-  const getAvailableFilters = useCallback(
-    (filterId: string) => {
-      // Build current dependency map
-      const dependencyMap = buildDependencyMap();
+  const handleModifyItem = useCallback(
+    (id: string) => {
+      const isFilter = isFilterId(id);
+      const state = isFilter ? filterState : customizationState;
 
-      return filterIds
-        .filter(id => id !== filterId)
-        .filter(id => canBeUsedAsDependency(id))
-        .filter(id => {
-          // Check if adding this dependency would create a circular dependency
-          const currentDependencies = dependencyMap.get(filterId) || [];
-          const testDependencies = [...currentDependencies, id];
-          const testMap = new Map(dependencyMap);
-          testMap.set(filterId, testDependencies);
-          return !hasCircularDependency(testMap, filterId);
-        })
-        .map(id => ({
-          label: getFilterTitle(id),
-          value: id,
-          type: filterConfigMap[id]?.filterType,
+      if (!state.changes.modified.includes(id)) {
+        state.setChanges(prev => ({
+          ...prev,
+          modified: [...prev.modified, id],
         }));
+      }
+    },
+    [filterState, customizationState],
+  );
+
+  const resetForm = useCallback(
+    (isSaving = false) => {
+      filterState.resetState();
+      customizationState.resetState();
+      setSaveAlertVisible(false);
+
+      const resetItemId = filterIds[0] ?? chartCustomizationIds[0] ?? '';
+      setCurrentItemId(resetItemId);
+      filterState.setRenderedIds(
+        getInitialRenderedItems(resetItemId, isFilterId),
+      );
+      customizationState.setRenderedIds(
+        getInitialRenderedItems(resetItemId, isChartCustomizationId),
+      );
+
+      if (filterIds.length > 0) {
+        setActiveFilterPanelKey(getActiveFilterPanelKey(filterIds[0]));
+      }
+      if (!isSaving) {
+        filterState.setOrderedIds(initialFilterOrder);
+        customizationState.setOrderedIds(initialCustomizationOrder);
+      }
+
+      form.resetFields(['filters']);
+      form.setFieldsValue({ changed: false });
     },
     [
-      buildDependencyMap,
-      canBeUsedAsDependency,
-      filterConfigMap,
+      form,
       filterIds,
-      getFilterTitle,
+      chartCustomizationIds,
+      initialFilterOrder,
+      initialCustomizationOrder,
+      filterState,
+      customizationState,
     ],
   );
 
-  /**
-   * Manages dependencies of filters associated with a deleted filter.
-   *
-   * @param values the native filters form
-   * @returns the updated filterConfigMap
-   */
-  const cleanDeletedParents = (values: NativeFiltersForm | null) => {
-    const modifiedParentFilters = new Set<string>();
-    const updatedFilterConfigMap = Object.keys(filterConfigMap).reduce(
-      (acc, key) => {
-        const filter = filterConfigMap[key];
-        const cascadeParentIds = filter.cascadeParentIds?.filter(id =>
-          canBeUsedAsDependency(id),
-        );
-
-        if (
-          cascadeParentIds &&
-          !isEqual(cascadeParentIds, filter.cascadeParentIds)
-        ) {
-          dispatch(updateCascadeParentIds(key, cascadeParentIds));
-          modifiedParentFilters.add(key);
-        }
-
-        return {
-          ...acc,
-          [key]: {
-            ...filter,
-            cascadeParentIds,
-          },
-        };
-      },
-      {},
-    );
-
-    const filters = values?.filters;
-    if (filters) {
-      Object.keys(filters).forEach(key => {
-        const filter = filters[key];
-
-        if (!('dependencies' in filter)) {
-          return;
-        }
-
-        const originalDependencies = filter.dependencies || [];
-        const cleanedDependencies = originalDependencies.filter(id =>
-          canBeUsedAsDependency(id),
-        );
-
-        if (!isEqual(cleanedDependencies, originalDependencies)) {
-          filter.dependencies = cleanedDependencies;
-          modifiedParentFilters.add(key);
-        }
-      });
-    }
-
-    return [updatedFilterConfigMap, modifiedParentFilters];
-  };
-
-  const handleErroredFilters = useCallback(() => {
-    // managing left pane errored filters indicators
-    const formValidationFields = form.getFieldsError();
-    const erroredFiltersIds: string[] = [];
-
-    formValidationFields.forEach(field => {
-      const filterId = field.name[1] as string;
-      if (field.errors.length > 0 && !erroredFiltersIds.includes(filterId)) {
-        erroredFiltersIds.push(filterId);
-      }
-    });
-
-    // no form validation issues found, resets errored filters
-    if (!erroredFiltersIds.length && erroredFilters.length > 0) {
-      setErroredFilters(DEFAULT_EMPTY_FILTERS);
-      return;
-    }
-    // form validation issues found, sets errored filters
-    if (
-      erroredFiltersIds.length > 0 &&
-      !isEqual(sortBy(erroredFilters), sortBy(erroredFiltersIds))
-    ) {
-      setErroredFilters(erroredFiltersIds);
-    }
-  }, [form, erroredFilters]);
-
-  const handleSave = async () => {
-    const values: NativeFiltersForm | null = await validateForm(
-      form,
-      currentFilterId,
-      setCurrentFilterId,
-    );
-
-    handleErroredFilters();
-
-    if (values) {
-      const [updatedFilterConfigMap, modifiedParentFilters] =
-        cleanDeletedParents(values);
-
-      const allModified = [
-        ...new Set([
-          ...(modifiedParentFilters as Set<string>),
-          ...filterChanges.modified,
-        ]),
-      ];
-
-      const actualChanges = {
-        ...filterChanges,
-        modified:
-          allModified.length && filterChanges.deleted.length
-            ? allModified.filter(id => !filterChanges.deleted.includes(id))
-            : allModified,
-        reordered:
-          filterChanges.reordered.length &&
-          !isEqual(filterChanges.reordered, initialFilterOrder)
-            ? filterChanges.reordered
-            : [],
-      };
-
-      createHandleSave(onSave, actualChanges, values, updatedFilterConfigMap)();
-      resetForm(true);
-      resetFilterChanges();
-    } else {
-      configFormRef.current?.changeTab?.('configuration');
-    }
-  };
-
-  const handleConfirmCancel = () => {
-    resetForm();
-    onCancel();
-  };
-
-  const handleCancel = () => {
-    const changed = form.getFieldValue('changed');
-    const didChangeOrder =
-      orderedFilters.length !== initialFilterOrder.length ||
-      orderedFilters.some((val, index) => val !== initialFilterOrder[index]);
-    if (
-      unsavedFiltersIds.length > 0 ||
-      form.isFieldsTouched() ||
-      changed ||
-      didChangeOrder ||
-      Object.values(removedFilters).some(f => f?.isPending)
-    ) {
-      setSaveAlertVisible(true);
-    } else {
-      handleConfirmCancel();
-    }
-  };
-  const handleRearrange = (dragIndex: number, targetIndex: number) => {
-    const newOrderedFilter = [...orderedFilters];
-    const removed = newOrderedFilter.splice(dragIndex, 1)[0];
-    newOrderedFilter.splice(targetIndex, 0, removed);
-    setOrderedFilters(newOrderedFilter);
-    setFilterChanges(prev => ({
-      ...prev,
-      reordered: newOrderedFilter,
-    }));
-  };
-
-  const validateDependencies = useCallback(() => {
-    const dependencyMap = buildDependencyMap();
-    filterIds
-      .filter(id => !removedFilters[id])
-      .forEach(filterId => {
-        const result = hasCircularDependency(dependencyMap, filterId);
-        const field = {
-          name: ['filters', filterId, 'dependencies'] as [
-            'filters',
-            string,
-            'dependencies',
-          ],
-          errors: result ? [t('Cyclic dependency detected')] : [],
-        };
-        form.setFields([field]);
-      });
-    handleErroredFilters();
-  }, [
-    buildDependencyMap,
-    filterIds,
+  const filterOperations = useFilterOperations({
     form,
-    handleErroredFilters,
-    removedFilters,
-  ]);
+    filterState,
+    filterIds,
+    filterConfigMap,
+    handleModifyItem,
+    setActiveItem,
+    setSaveAlertVisible,
+  });
 
-  const getDependencySuggestion = useCallback(
-    (filterId: string) => {
-      const dependencyMap = buildDependencyMap();
-      const possibleDependencies = orderedFilters.filter(
-        key => key !== filterId && canBeUsedAsDependency(key),
-      );
-      const found = possibleDependencies.find(filter => {
-        const dependencies = dependencyMap.get(filterId) || [];
-        dependencies.push(filter);
-        if (hasCircularDependency(dependencyMap, filterId)) {
-          dependencies.pop();
-          return false;
-        }
-        return true;
-      });
-      return found || possibleDependencies[0];
-    },
-    [buildDependencyMap, canBeUsedAsDependency, orderedFilters],
+  const modalSaveLogic = useModalSaveLogic({
+    form,
+    configFormRef,
+    filterState,
+    customizationState,
+    filterIds,
+    chartCustomizationIds,
+    filterConfigMap,
+    chartCustomizationConfigMap,
+    initialFilterOrder,
+    initialCustomizationOrder,
+    unsavedFiltersIds,
+    currentItemId,
+    setActiveItem,
+    onSave,
+    canBeUsedAsDependency: filterOperations.canBeUsedAsDependency,
+    resetForm,
+  });
+
+  const customizationOperations = useCustomizationOperations({
+    customizationState,
+    handleModifyItem,
+    setActiveItem,
+    setSaveAlertVisible,
+  });
+
+  const getAvailableFilters = useCallback(
+    (filterId: string) =>
+      filterOperations.getAvailableFilters(
+        filterId,
+        modalSaveLogic.getItemTitle,
+      ),
+    [filterOperations, modalSaveLogic.getItemTitle],
   );
 
-  const [expanded, setExpanded] = useState(false);
+  const restoreItem = useCallback(
+    (id: string) => {
+      const isFilter = isFilterId(id);
+      if (isFilter) {
+        filterOperations.restoreFilter(id);
+      } else {
+        customizationOperations.restoreCustomization(id);
+      }
+    },
+    [filterOperations, customizationOperations],
+  );
+
+  const handleRemoveItem = useCallback(
+    (id: string) => {
+      const isFilter = isFilterId(id);
+      if (isFilter) {
+        filterOperations.handleRemoveFilter(id);
+      } else {
+        customizationOperations.handleRemoveCustomization(id);
+      }
+    },
+    [filterOperations, customizationOperations],
+  );
+
+  const handleRearrangeItems = useCallback(
+    (dragIndex: number, targetIndex: number, id: string) => {
+      const isFilter = isFilterId(id);
+      if (isFilter) {
+        filterOperations.handleRearrangeFilters(dragIndex, targetIndex, id);
+      } else {
+        customizationOperations.handleRearrangeCustomizations(
+          dragIndex,
+          targetIndex,
+          id,
+        );
+      }
+    },
+    [filterOperations, customizationOperations],
+  );
+
+  const handleCrossListMove = useCallback(
+    (
+      sourceId: string,
+      targetIndex: number,
+      sourceType: 'filter' | 'customization',
+      targetType: 'filter' | 'customization',
+    ) => {
+      if (!sourceId || sourceType === targetType) {
+        return;
+      }
+
+      const sourceState =
+        sourceType === 'filter' ? filterState : customizationState;
+      const targetState =
+        targetType === 'filter' ? filterState : customizationState;
+
+      const newId = transformDividerId(sourceId, targetType);
+
+      const sourceIndex = sourceState.orderedIds.indexOf(sourceId);
+      if (sourceIndex === -1) return;
+
+      const newSourceIds = [...sourceState.orderedIds];
+      newSourceIds.splice(sourceIndex, 1);
+      sourceState.setOrderedIds(newSourceIds);
+
+      const newTargetIds = [...targetState.orderedIds];
+      newTargetIds.splice(targetIndex, 0, newId);
+      targetState.setOrderedIds(newTargetIds);
+
+      const formValues = form.getFieldValue('filters') || {};
+      let oldData = formValues[sourceId];
+
+      if (!oldData) {
+        const sourceConfigMap =
+          sourceType === 'filter'
+            ? filterConfigMap
+            : chartCustomizationConfigMap;
+        const configData = sourceConfigMap[sourceId];
+        if (configData && 'title' in configData) {
+          oldData = {
+            title: configData.title,
+            description: configData.description,
+          };
+        }
+      }
+
+      const newFormValues = { ...formValues };
+      const newType =
+        targetType === 'customization'
+          ? ChartCustomizationType.Divider
+          : NativeFilterType.Divider;
+      newFormValues[newId] = { ...oldData, type: newType };
+      delete newFormValues[sourceId];
+      form.setFieldsValue({ filters: newFormValues });
+
+      const isNewItem = sourceState.newIds.includes(sourceId);
+
+      if (isNewItem) {
+        sourceState.setNewIds(
+          sourceState.newIds.filter((id: string) => id !== sourceId),
+        );
+      } else {
+        sourceState.setChanges((prev: FilterChangesType) => ({
+          ...prev,
+          deleted: [...prev.deleted, sourceId],
+        }));
+      }
+
+      sourceState.setChanges((prev: FilterChangesType) => ({
+        ...prev,
+        modified: prev.modified.filter((id: string) => id !== sourceId),
+        reordered: newSourceIds,
+      }));
+
+      targetState.setNewIds([...targetState.newIds, newId]);
+      targetState.setChanges((prev: FilterChangesType) => ({
+        ...prev,
+        modified: [...prev.modified, newId],
+        reordered: newTargetIds,
+      }));
+
+      setActiveItem(newId);
+      setSaveAlertVisible(false);
+    },
+    [
+      filterState,
+      customizationState,
+      form,
+      filterConfigMap,
+      chartCustomizationConfigMap,
+      setActiveItem,
+      setSaveAlertVisible,
+    ],
+  );
+
+  const handleCancel = useCallback(() => {
+    if (modalSaveLogic.hasUnsavedChanges) {
+      setSaveAlertVisible(true);
+    } else {
+      resetForm();
+      onCancel();
+    }
+  }, [modalSaveLogic.hasUnsavedChanges, resetForm, onCancel]);
+
+  const handleConfirmCancel = useCallback(() => {
+    resetForm();
+    onCancel();
+  }, [resetForm, onCancel]);
+
   const toggleExpand = useEffectEvent(() => {
     setExpanded(!expanded);
   });
+
   const ToggleIcon = expanded
     ? Icons.FullscreenExitOutlined
     : Icons.FullscreenOutlined;
 
   const handleValuesChange = useMemo(
     () =>
-      debounce((changes: any, values: NativeFiltersForm) => {
-        const didChangeFilterName =
-          changes.filters &&
-          Object.values(changes.filters).some(
-            (filter: any) => filter.name && filter.name !== null,
-          );
-        const didChangeSectionTitle =
-          changes.filters &&
-          Object.values(changes.filters).some(
-            (filter: any) => filter.title && filter.title !== null,
-          );
-        if (didChangeFilterName || didChangeSectionTitle) {
-          // we only need to set this if a name/title changed
-          setFormValues(values);
-        }
+      debounce(() => {
         setSaveAlertVisible(false);
-        handleErroredFilters();
+        modalSaveLogic.handleErroredItems();
       }, Constants.SLOW_DEBOUNCE),
-    [handleErroredFilters],
+    [modalSaveLogic],
   );
-
-  useEffect(() => {
-    if (!isEmpty(removedFilters)) {
-      setErroredFilters(prevErroredFilters =>
-        prevErroredFilters.filter(f => !removedFilters[f]),
-      );
-    }
-  }, [removedFilters]);
-
-  useEffect(() => {
-    if (!renderedFilters.includes(currentFilterId)) {
-      setRenderedFilters([...renderedFilters, currentFilterId]);
-    }
-  }, [currentFilterId]);
 
   const handleActiveFilterPanelChange = useCallback(
-    key => setActiveFilterPanelKey(key),
-    [setActiveFilterPanelKey],
+    (key: string | string[]) => setActiveFilterPanelKey(key),
+    [],
   );
 
-  const formList = useMemo(
-    () =>
-      orderedFilters.map(id => {
-        if (!renderedFilters.includes(id)) return null;
-        const isDivider = id.startsWith(NATIVE_FILTER_DIVIDER_PREFIX);
-        const isActive = currentFilterId === id;
-        return (
-          <div
-            key={id}
-            style={{
-              height: '100%',
-              overflowY: 'auto',
-              display: isActive ? '' : 'none',
-            }}
-          >
-            {isDivider ? (
-              <DividerConfigForm
-                componentId={id}
-                divider={filterConfigMap[id] as Divider}
-              />
-            ) : (
-              <FiltersConfigForm
-                expanded={expanded}
-                ref={configFormRef}
-                form={form}
-                filterId={id}
-                filterToEdit={filterConfigMap[id] as Filter}
-                removedFilters={removedFilters}
-                restoreFilter={restoreFilter}
-                getAvailableFilters={getAvailableFilters}
-                key={id}
-                activeFilterPanelKeys={activeFilterPanelKey}
-                handleActiveFilterPanelChange={handleActiveFilterPanelChange}
-                isActive={isActive}
-                setErroredFilters={setErroredFilters}
-                validateDependencies={validateDependencies}
-                getDependencySuggestion={getDependencySuggestion}
-                onModifyFilter={handleModifyFilter}
-              />
-            )}
-          </div>
-        );
-      }),
-    [
-      orderedFilters,
-      renderedFilters,
-      currentFilterId,
-      filterConfigMap,
-      expanded,
-      form,
-      removedFilters,
-      restoreFilter,
-      getAvailableFilters,
-      activeFilterPanelKey,
-      handleActiveFilterPanelChange,
-      validateDependencies,
-      getDependencySuggestion,
-      handleModifyFilter,
-    ],
+  useOpenModal(isOpen, filterOperations.addFilter, createNewOnOpen);
+
+  useRemoveCurrentFilter(
+    { ...filterState.removedItems, ...customizationState.removedItems },
+    currentItemId,
+    [...filterState.orderedIds, ...customizationState.orderedIds],
+    setActiveItem,
   );
 
   useEffect(() => {
-    resetFilterChanges();
-  }, []);
+    if (isFilterId(currentItemId)) {
+      filterState.addToRendered(currentItemId);
+    }
+  }, [currentItemId, filterState]);
+
+  useEffect(() => {
+    if (isChartCustomizationId(currentItemId)) {
+      customizationState.addToRendered(currentItemId);
+    }
+  }, [currentItemId, customizationState]);
+
+  const handleSetErroredFilters = useCallback(
+    (updater: (filters: string[]) => string[]) => {
+      filterState.setErroredIds(updater(filterState.erroredIds));
+    },
+    [filterState],
+  );
+
+  const handleSetErroredCustomizations = useCallback(
+    (updater: (filters: string[]) => string[]) => {
+      customizationState.setErroredIds(updater(customizationState.erroredIds));
+    },
+    [customizationState],
+  );
 
   return (
     <BaseModalWrapper
       open={isOpen}
       maskClosable={false}
-      title={t('Add and edit filters')}
+      title={t('Add or edit display controls')}
       expanded={expanded}
       destroyOnHidden
       onCancel={handleCancel}
-      onOk={handleSave}
+      onOk={modalSaveLogic.handleSave}
       centered
       data-test="filter-modal"
       footer={
@@ -701,8 +521,8 @@ function FiltersConfigModal({
           <Footer
             onDismiss={() => setSaveAlertVisible(false)}
             onCancel={handleCancel}
-            handleSave={handleSave}
-            canSave={!erroredFilters.length}
+            handleSave={modalSaveLogic.handleSave}
+            canSave={modalSaveLogic.canSave}
             saveAlertVisible={saveAlertVisible}
             onConfirmCancel={handleConfirmCancel}
           />
@@ -722,21 +542,66 @@ function FiltersConfigModal({
             form={form}
             onValuesChange={handleValuesChange}
             layout="vertical"
+            preserve
           >
-            <FilterConfigurePane
-              erroredFilters={erroredFilters}
-              onRemove={handleRemoveItem}
-              onAdd={addFilter}
-              onChange={handleTabChange}
-              getFilterTitle={getFilterTitle}
-              currentFilterId={currentFilterId}
-              removedFilters={removedFilters}
-              restoreFilter={restoreFilter}
-              onRearrange={handleRearrange}
-              filters={orderedFilters}
-            >
-              {formList}
-            </FilterConfigurePane>
+            <StyledMainFlex>
+              <ConfigModalSidebar
+                filterIds={filterIds}
+                chartCustomizationIds={chartCustomizationIds}
+                currentItemId={currentItemId}
+                filterOrderedIds={filterState.orderedIds}
+                filterRemovedItems={filterState.removedItems}
+                filterErroredItems={filterState.erroredIds}
+                customizationOrderedIds={customizationState.orderedIds}
+                customizationRemovedItems={customizationState.removedItems}
+                customizationErroredItems={customizationState.erroredIds}
+                activeCollapseKeys={activeCollapseKeys}
+                getItemTitle={modalSaveLogic.getItemTitle}
+                onAddFilter={filterOperations.addFilter}
+                onAddCustomization={
+                  customizationOperations.addChartCustomization
+                }
+                onChange={setActiveItem}
+                onRearrange={handleRearrangeItems}
+                onRemove={handleRemoveItem}
+                restoreItem={restoreItem}
+                onCollapseChange={setActiveCollapseKeys}
+                onCrossListDrop={handleCrossListMove}
+              />
+
+              <ConfigModalContent
+                currentItemId={currentItemId}
+                filterIds={filterIds}
+                chartCustomizationIds={chartCustomizationIds}
+                filterState={{
+                  orderedIds: filterState.orderedIds,
+                  renderedIds: filterState.renderedIds,
+                  removedItems: filterState.removedItems,
+                }}
+                customizationState={{
+                  orderedIds: customizationState.orderedIds,
+                  renderedIds: customizationState.renderedIds,
+                  removedItems: customizationState.removedItems,
+                }}
+                filterConfigMap={filterConfigMap}
+                chartCustomizationConfigMap={chartCustomizationConfigMap}
+                isItemActive={isItemActive}
+                expanded={expanded}
+                form={form}
+                configFormRef={configFormRef}
+                restoreItem={restoreItem}
+                getAvailableFilters={getAvailableFilters}
+                activeFilterPanelKey={activeFilterPanelKey}
+                handleActiveFilterPanelChange={handleActiveFilterPanelChange}
+                handleSetErroredFilters={handleSetErroredFilters}
+                handleSetErroredCustomizations={handleSetErroredCustomizations}
+                validateDependencies={filterOperations.validateDependencies}
+                getDependencySuggestion={
+                  filterOperations.getDependencySuggestion
+                }
+                handleModifyItem={handleModifyItem}
+              />
+            </StyledMainFlex>
           </BaseForm>
         </StyledModalBody>
       </ErrorBoundary>

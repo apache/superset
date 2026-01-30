@@ -33,8 +33,8 @@
  * control interface.
  */
 import { isEmpty } from 'lodash';
+import { t } from '@apache-superset/core';
 import {
-  t,
   getCategoricalSchemeRegistry,
   getSequentialSchemeRegistry,
   SequentialScheme,
@@ -250,7 +250,7 @@ const order_desc: SharedControlConfig<'CheckboxControl'> = {
   visibility: ({ controls }) =>
     Boolean(
       controls?.timeseries_limit_metric.value &&
-        !isEmpty(controls?.timeseries_limit_metric.value),
+      !isEmpty(controls?.timeseries_limit_metric.value),
     ),
 };
 
@@ -325,6 +325,9 @@ const currency_format: SharedControlConfig<'CurrencyControl'> = {
   type: 'CurrencyControl',
   label: t('Currency format'),
   renderTrigger: true,
+  description: t(
+    "Format metrics or columns with currency symbols as prefixes or suffixes. Choose a symbol manually or use 'Auto-detect' to apply the correct symbol based on the dataset's currency code column. When multiple currencies are present, formatting falls back to neutral numbers.",
+  ),
 };
 
 const x_axis_time_format: SharedControlConfig<

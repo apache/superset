@@ -24,7 +24,7 @@ jobs:
         working-directory: superset-extensions-cli
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           persist-credentials: false
           submodules: recursive
@@ -58,7 +58,7 @@ jobs:
 
       - name: Upload HTML coverage report
         if: steps.check.outputs.superset-extensions-cli
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: superset-extensions-cli-coverage-html
           path: htmlcov/

@@ -38,7 +38,6 @@ import {
   table,
   defaultQueryEditor,
 } from 'src/SqlLab/fixtures';
-import SqlEditorLeftBar from 'src/SqlLab/components/SqlEditorLeftBar';
 import ResultSet from 'src/SqlLab/components/ResultSet';
 import { api } from 'src/hooks/apiResources/queryApi';
 import setupCodeOverrides from 'src/setup/setupCodeOverrides';
@@ -74,7 +73,6 @@ jest.mock('@superset-ui/core/components/AsyncAceEditor', () => ({
     />
   ),
 }));
-jest.mock('src/SqlLab/components/SqlEditorLeftBar', () => jest.fn());
 jest.mock('src/SqlLab/components/ResultSet', () => jest.fn());
 
 fetchMock.get('glob:*/api/v1/database/*/function_names/', {
@@ -177,10 +175,6 @@ describe('SqlEditor', () => {
     store = createStore(mockInitialState);
     actions = [];
 
-    (SqlEditorLeftBar as jest.Mock).mockClear();
-    (SqlEditorLeftBar as jest.Mock).mockImplementation(() => (
-      <div data-test="mock-sql-editor-left-bar" />
-    ));
     (ResultSet as unknown as jest.Mock).mockClear();
     (ResultSet as unknown as jest.Mock).mockImplementation(() => (
       <div data-test="mock-result-set" />
@@ -211,19 +205,8 @@ describe('SqlEditor', () => {
     ).toBeInTheDocument();
   });
 
-  test('render a SqlEditorLeftBar', async () => {
-    const { getByTestId, unmount } = setup(mockedProps, store);
-
-    await waitFor(
-      () => expect(getByTestId('mock-sql-editor-left-bar')).toBeInTheDocument(),
-      { timeout: 10000 },
-    );
-
-    unmount();
-  }, 15000);
-
   // Update other similar tests with timeouts
-  test('render an AceEditorWrapper', async () => {
+  test('render an EditorWrapper', async () => {
     const { findByTestId, unmount } = setup(mockedProps, store);
 
     await waitFor(
@@ -234,15 +217,14 @@ describe('SqlEditor', () => {
     unmount();
   }, 15000);
 
-  test('skip rendering an AceEditorWrapper when the current tab is inactive', async () => {
-    const { findByTestId, queryByTestId } = setup(
+  test('skip rendering an EditorWrapper when the current tab is inactive', async () => {
+    const { queryByTestId } = setup(
       {
         ...mockedProps,
         queryEditor: initialState.sqlLab.queryEditors[1],
       },
       store,
     );
-    expect(await findByTestId('mock-sql-editor-left-bar')).toBeInTheDocument();
     expect(queryByTestId('react-ace')).not.toBeInTheDocument();
   });
 
@@ -250,14 +232,10 @@ describe('SqlEditor', () => {
     const { findByTestId } = setup(mockedProps, store);
     const editor = await findByTestId('react-ace');
     const sql = 'select *';
-    const renderCount = (SqlEditorLeftBar as jest.Mock).mock.calls.length;
     const renderCountForSouthPane = (ResultSet as unknown as jest.Mock).mock
       .calls.length;
-    expect(SqlEditorLeftBar).toHaveBeenCalledTimes(renderCount);
     expect(ResultSet).toHaveBeenCalledTimes(renderCountForSouthPane);
     fireEvent.change(editor, { target: { value: sql } });
-    // Verify the rendering regression
-    expect(SqlEditorLeftBar).toHaveBeenCalledTimes(renderCount);
     expect(ResultSet).toHaveBeenCalledTimes(renderCountForSouthPane);
   });
 
@@ -343,7 +321,7 @@ describe('SqlEditor', () => {
     const defaultQueryLimit = 101;
     const updatedProps = { ...mockedProps, defaultQueryLimit };
     const { findByText } = setup(updatedProps, store);
-    fireEvent.click(await findByText('LIMIT:'));
+    fireEvent.click(await findByText('Limit'));
     expect(await findByText('10 000')).toBeInTheDocument();
   });
 
@@ -404,15 +382,15 @@ describe('SqlEditor', () => {
           },
         },
       });
-      const { findByText } = setup(mockedProps, store);
-      const button = await findByText('Estimate cost');
+      const { findByLabelText } = setup(mockedProps, store);
+      const button = await findByLabelText('Estimate cost');
       expect(button).toBeInTheDocument();
 
       // click button
       fireEvent.click(button);
       await waitFor(() => {
-        expect(fetchMock.lastUrl()).toEqual(estimateApi);
-        expect(fetchMock.lastOptions()).toEqual(
+        expect(fetchMock.callHistory.lastCall()?.url).toEqual(estimateApi);
+        expect(fetchMock.callHistory.lastCall()?.options).toEqual(
           expect.objectContaining({
             body: JSON.stringify({
               database_id: 2023,
@@ -424,11 +402,11 @@ describe('SqlEditor', () => {
             cache: 'default',
             credentials: 'same-origin',
             headers: {
-              Accept: 'application/json',
-              'Content-Type': 'application/json',
-              'X-CSRFToken': '1234',
+              accept: 'application/json',
+              'content-type': 'application/json',
+              'x-csrftoken': '1234',
             },
-            method: 'POST',
+            method: 'post',
             mode: 'same-origin',
             redirect: 'follow',
             signal: undefined,
@@ -465,10 +443,12 @@ describe('SqlEditor', () => {
       const indicator = getByTestId('sqlEditor-loading');
       expect(indicator).toBeInTheDocument();
       await waitFor(() =>
-        expect(fetchMock.calls('glob:*/tabstateview/*').length).toBe(1),
+        expect(
+          fetchMock.callHistory.calls('glob:*/tabstateview/*').length,
+        ).toBe(1),
       );
       // it will be called from EditorAutoSync
-      expect(fetchMock.calls(switchTabApi).length).toBe(0);
+      expect(fetchMock.callHistory.calls(switchTabApi).length).toBe(0);
     });
   });
 });

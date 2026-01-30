@@ -66,7 +66,7 @@ const devserverHost =
   cliHost || process.env.WEBPACK_DEVSERVER_HOST || '127.0.0.1';
 
 const isDevMode = mode !== 'production';
-const isDevServer = process.argv[1].includes('webpack-dev-server');
+const isDevServer = process.argv[1]?.includes('webpack-dev-server') ?? false;
 
 // TypeScript checker memory limit (in MB)
 const TYPESCRIPT_MEMORY_LIMIT = 4096;
@@ -632,7 +632,16 @@ if (isDevMode) {
     hot: true,
     host: devserverHost,
     port: devserverPort,
-    allowedHosts: ['localhost', '.localhost', '127.0.0.1', '::1', '.local'],
+    allowedHosts: [
+      ...new Set([
+        devserverHost,
+        'localhost',
+        '.localhost',
+        '127.0.0.1',
+        '::1',
+        '.local',
+      ]),
+    ],
     proxy: [() => proxyConfig],
     client: {
       overlay: {

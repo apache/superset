@@ -18,7 +18,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { ActionsBar, ActionProps } from 'src/components/ListView/ActionsBar';
@@ -299,6 +299,7 @@ function GroupsList({ user }: GroupsListProps) {
         id: 'name',
         input: 'search',
         operator: ListViewFilterOperator.Contains,
+        inputName: 'group_list_search',
       },
       {
         Header: t('Label'),

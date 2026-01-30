@@ -21,3 +21,5 @@
 export { Button } from './Button';
 export { Form } from './Form';
 export { Input } from './Input';
+export { Modal } from './Modal';
+export { Table } from './Table';

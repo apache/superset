@@ -19,8 +19,10 @@
 
 import type { Config } from '@docusaurus/types';
 import type { Options, ThemeConfig } from '@docusaurus/preset-classic';
+import type * as OpenApiPlugin from 'docusaurus-plugin-openapi-docs';
 import { themes } from 'prism-react-renderer';
 import remarkImportPartial from 'remark-import-partial';
+import remarkLocalizeBadges from './plugins/remark-localize-badges.mjs';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -44,7 +46,11 @@ if (!versionsConfig.components.disabled) {
       sidebarPath: require.resolve('./sidebarComponents.js'),
       editUrl:
         'https://github.com/apache/superset/edit/master/docs/components',
-      remarkPlugins: [remarkImportPartial],
+      remarkPlugins: [remarkImportPartial, remarkLocalizeBadges],
+      admonitions: {
+        keywords: ['note', 'tip', 'info', 'warning', 'danger', 'resources'],
+        extendDefaults: true,
+      },
       docItemComponent: '@theme/DocItem',
       includeCurrentVersion: versionsConfig.components.includeCurrentVersion,
       lastVersion: versionsConfig.components.lastVersion,
@@ -68,7 +74,11 @@ if (!versionsConfig.developer_portal.disabled) {
       sidebarPath: require.resolve('./sidebarTutorials.js'),
       editUrl:
         'https://github.com/apache/superset/edit/master/docs/developer_portal',
-      remarkPlugins: [remarkImportPartial],
+      remarkPlugins: [remarkImportPartial, remarkLocalizeBadges],
+      admonitions: {
+        keywords: ['note', 'tip', 'info', 'warning', 'danger', 'resources'],
+        extendDefaults: true,
+      },
       docItemComponent: '@theme/DocItem',
       includeCurrentVersion: versionsConfig.developer_portal.includeCurrentVersion,
       lastVersion: versionsConfig.developer_portal.lastVersion,
@@ -125,7 +135,13 @@ if (!versionsConfig.developer_portal.disabled && !versionsConfig.developer_porta
       {
         type: 'doc',
         docsPluginId: 'developer_portal',
-        docId: 'extensions/architectural-principles',
+        docId: 'contributing/overview',
+        label: 'Contributing',
+      },
+      {
+        type: 'doc',
+        docsPluginId: 'developer_portal',
+        docId: 'extensions/overview',
         label: 'Extensions',
       },
       {
@@ -137,14 +153,12 @@ if (!versionsConfig.developer_portal.disabled && !versionsConfig.developer_porta
       {
         type: 'doc',
         docsPluginId: 'developer_portal',
-        docId: 'guidelines/design-guidelines',
-        label: 'Guidelines',
+        docId: 'components/index',
+        label: 'UI Components',
       },
       {
-        type: 'doc',
-        docsPluginId: 'developer_portal',
-        docId: 'contributing/overview',
-        label: 'Contributing',
+        label: 'API Reference',
+        href: '/docs/api',
       },
     ],
   });
@@ -164,7 +178,12 @@ const config: Config = {
   favicon: '/img/favicon.ico',
   organizationName: 'apache',
   projectName: 'superset',
-  themes: ['@saucelabs/theme-github-codeblock', '@docusaurus/theme-mermaid'],
+  themes: [
+    '@saucelabs/theme-github-codeblock',
+    '@docusaurus/theme-mermaid',
+    '@docusaurus/theme-live-codeblock',
+    'docusaurus-theme-openapi-docs',
+  ],
   plugins: [
     require.resolve('./src/webpack.extend.ts'),
     [
@@ -176,6 +195,29 @@ const config: Config = {
       },
     ],
     ...dynamicPlugins,
+    [
+      'docusaurus-plugin-openapi-docs',
+      {
+        id: 'api',
+        docsPluginId: 'classic',
+        config: {
+          superset: {
+            specPath: 'static/resources/openapi.json',
+            outputDir: 'docs/api',
+            sidebarOptions: {
+              groupPathsBy: 'tag',
+              categoryLinkSource: 'tag',
+              sidebarCollapsible: true,
+              sidebarCollapsed: true,
+            },
+            showSchemas: true,
+            hideSendButton: true,
+            showInfoPage: false,
+            showExtensions: true,
+          } satisfies OpenApiPlugin.Options,
+        },
+      },
+    ],
     [
       '@docusaurus/plugin-client-redirects',
       {
@@ -209,7 +251,7 @@ const config: Config = {
             from: '/gallery.html',
           },
           {
-            to: '/docs/configuration/databases',
+            to: '/docs/databases',
             from: '/druid.html',
           },
           {
@@ -261,7 +303,7 @@ const config: Config = {
             from: '/docs/contributing/contribution-page',
           },
           {
-            to: '/docs/configuration/databases',
+            to: '/docs/databases',
             from: '/docs/databases/yugabyte/',
           },
           {
@@ -337,6 +379,11 @@ const config: Config = {
             }
             return `https://github.com/apache/superset/edit/master/docs/${versionDocsDirPath}/${docPath}`;
           },
+          remarkPlugins: [remarkImportPartial, remarkLocalizeBadges],
+          admonitions: {
+            keywords: ['note', 'tip', 'info', 'warning', 'danger', 'resources'],
+            extendDefaults: true,
+          },
           includeCurrentVersion: versionsConfig.docs.includeCurrentVersion,
           lastVersion: versionsConfig.docs.lastVersion,  // Make 'next' the default
           onlyIncludeVersions: versionsConfig.docs.onlyIncludeVersions,
@@ -344,6 +391,7 @@ const config: Config = {
           disableVersioning: false,
           showLastUpdateAuthor: true,
           showLastUpdateTime: true,
+          docItemComponent: '@theme/ApiItem', // Required for OpenAPI docs
         },
         blog: {
           showReadingTime: true,
@@ -394,6 +442,11 @@ const config: Config = {
             },
             {
               type: 'doc',
+              docId: 'databases/index',
+              label: 'Databases',
+            },
+            {
+              type: 'doc',
               docId: 'faq',
               label: 'FAQ',
             },
@@ -423,6 +476,14 @@ const config: Config = {
               label: 'Stack Overflow',
               href: 'https://stackoverflow.com/questions/tagged/apache-superset',
             },
+            {
+              label: 'Community Calendar',
+              href: '/community#superset-community-calendar',
+            },
+            {
+              label: 'In the Wild',
+              href: '/inTheWild',
+            },
           ],
         },
         ...dynamicNavbarItems,
@@ -442,8 +503,10 @@ const config: Config = {
     footer: {
       links: [],
       copyright: `
-          <div class="footer__applitools">
-            We use &nbsp;<a href="https://applitools.com/" target="_blank" rel="nofollow"><img src="/img/applitools.png" title="Applitools" /></a>
+          <div class="footer__ci-services">
+            <span>CI powered by</span>
+            <a href="https://applitools.com/" target="_blank" rel="nofollow noopener noreferrer"><img src="/img/applitools.png" alt="Applitools" title="Applitools - Visual Testing" /></a>
+            <a href="https://www.netlify.com/" target="_blank" rel="nofollow noopener noreferrer"><img src="/img/netlify.png" alt="Netlify" title="Netlify - Deploy Previews" /></a>
           </div>
           <p>Copyright © ${new Date().getFullYear()},
           The <a href="https://www.apache.org/" target="_blank" rel="noreferrer">Apache Software Foundation</a>,
@@ -473,6 +536,9 @@ const config: Config = {
       sidebar: {
         hideable: true,
       },
+    },
+    liveCodeBlock: {
+      playgroundPosition: 'bottom',
     },
   } satisfies ThemeConfig,
   scripts: [

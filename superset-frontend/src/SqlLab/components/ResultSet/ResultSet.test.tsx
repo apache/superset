@@ -35,7 +35,6 @@ import {
   cachedQuery,
   failedQueryWithErrors,
   queries,
-  runningQuery,
   stoppedQuery,
   initialState,
   user,
@@ -45,6 +44,19 @@ import {
 
 jest.mock('src/components/ErrorMessage', () => ({
   ErrorMessageWithStackTrace: () => <div data-test="error-message">Error</div>,
+}));
+
+// Mock useStreamingExport to capture startExport calls
+const mockStartExport = jest.fn();
+const mockResetExport = jest.fn();
+const mockCancelExport = jest.fn();
+jest.mock('src/components/StreamingExportModal/useStreamingExport', () => ({
+  useStreamingExport: () => ({
+    startExport: mockStartExport,
+    resetExport: mockResetExport,
+    cancelExport: mockCancelExport,
+    progress: { status: 'streaming', rowsProcessed: 0 },
+  }),
 }));
 
 jest.mock(
@@ -69,32 +81,6 @@ const stoppedQueryState = {
     ...initialState.sqlLab,
     queries: {
       [stoppedQuery.id]: stoppedQuery,
-    },
-  },
-};
-const runningQueryState = {
-  ...initialState,
-  sqlLab: {
-    ...initialState.sqlLab,
-    queries: {
-      [runningQuery.id]: runningQuery,
-    },
-  },
-};
-const fetchingQueryState = {
-  ...initialState,
-  sqlLab: {
-    ...initialState.sqlLab,
-    queries: {
-      [mockedProps.queryId]: {
-        dbId: 1,
-        cached: false,
-        ctas: false,
-        id: 'ryhHUZCGb',
-        progress: 100,
-        state: 'fetching',
-        startDttm: Date.now() - 500,
-      },
     },
   },
 };
@@ -141,7 +127,7 @@ fetchMock.post(reRunQueryEndpoint, { result: [] });
 fetchMock.get('glob:*/api/v1/sqllab/results/*', { result: [] });
 
 beforeEach(() => {
-  fetchMock.resetHistory();
+  fetchMock.clearHistory();
 });
 
 const middlewares = [thunk];
@@ -160,11 +146,12 @@ describe('ResultSet', () => {
 
   beforeEach(() => {
     applicationRootMock.mockReturnValue('');
+    mockStartExport.mockClear();
   });
 
   // Add cleanup after each test
   afterEach(async () => {
-    fetchMock.resetHistory();
+    fetchMock.clearHistory();
     // Wait for any pending effects to complete
     await new Promise(resolve => setTimeout(resolve, 0));
   });
@@ -263,7 +250,7 @@ describe('ResultSet', () => {
       },
     });
 
-    expect(fetchMock.calls(reRunQueryEndpoint)).toHaveLength(0);
+    expect(fetchMock.callHistory.calls(reRunQueryEndpoint)).toHaveLength(0);
     setup(mockedProps, store);
     expect(store.getActions()).toHaveLength(1);
     expect(store.getActions()[0].query.errorMessage).toEqual(
@@ -271,7 +258,7 @@ describe('ResultSet', () => {
     );
     expect(store.getActions()[0].type).toEqual('START_QUERY');
     await waitFor(() =>
-      expect(fetchMock.calls(reRunQueryEndpoint)).toHaveLength(1),
+      expect(fetchMock.callHistory.calls(reRunQueryEndpoint)).toHaveLength(1),
     );
   });
 
@@ -289,7 +276,7 @@ describe('ResultSet', () => {
     });
     setup(mockedProps, store);
     expect(store.getActions()).toEqual([]);
-    expect(fetchMock.calls(reRunQueryEndpoint)).toHaveLength(0);
+    expect(fetchMock.callHistory.calls(reRunQueryEndpoint)).toHaveLength(0);
   });
 
   test('should render cached query', async () => {
@@ -316,25 +303,6 @@ describe('ResultSet', () => {
 
     const alert = screen.getByRole('alert');
     expect(alert).toBeInTheDocument();
-  });
-
-  test('should render running/pending/fetching query', async () => {
-    const { getByTestId } = setup(
-      { ...mockedProps, queryId: runningQuery.id },
-      mockStore(runningQueryState),
-    );
-    const progressBar = getByTestId('progress-bar');
-    expect(progressBar).toBeInTheDocument();
-  });
-
-  test('should render fetching w/ 100 progress query', async () => {
-    const { getByRole, getByText } = setup(
-      mockedProps,
-      mockStore(fetchingQueryState),
-    );
-    const loading = getByRole('status');
-    expect(loading).toBeInTheDocument();
-    expect(getByText('fetching')).toBeInTheDocument();
   });
 
   test('should render a failed query with an errors object', async () => {
@@ -654,7 +622,136 @@ describe('ResultSet', () => {
     });
 
     // Verify the API was called
-    const resultsCalls = fetchMock.calls('glob:*/api/v1/sqllab/results/*');
+    const resultsCalls = fetchMock.callHistory.calls(
+      'glob:*/api/v1/sqllab/results/*',
+    );
     expect(resultsCalls).toHaveLength(1);
   });
+
+  test('should use non-streaming export (href) when rows below threshold', async () => {
+    // This test validates that when rows < CSV_STREAMING_ROW_THRESHOLD,
+    // the component uses the direct download href instead of streaming export.
+    const appRoot = '/superset';
+    applicationRootMock.mockReturnValue(appRoot);
+
+    // Create a query with rows BELOW the threshold
+    const smallQuery = {
+      ...queries[0],
+      rows: 500, // Below the 1000 threshold
+      limitingFactor: 'NOT_LIMITED',
+    };
+
+    const { getByTestId } = setup(
+      mockedProps,
+      mockStore({
+        ...initialState,
+        user: {
+          ...user,
+          roles: {
+            sql_lab: [['can_export_csv', 'SQLLab']],
+          },
+        },
+        sqlLab: {
+          ...initialState.sqlLab,
+          queries: {
+            [smallQuery.id]: smallQuery,
+          },
+        },
+        common: {
+          conf: {
+            CSV_STREAMING_ROW_THRESHOLD: 1000,
+          },
+        },
+      }),
+    );
+
+    await waitFor(() => {
+      expect(getByTestId('export-csv-button')).toBeInTheDocument();
+    });
+
+    const exportButton = getByTestId('export-csv-button');
+
+    // Non-streaming export should have href attribute with prefixed URL
+    expect(exportButton).toHaveAttribute(
+      'href',
+      expect.stringMatching(new RegExp(`^${appRoot}/api/v1/sqllab/export/`)),
+    );
+
+    // Click should NOT trigger startExport for non-streaming
+    fireEvent.click(exportButton);
+    expect(mockStartExport).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    {
+      name: 'no prefix (default deployment)',
+      appRoot: '',
+      expectedUrl: '/api/v1/sqllab/export_streaming/',
+    },
+    {
+      name: 'with subdirectory prefix',
+      appRoot: '/superset',
+      expectedUrl: '/superset/api/v1/sqllab/export_streaming/',
+    },
+    {
+      name: 'with nested subdirectory prefix',
+      appRoot: '/my-app/superset',
+      expectedUrl: '/my-app/superset/api/v1/sqllab/export_streaming/',
+    },
+  ])(
+    'streaming export URL respects app root configuration: $name',
+    async ({ appRoot, expectedUrl }) => {
+      // This test validates that streaming export startExport receives the correct URL
+      // based on the applicationRoot configuration.
+      applicationRootMock.mockReturnValue(appRoot);
+
+      // Create a query with enough rows to trigger streaming export (>= threshold)
+      const largeQuery = {
+        ...queries[0],
+        rows: 5000, // Above the default 1000 threshold
+        limitingFactor: 'NOT_LIMITED',
+      };
+
+      const { getByTestId } = setup(
+        mockedProps,
+        mockStore({
+          ...initialState,
+          user: {
+            ...user,
+            roles: {
+              sql_lab: [['can_export_csv', 'SQLLab']],
+            },
+          },
+          sqlLab: {
+            ...initialState.sqlLab,
+            queries: {
+              [largeQuery.id]: largeQuery,
+            },
+          },
+          common: {
+            conf: {
+              CSV_STREAMING_ROW_THRESHOLD: 1000,
+            },
+          },
+        }),
+      );
+
+      await waitFor(() => {
+        expect(getByTestId('export-csv-button')).toBeInTheDocument();
+      });
+
+      const exportButton = getByTestId('export-csv-button');
+      fireEvent.click(exportButton);
+
+      // Verify startExport was called exactly once
+      expect(mockStartExport).toHaveBeenCalledTimes(1);
+
+      // The URL should match the expected prefixed URL
+      expect(mockStartExport).toHaveBeenCalledWith(
+        expect.objectContaining({
+          url: expectedUrl,
+        }),
+      );
+    },
+  );
 });

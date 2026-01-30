@@ -26,7 +26,7 @@ import {
 } from 'react';
 import { omit } from 'lodash';
 
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { css, styled, useTheme, Alert } from '@apache-superset/core/ui';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { useThemeContext } from 'src/theme/ThemeProvider';
@@ -39,16 +39,36 @@ import {
   Button,
   Form,
   Input,
-  JsonEditor,
   Modal,
   Space,
   Tooltip,
 } from '@superset-ui/core/components';
 import { useJsonValidation } from '@superset-ui/core/components/AsyncAceEditor';
+import type { editors } from '@apache-superset/core';
+import { EditorHost } from 'src/core/editors';
 import { Typography } from '@superset-ui/core/components/Typography';
-
 import { OnlyKeyWithType } from 'src/utils/types';
 import { ThemeObject } from './types';
+
+type EditorAnnotation = editors.EditorAnnotation;
+
+/**
+ * Convert Ace annotation format to EditorAnnotation format.
+ */
+const toEditorAnnotations = (
+  aceAnnotations: Array<{
+    type: string;
+    row: number;
+    column: number;
+    text: string;
+  }>,
+): EditorAnnotation[] =>
+  aceAnnotations.map(ann => ({
+    severity: ann.type as EditorAnnotation['severity'],
+    line: ann.row,
+    column: ann.column,
+    message: ann.text,
+  }));
 
 interface ThemeModalProps {
   addDangerToast: (msg: string) => void;
@@ -66,7 +86,7 @@ type ThemeStringKeys = keyof Pick<
   OnlyKeyWithType<ThemeObject, string>
 >;
 
-const StyledJsonEditor = styled.div`
+const StyledEditorWrapper = styled.div`
   ${({ theme }) => css`
     .ace_editor {
       border-radius: ${theme.borderRadius}px;
@@ -474,22 +494,21 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
                 </span>
               }
             />
-            <StyledJsonEditor>
-              <JsonEditor
-                showLoadingForImport
-                name="json_data"
+            <StyledEditorWrapper>
+              <EditorHost
+                id="theme-json-editor"
                 value={currentTheme?.json_data || ''}
                 onChange={onJsonDataChange}
+                language="json"
                 tabSize={2}
+                readOnly={isReadOnly}
+                wordWrap
+                lineNumbers
                 width="100%"
                 height="250px"
-                wrapEnabled
-                readOnly={isReadOnly}
-                showGutter
-                showPrintMargin={false}
-                annotations={jsonAnnotations}
+                annotations={toEditorAnnotations(jsonAnnotations)}
               />
-            </StyledJsonEditor>
+            </StyledEditorWrapper>
             {canDevelopThemes && (
               <div className="apply-button-container">
                 <Tooltip

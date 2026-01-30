@@ -29,11 +29,11 @@ import {
 import { useDispatch, useSelector } from 'react-redux';
 import { uniqWith } from 'lodash';
 import cx from 'classnames';
+import { t } from '@apache-superset/core';
 import {
   DataMaskStateWithId,
   Filters,
   JsonObject,
-  t,
   usePrevious,
 } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';
@@ -201,30 +201,37 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   const prevChartConfig = usePrevious(chartConfiguration);
 
   useEffect(() => {
-    if (!showIndicators && nativeIndicators.length > 0) {
+    const shouldReset =
+      (!chart ||
+        chart.chartStatus === 'failed' ||
+        chart.chartStatus === null) &&
+      nativeIndicators.length > 0;
+
+    const shouldRecalculate =
+      chart?.queriesResponse?.[0]?.rejected_filters !==
+        prevChart?.queriesResponse?.[0]?.rejected_filters ||
+      chart?.queriesResponse?.[0]?.applied_filters !==
+        prevChart?.queriesResponse?.[0]?.applied_filters ||
+      nativeFilters !== prevNativeFilters ||
+      chartLayoutItems !== prevChartLayoutItems ||
+      dataMask !== prevDataMask ||
+      prevChartConfig !== chartConfiguration;
+
+    if (shouldReset) {
       setNativeIndicators(indicatorsInitialState);
-    } else if (prevChartStatus !== 'success') {
-      if (
-        chart?.queriesResponse?.[0]?.rejected_filters !==
-          prevChart?.queriesResponse?.[0]?.rejected_filters ||
-        chart?.queriesResponse?.[0]?.applied_filters !==
-          prevChart?.queriesResponse?.[0]?.applied_filters ||
-        nativeFilters !== prevNativeFilters ||
-        chartLayoutItems !== prevChartLayoutItems ||
-        dataMask !== prevDataMask ||
-        prevChartConfig !== chartConfiguration
-      ) {
-        setNativeIndicators(
-          selectNativeIndicatorsForChart(
-            nativeFilters,
-            dataMask,
-            chartId,
-            chart,
-            chartLayoutItems,
-            chartConfiguration,
-          ),
-        );
-      }
+    } else if (
+      showIndicators &&
+      (shouldRecalculate || nativeIndicators.length === 0)
+    ) {
+      const newIndicators = selectNativeIndicatorsForChart(
+        nativeFilters,
+        dataMask,
+        chartId,
+        chart,
+        chartLayoutItems,
+        chartConfiguration,
+      );
+      setNativeIndicators(newIndicators);
     }
   }, [
     chart,

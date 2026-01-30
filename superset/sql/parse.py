@@ -45,7 +45,7 @@ from sqlglot.optimizer.scope import (
 )
 
 from superset.exceptions import QueryClauseValidationException, SupersetParseError
-from superset.sql.dialects import Dremio, Firebolt, Pinot
+from superset.sql.dialects import DB2, Dremio, Firebolt, Pinot
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -58,7 +58,7 @@ logger = logging.getLogger(__name__)
 SQLGLOT_DIALECTS = {
     "base": Dialects.DIALECT,
     "ascend": Dialects.HIVE,
-    "awsathena": Dialects.PRESTO,
+    "awsathena": Dialects.ATHENA,
     "bigquery": Dialects.BIGQUERY,
     "clickhouse": Dialects.CLICKHOUSE,
     "clickhousedb": Dialects.CLICKHOUSE,
@@ -67,7 +67,7 @@ SQLGLOT_DIALECTS = {
     # "crate": ???
     # "databend": ???
     "databricks": Dialects.DATABRICKS,
-    # "db2": ???
+    "db2": DB2,
     # "denodo": ???
     "dremio": Dremio,
     "drill": Dialects.DRILL,
@@ -556,11 +556,28 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
     def _parse(cls, script: str, engine: str) -> list[exp.Expression]:
         """
         Parse helper.
+
+        When the base dialect (engine="base" or unknown engines) fails to parse SQL
+        containing backtick-quoted identifiers, we fall back to MySQL dialect which
+        supports backticks natively. This handles cases like "Other" database type
+        where users may have MySQL-compatible syntax with backtick-quoted table names.
         """
         dialect = SQLGLOT_DIALECTS.get(engine)
         try:
             statements = sqlglot.parse(script, dialect=dialect)
         except sqlglot.errors.ParseError as ex:
+            # If parsing fails with base dialect (or no dialect for unknown engines)
+            # and the script contains backticks, retry with MySQL dialect which
+            # supports backtick-quoted identifiers
+            if (dialect is None or dialect == Dialects.DIALECT) and "`" in script:
+                try:
+                    statements = sqlglot.parse(script, dialect=Dialects.MYSQL)
+                except sqlglot.errors.ParseError:
+                    # If MySQL dialect also fails, raise the original error
+                    pass
+                else:
+                    return statements
+
             kwargs = (
                 {
                     "highlight": ex.errors[0]["highlight"],
@@ -1505,9 +1522,21 @@ def sanitize_clause(clause: str, engine: str) -> str:
         raise QueryClauseValidationException(f"Invalid SQL clause: {clause}") from ex
 
 
-def transpile_to_dialect(sql: str, target_engine: str) -> str:
+def transpile_to_dialect(
+    sql: str,
+    target_engine: str,
+    source_engine: str | None = None,
+) -> str:
     """
-    Transpile SQL from "generic SQL" to the target database dialect using SQLGlot.
+    Transpile SQL from one database dialect to another using SQLGlot.
+
+    Args:
+        sql: The SQL query to transpile
+        target_engine: The target database engine (e.g., "mysql", "postgresql")
+        source_engine: The source database engine. If None, uses generic SQL dialect.
+
+    Returns:
+        The transpiled SQL string
 
     If the target engine is not in SQLGLOT_DIALECTS, returns the SQL as-is.
     """
@@ -1517,8 +1546,11 @@ def transpile_to_dialect(sql: str, target_engine: str) -> str:
     if target_dialect is None:
         return sql
 
+    # Get source dialect (default to generic if not specified)
+    source_dialect = SQLGLOT_DIALECTS.get(source_engine) if source_engine else Dialect
+
     try:
-        parsed = sqlglot.parse_one(sql, dialect=Dialect)
+        parsed = sqlglot.parse_one(sql, dialect=source_dialect)
         return Dialect.get_or_raise(target_dialect).generate(
             parsed,
             copy=True,

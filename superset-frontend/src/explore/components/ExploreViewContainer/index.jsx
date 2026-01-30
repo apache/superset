@@ -22,14 +22,13 @@ import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import {
-  t,
-  logging,
   useChangeEffect,
   useComponentDidMount,
   usePrevious,
   isMatrixifyEnabled,
 } from '@superset-ui/core';
-import { styled, css, useTheme } from '@apache-superset/core/ui';
+import { t, styled, css, useTheme } from '@apache-superset/core/ui';
+import { logging } from '@apache-superset/core';
 import { debounce, isEqual, isObjectLike, omit, pick } from 'lodash';
 import { Resizable } from 're-resizable';
 import { Tooltip } from '@superset-ui/core/components';
@@ -138,6 +137,10 @@ const ExplorePanelContainer = styled.div`
       justify-content: space-between;
       .horizontal-text {
         font-size: ${theme.fontSize}px;
+        line-height: 1.5;
+        display: inline-block;
+        height: auto;
+        overflow: visible;
       }
     }
     .no-show {
@@ -288,14 +291,27 @@ function ExploreViewContainer(props) {
 
   const theme = useTheme();
 
+  // Capture original title before any effects run
+  const originalTitle = useMemo(() => document.title, []);
+
+  // Update document title when slice name changes
   useEffect(() => {
     if (props.sliceName) {
       document.title = props.sliceName;
     }
-    return () => {
-      document.title = 'Superset';
-    };
   }, [props.sliceName]);
+
+  // Restore original title on unmount
+  useEffect(
+    () => () => {
+      document.title =
+        originalTitle ||
+        theme?.brandAppName ||
+        theme?.brandLogoAlt ||
+        'Superset';
+    },
+    [originalTitle, theme?.brandAppName, theme?.brandLogoAlt],
+  );
 
   const addHistory = useCallback(
     async ({ isReplace = false, title } = {}) => {
@@ -600,8 +616,11 @@ function ExploreViewContainer(props) {
     }
   });
 
+  const previousOwnState = usePrevious(props.ownState);
   useEffect(() => {
-    if (props.ownState !== undefined) {
+    const strip = s =>
+      s && typeof s === 'object' ? omit(s, ['clientView']) : s;
+    if (!isEqual(strip(previousOwnState), strip(props.ownState))) {
       onQuery();
       reRenderChart();
     }
@@ -938,10 +957,14 @@ function mapStateToProps(state) {
   const form_data = isDeckGLChart ? getDeckGLFormData() : controlsBasedFormData;
 
   const slice_id = form_data.slice_id ?? slice?.slice_id ?? 0; // 0 - unsaved chart
+
+  // exclude clientView from extra_form_data; keep other ownState pieces
+  const ownStateForQuery = omit(dataMask[slice_id]?.ownState, ['clientView']);
+
   form_data.extra_form_data = mergeExtraFormData(
     { ...form_data.extra_form_data },
     {
-      ...dataMask[slice_id]?.ownState,
+      ...ownStateForQuery,
     },
   );
   const chart = charts[slice_id];

@@ -78,9 +78,8 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.user_attributes import UserAttribute
 from superset.superset_typing import (
-    BaseDatasourceData,
+    ExplorableData,
     FlaskResponse,
-    QueryData,
 )
 from superset.tasks.utils import get_current_user
 from superset.utils import core as utils, json
@@ -169,17 +168,16 @@ class Superset(BaseSupersetView):
         payload = viz_obj.get_df_payload()
         if viz_obj.has_error(payload):
             return json_error_response(payload=payload, status=400)
-        return self.json_response(
-            {
-                "data": payload["df"].to_dict("records")
-                if payload["df"] is not None
-                else [],
-                "colnames": payload.get("colnames"),
-                "coltypes": payload.get("coltypes"),
-                "rowcount": payload.get("rowcount"),
-                "sql_rowcount": payload.get("sql_rowcount"),
-            },
-        )
+        response = {
+            "data": payload["df"].to_dict("records")
+            if payload["df"] is not None
+            else [],
+            "colnames": payload.get("colnames"),
+            "coltypes": payload.get("coltypes"),
+            "rowcount": payload.get("rowcount"),
+            "sql_rowcount": payload.get("sql_rowcount"),
+        }
+        return self.json_response(response)
 
     def get_samples(self, viz_obj: BaseViz) -> FlaskResponse:
         return self.json_response(viz_obj.get_samples())
@@ -531,14 +529,14 @@ class Superset(BaseSupersetView):
             )
         standalone_mode = ReservedUrlParameters.is_standalone_mode()
         force = request.args.get("force") in {"force", "1", "true"}
-        dummy_datasource_data: BaseDatasourceData = {
+        dummy_datasource_data: ExplorableData = {
             "type": datasource_type or "unknown",
             "name": datasource_name,
             "columns": [],
             "metrics": [],
             "database": {"id": 0, "backend": ""},
         }
-        datasource_data: BaseDatasourceData | QueryData
+        datasource_data: ExplorableData
         try:
             datasource_data = datasource.data if datasource else dummy_datasource_data
         except (SupersetException, SQLAlchemyError):

@@ -16,21 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { EchartsProps } from '../types';
+import { TreeTransformedProps } from './types';
 import Echart from '../components/Echart';
 
-export default function EchartsGraph({
+export default function EchartsTree({
   echartOptions,
   height,
   refs,
   width,
-}: EchartsProps) {
+  formData,
+}: TreeTransformedProps) {
   return (
     <Echart
       refs={refs}
       height={height}
       width={width}
       echartOptions={echartOptions}
+      vizType={formData.vizType}
     />
   );
 }

@@ -135,7 +135,8 @@ export { customRender as render };
 export { default as userEvent } from '@testing-library/user-event';
 
 export async function selectOption(option: string, selectName?: string) {
-  const select = screen.getByRole(
+  // Use findByRole (async) to wait for element to be ready, preventing race conditions on slow CI
+  const select = await screen.findByRole(
     'combobox',
     selectName ? { name: selectName } : {},
   );
