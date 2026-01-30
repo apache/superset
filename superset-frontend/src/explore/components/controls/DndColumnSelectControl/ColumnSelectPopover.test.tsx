@@ -60,7 +60,13 @@ const renderPopover = (
     'columns' | 'editedColumn' | 'getCurrentTab' | 'onChange'
   >,
 ) => {
-  const store = mockStore({ explore: { past: [], present: {datasource: { type: 'table' }}, future: [] } });
+  const store = mockStore({
+    explore: {
+      past: [],
+      present: { datasource: { type: 'table' } },
+      future: [],
+    },
+  });
 
   return render(
     <ColumnSelectPopover
