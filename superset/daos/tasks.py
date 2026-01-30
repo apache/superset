@@ -29,7 +29,6 @@ from superset.models.task_subscribers import TaskSubscriber
 from superset.models.tasks import Task
 from superset.tasks.filters import TaskFilter
 from superset.tasks.utils import get_active_dedup_key
-from superset.utils.decorators import transaction
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +79,6 @@ class TaskDAO(BaseDAO[Task]):
         return db.session.query(Task).filter(Task.dedup_key == dedup_key).one_or_none()
 
     @classmethod
-    @transaction()
     def create_task(
         cls,
         task_type: str,
@@ -167,7 +165,6 @@ class TaskDAO(BaseDAO[Task]):
         return task
 
     @classmethod
-    @transaction()
     def abort_task(cls, task_uuid: str, skip_base_filter: bool = False) -> Task | None:
         """
         Abort a task by UUID.
@@ -235,7 +232,6 @@ class TaskDAO(BaseDAO[Task]):
     # Subscription management methods
 
     @classmethod
-    @transaction()
     def add_subscriber(cls, task_id: int, user_id: int) -> bool:
         """
         Add a user as a subscriber to a task.
@@ -268,7 +264,6 @@ class TaskDAO(BaseDAO[Task]):
         return True
 
     @classmethod
-    @transaction()
     def remove_subscriber(cls, task_id: int, user_id: int) -> Task | None:
         """
         Remove a user's subscription from a task and return the updated task.

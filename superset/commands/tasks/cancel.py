@@ -232,7 +232,9 @@ class CancelTaskCommand(BaseCommand):
         from superset.daos.tasks import TaskDAO
 
         try:
-            result = TaskDAO.abort_task(task.uuid, skip_base_filter=is_admin)
+            result: Task | None = TaskDAO.abort_task(
+                task.uuid, skip_base_filter=is_admin
+            )
         except TaskNotAbortableError:
             raise
 
@@ -244,7 +246,7 @@ class CancelTaskCommand(BaseCommand):
         self._action_taken = "aborted"
 
         # Track if we need to publish abort after commit
-        if result.status == TaskStatus.ABORTING.value:
+        if TaskStatus(result.status) == TaskStatus.ABORTING:
             self._should_publish_abort = True
 
         logger.info(

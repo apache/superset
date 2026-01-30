@@ -15,252 +15,376 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from unittest.mock import MagicMock, patch
+from collections.abc import Iterator
 
 import pytest
-from superset_core.api.tasks import TaskStatus
+from sqlalchemy.orm.session import Session
+from superset_core.api.tasks import TaskProperties, TaskScope, TaskStatus
 
-from superset.daos.tasks import TaskDAO
+from superset.commands.tasks.exceptions import TaskNotAbortableError
 from superset.models.tasks import Task
+from superset.tasks.utils import get_active_dedup_key, get_finished_dedup_key
+
+# Test constants
+TASK_UUID = "e7765491-40c1-4f35-a4f5-06308e79310e"
+TEST_TASK_TYPE = "test_type"
+TEST_TASK_KEY = "test-key"
+TEST_USER_ID = 1
 
 
-class TestTaskDAO:
-    """Test TaskDAO functionality"""
-
-    @patch("superset.utils.core.get_user_id")
-    @patch("superset.daos.tasks.db.session")
-    def test_find_by_task_key_active(self, mock_session, mock_get_user_id):
-        """Test finding active task by task_key"""
-        mock_get_user_id.return_value = 1
-        mock_task = MagicMock(spec=Task)
-        mock_task.task_key = "test-id"
-        mock_task.task_type = "test_type"
-        mock_task.status = TaskStatus.PENDING.value
-
-        mock_query = MagicMock()
-        mock_session.query.return_value = mock_query
-        mock_filter = MagicMock()
-        mock_query.filter.return_value = mock_filter
-        mock_filter.one_or_none.return_value = mock_task
-
-        result = TaskDAO.find_by_task_key("test_type", "test-key")
-
-        assert result == mock_task
-        mock_session.query.assert_called_once_with(Task)
-
-    @patch("superset.utils.core.get_user_id")
-    @patch("superset.daos.tasks.db.session")
-    def test_find_by_task_key_not_found(self, mock_session, mock_get_user_id):
-        """Test finding task by task_key returns None when not found"""
-        mock_get_user_id.return_value = 1
-        mock_query = MagicMock()
-        mock_session.query.return_value = mock_query
-        mock_filter = MagicMock()
-        mock_query.filter.return_value = mock_filter
-        mock_filter.one_or_none.return_value = None
-
-        result = TaskDAO.find_by_task_key("test_type", "nonexistent-key")
-
-        assert result is None
-
-    @patch("superset.utils.core.get_user_id")
-    @patch("superset.daos.tasks.db.session")
-    def test_find_by_task_key_ignores_finished_tasks(
-        self, mock_session, mock_get_user_id
-    ):
-        """Test that find_by_task_key only returns pending/in-progress tasks"""
-        mock_get_user_id.return_value = 1
-        mock_query = MagicMock()
-        mock_session.query.return_value = mock_query
-        mock_filter = MagicMock()
-        mock_query.filter.return_value = mock_filter
-        mock_filter.one_or_none.return_value = None
-
-        # Should not find SUCCESS task
-        result = TaskDAO.find_by_task_key("test_type", "finished-key")
-        assert result is None
-
-    @patch("superset.utils.core.get_user_id")
-    @patch("superset.daos.tasks.TaskDAO.create")
-    @patch("superset.daos.tasks.db.session")
-    def test_create_task_success(self, mock_session, mock_create, mock_get_user_id):
-        """Test successful task creation.
-
-        TaskDAO.create_task is now a pure data operation - it assumes the caller
-        (SubmitTaskCommand) has already checked for duplicates and holds the lock.
-        """
-        mock_get_user_id.return_value = 1
-        mock_task = MagicMock(spec=Task)
-        mock_task.id = 1
-        mock_task.task_key = "new-task"
-        mock_task.task_type = "test_type"
-        mock_create.return_value = mock_task
-
-        result = TaskDAO.create_task(
-            task_type="test_type",
-            task_key="new-task",
+def create_task(
+    session: Session,
+    *,
+    task_key: str = TEST_TASK_KEY,
+    task_type: str = TEST_TASK_TYPE,
+    scope: TaskScope = TaskScope.PRIVATE,
+    status: TaskStatus = TaskStatus.PENDING,
+    user_id: int | None = TEST_USER_ID,
+    properties: TaskProperties | None = None,
+    use_finished_dedup_key: bool = False,
+    task_uuid: str | None = None,
+) -> Task:
+    """Helper to create a task with sensible defaults for testing."""
+    if use_finished_dedup_key:
+        dedup_key = get_finished_dedup_key(task_uuid or TASK_UUID)
+    else:
+        dedup_key = get_active_dedup_key(
+            scope=scope,
+            task_type=task_type,
+            task_key=task_key,
+            user_id=user_id if scope == TaskScope.PRIVATE else None,
         )
 
-        assert result == mock_task
-        mock_create.assert_called_once()
-        mock_session.commit.assert_called_once()
+    task = Task(
+        task_type=task_type,
+        task_key=task_key,
+        scope=scope.value,
+        status=status.value,
+        dedup_key=dedup_key,
+        user_id=user_id,
+    )
+    if task_uuid:
+        task.uuid = task_uuid
+    if properties:
+        task.update_properties(properties)
 
-    @patch("superset.utils.core.get_user_id")
-    @patch("superset.daos.tasks.TaskDAO.create")
-    @patch("superset.daos.tasks.db.session")
-    def test_create_task_with_user_id(
-        self, mock_session, mock_create, mock_get_user_id
-    ):
-        """Test task creation with explicit user_id.
+    session.add(task)
+    session.flush()
+    return task
 
-        TaskDAO.create_task should use the provided user_id for the task.
-        """
-        mock_get_user_id.return_value = 99  # Different from provided user_id
-        mock_task = MagicMock(spec=Task)
-        mock_task.id = 1
-        mock_task.task_key = "new-task"
-        mock_task.task_type = "test_type"
-        mock_create.return_value = mock_task
 
-        result = TaskDAO.create_task(
-            task_type="test_type",
-            task_key="new-task",
-            user_id=42,  # Explicit user_id
-        )
+@pytest.fixture
+def session_with_task(session: Session) -> Iterator[Session]:
+    """Create a session with Task and TaskSubscriber tables."""
+    from superset.models.task_subscribers import TaskSubscriber
 
-        assert result == mock_task
-        # Verify create was called with user_id in attributes
-        call_args = mock_create.call_args
-        assert call_args[1]["attributes"]["user_id"] == 42
+    engine = session.get_bind()
+    Task.metadata.create_all(engine)
+    TaskSubscriber.metadata.create_all(engine)
 
-    @patch("superset.utils.core.get_user_id")
-    @patch("superset.daos.tasks.TaskDAO.create")
-    @patch("superset.daos.tasks.db.session")
-    def test_create_task_with_properties(
-        self, mock_session, mock_create, mock_get_user_id
-    ):
-        """Test task creation with properties.
+    yield session
+    session.rollback()
 
-        Properties are set via update_properties() after task creation.
-        """
-        mock_get_user_id.return_value = 1
-        mock_task = MagicMock(spec=Task)
-        mock_task.id = 1
-        mock_task.task_key = "new-task"
-        mock_task.task_type = "test_type"
-        mock_create.return_value = mock_task
 
-        result = TaskDAO.create_task(
-            task_type="test_type",
-            task_key="new-task",
-            properties={"timeout": 300},
-        )
+def test_find_by_task_key_active(session_with_task: Session) -> None:
+    """Test finding active task by task_key"""
+    from superset.daos.tasks import TaskDAO
 
-        assert result == mock_task
-        mock_task.update_properties.assert_called_once_with({"timeout": 300})
+    create_task(session_with_task)
 
-    @patch("superset.daos.tasks.TaskDAO.find_one_or_none")
-    @patch("superset.daos.tasks.db.session")
-    def test_abort_task_pending_success(self, mock_session, mock_find):
-        """Test successful abort of pending task - goes directly to ABORTED"""
-        mock_task = MagicMock(spec=Task)
-        mock_task.status = TaskStatus.PENDING.value
-        mock_task.is_shared = False
-        mock_task.subscriber_count = 0
-        mock_find.return_value = mock_task
+    result = TaskDAO.find_by_task_key(
+        task_type=TEST_TASK_TYPE,
+        task_key=TEST_TASK_KEY,
+        scope=TaskScope.PRIVATE,
+        user_id=TEST_USER_ID,
+    )
 
-        result = TaskDAO.abort_task("test-uuid")
+    assert result is not None
+    assert result.task_key == TEST_TASK_KEY
+    assert result.task_type == TEST_TASK_TYPE
+    assert result.status == TaskStatus.PENDING.value
 
-        # Now returns Task instead of bool
-        assert result is mock_task
-        mock_task.set_status.assert_called_once_with(TaskStatus.ABORTED)
-        mock_session.commit.assert_called_once()
 
-    @patch("superset.daos.tasks.TaskDAO.find_one_or_none")
-    @patch("superset.daos.tasks.db.session")
-    def test_abort_task_in_progress_abortable(self, mock_session, mock_find):
-        """Test abort of in-progress task with abort handler.
+def test_find_by_task_key_not_found(session_with_task: Session) -> None:
+    """Test finding task by task_key returns None when not found"""
+    from superset.daos.tasks import TaskDAO
 
-        Should transition to ABORTING status.
-        """
-        mock_task = MagicMock(spec=Task)
-        mock_task.status = TaskStatus.IN_PROGRESS.value
-        mock_task.properties = {"is_abortable": True}  # Dict, not MagicMock
-        mock_task.is_shared = False
-        mock_task.subscriber_count = 0
-        mock_find.return_value = mock_task
+    result = TaskDAO.find_by_task_key(
+        task_type=TEST_TASK_TYPE,
+        task_key="nonexistent-key",
+        scope=TaskScope.PRIVATE,
+        user_id=TEST_USER_ID,
+    )
 
-        result = TaskDAO.abort_task("test-uuid")
+    assert result is None
 
-        # Now returns Task instead of bool
-        assert result is mock_task
-        # Should set status to ABORTING, not ABORTED
-        assert mock_task.status == TaskStatus.ABORTING.value
-        mock_session.merge.assert_called_once_with(mock_task)
-        mock_session.commit.assert_called_once()
 
-    @patch("superset.daos.tasks.TaskDAO.find_one_or_none")
-    def test_abort_task_in_progress_not_abortable(self, mock_find):
-        """Test abort of in-progress task without abort handler - raises error"""
-        from superset.commands.tasks.exceptions import TaskNotAbortableError
+def test_find_by_task_key_finished_not_found(session_with_task: Session) -> None:
+    """Test that find_by_task_key returns None for finished tasks.
 
-        mock_task = MagicMock(spec=Task)
-        mock_task.status = TaskStatus.IN_PROGRESS.value
-        mock_task.properties = {"is_abortable": False}  # Dict, not MagicMock
-        mock_task.is_shared = False
-        mock_task.subscriber_count = 0
-        mock_find.return_value = mock_task
+    Finished tasks have a different dedup_key format (UUID-based),
+    so they won't be found by the active task lookup.
+    """
+    from superset.daos.tasks import TaskDAO
 
-        with pytest.raises(TaskNotAbortableError):
-            TaskDAO.abort_task("test-uuid")
+    create_task(
+        session_with_task,
+        task_key="finished-key",
+        status=TaskStatus.SUCCESS,
+        use_finished_dedup_key=True,
+        task_uuid=TASK_UUID,
+    )
 
-    @patch("superset.daos.tasks.TaskDAO.find_one_or_none")
-    def test_abort_task_in_progress_is_abortable_none(self, mock_find):
-        """Test abort of in-progress task with is_abortable not set - raises error"""
-        from superset.commands.tasks.exceptions import TaskNotAbortableError
+    # Should not find SUCCESS task via active lookup
+    result = TaskDAO.find_by_task_key(
+        task_type=TEST_TASK_TYPE,
+        task_key="finished-key",
+        scope=TaskScope.PRIVATE,
+        user_id=TEST_USER_ID,
+    )
+    assert result is None
 
-        mock_task = MagicMock(spec=Task)
-        mock_task.status = TaskStatus.IN_PROGRESS.value
-        mock_task.properties = {}  # Empty dict - no is_abortable key
-        mock_task.is_shared = False
-        mock_task.subscriber_count = 0
-        mock_find.return_value = mock_task
 
-        with pytest.raises(TaskNotAbortableError):
-            TaskDAO.abort_task("test-uuid")
+def test_create_task_success(session_with_task: Session) -> None:
+    """Test successful task creation."""
+    from superset.daos.tasks import TaskDAO
 
-    @patch("superset.daos.tasks.TaskDAO.find_one_or_none")
-    def test_abort_task_already_aborting(self, mock_find):
-        """Test abort of already aborting task - idempotent success"""
-        mock_task = MagicMock(spec=Task)
-        mock_task.status = TaskStatus.ABORTING.value
-        mock_find.return_value = mock_task
+    result = TaskDAO.create_task(
+        task_type=TEST_TASK_TYPE,
+        task_key=TEST_TASK_KEY,
+        scope=TaskScope.PRIVATE,
+        user_id=TEST_USER_ID,
+    )
 
-        result = TaskDAO.abort_task("test-uuid")
+    assert result is not None
+    assert result.task_key == TEST_TASK_KEY
+    assert result.task_type == TEST_TASK_TYPE
+    assert result.status == TaskStatus.PENDING.value
+    assert isinstance(result, Task)
 
-        # Now returns Task instead of bool - idempotent, already aborting
-        assert result is mock_task
-        mock_task.set_status.assert_not_called()  # No status change needed
 
-    @patch("superset.daos.tasks.TaskDAO.find_one_or_none")
-    def test_abort_task_not_found(self, mock_find):
-        """Test abort fails when task not found"""
-        mock_find.return_value = None
+def test_create_task_with_user_id(session_with_task: Session) -> None:
+    """Test task creation with explicit user_id."""
+    from superset.daos.tasks import TaskDAO
 
-        result = TaskDAO.abort_task("nonexistent-uuid")
+    result = TaskDAO.create_task(
+        task_type=TEST_TASK_TYPE,
+        task_key="user-task",
+        scope=TaskScope.PRIVATE,
+        user_id=42,
+    )
 
-        # Now returns None instead of False
-        assert result is None
+    assert result is not None
+    assert result.user_id == 42
+    # Creator should be auto-subscribed
+    assert len(result.subscribers) == 1
+    assert result.subscribers[0].user_id == 42
 
-    @patch("superset.daos.tasks.TaskDAO.find_one_or_none")
-    def test_abort_task_already_finished(self, mock_find):
-        """Test abort fails when task already finished"""
-        mock_task = MagicMock(spec=Task)
-        mock_task.status = TaskStatus.SUCCESS.value
-        mock_find.return_value = mock_task
 
-        result = TaskDAO.abort_task("finished-uuid")
+def test_create_task_with_properties(session_with_task: Session) -> None:
+    """Test task creation with properties."""
+    from superset.daos.tasks import TaskDAO
 
-        # Now returns None instead of False
-        assert result is None
-        mock_task.set_status.assert_not_called()
+    result = TaskDAO.create_task(
+        task_type=TEST_TASK_TYPE,
+        task_key="props-task",
+        scope=TaskScope.PRIVATE,
+        user_id=TEST_USER_ID,
+        properties={"timeout": 300},
+    )
+
+    assert result is not None
+    assert result.properties.get("timeout") == 300
+
+
+def test_abort_task_pending_success(session_with_task: Session) -> None:
+    """Test successful abort of pending task - goes directly to ABORTED"""
+    from superset.daos.tasks import TaskDAO
+
+    task = create_task(
+        session_with_task,
+        task_key="pending-task",
+        status=TaskStatus.PENDING,
+    )
+
+    result = TaskDAO.abort_task(str(task.uuid), skip_base_filter=True)
+
+    assert result is not None
+    assert result.status == TaskStatus.ABORTED.value
+
+
+def test_abort_task_in_progress_abortable(session_with_task: Session) -> None:
+    """Test abort of in-progress task with abort handler.
+
+    Should transition to ABORTING status.
+    """
+    from superset.daos.tasks import TaskDAO
+
+    task = create_task(
+        session_with_task,
+        task_key="abortable-task",
+        status=TaskStatus.IN_PROGRESS,
+        properties={"is_abortable": True},
+    )
+
+    result = TaskDAO.abort_task(str(task.uuid), skip_base_filter=True)
+
+    assert result is not None
+    # Should set status to ABORTING, not ABORTED
+    assert result.status == TaskStatus.ABORTING.value
+
+
+def test_abort_task_in_progress_not_abortable(session_with_task: Session) -> None:
+    """Test abort of in-progress task without abort handler - raises error"""
+    from superset.daos.tasks import TaskDAO
+
+    task = create_task(
+        session_with_task,
+        task_key="non-abortable-task",
+        status=TaskStatus.IN_PROGRESS,
+        properties={"is_abortable": False},
+    )
+
+    with pytest.raises(TaskNotAbortableError):
+        TaskDAO.abort_task(str(task.uuid), skip_base_filter=True)
+
+
+def test_abort_task_in_progress_is_abortable_none(session_with_task: Session) -> None:
+    """Test abort of in-progress task with is_abortable not set - raises error"""
+    from superset.daos.tasks import TaskDAO
+
+    task = create_task(
+        session_with_task,
+        task_key="no-abortable-prop-task",
+        status=TaskStatus.IN_PROGRESS,
+        # Empty properties - no is_abortable key
+    )
+
+    with pytest.raises(TaskNotAbortableError):
+        TaskDAO.abort_task(str(task.uuid), skip_base_filter=True)
+
+
+def test_abort_task_already_aborting(session_with_task: Session) -> None:
+    """Test abort of already aborting task - idempotent success"""
+    from superset.daos.tasks import TaskDAO
+
+    task = create_task(
+        session_with_task,
+        task_key="aborting-task",
+        status=TaskStatus.ABORTING,
+    )
+
+    result = TaskDAO.abort_task(str(task.uuid), skip_base_filter=True)
+
+    # Idempotent - returns task without error
+    assert result is not None
+    assert result.status == TaskStatus.ABORTING.value
+
+
+def test_abort_task_not_found(session_with_task: Session) -> None:
+    """Test abort fails when task not found"""
+    from superset.daos.tasks import TaskDAO
+
+    result = TaskDAO.abort_task("00000000-0000-0000-0000-000000000000")
+
+    assert result is None
+
+
+def test_abort_task_already_finished(session_with_task: Session) -> None:
+    """Test abort fails when task already finished"""
+    from superset.daos.tasks import TaskDAO
+
+    task = create_task(
+        session_with_task,
+        task_key="finished-task",
+        status=TaskStatus.SUCCESS,
+        use_finished_dedup_key=True,
+        task_uuid=TASK_UUID,
+    )
+
+    result = TaskDAO.abort_task(str(task.uuid), skip_base_filter=True)
+
+    assert result is None
+
+
+def test_add_subscriber(session_with_task: Session) -> None:
+    """Test adding a subscriber to a task"""
+    from superset.daos.tasks import TaskDAO
+
+    task = create_task(
+        session_with_task,
+        task_key="shared-task",
+        scope=TaskScope.SHARED,
+        user_id=None,
+    )
+
+    # Add subscriber
+    result = TaskDAO.add_subscriber(task.id, user_id=TEST_USER_ID)
+    assert result is True
+
+    # Verify subscriber was added
+    session_with_task.refresh(task)
+    assert len(task.subscribers) == 1
+    assert task.subscribers[0].user_id == TEST_USER_ID
+
+
+def test_add_subscriber_idempotent(session_with_task: Session) -> None:
+    """Test adding same subscriber twice is idempotent"""
+    from superset.daos.tasks import TaskDAO
+
+    task = create_task(
+        session_with_task,
+        task_key="shared-task-2",
+        scope=TaskScope.SHARED,
+        user_id=None,
+    )
+
+    # Add subscriber twice
+    result1 = TaskDAO.add_subscriber(task.id, user_id=TEST_USER_ID)
+    result2 = TaskDAO.add_subscriber(task.id, user_id=TEST_USER_ID)
+
+    assert result1 is True
+    assert result2 is False  # Already subscribed
+
+    # Verify only one subscriber
+    session_with_task.refresh(task)
+    assert len(task.subscribers) == 1
+
+
+def test_remove_subscriber(session_with_task: Session) -> None:
+    """Test removing a subscriber from a task"""
+    from superset.daos.tasks import TaskDAO
+
+    task = create_task(
+        session_with_task,
+        task_key="shared-task-3",
+        scope=TaskScope.SHARED,
+        user_id=None,
+    )
+
+    TaskDAO.add_subscriber(task.id, user_id=TEST_USER_ID)
+    session_with_task.refresh(task)
+    assert len(task.subscribers) == 1
+
+    # Remove subscriber
+    result = TaskDAO.remove_subscriber(task.id, user_id=TEST_USER_ID)
+
+    assert result is not None
+    assert len(result.subscribers) == 0
+
+
+def test_remove_subscriber_not_subscribed(session_with_task: Session) -> None:
+    """Test removing non-existent subscriber returns None"""
+    from superset.daos.tasks import TaskDAO
+
+    task = create_task(
+        session_with_task,
+        task_key="shared-task-4",
+        scope=TaskScope.SHARED,
+        user_id=None,
+    )
+
+    # Try to remove non-existent subscriber
+    result = TaskDAO.remove_subscriber(task.id, user_id=999)
+
+    assert result is None
