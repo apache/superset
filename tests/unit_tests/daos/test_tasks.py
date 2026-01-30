@@ -171,7 +171,8 @@ class TestTaskDAO:
 
         result = TaskDAO.abort_task("test-uuid")
 
-        assert result is True
+        # Now returns Task instead of bool
+        assert result is mock_task
         mock_task.set_status.assert_called_once_with(TaskStatus.ABORTED)
         mock_session.commit.assert_called_once()
 
@@ -191,7 +192,8 @@ class TestTaskDAO:
 
         result = TaskDAO.abort_task("test-uuid")
 
-        assert result is True
+        # Now returns Task instead of bool
+        assert result is mock_task
         # Should set status to ABORTING, not ABORTED
         assert mock_task.status == TaskStatus.ABORTING.value
         mock_session.merge.assert_called_once_with(mock_task)
@@ -236,7 +238,8 @@ class TestTaskDAO:
 
         result = TaskDAO.abort_task("test-uuid")
 
-        assert result is True  # Idempotent - already aborting
+        # Now returns Task instead of bool - idempotent, already aborting
+        assert result is mock_task
         mock_task.set_status.assert_not_called()  # No status change needed
 
     @patch("superset.daos.tasks.TaskDAO.find_one_or_none")
@@ -246,7 +249,8 @@ class TestTaskDAO:
 
         result = TaskDAO.abort_task("nonexistent-uuid")
 
-        assert result is False
+        # Now returns None instead of False
+        assert result is None
 
     @patch("superset.daos.tasks.TaskDAO.find_one_or_none")
     def test_abort_task_already_finished(self, mock_find):
@@ -257,5 +261,6 @@ class TestTaskDAO:
 
         result = TaskDAO.abort_task("finished-uuid")
 
-        assert result is False
+        # Now returns None instead of False
+        assert result is None
         mock_task.set_status.assert_not_called()

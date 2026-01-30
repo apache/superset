@@ -168,7 +168,7 @@ class TaskDAO(BaseDAO[Task]):
 
     @classmethod
     @transaction()
-    def abort_task(cls, task_uuid: str, skip_base_filter: bool = False) -> bool:
+    def abort_task(cls, task_uuid: str, skip_base_filter: bool = False) -> Task | None:
         """
         Abort a task by UUID.
 
@@ -179,34 +179,38 @@ class TaskDAO(BaseDAO[Task]):
         - PENDING: Goes directly to ABORTED (always abortable)
         - IN_PROGRESS with is_abortable=True: Goes to ABORTING
         - IN_PROGRESS with is_abortable=False/None: Raises TaskNotAbortableError
-        - ABORTING: Returns True (idempotent)
-        - Finished statuses: Returns False
+        - ABORTING: Returns task (idempotent)
+        - Finished statuses: Returns None
+
+        Note: Caller is responsible for calling TaskManager.publish_abort() AFTER
+        the transaction commits if task.status == ABORTING. This prevents race
+        conditions where listeners check the DB before the status is visible.
 
         :param task_uuid: UUID of task to abort
         :param skip_base_filter: If True, skip base filter (for admin abortions)
-        :returns: True if task was aborted/aborting, False if not found or finished
+        :returns: Task if aborted/aborting, None if not found or already finished
         :raises TaskNotAbortableError: If in-progress task has no abort handler
         """
         from superset.commands.tasks.exceptions import TaskNotAbortableError
 
         task = cls.find_one_or_none(skip_base_filter=skip_base_filter, uuid=task_uuid)
         if not task:
-            return False
+            return None
 
         # Already aborting - idempotent success
         if task.status == TaskStatus.ABORTING.value:
             logger.info("Task %s is already aborting", task_uuid)
-            return True
+            return task
 
         # Already finished - cannot abort
         if task.status not in [TaskStatus.PENDING.value, TaskStatus.IN_PROGRESS.value]:
-            return False
+            return None
 
         # PENDING: Go directly to ABORTED
         if task.status == TaskStatus.PENDING.value:
             task.set_status(TaskStatus.ABORTED)
             logger.info("Aborted pending task: %s (scope: %s)", task_uuid, task.scope)
-            return True
+            return task
 
         # IN_PROGRESS: Check if abortable
         if task.status == TaskStatus.IN_PROGRESS.value:
@@ -221,14 +225,12 @@ class TaskDAO(BaseDAO[Task]):
             db.session.merge(task)
             logger.info("Set task %s to ABORTING (scope: %s)", task_uuid, task.scope)
 
-            # Publish abort notification via TaskManager
-            from superset.tasks.manager import TaskManager
+            # NOTE: publish_abort is NOT called here - caller handles it after commit
+            # This prevents race conditions where listeners check DB before commit
 
-            TaskManager.publish_abort(task_uuid)
+            return task
 
-            return True
-
-        return False
+        return None
 
     # Subscription management methods
 
@@ -267,9 +269,9 @@ class TaskDAO(BaseDAO[Task]):
 
     @classmethod
     @transaction()
-    def remove_subscriber(cls, task_id: int, user_id: int) -> bool:
+    def remove_subscriber(cls, task_id: int, user_id: int) -> Task | None:
         """
-        Remove a user's subscription from a task.
+        Remove a user's subscription from a task and return the updated task.
 
         This is a pure data operation. Business logic (whether to abort after
         last subscriber leaves) is handled by CancelTaskCommand which holds
@@ -277,7 +279,7 @@ class TaskDAO(BaseDAO[Task]):
 
         :param task_id: ID of the task
         :param user_id: ID of the user to unsubscribe
-        :returns: True if subscriber was removed, False if not subscribed
+        :returns: Updated Task if subscriber was removed, None if not subscribed
         :raises DAODeleteFailedError: If subscription removal fails
         """
         subscription = (
@@ -290,13 +292,18 @@ class TaskDAO(BaseDAO[Task]):
         )
 
         if not subscription:
-            return False
+            return None
 
         try:
             db.session.delete(subscription)
             db.session.flush()
             logger.info("Removed subscriber %s from task %s", user_id, task_id)
-            return True
+
+            # Return the updated task
+            task = cls.find_by_id(task_id, skip_base_filter=True)
+            if task:
+                db.session.refresh(task)  # Ensure subscribers list is fresh
+            return task
 
         except DAODeleteFailedError:
             raise
