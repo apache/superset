@@ -1602,7 +1602,6 @@ class ChartDataResponseResult(Schema):
             "and result processing phases."
         },
         allow_none=True,
-        load_default=None,
     )
 
 
