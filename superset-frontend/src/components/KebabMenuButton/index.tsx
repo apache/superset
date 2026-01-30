@@ -17,10 +17,11 @@
  * under the License.
  */
 import { ReactNode } from 'react';
-import { css } from '@apache-superset/core/ui';
+import { css, useTheme } from '@apache-superset/core/ui';
 import { Dropdown, Button } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
-import { MenuItem } from '@superset-ui/core/components/Menu';
+import type { MenuItem } from '@superset-ui/core/components/Menu';
+import type { ButtonProps } from '@superset-ui/core/components/Button';
 
 export interface KebabMenuButtonProps {
   /**
@@ -34,7 +35,7 @@ export interface KebabMenuButtonProps {
   /**
    * Optional: Button size (default: 'xsmall')
    */
-  buttonSize?: 'small' | 'xsmall';
+  buttonSize?: ButtonProps['buttonSize'];
   /**
    * Optional: aria-label for accessibility
    */
@@ -50,7 +51,7 @@ export interface KebabMenuButtonProps {
   /**
    * Optional: Button style (default: 'link')
    */
-  buttonStyle?: 'primary' | 'secondary' | 'tertiary' | 'danger' | 'link';
+  buttonStyle?: ButtonProps['buttonStyle'];
   /**
    * Optional: Additional CSS for the button
    */
@@ -97,16 +98,24 @@ export function KebabMenuButton({
   placement,
   iconOrientation = 'horizontal',
 }: KebabMenuButtonProps) {
+  const theme = useTheme();
+
   const defaultIcon =
     iconOrientation === 'vertical' ? (
       <Icons.EllipsisOutlined
         css={css`
+          color: ${theme.colorTextLabel};
           transform: rotate(90deg);
         `}
         iconSize="xl"
       />
     ) : (
-      <Icons.MoreOutlined iconSize="xl" />
+      <Icons.MoreOutlined
+        css={css`
+          color: ${theme.colorTextLabel};
+        `}
+        iconSize="xl"
+      />
     );
 
   return (

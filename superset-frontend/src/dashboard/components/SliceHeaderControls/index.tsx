@@ -566,6 +566,7 @@ const SliceHeaderControls = (
               transform: rotate(90deg);
             `}
             iconSize="xl"
+            iconColor={theme.colorTextLabel}
             className="dot"
           />
         </Button>
