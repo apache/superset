@@ -70,6 +70,6 @@ def teardown(  # pylint: disable=unused-argument
             db.session.commit()  # pylint: disable=consider-using-transaction
 
     if not flask_app.config.get("CELERY_ALWAYS_EAGER"):
-        # Ensure session is removed only inside app context
+        # Ensure session is removed only inside flask app context
         if has_app_context():
             db.session.remove()
