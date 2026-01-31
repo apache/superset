@@ -114,7 +114,7 @@ export function AsyncAceEditor(
     defaultMode,
     defaultTheme,
     defaultTabSize = 2,
-    fontFamily = 'Menlo, Consolas, Courier New, Ubuntu Mono, source-code-pro, Lucida Console, monospace',
+    fontFamily,
     placeholder,
   }: AsyncAceEditorOptions = {},
 ) {
@@ -171,6 +171,7 @@ export function AsyncAceEditor(
         ref,
       ) {
         const token = useTheme();
+        const editorFontFamily = fontFamily || token.fontFamilyCode;
         const langTools = acequire('ace/ext/language_tools');
 
         const setCompleters = useCallback(
@@ -436,7 +437,7 @@ export function AsyncAceEditor(
               theme={theme}
               tabSize={tabSize}
               defaultValue={defaultValue}
-              setOptions={{ fontFamily }}
+              setOptions={{ fontFamily: editorFontFamily }}
               {...props}
             />
           </>
