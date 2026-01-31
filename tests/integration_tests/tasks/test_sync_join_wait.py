@@ -27,11 +27,14 @@ from superset.daos.tasks import TaskDAO
 from superset.tasks.manager import TaskManager
 
 
-def test_submit_task_distinguishes_new_vs_existing(app_context, login_as) -> None:
+def test_submit_task_distinguishes_new_vs_existing(
+    app_context, login_as, get_user
+) -> None:
     """
     Test that SubmitTaskCommand.run_with_info() correctly returns is_new flag.
     """
     login_as("admin")
+    admin = get_user("admin")
 
     # First submission - should be new
     task1, is_new1 = SubmitTaskCommand(
@@ -39,6 +42,7 @@ def test_submit_task_distinguishes_new_vs_existing(app_context, login_as) -> Non
             "task_type": "test-type",
             "task_key": "distinguish-key",
             "task_name": "First Task",
+            "user_id": admin.id,
         }
     ).run_with_info()
 
@@ -51,6 +55,7 @@ def test_submit_task_distinguishes_new_vs_existing(app_context, login_as) -> Non
                 "task_type": "test-type",
                 "task_key": "distinguish-key",
                 "task_name": "Second Task",
+                "user_id": admin.id,
             }
         ).run_with_info()
 
@@ -78,13 +83,14 @@ def test_terminal_states_recognized_correctly(app_context) -> None:
     assert TaskStatus.ABORTING.value not in TaskManager.TERMINAL_STATES
 
 
-def test_wait_for_completion_timeout(app_context, login_as) -> None:
+def test_wait_for_completion_timeout(app_context, login_as, get_user) -> None:
     """
     Test that wait_for_completion raises TimeoutError on timeout.
     """
     import pytest
 
     login_as("admin")
+    admin = get_user("admin")
 
     # Create a pending task (won't complete)
     task, _ = SubmitTaskCommand(
@@ -92,6 +98,7 @@ def test_wait_for_completion_timeout(app_context, login_as) -> None:
             "task_type": "test-timeout",
             "task_key": "timeout-key",
             "task_name": "Timeout Task",
+            "user_id": admin.id,
         }
     ).run_with_info()
 
@@ -113,11 +120,14 @@ def test_wait_for_completion_timeout(app_context, login_as) -> None:
         db.session.commit()
 
 
-def test_wait_returns_immediately_for_terminal_task(app_context, login_as) -> None:
+def test_wait_returns_immediately_for_terminal_task(
+    app_context, login_as, get_user
+) -> None:
     """
     Test that wait_for_completion returns immediately if task is already terminal.
     """
     login_as("admin")
+    admin = get_user("admin")
 
     # Create and immediately complete a task
     task, _ = SubmitTaskCommand(
@@ -125,6 +135,7 @@ def test_wait_returns_immediately_for_terminal_task(app_context, login_as) -> No
             "task_type": "test-immediate",
             "task_key": "immediate-key",
             "task_name": "Immediate Task",
+            "user_id": admin.id,
         }
     ).run_with_info()
 
