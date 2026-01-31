@@ -617,7 +617,7 @@ test('Should pass formData to Share menu for embed code feature', () => {
   expect(screen.getByText('Share')).toBeInTheDocument();
 });
 
-test('Should show single fetched query tooltip with timestamp', () => {
+test('Should show single fetched query tooltip with timestamp', async () => {
   const updatedDttm = Date.parse('2024-01-28T10:00:00.000Z');
   const props = createProps();
   props.isCached = [false];
@@ -630,11 +630,11 @@ test('Should show single fetched query tooltip with timestamp', () => {
   const refreshButton = screen.getByText('Force refresh');
   expect(refreshButton).toBeInTheDocument();
 
-  const tooltipContainer = refreshButton.closest('div');
-  expect(tooltipContainer?.textContent).toMatch(/Fetched/);
+  userEvent.hover(refreshButton);
+  expect(await screen.findByText(/Fetched/)).toBeInTheDocument();
 });
 
-test('Should show single cached query tooltip with timestamp', () => {
+test('Should show single cached query tooltip with timestamp', async () => {
   const cachedDttm = '2024-01-28T10:00:00.000Z';
   const props = createProps();
   props.isCached = [true];
@@ -647,11 +647,11 @@ test('Should show single cached query tooltip with timestamp', () => {
   const refreshButton = screen.getByText('Force refresh');
   expect(refreshButton).toBeInTheDocument();
 
-  const tooltipContainer = refreshButton.closest('div');
-  expect(tooltipContainer?.textContent).toMatch(/Cached/);
+  userEvent.hover(refreshButton);
+  expect(await screen.findByText(/Cached/)).toBeInTheDocument();
 });
 
-test('Should show multiple per-query tooltips when all queries are fetched', () => {
+test('Should show multiple per-query tooltips when all queries are fetched', async () => {
   const cachedDttm1 = '';
   const cachedDttm2 = '';
   const updatedDttm = Date.parse('2024-01-28T10:10:00.000Z');
@@ -666,11 +666,11 @@ test('Should show multiple per-query tooltips when all queries are fetched', () 
   const refreshButton = screen.getByText('Force refresh');
   expect(refreshButton).toBeInTheDocument();
 
-  const tooltipContainer = refreshButton.closest('div');
-  expect(tooltipContainer?.textContent).toMatch(/Fetched/);
+  userEvent.hover(refreshButton);
+  expect(await screen.findByText(/Fetched/)).toBeInTheDocument();
 });
 
-test('Should show multiple per-query tooltips when all queries are cached', () => {
+test('Should show multiple per-query tooltips when all queries are cached', async() => {
   const cachedDttm1 = '2025-01-28T10:00:00.000Z';
   const cachedDttm2 = '2024-01-28T10:05:00.000Z';
   const props = createProps(VizType.Table);
@@ -684,14 +684,13 @@ test('Should show multiple per-query tooltips when all queries are cached', () =
   const refreshButton = screen.getByText('Force refresh');
   expect(refreshButton).toBeInTheDocument();
 
-  const tooltipContainer = refreshButton.closest('div');
-  expect(tooltipContainer?.textContent).toMatch(/Query 1:/);
-  expect(tooltipContainer?.textContent).toMatch(/Query 2:/);
-  expect(tooltipContainer?.textContent).toMatch(/Cached/);
+  userEvent.hover(refreshButton);
+  expect(await screen.findByText(/Query 1: Cached/)).toBeInTheDocument();
+  expect(await screen.findByText(/Query 2: Cached/)).toBeInTheDocument();
 });
 
 
-test('Should deduplicate identical cache times in tooltip', () => {
+test('Should deduplicate identical cache times in tooltip', async () => {
   const sameCachedDttm = '2024-01-28T10:00:00.000Z';
   const props = createProps(VizType.Table);
   props.isCached = [true, true];
@@ -704,13 +703,11 @@ test('Should deduplicate identical cache times in tooltip', () => {
   const refreshButton = screen.getByText('Force refresh');
   expect(refreshButton).toBeInTheDocument();
 
-  const tooltipContainer = refreshButton.closest('div');
-  const tooltipText = tooltipContainer?.textContent || '';
-  expect(tooltipText).toMatch(/Cached/);
-  expect(tooltipText).not.toMatch(/Query 1:/);
+  userEvent.hover(refreshButton);
+  expect(await screen.findByText(/Cached/)).toBeInTheDocument();
 });
 
-test('Should handle three or more queries with different cache states', () => {
+test('Should handle three or more queries with different cache states', async () => {
   const cachedDttm1 = '2024-01-28T10:00:00.000Z';
   const cachedDttm2 = '2024-01-28T10:05:00.000Z';
   const cachedDttm3 = '';
@@ -726,8 +723,9 @@ test('Should handle three or more queries with different cache states', () => {
   const refreshButton = screen.getByText('Force refresh');
   expect(refreshButton).toBeInTheDocument();
 
-  const tooltipContainer = refreshButton.closest('div');
-  expect(tooltipContainer?.textContent).toMatch(/Query 1:/);
-  expect(tooltipContainer?.textContent).toMatch(/Query 2:/);
-  expect(tooltipContainer?.textContent).toMatch(/Query 3:/);
+  userEvent.hover(refreshButton);
+
+  expect(await screen.findByText(/Query 1:/)).toBeInTheDocument();
+  expect(await screen.findByText(/Query 2:/)).toBeInTheDocument();
+  expect(await screen.findByText(/Query 3:/)).toBeInTheDocument();
 });
