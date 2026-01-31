@@ -32,6 +32,7 @@ import { FilterElement } from './FilterBar/FilterControls/types';
 import { ActiveTabs, DashboardLayout, RootState } from '../../types';
 import { CHART_TYPE, TAB_TYPE } from '../../util/componentTypes';
 import { isChartCustomizationId } from './FiltersConfigModal/utils';
+import { DASHBOARD_ROOT_ID } from '../../util/constants';
 
 const EMPTY_ARRAY: ChartCustomizationConfiguration = [];
 const defaultFilterConfiguration: (Filter | Divider)[] = [];
@@ -239,6 +240,7 @@ export function useIsFilterInScope() {
 
 export function useSelectFiltersInScope(filters: (Filter | Divider)[]) {
   const dashboardHasTabs = useDashboardHasTabs();
+  const dashboardLayout = useDashboardLayout();
   const isFilterInScope = useIsFilterInScope();
 
   return useMemo(() => {
@@ -255,12 +257,26 @@ export function useSelectFiltersInScope(filters: (Filter | Divider)[]) {
         if (filterInScope) {
           filtersInScope.push(filter);
         } else {
-          filtersOutOfScope.push(filter);
+          // Hide tab-scoped filters when their tab exists but is not active.
+          // Show in "Out of Scope" if it's a global filter or scoped to non-existent tabs.
+          const hasExplicitTabScope =
+            filter.type !== NativeFilterType.Divider &&
+            filter.scope?.rootPath &&
+            filter.scope.rootPath.length > 0 &&
+            filter.scope.rootPath.some(
+              id =>
+                id !== DASHBOARD_ROOT_ID &&
+                dashboardLayout[id]?.type === TAB_TYPE,
+            );
+
+          if (!hasExplicitTabScope) {
+            filtersOutOfScope.push(filter);
+          }
         }
       });
     }
     return [filtersInScope, filtersOutOfScope];
-  }, [filters, dashboardHasTabs, isFilterInScope]);
+  }, [filters, dashboardHasTabs, dashboardLayout, isFilterInScope]);
 }
 
 export function useIsCustomizationInScope() {

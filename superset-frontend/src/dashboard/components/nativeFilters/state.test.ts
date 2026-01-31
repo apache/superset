@@ -507,3 +507,43 @@ test('filter with mix of existing and non-existent charts in chartsInScope', () 
   const { result } = renderHook(() => useIsFilterInScope());
   expect(result.current(filter)).toBe(true);
 });
+
+test('useSelectFiltersInScope should hide tab-scoped filters when a sibling tab is active', () => {
+  (useSelector as jest.Mock).mockImplementation((selector: Function) => {
+    const mockState = {
+      dashboardState: { activeTabs: ['TAB_PARENT', 'SUB_TAB_A'] },
+      dashboardLayout: {
+        present: {
+          TAB_PARENT: { type: 'TAB', id: 'TAB_PARENT' },
+          SUB_TAB_A: { type: 'TAB', id: 'SUB_TAB_A' },
+          SUB_TAB_B: { type: 'TAB', id: 'SUB_TAB_B' },
+        },
+      },
+    };
+    return selector(mockState);
+  });
+
+  const filters: Filter[] = [
+    {
+      id: 'filter_sub_tab_b',
+      name: 'Sub-tab B Filter',
+      filterType: 'filter_select',
+      type: NativeFilterType.NativeFilter,
+      scope: { rootPath: ['SUB_TAB_B'], excluded: [] },
+      controlValues: {},
+      defaultDataMask: {},
+      cascadeParentIds: [],
+      targets: [{ column: { name: 'column_name' }, datasetId: 1 }],
+      description: 'Filter scoped to sub-tab B',
+    },
+  ];
+
+  const { result } = renderHook(() => useSelectFiltersInScope(filters));
+
+  // The filter should NOT be in scope
+  expect(result.current[0]).not.toContainEqual(
+    expect.objectContaining({ id: 'filter_sub_tab_b' }),
+  );
+  // The filter should NOT be in "out of scope" (it should be hidden)
+  expect(result.current[1]).toHaveLength(0);
+});
