@@ -886,11 +886,14 @@ test('ThemeController constructor recovers from corrupted stored theme', () => {
   consoleWarnSpy.mockRestore();
 });
 
-test('fallbackToDefaultMode fetches system default theme from API', async () => {
+test('recovery flow: fetchSystemDefaultTheme returns theme → applies fetched theme', async () => {
+  // Test: fallbackToDefaultMode fetches theme from API and applies it
+  // Flow: fallbackToDefaultMode → fetchSystemDefaultTheme → applyThemeWithRecovery
+
   const controller = createController();
 
-  // Mock fetch to return a system default theme
-  const systemTheme = { token: { colorPrimary: '#00ff00' } };
+  // Mock fetch to return a system default theme from API
+  const systemTheme = { token: { colorPrimary: '#recovery-theme' } };
   const mockFetch = jest.fn().mockResolvedValueOnce({
     ok: true,
     json: async () => ({
@@ -899,43 +902,119 @@ test('fallbackToDefaultMode fetches system default theme from API', async () => 
   });
   global.fetch = mockFetch;
 
-  // Force setConfig to throw to trigger fallback
-  mockSetConfig.mockImplementationOnce(() => {
-    throw new Error('Theme application failed');
+  // Track setConfig calls to verify the fetched theme is applied
+  const setConfigCalls: unknown[] = [];
+  mockSetConfig.mockImplementation((config: unknown) => {
+    setConfigCalls.push(config);
   });
 
-  // Trigger fallback by setting a mode that will fail
-  await controller.setThemeMode(ThemeMode.DARK);
+  // Trigger fallbackToDefaultMode (simulates what happens after applyTheme fails)
+  await (controller as any).fallbackToDefaultMode();
 
   // Verify API was called to fetch system default theme
   expect(mockFetch).toHaveBeenCalledWith(
     expect.stringContaining('/api/v1/theme/'),
   );
 
-  // Verify controller recovered
+  // Verify the fetched theme was applied via applyThemeWithRecovery
+  expect(setConfigCalls.length).toBe(1);
+  expect(setConfigCalls[0]).toEqual(
+    expect.objectContaining({
+      token: expect.objectContaining({ colorPrimary: '#recovery-theme' }),
+    }),
+  );
+
+  // Verify controller is in default mode
   expect(controller.getCurrentMode()).toBe(ThemeMode.DEFAULT);
 });
 
-test('fallbackToDefaultMode uses cached default when API fetch fails', async () => {
+test('recovery flow: both API fetches fail → falls back to cached default theme', async () => {
+  // Test: When fetchSystemDefaultTheme fails, fallbackToDefaultMode uses cached theme
+  // Flow: fallbackToDefaultMode → fetchSystemDefaultTheme (fails) → applyTheme(cached)
+
   const controller = createController();
 
-  // Mock fetch to fail
+  // Mock fetch to fail for both API endpoints
   const mockFetch = jest.fn().mockRejectedValue(new Error('Network error'));
   global.fetch = mockFetch;
 
-  // Force setConfig to throw to trigger fallback, then succeed on retry
-  let callCount = 0;
-  mockSetConfig.mockImplementation(() => {
-    callCount += 1;
-    if (callCount === 1) {
-      throw new Error('Theme application failed');
+  // Track setConfig calls
+  const setConfigCalls: unknown[] = [];
+  mockSetConfig.mockImplementation((config: unknown) => {
+    setConfigCalls.push(config);
+  });
+
+  // Trigger fallbackToDefaultMode
+  await (controller as any).fallbackToDefaultMode();
+
+  // Verify fetch was attempted
+  expect(mockFetch).toHaveBeenCalled();
+
+  // Verify fallback to cached default theme was applied via applyTheme
+  expect(setConfigCalls.length).toBe(1);
+  expect(setConfigCalls[0]).toEqual(
+    expect.objectContaining({
+      token: expect.objectContaining({
+        colorBgBase: '#ededed', // From DEFAULT_THEME in test setup
+      }),
+    }),
+  );
+
+  // Verify controller is in default mode
+  expect(controller.getCurrentMode()).toBe(ThemeMode.DEFAULT);
+});
+
+test('recovery flow: fetched theme fails to apply → falls back to cached default', async () => {
+  // Test: When applyThemeWithRecovery fails, fallbackToDefaultMode uses cached theme
+  // Flow: fallbackToDefaultMode → fetchSystemDefaultTheme → applyThemeWithRecovery (fails) → applyTheme(cached)
+
+  const controller = createController();
+
+  // Mock fetch to return a theme
+  const systemTheme = { token: { colorPrimary: '#bad-theme' } };
+  const mockFetch = jest.fn().mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({
+      result: [{ json_data: JSON.stringify(systemTheme) }],
+    }),
+  });
+  global.fetch = mockFetch;
+
+  // First setConfig call (applyThemeWithRecovery) fails, second (applyTheme) succeeds
+  const setConfigCalls: unknown[] = [];
+  mockSetConfig.mockImplementation((config: unknown) => {
+    setConfigCalls.push(config);
+    if (setConfigCalls.length === 1) {
+      throw new Error('Fetched theme failed to apply');
     }
   });
 
-  // Trigger fallback by setting a mode that will fail
-  await controller.setThemeMode(ThemeMode.DARK);
+  // Trigger fallbackToDefaultMode
+  await (controller as any).fallbackToDefaultMode();
 
-  // Verify controller fell back to cached default
+  // Verify fetch was called
+  expect(mockFetch).toHaveBeenCalled();
+
+  // Verify both attempts were made: fetched theme (failed) then cached default
+  expect(setConfigCalls.length).toBe(2);
+
+  // First call was the fetched theme (which failed)
+  expect(setConfigCalls[0]).toEqual(
+    expect.objectContaining({
+      token: expect.objectContaining({ colorPrimary: '#bad-theme' }),
+    }),
+  );
+
+  // Second call was the cached default theme
+  expect(setConfigCalls[1]).toEqual(
+    expect.objectContaining({
+      token: expect.objectContaining({
+        colorBgBase: '#ededed', // From DEFAULT_THEME
+      }),
+    }),
+  );
+
+  // Verify controller is in default mode
   expect(controller.getCurrentMode()).toBe(ThemeMode.DEFAULT);
 });
 
