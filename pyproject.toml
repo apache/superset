@@ -204,6 +204,7 @@ ydb = ["ydb-sqlalchemy>=0.1.2"]
 development = [
     # no bounds for apache-superset-extensions-cli until a stable version
     "apache-superset-extensions-cli",
+    "boto3",
     "docker",
     "flask-testing",
     "freezegun",
