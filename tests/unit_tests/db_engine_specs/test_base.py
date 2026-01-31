@@ -227,13 +227,12 @@ def test_select_star(mocker: MockerFixture) -> None:
         query.compile(dialect=sqlite.dialect())
     )
 
-    engine = mocker.MagicMock()
-    engine.dialect = sqlite.dialect()
+    dialect = sqlite.dialect()
 
     sql = BaseEngineSpec.select_star(
         database=database,
         table=Table("my_table", "my_schema", "my_catalog"),
-        engine=engine,
+        dialect=dialect,
         limit=100,
         show_cols=True,
         indent=True,

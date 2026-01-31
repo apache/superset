@@ -832,17 +832,17 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         cols: list[ResultSetColumnType] | None = None,
     ) -> str:
         """Generates a ``select *`` statement in the proper dialect"""
-        with self.get_sqla_engine(catalog=table.catalog, schema=table.schema) as engine:
-            return self.db_engine_spec.select_star(
-                self,
-                table,
-                engine=engine,
-                limit=limit,
-                show_cols=show_cols,
-                indent=indent,
-                latest_partition=latest_partition,
-                cols=cols,
-            )
+        dialect = self.get_dialect()
+        return self.db_engine_spec.select_star(
+            self,
+            table,
+            dialect=dialect,
+            limit=limit,
+            show_cols=show_cols,
+            indent=indent,
+            latest_partition=latest_partition,
+            cols=cols,
+        )
 
     def apply_limit_to_sql(
         self,
