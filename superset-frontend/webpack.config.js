@@ -467,6 +467,12 @@ const config = {
         },
       },
       {
+        test: /node_modules\/(geostyler-style|geostyler-qgis-parser)\/.*\.js$/,
+        resolve: {
+          fullySpecified: false,
+        },
+      },
+      {
         test: /\.tsx?$/,
         exclude: [/\.test.tsx?$/, /node_modules/],
         use: ['thread-loader', createSwcLoader('typescript', true)],
