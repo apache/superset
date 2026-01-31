@@ -649,6 +649,12 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "DATE_RANGE_TIMESHIFTS_ENABLED": False,
     # Enable Matrixify feature for matrix-style chart layouts
     "MATRIXIFY": False,
+    # Enable AWS IAM authentication for database connections (Aurora, Redshift).
+    # Allows cross-account role assumption via STS AssumeRole.
+    # Security note: When enabled, ensure Superset's IAM role has restricted
+    # sts:AssumeRole permissions to prevent unauthorized access.
+    # @lifecycle: testing
+    "AWS_DATABASE_IAM_AUTH": False,
     # Force garbage collection after every request
     "FORCE_GARBAGE_COLLECTION_AFTER_EVERY_REQUEST": False,
 }

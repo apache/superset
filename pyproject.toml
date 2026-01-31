@@ -198,6 +198,7 @@ doris = ["pydoris>=1.0.0, <2.0.0"]
 oceanbase = ["oceanbase_py>=0.0.1"]
 ydb = ["ydb-sqlalchemy>=0.1.2"]
 development = [
+    "boto3",
     "docker",
     "flask-testing",
     "freezegun",

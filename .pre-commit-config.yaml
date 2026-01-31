@@ -25,6 +25,7 @@ repos:
       - id: mypy
         args: [--check-untyped-defs]
         additional_dependencies: [
+            types-cachetools,
             types-simplejson,
             types-python-dateutil,
             types-requests,
