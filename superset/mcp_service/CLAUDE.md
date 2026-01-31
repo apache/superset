@@ -423,6 +423,43 @@ def my_tool(id: int) -> MyResponse:
         raise ValueError(f"Resource {id} not found")
 ```
 
+### 8. Dataset Validation for Chart Tools
+
+**IMPORTANT**: All chart-related tools must validate that the chart's dataset is accessible before performing operations. Use the shared `validate_chart_dataset` utility from `chart_utils.py`.
+
+**Why this matters**: Charts can reference datasets that have been deleted or become inaccessible. Without validation, users may see confusing errors when trying to preview or get data from charts with missing datasets.
+
+**Usage pattern**:
+```python
+from superset.mcp_service.chart.chart_utils import validate_chart_dataset
+
+# After retrieving a chart, validate its dataset
+validation_result = validate_chart_dataset(chart, check_access=True)
+if not validation_result.is_valid:
+    await ctx.warning("Dataset not accessible: %s" % (validation_result.error,))
+    return ChartError(
+        error=validation_result.error or "Chart's dataset is not accessible",
+        error_type="DatasetNotAccessible",
+    )
+
+# Log any warnings (e.g., virtual dataset warnings)
+for warning in validation_result.warnings:
+    await ctx.warning("Dataset warning: %s" % (warning,))
+```
+
+**Tools that use this pattern**:
+- `get_chart_info` - Validates after retrieving chart metadata
+- `get_chart_preview` - Validates before generating preview
+- `get_chart_data` - Validates before querying data
+- `generate_chart` - Validates after chart creation (post-creation validation)
+
+**The `DatasetValidationResult` contains**:
+- `is_valid`: Whether the dataset exists and is accessible
+- `dataset_id`: The dataset ID being validated
+- `dataset_name`: The dataset name (if found)
+- `warnings`: List of warnings (e.g., "virtual dataset may be deleted")
+- `error`: Error message if validation failed
+
 ## Testing Conventions
 
 ### Unit Tests
