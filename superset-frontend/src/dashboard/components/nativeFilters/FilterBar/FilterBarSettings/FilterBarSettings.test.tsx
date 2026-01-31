@@ -71,7 +71,7 @@ const setup = (dashboardInfoOverride: Partial<DashboardInfo> = {}) =>
   );
 
 beforeEach(() => {
-  fetchMock.restore();
+  fetchMock.clearHistory().removeRoutes();
 });
 
 test('Dropdown trigger renders', async () => {
@@ -195,7 +195,7 @@ test('On selection change, send request and update checked value', async () => {
   ).toBeInTheDocument();
 
   await waitFor(() =>
-    expect(fetchMock.lastCall()?.[1]?.body).toEqual(
+    expect(fetchMock.callHistory.lastCall()?.options?.body).toEqual(
       JSON.stringify({
         json_metadata: JSON.stringify({
           ...initialState.dashboardInfo.metadata,

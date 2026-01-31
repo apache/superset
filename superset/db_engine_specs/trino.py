@@ -25,6 +25,7 @@ from typing import Any, TYPE_CHECKING
 
 import requests
 from flask import copy_current_request_context, ctx, current_app as app, Flask, g
+from flask_babel import gettext as __
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import NoSuchTableError
@@ -306,14 +307,25 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
                 )
                 break
 
+            needs_commit = False
             info = getattr(cursor, "stats", {}) or {}
             state = info.get("state", "UNKNOWN")
             completed_splits = float(info.get("completedSplits", 0))
             total_splits = float(info.get("totalSplits", 1) or 1)
             progress = math.floor((completed_splits / (total_splits or 1)) * 100)
+            progress_text = {
+                "PLANNING": __("Scheduled"),
+                "QUEUED": __("Queued"),
+            }.get(state, state)
 
             if progress != query.progress:
                 query.progress = progress
+                needs_commit = True
+            if progress_text != query.extra.get("progress_text"):
+                query.set_extra_json_key(key="progress_text", value=progress_text)
+                needs_commit = True
+
+            if needs_commit:
                 db.session.commit()  # pylint: disable=consider-using-transaction
 
             time.sleep(poll_interval)

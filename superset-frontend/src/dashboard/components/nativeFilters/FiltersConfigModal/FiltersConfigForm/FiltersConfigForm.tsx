@@ -221,11 +221,11 @@ export const FilterPanels = {
 export const CustomizationPanels = {
   configuration: {
     key: 'configuration',
-    name: t('Customization Configuration'),
+    name: t('Display control configuration'),
   },
   settings: {
     key: 'settings',
-    name: t('Customization Settings'),
+    name: t('Display control settings'),
   },
 };
 
@@ -843,7 +843,7 @@ const FiltersConfigForm = (
                     label={
                       <StyledLabel>
                         {isChartCustomization
-                          ? t('Customization name')
+                          ? t('Display control name')
                           : t('Filter name')}
                       </StyledLabel>
                     }
@@ -873,7 +873,7 @@ const FiltersConfigForm = (
                       ]}
                       initialValue={customizationToEdit?.filterType}
                       label={
-                        <StyledLabel>{t('Customization Type')}</StyledLabel>
+                        <StyledLabel>{t('Display control type')}</StyledLabel>
                       }
                     >
                       <Select
@@ -1215,7 +1215,7 @@ const FiltersConfigForm = (
                                       initialValue={hasSorting}
                                       title={
                                         isChartCustomization
-                                          ? t('Sort customization values')
+                                          ? t('Sort display control values')
                                           : t('Sort filter values')
                                       }
                                       onChange={checked => {
@@ -1510,7 +1510,7 @@ const FiltersConfigForm = (
                               initialValue={hasDefaultValue}
                               title={
                                 isChartCustomization
-                                  ? t('Customization has default value')
+                                  ? t('Display control has default value')
                                   : t('Filter has default value')
                               }
                               tooltip={defaultValueTooltip}

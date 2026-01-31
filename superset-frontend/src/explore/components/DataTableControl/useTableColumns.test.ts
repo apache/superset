@@ -105,6 +105,7 @@ test('useTableColumns with no options', () => {
         "Cell": [Function],
         "Header": <DataTableTemporalHeaderCell
           columnName="numtime"
+          displayLabel="numtime"
           isOriginalTimeColumn={false}
           onTimeColumnChange={[Function]}
         />,
@@ -168,6 +169,7 @@ test('useTableColumns with options', () => {
         "Cell": [Function],
         "Header": <DataTableTemporalHeaderCell
           columnName="numtime"
+          displayLabel="numtime"
           isOriginalTimeColumn={false}
           onTimeColumnChange={[Function]}
         />,
@@ -193,4 +195,30 @@ test('useTableColumns with options', () => {
       );
     });
   });
+});
+
+test('useTableColumns applies columnDisplayNames to headers', () => {
+  const columnDisplayNames = {
+    col01: 'Column One',
+    [NUMTIME_KEY]: 'Verbose Numtime',
+  } as Record<string, string>;
+  const hook = renderHook(() =>
+    useTableColumns(
+      colnames,
+      coltypes,
+      data,
+      undefined,
+      true,
+      undefined,
+      undefined,
+      columnDisplayNames,
+    ),
+  );
+  const cols = hook.result.current as JsonObject[];
+  const col01 = cols.find(c => c.id === 'col01');
+  const numtime = cols.find(c => c.id === NUMTIME_KEY);
+  expect(col01?.Header).toBe('Column One');
+  // Temporal header is a component; ensure it received the displayLabel prop
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  expect(numtime?.Header.props.displayLabel).toBe('Verbose Numtime');
 });
