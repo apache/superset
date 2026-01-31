@@ -1,5 +1,5 @@
 {
-  "generated": "2026-01-27T06:14:03.276Z",
+  "generated": "2026-01-27T23:17:43.310Z",
   "statistics": {
     "totalDatabases": 68,
     "withDocumentation": 68,
@@ -876,7 +876,7 @@
       "module": "crate",
       "documentation": {
         "description": "CrateDB is a distributed SQL database for machine data and IoT workloads.",
-        "logo": "cratedb.png",
+        "logo": "cratedb.svg",
         "homepage_url": "https://crate.io/",
         "categories": [
           "TIME_SERIES",
@@ -4577,7 +4577,7 @@
       "module": "risingwave",
       "documentation": {
         "description": "RisingWave is a distributed streaming database.",
-        "logo": "risingwave.png",
+        "logo": "risingwave.svg",
         "homepage_url": "https://risingwave.com/",
         "pypi_packages": [
           "psycopg2",

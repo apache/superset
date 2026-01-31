@@ -54,6 +54,7 @@ logger = logging.getLogger(__name__)
 
 def _get_chart_schema_core() -> ModelGetSchemaCore[ModelSchemaInfo]:
     """Create chart schema core with dynamically extracted columns."""
+    # Lazy import to avoid circular dependency at module load time
     from superset.daos.chart import ChartDAO
 
     return ModelGetSchemaCore(
@@ -72,6 +73,7 @@ def _get_chart_schema_core() -> ModelGetSchemaCore[ModelSchemaInfo]:
 
 def _get_dataset_schema_core() -> ModelGetSchemaCore[ModelSchemaInfo]:
     """Create dataset schema core with dynamically extracted columns."""
+    # Lazy import to avoid circular dependency at module load time
     from superset.daos.dataset import DatasetDAO
 
     return ModelGetSchemaCore(
@@ -90,6 +92,7 @@ def _get_dataset_schema_core() -> ModelGetSchemaCore[ModelSchemaInfo]:
 
 def _get_dashboard_schema_core() -> ModelGetSchemaCore[ModelSchemaInfo]:
     """Create dashboard schema core with dynamically extracted columns."""
+    # Lazy import to avoid circular dependency at module load time
     from superset.daos.dashboard import DashboardDAO
 
     return ModelGetSchemaCore(

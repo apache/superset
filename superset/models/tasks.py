@@ -225,6 +225,7 @@ class Task(CoreTask, AuditMixinNullable, Model):
             TaskStatus.SUCCESS.value,
             TaskStatus.FAILURE.value,
             TaskStatus.ABORTED.value,
+            TaskStatus.TIMED_OUT.value,
         ]:
             if not self.ended_at:
                 self.ended_at = now
@@ -245,11 +246,12 @@ class Task(CoreTask, AuditMixinNullable, Model):
 
     @property
     def is_finished(self) -> bool:
-        """Check if task has finished (success, failure, or aborted)."""
+        """Check if task has finished (success, failure, aborted, or timed out)."""
         return self.status in [
             TaskStatus.SUCCESS.value,
             TaskStatus.FAILURE.value,
             TaskStatus.ABORTED.value,
+            TaskStatus.TIMED_OUT.value,
         ]
 
     @property

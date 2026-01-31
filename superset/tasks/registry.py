@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 class TaskRegistry:
     """
-    Registry for async task functions.
+    Registry for task functions.
 
     Stores task functions by name, allowing the Celery executor to look up
     and execute registered tasks. This enables the decorator pattern where

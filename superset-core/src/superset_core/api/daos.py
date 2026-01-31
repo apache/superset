@@ -265,13 +265,28 @@ class TaskDAO(BaseDAO[Task]):
 
     @classmethod
     @abstractmethod
-    def find_by_task_key(cls, task_type: str, task_id: str) -> Task | None:
+    def find_by_task_key(
+        cls,
+        task_type: str,
+        task_key: str,
+        scope: str = "private",
+        user_id: int | None = None,
+    ) -> Task | None:
         """
-        Find task by deduplication type and id.
+        Find active task by type, key, scope, and user.
 
-        :param task_type: Task type
-        :param task_id: Task identifier
-        :returns: Task instance or None if not found
+        Uses dedup_key internally for efficient querying with a unique index.
+        Only returns tasks that are active (pending or in progress).
+
+        Uniqueness logic by scope:
+        - private: scope + task_type + task_key + user_id
+        - shared/system: scope + task_type + task_key (user-agnostic)
+
+        :param task_type: Task type to filter by
+        :param task_key: Task identifier for deduplication
+        :param scope: Task scope (private/shared/system)
+        :param user_id: User ID (required for private tasks)
+        :returns: Task instance or None if not found or not active
         """
         ...
 
