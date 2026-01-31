@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 from datetime import datetime
 from typing import Any, Optional
 
@@ -54,23 +56,17 @@ class PhoenixEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     _time_grain_expressions = {
         None: "{col}",
         TimeGrain.SECOND: (
-            "CAST(DATE_TRUNC('SECOND', CAST({col} AS TIMESTAMP)) AS TIMESTAMP)"
+            "CAST(TRUNC(CAST({col} AS TIMESTAMP), 'SECOND') AS TIMESTAMP)"
         ),
         TimeGrain.MINUTE: (
-            "CAST(DATE_TRUNC('MINUTE', CAST({col} AS TIMESTAMP)) AS TIMESTAMP)"
+            "CAST(TRUNC(CAST({col} AS TIMESTAMP), 'MINUTE') AS TIMESTAMP)"
         ),
-        TimeGrain.HOUR: (
-            "CAST(DATE_TRUNC('HOUR', CAST({col} AS TIMESTAMP)) AS TIMESTAMP)"
-        ),
-        TimeGrain.DAY: "CAST(DATE_TRUNC('DAY', CAST({col} AS TIMESTAMP)) AS DATE)",
-        TimeGrain.WEEK: "CAST(DATE_TRUNC('WEEK', CAST({col} AS TIMESTAMP)) AS DATE)",
-        TimeGrain.MONTH: (
-            "CAST(DATE_TRUNC('MONTH', CAST({col} AS TIMESTAMP)) AS DATE)"
-        ),
-        TimeGrain.QUARTER: (
-            "CAST(DATE_TRUNC('QUARTER', CAST({col} AS TIMESTAMP)) AS DATE)"
-        ),
-        TimeGrain.YEAR: "CAST(DATE_TRUNC('YEAR', CAST({col} AS TIMESTAMP)) AS DATE)",
+        TimeGrain.HOUR: ("CAST(TRUNC(CAST({col} AS TIMESTAMP), 'HOUR') AS TIMESTAMP)"),
+        TimeGrain.DAY: "CAST(TRUNC(CAST({col} AS TIMESTAMP), 'DAY') AS DATE)",
+        TimeGrain.WEEK: "CAST(TRUNC(CAST({col} AS TIMESTAMP), 'WEEK') AS DATE)",
+        TimeGrain.MONTH: ("CAST(TRUNC(CAST({col} AS TIMESTAMP), 'MONTH') AS DATE)"),
+        TimeGrain.QUARTER: ("CAST(TRUNC(CAST({col} AS TIMESTAMP), 'QUARTER') AS DATE)"),
+        TimeGrain.YEAR: "CAST(TRUNC(CAST({col} AS TIMESTAMP), 'YEAR') AS DATE)",
     }
 
     @classmethod

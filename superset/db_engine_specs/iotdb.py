@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 
 
@@ -37,7 +39,7 @@ class IoTDBEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
             DatabaseCategory.OPEN_SOURCE,
         ],
         "pypi_packages": ["apache-iotdb"],
-        "connection_string": ("iotdb://{username}:{password}@{hostname}:{port}/"),
+        "connection_string": "iotdb://{username}:{password}@{hostname}:{port}",
         "default_port": 6667,
         "parameters": {
             "username": "Database username (default: root)",
