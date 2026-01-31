@@ -502,7 +502,7 @@ describe('DeckMulti Component Rendering', () => {
     });
 
     // Check that all requests include the dashboardId
-    const calls = (SupersetClient.get as jest.Mock).mock.calls;
+    const { calls } = (SupersetClient.get as jest.Mock).mock;
     calls.forEach(call => {
       const url = call[0].endpoint;
       const urlParams = new URLSearchParams(url.split('?')[1]);
@@ -529,7 +529,7 @@ describe('DeckMulti Component Rendering', () => {
     });
 
     // Check that requests don't include dashboardId
-    const calls = (SupersetClient.get as jest.Mock).mock.calls;
+    const { calls } = (SupersetClient.get as jest.Mock).mock;
     calls.forEach(call => {
       const url = call[0].endpoint;
       const formData = JSON.parse(
@@ -557,7 +557,7 @@ describe('DeckMulti Component Rendering', () => {
     });
 
     // Verify dashboardId is preserved with filters
-    const calls = (SupersetClient.get as jest.Mock).mock.calls;
+    const { calls } = (SupersetClient.get as jest.Mock).mock;
     calls.forEach(call => {
       const url = call[0].endpoint;
       const formData = JSON.parse(

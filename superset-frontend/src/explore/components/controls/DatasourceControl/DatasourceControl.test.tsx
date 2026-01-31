@@ -136,15 +136,15 @@ async function openAndSaveChanges(
   fetchMock.removeRoute(getDbWithQuery);
   fetchMock.get(getDbWithQuery, { result: [] }, { name: getDbWithQuery });
 
-  fetchMock.removeRoute('put' + putDatasetWithAll);
-  fetchMock.put(putDatasetWithAll, {}, { name: 'put' + putDatasetWithAll });
+  fetchMock.removeRoute(`put${putDatasetWithAll}`);
+  fetchMock.put(putDatasetWithAll, {}, { name: `put${putDatasetWithAll}` });
 
-  fetchMock.removeRoute('get' + getDatasetWithAll);
+  fetchMock.removeRoute(`get${putDatasetWithAll}`);
   fetchMock.get(
     getDatasetWithAll,
     { result: datasource },
     {
-      name: 'get' + getDatasetWithAll,
+      name: `get${putDatasetWithAll}`,
     },
   );
   await userEvent.click(screen.getByTestId('datasource-menu-trigger'));

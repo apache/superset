@@ -496,7 +496,7 @@ describe('BigNumberWithTrendline - Aggregation Tests', () => {
   });
 });
 
-test('BigNumberWithTrendline AUTO mode should detect single currency', () => {
+it('BigNumberWithTrendline AUTO mode should detect single currency', () => {
   const props = generateProps(
     [
       { __timestamp: 1607558400000, value: 1000, currency_code: 'USD' },
@@ -514,7 +514,7 @@ test('BigNumberWithTrendline AUTO mode should detect single currency', () => {
   expect(transformed.headerFormatter(1000)).toContain('$');
 });
 
-test('BigNumberWithTrendline AUTO mode should use neutral formatting for mixed currencies', () => {
+it('BigNumberWithTrendline AUTO mode should use neutral formatting for mixed currencies', () => {
   const props = generateProps(
     [
       { __timestamp: 1607558400000, value: 1000, currency_code: 'USD' },
@@ -534,7 +534,7 @@ test('BigNumberWithTrendline AUTO mode should use neutral formatting for mixed c
   expect(formatted).not.toContain('€');
 });
 
-test('BigNumberWithTrendline should preserve static currency format', () => {
+it('BigNumberWithTrendline should preserve static currency format', () => {
   const props = generateProps(
     [
       { __timestamp: 1607558400000, value: 1000, currency_code: 'USD' },

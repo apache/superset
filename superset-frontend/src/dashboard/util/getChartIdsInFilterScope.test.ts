@@ -41,8 +41,7 @@ const createChartLayoutItem = (
   },
 });
 
-const createNestedTabsLayout = (): LayoutItem[] => {
-  return [
+const createNestedTabsLayout = (): LayoutItem[] => [
     createChartLayoutItem('CHART-1', 1, [
       'ROOT_ID',
       'TABS-1',
@@ -74,7 +73,6 @@ const createNestedTabsLayout = (): LayoutItem[] => {
     createChartLayoutItem('CHART-5', 5, ['ROOT_ID', 'TABS-1', 'TAB-Parent2']),
     createChartLayoutItem('CHART-6', 6, ['ROOT_ID', 'TABS-1', 'TAB-Parent2']),
   ];
-};
 
 const allChartIds = [1, 2, 3, 4, 5, 6];
 

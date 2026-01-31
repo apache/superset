@@ -715,7 +715,7 @@ describe('plugin-chart-ag-grid-table', () => {
 
     describe('Totals query handling', () => {
       it('should exclude AG Grid WHERE filters from totals query', () => {
-        const queries = buildQuery(
+        const { queries } = buildQuery(
           {
             ...basicFormData,
             server_pagination: true,
@@ -727,7 +727,7 @@ describe('plugin-chart-ag-grid-table', () => {
               agGridComplexWhere: 'age > 18',
             },
           },
-        ).queries;
+        );
 
         const mainQuery = queries[0];
         const totalsQuery = queries[2]; // queries[1] is rowcount, queries[2] is totals
@@ -737,7 +737,7 @@ describe('plugin-chart-ag-grid-table', () => {
       });
 
       it('should preserve non-AG Grid WHERE clauses in totals', () => {
-        const queries = buildQuery(
+        const { queries } = buildQuery(
           {
             ...basicFormData,
             server_pagination: true,
@@ -756,7 +756,7 @@ describe('plugin-chart-ag-grid-table', () => {
               agGridComplexWhere: 'age > 18',
             },
           },
-        ).queries;
+        );
 
         const mainQuery = queries[0];
         const totalsQuery = queries[2]; // queries[1] is rowcount, queries[2] is totals
@@ -768,7 +768,7 @@ describe('plugin-chart-ag-grid-table', () => {
       });
 
       it('should handle totals when AG Grid WHERE is only clause', () => {
-        const queries = buildQuery(
+        const { queries } = buildQuery(
           {
             ...basicFormData,
             server_pagination: true,
@@ -780,7 +780,7 @@ describe('plugin-chart-ag-grid-table', () => {
               agGridComplexWhere: 'status = "active"',
             },
           },
-        ).queries;
+        );
 
         const totalsQuery = queries[2]; // queries[1] is rowcount, queries[2] is totals
 
@@ -788,7 +788,7 @@ describe('plugin-chart-ag-grid-table', () => {
       });
 
       it('should handle totals with empty WHERE clause after removal', () => {
-        const queries = buildQuery(
+        const { queries } = buildQuery(
           {
             ...basicFormData,
             server_pagination: true,
@@ -807,7 +807,7 @@ describe('plugin-chart-ag-grid-table', () => {
               agGridComplexWhere: 'country = "USA"',
             },
           },
-        ).queries;
+        );
 
         const totalsQuery = queries[2]; // queries[1] is rowcount, queries[2] is totals
 
@@ -816,7 +816,7 @@ describe('plugin-chart-ag-grid-table', () => {
       });
 
       it('should not modify totals query when no AG Grid filters applied', () => {
-        const queries = buildQuery(
+        const { queries } = buildQuery(
           {
             ...basicFormData,
             server_pagination: true,
@@ -826,7 +826,7 @@ describe('plugin-chart-ag-grid-table', () => {
           {
             ownState: {},
           },
-        ).queries;
+        );
 
         const totalsQuery = queries[2]; // queries[1] is rowcount, queries[2] is totals
 
@@ -944,7 +944,7 @@ describe('plugin-chart-ag-grid-table', () => {
       });
 
       it('should handle complex real-world scenario', () => {
-        const queries = buildQuery(
+        const { queries } = buildQuery(
           {
             ...basicFormData,
             server_pagination: true,
@@ -975,7 +975,7 @@ describe('plugin-chart-ag-grid-table', () => {
               pageSize: 50,
             },
           },
-        ).queries;
+        );
 
         const mainQuery = queries[0];
         const totalsQuery = queries[2]; // queries[1] is rowcount, queries[2] is totals
