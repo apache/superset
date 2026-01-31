@@ -21,8 +21,6 @@ Pydantic schemas for chart-related responses
 
 from __future__ import annotations
 
-import html
-import re
 from datetime import datetime, timezone
 from typing import Annotated, Any, Dict, List, Literal, Protocol
 
@@ -49,6 +47,10 @@ from superset.mcp_service.system.schemas import (
     PaginationInfo,
     TagInfo,
     UserInfo,
+)
+from superset.mcp_service.utils.sanitization import (
+    sanitize_filter_value,
+    sanitize_user_input,
 )
 
 
@@ -357,113 +359,18 @@ class ColumnRef(BaseModel):
     @classmethod
     def sanitize_name(cls, v: str) -> str:
         """Sanitize column name to prevent XSS and SQL injection."""
-        if not v or not v.strip():
+        result = sanitize_user_input(
+            v, "Column name", max_length=255, check_sql_keywords=True
+        )
+        if result is None:
             raise ValueError("Column name cannot be empty")
-
-        # Length check first to prevent ReDoS attacks
-        if len(v) > 255:
-            raise ValueError(
-                f"Column name too long ({len(v)} characters). "
-                f"Maximum allowed length is 255 characters."
-            )
-
-        # Remove HTML tags and decode entities
-        sanitized = html.escape(v.strip())
-
-        # Check for dangerous HTML tags using substring checks (safe)
-        dangerous_tags = ["<script", "</script>", "<iframe", "<object", "<embed"]
-        v_lower = v.lower()
-        for tag in dangerous_tags:
-            if tag in v_lower:
-                raise ValueError(
-                    "Column name contains potentially malicious script content"
-                )
-
-        # Check URL schemes with word boundaries to match only actual URLs
-        if re.search(r"\b(javascript|vbscript|data):", v, re.IGNORECASE):
-            raise ValueError("Column name contains potentially malicious URL scheme")
-
-        # Basic SQL injection patterns (basic protection)
-        # Use simple patterns without backtracking
-        dangerous_patterns = [
-            r"[;|&$`]",  # Dangerous shell characters
-            r"\b(DROP|DELETE|INSERT|UPDATE|CREATE|ALTER|EXEC|EXECUTE)\b",
-            r"--",  # SQL comment
-            r"/\*",  # SQL comment start (just check for start, not full pattern)
-        ]
-
-        for pattern in dangerous_patterns:
-            if re.search(pattern, v, re.IGNORECASE):
-                raise ValueError(
-                    "Column name contains potentially unsafe characters or SQL keywords"
-                )
-
-        return sanitized
+        return result
 
     @field_validator("label")
     @classmethod
     def sanitize_label(cls, v: str | None) -> str | None:
         """Sanitize display label to prevent XSS attacks."""
-        if v is None:
-            return v
-
-        # Strip whitespace
-        v = v.strip()
-        if not v:
-            return None
-
-        # Length check first to prevent ReDoS attacks
-        if len(v) > 500:
-            raise ValueError(
-                f"Label too long ({len(v)} characters). "
-                f"Maximum allowed length is 500 characters."
-            )
-
-        # Check for dangerous HTML tags and JavaScript protocols using substring checks
-        # This avoids ReDoS vulnerabilities from regex patterns
-        dangerous_tags = [
-            "<script",
-            "</script>",
-            "<iframe",
-            "</iframe>",
-            "<object",
-            "</object>",
-            "<embed",
-            "</embed>",
-            "<link",
-            "<meta",
-        ]
-
-        v_lower = v.lower()
-        for tag in dangerous_tags:
-            if tag in v_lower:
-                raise ValueError(
-                    "Label contains potentially malicious content. "
-                    "HTML tags, JavaScript, and event handlers are not allowed "
-                    "in labels."
-                )
-
-        # Check URL schemes and event handlers with word boundaries
-        dangerous_patterns = [
-            r"\b(javascript|vbscript|data):",  # URL schemes
-            r"on\w+\s*=",  # Event handlers
-        ]
-        for pattern in dangerous_patterns:
-            if re.search(pattern, v, re.IGNORECASE):
-                raise ValueError(
-                    "Label contains potentially malicious content. "
-                    "HTML tags, JavaScript, and event handlers are not allowed."
-                )
-
-        # Filter dangerous Unicode characters
-        v = re.sub(
-            r"[\u200B-\u200D\uFEFF\u0000-\u0008\u000B\u000C\u000E-\u001F]", "", v
-        )
-
-        # HTML escape the cleaned content
-        sanitized = html.escape(v)
-
-        return sanitized if sanitized else None
+        return sanitize_user_input(v, "Label", max_length=500, allow_empty=True)
 
 
 class AxisConfig(BaseModel):
@@ -496,112 +403,16 @@ class FilterConfig(BaseModel):
     @classmethod
     def sanitize_column(cls, v: str) -> str:
         """Sanitize filter column name to prevent injection attacks."""
-        if not v or not v.strip():
+        result = sanitize_user_input(v, "Filter column", max_length=255)
+        if result is None:
             raise ValueError("Filter column name cannot be empty")
-
-        # Length check first to prevent ReDoS attacks
-        if len(v) > 255:
-            raise ValueError(
-                f"Filter column name too long ({len(v)} characters). "
-                f"Maximum allowed length is 255 characters."
-            )
-
-        # Remove HTML tags and decode entities
-        sanitized = html.escape(v.strip())
-
-        # Check for dangerous HTML tags using substring checks (safe)
-        dangerous_tags = ["<script", "</script>"]
-        v_lower = v.lower()
-        for tag in dangerous_tags:
-            if tag in v_lower:
-                raise ValueError(
-                    "Filter column contains potentially malicious script content"
-                )
-
-        # Check URL schemes with word boundaries
-        if re.search(r"\b(javascript|vbscript|data):", v, re.IGNORECASE):
-            raise ValueError("Filter column contains potentially malicious URL scheme")
-
-        return sanitized
-
-    @staticmethod
-    def _validate_string_value(v: str) -> None:
-        """Validate string filter value for security issues."""
-        # Check for dangerous HTML tags and SQL procedures
-        dangerous_substrings = [
-            "<script",
-            "</script>",
-            "<iframe",
-            "<object",
-            "<embed",
-            "xp_cmdshell",
-            "sp_executesql",
-        ]
-        v_lower = v.lower()
-        for substring in dangerous_substrings:
-            if substring in v_lower:
-                raise ValueError(
-                    "Filter value contains potentially malicious content. "
-                    "HTML tags and JavaScript are not allowed."
-                )
-
-        # Check URL schemes with word boundaries
-        if re.search(r"\b(javascript|vbscript|data):", v, re.IGNORECASE):
-            raise ValueError("Filter value contains potentially malicious URL scheme")
-
-        # SQL injection patterns
-        sql_patterns = [
-            r";\s*(DROP|DELETE|INSERT|UPDATE|CREATE|ALTER|EXEC|EXECUTE)\b",
-            r"'\s*OR\s*'",
-            r"'\s*AND\s*'",
-            r"--\s*",
-            r"/\*",
-            r"UNION\s+SELECT",
-        ]
-        for pattern in sql_patterns:
-            if re.search(pattern, v, re.IGNORECASE):
-                raise ValueError(
-                    "Filter value contains potentially malicious SQL patterns."
-                )
-
-        # Check for other dangerous patterns
-        if re.search(r"[;&|`$()]", v):
-            raise ValueError(
-                "Filter value contains potentially unsafe shell characters."
-            )
-        if re.search(r"on\w+\s*=", v, re.IGNORECASE):
-            raise ValueError(
-                "Filter value contains potentially malicious event handlers."
-            )
-        if re.search(r"\\x[0-9a-fA-F]{2}", v):
-            raise ValueError("Filter value contains hex encoding which is not allowed.")
+        return result
 
     @field_validator("value")
     @classmethod
     def sanitize_value(cls, v: str | int | float | bool) -> str | int | float | bool:
         """Sanitize filter value to prevent XSS and SQL injection attacks."""
-        if isinstance(v, str):
-            v = v.strip()
-
-            # Length check FIRST to prevent ReDoS attacks
-            if len(v) > 1000:
-                raise ValueError(
-                    f"Filter value too long ({len(v)} characters). "
-                    f"Maximum allowed length is 1000 characters."
-                )
-
-            # Validate security
-            cls._validate_string_value(v)
-
-            # Filter dangerous Unicode characters
-            v = re.sub(
-                r"[\u200B-\u200D\uFEFF\u0000-\u0008\u000B\u000C\u000E-\u001F]", "", v
-            )
-
-            # HTML escape the cleaned content
-            return html.escape(v)
-
-        return v  # Return non-string values as-is
+        return sanitize_filter_value(v, max_length=1000)
 
 
 # Actual chart types
@@ -840,6 +651,11 @@ class ListChartsRequest(MetadataCacheControl):
 class GenerateChartRequest(QueryCacheControl):
     dataset_id: int | str = Field(..., description="Dataset identifier (ID, UUID)")
     config: ChartConfig = Field(..., description="Chart configuration")
+    chart_name: str | None = Field(
+        None,
+        description="Custom chart name (optional, auto-generates if not provided)",
+        max_length=255,
+    )
     save_chart: bool = Field(
         default=False,
         description="Whether to permanently save the chart in Superset",
@@ -852,6 +668,12 @@ class GenerateChartRequest(QueryCacheControl):
         default_factory=lambda: ["url"],
         description="List of preview formats to generate",
     )
+
+    @field_validator("chart_name")
+    @classmethod
+    def sanitize_chart_name(cls, v: str | None) -> str | None:
+        """Sanitize chart name to prevent XSS attacks."""
+        return sanitize_user_input(v, "Chart name", max_length=255, allow_empty=True)
 
     @model_validator(mode="after")
     def validate_cache_timeout(self) -> "GenerateChartRequest":
@@ -903,62 +725,7 @@ class UpdateChartRequest(QueryCacheControl):
     @classmethod
     def sanitize_chart_name(cls, v: str | None) -> str | None:
         """Sanitize chart name to prevent XSS attacks."""
-        if v is None:
-            return v
-
-        # Strip whitespace
-        v = v.strip()
-        if not v:
-            return None
-
-        # Length check first to prevent ReDoS attacks
-        if len(v) > 255:
-            raise ValueError(
-                f"Chart name too long ({len(v)} characters). "
-                f"Maximum allowed length is 255 characters."
-            )
-
-        # Check for dangerous HTML tags using substring checks (safe)
-        dangerous_tags = [
-            "<script",
-            "</script>",
-            "<iframe",
-            "</iframe>",
-            "<object",
-            "</object>",
-            "<embed",
-            "</embed>",
-            "<link",
-            "<meta",
-        ]
-
-        v_lower = v.lower()
-        for tag in dangerous_tags:
-            if tag in v_lower:
-                raise ValueError(
-                    "Chart name contains potentially malicious content. "
-                    "HTML tags and JavaScript are not allowed in chart names."
-                )
-
-        # Check URL schemes with word boundaries
-        if re.search(r"\b(javascript|vbscript|data):", v, re.IGNORECASE):
-            raise ValueError("Chart name contains potentially malicious URL scheme")
-
-        # Check for event handlers with simple regex
-        if re.search(r"on\w+\s*=", v, re.IGNORECASE):
-            raise ValueError(
-                "Chart name contains potentially malicious event handlers."
-            )
-
-        # Filter dangerous Unicode characters
-        v = re.sub(
-            r"[\u200B-\u200D\uFEFF\u0000-\u0008\u000B\u000C\u000E-\u001F]", "", v
-        )
-
-        # HTML escape the cleaned content
-        sanitized = html.escape(v)
-
-        return sanitized if sanitized else None
+        return sanitize_user_input(v, "Chart name", max_length=255, allow_empty=True)
 
 
 class UpdateChartPreviewRequest(FormDataCacheControl):
