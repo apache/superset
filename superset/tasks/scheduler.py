@@ -39,6 +39,7 @@ from superset.daos.tasks import TaskDAO
 from superset.extensions import celery_app
 from superset.stats_logger import BaseStatsLogger
 from superset.tasks.ambient_context import use_context
+from superset.tasks.constants import ABORT_STATES, TERMINAL_STATES
 from superset.tasks.context import TaskContext
 from superset.tasks.cron_util import cron_schedule_window
 from superset.tasks.manager import TaskManager
@@ -266,7 +267,7 @@ def execute_task(  # noqa: C901
         return {"status": "error", "message": "Task not found"}
 
     # AUTOMATIC PRE-EXECUTION CHECK: Don't execute if already aborted/aborting
-    if task.status in [TaskStatus.ABORTING.value, TaskStatus.ABORTED.value]:
+    if task.status in ABORT_STATES:
         logger.info(
             "Task %s (uuid=%s) was aborted before execution started",
             task_type,
@@ -391,7 +392,7 @@ def execute_task(  # noqa: C901
         db.session.commit()
 
         # Publish completion notification for any waiters (e.g., sync callers)
-        if task.status in TaskManager.TERMINAL_STATES:
+        if task.status in TERMINAL_STATES:
             TaskManager.publish_completion(task_uuid, task.status)
 
     return {"status": task.status, "task_uuid": task_uuid}

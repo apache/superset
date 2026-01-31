@@ -28,6 +28,7 @@ from superset_core.api.tasks import (
     TaskStatus,
 )
 
+from superset.tasks.constants import ABORT_STATES
 from superset.tasks.utils import progress_update
 
 if TYPE_CHECKING:
@@ -481,19 +482,13 @@ class TaskContext(CoreTaskContext):
         if self._app:
             with self._app.app_context():
                 task = self._task
-                if (
-                    task.status in [TaskStatus.ABORTING.value, TaskStatus.ABORTED.value]
-                    and not self._abort_detected
-                ):
+                if task.status in ABORT_STATES and not self._abort_detected:
                     self._trigger_abort_handlers()
         else:
             # Fallback without app context
             try:
                 task = self._task
-                if (
-                    task.status in [TaskStatus.ABORTING.value, TaskStatus.ABORTED.value]
-                    and not self._abort_detected
-                ):
+                if task.status in ABORT_STATES and not self._abort_detected:
                     self._trigger_abort_handlers()
             except Exception as ex:
                 logger.warning(

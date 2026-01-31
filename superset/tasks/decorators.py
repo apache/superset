@@ -25,6 +25,7 @@ from typing import Any, Callable, cast, Generic, ParamSpec, TYPE_CHECKING, TypeV
 from superset_core.api.tasks import TaskOptions, TaskScope, TaskStatus
 
 from superset.tasks.ambient_context import use_context
+from superset.tasks.constants import TERMINAL_STATES
 from superset.tasks.context import TaskContext
 from superset.tasks.manager import TaskManager
 from superset.tasks.registry import TaskRegistry
@@ -315,7 +316,7 @@ class TaskWrapper(Generic[P]):
         from superset.daos.tasks import TaskDAO
 
         # Check if already in terminal state
-        if task.status in TaskManager.TERMINAL_STATES:
+        if task.status in TERMINAL_STATES:
             logger.info(
                 "Joined already-completed task %s (uuid=%s, status=%s)",
                 self.name,
@@ -474,7 +475,7 @@ class TaskWrapper(Generic[P]):
             ctx._run_cleanup()
 
             # Publish completion notification for any waiters
-            if task.status in TaskManager.TERMINAL_STATES:
+            if task.status in TERMINAL_STATES:
                 TaskManager.publish_completion(task.uuid, task.status)
 
     def schedule(self, *args: P.args, **kwargs: P.kwargs) -> "Task":

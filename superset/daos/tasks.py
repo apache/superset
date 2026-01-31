@@ -27,6 +27,7 @@ from superset.daos.exceptions import DAODeleteFailedError
 from superset.extensions import db
 from superset.models.task_subscribers import TaskSubscriber
 from superset.models.tasks import Task
+from superset.tasks.constants import ABORTABLE_STATES
 from superset.tasks.filters import TaskFilter
 from superset.tasks.utils import get_active_dedup_key
 
@@ -200,7 +201,7 @@ class TaskDAO(BaseDAO[Task]):
             return task
 
         # Already finished - cannot abort
-        if task.status not in [TaskStatus.PENDING.value, TaskStatus.IN_PROGRESS.value]:
+        if task.status not in ABORTABLE_STATES:
             return None
 
         # PENDING: Go directly to ABORTED

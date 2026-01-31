@@ -25,8 +25,9 @@ from typing import Any, Callable, TYPE_CHECKING
 
 import redis
 from redis.sentinel import Sentinel
-from superset_core.api.tasks import TaskProperties, TaskScope, TaskStatus
+from superset_core.api.tasks import TaskProperties, TaskScope
 
+from superset.tasks.constants import ABORT_STATES, TERMINAL_STATES
 from superset.tasks.utils import generate_random_task_key
 
 if TYPE_CHECKING:
@@ -108,15 +109,8 @@ class TaskManager:
     _config: dict[str, Any] | None = None
     _initialized: bool = False
 
-    # Terminal states that indicate a task has completed
-    TERMINAL_STATES = frozenset(
-        {
-            TaskStatus.SUCCESS.value,
-            TaskStatus.FAILURE.value,
-            TaskStatus.ABORTED.value,
-            TaskStatus.TIMED_OUT.value,
-        }
-    )
+    # Backward compatibility alias - prefer importing from superset.tasks.constants
+    TERMINAL_STATES = TERMINAL_STATES
 
     @classmethod
     def init_app(cls, app: Flask) -> None:
@@ -592,10 +586,7 @@ class TaskManager:
         from superset.daos.tasks import TaskDAO
 
         task = TaskDAO.find_one_or_none(uuid=task_uuid)
-        return task is not None and task.status in [
-            TaskStatus.ABORTING.value,
-            TaskStatus.ABORTED.value,
-        ]
+        return task is not None and task.status in ABORT_STATES
 
     @classmethod
     def _run_abort_listener_loop(
