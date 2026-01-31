@@ -171,9 +171,11 @@ const config: Config = {
   url: 'https://superset.apache.org',
   baseUrl: '/',
   onBrokenLinks: 'warn',
-  onBrokenMarkdownLinks: 'throw',
   markdown: {
     mermaid: true,
+    hooks: {
+      onBrokenMarkdownLinks: 'throw',
+    },
   },
   favicon: '/img/favicon.ico',
   organizationName: 'apache',
@@ -186,14 +188,6 @@ const config: Config = {
   ],
   plugins: [
     require.resolve('./src/webpack.extend.ts'),
-    [
-      'docusaurus-plugin-less',
-      {
-        lessOptions: {
-          javascriptEnabled: true,
-        },
-      },
-    ],
     ...dynamicPlugins,
     [
       'docusaurus-plugin-openapi-docs',

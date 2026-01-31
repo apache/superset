@@ -67,8 +67,8 @@ export default function webpackExtendPlugin(): Plugin<void> {
         use: 'js-yaml-loader',
       });
 
-      // Add babel-loader rule for superset-frontend files
-      // This ensures Emotion CSS-in-JS is processed correctly for SSG
+      // Add swc-loader rule for superset-frontend files
+      // SWC is a Rust-based transpiler that's significantly faster than babel
       const supersetFrontendPath = path.resolve(
         __dirname,
         '../../superset-frontend',
@@ -77,25 +77,35 @@ export default function webpackExtendPlugin(): Plugin<void> {
         test: /\.(tsx?|jsx?)$/,
         include: supersetFrontendPath,
         use: {
-          loader: 'babel-loader',
+          loader: 'swc-loader',
           options: {
-            presets: [
-              [
-                '@babel/preset-react',
-                {
+            // Ignore superset-frontend/.swcrc which references plugins not
+            // installed in the docs workspace (e.g. @swc/plugin-emotion)
+            swcrc: false,
+            jsc: {
+              parser: {
+                syntax: 'typescript',
+                tsx: true,
+              },
+              transform: {
+                react: {
                   runtime: 'automatic',
                   importSource: '@emotion/react',
                 },
-              ],
-              '@babel/preset-typescript',
-            ],
-            plugins: ['@emotion/babel-plugin'],
+              },
+            },
           },
         },
       });
 
       return {
-        devtool: isDev ? 'eval-source-map' : config.devtool,
+        devtool: isDev ? false : config.devtool,
+        cache: {
+          type: 'filesystem',
+          buildDependencies: {
+            config: [__filename],
+          },
+        },
         ...(isDev && {
           optimization: {
             ...config.optimization,
@@ -208,8 +218,6 @@ export default function webpackExtendPlugin(): Plugin<void> {
             ),
           },
         },
-        // We're removing the ts-loader rule that was processing superset-frontend files
-        // This will prevent TypeScript errors from files outside the docs directory
       };
     },
   };
