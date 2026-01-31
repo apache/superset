@@ -32,7 +32,6 @@ from superset.commands.tasks.exceptions import (
 from superset.daos.exceptions import DAOCreateFailedError
 from superset.tasks.locks import task_lock
 from superset.tasks.utils import get_active_dedup_key
-from superset.utils.core import get_user_id
 from superset.utils.decorators import on_error, transaction
 
 if TYPE_CHECKING:
@@ -87,30 +86,27 @@ class SubmitTaskCommand(BaseCommand):
         task_key = self._properties.get("task_key") or str(uuid.uuid4())
         scope = self._properties.get("scope", TaskScope.PRIVATE.value)
         user_id = self._properties.get("user_id")
-        effective_user_id = user_id if user_id is not None else get_user_id()
 
         # Build dedup_key for lock
         dedup_key = get_active_dedup_key(
             scope=scope,
             task_type=task_type,
             task_key=task_key,
-            user_id=effective_user_id,
+            user_id=user_id,
         )
 
         # Acquire lock to prevent race conditions during create/join
         with task_lock(dedup_key):
             # Check for existing task (safe under lock)
-            existing = TaskDAO.find_by_task_key(
-                task_type, task_key, scope, effective_user_id
-            )
+            existing = TaskDAO.find_by_task_key(task_type, task_key, scope, user_id)
 
             if existing:
                 # Join existing task - add subscriber if not already subscribed
-                if effective_user_id and not existing.has_subscriber(effective_user_id):
-                    TaskDAO.add_subscriber(existing.id, effective_user_id)
+                if user_id and not existing.has_subscriber(user_id):
+                    TaskDAO.add_subscriber(existing.id, user_id)
                     logger.info(
                         "User %s joined existing task: %s",
-                        effective_user_id,
+                        user_id,
                         task_key,
                     )
                 return existing, False  # is_new=False: joined existing task
@@ -122,7 +118,7 @@ class SubmitTaskCommand(BaseCommand):
                     task_key=task_key,
                     scope=scope,
                     task_name=self._properties.get("task_name"),
-                    user_id=effective_user_id,
+                    user_id=user_id,
                     payload=self._properties.get("payload", {}),
                     properties=self._properties.get("properties", {}),
                 )

@@ -52,7 +52,7 @@ def create_task(
             scope=scope,
             task_type=task_type,
             task_key=task_key,
-            user_id=user_id if scope == TaskScope.PRIVATE else None,
+            user_id=user_id,
         )
 
     task = Task(

@@ -99,7 +99,7 @@ class CancelTaskCommand(BaseCommand):
             scope=task.scope,
             task_type=task.task_type,
             task_key=task.task_key,
-            user_id=task.user_id if task.is_private else None,
+            user_id=task.user_id,
         )
 
         # Acquire lock BEFORE transaction starts

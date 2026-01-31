@@ -106,6 +106,14 @@ class TaskDAO(BaseDAO[Task]):
         :param kwargs: Additional task attributes (e.g., task_name)
         :returns: Created Task instance
         """
+        # Handle both TaskScope enum and string values
+        scope_value = scope.value if isinstance(scope, TaskScope) else scope
+        scope_enum = scope if isinstance(scope, TaskScope) else TaskScope(scope)
+
+        # Validate user_id is required for private tasks
+        if scope_enum == TaskScope.PRIVATE and user_id is None:
+            raise ValueError("user_id is required for private tasks")
+
         # Build dedup_key for active task
         dedup_key = get_active_dedup_key(
             scope=scope,
@@ -113,9 +121,6 @@ class TaskDAO(BaseDAO[Task]):
             task_key=task_key,
             user_id=user_id,
         )
-
-        # Handle both TaskScope enum and string values
-        scope_value = scope.value if isinstance(scope, TaskScope) else scope
 
         # Note: properties is handled separately via update_properties()
         # because it's a hybrid property with only a getter

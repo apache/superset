@@ -188,7 +188,7 @@ def get_active_dedup_key(
     :param scope: Task scope (PRIVATE/SHARED/SYSTEM) as TaskScope enum or string
     :param task_type: Type of task (e.g., 'sql_execution')
     :param task_key: Task identifier for deduplication
-    :param user_id: User ID for private tasks (falls back to g.user if not provided)
+    :param user_id: User ID (required for private tasks)
     :returns: Hashed deduplication key string
     :raises ValueError: If user_id is missing for private scope
     """
@@ -199,15 +199,9 @@ def get_active_dedup_key(
     # Build composite key
     match scope:
         case TaskScope.PRIVATE:
-            # Use provided user_id, or fall back to current user from Flask context
-            effective_user_id = user_id
-            if effective_user_id is None:
-                from superset.utils.core import get_user_id
-
-                effective_user_id = get_user_id()
-            if effective_user_id is None:
+            if user_id is None:
                 raise ValueError("user_id required for private tasks")
-            composite_key = f"{scope.value}|{task_type}|{task_key}|{effective_user_id}"
+            composite_key = f"{scope.value}|{task_type}|{task_key}|{user_id}"
         case TaskScope.SHARED:
             composite_key = f"{scope.value}|{task_type}|{task_key}"
         case TaskScope.SYSTEM:

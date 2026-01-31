@@ -107,7 +107,7 @@ class UpdateTaskCommand(BaseCommand):
             scope=self._model.scope,
             task_type=self._model.task_type,
             task_key=self._model.task_key,
-            user_id=self._model.user_id if self._model.is_private else None,
+            user_id=self._model.user_id,
         )
 
         # Acquire lock to prevent race with submit/cancel operations

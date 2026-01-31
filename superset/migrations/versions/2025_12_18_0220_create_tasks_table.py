@@ -114,6 +114,15 @@ def upgrade():
         ondelete="SET NULL",
     )
 
+    create_fks_for_table(
+        foreign_key_name="fk_tasks_user_id_ab_user",
+        table_name=TASKS_TABLE,
+        referenced_table="ab_user",
+        local_cols=["user_id"],
+        remote_cols=["id"],
+        ondelete="SET NULL",
+    )
+
     # Create task_subscribers table for multi-user task subscriptions
     create_table(
         TASK_SUBSCRIBERS_TABLE,
@@ -193,6 +202,7 @@ def downgrade():
         [
             "fk_tasks_created_by_fk_ab_user",
             "fk_tasks_changed_by_fk_ab_user",
+            "fk_tasks_user_id_ab_user",
         ],
     )
 

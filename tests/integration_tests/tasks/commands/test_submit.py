@@ -26,15 +26,17 @@ from superset.commands.tasks.exceptions import (
 )
 
 
-def test_submit_task_success(app_context, login_as) -> None:
+def test_submit_task_success(app_context, login_as, get_user) -> None:
     """Test successful task submission"""
     login_as("admin")
+    admin = get_user("admin")
 
     command = SubmitTaskCommand(
         data={
             "task_type": "test-type",
             "task_key": "test-key",
             "task_name": "Test Task",
+            "user_id": admin.id,
         }
     )
 
@@ -104,9 +106,10 @@ def test_submit_task_missing_task_type(app_context, login_as) -> None:
     assert "task_type" in exc_info.value._exceptions[0].field_name
 
 
-def test_submit_task_joins_existing(app_context, login_as) -> None:
+def test_submit_task_joins_existing(app_context, login_as, get_user) -> None:
     """Test that submitting with duplicate key joins existing task"""
     login_as("admin")
+    admin = get_user("admin")
 
     # Create first task
     command1 = SubmitTaskCommand(
@@ -114,6 +117,7 @@ def test_submit_task_joins_existing(app_context, login_as) -> None:
             "task_type": "test-type",
             "task_key": "shared-key",
             "task_name": "First Task",
+            "user_id": admin.id,
         }
     )
     task1 = command1.run()
@@ -125,6 +129,7 @@ def test_submit_task_joins_existing(app_context, login_as) -> None:
                 "task_type": "test-type",
                 "task_key": "shared-key",
                 "task_name": "Second Task",
+                "user_id": admin.id,
             }
         )
 
@@ -138,14 +143,16 @@ def test_submit_task_joins_existing(app_context, login_as) -> None:
         db.session.commit()
 
 
-def test_submit_task_without_task_key(app_context, login_as) -> None:
+def test_submit_task_without_task_key(app_context, login_as, get_user) -> None:
     """Test task submission without task_key (command generates UUID)"""
     login_as("admin")
+    admin = get_user("admin")
 
     command = SubmitTaskCommand(
         data={
             "task_type": "test-type",
             "task_name": "Test Task No ID",
+            "user_id": admin.id,
         }
     )
 
@@ -163,15 +170,19 @@ def test_submit_task_without_task_key(app_context, login_as) -> None:
         db.session.commit()
 
 
-def test_submit_task_run_with_info_returns_is_new_true(app_context, login_as) -> None:
+def test_submit_task_run_with_info_returns_is_new_true(
+    app_context, login_as, get_user
+) -> None:
     """Test run_with_info returns is_new=True for new task"""
     login_as("admin")
+    admin = get_user("admin")
 
     command = SubmitTaskCommand(
         data={
             "task_type": "test-type",
             "task_key": "unique-key-is-new",
             "task_name": "Test Task",
+            "user_id": admin.id,
         }
     )
 
@@ -186,9 +197,12 @@ def test_submit_task_run_with_info_returns_is_new_true(app_context, login_as) ->
         db.session.commit()
 
 
-def test_submit_task_run_with_info_returns_is_new_false(app_context, login_as) -> None:
+def test_submit_task_run_with_info_returns_is_new_false(
+    app_context, login_as, get_user
+) -> None:
     """Test run_with_info returns is_new=False when joining existing task"""
     login_as("admin")
+    admin = get_user("admin")
 
     # Create first task
     command1 = SubmitTaskCommand(
@@ -196,6 +210,7 @@ def test_submit_task_run_with_info_returns_is_new_false(app_context, login_as) -
             "task_type": "test-type",
             "task_key": "shared-key-is-new",
             "task_name": "First Task",
+            "user_id": admin.id,
         }
     )
     task1, is_new1 = command1.run_with_info()
@@ -208,6 +223,7 @@ def test_submit_task_run_with_info_returns_is_new_false(app_context, login_as) -
                 "task_type": "test-type",
                 "task_key": "shared-key-is-new",
                 "task_name": "Second Task",
+                "user_id": admin.id,
             }
         )
         task2, is_new2 = command2.run_with_info()

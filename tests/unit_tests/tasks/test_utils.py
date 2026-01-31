@@ -417,7 +417,7 @@ def test_get_executor(
     ],
 )
 def test_get_active_dedup_key(
-    scope, task_type, task_key, user_id, expected_composite_key, mocker, app_context
+    scope, task_type, task_key, user_id, expected_composite_key, app_context
 ):
     """Test get_active_dedup_key generates a hash of the composite key.
 
@@ -425,10 +425,7 @@ def test_get_active_dedup_key(
     to produce a fixed-length dedup_key for database storage. The result is
     truncated to 64 chars to fit the database column.
     """
-    # Mock get_user_id to return the specified user_id
-    mocker.patch("superset.utils.core.get_user_id", return_value=user_id)
-
-    result = get_active_dedup_key(scope, task_type, task_key)
+    result = get_active_dedup_key(scope, task_type, task_key, user_id)
 
     # The result should be a hash of the expected composite key, truncated to 64 chars
     expected_hash = hash_from_str(expected_composite_key)[:64]
@@ -436,11 +433,8 @@ def test_get_active_dedup_key(
     assert len(result) <= 64
 
 
-def test_get_active_dedup_key_private_requires_user_id(mocker):
-    """Test that private tasks require user_id from get_user_id()"""
-    # Mock get_user_id to return None
-    mocker.patch("superset.utils.core.get_user_id", return_value=None)
-
+def test_get_active_dedup_key_private_requires_user_id():
+    """Test that private tasks require explicit user_id parameter."""
     with pytest.raises(ValueError, match="user_id required for private tasks"):
         get_active_dedup_key(TaskScope.PRIVATE, "test_type", "test_key")
 
