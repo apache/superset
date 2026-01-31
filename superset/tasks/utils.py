@@ -301,9 +301,11 @@ def parse_properties(json_str: str | None) -> TaskProperties:
         return {}
 
     try:
-        return json.loads(json_str)
+        value = json.loads(json_str)
     except (json.JSONDecodeError, TypeError):
         return {}
+
+    return value if isinstance(value, dict) else {}
 
 
 def serialize_properties(props: TaskProperties) -> str:
