@@ -69,7 +69,7 @@ describe('NotificationMethod', () => {
     cleanup();
   });
 
-  test('should render the component', () => {
+  it('should render the component', () => {
     render(
       <NotificationMethod
         setting={mockSetting}
@@ -90,7 +90,7 @@ describe('NotificationMethod', () => {
     expect(screen.getByText('Email recipients')).toBeInTheDocument();
   });
 
-  test('should call onRemove when the delete button is clicked', () => {
+  it('should call onRemove when the delete button is clicked', () => {
     render(
       <NotificationMethod
         setting={mockSetting}
@@ -110,7 +110,7 @@ describe('NotificationMethod', () => {
     expect(mockOnRemove).toHaveBeenCalledWith(1);
   });
 
-  test('should update recipient value when input changes', () => {
+  it('should update recipient value when input changes', () => {
     render(
       <NotificationMethod
         setting={mockSetting}
@@ -135,7 +135,7 @@ describe('NotificationMethod', () => {
     });
   });
 
-  test('should call onRecipientsChange when the recipients value is changed', () => {
+  it('should call onRecipientsChange when the recipients value is changed', () => {
     render(
       <NotificationMethod
         setting={mockSetting}
@@ -160,7 +160,7 @@ describe('NotificationMethod', () => {
     });
   });
 
-  test('should correctly map recipients when method is SlackV2', () => {
+  it('should correctly map recipients when method is SlackV2', () => {
     const method = 'SlackV2';
     const recipientValue = 'user1,user2';
     const slackOptions: { label: string; value: string }[] = [
@@ -176,7 +176,7 @@ describe('NotificationMethod', () => {
     ]);
   });
 
-  test('should return an empty array when recipientValue is an empty string', () => {
+  it('should return an empty array when recipientValue is an empty string', () => {
     const method = 'SlackV2';
     const recipientValue = '';
     const slackOptions: { label: string; value: string }[] = [
@@ -189,7 +189,7 @@ describe('NotificationMethod', () => {
     expect(result).toEqual([]);
   });
 
-  test('should correctly map recipients when method is Slack with updated recipient values', () => {
+  it('should correctly map recipients when method is Slack with updated recipient values', () => {
     const method = 'Slack';
     const recipientValue = 'User One,User Two';
     const slackOptions: { label: string; value: string }[] = [
@@ -204,7 +204,7 @@ describe('NotificationMethod', () => {
       { label: 'User Two', value: 'user2' },
     ]);
   });
-  test('should render CC and BCC fields when method is Email and visibility flags are true', () => {
+  it('should render CC and BCC fields when method is Email and visibility flags are true', () => {
     const defaultProps = {
       setting: {
         method: NotificationMethodOption.Email,
@@ -231,7 +231,7 @@ describe('NotificationMethod', () => {
     expect(getByTestId('cc')).toBeInTheDocument();
     expect(getByTestId('bcc')).toBeInTheDocument();
   });
-  test('should render CC and BCC fields with correct values when method is Email', () => {
+  it('should render CC and BCC fields with correct values when method is Email', () => {
     const defaultProps = {
       setting: {
         method: NotificationMethodOption.Email,
@@ -258,7 +258,7 @@ describe('NotificationMethod', () => {
     expect(getByTestId('cc')).toHaveValue('cc1@example.com');
     expect(getByTestId('bcc')).toHaveValue('bcc1@example.com');
   });
-  test('should not render CC and BCC fields when method is not Email', () => {
+  it('should not render CC and BCC fields when method is not Email', () => {
     const defaultProps = {
       setting: {
         method: NotificationMethodOption.Slack,
@@ -286,7 +286,7 @@ describe('NotificationMethod', () => {
     expect(queryByTestId('bcc')).not.toBeInTheDocument();
   });
   // Handle empty recipients list gracefully
-  test('should handle empty recipients list gracefully', () => {
+  it('should handle empty recipients list gracefully', () => {
     const defaultProps = {
       setting: {
         method: NotificationMethodOption.Email,
@@ -313,7 +313,7 @@ describe('NotificationMethod', () => {
     expect(queryByTestId('cc')).not.toBeInTheDocument();
     expect(queryByTestId('bcc')).not.toBeInTheDocument();
   });
-  test('shows the right combo when ff is false', async () => {
+  it('shows the right combo when ff is false', async () => {
     /* should show the div with "Recipients are separated by"
     when FeatureFlag.AlertReportSlackV2 is false and fetchSlackChannels errors
     */
@@ -348,7 +348,7 @@ describe('NotificationMethod', () => {
       ).toBeInTheDocument();
     });
   });
-  test('shows the textbox when the fetch fails', async () => {
+  it('shows the textbox when the fetch fails', async () => {
     /* should show the div with "Recipients are separated by"
     when FeatureFlag.AlertReportSlackV2 is true and fetchSlackChannels errors
     */
@@ -384,7 +384,7 @@ describe('NotificationMethod', () => {
       ).toBeInTheDocument();
     });
   });
-  test('shows the dropdown when ff is true and slackChannels succeed', async () => {
+  it('shows the dropdown when ff is true and slackChannels succeed', async () => {
     /* should show the Select channels dropdown
     when FeatureFlag.AlertReportSlackV2 is true and fetchSlackChannels succeeds
     */
@@ -423,7 +423,7 @@ describe('NotificationMethod', () => {
       expect(screen.getByTitle('Slack')).toBeInTheDocument();
     });
   });
-  test('shows the textarea when ff is true and slackChannels fail', async () => {
+  it('shows the textarea when ff is true and slackChannels fail', async () => {
     /* should show the Select channels dropdown
     when FeatureFlag.AlertReportSlackV2 is true and fetchSlackChannels succeeds
     */
@@ -457,7 +457,7 @@ describe('NotificationMethod', () => {
       screen.getByText('Recipients are separated by "," or ";"'),
     ).toBeInTheDocument();
   });
-  test('shows the textarea when ff is true and slackChannels fail and slack is selected', async () => {
+  it('shows the textarea when ff is true and slackChannels fail and slack is selected', async () => {
     /* should show the Select channels dropdown
     when FeatureFlag.AlertReportSlackV2 is true and fetchSlackChannels succeeds
     */
@@ -492,7 +492,7 @@ describe('NotificationMethod', () => {
     ).toBeInTheDocument();
   });
 
-  test('shows the textarea when ff is true, slackChannels fail and slack is selected', async () => {
+  it('shows the textarea when ff is true, slackChannels fail and slack is selected', async () => {
     window.featureFlags = { [FeatureFlag.AlertReportSlackV2]: true };
     jest.spyOn(SupersetClient, 'get').mockImplementation(() => {
       throw new Error('Error fetching Slack channels');
@@ -521,7 +521,7 @@ describe('NotificationMethod', () => {
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('RefreshLabel functionality', () => {
-    test('should call updateSlackOptions with force true when RefreshLabel is clicked', async () => {
+    it('should call updateSlackOptions with force true when RefreshLabel is clicked', async () => {
       // Set feature flag so that SlackV2 branch renders RefreshLabel
       window.featureFlags = { [FeatureFlag.AlertReportSlackV2]: true };
       // Spy on SupersetClient.get which is called by updateSlackOptions

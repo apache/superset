@@ -235,7 +235,7 @@ describe('ListView', () => {
     });
   });
 
-  test('calls fetchData on mount', () => {
+  it('calls fetchData on mount', () => {
     expect(mockedPropsComprehensive.fetchData).toHaveBeenCalledWith({
       filters: [],
       pageIndex: 0,
@@ -244,7 +244,7 @@ describe('ListView', () => {
     });
   });
 
-  test('calls fetchData on sort', async () => {
+  it('calls fetchData on sort', async () => {
     const sortHeader = screen.getAllByTestId('sort-header')[1];
     await userEvent.click(sortHeader);
 
@@ -261,7 +261,7 @@ describe('ListView', () => {
     });
   });
 
-  test('renders pagination controls', () => {
+  it('renders pagination controls', () => {
     const paginationList = screen.getByRole('list');
     expect(paginationList).toBeInTheDocument();
 
@@ -269,7 +269,7 @@ describe('ListView', () => {
     expect(pageOneItem).toBeInTheDocument();
   });
 
-  test('calls fetchData on page change', async () => {
+  it('calls fetchData on page change', async () => {
     const pageTwoItem = screen.getByRole('listitem', { name: '2' });
     await userEvent.click(pageTwoItem);
 
@@ -285,7 +285,7 @@ describe('ListView', () => {
     });
   });
 
-  test('handles bulk actions on 1 row', async () => {
+  it('handles bulk actions on 1 row', async () => {
     const checkboxes = screen.getAllByRole('checkbox');
     await userEvent.click(checkboxes[1]); // Index 1 is the first row checkbox
 
@@ -306,12 +306,12 @@ describe('ListView', () => {
     ]);
   });
 
-  test('renders UI filters', () => {
+  it('renders UI filters', () => {
     const filterControls = screen.getAllByRole('combobox');
     expect(filterControls).toHaveLength(2);
   });
 
-  test('calls fetchData on filter', async () => {
+  it('calls fetchData on filter', async () => {
     // Handle select filter
     const selectFilter = screen.getAllByRole('combobox')[0];
     await userEvent.click(selectFilter);
@@ -341,7 +341,7 @@ describe('ListView', () => {
     );
   });
 
-  test('calls fetchData on card view sort', async () => {
+  it('calls fetchData on card view sort', async () => {
     factory({
       renderCard: jest.fn(),
       initialSort: [{ id: 'something' }],

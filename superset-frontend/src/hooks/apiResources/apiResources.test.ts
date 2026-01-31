@@ -54,7 +54,7 @@ describe('apiResource hooks', () => {
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('useApiResourceFullBody', () => {
-    test('returns a loading state at the start', async () => {
+    it('returns a loading state at the start', async () => {
       const { result } = renderHook(() =>
         useApiResourceFullBody('/test/endpoint'),
       );
@@ -68,7 +68,7 @@ describe('apiResource hooks', () => {
       });
     });
 
-    test('resolves to the value from the api', async () => {
+    it('resolves to the value from the api', async () => {
       const { result } = renderHook(() =>
         useApiResourceFullBody('/test/endpoint'),
       );
@@ -82,7 +82,7 @@ describe('apiResource hooks', () => {
       });
     });
 
-    test('handles api errors', async () => {
+    it('handles api errors', async () => {
       const fakeError = new Error('fake api error');
       (makeApi as any).mockReturnValue(jest.fn().mockRejectedValue(fakeError));
       const { result } = renderHook(() =>
@@ -101,7 +101,7 @@ describe('apiResource hooks', () => {
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('useTransformedResource', () => {
-    test('applies a transformation to the resource', () => {
+    it('applies a transformation to the resource', () => {
       const { result } = renderHook(() =>
         useTransformedResource(
           {
@@ -122,7 +122,7 @@ describe('apiResource hooks', () => {
       });
     });
 
-    test('works while loading', () => {
+    it('works while loading', () => {
       const nameToAllCaps = (thing: any) => ({
         ...thing,
         name: thing.name.toUpperCase(),
@@ -147,7 +147,7 @@ describe('apiResource hooks', () => {
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('useApiV1Endpoint', () => {
-    test('resolves to the value from the api', async () => {
+    it('resolves to the value from the api', async () => {
       (makeApi as any).mockReturnValue(
         jest.fn().mockResolvedValue({
           meta: 'data',

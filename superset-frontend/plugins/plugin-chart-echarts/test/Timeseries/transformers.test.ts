@@ -195,7 +195,7 @@ describe('transformNegativeLabelsPosition', () => {
   });
 });
 
-test('should configure time axis labels to show max label for last month visibility', () => {
+it('should configure time axis labels to show max label for last month visibility', () => {
   const formData = {
     colorScheme: 'bnbColors',
     datasource: '3__table',

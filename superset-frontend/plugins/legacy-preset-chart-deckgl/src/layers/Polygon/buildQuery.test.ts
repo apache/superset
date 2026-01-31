@@ -25,7 +25,7 @@ describe('Polygon buildQuery', () => {
     line_column: 'polygon_geom',
   };
 
-  test('should require line_column', () => {
+  it('should require line_column', () => {
     const formDataWithoutLineColumn = {
       ...baseFormData,
       line_column: undefined,
@@ -36,7 +36,7 @@ describe('Polygon buildQuery', () => {
     );
   });
 
-  test('should build basic query with minimal data', () => {
+  it('should build basic query with minimal data', () => {
     const queryContext = buildQuery(baseFormData);
     const [query] = queryContext.queries;
 
@@ -51,7 +51,7 @@ describe('Polygon buildQuery', () => {
     ]);
   });
 
-  test('should include metric in query when provided', () => {
+  it('should include metric in query when provided', () => {
     const formDataWithMetric = {
       ...baseFormData,
       metric: 'population',
@@ -68,7 +68,7 @@ describe('Polygon buildQuery', () => {
   });
 
   describe('point_radius_fixed legacy structure', () => {
-    test('should not add metrics to query when value is simple string', () => {
+    it('should not add metrics to query when value is simple string', () => {
       const formDataWithFixValue = {
         ...baseFormData,
         point_radius_fixed: {
@@ -82,7 +82,7 @@ describe('Polygon buildQuery', () => {
       expect(query.metrics).toEqual([]);
     });
 
-    test('should not add metrics to query when point_radius_fixed.value is undefined', () => {
+    it('should not add metrics to query when point_radius_fixed.value is undefined', () => {
       const formDataWithEmptyValue = {
         ...baseFormData,
         point_radius_fixed: {
@@ -96,7 +96,7 @@ describe('Polygon buildQuery', () => {
       expect(query.metrics).toEqual([]);
     });
 
-    test('should not add metrics to query when point_radius_fixed is undefined', () => {
+    it('should not add metrics to query when point_radius_fixed is undefined', () => {
       const formDataWithoutFixedRadius = {
         ...baseFormData,
         point_radius_fixed: undefined,
@@ -110,7 +110,7 @@ describe('Polygon buildQuery', () => {
   });
 
   describe('point_radius_fixed "fix" type', () => {
-    test('should not add metrics to query when point_radius_fixed type is "fix"', () => {
+    it('should not add metrics to query when point_radius_fixed type is "fix"', () => {
       const formDataWithFixType = {
         ...baseFormData,
         point_radius_fixed: {
@@ -125,7 +125,7 @@ describe('Polygon buildQuery', () => {
       expect(query.metrics).toEqual([]);
     });
 
-    test('should not add metrics to query when point_radius_fixed type is "fix" with zero value', () => {
+    it('should not add metrics to query when point_radius_fixed type is "fix" with zero value', () => {
       const formDataWithZeroFix = {
         ...baseFormData,
         point_radius_fixed: {
@@ -140,7 +140,7 @@ describe('Polygon buildQuery', () => {
       expect(query.metrics).toEqual([]);
     });
 
-    test('should not add metrics to query when point_radius_fixed type is "fix" with decimal value', () => {
+    it('should not add metrics to query when point_radius_fixed type is "fix" with decimal value', () => {
       const formDataWithDecimalFix = {
         ...baseFormData,
         point_radius_fixed: {
@@ -157,7 +157,7 @@ describe('Polygon buildQuery', () => {
   });
 
   describe('point_radius_fixed "metric" type', () => {
-    test('should add metric object to query when point_radius_fixed type is "metric"', () => {
+    it('should add metric object to query when point_radius_fixed type is "metric"', () => {
       const metricObject = {
         expressionType: 'SQL',
         sqlExpression: 'SUM(population)/SUM(area)',
@@ -183,7 +183,7 @@ describe('Polygon buildQuery', () => {
       expect(query.metrics).toEqual([metricObject]);
     });
 
-    test('should add simple column metric to query when point_radius_fixed type is "metric"', () => {
+    it('should add simple column metric to query when point_radius_fixed type is "metric"', () => {
       const simpleMetricObject = {
         expressionType: 'simple',
         column: {
@@ -208,7 +208,7 @@ describe('Polygon buildQuery', () => {
       expect(query.metrics).toEqual([simpleMetricObject]);
     });
 
-    test('should include both regular metric and point_radius_fixed metric in query when both are specified', () => {
+    it('should include both regular metric and point_radius_fixed metric in query when both are specified', () => {
       const metricObject = {
         expressionType: 'simple',
         column: { column_name: 'elevation' },
@@ -233,7 +233,7 @@ describe('Polygon buildQuery', () => {
   });
 
   describe('Edge cases and error handling', () => {
-    test('should not add metrics to query when point_radius_fixed is null', () => {
+    it('should not add metrics to query when point_radius_fixed is null', () => {
       const formDataWithNull = {
         ...baseFormData,
         point_radius_fixed: null,
@@ -245,7 +245,7 @@ describe('Polygon buildQuery', () => {
       expect(query.metrics).toEqual([]);
     });
 
-    test('should handle null metric values gracefully', () => {
+    it('should handle null metric values gracefully', () => {
       const formDataWithNullMetric = {
         ...baseFormData,
         point_radius_fixed: {
@@ -260,7 +260,7 @@ describe('Polygon buildQuery', () => {
       expect(query.metrics).toEqual([]);
     });
 
-    test('should handle undefined metric values gracefully', () => {
+    it('should handle undefined metric values gracefully', () => {
       const formDataWithUndefinedMetric = {
         ...baseFormData,
         point_radius_fixed: {
@@ -275,7 +275,7 @@ describe('Polygon buildQuery', () => {
       expect(query.metrics).toEqual([]);
     });
 
-    test('should not add metrics to query when point_radius_fixed is empty object', () => {
+    it('should not add metrics to query when point_radius_fixed is empty object', () => {
       const formDataWithEmptyObject = {
         ...baseFormData,
         point_radius_fixed: {},
@@ -287,7 +287,7 @@ describe('Polygon buildQuery', () => {
       expect(query.metrics).toEqual([]);
     });
 
-    test('should not add metrics to query when point_radius_fixed has unsupported type', () => {
+    it('should not add metrics to query when point_radius_fixed has unsupported type', () => {
       const formDataWithUnsupportedType = {
         ...baseFormData,
         point_radius_fixed: {
@@ -302,7 +302,7 @@ describe('Polygon buildQuery', () => {
       expect(query.metrics).toEqual([]);
     });
 
-    test('should not add metrics to query when point_radius_fixed has missing type field', () => {
+    it('should not add metrics to query when point_radius_fixed has missing type field', () => {
       const formDataWithMissingType = {
         ...baseFormData,
         point_radius_fixed: {
@@ -318,7 +318,7 @@ describe('Polygon buildQuery', () => {
   });
 
   describe('Integration with other form data fields', () => {
-    test('should include js_columns in query columns', () => {
+    it('should include js_columns in query columns', () => {
       const formDataWithJsColumns = {
         ...baseFormData,
         js_columns: ['custom_col1', 'custom_col2'],
@@ -334,7 +334,7 @@ describe('Polygon buildQuery', () => {
       ]);
     });
 
-    test('should include tooltip_contents columns in query', () => {
+    it('should include tooltip_contents columns in query', () => {
       const formDataWithTooltips = {
         ...baseFormData,
         tooltip_contents: [
@@ -350,7 +350,7 @@ describe('Polygon buildQuery', () => {
       expect(query.columns).toContain('another_tooltip_col');
     });
 
-    test('should not add null filters when filter_nulls is false', () => {
+    it('should not add null filters when filter_nulls is false', () => {
       const formDataWithoutNullFilters = {
         ...baseFormData,
         filter_nulls: false,
@@ -363,7 +363,7 @@ describe('Polygon buildQuery', () => {
       expect(query.filters).toEqual([]);
     });
 
-    test('should build comprehensive query when multiple form data fields are specified', () => {
+    it('should build comprehensive query when multiple form data fields are specified', () => {
       const complexFormData = {
         ...baseFormData,
         metric: 'population',
@@ -403,7 +403,7 @@ describe('Polygon buildQuery', () => {
   });
 
   describe('Current implementation behavior', () => {
-    test('should not add fixed values to metrics for legacy point_radius_fixed structure', () => {
+    it('should not add fixed values to metrics for legacy point_radius_fixed structure', () => {
       const formDataWithFix = {
         ...baseFormData,
         point_radius_fixed: {
@@ -417,7 +417,7 @@ describe('Polygon buildQuery', () => {
       expect(query.metrics).toEqual([]);
     });
 
-    test('should add metric objects to query when point_radius_fixed type is "metric"', () => {
+    it('should add metric objects to query when point_radius_fixed type is "metric"', () => {
       const metricObject = {
         expressionType: 'SQL',
         sqlExpression: 'AVG(elevation)',
@@ -438,7 +438,7 @@ describe('Polygon buildQuery', () => {
       expect(query.metrics).toContain(metricObject);
     });
 
-    test('should respect type information when processing point_radius_fixed', () => {
+    it('should respect type information when processing point_radius_fixed', () => {
       const formDataWithTypeInfo = {
         ...baseFormData,
         point_radius_fixed: {

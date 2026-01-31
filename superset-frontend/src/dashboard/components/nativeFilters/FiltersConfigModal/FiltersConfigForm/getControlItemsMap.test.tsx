@@ -220,7 +220,7 @@ describe('ColumnSelect filterValues behavior', () => {
     ]);
   });
 
-  test('only renders filterable columns when doesColumnMatchFilterType returns true', () => {
+  it('only renders filterable columns when doesColumnMatchFilterType returns true', () => {
     (doesColumnMatchFilterType as jest.Mock).mockReturnValue(true);
     const props = {
       ...createProps(),
@@ -235,7 +235,7 @@ describe('ColumnSelect filterValues behavior', () => {
     expect(screen.queryByText('col2')).not.toBeInTheDocument();
   });
 
-  test('renders no columns when doesColumnMatchFilterType returns false', () => {
+  it('renders no columns when doesColumnMatchFilterType returns false', () => {
     (doesColumnMatchFilterType as jest.Mock).mockReturnValue(false);
     const props = {
       ...createProps(),

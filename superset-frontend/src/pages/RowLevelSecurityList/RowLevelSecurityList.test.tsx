@@ -119,17 +119,17 @@ describe('RuleList RTL', () => {
     return mounted;
   }
 
-  test('renders', async () => {
+  it('renders', async () => {
     await renderAndWait();
     expect(screen.getByText('Row Level Security')).toBeVisible();
   });
 
-  test('renders a ListView', async () => {
+  it('renders a ListView', async () => {
     await renderAndWait();
     expect(screen.getByTestId('rls-list-view')).toBeInTheDocument();
   });
 
-  test('fetched data', async () => {
+  it('fetched data', async () => {
     fetchMock.clearHistory();
     await renderAndWait();
     const apiCalls = fetchMock.callHistory.calls(/rowlevelsecurity\/\?q/);
@@ -140,7 +140,7 @@ describe('RuleList RTL', () => {
     fetchMock.clearHistory();
   });
 
-  test('renders add rule button on empty state', async () => {
+  it('renders add rule button on empty state', async () => {
     fetchMock.modifyRoute(ruleListEndpoint, {
       response: { result: [], count: 0 },
     });
@@ -153,7 +153,7 @@ describe('RuleList RTL', () => {
     });
   });
 
-  test('renders a "Rule" button to add a rule in bulk action', async () => {
+  it('renders a "Rule" button to add a rule in bulk action', async () => {
     await renderAndWait();
 
     const addRuleButton = await screen.findByTestId('add-rule');
@@ -162,7 +162,7 @@ describe('RuleList RTL', () => {
     expect(emptyAddRuleButton).not.toBeInTheDocument();
   });
 
-  test('renders filter options', async () => {
+  it('renders filter options', async () => {
     await renderAndWait();
 
     const searchFilters = screen.queryAllByTestId('filters-search');
@@ -172,7 +172,7 @@ describe('RuleList RTL', () => {
     expect(typeFilter).toHaveLength(3); // Update to expect 3 select filters
   });
 
-  test('renders correct list columns', async () => {
+  it('renders correct list columns', async () => {
     await renderAndWait();
 
     const table = screen.getByRole('table');
@@ -193,7 +193,7 @@ describe('RuleList RTL', () => {
     expect(actionsColumn).toBeInTheDocument();
   });
 
-  test('renders correct action buttons with write permission', async () => {
+  it('renders correct action buttons with write permission', async () => {
     await renderAndWait();
 
     const deleteActionIcon = screen.queryAllByTestId('rls-list-trash-icon');
@@ -203,7 +203,7 @@ describe('RuleList RTL', () => {
     expect(editActionIcon).toHaveLength(2);
   });
 
-  test('should not renders correct action buttons without write permission', async () => {
+  it('should not renders correct action buttons without write permission', async () => {
     fetchMock.modifyRoute(ruleInfoEndpoint, {
       response: { permissions: ['can_read'] },
     });
@@ -221,7 +221,7 @@ describe('RuleList RTL', () => {
     });
   });
 
-  test('renders popover on new clicking rule button', async () => {
+  it('renders popover on new clicking rule button', async () => {
     await renderAndWait();
 
     const modal = screen.queryByTestId('rls-modal-title');

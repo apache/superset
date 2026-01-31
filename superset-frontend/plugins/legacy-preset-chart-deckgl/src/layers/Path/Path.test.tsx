@@ -18,6 +18,7 @@
  */
 // eslint-disable-next-line import/no-extraneous-dependencies
 import '@testing-library/jest-dom';
+import { getLayer, getPoints, getHighlightLayer } from './Path';
 
 jest.mock('../../DeckGLContainer', () => ({
   DeckGLContainerStyledWrapper: ({ children }: any) => (
@@ -29,8 +30,6 @@ jest.mock('../../factory', () => ({
   createDeckGLComponent: jest.fn(() => () => null),
   GetLayerType: {},
 }));
-
-import { getLayer, getPoints, getHighlightLayer } from './Path';
 
 const mockFormData = {
   datasource: 'test_datasource',

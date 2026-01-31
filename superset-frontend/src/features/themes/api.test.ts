@@ -36,7 +36,7 @@ describe('Theme API', () => {
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('setSystemDefaultTheme', () => {
-    test('should call the correct endpoint with theme id', async () => {
+    it('should call the correct endpoint with theme id', async () => {
       const mockResponse = { id: 1, result: 'success' };
       fetchMock.put('glob:*/api/v1/theme/1/set_system_default', mockResponse);
 
@@ -49,7 +49,7 @@ describe('Theme API', () => {
       ).toBe(true);
     });
 
-    test('should handle errors properly', async () => {
+    it('should handle errors properly', async () => {
       fetchMock.put('glob:*/api/v1/theme/1/set_system_default', {
         throws: new Error('API Error'),
       });
@@ -60,7 +60,7 @@ describe('Theme API', () => {
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('setSystemDarkTheme', () => {
-    test('should call the correct endpoint with theme id', async () => {
+    it('should call the correct endpoint with theme id', async () => {
       const mockResponse = { id: 2, result: 'success' };
       fetchMock.put('glob:*/api/v1/theme/2/set_system_dark', mockResponse);
 
@@ -71,7 +71,7 @@ describe('Theme API', () => {
       ).toBe(true);
     });
 
-    test('should handle errors properly', async () => {
+    it('should handle errors properly', async () => {
       fetchMock.put('glob:*/api/v1/theme/2/set_system_dark', {
         throws: new Error('API Error'),
       });
@@ -82,7 +82,7 @@ describe('Theme API', () => {
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('unsetSystemDefaultTheme', () => {
-    test('should call the correct endpoint', async () => {
+    it('should call the correct endpoint', async () => {
       const mockResponse = { result: 'success' };
       fetchMock.delete(
         'glob:*/api/v1/theme/unset_system_default',
@@ -98,7 +98,7 @@ describe('Theme API', () => {
       ).toBe(true);
     });
 
-    test('should handle errors properly', async () => {
+    it('should handle errors properly', async () => {
       fetchMock.delete('glob:*/api/v1/theme/unset_system_default', {
         throws: new Error('API Error'),
       });
@@ -109,7 +109,7 @@ describe('Theme API', () => {
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('unsetSystemDarkTheme', () => {
-    test('should call the correct endpoint', async () => {
+    it('should call the correct endpoint', async () => {
       const mockResponse = { result: 'success' };
       fetchMock.delete('glob:*/api/v1/theme/unset_system_dark', mockResponse);
 
@@ -120,7 +120,7 @@ describe('Theme API', () => {
       ).toBe(true);
     });
 
-    test('should handle errors properly', async () => {
+    it('should handle errors properly', async () => {
       fetchMock.delete('glob:*/api/v1/theme/unset_system_dark', {
         throws: new Error('API Error'),
       });

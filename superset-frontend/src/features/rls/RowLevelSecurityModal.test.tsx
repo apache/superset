@@ -155,7 +155,7 @@ describe('Rule modal', () => {
     return mounted;
   }
 
-  test('Sets correct title for adding new rule', async () => {
+  it('Sets correct title for adding new rule', async () => {
     await renderAndWait(addNewRuleDefaultProps);
     const title = screen.getByText('Add Rule');
     expect(title).toBeInTheDocument();
@@ -168,7 +168,7 @@ describe('Rule modal', () => {
     );
   });
 
-  test('Sets correct title for editing existing rule', async () => {
+  it('Sets correct title for editing existing rule', async () => {
     await renderAndWait({
       ...addNewRuleDefaultProps,
       rule: {
@@ -190,7 +190,7 @@ describe('Rule modal', () => {
     );
   });
 
-  test('Fills correct values when editing rule', async () => {
+  it('Fills correct values when editing rule', async () => {
     await renderAndWait({
       ...addNewRuleDefaultProps,
       rule: {
@@ -234,7 +234,7 @@ describe('Rule modal', () => {
     expect(description).toHaveValue('test description');
   });
 
-  test('Does not allow to create rule without name, tables and clause', async () => {
+  it('Does not allow to create rule without name, tables and clause', async () => {
     jest.setTimeout(10000);
     await renderAndWait(addNewRuleDefaultProps);
 
@@ -255,7 +255,7 @@ describe('Rule modal', () => {
     expect(addButton).toBeEnabled();
   });
 
-  test('Creates a new rule', async () => {
+  it('Creates a new rule', async () => {
     await renderAndWait(addNewRuleDefaultProps);
 
     const addButton = screen.getByRole('button', { name: /add/i });
@@ -280,7 +280,7 @@ describe('Rule modal', () => {
     );
   });
 
-  test('Updates existing rule', async () => {
+  it('Updates existing rule', async () => {
     await renderAndWait({
       ...addNewRuleDefaultProps,
       rule: {

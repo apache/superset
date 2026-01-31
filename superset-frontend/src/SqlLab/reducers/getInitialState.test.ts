@@ -58,10 +58,10 @@ describe('getInitialState', () => {
     localStorage.clear();
   });
 
-  test('should output the user that is passed in', () => {
+  it('should output the user that is passed in', () => {
     expect(getInitialState(apiData).user?.userId).toEqual(1);
   });
-  test('should return undefined instead of null for templateParams', () => {
+  it('should return undefined instead of null for templateParams', () => {
     expect(
       getInitialState(apiDataWithTabState).sqlLab?.queryEditors?.[0]
         ?.templateParams,
@@ -70,7 +70,7 @@ describe('getInitialState', () => {
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('dedupeTabHistory', () => {
-    test('should dedupe the tab history', () => {
+    it('should dedupe the tab history', () => {
       [
         { value: [], expected: [] },
         {
@@ -140,7 +140,7 @@ describe('getInitialState', () => {
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('dedupe tables schema', () => {
-    test('should dedupe the table schema', () => {
+    it('should dedupe the table schema', () => {
       localStorage.setItem(
         'redux',
         JSON.stringify({
@@ -198,7 +198,7 @@ describe('getInitialState', () => {
       expect(initializedTables.map(({ id }) => id)).toEqual([1, 2, 6]);
     });
 
-    test('should parse the float dttm value', () => {
+    it('should parse the float dttm value', () => {
       const startDttmInStr = '1693433503447.166992';
       const endDttmInStr = '1693433503500.23132';
 
@@ -288,7 +288,7 @@ describe('getInitialState', () => {
       );
     });
 
-    test('restore unsaved changes for PERSISTENCE mode', () => {
+    it('restore unsaved changes for PERSISTENCE mode', () => {
       const apiDataWithLocalStorage = {
         ...apiData,
         active_tab: {
@@ -325,7 +325,7 @@ describe('getInitialState', () => {
       ).toEqual(apiDataWithTabState.active_tab.id.toString());
     });
 
-    test('skip unsaved changes for expired data', () => {
+    it('skip unsaved changes for expired data', () => {
       const apiDataWithLocalStorage = {
         ...apiData,
         active_tab: {
@@ -349,7 +349,7 @@ describe('getInitialState', () => {
       );
     });
 
-    test('skip unsaved changes for legacy cache data', () => {
+    it('skip unsaved changes for legacy cache data', () => {
       const apiDataWithLocalStorage = {
         ...apiData,
         active_tab: {

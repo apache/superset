@@ -34,17 +34,17 @@ const mockEntries = [
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('sparklineDataUtils', () => {
-  test('parseTimeRatio should parse string values', () => {
+  it('parseTimeRatio should parse string values', () => {
     expect(parseTimeRatio('5')).toBe(5);
     expect(parseTimeRatio('10')).toBe(10);
   });
 
-  test('parseTimeRatio should pass through number values', () => {
+  it('parseTimeRatio should pass through number values', () => {
     expect(parseTimeRatio(5)).toBe(5);
     expect(parseTimeRatio(10)).toBe(10);
   });
 
-  test('transformTimeRatioData should calculate ratios correctly', () => {
+  it('transformTimeRatioData should calculate ratios correctly', () => {
     const result = transformTimeRatioData(mockEntries, 'sales', 1);
 
     expect(result).toHaveLength(3);
@@ -53,7 +53,7 @@ describe('sparklineDataUtils', () => {
     expect(result[2]).toBeCloseTo(1.33, 2); // 400/300
   });
 
-  test('transformTimeRatioData should handle zero values', () => {
+  it('transformTimeRatioData should handle zero values', () => {
     const entriesWithZero = [
       { time: '2023-01-01', sales: 0 },
       { time: '2023-01-02', sales: 200 },
@@ -65,13 +65,13 @@ describe('sparklineDataUtils', () => {
     expect(result[0]).toBeNull();
   });
 
-  test('transformRegularData should map values directly', () => {
+  it('transformRegularData should map values directly', () => {
     const result = transformRegularData(mockEntries, 'sales');
 
     expect(result).toEqual([100, 200, 300, 400]);
   });
 
-  test('transformSparklineData should use time ratio when configured', () => {
+  it('transformSparklineData should use time ratio when configured', () => {
     const column = { key: 'test', timeRatio: 2 };
     const result = transformSparklineData('sales', column, mockEntries);
 
@@ -80,14 +80,14 @@ describe('sparklineDataUtils', () => {
     expect(result[1]).toBe(2);
   });
 
-  test('transformSparklineData should use regular data when no time ratio', () => {
+  it('transformSparklineData should use regular data when no time ratio', () => {
     const column = { key: 'test' };
     const result = transformSparklineData('sales', column, mockEntries);
 
     expect(result).toEqual([100, 200, 300, 400]);
   });
 
-  test('transformSparklineData should handle string time ratio', () => {
+  it('transformSparklineData should handle string time ratio', () => {
     const column = { key: 'test', timeRatio: '1' };
     const result = transformSparklineData('sales', column, mockEntries);
 
@@ -95,28 +95,28 @@ describe('sparklineDataUtils', () => {
     expect(result[0]).toBe(2); // 200/100
   });
 
-  test('parseSparklineDimensions should use provided values', () => {
+  it('parseSparklineDimensions should use provided values', () => {
     const column = { key: 'test', width: '400', height: '100' };
     const result = parseSparklineDimensions(column);
 
     expect(result).toEqual({ width: 400, height: 100 });
   });
 
-  test('parseSparklineDimensions should use default values', () => {
+  it('parseSparklineDimensions should use default values', () => {
     const column = { key: 'test' };
     const result = parseSparklineDimensions(column);
 
     expect(result).toEqual({ width: 300, height: 50 });
   });
 
-  test('validateYAxisBounds should return valid bounds', () => {
+  it('validateYAxisBounds should return valid bounds', () => {
     const bounds = [0, 100];
     const result = validateYAxisBounds(bounds);
 
     expect(result).toEqual([0, 100]);
   });
 
-  test('validateYAxisBounds should return default for invalid bounds', () => {
+  it('validateYAxisBounds should return default for invalid bounds', () => {
     expect(validateYAxisBounds([0])).toEqual([undefined, undefined]);
     expect(validateYAxisBounds('invalid')).toEqual([undefined, undefined]);
     expect(validateYAxisBounds(null)).toEqual([undefined, undefined]);

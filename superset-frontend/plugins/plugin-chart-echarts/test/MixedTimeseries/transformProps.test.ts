@@ -260,7 +260,7 @@ describe('legend sorting', () => {
   });
 });
 
-test('legend margin: top orientation sets grid.top correctly', () => {
+it('legend margin: top orientation sets grid.top correctly', () => {
   const chartPropsConfigWithoutIdentifiers = {
     ...chartPropsConfig,
     formData: {
@@ -275,7 +275,7 @@ test('legend margin: top orientation sets grid.top correctly', () => {
   expect((transformed.echartOptions.grid as any).top).toEqual(270);
 });
 
-test('legend margin: bottom orientation sets grid.bottom correctly', () => {
+it('legend margin: bottom orientation sets grid.bottom correctly', () => {
   const chartPropsConfigWithoutIdentifiers = {
     ...chartPropsConfig,
     formData: {
@@ -291,7 +291,7 @@ test('legend margin: bottom orientation sets grid.bottom correctly', () => {
   expect((transformed.echartOptions.grid as any).bottom).toEqual(270);
 });
 
-test('legend margin: left orientation sets grid.left correctly', () => {
+it('legend margin: left orientation sets grid.left correctly', () => {
   const chartPropsConfigWithoutIdentifiers = {
     ...chartPropsConfig,
     formData: {
@@ -307,7 +307,7 @@ test('legend margin: left orientation sets grid.left correctly', () => {
   expect((transformed.echartOptions.grid as any).left).toEqual(270);
 });
 
-test('legend margin: right orientation sets grid.right correctly', () => {
+it('legend margin: right orientation sets grid.right correctly', () => {
   const chartPropsConfigWithoutIdentifiers = {
     ...chartPropsConfig,
     formData: {

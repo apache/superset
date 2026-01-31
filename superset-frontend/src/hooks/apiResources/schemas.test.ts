@@ -59,7 +59,7 @@ describe('useSchemas hook', () => {
     store.dispatch(api.util.resetApiState());
   });
 
-  test('returns api response mapping json result', async () => {
+  it('returns api response mapping json result', async () => {
     const expectDbId = 'db1';
     const forceRefresh = false;
     const schemaApiRoute = `glob:*/api/v1/database/${expectDbId}/schemas/*`;
@@ -107,7 +107,7 @@ describe('useSchemas hook', () => {
     expect(result.current.data).toEqual(expectedResult);
   });
 
-  test('returns cached data without api request', async () => {
+  it('returns cached data without api request', async () => {
     const expectDbId = 'db1';
     const schemaApiRoute = `glob:*/api/v1/database/${expectDbId}/schemas/*`;
     fetchMock.get(schemaApiRoute, fakeApiResult);
@@ -130,7 +130,7 @@ describe('useSchemas hook', () => {
     expect(fetchMock.callHistory.calls(schemaApiRoute).length).toBe(1);
   });
 
-  test('returns refreshed data after expires', async () => {
+  it('returns refreshed data after expires', async () => {
     const expectDbId = 'db1';
     const schemaApiRoute = `glob:*/api/v1/database/*/schemas/*`;
     fetchMock.get(schemaApiRoute, ({ url }) =>
@@ -188,7 +188,7 @@ describe('useSchemas hook', () => {
     );
   });
 
-  test('returns correct schema list by a catalog', async () => {
+  it('returns correct schema list by a catalog', async () => {
     const dbId = '1';
     const expectCatalog = 'catalog3';
     const schemaApiRoute = `glob:*/api/v1/database/*/schemas/*`;

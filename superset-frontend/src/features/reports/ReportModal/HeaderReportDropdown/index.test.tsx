@@ -143,7 +143,7 @@ describe('Header Report Dropdown', () => {
     mockedIsFeatureEnabled.mockRestore();
   });
 
-  test('renders correctly', () => {
+  it('renders correctly', () => {
     const mockedProps = createProps();
     act(() => {
       setup(mockedProps, stateWithUserAndReport);
@@ -151,7 +151,7 @@ describe('Header Report Dropdown', () => {
     expect(screen.getAllByRole('menuitem')[0]).toBeInTheDocument();
   });
 
-  test('renders the dropdown correctly', async () => {
+  it('renders the dropdown correctly', async () => {
     const mockedProps = createProps();
     act(() => {
       setup(mockedProps, stateWithUserAndReport);
@@ -161,7 +161,7 @@ describe('Header Report Dropdown', () => {
     expect(screen.getByText('Delete email report')).toBeInTheDocument();
   });
 
-  test('opens an edit modal', async () => {
+  it('opens an edit modal', async () => {
     const mockedProps = createProps();
     mockedProps.showReportModal = jest.fn();
     act(() => {
@@ -172,7 +172,7 @@ describe('Header Report Dropdown', () => {
     expect(mockedProps.showReportModal).toHaveBeenCalled();
   });
 
-  test('opens a delete modal', async () => {
+  it('opens a delete modal', async () => {
     const mockedProps = createProps();
     mockedProps.setCurrentReportDeleting = jest.fn();
     act(() => {
@@ -183,7 +183,7 @@ describe('Header Report Dropdown', () => {
     expect(mockedProps.setCurrentReportDeleting).toHaveBeenCalled();
   });
 
-  test('renders Manage Email Reports Menu if there is a report', async () => {
+  it('renders Manage Email Reports Menu if there is a report', async () => {
     const mockedProps = createProps();
     act(() => {
       setup(mockedProps, stateWithUserAndReport);
@@ -193,7 +193,7 @@ describe('Header Report Dropdown', () => {
     expect(screen.getByText('Delete email report')).toBeInTheDocument();
   });
 
-  test('renders Schedule Email Reports if there is a report', async () => {
+  it('renders Schedule Email Reports if there is a report', async () => {
     const mockedProps = createProps();
 
     act(() => {
@@ -204,7 +204,7 @@ describe('Header Report Dropdown', () => {
     ).toBeInTheDocument();
   });
 
-  test('renders Schedule Email Reports as long as user has permission through any role', async () => {
+  it('renders Schedule Email Reports as long as user has permission through any role', async () => {
     const mockedProps = createProps();
     act(() => {
       setup(mockedProps, stateWithNonAdminUser);
@@ -215,7 +215,7 @@ describe('Header Report Dropdown', () => {
     ).toBeInTheDocument();
   });
 
-  test('do not render Schedule Email Reports if user no permission', () => {
+  it('do not render Schedule Email Reports if user no permission', () => {
     const mockedProps = createProps();
 
     act(() => {

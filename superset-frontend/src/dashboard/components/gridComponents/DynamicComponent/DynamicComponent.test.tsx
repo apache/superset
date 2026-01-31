@@ -138,7 +138,7 @@ describe('DynamicComponent', () => {
     jest.clearAllMocks();
   });
 
-  test('should render the component with basic structure', () => {
+  it('should render the component with basic structure', () => {
     const props = createProps();
     renderWithRedux(<DynamicComponent {...props} />);
 
@@ -151,7 +151,7 @@ describe('DynamicComponent', () => {
     expect(screen.getByTestId('mock-dynamic-component')).toBeInTheDocument();
   });
 
-  test('should render with proper CSS classes and data attributes', () => {
+  it('should render with proper CSS classes and data attributes', () => {
     const props = createProps();
     renderWithRedux(<DynamicComponent {...props} />);
 
@@ -161,7 +161,7 @@ describe('DynamicComponent', () => {
     expect(componentElement).toHaveAttribute('id', 'DYNAMIC_COMPONENT_1');
   });
 
-  test('should render HoverMenu and DeleteComponentButton in edit mode', () => {
+  it('should render HoverMenu and DeleteComponentButton in edit mode', () => {
     const props = createProps({ editMode: true });
     renderWithRedux(<DynamicComponent {...props} />);
 
@@ -169,7 +169,7 @@ describe('DynamicComponent', () => {
     expect(screen.getByTestId('mock-delete-button')).toBeInTheDocument();
   });
 
-  test('should not render HoverMenu and DeleteComponentButton when not in edit mode', () => {
+  it('should not render HoverMenu and DeleteComponentButton when not in edit mode', () => {
     const props = createProps({ editMode: false });
     renderWithRedux(<DynamicComponent {...props} />);
 
@@ -177,7 +177,7 @@ describe('DynamicComponent', () => {
     expect(screen.queryByTestId('mock-delete-button')).not.toBeInTheDocument();
   });
 
-  test('should call deleteComponent when delete button is clicked', () => {
+  it('should call deleteComponent when delete button is clicked', () => {
     const props = createProps({ editMode: true });
     renderWithRedux(<DynamicComponent {...props} />);
 
@@ -188,7 +188,7 @@ describe('DynamicComponent', () => {
     );
   });
 
-  test('should call updateComponents when background is changed', () => {
+  it('should call updateComponents when background is changed', () => {
     const props = createProps({ editMode: true });
     renderWithRedux(<DynamicComponent {...props} />);
 
@@ -208,7 +208,7 @@ describe('DynamicComponent', () => {
     });
   });
 
-  test('should calculate width multiple from component meta when parent is not COLUMN_TYPE', () => {
+  it('should calculate width multiple from component meta when parent is not COLUMN_TYPE', () => {
     const props = createProps({
       component: {
         ...createProps().component,
@@ -225,7 +225,7 @@ describe('DynamicComponent', () => {
     expect(screen.getByTestId('mock-resizable-container')).toBeInTheDocument();
   });
 
-  test('should calculate width multiple from parent meta when parent is COLUMN_TYPE', () => {
+  it('should calculate width multiple from parent meta when parent is COLUMN_TYPE', () => {
     const props = createProps({
       parentComponent: {
         id: 'COLUMN_1',
@@ -241,7 +241,7 @@ describe('DynamicComponent', () => {
     expect(screen.getByTestId('mock-resizable-container')).toBeInTheDocument();
   });
 
-  test('should use default width when no width is specified', () => {
+  it('should use default width when no width is specified', () => {
     const props = createProps({
       component: {
         ...createProps().component,
@@ -262,7 +262,7 @@ describe('DynamicComponent', () => {
     expect(screen.getByTestId('mock-resizable-container')).toBeInTheDocument();
   });
 
-  test('should render background style correctly', () => {
+  it('should render background style correctly', () => {
     const props = createProps({
       editMode: true, // Need edit mode for menu items to render
       component: {
@@ -280,7 +280,7 @@ describe('DynamicComponent', () => {
     expect(backgroundDropdown).toHaveValue('BACKGROUND_WHITE');
   });
 
-  test('should pass dashboard data from Redux store to dynamic component', () => {
+  it('should pass dashboard data from Redux store to dynamic component', () => {
     const props = createProps();
     const initialState = {
       nativeFilters: { filters: { filter1: {} } },
@@ -302,7 +302,7 @@ describe('DynamicComponent', () => {
     ).toBeTruthy();
   });
 
-  test('should handle resize callbacks', () => {
+  it('should handle resize callbacks', () => {
     const props = createProps();
     renderWithRedux(<DynamicComponent {...props} />);
 
@@ -310,7 +310,7 @@ describe('DynamicComponent', () => {
     expect(screen.getByTestId('mock-resizable-container')).toBeInTheDocument();
   });
 
-  test('should render with proper data-test attribute based on componentKey', () => {
+  it('should render with proper data-test attribute based on componentKey', () => {
     const props = createProps({
       component: {
         ...createProps().component,

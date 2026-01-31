@@ -100,7 +100,7 @@ describe('Polygon transformProps', () => {
     ],
   };
 
-  test('should use constant elevation value when point_radius_fixed type is "fix"', () => {
+  it('should use constant elevation value when point_radius_fixed type is "fix"', () => {
     const fixProps = {
       ...mockChartProps,
       rawFormData: {
@@ -119,7 +119,7 @@ describe('Polygon transformProps', () => {
     expect(features[0]?.elevation).toBe(1000);
   });
 
-  test('should use database metric value for elevation when point_radius_fixed type is "metric"', () => {
+  it('should use database metric value for elevation when point_radius_fixed type is "metric"', () => {
     const metricProps = {
       ...mockChartProps,
       rawFormData: {
@@ -142,7 +142,7 @@ describe('Polygon transformProps', () => {
     expect(features[0]?.elevation).toBe(150.5);
   });
 
-  test('should use constant elevation value when point_radius_fixed has legacy structure', () => {
+  it('should use constant elevation value when point_radius_fixed has legacy structure', () => {
     const legacyProps = {
       ...mockChartProps,
       rawFormData: {
@@ -160,7 +160,7 @@ describe('Polygon transformProps', () => {
     expect(features[0]?.elevation).toBe(750);
   });
 
-  test('should not set elevation when point_radius_fixed is not specified', () => {
+  it('should not set elevation when point_radius_fixed is not specified', () => {
     const noElevationProps = {
       ...mockChartProps,
       rawFormData: {
@@ -175,7 +175,7 @@ describe('Polygon transformProps', () => {
     expect(features[0]?.elevation).toBeUndefined();
   });
 
-  test('should use decimal constant elevation value when point_radius_fixed type is "fix"', () => {
+  it('should use decimal constant elevation value when point_radius_fixed type is "fix"', () => {
     const decimalFixProps = {
       ...mockChartProps,
       rawFormData: {
@@ -194,7 +194,7 @@ describe('Polygon transformProps', () => {
     expect(features[0]?.elevation).toBe(500.75);
   });
 
-  test('should handle invalid numeric strings gracefully', () => {
+  it('should handle invalid numeric strings gracefully', () => {
     const invalidNumericProps = {
       ...mockChartProps,
       rawFormData: {
@@ -213,7 +213,7 @@ describe('Polygon transformProps', () => {
     expect(features[0]?.elevation).toBeUndefined();
   });
 
-  test('should handle empty string elevation values gracefully', () => {
+  it('should handle empty string elevation values gracefully', () => {
     const emptyStringProps = {
       ...mockChartProps,
       rawFormData: {
@@ -232,7 +232,7 @@ describe('Polygon transformProps', () => {
     expect(features[0]?.elevation).toBeUndefined();
   });
 
-  test('should handle null metric elevation values gracefully', () => {
+  it('should handle null metric elevation values gracefully', () => {
     const nullMetricProps = {
       ...mockChartProps,
       rawFormData: {
@@ -251,7 +251,7 @@ describe('Polygon transformProps', () => {
     expect(features[0]?.elevation).toBeUndefined();
   });
 
-  test('should handle invalid JSON in polygon data gracefully', () => {
+  it('should handle invalid JSON in polygon data gracefully', () => {
     const invalidJsonProps = {
       ...mockChartProps,
       queriesData: [
@@ -271,7 +271,7 @@ describe('Polygon transformProps', () => {
     expect(features).toHaveLength(0);
   });
 
-  test('should handle legacy point_radius_fixed with invalid value gracefully', () => {
+  it('should handle legacy point_radius_fixed with invalid value gracefully', () => {
     const legacyInvalidProps = {
       ...mockChartProps,
       rawFormData: {
@@ -289,7 +289,7 @@ describe('Polygon transformProps', () => {
     expect(features[0]?.elevation).toBeUndefined();
   });
 
-  test('should handle geohash decoding successfully', () => {
+  it('should handle geohash decoding successfully', () => {
     const props = {
       ...mockedChartPropsWithGeoHash,
       rawFormData: {

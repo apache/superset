@@ -21,13 +21,13 @@ import DebouncedMessageQueue from './DebouncedMessageQueue';
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DebouncedMessageQueue', () => {
-  test('should create a queue with default options', () => {
+  it('should create a queue with default options', () => {
     const queue = new DebouncedMessageQueue();
     expect(queue).toBeDefined();
     expect(queue.trigger).toBeInstanceOf(Function);
   });
 
-  test('should accept custom configuration options', () => {
+  it('should accept custom configuration options', () => {
     const mockCallback = jest.fn();
     const queue = new DebouncedMessageQueue({
       callback: mockCallback,
@@ -37,7 +37,7 @@ describe('DebouncedMessageQueue', () => {
     expect(queue).toBeDefined();
   });
 
-  test('should append items to the queue', () => {
+  it('should append items to the queue', () => {
     const mockCallback = jest.fn();
     const queue = new DebouncedMessageQueue({ callback: mockCallback });
 
@@ -48,7 +48,7 @@ describe('DebouncedMessageQueue', () => {
     expect(() => queue.append(testEvent)).not.toThrow();
   });
 
-  test('should handle generic types properly', () => {
+  it('should handle generic types properly', () => {
     interface TestEvent {
       id: number;
       data: string;

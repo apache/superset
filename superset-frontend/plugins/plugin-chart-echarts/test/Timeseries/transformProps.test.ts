@@ -756,7 +756,7 @@ const timeCompareChartPropsConfig = {
   theme: supersetTheme,
 };
 
-test('should apply dashed line style to time comparison series with single metric', () => {
+it('should apply dashed line style to time comparison series with single metric', () => {
   const queriesDataWithTimeCompare = [
     {
       data: [
@@ -794,7 +794,7 @@ test('should apply dashed line style to time comparison series with single metri
   expect(comparisonSeries.lineStyle?.type[1]).toBeGreaterThanOrEqual(3);
 });
 
-test('should apply dashed line style to time comparison series with metric__offset pattern', () => {
+it('should apply dashed line style to time comparison series with metric__offset pattern', () => {
   const queriesDataWithTimeCompare = [
     {
       data: [
@@ -840,7 +840,7 @@ test('should apply dashed line style to time comparison series with metric__offs
   expect(comparisonSeries.lineStyle?.type[1]).toBeGreaterThanOrEqual(3);
 });
 
-test('should apply connectNulls to time comparison series', () => {
+it('should apply connectNulls to time comparison series', () => {
   const queriesDataWithNulls = [
     {
       data: [
@@ -872,7 +872,7 @@ test('should apply connectNulls to time comparison series', () => {
   expect(comparisonSeries.connectNulls).toBe(true);
 });
 
-test('should not apply dashed line style for non-Values comparison types', () => {
+it('should not apply dashed line style for non-Values comparison types', () => {
   const queriesDataWithTimeCompare = [
     {
       data: [
@@ -905,7 +905,7 @@ test('should not apply dashed line style for non-Values comparison types', () =>
   expect(comparisonSeries.connectNulls).toBeFalsy();
 });
 
-test('EchartsTimeseries AUTO mode should detect single currency and format with $ for USD', () => {
+it('EchartsTimeseries AUTO mode should detect single currency and format with $ for USD', () => {
   const chartProps = new ChartProps<SqlaFormData>({
     ...chartPropsConfig,
     formData: {
@@ -943,7 +943,7 @@ test('EchartsTimeseries AUTO mode should detect single currency and format with 
   expect(formatter(1000, 0)).toContain('$');
 });
 
-test('EchartsTimeseries AUTO mode should use neutral formatting for mixed currencies', () => {
+it('EchartsTimeseries AUTO mode should use neutral formatting for mixed currencies', () => {
   const chartProps = new ChartProps<SqlaFormData>({
     ...chartPropsConfig,
     formData: {
@@ -984,7 +984,7 @@ test('EchartsTimeseries AUTO mode should use neutral formatting for mixed curren
   expect(formatted).not.toContain('€');
 });
 
-test('EchartsTimeseries should preserve static currency format with £ for GBP', () => {
+it('EchartsTimeseries should preserve static currency format with £ for GBP', () => {
   const chartProps = new ChartProps<SqlaFormData>({
     ...chartPropsConfig,
     formData: {
@@ -1036,7 +1036,7 @@ const baseFormDataHorizontalBar: SqlaFormData = {
   yAxisBounds: [null, null],
 };
 
-test('should set yAxis max to actual data max for horizontal bar charts', () => {
+it('should set yAxis max to actual data max for horizontal bar charts', () => {
   const queriesData = [
     {
       data: createTestData(
@@ -1063,7 +1063,7 @@ test('should set yAxis max to actual data max for horizontal bar charts', () => 
   expect(xAxisRaw.max).toBe(20000); // Should be the actual max value, not rounded
 });
 
-test('should set yAxis min and max for diverging horizontal bar charts', () => {
+it('should set yAxis min and max for diverging horizontal bar charts', () => {
   const queriesData = [
     {
       data: createTestData(
@@ -1091,7 +1091,7 @@ test('should set yAxis min and max for diverging horizontal bar charts', () => {
   expect(xAxisRaw.min).toBe(-21000); // Should be the actual min value for diverging bars
 });
 
-test('should not override explicit yAxisBounds for horizontal bar charts', () => {
+it('should not override explicit yAxisBounds for horizontal bar charts', () => {
   const queriesData = [
     {
       data: createTestData(
@@ -1122,7 +1122,7 @@ test('should not override explicit yAxisBounds for horizontal bar charts', () =>
   expect(xAxisRaw.min).toBe(0); // Should respect explicit bound
 });
 
-test('should not apply axis bounds calculation when truncateYAxis is false for horizontal bar charts', () => {
+it('should not apply axis bounds calculation when truncateYAxis is false for horizontal bar charts', () => {
   const queriesData = [
     {
       data: createTestData(
@@ -1153,7 +1153,7 @@ test('should not apply axis bounds calculation when truncateYAxis is false for h
   expect(xAxis.max).toBeUndefined();
 });
 
-test('should not apply axis bounds calculation when seriesType is not Bar for horizontal charts', () => {
+it('should not apply axis bounds calculation when seriesType is not Bar for horizontal charts', () => {
   const queriesData = [
     {
       data: createTestData(

@@ -109,7 +109,7 @@ test('renders chart customization divider in horizontal mode', () => {
     },
   };
 
-  const useSelector = jest.requireMock('react-redux').useSelector;
+  const { useSelector } = jest.requireMock('react-redux');
   useSelector.mockImplementation(
     (selector: (state: typeof horizontalStore) => unknown) =>
       selector(horizontalStore),

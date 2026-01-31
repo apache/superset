@@ -81,7 +81,7 @@ describe('EditorWrapper', () => {
     MockEditorHost.mockClear();
   });
 
-  test('renders editor including sql value', async () => {
+  it('renders editor including sql value', async () => {
     const store = createStore(initialState, reducerIndex);
     const { getByTestId } = setup(defaultQueryEditor, store);
     await waitFor(() => expect(getByTestId('editor-host')).toBeInTheDocument());
@@ -91,7 +91,7 @@ describe('EditorWrapper', () => {
     );
   });
 
-  test('renders current sql for unrelated unsaved changes', () => {
+  it('renders current sql for unrelated unsaved changes', () => {
     const expectedSql = 'SELECT updated_column\nFROM updated_table\nWHERE';
     const store = createStore(
       {
@@ -116,7 +116,7 @@ describe('EditorWrapper', () => {
     );
   });
 
-  test('skips rerendering for updating cursor position', () => {
+  it('skips rerendering for updating cursor position', () => {
     const store = createStore(initialState, reducerIndex);
     setup(defaultQueryEditor, store);
 
@@ -131,7 +131,7 @@ describe('EditorWrapper', () => {
     expect(MockEditorHost).toHaveBeenCalledTimes(renderCount + 1);
   });
 
-  test('clears selectedText when selection becomes empty', async () => {
+  it('clears selectedText when selection becomes empty', async () => {
     const store = createStore(initialState, reducerIndex);
     // Set initial selected text in store
     store.dispatch(

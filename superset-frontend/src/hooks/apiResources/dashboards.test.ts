@@ -56,7 +56,7 @@ describe('useDashboardDatasets', () => {
     fetchMock.clearHistory().removeRoutes();
   });
 
-  test('adds currencyFormats to datasets', async () => {
+  it('adds currencyFormats to datasets', async () => {
     fetchMock.get('glob:*/api/v1/dashboard/*/datasets', {
       result: mockDatasets,
     });

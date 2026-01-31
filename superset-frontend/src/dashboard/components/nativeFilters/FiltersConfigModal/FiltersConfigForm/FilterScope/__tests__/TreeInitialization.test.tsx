@@ -41,7 +41,7 @@ describe('FilterScope TreeInitialization', () => {
     jest.useRealTimers();
   });
 
-  test('correct init tree with values', async () => {
+  it('correct init tree with values', async () => {
     const { MockModalComponent } = createMockModal({
       scope: {
         rootPath: ['TAB_ID'],

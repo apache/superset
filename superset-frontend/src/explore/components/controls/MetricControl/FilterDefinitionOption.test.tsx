@@ -38,12 +38,12 @@ const sumValueAdhocMetric = new AdhocMetric({
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('FilterDefinitionOption', () => {
-  test('renders a StyledColumnOption given a column', async () => {
+  it('renders a StyledColumnOption given a column', async () => {
     render(<FilterDefinitionOption option={{ column_name: 'a_column' }} />);
     await expect(screen.getByText('a_column')).toBeVisible();
   });
 
-  test('renders a StyledColumnOption given an adhoc metric', async () => {
+  it('renders a StyledColumnOption given an adhoc metric', async () => {
     render(
       <FilterDefinitionOption
         option={sumValueAdhocMetric as unknown as { label: string }}
@@ -52,7 +52,7 @@ describe('FilterDefinitionOption', () => {
     await expect(screen.getByText('SUM(source)')).toBeVisible();
   });
 
-  test('renders the metric name given a saved metric', async () => {
+  it('renders the metric name given a saved metric', async () => {
     render(
       <FilterDefinitionOption
         option={{ saved_metric_name: 'my_custom_metric' }}

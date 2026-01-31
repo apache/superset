@@ -26,11 +26,11 @@ fetchMock.post('glob:*/api/v1/explore/permalink', { url });
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('EmbedCodeButton', () => {
-  test('renders', () => {
+  it('renders', () => {
     expect(isValidElement(<EmbedCodeContent />)).toBe(true);
   });
 
-  test('returns correct embed code', async () => {
+  it('returns correct embed code', async () => {
     render(<EmbedCodeContent />, { useRedux: true });
     expect(await screen.findByText('iframe', { exact: false })).toBeVisible();
     expect(await screen.findByText('/iframe', { exact: false })).toBeVisible();

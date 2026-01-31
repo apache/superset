@@ -98,7 +98,7 @@ describe('isValidChild', () => {
         if (i > 0 && !didTest[testKey]) {
           didTest[testKey] = true;
 
-          test(`(${exampleIdx})${getIndentation(
+          it(`(${exampleIdx})${getIndentation(
             childDepth,
           )}${parentType} (depth ${parentDepth}) > ${childType} ✅`, () => {
             expect(
@@ -147,7 +147,7 @@ describe('isValidChild', () => {
           if (typeof parentType !== 'string')
             throw TypeError('parent must be string');
 
-          test(`(${exampleIdx})${getIndentation(
+          it(`(${exampleIdx})${getIndentation(
             childDepth,
           )}${parentType} (depth ${parentDepth}) > ${childType} ❌`, () => {
             expect(

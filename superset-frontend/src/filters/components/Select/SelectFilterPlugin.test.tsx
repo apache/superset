@@ -125,7 +125,7 @@ describe('SelectFilterPlugin', () => {
     jest.clearAllMocks();
   });
 
-  test('Add multiple values with first render', async () => {
+  it('Add multiple values with first render', async () => {
     getWrapper();
     expect(setDataMask).toHaveBeenCalledWith({
       extraFormData: {
@@ -168,7 +168,7 @@ describe('SelectFilterPlugin', () => {
     });
   });
 
-  test('Remove multiple values when required', () => {
+  it('Remove multiple values when required', () => {
     getWrapper();
     userEvent.click(
       screen.getByRole('img', {
@@ -194,7 +194,7 @@ describe('SelectFilterPlugin', () => {
     });
   });
 
-  test('Remove multiple values when not required', () => {
+  it('Remove multiple values when not required', () => {
     getWrapper({ enableEmptyFilter: false });
     userEvent.click(
       screen.getByRole('img', {
@@ -212,7 +212,7 @@ describe('SelectFilterPlugin', () => {
     });
   });
 
-  test('Select single values with inverse', async () => {
+  it('Select single values with inverse', async () => {
     getWrapper({ multiSelect: false, inverseSelection: true });
 
     // Get the main filter select (second combobox)
@@ -239,7 +239,7 @@ describe('SelectFilterPlugin', () => {
     });
   });
 
-  test('Select single null (empty) value', async () => {
+  it('Select single null (empty) value', async () => {
     getWrapper();
     const filterSelect = screen.getAllByRole('combobox')[0];
     userEvent.click(filterSelect);
@@ -263,7 +263,7 @@ describe('SelectFilterPlugin', () => {
     });
   });
 
-  test('receives the correct filter when search all options', async () => {
+  it('receives the correct filter when search all options', async () => {
     getWrapper({ searchAllOptions: true, multiSelect: false });
     const filterSelect = screen.getAllByRole('combobox')[0];
     userEvent.click(filterSelect);
@@ -284,7 +284,7 @@ describe('SelectFilterPlugin', () => {
     );
   });
 
-  test('number of fired queries when searching', async () => {
+  it('number of fired queries when searching', async () => {
     getWrapper({ searchAllOptions: true });
     const filterSelect = screen.getAllByRole('combobox')[0];
     userEvent.click(filterSelect);
@@ -294,7 +294,7 @@ describe('SelectFilterPlugin', () => {
     expect(setDataMask).toHaveBeenCalledTimes(2);
   });
 
-  test('Select big int value', async () => {
+  it('Select big int value', async () => {
     const bigValue = 1100924931345932234n;
     render(
       // @ts-ignore
@@ -341,17 +341,17 @@ describe('SelectFilterPlugin', () => {
     ).toBeInTheDocument();
   });
 
-  test('Is/Is Not select is visible when inverseSelection is true', () => {
+  it('Is/Is Not select is visible when inverseSelection is true', () => {
     getWrapper({ inverseSelection: true });
     expect(screen.getByText('is not')).toBeInTheDocument();
   });
 
-  test('Is/Is Not select is not visible when inverseSelection is false', () => {
+  it('Is/Is Not select is not visible when inverseSelection is false', () => {
     getWrapper({ inverseSelection: false });
     expect(screen.queryByText('is not')).not.toBeInTheDocument();
   });
 
-  test('Is/Is Not select toggles correctly', async () => {
+  it('Is/Is Not select toggles correctly', async () => {
     getWrapper({ inverseSelection: true });
 
     const isNotSelect = screen.getByText('is not');
@@ -373,19 +373,19 @@ describe('SelectFilterPlugin', () => {
     );
   });
 
-  test('Should not allow for new values when creatable is false', () => {
+  it('Should not allow for new values when creatable is false', () => {
     getWrapper({ creatable: false });
     userEvent.type(screen.getByRole('combobox'), 'new value');
     expect(screen.queryByTitle('new value')).not.toBeInTheDocument();
   });
 
-  test('Should allow for new values when creatable is true', async () => {
+  it('Should allow for new values when creatable is true', async () => {
     getWrapper({ creatable: true });
     userEvent.type(screen.getByRole('combobox'), 'new value');
     expect(await screen.findByTitle('new value')).toBeInTheDocument();
   });
 
-  test('preserves backend order when sortMetric is specified', () => {
+  it('preserves backend order when sortMetric is specified', () => {
     const testData = [
       { gender: 'zebra' },
       { gender: 'alpha' },
@@ -459,7 +459,7 @@ describe('SelectFilterPlugin', () => {
     expect(options[2]).toHaveTextContent('beta');
   });
 
-  test('applies alphabetical sorting when sortMetric is not specified', () => {
+  it('applies alphabetical sorting when sortMetric is not specified', () => {
     const testData = [
       { gender: 'zebra' },
       { gender: 'alpha' },
@@ -533,7 +533,7 @@ describe('SelectFilterPlugin', () => {
     expect(options[2]).toHaveTextContent('zebra');
   });
 
-  test('applies descending alphabetical sorting when sortAscending is false and no sortMetric', () => {
+  it('applies descending alphabetical sorting when sortAscending is false and no sortMetric', () => {
     const testData = [
       { gender: 'zebra' },
       { gender: 'alpha' },
@@ -607,7 +607,7 @@ describe('SelectFilterPlugin', () => {
     expect(options[2]).toHaveTextContent('alpha');
   });
 
-  test('preserves backend order even when sortAscending is false and sortMetric is specified', () => {
+  it('preserves backend order even when sortAscending is false and sortMetric is specified', () => {
     const testData = [
       { gender: 'zebra' },
       { gender: 'alpha' },
@@ -682,7 +682,7 @@ describe('SelectFilterPlugin', () => {
   });
 });
 
-test('Select boolean FALSE value in single-select mode', async () => {
+it('Select boolean FALSE value in single-select mode', async () => {
   jest.useRealTimers();
   const setDataMaskMock = jest.fn();
   const testProps = {
@@ -759,7 +759,7 @@ test('Select boolean FALSE value in single-select mode', async () => {
   });
 });
 
-test('Select boolean TRUE value in single-select mode', async () => {
+it('Select boolean TRUE value in single-select mode', async () => {
   jest.useRealTimers();
   const setDataMaskMock = jest.fn();
   const testProps = {
@@ -836,7 +836,7 @@ test('Select boolean TRUE value in single-select mode', async () => {
   });
 });
 
-test('Select both boolean values in multi-select mode', async () => {
+it('Select both boolean values in multi-select mode', async () => {
   jest.useRealTimers();
   const setDataMaskMock = jest.fn();
   const testProps = {
@@ -913,7 +913,7 @@ test('Select both boolean values in multi-select mode', async () => {
   });
 });
 
-test('Select boolean filter with null values', async () => {
+it('Select boolean filter with null values', async () => {
   jest.useRealTimers();
   const setDataMaskMock = jest.fn();
   const testProps = {
@@ -990,7 +990,7 @@ test('Select boolean filter with null values', async () => {
   });
 });
 
-test('Clear boolean FALSE value', async () => {
+it('Clear boolean FALSE value', async () => {
   jest.useRealTimers();
   const setDataMaskMock = jest.fn();
   const testProps = {
@@ -1061,7 +1061,7 @@ test('Clear boolean FALSE value', async () => {
   });
 });
 
-test('Clear boolean TRUE value', async () => {
+it('Clear boolean TRUE value', async () => {
   jest.useRealTimers();
   const setDataMaskMock = jest.fn();
   const testProps = {

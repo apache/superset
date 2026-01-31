@@ -56,7 +56,7 @@ buildActiveFilters({
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('for dashboard filters', () => {
-  test('does not show number when there are no active filters', () => {
+  it('does not show number when there are no active filters', () => {
     const store = getMockStoreWithFilters();
     // start with basic dashboard state, dispatch an event to simulate query completion
     store.dispatch({
@@ -75,7 +75,7 @@ describe('for dashboard filters', () => {
     expect(queryByTestId('applied-filter-count')).not.toBeInTheDocument();
   });
 
-  test('shows the indicator when filters have been applied', () => {
+  it('shows the indicator when filters have been applied', () => {
     const store = getMockStoreWithFilters();
     // start with basic dashboard state, dispatch an event to simulate query completion
     store.dispatch({
@@ -99,7 +99,7 @@ describe('for dashboard filters', () => {
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('for native filters', () => {
-  test('does not show number when there are no active filters', () => {
+  it('does not show number when there are no active filters', () => {
     const store = getMockStoreWithNativeFilters();
     // start with basic dashboard state, dispatch an event to simulate query completion
     store.dispatch({
@@ -118,7 +118,7 @@ describe('for native filters', () => {
     expect(queryByTestId('applied-filter-count')).not.toBeInTheDocument();
   });
 
-  test('shows the indicator when filters have been applied', () => {
+  it('shows the indicator when filters have been applied', () => {
     const store = getMockStoreWithNativeFilters();
     // start with basic dashboard state, dispatch an event to simulate query completion
     store.dispatch({

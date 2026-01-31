@@ -141,7 +141,7 @@ test('renders preview', async () => {
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('table actions', () => {
-  test('refreshes table metadata when triggered', async () => {
+  it('refreshes table metadata when triggered', async () => {
     const { getByRole } = render(<TablePreview {...mockedProps} />, {
       useRedux: true,
       initialState,
@@ -160,7 +160,7 @@ describe('table actions', () => {
     );
   });
 
-  test('shows CREATE VIEW statement', async () => {
+  it('shows CREATE VIEW statement', async () => {
     const { getByRole } = render(<TablePreview {...mockedProps} />, {
       useRedux: true,
       initialState,

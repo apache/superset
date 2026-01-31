@@ -48,11 +48,11 @@ import {
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('dashboardLayout reducer', () => {
-  test('should return initial state for unrecognized actions', () => {
+  it('should return initial state for unrecognized actions', () => {
     expect(layoutReducer(undefined, {})).toEqual({});
   });
 
-  test('should delete a component, remove its reference in its parent, and recursively all of its children', () => {
+  it('should delete a component, remove its reference in its parent, and recursively all of its children', () => {
     expect(
       layoutReducer(
         {
@@ -88,7 +88,7 @@ describe('dashboardLayout reducer', () => {
     });
   });
 
-  test('should delete a parent if the parent was a row and no longer has children', () => {
+  it('should delete a parent if the parent was a row and no longer has children', () => {
     expect(
       layoutReducer(
         {
@@ -123,7 +123,7 @@ describe('dashboardLayout reducer', () => {
     });
   });
 
-  test('should update components', () => {
+  it('should update components', () => {
     expect(
       layoutReducer(
         {
@@ -174,7 +174,7 @@ describe('dashboardLayout reducer', () => {
     });
   });
 
-  test('should move a component', () => {
+  it('should move a component', () => {
     const layout = {
       source: {
         id: 'source',
@@ -223,7 +223,7 @@ describe('dashboardLayout reducer', () => {
     });
   });
 
-  test('should wrap a moved component in a row if need be', () => {
+  it('should wrap a moved component in a row if need be', () => {
     const layout = {
       source: {
         id: 'source',
@@ -263,7 +263,7 @@ describe('dashboardLayout reducer', () => {
     expect(Object.keys(result)).toHaveLength(4);
   });
 
-  test('should add top-level tabs from a new tabs component, moving grid children to new tab', () => {
+  it('should add top-level tabs from a new tabs component, moving grid children to new tab', () => {
     const layout = {
       [DASHBOARD_ROOT_ID]: {
         id: DASHBOARD_ROOT_ID,
@@ -309,7 +309,7 @@ describe('dashboardLayout reducer', () => {
     expect(result[DASHBOARD_GRID_ID].children).toHaveLength(0);
   });
 
-  test('should add top-level tabs from an existing tabs component, moving grid children to new tab', () => {
+  it('should add top-level tabs from an existing tabs component, moving grid children to new tab', () => {
     const layout = {
       [DASHBOARD_ROOT_ID]: {
         id: DASHBOARD_ROOT_ID,
@@ -361,7 +361,7 @@ describe('dashboardLayout reducer', () => {
     expect(result[DASHBOARD_GRID_ID].children).toHaveLength(0);
   });
 
-  test('should remove top-level tabs, moving children to the grid', () => {
+  it('should remove top-level tabs, moving children to the grid', () => {
     const layout = {
       [DASHBOARD_ROOT_ID]: {
         id: DASHBOARD_ROOT_ID,
@@ -426,7 +426,7 @@ describe('dashboardLayout reducer', () => {
     });
   });
 
-  test('should create a component', () => {
+  it('should create a component', () => {
     const layout = {
       [DASHBOARD_ROOT_ID]: {
         id: DASHBOARD_ROOT_ID,
@@ -459,7 +459,7 @@ describe('dashboardLayout reducer', () => {
     expect(result[newId].type).toBe(ROW_TYPE);
   });
 
-  test('recursivelyDeleteChildren should be error proof with bad inputs', () => {
+  it('recursivelyDeleteChildren should be error proof with bad inputs', () => {
     /*
      ** The recursivelyDeleteChildren function was missing runtime safety checks before operating
      ** on sub properties of object causing runtime errors when a componentId lookup returned and unexpected value

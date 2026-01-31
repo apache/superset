@@ -111,7 +111,7 @@ describe('dashboardState actions', () => {
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('saveDashboardRequest', () => {
-    test('should dispatch UPDATE_COMPONENTS_PARENTS_LIST action', () => {
+    it('should dispatch UPDATE_COMPONENTS_PARENTS_LIST action', () => {
       const { getState, dispatch } = setup({
         dashboardState: { hasUnsavedChanges: false },
       });
@@ -124,7 +124,7 @@ describe('dashboardState actions', () => {
       expect(dispatch.getCall(1).args[0].type).toBe(SAVE_DASHBOARD_STARTED);
     });
 
-    test('should post dashboard data with updated redux state', () => {
+    it('should post dashboard data with updated redux state', () => {
       const { getState, dispatch } = setup({
         dashboardState: { hasUnsavedChanges: false },
       });
@@ -165,7 +165,7 @@ describe('dashboardState actions', () => {
         isFeatureEnabled.mockRestore();
       });
 
-      test('dispatches SET_OVERRIDE_CONFIRM when an inspect value has diff', async () => {
+      it('dispatches SET_OVERRIDE_CONFIRM when an inspect value has diff', async () => {
         const id = 192;
         const { getState, dispatch } = setup();
         const thunk = saveDashboardRequest(
@@ -184,7 +184,7 @@ describe('dashboardState actions', () => {
         ).toBe(id);
       });
 
-      test('should post dashboard data with after confirm the overwrite values', async () => {
+      it('should post dashboard data with after confirm the overwrite values', async () => {
         const id = 192;
         const { getState, dispatch } = setup();
         const confirmedDashboardData = {
@@ -205,7 +205,7 @@ describe('dashboardState actions', () => {
       });
     });
 
-    test('should navigate to the new dashboard after Save As', async () => {
+    it('should navigate to the new dashboard after Save As', async () => {
       const newDashboardId = 999;
       const { getState, dispatch } = setup({
         dashboardState: { hasUnsavedChanges: true },

@@ -20,20 +20,20 @@ import { controlPanel as controlPanelConfig } from './controlPanel';
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('TimeTable Control Panel', () => {
-  test('should have required control panel structure', () => {
+  it('should have required control panel structure', () => {
     expect(controlPanelConfig).toBeDefined();
     expect(controlPanelConfig.controlPanelSections).toBeDefined();
     expect(Array.isArray(controlPanelConfig.controlPanelSections)).toBe(true);
   });
 
-  test('should have time series time section', () => {
+  it('should have time series time section', () => {
     const sections = controlPanelConfig.controlPanelSections;
 
     expect(sections.length).toBeGreaterThan(0);
     expect(sections[0]).toBeDefined();
   });
 
-  test('should have query section with required controls', () => {
+  it('should have query section with required controls', () => {
     const querySection = controlPanelConfig.controlPanelSections[1];
     const { controlSetRows } = querySection!;
 
@@ -48,7 +48,7 @@ describe('TimeTable Control Panel', () => {
     expect(controlSetRows).toContainEqual(['row_limit']);
   });
 
-  test('should have column collection control', () => {
+  it('should have column collection control', () => {
     const querySection = controlPanelConfig.controlPanelSections[1];
     const columnCollectionRow = querySection!.controlSetRows.find(
       (row: any) =>
@@ -69,7 +69,7 @@ describe('TimeTable Control Panel', () => {
     );
   });
 
-  test('should have URL control', () => {
+  it('should have URL control', () => {
     const querySection = controlPanelConfig.controlPanelSections[1];
     const urlRow = querySection!.controlSetRows.find(
       (row: any) =>
@@ -81,13 +81,13 @@ describe('TimeTable Control Panel', () => {
     expect((urlRow as any)![0].config.label).toBe('URL');
   });
 
-  test('should have control overrides for groupby', () => {
+  it('should have control overrides for groupby', () => {
     expect(controlPanelConfig.controlOverrides).toBeDefined();
     expect(controlPanelConfig.controlOverrides!.groupby).toBeDefined();
     expect(controlPanelConfig.controlOverrides!.groupby!.multiple).toBe(false);
   });
 
-  test('should have form data overrides function', () => {
+  it('should have form data overrides function', () => {
     expect(controlPanelConfig.formDataOverrides).toBeDefined();
     expect(typeof controlPanelConfig.formDataOverrides).toBe('function');
   });

@@ -44,25 +44,25 @@ describe('MarshmallowErrorMessage', () => {
     level: 'error' as ErrorLevel,
   };
 
-  test('renders without crashing', () => {
+  it('renders without crashing', () => {
     render(<MarshmallowErrorMessage error={mockError} />);
     expect(screen.getByText('Validation failed')).toBeInTheDocument();
   });
 
-  test('renders the provided subtitle', () => {
+  it('renders the provided subtitle', () => {
     render(
       <MarshmallowErrorMessage error={mockError} subtitle="Error Alert" />,
     );
     expect(screen.getByText('Error Alert')).toBeInTheDocument();
   });
 
-  test('renders extracted invalid values', () => {
+  it('renders extracted invalid values', () => {
     render(<MarshmallowErrorMessage error={mockError} />);
     expect(screen.getByText("can't be blank:")).toBeInTheDocument();
     expect(screen.getByText('is too low: 10')).toBeInTheDocument();
   });
 
-  test('renders the JSONTree when details are expanded', () => {
+  it('renders the JSONTree when details are expanded', () => {
     render(<MarshmallowErrorMessage error={mockError} />);
     fireEvent.click(screen.getByText('Details'));
     expect(screen.getByText('"can\'t be blank"')).toBeInTheDocument();

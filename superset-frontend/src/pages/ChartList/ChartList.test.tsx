@@ -87,14 +87,14 @@ describe('ChartList', () => {
     ).mockReset();
   });
 
-  test('renders component with basic structure', async () => {
+  it('renders component with basic structure', async () => {
     renderChartList(mockUser);
 
     expect(await screen.findByTestId('chart-list-view')).toBeInTheDocument();
     expect(screen.getByText('Charts')).toBeInTheDocument();
   });
 
-  test('verify New Chart button existence and functionality', async () => {
+  it('verify New Chart button existence and functionality', async () => {
     renderChartList(mockUser);
     await screen.findByTestId('chart-list-view');
 
@@ -112,7 +112,7 @@ describe('ChartList', () => {
     });
   });
 
-  test('verify Import button existence and functionality', async () => {
+  it('verify Import button existence and functionality', async () => {
     renderChartList(mockUser);
     await screen.findByTestId('chart-list-view');
 
@@ -131,7 +131,7 @@ describe('ChartList', () => {
     });
   });
 
-  test('shows loading state during initial data fetch', async () => {
+  it('shows loading state during initial data fetch', async () => {
     // Delay the chart data response to test loading state
     // fetchMock.removeRoute(API_ENDPOINTS.CHARTS)
     fetchMock.removeRoutes();
@@ -157,7 +157,7 @@ describe('ChartList', () => {
     );
   });
 
-  test('makes correct API calls on initial load', async () => {
+  it('makes correct API calls on initial load', async () => {
     renderChartList(mockUser);
 
     await waitFor(() => {
@@ -172,7 +172,7 @@ describe('ChartList', () => {
     });
   });
 
-  test('shows loading state while API calls are in progress', async () => {
+  it('shows loading state while API calls are in progress', async () => {
     // Mock delayed API responses
     // fetchMock.removeRoute(API_ENDPOINTS.CHARTS_INFO)
     fetchMock.removeRoutes();
@@ -214,7 +214,7 @@ describe('ChartList', () => {
     );
   });
 
-  test('maintains component structure during loading', async () => {
+  it('maintains component structure during loading', async () => {
     renderChartList(mockUser);
 
     // Core structure should be available immediately
@@ -238,7 +238,7 @@ describe('ChartList', () => {
     ).toBeInTheDocument();
   });
 
-  test('displays Matrixify tag for charts with matrixify enabled', async () => {
+  it('displays Matrixify tag for charts with matrixify enabled', async () => {
     renderChartList(mockUser);
 
     // Wait for the chart list to load
@@ -266,7 +266,7 @@ describe('ChartList', () => {
     ).not.toBeInTheDocument();
   });
 
-  test('handles API errors gracefully', async () => {
+  it('handles API errors gracefully', async () => {
     // Mock API failure
     fetchMock.removeRoutes();
     fetchMock.get(
@@ -282,7 +282,7 @@ describe('ChartList', () => {
     expect(screen.getByTestId('chart-list-view')).toBeInTheDocument();
   });
 
-  test('handles empty results', async () => {
+  it('handles empty results', async () => {
     // Mock empty chart data (not permissions)
     fetchMock.removeRoute(API_ENDPOINTS.CHARTS);
     fetchMock.get(
@@ -323,7 +323,7 @@ describe('ChartList - Global Filter Interactions', () => {
     ).mockReset();
   });
 
-  test('renders search filter correctly', async () => {
+  it('renders search filter correctly', async () => {
     renderChartList(mockUser);
     await screen.findByTestId('chart-list-view');
 
@@ -336,7 +336,7 @@ describe('ChartList - Global Filter Interactions', () => {
     expect(screen.getByPlaceholderText(/type a value/i)).toBeInTheDocument();
   });
 
-  test('renders Type filter correctly', async () => {
+  it('renders Type filter correctly', async () => {
     renderChartList(mockUser);
     await screen.findByTestId('chart-list-view');
 
@@ -349,7 +349,7 @@ describe('ChartList - Global Filter Interactions', () => {
     expect(typeFilter).toBeEnabled();
   });
 
-  test('renders Dataset filter correctly', async () => {
+  it('renders Dataset filter correctly', async () => {
     renderChartList(mockUser);
     await screen.findByTestId('chart-list-view');
 
@@ -362,7 +362,7 @@ describe('ChartList - Global Filter Interactions', () => {
     expect(datasetFilter).toBeEnabled();
   });
 
-  test('renders Owner filter correctly', async () => {
+  it('renders Owner filter correctly', async () => {
     renderChartList(mockUser);
     await screen.findByTestId('chart-list-view');
 
@@ -375,7 +375,7 @@ describe('ChartList - Global Filter Interactions', () => {
     expect(ownerFilter).toBeEnabled();
   });
 
-  test('renders Certified filter correctly', async () => {
+  it('renders Certified filter correctly', async () => {
     renderChartList(mockUser);
     await screen.findByTestId('chart-list-view');
 
@@ -387,7 +387,7 @@ describe('ChartList - Global Filter Interactions', () => {
     expect(certifiedFilter).toBeEnabled();
   });
 
-  test('renders Favorite filter correctly', async () => {
+  it('renders Favorite filter correctly', async () => {
     renderChartList(mockUser);
     await screen.findByTestId('chart-list-view');
 
@@ -400,7 +400,7 @@ describe('ChartList - Global Filter Interactions', () => {
     expect(favoriteFilter).toBeEnabled();
   });
 
-  test('renders Dashboard filter correctly', async () => {
+  it('renders Dashboard filter correctly', async () => {
     renderChartList(mockUser);
     await screen.findByTestId('chart-list-view');
 
@@ -413,7 +413,7 @@ describe('ChartList - Global Filter Interactions', () => {
     expect(dashboardFilter).toBeEnabled();
   });
 
-  test('renders Modified by filter correctly', async () => {
+  it('renders Modified by filter correctly', async () => {
     renderChartList(mockUser);
     await screen.findByTestId('chart-list-view');
 
@@ -426,7 +426,7 @@ describe('ChartList - Global Filter Interactions', () => {
     expect(modifiedByFilter).toBeEnabled();
   });
 
-  test('renders Tags filter when TAGGING_SYSTEM is enabled', async () => {
+  it('renders Tags filter when TAGGING_SYSTEM is enabled', async () => {
     // Mock feature flag to enable tags
     (
       isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
@@ -456,7 +456,7 @@ describe('ChartList - Global Filter Interactions', () => {
     expect(tagsFilter).toBeEnabled();
   });
 
-  test('does not render Tags filter when TAGGING_SYSTEM is disabled', async () => {
+  it('does not render Tags filter when TAGGING_SYSTEM is disabled', async () => {
     (
       isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
     ).mockImplementation(
@@ -480,7 +480,7 @@ describe('ChartList - Global Filter Interactions', () => {
     expect(filterLabels).not.toContain('Tag');
   });
 
-  test('allows filters to be reset correctly', async () => {
+  it('allows filters to be reset correctly', async () => {
     renderChartList(mockUser);
     await screen.findByTestId('chart-list-view');
 

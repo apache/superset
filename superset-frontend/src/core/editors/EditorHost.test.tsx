@@ -18,6 +18,7 @@
  */
 import { render, screen, cleanup } from 'spec/helpers/testing-library';
 import type { editors } from '@apache-superset/core';
+import EditorHost from './EditorHost';
 
 afterEach(() => {
   cleanup();
@@ -49,9 +50,6 @@ jest.mock('./EditorProviders', () => ({
     }),
   },
 }));
-
-// Import EditorHost after mocks are set up
-import EditorHost from './EditorHost';
 
 const defaultProps: EditorProps = {
   id: 'test-editor',
