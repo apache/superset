@@ -69,7 +69,7 @@ const isDevMode = mode !== 'production';
 const isDevServer = process.argv[1]?.includes('webpack-dev-server') ?? false;
 
 // TypeScript checker memory limit (in MB)
-const TYPESCRIPT_MEMORY_LIMIT = 4096;
+const TYPESCRIPT_MEMORY_LIMIT = 8192;
 
 const output = {
   path: BUILD_DIR,
@@ -205,10 +205,7 @@ if (!isDevMode) {
     new ForkTsCheckerWebpackPlugin({
       async: false,
       typescript: {
-        // CI runs with the base TYPESCRIPT_MEMORY_LIMIT (e.g. 4096 MB) to keep resource usage bounded,
-        // while local development is allowed double (e.g. 8192 MB) to reduce type-check failures and
-        // improve developer experience on machines with more memory.
-        memoryLimit: TYPESCRIPT_MEMORY_LIMIT * (process.env.CI ? 1 : 2),
+        memoryLimit: TYPESCRIPT_MEMORY_LIMIT,
         build: true, // CRITICAL: Generate .d.ts files for plugins
         mode: 'write-references', // Handle project references
         configOverwrite: {

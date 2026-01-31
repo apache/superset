@@ -31,6 +31,8 @@ import fetchMock from 'fetch-mock';
 import * as saveModalActions from 'src/explore/actions/saveModalActions';
 import SaveModal, { PureSaveModal } from 'src/explore/components/SaveModal';
 import * as dashboardStateActions from 'src/dashboard/actions/dashboardState';
+import { CHART_WIDTH, CHART_HEIGHT } from 'src/dashboard/constants';
+import { GRID_COLUMN_COUNT } from 'src/dashboard/util/constants';
 
 jest.mock('@superset-ui/core/components/Select', () => ({
   ...jest.requireActual('@superset-ui/core/components/Select/AsyncSelect'),
@@ -40,6 +42,18 @@ jest.mock('@superset-ui/core/components/Select', () => ({
       onChange={({ target: { value } }) => onChange({ label: value, value })}
     />
   ),
+}));
+
+jest.mock('@superset-ui/core/components/TreeSelect', () => ({
+  TreeSelect: ({ onChange, disabled }) => {
+    return (
+      <input
+        data-test="mock-tree-select"
+        disabled={disabled}
+        onChange={({ target: { value } }) => onChange(value)}
+      />
+    );
+  },
 }));
 
 const middlewares = [thunk];
@@ -118,7 +132,7 @@ beforeAll(() => {
   });
 });
 
-afterAll(() => fetchMock.restore());
+afterAll(() => fetchMock.clearHistory());
 
 const setup = (props = defaultProps, store = initialStore) =>
   render(<SaveModal {...props} />, {
@@ -276,9 +290,9 @@ test('updates slice name and selected dashboard', async () => {
     }),
   );
   await waitFor(() =>
-    expect(fetchMock.calls(fetchDashboardEndpoint)).toHaveLength(1),
+    expect(fetchMock.callHistory.calls(fetchDashboardEndpoint)).toHaveLength(1),
   );
-  expect(fetchMock.calls(fetchDashboardEndpoint)[0][0]).toEqual(
+  expect(fetchMock.callHistory.calls(fetchDashboardEndpoint)[0].url).toEqual(
     expect.stringContaining(`dashboard/${dashboardId}`),
   );
   expect(createSlice).toHaveBeenCalledWith(
@@ -357,17 +371,13 @@ test('dispatches removeChartState when saving and going to dashboard', async () 
   // Mock the dashboard API response
   const dashboardId = 123;
   const dashboardUrl = '/superset/dashboard/test-dashboard/';
-  fetchMock.get(
-    `glob:*/api/v1/dashboard/${dashboardId}*`,
-    {
-      result: {
-        id: dashboardId,
-        dashboard_title: 'Test Dashboard',
-        url: dashboardUrl,
-      },
+  fetchMock.get(`glob:*/api/v1/dashboard/${dashboardId}*`, {
+    result: {
+      id: dashboardId,
+      dashboard_title: 'Test Dashboard',
+      url: dashboardUrl,
     },
-    { overwriteRoutes: true },
-  );
+  });
 
   const mockDispatch = jest.fn();
   const mockHistory = {
@@ -428,4 +438,373 @@ test('dispatches removeChartState when saving and going to dashboard', async () 
 
   // Clean up
   removeChartStateSpy.mockRestore();
+});
+
+test('disables tab selector when no dashboard selected', () => {
+  const { getByRole, getByTestId } = setup();
+  fireEvent.click(getByRole('radio', { name: 'Save as...' }));
+  const tabSelector = getByTestId('mock-tree-select');
+  expect(tabSelector).toBeInTheDocument();
+  expect(tabSelector).toBeDisabled();
+});
+
+test('renders tab selector when saving as', async () => {
+  const { getByRole, getByTestId } = setup();
+  fireEvent.click(getByRole('radio', { name: 'Save as...' }));
+  const selection = getByTestId('mock-async-select');
+  fireEvent.change(selection, { target: { value: '1' } });
+  const tabSelector = getByTestId('mock-tree-select');
+  expect(tabSelector).toBeInTheDocument();
+  expect(tabSelector).toBeDisabled();
+});
+
+test('onDashboardChange triggers tabs load for existing dashboard', async () => {
+  const dashboardId = mockEvent.value;
+
+  fetchMock.get(`glob:*/api/v1/dashboard/${dashboardId}/tabs`, {
+    json: {
+      result: {
+        tab_tree: [
+          { value: 'tab1', title: 'Main Tab' },
+          { value: 'tab2', title: 'Tab' },
+        ],
+      },
+    },
+  });
+  const component = new PureSaveModal(defaultProps);
+  const loadTabsMock = jest
+    .fn()
+    .mockResolvedValue([{ value: 'tab1', title: 'Main Tab' }]);
+  component.loadTabs = loadTabsMock;
+  await component.onDashboardChange({
+    value: dashboardId,
+    label: 'Test Dashboard',
+  });
+  expect(loadTabsMock).toHaveBeenCalledWith(dashboardId);
+});
+
+test('onTabChange correctly updates selectedTab via forceUpdate', () => {
+  const component = new PureSaveModal(defaultProps);
+
+  component.state = {
+    ...component.state,
+    tabsData: [
+      {
+        value: 'tab1',
+        title: 'Main Tab',
+        key: 'tab1',
+        children: [
+          {
+            value: 'tab2',
+            title: 'Analytics Tab',
+            key: 'tab2',
+          },
+        ],
+      },
+    ],
+  };
+
+  component.setState = function (stateUpdate) {
+    if (typeof stateUpdate === 'function') {
+      this.state = { ...this.state, ...stateUpdate(this.state) };
+    } else {
+      this.state = { ...this.state, ...stateUpdate };
+    }
+  }.bind(component);
+
+  component.onTabChange('tab2');
+
+  expect(component.state.selectedTab).toEqual({
+    value: 'tab2',
+    label: 'Analytics Tab',
+  });
+});
+
+test('chart placement logic finds row with available space', () => {
+  // Test case 1: Row has space (8 + 4 = 12 <= 12)
+  const positionJson1 = {
+    tab1: {
+      type: 'TABS',
+      id: 'tab1',
+      children: ['row1'],
+    },
+    row1: {
+      type: 'ROW',
+      id: 'row1',
+      children: ['CHART-1'],
+      meta: {},
+    },
+    'CHART-1': {
+      type: 'CHART',
+      id: 'CHART-1',
+      meta: { width: 8 },
+    },
+  };
+
+  // Test case 2: Row is full (12 + 4 = 16 > 12)
+  const positionJson2 = {
+    ...positionJson1,
+    'CHART-1': {
+      ...positionJson1['CHART-1'],
+      meta: { width: 12 },
+    },
+  };
+
+  // Test case 3: Multiple charts in row
+  const positionJson3 = {
+    tab1: {
+      type: 'TABS',
+      id: 'tab1',
+      children: ['row1'],
+    },
+    row1: {
+      type: 'ROW',
+      id: 'row1',
+      children: ['CHART-1', 'CHART-2'],
+      meta: {},
+    },
+    'CHART-1': {
+      type: 'CHART',
+      id: 'CHART-1',
+      meta: { width: 6 },
+    },
+    'CHART-2': {
+      type: 'CHART',
+      id: 'CHART-2',
+      meta: { width: 4 },
+    },
+  };
+
+  const findRowWithSpace = (positionJson, tabChildren) => {
+    for (const childKey of tabChildren) {
+      const child = positionJson[childKey];
+      if (child?.type === 'ROW') {
+        const rowChildren = child.children || [];
+        const totalWidth = rowChildren.reduce((sum, key) => {
+          const component = positionJson[key];
+          return sum + (component?.meta?.width || 0);
+        }, 0);
+
+        if (totalWidth + CHART_WIDTH <= GRID_COLUMN_COUNT) {
+          return childKey;
+        }
+      }
+    }
+    return null;
+  };
+
+  // Test case 1: Should find row with space
+  expect(findRowWithSpace(positionJson1, ['row1'])).toBe('row1');
+
+  // Test case 2: Should not find row (full)
+  expect(findRowWithSpace(positionJson2, ['row1'])).toBeNull();
+
+  // Test case 3: Should not find row (6 + 4 = 10, adding 4 = 14 > 12)
+  expect(findRowWithSpace(positionJson3, ['row1'])).toBeNull();
+});
+
+test('addChartToDashboardTab successfully adds chart to existing row with space', async () => {
+  const dashboardId = 123;
+  const chartId = 456;
+  const tabId = 'TABS_ID';
+  const sliceName = 'Test Chart';
+
+  const positionJson = {
+    [tabId]: {
+      type: 'TABS',
+      id: tabId,
+      children: ['row1'],
+    },
+    row1: {
+      type: 'ROW',
+      id: 'row1',
+      children: ['CHART-1'],
+      meta: {},
+    },
+    'CHART-1': {
+      type: 'CHART',
+      id: 'CHART-1',
+      meta: { width: 8, height: 50, chartId: 100 },
+    },
+  };
+
+  const mockDashboard = {
+    id: dashboardId,
+    position_json: JSON.stringify(positionJson),
+  };
+
+  const SupersetClient = require('@superset-ui/core').SupersetClient;
+  const originalGet = SupersetClient.get;
+  const originalPut = SupersetClient.put;
+
+  SupersetClient.get = jest.fn().mockResolvedValueOnce({
+    json: { result: mockDashboard },
+  });
+
+  SupersetClient.put = jest.fn().mockResolvedValueOnce({
+    json: { result: mockDashboard },
+  });
+
+  const component = new PureSaveModal(defaultProps);
+
+  const mockNanoid = jest.spyOn(require('nanoid'), 'nanoid');
+  mockNanoid.mockReturnValue('test-id');
+
+  try {
+    const response = await component.addChartToDashboardTab(
+      dashboardId,
+      chartId,
+      tabId,
+      sliceName,
+    );
+
+    expect(SupersetClient.get).toHaveBeenCalledWith({
+      endpoint: `/api/v1/dashboard/${dashboardId}`,
+    });
+
+    expect(SupersetClient.put).toHaveBeenCalledWith({
+      endpoint: `/api/v1/dashboard/${dashboardId}`,
+      headers: { 'Content-Type': 'application/json' },
+      body: expect.stringContaining('position_json'),
+    });
+
+    const putCall = SupersetClient.put.mock.calls[0][0];
+    const body = JSON.parse(putCall.body);
+    const updatedPositionJson = JSON.parse(body.position_json);
+
+    expect(updatedPositionJson[`CHART-${chartId}`]).toBeDefined();
+    expect(updatedPositionJson[`CHART-${chartId}`].meta.chartId).toBe(chartId);
+    expect(updatedPositionJson.row1.children).toContain(`CHART-${chartId}`);
+  } finally {
+    SupersetClient.get = originalGet;
+    SupersetClient.put = originalPut;
+    mockNanoid.mockRestore();
+  }
+});
+
+test('addChartToDashboardTab creates new row when no existing row has space', async () => {
+  const dashboardId = 123;
+  const chartId = 456;
+  const tabId = 'TABS_ID';
+  const sliceName = 'Test Chart';
+
+  const positionJson = {
+    [tabId]: {
+      type: 'TABS',
+      id: tabId,
+      children: ['row1'],
+    },
+    row1: {
+      type: 'ROW',
+      id: 'row1',
+      children: ['CHART-1'],
+      parents: ['ROOT_ID', 'GRID_ID', tabId],
+      meta: {},
+    },
+    'CHART-1': {
+      type: 'CHART',
+      id: 'CHART-1',
+      children: [],
+      parents: ['ROOT_ID', 'GRID_ID', tabId, 'row1'],
+      meta: {
+        width: GRID_COLUMN_COUNT,
+        height: 50,
+        chartId: 100,
+        sliceName: 'Existing Chart',
+      },
+    },
+  };
+
+  const mockDashboard = {
+    id: dashboardId,
+    position_json: JSON.stringify(positionJson),
+  };
+
+  const SupersetClient = require('@superset-ui/core').SupersetClient;
+  const originalGet = SupersetClient.get;
+  const originalPut = SupersetClient.put;
+
+  SupersetClient.get = jest.fn().mockResolvedValueOnce({
+    json: { result: mockDashboard },
+  });
+
+  let putRequestBody = null;
+  SupersetClient.put = jest.fn().mockImplementationOnce(request => {
+    putRequestBody = request;
+    return Promise.resolve({
+      json: { result: mockDashboard },
+    });
+  });
+
+  const component = new PureSaveModal(defaultProps);
+
+  const mockRowId = 'test-row-id';
+  const mockNanoid = jest.spyOn(require('nanoid'), 'nanoid');
+  mockNanoid.mockReturnValueOnce(mockRowId);
+
+  try {
+    await component.addChartToDashboardTab(
+      dashboardId,
+      chartId,
+      tabId,
+      sliceName,
+    );
+
+    expect(SupersetClient.put).toHaveBeenCalled();
+    const body = JSON.parse(putRequestBody.body);
+    const updatedPositionJson = JSON.parse(body.position_json);
+
+    expect(updatedPositionJson[`ROW-${mockRowId}`]).toBeDefined();
+    expect(updatedPositionJson[`ROW-${mockRowId}`].type).toBe('ROW');
+
+    expect(updatedPositionJson[tabId].children).toContain(`ROW-${mockRowId}`);
+
+    expect(updatedPositionJson[`CHART-${chartId}`]).toBeDefined();
+    expect(updatedPositionJson[`ROW-${mockRowId}`].children).toContain(
+      `CHART-${chartId}`,
+    );
+  } finally {
+    SupersetClient.get = originalGet;
+    SupersetClient.put = originalPut;
+    mockNanoid.mockRestore();
+  }
+});
+
+test('addChartToDashboardTab handles empty position_json', async () => {
+  const dashboardId = 123;
+  const chartId = 456;
+  const tabId = 'TABS_ID';
+  const sliceName = 'Test Chart';
+
+  const mockDashboard = {
+    id: dashboardId,
+    position_json: null,
+  };
+
+  const SupersetClient = require('@superset-ui/core').SupersetClient;
+  const originalGet = SupersetClient.get;
+  const originalPut = SupersetClient.put;
+
+  SupersetClient.get = jest.fn().mockResolvedValueOnce({
+    json: { result: mockDashboard },
+  });
+
+  SupersetClient.put = jest.fn().mockResolvedValueOnce({
+    json: { result: mockDashboard },
+  });
+
+  const component = new PureSaveModal(defaultProps);
+
+  const mockNanoid = jest.spyOn(require('nanoid'), 'nanoid');
+  mockNanoid.mockReturnValue('test-id');
+
+  try {
+    await expect(
+      component.addChartToDashboardTab(dashboardId, chartId, tabId, sliceName),
+    ).rejects.toThrow(`Tab ${tabId} not found in positionJson`);
+  } finally {
+    SupersetClient.get = originalGet;
+    SupersetClient.put = originalPut;
+    mockNanoid.mockRestore();
+  }
 });

@@ -215,7 +215,7 @@ beforeEach(() => {
   (ExtensionsManager as any).instance = undefined;
 
   // Setup fetch mocks for API calls
-  fetchMock.restore();
+  fetchMock.removeRoutes().clearHistory();
   fetchMock.put('glob:*/api/v1/extensions/*', { ok: true });
   fetchMock.delete('glob:*/api/v1/extensions/*', { ok: true });
   fetchMock.get('glob:*/api/v1/extensions/', {
@@ -231,7 +231,7 @@ beforeEach(() => {
 afterEach(() => {
   // Clean up after each test
   (ExtensionsManager as any).instance = undefined;
-  fetchMock.restore();
+  fetchMock.removeRoutes().clearHistory();
 });
 
 test('creates singleton instance', () => {

@@ -168,17 +168,16 @@ class Superset(BaseSupersetView):
         payload = viz_obj.get_df_payload()
         if viz_obj.has_error(payload):
             return json_error_response(payload=payload, status=400)
-        return self.json_response(
-            {
-                "data": payload["df"].to_dict("records")
-                if payload["df"] is not None
-                else [],
-                "colnames": payload.get("colnames"),
-                "coltypes": payload.get("coltypes"),
-                "rowcount": payload.get("rowcount"),
-                "sql_rowcount": payload.get("sql_rowcount"),
-            },
-        )
+        response = {
+            "data": payload["df"].to_dict("records")
+            if payload["df"] is not None
+            else [],
+            "colnames": payload.get("colnames"),
+            "coltypes": payload.get("coltypes"),
+            "rowcount": payload.get("rowcount"),
+            "sql_rowcount": payload.get("sql_rowcount"),
+        }
+        return self.json_response(response)
 
     def get_samples(self, viz_obj: BaseViz) -> FlaskResponse:
         return self.json_response(viz_obj.get_samples())

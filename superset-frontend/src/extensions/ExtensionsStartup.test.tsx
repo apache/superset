@@ -54,7 +54,7 @@ beforeEach(() => {
   mockIsFeatureEnabled.mockReturnValue(true);
 
   // Setup fetch mocks for API calls
-  fetchMock.restore();
+  fetchMock.clearHistory().removeRoutes();
   fetchMock.get('glob:*/api/v1/extensions/', {
     result: [],
   });
@@ -67,7 +67,7 @@ afterEach(() => {
 
   // Reset mocks
   mockIsFeatureEnabled.mockReset();
-  fetchMock.restore();
+  fetchMock.clearHistory().removeRoutes();
 });
 
 test('renders without crashing', () => {
