@@ -148,7 +148,7 @@ class TestTaskApi(SupersetTestCase):
 
     def test_get_task_by_uuid(self):
         """
-        Task API: Test get task by UUID and verify dedup_key
+        Task API: Test get task by UUID and verify dedup_key is hashed
         """
         with self._create_tasks():
             self.login(ADMIN_USERNAME)
@@ -166,9 +166,9 @@ class TestTaskApi(SupersetTestCase):
             )
             assert task is not None
 
-            # Verify active task has composite dedup_key with user_id
-            assert task.dedup_key.startswith("private|test_type|")
-            assert f"|{admin.id}" in task.dedup_key
+            # Verify active task has hashed dedup_key (64 chars for SHA-256)
+            assert len(task.dedup_key) == 64
+            assert all(c in "0123456789abcdef" for c in task.dedup_key)
             assert task.dedup_key != task.uuid
 
             uri = f"{self.TASK_API_BASE}/{task.uuid}"
@@ -300,10 +300,10 @@ class TestTaskApi(SupersetTestCase):
             )
             assert task is not None
 
-            # Verify active task has composite dedup_key
+            # Verify active task has hashed dedup_key (64 chars for SHA-256)
             original_dedup_key = task.dedup_key
-            assert original_dedup_key.startswith("private|test_type|")
-            assert f"|{admin.id}" in original_dedup_key
+            assert len(original_dedup_key) == 64
+            assert all(c in "0123456789abcdef" for c in original_dedup_key)
 
             uri = f"{self.TASK_API_BASE}/{task.id}/cancel"
             rv = self.client.post(uri, json={})
