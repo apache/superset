@@ -886,6 +886,59 @@ test('ThemeController constructor recovers from corrupted stored theme', () => {
   consoleWarnSpy.mockRestore();
 });
 
+test('fallbackToDefaultMode fetches system default theme from API', async () => {
+  const controller = createController();
+
+  // Mock fetch to return a system default theme
+  const systemTheme = { token: { colorPrimary: '#00ff00' } };
+  const mockFetch = jest.fn().mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({
+      result: [{ json_data: JSON.stringify(systemTheme) }],
+    }),
+  });
+  global.fetch = mockFetch;
+
+  // Force setConfig to throw to trigger fallback
+  mockSetConfig.mockImplementationOnce(() => {
+    throw new Error('Theme application failed');
+  });
+
+  // Trigger fallback by setting a mode that will fail
+  await controller.setThemeMode(ThemeMode.DARK);
+
+  // Verify API was called to fetch system default theme
+  expect(mockFetch).toHaveBeenCalledWith(
+    expect.stringContaining('/api/v1/theme/'),
+  );
+
+  // Verify controller recovered
+  expect(controller.getCurrentMode()).toBe(ThemeMode.DEFAULT);
+});
+
+test('fallbackToDefaultMode uses cached default when API fetch fails', async () => {
+  const controller = createController();
+
+  // Mock fetch to fail
+  const mockFetch = jest.fn().mockRejectedValue(new Error('Network error'));
+  global.fetch = mockFetch;
+
+  // Force setConfig to throw to trigger fallback, then succeed on retry
+  let callCount = 0;
+  mockSetConfig.mockImplementation(() => {
+    callCount += 1;
+    if (callCount === 1) {
+      throw new Error('Theme application failed');
+    }
+  });
+
+  // Trigger fallback by setting a mode that will fail
+  await controller.setThemeMode(ThemeMode.DARK);
+
+  // Verify controller fell back to cached default
+  expect(controller.getCurrentMode()).toBe(ThemeMode.DEFAULT);
+});
+
 // Cleanup tests
 test('ThemeController cleans up listeners on destroy', () => {
   const mockMediaQueryInstance = {
