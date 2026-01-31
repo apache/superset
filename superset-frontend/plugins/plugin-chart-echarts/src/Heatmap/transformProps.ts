@@ -170,8 +170,15 @@ export default function transformProps(
   chartProps: HeatmapChartProps,
 ): HeatmapTransformedProps {
   const refs: Refs = {};
-  const { width, height, formData, queriesData, datasource, theme } =
-    chartProps;
+  const {
+    width,
+    height,
+    formData,
+    queriesData,
+    datasource,
+    theme,
+    isRefreshing,
+  } = chartProps;
   const {
     bottomMargin,
     xAxis,
@@ -254,8 +261,7 @@ export default function transformProps(
 
   // Extract and sort unique axis values
   // Use colnames to get the actual column names in the data
-  const xAxisColumnName = colnames[0];
-  const yAxisColumnName = colnames[1];
+  const [xAxisColumnName, yAxisColumnName] = colnames;
 
   const xAxisValues = extractUniqueValues(data, xAxisColumnName);
   const yAxisValues = extractUniqueValues(data, yAxisColumnName);
@@ -417,5 +423,6 @@ export default function transformProps(
     width,
     height,
     formData,
+    isRefreshing,
   };
 }

@@ -49,6 +49,7 @@ import {
   selectNativeIndicatorsForChart,
 } from '../nativeFilters/selectors';
 import { Chart, RootState } from '../../types';
+import { useIsAutoRefreshing } from '../../contexts/AutoRefreshContext';
 
 export interface FiltersBadgeProps {
   chartId: number;
@@ -106,10 +107,14 @@ const indicatorsInitialState: Indicator[] = [];
 
 export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   const dispatch = useDispatch();
-  const datasources = useSelector<RootState, any>(state => state.datasources);
-  const dashboardFilters = useSelector<RootState, any>(
-    state => state.dashboardFilters,
+  const isAutoRefreshing = useIsAutoRefreshing();
+  const datasources = useSelector<RootState, RootState['datasources']>(
+    state => state.datasources,
   );
+  const dashboardFilters = useSelector<
+    RootState,
+    RootState['dashboardFilters']
+  >(state => state.dashboardFilters);
   const nativeFilters = useSelector<RootState, Filters>(
     state => state.nativeFilters?.filters,
   );
@@ -161,7 +166,12 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   }, [popoverVisible]);
 
   useEffect(() => {
-    if (!showIndicators && dashboardIndicators.length > 0) {
+    // During auto-refresh, don't clear indicators - preserve previous state
+    if (
+      !showIndicators &&
+      dashboardIndicators.length > 0 &&
+      !isAutoRefreshing
+    ) {
       setDashboardIndicators(indicatorsInitialState);
     } else if (prevChartStatus !== 'success') {
       if (
@@ -188,6 +198,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
     dashboardFilters,
     dashboardIndicators.length,
     datasources,
+    isAutoRefreshing,
     prevChart?.queriesResponse,
     prevChartStatus,
     prevDashboardFilters,
@@ -201,11 +212,10 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   const prevChartConfig = usePrevious(chartConfiguration);
 
   useEffect(() => {
+    // During auto-refresh, don't clear indicators - preserve previous state
+    // Clear indicators when chart is loading/not showing (unless auto-refreshing)
     const shouldReset =
-      (!chart ||
-        chart.chartStatus === 'failed' ||
-        chart.chartStatus === null) &&
-      nativeIndicators.length > 0;
+      !showIndicators && nativeIndicators.length > 0 && !isAutoRefreshing;
 
     const shouldRecalculate =
       chart?.queriesResponse?.[0]?.rejected_filters !==
@@ -238,6 +248,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
     chartId,
     chartConfiguration,
     dataMask,
+    isAutoRefreshing,
     nativeFilters,
     nativeIndicators.length,
     prevChart?.queriesResponse,

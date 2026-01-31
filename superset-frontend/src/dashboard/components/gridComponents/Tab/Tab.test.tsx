@@ -31,6 +31,14 @@ import { setEditMode, onRefresh } from 'src/dashboard/actions/dashboardState';
 import Tab from './Tab';
 import Markdown from '../Markdown';
 
+const mockUseIsAutoRefreshing = jest.fn(() => false);
+const mockUseIsRefreshInFlight = jest.fn(() => false);
+
+jest.mock('src/dashboard/contexts/AutoRefreshContext', () => ({
+  useIsAutoRefreshing: () => mockUseIsAutoRefreshing(),
+  useIsRefreshInFlight: () => mockUseIsRefreshInFlight(),
+}));
+
 jest.mock('src/dashboard/util/getChartIdsFromComponent', () =>
   jest.fn(() => []),
 );
@@ -139,6 +147,8 @@ const createProps = () => ({
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockUseIsAutoRefreshing.mockReturnValue(false);
+  mockUseIsRefreshInFlight.mockReturnValue(false);
 });
 
 test('Render tab (no content)', () => {
@@ -567,7 +577,8 @@ test('Should refresh charts when tab becomes active after dashboard refresh', as
     true, // Force refresh
     0, // Interval
     23, // Dashboard ID
-    true, // isLazyLoad flag
+    false, // skipFiltersRefresh
+    true, // isLazyLoad
   );
 });
 
@@ -606,6 +617,74 @@ test('Should not refresh charts when tab becomes active if no dashboard refresh 
   // Wait a bit to ensure no refresh is triggered
   await new Promise(resolve => setTimeout(resolve, 200));
 
+  expect(onRefresh).not.toHaveBeenCalled();
+});
+
+test('Should skip tab refresh when auto-refresh is active', async () => {
+  mockUseIsAutoRefreshing.mockReturnValue(true);
+  const getChartIdsFromComponent = require('src/dashboard/util/getChartIdsFromComponent');
+  getChartIdsFromComponent.mockReturnValue([101, 102]);
+
+  const props = createProps();
+  props.renderType = 'RENDER_TAB_CONTENT';
+  props.isComponentVisible = false;
+
+  const initialState = {
+    dashboardState: {
+      lastRefreshTime: Date.now() - 5000,
+      tabActivationTimes: {
+        'TAB-YT6eNksV-': Date.now() - 10000,
+      },
+    },
+    dashboardInfo: {
+      id: 23,
+      dash_edit_perm: true,
+    },
+  };
+
+  const { rerender } = render(<Tab {...props} />, {
+    useRedux: true,
+    useDnd: true,
+    initialState,
+  });
+
+  rerender(<Tab {...props} isComponentVisible />);
+
+  await new Promise(resolve => setTimeout(resolve, 200));
+  expect(onRefresh).not.toHaveBeenCalled();
+});
+
+test('Should skip tab refresh when refresh is in-flight', async () => {
+  mockUseIsRefreshInFlight.mockReturnValue(true);
+  const getChartIdsFromComponent = require('src/dashboard/util/getChartIdsFromComponent');
+  getChartIdsFromComponent.mockReturnValue([101, 102]);
+
+  const props = createProps();
+  props.renderType = 'RENDER_TAB_CONTENT';
+  props.isComponentVisible = false;
+
+  const initialState = {
+    dashboardState: {
+      lastRefreshTime: Date.now() - 5000,
+      tabActivationTimes: {
+        'TAB-YT6eNksV-': Date.now() - 10000,
+      },
+    },
+    dashboardInfo: {
+      id: 23,
+      dash_edit_perm: true,
+    },
+  };
+
+  const { rerender } = render(<Tab {...props} />, {
+    useRedux: true,
+    useDnd: true,
+    initialState,
+  });
+
+  rerender(<Tab {...props} isComponentVisible />);
+
+  await new Promise(resolve => setTimeout(resolve, 200));
   expect(onRefresh).not.toHaveBeenCalled();
 });
 
@@ -665,6 +744,8 @@ test('Should not cause infinite refresh loop with nested tabs - regression test'
 });
 
 test('Should use isLazyLoad flag for tab refreshes', async () => {
+  // Wait for any pending async operations from previous tests to complete
+  await new Promise(resolve => setTimeout(resolve, 200));
   jest.clearAllMocks();
   const getChartIdsFromComponent = require('src/dashboard/util/getChartIdsFromComponent');
   getChartIdsFromComponent.mockReset();
@@ -696,17 +777,27 @@ test('Should use isLazyLoad flag for tab refreshes', async () => {
   // Tab should trigger refresh with isLazyLoad = true
   await waitFor(
     () => {
-      expect(onRefresh).toHaveBeenCalled();
+      // Check that at least one call was made with the expected dashboard ID (42)
+      const calls = (onRefresh as jest.Mock).mock.calls;
+      const hasExpectedCall = calls.some(
+        call => call[3] === 42 && call[0].includes(401),
+      );
+      expect(hasExpectedCall).toBe(true);
     },
     { timeout: 500 },
   );
 
   // Verify that isLazyLoad flag is set to true for tab refreshes
-  expect(onRefresh).toHaveBeenCalledWith(
+  // Use toHaveBeenLastCalledWith to avoid issues with calls from previous tests
+  const lastCall = (onRefresh as jest.Mock).mock.calls.find(
+    call => call[3] === 42,
+  );
+  expect(lastCall).toEqual([
     [401, 402],
     true, // force
     0, // interval
     42, // dashboardId
+    false, // skipFiltersRefresh
     true, // isLazyLoad should be true to prevent infinite loops
-  );
+  ]);
 });

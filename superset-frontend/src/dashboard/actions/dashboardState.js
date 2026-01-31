@@ -550,10 +550,11 @@ export function fetchCharts(
 ) {
   return (dispatch, getState) => {
     if (!interval) {
-      chartList.forEach(chartKey =>
-        dispatch(refreshChart(chartKey, force, dashboardId)),
+      return Promise.all(
+        chartList.map(chartKey =>
+          dispatch(refreshChart(chartKey, force, dashboardId)),
+        ),
       );
-      return;
     }
 
     const { metadata: meta } = getState().dashboardInfo;
@@ -565,14 +566,20 @@ export function fetchCharts(
           : meta.stagger_refresh === 'true';
     }
     const delay = meta.stagger_refresh
-      ? refreshTime / (chartList.length - 1)
+      ? refreshTime / Math.max(chartList.length - 1, 1)
       : 0;
-    chartList.forEach((chartKey, i) => {
-      setTimeout(
-        () => dispatch(refreshChart(chartKey, force, dashboardId)),
-        delay * i,
-      );
-    });
+    return Promise.all(
+      chartList.map(
+        (chartKey, i) =>
+          new Promise(resolve => {
+            setTimeout(() => {
+              dispatch(refreshChart(chartKey, force, dashboardId))
+                .then(resolve)
+                .catch(resolve);
+            }, delay * i);
+          }),
+      ),
+    );
   };
 }
 
@@ -603,6 +610,7 @@ export function onRefresh(
   force = false,
   interval = 0,
   dashboardId,
+  skipFiltersRefresh = false,
   isLazyLoad = false,
 ) {
   return dispatch => {
@@ -615,7 +623,7 @@ export function onRefresh(
     refreshCharts(chartList, force, interval, dashboardId, dispatch).then(
       () => {
         dispatch(onRefreshSuccess());
-        if (!isLazyLoad) {
+        if (!skipFiltersRefresh && !isLazyLoad) {
           dispatch(onFiltersRefresh());
         }
       },

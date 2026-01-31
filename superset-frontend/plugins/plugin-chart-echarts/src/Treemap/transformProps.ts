@@ -118,6 +118,7 @@ export default function transformProps(
     inContextMenu,
     emitCrossFilters,
     datasource,
+    isRefreshing,
   } = chartProps;
   const { data = [], detected_currency: detectedCurrency } = queriesData[0];
   const {
@@ -321,5 +322,6 @@ export default function transformProps(
     onContextMenu,
     refs,
     coltypeMapping,
+    isRefreshing,
   };
 }
