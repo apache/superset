@@ -30,7 +30,9 @@
       {% endblock %}
     </title>
 
-    {% block head_meta %}{% endblock %}
+    {% block head_meta %}
+      <link rel="manifest" href="{{ assets_prefix }}/static/assets/pwa-manifest.json?v=4">
+    {% endblock %}
 
     <style>
       body {
@@ -69,6 +71,17 @@
 
     {% block head_js %}
       {% include "head_custom_extra.html" %}
+      <script nonce="{{ macros.get_nonce() }}">
+        if ('serviceWorker' in navigator) {
+          window.addEventListener('load', function() {
+            navigator.serviceWorker
+              .register('{{ assets_prefix }}/static/service-worker.js')
+              .catch(function(err) {
+                console.error('Service Worker registration failed:', err);
+              });
+          });
+        }
+      </script>
     {% endblock %}
 
     <input
