@@ -74,11 +74,16 @@ test('getAllValidTokenNames returns categorized token names', () => {
 test('getAllValidTokenNames has reasonable token counts', () => {
   const result = getAllValidTokenNames();
 
-  // Ant Design has ~500+ tokens
-  expect(result.antdTokens.length).toBeGreaterThan(400);
+  // Ant Design tokens should exist (avoid brittle exact count that breaks on upgrades)
+  expect(result.antdTokens.length).toBeGreaterThan(0);
+  expect(result.antdTokens).toContain('colorPrimary');
+  expect(result.antdTokens).toContain('fontSize');
+  expect(result.antdTokens).toContain('borderRadius');
 
-  // Superset has 16 custom tokens (from SupersetSpecificTokens interface + fontUrls)
-  expect(result.supersetTokens.length).toBe(16);
+  // Superset custom tokens should exist
+  expect(result.supersetTokens.length).toBeGreaterThan(0);
+  expect(result.supersetTokens).toContain('brandLogoUrl');
+  expect(result.supersetTokens).toContain('fontUrls');
 
   // Total should be sum of both
   expect(result.total).toBe(

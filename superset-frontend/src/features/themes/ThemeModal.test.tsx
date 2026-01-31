@@ -123,6 +123,18 @@ const addValidJsonData = async () => {
   await userEvent.type(jsonEditor, validJson);
 };
 
+// Helper to add JSON with unknown tokens (triggers warnings but not errors)
+const addJsonWithUnknownToken = async () => {
+  const jsonWithUnknown = JSON.stringify(
+    { token: { colorPrimary: '#1890ff', unknownTokenName: 'value' } },
+    null,
+    2,
+  );
+  const jsonEditor = screen.getByTestId('json-editor');
+  await userEvent.clear(jsonEditor);
+  await userEvent.type(jsonEditor, jsonWithUnknown);
+};
+
 test('renders modal with add theme dialog when show is true', () => {
   render(
     <ThemeModal
@@ -347,6 +359,33 @@ test('validates JSON format and enables save button', async () => {
   await addValidJsonData();
 
   // Wait for validation to complete and button to become enabled
+  await waitFor(
+    () => {
+      const saveButton = screen.getByRole('button', { name: 'Add' });
+      expect(saveButton).toBeEnabled();
+    },
+    { timeout: 10000 },
+  );
+});
+
+test('warnings do not block save - unknown tokens allow save with warnings', async () => {
+  render(
+    <ThemeModal
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+      onThemeAdd={jest.fn()}
+      onHide={jest.fn()}
+      show
+      canDevelop={false}
+    />,
+    { useRedux: true, useRouter: true },
+  );
+
+  const nameInput = screen.getByPlaceholderText('Enter theme name');
+  await userEvent.type(nameInput, 'Theme With Unknown Token');
+  await addJsonWithUnknownToken();
+
+  // Wait for validation to complete - button should still be enabled despite warnings
   await waitFor(
     () => {
       const saveButton = screen.getByRole('button', { name: 'Add' });
