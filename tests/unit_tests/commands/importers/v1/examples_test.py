@@ -18,6 +18,8 @@
 
 from unittest.mock import MagicMock, patch
 
+from sqlalchemy.exc import MultipleResultsFound
+
 from superset.commands.importers.v1.examples import transpile_virtual_dataset_sql
 
 
@@ -242,3 +244,113 @@ def test_transpile_virtual_dataset_sql_postgres_to_sqlite(mock_transpile, mock_d
 
     assert config["sql"] == transpiled_sql
     mock_transpile.assert_called_once_with(original_sql, "sqlite", "postgresql")
+
+
+@patch("superset.commands.importers.v1.examples.db")
+@patch("superset.commands.importers.v1.examples.import_dataset")
+@patch("superset.commands.importers.v1.examples.import_database")
+def test_import_recovers_dataset_info_on_multiple_results_found(
+    mock_import_database: MagicMock,
+    mock_import_dataset: MagicMock,
+    mock_db: MagicMock,
+) -> None:
+    """Test that MultipleResultsFound doesn't prevent chart import.
+
+    When import_dataset raises MultipleResultsFound, the dataset should still
+    be looked up by UUID and added to dataset_info so charts can be imported.
+    """
+    from superset.commands.importers.v1.examples import ImportExamplesCommand
+
+    # Setup mock database
+    mock_database = MagicMock()
+    mock_database.uuid = "db-uuid-1234"
+    mock_database.id = 1
+    mock_import_database.return_value = mock_database
+
+    # Setup import_dataset to raise MultipleResultsFound
+    mock_import_dataset.side_effect = MultipleResultsFound()
+
+    # Setup mock dataset returned by db query after MultipleResultsFound
+    mock_dataset = MagicMock()
+    mock_dataset.uuid = "dataset-uuid-5678"
+    mock_dataset.id = 42
+    mock_dataset.table_name = "my_table"
+    mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
+        mock_dataset
+    )
+
+    configs = {
+        "databases/examples.yaml": {"uuid": "db-uuid-1234"},
+        "datasets/examples/my_table.yaml": {
+            "uuid": "dataset-uuid-5678",
+            "database_uuid": "db-uuid-1234",
+            "schema": None,
+            "table_name": "my_table",
+        },
+    }
+
+    # Call _import directly to test the logic
+    with patch(
+        "superset.commands.importers.v1.examples.get_example_default_schema",
+        return_value="public",
+    ):
+        with patch(
+            "superset.commands.importers.v1.examples.transpile_virtual_dataset_sql"
+        ):
+            ImportExamplesCommand._import(configs, overwrite=True)
+
+    # Verify the database query was called to recover the dataset
+    mock_db.session.query.assert_called()
+    filter_by_call = mock_db.session.query.return_value.filter_by
+    filter_by_call.assert_called_with(uuid="dataset-uuid-5678")
+
+
+@patch("superset.commands.importers.v1.examples.db")
+@patch("superset.commands.importers.v1.examples.import_dataset")
+@patch("superset.commands.importers.v1.examples.import_database")
+def test_import_no_dataset_info_when_uuid_lookup_fails(
+    mock_import_database: MagicMock,
+    mock_import_dataset: MagicMock,
+    mock_db: MagicMock,
+) -> None:
+    """Test that no dataset_info entry when UUID lookup returns None.
+
+    When MultipleResultsFound is raised and the UUID lookup returns None,
+    the dataset should not be added to dataset_info.
+    """
+    from superset.commands.importers.v1.examples import ImportExamplesCommand
+
+    # Setup mock database
+    mock_database = MagicMock()
+    mock_database.uuid = "db-uuid-1234"
+    mock_database.id = 1
+    mock_import_database.return_value = mock_database
+
+    # Setup import_dataset to raise MultipleResultsFound
+    mock_import_dataset.side_effect = MultipleResultsFound()
+
+    # Setup db query to return None (dataset not found)
+    mock_db.session.query.return_value.filter_by.return_value.first.return_value = None
+
+    configs = {
+        "databases/examples.yaml": {"uuid": "db-uuid-1234"},
+        "datasets/examples/my_table.yaml": {
+            "uuid": "nonexistent-uuid",
+            "database_uuid": "db-uuid-1234",
+            "schema": None,
+            "table_name": "my_table",
+        },
+    }
+
+    with patch(
+        "superset.commands.importers.v1.examples.get_example_default_schema",
+        return_value="public",
+    ):
+        with patch(
+            "superset.commands.importers.v1.examples.transpile_virtual_dataset_sql"
+        ):
+            # Should not raise - just continue without adding to dataset_info
+            ImportExamplesCommand._import(configs, overwrite=True)
+
+    # Verify the query was attempted
+    mock_db.session.query.assert_called()

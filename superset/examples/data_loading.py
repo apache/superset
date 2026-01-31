@@ -24,6 +24,7 @@ import yaml
 
 # Import loaders that have custom logic (dashboards, CSS, etc.)
 from superset.cli.test_loaders import load_big_data
+from superset.utils.core import backend, get_example_default_schema
 
 from .css_templates import load_css_templates
 
@@ -35,11 +36,12 @@ logger = logging.getLogger(__name__)
 
 
 def get_dataset_config_from_yaml(example_dir: Path) -> Dict[str, Optional[str]]:
-    """Read table_name, schema, and data_file from dataset.yaml if it exists."""
+    """Read table_name, schema, data_file, and uuid from dataset.yaml if it exists."""
     result: Dict[str, Optional[str]] = {
         "table_name": None,
         "schema": None,
         "data_file": None,
+        "uuid": None,
     }
     dataset_yaml = example_dir / "dataset.yaml"
     if dataset_yaml.exists():
@@ -48,6 +50,7 @@ def get_dataset_config_from_yaml(example_dir: Path) -> Dict[str, Optional[str]]:
                 config = yaml.safe_load(f)
                 result["table_name"] = config.get("table_name")
                 result["data_file"] = config.get("data_file")
+                result["uuid"] = config.get("uuid")
                 schema = config.get("schema")
                 # Treat SQLite's 'main' schema as null (use target database default)
                 result["schema"] = None if schema == "main" else schema
@@ -72,6 +75,7 @@ def _get_multi_dataset_config(
         "table_name": dataset_name,
         "schema": None,
         "data_file": data_file,
+        "uuid": None,
     }
 
     if not datasets_yaml.exists():
@@ -81,6 +85,7 @@ def _get_multi_dataset_config(
         with open(datasets_yaml) as f:
             yaml_config = yaml.safe_load(f)
             result["table_name"] = yaml_config.get("table_name") or dataset_name
+            result["uuid"] = yaml_config.get("uuid")
             raw_schema = yaml_config.get("schema")
             result["schema"] = None if raw_schema == "main" else raw_schema
 
@@ -99,6 +104,23 @@ def _get_multi_dataset_config(
         logger.debug("Could not read datasets yaml from %s", datasets_yaml)
 
     return result
+
+
+def _get_effective_schema(config_schema: Optional[str]) -> Optional[str]:
+    """Get effective schema for data loading, matching import flow behavior.
+
+    Some databases (SQLite) don't support real schemas - their 'main' is just
+    an attachment name, not a schema like PostgreSQL's 'public'. For these
+    backends, we return None to avoid schema-related SQL errors.
+    """
+    # Backends that don't support real schemas
+    no_schema_backends = {"sqlite"}
+
+    if config_schema:
+        return config_schema
+    if backend() in no_schema_backends:
+        return None
+    return get_example_default_schema()
 
 
 def discover_datasets() -> Dict[str, Callable[..., None]]:
@@ -140,8 +162,9 @@ def discover_datasets() -> Dict[str, Callable[..., None]]:
         loaders[loader_name] = create_generic_loader(
             dataset_name,
             table_name=table_name,
-            schema=config["schema"],
+            schema=_get_effective_schema(config["schema"]),
             data_file=resolved_file,
+            uuid=config.get("uuid"),
         )
 
     # Discover multiple parquet files in data/ folders (complex examples)
@@ -153,13 +176,15 @@ def discover_datasets() -> Dict[str, Callable[..., None]]:
             continue
 
         config = _get_multi_dataset_config(example_dir, dataset_name, data_file)
+
         loader_name = f"load_{dataset_name}"
         if loader_name not in loaders:
             loaders[loader_name] = create_generic_loader(
                 dataset_name,
                 table_name=config["table_name"],
-                schema=config["schema"],
+                schema=_get_effective_schema(config["schema"]),
                 data_file=config["data_file"],
+                uuid=config.get("uuid"),
             )
 
     return loaders
