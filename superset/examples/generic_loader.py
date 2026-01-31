@@ -57,6 +57,7 @@ def load_parquet_table(  # noqa: C901
     sample_rows: Optional[int] = None,
     data_file: Optional[Any] = None,
     schema: Optional[str] = None,
+    uuid: Optional[str] = None,
 ) -> SqlaTable:
     """Load a Parquet file into the example database.
 
@@ -175,6 +176,10 @@ def load_parquet_table(  # noqa: C901
         # Set the database reference
         tbl.database = database
 
+    # Set UUID from YAML config so the YAML import path can find this dataset
+    if uuid and not tbl.uuid:
+        tbl.uuid = uuid
+
     if not only_metadata:
         # Ensure database reference is set before fetching metadata
         if not tbl.database:
@@ -194,6 +199,7 @@ def create_generic_loader(
     sample_rows: Optional[int] = None,
     data_file: Optional[Any] = None,
     schema: Optional[str] = None,
+    uuid: Optional[str] = None,
 ) -> Callable[[Database, SqlaTable], None]:
     """Create a loader function for a specific Parquet file.
 
@@ -230,6 +236,7 @@ def create_generic_loader(
             sample_rows=rows,
             data_file=data_file,
             schema=schema,
+            uuid=uuid,
         )
 
         if description and tbl:
