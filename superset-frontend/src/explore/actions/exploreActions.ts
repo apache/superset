@@ -158,18 +158,14 @@ export function setForceQuery(force: boolean) {
  * Undo an explore action and sync chart state.
  */
 export function undoExploreAction() {
-  return (dispatch: Dispatch, getState: () => any) => {
-    dispatch(UndoActionCreators.undo());
-  };
+  return UndoActionCreators.undo();
 }
 
 /**
  * Redo an explore action and sync chart state.
  */
 export function redoExploreAction() {
-  return (dispatch: Dispatch, getState: () => any) => {
-    dispatch(UndoActionCreators.redo());
-  };
+  return UndoActionCreators.redo();
 }
 
 /**
