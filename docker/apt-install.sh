@@ -48,4 +48,4 @@ echo -e "${GREEN}Cleaning up package cache and metadata...${RESET}"
 apt-get clean
 rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/* /tmp/* /var/tmp/*
 
-echo -e "${GREEN}Installation and cleanup complete.${RESET}"
+echo -e "${GREEN}Installation and cleanup complete.${RESET}"   is this ok
