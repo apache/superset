@@ -20,6 +20,7 @@ import logging
 from functools import partial
 from typing import TYPE_CHECKING
 
+from flask import current_app
 from superset_core.api.tasks import TaskScope, TaskStatus
 
 from superset.commands.base import BaseCommand
@@ -30,6 +31,7 @@ from superset.commands.tasks.exceptions import (
     TaskPermissionDeniedError,
 )
 from superset.extensions import security_manager
+from superset.stats_logger import BaseStatsLogger
 from superset.tasks.locks import task_lock
 from superset.tasks.utils import get_active_dedup_key
 from superset.utils.core import get_user_id
@@ -249,6 +251,10 @@ class CancelTaskCommand(BaseCommand):
         if TaskStatus(result.status) == TaskStatus.ABORTING:
             self._should_publish_abort = True
 
+        # Emit stats metric
+        stats_logger: BaseStatsLogger = current_app.config["STATS_LOGGER"]
+        stats_logger.incr("gtf.task.abort")
+
         logger.info(
             "Task aborted: %s (scope: %s, force: %s)",
             task.uuid,
@@ -281,6 +287,10 @@ class CancelTaskCommand(BaseCommand):
             raise TaskPermissionDeniedError(
                 "You are not subscribed to this shared task"
             )
+
+        # Emit stats metric
+        stats_logger: BaseStatsLogger = current_app.config["STATS_LOGGER"]
+        stats_logger.incr("gtf.task.unsubscribe")
 
         logger.info(
             "User %s unsubscribed from shared task: %s",

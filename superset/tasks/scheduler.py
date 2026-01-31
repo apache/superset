@@ -328,6 +328,10 @@ def execute_task(  # noqa: C901
             db.session.merge(task)
             db.session.commit()
 
+            # Emit stats metric for success
+            stats_logger: BaseStatsLogger = current_app.config["STATS_LOGGER"]
+            stats_logger.incr("gtf.task.success")
+
         logger.info("Task %s (uuid=%s) completed successfully", task_type, task_uuid)
 
     except Exception as ex:
@@ -345,6 +349,10 @@ def execute_task(  # noqa: C901
 
         db.session.merge(task)
         db.session.commit()
+
+        # Emit stats metric for failure
+        stats_logger = current_app.config["STATS_LOGGER"]
+        stats_logger.incr("gtf.task.failure")
 
     finally:
         # ALWAYS run cleanup handlers (also stops timeout timer)

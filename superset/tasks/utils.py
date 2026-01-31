@@ -20,7 +20,7 @@ from __future__ import annotations
 import logging
 import traceback
 from http.client import HTTPResponse
-from typing import Optional, TYPE_CHECKING
+from typing import cast, TYPE_CHECKING
 from urllib import request
 from uuid import uuid4
 
@@ -132,7 +132,7 @@ def fetch_csrf_token(
     response: HTTPResponse
     with request.urlopen(req, timeout=600) as response:  # noqa: S310
         body = response.read().decode("utf-8")
-        session_cookie: Optional[str] = None
+        session_cookie: str | None = None
         cookie_headers = response.headers.get_all("set-cookie")
         if cookie_headers:
             for cookie in cookie_headers:
@@ -296,11 +296,11 @@ def parse_properties(json_str: str | None) -> TaskProperties:
 
     try:
         raw = json.loads(json_str)
-        value: TaskProperties | None = raw if isinstance(raw, dict) else {}
+        if isinstance(raw, dict):
+            return cast(TaskProperties, raw)
+        return {}
     except (json.JSONDecodeError, TypeError):
         return {}
-
-    return value
 
 
 def serialize_properties(props: TaskProperties) -> str:

@@ -21,6 +21,7 @@ import uuid
 from functools import partial
 from typing import Any, TYPE_CHECKING
 
+from flask import current_app
 from marshmallow import ValidationError
 from superset_core.api.tasks import TaskScope
 
@@ -30,6 +31,7 @@ from superset.commands.tasks.exceptions import (
     TaskInvalidError,
 )
 from superset.daos.exceptions import DAOCreateFailedError
+from superset.stats_logger import BaseStatsLogger
 from superset.tasks.locks import task_lock
 from superset.tasks.utils import get_active_dedup_key
 from superset.utils.decorators import on_error, transaction
@@ -100,10 +102,14 @@ class SubmitTaskCommand(BaseCommand):
             # Check for existing task (safe under lock)
             existing = TaskDAO.find_by_task_key(task_type, task_key, scope, user_id)
 
+            # Get stats logger
+            stats_logger: BaseStatsLogger = current_app.config["STATS_LOGGER"]
+
             if existing:
                 # Join existing task - add subscriber if not already subscribed
                 if user_id and not existing.has_subscriber(user_id):
                     TaskDAO.add_subscriber(existing.id, user_id)
+                    stats_logger.incr("gtf.task.subscribe")
                     logger.info(
                         "User %s joined existing task: %s",
                         user_id,
@@ -122,6 +128,7 @@ class SubmitTaskCommand(BaseCommand):
                     payload=self._properties.get("payload", {}),
                     properties=self._properties.get("properties", {}),
                 )
+                stats_logger.incr("gtf.task.create")
                 return task, True  # is_new=True: created new task
             except DAOCreateFailedError as ex:
                 raise TaskCreateFailedError() from ex
