@@ -42,37 +42,37 @@ const createChartLayoutItem = (
 });
 
 const createNestedTabsLayout = (): LayoutItem[] => [
-    createChartLayoutItem('CHART-1', 1, [
-      'ROOT_ID',
-      'TABS-1',
-      'TAB-Parent1',
-      'TABS-nested',
-      'TAB-P1_Child1',
-    ]),
-    createChartLayoutItem('CHART-2', 2, [
-      'ROOT_ID',
-      'TABS-1',
-      'TAB-Parent1',
-      'TABS-nested',
-      'TAB-P1_Child1',
-    ]),
-    createChartLayoutItem('CHART-3', 3, [
-      'ROOT_ID',
-      'TABS-1',
-      'TAB-Parent1',
-      'TABS-nested',
-      'TAB-P1_Child2',
-    ]),
-    createChartLayoutItem('CHART-4', 4, [
-      'ROOT_ID',
-      'TABS-1',
-      'TAB-Parent1',
-      'TABS-nested',
-      'TAB-P1_Child2',
-    ]),
-    createChartLayoutItem('CHART-5', 5, ['ROOT_ID', 'TABS-1', 'TAB-Parent2']),
-    createChartLayoutItem('CHART-6', 6, ['ROOT_ID', 'TABS-1', 'TAB-Parent2']),
-  ];
+  createChartLayoutItem('CHART-1', 1, [
+    'ROOT_ID',
+    'TABS-1',
+    'TAB-Parent1',
+    'TABS-nested',
+    'TAB-P1_Child1',
+  ]),
+  createChartLayoutItem('CHART-2', 2, [
+    'ROOT_ID',
+    'TABS-1',
+    'TAB-Parent1',
+    'TABS-nested',
+    'TAB-P1_Child1',
+  ]),
+  createChartLayoutItem('CHART-3', 3, [
+    'ROOT_ID',
+    'TABS-1',
+    'TAB-Parent1',
+    'TABS-nested',
+    'TAB-P1_Child2',
+  ]),
+  createChartLayoutItem('CHART-4', 4, [
+    'ROOT_ID',
+    'TABS-1',
+    'TAB-Parent1',
+    'TABS-nested',
+    'TAB-P1_Child2',
+  ]),
+  createChartLayoutItem('CHART-5', 5, ['ROOT_ID', 'TABS-1', 'TAB-Parent2']),
+  createChartLayoutItem('CHART-6', 6, ['ROOT_ID', 'TABS-1', 'TAB-Parent2']),
+];
 
 const allChartIds = [1, 2, 3, 4, 5, 6];
 

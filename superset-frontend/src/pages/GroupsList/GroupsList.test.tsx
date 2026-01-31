@@ -66,7 +66,7 @@ fetchMock.get(rolesEndpoint, {
   count: 3,
 });
 
-fetchMock.get(groupsEndpoint, { result: [] });
+fetchMock.get(groupsEndpoint, { result: [] }, { name: groupsEndpoint });
 
 jest.mock('src/dashboard/util/permissionUtils', () => ({
   ...jest.requireActual('src/dashboard/util/permissionUtils'),
@@ -147,6 +147,7 @@ describe('GroupsList', () => {
   });
 
   it('opens edit modal on edit button click', async () => {
+    fetchMock.removeRoute(groupsEndpoint);
     fetchMock.get('glob:*/security/groups/?*', {
       result: [
         {

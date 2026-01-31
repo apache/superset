@@ -103,11 +103,11 @@ const mockGroups = {
 };
 
 const createMockPivotData = (rowData: Record<string, number>) => ({
-    rowKeys: Object.keys(rowData).map(key => key.split('.')),
-    getAggregator: (rowKey: string[], colName: string) => ({
-      value: () => rowData[rowKey.join('.')],
-    }),
-  });
+  rowKeys: Object.keys(rowData).map(key => key.split('.')),
+  getAggregator: (rowKey: string[], colName: string) => ({
+    value: () => rowData[rowKey.join('.')],
+  }),
+});
 
 test('should set initial ascending sort when no active sort column', () => {
   mockGetAggregatedData.mockReturnValue({

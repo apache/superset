@@ -64,7 +64,6 @@ jest.mock('@superset-ui/core/components', () => ({
   ConfigEditor: () => <div data-test="config-editor" />,
 }));
 
-
 const render = (ui: ReactElement) =>
   rtlRender(<ThemeProvider theme={supersetTheme}>{ui}</ThemeProvider>);
 
