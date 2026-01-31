@@ -1,0 +1,138 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+import { Page } from '@playwright/test';
+import { Button, Select } from '../components/core';
+
+/**
+ * Create Dataset Page object for the dataset creation wizard.
+ */
+export class CreateDatasetPage {
+  readonly page: Page;
+
+  /**
+   * Data-test selectors for the create dataset form elements.
+   * Using data-test attributes avoids strict mode violations with multiple selects.
+   */
+  private static readonly SELECTORS = {
+    DATABASE: '[data-test="select-database"]',
+    SCHEMA: '[data-test="Select schema or type to search schemas"]',
+    TABLE: '[data-test="Select table or type to search tables"]',
+  } as const;
+
+  constructor(page: Page) {
+    this.page = page;
+  }
+
+  /**
+   * Gets the database selector using data-test attribute
+   */
+  getDatabaseSelect(): Select {
+    return new Select(this.page, CreateDatasetPage.SELECTORS.DATABASE);
+  }
+
+  /**
+   * Gets the schema selector using data-test attribute
+   */
+  getSchemaSelect(): Select {
+    return new Select(this.page, CreateDatasetPage.SELECTORS.SCHEMA);
+  }
+
+  /**
+   * Gets the table selector using data-test attribute
+   */
+  getTableSelect(): Select {
+    return new Select(this.page, CreateDatasetPage.SELECTORS.TABLE);
+  }
+
+  /**
+   * Gets the create and explore button
+   */
+  getCreateAndExploreButton(): Button {
+    return new Button(
+      this.page,
+      this.page.getByRole('button', { name: /Create and explore dataset/i }),
+    );
+  }
+
+  /**
+   * Navigate to the create dataset page
+   */
+  async goto(): Promise<void> {
+    await this.page.goto('dataset/add/');
+  }
+
+  /**
+   * Select a database from the dropdown
+   * @param databaseName - The name of the database to select
+   */
+  async selectDatabase(databaseName: string): Promise<void> {
+    await this.getDatabaseSelect().selectOption(databaseName);
+  }
+
+  /**
+   * Select a schema from the dropdown
+   * @param schemaName - The name of the schema to select
+   */
+  async selectSchema(schemaName: string): Promise<void> {
+    await this.getSchemaSelect().selectOption(schemaName);
+  }
+
+  /**
+   * Select a table from the dropdown
+   * @param tableName - The name of the table to select
+   */
+  async selectTable(tableName: string): Promise<void> {
+    await this.getTableSelect().selectOption(tableName);
+  }
+
+  /**
+   * Click the "Create dataset" button (without exploring)
+   * Uses the dropdown menu to select "Create dataset" option
+   */
+  async clickCreateDataset(): Promise<void> {
+    // Find the "Create and explore dataset" button, then its sibling dropdown trigger
+    // This avoids ambiguity if other "down" buttons exist on the page
+    const mainButton = this.page.getByRole('button', {
+      name: /Create and explore dataset/i,
+    });
+    // The dropdown trigger is in the same button group, find it relative to main button
+    const dropdownTrigger = mainButton
+      .locator('xpath=following-sibling::button')
+      .first();
+    await dropdownTrigger.click();
+
+    // Click "Create dataset" option from the dropdown menu
+    await this.page.getByText('Create dataset', { exact: true }).click();
+  }
+
+  /**
+   * Click the "Create and explore dataset" button
+   */
+  async clickCreateAndExploreDataset(): Promise<void> {
+    await this.getCreateAndExploreButton().click();
+  }
+
+  /**
+   * Wait for the page to load
+   */
+  async waitForPageLoad(): Promise<void> {
+    await this.getDatabaseSelect().element.waitFor({ state: 'visible' });
+  }
+}

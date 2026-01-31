@@ -48,4 +48,14 @@ export const TIMEOUT = {
    * API response timeout for operations like export/download
    */
   API_RESPONSE: 15000, // 15s for API responses and downloads
+
+  /**
+   * Confirmation dialog wait (e.g., "Confirm save", "Are you sure?")
+   */
+  CONFIRM_DIALOG: 2000, // 2s for confirmation dialogs that may or may not appear
+
+  /**
+   * File import/upload operations (upload + server processing)
+   */
+  FILE_IMPORT: 30000, // 30s for file import operations
 } as const;

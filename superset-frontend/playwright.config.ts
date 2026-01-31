@@ -74,6 +74,9 @@ export default defineConfig({
 
     viewport: { width: 1280, height: 1024 },
 
+    // Accept downloads without prompts (needed for export tests)
+    acceptDownloads: true,
+
     // Screenshots and videos on failure
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -117,10 +120,19 @@ export default defineConfig({
   // Web server setup - disabled in CI (Flask started separately in workflow)
   webServer: process.env.CI
     ? undefined
-    : {
-        command: 'curl -f http://localhost:8088/health',
-        url: 'http://localhost:8088/health',
-        reuseExistingServer: true,
-        timeout: 5000,
-      },
+    : (() => {
+        // Support custom base URL (e.g., http://localhost:9012/app/prefix/)
+        const baseUrl =
+          process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:8088';
+        // Extract origin (scheme + host + port) for health check
+        // Health endpoint is always at /health regardless of app prefix
+        const healthUrl = new URL('/health', new URL(baseUrl).origin).href;
+        return {
+          // Quote URL to prevent shell injection via PLAYWRIGHT_BASE_URL
+          command: `curl -f '${healthUrl}'`,
+          url: healthUrl,
+          reuseExistingServer: true,
+          timeout: 5000,
+        };
+      })(),
 });
