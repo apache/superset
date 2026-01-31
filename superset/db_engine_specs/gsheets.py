@@ -161,6 +161,7 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         cls,
         config: "OAuth2ClientConfig",
         state: "OAuth2State",
+        code_verifier: str | None = None,
     ) -> str:
         """
         Return URI for initial OAuth2 request with Google-specific parameters.
@@ -172,10 +173,10 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         """
         from urllib.parse import urlencode, urljoin
 
-        from superset.utils.oauth2 import encode_oauth2_state
+        from superset.utils.oauth2 import encode_oauth2_state, generate_code_challenge
 
         uri = config["authorization_request_uri"]
-        params = {
+        params: dict[str, str] = {
             "scope": config["scope"],
             "response_type": "code",
             "state": encode_oauth2_state(state),
@@ -186,6 +187,12 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
             "include_granted_scopes": "false",
             "prompt": "consent",
         }
+
+        # Add PKCE parameters (RFC 7636) if code_verifier is provided
+        if code_verifier:
+            params["code_challenge"] = generate_code_challenge(code_verifier)
+            params["code_challenge_method"] = "S256"
+
         return urljoin(uri, "?" + urlencode(params))
 
     @classmethod
