@@ -30,6 +30,9 @@ import { ThemeProvider, theme } from '@apache-superset/core/ui';
 import Menu from 'src/features/home/Menu';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { setupStore } from './store';
+import { i18nLoadJob } from '../preamble';
+
+await i18nLoadJob;
 
 // Disable connecting to redux debugger so that the React app injected
 // Below the menu like SqlLab or Explore can connect its redux store to the debugger
