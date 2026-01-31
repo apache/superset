@@ -16,7 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, VizType } from '@superset-ui/core';
+import {
+  AnnotationStyle,
+  AnnotationType,
+  ChartProps,
+  DataRecord,
+  FormulaAnnotationLayer,
+  VizType,
+  ChartDataResponseResult,
+} from '@superset-ui/core';
 import { supersetTheme } from '@apache-superset/core/ui';
 import {
   LegendOrientation,
@@ -28,6 +36,72 @@ import {
   EchartsMixedTimeseriesFormData,
   EchartsMixedTimeseriesProps,
 } from '../../src/MixedTimeseries/types';
+import { DEFAULT_FORM_DATA } from '../../src/MixedTimeseries/types';
+import { createEchartsTimeseriesTestChartProps } from '../helpers';
+import type { SeriesOption } from 'echarts';
+
+/**
+ * Creates a partial ChartDataResponseResult for testing.
+ * Only includes the fields needed for tests, with sensible defaults for required fields.
+ */
+function createTestQueryData(
+  data: unknown[],
+  overrides?: Partial<ChartDataResponseResult> & {
+    label_map?: Record<string, string[]>;
+  },
+): ChartDataResponseResult {
+  return {
+    annotation_data: null,
+    cache_key: null,
+    cache_timeout: null,
+    cached_dttm: null,
+    queried_dttm: null,
+    data: data as DataRecord[],
+    colnames: [],
+    coltypes: [],
+    error: null,
+    is_cached: false,
+    query: '',
+    rowcount: data.length,
+    sql_rowcount: data.length,
+    stacktrace: null,
+    status: 'success',
+    from_dttm: null,
+    to_dttm: null,
+    label_map: {},
+    ...overrides,
+  } as ChartDataResponseResult & { label_map?: Record<string, string[]> };
+}
+
+/**
+ * Creates a properly typed EchartsMixedTimeseriesProps for testing.
+ * Uses shared createEchartsTimeseriesTestChartProps with Mixed Timeseries defaults.
+ */
+function createTestChartProps(config: {
+  formData?: Partial<EchartsMixedTimeseriesFormData>;
+  queriesData?: ChartDataResponseResult[];
+  datasource?: {
+    verboseMap?: Record<string, string>;
+    columnFormats?: Record<string, string>;
+    currencyFormats?: Record<
+      string,
+      { symbol: string; symbolPosition: string }
+    >;
+    currencyCodeColumn?: string;
+  };
+  width?: number;
+  height?: number;
+}): EchartsMixedTimeseriesProps {
+  return createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    defaultFormData: DEFAULT_FORM_DATA,
+    defaultVizType: 'mixed_timeseries',
+    defaultQueriesData: [],
+    ...config,
+  });
+}
 
 const formData: EchartsMixedTimeseriesFormData = {
   annotationLayers: [],
@@ -321,4 +395,67 @@ test('legend margin: right orientation sets grid.right correctly', () => {
   const transformed = transformProps(chartProps as EchartsMixedTimeseriesProps);
 
   expect((transformed.echartOptions.grid as any).right).toEqual(270);
+});
+
+test('should add a formula annotation when X-axis column has dataset-level label', () => {
+  const formula: FormulaAnnotationLayer = {
+    name: 'My Formula',
+    annotationType: AnnotationType.Formula,
+    value: 'x*2',
+    style: AnnotationStyle.Solid,
+    show: true,
+    showLabel: true,
+  };
+  const timeColumnName = 'ds';
+  const timeColumnLabel = 'Time Label';
+  const testData = [
+    {
+      [timeColumnLabel]: 599616000000,
+      boy: 1,
+      girl: 2,
+    },
+    {
+      [timeColumnLabel]: 599916000000,
+      boy: 3,
+      girl: 4,
+    },
+  ];
+  const chartProps = createTestChartProps({
+    formData: {
+      ...formData,
+      x_axis: timeColumnName,
+      annotationLayers: [formula],
+    },
+    queriesData: [
+      createTestQueryData(testData, {
+        label_map: {
+          [timeColumnName]: [timeColumnLabel],
+          boy: ['boy'],
+          girl: ['girl'],
+        },
+      }),
+      createTestQueryData(testData, {
+        label_map: {
+          [timeColumnName]: [timeColumnLabel],
+          boy: ['boy'],
+          girl: ['girl'],
+        },
+      }),
+    ],
+    datasource: {
+      verboseMap: {
+        [timeColumnName]: timeColumnLabel,
+      },
+      columnFormats: {},
+      currencyFormats: {},
+    },
+  });
+  const result = transformProps(chartProps);
+  const formulaSeries = (
+    result.echartOptions.series as SeriesOption[] | undefined
+  )?.find((s: SeriesOption) => s.name === 'My Formula');
+  expect(formulaSeries).toBeDefined();
+  expect(formulaSeries?.data).toBeDefined();
+  expect(Array.isArray(formulaSeries?.data)).toBe(true);
+  expect((formulaSeries?.data as unknown[]).length).toBeGreaterThan(0);
 });
