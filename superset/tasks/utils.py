@@ -295,11 +295,12 @@ def parse_properties(json_str: str | None) -> TaskProperties:
         return {}
 
     try:
-        value = json.loads(json_str)
+        raw = json.loads(json_str)
+        value: TaskProperties | None = raw if isinstance(raw, dict) else {}
     except (json.JSONDecodeError, TypeError):
         return {}
 
-    return value if isinstance(value, dict) else {}
+    return value
 
 
 def serialize_properties(props: TaskProperties) -> str:
