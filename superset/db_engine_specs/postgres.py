@@ -320,6 +320,45 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
                 "categories": [DatabaseCategory.OPEN_SOURCE],
             },
             {
+                "name": "Supabase",
+                "description": (
+                    "Open-source Firebase alternative built on top of PostgreSQL, "
+                    "providing a full backend-as-a-service with a hosted Postgres "
+                    "database."
+                ),
+                "logo": "supabase.svg",
+                "homepage_url": "https://supabase.com/",
+                "pypi_packages": ["psycopg2"],
+                "connection_string": (
+                    "postgresql://{username}:{password}@{host}:{port}/{database}"
+                ),
+                "connection_examples": [
+                    {
+                        "description": "Supabase project (connection pooler)",
+                        "connection_string": (
+                            "postgresql://{username}.{project_ref}:{password}"
+                            "@aws-0-{region}.pooler.supabase.com:6543/{database}"
+                        ),
+                    },
+                ],
+                "parameters": {
+                    "username": "Database user (default: postgres)",
+                    "password": "Database password",
+                    "host": "Supabase project host (from project settings)",
+                    "port": "Default 5432 (direct) or 6543 (pooler)",
+                    "database": "Database name (default: postgres)",
+                },
+                "notes": (
+                    "Find connection details in your Supabase project dashboard under "
+                    "Settings > Database. Use the connection pooler (port 6543) for "
+                    "better connection management."
+                ),
+                "docs_url": "https://supabase.com/docs/guides/database/connecting-to-postgres",
+                "categories": [
+                    DatabaseCategory.HOSTED_OPEN_SOURCE,
+                ],
+            },
+            {
                 "name": "Amazon Aurora PostgreSQL",
                 "description": (
                     "Amazon Aurora PostgreSQL is a fully managed, "
