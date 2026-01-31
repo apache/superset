@@ -291,4 +291,72 @@ describe('Heatmap transformProps', () => {
     // Y-axis: numbers sorted numerically (1, 2, 10 NOT 1, 10, 2)
     expect(yAxisData).toEqual([1, 2, 10]);
   });
+
+  test('should include rank as 4th dimension when normalized is true', () => {
+    const dataWithRank = [
+      { day_of_week: 'Monday', hour: 9, count: 10, rank: 0.33 },
+      { day_of_week: 'Monday', hour: 14, count: 15, rank: 0.67 },
+      { day_of_week: 'Wednesday', hour: 11, count: 8, rank: 0.17 },
+      { day_of_week: 'Friday', hour: 16, count: 20, rank: 1.0 },
+    ];
+
+    const chartProps = createChartProps({ normalized: true }, dataWithRank);
+
+    const result = transformProps(chartProps as HeatmapChartProps);
+
+    const seriesData = (result.echartOptions.series as any)[0].data;
+
+    // Each data point should be [xIndex, yIndex, metricValue, rankValue]
+    expect(Array.isArray(seriesData)).toBe(true);
+    expect(seriesData.length).toBe(4);
+
+    // Check that data points have 4 dimensions when normalized
+    seriesData.forEach((point: any) => {
+      expect(Array.isArray(point)).toBe(true);
+      expect(point.length).toBe(4);
+      // First two should be indices (numbers)
+      expect(typeof point[0]).toBe('number');
+      expect(typeof point[1]).toBe('number');
+      // Third should be the metric value
+      expect(typeof point[2]).toBe('number');
+      // Fourth should be the rank value
+      expect(typeof point[3]).toBe('number');
+      expect(point[3]).toBeGreaterThanOrEqual(0);
+      expect(point[3]).toBeLessThanOrEqual(1);
+    });
+
+    // visualMap should use dimension 3 (4th element) for coloring
+    expect((result.echartOptions.visualMap as any).dimension).toBe(3);
+  });
+
+  test('should use 3 dimensions when normalized is false', () => {
+    const chartProps = createChartProps({ normalized: false });
+    const result = transformProps(chartProps as HeatmapChartProps);
+
+    const seriesData = (result.echartOptions.series as any)[0].data;
+
+    // Each data point should be [xIndex, yIndex, metricValue]
+    seriesData.forEach((point: any) => {
+      expect(point.length).toBe(3);
+    });
+
+    // visualMap should use dimension 2 (3rd element) for coloring
+    expect((result.echartOptions.visualMap as any).dimension).toBe(2);
+  });
+
+  test('should always hide legend regardless of showLegend setting', () => {
+    // Test with showLegend: true
+    const chartPropsWithLegend = createChartProps({ showLegend: true });
+    const resultWithLegend = transformProps(
+      chartPropsWithLegend as HeatmapChartProps,
+    );
+    expect((resultWithLegend.echartOptions.legend as any).show).toBe(false);
+
+    // Test with showLegend: false
+    const chartPropsWithoutLegend = createChartProps({ showLegend: false });
+    const resultWithoutLegend = transformProps(
+      chartPropsWithoutLegend as HeatmapChartProps,
+    );
+    expect((resultWithoutLegend.echartOptions.legend as any).show).toBe(false);
+  });
 });
