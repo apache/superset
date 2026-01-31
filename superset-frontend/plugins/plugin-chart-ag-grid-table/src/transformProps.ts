@@ -40,6 +40,7 @@ import { isEmpty, isEqual, merge } from 'lodash';
 import {
   ConditionalFormattingConfig,
   getColorFormatters,
+  ColorSchemeEnum,
 } from '@superset-ui/chart-controls';
 import isEqualColumns from './utils/isEqualColumns';
 import DateWithFormatter from './utils/DateWithFormatter';
@@ -48,7 +49,6 @@ import {
   TableChartProps,
   AgGridTableChartTransformedProps,
   TableColumnConfig,
-  ColorSchemeEnum,
   BasicColorFormatterType,
 } from './types';
 
