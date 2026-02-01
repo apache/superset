@@ -25,10 +25,12 @@ import {
 } from '@superset-ui/core';
 import { css, styled, useTheme } from '@apache-superset/core/ui';
 import { Tooltip } from '@superset-ui/core/components';
-import { DEFAULT_DATE_PATTERN } from '@superset-ui/chart-controls';
+import {
+  DEFAULT_DATE_PATTERN,
+  ColorSchemeEnum,
+} from '@superset-ui/chart-controls';
 import { isEmpty } from 'lodash';
 import {
-  ColorSchemeEnum,
   PopKPIComparisonSymbolStyleProps,
   PopKPIComparisonValueStyleProps,
   PopKPIProps,

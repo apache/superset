@@ -74,9 +74,8 @@ import {
   TableOutlined,
 } from '@ant-design/icons';
 import { isEmpty, debounce, isEqual } from 'lodash';
-import { ColorFormatters } from '@superset-ui/chart-controls';
+import { ColorFormatters, ColorSchemeEnum } from '@superset-ui/chart-controls';
 import {
-  ColorSchemeEnum,
   DataColumnMeta,
   SearchOption,
   SortByItem,

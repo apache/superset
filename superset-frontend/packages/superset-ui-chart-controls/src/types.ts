@@ -608,3 +608,8 @@ export type ControlFormItemSpec<T extends ControlType = ControlType> = {
                 defaultValue?: Currency;
               }
             : {});
+
+export enum ColorSchemeEnum {
+  Green = 'Green',
+  Red = 'Red',
+}
