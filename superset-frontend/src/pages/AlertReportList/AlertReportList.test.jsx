@@ -28,6 +28,7 @@ import {
 import { MemoryRouter } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
 import AlertList from 'src/pages/AlertReportList';
+import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
@@ -86,7 +87,7 @@ fetchMock.delete(alertsEndpoint, {});
 const renderAlertList = (props = {}) =>
   render(
     <MemoryRouter>
-      <QueryParamProvider>
+      <QueryParamProvider adapter={ReactRouter5Adapter}>
         <AlertList user={mockUser} {...props} />
       </QueryParamProvider>
     </MemoryRouter>,
