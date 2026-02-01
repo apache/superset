@@ -30,6 +30,7 @@ import {
 import { MemoryRouter } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
 import RolesList from './index';
+import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
@@ -107,7 +108,7 @@ describe('RolesList', () => {
       const mockedProps = {};
       render(
         <MemoryRouter>
-          <QueryParamProvider>
+          <QueryParamProvider adapter={ReactRouter5Adapter}>
             <RolesList
               user={mockUser}
               addDangerToast={() => {}}

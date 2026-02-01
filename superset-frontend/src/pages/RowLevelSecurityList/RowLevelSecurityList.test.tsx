@@ -22,6 +22,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
 import userEvent from '@testing-library/user-event';
 import RowLevelSecurityList from '.';
+import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 
 const ruleListEndpoint = 'glob:*/api/v1/rowlevelsecurity/?*';
 const ruleInfoEndpoint = 'glob:*/api/v1/rowlevelsecurity/_info*';
@@ -109,7 +110,7 @@ describe('RuleList RTL', () => {
       const mockedProps = {};
       render(
         <MemoryRouter>
-          <QueryParamProvider>
+          <QueryParamProvider adapter={ReactRouter5Adapter}>
             <RowLevelSecurityList {...mockedProps} user={mockUser} />
           </QueryParamProvider>
         </MemoryRouter>,

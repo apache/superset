@@ -43,6 +43,7 @@ import { configureStore, Store } from '@reduxjs/toolkit';
 import { api } from 'src/hooks/apiResources/queryApi';
 import userEvent from '@testing-library/user-event';
 import { ExtensionsProvider } from 'src/extensions/ExtensionsContext';
+import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 
 type Options = Omit<RenderOptions, 'queries'> & {
   useRedux?: boolean;
@@ -109,7 +110,11 @@ export function createWrapper(options?: Options) {
     }
 
     if (useQueryParams) {
-      result = <QueryParamProvider>{result}</QueryParamProvider>;
+      result = (
+        <QueryParamProvider adapter={ReactRouter5Adapter}>
+          {result}
+        </QueryParamProvider>
+      );
     }
 
     if (useRouter) {

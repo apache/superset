@@ -31,12 +31,6 @@ import {
   setupMocks,
 } from './ChartList.testHelpers';
 
-const mockPush = jest.fn();
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
-  useHistory: () => ({ push: mockPush }),
-}));
-
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
   isFeatureEnabled: jest.fn(),
@@ -76,7 +70,6 @@ describe('ChartList', () => {
   beforeEach(() => {
     fetchMock.removeRoutes();
     setupMocks();
-    mockPush.mockClear();
   });
 
   afterEach(() => {
@@ -107,9 +100,12 @@ describe('ChartList', () => {
     fireEvent.click(newChartButton);
 
     // Verify it triggers navigation to chart creation
-    await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith('/chart/add');
-    });
+    await waitFor(
+      () => {
+        expect(window.location.pathname).toEqual('/chart/add');
+      },
+      { timeout: 5000 },
+    );
   });
 
   test('verify Import button existence and functionality', async () => {

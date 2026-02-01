@@ -28,6 +28,7 @@ import {
 import { MemoryRouter } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
 import SavedQueryList from '.';
+import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 
 // Increase default timeout
 jest.setTimeout(30000);
@@ -85,7 +86,7 @@ fetchMock.delete(queryEndpoint, {}, { name: queryEndpoint });
 const renderList = (props = {}, storeOverrides = {}) =>
   render(
     <MemoryRouter>
-      <QueryParamProvider>
+      <QueryParamProvider adapter={ReactRouter5Adapter}>
         <SavedQueryList user={mockUser} {...props} />
       </QueryParamProvider>
     </MemoryRouter>,
