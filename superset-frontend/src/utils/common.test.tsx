@@ -23,6 +23,8 @@ import {
   NULL_STRING,
   TRUE_STRING,
   FALSE_STRING,
+  TabularDataRow,
+  ColumnDefinition,
 } from 'src/utils/common';
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
@@ -53,26 +55,30 @@ describe('utils/common', () => {
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('prepareCopyToClipboardTabularData', () => {
     test('converts empty array', () => {
-      const data = [];
-      const columns = [];
+      const data: TabularDataRow[] = [];
+      const columns: string[] = [];
       expect(prepareCopyToClipboardTabularData(data, columns)).toEqual('');
     });
     test('converts non empty array', () => {
-      const data = [
+      const data: TabularDataRow[] = [
         { column1: 'lorem', column2: 'ipsum' },
         { column1: 'dolor', column2: 'sit', column3: 'amet' },
       ];
-      const columns = ['column1', 'column2', 'column3'];
+      const columns: string[] = ['column1', 'column2', 'column3'];
       expect(prepareCopyToClipboardTabularData(data, columns)).toEqual(
         'column1\tcolumn2\tcolumn3\nlorem\tipsum\t\ndolor\tsit\tamet\n',
       );
     });
     test('includes 0 values and handle column objects', () => {
-      const data = [
+      const data: TabularDataRow[] = [
         { column1: 0, column2: 0 },
         { column1: 1, column2: -1, 0: 0 },
       ];
-      const columns = [{ name: 'column1' }, { name: 'column2' }, { name: '0' }];
+      const columns: ColumnDefinition[] = [
+        { name: 'column1' },
+        { name: 'column2' },
+        { name: '0' },
+      ];
       expect(prepareCopyToClipboardTabularData(data, columns)).toEqual(
         'column1\tcolumn2\t0\n0\t0\t\n1\t-1\t0\n',
       );
@@ -81,18 +87,18 @@ describe('utils/common', () => {
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('applyFormattingToTabularData', () => {
     test('does not mutate empty array', () => {
-      const data = [];
+      const data: TabularDataRow[] = [];
       expect(applyFormattingToTabularData(data, [])).toEqual(data);
     });
     test('does not mutate array without temporal column', () => {
-      const data = [
+      const data: TabularDataRow[] = [
         { column1: 'lorem', column2: 'ipsum' },
         { column1: 'dolor', column2: 'sit', column3: 'amet' },
       ];
       expect(applyFormattingToTabularData(data, [])).toEqual(data);
     });
     test('changes formatting of columns selected for formatting', () => {
-      const originalData = [
+      const originalData: TabularDataRow[] = [
         {
           __timestamp: null,
           column1: 'lorem',
@@ -118,8 +124,8 @@ describe('utils/common', () => {
           column3: 1518566400000,
         },
       ];
-      const timeFormattedColumns = ['__timestamp', 'column3'];
-      const expectedData = [
+      const timeFormattedColumns: string[] = ['__timestamp', 'column3'];
+      const expectedData: TabularDataRow[] = [
         {
           __timestamp: null,
           column1: 'lorem',

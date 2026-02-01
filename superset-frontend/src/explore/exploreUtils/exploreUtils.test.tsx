@@ -28,15 +28,21 @@ import {
 } from 'src/explore/exploreUtils';
 import { DashboardStandaloneMode } from 'src/dashboard/util/constants';
 import * as hostNamesConfig from 'src/utils/hostNamesConfig';
-import { getChartMetadataRegistry, SupersetClient } from '@superset-ui/core';
+import {
+  ChartMetadata,
+  getChartMetadataRegistry,
+  QueryFormData,
+  SupersetClient,
+} from '@superset-ui/core';
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('exploreUtils', () => {
   const { location } = window;
-  const formData = {
+  const formData: QueryFormData = {
     datasource: '1__table',
+    viz_type: 'table',
   };
-  function compareURI(uri1, uri2) {
+  function compareURI(uri1: URI, uri2: URI): void {
     expect(uri1.toString()).toBe(uri2.toString());
   }
 
@@ -53,7 +59,7 @@ describe('exploreUtils', () => {
         force: false,
         curUrl: 'http://superset.com',
       });
-      compareURI(URI(url), URI('/explore/'));
+      compareURI(URI(url!), URI('/explore/'));
     });
     test('generates proper json url', () => {
       const url = getExploreUrl({
@@ -62,7 +68,7 @@ describe('exploreUtils', () => {
         force: false,
         curUrl: 'http://superset.com',
       });
-      compareURI(URI(url), URI('/superset/explore_json/'));
+      compareURI(URI(url!), URI('/superset/explore_json/'));
     });
     test('generates proper json forced url', () => {
       const url = getExploreUrl({
@@ -72,7 +78,7 @@ describe('exploreUtils', () => {
         curUrl: 'superset.com',
       });
       compareURI(
-        URI(url),
+        URI(url!),
         URI('/superset/explore_json/').search({ force: 'true' }),
       );
     });
@@ -84,7 +90,7 @@ describe('exploreUtils', () => {
         curUrl: 'superset.com',
       });
       compareURI(
-        URI(url),
+        URI(url!),
         URI('/superset/explore_json/').search({ csv: 'true' }),
       );
     });
@@ -96,7 +102,7 @@ describe('exploreUtils', () => {
         curUrl: 'superset.com',
       });
       compareURI(
-        URI(url),
+        URI(url!),
         URI('/explore/').search({
           standalone: DashboardStandaloneMode.HideNav,
         }),
@@ -110,7 +116,7 @@ describe('exploreUtils', () => {
         curUrl: 'superset.com?foo=bar',
       });
       compareURI(
-        URI(url),
+        URI(url!),
         URI('/superset/explore_json/').search({ foo: 'bar' }),
       );
     });
@@ -122,7 +128,7 @@ describe('exploreUtils', () => {
         curUrl: 'superset.com?foo=bar',
       });
       compareURI(
-        URI(url),
+        URI(url!),
         URI('/superset/explore_json/').search({ foo: 'bar' }),
       );
     });
@@ -130,7 +136,7 @@ describe('exploreUtils', () => {
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('domain sharding', () => {
-    let stub;
+    let stub: sinon.SinonStub;
     const availableDomains = [
       'http://localhost/',
       'domain1.com',
@@ -199,7 +205,9 @@ describe('exploreUtils', () => {
       const v1RequestPayload = await buildV1ChartDataPayload({
         formData: { ...formData, viz_type: 'my_custom_viz' },
       });
-      expect(v1RequestPayload.hasOwnProperty('queries')).toBeTruthy();
+      expect(
+        Object.prototype.hasOwnProperty.call(v1RequestPayload, 'queries'),
+      ).toBeTruthy();
     });
   });
 
@@ -207,8 +215,12 @@ describe('exploreUtils', () => {
   describe('getQuerySettings', () => {
     beforeAll(() => {
       getChartMetadataRegistry()
-        .registerValue('my_legacy_viz', { useLegacyApi: true })
-        .registerValue('my_v1_viz', { useLegacyApi: false });
+        .registerValue('my_legacy_viz', {
+          useLegacyApi: true,
+        } as unknown as ChartMetadata)
+        .registerValue('my_v1_viz', {
+          useLegacyApi: false,
+        } as unknown as ChartMetadata);
     });
 
     afterAll(() => {
@@ -293,9 +305,7 @@ describe('exploreUtils', () => {
       const postFormSpy = jest.spyOn(SupersetClient, 'postForm');
       postFormSpy.mockImplementation(jest.fn());
 
-      exploreChart({
-        formData: { ...formData, viz_type: 'my_custom_viz' },
-      });
+      exploreChart({ ...formData, viz_type: 'my_custom_viz' });
       expect(postFormSpy).toHaveBeenCalledTimes(1);
     });
   });

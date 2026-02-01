@@ -29,6 +29,7 @@ import { useSelector } from 'react-redux';
 import { t } from '@apache-superset/core';
 import {
   BinaryQueryObjectFilterClause,
+  DatasourceType,
   ensureIsArray,
   JsonObject,
   QueryFormData,
@@ -237,8 +238,8 @@ export default function DrillDetailPane({
       const jsonPayload = getDrillPayload(formData, filters) ?? {};
       const cachePageLimit = Math.ceil(SAMPLES_ROW_LIMIT / PAGE_SIZE);
       getDatasourceSamples(
-        datasourceType,
-        datasourceId,
+        datasourceType as DatasourceType,
+        Number(datasourceId),
         false,
         jsonPayload,
         PAGE_SIZE,

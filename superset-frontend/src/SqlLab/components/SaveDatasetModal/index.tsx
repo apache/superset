@@ -258,7 +258,7 @@ export const SaveDatasetModal = ({
       ]);
       setLoading(false);
 
-      const url = mountExploreUrl(null, {
+      const url = mountExploreUrl('base', {
         [URL_PARAMS.formDataKey.name]: key,
       });
       createWindow(url);
@@ -364,7 +364,7 @@ export const SaveDatasetModal = ({
       })
       .then((key: string) => {
         setLoading(false);
-        const url = mountExploreUrl(null, {
+        const url = mountExploreUrl('base', {
           [URL_PARAMS.formDataKey.name]: key,
         });
         createWindow(url);
