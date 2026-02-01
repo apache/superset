@@ -269,31 +269,11 @@ class ChartRenderer extends Component<ChartRendererProps, ChartRendererState> {
         this.mutableQueriesResponse = cloneDeep(nextProps.queriesResponse);
       }
 
-      // Check if any matrixify-related properties have changed
-      const hasMatrixifyChanges = (): boolean => {
-        const nextFormData = nextProps.formData as JsonObject;
-        const currentFormData = this.props.formData as JsonObject;
-        const isMatrixifyEnabled =
-          nextFormData.matrixify_enable_vertical_layout === true ||
-          nextFormData.matrixify_enable_horizontal_layout === true;
-        if (!isMatrixifyEnabled) return false;
-
-        // Check all matrixify-related properties
-        const matrixifyKeys = Object.keys(nextFormData).filter(key =>
-          key.startsWith('matrixify_'),
-        );
-
-        return matrixifyKeys.some(
-          key => !isEqual(nextFormData[key], currentFormData[key]),
-        );
-      };
-
-      const nextFormData = nextProps.formData as JsonObject;
-      const currentFormData = this.props.formData as JsonObject;
 
       return (
         this.hasQueryResponseChange ||
         !isEqual(nextProps.datasource, this.props.datasource) ||
+        !isEqual(nextProps.formData,this.props.formData) ||
         nextProps.annotationData !== this.props.annotationData ||
         nextProps.ownState !== this.props.ownState ||
         nextProps.filterState !== this.props.filterState ||
@@ -302,13 +282,9 @@ class ChartRenderer extends Component<ChartRendererProps, ChartRendererState> {
         nextProps.triggerRender === true ||
         nextProps.labelsColor !== this.props.labelsColor ||
         nextProps.labelsColorMap !== this.props.labelsColorMap ||
-        nextFormData.color_scheme !== currentFormData.color_scheme ||
-        nextFormData.stack !== currentFormData.stack ||
-        nextFormData.subcategories !== currentFormData.subcategories ||
         nextProps.cacheBusterProp !== this.props.cacheBusterProp ||
         nextProps.emitCrossFilters !== this.props.emitCrossFilters ||
-        nextProps.postTransformProps !== this.props.postTransformProps ||
-        hasMatrixifyChanges()
+        nextProps.postTransformProps !== this.props.postTransformProps
       );
     }
     return false;
