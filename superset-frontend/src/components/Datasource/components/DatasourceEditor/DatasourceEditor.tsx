@@ -1952,7 +1952,6 @@ class DatasourceEditor extends PureComponent<
                         handleError={this.props.addDangerToast}
                         catalog={datasource.catalog}
                         schema={datasource.schema}
-                        sqlLabMode={false}
                         tableValue={datasource.table_name}
                         onCatalogChange={
                           this.state.isEditMode
