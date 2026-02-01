@@ -153,11 +153,10 @@ class ChartRenderer extends Component {
         this.mutableQueriesResponse = cloneDeep(nextProps.queriesResponse);
       }
 
-
       return (
         this.hasQueryResponseChange ||
         !isEqual(nextProps.datasource, this.props.datasource) ||
-        !isEqual(nextProps.formData,this.props.formData) ||
+        !isEqual(nextProps.formData, this.props.formData) ||
         nextProps.annotationData !== this.props.annotationData ||
         nextProps.ownState !== this.props.ownState ||
         nextProps.filterState !== this.props.filterState ||
