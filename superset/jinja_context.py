@@ -352,7 +352,12 @@ class ExtraCache:
         # Get attributes from guest token
         if hasattr(user, "guest_token") and user.guest_token:
             token = user.guest_token
+            # ensure token is a mapping before calling .get
+            if not isinstance(token, dict):
+                return default
             token_user = token.get("user", {})
+            if not isinstance(token_user, dict):
+                return default
             user_attributes = token_user.get("attributes") or {}
 
             # Only add to cache key if the variable actually exists in guest token
