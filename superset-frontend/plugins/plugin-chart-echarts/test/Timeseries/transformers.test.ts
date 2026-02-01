@@ -92,6 +92,34 @@ describe('transformSeries', () => {
     expect((result as any).itemStyle.borderType).toBeUndefined();
     expect((result as any).itemStyle.borderColor).toBeUndefined();
   });
+
+  it('should dim series when selectedValues does not include series name (dimension-based filtering)', () => {
+    const opts = {
+      filterState: { selectedValues: ['other-series'] },
+      hasDimensions: true,
+      seriesType: EchartsTimeseriesSeriesType.Bar,
+      timeShiftColor: false,
+    };
+
+    const result = transformSeries(series, mockColorScale, 'test-key', opts);
+
+    // OpacityEnum.SemiTransparent = 0.3
+    expect((result as any).itemStyle.opacity).toBe(0.3);
+  });
+
+  it('should not dim series when hasDimensions is false (X-axis cross-filtering)', () => {
+    const opts = {
+      filterState: { selectedValues: ['Product A'] },
+      hasDimensions: false,
+      seriesType: EchartsTimeseriesSeriesType.Bar,
+      timeShiftColor: false,
+    };
+
+    const result = transformSeries(series, mockColorScale, 'test-key', opts);
+
+    // OpacityEnum.NonTransparent = 1 (not dimmed)
+    expect((result as any).itemStyle.opacity).toBe(1);
+  });
 });
 
 describe('transformNegativeLabelsPosition', () => {
