@@ -242,8 +242,10 @@ export default function transformProps(
     // @ts-ignore
     ...outlierData,
   ];
-  const addYAxisTitleOffset = !!yAxisTitle;
-  const addXAxisTitleOffset = !!xAxisTitle;
+  const addYAxisTitleOffset =
+    !!yAxisTitle && convertInteger(yAxisTitleMargin) !== 0;
+  const addXAxisTitleOffset =
+    !!xAxisTitle && convertInteger(xAxisTitleMargin) !== 0;
   const chartPadding = getPadding(
     true,
     legendOrientation,
