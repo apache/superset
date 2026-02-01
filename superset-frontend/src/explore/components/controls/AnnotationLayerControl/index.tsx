@@ -280,8 +280,10 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
 // directly, could not figure out how to get access to the color_scheme
 function mapStateToProps({
   charts,
-  explore,
+  explore: exploreUndoable,
 }: Pick<ExplorePageState, 'charts' | 'explore'>) {
+  // Access explore.present because explore reducer is wrapped with redux-undo
+  const explore = exploreUndoable.present;
   const chartKey = getChartKey(explore);
 
   const defaultChartState: Partial<ChartState> = {

@@ -103,8 +103,8 @@ export const DYNAMIC_PLUGIN_CONTROLS_READY = 'DYNAMIC_PLUGIN_CONTROLS_READY';
 export const dynamicPluginControlsReady = () => (dispatch, getState) => {
   const state = getState();
   const controlsState = getControlsState(
-    state.explore,
-    state.explore.form_data,
+    state.explore.present,
+    state.explore.present.form_data,
   );
   dispatch({
     type: DYNAMIC_PLUGIN_CONTROLS_READY,
