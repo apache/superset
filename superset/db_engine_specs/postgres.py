@@ -347,6 +347,8 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
                     "host": "Supabase project host (from project settings)",
                     "port": "Default 5432 (direct) or 6543 (pooler)",
                     "database": "Database name (default: postgres)",
+                    "project_ref": "Supabase project reference (from project settings)",
+                    "region": "Supabase project region (e.g., us-east-1)",
                 },
                 "notes": (
                     "Find connection details in your Supabase project dashboard under "
