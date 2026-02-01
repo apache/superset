@@ -703,6 +703,10 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # @category: runtime_config
     # @docs: https://superset.apache.org/docs/using-superset/creating-your-first-dashboard
     "DASHBOARD_RBAC": False,
+    # Supports simultaneous data and dashboard virtualization for backend performance
+    # @lifecycle: stable
+    # @category: runtime_config
+    "DASHBOARD_VIRTUALIZATION_DEFER_DATA": False,
     # Data panel closed by default in chart builder
     # @lifecycle: stable
     # @category: runtime_config
