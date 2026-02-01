@@ -89,6 +89,11 @@ ALLOWED_TYPES = (
 )
 COLLECTION_TYPES = ("list", "dict", "tuple", "set")
 
+# Type alias for JSON-native types
+JsonValue = Union[
+    str, int, float, bool, list["JsonValue"], dict[str, "JsonValue"], None
+]
+
 
 @lru_cache(maxsize=LRU_CACHE_MAX_SIZE)
 def context_addons() -> dict[str, Any]:
@@ -128,7 +133,8 @@ class ExtraCache:
         r"current_user_rls_rules\([^()]*\)|"
         r"current_user_roles\([^()]*\)|"
         r"cache_key_wrapper\([^()]*\)|"
-        r"url_param\([^()]*\)"
+        r"url_param\([^()]*\)|"
+        r"get_guest_user_attribute\([^()]*\)|"
         r")"
         r"[^{}]*?(\}\}|\%\})"
     )
@@ -299,6 +305,75 @@ class ExtraCache:
         if add_to_cache_keys:
             self.cache_key_wrapper(result)
         return result
+
+    def get_guest_user_attribute(
+        self,
+        attribute_name: str,
+        default: JsonValue = None,
+        add_to_cache_keys: bool = True,
+    ) -> JsonValue:
+        """
+        Get a specific user attribute from guest user.
+
+        This function retrieves attributes from the guest user token and supports
+        all JSON-native types (string, number, boolean, array, object, null).
+
+        Args:
+            attribute_name: Name of the attribute to retrieve
+            default: Default value if attribute not found (can be any JSON-native type)
+            add_to_cache_keys: Whether the value should be included in the cache key
+
+        Returns:
+            The attribute value from the guest user token, or the default value.
+            Can be any JSON-native type: string, number, boolean, array, object, or
+            null.
+
+        Examples:
+            {{ get_guest_user_attribute('department') }}  # Returns: "Engineering"
+            {{ get_guest_user_attribute('is_admin') }}    # Returns: True
+            {{ get_guest_user_attribute('permissions') }} # Returns: ["read", "write"]
+            {{ get_guest_user_attribute('config') }}      # Returns: {"theme": "dark"}
+            {{ get_guest_user_attribute('missing', 'default') }} # Returns: "default"
+        """
+
+        # Check if we have a request context and user
+        if not has_request_context():
+            return default
+
+        if not hasattr(g, "user") or g.user is None:
+            return default
+
+        user = g.user
+
+        # Check if current user is a guest user
+        if not (hasattr(user, "is_guest_user") and user.is_guest_user):
+            return default
+
+        # Get attributes from guest token
+        if hasattr(user, "guest_token") and user.guest_token:
+            token = user.guest_token
+            # ensure token is a mapping before calling .get
+            if not isinstance(token, dict):
+                return default
+            token_user = token.get("user", {})
+            if not isinstance(token_user, dict):
+                return default
+            user_attributes = token_user.get("attributes") or {}
+
+            # Only add to cache key if the variable actually exists in guest token
+            if attribute_name in user_attributes:
+                result = user_attributes[attribute_name]
+                if add_to_cache_keys and result is not None:
+                    # Use json.dumps for consistent serialization of all types
+                    cache_value = json.dumps(result, sort_keys=True)
+                    self.cache_key_wrapper(
+                        f"guest_user_attribute:{attribute_name}:{cache_value}"
+                    )
+                return result
+            else:
+                return default
+
+        return default
 
     def filter_values(
         self, column: str, default: str | None = None, remove_filter: bool = False
@@ -846,6 +921,9 @@ class JinjaTemplateProcessor(BaseTemplateProcessor):
                 "get_filters": partial(safe_proxy, extra_cache.get_filters),
                 "dataset": partial(safe_proxy, dataset_macro_with_context),
                 "get_time_filter": partial(safe_proxy, extra_cache.get_time_filter),
+                "get_guest_user_attribute": partial(
+                    safe_proxy, extra_cache.get_guest_user_attribute
+                ),
             }
         )
 
