@@ -1389,6 +1389,12 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         #     "schedule": crontab(minute="*", hour="*"),
         #     "kwargs": {"retention_period_days": 180, "max_rows_per_run": 10000},
         # },
+        # Uncomment to enable pruning of the tasks table
+        # "prune_tasks": {
+        #     "task": "prune_tasks",
+        #     "schedule": crontab(minute=0, hour=0),
+        #     "kwargs": {"retention_period_days": 90, "max_rows_per_run": 10000},
+        # },
         # Uncomment to enable Slack channel cache warm-up
         # "slack.cache_channels": {
         #     "task": "slack.cache_channels",
@@ -2423,6 +2429,55 @@ except ImportError:
 
 LOCAL_EXTENSIONS: list[str] = []
 EXTENSIONS_PATH: str | None = None
+
+# Default polling interval for tasks (seconds)
+TASK_ABORT_POLLING_DEFAULT_INTERVAL = 10
+
+# ---------------------------------------------------
+# Redis Pub/Sub Backend Configuration
+# ---------------------------------------------------
+# Shared Redis configuration for pub/sub messaging.
+# Defaults to database polling.
+# Set to a Redis configuration dict to enable real-time pub/sub features.
+#
+# Example with Redis:
+# PUBSUB_BACKEND = {
+#     "CACHE_TYPE": "RedisCache",
+#     "CACHE_REDIS_HOST": "localhost",
+#     "CACHE_REDIS_PORT": 6379,
+#     "CACHE_REDIS_DB": 0,
+#     "CACHE_REDIS_PASSWORD": None,
+# }
+#
+# Example with Redis Sentinel (High Availability):
+# PUBSUB_BACKEND = {
+#     "CACHE_TYPE": "RedisSentinelCache",
+#     "CACHE_REDIS_SENTINELS": [
+#         ("sentinel1.example.com", 26379),
+#         ("sentinel2.example.com", 26379),
+#         ("sentinel3.example.com", 26379),
+#     ],
+#     "CACHE_REDIS_SENTINEL_MASTER": "mymaster",
+#     "CACHE_REDIS_SENTINEL_PASSWORD": None,
+#     "CACHE_REDIS_PASSWORD": None,
+#     "CACHE_REDIS_DB": 0,
+#     "CACHE_REDIS_SSL": False,
+# }
+#
+# Example with SSL:
+# PUBSUB_BACKEND = {
+#     "CACHE_TYPE": "RedisCache",
+#     "CACHE_REDIS_HOST": "redis.example.com",
+#     "CACHE_REDIS_PORT": 6380,
+#     "CACHE_REDIS_SSL": True,
+#     "CACHE_REDIS_SSL_CERTFILE": "/path/to/cert.pem",
+#     "CACHE_REDIS_SSL_KEYFILE": "/path/to/key.pem",
+#     "CACHE_REDIS_SSL_CA_CERTS": "/path/to/ca.pem",
+# }
+PUBSUB_BACKEND: dict[str, Any] | None = None
+
+# Channel prefix for task abort pub/sub messages
+TASKS_ABORT_CHANNEL_PREFIX = "gtf:abort:"
 
 # -------------------------------------------------------------------
 # *                WARNING:  STOP EDITING  HERE                    *

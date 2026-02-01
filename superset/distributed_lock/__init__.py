@@ -72,6 +72,8 @@ def KeyValueDistributedLock(  # pylint: disable=invalid-name  # noqa: N802
         logger.debug("Lock on namespace %s for key %s already taken", namespace, key)
         raise CreateKeyValueDistributedLockFailedException("Lock already taken") from ex
 
-    yield key
-    DeleteDistributedLock(namespace=namespace, params=kwargs).run()
-    logger.debug("Removed lock on namespace %s for key %s", namespace, key)
+    try:
+        yield key
+    finally:
+        DeleteDistributedLock(namespace=namespace, params=kwargs).run()
+        logger.debug("Removed lock on namespace %s for key %s", namespace, key)
