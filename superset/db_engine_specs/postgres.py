@@ -320,6 +320,107 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
                 "categories": [DatabaseCategory.OPEN_SOURCE],
             },
             {
+                "name": "Supabase",
+                "description": (
+                    "Open-source Firebase alternative built on top of PostgreSQL, "
+                    "providing a full backend-as-a-service with a hosted Postgres "
+                    "database."
+                ),
+                "logo": "supabase.svg",
+                "homepage_url": "https://supabase.com/",
+                "pypi_packages": ["psycopg2"],
+                "connection_string": (
+                    "postgresql://{username}:{password}@{host}:{port}/{database}"
+                ),
+                "connection_examples": [
+                    {
+                        "description": "Supabase project (connection pooler)",
+                        "connection_string": (
+                            "postgresql://{username}.{project_ref}:{password}"
+                            "@aws-0-{region}.pooler.supabase.com:6543/{database}"
+                        ),
+                    },
+                ],
+                "parameters": {
+                    "username": "Database user (default: postgres)",
+                    "password": "Database password",
+                    "host": "Supabase project host (from project settings)",
+                    "port": "Default 5432 (direct) or 6543 (pooler)",
+                    "database": "Database name (default: postgres)",
+                    "project_ref": "Supabase project reference (from project settings)",
+                    "region": "Supabase project region (e.g., us-east-1)",
+                },
+                "notes": (
+                    "Find connection details in your Supabase project dashboard under "
+                    "Settings > Database. Use the connection pooler (port 6543) for "
+                    "better connection management."
+                ),
+                "docs_url": "https://supabase.com/docs/guides/database/connecting-to-postgres",
+                "categories": [
+                    DatabaseCategory.HOSTED_OPEN_SOURCE,
+                ],
+            },
+            {
+                "name": "Google AlloyDB",
+                "description": (
+                    "Google Cloud's PostgreSQL-compatible database service "
+                    "for demanding transactional and analytical workloads."
+                ),
+                "logo": "alloydb.png",
+                "homepage_url": "https://cloud.google.com/alloydb",
+                "pypi_packages": ["psycopg2"],
+                "connection_string": (
+                    "postgresql://{username}:{password}@{host}:{port}/{database}"
+                ),
+                "parameters": {
+                    "username": "Database user (default: postgres)",
+                    "password": "Database password",
+                    "host": "AlloyDB instance IP or Auth Proxy address",
+                    "port": "Default 5432",
+                    "database": "Database name",
+                },
+                "notes": (
+                    "For public IP connections, use the AlloyDB Auth Proxy for "
+                    "secure access. Private IP connections can connect directly."
+                ),
+                "docs_url": "https://cloud.google.com/alloydb/docs",
+                "categories": [
+                    DatabaseCategory.CLOUD_GCP,
+                    DatabaseCategory.HOSTED_OPEN_SOURCE,
+                ],
+            },
+            {
+                "name": "Neon",
+                "description": (
+                    "Serverless PostgreSQL with branching, scale-to-zero, "
+                    "and bottomless storage."
+                ),
+                "logo": "neon.png",
+                "homepage_url": "https://neon.tech/",
+                "pypi_packages": ["psycopg2"],
+                "connection_string": (
+                    "postgresql://{username}:{password}"
+                    "@{host}/{database}?sslmode=require"
+                ),
+                "parameters": {
+                    "username": "Neon role name",
+                    "password": "Neon role password",
+                    "host": (
+                        "Neon hostname (e.g., "
+                        "ep-cool-name-123456.us-east-2.aws.neon.tech)"
+                    ),
+                    "database": "Database name (default: neondb)",
+                },
+                "notes": (
+                    "SSL is required for all connections. Find connection "
+                    "details in the Neon console under Connection Details."
+                ),
+                "docs_url": "https://neon.tech/docs/connect/connect-from-any-app",
+                "categories": [
+                    DatabaseCategory.HOSTED_OPEN_SOURCE,
+                ],
+            },
+            {
                 "name": "Amazon Aurora PostgreSQL",
                 "description": (
                     "Amazon Aurora PostgreSQL is a fully managed, "
