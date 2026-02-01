@@ -147,6 +147,15 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
 
         feature_flagged_filters = []
         if is_feature_enabled("DASHBOARD_RBAC"):
+            user_roles = security_manager.get_user_roles()
+            user_role_ids = [x.id for x in user_roles]
+            
+            # Include Public role to ensure dashboards with Public role are accessible to all
+            # This prevents Public role assignments from inadvertently restricting Admin access
+            public_role = security_manager.get_public_role()
+            if public_role and public_role.id not in user_role_ids:
+                user_role_ids.append(public_role.id)
+            
             roles_based_query = (
                 db.session.query(Dashboard.id)
                 .join(Dashboard.roles)
@@ -154,7 +163,7 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
                     and_(
                         Dashboard.published.is_(True),
                         dashboard_has_roles,
-                        Role.id.in_([x.id for x in security_manager.get_user_roles()]),
+                        Role.id.in_(user_role_ids),
                     ),
                 )
             )
