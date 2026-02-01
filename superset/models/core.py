@@ -32,6 +32,9 @@ from functools import lru_cache
 from inspect import signature
 from typing import Any, Callable, cast, Optional, TYPE_CHECKING
 
+if TYPE_CHECKING:
+    from superset.models.sql_lab import Query
+
 import numpy
 import pandas as pd
 import sqlalchemy as sqla
@@ -674,6 +677,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         catalog: str | None = None,
         schema: str | None = None,
         fetch_last_result: bool = False,
+        query: "Query" | None = None,
     ) -> tuple[Any, list[tuple[Any, ...]] | None, DbapiDescription | None]:
         """
         Internal method to execute SQL with mutation and logging.
@@ -719,7 +723,53 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                     database=self,
                     object_ref=__name__,
                 ):
-                    self.db_engine_spec.execute(cursor, sql_, self)
+                    # If a Query model was provided, prefer to call the engine's
+                    # `execute_with_cursor` path so engines that need the running
+                    # cursor (eg Trino) can capture a cancel id via `handle_cursor`.
+                    # Fall back to the normal `execute` call if not available or if
+                    # the engine signature differs.
+                    if query is not None and hasattr(
+                        self.db_engine_spec, "execute_with_cursor"
+                    ):
+                        try:
+                            # Preferred signature: (cursor, sql, query)
+                            self.db_engine_spec.execute_with_cursor(cursor, sql_, query)
+                        except TypeError:
+                            # Some engine implementations may not accept the `query`
+                            # argument; try the two-arg form as a fallback.
+                            self.db_engine_spec.execute_with_cursor(cursor, sql_)  # type: ignore
+                    else:
+                        # Best-effort: some engines can expose a cancel id prior to
+                        # execution via `get_cancel_query_id` — attempt to persist
+                        # that so other processes can cancel the query.
+                        try:
+                            from superset.constants import QUERY_CANCEL_KEY
+
+                            if query is not None:
+                                cancel_query_id = (
+                                    self.db_engine_spec.get_cancel_query_id(
+                                        cursor, query
+                                    )
+                                )
+                                if cancel_query_id is not None:
+                                    query.set_extra_json_key(
+                                        QUERY_CANCEL_KEY, cancel_query_id
+                                    )
+                                    from superset.extensions import db as _db
+
+                                    _db.session.commit()
+                        except Exception:
+                            logger.debug(
+                                "Could not obtain or persist cancel id for query",
+                                exc_info=True,
+                            )
+
+                        try:
+                            # Preferred `execute` signature tries to accept query kwarg
+                            self.db_engine_spec.execute(cursor, sql_, self, query=query)  # type: ignore
+                        except TypeError:
+                            # Older signatures may not accept the keyword; fall back
+                            self.db_engine_spec.execute(cursor, sql_, self)
 
                 # Fetch results from last statement if requested
                 if fetch_last_result and i == len(script.statements) - 1:
@@ -765,9 +815,10 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         catalog: str | None = None,
         schema: str | None = None,
         mutator: Callable[[pd.DataFrame], None] | None = None,
+        query: "Query" | None = None,
     ) -> pd.DataFrame:
         cursor, rows, description = self._execute_sql_with_mutation_and_logging(
-            sql, catalog, schema, fetch_last_result=True
+            sql, catalog, schema, fetch_last_result=True, query=query
         )
 
         df = None
