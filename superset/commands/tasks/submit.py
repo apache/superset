@@ -115,6 +115,14 @@ class SubmitTaskCommand(BaseCommand):
                         user_id,
                         task_key,
                     )
+                else:
+                    # Same user submitted the same task - deduplication hit
+                    stats_logger.incr("gtf.task.dedupe")
+                    logger.debug(
+                        "Deduplication hit for task: %s (user_id=%s)",
+                        task_key,
+                        user_id,
+                    )
                 return existing, False  # is_new=False: joined existing task
 
             # Create new task (DAO is now a pure data operation)
