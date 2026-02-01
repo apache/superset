@@ -1452,6 +1452,41 @@ class AnnotationDataSchema(Schema):
     )
 
 
+class ChartDataTimingSchema(Schema):
+    """Schema for query lifecycle timing breakdown."""
+
+    validate_ms = fields.Float(
+        metadata={"description": "Query object validation time in milliseconds"},
+        allow_none=False,
+    )
+    cache_lookup_ms = fields.Float(
+        metadata={"description": "Cache lookup time in milliseconds"},
+        allow_none=False,
+    )
+    db_execution_ms = fields.Float(
+        metadata={
+            "description": "Database query execution time in milliseconds. "
+            "Only present on cache miss."
+        },
+        allow_none=True,
+        load_default=None,
+    )
+    result_processing_ms = fields.Float(
+        metadata={
+            "description": "Result processing and serialization time in milliseconds"
+        },
+        allow_none=False,
+    )
+    total_ms = fields.Float(
+        metadata={"description": "Total request time in milliseconds"},
+        allow_none=False,
+    )
+    is_cached = fields.Boolean(
+        metadata={"description": "Whether the result was served from cache"},
+        allow_none=False,
+    )
+
+
 class ChartDataResponseResult(Schema):
     annotation_data = fields.List(
         fields.Dict(
@@ -1557,6 +1592,15 @@ class ChartDataResponseResult(Schema):
     to_dttm = fields.Integer(
         metadata={"description": "End timestamp of time range"},
         required=False,
+        allow_none=True,
+    )
+    timing = fields.Nested(
+        ChartDataTimingSchema,
+        metadata={
+            "description": "Query lifecycle timing breakdown in milliseconds. "
+            "Includes validation, cache lookup, database execution (on cache miss), "
+            "and result processing phases."
+        },
         allow_none=True,
     )
 
