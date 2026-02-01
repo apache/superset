@@ -333,7 +333,18 @@ export function Menu({
   return (
     <StyledHeader className="top" id="main-menu" role="navigation">
       <StyledRow>
-        <StyledCol md={16} xs={24}>
+        {/* Mobile: left placeholder for future icon */}
+        {!screens.md && <Col xs={4} />}
+        <StyledCol
+          md={16}
+          xs={screens.md ? 24 : 16}
+          css={
+            !screens.md &&
+            css`
+              justify-content: center;
+            `
+          }
+        >
           <Tooltip
             id="brand-tooltip"
             placement="bottomLeft"
@@ -347,39 +358,43 @@ export function Menu({
               <span>{brand.text}</span>
             </StyledBrandText>
           )}
-          <StyledMainNav
-            mode="horizontal"
-            data-test="navbar-top"
-            className="main-nav"
-            selectedKeys={activeTabs}
-            disabledOverflow
-            items={menu.map(item => {
-              const props = {
-                ...item,
-                isFrontendRoute: isFrontendRoute(item.url),
-                childs: item.childs?.map(c => {
-                  if (typeof c === 'string') {
-                    return c;
-                  }
+          {/* Only show nav items on desktop */}
+          {screens.md && (
+            <StyledMainNav
+              mode="horizontal"
+              data-test="navbar-top"
+              className="main-nav"
+              selectedKeys={activeTabs}
+              disabledOverflow
+              items={menu.map(item => {
+                const props = {
+                  ...item,
+                  isFrontendRoute: isFrontendRoute(item.url),
+                  childs: item.childs?.map(c => {
+                    if (typeof c === 'string') {
+                      return c;
+                    }
 
-                  return {
-                    ...c,
-                    isFrontendRoute: isFrontendRoute(c.url),
-                  };
-                }),
-              };
+                    return {
+                      ...c,
+                      isFrontendRoute: isFrontendRoute(c.url),
+                    };
+                  }),
+                };
 
-              return buildMenuItem(props);
-            })}
-          />
+                return buildMenuItem(props);
+              })}
+            />
+          )}
         </StyledCol>
-        <Col md={8} xs={24}>
+        <Col md={8} xs={screens.md ? 24 : 4}>
           <RightMenu
-            align={screens.md ? 'flex-end' : 'flex-start'}
+            align="flex-end"
             settings={settings}
             navbarRight={navbarRight}
             isFrontendRoute={isFrontendRoute}
             environmentTag={environmentTag}
+            menu={menu}
           />
         </Col>
       </StyledRow>
