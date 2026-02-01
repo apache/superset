@@ -244,7 +244,27 @@ function WorldMap(element, props) {
       datamap.svg
         .selectAll('.datamaps-subunit')
         .on('contextmenu', handleContextMenu)
-        .on('click', handleClick);
+        .on('click', handleClick)
+        .on('mouseover', function onMouseOver() {
+          if (inContextMenu) {
+            return;
+          }
+          const countryId = d3.select(this).attr('class').split(' ')[1];
+          // Store original fill color for restoration
+          d3.select(this).attr('data-original-fill', d3.select(this).style('fill'));
+        })
+        .on('mouseout', function onMouseOut() {
+          if (inContextMenu) {
+            return;
+          }
+          const countryId = d3.select(this).attr('class').split(' ')[1];
+          const originalFill = d3.select(this).attr('data-original-fill');
+          // Restore the original fill color (data-based or default no-data color)
+          if (originalFill) {
+            d3.select(this).style('fill', originalFill);
+            d3.select(this).attr('data-original-fill', null);
+          }
+        });
     },
   });
 
