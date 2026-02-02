@@ -218,6 +218,7 @@
     "use-event-callback": "^0.1.0",
     "use-immer": "^0.11.0",
     "use-query-params": "^2.2.2",
+    "uuid": "^13.0.0",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "yargs": "^17.7.2"
   },
