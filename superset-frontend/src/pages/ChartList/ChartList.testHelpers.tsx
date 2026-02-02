@@ -20,11 +20,12 @@
 import fetchMock from 'fetch-mock';
 import { render } from 'spec/helpers/testing-library';
 import { Provider } from 'react-redux';
-import { MemoryRouter } from 'react-router-dom';
+import { BrowserRouter } from 'react-router-dom';
 import { configureStore } from '@reduxjs/toolkit';
 import { QueryParamProvider } from 'use-query-params';
 import ChartList from 'src/pages/ChartList';
 import handleResourceExport from 'src/utils/export';
+import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 
 export const mockHandleResourceExport =
   handleResourceExport as jest.MockedFunction<typeof handleResourceExport>;
@@ -268,11 +269,11 @@ export const renderChartList = (user: any, props = {}, storeState = {}) => {
 
   return render(
     <Provider store={store}>
-      <MemoryRouter>
-        <QueryParamProvider>
+      <BrowserRouter>
+        <QueryParamProvider adapter={ReactRouter5Adapter}>
           <ChartList user={user} {...props} />
         </QueryParamProvider>
-      </MemoryRouter>
+      </BrowserRouter>
     </Provider>,
   );
 };

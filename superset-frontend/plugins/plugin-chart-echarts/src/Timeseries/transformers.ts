@@ -196,6 +196,7 @@ export function transformSeries(
     timeCompare?: string[];
     timeShiftColor?: boolean;
     theme?: SupersetTheme;
+    hasDimensions?: boolean;
   },
 ): SeriesOption | undefined {
   const { name, data } = series;
@@ -237,8 +238,12 @@ export function transformSeries(
   const isConfidenceBand =
     forecastSeries.type === ForecastSeriesEnum.ForecastLower ||
     forecastSeries.type === ForecastSeriesEnum.ForecastUpper;
+  // When cross-filtering by X-axis (no dimensions), selectedValues contains
+  // X-axis values rather than series names, so skip series-level dimming.
   const isFiltered =
-    filterState?.selectedValues && !filterState?.selectedValues.includes(name);
+    opts.hasDimensions !== false &&
+    filterState?.selectedValues &&
+    !filterState?.selectedValues.includes(name);
   const opacity = isFiltered
     ? OpacityEnum.SemiTransparent
     : opts.lineStyle?.opacity || OpacityEnum.NonTransparent;
