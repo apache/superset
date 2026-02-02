@@ -19,16 +19,27 @@
 
 import { DatasourceType } from './types/Datasource';
 
+const DATASOURCE_TYPE_MAP: Record<string, DatasourceType> = {
+  table: DatasourceType.Table,
+  query: DatasourceType.Query,
+  dataset: DatasourceType.Dataset,
+  sl_table: DatasourceType.SlTable,
+  saved_query: DatasourceType.SavedQuery,
+  semantic_view: DatasourceType.SemanticView,
+};
+
 export default class DatasourceKey {
-  readonly id: number;
+  readonly id: number | string;
 
   readonly type: DatasourceType;
 
   constructor(key: string) {
     const [idStr, typeStr] = key.split('__');
-    this.id = parseInt(idStr, 10);
-    this.type = DatasourceType.Table; // default to SqlaTable model
-    this.type = typeStr === 'query' ? DatasourceType.Query : this.type;
+    // Only parse as integer if the entire string is numeric
+    // (parseInt would incorrectly parse "85d3139f..." as 85)
+    const isNumeric = /^\d+$/.test(idStr);
+    this.id = isNumeric ? parseInt(idStr, 10) : idStr;
+    this.type = DATASOURCE_TYPE_MAP[typeStr] ?? DatasourceType.Table;
   }
 
   public toString() {
