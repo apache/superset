@@ -54,6 +54,130 @@ class TimeGrainDict(TypedDict):
 
 
 @runtime_checkable
+class MetricMetadata(Protocol):
+    """
+    Protocol for metric metadata objects.
+
+    Represents a metric that's available on an explorable data source.
+    Metrics contain SQL expressions or references to semantic layer measures.
+
+    Attributes:
+        metric_name: Unique identifier for the metric
+        expression: SQL expression or reference for calculating the metric
+        verbose_name: Human-readable name for display in the UI
+        description: Description of what the metric represents
+        d3format: D3 format string for formatting numeric values
+        currency: Currency configuration for the metric (JSON object)
+        warning_text: Warning message to display when using this metric
+        certified_by: Person or entity that certified this metric
+        certification_details: Details about the certification
+    """
+
+    @property
+    def metric_name(self) -> str:
+        """Unique identifier for the metric."""
+
+    @property
+    def expression(self) -> str:
+        """SQL expression or reference for calculating the metric."""
+
+    @property
+    def verbose_name(self) -> str | None:
+        """Human-readable name for display in the UI."""
+
+    @property
+    def description(self) -> str | None:
+        """Description of what the metric represents."""
+
+    @property
+    def d3format(self) -> str | None:
+        """D3 format string for formatting numeric values."""
+
+    @property
+    def currency(self) -> dict[str, Any] | None:
+        """Currency configuration for the metric (JSON object)."""
+
+    @property
+    def warning_text(self) -> str | None:
+        """Warning message to display when using this metric."""
+
+    @property
+    def certified_by(self) -> str | None:
+        """Person or entity that certified this metric."""
+
+    @property
+    def certification_details(self) -> str | None:
+        """Details about the certification."""
+
+
+@runtime_checkable
+class ColumnMetadata(Protocol):
+    """
+    Protocol for column metadata objects.
+
+    Represents a column/dimension that's available on an explorable data source.
+    Used for grouping, filtering, and dimension-based analysis.
+
+    Attributes:
+        column_name: Unique identifier for the column
+        type: SQL data type of the column (e.g., 'VARCHAR', 'INTEGER', 'DATETIME')
+        is_dttm: Whether this column represents a date or time value
+        verbose_name: Human-readable name for display in the UI
+        description: Description of what the column represents
+        groupby: Whether this column is allowed for grouping/aggregation
+        filterable: Whether this column can be used in filters
+        expression: SQL expression if this is a calculated column
+        python_date_format: Python datetime format string for temporal columns
+        advanced_data_type: Advanced data type classification
+        extra: Additional metadata stored as JSON
+    """
+
+    @property
+    def column_name(self) -> str:
+        """Unique identifier for the column."""
+
+    @property
+    def type(self) -> str:
+        """SQL data type of the column."""
+
+    @property
+    def is_dttm(self) -> bool:
+        """Whether this column represents a date or time value."""
+
+    @property
+    def verbose_name(self) -> str | None:
+        """Human-readable name for display in the UI."""
+
+    @property
+    def description(self) -> str | None:
+        """Description of what the column represents."""
+
+    @property
+    def groupby(self) -> bool:
+        """Whether this column is allowed for grouping/aggregation."""
+
+    @property
+    def filterable(self) -> bool:
+        """Whether this column can be used in filters."""
+
+    @property
+    def expression(self) -> str | None:
+        """SQL expression if this is a calculated column."""
+
+    @property
+    def python_date_format(self) -> str | None:
+        """Python datetime format string for temporal columns."""
+
+    @property
+    def advanced_data_type(self) -> str | None:
+        """Advanced data type classification."""
+
+    @property
+    def extra(self) -> str | None:
+        """Additional metadata stored as JSON."""
+
+
+@runtime_checkable
 class Explorable(Protocol):
     """
     Protocol for objects that can be explored to create charts.
@@ -132,7 +256,7 @@ class Explorable(Protocol):
         """
 
     @property
-    def metrics(self) -> list[Any]:
+    def metrics(self) -> list[MetricMetadata]:
         """
         List of metric metadata objects.
 
@@ -147,7 +271,7 @@ class Explorable(Protocol):
 
     # TODO: rename to dimensions
     @property
-    def columns(self) -> list[Any]:
+    def columns(self) -> list[ColumnMetadata]:
         """
         List of column metadata objects.
 
