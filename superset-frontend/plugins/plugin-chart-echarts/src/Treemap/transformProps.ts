@@ -331,7 +331,7 @@ export default function transformProps(
     ).filter((c): c is string => !!c);
     if (inRangeColors.length === 0) {
       // Fall back to a safe theme color if no valid sequential colors are available
-      inRangeColors.push(theme?.colorPrimary ?? '#000000');
+      inRangeColors.push(theme.colorPrimary);
     }
     // assign visualMap in a type-safe way
     (echartOptions as any).visualMap = {
