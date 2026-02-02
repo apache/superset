@@ -16,13 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { CategoricalColorScale } from '@superset-ui/core';
+import { CategoricalColorScale, ChartProps } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
+import { supersetTheme } from '@apache-superset/core/ui';
 import type { SeriesOption } from 'echarts';
 import { EchartsTimeseriesSeriesType } from '../../src';
 import {
   transformSeries,
   transformNegativeLabelsPosition,
 } from '../../src/Timeseries/transformers';
+import transformProps from '../../src/Timeseries/transformProps';
+import { EchartsTimeseriesChartProps } from '../../src/types';
 
 // Mock the colorScale function
 const mockColorScale = jest.fn(
@@ -84,6 +88,34 @@ describe('transformSeries', () => {
     expect((result as any).itemStyle.borderWidth).toBe(0);
     expect((result as any).itemStyle.borderType).toBeUndefined();
     expect((result as any).itemStyle.borderColor).toBeUndefined();
+  });
+
+  it('should dim series when selectedValues does not include series name (dimension-based filtering)', () => {
+    const opts = {
+      filterState: { selectedValues: ['other-series'] },
+      hasDimensions: true,
+      seriesType: EchartsTimeseriesSeriesType.Bar,
+      timeShiftColor: false,
+    };
+
+    const result = transformSeries(series, mockColorScale, 'test-key', opts);
+
+    // OpacityEnum.SemiTransparent = 0.3
+    expect((result as any).itemStyle.opacity).toBe(0.3);
+  });
+
+  it('should not dim series when hasDimensions is false (X-axis cross-filtering)', () => {
+    const opts = {
+      filterState: { selectedValues: ['Product A'] },
+      hasDimensions: false,
+      seriesType: EchartsTimeseriesSeriesType.Bar,
+      timeShiftColor: false,
+    };
+
+    const result = transformSeries(series, mockColorScale, 'test-key', opts);
+
+    // OpacityEnum.NonTransparent = 1 (not dimmed)
+    expect((result as any).itemStyle.opacity).toBe(1);
   });
 });
 
@@ -189,4 +221,47 @@ describe('transformNegativeLabelsPosition', () => {
     expect((result as any)[3].label).toBe(undefined);
     expect((result as any)[4].label).toBe(undefined);
   });
+});
+
+test('should configure time axis labels to show max label for last month visibility', () => {
+  const formData = {
+    colorScheme: 'bnbColors',
+    datasource: '3__table',
+    granularity_sqla: 'ds',
+    metric: 'sum__num',
+    viz_type: 'my_viz',
+  };
+  const queriesData = [
+    {
+      data: [
+        { sum__num: 100, __timestamp: new Date('2026-01-01').getTime() },
+        { sum__num: 200, __timestamp: new Date('2026-02-01').getTime() },
+        { sum__num: 300, __timestamp: new Date('2026-03-01').getTime() },
+        { sum__num: 400, __timestamp: new Date('2026-04-01').getTime() },
+        { sum__num: 500, __timestamp: new Date('2026-05-01').getTime() },
+      ],
+      colnames: ['sum__num', '__timestamp'],
+      coltypes: [GenericDataType.Numeric, GenericDataType.Temporal],
+    },
+  ];
+  const chartProps = new ChartProps({
+    formData,
+    width: 800,
+    height: 600,
+    queriesData,
+    theme: supersetTheme,
+  });
+
+  const result = transformProps(
+    chartProps as unknown as EchartsTimeseriesChartProps,
+  );
+
+  expect(result.echartOptions.xAxis).toEqual(
+    expect.objectContaining({
+      axisLabel: expect.objectContaining({
+        showMaxLabel: true,
+        alignMaxLabel: 'right',
+      }),
+    }),
+  );
 });

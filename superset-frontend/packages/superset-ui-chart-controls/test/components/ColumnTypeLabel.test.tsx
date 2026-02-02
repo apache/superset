@@ -52,6 +52,10 @@ describe('ColumnOption', () => {
     renderColumnTypeLabel({ type: 'expression' });
     expect(screen.getByLabelText('function type icon')).toBeVisible();
   });
+  it('metric type shows sigma icon', () => {
+    renderColumnTypeLabel({ type: 'metric' });
+    expect(screen.getByLabelText('metric type icon')).toBeVisible();
+  });
   it('unknown type shows question mark', () => {
     renderColumnTypeLabel({ type: undefined });
     expect(screen.getByLabelText('unknown type icon')).toBeVisible();

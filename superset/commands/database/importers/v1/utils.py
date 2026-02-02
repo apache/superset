@@ -34,7 +34,7 @@ from superset.utils import json
 logger = logging.getLogger(__name__)
 
 
-def import_database(
+def import_database(  # noqa: C901
     config: dict[str, Any],
     overwrite: bool = False,
     ignore_permissions: bool = False,
@@ -52,15 +52,21 @@ def import_database(
         raise ImportFailedError(
             "Database doesn't exist and user doesn't have permission to create databases"  # noqa: E501
         )
-    # Check if this URI is allowed
-    if app.config["PREVENT_UNSAFE_DB_CONNECTIONS"]:
+    # Check if this URI is allowed (skip for system imports like examples)
+    if app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] and not ignore_permissions:
         try:
             check_sqlalchemy_uri(make_url_safe(config["sqlalchemy_uri"]))
         except SupersetSecurityException as exc:
             raise ImportFailedError(exc.message) from exc
     # https://github.com/apache/superset/pull/16756 renamed ``csv`` to ``file``.
-    config["allow_file_upload"] = config.pop("allow_csv_upload")
-    if "schemas_allowed_for_csv_upload" in config["extra"]:
+    # Handle both old and new field names, defaulting to True for examples database
+    if "allow_csv_upload" in config:
+        config["allow_file_upload"] = config.pop("allow_csv_upload")
+    elif "allow_file_upload" not in config:
+        # Default to True for backward compatibility
+        config["allow_file_upload"] = True
+
+    if "schemas_allowed_for_csv_upload" in config.get("extra", {}):
         config["extra"]["schemas_allowed_for_file_upload"] = config["extra"].pop(
             "schemas_allowed_for_csv_upload"
         )

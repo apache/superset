@@ -217,8 +217,8 @@ export default function exploreReducer(state = {}, action) {
       const dependantControls = Object.entries(state.controls)
         .filter(
           ([, item]) =>
-            Array.isArray(item?.validationDependancies) &&
-            item.validationDependancies.includes(controlName),
+            Array.isArray(item?.validationDependencies) &&
+            item.validationDependencies.includes(controlName),
         )
         .map(([key, item]) => ({
           controlState: item,
