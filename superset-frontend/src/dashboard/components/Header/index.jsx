@@ -61,6 +61,7 @@ import { deleteActiveReport } from 'src/features/reports/ReportModal/actions';
 import { PageHeaderWithActions } from '@superset-ui/core/components/PageHeaderWithActions';
 import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import DashboardEmbedModal from '../EmbeddedModal';
+import HistoryModal from '../HistoryModal';
 import OverwriteConfirm from '../OverwriteConfirm';
 import {
   addDangerToast,
@@ -169,6 +170,7 @@ const Header = () => {
   const [emphasizeUndo, setEmphasizeUndo] = useState(false);
   const [emphasizeRedo, setEmphasizeRedo] = useState(false);
   const [showingPropertiesModal, setShowingPropertiesModal] = useState(false);
+  const [showingHistoryModal, setShowingHistoryModal] = useState(false);
   const [showingRefreshModal, setShowingRefreshModal] = useState(false);
   const [showingEmbedModal, setShowingEmbedModal] = useState(false);
   const [showingReportModal, setShowingReportModal] = useState(false);
@@ -496,6 +498,12 @@ const Header = () => {
   const hidePropertiesModal = useCallback(() => {
     setShowingPropertiesModal(false);
   }, []);
+  const showHistoryModal = useCallback(() => {
+    setShowingHistoryModal(true);
+  }, []);
+  const hideHistoryModal = useCallback(() => {
+    setShowingHistoryModal(false);
+  }, []);
   const showRefreshModal = useCallback(() => {
     setShowingRefreshModal(true);
   }, []);
@@ -695,6 +703,16 @@ const Header = () => {
                   {t('Discard')}
                 </Button>
                 <Button
+                  buttonSize="small"
+                  buttonStyle="secondary"
+                  onClick={showHistoryModal}
+                  data-test="header-history-button"
+                  aria-label={t('History')}
+                >
+                  <Icons.HistoryOutlined iconSize="m" />
+                  {t('History')}
+                </Button>
+                <Button
                   css={saveBtnStyle}
                   buttonSize="small"
                   disabled={!hasUnsavedChanges}
@@ -745,6 +763,7 @@ const Header = () => {
       hasUnsavedChanges,
       overwriteDashboard,
       redoLength,
+      showHistoryModal,
       toggleEditMode,
       undoLength,
       userCanEdit,
@@ -820,6 +839,15 @@ const Header = () => {
           colorScheme={colorScheme}
           onSubmit={handleOnPropertiesChange}
           onlyApply
+        />
+      )}
+      {showingHistoryModal && (
+        <HistoryModal
+          dashboardId={dashboardInfo.id}
+          show={showingHistoryModal}
+          onHide={hideHistoryModal}
+          addSuccessToast={boundActionCreators.addSuccessToast}
+          addDangerToast={boundActionCreators.addDangerToast}
         />
       )}
       {showingRefreshModal && (
