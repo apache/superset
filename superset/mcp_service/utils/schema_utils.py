@@ -389,14 +389,14 @@ def _is_parse_request_enabled() -> bool:
         from flask import current_app, has_app_context
 
         if has_app_context():
-            return current_app.config.get("MCP_PARSE_REQUEST_ENABLED", True)
-    except (ImportError, RuntimeError):
+            return bool(current_app.config["MCP_PARSE_REQUEST_ENABLED"])
+    except (ImportError, RuntimeError, KeyError):
         pass
     try:
         from superset.mcp_service.flask_singleton import app as flask_app
 
-        return flask_app.config.get("MCP_PARSE_REQUEST_ENABLED", True)
-    except (ImportError, RuntimeError, AttributeError):
+        return bool(flask_app.config["MCP_PARSE_REQUEST_ENABLED"])
+    except (ImportError, RuntimeError, AttributeError, KeyError):
         pass
     return True
 
