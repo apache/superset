@@ -18,7 +18,7 @@
  */
 import { useEffect, useState } from 'react';
 import { useHistory } from 'react-router-dom';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { Loading } from '@superset-ui/core/components';
 import UploadDataModal from 'src/features/databases/UploadDataModel';
 import withToasts from 'src/components/MessageToasts/withToasts';
