@@ -20,6 +20,7 @@ from collections import defaultdict
 from functools import wraps
 from typing import Any, Callable, DefaultDict, Optional, Union
 from urllib import parse
+from uuid import UUID
 
 import msgpack
 import pyarrow as pa
@@ -163,7 +164,7 @@ def get_permissions(
 def get_viz(
     form_data: FormData,
     datasource_type: str,
-    datasource_id: int,
+    datasource_id: int | UUID,
     force: bool = False,
     force_cached: bool = False,
 ) -> BaseViz:
@@ -272,8 +273,10 @@ def add_sqllab_custom_filters(form_data: dict[Any, Any]) -> Any:
 
 
 def get_datasource_info(
-    datasource_id: Optional[int], datasource_type: Optional[str], form_data: FormData
-) -> tuple[int, Optional[str]]:
+    datasource_id: int | str | None,
+    datasource_type: Optional[str],
+    form_data: FormData,
+) -> tuple[int | UUID, Optional[str]]:
     """
     Compatibility layer for handling of datasource info
 
@@ -300,8 +303,12 @@ def get_datasource_info(
             _("The dataset associated with this chart no longer exists")
         )
 
-    datasource_id = int(datasource_id)
-    return datasource_id, datasource_type
+    # Convert datasource_id to appropriate type
+    if isinstance(datasource_id, int):
+        return datasource_id, datasource_type
+    if datasource_id.isdigit():
+        return int(datasource_id), datasource_type
+    return UUID(datasource_id), datasource_type
 
 
 def apply_display_max_row_limit(
@@ -483,7 +490,7 @@ def check_explore_cache_perms(_self: Any, cache_key: str) -> None:
 def check_datasource_perms(
     _self: Any,
     datasource_type: Optional[str] = None,
-    datasource_id: Optional[int] = None,
+    datasource_id: int | str | None = None,
     **kwargs: Any,
 ) -> None:
     """
@@ -500,7 +507,7 @@ def check_datasource_perms(
     form_data = kwargs["form_data"] if "form_data" in kwargs else get_form_data()[0]
 
     try:
-        datasource_id, datasource_type = get_datasource_info(
+        ds_id, datasource_type = get_datasource_info(
             datasource_id, datasource_type, form_data
         )
     except SupersetException as ex:
@@ -524,7 +531,7 @@ def check_datasource_perms(
     try:
         viz_obj = get_viz(
             datasource_type=datasource_type,
-            datasource_id=datasource_id,
+            datasource_id=ds_id,
             form_data=form_data,
             force=False,
         )

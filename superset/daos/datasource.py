@@ -28,6 +28,7 @@ from superset.daos.exceptions import (
     DatasourceValueIsIncorrect,
 )
 from superset.models.sql_lab import Query, SavedQuery
+from superset.semantic_layers.models import SemanticView
 from superset.utils.core import DatasourceType
 
 logger = logging.getLogger(__name__)
@@ -40,13 +41,14 @@ class DatasourceDAO(BaseDAO[Datasource]):
         DatasourceType.TABLE: SqlaTable,
         DatasourceType.QUERY: Query,
         DatasourceType.SAVEDQUERY: SavedQuery,
+        DatasourceType.SEMANTIC_VIEW: SemanticView,
     }
 
     @classmethod
     def get_datasource(
         cls,
         datasource_type: Union[DatasourceType, str],
-        database_id_or_uuid: int | str,
+        database_id_or_uuid: int | str | uuid.UUID,
     ) -> Datasource:
         if datasource_type not in cls.sources:
             raise DatasourceTypeNotSupportedError()

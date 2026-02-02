@@ -18,6 +18,7 @@ import contextlib
 import logging
 from abc import ABC
 from typing import Any, cast, Optional
+from uuid import UUID
 
 from flask import request
 from flask_babel import lazy_gettext as _
@@ -100,21 +101,21 @@ class GetExploreCommand(BaseCommand, ABC):
             use_slice_data=True,
             initial_form_data=initial_form_data,
         )
+        ds_id: int | UUID | None = None
         try:
-            self._datasource_id, self._datasource_type = get_datasource_info(
+            ds_id, self._datasource_type = get_datasource_info(
                 self._datasource_id, self._datasource_type, form_data
             )
         except SupersetException:
-            self._datasource_id = None
             # fallback unknown datasource to table type
             self._datasource_type = SqlaTable.type
 
         datasource: Optional[BaseDatasource] = None
 
-        if self._datasource_id is not None:
+        if ds_id is not None:
             with contextlib.suppress(DatasourceNotFound):
                 datasource = DatasourceDAO.get_datasource(
-                    cast(str, self._datasource_type), self._datasource_id
+                    cast(str, self._datasource_type), ds_id
                 )
 
         datasource_name = _("[Missing Dataset]")
@@ -124,7 +125,11 @@ class GetExploreCommand(BaseCommand, ABC):
             security_manager.raise_for_access(datasource=datasource)
 
         viz_type = form_data.get("viz_type")
-        if not viz_type and datasource and datasource.default_endpoint:
+        if (
+            not viz_type
+            and datasource
+            and getattr(datasource, "default_endpoint", None)
+        ):
             raise WrongEndpointError(redirect=datasource.default_endpoint)
 
         form_data["datasource"] = (

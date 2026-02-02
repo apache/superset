@@ -15,13 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Union
 
 
 @dataclass
 class CommandParameters:
     permalink_key: Optional[str]
     form_data_key: Optional[str]
-    datasource_id: Optional[int]
+    datasource_id: Optional[Union[int, str]]
     datasource_type: Optional[str]
     slice_id: Optional[int]

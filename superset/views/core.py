@@ -24,6 +24,7 @@ import re
 from datetime import datetime
 from typing import Any, Callable, cast
 from urllib import parse
+from uuid import UUID
 
 from flask import (
     abort,
@@ -268,7 +269,7 @@ class Superset(BaseSupersetView):
     @check_resource_permissions(check_datasource_perms)
     @deprecated(eol_version="5.0.0")
     def explore_json(
-        self, datasource_type: str | None = None, datasource_id: int | None = None
+        self, datasource_type: str | None = None, datasource_id: int | str | None = None
     ) -> FlaskResponse:
         """Serves all request that GET or POST form_data
 
@@ -302,7 +303,7 @@ class Superset(BaseSupersetView):
 
         form_data = get_form_data()[0]
         try:
-            datasource_id, datasource_type = get_datasource_info(
+            ds_id, datasource_type = get_datasource_info(
                 datasource_id, datasource_type, form_data
             )
             force = request.args.get("force") == "true"
@@ -316,7 +317,7 @@ class Superset(BaseSupersetView):
                 with contextlib.suppress(CacheLoadError):
                     viz_obj = get_viz(
                         datasource_type=cast(str, datasource_type),
-                        datasource_id=datasource_id,
+                        datasource_id=ds_id,
                         form_data=form_data,
                         force_cached=True,
                         force=force,
@@ -343,7 +344,7 @@ class Superset(BaseSupersetView):
 
             viz_obj = get_viz(
                 datasource_type=cast(str, datasource_type),
-                datasource_id=datasource_id,
+                datasource_id=ds_id,
                 form_data=form_data,
                 force=force,
             )
@@ -407,7 +408,7 @@ class Superset(BaseSupersetView):
     def explore(  # noqa: C901
         self,
         datasource_type: str | None = None,
-        datasource_id: int | None = None,
+        datasource_id: int | str | None = None,
         key: str | None = None,
     ) -> FlaskResponse:
         if request.method == "GET":
@@ -451,21 +452,21 @@ class Superset(BaseSupersetView):
 
         query_context = request.form.get("query_context")
 
+        ds_id: int | UUID | None = None
         try:
-            datasource_id, datasource_type = get_datasource_info(
+            ds_id, datasource_type = get_datasource_info(
                 datasource_id, datasource_type, form_data
             )
         except SupersetException:
-            datasource_id = None
             # fallback unknown datasource to table type
             datasource_type = SqlaTable.type
 
         datasource: BaseDatasource | None = None
-        if datasource_id is not None:
+        if ds_id is not None:
             with contextlib.suppress(DatasetNotFoundError):
                 datasource = DatasourceDAO.get_datasource(
                     DatasourceType("table"),
-                    datasource_id,
+                    ds_id,
                 )
 
         datasource_name = datasource.name if datasource else _("[Missing Dataset]")
