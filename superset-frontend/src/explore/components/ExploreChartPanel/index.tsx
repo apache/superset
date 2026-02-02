@@ -399,6 +399,7 @@ const ExploreChartPanel = ({
               formData?.matrixify_enable_vertical_layout === true ||
               formData?.matrixify_enable_horizontal_layout === true
             }
+            formData={formData}
           />
         </ChartHeaderExtension>
         {renderChart()}
