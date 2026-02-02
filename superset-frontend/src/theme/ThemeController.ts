@@ -1009,7 +1009,8 @@ export class ThemeController {
         }
       }
     } catch (error) {
-      // Silently handle fetch errors
+      // Log for debugging but don't fail - fallback to cached theme will be used
+      console.warn('Failed to fetch system default theme:', error);
     }
 
     return null;

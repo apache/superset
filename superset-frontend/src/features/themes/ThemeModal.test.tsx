@@ -22,6 +22,7 @@ import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 import ThemeModal from './ThemeModal';
 import { ThemeObject } from './types';
+import { validateTheme } from 'src/theme/utils/themeStructureValidation';
 
 const mockThemeContext = {
   setTemporaryTheme: jest.fn(),
@@ -369,6 +370,15 @@ test('validates JSON format and enables save button', async () => {
 });
 
 test('warnings do not block save - unknown tokens allow save with warnings', async () => {
+  // First verify the test data actually produces warnings (not errors)
+  const testTheme = {
+    token: { colorPrimary: '#1890ff', unknownTokenName: 'value' },
+  };
+  const validationResult = validateTheme(testTheme);
+  expect(validationResult.valid).toBe(true); // No errors
+  expect(validationResult.warnings.length).toBeGreaterThan(0); // Has warnings
+  expect(validationResult.warnings[0].tokenName).toBe('unknownTokenName');
+
   render(
     <ThemeModal
       addDangerToast={jest.fn()}

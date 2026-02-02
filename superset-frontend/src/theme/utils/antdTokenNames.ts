@@ -72,7 +72,7 @@ function getValidTokenNames(): Set<string> {
       ...SUPERSET_CUSTOM_TOKENS,
     ]);
   }
-  return validTokenNamesCache as Set<string>;
+  return validTokenNamesCache;
 }
 
 /**
