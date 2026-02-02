@@ -43,7 +43,6 @@ from superset.initialization import SupersetAppInitializer
 
 logger = logging.getLogger(__name__)
 
-
 def create_app(
     superset_config_module: Optional[str] = None,
     superset_app_root: Optional[str] = None,
@@ -51,58 +50,77 @@ def create_app(
     app = SupersetApp(__name__)
 
     try:
-        # Allow user to override our config completely
-        config_module = superset_config_module or os.environ.get(
-            "SUPERSET_CONFIG", "superset.config"
-        )
-        app.config.from_object(config_module)
-
-        # Allow application to sit on a non-root path
-        # *Please be advised that this feature is in BETA.*
-        app_root = cast(
-            str, superset_app_root or os.environ.get("SUPERSET_APP_ROOT", "/")
-        )
-        if app_root != "/":
-            app.wsgi_app = AppRootMiddleware(app.wsgi_app, app_root)
-            # If not set, manually configure options that depend on the
-            # value of app_root so things work out of the box
-            if not app.config["STATIC_ASSETS_PREFIX"]:
-                app.config["STATIC_ASSETS_PREFIX"] = app_root
-            # Prefix APP_ICON path with subdirectory root for subdirectory deployments
-            app_icon = app.config.get("APP_ICON", "")
-            if app_icon.startswith("/static/"):
-                app.config["APP_ICON"] = f"{app_root}{app_icon}"
-
-            # Also update theme tokens for subdirectory deployments
-            for theme_key in ("THEME_DEFAULT", "THEME_DARK"):
-                theme = app.config[theme_key]
-                token = theme.get("token", {})
-
-                # Update URLs if they point to /static/
-                for url_key in ("brandSpinnerUrl", "brandLogoUrl"):
-                    url = token.get(url_key, "")
-                    if url.startswith("/static/"):
-                        token[url_key] = f"{app_root}{url}"
-                # Update brandLogoHref if it's the default "/"
-                if token.get("brandLogoHref") == "/":
-                    token["brandLogoHref"] = app_root
-            if app.config["APPLICATION_ROOT"] == "/":
-                app.config["APPLICATION_ROOT"] = app_root
-
-        app_initializer = app.config.get("APP_INITIALIZER", SupersetAppInitializer)(app)
-        app_initializer.init_app()
-
-        # Set up LOCAL_EXTENSIONS file watcher when in debug mode
-        if app.debug:
-            start_local_extensions_watcher_thread(app)
-
+        _configure_app(app, superset_config_module, superset_app_root)
+        _initialize_app(app)
+        _setup_debug_features(app)
         return app
-
     # Make sure that bootstrap errors ALWAYS get logged
     except Exception:
         logger.exception("Failed to create app")
         raise
 
+def _configure_app(
+    app: Flask,
+    superset_config_module: Optional[str],
+    superset_app_root: Optional[str],
+) -> None:
+    # Allow user to override our config completely
+    config_module = superset_config_module or os.environ.get(
+        "SUPERSET_CONFIG", "superset.config"
+    )
+    app.config.from_object(config_module)
+
+    # Allow application to sit on a non-root path
+    # *Please be advised that this feature is in BETA.*
+    app_root = cast(
+        str, superset_app_root or os.environ.get("SUPERSET_APP_ROOT", "/")
+    )
+
+    if app_root != "/":
+        _configure_subdirectory_deployment(app, app_root)
+
+def _configure_subdirectory_deployment(app: Flask, app_root: str) -> None:
+    app.wsgi_app = AppRootMiddleware(app.wsgi_app, app_root)
+    # If not set, manually configure options that depend on the
+    # value of app_root so things work out of the box
+    if not app.config["STATIC_ASSETS_PREFIX"]:
+        app.config["STATIC_ASSETS_PREFIX"] = app_root
+
+    _update_app_icon_for_subdirectory(app, app_root)
+    _update_theme_tokens_for_subdirectory(app, app_root)
+
+    if app.config["APPLICATION_ROOT"] == "/":
+        app.config["APPLICATION_ROOT"] = app_root
+
+def _update_app_icon_for_subdirectory(app: Flask, app_root: str) -> None:
+    # Prefix APP_ICON path with subdirectory root for subdirectory deployments
+    app_icon = app.config.get("APP_ICON", "")
+    if app_icon.startswith("/static/"):
+        app.config["APP_ICON"] = f"{app_root}{app_icon}"
+
+def _update_theme_tokens_for_subdirectory(app: Flask, app_root: str) -> None:
+     # Prefix theme tokens for subdirectory deployments
+    for theme_key in ("THEME_DEFAULT", "THEME_DARK"):
+        theme = app.config[theme_key]
+        token = theme.get("token", {})
+
+        # Update URLs if they point to /static/
+        for url_key in ("brandSpinnerUrl", "brandLogoUrl"):
+            url = token.get(url_key, "")
+            if url.startswith("/static/"):
+                token[url_key] = f"{app_root}{url}"
+        # Update brandLogoHref if it's the default "/"
+        if token.get("brandLogoHref") == "/":
+            token["brandLogoHref"] = app_root
+
+def _initialize_app(app: Flask) -> None:
+    app_initializer = app.config.get("APP_INITIALIZER", SupersetAppInitializer)(app)
+    app_initializer.init_app()
+
+def _setup_debug_features(app: Flask) -> None:
+    # Set up LOCAL_EXTENSIONS file watcher when in debug mode
+    if app.debug:
+        start_local_extensions_watcher_thread(app)
 
 class SupersetApp(Flask):
     def send_static_file(self, filename: str) -> Response:
