@@ -31,6 +31,7 @@ export enum FeatureFlag {
   ChartPluginsExperimental = 'CHART_PLUGINS_EXPERIMENTAL',
   ConfirmDashboardDiff = 'CONFIRM_DASHBOARD_DIFF',
   DashboardVirtualization = 'DASHBOARD_VIRTUALIZATION',
+  DashboardVirtualizationDeferData = 'DASHBOARD_VIRTUALIZATION_DEFER_DATA',
   DashboardRbac = 'DASHBOARD_RBAC',
   DatapanelClosedByDefault = 'DATAPANEL_CLOSED_BY_DEFAULT',
   /** @deprecated */
