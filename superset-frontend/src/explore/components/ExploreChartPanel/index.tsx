@@ -395,6 +395,11 @@ const ExploreChartPanel = ({
               queriesResponse: chart.queriesResponse,
             })}
             {...(chart.chartStatus && { chartStatus: chart.chartStatus })}
+            hideRowCount={
+              formData?.matrixify_enable_vertical_layout === true ||
+              formData?.matrixify_enable_horizontal_layout === true
+            }
+            formData={formData}
           />
         </ChartHeaderExtension>
         {renderChart()}
