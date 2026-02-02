@@ -27,8 +27,9 @@ import {
   FieldStringOutlined,
   NumberOutlined,
 } from '@ant-design/icons';
+import { Icons } from '@superset-ui/core/components';
 
-export type ColumnLabelExtendedType = 'expression' | '';
+export type ColumnLabelExtendedType = 'expression' | 'metric' | '';
 
 export type ColumnTypeLabelProps = {
   type?: ColumnLabelExtendedType | GenericDataType;
@@ -57,7 +58,9 @@ export function ColumnTypeLabel({ type }: ColumnTypeLabelProps) {
     <QuestionOutlined aria-label={t('unknown type icon')} />
   );
 
-  if (type === '' || type === 'expression') {
+  if (type === 'metric') {
+    typeIcon = <Icons.Sigma aria-label={t('metric type icon')} />;
+  } else if (type === '' || type === 'expression') {
     typeIcon = <FunctionOutlined aria-label={t('function type icon')} />;
   } else if (type === GenericDataType.String) {
     typeIcon = <FieldStringOutlined aria-label={t('string type icon')} />;

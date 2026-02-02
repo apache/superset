@@ -17,6 +17,7 @@
  * under the License.
  */
 import { Metric, t } from '@superset-ui/core';
+import { FoldersEditorItemType } from 'src/components/Datasource/types';
 import {
   ColumnItem,
   DatasourceFolder,
@@ -160,11 +161,11 @@ export const transformDatasourceWithFolders = (
 ): Folder[] => {
   const metricsWithType: MetricItem[] = metricsToDisplay.map(metric => ({
     ...metric,
-    type: 'metric',
+    type: FoldersEditorItemType.Metric,
   }));
   const columnsWithType: ColumnItem[] = columnsToDisplay.map(column => ({
     ...column,
-    type: 'column',
+    type: FoldersEditorItemType.Column,
   }));
 
   return transformToFolderStructure(

@@ -234,7 +234,7 @@ fastmcp==2.14.3
     # via apache-superset
 filelock==3.20.3
     # via
-    #   -c requirements/base-constraint.txt
+    #   -c requirements/base.txt
     #   virtualenv
 flask==2.3.3
     # via
@@ -1024,7 +1024,6 @@ typing-extensions==4.15.0
     #   exceptiongroup
     #   limits
     #   mcp
-    #   mcp
     #   opentelemetry-api
     #   py-key-value-shared
     #   pydantic
@@ -1040,7 +1039,6 @@ typing-extensions==4.15.0
 typing-inspection==0.4.1
     # via
     #   -c requirements/base.txt
-    #   mcp
     #   mcp
     #   pydantic
     #   pydantic-settings

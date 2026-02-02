@@ -35,6 +35,7 @@ import {
 } from 'src/explore/components/DatasourcePanel/fixtures';
 import { DatasourceType } from '@superset-ui/core';
 import DatasourceControl from 'src/explore/components/controls/DatasourceControl';
+import { FoldersEditorItemType } from 'src/components/Datasource/types';
 import ExploreContainer from '../ExploreContainer';
 import {
   DndColumnSelect,
@@ -64,16 +65,16 @@ const datasourceWithFolders: IDatasource = {
   folders: [
     {
       name: 'Test folder',
-      type: 'folder',
+      type: FoldersEditorItemType.Folder,
       uuid: '1',
       children: [
         {
           name: 'Test nested folder',
-          type: 'folder',
+          type: FoldersEditorItemType.Folder,
           uuid: '1.1',
           children: [
             {
-              type: 'metric',
+              type: FoldersEditorItemType.Metric,
               uuid: metrics[0].uuid,
               name: metrics[0].metric_name,
             },
@@ -83,16 +84,16 @@ const datasourceWithFolders: IDatasource = {
     },
     {
       name: 'Second test folder',
-      type: 'folder',
+      type: FoldersEditorItemType.Folder,
       uuid: '2',
       children: [
         {
-          type: 'column',
+          type: FoldersEditorItemType.Column,
           uuid: columns[0].uuid,
           name: columns[0].column_name,
         },
         {
-          type: 'column',
+          type: FoldersEditorItemType.Column,
           uuid: columns[1].uuid,
           name: columns[1].column_name,
         },
@@ -426,15 +427,15 @@ test('Default Metrics and Columns folders dont render when all metrics and colum
     folders: [
       {
         name: 'Test folder',
-        type: 'folder',
+        type: FoldersEditorItemType.Folder,
         uuid: '1',
         children: [
           {
             name: 'Test nested folder',
-            type: 'folder',
+            type: FoldersEditorItemType.Folder,
             uuid: '1.1',
             children: metrics.map(m => ({
-              type: 'metric' as const,
+              type: FoldersEditorItemType.Metric,
               uuid: m.uuid,
               name: m.metric_name,
             })),
@@ -443,10 +444,10 @@ test('Default Metrics and Columns folders dont render when all metrics and colum
       },
       {
         name: 'Second test folder',
-        type: 'folder',
+        type: FoldersEditorItemType.Folder,
         uuid: '2',
         children: columns.map(c => ({
-          type: 'column',
+          type: FoldersEditorItemType.Column,
           uuid: c.uuid,
           name: c.column_name,
         })),

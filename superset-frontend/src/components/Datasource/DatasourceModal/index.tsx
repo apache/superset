@@ -26,6 +26,8 @@ import {
   SupersetError,
   useTheme,
   css,
+  isFeatureEnabled,
+  FeatureFlag,
 } from '@superset-ui/core';
 
 import {
@@ -176,6 +178,10 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         (o: Record<string, number>) => o.value || o.id,
       ),
     };
+    // Add folders if DATASET_FOLDERS feature is enabled
+    if (isFeatureEnabled(FeatureFlag.DatasetFolders) && datasource.folders) {
+      payload.folders = datasource.folders;
+    }
     // Handle catalog based on database's allow_multi_catalog setting
     // If multi-catalog is disabled, don't include catalog in payload
     // The backend will use the default catalog
@@ -359,7 +365,9 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
                 ? t(
                     "This dataset is managed externally, and can't be edited in Superset",
                   )
-                : ''
+                : errors.length > 0
+                  ? errors.join('\n')
+                  : ''
             }
           >
             {t('Save')}

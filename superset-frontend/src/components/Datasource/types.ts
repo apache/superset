@@ -90,3 +90,9 @@ export interface CRUDCollectionState {
   sortColumn: string;
   sort: SortOrder;
 }
+
+export enum FoldersEditorItemType {
+  Folder = 'folder',
+  Column = 'column',
+  Metric = 'metric',
+}
