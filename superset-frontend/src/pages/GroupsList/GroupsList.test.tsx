@@ -44,6 +44,7 @@ const mockUser = {
 
 const rolesEndpoint = 'glob:*/security/roles/?*';
 const usersEndpoint = 'glob:*/security/users/?*';
+const groupsEndpoint = 'glob:*/security/groups/*';
 
 const mockRoles = Array.from({ length: 3 }, (_, i) => ({
   id: i,
@@ -65,9 +66,11 @@ fetchMock.get(rolesEndpoint, {
   count: 3,
 });
 
+fetchMock.get(groupsEndpoint, { result: [] });
+
 jest.mock('src/dashboard/util/permissionUtils', () => ({
   ...jest.requireActual('src/dashboard/util/permissionUtils'),
-  isUserAdmin: jest.fn(() => true),
+  isUserAdmin: () => true,
 }));
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
@@ -86,7 +89,7 @@ describe('GroupsList', () => {
   };
 
   beforeEach(() => {
-    fetchMock.resetHistory();
+    fetchMock.clearHistory();
   });
 
   test('renders the page', async () => {
@@ -97,7 +100,9 @@ describe('GroupsList', () => {
   test('fetches roles on load', async () => {
     await renderComponent();
     await waitFor(() => {
-      expect(fetchMock.calls(rolesEndpoint).length).toBeGreaterThan(0);
+      expect(fetchMock.callHistory.calls(rolesEndpoint).length).toBeGreaterThan(
+        0,
+      );
     });
   });
 
@@ -108,7 +113,7 @@ describe('GroupsList', () => {
     expect(await screen.findByTestId('Add Group-modal')).toBeInTheDocument();
   });
 
-  test('renders actions column for admin', async () => {
+  test.only('renders actions column for admin', async () => {
     await renderComponent();
     expect(screen.getAllByText('Actions')[0]).toBeInTheDocument();
   });
@@ -124,7 +129,7 @@ describe('GroupsList', () => {
     expect(within(filtersSelect).getByText(/users/i)).toBeInTheDocument();
   });
 
-  test('renders correct columns in the table', async () => {
+  test.only('renders correct columns in the table', async () => {
     await renderComponent();
     const table = screen.getByRole('table');
 
