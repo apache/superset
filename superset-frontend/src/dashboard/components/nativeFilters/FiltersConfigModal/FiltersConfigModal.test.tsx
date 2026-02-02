@@ -545,6 +545,7 @@ test('switches the order between two filters', async () => {
   );
 });
 
+// Increased timeout for CI resource contention
 test('rearranges three filters and deletes one of them', async () => {
   const nativeFilterState = [
     buildNativeFilter('NATIVE_FILTER-1', 'state', []),
@@ -594,7 +595,7 @@ test('rearranges three filters and deletes one of them', async () => {
       }),
     ),
   );
-});
+}, 60000);
 
 test('modifies the name of a filter', async () => {
   jest.useFakeTimers();

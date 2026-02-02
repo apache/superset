@@ -544,10 +544,12 @@ test('renders default Schedule fields', async () => {
   const scheduleType = screen.getByRole('combobox', {
     name: /schedule type/i,
   });
-  // Wait for timezone selector to render after delay
-  const timezone = await screen.findByRole('combobox', {
-    name: /timezone selector/i,
-  });
+  // Wait for timezone selector to render after delay (increased timeout for CI)
+  const timezone = await screen.findByRole(
+    'combobox',
+    { name: /timezone selector/i },
+    { timeout: 10000 },
+  );
   const logRetention = screen.getByRole('combobox', {
     name: /log retention/i,
   });
