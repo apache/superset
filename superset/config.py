@@ -527,6 +527,9 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # When True, this escapes HTML (rather than rendering it) in Markdown components
     "ESCAPE_MARKDOWN_HTML": False,
     "DASHBOARD_VIRTUALIZATION": True,
+    # Defer data loading for invisible charts when DASHBOARD_VIRTUALIZATION is enabled
+    # Improves backend performance by only loading data for visible charts
+    "DASHBOARD_VIRTUALIZATION_DEFER_DATA": False,
     # This feature flag is stil in beta and is not recommended for production use.
     "GLOBAL_ASYNC_QUERIES": False,
     "EMBEDDED_SUPERSET": False,
