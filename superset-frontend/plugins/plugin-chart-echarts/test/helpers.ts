@@ -55,6 +55,7 @@ export interface CreateEchartsTimeseriesTestChartPropsConfig<TFormData> {
   formData?: Partial<TFormData>;
   queriesData?: ChartDataResponseResult[];
   datasource?: EchartsTimeseriesTestDatasource;
+  annotationData?: Record<string, unknown>;
   width?: number;
   height?: number;
 }
@@ -78,6 +79,7 @@ export function createEchartsTimeseriesTestChartProps<
     formData: partialFormData = {},
     queriesData: customQueriesData,
     datasource: customDatasource,
+    annotationData,
     width = 800,
     height = 600,
   } = config;
@@ -97,6 +99,7 @@ export function createEchartsTimeseriesTestChartProps<
     queriesData: customQueriesData ?? defaultQueriesData,
     theme: supersetTheme,
     datasource: customDatasource ?? { ...DEFAULT_DATASOURCE },
+    ...(annotationData !== undefined && { annotationData }),
   });
 
   return {
