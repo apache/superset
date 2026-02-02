@@ -18,6 +18,10 @@
  */
 import 'src/public-path';
 
+// IMPORTANT: initEmbedded MUST be imported before setupPlugins!
+// It initializes feature flags which some plugins check at module load time.
+import { bootstrapData } from './initEmbedded';
+
 import { lazy, Suspense } from 'react';
 import ReactDOM from 'react-dom';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
@@ -26,7 +30,7 @@ import { makeApi } from '@superset-ui/core';
 import { logging } from '@apache-superset/core';
 import { type SupersetThemeConfig, ThemeMode } from '@apache-superset/core/ui';
 import Switchboard from '@superset-ui/switchboard';
-import getBootstrapData, { applicationRoot } from 'src/utils/getBootstrapData';
+import { applicationRoot } from 'src/utils/getBootstrapData';
 import setupClient from 'src/setup/setupClient';
 import setupPlugins from 'src/setup/setupPlugins';
 import { useUiConfig } from 'src/components/UiConfigContext';
@@ -43,14 +47,11 @@ import {
 } from './EmbeddedContextProviders';
 import { embeddedApi } from './api';
 import { getDataMaskChangeTrigger } from './utils';
-import setupEmbedded from './setupEmbedded';
 
 setupPlugins();
 setupCodeOverrides({ embedded: true });
 
 const debugMode = process.env.WEBPACK_MODE === 'development';
-const bootstrapData = getBootstrapData();
-setupEmbedded(bootstrapData);
 
 function log(...info: unknown[]) {
   if (debugMode) logging.debug(`[superset]`, ...info);

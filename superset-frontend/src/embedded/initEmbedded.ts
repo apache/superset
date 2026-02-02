@@ -16,17 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { initFeatureFlags } from '@superset-ui/core';
-import { BootstrapData } from 'src/types/bootstrapTypes';
 
 /**
- * Initialize feature flags for embedded mode.
+ * This module MUST be imported before any module that uses isFeatureEnabled().
  *
- * This must be called after getBootstrapData() and before rendering
- * any components that depend on feature flags via isFeatureEnabled().
- *
- * @param bootstrapData - Bootstrap data containing feature flags
+ * Some plugins (e.g., legacy-preset-chart-deckgl) call isFeatureEnabled()
+ * at module load time when defining exports like jsDataMutator, jsTooltip, etc.
+ * Since ES modules are executed when imported, we need to initialize feature
+ * flags before those imports happen.
  */
-export default function setupEmbedded(bootstrapData: BootstrapData): void {
-  initFeatureFlags(bootstrapData.common.feature_flags);
-}
+import { initFeatureFlags } from '@superset-ui/core';
+import getBootstrapData from 'src/utils/getBootstrapData';
+
+const bootstrapData = getBootstrapData();
+initFeatureFlags(bootstrapData.common.feature_flags);
+
+export { bootstrapData };

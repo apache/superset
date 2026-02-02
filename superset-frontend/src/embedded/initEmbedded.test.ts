@@ -17,61 +17,79 @@
  * under the License.
  */
 import { initFeatureFlags } from '@superset-ui/core';
-import { BootstrapData } from 'src/types/bootstrapTypes';
-import setupEmbedded from './setupEmbedded';
+import getBootstrapData from 'src/utils/getBootstrapData';
 
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
   initFeatureFlags: jest.fn(),
 }));
 
+jest.mock('src/utils/getBootstrapData', () => ({
+  __esModule: true,
+  default: jest.fn(),
+}));
+
 const mockInitFeatureFlags = initFeatureFlags as jest.MockedFunction<
   typeof initFeatureFlags
 >;
+const mockGetBootstrapData = getBootstrapData as jest.MockedFunction<
+  typeof getBootstrapData
+>;
 
 beforeEach(() => {
+  jest.resetModules();
   mockInitFeatureFlags.mockClear();
+  mockGetBootstrapData.mockClear();
 });
 
-test('setupEmbedded initializes feature flags from bootstrap data', () => {
-  const bootstrapData = {
+test('initEmbedded initializes feature flags on import', async () => {
+  const mockBootstrapData = {
     common: {
       feature_flags: {
         EMBEDDED_SUPERSET: true,
-        DASHBOARD_RBAC: false,
+        ENABLE_JAVASCRIPT_CONTROLS: false,
       },
     },
-  } as BootstrapData;
+  };
 
-  setupEmbedded(bootstrapData);
+  mockGetBootstrapData.mockReturnValue(mockBootstrapData as any);
 
+  // Import the module - this triggers the initialization
+  const { bootstrapData } = await import('./initEmbedded');
+
+  expect(mockGetBootstrapData).toHaveBeenCalledTimes(1);
   expect(mockInitFeatureFlags).toHaveBeenCalledTimes(1);
   expect(mockInitFeatureFlags).toHaveBeenCalledWith({
     EMBEDDED_SUPERSET: true,
-    DASHBOARD_RBAC: false,
+    ENABLE_JAVASCRIPT_CONTROLS: false,
   });
+  expect(bootstrapData).toBe(mockBootstrapData);
 });
 
-test('setupEmbedded handles empty feature flags', () => {
-  const bootstrapData = {
+test('initEmbedded handles empty feature flags', async () => {
+  const mockBootstrapData = {
     common: {
       feature_flags: {},
     },
-  } as BootstrapData;
+  };
 
-  setupEmbedded(bootstrapData);
+  mockGetBootstrapData.mockReturnValue(mockBootstrapData as any);
 
-  expect(mockInitFeatureFlags).toHaveBeenCalledTimes(1);
+  const { bootstrapData } = await import('./initEmbedded');
+
   expect(mockInitFeatureFlags).toHaveBeenCalledWith({});
+  expect(bootstrapData).toBe(mockBootstrapData);
 });
 
-test('setupEmbedded handles undefined feature flags gracefully', () => {
-  const bootstrapData = {
+test('initEmbedded handles undefined feature flags', async () => {
+  const mockBootstrapData = {
     common: {},
-  } as BootstrapData;
+  };
 
-  setupEmbedded(bootstrapData);
+  mockGetBootstrapData.mockReturnValue(mockBootstrapData as any);
 
-  expect(mockInitFeatureFlags).toHaveBeenCalledTimes(1);
+  const { bootstrapData } = await import('./initEmbedded');
+
   expect(mockInitFeatureFlags).toHaveBeenCalledWith(undefined);
+  expect(bootstrapData).toBe(mockBootstrapData);
 });
