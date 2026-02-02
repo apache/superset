@@ -383,6 +383,24 @@ def json_or_model_list_validator(
     return validator
 
 
+def _is_parse_request_enabled() -> bool:
+    """Check if parse_request decorator is enabled via config."""
+    try:
+        from flask import current_app, has_app_context
+
+        if has_app_context():
+            return current_app.config.get("MCP_PARSE_REQUEST_ENABLED", True)
+    except (ImportError, RuntimeError):
+        pass
+    try:
+        from superset.mcp_service.flask_singleton import app as flask_app
+
+        return flask_app.config.get("MCP_PARSE_REQUEST_ENABLED", True)
+    except (ImportError, RuntimeError, AttributeError):
+        pass
+    return True
+
+
 def parse_request(
     request_class: Type[BaseModel],
 ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
@@ -392,6 +410,9 @@ def parse_request(
     Automatically parses string requests to Pydantic models before calling
     the tool function. Also modifies the function's type annotations to accept
     str | RequestModel to pass FastMCP validation.
+
+    Can be disabled by setting MCP_PARSE_REQUEST_ENABLED = False in config.
+    When disabled, the decorator is a no-op and returns the original function.
 
     See: https://github.com/anthropics/claude-code/issues/5504
 
@@ -422,6 +443,8 @@ def parse_request(
     """
 
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
+        if not _is_parse_request_enabled():
+            return func
         import types
 
         if asyncio.iscoroutinefunction(func):
