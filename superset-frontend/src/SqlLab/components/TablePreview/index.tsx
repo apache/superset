@@ -41,6 +41,7 @@ import {
   useTableMetadataQuery,
 } from 'src/hooks/apiResources';
 import { runTablePreviewQuery } from 'src/SqlLab/actions/sqlLab';
+import { PREVIEW_QUERY_LIMIT } from 'src/SqlLab/constants';
 import { ActionButton } from '@superset-ui/core/components/ActionButton';
 import ResultSet from '../ResultSet';
 import ShowSQL from '../ShowSQL';
@@ -63,7 +64,6 @@ const TABS_KEYS = {
   SAMPLE: 'sample',
 };
 const TAB_HEADER_HEIGHT = 80;
-const PREVIEW_QUERY_LIMIT = 100;
 
 const Title = styled.div`
   ${({ theme }) => css`
