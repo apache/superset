@@ -69,22 +69,32 @@ const isDevMode = mode !== 'production';
 const isDevServer = process.argv[1]?.includes('webpack-dev-server') ?? false;
 
 // TypeScript checker memory limit (in MB)
-const TYPESCRIPT_MEMORY_LIMIT = 4096;
+const TYPESCRIPT_MEMORY_LIMIT = 8192;
+
+const defaultEntryFilename = isDevMode
+  ? '[name].[contenthash:8].entry.js'
+  : nameChunks
+    ? '[name].[chunkhash].entry.js'
+    : '[name].[chunkhash].entry.js';
+
+const defaultChunkFilename = isDevMode
+  ? '[name].[contenthash:8].chunk.js'
+  : nameChunks
+    ? '[name].[chunkhash].chunk.js'
+    : '[chunkhash].chunk.js';
 
 const output = {
   path: BUILD_DIR,
   publicPath: '/static/assets/',
+  filename: pathData =>
+    pathData.chunk?.name === 'service-worker'
+      ? '../service-worker.js'
+      : defaultEntryFilename,
+  chunkFilename: pathData =>
+    pathData.chunk?.name === 'service-worker'
+      ? '../service-worker.js'
+      : defaultChunkFilename,
 };
-if (isDevMode) {
-  output.filename = '[name].[contenthash:8].entry.js';
-  output.chunkFilename = '[name].[contenthash:8].chunk.js';
-} else if (nameChunks) {
-  output.filename = '[name].[chunkhash].entry.js';
-  output.chunkFilename = '[name].[chunkhash].chunk.js';
-} else {
-  output.filename = '[name].[chunkhash].entry.js';
-  output.chunkFilename = '[chunkhash].chunk.js';
-}
 
 if (!isDevMode) {
   output.clean = true;
@@ -139,7 +149,11 @@ const plugins = [
   }),
 
   new CopyPlugin({
-    patterns: ['package.json', { from: 'src/assets/images', to: 'images' }],
+    patterns: [
+      'package.json',
+      { from: 'src/assets/images', to: 'images' },
+      { from: 'src/pwa-manifest.json', to: 'pwa-manifest.json' },
+    ],
   }),
 
   // static pages
@@ -184,7 +198,13 @@ if (!process.env.CI) {
 
 // Add React Refresh plugin for development mode
 if (isDevMode) {
-  plugins.push(new ReactRefreshWebpackPlugin());
+  plugins.push(
+    new ReactRefreshWebpackPlugin({
+      // Exclude service worker from React Refresh - it runs in a worker context
+      // without DOM/window and doesn't need HMR
+      exclude: /service-worker/,
+    }),
+  );
 }
 
 if (!isDevMode) {
@@ -205,7 +225,7 @@ if (!isDevMode) {
     new ForkTsCheckerWebpackPlugin({
       async: false,
       typescript: {
-        memoryLimit: 4096,
+        memoryLimit: TYPESCRIPT_MEMORY_LIMIT,
         build: true, // CRITICAL: Generate .d.ts files for plugins
         mode: 'write-references', // Handle project references
         configOverwrite: {
@@ -300,6 +320,7 @@ const config = {
     menu: addPreamble('src/views/menu.tsx'),
     spa: addPreamble('/src/views/index.tsx'),
     embedded: addPreamble('/src/embedded/index.tsx'),
+    'service-worker': path.join(APP_DIR, 'src/service-worker.ts'),
   },
   cache: {
     type: 'filesystem', // Enable filesystem caching

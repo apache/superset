@@ -212,6 +212,7 @@ test('renders', async () => {
   resetUseSelectorMock();
   const { container } = render(<RightMenu {...mockedProps} />, {
     useRedux: true,
+    useRouter: true,
     useQueryParams: true,
     useTheme: true,
   });
@@ -225,6 +226,7 @@ test('If user has permission to upload files AND connect DBs we query existing D
   resetUseSelectorMock();
   const { container } = render(<RightMenu {...mockedProps} />, {
     useRedux: true,
+    useRouter: true,
     useQueryParams: true,
     useTheme: true,
   });
