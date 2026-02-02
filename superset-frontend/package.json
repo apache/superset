@@ -182,6 +182,7 @@
     "query-string": "6.14.1",
     "re-resizable": "^6.11.2",
     "react": "^17.0.2",
+    "react-arborist": "^3.4.3",
     "react-checkbox-tree": "^1.8.0",
     "react-diff-viewer-continued": "^3.4.0",
     "react-dnd": "^11.1.3",
@@ -216,12 +217,12 @@
     "urijs": "^1.19.8",
     "use-event-callback": "^0.1.0",
     "use-immer": "^0.11.0",
-    "use-query-params": "^1.1.9",
+    "use-query-params": "^2.2.2",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "yargs": "^17.7.2"
   },
   "devDependencies": {
-    "@applitools/eyes-storybook": "^3.63.9",
+    "@applitools/eyes-storybook": "^3.63.10",
     "@babel/cli": "^7.28.6",
     "@babel/compat-data": "^7.28.4",
     "@babel/core": "^7.28.6",

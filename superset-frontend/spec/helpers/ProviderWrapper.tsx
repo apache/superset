@@ -18,8 +18,10 @@
  */
 
 import { ThemeProvider } from '@apache-superset/core/ui';
-import { BrowserRouter as Router, Route } from 'react-router-dom';
+import { parse, stringify } from 'query-string';
+import { BrowserRouter as Router } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
+import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 
 export function ProviderWrapper(props: any) {
   const { children, theme } = props;
@@ -28,8 +30,12 @@ export function ProviderWrapper(props: any) {
     <ThemeProvider theme={theme}>
       <Router>
         <QueryParamProvider
-          ReactRouterRoute={Route}
-          stringifyOptions={{ encode: false }}
+          adapter={ReactRouter5Adapter}
+          options={{
+            searchStringToObject: parse,
+            objectToSearchString: (object: Record<string, any>) =>
+              stringify(object, { encode: false }),
+          }}
         >
           {children}
         </QueryParamProvider>

@@ -31,6 +31,7 @@ from superset.errors import SupersetErrorType
 from superset.models.core import Database
 from superset.models.sql_lab import Query
 from superset.sql.parse import Table
+from superset.utils import json
 
 logger = logging.getLogger()
 
@@ -200,6 +201,47 @@ class RedshiftEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
             table_name.lower(),
             schema_name.lower() if schema_name else None,
         )
+
+    # Sensitive fields that should be masked in encrypted_extra.
+    # This follows the pattern used by other engine specs (bigquery, snowflake, etc.)
+    # that specify exact paths rather than using the base class's catch-all "$.*".
+    encrypted_extra_sensitive_fields = {
+        "$.aws_iam.external_id",
+        "$.aws_iam.role_arn",
+    }
+
+    @staticmethod
+    def update_params_from_encrypted_extra(
+        database: Database,
+        params: dict[str, Any],
+    ) -> None:
+        """
+        Extract sensitive parameters from encrypted_extra.
+
+        Handles AWS IAM authentication for Redshift Serverless if configured,
+        then merges any remaining encrypted_extra keys into params.
+        """
+        if not database.encrypted_extra:
+            return
+
+        try:
+            encrypted_extra = json.loads(database.encrypted_extra)
+        except json.JSONDecodeError as ex:
+            logger.error(ex, exc_info=True)
+            raise
+
+        # Handle AWS IAM auth: pop the key so it doesn't reach create_engine()
+        iam_config = encrypted_extra.pop("aws_iam", None)
+        if iam_config and iam_config.get("enabled"):
+            from superset.db_engine_specs.aws_iam import AWSIAMAuthMixin
+
+            AWSIAMAuthMixin._apply_redshift_iam_authentication(
+                database, params, iam_config
+            )
+
+        # Standard behavior: merge remaining keys into params
+        if encrypted_extra:
+            params.update(encrypted_extra)
 
     @classmethod
     def df_to_sql(
