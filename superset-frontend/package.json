@@ -237,7 +237,7 @@
     "@babel/preset-typescript": "^7.28.5",
     "@babel/register": "^7.23.7",
     "@babel/runtime": "^7.28.6",
-    "@babel/runtime-corejs3": "^7.28.6",
+    "@babel/runtime-corejs3": "^7.29.0",
     "@babel/types": "^7.28.6",
     "@cypress/react": "^8.0.2",
     "@emotion/babel-plugin": "^11.13.5",
