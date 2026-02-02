@@ -28,6 +28,7 @@ import {
 import { QueryParamProvider } from 'use-query-params';
 
 import DashboardList from 'src/pages/DashboardList';
+import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 
 const dashboardsInfoEndpoint = 'glob:*/api/v1/dashboard/_info*';
 const dashboardOwnersEndpoint = 'glob:*/api/v1/dashboard/related/owners*';
@@ -89,7 +90,7 @@ describe('DashboardList', () => {
   const renderDashboardList = (props = {}, userProp = mockUser) =>
     render(
       <MemoryRouter>
-        <QueryParamProvider>
+        <QueryParamProvider adapter={ReactRouter5Adapter}>
           <DashboardList {...props} user={userProp} />
         </QueryParamProvider>
       </MemoryRouter>,
@@ -225,7 +226,7 @@ describe('DashboardList - anonymous view', () => {
   test('does not render favorite stars for anonymous user', async () => {
     render(
       <MemoryRouter>
-        <QueryParamProvider>
+        <QueryParamProvider adapter={ReactRouter5Adapter}>
           <DashboardList user={{}} />
         </QueryParamProvider>
       </MemoryRouter>,
