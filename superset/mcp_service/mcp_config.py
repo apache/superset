@@ -33,11 +33,6 @@ SUPERSET_WEBSERVER_ADDRESS = "http://localhost:9001"
 WEBDRIVER_BASEURL = "http://localhost:9001/"
 WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
 
-# Feature flags for MCP
-MCP_FEATURE_FLAGS: Dict[str, Any] = {
-    "MCP_SERVICE": True,
-}
-
 # MCP Service Host/Port
 MCP_SERVICE_HOST = "localhost"
 MCP_SERVICE_PORT = 5008
