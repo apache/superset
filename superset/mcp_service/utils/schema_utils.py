@@ -412,7 +412,8 @@ def parse_request(
     str | RequestModel to pass FastMCP validation.
 
     Can be disabled by setting MCP_PARSE_REQUEST_ENABLED = False in config.
-    When disabled, the decorator is a no-op and returns the original function.
+    When disabled, string-to-model parsing is skipped but ctx injection and
+    signature stripping still apply.
 
     See: https://github.com/anthropics/claude-code/issues/5504
 
@@ -443,38 +444,33 @@ def parse_request(
     """
 
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
-        if not _is_parse_request_enabled():
-            return func
         import types
+
+        parse_enabled = _is_parse_request_enabled()
+
+        def _maybe_parse(request: Any) -> Any:
+            if parse_enabled:
+                return parse_json_or_model(request, request_class, "request")
+            return request
 
         if asyncio.iscoroutinefunction(func):
 
             @wraps(func)
             async def async_wrapper(request: Any, *args: Any, **kwargs: Any) -> Any:
-                # Parse if string, otherwise pass through
-                # (parse_json_or_model handles both)
-                parsed_request = parse_json_or_model(request, request_class, "request")
-                # Get ctx from FastMCP's dependency injection
-                # (we stripped it from signature)
                 from fastmcp.server.dependencies import get_context
 
                 ctx = get_context()
-                return await func(parsed_request, ctx, *args, **kwargs)
+                return await func(_maybe_parse(request), ctx, *args, **kwargs)
 
             wrapper = async_wrapper
         else:
 
             @wraps(func)
             def sync_wrapper(request: Any, *args: Any, **kwargs: Any) -> Any:
-                # Parse if string, otherwise pass through
-                # (parse_json_or_model handles both)
-                parsed_request = parse_json_or_model(request, request_class, "request")
-                # Get ctx from FastMCP's dependency injection
-                # (we stripped it from signature)
                 from fastmcp.server.dependencies import get_context
 
                 ctx = get_context()
-                return func(parsed_request, ctx, *args, **kwargs)
+                return func(_maybe_parse(request), ctx, *args, **kwargs)
 
             wrapper = sync_wrapper
 
@@ -505,58 +501,62 @@ def parse_request(
         # Copy docstring from original function (not wrapper, which has no docstring)
         new_wrapper.__doc__ = func.__doc__
 
-        # Copy annotations from original function and modify request type
-        # Also remove ctx annotation - FastMCP strips it, and having it in
-        # annotations but not signature breaks Pydantic's TypeAdapter
-        if hasattr(func, "__annotations__"):
-            new_wrapper.__annotations__ = {
-                k: v
-                for k, v in func.__annotations__.items()
-                if k != "ctx"  # Skip ctx - will be removed from signature too
-            }
-            # Modify request annotation to accept str | RequestModel
-            new_wrapper.__annotations__["request"] = str | request_class
-        else:
-            new_wrapper.__annotations__ = {"request": str | request_class}
-
-        # Set __signature__ from original function, but modify for FastMCP:
-        # 1. Modify request annotation to accept str | RequestModel
-        # 2. Do NOT include ctx parameter - FastMCP will strip it anyway, and
-        #    having it in __signature__ but not __annotations__ breaks Pydantic
-        import inspect as sig_inspect
-
-        from fastmcp import Context as FMContext
-
-        orig_sig = sig_inspect.signature(func)
-        new_params = []
-        for name, param in orig_sig.parameters.items():
-            # Skip ctx parameter - FastMCP tools don't expose it to clients
-            # Check for Context type, forward reference string, or parameter named 'ctx'
-            is_context = (
-                param.annotation is FMContext
-                or (
-                    hasattr(param.annotation, "__name__")
-                    and param.annotation.__name__ == "Context"
-                )
-                or (
-                    isinstance(param.annotation, str)
-                    and (
-                        param.annotation == "Context"
-                        or param.annotation.endswith(".Context")
-                    )
-                )
-                or name == "ctx"  # Fallback: skip any param named 'ctx'
-            )
-            if is_context:
-                continue
-            if name == "request":
-                new_params.append(param.replace(annotation=str | request_class))
-            else:
-                new_params.append(param)
-        new_wrapper.__signature__ = orig_sig.replace(  # type: ignore[attr-defined]
-            parameters=new_params
-        )
+        request_annotation = str | request_class if parse_enabled else request_class
+        _apply_signature_for_fastmcp(new_wrapper, func, request_annotation)
 
         return new_wrapper
 
     return decorator
+
+
+def _apply_signature_for_fastmcp(
+    wrapper: Any,
+    original_func: Callable[..., Any],
+    request_annotation: Any,
+) -> None:
+    """Apply annotations and signature to wrapper, stripping ctx for FastMCP.
+
+    FastMCP injects ctx via dependency injection, so it must not appear in
+    the function's annotations or signature. This helper copies annotations
+    from the original function, swaps the request type, and removes ctx.
+    """
+    import inspect as sig_inspect
+
+    from fastmcp import Context as FMContext
+
+    # Copy annotations, remove ctx, set request type
+    if hasattr(original_func, "__annotations__"):
+        wrapper.__annotations__ = {
+            k: v for k, v in original_func.__annotations__.items() if k != "ctx"
+        }
+        wrapper.__annotations__["request"] = request_annotation
+    else:
+        wrapper.__annotations__ = {"request": request_annotation}
+
+    # Build signature without ctx parameter
+    orig_sig = sig_inspect.signature(original_func)
+    new_params = []
+    for name, param in orig_sig.parameters.items():
+        if _is_context_param(param, name, FMContext):
+            continue
+        if name == "request":
+            new_params.append(param.replace(annotation=request_annotation))
+        else:
+            new_params.append(param)
+    wrapper.__signature__ = orig_sig.replace(parameters=new_params)
+
+
+def _is_context_param(param: Any, name: str, context_type: Any) -> bool:
+    """Check if a parameter is a FastMCP Context parameter."""
+    return (
+        param.annotation is context_type
+        or (
+            hasattr(param.annotation, "__name__")
+            and param.annotation.__name__ == "Context"
+        )
+        or (
+            isinstance(param.annotation, str)
+            and (param.annotation == "Context" or param.annotation.endswith(".Context"))
+        )
+        or name == "ctx"
+    )
