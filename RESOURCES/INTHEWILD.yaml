@@ -434,6 +434,11 @@ categories:
       url: https://www.zeta.tech/
       contributors: ["@shaikidris"]
 
+    - name: XNET
+      url: https://xnetmobile.com/
+      logo: xnet.png
+      contributors: ["@deuspt"]
+
   Media & Entertainment:
     - name: 6play
       url: https://www.6play.fr
