@@ -57,13 +57,16 @@ from superset.commands.dashboard.exceptions import (
     DashboardInvalidError,
     DashboardNativeFiltersUpdateFailedError,
     DashboardNotFoundError,
+    DashboardRestoreFailedError,
     DashboardUpdateFailedError,
+    DashboardVersionNotFoundError,
 )
 from superset.commands.dashboard.export import ExportDashboardsCommand
 from superset.commands.dashboard.export_example import ExportExampleCommand
 from superset.commands.dashboard.fave import AddFavoriteDashboardCommand
 from superset.commands.dashboard.importers.dispatcher import ImportDashboardsCommand
 from superset.commands.dashboard.permalink.create import CreateDashboardPermalinkCommand
+from superset.commands.dashboard.restore_version import RestoreDashboardVersionCommand
 from superset.commands.dashboard.unfave import DelFavoriteDashboardCommand
 from superset.commands.dashboard.update import (
     UpdateDashboardChartCustomizationsCommand,
@@ -77,6 +80,7 @@ from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.dashboard import DashboardDAO, EmbeddedDashboardDAO
+from superset.daos.dashboard_version import DashboardVersionDAO
 from superset.dashboards.filters import (
     DashboardAccessFilter,
     DashboardCertifiedFilter,
@@ -238,6 +242,8 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         "delete_embedded",
         "thumbnail",
         "copy_dash",
+        "get_versions",
+        "restore_version",
         "cache_dashboard_screenshot",
         "screenshot",
         "put_filters",
@@ -600,6 +606,53 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
                     "Tab schema is invalid, caused by: %(error)s", error=str(err)
                 )
             )
+        except DashboardAccessDeniedError:
+            return self.response_403()
+        except DashboardNotFoundError:
+            return self.response_404()
+
+    @expose("/<id_or_slug>/versions", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_versions",
+        log_to_statsd=False,
+    )
+    @with_dashboard
+    def get_versions(self, dashboard: Dashboard) -> Response:
+        """Get dashboard version history (metadata only).
+        ---
+        get:
+          summary: Get dashboard version history
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: id_or_slug
+            description: Either the id of the dashboard, or its slug
+          responses:
+            200:
+              description: List of version metadata (id, version_number,
+                created_at, created_by)
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        try:
+            versions = DashboardVersionDAO.get_versions_for_dashboard(dashboard.id)
+            result = [
+                {
+                    "id": v.id,
+                    "version_number": v.version_number,
+                    "comment": v.comment,
+                    "created_at": v.created_at.isoformat() if v.created_at else None,
+                    "created_by": v.created_by.username if v.created_by else None,
+                }
+                for v in versions
+            ]
+            return self.response(200, result=result)
         except DashboardAccessDeniedError:
             return self.response_403()
         except DashboardNotFoundError:
@@ -2088,6 +2141,62 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         """
         DeleteEmbeddedDashboardCommand(dashboard).run()
         return self.response(200, message="OK")
+
+    @expose("/<id_or_slug>/restore/<int:version_id>", methods=("POST",))
+    @protect()
+    @safe
+    @permission_name("write")
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self,
+        *args,
+        **kwargs: f"{self.__class__.__name__}.restore_version",
+        log_to_statsd=False,
+    )
+    def restore_version(self, id_or_slug: str, version_id: int) -> Response:
+        """Restore a dashboard to a previous version.
+        ---
+        post:
+          summary: Restore dashboard to a previous version
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: id_or_slug
+          - in: path
+            schema:
+              type: integer
+            name: version_id
+          responses:
+            200:
+              description: Dashboard restored; returns id and last_modified_time
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        try:
+            dashboard = DashboardDAO.get_by_id_or_slug(id_or_slug)
+        except DashboardAccessDeniedError:
+            return self.response_403()
+        except DashboardNotFoundError:
+            return self.response_404()
+        try:
+            dash = RestoreDashboardVersionCommand(dashboard.id, version_id).run()
+            last_modified_time = dash.changed_on.replace(microsecond=0).timestamp()
+            return self.response(
+                200,
+                result={
+                    "id": dash.id,
+                    "last_modified_time": last_modified_time,
+                },
+            )
+        except DashboardVersionNotFoundError:
+            return self.response_404()
+        except DashboardForbiddenError:
+            return self.response_403()
+        except DashboardRestoreFailedError:
+            return self.response_422(message="Restore failed")
 
     @expose("/<id_or_slug>/copy/", methods=("POST",))
     @protect()

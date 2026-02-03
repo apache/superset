@@ -457,6 +457,7 @@ export function saveDashboardRequest(data, id, saveType) {
               roles: cleanedData.roles,
               tags: cleanedData.tags || [],
               theme_id: cleanedData.theme_id,
+              version_comment: cleanedData.version_comment,
               json_metadata: safeStringify({
                 ...cleanedData?.metadata,
                 default_filters: safeStringify(serializedFilters),
