@@ -29,13 +29,9 @@ from typing import Any
 import uvicorn
 
 from superset.mcp_service.app import create_mcp_app, init_fastmcp_server
-from superset.mcp_service.mcp_config import (
-    get_mcp_factory_config,
-    MCP_STORE_CONFIG,
-)
-from superset.mcp_service.storage import _create_redis_store
-from superset.mcp_service.mcp_config import get_mcp_factory_config
+from superset.mcp_service.mcp_config import get_mcp_factory_config, MCP_STORE_CONFIG
 from superset.mcp_service.middleware import create_response_size_guard_middleware
+from superset.mcp_service.storage import _create_redis_store
 
 
 def configure_logging(debug: bool = False) -> None:
