@@ -138,7 +138,7 @@ test('changes currency symbol from USD to GBP', async () => {
   expect(updatedMetric?.currency?.symbolPosition).toBe('prefix');
 }, 60000);
 
-test('currency code column dropdown shows string and calculated columns but excludes numeric columns', async () => {
+test('currency code column dropdown shows string and untyped calculated columns but excludes numeric and typed non-string calculated columns', async () => {
   const baseProps = createProps();
   const testProps = {
     ...baseProps,
@@ -179,6 +179,17 @@ test('currency code column dropdown shows string and calculated columns but excl
           groupby: true,
           column_name: 'derived_currency',
         },
+        {
+          id: 103,
+          type: 'NUMERIC',
+          type_generic: GenericDataType.Numeric,
+          filterable: true,
+          is_dttm: false,
+          is_active: true,
+          expression: 'price * quantity',
+          groupby: false,
+          column_name: 'total_amount',
+        },
         ...baseProps.datasource.columns,
       ],
     },
@@ -215,9 +226,15 @@ test('currency code column dropdown shows string and calculated columns but excl
   );
   expect(derivedCurrencyOption).toBeDefined();
 
-  // Verify NUMERIC column is NOT available
+  // Verify NUMERIC physical column is NOT available
   const amountOption = Array.from(options).find(o =>
     o.textContent?.includes('amount'),
   );
   expect(amountOption).toBeUndefined();
+
+  // Verify NUMERIC calculated column is also NOT available
+  const totalAmountOption = Array.from(options).find(o =>
+    o.textContent?.includes('total_amount'),
+  );
+  expect(totalAmountOption).toBeUndefined();
 }, 60000);
