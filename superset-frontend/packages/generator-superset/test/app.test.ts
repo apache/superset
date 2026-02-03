@@ -17,6 +17,7 @@
  * under the License.
  */
 
+// @ts-ignore -- yeoman-test type resolution differs between local and Docker environments
 import helpers, { result } from 'yeoman-test';
 import appModule from '../generators/app';
 
