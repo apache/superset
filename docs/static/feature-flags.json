@@ -248,6 +248,13 @@
         "category": "path_to_deprecation"
       },
       {
+        "name": "DASHBOARD_VIRTUALIZATION_DEFER_DATA",
+        "default": false,
+        "lifecycle": "stable",
+        "description": "Supports simultaneous data and dashboard virtualization for backend performance",
+        "category": "runtime_config"
+      },
+      {
         "name": "DATAPANEL_CLOSED_BY_DEFAULT",
         "default": false,
         "lifecycle": "stable",
