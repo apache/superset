@@ -29,6 +29,10 @@ import type { KeyboardShortcut } from 'src/SqlLab/components/KeyboardShortcutBut
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import { SqlLabRootState, type CursorPosition } from 'src/SqlLab/types';
 import { EditorHost } from 'src/core/editors';
+import {
+  registerEditorHandle,
+  unregisterEditorHandle,
+} from 'src/core/sqlLab';
 import { useAnnotations } from './useAnnotations';
 import { useKeywords } from './useKeywords';
 
@@ -253,13 +257,23 @@ const EditorWrapper = ({
   const handleEditorReady = useCallback(
     (handle: EditorHandle) => {
       editorHandleRef.current = handle;
+      // Register handle for SQL Lab API access
+      registerEditorHandle(queryEditorId, handle);
       // Set initial cursor position
       const { row, column } = cursorPosition;
       handle.moveCursorToPosition({ line: row, column });
       handle.focus();
       handle.scrollToLine(row);
     },
-    [cursorPosition],
+    [cursorPosition, queryEditorId],
+  );
+
+  // Unregister editor handle on unmount
+  useEffect(
+    () => () => {
+      unregisterEditorHandle(queryEditorId);
+    },
+    [queryEditorId],
   );
 
   const { data: annotations } = useAnnotations({
