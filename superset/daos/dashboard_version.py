@@ -79,6 +79,26 @@ class DashboardVersionDAO:
         )
 
     @staticmethod
+    def update_comment(
+        version_id: int,
+        dashboard_id: int,
+        comment: Optional[str],
+    ) -> Optional[DashboardVersion]:
+        version = (
+            db.session.query(DashboardVersion)
+            .filter(
+                DashboardVersion.id == version_id,
+                DashboardVersion.dashboard_id == dashboard_id,
+            )
+            .one_or_none()
+        )
+        if not version:
+            return None
+        version.comment = (comment or "").strip() or None
+        db.session.flush()
+        return version
+
+    @staticmethod
     def delete_older_than(dashboard_id: int, keep_n: int) -> None:
         ids_to_keep = (
             db.session.query(DashboardVersion.id)

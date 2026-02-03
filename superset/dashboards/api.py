@@ -105,6 +105,7 @@ from superset.dashboards.schemas import (
     DashboardPostSchema,
     DashboardPutSchema,
     DashboardScreenshotPostSchema,
+    DashboardVersionUpdateSchema,
     EmbeddedDashboardConfigSchema,
     EmbeddedDashboardResponseSchema,
     get_delete_ids_schema,
@@ -128,6 +129,7 @@ from superset.tasks.thumbnails import (
 from superset.tasks.utils import get_current_user
 from superset.utils import json
 from superset.utils.core import parse_boolean_string
+from superset.utils.decorators import transaction
 from superset.utils.file import get_filename
 from superset.utils.pdf import build_pdf_from_screenshots
 from superset.utils.screenshots import (
@@ -243,6 +245,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         "thumbnail",
         "copy_dash",
         "get_versions",
+        "update_version",
         "restore_version",
         "cache_dashboard_screenshot",
         "screenshot",
@@ -657,6 +660,69 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             return self.response_403()
         except DashboardNotFoundError:
             return self.response_404()
+
+    @expose("/<id_or_slug>/versions/<int:version_id>", methods=("PUT",))
+    @protect()
+    @safe
+    @permission_name("write")
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self,
+        *args,
+        **kwargs: f"{self.__class__.__name__}.update_version",
+        log_to_statsd=False,
+    )
+    @transaction()
+    def update_version(self, id_or_slug: str, version_id: int) -> Response:
+        """Update a dashboard version (description only).
+        ---
+        put:
+          summary: Update a dashboard version
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: id_or_slug
+          - in: path
+            schema:
+              type: integer
+            name: version_id
+          requestBody:
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    comment:
+                      type: string
+                      nullable: true
+                      description: Optional description for this version
+          responses:
+            200:
+              description: Version updated
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        try:
+            dashboard = DashboardDAO.get_by_id_or_slug(id_or_slug)
+        except DashboardAccessDeniedError:
+            return self.response_403()
+        except DashboardNotFoundError:
+            return self.response_404()
+        try:
+            data = DashboardVersionUpdateSchema().load(request.json or {})
+        except ValidationError as ex:
+            return self.response_400(message=ex.messages)
+        version = DashboardVersionDAO.update_comment(
+            version_id=version_id,
+            dashboard_id=dashboard.id,
+            comment=data.get("comment"),
+        )
+        if not version:
+            return self.response_404()
+        return self.response(200, message="OK")
 
     @expose("/<id_or_slug>/charts", methods=("GET",))
     @protect()

@@ -272,3 +272,55 @@ def test_restore_version_with_chart_present_syncs_slices(
     assert dashboard.slices[0].id == slice_id
     position = json.loads(dashboard.position_json or "{}")
     assert _chart_component_ids(position)
+
+
+def test_update_version_description_via_api(
+    versioning_dashboard_and_slice,
+    test_client,
+    login_as,
+):
+    """PUT dashboard version updates the description (comment) and returns 200."""
+    dashboard, slice_obj = versioning_dashboard_and_slice
+    user = security_manager.get_user_by_username("admin")
+    dashboard_id = dashboard.id
+    slice_id = slice_obj.id
+    slice_uuid = str(slice_obj.uuid)
+
+    # Create a version with initial description via UpdateDashboardCommand.
+    # Use a request context with g.user set so DAO/security_manager see the user.
+    with app.test_request_context():
+        from flask import g
+
+        g.user = user
+        layout = _layout_with_chart(slice_id, slice_uuid)
+        UpdateDashboardCommand(
+            dashboard_id,
+            {
+                "position_json": json.dumps(layout),
+                "json_metadata": "{}",
+                "owners": [user.id],
+                "roles": [],
+                "version_comment": "Initial description",
+            },
+        ).run()
+    db.session.commit()
+
+    versions = DashboardVersionDAO.get_versions_for_dashboard(dashboard_id)
+    assert len(versions) >= 1
+    version_1 = versions[0]
+    assert version_1.comment == "Initial description"
+
+    # Log in then update description via API.
+    # Patch has_access so the API accepts the request (fixture admin may not have
+    # can_write on Dashboard if the test DB has not run full migrations).
+    login_as("admin")
+    uri = f"/api/v1/dashboard/{dashboard_id}/versions/{version_1.id}"
+    with patch.object(security_manager, "has_access", return_value=True):
+        rv = test_client.put(uri, json={"comment": "Updated description"})
+    assert rv.status_code == 200
+
+    # Verify version comment was updated
+    db.session.expire_all()
+    versions_after = DashboardVersionDAO.get_versions_for_dashboard(dashboard_id)
+    version_after = next(v for v in versions_after if v.id == version_1.id)
+    assert version_after.comment == "Updated description"
