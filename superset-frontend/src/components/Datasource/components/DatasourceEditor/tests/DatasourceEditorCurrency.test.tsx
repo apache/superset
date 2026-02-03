@@ -226,15 +226,9 @@ test('currency code column dropdown shows string and untyped calculated columns 
   );
   expect(derivedCurrencyOption).toBeDefined();
 
-  // Verify NUMERIC physical column is NOT available
-  const amountOption = Array.from(options).find(o =>
-    o.textContent?.includes('amount'),
+  // Verify NUMERIC columns (physical and calculated) are NOT available
+  const numericOptions = Array.from(options).filter(o =>
+    ['amount', 'total_amount'].includes(o.textContent?.trim() ?? ''),
   );
-  expect(amountOption).toBeUndefined();
-
-  // Verify NUMERIC calculated column is also NOT available
-  const totalAmountOption = Array.from(options).find(o =>
-    o.textContent?.includes('total_amount'),
-  );
-  expect(totalAmountOption).toBeUndefined();
+  expect(numericOptions).toHaveLength(0);
 }, 60000);
