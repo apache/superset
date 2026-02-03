@@ -74,7 +74,10 @@ import {
   TableOutlined,
 } from '@ant-design/icons';
 import { isEmpty, debounce, isEqual } from 'lodash';
-import { ColorFormatters } from '@superset-ui/chart-controls';
+import {
+  ColorFormatters,
+  ObjectFormattingEnum,
+} from '@superset-ui/chart-controls';
 import {
   ColorSchemeEnum,
   DataColumnMeta,
@@ -936,9 +939,13 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 formatter.getColorFromValue(valueToFormat);
               if (!formatterResult) return;
 
-              if (formatter.toTextColor) {
+              if (
+                formatter.objectFormating === ObjectFormattingEnum.TEXT_COLOR
+              ) {
                 color = formatterResult.slice(0, -2);
-              } else if (formatter.toCellBar) {
+              } else if (
+                formatter.objectFormating === ObjectFormattingEnum.CELL_BAR
+              ) {
                 if (showCellBars)
                   backgroundColorCellBar = formatterResult.slice(0, -2);
               } else {
@@ -947,11 +954,19 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               }
             };
             columnColorFormatters
-              .filter(formatter => formatter.column === column.key)
-              .forEach(formatter => applyFormatter(formatter, value));
+              .filter(formatter => formatter.columnFormating === column.key)
+              .forEach(formatter => {
+                const index = Object.keys(row.original).findIndex(
+                  key => key === formatter.column,
+                );
+                return applyFormatter(formatter, row.values[index]);
+              });
 
             columnColorFormatters
-              .filter(formatter => formatter.toAllRow)
+              .filter(
+                formatter =>
+                  formatter.columnFormating === ObjectFormattingEnum.ENTIRE_ROW,
+              )
               .forEach(formatter =>
                 applyFormatter(formatter, row.original[formatter.column]),
               );

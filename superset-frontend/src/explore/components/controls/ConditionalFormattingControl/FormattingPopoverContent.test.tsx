@@ -26,7 +26,6 @@ import { Comparator } from '@superset-ui/chart-controls';
 import { ColorSchemeEnum } from '@superset-ui/plugin-chart-table';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import { FormattingPopoverContent } from './FormattingPopoverContent';
-import { ConditionalFormattingConfig } from './types';
 
 const mockOnChange = jest.fn();
 
@@ -55,12 +54,6 @@ const extraColorChoices = [
     label: 'Red for increase, green for decrease',
   },
 ];
-
-const config: ConditionalFormattingConfig = {
-  toAllRow: true,
-  toTextColor: true,
-  toCellBar: true,
-};
 
 test('renders FormattingPopoverContent component', () => {
   render(
@@ -168,44 +161,6 @@ test('does not display the input fields when selected a boolean type operator', 
   });
   fireEvent.click(await screen.findByTitle('is true'));
   expect(await screen.queryByLabelText('Target value')).toBeNull();
-});
-
-test('displays the toAllRow and toTextColor flags based on the selected numeric type operator', () => {
-  render(
-    <FormattingPopoverContent
-      onChange={mockOnChange}
-      columns={columns}
-      config={config}
-    />,
-  );
-
-  expect(screen.getByText('To entire row')).toBeInTheDocument();
-  expect(screen.getByText('To text color')).toBeInTheDocument();
-  expect(screen.getByText('To cell bar')).toBeInTheDocument();
-});
-
-test('displays the toAllRow and toTextColor flags and not display toCellBar flag based on the selected string type operator', () => {
-  render(
-    <FormattingPopoverContent
-      onChange={mockOnChange}
-      columns={columnsStringType}
-      config={config}
-    />,
-  );
-
-  expect(screen.getByText('To entire row')).toBeInTheDocument();
-  expect(screen.getByText('To text color')).toBeInTheDocument();
-  expect(screen.queryByText('To cell bar')).not.toBeInTheDocument();
-});
-
-test('does not display the toAllRow, toTextColor and toCellBar flags', () => {
-  render(
-    <FormattingPopoverContent onChange={mockOnChange} columns={columns} />,
-  );
-
-  expect(screen.queryByText('To entire row')).not.toBeInTheDocument();
-  expect(screen.queryByText('To text color')).not.toBeInTheDocument();
-  expect(screen.queryByText('To cell bar')).not.toBeInTheDocument();
 });
 
 test('displays Use gradient checkbox', () => {

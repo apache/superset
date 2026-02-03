@@ -16,13 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 import { t } from '@apache-superset/core';
 import { styled } from '@apache-superset/core/ui';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import {
   Comparator,
   MultipleValueComparators,
+  ObjectFormattingEnum,
 } from '@superset-ui/chart-controls';
 import {
   Select,
@@ -36,10 +37,14 @@ import {
   Checkbox,
   type FormProps,
 } from '@superset-ui/core/components';
+import { ConditionalFormattingConfig, ColumnOption } from './types';
 import {
-  ConditionalFormattingConfig,
-  ConditionalFormattingFlag,
-} from './types';
+  operatorOptions,
+  stringOperatorOptions,
+  booleanOperatorOptions,
+  formatingOptions,
+  colorSchemeOptions,
+} from './constants';
 
 // TODO: tangled redefinition that aligns with @superset-ui/plugin-chart-table
 // used to be imported but main app shouldn't depend on plugins...
@@ -60,43 +65,6 @@ const JustifyEnd = styled.div`
   display: flex;
   justify-content: flex-end;
 `;
-
-// Use theme token names instead of hex values to support theme switching
-const colorSchemeOptions = () => [
-  { value: 'colorSuccess', label: t('success') },
-  { value: 'colorWarning', label: t('alert') },
-  { value: 'colorError', label: t('error') },
-];
-
-const operatorOptions = [
-  { value: Comparator.None, label: t('None') },
-  { value: Comparator.GreaterThan, label: '>' },
-  { value: Comparator.LessThan, label: '<' },
-  { value: Comparator.GreaterOrEqual, label: '≥' },
-  { value: Comparator.LessOrEqual, label: '≤' },
-  { value: Comparator.Equal, label: '=' },
-  { value: Comparator.NotEqual, label: '≠' },
-  { value: Comparator.Between, label: '< x <' },
-  { value: Comparator.BetweenOrEqual, label: '≤ x ≤' },
-  { value: Comparator.BetweenOrLeftEqual, label: '≤ x <' },
-  { value: Comparator.BetweenOrRightEqual, label: '< x ≤' },
-];
-
-const stringOperatorOptions = [
-  { value: Comparator.None, label: t('None') },
-  { value: Comparator.Equal, label: '=' },
-  { value: Comparator.BeginsWith, label: t('begins with') },
-  { value: Comparator.EndsWith, label: t('ends with') },
-  { value: Comparator.Containing, label: t('containing') },
-  { value: Comparator.NotContaining, label: t('not containing') },
-];
-
-const booleanOperatorOptions = [
-  { value: Comparator.IsNull, label: t('is null') },
-  { value: Comparator.IsTrue, label: t('is true') },
-  { value: Comparator.IsFalse, label: t('is false') },
-  { value: Comparator.IsNotNull, label: t('is not null') },
-];
 
 const targetValueValidator =
   (
@@ -269,17 +237,13 @@ export const FormattingPopoverContent = ({
   onChange,
   columns = [],
   extraColorChoices = [],
-  conditionalFormattingFlag = {
-    toAllRowCheck: false,
-    toColorTextCheck: false,
-    toCellBarCheck: false,
-  },
+  allColumns = [],
 }: {
   config?: ConditionalFormattingConfig;
   onChange: (config: ConditionalFormattingConfig) => void;
   columns: { label: string; value: string; dataType: GenericDataType }[];
   extraColorChoices?: { label: string; value: string }[];
-  conditionalFormattingFlag?: ConditionalFormattingFlag;
+  allColumns?: ColumnOption[];
 }) => {
   const [form] = Form.useForm();
   const colorScheme = colorSchemeOptions();
@@ -289,38 +253,8 @@ export const FormattingPopoverContent = ({
         config?.colorScheme !== ColorSchemeEnum.Red),
   );
 
-  const [toAllRow, setToAllRow] = useState(() => Boolean(config?.toAllRow));
-  const [toTextColor, setToTextColor] = useState(() =>
-    Boolean(config?.toTextColor),
-  );
-  const [toCellBar, setToCellBar] = useState(() => Boolean(config?.toCellBar));
   const [useGradient, setUseGradient] = useState(() =>
     config?.useGradient !== undefined ? config.useGradient : true,
-  );
-
-  const useConditionalFormattingFlag = (
-    flagKey: 'toAllRowCheck' | 'toColorTextCheck' | 'toCellBarCheck',
-    configKey: 'toAllRow' | 'toTextColor' | 'toCellBar',
-  ) =>
-    useMemo(
-      () =>
-        conditionalFormattingFlag && conditionalFormattingFlag[flagKey]
-          ? config?.[configKey] === undefined
-          : config?.[configKey] !== undefined,
-      [conditionalFormattingFlag], // oxlint-disable-line react-hooks/exhaustive-deps
-    );
-
-  const showToAllRow = useConditionalFormattingFlag(
-    'toAllRowCheck',
-    'toAllRow',
-  );
-  const showToColorText = useConditionalFormattingFlag(
-    'toColorTextCheck',
-    'toTextColor',
-  );
-  const showToCellBar = useConditionalFormattingFlag(
-    'toCellBarCheck',
-    'toCellBar',
   );
 
   const handleChange = (event: any) => {
@@ -332,6 +266,20 @@ export const FormattingPopoverContent = ({
   const [column, setColumn] = useState<string>(
     config?.column || columns[0]?.value,
   );
+  const visibleAllColomns = useMemo(
+    () => !!(allColumns && Array.isArray(allColumns) && allColumns.length),
+    [allColumns],
+  );
+
+  const [columnFormating, setColumnFormating] = useState<string>(
+    config?.columnFormating ||
+      allColumns.filter(item => item.value === column)[0]?.value,
+  );
+
+  const [objectFormating, setObjectFormating] = useState<string>(
+    config?.objectFormating || formatingOptions[0].value,
+  );
+
   const [previousColumnType, setPreviousColumnType] = useState<
     GenericDataType | undefined
   >();
@@ -339,11 +287,6 @@ export const FormattingPopoverContent = ({
   const columnType = useMemo(
     () => columns.find(item => item.value === column)?.dataType,
     [columns, column],
-  );
-
-  const columnTypeNumeric = useMemo(
-    () => columnType === GenericDataType.Numeric,
-    [columnType],
   );
 
   const handleColumnChange = (value: string) => {
@@ -371,6 +314,40 @@ export const FormattingPopoverContent = ({
     setColumn(value);
     setPreviousColumnType(newColumnType);
   };
+
+  const handleAllColumnChange = (value: string) => {
+    setColumnFormating(value);
+  };
+  const numericColumns = useMemo(
+    () => allColumns.filter(col => col.dataType === GenericDataType.Numeric),
+    [allColumns],
+  );
+
+  const handleObjectChange = (value: string) => {
+    setObjectFormating(value);
+
+    if (value === ObjectFormattingEnum.CELL_BAR) {
+      const currentColumnValue = form.getFieldValue('columnFormating');
+
+      const isCurrentColumnNumeric = numericColumns.some(
+        col => col.value === currentColumnValue,
+      );
+
+      if (!isCurrentColumnNumeric && numericColumns.length > 0) {
+        form.setFieldsValue({
+          columnFormating: numericColumns[0]?.value || '',
+        });
+      }
+    }
+  };
+
+  const getColumnOptions = useCallback(
+    () =>
+      objectFormating === ObjectFormattingEnum.CELL_BAR
+        ? numericColumns
+        : allColumns,
+    [objectFormating, numericColumns, allColumns],
+  );
 
   useEffect(() => {
     if (column && !previousColumnType) {
@@ -420,6 +397,45 @@ export const FormattingPopoverContent = ({
           </FormItem>
         </Col>
       </Row>
+      {visibleAllColomns && showOperatorFields ? (
+        <Row gutter={12}>
+          <Col span={12}>
+            <FormItem
+              name="columnFormating"
+              label={t('Formating column')}
+              rules={rulesRequired}
+              initialValue={columnFormating}
+            >
+              <Select
+                ariaLabel={t('Select column name')}
+                options={getColumnOptions()}
+                onChange={value => {
+                  handleAllColumnChange(value as string);
+                }}
+              />
+            </FormItem>
+          </Col>
+          <Col span={12}>
+            <FormItem
+              name="objectFormating"
+              label={t('Formating object')}
+              rules={rulesRequired}
+              initialValue={objectFormating}
+              tooltip={t(
+                'The background of the histogram columns is displayed if the "Show cell bars" flag is enabled.',
+              )}
+            >
+              <Select
+                ariaLabel={t('Select object name')}
+                options={formatingOptions}
+                onChange={value => {
+                  handleObjectChange(value as string);
+                }}
+              />
+            </FormItem>
+          </Col>
+        </Row>
+      ) : null}
       <Row gutter={20}>
         <Col span={1}>
           <FormItem
@@ -448,88 +464,6 @@ export const FormattingPopoverContent = ({
           </Row>
         )}
       </FormItem>
-      <Row>
-        {showOperatorFields && showToAllRow && (
-          <Row gutter={20}>
-            <Col span={1}>
-              <FormItem
-                name="toAllRow"
-                valuePropName="checked"
-                initialValue={toAllRow}
-              >
-                <Checkbox
-                  onChange={event => {
-                    const checked = event.target.checked;
-                    setToAllRow(checked);
-                    if (checked) {
-                      setToCellBar(false);
-                    }
-                  }}
-                  checked={toAllRow}
-                  disabled={toCellBar}
-                />
-              </FormItem>
-            </Col>
-            <Col>
-              <FormItem required>{t('To entire row')}</FormItem>
-            </Col>
-          </Row>
-        )}
-        {showOperatorFields && showToColorText && (
-          <Row gutter={20}>
-            <Col span={1}>
-              <FormItem
-                name="toTextColor"
-                valuePropName="checked"
-                initialValue={toTextColor}
-              >
-                <Checkbox
-                  onChange={event => {
-                    const checked = event.target.checked;
-                    setToTextColor(checked);
-                    if (checked) {
-                      setToCellBar(false);
-                    }
-                  }}
-                  checked={toTextColor}
-                  disabled={toCellBar}
-                />
-              </FormItem>
-            </Col>
-            <Col>
-              <FormItem required>{t('To text color')}</FormItem>
-            </Col>
-          </Row>
-        )}
-        {showOperatorFields && columnTypeNumeric && showToCellBar && (
-          <Row gutter={20}>
-            <Col span={1}>
-              <FormItem
-                name="toCellBar"
-                valuePropName="checked"
-                initialValue={toCellBar}
-              >
-                <Checkbox
-                  onChange={event => {
-                    const checked = event.target.checked;
-                    setToCellBar(checked);
-                    if (checked) {
-                      setToTextColor(false);
-                      setToAllRow(false);
-                    }
-                  }}
-                  checked={toCellBar}
-                  disabled={toTextColor || toAllRow}
-                />
-              </FormItem>
-            </Col>
-            <Col>
-              <FormItem required>{t('To cell bar')}</FormItem>
-            </Col>
-          </Row>
-        )}
-      </Row>
-
       <FormItem>
         <JustifyEnd>
           <Button htmlType="submit" buttonStyle="primary">

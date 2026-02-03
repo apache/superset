@@ -485,15 +485,17 @@ export type ConditionalFormattingConfig = {
   colorScheme?: string;
   toAllRow?: boolean;
   toTextColor?: boolean;
-  toCellBar?: boolean;
   useGradient?: boolean;
+  columnFormating?: string;
+  objectFormating?: string;
 };
 
 export type ColorFormatters = {
   column: string;
   toAllRow?: boolean;
   toTextColor?: boolean;
-  toCellBar?: boolean;
+  columnFormating?: string;
+  objectFormating?: string;
   getColorFromValue: (
     value: number | string | boolean | null,
   ) => string | undefined;
@@ -610,3 +612,10 @@ export type ControlFormItemSpec<T extends ControlType = ControlType> = {
                 defaultValue?: Currency;
               }
             : {});
+
+export enum ObjectFormattingEnum {
+  BACKGROUND_COLOR = 'BACKGROUND_COLOR',
+  TEXT_COLOR = 'TEXT_COLOR',
+  CELL_BAR = 'CELL_BAR',
+  ENTIRE_ROW = 'ENTIRE_ROW',
+}
