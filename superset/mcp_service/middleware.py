@@ -907,9 +907,9 @@ def create_response_size_guard_middleware() -> ResponseSizeGuardMiddleware | Non
             return None
 
         middleware = ResponseSizeGuardMiddleware(
-            token_limit=config.get("token_limit", DEFAULT_TOKEN_LIMIT),
-            warn_threshold_pct=config.get(
-                "warn_threshold_pct", DEFAULT_WARN_THRESHOLD_PCT
+            token_limit=int(config.get("token_limit", DEFAULT_TOKEN_LIMIT)),
+            warn_threshold_pct=int(
+                config.get("warn_threshold_pct", DEFAULT_WARN_THRESHOLD_PCT)
             ),
             excluded_tools=config.get("excluded_tools"),
         )
