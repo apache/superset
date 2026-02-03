@@ -218,6 +218,7 @@
     "use-event-callback": "^0.1.0",
     "use-immer": "^0.11.0",
     "use-query-params": "^2.2.2",
+    "uuid": "^13.0.0",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "yargs": "^17.7.2"
   },
@@ -237,7 +238,7 @@
     "@babel/preset-typescript": "^7.28.5",
     "@babel/register": "^7.23.7",
     "@babel/runtime": "^7.28.6",
-    "@babel/runtime-corejs3": "^7.28.6",
+    "@babel/runtime-corejs3": "^7.29.0",
     "@babel/types": "^7.28.6",
     "@cypress/react": "^8.0.2",
     "@emotion/babel-plugin": "^11.13.5",
