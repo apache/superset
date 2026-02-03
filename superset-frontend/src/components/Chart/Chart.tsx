@@ -25,6 +25,7 @@ import {
   QueryFormData,
   SqlaFormData,
   ClientErrorObject,
+  DataRecordFilters,
   type JsonObject,
   type AgGridChartState,
 } from '@superset-ui/core';
@@ -51,13 +52,13 @@ export interface ChartProps {
   chartId: number;
   datasource?: Datasource;
   dashboardId?: number;
-  initialValues?: object;
+  initialValues?: DataRecordFilters;
   formData: QueryFormData;
   labelColors?: string;
   sharedLabelColors?: string;
   width: number;
   height: number;
-  setControlValue: Function;
+  setControlValue: (name: string, value: unknown) => void;
   timeout?: number;
   vizType: string;
   triggerRender?: boolean;
@@ -76,7 +77,7 @@ export interface ChartProps {
   onFilterMenuOpen?: (chartId: number, column: string) => void;
   onFilterMenuClose?: (chartId: number, column: string) => void;
   ownState?: JsonObject;
-  postTransformProps?: Function;
+  postTransformProps?: (props: JsonObject) => JsonObject;
   datasetsStatus?: 'loading' | 'error' | 'complete';
   isInView?: boolean;
   emitCrossFilters?: boolean;
@@ -100,6 +101,7 @@ export type Actions = {
     chartId: number,
     arg2: string | null,
   ): Dispatch;
+  chartRenderingSucceeded(chartId: number): Dispatch;
   postChartFormData(
     formData: SqlaFormData,
     arg1: boolean,
@@ -312,7 +314,11 @@ class Chart extends PureComponent<ChartProps, {}> {
         {this.shouldRenderChart() ? (
           <ChartRenderer
             {...this.props}
-            source={this.props.dashboardId ? 'dashboard' : 'explore'}
+            source={
+              this.props.dashboardId
+                ? ChartSource.Dashboard
+                : ChartSource.Explore
+            }
             data-test={this.props.vizType}
           />
         ) : (

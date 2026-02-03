@@ -351,7 +351,7 @@ const ColumnSelectPopover = ({
     tab => {
       getCurrentTab(tab);
       setSelectedTab(tab);
-      // @ts-ignore
+      // @ts-expect-error - AceEditor ref type doesn't expose editor.focus()
       sqlEditorRef.current?.editor.focus();
     },
     [getCurrentTab],

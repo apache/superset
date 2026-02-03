@@ -28,8 +28,12 @@ import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import { EditableTitle } from '@superset-ui/core/components';
 import { setEditMode, onRefresh } from 'src/dashboard/actions/dashboardState';
 
-import Tab from './Tab';
+import type { FC } from 'react';
+import ActualTab from './Tab';
 import Markdown from '../Markdown';
+
+// Cast to loosely-typed component to avoid needing every required prop in test mocks
+const Tab = ActualTab as unknown as FC<Record<string, unknown>>;
 
 jest.mock('src/dashboard/util/getChartIdsFromComponent', () =>
   jest.fn(() => []),
@@ -187,11 +191,15 @@ test('Drop on a tab', async () => {
       <Markdown
         id="MARKDOWN-1"
         parentId="GRID_ID"
-        parentComponent={{
-          id: 'GRID_ID',
-          type: 'GRID',
-          parents: ['ROOT_ID'],
-        }}
+        parentComponent={
+          {
+            id: 'GRID_ID',
+            type: 'GRID',
+            parents: ['ROOT_ID'],
+            children: [],
+            meta: {},
+          } as any
+        }
         depth={0}
         editMode
         index={1}

@@ -17,9 +17,15 @@
  * under the License.
  */
 // Layout type not directly used in tests - using object shapes for test data
-import dropOverflowsParent, {
-  type DropResult,
-} from 'src/dashboard/util/dropOverflowsParent';
+import dropOverflowsParent from 'src/dashboard/util/dropOverflowsParent';
+import type { DropResult } from 'src/dashboard/components/dnd/dragDroppableConfig';
+
+// Test data uses minimal shapes - cast to satisfy DropResult interface
+const mockDropResult = (
+  source: { id: string },
+  destination: { id: string },
+  dragging: { id: string },
+): DropResult => ({ source, destination, dragging }) as unknown as DropResult;
 import { NEW_COMPONENTS_SOURCE_ID } from 'src/dashboard/util/constants';
 import {
   CHART_TYPE,
@@ -32,11 +38,7 @@ import {
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('dropOverflowsParent', () => {
   test('returns true if a parent does NOT have adequate width for child', () => {
-    const dropResult: DropResult = {
-      source: { id: '_' },
-      destination: { id: 'a' },
-      dragging: { id: 'z' },
-    };
+    const dropResult = mockDropResult({ id: '_' }, { id: 'a' }, { id: 'z' });
 
     const layout = {
       a: {
@@ -64,11 +66,7 @@ describe('dropOverflowsParent', () => {
   });
 
   test('returns false if a parent DOES have adequate width for child', () => {
-    const dropResult: DropResult = {
-      source: { id: '_' },
-      destination: { id: 'a' },
-      dragging: { id: 'z' },
-    };
+    const dropResult = mockDropResult({ id: '_' }, { id: 'a' }, { id: 'z' });
 
     const layout = {
       a: {
@@ -96,11 +94,7 @@ describe('dropOverflowsParent', () => {
   });
 
   test('returns false if a child CAN shrink to available parent space', () => {
-    const dropResult: DropResult = {
-      source: { id: '_' },
-      destination: { id: 'a' },
-      dragging: { id: 'z' },
-    };
+    const dropResult = mockDropResult({ id: '_' }, { id: 'a' }, { id: 'z' });
 
     const layout = {
       a: {
@@ -128,11 +122,7 @@ describe('dropOverflowsParent', () => {
   });
 
   test('returns true if a child CANNOT shrink to available parent space', () => {
-    const dropResult: DropResult = {
-      source: { id: '_' },
-      destination: { id: 'a' },
-      dragging: { id: 'b' },
-    };
+    const dropResult = mockDropResult({ id: '_' }, { id: 'a' }, { id: 'b' });
 
     const layout = {
       a: {
@@ -161,11 +151,11 @@ describe('dropOverflowsParent', () => {
   });
 
   test('returns true if a column has children that CANNOT shrink to available parent space', () => {
-    const dropResult: DropResult = {
-      source: { id: '_' },
-      destination: { id: 'destination' },
-      dragging: { id: 'dragging' },
-    };
+    const dropResult = mockDropResult(
+      { id: '_' },
+      { id: 'destination' },
+      { id: 'dragging' },
+    );
 
     const layout = {
       destination: {
@@ -206,11 +196,11 @@ describe('dropOverflowsParent', () => {
   });
 
   test('should work with new components that are not in the layout', () => {
-    const dropResult: DropResult = {
-      source: { id: NEW_COMPONENTS_SOURCE_ID },
-      destination: { id: 'a' },
-      dragging: { type: CHART_TYPE },
-    };
+    const dropResult = mockDropResult(
+      { id: NEW_COMPONENTS_SOURCE_ID },
+      { id: 'a' },
+      { id: CHART_TYPE },
+    );
 
     const layout = {
       a: {
@@ -224,11 +214,11 @@ describe('dropOverflowsParent', () => {
   });
 
   test('source/destination without widths should not overflow parent', () => {
-    const dropResult: DropResult = {
-      source: { id: '_' },
-      destination: { id: 'tab' },
-      dragging: { id: 'header' },
-    };
+    const dropResult = mockDropResult(
+      { id: '_' },
+      { id: 'tab' },
+      { id: 'header' },
+    );
 
     const layout = {
       tab: {

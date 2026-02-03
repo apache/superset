@@ -35,6 +35,7 @@ import { chart } from 'src/components/Chart/chartReducer';
 import componentTypes from 'src/dashboard/util/componentTypes';
 import Database from 'src/types/Database';
 import { UrlParamEntries } from 'src/utils/urlUtils';
+import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import Owner from 'src/types/Owner';
 import { ChartState } from '../explore/types';
@@ -94,7 +95,11 @@ export type ChartConfiguration = {
 
 export type ActiveTabs = string[];
 export type DashboardLayout = { [key: string]: LayoutItem };
-export type DashboardLayoutState = { present: DashboardLayout };
+export type DashboardLayoutState = {
+  past: DashboardLayout[];
+  present: DashboardLayout;
+  future: DashboardLayout[];
+};
 export type DashboardState = {
   preselectNativeFilters?: JsonObject;
   editMode: boolean;
@@ -126,7 +131,18 @@ export type DashboardState = {
     dashboardId: number;
     data: JsonObject;
   };
-  chartStates?: Record<string, any>;
+  chartStates?: Record<string, JsonObject>;
+  labelsColorMapMustSync?: boolean;
+  sharedLabelsColorsMustSync?: boolean;
+  maxUndoHistoryExceeded?: boolean;
+  updatedColorScheme?: boolean;
+  inactiveTabs?: string[];
+  datasetsStatus?: ResourceStatus;
+  expandedSlices?: Record<number, boolean>;
+  refreshFrequency: number;
+  shouldPersistRefreshFrequency?: boolean;
+  colorNamespace?: string;
+  isStarred?: boolean;
 };
 export type DashboardInfo = {
   id: number;
@@ -151,6 +167,9 @@ export type DashboardInfo = {
       | ChartCustomization
       | ChartCustomizationDivider
     )[];
+    timed_refresh_immune_slices?: number[];
+    refresh_frequency?: number;
+    positions?: JsonObject;
   };
   crossFiltersEnabled: boolean;
   filterBarOrientation: FilterBarOrientation;
@@ -168,6 +187,16 @@ export type DashboardInfo = {
   } | null;
   theme_id?: number | null;
   css?: string;
+  slug?: string;
+  last_modified_time: number;
+  certified_by?: string;
+  certification_details?: string;
+  roles?: { id: number }[] | number[];
+  tags?: { type?: string | number }[];
+  is_managed_externally?: boolean;
+  dash_share_perm?: boolean;
+  dash_save_perm?: boolean;
+  dash_export_perm?: boolean;
 };
 
 export type ChartsState = { [key: string]: Chart };
@@ -188,13 +217,15 @@ export type RootState = {
   sliceEntities: JsonObject;
   charts: ChartsState;
   dashboardLayout: DashboardLayoutState;
-  dashboardFilters: {};
+  dashboardFilters: JsonObject;
   dashboardState: DashboardState;
   dashboardInfo: DashboardInfo;
   dataMask: DataMaskStateWithId;
   impressionId: string;
   nativeFilters: NativeFiltersState;
   user: UserWithPermissionsAndRoles;
+  common?: { conf: JsonObject };
+  lastModifiedTime: number;
 };
 
 /** State of dashboardLayout in redux */
@@ -207,15 +238,22 @@ type ComponentTypesKeys = keyof typeof componentTypes;
 export type ComponentType = (typeof componentTypes)[ComponentTypesKeys];
 
 export type LayoutItemMeta = {
-  chartId: number;
+  chartId?: number;
   defaultText?: string;
-  height: number;
+  height?: number;
   placeholder?: string;
   sliceName?: string;
   sliceNameOverride?: string;
   text?: string;
-  uuid: string;
-  width: number;
+  uuid?: string;
+  width?: number;
+  headerSize?: string;
+  /** Markdown source code for markdown components */
+  code?: string;
+  /** Background style value for columns and rows */
+  background?: string;
+  /** Allow additional meta properties used by different component types */
+  [key: string]: unknown;
 };
 
 /** State of dashboardLayout item in redux */
@@ -226,6 +264,18 @@ export type LayoutItem = {
   id: string;
   meta: LayoutItemMeta;
 };
+
+/** Loose component type used by utility and factory functions */
+export interface DashboardComponent {
+  id: string;
+  type: string;
+  children: string[];
+  parents?: string[];
+  meta: LayoutItemMeta;
+}
+
+/** Map of dashboard components keyed by ID */
+export type DashboardComponentMap = { [id: string]: DashboardComponent };
 
 type ActiveFilter = {
   filterType?: string;
@@ -246,7 +296,7 @@ export interface DashboardPermalinkState {
   activeTabs: string[];
   anchor: string;
   urlParams?: UrlParamEntries;
-  chartStates?: Record<string, any>;
+  chartStates?: Record<string, JsonObject>;
 }
 
 export interface DashboardPermalinkValue {

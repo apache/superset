@@ -72,10 +72,10 @@ describe('layerUtil', () => {
       const wfsLayer = await createWfsLayer(wfsLayerConf);
 
       const style = wfsLayer!.getStyle();
-      // @ts-ignore
+      // @ts-expect-error
       expect(style!.length).toEqual(3);
 
-      // @ts-ignore upgrade `ol` package for better type of StyleLike type.
+      // @ts-expect-error upgrade `ol` package for better type of StyleLike type.
       const colorAtLayer = style![1].getImage().getFill().getColor();
       expect(colorToExpect).toEqual(colorAtLayer);
     });

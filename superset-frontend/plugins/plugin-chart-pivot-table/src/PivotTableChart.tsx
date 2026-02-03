@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useMemo } from 'react';
+import {
+  useCallback,
+  useMemo,
+  type MouseEvent as ReactMouseEvent,
+} from 'react';
 import { MinusSquareOutlined, PlusSquareOutlined } from '@ant-design/icons';
 import { t } from '@apache-superset/core';
 import {
@@ -598,10 +602,10 @@ export default function PivotTableChart(props: PivotTableProps) {
 
   const handleContextMenu = useCallback(
     (
-      e: MouseEvent,
-      colKey: (string | number | boolean)[] | undefined,
-      rowKey: (string | number | boolean)[] | undefined,
-      dataPoint: { [key: string]: string },
+      e: ReactMouseEvent,
+      colKey?: string[],
+      rowKey?: string[],
+      dataPoint?: { [key: string]: string },
     ) => {
       if (onContextMenu) {
         e.preventDefault();
@@ -611,7 +615,7 @@ export default function PivotTableChart(props: PivotTableProps) {
           colKey.forEach((val, i) => {
             const col = cols[i];
             const formatter = dateFormatters[col];
-            const formattedVal = formatter?.(val as number) || String(val);
+            const formattedVal = formatter?.(Number(val)) || String(val);
             if (i > 0) {
               drillToDetailFilters.push({
                 col,
@@ -627,7 +631,7 @@ export default function PivotTableChart(props: PivotTableProps) {
           rowKey.forEach((val, i) => {
             const col = rows[i];
             const formatter = dateFormatters[col];
-            const formattedVal = formatter?.(val as number) || String(val);
+            const formattedVal = formatter?.(Number(val)) || String(val);
             drillToDetailFilters.push({
               col,
               op: '==',
@@ -639,7 +643,9 @@ export default function PivotTableChart(props: PivotTableProps) {
         }
         onContextMenu(e.clientX, e.clientY, {
           drillToDetail: drillToDetailFilters,
-          crossFilter: getCrossFilterDataMask(dataPoint),
+          crossFilter: dataPoint
+            ? getCrossFilterDataMask(dataPoint)
+            : undefined,
           drillBy: dataPoint && {
             filters: [
               {

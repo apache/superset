@@ -45,20 +45,20 @@ const rows = [
  * 1 or greater means the first item comes before the second item
  */
 test('alphabeticalSort sorts correctly', () => {
-  // @ts-ignore
+  // @ts-expect-error
   expect(alphabeticalSort('name', rows[0], rows[1])).toBe(-1);
-  // @ts-ignore
+  // @ts-expect-error
   expect(alphabeticalSort('name', rows[1], rows[0])).toBe(1);
-  // @ts-ignore
+  // @ts-expect-error
   expect(alphabeticalSort('category', rows[1], rows[0])).toBe(0);
 });
 
 test('numericalSort sorts correctly', () => {
-  // @ts-ignore
+  // @ts-expect-error
   expect(numericalSort('cost', rows[1], rows[2])).toBe(0);
-  // @ts-ignore
+  // @ts-expect-error
   expect(numericalSort('cost', rows[1], rows[0])).toBeLessThan(0);
-  // @ts-ignore
+  // @ts-expect-error
   expect(numericalSort('cost', rows[4], rows[1])).toBeGreaterThan(0);
 });
 
@@ -68,10 +68,10 @@ test('numericalSort sorts correctly', () => {
  * In the case the sorter cannot perform the comparison it should return undefined and the next sort step will proceed without error
  */
 test('alphabeticalSort bad inputs no errors', () => {
-  // @ts-ignore
+  // @ts-expect-error
   expect(alphabeticalSort('name', null, null)).toBe(undefined);
   // incorrect non-object values
-  // @ts-ignore
+  // @ts-expect-error
   expect(alphabeticalSort('name', 3, [])).toBe(undefined);
   // incorrect object values without specified key
   expect(alphabeticalSort('name', {}, {})).toBe(undefined);
@@ -79,7 +79,7 @@ test('alphabeticalSort bad inputs no errors', () => {
   expect(
     alphabeticalSort(
       'name',
-      // @ts-ignore
+      // @ts-expect-error
       { name: { title: 'the name attribute should not be an object' } },
       { name: 'Doug' },
     ),
@@ -87,12 +87,12 @@ test('alphabeticalSort bad inputs no errors', () => {
 });
 
 test('numericalSort bad inputs no errors', () => {
-  // @ts-ignore
+  // @ts-expect-error
   expect(numericalSort('name', undefined, undefined)).toBe(NaN);
-  // @ts-ignore
+  // @ts-expect-error
   expect(numericalSort('name', null, null)).toBe(NaN);
   // incorrect non-object values
-  // @ts-ignore
+  // @ts-expect-error
   expect(numericalSort('name', 3, [])).toBe(NaN);
   // incorrect object values without specified key
   expect(numericalSort('name', {}, {})).toBe(NaN);
@@ -100,7 +100,7 @@ test('numericalSort bad inputs no errors', () => {
   expect(
     numericalSort(
       'name',
-      // @ts-ignore
+      // @ts-expect-error
       { name: { title: 'the name attribute should not be an object' } },
       { name: 'Doug' },
     ),

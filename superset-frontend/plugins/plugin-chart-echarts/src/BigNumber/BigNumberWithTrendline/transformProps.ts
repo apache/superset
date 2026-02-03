@@ -217,7 +217,9 @@ export default function transformProps(
 
   if (data.length > 0) {
     const reversedData = [...sortedData].reverse();
-    // @ts-ignore
+    // sortedData has type [number | null, number | null][] but TimeSeriesDatum expects [number, number | null][]
+    // The null timestamps are handled in code below (lines 250, 254) so this is safe at runtime
+    // @ts-expect-error - Type mismatch: sortedData allows null timestamps, TimeSeriesDatum doesn't
     trendLineData = showTrendLine ? reversedData : undefined;
   }
 
@@ -379,7 +381,7 @@ export default function transformProps(
     width,
     height,
     bigNumber,
-    // @ts-ignore
+    // @ts-expect-error
     bigNumberFallback,
     className,
     headerFormatter: yAxisFormatter,

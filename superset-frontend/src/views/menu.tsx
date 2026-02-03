@@ -25,6 +25,7 @@ import ReactDOM from 'react-dom';
 import { BrowserRouter } from 'react-router-dom';
 import { CacheProvider } from '@emotion/react';
 import { QueryParamProvider } from 'use-query-params';
+import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import createCache from '@emotion/cache';
 import { ThemeProvider, theme } from '@apache-superset/core/ui';
 import Menu from 'src/features/home/Menu';
@@ -44,7 +45,6 @@ const emotionCache = createCache({
 });
 
 const app = (
-  // @ts-ignore: emotion types defs are incompatible between core and cache
   <CacheProvider value={emotionCache}>
     <ThemeProvider theme={theme}>
       <Provider store={store}>

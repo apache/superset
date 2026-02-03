@@ -29,8 +29,8 @@ import {
 } from 'spec/helpers/testing-library';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
-import RolesList from './index';
 import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
+import RolesList from './index';
 
 const mockStore = configureStore([thunk]);
 const store = mockStore({});

@@ -192,7 +192,7 @@ function BigNumberVis({
 
   const renderHeader = (maxHeight: number) => {
     const { bigNumber, width, colorThresholdFormatters, onContextMenu } = props;
-    // @ts-ignore
+    // @ts-expect-error
     const text = bigNumber === null ? t('No data') : headerFormatter(bigNumber);
 
     const hasThresholdColorFormatter =
