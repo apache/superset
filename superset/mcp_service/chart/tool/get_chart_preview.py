@@ -185,6 +185,19 @@ class TablePreviewStrategy(PreviewFormatStrategy):
                     error_type="InvalidChart",
                 )
 
+            # Build columns list: include both x_axis and groupby
+            x_axis_config = form_data.get("x_axis")
+            groupby_columns = form_data.get("groupby", [])
+
+            columns = groupby_columns.copy()
+            if x_axis_config and isinstance(x_axis_config, str):
+                if x_axis_config not in columns:
+                    columns.insert(0, x_axis_config)
+            elif x_axis_config and isinstance(x_axis_config, dict):
+                col_name = x_axis_config.get("column_name")
+                if col_name and col_name not in columns:
+                    columns.insert(0, col_name)
+
             factory = QueryContextFactory()
             query_context = factory.create(
                 datasource={
@@ -194,7 +207,7 @@ class TablePreviewStrategy(PreviewFormatStrategy):
                 queries=[
                     {
                         "filters": form_data.get("filters", []),
-                        "columns": form_data.get("groupby", []),
+                        "columns": columns,
                         "metrics": form_data.get("metrics", []),
                         "row_limit": 20,
                         "order_desc": True,
@@ -279,6 +292,19 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
                     utils_json.loads(self.chart.params) if self.chart.params else {}
                 )
 
+            # Build columns list: include both x_axis and groupby
+            x_axis_config = form_data.get("x_axis")
+            groupby_columns = form_data.get("groupby", [])
+
+            columns = groupby_columns.copy()
+            if x_axis_config and isinstance(x_axis_config, str):
+                if x_axis_config not in columns:
+                    columns.insert(0, x_axis_config)
+            elif x_axis_config and isinstance(x_axis_config, dict):
+                col_name = x_axis_config.get("column_name")
+                if col_name and col_name not in columns:
+                    columns.insert(0, col_name)
+
             # Create query context for data retrieval
             factory = QueryContextFactory()
             query_context = factory.create(
@@ -289,7 +315,7 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
                 queries=[
                     {
                         "filters": form_data.get("filters", []),
-                        "columns": form_data.get("groupby", []),
+                        "columns": columns,
                         "metrics": form_data.get("metrics", []),
                         "row_limit": 1000,  # More data for visualization
                         "order_desc": True,
