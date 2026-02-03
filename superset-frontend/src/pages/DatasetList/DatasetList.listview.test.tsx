@@ -33,6 +33,7 @@ import {
   mockHandleResourceExport,
   assertOnlyExpectedCalls,
   API_ENDPOINTS,
+  DELETE_ROUTE_NAME,
 } from './DatasetList.testHelpers';
 
 const mockAddDangerToast = jest.fn();
@@ -112,10 +113,11 @@ const setupErrorTestScenario = ({
   });
 
   // Configure fetchMock to return single dataset
+  fetchMock.removeRoute(API_ENDPOINTS.DATASETS);
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
     { result: [dataset], count: 1 },
-    { overwriteRoutes: true },
+    { name: API_ENDPOINTS.DATASETS },
   );
 
   // Render component with toast mocks
@@ -143,8 +145,8 @@ afterEach(async () => {
   // QueryParamProvider reads from window.history, which persists across renders
   window.history.replaceState({}, '', '/');
 
-  fetchMock.resetHistory();
-  fetchMock.restore();
+  fetchMock.clearHistory();
+  fetchMock.removeRoutes();
   jest.restoreAllMocks();
 });
 
@@ -199,10 +201,11 @@ test('renders all required column headers', async () => {
 test('displays dataset name in Name column', async () => {
   const dataset = mockDatasets[0];
 
+  fetchMock.removeRoute(API_ENDPOINTS.DATASETS);
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
     { result: [dataset], count: 1 },
-    { overwriteRoutes: true },
+    { name: API_ENDPOINTS.DATASETS },
   );
 
   renderDatasetList(mockAdminUser);
@@ -216,10 +219,14 @@ test('displays dataset type as Physical or Virtual', async () => {
   const physicalDataset = mockDatasets[0]; // kind: 'physical'
   const virtualDataset = mockDatasets[1]; // kind: 'virtual'
 
+  fetchMock.removeRoute(API_ENDPOINTS.DATASETS);
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
-    { result: [physicalDataset, virtualDataset], count: 2 },
-    { overwriteRoutes: true },
+    {
+      result: [physicalDataset, virtualDataset],
+      count: 2,
+    },
+    { name: API_ENDPOINTS.DATASETS },
   );
 
   renderDatasetList(mockAdminUser);
@@ -234,10 +241,11 @@ test('displays dataset type as Physical or Virtual', async () => {
 test('displays database name in Database column', async () => {
   const dataset = mockDatasets[0];
 
+  fetchMock.removeRoute(API_ENDPOINTS.DATASETS);
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
     { result: [dataset], count: 1 },
-    { overwriteRoutes: true },
+    { name: API_ENDPOINTS.DATASETS },
   );
 
   renderDatasetList(mockAdminUser);
@@ -252,10 +260,11 @@ test('displays database name in Database column', async () => {
 test('displays schema name in Schema column', async () => {
   const dataset = mockDatasets[0];
 
+  fetchMock.removeRoute(API_ENDPOINTS.DATASETS);
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
     { result: [dataset], count: 1 },
-    { overwriteRoutes: true },
+    { name: API_ENDPOINTS.DATASETS },
   );
 
   renderDatasetList(mockAdminUser);
@@ -268,10 +277,11 @@ test('displays schema name in Schema column', async () => {
 test('displays last modified date in humanized format', async () => {
   const dataset = mockDatasets[0];
 
+  fetchMock.removeRoute(API_ENDPOINTS.DATASETS);
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
     { result: [dataset], count: 1 },
-    { overwriteRoutes: true },
+    { name: API_ENDPOINTS.DATASETS },
   );
 
   renderDatasetList(mockAdminUser);
@@ -296,21 +306,23 @@ test('sorting by Name column updates API call with sort parameter', async () => 
   });
 
   // Record initial calls
-  const initialCalls = fetchMock.calls(API_ENDPOINTS.DATASETS).length;
+  const initialCalls = fetchMock.callHistory.calls(
+    API_ENDPOINTS.DATASETS,
+  ).length;
 
   // Click Name header to sort
   await userEvent.click(nameHeader);
 
   // Wait for new API call
   await waitFor(() => {
-    const calls = fetchMock.calls(API_ENDPOINTS.DATASETS);
+    const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
     expect(calls.length).toBeGreaterThan(initialCalls);
   });
 
   // Verify latest call includes sort parameter
-  const calls = fetchMock.calls(API_ENDPOINTS.DATASETS);
+  const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
   const latestCall = calls[calls.length - 1];
-  const url = latestCall[0] as string;
+  const url = latestCall.url as string;
 
   // URL should contain order_column for sorting
   expect(url).toMatch(/order_column|sort/);
@@ -328,17 +340,19 @@ test('sorting by Database column updates sort parameter', async () => {
     name: /Database/i,
   });
 
-  const initialCalls = fetchMock.calls(API_ENDPOINTS.DATASETS).length;
+  const initialCalls = fetchMock.callHistory.calls(
+    API_ENDPOINTS.DATASETS,
+  ).length;
 
   await userEvent.click(databaseHeader);
 
   await waitFor(() => {
-    const calls = fetchMock.calls(API_ENDPOINTS.DATASETS);
+    const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
     expect(calls.length).toBeGreaterThan(initialCalls);
   });
 
-  const calls = fetchMock.calls(API_ENDPOINTS.DATASETS);
-  const url = calls[calls.length - 1][0] as string;
+  const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
+  const url = calls[calls.length - 1].url as string;
   expect(url).toMatch(/order_column|sort/);
 });
 
@@ -354,27 +368,30 @@ test('sorting by Last modified column updates sort parameter', async () => {
     name: /Last modified/i,
   });
 
-  const initialCalls = fetchMock.calls(API_ENDPOINTS.DATASETS).length;
+  const initialCalls = fetchMock.callHistory.calls(
+    API_ENDPOINTS.DATASETS,
+  ).length;
 
   await userEvent.click(modifiedHeader);
 
   await waitFor(() => {
-    const calls = fetchMock.calls(API_ENDPOINTS.DATASETS);
+    const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
     expect(calls.length).toBeGreaterThan(initialCalls);
   });
 
-  const calls = fetchMock.calls(API_ENDPOINTS.DATASETS);
-  const url = calls[calls.length - 1][0] as string;
+  const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
+  const url = calls[calls.length - 1].url as string;
   expect(url).toMatch(/order_column|sort/);
 });
 
 test('export button triggers handleResourceExport with dataset ID', async () => {
   const dataset = mockDatasets[0];
 
+  fetchMock.removeRoute(API_ENDPOINTS.DATASETS);
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
     { result: [dataset], count: 1 },
-    { overwriteRoutes: true },
+    { name: API_ENDPOINTS.DATASETS },
   );
 
   renderDatasetList(mockAdminUser);
@@ -403,10 +420,11 @@ test('delete button opens modal with dataset details', async () => {
 
   setupDeleteMocks(dataset.id);
 
+  fetchMock.removeRoute(API_ENDPOINTS.DATASETS);
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
     { result: [dataset], count: 1 },
-    { overwriteRoutes: true },
+    { name: API_ENDPOINTS.DATASETS },
   );
 
   renderDatasetList(mockAdminUser);
@@ -429,10 +447,14 @@ test('delete action successfully deletes dataset and refreshes list', async () =
   const datasetToDelete = mockDatasets[0];
   setupDeleteMocks(datasetToDelete.id);
 
+  fetchMock.removeRoute(API_ENDPOINTS.DATASETS);
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
-    { result: [datasetToDelete], count: 1 },
-    { overwriteRoutes: true },
+    {
+      result: [datasetToDelete],
+      count: 1,
+    },
+    { name: API_ENDPOINTS.DATASETS },
   );
 
   renderDatasetList(mockAdminUser, {
@@ -455,7 +477,9 @@ test('delete action successfully deletes dataset and refreshes list', async () =
   await userEvent.type(confirmInput, 'DELETE');
 
   // Track API calls before confirm
-  const callsBefore = fetchMock.calls(API_ENDPOINTS.DATASETS).length;
+  const callsBefore = fetchMock.callHistory.calls(
+    API_ENDPOINTS.DATASETS,
+  ).length;
 
   // Click confirm - find the danger button (last delete button in modal)
   const confirmButton = within(modal)
@@ -465,13 +489,8 @@ test('delete action successfully deletes dataset and refreshes list', async () =
 
   // Wait for delete API call
   await waitFor(() => {
-    const deleteCalls = fetchMock.calls(
-      `glob:*/api/v1/dataset/${datasetToDelete.id}`,
-    );
-    const hasDelete = deleteCalls.some(
-      call => (call[1] as RequestInit)?.method === 'DELETE',
-    );
-    expect(hasDelete).toBe(true);
+    const deleteCalls = fetchMock.callHistory.calls(DELETE_ROUTE_NAME);
+    expect(deleteCalls.length).toBeGreaterThan(0);
   });
 
   // Success toast shown and modal closes
@@ -482,9 +501,9 @@ test('delete action successfully deletes dataset and refreshes list', async () =
 
   // List refreshes
   await waitFor(() => {
-    expect(fetchMock.calls(API_ENDPOINTS.DATASETS).length).toBeGreaterThan(
-      callsBefore,
-    );
+    expect(
+      fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS).length,
+    ).toBeGreaterThan(callsBefore);
   });
 });
 
@@ -492,10 +511,11 @@ test('delete action cancel closes modal without deleting', async () => {
   const dataset = mockDatasets[0];
   setupDeleteMocks(dataset.id);
 
+  fetchMock.removeRoute(API_ENDPOINTS.DATASETS);
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
     { result: [dataset], count: 1 },
-    { overwriteRoutes: true },
+    { name: API_ENDPOINTS.DATASETS },
   );
 
   renderDatasetList(mockAdminUser);
@@ -520,9 +540,11 @@ test('delete action cancel closes modal without deleting', async () => {
   });
 
   // No delete API call made (only related_objects GET was called)
-  const deleteCalls = fetchMock.calls(`glob:*/api/v1/dataset/${dataset.id}`);
+  const deleteCalls = fetchMock.callHistory.calls(
+    `glob:*/api/v1/dataset/${dataset.id}`,
+  );
   const hasDeleteMethod = deleteCalls.some(
-    call => (call[1] as RequestInit)?.method === 'DELETE',
+    call => (call.options as RequestInit)?.method === 'DELETE',
   );
   expect(hasDeleteMethod).toBe(false);
 
@@ -534,10 +556,11 @@ test('duplicate action successfully duplicates virtual dataset', async () => {
   const virtualDataset = mockDatasets[1]; // Virtual dataset (kind: 'virtual')
   setupDuplicateMocks();
 
+  fetchMock.removeRoute(API_ENDPOINTS.DATASETS);
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
     { result: [virtualDataset], count: 1 },
-    { overwriteRoutes: true },
+    { name: API_ENDPOINTS.DATASETS },
   );
 
   renderDatasetList(mockAdminUser, {
@@ -560,7 +583,9 @@ test('duplicate action successfully duplicates virtual dataset', async () => {
   await userEvent.type(input, 'Copy of Analytics');
 
   // Track API calls before submit
-  const callsBefore = fetchMock.calls(API_ENDPOINTS.DATASETS).length;
+  const callsBefore = fetchMock.callHistory.calls(
+    API_ENDPOINTS.DATASETS,
+  ).length;
 
   // Submit
   const submitButton = within(modal).getByRole('button', {
@@ -570,7 +595,9 @@ test('duplicate action successfully duplicates virtual dataset', async () => {
 
   // Wait for duplicate API call and modal closes
   await waitFor(() => {
-    const dupCalls = fetchMock.calls(API_ENDPOINTS.DATASET_DUPLICATE);
+    const dupCalls = fetchMock.callHistory.calls(
+      API_ENDPOINTS.DATASET_DUPLICATE,
+    );
     expect(dupCalls.length).toBeGreaterThan(0);
     // Modal closes (duplicate success doesn't show toast, just closes modal)
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
@@ -578,9 +605,9 @@ test('duplicate action successfully duplicates virtual dataset', async () => {
 
   // List refreshes
   await waitFor(() => {
-    expect(fetchMock.calls(API_ENDPOINTS.DATASETS).length).toBeGreaterThan(
-      callsBefore,
-    );
+    expect(
+      fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS).length,
+    ).toBeGreaterThan(callsBefore);
   });
 });
 
@@ -588,10 +615,14 @@ test('duplicate button visible only for virtual datasets', async () => {
   const physicalDataset = mockDatasets[0]; // kind: 'physical'
   const virtualDataset = mockDatasets[1]; // kind: 'virtual'
 
+  fetchMock.removeRoute(API_ENDPOINTS.DATASETS);
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
-    { result: [physicalDataset, virtualDataset], count: 2 },
-    { overwriteRoutes: true },
+    {
+      result: [physicalDataset, virtualDataset],
+      count: 2,
+    },
+    { name: API_ENDPOINTS.DATASETS },
   );
 
   renderDatasetList(mockAdminUser);
@@ -648,10 +679,14 @@ test('bulk select enables checkboxes', async () => {
 }, 30000);
 
 test('selecting all datasets shows correct count in toolbar', async () => {
+  fetchMock.removeRoute(API_ENDPOINTS.DATASETS);
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
-    { result: mockDatasets, count: mockDatasets.length },
-    { overwriteRoutes: true },
+    {
+      result: mockDatasets,
+      count: mockDatasets.length,
+    },
+    { name: API_ENDPOINTS.DATASETS },
   );
 
   renderDatasetList(mockAdminUser);
@@ -688,10 +723,14 @@ test('selecting all datasets shows correct count in toolbar', async () => {
 }, 30000);
 
 test('bulk export triggers export with selected IDs', async () => {
+  fetchMock.removeRoute(API_ENDPOINTS.DATASETS);
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
-    { result: [mockDatasets[0]], count: 1 },
-    { overwriteRoutes: true },
+    {
+      result: [mockDatasets[0]],
+      count: 1,
+    },
+    { name: API_ENDPOINTS.DATASETS },
   );
 
   renderDatasetList(mockAdminUser);
@@ -731,10 +770,14 @@ test('bulk export triggers export with selected IDs', async () => {
 test('bulk delete opens confirmation modal', async () => {
   setupBulkDeleteMocks();
 
+  fetchMock.removeRoute(API_ENDPOINTS.DATASETS);
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
-    { result: [mockDatasets[0]], count: 1 },
-    { overwriteRoutes: true },
+    {
+      result: [mockDatasets[0]],
+      count: 1,
+    },
+    { name: API_ENDPOINTS.DATASETS },
   );
 
   renderDatasetList(mockAdminUser);
@@ -838,10 +881,14 @@ test('certified badge appears for certified datasets', async () => {
     }),
   };
 
+  fetchMock.removeRoute(API_ENDPOINTS.DATASETS);
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
-    { result: [certifiedDataset], count: 1 },
-    { overwriteRoutes: true },
+    {
+      result: [certifiedDataset],
+      count: 1,
+    },
+    { name: API_ENDPOINTS.DATASETS },
   );
 
   renderDatasetList(mockAdminUser);
@@ -869,10 +916,14 @@ test('warning icon appears for datasets with warnings', async () => {
     }),
   };
 
+  fetchMock.removeRoute(API_ENDPOINTS.DATASETS);
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
-    { result: [datasetWithWarning], count: 1 },
-    { overwriteRoutes: true },
+    {
+      result: [datasetWithWarning],
+      count: 1,
+    },
+    { name: API_ENDPOINTS.DATASETS },
   );
 
   renderDatasetList(mockAdminUser);
@@ -898,10 +949,14 @@ test('info tooltip appears for datasets with descriptions', async () => {
     description: 'Sales data from Q4 2024',
   };
 
+  fetchMock.removeRoute(API_ENDPOINTS.DATASETS);
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
-    { result: [datasetWithDescription], count: 1 },
-    { overwriteRoutes: true },
+    {
+      result: [datasetWithDescription],
+      count: 1,
+    },
+    { name: API_ENDPOINTS.DATASETS },
   );
 
   renderDatasetList(mockAdminUser);
@@ -924,10 +979,11 @@ test('info tooltip appears for datasets with descriptions', async () => {
 test('dataset name links to Explore page', async () => {
   const dataset = mockDatasets[0];
 
+  fetchMock.removeRoute(API_ENDPOINTS.DATASETS);
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
     { result: [dataset], count: 1 },
-    { overwriteRoutes: true },
+    { name: API_ENDPOINTS.DATASETS },
   );
 
   renderDatasetList(mockAdminUser);
@@ -948,10 +1004,14 @@ test('dataset name links to Explore page', async () => {
 test('physical dataset shows delete, export, and edit actions (no duplicate)', async () => {
   const physicalDataset = mockDatasets[0]; // kind: 'physical'
 
+  fetchMock.removeRoute(API_ENDPOINTS.DATASETS);
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
-    { result: [physicalDataset], count: 1 },
-    { overwriteRoutes: true },
+    {
+      result: [physicalDataset],
+      count: 1,
+    },
+    { name: API_ENDPOINTS.DATASETS },
   );
 
   renderDatasetList(mockAdminUser);
@@ -980,10 +1040,11 @@ test('physical dataset shows delete, export, and edit actions (no duplicate)', a
 test('virtual dataset shows delete, export, edit, and duplicate actions', async () => {
   const virtualDataset = mockDatasets[1]; // kind: 'virtual'
 
+  fetchMock.removeRoute(API_ENDPOINTS.DATASETS);
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
     { result: [virtualDataset], count: 1 },
-    { overwriteRoutes: true },
+    { name: API_ENDPOINTS.DATASETS },
   );
 
   renderDatasetList(mockAdminUser);
@@ -1013,10 +1074,11 @@ test('edit action is enabled for dataset owner', async () => {
     owners: [{ id: mockAdminUser.userId, username: 'admin' }],
   };
 
+  fetchMock.removeRoute(API_ENDPOINTS.DATASETS);
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
     { result: [dataset], count: 1 },
-    { overwriteRoutes: true },
+    { name: API_ENDPOINTS.DATASETS },
   );
 
   renderDatasetList(mockAdminUser);
@@ -1040,10 +1102,11 @@ test('edit action is disabled for non-owner', async () => {
     owners: [{ id: 999, username: 'other_user' }], // Different user
   };
 
+  fetchMock.removeRoute(API_ENDPOINTS.DATASETS);
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
     { result: [dataset], count: 1 },
-    { overwriteRoutes: true },
+    { name: API_ENDPOINTS.DATASETS },
   );
 
   // Use a non-admin user to test ownership check
@@ -1073,10 +1136,11 @@ test('all action buttons are clickable and enabled for admin user', async () => 
     owners: [{ id: mockAdminUser.userId, username: 'admin' }],
   };
 
+  fetchMock.removeRoute(API_ENDPOINTS.DATASETS);
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
     { result: [virtualDataset], count: 1 },
-    { overwriteRoutes: true },
+    { name: API_ENDPOINTS.DATASETS },
   );
 
   renderDatasetList(mockAdminUser);
@@ -1112,10 +1176,14 @@ test('all action buttons are clickable and enabled for admin user', async () => 
 });
 
 test('displays error when initial dataset fetch fails with 500', async () => {
+  fetchMock.removeRoute(API_ENDPOINTS.DATASETS);
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
-    { status: 500, body: { message: 'Internal Server Error' } },
-    { overwriteRoutes: true },
+    {
+      status: 500,
+      body: { message: 'Internal Server Error' },
+    },
+    { name: API_ENDPOINTS.DATASETS },
   );
 
   renderDatasetList(mockAdminUser, {
@@ -1134,10 +1202,14 @@ test('displays error when initial dataset fetch fails with 500', async () => {
 });
 
 test('displays error when initial dataset fetch fails with 403 permission denied', async () => {
+  fetchMock.removeRoute(API_ENDPOINTS.DATASETS);
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
-    { status: 403, body: { message: 'Access Denied' } },
-    { overwriteRoutes: true },
+    {
+      status: 403,
+      body: { message: 'Access Denied' },
+    },
+    { name: API_ENDPOINTS.DATASETS },
   );
 
   renderDatasetList(mockAdminUser, {
@@ -1402,20 +1474,22 @@ test('sort order persists after deleting a dataset', async () => {
   });
 
   // Record initial API calls count
-  const initialCalls = fetchMock.calls(API_ENDPOINTS.DATASETS).length;
+  const initialCalls = fetchMock.callHistory.calls(
+    API_ENDPOINTS.DATASETS,
+  ).length;
 
   // Click Name header to sort
   await userEvent.click(nameHeader);
 
   // Wait for new API call with sort parameter
   await waitFor(() => {
-    const calls = fetchMock.calls(API_ENDPOINTS.DATASETS);
+    const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
     expect(calls.length).toBeGreaterThan(initialCalls);
   });
 
   // Record the sort parameter from the API call after sorting
-  const callsAfterSort = fetchMock.calls(API_ENDPOINTS.DATASETS);
-  const sortedUrl = callsAfterSort[callsAfterSort.length - 1][0] as string;
+  const callsAfterSort = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
+  const sortedUrl = callsAfterSort[callsAfterSort.length - 1].url as string;
   expect(sortedUrl).toMatch(/order_column|sort/);
 
   // Delete a dataset - get delete button from first row only
@@ -1433,7 +1507,9 @@ test('sort order persists after deleting a dataset', async () => {
   await userEvent.type(confirmInput, 'DELETE');
 
   // Record call count before delete to track refetch
-  const callsBeforeDelete = fetchMock.calls(API_ENDPOINTS.DATASETS).length;
+  const callsBeforeDelete = fetchMock.callHistory.calls(
+    API_ENDPOINTS.DATASETS,
+  ).length;
 
   const confirmButton = within(modal)
     .getAllByRole('button', { name: /^delete$/i })
@@ -1452,7 +1528,9 @@ test('sort order persists after deleting a dataset', async () => {
 
   // Wait for list refetch to complete (prevents async cleanup error)
   await waitFor(() => {
-    const currentCalls = fetchMock.calls(API_ENDPOINTS.DATASETS).length;
+    const currentCalls = fetchMock.callHistory.calls(
+      API_ENDPOINTS.DATASETS,
+    ).length;
     expect(currentCalls).toBeGreaterThan(callsBeforeDelete);
   });
 
@@ -1476,10 +1554,14 @@ test('sort order persists after deleting a dataset', async () => {
 // test. Component tests here focus on individual behaviors.
 
 test('bulk selection clears when filter changes', async () => {
+  fetchMock.removeRoute(API_ENDPOINTS.DATASETS);
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
-    { result: mockDatasets, count: mockDatasets.length },
-    { overwriteRoutes: true },
+    {
+      result: mockDatasets,
+      count: mockDatasets.length,
+    },
+    { name: API_ENDPOINTS.DATASETS },
   );
 
   renderDatasetList(mockAdminUser);
@@ -1528,7 +1610,9 @@ test('bulk selection clears when filter changes', async () => {
   });
 
   // Record API call count before filter
-  const beforeFilterCallCount = fetchMock.calls(API_ENDPOINTS.DATASETS).length;
+  const beforeFilterCallCount = fetchMock.callHistory.calls(
+    API_ENDPOINTS.DATASETS,
+  ).length;
 
   // Wait for filter combobox to be ready before applying filter
   await screen.findByRole('combobox', { name: 'Type' });
@@ -1538,14 +1622,14 @@ test('bulk selection clears when filter changes', async () => {
 
   // Wait for filter API call to complete
   await waitFor(() => {
-    const calls = fetchMock.calls(API_ENDPOINTS.DATASETS);
+    const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
     expect(calls.length).toBeGreaterThan(beforeFilterCallCount);
   });
 
   // Verify filter was applied by decoding URL payload
-  const urlAfterFilter = fetchMock
+  const urlAfterFilter = fetchMock.callHistory
     .calls(API_ENDPOINTS.DATASETS)
-    .at(-1)?.[0] as string;
+    .at(-1)?.url as string;
   const risonAfterFilter = new URL(
     urlAfterFilter,
     'http://localhost',
@@ -1578,19 +1662,22 @@ test('type filter API call includes correct filter parameter', async () => {
   await screen.findByRole('combobox', { name: 'Type' });
 
   // Snapshot call count before filter
-  const callsBeforeFilter = fetchMock.calls(API_ENDPOINTS.DATASETS).length;
+  const callsBeforeFilter = fetchMock.callHistory.calls(
+    API_ENDPOINTS.DATASETS,
+  ).length;
 
   // Apply Type filter
   await selectOption('Virtual', 'Type');
 
   // Wait for filter API call to complete
   await waitFor(() => {
-    const calls = fetchMock.calls(API_ENDPOINTS.DATASETS);
+    const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
     expect(calls.length).toBeGreaterThan(callsBeforeFilter);
   });
 
   // Verify the latest API call includes the Type filter
-  const url = fetchMock.calls(API_ENDPOINTS.DATASETS).at(-1)?.[0] as string;
+  const url = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS).at(-1)
+    ?.url as string;
   expect(url).toContain('filters');
 
   // searchParams.get() already URL-decodes, so pass directly to rison.decode
@@ -1622,21 +1709,23 @@ test('type filter persists after duplicating a dataset', async () => {
   await screen.findByRole('combobox', { name: 'Type' });
 
   // Snapshot call count before filter
-  const callsBeforeFilter = fetchMock.calls(API_ENDPOINTS.DATASETS).length;
+  const callsBeforeFilter = fetchMock.callHistory.calls(
+    API_ENDPOINTS.DATASETS,
+  ).length;
 
   // Apply Type filter
   await selectOption('Virtual', 'Type');
 
   // Wait for filter API call to complete
   await waitFor(() => {
-    const calls = fetchMock.calls(API_ENDPOINTS.DATASETS);
+    const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
     expect(calls.length).toBeGreaterThan(callsBeforeFilter);
   });
 
   // Verify filter is present by checking the latest API call
-  const urlAfterFilter = fetchMock
+  const urlAfterFilter = fetchMock.callHistory
     .calls(API_ENDPOINTS.DATASETS)
-    .at(-1)?.[0] as string;
+    .at(-1)?.url as string;
   const risonAfterFilter = new URL(
     urlAfterFilter,
     'http://localhost',
@@ -1654,7 +1743,7 @@ test('type filter persists after duplicating a dataset', async () => {
   );
 
   // Capture datasets API call count BEFORE any duplicate operations
-  const datasetsCallCountBeforeDuplicate = fetchMock.calls(
+  const datasetsCallCountBeforeDuplicate = fetchMock.callHistory.calls(
     API_ENDPOINTS.DATASETS,
   ).length;
 
@@ -1682,20 +1771,24 @@ test('type filter persists after duplicating a dataset', async () => {
 
   // Wait for duplicate API call to be made
   await waitFor(() => {
-    const duplicateCalls = fetchMock.calls(API_ENDPOINTS.DATASET_DUPLICATE);
+    const duplicateCalls = fetchMock.callHistory.calls(
+      API_ENDPOINTS.DATASET_DUPLICATE,
+    );
     expect(duplicateCalls.length).toBeGreaterThan(0);
   });
 
   // Wait for datasets refetch to occur (proves duplicate triggered a refresh)
   await waitFor(() => {
-    const datasetsCallCount = fetchMock.calls(API_ENDPOINTS.DATASETS).length;
+    const datasetsCallCount = fetchMock.callHistory.calls(
+      API_ENDPOINTS.DATASETS,
+    ).length;
     expect(datasetsCallCount).toBeGreaterThan(datasetsCallCountBeforeDuplicate);
   });
 
   // Verify Type filter persisted in the NEW datasets API call after duplication
-  const urlAfterDuplicate = fetchMock
+  const urlAfterDuplicate = fetchMock.callHistory
     .calls(API_ENDPOINTS.DATASETS)
-    .at(-1)?.[0] as string;
+    .at(-1)?.url as string;
   const risonAfterDuplicate = new URL(
     urlAfterDuplicate,
     'http://localhost',
@@ -1729,10 +1822,11 @@ test('edit action shows error toast when dataset fetch fails', async () => {
     ],
   };
 
+  fetchMock.removeRoute(API_ENDPOINTS.DATASETS);
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
     { result: [ownedDataset], count: 1 },
-    { overwriteRoutes: true },
+    { name: API_ENDPOINTS.DATASETS },
   );
 
   // Mock SupersetClient.get to fail for the specific dataset endpoint
@@ -1776,10 +1870,14 @@ test('bulk export error shows toast and clears loading state', async () => {
   // Mock handleResourceExport to throw an error
   mockHandleResourceExport.mockRejectedValueOnce(new Error('Export failed'));
 
+  fetchMock.removeRoute(API_ENDPOINTS.DATASETS);
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
-    { result: [mockDatasets[0]], count: 1 },
-    { overwriteRoutes: true },
+    {
+      result: [mockDatasets[0]],
+      count: 1,
+    },
+    { name: API_ENDPOINTS.DATASETS },
   );
 
   renderDatasetList(mockAdminUser, {
@@ -1836,16 +1934,19 @@ test('bulk export error shows toast and clears loading state', async () => {
 
 test('bulk delete error shows toast without refreshing list', async () => {
   // Mock bulk delete to fail
-  fetchMock.delete(
-    API_ENDPOINTS.DATASET_BULK_DELETE,
-    { status: 500, body: { message: 'Bulk delete failed' } },
-    { overwriteRoutes: true },
-  );
+  fetchMock.delete(API_ENDPOINTS.DATASET_BULK_DELETE, {
+    status: 500,
+    body: { message: 'Bulk delete failed' },
+  });
 
+  fetchMock.removeRoute(API_ENDPOINTS.DATASETS);
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
-    { result: [mockDatasets[0]], count: 1 },
-    { overwriteRoutes: true },
+    {
+      result: [mockDatasets[0]],
+      count: 1,
+    },
+    { name: API_ENDPOINTS.DATASETS },
   );
 
   renderDatasetList(mockAdminUser, {
@@ -1919,10 +2020,14 @@ test('bulk select shows "N Selected (Virtual)" for virtual-only selection', asyn
   // Use only virtual datasets
   const virtualDatasets = mockDatasets.filter(d => d.kind === 'virtual');
 
+  fetchMock.removeRoute(API_ENDPOINTS.DATASETS);
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
-    { result: virtualDatasets, count: virtualDatasets.length },
-    { overwriteRoutes: true },
+    {
+      result: virtualDatasets,
+      count: virtualDatasets.length,
+    },
+    { name: API_ENDPOINTS.DATASETS },
   );
 
   renderDatasetList(mockAdminUser);
@@ -1966,10 +2071,14 @@ test('bulk select shows "N Selected (Physical)" for physical-only selection', as
   // Use only physical datasets
   const physicalDatasets = mockDatasets.filter(d => d.kind === 'physical');
 
+  fetchMock.removeRoute(API_ENDPOINTS.DATASETS);
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
-    { result: physicalDatasets, count: physicalDatasets.length },
-    { overwriteRoutes: true },
+    {
+      result: physicalDatasets,
+      count: physicalDatasets.length,
+    },
+    { name: API_ENDPOINTS.DATASETS },
   );
 
   renderDatasetList(mockAdminUser);
@@ -2017,10 +2126,14 @@ test('bulk select shows mixed count for virtual and physical selection', async (
     mockDatasets.find(d => d.kind === 'virtual')!,
   ];
 
+  fetchMock.removeRoute(API_ENDPOINTS.DATASETS);
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
-    { result: mixedDatasets, count: mixedDatasets.length },
-    { overwriteRoutes: true },
+    {
+      result: mixedDatasets,
+      count: mixedDatasets.length,
+    },
+    { name: API_ENDPOINTS.DATASETS },
   );
 
   renderDatasetList(mockAdminUser);
@@ -2081,20 +2194,17 @@ test('delete modal shows affected dashboards with overflow for >10 items', async
     title: `Dashboard ${i + 1}`,
   }));
 
+  fetchMock.removeRoute(API_ENDPOINTS.DATASETS);
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
     { result: [dataset], count: 1 },
-    { overwriteRoutes: true },
+    { name: API_ENDPOINTS.DATASETS },
   );
 
-  fetchMock.get(
-    `glob:*/api/v1/dataset/${dataset.id}/related_objects*`,
-    {
-      charts: { count: 0, result: [] },
-      dashboards: { count: 15, result: manyDashboards },
-    },
-    { overwriteRoutes: true },
-  );
+  fetchMock.get(`glob:*/api/v1/dataset/${dataset.id}/related_objects*`, {
+    charts: { count: 0, result: [] },
+    dashboards: { count: 15, result: manyDashboards },
+  });
 
   renderDatasetList(mockAdminUser);
 
@@ -2126,20 +2236,17 @@ test('delete modal shows affected dashboards with overflow for >10 items', async
 test('delete modal hides affected dashboards section when count is zero', async () => {
   const dataset = mockDatasets[0];
 
+  fetchMock.removeRoute(API_ENDPOINTS.DATASETS);
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
     { result: [dataset], count: 1 },
-    { overwriteRoutes: true },
+    { name: API_ENDPOINTS.DATASETS },
   );
 
-  fetchMock.get(
-    `glob:*/api/v1/dataset/${dataset.id}/related_objects*`,
-    {
-      charts: { count: 2, result: [{ id: 1, slice_name: 'Chart 1' }] },
-      dashboards: { count: 0, result: [] },
-    },
-    { overwriteRoutes: true },
-  );
+  fetchMock.get(`glob:*/api/v1/dataset/${dataset.id}/related_objects*`, {
+    charts: { count: 2, result: [{ id: 1, slice_name: 'Chart 1' }] },
+    dashboards: { count: 0, result: [] },
+  });
 
   renderDatasetList(mockAdminUser);
 
@@ -2172,20 +2279,17 @@ test('delete modal shows affected charts with overflow for >10 items', async () 
     slice_name: `Chart ${i + 1}`,
   }));
 
+  fetchMock.removeRoute(API_ENDPOINTS.DATASETS);
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
     { result: [dataset], count: 1 },
-    { overwriteRoutes: true },
+    { name: API_ENDPOINTS.DATASETS },
   );
 
-  fetchMock.get(
-    `glob:*/api/v1/dataset/${dataset.id}/related_objects*`,
-    {
-      charts: { count: 12, result: manyCharts },
-      dashboards: { count: 0, result: [] },
-    },
-    { overwriteRoutes: true },
-  );
+  fetchMock.get(`glob:*/api/v1/dataset/${dataset.id}/related_objects*`, {
+    charts: { count: 12, result: manyCharts },
+    dashboards: { count: 0, result: [] },
+  });
 
   renderDatasetList(mockAdminUser);
 
