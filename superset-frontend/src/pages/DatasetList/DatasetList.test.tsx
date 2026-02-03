@@ -213,10 +213,15 @@ test('handles datasets with missing fields and renders gracefully', async () => 
     sql: null,
   };
 
-  fetchMock.get(API_ENDPOINTS.DATASETS, {
-    result: [datasetWithMissingFields],
-    count: 1,
-  });
+  fetchMock.removeRoute(API_ENDPOINTS.DATASETS);
+  fetchMock.get(
+    API_ENDPOINTS.DATASETS,
+    {
+      result: [datasetWithMissingFields],
+      count: 1,
+    },
+    { name: API_ENDPOINTS.DATASETS },
+  );
 
   renderDatasetList(mockAdminUser);
 
@@ -239,7 +244,12 @@ test('handles datasets with missing fields and renders gracefully', async () => 
 });
 
 test('handles empty results (shows empty state)', async () => {
-  fetchMock.get(API_ENDPOINTS.DATASETS, { result: [], count: 0 });
+  fetchMock.removeRoute(API_ENDPOINTS.DATASETS);
+  fetchMock.get(
+    API_ENDPOINTS.DATASETS,
+    { result: [], count: 0 },
+    { name: API_ENDPOINTS.DATASETS },
+  );
 
   renderDatasetList(mockAdminUser);
 
@@ -362,7 +372,10 @@ test('handles 500 error on initial load without crashing', async () => {
 test('handles 403 error on _info endpoint and disables create actions', async () => {
   const addDangerToast = jest.fn();
 
-  fetchMock.get(API_ENDPOINTS.DATASETS_INFO, mockApiError403, {});
+  fetchMock.removeRoute(API_ENDPOINTS.DATASETS_INFO);
+  fetchMock.get(API_ENDPOINTS.DATASETS_INFO, mockApiError403, {
+    name: API_ENDPOINTS.DATASETS_INFO,
+  });
 
   renderDatasetList(mockAdminUser, {
     addDangerToast,
@@ -382,9 +395,12 @@ test('handles 403 error on _info endpoint and disables create actions', async ()
 });
 
 test('handles network timeout without crashing', async () => {
-  fetchMock.get(API_ENDPOINTS.DATASETS, {
-    throws: new Error('Network timeout'),
-  });
+  fetchMock.removeRoute(API_ENDPOINTS.DATASETS);
+  fetchMock.get(
+    API_ENDPOINTS.DATASETS,
+    { throws: new Error('Network timeout') },
+    { name: API_ENDPOINTS.DATASETS },
+  );
 
   renderDatasetList(mockAdminUser, {
     addDangerToast: jest.fn(),
@@ -442,10 +458,15 @@ test('renders datasets with certification data', async () => {
     }),
   };
 
-  fetchMock.get(API_ENDPOINTS.DATASETS, {
-    result: [certifiedDataset],
-    count: 1,
-  });
+  fetchMock.removeRoute(API_ENDPOINTS.DATASETS);
+  fetchMock.get(
+    API_ENDPOINTS.DATASETS,
+    {
+      result: [certifiedDataset],
+      count: 1,
+    },
+    { name: API_ENDPOINTS.DATASETS },
+  );
 
   renderDatasetList(mockAdminUser);
 
@@ -469,10 +490,15 @@ test('displays datasets with warning_markdown', async () => {
     }),
   };
 
-  fetchMock.get(API_ENDPOINTS.DATASETS, {
-    result: [datasetWithWarning],
-    count: 1,
-  });
+  fetchMock.removeRoute(API_ENDPOINTS.DATASETS);
+  fetchMock.get(
+    API_ENDPOINTS.DATASETS,
+    {
+      result: [datasetWithWarning],
+      count: 1,
+    },
+    { name: API_ENDPOINTS.DATASETS },
+  );
 
   renderDatasetList(mockAdminUser);
 
@@ -490,10 +516,15 @@ test('displays datasets with warning_markdown', async () => {
 test('displays dataset with multiple owners', async () => {
   const datasetWithOwners = mockDatasets[1]; // Has 2 owners: Jane Smith, Bob Jones
 
-  fetchMock.get(API_ENDPOINTS.DATASETS, {
-    result: [datasetWithOwners],
-    count: 1,
-  });
+  fetchMock.removeRoute(API_ENDPOINTS.DATASETS);
+  fetchMock.get(
+    API_ENDPOINTS.DATASETS,
+    {
+      result: [datasetWithOwners],
+      count: 1,
+    },
+    { name: API_ENDPOINTS.DATASETS },
+  );
 
   renderDatasetList(mockAdminUser);
 
@@ -511,10 +542,15 @@ test('displays dataset with multiple owners', async () => {
 test('displays ModifiedInfo with humanized date', async () => {
   const datasetWithModified = mockDatasets[0]; // changed_by_name: 'John Doe', changed_on: '1 day ago'
 
-  fetchMock.get(API_ENDPOINTS.DATASETS, {
-    result: [datasetWithModified],
-    count: 1,
-  });
+  fetchMock.removeRoute(API_ENDPOINTS.DATASETS);
+  fetchMock.get(
+    API_ENDPOINTS.DATASETS,
+    {
+      result: [datasetWithModified],
+      count: 1,
+    },
+    { name: API_ENDPOINTS.DATASETS },
+  );
 
   renderDatasetList(mockAdminUser);
 
@@ -533,7 +569,12 @@ test('displays ModifiedInfo with humanized date', async () => {
 test('dataset name links to Explore with correct explore_url', async () => {
   const dataset = mockDatasets[0]; // explore_url: '/explore/?datasource=1__table'
 
-  fetchMock.get(API_ENDPOINTS.DATASETS, { result: [dataset], count: 1 });
+  fetchMock.removeRoute(API_ENDPOINTS.DATASETS);
+  fetchMock.get(
+    API_ENDPOINTS.DATASETS,
+    { result: [dataset], count: 1 },
+    { name: API_ENDPOINTS.DATASETS },
+  );
 
   renderDatasetList(mockAdminUser);
 
