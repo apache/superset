@@ -215,12 +215,13 @@ export default function transformProps(
     }
   }
 
-  if (data.length > 0) {
-    const reversedData = [...sortedData].reverse();
-    // sortedData has type [number | null, number | null][] but TimeSeriesDatum expects [number, number | null][]
-    // The null timestamps are handled in code below (lines 250, 254) so this is safe at runtime
-    // @ts-expect-error - Type mismatch: sortedData allows null timestamps, TimeSeriesDatum doesn't
-    trendLineData = showTrendLine ? reversedData : undefined;
+  if (data.length > 0 && showTrendLine) {
+    // Filter out entries with null timestamps and reverse for chronological order
+    // TimeSeriesDatum requires [number, number | null] - timestamp must be non-null
+    const validData = sortedData.filter(
+      (d): d is [number, number | null] => d[0] !== null,
+    );
+    trendLineData = [...validData].reverse();
   }
 
   let className = '';
