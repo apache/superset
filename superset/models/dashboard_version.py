@@ -20,7 +20,7 @@ from __future__ import annotations
 
 from flask_appbuilder import Model
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import backref, relationship
 
 from superset import security_manager
 from superset.utils import core as utils
@@ -52,7 +52,10 @@ class DashboardVersion(Model):
         nullable=True,
     )
 
-    dashboard = relationship("Dashboard", backref="versions")
+    dashboard = relationship(
+        "Dashboard",
+        backref=backref("versions", cascade="all, delete-orphan"),
+    )
     created_by = relationship(
         security_manager.user_model,
         foreign_keys=[created_by_fk],

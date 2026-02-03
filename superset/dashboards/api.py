@@ -2196,7 +2196,8 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         except DashboardForbiddenError:
             return self.response_403()
         except DashboardRestoreFailedError:
-            return self.response_422(message="Restore failed")
+            logging.exception("Dashboard restore failed")
+            return self.response_422(message=gettext("Restore failed"))
 
     @expose("/<id_or_slug>/copy/", methods=("POST",))
     @protect()

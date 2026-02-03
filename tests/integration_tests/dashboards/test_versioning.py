@@ -20,9 +20,27 @@ Uses the same fixture pattern as other dashboard integration tests
 (tabbed_dashboard, etc.): app_context, login_as_admin, get_user, create_user,
 and a fixture that creates dashboard + slice via superset_factory_util.
 
-Requires the integration test DB to be migrated (run: superset db upgrade).
+Which database do integration tests use?
+  The app is created from tests.integration_tests.test_app, which loads
+  tests.integration_tests.superset_test_config. That config sets:
+  - SQLALCHEMY_DATABASE_URI to a SQLite file at
+    <DATA_DIR>/unittests.integration_tests.db by default (DATA_DIR is
+    SUPERSET_HOME or ~/.superset).
+  - If SUPERSET__SQLALCHEMY_DATABASE_URI is set in the environment, that
+    is used instead (e.g. CI uses PostgreSQL via scripts/tests/run.sh).
+  If you get "Cannot connect to database" or password errors, unset
+  SUPERSET__SQLALCHEMY_DATABASE_URI so the default SQLite DB is used.
+
+To avoid failures (missing tables, wrong schema), use the same DB and run
+migrations before pytest:
+
+  unset SUPERSET__SQLALCHEMY_DATABASE_URI   # use default SQLite
+  export SUPERSET_CONFIG=tests.integration_tests.superset_test_config
+  superset db upgrade
+  pytest tests/integration_tests/dashboards/test_versioning.py -v -s
 """
 
+import logging
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -33,12 +51,27 @@ from superset.commands.dashboard.restore_version import RestoreDashboardVersionC
 from superset.commands.dashboard.update import UpdateDashboardCommand
 from superset.daos.dashboard_version import DashboardVersionDAO
 from superset.utils import json
+from tests.integration_tests.dashboards.dashboard_test_utils import random_str
 from tests.integration_tests.dashboards.superset_factory_util import (
     create_dashboard_to_db,
     create_datasource_table_to_db,
     create_slice_to_db,
     delete_all_inserted_objects,
 )
+from tests.integration_tests.test_app import app
+
+logger = logging.getLogger(__name__)
+
+
+@pytest.fixture(autouse=True, scope="module")
+def _log_integration_test_db():
+    """Log which database URI integration tests use (same as test_app + config)."""
+    with app.app_context():
+        uri = app.config.get("SQLALCHEMY_DATABASE_URI", "NOT_SET")
+        logger.info("Integration tests DB (test_versioning): %s", uri)
+        # So it's visible when running: pytest .../test_versioning.py -v -s
+        print(f"\n[test_versioning] SQLALCHEMY_DATABASE_URI = {uri}\n")
+    return
 
 
 def _layout_with_chart(slice_id: int, slice_uuid: str) -> dict[str, Any]:
@@ -122,7 +155,9 @@ def versioning_dashboard_and_slice(app_context, get_user, create_user):
     admin = get_user("admin")
     if not admin:
         admin = create_user("admin", "Admin", "general")
-    table = create_datasource_table_to_db(name="versioning_test_table")
+    # Unique name to avoid UNIQUE constraint on dbs.database_name when reusing
+    # the same integration test DB (e.g. SQLite) across runs.
+    table = create_datasource_table_to_db(name=f"versioning_test_table_{random_str()}")
     slice_obj = create_slice_to_db(
         name="versioning_test_chart",
         datasource_id=table.id,

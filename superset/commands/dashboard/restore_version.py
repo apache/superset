@@ -101,12 +101,13 @@ class RestoreDashboardVersionCommand(BaseCommand):
         ]
         slice_ids = [sid for sid in slice_ids if sid is not None]
         if not slice_ids:
-            dashboard.slices = []
             _persist_dashboard_slices(dashboard.id, [])
-            return
-        current_slices = db.session.query(Slice).filter(Slice.id.in_(slice_ids)).all()
-        dashboard.slices = current_slices
-        _persist_dashboard_slices(dashboard.id, current_slices)
+        else:
+            current_slices = (
+                db.session.query(Slice).filter(Slice.id.in_(slice_ids)).all()
+            )
+            _persist_dashboard_slices(dashboard.id, current_slices)
+        db.session.expire(dashboard, ["slices"])
 
     @staticmethod
     def _remove_orphaned_chart_components(dashboard: Dashboard) -> None:
