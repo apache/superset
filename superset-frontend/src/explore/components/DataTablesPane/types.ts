@@ -50,8 +50,6 @@ export interface ResultsPaneProps {
   // reload OriginalFormattedTimeColumns from localStorage when isVisible is true
   isVisible?: boolean; // Visibility is managed by the parent tab container
   canDownload: boolean;
-  // Optional map of column/metric name -> verbose label
-  columnDisplayNames?: Record<string, string>;
   queriesResponse?: QueryData[] | null;
 }
 
