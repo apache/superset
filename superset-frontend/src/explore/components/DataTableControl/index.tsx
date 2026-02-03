@@ -16,7 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo, useState, useEffect, useRef, RefObject } from 'react';
+import {
+  useMemo,
+  useState,
+  useEffect,
+  useRef,
+  RefObject,
+  useCallback,
+} from 'react';
 import { t } from '@apache-superset/core';
 import { getTimeFormatter, safeHtmlSpan, TimeFormats } from '@superset-ui/core';
 import { css, styled, useTheme } from '@apache-superset/core/ui';
@@ -96,7 +103,7 @@ export const FilterInput = ({
     if (inputRef.current && shouldFocus) {
       inputRef.current.focus();
     }
-  }, []);
+  }, [shouldFocus]);
 
   const theme = useTheme();
   const debouncedChangeHandler = debounce(
@@ -180,9 +187,12 @@ const DataTableTemporalHeaderCell = ({
 }) => {
   const theme = useTheme();
 
-  const onChange = (e: any) => {
-    onTimeColumnChange(columnName, e.target.value);
-  };
+  const onChange = useCallback(
+    (e: any) => {
+      onTimeColumnChange(columnName, e.target.value);
+    },
+    [columnName, onTimeColumnChange],
+  );
 
   const overlayContent = useMemo(
     () =>
@@ -202,7 +212,7 @@ const DataTableTemporalHeaderCell = ({
           />
         </FormatPickerContainer>
       ) : null,
-    [datasourceId, isOriginalTimeColumn],
+    [datasourceId, isOriginalTimeColumn, onChange],
   );
 
   return datasourceId ? (
@@ -293,31 +303,31 @@ export const useTableColumns = (
   const [originalFormattedTimeColumns, setOriginalFormattedTimeColumns] =
     useState<string[]>(getTimeColumns(datasourceId));
 
-  const onTimeColumnChange = (
-    columnName: string,
-    columnType: FormatPickerValue,
-  ) => {
-    if (!datasourceId) {
-      return;
-    }
-    if (
-      columnType === FormatPickerValue.Original &&
-      !originalFormattedTimeColumns.includes(columnName)
-    ) {
-      const cols = getTimeColumns(datasourceId);
-      cols.push(columnName);
-      setTimeColumns(datasourceId, cols);
-      setOriginalFormattedTimeColumns(cols);
-    } else if (
-      columnType === FormatPickerValue.Formatted &&
-      originalFormattedTimeColumns.includes(columnName)
-    ) {
-      const cols = getTimeColumns(datasourceId);
-      cols.splice(cols.indexOf(columnName), 1);
-      setTimeColumns(datasourceId, cols);
-      setOriginalFormattedTimeColumns(cols);
-    }
-  };
+  const onTimeColumnChange = useCallback(
+    (columnName: string, columnType: FormatPickerValue) => {
+      if (!datasourceId) {
+        return;
+      }
+      if (
+        columnType === FormatPickerValue.Original &&
+        !originalFormattedTimeColumns.includes(columnName)
+      ) {
+        const cols = getTimeColumns(datasourceId);
+        cols.push(columnName);
+        setTimeColumns(datasourceId, cols);
+        setOriginalFormattedTimeColumns(cols);
+      } else if (
+        columnType === FormatPickerValue.Formatted &&
+        originalFormattedTimeColumns.includes(columnName)
+      ) {
+        const cols = getTimeColumns(datasourceId);
+        cols.splice(cols.indexOf(columnName), 1);
+        setTimeColumns(datasourceId, cols);
+        setOriginalFormattedTimeColumns(cols);
+      }
+    },
+    [datasourceId, originalFormattedTimeColumns],
+  );
 
   useEffect(() => {
     if (isVisible) {
@@ -331,7 +341,9 @@ export const useTableColumns = (
         ? colnames
             .filter((column: string) => Object.keys(data[0]).includes(column))
             .map((key, index) => {
-              const colType = coltypes?.[index];
+              const originalIndex = (colnames || []).indexOf(key);
+              const colType = coltypes?.[originalIndex];
+              const colLabel = collabels?.[originalIndex];
               const firstValue = data[0][key];
               const originalFormattedTimeColumnIndex =
                 colType === GenericDataType.Temporal
@@ -339,7 +351,6 @@ export const useTableColumns = (
                   : -1;
               const isOriginalTimeColumn =
                 originalFormattedTimeColumns.includes(key);
-              const label = collabels?.[index];
               return {
                 // react-table requires a non-empty id, therefore we introduce a fallback value in case the key is empty
                 id: key || index,
@@ -352,10 +363,13 @@ export const useTableColumns = (
                       datasourceId={datasourceId}
                       onTimeColumnChange={onTimeColumnChange}
                       isOriginalTimeColumn={isOriginalTimeColumn}
-                      columnLabel={label}
+                      columnLabel={colLabel}
                     />
                   ) : (
-                    <DataTableHeaderCell columnName={key} columnLabel={label} />
+                    <DataTableHeaderCell
+                      columnName={key}
+                      columnLabel={colLabel}
+                    />
                   ),
                 Cell: ({ value }) => {
                   if (value === true) {
@@ -387,10 +401,12 @@ export const useTableColumns = (
       colnames,
       data,
       coltypes,
+      originalFormattedTimeColumns,
       collabels,
       datasourceId,
+      onTimeColumnChange,
       moreConfigs,
-      originalFormattedTimeColumns,
+      allowHTML,
     ],
   );
 };
