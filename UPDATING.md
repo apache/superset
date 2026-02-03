@@ -24,6 +24,21 @@ assists people when migrating to a new version.
 
 ## Next
 
+### WebSocket config for GAQ with Docker
+
+[35896](https://github.com/apache/superset/pull/35896) and [37624](https://github.com/apache/superset/pull/37624) updated documentation on how to run and configure Superset with Docker. Specifically for the WebSocket configuration, a new `docker/superset-websocket/config.example.json` was added to the repo, so that users could copy it to create a `docker/superset-websocket/config.json` file. The existing `docker/superset-websocket/config.json` was removed and git-ignored, so if you're using GAQ / WebSocket make sure to:
+- Stash/backup your existing `config.json` file, to re-apply it after (will get git-ignored going forward)
+- Update the `volumes` configuration for the `superset-websocket` service in your `docker-compose.override.yml` file, to include the `docker/superset-websocket/config.json` file. For example:
+``` yaml
+services:
+  superset-websocket:
+    volumes:
+      - ./superset-websocket:/home/superset-websocket
+      - /home/superset-websocket/node_modules
+      - /home/superset-websocket/dist
+      - ./docker/superset-websocket/config.json:/home/superset-websocket/config.json:ro
+```
+
 ### Example Data Loading Improvements
 
 #### New Directory Structure
