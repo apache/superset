@@ -26,6 +26,7 @@ import { CardStyle } from 'geostyler/dist/Component/CardStyle/CardStyle';
 import { FC } from 'react';
 import { ConfigProvider } from 'antd-v5';
 import { GeoStylerWrapperProps } from './types';
+import 'geostyler/dist/index.css';
 
 export const GeoStylerWrapper: FC<GeoStylerWrapperProps> = ({
   className,

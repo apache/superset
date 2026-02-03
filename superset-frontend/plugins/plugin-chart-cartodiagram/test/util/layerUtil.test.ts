@@ -40,6 +40,7 @@ import { LAYER_NAME_PROP, SELECTION_LAYER_NAME } from '../../src/constants';
 
 describe('layerUtil', () => {
   const circleColor = '#123456';
+  const fillColor = '#ff0000';
 
   const layerStyle: Style = {
     name: 'Default Style',
@@ -59,7 +60,7 @@ describe('layerUtil', () => {
           },
           {
             kind: 'Fill',
-            color: '#000000',
+            color: fillColor,
           },
         ],
       },
@@ -123,8 +124,8 @@ describe('layerUtil', () => {
       expect(style!.length).toEqual(3);
 
       // @ts-ignore upgrade `ol` package for better type of StyleLike type.
-      const colorAtLayer = style![1].getImage().getFill().getColor();
-      expect(colorAtLayer).toEqual(circleColor);
+      const colorAtLayer = style![2].getFill().getColor();
+      expect(colorAtLayer).toEqual(fillColor);
     });
   });
 
@@ -143,8 +144,8 @@ describe('layerUtil', () => {
       expect(style!.length).toEqual(3);
 
       // @ts-ignore upgrade `ol` package for better type of StyleLike type.
-      const colorAtLayer = style![1].getImage().getFill().getColor();
-      expect(colorAtLayer).toEqual(circleColor);
+      const colorAtLayer = style![2].getFill().getColor();
+      expect(colorAtLayer).toEqual(fillColor);
     });
   });
 
