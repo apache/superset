@@ -54,7 +54,6 @@ export const useResultsPane = ({
   setForceQuery,
   isVisible,
   canDownload,
-  columnDisplayNames,
 }: ResultsPaneProps): ReactElement[] => {
   const metadata = getChartMetadataRegistry().get(
     queryFormData?.viz_type || queryFormData?.vizType,
@@ -184,7 +183,6 @@ export const useResultsPane = ({
         datasourceId={queryFormData.datasource}
         isVisible={isVisible}
         canDownload={canDownload}
-        columnDisplayNames={columnDisplayNames}
         rowLimit={rowLimit}
         rowLimitOptions={ROW_LIMIT_OPTIONS}
         onRowLimitChange={handleRowLimitChange}
