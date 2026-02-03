@@ -107,7 +107,7 @@ class Explorable(Protocol):
     # =========================================================================
 
     @property
-    def id(self) -> int:
+    def id(self) -> int | str:
         """
         Primary key identifier for this explorable.
 
@@ -115,7 +115,7 @@ class Explorable(Protocol):
         Must be accessible without triggering expensive operations like
         database engine connections.
 
-        :return: Integer primary key
+        :return: Primary key (typically int, but may be str for some implementations)
         """
 
     @property
