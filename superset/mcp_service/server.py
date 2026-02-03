@@ -34,6 +34,8 @@ from superset.mcp_service.mcp_config import (
     MCP_STORE_CONFIG,
 )
 from superset.mcp_service.storage import _create_redis_store
+from superset.mcp_service.mcp_config import get_mcp_factory_config
+from superset.mcp_service.middleware import create_response_size_guard_middleware
 
 
 def configure_logging(debug: bool = False) -> None:
@@ -178,12 +180,7 @@ def run_server(
         middleware_list = []
 
         # Add response size guard (protects LLM clients from huge responses)
-        from superset.mcp_service.middleware import (
-            create_response_size_guard_middleware,
-        )
-
-        size_guard_middleware = create_response_size_guard_middleware()
-        if size_guard_middleware:
+        if size_guard_middleware := create_response_size_guard_middleware():
             middleware_list.append(size_guard_middleware)
 
         # Add caching middleware

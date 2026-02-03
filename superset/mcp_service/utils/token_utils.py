@@ -138,29 +138,20 @@ def extract_query_params(params: Dict[str, Any] | None) -> Dict[str, Any]:
     if "request" in params and isinstance(params["request"], dict):
         params = params["request"]
 
-    extracted = {}
-
-    # Pagination params
-    if "page_size" in params:
-        extracted["page_size"] = params["page_size"]
-    if "limit" in params:
-        extracted["limit"] = params["limit"]
-
-    # Column selection
-    if "select_columns" in params:
-        extracted["select_columns"] = params["select_columns"]
-    if "columns" in params:
-        extracted["columns"] = params["columns"]
-
-    # Filters
-    if "filters" in params:
-        extracted["filters"] = params["filters"]
-
-    # Search
-    if "search" in params:
-        extracted["search"] = params["search"]
-
-    return extracted
+    # Keys to extract from params
+    extract_keys = [
+        # Pagination
+        "page_size",
+        "limit",
+        # Column selection
+        "select_columns",
+        "columns",
+        # Filters
+        "filters",
+        # Search
+        "search",
+    ]
+    return {k: params[k] for k in extract_keys if k in params}
 
 
 def generate_size_reduction_suggestions(

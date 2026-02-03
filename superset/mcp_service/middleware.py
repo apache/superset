@@ -27,6 +27,10 @@ from sqlalchemy.exc import OperationalError, TimeoutError
 from starlette.exceptions import HTTPException
 
 from superset.extensions import event_logger
+from superset.mcp_service.constants import (
+    DEFAULT_TOKEN_LIMIT,
+    DEFAULT_WARN_THRESHOLD_PCT,
+)
 from superset.utils.core import get_user_id
 
 logger = logging.getLogger(__name__)
@@ -777,8 +781,8 @@ class ResponseSizeGuardMiddleware(Middleware):
 
     def __init__(
         self,
-        token_limit: int = 25000,
-        warn_threshold_pct: int = 80,
+        token_limit: int = DEFAULT_TOKEN_LIMIT,
+        warn_threshold_pct: int = DEFAULT_WARN_THRESHOLD_PCT,
         excluded_tools: list[str] | None = None,
     ) -> None:
         self.token_limit = token_limit
@@ -903,8 +907,10 @@ def create_response_size_guard_middleware() -> ResponseSizeGuardMiddleware | Non
             return None
 
         middleware = ResponseSizeGuardMiddleware(
-            token_limit=config.get("token_limit", 25000),
-            warn_threshold_pct=config.get("warn_threshold_pct", 80),
+            token_limit=config.get("token_limit", DEFAULT_TOKEN_LIMIT),
+            warn_threshold_pct=config.get(
+                "warn_threshold_pct", DEFAULT_WARN_THRESHOLD_PCT
+            ),
             excluded_tools=config.get("excluded_tools"),
         )
 

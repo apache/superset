@@ -33,15 +33,15 @@ from superset.mcp_service.middleware import (
 class TestResponseSizeGuardMiddleware:
     """Test ResponseSizeGuardMiddleware class."""
 
-    def test_init_default_values(self):
+    def test_init_default_values(self) -> None:
         """Should initialize with default values."""
         middleware = ResponseSizeGuardMiddleware()
-        assert middleware.token_limit == 25000
+        assert middleware.token_limit == 25_000
         assert middleware.warn_threshold_pct == 80
         assert middleware.warn_threshold == 20000
         assert middleware.excluded_tools == set()
 
-    def test_init_custom_values(self):
+    def test_init_custom_values(self) -> None:
         """Should initialize with custom values."""
         middleware = ResponseSizeGuardMiddleware(
             token_limit=10000,
@@ -54,7 +54,7 @@ class TestResponseSizeGuardMiddleware:
         assert middleware.excluded_tools == {"health_check", "get_chart_preview"}
 
     @pytest.mark.asyncio
-    async def test_allows_small_response(self):
+    async def test_allows_small_response(self) -> None:
         """Should allow responses under token limit."""
         middleware = ResponseSizeGuardMiddleware(token_limit=25000)
 
@@ -77,7 +77,7 @@ class TestResponseSizeGuardMiddleware:
         call_next.assert_called_once_with(context)
 
     @pytest.mark.asyncio
-    async def test_blocks_large_response(self):
+    async def test_blocks_large_response(self) -> None:
         """Should block responses over token limit."""
         middleware = ResponseSizeGuardMiddleware(token_limit=100)  # Very low limit
 
@@ -95,9 +95,9 @@ class TestResponseSizeGuardMiddleware:
         with (
             patch("superset.mcp_service.middleware.get_user_id", return_value=1),
             patch("superset.mcp_service.middleware.event_logger"),
+            pytest.raises(ToolError) as exc_info,
         ):
-            with pytest.raises(ToolError) as exc_info:
-                await middleware.on_call_tool(context, call_next)
+            await middleware.on_call_tool(context, call_next)
 
         # Verify error contains helpful information
         error_message = str(exc_info.value)
@@ -105,7 +105,7 @@ class TestResponseSizeGuardMiddleware:
         assert "limit" in error_message.lower()
 
     @pytest.mark.asyncio
-    async def test_skips_excluded_tools(self):
+    async def test_skips_excluded_tools(self) -> None:
         """Should skip checking for excluded tools."""
         middleware = ResponseSizeGuardMiddleware(
             token_limit=100, excluded_tools=["health_check"]
@@ -125,7 +125,7 @@ class TestResponseSizeGuardMiddleware:
         assert result == large_response
 
     @pytest.mark.asyncio
-    async def test_logs_warning_at_threshold(self):
+    async def test_logs_warning_at_threshold(self) -> None:
         """Should log warning when approaching limit."""
         middleware = ResponseSizeGuardMiddleware(
             token_limit=1000, warn_threshold_pct=80
@@ -152,7 +152,7 @@ class TestResponseSizeGuardMiddleware:
         mock_logger.warning.assert_called()
 
     @pytest.mark.asyncio
-    async def test_error_includes_suggestions(self):
+    async def test_error_includes_suggestions(self) -> None:
         """Should include suggestions in error message."""
         middleware = ResponseSizeGuardMiddleware(token_limit=100)
 
@@ -166,9 +166,9 @@ class TestResponseSizeGuardMiddleware:
         with (
             patch("superset.mcp_service.middleware.get_user_id", return_value=1),
             patch("superset.mcp_service.middleware.event_logger"),
+            pytest.raises(ToolError) as exc_info,
         ):
-            with pytest.raises(ToolError) as exc_info:
-                await middleware.on_call_tool(context, call_next)
+            await middleware.on_call_tool(context, call_next)
 
         error_message = str(exc_info.value)
         # Should have numbered suggestions
@@ -177,7 +177,7 @@ class TestResponseSizeGuardMiddleware:
         assert "page_size" in error_message.lower() or "limit" in error_message.lower()
 
     @pytest.mark.asyncio
-    async def test_logs_size_exceeded_event(self):
+    async def test_logs_size_exceeded_event(self) -> None:
         """Should log to event logger when size exceeded."""
         middleware = ResponseSizeGuardMiddleware(token_limit=100)
 
@@ -191,9 +191,9 @@ class TestResponseSizeGuardMiddleware:
         with (
             patch("superset.mcp_service.middleware.get_user_id", return_value=1),
             patch("superset.mcp_service.middleware.event_logger") as mock_event_logger,
+            pytest.raises(ToolError),
         ):
-            with pytest.raises(ToolError):
-                await middleware.on_call_tool(context, call_next)
+            await middleware.on_call_tool(context, call_next)
 
         # Should log to event logger
         mock_event_logger.log.assert_called()
@@ -204,7 +204,7 @@ class TestResponseSizeGuardMiddleware:
 class TestCreateResponseSizeGuardMiddleware:
     """Test create_response_size_guard_middleware factory function."""
 
-    def test_creates_middleware_when_enabled(self):
+    def test_creates_middleware_when_enabled(self) -> None:
         """Should create middleware when enabled in config."""
         mock_config = {
             "enabled": True,
@@ -228,7 +228,7 @@ class TestCreateResponseSizeGuardMiddleware:
         assert middleware.warn_threshold_pct == 75
         assert "health_check" in middleware.excluded_tools
 
-    def test_returns_none_when_disabled(self):
+    def test_returns_none_when_disabled(self) -> None:
         """Should return None when disabled in config."""
         mock_config = {"enabled": False}
 
@@ -243,7 +243,7 @@ class TestCreateResponseSizeGuardMiddleware:
 
         assert middleware is None
 
-    def test_uses_defaults_when_config_missing(self):
+    def test_uses_defaults_when_config_missing(self) -> None:
         """Should use defaults when config values are missing."""
         mock_config = {"enabled": True}  # Only enabled, no other values
 
@@ -257,10 +257,10 @@ class TestCreateResponseSizeGuardMiddleware:
             middleware = create_response_size_guard_middleware()
 
         assert middleware is not None
-        assert middleware.token_limit == 25000  # Default
+        assert middleware.token_limit == 25_000  # Default
         assert middleware.warn_threshold_pct == 80  # Default
 
-    def test_handles_exception_gracefully(self):
+    def test_handles_exception_gracefully(self) -> None:
         """Should return None on expected configuration exceptions."""
         with patch(
             "superset.mcp_service.flask_singleton.get_flask_app",
@@ -275,7 +275,7 @@ class TestMiddlewareIntegration:
     """Integration tests for middleware behavior."""
 
     @pytest.mark.asyncio
-    async def test_pydantic_model_response(self):
+    async def test_pydantic_model_response(self) -> None:
         """Should handle Pydantic model responses."""
         from pydantic import BaseModel
 
@@ -301,7 +301,7 @@ class TestMiddlewareIntegration:
         assert result == response
 
     @pytest.mark.asyncio
-    async def test_list_response(self):
+    async def test_list_response(self) -> None:
         """Should handle list responses."""
         middleware = ResponseSizeGuardMiddleware(token_limit=25000)
 
@@ -321,7 +321,7 @@ class TestMiddlewareIntegration:
         assert result == response
 
     @pytest.mark.asyncio
-    async def test_string_response(self):
+    async def test_string_response(self) -> None:
         """Should handle string responses."""
         middleware = ResponseSizeGuardMiddleware(token_limit=25000)
 
