@@ -447,7 +447,10 @@ test('renders datasets with certification data', async () => {
   };
 
   fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
-  fetchMock.get(API_ENDPOINTS.DATASETS, { result: [certifiedDataset], count: 1 });
+  fetchMock.get(API_ENDPOINTS.DATASETS, {
+    result: [certifiedDataset],
+    count: 1,
+  });
 
   renderDatasetList(mockAdminUser);
 
@@ -472,7 +475,10 @@ test('displays datasets with warning_markdown', async () => {
   };
 
   fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
-  fetchMock.get(API_ENDPOINTS.DATASETS, { result: [datasetWithWarning], count: 1 });
+  fetchMock.get(API_ENDPOINTS.DATASETS, {
+    result: [datasetWithWarning],
+    count: 1,
+  });
 
   renderDatasetList(mockAdminUser);
 
@@ -491,7 +497,10 @@ test('displays dataset with multiple owners', async () => {
   const datasetWithOwners = mockDatasets[1]; // Has 2 owners: Jane Smith, Bob Jones
 
   fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
-  fetchMock.get(API_ENDPOINTS.DATASETS, { result: [datasetWithOwners], count: 1 });
+  fetchMock.get(API_ENDPOINTS.DATASETS, {
+    result: [datasetWithOwners],
+    count: 1,
+  });
 
   renderDatasetList(mockAdminUser);
 

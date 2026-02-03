@@ -227,7 +227,7 @@ test.skip('should pass appropriate dimensions to ResizableContainer', () => {
 test('should increment the depth of its children', () => {
   const { getByTestId } = setup();
   expect(getByTestId('mock-dashboard-component')).toHaveAttribute(
-    'depth',
+    'data-depth',
     `${props.depth + 1}`,
   );
 });
