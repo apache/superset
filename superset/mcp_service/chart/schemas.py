@@ -606,6 +606,8 @@ class FilterConfig(BaseModel):
 
 # Actual chart types
 class TableChartConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     chart_type: Literal["table"] = Field(
         ..., description="Chart type (REQUIRED: must be 'table')"
     )
@@ -659,6 +661,8 @@ class TableChartConfig(BaseModel):
 
 
 class XYChartConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     chart_type: Literal["xy"] = Field(
         ...,
         description=(
@@ -692,7 +696,11 @@ class XYChartConfig(BaseModel):
         False,
         description="Stack bars/areas on top of each other instead of side-by-side",
     )
-    group_by: ColumnRef | None = Field(None, description="Column to group by")
+    group_by: ColumnRef | None = Field(
+        None,
+        description="Column to group by (creates series/breakdown). "
+        "Use this field for series grouping — do NOT use 'series'.",
+    )
     x_axis: AxisConfig | None = Field(None, description="X-axis configuration")
     y_axis: AxisConfig | None = Field(None, description="Y-axis configuration")
     legend: LegendConfig | None = Field(None, description="Legend configuration")
