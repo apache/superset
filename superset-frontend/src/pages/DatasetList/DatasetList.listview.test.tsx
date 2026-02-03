@@ -33,6 +33,7 @@ import {
   mockHandleResourceExport,
   assertOnlyExpectedCalls,
   API_ENDPOINTS,
+  getDeleteRouteName,
 } from './DatasetList.testHelpers';
 
 const mockAddDangerToast = jest.fn();
@@ -450,15 +451,12 @@ test('delete action successfully deletes dataset and refreshes list', async () =
     .pop();
   await userEvent.click(confirmButton!);
 
-  // Wait for delete API call
+  // Wait for delete API call - use the named route for reliable call history lookup
   await waitFor(() => {
     const deleteCalls = fetchMock.callHistory.calls(
-      `glob:*/api/v1/dataset/${datasetToDelete.id}`,
+      getDeleteRouteName(datasetToDelete.id),
     );
-    const hasDelete = deleteCalls.some(
-      call => (call.options as RequestInit)?.method === 'DELETE',
-    );
-    expect(hasDelete).toBe(true);
+    expect(deleteCalls.length).toBeGreaterThan(0);
   });
 
   // Success toast shown and modal closes
