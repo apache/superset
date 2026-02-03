@@ -47,6 +47,7 @@ from superset.utils.core import (
     DTTM_ALIAS,
     extract_dataframe_dtypes,
     GenericDataType,
+    extract_display_labels,
     get_form_data_token,
     as_list,
     recipients_string_to_list,
@@ -497,3 +498,20 @@ class TestUtils(SupersetTestCase):
         # test numeric epoch_ms format
         df = pd.DataFrame([{"__timestamp": ts.timestamp() * 1000, "a": 1}])
         assert normalize_col(df, "epoch_ms", 0, None)[DTTM_ALIAS][0] == ts
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_extract_display_labels(
+        self,
+    ):
+        label_map = {
+            "Gender": ["gender"],
+            "Count": ["num_boys", "num_girls"],
+        }
+        colnames = ["gender", "num_boys", "num_girls"]
+        slc = self.get_slice("Trends")
+        result = extract_display_labels(
+            label_map,
+            colnames,
+            slc.datasource,
+        )
+        assert result == ["Gender", "Count", "Count"]
