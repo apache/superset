@@ -138,7 +138,7 @@ test('changes currency symbol from USD to GBP', async () => {
   expect(updatedMetric?.currency?.symbolPosition).toBe('prefix');
 }, 60000);
 
-test('currency code column dropdown shows only string columns', async () => {
+test('currency code column dropdown shows string and calculated columns but excludes numeric columns', async () => {
   const baseProps = createProps();
   const testProps = {
     ...baseProps,
@@ -166,6 +166,18 @@ test('currency code column dropdown shows only string columns', async () => {
           expression: '',
           groupby: false,
           column_name: 'amount',
+        },
+        {
+          id: 102,
+          type: null,
+          type_generic: null,
+          filterable: true,
+          is_dttm: false,
+          is_active: true,
+          expression:
+            "CASE WHEN country = 'US' THEN 'USD' ELSE 'EUR' END",
+          groupby: true,
+          column_name: 'derived_currency',
         },
         ...baseProps.datasource.columns,
       ],
@@ -196,8 +208,14 @@ test('currency code column dropdown shows only string columns', async () => {
     expect(currencyCodeOption).toBeDefined();
   });
 
-  // Verify NUMERIC column is NOT available
+  // Verify CALCULATED column is available despite null type_generic
   const options = document.querySelectorAll('.ant-select-item-option');
+  const derivedCurrencyOption = Array.from(options).find(o =>
+    o.textContent?.includes('derived_currency'),
+  );
+  expect(derivedCurrencyOption).toBeDefined();
+
+  // Verify NUMERIC column is NOT available
   const amountOption = Array.from(options).find(o =>
     o.textContent?.includes('amount'),
   );

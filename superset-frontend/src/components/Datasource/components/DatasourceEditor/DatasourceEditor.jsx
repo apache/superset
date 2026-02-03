@@ -1092,8 +1092,13 @@ class DatasourceEditor extends PureComponent {
       }));
 
     // Get string-type columns for the currency code dropdown
+    // Include calculated columns (identified by truthy expression) even when
+    // type_generic is unresolved, since the backend only populates type metadata
+    // for physical columns. Currency detection handles invalid codes gracefully.
     const stringColumns = allColumns
-      .filter(col => col.type_generic === GenericDataType.String)
+      .filter(
+        col => col.type_generic === GenericDataType.String || col.expression,
+      )
       .map(col => ({
         value: col.column_name,
         label: col.verbose_name || col.column_name,
