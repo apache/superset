@@ -171,9 +171,9 @@ async def generate_chart(  # noqa: C901
             await ctx.report_progress(2, 5, "Creating chart in database")
             from superset.commands.chart.create import CreateChartCommand
 
-            # Generate a chart name
-            chart_name = generate_chart_name(request.config)
-            await ctx.debug("Generated chart name: chart_name=%s" % (chart_name,))
+            # Use custom chart name if provided, otherwise auto-generate
+            chart_name = request.chart_name or generate_chart_name(request.config)
+            await ctx.debug("Chart name: chart_name=%s" % (chart_name,))
 
             # Find the dataset to get its numeric ID
             from superset.daos.dataset import DatasetDAO
