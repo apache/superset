@@ -454,9 +454,22 @@ export function saveDashboardRequest(data, id, saveType) {
               dashboard_title: cleanedData.dashboard_title,
               slug: cleanedData.slug,
               owners: cleanedData.owners,
-              roles: cleanedData.roles,
-              tags: cleanedData.tags || [],
+              ...(cleanedData.roles !== undefined && {
+                roles: cleanedData.roles,
+              }),
+              ...(cleanedData.tags !== undefined && {
+                tags: cleanedData.tags || [],
+              }),
               theme_id: cleanedData.theme_id,
+              // Only include empty_state_config if it has actual values
+              ...(cleanedData.empty_state_config &&
+              Object.values(cleanedData.empty_state_config).some(val => val)
+                ? {
+                    empty_state_config: safeStringify(
+                      cleanedData.empty_state_config,
+                    ),
+                  }
+                : {}),
               json_metadata: safeStringify({
                 ...cleanedData?.metadata,
                 default_filters: safeStringify(serializedFilters),
@@ -466,14 +479,19 @@ export function saveDashboardRequest(data, id, saveType) {
               }),
             };
 
-      const updateDashboard = () =>
-        SupersetClient.put({
+      const updateDashboard = () => {
+        console.log(
+          'Dashboard PUT payload:',
+          JSON.stringify(updatedDashboard, null, 2),
+        );
+        return SupersetClient.put({
           endpoint: `/api/v1/dashboard/${id}`,
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(updatedDashboard),
         })
           .then(response => onUpdateSuccess(response))
           .catch(response => onError(response));
+      };
       return new Promise((resolve, reject) => {
         if (
           !isFeatureEnabled(FeatureFlag.ConfirmDashboardDiff) ||

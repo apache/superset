@@ -420,13 +420,15 @@ const Header = () => {
       css: customCss,
       dashboard_title: dashboardTitle,
       last_modified_time: actualLastModifiedTime,
-      owners: dashboardInfo.owners,
-      roles: dashboardInfo.roles,
+      owners: (dashboardInfo.owners || []).map(o => o.id || o),
+      roles: (dashboardInfo.roles || []).map(r => r.id || r),
       slug,
-      tags: (dashboardInfo.tags || []).filter(
-        item => item.type === TagTypeEnum.Custom || !item.type,
-      ),
+      tags: (dashboardInfo.tags || [])
+        .filter(item => item.type === TagTypeEnum.Custom || !item.type)
+        .map(tag => tag.id)
+        .filter(id => typeof id === 'number'),
       theme_id: dashboardInfo.theme ? dashboardInfo.theme.id : null,
+      empty_state_config: dashboardInfo.metadata?.empty_state_config,
       metadata: {
         ...dashboardInfo?.metadata,
         color_namespace: currentColorNamespace,

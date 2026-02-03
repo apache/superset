@@ -105,4 +105,10 @@ export type BigNumberVizProps = {
   formData?: BigNumberWithTrendlineFormData;
   refs: Refs;
   colorThresholdFormatters?: ColorFormatters;
+  dashboardEmptyStateConfig?: {
+    no_data_message?: string;
+    no_data_subtitle?: string;
+    no_results_message?: string;
+    no_results_subtitle?: string;
+  };
 };

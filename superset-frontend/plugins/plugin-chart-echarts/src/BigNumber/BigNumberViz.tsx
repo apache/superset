@@ -190,9 +190,23 @@ function BigNumberVis({
   };
 
   const renderHeader = (maxHeight: number) => {
-    const { bigNumber, width, colorThresholdFormatters, onContextMenu } = props;
-    // @ts-ignore
-    const text = bigNumber === null ? t('No data') : headerFormatter(bigNumber);
+    const {
+      bigNumber,
+      width,
+      colorThresholdFormatters,
+      onContextMenu,
+      dashboardEmptyStateConfig,
+    } = props;
+
+    let text: string;
+    if (bigNumber === null) {
+      // Priority: custom dashboard message > default i18n message
+      text = dashboardEmptyStateConfig?.no_data_message || t('No data');
+    } else {
+      // headerFormatter expects the raw bigNumber value (number, string, etc.)
+      const formattedValue = headerFormatter(bigNumber as number);
+      text = String(formattedValue);
+    }
 
     const hasThresholdColorFormatter =
       Array.isArray(colorThresholdFormatters) &&
@@ -286,20 +300,34 @@ function BigNumberVis({
   };
 
   const renderSubtitle = (maxHeight: number) => {
-    const { subtitle, width, bigNumber, bigNumberFallback } = props;
+    const {
+      subtitle,
+      width,
+      bigNumber,
+      bigNumberFallback,
+      dashboardEmptyStateConfig,
+    } = props;
     let fontSize = 0;
 
-    const NO_DATA_OR_HASNT_LANDED = t(
-      'No data after filtering or data is NULL for the latest time record',
-    );
-    const NO_DATA = t(
-      'Try applying different filters or ensuring your datasource has data',
-    );
-
-    let text = subtitle;
+    let text: string | undefined;
     if (bigNumber === null) {
-      text =
-        subtitle || (bigNumberFallback ? NO_DATA : NO_DATA_OR_HASNT_LANDED);
+      // Priority: custom dashboard subtitle > chart subtitle > default i18n message
+      if (dashboardEmptyStateConfig?.no_data_subtitle) {
+        text = dashboardEmptyStateConfig.no_data_subtitle;
+      } else if (subtitle) {
+        text = subtitle;
+      } else {
+        // Default i18n messages
+        text = bigNumberFallback
+          ? t(
+              'Try applying different filters or ensuring your datasource has data',
+            )
+          : t(
+              'No data after filtering or data is NULL for the latest time record',
+            );
+      }
+    } else {
+      text = subtitle;
     }
 
     if (text) {

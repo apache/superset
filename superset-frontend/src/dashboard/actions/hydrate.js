@@ -238,6 +238,15 @@ export const hydrateDashboard =
     metadata.chart_configuration = chartConfiguration;
     metadata.global_chart_configuration = globalChartConfiguration;
 
+    // Parse and add empty_state_config to metadata if it exists
+    if (dashboard.empty_state_config) {
+      try {
+        metadata.empty_state_config = JSON.parse(dashboard.empty_state_config);
+      } catch (e) {
+        console.error('Failed to parse empty_state_config:', e);
+      }
+    }
+
     const { roles } = user;
     const canEdit = canUserEditDashboard(dashboard, user);
     const crossFiltersEnabled = isCrossFiltersEnabled(

@@ -19,28 +19,43 @@
 
 /**
  * Configuration for customizing empty state messages in charts
+ *
+ * Message Priority (BigNumber charts):
+ * - no_data_message/subtitle: Custom dashboard config > Chart subtitle > Default i18n
+ * - no_results_message/subtitle: Custom dashboard config > Context-specific i18n
+ *
+ * When messages are displayed:
+ * - no_data_*: When query returns no rows (bigNumber === null)
+ * - no_results_*: When chart data is filtered and produces no results
+ *
+ * @note Custom messages are NOT translated - they are displayed as-is
+ * @note All fields are optional - defaults to i18n messages when not provided
  */
 export interface EmptyStateConfig {
   /**
    * Custom message to display when chart has no data
+   * Overrides default i18n message: "No data"
    * @example "No transactions found"
    */
   no_data_message?: string;
 
   /**
    * Custom subtitle/description for no data state
+   * Priority: custom subtitle > chart subtitle > default i18n
    * @example "Try adjusting your date range"
    */
   no_data_subtitle?: string;
 
   /**
    * Custom message for no results after filtering
+   * Overrides: "No results were returned for this query"
    * @example "No matches found for your filters"
    */
   no_results_message?: string;
 
   /**
    * Custom subtitle for no results state
+   * Context-aware: different defaults for Explore vs Dashboard
    * @example "Try different filter values"
    */
   no_results_subtitle?: string;

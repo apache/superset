@@ -211,10 +211,20 @@ const PropertiesModal = ({
       setShowChartTimestamps(metadata?.show_chart_timestamps ?? false);
 
       // Parse empty_state_config if it exists
+      // It can come from two sources:
+      // 1. API response: empty_state_config as JSON string at top level
+      // 2. Redux state: metadata.empty_state_config as already parsed object
       try {
-        const parsedEmptyStateConfig = empty_state_config
-          ? JSON.parse(empty_state_config)
-          : {};
+        let parsedEmptyStateConfig = {};
+
+        if (metadata?.empty_state_config) {
+          // Already parsed in metadata (from Redux state after hydration)
+          parsedEmptyStateConfig = metadata.empty_state_config;
+        } else if (empty_state_config) {
+          // JSON string from API response
+          parsedEmptyStateConfig = JSON.parse(empty_state_config);
+        }
+
         setEmptyStateConfig(parsedEmptyStateConfig);
       } catch (error) {
         setEmptyStateConfig({});
@@ -345,6 +355,17 @@ const PropertiesModal = ({
     const jsonMetadataObj = getJsonMetadata();
     jsonMetadataObj.refresh_frequency = refreshFrequency;
     jsonMetadataObj.show_chart_timestamps = Boolean(showChartTimestamps);
+
+    // Only include empty_state_config if it has at least one non-empty value
+    const hasEmptyStateValues = Object.values(emptyStateConfig).some(
+      val => val,
+    );
+    if (hasEmptyStateValues) {
+      jsonMetadataObj.empty_state_config = emptyStateConfig;
+    } else {
+      // Remove empty_state_config if all values are empty
+      delete jsonMetadataObj.empty_state_config;
+    }
     const customLabelColors = jsonMetadataObj.label_colors || {};
     const updatedDashboardMetadata = {
       ...originalDashboardMetadata.current,
@@ -359,6 +380,10 @@ const PropertiesModal = ({
       setDashboardMetadata({
         ...updatedDashboardMetadata,
         map_label_colors: getFreshLabelsColorMapEntries(customLabelColors),
+        // Only include if it has values
+        ...(hasEmptyStateValues
+          ? { empty_state_config: emptyStateConfig }
+          : {}),
       }),
     );
 
@@ -371,7 +396,7 @@ const PropertiesModal = ({
     const moreOnSubmitProps: { roles?: Roles; tags?: TagType[] } = {};
     const morePutProps: {
       roles?: number[];
-      tags?: (string | number | undefined)[];
+      tags?: number[];
     } = {};
     if (isFeatureEnabled(FeatureFlag.DashboardRbac)) {
       moreOnSubmitProps.roles = roles;
@@ -379,7 +404,9 @@ const PropertiesModal = ({
     }
     if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
       moreOnSubmitProps.tags = tags;
-      morePutProps.tags = tags.map(tag => tag.id);
+      morePutProps.tags = tags
+        .map(tag => tag.id)
+        .filter((id): id is number => typeof id === 'number');
     }
     const onSubmitProps = {
       id: dashboardId,
@@ -402,7 +429,7 @@ const PropertiesModal = ({
         onHide();
         addSuccessToast(t('Dashboard properties updated'));
       } catch (error) {
-        console.error('Apply failed:', error);
+        addDangerToast(t('Failed to update dashboard properties'));
       } finally {
         setIsApplying(false);
       }

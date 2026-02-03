@@ -83,6 +83,7 @@ export default function transformProps(
     hooks,
     inContextMenu,
     theme,
+    dashboardEmptyStateConfig,
     datasource: { currencyFormats = {}, columnFormats = {} },
   } = chartProps;
   const {
@@ -394,5 +395,6 @@ export default function transformProps(
     onContextMenu,
     xValueFormatter: formatTime,
     refs,
+    dashboardEmptyStateConfig,
   };
 }

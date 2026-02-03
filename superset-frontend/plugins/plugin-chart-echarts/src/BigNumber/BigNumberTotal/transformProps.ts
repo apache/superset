@@ -42,6 +42,7 @@ export default function transformProps(
     formData,
     rawFormData,
     hooks,
+    dashboardEmptyStateConfig,
     datasource: { currencyFormats = {}, columnFormats = {} },
     theme,
   } = chartProps;
@@ -123,5 +124,6 @@ export default function transformProps(
     metricName: originalLabel,
     showMetricName,
     metricNameFontSize,
+    dashboardEmptyStateConfig,
   };
 }
