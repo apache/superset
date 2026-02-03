@@ -164,19 +164,19 @@ const FormatPickerLabel = styled.span`
 
 const DataTableTemporalHeaderCell = ({
   columnName,
+  columnLabel,
   onTimeColumnChange,
   datasourceId,
   isOriginalTimeColumn,
-  displayLabel,
 }: {
   columnName: string;
+  columnLabel?: string;
   onTimeColumnChange: (
     columnName: string,
     columnType: FormatPickerValue,
   ) => void;
   datasourceId?: string;
   isOriginalTimeColumn: boolean;
-  displayLabel?: string;
 }) => {
   const theme = useTheme();
 
@@ -220,10 +220,10 @@ const DataTableTemporalHeaderCell = ({
           onClick={(e: React.MouseEvent<HTMLElement>) => e.stopPropagation()}
         />
       </Popover>
-      {displayLabel ?? columnName}
+      {columnLabel ?? columnName}
     </span>
   ) : (
-    <span>{displayLabel ?? columnName}</span>
+    <span>{columnLabel ?? columnName}</span>
   );
 };
 
@@ -333,7 +333,6 @@ export const useTableColumns = (
             .map((key, index) => {
               const colType = coltypes?.[index];
               const firstValue = data[0][key];
-              const headerLabel = columnDisplayNames?.[key] ?? key;
               const originalFormattedTimeColumnIndex =
                 colType === GenericDataType.Temporal
                   ? originalFormattedTimeColumns.indexOf(key)
@@ -353,7 +352,7 @@ export const useTableColumns = (
                       datasourceId={datasourceId}
                       onTimeColumnChange={onTimeColumnChange}
                       isOriginalTimeColumn={isOriginalTimeColumn}
-                      displayLabel={headerLabel}
+                      columnLabel={label}
                     />
                   ) : (
                     <DataTableHeaderCell columnName={key} columnLabel={label} />
@@ -392,7 +391,6 @@ export const useTableColumns = (
       datasourceId,
       moreConfigs,
       originalFormattedTimeColumns,
-      columnDisplayNames,
     ],
   );
 };
