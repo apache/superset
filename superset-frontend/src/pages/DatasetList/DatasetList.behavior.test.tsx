@@ -62,8 +62,8 @@ afterEach(async () => {
   // Reset browser history state to prevent query params leaking between tests
   window.history.replaceState({}, '', '/');
 
-  fetchMock.resetHistory();
-  fetchMock.restore();
+  fetchMock.clearHistory();
+  fetchMock.removeRoutes();
   jest.restoreAllMocks();
 });
 
@@ -97,7 +97,7 @@ test('typing in search triggers debounced API call with search filter', async ()
   const searchInput = within(searchContainer).getByRole('textbox');
 
   // Record initial API calls
-  const initialCallCount = fetchMock.calls(API_ENDPOINTS.DATASETS).length;
+  const initialCallCount = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS).length;
 
   // Type search query and submit with Enter to trigger the debounced fetch
   await userEvent.type(searchInput, 'sales{enter}');
@@ -105,16 +105,16 @@ test('typing in search triggers debounced API call with search filter', async ()
   // Wait for debounced API call
   await waitFor(
     () => {
-      const calls = fetchMock.calls(API_ENDPOINTS.DATASETS);
+      const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
       expect(calls.length).toBeGreaterThan(initialCallCount);
     },
     { timeout: 5000 },
   );
 
   // Verify the latest API call includes search filter in URL
-  const calls = fetchMock.calls(API_ENDPOINTS.DATASETS);
+  const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
   const latestCall = calls[calls.length - 1];
-  const url = latestCall[0] as string;
+  const url = latestCall.url as string;
 
   // URL should contain filters parameter with search term
   expect(url).toContain('filters');
@@ -140,7 +140,7 @@ test('500 error triggers danger toast with error message', async () => {
       status: 500,
       body: { message: 'Internal Server Error' },
     },
-    { overwriteRoutes: true },
+
   );
 
   // Pass toast spy directly via props to bypass withToasts HOC
@@ -162,7 +162,7 @@ test('500 error triggers danger toast with error message', async () => {
 
   // Verify toast message contains error keywords
   expect(addDangerToast.mock.calls.length).toBeGreaterThan(0);
-  const toastMessage = String(addDangerToast.mock.calls[0][0]);
+  const toastMessage = String(addDangerToast.mock.calls[0].url);
   expect(
     toastMessage.includes('error') ||
       toastMessage.includes('Error') ||
@@ -177,7 +177,7 @@ test('network timeout triggers danger toast', async () => {
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
     { throws: new Error('Network timeout') },
-    { overwriteRoutes: true },
+
   );
 
   // Pass toast spy directly via props to bypass withToasts HOC
@@ -199,7 +199,7 @@ test('network timeout triggers danger toast', async () => {
 
   // Verify toast message contains timeout/network keywords
   expect(addDangerToast.mock.calls.length).toBeGreaterThan(0);
-  const toastMessage = String(addDangerToast.mock.calls[0][0]);
+  const toastMessage = String(addDangerToast.mock.calls[0].url);
   expect(
     toastMessage.includes('timeout') ||
       toastMessage.includes('Timeout') ||
@@ -218,7 +218,7 @@ test('clicking delete opens modal with related objects count', async () => {
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
     { result: [datasetToDelete], count: 1 },
-    { overwriteRoutes: true },
+
   );
 
   renderDatasetList(mockAdminUser);
@@ -259,7 +259,7 @@ test('clicking export calls handleResourceExport with dataset ID', async () => {
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
     { result: [datasetToExport], count: 1 },
-    { overwriteRoutes: true },
+
   );
 
   renderDatasetList(mockAdminUser);
@@ -293,13 +293,13 @@ test('clicking duplicate opens modal and submits duplicate request', async () =>
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
     { result: [datasetToDuplicate], count: 1 },
-    { overwriteRoutes: true },
+
   );
 
   fetchMock.post(
     API_ENDPOINTS.DATASET_DUPLICATE,
     { id: 999, table_name: 'Copy of Dataset' },
-    { overwriteRoutes: true },
+
   );
 
   const addSuccessToast = jest.fn();
@@ -314,7 +314,7 @@ test('clicking duplicate opens modal and submits duplicate request', async () =>
   });
 
   // Track initial dataset list API calls BEFORE duplicate action
-  const initialDatasetCallCount = fetchMock.calls(
+  const initialDatasetCallCount = fetchMock.callHistory.calls(
     API_ENDPOINTS.DATASETS,
   ).length;
 
@@ -341,11 +341,11 @@ test('clicking duplicate opens modal and submits duplicate request', async () =>
 
   // Verify duplicate API was called with correct payload
   await waitFor(() => {
-    const calls = fetchMock.calls(API_ENDPOINTS.DATASET_DUPLICATE);
+    const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASET_DUPLICATE);
     expect(calls.length).toBeGreaterThan(0);
 
     // Verify POST body contains correct dataset info
-    const requestBody = JSON.parse(calls[0][1]?.body as string);
+    const requestBody = JSON.parse(calls[0].options?.body as string);
     expect(requestBody.base_model_id).toBe(datasetToDuplicate.id);
     expect(requestBody.table_name).toBe('Copy of Dataset');
   });
@@ -358,7 +358,7 @@ test('clicking duplicate opens modal and submits duplicate request', async () =>
   // Verify refreshData() is called (observable via new dataset list API call)
   await waitFor(
     () => {
-      const datasetCalls = fetchMock.calls(API_ENDPOINTS.DATASETS);
+      const datasetCalls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
       expect(datasetCalls.length).toBeGreaterThan(initialDatasetCallCount);
     },
     { timeout: 3000 },
@@ -382,7 +382,7 @@ test('certified dataset shows badge and tooltip with certification details', asy
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
     { result: [certifiedDataset], count: 1 },
-    { overwriteRoutes: true },
+
   );
 
   renderDatasetList(mockAdminUser);
@@ -423,7 +423,7 @@ test('dataset with warning shows icon and tooltip with markdown content', async 
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
     { result: [datasetWithWarning], count: 1 },
-    { overwriteRoutes: true },
+
   );
 
   renderDatasetList(mockAdminUser);
@@ -458,7 +458,7 @@ test('dataset name links to Explore with correct URL and accessible label', asyn
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
     { result: [dataset], count: 1 },
-    { overwriteRoutes: true },
+
   );
 
   renderDatasetList(mockAdminUser);

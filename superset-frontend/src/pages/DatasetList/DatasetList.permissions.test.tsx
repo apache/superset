@@ -51,8 +51,8 @@ afterEach(async () => {
   // Reset browser history to prevent query param leakage
   window.history.replaceState({}, '', '/');
 
-  fetchMock.resetHistory();
-  fetchMock.restore();
+  fetchMock.clearHistory();
+  fetchMock.removeRoutes();
   jest.restoreAllMocks();
 });
 
@@ -240,7 +240,7 @@ test('action buttons respect user permissions', async () => {
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
     { result: [dataset], count: 1 },
-    { overwriteRoutes: true },
+
   );
 
   renderDatasetList(mockAdminUser);
@@ -270,7 +270,7 @@ test('read-only user sees no delete or duplicate buttons in row', async () => {
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
     { result: [dataset], count: 1 },
-    { overwriteRoutes: true },
+
   );
 
   renderDatasetList(mockReadOnlyUser);
@@ -309,7 +309,7 @@ test('write user sees edit, delete, and export actions', async () => {
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
     { result: [dataset], count: 1 },
-    { overwriteRoutes: true },
+
   );
 
   renderDatasetList(mockWriteUser);
@@ -348,7 +348,7 @@ test('export-only user has no Actions column (no write/duplicate permissions)', 
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
     { result: [dataset], count: 1 },
-    { overwriteRoutes: true },
+
   );
 
   renderDatasetList(mockExportOnlyUser);
@@ -385,7 +385,7 @@ test('user with can_duplicate sees duplicate button only for virtual datasets', 
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
     { result: [physicalDataset, virtualDataset], count: 2 },
-    { overwriteRoutes: true },
+
   );
 
   renderDatasetList(mockAdminUser);

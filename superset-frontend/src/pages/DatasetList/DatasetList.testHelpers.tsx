@@ -23,6 +23,7 @@ import { Provider } from 'react-redux';
 import { MemoryRouter } from 'react-router-dom';
 import { configureStore } from '@reduxjs/toolkit';
 import { QueryParamProvider } from 'use-query-params';
+import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import DatasetList from 'src/pages/DatasetList';
 import handleResourceExport from 'src/utils/export';
 
@@ -331,11 +332,8 @@ export const API_ENDPOINTS = {
 
 // Setup API permissions mock (for permission-based testing)
 export const setupApiPermissions = (permissions: string[]) => {
-  fetchMock.get(
-    API_ENDPOINTS.DATASETS_INFO,
-    { permissions },
-    { overwriteRoutes: true },
-  );
+  fetchMock.removeRoute(API_ENDPOINTS.DATASETS_INFO);
+  fetchMock.get(API_ENDPOINTS.DATASETS_INFO, { permissions });
 };
 
 // Store utilities
@@ -384,7 +382,7 @@ export const renderDatasetList = (
   return render(
     <Provider store={store}>
       <MemoryRouter>
-        <QueryParamProvider>
+        <QueryParamProvider adapter={ReactRouter5Adapter}>
           <DatasetList user={user} {...props} />
         </QueryParamProvider>
       </MemoryRouter>
@@ -402,36 +400,27 @@ export const waitForDatasetsPageReady = async () => {
 
 // Helper functions for specific operations
 export const setupDeleteMocks = (datasetId: number) => {
-  fetchMock.get(
-    `glob:*/api/v1/dataset/${datasetId}/related_objects*`,
-    {
-      charts: mockRelatedCharts,
-      dashboards: mockRelatedDashboards,
-    },
-    { overwriteRoutes: true },
-  );
+  fetchMock.get(`glob:*/api/v1/dataset/${datasetId}/related_objects*`, {
+    charts: mockRelatedCharts,
+    dashboards: mockRelatedDashboards,
+  });
 
-  fetchMock.delete(
-    `glob:*/api/v1/dataset/${datasetId}`,
-    { message: 'Dataset deleted successfully' },
-    { overwriteRoutes: true },
-  );
+  fetchMock.delete(`glob:*/api/v1/dataset/${datasetId}`, {
+    message: 'Dataset deleted successfully',
+  });
 };
 
 export const setupDuplicateMocks = () => {
-  fetchMock.post(
-    API_ENDPOINTS.DATASET_DUPLICATE,
-    { id: 999, table_name: 'Copy of Dataset' },
-    { overwriteRoutes: true },
-  );
+  fetchMock.post(API_ENDPOINTS.DATASET_DUPLICATE, {
+    id: 999,
+    table_name: 'Copy of Dataset',
+  });
 };
 
 export const setupBulkDeleteMocks = () => {
-  fetchMock.delete(
-    API_ENDPOINTS.DATASET_BULK_DELETE,
-    { message: '3 datasets deleted successfully' },
-    { overwriteRoutes: true },
-  );
+  fetchMock.delete(API_ENDPOINTS.DATASET_BULK_DELETE, {
+    message: '3 datasets deleted successfully',
+  });
 };
 
 // Setup error mocks for negative flow testing
@@ -439,25 +428,17 @@ export const setupDeleteErrorMocks = (
   datasetId: number,
   statusCode: number,
 ) => {
-  fetchMock.get(
-    `glob:*/api/v1/dataset/${datasetId}/related_objects*`,
-    {
-      status: statusCode,
-      body: { message: 'Failed to fetch related objects' },
-    },
-    { overwriteRoutes: true },
-  );
+  fetchMock.get(`glob:*/api/v1/dataset/${datasetId}/related_objects*`, {
+    status: statusCode,
+    body: { message: 'Failed to fetch related objects' },
+  });
 };
 
 export const setupDuplicateErrorMocks = (statusCode: number) => {
-  fetchMock.post(
-    API_ENDPOINTS.DATASET_DUPLICATE,
-    {
-      status: statusCode,
-      body: { message: 'Failed to duplicate dataset' },
-    },
-    { overwriteRoutes: true },
-  );
+  fetchMock.post(API_ENDPOINTS.DATASET_DUPLICATE, {
+    status: statusCode,
+    body: { message: 'Failed to duplicate dataset' },
+  });
 };
 
 /**
@@ -468,11 +449,13 @@ export const setupDuplicateErrorMocks = (statusCode: number) => {
  * @throws If any unmocked endpoints were called or expected endpoints weren't called
  */
 export const assertOnlyExpectedCalls = (expectedEndpoints: string[]) => {
-  const allCalls = fetchMock.calls(true); // Get all calls including unmatched
-  const unmatchedCalls = allCalls.filter(call => call.isUnmatched);
+  const allCalls = fetchMock.callHistory.calls();
+  const unmatchedCalls = allCalls.filter(
+    call => call.route?.config?.name === 'unmatched',
+  );
 
   if (unmatchedCalls.length > 0) {
-    const unmatchedUrls = unmatchedCalls.map(call => call[0]);
+    const unmatchedUrls = unmatchedCalls.map(call => call.url);
     throw new Error(
       `Unmocked endpoints called: ${unmatchedUrls.join(', ')}. ` +
         'Add explicit mocks in setupMocks() or test setup.',
@@ -481,7 +464,7 @@ export const assertOnlyExpectedCalls = (expectedEndpoints: string[]) => {
 
   // Verify expected endpoints were called
   expectedEndpoints.forEach(endpoint => {
-    const calls = fetchMock.calls(endpoint);
+    const calls = fetchMock.callHistory.calls(endpoint);
     if (calls.length === 0) {
       throw new Error(
         `Expected endpoint not called: ${endpoint}. ` +
@@ -493,7 +476,7 @@ export const assertOnlyExpectedCalls = (expectedEndpoints: string[]) => {
 
 // MSW setup using fetch-mock (following ChartList pattern)
 export const setupMocks = () => {
-  fetchMock.reset();
+  fetchMock.removeRoutes();
 
   fetchMock.get(API_ENDPOINTS.DATASETS_INFO, {
     permissions: ['can_read', 'can_write', 'can_export', 'can_duplicate'],
