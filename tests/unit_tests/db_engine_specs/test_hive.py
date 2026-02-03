@@ -71,7 +71,7 @@ def test_select_star(mocker: MockerFixture) -> None:
     from superset.db_engine_specs.hive import HiveEngineSpec
 
     database = mocker.MagicMock()
-    engine = mocker.MagicMock()
+    dialect = mocker.MagicMock()
 
     def quote_table(table: Table, dialect: Dialect) -> str:
         return ".".join(
@@ -83,7 +83,7 @@ def test_select_star(mocker: MockerFixture) -> None:
     HiveEngineSpec.select_star(
         database=database,
         table=Table("my_table", "my_schema", "my_catalog"),
-        engine=engine,
+        dialect=dialect,
         limit=100,
         show_cols=False,
         indent=True,

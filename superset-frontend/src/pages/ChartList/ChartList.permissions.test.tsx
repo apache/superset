@@ -25,6 +25,7 @@ import { QueryParamProvider } from 'use-query-params';
 import { isFeatureEnabled } from '@superset-ui/core';
 import ChartList from 'src/pages/ChartList';
 import { API_ENDPOINTS, mockCharts, setupMocks } from './ChartList.testHelpers';
+import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 
 // Increase default timeout for all tests
 jest.setTimeout(30000);
@@ -116,22 +117,11 @@ const renderChartList = (
   return render(
     <Provider store={store}>
       <MemoryRouter>
-        <QueryParamProvider>
+        <QueryParamProvider adapter={ReactRouter5Adapter}>
           <ChartList user={user} {...props} />
         </QueryParamProvider>
       </MemoryRouter>
     </Provider>,
-  );
-};
-
-// Setup API permissions mock
-const setupApiPermissions = (permissions: string[]) => {
-  fetchMock.get(
-    API_ENDPOINTS.CHARTS_INFO,
-    {
-      permissions,
-    },
-    { overwriteRoutes: true },
   );
 };
 
@@ -151,8 +141,7 @@ const renderWithPermissions = async (
   });
 
   // Convert role permissions to API permissions
-  const apiPermissions = permissions.map(perm => perm[0]);
-  setupApiPermissions(apiPermissions);
+  setupMocks({ [API_ENDPOINTS.CHARTS_INFO]: permissions.map(perm => perm[0]) });
 
   const storeState = createStoreStateWithPermissions(permissions, userId);
 
@@ -176,12 +165,7 @@ const renderWithPermissions = async (
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ChartList - Permission-based UI Tests', () => {
   beforeEach(() => {
-    setupMocks();
-  });
-
-  afterEach(() => {
-    fetchMock.resetHistory();
-    fetchMock.restore();
+    fetchMock.clearHistory().removeRoutes();
     (
       isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
     ).mockReset();

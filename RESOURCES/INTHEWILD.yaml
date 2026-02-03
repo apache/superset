@@ -287,8 +287,10 @@ categories:
       url: https://www.gfk.com/home
       contributors: ["@mherr"]
 
+    # Logo approved by @anmol-hpe on behalf of HPE
     - name: HPE
       url: https://www.hpe.com/in/en/home.html
+      logo: hpe.png
       contributors: ["@anmol-hpe"]
 
     - name: Hydrolix

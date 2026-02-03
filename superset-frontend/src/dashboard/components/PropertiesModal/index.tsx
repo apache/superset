@@ -23,7 +23,6 @@ import {
   Form,
   Collapse,
   CollapseLabelInModal,
-  JsonEditor,
 } from '@superset-ui/core/components';
 import { useJsonValidation } from '@superset-ui/core/components/AsyncAceEditor';
 import { type TagType } from 'src/components';
@@ -450,8 +449,6 @@ const PropertiesModal = ({
           );
         });
     }
-
-    JsonEditor.preload();
   }, [
     currentDashboardInfo,
     fetchDashboardDetails,

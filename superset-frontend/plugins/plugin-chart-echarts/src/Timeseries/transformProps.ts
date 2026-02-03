@@ -419,6 +419,7 @@ export default function transformProps(
         timeCompare: array,
         timeShiftColor,
         theme,
+        hasDimensions: (groupBy?.length ?? 0) > 0,
       },
     );
     if (transformedSeries) {
@@ -573,8 +574,10 @@ export default function transformProps(
     onLegendScroll,
   } = hooks;
 
-  const addYAxisLabelOffset = !!yAxisTitle;
-  const addXAxisLabelOffset = !!xAxisTitle;
+  const addYAxisLabelOffset =
+    !!yAxisTitle && convertInteger(yAxisTitleMargin) !== 0;
+  const addXAxisLabelOffset =
+    !!xAxisTitle && convertInteger(xAxisTitleMargin) !== 0;
   const padding = getPadding(
     showLegend,
     legendOrientation,

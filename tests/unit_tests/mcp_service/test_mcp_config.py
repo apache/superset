@@ -66,19 +66,12 @@ def test_init_fastmcp_server_with_default_app_name():
         "sys.modules",
         {"superset.mcp_service.flask_singleton": MagicMock(app=mock_flask_app)},
     ):
-        with patch("superset.mcp_service.app.create_mcp_app") as mock_create:
-            mock_mcp = MagicMock()
-            mock_create.return_value = mock_mcp
+        with patch("superset.mcp_service.app.mcp") as mock_mcp:
+            init_fastmcp_server()
 
-            # Call with custom name to force create_mcp_app path
-            init_fastmcp_server(name="Custom Name")
-
-            # Verify create_mcp_app was called
-            assert mock_create.called
-            # Verify instructions use Superset branding (not Apache Superset)
-            call_kwargs = mock_create.call_args[1]
-            assert "Superset MCP" in call_kwargs["instructions"]
-            assert "Superset dashboards" in call_kwargs["instructions"]
+            # Verify the global mcp instance was configured with Superset branding
+            assert "Superset MCP" in mock_mcp._mcp_server.instructions
+            assert "Superset dashboards" in mock_mcp._mcp_server.instructions
 
 
 def test_init_fastmcp_server_with_custom_app_name():
@@ -93,20 +86,13 @@ def test_init_fastmcp_server_with_custom_app_name():
         "sys.modules",
         {"superset.mcp_service.flask_singleton": MagicMock(app=mock_flask_app)},
     ):
-        with patch("superset.mcp_service.app.create_mcp_app") as mock_create:
-            mock_mcp = MagicMock()
-            mock_create.return_value = mock_mcp
+        with patch("superset.mcp_service.app.mcp") as mock_mcp:
+            init_fastmcp_server()
 
-            # Call with custom name to force create_mcp_app path
-            init_fastmcp_server(name="Custom Name")
-
-            # Verify create_mcp_app was called
-            assert mock_create.called
             # Verify instructions use custom branding
-            call_kwargs = mock_create.call_args[1]
-            assert custom_app_name in call_kwargs["instructions"]
+            assert custom_app_name in mock_mcp._mcp_server.instructions
             # Should not contain default Apache Superset branding
-            assert "Apache Superset" not in call_kwargs["instructions"]
+            assert "Apache Superset" not in mock_mcp._mcp_server.instructions
 
 
 def test_init_fastmcp_server_derives_server_name_from_app_name():
@@ -123,15 +109,44 @@ def test_init_fastmcp_server_derives_server_name_from_app_name():
         "sys.modules",
         {"superset.mcp_service.flask_singleton": MagicMock(app=mock_flask_app)},
     ):
-        with patch("superset.mcp_service.app.create_mcp_app") as mock_create:
-            mock_mcp = MagicMock()
-            mock_create.return_value = mock_mcp
+        with patch("superset.mcp_service.app.mcp") as mock_mcp:
+            init_fastmcp_server()
 
-            # Call without name parameter (should use default derived name)
-            # Force custom params by passing instructions
-            init_fastmcp_server(instructions="custom")
+            # Verify the global mcp instance got the derived name
+            assert mock_mcp._mcp_server.name == expected_server_name
 
-            # Verify create_mcp_app was called with derived name
-            assert mock_create.called
-            call_kwargs = mock_create.call_args[1]
-            assert call_kwargs["name"] == expected_server_name
+
+def test_init_fastmcp_server_applies_auth_to_global_instance():
+    """Test that auth is applied to the global mcp instance, not a new one."""
+    mock_flask_app = MagicMock()
+    mock_flask_app.config.get.return_value = "Superset"
+    mock_auth = MagicMock()
+
+    with patch.dict(
+        "sys.modules",
+        {"superset.mcp_service.flask_singleton": MagicMock(app=mock_flask_app)},
+    ):
+        with patch("superset.mcp_service.app.mcp") as mock_mcp:
+            result = init_fastmcp_server(auth=mock_auth)
+
+            # Auth should be set on the global instance
+            assert mock_mcp.auth == mock_auth
+            # Should return the global instance (not a new one)
+            assert result is mock_mcp
+
+
+def test_init_fastmcp_server_applies_middleware_to_global_instance():
+    """Test that middleware is added to the global mcp instance."""
+    mock_flask_app = MagicMock()
+    mock_flask_app.config.get.return_value = "Superset"
+    mock_mw = MagicMock()
+
+    with patch.dict(
+        "sys.modules",
+        {"superset.mcp_service.flask_singleton": MagicMock(app=mock_flask_app)},
+    ):
+        with patch("superset.mcp_service.app.mcp") as mock_mcp:
+            init_fastmcp_server(middleware=[mock_mw])
+
+            # Middleware should be added via add_middleware
+            mock_mcp.add_middleware.assert_called_once_with(mock_mw)

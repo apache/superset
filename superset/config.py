@@ -436,6 +436,7 @@ LANGUAGES = {
     "sl": {"flag": "si", "name": "Slovenian"},
     "nl": {"flag": "nl", "name": "Dutch"},
     "uk": {"flag": "uk", "name": "Ukranian"},
+    "mi": {"flag": "nz", "name": "Māori"},
 }
 # Turning off i18n by default as translation in most languages are
 # incomplete and not well maintained.
@@ -655,6 +656,12 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # @lifecycle: testing
     # @docs: https://superset.apache.org/docs/configuration/setup-ssh-tunneling
     "SSH_TUNNELING": False,
+    # Enable AWS IAM authentication for database connections (Aurora, Redshift).
+    # Allows cross-account role assumption via STS AssumeRole.
+    # Security note: When enabled, ensure Superset's IAM role has restricted
+    # sts:AssumeRole permissions to prevent unauthorized access.
+    # @lifecycle: testing
+    "AWS_DATABASE_IAM_AUTH": False,
     # Use analogous colors in charts
     # @lifecycle: testing
     "USE_ANALOGOUS_COLORS": False,
@@ -696,6 +703,10 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # @category: runtime_config
     # @docs: https://superset.apache.org/docs/using-superset/creating-your-first-dashboard
     "DASHBOARD_RBAC": False,
+    # Supports simultaneous data and dashboard virtualization for backend performance
+    # @lifecycle: stable
+    # @category: runtime_config
+    "DASHBOARD_VIRTUALIZATION_DEFER_DATA": False,
     # Data panel closed by default in chart builder
     # @lifecycle: stable
     # @category: runtime_config

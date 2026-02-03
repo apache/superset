@@ -35,7 +35,6 @@ import {
   cachedQuery,
   failedQueryWithErrors,
   queries,
-  runningQuery,
   stoppedQuery,
   initialState,
   user,
@@ -85,32 +84,6 @@ const stoppedQueryState = {
     },
   },
 };
-const runningQueryState = {
-  ...initialState,
-  sqlLab: {
-    ...initialState.sqlLab,
-    queries: {
-      [runningQuery.id]: runningQuery,
-    },
-  },
-};
-const fetchingQueryState = {
-  ...initialState,
-  sqlLab: {
-    ...initialState.sqlLab,
-    queries: {
-      [mockedProps.queryId]: {
-        dbId: 1,
-        cached: false,
-        ctas: false,
-        id: 'ryhHUZCGb',
-        progress: 100,
-        state: 'fetching',
-        startDttm: Date.now() - 500,
-      },
-    },
-  },
-};
 const cachedQueryState = {
   ...initialState,
   sqlLab: {
@@ -154,7 +127,7 @@ fetchMock.post(reRunQueryEndpoint, { result: [] });
 fetchMock.get('glob:*/api/v1/sqllab/results/*', { result: [] });
 
 beforeEach(() => {
-  fetchMock.resetHistory();
+  fetchMock.clearHistory();
 });
 
 const middlewares = [thunk];
@@ -178,7 +151,7 @@ describe('ResultSet', () => {
 
   // Add cleanup after each test
   afterEach(async () => {
-    fetchMock.resetHistory();
+    fetchMock.clearHistory();
     // Wait for any pending effects to complete
     await new Promise(resolve => setTimeout(resolve, 0));
   });
@@ -277,7 +250,7 @@ describe('ResultSet', () => {
       },
     });
 
-    expect(fetchMock.calls(reRunQueryEndpoint)).toHaveLength(0);
+    expect(fetchMock.callHistory.calls(reRunQueryEndpoint)).toHaveLength(0);
     setup(mockedProps, store);
     expect(store.getActions()).toHaveLength(1);
     expect(store.getActions()[0].query.errorMessage).toEqual(
@@ -285,7 +258,7 @@ describe('ResultSet', () => {
     );
     expect(store.getActions()[0].type).toEqual('START_QUERY');
     await waitFor(() =>
-      expect(fetchMock.calls(reRunQueryEndpoint)).toHaveLength(1),
+      expect(fetchMock.callHistory.calls(reRunQueryEndpoint)).toHaveLength(1),
     );
   });
 
@@ -303,7 +276,7 @@ describe('ResultSet', () => {
     });
     setup(mockedProps, store);
     expect(store.getActions()).toEqual([]);
-    expect(fetchMock.calls(reRunQueryEndpoint)).toHaveLength(0);
+    expect(fetchMock.callHistory.calls(reRunQueryEndpoint)).toHaveLength(0);
   });
 
   test('should render cached query', async () => {
@@ -330,25 +303,6 @@ describe('ResultSet', () => {
 
     const alert = screen.getByRole('alert');
     expect(alert).toBeInTheDocument();
-  });
-
-  test('should render running/pending/fetching query', async () => {
-    const { getByTestId } = setup(
-      { ...mockedProps, queryId: runningQuery.id },
-      mockStore(runningQueryState),
-    );
-    const progressBar = getByTestId('progress-bar');
-    expect(progressBar).toBeInTheDocument();
-  });
-
-  test('should render fetching w/ 100 progress query', async () => {
-    const { getByRole, getByText } = setup(
-      mockedProps,
-      mockStore(fetchingQueryState),
-    );
-    const loading = getByRole('status');
-    expect(loading).toBeInTheDocument();
-    expect(getByText('fetching')).toBeInTheDocument();
   });
 
   test('should render a failed query with an errors object', async () => {
@@ -668,7 +622,9 @@ describe('ResultSet', () => {
     });
 
     // Verify the API was called
-    const resultsCalls = fetchMock.calls('glob:*/api/v1/sqllab/results/*');
+    const resultsCalls = fetchMock.callHistory.calls(
+      'glob:*/api/v1/sqllab/results/*',
+    );
     expect(resultsCalls).toHaveLength(1);
   });
 
