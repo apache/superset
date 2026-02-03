@@ -418,7 +418,7 @@ test('component requires explicit mocks for all API endpoints', async () => {
   expect(newInfoCalls.length).toBeGreaterThan(0);
 
   // Verify no unmatched calls (all endpoints were mocked)
-  const unmatchedCalls = fetchMock.callHistory.calls(false); // false = unmatched only
+  const unmatchedCalls = fetchMock.callHistory.calls('unmatched');
   expect(unmatchedCalls.length).toBe(0);
 });
 

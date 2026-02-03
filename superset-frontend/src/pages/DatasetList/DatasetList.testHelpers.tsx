@@ -449,10 +449,7 @@ export const setupDuplicateErrorMocks = (statusCode: number) => {
  * @throws If any unmocked endpoints were called or expected endpoints weren't called
  */
 export const assertOnlyExpectedCalls = (expectedEndpoints: string[]) => {
-  const allCalls = fetchMock.callHistory.calls();
-  const unmatchedCalls = allCalls.filter(
-    call => call.route?.config?.name === 'unmatched',
-  );
+  const unmatchedCalls = fetchMock.callHistory.calls('unmatched');
 
   if (unmatchedCalls.length > 0) {
     const unmatchedUrls = unmatchedCalls.map(call => call.url);

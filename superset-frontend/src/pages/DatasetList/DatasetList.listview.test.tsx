@@ -1096,7 +1096,7 @@ test('displays error when initial dataset fetch fails with 403 permission denied
   });
 
   // Verify toast message contains the 403-specific "Access Denied" text
-  const toastMessage = String(mockAddDangerToast.mock.calls[0].url);
+  const toastMessage = String(mockAddDangerToast.mock.calls[0][0]);
   expect(toastMessage).toContain('Access Denied');
 
   // No dataset names from mockDatasets should appear in the document

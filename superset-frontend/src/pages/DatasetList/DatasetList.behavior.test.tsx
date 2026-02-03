@@ -97,7 +97,9 @@ test('typing in search triggers debounced API call with search filter', async ()
   const searchInput = within(searchContainer).getByRole('textbox');
 
   // Record initial API calls
-  const initialCallCount = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS).length;
+  const initialCallCount = fetchMock.callHistory.calls(
+    API_ENDPOINTS.DATASETS,
+  ).length;
 
   // Type search query and submit with Enter to trigger the debounced fetch
   await userEvent.type(searchInput, 'sales{enter}');
@@ -134,14 +136,10 @@ test('typing in search triggers debounced API call with search filter', async ()
 test('500 error triggers danger toast with error message', async () => {
   const addDangerToast = jest.fn();
 
-  fetchMock.get(
-    API_ENDPOINTS.DATASETS,
-    {
-      status: 500,
-      body: { message: 'Internal Server Error' },
-    },
-
-  );
+  fetchMock.get(API_ENDPOINTS.DATASETS, {
+    status: 500,
+    body: { message: 'Internal Server Error' },
+  });
 
   // Pass toast spy directly via props to bypass withToasts HOC
   renderDatasetList(mockAdminUser, {
@@ -162,7 +160,7 @@ test('500 error triggers danger toast with error message', async () => {
 
   // Verify toast message contains error keywords
   expect(addDangerToast.mock.calls.length).toBeGreaterThan(0);
-  const toastMessage = String(addDangerToast.mock.calls[0].url);
+  const toastMessage = String(addDangerToast.mock.calls[0][0]);
   expect(
     toastMessage.includes('error') ||
       toastMessage.includes('Error') ||
@@ -174,11 +172,9 @@ test('500 error triggers danger toast with error message', async () => {
 test('network timeout triggers danger toast', async () => {
   const addDangerToast = jest.fn();
 
-  fetchMock.get(
-    API_ENDPOINTS.DATASETS,
-    { throws: new Error('Network timeout') },
-
-  );
+  fetchMock.get(API_ENDPOINTS.DATASETS, {
+    throws: new Error('Network timeout'),
+  });
 
   // Pass toast spy directly via props to bypass withToasts HOC
   renderDatasetList(mockAdminUser, {
@@ -199,7 +195,7 @@ test('network timeout triggers danger toast', async () => {
 
   // Verify toast message contains timeout/network keywords
   expect(addDangerToast.mock.calls.length).toBeGreaterThan(0);
-  const toastMessage = String(addDangerToast.mock.calls[0].url);
+  const toastMessage = String(addDangerToast.mock.calls[0][0]);
   expect(
     toastMessage.includes('timeout') ||
       toastMessage.includes('Timeout') ||
@@ -215,11 +211,10 @@ test('clicking delete opens modal with related objects count', async () => {
   // Set up delete mocks
   setupDeleteMocks(datasetToDelete.id);
 
-  fetchMock.get(
-    API_ENDPOINTS.DATASETS,
-    { result: [datasetToDelete], count: 1 },
-
-  );
+  fetchMock.get(API_ENDPOINTS.DATASETS, {
+    result: [datasetToDelete],
+    count: 1,
+  });
 
   renderDatasetList(mockAdminUser);
 
@@ -256,11 +251,10 @@ test('clicking delete opens modal with related objects count', async () => {
 test('clicking export calls handleResourceExport with dataset ID', async () => {
   const datasetToExport = mockDatasets[0];
 
-  fetchMock.get(
-    API_ENDPOINTS.DATASETS,
-    { result: [datasetToExport], count: 1 },
-
-  );
+  fetchMock.get(API_ENDPOINTS.DATASETS, {
+    result: [datasetToExport],
+    count: 1,
+  });
 
   renderDatasetList(mockAdminUser);
 
@@ -290,17 +284,15 @@ test('clicking duplicate opens modal and submits duplicate request', async () =>
     kind: 'virtual',
   };
 
-  fetchMock.get(
-    API_ENDPOINTS.DATASETS,
-    { result: [datasetToDuplicate], count: 1 },
+  fetchMock.get(API_ENDPOINTS.DATASETS, {
+    result: [datasetToDuplicate],
+    count: 1,
+  });
 
-  );
-
-  fetchMock.post(
-    API_ENDPOINTS.DATASET_DUPLICATE,
-    { id: 999, table_name: 'Copy of Dataset' },
-
-  );
+  fetchMock.post(API_ENDPOINTS.DATASET_DUPLICATE, {
+    id: 999,
+    table_name: 'Copy of Dataset',
+  });
 
   const addSuccessToast = jest.fn();
 
@@ -379,11 +371,10 @@ test('certified dataset shows badge and tooltip with certification details', asy
     }),
   };
 
-  fetchMock.get(
-    API_ENDPOINTS.DATASETS,
-    { result: [certifiedDataset], count: 1 },
-
-  );
+  fetchMock.get(API_ENDPOINTS.DATASETS, {
+    result: [certifiedDataset],
+    count: 1,
+  });
 
   renderDatasetList(mockAdminUser);
 
@@ -420,11 +411,10 @@ test('dataset with warning shows icon and tooltip with markdown content', async 
     }),
   };
 
-  fetchMock.get(
-    API_ENDPOINTS.DATASETS,
-    { result: [datasetWithWarning], count: 1 },
-
-  );
+  fetchMock.get(API_ENDPOINTS.DATASETS, {
+    result: [datasetWithWarning],
+    count: 1,
+  });
 
   renderDatasetList(mockAdminUser);
 
@@ -455,11 +445,7 @@ test('dataset with warning shows icon and tooltip with markdown content', async 
 test('dataset name links to Explore with correct URL and accessible label', async () => {
   const dataset = mockDatasets[0];
 
-  fetchMock.get(
-    API_ENDPOINTS.DATASETS,
-    { result: [dataset], count: 1 },
-
-  );
+  fetchMock.get(API_ENDPOINTS.DATASETS, { result: [dataset], count: 1 });
 
   renderDatasetList(mockAdminUser);
 
