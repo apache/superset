@@ -451,10 +451,12 @@ class SQLExecutor:
         :raises SupersetSecurityException: If security checks fail
         """
         # Check disallowed functions
-        if disallowed := self._check_disallowed_functions(script):
+        if disallowed_functions := self._check_disallowed_functions(script):
             raise SupersetSecurityException(
                 SupersetError(
-                    message=f"Disallowed SQL functions: {', '.join(disallowed)}",
+                    message=(
+                        f"Disallowed SQL functions: {', '.join(disallowed_functions)}"
+                    ),
                     error_type=SupersetErrorType.INVALID_SQL_ERROR,
                     level=ErrorLevel.ERROR,
                 )

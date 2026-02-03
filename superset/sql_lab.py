@@ -417,7 +417,14 @@ def execute_sql_statements(  # noqa: C901
         set(),
     )
     if disallowed_tables and parsed_script.check_tables_present(disallowed_tables):
-        raise SupersetDisallowedSQLTableException(disallowed_tables)
+        # Report only the tables actually found in the query
+        found_tables = set()
+        for statement in parsed_script.statements:
+            present = {table.table.lower() for table in statement.tables}
+            for table in disallowed_tables:
+                if table.lower() in present:
+                    found_tables.add(table)
+        raise SupersetDisallowedSQLTableException(found_tables or disallowed_tables)
 
     if parsed_script.has_mutation() and not database.allow_dml:
         raise SupersetDMLNotAllowedException()
