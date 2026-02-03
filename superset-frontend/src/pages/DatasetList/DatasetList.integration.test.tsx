@@ -72,6 +72,7 @@ test('ListView provider correctly merges filter + sort + pagination state on ref
   // the ListView provider correctly merges them for the API call.
   // Component tests verify individual pieces persist; this verifies they COMBINE correctly.
 
+  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
   fetchMock.get(API_ENDPOINTS.DATASETS, {
     result: mockDatasets,
     count: mockDatasets.length,
@@ -150,6 +151,7 @@ test('bulk action orchestration: selection → action → cleanup cycle works co
 
   setupBulkDeleteMocks();
 
+  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
   fetchMock.get(API_ENDPOINTS.DATASETS, {
     result: mockDatasets,
     count: mockDatasets.length,

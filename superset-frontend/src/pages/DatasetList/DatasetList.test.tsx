@@ -68,6 +68,7 @@ test('shows loading state during initial data fetch', () => {
   // Use fake timers to avoid leaving real timers running after test
   jest.useFakeTimers();
 
+  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
     new Promise(resolve =>
@@ -86,6 +87,7 @@ test('maintains component structure during loading', () => {
   // Use fake timers to avoid leaving real timers running after test
   jest.useFakeTimers();
 
+  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
     new Promise(resolve =>
@@ -212,6 +214,7 @@ test('handles datasets with missing fields and renders gracefully', async () => 
     sql: null,
   };
 
+  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
   fetchMock.get(API_ENDPOINTS.DATASETS, {
     result: [datasetWithMissingFields],
     count: 1,
@@ -238,6 +241,7 @@ test('handles datasets with missing fields and renders gracefully', async () => 
 });
 
 test('handles empty results (shows empty state)', async () => {
+  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
   fetchMock.get(API_ENDPOINTS.DATASETS, { result: [], count: 0 });
 
   renderDatasetList(mockAdminUser);
@@ -381,6 +385,7 @@ test('handles 403 error on _info endpoint and disables create actions', async ()
 });
 
 test('handles network timeout without crashing', async () => {
+  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
   fetchMock.get(API_ENDPOINTS.DATASETS, {
     throws: new Error('Network timeout'),
   });
@@ -441,10 +446,8 @@ test('renders datasets with certification data', async () => {
     }),
   };
 
-  fetchMock.get(API_ENDPOINTS.DATASETS, {
-    result: [certifiedDataset],
-    count: 1,
-  });
+  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
+  fetchMock.get(API_ENDPOINTS.DATASETS, { result: [certifiedDataset], count: 1 });
 
   renderDatasetList(mockAdminUser);
 
@@ -468,10 +471,8 @@ test('displays datasets with warning_markdown', async () => {
     }),
   };
 
-  fetchMock.get(API_ENDPOINTS.DATASETS, {
-    result: [datasetWithWarning],
-    count: 1,
-  });
+  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
+  fetchMock.get(API_ENDPOINTS.DATASETS, { result: [datasetWithWarning], count: 1 });
 
   renderDatasetList(mockAdminUser);
 
@@ -489,10 +490,8 @@ test('displays datasets with warning_markdown', async () => {
 test('displays dataset with multiple owners', async () => {
   const datasetWithOwners = mockDatasets[1]; // Has 2 owners: Jane Smith, Bob Jones
 
-  fetchMock.get(API_ENDPOINTS.DATASETS, {
-    result: [datasetWithOwners],
-    count: 1,
-  });
+  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
+  fetchMock.get(API_ENDPOINTS.DATASETS, { result: [datasetWithOwners], count: 1 });
 
   renderDatasetList(mockAdminUser);
 
@@ -510,6 +509,7 @@ test('displays dataset with multiple owners', async () => {
 test('displays ModifiedInfo with humanized date', async () => {
   const datasetWithModified = mockDatasets[0]; // changed_by_name: 'John Doe', changed_on: '1 day ago'
 
+  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
   fetchMock.get(API_ENDPOINTS.DATASETS, {
     result: [datasetWithModified],
     count: 1,
@@ -532,6 +532,7 @@ test('displays ModifiedInfo with humanized date', async () => {
 test('dataset name links to Explore with correct explore_url', async () => {
   const dataset = mockDatasets[0]; // explore_url: '/explore/?datasource=1__table'
 
+  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
   fetchMock.get(API_ENDPOINTS.DATASETS, { result: [dataset], count: 1 });
 
   renderDatasetList(mockAdminUser);
