@@ -488,6 +488,8 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # When True, this escapes HTML (rather than rendering it) in Markdown components
     "ESCAPE_MARKDOWN_HTML": False,
     "DASHBOARD_VIRTUALIZATION": True,
+    # Supports simultaneous data and dashboard virtualization for backend performance
+    "DASHBOARD_VIRTUALIZATION_DEFER_DATA": False,
     # This feature flag is stil in beta and is not recommended for production use.
     "GLOBAL_ASYNC_QUERIES": False,
     "EMBEDDED_SUPERSET": False,
@@ -521,31 +523,6 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "CACHE_IMPERSONATION": False,
     # Enable caching per user key for Superset cache (not database cache impersonation)
     "CACHE_QUERY_BY_USER": False,
-    # Enables CSS Templates in Settings menu and dashboard forms
-    # @lifecycle: stable
-    # @category: runtime_config
-    "CSS_TEMPLATES": True,
-    # Role-based access control for dashboards
-    # @lifecycle: stable
-    # @category: runtime_config
-    # @docs: https://superset.apache.org/docs/using-superset/creating-your-first-dashboard
-    "DASHBOARD_RBAC": False,
-    # Supports simultaneous data and dashboard virtualization for backend performance
-    # @lifecycle: stable
-    # @category: runtime_config
-    "DASHBOARD_VIRTUALIZATION_DEFER_DATA": False,
-    # Data panel closed by default in chart builder
-    # @lifecycle: stable
-    # @category: runtime_config
-    "DATAPANEL_CLOSED_BY_DEFAULT": False,
-    # Enable drill-by functionality in charts
-    # @lifecycle: stable
-    # @category: runtime_config
-    "DRILL_BY": True,
-    # Enable Druid JOINs (requires Druid version with JOIN support)
-    # @lifecycle: stable
-    # @category: runtime_config
-    "DRUID_JOINS": False,
     # Enable sharing charts with embedding
     "EMBEDDABLE_CHARTS": True,
     "DRILL_TO_DETAIL": True,  # deprecated
