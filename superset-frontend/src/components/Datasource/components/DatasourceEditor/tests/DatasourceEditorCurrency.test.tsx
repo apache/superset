@@ -169,7 +169,7 @@ test('currency code column dropdown shows string and untyped calculated columns 
         },
         {
           id: 102,
-          type: null,
+          type: '',
           type_generic: null,
           filterable: true,
           is_dttm: false,
