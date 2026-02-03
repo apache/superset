@@ -40,7 +40,6 @@ export const SingleQueryResultPane = ({
   dataSize = 50,
   isVisible,
   canDownload,
-  columnDisplayNames,
 }: SingleQueryResultPaneProp) => {
   const [filterText, setFilterText] = useState('');
 
@@ -55,7 +54,6 @@ export const SingleQueryResultPane = ({
     isVisible,
     {}, // moreConfig
     true, // allowHTML
-    columnDisplayNames,
   );
   const filteredData = useFilteredTableData(filterText, data);
 

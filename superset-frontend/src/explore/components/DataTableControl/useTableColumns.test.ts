@@ -57,7 +57,7 @@ const collabels = [
   'label02',
   'label03',
   'label04',
-  'label05',
+  'numtime_label',
   'label06',
 ];
 
@@ -126,8 +126,8 @@ test('useTableColumns with no options', () => {
       {
         "Cell": [Function],
         "Header": <DataTableTemporalHeaderCell
+          columnLabel="numtime_label"
           columnName="numtime"
-          displayLabel="numtime"
           isOriginalTimeColumn={false}
           onTimeColumnChange={[Function]}
         />,
@@ -160,15 +160,16 @@ test('useTableColumns with no options', () => {
 
 test('useTableColumns with options', () => {
   const hook = renderHook(() =>
-    useTableColumns(colnames, collabels, coltypes, data, undefined, true, {
-      col01: { Header: 'Header' },
-    }),
+    useTableColumns(colnames, collabels, coltypes, data, undefined, true),
   );
   expect(hook.result.current).toMatchInlineSnapshot(`
     [
       {
         "Cell": [Function],
-        "Header": "Header",
+        "Header": <DataTableHeaderCell
+          columnLabel="label01"
+          columnName="col01"
+        />,
         "accessor": [Function],
         "id": "col01",
       },
@@ -202,8 +203,8 @@ test('useTableColumns with options', () => {
       {
         "Cell": [Function],
         "Header": <DataTableTemporalHeaderCell
+          columnLabel="numtime_label"
           columnName="numtime"
-          displayLabel="numtime"
           isOriginalTimeColumn={false}
           onTimeColumnChange={[Function]}
         />,
@@ -234,28 +235,23 @@ test('useTableColumns with options', () => {
   });
 });
 
-test('useTableColumns applies columnDisplayNames to headers', () => {
-  const columnDisplayNames = {
-    col01: 'Column One',
-    [NUMTIME_KEY]: 'Verbose Numtime',
-  } as Record<string, string>;
+test('useTableColumns applies columnLabels to headers', () => {
   const hook = renderHook(() =>
     useTableColumns(
       colnames,
+      collabels,
       coltypes,
       data,
       undefined,
       true,
       undefined,
       undefined,
-      columnDisplayNames,
     ),
   );
   const cols = hook.result.current as JsonObject[];
   const col01 = cols.find(c => c.id === 'col01');
   const numtime = cols.find(c => c.id === NUMTIME_KEY);
-  expect(col01?.Header).toBe('Column One');
-  // Temporal header is a component; ensure it received the displayLabel prop
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  expect(numtime?.Header.props.displayLabel).toBe('Verbose Numtime');
+  // Headers are components; ensure they received the columnLabel prop
+  expect(col01?.Header.props.columnLabel).toBe('label01');
+  expect(numtime?.Header.props.columnLabel).toBe('numtime_label');
 });
