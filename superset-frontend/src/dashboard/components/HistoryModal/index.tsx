@@ -19,12 +19,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   Button,
+  Input,
   List,
   Loading,
   Modal,
   Typography,
 } from '@superset-ui/core/components';
 import { getClientErrorObject, SupersetClient } from '@superset-ui/core';
+import { Icons } from '@superset-ui/core/components';
 import { css, t } from '@apache-superset/core/ui';
 
 export type DashboardVersionItem = {
@@ -45,31 +47,48 @@ type HistoryModalProps = {
 };
 
 const versionCardStyle = css`
-  padding: 12px 0;
-  border-bottom: 1px solid var(--ant-color-border-secondary, #f0f0f0);
+  padding: 16px 0;
+  border-bottom: 1px solid var(--ant-color-border-secondary);
   &:last-child {
     border-bottom: none;
   }
 `;
 
 const versionMetaStyle = css`
-  margin-bottom: 8px;
+  margin-bottom: 12px;
   display: flex;
   align-items: baseline;
   gap: 8px;
   flex-wrap: wrap;
 `;
 
-const versionCommentBlock = css`
-  margin: 8px 0 12px;
+const descriptionLabelStyle = css`
+  margin-bottom: 6px;
+  font-size: 12px;
+  color: var(--ant-color-text-tertiary);
+`;
+
+const descriptionBlockStyle = css`
+  margin-bottom: 12px;
   padding: 10px 12px;
-  background: var(--ant-color-fill-quaternary, rgba(0, 0, 0, 0.02));
+  background: var(--ant-color-fill-quaternary);
   border-radius: 6px;
   font-size: 13px;
   line-height: 1.5;
   white-space: pre-wrap;
   word-break: break-word;
-  color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.65));
+  color: var(--ant-color-text-secondary);
+`;
+
+const descriptionRowStyle = css`
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+`;
+
+const descriptionTextStyle = css`
+  flex: 1;
+  min-width: 0;
 `;
 
 const HistoryModal = ({
@@ -83,6 +102,9 @@ const HistoryModal = ({
   const [versions, setVersions] = useState<DashboardVersionItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [restoringId, setRestoringId] = useState<number | null>(null);
+  const [editingVersionId, setEditingVersionId] = useState<number | null>(null);
+  const [editingComment, setEditingComment] = useState('');
+  const [savingVersionId, setSavingVersionId] = useState<number | null>(null);
 
   const fetchVersions = useCallback(async (): Promise<void> => {
     if (!dashboardId) return;
@@ -151,6 +173,48 @@ const HistoryModal = ({
   const formatDate = (created_at: string | null) =>
     created_at ? new Date(created_at).toLocaleString() : '—';
 
+  const handleStartEdit = useCallback((item: DashboardVersionItem) => {
+    setEditingVersionId(item.id);
+    setEditingComment(item.comment?.trim() ?? '');
+  }, []);
+
+  const handleCancelEdit = useCallback(() => {
+    setEditingVersionId(null);
+    setEditingComment('');
+  }, []);
+
+  const handleSaveDescription = useCallback(
+    async (versionId: number) => {
+      setSavingVersionId(versionId);
+      try {
+        await SupersetClient.put({
+          endpoint: `/api/v1/dashboard/${dashboardId}/versions/${versionId}`,
+          jsonPayload: { comment: editingComment.trim() || null },
+        });
+        addSuccessToast(t('Description updated'));
+        handleCancelEdit();
+        await fetchVersions();
+      } catch (err) {
+        const clientError = await getClientErrorObject(err);
+        const message =
+          clientError.error ||
+          clientError.message ||
+          t('Failed to update description');
+        addDangerToast(String(message));
+      } finally {
+        setSavingVersionId(null);
+      }
+    },
+    [
+      dashboardId,
+      editingComment,
+      fetchVersions,
+      addSuccessToast,
+      addDangerToast,
+      handleCancelEdit,
+    ],
+  );
+
   return (
     <Modal
       show={show}
@@ -190,8 +254,53 @@ const HistoryModal = ({
                     {item.created_by ? ` · ${item.created_by}` : ''}
                   </Typography.Text>
                 </div>
-                <div css={versionCommentBlock}>
-                  {item.comment?.trim() || t('No version note')}
+                <div css={descriptionLabelStyle}>{t('Description')}</div>
+                <div css={descriptionBlockStyle}>
+                  {editingVersionId === item.id ? (
+                    <>
+                      <Input.TextArea
+                        value={editingComment}
+                        onChange={e => setEditingComment(e.target.value)}
+                        placeholder={t('Add a description for this version')}
+                        rows={3}
+                        maxLength={500}
+                        autoSize={{ minRows: 2, maxRows: 6 }}
+                        disabled={savingVersionId === item.id}
+                        style={{ marginBottom: 8, resize: 'vertical' }}
+                      />
+                      <div css={descriptionRowStyle}>
+                        <Button
+                          buttonSize="small"
+                          buttonStyle="primary"
+                          onClick={() => handleSaveDescription(item.id)}
+                          loading={savingVersionId === item.id}
+                          disabled={savingVersionId !== null}
+                        >
+                          {t('Save')}
+                        </Button>
+                        <Button
+                          buttonSize="small"
+                          buttonStyle="secondary"
+                          onClick={handleCancelEdit}
+                          disabled={savingVersionId !== null}
+                        >
+                          {t('Cancel')}
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <div css={descriptionRowStyle}>
+                      <span css={descriptionTextStyle}>
+                        {item.comment?.trim() || t('No description')}
+                      </span>
+                      <Icons.EditOutlined
+                        role="button"
+                        aria-label={t('Edit description')}
+                        onClick={() => handleStartEdit(item)}
+                        style={{ cursor: 'pointer', flexShrink: 0 }}
+                      />
+                    </div>
+                  )}
                 </div>
                 <Button
                   buttonSize="small"

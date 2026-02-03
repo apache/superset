@@ -528,6 +528,18 @@ class ImportV1DashboardSchema(Schema):
     theme_id = fields.Integer(allow_none=True)
 
 
+class DashboardVersionUpdateSchema(Schema):
+    """Schema for updating a dashboard version (description only)."""
+
+    comment = fields.String(
+        allow_none=True,
+        validate=Length(0, 500),
+        metadata={
+            "description": "Optional description of what changed in this version"
+        },
+    )
+
+
 class DashboardVersionListItemSchema(Schema):
     """Schema for a dashboard version list item (metadata only)."""
 
