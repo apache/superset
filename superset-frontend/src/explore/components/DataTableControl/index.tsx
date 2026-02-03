@@ -102,7 +102,7 @@ export const FilterInput = ({
     if (inputRef.current && shouldFocus) {
       inputRef.current.focus();
     }
-  }, []);
+  }, [shouldFocus]);
 
   const theme = useTheme();
   const debouncedChangeHandler = debounce(
