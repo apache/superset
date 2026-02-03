@@ -45,8 +45,7 @@ export const ResultsPaneOnDashboard = ({
   isVisible,
   dataSize = 50,
   canDownload,
-  columnDisplayNames,
-  queriesResponse,
+  queriesResponse
 }: ResultsPaneProps) => {
   const resultsPanes = useResultsPane({
     errorMessage,
@@ -58,8 +57,7 @@ export const ResultsPaneOnDashboard = ({
     dataSize,
     isVisible,
     canDownload,
-    columnDisplayNames,
-    queriesResponse,
+    queriesResponse
   });
 
   const [activeTabKey, setActiveTabKey] = useState<string>(ResultTypes.Results);
