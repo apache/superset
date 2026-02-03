@@ -264,9 +264,10 @@ export declare const getActivePanel: () => Panel;
  *   console.log(`Active tab: ${tab.title}`);
  *   console.log(`Database ID: ${tab.databaseId}, Schema: ${tab.schema}`);
  *
- *   // Direct editor manipulation
- *   tab.editor.setValue("SELECT * FROM users");
- *   tab.editor.focus();
+ *   // Editor manipulation via async getEditor()
+ *   const editor = await tab.getEditor();
+ *   editor.setValue("SELECT * FROM users");
+ *   editor.focus();
  * }
  * ```
  */
@@ -330,9 +331,10 @@ export declare const onDidChangeTabTitle: Event<string>;
  *
  * @example
  * ```typescript
- * onDidQueryRun.event((query) => {
+ * onDidQueryRun.event(async (query) => {
  *   console.log('Query started on database:', query.tab.databaseId);
- *   console.log('Query SQL:', query.tab.editor.getValue());
+ *   const editor = await query.tab.getEditor();
+ *   console.log('Query SQL:', editor.getValue());
  * });
  * ```
  */
@@ -498,7 +500,7 @@ export interface CreateTabOptions {
   /**
    * Schema name for the query context.
    */
-  schema?: string;
+  schema?: string | null;
 }
 
 /**

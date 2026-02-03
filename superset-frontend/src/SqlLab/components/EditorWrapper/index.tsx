@@ -29,10 +29,7 @@ import type { KeyboardShortcut } from 'src/SqlLab/components/KeyboardShortcutBut
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import { SqlLabRootState, type CursorPosition } from 'src/SqlLab/types';
 import { EditorHost } from 'src/core/editors';
-import {
-  registerEditorHandle,
-  unregisterEditorHandle,
-} from 'src/core/sqlLab';
+import { registerEditorHandle, unregisterEditorHandle } from 'src/core/sqlLab';
 import { useAnnotations } from './useAnnotations';
 import { useKeywords } from './useKeywords';
 

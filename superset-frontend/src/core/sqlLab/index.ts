@@ -433,8 +433,15 @@ const onDidCloseTab: typeof sqlLabApi.onDidCloseTab = (
   createActionListener(
     globalPredicate(REMOVE_QUERY_EDITOR),
     listener,
-    (action: { type: string; queryEditor: { id: string } }) =>
-      getTab(action.queryEditor.id),
+    (action: { type: string; queryEditor: QueryEditor }) =>
+      // Construct tab from action data since the tab has already been removed from state
+      makeTab(
+        action.queryEditor.id,
+        action.queryEditor.name ?? '',
+        action.queryEditor.dbId ?? 0,
+        action.queryEditor.catalog,
+        action.queryEditor.schema,
+      ),
     thisArgs,
   );
 
