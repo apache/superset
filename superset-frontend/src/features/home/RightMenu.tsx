@@ -498,7 +498,9 @@ const RightMenu = ({
           userItems.push({
             key: 'logout',
             label: (
-              <Typography.Link href={ensureAppRoot(navbarRight.user_logout_url)}>
+              <Typography.Link
+                href={ensureAppRoot(navbarRight.user_logout_url)}
+              >
                 {t('Logout')}
               </Typography.Link>
             ),
