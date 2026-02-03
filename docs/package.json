@@ -38,7 +38,7 @@
   },
   "dependencies": {
     "@ant-design/icons": "^6.1.0",
-    "@babel/core": "^7.28.6",
+    "@babel/core": "^7.29.0",
     "@babel/preset-react": "^7.26.3",
     "@babel/preset-typescript": "^7.26.0",
     "@docusaurus/core": "3.9.2",
