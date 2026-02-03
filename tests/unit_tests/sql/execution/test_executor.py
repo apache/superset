@@ -1351,6 +1351,7 @@ def test_async_handle_get_result_query_not_found(
     query_result = result.get_result()
 
     assert query_result.status == QueryStatus.FAILED
+    assert query_result.error_message is not None
     assert "not found" in query_result.error_message.lower()
 
 
@@ -1492,6 +1493,7 @@ def test_async_handle_get_result_backend_load_error(
     query_result = result.get_result()
 
     assert query_result.status == QueryStatus.FAILED
+    assert query_result.error_message is not None
     assert "Error loading results" in query_result.error_message
 
 
@@ -1523,6 +1525,7 @@ def test_async_handle_get_result_no_results_key(
     query_result = result.get_result()
 
     assert query_result.status == QueryStatus.FAILED
+    assert query_result.error_message is not None
     assert "Results not available" in query_result.error_message
 
 
@@ -2028,6 +2031,7 @@ def test_async_handle_get_result_with_empty_blob(
 
     # Should return failure when blob not found
     assert query_result.status == QueryStatus.FAILED
+    assert query_result.error_message is not None
     assert "Results not available" in query_result.error_message
 
 
@@ -2068,6 +2072,7 @@ def test_async_handle_get_result_no_results_backend(
 
     # Should return failure when no results backend
     assert query_result.status == QueryStatus.FAILED
+    assert query_result.error_message is not None
     assert "Results not available" in query_result.error_message
 
 
