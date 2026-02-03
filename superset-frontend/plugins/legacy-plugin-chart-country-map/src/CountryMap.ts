@@ -27,6 +27,15 @@ import {
 } from '@superset-ui/core';
 import countries, { countryOptions } from './countries';
 
+/**
+ * Escape HTML special characters to prevent XSS attacks
+ */
+function escapeHtml(text: string): string {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
 interface CountryMapDataItem {
   country_id: string;
   metric: number;
@@ -239,7 +248,7 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
       const countryName =
         countryOptions.find(x => x[0] === country)?.[1] || country;
       d3.select(element).html(
-        `<div class="alert alert-danger">No map data available for ${countryName}</div>`,
+        `<div class="alert alert-danger">No map data available for ${escapeHtml(countryName)}</div>`,
       );
       return;
     }
@@ -248,7 +257,7 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
         const countryName =
           countryOptions.find(x => x[0] === country)?.[1] || country;
         d3.select(element).html(
-          `<div class="alert alert-danger">Could not load map data for ${countryName}</div>`,
+          `<div class="alert alert-danger">Could not load map data for ${escapeHtml(countryName)}</div>`,
         );
       } else {
         maps[country] = mapData;

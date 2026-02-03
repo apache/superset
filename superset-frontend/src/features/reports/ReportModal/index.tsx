@@ -211,7 +211,8 @@ function ReportModal({
         await dispatch(
           editReport(currentReport.id, newReportValues as ReportObject),
         );
-      } else if (!isEditMode) {
+      } else {
+        // Create new report (either not in edit mode, or edit mode without valid ID)
         await dispatch(addReport(newReportValues as ReportObject));
       }
       onHide();

@@ -192,8 +192,19 @@ function BigNumberVis({
 
   const renderHeader = (maxHeight: number) => {
     const { bigNumber, width, colorThresholdFormatters, onContextMenu } = props;
-    // @ts-expect-error
-    const text = bigNumber === null ? t('No data') : headerFormatter(bigNumber);
+    // Format bigNumber based on its type: null/undefined -> "No data", number -> format, else -> string
+    let text: string;
+    if (bigNumber === null || bigNumber === undefined) {
+      text = t('No data');
+    } else if (typeof bigNumber === 'number') {
+      text = headerFormatter(bigNumber);
+    } else {
+      // For string/boolean/Date values, convert to number if possible, else show as string
+      const numValue = Number(bigNumber);
+      text = Number.isNaN(numValue)
+        ? String(bigNumber)
+        : headerFormatter(numValue);
+    }
 
     const hasThresholdColorFormatter =
       Array.isArray(colorThresholdFormatters) &&

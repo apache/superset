@@ -25,8 +25,11 @@ export default function transformProps(chartProps: ChartProps) {
     series_height: seriesHeight,
   } = formData;
 
+  // Only include colorScale if defined, otherwise let defaultProps apply
   return {
-    colorScale: horizonColorScale as string | undefined,
+    ...(horizonColorScale !== undefined && {
+      colorScale: horizonColorScale as string,
+    }),
     data: queriesData[0].data,
     height,
     seriesHeight: parseInt(String(seriesHeight ?? 20), 10),

@@ -106,7 +106,8 @@ function Calendar(element: HTMLElement, props: CalendarProps) {
       rawExtents[0] != null && rawExtents[1] != null
         ? [rawExtents[0], rawExtents[1]]
         : [0, 1];
-    const step = (extents[1] - extents[0]) / (steps - 1) || 0;
+    // Guard against division by zero when steps <= 1
+    const step = steps > 1 ? (extents[1] - extents[0]) / (steps - 1) : 0;
     const colorScheme = getSequentialSchemeRegistry().get(linearColorScheme);
     const colorScale = colorScheme
       ? colorScheme.createLinearScale(extents)
