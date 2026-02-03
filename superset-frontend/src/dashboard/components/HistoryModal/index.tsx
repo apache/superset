@@ -17,12 +17,20 @@
  * under the License.
  */
 import { useCallback, useEffect, useState } from 'react';
-import { Button, Modal, Table } from '@superset-ui/core/components';
-import { SupersetClient, t } from '@superset-ui/core';
+import {
+  Button,
+  List,
+  Loading,
+  Modal,
+  Typography,
+} from '@superset-ui/core/components';
+import { getClientErrorObject, SupersetClient } from '@superset-ui/core';
+import { css, t } from '@apache-superset/core/ui';
 
 export type DashboardVersionItem = {
   id: number;
   version_number: number;
+  comment: string | null;
   created_at: string | null;
   created_by: string | null;
 };
@@ -36,6 +44,34 @@ type HistoryModalProps = {
   addDangerToast: (msg: string) => void;
 };
 
+const versionCardStyle = css`
+  padding: 12px 0;
+  border-bottom: 1px solid var(--ant-color-border-secondary, #f0f0f0);
+  &:last-child {
+    border-bottom: none;
+  }
+`;
+
+const versionMetaStyle = css`
+  margin-bottom: 8px;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+`;
+
+const versionCommentBlock = css`
+  margin: 8px 0 12px;
+  padding: 10px 12px;
+  background: var(--ant-color-fill-quaternary, rgba(0, 0, 0, 0.02));
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--ant-color-text-secondary, rgba(0, 0, 0, 0.65));
+`;
+
 const HistoryModal = ({
   dashboardId,
   show,
@@ -48,7 +84,7 @@ const HistoryModal = ({
   const [loading, setLoading] = useState(false);
   const [restoringId, setRestoringId] = useState<number | null>(null);
 
-  const fetchVersions = useCallback(async () => {
+  const fetchVersions = useCallback(async (): Promise<void> => {
     if (!dashboardId) return;
     setLoading(true);
     try {
@@ -57,7 +93,12 @@ const HistoryModal = ({
       });
       setVersions(json?.result ?? []);
     } catch (err) {
-      addDangerToast(t('Failed to load version history'));
+      const clientError = await getClientErrorObject(err);
+      const message =
+        clientError.error ||
+        clientError.message ||
+        t('Failed to load version history');
+      addDangerToast(String(message));
     } finally {
       setLoading(false);
     }
@@ -78,81 +119,94 @@ const HistoryModal = ({
         ),
         okText: t('Restore'),
         cancelText: t('Cancel'),
-        onOk: async () => {
+        onOk: () => {
           setRestoringId(versionId);
-          try {
-            await SupersetClient.post({
-              endpoint: `/api/v1/dashboard/${dashboardId}/restore/${versionId}`,
-            });
-            addSuccessToast(t('Dashboard restored'));
-            onHide();
-            onRestore?.();
-            window.location.reload();
-          } catch (err) {
-            addDangerToast(t('Failed to restore version'));
-          } finally {
-            setRestoringId(null);
-          }
+          return (async () => {
+            try {
+              await SupersetClient.post({
+                endpoint: `/api/v1/dashboard/${dashboardId}/restore/${versionId}`,
+              });
+              addSuccessToast(t('Dashboard restored'));
+              onHide();
+              onRestore?.();
+              window.location.reload();
+            } catch (err) {
+              const clientError = await getClientErrorObject(err);
+              const errorMessage =
+                clientError.error ||
+                clientError.message ||
+                t('Failed to restore version');
+              addDangerToast(String(errorMessage));
+              throw new Error(String(errorMessage));
+            } finally {
+              setRestoringId(null);
+            }
+          })();
         },
       });
     },
     [dashboardId, onHide, onRestore, addSuccessToast, addDangerToast],
   );
 
-  const columns = [
-    {
-      title: t('Version'),
-      dataIndex: 'version_number',
-      key: 'version_number',
-      width: 100,
-    },
-    {
-      title: t('Author'),
-      dataIndex: 'created_by',
-      key: 'created_by',
-      render: (text: string | null) => text ?? '—',
-    },
-    {
-      title: t('Date'),
-      dataIndex: 'created_at',
-      key: 'created_at',
-      render: (text: string | null) =>
-        text ? new Date(text).toLocaleString() : '—',
-    },
-    {
-      title: '',
-      key: 'action',
-      width: 100,
-      render: (_: unknown, record: DashboardVersionItem) => (
-        <Button
-          buttonSize="small"
-          buttonStyle="primary"
-          onClick={() => handleRestore(record.id)}
-          loading={restoringId === record.id}
-          disabled={restoringId !== null}
-        >
-          {t('Restore')}
-        </Button>
-      ),
-    },
-  ];
+  const formatDate = (created_at: string | null) =>
+    created_at ? new Date(created_at).toLocaleString() : '—';
 
   return (
     <Modal
       show={show}
       onHide={onHide}
       title={t('Dashboard version history')}
-      footer={null}
-      width={600}
+      footer={
+        <Button buttonStyle="secondary" onClick={onHide}>
+          {t('Close')}
+        </Button>
+      }
+      width={560}
     >
-      <Table
-        columns={columns}
-        dataSource={versions}
-        rowKey="id"
-        loading={loading}
-        size="small"
-        pagination={{ pageSize: 10 }}
-      />
+      {loading && (
+        <div style={{ padding: 24, display: 'flex', justifyContent: 'center' }}>
+          <Loading />
+        </div>
+      )}
+      {!loading && versions.length === 0 && (
+        <Typography.Text type="secondary">
+          {t(
+            'No version history yet. Versions are created when you save the dashboard.',
+          )}
+        </Typography.Text>
+      )}
+      {!loading && versions.length > 0 && (
+        <List
+          dataSource={versions}
+          renderItem={(item: DashboardVersionItem) => (
+            <List.Item key={item.id}>
+              <div css={versionCardStyle}>
+                <div css={versionMetaStyle}>
+                  <Typography.Text strong>
+                    {t('Version')} {item.version_number}
+                  </Typography.Text>
+                  <Typography.Text type="secondary">
+                    {formatDate(item.created_at)}
+                    {item.created_by ? ` · ${item.created_by}` : ''}
+                  </Typography.Text>
+                </div>
+                <div css={versionCommentBlock}>
+                  {item.comment?.trim() || t('No version note')}
+                </div>
+                <Button
+                  buttonSize="small"
+                  buttonStyle="primary"
+                  onClick={() => handleRestore(item.id)}
+                  loading={restoringId === item.id}
+                  disabled={restoringId !== null}
+                >
+                  {t('Restore')}
+                </Button>
+              </div>
+            </List.Item>
+          )}
+        />
+      )}
     </Modal>
   );
 };

@@ -44,6 +44,7 @@ import {
 import { Icons } from '@superset-ui/core/components/Icons';
 import {
   Button,
+  Input,
   Tooltip,
   DeleteModal,
   UnsavedChangesModal,
@@ -207,6 +208,7 @@ const Header = (): ReactElement => {
   const [showingReportModal, setShowingReportModal] = useState<boolean>(false);
   const [currentReportDeleting, setCurrentReportDeleting] =
     useState<ReportObject | null>(null);
+  const [versionNote, setVersionNote] = useState<string>('');
   const dashboardInfo = useSelector((state: RootState) => state.dashboardInfo);
   const layout = useSelector(
     (state: RootState) => state.dashboardLayout.present,
@@ -476,6 +478,7 @@ const Header = (): ReactElement => {
           item.type === TagTypeEnum.Custom || !item.type,
       ) as { id: number }[],
       theme_id: dashboardInfo.theme ? dashboardInfo.theme.id : null,
+      version_comment: versionNote?.trim() || undefined,
       metadata: {
         ...dashboardInfo?.metadata,
         color_namespace: currentColorNamespace,
@@ -506,10 +509,12 @@ const Header = (): ReactElement => {
       }
 
       boundActionCreators.onSave(data, dashboardInfo.id, SAVE_TYPE_OVERWRITE);
+      setVersionNote('');
     }
   }, [
     actualLastModifiedTime,
     boundActionCreators,
+    versionNote,
     colorNamespace,
     colorScheme,
     customCss,
@@ -761,6 +766,17 @@ const Header = (): ReactElement => {
                   <Icons.HistoryOutlined iconSize="m" />
                   {t('History')}
                 </Button>
+                <Input
+                  placeholder={t('Version note (optional)')}
+                  value={versionNote}
+                  onChange={e => setVersionNote(e.target.value)}
+                  css={css`
+                    width: 180px;
+                    margin-right: 8px;
+                  `}
+                  data-test="header-version-note-input"
+                  aria-label={t('Version note')}
+                />
                 <Button
                   css={saveBtnStyle}
                   buttonSize="small"
