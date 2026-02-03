@@ -353,6 +353,6 @@ class TestCalculatedSuggestions:
             estimated_tokens=75000,  # 3x over limit
             token_limit=25000,
         )
-        # Should mention ~67% reduction needed
+        # Should mention ~66% reduction needed (int truncation of 66.6%)
         combined = " ".join(suggestions)
-        assert "%" in combined
+        assert "66%" in combined

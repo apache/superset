@@ -22,6 +22,11 @@ from typing import Any, Dict, Optional
 
 from flask import Flask
 
+from superset.mcp_service.constants import (
+    DEFAULT_TOKEN_LIMIT,
+    DEFAULT_WARN_THRESHOLD_PCT,
+)
+
 logger = logging.getLogger(__name__)
 
 # MCP Service Configuration
@@ -201,8 +206,8 @@ MCP_CACHE_CONFIG: Dict[str, Any] = {
 # =============================================================================
 MCP_RESPONSE_SIZE_CONFIG: Dict[str, Any] = {
     "enabled": True,  # Enabled by default to protect LLM clients
-    "token_limit": 25000,  # ~25k tokens prevents overwhelming LLM context windows
-    "warn_threshold_pct": 80,  # Log warnings above 80% of limit
+    "token_limit": DEFAULT_TOKEN_LIMIT,
+    "warn_threshold_pct": DEFAULT_WARN_THRESHOLD_PCT,
     "excluded_tools": [  # Tools to skip size checking
         "health_check",  # Always small
         "get_chart_preview",  # Returns URLs, not data
