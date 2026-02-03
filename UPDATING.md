@@ -241,6 +241,9 @@ See `superset/mcp_service/PRODUCTION.md` for deployment guides.
   }
   ```
 
+### Enhancements
+- [37396](https://github.com/apache/superset/pull/37396) Column Labels are now returned from query results to simplify display name handling in visualizations and data tables. The `collabels` field in query results contains the user-friendly names for each column, while the `colnames` field contains the raw column names from the database. Visualizations and data tables should use `labels` for display purposes.
+
 ## 6.0.0
 - [33055](https://github.com/apache/superset/pull/33055): Upgrades Flask-AppBuilder to 5.0.0. The AUTH_OID authentication type has been deprecated and is no longer available as an option in Flask-AppBuilder. OpenID (OID) is considered a deprecated authentication protocol - if you are using AUTH_OID, you will need to migrate to an alternative authentication method such as OAuth, LDAP, or database authentication before upgrading.
 - [34871](https://github.com/apache/superset/pull/34871): Fixed Jest test hanging issue from Ant Design v5 upgrade. MessageChannel is now mocked in test environment to prevent rc-overflow from causing Jest to hang. Test environment only - no production impact.
