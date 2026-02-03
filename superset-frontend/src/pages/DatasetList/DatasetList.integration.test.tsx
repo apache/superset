@@ -116,7 +116,7 @@ test('ListView provider correctly merges filter + sort + pagination state on ref
   // 3. Verify the final API call contains ALL three state pieces merged correctly
   const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
   const latestCall = calls[calls.length - 1];
-  const url = latestCall.url as string;
+  const url = latestCall.url;
 
   // Decode the rison payload using URL parser
   const risonPayload = new URL(url, 'http://localhost').searchParams.get('q');

@@ -20,6 +20,7 @@ import { act, screen, waitFor, within } from '@testing-library/react';
 import fetchMock from 'fetch-mock';
 import {
   setupMocks,
+  setupApiPermissions,
   renderDatasetList,
   mockAdminUser,
   mockReadOnlyUser,
@@ -34,7 +35,7 @@ import {
 jest.setTimeout(30000);
 
 beforeEach(() => {
-  // Default setup - tests that need different permissions will call setupMocks() again
+  setupMocks();
   jest.clearAllMocks();
 });
 
@@ -57,14 +58,7 @@ afterEach(async () => {
 
 test('admin users see all UI elements', async () => {
   // Setup API with full admin permissions
-  setupMocks({
-    [API_ENDPOINTS.DATASETS_INFO]: [
-      'can_read',
-      'can_write',
-      'can_export',
-      'can_duplicate',
-    ],
-  });
+  setupApiPermissions(['can_read', 'can_write', 'can_export', 'can_duplicate']);
 
   renderDatasetList(mockAdminUser);
 
@@ -96,7 +90,7 @@ test('admin users see all UI elements', async () => {
 
 test('read-only users cannot see Actions column', async () => {
   // Setup API with read-only permissions
-  setupMocks({ [API_ENDPOINTS.DATASETS_INFO]: ['can_read'] });
+  setupApiPermissions(['can_read']);
 
   renderDatasetList(mockReadOnlyUser);
 
@@ -113,7 +107,7 @@ test('read-only users cannot see Actions column', async () => {
 
 test('read-only users cannot see bulk select button', async () => {
   // Setup API with read-only permissions
-  setupMocks({ [API_ENDPOINTS.DATASETS_INFO]: ['can_read'] });
+  setupApiPermissions(['can_read']);
 
   renderDatasetList(mockReadOnlyUser);
 
@@ -129,7 +123,7 @@ test('read-only users cannot see bulk select button', async () => {
 
 test('read-only users cannot see Create/Import buttons', async () => {
   // Setup API with read-only permissions
-  setupMocks({ [API_ENDPOINTS.DATASETS_INFO]: ['can_read'] });
+  setupApiPermissions(['can_read']);
 
   renderDatasetList(mockReadOnlyUser);
 
@@ -150,9 +144,7 @@ test('read-only users cannot see Create/Import buttons', async () => {
 
 test('write users see Actions column', async () => {
   // Setup API with write permissions
-  setupMocks({
-    [API_ENDPOINTS.DATASETS_INFO]: ['can_read', 'can_write', 'can_export'],
-  });
+  setupApiPermissions(['can_read', 'can_write', 'can_export']);
 
   renderDatasetList(mockWriteUser);
 
@@ -170,9 +162,7 @@ test('write users see Actions column', async () => {
 
 test('write users see bulk select button', async () => {
   // Setup API with write permissions
-  setupMocks({
-    [API_ENDPOINTS.DATASETS_INFO]: ['can_read', 'can_write', 'can_export'],
-  });
+  setupApiPermissions(['can_read', 'can_write', 'can_export']);
 
   renderDatasetList(mockWriteUser);
 
@@ -187,9 +177,7 @@ test('write users see bulk select button', async () => {
 
 test('write users see Create/Import buttons', async () => {
   // Setup API with write permissions
-  setupMocks({
-    [API_ENDPOINTS.DATASETS_INFO]: ['can_read', 'can_write', 'can_export'],
-  });
+  setupApiPermissions(['can_read', 'can_write', 'can_export']);
 
   renderDatasetList(mockWriteUser);
 
@@ -210,7 +198,7 @@ test('write users see Create/Import buttons', async () => {
 
 test('export-only users see bulk select (for export only)', async () => {
   // Setup API with export-only permissions
-  setupMocks({ [API_ENDPOINTS.DATASETS_INFO]: ['can_read', 'can_export'] });
+  setupApiPermissions(['can_read', 'can_export']);
 
   renderDatasetList(mockExportOnlyUser);
 
@@ -226,7 +214,7 @@ test('export-only users see bulk select (for export only)', async () => {
 
 test('export-only users cannot see Create/Import buttons', async () => {
   // Setup API with export-only permissions
-  setupMocks({ [API_ENDPOINTS.DATASETS_INFO]: ['can_read', 'can_export'] });
+  setupApiPermissions(['can_read', 'can_export']);
 
   renderDatasetList(mockExportOnlyUser);
 
@@ -245,24 +233,11 @@ test('export-only users cannot see Create/Import buttons', async () => {
 
 test('action buttons respect user permissions', async () => {
   // Setup API with full admin permissions
-  setupMocks({
-    [API_ENDPOINTS.DATASETS_INFO]: [
-      'can_read',
-      'can_write',
-      'can_export',
-      'can_duplicate',
-    ],
-  });
+  setupApiPermissions(['can_read', 'can_write', 'can_export', 'can_duplicate']);
 
   const dataset = mockDatasets[0];
 
-  // Override the default DATASETS route with test-specific data
-  fetchMock.removeRoute(API_ENDPOINTS.DATASETS);
-  fetchMock.get(
-    API_ENDPOINTS.DATASETS,
-    { result: [dataset], count: 1 },
-    { name: API_ENDPOINTS.DATASETS },
-  );
+  fetchMock.get(API_ENDPOINTS.DATASETS, { result: [dataset], count: 1 });
 
   renderDatasetList(mockAdminUser);
 
@@ -284,17 +259,11 @@ test('action buttons respect user permissions', async () => {
 
 test('read-only user sees no delete or duplicate buttons in row', async () => {
   // Setup API with read-only permissions
-  setupMocks({ [API_ENDPOINTS.DATASETS_INFO]: ['can_read'] });
+  setupApiPermissions(['can_read']);
 
   const dataset = mockDatasets[0];
 
-  // Override the default DATASETS route with test-specific data
-  fetchMock.removeRoute(API_ENDPOINTS.DATASETS);
-  fetchMock.get(
-    API_ENDPOINTS.DATASETS,
-    { result: [dataset], count: 1 },
-    { name: API_ENDPOINTS.DATASETS },
-  );
+  fetchMock.get(API_ENDPOINTS.DATASETS, { result: [dataset], count: 1 });
 
   renderDatasetList(mockReadOnlyUser);
 
@@ -322,22 +291,14 @@ test('read-only user sees no delete or duplicate buttons in row', async () => {
 test('write user sees edit, delete, and export actions', async () => {
   // Setup API with write permissions (includes delete)
   // Note: can_write grants both edit and delete permissions in DatasetList
-  setupMocks({
-    [API_ENDPOINTS.DATASETS_INFO]: ['can_read', 'can_write', 'can_export'],
-  });
+  setupApiPermissions(['can_read', 'can_write', 'can_export']);
 
   const dataset = {
     ...mockDatasets[0],
     owners: [{ id: mockWriteUser.userId, username: 'writeuser' }],
   };
 
-  // Override the default DATASETS route with test-specific data
-  fetchMock.removeRoute(API_ENDPOINTS.DATASETS);
-  fetchMock.get(
-    API_ENDPOINTS.DATASETS,
-    { result: [dataset], count: 1 },
-    { name: API_ENDPOINTS.DATASETS },
-  );
+  fetchMock.get(API_ENDPOINTS.DATASETS, { result: [dataset], count: 1 });
 
   renderDatasetList(mockWriteUser);
 
@@ -368,17 +329,11 @@ test('write user sees edit, delete, and export actions', async () => {
 test('export-only user has no Actions column (no write/duplicate permissions)', async () => {
   // Setup API with export-only permissions
   // Note: Export action alone doesn't render Actions column - it's in toolbar/bulk select
-  setupMocks({ [API_ENDPOINTS.DATASETS_INFO]: ['can_read', 'can_export'] });
+  setupApiPermissions(['can_read', 'can_export']);
 
   const dataset = mockDatasets[0];
 
-  // Override the default DATASETS route with test-specific data
-  fetchMock.removeRoute(API_ENDPOINTS.DATASETS);
-  fetchMock.get(
-    API_ENDPOINTS.DATASETS,
-    { result: [dataset], count: 1 },
-    { name: API_ENDPOINTS.DATASETS },
-  );
+  fetchMock.get(API_ENDPOINTS.DATASETS, { result: [dataset], count: 1 });
 
   renderDatasetList(mockExportOnlyUser);
 
@@ -406,21 +361,15 @@ test('export-only user has no Actions column (no write/duplicate permissions)', 
 
 test('user with can_duplicate sees duplicate button only for virtual datasets', async () => {
   // Setup API with duplicate permission
-  setupMocks({ [API_ENDPOINTS.DATASETS_INFO]: ['can_read', 'can_duplicate'] });
+  setupApiPermissions(['can_read', 'can_duplicate']);
 
   const physicalDataset = mockDatasets[0]; // kind: 'physical'
   const virtualDataset = mockDatasets[1]; // kind: 'virtual'
 
-  // Override the default DATASETS route with test-specific data
-  fetchMock.removeRoute(API_ENDPOINTS.DATASETS);
-  fetchMock.get(
-    API_ENDPOINTS.DATASETS,
-    {
-      result: [physicalDataset, virtualDataset],
-      count: 2,
-    },
-    { name: API_ENDPOINTS.DATASETS },
-  );
+  fetchMock.get(API_ENDPOINTS.DATASETS, {
+    result: [physicalDataset, virtualDataset],
+    count: 2,
+  });
 
   renderDatasetList(mockAdminUser);
 
