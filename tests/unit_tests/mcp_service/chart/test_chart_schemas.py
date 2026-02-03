@@ -228,7 +228,7 @@ class TestXYChartConfig:
                 x=ColumnRef(name="territory"),
                 y=[ColumnRef(name="sales", aggregate="SUM")],
                 kind="bar",
-                series=ColumnRef(name="year"),  # type: ignore[call-arg]
+                series=ColumnRef(name="year"),
             )
 
     def test_group_by_accepted(self) -> None:
@@ -253,5 +253,5 @@ class TestTableChartConfigExtraFields:
             TableChartConfig(
                 chart_type="table",
                 columns=[ColumnRef(name="product")],
-                foo="bar",  # type: ignore[call-arg]
+                foo="bar",
             )
