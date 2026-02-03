@@ -18,14 +18,14 @@
  */
 
 import { dirname, join } from 'path';
-import helpers, { result } from 'yeoman-test';
+import helpers from 'yeoman-test';
 // @ts-expect-error -- fs-extra/esm has no type declarations
 import { copySync } from 'fs-extra/esm';
 import { fileURLToPath } from 'url';
 import pluginChartModule from '../generators/plugin-chart';
 
 test('generator-superset:plugin-chart:creates files', async () => {
-  await helpers
+  const result = await helpers
     .run(pluginChartModule)
     .onTargetDirectory(dir => {
       // `dir` is the path to the new temporary directory

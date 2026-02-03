@@ -46,9 +46,9 @@ const rows = [
  */
 test('alphabeticalSort sorts correctly', () => {
   // @ts-expect-error
-  expect(alphabeticalSort('name', rows[0], rows[1])).toBe(-1);
+  expect(alphabeticalSort('name', rows[0], rows[1])).toBeLessThan(0);
   // @ts-expect-error
-  expect(alphabeticalSort('name', rows[1], rows[0])).toBe(1);
+  expect(alphabeticalSort('name', rows[1], rows[0])).toBeGreaterThan(0);
   // @ts-expect-error
   expect(alphabeticalSort('category', rows[1], rows[0])).toBe(0);
 });
@@ -88,14 +88,14 @@ test('alphabeticalSort bad inputs no errors', () => {
 
 test('numericalSort bad inputs no errors', () => {
   // @ts-expect-error
-  expect(numericalSort('name', undefined, undefined)).toBe(NaN);
+  expect(numericalSort('name', undefined, undefined)).toBeNaN();
   // @ts-expect-error
-  expect(numericalSort('name', null, null)).toBe(NaN);
+  expect(numericalSort('name', null, null)).toBeNaN();
   // incorrect non-object values
   // @ts-expect-error
-  expect(numericalSort('name', 3, [])).toBe(NaN);
+  expect(numericalSort('name', 3, [])).toBeNaN();
   // incorrect object values without specified key
-  expect(numericalSort('name', {}, {})).toBe(NaN);
+  expect(numericalSort('name', {}, {})).toBeNaN();
   // Object as value for name when it should be a string
   expect(
     numericalSort(
@@ -104,5 +104,5 @@ test('numericalSort bad inputs no errors', () => {
       { name: { title: 'the name attribute should not be an object' } },
       { name: 'Doug' },
     ),
-  ).toBe(NaN);
+  ).toBeNaN();
 });

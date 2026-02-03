@@ -30,7 +30,9 @@ const plugin: { rules: Record<string, Rule.RuleModule> } = require('.');
 //------------------------------------------------------------------------------
 // Tests
 //------------------------------------------------------------------------------
-const ruleTester = new RuleTester({ parserOptions: { ecmaVersion: 6 } });
+const ruleTester = new RuleTester({
+  parserOptions: { ecmaVersion: 6, ecmaFeatures: { jsx: true } },
+});
 const rule: Rule.RuleModule = plugin.rules['no-fa-icons-usage'];
 
 const errors: Array<{ message: string }> = [

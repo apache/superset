@@ -77,6 +77,14 @@ interface LiteralNode {
 const plugin: { rules: Record<string, Rule.RuleModule> } = {
   rules: {
     'no-literal-colors': {
+      meta: {
+        type: 'suggestion',
+        docs: {
+          description:
+            'Disallow literal color values; use theme colors instead',
+        },
+        schema: [],
+      },
       create(context: Rule.RuleContext): Rule.RuleListener {
         const warned: string[] = [];
         return {
@@ -103,7 +111,7 @@ const plugin: { rules: Record<string, Rule.RuleModule> } = {
             ) {
               context.report({
                 node,
-                loc: loc as SourceLocation,
+                ...(loc && { loc: loc as SourceLocation }),
                 message: WARNING_MESSAGE,
               });
               if (locId) {
@@ -118,23 +126,31 @@ const plugin: { rules: Record<string, Rule.RuleModule> } = {
             if (typeof value !== 'string') {
               return;
             }
-            const isParentProperty = literalNode?.parent?.type === 'Property';
-            const locId = JSON.stringify(node.loc);
-            const hasWarned = warned.includes(locId);
+            const parent = literalNode?.parent as Node & {
+              type: string;
+              value?: Node;
+            };
+            // Only check property values, not keys (e.g., { color: 'red' } not { red: 1 })
+            const isPropertyValue =
+              parent?.type === 'Property' && parent.value === node;
+            const locId = node.loc ? JSON.stringify(node.loc) : null;
+            const hasWarned = locId ? warned.includes(locId) : false;
 
             if (
               !hasWarned &&
-              isParentProperty &&
+              isPropertyValue &&
               (hasLiteralColor(value, true) ||
                 hasHexColor(value) ||
                 hasRgbColor(value))
             ) {
               context.report({
                 node,
-                loc: node.loc as SourceLocation,
+                ...(node.loc && { loc: node.loc as SourceLocation }),
                 message: WARNING_MESSAGE,
               });
-              warned.push(locId);
+              if (locId) {
+                warned.push(locId);
+              }
             }
           },
         };

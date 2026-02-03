@@ -32,6 +32,11 @@ import type { Node } from 'estree';
 const plugin: { rules: Record<string, Rule.RuleModule> } = {
   rules: {
     'no-template-vars': {
+      meta: {
+        type: 'problem',
+        docs: { description: 'Disallow variables in translation template strings' },
+        schema: [],
+      },
       create(context: Rule.RuleContext): Rule.RuleListener {
         function handler(node: Node): void {
           const callNode = node as Node & {
@@ -59,6 +64,11 @@ const plugin: { rules: Record<string, Rule.RuleModule> } = {
       },
     },
     'sentence-case-buttons': {
+      meta: {
+        type: 'suggestion',
+        docs: { description: 'Enforce sentence case for button text in translations' },
+        schema: [],
+      },
       create(context: Rule.RuleContext): Rule.RuleListener {
         function isTitleCase(str: string): boolean {
           // Match "Delete Dataset", "Create Chart", etc. (2+ title-cased words)

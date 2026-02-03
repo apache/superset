@@ -43,7 +43,7 @@ export default function FallbackComponent({ error, height, width }: Props) {
             ? error.message
             : error
               ? String(error)
-              : 'Unknown Error'}
+              : t('Unknown Error')}
         </code>
       </div>
     </div>
