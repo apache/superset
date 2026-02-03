@@ -68,7 +68,7 @@
     "@superset-ui/core": "^0.20.4",
     "antd": "^6.2.3",
     "babel-loader": "^10.0.0",
-    "caniuse-lite": "^1.0.30001766",
+    "caniuse-lite": "^1.0.30001767",
     "docusaurus-plugin-less": "^2.0.2",
     "docusaurus-plugin-openapi-docs": "^4.6.0",
     "docusaurus-theme-openapi-docs": "^4.6.0",
