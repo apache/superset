@@ -63,7 +63,7 @@ describe('SupersetClient', () => {
 
   // this also tests that the ^above doesn't throw if configure is called appropriately
   it('calls appropriate SupersetClient methods when configured', async () => {
-    expect.assertions(16);
+    expect.assertions(18);
     const mockGetUrl = '/mock/get/url';
     const mockPostUrl = '/mock/post/url';
     const mockRequestUrl = '/mock/request/url';
@@ -94,6 +94,13 @@ describe('SupersetClient', () => {
       SupersetClientClass.prototype,
       'getGuestToken',
     );
+    const getUrlSpy = jest.spyOn(SupersetClientClass.prototype, 'getUrl');
+
+    SupersetClient.configure({ appRoot: '/app' });
+    expect(SupersetClient.getUrl({ endpoint: '/some/path' })).toContain(
+      '/app/some/path',
+    );
+    expect(getUrlSpy).toHaveBeenCalledTimes(1);
 
     SupersetClient.configure({});
     await SupersetClient.init();
@@ -145,6 +152,7 @@ describe('SupersetClient', () => {
     postSpy.mockRestore();
     authenticatedSpy.mockRestore();
     csrfSpy.mockRestore();
+    getUrlSpy.mockRestore();
 
     fetchMock.reset();
   });
