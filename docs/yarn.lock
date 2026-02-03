@@ -2941,24 +2941,24 @@
   dependencies:
     "@rc-component/util" "^1.3.0"
 
-"@rc-component/dialog@~1.8.0":
-  version "1.8.0"
-  resolved "https://registry.yarnpkg.com/@rc-component/dialog/-/dialog-1.8.0.tgz#b1c05c0a8df6292f00a46b3025b490c54fb4da13"
-  integrity sha512-zGksezfULKixYCIWctIhUC2M3zUJrc81JKWbi9dJrQdPaM7J+8vSOrhLoOHHkZFpBpb2Ri6JqnSuGYb2N+FrRA==
+"@rc-component/dialog@~1.8.2":
+  version "1.8.2"
+  resolved "https://registry.yarnpkg.com/@rc-component/dialog/-/dialog-1.8.2.tgz#d2bb66ba60c9f632e65c5e471cae38e357397d4e"
+  integrity sha512-CwDSjpjZ1FcgsdKFPuSoYfi9Vbt2bp+ak4Pzkwq4APQC8DopJKWetRu1V+HE9vI1CNAeqvT5WAvAxE6RiDhl7A==
   dependencies:
     "@rc-component/motion" "^1.1.3"
     "@rc-component/portal" "^2.1.0"
-    "@rc-component/util" "^1.5.0"
+    "@rc-component/util" "^1.7.0"
     clsx "^2.1.1"
 
-"@rc-component/drawer@~1.4.0":
-  version "1.4.0"
-  resolved "https://registry.yarnpkg.com/@rc-component/drawer/-/drawer-1.4.0.tgz#aad9002307899b3b2a31e7c2160c44f38421e026"
-  integrity sha512-Zr1j1LRLDauz4a5JXHEmeYQfvEzfh4CddNa7tszyJnfd5GySYdZ5qLO63Tt2tgG4k+qi6tkFDKmcT46ikZfzbQ==
+"@rc-component/drawer@~1.4.1":
+  version "1.4.1"
+  resolved "https://registry.yarnpkg.com/@rc-component/drawer/-/drawer-1.4.1.tgz#df1173ce8e387fd558f73dcc18500f3c778a5ff7"
+  integrity sha512-kNJQie/QjJO5wGeWrZQwSGeuo8staxXx1nYN+dpK2UY7i8teo5PQdZ6ukKSnnW9vmPXsLn3F5nKYRbf43e8+5g==
   dependencies:
     "@rc-component/motion" "^1.1.4"
     "@rc-component/portal" "^2.1.3"
-    "@rc-component/util" "^1.2.1"
+    "@rc-component/util" "^1.7.0"
     clsx "^2.1.1"
 
 "@rc-component/dropdown@~1.0.0", "@rc-component/dropdown@~1.0.2":
@@ -3137,10 +3137,10 @@
     "@rc-component/util" "^1.3.0"
     clsx "^2.1.1"
 
-"@rc-component/select@~1.5.0", "@rc-component/select@~1.5.1":
-  version "1.5.1"
-  resolved "https://registry.yarnpkg.com/@rc-component/select/-/select-1.5.1.tgz#315e4f8dce55facae4d948cd5182cf7166a60e27"
-  integrity sha512-ARXtwfCVnpDJj1bQjh1cimUlNQkZiN72hvtL2G4mKXIYfkokYdA2Vyu2deAfY7kuHSWpmZygVuohQt6TxOYjnA==
+"@rc-component/select@~1.5.0", "@rc-component/select@~1.5.2":
+  version "1.5.2"
+  resolved "https://registry.yarnpkg.com/@rc-component/select/-/select-1.5.2.tgz#43fc247336d6b8ed6ae1656628c56d9a09959c11"
+  integrity sha512-7wqD5D4I2+fc5XoB4nzDDK656QPlDnFAUaxLljkU1wwSpi4+MZxndv9vgg7NQfveuuf0/ilUdOjuPg7NPl7Mmg==
   dependencies:
     "@rc-component/overflow" "^1.0.0"
     "@rc-component/trigger" "^3.0.0"
@@ -3263,10 +3263,10 @@
     "@rc-component/util" "^1.3.0"
     clsx "^2.1.1"
 
-"@rc-component/util@^1.1.0", "@rc-component/util@^1.2.0", "@rc-component/util@^1.2.1", "@rc-component/util@^1.3.0", "@rc-component/util@^1.4.0", "@rc-component/util@^1.5.0", "@rc-component/util@^1.6.2", "@rc-component/util@^1.7.0":
-  version "1.7.0"
-  resolved "https://registry.yarnpkg.com/@rc-component/util/-/util-1.7.0.tgz#c6eb178e0b1c48c5ae6325b21c60aeaf4f3d8d04"
-  integrity sha512-tIvIGj4Vl6fsZFvWSkYw9sAfiCKUXMyhVz6kpKyZbwyZyRPqv2vxYZROdaO1VB4gqTNvUZFXh6i3APUiterw5g==
+"@rc-component/util@^1.1.0", "@rc-component/util@^1.2.0", "@rc-component/util@^1.2.1", "@rc-component/util@^1.3.0", "@rc-component/util@^1.4.0", "@rc-component/util@^1.6.2", "@rc-component/util@^1.7.0", "@rc-component/util@^1.8.1":
+  version "1.8.1"
+  resolved "https://registry.yarnpkg.com/@rc-component/util/-/util-1.8.1.tgz#a3515ca34b983d6098b25a19a325346213e648b0"
+  integrity sha512-Ku6BzF0Ov5L9U3ewFJZDQ//iWCR2nIkLBBiYSrhxIVl3PqeUqiYP2W8gNI8qoKAFQKZdYcS0+B6+SQTDtv/erw==
   dependencies:
     is-mobile "^5.0.0"
     react-is "^18.2.0"
@@ -5142,10 +5142,10 @@ ansi-styles@^6.1.0:
   resolved "https://registry.yarnpkg.com/ansi-styles/-/ansi-styles-6.2.1.tgz#0e62320cf99c21afff3b3012192546aacbfb05c5"
   integrity sha512-bN798gFfQX+viw3R7yrGWRqnrN2oRkEkUjjl4JNn4E8GxxbjtG3FbrEIIY3l8/hrwUwIeCZvi4QuOTP4MErVug==
 
-antd@^6.2.2:
-  version "6.2.2"
-  resolved "https://registry.yarnpkg.com/antd/-/antd-6.2.2.tgz#d7b31a5998396ab40750b80e9b2fe6da837a1982"
-  integrity sha512-f5RvWnhjt2gZTpBMW3msHwA3IeaCJBHDwVyEsskYGp0EXcRhhklWrltkybDki0ysBNywkjLPp3wuuWhIKfplcQ==
+antd@^6.2.3:
+  version "6.2.3"
+  resolved "https://registry.yarnpkg.com/antd/-/antd-6.2.3.tgz#b4e7a73d2300f5c23eff5570b84be56ebe9a1d23"
+  integrity sha512-q92r7/hcQAR2iv6CCysdz7c2Pdl/3nhslc3azF9e6AEl4knO6v+nlaeor1oF2jBanZ/tiw2m3NprOVUgPDvyhg==
   dependencies:
     "@ant-design/colors" "^8.0.1"
     "@ant-design/cssinjs" "^2.0.3"
@@ -5158,8 +5158,8 @@ antd@^6.2.2:
     "@rc-component/checkbox" "~1.0.1"
     "@rc-component/collapse" "~1.2.0"
     "@rc-component/color-picker" "~3.0.3"
-    "@rc-component/dialog" "~1.8.0"
-    "@rc-component/drawer" "~1.4.0"
+    "@rc-component/dialog" "~1.8.2"
+    "@rc-component/drawer" "~1.4.1"
     "@rc-component/dropdown" "~1.0.2"
     "@rc-component/form" "~1.6.2"
     "@rc-component/image" "~1.6.0"
@@ -5177,7 +5177,7 @@ antd@^6.2.2:
     "@rc-component/rate" "~1.0.1"
     "@rc-component/resize-observer" "^1.1.1"
     "@rc-component/segmented" "~1.3.0"
-    "@rc-component/select" "~1.5.1"
+    "@rc-component/select" "~1.5.2"
     "@rc-component/slider" "~1.0.1"
     "@rc-component/steps" "~1.2.2"
     "@rc-component/switch" "~1.0.3"
@@ -5190,7 +5190,7 @@ antd@^6.2.2:
     "@rc-component/tree-select" "~1.6.0"
     "@rc-component/trigger" "^3.9.0"
     "@rc-component/upload" "~1.1.0"
-    "@rc-component/util" "^1.7.0"
+    "@rc-component/util" "^1.8.1"
     clsx "^2.1.1"
     dayjs "^1.11.11"
     scroll-into-view-if-needed "^3.1.0"
