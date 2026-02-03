@@ -162,7 +162,7 @@ test('should render a HoverMenu in editMode', () => {
 
   // pass the same depth of its droppable area
   expect(getByTestId('mock-droppable')).toHaveAttribute(
-    'depth',
+    'data-depth',
     `${props.depth}`,
   );
 });

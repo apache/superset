@@ -29,7 +29,7 @@ describe('getFilterScopeFromNodesTree', () => {
         nodes,
         checkedChartIds: [],
       }),
-    ).toEqual({});
+    ).toEqual({ scope: [], immune: [] });
   });
 
   test('should return scope for simple grid', () => {

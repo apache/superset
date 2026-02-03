@@ -147,8 +147,11 @@ describe('async actions', () => {
         const formData = JSON.parse(call.options.body as string);
         const mappedQueryToServer = actions.convertQueryToServer(query);
 
+        // The 'id' field is excluded from the POST payload since it's for new queries
         Object.keys(mappedQueryToServer).forEach(key => {
-          expect(formData[key]).toBeDefined();
+          if (key !== 'id') {
+            expect(formData[key]).toBeDefined();
+          }
         });
       });
     });

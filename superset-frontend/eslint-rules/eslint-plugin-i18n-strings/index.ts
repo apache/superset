@@ -34,7 +34,9 @@ const plugin: { rules: Record<string, Rule.RuleModule> } = {
     'no-template-vars': {
       meta: {
         type: 'problem',
-        docs: { description: 'Disallow variables in translation template strings' },
+        docs: {
+          description: 'Disallow variables in translation template strings',
+        },
         schema: [],
       },
       create(context: Rule.RuleContext): Rule.RuleListener {
@@ -66,7 +68,9 @@ const plugin: { rules: Record<string, Rule.RuleModule> } = {
     'sentence-case-buttons': {
       meta: {
         type: 'suggestion',
-        docs: { description: 'Enforce sentence case for button text in translations' },
+        docs: {
+          description: 'Enforce sentence case for button text in translations',
+        },
         schema: [],
       },
       create(context: Rule.RuleContext): Rule.RuleListener {

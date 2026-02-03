@@ -139,6 +139,9 @@ const createProps = () => ({
   handleComponentDrop: jest.fn(),
   updateComponents: jest.fn(),
   setDirectPathToChild: jest.fn(),
+  onResizeStart: jest.fn(),
+  onResize: jest.fn(),
+  onResizeStop: jest.fn(),
 });
 
 beforeEach(() => {

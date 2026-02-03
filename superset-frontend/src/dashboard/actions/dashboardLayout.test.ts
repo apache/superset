@@ -269,8 +269,8 @@ describe('dashboardLayout actions', () => {
         type: UPDATE_COMPONENTS,
         payload: {
           nextComponents: {
-            1: {
-              id: 1,
+            '1': {
+              id: '1',
               children: [],
               meta: {
                 width: 10,
