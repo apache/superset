@@ -70,7 +70,9 @@ def generate_preview_from_form_data(
         groupby_columns = form_data.get("groupby", [])
         raw_columns = form_data.get("columns", [])
 
-        columns = raw_columns.copy() if raw_columns else groupby_columns.copy()
+        columns = (
+            raw_columns.copy() if "columns" in form_data else groupby_columns.copy()
+        )
         if x_axis_config and isinstance(x_axis_config, str):
             if x_axis_config not in columns:
                 columns.insert(0, x_axis_config)
