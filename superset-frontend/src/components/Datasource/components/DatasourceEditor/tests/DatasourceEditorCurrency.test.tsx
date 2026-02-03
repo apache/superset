@@ -174,8 +174,7 @@ test('currency code column dropdown shows string and untyped calculated columns 
           filterable: true,
           is_dttm: false,
           is_active: true,
-          expression:
-            "CASE WHEN country = 'US' THEN 'USD' ELSE 'EUR' END",
+          expression: "CASE WHEN country = 'US' THEN 'USD' ELSE 'EUR' END",
           groupby: true,
           column_name: 'derived_currency',
         },
