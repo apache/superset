@@ -113,6 +113,7 @@ const createProps = () => ({
   renderTabContent: true,
   renderHoverMenu: true,
   logEvent: jest.fn(),
+  setActiveTab: jest.fn(),
   createComponent: jest.fn(),
   handleComponentDrop: jest.fn(),
   onChangeTab: jest.fn(),
