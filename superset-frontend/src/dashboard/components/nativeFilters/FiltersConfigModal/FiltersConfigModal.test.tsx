@@ -200,7 +200,7 @@ afterEach(() => {
   jest.runOnlyPendingTimers();
   jest.useRealTimers();
   jest.restoreAllMocks();
-  fetchMock.restore();
+  fetchMock.removeRoutes();
 });
 
 function defaultRender(
