@@ -33,17 +33,19 @@ SUPERSET_WEBSERVER_ADDRESS = "http://localhost:9001"
 WEBDRIVER_BASEURL = "http://localhost:9001/"
 WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
 
-# Feature flags for MCP
-MCP_FEATURE_FLAGS: Dict[str, Any] = {
-    "MCP_SERVICE": True,
-}
-
 # MCP Service Host/Port
 MCP_SERVICE_HOST = "localhost"
 MCP_SERVICE_PORT = 5008
 
 # MCP Debug mode - shows suppressed initialization output in stdio mode
 MCP_DEBUG = False
+
+# Enable parse_request decorator for MCP tools.
+# When True (default), tool requests are automatically parsed from JSON strings
+# to Pydantic models, working around a Claude Code double-serialization bug
+# (https://github.com/anthropics/claude-code/issues/5504).
+# Set to False to disable and let FastMCP handle request parsing natively.
+MCP_PARSE_REQUEST_ENABLED = True
 
 # Session configuration for local development
 MCP_SESSION_CONFIG = {

@@ -369,10 +369,6 @@ async def generate_chart(  # noqa: C901
                     await ctx.debug(
                         "Processing preview format: format=%s" % (format_type,)
                     )
-                    # Skip base64 format - we never return base64
-                    if format_type == "base64":
-                        logger.info("Skipping base64 format - not supported")
-                        continue
 
                     if chart_id:
                         # For saved charts, use the existing preview generation
