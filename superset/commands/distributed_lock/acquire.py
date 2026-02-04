@@ -46,7 +46,7 @@ class AcquireDistributedLock(BaseDistributedLockCommand):
     """
     Acquire a distributed lock with automatic backend selection.
 
-    Uses Redis SET NX EX when COORDINATION_CACHE_CONFIG is configured,
+    Uses Redis SET NX EX when SIGNAL_CACHE_CONFIG is configured,
     otherwise falls back to KeyValue table.
 
     Raises AcquireDistributedLockFailedException if:

@@ -86,8 +86,8 @@ def task_context_for_timeout(mock_flask_app, mock_task_abortable):
         patch("superset.daos.tasks.TaskDAO") as mock_dao,
         patch("superset.tasks.manager.cache_manager") as mock_cache_manager,
     ):
-        # Disable Redis by making coordination_cache return None
-        mock_cache_manager.coordination_cache = None
+        # Disable Redis by making signal_cache return None
+        mock_cache_manager.signal_cache = None
 
         # Configure current_app mock
         mock_current_app.config = mock_flask_app.config
@@ -274,8 +274,8 @@ class TestTimeoutTrigger:
             ) as mock_update_cmd,
             patch("superset.tasks.manager.cache_manager") as mock_cache_manager,
         ):
-            # Disable Redis by making coordination_cache return None
-            mock_cache_manager.coordination_cache = None
+            # Disable Redis by making signal_cache return None
+            mock_cache_manager.signal_cache = None
 
             mock_current_app.config = mock_flask_app.config
             mock_current_app._get_current_object.return_value = mock_flask_app
@@ -320,8 +320,8 @@ class TestTimeoutTrigger:
             patch("superset.tasks.context.logger") as mock_logger,
             patch("superset.tasks.manager.cache_manager") as mock_cache_manager,
         ):
-            # Disable Redis by making coordination_cache return None
-            mock_cache_manager.coordination_cache = None
+            # Disable Redis by making signal_cache return None
+            mock_cache_manager.signal_cache = None
 
             mock_current_app.config = mock_flask_app.config
             mock_current_app._get_current_object.return_value = mock_flask_app
@@ -360,8 +360,8 @@ class TestTimeoutTrigger:
             patch("superset.commands.tasks.update.UpdateTaskCommand"),
             patch("superset.tasks.manager.cache_manager") as mock_cache_manager,
         ):
-            # Disable Redis by making coordination_cache return None
-            mock_cache_manager.coordination_cache = None
+            # Disable Redis by making signal_cache return None
+            mock_cache_manager.signal_cache = None
 
             mock_current_app.config = mock_flask_app.config
             mock_current_app._get_current_object.return_value = mock_flask_app
@@ -466,8 +466,8 @@ class TestTimeoutTerminalState:
             patch("superset.commands.tasks.update.UpdateTaskCommand"),
             patch("superset.tasks.manager.cache_manager") as mock_cache_manager,
         ):
-            # Disable Redis by making coordination_cache return None
-            mock_cache_manager.coordination_cache = None
+            # Disable Redis by making signal_cache return None
+            mock_cache_manager.signal_cache = None
 
             mock_current_app.config = mock_flask_app.config
             mock_current_app._get_current_object.return_value = mock_flask_app
@@ -507,8 +507,8 @@ class TestTimeoutTerminalState:
             patch("superset.commands.tasks.update.UpdateTaskCommand"),
             patch("superset.tasks.manager.cache_manager") as mock_cache_manager,
         ):
-            # Disable Redis by making coordination_cache return None
-            mock_cache_manager.coordination_cache = None
+            # Disable Redis by making signal_cache return None
+            mock_cache_manager.signal_cache = None
 
             mock_current_app.config = mock_flask_app.config
             mock_current_app._get_current_object.return_value = mock_flask_app
@@ -544,8 +544,8 @@ class TestTimeoutTerminalState:
             patch("superset.commands.tasks.update.UpdateTaskCommand"),
             patch("superset.tasks.manager.cache_manager") as mock_cache_manager,
         ):
-            # Disable Redis by making coordination_cache return None
-            mock_cache_manager.coordination_cache = None
+            # Disable Redis by making signal_cache return None
+            mock_cache_manager.signal_cache = None
 
             mock_current_app.config = mock_flask_app.config
             mock_current_app._get_current_object.return_value = mock_flask_app
@@ -581,8 +581,8 @@ class TestTimeoutTerminalState:
             patch("superset.commands.tasks.update.UpdateTaskCommand"),
             patch("superset.tasks.manager.cache_manager") as mock_cache_manager,
         ):
-            # Disable Redis by making coordination_cache return None
-            mock_cache_manager.coordination_cache = None
+            # Disable Redis by making signal_cache return None
+            mock_cache_manager.signal_cache = None
 
             mock_current_app.config = mock_flask_app.config
             mock_current_app._get_current_object.return_value = mock_flask_app

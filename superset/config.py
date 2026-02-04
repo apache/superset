@@ -2470,9 +2470,9 @@ TASK_ABORT_POLLING_DEFAULT_INTERVAL = 10
 TASK_PROGRESS_UPDATE_THROTTLE_INTERVAL = 2  # seconds
 
 # ---------------------------------------------------
-# Coordination Cache Configuration
+# Signal Cache Configuration
 # ---------------------------------------------------
-# Shared Redis/Valkey configuration for coordination features that require
+# Shared Redis/Valkey configuration for signaling features that require
 # Redis-specific primitives (pub/sub messaging, distributed locks).
 #
 # Uses Flask-Caching style configuration for consistency with other cache backends.
@@ -2487,8 +2487,11 @@ TASK_PROGRESS_UPDATE_THROTTLE_INTERVAL = 2  # seconds
 # - Real-time abort/completion notifications for GTF tasks (vs database polling)
 # - Redis-based distributed locking (vs KeyValueDAO-backed DistributedLock)
 #
+# Future: This cache will also be used by Global Async Queries, consolidating
+# GLOBAL_ASYNC_QUERIES_CACHE_BACKEND into this unified configuration.
+#
 # Example with standard Redis:
-# COORDINATION_CACHE_CONFIG: CacheConfig = {
+# SIGNAL_CACHE_CONFIG: CacheConfig = {
 #     "CACHE_TYPE": "RedisCache",
 #     "CACHE_REDIS_HOST": "localhost",
 #     "CACHE_REDIS_PORT": 6379,
@@ -2497,7 +2500,7 @@ TASK_PROGRESS_UPDATE_THROTTLE_INTERVAL = 2  # seconds
 # }
 #
 # Example with Redis Sentinel:
-# COORDINATION_CACHE_CONFIG: CacheConfig = {
+# SIGNAL_CACHE_CONFIG: CacheConfig = {
 #     "CACHE_TYPE": "RedisSentinelCache",
 #     "CACHE_REDIS_SENTINELS": [("sentinel1", 26379), ("sentinel2", 26379)],
 #     "CACHE_REDIS_SENTINEL_MASTER": "mymaster",
@@ -2505,7 +2508,7 @@ TASK_PROGRESS_UPDATE_THROTTLE_INTERVAL = 2  # seconds
 #     "CACHE_REDIS_DB": 0,
 #     "CACHE_REDIS_PASSWORD": "",
 # }
-COORDINATION_CACHE_CONFIG: CacheConfig | None = None
+SIGNAL_CACHE_CONFIG: CacheConfig | None = None
 
 # Default lock TTL (time-to-live) in seconds for distributed locks.
 # Can be overridden per-call via the `ttl_seconds` parameter.
