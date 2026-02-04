@@ -388,7 +388,7 @@
     "puppeteer": "^22.4.1",
     "remark-gfm": "^3.0.1",
     "underscore": "^1.13.7",
-    "jspdf": "^3.0.2",
+    "jspdf": "^4.0.0",
     "nwsapi": "^2.2.13",
     "@deck.gl/aggregation-layers": "~9.2.2",
     "@deck.gl/core": "~9.2.2",
