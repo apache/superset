@@ -184,14 +184,19 @@ def generate_size_reduction_suggestions(
     suggestions = []
     query_params = extract_query_params(params)
     reduction_needed = estimated_tokens - token_limit
-    reduction_pct = int((reduction_needed / estimated_tokens) * 100)
+    reduction_pct = (
+        int((reduction_needed / estimated_tokens) * 100) if estimated_tokens else 0
+    )
 
     # Suggestion 1: Reduce page_size or limit
     current_page_size = query_params.get("page_size") or query_params.get("limit")
     if current_page_size:
         # Calculate suggested new limit based on reduction needed
         suggested_limit = max(
-            1, int(current_page_size * (token_limit / estimated_tokens))
+            1,
+            int(current_page_size * (token_limit / estimated_tokens))
+            if estimated_tokens
+            else 1,
         )
         suggestions.append(
             f"Reduce page_size/limit from {current_page_size} to {suggested_limit} "
@@ -392,7 +397,11 @@ def format_size_limit_error(
     for i, suggestion in enumerate(suggestions[:5], 1):  # Limit to top 5 suggestions
         error_lines.append(f"{i}. {suggestion}")
 
-    reduction_pct = (estimated_tokens - token_limit) / estimated_tokens * 100
+    reduction_pct = (
+        (estimated_tokens - token_limit) / estimated_tokens * 100
+        if estimated_tokens
+        else 0
+    )
     error_lines.extend(
         [
             "",
