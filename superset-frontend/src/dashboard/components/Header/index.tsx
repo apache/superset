@@ -805,7 +805,7 @@ const Header = (): ReactElement => {
     setCurrentReportDeleting(null);
   };
 
-  const [menu, isDropdownVisible, setIsDropdownVisible] = useHeaderActionsMenu({
+  const [menu, isDropdownVisible, setIsDropdownVisible, dataBrowsingModal] = useHeaderActionsMenu({
     addSuccessToast: boundActionCreators.addSuccessToast,
     addDangerToast: boundActionCreators.addDangerToast,
     dashboardInfo,
@@ -942,6 +942,7 @@ const Header = (): ReactElement => {
         onConfirmNavigation={handleConfirmNavigation}
         handleSave={handleSaveAndCloseModal}
       />
+      {dataBrowsingModal}
     </div>
   );
 };

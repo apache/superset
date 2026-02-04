@@ -35,6 +35,7 @@ import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { MenuKeys, RootState } from 'src/dashboard/types';
 import { HeaderDropdownProps } from 'src/dashboard/components/Header/types';
+import DataBrowsingModal from 'src/dashboard/components/DataBrowsingModal';
 
 export const useHeaderActionsMenu = ({
   customCss,
@@ -67,6 +68,8 @@ export const useHeaderActionsMenu = ({
   setCurrentReportDeleting,
 }: HeaderDropdownProps) => {
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
+  const [dataBrowsingModalVisible, setDataBrowsingModalVisible] =
+    useState(false);
   const history = useHistory();
   const directPathToChild = useSelector(
     (state: RootState) => state.dashboardState.directPathToChild,
@@ -105,6 +108,9 @@ export const useHeaderActionsMenu = ({
         }
         case MenuKeys.ManageEmbedded:
           manageEmbedded();
+          break;
+        case MenuKeys.DataBrowsing:
+          setDataBrowsingModalVisible(true);
           break;
         default:
           break;
@@ -210,6 +216,14 @@ export const useHeaderActionsMenu = ({
         label: getUrlParam(URL_PARAMS.standalone)
           ? t('Exit fullscreen')
           : t('Enter fullscreen'),
+      });
+    }
+
+    // Browse data
+    if (!editMode && !isEmbedded) {
+      menuItems.push({
+        key: MenuKeys.DataBrowsing,
+        label: t('Browse data'),
       });
     }
 
@@ -331,5 +345,15 @@ export const useHeaderActionsMenu = ({
     userCanShare,
   ]);
 
-  return [menu, isDropdownVisible, setIsDropdownVisible];
+  return [
+    menu,
+    isDropdownVisible,
+    setIsDropdownVisible,
+    <DataBrowsingModal
+      key="data-browsing-modal"
+      dashboardId={dashboardId}
+      visible={dataBrowsingModalVisible}
+      onClose={() => setDataBrowsingModalVisible(false)}
+    />,
+  ];
 };
