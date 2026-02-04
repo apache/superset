@@ -954,12 +954,23 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               }
             };
             columnColorFormatters
-              .filter(formatter => formatter.columnFormating === column.key)
+              .filter(formatter => {
+                if (formatter.columnFormating) {
+                  return formatter.columnFormating === column.key;
+                }
+                return formatter.column === column.key;
+              })
               .forEach(formatter => {
-                const index = Object.keys(row.original).findIndex(
-                  key => key === formatter.column,
-                );
-                return applyFormatter(formatter, row.values[index]);
+                let valueToFormat;
+                if (formatter.columnFormating) {
+                  const index = Object.keys(row.original).findIndex(
+                    key => key === formatter.column,
+                  );
+                  valueToFormat = row.values[index];
+                } else {
+                  valueToFormat = value;
+                }
+                applyFormatter(formatter, valueToFormat);
               });
 
             columnColorFormatters
