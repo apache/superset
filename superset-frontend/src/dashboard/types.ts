@@ -212,6 +212,8 @@ export type DatasourcesState = {
 };
 
 /** Root state of redux */
+export type GetState = () => RootState;
+
 export type RootState = {
   datasources: DatasourcesState;
   sliceEntities: JsonObject;

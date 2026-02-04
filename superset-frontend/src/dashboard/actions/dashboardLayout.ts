@@ -31,11 +31,9 @@ import dropOverflowsParent from 'src/dashboard/util/dropOverflowsParent';
 import findParentId from 'src/dashboard/util/findParentId';
 import isInDifferentFilterScopes from 'src/dashboard/util/isInDifferentFilterScopes';
 import { DropResult } from 'src/dashboard/components/dnd/dragDroppableConfig';
-import { LayoutItem, RootState } from '../types';
+import { GetState, LayoutItem, RootState } from '../types';
 import { updateLayoutComponents } from './dashboardFilters';
 import { setUnsavedChanges } from './dashboardState';
-
-type GetState = () => RootState;
 type AppDispatch = ThunkDispatch<RootState, undefined, AnyAction>;
 
 // Component CRUD -------------------------------------------------------------

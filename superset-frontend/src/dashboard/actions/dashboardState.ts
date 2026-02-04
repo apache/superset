@@ -85,9 +85,7 @@ import {
   getFreshSharedLabels,
   getDynamicLabelsColors,
 } from '../../utils/colorScheme';
-import type { DashboardState, RootState, Slice } from '../types';
-
-type GetState = () => RootState;
+import type { DashboardState, GetState, RootState, Slice } from '../types';
 
 // Dashboard dispatch type. The base ThunkDispatch handles dashboard-specific
 // thunks. The intersection with a generic function-accepting overload allows

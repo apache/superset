@@ -57,9 +57,7 @@ import {
 } from 'src/dashboard/util/constants';
 
 import { DropResult } from 'src/dashboard/components/dnd/dragDroppableConfig';
-import type { RootState } from 'src/dashboard/types';
-
-type GetState = () => RootState;
+import type { GetState } from 'src/dashboard/types';
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('dashboardLayout actions', () => {

@@ -63,13 +63,12 @@ import updateComponentParentsList from '../util/updateComponentParentsList';
 import {
   DashboardLayout,
   FilterBarOrientation,
+  GetState,
   LayoutItem,
   RootState,
 } from '../types';
 
 export const HYDRATE_DASHBOARD = 'HYDRATE_DASHBOARD';
-
-type GetState = () => RootState;
 type AppDispatch = ThunkDispatch<RootState, undefined, AnyAction>;
 
 interface HydrateChartData {

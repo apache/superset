@@ -19,9 +19,7 @@
 /* eslint-disable camelcase */
 import { JsonObject } from '@superset-ui/core';
 import { Dispatch } from 'redux';
-import { DashboardLayout, RootState } from '../types';
-
-type GetState = () => RootState;
+import { DashboardLayout, GetState } from '../types';
 
 // util function to make sure filter is a valid slice in current dashboard
 function isValidFilter(getState: GetState, chartId: number): boolean {
