@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed - 2026-02-03
+Proposed - 2026-02-02
 
 ## Context
 
@@ -41,7 +41,7 @@ Based on typical usage patterns:
 ### Technical Context
 
 **Existing Infrastructure:**
-- Backend: `/api/v1/chart/data` endpoint supports CSV, JSON, and XLSX exports (superset/charts/data/api.py)
+- Backend: `/api/v1/chart/data` endpoint supports CSV, JSON, and XLSX exports (`superset/charts/data/api.py`)
 - Frontend: `exportChart()` function in `explore/exploreUtils/index.js` handles single chart exports
 - Library: `xlsx` library already in dependencies (used for pivot table exports)
 - Permission system: `can_csv` permission controls export access
@@ -100,7 +100,6 @@ We will implement a **frontend-orchestrated bulk export feature** that:
 **Rationale:**
 - **User expectation**: Excel is standard for business data analysis
 - **Organization**: Sheets naturally separate different charts
-- **Compatibility**: Works in Excel, Google Sheets, Numbers, LibreOffice
 - **Professional**: Single organized file vs. 10 scattered CSVs
 
 **Alternative Considered:** ZIP file with multiple CSVs
@@ -365,12 +364,11 @@ These are **out of scope** for initial implementation but good candidates for fu
 2. **Cloud Storage**: Export directly to S3, Google Drive, Dropbox
 3. **Export Filters**: "Only charts with data", "Only visible charts"
 4. **Format Options**: Support CSV ZIP, Parquet, JSON in addition to Excel
-5. **Column Selection**: Choose which columns to include per chart
-6. **Dashboard Filters Applied**: Respect active dashboard filters during export
-7. **Scheduled Bulk Exports**: Integrate with Reports/Alerts for recurring exports
-8. **Export Templates**: Save chart selection preferences
-9. **Compression**: GZIP large Excel files automatically
-10. **Export History**: Track who exported what and when (audit trail)
+5. **Dashboard Filters Applied**: Respect active dashboard filters during export
+6. **Scheduled Bulk Exports**: Integrate with Reports/Alerts for recurring exports
+7. **Export Templates**: Save chart selection preferences
+8. **Compression**: GZIP large Excel files automatically
+9. **Export History**: Track who exported what and when (audit trail)
 
 ## References
 
@@ -380,12 +378,6 @@ These are **out of scope** for initial implementation but good candidates for fu
 - [xlsx Library Documentation](https://docs.sheetjs.com/)
 - [Superset Export Architecture Discussion](https://github.com/apache/superset/discussions/...)
 
-## Approvals
-
-- **Architect**: [Pending Review]
-- **Product**: [Pending Review]
-- **Engineering Lead**: [Pending Review]
-
 ## Revision History
 
-- 2026-02-03: Initial proposal created during hackathon planning
+- 2026-02-02: Initial proposal created during hackathon planning
