@@ -123,12 +123,22 @@ def cleanup_with_data_task() -> None:
         _handler_state["cleanup_called"] = True
 
 
-# Register task functions with the TaskRegistry
-TaskRegistry.register("test_cleanup_task", cleanup_test_task)
-TaskRegistry.register("test_abort_task", abort_test_task)
-TaskRegistry.register("test_both_handlers_task", both_handlers_task)
-TaskRegistry.register("test_multiple_cleanup_task", multiple_cleanup_handlers_task)
-TaskRegistry.register("test_cleanup_with_data", cleanup_with_data_task)
+def _register_test_tasks() -> None:
+    """Register test task functions if not already registered.
+
+    Called in setUp() to ensure tasks are registered regardless of
+    whether other tests have cleared the registry.
+    """
+    registrations = [
+        ("test_cleanup_task", cleanup_test_task),
+        ("test_abort_task", abort_test_task),
+        ("test_both_handlers_task", both_handlers_task),
+        ("test_multiple_cleanup_task", multiple_cleanup_handlers_task),
+        ("test_cleanup_with_data", cleanup_with_data_task),
+    ]
+    for name, func in registrations:
+        if not TaskRegistry.is_registered(name):
+            TaskRegistry.register(name, func)
 
 
 class TestCleanupHandlers(SupersetTestCase):
@@ -138,6 +148,7 @@ class TestCleanupHandlers(SupersetTestCase):
         """Set up test fixtures."""
         super().setUp()
         self.login(ADMIN_USERNAME)
+        _register_test_tasks()
         _reset_handler_state()
 
     def test_cleanup_handler_fires_on_success(self):
@@ -204,6 +215,7 @@ class TestAbortHandlers(SupersetTestCase):
         """Set up test fixtures."""
         super().setUp()
         self.login(ADMIN_USERNAME)
+        _register_test_tasks()
         _reset_handler_state()
 
     def test_abort_handler_fires_when_task_aborting(self):
@@ -355,6 +367,7 @@ class TestAbortBeforeExecution(SupersetTestCase):
         """Set up test fixtures."""
         super().setUp()
         self.login(ADMIN_USERNAME)
+        _register_test_tasks()
 
     def test_abort_pending_task(self):
         """Test that pending tasks can be aborted directly."""

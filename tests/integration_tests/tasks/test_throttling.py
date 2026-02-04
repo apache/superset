@@ -47,7 +47,14 @@ def task_with_throttled_updates() -> None:
         ctx.update_task(progress=(i + 1, 10), payload={"step": i + 1})
 
 
-TaskRegistry.register("test_throttle_combined", task_with_throttled_updates)
+def _register_test_tasks() -> None:
+    """Register test task functions if not already registered.
+
+    Called in setUp() to ensure tasks are registered regardless of
+    whether other tests have cleared the registry.
+    """
+    if not TaskRegistry.is_registered("test_throttle_combined"):
+        TaskRegistry.register("test_throttle_combined", task_with_throttled_updates)
 
 
 class TestUpdateTaskThrottling(SupersetTestCase):
@@ -56,6 +63,7 @@ class TestUpdateTaskThrottling(SupersetTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.login(ADMIN_USERNAME)
+        _register_test_tasks()
 
     def test_throttled_updates_persisted_on_cleanup(self) -> None:
         """Final state should be persisted regardless of throttling.
