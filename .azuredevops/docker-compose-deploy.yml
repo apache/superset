@@ -45,6 +45,8 @@ services:
       - shared_buffers=128MB
       - -c
       - effective_cache_size=256MB
+      - -c
+      - huge_pages=off
     volumes:
       - db_home:/var/lib/postgresql/data
       - ${DOCKER_INITDB_DIR:-./docker/docker-entrypoint-initdb.d}:/docker-entrypoint-initdb.d
