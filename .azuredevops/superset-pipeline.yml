@@ -475,18 +475,18 @@ stages:
               # -------------------------------------
               # Cleanup old containers (NOT volumes - data is preserved)
               # -------------------------------------
-              - bash: |
-                  echo "=== Cleaning up old containers (preserving volumes) ==="
-                  cd "$(Pipeline.Workspace)/s" || exit 1
+              - pwsh: |
+                  Write-Host "=== Cleaning up old containers (preserving volumes) ==="
+                  Set-Location "$(Pipeline.Workspace)/s" -ErrorAction Stop
 
-                  echo "Stopping and removing existing containers by name..."
-                  docker rm -f superset_db superset_cache superset_init superset_app 2>/dev/null || echo "No named containers to remove"
+                  Write-Host "Stopping and removing existing containers by name..."
+                  docker rm -f superset_db superset_cache superset_init superset_app 2>$null; if ($LASTEXITCODE -ne 0) { Write-Host "No named containers to remove" }
 
-                  echo "Stopping docker-compose project containers (without removing volumes)..."
-                  docker compose -f .azuredevops/docker-compose-deploy.yml --env-file .env.deploy --project-name azuredevops down 2>/dev/null || echo "No project containers to stop"
+                  Write-Host "Stopping docker-compose project containers (without removing volumes)..."
+                  docker compose -f .azuredevops/docker-compose-deploy.yml --env-file .env.deploy --project-name azuredevops down 2>$null; if ($LASTEXITCODE -ne 0) { Write-Host "No project containers to stop" }
 
-                  echo "✓ Cleanup completed (volumes preserved)"
-                  echo ""
+                  Write-Host "✓ Cleanup completed (volumes preserved)"
+                  Write-Host ""
                 displayName: Cleanup Old Containers
 
               # -------------------------------------
