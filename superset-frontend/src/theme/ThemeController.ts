@@ -33,6 +33,7 @@ import type {
   BootstrapThemeDataConfig,
 } from 'src/types/bootstrapTypes';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import { validateThemeConfiguration } from 'src/utils/themeUtils';
 
 import type { ColorBlindMode } from '@apache-superset/core/ui';
 import { transformThemeForColorBlindness } from './colorBlindness';
@@ -669,6 +670,15 @@ export class ThemeController {
     const hasValidDefault: boolean = this.isNonEmptyObject(defaultTheme);
     const hasValidDark: boolean = this.isNonEmptyObject(darkTheme);
 
+    // Validate bootstrap themes if they exist
+    if (hasValidDefault && defaultTheme) {
+      validateThemeConfiguration('Bootstrap Default Theme', defaultTheme);
+    }
+
+    if (hasValidDark && darkTheme) {
+      validateThemeConfiguration('Bootstrap Dark Theme', darkTheme);
+    }
+
     // Check if themes have actual custom tokens (not just empty or algorithm-only)
     const hasCustomDefault =
       hasValidDefault && !this.isEmptyTheme(defaultTheme);
@@ -844,6 +854,10 @@ export class ThemeController {
           this.colorBlindMode,
         );
       }
+
+      // Validate theme configuration and show admin notifications for any issues
+      const themeName = this.getThemeDisplayName(normalizedConfig);
+      validateThemeConfiguration(themeName, normalizedConfig);
 
       // Simply apply the theme - it should already be properly merged if needed
       // The merging with base theme happens in getThemeForMode() and other methods
@@ -1024,5 +1038,33 @@ export class ThemeController {
       console.error('Failed to fetch CRUD theme:', error);
       return null;
     }
+  }
+
+  /**
+   * Get a display name for the current theme for error reporting
+   */
+  private getThemeDisplayName(themeConfig: AnyThemeConfig): string {
+    if (this.currentCrudThemeId) {
+      return `CRUD Theme (${this.currentCrudThemeId})`;
+    }
+
+    if (themeConfig === this.defaultTheme) {
+      return 'Default Theme';
+    }
+
+    if (themeConfig === this.darkTheme) {
+      return 'Dark Theme';
+    }
+
+    if (this.devThemeOverride) {
+      return 'Dev Override Theme';
+    }
+
+    // Determine mode-based name
+    if (this.currentMode === ThemeMode.DARK) {
+      return 'Dark Mode Theme';
+    }
+
+    return 'Current Theme';
   }
 }

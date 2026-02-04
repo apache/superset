@@ -40,6 +40,7 @@ import setupCodeOverrides from 'src/setup/setupCodeOverrides';
 import { logEvent } from 'src/logger/actions';
 import { store } from 'src/views/store';
 import ExtensionsStartup from 'src/extensions/ExtensionsStartup';
+import ThemeValidationMonitor from 'src/components/ThemeValidationMonitor';
 import { RootContextProviders } from './RootContextProviders';
 import { ScrollToTop } from './ScrollToTop';
 
@@ -76,6 +77,7 @@ const App = () => (
     <ScrollToTop />
     <LocationPathnameLogger />
     <RootContextProviders>
+      <ThemeValidationMonitor />
       <ExtensionsStartup />
       <Menu
         data={bootstrapData.common.menu_data}
