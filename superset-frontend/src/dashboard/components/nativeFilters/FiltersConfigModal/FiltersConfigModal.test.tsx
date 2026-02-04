@@ -129,7 +129,7 @@ function setupFetchMocks() {
   // Mock dataset 1 for buildNativeFilter fixtures which use datasetId: 1
   fetchMock.get('glob:*/api/v1/dataset/1', datasetResult(1));
   // Mock the dataset list endpoint for the dataset selector dropdown
-  // Uses id from mockDatasource (7) to match fixture data
+  // Uses `id` constant (matches mockDatasource.id) for fixture data consistency
   fetchMock.get('glob:*/api/v1/dataset/?*', {
     result: [
       {
@@ -180,6 +180,7 @@ const SAVE_REGEX = /^save$/i;
 const NAME_REQUIRED_REGEX = /^name is required$/i;
 const COLUMN_REQUIRED_REGEX = /^column is required$/i;
 const PRE_FILTER_REQUIRED_REGEX = /^pre-filter is required$/i;
+const DEFAULT_VALUE_INVALID_REGEX = /choose.*valid value/i;
 
 const props: FiltersConfigModalProps = {
   isOpen: true,
@@ -370,14 +371,16 @@ test('validates the default value', async () => {
     name: DEFAULT_VALUE_REGEX,
   });
   // Verify default value error is NOT present before enabling checkbox
-  expect(screen.queryByText(/choose.*valid value/i)).not.toBeInTheDocument();
+  expect(
+    screen.queryByText(DEFAULT_VALUE_INVALID_REGEX),
+  ).not.toBeInTheDocument();
   // Enable default value checkbox without setting a value
   await userEvent.click(defaultValueCheckbox);
   // Try to save - should show validation error
   await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
   // Verify validation error appears (actual message is "Please choose a valid value")
   expect(
-    await screen.findByText(/choose.*valid value/i, {}, { timeout: 3000 }),
+    await screen.findByText(DEFAULT_VALUE_INVALID_REGEX, {}, { timeout: 3000 }),
   ).toBeInTheDocument();
 }, 50000);
 
