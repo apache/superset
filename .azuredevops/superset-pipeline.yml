@@ -332,10 +332,39 @@ stages:
                     Set-Content -Path $adminPasswordFile -Value $explorer.'admin-password' -NoNewline
                     Write-Host "✓ Admin password written to temp file"
 
+                    # Extract PostgreSQL reader credentials for OEE database connection
+                    Write-Host "Extracting OEE database credentials..."
+                    if (-not $pg.reader) {
+                        throw "Config missing 'reader' section in postgres config"
+                    }
+                    $pgReader = $pg.reader
+                    if (-not $pgReader.user) {
+                        throw "Config missing 'reader.user' in postgres config"
+                    }
+                    if (-not $pgReader.password) {
+                        throw "Config missing 'reader.password' in postgres config"
+                    }
+
+                    # Set OEE database credentials as pipeline variables
+                    Write-Host "  OEE DB User: $($pgReader.user)"
+                    Write-Host "##vso[task.setvariable variable=OEE_DB_USER]$($pgReader.user)"
+                    Write-Host "##vso[task.setvariable variable=OEE_DB_PASSWORD;issecret=true]$($pgReader.password)"
+                    Write-Host "✓ OEE database credentials set as pipeline variables"
+
+                    # Set OEE database connection details
+                    $oeeDbHost = if ($pg.host) { $pg.host } else { "oee-postgres" }
+                    $oeeDbPort = if ($pg.port) { $pg.port } else { "5432" }
+                    $oeeDbName = if ($pg.database) { $pg.database } else { "oeeintellisuite" }
+
+                    Write-Host "##vso[task.setvariable variable=OEE_DB_HOST]$oeeDbHost"
+                    Write-Host "##vso[task.setvariable variable=OEE_DB_PORT]$oeeDbPort"
+                    Write-Host "##vso[task.setvariable variable=OEE_DB_NAME]$oeeDbName"
+                    Write-Host "✓ OEE database connection details set"
+
                     # Docker network
                     Write-Host "Setting Docker network..."
                     Write-Host "##vso[task.setvariable variable=DOCKER_NETWORK]superset-network"
-                    
+
                     Write-Host "✓ All variables set successfully"
                     Write-Host "=== Config rehydration completed ==="
 
@@ -614,3 +643,42 @@ stages:
                 env:
                   SUPERSET_PORT: $(SUPERSET_PORT)
                 displayName: Verify Health
+
+              # -------------------------------------
+              # Update Superset OEE database connection
+              # -------------------------------------
+              - pwsh: |
+                  Write-Host "=== Updating Superset OEE Database Connection ==="
+                  Set-Location "$(Pipeline.Workspace)/s" -ErrorAction Stop
+
+                  $scriptPath = ".azuredevops/scripts/Update-SupersetDatabaseConnection.ps1"
+
+                  Write-Host "Running script: $scriptPath"
+                  Write-Host "  OEE_DB_HOST: $(OEE_DB_HOST)"
+                  Write-Host "  OEE_DB_PORT: $(OEE_DB_PORT)"
+                  Write-Host "  OEE_DB_NAME: $(OEE_DB_NAME)"
+                  Write-Host "  OEE_DB_USER: $(OEE_DB_USER)"
+                  Write-Host ""
+
+                  & pwsh -File $scriptPath `
+                    -OEE_DB_HOST "$(OEE_DB_HOST)" `
+                    -OEE_DB_PORT "$(OEE_DB_PORT)" `
+                    -OEE_DB_NAME "$(OEE_DB_NAME)" `
+                    -OEE_DB_USER "$(OEE_DB_USER)" `
+                    -OEE_DB_PASSWORD "$(OEE_DB_PASSWORD)"
+
+                  if ($LASTEXITCODE -eq 0) {
+                    Write-Host ""
+                    Write-Host "✓ OEE database connection configured successfully"
+                  } else {
+                    Write-Host ""
+                    Write-Host "✗ Failed to configure OEE database connection"
+                    exit 1
+                  }
+                env:
+                  OEE_DB_HOST: $(OEE_DB_HOST)
+                  OEE_DB_PORT: $(OEE_DB_PORT)
+                  OEE_DB_NAME: $(OEE_DB_NAME)
+                  OEE_DB_USER: $(OEE_DB_USER)
+                  OEE_DB_PASSWORD: $(OEE_DB_PASSWORD)
+                displayName: Update OEE Database Connection
