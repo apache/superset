@@ -118,7 +118,7 @@ class HorizonChart extends PureComponent<HorizonChartProps> {
         >
           {data.map(row => (
             <HorizonRow
-              key={row.key as unknown as string}
+              key={row.key.join(',')}
               width={width}
               height={seriesHeight}
               title={ensureIsArray(row.key).join(', ')}
