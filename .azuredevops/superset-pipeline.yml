@@ -412,11 +412,11 @@ stages:
 
                   # Create .env.deploy file using here-string
                   $envContent = @"
-                  SUPERSET_IMAGE=$(FULL_IMAGE_NAME)
-                  SUPERSET_SECRET_KEY=$(SUPERSET_SECRET_KEY)
-                  SUPERSET_ADMIN_USER=$(SUPERSET_ADMIN_USER)
+                  SUPERSET_IMAGE=$$(FULL_IMAGE_NAME)
+                  SUPERSET_SECRET_KEY=$$(SUPERSET_SECRET_KEY)
+                  SUPERSET_ADMIN_USER=$$(SUPERSET_ADMIN_USER)
                   SUPERSET_ADMIN_PASSWORD=$SUPERSET_ADMIN_PASSWORD
-                  SUPERSET_PORT=$(SUPERSET_PORT)
+                  SUPERSET_PORT=$$(SUPERSET_PORT)
                   DATABASE_DIALECT=postgresql
                   DATABASE_USER=superset
                   DATABASE_PASSWORD=superset
@@ -425,8 +425,8 @@ stages:
                   DATABASE_DB=superset
                   REDIS_HOST=redis
                   REDIS_PORT=6379
-                  DOCKER_NETWORK=$(DOCKER_NETWORK)
-                  DOCKER_INITDB_DIR=$(DOCKER_INITDB_DIR)
+                  DOCKER_NETWORK=$$(DOCKER_NETWORK)
+                  DOCKER_INITDB_DIR=$$(DOCKER_INITDB_DIR)
                   "@
 
                   Set-Content -Path ".env.deploy" -Value $envContent -Encoding UTF8NoBOM
@@ -521,11 +521,11 @@ stages:
                   # SUPERSET_ADMIN_PASSWORD is now available via env: block from pipeline variable
 
                   $envContent = @"
-                  SUPERSET_IMAGE=$(FULL_IMAGE_NAME)
-                  SUPERSET_SECRET_KEY=$(SUPERSET_SECRET_KEY)
-                  SUPERSET_ADMIN_USER=$(SUPERSET_ADMIN_USER)
-                  SUPERSET_ADMIN_PASSWORD=$(SUPERSET_ADMIN_PASSWORD)
-                  SUPERSET_PORT=$(SUPERSET_PORT)
+                  SUPERSET_IMAGE=$$(FULL_IMAGE_NAME)
+                  SUPERSET_SECRET_KEY=$$(SUPERSET_SECRET_KEY)
+                  SUPERSET_ADMIN_USER=$$(SUPERSET_ADMIN_USER)
+                  SUPERSET_ADMIN_PASSWORD=$$(SUPERSET_ADMIN_PASSWORD)
+                  SUPERSET_PORT=$$(SUPERSET_PORT)
                   DATABASE_DIALECT=postgresql
                   DATABASE_USER=superset
                   DATABASE_PASSWORD=superset
@@ -534,8 +534,8 @@ stages:
                   DATABASE_DB=superset
                   REDIS_HOST=redis
                   REDIS_PORT=6379
-                  DOCKER_NETWORK=$(DOCKER_NETWORK)
-                  DOCKER_INITDB_DIR=$(DOCKER_INITDB_DIR)
+                  DOCKER_NETWORK=$$(DOCKER_NETWORK)
+                  DOCKER_INITDB_DIR=$$(DOCKER_INITDB_DIR)
 "@
 
                   Set-Content -Path ".env.deploy" -Value $envContent -Encoding UTF8NoBOM
