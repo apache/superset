@@ -26,14 +26,15 @@ responses from overwhelming LLM clients like Claude Desktop.
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 
 from pydantic import BaseModel
+from typing_extensions import TypeAlias
 
 logger = logging.getLogger(__name__)
 
 # Type alias for MCP tool responses (Pydantic models, dicts, lists, strings, bytes)
-ToolResponse = BaseModel | dict | list | str | bytes
+ToolResponse: TypeAlias = Union[BaseModel, Dict[str, Any], List[Any], str, bytes]
 
 # Approximate characters per token for estimation
 # Claude tokenizer averages ~4 chars per token for English text
