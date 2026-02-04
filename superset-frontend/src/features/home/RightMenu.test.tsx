@@ -369,11 +369,10 @@ test('If there is NOT a DB with allow_file_upload set as True the option should 
   userEvent.hover(dropdown);
   const dataMenu = await screen.findByText(dropdownItems[0].label);
   userEvent.hover(dataMenu);
-  const csvMenu = await screen.findByRole('menuitem', {
-    name: 'Upload CSV to database',
-  });
-  expect(csvMenu).toBeInTheDocument();
-  expect(csvMenu).toHaveAttribute('aria-disabled', 'true');
+  const csvMenu = await screen.findByText('Upload CSV to database');
+  const csvMenuItem = csvMenu.closest('li');
+  expect(csvMenuItem).not.toBeNull();
+  expect(csvMenuItem).toHaveAttribute('aria-disabled', 'true');
 });
 
 test('Logs out and clears local storage item redux', async () => {
@@ -413,6 +412,7 @@ test('shows logout button when DISABLE_EMBEDDED_SUPERSET_LOGOUT is false', async
   render(<RightMenu {...createProps()} />, {
     useRedux: true,
     useQueryParams: true,
+    useRouter: true,
     useTheme: true,
   });
 
@@ -428,6 +428,7 @@ test('hides logout button when DISABLE_EMBEDDED_SUPERSET_LOGOUT is true', async 
   render(<RightMenu {...createProps()} />, {
     useRedux: true,
     useQueryParams: true,
+    useRouter: true,
     useTheme: true,
   });
 
