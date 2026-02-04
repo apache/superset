@@ -21,7 +21,7 @@ services:
   db:
     image: postgres:17.4
     container_name: superset_db
-    shm_size: 1g
+    shm_size: 4g
     user: postgres
     restart: unless-stopped
     networks:
@@ -31,6 +31,20 @@ services:
       POSTGRES_USER: superset
       POSTGRES_PASSWORD: superset
       POSTGRES_DB: superset
+      # Reduce PostgreSQL shared memory usage to prevent "No space left on device" errors
+      # work_mem: memory for sorting/hashing (default 4MB, reduced to 1MB)
+      # maintenance_work_mem: memory for maintenance operations (default 64MB, reduced to 16MB)
+      POSTGRES_HOST_AUTH_METHOD: trust
+    command:
+      - postgres
+      - -c
+      - work_mem=1MB
+      - -c
+      - maintenance_work_mem=16MB
+      - -c
+      - shared_buffers=128MB
+      - -c
+      - effective_cache_size=256MB
     volumes:
       - db_home:/var/lib/postgresql/data
       - ${DOCKER_INITDB_DIR:-./docker/docker-entrypoint-initdb.d}:/docker-entrypoint-initdb.d
