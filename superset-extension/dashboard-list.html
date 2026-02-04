@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Superset Dashboard Exporter</title>
+  <link rel="stylesheet" href="dashboard-list.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📊 Superset Dashboard Exporter</h1>
+      <p class="subtitle">Export your dashboards without opening Superset</p>
+    </div>
+
+    <div class="user-info">
+      <div class="welcome">
+        <span class="user-icon">👤</span>
+        <span id="welcomeMessage">Welcome!</span>
+      </div>
+      <div class="actions-top">
+        <button id="refreshBtn" class="btn btn-small btn-secondary">🔄 Refresh</button>
+        <button id="logoutBtn" class="btn btn-small btn-danger">🚪 Logout</button>
+      </div>
+    </div>
+
+    <div class="search-section">
+      <input
+        type="text"
+        id="searchInput"
+        placeholder="🔍 Search dashboards..."
+        class="search-input"
+      >
+    </div>
+
+    <div id="loadingIndicator" class="loading">
+      <div class="spinner"></div>
+      <p>Loading dashboards...</p>
+    </div>
+
+    <div id="errorMessage" class="error-message" style="display: none;">
+      <span class="error-icon">⚠️</span>
+      <span id="errorText"></span>
+    </div>
+
+    <div id="dashboardsContainer" class="dashboards-container">
+      <!-- Dashboards will be loaded here dynamically -->
+    </div>
+
+    <div id="emptyState" class="empty-state" style="display: none;">
+      <div class="empty-icon">📭</div>
+      <h3>No Dashboards Found</h3>
+      <p>You don't have any dashboards yet or they couldn't be loaded.</p>
+    </div>
+  </div>
+
+  <!-- Export Progress Modal -->
+  <div id="exportModal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <h3>⏳ Exporting Dashboard...</h3>
+      <div class="progress-bar">
+        <div id="progressFill" class="progress-fill"></div>
+      </div>
+      <p id="exportStatus">Preparing export...</p>
+    </div>
+  </div>
+
+  <!-- Info Modal -->
+  <div id="infoModal" class="modal" style="display: none;">
+    <div class="modal-content info-modal">
+      <div class="modal-header">
+        <h2 id="modalTitle"></h2>
+        <span class="close">&times;</span>
+      </div>
+      <div id="modalBody" class="modal-body"></div>
+    </div>
+  </div>
+
+  <script src="dashboard-list.js"></script>
+</body>
+</html>
