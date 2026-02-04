@@ -492,28 +492,28 @@ stages:
               # -------------------------------------
               # Deploy Superset
               # -------------------------------------
-              - bash: |
-                  echo "=== DEBUG: Deploy Superset ==="
-                  echo "Current working directory: $(pwd)"
-                  echo "Pipeline.Workspace: $(Pipeline.Workspace)"
-                  echo ""
-                  echo "Changing to deployment directory..."
-                  cd "$(Pipeline.Workspace)/s" || { echo "✗ ERROR: Failed to cd to $(Pipeline.Workspace)/s"; exit 1; }
-                  echo "✓ Changed directory to: $(pwd)"
-                  echo ""
+              - pwsh: |
+                  Write-Host "=== DEBUG: Deploy Superset ==="
+                  Write-Host "Current working directory: $(Get-Location)"
+                  Write-Host "Pipeline.Workspace: $(Pipeline.Workspace)"
+                  Write-Host ""
+                  Write-Host "Changing to deployment directory..."
+                  Set-Location "$(Pipeline.Workspace)/s" -ErrorAction Stop
+                  Write-Host "✓ Changed directory to: $(Get-Location)"
+                  Write-Host ""
 
                   # Recreate .env.deploy file on deployment target
                   # (previous .env.deploy was on build agent, this is on deployment VM)
-                  echo "Creating .env.deploy file..."
+                  Write-Host "Creating .env.deploy file..."
 
                   # SUPERSET_ADMIN_PASSWORD is now available via env: block from pipeline variable
 
-                  cat > .env.deploy << EOF
-                  SUPERSET_IMAGE=${FULL_IMAGE_NAME}
-                  SUPERSET_SECRET_KEY=${SUPERSET_SECRET_KEY}
-                  SUPERSET_ADMIN_USER=${SUPERSET_ADMIN_USER}
-                  SUPERSET_ADMIN_PASSWORD=${SUPERSET_ADMIN_PASSWORD}
-                  SUPERSET_PORT=${SUPERSET_PORT}
+                  $envContent = @"
+                  SUPERSET_IMAGE=$(FULL_IMAGE_NAME)
+                  SUPERSET_SECRET_KEY=$(SUPERSET_SECRET_KEY)
+                  SUPERSET_ADMIN_USER=$(SUPERSET_ADMIN_USER)
+                  SUPERSET_ADMIN_PASSWORD=$(SUPERSET_ADMIN_PASSWORD)
+                  SUPERSET_PORT=$(SUPERSET_PORT)
                   DATABASE_DIALECT=postgresql
                   DATABASE_USER=superset
                   DATABASE_PASSWORD=superset
@@ -522,26 +522,29 @@ stages:
                   DATABASE_DB=superset
                   REDIS_HOST=redis
                   REDIS_PORT=6379
-                  DOCKER_NETWORK=${DOCKER_NETWORK}
-                  DOCKER_INITDB_DIR=${DOCKER_INITDB_DIR}
-                  EOF
+                  DOCKER_NETWORK=$(DOCKER_NETWORK)
+                  DOCKER_INITDB_DIR=$(DOCKER_INITDB_DIR)
+"@
 
-                  echo "✓ Created .env.deploy file"
-                  echo ""
-                  echo "Checking .env.deploy content (secrets masked):"
-                  cat .env.deploy | sed 's/PASSWORD=.*/PASSWORD=***masked***/g' | sed 's/SECRET_KEY=.*/SECRET_KEY=***masked***/g'
-                  echo ""
+                  Set-Content -Path ".env.deploy" -Value $envContent -Encoding UTF8
+                  Write-Host "✓ Created .env.deploy file"
+                  Write-Host ""
+                  Write-Host "Checking .env.deploy content (secrets masked):"
+                  $maskedContent = Get-Content ".env.deploy" -Raw
+                  $maskedContent = $maskedContent -replace 'PASSWORD=.*', 'PASSWORD=***masked***' -replace 'SECRET_KEY=.*', 'SECRET_KEY=***masked***'
+                  Write-Host $maskedContent
+                  Write-Host ""
 
-                  echo "Deploying with docker-compose..."
+                  Write-Host "Deploying with docker-compose..."
                   docker compose -f .azuredevops/docker-compose-deploy.yml --env-file .env.deploy --project-name azuredevops up -d
 
-                  echo ""
-                  echo "✓ Deployment completed"
-                  echo ""
-                  echo "Running containers:"
-                  docker ps --filter "name=azuredevops" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
-                  echo ""
-                  echo "=== END DEBUG ==="
+                  Write-Host ""
+                  Write-Host "✓ Deployment completed"
+                  Write-Host ""
+                  Write-Host "Running containers:"
+                  docker ps --filter "name=azuredevops" --format "table {{.Names}}`t{{.Status}}`t{{.Ports}}"
+                  Write-Host ""
+                  Write-Host "=== END DEBUG ==="
                 env:
                   FULL_IMAGE_NAME: $(FULL_IMAGE_NAME)
                   SUPERSET_SECRET_KEY: $(SUPERSET_SECRET_KEY)
