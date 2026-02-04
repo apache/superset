@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Button,
   Icons,
@@ -28,6 +28,22 @@ import {
 } from '@superset-ui/core/components';
 import { getClientErrorObject, SupersetClient } from '@superset-ui/core';
 import { css, t } from '@apache-superset/core/ui';
+
+const NOTE_TRUNCATE_LENGTH = 150;
+
+function formatVersionDate(createdAt: string | null): string {
+  return createdAt ? new Date(createdAt).toLocaleString() : '—';
+}
+
+async function getErrorMessage(
+  err: unknown,
+  fallback: string,
+): Promise<string> {
+  const clientError = await getClientErrorObject(
+    err as Parameters<typeof getClientErrorObject>[0],
+  );
+  return String(clientError?.error ?? clientError?.message ?? fallback);
+}
 
 export type DashboardVersionItem = {
   id: number;
@@ -134,33 +150,43 @@ const HistoryModal = ({
   const [expandedVersionId, setExpandedVersionId] = useState<number | null>(
     null,
   );
-
-  const NOTE_TRUNCATE_LENGTH = 150;
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const fetchVersions = useCallback(async (): Promise<void> => {
-    if (!dashboardId) return;
+    if (dashboardId == null) return;
     setLoading(true);
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
     try {
       const { json } = await SupersetClient.get({
         endpoint: `/api/v1/dashboard/${dashboardId}/versions`,
+        signal: controller.signal,
       });
-      setVersions(json?.result ?? []);
+      if (!controller.signal.aborted) {
+        setVersions(json?.result ?? []);
+      }
     } catch (err) {
-      const clientError = await getClientErrorObject(err);
-      const message =
-        clientError.error ||
-        clientError.message ||
-        t('Failed to load version history');
-      addDangerToast(String(message));
+      if (controller.signal.aborted) return;
+      const message = await getErrorMessage(
+        err,
+        t('Failed to load version history'),
+      );
+      addDangerToast(message);
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) {
+        setLoading(false);
+      }
+      abortControllerRef.current = null;
     }
   }, [dashboardId, addDangerToast]);
 
   useEffect(() => {
-    if (show && dashboardId) {
+    if (show && dashboardId != null) {
       fetchVersions();
     }
+    return () => {
+      abortControllerRef.current?.abort();
+    };
   }, [show, dashboardId, fetchVersions]);
 
   const handleRestore = useCallback(
@@ -181,16 +207,18 @@ const HistoryModal = ({
               });
               addSuccessToast(t('Dashboard restored'));
               onHide();
-              onRestore?.();
-              window.location.reload();
+              if (onRestore) {
+                onRestore();
+              } else {
+                window.location.reload();
+              }
             } catch (err) {
-              const clientError = await getClientErrorObject(err);
-              const errorMessage =
-                clientError.error ||
-                clientError.message ||
-                t('Failed to restore version');
-              addDangerToast(String(errorMessage));
-              throw new Error(String(errorMessage));
+              const errorMessage = await getErrorMessage(
+                err,
+                t('Failed to restore version'),
+              );
+              addDangerToast(errorMessage);
+              throw new Error(errorMessage);
             } finally {
               setRestoringId(null);
             }
@@ -200,9 +228,6 @@ const HistoryModal = ({
     },
     [dashboardId, onHide, onRestore, addSuccessToast, addDangerToast],
   );
-
-  const formatDate = (created_at: string | null) =>
-    created_at ? new Date(created_at).toLocaleString() : '—';
 
   return (
     <Modal
@@ -277,7 +302,7 @@ const HistoryModal = ({
                         {t('Version')} {item.version_number}
                       </Typography.Text>
                       <Typography.Text type="secondary">
-                        {formatDate(item.created_at)}
+                        {formatVersionDate(item.created_at)}
                         {item.created_by ? ` · ${item.created_by}` : ''}
                       </Typography.Text>
                     </div>
@@ -306,6 +331,7 @@ const HistoryModal = ({
                       <span
                         role="button"
                         tabIndex={0}
+                        aria-expanded={isExpanded}
                         css={showMoreLinkStyle}
                         onClick={() =>
                           setExpandedVersionId(isExpanded ? null : item.id)

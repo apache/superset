@@ -61,6 +61,8 @@ import setPeriodicRunner, {
 import ReportModal from 'src/features/reports/ReportModal';
 import { deleteActiveReport } from 'src/features/reports/ReportModal/actions';
 import { PageHeaderWithActions } from '@superset-ui/core/components/PageHeaderWithActions';
+import { useDashboardRestore } from 'src/dashboard/contexts/DashboardRestoreContext';
+import { useModalState } from 'src/hooks/useModalState';
 import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import DashboardEmbedModal from '../EmbeddedModal';
 import HistoryModal from '../HistoryModal';
@@ -171,13 +173,18 @@ const Header = () => {
     useState(false);
   const [emphasizeUndo, setEmphasizeUndo] = useState(false);
   const [emphasizeRedo, setEmphasizeRedo] = useState(false);
-  const [showingPropertiesModal, setShowingPropertiesModal] = useState(false);
-  const [showingHistoryModal, setShowingHistoryModal] = useState(false);
-  const [showingRefreshModal, setShowingRefreshModal] = useState(false);
-  const [showingEmbedModal, setShowingEmbedModal] = useState(false);
-  const [showingReportModal, setShowingReportModal] = useState(false);
+  const [showingPropertiesModal, showPropertiesModal, hidePropertiesModal] =
+    useModalState();
+  const [showingHistoryModal, showHistoryModal, hideHistoryModal] =
+    useModalState();
+  const [showingRefreshModal, showRefreshModal, hideRefreshModal] =
+    useModalState();
+  const [showingEmbedModal, showEmbedModal, hideEmbedModal] = useModalState();
+  const [showingReportModal, showReportModal, hideReportModal] =
+    useModalState();
   const [currentReportDeleting, setCurrentReportDeleting] = useState(null);
-  const [showSaveVersionModal, setShowSaveVersionModal] = useState(false);
+  const [showSaveVersionModal, openSaveVersionModal, closeSaveVersionModal] =
+    useModalState();
   const [saveVersionDescription, setSaveVersionDescription] = useState('');
   const dashboardInfo = useSelector(state => state.dashboardInfo);
   const layout = useSelector(state => state.dashboardLayout.present);
@@ -502,42 +509,12 @@ const Header = () => {
     onSave: overwriteDashboard,
   });
 
-  const showPropertiesModal = useCallback(() => {
-    setShowingPropertiesModal(true);
-  }, []);
+  const closeSaveVersionModalAndReset = useCallback(() => {
+    closeSaveVersionModal();
+    setSaveVersionDescription('');
+  }, [closeSaveVersionModal]);
 
-  const hidePropertiesModal = useCallback(() => {
-    setShowingPropertiesModal(false);
-  }, []);
-  const showHistoryModal = useCallback(() => {
-    setShowingHistoryModal(true);
-  }, []);
-  const hideHistoryModal = useCallback(() => {
-    setShowingHistoryModal(false);
-  }, []);
-  const showRefreshModal = useCallback(() => {
-    setShowingRefreshModal(true);
-  }, []);
-  const hideRefreshModal = useCallback(() => {
-    setShowingRefreshModal(false);
-  }, []);
-
-  const showEmbedModal = useCallback(() => {
-    setShowingEmbedModal(true);
-  }, []);
-
-  const hideEmbedModal = useCallback(() => {
-    setShowingEmbedModal(false);
-  }, []);
-
-  const showReportModal = useCallback(() => {
-    setShowingReportModal(true);
-  }, []);
-
-  const hideReportModal = useCallback(() => {
-    setShowingReportModal(false);
-  }, []);
-
+  const onDashboardRestored = useDashboardRestore();
   const metadataBar = useDashboardMetadataBar(dashboardInfo);
 
   const userCanEdit =
@@ -718,7 +695,7 @@ const Header = () => {
                   buttonSize="small"
                   disabled={!hasUnsavedChanges}
                   buttonStyle="primary"
-                  onClick={() => setShowSaveVersionModal(true)}
+                  onClick={openSaveVersionModal}
                   data-test="header-save-button"
                   aria-label={t('Save')}
                 >
@@ -860,25 +837,20 @@ const Header = () => {
           dashboardId={dashboardInfo.id}
           show={showingHistoryModal}
           onHide={hideHistoryModal}
+          onRestore={onDashboardRestored}
           addSuccessToast={boundActionCreators.addSuccessToast}
           addDangerToast={boundActionCreators.addDangerToast}
         />
       )}
       <Modal
         show={showSaveVersionModal}
-        onHide={() => {
-          setShowSaveVersionModal(false);
-          setSaveVersionDescription('');
-        }}
+        onHide={closeSaveVersionModalAndReset}
         title={t('Save version')}
         footer={
           <>
             <Button
               buttonStyle="secondary"
-              onClick={() => {
-                setShowSaveVersionModal(false);
-                setSaveVersionDescription('');
-              }}
+              onClick={closeSaveVersionModalAndReset}
             >
               {t('Cancel')}
             </Button>
@@ -887,8 +859,7 @@ const Header = () => {
               data-test="save-version-modal-save-button"
               onClick={() => {
                 overwriteDashboard(saveVersionDescription);
-                setShowSaveVersionModal(false);
-                setSaveVersionDescription('');
+                closeSaveVersionModalAndReset();
               }}
             >
               {t('Save')}

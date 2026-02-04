@@ -480,7 +480,9 @@ test('should save when user confirms in Save version modal', async () => {
   setup(unsavedState);
   userEvent.click(screen.getByTestId('header-save-button'));
   const modal = await screen.findByRole('dialog');
-  const saveInModal = within(modal).getByTestId('save-version-modal-save-button');
+  const saveInModal = within(modal).getByTestId(
+    'save-version-modal-save-button',
+  );
   userEvent.click(saveInModal);
   expect(onSave).toHaveBeenCalledTimes(1);
   expect(onSave).toHaveBeenCalledWith(
@@ -501,10 +503,13 @@ test('should pass version description to onSave when provided in Save version mo
   setup(unsavedState);
   userEvent.click(screen.getByTestId('header-save-button'));
   const modal = await screen.findByRole('dialog');
-  const descriptionInput =
-    within(modal).getByTestId('save-version-description-input');
+  const descriptionInput = within(modal).getByTestId(
+    'save-version-description-input',
+  );
   userEvent.type(descriptionInput, 'Added new chart');
-  const saveInModal = within(modal).getByTestId('save-version-modal-save-button');
+  const saveInModal = within(modal).getByTestId(
+    'save-version-modal-save-button',
+  );
   userEvent.click(saveInModal);
   expect(onSave).toHaveBeenCalledTimes(1);
   expect(onSave).toHaveBeenCalledWith(
@@ -531,6 +536,28 @@ test('should close Save version modal without saving when Cancel is clicked', as
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
   expect(onSave).not.toHaveBeenCalled();
+});
+
+test('should open History modal when History button is clicked', async () => {
+  fetchMock.get('glob:*/api/v1/dashboard/*/versions', { body: { result: [] } });
+  const viewModeWithEditPerm = {
+    ...editableState,
+    dashboardState: { ...editableState.dashboardState, editMode: false },
+  };
+  setup(viewModeWithEditPerm);
+  const historyButton = screen.getByTestId('header-history-button');
+  userEvent.click(historyButton);
+  const dialog = await screen.findByRole('dialog', {
+    name: /Dashboard history/i,
+  });
+  expect(dialog).toBeInTheDocument();
+  await waitFor(() => {
+    expect(
+      screen.getByText(
+        /No version history yet. Versions are created when you save/,
+      ),
+    ).toBeInTheDocument();
+  });
 });
 
 test('should NOT render the "Draft" status', () => {

@@ -16,7 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { createContext, lazy, FC, useEffect, useMemo, useRef } from 'react';
+import {
+  createContext,
+  lazy,
+  FC,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { Global } from '@emotion/react';
 import { useHistory } from 'react-router-dom';
 import { t } from '@apache-superset/core';
@@ -62,6 +71,7 @@ import {
 import SyncDashboardState, {
   getDashboardContextLocalStorage,
 } from '../components/SyncDashboardState';
+import { DashboardRestoreProvider } from '../contexts/DashboardRestoreContext';
 
 export const DashboardPageIdContext = createContext('');
 
@@ -122,10 +132,19 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     (state: RootState) => state.dashboardInfo.theme,
   );
   const { addDangerToast } = useToasts();
-  const { result: dashboard, error: dashboardApiError } =
-    useDashboard(idOrSlug);
-  const { result: charts, error: chartsApiError } =
-    useDashboardCharts(idOrSlug);
+  const [dashboardRestoreKey, setDashboardRestoreKey] = useState(0);
+  const onDashboardRestored = useCallback(
+    () => setDashboardRestoreKey(k => k + 1),
+    [],
+  );
+  const { result: dashboard, error: dashboardApiError } = useDashboard(
+    idOrSlug,
+    dashboardRestoreKey,
+  );
+  const { result: charts, error: chartsApiError } = useDashboardCharts(
+    idOrSlug,
+    dashboardRestoreKey,
+  );
   const {
     result: datasets,
     error: datasetsApiError,
@@ -192,19 +211,24 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
       }
 
       if (readyToRender) {
-        if (!isDashboardHydrated.current) {
-          isDashboardHydrated.current = true;
+        const shouldHydrate =
+          !isDashboardHydrated.current || dashboardRestoreKey > 0;
+        if (dashboardRestoreKey > 0) {
+          isDashboardHydrated.current = false;
         }
-        dispatch(
-          hydrateDashboard({
-            history,
-            dashboard,
-            charts,
-            activeTabs,
-            dataMask,
-            chartStates,
-          }),
-        );
+        if (shouldHydrate) {
+          isDashboardHydrated.current = true;
+          dispatch(
+            hydrateDashboard({
+              history,
+              dashboard,
+              charts,
+              activeTabs,
+              dataMask,
+              chartStates,
+            }),
+          );
+        }
 
         // Scroll to anchor element if specified in permalink state
         if (anchor) {
@@ -221,7 +245,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     }
     if (id) getDataMaskApplied();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [readyToRender]);
+  }, [readyToRender, dashboard, charts, dashboardRestoreKey]);
 
   // Capture original title before any effects run
   const originalTitle = useMemo(() => document.title, []);
@@ -287,7 +311,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     <>
       <Global styles={globalStyles} />
       {readyToRender && hasDashboardInfoInitiated ? (
-        <>
+        <DashboardRestoreProvider onDashboardRestored={onDashboardRestored}>
           <SyncDashboardState dashboardPageId={dashboardPageId} />
           <DashboardPageIdContext.Provider value={dashboardPageId}>
             <CrudThemeProvider
@@ -305,7 +329,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
               </DashboardContainer>
             </CrudThemeProvider>
           </DashboardPageIdContext.Provider>
-        </>
+        </DashboardRestoreProvider>
       ) : (
         <Loading />
       )}
