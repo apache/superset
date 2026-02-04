@@ -411,12 +411,13 @@ stages:
                   }
 
                   # Create .env.deploy file using array of lines to avoid YAML parser issues
+                  # Azure DevOps variables $(VAR) are expanded before PowerShell runs
                   $envLines = @(
-                    "SUPERSET_IMAGE=$$(FULL_IMAGE_NAME)"
-                    "SUPERSET_SECRET_KEY=$$(SUPERSET_SECRET_KEY)"
-                    "SUPERSET_ADMIN_USER=$$(SUPERSET_ADMIN_USER)"
-                    "SUPERSET_ADMIN_PASSWORD=$SUPERSET_ADMIN_PASSWORD"
-                    "SUPERSET_PORT=$$(SUPERSET_PORT)"
+                    "SUPERSET_IMAGE=$(FULL_IMAGE_NAME)"
+                    "SUPERSET_SECRET_KEY=$(SUPERSET_SECRET_KEY)"
+                    "SUPERSET_ADMIN_USER=$(SUPERSET_ADMIN_USER)"
+                    "SUPERSET_ADMIN_PASSWORD=$env:SUPERSET_ADMIN_PASSWORD"
+                    "SUPERSET_PORT=$(SUPERSET_PORT)"
                     "DATABASE_DIALECT=postgresql"
                     "DATABASE_USER=superset"
                     "DATABASE_PASSWORD=superset"
@@ -425,8 +426,8 @@ stages:
                     "DATABASE_DB=superset"
                     "REDIS_HOST=redis"
                     "REDIS_PORT=6379"
-                    "DOCKER_NETWORK=$$(DOCKER_NETWORK)"
-                    "DOCKER_INITDB_DIR=$$(DOCKER_INITDB_DIR)"
+                    "DOCKER_NETWORK=$(DOCKER_NETWORK)"
+                    "DOCKER_INITDB_DIR=$(DOCKER_INITDB_DIR)"
                   )
                   $envContent = $envLines -join [System.Environment]::NewLine
                   Set-Content -Path ".env.deploy" -Value $envContent -Encoding UTF8NoBOM
@@ -436,16 +437,16 @@ stages:
                   Get-ChildItem -Force ".env.deploy"
                   Write-Host ""
                   Write-Host "=== DEBUG: Variable value lengths ==="
-                  Write-Host "SUPERSET_SECRET_KEY length: $(SUPERSET_SECRET_KEY.Length)"
-                  Write-Host "SUPERSET_ADMIN_USER length: $(SUPERSET_ADMIN_USER.Length)"
-                  Write-Host "SUPERSET_ADMIN_PASSWORD length: $SUPERSET_ADMIN_PASSWORD.Length"
-                  Write-Host "SUPERSET_PORT length: $(SUPERSET_PORT.Length)"
+                  Write-Host "SUPERSET_SECRET_KEY length: $env:SUPERSET_SECRET_KEY.Length"
+                  Write-Host "SUPERSET_ADMIN_USER length: $env:SUPERSET_ADMIN_USER.Length"
+                  Write-Host "SUPERSET_ADMIN_PASSWORD length: $env:SUPERSET_ADMIN_PASSWORD.Length"
+                  Write-Host "SUPERSET_PORT length: $env:SUPERSET_PORT.Length"
                   Write-Host ""
-                  if ([string]::IsNullOrWhiteSpace("$(SUPERSET_SECRET_KEY)")) {
+                  if ([string]::IsNullOrWhiteSpace($env:SUPERSET_SECRET_KEY)) {
                     Write-Host "✗ ERROR: SUPERSET_SECRET_KEY is empty!"
                     exit 1
                   }
-                  if ([string]::IsNullOrWhiteSpace($SUPERSET_ADMIN_PASSWORD)) {
+                  if ([string]::IsNullOrWhiteSpace($env:SUPERSET_ADMIN_PASSWORD)) {
                     Write-Host "✗ ERROR: SUPERSET_ADMIN_PASSWORD is empty!"
                     exit 1
                   }
@@ -521,12 +522,14 @@ stages:
                   # SUPERSET_ADMIN_PASSWORD is now available via env: block from pipeline variable
 
                   # Build .env.deploy content line by line to avoid YAML parser issues with here-strings
+                  # Azure DevOps variables $(VAR) are expanded before PowerShell runs
+                  # Environment variables accessed via $env:VAR are expanded by PowerShell
                   $envLines = @(
-                    "SUPERSET_IMAGE=$$(FULL_IMAGE_NAME)"
-                    "SUPERSET_SECRET_KEY=$$(SUPERSET_SECRET_KEY)"
-                    "SUPERSET_ADMIN_USER=$$(SUPERSET_ADMIN_USER)"
-                    "SUPERSET_ADMIN_PASSWORD=$$(SUPERSET_ADMIN_PASSWORD)"
-                    "SUPERSET_PORT=$$(SUPERSET_PORT)"
+                    "SUPERSET_IMAGE=$(FULL_IMAGE_NAME)"
+                    "SUPERSET_SECRET_KEY=$(SUPERSET_SECRET_KEY)"
+                    "SUPERSET_ADMIN_USER=$(SUPERSET_ADMIN_USER)"
+                    "SUPERSET_ADMIN_PASSWORD=$env:SUPERSET_ADMIN_PASSWORD"
+                    "SUPERSET_PORT=$(SUPERSET_PORT)"
                     "DATABASE_DIALECT=postgresql"
                     "DATABASE_USER=superset"
                     "DATABASE_PASSWORD=superset"
@@ -535,8 +538,8 @@ stages:
                     "DATABASE_DB=superset"
                     "REDIS_HOST=redis"
                     "REDIS_PORT=6379"
-                    "DOCKER_NETWORK=$$(DOCKER_NETWORK)"
-                    "DOCKER_INITDB_DIR=$$(DOCKER_INITDB_DIR)"
+                    "DOCKER_NETWORK=$(DOCKER_NETWORK)"
+                    "DOCKER_INITDB_DIR=$(DOCKER_INITDB_DIR)"
                   )
                   $envContent = $envLines -join [System.Environment]::NewLine
                   Set-Content -Path ".env.deploy" -Value $envContent -Encoding UTF8NoBOM
