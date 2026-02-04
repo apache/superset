@@ -42,7 +42,7 @@ import {
   operatorOptions,
   stringOperatorOptions,
   booleanOperatorOptions,
-  formatingOptions,
+  formattingOptions,
   colorSchemeOptions,
 } from './constants';
 
@@ -271,13 +271,13 @@ export const FormattingPopoverContent = ({
     [allColumns],
   );
 
-  const [columnFormating, setColumnFormating] = useState<string>(
-    config?.columnFormating ||
+  const [columnFormatting, setColumnFormating] = useState<string>(
+    config?.columnFormatting ||
       allColumns.filter(item => item.value === column)[0]?.value,
   );
 
-  const [objectFormating, setObjectFormating] = useState<string>(
-    config?.objectFormating || formatingOptions[0].value,
+  const [objectFormatting, setObjectFormating] = useState<string>(
+    config?.objectFormatting || formattingOptions[0].value,
   );
 
   const [previousColumnType, setPreviousColumnType] = useState<
@@ -327,7 +327,7 @@ export const FormattingPopoverContent = ({
     setObjectFormating(value);
 
     if (value === ObjectFormattingEnum.CELL_BAR) {
-      const currentColumnValue = form.getFieldValue('columnFormating');
+      const currentColumnValue = form.getFieldValue('columnFormatting');
 
       const isCurrentColumnNumeric = numericColumns.some(
         col => col.value === currentColumnValue,
@@ -335,7 +335,7 @@ export const FormattingPopoverContent = ({
 
       if (!isCurrentColumnNumeric && numericColumns.length > 0) {
         form.setFieldsValue({
-          columnFormating: numericColumns[0]?.value || '',
+          columnFormatting: numericColumns[0]?.value || '',
         });
       }
     }
@@ -343,10 +343,10 @@ export const FormattingPopoverContent = ({
 
   const getColumnOptions = useCallback(
     () =>
-      objectFormating === ObjectFormattingEnum.CELL_BAR
+      objectFormatting === ObjectFormattingEnum.CELL_BAR
         ? numericColumns
         : allColumns,
-    [objectFormating, numericColumns, allColumns],
+    [objectFormatting, numericColumns, allColumns],
   );
 
   useEffect(() => {
@@ -401,10 +401,10 @@ export const FormattingPopoverContent = ({
         <Row gutter={12}>
           <Col span={12}>
             <FormItem
-              name="columnFormating"
-              label={t('Formating column')}
+              name="columnFormatting"
+              label={t('Formatting column')}
               rules={rulesRequired}
-              initialValue={columnFormating}
+              initialValue={columnFormatting}
             >
               <Select
                 ariaLabel={t('Select column name')}
@@ -417,17 +417,17 @@ export const FormattingPopoverContent = ({
           </Col>
           <Col span={12}>
             <FormItem
-              name="objectFormating"
-              label={t('Formating object')}
+              name="objectFormatting"
+              label={t('Formatting object')}
               rules={rulesRequired}
-              initialValue={objectFormating}
+              initialValue={objectFormatting}
               tooltip={t(
                 'The background of the histogram columns is displayed if the "Show cell bars" flag is enabled.',
               )}
             >
               <Select
                 ariaLabel={t('Select object name')}
-                options={formatingOptions}
+                options={formattingOptions}
                 onChange={value => {
                   handleObjectChange(value as string);
                 }}

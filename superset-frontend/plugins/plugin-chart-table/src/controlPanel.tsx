@@ -782,15 +782,15 @@ const config: ControlPanelConfig = {
                         item.colorScheme &&
                         !['Green', 'Red'].includes(item.colorScheme)
                       ) {
-                        if (item.columnFormating === undefined) {
+                        if (item.columnFormatting === undefined) {
                           // eslint-disable-next-line no-param-reassign
                           array[index] = {
                             ...item,
                             ...(item.toTextColor === true && {
-                              objectFormating: ObjectFormattingEnum.TEXT_COLOR,
+                              objectFormatting: ObjectFormattingEnum.TEXT_COLOR,
                             }),
                             ...(item.toAllRow === true && {
-                              columnFormating: ObjectFormattingEnum.ENTIRE_ROW,
+                              columnFormatting: ObjectFormattingEnum.ENTIRE_ROW,
                             }),
                           };
                         }
@@ -805,7 +805,7 @@ const config: ControlPanelConfig = {
                     ? [
                         {
                           value: ObjectFormattingEnum.ENTIRE_ROW,
-                          label: 'entire row',
+                          label: t('entire row'),
                           dataType: GenericDataType.String,
                         },
                         ...colnames.map((colname: string, index: number) => ({

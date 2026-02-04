@@ -486,16 +486,16 @@ export type ConditionalFormattingConfig = {
   toAllRow?: boolean;
   toTextColor?: boolean;
   useGradient?: boolean;
-  columnFormating?: string;
-  objectFormating?: string;
+  columnFormatting?: string;
+  objectFormatting?: string;
 };
 
 export type ColorFormatters = {
   column: string;
   toAllRow?: boolean;
   toTextColor?: boolean;
-  columnFormating?: string;
-  objectFormating?: string;
+  columnFormatting?: string;
+  objectFormatting?: string;
   getColorFromValue: (
     value: number | string | boolean | null,
   ) => string | undefined;

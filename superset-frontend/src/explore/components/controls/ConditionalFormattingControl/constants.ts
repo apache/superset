@@ -49,18 +49,18 @@ export const booleanOperatorOptions = [
   { value: Comparator.IsNotNull, label: t('is not null') },
 ];
 
-export const formatingOptions = [
+export const formattingOptions = [
   {
     value: ObjectFormattingEnum.BACKGROUND_COLOR,
-    label: 'background color',
+    label: t('background color'),
   },
   {
     value: ObjectFormattingEnum.TEXT_COLOR,
-    label: 'text color',
+    label: t('text color'),
   },
   {
     value: ObjectFormattingEnum.CELL_BAR,
-    label: 'cell bar',
+    label: t('cell bar'),
   },
 ];
 

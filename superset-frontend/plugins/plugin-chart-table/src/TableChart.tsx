@@ -940,11 +940,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               if (!formatterResult) return;
 
               if (
-                formatter.objectFormating === ObjectFormattingEnum.TEXT_COLOR
+                formatter.objectFormatting === ObjectFormattingEnum.TEXT_COLOR
               ) {
                 color = formatterResult.slice(0, -2);
               } else if (
-                formatter.objectFormating === ObjectFormattingEnum.CELL_BAR
+                formatter.objectFormatting === ObjectFormattingEnum.CELL_BAR
               ) {
                 if (showCellBars)
                   backgroundColorCellBar = formatterResult.slice(0, -2);
@@ -955,14 +955,14 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             };
             columnColorFormatters
               .filter(formatter => {
-                if (formatter.columnFormating) {
-                  return formatter.columnFormating === column.key;
+                if (formatter.columnFormatting) {
+                  return formatter.columnFormatting === column.key;
                 }
                 return formatter.column === column.key;
               })
               .forEach(formatter => {
                 let valueToFormat;
-                if (formatter.columnFormating) {
+                if (formatter.columnFormatting) {
                   const index = Object.keys(row.original).findIndex(
                     key => key === formatter.column,
                   );
@@ -976,7 +976,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             columnColorFormatters
               .filter(
                 formatter =>
-                  formatter.columnFormating === ObjectFormattingEnum.ENTIRE_ROW,
+                  formatter.columnFormatting ===
+                  ObjectFormattingEnum.ENTIRE_ROW,
               )
               .forEach(formatter =>
                 applyFormatter(formatter, row.original[formatter.column]),
