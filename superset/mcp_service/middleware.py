@@ -834,7 +834,7 @@ class ResponseSizeGuardMiddleware(Middleware):
                 "Response size warning for %s: ~%d tokens (%.0f%% of %d limit)",
                 tool_name,
                 estimated_tokens,
-                (estimated_tokens / self.token_limit) * 100,
+                (estimated_tokens / self.token_limit * 100) if self.token_limit else 0,
                 self.token_limit,
             )
 
