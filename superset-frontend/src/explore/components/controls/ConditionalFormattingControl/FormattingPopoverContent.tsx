@@ -334,9 +334,11 @@ export const FormattingPopoverContent = ({
       );
 
       if (!isCurrentColumnNumeric && numericColumns.length > 0) {
+        const newValue = numericColumns[0]?.value || '';
         form.setFieldsValue({
-          columnFormatting: numericColumns[0]?.value || '',
+          columnFormatting: newValue,
         });
+        setColumnFormating(newValue);
       }
     }
   };
