@@ -417,7 +417,7 @@ stages:
                   DOCKER_INITDB_DIR=$(DOCKER_INITDB_DIR)
                   "@
 
-                  Set-Content -Path ".env.deploy" -Value $envContent -Encoding UTF8
+                  Set-Content -Path ".env.deploy" -Value $envContent -Encoding UTF8NoBOM
                   Write-Host "✓ Created .env.deploy file"
                   Write-Host ""
                   Write-Host ".env.deploy file location:"
@@ -526,7 +526,7 @@ stages:
                   DOCKER_INITDB_DIR=$(DOCKER_INITDB_DIR)
 "@
 
-                  Set-Content -Path ".env.deploy" -Value $envContent -Encoding UTF8
+                  Set-Content -Path ".env.deploy" -Value $envContent -Encoding UTF8NoBOM
                   Write-Host "✓ Created .env.deploy file"
                   Write-Host ""
                   Write-Host "Checking .env.deploy content (secrets masked):"
