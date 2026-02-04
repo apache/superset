@@ -39,7 +39,7 @@
     "@storybook/addon-actions": "^8.6.15",
     "@storybook/addon-controls": "^8.6.15",
     "@storybook/addon-links": "^8.6.15",
-    "@storybook/react": "^8.6.15",
+    "@storybook/react": "^10.2.6",
     "@storybook/types": "^8.6.15",
     "@types/react-loadable": "^5.5.11",
     "core-js": "3.48.0",
