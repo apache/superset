@@ -32,7 +32,7 @@ import NewItemDropdown from '../NewItemDropdown';
 import ItemSectionContent from './ItemSection';
 import { FilterRemoval } from '../types';
 import { FILTER_TYPE, CUSTOMIZATION_TYPE } from '../DraggableFilter';
-import { isFilterId, isChartCustomizationId } from '../utils';
+import { isFilterId, isChartCustomizationId, isDivider } from '../utils';
 
 const StyledSidebarFlex = styled(Flex)`
   min-width: 290px;
@@ -168,6 +168,26 @@ const ConfigModalSidebar: FC<ConfigModalSidebarProps> = ({
             sourceType,
             targetType,
           );
+        }
+        return;
+      }
+
+      if (
+        onCrossListDrop &&
+        typeof active.id === 'string' &&
+        isDivider(active.id) &&
+        ((activeFilterIndex !== -1 && overCustomizationIndex !== -1) ||
+          (activeCustomizationIndex !== -1 && overFilterIndex !== -1))
+      ) {
+        const sourceType: 'filter' | 'customization' =
+          activeFilterIndex !== -1 ? 'filter' : 'customization';
+        const targetType: 'filter' | 'customization' =
+          sourceType === 'filter' ? 'customization' : 'filter';
+        const targetIndex =
+          targetType === 'filter' ? overFilterIndex : overCustomizationIndex;
+
+        if (targetIndex !== -1) {
+          onCrossListDrop(active.id, targetIndex, sourceType, targetType);
         }
         return;
       }
