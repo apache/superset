@@ -115,11 +115,21 @@ def quick_task_with_abort() -> None:
     time.sleep(0.2)
 
 
-# Register task functions
-TaskRegistry.register("test_timeout_abortable", timeout_abortable_task)
-TaskRegistry.register("test_timeout_handler_fails", timeout_handler_fails_task)
-TaskRegistry.register("test_timeout_simple", simple_task_with_abort)
-TaskRegistry.register("test_timeout_quick", quick_task_with_abort)
+def _register_test_tasks() -> None:
+    """Register test task functions if not already registered.
+
+    Called in setUp() to ensure tasks are registered regardless of
+    whether other tests have cleared the registry.
+    """
+    registrations = [
+        ("test_timeout_abortable", timeout_abortable_task),
+        ("test_timeout_handler_fails", timeout_handler_fails_task),
+        ("test_timeout_simple", simple_task_with_abort),
+        ("test_timeout_quick", quick_task_with_abort),
+    ]
+    for name, func in registrations:
+        if not TaskRegistry.is_registered(name):
+            TaskRegistry.register(name, func)
 
 
 class TestTimeoutHandling(SupersetTestCase):
@@ -129,6 +139,7 @@ class TestTimeoutHandling(SupersetTestCase):
         """Set up test fixtures."""
         super().setUp()
         self.login(ADMIN_USERNAME)
+        _register_test_tasks()
         _reset_handler_state()
 
     def test_timeout_with_abort_handler_results_in_timed_out_status(self) -> None:
