@@ -335,23 +335,18 @@ stages:
                     # Extract PostgreSQL credentials for OEE database connection
                     Write-Host "Extracting OEE database credentials..."
 
-                    # Prefer 'owner' over 'reader' for OEE database access
-                    $pgCreds = $null
-                    if ($pg.owner) {
-                        $pgCreds = $pg.owner
-                        Write-Host "  Using 'owner' credentials from client config"
-                    } elseif ($pg.reader) {
-                        $pgCreds = $pg.reader
-                        Write-Host "  Using 'reader' credentials from client config"
-                    } else {
-                        throw "Config missing 'owner' or 'reader' section in postgres config"
+                    # Use 'admin' credentials for OEE database (oee-admin user)
+                    if (-not $pg.admin) {
+                        throw "Config missing 'admin' section in postgres config"
                     }
+                    $pgCreds = $pg.admin
+                    Write-Host "  Using 'admin' credentials from client config"
 
                     if (-not $pgCreds.user) {
-                        throw "Config missing 'user' in postgres credentials"
+                        throw "Config missing 'user' in postgres admin config"
                     }
                     if (-not $pgCreds.password) {
-                        throw "Config missing 'password' in postgres credentials"
+                        throw "Config missing 'password' in postgres admin config"
                     }
 
                     # Set OEE database credentials as pipeline variables
