@@ -495,7 +495,8 @@ class EngineManager:
 
     def _create_tunnel(self, ssh_tunnel: "SSHTunnel", uri: URL) -> SSHTunnelForwarder:
         kwargs = self._get_tunnel_kwargs(ssh_tunnel, uri)
-        tunnel = SSHTunnelForwarder(**kwargs)
+        # Use open_tunnel which handles debug_level properly
+        tunnel = sshtunnel.open_tunnel(**kwargs)
         tunnel.start()
 
         return tunnel
@@ -524,7 +525,7 @@ class EngineManager:
             kwargs["ssh_pkey"] = private_key
 
         if self.mode == EngineModes.NEW:
-            kwargs["keepalive"] = 0  # disable
+            kwargs["set_keepalive"] = 0  # disable keepalive for one-time tunnels
 
         return kwargs
 

@@ -223,8 +223,8 @@ class TestEngineManager:
         for engine in results:
             assert engine is real_engine
 
-    @patch("superset.engines.manager.SSHTunnelForwarder")
-    def test_ssh_tunnel_creation(self, mock_tunnel_class, engine_manager):
+    @patch("superset.engines.manager.sshtunnel.open_tunnel")
+    def test_ssh_tunnel_creation(self, mock_open_tunnel, engine_manager):
         """Test SSH tunnel creation and caching."""
         ssh_tunnel = MagicMock()
         ssh_tunnel.server_address = "ssh.example.com"
@@ -237,7 +237,7 @@ class TestEngineManager:
         tunnel_instance = MagicMock()
         tunnel_instance.is_active = True
         tunnel_instance.local_bind_address = ("127.0.0.1", 12345)
-        mock_tunnel_class.return_value = tunnel_instance
+        mock_open_tunnel.return_value = tunnel_instance
 
         uri = MagicMock()
         uri.host = "db.example.com"
@@ -247,18 +247,19 @@ class TestEngineManager:
         result = engine_manager._get_tunnel(ssh_tunnel, uri)
 
         assert result is tunnel_instance
-        mock_tunnel_class.assert_called_once()
+        mock_open_tunnel.assert_called_once()
+        tunnel_instance.start.assert_called_once()
 
         # Getting same tunnel again should return cached version
-        mock_tunnel_class.reset_mock()
+        mock_open_tunnel.reset_mock()
         result2 = engine_manager._get_tunnel(ssh_tunnel, uri)
 
         assert result2 is tunnel_instance
-        mock_tunnel_class.assert_not_called()
+        mock_open_tunnel.assert_not_called()
 
-    @patch("superset.engines.manager.SSHTunnelForwarder")
+    @patch("superset.engines.manager.sshtunnel.open_tunnel")
     def test_ssh_tunnel_recreation_when_inactive(
-        self, mock_tunnel_class, engine_manager
+        self, mock_open_tunnel, engine_manager
     ):
         """Test that inactive tunnels are replaced."""
         ssh_tunnel = MagicMock()
@@ -279,7 +280,7 @@ class TestEngineManager:
         active_tunnel.is_active = True
         active_tunnel.local_bind_address = ("127.0.0.1", 23456)
 
-        mock_tunnel_class.side_effect = [inactive_tunnel, active_tunnel]
+        mock_open_tunnel.side_effect = [inactive_tunnel, active_tunnel]
 
         uri = MagicMock()
         uri.host = "db.example.com"
@@ -293,7 +294,7 @@ class TestEngineManager:
         # Second call should create new tunnel since first is inactive
         result2 = engine_manager._get_tunnel(ssh_tunnel, uri)
         assert result2 is active_tunnel
-        assert mock_tunnel_class.call_count == 2
+        assert mock_open_tunnel.call_count == 2
 
     @patch("superset.engines.manager.create_engine")
     @patch("superset.engines.manager.make_url_safe")

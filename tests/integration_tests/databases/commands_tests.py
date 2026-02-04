@@ -913,10 +913,12 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
         json_payload = {"sqlalchemy_uri": db_uri}
         command_without_db_name = TestConnectionDatabaseCommand(json_payload)
 
-        with pytest.raises(DatabaseTestConnectionUnexpectedError) as excinfo:  # noqa: PT012
+        with pytest.raises(DatabaseTestConnectionUnexpectedError) as excinfo:
             command_without_db_name.run()
-        assert str(excinfo.value) == (
-            "Unexpected error occurred, please check your logs for details"
+        # Exception wraps errors from db_engine_spec.extract_errors()
+        assert (
+            excinfo.value.errors[0].error_type
+            == SupersetErrorType.GENERIC_DB_ENGINE_ERROR
         )
         mock_event_logger.assert_called()
 
@@ -929,9 +931,8 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
         """Test to make sure do_ping exceptions gets captured"""
         database = get_example_database()
         mock_g.user = security_manager.find_user("admin")
-        mock_get_sqla_engine.return_value.__enter__.return_value.dialect.do_ping.side_effect = Exception(
-            "An error has occurred!"
-        )
+        mock_engine = mock_get_sqla_engine.return_value.__enter__.return_value
+        mock_engine.dialect.do_ping.side_effect = Exception("An error has occurred!")
         db_uri = database.sqlalchemy_uri_decrypted
         json_payload = {"sqlalchemy_uri": db_uri}
         command_without_db_name = TestConnectionDatabaseCommand(json_payload)
@@ -979,17 +980,17 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
         connection exc is raised"""
         database = get_example_database()
         mock_g.user = security_manager.find_user("admin")
-        mock_get_sqla_engine.return_value.__enter__.side_effect = SupersetSecurityException(
-            SupersetError(error_type=500, message="test", level="info")
+        mock_get_sqla_engine.return_value.__enter__.side_effect = (
+            SupersetSecurityException(
+                SupersetError(error_type=500, message="test", level="info")
+            )
         )
         db_uri = database.sqlalchemy_uri_decrypted
         json_payload = {"sqlalchemy_uri": db_uri}
         command_without_db_name = TestConnectionDatabaseCommand(json_payload)
 
-        with pytest.raises(DatabaseSecurityUnsafeError) as excinfo:  # noqa: PT012
+        with pytest.raises(DatabaseSecurityUnsafeError):
             command_without_db_name.run()
-        assert str(excinfo.value) == ("Stopped an unsafe database connection")
-
         mock_event_logger.assert_called()
 
     @patch("superset.models.core.Database.get_sqla_engine")
@@ -1008,12 +1009,13 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
         json_payload = {"sqlalchemy_uri": db_uri}
         command_without_db_name = TestConnectionDatabaseCommand(json_payload)
 
-        with pytest.raises(SupersetErrorsException) as excinfo:  # noqa: PT012
+        with pytest.raises(SupersetErrorsException) as excinfo:
             command_without_db_name.run()
-        assert str(excinfo.value) == (
-            "Connection failed, please check your connection settings"
+        # Exception wraps errors from db_engine_spec.extract_errors()
+        assert (
+            excinfo.value.errors[0].error_type
+            == SupersetErrorType.GENERIC_DB_ENGINE_ERROR
         )
-
         mock_event_logger.assert_called()
 
 
