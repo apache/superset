@@ -352,21 +352,23 @@ stages:
               # -------------------------------------
               # Debug: Print all available variables
               # -------------------------------------
-              - bash: |
-                  echo "=== DEBUGGING: Printing all pipeline variables ==="
-                  echo ""
-                  echo "Pipeline variables (Azure DevOps syntax):"
-                  echo "  FULL_IMAGE_NAME: '$(FULL_IMAGE_NAME)'"
-                  echo "  SUPERSET_SECRET_KEY: '***masked***'"
-                  echo "  SUPERSET_ADMIN_USER: '$(SUPERSET_ADMIN_USER)'"
-                  echo "  SUPERSET_PORT: '$(SUPERSET_PORT)'"
-                  echo "  DOCKER_NETWORK: '$(DOCKER_NETWORK)'"
-                  echo "  DOCKER_INITDB_DIR: '$(DOCKER_INITDB_DIR)'"
-                  echo ""
-                  echo "Environment variables in this shell:"
-                  env | grep -E "FULL_IMAGE_NAME|SUPERSET|DOCKER_NETWORK|DOCKER_INITDB_DIR" || echo "  (none found)"
-                  echo ""
-                  echo "=== END DEBUGGING ==="
+              - pwsh: |
+                  Write-Host "=== DEBUGGING: Printing all pipeline variables ==="
+                  Write-Host ""
+                  Write-Host "Pipeline variables (Azure DevOps syntax):"
+                  Write-Host "  FULL_IMAGE_NAME: '$(FULL_IMAGE_NAME)'"
+                  Write-Host "  SUPERSET_SECRET_KEY: '***masked***'"
+                  Write-Host "  SUPERSET_ADMIN_USER: '$(SUPERSET_ADMIN_USER)'"
+                  Write-Host "  SUPERSET_PORT: '$(SUPERSET_PORT)'"
+                  Write-Host "  DOCKER_NETWORK: '$(DOCKER_NETWORK)'"
+                  Write-Host "  DOCKER_INITDB_DIR: '$(DOCKER_INITDB_DIR)'"
+                  Write-Host ""
+                  Write-Host "Environment variables in this shell:"
+                  Get-ChildItem Env: | Where-Object { $_.Name -match 'FULL_IMAGE_NAME|SUPERSET|DOCKER_NETWORK|DOCKER_INITDB_DIR' } | ForEach-Object {
+                    Write-Host "  $($_.Name)=$($_.Value)"
+                  }
+                  Write-Host ""
+                  Write-Host "=== END DEBUGGING ==="
                 displayName: Debug Variables
 
               # -------------------------------------
