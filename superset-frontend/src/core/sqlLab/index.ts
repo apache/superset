@@ -17,6 +17,7 @@
  * under the License.
  */
 import { sqlLab as sqlLabApi } from '@apache-superset/core';
+import { nanoid } from 'nanoid';
 import {
   ADD_QUERY_EDITOR,
   QUERY_FAILED,
@@ -38,8 +39,9 @@ import {
   queryEditorSetDb,
   queryEditorSetCatalog,
   queryEditorSetSchema,
-  runQueryFromSqlEditor,
+  runQuery as runQueryAction,
   postStopQuery,
+  Query,
 } from 'src/SqlLab/actions/sqlLab';
 import { RootState, store } from 'src/views/store';
 import { AnyListenerPredicate } from '@reduxjs/toolkit';
@@ -156,16 +158,16 @@ const makeTab = (
   id: string,
   name: string,
   dbId: number,
-  catalog?: string | null,
-  schema?: string | null,
+  catalog: string | null = null,
+  schema: string | null = null,
 ): Tab => {
   const panels: Panel[] = []; // TODO: Populate panels
   return new Tab(
     id,
     name,
     dbId,
-    catalog ?? null,
-    schema ?? null,
+    catalog,
+    schema,
     () => getEditorAsync(id),
     panels,
   );
@@ -591,7 +593,7 @@ const setActiveTab: typeof sqlLabApi.setActiveTab = async (tabId: string) => {
   }
 };
 
-const runQuery: typeof sqlLabApi.runQuery = async () => {
+const executeQuery: typeof sqlLabApi.executeQuery = async options => {
   const state = store.getState() as SqlLabRootState;
   const editorId = activeEditorId();
   const queryEditor = findQueryEditor(editorId);
@@ -609,12 +611,58 @@ const runQuery: typeof sqlLabApi.runQuery = async () => {
   const database = qe.dbId ? databases[qe.dbId] : null;
   const defaultLimit = state.common?.conf?.DEFAULT_SQLLAB_LIMIT ?? 1000;
 
-  store.dispatch(runQueryFromSqlEditor(database, qe, defaultLimit) as any);
+  // Determine SQL to execute
+  let sql: string;
+  let updateTabState = true;
 
-  return qe.id;
+  if (options?.sql !== undefined) {
+    // Custom SQL provided - don't update tab state
+    ({ sql } = options);
+    updateTabState = false;
+  } else if (options?.selectedOnly && qe.selectedText) {
+    // Run selected text only
+    sql = qe.selectedText;
+    updateTabState = false;
+  } else {
+    // Default: use editor content (selected text takes precedence)
+    sql = qe.selectedText || qe.sql;
+    updateTabState = !qe.selectedText;
+  }
+
+  // Merge template params
+  const templateParams = options?.templateParams
+    ? JSON.stringify({
+        ...JSON.parse(qe.templateParams || '{}'),
+        ...options.templateParams,
+      })
+    : qe.templateParams;
+
+  const queryId = nanoid(11);
+
+  const query: Query = {
+    id: queryId,
+    dbId: qe.dbId,
+    sql,
+    sqlEditorId: qe.tabViewId ?? qe.id,
+    sqlEditorImmutableId: qe.immutableId,
+    tab: qe.name,
+    catalog: qe.catalog,
+    schema: qe.schema,
+    tempTable: options?.ctas?.tableName,
+    templateParams,
+    queryLimit: options?.limit ?? qe.queryLimit ?? defaultLimit,
+    runAsync: database ? database.allow_run_async : false,
+    ctas: !!options?.ctas,
+    ctas_method: options?.ctas?.method,
+    updateTabState,
+  };
+
+  store.dispatch(runQueryAction(query));
+
+  return queryId;
 };
 
-const stopQuery: typeof sqlLabApi.stopQuery = async (queryId: string) => {
+const cancelQuery: typeof sqlLabApi.cancelQuery = async (queryId: string) => {
   const state = store.getState() as SqlLabRootState;
   const query = state.sqlLab.queries[queryId];
 
@@ -664,8 +712,8 @@ export const sqlLab: typeof sqlLabApi = {
   createTab,
   closeTab,
   setActiveTab,
-  runQuery,
-  stopQuery,
+  executeQuery,
+  cancelQuery,
   setDatabase,
   setCatalog,
   setSchema,

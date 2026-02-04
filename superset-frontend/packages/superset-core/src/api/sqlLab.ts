@@ -565,31 +565,91 @@ export declare function setActiveTab(tabId: string): Promise<void>;
  */
 
 /**
- * Executes the SQL query in the current tab.
- *
- * @returns Promise that resolves with the query client ID
- *
- * @example
- * ```typescript
- * const queryId = await runQuery();
- * ```
+ * Options for executing a SQL query.
  */
-export declare function runQuery(): Promise<string>;
+export interface QueryOptions {
+  /**
+   * SQL to execute without modifying editor content.
+   * If not provided, uses the current editor content.
+   */
+  sql?: string;
+
+  /**
+   * Run only the selected text in the editor.
+   * Ignored if `sql` option is provided.
+   */
+  selectedOnly?: boolean;
+
+  /**
+   * Override the query row limit.
+   * If not provided, uses the tab's configured limit.
+   */
+  limit?: number;
+
+  /**
+   * Template parameters for Jinja templating.
+   * Merged with existing template parameters from the editor.
+   */
+  templateParams?: Record<string, unknown>;
+
+  /**
+   * Create Table/View As Select options.
+   * When provided, query results are stored in a new table instead of returned directly.
+   */
+  ctas?: {
+    /**
+     * Whether to create a TABLE or VIEW.
+     */
+    method: 'TABLE' | 'VIEW';
+
+    /**
+     * Name of the table or view to create.
+     */
+    tableName: string;
+  };
+}
 
 /**
- * Stops a running query.
+ * Executes a SQL query in the current tab.
  *
- * @param queryId The client ID of the query to stop
- * @returns Promise that resolves when the stop request is sent
+ * @param options Optional query execution options
+ * @returns Promise that resolves with the query ID
  *
  * @example
  * ```typescript
- * const queryId = await runQuery();
- * // Later, if needed:
- * await stopQuery(queryId);
+ * // Execute the current editor content
+ * const queryId = await executeQuery();
+ *
+ * // Execute custom SQL without modifying the editor
+ * const queryId = await executeQuery({
+ *   sql: "SELECT * FROM users LIMIT 10"
+ * });
+ *
+ * // Execute only selected text
+ * const queryId = await executeQuery({ selectedOnly: true });
+ *
+ * // Create a table from query results
+ * const queryId = await executeQuery({
+ *   ctas: { method: 'TABLE', tableName: 'my_results' }
+ * });
  * ```
  */
-export declare function stopQuery(queryId: string): Promise<void>;
+export declare function executeQuery(options?: QueryOptions): Promise<string>;
+
+/**
+ * Cancels a running query.
+ *
+ * @param queryId The client ID of the query to cancel
+ * @returns Promise that resolves when the cancellation request is sent
+ *
+ * @example
+ * ```typescript
+ * const queryId = await executeQuery();
+ * // Later, if needed:
+ * await cancelQuery(queryId);
+ * ```
+ */
+export declare function cancelQuery(queryId: string): Promise<void>;
 
 /**
  * Tab Context APIs
