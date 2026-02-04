@@ -22,6 +22,7 @@ import 'regenerator-runtime/runtime';
 import jQuery from 'jquery';
 // https://jestjs.io/docs/jest-object#jestmockmodulename-factory-options
 // in order to mock modules in test case, so avoid absolute import module
+import { TextEncoder, TextDecoder } from 'util';
 import { configure as configureTranslation } from '../../packages/superset-ui-core/src/translation';
 import { Worker } from './Worker';
 import { IntersectionObserver } from './IntersectionObserver';
@@ -52,6 +53,9 @@ g.window.ResizeObserver ??= ResizeObserver;
 g.window.featureFlags ??= {};
 g.URL.createObjectURL ??= () => '';
 g.caches = new CacheStorage();
+// Add shims for TextEncoder and TextDecoder after upgrading jspdf to v3.0.2+
+g.TextDecoder = TextDecoder;
+g.TextEncoder = TextEncoder;
 
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
