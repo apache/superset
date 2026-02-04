@@ -410,25 +410,25 @@ stages:
                     exit 1
                   }
 
-                  # Create .env.deploy file using here-string
-                  $envContent = @"
-                  SUPERSET_IMAGE=$$(FULL_IMAGE_NAME)
-                  SUPERSET_SECRET_KEY=$$(SUPERSET_SECRET_KEY)
-                  SUPERSET_ADMIN_USER=$$(SUPERSET_ADMIN_USER)
-                  SUPERSET_ADMIN_PASSWORD=$SUPERSET_ADMIN_PASSWORD
-                  SUPERSET_PORT=$$(SUPERSET_PORT)
-                  DATABASE_DIALECT=postgresql
-                  DATABASE_USER=superset
-                  DATABASE_PASSWORD=superset
-                  DATABASE_HOST=db
-                  DATABASE_PORT=5432
-                  DATABASE_DB=superset
-                  REDIS_HOST=redis
-                  REDIS_PORT=6379
-                  DOCKER_NETWORK=$$(DOCKER_NETWORK)
-                  DOCKER_INITDB_DIR=$$(DOCKER_INITDB_DIR)
-                  "@
-
+                  # Create .env.deploy file using array of lines to avoid YAML parser issues
+                  $envLines = @(
+                    "SUPERSET_IMAGE=$$(FULL_IMAGE_NAME)"
+                    "SUPERSET_SECRET_KEY=$$(SUPERSET_SECRET_KEY)"
+                    "SUPERSET_ADMIN_USER=$$(SUPERSET_ADMIN_USER)"
+                    "SUPERSET_ADMIN_PASSWORD=$SUPERSET_ADMIN_PASSWORD"
+                    "SUPERSET_PORT=$$(SUPERSET_PORT)"
+                    "DATABASE_DIALECT=postgresql"
+                    "DATABASE_USER=superset"
+                    "DATABASE_PASSWORD=superset"
+                    "DATABASE_HOST=db"
+                    "DATABASE_PORT=5432"
+                    "DATABASE_DB=superset"
+                    "REDIS_HOST=redis"
+                    "REDIS_PORT=6379"
+                    "DOCKER_NETWORK=$$(DOCKER_NETWORK)"
+                    "DOCKER_INITDB_DIR=$$(DOCKER_INITDB_DIR)"
+                  )
+                  $envContent = $envLines -join [System.Environment]::NewLine
                   Set-Content -Path ".env.deploy" -Value $envContent -Encoding UTF8NoBOM
                   Write-Host "✓ Created .env.deploy file"
                   Write-Host ""
@@ -520,24 +520,25 @@ stages:
 
                   # SUPERSET_ADMIN_PASSWORD is now available via env: block from pipeline variable
 
-                  $envContent = @"
-                  SUPERSET_IMAGE=$$(FULL_IMAGE_NAME)
-                  SUPERSET_SECRET_KEY=$$(SUPERSET_SECRET_KEY)
-                  SUPERSET_ADMIN_USER=$$(SUPERSET_ADMIN_USER)
-                  SUPERSET_ADMIN_PASSWORD=$$(SUPERSET_ADMIN_PASSWORD)
-                  SUPERSET_PORT=$$(SUPERSET_PORT)
-                  DATABASE_DIALECT=postgresql
-                  DATABASE_USER=superset
-                  DATABASE_PASSWORD=superset
-                  DATABASE_HOST=db
-                  DATABASE_PORT=5432
-                  DATABASE_DB=superset
-                  REDIS_HOST=redis
-                  REDIS_PORT=6379
-                  DOCKER_NETWORK=$$(DOCKER_NETWORK)
-                  DOCKER_INITDB_DIR=$$(DOCKER_INITDB_DIR)
-"@
-
+                  # Build .env.deploy content line by line to avoid YAML parser issues with here-strings
+                  $envLines = @(
+                    "SUPERSET_IMAGE=$$(FULL_IMAGE_NAME)"
+                    "SUPERSET_SECRET_KEY=$$(SUPERSET_SECRET_KEY)"
+                    "SUPERSET_ADMIN_USER=$$(SUPERSET_ADMIN_USER)"
+                    "SUPERSET_ADMIN_PASSWORD=$$(SUPERSET_ADMIN_PASSWORD)"
+                    "SUPERSET_PORT=$$(SUPERSET_PORT)"
+                    "DATABASE_DIALECT=postgresql"
+                    "DATABASE_USER=superset"
+                    "DATABASE_PASSWORD=superset"
+                    "DATABASE_HOST=db"
+                    "DATABASE_PORT=5432"
+                    "DATABASE_DB=superset"
+                    "REDIS_HOST=redis"
+                    "REDIS_PORT=6379"
+                    "DOCKER_NETWORK=$$(DOCKER_NETWORK)"
+                    "DOCKER_INITDB_DIR=$$(DOCKER_INITDB_DIR)"
+                  )
+                  $envContent = $envLines -join [System.Environment]::NewLine
                   Set-Content -Path ".env.deploy" -Value $envContent -Encoding UTF8NoBOM
                   Write-Host "✓ Created .env.deploy file"
                   Write-Host ""
