@@ -450,7 +450,7 @@ test('should render the "Save" button as disabled', () => {
   expect(screen.getByText('Save').parentElement).toBeDisabled();
 });
 
-test('should save', () => {
+test('should open Save version modal when Save is clicked', async () => {
   const unsavedState = {
     ...editableState,
     dashboardState: {
@@ -459,10 +459,78 @@ test('should save', () => {
     },
   };
   setup(unsavedState);
-  const save = screen.getByText('Save');
+  const save = screen.getByTestId('header-save-button');
   expect(onSave).not.toHaveBeenCalled();
   userEvent.click(save);
+  expect(await screen.findByRole('dialog')).toBeInTheDocument();
+  expect(screen.getByText('Save version')).toBeInTheDocument();
+  expect(
+    screen.getByTestId('save-version-description-input'),
+  ).toBeInTheDocument();
+});
+
+test('should save when user confirms in Save version modal', async () => {
+  const unsavedState = {
+    ...editableState,
+    dashboardState: {
+      ...editableState.dashboardState,
+      hasUnsavedChanges: true,
+    },
+  };
+  setup(unsavedState);
+  userEvent.click(screen.getByTestId('header-save-button'));
+  const modal = await screen.findByRole('dialog');
+  const saveInModal = within(modal).getByTestId('save-version-modal-save-button');
+  userEvent.click(saveInModal);
   expect(onSave).toHaveBeenCalledTimes(1);
+  expect(onSave).toHaveBeenCalledWith(
+    expect.objectContaining({ version_comment: undefined }),
+    expect.anything(),
+    expect.anything(),
+  );
+});
+
+test('should pass version description to onSave when provided in Save version modal', async () => {
+  const unsavedState = {
+    ...editableState,
+    dashboardState: {
+      ...editableState.dashboardState,
+      hasUnsavedChanges: true,
+    },
+  };
+  setup(unsavedState);
+  userEvent.click(screen.getByTestId('header-save-button'));
+  const modal = await screen.findByRole('dialog');
+  const descriptionInput =
+    within(modal).getByTestId('save-version-description-input');
+  userEvent.type(descriptionInput, 'Added new chart');
+  const saveInModal = within(modal).getByTestId('save-version-modal-save-button');
+  userEvent.click(saveInModal);
+  expect(onSave).toHaveBeenCalledTimes(1);
+  expect(onSave).toHaveBeenCalledWith(
+    expect.objectContaining({ version_comment: 'Added new chart' }),
+    expect.anything(),
+    expect.anything(),
+  );
+});
+
+test('should close Save version modal without saving when Cancel is clicked', async () => {
+  const unsavedState = {
+    ...editableState,
+    dashboardState: {
+      ...editableState.dashboardState,
+      hasUnsavedChanges: true,
+    },
+  };
+  setup(unsavedState);
+  userEvent.click(screen.getByTestId('header-save-button'));
+  const modal = await screen.findByRole('dialog');
+  const cancelButton = within(modal).getByRole('button', { name: /cancel/i });
+  userEvent.click(cancelButton);
+  await waitFor(() => {
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+  expect(onSave).not.toHaveBeenCalled();
 });
 
 test('should NOT render the "Draft" status', () => {
