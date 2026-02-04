@@ -47,6 +47,7 @@ from superset_core.api.models import Dashboard as CoreDashboard
 from superset import db, is_feature_enabled, security_manager
 from superset.connectors.sqla.models import BaseDatasource, SqlaTable
 from superset.daos.datasource import DatasourceDAO
+from superset.localization import LocalizableMixin
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.models.slice import Slice
 from superset.models.user_attributes import UserAttribute
@@ -129,7 +130,7 @@ DashboardRoles = Table(
 )
 
 
-class Dashboard(CoreDashboard, AuditMixinNullable, ImportExportMixin):
+class Dashboard(CoreDashboard, AuditMixinNullable, ImportExportMixin, LocalizableMixin):
     """The dashboard object!"""
 
     __tablename__ = "dashboards"

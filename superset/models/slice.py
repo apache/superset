@@ -43,6 +43,7 @@ from superset_core.api.models import Chart as CoreChart
 
 from superset import db, is_feature_enabled, security_manager
 from superset.legacy import update_time_range
+from superset.localization import LocalizableMixin
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.tasks.utils import get_current_user
@@ -67,7 +68,7 @@ logger = logging.getLogger(__name__)
 
 
 class Slice(  # pylint: disable=too-many-public-methods
-    CoreChart, AuditMixinNullable, ImportExportMixin
+    CoreChart, AuditMixinNullable, ImportExportMixin, LocalizableMixin
 ):
     """A slice is essentially a report or a view on data"""
 
