@@ -320,7 +320,8 @@ class EngineManager:
         uri = make_url_safe(database.sqlalchemy_uri_decrypted)
 
         extra = database.get_extra(source)
-        kwargs = extra.get("engine_params", {})
+        # Make a copy to avoid mutating the original extra dict
+        kwargs = dict(extra.get("engine_params", {}))
 
         # get pool class
         if self.mode == EngineModes.NEW or "poolclass" not in kwargs:
@@ -336,7 +337,7 @@ class EngineManager:
             kwargs["poolclass"] = pools.get(extra["poolclass"], pool.QueuePool)
 
         # update URI for specific catalog/schema
-        connect_args = extra.setdefault("connect_args", {})
+        connect_args = dict(extra.get("connect_args", {}))
         uri, connect_args = database.db_engine_spec.adjust_engine_params(
             uri,
             connect_args,

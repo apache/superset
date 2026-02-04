@@ -22,7 +22,6 @@ from collections.abc import Iterator
 from unittest.mock import MagicMock, patch
 
 import pytest
-from sqlalchemy.pool import NullPool
 
 from superset.engines.manager import _LockManager, EngineManager, EngineModes
 
@@ -51,7 +50,7 @@ class TestLockManager:
         manager = _LockManager()
 
         # Create locks
-        lock1 = manager.get_lock("key1")
+        _ = manager.get_lock("key1")  # noqa: F841
         lock2 = manager.get_lock("key2")
 
         # Cleanup with only key1 active
@@ -111,7 +110,7 @@ class TestEngineManager:
         """Create a mock database."""
         database = MagicMock()
         database.sqlalchemy_uri_decrypted = "postgresql://user:pass@localhost/test"
-        database.get_extra.return_value = {"engine_params": {"poolclass": NullPool}}
+        database.get_extra.return_value = {"engine_params": {}}
         database.get_effective_user.return_value = "test_user"
         database.impersonate_user = False
         database.update_params_from_encrypted_extra = MagicMock()
@@ -231,7 +230,7 @@ class TestEngineManager:
         ssh_tunnel.server_address = "ssh.example.com"
         ssh_tunnel.server_port = 22
         ssh_tunnel.username = "ssh_user"
-        ssh_tunnel.password = "ssh_pass"
+        ssh_tunnel.password = "ssh_pass"  # noqa: S105
         ssh_tunnel.private_key = None
         ssh_tunnel.private_key_password = None
 
@@ -266,7 +265,7 @@ class TestEngineManager:
         ssh_tunnel.server_address = "ssh.example.com"
         ssh_tunnel.server_port = 22
         ssh_tunnel.username = "ssh_user"
-        ssh_tunnel.password = "ssh_pass"
+        ssh_tunnel.password = "ssh_pass"  # noqa: S105
         ssh_tunnel.private_key = None
         ssh_tunnel.private_key_password = None
 
