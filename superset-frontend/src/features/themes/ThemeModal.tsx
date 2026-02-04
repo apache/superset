@@ -177,6 +177,15 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
   }, [onHide]);
 
   const onSave = useCallback(() => {
+    // Synchronous JSON guard to catch invalid JSON before API call
+    // This handles the race condition where debounced validation hasn't updated yet
+    try {
+      JSON.parse(currentTheme?.json_data || '');
+    } catch {
+      addDangerToast(t('Invalid JSON configuration'));
+      return;
+    }
+
     if (isEditMode) {
       // Edit
       if (currentTheme?.id) {
@@ -210,6 +219,7 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
     createResource,
     onThemeAdd,
     hide,
+    addDangerToast,
   ]);
 
   const handleCancel = useCallback(() => {

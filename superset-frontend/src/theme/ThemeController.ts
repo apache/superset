@@ -562,6 +562,15 @@ export class ThemeController {
       this.persistMode();
       this.notifyListeners();
     } catch (error) {
+      // Clear potentially corrupted overrides before fallback
+      // This mirrors the constructor's recovery logic to prevent
+      // repeated failures from a malformed devThemeOverride or crudThemeId
+      this.devThemeOverride = null;
+      this.crudThemeId = null;
+      this.storage.removeItem(STORAGE_KEYS.DEV_THEME_OVERRIDE);
+      this.storage.removeItem(STORAGE_KEYS.CRUD_THEME_ID);
+      this.storage.removeItem(STORAGE_KEYS.APPLIED_THEME_ID);
+
       await this.fallbackToDefaultMode();
     }
   }

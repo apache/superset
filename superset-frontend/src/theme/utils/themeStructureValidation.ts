@@ -87,6 +87,40 @@ export function validateTheme(themeConfig: AnyThemeConfig): ValidationResult {
     return { valid: false, errors, warnings };
   }
 
+  // ERROR: components must be an object if present
+  const rawComponents = themeConfig.components;
+  if (
+    rawComponents !== undefined &&
+    rawComponents !== null &&
+    (typeof rawComponents !== 'object' || Array.isArray(rawComponents))
+  ) {
+    errors.push({
+      tokenName: '_root',
+      severity: 'error',
+      message:
+        'Components configuration must be an object, not an array or primitive',
+    });
+    return { valid: false, errors, warnings };
+  }
+
+  // ERROR: algorithm must be a string or array of strings if present
+  const rawAlgorithm = themeConfig.algorithm;
+  if (rawAlgorithm !== undefined && rawAlgorithm !== null) {
+    const isValidAlgorithm =
+      typeof rawAlgorithm === 'string' ||
+      (Array.isArray(rawAlgorithm) &&
+        rawAlgorithm.every(a => typeof a === 'string'));
+    if (!isValidAlgorithm) {
+      errors.push({
+        tokenName: '_root',
+        severity: 'error',
+        message:
+          'Algorithm must be a string or array of strings (e.g., "dark" or ["dark", "compact"])',
+      });
+      return { valid: false, errors, warnings };
+    }
+  }
+
   Object.entries(tokens).forEach(([name, value]) => {
     // Null/undefined check
     if (value === null || value === undefined) {

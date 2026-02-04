@@ -182,3 +182,82 @@ test('validateTheme errors when token is a string instead of object', () => {
   expect(result.errors).toHaveLength(1);
   expect(result.errors[0].message).toContain('must be an object');
 });
+
+test('validateTheme errors when components is an array instead of object', () => {
+  const theme = {
+    token: { colorPrimary: '#1890ff' },
+    components: ['Button', 'Input'],
+  } as unknown as AnyThemeConfig;
+
+  const result = validateTheme(theme);
+
+  expect(result.valid).toBe(false);
+  expect(result.errors).toHaveLength(1);
+  expect(result.errors[0].tokenName).toBe('_root');
+  expect(result.errors[0].message).toContain('Components configuration');
+  expect(result.errors[0].message).toContain('must be an object');
+});
+
+test('validateTheme errors when components is a primitive', () => {
+  const theme = {
+    token: { colorPrimary: '#1890ff' },
+    components: 'Button',
+  } as unknown as AnyThemeConfig;
+
+  const result = validateTheme(theme);
+
+  expect(result.valid).toBe(false);
+  expect(result.errors).toHaveLength(1);
+  expect(result.errors[0].message).toContain('Components configuration');
+});
+
+test('validateTheme errors when algorithm is a number', () => {
+  const theme = {
+    token: { colorPrimary: '#1890ff' },
+    algorithm: 123,
+  } as unknown as AnyThemeConfig;
+
+  const result = validateTheme(theme);
+
+  expect(result.valid).toBe(false);
+  expect(result.errors).toHaveLength(1);
+  expect(result.errors[0].tokenName).toBe('_root');
+  expect(result.errors[0].message).toContain('Algorithm must be a string');
+});
+
+test('validateTheme errors when algorithm is an object', () => {
+  const theme = {
+    token: { colorPrimary: '#1890ff' },
+    algorithm: { type: 'dark' },
+  } as unknown as AnyThemeConfig;
+
+  const result = validateTheme(theme);
+
+  expect(result.valid).toBe(false);
+  expect(result.errors).toHaveLength(1);
+  expect(result.errors[0].message).toContain('Algorithm must be a string');
+});
+
+test('validateTheme allows algorithm as array of strings', () => {
+  const theme = {
+    algorithm: ['dark', 'compact'],
+  } as unknown as AnyThemeConfig;
+
+  const result = validateTheme(theme);
+
+  expect(result.valid).toBe(true);
+  expect(result.errors).toHaveLength(0);
+});
+
+test('validateTheme errors when algorithm array contains non-strings', () => {
+  const theme = {
+    token: { colorPrimary: '#1890ff' },
+    algorithm: ['dark', 123, 'compact'],
+  } as unknown as AnyThemeConfig;
+
+  const result = validateTheme(theme);
+
+  expect(result.valid).toBe(false);
+  expect(result.errors).toHaveLength(1);
+  expect(result.errors[0].message).toContain('Algorithm must be a string');
+});
