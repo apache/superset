@@ -60,7 +60,7 @@ interface MapBoxProps {
   pointRadiusUnit?: string;
   renderWhileDragging?: boolean;
   rgb?: (string | number)[];
-  bounds: [[number, number], [number, number]]; // Required - used for fitBounds
+  bounds?: [[number, number], [number, number]]; // May be undefined for empty datasets
 }
 
 interface MapBoxState {
@@ -86,11 +86,19 @@ class MapBox extends Component<MapBoxProps, MapBoxState> {
     // Get a viewport that fits the given bounds, which all marks to be clustered.
     // Derive lat, lon and zoom from this viewport. This is only done on initial
     // render as the bounds don't update as we pan/zoom in the current design.
-    const mercator = new WebMercatorViewport({
-      width,
-      height,
-    }).fitBounds(bounds!);
-    const { latitude, longitude, zoom } = mercator;
+
+    let latitude = 0;
+    let longitude = 0;
+    let zoom = 1;
+
+    // Guard against empty datasets where bounds may be undefined
+    if (bounds && bounds[0] && bounds[1]) {
+      const mercator = new WebMercatorViewport({
+        width,
+        height,
+      }).fitBounds(bounds);
+      ({ latitude, longitude, zoom } = mercator);
+    }
 
     this.state = {
       viewport: {
@@ -134,13 +142,19 @@ class MapBox extends Component<MapBoxProps, MapBoxState> {
     // add this variable to widen the visible area
     const offsetHorizontal = ((width ?? 400) * 0.5) / 100;
     const offsetVertical = ((height ?? 400) * 0.5) / 100;
-    const bbox = [
-      bounds![0][0] - offsetHorizontal,
-      bounds![0][1] - offsetVertical,
-      bounds![1][0] + offsetHorizontal,
-      bounds![1][1] + offsetVertical,
-    ];
-    const clusters = clusterer!.getClusters(bbox, Math.round(viewport.zoom));
+
+    // Guard against empty datasets where bounds may be undefined
+    const bbox =
+      bounds && bounds[0] && bounds[1]
+        ? [
+            bounds[0][0] - offsetHorizontal,
+            bounds[0][1] - offsetVertical,
+            bounds[1][0] + offsetHorizontal,
+            bounds[1][1] + offsetVertical,
+          ]
+        : [-180, -90, 180, 90]; // Default to world bounds
+
+    const clusters = clusterer.getClusters(bbox, Math.round(viewport.zoom));
 
     return (
       <MapGL
