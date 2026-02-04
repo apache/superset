@@ -332,23 +332,32 @@ stages:
                     Set-Content -Path $adminPasswordFile -Value $explorer.'admin-password' -NoNewline
                     Write-Host "✓ Admin password written to temp file"
 
-                    # Extract PostgreSQL reader credentials for OEE database connection
+                    # Extract PostgreSQL credentials for OEE database connection
                     Write-Host "Extracting OEE database credentials..."
-                    if (-not $pg.reader) {
-                        throw "Config missing 'reader' section in postgres config"
+
+                    # Prefer 'owner' over 'reader' for OEE database access
+                    $pgCreds = $null
+                    if ($pg.owner) {
+                        $pgCreds = $pg.owner
+                        Write-Host "  Using 'owner' credentials from client config"
+                    } elseif ($pg.reader) {
+                        $pgCreds = $pg.reader
+                        Write-Host "  Using 'reader' credentials from client config"
+                    } else {
+                        throw "Config missing 'owner' or 'reader' section in postgres config"
                     }
-                    $pgReader = $pg.reader
-                    if (-not $pgReader.user) {
-                        throw "Config missing 'reader.user' in postgres config"
+
+                    if (-not $pgCreds.user) {
+                        throw "Config missing 'user' in postgres credentials"
                     }
-                    if (-not $pgReader.password) {
-                        throw "Config missing 'reader.password' in postgres config"
+                    if (-not $pgCreds.password) {
+                        throw "Config missing 'password' in postgres credentials"
                     }
 
                     # Set OEE database credentials as pipeline variables
-                    Write-Host "  OEE DB User: $($pgReader.user)"
-                    Write-Host "##vso[task.setvariable variable=OEE_DB_USER]$($pgReader.user)"
-                    Write-Host "##vso[task.setvariable variable=OEE_DB_PASSWORD;issecret=true]$($pgReader.password)"
+                    Write-Host "  OEE DB User: $($pgCreds.user)"
+                    Write-Host "##vso[task.setvariable variable=OEE_DB_USER]$($pgCreds.user)"
+                    Write-Host "##vso[task.setvariable variable=OEE_DB_PASSWORD;issecret=true]$($pgCreds.password)"
                     Write-Host "✓ OEE database credentials set as pipeline variables"
 
                     # Set OEE database connection details
