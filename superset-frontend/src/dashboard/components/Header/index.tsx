@@ -45,6 +45,7 @@ import { Icons } from '@superset-ui/core/components/Icons';
 import {
   Button,
   Input,
+  Modal,
   Tooltip,
   DeleteModal,
   UnsavedChangesModal,
@@ -209,6 +210,9 @@ const Header = (): ReactElement => {
   const [currentReportDeleting, setCurrentReportDeleting] =
     useState<ReportObject | null>(null);
   const [versionNote, setVersionNote] = useState<string>('');
+  const [showSaveVersionModal, setShowSaveVersionModal] =
+    useState<boolean>(false);
+  const [saveVersionDescription, setSaveVersionDescription] = useState('');
   const dashboardInfo = useSelector((state: RootState) => state.dashboardInfo);
   const layout = useSelector(
     (state: RootState) => state.dashboardLayout.present,
@@ -458,11 +462,12 @@ const Header = (): ReactElement => {
     boundActionCreators.setEditMode(!editMode);
   }, [boundActionCreators, editMode]);
 
-  const overwriteDashboard = useCallback(() => {
-    const currentColorNamespace =
-      dashboardInfo?.metadata?.color_namespace || colorNamespace;
-    const currentColorScheme =
-      dashboardInfo?.metadata?.color_scheme || colorScheme;
+  const overwriteDashboard = useCallback(
+    versionCommentOverride => {
+      const currentColorNamespace =
+        dashboardInfo?.metadata?.color_namespace || colorNamespace;
+      const currentColorScheme =
+        dashboardInfo?.metadata?.color_scheme || colorScheme;
 
     const data = {
       certified_by: dashboardInfo.certified_by,
@@ -478,7 +483,10 @@ const Header = (): ReactElement => {
           item.type === TagTypeEnum.Custom || !item.type,
       ) as { id: number }[],
       theme_id: dashboardInfo.theme ? dashboardInfo.theme.id : null,
-      version_comment: versionNote?.trim() || undefined,
+      version_comment:
+        (typeof versionCommentOverride === 'string'
+          ? versionCommentOverride?.trim()
+          : undefined) || versionNote?.trim() || undefined,
       metadata: {
         ...dashboardInfo?.metadata,
         color_namespace: currentColorNamespace,
@@ -509,29 +517,30 @@ const Header = (): ReactElement => {
       }
 
       boundActionCreators.onSave(data, dashboardInfo.id, SAVE_TYPE_OVERWRITE);
-      setVersionNote('');
     }
-  }, [
-    actualLastModifiedTime,
-    boundActionCreators,
-    versionNote,
-    colorNamespace,
-    colorScheme,
-    customCss,
-    dashboardInfo.certification_details,
-    dashboardInfo.certified_by,
-    dashboardInfo.common?.conf?.SUPERSET_DASHBOARD_POSITION_DATA_LIMIT,
-    dashboardInfo.id,
-    dashboardInfo.metadata,
-    dashboardInfo.owners,
-    dashboardInfo.roles,
-    dashboardInfo.tags,
-    dashboardTitle,
-    layout,
-    refreshFrequency,
-    shouldPersistRefreshFrequency,
-    slug,
-  ]);
+  },
+    [
+      actualLastModifiedTime,
+      boundActionCreators,
+      colorNamespace,
+      colorScheme,
+      customCss,
+      dashboardInfo.certification_details,
+      dashboardInfo.certified_by,
+      dashboardInfo.common?.conf?.SUPERSET_DASHBOARD_POSITION_DATA_LIMIT,
+      dashboardInfo.id,
+      dashboardInfo.metadata,
+      dashboardInfo.owners,
+      dashboardInfo.roles,
+      dashboardInfo.tags,
+      dashboardTitle,
+      layout,
+      refreshFrequency,
+      shouldPersistRefreshFrequency,
+      slug,
+      versionNote,
+    ],
+  );
 
   const {
     showModal: showUnsavedChangesModal,
@@ -757,32 +766,11 @@ const Header = (): ReactElement => {
                   {t('Discard')}
                 </Button>
                 <Button
-                  buttonSize="small"
-                  buttonStyle="secondary"
-                  onClick={showHistoryModal}
-                  data-test="header-history-button"
-                  aria-label={t('History')}
-                >
-                  <Icons.HistoryOutlined iconSize="m" />
-                  {t('History')}
-                </Button>
-                <Input
-                  placeholder={t('Version note (optional)')}
-                  value={versionNote}
-                  onChange={e => setVersionNote(e.target.value)}
-                  css={css`
-                    width: 180px;
-                    margin-right: 8px;
-                  `}
-                  data-test="header-version-note-input"
-                  aria-label={t('Version note')}
-                />
-                <Button
-                  css={saveBtnStyle}
+                  css={iconLabelButtonStyle}
                   buttonSize="small"
                   disabled={!hasUnsavedChanges}
                   buttonStyle="primary"
-                  onClick={overwriteDashboard}
+                  onClick={() => setShowSaveVersionModal(true)}
                   data-test="header-save-button"
                   aria-label={t('Save')}
                 >
@@ -799,16 +787,29 @@ const Header = (): ReactElement => {
           <div css={actionButtonsStyle}>
             {NavExtension && <NavExtension />}
             {userCanEdit && (
-              <Button
-                buttonStyle="secondary"
-                onClick={handleEnterEditMode}
-                data-test="edit-dashboard-button"
-                className="action-button"
-                css={editButtonStyle}
-                aria-label={t('Edit dashboard')}
-              >
-                {t('Edit dashboard')}
-              </Button>
+              <>
+                <Button
+                  css={iconLabelButtonStyle}
+                  buttonSize="small"
+                  buttonStyle="secondary"
+                  onClick={showHistoryModal}
+                  data-test="header-history-button"
+                  aria-label={t('History')}
+                >
+                  <Icons.HistoryOutlined iconSize="m" />
+                  {t('History')}
+                </Button>
+                <Button
+                  buttonStyle="secondary"
+                  onClick={handleEnterEditMode}
+                  data-test="edit-dashboard-button"
+                  className="action-button"
+                  css={editButtonStyle}
+                  aria-label={t('Edit dashboard')}
+                >
+                  {t('Edit dashboard')}
+                </Button>
+              </>
             )}
           </div>
         )}
@@ -918,6 +919,71 @@ const Header = (): ReactElement => {
           addDangerToast={boundActionCreators.addDangerToast}
         />
       )}
+      <Modal
+        show={showSaveVersionModal}
+        onHide={() => {
+          setShowSaveVersionModal(false);
+          setSaveVersionDescription('');
+        }}
+        title={t('Save version')}
+        footer={
+          <>
+            <Button
+              buttonStyle="secondary"
+              onClick={() => {
+                setShowSaveVersionModal(false);
+                setSaveVersionDescription('');
+              }}
+            >
+              {t('Cancel')}
+            </Button>
+            <Button
+              buttonStyle="primary"
+              data-test="save-version-modal-save-button"
+              onClick={() => {
+                overwriteDashboard(saveVersionDescription);
+                setShowSaveVersionModal(false);
+                setSaveVersionDescription('');
+              }}
+            >
+              {t('Save')}
+            </Button>
+          </>
+        }
+        width={440}
+      >
+        <div
+          css={css`
+            .save-version-label {
+              display: block;
+              margin-bottom: 8px;
+              font-size: var(--ant-font-size);
+              color: var(--ant-color-text-secondary);
+            }
+            .save-version-textarea {
+              margin-bottom: 0;
+            }
+          `}
+        >
+          <label
+            htmlFor="save-version-description"
+            className="save-version-label"
+          >
+            {t('Description (optional)')}
+          </label>
+          <Input.TextArea
+            id="save-version-description"
+            className="save-version-textarea"
+            data-test="save-version-description-input"
+            placeholder={t('Add a description for this version')}
+            value={saveVersionDescription}
+            onChange={e => setSaveVersionDescription(e.target.value)}
+            rows={3}
+            maxLength={500}
+            showCount
+          />
+        </div>
+      </Modal>
       {showingRefreshModal && (
         <RefreshIntervalModal
           show={showingRefreshModal}

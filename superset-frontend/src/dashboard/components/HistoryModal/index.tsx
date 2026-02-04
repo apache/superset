@@ -19,14 +19,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   Button,
-  Input,
+  Icons,
   List,
   Loading,
   Modal,
+  Tooltip,
   Typography,
 } from '@superset-ui/core/components';
 import { getClientErrorObject, SupersetClient } from '@superset-ui/core';
-import { Icons } from '@superset-ui/core/components';
 import { css, t } from '@apache-superset/core/ui';
 
 export type DashboardVersionItem = {
@@ -46,16 +46,30 @@ type HistoryModalProps = {
   addDangerToast: (msg: string) => void;
 };
 
-const versionCardStyle = css`
-  padding: 16px 0;
-  border-bottom: 1px solid var(--ant-color-border-secondary);
-  &:last-child {
-    border-bottom: none;
-  }
+const versionCardStyle = (theme: {
+  colorBgElevated: string;
+  colorBorderSecondary: string;
+}) => css`
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 16px;
+  background: ${theme.colorBgElevated};
+  border: 1px solid ${theme.colorBorderSecondary};
+  border-radius: 8px;
+`;
+
+const versionHeaderStyle = css`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
 `;
 
 const versionMetaStyle = css`
-  margin-bottom: 12px;
   display: flex;
   align-items: baseline;
   gap: 8px;
@@ -63,32 +77,47 @@ const versionMetaStyle = css`
 `;
 
 const descriptionLabelStyle = css`
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   font-size: 12px;
   color: var(--ant-color-text-tertiary);
 `;
 
-const descriptionBlockStyle = css`
-  margin-bottom: 12px;
-  padding: 10px 12px;
-  background: var(--ant-color-fill-quaternary);
+const descriptionBlockStyle = (theme: { colorFillTertiary: string }) => css`
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-height: 4.5em;
+  margin-bottom: 0;
+  padding: 12px 14px;
+  background: ${theme.colorFillTertiary};
   border-radius: 6px;
   font-size: 13px;
   line-height: 1.5;
   white-space: pre-wrap;
   word-break: break-word;
   color: var(--ant-color-text-secondary);
-`;
-
-const descriptionRowStyle = css`
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
+  box-sizing: border-box;
 `;
 
 const descriptionTextStyle = css`
-  flex: 1;
+  display: block;
+  width: 100%;
   min-width: 0;
+  color: var(--ant-color-text-secondary);
+`;
+
+const descriptionTextClampedStyle = css`
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+`;
+
+const showMoreLinkStyle = css`
+  font-size: 12px;
+  margin-top: 4px;
+  cursor: pointer;
+  color: var(--ant-color-primary);
 `;
 
 const HistoryModal = ({
@@ -102,9 +131,11 @@ const HistoryModal = ({
   const [versions, setVersions] = useState<DashboardVersionItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [restoringId, setRestoringId] = useState<number | null>(null);
-  const [editingVersionId, setEditingVersionId] = useState<number | null>(null);
-  const [editingComment, setEditingComment] = useState('');
-  const [savingVersionId, setSavingVersionId] = useState<number | null>(null);
+  const [expandedVersionId, setExpandedVersionId] = useState<number | null>(
+    null,
+  );
+
+  const NOTE_TRUNCATE_LENGTH = 150;
 
   const fetchVersions = useCallback(async (): Promise<void> => {
     if (!dashboardId) return;
@@ -173,53 +204,24 @@ const HistoryModal = ({
   const formatDate = (created_at: string | null) =>
     created_at ? new Date(created_at).toLocaleString() : '—';
 
-  const handleStartEdit = useCallback((item: DashboardVersionItem) => {
-    setEditingVersionId(item.id);
-    setEditingComment(item.comment?.trim() ?? '');
-  }, []);
-
-  const handleCancelEdit = useCallback(() => {
-    setEditingVersionId(null);
-    setEditingComment('');
-  }, []);
-
-  const handleSaveDescription = useCallback(
-    async (versionId: number) => {
-      setSavingVersionId(versionId);
-      try {
-        await SupersetClient.put({
-          endpoint: `/api/v1/dashboard/${dashboardId}/versions/${versionId}`,
-          jsonPayload: { comment: editingComment.trim() || null },
-        });
-        addSuccessToast(t('Description updated'));
-        handleCancelEdit();
-        await fetchVersions();
-      } catch (err) {
-        const clientError = await getClientErrorObject(err);
-        const message =
-          clientError.error ||
-          clientError.message ||
-          t('Failed to update description');
-        addDangerToast(String(message));
-      } finally {
-        setSavingVersionId(null);
-      }
-    },
-    [
-      dashboardId,
-      editingComment,
-      fetchVersions,
-      addSuccessToast,
-      addDangerToast,
-      handleCancelEdit,
-    ],
-  );
-
   return (
     <Modal
       show={show}
       onHide={onHide}
-      title={t('Dashboard version history')}
+      title={
+        <>
+          {t('Dashboard history')}{' '}
+          <Tooltip
+            title={t(
+              'View and restore up to 20 older versions of this dashboard.',
+            )}
+          >
+            <span style={{ cursor: 'help' }}>
+              <Icons.InfoCircleOutlined iconSize="m" />
+            </span>
+          </Tooltip>
+        </>
+      }
       footer={
         <Button buttonStyle="secondary" onClick={onHide}>
           {t('Close')}
@@ -233,7 +235,7 @@ const HistoryModal = ({
         </div>
       )}
       {!loading && versions.length === 0 && (
-        <Typography.Text type="secondary">
+        <Typography.Text type="secondary" style={{ display: 'block' }}>
           {t(
             'No version history yet. Versions are created when you save the dashboard.',
           )}
@@ -241,79 +243,88 @@ const HistoryModal = ({
       )}
       {!loading && versions.length > 0 && (
         <List
+          css={css`
+            margin-top: 8px;
+            width: 100%;
+            .ant-list-item {
+              width: 100%;
+              max-width: 100%;
+              padding: 0;
+              margin-bottom: 12px;
+              border: none;
+            }
+            .ant-list-item:last-child {
+              margin-bottom: 0;
+            }
+            .ant-list-item > * {
+              width: 100%;
+              max-width: 100%;
+            }
+          `}
           dataSource={versions}
-          renderItem={(item: DashboardVersionItem) => (
-            <List.Item key={item.id}>
-              <div css={versionCardStyle}>
-                <div css={versionMetaStyle}>
-                  <Typography.Text strong>
-                    {t('Version')} {item.version_number}
-                  </Typography.Text>
-                  <Typography.Text type="secondary">
-                    {formatDate(item.created_at)}
-                    {item.created_by ? ` · ${item.created_by}` : ''}
-                  </Typography.Text>
-                </div>
-                <div css={descriptionLabelStyle}>{t('Description')}</div>
-                <div css={descriptionBlockStyle}>
-                  {editingVersionId === item.id ? (
-                    <>
-                      <Input.TextArea
-                        value={editingComment}
-                        onChange={e => setEditingComment(e.target.value)}
-                        placeholder={t('Add a description for this version')}
-                        rows={3}
-                        maxLength={500}
-                        autoSize={{ minRows: 2, maxRows: 6 }}
-                        disabled={savingVersionId === item.id}
-                        style={{ marginBottom: 8, resize: 'vertical' }}
-                      />
-                      <div css={descriptionRowStyle}>
-                        <Button
-                          buttonSize="small"
-                          buttonStyle="primary"
-                          onClick={() => handleSaveDescription(item.id)}
-                          loading={savingVersionId === item.id}
-                          disabled={savingVersionId !== null}
-                        >
-                          {t('Save')}
-                        </Button>
-                        <Button
-                          buttonSize="small"
-                          buttonStyle="secondary"
-                          onClick={handleCancelEdit}
-                          disabled={savingVersionId !== null}
-                        >
-                          {t('Cancel')}
-                        </Button>
-                      </div>
-                    </>
-                  ) : (
-                    <div css={descriptionRowStyle}>
-                      <span css={descriptionTextStyle}>
-                        {item.comment?.trim() || t('No description')}
-                      </span>
-                      <Icons.EditOutlined
-                        role="button"
-                        aria-label={t('Edit description')}
-                        onClick={() => handleStartEdit(item)}
-                        style={{ cursor: 'pointer', flexShrink: 0 }}
-                      />
+          renderItem={(item: DashboardVersionItem) => {
+            const note = item.comment?.trim() ?? '';
+            const isLongNote = note.length > NOTE_TRUNCATE_LENGTH;
+            const isExpanded = expandedVersionId === item.id;
+            const shouldClamp = isLongNote && !isExpanded;
+
+            return (
+              <List.Item key={item.id}>
+                <div css={versionCardStyle}>
+                  <div css={versionHeaderStyle}>
+                    <div css={versionMetaStyle}>
+                      <Typography.Text strong>
+                        {t('Version')} {item.version_number}
+                      </Typography.Text>
+                      <Typography.Text type="secondary">
+                        {formatDate(item.created_at)}
+                        {item.created_by ? ` · ${item.created_by}` : ''}
+                      </Typography.Text>
                     </div>
-                  )}
+                    <Button
+                      buttonSize="small"
+                      buttonStyle="primary"
+                      onClick={() => handleRestore(item.id)}
+                      loading={restoringId === item.id}
+                      disabled={restoringId !== null}
+                    >
+                      {t('Restore')}
+                    </Button>
+                  </div>
+                  <div css={descriptionLabelStyle}>{t('Description')}</div>
+                  <div css={descriptionBlockStyle}>
+                    <Typography.Text
+                      type="secondary"
+                      css={[
+                        descriptionTextStyle,
+                        shouldClamp && descriptionTextClampedStyle,
+                      ]}
+                    >
+                      {note || t('No description')}
+                    </Typography.Text>
+                    {isLongNote && (
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        css={showMoreLinkStyle}
+                        onClick={() =>
+                          setExpandedVersionId(isExpanded ? null : item.id)
+                        }
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            setExpandedVersionId(isExpanded ? null : item.id);
+                          }
+                        }}
+                      >
+                        {isExpanded ? t('Show less') : t('Show more')}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <Button
-                  buttonSize="small"
-                  buttonStyle="primary"
-                  onClick={() => handleRestore(item.id)}
-                  loading={restoringId === item.id}
-                  disabled={restoringId !== null}
-                >
-                  {t('Restore')}
-                </Button>
-              </div>
-            </List.Item>
-          )}
+              </List.Item>
+            );
+          }}
         />
       )}
     </Modal>
