@@ -18,7 +18,7 @@
 
 import time
 from datetime import datetime, timezone
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from freezegun import freeze_time
@@ -62,6 +62,9 @@ def mock_flask_app():
     # Make app_context() return a proper context manager
     mock_app.app_context.return_value.__enter__ = MagicMock(return_value=None)
     mock_app.app_context.return_value.__exit__ = MagicMock(return_value=None)
+    # Use regular Mock (not MagicMock) for _get_current_object to avoid
+    # AsyncMockMixin creating unawaited coroutines in Python 3.10+
+    mock_app._get_current_object = Mock(return_value=mock_app)
     return mock_app
 
 
@@ -76,16 +79,16 @@ def task_context(mock_task, mock_task_dao, mock_update_command, mock_flask_app):
         patch("superset.tasks.context.current_app") as mock_current_app,
         patch("superset.tasks.manager.cache_manager") as mock_cache_manager,
     ):
-        # Disable Redis by making coordination_cache return None
-        mock_cache_manager.coordination_cache = None
+        # Disable Redis by making signal_cache return None
+        mock_cache_manager.signal_cache = None
 
         # Configure current_app mock
         mock_current_app.config = mock_flask_app.config
-        mock_current_app._get_current_object.return_value = mock_flask_app
+        # Use regular Mock (not MagicMock) for _get_current_object to avoid
+        # AsyncMockMixin creating unawaited coroutines in Python 3.10+
+        mock_current_app._get_current_object = Mock(return_value=mock_flask_app)
 
         ctx = TaskContext(mock_task)
-        # Manually set _app to avoid the coroutine issue from _get_current_object
-        ctx._app = mock_flask_app
 
         yield ctx
 
@@ -276,6 +279,7 @@ class TestAbortHandlerRegistration:
     def test_on_abort_sets_abortable(self, mock_app):
         """Test on_abort sets is_abortable to True on first handler."""
         mock_app.config = {"TASK_ABORT_POLLING_DEFAULT_INTERVAL": 1.0}
+        mock_app._get_current_object = Mock(return_value=mock_app)
         mock_task = MagicMock()
         mock_task.uuid = "test-uuid"
         mock_task.properties_dict = {"is_abortable": False}
@@ -297,6 +301,7 @@ class TestAbortHandlerRegistration:
     def test_on_abort_only_sets_abortable_once(self, mock_app):
         """Test on_abort only calls _set_abortable for first handler."""
         mock_app.config = {"TASK_ABORT_POLLING_DEFAULT_INTERVAL": 1.0}
+        mock_app._get_current_object = Mock(return_value=mock_app)
         mock_task = MagicMock()
         mock_task.uuid = "test-uuid"
         mock_task.properties_dict = {"is_abortable": False}
@@ -326,7 +331,8 @@ class TestAbortHandlerRegistration:
         mock_task.properties_dict = {}
         mock_task.payload_dict = {}
 
-        with patch("superset.tasks.context.current_app"):
+        with patch("superset.tasks.context.current_app") as mock_app:
+            mock_app._get_current_object = Mock(return_value=mock_app)
             ctx = TaskContext(mock_task)
             assert ctx.abort_handlers_completed is False
 
@@ -373,6 +379,7 @@ class TestAbortPolling:
         """Test that custom interval can be set via start_abort_polling."""
         with patch("superset.tasks.context.current_app") as mock_app:
             mock_app.config = {"TASK_ABORT_POLLING_DEFAULT_INTERVAL": 0.1}
+            mock_app._get_current_object = Mock(return_value=mock_app)
 
             @task_context.on_abort
             def handle_abort():

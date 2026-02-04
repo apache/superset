@@ -159,9 +159,9 @@ Then on configuration:
 WEBDRIVER_AUTH_FUNC = auth_driver
 ```
 
-## Coordination Cache Backend
+## Signal Cache Backend
 
-Superset supports an optional coordination cache (`COORDINATION_CACHE_CONFIG`) for
+Superset supports an optional signal cache (`SIGNAL_CACHE_CONFIG`) for
 high-performance distributed operations. This configuration enables:
 
 - **Distributed locking**: Moves lock operations from the metadata database to Redis, improving
@@ -176,11 +176,11 @@ that are not available in general Flask-Caching backends.
 
 ### Configuration
 
-The coordination cache uses Flask-Caching style configuration for consistency with other cache
-backends. Configure `COORDINATION_CACHE_CONFIG` in `superset_config.py`:
+The signal cache uses Flask-Caching style configuration for consistency with other cache
+backends. Configure `SIGNAL_CACHE_CONFIG` in `superset_config.py`:
 
 ```python
-COORDINATION_CACHE_CONFIG = {
+SIGNAL_CACHE_CONFIG = {
     "CACHE_TYPE": "RedisCache",
     "CACHE_REDIS_HOST": "localhost",
     "CACHE_REDIS_PORT": 6379,
@@ -192,7 +192,7 @@ COORDINATION_CACHE_CONFIG = {
 For Redis Sentinel deployments:
 
 ```python
-COORDINATION_CACHE_CONFIG = {
+SIGNAL_CACHE_CONFIG = {
     "CACHE_TYPE": "RedisSentinelCache",
     "CACHE_REDIS_SENTINELS": [("sentinel1", 26379), ("sentinel2", 26379)],
     "CACHE_REDIS_SENTINEL_MASTER": "mymaster",
@@ -205,7 +205,7 @@ COORDINATION_CACHE_CONFIG = {
 For SSL/TLS connections:
 
 ```python
-COORDINATION_CACHE_CONFIG = {
+SIGNAL_CACHE_CONFIG = {
     "CACHE_TYPE": "RedisCache",
     "CACHE_REDIS_HOST": "redis.example.com",
     "CACHE_REDIS_PORT": 6380,
@@ -229,7 +229,7 @@ Individual lock acquisitions can override this value when needed.
 
 ### Database-Only Mode
 
-When `COORDINATION_CACHE_CONFIG` is not configured, Superset uses database-backed operations:
+When `SIGNAL_CACHE_CONFIG` is not configured, Superset uses database-backed operations:
 
 - **Locking**: Uses the KeyValue table with periodic cleanup of expired entries
 - **Event notifications**: Uses database polling instead of pub/sub

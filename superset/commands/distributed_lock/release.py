@@ -40,7 +40,7 @@ class ReleaseDistributedLock(BaseDistributedLockCommand):
     """
     Release a distributed lock with automatic backend selection.
 
-    Uses Redis DELETE when COORDINATION_CACHE_CONFIG is configured,
+    Uses Redis DELETE when SIGNAL_CACHE_CONFIG is configured,
     otherwise deletes from KeyValue table.
     """
 

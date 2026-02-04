@@ -22,7 +22,7 @@ conditions during concurrent task creation, subscription, and cancellation.
 The lock key uses the task's dedup_key, ensuring all operations on the same
 logical task serialize correctly.
 
-When COORDINATION_CACHE_CONFIG is configured, uses Redis SET NX EX for
+When SIGNAL_CACHE_CONFIG is configured, uses Redis SET NX EX for
 efficient single-command locking. Otherwise falls back to database-backed
 locking via DistributedLock.
 """
@@ -55,7 +55,7 @@ def task_lock(dedup_key: str) -> Iterator[None]:
     - Subscribe racing with cancel
     - Multiple concurrent cancel requests
 
-    When COORDINATION_CACHE_CONFIG is configured, uses Redis SET NX EX
+    When SIGNAL_CACHE_CONFIG is configured, uses Redis SET NX EX
     for efficient single-command locking. Otherwise falls back to
     database-backed DistributedLock.
 

@@ -102,7 +102,7 @@ class TaskManager:
     3. Handling deduplication (returning existing active task if duplicate)
     4. Managing real-time abort notifications (optional)
 
-    Redis pub/sub is opt-in via COORDINATION_CACHE_CONFIG configuration. When not
+    Redis pub/sub is opt-in via SIGNAL_CACHE_CONFIG configuration. When not
     configured, tasks use database polling for abort detection.
     """
 
@@ -136,11 +136,11 @@ class TaskManager:
     @classmethod
     def _get_cache(cls) -> RedisCacheBackend | RedisSentinelCacheBackend | None:
         """
-        Get the coordination cache backend.
+        Get the signal cache backend.
 
-        :returns: The coordination cache backend, or None if not configured
+        :returns: The signal cache backend, or None if not configured
         """
-        return cache_manager.coordination_cache
+        return cache_manager.signal_cache
 
     @classmethod
     def is_pubsub_available(cls) -> bool:
@@ -599,7 +599,7 @@ class TaskManager:
             else:
                 # Log error but don't fall back - let the failure be visible
                 logger.error(
-                    "Redis coordination backend failed for task %s abort listener: %s. "
+                    "Redis signal backend failed for task %s abort listener: %s. "
                     "Task may not receive abort signal.",
                     task_uuid,
                     ex,
