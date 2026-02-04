@@ -399,15 +399,15 @@ class SupersetDisallowedSQLFunctionException(SupersetErrorException):
         )
 
 
-class CreateKeyValueDistributedLockFailedException(Exception):  # noqa: N818
+class AcquireDistributedLockFailedException(Exception):  # noqa: N818
     """
     Exception to signalize failure to acquire lock.
     """
 
 
-class DeleteKeyValueDistributedLockFailedException(Exception):  # noqa: N818
+class ReleaseDistributedLockFailedException(Exception):  # noqa: N818
     """
-    Exception to signalize failure to delete lock.
+    Exception to signalize failure to release lock.
     """
 
 
