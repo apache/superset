@@ -40,11 +40,9 @@ export const checkIsMissingRequiredValue = (
   if (!isRequired) return false;
 
   const value = filterState?.value;
+
   // TODO: this property should be unhardcoded
-  return (
-    filter.controlValues?.enableEmptyFilter &&
-    (value === null || value === undefined)
-  );
+  return value === null || value === undefined;
 };
 
 export const checkIsValidateError = (dataMask: DataMaskStateWithId) => {
@@ -55,7 +53,8 @@ export const checkIsValidateError = (dataMask: DataMaskStateWithId) => {
 export const checkIsApplyDisabled = (
   dataMaskSelected: DataMaskStateWithId,
   dataMaskApplied: DataMaskStateWithId,
-  filters: Filter[],
+  filtersInScope: Filter[],
+  allFilters?: Filter[],
 ) => {
   if (!checkIsValidateError(dataMaskSelected)) {
     return true;
@@ -64,7 +63,11 @@ export const checkIsApplyDisabled = (
   const dataSelectedValues = Object.values(dataMaskSelected);
   const dataAppliedValues = Object.values(dataMaskApplied);
 
-  const hasMissingRequiredFilter = filters.some(filter =>
+  // Check required values for ALL filters (including out-of-scope) if provided
+  const filtersToValidateRequired = allFilters?.length
+    ? allFilters
+    : filtersInScope;
+  const hasMissingRequiredFilter = filtersToValidateRequired.some(filter =>
     checkIsMissingRequiredValue(
       filter,
       dataMaskSelected?.[filter?.id]?.filterState,
