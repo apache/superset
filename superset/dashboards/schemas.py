@@ -20,7 +20,8 @@ from typing import Any, Mapping, Union
 from marshmallow import fields, post_dump, post_load, pre_load, Schema
 from marshmallow.validate import Length, ValidationError
 
-from superset import security_manager
+from superset import is_feature_enabled, security_manager
+from superset.localization import get_user_locale, localize_native_filters
 from superset.tags.models import TagType
 from superset.utils import json
 
@@ -220,6 +221,7 @@ class DashboardGetResponseSchema(Schema):
     dashboard_title = fields.String(
         metadata={"description": dashboard_title_description}
     )
+    description = fields.String()
     thumbnail_url = fields.String(allow_none=True)
     published = fields.Boolean()
     css = fields.String(metadata={"description": css_description})
@@ -243,10 +245,13 @@ class DashboardGetResponseSchema(Schema):
     created_on_humanized = fields.String(data_key="created_on_delta_humanized")
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     uuid = fields.UUID(allow_none=True)
+    translations = fields.Dict(dump_only=True)
+    available_locales = fields.List(fields.String(), dump_only=True)
 
-    # pylint: disable=unused-argument
-    @post_dump()
-    def post_dump(self, serialized: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
+    @post_dump(pass_original=True)
+    def post_dump(
+        self, serialized: dict[str, Any], obj: Any, **kwargs: Any
+    ) -> dict[str, Any]:
         # Handle custom_tags → tags renaming when flag is enabled
         # When DASHBOARD_LIST_CUSTOM_TAGS_ONLY=True, FAB populates custom_tags
         # Rename it to tags for frontend compatibility
@@ -257,7 +262,45 @@ class DashboardGetResponseSchema(Schema):
             del serialized["owners"]
             del serialized["changed_by_name"]
             del serialized["changed_by"]
+
+        # Apply content localization when feature is enabled
+        if is_feature_enabled("ENABLE_CONTENT_LOCALIZATION"):
+            self._apply_localization(serialized, obj)
+
         return serialized
+
+    def _apply_localization(self, serialized: dict[str, Any], obj: Any) -> None:
+        """Apply content localization to dashboard fields."""
+        locale = get_user_locale()
+
+        # Localize dashboard_title and description
+        if hasattr(obj, "get_localized"):
+            if "dashboard_title" in serialized:
+                serialized["dashboard_title"] = obj.get_localized(
+                    "dashboard_title", locale
+                )
+            if "description" in serialized:
+                serialized["description"] = obj.get_localized("description", locale)
+
+            # Add available locales
+            serialized["available_locales"] = obj.get_available_locales()
+
+        # Localize native filter names in json_metadata
+        if serialized.get("json_metadata"):
+            self._localize_native_filters(serialized, locale)
+
+    def _localize_native_filters(self, serialized: dict[str, Any], locale: str) -> None:
+        """Localize native filter names in json_metadata."""
+        try:
+            metadata = json.loads(serialized["json_metadata"])
+        except (json.JSONDecodeError, TypeError):
+            return
+
+        if filters := metadata.get("native_filter_configuration"):
+            metadata["native_filter_configuration"] = localize_native_filters(
+                filters, locale
+            )
+            serialized["json_metadata"] = json.dumps(metadata)
 
 
 class DatabaseSchema(Schema):

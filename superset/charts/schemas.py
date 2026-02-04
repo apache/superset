@@ -22,12 +22,14 @@ from typing import Any, TYPE_CHECKING
 
 from flask import current_app
 from flask_babel import gettext as _
-from marshmallow import EXCLUDE, fields, post_load, Schema, validate
+from marshmallow import EXCLUDE, fields, post_dump, post_load, Schema, validate
 from marshmallow.validate import Length, Range
 from marshmallow_union import Union
 
+from superset import is_feature_enabled
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.db_engine_specs.base import builtin_time_grains
+from superset.localization import get_user_locale
 from superset.tags.models import TagType
 from superset.utils import pandas_postprocessing, schema as utils
 from superset.utils.core import (
@@ -1702,6 +1704,32 @@ class ChartGetResponseSchema(Schema):
     datasource_type = fields.String()
     datasource_url = fields.Function(lambda obj: obj.datasource_url())
     datasource_uuid = fields.UUID(attribute="table.uuid")
+    translations = fields.Dict(dump_only=True)
+    available_locales = fields.List(fields.String(), dump_only=True)
+
+    @post_dump(pass_original=True)
+    def post_dump(
+        self, serialized: dict[str, Any], obj: Any, **kwargs: Any
+    ) -> dict[str, Any]:
+        """Apply content localization to chart fields when feature is enabled."""
+        if is_feature_enabled("ENABLE_CONTENT_LOCALIZATION"):
+            self._apply_localization(serialized, obj)
+        return serialized
+
+    def _apply_localization(self, serialized: dict[str, Any], obj: Any) -> None:
+        """Apply content localization to slice_name and description."""
+        if not hasattr(obj, "get_localized"):
+            return
+
+        locale = get_user_locale()
+
+        if "slice_name" in serialized:
+            serialized["slice_name"] = obj.get_localized("slice_name", locale)
+
+        if "description" in serialized:
+            serialized["description"] = obj.get_localized("description", locale)
+
+        serialized["available_locales"] = obj.get_available_locales()
 
 
 CHART_SCHEMAS = (
