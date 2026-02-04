@@ -374,39 +374,37 @@ stages:
               # -------------------------------------
               # Create docker-compose env file
               # -------------------------------------
-              - bash: |
-                  echo "=== DEBUG: .env.deploy Creation ==="
-                  echo "Current working directory: $(pwd)"
-                  echo "Pipeline.Workspace: $(Pipeline.Workspace)"
-                  echo ""
-                  echo "Changing to deployment directory..."
-                  cd "$(Pipeline.Workspace)/s" || { echo "✗ ERROR: Failed to cd to $(Pipeline.Workspace)/s"; exit 1; }
-                  echo "✓ Changed directory to: $(pwd)"
-                  echo ""
-                  echo "Files in current directory:"
-                  ls -la
-                  echo ""
-                  echo "Creating .env.deploy file..."
+              - pwsh: |
+                  Write-Host "=== DEBUG: .env.deploy Creation ==="
+                  Write-Host "Current working directory: $(Get-Location)"
+                  Write-Host "Pipeline.Workspace: $(Pipeline.Workspace)"
+                  Write-Host ""
+                  Write-Host "Changing to deployment directory..."
+                  Set-Location "$(Pipeline.Workspace)/s" -ErrorAction Stop
+                  Write-Host "✓ Changed directory to: $(Get-Location)"
+                  Write-Host ""
+                  Write-Host "Files in current directory:"
+                  Get-ChildItem -Force
+                  Write-Host ""
+                  Write-Host "Creating .env.deploy file..."
 
                   # Read admin password from temp file (written by PowerShell step)
-                  # Secret variables are not passed to bash, so we use a file
-                  ADMIN_PASSWORD_FILE="$(Agent.TempDirectory)/superset-admin-password.txt"
-                  if [ -f "$ADMIN_PASSWORD_FILE" ]; then
-                    SUPERSET_ADMIN_PASSWORD=$(cat "$ADMIN_PASSWORD_FILE")
-                    echo "✓ Read admin password from temp file"
-                  else
-                    echo "✗ ERROR: Admin password file not found: $ADMIN_PASSWORD_FILE"
+                  $adminPasswordFile = Join-Path "$(Agent.TempDirectory)" "superset-admin-password.txt"
+                  if (Test-Path $adminPasswordFile) {
+                    $SUPERSET_ADMIN_PASSWORD = Get-Content $adminPasswordFile -Raw
+                    Write-Host "✓ Read admin password from temp file"
+                  } else {
+                    Write-Host "✗ ERROR: Admin password file not found: $adminPasswordFile"
                     exit 1
-                  fi
+                  }
 
-                  # Create .env.deploy file with proper escaping for special characters
-                  # Using printf to avoid shell interpretation issues
-                  cat > .env.deploy << EOF
-                  SUPERSET_IMAGE=${FULL_IMAGE_NAME}
-                  SUPERSET_SECRET_KEY=${SUPERSET_SECRET_KEY}
-                  SUPERSET_ADMIN_USER=${SUPERSET_ADMIN_USER}
-                  SUPERSET_ADMIN_PASSWORD=${SUPERSET_ADMIN_PASSWORD}
-                  SUPERSET_PORT=${SUPERSET_PORT}
+                  # Create .env.deploy file using here-string
+                  $envContent = @"
+                  SUPERSET_IMAGE=$(FULL_IMAGE_NAME)
+                  SUPERSET_SECRET_KEY=$(SUPERSET_SECRET_KEY)
+                  SUPERSET_ADMIN_USER=$(SUPERSET_ADMIN_USER)
+                  SUPERSET_ADMIN_PASSWORD=$SUPERSET_ADMIN_PASSWORD
+                  SUPERSET_PORT=$(SUPERSET_PORT)
                   DATABASE_DIALECT=postgresql
                   DATABASE_USER=superset
                   DATABASE_PASSWORD=superset
@@ -415,52 +413,55 @@ stages:
                   DATABASE_DB=superset
                   REDIS_HOST=redis
                   REDIS_PORT=6379
-                  DOCKER_NETWORK=${DOCKER_NETWORK}
-                  DOCKER_INITDB_DIR=${DOCKER_INITDB_DIR}
-                  EOF
+                  DOCKER_NETWORK=$(DOCKER_NETWORK)
+                  DOCKER_INITDB_DIR=$(DOCKER_INITDB_DIR)
+                  "@
 
-                  echo "✓ Created .env.deploy file"
-                  echo ""
-                  echo ".env.deploy file location:"
-                  ls -la .env.deploy
-                  echo ""
-                  echo "=== DEBUG: Variable value lengths ==="
-                  echo "SUPERSET_SECRET_KEY length: ${#SUPERSET_SECRET_KEY}"
-                  echo "SUPERSET_ADMIN_USER length: ${#SUPERSET_ADMIN_USER}"
-                  echo "SUPERSET_ADMIN_PASSWORD length: ${#SUPERSET_ADMIN_PASSWORD}"
-                  echo "SUPERSET_PORT length: ${#SUPERSET_PORT}"
-                  echo ""
-                  if [ -z "$SUPERSET_SECRET_KEY" ]; then
-                    echo "✗ ERROR: SUPERSET_SECRET_KEY is empty!"
+                  Set-Content -Path ".env.deploy" -Value $envContent -Encoding UTF8
+                  Write-Host "✓ Created .env.deploy file"
+                  Write-Host ""
+                  Write-Host ".env.deploy file location:"
+                  Get-ChildItem -Force ".env.deploy"
+                  Write-Host ""
+                  Write-Host "=== DEBUG: Variable value lengths ==="
+                  Write-Host "SUPERSET_SECRET_KEY length: $(SUPERSET_SECRET_KEY.Length)"
+                  Write-Host "SUPERSET_ADMIN_USER length: $(SUPERSET_ADMIN_USER.Length)"
+                  Write-Host "SUPERSET_ADMIN_PASSWORD length: $SUPERSET_ADMIN_PASSWORD.Length"
+                  Write-Host "SUPERSET_PORT length: $(SUPERSET_PORT.Length)"
+                  Write-Host ""
+                  if ([string]::IsNullOrWhiteSpace("$(SUPERSET_SECRET_KEY)")) {
+                    Write-Host "✗ ERROR: SUPERSET_SECRET_KEY is empty!"
                     exit 1
-                  fi
-                  if [ -z "$SUPERSET_ADMIN_PASSWORD" ]; then
-                    echo "✗ ERROR: SUPERSET_ADMIN_PASSWORD is empty!"
+                  }
+                  if ([string]::IsNullOrWhiteSpace($SUPERSET_ADMIN_PASSWORD)) {
+                    Write-Host "✗ ERROR: SUPERSET_ADMIN_PASSWORD is empty!"
                     exit 1
-                  fi
-                  echo "✓ All required variables have values"
-                  echo ""
-                  echo "Environment variables (non-sensitive):"
-                  echo "  SUPERSET_IMAGE: ${FULL_IMAGE_NAME}"
-                  echo "  SUPERSET_PORT: ${SUPERSET_PORT}"
-                  echo "  DATABASE_DIALECT: postgresql"
-                  echo "  DATABASE_USER: superset"
-                  echo "  DATABASE_HOST: db"
-                  echo "  DATABASE_PORT: 5432"
-                  echo "  DATABASE_DB: superset"
-                  echo "  REDIS_HOST: redis"
-                  echo "  REDIS_PORT: 6379"
-                  echo "  DOCKER_NETWORK: ${DOCKER_NETWORK}"
-                  echo "  DOCKER_INITDB_DIR: ${DOCKER_INITDB_DIR}"
-                  echo ""
-                  echo "Superset admin credentials:"
-                  echo "  SUPERSET_ADMIN_USER: ***configured***"
-                  echo "  SUPERSET_ADMIN_PASSWORD: ***configured***"
-                  echo ""
-                  echo "Content of .env.deploy (with secrets masked):"
-                  cat .env.deploy | sed 's/PASSWORD=.*/PASSWORD=***masked***/g' | sed 's/SECRET_KEY=.*/SECRET_KEY=***masked***/g'
-                  echo ""
-                  echo "=== END DEBUG ==="
+                  }
+                  Write-Host "✓ All required variables have values"
+                  Write-Host ""
+                  Write-Host "Environment variables (non-sensitive):"
+                  Write-Host "  SUPERSET_IMAGE: $(FULL_IMAGE_NAME)"
+                  Write-Host "  SUPERSET_PORT: $(SUPERSET_PORT)"
+                  Write-Host "  DATABASE_DIALECT: postgresql"
+                  Write-Host "  DATABASE_USER: superset"
+                  Write-Host "  DATABASE_HOST: db"
+                  Write-Host "  DATABASE_PORT: 5432"
+                  Write-Host "  DATABASE_DB: superset"
+                  Write-Host "  REDIS_HOST: redis"
+                  Write-Host "  REDIS_PORT: 6379"
+                  Write-Host "  DOCKER_NETWORK: $(DOCKER_NETWORK)"
+                  Write-Host "  DOCKER_INITDB_DIR: $(DOCKER_INITDB_DIR)"
+                  Write-Host ""
+                  Write-Host "Superset admin credentials:"
+                  Write-Host "  SUPERSET_ADMIN_USER: ***configured***"
+                  Write-Host "  SUPERSET_ADMIN_PASSWORD: ***configured***"
+                  Write-Host ""
+                  Write-Host "Content of .env.deploy (with secrets masked):"
+                  $maskedContent = Get-Content ".env.deploy" -Raw
+                  $maskedContent = $maskedContent -replace 'PASSWORD=.*', 'PASSWORD=***masked***' -replace 'SECRET_KEY=.*', 'SECRET_KEY=***masked***'
+                  Write-Host $maskedContent
+                  Write-Host ""
+                  Write-Host "=== END DEBUG ==="
                 env:
                   FULL_IMAGE_NAME: $(FULL_IMAGE_NAME)
                   SUPERSET_SECRET_KEY: $(SUPERSET_SECRET_KEY)
