@@ -1393,6 +1393,12 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         #     "schedule": crontab(minute="*", hour="*"),
         #     "kwargs": {"retention_period_days": 180, "max_rows_per_run": 10000},
         # },
+        # Uncomment to enable pruning of the tasks table
+        # "prune_tasks": {
+        #     "task": "prune_tasks",
+        #     "schedule": crontab(minute=0, hour=0),
+        #     "kwargs": {"retention_period_days": 90, "max_rows_per_run": 10000},
+        # },
         # Uncomment to enable Slack channel cache warm-up
         # "slack.cache_channels": {
         #     "task": "slack.cache_channels",
@@ -2455,6 +2461,59 @@ except ImportError:
 
 LOCAL_EXTENSIONS: list[str] = []
 EXTENSIONS_PATH: str | None = None
+
+# Default polling interval for tasks (seconds)
+TASK_ABORT_POLLING_DEFAULT_INTERVAL = 10
+
+# Minimum interval in seconds between database writes for task progress updates.
+# Set to 0 to disable throttling (write every update to DB).
+TASK_PROGRESS_UPDATE_THROTTLE_INTERVAL = 2  # seconds
+
+# ---------------------------------------------------
+# Coordination Cache Configuration
+# ---------------------------------------------------
+# Shared Redis/Valkey configuration for coordination features that require
+# Redis-specific primitives (pub/sub messaging, distributed locks).
+#
+# Uses Flask-Caching style configuration for consistency with other cache backends.
+# Set CACHE_TYPE to 'RedisCache' for standard Redis or 'RedisSentinelCache' for
+# Sentinel.
+#
+# These features cannot use generic cache backends because they rely on:
+# - Pub/Sub: Real-time message broadcasting between workers
+# - SET NX EX: Atomic lock acquisition with automatic expiration
+#
+# When configured, enables:
+# - Real-time abort/completion notifications for GTF tasks (vs database polling)
+# - Redis-based distributed locking (vs KeyValueDAO-backed DistributedLock)
+#
+# Example with standard Redis:
+# COORDINATION_CACHE_CONFIG: CacheConfig = {
+#     "CACHE_TYPE": "RedisCache",
+#     "CACHE_REDIS_HOST": "localhost",
+#     "CACHE_REDIS_PORT": 6379,
+#     "CACHE_REDIS_DB": 0,
+#     "CACHE_REDIS_PASSWORD": "",
+# }
+#
+# Example with Redis Sentinel:
+# COORDINATION_CACHE_CONFIG: CacheConfig = {
+#     "CACHE_TYPE": "RedisSentinelCache",
+#     "CACHE_REDIS_SENTINELS": [("sentinel1", 26379), ("sentinel2", 26379)],
+#     "CACHE_REDIS_SENTINEL_MASTER": "mymaster",
+#     "CACHE_REDIS_SENTINEL_PASSWORD": None,
+#     "CACHE_REDIS_DB": 0,
+#     "CACHE_REDIS_PASSWORD": "",
+# }
+COORDINATION_CACHE_CONFIG: CacheConfig | None = None
+
+# Default lock TTL (time-to-live) in seconds for distributed locks.
+# Can be overridden per-call via the `ttl_seconds` parameter.
+# After TTL expires, the lock is automatically released to prevent deadlocks.
+DISTRIBUTED_LOCK_DEFAULT_TTL = 30
+
+# Channel prefix for task abort pub/sub messages
+TASKS_ABORT_CHANNEL_PREFIX = "gtf:abort:"
 
 # -------------------------------------------------------------------
 # *                WARNING:  STOP EDITING  HERE                    *

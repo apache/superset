@@ -15,27 +15,58 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from __future__ import annotations
+
 import logging
 import uuid
-from typing import Any, Union
+from typing import Any, TYPE_CHECKING
 
-from flask import current_app as app
+from flask import current_app
 
 from superset.commands.base import BaseCommand
 from superset.distributed_lock.utils import get_key
+from superset.extensions import cache_manager
 from superset.key_value.types import JsonKeyValueCodec, KeyValueResource
 
+if TYPE_CHECKING:
+    import redis
+
 logger = logging.getLogger(__name__)
-stats_logger = app.config["STATS_LOGGER"]
+
+
+def get_default_lock_ttl() -> int:
+    """Get the default lock TTL from config."""
+    return int(current_app.config.get("DISTRIBUTED_LOCK_DEFAULT_TTL", 30))
+
+
+def get_redis_client() -> "redis.Redis[Any] | None":
+    """
+    Get Redis client from coordination cache if available.
+
+    Returns None if COORDINATION_CACHE_CONFIG is not configured,
+    allowing fallback to database-backed locking.
+    """
+    backend = cache_manager.coordination_cache
+    return backend._cache if backend else None
 
 
 class BaseDistributedLockCommand(BaseCommand):
+    """Base command for distributed lock operations."""
+
     key: uuid.UUID
+    namespace: str
     codec = JsonKeyValueCodec()
     resource = KeyValueResource.LOCK
 
-    def __init__(self, namespace: str, params: Union[dict[str, Any], None] = None):
-        self.key = get_key(namespace, **(params or {}))
+    def __init__(self, namespace: str, params: dict[str, Any] | None = None) -> None:
+        self.namespace = namespace
+        self.params = params or {}
+        self.key = get_key(namespace, **self.params)
+
+    @property
+    def redis_lock_key(self) -> str:
+        """Redis key for this lock."""
+        return f"lock:{self.namespace}:{self.key}"
 
     def validate(self) -> None:
         pass
