@@ -783,11 +783,13 @@ class ResponseSizeGuardMiddleware(Middleware):
         self,
         token_limit: int = DEFAULT_TOKEN_LIMIT,
         warn_threshold_pct: int = DEFAULT_WARN_THRESHOLD_PCT,
-        excluded_tools: list[str] | None = None,
+        excluded_tools: list[str] | str | None = None,
     ) -> None:
         self.token_limit = token_limit
         self.warn_threshold_pct = warn_threshold_pct
         self.warn_threshold = int(token_limit * warn_threshold_pct / 100)
+        if isinstance(excluded_tools, str):
+            excluded_tools = [excluded_tools]
         self.excluded_tools = set(excluded_tools or [])
 
     async def on_call_tool(

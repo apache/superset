@@ -53,6 +53,13 @@ class TestResponseSizeGuardMiddleware:
         assert middleware.warn_threshold == 7000
         assert middleware.excluded_tools == {"health_check", "get_chart_preview"}
 
+    def test_init_excluded_tools_as_string(self) -> None:
+        """Should handle excluded_tools as a single string."""
+        middleware = ResponseSizeGuardMiddleware(
+            excluded_tools="health_check",
+        )
+        assert middleware.excluded_tools == {"health_check"}
+
     @pytest.mark.asyncio
     async def test_allows_small_response(self) -> None:
         """Should allow responses under token limit."""
