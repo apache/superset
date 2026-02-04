@@ -20,11 +20,13 @@
 import { t } from '@apache-superset/core';
 import { SupersetTheme } from '@apache-superset/core/ui';
 import { FallbackPropsWithDimension } from './SuperChart';
-import { getErrorMessage } from 'react-error-boundary';
 
 export type Props = Partial<FallbackPropsWithDimension>;
 
 export default function FallbackComponent({ error, height, width }: Props) {
+  const errorMessage =
+    error instanceof Error ? error.message : String(error ?? 'Unknown Error');
+
   return (
     <div
       css={(theme: SupersetTheme) => ({
@@ -39,7 +41,7 @@ export default function FallbackComponent({ error, height, width }: Props) {
         <div>
           <b>{t('Oops! An error occurred!')}</b>
         </div>
-        <code>{error ? getErrorMessage(error) : 'Unknown Error'}</code>
+        <code>{errorMessage}</code>
       </div>
     </div>
   );
