@@ -87,3 +87,20 @@ class TaskPermissionDeniedError(ForbiddenError):
             self.message = message
         else:
             self.message = _("You do not have permission to perform this operation")
+
+
+class GlobalTaskFrameworkDisabledError(CommandException):
+    """
+    Raised when @task decorator is used but GTF is disabled.
+
+    This exception is raised at decoration time (module load) to make it clear
+    that GTF-based code requires the GLOBAL_TASK_FRAMEWORK feature flag to be
+    enabled.
+    """
+
+    message = _(
+        "The Global Task Framework is not enabled. "
+        "Set GLOBAL_TASK_FRAMEWORK=True in your feature flags to use @task. "
+        "See https://superset.apache.org/docs/configuration/async-queries-celery "
+        "for configuration details."
+    )

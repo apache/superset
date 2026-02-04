@@ -29,7 +29,7 @@ import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import { TaskStatus, TaskScope } from 'src/features/tasks/types';
 
 // Set up window.featureFlags before importing TaskList
-window.featureFlags = {};
+window.featureFlags = { GLOBAL_TASK_FRAMEWORK: true };
 
 // Mock getBootstrapData before importing components that use it
 jest.mock('src/utils/getBootstrapData', () => ({
@@ -42,7 +42,7 @@ jest.mock('src/utils/getBootstrapData', () => ({
       roles: { Admin: [] },
     },
     common: {
-      feature_flags: {},
+      feature_flags: { GLOBAL_TASK_FRAMEWORK: true },
       conf: {},
     },
   }),

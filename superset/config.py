@@ -662,6 +662,9 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # sts:AssumeRole permissions to prevent unauthorized access.
     # @lifecycle: testing
     "AWS_DATABASE_IAM_AUTH": False,
+    # Global Task Framework - unified task management with progress tracking,
+    # cancellation, and deduplication.
+    "GLOBAL_TASK_FRAMEWORK": False,
     # Use analogous colors in charts
     # @lifecycle: testing
     "USE_ANALOGOUS_COLORS": False,
