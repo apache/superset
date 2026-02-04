@@ -925,6 +925,39 @@ def form_data_to_adhoc(form_data: dict[str, Any], clause: str) -> AdhocFilterCla
     return result
 
 
+def _update_existing_temporal_filter(
+    temporal_filter: AdhocFilterClause,
+    granularity_sqla_override: str | None,
+    time_range: str | None,
+    chart_has_granularity_sqla: bool,
+) -> None:
+    """Update an existing temporal filter with new subject/comparator."""
+    if (
+        granularity_sqla_override is not None
+        and temporal_filter.get("expressionType") == "SIMPLE"
+    ):
+        temporal_filter["subject"] = granularity_sqla_override
+    if time_range and not chart_has_granularity_sqla:
+        temporal_filter["comparator"] = time_range
+
+
+def _create_temporal_filter(
+    granularity_sqla: str,
+    time_range: str,
+) -> AdhocFilterClause:
+    """Create a new TEMPORAL_RANGE adhoc filter."""
+    new_filter: AdhocFilterClause = {
+        "clause": "WHERE",
+        "expressionType": "SIMPLE",
+        "operator": FilterOperator.TEMPORAL_RANGE,
+        "subject": granularity_sqla,
+        "comparator": time_range,
+        "isExtra": True,
+    }
+    new_filter["filterOptionName"] = md5_sha_from_dict(cast(dict[Any, Any], new_filter))
+    return new_filter
+
+
 def merge_extra_form_data(form_data: dict[str, Any]) -> None:  # noqa: C901
     """
     Merge extra form data (appends and overrides) into the main payload
@@ -973,10 +1006,35 @@ def merge_extra_form_data(form_data: dict[str, Any]) -> None:  # noqa: C901
                     for fltr in append_filters
                     if fltr
                 )
-    if form_data.get("time_range") and not form_data.get("granularity_sqla"):
-        for adhoc_filter in form_data.get("adhoc_filters", []):
-            if adhoc_filter.get("operator") == "TEMPORAL_RANGE":
-                adhoc_filter["comparator"] = form_data["time_range"]
+
+    granularity_sqla_override = extra_form_data.get("granularity_sqla")
+    time_range = form_data.get("time_range")
+    chart_has_granularity_sqla = bool(form_data.get("granularity_sqla"))
+
+    temporal_filters = [
+        adhoc_filter
+        for adhoc_filter in adhoc_filters
+        if adhoc_filter.get("operator") == FilterOperator.TEMPORAL_RANGE
+    ]
+
+    for temporal_filter in temporal_filters:
+        _update_existing_temporal_filter(
+            temporal_filter,
+            granularity_sqla_override,
+            time_range,
+            chart_has_granularity_sqla,
+        )
+
+    if (
+        not temporal_filters
+        and granularity_sqla_override is not None
+        and time_range is not None
+    ):
+        new_temporal_filter = _create_temporal_filter(
+            granularity_sqla_override,
+            cast(str, time_range),
+        )
+        adhoc_filters.append(new_temporal_filter)
 
 
 def merge_extra_filters(form_data: dict[str, Any]) -> None:  # noqa: C901

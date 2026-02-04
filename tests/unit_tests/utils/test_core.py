@@ -31,6 +31,7 @@ from superset.utils.core import (
     cast_to_boolean,
     check_is_safe_zip,
     DateColumn,
+    FilterOperator,
     generic_find_constraint_name,
     generic_find_fk_constraint_name,
     get_datasource_full_name,
@@ -39,6 +40,7 @@ from superset.utils.core import (
     get_user_agent,
     is_test,
     merge_extra_filters,
+    merge_extra_form_data,
     merge_request_params,
     normalize_dttm_col,
     parse_boolean_string,
@@ -1067,6 +1069,512 @@ def test_merge_extra_filters_when_applied_time_extras_predefined():
         "applied_time_extras": {"__time_range": "Last week"},
         "adhoc_filters": [],
     }
+
+
+def test_merge_extra_form_data_updates_temporal_range_subject():
+    """
+    Test that when extra_form_data contains granularity_sqla, it should update
+    the subject of any TEMPORAL_RANGE adhoc filter to use the new time column.
+    """
+    form_data = {
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "comparator": "No filter",
+                "expressionType": "SIMPLE",
+                "operator": "TEMPORAL_RANGE",
+                "subject": "created_at",
+            }
+        ],
+        "extra_form_data": {
+            "granularity_sqla": "event_date",
+            "time_range": "Last week",
+        },
+    }
+    merge_extra_form_data(form_data)
+
+    assert form_data["adhoc_filters"][0]["subject"] == "event_date"
+    assert form_data["time_range"] == "Last week"
+    assert form_data["granularity"] == "event_date"
+    assert "extra_form_data" not in form_data
+
+
+def test_time_column_filter_with_multiple_temporal_range_filters():
+    """
+    Test that Time Column native filter updates ALL TEMPORAL_RANGE filters
+    in the adhoc_filters list, but leaves non-TEMPORAL_RANGE filters unchanged.
+    """
+    form_data = {
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "comparator": "Last week",
+                "expressionType": "SIMPLE",
+                "operator": "TEMPORAL_RANGE",
+                "subject": "default_time_col",
+            },
+            {
+                "clause": "WHERE",
+                "comparator": "foo",
+                "expressionType": "SIMPLE",
+                "operator": "==",
+                "subject": "some_column",
+            },
+            {
+                "clause": "WHERE",
+                "comparator": "Last month",
+                "expressionType": "SIMPLE",
+                "operator": "TEMPORAL_RANGE",
+                "subject": "another_time_col",
+            },
+        ],
+        "extra_form_data": {
+            "granularity_sqla": "selected_time_col",
+        },
+    }
+    merge_extra_form_data(form_data)
+
+    assert form_data["adhoc_filters"][0]["subject"] == "selected_time_col"
+    assert form_data["adhoc_filters"][2]["subject"] == "selected_time_col"
+    assert form_data["adhoc_filters"][1]["subject"] == "some_column"
+    assert "extra_form_data" not in form_data
+
+
+def test_merge_extra_form_data_skips_sql_expression_filters():
+    """
+    Test that SQL expression type filters are not modified when granularity_sqla
+    is provided. Only SIMPLE expression type filters should have their subject updated.
+    """
+    form_data = {
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "expressionType": "SQL",
+                "operator": "TEMPORAL_RANGE",
+                "sqlExpression": "created_at > '2020-01-01'",
+            },
+            {
+                "clause": "WHERE",
+                "comparator": "Last week",
+                "expressionType": "SIMPLE",
+                "operator": "TEMPORAL_RANGE",
+                "subject": "created_at",
+            },
+        ],
+        "extra_form_data": {
+            "granularity_sqla": "event_date",
+        },
+    }
+    merge_extra_form_data(form_data)
+
+    assert "subject" not in form_data["adhoc_filters"][0]
+    assert form_data["adhoc_filters"][1]["subject"] == "event_date"
+    assert "extra_form_data" not in form_data
+
+
+def test_merge_extra_form_data_time_range_without_granularity_sqla():
+    """
+    Test that when form_data has time_range but no granularity_sqla,
+    the TEMPORAL_RANGE filter comparator is updated to match time_range.
+    """
+    form_data = {
+        "time_range": "Last month",
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "comparator": "No filter",
+                "expressionType": "SIMPLE",
+                "operator": "TEMPORAL_RANGE",
+                "subject": "created_at",
+            }
+        ],
+        "extra_form_data": {},
+    }
+    merge_extra_form_data(form_data)
+
+    assert form_data["adhoc_filters"][0]["comparator"] == "Last month"
+    assert form_data["adhoc_filters"][0]["subject"] == "created_at"
+    assert "extra_form_data" not in form_data
+
+
+def test_merge_extra_form_data_no_subject_update_when_granularity_override_none():
+    """
+    Test that when granularity_sqla_override is None, the TEMPORAL_RANGE filter
+    subject should NOT be updated, even if expressionType is SIMPLE.
+    """
+    original_subject = "original_time_col"
+    form_data = {
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "comparator": "Last week",
+                "expressionType": "SIMPLE",
+                "operator": "TEMPORAL_RANGE",
+                "subject": original_subject,
+            }
+        ],
+        "extra_form_data": {},
+    }
+    merge_extra_form_data(form_data)
+
+    assert form_data["adhoc_filters"][0]["subject"] == original_subject
+    assert "extra_form_data" not in form_data
+
+
+def test_merge_extra_form_data_does_not_update_comparator_when_time_range_is_falsy():
+    """
+    Test that when time_range is falsy (None, empty string, or False),
+    the TEMPORAL_RANGE filter comparator should NOT be updated.
+    """
+    original_comparator = "Original time range"
+    form_data = {
+        "time_range": None,
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "comparator": original_comparator,
+                "expressionType": "SIMPLE",
+                "operator": "TEMPORAL_RANGE",
+                "subject": "created_at",
+            }
+        ],
+        "extra_form_data": {},
+    }
+    merge_extra_form_data(form_data)
+
+    assert form_data["adhoc_filters"][0]["comparator"] == original_comparator
+    assert "extra_form_data" not in form_data
+
+
+def test_merge_extra_form_data_no_comparator_update_when_time_range_empty():
+    """
+    Test that when time_range is an empty string (falsy), the TEMPORAL_RANGE
+    filter comparator should NOT be updated.
+    """
+    original_comparator = "Original time range"
+    form_data = {
+        "time_range": "",
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "comparator": original_comparator,
+                "expressionType": "SIMPLE",
+                "operator": "TEMPORAL_RANGE",
+                "subject": "created_at",
+            }
+        ],
+        "extra_form_data": {},
+    }
+    merge_extra_form_data(form_data)
+
+    assert form_data["adhoc_filters"][0]["comparator"] == original_comparator
+    assert "extra_form_data" not in form_data
+
+
+def test_merge_extra_form_data_does_not_update_comparator_when_has_granularity_sqla():
+    """
+    Test that when form_data has granularity_sqla (truthy), the TEMPORAL_RANGE
+    filter comparator should NOT be updated, even if time_range exists.
+
+    When granularity_sqla is present in form_data, it indicates a legacy chart
+    where granularity_sqla and time_range are separate form_data attributes.
+    """
+    original_comparator = "Original time range"
+    form_data = {
+        "time_range": "Last month",
+        "granularity_sqla": "event_date",
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "comparator": original_comparator,
+                "expressionType": "SIMPLE",
+                "operator": "TEMPORAL_RANGE",
+                "subject": "created_at",
+            }
+        ],
+        "extra_form_data": {},
+    }
+    merge_extra_form_data(form_data)
+
+    assert form_data["adhoc_filters"][0]["comparator"] == original_comparator
+    assert "extra_form_data" not in form_data
+
+
+def test_merge_extra_form_data_removes_extra_form_data():
+    """
+    Test that merge_extra_form_data removes extra_form_data from form_data
+    after processing (it calls form_data.pop("extra_form_data", {})).
+    """
+    form_data = {
+        "adhoc_filters": [],
+        "extra_form_data": {
+            "granularity_sqla": "event_date",
+            "time_range": "Last week",
+        },
+    }
+    merge_extra_form_data(form_data)
+
+    assert "extra_form_data" not in form_data
+    assert form_data["granularity"] == "event_date"
+    assert form_data["time_range"] == "Last week"
+
+
+def test_merge_extra_form_data_creates_temporal_filter_when_none_exists():
+    """
+    Test that when granularity_sqla_override and time_range are provided
+    but no TEMPORAL_RANGE filter exists, a new temporal filter is created.
+    """
+    form_data = {
+        "time_range": "2022-01-22 : 2025-01-22",
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "comparator": "foo",
+                "expressionType": "SIMPLE",
+                "operator": "==",
+                "subject": "some_column",
+            }
+        ],
+        "extra_form_data": {
+            "granularity_sqla": "updated_at",
+        },
+    }
+    merge_extra_form_data(form_data)
+
+    temporal_filters = [
+        f
+        for f in form_data["adhoc_filters"]
+        if f.get("operator") == FilterOperator.TEMPORAL_RANGE
+    ]
+    assert len(temporal_filters) == 1
+    assert temporal_filters[0]["subject"] == "updated_at"
+    assert temporal_filters[0]["comparator"] == "2022-01-22 : 2025-01-22"
+    assert temporal_filters[0]["expressionType"] == "SIMPLE"
+    assert temporal_filters[0]["clause"] == "WHERE"
+    assert temporal_filters[0]["isExtra"] is True
+    assert "filterOptionName" in temporal_filters[0]
+    assert "extra_form_data" not in form_data
+
+
+def test_merge_extra_form_data_creates_temporal_filter_with_empty_adhoc_filters():
+    """
+    Test that a temporal filter is created when adhoc_filters is empty
+    and granularity_sqla_override and time_range are provided.
+    """
+    form_data = {
+        "time_range": "Last month",
+        "adhoc_filters": [],
+        "extra_form_data": {
+            "granularity_sqla": "created_at",
+        },
+    }
+    merge_extra_form_data(form_data)
+
+    assert len(form_data["adhoc_filters"]) == 1
+    assert form_data["adhoc_filters"][0]["operator"] == FilterOperator.TEMPORAL_RANGE
+    assert form_data["adhoc_filters"][0]["subject"] == "created_at"
+    assert form_data["adhoc_filters"][0]["comparator"] == "Last month"
+    assert "extra_form_data" not in form_data
+
+
+def test_merge_extra_form_data_creates_temporal_filter_with_missing_adhoc_filters():
+    """
+    Test that a temporal filter is created when adhoc_filters key doesn't exist
+    and granularity_sqla_override and time_range are provided.
+    """
+    form_data = {
+        "time_range": "2024-01-01 : 2024-03-01",
+        "extra_form_data": {
+            "granularity_sqla": "event_date",
+        },
+    }
+    merge_extra_form_data(form_data)
+
+    assert "adhoc_filters" in form_data
+    assert len(form_data["adhoc_filters"]) == 1
+    assert form_data["adhoc_filters"][0]["operator"] == FilterOperator.TEMPORAL_RANGE
+    assert form_data["adhoc_filters"][0]["subject"] == "event_date"
+    assert form_data["adhoc_filters"][0]["comparator"] == "2024-01-01 : 2024-03-01"
+    assert "extra_form_data" not in form_data
+
+
+def test_merge_extra_form_data_does_not_create_filter_when_granularity_missing():
+    """
+    Test that no temporal filter is created when granularity_sqla_override
+    is missing, even if time_range is provided.
+    """
+    form_data = {
+        "time_range": "Last week",
+        "adhoc_filters": [],
+        "extra_form_data": {},
+    }
+    original_filters_count = len(form_data["adhoc_filters"])
+    merge_extra_form_data(form_data)
+
+    assert len(form_data["adhoc_filters"]) == original_filters_count
+    assert "extra_form_data" not in form_data
+
+
+def test_merge_extra_form_data_does_not_create_filter_when_time_range_missing():
+    """
+    Test that no temporal filter is created when time_range is missing,
+    even if granularity_sqla_override is provided.
+    """
+    form_data = {
+        "adhoc_filters": [],
+        "extra_form_data": {
+            "granularity_sqla": "updated_at",
+        },
+    }
+    original_filters_count = len(form_data["adhoc_filters"])
+    merge_extra_form_data(form_data)
+
+    assert len(form_data["adhoc_filters"]) == original_filters_count
+    assert "extra_form_data" not in form_data
+
+
+def test_merge_extra_form_data_does_not_create_filter_when_time_range_none():
+    """
+    Test that no temporal filter is created when time_range is None,
+    even if granularity_sqla_override is provided.
+    """
+    form_data = {
+        "time_range": None,
+        "adhoc_filters": [],
+        "extra_form_data": {
+            "granularity_sqla": "created_at",
+        },
+    }
+    original_filters_count = len(form_data["adhoc_filters"])
+    merge_extra_form_data(form_data)
+
+    assert len(form_data["adhoc_filters"]) == original_filters_count
+    assert "extra_form_data" not in form_data
+
+
+def test_merge_extra_form_data_does_not_create_filter_when_granularity_none():
+    """
+    Test that no temporal filter is created when granularity_sqla_override
+    is None, even if time_range is provided.
+    """
+    form_data = {
+        "time_range": "Last month",
+        "adhoc_filters": [],
+        "extra_form_data": {
+            "granularity_sqla": None,
+        },
+    }
+    original_filters_count = len(form_data["adhoc_filters"])
+    merge_extra_form_data(form_data)
+
+    assert len(form_data["adhoc_filters"]) == original_filters_count
+    assert "extra_form_data" not in form_data
+
+
+def test_merge_extra_form_data_creates_filter_with_different_temporal_columns():
+    """
+    Test creating temporal filters for different temporal columns
+    (event_date, created_at, updated_at) to ensure the fix works
+    across multiple column types.
+    """
+    temporal_columns = ["event_date", "created_at", "updated_at"]
+    time_range = "2022-01-22 : 2025-01-22"
+
+    for column in temporal_columns:
+        form_data = {
+            "time_range": time_range,
+            "adhoc_filters": [],
+            "extra_form_data": {
+                "granularity_sqla": column,
+            },
+        }
+        merge_extra_form_data(form_data)
+
+        assert len(form_data["adhoc_filters"]) == 1
+        assert form_data["adhoc_filters"][0]["subject"] == column
+        assert form_data["adhoc_filters"][0]["comparator"] == time_range
+        assert (
+            form_data["adhoc_filters"][0]["operator"] == FilterOperator.TEMPORAL_RANGE
+        )
+
+
+def test_merge_extra_form_data_does_not_create_duplicate_when_filter_exists():
+    """
+    Test that when a TEMPORAL_RANGE filter already exists, a new one
+    is NOT created. Instead, the existing filter is updated.
+    """
+    form_data = {
+        "time_range": "Last week",
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "comparator": "No filter",
+                "expressionType": "SIMPLE",
+                "operator": FilterOperator.TEMPORAL_RANGE,
+                "subject": "original_column",
+            }
+        ],
+        "extra_form_data": {
+            "granularity_sqla": "new_column",
+        },
+    }
+    merge_extra_form_data(form_data)
+
+    temporal_filters = [
+        f
+        for f in form_data["adhoc_filters"]
+        if f.get("operator") == FilterOperator.TEMPORAL_RANGE
+    ]
+    assert len(temporal_filters) == 1
+    assert temporal_filters[0]["subject"] == "new_column"
+    assert temporal_filters[0]["comparator"] == "Last week"
+    assert "extra_form_data" not in form_data
+
+
+def test_merge_extra_form_data_date_format_with_timestamp_column():
+    """
+    Test that date format time_range (YYYY-MM-DD) works correctly
+    when applied to a timestamp column.
+    """
+    form_data = {
+        "time_range": "2022-01-22 : 2025-01-22",
+        "adhoc_filters": [],
+        "extra_form_data": {
+            "granularity_sqla": "created_at",
+        },
+    }
+    merge_extra_form_data(form_data)
+
+    assert len(form_data["adhoc_filters"]) == 1
+    temporal_filter = form_data["adhoc_filters"][0]
+    assert temporal_filter["operator"] == FilterOperator.TEMPORAL_RANGE
+    assert temporal_filter["subject"] == "created_at"
+    assert temporal_filter["comparator"] == "2022-01-22 : 2025-01-22"
+    assert temporal_filter["expressionType"] == "SIMPLE"
+    assert "extra_form_data" not in form_data
+
+
+def test_merge_extra_form_data_timestamp_format_with_date_column():
+    """
+    Test that timestamp format time_range (YYYY-MM-DDTHH:MM:SS) works correctly
+    when applied to a date column.
+    """
+    form_data = {
+        "time_range": "2022-01-22T00:00:00 : 2025-01-22T23:59:59",
+        "adhoc_filters": [],
+        "extra_form_data": {
+            "granularity_sqla": "event_date",
+        },
+    }
+    merge_extra_form_data(form_data)
+
+    assert len(form_data["adhoc_filters"]) == 1
+    temporal_filter = form_data["adhoc_filters"][0]
+    assert temporal_filter["operator"] == FilterOperator.TEMPORAL_RANGE
+    assert temporal_filter["subject"] == "event_date"
+    assert temporal_filter["comparator"] == "2022-01-22T00:00:00 : 2025-01-22T23:59:59"
+    assert temporal_filter["expressionType"] == "SIMPLE"
+    assert "extra_form_data" not in form_data
 
 
 def test_merge_request_params_when_url_params_undefined():
