@@ -70,6 +70,8 @@ import ReportModal from 'src/features/reports/ReportModal';
 import { deleteActiveReport } from 'src/features/reports/ReportModal/actions';
 import type { ReportObject } from 'src/features/reports/types';
 import { PageHeaderWithActions } from '@superset-ui/core/components/PageHeaderWithActions';
+import { useDashboardRestore } from 'src/dashboard/contexts/DashboardRestoreContext';
+import { useModalState } from 'src/hooks/useModalState';
 import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import type { RootState, DashboardInfo } from 'src/dashboard/types';
 import DashboardEmbedModal from '../EmbeddedModal';
@@ -552,42 +554,12 @@ const Header = (): ReactElement => {
     onSave: overwriteDashboard,
   });
 
-  const showPropertiesModal = useCallback(() => {
-    setShowingPropertiesModal(true);
-  }, []);
+  const closeSaveVersionModalAndReset = useCallback(() => {
+    closeSaveVersionModal();
+    setSaveVersionDescription('');
+  }, [closeSaveVersionModal]);
 
-  const hidePropertiesModal = useCallback(() => {
-    setShowingPropertiesModal(false);
-  }, []);
-  const showHistoryModal = useCallback(() => {
-    setShowingHistoryModal(true);
-  }, []);
-  const hideHistoryModal = useCallback(() => {
-    setShowingHistoryModal(false);
-  }, []);
-  const showRefreshModal = useCallback(() => {
-    setShowingRefreshModal(true);
-  }, []);
-  const hideRefreshModal = useCallback(() => {
-    setShowingRefreshModal(false);
-  }, []);
-
-  const showEmbedModal = useCallback(() => {
-    setShowingEmbedModal(true);
-  }, []);
-
-  const hideEmbedModal = useCallback(() => {
-    setShowingEmbedModal(false);
-  }, []);
-
-  const showReportModal = useCallback(() => {
-    setShowingReportModal(true);
-  }, []);
-
-  const hideReportModal = useCallback(() => {
-    setShowingReportModal(false);
-  }, []);
-
+  const onDashboardRestored = useDashboardRestore();
   const metadataBar = useDashboardMetadataBar(dashboardInfo);
 
   const userCanEdit =
@@ -770,7 +742,7 @@ const Header = (): ReactElement => {
                   buttonSize="small"
                   disabled={!hasUnsavedChanges}
                   buttonStyle="primary"
-                  onClick={() => setShowSaveVersionModal(true)}
+                  onClick={openSaveVersionModal}
                   data-test="header-save-button"
                   aria-label={t('Save')}
                 >
@@ -915,25 +887,20 @@ const Header = (): ReactElement => {
           dashboardId={dashboardInfo.id}
           show={showingHistoryModal}
           onHide={hideHistoryModal}
+          onRestore={onDashboardRestored}
           addSuccessToast={boundActionCreators.addSuccessToast}
           addDangerToast={boundActionCreators.addDangerToast}
         />
       )}
       <Modal
         show={showSaveVersionModal}
-        onHide={() => {
-          setShowSaveVersionModal(false);
-          setSaveVersionDescription('');
-        }}
+        onHide={closeSaveVersionModalAndReset}
         title={t('Save version')}
         footer={
           <>
             <Button
               buttonStyle="secondary"
-              onClick={() => {
-                setShowSaveVersionModal(false);
-                setSaveVersionDescription('');
-              }}
+              onClick={closeSaveVersionModalAndReset}
             >
               {t('Cancel')}
             </Button>
@@ -942,8 +909,7 @@ const Header = (): ReactElement => {
               data-test="save-version-modal-save-button"
               onClick={() => {
                 overwriteDashboard(saveVersionDescription);
-                setShowSaveVersionModal(false);
-                setSaveVersionDescription('');
+                closeSaveVersionModalAndReset();
               }}
             >
               {t('Save')}
