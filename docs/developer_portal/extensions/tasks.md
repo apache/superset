@@ -26,6 +26,25 @@ under the License.
 
 The Global Task Framework (GTF) provides a unified way to manage background tasks. It handles task execution, progress tracking, cancellation, and deduplication for both synchronous and asynchronous execution. The framework uses distributed locking internally to ensure race-free operations—you don't need to worry about concurrent task creation or cancellation conflicts.
 
+## Enabling GTF
+
+GTF is disabled by default and must be enabled via the `GLOBAL_TASK_FRAMEWORK` feature flag in your `superset_config.py`:
+
+```python
+FEATURE_FLAGS = {
+    "GLOBAL_TASK_FRAMEWORK": True,
+}
+```
+
+When GTF is disabled:
+- The Task List UI menu item is hidden
+- The `/api/v1/task/*` endpoints return 404
+- Using the `@task` decorator raises `GlobalTaskFrameworkDisabledError` at decoration time
+
+:::note Future Migration
+When GTF is considered stable, it will replace legacy Celery tasks for built-in features like thumbnails and alerts & reports. Enabling this flag prepares your deployment for that migration.
+:::
+
 ## Quick Start
 
 ### Define a Task

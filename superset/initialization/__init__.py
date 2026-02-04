@@ -186,7 +186,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.sqllab.api import SqlLabRestApi
         from superset.sqllab.permalink.api import SqlLabPermalinkRestApi
         from superset.tags.api import TagRestApi
-        from superset.tasks.api import TaskRestApi
         from superset.themes.api import ThemeRestApi
         from superset.views.alerts import AlertView, ReportView
         from superset.views.all_entities import TaggedObjectsModelView
@@ -240,7 +239,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(AnnotationRestApi)
         appbuilder.add_api(AnnotationLayerRestApi)
         appbuilder.add_api(AsyncEventsRestApi)
-        appbuilder.add_api(TaskRestApi)
         appbuilder.add_api(AdvancedDataTypeRestApi)
         appbuilder.add_api(AvailableDomainsRestApi)
         appbuilder.add_api(CacheRestApi)
@@ -277,6 +275,11 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             from superset.extensions.api import ExtensionsRestApi
 
             appbuilder.add_api(ExtensionsRestApi)
+
+        if feature_flag_manager.is_feature_enabled("GLOBAL_TASK_FRAMEWORK"):
+            from superset.tasks.api import TaskRestApi
+
+            appbuilder.add_api(TaskRestApi)
 
         #
         # Setup regular views
@@ -418,6 +421,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             icon="fa-clock-o",
             category="Manage",
             category_label=_("Manage"),
+            menu_cond=lambda: feature_flag_manager.is_feature_enabled(
+                "GLOBAL_TASK_FRAMEWORK"
+            ),
         )
 
         #
@@ -943,9 +949,10 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
     def configure_task_manager(self) -> None:
         """Initialize the TaskManager for GTF realtime notifications."""
-        from superset.tasks.manager import TaskManager
+        if feature_flag_manager.is_feature_enabled("GLOBAL_TASK_FRAMEWORK"):
+            from superset.tasks.manager import TaskManager
 
-        TaskManager.init_app(self.superset_app)
+            TaskManager.init_app(self.superset_app)
 
     def register_blueprints(self) -> None:
         # Register custom blueprints from config

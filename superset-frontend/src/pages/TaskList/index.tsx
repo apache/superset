@@ -17,7 +17,11 @@
  * under the License.
  */
 
-import { SupersetClient } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  isFeatureEnabled,
+  SupersetClient,
+} from '@superset-ui/core';
 import { t, useTheme } from '@apache-superset/core';
 import { useMemo, useCallback, useState } from 'react';
 import { Tooltip, Label, Modal, Checkbox } from '@superset-ui/core/components';
@@ -72,6 +76,33 @@ interface TaskListProps {
 
 function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
   const theme = useTheme();
+
+  // Check if GTF feature flag is enabled
+  if (!isFeatureEnabled(FeatureFlag.GlobalTaskFramework)) {
+    return (
+      <>
+        <SubMenu name={t('Tasks')} />
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: '50vh',
+            color: theme.colorTextSecondary,
+          }}
+        >
+          <h3>{t('Feature Not Enabled')}</h3>
+          <p>
+            {t(
+              'The Global Task Framework is not enabled. Please contact your administrator to enable the GLOBAL_TASK_FRAMEWORK feature flag.',
+            )}
+          </p>
+        </div>
+      </>
+    );
+  }
+
   const {
     state: { loading, resourceCount: tasksCount, resourceCollection: tasks },
     fetchData,

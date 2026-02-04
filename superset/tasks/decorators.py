@@ -24,6 +24,7 @@ from typing import Any, Callable, cast, Generic, ParamSpec, TYPE_CHECKING, TypeV
 
 from superset_core.api.tasks import TaskOptions, TaskScope, TaskStatus
 
+from superset import is_feature_enabled
 from superset.tasks.ambient_context import use_context
 from superset.tasks.constants import TERMINAL_STATES
 from superset.tasks.context import TaskContext
@@ -109,6 +110,14 @@ def task(
     """
 
     def decorator(f: Callable[P, R]) -> "TaskWrapper[P]":
+        # Check feature flag at decoration time
+        if not is_feature_enabled("GLOBAL_TASK_FRAMEWORK"):
+            from superset.commands.tasks.exceptions import (
+                GlobalTaskFrameworkDisabledError,
+            )
+
+            raise GlobalTaskFrameworkDisabledError()
+
         # Use function name if no name provided
         task_name = name if name is not None else f.__name__
 
