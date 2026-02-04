@@ -11,11 +11,6 @@ parameters:
     displayName: Docker Agent Pool
     default: 'Linux-Hosted'
 
-  - name: deployPool
-    type: string
-    displayName: Deployment Agent Pool
-    default: 'Linux-Hosted'
-
   - name: cleanBuild
     type: boolean
     default: false
@@ -153,8 +148,6 @@ stages:
   jobs:
     - deployment: DeploySuperset
       displayName: Deploy Superset to ${{ parameters.targetEnvironment }}
-      pool:
-        name: ${{ parameters.deployPool }}
       environment:
         name: ${{ parameters.targetEnvironment }}
         resourceType: VirtualMachine
