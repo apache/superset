@@ -16,9 +16,7 @@ This page describes how to install Superset using the `apache_superset` package 
 
 ## OS Dependencies
 
-Superset stores database connection information in its metadata database. For that purpose, we use
-the cryptography Python library to encrypt connection passwords. Unfortunately, this library has OS
-level dependencies.
+Superset uses the `cryptography` Python library to encrypt database connection passwords. This library requires the installation of OS-level dependencies.
 
 **Debian and Ubuntu**
 
@@ -106,8 +104,6 @@ We highly recommend installing Superset inside of a virtual environment.
 You can create and activate a virtual environment using the following commands. Ensure you are using a compatible version of python. You might have to explicitly use for example `python3.11` instead of `python3`.
 
 ```bash
-# virtualenv is shipped in Python 3.6+ as venv instead of pyvenv.
-# See https://docs.python.org/3.6/library/venv.html
 python3 -m venv venv
 . venv/bin/activate
 ```
@@ -120,7 +116,7 @@ pyenv virtualenv superset
 pyenv activate superset
 ```
 
-Once you activated your virtual environment, all of the Python packages you install or uninstall
+While your virtual environment is activated, all of the Python packages you install or uninstall
 will be confined to this environment. You can exit the environment by running `deactivate` on the
 command line.
 
@@ -138,15 +134,39 @@ export SUPERSET_SECRET_KEY=YOUR-SECRET-KEY # For production use, make sure this 
 export FLASK_APP=superset
 ```
 
-Then, you need to initialize the database:
+Superset configurations are stored in a file.  One of these configurations, a `SECRET_KEY`, is required for the application to start. Create your config file:
+```
+touch superset/superset_config.py
+```
+And make this file findable by adding its path as an environment variable:
+```
+export SUPERSET_CONFIG_PATH=superset/superset_config.py
+```
+Note that this stores the path in the environment only temporarily.  If you wish for this to persist through reboots, permanently set this environment variable by [adding it to your `~/.profile` file](https://unix.stackexchange.com/questions/117467/how-to-permanently-set-environmental-variables).
 
-```bash
+Now generate a strong value for `SECRET_KEY` and write it to your config file:
+```
+echo "SECRET_KEY='$(openssl rand -base64 42)'" | tee -a superset/superset_config.py
+```
+Do not lose this key. Consider maintaining a secure backup of your `superset_config.py` file.
+
+You could also tell Superset where to store its metadata - that is, what charts, dashboards, etc. have been created.  By default, this is a SQLite database at the filepath `~/.superset/superset.db`.
+
+In a production setup, you would change this to point to, for example, a PostgreSQL database that gets backed up.  You change this by specifying a new value in `superset_config.py` for the variable `SQLALCHEMY_DATABASE_URI`.
+
+Set an environment variable so that `superset` commands will work in the terminal. As above, this is temporary, and can be set to persist by adding it to your `~/.profile`.
+```
+
+export FLASK_APP=superset
+```
+
+Now initialize the database:
+```
 superset db upgrade
 ```
 
 Finish installing by running through the following commands:
-
-```bash
+```
 # Create an admin user in your metadata database (use `admin` as username to be able to load the examples)
 superset fab create-admin
 
@@ -162,3 +182,5 @@ superset run -p 8088 --with-threads --reload --debugger
 
 If everything worked, you should be able to navigate to `hostname:port` in your browser (e.g.
 locally by default at `localhost:8088`) and login using the username and password you created.
+
+Next see [Configuring Superset](/docs/configuration/configuring-superset) and further set up your instance.
