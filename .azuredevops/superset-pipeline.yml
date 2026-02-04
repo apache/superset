@@ -355,11 +355,9 @@ stages:
                 displayName: Load Deployment Variables
 
               - pwsh: |
-                  Write-Host "DOCKER_INITDB_DIR will use relative path (docker-compose default)"
-                  Write-Host "The relative path './docker/docker-entrypoint-initdb.d' resolves from docker-compose working directory"
-                  Write-Host "This ensures init scripts work on both Windows and Linux deployment targets"
-                  # DO NOT set DOCKER_INITDB_DIR to absolute path - it breaks on cross-platform deployments
-                  # Absolute path from pipeline agent doesn't exist on deployment VM
+                  Write-Host "Setting DOCKER_INITDB_DIR to workspace path..."
+                  Write-Host "##vso[task.setvariable variable=DOCKER_INITDB_DIR]$(Pipeline.Workspace)/s/docker/docker-entrypoint-initdb.d"
+                  Write-Host "✓ DOCKER_INITDB_DIR set to: $(Pipeline.Workspace)/s/docker/docker-entrypoint-initdb.d"
                 displayName: Set Docker InitDB Directory Path
 
               # -------------------------------------
@@ -374,10 +372,10 @@ stages:
                   Write-Host "  SUPERSET_ADMIN_USER: '$(SUPERSET_ADMIN_USER)'"
                   Write-Host "  SUPERSET_PORT: '$(SUPERSET_PORT)'"
                   Write-Host "  DOCKER_NETWORK: '$(DOCKER_NETWORK)'"
-                  Write-Host "  DOCKER_INITDB_DIR: (not set - using docker-compose default relative path)"
+                  Write-Host "  DOCKER_INITDB_DIR: '$(DOCKER_INITDB_DIR)'"
                   Write-Host ""
                   Write-Host "Environment variables in this shell:"
-                  Get-ChildItem Env: | Where-Object { $_.Name -match 'FULL_IMAGE_NAME|SUPERSET|DOCKER_NETWORK' } | ForEach-Object {
+                  Get-ChildItem Env: | Where-Object { $_.Name -match 'FULL_IMAGE_NAME|SUPERSET|DOCKER_NETWORK|DOCKER_INITDB_DIR' } | ForEach-Object {
                     Write-Host "  $($_.Name)=$($_.Value)"
                   }
                   Write-Host ""
@@ -428,9 +426,11 @@ stages:
                     "REDIS_HOST=redis"
                     "REDIS_PORT=6379"
                     "DOCKER_NETWORK=$(DOCKER_NETWORK)"
-                    # DOCKER_INITDB_DIR not set - using docker-compose default relative path
+                    "DOCKER_INITDB_DIR=$(DOCKER_INITDB_DIR)"
                   )
-                  $envContent = $envLines -join [System.Environment]::NewLine
+                  # Use `n (LF) instead of [System.Environment]::NewLine for consistent Unix line endings
+                  # This ensures .env.deploy works correctly on Linux deployment targets
+                  $envContent = $envLines -join "`n"
                   Set-Content -Path ".env.deploy" -Value $envContent -Encoding UTF8NoBOM
                   Write-Host "✓ Created .env.deploy file"
                   Write-Host ""
@@ -464,7 +464,7 @@ stages:
                   Write-Host "  REDIS_HOST: redis"
                   Write-Host "  REDIS_PORT: 6379"
                   Write-Host "  DOCKER_NETWORK: $(DOCKER_NETWORK)"
-                  Write-Host "  DOCKER_INITDB_DIR: (not set - using docker-compose default)"
+                  Write-Host "  DOCKER_INITDB_DIR: $(DOCKER_INITDB_DIR)"
                   Write-Host ""
                   Write-Host "Superset admin credentials:"
                   Write-Host "  SUPERSET_ADMIN_USER: ***configured***"
@@ -540,9 +540,11 @@ stages:
                     "REDIS_HOST=redis"
                     "REDIS_PORT=6379"
                     "DOCKER_NETWORK=$(DOCKER_NETWORK)"
-                    # DOCKER_INITDB_DIR not set - using docker-compose default relative path
+                    "DOCKER_INITDB_DIR=$(DOCKER_INITDB_DIR)"
                   )
-                  $envContent = $envLines -join [System.Environment]::NewLine
+                  # Use `n (LF) instead of [System.Environment]::NewLine for consistent Unix line endings
+                  # This ensures .env.deploy works correctly on Linux deployment targets
+                  $envContent = $envLines -join "`n"
                   Set-Content -Path ".env.deploy" -Value $envContent -Encoding UTF8NoBOM
                   Write-Host "✓ Created .env.deploy file"
                   Write-Host ""
