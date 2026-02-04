@@ -352,14 +352,16 @@ stages:
                     Write-Host "✓ OEE database credentials set as pipeline variables"
 
                     # Set OEE database connection details
-                    $oeeDbHost = if ($pg.host) { $pg.host } else { "oee-postgres" }
-                    $oeeDbPort = if ($pg.port) { $pg.port } else { "5432" }
+                    # Note: Superset runs inside Docker network, so use Docker hostname
+                    # not external host/port from client config
+                    $oeeDbHost = "oee-postgres"
+                    $oeeDbPort = "5432"
                     $oeeDbName = if ($pg.database) { $pg.database } else { "oeeintellisuite" }
 
                     Write-Host "##vso[task.setvariable variable=OEE_DB_HOST]$oeeDbHost"
                     Write-Host "##vso[task.setvariable variable=OEE_DB_PORT]$oeeDbPort"
                     Write-Host "##vso[task.setvariable variable=OEE_DB_NAME]$oeeDbName"
-                    Write-Host "✓ OEE database connection details set"
+                    Write-Host "✓ OEE database connection details set (using Docker network hostname)"
 
                     # Docker network
                     Write-Host "Setting Docker network..."
