@@ -330,10 +330,16 @@ stages:
               # -------------------------------------
               # Load deployment artifact
               # -------------------------------------
-              - bash: |
-                  source $(Pipeline.Workspace)/$(artifactName)/deployment.env
-                  echo "##vso[task.setvariable variable=FULL_IMAGE_NAME]$FULL_IMAGE_NAME"
-                  echo "Using image: $FULL_IMAGE_NAME"
+              - pwsh: |
+                  $envFile = "$(Pipeline.Workspace)/$(artifactName)/deployment.env"
+                  Get-Content $envFile | ForEach-Object {
+                    if ($_ -match '^FULL_IMAGE_NAME=(.+)$') {
+                      $imageName = $Matches[1]
+                      Write-Host "Setting FULL_IMAGE_NAME=$imageName"
+                      Write-Host "##vso[task.setvariable variable=FULL_IMAGE_NAME]$imageName"
+                      Write-Host "Using image: $imageName"
+                    }
+                  }
                 displayName: Load Deployment Variables
 
               - bash: |
