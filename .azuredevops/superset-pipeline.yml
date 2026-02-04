@@ -175,21 +175,24 @@ stages:
                   Write-Host "=== END DEBUG ==="
                 displayName: Set Working Directory
 
-              - bash: |
-                  echo "=== Validating deployment workspace ==="
-                  echo "Pipeline.Workspace: $(Pipeline.Workspace)"
-                  echo ""
-                  echo "Checking docker-entrypoint-initdb.d..."
-                  if [ -d "$(Pipeline.Workspace)/s/docker/docker-entrypoint-initdb.d" ]; then
-                    echo "✓ docker-entrypoint-initdb.d exists"
-                    ls -la "$(Pipeline.Workspace)/s/docker/docker-entrypoint-initdb.d"
-                  else
-                    echo "✗ docker-entrypoint-initdb.d NOT found at $(Pipeline.Workspace)/s/docker/"
-                    echo "Available directories in workspace root:"
-                    ls -la "$(Pipeline.Workspace)/s/"
+              - pwsh: |
+                  Write-Host "=== Validating deployment workspace ==="
+                  Write-Host "Pipeline.Workspace: $(Pipeline.Workspace)"
+                  Write-Host ""
+                  Write-Host "Checking docker-entrypoint-initdb.d..."
+
+                  $initDbDir = "$(Pipeline.Workspace)/s/docker/docker-entrypoint-initdb.d"
+
+                  if (Test-Path $initDbDir) {
+                    Write-Host "✓ docker-entrypoint-initdb.d exists"
+                    Get-ChildItem -Force $initDbDir
+                  } else {
+                    Write-Host "✗ docker-entrypoint-initdb.d NOT found at $(Pipeline.Workspace)/s/docker/"
+                    Write-Host "Available directories in workspace root:"
+                    Get-ChildItem -Force "$(Pipeline.Workspace)/s/"
                     exit 1
-                  fi
-                  echo "=== Deployment workspace validation completed ==="
+                  }
+                  Write-Host "=== Deployment workspace validation completed ==="
                 displayName: Validate Deployment Workspace
 
               - download: current
