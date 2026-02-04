@@ -24,7 +24,6 @@ from superset_core.api.tasks import TaskOptions, TaskScope
 
 from superset.tasks.context import TaskContext
 from superset.tasks.decorators import TaskWrapper
-from superset.tasks.manager import TaskManager
 
 # =============================================================================
 # Fixtures
@@ -79,17 +78,17 @@ def mock_task_not_abortable():
 @pytest.fixture
 def task_context_for_timeout(mock_flask_app, mock_task_abortable):
     """Create TaskContext with mocked dependencies for timeout tests."""
-    # Save original TaskManager Redis state and disable it
-    original_redis = TaskManager._redis
-    TaskManager._redis = None
-
     # Ensure mock_task has required attributes for TaskContext
     mock_task_abortable.payload_dict = {}
 
     with (
         patch("superset.tasks.context.current_app") as mock_current_app,
         patch("superset.daos.tasks.TaskDAO") as mock_dao,
+        patch("superset.tasks.manager.cache_manager") as mock_cache_manager,
     ):
+        # Disable Redis by making coordination_cache return None
+        mock_cache_manager.coordination_cache = None
+
         # Configure current_app mock
         mock_current_app.config = mock_flask_app.config
         mock_current_app._get_current_object.return_value = mock_flask_app
@@ -106,9 +105,6 @@ def task_context_for_timeout(mock_flask_app, mock_task_abortable):
         ctx.stop_timeout_timer()
         if ctx._abort_listener:
             ctx.stop_abort_polling()
-
-    # Restore original Redis state
-    TaskManager._redis = original_redis
 
 
 # =============================================================================
@@ -268,9 +264,6 @@ class TestTimeoutTrigger:
         self, mock_flask_app, mock_task_abortable
     ):
         """Test that timeout triggers abort handlers when task is abortable."""
-        original_redis = TaskManager._redis
-        TaskManager._redis = None
-
         abort_called = False
 
         with (
@@ -279,7 +272,11 @@ class TestTimeoutTrigger:
             patch(
                 "superset.commands.tasks.update.UpdateTaskCommand"
             ) as mock_update_cmd,
+            patch("superset.tasks.manager.cache_manager") as mock_cache_manager,
         ):
+            # Disable Redis by making coordination_cache return None
+            mock_cache_manager.coordination_cache = None
+
             mock_current_app.config = mock_flask_app.config
             mock_current_app._get_current_object.return_value = mock_flask_app
             mock_dao.find_one_or_none.return_value = mock_task_abortable
@@ -313,20 +310,19 @@ class TestTimeoutTrigger:
             if ctx._abort_listener:
                 ctx.stop_abort_polling()
 
-        TaskManager._redis = original_redis
-
     def test_timeout_logs_warning_when_not_abortable(
         self, mock_flask_app, mock_task_not_abortable
     ):
         """Test that timeout logs warning when task has no abort handler."""
-        original_redis = TaskManager._redis
-        TaskManager._redis = None
-
         with (
             patch("superset.tasks.context.current_app") as mock_current_app,
             patch("superset.daos.tasks.TaskDAO") as mock_dao,
             patch("superset.tasks.context.logger") as mock_logger,
+            patch("superset.tasks.manager.cache_manager") as mock_cache_manager,
         ):
+            # Disable Redis by making coordination_cache return None
+            mock_cache_manager.coordination_cache = None
+
             mock_current_app.config = mock_flask_app.config
             mock_current_app._get_current_object.return_value = mock_flask_app
             mock_dao.find_one_or_none.return_value = mock_task_not_abortable
@@ -352,22 +348,21 @@ class TestTimeoutTrigger:
             # Cleanup
             ctx.stop_timeout_timer()
 
-        TaskManager._redis = original_redis
-
     def test_timeout_does_not_trigger_if_already_aborting(
         self, mock_flask_app, mock_task_abortable
     ):
         """Test that timeout doesn't re-trigger abort if already aborting."""
-        original_redis = TaskManager._redis
-        TaskManager._redis = None
-
         abort_count = 0
 
         with (
             patch("superset.tasks.context.current_app") as mock_current_app,
             patch("superset.daos.tasks.TaskDAO") as mock_dao,
             patch("superset.commands.tasks.update.UpdateTaskCommand"),
+            patch("superset.tasks.manager.cache_manager") as mock_cache_manager,
         ):
+            # Disable Redis by making coordination_cache return None
+            mock_cache_manager.coordination_cache = None
+
             mock_current_app.config = mock_flask_app.config
             mock_current_app._get_current_object.return_value = mock_flask_app
             mock_dao.find_one_or_none.return_value = mock_task_abortable
@@ -396,8 +391,6 @@ class TestTimeoutTrigger:
             ctx.stop_timeout_timer()
             if ctx._abort_listener:
                 ctx.stop_abort_polling()
-
-        TaskManager._redis = original_redis
 
 
 # =============================================================================
@@ -467,14 +460,15 @@ class TestTimeoutTerminalState:
         self, mock_flask_app, mock_task_abortable
     ):
         """Test that timeout_triggered flag is set when timeout fires."""
-        original_redis = TaskManager._redis
-        TaskManager._redis = None
-
         with (
             patch("superset.tasks.context.current_app") as mock_current_app,
             patch("superset.daos.tasks.TaskDAO") as mock_dao,
             patch("superset.commands.tasks.update.UpdateTaskCommand"),
+            patch("superset.tasks.manager.cache_manager") as mock_cache_manager,
         ):
+            # Disable Redis by making coordination_cache return None
+            mock_cache_manager.coordination_cache = None
+
             mock_current_app.config = mock_flask_app.config
             mock_current_app._get_current_object.return_value = mock_flask_app
             mock_dao.find_one_or_none.return_value = mock_task_abortable
@@ -503,20 +497,19 @@ class TestTimeoutTerminalState:
             if ctx._abort_listener:
                 ctx.stop_abort_polling()
 
-        TaskManager._redis = original_redis
-
     def test_user_abort_does_not_set_timeout_triggered(
         self, mock_flask_app, mock_task_abortable
     ):
         """Test that user abort doesn't set timeout_triggered flag."""
-        original_redis = TaskManager._redis
-        TaskManager._redis = None
-
         with (
             patch("superset.tasks.context.current_app") as mock_current_app,
             patch("superset.daos.tasks.TaskDAO") as mock_dao,
             patch("superset.commands.tasks.update.UpdateTaskCommand"),
+            patch("superset.tasks.manager.cache_manager") as mock_cache_manager,
         ):
+            # Disable Redis by making coordination_cache return None
+            mock_cache_manager.coordination_cache = None
+
             mock_current_app.config = mock_flask_app.config
             mock_current_app._get_current_object.return_value = mock_flask_app
             mock_dao.find_one_or_none.return_value = mock_task_abortable
@@ -540,21 +533,20 @@ class TestTimeoutTerminalState:
             if ctx._abort_listener:
                 ctx.stop_abort_polling()
 
-        TaskManager._redis = original_redis
-
     def test_abort_handlers_completed_tracks_success(
         self, mock_flask_app, mock_task_abortable
     ):
         """Test that abort_handlers_completed flag tracks successful
         handler execution."""
-        original_redis = TaskManager._redis
-        TaskManager._redis = None
-
         with (
             patch("superset.tasks.context.current_app") as mock_current_app,
             patch("superset.daos.tasks.TaskDAO") as mock_dao,
             patch("superset.commands.tasks.update.UpdateTaskCommand"),
+            patch("superset.tasks.manager.cache_manager") as mock_cache_manager,
         ):
+            # Disable Redis by making coordination_cache return None
+            mock_cache_manager.coordination_cache = None
+
             mock_current_app.config = mock_flask_app.config
             mock_current_app._get_current_object.return_value = mock_flask_app
             mock_dao.find_one_or_none.return_value = mock_task_abortable
@@ -579,20 +571,19 @@ class TestTimeoutTerminalState:
             if ctx._abort_listener:
                 ctx.stop_abort_polling()
 
-        TaskManager._redis = original_redis
-
     def test_abort_handlers_completed_false_on_exception(
         self, mock_flask_app, mock_task_abortable
     ):
         """Test that abort_handlers_completed is False when handler throws."""
-        original_redis = TaskManager._redis
-        TaskManager._redis = None
-
         with (
             patch("superset.tasks.context.current_app") as mock_current_app,
             patch("superset.daos.tasks.TaskDAO") as mock_dao,
             patch("superset.commands.tasks.update.UpdateTaskCommand"),
+            patch("superset.tasks.manager.cache_manager") as mock_cache_manager,
         ):
+            # Disable Redis by making coordination_cache return None
+            mock_cache_manager.coordination_cache = None
+
             mock_current_app.config = mock_flask_app.config
             mock_current_app._get_current_object.return_value = mock_flask_app
             mock_dao.find_one_or_none.return_value = mock_task_abortable
@@ -616,5 +607,3 @@ class TestTimeoutTerminalState:
             # Cleanup
             if ctx._abort_listener:
                 ctx.stop_abort_polling()
-
-        TaskManager._redis = original_redis

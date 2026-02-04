@@ -25,7 +25,6 @@ from freezegun import freeze_time
 from superset_core.api.tasks import TaskStatus
 
 from superset.tasks.context import TaskContext
-from superset.tasks.manager import TaskManager
 
 
 @pytest.fixture
@@ -69,15 +68,17 @@ def mock_flask_app():
 @pytest.fixture
 def task_context(mock_task, mock_task_dao, mock_update_command, mock_flask_app):
     """Create TaskContext with mocked dependencies."""
-    # Save original TaskManager Redis state and disable it
-    original_redis = TaskManager._redis
-    TaskManager._redis = None
-
     # Ensure mock_task has properties_dict and payload_dict (TaskContext accesses them)
     mock_task.properties_dict = {"is_abortable": False}
     mock_task.payload_dict = {}
 
-    with patch("superset.tasks.context.current_app") as mock_current_app:
+    with (
+        patch("superset.tasks.context.current_app") as mock_current_app,
+        patch("superset.tasks.manager.cache_manager") as mock_cache_manager,
+    ):
+        # Disable Redis by making coordination_cache return None
+        mock_cache_manager.coordination_cache = None
+
         # Configure current_app mock
         mock_current_app.config = mock_flask_app.config
         mock_current_app._get_current_object.return_value = mock_flask_app
@@ -91,9 +92,6 @@ def task_context(mock_task, mock_task_dao, mock_update_command, mock_flask_app):
         # Cleanup: stop polling if started
         if ctx._abort_listener:
             ctx.stop_abort_polling()
-
-    # Restore original Redis state
-    TaskManager._redis = original_redis
 
 
 class TestTaskStatusEnum:
