@@ -160,17 +160,13 @@ const makeTab = (
   dbId: number,
   catalog: string | null = null,
   schema: string | null = null,
+  closed: boolean = false,
 ): Tab => {
   const panels: Panel[] = []; // TODO: Populate panels
-  return new Tab(
-    id,
-    name,
-    dbId,
-    catalog,
-    schema,
-    () => getEditorAsync(id),
-    panels,
-  );
+  const editorGetter = closed
+    ? () => Promise.reject(new Error(`Tab ${id} has been closed`))
+    : () => getEditorAsync(id);
+  return new Tab(id, name, dbId, catalog, schema, editorGetter, panels);
 };
 
 const getTab = (id: string): Tab | undefined => {
@@ -437,12 +433,14 @@ const onDidCloseTab: typeof sqlLabApi.onDidCloseTab = (
     listener,
     (action: { type: string; queryEditor: QueryEditor }) =>
       // Construct tab from action data since the tab has already been removed from state
+      // Pass closed=true so getEditor() rejects immediately instead of waiting forever
       makeTab(
         action.queryEditor.id,
         action.queryEditor.name ?? '',
         action.queryEditor.dbId ?? 0,
         action.queryEditor.catalog,
         action.queryEditor.schema,
+        true, // closed
       ),
     thisArgs,
   );
@@ -629,11 +627,11 @@ const executeQuery: typeof sqlLabApi.executeQuery = async options => {
     updateTabState = !qe.selectedText;
   }
 
-  // Merge template params
-  const templateParams = options?.templateParams
+  // Merge template parameters
+  const templateParams = options?.templateParameters
     ? JSON.stringify({
         ...JSON.parse(qe.templateParams || '{}'),
-        ...options.templateParams,
+        ...options.templateParameters,
       })
     : qe.templateParams;
 
@@ -667,6 +665,9 @@ const cancelQuery: typeof sqlLabApi.cancelQuery = async (queryId: string) => {
   const query = state.sqlLab.queries[queryId];
 
   if (query) {
+    // Dispatch stopQueryAction to emit STOP_QUERY event for onDidQueryStop listeners
+    store.dispatch(stopQueryAction(query));
+    // Dispatch postStopQuery to send HTTP request to cancel on server
     store.dispatch(postStopQuery(query as any) as any);
   }
 };

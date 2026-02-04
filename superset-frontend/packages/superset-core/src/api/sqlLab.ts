@@ -590,7 +590,7 @@ export interface QueryOptions {
    * Template parameters for Jinja templating.
    * Merged with existing template parameters from the editor.
    */
-  templateParams?: Record<string, unknown>;
+  templateParameters?: Record<string, unknown>;
 
   /**
    * Create Table/View As Select options.
