@@ -144,12 +144,12 @@ const publishDataMask = debounce(
       // it when necessary. We strip any prefix so that history.replace adds it back and doesn't
       // double it up.
       const appRoot = applicationRoot();
-      let replacement_pathname = window.location.pathname;
-      if (appRoot !== '/' && replacement_pathname.startsWith(appRoot)) {
-        replacement_pathname = replacement_pathname.substring(appRoot.length);
+      let replacementPathname = window.location.pathname;
+      if (appRoot !== '/' && replacementPathname.startsWith(appRoot)) {
+        replacementPathname = replacementPathname.substring(appRoot.length);
       }
-      history.location.pathname = replacement_pathname;
       history.replace({
+        pathname: replacementPathname,
         search: newParams.toString(),
       });
     }
@@ -506,6 +506,7 @@ const FilterBar: FC<FiltersBarProps> = ({
     dataMaskSelected,
     dataMaskApplied,
     filtersInScope.filter(isNativeFilter),
+    nativeFilterValues,
   );
 
   const isApplyDisabled =

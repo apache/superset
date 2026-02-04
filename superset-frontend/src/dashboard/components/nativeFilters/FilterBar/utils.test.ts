@@ -414,5 +414,181 @@ describe('FilterBar Utils - Validation and Apply Logic', () => {
         checkIsApplyDisabled(dataMaskSelected, dataMaskApplied, filters),
       ).toBe(false);
     });
+
+    test('should return true when out-of-scope required filter is missing value (allFilters provided)', () => {
+      // Scenario: Clear All was clicked, user selected in-scope filter only
+      // Out-of-scope required filter is still empty
+      const dataMaskSelected: DataMaskStateWithId = {
+        'filter-in-scope': {
+          id: 'filter-in-scope',
+          filterState: {
+            validateStatus: undefined,
+            value: ['CA'],
+          },
+          extraFormData: {
+            filters: [{ col: 'state', op: 'IN', val: ['CA'] }],
+          },
+        },
+        'filter-out-of-scope': {
+          id: 'filter-out-of-scope',
+          filterState: {
+            validateStatus: undefined,
+            value: undefined, // Cleared by Clear All
+          },
+          extraFormData: {},
+        },
+      };
+
+      const dataMaskApplied: DataMaskStateWithId = {
+        'filter-in-scope': {
+          id: 'filter-in-scope',
+          filterState: {
+            value: ['NY'],
+          },
+          extraFormData: {
+            filters: [{ col: 'state', op: 'IN', val: ['NY'] }],
+          },
+        },
+        'filter-out-of-scope': {
+          id: 'filter-out-of-scope',
+          filterState: {
+            value: ['Product A'],
+          },
+          extraFormData: {
+            filters: [{ col: 'product', op: 'IN', val: ['Product A'] }],
+          },
+        },
+      };
+
+      const filtersInScope: Filter[] = [
+        { id: 'filter-in-scope', controlValues: {} } as unknown as Filter,
+      ];
+
+      const allFilters: Filter[] = [
+        { id: 'filter-in-scope', controlValues: {} } as unknown as Filter,
+        {
+          id: 'filter-out-of-scope',
+          controlValues: { enableEmptyFilter: true },
+        } as unknown as Filter, // Required!
+      ];
+
+      // Without allFilters: should return false (changes detected, no in-scope required missing)
+      expect(
+        checkIsApplyDisabled(dataMaskSelected, dataMaskApplied, filtersInScope),
+      ).toBe(false);
+
+      // With allFilters: should return true (out-of-scope required filter missing)
+      expect(
+        checkIsApplyDisabled(
+          dataMaskSelected,
+          dataMaskApplied,
+          filtersInScope,
+          allFilters,
+        ),
+      ).toBe(true);
+    });
+
+    test('should allow apply when out-of-scope non-required filter is cleared', () => {
+      const dataMaskSelected: DataMaskStateWithId = {
+        'filter-in-scope': {
+          id: 'filter-in-scope',
+          filterState: {
+            validateStatus: undefined,
+            value: ['CA'],
+          },
+          extraFormData: {
+            filters: [{ col: 'state', op: 'IN', val: ['CA'] }],
+          },
+        },
+        'filter-out-of-scope': {
+          id: 'filter-out-of-scope',
+          filterState: {
+            validateStatus: undefined,
+            value: undefined,
+          },
+          extraFormData: {},
+        },
+      };
+
+      const dataMaskApplied: DataMaskStateWithId = {
+        'filter-in-scope': {
+          id: 'filter-in-scope',
+          filterState: {
+            value: ['NY'],
+          },
+          extraFormData: {
+            filters: [{ col: 'state', op: 'IN', val: ['NY'] }],
+          },
+        },
+        'filter-out-of-scope': {
+          id: 'filter-out-of-scope',
+          filterState: {
+            value: ['Product A'],
+          },
+          extraFormData: {
+            filters: [{ col: 'product', op: 'IN', val: ['Product A'] }],
+          },
+        },
+      };
+
+      const filtersInScope: Filter[] = [
+        { id: 'filter-in-scope', controlValues: {} } as unknown as Filter,
+      ];
+
+      const allFilters: Filter[] = [
+        { id: 'filter-in-scope', controlValues: {} } as unknown as Filter,
+        {
+          id: 'filter-out-of-scope',
+          controlValues: { enableEmptyFilter: false },
+        } as unknown as Filter, // NOT required
+      ];
+
+      // Should return false (apply enabled) - non-required filters can be cleared
+      expect(
+        checkIsApplyDisabled(
+          dataMaskSelected,
+          dataMaskApplied,
+          filtersInScope,
+          allFilters,
+        ),
+      ).toBe(false);
+    });
+
+    test('should maintain backward compatibility when allFilters not provided', () => {
+      // Existing behavior should not change when allFilters is not passed
+      const dataMaskSelected: DataMaskStateWithId = {
+        'filter-1': {
+          id: 'filter-1',
+          filterState: {
+            validateStatus: undefined,
+            value: ['CA'],
+          },
+          extraFormData: {
+            filters: [{ col: 'state', op: 'IN', val: ['CA'] }],
+          },
+        },
+      };
+
+      const dataMaskApplied: DataMaskStateWithId = {
+        'filter-1': {
+          id: 'filter-1',
+          filterState: {
+            value: ['NY'],
+          },
+          extraFormData: {
+            filters: [{ col: 'state', op: 'IN', val: ['NY'] }],
+          },
+        },
+      };
+
+      const filters: Filter[] = [
+        { id: 'filter-1', controlValues: {} } as unknown as Filter,
+      ];
+
+      // Should work without the new parameter (backward compatible)
+      expect(
+        checkIsApplyDisabled(dataMaskSelected, dataMaskApplied, filters),
+      ).toBe(false);
+    });
   });
 });
