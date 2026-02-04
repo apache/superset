@@ -30,6 +30,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
 import UserInfo from 'src/pages/UserInfo';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
@@ -64,7 +65,7 @@ describe('UserInfo', () => {
     act(async () => {
       render(
         <MemoryRouter>
-          <QueryParamProvider>
+          <QueryParamProvider adapter={ReactRouter5Adapter}>
             <UserInfo user={mockUser} />
           </QueryParamProvider>
         </MemoryRouter>,
@@ -73,7 +74,7 @@ describe('UserInfo', () => {
     });
 
   beforeEach(() => {
-    fetchMock.restore();
+    fetchMock.clearHistory().removeRoutes();
     fetchMock.get(meEndpoint, {
       result: {
         ...mockUser,
@@ -84,7 +85,7 @@ describe('UserInfo', () => {
   });
 
   afterEach(() => {
-    fetchMock.restore();
+    fetchMock.clearHistory().removeRoutes();
   });
 
   test('renders the user info page', async () => {
@@ -105,7 +106,7 @@ describe('UserInfo', () => {
   test('calls the /me endpoint on mount', async () => {
     await renderPage();
     await waitFor(() => {
-      expect(fetchMock.called(meEndpoint)).toBe(true);
+      expect(fetchMock.callHistory.called(meEndpoint)).toBe(true);
     });
   });
 
