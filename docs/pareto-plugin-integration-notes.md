@@ -58,6 +58,13 @@ Copied all source files from `react-pareto-chart-plugin-superset`:
 
 After building and deploying Superset, the Pareto chart will be available in the chart type selector.
 
+### Verification Status
+
+| Environment | Version | Status | Date |
+|-------------|---------|--------|------|
+| blue-dev | Superset 5.0.0 | ✅ Working | 2026-01-30 |
+| Production | TBD | Pending | TBD |
+
 ### Testing the Plugin
 
 1. Build frontend:
