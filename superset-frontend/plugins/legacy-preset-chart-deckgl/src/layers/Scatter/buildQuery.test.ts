@@ -212,20 +212,27 @@ test('Scatter buildQuery should handle js_columns', () => {
   expect(query.columns).toContain('custom_col2');
 });
 
-test('Scatter buildQuery should convert numeric metric value to string', () => {
+test('Scatter buildQuery should handle adhoc SQL metric for point_radius_fixed', () => {
+  const adhocMetric = {
+    label: 'count(*) * 1.1',
+    expressionType: 'SQL' as const,
+    sqlExpression: 'count(*) * 1.1',
+  };
   const formData: DeckScatterFormData = {
     ...baseFormData,
     point_radius_fixed: {
       type: 'metric',
-      value: 123, // numeric metric (edge case)
+      value: adhocMetric,
     },
   };
 
   const queryContext = buildQuery(formData);
   const [query] = queryContext.queries;
 
-  expect(query.metrics).toContain('123');
-  expect(query.orderby).toEqual([['123', false]]);
+  // Should preserve full adhoc metric object (not just the label string)
+  expect(query.metrics).toContainEqual(adhocMetric);
+  // orderby should use the label string
+  expect(query.orderby).toEqual([['count(*) * 1.1', false]]);
 });
 
 test('Scatter buildQuery should set is_timeseries to false', () => {
@@ -309,4 +316,108 @@ test('Scatter buildQuery should deduplicate metrics when radius metric already e
   // Should not have duplicate AVG(price)
   expect(query.metrics).toEqual(['COUNT(*)', 'AVG(price)']);
   expect(query.metrics).toHaveLength(2);
+});
+
+// Comprehensive point_radius_fixed tests to prevent regressions
+test('Scatter buildQuery should handle adhoc SIMPLE metric for point_radius_fixed', () => {
+  const adhocMetric = {
+    label: 'AVG(population)',
+    expressionType: 'SIMPLE' as const,
+    column: { column_name: 'population' },
+    aggregate: 'AVG' as const,
+  };
+  const formData: DeckScatterFormData = {
+    ...baseFormData,
+    point_radius_fixed: {
+      type: 'metric',
+      value: adhocMetric,
+    },
+  };
+
+  const queryContext = buildQuery(formData);
+  const [query] = queryContext.queries;
+
+  // Should preserve full adhoc metric object
+  expect(query.metrics).toContainEqual(adhocMetric);
+  expect(query.orderby).toEqual([['AVG(population)', false]]);
+});
+
+test('Scatter buildQuery should deduplicate adhoc metrics with same label', () => {
+  const adhocMetric = {
+    label: 'custom_count',
+    expressionType: 'SQL' as const,
+    sqlExpression: 'count(*) * 2',
+  };
+  const formData: DeckScatterFormData = {
+    ...baseFormData,
+    metrics: [adhocMetric], // Already has this metric
+    point_radius_fixed: {
+      type: 'metric',
+      value: adhocMetric, // Same metric for radius
+    },
+  };
+
+  const queryContext = buildQuery(formData);
+  const [query] = queryContext.queries;
+
+  // Should not duplicate the metric
+  expect(query.metrics).toHaveLength(1);
+  expect(query.metrics).toContainEqual(adhocMetric);
+});
+
+test('Scatter buildQuery should handle fixed type with string value correctly', () => {
+  const formData: DeckScatterFormData = {
+    ...baseFormData,
+    point_radius_fixed: {
+      type: 'fix',
+      value: '2500',
+    },
+  };
+
+  const queryContext = buildQuery(formData);
+  const [query] = queryContext.queries;
+
+  // Fixed values should NOT be added to metrics
+  expect(query.metrics).toEqual([]);
+  expect(query.orderby).toEqual([]);
+});
+
+test('Scatter buildQuery should handle undefined value in metric type gracefully', () => {
+  const formData: DeckScatterFormData = {
+    ...baseFormData,
+    point_radius_fixed: {
+      type: 'metric',
+      value: undefined,
+    },
+  };
+
+  const queryContext = buildQuery(formData);
+  const [query] = queryContext.queries;
+
+  // Should not add anything when value is undefined
+  expect(query.metrics).toEqual([]);
+  expect(query.orderby).toEqual([]);
+});
+
+test('Scatter buildQuery should preserve adhoc metric with custom label', () => {
+  const adhocMetric = {
+    label: 'My Custom Metric',
+    expressionType: 'SQL' as const,
+    sqlExpression: 'SUM(revenue) / COUNT(*)',
+    hasCustomLabel: true,
+  };
+  const formData: DeckScatterFormData = {
+    ...baseFormData,
+    point_radius_fixed: {
+      type: 'metric',
+      value: adhocMetric,
+    },
+  };
+
+  const queryContext = buildQuery(formData);
+  const [query] = queryContext.queries;
+
+  // Should preserve full metric including hasCustomLabel
+  expect(query.metrics).toContainEqual(adhocMetric);
+  expect(query.orderby).toEqual([['My Custom Metric', false]]);
 });

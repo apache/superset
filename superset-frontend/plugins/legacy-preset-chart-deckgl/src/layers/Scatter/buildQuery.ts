@@ -19,6 +19,8 @@
 import {
   buildQueryContext,
   ensureIsArray,
+  getMetricLabel,
+  QueryFormMetric,
   QueryFormOrderBy,
   SqlaFormData,
   QueryFormColumn,
@@ -31,16 +33,15 @@ import {
 } from '../spatialUtils';
 import {
   addJsColumnsToColumns,
-  processMetricsArray,
   addTooltipColumnsToQuery,
 } from '../buildQueryUtils';
-import { isMetricValue, extractMetricKey } from '../utils/metricUtils';
+import { isMetricValue } from '../utils/metricUtils';
 
 export interface DeckScatterFormData
   extends Omit<SpatialFormData, 'color_picker'>, SqlaFormData {
   point_radius_fixed?: {
     type?: 'fix' | 'metric';
-    value?: string | number;
+    value?: QueryFormMetric;
   };
   multiplier?: number;
   point_unit?: string;
@@ -82,26 +83,29 @@ export default function buildQuery(formData: DeckScatterFormData) {
 
       // Only add metric if point_radius_fixed is a metric type
       const isMetric = isMetricValue(point_radius_fixed);
-      const metricValue = isMetric
-        ? extractMetricKey(point_radius_fixed?.value)
-        : null;
+      // Preserve full metric value (string for saved metrics, object for adhoc)
+      const metricValue = isMetric ? point_radius_fixed?.value : null;
 
       // Preserve existing metrics and only add radius metric if it's metric-based
       const existingMetrics = baseQueryObject.metrics || [];
-      const radiusMetrics = processMetricsArray(
-        metricValue ? [metricValue] : [],
+      // Deduplicate metrics using getMetricLabel for comparison
+      const existingLabels = new Set(
+        existingMetrics.map(m => getMetricLabel(m)),
       );
-      // Deduplicate metrics to avoid adding the same metric twice
-      const metricsSet = new Set([...existingMetrics, ...radiusMetrics]);
-      const metrics = Array.from(metricsSet);
+      const metrics =
+        metricValue && !existingLabels.has(getMetricLabel(metricValue))
+          ? [...existingMetrics, metricValue]
+          : [...existingMetrics];
+
       const filters = addSpatialNullFilters(
         spatial,
         ensureIsArray(baseQueryObject.filters || []),
       );
 
+      // orderby needs string label, not the full metric object
       const orderby =
         isMetric && metricValue
-          ? ([[metricValue, false]] as QueryFormOrderBy[])
+          ? ([[getMetricLabel(metricValue), false]] as QueryFormOrderBy[])
           : (baseQueryObject.orderby as QueryFormOrderBy[]) || [];
 
       return [
