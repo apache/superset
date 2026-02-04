@@ -9,7 +9,7 @@ param (
 $ErrorActionPreference = "Stop"
 
 Write-Host "=== Updating Superset Database Connection ==="
-Write-Host "Target: $OEE_DB_USER@$OEE_DB_HOST:$OEE_DB_PORT/$OEE_DB_NAME"
+Write-Host "Target: ${OEE_DB_USER}@${OEE_DB_HOST}:${OEE_DB_PORT}/${OEE_DB_NAME}"
 
 # Build the connection string
 $connectionString = "postgresql+psycopg2://${OEE_DB_USER}:${OEE_DB_PASSWORD}@${OEE_DB_HOST}:${OEE_DB_PORT}/${OEE_DB_NAME}"
@@ -29,9 +29,9 @@ docker exec superset_db psql -U superset -d superset -c $sqlUpdate
 if ($LASTEXITCODE -eq 0) {
   Write-Host "✓ Superset database connection updated successfully"
   Write-Host "  Database: oeeintellisuite"
-  Write-Host "  Host: $OEE_DB_HOST"
-  Write-Host "  Port: $OEE_DB_PORT"
-  Write-Host "  User: $OEE_DB_USER"
+  Write-Host "  Host: ${OEE_DB_HOST}"
+  Write-Host "  Port: ${OEE_DB_PORT}"
+  Write-Host "  User: ${OEE_DB_USER}"
   Write-Host "=== Update Complete ==="
 } else {
   Write-Host "✗ Failed to update database connection"
