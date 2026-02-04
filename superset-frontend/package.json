@@ -352,7 +352,7 @@
     "puppeteer": "^22.4.1",
     "remark-gfm": "^3.0.1",
     "underscore": "^1.13.7",
-    "jspdf": "^3.0.1",
+    "jspdf": "^4.0.0",
     "nwsapi": "^2.2.13"
   },
   "readme": "ERROR: No README data found!",
