@@ -1,0 +1,42 @@
+{
+  "manifest_version": 3,
+  "name": "Superset Dashboard Exporter",
+  "version": "1.0.0",
+  "description": "Login to Superset and export dashboards as PDF or configuration files",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting",
+    "contextMenus",
+    "alarms",
+    "downloads",
+    "tabs",
+    "tabCapture",
+    "<all_urls>"
+  ],
+  "host_permissions": [
+    "http://localhost:8088/*",
+    "http://localhost:8089/*",
+    "http://127.0.0.1:8088/*",
+    "http://127.0.0.1:8089/*",
+    "<all_urls>"
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "http://localhost:8088/*",
+        "http://localhost:8089/*",
+        "http://127.0.0.1:8088/*",
+        "http://127.0.0.1:8089/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_end"
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  }
+}
