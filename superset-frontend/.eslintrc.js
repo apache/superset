@@ -273,6 +273,20 @@ module.exports = {
     ],
   },
   overrides: [
+    // Ban JavaScript files in src/ - all new code must be TypeScript
+    {
+      files: ['src/**/*.js', 'src/**/*.jsx'],
+      rules: {
+        'no-restricted-syntax': [
+          'error',
+          {
+            selector: 'Program',
+            message:
+              'JavaScript files are not allowed in src/. Please use TypeScript (.ts/.tsx) instead.',
+          },
+        ],
+      },
+    },
     {
       files: ['*.ts', '*.tsx'],
       parser: '@typescript-eslint/parser',
