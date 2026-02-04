@@ -20,7 +20,7 @@ from __future__ import annotations
 import csv
 from datetime import datetime
 from io import BytesIO, StringIO
-from typing import Any, Generator
+from typing import Any, Generator, List
 
 import pandas as pd
 import pytest
@@ -28,6 +28,8 @@ from flask_appbuilder.security.sqla.models import Role, User
 from werkzeug.datastructures import FileStorage
 
 from superset import db
+from superset.models.onboarding_workflow import OnboardingWorkflow
+from superset.models.user_onboarding_workflow import UserOnboardingWorkflow
 
 
 @pytest.fixture
@@ -97,3 +99,34 @@ def admin_user() -> User:
 def after_each() -> Generator[None, None, None]:
     yield
     db.session.rollback()
+
+
+@pytest.fixture
+def onboarding_workflows() -> List[UserOnboardingWorkflow]:
+    onboarding_workflow = OnboardingWorkflow(
+        name="CREATE_DASHBOARD_WITH_NO_EXISTING_CHART",
+        description="Onboarding workflow for creating a "
+        "dashboard with none existing chart",
+    )
+
+    db.session.add(onboarding_workflow)
+    db.session.flush()
+
+    onboarding_workflow = (
+        db.session.query(OnboardingWorkflow)
+        .filter_by(name="CREATE_DASHBOARD_WITH_NO_EXISTING_CHART")
+        .one()
+    )
+    user = db.session.query(User).filter_by(username="alice_admin").one()
+
+    user_onboarding_workflow = UserOnboardingWorkflow(
+        user_id=user.id,
+        onboarding_workflow_id=onboarding_workflow.id,
+        visited_times=0,
+        should_visit=True,
+    )
+
+    db.session.add(user_onboarding_workflow)
+    db.session.flush()
+
+    return [user_onboarding_workflow]
