@@ -427,9 +427,20 @@ export interface ThemeControllerOptions {
   isGlobalContext?: boolean;
 }
 
+/**
+ * Color blind modes for accessibility support.
+ */
+export type ColorBlindMode =
+  | 'none'
+  | 'protanopia'
+  | 'deuteranopia'
+  | 'tritanopia'
+  | 'achromatopsia';
+
 export interface ThemeContextType {
   theme: Theme;
   themeMode: ThemeMode;
+  colorBlindMode: ColorBlindMode;
   setTheme: (config: AnyThemeConfig) => void;
   setThemeMode: (newMode: ThemeMode) => void;
   resetTheme: () => void;
@@ -442,6 +453,8 @@ export interface ThemeContextType {
   canDetectOSPreference: () => boolean;
   createDashboardThemeProvider: (themeId: string) => Promise<Theme | null>;
   getAppliedThemeId: () => number | null;
+  getColorBlindMode: () => ColorBlindMode;
+  setColorBlindMode: (mode: ColorBlindMode) => void;
 }
 
 /**

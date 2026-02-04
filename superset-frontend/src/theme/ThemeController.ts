@@ -34,11 +34,15 @@ import type {
 } from 'src/types/bootstrapTypes';
 import getBootstrapData from 'src/utils/getBootstrapData';
 
+import type { ColorBlindMode } from '@apache-superset/core/ui';
+import { transformThemeForColorBlindness } from './colorBlindness';
+
 const STORAGE_KEYS = {
   THEME_MODE: 'superset-theme-mode',
   CRUD_THEME_ID: 'superset-crud-theme-id',
   DEV_THEME_OVERRIDE: 'superset-dev-theme-override',
   APPLIED_THEME_ID: 'superset-applied-theme-id',
+  COLOR_BLIND_MODE: 'superset-color-blind-mode',
 } as const;
 
 const MEDIA_QUERY_DARK_SCHEME = '(prefers-color-scheme: dark)';
@@ -102,6 +106,13 @@ export class ThemeController {
   // Track loaded font URLs to avoid duplicate injections
   private loadedFontUrls: Set<string> = new Set();
 
+  // Color blind mode for accessibility
+  private colorBlindMode: ColorBlindMode = 'none';
+
+  // Callbacks for color blind mode changes
+  private onColorBlindModeChangeCallbacks: Set<(mode: ColorBlindMode) => void> =
+    new Set();
+
   constructor({
     storage = new LocalStorageAdapter(),
     modeStorageKey = STORAGE_KEYS.THEME_MODE,
@@ -131,9 +142,10 @@ export class ThemeController {
     if (this.shouldInitializeMediaQueryListener())
       this.initializeMediaQueryListener();
 
-    // Load CRUD theme and dev override from storage
+    // Load CRUD theme, dev override, and color blind mode from storage
     this.loadCrudThemeId();
     this.loadDevThemeOverride();
+    this.loadColorBlindMode();
 
     // Initialize theme and mode
     this.currentMode = this.determineInitialMode();
@@ -475,6 +487,46 @@ export class ThemeController {
   }
 
   /**
+   * Gets the current color blind mode.
+   */
+  public getColorBlindMode(): ColorBlindMode {
+    return this.colorBlindMode;
+  }
+
+  /**
+   * Sets the color blind mode for accessibility.
+   * This transforms theme colors to be more distinguishable for users with color blindness.
+   * @param mode - The color blind mode to apply
+   */
+  public setColorBlindMode(mode: ColorBlindMode): void {
+    if (this.colorBlindMode === mode) return;
+
+    this.colorBlindMode = mode;
+    this.persistColorBlindMode();
+
+    // Re-apply the current theme with the new color blind transformation
+    const currentTheme = this.getThemeForMode(this.currentMode);
+    if (currentTheme) {
+      this.updateTheme(currentTheme);
+    }
+
+    // Notify color blind mode listeners
+    this.notifyColorBlindModeListeners();
+  }
+
+  /**
+   * Registers a callback to be called when the color blind mode changes.
+   * @param callback - The callback to be called on mode change
+   * @returns A function to unsubscribe from the color blind mode change events
+   */
+  public onColorBlindModeChange(
+    callback: (mode: ColorBlindMode) => void,
+  ): () => void {
+    this.onColorBlindModeChangeCallbacks.add(callback);
+    return () => this.onColorBlindModeChangeCallbacks.delete(callback);
+  }
+
+  /**
    * Sets an entire new theme configuration, replacing all existing theme data and settings.
    * This method is designed for use cases like embedded dashboards where themes are provided
    * dynamically from external sources.
@@ -783,7 +835,15 @@ export class ThemeController {
    */
   private applyTheme(theme: AnyThemeConfig): void {
     try {
-      const normalizedConfig = normalizeThemeConfig(theme);
+      let normalizedConfig = normalizeThemeConfig(theme);
+
+      // Apply color blind transformation if a mode is set
+      if (this.colorBlindMode !== 'none') {
+        normalizedConfig = transformThemeForColorBlindness(
+          normalizedConfig,
+          this.colorBlindMode,
+        );
+      }
 
       // Simply apply the theme - it should already be properly merged if needed
       // The merging with base theme happens in getThemeForMode() and other methods
@@ -891,6 +951,54 @@ export class ThemeController {
       console.warn('Failed to load dev theme override:', error);
       this.devThemeOverride = null;
     }
+  }
+
+  /**
+   * Loads the saved color blind mode from storage.
+   */
+  private loadColorBlindMode(): void {
+    try {
+      const stored = this.storage.getItem(STORAGE_KEYS.COLOR_BLIND_MODE);
+      if (
+        stored &&
+        [
+          'none',
+          'protanopia',
+          'deuteranopia',
+          'tritanopia',
+          'achromatopsia',
+        ].includes(stored)
+      ) {
+        this.colorBlindMode = stored as ColorBlindMode;
+      }
+    } catch (error) {
+      console.warn('Failed to load color blind mode:', error);
+      this.colorBlindMode = 'none';
+    }
+  }
+
+  /**
+   * Persists the current color blind mode to storage.
+   */
+  private persistColorBlindMode(): void {
+    try {
+      this.storage.setItem(STORAGE_KEYS.COLOR_BLIND_MODE, this.colorBlindMode);
+    } catch (error) {
+      console.warn('Failed to persist color blind mode:', error);
+    }
+  }
+
+  /**
+   * Notifies all registered listeners about color blind mode changes.
+   */
+  private notifyColorBlindModeListeners(): void {
+    this.onColorBlindModeChangeCallbacks.forEach(callback => {
+      try {
+        callback(this.colorBlindMode);
+      } catch (error) {
+        console.error('Error in color blind mode change callback:', error);
+      }
+    });
   }
 
   /**

@@ -27,6 +27,7 @@ import {
 import {} from '@superset-ui/core';
 import {
   type AnyThemeConfig,
+  type ColorBlindMode,
   type ThemeContextType,
   Theme,
   ThemeMode,
@@ -52,13 +53,26 @@ export function SupersetThemeProvider({
     themeController.getCurrentMode(),
   );
 
+  const [colorBlindMode, setColorBlindModeState] = useState<ColorBlindMode>(
+    themeController.getColorBlindMode(),
+  );
+
   useEffect(() => {
-    const unsubscribe = themeController.onChange(theme => {
+    const unsubscribeTheme = themeController.onChange(theme => {
       setCurrentTheme(theme);
       setCurrentThemeMode(themeController.getCurrentMode());
     });
 
-    return unsubscribe;
+    const unsubscribeColorBlind = themeController.onColorBlindModeChange(
+      mode => {
+        setColorBlindModeState(mode);
+      },
+    );
+
+    return () => {
+      unsubscribeTheme();
+      unsubscribeColorBlind();
+    };
   }, [themeController]);
 
   const setTheme = useCallback(
@@ -123,10 +137,21 @@ export function SupersetThemeProvider({
     [themeController],
   );
 
+  const getColorBlindMode = useCallback(
+    () => themeController.getColorBlindMode(),
+    [themeController],
+  );
+
+  const setColorBlindMode = useCallback(
+    (mode: ColorBlindMode) => themeController.setColorBlindMode(mode),
+    [themeController],
+  );
+
   const contextValue = useMemo(
     () => ({
       theme: currentTheme,
       themeMode: currentThemeMode,
+      colorBlindMode,
       setTheme,
       setThemeMode,
       resetTheme,
@@ -139,10 +164,13 @@ export function SupersetThemeProvider({
       canDetectOSPreference,
       createDashboardThemeProvider,
       getAppliedThemeId,
+      getColorBlindMode,
+      setColorBlindMode,
     }),
     [
       currentTheme,
       currentThemeMode,
+      colorBlindMode,
       setTheme,
       setThemeMode,
       resetTheme,
@@ -155,6 +183,8 @@ export function SupersetThemeProvider({
       canDetectOSPreference,
       createDashboardThemeProvider,
       getAppliedThemeId,
+      getColorBlindMode,
+      setColorBlindMode,
     ],
   );
 

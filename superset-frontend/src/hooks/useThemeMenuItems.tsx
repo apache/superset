@@ -20,7 +20,11 @@ import { useMemo } from 'react';
 import { Icons, Tooltip } from '@superset-ui/core/components';
 import type { MenuItem } from '@superset-ui/core/components/Menu';
 import { t } from '@apache-superset/core';
-import { ThemeMode, ThemeAlgorithm } from '@apache-superset/core/ui';
+import {
+  ThemeMode,
+  ThemeAlgorithm,
+  type ColorBlindMode,
+} from '@apache-superset/core/ui';
 import { NAVBAR_MENU_POPUP_OFFSET } from 'src/features/home/commonMenuData';
 
 export interface ThemeSubMenuOption {
@@ -36,7 +40,22 @@ export interface ThemeSubMenuProps {
   hasLocalOverride?: boolean;
   onClearLocalSettings?: () => void;
   allowOSPreference?: boolean;
+  colorBlindMode?: ColorBlindMode;
+  setColorBlindMode?: (mode: ColorBlindMode) => void;
 }
+
+interface ColorBlindOption {
+  key: ColorBlindMode;
+  label: string;
+}
+
+const colorBlindOptions: ColorBlindOption[] = [
+  { key: 'none', label: 'None' },
+  { key: 'protanopia', label: 'Protanopia (Red-blind)' },
+  { key: 'deuteranopia', label: 'Deuteranopia (Green-blind)' },
+  { key: 'tritanopia', label: 'Tritanopia (Blue-blind)' },
+  { key: 'achromatopsia', label: 'Achromatopsia (Grayscale)' },
+];
 
 export const useThemeMenuItems = ({
   setThemeMode,
@@ -44,9 +63,15 @@ export const useThemeMenuItems = ({
   hasLocalOverride = false,
   onClearLocalSettings,
   allowOSPreference = true,
+  colorBlindMode = 'none',
+  setColorBlindMode,
 }: ThemeSubMenuProps): MenuItem => {
   const handleSelect = (mode: ThemeMode) => {
     setThemeMode(mode);
+  };
+
+  const handleColorBlindSelect = (mode: ColorBlindMode) => {
+    setColorBlindMode?.(mode);
   };
 
   const themeIconMap: Record<ThemeAlgorithm | ThemeMode, React.ReactNode> =
@@ -124,12 +149,55 @@ export const useThemeMenuItems = ({
     });
   }
 
+  // Build color vision submenu items
+  const getColorVisionIcon = (key: ColorBlindMode) => {
+    switch (key) {
+      case 'none':
+        return <Icons.CheckCircleOutlined />;
+      case 'achromatopsia':
+        return <Icons.EyeInvisibleOutlined />;
+      default:
+        return <Icons.EyeOutlined />;
+    }
+  };
+
+  const colorVisionSubmenuItems: MenuItem[] = colorBlindOptions.map(option => ({
+    key: option.key,
+    label: (
+      <>
+        {getColorVisionIcon(option.key)} {t(option.label)}
+        {colorBlindMode === option.key && (
+          <Icons.CheckOutlined style={{ marginLeft: 8 }} />
+        )}
+      </>
+    ),
+    onClick: () => handleColorBlindSelect(option.key),
+  }));
+
+  // Add Color Vision submenu to theme options
+  const themeOptionsWithColorVision: MenuItem[] = [
+    ...themeGroupOptions,
+    {
+      type: 'divider' as const,
+      key: 'color-vision-divider',
+    },
+    {
+      key: 'color-vision-submenu',
+      label: (
+        <>
+          <Icons.EyeOutlined /> {t('Color Vision')}
+        </>
+      ),
+      children: colorVisionSubmenuItems,
+    },
+  ];
+
   const children: MenuItem[] = [
     {
       type: 'group' as const,
       label: t('Theme'),
       key: 'theme-group',
-      children: themeGroupOptions,
+      children: themeOptionsWithColorVision,
     },
   ];
 

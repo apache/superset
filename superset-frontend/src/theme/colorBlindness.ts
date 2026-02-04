@@ -25,9 +25,6 @@
  * "A physiologically-based model for simulation of color vision deficiency."
  * IEEE Transactions on Visualization and Computer Graphics.
  *
- * The Machado algorithm provides more physiologically accurate simulations
- * than earlier approaches by modeling the actual spectral response shifts
- * in anomalous cone photopigments.
  */
 
 import type { ColorBlindMode } from '@apache-superset/core/ui';
@@ -39,9 +36,6 @@ export type { ColorBlindMode };
  * Transformation matrices for color blindness simulation.
  * These matrices transform RGB colors to simulate how they appear
  * to people with different types of color blindness.
- *
- * Based on Machado et al. (2009) at 100% severity (complete dichromacy).
- * These are the same values used by Chrome DevTools.
  */
 
 // Protanopia: Red cone deficiency (~1% of males)

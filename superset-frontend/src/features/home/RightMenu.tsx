@@ -156,8 +156,9 @@ const RightMenu = ({
     themeMode,
     clearLocalOverrides,
     hasDevOverride,
-    canSetMode,
     canDetectOSPreference,
+    colorBlindMode,
+    setColorBlindMode,
   } = useThemeContext();
   const dropdownItems: MenuObjectProps[] = [
     {
@@ -351,6 +352,8 @@ const RightMenu = ({
     hasLocalOverride: hasDevOverride(),
     onClearLocalSettings: clearLocalOverrides,
     allowOSPreference: canDetectOSPreference(),
+    colorBlindMode,
+    setColorBlindMode,
   });
 
   const languageMenuItem = useLanguageMenuItems({
@@ -569,9 +572,8 @@ const RightMenu = ({
       });
     }
 
-    if (canSetMode()) {
-      items.push(themeMenuItem);
-    }
+    // Always show theme menu (includes color vision accessibility options)
+    items.push(themeMenuItem);
 
     if (navbarRight.show_language_picker && languageMenuItem) {
       items.push(languageMenuItem);
@@ -591,7 +593,6 @@ const RightMenu = ({
     RightMenuExtension,
     navbarRight,
     showActionDropdown,
-    canSetMode,
     theme.colorPrimary,
     themeMenuItem,
     languageMenuItem,
