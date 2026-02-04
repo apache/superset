@@ -139,6 +139,18 @@ stages:
 # =====================================================
 # DEPLOY STAGE
 # =====================================================
+# NOTE: This stage uses pwsh (PowerShell Core) for cross-platform
+# compatibility. Works on both Windows Server and Linux clients.
+#
+# Requirements:
+# - Windows agents: PowerShell 5+ (native, no installation required)
+# - Linux agents: PowerShell Core 7+ (pwsh)
+#
+# Install pwsh on Linux agents:
+#   curl -sSL https://aka.ms/install-powershell.sh | bash -s -- -mt
+#
+# For detailed documentation, see: .azuredevops/README.md
+# =====================================================
 - stage: Deploy
   displayName: Deploy to ${{ parameters.targetEnvironment }}
   dependsOn: Build

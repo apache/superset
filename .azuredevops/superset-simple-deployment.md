@@ -4,6 +4,8 @@
 
 This guide provides a straightforward Docker Compose deployment for Apache Superset, perfect for getting started quickly without complex orchestration.
 
+**Note:** For automated CI/CD deployment with Azure DevOps supporting both Windows and Linux environments, see the [Multi-OS Deployment README](./README.md). The Azure DevOps pipeline uses PowerShell Core (pwsh) for cross-platform compatibility.
+
 ## Prerequisites
 
 - Docker and Docker Compose installed
