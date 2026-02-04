@@ -63,6 +63,14 @@ describe('ThematicMapPlugin transformProps', () => {
     showTimeslider: false,
     showTooltip: true,
   };
+  const datasource = {
+    columns: [
+      { column_name: 'geom' },
+      { column_name: 'foo' },
+      { column_name: 'bar' },
+      { column_name: 'baz' },
+    ],
+  };
 
   const chartProps = new ChartProps({
     formData,
@@ -74,6 +82,7 @@ describe('ThematicMapPlugin transformProps', () => {
       },
     ],
     theme: supersetTheme,
+    datasource,
   });
 
   it('should transform chart props for viz', () => {
@@ -83,7 +92,11 @@ describe('ThematicMapPlugin transformProps', () => {
         width: chartProps.width,
         height: chartProps.height,
         geomColumn: formData.geomColumn,
-        columns: ['geom', 'foo', 'bar'],
+        columns: [
+          { column_name: 'geom' },
+          { column_name: 'foo' },
+          { column_name: 'bar' },
+        ],
         layerConfigs,
         mapView,
         data: nonTimeSeriesChartData,

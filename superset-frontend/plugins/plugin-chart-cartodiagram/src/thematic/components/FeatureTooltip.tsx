@@ -31,8 +31,15 @@ import {
 } from '../util/tooltipUtil';
 
 export const FeatureTooltip = (props: FeatureTooltipProps) => {
-  const { className, olMap, tooltipTemplate, dataLayers, geomColumn, mapId } =
-    props;
+  const {
+    className,
+    olMap,
+    tooltipTemplate,
+    dataLayers,
+    geomColumn,
+    mapId,
+    columns,
+  } = props;
 
   const tooltipRef = useRef<HTMLDivElement>(null);
   const currentFeatureRef = useRef<Feature | undefined>(undefined);
@@ -67,7 +74,7 @@ export const FeatureTooltip = (props: FeatureTooltipProps) => {
         const shouldRenderTooltip = feature !== currentFeatureRef.current;
         if (shouldRenderTooltip) {
           const ignoreProps = ['geometry', geomColumn];
-          const templateProps = getTemplateProps(feature, ignoreProps);
+          const templateProps = getTemplateProps(feature, ignoreProps, columns);
 
           renderTooltip(tooltipTemplate, templateProps, infoTooltip);
           setTooltipVisible(infoTooltip);
@@ -107,6 +114,7 @@ export const FeatureTooltip = (props: FeatureTooltipProps) => {
     dataLayers,
     geomColumn,
     mapId,
+    columns,
   ]);
 
   return <div ref={tooltipRef} className={className} />;

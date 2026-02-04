@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import { ColumnMeta } from '@superset-ui/chart-controls';
 import Handlebars from 'handlebars';
 import { Map } from 'ol';
 import Feature from 'ol/Feature';
@@ -75,11 +76,18 @@ export const positionTooltip = (
   tooltip.style.top = `${tooltipY}px`;
 };
 
-export const getTemplateProps = (feature: Feature, ignoredProps: string[]) =>
+export const getTemplateProps = (
+  feature: Feature,
+  ignoredProps: string[],
+  columns: ColumnMeta[],
+) =>
   Object.fromEntries(
-    Object.entries(feature.getProperties()).filter(
-      ([key]) => !ignoredProps.includes(key),
-    ),
+    Object.entries(feature.getProperties())
+      .filter(([key]) => !ignoredProps.includes(key))
+      .map(([key, value]) => {
+        const column = columns.find(col => col.column_name === key);
+        return [column?.verbose_name || key, value];
+      }),
   );
 
 export const getHoverFeature = (

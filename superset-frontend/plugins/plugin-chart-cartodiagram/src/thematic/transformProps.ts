@@ -57,6 +57,7 @@ export default function transformProps(chartProps: ChartProps) {
     queriesData,
     filterState,
     emitCrossFilters,
+    datasource,
   } = chartProps;
   const {
     columns,
@@ -81,6 +82,10 @@ export default function transformProps(chartProps: ChartProps) {
 
   const { data } = queriesData[0];
 
+  const filteredColumns = datasource.columns.filter(col =>
+    columns.includes(col.column_name),
+  );
+
   return {
     width,
     height,
@@ -90,7 +95,7 @@ export default function transformProps(chartProps: ChartProps) {
     crossFilterColumn,
     geomColumn,
     geomFormat,
-    columns,
+    columns: filteredColumns,
     layerConfigs,
     mapMaxExtent,
     mapView,

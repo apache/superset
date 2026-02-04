@@ -106,18 +106,45 @@ describe('tooltipUtil', () => {
 
   describe('getTemplateProps', () => {
     it('returns the feature properties excluding ignored properties', () => {
+      const data = {
+        name: 'Test',
+        value: 42,
+        geometry: 'geomData',
+      };
+      const columns = [
+        { column_name: 'name' },
+        { column_name: 'value' },
+        { column_name: 'geometry' },
+      ];
       const feature = {
-        getProperties: () => ({
-          name: 'Test',
-          value: 42,
-          geometry: 'geomData',
-        }),
+        getProperties: () => data,
       } as unknown as Feature;
 
       const ignoredProps = ['geometry'];
-      const props = getTemplateProps(feature, ignoredProps);
+      const props = getTemplateProps(feature, ignoredProps, columns);
 
       expect(props).toEqual({ name: 'Test', value: 42 });
+    });
+
+    it('resolves the verbose names for feature properties', () => {
+      const data = {
+        name: 'Test',
+        value: 42,
+        geometry: 'geomData',
+      };
+      const columns = [
+        { column_name: 'name', verbose_name: 'Full Name' },
+        { column_name: 'value' },
+      ];
+      const feature = {
+        getProperties: () => data,
+      } as unknown as Feature;
+
+      const ignoredProps: string[] = [];
+      const props = getTemplateProps(feature, ignoredProps, columns);
+      const propKeys = Object.keys(props);
+
+      expect(propKeys).toEqual(expect.arrayContaining(['Full Name', 'value']));
     });
   });
 });
