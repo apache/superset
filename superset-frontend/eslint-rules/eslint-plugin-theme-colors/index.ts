@@ -25,7 +25,7 @@
 import type { Rule } from 'eslint';
 import type { Node, SourceLocation } from 'estree';
 
-const COLOR_KEYWORDS: string[] = require('./colors');
+import COLOR_KEYWORDS from './colors';
 
 function hasHexColor(quasi: string): boolean {
   const regex = /#([a-f0-9]{3}|[a-f0-9]{4}(?:[a-f0-9]{2}){0,2})\b/gi;

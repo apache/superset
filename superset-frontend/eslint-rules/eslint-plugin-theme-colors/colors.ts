@@ -171,4 +171,4 @@ const COLOR_KEYWORDS: string[] = [
   'yellowgreen',
 ];
 
-module.exports = COLOR_KEYWORDS;
+export default COLOR_KEYWORDS;
