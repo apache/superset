@@ -100,7 +100,7 @@ describe('DatabaseModal', () => {
         configuration_method: 'sqlalchemy_form',
       },
     });
-    fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
+    fetchMock.route(AVAILABLE_DB_ENDPOINT, {
       databases: [
         {
           available_drivers: ['psycopg2'],
@@ -319,9 +319,7 @@ describe('DatabaseModal', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
-  afterEach(() => {
-    fetchMock.restore();
-  });
+  afterEach(() => fetchMock.clearHistory().removeRoutes());
 
   const setup = (propsOverwrite: Partial<DatabaseModalProps> = {}) =>
     render(<DatabaseModal {...dbProps} {...propsOverwrite} />, {
@@ -1440,8 +1438,8 @@ describe('DatabaseModal', () => {
         // Verify that validation was called at least once during the form interaction
         await waitFor(() => {
           expect(
-            fetchMock.calls(VALIDATE_PARAMS_ENDPOINT).length,
-          ).toBeGreaterThan(0);
+            fetchMock.callHistory.calls(VALIDATE_PARAMS_ENDPOINT).length,
+          ).toEqual(5);
         });
       });
     });

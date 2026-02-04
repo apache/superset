@@ -115,6 +115,12 @@
         "description": "Allow users to export full CSV of table viz type. Warning: Could cause server memory/compute issues with large datasets."
       },
       {
+        "name": "AWS_DATABASE_IAM_AUTH",
+        "default": false,
+        "lifecycle": "testing",
+        "description": "Enable AWS IAM authentication for database connections (Aurora, Redshift). Allows cross-account role assumption via STS AssumeRole. Security note: When enabled, ensure Superset's IAM role has restricted sts:AssumeRole permissions to prevent unauthorized access."
+      },
+      {
         "name": "CACHE_IMPERSONATION",
         "default": false,
         "lifecycle": "testing",
@@ -240,6 +246,13 @@
         "lifecycle": "stable",
         "description": "Enables dashboard virtualization for improved performance",
         "category": "path_to_deprecation"
+      },
+      {
+        "name": "DASHBOARD_VIRTUALIZATION_DEFER_DATA",
+        "default": false,
+        "lifecycle": "stable",
+        "description": "Supports simultaneous data and dashboard virtualization for backend performance",
+        "category": "runtime_config"
       },
       {
         "name": "DATAPANEL_CLOSED_BY_DEFAULT",

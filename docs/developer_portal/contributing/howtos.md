@@ -258,19 +258,7 @@ For debugging the Flask backend:
 
 ### Storybook
 
-Storybook is used for developing and testing UI components in isolation:
-
-```bash
-cd superset-frontend
-
-# Start Storybook
-npm run storybook
-
-# Build static Storybook
-npm run build-storybook
-```
-
-Access Storybook at http://localhost:6006
+See the dedicated [Storybook documentation](../testing/storybook) for information on running Storybook locally and adding new stories.
 
 ## Contributing Translations
 

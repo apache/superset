@@ -34,6 +34,8 @@
   NODE_VERSION = "20"
   # Yarn version
   YARN_VERSION = "1.22.22"
+  # Increase heap size for webpack bundling of Superset UI components
+  NODE_OPTIONS = "--max-old-space-size=4096"
 
 # Deploy preview settings
 [context.deploy-preview]
