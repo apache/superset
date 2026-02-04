@@ -430,14 +430,14 @@ categories:
       url: https://brandct.cn/
       contributors: ["@wenbinye"]
 
-    - name: Zeta
-      url: https://www.zeta.tech/
-      contributors: ["@shaikidris"]
-
     - name: XNET
       url: https://xnetmobile.com/
       logo: xnet.png
       contributors: ["@deuspt"]
+
+    - name: Zeta
+      url: https://www.zeta.tech/
+      contributors: ["@shaikidris"]
 
   Media & Entertainment:
     - name: 6play
