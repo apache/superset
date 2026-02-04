@@ -357,8 +357,9 @@ test('validates the column', async () => {
 // What this test covers:
 // - Default value checkbox can be enabled
 // - Validation error appears when default value is enabled without a value
+// - The underlying validation logic (isValidFilterValue) is unit tested in utils.test.ts
 //
-// What would require integration/E2E testing:
+// What would require E2E testing (tracked in issue #36964):
 // - Full flow: open modal → select dataset → select column → enable default value → validate
 // - This flow is better tested with Playwright where the full component lifecycle is available
 //

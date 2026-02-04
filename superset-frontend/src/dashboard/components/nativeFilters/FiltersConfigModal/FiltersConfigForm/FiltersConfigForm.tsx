@@ -103,6 +103,7 @@ import RemovedFilter from './RemovedFilter';
 import { useBackendFormUpdate, useDefaultValue } from './state';
 import {
   hasTemporalColumns,
+  isValidFilterValue,
   mostUsedDataset,
   setNativeFilterFieldValues,
   shouldShowTimeRangePicker,
@@ -818,12 +819,6 @@ const FiltersConfigForm = (
       />
     </StyledRowFormItem>
   );
-  const isValidFilterValue = (value: unknown, isRangeFilter: boolean) => {
-    if (isRangeFilter) {
-      return Array.isArray(value) && (value[0] !== null || value[1] !== null);
-    }
-    return !!value;
-  };
   return (
     <Tabs
       activeKey={activeTabKey}
