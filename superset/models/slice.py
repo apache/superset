@@ -30,6 +30,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Integer,
+    JSON,
     String,
     Table,
     Text,
@@ -82,6 +83,7 @@ class Slice(  # pylint: disable=too-many-public-methods
     params = Column(utils.MediumText())
     query_context = Column(utils.MediumText())
     description = Column(Text)
+    translations = Column(JSON, nullable=True)
     cache_timeout = Column(Integer)
     perm = Column(String(1000))
     schema_perm = Column(String(1000))
@@ -126,6 +128,7 @@ class Slice(  # pylint: disable=too-many-public-methods
     export_fields = [
         "slice_name",
         "description",
+        "translations",
         "certified_by",
         "certification_details",
         "datasource_type",

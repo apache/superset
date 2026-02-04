@@ -565,6 +565,12 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enables advanced data type support
     # @lifecycle: development
     "ENABLE_ADVANCED_DATA_TYPES": False,
+    # Enable localization of user-created content (dashboard titles, chart names,
+    # filter labels). When enabled, users can provide translations for content
+    # that will be displayed based on the viewer's UI language setting.
+    # Requires database migration for 'translations' column.
+    # @lifecycle: development
+    "ENABLE_CONTENT_LOCALIZATION": False,
     # Enable Superset extensions for custom functionality without modifying core
     # @lifecycle: development
     "ENABLE_EXTENSIONS": False,
