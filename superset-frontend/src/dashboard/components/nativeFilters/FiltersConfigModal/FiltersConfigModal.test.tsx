@@ -351,7 +351,7 @@ test('validates the column', async () => {
 // LIMITATION: Does not exercise the full dataset/column selection flow.
 // With createNewOnOpen: true, the modal renders in a state where form fields
 // are visible but selecting dataset/column through async selects requires
-// complex setup that proved unreliable (see PROJECT.md Investigation section).
+// complex setup that proved unreliable in this unit test environment.
 //
 // What this test covers:
 // - Default value checkbox can be enabled
