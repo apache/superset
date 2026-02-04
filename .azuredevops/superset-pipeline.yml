@@ -160,19 +160,19 @@ stages:
               - checkout: self
                 submodules: true
 
-              - bash: |
-                  echo "=== DEBUG: Setting Working Directory ==="
-                  echo "Current directory: $(pwd)"
-                  echo "Pipeline.Workspace: $(Pipeline.Workspace)"
-                  echo ""
-                  echo "Changing to Pipeline.Workspace/s..."
-                  cd "$(Pipeline.Workspace)/s" || { echo "Failed to cd to $(Pipeline.Workspace)/s"; exit 1; }
-                  echo "✓ Changed directory to: $(pwd)"
-                  echo ""
-                  echo "Contents of current directory:"
-                  ls -la
-                  echo ""
-                  echo "=== END DEBUG ==="
+              - pwsh: |
+                  Write-Host "=== DEBUG: Setting Working Directory ==="
+                  Write-Host "Current directory: $(Get-Location)"
+                  Write-Host "Pipeline.Workspace: $(Pipeline.Workspace)"
+                  Write-Host ""
+                  Write-Host "Changing to Pipeline.Workspace/s..."
+                  Set-Location "$(Pipeline.Workspace)/s" -ErrorAction Stop
+                  Write-Host "✓ Changed directory to: $(Get-Location)"
+                  Write-Host ""
+                  Write-Host "Contents of current directory:"
+                  Get-ChildItem -Force
+                  Write-Host ""
+                  Write-Host "=== END DEBUG ==="
                 displayName: Set Working Directory
 
               - bash: |
