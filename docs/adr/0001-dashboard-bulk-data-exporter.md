@@ -2,8 +2,8 @@
 
 ## Status
 
-Proposed - 2026-02-02
-In Progress - 2026-02-03
+- Proposed - 2026-02-02
+- In Progress - 2026-02-03
 
 ## Context
 
