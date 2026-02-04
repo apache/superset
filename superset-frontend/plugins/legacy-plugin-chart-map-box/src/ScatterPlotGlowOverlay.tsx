@@ -234,8 +234,13 @@ class ScatterPlotGlowOverlay extends PureComponent<ScatterPlotGlowOverlayProps> 
           ctx.beginPath();
           if (location.properties.cluster) {
             let clusterLabel = clusterLabelMap[i];
+            // Validate clusterLabel is a finite number before using it for radius calculation
+            const numericLabel = Number(clusterLabel);
+            const safeNumericLabel = Number.isFinite(numericLabel)
+              ? numericLabel
+              : 0;
             const scaledRadius = roundDecimal(
-              ((clusterLabel as number) / safeMaxLabel) ** 0.5 * radius,
+              (safeNumericLabel / safeMaxLabel) ** 0.5 * radius,
               1,
             );
             const fontHeight = roundDecimal(scaledRadius * 0.5, 1);
