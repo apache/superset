@@ -558,35 +558,38 @@ stages:
               # -------------------------------------
               # Health check
               # -------------------------------------
-              - bash: |
-                  echo "=== DEBUG: Verify Health ==="
-                  echo "Current working directory: $(pwd)"
-                  echo "Changing to deployment directory..."
-                  cd "$(Pipeline.Workspace)/s" || { echo "Failed to cd to $(Pipeline.Workspace)/s"; exit 1; }
-                  echo "✓ Changed directory to: $(pwd)"
-                  echo ""
-                  echo "Starting health check for Superset on port ${SUPERSET_PORT}..."
-                  echo ""
+              - pwsh: |
+                  Write-Host "=== DEBUG: Verify Health ==="
+                  Write-Host "Current working directory: $(Get-Location)"
+                  Write-Host "Changing to deployment directory..."
+                  Set-Location "$(Pipeline.Workspace)/s" -ErrorAction Stop
+                  Write-Host "✓ Changed directory to: $(Get-Location)"
+                  Write-Host ""
+                  Write-Host "Starting health check for Superset on port $(SUPERSET_PORT)..."
+                  Write-Host ""
 
                   # First check if containers are running
-                  echo "Checking container status..."
-                  docker ps --filter "name=azuredevops" --format "table {{.Names}}\t{{.Status}}"
-                  echo ""
+                  Write-Host "Checking container status..."
+                  docker ps --filter "name=azuredevops" --format "table {{.Names}}`t{{.Status}}"
+                  Write-Host ""
 
-                  for i in {1..60}; do
-                    if curl -fs http://localhost:${SUPERSET_PORT}/health; then
-                      echo ""
-                      echo "✓ Superset is healthy and responding"
+                  for ($i = 1; $i -le 60; $i++) {
+                    $healthUrl = "http://localhost:$(SUPERSET_PORT)/health"
+                    try {
+                      $response = Invoke-WebRequest -Uri $healthUrl -UseBasicParsing -TimeoutSec 5
+                      Write-Host ""
+                      Write-Host "✓ Superset is healthy and responding"
                       exit 0
-                    fi
-                    echo "Attempt $i/60: Waiting for Superset to be ready..."
-                    sleep 10
-                  done
+                    } catch {
+                      Write-Host "Attempt $i/60: Waiting for Superset to be ready..."
+                      Start-Sleep -Seconds 10
+                    }
+                  }
 
-                  echo ""
-                  echo "✗ Superset failed health check after 10 minutes"
-                  echo ""
-                  echo "Container logs:"
+                  Write-Host ""
+                  Write-Host "✗ Superset failed health check after 10 minutes"
+                  Write-Host ""
+                  Write-Host "Container logs:"
                   docker compose -f .azuredevops/docker-compose-deploy.yml --env-file .env.deploy --project-name azuredevops logs --tail=50
                   exit 1
                 env:
