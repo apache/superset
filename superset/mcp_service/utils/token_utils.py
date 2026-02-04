@@ -28,7 +28,12 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List
 
+from pydantic import BaseModel
+
 logger = logging.getLogger(__name__)
+
+# Type alias for MCP tool responses (Pydantic models, dicts, lists, strings, bytes)
+ToolResponse = BaseModel | dict | list | str | bytes
 
 # Approximate characters per token for estimation
 # Claude tokenizer averages ~4 chars per token for English text
@@ -56,7 +61,7 @@ def estimate_token_count(text: str | bytes) -> int:
     return int(len(text) / CHARS_PER_TOKEN)
 
 
-def estimate_response_tokens(response: Any) -> int:
+def estimate_response_tokens(response: ToolResponse) -> int:
     """
     Estimate token count for an MCP tool response.
 
@@ -89,7 +94,7 @@ def estimate_response_tokens(response: Any) -> int:
         return 100000
 
 
-def get_response_size_bytes(response: Any) -> int:
+def get_response_size_bytes(response: ToolResponse) -> int:
     """
     Get the size of a response in bytes.
 
@@ -159,7 +164,7 @@ def generate_size_reduction_suggestions(
     params: Dict[str, Any] | None,
     estimated_tokens: int,
     token_limit: int,
-    response: Any = None,
+    response: ToolResponse | None = None,
 ) -> List[str]:
     """
     Generate smart suggestions for reducing response size.
@@ -247,7 +252,7 @@ def generate_size_reduction_suggestions(
     return suggestions
 
 
-def _identify_large_fields(response: Any) -> List[str]:
+def _identify_large_fields(response: ToolResponse) -> List[str]:
     """
     Identify fields that contribute most to response size.
 
@@ -304,7 +309,7 @@ def _identify_large_fields(response: Any) -> List[str]:
 def _get_tool_specific_suggestions(
     tool_name: str,
     query_params: Dict[str, Any],
-    response: Any,
+    response: ToolResponse,
 ) -> List[str]:
     """
     Generate tool-specific suggestions based on the tool being called.
@@ -357,7 +362,7 @@ def format_size_limit_error(
     params: Dict[str, Any] | None,
     estimated_tokens: int,
     token_limit: int,
-    response: Any = None,
+    response: ToolResponse | None = None,
 ) -> str:
     """
     Format a user-friendly error message when response exceeds token limit.
