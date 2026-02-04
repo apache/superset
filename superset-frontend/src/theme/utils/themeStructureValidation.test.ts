@@ -261,3 +261,86 @@ test('validateTheme errors when algorithm array contains non-strings', () => {
   expect(result.errors).toHaveLength(1);
   expect(result.errors[0].message).toContain('Algorithm must be a string');
 });
+
+test('validateTheme errors when token is explicitly null', () => {
+  const theme = {
+    token: null,
+    algorithm: 'dark',
+  } as unknown as AnyThemeConfig;
+
+  const result = validateTheme(theme);
+
+  expect(result.valid).toBe(false);
+  expect(result.errors).toHaveLength(1);
+  expect(result.errors[0].tokenName).toBe('_root');
+  expect(result.errors[0].message).toContain('must be an object');
+  expect(result.errors[0].message).toContain('not null');
+});
+
+test('validateTheme errors when components is explicitly null', () => {
+  const theme = {
+    token: { colorPrimary: '#1890ff' },
+    components: null,
+  } as unknown as AnyThemeConfig;
+
+  const result = validateTheme(theme);
+
+  expect(result.valid).toBe(false);
+  expect(result.errors).toHaveLength(1);
+  expect(result.errors[0].tokenName).toBe('_root');
+  expect(result.errors[0].message).toContain('Components configuration');
+  expect(result.errors[0].message).toContain('not null');
+});
+
+test('validateTheme errors when algorithm is explicitly null', () => {
+  const theme = {
+    token: { colorPrimary: '#1890ff' },
+    algorithm: null,
+  } as unknown as AnyThemeConfig;
+
+  const result = validateTheme(theme);
+
+  expect(result.valid).toBe(false);
+  expect(result.errors).toHaveLength(1);
+  expect(result.errors[0].tokenName).toBe('_root');
+  expect(result.errors[0].message).toContain('Algorithm cannot be null');
+});
+
+test('validateTheme errors when algorithm string is not a valid value', () => {
+  const theme = {
+    algorithm: 'invalid-algorithm',
+  } as unknown as AnyThemeConfig;
+
+  const result = validateTheme(theme);
+
+  expect(result.valid).toBe(false);
+  expect(result.errors).toHaveLength(1);
+  expect(result.errors[0].tokenName).toBe('_root');
+  expect(result.errors[0].message).toContain('Invalid algorithm value');
+  expect(result.errors[0].message).toContain('invalid-algorithm');
+  expect(result.errors[0].message).toContain('default, dark, system, compact');
+});
+
+test('validateTheme errors when algorithm array contains invalid values', () => {
+  const theme = {
+    algorithm: ['dark', 'invalid-mode', 'compact'],
+  } as unknown as AnyThemeConfig;
+
+  const result = validateTheme(theme);
+
+  expect(result.valid).toBe(false);
+  expect(result.errors).toHaveLength(1);
+  expect(result.errors[0].message).toContain('Invalid algorithm value');
+  expect(result.errors[0].message).toContain('invalid-mode');
+});
+
+test('validateTheme allows all valid algorithm values', () => {
+  const validAlgorithms = ['default', 'dark', 'system', 'compact'];
+
+  validAlgorithms.forEach(algo => {
+    const theme = { algorithm: algo } as unknown as AnyThemeConfig;
+    const result = validateTheme(theme);
+    expect(result.valid).toBe(true);
+    expect(result.errors).toHaveLength(0);
+  });
+});
