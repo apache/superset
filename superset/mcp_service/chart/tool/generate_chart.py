@@ -123,6 +123,9 @@ async def generate_chart(  # noqa: C901
         "Chart configuration details: config=%s" % (request.config.model_dump(),)
     )
 
+    # Track runtime warnings to include in response
+    runtime_warnings: list[str] = []
+
     try:
         # Run comprehensive validation pipeline
         await ctx.report_progress(1, 5, "Running validation pipeline")
@@ -131,22 +134,34 @@ async def generate_chart(  # noqa: C901
         )
         from superset.mcp_service.chart.validation import ValidationPipeline
 
-        is_valid, parsed_request, validation_error = (
-            ValidationPipeline.validate_request(request.model_dump())
+        validation_result = ValidationPipeline.validate_request_with_warnings(
+            request.model_dump()
         )
-        if is_valid and parsed_request is not None:
+
+        if validation_result.is_valid and validation_result.request is not None:
             # Use the validated request going forward
-            request = parsed_request
-        if not is_valid:
+            request = validation_result.request
+
+        # Capture runtime warnings (informational, not blocking)
+        if validation_result.warnings:
+            runtime_warnings = validation_result.warnings.get("warnings", [])
+            if runtime_warnings:
+                await ctx.info(
+                    "Runtime suggestions: %s" % ("; ".join(runtime_warnings[:3]),)
+                )
+
+        if not validation_result.is_valid:
             execution_time = int((time.time() - start_time) * 1000)
-            assert validation_error is not None  # Type narrowing for mypy
+            if validation_result.error is None:
+                raise RuntimeError("Validation failed but error object is missing")
             await ctx.error(
-                "Chart validation failed: error=%s" % (validation_error.model_dump(),)
+                "Chart validation failed: error=%s"
+                % (validation_result.error.model_dump(),)
             )
             return GenerateChartResponse.model_validate(
                 {
                     "chart": None,
-                    "error": validation_error.model_dump(),
+                    "error": validation_result.error.model_dump(),
                     "performance": {
                         "query_duration_ms": execution_time,
                         "cache_status": "error",
@@ -471,6 +486,8 @@ async def generate_chart(  # noqa: C901
             else {},
             "performance": performance.model_dump() if performance else None,
             "accessibility": accessibility.model_dump() if accessibility else None,
+            # Runtime warnings (informational suggestions, not errors)
+            "warnings": runtime_warnings,
             "success": True,
             "schema_version": "2.0",
             "api_version": "v1",
