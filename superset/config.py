@@ -442,6 +442,15 @@ LANGUAGES = {
 # incomplete and not well maintained.
 LANGUAGES = {}
 
+# ---------------------------------------------------
+# Content localization limits
+# Used when ENABLE_CONTENT_LOCALIZATION feature flag is enabled.
+# These limits protect against oversized translation payloads.
+# ---------------------------------------------------
+CONTENT_LOCALIZATION_MAX_LOCALES = 50  # Max unique locales per entity
+CONTENT_LOCALIZATION_MAX_TEXT_LENGTH = 10000  # Max chars per translation value
+CONTENT_LOCALIZATION_MAX_FIELD_LENGTH = 50  # Max chars for field names
+CONTENT_LOCALIZATION_MAX_JSON_SIZE = 1048576  # Max JSON size in bytes (1MB)
 
 # Override the default d3 locale format
 # Default values are equivalent to

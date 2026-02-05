@@ -26,6 +26,7 @@ from superset.localization import (
     get_user_locale,
     localize_native_filters,
     sanitize_translations,
+    validate_translations,
 )
 from superset.tags.models import TagType
 from superset.utils import json
@@ -538,14 +539,18 @@ class DashboardPutSchema(BaseDashboardSchema):
     )
 
     @validates_schema
-    def validate_translations_feature_flag(
+    def validate_translations_data(
         self, data: dict[str, Any], **kwargs: Any
     ) -> None:
         """
-        Reject translations when content localization feature is disabled.
+        Validate translations field: feature flag and structure.
 
-        Raises ValidationError if translations field is present but
-        ENABLE_CONTENT_LOCALIZATION feature flag is False.
+        Checks:
+        1. Feature flag ENABLE_CONTENT_LOCALIZATION must be enabled
+        2. Structure must be valid: {field: {locale: value}}
+
+        Raises:
+            ValidationError: If feature disabled or structure invalid.
         """
         if "translations" not in data:
             return
@@ -556,6 +561,8 @@ class DashboardPutSchema(BaseDashboardSchema):
                 "Set ENABLE_CONTENT_LOCALIZATION=True to use translations.",
                 field_name="translations",
             )
+
+        validate_translations(data["translations"])
 
     @post_load
     def sanitize_translations_xss(

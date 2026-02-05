@@ -38,7 +38,11 @@ from marshmallow_union import Union
 from superset import is_feature_enabled
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.db_engine_specs.base import builtin_time_grains
-from superset.localization import get_user_locale, sanitize_translations
+from superset.localization import (
+    get_user_locale,
+    sanitize_translations,
+    validate_translations,
+)
 from superset.tags.models import TagType
 from superset.utils import pandas_postprocessing, schema as utils
 from superset.utils.core import (
@@ -321,14 +325,18 @@ class ChartPutSchema(Schema):
     )
 
     @validates_schema
-    def validate_translations_feature_flag(
+    def validate_translations_data(
         self, data: dict[str, Any], **kwargs: Any
     ) -> None:
         """
-        Reject translations when content localization feature is disabled.
+        Validate translations field: feature flag and structure.
 
-        Raises ValidationError if translations field is present but
-        ENABLE_CONTENT_LOCALIZATION feature flag is False.
+        Checks:
+        1. Feature flag ENABLE_CONTENT_LOCALIZATION must be enabled
+        2. Structure must be valid: {field: {locale: value}}
+
+        Raises:
+            ValidationError: If feature disabled or structure invalid.
         """
         if "translations" not in data:
             return
@@ -339,6 +347,8 @@ class ChartPutSchema(Schema):
                 "Set ENABLE_CONTENT_LOCALIZATION=True to use translations.",
                 field_name="translations",
             )
+
+        validate_translations(data["translations"])
 
     @post_load
     def sanitize_translations_xss(

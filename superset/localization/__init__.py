@@ -23,6 +23,7 @@ from superset.localization.sanitization import (
     sanitize_translation_value,
     sanitize_translations,
 )
+from superset.localization.validation import validate_translations
 
 __all__ = [
     "LocalizableMixin",
@@ -31,4 +32,5 @@ __all__ = [
     "parse_accept_language",
     "sanitize_translation_value",
     "sanitize_translations",
+    "validate_translations",
 ]
