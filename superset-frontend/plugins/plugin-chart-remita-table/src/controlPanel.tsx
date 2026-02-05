@@ -376,7 +376,7 @@ const config: ControlPanelConfig = {
               description: t(
                 'When enabled, runs an extra COUNT(*) query to compute total rows for pagination. Disable for faster responses on large tables.',
               ),
-              default: false,
+              default: true,
               // Only meaningful when server pagination is enabled
               visibility: ({ controls }: ControlPanelsContainerProps) =>
                 Boolean(controls?.server_pagination?.value),
@@ -1067,8 +1067,11 @@ const config: ControlPanelConfig = {
       show_search_column_select:
         merged.show_search_column_select ??
         merged.enable_server_search_column_selector,
-      // Respect explicit server_rowcount_exact when provided; default remains false
-      server_rowcount_exact: merged.server_rowcount_exact,
+      // Respect explicit server_rowcount_exact when provided; default to true when undefined
+      server_rowcount_exact:
+        typeof merged.server_rowcount_exact === 'boolean'
+          ? merged.server_rowcount_exact
+          : true,
       // Build actions_config from legacy individual controls if not present
       actions_config:
         merged.actions_config ?? {

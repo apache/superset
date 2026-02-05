@@ -836,7 +836,7 @@ export default typedMemo(function DataTable<D extends object>({
 
 
       {wrapStickyTable ? wrapStickyTable(renderTable) : renderTable()}
-      {hasPagination && (serverPagination || resultPageCount > 1) ? (
+      {hasPagination && resultPageCount > 1 ? (
         <SimplePagination
           ref={paginationRef}
           style={paginationStyle}
