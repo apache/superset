@@ -216,7 +216,7 @@ export type GetState = () => RootState;
 
 export type RootState = {
   datasources: DatasourcesState;
-  sliceEntities: JsonObject;
+  sliceEntities: SliceEntitiesState;
   charts: ChartsState;
   dashboardLayout: DashboardLayoutState;
   dashboardFilters: JsonObject;
@@ -331,6 +331,13 @@ export type Slice = {
   owners: { id: number }[];
   created_by: { id: number };
 };
+
+export interface SliceEntitiesState {
+  slices: Record<string, Slice>;
+  isLoading: boolean;
+  errorMessage: string | null;
+  lastUpdated: number;
+}
 
 export enum MenuKeys {
   DownloadAsImage = 'download_as_image',

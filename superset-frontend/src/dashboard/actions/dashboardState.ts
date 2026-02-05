@@ -867,9 +867,7 @@ export function addSliceToDashboard(
 ): (dispatch: AppDispatch, getState: GetState) => Promise<void> | AnyAction {
   return (dispatch: AppDispatch, getState: GetState) => {
     const { sliceEntities } = getState();
-    const selectedSlice = (sliceEntities.slices as Record<number, JsonObject>)[
-      id
-    ];
+    const selectedSlice = sliceEntities.slices[id];
     if (!selectedSlice) {
       return dispatch(
         addWarningToast(

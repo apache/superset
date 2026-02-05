@@ -95,8 +95,8 @@ const chartsVerboseMapSelector = createSelector(
   ],
   (slices, datasources) =>
     Object.keys(slices).reduce((chartsVerboseMaps, chartId) => {
-      const chartDatasource = slices[chartId]?.datasource
-        ? datasources[slices[chartId].datasource]
+      const chartDatasource = slices[chartId]?.form_data?.datasource
+        ? datasources[slices[chartId].form_data.datasource]
         : undefined;
       return {
         ...chartsVerboseMaps,

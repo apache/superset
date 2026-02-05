@@ -41,7 +41,7 @@ import {
 import { DEFAULT_CSV_STREAMING_ROW_THRESHOLD } from 'src/constants';
 import { enforceSharedLabelsColorsArray } from 'src/utils/colorScheme';
 import exportPivotExcel from 'src/utils/downloadAsPivotExcel';
-import type { RootState, Datasource } from 'src/dashboard/types';
+import type { RootState, Datasource, Slice } from 'src/dashboard/types';
 import {
   convertChartStateToOwnState,
   hasChartStateConverter,
@@ -86,16 +86,6 @@ interface ChartProps {
   extraControls?: JsonObject;
   isInView?: boolean;
   cacheBusterProp?: string | number;
-}
-
-interface SliceEntity {
-  slice_id: number;
-  slice_name: string;
-  description?: string;
-  description_markeddown?: string;
-  slice_description?: string;
-  datasource?: string;
-  viz_type: string;
 }
 
 const RESIZE_TIMEOUT = 500;
@@ -190,15 +180,12 @@ const Chart = (props: ChartProps) => {
   const chartStatus = chart?.chartStatus;
   const annotationQuery = chart?.annotationQuery;
 
-  const slice: SliceEntity | Record<string, never> = useSelector(
-    (state: RootState) =>
-      (state.sliceEntities as { slices: Record<number, SliceEntity> }).slices[
-        props.id
-      ] || EMPTY_OBJECT,
+  const slice: Slice | Record<string, never> = useSelector(
+    (state: RootState) => state.sliceEntities.slices[props.id] || EMPTY_OBJECT,
   );
-  const sliceVizType = (slice as SliceEntity)?.viz_type;
-  const sliceSliceId = (slice as SliceEntity)?.slice_id;
-  const sliceSliceName = (slice as SliceEntity)?.slice_name;
+  const sliceVizType = slice.viz_type;
+  const sliceSliceId = slice.slice_id;
+  const sliceSliceName = slice.slice_name;
   const editMode = useSelector(
     (state: RootState) => state.dashboardState.editMode,
   );
@@ -639,16 +626,14 @@ const Chart = (props: ChartProps) => {
       (q: JsonObject) => q.cached_dttm as string,
     ) || [];
 
-  const typedSlice = slice as SliceEntity;
-
   // Build slice header shape matching SliceHeaderControlsProps
   const sliceForHeader = {
-    description: typedSlice.description || '',
-    viz_type: typedSlice.viz_type,
-    slice_name: typedSlice.slice_name,
-    slice_id: typedSlice.slice_id,
-    slice_description: typedSlice.slice_description || '',
-    datasource: typedSlice.datasource || '',
+    description: slice.description || '',
+    viz_type: slice.viz_type,
+    slice_name: slice.slice_name,
+    slice_id: slice.slice_id,
+    slice_description: '',
+    datasource: slice.form_data?.datasource || '',
   };
 
   return (
@@ -656,8 +641,8 @@ const Chart = (props: ChartProps) => {
       className="chart-slice"
       data-test="chart-grid-component"
       data-test-chart-id={props.id}
-      data-test-viz-type={typedSlice.viz_type}
-      data-test-chart-name={typedSlice.slice_name}
+      data-test-viz-type={slice.viz_type}
+      data-test-chart-name={slice.slice_name}
     >
       <SliceHeader
         ref={headerRef}
@@ -709,13 +694,13 @@ const Chart = (props: ChartProps) => {
           and
              https://github.com/apache/superset/pull/23862
         */}
-      {isExpanded && typedSlice.description_markeddown && (
+      {isExpanded && slice.description_markdown && (
         <div
           className="slice_description bs-callout bs-callout-default"
           ref={descriptionRef}
           // eslint-disable-next-line react/no-danger
           dangerouslySetInnerHTML={{
-            __html: typedSlice.description_markeddown,
+            __html: slice.description_markdown,
           }}
           role="complementary"
         />
@@ -723,7 +708,7 @@ const Chart = (props: ChartProps) => {
 
       <ChartWrapper
         className={cx('dashboard-chart')}
-        aria-label={typedSlice.description}
+        aria-label={slice.description}
       >
         {isLoading && (
           <ChartOverlay
@@ -757,15 +742,15 @@ const Chart = (props: ChartProps) => {
                 getChartStateWithFallback(
                   chartState as { state?: JsonObject } | undefined,
                   formData as JsonObject,
-                  typedSlice.viz_type,
+                  slice.viz_type,
                 ) ?? undefined,
             },
-            typedSlice.viz_type,
+            slice.viz_type,
           )}
           queriesResponse={chart.queriesResponse ?? undefined}
           timeout={timeout}
           triggerQuery={chart.triggerQuery}
-          vizType={typedSlice.viz_type}
+          vizType={slice.viz_type}
           setControlValue={props.setControlValue}
           datasetsStatus={
             datasetsStatus as 'loading' | 'error' | 'complete' | undefined
