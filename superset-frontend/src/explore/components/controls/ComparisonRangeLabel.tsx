@@ -66,7 +66,7 @@ export const ComparisonRangeLabel = ({
   const [labels, setLabels] = useState<string[]>([]);
   const currentTimeRangeFilters = useSelector<RootState, BinaryAdhocFilter[]>(
     state =>
-      state.explore.form_data.adhoc_filters.filter(
+      state.explore.present.form_data.adhoc_filters.filter(
         (adhoc_filter: SimpleAdhocFilter) =>
           adhoc_filter.operator === 'TEMPORAL_RANGE',
       ),
@@ -74,14 +74,14 @@ export const ComparisonRangeLabel = ({
   );
   const previousCustomFilter = useSelector<RootState, BinaryAdhocFilter[]>(
     state =>
-      state.explore.form_data.adhoc_custom?.filter(
+      state.explore.present.form_data.adhoc_custom?.filter(
         (adhoc_filter: SimpleAdhocFilter) =>
           adhoc_filter.operator === 'TEMPORAL_RANGE',
       ),
     isTimeRangeEqual,
   );
   const shifts = useSelector<RootState, string[]>(state => {
-    const formData = state.explore.form_data || {};
+    const formData = state.explore.present.form_data || {};
     if (!formData?.time_compare) {
       const previousTimeComparison = formData.time_comparison || '';
       if (oldChoices.hasOwnProperty(previousTimeComparison)) {
@@ -93,7 +93,7 @@ export const ComparisonRangeLabel = ({
     return formData?.time_compare;
   }, isShiftEqual);
   const startDate = useSelector<RootState, string>(
-    state => state.explore.form_data.start_date_offset,
+    state => state.explore.present.form_data.start_date_offset,
   );
 
   useEffect(() => {

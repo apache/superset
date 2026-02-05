@@ -24,7 +24,7 @@ import StashFormDataContainer from '.';
 
 const FormDataMock = () => {
   const formData = useSelector(
-    (state: ExplorePageState) => state.explore.form_data,
+    (state: ExplorePageState) => state.explore.present.form_data,
   );
 
   return <div>{Object.keys(formData).join(':')}</div>;
@@ -40,7 +40,13 @@ test('should stash form data from fieldNames', () => {
     </StashFormDataContainer>,
     {
       useRedux: true,
-      initialState: { explore: { form_data: defaultState.form_data } },
+      initialState: {
+        explore: {
+          past: [],
+          present: { form_data: defaultState.form_data },
+          future: [],
+        },
+      },
     },
   );
   expect(container.querySelector('div')).toHaveTextContent('granularity_sqla');
@@ -68,10 +74,14 @@ test('should restore form data from fieldNames', async () => {
       useRedux: true,
       initialState: {
         explore: {
-          form_data: formData,
-          hiddenFormData: {
-            granularity_sqla,
+          past: [],
+          present: {
+            form_data: formData,
+            hiddenFormData: {
+              granularity_sqla,
+            },
           },
+          future: [],
         },
       },
     },

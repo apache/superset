@@ -790,8 +790,8 @@ function mapStateToProps({
   user,
 }: Record<string, any>): StateProps {
   return {
-    datasource: explore.datasource,
-    slice: explore.slice,
+    datasource: explore.present.datasource,
+    slice: explore.present.slice,
     user,
     dashboards: saveModal.dashboards,
     alert: saveModal.saveModalAlert,

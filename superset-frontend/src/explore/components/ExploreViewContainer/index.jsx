@@ -313,6 +313,11 @@ function ExploreViewContainer(props) {
     [originalTitle, theme?.brandAppName, theme?.brandLogoAlt],
   );
 
+  // Clear undo/redo history on initial mount to prevent HYDRATE_EXPLORE from being undoable
+  useComponentDidMount(() => {
+    props.actions.clearExploreHistory();
+  });
+
   const addHistory = useCallback(
     async ({ isReplace = false, title } = {}) => {
       const formData = props.dashboardId
@@ -941,16 +946,10 @@ function patchBigNumberTotalFormData(form_data, slice) {
 }
 
 function mapStateToProps(state) {
-  const {
-    explore,
-    charts,
-    common,
-    impressionId,
-    dataMask,
-    reports,
-    user,
-    saveModal,
-  } = state;
+  const { charts, common, impressionId, dataMask, reports, user, saveModal } =
+    state;
+  // Access explore.present because explore reducer is wrapped with redux-undo
+  const explore = state.explore.present;
   const { controls, slice, datasource, metadata, hiddenFormData } = explore;
   const hasQueryMode = !!controls?.query_mode?.value;
   const fieldsToOmit = hasQueryMode

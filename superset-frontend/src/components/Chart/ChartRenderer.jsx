@@ -153,26 +153,10 @@ class ChartRenderer extends Component {
         this.mutableQueriesResponse = cloneDeep(nextProps.queriesResponse);
       }
 
-      // Check if any matrixify-related properties have changed
-      const hasMatrixifyChanges = () => {
-        const isMatrixifyEnabled =
-          nextProps.formData.matrixify_enable_vertical_layout === true ||
-          nextProps.formData.matrixify_enable_horizontal_layout === true;
-        if (!isMatrixifyEnabled) return false;
-
-        // Check all matrixify-related properties
-        const matrixifyKeys = Object.keys(nextProps.formData).filter(key =>
-          key.startsWith('matrixify_'),
-        );
-
-        return matrixifyKeys.some(
-          key => !isEqual(nextProps.formData[key], this.props.formData[key]),
-        );
-      };
-
       return (
         this.hasQueryResponseChange ||
         !isEqual(nextProps.datasource, this.props.datasource) ||
+        !isEqual(nextProps.formData, this.props.formData) ||
         nextProps.annotationData !== this.props.annotationData ||
         nextProps.ownState !== this.props.ownState ||
         nextProps.filterState !== this.props.filterState ||
@@ -181,14 +165,9 @@ class ChartRenderer extends Component {
         nextProps.triggerRender ||
         nextProps.labelsColor !== this.props.labelsColor ||
         nextProps.labelsColorMap !== this.props.labelsColorMap ||
-        nextProps.formData.color_scheme !== this.props.formData.color_scheme ||
-        nextProps.formData.stack !== this.props.formData.stack ||
-        nextProps.formData.subcategories !==
-          this.props.formData.subcategories ||
         nextProps.cacheBusterProp !== this.props.cacheBusterProp ||
         nextProps.emitCrossFilters !== this.props.emitCrossFilters ||
-        nextProps.postTransformProps !== this.props.postTransformProps ||
-        hasMatrixifyChanges()
+        nextProps.postTransformProps !== this.props.postTransformProps
       );
     }
     return false;
