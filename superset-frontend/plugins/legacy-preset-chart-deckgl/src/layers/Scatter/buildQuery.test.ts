@@ -518,3 +518,32 @@ test('Scatter buildQuery should add adhoc metric radius to existing saved metric
   expect(query.metrics).toContainEqual(radiusAdhocMetric);
   expect(query.metrics).toHaveLength(3);
 });
+
+test('Scatter buildQuery should handle legacy string format for point_radius_fixed', () => {
+  const formData: DeckScatterFormData = {
+    ...baseFormData,
+    point_radius_fixed: 'COUNT(*)',
+  };
+
+  const queryContext = buildQuery(formData);
+  const [query] = queryContext.queries;
+
+  // Legacy string format should be treated as a metric
+  expect(query.metrics).toContain('COUNT(*)');
+  expect(query.orderby).toEqual([['COUNT(*)', false]]);
+});
+
+test('Scatter buildQuery should deduplicate legacy string metric with existing metrics', () => {
+  const formData: DeckScatterFormData = {
+    ...baseFormData,
+    metrics: ['COUNT(*)', 'SUM(value)'],
+    point_radius_fixed: 'COUNT(*)',
+  };
+
+  const queryContext = buildQuery(formData);
+  const [query] = queryContext.queries;
+
+  // Should not duplicate COUNT(*)
+  expect(query.metrics).toEqual(['COUNT(*)', 'SUM(value)']);
+  expect(query.metrics).toHaveLength(2);
+});

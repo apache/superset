@@ -39,10 +39,13 @@ import { isMetricValue } from '../utils/metricUtils';
 
 export interface DeckScatterFormData
   extends Omit<SpatialFormData, 'color_picker'>, SqlaFormData {
-  point_radius_fixed?: {
-    type?: 'fix' | 'metric';
-    value?: QueryFormMetric | number;
-  };
+  // Can be a string (legacy format) or an object with type and value
+  point_radius_fixed?:
+    | string // Legacy format: metric name directly
+    | {
+        type?: 'fix' | 'metric';
+        value?: QueryFormMetric | number;
+      };
   multiplier?: number;
   point_unit?: string;
   min_radius?: number;
@@ -83,11 +86,20 @@ export default function buildQuery(formData: DeckScatterFormData) {
 
       // Only add metric if point_radius_fixed is a metric type
       const isMetric = isMetricValue(point_radius_fixed);
-      // When type is 'metric', value is QueryFormMetric (string or adhoc object)
-      const metricValue: QueryFormMetric | null =
-        isMetric && point_radius_fixed?.value !== undefined
-          ? (point_radius_fixed.value as QueryFormMetric)
-          : null;
+      // Extract metric value, handling both legacy string format and object format
+      let metricValue: QueryFormMetric | null = null;
+      if (isMetric) {
+        if (typeof point_radius_fixed === 'string') {
+          // Legacy string format: treat the string itself as the metric
+          metricValue = point_radius_fixed;
+        } else if (
+          point_radius_fixed?.value !== undefined &&
+          typeof point_radius_fixed.value !== 'number'
+        ) {
+          // Metric object format: use the metric value (string or adhoc metric object)
+          metricValue = point_radius_fixed.value as QueryFormMetric;
+        }
+      }
 
       // Preserve existing metrics and only add radius metric if it's metric-based
       const existingMetrics = baseQueryObject.metrics || [];
