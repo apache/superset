@@ -37,9 +37,9 @@ chrome.runtime.onInstalled.addListener((details) => {
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (changeInfo.status === 'complete' && tab.url) {
     try {
-      const data = await chrome.storage.local.get(['supersetUrl', 'autoLogin']);
+      const data = await chrome.storage.local.get(['supersetUrl']);
 
-      if (data.autoLogin && data.supersetUrl) {
+      if (data.supersetUrl) {
         const supersetHost = new URL(data.supersetUrl).hostname;
 
         // Check if the tab is on Superset login page

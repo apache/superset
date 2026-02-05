@@ -9,32 +9,22 @@
 <body>
   <div class="container">
     <div class="header">
-      <h1>📊 Superset Dashboard Exporter</h1>
+      <h1><img src="icons/icon.svg" alt="Superset" class="header-icon"> Superset Dashboard Exporter</h1>
       <p class="subtitle">Export dashboards as PDF/CSV without opening Superset</p>
     </div>
 
-    <div class="status" id="status">
+    <div class="status" id="status" style="display: none;">
       <span class="status-indicator" id="statusIndicator">●</span>
       <span id="statusText">Not configured</span>
     </div>
 
     <form id="credentialsForm">
       <div class="form-group">
-        <label for="supersetUrl">Superset URL</label>
-        <input
-          type="text"
-          id="supersetUrl"
-          placeholder="http://localhost:8088"
-          value="http://localhost:8088"
-        >
-      </div>
-
-      <div class="form-group">
         <label for="username">Username</label>
         <input
           type="text"
           id="username"
-          placeholder="admin"
+          placeholder="user"
           autocomplete="username"
         >
       </div>
@@ -51,41 +41,35 @@
 
       <div class="form-group checkbox-group">
         <label>
-          <input type="checkbox" id="autoLogin" checked>
-          <span>Enable automatic login</span>
+          <input type="checkbox" id="rememberPassword" checked>
+          <span>Remember password</span>
         </label>
       </div>
 
       <div class="button-group">
-        <button type="submit" class="btn btn-primary">
-          💾 Save Credentials
-        </button>
-        <button type="button" id="testLogin" class="btn btn-secondary">
-          🧪 Test Login
+        <button type="submit" class="btn btn-primary btn-large">
+          Login
         </button>
       </div>
     </form>
 
-    <div class="actions">
-      <button id="loginNow" class="btn btn-success">
-        📊 View Dashboards
-      </button>
-      <button id="clearCredentials" class="btn btn-danger">
+    <div class="actions" style="display: none;">
+      <button id="clearCredentials" class="btn btn-danger btn-small">
         🗑️ Clear Saved Data
       </button>
     </div>
 
-    <div class="info">
+    <div class="info" style="display: none;">
       <h3>ℹ️ How it works</h3>
       <ul>
-        <li>Save your credentials and click "View Dashboards"</li>
-        <li>Browse all your Superset dashboards</li>
-        <li>Export dashboards as PDF or CSV with one click</li>
+        <li>Enter your Superset credentials</li>
+        <li>Click "Login & View Dashboards"</li>
+        <li>Browse and export your dashboards</li>
         <li>No need to open Superset web interface!</li>
       </ul>
     </div>
 
-    <div class="footer">
+    <div class="footer" style="display: none;">
       <p>Version 1.0.0 | Made for Apache Superset</p>
     </div>
   </div>

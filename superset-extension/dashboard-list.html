@@ -8,19 +8,23 @@
 </head>
 <body>
   <div class="container">
-    <div class="header">
-      <h1>📊 Superset Dashboard Exporter</h1>
+<!--     <div class="header">
+      <h1><img src="icons/icon.svg" alt="Superset" class="header-icon"> Superset Dashboard Exporter</h1>
       <p class="subtitle">Export your dashboards without opening Superset</p>
-    </div>
+    </div> -->
 
     <div class="user-info">
-      <div class="welcome">
-        <span class="user-icon">👤</span>
-        <span id="welcomeMessage">Welcome!</span>
-      </div>
+      <div class="header">
+        <h1>Dashboards</h1>
+        <p class="subtitle">Select a dashboard to export</p>
+      </div> 
       <div class="actions-top">
-        <button id="refreshBtn" class="btn btn-small btn-secondary">🔄 Refresh</button>
-        <button id="logoutBtn" class="btn btn-small btn-danger">🚪 Logout</button>
+        <button id="refreshBtn" class="btn btn-icon-svg" title="Refresh">
+          <img src="icons/arrow-clockwise.svg" alt="Refresh" class="icon-svg">
+        </button>
+        <button id="logoutBtn" class="btn btn-icon-svg" title="Logout">
+          <img src="icons/power.svg" alt="Logout" class="icon-svg">
+        </button>
       </div>
     </div>
 

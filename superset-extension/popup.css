@@ -7,7 +7,7 @@
 body {
   width: 400px;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: white;
   color: #333;
 }
 
@@ -18,7 +18,7 @@ body {
 }
 
 .header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #20A7C9;
   color: white;
   padding: 20px;
   text-align: center;
@@ -27,6 +27,17 @@ body {
 .header h1 {
   font-size: 20px;
   margin-bottom: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.header-icon {
+  width: 28px;
+  height: 28px;
+  vertical-align: middle;
+  flex-shrink: 0;
 }
 
 .subtitle {
@@ -127,48 +138,85 @@ form {
   margin-top: 20px;
 }
 
+.btn-large {
+  width: 100%;
+}
+
+.btn-small {
+  font-size: 12px;
+  padding: 8px 12px;
+}
+
 .btn {
   flex: 1;
-  padding: 12px 16px;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
+  padding: 14px 24px;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
 }
 
 .btn:active {
   transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #20A7C9;
   color: white;
+  border-color: #20A7C9;
+}
+
+.btn-primary:hover {
+  background: #1a8ba8;
+  border-color: #1a8ba8;
 }
 
 .btn-secondary {
-  background: #6c757d;
-  color: white;
+  background: white;
+  color: #20A7C9;
+  border-color: #20A7C9;
+}
+
+.btn-secondary:hover {
+  background: #f0f9fb;
+  border-color: #1a8ba8;
+  color: #1a8ba8;
 }
 
 .btn-success {
   background: #28a745;
   color: white;
+  border-color: #28a745;
+}
+
+.btn-success:hover {
+  background: #218838;
+  border-color: #218838;
 }
 
 .btn-danger {
-  background: #dc3545;
-  color: white;
+  background: white;
+  color: #dc3545;
+  border-color: #e9ecef;
+}
+
+.btn-danger:hover {
+  background: #fff5f5;
+  border-color: #dc3545;
+  color: #c82333;
 }
 
 .actions {

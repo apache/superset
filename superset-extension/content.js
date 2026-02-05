@@ -25,12 +25,7 @@ async function initAutoLogin() {
 
 async function performAutoLogin() {
   try {
-    const data = await chrome.storage.local.get(['username', 'password', 'autoLogin', 'supersetUrl']);
-
-    if (!data.autoLogin) {
-      console.log('Superset Auto Login: Auto-login is disabled');
-      return;
-    }
+    const data = await chrome.storage.local.get(['username', 'password', 'supersetUrl']);
 
     if (!data.username || !data.password) {
       console.log('Superset Auto Login: No credentials saved');

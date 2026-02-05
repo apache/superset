@@ -3,6 +3,7 @@
   "name": "Superset Dashboard Exporter",
   "version": "1.0.0",
   "description": "Login to Superset and export dashboards as PDF or configuration files",
+  "superset_url": "http://localhost:8088",
   "permissions": [
     "storage",
     "activeTab",
@@ -10,19 +11,26 @@
     "contextMenus",
     "alarms",
     "downloads",
-    "tabs",
-    "tabCapture",
-    "<all_urls>"
+    "tabs"
   ],
   "host_permissions": [
     "http://localhost:8088/*",
     "http://localhost:8089/*",
     "http://127.0.0.1:8088/*",
-    "http://127.0.0.1:8089/*",
-    "<all_urls>"
+    "http://127.0.0.1:8089/*"
   ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
   "action": {
-    "default_popup": "popup.html"
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
   },
   "content_scripts": [
     {
@@ -38,5 +46,11 @@
   ],
   "background": {
     "service_worker": "background.js"
-  }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["icons/*.svg", "icons/*.png"],
+      "matches": ["<all_urls>"]
+    }
+  ]
 }
