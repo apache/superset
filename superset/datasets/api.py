@@ -67,6 +67,7 @@ from superset.datasets.schemas import (
     DatasetCacheWarmUpResponseSchema,
     DatasetDrillInfoSchema,
     DatasetDuplicateSchema,
+    DatasetLineageResponseSchema,
     DatasetPostSchema,
     DatasetPutSchema,
     DatasetRelatedObjectsResponse,
@@ -117,6 +118,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "get_or_create_dataset",
         "warm_up_cache",
         "get_drill_info",
+        "lineage",
     }
     list_columns = [
         "id",
@@ -305,6 +307,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         DatasetRelatedObjectsResponse,
         DatasetDuplicateSchema,
         GetOrCreateDatasetSchema,
+        DatasetLineageResponseSchema,
     )
 
     openapi_spec_methods = openapi_spec_methods_override
@@ -848,6 +851,119 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             200,
             charts={"count": len(charts), "result": charts},
             dashboards={"count": len(dashboards), "result": dashboards},
+        )
+
+    @expose("/<id_or_uuid>/lineage", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.lineage",
+        log_to_statsd=False,
+    )
+    def lineage(self, id_or_uuid: str) -> Response:
+        """Get lineage information for a dataset.
+        ---
+        get:
+          summary: Get lineage information for a dataset
+          description: >-
+            Returns upstream (database) and downstream (charts, dashboards) lineage
+            information for a dataset
+          parameters:
+          - in: path
+            name: id_or_uuid
+            schema:
+              type: string
+            description: Either the id of the dataset, or its uuid
+          responses:
+            200:
+              description: Lineage information
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/DatasetLineageResponseSchema"
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        dataset = DatasetDAO.find_by_id_or_uuid(id_or_uuid)
+        if not dataset:
+            return self.response_404()
+
+        dataset_info = {
+            "id": dataset.id,
+            "name": dataset.name,
+            "database_id": dataset.database_id,
+            "database_name": dataset.database.database_name
+            if dataset.database
+            else None,
+            "schema": dataset.schema,
+            "table_name": dataset.table_name,
+        }
+
+        # Get upstream (database) information
+        upstream: dict[str, Any] = {}
+        if dataset.database:
+            upstream["database"] = {
+                "id": dataset.database.id,
+                "database_name": dataset.database.database_name,
+                "backend": dataset.database.backend,
+            }
+        else:
+            upstream["database"] = None
+
+        # Get downstream (charts and dashboards) information
+        related_data = DatasetDAO.get_related_objects(dataset.id)
+
+        # Build chart information with dashboard IDs
+        charts = []
+        for chart in related_data["charts"]:
+            dashboard_ids = [d.id for d in chart.dashboards]
+            charts.append(
+                {
+                    "id": chart.id,
+                    "slice_name": chart.slice_name,
+                    "viz_type": chart.viz_type,
+                    "dashboard_ids": dashboard_ids,
+                }
+            )
+
+        # Build dashboard information with chart IDs
+        dashboards = []
+        for dashboard in related_data["dashboards"]:
+            chart_ids = [
+                chart.id
+                for chart in dashboard.slices
+                if chart.datasource_id == dataset.id
+            ]
+            dashboards.append(
+                {
+                    "id": dashboard.id,
+                    "title": dashboard.dashboard_title,
+                    "slug": dashboard.slug,
+                    "chart_ids": chart_ids,
+                }
+            )
+
+        downstream = {
+            "charts": {
+                "count": len(charts),
+                "result": charts,
+            },
+            "dashboards": {
+                "count": len(dashboards),
+                "result": dashboards,
+            },
+        }
+
+        return self.response(
+            200,
+            dataset=dataset_info,
+            upstream=upstream,
+            downstream=downstream,
         )
 
     @expose("/", methods=("DELETE",))
