@@ -18,7 +18,7 @@
  */
 import { Fragment, useCallback, useState, useMemo, memo } from 'react';
 import cx from 'classnames';
-import { t, css, styled } from '@apache-superset/core/ui';
+import { t, css, styled, SupersetTheme } from '@apache-superset/core/ui';
 import { Icons } from '@superset-ui/core/components/Icons';
 import type { LayoutItem } from 'src/dashboard/types';
 import type { DropResult } from 'src/dashboard/components/dnd/dragDroppableConfig';
@@ -115,7 +115,7 @@ const ColumnStyles = styled.div<{ editMode: boolean }>`
   `}
 `;
 
-const emptyColumnContentStyles = (theme: import('@emotion/react').Theme) => css`
+const emptyColumnContentStyles = (theme: SupersetTheme) => css`
   min-height: ${theme.sizeUnit * 25}px;
   width: 100%;
   height: 100%;
