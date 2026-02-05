@@ -28,7 +28,7 @@ import { ThemeController } from 'src/theme/ThemeController';
 import type { ThemeStorage } from '@apache-superset/core/ui';
 import { store } from 'src/views/store';
 import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
-import { parse, stringify } from 'query-string';
+import querystring from 'query-string';
 
 /**
  * In-memory implementation of ThemeStorage interface for embedded contexts.
@@ -72,9 +72,9 @@ export const EmbeddedContextProviders: React.FC = ({ children }) => {
               <QueryParamProvider
                 adapter={ReactRouter5Adapter}
                 options={{
-                  searchStringToObject: parse,
+                  searchStringToObject: querystring.parse,
                   objectToSearchString: (object: Record<string, any>) =>
-                    stringify(object, { encode: false }),
+                    querystring.stringify(object, { encode: false }),
                 }}
               >
                 {RootContextProviderExtension ? (
