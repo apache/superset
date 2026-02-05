@@ -24,6 +24,7 @@
 import { QueryFormData } from '@superset-ui/core';
 import { TagType } from 'src/components';
 import Owner from './Owner';
+import { Translations } from './Localization';
 
 export type ChartLinkedDashboard = {
   id: number;
@@ -60,6 +61,10 @@ export interface Chart {
 
   // TODO: Update API spec to describe `dashboards` key
   dashboards: ChartLinkedDashboard[];
+
+  // Content localization fields
+  translations?: Translations;
+  available_locales?: string[];
 }
 
 export type Slice = {
@@ -76,6 +81,10 @@ export type Slice = {
   owners?: number[];
   datasource?: string;
   datasource_id?: number;
+
+  // Content localization fields
+  translations?: Translations;
+  available_locales?: string[];
 };
 
 export default Chart;

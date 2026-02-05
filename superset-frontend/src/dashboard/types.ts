@@ -39,7 +39,10 @@ import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import Owner from 'src/types/Owner';
 import { ChartState } from '../explore/types';
 
+import type { Translations } from 'src/types/Localization';
+
 export type { Dashboard } from 'src/types/Dashboard';
+export type { Translations } from 'src/types/Localization';
 
 export interface ExtendedNativeFilterScope extends NativeFilterScope {
   selectedLayers?: string[];
@@ -168,6 +171,10 @@ export type DashboardInfo = {
   } | null;
   theme_id?: number | null;
   css?: string;
+
+  // Content localization fields
+  translations?: Translations;
+  available_locales?: string[];
 };
 
 export type ChartsState = { [key: string]: Chart };
@@ -278,6 +285,10 @@ export type Slice = {
   datasource_name: string;
   owners: { id: number }[];
   created_by: { id: number };
+
+  // Content localization fields
+  translations?: Translations;
+  available_locales?: string[];
 };
 
 export enum MenuKeys {
