@@ -333,7 +333,7 @@
     "jest-environment-jsdom": "^29.7.0",
     "jest-html-reporter": "^4.3.0",
     "jest-websocket-mock": "^2.5.0",
-    "jsdom": "^27.4.0",
+    "jsdom": "^28.0.0",
     "lerna": "^8.2.3",
     "lightningcss": "^1.31.1",
     "mini-css-extract-plugin": "^2.10.0",
