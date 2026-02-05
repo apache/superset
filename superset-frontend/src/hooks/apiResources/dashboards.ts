@@ -41,7 +41,10 @@ export const useDashboard = (idOrSlug: string | number, refreshKey?: number) =>
     }),
   );
 
-const dashboardChartsEndpoint = (idOrSlug: string | number, refreshKey?: number) =>
+const dashboardChartsEndpoint = (
+  idOrSlug: string | number,
+  refreshKey?: number,
+) =>
   refreshKey !== undefined && refreshKey > 0
     ? `/api/v1/dashboard/${idOrSlug}/charts?__refresh=${refreshKey}`
     : `/api/v1/dashboard/${idOrSlug}/charts`;
