@@ -897,9 +897,9 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             "id": dataset.id,
             "name": dataset.name,
             "database_id": dataset.database_id,
-            "database_name": dataset.database.database_name
-            if dataset.database
-            else None,
+            "database_name": (
+                dataset.database.database_name if dataset.database else None
+            ),
             "schema": dataset.schema,
             "table_name": dataset.table_name,
         }
