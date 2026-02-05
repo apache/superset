@@ -48,7 +48,6 @@ import { StreamingExportModal } from 'src/components/StreamingExportModal';
 import { Tag } from 'src/components/Tag';
 import { ChartState, ExplorePageInitialData } from 'src/explore/types';
 import { Slice } from 'src/types/Chart';
-import { AlertObject } from 'src/features/alerts/types';
 import { ReportObject } from 'src/features/reports/types';
 import { User } from 'src/types/bootstrapTypes';
 import { useExploreAdditionalActionsMenu } from '../useExploreAdditionalActionsMenu';
@@ -122,7 +121,7 @@ export const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
   const [isPropertiesModalOpen, setIsPropertiesModalOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [currentReportDeleting, setCurrentReportDeleting] =
-    useState<AlertObject | null>(null);
+    useState<ReportObject | null>(null);
   const [shouldForceCloseModal, setShouldForceCloseModal] = useState(false);
 
   const updateCategoricalNamespace = useCallback(async () => {
@@ -182,8 +181,8 @@ export const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
     [dispatch],
   );
 
-  const handleReportDelete = async (report: AlertObject) => {
-    await dispatch(deleteActiveReport(report as unknown as ReportObject));
+  const handleReportDelete = async (report: ReportObject) => {
+    await dispatch(deleteActiveReport(report));
     setCurrentReportDeleting(null);
   };
 

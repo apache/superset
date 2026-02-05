@@ -221,12 +221,21 @@ export function toggleActive(report: ReportObject, isActive: boolean) {
 
 export const DELETE_REPORT = 'DELETE_REPORT' as const;
 
-export interface DeleteReportAction {
-  type: typeof DELETE_REPORT;
-  report: ReportObject;
+/** Minimal fields required to delete a report/alert */
+export interface DeletableReport {
+  id?: number;
+  name?: string;
+  creation_method?: string;
+  dashboard?: number;
+  chart?: number;
 }
 
-export function deleteActiveReport(report: ReportObject) {
+export interface DeleteReportAction {
+  type: typeof DELETE_REPORT;
+  report: DeletableReport;
+}
+
+export function deleteActiveReport(report: DeletableReport) {
   return function deleteActiveReportThunk(dispatch: Dispatch<AnyAction>) {
     return SupersetClient.delete({
       endpoint: encodeURI(`/api/v1/report/${report.id}`),

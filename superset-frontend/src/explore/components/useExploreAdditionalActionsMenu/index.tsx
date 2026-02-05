@@ -66,7 +66,7 @@ import {
 } from 'src/components/StreamingExportModal';
 import { Slice } from 'src/types/Chart';
 import { ChartState, ExplorePageInitialData } from 'src/explore/types';
-import { AlertObject } from 'src/features/alerts/types';
+import { ReportObject } from 'src/features/reports/types';
 import ViewQueryModal from '../controls/ViewQueryModal';
 import EmbedCodeContent from '../EmbedCodeContent';
 import { useDashboardsMenuItems } from './DashboardsSubMenu';
@@ -200,7 +200,7 @@ export const useExploreAdditionalActionsMenu = (
     | NonNullable<ExplorePageInitialData['metadata']>['dashboards']
     | undefined,
   showReportModal: () => void,
-  setCurrentReportDeleting: Dispatch<SetStateAction<AlertObject | null>>,
+  setCurrentReportDeleting: Dispatch<SetStateAction<ReportObject | null>>,
   ...rest: MenuProps[]
 ): UseExploreAdditionalActionsMenuReturn => {
   const theme = useTheme();

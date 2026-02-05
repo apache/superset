@@ -28,7 +28,6 @@ import {
 import { styled, css } from '@apache-superset/core/ui';
 import { MenuItem } from '@superset-ui/core/components/Menu';
 import { Checkbox } from '@superset-ui/core/components';
-import { AlertObject } from 'src/features/alerts/types';
 import { noOp } from 'src/utils/common';
 import { ChartState } from 'src/explore/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
@@ -64,7 +63,7 @@ export interface HeaderReportProps {
   dashboardId?: number;
   chart?: ChartState;
   showReportModal: () => void;
-  setCurrentReportDeleting: (report: AlertObject | null) => void;
+  setCurrentReportDeleting: (report: ReportObject | null) => void;
 }
 
 export const useHeaderReportMenuItems = ({
@@ -80,7 +79,7 @@ export const useHeaderReportMenuItems = ({
     : CreationMethod.Charts;
 
   // Select the reports state and specific report with proper reactivity
-  const report = useSelector<any, AlertObject | null>(state => {
+  const report = useSelector<any, ReportObject | null>(state => {
     if (!resourceId) return null;
     // Select directly from the reports state to ensure reactivity
     const reportsState = state.reports || {};
