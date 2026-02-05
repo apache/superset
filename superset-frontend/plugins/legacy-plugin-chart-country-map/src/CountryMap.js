@@ -161,7 +161,7 @@ function CountryMap(element, props) {
         .clamp(true)
         // Remove interpolation to avoid blending between steps - always return lower boundary
         .interpolate(function (a, b) {
-          return a;
+          return function(t) { return a; };
         });
     }
   }
