@@ -33,9 +33,49 @@ const StyledToastPresenter = styled.div<VisualProps>(
     ${position === 'bottom' ? 'bottom' : 'top'}: 0px;
     right: 0px;
     margin-right: 50px;
-    margin-bottom: 50px;
+    margin-block: 50px;
     z-index: ${theme.zIndexPopupBase + 1};
     word-break: break-word;
+
+    height: calc(100vh - 100px);
+
+    display: flex;
+    flex-direction: ${position === 'bottom' ? 'column-reverse' : 'column'};
+    align-items: stretch;
+    gap: ${theme.sizeUnit * 2}px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+
+    &:hover {
+      scrollbar-color: rgba(255, 255, 255, 0.4) transparent;
+    }
+
+    /* Chromium / WebKit */
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background-color: rgba(255, 255, 255, 0.25);
+      border-radius: 6px;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    &:hover::-webkit-scrollbar-thumb {
+      opacity: 1;
+    }
+
+    &:active::-webkit-scrollbar-thumb {
+      opacity: 1;
+    }
 
     .toast {
       padding: ${theme.sizeUnit * 4}px;
@@ -44,6 +84,9 @@ const StyledToastPresenter = styled.div<VisualProps>(
       border-radius: ${theme.borderRadius}px;
       box-shadow: ${theme.boxShadow};
       color: ${theme.colorTextLightSolid};
+      display: flex;
+      align-items: flex-start;
+      max-height: 70vh;
       opacity: 0;
       position: relative;
       transform: translateY(-100%);
