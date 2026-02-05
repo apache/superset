@@ -17,4 +17,6 @@
  * under the License.
  */
 export { default as TranslationButton } from './TranslationButton';
+export { default as TranslationEditorModal } from './TranslationEditorModal';
 export { default as TranslationField } from './TranslationField';
+export type { TranslatableField } from './TranslationEditorModal';
