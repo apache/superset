@@ -27,12 +27,61 @@ import { FaSortUp as FaSortAsc } from '@react-icons/all-files/fa/FaSortUp';
 import { PivotData, flatKey } from './utilities';
 import { Styles } from './Styles';
 
+interface CellColorFormatter {
+  column: string;
+  getColorFromValue(value: unknown): string | undefined;
+}
+
+type ClickCallback = (
+  e: MouseEvent,
+  value: unknown,
+  filters: Record<string, string>,
+  pivotData: InstanceType<typeof PivotData>,
+) => void;
+
+type HeaderClickCallback = (
+  e: MouseEvent,
+  value: string,
+  filters: Record<string, string>,
+  pivotData: InstanceType<typeof PivotData>,
+  isSubtotal: boolean,
+  isGrandTotal: boolean,
+) => void;
+
+interface TableOptions {
+  rowTotals?: boolean;
+  colTotals?: boolean;
+  rowSubTotals?: boolean;
+  colSubTotals?: boolean;
+  clickCallback?: ClickCallback;
+  clickColumnHeaderCallback?: HeaderClickCallback;
+  clickRowHeaderCallback?: HeaderClickCallback;
+  highlightHeaderCellsOnHover?: boolean;
+  omittedHighlightHeaderGroups?: string[];
+  highlightedHeaderCells?: Record<string, unknown[]>;
+  cellColorFormatters?: Record<string, CellColorFormatter[]>;
+  dateFormatters?: Record<string, ((val: unknown) => string) | undefined>;
+}
+
+interface SubtotalDisplay {
+  displayOnTop: boolean;
+  enabled?: boolean;
+  hideOnExpand: boolean;
+}
+
+interface SubtotalOptions {
+  arrowCollapsed?: ReactNode;
+  arrowExpanded?: ReactNode;
+  colSubtotalDisplay?: Partial<SubtotalDisplay>;
+  rowSubtotalDisplay?: Partial<SubtotalDisplay>;
+}
+
 interface TableRendererProps {
   cols: string[];
   rows: string[];
   aggregatorName: string;
-  tableOptions: Record<string, unknown>;
-  subtotalOptions?: Record<string, unknown>;
+  tableOptions: TableOptions;
+  subtotalOptions?: SubtotalOptions;
   namesMapping?: Record<string, string>;
   onContextMenu: (
     e: MouseEvent,
@@ -59,10 +108,10 @@ interface PivotSettings {
   rowKeys: string[][];
   rowTotals: boolean;
   colTotals: boolean;
-  arrowCollapsed: string;
-  arrowExpanded: string;
-  colSubtotalDisplay: Record<string, unknown>;
-  rowSubtotalDisplay: Record<string, unknown>;
+  arrowCollapsed: ReactNode;
+  arrowExpanded: ReactNode;
+  colSubtotalDisplay: SubtotalDisplay;
+  rowSubtotalDisplay: SubtotalDisplay;
   cellCallbacks: Record<string, Record<string, (e: MouseEvent) => void>>;
   rowTotalCallbacks: Record<string, (e: MouseEvent) => void>;
   colTotalCallbacks: Record<string, (e: MouseEvent) => void>;
@@ -255,44 +304,41 @@ export class TableRenderer extends Component<
     const colAttrs = props.cols;
     const rowAttrs = props.rows;
 
-    const tableOptions: Record<string, unknown> = {
+    const tableOptions: TableOptions = {
       rowTotals: true,
       colTotals: true,
       ...props.tableOptions,
     };
-    const rowTotals =
-      (tableOptions.rowTotals as boolean) || colAttrs.length === 0;
-    const colTotals =
-      (tableOptions.colTotals as boolean) || rowAttrs.length === 0;
+    const rowTotals = tableOptions.rowTotals || colAttrs.length === 0;
+    const colTotals = tableOptions.colTotals || rowAttrs.length === 0;
 
     const namesMapping = props.namesMapping || {};
-    const subtotalOptions: Record<string, unknown> = {
+    const subtotalOptions: Required<
+      Pick<SubtotalOptions, 'arrowCollapsed' | 'arrowExpanded'>
+    > &
+      SubtotalOptions = {
       arrowCollapsed: '\u25B2',
       arrowExpanded: '\u25BC',
       ...props.subtotalOptions,
     };
 
-    const colSubtotalDisplay = {
+    const colSubtotalDisplay: SubtotalDisplay = {
       displayOnTop: false,
-      enabled: tableOptions.colSubTotals as boolean | undefined,
+      enabled: tableOptions.colSubTotals,
       hideOnExpand: false,
-      ...(subtotalOptions.colSubtotalDisplay as
-        | Record<string, unknown>
-        | undefined),
+      ...subtotalOptions.colSubtotalDisplay,
     };
 
-    const rowSubtotalDisplay = {
+    const rowSubtotalDisplay: SubtotalDisplay = {
       displayOnTop: false,
-      enabled: tableOptions.rowSubTotals as boolean | undefined,
+      enabled: tableOptions.rowSubTotals,
       hideOnExpand: false,
-      ...(subtotalOptions.rowSubtotalDisplay as
-        | Record<string, unknown>
-        | undefined),
+      ...subtotalOptions.rowSubtotalDisplay,
     };
 
     const pivotData = new PivotData(props as Record<string, unknown>, {
-      rowEnabled: rowSubtotalDisplay.enabled as boolean | undefined,
-      colEnabled: colSubtotalDisplay.enabled as boolean | undefined,
+      rowEnabled: rowSubtotalDisplay.enabled,
+      colEnabled: colSubtotalDisplay.enabled,
       rowPartialOnTop: rowSubtotalDisplay.displayOnTop,
       colPartialOnTop: colSubtotalDisplay.displayOnTop,
     });
@@ -355,8 +401,8 @@ export class TableRenderer extends Component<
       rowKeys,
       rowTotals,
       colTotals,
-      arrowCollapsed: subtotalOptions.arrowCollapsed as string,
-      arrowExpanded: subtotalOptions.arrowExpanded as string,
+      arrowCollapsed: subtotalOptions.arrowCollapsed,
+      arrowExpanded: subtotalOptions.arrowExpanded,
       colSubtotalDisplay,
       rowSubtotalDisplay,
       cellCallbacks,
@@ -391,8 +437,7 @@ export class TableRenderer extends Component<
         filters[attr] = rowValues[i];
       }
     }
-    const clickCallback = (this.props.tableOptions as Record<string, unknown>)
-      .clickCallback as ((...args: unknown[]) => void) | undefined;
+    const { clickCallback } = this.props.tableOptions;
     return (e: MouseEvent) => clickCallback?.(e, value, filters, pivotData);
   }
 
@@ -401,7 +446,7 @@ export class TableRenderer extends Component<
     values: string[],
     attrs: string[],
     attrIdx: number,
-    callback: ((...args: unknown[]) => void) | undefined,
+    callback: HeaderClickCallback | undefined,
     isSubtotal = false,
     isGrandTotal = false,
   ) {
@@ -668,18 +713,12 @@ export class TableRenderer extends Component<
       namesMapping,
       allowRenderHtml,
     } = pivotSettings;
-    const tableOpts = this.props.tableOptions as Record<string, unknown>;
     const {
       highlightHeaderCellsOnHover,
       omittedHighlightHeaderGroups = [],
       highlightedHeaderCells,
       dateFormatters,
-    } = tableOpts as {
-      highlightHeaderCellsOnHover?: boolean;
-      omittedHighlightHeaderGroups?: string[];
-      highlightedHeaderCells?: Record<string, string[]>;
-      dateFormatters?: Record<string, (val: unknown) => string>;
-    };
+    } = this.props.tableOptions;
 
     if (!visibleColKeys || !colAttrSpans) {
       return null;
@@ -776,11 +815,7 @@ export class TableRenderer extends Component<
           );
         };
         const headerCellFormattedValue =
-          dateFormatters &&
-          dateFormatters[attrName] &&
-          typeof dateFormatters[attrName] === 'function'
-            ? dateFormatters[attrName](colKey[attrIdx])
-            : colKey[attrIdx];
+          dateFormatters?.[attrName]?.(colKey[attrIdx]) ?? colKey[attrIdx];
         attrValueCells.push(
           <th
             className={colLabelClass}
@@ -793,10 +828,7 @@ export class TableRenderer extends Component<
               colKey,
               this.props.cols,
               attrIdx,
-              (this.props.tableOptions as Record<string, unknown>)
-                .clickColumnHeaderCallback as
-                | ((...args: unknown[]) => void)
-                | undefined,
+              this.props.tableOptions.clickColumnHeaderCallback,
             )}
             onContextMenu={handleContextMenu}
           >
@@ -842,10 +874,7 @@ export class TableRenderer extends Component<
               colKey,
               this.props.cols,
               attrIdx,
-              (this.props.tableOptions as Record<string, unknown>)
-                .clickColumnHeaderCallback as
-                | ((...args: unknown[]) => void)
-                | undefined,
+              this.props.tableOptions.clickColumnHeaderCallback,
               true,
             )}
           >
@@ -869,10 +898,7 @@ export class TableRenderer extends Component<
             [],
             this.props.cols,
             attrIdx,
-            (this.props.tableOptions as Record<string, unknown>)
-              .clickColumnHeaderCallback as
-              | ((...args: unknown[]) => void)
-              | undefined,
+            this.props.tableOptions.clickColumnHeaderCallback,
             false,
             true,
           )}
@@ -939,10 +965,7 @@ export class TableRenderer extends Component<
             [],
             this.props.rows,
             0,
-            (this.props.tableOptions as Record<string, unknown>)
-              .clickRowHeaderCallback as
-              | ((...args: unknown[]) => void)
-              | undefined,
+            this.props.tableOptions.clickRowHeaderCallback,
             false,
             true,
           )}
@@ -986,13 +1009,7 @@ export class TableRenderer extends Component<
       highlightedHeaderCells,
       cellColorFormatters,
       dateFormatters,
-    } = this.props.tableOptions as {
-      highlightHeaderCellsOnHover?: boolean;
-      omittedHighlightHeaderGroups?: string[];
-      highlightedHeaderCells?: Record<string, string[]>;
-      cellColorFormatters?: Record<string, unknown>;
-      dateFormatters?: Record<string, (val: unknown) => string>;
-    };
+    } = this.props.tableOptions;
     const flatRowKey = flatKey(rowKey);
 
     const colIncrSpan = colAttrs.length !== 0 ? 1 : 0;
@@ -1026,9 +1043,7 @@ export class TableRenderer extends Component<
           : null;
 
         const headerCellFormattedValue =
-          dateFormatters && dateFormatters[rowAttrs[i]]
-            ? dateFormatters[rowAttrs[i]](r)
-            : r;
+          dateFormatters?.[rowAttrs[i]]?.(r) ?? r;
         return (
           <th
             key={`rowKeyLabel-${i}`}
@@ -1041,10 +1056,7 @@ export class TableRenderer extends Component<
               rowKey,
               this.props.rows,
               i,
-              (this.props.tableOptions as Record<string, unknown>)
-                .clickRowHeaderCallback as
-                | ((...args: unknown[]) => void)
-                | undefined,
+              this.props.tableOptions.clickRowHeaderCallback,
             )}
             onContextMenu={handleContextMenu}
           >
@@ -1077,10 +1089,7 @@ export class TableRenderer extends Component<
             rowKey,
             this.props.rows,
             rowKey.length,
-            (this.props.tableOptions as Record<string, unknown>)
-              .clickRowHeaderCallback as
-              | ((...args: unknown[]) => void)
-              | undefined,
+            this.props.tableOptions.clickRowHeaderCallback,
             true,
           )}
         >
@@ -1193,10 +1202,7 @@ export class TableRenderer extends Component<
           [],
           this.props.rows,
           0,
-          (this.props.tableOptions as Record<string, unknown>)
-            .clickRowHeaderCallback as
-            | ((...args: unknown[]) => void)
-            | undefined,
+          this.props.tableOptions.clickRowHeaderCallback,
           false,
           true,
         )}
@@ -1256,7 +1262,7 @@ export class TableRenderer extends Component<
     keys: string[][],
     collapsed: Record<string, boolean>,
     numAttrs: number,
-    subtotalDisplay: Record<string, unknown>,
+    subtotalDisplay: SubtotalDisplay,
   ) {
     return keys.filter(
       (key: string[]) =>

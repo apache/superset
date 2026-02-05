@@ -505,7 +505,7 @@ export default function PivotTableChart(props: PivotTableProps) {
 
   const toggleFilter = useCallback(
     (
-      e: MouseEvent,
+      e: ReactMouseEvent,
       value: string,
       filters: FilterType,
       pivotData: Record<string, any>,
