@@ -52,7 +52,7 @@ export interface FilterConfigItem extends JsonObject {
   chartsInScope?: number[];
   tabsInScope?: string[];
   type?: string;
-  targets?: { datasetId?: number; [key: string]: unknown }[];
+  targets?: Partial<NativeFilterTarget>[];
 }
 
 export type ChartReducerInitialState = typeof chart;
@@ -345,7 +345,7 @@ export type Slice = {
 };
 
 export interface SliceEntitiesState {
-  slices: Record<string, Slice>;
+  slices: Record<number, Slice>;
   isLoading: boolean;
   errorMessage: string | null;
   lastUpdated: number;

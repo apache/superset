@@ -661,8 +661,8 @@ const Chart = (props: ChartProps) => {
         exportXLSX={exportXLSX}
         exportFullCSV={exportFullCSV}
         exportFullXLSX={exportFullXLSX}
-        updateSliceName={
-          props.updateSliceName as unknown as (arg0: string) => void
+        updateSliceName={(name: string) =>
+          props.updateSliceName(props.id, name)
         }
         sliceName={props.sliceName}
         supersetCanExplore={supersetCanExplore}

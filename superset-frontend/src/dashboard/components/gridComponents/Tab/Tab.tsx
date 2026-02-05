@@ -157,7 +157,7 @@ const Tab = (props: TabProps): ReactElement => {
   );
   const tabActivationTime = useSelector(
     (state: RootState) =>
-      state.dashboardState.tabActivationTimes?.[props.id] || 0,
+      state.dashboardState.tabActivationTimes?.[props.id],
   );
   const dashboardInfo = useSelector((state: RootState) => state.dashboardInfo);
 
@@ -168,7 +168,7 @@ const Tab = (props: TabProps): ReactElement => {
     if (props.renderType === RENDER_TAB_CONTENT && props.isComponentVisible) {
       if (
         lastRefreshTime &&
-        tabActivationTime &&
+        tabActivationTime !== undefined &&
         lastRefreshTime > tabActivationTime
       ) {
         // Create a unique key for this specific refresh
