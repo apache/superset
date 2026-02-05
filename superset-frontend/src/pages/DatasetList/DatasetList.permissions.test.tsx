@@ -35,6 +35,7 @@ import {
 jest.setTimeout(30000);
 
 beforeEach(() => {
+  jest.useRealTimers();
   setupMocks();
   jest.clearAllMocks();
 });
