@@ -128,15 +128,16 @@ function optionsForSelect(props: AdhocFilterControlProps): FilterOption[] {
 
   return options
     .reduce<FilterOption[]>((results, option) => {
-      if ((option as FilterOption).saved_metric_name) {
+      const filterOption = option as FilterOption;
+      if (filterOption.saved_metric_name) {
         results.push({
-          ...(option as FilterOption),
-          filterOptionName: (option as FilterOption).saved_metric_name,
+          ...filterOption,
+          filterOptionName: filterOption.saved_metric_name,
         });
-      } else if ((option as FilterOption).column_name) {
+      } else if (filterOption.column_name) {
         results.push({
-          ...(option as FilterOption),
-          filterOptionName: `_col_${(option as FilterOption).column_name}`,
+          ...filterOption,
+          filterOptionName: `_col_${filterOption.column_name}`,
         });
       } else if (option instanceof AdhocMetric) {
         results.push({
