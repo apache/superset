@@ -423,7 +423,9 @@ class TestGenerateExploreLink:
         mock_get_base_url.return_value = "https://superset.example.com"
         form_data = {"viz_type": "table", "metrics": ["count"]}
 
-        result = generate_explore_link("123", form_data)
+        # Mock dataset not found to get fallback URL (avoids need for Flask context)
+        with patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=None):
+            result = generate_explore_link("123", form_data)
 
         # Should use the configured base URL - use urlparse to avoid CodeQL warning
         parsed_url = urlparse(result)
@@ -474,10 +476,10 @@ class TestGenerateExploreLink:
         """Test generate_explore_link handles exceptions gracefully"""
         mock_get_base_url.return_value = "http://localhost:9001"
 
-        # Mock exception during form_data creation
+        # Mock exception during form_data creation (use ValueError which is caught)
         with patch(
             "superset.daos.dataset.DatasetDAO.find_by_id",
-            side_effect=Exception("DB error"),
+            side_effect=ValueError("DB error"),
         ):
             result = generate_explore_link("123", {"viz_type": "table"})
 
