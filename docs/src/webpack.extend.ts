@@ -76,6 +76,7 @@ export default function webpackExtendPlugin(): Plugin<void> {
       config.module?.rules?.push({
         test: /\.(tsx?|jsx?)$/,
         include: supersetFrontendPath,
+        exclude: /node_modules/,
         use: {
           loader: 'swc-loader',
           options: {
