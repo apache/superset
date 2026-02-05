@@ -59,7 +59,10 @@ def estimate_token_count(text: str | bytes) -> int:
         text = text.decode("utf-8", errors="replace")
 
     # Simple heuristic: ~3.5 characters per token for JSON/code
-    return int(len(text) / CHARS_PER_TOKEN)
+    text_length = len(text)
+    if text_length == 0:
+        return 0
+    return max(1, int(text_length / CHARS_PER_TOKEN))
 
 
 def estimate_response_tokens(response: ToolResponse) -> int:
@@ -83,8 +86,11 @@ def estimate_response_tokens(response: ToolResponse) -> int:
             response_str = json.dumps(response.model_dump())
         elif isinstance(response, (dict, list)):
             response_str = json.dumps(response)
-        elif isinstance(response, (str, bytes)):
-            response_str = response if isinstance(response, str) else response.decode()
+        elif isinstance(response, bytes):
+            # Delegate to estimate_token_count which handles decoding safely
+            return estimate_token_count(response)
+        elif isinstance(response, str):
+            response_str = response
         else:
             response_str = str(response)
 
@@ -190,8 +196,12 @@ def generate_size_reduction_suggestions(
     )
 
     # Suggestion 1: Reduce page_size or limit
-    current_page_size = query_params.get("page_size") or query_params.get("limit")
-    if current_page_size:
+    raw_page_size = query_params.get("page_size") or query_params.get("limit")
+    try:
+        current_page_size = int(raw_page_size) if raw_page_size is not None else None
+    except (TypeError, ValueError):
+        current_page_size = None
+    if current_page_size and current_page_size > 0:
         # Calculate suggested new limit based on reduction needed
         suggested_limit = max(
             1,
