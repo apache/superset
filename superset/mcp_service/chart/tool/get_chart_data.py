@@ -32,7 +32,6 @@ if TYPE_CHECKING:
 
 from superset.commands.exceptions import CommandException
 from superset.commands.explore.form_data.parameters import CommandParameters
-from superset.exceptions import SupersetException
 from superset.extensions import event_logger
 from superset.mcp_service.chart.schemas import (
     ChartData,
@@ -208,6 +207,21 @@ async def get_chart_data(  # noqa: C901
                     "datasource_type", chart.datasource_type
                 )
 
+                # Handle different chart types that have different form_data
+                # structures. Some charts use "metric" (singular), not "metrics"
+                # (plural): big_number, big_number_total, pop_kpi.
+                # These charts also don't have groupby columns.
+                cached_viz_type = cached_form_data_dict.get(
+                    "viz_type", chart.viz_type or ""
+                )
+                if cached_viz_type in ("big_number", "big_number_total", "pop_kpi"):
+                    metric = cached_form_data_dict.get("metric")
+                    cached_metrics = [metric] if metric else []
+                    cached_groupby: list[str] = []
+                else:
+                    cached_metrics = cached_form_data_dict.get("metrics", [])
+                    cached_groupby = cached_form_data_dict.get("groupby", [])
+
                 query_context = factory.create(
                     datasource={
                         "id": datasource_id,
@@ -216,8 +230,8 @@ async def get_chart_data(  # noqa: C901
                     queries=[
                         {
                             "filters": cached_form_data_dict.get("filters", []),
-                            "columns": cached_form_data_dict.get("groupby", []),
-                            "metrics": cached_form_data_dict.get("metrics", []),
+                            "columns": cached_groupby,
+                            "metrics": cached_metrics,
                             "row_limit": row_limit,
                             "order_desc": cached_form_data_dict.get("order_desc", True),
                         }
@@ -544,7 +558,7 @@ async def get_chart_data(  # noqa: C901
                 cache_status=cache_status,
             )
 
-        except (CommandException, SupersetException) as data_error:
+        except Exception as data_error:
             await ctx.error(
                 "Data retrieval failed: chart_id=%s, error=%s, error_type=%s"
                 % (
@@ -559,7 +573,7 @@ async def get_chart_data(  # noqa: C901
                 error_type="DataError",
             )
 
-    except SupersetException as e:
+    except Exception as e:
         await ctx.error(
             "Chart data retrieval failed: identifier=%s, error=%s, error_type=%s"
             % (
