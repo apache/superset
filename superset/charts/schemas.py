@@ -20,9 +20,18 @@ from __future__ import annotations
 import inspect
 from typing import Any, TYPE_CHECKING
 
-from flask import current_app
+from flask import current_app, has_request_context, request
 from flask_babel import gettext as _
-from marshmallow import EXCLUDE, fields, post_dump, post_load, Schema, validate
+from marshmallow import (
+    EXCLUDE,
+    fields,
+    post_dump,
+    post_load,
+    Schema,
+    validate,
+    validates_schema,
+    ValidationError,
+)
 from marshmallow.validate import Length, Range
 from marshmallow_union import Union
 
@@ -36,6 +45,7 @@ from superset.utils.core import (
     AnnotationType,
     DatasourceType,
     FilterOperator,
+    parse_boolean_string,
     PostProcessingBoxplotWhiskerType,
     PostProcessingContributionOrientation,
 )
@@ -305,6 +315,30 @@ class ChartPutSchema(Schema):
     external_url = fields.String(allow_none=True)
     tags = fields.List(fields.Integer(metadata={"description": tags_description}))
     uuid = fields.UUID(allow_none=True)
+    translations = fields.Dict(
+        metadata={"description": "Translations dict for content localization"},
+        allow_none=True,
+    )
+
+    @validates_schema
+    def validate_translations_feature_flag(
+        self, data: dict[str, Any], **kwargs: Any
+    ) -> None:
+        """
+        Reject translations when content localization feature is disabled.
+
+        Raises ValidationError if translations field is present but
+        ENABLE_CONTENT_LOCALIZATION feature flag is False.
+        """
+        if "translations" not in data:
+            return
+
+        if not is_feature_enabled("ENABLE_CONTENT_LOCALIZATION"):
+            raise ValidationError(
+                "Content localization is not enabled. "
+                "Set ENABLE_CONTENT_LOCALIZATION=True to use translations.",
+                field_name="translations",
+            )
 
 
 class ChartGetDatasourceObjectDataResponseSchema(Schema):
@@ -1717,19 +1751,58 @@ class ChartGetResponseSchema(Schema):
         return serialized
 
     def _apply_localization(self, serialized: dict[str, Any], obj: Any) -> None:
-        """Apply content localization to slice_name and description."""
+        """
+        Apply content localization to chart fields.
+
+        Supports two modes via ?include_translations query parameter:
+
+        Default mode (include_translations=false):
+            Returns localized field values for user's locale.
+            Excludes raw translations dict from response.
+
+        Editor mode (include_translations=true):
+            Returns original field values (not localized).
+            Includes full translations dict for TranslationEditor UI.
+
+        Both modes include available_locales.
+        """
         if not hasattr(obj, "get_localized"):
             return
 
-        locale = get_user_locale()
+        include_translations = self._should_include_translations()
 
-        if "slice_name" in serialized:
-            serialized["slice_name"] = obj.get_localized("slice_name", locale)
+        if include_translations:
+            # Editor mode: return original values + translations dict
+            if hasattr(obj, "translations") and obj.translations:
+                serialized["translations"] = obj.translations
+            else:
+                serialized["translations"] = {}
 
-        if "description" in serialized:
-            serialized["description"] = obj.get_localized("description", locale)
+            serialized["available_locales"] = obj.get_available_locales()
+        else:
+            # Default mode: localize fields, exclude translations
+            serialized.pop("translations", None)
 
-        serialized["available_locales"] = obj.get_available_locales()
+            locale = get_user_locale()
+
+            if "slice_name" in serialized:
+                serialized["slice_name"] = obj.get_localized("slice_name", locale)
+
+            if "description" in serialized:
+                serialized["description"] = obj.get_localized("description", locale)
+
+            serialized["available_locales"] = obj.get_available_locales()
+
+    def _should_include_translations(self) -> bool:
+        """
+        Check if raw translations dict should be included in response.
+
+        Returns True if ?include_translations=true query parameter present.
+        Returns False if outside request context or parameter absent/false.
+        """
+        if not has_request_context():
+            return False
+        return parse_boolean_string(request.args.get("include_translations"))
 
 
 CHART_SCHEMAS = (
