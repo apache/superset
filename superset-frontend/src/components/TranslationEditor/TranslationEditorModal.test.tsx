@@ -86,13 +86,10 @@ test('removes translation when delete button is clicked', async () => {
   render(<TranslationEditorModal {...defaultProps} />);
   expect(screen.getByDisplayValue('Tableau de bord')).toBeInTheDocument();
 
-  // Find the French translation row's delete icon
-  const frenchValue = screen.getByDisplayValue('Tableau de bord');
-  const frenchRow = frenchValue.closest('[data-test^="translation-field-"]')!;
-  const deleteButton = frenchRow.querySelector(
-    '[data-test^="translation-remove-"]',
-  )!;
-  await userEvent.click(deleteButton);
+  // French only appears in dashboard_title, so there is exactly one Remove French button
+  await userEvent.click(
+    screen.getByRole('button', { name: /remove french/i }),
+  );
 
   expect(screen.queryByDisplayValue('Tableau de bord')).not.toBeInTheDocument();
 });

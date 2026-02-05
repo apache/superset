@@ -17,6 +17,7 @@
  * under the License.
  */
 import { useCallback } from 'react';
+import { t } from '@apache-superset/core';
 import { css } from '@apache-superset/core/ui';
 import { Icons, Input } from '@superset-ui/core/components';
 
@@ -58,7 +59,6 @@ export default function TranslationField({
         align-items: center;
         gap: 8px;
       `}
-      data-test={`translation-field-${locale}`}
     >
       <span
         css={css`
@@ -71,12 +71,14 @@ export default function TranslationField({
       <Input
         value={value}
         onChange={handleChange}
-        data-test={`translation-input-${locale}`}
+        aria-label={t('%s translation', localeName)}
       />
       <Icons.DeleteOutlined
         iconSize="m"
+        role="button"
+        tabIndex={0}
+        aria-label={t('Remove %s translation', localeName)}
         onClick={onRemove}
-        data-test={`translation-remove-${locale}`}
         css={css`
           cursor: pointer;
           flex-shrink: 0;

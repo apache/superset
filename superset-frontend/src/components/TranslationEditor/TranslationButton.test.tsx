@@ -50,7 +50,3 @@ test('does not call onClick when disabled', async () => {
   expect(onClick).not.toHaveBeenCalled();
 });
 
-test('renders with data-test attribute', () => {
-  render(<TranslationButton {...defaultProps} />);
-  expect(screen.getByTestId('translation-button')).toBeInTheDocument();
-});

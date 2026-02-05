@@ -42,7 +42,6 @@ export default function TranslationButton({
       buttonSize="small"
       onClick={onClick}
       disabled={disabled}
-      data-test="translation-button"
     >
       <Icons.GlobalOutlined iconSize="s" />
       {t('Translations (%s)', translationCount)}

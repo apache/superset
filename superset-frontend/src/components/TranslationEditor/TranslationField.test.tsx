@@ -35,27 +35,28 @@ test('renders locale label with code', () => {
 
 test('renders input with current value', () => {
   render(<TranslationField {...defaultProps} />);
-  const input = screen.getByTestId('translation-input-de');
-  expect(input).toHaveValue('Verkaufs-Dashboard');
+  expect(screen.getByRole('textbox')).toHaveValue('Verkaufs-Dashboard');
 });
 
 test('calls onChange when input value changes', () => {
   const onChange = jest.fn();
   render(<TranslationField {...defaultProps} onChange={onChange} />);
-  const input = screen.getByTestId('translation-input-de');
-  fireEvent.change(input, { target: { value: 'Neuer Wert' } });
+  fireEvent.change(screen.getByRole('textbox'), {
+    target: { value: 'Neuer Wert' },
+  });
   expect(onChange).toHaveBeenCalledWith('Neuer Wert');
 });
 
 test('calls onRemove when delete button is clicked', async () => {
   const onRemove = jest.fn();
   render(<TranslationField {...defaultProps} onRemove={onRemove} />);
-  await userEvent.click(screen.getByTestId('translation-remove-de'));
+  await userEvent.click(
+    screen.getByRole('button', { name: /remove german/i }),
+  );
   expect(onRemove).toHaveBeenCalledTimes(1);
 });
 
 test('renders empty input when value is empty string', () => {
   render(<TranslationField {...defaultProps} value="" />);
-  const input = screen.getByTestId('translation-input-de');
-  expect(input).toHaveValue('');
+  expect(screen.getByRole('textbox')).toHaveValue('');
 });
