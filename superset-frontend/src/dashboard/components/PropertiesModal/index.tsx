@@ -59,6 +59,12 @@ import {
   CertificationSection,
   AdvancedSection,
 } from './sections';
+import {
+  TranslationButton,
+  TranslationEditorModal,
+  type TranslatableField,
+} from 'src/components/TranslationEditor';
+import type { Translations, LocaleInfo } from 'src/types/Localization';
 
 type PropertiesModalProps = {
   dashboardId: number;
@@ -128,6 +134,9 @@ const PropertiesModal = ({
   const [refreshFrequency, setRefreshFrequency] = useState(0);
   const [selectedThemeId, setSelectedThemeId] = useState<number | null>(null);
   const [showChartTimestamps, setShowChartTimestamps] = useState(false);
+  const [translations, setTranslations] = useState<Translations>({});
+  const [availableLocales, setAvailableLocales] = useState<LocaleInfo[]>([]);
+  const [showTranslationModal, setShowTranslationModal] = useState(false);
   const [themes, setThemes] = useState<
     Array<{
       id: number;
@@ -171,6 +180,7 @@ const PropertiesModal = ({
         is_managed_externally,
         theme,
         css,
+        translations: rawTranslations,
       } = dashboardData;
       const dashboardInfo = {
         id,
@@ -188,6 +198,7 @@ const PropertiesModal = ({
       setOwners(owners);
       setRoles(roles);
       setCustomCss(css || '');
+      setTranslations(rawTranslations ?? {});
       setCurrentColorScheme(metadata?.color_scheme);
       setSelectedThemeId(theme?.id || null);
 
@@ -212,9 +223,10 @@ const PropertiesModal = ({
     // that renders this component have all the values we need.
     // At some point when we have a more consistent frontend
     // datamodel, the dashboard could probably just be passed as a prop.
-    SupersetClient.get({
-      endpoint: `/api/v1/dashboard/${dashboardId}`,
-    }).then(response => {
+    const endpoint = isFeatureEnabled(FeatureFlag.EnableContentLocalization)
+      ? `/api/v1/dashboard/${dashboardId}?include_translations=true`
+      : `/api/v1/dashboard/${dashboardId}`;
+    SupersetClient.get({ endpoint }).then(response => {
       const dashboard = response.json.result;
       const jsonMetadataObj = dashboard.json_metadata?.length
         ? JSON.parse(dashboard.json_metadata)
@@ -350,10 +362,15 @@ const PropertiesModal = ({
 
     currentJsonMetadata = jsonStringify(jsonMetadataObj);
 
-    const moreOnSubmitProps: { roles?: Roles; tags?: TagType[] } = {};
+    const moreOnSubmitProps: {
+      roles?: Roles;
+      tags?: TagType[];
+      translations?: Translations;
+    } = {};
     const morePutProps: {
       roles?: number[];
       tags?: (string | number | undefined)[];
+      translations?: Translations;
     } = {};
     if (isFeatureEnabled(FeatureFlag.DashboardRbac)) {
       moreOnSubmitProps.roles = roles;
@@ -362,6 +379,10 @@ const PropertiesModal = ({
     if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
       moreOnSubmitProps.tags = tags;
       morePutProps.tags = tags.map(tag => tag.id);
+    }
+    if (isFeatureEnabled(FeatureFlag.EnableContentLocalization)) {
+      moreOnSubmitProps.translations = translations;
+      morePutProps.translations = translations;
     }
     const onSubmitProps = {
       id: dashboardId,
@@ -448,6 +469,22 @@ const PropertiesModal = ({
             t('An error occurred while fetching available themes'),
           );
         });
+
+      if (isFeatureEnabled(FeatureFlag.EnableContentLocalization)) {
+        SupersetClient.get({
+          endpoint: '/api/v1/localization/available_locales',
+        }).then(
+          response => {
+            const { locales, default_locale } = response.json.result;
+            setAvailableLocales(
+              locales.filter(
+                (loc: LocaleInfo) => loc.code !== default_locale,
+              ),
+            );
+          },
+          handleErrorResponse,
+        );
+      }
     }
   }, [
     currentDashboardInfo,
@@ -506,6 +543,33 @@ const PropertiesModal = ({
   const handleThemeChange = (value: any) => setSelectedThemeId(value || null);
   const handleRefreshFrequencyChange = (value: any) =>
     setRefreshFrequency(value);
+
+  const handleSaveTranslations = useCallback(
+    (updatedTranslations: Translations) => {
+      setTranslations(updatedTranslations);
+      setShowTranslationModal(false);
+    },
+    [],
+  );
+
+  const translationCount = useMemo(() => {
+    const locales = new Set<string>();
+    Object.values(translations).forEach(fieldTrans => {
+      Object.keys(fieldTrans).forEach(locale => locales.add(locale));
+    });
+    return locales.size;
+  }, [translations]);
+
+  const translatableFields: TranslatableField[] = useMemo(
+    () => [
+      {
+        name: 'dashboard_title',
+        label: t('Dashboard Title'),
+        value: dashboardInfo?.title ?? '',
+      },
+    ],
+    [dashboardInfo?.title],
+  );
 
   // Helper function for styling section
   const hasCustomLabelsColor = !!Object.keys(
@@ -616,8 +680,9 @@ const PropertiesModal = ({
   }, [refreshFrequency, validateSection, isDataReady]);
 
   return (
-    <StandardModal
-      show={show}
+    <>
+      <StandardModal
+        show={show}
       onHide={handleOnCancel}
       onSave={() => {
         if (validateAll()) {
@@ -669,10 +734,20 @@ const PropertiesModal = ({
                 />
               ),
               children: (
-                <BasicInfoSection
-                  form={form}
-                  validationStatus={validationStatus}
-                />
+                <>
+                  <BasicInfoSection
+                    form={form}
+                    validationStatus={validationStatus}
+                  />
+                  {isFeatureEnabled(
+                    FeatureFlag.EnableContentLocalization,
+                  ) && (
+                    <TranslationButton
+                      translationCount={translationCount}
+                      onClick={() => setShowTranslationModal(true)}
+                    />
+                  )}
+                </>
               ),
             },
             {
@@ -779,7 +854,18 @@ const PropertiesModal = ({
           ]}
         />
       </Form>
-    </StandardModal>
+      </StandardModal>
+      {isFeatureEnabled(FeatureFlag.EnableContentLocalization) && (
+        <TranslationEditorModal
+          show={showTranslationModal}
+          fields={translatableFields}
+          translations={translations}
+          availableLocales={availableLocales}
+          onSave={handleSaveTranslations}
+          onClose={() => setShowTranslationModal(false)}
+        />
+      )}
+    </>
   );
 };
 

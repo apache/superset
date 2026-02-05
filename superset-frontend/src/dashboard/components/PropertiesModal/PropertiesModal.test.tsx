@@ -140,6 +140,13 @@ const dashboardInfo = {
   url: '/superset/dashboard/26/',
 };
 
+const dashboardTranslations = {
+  dashboard_title: {
+    de: 'COVID Impfstoff Dashboard',
+    fr: 'Tableau de bord vaccin COVID',
+  },
+};
+
 fetchMock.get('glob:*/api/v1/dashboard/26', {
   body: {
     result: { ...dashboardInfo, json_metadata: mockedJsonMetadata },
@@ -158,6 +165,19 @@ fetchMock.get('glob:*/api/v1/theme/*', {
         theme_name: 'Test Theme 2',
       },
     ],
+  },
+});
+
+fetchMock.get('glob:*/api/v1/localization/available_locales', {
+  body: {
+    result: {
+      locales: [
+        { code: 'en', name: 'English' },
+        { code: 'de', name: 'German' },
+        { code: 'fr', name: 'French' },
+      ],
+      default_locale: 'en',
+    },
   },
 });
 
@@ -725,4 +745,113 @@ describe('PropertiesModal', () => {
       { timeout: 1000 },
     );
   });
+});
+
+test('translation button hidden when content localization flag is off', async () => {
+  mockedIsFeatureEnabled.mockReturnValue(false);
+  const props = createProps();
+  const propsWithDashboardInfo = {
+    ...props,
+    dashboardInfo: {
+      ...dashboardInfo,
+      json_metadata: mockedJsonMetadata,
+    },
+  };
+  render(<PropertiesModal {...propsWithDashboardInfo} />, { useRedux: true });
+
+  await waitFor(() => {
+    expect(screen.getByText('General information')).toBeInTheDocument();
+  });
+
+  expect(
+    screen.queryByRole('button', { name: /translations/i }),
+  ).not.toBeInTheDocument();
+});
+
+test('translation button visible when content localization flag is on', async () => {
+  mockedIsFeatureEnabled.mockImplementation(
+    flag => flag === FeatureFlag.EnableContentLocalization,
+  );
+  const props = createProps();
+  const propsWithDashboardInfo = {
+    ...props,
+    dashboardInfo: {
+      ...dashboardInfo,
+      json_metadata: mockedJsonMetadata,
+      translations: dashboardTranslations,
+    },
+  };
+  render(<PropertiesModal {...propsWithDashboardInfo} />, { useRedux: true });
+
+  await waitFor(() => {
+    expect(screen.getByText('General information')).toBeInTheDocument();
+  });
+
+  expect(
+    screen.getByRole('button', { name: /translations \(2\)/i }),
+  ).toBeInTheDocument();
+});
+
+test('clicking translation button opens translation editor modal', async () => {
+  mockedIsFeatureEnabled.mockImplementation(
+    flag => flag === FeatureFlag.EnableContentLocalization,
+  );
+  const props = createProps();
+  const propsWithDashboardInfo = {
+    ...props,
+    dashboardInfo: {
+      ...dashboardInfo,
+      json_metadata: mockedJsonMetadata,
+      translations: dashboardTranslations,
+    },
+  };
+  render(<PropertiesModal {...propsWithDashboardInfo} />, { useRedux: true });
+
+  await waitFor(() => {
+    expect(screen.getByText('General information')).toBeInTheDocument();
+  });
+
+  await userEvent.click(
+    screen.getByRole('button', { name: /translations/i }),
+  );
+
+  await waitFor(() => {
+    expect(screen.getByText('Edit Translations')).toBeInTheDocument();
+    expect(screen.getByText('Dashboard Title')).toBeInTheDocument();
+  });
+});
+
+test('save includes translations in PUT payload', async () => {
+  const put = jest.spyOn(SupersetCore.SupersetClient, 'put');
+  put.mockResolvedValue({ json: { result: {} } } as ReturnType<
+    typeof SupersetCore.SupersetClient.put
+  >);
+  mockedIsFeatureEnabled.mockImplementation(
+    flag => flag === FeatureFlag.EnableContentLocalization,
+  );
+  const props = createProps();
+  const propsWithDashboardInfo = {
+    ...props,
+    dashboardInfo: {
+      ...dashboardInfo,
+      json_metadata: mockedJsonMetadata,
+      translations: dashboardTranslations,
+    },
+  };
+  render(<PropertiesModal {...propsWithDashboardInfo} />, { useRedux: true });
+
+  await waitFor(() => {
+    expect(screen.getByText('General information')).toBeInTheDocument();
+  });
+
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+  await waitFor(() => {
+    expect(props.onSubmit).toHaveBeenCalledTimes(1);
+  });
+
+  const submitCall = props.onSubmit.mock.calls[0][0];
+  expect(submitCall.translations).toEqual(dashboardTranslations);
+
+  put.mockRestore();
 });
