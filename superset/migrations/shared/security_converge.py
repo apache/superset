@@ -250,6 +250,74 @@ def migrate_roles(  # noqa: C901
         session.commit()
 
 
+def _build_grant_pvm_map(
+    session: Session, source_to_new: PvmMigrationMapType
+) -> dict[PermissionView, list[PermissionView]]:
+    """Resolve source/new Pvm keys to PermissionView objects; used by grant helper."""
+    pvm_map: dict[PermissionView, list[PermissionView]] = {}
+    for source_key, new_pvms_keys in source_to_new.items():
+        source_pvm = _find_pvm(session, source_key.view, source_key.permission)
+        if source_pvm:
+            new_pvms = []
+            for new_key in new_pvms_keys:
+                new_pvm = _find_pvm(session, new_key.view, new_key.permission)
+                if new_pvm:
+                    new_pvms.append(new_pvm)
+            if new_pvms:
+                pvm_map[source_pvm] = new_pvms
+    return pvm_map
+
+
+def grant_pvms_to_roles_that_have(
+    session: Session,
+    source_to_new: PvmMigrationMapType,
+    commit: bool = False,
+) -> None:
+    """
+    Grant new PVMs to all roles that have the source PVM (additive).
+    Use when adding new permission views for roles that have an existing one.
+    """
+    pvm_map = _build_grant_pvm_map(session, source_to_new)
+    roles = session.query(Role).options(Load(Role).joinedload(Role.permissions)).all()
+    for role in roles:
+        for source_pvm, new_pvms in pvm_map.items():
+            if source_pvm in role.permissions:
+                for new_pvm in new_pvms:
+                    if new_pvm not in role.permissions:
+                        logger.info(
+                            "Grant %s to %s (has %s)", new_pvm, role, source_pvm
+                        )
+                        role.permissions.append(new_pvm)
+    if commit:
+        session.commit()
+
+
+def revoke_pvms(
+    session: Session,
+    pvm_data: dict[str, tuple[str, ...]],
+    commit: bool = False,
+) -> None:
+    """
+    Remove the given PVMs from all roles and delete the PermissionView.
+    Also deletes orphan Permission/ViewMenu. Same structure as add_pvms.
+    """
+    for view_name, permission_names in pvm_data.items():
+        for permission_name in permission_names:
+            pvm = _find_pvm(session, view_name, permission_name)
+            if pvm:
+                roles = (
+                    session.query(Role)
+                    .options(Load(Role).joinedload(Role.permissions))
+                    .all()
+                )
+                for role in roles:
+                    if pvm in role.permissions:
+                        role.permissions.remove(pvm)
+                _delete_old_permissions(session, {pvm: []})
+    if commit:
+        session.commit()
+
+
 def get_reversed_new_pvms(pvm_map: PvmMigrationMapType) -> dict[str, tuple[str, ...]]:
     reversed_pvms: dict[str, tuple[str, ...]] = {}
     for old_pvm, new_pvms in pvm_map.items():  # noqa: B007
