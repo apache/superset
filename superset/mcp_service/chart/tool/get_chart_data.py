@@ -188,7 +188,7 @@ async def get_chart_data(  # noqa: C901
             query_context_json = None
 
             # If using cached form_data, we need to build query_context from it
-            if using_unsaved_state and cached_form_data_dict:
+            if using_unsaved_state and cached_form_data_dict is not None:
                 # Build query context from cached form_data (unsaved state)
                 from superset.common.query_context_factory import QueryContextFactory
 

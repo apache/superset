@@ -121,21 +121,33 @@ async def get_dashboard_info(
                 permalink_value = _get_permalink_state(request.permalink_key)
 
                 if permalink_value:
-                    # Extract the state from permalink value
-                    # Cast to dict for Pydantic compatibility
-                    permalink_state = dict(permalink_value.get("state", {}))
-                    result.permalink_key = request.permalink_key
-                    result.filter_state = permalink_state
-                    result.is_permalink_state = True
-
-                    await ctx.info(
-                        "Filter state retrieved from permalink: has_dataMask=%s, "
-                        "has_activeTabs=%s"
-                        % (
-                            "dataMask" in permalink_state,
-                            "activeTabs" in permalink_state,
+                    # Verify the permalink belongs to the requested dashboard
+                    permalink_dashboard_id = permalink_value.get("dashboardId")
+                    if (
+                        isinstance(permalink_dashboard_id, int)
+                        and permalink_dashboard_id != result.id
+                    ):
+                        await ctx.warning(
+                            "permalink_key dashboardId (%s) does not match "
+                            "requested dashboard id (%s); ignoring permalink "
+                            "filter state." % (permalink_dashboard_id, result.id)
                         )
-                    )
+                    else:
+                        # Extract the state from permalink value
+                        # Cast to dict for Pydantic compatibility
+                        permalink_state = dict(permalink_value.get("state", {}))
+                        result.permalink_key = request.permalink_key
+                        result.filter_state = permalink_state
+                        result.is_permalink_state = True
+
+                        await ctx.info(
+                            "Filter state retrieved from permalink: "
+                            "has_dataMask=%s, has_activeTabs=%s"
+                            % (
+                                "dataMask" in permalink_state,
+                                "activeTabs" in permalink_state,
+                            )
+                        )
                 else:
                     await ctx.warning(
                         "permalink_key provided but no permalink found. "
