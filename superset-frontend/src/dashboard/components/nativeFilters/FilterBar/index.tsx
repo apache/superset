@@ -414,19 +414,37 @@ const FilterBar: FC<FiltersBarProps> = ({
   ]);
 
   const handleClearAll = useCallback(() => {
+    dispatch(logEvent(LOG_ACTIONS_CHANGE_DASHBOARD_FILTER, {}));
+    setUpdateKey(1);
     const newClearAllTriggers = { ...clearAllTriggers };
+    // Clear all native filters, not just those in scope
+    const updates: Record<string, DataMaskWithId> = {};
     nativeFilterValues.forEach(filter => {
       const { id } = filter;
       if (dataMaskSelected[id]) {
-        setDataMaskSelected(draft => {
-          if (draft[id].filterState?.value !== undefined) {
-            draft[id].filterState!.value = undefined;
-          }
-          draft[id].extraFormData = {};
-        });
+        updates[id] = {
+          ...dataMaskSelected[id],
+          filterState: {
+            ...dataMaskSelected[id].filterState,
+            value: null,
+          },
+          extraFormData: {},
+        };
         newClearAllTriggers[id] = true;
       }
     });
+
+    setDataMaskSelected(draft => {
+      Object.entries(updates).forEach(([id, mask]) => {
+        draft[id] = mask;
+      });
+    });
+
+    Object.entries(updates).forEach(([id, mask]) => {
+      dispatch(updateDataMask(id, mask));
+    });
+
+    let hasChartCustomizationsToClear = false;
 
     const allDataMasks = { ...dataMaskSelected, ...dataMaskApplied };
     const hasCustomizationDataMasks = Object.keys(allDataMasks).some(key =>
@@ -453,6 +471,16 @@ const FilterBar: FC<FiltersBarProps> = ({
       dispatch(clearAllPendingChartCustomizations());
       setPendingCustomizationDataMasks({});
       setHasClearedChartCustomizations(true);
+
+      const clearedChartCustomizations = chartCustomizationItems.map(item => ({
+        ...item,
+        customization: {
+          ...item.customization,
+          column: null,
+        },
+      }));
+
+      dispatch(saveChartCustomization(clearedChartCustomizations));
     }
 
     setClearAllTriggers(newClearAllTriggers);
