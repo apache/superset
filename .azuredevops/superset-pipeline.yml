@@ -224,12 +224,11 @@ stages:
               # -------------------------------------
               # CLIENT_CONFIG is dynamically loaded from environment-specific variable group
               # Variable groups: blue-dev-secret, lat360foods-secret, etc.
-              # Each group maps its Key Vault secret to the CLIENT_CONFIG variable name
-              # Runtime expression $[variables.CLIENT_CONFIG] resolves at deployment time
+              # Template expression resolves to $(blue-dev-secret), $(lat360foods-secret), etc. at compile time
               - task: PowerShell@2
                 displayName: 'Rehydrate & validate client config'
                 env:
-                  CLIENT_CONFIG: $[variables.CLIENT_CONFIG]
+                  CLIENT_CONFIG: ${{ format('$({0}-secret)', parameters.targetEnvironment) }}
                 inputs:
                   pwsh: true
                   targetType: inline
