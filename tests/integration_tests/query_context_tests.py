@@ -1144,6 +1144,61 @@ def test_time_grain_and_time_offset_with_base_axis(app_context, physical_dataset
 
 
 @only_sqlite
+def test_dataset_offset_with_adhoc_temporal_column(app_context, physical_dataset):
+    """
+    Test that dataset offset is applied to adhoc SQL expression temporal columns.
+    Regression test for Issue #23167.
+    """
+    # Set dataset offset to 3 hours
+    physical_dataset.offset = 3
+    db.session.commit()
+
+    adhoc_temporal_column: AdhocColumn = {
+        "label": "col6",
+        "sqlExpression": "col6",
+        "columnType": "BASE_AXIS",
+        "isColumnReference": True,
+    }
+    
+    qc = QueryContextFactory().create(
+        datasource={
+            "type": physical_dataset.type,
+            "id": physical_dataset.id,
+        },
+        queries=[
+            {
+                "columns": [adhoc_temporal_column],
+                "metrics": [
+                    {
+                        "label": "COUNT(*)",
+                        "expressionType": "SQL",
+                        "sqlExpression": "COUNT(*)",
+                    }
+                ],
+                "granularity": "col6",
+                "time_range": "2002-01-01 : 2002-01-02",
+            }
+        ],
+        result_type=ChartDataResultType.FULL,
+        force=True,
+    )
+    query_object = qc.queries[0]
+    df = qc.get_df_payload(query_object)["df"]
+    
+    # Verify offset was applied: timestamps should be shifted by 3 hours
+    # Original data: 2002-01-01 00:00:00
+    # With 3 hour offset:  2002-01-01 03:00:00
+    assert len(df) > 0
+    first_timestamp = df["col6"].iloc[0]
+    # The hour should be 3 (UTC+3 offset)
+    assert first_timestamp.hour == 3, f"Expected hour=3 after offset, got hour={first_timestamp.hour}"
+    
+    # Reset offset
+    physical_dataset.offset = 0
+    db.session.commit()
+
+
+@only_sqlite
 def test_time_grain_and_time_offset_on_legacy_query(app_context, physical_dataset):
     qc = QueryContextFactory().create(
         datasource={
