@@ -128,9 +128,8 @@ describe('nvd3/utils', () => {
     });
     it('returns a date formatter if format is smart_date', () => {
       const time = new Date(Date.UTC(2018, 10, 21, 22, 11));
-      expect(
-        getTimeOrNumberFormatter('smart_date')(time as unknown as number),
-      ).toBe('10:11');
+      // @ts-expect-error -- getTimeOrNumberFormatter doesn't distinguish return types; accepts Date at runtime
+      expect(getTimeOrNumberFormatter('smart_date')(time)).toBe('10:11');
     });
     it('returns a number formatter otherwise', () => {
       expect(getTimeOrNumberFormatter('.3s')(3000000)).toBe('3.00M');
