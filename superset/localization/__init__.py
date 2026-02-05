@@ -19,10 +19,16 @@
 from superset.localization.locale_utils import get_user_locale, parse_accept_language
 from superset.localization.localizable_mixin import LocalizableMixin
 from superset.localization.native_filter_utils import localize_native_filters
+from superset.localization.sanitization import (
+    sanitize_translation_value,
+    sanitize_translations,
+)
 
 __all__ = [
     "LocalizableMixin",
     "get_user_locale",
     "localize_native_filters",
     "parse_accept_language",
+    "sanitize_translation_value",
+    "sanitize_translations",
 ]

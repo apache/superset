@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 DEFAULT_LOCALE = "en"
 
 
-def get_available_locales_data() -> dict:
+def get_available_locales_data() -> dict[str, list[dict[str, str]] | str]:
     """
     Build available locales response data from Flask config.
 

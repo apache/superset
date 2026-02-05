@@ -22,7 +22,11 @@ from marshmallow import fields, post_dump, post_load, pre_load, Schema, validate
 from marshmallow.validate import Length, ValidationError
 
 from superset import is_feature_enabled, security_manager
-from superset.localization import get_user_locale, localize_native_filters
+from superset.localization import (
+    get_user_locale,
+    localize_native_filters,
+    sanitize_translations,
+)
 from superset.tags.models import TagType
 from superset.utils import json
 from superset.utils.core import parse_boolean_string
@@ -552,6 +556,20 @@ class DashboardPutSchema(BaseDashboardSchema):
                 "Set ENABLE_CONTENT_LOCALIZATION=True to use translations.",
                 field_name="translations",
             )
+
+    @post_load
+    def sanitize_translations_xss(
+        self, data: dict[str, Any], **kwargs: Any
+    ) -> dict[str, Any]:
+        """
+        Strip HTML from translation values to prevent XSS.
+
+        Sanitization runs after validation. All HTML tags are removed,
+        storing plain text that React will escape when rendering.
+        """
+        if "translations" in data:
+            data["translations"] = sanitize_translations(data["translations"])
+        return data
 
 
 class DashboardNativeFiltersConfigUpdateSchema(BaseDashboardSchema):

@@ -38,7 +38,7 @@ from marshmallow_union import Union
 from superset import is_feature_enabled
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.db_engine_specs.base import builtin_time_grains
-from superset.localization import get_user_locale
+from superset.localization import get_user_locale, sanitize_translations
 from superset.tags.models import TagType
 from superset.utils import pandas_postprocessing, schema as utils
 from superset.utils.core import (
@@ -339,6 +339,20 @@ class ChartPutSchema(Schema):
                 "Set ENABLE_CONTENT_LOCALIZATION=True to use translations.",
                 field_name="translations",
             )
+
+    @post_load
+    def sanitize_translations_xss(
+        self, data: dict[str, Any], **kwargs: Any
+    ) -> dict[str, Any]:
+        """
+        Strip HTML from translation values to prevent XSS.
+
+        Sanitization runs after validation. All HTML tags are removed,
+        storing plain text that React will escape when rendering.
+        """
+        if "translations" in data:
+            data["translations"] = sanitize_translations(data["translations"])
+        return data
 
 
 class ChartGetDatasourceObjectDataResponseSchema(Schema):
