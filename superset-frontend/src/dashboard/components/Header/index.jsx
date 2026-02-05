@@ -422,7 +422,7 @@ const Header = () => {
   }, [boundActionCreators, editMode]);
 
   const overwriteDashboard = useCallback(
-    versionCommentOverride => {
+    versionDescriptionOverride => {
       const currentColorNamespace =
         dashboardInfo?.metadata?.color_namespace || colorNamespace;
       const currentColorScheme =
@@ -441,9 +441,9 @@ const Header = () => {
           item => item.type === TagTypeEnum.Custom || !item.type,
         ),
         theme_id: dashboardInfo.theme ? dashboardInfo.theme.id : null,
-        version_comment:
-          (typeof versionCommentOverride === 'string'
-            ? versionCommentOverride?.trim()
+        version_description:
+          (typeof versionDescriptionOverride === 'string'
+            ? versionDescriptionOverride?.trim()
             : undefined) || undefined,
         metadata: {
           ...dashboardInfo?.metadata,

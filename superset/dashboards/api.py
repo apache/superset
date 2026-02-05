@@ -649,7 +649,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
                 {
                     "id": v.id,
                     "version_number": v.version_number,
-                    "comment": v.comment,
+                    "description": v.description,
                     "created_at": v.created_at.isoformat() if v.created_at else None,
                     "created_by": v.created_by.username if v.created_by else None,
                 }
@@ -693,7 +693,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
                 schema:
                   type: object
                   properties:
-                    comment:
+                    description:
                       type: string
                       nullable: true
                       description: Optional description for this version
@@ -715,10 +715,10 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             data = DashboardVersionUpdateSchema().load(request.json or {})
         except ValidationError as ex:
             return self.response_400(message=ex.messages)
-        version = DashboardVersionDAO.update_comment(
+        version = DashboardVersionDAO.update_description(
             version_id=version_id,
             dashboard_id=dashboard.id,
-            comment=data.get("comment"),
+            description=data.get("description"),
         )
         if not version:
             return self.response_404()

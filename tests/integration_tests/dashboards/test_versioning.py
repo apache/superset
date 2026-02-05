@@ -279,7 +279,7 @@ def test_update_version_description_via_api(
     test_client,
     login_as,
 ):
-    """PUT dashboard version updates the description (comment) and returns 200."""
+    """PUT dashboard version updates the description and returns 200."""
     dashboard, slice_obj = versioning_dashboard_and_slice
     user = security_manager.get_user_by_username("admin")
     dashboard_id = dashboard.id
@@ -300,7 +300,7 @@ def test_update_version_description_via_api(
                 "json_metadata": "{}",
                 "owners": [user.id],
                 "roles": [],
-                "version_comment": "Initial description",
+                "version_description": "Initial description",
             },
         ).run()
     db.session.commit()
@@ -308,7 +308,7 @@ def test_update_version_description_via_api(
     versions = DashboardVersionDAO.get_versions_for_dashboard(dashboard_id)
     assert len(versions) >= 1
     version_1 = versions[0]
-    assert version_1.comment == "Initial description"
+    assert version_1.description == "Initial description"
 
     # Log in then update description via API.
     # Patch has_access so the API accepts the request (fixture admin may not have
@@ -316,11 +316,11 @@ def test_update_version_description_via_api(
     login_as("admin")
     uri = f"/api/v1/dashboard/{dashboard_id}/versions/{version_1.id}"
     with patch.object(security_manager, "has_access", return_value=True):
-        rv = test_client.put(uri, json={"comment": "Updated description"})
+        rv = test_client.put(uri, json={"description": "Updated description"})
     assert rv.status_code == 200
 
-    # Verify version comment was updated
+    # Verify version description was updated
     db.session.expire_all()
     versions_after = DashboardVersionDAO.get_versions_for_dashboard(dashboard_id)
     version_after = next(v for v in versions_after if v.id == version_1.id)
-    assert version_after.comment == "Updated description"
+    assert version_after.description == "Updated description"

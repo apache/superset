@@ -486,7 +486,7 @@ test('should save when user confirms in Save version modal', async () => {
   userEvent.click(saveInModal);
   expect(onSave).toHaveBeenCalledTimes(1);
   expect(onSave).toHaveBeenCalledWith(
-    expect.objectContaining({ version_comment: undefined }),
+    expect.objectContaining({ version_description: undefined }),
     expect.anything(),
     expect.anything(),
   );
@@ -513,7 +513,7 @@ test('should pass version description to onSave when provided in Save version mo
   userEvent.click(saveInModal);
   expect(onSave).toHaveBeenCalledTimes(1);
   expect(onSave).toHaveBeenCalledWith(
-    expect.objectContaining({ version_comment: 'Added new chart' }),
+    expect.objectContaining({ version_description: 'Added new chart' }),
     expect.anything(),
     expect.anything(),
   );

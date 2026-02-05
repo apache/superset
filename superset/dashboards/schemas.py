@@ -445,7 +445,7 @@ class DashboardPutSchema(BaseDashboardSchema):
         fields.Integer(metadata={"description": tags_description}, allow_none=True)
     )
     uuid = fields.UUID(allow_none=True)
-    version_comment = fields.String(
+    version_description = fields.String(
         allow_none=True,
         validate=Length(0, 500),
         metadata={
@@ -531,7 +531,7 @@ class ImportV1DashboardSchema(Schema):
 class DashboardVersionUpdateSchema(Schema):
     """Schema for updating a dashboard version (description only)."""
 
-    comment = fields.String(
+    description = fields.String(
         allow_none=True,
         validate=Length(0, 500),
         metadata={
@@ -547,7 +547,7 @@ class DashboardVersionListItemSchema(Schema):
     version_number = fields.Integer(
         metadata={"description": "Monotonic version number"}
     )
-    comment = fields.String(
+    description = fields.String(
         allow_none=True,
         metadata={
             "description": "Optional note describing what changed in this version"

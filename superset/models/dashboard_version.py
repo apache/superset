@@ -42,7 +42,7 @@ class DashboardVersion(Model):
         index=True,
     )
     version_number = Column(Integer, nullable=False)
-    comment = Column(String(500), nullable=True)
+    description = Column(String(500), nullable=True)
     position_json = Column(utils.MediumText(), nullable=True)
     json_metadata = Column(utils.MediumText(), nullable=True)
     created_at = Column(DateTime, nullable=True)
