@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Superset Dashboard Exporter",
+  "name": "QuickSet",
   "version": "1.0.0",
-  "description": "Login to Superset and export dashboards as PDF or configuration files",
+  "description": "Quick access to Superset dashboard metadata",
   "superset_url": "http://localhost:8088",
   "permissions": [
     "storage",

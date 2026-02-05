@@ -1,16 +1,16 @@
-# 🔐 Superset Auto Login - Chrome Extension
+# 🚀 QuickSet - Chrome Extension
 
-A Chrome extension that automatically logs you into Apache Superset with saved credentials.
+A Chrome extension for quick access to Apache Superset dashboard metadata and exports without opening Superset.
 
 ## ✨ Features
 
-- 🚀 **Automatic Login** - Automatically fills and submits login form
+- 🚀 **Quick Access** - View dashboard metadata without opening Superset
+- 📊 **Dashboard Metadata** - Browse dashboard details, activity, and configuration
+- 📥 **Easy Exports** - Export dashboard configs and chart data as CSV/JSON
+- 🔗 **Shareable Links** - Generate dashboard permalinks instantly
 - 💾 **Secure Storage** - Credentials stored locally in your browser
-- 🎨 **Beautiful UI** - Modern, gradient-based interface
-- 🧪 **Test Login** - Test your credentials before saving
-- 🔄 **Manual Trigger** - Login on demand with one click
-- 🌐 **Flexible URLs** - Works with any Superset instance
-- 🎯 **Context Menu** - Quick access from right-click menu
+- 🌐 **Flexible URLs** - Connect to any Superset instance
+- 🎨 **Beautiful UI** - Modern, user-friendly interface
 
 ## 📦 Installation
 
@@ -25,7 +25,7 @@ A Chrome extension that automatically logs you into Apache Superset with saved c
 
 3. **Load the Extension**
    - Click "Load unpacked"
-   - Select the `chrome-extension-superset-autologin` folder
+   - Select the `superset-extension` folder
    - The extension icon will appear in your toolbar
 
 ### Method 2: Pack and Install (Production)
@@ -41,61 +41,70 @@ A Chrome extension that automatically logs you into Apache Superset with saved c
 
 ## 🚀 Quick Start
 
-### Step 1: Configure Credentials
+### Step 1: Login
 
 1. Click the extension icon in Chrome toolbar
 2. Fill in your details:
-   - **Superset URL**: `http://localhost:8088`
+   - **Superset URL**: Your Superset instance URL (e.g., `http://localhost:8088`)
    - **Username**: Your Superset username (e.g., `admin`)
    - **Password**: Your Superset password
-3. Check "Enable automatic login"
-4. Click "💾 Save Credentials"
+3. Check "Remember password" to save credentials
+4. Click "Login"
 
-### Step 2: Test the Login
+### Step 2: Browse Dashboards
 
-1. Click "🧪 Test Login" to verify credentials
-2. You should see "✅ Login test successful!"
+1. After login, you'll see your dashboard list
+2. Each dashboard card shows:
+   - Dashboard title and owners
+   - Last modified date
+   - Quick action buttons
 
-### Step 3: Use Auto-Login
+### Step 3: Access Dashboard Metadata
 
-**Option A: Automatic**
-- Just visit `http://localhost:8088/login`
-- The extension will automatically log you in
-
-**Option B: Manual**
-- Click the extension icon
-- Click "🚀 Login Now"
+1. Click "📊 Dashboard Metadata" button on any dashboard
+2. View comprehensive information:
+   - Dashboard overview (charts, filters, layout)
+   - Dashboard metadata (ID, slug, owners, tags)
+   - Recent activity timeline
+3. Export options available in separate tab
 
 ## 🎯 Usage
 
-### Auto-Login
+### Dashboard Actions
 
-When you visit the Superset login page, the extension will:
-1. Detect the login form
-2. Fill in your username and password
-3. Submit the form automatically
-4. Show a brief indicator: "🔐 Auto-login active"
+Each dashboard card provides multiple actions:
 
-### Manual Login
+**Via Dropdown Menu (⋮):**
+- 📊 **Dashboard Metadata** - View comprehensive dashboard info and activity
+- 🔗 **Get Link** - Generate shareable permalink
+- ℹ️ **Details** - View basic dashboard information
+- 📊 **Charts** - List all charts and export chart data
+- 📦 **Export Config** - Download dashboard configuration as ZIP
+- 🔗 **Open** - Open dashboard in Superset
 
-If you want to trigger login manually:
-1. Visit any Superset page
-2. Click the extension icon
-3. Click "🚀 Login Now"
+**Via Quick Action Buttons:**
+- Same actions available as dedicated buttons for quick access
 
-### Test Credentials
+### Export Features
 
-To verify your credentials without logging in:
-1. Click the extension icon
-2. Click "🧪 Test Login"
-3. Check the notification
+**Dashboard Configuration:**
+- Click "📦 Export Config" to download dashboard as ZIP
+- Contains YAML configuration for importing to other Superset instances
 
-### Clear Data
+**Chart Data:**
+- Access via "📊 Charts" or "📊 Dashboard Metadata"
+- Export individual charts as CSV or JSON
+- Export all chart data at once
 
-To remove all saved credentials:
-1. Click the extension icon
-2. Click "🗑️ Clear Saved Data"
-3. Confirm the action
+### Search & Filter
+
+- Use the search bar to filter dashboards by title or owner
+- Real-time filtering as you type
+
+### Logout
+
+- Click the "Logout" button to clear session
+- Credentials remain saved if "Remember password" was checked
 
 ## 🔒 Security
 
@@ -221,17 +230,21 @@ You can still use "🚀 Login Now" for manual login.
 ## 📁 File Structure
 
 ```
-chrome-extension-superset-autologin/
+superset-extension/
 ├── manifest.json          # Extension configuration
-├── popup.html            # Extension popup UI
-├── popup.css             # Popup styles
-├── popup.js              # Popup logic
+├── popup.html            # Login page UI
+├── popup.css             # Login page styles
+├── popup.js              # Login logic
+├── dashboard-list.html   # Dashboard list UI
+├── dashboard-list.css    # Dashboard list styles
+├── dashboard-list.js     # Dashboard list logic & API calls
 ├── content.js            # Content script (runs on Superset pages)
 ├── background.js         # Background service worker
 ├── icons/                # Extension icons
 │   ├── icon16.png
 │   ├── icon48.png
-│   └── icon128.png
+│   ├── icon128.png
+│   └── icon.svg
 └── README.md             # This file
 ```
 
@@ -239,15 +252,19 @@ chrome-extension-superset-autologin/
 
 ### Modify the Extension
 
-1. Edit the files in `chrome-extension-superset-autologin/`
+1. Edit the files in `superset-extension/`
 2. Go to `chrome://extensions/`
 3. Click the reload icon (🔄) on your extension
 4. Test your changes
 
 ### Debug
 
-**Popup:**
+**Popup (Login):**
 - Right-click extension icon → "Inspect popup"
+- Or right-click on popup.html page → "Inspect"
+
+**Dashboard List:**
+- Right-click on dashboard-list.html page → "Inspect"
 
 **Content Script:**
 - Open DevTools on Superset page (F12)
@@ -257,26 +274,38 @@ chrome-extension-superset-autologin/
 - Go to `chrome://extensions/`
 - Click "Inspect views: service worker"
 
-### Add Custom Selectors
+### API Endpoints Used
 
-If Superset uses different form elements, edit `content.js`:
-
-```javascript
-const usernameSelectors = [
-  'input[name="username"]',
-  'input[id="your-custom-id"]',  // Add your selector
-];
-```
+The extension uses these Superset API endpoints:
+- `/api/v1/security/login` - Authentication
+- `/api/v1/security/csrf_token/` - CSRF token for POST requests
+- `/api/v1/dashboard/` - List dashboards
+- `/api/v1/dashboard/{id}` - Dashboard details
+- `/api/v1/dashboard/{id}/charts` - Dashboard charts
+- `/api/v1/dashboard/{id}/permalink` - Generate permalink
+- `/api/v1/chart/{id}` - Chart details
+- `/api/v1/chart/data` - Chart data export
+- `/api/v1/dashboard/export/` - Dashboard configuration export
 
 ## 📝 Changelog
+
+### Version 2.0.0 (QuickSet) - February 5, 2026
+- **Rebranded to "QuickSet"** - Focus on quick access to dashboard metadata
+- **Custom URL Support** - Users can specify their own Superset instance URL
+- **Dashboard Metadata Feature** - Renamed from "Data Browsing" for clarity
+- **Export Capabilities** - Export dashboard configs and chart data
+- **Shareable Links** - Generate dashboard permalinks
+- **Browse Data Modal** - Tabbed interface for dashboard data and exports
+- **Chart Data Export** - Individual and bulk export as CSV/JSON
+- **Activity Timeline** - View dashboard creation and modification history
+- **Modern UI** - Updated design with dropdown menus and action buttons
 
 ### Version 1.0.0
 - Initial release
 - Auto-login functionality
 - Credential storage
-- Test login feature
-- Manual login trigger
-- Context menu integration
+- Dashboard listing
+- Basic export features
 
 ## 🤝 Contributing
 
@@ -305,4 +334,4 @@ This extension is created for use with Apache Superset, which is licensed under 
 
 ---
 
-**Made with ❤️ for easier Superset development**
+**QuickSet - Made with ❤️ for the Apache Superset Hackathon 2026**

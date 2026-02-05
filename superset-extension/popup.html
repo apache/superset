@@ -9,8 +9,8 @@
 <body>
   <div class="container">
     <div class="header">
-      <h1><img src="icons/icon.svg" alt="Superset" class="header-icon"> Superset Dashboard Exporter</h1>
-      <p class="subtitle">Export dashboards as PDF/CSV without opening Superset</p>
+      <h1><img src="icons/icon.svg" alt="Superset" class="header-icon"> QuickSet</h1>
+      <p class="subtitle">Quick access to dashboard metadata and exports</p>
     </div>
 
     <div class="status" id="status" style="display: none;">
@@ -19,6 +19,16 @@
     </div>
 
     <form id="credentialsForm">
+      <div class="form-group">
+        <label for="supersetUrl">Superset URL</label>
+        <input
+          type="text"
+          id="supersetUrl"
+          placeholder="http://localhost:8088"
+          autocomplete="url"
+        >
+      </div>
+
       <div class="form-group">
         <label for="username">Username</label>
         <input

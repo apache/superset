@@ -2,7 +2,7 @@
 document.addEventListener('DOMContentLoaded', async () => {
   await loadCredentials();
   updateStatus();
-  
+
   // Check if already logged in, redirect to dashboards
   const data = await chrome.storage.local.get(['accessToken', 'username', 'password']);
   if (data.accessToken && data.username && data.password) {
@@ -25,11 +25,19 @@ document.getElementById('clearCredentials').addEventListener('click', async () =
 });
 
 async function loadCredentials() {
-  const data = await chrome.storage.local.get(['username', 'password', 'rememberPassword']);
+  const data = await chrome.storage.local.get(['supersetUrl', 'username', 'password', 'rememberPassword']);
+
+  // Load Superset URL (always load this)
+  if (data.supersetUrl) {
+    document.getElementById('supersetUrl').value = data.supersetUrl;
+  } else {
+    // Default to localhost if not set
+    document.getElementById('supersetUrl').value = 'http://localhost:8088';
+  }
 
   // Load credentials if rememberPassword is not explicitly false (default is true)
   const shouldRemember = data.rememberPassword !== false;
-  
+
   if (shouldRemember) {
     if (data.username) {
       document.getElementById('username').value = data.username;
@@ -38,22 +46,33 @@ async function loadCredentials() {
       document.getElementById('password').value = atob(data.password); // Decode from base64
     }
   }
-  
+
   // Set checkbox state (default checked)
   document.getElementById('rememberPassword').checked = shouldRemember;
 }
 
 async function saveAndLogin() {
-  // Get URL from manifest
-  const manifest = chrome.runtime.getManifest();
-  const supersetUrl = manifest.superset_url || 'http://localhost:8088';
-  
+  // Get URL from input field
+  let supersetUrl = document.getElementById('supersetUrl').value.trim();
   const username = document.getElementById('username').value.trim();
   const password = document.getElementById('password').value;
   const rememberPassword = document.getElementById('rememberPassword').checked;
 
-  if (!username || !password) {
+  if (!supersetUrl || !username || !password) {
     showNotification('Please fill in all fields', 'error');
+    return;
+  }
+
+  // Ensure URL doesn't end with a slash
+  if (supersetUrl.endsWith('/')) {
+    supersetUrl = supersetUrl.slice(0, -1);
+  }
+
+  // Validate URL format
+  try {
+    new URL(supersetUrl);
+  } catch (error) {
+    showNotification('❌ Invalid URL format', 'error');
     return;
   }
 
@@ -102,7 +121,7 @@ async function saveAndLogin() {
         });
 
         showNotification('✅ Login successful! Loading dashboards...', 'success');
-        
+
         // Navigate to dashboard list after a short delay
         setTimeout(() => {
           window.location.href = 'dashboard-list.html';
