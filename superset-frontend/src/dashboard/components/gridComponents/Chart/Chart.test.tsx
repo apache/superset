@@ -68,7 +68,7 @@ const defaultState = {
     slices: {
       [queryId]: {
         ...sliceEntities.slices[queryId],
-        description_markeddown: 'markdown',
+        description_markdown: 'markdown',
         owners: [],
         viz_type: VizType.Table,
       },
