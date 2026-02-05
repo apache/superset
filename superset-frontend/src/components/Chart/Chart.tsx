@@ -72,7 +72,12 @@ export interface ChartProps {
   triggerQuery?: boolean;
   chartIsStale?: boolean;
   errorMessage?: React.ReactNode;
-  addFilter?: (type: string) => void;
+  addFilter?: (
+    col: string,
+    vals: unknown[],
+    merge?: boolean,
+    refresh?: boolean,
+  ) => void;
   onQuery?: () => void;
   onFilterMenuOpen?: (chartId: number, column: string) => void;
   onFilterMenuClose?: (chartId: number, column: string) => void;

@@ -275,14 +275,12 @@ const Chart = (props: ChartProps) => {
   const ownColorScheme = chart?.form_data?.color_scheme as string | undefined;
 
   const addFilter = useCallback(
-    (newSelectedValues: Record<string, unknown> = {}) => {
+    (col: string, vals: unknown[], merge = true, _refresh = true) => {
       boundActionCreators.logEvent(LOG_ACTIONS_CHANGE_DASHBOARD_FILTER, {
         id: chart?.id,
-        columns: Object.keys(newSelectedValues).filter(
-          key => newSelectedValues[key] !== null,
-        ),
+        columns: vals !== null ? [col] : [],
       });
-      boundActionCreators.changeFilter(chart?.id, newSelectedValues, false);
+      boundActionCreators.changeFilter(chart?.id, { [col]: vals }, merge);
     },
     [boundActionCreators.logEvent, boundActionCreators.changeFilter, chart?.id],
   );
@@ -429,7 +427,8 @@ const Chart = (props: ChartProps) => {
       getFormDataWithExtraFilters({
         chart: { id: chart?.id ?? props.id, form_data: chart?.form_data }, // avoid passing the whole chart object
         chartConfiguration,
-        chartCustomizationItems: chartCustomizationItems as ChartCustomization[],
+        chartCustomizationItems:
+          chartCustomizationItems as ChartCustomization[],
         filters: getAppliedFilterValues(props.id),
         colorScheme,
         colorNamespace,
@@ -721,7 +720,7 @@ const Chart = (props: ChartProps) => {
         <ChartContainer
           width={width}
           height={getChartHeight()}
-          addFilter={addFilter as unknown as (type: string) => void}
+          addFilter={addFilter}
           onFilterMenuOpen={handleFilterMenuOpen}
           onFilterMenuClose={handleFilterMenuClose}
           annotationData={chart.annotationData ?? undefined}
