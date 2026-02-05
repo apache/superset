@@ -421,3 +421,100 @@ test('Scatter buildQuery should preserve adhoc metric with custom label', () => 
   expect(query.metrics).toContainEqual(adhocMetric);
   expect(query.orderby).toEqual([['My Custom Metric', false]]);
 });
+
+test('Scatter buildQuery should handle point_radius_fixed with undefined type', () => {
+  const formData: DeckScatterFormData = {
+    ...baseFormData,
+    point_radius_fixed: {
+      type: undefined,
+      value: '1000',
+    },
+  };
+
+  const queryContext = buildQuery(formData);
+  const [query] = queryContext.queries;
+
+  // Without explicit type, should not be treated as metric
+  expect(query.metrics).toEqual([]);
+  expect(query.orderby).toEqual([]);
+});
+
+test('Scatter buildQuery should handle empty point_radius_fixed object', () => {
+  const formData: DeckScatterFormData = {
+    ...baseFormData,
+    point_radius_fixed: {},
+  };
+
+  const queryContext = buildQuery(formData);
+  const [query] = queryContext.queries;
+
+  // Empty object should not add any metrics
+  expect(query.metrics).toEqual([]);
+  expect(query.orderby).toEqual([]);
+});
+
+test('Scatter buildQuery should handle fix type with undefined value', () => {
+  const formData: DeckScatterFormData = {
+    ...baseFormData,
+    point_radius_fixed: {
+      type: 'fix',
+      value: undefined,
+    },
+  };
+
+  const queryContext = buildQuery(formData);
+  const [query] = queryContext.queries;
+
+  // Fix type with no value should not affect metrics
+  expect(query.metrics).toEqual([]);
+  expect(query.orderby).toEqual([]);
+});
+
+test('Scatter buildQuery should add saved metric radius to existing adhoc metrics', () => {
+  const existingAdhocMetric = {
+    label: 'SUM(sales)',
+    expressionType: 'SQL' as const,
+    sqlExpression: 'SUM(sales)',
+  };
+  const formData: DeckScatterFormData = {
+    ...baseFormData,
+    metrics: [existingAdhocMetric],
+    point_radius_fixed: {
+      type: 'metric',
+      value: 'AVG(radius)',
+    },
+  };
+
+  const queryContext = buildQuery(formData);
+  const [query] = queryContext.queries;
+
+  // Should have both the existing adhoc metric and the new saved metric
+  expect(query.metrics).toContainEqual(existingAdhocMetric);
+  expect(query.metrics).toContain('AVG(radius)');
+  expect(query.metrics).toHaveLength(2);
+});
+
+test('Scatter buildQuery should add adhoc metric radius to existing saved metrics', () => {
+  const radiusAdhocMetric = {
+    label: 'Custom Radius',
+    expressionType: 'SQL' as const,
+    sqlExpression: 'AVG(size) * 100',
+  };
+  const formData: DeckScatterFormData = {
+    ...baseFormData,
+    metrics: ['COUNT(*)', 'SUM(value)'],
+    point_radius_fixed: {
+      type: 'metric',
+      value: radiusAdhocMetric,
+    },
+  };
+
+  const queryContext = buildQuery(formData);
+  const [query] = queryContext.queries;
+
+  // Should have existing saved metrics plus the new adhoc metric
+  expect(query.metrics).toContain('COUNT(*)');
+  expect(query.metrics).toContain('SUM(value)');
+  expect(query.metrics).toContainEqual(radiusAdhocMetric);
+  expect(query.metrics).toHaveLength(3);
+});

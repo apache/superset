@@ -41,7 +41,7 @@ export interface DeckScatterFormData
   extends Omit<SpatialFormData, 'color_picker'>, SqlaFormData {
   point_radius_fixed?: {
     type?: 'fix' | 'metric';
-    value?: QueryFormMetric;
+    value?: QueryFormMetric | number;
   };
   multiplier?: number;
   point_unit?: string;
@@ -83,8 +83,11 @@ export default function buildQuery(formData: DeckScatterFormData) {
 
       // Only add metric if point_radius_fixed is a metric type
       const isMetric = isMetricValue(point_radius_fixed);
-      // Preserve full metric value (string for saved metrics, object for adhoc)
-      const metricValue = isMetric ? point_radius_fixed?.value : null;
+      // When type is 'metric', value is QueryFormMetric (string or adhoc object)
+      const metricValue: QueryFormMetric | null =
+        isMetric && point_radius_fixed?.value !== undefined
+          ? (point_radius_fixed.value as QueryFormMetric)
+          : null;
 
       // Preserve existing metrics and only add radius metric if it's metric-based
       const existingMetrics = baseQueryObject.metrics || [];
@@ -92,7 +95,7 @@ export default function buildQuery(formData: DeckScatterFormData) {
       const existingLabels = new Set(
         existingMetrics.map(m => getMetricLabel(m)),
       );
-      const metrics =
+      const metrics: QueryFormMetric[] =
         metricValue && !existingLabels.has(getMetricLabel(metricValue))
           ? [...existingMetrics, metricValue]
           : [...existingMetrics];
