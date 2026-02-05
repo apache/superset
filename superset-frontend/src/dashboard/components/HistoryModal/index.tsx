@@ -48,7 +48,7 @@ async function getErrorMessage(
 export type DashboardVersionItem = {
   id: number;
   version_number: number;
-  comment: string | null;
+  description: string | null;
   created_at: string | null;
   created_by: string | null;
 };
@@ -288,7 +288,7 @@ const HistoryModal = ({
           `}
           dataSource={versions}
           renderItem={(item: DashboardVersionItem) => {
-            const note = item.comment?.trim() ?? '';
+            const note = item.description?.trim() ?? '';
             const isLongNote = note.length > NOTE_TRUNCATE_LENGTH;
             const isExpanded = expandedVersionId === item.id;
             const shouldClamp = isLongNote && !isExpanded;

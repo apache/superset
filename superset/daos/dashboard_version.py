@@ -35,7 +35,7 @@ class DashboardVersionDAO:
         position_json: Optional[str],
         json_metadata: Optional[str],
         created_by_fk: Optional[int] = None,
-        comment: Optional[str] = None,
+        description: Optional[str] = None,
     ) -> DashboardVersion:
         v = DashboardVersion(
             dashboard_id=dashboard_id,
@@ -44,7 +44,7 @@ class DashboardVersionDAO:
             json_metadata=json_metadata,
             created_at=datetime.utcnow(),
             created_by_fk=created_by_fk,
-            comment=comment,
+            description=description,
         )
         db.session.add(v)
         db.session.flush()
@@ -79,10 +79,10 @@ class DashboardVersionDAO:
         )
 
     @staticmethod
-    def update_comment(
+    def update_description(
         version_id: int,
         dashboard_id: int,
-        comment: Optional[str],
+        description: Optional[str],
     ) -> Optional[DashboardVersion]:
         version = (
             db.session.query(DashboardVersion)
@@ -94,7 +94,7 @@ class DashboardVersionDAO:
         )
         if not version:
             return None
-        version.comment = (comment or "").strip() or None
+        version.description = (description or "").strip() or None
         db.session.flush()
         return version
 

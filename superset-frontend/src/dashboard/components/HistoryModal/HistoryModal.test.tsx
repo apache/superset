@@ -42,14 +42,14 @@ const mockVersions = {
     {
       id: 10,
       version_number: 2,
-      comment: 'Second version',
+      description: 'Second version',
       created_at: '2024-01-02T12:00:00Z',
       created_by: 'admin',
     },
     {
       id: 9,
       version_number: 1,
-      comment:
+      description:
         'A long description that exceeds the truncation limit of one hundred fifty characters so we can test the show more and show less behavior for the version history modal display.',
       created_at: '2024-01-01T12:00:00Z',
       created_by: null,

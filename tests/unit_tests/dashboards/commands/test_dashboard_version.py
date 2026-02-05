@@ -124,15 +124,15 @@ def test_restore_dashboard_version():
             db.session.commit()
 
 
-def test_dao_update_comment_updates_and_returns_version():
-    """DashboardVersionDAO.update_comment updates the version comment and returns it."""
+def test_dao_update_description_updates_and_returns_version():
+    """update_description updates the version description and returns it."""
     with app.app_context():
         user = security_manager.get_user_by_username("admin")
         if not user:
             pytest.skip("No admin user")
         dashboard = Dashboard(
-            dashboard_title="test_update_comment_dashboard",
-            slug="test-version-dashboard-update-comment",
+            dashboard_title="test_update_description_dashboard",
+            slug="test-version-dashboard-update-description",
             position_json="{}",
             json_metadata="{}",
             owners=[user],
@@ -147,34 +147,34 @@ def test_dao_update_comment_updates_and_returns_version():
                 position_json="{}",
                 json_metadata="{}",
                 created_by_fk=user.id,
-                comment="Original description",
+                description="Original description",
             )
             db.session.commit()
             version_id = version.id
 
-            updated = DashboardVersionDAO.update_comment(
+            updated = DashboardVersionDAO.update_description(
                 version_id=version_id,
                 dashboard_id=dashboard_id,
-                comment="Updated description",
+                description="Updated description",
             )
             assert updated is not None
             assert updated.id == version_id
-            assert updated.comment == "Updated description"
+            assert updated.description == "Updated description"
             db.session.refresh(version)
-            assert version.comment == "Updated description"
+            assert version.description == "Updated description"
         finally:
             db.session.delete(dashboard)
             db.session.commit()
 
 
-def test_dao_update_comment_returns_none_when_version_not_for_dashboard():
-    """update_comment returns None when version does not belong to the dashboard."""
+def test_dao_update_description_returns_none_when_version_not_for_dashboard():
+    """update_description returns None when version does not belong to the dashboard."""
     with app.app_context():
         user = security_manager.get_user_by_username("admin")
         if not user:
             pytest.skip("No admin user")
         dashboard = Dashboard(
-            dashboard_title="test_update_comment_not_found",
+            dashboard_title="test_update_description_not_found",
             slug="test-version-dashboard-update-not-found",
             position_json="{}",
             json_metadata="{}",
@@ -190,33 +190,33 @@ def test_dao_update_comment_returns_none_when_version_not_for_dashboard():
                 position_json="{}",
                 json_metadata="{}",
                 created_by_fk=user.id,
-                comment="Keep",
+                description="Keep",
             )
             db.session.commit()
             version_id = version.id
             wrong_dashboard_id = dashboard_id + 9999
 
-            updated = DashboardVersionDAO.update_comment(
+            updated = DashboardVersionDAO.update_description(
                 version_id=version_id,
                 dashboard_id=wrong_dashboard_id,
-                comment="Should not apply",
+                description="Should not apply",
             )
             assert updated is None
             db.session.refresh(version)
-            assert version.comment == "Keep"
+            assert version.description == "Keep"
         finally:
             db.session.delete(dashboard)
             db.session.commit()
 
 
-def test_dao_update_comment_empty_or_whitespace_becomes_none():
-    """update_comment stores None when comment is empty or whitespace."""
+def test_dao_update_description_empty_or_whitespace_becomes_none():
+    """update_description stores None when description is empty or whitespace."""
     with app.app_context():
         user = security_manager.get_user_by_username("admin")
         if not user:
             pytest.skip("No admin user")
         dashboard = Dashboard(
-            dashboard_title="test_update_comment_empty",
+            dashboard_title="test_update_description_empty",
             slug="test-version-dashboard-update-empty",
             position_json="{}",
             json_metadata="{}",
@@ -232,20 +232,20 @@ def test_dao_update_comment_empty_or_whitespace_becomes_none():
                 position_json="{}",
                 json_metadata="{}",
                 created_by_fk=user.id,
-                comment="Something",
+                description="Something",
             )
             db.session.commit()
             version_id = version.id
 
-            updated = DashboardVersionDAO.update_comment(
+            updated = DashboardVersionDAO.update_description(
                 version_id=version_id,
                 dashboard_id=dashboard_id,
-                comment="   ",
+                description="   ",
             )
             assert updated is not None
-            assert updated.comment is None
+            assert updated.description is None
             db.session.refresh(version)
-            assert version.comment is None
+            assert version.description is None
         finally:
             db.session.delete(dashboard)
             db.session.commit()

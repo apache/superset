@@ -89,7 +89,7 @@ const mockVersions = {
     {
       id: 10,
       version_number: 2,
-      comment: 'Restored version',
+      description: 'Restored version',
       created_at: '2024-01-02T12:00:00Z',
       created_by: 'admin',
     },

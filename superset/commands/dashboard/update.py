@@ -143,7 +143,7 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
             position_json=dashboard.position_json,
             json_metadata=dashboard.json_metadata,
             created_by_fk=g.user.id if g.user else None,
-            comment=self._properties.get("version_comment"),
+            description=self._properties.get("version_description"),
         )
         DashboardVersionDAO.delete_older_than(
             dashboard.id, keep_n=self.DASHBOARD_VERSION_RETENTION
