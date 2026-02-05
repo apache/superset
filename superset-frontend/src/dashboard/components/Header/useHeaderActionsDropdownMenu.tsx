@@ -82,6 +82,7 @@ export const useHeaderActionsMenu = ({
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const dispatch = useDispatch();
   const { canExportImage } = usePermissions();
+  const [showExportModal, setShowExportModal] = useState(false);
   const history = useHistory();
   const location = useLocation();
   const directPathToChild = useSelector(
@@ -191,6 +192,11 @@ export const useHeaderActionsMenu = ({
     addDangerToast,
   });
 
+  const handleExportDashboardData = useCallback(() => {
+    setShowExportModal(true);
+    setIsDropdownVisible(false);
+  }, []);
+
   const downloadMenuItem = useDownloadMenuItems({
     pdfMenuItemTitle: t('Export to PDF'),
     imageMenuItemTitle: t('Download as Image'),
@@ -201,6 +207,7 @@ export const useHeaderActionsMenu = ({
     logEvent,
     userCanExport,
     canExportImage,
+    onExportDashboardData: handleExportDashboardData,
   });
 
   const reportMenuItem = useHeaderReportMenuItems({
@@ -433,5 +440,11 @@ export const useHeaderActionsMenu = ({
     userCanShare,
   ]);
 
-  return [menu, isDropdownVisible, setIsDropdownVisible];
+  return [
+    menu,
+    isDropdownVisible,
+    setIsDropdownVisible,
+    showExportModal,
+    setShowExportModal,
+  ];
 };

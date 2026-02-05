@@ -69,6 +69,7 @@ import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import { selectIsDashboardVersionPreviewActive } from 'src/features/versionHistory/reducer';
 import DashboardEmbedModal from '../EmbeddedModal';
 import OverwriteConfirm from '../OverwriteConfirm';
+import ExportDashboardDataModal from '../ExportDashboardDataModal';
 import {
   addDangerToast,
   addSuccessToast,
@@ -257,6 +258,9 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
     (state: HeaderRootState) => state.dashboardLayout.future.length,
   );
   const user = useSelector((state: HeaderRootState) => state.user);
+  const sliceEntities = useSelector(
+    (state: HeaderRootState) => state.sliceEntities?.slices || {},
+  );
   const chartIds = useChartIds();
 
   const {
@@ -820,7 +824,13 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
     setCurrentReportDeleting(null);
   };
 
-  const [menu, isDropdownVisible, setIsDropdownVisible] = useHeaderActionsMenu({
+  const [
+    menu,
+    isDropdownVisible,
+    setIsDropdownVisible,
+    showExportModal,
+    setShowExportModal,
+  ] = useHeaderActionsMenu({
     addSuccessToast: boundActionCreators.addSuccessToast,
     addDangerToast: boundActionCreators.addDangerToast,
     dashboardInfo,
@@ -966,6 +976,18 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
         onHide={() => setShowUnsavedChangesModal(false)}
         onConfirmNavigation={handleConfirmNavigation}
         handleSave={handleSaveAndCloseModal}
+      />
+
+      <ExportDashboardDataModal
+        show={showExportModal}
+        onHide={() => setShowExportModal(false)}
+        dashboardTitle={dashboardTitle}
+        charts={chartIds.map(id => ({
+          id,
+          name: sliceEntities[id]?.slice_name || `Chart ${id}`,
+          vizType: sliceEntities[id]?.viz_type,
+        }))}
+        slices={sliceEntities}
       />
     </div>
   );
