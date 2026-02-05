@@ -30,7 +30,6 @@ import { ThemeController } from 'src/theme/ThemeController';
 import { ExtensionsProvider } from 'src/extensions/ExtensionsContext';
 import { store } from './store';
 import '../preamble';
-import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import querystring from 'query-string';
 
 const themeController = new ThemeController();

@@ -28,7 +28,6 @@ import { SupersetThemeProvider } from 'src/theme/ThemeProvider';
 import { ThemeController } from 'src/theme/ThemeController';
 import type { ThemeStorage } from '@apache-superset/core/ui';
 import { store } from 'src/views/store';
-import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import querystring from 'query-string';
 
 /**

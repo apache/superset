@@ -290,7 +290,8 @@ class ScatterPlotGlowOverlay extends PureComponent<ScatterPlotGlowOverlayProps> 
           } else {
             const defaultRadius = radius / 6;
             const rawRadius = location.properties.radius;
-            const radiusProperty = typeof rawRadius === 'number' ? rawRadius : null;
+            const radiusProperty =
+              typeof rawRadius === 'number' ? rawRadius : null;
             const pointMetric = location.properties.metric ?? null;
             let pointRadius: number = radiusProperty ?? defaultRadius;
             let pointLabel: string | number | undefined;
@@ -335,29 +336,30 @@ class ScatterPlotGlowOverlay extends PureComponent<ScatterPlotGlowOverlayProps> 
                       MIN_POINT_RADIUS +
                       normalizedValue * (MAX_POINT_RADIUS - MIN_POINT_RADIUS);
                   }
-                  pointLabel = `${roundDecimal(radiusProperty as number, 2)}`;
+                  pointLabel = `${roundDecimal(radiusProperty, 2)}`;
                 } else if (
                   Number.isFinite(minRadiusValue) &&
                   minRadiusValue === maxRadiusValue
                 ) {
                   // All values are the same, use a fixed medium size
                   pointRadius = (MIN_POINT_RADIUS + MAX_POINT_RADIUS) / 2;
-                  pointLabel = `${roundDecimal(radiusProperty as number, 2)}`;
+                  pointLabel = `${roundDecimal(radiusProperty, 2)}`;
                 } else {
                   // Use raw pixel values if they're already in a reasonable range
                   pointRadius = Math.max(
                     MIN_POINT_RADIUS,
                     Math.min(pointRadius, MAX_POINT_RADIUS),
                   );
-                  pointLabel = `${roundDecimal(radiusProperty as number, 2)}`;
+                  pointLabel = `${roundDecimal(radiusProperty, 2)}`;
                 }
               }
             }
 
             if (pointMetric !== null) {
-              pointLabel = Number.isFinite(parseFloat(String(pointMetric)))
-                ? roundDecimal(pointMetric as number, 2)
-                : (pointMetric as string);
+              const numericMetric = parseFloat(String(pointMetric));
+              pointLabel = Number.isFinite(numericMetric)
+                ? roundDecimal(numericMetric, 2)
+                : String(pointMetric);
             }
 
             // Fall back to default points if pointRadius wasn't a numerical column

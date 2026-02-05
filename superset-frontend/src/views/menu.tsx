@@ -31,7 +31,6 @@ import { ThemeProvider, theme } from '@apache-superset/core/ui';
 import Menu from 'src/features/home/Menu';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { setupStore } from './store';
-import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import querystring from 'query-string';
 
 // Disable connecting to redux debugger so that the React app injected
