@@ -20,6 +20,7 @@ import { PureComponent } from 'react';
 import { connect } from 'react-redux';
 import cx from 'classnames';
 import type { JsonObject } from '@superset-ui/core';
+import type { ResizeStartCallback, ResizeCallback } from 're-resizable';
 
 import { t, css, styled } from '@apache-superset/core/ui';
 import { SafeMarkdown } from '@superset-ui/core/components';
@@ -59,9 +60,9 @@ interface MarkdownOwnProps {
   // grid related
   availableColumnCount: number;
   columnWidth: number;
-  onResizeStart: import('re-resizable').ResizeStartCallback;
-  onResize: import('re-resizable').ResizeCallback;
-  onResizeStop: import('re-resizable').ResizeCallback;
+  onResizeStart: ResizeStartCallback;
+  onResize: ResizeCallback;
+  onResizeStop: ResizeCallback;
 
   // dnd
   deleteComponent: (id: string, parentId: string) => void;
@@ -293,9 +294,7 @@ class Markdown extends PureComponent<MarkdownProps, MarkdownState> {
     deleteComponent(id, parentId);
   }
 
-  handleResizeStart(
-    ...args: Parameters<import('re-resizable').ResizeStartCallback>
-  ): void {
+  handleResizeStart(...args: Parameters<ResizeStartCallback>): void {
     const { editorMode } = this.state;
     const { editMode, onResizeStart } = this.props;
     const isEditing = editorMode === 'edit';
