@@ -248,7 +248,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     }
     if (id) getDataMaskApplied();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [readyToRender, dashboard, charts, dashboardRestoreKey]);
+  }, [readyToRender, dashboardRestoreKey]);
 
   // Capture original title before any effects run
   const originalTitle = useMemo(() => document.title, []);

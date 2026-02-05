@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { screen, waitFor, within } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { render } from 'spec/helpers/testing-library';
@@ -80,6 +79,7 @@ beforeEach(() => {
     capturedConfirmConfig = config as {
       onOk?: () => void | Promise<unknown>;
     };
+    return { destroy: jest.fn(), update: jest.fn() };
   });
 });
 
@@ -257,7 +257,7 @@ test('restore failure calls addDangerToast and re-enables restore button', async
   await userEvent.click(restoreButtons[0]);
 
   expect(capturedConfirmConfig).not.toBeNull();
-  await capturedConfirmConfig!.onOk!().catch(() => {});
+  await Promise.resolve(capturedConfirmConfig!.onOk!()).catch(() => {});
 
   await waitFor(() => {
     expect(addDangerToast).toHaveBeenCalled();
