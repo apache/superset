@@ -80,10 +80,17 @@ function isHydrateAction(
   return action.type === HYDRATE_DASHBOARD;
 }
 
-function preserveScopes(
-  existingConfig: FilterConfigItem[] | undefined,
-  incomingConfig: FilterConfigItem[] | undefined,
-): FilterConfigItem[] {
+/** Base shape for items that can have scopes preserved */
+interface ScopedConfigItem {
+  id: string;
+  chartsInScope?: number[];
+  tabsInScope?: string[];
+}
+
+function preserveScopes<T extends ScopedConfigItem>(
+  existingConfig: T[] | undefined,
+  incomingConfig: T[] | undefined,
+): T[] {
   const existingScopesMap = (existingConfig || []).reduce<
     Record<string, { chartsInScope?: number[]; tabsInScope?: string[] }>
   >((acc, item) => {
@@ -182,12 +189,8 @@ export default function dashboardInfoReducer(
       );
 
       const mergedCustomizationConfig = preserveScopes(
-        state.metadata?.chart_customization_config as
-          | FilterConfigItem[]
-          | undefined,
-        incomingMetadata.chart_customization_config as
-          | FilterConfigItem[]
-          | undefined,
+        state.metadata?.chart_customization_config,
+        incomingMetadata.chart_customization_config,
       );
 
       return {
@@ -196,9 +199,7 @@ export default function dashboardInfoReducer(
         metadata: {
           ...incomingMetadata,
           native_filter_configuration: mergedFilterConfig,
-          chart_customization_config: mergedCustomizationConfig as
-            | (ChartCustomization | ChartCustomizationDivider)[]
-            | undefined,
+          chart_customization_config: mergedCustomizationConfig,
         },
         pendingChartCustomizations: {},
       };
