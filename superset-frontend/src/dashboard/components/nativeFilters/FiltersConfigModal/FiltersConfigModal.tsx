@@ -452,6 +452,14 @@ function FiltersConfigModal({
 
   const [formValuesVersion, setFormValuesVersion] = useState(0);
 
+  const itemTitles = useMemo(() => {
+    const titles: Record<string, string> = {};
+    [...filterIds, ...chartCustomizationIds].forEach(id => {
+      titles[id] = modalSaveLogic.getItemTitle(id);
+    });
+    return titles;
+  }, [filterIds, chartCustomizationIds, modalSaveLogic, formValuesVersion]);
+
   const debouncedErrorHandling = useMemo(
     () =>
       debounce(() => {
@@ -564,6 +572,7 @@ function FiltersConfigModal({
                 customizationErroredItems={customizationState.erroredIds}
                 activeCollapseKeys={activeCollapseKeys}
                 getItemTitle={modalSaveLogic.getItemTitle}
+                itemTitles={itemTitles}
                 onAddFilter={filterOperations.addFilter}
                 onAddCustomization={
                   customizationOperations.addChartCustomization
@@ -574,7 +583,6 @@ function FiltersConfigModal({
                 restoreItem={restoreItem}
                 onCollapseChange={setActiveCollapseKeys}
                 onCrossListDrop={handleCrossListMove}
-                formValuesVersion={formValuesVersion}
               />
 
               <ConfigModalContent
