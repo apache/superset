@@ -45,7 +45,7 @@ if [ "$CYPRESS_CONFIG" == "true" ]; then
 fi
 # Initialize the database
 echo_step "1" "Starting" "Applying DB migrations"
-superset db upgrade
+superset db upgrade head
 echo_step "1" "Complete" "Applying DB migrations"
 
 # Create an admin user
@@ -77,5 +77,9 @@ if [ "$SUPERSET_LOAD_EXAMPLES" = "yes" ]; then
     else
         superset load_examples
     fi
+    # Verify/repair Remita Showcase: ensure dataset + dashboard with charts exist
+    # This is idempotent and safe to run multiple times
+    echo "Verifying Remita examples (dataset + dashboard)…"
+    superset remita-verify-examples || true
     echo_step "4" "Complete" "Loading examples"
 fi

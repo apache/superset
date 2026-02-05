@@ -251,10 +251,32 @@ describe('plugin-chart-table', () => {
         searchColumn: 'category',
       };
 
-      it('includes search filter in query payload when server pagination is enabled', () => {
+      it('includes "Contains" search filter (ILIKE %text%) when server pagination is enabled', () => {
         const { queries } = buildQuery(baseFormDataWithServerPagination, {
           ownState,
         });
+
+        expect(queries[0].filters).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              col: `${ownState.searchColumn}`,
+              op: 'ILIKE',
+              val: `%${ownState.searchText}%`,
+            }),
+          ]),
+        );
+      });
+
+      it('respects prefix search when configured', () => {
+        const { queries } = buildQuery(
+          {
+            ...baseFormDataWithServerPagination,
+            server_search_match_mode: 'prefix',
+          } as any,
+          {
+            ownState,
+          },
+        );
 
         expect(queries[0].filters).toEqual(
           expect.arrayContaining([

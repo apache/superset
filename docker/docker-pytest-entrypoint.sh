@@ -119,7 +119,7 @@ fi
 # Always run database migrations to ensure schema is up to date
 echo "Running database migrations..."
 cd /app
-superset db upgrade
+superset db upgrade head
 
 # Initialize test environment if needed
 if [ "${FORCE_RELOAD}" = "true" ] || [ ! -f "/app/superset_home/.test_initialized" ]; then

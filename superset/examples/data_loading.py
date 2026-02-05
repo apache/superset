@@ -30,6 +30,7 @@ from .css_templates import load_css_templates
 # Import generic loader for Parquet datasets
 from .generic_loader import create_generic_loader
 from .utils import load_examples_from_configs
+from .remita_examples import load_remita_showcase
 
 logger = logging.getLogger(__name__)
 
@@ -186,6 +187,7 @@ __all__ = [
     "load_big_data",
     "load_css_templates",
     "load_examples_from_configs",
+    "load_remita_showcase",
     # Auto-discovered loaders
     *sorted(_auto_loaders.keys()),
 ]

@@ -275,6 +275,10 @@ const buildQuery: BuildQuery<TableChartFormData> = (
     if (formData.server_pagination) {
       // Add search filter if search text exists
       if (ownState.searchText && ownState?.searchColumn) {
+        const searchText = String(ownState.searchText);
+        // Respect optional match mode from form data, default to 'contains'
+        const matchMode = (formData as any)?.server_search_match_mode || 'contains';
+        const val = matchMode === 'contains' ? `%${searchText}%` : `${searchText}%`;
         queryObject = {
           ...queryObject,
           filters: [
@@ -282,7 +286,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
             {
               col: ownState?.searchColumn,
               op: 'ILIKE',
-              val: `${ownState.searchText}%`,
+              val,
             },
           ],
         };
@@ -338,10 +342,10 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       ];
     }
 
-    // Now since row limit control is always visible even
-    // in case of server pagination
-    // we must use row limit from form data
-    if (formData.server_pagination && !isDownloadQuery) {
+    // When server pagination is enabled and exact rowcount is requested (opt-in),
+    // add a dedicated COUNT(*) query to compute the total number of rows.
+    // Use row_limit from form data for the count query.
+    if (formData.server_pagination && formData.server_rowcount_exact && !isDownloadQuery) {
       return [
         { ...queryObject },
         {
