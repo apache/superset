@@ -29,7 +29,7 @@ const initialState: { dashboardInfo: DashboardInfo } = {
     id: 1,
     userId: '1',
     metadata: {
-      native_filter_configuration: [{}],
+      native_filter_configuration: [{ id: 'test-filter' }],
       chart_configuration: {},
       global_chart_configuration: {
         scope: { rootPath: ['ROOT_ID'], excluded: [] },
