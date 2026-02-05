@@ -251,10 +251,12 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   );
 
   const timestampFormatter = useCallback(
-    value =>
-      getTimeFormatterForGranularity(isRawRecords ? undefined : timeGrain)(
-        value,
-      ),
+    (value: DataRecordValue) =>
+      isRawRecords
+        ? String(value ?? '')
+        : getTimeFormatterForGranularity(timeGrain)(
+            value as number | Date | null | undefined,
+          ),
     [timeGrain, isRawRecords],
   );
 
