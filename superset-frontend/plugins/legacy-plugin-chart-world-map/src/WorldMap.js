@@ -244,7 +244,30 @@ function WorldMap(element, props) {
       datamap.svg
         .selectAll('.datamaps-subunit')
         .on('contextmenu', handleContextMenu)
-        .on('click', handleClick);
+        .on('click', handleClick)
+        .on('mouseleave', function handleMouseLeave(geography) {
+          // Explicitly reset hover state for Chrome compatibility.
+          // Recent Chrome versions changed SVG event behavior, causing Datamap's
+          // internal hover reset to fail. This ensures cleanup always happens.
+          const element = d3.select(this);
+          const countryData = mapData[geography.id];
+
+          // Reset to base fill color (from choropleth data or default)
+          const baseFill = countryData
+            ? countryData.fillColor
+            : theme.colorBorder;
+          element.style('fill', baseFill);
+
+          // Reset to default border
+          element.style('stroke', theme.colorSplit).style('stroke-width', 1);
+
+          // Maintain filter state opacity if applicable
+          const hasFilters = filterState.selectedValues?.length > 0;
+          const isSelected = filterState.selectedValues?.includes(geography.id);
+          if (hasFilters && !isSelected) {
+            element.style('fill-opacity', 0.35);
+          }
+        });
     },
   });
 
@@ -257,7 +280,17 @@ function WorldMap(element, props) {
       .style('fill', color)
       .style('stroke', color)
       .on('contextmenu', handleContextMenu)
-      .on('click', handleClick);
+      .on('click', handleClick)
+      .on('mouseleave', function handleBubbleMouseLeave() {
+        // Explicitly reset bubble hover state for Chrome compatibility
+        const element = d3.select(this);
+        element
+          .style('fill', color)
+          .style('stroke', color)
+          .style('fill-opacity', 0.5)
+          .style('stroke-width', 1)
+          .style('stroke-opacity', 1);
+      });
   }
 
   if (filterState.selectedValues?.length > 0) {
