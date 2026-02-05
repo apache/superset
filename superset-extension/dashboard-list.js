@@ -21,13 +21,26 @@ function setupEventListeners() {
   document.getElementById('refreshBtn').addEventListener('click', () => loadDashboards());
   document.getElementById('logoutBtn').addEventListener('click', logout);
   document.getElementById('searchInput').addEventListener('input', filterDashboards);
+  
+  // Close dropdowns when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.dashboard-menu')) {
+      document.querySelectorAll('.dropdown-menu').forEach(menu => {
+        menu.style.display = 'none';
+      });
+    }
+  });
 }
 
 async function loadUserData() {
   try {
-    const data = await chrome.storage.local.get(['accessToken', 'supersetUrl', 'username']);
+    // Get URL from manifest
+    const manifest = chrome.runtime.getManifest();
+    supersetUrl = manifest.superset_url || 'http://localhost:8088';
+    
+    const data = await chrome.storage.local.get(['accessToken', 'username']);
 
-    if (!data.accessToken || !data.supersetUrl) {
+    if (!data.accessToken) {
       showError('Not logged in. Please login first.');
       setTimeout(() => {
         window.location.href = 'popup.html';
@@ -36,7 +49,6 @@ async function loadUserData() {
     }
 
     accessToken = data.accessToken;
-    supersetUrl = data.supersetUrl;
     username = data.username || 'User';
 
     document.getElementById('welcomeMessage').textContent = `Welcome, ${username}! 👋`;
@@ -115,6 +127,32 @@ function createDashboardCard(dashboard) {
           <span>🕒 Modified ${escapeHtml(modifiedDate)}</span>
         </div>
       </div>
+      <div class="dashboard-menu">
+        <button class="btn-menu" data-dashboard-id="${dashboard.id}">
+          <span class="menu-dots">⋮</span>
+        </button>
+        <div class="dropdown-menu" style="display: none;">
+          <button class="dropdown-item browse-data-item" data-dashboard-id="${dashboard.id}" data-dashboard-title="${escapeHtml(dashboard.dashboard_title)}">
+            📊 Browse data
+          </button>
+          <div class="dropdown-divider"></div>
+          <button class="dropdown-item get-permalink-item" data-dashboard-id="${dashboard.id}" data-dashboard-title="${escapeHtml(dashboard.dashboard_title)}">
+            🔗 Get Link
+          </button>
+          <button class="dropdown-item view-details-item" data-dashboard-id="${dashboard.id}">
+            ℹ️ Details
+          </button>
+          <button class="dropdown-item view-charts-item" data-dashboard-id="${dashboard.id}" data-dashboard-title="${escapeHtml(dashboard.dashboard_title)}">
+            📊 Charts
+          </button>
+          <button class="dropdown-item export-config-item" data-dashboard-id="${dashboard.id}" data-dashboard-title="${escapeHtml(dashboard.dashboard_title)}">
+            📦 Export Config
+          </button>
+          <button class="dropdown-item open-dashboard-item" data-dashboard-id="${dashboard.id}">
+            🔗 Open
+          </button>
+        </div>
+      </div>
     </div>
     <div class="dashboard-actions">
       <button class="btn btn-info get-permalink-btn" data-dashboard-id="${dashboard.id}" data-dashboard-title="${escapeHtml(dashboard.dashboard_title)}">
@@ -140,7 +178,54 @@ function createDashboardCard(dashboard) {
     </div>
   `;
 
-  // Add event listeners to buttons
+  // Add event listeners for 3-dot menu
+  const menuBtn = card.querySelector('.btn-menu');
+  const dropdownMenu = card.querySelector('.dropdown-menu');
+  
+  menuBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    // Close all other dropdowns
+    document.querySelectorAll('.dropdown-menu').forEach(menu => {
+      if (menu !== dropdownMenu) {
+        menu.style.display = 'none';
+      }
+    });
+    // Toggle this dropdown
+    dropdownMenu.style.display = dropdownMenu.style.display === 'none' ? 'block' : 'none';
+  });
+
+  // Add event listeners to dropdown items
+  card.querySelector('.browse-data-item').addEventListener('click', () => {
+    dropdownMenu.style.display = 'none';
+    showBrowseDataModal(dashboard.id, dashboard.dashboard_title);
+  });
+
+  card.querySelector('.get-permalink-item').addEventListener('click', () => {
+    dropdownMenu.style.display = 'none';
+    getDashboardPermalink(dashboard.id, dashboard.dashboard_title);
+  });
+
+  card.querySelector('.view-details-item').addEventListener('click', () => {
+    dropdownMenu.style.display = 'none';
+    getDashboardDetails(dashboard.id);
+  });
+
+  card.querySelector('.view-charts-item').addEventListener('click', () => {
+    dropdownMenu.style.display = 'none';
+    getDashboardCharts(dashboard.id, dashboard.dashboard_title);
+  });
+
+  card.querySelector('.export-config-item').addEventListener('click', () => {
+    dropdownMenu.style.display = 'none';
+    exportDashboardConfig(dashboard.id, dashboard.dashboard_title);
+  });
+
+  card.querySelector('.open-dashboard-item').addEventListener('click', () => {
+    dropdownMenu.style.display = 'none';
+    openDashboard(dashboard.id);
+  });
+
+  // Add event listeners to existing buttons (MANTENER TODO)
   const permalinkBtn = card.querySelector('.get-permalink-btn');
   const detailsBtn = card.querySelector('.view-details-btn');
   const chartsBtn = card.querySelector('.view-charts-btn');
@@ -175,7 +260,309 @@ function createDashboardCard(dashboard) {
   return card;
 }
 
-// Get Data Browsing (Dashboard Activity & Options)
+// NEW: Browse Data Modal (like Superset's modal with tabs)
+async function showBrowseDataModal(dashboardId, dashboardTitle) {
+  const modalContent = `
+    <div class="browse-data-modal">
+      <div class="browse-tabs">
+        <button class="browse-tab active" data-tab="dashboard">Dashboard Data</button>
+        <button class="browse-tab" data-tab="export">Export Options</button>
+      </div>
+      
+      <div class="tab-content" id="dashboard-tab">
+        <p class="tab-description">Browse and export data from dashboard charts</p>
+        <div id="charts-list-container">
+          <p>Loading charts...</p>
+        </div>
+      </div>
+      
+      <div class="tab-content" id="export-tab" style="display: none;">
+        <div class="export-section">
+          <h3>Export All Chart Data</h3>
+          <p class="section-description">Download data from all charts in the dashboard</p>
+          <div class="export-buttons">
+            <button class="btn btn-info export-all-csv-btn" data-dashboard-id="${dashboardId}" data-dashboard-title="${escapeHtml(dashboardTitle)}">
+              ⬇️ Export All as CSV
+            </button>
+            <button class="btn btn-info export-all-json-btn" data-dashboard-id="${dashboardId}" data-dashboard-title="${escapeHtml(dashboardTitle)}">
+              ⬇️ Export All as JSON
+            </button>
+          </div>
+        </div>
+        
+        <div class="export-section">
+          <h3>Dashboard Exports</h3>
+          <p class="section-description">Export the dashboard as image or PDF (uses existing functionality)</p>
+          <p class="section-note">Use the "Download" option in the dashboard menu for PDF and PNG exports</p>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  showInfoModal(`Browse Dashboard Data`, modalContent);
+  
+  // Load charts for Dashboard Data tab
+  loadChartsForBrowsing(dashboardId, dashboardTitle);
+  
+  // Setup tab switching
+  const tabs = document.querySelectorAll('.browse-tab');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const tabName = tab.dataset.tab;
+      
+      // Update active tab
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      
+      // Show corresponding content
+      document.getElementById('dashboard-tab').style.display = tabName === 'dashboard' ? 'block' : 'none';
+      document.getElementById('export-tab').style.display = tabName === 'export' ? 'block' : 'none';
+    });
+  });
+  
+  // Setup export buttons
+  const exportCsvBtn = document.querySelector('.export-all-csv-btn');
+  if (exportCsvBtn) {
+    exportCsvBtn.addEventListener('click', () => {
+      hideInfoModal();
+      exportAllChartsData(dashboardId, dashboardTitle, 'csv');
+    });
+  }
+  
+  const exportJsonBtn = document.querySelector('.export-all-json-btn');
+  if (exportJsonBtn) {
+    exportJsonBtn.addEventListener('click', () => {
+      hideInfoModal();
+      exportAllChartsData(dashboardId, dashboardTitle, 'json');
+    });
+  }
+}
+
+// Load charts list for browsing (like Superset)
+async function loadChartsForBrowsing(dashboardId, dashboardTitle) {
+  const container = document.getElementById('charts-list-container');
+  
+  try {
+    const response = await fetch(`${supersetUrl}/api/v1/dashboard/${dashboardId}/charts`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to load charts: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const charts = data.result || [];
+    
+    if (charts.length === 0) {
+      container.innerHTML = '<p>No charts found in this dashboard</p>';
+      return;
+    }
+    
+    // Display charts list like Superset (initially with "Loading..." for row count)
+    const chartsHtml = charts.map(chart => `
+      <div class="chart-browse-item" data-chart-id="${chart.id}">
+        <div class="chart-browse-header">
+          <span class="chart-browse-icon">📊</span>
+          <span class="chart-browse-name">${escapeHtml(chart.slice_name)}</span>
+        </div>
+        <div class="chart-browse-meta">
+          <span class="chart-browse-type">📈 ${escapeHtml(chart.viz_type || 'Unknown')}</span>
+          <span class="chart-browse-rows" id="row-count-${chart.id}">Loading...</span>
+        </div>
+        <div class="chart-browse-actions">
+          <button class="btn btn-sm btn-info export-chart-csv" data-chart-id="${chart.id}" data-chart-name="${escapeHtml(chart.slice_name)}">
+            📄 CSV
+          </button>
+          <button class="btn btn-sm btn-info export-chart-json" data-chart-id="${chart.id}" data-chart-name="${escapeHtml(chart.slice_name)}">
+            📋 JSON
+          </button>
+        </div>
+      </div>
+    `).join('');
+    
+    container.innerHTML = chartsHtml;
+    
+    // Load row counts asynchronously for each chart
+    charts.forEach(async (chart) => {
+      try {
+        const chartData = await getChartData(chart.id);
+        const rowCount = Array.isArray(chartData) ? chartData.length : 0;
+        const rowCountElement = document.getElementById(`row-count-${chart.id}`);
+        if (rowCountElement) {
+          rowCountElement.textContent = `${rowCount} rows`;
+        }
+      } catch (error) {
+        console.error(`Error loading row count for chart ${chart.id}:`, error);
+        const rowCountElement = document.getElementById(`row-count-${chart.id}`);
+        if (rowCountElement) {
+          rowCountElement.textContent = 'N/A';
+        }
+      }
+    });
+    
+    // Add event listeners for individual chart exports
+    container.querySelectorAll('.export-chart-csv').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const chartId = btn.dataset.chartId;
+        const chartName = btn.dataset.chartName;
+        exportSingleChartData(chartId, chartName, 'csv');
+      });
+    });
+    
+    container.querySelectorAll('.export-chart-json').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const chartId = btn.dataset.chartId;
+        const chartName = btn.dataset.chartName;
+        exportSingleChartData(chartId, chartName, 'json');
+      });
+    });
+    
+  } catch (error) {
+    console.error('Error loading charts:', error);
+    container.innerHTML = `<p class="error-text">Failed to load charts: ${error.message}</p>`;
+  }
+}
+
+// Get chart data from Superset API
+async function getChartData(chartId) {
+  try {
+    // First, get the chart details to get the query_context
+    const chartResponse = await fetch(`${supersetUrl}/api/v1/chart/${chartId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      },
+      credentials: 'include'
+    });
+
+    if (!chartResponse.ok) {
+      throw new Error(`Failed to get chart details: ${chartResponse.status}`);
+    }
+
+    const chartData = await chartResponse.json();
+    const chart = chartData.result;
+
+    // Check if chart has query_context
+    if (!chart.query_context) {
+      throw new Error('This chart has no saved query');
+    }
+
+    // Parse query_context
+    const queryContext = JSON.parse(chart.query_context);
+
+    // Get CSRF token for POST request
+    const csrfToken = await getCSRFToken();
+
+    // Use POST /data endpoint with the query context
+    const dataResponse = await fetch(`${supersetUrl}/api/v1/chart/data`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrfToken
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        ...queryContext,
+        result_format: 'json',
+        result_type: 'full'
+      })
+    });
+
+    if (!dataResponse.ok) {
+      throw new Error(`Failed to get chart data: ${dataResponse.status}`);
+    }
+
+    const data = await dataResponse.json();
+
+    // Extract data from result
+    if (data.result && data.result.length > 0 && data.result[0].data) {
+      return data.result[0].data;
+    } else {
+      throw new Error('No data available in chart response');
+    }
+  } catch (error) {
+    console.error('Error getting chart data:', error);
+    throw error;
+  }
+}
+
+// Export single chart data
+async function exportSingleChartData(chartId, chartName, format) {
+  showNotification(`Exporting ${chartName}...`, 'info');
+  
+  try {
+    const chartData = await getChartData(chartId);
+    
+    if (format === 'csv') {
+      const csv = convertToCSV(chartData);
+      downloadFile(new Blob([csv], { type: 'text/csv' }), `${sanitizeFilename(chartName)}.csv`, 'text/csv');
+    } else {
+      const json = JSON.stringify(chartData, null, 2);
+      downloadFile(new Blob([json], { type: 'application/json' }), `${sanitizeFilename(chartName)}.json`, 'application/json');
+    }
+    
+    showNotification(`✅ ${chartName} exported as ${format.toUpperCase()}!`, 'success');
+  } catch (error) {
+    console.error('Error exporting chart:', error);
+    showNotification(`❌ Export failed: ${error.message}`, 'error');
+  }
+}
+
+// Export all charts data
+async function exportAllChartsData(dashboardId, dashboardTitle, format) {
+  showNotification('Exporting all charts...', 'info');
+  
+  try {
+    const response = await fetch(`${supersetUrl}/api/v1/dashboard/${dashboardId}/charts`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to load charts: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const charts = data.result || [];
+    
+    let allData = [];
+    
+    for (const chart of charts) {
+      try {
+        const chartData = await getChartData(chart.id);
+        allData.push({
+          chart_name: chart.slice_name,
+          chart_id: chart.id,
+          data: chartData
+        });
+      } catch (error) {
+        console.error(`Error loading chart ${chart.id}:`, error);
+      }
+    }
+    
+    if (format === 'csv') {
+      const csv = convertChartsToCSV(allData);
+      downloadFile(new Blob([csv], { type: 'text/csv' }), `${sanitizeFilename(dashboardTitle)}_all_charts.csv`, 'text/csv');
+    } else {
+      const json = JSON.stringify(allData, null, 2);
+      downloadFile(new Blob([json], { type: 'application/json' }), `${sanitizeFilename(dashboardTitle)}_all_charts.json`, 'application/json');
+    }
+    
+    showNotification(`✅ Exported ${charts.length} chart(s) as ${format.toUpperCase()}!`, 'success');
+  } catch (error) {
+    console.error('Error exporting all charts:', error);
+    showNotification(`❌ Export failed: ${error.message}`, 'error');
+  }
+}
+
+// Get Data Browsing (Dashboard Activity & Options) - MANTENER FUNCIÓN ORIGINAL
 async function getDataBrowsing(dashboardId, dashboardTitle) {
   showInfoModal('Loading dashboard activity...', '');
 
@@ -744,6 +1131,57 @@ function convertToCSV(data) {
   return csvRows.join('\n');
 }
 
+function convertChartsToCSV(chartsData) {
+  // Convert multiple charts data to CSV format
+  // Format: Chart Name, Chart ID, then all data columns
+  
+  if (!chartsData || chartsData.length === 0) {
+    return 'No data available';
+  }
+  
+  let csvOutput = '';
+  
+  for (const chartInfo of chartsData) {
+    const chartName = chartInfo.chart_name || 'Unknown Chart';
+    const chartId = chartInfo.chart_id || 'N/A';
+    const data = chartInfo.data;
+    
+    // Add chart header
+    csvOutput += `\n\n=== ${chartName} (ID: ${chartId}) ===\n`;
+    
+    if (!data || !Array.isArray(data) || data.length === 0) {
+      csvOutput += 'No data available\n';
+      continue;
+    }
+    
+    // Get headers from first record
+    const headers = Object.keys(data[0]);
+    
+    if (headers.length === 0) {
+      csvOutput += 'No columns found\n';
+      continue;
+    }
+    
+    // Add CSV headers
+    csvOutput += headers.join(',') + '\n';
+    
+    // Add data rows
+    data.forEach(record => {
+      const values = headers.map(header => {
+        const value = record[header];
+        if (value === null || value === undefined) {
+          return '""';
+        }
+        const escaped = String(value).replace(/"/g, '""');
+        return `"${escaped}"`;
+      });
+      csvOutput += values.join(',') + '\n';
+    });
+  }
+  
+  return csvOutput;
+}
+
 function openDashboard(dashboardId) {
   const dashboardUrl = `${supersetUrl}/superset/dashboard/${dashboardId}/`;
   chrome.tabs.create({ url: dashboardUrl });
@@ -778,7 +1216,18 @@ function filterDashboards(event) {
 
 async function logout() {
   if (confirm('Are you sure you want to logout?')) {
-    await chrome.storage.local.remove(['accessToken', 'username']);
+    // Check if user wants to remember password
+    const data = await chrome.storage.local.get(['rememberPassword']);
+    const shouldRemember = data.rememberPassword !== false;
+    
+    if (shouldRemember) {
+      // Only clear access token, keep credentials
+      await chrome.storage.local.remove(['accessToken']);
+    } else {
+      // Clear everything including credentials
+      await chrome.storage.local.remove(['accessToken', 'username', 'password', 'rememberPassword']);
+    }
+    
     showNotification('Logged out successfully', 'success');
     setTimeout(() => {
       window.location.href = 'popup.html';
