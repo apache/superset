@@ -25,13 +25,19 @@ import {
 import ChartRenderer from 'src/components/Chart/ChartRenderer';
 import { ChartSource } from 'src/types/ChartSource';
 
+let capturedSuperChartProps = null;
+
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
-  SuperChart: ({ postTransformProps = x => x, ...props }) => (
-    <div data-test="mock-super-chart">
-      {JSON.stringify(postTransformProps(props).formData)}
-    </div>
-  ),
+  SuperChart: ({ postTransformProps = x => x, ...props }) => {
+    // Capture props for testing legend state handlers
+    capturedSuperChartProps = props;
+    return (
+      <div data-test="mock-super-chart">
+        {JSON.stringify(postTransformProps(props).formData)}
+      </div>
+    );
+  },
 }));
 
 jest.mock(
@@ -285,4 +291,73 @@ test('should detect nested matrixify property changes', () => {
   expect(getByTestId('mock-super-chart')).toHaveTextContent(
     JSON.stringify(updatedProps.formData),
   );
+});
+
+// sessionStorage legend state tests
+beforeEach(() => {
+  sessionStorage.clear();
+  capturedSuperChartProps = null;
+});
+
+test('should save legend state to sessionStorage when handleLegendStateChanged is called', () => {
+  const mockLegendState = { series1: true, series2: false };
+  const legendStateKey = `chart_legend_state_${requiredProps.chartId}`;
+  expect(sessionStorage.getItem(legendStateKey)).toBeNull();
+
+  render(<ChartRenderer {...requiredProps} />);
+
+  // Verify SuperChart received the hooks prop with the handler
+  expect(capturedSuperChartProps).not.toBeNull();
+  expect(capturedSuperChartProps.hooks).toBeDefined();
+  expect(capturedSuperChartProps.hooks.onLegendStateChanged).toBeDefined();
+
+  capturedSuperChartProps.hooks.onLegendStateChanged(mockLegendState);
+
+  // Verify it was saved to sessionStorage
+  const saved = JSON.parse(sessionStorage.getItem(legendStateKey));
+  expect(saved).toEqual(mockLegendState);
+});
+
+test('should save legend index to sessionStorage when handleLegendScroll is called', () => {
+  const mockLegendIndex = 5;
+  const legendIndexKey = `chart_legend_index_${requiredProps.chartId}`;
+
+  expect(sessionStorage.getItem(legendIndexKey)).toBeNull();
+
+  render(<ChartRenderer {...requiredProps} />);
+
+  // Verify SuperChart received the hooks prop with the handler
+  expect(capturedSuperChartProps).not.toBeNull();
+  expect(capturedSuperChartProps.hooks).toBeDefined();
+  expect(capturedSuperChartProps.hooks.onLegendScroll).toBeDefined();
+
+  capturedSuperChartProps.hooks.onLegendScroll(mockLegendIndex);
+
+  // Verify it was saved to sessionStorage
+  const saved = JSON.parse(sessionStorage.getItem(legendIndexKey));
+  expect(saved).toBe(mockLegendIndex);
+});
+
+test('should load legend state from sessionStorage on mount', () => {
+  const mockLegendState = { series1: true, series2: false };
+  const legendStateKey = `chart_legend_state_${requiredProps.chartId}`;
+  sessionStorage.setItem(legendStateKey, JSON.stringify(mockLegendState));
+
+  render(<ChartRenderer {...requiredProps} />);
+
+  // Verify SuperChart received the legendState prop
+  expect(capturedSuperChartProps).not.toBeNull();
+  expect(capturedSuperChartProps.legendState).toEqual(mockLegendState);
+});
+
+test('should load legend index from sessionStorage on mount', () => {
+  const mockLegendIndex = 10;
+  const legendIndexKey = `chart_legend_index_${requiredProps.chartId}`;
+  sessionStorage.setItem(legendIndexKey, JSON.stringify(mockLegendIndex));
+
+  render(<ChartRenderer {...requiredProps} />);
+
+  // Verify SuperChart received the legendIndex prop
+  expect(capturedSuperChartProps).not.toBeNull();
+  expect(capturedSuperChartProps.legendIndex).toBe(mockLegendIndex);
 });
