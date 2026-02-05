@@ -222,10 +222,14 @@ stages:
               # -------------------------------------
               # Rehydrate & validate client config
               # -------------------------------------
+              # CLIENT_CONFIG is dynamically loaded from environment-specific variable group
+              # Variable groups: blue-dev-secret, lat360foods-secret, etc.
+              # Each group maps its Key Vault secret to the CLIENT_CONFIG variable name
+              # Runtime expression $[variables.CLIENT_CONFIG] resolves at deployment time
               - task: PowerShell@2
                 displayName: 'Rehydrate & validate client config'
                 env:
-                  CLIENT_CONFIG: $(blue-dev-secret)
+                  CLIENT_CONFIG: $[variables.CLIENT_CONFIG]
                 inputs:
                   pwsh: true
                   targetType: inline
@@ -236,7 +240,7 @@ stages:
                     $raw = $env:CLIENT_CONFIG
                     
                     if ([string]::IsNullOrEmpty($raw)) {
-                        throw "CLIENT_CONFIG (blue-dev-secret from Key Vault) is empty or not set"
+                        throw "CLIENT_CONFIG from ${{ parameters.targetEnvironment }}-secret variable group is empty or not set. Ensure the variable group exists and contains CLIENT_CONFIG variable."
                     }
                     
                     Write-Host "Retrieved config (length: $($raw.Length) chars)"
