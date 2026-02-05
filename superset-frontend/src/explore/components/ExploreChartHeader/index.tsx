@@ -240,13 +240,6 @@ export const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
     [originalFormData, currentFormData],
   );
 
-  useEffect(() => {
-    console.log('slice:', slice);
-    console.log('sliceFormData:', sliceFormData);
-    console.log('formDiffs:', formDiffs);
-    console.log('hasUnsavedChanges:', Object.keys(formDiffs).length > 0);
-  }, [slice, sliceFormData, formDiffs]);
-
   const hasUnsavedChanges = Object.keys(formDiffs).length > 0;
 
   const {
