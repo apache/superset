@@ -23,11 +23,17 @@ from superset.localization.sanitization import (
     sanitize_translation_value,
     sanitize_translations,
 )
+from superset.localization.slice_name_utils import (
+    get_localized_chart_name,
+    localize_chart_names,
+)
 from superset.localization.validation import validate_translations
 
 __all__ = [
     "LocalizableMixin",
+    "get_localized_chart_name",
     "get_user_locale",
+    "localize_chart_names",
     "localize_native_filters",
     "parse_accept_language",
     "sanitize_translation_value",

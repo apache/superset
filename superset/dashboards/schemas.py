@@ -24,6 +24,7 @@ from marshmallow.validate import Length, ValidationError
 from superset import is_feature_enabled, security_manager
 from superset.localization import (
     get_user_locale,
+    localize_chart_names,
     localize_native_filters,
     sanitize_translations,
     validate_translations,
@@ -178,6 +179,9 @@ class DashboardJSONMetadataSchema(Schema):
     remote_id = fields.Integer()
     filter_bar_orientation = fields.Str(allow_none=True)
     native_filter_migration = fields.Dict()
+    # Translations for per-dashboard chart name overrides
+    # Structure: {chart_uuid: {translations: {locale: value}}}
+    slice_name_overrides = fields.Dict(allow_none=True)
 
     @pre_load
     def remove_show_native_filters(  # pylint: disable=unused-argument
@@ -323,6 +327,10 @@ class DashboardGetResponseSchema(Schema):
             if serialized.get("json_metadata"):
                 self._localize_native_filters(serialized, locale)
 
+            # Localize chart names in position_json
+            if serialized.get("position_json"):
+                self._localize_chart_names(serialized, obj, locale)
+
     def _should_include_translations(self) -> bool:
         """
         Check if raw translations dict should be included in response.
@@ -346,6 +354,39 @@ class DashboardGetResponseSchema(Schema):
                 filters, locale
             )
             serialized["json_metadata"] = json.dumps(metadata)
+
+    def _localize_chart_names(
+        self, serialized: dict[str, Any], obj: Any, locale: str
+    ) -> None:
+        """
+        Localize chart names in position_json.
+
+        Applies priority chain for each chart:
+        1. Override translation (json_metadata.slice_name_overrides)
+        2. Override name (position_json.meta.sliceNameOverride)
+        3. Chart translation (chart.translations)
+        4. Chart original name (chart.slice_name)
+        """
+        try:
+            position = json.loads(serialized["position_json"])
+        except (json.JSONDecodeError, TypeError):
+            return
+
+        # Parse metadata for slice_name_overrides
+        try:
+            metadata = json.loads(serialized.get("json_metadata") or "{}")
+        except (json.JSONDecodeError, TypeError):
+            metadata = {}
+
+        # Build uuid → Slice mapping
+        slices_by_uuid: dict[str, Any] = {}
+        if hasattr(obj, "slices"):
+            slices_by_uuid = {str(slc.uuid): slc for slc in obj.slices}
+
+        localized_position = localize_chart_names(
+            position, metadata, slices_by_uuid, locale
+        )
+        serialized["position_json"] = json.dumps(localized_position)
 
 
 class DatabaseSchema(Schema):

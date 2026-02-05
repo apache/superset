@@ -31,6 +31,7 @@ from typing import Any
 from unittest.mock import patch
 
 from superset.dashboards.schemas import DashboardGetResponseSchema
+from superset.utils import json
 
 
 class MockDashboard:
@@ -288,3 +289,178 @@ def test_dashboard_schema_localizes_multiple_fields(app_context: None) -> None:
 
     assert result["dashboard_title"] == "Tableau de bord des ventes"
     assert result.get("description") == "Rapport mensuel"
+
+
+# =============================================================================
+# Chart Name Localization Tests
+# =============================================================================
+
+
+class MockSlice:
+    """Mock Slice object for chart localization testing."""
+
+    def __init__(
+        self,
+        uuid: str,
+        slice_name: str,
+        translations: dict[str, dict[str, str]] | None = None,
+    ) -> None:
+        self.uuid = uuid
+        self.slice_name = slice_name
+        self.translations = translations
+
+
+class MockDashboardWithCharts(MockDashboard):
+    """Mock Dashboard with charts for chart name localization testing."""
+
+    def __init__(
+        self,
+        slices: list[MockSlice] | None = None,
+        position_json: str = "{}",
+        json_metadata: str = "{}",
+        **kwargs: Any,
+    ) -> None:
+        super().__init__(**kwargs)
+        self.slices = slices or []
+        self.position_json = position_json
+        self.json_metadata = json_metadata
+
+
+def test_dashboard_schema_localizes_chart_names_in_position_json(
+    app_context: None,
+) -> None:
+    """
+    Verify schema localizes chart names in position_json using priority chain.
+
+    Priority: override translation > override name > chart translation > slice_name.
+    """
+    slices = [
+        MockSlice("uuid-1", "Revenue", {"slice_name": {"de": "Umsatz"}}),
+    ]
+
+    position = {
+        "CHART-0": {
+            "type": "CHART",
+            "id": "CHART-0",
+            "meta": {
+                "chartId": 1,
+                "uuid": "uuid-1",
+                "sliceName": "Revenue",
+                "width": 4,
+                "height": 50,
+            },
+        },
+    }
+
+    dashboard = MockDashboardWithCharts(
+        dashboard_title="Sales",
+        slices=slices,
+        position_json=json.dumps(position),
+    )
+
+    schema = DashboardGetResponseSchema()
+
+    with patch("superset.dashboards.schemas.is_feature_enabled", return_value=True):
+        with patch("superset.dashboards.schemas.get_user_locale", return_value="de"):
+            result = schema.dump(dashboard)
+
+    result_position = json.loads(result["position_json"])
+    assert result_position["CHART-0"]["meta"]["sliceName"] == "Umsatz"
+
+
+def test_dashboard_schema_chart_override_translation_takes_priority(
+    app_context: None,
+) -> None:
+    """
+    Verify override translation has highest priority for chart names.
+
+    When slice_name_overrides contains translation, it takes precedence
+    over override name and chart translation.
+    """
+    slices = [
+        MockSlice("uuid-1", "Revenue", {"slice_name": {"de": "Umsatz"}}),
+    ]
+
+    position = {
+        "CHART-0": {
+            "type": "CHART",
+            "id": "CHART-0",
+            "meta": {
+                "chartId": 1,
+                "uuid": "uuid-1",
+                "sliceName": "Revenue",
+                "sliceNameOverride": "Custom Revenue",
+                "width": 4,
+                "height": 50,
+            },
+        },
+    }
+
+    metadata = {
+        "slice_name_overrides": {
+            "uuid-1": {"translations": {"de": "Benutzerdefinierter Umsatz"}},
+        },
+    }
+
+    dashboard = MockDashboardWithCharts(
+        dashboard_title="Sales",
+        slices=slices,
+        position_json=json.dumps(position),
+        json_metadata=json.dumps(metadata),
+    )
+
+    schema = DashboardGetResponseSchema()
+
+    with patch("superset.dashboards.schemas.is_feature_enabled", return_value=True):
+        with patch("superset.dashboards.schemas.get_user_locale", return_value="de"):
+            result = schema.dump(dashboard)
+
+    result_position = json.loads(result["position_json"])
+    # Override translation wins over override name and chart translation
+    expected = "Benutzerdefinierter Umsatz"
+    assert result_position["CHART-0"]["meta"]["sliceName"] == expected
+
+
+def test_dashboard_schema_chart_override_name_without_translation(
+    app_context: None,
+) -> None:
+    """
+    Verify override name is used when no override translation exists.
+
+    Priority 2: sliceNameOverride when no translation for it.
+    """
+    slices = [
+        MockSlice("uuid-1", "Revenue", {"slice_name": {"de": "Umsatz"}}),
+    ]
+
+    position = {
+        "CHART-0": {
+            "type": "CHART",
+            "id": "CHART-0",
+            "meta": {
+                "chartId": 1,
+                "uuid": "uuid-1",
+                "sliceName": "Revenue",
+                "sliceNameOverride": "Custom Revenue",
+                "width": 4,
+                "height": 50,
+            },
+        },
+    }
+
+    dashboard = MockDashboardWithCharts(
+        dashboard_title="Sales",
+        slices=slices,
+        position_json=json.dumps(position),
+        json_metadata="{}",  # No slice_name_overrides
+    )
+
+    schema = DashboardGetResponseSchema()
+
+    with patch("superset.dashboards.schemas.is_feature_enabled", return_value=True):
+        with patch("superset.dashboards.schemas.get_user_locale", return_value="de"):
+            result = schema.dump(dashboard)
+
+    result_position = json.loads(result["position_json"])
+    # Override name wins over chart translation
+    assert result_position["CHART-0"]["meta"]["sliceName"] == "Custom Revenue"
