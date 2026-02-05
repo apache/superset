@@ -21,7 +21,6 @@ import {
   ChartCustomization,
   ChartCustomizationDivider,
   ColumnOption,
-  JsonObject,
 } from '@superset-ui/core';
 import {
   DASHBOARD_INFO_UPDATED,
@@ -39,15 +38,11 @@ import {
   CLEAR_ALL_CHART_CUSTOMIZATIONS,
 } from '../actions/chartCustomizationActions';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
-import { DashboardInfo, FilterBarOrientation } from '../types';
-
-interface FilterConfigItem extends JsonObject {
-  id: string;
-  chartsInScope?: number[];
-  tabsInScope?: string[];
-  type?: string;
-  targets?: { datasetId?: number; [key: string]: unknown }[];
-}
+import {
+  DashboardInfo,
+  FilterBarOrientation,
+  FilterConfigItem,
+} from '../types';
 
 interface DashboardInfoAction {
   type: string;
@@ -141,9 +136,7 @@ export default function dashboardInfoReducer(
     }
     case DASHBOARD_INFO_FILTERS_CHANGED: {
       const dashAction = action as DashboardInfoAction;
-      const existingConfig =
-        (state.metadata?.native_filter_configuration as FilterConfigItem[]) ||
-        [];
+      const existingConfig = state.metadata?.native_filter_configuration || [];
       const existingScopesMap = existingConfig.reduce<
         Record<string, { chartsInScope?: number[]; tabsInScope?: string[] }>
       >((acc, filter) => {
@@ -184,12 +177,8 @@ export default function dashboardInfoReducer(
       const incomingMetadata = action.data.dashboardInfo.metadata || {};
 
       const mergedFilterConfig = preserveScopes(
-        state.metadata?.native_filter_configuration as
-          | FilterConfigItem[]
-          | undefined,
-        incomingMetadata.native_filter_configuration as
-          | FilterConfigItem[]
-          | undefined,
+        state.metadata?.native_filter_configuration,
+        incomingMetadata.native_filter_configuration,
       );
 
       const mergedCustomizationConfig = preserveScopes(
@@ -207,8 +196,10 @@ export default function dashboardInfoReducer(
         metadata: {
           ...incomingMetadata,
           native_filter_configuration: mergedFilterConfig,
-          chart_customization_config: mergedCustomizationConfig,
-        } as unknown as DashboardInfo['metadata'],
+          chart_customization_config: mergedCustomizationConfig as
+            | (ChartCustomization | ChartCustomizationDivider)[]
+            | undefined,
+        },
         pendingChartCustomizations: {},
       };
     }
@@ -230,11 +221,9 @@ export default function dashboardInfoReducer(
         metadata: {
           ...state.metadata,
           native_filter_configuration: (
-            (state.metadata?.native_filter_configuration as
-              | FilterConfigItem[]
-              | undefined) || []
+            state.metadata?.native_filter_configuration || []
           ).filter(
-            (item: FilterConfigItem) =>
+            item =>
               !(
                 item.type === 'CHART_CUSTOMIZATION' &&
                 item.id === 'chart_customization_groupby'
@@ -293,21 +282,17 @@ export default function dashboardInfoReducer(
       };
     case CLEAR_ALL_CHART_CUSTOMIZATIONS: {
       const customizationConfig =
-        (state.metadata?.chart_customization_config as
-          | FilterConfigItem[]
-          | undefined) || [];
+        state.metadata?.chart_customization_config || [];
       return {
         ...state,
         metadata: {
           ...state.metadata,
           chart_customization_config: customizationConfig.map(
-            (customization: FilterConfigItem) => ({
+            customization => ({
               ...customization,
-              targets: customization.targets?.map(
-                (target: { datasetId?: number; [key: string]: unknown }) => ({
-                  datasetId: target.datasetId,
-                }),
-              ),
+              targets: customization.targets?.map(target => ({
+                datasetId: target.datasetId,
+              })),
             }),
           ),
         } as DashboardInfo['metadata'],

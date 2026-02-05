@@ -46,6 +46,15 @@ export interface ExtendedNativeFilterScope extends NativeFilterScope {
   selectedLayers?: string[];
 }
 
+/** Configuration item for native filters and chart customizations */
+export interface FilterConfigItem extends JsonObject {
+  id: string;
+  chartsInScope?: number[];
+  tabsInScope?: string[];
+  type?: string;
+  targets?: { datasetId?: number; [key: string]: unknown }[];
+}
+
 export type ChartReducerInitialState = typeof chart;
 
 // chart query built from initialState
@@ -155,7 +164,7 @@ export type DashboardInfo = {
   dash_edit_perm: boolean;
   json_metadata: string;
   metadata: {
-    native_filter_configuration: JsonObject;
+    native_filter_configuration: FilterConfigItem[];
     chart_configuration: ChartConfiguration;
     global_chart_configuration: GlobalChartCrossFilterConfig;
     color_scheme: string;
