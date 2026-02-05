@@ -6070,6 +6070,9 @@ msgstr ""
 msgid "Link Copied!"
 msgstr ""
 
+msgid "List Groups"
+msgstr ""
+
 msgid "List Roles"
 msgstr ""
 
@@ -6274,6 +6277,9 @@ msgid "Markers"
 msgstr ""
 
 msgid "Markup type"
+msgstr ""
+
+msgid "Match system"
 msgstr ""
 
 msgid "Match time shift color with original series"
@@ -10648,6 +10654,9 @@ msgstr ""
 msgid "The width of the lines"
 msgstr ""
 
+msgid "Themes"
+msgstr ""
+
 msgid "There are associated alerts or reports"
 msgstr ""
 
@@ -12883,6 +12892,9 @@ msgid "chart"
 msgstr ""
 
 msgid "choose WHERE or HAVING..."
+msgstr ""
+
+msgid "Choose..."
 msgstr ""
 
 msgid "clear all filters"
