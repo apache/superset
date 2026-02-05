@@ -272,15 +272,16 @@ class ScatterPlotGlowOverlay extends PureComponent<ScatterPlotGlowOverlayProps> 
             ctx.fillStyle = gradient;
             ctx.fill();
 
-            if (Number.isFinite(parseFloat(String(clusterLabel)))) {
-              if ((clusterLabel as number) >= 10000) {
-                clusterLabel = `${Math.round((clusterLabel as number) / 1000)}k`;
-              } else if ((clusterLabel as number) >= 1000) {
-                clusterLabel = `${Math.round((clusterLabel as number) / 100) / 10}k`;
+            if (Number.isFinite(safeNumericLabel)) {
+              let label: string | number = clusterLabel;
+              if (safeNumericLabel >= 10000) {
+                label = `${Math.round(safeNumericLabel / 1000)}k`;
+              } else if (safeNumericLabel >= 1000) {
+                label = `${Math.round(safeNumericLabel / 100) / 10}k`;
               }
               this.drawText(ctx, pixelRounded, {
                 fontHeight,
-                label: clusterLabel,
+                label,
                 radius: scaledRadius,
                 rgb,
                 shadow: true,
