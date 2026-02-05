@@ -91,11 +91,11 @@ class TaskPermissionDeniedError(ForbiddenError):
 
 class GlobalTaskFrameworkDisabledError(CommandException):
     """
-    Raised when @task decorator is used but GTF is disabled.
+    Raised when a GTF task is called or scheduled but GTF is disabled.
 
-    This exception is raised at decoration time (module load) to make it clear
-    that GTF-based code requires the GLOBAL_TASK_FRAMEWORK feature flag to be
-    enabled.
+    This exception is raised at call/schedule time (not decoration time) to allow
+    modules with @task-decorated functions to be imported safely when GTF is disabled.
+    The check is deferred until someone actually tries to execute a task.
     """
 
     message = _(

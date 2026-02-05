@@ -25,12 +25,14 @@ from typing import Any, Callable, cast, Generic, ParamSpec, TYPE_CHECKING, TypeV
 from superset_core.api.tasks import TaskOptions, TaskScope, TaskStatus
 
 from superset import is_feature_enabled
+from superset.commands.tasks.exceptions import GlobalTaskFrameworkDisabledError
 from superset.tasks.ambient_context import use_context
 from superset.tasks.constants import TERMINAL_STATES
 from superset.tasks.context import TaskContext
 from superset.tasks.manager import TaskManager
 from superset.tasks.registry import TaskRegistry
 from superset.tasks.utils import generate_random_task_key
+from superset.utils.core import get_user_id
 
 if TYPE_CHECKING:
     from superset.models.tasks import Task
@@ -110,14 +112,6 @@ def task(
     """
 
     def decorator(f: Callable[P, R]) -> "TaskWrapper[P]":
-        # Check feature flag at decoration time
-        if not is_feature_enabled("GLOBAL_TASK_FRAMEWORK"):
-            from superset.commands.tasks.exceptions import (
-                GlobalTaskFrameworkDisabledError,
-            )
-
-            raise GlobalTaskFrameworkDisabledError()
-
         # Use function name if no name provided
         task_name = name if name is not None else f.__name__
 
@@ -265,12 +259,14 @@ class TaskWrapper(Generic[P]):
         Returns the Task entity in terminal state (SUCCESS, FAILURE, etc.).
 
         Raises:
+            GlobalTaskFrameworkDisabledError: If GTF feature flag is not enabled
             ValueError: If task validation fails
             TimeoutError: If timeout expires while waiting for existing task
         """
-
         from superset.commands.tasks.submit import SubmitTaskCommand
-        from superset.utils.core import get_user_id
+
+        if not is_feature_enabled("GLOBAL_TASK_FRAMEWORK"):
+            raise GlobalTaskFrameworkDisabledError()
 
         # Extract and merge options (decorator defaults + call-time overrides)
         override_options = cast(TaskOptions | None, kwargs.pop("options", None))
@@ -564,6 +560,7 @@ class TaskWrapper(Generic[P]):
             Task model representing the scheduled task (PENDING status)
 
         Raises:
+            GlobalTaskFrameworkDisabledError: If GTF feature flag is not enabled
             ValueError: If task is SHARED scope but no task_key is provided
 
         Usage:
@@ -585,6 +582,9 @@ class TaskWrapper(Generic[P]):
         Note: Unlike direct calls (__call__), this schedules async execution.
         The function returns immediately with the Task model in PENDING status.
         """
+        if not is_feature_enabled("GLOBAL_TASK_FRAMEWORK"):
+            raise GlobalTaskFrameworkDisabledError()
+
         # Extract and merge options (decorator defaults + call-time overrides)
         override_options = cast(TaskOptions | None, kwargs.pop("options", None))
         options = self._merge_options(override_options)

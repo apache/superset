@@ -21,8 +21,56 @@ from unittest.mock import MagicMock, patch
 import pytest
 from superset_core.api.tasks import TaskOptions, TaskScope
 
+from superset.commands.tasks.exceptions import GlobalTaskFrameworkDisabledError
 from superset.tasks.decorators import task, TaskWrapper
 from superset.tasks.registry import TaskRegistry
+
+
+class TestTaskDecoratorFeatureFlag:
+    """Tests for @task decorator feature flag behavior"""
+
+    def setup_method(self):
+        """Clear task registry before each test"""
+        TaskRegistry._tasks.clear()
+
+    @patch("superset.tasks.decorators.is_feature_enabled", return_value=False)
+    def test_decorator_succeeds_when_gtf_disabled(self, mock_feature_flag):
+        """Test that @task decorator can be applied even when GTF is disabled.
+
+        This enables safe module imports during app startup or Celery autodiscovery.
+        """
+
+        # Decoration should succeed - no error raised
+        @task(name="test_gtf_disabled_decorator")
+        def my_task() -> None:
+            pass
+
+        assert isinstance(my_task, TaskWrapper)
+        assert my_task.name == "test_gtf_disabled_decorator"
+
+    @patch("superset.tasks.decorators.is_feature_enabled", return_value=False)
+    def test_call_raises_error_when_gtf_disabled(self, mock_feature_flag):
+        """Test that calling a task raises GlobalTaskFrameworkDisabledError
+        when GTF is disabled."""
+
+        @task(name="test_gtf_disabled_call")
+        def my_task() -> None:
+            pass
+
+        with pytest.raises(GlobalTaskFrameworkDisabledError):
+            my_task()
+
+    @patch("superset.tasks.decorators.is_feature_enabled", return_value=False)
+    def test_schedule_raises_error_when_gtf_disabled(self, mock_feature_flag):
+        """Test that scheduling a task raises GlobalTaskFrameworkDisabledError
+        when GTF is disabled."""
+
+        @task(name="test_gtf_disabled_schedule")
+        def my_task() -> None:
+            pass
+
+        with pytest.raises(GlobalTaskFrameworkDisabledError):
+            my_task.schedule()
 
 
 class TestTaskDecorator:
