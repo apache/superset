@@ -39,6 +39,7 @@ import {
   UNSAVED_CHART_ID,
 } from 'src/explore/constants';
 import { DashboardStandaloneMode } from 'src/dashboard/util/constants';
+import { applicationRoot } from 'src/utils/getBootstrapData';
 
 export function getChartKey(explore) {
   const { slice, form_data } = explore;
@@ -262,10 +263,10 @@ export const exportChart = async ({
       formData,
       endpointType,
       allowDomainSharding: false,
-    });
+    }).replace(new RegExp(`^${applicationRoot()}`), ''); // appRoot will be added in SuperstClient.postForm method
     payload = formData;
   } else {
-    url = ensureAppRoot('/api/v1/chart/data');
+    url = '/api/v1/chart/data';
     payload = await buildV1ChartDataPayload({
       formData,
       force,
