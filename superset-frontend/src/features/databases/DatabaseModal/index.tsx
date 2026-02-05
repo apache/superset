@@ -791,6 +791,16 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     [onChange],
   );
 
+  const handleTextChange = useCallback(
+    ({ target }: { target: HTMLInputElement }) => {
+      onChange(ActionType.TextChange, {
+        name: target.name,
+        value: target.value,
+      });
+    },
+    [onChange],
+  );
+
   const handleChangeWithValidation = useCallback(
     (
       actionType: ActionType,
@@ -1721,7 +1731,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           name: target.name,
           value: target.value,
         });
-        handleClearValidationErrors();
       }}
       setSSHTunnelLoginMethod={(method: AuthType) =>
         setDB({
@@ -1729,6 +1738,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           payload: { login_method: method },
         })
       }
+      isValidating={isValidating}
+      validationErrors={validationErrors}
+      getValidation={() => getValidation(db)}
     />
   );
 
@@ -1797,12 +1809,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           });
         }}
         onParametersChange={handleParametersChange}
-        onChange={({ target }: { target: HTMLInputElement }) =>
-          handleChangeWithValidation(ActionType.TextChange, {
-            name: target.name,
-            value: target.value,
-          })
-        }
+        onChange={handleTextChange}
         getValidation={() => getValidation(db)}
         validationErrors={validationErrors}
         getPlaceholder={getPlaceholder}
