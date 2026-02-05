@@ -345,6 +345,7 @@ updates:
       # not until React >= 18.0.0
       - dependency-name: "react-markdown"
       - dependency-name: "remark-gfm"
+      - dependency-name: "react-error-boundary"
     schedule:
       interval: "daily"
     labels:
