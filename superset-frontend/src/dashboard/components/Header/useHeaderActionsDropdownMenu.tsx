@@ -273,10 +273,7 @@ export const useHeaderActionsMenu = ({
     // Only add divider if there are items after it
     const hasItemsAfterDivider =
       (!editMode && reportMenuItem) ||
-      (editMode &&
-        !isEmpty(
-          (dashboardInfo?.metadata as Record<string, unknown>)?.filter_scopes,
-        ));
+      (editMode && !isEmpty(dashboardInfo?.metadata?.filter_scopes));
 
     if (hasItemsAfterDivider) {
       menuItems.push({ type: 'divider' });
@@ -288,12 +285,7 @@ export const useHeaderActionsMenu = ({
     }
 
     // Set filter mapping
-    if (
-      editMode &&
-      !isEmpty(
-        (dashboardInfo?.metadata as Record<string, unknown>)?.filter_scopes,
-      )
-    ) {
+    if (editMode && !isEmpty(dashboardInfo?.metadata?.filter_scopes)) {
       menuItems.push(
         createModalMenuItem(
           MenuKeys.SetFilterMapping,

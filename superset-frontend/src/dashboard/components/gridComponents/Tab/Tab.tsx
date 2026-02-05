@@ -153,20 +153,11 @@ const Tab = (props: TabProps): ReactElement => {
     (state: RootState) => state.dashboardLayout.present,
   );
   const lastRefreshTime = useSelector(
-    (state: RootState) =>
-      (
-        state.dashboardState as RootState['dashboardState'] & {
-          lastRefreshTime?: number;
-        }
-      ).lastRefreshTime,
+    (state: RootState) => state.dashboardState.lastRefreshTime,
   );
   const tabActivationTime = useSelector(
     (state: RootState) =>
-      (
-        state.dashboardState as RootState['dashboardState'] & {
-          tabActivationTimes?: Record<string, number>;
-        }
-      ).tabActivationTimes?.[props.id] || 0,
+      state.dashboardState.tabActivationTimes?.[props.id] || 0,
   );
   const dashboardInfo = useSelector((state: RootState) => state.dashboardInfo);
 

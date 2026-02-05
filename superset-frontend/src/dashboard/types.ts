@@ -143,6 +143,8 @@ export type DashboardState = {
   shouldPersistRefreshFrequency?: boolean;
   colorNamespace?: string;
   isStarred?: boolean;
+  lastRefreshTime?: number;
+  tabActivationTimes?: Record<string, number>;
 };
 export type DashboardInfo = {
   id: number;
@@ -170,6 +172,7 @@ export type DashboardInfo = {
     timed_refresh_immune_slices?: number[];
     refresh_frequency?: number;
     positions?: JsonObject;
+    filter_scopes?: JsonObject;
   };
   crossFiltersEnabled: boolean;
   filterBarOrientation: FilterBarOrientation;
