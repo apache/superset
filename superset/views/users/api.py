@@ -27,10 +27,16 @@ from werkzeug.security import generate_password_hash
 
 from superset import is_feature_enabled
 from superset.daos.user import UserDAO
+from superset.daos.user_onboarding_workflow import UserOnboardingWorkflowDAO
 from superset.extensions import db, event_logger
 from superset.utils.slack import get_user_avatar, SlackClientError
 from superset.views.base_api import BaseSupersetApi, requires_json, statsd_metrics
-from superset.views.users.schemas import CurrentUserPutSchema, UserResponseSchema
+from superset.views.users.schemas import (
+    CurrentUserPutSchema,
+    OnboardingWorkflowSchema,
+    UserOnboardingWorkflowSchema,
+    UserResponseSchema,
+)
 from superset.views.utils import bootstrap_user_data
 
 user_response_schema = UserResponseSchema()
@@ -42,7 +48,12 @@ class CurrentUserRestApi(BaseSupersetApi):
     resource_name = "me"
     openapi_spec_tag = "Current User"
     allow_browser_login = True
-    openapi_spec_component_schemas = (UserResponseSchema, CurrentUserPutSchema)
+    openapi_spec_component_schemas = (
+        UserResponseSchema,
+        CurrentUserPutSchema,
+        OnboardingWorkflowSchema,
+        UserOnboardingWorkflowSchema,
+    )
 
     current_user_put_schema = CurrentUserPutSchema()
 
@@ -162,6 +173,56 @@ class CurrentUserRestApi(BaseSupersetApi):
             return self.response(200, result=user_response_schema.dump(g.user))
         except ValidationError as error:
             return self.response_400(message=error.messages)
+
+    @expose("/onboarding-workflows/", methods=["GET"])
+    @protect()
+    @permission_name("read")
+    @safe
+    def get_my_onboarding_workflows(self) -> Response:
+        """Get the user onboarding workflows corresponding to the
+        agent making the request.
+        ---
+        get:
+          summary: Get the user onboarding workflows
+          description: >-
+            Gets the user onboarding workflows corresponding to the
+            agent making the request,
+            or returns a 401 error if the user is unauthenticated.
+          responses:
+            200:
+              description: List of user onboarding workflows
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/UserOnboardingWorkflowSchema'
+            401:
+              $ref: '#/components/responses/401'
+        """
+        user_onboarding_workflows = UserOnboardingWorkflowDAO.get_by_user_id(g.user.id)
+        schema = UserOnboardingWorkflowSchema(many=True)
+        result = schema.dump(user_onboarding_workflows)
+        return self.response(200, result=result)
+
+    @expose(
+        "onboarding-workflows/<int:onboarding_workflow_id>/set-visited",
+        methods=["PATCH"],
+    )
+    @protect()
+    @permission_name("write")
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.patch",
+        log_to_statsd=False,
+    )
+    def set_onboarding_workflow_visited(self, onboarding_workflow_id: int) -> Response:
+        UserOnboardingWorkflowDAO.set_visited(g.user.id, onboarding_workflow_id)
+        return Response(status=200)
 
 
 class UserRestApi(BaseSupersetApi):

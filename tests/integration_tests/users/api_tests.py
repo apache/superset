@@ -98,6 +98,41 @@ class TestCurrentUserApi(SupersetTestCase):
         rv = self.client.put("/api/v1/me/", json={})
         assert rv.status_code == 400
 
+    def test_get_my_onboarding_workflows(self):
+        self.create_user_onboarding_workflows(ADMIN_USERNAME)
+        self.login(ADMIN_USERNAME)
+
+        rv = self.client.get(meUri + "onboarding-workflows/")
+        assert 200 == rv.status_code
+        response = json.loads(rv.data.decode("utf-8"))
+        user_onboarding_workflows = list(response["result"])
+        assert len(user_onboarding_workflows) > 0
+        assert (
+            user_onboarding_workflows[0]["onboarding_workflow"]["name"]
+            == "CREATE_DASHBOARD_WITH_NO_EXISTING_CHART"
+        )
+
+    def test_set_onboarding_workflow_visited(self):
+        user_onboarding_workflows = self.create_user_onboarding_workflows(
+            ADMIN_USERNAME
+        )
+        self.login(ADMIN_USERNAME)
+
+        assert user_onboarding_workflows[0].should_visit
+
+        last_visited_times = user_onboarding_workflows[0].visited_times
+        wf_id = user_onboarding_workflows[0].onboarding_workflow_id
+        rv = self.client.patch(meUri + f"onboarding-workflows/{wf_id}/set-visited")
+        assert 200 == rv.status_code
+
+        rv = self.client.get(meUri + "onboarding-workflows/")
+        assert 200 == rv.status_code
+        response = json.loads(rv.data.decode("utf-8"))
+        user_onboarding_workflows = list(response["result"])
+        assert len(user_onboarding_workflows) > 0
+        assert not user_onboarding_workflows[0]["should_visit"]
+        assert last_visited_times < user_onboarding_workflows[0]["visited_times"]
+
 
 class TestUserApi(SupersetTestCase):
     def test_avatar_with_invalid_user(self):

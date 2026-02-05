@@ -56,3 +56,21 @@ class CurrentUserPutSchema(Schema):
         validate=[PasswordComplexityValidator()],
         metadata={"description": password_description},
     )
+
+
+class OnboardingWorkflowSchema(Schema):
+    """Schema for the OnboardingWorkflow model (id, name, description)."""
+
+    id = Integer()
+    name = String()
+    description = String()
+
+
+class UserOnboardingWorkflowSchema(Schema):
+    """Schema for per-user onboarding workflow state."""
+
+    user_id = Integer()
+    onboarding_workflow_id = Integer()
+    onboarding_workflow = fields.Nested(OnboardingWorkflowSchema)
+    visited_times = Integer()
+    should_visit = Boolean()

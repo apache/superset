@@ -41,7 +41,9 @@ from superset.connectors.sqla.models import BaseDatasource, SqlaTable
 from superset.models import core as models
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
+from superset.models.onboarding_workflow import OnboardingWorkflow
 from superset.models.slice import Slice
+from superset.models.user_onboarding_workflow import UserOnboardingWorkflow
 from superset.sql.parse import CTASMethod
 from superset.utils import json
 from superset.utils.core import get_example_default_schema, shortid
@@ -158,6 +160,63 @@ class SupersetTestCase(TestCase):
             user_to_create.roles.append(security_manager.find_role(chosen_user_role))
         db.session.commit()
         return user_to_create
+
+    @staticmethod
+    def create_user_onboarding_workflows(username: str):
+        user = security_manager.find_user(username)
+
+        onboarding_workflow = (
+            db.session.query(OnboardingWorkflow)
+            .filter_by(name="CREATE_DASHBOARD_WITH_NO_EXISTING_CHART")
+            .one_or_none()
+        )
+
+        if not onboarding_workflow:
+            onboarding_workflow = OnboardingWorkflow(
+                name="CREATE_DASHBOARD_WITH_NO_EXISTING_CHART",
+                description="Onboarding workflow for creating a "
+                "dashboard with none existing chart",
+            )
+
+            db.session.add(onboarding_workflow)
+            db.session.commit()
+
+            onboarding_workflow = (
+                db.session.query(OnboardingWorkflow)
+                .filter_by(name="CREATE_DASHBOARD_WITH_NO_EXISTING_CHART")
+                .one()
+            )
+
+        user_onboarding_workflow = (
+            db.session.query(UserOnboardingWorkflow)
+            .filter_by(user_id=user.id, onboarding_workflow_id=onboarding_workflow.id)
+            .one_or_none()
+        )
+
+        if not user_onboarding_workflow:
+            user_onboarding_workflow = UserOnboardingWorkflow(
+                user_id=user.id,
+                onboarding_workflow_id=onboarding_workflow.id,
+                visited_times=0,
+                should_visit=True,
+            )
+
+            db.session.add(user_onboarding_workflow)
+            db.session.commit()
+
+            user_onboarding_workflow = (
+                db.session.query(UserOnboardingWorkflow)
+                .filter_by(
+                    user_id=user.id, onboarding_workflow_id=onboarding_workflow.id
+                )
+                .one()
+            )
+        else:
+            user_onboarding_workflow.should_visit = True
+            user_onboarding_workflow.visited_times = 0
+            db.session.commit()
+
+        return [user_onboarding_workflow]
 
     @contextmanager
     def temporary_user(  # noqa: C901
