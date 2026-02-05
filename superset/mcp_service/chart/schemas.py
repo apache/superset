@@ -359,12 +359,11 @@ class ColumnRef(BaseModel):
     @classmethod
     def sanitize_name(cls, v: str) -> str:
         """Sanitize column name to prevent XSS and SQL injection."""
-        result = sanitize_user_input(
+        # sanitize_user_input raises ValueError when allow_empty=False (default)
+        # so the return value is guaranteed to be a non-None str
+        return sanitize_user_input(
             v, "Column name", max_length=255, check_sql_keywords=True
-        )
-        if result is None:
-            raise ValueError("Column name cannot be empty")
-        return result
+        )  # type: ignore[return-value]
 
     @field_validator("label")
     @classmethod
@@ -403,10 +402,9 @@ class FilterConfig(BaseModel):
     @classmethod
     def sanitize_column(cls, v: str) -> str:
         """Sanitize filter column name to prevent injection attacks."""
-        result = sanitize_user_input(v, "Filter column", max_length=255)
-        if result is None:
-            raise ValueError("Filter column name cannot be empty")
-        return result
+        # sanitize_user_input raises ValueError when allow_empty=False (default)
+        # so the return value is guaranteed to be a non-None str
+        return sanitize_user_input(v, "Filter column", max_length=255)  # type: ignore[return-value]
 
     @field_validator("value")
     @classmethod
