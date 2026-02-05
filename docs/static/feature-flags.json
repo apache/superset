@@ -251,7 +251,7 @@
         "name": "DASHBOARD_VIRTUALIZATION_DEFER_DATA",
         "default": false,
         "lifecycle": "stable",
-        "description": "Supports simultaneous data and dashboard virtualization for backend performance",
+        "description": "Number of dashboard version snapshots to retain per dashboard (version history). Supports simultaneous data and dashboard virtualization for backend performance",
         "category": "runtime_config"
       },
       {

@@ -62,13 +62,18 @@ class DashboardVersionDAO:
         return int(r) + 1
 
     @staticmethod
-    def get_versions_for_dashboard(dashboard_id: int) -> list[DashboardVersion]:
-        return (
+    def get_versions_for_dashboard(
+        dashboard_id: int,
+        limit: Optional[int] = None,
+    ) -> list[DashboardVersion]:
+        query = (
             db.session.query(DashboardVersion)
             .filter(DashboardVersion.dashboard_id == dashboard_id)
             .order_by(desc(DashboardVersion.version_number))
-            .all()
         )
+        if limit is not None:
+            query = query.limit(limit)
+        return query.all()
 
     @staticmethod
     def get_by_id(version_id: int) -> Optional[DashboardVersion]:

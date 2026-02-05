@@ -644,7 +644,12 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
               $ref: '#/components/responses/404'
         """
         try:
-            versions = DashboardVersionDAO.get_versions_for_dashboard(dashboard.id)
+            retention = int(
+                current_app.config.get("DASHBOARD_VERSION_RETENTION", 20),
+            )
+            versions = DashboardVersionDAO.get_versions_for_dashboard(
+                dashboard.id, limit=retention
+            )
             result = [
                 {
                     "id": v.id,
@@ -2235,12 +2240,15 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             name: version_id
           responses:
             200:
-              description: Dashboard restored; returns id and last_modified_time
+              description: Dashboard restored; returns id, last_modified_time,
+                version_number_restored, and chart_ids
             403:
               $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
         """
+        # Uses get_by_id_or_slug (not @with_dashboard) because we need version_id
+        # from the path; RestoreDashboardVersionCommand enforces ownership.
         try:
             dashboard = DashboardDAO.get_by_id_or_slug(id_or_slug)
         except DashboardAccessDeniedError:
@@ -2249,14 +2257,28 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             return self.response_404()
         try:
             dash = RestoreDashboardVersionCommand(dashboard.id, version_id).run()
+            version = DashboardVersionDAO.get_by_id(version_id)
             last_modified_time = dash.changed_on.replace(microsecond=0).timestamp()
-            return self.response(
-                200,
-                result={
-                    "id": dash.id,
-                    "last_modified_time": last_modified_time,
-                },
-            )
+            chart_ids: list[int] = []
+            if dash.position_json:
+                try:
+                    positions = json.loads(dash.position_json)
+                    chart_ids = [
+                        int(value["meta"]["chartId"])
+                        for value in positions.values()
+                        if isinstance(value, dict)
+                        and value.get("type") == "CHART"
+                        and value.get("meta", {}).get("chartId") is not None
+                    ]
+                except (TypeError, ValueError, KeyError):
+                    pass
+            result = {
+                "id": dash.id,
+                "last_modified_time": last_modified_time,
+                "version_number_restored": version.version_number if version else None,
+                "chart_ids": chart_ids,
+            }
+            return self.response(200, result=result)
         except DashboardVersionNotFoundError:
             return self.response_404()
         except DashboardForbiddenError:

@@ -14,32 +14,27 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Rename dashboard_versions.comment to description."""
+"""Add unique constraint on dashboard_versions (dashboard_id, version_number)."""
 
-import sqlalchemy as sa
-from alembic import op
+from superset.migrations.shared.utils import create_index, drop_index
 
-revision = "c3d4e5f6a7b8"
+revision = "d4e5f6a7b8c9"
 down_revision = "b2c3d4e5f6a7"
 branch_labels = None
 depends_on = None
 
 
 def upgrade() -> None:
-    with op.batch_alter_table("dashboard_versions", schema=None) as batch_op:
-        batch_op.alter_column(
-            "comment",
-            new_column_name="description",
-            existing_type=sa.String(length=500),
-            existing_nullable=True,
-        )
+    create_index(
+        "dashboard_versions",
+        "uq_dashboard_versions_dashboard_id_version_number",
+        ["dashboard_id", "version_number"],
+        unique=True,
+    )
 
 
 def downgrade() -> None:
-    with op.batch_alter_table("dashboard_versions", schema=None) as batch_op:
-        batch_op.alter_column(
-            "description",
-            new_column_name="comment",
-            existing_type=sa.String(length=500),
-            existing_nullable=True,
-        )
+    drop_index(
+        "dashboard_versions",
+        "uq_dashboard_versions_dashboard_id_version_number",
+    )

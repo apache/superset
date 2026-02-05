@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""add comment column to dashboard_versions."""
+"""add description column to dashboard_versions."""
 
 import sqlalchemy as sa
 
@@ -29,11 +29,11 @@ depends_on = None
 def upgrade() -> None:
     add_columns(
         "dashboard_versions",
-        sa.Column("comment", sa.String(length=500), nullable=True),
+        sa.Column("description", sa.String(length=500), nullable=True),
     )
 
 
 def downgrade() -> None:
     from superset.migrations.shared.utils import drop_columns
 
-    drop_columns("dashboard_versions", "comment")
+    drop_columns("dashboard_versions", "description")
