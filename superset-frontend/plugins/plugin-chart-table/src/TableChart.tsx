@@ -352,18 +352,10 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   );
 
   const timestampFormatter = useCallback(
-    (value: DataRecordValue) => {
-      if (value == null) {
-        return '';
-      }
-      // In Raw Records mode, don't apply time grain-based formatting
-      if (isRawRecords || !timeGrain) {
-        return String(value);
-      }
-      return getTimeFormatterForGranularity(timeGrain)(
-        value as number | Date | null | undefined,
-      );
-    },
+    value =>
+      getTimeFormatterForGranularity(isRawRecords ? undefined : timeGrain)(
+        value,
+      ),
     [timeGrain, isRawRecords],
   );
   const [tableSize, setTableSize] = useState<TableSize>({
