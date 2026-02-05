@@ -18,7 +18,7 @@
  */
 import cx from 'classnames';
 import { useCallback, useEffect, useRef, useMemo, useState, memo } from 'react';
-import type { JsonObject } from '@superset-ui/core';
+import type { ChartCustomization, JsonObject } from '@superset-ui/core';
 import { styled, t } from '@apache-superset/core/ui';
 import { debounce } from 'lodash';
 import { bindActionCreators } from 'redux';
@@ -429,8 +429,7 @@ const Chart = (props: ChartProps) => {
       getFormDataWithExtraFilters({
         chart: { id: chart?.id ?? props.id, form_data: chart?.form_data }, // avoid passing the whole chart object
         chartConfiguration,
-        chartCustomizationItems:
-          chartCustomizationItems as import('@superset-ui/core').ChartCustomization[],
+        chartCustomizationItems: chartCustomizationItems as ChartCustomization[],
         filters: getAppliedFilterValues(props.id),
         colorScheme,
         colorNamespace,
