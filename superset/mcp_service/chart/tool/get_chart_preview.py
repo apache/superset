@@ -59,7 +59,7 @@ class ChartLike(Protocol):
 def _build_query_columns(form_data: Dict[str, Any]) -> list[str]:
     """Build query columns list from form_data, including both x_axis and groupby."""
     x_axis_config = form_data.get("x_axis")
-    groupby_columns: list[str] = form_data.get("groupby", [])
+    groupby_columns: list[str] = form_data.get("groupby") or []
 
     columns = groupby_columns.copy()
     if x_axis_config and isinstance(x_axis_config, str):
