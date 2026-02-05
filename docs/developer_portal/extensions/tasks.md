@@ -39,7 +39,7 @@ FEATURE_FLAGS = {
 When GTF is disabled:
 - The Task List UI menu item is hidden
 - The `/api/v1/task/*` endpoints return 404
-- Using the `@task` decorator raises `GlobalTaskFrameworkDisabledError` at decoration time
+- Calling or scheduling a `@task`-decorated function raises `GlobalTaskFrameworkDisabledError`
 
 :::note Future Migration
 When GTF is considered stable, it will replace legacy Celery tasks for built-in features like thumbnails and alerts & reports. Enabling this flag prepares your deployment for that migration.
