@@ -706,6 +706,10 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # @category: runtime_config
     # @docs: https://superset.apache.org/docs/using-superset/creating-your-first-dashboard
     "DASHBOARD_RBAC": False,
+    # Number of dashboard version snapshots to retain per dashboard (version history).
+    # @lifecycle: stable
+    # @category: runtime_config
+    "DASHBOARD_VERSION_RETENTION": 20,
     # Supports simultaneous data and dashboard virtualization for backend performance
     # @lifecycle: stable
     # @category: runtime_config
