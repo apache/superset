@@ -372,6 +372,8 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         </>
       }
       responsive
+      resizable
+      draggable
     >
       <DatasourceEditor
         showLoadingForImport

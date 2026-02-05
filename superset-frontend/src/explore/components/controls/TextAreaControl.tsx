@@ -211,6 +211,8 @@ class TextAreaControl extends Component<TextAreaControlProps> {
           });
         });
       };
+      // Exclude theme object from props spread to prevent [object Object] in theme path
+      const { theme, ...editorProps } = this.props;
       const codeEditor = (
         <div>
           <TextAreaEditor
@@ -223,7 +225,7 @@ class TextAreaControl extends Component<TextAreaControlProps> {
             defaultValue={this.props.initialValue}
             readOnly={this.props.readOnly}
             key={this.props.name}
-            {...this.props}
+            {...editorProps}
             onChange={this.handleChange.bind(this)}
           />
         </div>
