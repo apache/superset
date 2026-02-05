@@ -16,8 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import type { AnyAction } from 'redux';
 import { defaultState } from 'src/explore/store';
-import exploreReducer from 'src/explore/reducers/exploreReducer';
+import exploreReducer, {
+  ExploreState,
+} from 'src/explore/reducers/exploreReducer';
 import * as actions from 'src/explore/actions/exploreActions';
 
 const METRICS = [
@@ -81,15 +84,15 @@ const METRICS = [
 describe('reducers', () => {
   test('Does not set a control value if control does not exist', () => {
     const newState = exploreReducer(
-      defaultState as any,
-      actions.setControlValue('NEW_FIELD', 'x', []) as any,
+      defaultState as unknown as ExploreState,
+      actions.setControlValue('NEW_FIELD', 'x', []) as AnyAction,
     );
     expect(newState.controls.NEW_FIELD).toBeUndefined();
   });
   test('setControlValue works as expected with a Select control', () => {
     const newState = exploreReducer(
-      defaultState as any,
-      actions.setControlValue('y_axis_format', '$,.2f', []) as any,
+      defaultState as unknown as ExploreState,
+      actions.setControlValue('y_axis_format', '$,.2f', []) as AnyAction,
     );
     expect(newState.controls.y_axis_format.value).toBe('$,.2f');
     expect(newState.form_data.y_axis_format).toBe('$,.2f');
@@ -131,8 +134,8 @@ describe('reducers', () => {
 
     const swappedMetrics = [METRICS[1], METRICS[0]];
     const newState = exploreReducer(
-      mockedState as any,
-      actions.setControlValue('metrics', swappedMetrics, []) as any,
+      mockedState as unknown as ExploreState,
+      actions.setControlValue('metrics', swappedMetrics, []) as AnyAction,
     );
 
     const expectedColumnConfig = {
@@ -199,8 +202,8 @@ describe('reducers', () => {
     ];
 
     const newState = exploreReducer(
-      mockedState as any,
-      actions.setControlValue('metrics', updatedMetrics, []) as any,
+      mockedState as unknown as ExploreState,
+      actions.setControlValue('metrics', updatedMetrics, []) as AnyAction,
     );
 
     const expectedColumnConfig = {
@@ -220,8 +223,8 @@ describe('reducers', () => {
 
   test('setStashFormData works as expected with fieldNames', () => {
     const newState = exploreReducer(
-      defaultState as any,
-      actions.setStashFormData(true, ['y_axis_format']) as any,
+      defaultState as unknown as ExploreState,
+      actions.setStashFormData(true, ['y_axis_format']) as AnyAction,
     );
     expect(newState.hiddenFormData).toEqual({
       y_axis_format: defaultState.form_data.y_axis_format,
@@ -229,7 +232,7 @@ describe('reducers', () => {
     expect(newState.form_data.y_axis_format).toBeFalsy();
     const updatedState = exploreReducer(
       newState,
-      actions.setStashFormData(false, ['y_axis_format']) as any,
+      actions.setStashFormData(false, ['y_axis_format']) as AnyAction,
     );
     expect(updatedState.hiddenFormData!.y_axis_format).toBeFalsy();
     expect(updatedState.form_data.y_axis_format).toEqual(

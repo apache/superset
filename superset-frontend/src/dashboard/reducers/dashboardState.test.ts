@@ -39,7 +39,7 @@ import {
   setActiveTab,
   setActiveTabs,
 } from '../actions/dashboardState';
-import { DashboardState } from '../types';
+import { DashboardState, RootState } from '../types';
 
 // Type the reducer function properly since it's imported from JS
 type DashboardStateReducer = (
@@ -83,7 +83,7 @@ describe('DashboardState reducer', () => {
         dashboardLayout: { present: { tab1: { parents: [] } } },
       });
       const request = setActiveTab('tab1');
-      const thunkAction = request(store.dispatch, store.getState as any);
+      const thunkAction = request(store.dispatch, store.getState as () => RootState);
 
       expect(
         typedDashboardStateReducer(
@@ -98,7 +98,7 @@ describe('DashboardState reducer', () => {
       );
 
       const request2 = setActiveTab('tab2', 'tab1');
-      const thunkAction2 = request2(store.dispatch, store.getState as any);
+      const thunkAction2 = request2(store.dispatch, store.getState as () => RootState);
       expect(
         typedDashboardStateReducer(
           createMockDashboardState({ activeTabs: ['tab1'] }),
@@ -125,7 +125,7 @@ describe('DashboardState reducer', () => {
         },
       });
       let request = setActiveTab('TAB-B', 'TAB-A');
-      let thunkAction = request(store.dispatch, store.getState as any);
+      let thunkAction = request(store.dispatch, store.getState as () => RootState);
       let result = typedDashboardStateReducer(
         createMockDashboardState({ activeTabs: ['TAB-1', 'TAB-A', 'TAB-__a'] }),
         thunkAction,
@@ -140,7 +140,7 @@ describe('DashboardState reducer', () => {
       thunkAction = request(store.dispatch, (() => ({
         ...(store.getState() as object),
         dashboardState: result as DashboardState,
-      })) as any);
+      })) as () => RootState);
       result = typedDashboardStateReducer(result, thunkAction);
       expect(result).toEqual(
         expect.objectContaining({
@@ -152,7 +152,7 @@ describe('DashboardState reducer', () => {
       thunkAction = request(store.dispatch, (() => ({
         ...(store.getState() as object),
         dashboardState: result as DashboardState,
-      })) as any);
+      })) as () => RootState);
       result = typedDashboardStateReducer(result, thunkAction);
       expect(result).toEqual(
         expect.objectContaining({
@@ -164,7 +164,7 @@ describe('DashboardState reducer', () => {
       thunkAction = request(store.dispatch, (() => ({
         ...(store.getState() as object),
         dashboardState: result as DashboardState,
-      })) as any);
+      })) as () => RootState);
       result = typedDashboardStateReducer(result, thunkAction);
       expect(result).toEqual(
         expect.objectContaining({
@@ -176,7 +176,7 @@ describe('DashboardState reducer', () => {
       thunkAction = request(store.dispatch, (() => ({
         ...(store.getState() as object),
         dashboardState: result as DashboardState,
-      })) as any);
+      })) as () => RootState);
       result = typedDashboardStateReducer(result, thunkAction);
       expect(result).toEqual(
         expect.objectContaining({
@@ -188,7 +188,7 @@ describe('DashboardState reducer', () => {
       thunkAction = request(store.dispatch, (() => ({
         ...(store.getState() as object),
         dashboardState: result as DashboardState,
-      })) as any);
+      })) as () => RootState);
       result = typedDashboardStateReducer(result, thunkAction);
       expect(result).toEqual(
         expect.objectContaining({
