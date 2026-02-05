@@ -720,12 +720,7 @@ class SQLExecutor:
                 for table in engine_disallowed:
                     if table.lower() in present:
                         found.add(table)
-            if found:
-                return found
-            # Fallback: check_tables_present detected a match but we couldn't
-            # map it back via statement.tables. Return the full configured
-            # blocklist to ensure the query is still rejected.
-            return set(engine_disallowed)
+            return found or set(engine_disallowed)
 
         return None
 
