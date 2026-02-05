@@ -74,4 +74,39 @@ describe('Treemap transformProps', () => {
       }),
     );
   });
+
+  it('auto mode: should add visualMap for numeric varying metric', () => {
+    const result = transformProps(chartProps as EchartsTreemapChartProps);
+    expect(result.echartOptions).toHaveProperty('visualMap');
+    // @ts-ignore
+    expect(result.echartOptions.visualMap.min).toBeCloseTo(2.5);
+    // @ts-ignore
+    expect(result.echartOptions.visualMap.max).toBeCloseTo(10);
+  });
+
+  it('auto mode: should NOT add visualMap for constant metric', () => {
+    const formDataConst = {
+      colorScheme: 'bnbColors',
+      datasource: '3__table',
+      granularity_sqla: 'ds',
+      metric: 'sum__num',
+      groupby: ['foo', 'bar'],
+    } as any;
+    const chartPropsConst = new ChartProps({
+      formData: formDataConst,
+      width: 800,
+      height: 600,
+      queriesData: [
+        {
+          data: [
+            { foo: 'A', bar: 'b1', sum__num: 5 },
+            { foo: 'B', bar: 'b2', sum__num: 5 },
+          ],
+        },
+      ],
+      theme: supersetTheme,
+    });
+    const result = transformProps(chartPropsConst as EchartsTreemapChartProps);
+    expect((result.echartOptions as any).visualMap).toBeUndefined();
+  });
 });

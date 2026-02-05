@@ -18,6 +18,7 @@
  */
 import {
   CategoricalColorNamespace,
+  getSequentialSchemeRegistry,
   getColumnLabel,
   getMetricLabel,
   getNumberFormatter,
@@ -148,6 +149,7 @@ export default function transformProps(
   };
   const refs: Refs = {};
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
+  const sequentialRegistry = getSequentialSchemeRegistry();
   const numberFormatter = getValueFormatter(
     metric,
     currencyFormats,
@@ -171,10 +173,24 @@ export default function transformProps(
   const metricLabel = getMetricLabel(metric);
   const groupbyLabels = groupby.map(getColumnLabel);
   const treeData = treeBuilder(data, groupbyLabels, metricLabel);
+  // this will actually prepare sequential color mapping when metric values are numeric
+  const metricValues = (data || [])
+    .map(row => {
+      const v = row[metricLabel as string];
+      return typeof v === 'number' ? v : Number(v);
+    })
+    .filter(v => Number.isFinite(v));
+  const minMetricValue = metricValues.length ? Math.min(...metricValues) : 0;
+  const maxMetricValue = metricValues.length ? Math.max(...metricValues) : 0;
+  const useSequential =
+    metric && metricValues.length > 0 && minMetricValue !== maxMetricValue;
   const labelProps = {
     color: theme.colorText,
-    borderColor: theme.colorBgBase,
-    borderWidth: 1,
+    // remove label border/background by default to avoid boxed values
+    borderColor: 'transparent',
+    borderWidth: 0,
+    backgroundColor: 'transparent',
+    textBorderColor: 'transparent',
   };
   const traverse = (treeNodes: TreeNode[], path: string[]) =>
     treeNodes.map(treeNode => {
@@ -192,7 +208,7 @@ export default function transformProps(
         colorSaturation: COLOR_SATURATION,
         itemStyle: {
           borderColor: BORDER_COLOR,
-          color: colorFn(name, sliceId),
+          ...(useSequential ? {} : { color: colorFn(name, sliceId) }),
           borderWidth: BORDER_WIDTH,
           gapWidth: GAP_WIDTH,
         },
@@ -213,8 +229,7 @@ export default function transformProps(
           item = {
             ...item,
             itemStyle: {
-              colorAlpha: OpacityEnum.SemiTransparent,
-              color: theme.colorText,
+              opacity: OpacityEnum.SemiTransparent,
               borderColor: theme.colorBgBase,
               borderWidth: 2,
             },
@@ -233,7 +248,7 @@ export default function transformProps(
       colorSaturation: COLOR_SATURATION,
       itemStyle: {
         borderColor: BORDER_COLOR,
-        color: colorFn(`${metricLabel}`, sliceId),
+        ...(useSequential ? {} : { color: colorFn(`${metricLabel}`, sliceId) }),
         borderWidth: BORDER_WIDTH,
         gapWidth: GAP_WIDTH,
       },
@@ -308,6 +323,34 @@ export default function transformProps(
     },
     series,
   };
+
+  // this will add visualMap for sequential coloring when appropriate
+  if (useSequential) {
+    const startColor = colorFn('min', sliceId);
+    const endColor = colorFn('max', sliceId);
+    // try to pick a proper sequential palette from registry using the current colorScheme as a hint
+    const seqScheme = sequentialRegistry?.get?.(
+      (formData as any)?.linearColorScheme || (colorScheme as string),
+    );
+    const inRangeColors: string[] = (
+      seqScheme?.colors && seqScheme.colors.length
+        ? seqScheme.colors
+        : [startColor, endColor]
+    ).filter((c): c is string => !!c);
+    if (inRangeColors.length === 0) {
+      // Fall back to a safe theme color if no valid sequential colors are available
+      inRangeColors.push(theme.colorPrimary);
+    }
+    // assign visualMap in a type-safe way
+    (echartOptions as any).visualMap = {
+      show: false,
+      min: minMetricValue,
+      max: maxMetricValue,
+      inRange: {
+        color: inRangeColors,
+      },
+    };
+  }
   return {
     formData,
     width,
