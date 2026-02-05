@@ -42,6 +42,8 @@ import { store } from 'src/views/store';
 import ExtensionsStartup from 'src/extensions/ExtensionsStartup';
 import { RootContextProviders } from './RootContextProviders';
 import { ScrollToTop } from './ScrollToTop';
+import { fetchCurrentUserOnboardingworkflows } from 'src/userOnboardingWorkflow/actions';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 
 setupApp();
 setupPlugins();
@@ -71,12 +73,22 @@ const LocationPathnameLogger = () => {
   return <></>;
 };
 
+const UserOnboardingWorkflowsLoader = () => {
+  useEffect(() => {
+    if (isFeatureEnabled(FeatureFlag.EnableOnboardingWorkflows)) {
+      store.dispatch(fetchCurrentUserOnboardingworkflows() as any);
+    }
+  }, []);
+  return <></>;
+};
+
 const App = () => (
   <Router basename={applicationRoot()}>
     <ScrollToTop />
     <LocationPathnameLogger />
     <RootContextProviders>
       <ExtensionsStartup />
+      <UserOnboardingWorkflowsLoader />
       <Menu
         data={bootstrapData.common.menu_data}
         isFrontendRoute={isFrontendRoute}

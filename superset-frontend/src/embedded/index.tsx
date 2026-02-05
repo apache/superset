@@ -16,308 +16,293 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import 'src/public-path';
-
-import { lazy, Suspense } from 'react';
-import ReactDOM from 'react-dom';
-import { BrowserRouter as Router, Route } from 'react-router-dom';
+import { useCallback, useEffect, useState } from 'react';
 import { t } from '@apache-superset/core';
-import { makeApi } from '@superset-ui/core';
-import { logging } from '@apache-superset/core';
-import { type SupersetThemeConfig, ThemeMode } from '@apache-superset/core/ui';
-import Switchboard from '@superset-ui/switchboard';
-import getBootstrapData, { applicationRoot } from 'src/utils/getBootstrapData';
-import setupClient from 'src/setup/setupClient';
-import setupPlugins from 'src/setup/setupPlugins';
-import { useUiConfig } from 'src/components/UiConfigContext';
-import { store, USER_LOADED } from 'src/views/store';
-import { Loading } from '@superset-ui/core/components';
-import { ErrorBoundary } from 'src/components';
-import { addDangerToast } from 'src/components/MessageToasts/actions';
-import ToastContainer from 'src/components/MessageToasts/ToastContainer';
-import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
-import setupCodeOverrides from 'src/setup/setupCodeOverrides';
 import {
-  EmbeddedContextProviders,
-  getThemeController,
-} from './EmbeddedContextProviders';
-import { embeddedApi } from './api';
-import { getDataMaskChangeTrigger } from './utils';
+  makeApi,
+  SupersetApiError,
+  getExtensionsRegistry,
+} from '@superset-ui/core';
+import { styled, css, Alert } from '@apache-superset/core/ui';
+import {
+  Button,
+  FormItem,
+  InfoTooltip,
+  Input,
+  Modal,
+  Loading,
+  Form,
+  Space,
+} from '@superset-ui/core/components';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
+import { EmbeddedDashboard } from 'src/dashboard/types';
+import { Typography } from '@superset-ui/core/components/Typography';
+import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 
-setupPlugins();
-setupCodeOverrides({ embedded: true });
+const extensionsRegistry = getExtensionsRegistry();
 
-const debugMode = process.env.WEBPACK_MODE === 'development';
-const bootstrapData = getBootstrapData();
-
-function log(...info: unknown[]) {
-  if (debugMode) logging.debug(`[superset]`, ...info);
-}
-
-const LazyDashboardPage = lazy(
-  () =>
-    import(
-      /* webpackChunkName: "DashboardPage" */ 'src/dashboard/containers/DashboardPage'
-    ),
-);
-
-const EmbededLazyDashboardPage = () => {
-  const uiConfig = useUiConfig();
-
-  // Emit data mask changes to the parent window
-  if (uiConfig?.emitDataMasks) {
-    log('setting up Switchboard event emitter');
-
-    let previousDataMask = store.getState().dataMask;
-
-    store.subscribe(() => {
-      const currentState = store.getState();
-      const currentDataMask = currentState.dataMask;
-
-      // Only emit if the dataMask has changed
-      if (previousDataMask !== currentDataMask) {
-        Switchboard.emit('observeDataMask', {
-          ...currentDataMask,
-          ...getDataMaskChangeTrigger(currentDataMask, previousDataMask),
-        });
-        previousDataMask = currentDataMask;
-      }
-    });
-  }
-
-  return <LazyDashboardPage idOrSlug={bootstrapData.embedded!.dashboard_id} />;
+type Props = {
+  dashboardId: string;
+  show: boolean;
+  onHide: () => void;
 };
 
-const EmbeddedRoute = () => (
-  <EmbeddedContextProviders>
-    <Suspense fallback={<Loading />}>
-      <ErrorBoundary>
-        <EmbededLazyDashboardPage />
-      </ErrorBoundary>
-      <ToastContainer position="top" />
-    </Suspense>
-  </EmbeddedContextProviders>
-);
+type EmbeddedApiPayload = { allowed_domains: string[] };
 
-const EmbeddedApp = () => (
-  <Router basename={applicationRoot()}>
-    {/* todo (embedded) remove this line after uuids are deployed */}
-    <Route path="/dashboard/:idOrSlug/embedded/" component={EmbeddedRoute} />
-    <Route path="/embedded/:uuid/" component={EmbeddedRoute} />
-  </Router>
-);
+const stringToList = (stringyList: string): string[] =>
+  stringyList.split(/(?:\s|,)+/).filter(x => x);
 
-const appMountPoint = document.getElementById('app')!;
+const ButtonRow = styled.div`
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+`;
 
-const MESSAGE_TYPE = '__embedded_comms__';
+export const DashboardEmbedControls = ({ dashboardId, onHide }: Props) => {
+  const { addInfoToast, addDangerToast } = useToasts();
+  const [ready, setReady] = useState(true); // whether we have initialized yet
+  const [loading, setLoading] = useState(false); // whether we are currently doing an async thing
+  const [embedded, setEmbedded] = useState<EmbeddedDashboard | null>(null); // the embedded dashboard config
+  const [allowedDomains, setAllowedDomains] = useState<string>('');
+  const [showDeactivateConfirm, setShowDeactivateConfirm] = useState(false);
 
-function showFailureMessage(message: string) {
-  appMountPoint.innerHTML = message;
-}
+  const endpoint = `/api/v1/dashboard/${dashboardId}/embedded`;
+  // whether saveable changes have been made to the config
+  const isDirty =
+    !embedded ||
+    stringToList(allowedDomains).join() !== embedded.allowed_domains.join();
 
-if (!window.parent || window.parent === window) {
-  showFailureMessage(
-    t(
-      'This page is intended to be embedded in an iframe, but it looks like that is not the case.',
-    ),
-  );
-}
-
-// if the page is embedded in an origin that hasn't
-// been authorized by the curator, we forbid access entirely.
-// todo: check the referrer on the route serving this page instead
-// const ALLOW_ORIGINS = ['http://127.0.0.1:9001', 'http://localhost:9001'];
-// const parentOrigin = new URL(document.referrer).origin;
-// if (!ALLOW_ORIGINS.includes(parentOrigin)) {
-//   throw new Error(
-//     `[superset] iframe parent ${parentOrigin} is not in the list of allowed origins`,
-//   );
-// }
-
-let displayedUnauthorizedToast = false;
-
-/**
- * If there is a problem with the guest token, we will start getting
- * 401 errors from the api and SupersetClient will call this function.
- */
-function guestUnauthorizedHandler() {
-  if (displayedUnauthorizedToast) return; // no need to display this message every time we get another 401
-  displayedUnauthorizedToast = true;
-  // If a guest user were sent to a login screen on 401, they would have no valid login to use.
-  // For embedded it makes more sense to just display a message
-  // and let them continue accessing the page, to whatever extent they can.
-  store.dispatch(
-    addDangerToast(
-      t(
-        'This session has encountered an interruption, and some controls may not work as intended. If you are the developer of this app, please check that the guest token is being generated correctly.',
-      ),
-      {
-        duration: -1, // stay open until manually closed
-        noDuplicate: true,
-      },
-    ),
-  );
-}
-
-function start() {
-  const getMeWithRole = makeApi<void, { result: UserWithPermissionsAndRoles }>({
-    method: 'GET',
-    endpoint: '/api/v1/me/roles/',
-  });
-  return getMeWithRole().then(
-    ({ result }) => {
-      // fill in some missing bootstrap data
-      // (because at pageload, we don't have any auth yet)
-      // this allows the frontend's permissions checks to work.
-      bootstrapData.user = result;
-      store.dispatch({
-        type: USER_LOADED,
-        user: result,
+  const enableEmbedded = useCallback(() => {
+    setLoading(true);
+    makeApi<EmbeddedApiPayload, { result: EmbeddedDashboard }>({
+      method: 'POST',
+      endpoint,
+    })({
+      allowed_domains: stringToList(allowedDomains),
+    })
+      .then(
+        ({ result }) => {
+          setEmbedded(result);
+          setAllowedDomains(result.allowed_domains.join(', '));
+          addInfoToast(t('Changes saved.'));
+        },
+        err => {
+          console.error(err);
+          addDangerToast(
+            t(
+              t('Sorry, something went wrong. The changes could not be saved.'),
+            ),
+          );
+        },
+      )
+      .finally(() => {
+        setLoading(false);
       });
-      ReactDOM.render(<EmbeddedApp />, appMountPoint);
-    },
-    err => {
-      // something is most likely wrong with the guest token
-      logging.error(err);
-      showFailureMessage(
-        t(
-          'Something went wrong with embedded authentication. Check the dev console for details.',
-        ),
-      );
-    },
+  }, [endpoint, allowedDomains]);
+
+  const disableEmbedded = useCallback(() => {
+    setShowDeactivateConfirm(true);
+  }, []);
+
+  const confirmDeactivate = useCallback(() => {
+    setLoading(true);
+    makeApi<{}>({ method: 'DELETE', endpoint })({})
+      .then(
+        () => {
+          setEmbedded(null);
+          setAllowedDomains('');
+          setShowDeactivateConfirm(false);
+          addInfoToast(t('Embedding deactivated.'));
+          onHide();
+        },
+        err => {
+          console.error(err);
+          addDangerToast(
+            t(
+              'Sorry, something went wrong. Embedding could not be deactivated.',
+            ),
+          );
+        },
+      )
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [endpoint, addInfoToast, addDangerToast, onHide]);
+
+  useEffect(() => {
+    setReady(false);
+    makeApi<{}, { result: EmbeddedDashboard }>({
+      method: 'GET',
+      endpoint,
+    })({})
+      .catch(err => {
+        if ((err as SupersetApiError).status === 404) {
+          // 404 just means the dashboard isn't currently embedded
+          return { result: null };
+        }
+        addDangerToast(t('Sorry, something went wrong. Please try again.'));
+        throw err;
+      })
+      .then(({ result }) => {
+        setReady(true);
+        setEmbedded(result);
+        setAllowedDomains(result ? result.allowed_domains.join(', ') : '');
+      });
+  }, [dashboardId]);
+
+  if (!ready) {
+    return <Loading />;
+  }
+
+  const DocsConfigDetails = extensionsRegistry.get(
+    'embedded.documentation.configuration_details',
   );
-}
+  const docsDescription = extensionsRegistry.get(
+    'embedded.documentation.description',
+  );
+  const docsUrl =
+    extensionsRegistry.get('embedded.documentation.url') ??
+    'https://www.npmjs.com/package/@superset-ui/embedded-sdk';
 
-/**
- * Configures SupersetClient with the correct settings for the embedded dashboard page.
- */
-function setupGuestClient(guestToken: string) {
-  setupClient({
-    appRoot: applicationRoot(),
-    guestToken,
-    guestTokenHeaderName: bootstrapData.config?.GUEST_TOKEN_HEADER_NAME,
-    unauthorizedHandler: guestUnauthorizedHandler,
-  });
-}
-
-function validateMessageEvent(event: MessageEvent) {
-  // if (!ALLOW_ORIGINS.includes(event.origin)) {
-  //   throw new Error('Message origin is not in the allowed list');
-  // }
-
-  if (typeof event.data !== 'object' || event.data.type !== MESSAGE_TYPE) {
-    throw new Error(`Message type does not match type used for embedded comms`);
-  }
-}
-
-window.addEventListener('message', function embeddedPageInitializer(event) {
-  try {
-    validateMessageEvent(event);
-  } catch (err) {
-    log('ignoring message unrelated to embedded comms', err, event);
-    return;
-  }
-
-  const port = event.ports?.[0];
-  if (event.data.handshake === 'port transfer' && port) {
-    log('message port received', event);
-
-    Switchboard.init({
-      port,
-      name: 'superset',
-      debug: debugMode,
-    });
-
-    let started = false;
-
-    Switchboard.defineMethod(
-      'guestToken',
-      ({ guestToken }: { guestToken: string }) => {
-        setupGuestClient(guestToken);
-        if (!started) {
-          start();
-          started = true;
-        }
-      },
-    );
-
-    Switchboard.defineMethod('getScrollSize', embeddedApi.getScrollSize);
-    Switchboard.defineMethod(
-      'getDashboardPermalink',
-      embeddedApi.getDashboardPermalink,
-    );
-    Switchboard.defineMethod('getActiveTabs', embeddedApi.getActiveTabs);
-    Switchboard.defineMethod('getDataMask', embeddedApi.getDataMask);
-    Switchboard.defineMethod('getChartStates', embeddedApi.getChartStates);
-    Switchboard.defineMethod(
-      'getChartDataPayloads',
-      embeddedApi.getChartDataPayloads,
-    );
-    Switchboard.defineMethod(
-      'setThemeConfig',
-      (payload: { themeConfig: SupersetThemeConfig }) => {
-        const { themeConfig } = payload;
-        log('Received setThemeConfig request:', themeConfig);
-
-        try {
-          const themeController = getThemeController();
-          themeController.setThemeConfig(themeConfig);
-          return { success: true, message: 'Theme applied' };
-        } catch (error) {
-          logging.error('Failed to apply theme config:', error);
-          throw new Error(`Failed to apply theme config: ${error.message}`);
-        }
-      },
-    );
-
-    Switchboard.defineMethod(
-      'setThemeMode',
-      (payload: { mode: 'default' | 'dark' | 'system' }) => {
-        const { mode } = payload;
-        log('Received setThemeMode request:', mode);
-
-        try {
-          const themeController = getThemeController();
-
-          const themeModeMap: Record<string, ThemeMode> = {
-            default: ThemeMode.DEFAULT,
-            dark: ThemeMode.DARK,
-            system: ThemeMode.SYSTEM,
-          };
-
-          const themeMode = themeModeMap[mode];
-          if (!themeMode) {
-            throw new Error(`Invalid theme mode: ${mode}`);
+  return (
+    <>
+      {embedded ? (
+        DocsConfigDetails ? (
+          <DocsConfigDetails embeddedId={embedded.uuid} />
+        ) : (
+          <p>
+            {t(
+              'This dashboard is ready to embed. In your application, pass the following id to the SDK:',
+            )}
+            <br />
+            <code>{embedded.uuid}</code>
+          </p>
+        )
+      ) : (
+        <p>
+          {t(
+            'Configure this dashboard to embed it into an external web application.',
+          )}
+        </p>
+      )}
+      <p>
+        {t('For further instructions, consult the')}{' '}
+        <Typography.Link href={docsUrl} target="_blank" rel="noreferrer">
+          {docsDescription
+            ? docsDescription()
+            : t('Superset Embedded SDK documentation.')}
+        </Typography.Link>
+      </p>
+      <h3>{t('Settings')}</h3>
+      <Form layout="vertical">
+        <FormItem
+          name="allowed-domains"
+          label={
+            <span>
+              {t('Allowed Domains (comma separated)')}{' '}
+              <InfoTooltip
+                placement="top"
+                tooltip={t(
+                  'A list of domain names that can embed this dashboard. Leaving this field empty will allow embedding from any domain.',
+                )}
+              />
+            </span>
           }
+        >
+          <Input
+            id="allowed-domains"
+            value={allowedDomains}
+            placeholder="superset.example.com"
+            onChange={event => setAllowedDomains(event.target.value)}
+          />
+        </FormItem>
+      </Form>
+      {showDeactivateConfirm ? (
+        <Alert
+          closable={false}
+          type="warning"
+          message={t('Disable embedding?')}
+          description={t('This will remove your current embed configuration.')}
+          css={{
+            textAlign: 'left',
+            marginTop: '16px',
+          }}
+          action={
+            <Space>
+              <Button
+                key="cancel"
+                buttonStyle="secondary"
+                onClick={() => setShowDeactivateConfirm(false)}
+              >
+                {t('Cancel')}
+              </Button>
+              <Button
+                key="deactivate"
+                buttonStyle="danger"
+                onClick={confirmDeactivate}
+                loading={loading}
+              >
+                {t('Deactivate')}
+              </Button>
+            </Space>
+          }
+        />
+      ) : (
+        <ButtonRow
+          css={theme => css`
+            margin-top: ${theme.margin}px;
+          `}
+        >
+          {embedded ? (
+            <>
+              <Button
+                onClick={disableEmbedded}
+                buttonStyle="secondary"
+                loading={loading}
+              >
+                {t('Deactivate')}
+              </Button>
+              <Button
+                onClick={enableEmbedded}
+                buttonStyle="primary"
+                disabled={!isDirty}
+                loading={loading}
+              >
+                {t('Save changes')}
+              </Button>
+            </>
+          ) : (
+            <Button
+              onClick={enableEmbedded}
+              buttonStyle="primary"
+              loading={loading}
+            >
+              {t('Enable embedding')}
+            </Button>
+          )}
+        </ButtonRow>
+      )}
+    </>
+  );
+};
 
-          themeController.setThemeMode(themeMode);
-          return { success: true, message: `Theme mode set to ${mode}` };
-        } catch (error) {
-          logging.debug('Theme mode not changed:', error.message);
-          return {
-            success: false,
-            message: `Theme locked to current mode`,
-            silent: true,
-          };
-        }
-      },
-    );
+const DashboardEmbedModal = (props: Props) => {
+  const { show, onHide } = props;
+  const DashboardEmbedModalExtension = extensionsRegistry.get('embedded.modal');
 
-    Switchboard.start();
-  }
-});
+  return DashboardEmbedModalExtension ? (
+    <DashboardEmbedModalExtension {...props} />
+  ) : (
+    <Modal
+      name={t('Embed')}
+      show={show}
+      onHide={onHide}
+      hideFooter
+      title={<ModalTitleWithIcon title={t('Embed')} />}
+    >
+      <DashboardEmbedControls {...props} />
+    </Modal>
+  );
+};
 
-// Clean up theme controller on page unload
-window.addEventListener('beforeunload', () => {
-  try {
-    const controller = getThemeController();
-    if (controller) {
-      log('Destroying theme controller');
-      controller.destroy();
-    }
-  } catch (error) {
-    logging.warn('Failed to destroy theme controller:', error);
-  }
-});
-
-log('embed page is ready to receive messages');
+export default DashboardEmbedModal;
