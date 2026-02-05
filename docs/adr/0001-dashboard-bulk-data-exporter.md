@@ -24,11 +24,7 @@ For a dashboard with 10 charts, this process takes approximately 2 minutes and r
 
 ### Competitive Analysis
 
-Major BI tools offer bulk export capabilities:
-- **Tableau**: "Download → Data" exports all sheets in a workbook
-- **Power BI**: Export entire report data functionality
-- **Looker**: "Download → All results" option
-
+Major BI tools (Tableau, Power BI, Looker) offer bulk export capabilities.
 Superset currently lacks this capability, creating a feature gap.
 
 ### User Impact

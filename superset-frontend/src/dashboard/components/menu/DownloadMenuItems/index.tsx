@@ -47,6 +47,7 @@ export interface UseDownloadMenuItemsProps {
   title: string;
   disabled?: boolean;
   userCanExport?: boolean;
+  onExportDashboardData?: () => void;
 }
 
 export const useDownloadMenuItems = (
@@ -175,7 +176,17 @@ export const useDownloadMenuItems = (
         },
       ];
 
+  const dataExportMenuItem: MenuItem = {
+    key: 'export-dashboard-data',
+    label: t('Export Dashboard Data'),
+    onClick: props.onExportDashboardData,
+  };
+
   const exportMenuItems: MenuItem[] = [
+    ...(props.onExportDashboardData ? [dataExportMenuItem] : []),
+    ...(props.onExportDashboardData
+      ? [{ type: 'divider' as const, key: 'data-export-divider' }]
+      : []),
     {
       key: 'export-yaml',
       label: t('Export YAML'),

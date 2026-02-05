@@ -67,6 +67,7 @@ export const useHeaderActionsMenu = ({
   setCurrentReportDeleting,
 }: HeaderDropdownProps) => {
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const history = useHistory();
   const directPathToChild = useSelector(
     (state: RootState) => state.dashboardState.directPathToChild,
@@ -154,6 +155,11 @@ export const useHeaderActionsMenu = ({
     addDangerToast,
   });
 
+  const handleExportDashboardData = useCallback(() => {
+    setShowExportModal(true);
+    setIsDropdownVisible(false);
+  }, []);
+
   const downloadMenuItem = useDownloadMenuItems({
     pdfMenuItemTitle: t('Export to PDF'),
     imageMenuItemTitle: t('Download as Image'),
@@ -163,6 +169,7 @@ export const useHeaderActionsMenu = ({
     disabled: isLoading,
     logEvent,
     userCanExport,
+    onExportDashboardData: handleExportDashboardData,
   });
 
   const reportMenuItem = useHeaderReportMenuItems({
@@ -329,5 +336,11 @@ export const useHeaderActionsMenu = ({
     userCanShare,
   ]);
 
-  return [menu, isDropdownVisible, setIsDropdownVisible];
+  return [
+    menu,
+    isDropdownVisible,
+    setIsDropdownVisible,
+    showExportModal,
+    setShowExportModal,
+  ];
 };
