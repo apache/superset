@@ -31,6 +31,7 @@ import yaml
 from freezegun import freeze_time
 from sqlalchemy import and_
 from superset import db, security_manager  # noqa: F401
+from superset.daos.dashboard_version import DashboardVersionDAO
 from superset.models.dashboard import Dashboard
 from superset.models.core import FavStar, FavStarClassName
 from superset.reports.models import ReportSchedule, ReportScheduleType
@@ -505,6 +506,262 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         assert response.status_code == 200
         data = json.loads(response.data.decode("utf-8"))
         assert data["result"] == []
+
+    def test_get_dashboard_versions_success(self):
+        """
+        Dashboard API: Test get dashboard version history
+        """
+        admin = self.get_user("admin")
+        dashboard = self.insert_dashboard(
+            "title_versions", "slug_versions", [admin.id], created_by=admin
+        )
+        self.login(ADMIN_USERNAME)
+        # Create a version via DAO
+        version = DashboardVersionDAO.create(
+            dashboard_id=dashboard.id,
+            version_number=1,
+            position_json="{}",
+            json_metadata="{}",
+            created_by_fk=admin.id,
+            description="Initial",
+        )
+        db.session.commit()
+        try:
+            uri = f"api/v1/dashboard/{dashboard.id}/versions"
+            with patch.object(security_manager, "has_access", return_value=True):
+                rv = self.client.get(uri)
+            assert rv.status_code == 200
+            data = json.loads(rv.data.decode("utf-8"))
+            assert "result" in data
+            assert len(data["result"]) == 1
+            assert data["result"][0]["version_number"] == 1
+            assert data["result"][0]["description"] == "Initial"
+            assert data["result"][0]["id"] == version.id
+        finally:
+            db.session.delete(dashboard)
+            db.session.commit()
+
+    def test_get_dashboard_versions_not_found(self):
+        """
+        Dashboard API: Test get dashboard versions when dashboard does not exist
+        """
+        self.login(ADMIN_USERNAME)
+        bad_id = self.get_nonexistent_numeric_id(Dashboard)
+        uri = f"api/v1/dashboard/{bad_id}/versions"
+        with patch.object(security_manager, "has_access", return_value=True):
+            rv = self.client.get(uri)
+        assert rv.status_code == 404
+
+    def test_get_dashboard_versions_no_access(self):
+        """
+        Dashboard API: Test get dashboard versions without data access
+        """
+        admin = self.get_user("admin")
+        dashboard = self.insert_dashboard(
+            "title_versions_gamma", "slug_versions_gamma", [admin.id]
+        )
+        self.login(GAMMA_USERNAME)
+        uri = f"api/v1/dashboard/{dashboard.id}/versions"
+        rv = self.client.get(uri)
+        # 401 (not logged in), 403 (forbidden), or 404 (no dashboard access)
+        assert rv.status_code in (401, 403, 404)
+        db.session.delete(dashboard)
+        db.session.commit()
+
+    def test_update_dashboard_version_success(self):
+        """
+        Dashboard API: Test update dashboard version description
+        """
+        admin = self.get_user("admin")
+        dashboard = self.insert_dashboard(
+            "title_update_ver", "slug_update_ver", [admin.id], created_by=admin
+        )
+        version = DashboardVersionDAO.create(
+            dashboard_id=dashboard.id,
+            version_number=1,
+            position_json="{}",
+            json_metadata="{}",
+            created_by_fk=admin.id,
+            description="Original",
+        )
+        db.session.commit()
+        self.login(ADMIN_USERNAME)
+        try:
+            uri = f"api/v1/dashboard/{dashboard.id}/versions/{version.id}"
+            rv = self.client.put(
+                uri,
+                json={"description": "Updated via API"},
+                content_type="application/json",
+            )
+            assert rv.status_code == 200
+            db.session.expire_all()
+            updated = DashboardVersionDAO.get_by_id(version.id)
+            assert updated is not None
+            assert updated.description == "Updated via API"
+        finally:
+            db.session.delete(dashboard)
+            db.session.commit()
+
+    def test_update_dashboard_version_validation_error(self):
+        """
+        Dashboard API: Test update dashboard version with invalid payload returns 400
+        """
+        admin = self.get_user("admin")
+        dashboard = self.insert_dashboard(
+            "title_update_ver_invalid",
+            "slug_update_ver_invalid",
+            [admin.id],
+        )
+        version = DashboardVersionDAO.create(
+            dashboard_id=dashboard.id,
+            version_number=1,
+            position_json="{}",
+            json_metadata="{}",
+            created_by_fk=admin.id,
+        )
+        db.session.commit()
+        self.login(ADMIN_USERNAME)
+        try:
+            uri = f"api/v1/dashboard/{dashboard.id}/versions/{version.id}"
+            # description length max 500 in schema
+            rv = self.client.put(
+                uri,
+                json={"description": "x" * 501},
+                content_type="application/json",
+            )
+            assert rv.status_code == 400
+        finally:
+            db.session.delete(dashboard)
+            db.session.commit()
+
+    def test_update_dashboard_version_not_found(self):
+        """
+        Dashboard API: Test update dashboard version when version does not exist
+        """
+        admin = self.get_user("admin")
+        dashboard = self.insert_dashboard(
+            "title_update_ver_404", "slug_update_ver_404", [admin.id]
+        )
+        self.login(ADMIN_USERNAME)
+        try:
+            bad_version_id = 999999
+            uri = f"api/v1/dashboard/{dashboard.id}/versions/{bad_version_id}"
+            rv = self.client.put(
+                uri,
+                json={"description": "Nope"},
+                content_type="application/json",
+            )
+            assert rv.status_code == 404
+        finally:
+            db.session.delete(dashboard)
+            db.session.commit()
+
+    def test_update_dashboard_version_dashboard_not_found(self):
+        """
+        Dashboard API: Test update dashboard version when dashboard does not exist
+        """
+        self.login(ADMIN_USERNAME)
+        bad_id = self.get_nonexistent_numeric_id(Dashboard)
+        uri = f"api/v1/dashboard/{bad_id}/versions/1"
+        rv = self.client.put(
+            uri,
+            json={"description": "Nope"},
+            content_type="application/json",
+        )
+        assert rv.status_code == 404
+
+    def test_restore_dashboard_version_success(self):
+        """
+        Dashboard API: Test restore dashboard to a previous version
+        """
+        admin = self.get_user("admin")
+        dashboard = self.insert_dashboard(
+            "title_restore",
+            "slug_restore",
+            [admin.id],
+            created_by=admin,
+            position_json='{"a": 1}',
+            json_metadata='{"meta": "v1"}',
+        )
+        version = DashboardVersionDAO.create(
+            dashboard_id=dashboard.id,
+            version_number=1,
+            position_json='{"b": 2}',
+            json_metadata='{"meta": "v0"}',
+            created_by_fk=admin.id,
+        )
+        db.session.commit()
+        self.login(ADMIN_USERNAME)
+        try:
+            uri = f"api/v1/dashboard/{dashboard.id}/restore/{version.id}"
+            rv = self.client.post(uri)
+            assert rv.status_code == 200
+            data = json.loads(rv.data.decode("utf-8"))
+            assert "result" in data
+            assert data["result"]["id"] == dashboard.id
+            assert "last_modified_time" in data["result"]
+            db.session.refresh(dashboard)
+            assert dashboard.position_json == '{"b": 2}'
+            assert dashboard.json_metadata == '{"meta": "v0"}'
+        finally:
+            db.session.delete(dashboard)
+            db.session.commit()
+
+    def test_restore_dashboard_version_dashboard_not_found(self):
+        """
+        Dashboard API: Test restore when dashboard does not exist
+        """
+        self.login(ADMIN_USERNAME)
+        bad_id = self.get_nonexistent_numeric_id(Dashboard)
+        uri = f"api/v1/dashboard/{bad_id}/restore/1"
+        rv = self.client.post(uri)
+        assert rv.status_code == 404
+
+    def test_restore_dashboard_version_version_not_found(self):
+        """
+        Dashboard API: Test restore when version does not exist or wrong dashboard
+        """
+        admin = self.get_user("admin")
+        dashboard = self.insert_dashboard(
+            "title_restore_404", "slug_restore_404", [admin.id]
+        )
+        self.login(ADMIN_USERNAME)
+        try:
+            bad_version_id = 999999
+            uri = f"api/v1/dashboard/{dashboard.id}/restore/{bad_version_id}"
+            rv = self.client.post(uri)
+            assert rv.status_code == 404
+        finally:
+            db.session.delete(dashboard)
+            db.session.commit()
+
+    def test_restore_dashboard_version_no_access(self):
+        """
+        Dashboard API: Test restore without data access
+        """
+        admin = self.get_user("admin")
+        dashboard = self.insert_dashboard(
+            "title_restore_forbidden",
+            "slug_restore_forbidden",
+            [admin.id],
+        )
+        version = DashboardVersionDAO.create(
+            dashboard_id=dashboard.id,
+            version_number=1,
+            position_json="{}",
+            json_metadata="{}",
+            created_by_fk=admin.id,
+        )
+        db.session.commit()
+        self.login(GAMMA_USERNAME)
+        try:
+            uri = f"api/v1/dashboard/{dashboard.id}/restore/{version.id}"
+            rv = self.client.post(uri)
+            # 401 (not logged in), 403 (forbidden), or 404 (no dashboard access)
+            assert rv.status_code in (401, 403, 404)
+        finally:
+            db.session.delete(dashboard)
+            db.session.commit()
 
     def test_get_dashboard(self):
         """
