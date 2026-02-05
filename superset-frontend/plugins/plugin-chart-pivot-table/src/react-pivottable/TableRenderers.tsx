@@ -681,6 +681,10 @@ export class TableRenderer extends Component<
       dateFormatters?: Record<string, (val: unknown) => string>;
     };
 
+    if (!visibleColKeys || !colAttrSpans) {
+      return null;
+    }
+
     const spaceCell =
       attrIdx === 0 && rowAttrs.length !== 0 ? (
         <th
@@ -692,7 +696,7 @@ export class TableRenderer extends Component<
       ) : null;
 
     const needToggle =
-      !!colSubtotalDisplay.enabled && attrIdx !== colAttrs.length - 1;
+      colSubtotalDisplay.enabled === true && attrIdx !== colAttrs.length - 1;
     let arrowClickHandle = null;
     let subArrow = null;
     if (needToggle) {
@@ -719,10 +723,10 @@ export class TableRenderer extends Component<
     const rowIncrSpan = rowAttrs.length !== 0 ? 1 : 0;
     // Iterate through columns. Jump over duplicate values.
     let i = 0;
-    while (i < visibleColKeys!.length) {
+    while (i < visibleColKeys.length) {
       let handleContextMenu: ((e: MouseEvent) => void) | undefined;
-      const colKey = visibleColKeys![i];
-      const colSpan = attrIdx < colKey.length ? colAttrSpans![i][attrIdx] : 1;
+      const colKey = visibleColKeys[i];
+      const colSpan = attrIdx < colKey.length ? colAttrSpans[i][attrIdx] : 1;
       let colLabelClass = 'pvtColLabel';
       if (attrIdx < colKey.length) {
         if (!omittedHighlightHeaderGroups.includes(colAttrs[attrIdx])) {
@@ -756,7 +760,7 @@ export class TableRenderer extends Component<
             return (
               <FaSort
                 onClick={() =>
-                  this.sortData(key, visibleColKeys!, pivotData, maxRowIndex)
+                  this.sortData(key, visibleColKeys, pivotData, maxRowIndex)
                 }
               />
             );
@@ -766,7 +770,7 @@ export class TableRenderer extends Component<
           return (
             <SortIcon
               onClick={() =>
-                this.sortData(key, visibleColKeys!, pivotData, maxRowIndex)
+                this.sortData(key, visibleColKeys, pivotData, maxRowIndex)
               }
             />
           );
@@ -903,7 +907,7 @@ export class TableRenderer extends Component<
       <tr key="rowHdr">
         {rowAttrs.map((r, i) => {
           const needLabelToggle =
-            !!rowSubtotalDisplay.enabled && i !== rowAttrs.length - 1;
+            rowSubtotalDisplay.enabled === true && i !== rowAttrs.length - 1;
           let arrowClickHandle = null;
           let subArrow = null;
           if (needLabelToggle) {
@@ -1016,7 +1020,7 @@ export class TableRenderer extends Component<
         const flatRowKey = flatKey(rowKey.slice(0, i + 1));
         const colSpan = 1 + (i === rowAttrs.length - 1 ? colIncrSpan : 0);
         const needRowToggle =
-          !!rowSubtotalDisplay.enabled && i !== rowAttrs.length - 1;
+          rowSubtotalDisplay.enabled === true && i !== rowAttrs.length - 1;
         const onArrowClick = needRowToggle
           ? this.toggleRowKey(flatRowKey)
           : null;
@@ -1084,8 +1088,12 @@ export class TableRenderer extends Component<
         </th>
       ) : null;
 
+    if (!visibleColKeys) {
+      return null;
+    }
+
     const rowClickHandlers = cellCallbacks[flatRowKey] || {};
-    const valueCells = visibleColKeys!.map((colKey: string[]) => {
+    const valueCells = visibleColKeys.map((colKey: string[]) => {
       const flatColKey = flatKey(colKey);
       const agg = pivotData.getAggregator(rowKey, colKey);
       const aggValue = agg.value();
@@ -1170,6 +1178,10 @@ export class TableRenderer extends Component<
       grandTotalCallback,
     } = pivotSettings;
 
+    if (!visibleColKeys) {
+      return null;
+    }
+
     const totalLabelCell = (
       <th
         key="label"
@@ -1195,7 +1207,7 @@ export class TableRenderer extends Component<
       </th>
     );
 
-    const totalValueCells = visibleColKeys!.map((colKey: string[]) => {
+    const totalValueCells = visibleColKeys.map((colKey: string[]) => {
       const flatColKey = flatKey(colKey);
       const agg = pivotData.getAggregator([], colKey);
       const aggValue = agg.value();
