@@ -31,7 +31,7 @@ import Menu from 'src/features/home/Menu';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { setupStore } from './store';
 import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
-import { parse, stringify } from 'query-string';
+import querystring from 'query-string';
 
 // Disable connecting to redux debugger so that the React app injected
 // Below the menu like SqlLab or Explore can connect its redux store to the debugger
@@ -52,9 +52,9 @@ const app = (
           <QueryParamProvider
             adapter={ReactRouter5Adapter}
             options={{
-              searchStringToObject: parse,
+              searchStringToObject: querystring.parse,
               objectToSearchString: (object: Record<string, any>) =>
-                stringify(object, { encode: false }),
+                querystring.stringify(object, { encode: false }),
             }}
           >
             <Menu data={menu} />

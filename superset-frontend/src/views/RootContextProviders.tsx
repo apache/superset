@@ -30,7 +30,7 @@ import { ExtensionsProvider } from 'src/extensions/ExtensionsContext';
 import { store } from './store';
 import '../preamble';
 import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
-import { parse, stringify } from 'query-string';
+import querystring from 'query-string';
 
 const themeController = new ThemeController();
 const extensionsRegistry = getExtensionsRegistry();
@@ -49,9 +49,9 @@ export const RootContextProviders: React.FC = ({ children }) => {
               <QueryParamProvider
                 adapter={ReactRouter5Adapter}
                 options={{
-                  searchStringToObject: parse,
+                  searchStringToObject: querystring.parse,
                   objectToSearchString: (object: Record<string, any>) =>
-                    stringify(object, { encode: false }),
+                    querystring.stringify(object, { encode: false }),
                 }}
               >
                 <ExtensionsProvider>
