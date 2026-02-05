@@ -289,19 +289,10 @@ class ScatterPlotGlowOverlay extends PureComponent<ScatterPlotGlowOverlayProps> 
             }
           } else {
             const defaultRadius = radius / 6;
-            const radiusProperty = location.properties.radius as
-              | number
-              | null
-              | undefined;
-            const pointMetric = location.properties.metric as
-              | number
-              | string
-              | null;
-            // Handle both null and undefined as "missing" - use default radius
-            let pointRadius: number =
-              radiusProperty == null
-                ? defaultRadius
-                : (radiusProperty as number);
+            const rawRadius = location.properties.radius;
+            const radiusProperty = typeof rawRadius === 'number' ? rawRadius : null;
+            const pointMetric = location.properties.metric ?? null;
+            let pointRadius: number = radiusProperty ?? defaultRadius;
             let pointLabel: string | number | undefined;
 
             if (radiusProperty != null) {
