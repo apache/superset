@@ -21,10 +21,10 @@ import { AnyAction } from 'redux';
 import { listenerMiddleware, RootState, store } from 'src/views/store';
 import { AnyListenerPredicate } from '@reduxjs/toolkit';
 
-export function createActionListener<V, S>(
-  predicate: AnyListenerPredicate<S>,
+export function createActionListener<V>(
+  predicate: AnyListenerPredicate<RootState>,
   listener: (v: V) => void,
-  valueParser: (action: AnyAction, state: RootState) => V,
+  valueParser: (action: AnyAction, state: RootState) => V | null | undefined,
   thisArgs?: any,
 ): core.Disposable {
   const boundListener = thisArgs ? listener.bind(thisArgs) : listener;
@@ -33,7 +33,11 @@ export function createActionListener<V, S>(
     predicate,
     effect: (action: AnyAction) => {
       const state = store.getState();
-      boundListener(valueParser(action, state));
+      const value = valueParser(action, state);
+      // Skip calling listener if valueParser returns null/undefined
+      if (value != null) {
+        boundListener(value);
+      }
     },
   });
 
