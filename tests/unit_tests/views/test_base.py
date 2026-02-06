@@ -32,10 +32,14 @@ def test_common_bootstrap_payload_converts_locale_to_string(
     mock_user_id: MagicMock,
 ) -> None:
     """Test that common_bootstrap_payload converts locale to string for cache key"""
-    # Mock get_locale to return a Locale-like object with __str__
-    mock_locale = MagicMock()
-    mock_locale.__str__ = lambda self: "de_DE"
-    mock_get_locale.return_value = mock_locale
+
+    # Mock get_locale to return a Locale-like object
+    # Use a simple class with __str__ since MagicMock's __str__ doesn't work with str()
+    class MockLocale:
+        def __str__(self) -> str:
+            return "de_DE"
+
+    mock_get_locale.return_value = MockLocale()
 
     # Import here to avoid initialization issues
     from superset.views.base import common_bootstrap_payload
@@ -87,7 +91,9 @@ def _extract_language(locale_str: str | None) -> str:
         (None, "en"),  # None defaults to "en"
     ],
 )
-def test_locale_language_extraction(locale_str: str | None, expected_language: str) -> None:
+def test_locale_language_extraction(
+    locale_str: str | None, expected_language: str
+) -> None:
     """Test that language is correctly extracted from various locale formats"""
     result = _extract_language(locale_str)
     assert result == expected_language
