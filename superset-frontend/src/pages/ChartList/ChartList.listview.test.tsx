@@ -585,6 +585,26 @@ test('ChartList list view displays chart with empty on dashboards column', async
   expect(within(dashboardCell).queryByRole('link')).not.toBeInTheDocument();
 });
 
+test('renders dashboard crosslinks as navigable links', async () => {
+  renderChartList(mockUser);
+  await waitFor(() => {
+    expect(screen.getByTestId('listview-table')).toBeInTheDocument();
+  });
+
+  const table = screen.getByTestId('listview-table');
+
+  // mockCharts[1] has 3 dashboards - verify all render with correct hrefs
+  const chartRow = within(table)
+    .getByText(mockCharts[1].slice_name)
+    .closest('[data-test="table-row"]') as HTMLElement;
+  const crosslinks = within(chartRow).getByTestId('crosslinks');
+  const links = within(crosslinks).getAllByRole('link');
+  expect(links).toHaveLength(3);
+  expect(links[0]).toHaveAttribute('href', '/superset/dashboard/2');
+  expect(links[1]).toHaveAttribute('href', '/superset/dashboard/3');
+  expect(links[2]).toHaveAttribute('href', '/superset/dashboard/4');
+});
+
 test('ChartList list view shows tag info when TAGGING_SYSTEM is enabled', async () => {
   // Enable tagging system feature flag
   mockIsFeatureEnabled.mockImplementation(
