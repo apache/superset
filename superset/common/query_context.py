@@ -30,6 +30,7 @@ from superset.utils.core import GenericDataType
 
 if TYPE_CHECKING:
     from superset.models.helpers import QueryResult
+    from superset.models.sql_lab import Query
 
 
 logger = logging.getLogger(__name__)
@@ -131,8 +132,10 @@ class QueryContext:
             force_cached=force_cached,
         )
 
-    def get_query_result(self, query_object: QueryObject) -> QueryResult:
-        return self._processor.get_query_result(query_object)
+    def get_query_result(
+        self, query_object: QueryObject, query: Query | None = None
+    ) -> QueryResult:
+        return self._processor.get_query_result(query_object, query=query)
 
     def raise_for_access(self) -> None:
         self._processor.raise_for_access()

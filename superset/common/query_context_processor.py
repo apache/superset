@@ -59,6 +59,7 @@ from superset.viz import viz_types
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.common.query_object import QueryObject
+    from superset.models.sql_lab import Query
 
 logger = logging.getLogger(__name__)
 
@@ -116,7 +117,57 @@ class QueryContextProcessor:
                         )
                     )
 
-                query_result = self.get_query_result(query_obj)
+                # Create a persisted Query row for chart queries so we can expose a
+                # client_id and allow cancellation later. This mirrors SQL Lab's
+                # behavior; it is best-effort and only created if the datasource has
+                # an underlying database.
+                query_model = None
+                if (
+                    hasattr(self._qc_datasource, "database")
+                    and getattr(self._qc_datasource, "database", None) is not None
+                ):
+                    try:
+                        from uuid import uuid4
+
+                        from superset.extensions import db as _db
+                        from superset.models.sql_lab import Query as SqlLabQuery
+                        from superset.utils.core import get_user_id
+
+                        # Use client_id if provided by the client (e.g., frontend)
+                        provided_client_id = (
+                            self._query_context.cache_values.get("client_id")
+                            if isinstance(self._query_context.cache_values, dict)
+                            else None
+                        )
+
+                        client_id = provided_client_id or uuid4().hex[:11]
+
+                        # If a Query with this client_id already exists, reuse it.
+                        query_model = (
+                            _db.session.query(SqlLabQuery)
+                            .filter_by(client_id=client_id)
+                            .one_or_none()
+                        )
+
+                        if not query_model:
+                            query_model = SqlLabQuery(
+                                client_id=client_id,
+                                database_id=self._qc_datasource.database.id,
+                                user_id=get_user_id(),
+                            )
+                            _db.session.add(query_model)
+                            _db.session.commit()
+
+                    except (
+                        Exception
+                    ):  # pragma: no cover - best-effort Query model creation
+                        logger.debug(
+                            "Could not create Query model for chart query",
+                            exc_info=True,
+                        )
+                        query_model = None
+
+                query_result = self.get_query_result(query_obj, query=query_model)
                 annotation_data = self.get_annotation_data(query_obj)
                 cache.set_query_result(
                     key=cache_key,
@@ -178,7 +229,7 @@ class QueryContextProcessor:
         )
         cache.df.columns = [unescape_separator(col) for col in cache.df.columns.values]
 
-        return {
+        payload = {
             "cache_key": cache_key,
             "cached_dttm": cache.cache_dttm,
             "queried_dttm": cache.queried_dttm,
@@ -200,6 +251,15 @@ class QueryContextProcessor:
             "label_map": label_map,
         }
 
+        # expose client id so callers (and ultimately the frontend) can stop queries
+        if query_model is not None:
+            # client_id matches how SQL Lab identifies a query client-side
+            payload["client_id"] = query_model.client_id
+            # keep backwards compatibility with frontend that expects `query_id`
+            payload["query_id"] = query_model.client_id
+
+        return payload
+
     def query_cache_key(self, query_obj: QueryObject, **kwargs: Any) -> str | None:
         """
         Returns a QueryObject cache key for objects in self.queries
@@ -220,7 +280,9 @@ class QueryContextProcessor:
         )
         return cache_key
 
-    def get_query_result(self, query_object: QueryObject) -> QueryResult:
+    def get_query_result(
+        self, query_object: QueryObject, query: Query | None = None
+    ) -> QueryResult:
         """
         Returns a pandas dataframe based on the query object.
 
@@ -228,7 +290,7 @@ class QueryContextProcessor:
         which handles query execution, normalization, time offsets, and
         post-processing.
         """
-        return self._qc_datasource.get_query_result(query_object)
+        return self._qc_datasource.get_query_result(query_object, query=query)
 
     def get_data(
         self, df: pd.DataFrame, coltypes: list[GenericDataType]

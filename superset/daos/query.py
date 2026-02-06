@@ -72,7 +72,8 @@ class QueryDAO(BaseDAO[Query]):
             )
             return
 
-        if not sql_lab.cancel_query(query):
+        cancelled = sql_lab.cancel_query(query)
+        if not cancelled:
             raise SupersetCancelQueryException("Could not cancel query")
 
         query.status = QueryStatus.STOPPED

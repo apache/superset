@@ -1717,16 +1717,16 @@ class SqlaTable(
 
         return or_(*groups)
 
-    def query(self, query_obj: QueryObjectDict) -> QueryResult:
+    def query(
+        self, query_obj: QueryObjectDict, query: "Query" | None = None
+    ) -> QueryResult:
         """
         Executes the query for SqlaTable with additional column ordering logic.
 
         This overrides ExploreMixin.query() to add SqlaTable-specific behavior
         for handling column_order from extras.
         """
-        # Get the base result from ExploreMixin
-        # (explicitly, not super() which would hit BaseDatasource first)
-        result = ExploreMixin.query(self, query_obj)
+        result = ExploreMixin.query(self, query_obj, query=query)
 
         # Apply SqlaTable-specific column ordering
         extras = query_obj.get("extras", {})
