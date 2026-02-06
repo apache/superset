@@ -74,11 +74,31 @@ from tests.integration_tests.fixtures.world_bank_dashboard import (
 
 DASHBOARDS_FIXTURE_COUNT = 10
 
+# Permission names required for dashboard version API (get/update/restore).
+DASHBOARD_VERSION_PERMISSIONS = (
+    "can_get_versions",
+    "can_restore_version",
+    "can_update_version",
+)
+
 
 class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
     resource_name = "dashboard"
 
     dashboards: list[Dashboard] = []
+
+    @pytest.fixture
+    def admin_has_dashboard_version_permissions(self):
+        """Ensure Admin has dashboard version permissions (for version API tests)."""
+        with self.create_app().app_context():
+            admin_role = security_manager.find_role("Admin")
+            for perm_name in DASHBOARD_VERSION_PERMISSIONS:
+                pvm = security_manager.add_permission_view_menu(perm_name, "Dashboard")
+                if pvm not in admin_role.permissions:
+                    security_manager.add_permission_role(admin_role, pvm)
+            db.session.commit()
+        return
+
     dashboard_data = {
         "dashboard_title": "title1_changed",
         "slug": "slug1_changed",
@@ -568,7 +588,9 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         db.session.delete(dashboard)
         db.session.commit()
 
-    def test_update_dashboard_version_success(self):
+    def test_update_dashboard_version_success(
+        self, admin_has_dashboard_version_permissions
+    ):
         """
         Dashboard API: Test update dashboard version description
         """
@@ -602,7 +624,9 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             db.session.delete(dashboard)
             db.session.commit()
 
-    def test_update_dashboard_version_validation_error(self):
+    def test_update_dashboard_version_validation_error(
+        self, admin_has_dashboard_version_permissions
+    ):
         """
         Dashboard API: Test update dashboard version with invalid payload returns 400
         """
@@ -634,7 +658,9 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             db.session.delete(dashboard)
             db.session.commit()
 
-    def test_update_dashboard_version_not_found(self):
+    def test_update_dashboard_version_not_found(
+        self, admin_has_dashboard_version_permissions
+    ):
         """
         Dashboard API: Test update dashboard version when version does not exist
         """
@@ -656,7 +682,9 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             db.session.delete(dashboard)
             db.session.commit()
 
-    def test_update_dashboard_version_dashboard_not_found(self):
+    def test_update_dashboard_version_dashboard_not_found(
+        self, admin_has_dashboard_version_permissions
+    ):
         """
         Dashboard API: Test update dashboard version when dashboard does not exist
         """
@@ -670,7 +698,9 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         )
         assert rv.status_code == 404
 
-    def test_restore_dashboard_version_success(self):
+    def test_restore_dashboard_version_success(
+        self, admin_has_dashboard_version_permissions
+    ):
         """
         Dashboard API: Test restore dashboard to a previous version
         """
@@ -858,7 +888,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         rv = self.get_assert_metric(uri, "info")
         assert rv.status_code == 200
 
-    def test_info_security_dashboard(self):
+    def test_info_security_dashboard(self, admin_has_dashboard_version_permissions):
         """
         Dashboard API: Test info security
         """
