@@ -16,22 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Fragment, useCallback, useState, useMemo, memo } from 'react';
+import {
+  Fragment,
+  useCallback,
+  useState,
+  useMemo,
+  useRef,
+  useEffect,
+  memo,
+} from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
 import { t, css, styled } from '@apache-superset/core/ui';
-import { Icons } from '@superset-ui/core/components/Icons';
+import ComponentThemeProvider from 'src/dashboard/components/ComponentThemeProvider';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
-import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
 import {
   Draggable,
   Droppable,
 } from 'src/dashboard/components/dnd/DragDroppable';
 import DragHandle from 'src/dashboard/components/dnd/DragHandle';
 import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
-import IconButton from 'src/dashboard/components/IconButton';
+import ComponentHeaderControls, {
+  ComponentMenuKeys,
+} from 'src/dashboard/components/menu/ComponentHeaderControls';
+import ThemeSelectorModal from 'src/dashboard/components/menu/ThemeSelectorModal';
 import ResizableContainer from 'src/dashboard/components/resizable/ResizableContainer';
-import BackgroundStyleDropdown from 'src/dashboard/components/menu/BackgroundStyleDropdown';
 import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
 import backgroundStyleOptions from 'src/dashboard/util/backgroundStyleOptions';
 import { componentShape } from 'src/dashboard/util/propShapes';
@@ -142,6 +151,13 @@ const Column = props => {
   } = props;
 
   const [isFocused, setIsFocused] = useState(false);
+  const [isThemeSelectorOpen, setIsThemeSelectorOpen] = useState(false);
+  const columnComponentRef = useRef(columnComponent);
+
+  // Keep ref updated with latest columnComponent to avoid stale closures
+  useEffect(() => {
+    columnComponentRef.current = columnComponent;
+  }, [columnComponent]);
 
   const handleDeleteComponent = useCallback(() => {
     deleteComponent(id, parentId);
@@ -150,6 +166,11 @@ const Column = props => {
   const handleChangeFocus = useCallback(nextFocus => {
     setIsFocused(Boolean(nextFocus));
   }, []);
+
+  const backgroundStyle = backgroundStyleOptions.find(
+    opt =>
+      opt.value === (columnComponent.meta.background || BACKGROUND_TRANSPARENT),
+  );
 
   const handleChangeBackground = useCallback(
     nextValue => {
@@ -169,14 +190,100 @@ const Column = props => {
     [columnComponent, updateComponents],
   );
 
+  const handleOpenThemeSelector = useCallback(() => {
+    setIsThemeSelectorOpen(true);
+  }, []);
+
+  const handleCloseThemeSelector = useCallback(() => {
+    setIsThemeSelectorOpen(false);
+  }, []);
+
+  const handleApplyTheme = useCallback(
+    themeId => {
+      // Use ref to get latest component state, avoiding stale closures
+      const currentComponent = columnComponentRef.current;
+      if (themeId !== null) {
+        updateComponents({
+          [currentComponent.id]: {
+            ...currentComponent,
+            meta: {
+              ...currentComponent.meta,
+              theme_id: themeId,
+            },
+          },
+        });
+      } else {
+        // Clear theme - omit theme_id from meta
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars, camelcase
+        const { theme_id, ...metaWithoutTheme } = currentComponent.meta || {};
+        updateComponents({
+          [currentComponent.id]: {
+            ...currentComponent,
+            meta: metaWithoutTheme,
+          },
+        });
+      }
+      handleCloseThemeSelector();
+    },
+    [updateComponents, handleCloseThemeSelector],
+  );
+
+  const handleMenuClick = useCallback(
+    key => {
+      switch (key) {
+        case ComponentMenuKeys.BackgroundStyle:
+          // Toggle between transparent and solid
+          handleChangeBackground(
+            backgroundStyle.value === BACKGROUND_TRANSPARENT
+              ? backgroundStyleOptions[1].value
+              : BACKGROUND_TRANSPARENT,
+          );
+          break;
+        case ComponentMenuKeys.ApplyTheme:
+          handleOpenThemeSelector();
+          break;
+        case ComponentMenuKeys.Delete:
+          handleDeleteComponent();
+          break;
+        default:
+          break;
+      }
+    },
+    [
+      backgroundStyle.value,
+      handleChangeBackground,
+      handleDeleteComponent,
+      handleOpenThemeSelector,
+    ],
+  );
+
+  const menuItems = useMemo(
+    () => [
+      {
+        key: ComponentMenuKeys.BackgroundStyle,
+        label:
+          backgroundStyle.value === BACKGROUND_TRANSPARENT
+            ? t('Background: Transparent')
+            : t('Background: Solid'),
+      },
+      { type: 'divider' },
+      {
+        key: ComponentMenuKeys.ApplyTheme,
+        label: t('Apply theme'),
+      },
+      { type: 'divider' },
+      {
+        key: ComponentMenuKeys.Delete,
+        label: t('Delete'),
+        danger: true,
+      },
+    ],
+    [backgroundStyle.value],
+  );
+
   const columnItems = useMemo(
     () => columnComponent.children || [],
     [columnComponent.children],
-  );
-
-  const backgroundStyle = backgroundStyleOptions.find(
-    opt =>
-      opt.value === (columnComponent.meta.background || BACKGROUND_TRANSPARENT),
   );
 
   const renderChild = useCallback(
@@ -200,100 +307,94 @@ const Column = props => {
           isFocused={isFocused}
           onChangeFocus={handleChangeFocus}
           disableClick
-          menuItems={[
-            <BackgroundStyleDropdown
-              id={`${columnComponent.id}-background`}
-              value={columnComponent.meta.background}
-              onChange={handleChangeBackground}
-            />,
-          ]}
+          menuItems={[]}
           editMode={editMode}
         >
           {editMode && (
             <HoverMenu innerRef={dragSourceRef} position="top">
               <DragHandle position="top" />
-              <DeleteComponentButton
-                iconSize="m"
-                onDelete={handleDeleteComponent}
-              />
-              <IconButton
-                onClick={handleChangeFocus}
-                icon={<Icons.SettingOutlined iconSize="m" />}
+              <ComponentHeaderControls
+                componentId={columnComponent.id}
+                menuItems={menuItems}
+                onMenuClick={handleMenuClick}
+                editMode={editMode}
               />
             </HoverMenu>
           )}
-          <ColumnStyles
-            className={cx('grid-column', backgroundStyle.className)}
-            editMode={editMode}
-          >
-            {editMode && (
-              <Droppable
-                component={columnComponent}
-                parentComponent={columnComponent}
-                {...(columnItems.length === 0
-                  ? {
-                      dropToChild: true,
-                    }
-                  : {
-                      component: columnItems[0],
-                    })}
-                depth={depth}
-                index={0}
-                orientation="column"
-                onDrop={handleComponentDrop}
-                className={cx(
-                  'empty-droptarget',
-                  columnItems.length > 0 && 'droptarget-edge',
-                )}
-                editMode
-              >
-                {({ dropIndicatorProps }) =>
-                  dropIndicatorProps && <div {...dropIndicatorProps} />
-                }
-              </Droppable>
-            )}
-            {columnItems.length === 0 ? (
-              <div css={emptyColumnContentStyles}>{t('Empty column')}</div>
-            ) : (
-              columnItems.map((componentId, itemIndex) => (
-                <Fragment key={componentId}>
-                  <DashboardComponent
-                    id={componentId}
-                    parentId={columnComponent.id}
-                    depth={depth + 1}
-                    index={itemIndex}
-                    availableColumnCount={columnComponent.meta.width}
-                    columnWidth={columnWidth}
-                    onResizeStart={onResizeStart}
-                    onResize={onResize}
-                    onResizeStop={onResizeStop}
-                    isComponentVisible={isComponentVisible}
-                    onChangeTab={onChangeTab}
-                  />
-                  {editMode && (
-                    <Droppable
-                      component={columnItems}
-                      parentComponent={columnComponent}
-                      depth={depth}
-                      index={itemIndex + 1}
-                      orientation="column"
-                      onDrop={handleComponentDrop}
-                      className={cx(
-                        'empty-droptarget',
-                        itemIndex === columnItems.length - 1 &&
-                          'droptarget-edge',
-                      )}
-                      editMode
-                    >
-                      {({ dropIndicatorProps }) =>
-                        dropIndicatorProps && <div {...dropIndicatorProps} />
+          <ComponentThemeProvider themeId={columnComponent.meta?.theme_id}>
+            <ColumnStyles
+              className={cx('grid-column', backgroundStyle.className)}
+              editMode={editMode}
+            >
+              {editMode && (
+                <Droppable
+                  component={columnComponent}
+                  parentComponent={columnComponent}
+                  {...(columnItems.length === 0
+                    ? {
+                        dropToChild: true,
                       }
-                    </Droppable>
+                    : {
+                        component: columnItems[0],
+                      })}
+                  depth={depth}
+                  index={0}
+                  orientation="column"
+                  onDrop={handleComponentDrop}
+                  className={cx(
+                    'empty-droptarget',
+                    columnItems.length > 0 && 'droptarget-edge',
                   )}
-                </Fragment>
-              ))
-            )}
-          </ColumnStyles>
+                  editMode
+                >
+                  {({ dropIndicatorProps }) =>
+                    dropIndicatorProps && <div {...dropIndicatorProps} />
+                  }
+                </Droppable>
+              )}
+              {columnItems.length === 0 ? (
+                <div css={emptyColumnContentStyles}>{t('Empty column')}</div>
+              ) : (
+                columnItems.map((componentId, itemIndex) => (
+                  <Fragment key={componentId}>
+                    <DashboardComponent
+                      id={componentId}
+                      parentId={columnComponent.id}
+                      depth={depth + 1}
+                      index={itemIndex}
+                      availableColumnCount={columnComponent.meta.width}
+                      columnWidth={columnWidth}
+                      onResizeStart={onResizeStart}
+                      onResize={onResize}
+                      onResizeStop={onResizeStop}
+                      isComponentVisible={isComponentVisible}
+                      onChangeTab={onChangeTab}
+                    />
+                    {editMode && (
+                      <Droppable
+                        component={columnItems}
+                        parentComponent={columnComponent}
+                        depth={depth}
+                        index={itemIndex + 1}
+                        orientation="column"
+                        onDrop={handleComponentDrop}
+                        className={cx(
+                          'empty-droptarget',
+                          itemIndex === columnItems.length - 1 &&
+                            'droptarget-edge',
+                        )}
+                        editMode
+                      >
+                        {({ dropIndicatorProps }) =>
+                          dropIndicatorProps && <div {...dropIndicatorProps} />
+                        }
+                      </Droppable>
+                    )}
+                  </Fragment>
+                ))
+              )}
+            </ColumnStyles>
+          </ComponentThemeProvider>
         </WithPopoverMenu>
       </ResizableContainer>
     ),
@@ -305,12 +406,12 @@ const Column = props => {
       columnWidth,
       depth,
       editMode,
-      handleChangeBackground,
       handleChangeFocus,
       handleComponentDrop,
-      handleDeleteComponent,
+      handleMenuClick,
       isComponentVisible,
       isFocused,
+      menuItems,
       minColumnWidth,
       onChangeTab,
       onResize,
@@ -320,17 +421,27 @@ const Column = props => {
   );
 
   return (
-    <Draggable
-      component={columnComponent}
-      parentComponent={parentComponent}
-      orientation="column"
-      index={index}
-      depth={depth}
-      onDrop={handleComponentDrop}
-      editMode={editMode}
-    >
-      {renderChild}
-    </Draggable>
+    <>
+      <Draggable
+        component={columnComponent}
+        parentComponent={parentComponent}
+        orientation="column"
+        index={index}
+        depth={depth}
+        onDrop={handleComponentDrop}
+        editMode={editMode}
+      >
+        {renderChild}
+      </Draggable>
+      <ThemeSelectorModal
+        show={isThemeSelectorOpen}
+        onHide={handleCloseThemeSelector}
+        onApply={handleApplyTheme}
+        currentThemeId={columnComponent.meta?.theme_id || null}
+        componentId={columnComponent.id}
+        componentType="Column"
+      />
+    </>
   );
 };
 

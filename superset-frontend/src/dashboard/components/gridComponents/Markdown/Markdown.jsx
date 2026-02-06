@@ -23,14 +23,18 @@ import cx from 'classnames';
 
 import { t, css, styled } from '@apache-superset/core/ui';
 import { SafeMarkdown } from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { EditorHost } from 'src/core/editors';
+import ComponentHeaderControls, {
+  ComponentMenuKeys,
+} from 'src/dashboard/components/menu/ComponentHeaderControls';
+import ComponentThemeProvider from 'src/dashboard/components/ComponentThemeProvider';
+import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
+import ThemeSelectorModal from 'src/dashboard/components/menu/ThemeSelectorModal';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 
-import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
 import { Draggable } from 'src/dashboard/components/dnd/DragDroppable';
-import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
 import ResizableContainer from 'src/dashboard/components/resizable/ResizableContainer';
-import MarkdownModeDropdown from 'src/dashboard/components/menu/MarkdownModeDropdown';
 import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
 import { componentShape } from 'src/dashboard/util/propShapes';
 import { ROW_TYPE, COLUMN_TYPE } from 'src/dashboard/util/componentTypes';
@@ -128,6 +132,7 @@ class Markdown extends PureComponent {
       editorMode: 'preview',
       undoLength: props.undoLength,
       redoLength: props.redoLength,
+      isThemeSelectorOpen: false,
     };
     this.renderStartTime = Logger.getTimestamp();
 
@@ -138,6 +143,11 @@ class Markdown extends PureComponent {
     this.handleResizeStart = this.handleResizeStart.bind(this);
     this.setEditor = this.setEditor.bind(this);
     this.shouldFocusMarkdown = this.shouldFocusMarkdown.bind(this);
+    this.handleMenuClick = this.handleMenuClick.bind(this);
+    this.getMenuItems = this.getMenuItems.bind(this);
+    this.handleOpenThemeSelector = this.handleOpenThemeSelector.bind(this);
+    this.handleCloseThemeSelector = this.handleCloseThemeSelector.bind(this);
+    this.handleApplyTheme = this.handleApplyTheme.bind(this);
   }
 
   componentDidMount() {
@@ -230,16 +240,17 @@ class Markdown extends PureComponent {
   }
 
   handleChangeEditorMode(mode) {
-    const nextState = {
-      ...this.state,
-      editorMode: mode,
-    };
     if (mode === 'preview') {
       this.updateMarkdownContent();
-      nextState.hasError = false;
     }
 
-    this.setState(nextState);
+    // Use functional setState to avoid overwriting concurrent state updates
+    // (e.g., isThemeSelectorOpen being set by handleOpenThemeSelector)
+    this.setState(prevState => ({
+      ...prevState,
+      editorMode: mode,
+      ...(mode === 'preview' ? { hasError: false } : {}),
+    }));
   }
 
   updateMarkdownContent() {
@@ -276,6 +287,88 @@ class Markdown extends PureComponent {
     if (editMode && isEditing) {
       this.updateMarkdownContent();
     }
+  }
+
+  handleMenuClick(key) {
+    switch (key) {
+      case ComponentMenuKeys.EditContent:
+        this.handleChangeEditorMode('edit');
+        break;
+      case ComponentMenuKeys.PreviewContent:
+        this.handleChangeEditorMode('preview');
+        break;
+      case ComponentMenuKeys.ApplyTheme:
+        this.handleOpenThemeSelector();
+        break;
+      case ComponentMenuKeys.Delete:
+        this.handleDeleteComponent();
+        break;
+      default:
+        break;
+    }
+  }
+
+  handleOpenThemeSelector() {
+    this.setState({ isThemeSelectorOpen: true });
+  }
+
+  handleCloseThemeSelector() {
+    this.setState({ isThemeSelectorOpen: false });
+  }
+
+  handleApplyTheme(themeId) {
+    const { updateComponents, component, addDangerToast } = this.props;
+
+    // Store theme ID in component metadata
+    // For now, just update the component meta - backend persistence comes in Phase 3
+    if (themeId !== null) {
+      updateComponents({
+        [component.id]: {
+          ...component,
+          meta: {
+            ...component.meta,
+            theme_id: themeId,
+          },
+        },
+      });
+    } else {
+      // Clear theme
+      const { theme_id: _, ...metaWithoutTheme } = component.meta;
+      updateComponents({
+        [component.id]: {
+          ...component,
+          meta: metaWithoutTheme,
+        },
+      });
+    }
+
+    this.handleCloseThemeSelector();
+  }
+
+  getMenuItems() {
+    const { editorMode } = this.state;
+    const isEditing = editorMode === 'edit';
+
+    // Use stable menu item structure - avoid creating new icon instances
+    return [
+      {
+        key: isEditing
+          ? ComponentMenuKeys.PreviewContent
+          : ComponentMenuKeys.EditContent,
+        label: isEditing ? t('Preview') : t('Edit'),
+      },
+      { type: 'divider' },
+      {
+        key: ComponentMenuKeys.ApplyTheme,
+        label: t('Apply theme'),
+      },
+      { type: 'divider' },
+      {
+        key: ComponentMenuKeys.Delete,
+        label: t('Delete'),
+        danger: true,
+      },
+    ];
   }
 
   shouldFocusMarkdown(event, container, menuRef) {
@@ -354,74 +447,83 @@ class Markdown extends PureComponent {
     const isEditing = editorMode === 'edit';
 
     return (
-      <Draggable
-        component={component}
-        parentComponent={parentComponent}
-        orientation={parentComponent.type === ROW_TYPE ? 'column' : 'row'}
-        index={index}
-        depth={depth}
-        onDrop={handleComponentDrop}
-        disableDragDrop={isFocused}
-        editMode={editMode}
-      >
-        {({ dragSourceRef }) => (
-          <WithPopoverMenu
-            onChangeFocus={this.handleChangeFocus}
-            shouldFocus={this.shouldFocusMarkdown}
-            menuItems={[
-              <MarkdownModeDropdown
-                id={`${component.id}-mode`}
-                value={this.state.editorMode}
-                onChange={this.handleChangeEditorMode}
-              />,
-            ]}
-            editMode={editMode}
-          >
-            <MarkdownStyles
-              data-test="dashboard-markdown-editor"
-              className={cx(
-                'dashboard-markdown',
-                isEditing && 'dashboard-markdown--editing',
-              )}
-              id={component.id}
+      <>
+        <Draggable
+          component={component}
+          parentComponent={parentComponent}
+          orientation={parentComponent.type === ROW_TYPE ? 'column' : 'row'}
+          index={index}
+          depth={depth}
+          onDrop={handleComponentDrop}
+          disableDragDrop={isFocused}
+          editMode={editMode}
+        >
+          {({ dragSourceRef }) => (
+            <WithPopoverMenu
+              onChangeFocus={this.handleChangeFocus}
+              shouldFocus={this.shouldFocusMarkdown}
+              menuItems={[]}
+              editMode={editMode}
             >
-              <ResizableContainer
-                id={component.id}
-                adjustableWidth={parentComponent.type === ROW_TYPE}
-                adjustableHeight
-                widthStep={columnWidth}
-                widthMultiple={widthMultiple}
-                heightStep={GRID_BASE_UNIT}
-                heightMultiple={component.meta.height}
-                minWidthMultiple={GRID_MIN_COLUMN_COUNT}
-                minHeightMultiple={GRID_MIN_ROW_UNITS}
-                maxWidthMultiple={availableColumnCount + widthMultiple}
-                onResizeStart={this.handleResizeStart}
-                onResize={onResize}
-                onResizeStop={onResizeStop}
-                editMode={isFocused ? false : editMode}
-              >
-                <div
-                  ref={dragSourceRef}
-                  className="dashboard-component dashboard-component-chart-holder"
-                  data-test="dashboard-component-chart-holder"
-                >
-                  {editMode && (
-                    <HoverMenu position="top">
-                      <DeleteComponentButton
-                        onDelete={this.handleDeleteComponent}
-                      />
-                    </HoverMenu>
+              <ComponentThemeProvider themeId={component.meta.theme_id}>
+                <MarkdownStyles
+                  data-test="dashboard-markdown-editor"
+                  className={cx(
+                    'dashboard-markdown',
+                    isEditing && 'dashboard-markdown--editing',
                   )}
-                  {editMode && isEditing
-                    ? this.renderEditMode()
-                    : this.renderPreviewMode()}
-                </div>
-              </ResizableContainer>
-            </MarkdownStyles>
-          </WithPopoverMenu>
-        )}
-      </Draggable>
+                  id={component.id}
+                >
+                  <ResizableContainer
+                    id={component.id}
+                    adjustableWidth={parentComponent.type === ROW_TYPE}
+                    adjustableHeight
+                    widthStep={columnWidth}
+                    widthMultiple={widthMultiple}
+                    heightStep={GRID_BASE_UNIT}
+                    heightMultiple={component.meta.height}
+                    minWidthMultiple={GRID_MIN_COLUMN_COUNT}
+                    minHeightMultiple={GRID_MIN_ROW_UNITS}
+                    maxWidthMultiple={availableColumnCount + widthMultiple}
+                    onResizeStart={this.handleResizeStart}
+                    onResize={onResize}
+                    onResizeStop={onResizeStop}
+                    editMode={isFocused ? false : editMode}
+                  >
+                    <div
+                      ref={dragSourceRef}
+                      className="dashboard-component dashboard-component-chart-holder"
+                      data-test="dashboard-component-chart-holder"
+                    >
+                      {editMode && (
+                        <HoverMenu position="top">
+                          <ComponentHeaderControls
+                            componentId={component.id}
+                            menuItems={this.getMenuItems()}
+                            onMenuClick={this.handleMenuClick}
+                            editMode={editMode}
+                          />
+                        </HoverMenu>
+                      )}
+                      {editMode && isEditing
+                        ? this.renderEditMode()
+                        : this.renderPreviewMode()}
+                    </div>
+                  </ResizableContainer>
+                </MarkdownStyles>
+              </ComponentThemeProvider>
+            </WithPopoverMenu>
+          )}
+        </Draggable>
+        <ThemeSelectorModal
+          show={this.state.isThemeSelectorOpen}
+          onHide={this.handleCloseThemeSelector}
+          onApply={this.handleApplyTheme}
+          currentThemeId={component.meta.theme_id || null}
+          componentId={component.id}
+          componentType="Markdown"
+        />
+      </>
     );
   }
 }

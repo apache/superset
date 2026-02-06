@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect, useMemo, useState, memo } from 'react';
+import { useCallback, useEffect, useMemo, useState, memo, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { usePrevious } from '@superset-ui/core';
 import { t, useTheme, styled } from '@apache-superset/core/ui';
@@ -25,8 +25,10 @@ import { Icons } from '@superset-ui/core/components/Icons';
 import { LOG_ACTIONS_SELECT_DASHBOARD_TAB } from 'src/logger/LogUtils';
 import { Modal } from '@superset-ui/core/components';
 import { DROP_LEFT, DROP_RIGHT } from 'src/dashboard/util/getDropPosition';
+import ComponentThemeProvider from '../../ComponentThemeProvider';
 import { Draggable } from '../../dnd/DragDroppable';
 import DashboardComponent from '../../../containers/DashboardComponent';
+import ThemeSelectorModal from '../../menu/ThemeSelectorModal';
 import findTabIndexByComponentId from '../../../util/findTabIndexByComponentId';
 import getDirectPathToTabIndex from '../../../util/getDirectPathToTabIndex';
 import getLeafComponentIdFromPath from '../../../util/getLeafComponentIdFromPath';
@@ -135,10 +137,17 @@ const Tabs = props => {
   const [dragOverTabIndex, setDragOverTabIndex] = useState(null);
   const [tabToDelete, setTabToDelete] = useState(null);
   const [isEditingTabTitle, setIsEditingTabTitle] = useState(false);
+  const [isThemeSelectorOpen, setIsThemeSelectorOpen] = useState(false);
+  const tabsComponentRef = useRef(props.component);
   const prevActiveKey = usePrevious(activeKey);
   const prevDashboardId = usePrevious(props.dashboardId);
   const prevDirectPathToChild = usePrevious(directPathToChild);
   const prevTabIds = usePrevious(props.component.children);
+
+  // Keep ref updated with latest component to avoid stale closures
+  useEffect(() => {
+    tabsComponentRef.current = props.component;
+  }, [props.component]);
 
   useEffect(() => {
     if (prevActiveKey) {
@@ -335,6 +344,44 @@ const Tabs = props => {
     setIsEditingTabTitle(isEditing);
   }, []);
 
+  const handleOpenThemeSelector = useCallback(() => {
+    setIsThemeSelectorOpen(true);
+  }, []);
+
+  const handleCloseThemeSelector = useCallback(() => {
+    setIsThemeSelectorOpen(false);
+  }, []);
+
+  const handleApplyTheme = useCallback(
+    themeId => {
+      // Use ref to get latest component state, avoiding stale closures
+      const currentComponent = tabsComponentRef.current;
+      if (themeId !== null) {
+        props.updateComponents({
+          [currentComponent.id]: {
+            ...currentComponent,
+            meta: {
+              ...currentComponent.meta,
+              theme_id: themeId,
+            },
+          },
+        });
+      } else {
+        // Clear theme - omit theme_id from meta
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars, camelcase
+        const { theme_id, ...metaWithoutTheme } = currentComponent.meta || {};
+        props.updateComponents({
+          [currentComponent.id]: {
+            ...currentComponent,
+            meta: metaWithoutTheme,
+          },
+        });
+      }
+      handleCloseThemeSelector();
+    },
+    [props.updateComponents, handleCloseThemeSelector],
+  );
+
   const handleTabsReorder = useCallback(
     (oldIndex, newIndex) => {
       const { component, updateComponents } = props;
@@ -489,28 +536,32 @@ const Tabs = props => {
 
   const renderChild = useCallback(
     ({ dragSourceRef: tabsDragSourceRef }) => (
-      <TabsRenderer
-        tabItems={tabItems}
-        editMode={editMode}
-        renderHoverMenu={renderHoverMenu}
-        tabsDragSourceRef={tabsDragSourceRef}
-        handleDeleteComponent={handleDeleteComponent}
-        tabsComponent={tabsComponent}
-        activeKey={activeKey}
-        tabIds={tabIds}
-        handleClickTab={handleClickTab}
-        handleEdit={handleEdit}
-        tabBarPaddingLeft={tabBarPaddingLeft}
-        onTabsReorder={handleTabsReorder}
-        isEditingTabTitle={isEditingTabTitle}
-        onTabTitleEditingChange={handleTabTitleEditingChange}
-      />
+      <ComponentThemeProvider themeId={tabsComponent.meta?.theme_id}>
+        <TabsRenderer
+          tabItems={tabItems}
+          editMode={editMode}
+          renderHoverMenu={renderHoverMenu}
+          tabsDragSourceRef={tabsDragSourceRef}
+          handleDeleteComponent={handleDeleteComponent}
+          handleOpenThemeSelector={handleOpenThemeSelector}
+          tabsComponent={tabsComponent}
+          activeKey={activeKey}
+          tabIds={tabIds}
+          handleClickTab={handleClickTab}
+          handleEdit={handleEdit}
+          tabBarPaddingLeft={tabBarPaddingLeft}
+          onTabsReorder={handleTabsReorder}
+          isEditingTabTitle={isEditingTabTitle}
+          onTabTitleEditingChange={handleTabTitleEditingChange}
+        />
+      </ComponentThemeProvider>
     ),
     [
       tabItems,
       editMode,
       renderHoverMenu,
       handleDeleteComponent,
+      handleOpenThemeSelector,
       tabsComponent,
       activeKey,
       tabIds,
@@ -556,6 +607,14 @@ const Tabs = props => {
           </span>
         </Modal>
       )}
+      <ThemeSelectorModal
+        show={isThemeSelectorOpen}
+        onHide={handleCloseThemeSelector}
+        onApply={handleApplyTheme}
+        currentThemeId={tabsComponent.meta?.theme_id || null}
+        componentId={tabsComponent.id}
+        componentType="Tabs"
+      />
     </>
   );
 };

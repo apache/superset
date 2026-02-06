@@ -16,10 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { fireEvent, render } from 'spec/helpers/testing-library';
-
-import BackgroundStyleDropdown from 'src/dashboard/components/menu/BackgroundStyleDropdown';
-import IconButton from 'src/dashboard/components/IconButton';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from 'spec/helpers/testing-library';
 
 import { getMockStore } from 'spec/fixtures/mockStore';
 import { dashboardLayout as mockLayout } from 'spec/fixtures/mockDashboardLayout';
@@ -49,19 +51,6 @@ jest.mock(
   'src/dashboard/components/menu/WithPopoverMenu',
   () =>
     ({ children }) => <div data-test="mock-with-popover-menu">{children}</div>,
-);
-jest.mock(
-  'src/dashboard/components/DeleteComponentButton',
-  () =>
-    ({ onDelete }) => (
-      <button
-        type="button"
-        data-test="mock-delete-component-button"
-        onClick={onDelete}
-      >
-        Delete
-      </button>
-    ),
 );
 
 const columnWithoutChildren = {
@@ -109,12 +98,11 @@ test('should render a Draggable', () => {
   expect(queryByTestId('mock-droppable')).not.toBeInTheDocument();
 });
 
-test('should skip rendering HoverMenu and DeleteComponentButton when not in editMode', () => {
-  const { container, queryByTestId } = setup({
+test('should skip rendering HoverMenu when not in editMode', () => {
+  const { container } = setup({
     component: columnWithoutChildren,
   });
   expect(container.querySelector('.hover-menu')).not.toBeInTheDocument();
-  expect(queryByTestId('mock-delete-component-button')).not.toBeInTheDocument();
 });
 
 test('should render a WithPopoverMenu', () => {
@@ -147,33 +135,35 @@ test('should render a HoverMenu in editMode', () => {
   );
 });
 
-test('should render a DeleteComponentButton in editMode', () => {
-  // we cannot set props on the Row because of the WithDragDropContext wrapper
-  const { getByTestId } = setup({
+test('should render ComponentHeaderControls in editMode', () => {
+  const { container } = setup({
     component: columnWithoutChildren,
     editMode: true,
   });
-  expect(getByTestId('mock-delete-component-button')).toBeInTheDocument();
+  // ComponentHeaderControls renders a button with "More Options" aria-label
+  expect(
+    container.querySelector('[aria-label="More Options"]'),
+  ).toBeInTheDocument();
 });
 
-test.skip('should render a BackgroundStyleDropdown when focused', () => {
-  let wrapper = setup({ component: columnWithoutChildren });
-  expect(wrapper.find(BackgroundStyleDropdown)).toBeFalsy();
-
-  // we cannot set props on the Row because of the WithDragDropContext wrapper
-  wrapper = setup({ component: columnWithoutChildren, editMode: true });
-  wrapper
-    .find(IconButton)
-    .at(1) // first one is delete button
-    .simulate('click');
-
-  expect(wrapper.find(BackgroundStyleDropdown)).toBeTruthy();
-});
-
-test('should call deleteComponent when deleted', () => {
+test('should call deleteComponent when Delete menu item is clicked', async () => {
   const deleteComponent = jest.fn();
-  const { getByTestId } = setup({ editMode: true, deleteComponent });
-  fireEvent.click(getByTestId('mock-delete-component-button'));
+  const { container } = setup({
+    editMode: true,
+    deleteComponent,
+    component: columnWithoutChildren,
+  });
+
+  // Click the "More Options" menu button
+  const menuButton = container.querySelector('[aria-label="More Options"]');
+  fireEvent.click(menuButton);
+
+  // Wait for menu to open and click Delete
+  await waitFor(() => {
+    const deleteOption = screen.getByText('Delete');
+    fireEvent.click(deleteOption);
+  });
+
   expect(deleteComponent).toHaveBeenCalledTimes(1);
 });
 

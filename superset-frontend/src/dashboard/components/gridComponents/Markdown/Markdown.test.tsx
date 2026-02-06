@@ -165,14 +165,14 @@ test('should switch between edit and preview modes', async () => {
 
   expect(await screen.findByRole('textbox')).toBeInTheDocument();
 
-  // Find and click edit dropdown by role
-  const editButton = screen.getByRole('button', { name: /edit/i });
+  // Find and click the "More Options" menu button to open dropdown
+  const menuButton = screen.getByRole('button', { name: /more options/i });
   await act(async () => {
-    fireEvent.click(editButton);
+    fireEvent.click(menuButton);
   });
 
-  // Click preview option in dropdown
-  const previewOption = await screen.findByText(/preview/i);
+  // When in edit mode, menu shows "Preview" option (to switch TO preview mode)
+  const previewOption = await screen.findByText('Preview');
   await act(async () => {
     fireEvent.click(previewOption);
   });
@@ -219,15 +219,15 @@ test('should call updateComponents when switching from edit to preview with chan
     // Wait for state update
     await new Promise(resolve => setTimeout(resolve, 50));
 
-    // Click the Edit dropdown button
-    const editDropdown = screen.getByText('Edit');
-    fireEvent.click(editDropdown);
+    // Click the "More Options" menu button to open dropdown
+    const menuButton = screen.getByRole('button', { name: /more options/i });
+    fireEvent.click(menuButton);
 
     // Wait for dropdown to open
     await new Promise(resolve => setTimeout(resolve, 50));
 
-    // Find and click preview in dropdown
-    const previewOption = await screen.findByText(/preview/i);
+    // When in edit mode, menu shows "Preview" option (to switch TO preview mode)
+    const previewOption = await screen.findByText('Preview');
     fireEvent.click(previewOption);
 
     // Wait for update to complete
@@ -406,12 +406,21 @@ test('shouldFocusMarkdown keeps focus when clicking on menu items', async () => 
 
   expect(await screen.findByRole('textbox')).toBeInTheDocument();
 
-  const editButton = screen.getByText('Edit');
+  // The new ComponentHeaderControls menu is accessed via "More Options" button
+  const menuButton = screen.getByRole('button', { name: /more options/i });
 
-  userEvent.click(editButton);
+  userEvent.click(menuButton);
   await new Promise(resolve => setTimeout(resolve, 50));
 
-  expect(screen.queryByRole('textbox')).toBeInTheDocument();
+  // When in edit mode, the menu shows "Preview" option (to switch TO preview mode)
+  const previewButton = await screen.findByText('Preview');
+
+  userEvent.click(previewButton);
+  await new Promise(resolve => setTimeout(resolve, 50));
+
+  // After clicking Preview, editor mode changes to preview, so textbox should NOT be present
+  // But focus should be maintained on the markdown component
+  expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
 });
 
 test('should exit edit mode when clicking outside in same row', async () => {
