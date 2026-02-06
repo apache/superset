@@ -106,7 +106,7 @@ class TestDatastoreDbEngineSpec(SupersetTestCase):
                 self._value = value
 
             def values(self):
-                return self._value
+                return (self._value,)
 
         data1 = [(1, "foo")]
         with mock.patch.object(BaseEngineSpec, "fetch_data", return_value=data1):
@@ -116,7 +116,7 @@ class TestDatastoreDbEngineSpec(SupersetTestCase):
         data2 = [Row(1), Row(2)]
         with mock.patch.object(BaseEngineSpec, "fetch_data", return_value=data2):
             result = DatastoreEngineSpec.fetch_data(None, 0)
-        assert result == [1, 2]
+        assert result == [(1,), (2,)]
 
     def test_extract_errors(self):
         msg = "403 POST https://datastore.googleapis.com/: Access Denied: Project my-project: User does not have datastore.databases.create permission in project my-project"  # noqa: E501
