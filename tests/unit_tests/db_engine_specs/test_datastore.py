@@ -224,7 +224,7 @@ def test_unmask_encrypted_extra() -> None:
     )
 
 
-def test_unmask_encrypted_extra_field_changeed() -> None:
+def test_unmask_encrypted_extra_field_changed() -> None:
     """
     Test that the private key is not reused when the field has changed.
     """
