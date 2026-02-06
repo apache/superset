@@ -139,6 +139,41 @@ class TestSqlLab(SupersetTestCase):
         )
     )
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_sql_json_where_clause_content_type(self):
+        """
+        Test that queries with WHERE clauses return proper Content-Type headers.
+
+        This test addresses issue #36072 where Flask 2.3+ content negotiation
+        could cause HTTP 406 errors for queries with WHERE clauses, particularly
+        when using ENABLE_PROXY_FIX or certain Accept header configurations.
+        """
+        self.login(ADMIN_USERNAME)
+
+        # Test query with WHERE clause
+        resp = self.client.post(
+            "/api/v1/sqllab/execute/",
+            json={
+                "database_id": self.get_database_by_name("examples").id,
+                "sql": "SELECT * FROM birth_names WHERE name = 'John' LIMIT 5",
+                "client_id": "test_where_1",
+            },
+        )
+
+        # Verify response is successful
+        assert resp.status_code in (200, 202), f"Expected 200/202, got {resp.status_code}"
+
+        # Verify Content-Type header is explicitly set to prevent 406 errors
+        assert "application/json" in resp.headers.get("Content-Type", "")
+
+        # Verify response body is valid JSON
+        data = resp.json
+        assert isinstance(data, dict)
+
+        # If query ran synchronously (200), verify it has data
+        if resp.status_code == 200:
+            assert "data" in data or "query_id" in data
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_sql_json_dml_disallowed(self):
         self.login(ADMIN_USERNAME)
 
