@@ -239,16 +239,10 @@ if (!isDevMode) {
   );
 }
 
-const PREAMBLE = [path.join(APP_DIR, '/src/preamble.ts')];
-if (isDevMode) {
-  // A Superset webpage normally includes two JS bundles in dev, `theme.ts` and
-  // the main entrypoint. Only the main entry should have the dev server client,
-  // otherwise the websocket client will initialize twice, creating two sockets.
-  // Ref: https://github.com/gaearon/react-hot-loader/issues/141
-  PREAMBLE.unshift(
-    `webpack-dev-server/client?http://localhost:${devserverPort}`,
-  );
-}
+// In dev mode, include theme.ts in preamble to avoid separate chunk HMR issues
+const PREAMBLE = isDevMode
+  ? [path.join(APP_DIR, 'src/theme.ts'), path.join(APP_DIR, 'src/preamble.ts')]
+  : [path.join(APP_DIR, 'src/preamble.ts')];
 
 function addPreamble(entry) {
   return PREAMBLE.concat([path.join(APP_DIR, entry)]);
@@ -316,18 +310,29 @@ function createSwcLoader(syntax = 'typescript', tsx = true) {
 const config = {
   entry: {
     preamble: PREAMBLE,
-    theme: path.join(APP_DIR, '/src/theme.ts'),
+    // In dev mode, theme is included in preamble to avoid separate chunk HMR issues
+    ...(isDevMode ? {} : { theme: path.join(APP_DIR, 'src/theme.ts') }),
     menu: addPreamble('src/views/menu.tsx'),
-    spa: addPreamble('/src/views/index.tsx'),
-    embedded: addPreamble('/src/embedded/index.tsx'),
+    spa: addPreamble('src/views/index.tsx'),
+    embedded: addPreamble('src/embedded/index.tsx'),
     'service-worker': path.join(APP_DIR, 'src/service-worker.ts'),
   },
   cache: {
-    type: 'filesystem', // Enable filesystem caching
+    type: 'filesystem',
     cacheDirectory: path.resolve(__dirname, '.temp_cache'),
+    // Separate cache for dev vs prod builds
+    name: `${isDevMode ? 'development' : 'production'}-cache`,
+    // Invalidate cache when these files change
     buildDependencies: {
-      config: [__filename],
+      config: [
+        __filename,
+        path.resolve(__dirname, 'package-lock.json'),
+        path.resolve(__dirname, 'babel.config.js'),
+        path.resolve(__dirname, 'tsconfig.json'),
+      ],
     },
+    // Compress cache for smaller disk usage (slight CPU tradeoff)
+    compression: isDevMode ? false : 'gzip',
   },
   output,
   stats: 'minimal',
@@ -377,11 +382,9 @@ const config = {
               'prop-types-extra',
               'redux',
               'react-redux',
-              'react-hot-loader',
               'react-sortable-hoc',
               'react-table',
               'react-ace',
-              '@hot-loader.*',
               'webpack.*',
               '@?babel.*',
               'lodash.*',
@@ -490,7 +493,10 @@ const config = {
       {
         test: /\.tsx?$/,
         exclude: [/\.test.tsx?$/, /node_modules/],
-        use: ['thread-loader', createSwcLoader('typescript', true)],
+        // Skip thread-loader in dev mode - it breaks HMR by running in worker threads
+        use: isDevMode
+          ? [createSwcLoader('typescript', true)]
+          : ['thread-loader', createSwcLoader('typescript', true)],
       },
       {
         test: /\.jsx?$/,
@@ -647,10 +653,12 @@ if (isDevMode) {
 
   config.devServer = {
     devMiddleware: {
+      publicPath: '/static/assets/',
       writeToDisk: true,
     },
     historyApiFallback: true,
-    hot: true,
+    hot: 'only', // HMR only, no page reload fallback
+    liveReload: false,
     host: devserverHost,
     port: devserverPort,
     allowedHosts: [
@@ -670,7 +678,7 @@ if (isDevMode) {
         warnings: false,
         runtimeErrors: error => !/ResizeObserver/.test(error.message),
       },
-      logging: 'error',
+      logging: 'info', // Show HMR messages
       webSocketURL: {
         hostname: '0.0.0.0',
         pathname: '/ws',
