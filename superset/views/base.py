@@ -24,7 +24,6 @@ import traceback
 from datetime import datetime
 from typing import Any, Callable, cast
 
-from babel import Locale
 from flask import (
     abort,
     current_app as app,
@@ -438,7 +437,7 @@ def get_default_spinner_svg() -> str | None:
 
 @cache_manager.cache.memoize(timeout=60)
 def cached_common_bootstrap_data(  # pylint: disable=unused-argument
-    user_id: int | None, locale: Locale | None
+    user_id: int | None, locale: str | None
 ) -> dict[str, Any]:
     """Common data always sent to the client
 
@@ -479,7 +478,7 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
     if isinstance(locale, Locale):
         language = locale.language
     elif isinstance(locale, str):
-        language = locale
+        language = locale.replace("-", "_").split("_")[0]
     else:
         language = app.config.get("BABEL_DEFAULT_LOCALE", "en")
     auth_type = app.config["AUTH_TYPE"]
@@ -531,7 +530,10 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
 
 
 def common_bootstrap_payload() -> dict[str, Any]:
-    return cached_common_bootstrap_data(utils.get_user_id(), get_locale())
+    locale = get_locale()
+    # Convert locale to string for proper cache key hashing
+    locale_str = str(locale) if locale else None
+    return cached_common_bootstrap_data(utils.get_user_id(), locale_str)
 
 
 def get_spa_payload(extra_data: dict[str, Any] | None = None) -> dict[str, Any]:
