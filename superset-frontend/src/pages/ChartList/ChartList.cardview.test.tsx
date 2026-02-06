@@ -17,7 +17,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { fireEvent, screen, waitFor } from 'spec/helpers/testing-library';
+import { fireEvent, screen, waitFor, within } from 'spec/helpers/testing-library';
 import { isFeatureEnabled } from '@superset-ui/core';
 import {
   mockCharts,
@@ -475,10 +475,11 @@ describe('ChartList Card View Tests', () => {
       expect(screen.getByTestId('bulk-select-controls')).toBeInTheDocument();
     });
 
-    // Click the X button to close bulk select (look for close icon in bulk select bar)
-    const closeButton = document.querySelector(
-      '.ant-alert-close-icon',
-    ) as HTMLButtonElement;
+    // Click the X button to close bulk select
+    const bulkSelectBar = screen.getByTestId('bulk-select-controls');
+    const closeButton = within(bulkSelectBar).getByRole('button', {
+      name: /close/i,
+    });
     fireEvent.click(closeButton);
 
     // Verify bulk select controls are gone

@@ -86,9 +86,7 @@ test('renders table in list view', async () => {
   });
 
   // Verify cards are not rendered in list view
-  await waitFor(() => {
-    expect(screen.queryByTestId('styled-card')).not.toBeInTheDocument();
-  });
+  expect(screen.queryByTestId('styled-card')).not.toBeInTheDocument();
 });
 
 test('displays dataset names with and without schema prefix', async () => {
@@ -235,7 +233,7 @@ test('sorts table when clicking column headers', async () => {
   expect(sortableHeaders).toHaveLength(3);
 
   const nameHeader = within(table).getByTitle('Name');
-  userEvent.click(nameHeader);
+  await userEvent.click(nameHeader);
 
   await waitFor(() => {
     const sortCalls = fetchMock.callHistory
@@ -248,7 +246,7 @@ test('sorts table when clicking column headers', async () => {
   });
 
   const typeHeader = within(table).getByTitle('Type');
-  userEvent.click(typeHeader);
+  await userEvent.click(typeHeader);
 
   await waitFor(() => {
     const typeSortCalls = fetchMock.callHistory
@@ -261,7 +259,7 @@ test('sorts table when clicking column headers', async () => {
   });
 
   const lastModifiedHeader = within(table).getByTitle('Last modified');
-  userEvent.click(lastModifiedHeader);
+  await userEvent.click(lastModifiedHeader);
 
   await waitFor(() => {
     const lastModifiedSortCalls = fetchMock.callHistory
