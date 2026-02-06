@@ -26,6 +26,7 @@ export enum DatasourceType {
   Dataset = 'dataset',
   SlTable = 'sl_table',
   SavedQuery = 'saved_query',
+  SemanticView = 'semantic_view',
 }
 
 export interface Currency {

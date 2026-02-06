@@ -28,6 +28,7 @@ from superset.daos.exceptions import (
     DatasourceValueIsIncorrect,
 )
 from superset.models.sql_lab import Query, SavedQuery
+from superset.semantic_layers.models import SemanticView
 from superset.utils.core import DatasourceType
 
 logger = logging.getLogger(__name__)
@@ -40,6 +41,7 @@ class DatasourceDAO(BaseDAO[Datasource]):
         DatasourceType.TABLE: SqlaTable,
         DatasourceType.QUERY: Query,
         DatasourceType.SAVEDQUERY: SavedQuery,
+        DatasourceType.SEMANTIC_VIEW: SemanticView,
     }
 
     @classmethod
