@@ -22,7 +22,7 @@ import logging
 import re
 from collections.abc import Hashable
 from datetime import datetime
-from typing import Any, Optional, TYPE_CHECKING
+from typing import Any, cast, Optional, TYPE_CHECKING
 
 import sqlalchemy as sqla
 from flask import current_app as app
@@ -64,7 +64,7 @@ from superset.sql.parse import (
     Table,
 )
 from superset.sqllab.limiting_factor import LimitingFactor
-from superset.superset_typing import ExplorableData, QueryObjectDict
+from superset.superset_typing import DatasetColumnData, ExplorableData, QueryObjectDict
 from superset.utils import json
 from superset.utils.core import (
     get_column_name,
@@ -258,7 +258,7 @@ class Query(
             ],
             "filter_select": True,
             "name": self.tab_name,
-            "columns": [o.data for o in self.columns],
+            "columns": [cast(DatasetColumnData, o.data) for o in self.columns],
             "metrics": [],
             "id": self.id,
             "type": self.type,
