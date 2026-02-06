@@ -210,3 +210,4 @@ export {
   type CodeEditorTheme,
 } from './CodeEditor';
 export { ActionButton, type ActionProps } from './ActionButton';
+export { CopyToClipboard, type CopyToClipboardProps } from './CopyToClipboard';
