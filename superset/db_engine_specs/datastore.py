@@ -317,8 +317,7 @@ class DatastoreEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-me
     @classmethod
     def fetch_data(cls, cursor: Any, limit: int | None = None) -> list[tuple[Any, ...]]:
         data = super().fetch_data(cursor, limit)
-        # Support type Datastore Row, introduced here PR #4071
-        # google.cloud.datastore.table.Row
+        # Support google.cloud.datastore Row type which has a values() method
         if data and hasattr(data[0], "values"):
             data = [r.values() for r in data]  # type: ignore
         return data
