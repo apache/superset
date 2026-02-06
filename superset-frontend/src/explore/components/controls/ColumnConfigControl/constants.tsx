@@ -58,6 +58,7 @@ const d3NumberFormat: ControlFormItemSpec<'Select'> = {
   creatable: true,
   minWidth: '14em',
   debounceDelay: 500,
+  tokenSeparators: [],
 };
 
 const d3TimeFormat: ControlFormItemSpec<'Select'> = {
@@ -72,6 +73,7 @@ const d3TimeFormat: ControlFormItemSpec<'Select'> = {
   creatable: true,
   minWidth: '10em',
   debounceDelay: 500,
+  tokenSeparators: [],
 };
 
 const fractionDigits: ControlFormItemSpec<'Slider'> = {
