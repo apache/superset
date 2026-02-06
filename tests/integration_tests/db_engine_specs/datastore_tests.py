@@ -21,6 +21,9 @@ from typing import Any
 import pytest
 from marshmallow.exceptions import ValidationError
 from sqlalchemy import column
+
+pytest.importorskip("sqlalchemy_datastore")
+
 from sqlalchemy.engine.url import make_url
 
 from superset.connectors.sqla.models import TableColumn
@@ -411,6 +414,8 @@ class TestDatastoreDbEngineSpec(SupersetTestCase):
         DefaultCredentialsError
         """
         from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
+
+        pytest.importorskip("google.auth")
 
         mapping = DatastoreEngineSpec.get_dbapi_exception_mapping()
         assert len(mapping) == 1
