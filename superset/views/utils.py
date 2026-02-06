@@ -14,12 +14,16 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
+from __future__ import annotations
+
 import contextlib
 import logging
 from collections import defaultdict
 from functools import wraps
-from typing import Any, Callable, DefaultDict, Optional, Union
+from typing import Any, Callable, DefaultDict
 from urllib import parse
+from uuid import UUID
 
 import msgpack
 import pyarrow as pa
@@ -163,7 +167,7 @@ def get_permissions(
 def get_viz(
     form_data: FormData,
     datasource_type: str,
-    datasource_id: int,
+    datasource_id: int | UUID,
     force: bool = False,
     force_cached: bool = False,
 ) -> BaseViz:
@@ -186,10 +190,10 @@ def loads_request_json(request_json_data: str) -> dict[Any, Any]:
 
 
 def get_form_data(
-    slice_id: Optional[int] = None,
+    slice_id: int | None = None,
     use_slice_data: bool = False,
-    initial_form_data: Optional[dict[str, Any]] = None,
-) -> tuple[dict[str, Any], Optional[Slice]]:
+    initial_form_data: dict[str, Any] | None = None,
+) -> tuple[dict[str, Any], Slice | None]:
     form_data: dict[str, Any] = initial_form_data or {}
 
     if has_request_context():
@@ -272,8 +276,10 @@ def add_sqllab_custom_filters(form_data: dict[Any, Any]) -> Any:
 
 
 def get_datasource_info(
-    datasource_id: Optional[int], datasource_type: Optional[str], form_data: FormData
-) -> tuple[int, Optional[str]]:
+    datasource_id: int | str | None,
+    datasource_type: str | None,
+    form_data: FormData,
+) -> tuple[int | UUID, str | None]:
     """
     Compatibility layer for handling of datasource info
 
@@ -300,12 +306,16 @@ def get_datasource_info(
             _("The dataset associated with this chart no longer exists")
         )
 
-    datasource_id = int(datasource_id)
-    return datasource_id, datasource_type
+    # Convert datasource_id to appropriate type
+    if isinstance(datasource_id, int):
+        return datasource_id, datasource_type
+    if datasource_id.isdigit():
+        return int(datasource_id), datasource_type
+    return UUID(datasource_id), datasource_type
 
 
 def apply_display_max_row_limit(
-    sql_results: dict[str, Any], rows: Optional[int] = None
+    sql_results: dict[str, Any], rows: int | None = None
 ) -> dict[str, Any]:
     """
     Given a `sql_results` nested structure, applies a limit to the number of rows
@@ -482,8 +492,8 @@ def check_explore_cache_perms(_self: Any, cache_key: str) -> None:
 
 def check_datasource_perms(
     _self: Any,
-    datasource_type: Optional[str] = None,
-    datasource_id: Optional[int] = None,
+    datasource_type: str | None = None,
+    datasource_id: int | str | None = None,
     **kwargs: Any,
 ) -> None:
     """
@@ -500,8 +510,10 @@ def check_datasource_perms(
     form_data = kwargs["form_data"] if "form_data" in kwargs else get_form_data()[0]
 
     try:
-        datasource_id, datasource_type = get_datasource_info(
-            datasource_id, datasource_type, form_data
+        ds_id, datasource_type = get_datasource_info(
+            datasource_id,
+            datasource_type,
+            form_data,
         )
     except SupersetException as ex:
         raise SupersetSecurityException(
@@ -524,7 +536,7 @@ def check_datasource_perms(
     try:
         viz_obj = get_viz(
             datasource_type=datasource_type,
-            datasource_id=datasource_id,
+            datasource_id=ds_id,
             form_data=form_data,
             force=False,
         )
@@ -541,7 +553,9 @@ def check_datasource_perms(
 
 
 def _deserialize_results_payload(
-    payload: Union[bytes, str], query: Query, use_msgpack: Optional[bool] = False
+    payload: bytes | str,
+    query: Query,
+    use_msgpack: bool | None = False,
 ) -> dict[str, Any]:
     logger.debug("Deserializing from msgpack: %r", use_msgpack)
     if use_msgpack:
@@ -579,9 +593,12 @@ def _deserialize_results_payload(
 
 
 def get_cta_schema_name(
-    database: Database, user: ab_models.User, schema: str, sql: str
-) -> Optional[str]:
-    func: Optional[Callable[[Database, ab_models.User, str, str], str]] = app.config[
+    database: Database,
+    user: ab_models.User,
+    schema: str,
+    sql: str,
+) -> str | None:
+    func: Callable[[Database, ab_models.User, str, str], str] | None = app.config[
         "SQLLAB_CTAS_SCHEMA_NAME_FUNC"
     ]
     if not func:
