@@ -166,11 +166,20 @@ async def get_chart_data(  # noqa: C901
                 )
                 if cached_form_data := _get_cached_form_data(request.form_data_key):
                     try:
-                        cached_form_data_dict = utils_json.loads(cached_form_data)
-                        using_unsaved_state = True
-                        await ctx.info(
-                            "Using cached form_data from form_data_key for data query"
-                        )
+                        parsed_form_data = utils_json.loads(cached_form_data)
+                        # Only use if it's actually a dict (not null, list, etc.)
+                        if isinstance(parsed_form_data, dict):
+                            cached_form_data_dict = parsed_form_data
+                            using_unsaved_state = True
+                            await ctx.info(
+                                "Using cached form_data from form_data_key "
+                                "for data query"
+                            )
+                        else:
+                            await ctx.warning(
+                                "Cached form_data is not a JSON object. "
+                                "Falling back to saved chart configuration."
+                            )
                     except (TypeError, ValueError) as e:
                         await ctx.warning(
                             "Failed to parse cached form_data: %s. "

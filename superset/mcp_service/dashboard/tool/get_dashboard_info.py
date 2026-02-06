@@ -144,8 +144,11 @@ async def get_dashboard_info(
                         )
                     else:
                         # Extract the state from permalink value
-                        # Cast to dict for Pydantic compatibility
-                        permalink_state = dict(permalink_value.get("state", {}))
+                        # Handle None or non-dict state gracefully
+                        raw_state = permalink_value.get("state")
+                        permalink_state = (
+                            dict(raw_state) if isinstance(raw_state, dict) else {}
+                        )
                         result.permalink_key = request.permalink_key
                         result.filter_state = permalink_state
                         result.is_permalink_state = True
