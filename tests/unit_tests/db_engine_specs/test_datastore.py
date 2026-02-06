@@ -496,6 +496,91 @@ def test_adjust_engine_params_no_catalog() -> None:
     assert str(uri) == "datastore://other-project/"
 
 
+def test_get_client_passes_database_from_url(mocker: MockerFixture) -> None:
+    """
+    Test that ``_get_client`` passes the ``database`` query parameter
+    from the engine URL through to ``datastore.Client``.
+    """
+    from superset.db_engine_specs.datastore import DatastoreEngineSpec
+
+    mock_client_cls = mocker.patch(
+        "superset.db_engine_specs.datastore.datastore.Client"
+    )
+    mocker.patch(
+        "superset.db_engine_specs.datastore.service_account"
+        ".Credentials.from_service_account_info",
+        return_value=mocker.MagicMock(),
+    )
+
+    engine = mocker.MagicMock()
+    engine.dialect.credentials_info = {"project_id": "my-project", "private_key": "k"}
+    engine.url.query = {"database": "my-db"}
+
+    database = mocker.MagicMock()
+
+    DatastoreEngineSpec._get_client(engine, database)
+    mock_client_cls.assert_called_once_with(
+        credentials=mocker.ANY, database="my-db"
+    )
+
+
+def test_get_client_passes_none_when_no_database(mocker: MockerFixture) -> None:
+    """
+    Test that ``_get_client`` passes ``database=None`` when the URL
+    has no ``database`` query parameter.
+    """
+    from superset.db_engine_specs.datastore import DatastoreEngineSpec
+
+    mock_client_cls = mocker.patch(
+        "superset.db_engine_specs.datastore.datastore.Client"
+    )
+    mocker.patch(
+        "superset.db_engine_specs.datastore.service_account"
+        ".Credentials.from_service_account_info",
+        return_value=mocker.MagicMock(),
+    )
+
+    engine = mocker.MagicMock()
+    engine.dialect.credentials_info = {"project_id": "my-project", "private_key": "k"}
+    engine.url.query = {}
+
+    database = mocker.MagicMock()
+
+    DatastoreEngineSpec._get_client(engine, database)
+    mock_client_cls.assert_called_once_with(
+        credentials=mocker.ANY, database=None
+    )
+
+
+def test_get_client_default_credentials_passes_database(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that ``_get_client`` passes ``database`` when falling back
+    to default credentials.
+    """
+    from superset.db_engine_specs.datastore import DatastoreEngineSpec
+
+    mock_client_cls = mocker.patch(
+        "superset.db_engine_specs.datastore.datastore.Client"
+    )
+    mock_google_auth = mocker.patch(
+        "superset.db_engine_specs.datastore.google.auth.default",
+        return_value=(mocker.MagicMock(), "my-project"),
+    )
+
+    engine = mocker.MagicMock()
+    engine.dialect.credentials_info = None
+    engine.url.query = {"database": "other-db"}
+
+    database = mocker.MagicMock()
+
+    DatastoreEngineSpec._get_client(engine, database)
+    mock_client_cls.assert_called_once_with(
+        credentials=mocker.ANY, database="other-db"
+    )
+
+
 def test_parameters_json_schema_has_encrypted_extra() -> None:
     """
     Test that ``parameters_json_schema`` marks ``credentials_info`` with

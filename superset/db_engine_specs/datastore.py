@@ -118,7 +118,7 @@ class DatastoreEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-me
 
     parameters_schema = DatastoreParametersSchema()
     default_driver = "datastore"
-    sqlalchemy_uri_placeholder = "datastore://{project_id}"
+    sqlalchemy_uri_placeholder = "datastore://{project_id}/?database={database_id}"
 
     # Use FETCH_MANY to prevent Superset from injecting LIMIT via sqlglot AST
     # manipulation. GQL queries should not be modified by sqlglot since it
@@ -138,7 +138,7 @@ class DatastoreEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-me
             DatabaseCategory.PROPRIETARY,
         ],
         "pypi_packages": ["python-datastore-sqlalchemy"],
-        "connection_string": "datastore://{project_id}",
+        "connection_string": "datastore://{project_id}/?database={database_id}",
         "authentication_methods": [
             {
                 "name": "Service Account JSON",
@@ -333,15 +333,21 @@ class DatastoreEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-me
                 "Could not import libraries needed to connect to Datastore."
             )
 
+        database_id = engine.url.query.get("database")
+
         if credentials_info := engine.dialect.credentials_info:
             credentials = service_account.Credentials.from_service_account_info(
                 credentials_info
             )
-            return datastore.Client(credentials=credentials)
+            return datastore.Client(
+                credentials=credentials, database=database_id
+            )
 
         try:
             credentials = google.auth.default()[0]
-            return datastore.Client(credentials=credentials)
+            return datastore.Client(
+                credentials=credentials, database=database_id
+            )
         except google.auth.exceptions.DefaultCredentialsError as ex:
             raise SupersetDBAPIConnectionError(
                 "The database credentials could not be found."
