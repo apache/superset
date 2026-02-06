@@ -216,7 +216,7 @@ class Metric:
     name: str
     type: TypeOf[Type]
 
-    definition: str | None
+    definition: str
     description: str | None = None
 
 
