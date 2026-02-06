@@ -65,7 +65,6 @@ except ImportError:
     dependencies_installed = False
 
 if TYPE_CHECKING:
-    from superset.models.core import Database  # pragma: no cover
     from superset.models.sql_lab import Query  # pragma: no cover
 
 CONNECTION_DATABASE_PERMISSIONS_REGEX = re.compile(
