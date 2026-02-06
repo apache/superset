@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { logging } from '@superset-ui/core';
+import { logging } from '@apache-superset/core';
 import { addInfoToast } from 'src/components/MessageToasts/actions';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import getBootstrapData from 'src/utils/getBootstrapData';

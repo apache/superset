@@ -41,6 +41,11 @@ class SeedSystemThemesCommand(BaseCommand):
         if theme_dark := app.config.get("THEME_DARK"):
             themes_to_seed.append(("THEME_DARK", theme_dark))
 
+        # Seed built-in accessibility themes
+        accessibility_themes = app.config.get("BUILT_IN_ACCESSIBILITY_THEMES", {})
+        for theme_key, theme_config in accessibility_themes.items():
+            themes_to_seed.append((theme_key, theme_config))
+
         for theme_name, theme_config in themes_to_seed:
             self._upsert_system_theme(theme_name, theme_config)
 

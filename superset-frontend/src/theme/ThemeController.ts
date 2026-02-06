@@ -1044,8 +1044,8 @@ export class ThemeController {
    * Get a display name for the current theme for error reporting
    */
   private getThemeDisplayName(themeConfig: AnyThemeConfig): string {
-    if (this.currentCrudThemeId) {
-      return `CRUD Theme (${this.currentCrudThemeId})`;
+    if (this.getCurrentCrudThemeId()) {
+      return `CRUD Theme (${this.getCurrentCrudThemeId()})`;
     }
 
     if (themeConfig === this.defaultTheme) {
