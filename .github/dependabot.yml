@@ -9,9 +9,10 @@ updates:
 
   - package-ecosystem: "npm"
     ignore:
-      # not until React >= 18.0.0
+      # TODO: remove below entries until React >= 18.0.0
       - dependency-name: "storybook"
       - dependency-name: "@storybook*"
+      - dependency-name: "eslint-plugin-storybook"
       # remark-gfm v4+ requires react-markdown v9+, which needs React 18
       - dependency-name: "remark-gfm"
       - dependency-name: "react-markdown"
@@ -355,6 +356,10 @@ updates:
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/packages/superset-ui-demo/"
+    ignore:
+      # TODO: remove below entries until React >= 18.0.0
+      - dependency-name: "@storybook/*"
+      - dependency-name: "@storybook/react"
     schedule:
       interval: "daily"
     labels:
