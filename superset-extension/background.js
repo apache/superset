@@ -84,12 +84,17 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     const data = await chrome.storage.local.get(['supersetUrl']);
 
     if (info.menuItemId === 'openSuperset') {
-      const url = data.supersetUrl || 'http://localhost:8088';
-      chrome.tabs.create({ url });
-    } else if (info.menuItemId === 'loginToSuperset') {
-      if (data.supersetUrl) {
-        chrome.tabs.create({ url: data.supersetUrl + '/login' });
+      if (!data.supersetUrl) {
+        console.log('Superset Auto Login: No Superset URL configured');
+        return;
       }
+      chrome.tabs.create({ url: data.supersetUrl });
+    } else if (info.menuItemId === 'loginToSuperset') {
+      if (!data.supersetUrl) {
+        console.log('Superset Auto Login: No Superset URL configured');
+        return;
+      }
+      chrome.tabs.create({ url: data.supersetUrl + '/login' });
     }
   } catch (error) {
     console.error('Superset Auto Login: Error in context menu handler:', error);
