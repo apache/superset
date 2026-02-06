@@ -27,29 +27,25 @@ import {
   QueryFormData,
   SetDataMaskHook,
   ContextMenuFilters,
-  Currency,
 } from '@superset-ui/core';
-import {
-  ColorFormatters,
+import type {
   BasicColorFormatterType,
-  CustomFormatter,
+  ColorFormatters,
   DataColumnMeta,
   ServerPaginationData,
-  SortByItem,
-  SearchOption,
   TableColumnConfig,
 } from '@superset-ui/chart-controls';
 
-// Re-export shared types for backwards compatibility
+// Re-export shared types used by internal plugin files that import from './types'
+// Types used locally in this file - re-export from local binding
 export type {
   BasicColorFormatterType,
-  CustomFormatter,
   DataColumnMeta,
   ServerPaginationData,
-  SortByItem,
-  SearchOption,
   TableColumnConfig,
 };
+// Types only re-exported, not used locally - direct re-export
+export type { SearchOption, SortByItem } from '@superset-ui/chart-controls';
 
 export interface TableChartData {
   records: DataRecord[];
