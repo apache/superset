@@ -16,12 +16,14 @@ body {
 
 .container {
   width: 100%;
+  max-width: 800px;
   height: 600px;
   margin: 0;
   background: white;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
 }
 
 .header {
@@ -87,13 +89,30 @@ body {
   border-bottom: 1px solid #e9ecef;
 }
 
+.search-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 12px;
+  width: 16px;
+  height: 16px;
+  color: #6c757d;
+  pointer-events: none;
+  z-index: 1;
+}
+
 .search-input {
   width: 100%;
-  padding: 12px 16px;
+  padding: 12px 16px 12px 40px;
   border: 2px solid #e9ecef;
   border-radius: 8px;
   font-size: 15px;
   transition: all 0.3s ease;
+  box-sizing: border-box;
 }
 
 .search-input:focus {
@@ -140,12 +159,17 @@ body {
 
 .dashboards-container {
   padding: 20px;
-  display: grid;
-  grid-template-columns: 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 15px;
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  align-items: stretch;
+  min-width: 0;
 }
 
 .dashboard-card {
@@ -153,6 +177,10 @@ body {
   border: 2px solid #e9ecef;
   border-radius: 8px;
   padding: 15px;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  flex-shrink: 0;
 }
 
 .dashboard-card:hover {
@@ -163,8 +191,8 @@ body {
 .dashboard-header {
   display: flex;
   align-items: flex-start;
+  justify-content: space-between;
   gap: 12px;
-  margin-bottom: 15px;
   position: relative;
 }
 
@@ -175,28 +203,112 @@ body {
 
 .dashboard-info {
   flex: 1;
+  min-width: 0;
+}
+
+.dashboard-title-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
 }
 
 .dashboard-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 6px;
+  font-size: 15px;
+  font-weight: 500;
+  color: #1f2937;
+  margin: 0;
   word-break: break-word;
+  line-height: 1.4;
+  cursor: text;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.dashboard-title:hover {
+  background-color: #f8f9fa;
+}
+
+.dashboard-title.editing {
+  background-color: white;
+  border: 2px solid #667eea;
+  outline: none;
+  padding: 4px 8px;
+  cursor: text;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
 .dashboard-meta {
-  font-size: 13px;
-  color: #6c757d;
+  font-size: 12px;
+  color: #6b7280;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
+  align-items: flex-start;
+  margin: 0;
 }
 
 .dashboard-meta span {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+}
+
+.meta-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  color: #6c757d;
+}
+
+.owner-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.modified-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+/* Status Badges */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.status-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.status-published {
+  background: #F0FFF4;
+  color: #5AC6B6;
+  border: 1px solid #5AC6B6;
+}
+
+.status-published .status-icon {
+  filter: brightness(0) saturate(100%) invert(68%) sepia(35%) saturate(892%) hue-rotate(121deg) brightness(93%) contrast(86%);
+}
+
+.status-draft {
+  background: #E4F1F2;
+  color: #2893C1;
+  border: 1px solid #2893C1;
+}
+
+.status-draft .status-icon {
+  filter: brightness(0) saturate(100%) invert(46%) sepia(94%) saturate(442%) hue-rotate(158deg) brightness(92%) contrast(88%);
 }
 
 .dashboard-actions {
@@ -269,6 +381,26 @@ body {
 
 .dropdown-item:active {
   background: #e9ecef;
+}
+
+.dropdown-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: #6c757d;
+}
+
+.delete-dashboard-item {
+  color: #dc3545; /* Red color for delete action */
+}
+
+.delete-dashboard-item:hover {
+  background-color: #fff5f5; /* Light red background on hover */
+  color: #c53030;
+}
+
+.delete-dashboard-item .dropdown-icon {
+  filter: invert(40%) sepia(90%) saturate(2000%) hue-rotate(340deg) brightness(0.9) contrast(1.2); /* Red filter */
 }
 
 .dropdown-divider {
@@ -818,6 +950,67 @@ body {
 .permalink-note {
   font-size: 13px;
   color: #6c757d;
+}
+
+.rename-dashboard-container {
+  text-align: left;
+}
+
+.rename-dashboard-container p {
+  margin-bottom: 15px;
+  font-size: 15px;
+  color: #333;
+  font-weight: 600;
+}
+
+.rename-input {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 20px;
+  border: 2px solid #e9ecef;
+  border-radius: 6px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.rename-input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.rename-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.rename-actions .btn {
+  padding: 10px 20px;
+  font-size: 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.rename-actions .btn-secondary {
+  background: #f8f9fa;
+  color: #333;
+  border: 1px solid #e9ecef;
+}
+
+.rename-actions .btn-secondary:hover {
+  background: #e9ecef;
+}
+
+.rename-actions .btn-primary {
+  background: #667eea;
+  color: white;
+}
+
+.rename-actions .btn-primary:hover {
+  background: #5568d3;
   margin-top: 15px;
   font-style: italic;
 }

@@ -45,12 +45,17 @@ async function loadUserData() {
       return;
     }
 
-    // Use stored URL or default to localhost
-    supersetUrl = data.supersetUrl || 'http://localhost:8088';
+    if (!data.supersetUrl) {
+      showError('Superset URL not configured. Please login first.');
+      setTimeout(() => {
+        window.location.href = 'popup.html';
+      }, 2000);
+      return;
+    }
+
+    supersetUrl = data.supersetUrl;
     accessToken = data.accessToken;
     username = data.username || 'User';
-
-    document.getElementById('welcomeMessage').textContent = `Welcome, ${username}! 👋`;
   } catch (error) {
     console.error('Error loading user data:', error);
     showError('Failed to load user data');
@@ -115,15 +120,22 @@ function createDashboardCard(dashboard) {
 
   const owners = dashboard.owners?.map(o => o.username || o.first_name || 'Unknown').join(', ') || 'Unknown';
   const modifiedDate = dashboard.changed_on_delta_humanized || 'Unknown';
+  const isPublished = dashboard.published;
+  const statusBadge = isPublished 
+    ? '<span class="status-badge status-published"><img src="icons/check-circle.svg" class="status-icon" alt="Published"> Published</span>' 
+    : '<span class="status-badge status-draft"><img src="icons/dash-circle.svg" class="status-icon" alt="Draft"> Draft</span>';
 
   card.innerHTML = `
-    <div class="dashboard-header">
+    <div class="dashboard-header">  
       <div class="dashboard-icon">📊</div>
       <div class="dashboard-info">
-        <div class="dashboard-title">${escapeHtml(dashboard.dashboard_title || 'Untitled Dashboard')}</div>
+        <div class="dashboard-title-container">
+          <div class="dashboard-title" data-dashboard-id="${dashboard.id}" contenteditable="false" title="Double click to rename">${escapeHtml(dashboard.dashboard_title || 'Untitled Dashboard')}</div>
+        </div>
         <div class="dashboard-meta">
-          <span>👤 ${escapeHtml(owners)}</span>
-          <span>🕒 Modified ${escapeHtml(modifiedDate)}</span>
+          <span class="owner-name"><img src="icons/user.svg" class="meta-icon" alt="Owner"> ${escapeHtml(owners)}</span>
+          <span class="modified-date"><img src="icons/clock.svg" class="meta-icon" alt="Modified"> Modified ${escapeHtml(modifiedDate)}</span>
+          ${statusBadge}
         </div>
       </div>
       <div class="dashboard-menu">
@@ -135,45 +147,30 @@ function createDashboardCard(dashboard) {
             📊 Dashboard Metadata
           </button>
           <div class="dropdown-divider"></div>
-          <button class="dropdown-item get-permalink-item" data-dashboard-id="${dashboard.id}" data-dashboard-title="${escapeHtml(dashboard.dashboard_title)}">
-            🔗 Get Link
-          </button>
           <button class="dropdown-item view-details-item" data-dashboard-id="${dashboard.id}">
             ℹ️ Details
           </button>
           <button class="dropdown-item view-charts-item" data-dashboard-id="${dashboard.id}" data-dashboard-title="${escapeHtml(dashboard.dashboard_title)}">
             📊 Charts
           </button>
+          <div class="dropdown-divider"></div>
           <button class="dropdown-item export-config-item" data-dashboard-id="${dashboard.id}" data-dashboard-title="${escapeHtml(dashboard.dashboard_title)}">
             📦 Export Config
           </button>
+          <div class="dropdown-divider"></div>
           <button class="dropdown-item open-dashboard-item" data-dashboard-id="${dashboard.id}">
-            🔗 Open
+            🔗 Open in Superset
+          </button>
+          <button class="dropdown-item get-permalink-item" data-dashboard-id="${dashboard.id}" data-dashboard-title="${escapeHtml(dashboard.dashboard_title)}">
+            🔗 Get Shareable Link
+          </button>
+          <div class="dropdown-divider"></div>
+          <button class="dropdown-item delete-dashboard-item" data-dashboard-id="${dashboard.id}" data-dashboard-title="${escapeHtml(dashboard.dashboard_title)}">
+            <img src="icons/trash3.svg" class="dropdown-icon" alt="Delete">
+            Delete
           </button>
         </div>
       </div>
-    </div>
-    <div class="dashboard-actions">
-      <button class="btn btn-info get-permalink-btn" data-dashboard-id="${dashboard.id}" data-dashboard-title="${escapeHtml(dashboard.dashboard_title)}">
-        🔗 Get Link
-      </button>
-      <button class="btn btn-info view-details-btn" data-dashboard-id="${dashboard.id}">
-        ℹ️ Details
-      </button>
-      <button class="btn btn-info view-charts-btn" data-dashboard-id="${dashboard.id}" data-dashboard-title="${escapeHtml(dashboard.dashboard_title)}">
-        📊 Charts
-      </button>
-    </div>
-    <div class="dashboard-actions" style="margin-top: 10px;">
-      <button class="btn btn-info data-browsing-btn" data-dashboard-id="${dashboard.id}" data-dashboard-title="${escapeHtml(dashboard.dashboard_title)}">
-        📊 Dashboard Metadata
-      </button>
-      <button class="btn btn-success export-config-btn" data-dashboard-id="${dashboard.id}" data-dashboard-title="${escapeHtml(dashboard.dashboard_title)}">
-        📦 Export Config
-      </button>
-      <button class="btn btn-secondary open-dashboard-btn" data-dashboard-id="${dashboard.id}">
-        🔗 Open
-      </button>
     </div>
   `;
 
@@ -224,36 +221,15 @@ function createDashboardCard(dashboard) {
     openDashboard(dashboard.id);
   });
 
-  // Add event listeners to existing buttons (MANTENER TODO)
-  const permalinkBtn = card.querySelector('.get-permalink-btn');
-  const detailsBtn = card.querySelector('.view-details-btn');
-  const chartsBtn = card.querySelector('.view-charts-btn');
-  const dataBrowsingBtn = card.querySelector('.data-browsing-btn');
-  const configBtn = card.querySelector('.export-config-btn');
-  const openBtn = card.querySelector('.open-dashboard-btn');
-
-  permalinkBtn.addEventListener('click', () => {
-    getDashboardPermalink(dashboard.id, dashboard.dashboard_title);
+  card.querySelector('.delete-dashboard-item').addEventListener('click', () => {
+    dropdownMenu.style.display = 'none';
+    deleteDashboard(dashboard.id, dashboard.dashboard_title);
   });
 
-  detailsBtn.addEventListener('click', () => {
-    getDashboardDetails(dashboard.id);
-  });
-
-  chartsBtn.addEventListener('click', () => {
-    getDashboardCharts(dashboard.id, dashboard.dashboard_title);
-  });
-
-  dataBrowsingBtn.addEventListener('click', () => {
-    getDataBrowsing(dashboard.id, dashboard.dashboard_title);
-  });
-
-  configBtn.addEventListener('click', () => {
-    exportDashboardConfig(dashboard.id, dashboard.dashboard_title);
-  });
-
-  openBtn.addEventListener('click', () => {
-    openDashboard(dashboard.id);
+  // Make title editable on double click
+  const titleElement = card.querySelector('.dashboard-title');
+  titleElement.addEventListener('dblclick', () => {
+    enableTitleEdit(titleElement, dashboard.id, dashboard.dashboard_title);
   });
 
   return card;
@@ -298,7 +274,7 @@ async function showBrowseDataModal(dashboardId, dashboardTitle) {
     </div>
   `;
 
-  showInfoModal(`Dashboard Metadata`, modalContent);
+  showInfoModal(`Browse Dashboard Data`, modalContent);
 
   // Load charts for Dashboard Data tab
   loadChartsForBrowsing(dashboardId, dashboardTitle);
@@ -773,6 +749,114 @@ async function exportDashboardConfig(dashboardId, dashboardTitle) {
     console.error('Error exporting dashboard:', error);
     hideExportModal();
     showNotification('❌ Export failed: ' + error.message, 'error');
+  }
+}
+
+// Enable inline title editing
+function enableTitleEdit(titleElement, dashboardId, currentTitle) {
+  const originalTitle = currentTitle;
+  
+  // Make element editable
+  titleElement.contentEditable = 'true';
+  titleElement.classList.add('editing');
+  
+  // Select all text
+  const range = document.createRange();
+  range.selectNodeContents(titleElement);
+  const selection = window.getSelection();
+  selection.removeAllRanges();
+  selection.addRange(range);
+  
+  // Focus the element
+  titleElement.focus();
+  
+  // Handle save on blur or Enter key
+  const saveEdit = async () => {
+    const newTitle = titleElement.textContent.trim();
+    
+    if (!newTitle) {
+      titleElement.textContent = originalTitle;
+      titleElement.contentEditable = 'false';
+      titleElement.classList.remove('editing');
+      showNotification('❌ Dashboard name cannot be empty', 'error');
+      return;
+    }
+    
+    if (newTitle === originalTitle) {
+      titleElement.contentEditable = 'false';
+      titleElement.classList.remove('editing');
+      return;
+    }
+    
+    // Save the new title
+    await performRename(dashboardId, newTitle);
+    titleElement.contentEditable = 'false';
+    titleElement.classList.remove('editing');
+  };
+  
+  const cancelEdit = () => {
+    titleElement.textContent = originalTitle;
+    titleElement.contentEditable = 'false';
+    titleElement.classList.remove('editing');
+  };
+  
+  // Save on blur (when clicking outside)
+  titleElement.addEventListener('blur', saveEdit, { once: true });
+  
+  // Save on Enter, cancel on Escape
+  titleElement.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      titleElement.blur(); // This will trigger saveEdit
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      cancelEdit();
+    }
+  }, { once: true });
+}
+
+async function performRename(dashboardId, newTitle) {
+  try {
+    showNotification('Renaming dashboard...', 'info');
+
+    // Get CSRF token
+    const csrfToken = await getCSRFToken();
+
+    // Update dashboard title via PUT request
+    const response = await fetch(`${supersetUrl}/api/v1/dashboard/${dashboardId}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrfToken
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        dashboard_title: newTitle
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: `Status ${response.status}` }));
+      throw new Error(errorData.message || `Failed to rename dashboard: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    // Update the dashboard in our local array
+    const dashboardIndex = dashboards.findIndex(d => d.id === dashboardId);
+    if (dashboardIndex !== -1) {
+      dashboards[dashboardIndex].dashboard_title = newTitle;
+    }
+
+    // Reload dashboards to refresh the UI
+    await loadDashboards();
+    
+    hideInfoModal();
+    showNotification('✅ Dashboard renamed successfully!', 'success');
+  } catch (error) {
+    console.error('Error renaming dashboard:', error);
+    showNotification('❌ Failed to rename dashboard: ' + error.message, 'error');
   }
 }
 
@@ -1256,7 +1340,7 @@ function showEmptyState() {
 
 function hideEmptyState() {
   document.getElementById('emptyState').style.display = 'none';
-  document.getElementById('dashboardsContainer').style.display = 'grid';
+  document.getElementById('dashboardsContainer').style.display = 'flex';
 }
 
 function showExportModal(message) {
@@ -1339,6 +1423,45 @@ async function getCSRFToken() {
   } catch (error) {
     console.error('Error getting CSRF token:', error);
     throw error;
+  }
+}
+
+async function deleteDashboard(dashboardId, dashboardTitle) {
+  // Confirm deletion
+  if (!confirm(`Are you sure you want to delete "${dashboardTitle}"?\n\nThis action cannot be undone.`)) {
+    return;
+  }
+
+  showNotification('Deleting dashboard...', 'info');
+
+  try {
+    const csrfToken = await getCSRFToken();
+    const response = await fetch(`${supersetUrl}/api/v1/dashboard/${dashboardId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'X-CSRFToken': csrfToken
+      },
+      credentials: 'include'
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || `Failed to delete dashboard: ${response.status}`);
+    }
+
+    // Remove dashboard from local array
+    const index = dashboards.findIndex(d => d.id === dashboardId);
+    if (index !== -1) {
+      dashboards.splice(index, 1);
+    }
+
+    // Refresh the display
+    displayDashboards(dashboards);
+    showNotification(`✅ Dashboard "${dashboardTitle}" deleted successfully!`, 'success');
+  } catch (error) {
+    console.error('Error deleting dashboard:', error);
+    showNotification(`❌ Delete failed: ${error.message}`, 'error');
   }
 }
 

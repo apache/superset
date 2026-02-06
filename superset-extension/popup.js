@@ -30,10 +30,8 @@ async function loadCredentials() {
   // Load Superset URL (always load this)
   if (data.supersetUrl) {
     document.getElementById('supersetUrl').value = data.supersetUrl;
-  } else {
-    // Default to localhost if not set
-    document.getElementById('supersetUrl').value = 'http://localhost:8088';
   }
+  // If no URL saved, field remains empty for user to enter
 
   // Load credentials if rememberPassword is not explicitly false (default is true)
   const shouldRemember = data.rememberPassword !== false;
