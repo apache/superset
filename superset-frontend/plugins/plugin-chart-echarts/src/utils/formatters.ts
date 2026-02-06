@@ -86,9 +86,7 @@ export function getTooltipTimeFormatter(
   return String;
 }
 
-export function getXAxisFormatter(
-  format?: string,
-): TimeFormatter | undefined {
+export function getXAxisFormatter(format?: string): TimeFormatter | undefined {
   if (format === SMART_DATE_ID) {
     return getSmartDateFormatter();
   }
