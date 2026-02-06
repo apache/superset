@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { NumberFormatter } from '@superset-ui/core';
+
 /*
  function for finding the max metric values among all series data for Radar Chart
 */
@@ -47,7 +49,7 @@ interface TooltipParams {
 
 interface TooltipMetricValue {
   metric: string;
-  value: number;
+  value: number | string;
 }
 
 export const renderNormalizedTooltip = (
@@ -55,6 +57,7 @@ export const renderNormalizedTooltip = (
   metrics: string[],
   getDenormalizedValue: (seriesName: string, value: string) => number,
   metricsWithCustomBounds: Set<string>,
+  formatter?: NumberFormatter,
 ): string => {
   const { color, name = '', value: values } = params;
   const seriesName = name || 'series0';
@@ -70,7 +73,7 @@ export const renderNormalizedTooltip = (
 
     return {
       metric,
-      value: originalValue,
+      value: formatter ? formatter(originalValue) : originalValue,
     };
   });
 
