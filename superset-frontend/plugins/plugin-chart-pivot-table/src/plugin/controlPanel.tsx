@@ -217,10 +217,10 @@ const config: ControlPanelConfig = {
             name: 'rowSubTotals',
             config: {
               type: 'CheckboxControl',
-              label: t('Show rows subtotal'),
+              label: t('Show rows subvalue'),
               default: false,
               renderTrigger: true,
-              description: t('Display row level subtotal'),
+              description: t('Display row level subvalue'),
             },
           },
         ],
@@ -241,10 +241,10 @@ const config: ControlPanelConfig = {
             name: 'colSubTotals',
             config: {
               type: 'CheckboxControl',
-              label: t('Show columns subtotal'),
+              label: t('Show columns subvalue'),
               default: false,
               renderTrigger: true,
-              description: t('Display column level subtotal'),
+              description: t('Display column level subvalue'),
             },
           },
         ],
@@ -366,7 +366,7 @@ const config: ControlPanelConfig = {
             name: 'rowSubtotalPosition',
             config: {
               type: 'SelectControl',
-              label: t('Rows subtotal position'),
+              label: t('Rows subvalue position'),
               default: false,
               choices: [
                 // [value, label]
@@ -374,7 +374,7 @@ const config: ControlPanelConfig = {
                 [false, t('Bottom')],
               ],
               renderTrigger: true,
-              description: t('Position of row level subtotal'),
+              description: t('Position of row level subvalue'),
             },
           },
         ],
@@ -383,7 +383,7 @@ const config: ControlPanelConfig = {
             name: 'colSubtotalPosition',
             config: {
               type: 'SelectControl',
-              label: t('Columns subtotal position'),
+              label: t('Columns subvalue position'),
               default: false,
               choices: [
                 // [value, label]
@@ -391,7 +391,7 @@ const config: ControlPanelConfig = {
                 [false, t('Right')],
               ],
               renderTrigger: true,
-              description: t('Position of column level subtotal'),
+              description: t('Position of column level subvalue'),
             },
           },
         ],
