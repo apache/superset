@@ -29,9 +29,9 @@ import {
   Icons,
   EmptyState,
   Loading,
+  Pagination,
   type EmptyStateProps,
 } from '@superset-ui/core/components';
-import { Pagination } from 'antd';
 import CardCollection from './CardCollection';
 import FilterControls from './Filters';
 import { CardSortSelect } from './CardSortSelect';
@@ -206,7 +206,7 @@ const ViewModeToggle = ({
       <div
         role="button"
         tabIndex={0}
-        onClick={e => {
+        onClick={(e: React.MouseEvent<HTMLDivElement>) => {
           e.currentTarget.blur();
           setMode('card');
         }}
@@ -219,7 +219,7 @@ const ViewModeToggle = ({
       <div
         role="button"
         tabIndex={0}
-        onClick={e => {
+        onClick={(e: React.MouseEvent<HTMLDivElement>) => {
           e.currentTarget.blur();
           setMode('table');
         }}
