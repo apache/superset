@@ -14,7 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Unit tests for dashboard version snapshot and restore."""
+"""Integration tests for dashboard version commands and DAO.
+
+These tests require a database with dashboard_versions table (run superset db upgrade).
+"""
 
 from unittest.mock import patch
 
@@ -829,12 +832,3 @@ def test_update_colors_config_mark_updated_false_preserves_changed_on():
         finally:
             db.session.delete(dashboard)
             db.session.commit()
-
-
-def test_dashboard_version_not_found_error_with_exception():
-    """DashboardVersionNotFoundError accepts optional exception and formats message."""
-    err = DashboardVersionNotFoundError(
-        version_id="99", exception=ValueError("underlying")
-    )
-    assert "99" in str(err)
-    assert err.status == 404
