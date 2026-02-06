@@ -241,11 +241,8 @@ if (!isDevMode) {
 
 // In dev mode, include theme.ts in preamble to avoid separate chunk HMR issues
 const PREAMBLE = isDevMode
-  ? [
-      path.join(APP_DIR, '/src/theme.ts'),
-      path.join(APP_DIR, '/src/preamble.ts'),
-    ]
-  : [path.join(APP_DIR, '/src/preamble.ts')];
+  ? [path.join(APP_DIR, 'src/theme.ts'), path.join(APP_DIR, 'src/preamble.ts')]
+  : [path.join(APP_DIR, 'src/preamble.ts')];
 
 function addPreamble(entry) {
   return PREAMBLE.concat([path.join(APP_DIR, entry)]);
@@ -314,10 +311,10 @@ const config = {
   entry: {
     preamble: PREAMBLE,
     // In dev mode, theme is included in preamble to avoid separate chunk HMR issues
-    ...(isDevMode ? {} : { theme: path.join(APP_DIR, '/src/theme.ts') }),
+    ...(isDevMode ? {} : { theme: path.join(APP_DIR, 'src/theme.ts') }),
     menu: addPreamble('src/views/menu.tsx'),
-    spa: addPreamble('/src/views/index.tsx'),
-    embedded: addPreamble('/src/embedded/index.tsx'),
+    spa: addPreamble('src/views/index.tsx'),
+    embedded: addPreamble('src/embedded/index.tsx'),
     'service-worker': path.join(APP_DIR, 'src/service-worker.ts'),
   },
   cache: {
