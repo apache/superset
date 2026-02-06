@@ -21,7 +21,7 @@ import { createD3NumberFormatter } from '@superset-ui/core';
 
 describe('createD3NumberFormatter(config)', () => {
   it('requires config.formatString', () => {
-    // @ts-ignore -- intentionally pass invalid input
+    // @ts-expect-error -- intentionally pass invalid input
     expect(() => createD3NumberFormatter({})).toThrow();
   });
   describe('config.formatString', () => {

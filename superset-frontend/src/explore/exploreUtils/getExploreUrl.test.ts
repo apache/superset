@@ -28,7 +28,7 @@ const createParams = () => ({
   curUrl: null,
   requestParams: {},
   allowDomainSharding: false,
-  method: 'POST',
+  method: 'POST' as const,
 });
 
 test('Get ExploreUrl with default params', () => {

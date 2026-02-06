@@ -263,7 +263,7 @@ describe('SaveDatasetModal', () => {
   });
 
   test('renders a checkbox button when template processing is enabled', () => {
-    // @ts-ignore
+    // @ts-expect-error
     global.featureFlags = {
       [FeatureFlag.EnableTemplateProcessing]: true,
     };
@@ -272,7 +272,7 @@ describe('SaveDatasetModal', () => {
   });
 
   test('correctly includes template parameters when template processing is enabled', () => {
-    // @ts-ignore
+    // @ts-expect-error
     global.featureFlags = {
       [FeatureFlag.EnableTemplateProcessing]: true,
     };
@@ -307,7 +307,7 @@ describe('SaveDatasetModal', () => {
   });
 
   test('correctly excludes template parameters when template processing is enabled', () => {
-    // @ts-ignore
+    // @ts-expect-error
     global.featureFlags = {
       [FeatureFlag.EnableTemplateProcessing]: true,
     };

@@ -134,7 +134,7 @@ describe('BigNumberWithTrendline', () => {
       expect(transformed.bigNumberFallback).toBeNull();
 
       // should successfully formatTime by granularity
-      // @ts-ignore
+      // @ts-expect-error
       expect(transformed.formatTime(new Date('2020-01-01'))).toStrictEqual(
         '2020-01-01 00:00:00',
       );
@@ -156,7 +156,7 @@ describe('BigNumberWithTrendline', () => {
         },
       };
       const transformed = transformProps(propsWithDatasource);
-      // @ts-ignore
+      // @ts-expect-error
       expect(transformed.headerFormatter(transformed.bigNumber)).toStrictEqual(
         '1.23',
       );
@@ -182,7 +182,7 @@ describe('BigNumberWithTrendline', () => {
         },
       };
       const transformed = transformProps(propsWithDatasource);
-      // @ts-ignore
+      // @ts-expect-error
       expect(transformed.headerFormatter(transformed.bigNumber)).toStrictEqual(
         '$ 1.23',
       );

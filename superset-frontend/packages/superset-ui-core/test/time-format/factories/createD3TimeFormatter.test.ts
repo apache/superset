@@ -71,9 +71,9 @@ const thLocale: TimeLocaleDefinition = {
 
 describe('createD3TimeFormatter(config)', () => {
   it('requires config.formatString', () => {
-    // @ts-ignore
+    // @ts-expect-error
     expect(() => createD3TimeFormatter()).toThrow();
-    // @ts-ignore
+    // @ts-expect-error
     expect(() => createD3TimeFormatter({})).toThrow();
   });
   describe('config.useLocalTime', () => {

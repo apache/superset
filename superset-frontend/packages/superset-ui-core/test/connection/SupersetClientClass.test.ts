@@ -529,15 +529,13 @@ describe('SupersetClientClass', () => {
 
     beforeEach(() => {
       originalLocation = window.location;
-      // @ts-ignore
+      // @ts-expect-error
       delete window.location;
-      // @ts-ignore
       window.location = {
         pathname: mockRequestPath,
-        // @ts-ignore
         search: mockRequestSearch,
         href: mockHref,
-      };
+      } as unknown as Location;
       authSpy = jest
         .spyOn(SupersetClientClass.prototype, 'ensureAuth')
         .mockImplementation();
@@ -568,13 +566,11 @@ describe('SupersetClientClass', () => {
     it('should not redirect again if already on login page', async () => {
       const client = new SupersetClientClass({});
 
-      // @ts-ignore
       window.location = {
         href: '/login?next=something',
         pathname: '/login',
-        // @ts-ignore
         search: '?next=something',
-      };
+      } as unknown as Location;
 
       let error;
       try {

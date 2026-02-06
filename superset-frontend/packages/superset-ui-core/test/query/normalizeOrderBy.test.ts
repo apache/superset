@@ -183,7 +183,7 @@ describe('normalizeOrderBy', () => {
       datasource: '5__table',
       viz_type: VizType.Table,
       time_range: '1 year ago : 2013',
-      // @ts-ignore
+      // @ts-expect-error
       orderby: [['count(*)', 'true']],
     };
     expect(normalizeOrderBy(query)).not.toHaveProperty('orderby');
