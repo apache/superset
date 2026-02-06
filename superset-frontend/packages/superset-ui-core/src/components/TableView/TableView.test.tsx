@@ -370,3 +370,37 @@ test('should handle large datasets with pagination', () => {
   expect(screen.getByRole('list')).toBeInTheDocument();
   expect(screen.getByText('1-10 of 100')).toBeInTheDocument();
 });
+
+test('should reset to first page when data reduces below current page', async () => {
+  // Start with 30 items, 10 per page = 3 pages
+  const initialData = Array.from({ length: 30 }, (_, i) => ({
+    id: i,
+    age: 20 + i,
+    name: `Person ${i}`,
+  }));
+
+  const props = {
+    ...mockedProps,
+    data: initialData,
+    pageSize: 10,
+  };
+
+  const { rerender } = render(<TableView {...props} />);
+
+  // Navigate to page 3 (last page)
+  const page3 = screen.getByRole('listitem', { name: '3' });
+  await userEvent.click(page3);
+
+  await waitFor(() => {
+    expect(screen.getByText('21-30 of 30')).toBeInTheDocument();
+  });
+
+  // Reduce data to only 5 items (fewer than current page would show)
+  const reducedData = initialData.slice(0, 5);
+  rerender(<TableView {...props} data={reducedData} />);
+
+  // Should reset to page 1 since page 3 no longer exists
+  await waitFor(() => {
+    expect(screen.getByText('1-5 of 5')).toBeInTheDocument();
+  });
+});
