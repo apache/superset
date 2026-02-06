@@ -837,6 +837,7 @@ export class TableRenderer extends Component {
       rowTotalCallbacks,
       namesMapping,
       allowRenderHtml,
+      visibleRowCount,
     } = pivotSettings;
 
     const {
@@ -878,6 +879,12 @@ export class TableRenderer extends Component {
           ? this.toggleRowKey(flatRowKey)
           : null;
 
+        const isLastRow = rowIdx + rowSpan === visibleRowCount;
+        let cellClassName = valueCellClassName;
+        if (isLastRow) {
+          cellClassName += ' pvtRowLabelLast';
+        }
+
         const headerCellFormattedValue =
           dateFormatters && dateFormatters[rowAttrs[i]]
             ? dateFormatters[rowAttrs[i]](r)
@@ -885,7 +892,7 @@ export class TableRenderer extends Component {
         return (
           <th
             key={`rowKeyLabel-${i}`}
-            className={valueCellClassName}
+            className={cellClassName}
             rowSpan={rowSpan}
             colSpan={colSpan}
             role="columnheader button"
@@ -1151,6 +1158,7 @@ export class TableRenderer extends Component {
       maxColVisible: Math.max(...visibleColKeys.map(k => k.length)),
       rowAttrSpans: this.calcAttrSpans(visibleRowKeys, rowAttrs.length),
       colAttrSpans: this.calcAttrSpans(visibleColKeys, colAttrs.length),
+      visibleRowCount: visibleRowKeys.length + (colTotals ? 1 : 0),
       allowRenderHtml,
       ...this.cachedBasePivotSettings,
     };
