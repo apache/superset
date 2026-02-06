@@ -718,7 +718,9 @@ export class TableRenderer extends Component {
               true,
             )}
           >
-            {t('Subtotal')}
+            {t('Subvalue (%(aggregatorName)s)', {
+              aggregatorName: t(this.props.aggregatorName),
+            })}
           </th>,
         );
       }
@@ -931,7 +933,9 @@ export class TableRenderer extends Component {
             true,
           )}
         >
-          {t('Subtotal')}
+          {t('Subvalue (%(aggregatorName)s)', {
+            aggregatorName: t(this.props.aggregatorName),
+          })}
         </th>
       ) : null;
 
