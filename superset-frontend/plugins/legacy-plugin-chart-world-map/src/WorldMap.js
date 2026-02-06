@@ -251,7 +251,10 @@ function WorldMap(element, props) {
           }
           const countryId = d3.select(this).attr('class').split(' ')[1];
           // Store original fill color for restoration
-          d3.select(this).attr('data-original-fill', d3.select(this).style('fill'));
+          d3.select(this).attr(
+            'data-original-fill',
+            d3.select(this).style('fill'),
+          );
         })
         .on('mouseout', function onMouseOut() {
           if (inContextMenu) {
