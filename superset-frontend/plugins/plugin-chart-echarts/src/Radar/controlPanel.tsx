@@ -35,7 +35,7 @@ import {
   getStandardizedControls,
 } from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA } from './types';
-import { LabelPositionEnum } from '../types'
+import { LabelPositionEnum } from '../types';
 import { legendSection } from '../controls';
 
 const { labelType, labelPosition, numberFormat, showLabels, isCircle } =

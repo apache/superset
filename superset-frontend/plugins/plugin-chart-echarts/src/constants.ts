@@ -49,7 +49,6 @@ export const TIMESERIES_CONSTANTS = {
   horizontalBarLabelRightPadding: 70,
 };
 
-
 export enum OpacityEnum {
   Transparent = 0,
   SemiTransparent = 0.3,
