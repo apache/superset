@@ -17,7 +17,7 @@
  * under the License.
  */
 import type { Dispatch, ReactElement, SetStateAction } from 'react';
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { useHistory } from 'react-router-dom';
 import { Menu, MenuItem } from '@superset-ui/core/components/Menu';
@@ -72,7 +72,6 @@ export const useHeaderActionsMenu = ({
   Dispatch<SetStateAction<boolean>>,
 ] => {
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
-  const menuRef = useRef<React.ReactElement | null>(null);
   const history = useHistory();
   const directPathToChild = useSelector(
     (state: RootState) => state.dashboardState.directPathToChild,
@@ -339,19 +338,5 @@ export const useHeaderActionsMenu = ({
     userCanShare,
   ]);
 
-  if (!menuRef.current) {
-    menuRef.current = menu;
-  }
-
-  useEffect(() => {
-    if (!isDropdownVisible) {
-      menuRef.current = menu;
-    }
-  }, [isDropdownVisible, menu]);
-
-  return [
-    isDropdownVisible && menuRef.current ? menuRef.current : menu,
-    isDropdownVisible,
-    setIsDropdownVisible,
-  ];
+  return [menu, isDropdownVisible, setIsDropdownVisible];
 };

@@ -20,6 +20,11 @@ import { render, screen, act } from 'spec/helpers/testing-library';
 import { StatusIndicatorDot } from './StatusIndicatorDot';
 import { AutoRefreshStatus } from '../../types/autoRefresh';
 
+afterEach(() => {
+  jest.runOnlyPendingTimers();
+  jest.useRealTimers();
+});
+
 test('renders with success status', () => {
   render(<StatusIndicatorDot status={AutoRefreshStatus.Success} />);
   const dot = screen.getByTestId('status-indicator-dot');
@@ -64,7 +69,7 @@ test('has correct accessibility attributes', () => {
   expect(dot).toHaveAttribute('aria-label', 'Auto-refresh status: success');
 });
 
-test('fetching status updates immediately without debounce', async () => {
+test('fetching status updates immediately without debounce', () => {
   jest.useFakeTimers();
 
   const { rerender } = render(
@@ -76,11 +81,9 @@ test('fetching status updates immediately without debounce', async () => {
 
   const dot = screen.getByTestId('status-indicator-dot');
   expect(dot).toHaveAttribute('data-status', AutoRefreshStatus.Fetching);
-
-  jest.useRealTimers();
 });
 
-test('debounces non-fetching status changes to prevent flickering', async () => {
+test('debounces non-fetching status changes to prevent flickering', () => {
   jest.useFakeTimers();
 
   const { rerender } = render(
@@ -102,8 +105,6 @@ test('debounces non-fetching status changes to prevent flickering', async () => 
   // Now should be error
   dot = screen.getByTestId('status-indicator-dot');
   expect(dot).toHaveAttribute('data-status', AutoRefreshStatus.Error);
-
-  jest.useRealTimers();
 });
 
 test('accepts custom size prop', () => {
