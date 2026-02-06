@@ -285,16 +285,20 @@ SELECT * \nFROM my_schema.my_table
 def test_interval_type_mutator() -> None:
     """
     DB Eng Specs (postgres): Test INTERVAL type mutator
+
+    INTERVAL values are converted to milliseconds so users can apply
+    the built-in "DURATION" number format for human-readable display.
     """
     mutator = spec.column_type_mutators[INTERVAL]
 
     # Test timedelta conversion (most common case from psycopg2)
+    # Result is in milliseconds for compatibility with DURATION formatter
     td = timedelta(days=1, hours=2, minutes=30, seconds=45)
-    assert mutator(td) == 95445.0  # Total seconds: 1*86400 + 2*3600 + 30*60 + 45
+    assert mutator(td) == 95445000.0  # Total ms: (1*86400 + 2*3600 + 30*60 + 45) * 1000
 
-    # Test numeric values (int/float) are converted to float
-    assert mutator(12345) == 12345.0
-    assert mutator(123.45) == 123.45
+    # Test numeric values (assumed to be seconds) are converted to milliseconds
+    assert mutator(12345) == 12345000.0
+    assert mutator(123.45) == 123450.0
 
     # Test None returns 0 (for aggregations)
     assert mutator(None) == 0
