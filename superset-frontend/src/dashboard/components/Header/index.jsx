@@ -423,6 +423,7 @@ const Header = () => {
       owners: dashboardInfo.owners,
       roles: dashboardInfo.roles,
       slug,
+      description: dashboardInfo.description,
       tags: (dashboardInfo.tags || []).filter(
         item => item.type === TagTypeEnum.Custom || !item.type,
       ),
@@ -477,6 +478,7 @@ const Header = () => {
     refreshFrequency,
     shouldPersistRefreshFrequency,
     slug,
+    dashboardInfo.description,
   ]);
 
   const {
@@ -535,6 +537,7 @@ const Header = () => {
     updates => {
       boundActionCreators.dashboardInfoChanged({
         slug: updates.slug,
+        description: updates.description,
         metadata: JSON.parse(updates.jsonMetadata || '{}'),
         certified_by: updates.certifiedBy,
         certification_details: updates.certificationDetails,

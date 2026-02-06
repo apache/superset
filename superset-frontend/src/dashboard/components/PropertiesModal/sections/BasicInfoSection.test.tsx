@@ -29,7 +29,7 @@ const defaultProps = {
   },
 };
 
-test('renders name and slug fields', () => {
+test('renders name, description and slug fields', () => {
   render(
     <Form>
       <BasicInfoSection {...defaultProps} />
@@ -38,6 +38,7 @@ test('renders name and slug fields', () => {
 
   expect(screen.getByTestId('dashboard-name-field')).toBeInTheDocument();
   expect(screen.getByTestId('dashboard-slug-field')).toBeInTheDocument();
+  expect(screen.getByTestId('dashboard-description-field')).toBeInTheDocument();
   expect(screen.getByTestId('dashboard-title-input')).toBeInTheDocument();
 });
 
