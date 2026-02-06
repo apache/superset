@@ -30,6 +30,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
+from sqlalchemy_utils import UUIDType
 
 from superset.migrations.shared.utils import (
     create_fks_for_table,
@@ -65,7 +66,7 @@ def upgrade():
     create_table(
         TASKS_TABLE,
         Column("id", Integer, primary_key=True),
-        Column("uuid", String(36), nullable=False, unique=True),
+        Column("uuid", UUIDType(binary=True), nullable=False, unique=True),
         Column("task_key", String(256), nullable=False),
         Column("task_type", String(100), nullable=False),
         Column("task_name", String(256), nullable=True),
@@ -92,6 +93,7 @@ def upgrade():
     create_index(TASKS_TABLE, "idx_tasks_ended_at", ["ended_at"])
     create_index(TASKS_TABLE, "idx_tasks_created_by", ["created_by_fk"])
     create_index(TASKS_TABLE, "idx_tasks_created_on", ["created_on"])
+    create_index(TASKS_TABLE, "idx_tasks_task_key", ["task_key"])
     create_index(TASKS_TABLE, "idx_tasks_task_type", ["task_type"])
     create_index(TASKS_TABLE, "idx_tasks_uuid", ["uuid"], unique=True)
 
@@ -212,6 +214,7 @@ def downgrade():
     drop_index(TASKS_TABLE, "idx_tasks_ended_at")
     drop_index(TASKS_TABLE, "idx_tasks_created_by")
     drop_index(TASKS_TABLE, "idx_tasks_created_on")
+    drop_index(TASKS_TABLE, "idx_tasks_task_key")
     drop_index(TASKS_TABLE, "idx_tasks_task_type")
     drop_index(TASKS_TABLE, "idx_tasks_uuid")
 

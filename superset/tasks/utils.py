@@ -22,7 +22,7 @@ import traceback
 from http.client import HTTPResponse
 from typing import cast, TYPE_CHECKING
 from urllib import request
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from celery.utils.log import get_task_logger
 from flask import g
@@ -215,7 +215,7 @@ def get_active_dedup_key(
     return hash_from_str(composite_key)[:64]
 
 
-def get_finished_dedup_key(task_uuid: str) -> str:
+def get_finished_dedup_key(task_uuid: UUID) -> str:
     """
     Build a deduplication key for finished tasks.
 
@@ -223,14 +223,15 @@ def get_finished_dedup_key(task_uuid: str) -> str:
     changed to its UUID. This frees up the slot so new tasks with the same
     parameters can be created.
 
-    :param task_uuid: Task UUID
-    :returns: The task UUID as the dedup key
+    :param task_uuid: Task UUID (native UUID type)
+    :returns: The task UUID string as the dedup key
 
     Example:
-        >>> get_finished_dedup_key("a1b2c3d4-e5f6-7890-abcd-ef1234567890")
+        >>> from uuid import UUID
+        >>> get_finished_dedup_key(UUID("a1b2c3d4-e5f6-7890-abcd-ef1234567890"))
         'a1b2c3d4-e5f6-7890-abcd-ef1234567890'
     """
-    return task_uuid
+    return str(task_uuid)
 
 
 # -----------------------------------------------------------------------------

@@ -20,6 +20,7 @@ import logging
 from datetime import datetime
 from functools import partial
 from typing import Any, TYPE_CHECKING
+from uuid import UUID
 
 from superset_core.api.tasks import TaskProperties
 
@@ -54,7 +55,7 @@ class UpdateTaskCommand(BaseCommand):
 
     def __init__(
         self,
-        task_uuid: str,
+        task_uuid: UUID,
         *,
         status: str | None = None,
         started_at: datetime | None = None,

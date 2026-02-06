@@ -18,7 +18,7 @@
 
 from __future__ import annotations
 
-import uuid
+import uuid as uuid_module
 from datetime import datetime, timezone
 from typing import Any, cast
 
@@ -31,6 +31,7 @@ from sqlalchemy import (
     Text,
 )
 from sqlalchemy.orm import relationship
+from sqlalchemy_utils import UUIDType
 from superset_core.api.models import Task as CoreTask
 from superset_core.api.tasks import TaskProperties, TaskStatus
 
@@ -62,7 +63,7 @@ class Task(CoreTask, AuditMixinNullable, Model):
     # Primary key and identifiers
     id = Column(Integer, primary_key=True)
     uuid = Column(
-        String(36), nullable=False, unique=True, default=lambda: str(uuid.uuid4())
+        UUIDType(binary=True), nullable=False, unique=True, default=uuid_module.uuid4
     )
 
     # Task metadata (filterable)
@@ -101,10 +102,12 @@ class Task(CoreTask, AuditMixinNullable, Model):
     properties = Column(Text, nullable=True, default="{}")
 
     # Relationships
+    # Use lazy="selectin" to avoid N+1 queries when listing tasks with subscribers
     subscribers = relationship(
         TaskSubscriber,
         back_populates="task",
         cascade="all, delete-orphan",
+        lazy="selectin",
     )
 
     def __repr__(self) -> str:
@@ -345,7 +348,7 @@ class Task(CoreTask, AuditMixinNullable, Model):
         """
         return {
             "id": self.id,
-            "uuid": self.uuid,
+            "uuid": str(self.uuid),
             "task_key": self.task_key,
             "task_type": self.task_type,
             "task_name": self.task_name,

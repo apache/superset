@@ -22,6 +22,7 @@ import logging
 import threading
 import time
 from typing import Any, Callable, TYPE_CHECKING
+from uuid import UUID
 
 import redis
 from superset_core.api.tasks import TaskProperties, TaskScope
@@ -51,7 +52,7 @@ class AbortListener:
 
     def __init__(
         self,
-        task_uuid: str,
+        task_uuid: UUID,
         thread: threading.Thread,
         stop_event: threading.Event,
         pubsub: redis.client.PubSub | None = None,
@@ -152,7 +153,7 @@ class TaskManager:
         return cls._get_cache() is not None
 
     @classmethod
-    def get_abort_channel(cls, task_uuid: str) -> str:
+    def get_abort_channel(cls, task_uuid: UUID) -> str:
         """
         Get the abort channel name for a task.
 
@@ -162,7 +163,7 @@ class TaskManager:
         return f"{cls._channel_prefix}{task_uuid}"
 
     @classmethod
-    def publish_abort(cls, task_uuid: str) -> bool:
+    def publish_abort(cls, task_uuid: UUID) -> bool:
         """
         Publish an abort message to the task's channel.
 
@@ -187,7 +188,7 @@ class TaskManager:
             return False
 
     @classmethod
-    def get_completion_channel(cls, task_uuid: str) -> str:
+    def get_completion_channel(cls, task_uuid: UUID) -> str:
         """
         Get the completion channel name for a task.
 
@@ -197,7 +198,7 @@ class TaskManager:
         return f"{cls._completion_channel_prefix}{task_uuid}"
 
     @classmethod
-    def publish_completion(cls, task_uuid: str, status: str) -> bool:
+    def publish_completion(cls, task_uuid: UUID, status: str) -> bool:
         """
         Publish a completion message to the task's channel.
 
@@ -229,7 +230,7 @@ class TaskManager:
     @classmethod
     def wait_for_completion(
         cls,
-        task_uuid: str,
+        task_uuid: UUID,
         timeout: float | None = None,
         poll_interval: float = 1.0,
         app: Any = None,
@@ -301,7 +302,7 @@ class TaskManager:
     @classmethod
     def _wait_via_pubsub(
         cls,
-        task_uuid: str,
+        task_uuid: UUID,
         pubsub: redis.client.PubSub,
         timeout: float | None,
         poll_interval: float,
@@ -362,7 +363,7 @@ class TaskManager:
     @classmethod
     def _wait_via_polling(
         cls,
-        task_uuid: str,
+        task_uuid: UUID,
         poll_interval: float,
         get_task: Callable[[], "Task | None"],
         time_remaining: Callable[[], float | None],
@@ -398,7 +399,7 @@ class TaskManager:
     @classmethod
     def listen_for_abort(
         cls,
-        task_uuid: str,
+        task_uuid: UUID,
         callback: Callable[[], None],
         poll_interval: float,
         app: Any = None,
@@ -409,7 +410,7 @@ class TaskManager:
         Uses Redis pub/sub if configured, otherwise uses database polling.
         The callback is invoked when an abort is detected.
 
-        :param task_uuid: UUID of the task to monitor
+        :param task_uuid: UUID of the task to monitor (native UUID)
         :param callback: Function to call when abort is detected
         :param poll_interval: Interval for database polling (when Redis not configured)
         :param app: Flask app for database access in background thread
@@ -417,6 +418,7 @@ class TaskManager:
         """
         stop_event = threading.Event()
         pubsub: redis.client.PubSub | None = None
+        uuid_str = str(task_uuid)
 
         # Use Redis pub/sub if configured
         if (cache := cls._get_cache()) is not None:
@@ -430,9 +432,9 @@ class TaskManager:
                 target=cls._listen_pubsub,
                 args=(task_uuid, pubsub, callback, stop_event, app),
                 daemon=True,
-                name=f"abort-listener-{task_uuid[:8]}",
+                name=f"abort-listener-{uuid_str[:8]}",
             )
-            logger.info("Started pub/sub abort listener for task %s", task_uuid)
+            logger.debug("Started pub/sub abort listener for task %s", task_uuid)
         else:
             # Use polling when Redis is not configured
             pubsub = None
@@ -440,9 +442,9 @@ class TaskManager:
                 target=cls._poll_for_abort,
                 args=(task_uuid, callback, stop_event, poll_interval, app),
                 daemon=True,
-                name=f"abort-poller-{task_uuid[:8]}",
+                name=f"abort-poller-{uuid_str[:8]}",
             )
-            logger.info(
+            logger.debug(
                 "Started database abort polling for task %s (interval=%ss)",
                 task_uuid,
                 poll_interval,
@@ -469,11 +471,11 @@ class TaskManager:
             callback()
 
     @classmethod
-    def _check_abort_status(cls, task_uuid: str) -> bool:
+    def _check_abort_status(cls, task_uuid: UUID) -> bool:
         """
         Check if task has been aborted via database query.
 
-        :param task_uuid: UUID of the task to check
+        :param task_uuid: UUID of the task to check (native UUID)
         :returns: True if task is in ABORTING or ABORTED state
         """
         from superset.daos.tasks import TaskDAO
@@ -484,7 +486,7 @@ class TaskManager:
     @classmethod
     def _run_abort_listener_loop(
         cls,
-        task_uuid: str,
+        task_uuid: UUID,
         callback: Callable[[], None],
         stop_event: threading.Event,
         interval: float,
@@ -495,7 +497,7 @@ class TaskManager:
         """
         Common abort listener loop used by both pub/sub and polling modes.
 
-        :param task_uuid: UUID of the task to monitor
+        :param task_uuid: UUID of the task to monitor (native UUID)
         :param callback: Function to call when abort is detected
         :param stop_event: Event to signal loop termination
         :param interval: Wait interval between checks
@@ -559,7 +561,7 @@ class TaskManager:
     @classmethod
     def _listen_pubsub(
         cls,
-        task_uuid: str,
+        task_uuid: UUID,
         pubsub: redis.client.PubSub,
         callback: Callable[[], None],
         stop_event: threading.Event,
@@ -650,7 +652,7 @@ class TaskManager:
     @classmethod
     def _poll_for_abort(
         cls,
-        task_uuid: str,
+        task_uuid: UUID,
         callback: Callable[[], None],
         stop_event: threading.Event,
         interval: float,
@@ -741,7 +743,7 @@ class TaskManager:
 
             # Schedule Celery task for async execution
             execute_task.delay(
-                task_uuid=task.uuid,
+                task_uuid=str(task.uuid),
                 task_type=task_type,
                 args=args,
                 kwargs=kwargs,

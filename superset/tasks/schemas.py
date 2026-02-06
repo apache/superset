@@ -72,7 +72,7 @@ class TaskResponseSchema(Schema):
     """
 
     id = fields.Int(metadata={"description": "Internal task ID"})
-    uuid = fields.String(metadata={"description": uuid_description})
+    uuid = fields.UUID(metadata={"description": uuid_description})
     task_key = fields.String(metadata={"description": task_key_description})
     task_type = fields.String(metadata={"description": task_type_description})
     task_name = fields.String(

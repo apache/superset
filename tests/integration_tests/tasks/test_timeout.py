@@ -156,8 +156,9 @@ class TestTimeoutHandling(SupersetTestCase):
         )
 
         # Execute task via Celery executor (synchronously)
+        # Use str(uuid) since Celery serializes args as JSON strings
         result = execute_task.apply(
-            args=[task_obj.uuid, "test_timeout_abortable", (), {}]
+            args=[str(task_obj.uuid), "test_timeout_abortable", (), {}]
         )
 
         # Verify execution completed
@@ -195,7 +196,10 @@ class TestTimeoutHandling(SupersetTestCase):
             # No timeout property
         )
 
-        result = execute_task.apply(args=[task_obj.uuid, "test_timeout_quick", (), {}])
+        # Use str(uuid) since Celery serializes args as JSON strings
+        result = execute_task.apply(
+            args=[str(task_obj.uuid), "test_timeout_quick", (), {}]
+        )
 
         assert result.successful()
         assert result.result["status"] == TaskStatus.SUCCESS.value
@@ -212,8 +216,9 @@ class TestTimeoutHandling(SupersetTestCase):
             properties={"timeout": 1},  # 1 second timeout
         )
 
+        # Use str(uuid) since Celery serializes args as JSON strings
         result = execute_task.apply(
-            args=[task_obj.uuid, "test_timeout_handler_fails", (), {}]
+            args=[str(task_obj.uuid), "test_timeout_handler_fails", (), {}]
         )
 
         assert result.successful()

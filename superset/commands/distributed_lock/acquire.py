@@ -18,7 +18,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import partial
 from typing import Any
 
@@ -121,7 +121,7 @@ class AcquireDistributedLock(BaseDistributedLockCommand):
             value={"value": True},
             codec=self.codec,
             key=self.key,
-            expires_on=datetime.now() + timedelta(seconds=self.ttl_seconds),
+            expires_on=datetime.now(timezone.utc) + timedelta(seconds=self.ttl_seconds),
         )
 
         logger.debug(

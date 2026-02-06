@@ -17,6 +17,7 @@
 """Unit tests for task decorators"""
 
 from unittest.mock import MagicMock, patch
+from uuid import UUID
 
 import pytest
 from superset_core.api.tasks import TaskOptions, TaskScope
@@ -24,6 +25,8 @@ from superset_core.api.tasks import TaskOptions, TaskScope
 from superset.commands.tasks.exceptions import GlobalTaskFrameworkDisabledError
 from superset.tasks.decorators import task, TaskWrapper
 from superset.tasks.registry import TaskRegistry
+
+TEST_UUID = UUID("b8b61b7b-1cd3-4a31-a74a-0a95341afc06")
 
 
 class TestTaskDecoratorFeatureFlag:
@@ -345,7 +348,7 @@ class TestTaskWrapperCall:
     ):
         """Test direct call uses decorator's default scope"""
         mock_task = MagicMock()
-        mock_task.uuid = "test-uuid"
+        mock_task.uuid = TEST_UUID
         mock_task.status = "in_progress"
         mock_submit_run_with_info.return_value = (mock_task, True)  # (task, is_new)
         mock_update_run.return_value = mock_task
@@ -371,7 +374,7 @@ class TestTaskWrapperCall:
         """Test direct call uses PRIVATE scope when no scope specified"""
         mock_get_user_id.return_value = 1
         mock_task = MagicMock()
-        mock_task.uuid = "test-uuid"
+        mock_task.uuid = TEST_UUID
         mock_task.status = "in_progress"
         mock_submit_run_with_info.return_value = (mock_task, True)  # (task, is_new)
         mock_update_run.return_value = mock_task
@@ -394,7 +397,7 @@ class TestTaskWrapperCall:
     ):
         """Test direct call with custom task options"""
         mock_task = MagicMock()
-        mock_task.uuid = "test-uuid"
+        mock_task.uuid = TEST_UUID
         mock_task.status = "in_progress"
         mock_submit_run_with_info.return_value = (mock_task, True)  # (task, is_new)
         mock_update_run.return_value = mock_task
@@ -435,7 +438,7 @@ class TestTaskWrapperCall:
     ):
         """Test shared task direct call works with task_key"""
         mock_task = MagicMock()
-        mock_task.uuid = "test-uuid"
+        mock_task.uuid = TEST_UUID
         mock_task.status = "in_progress"
         mock_submit_run_with_info.return_value = (mock_task, True)  # (task, is_new)
         mock_update_run.return_value = mock_task
@@ -459,7 +462,7 @@ class TestTaskWrapperCall:
         """Test private task direct call works without task_key"""
         mock_get_user_id.return_value = 1
         mock_task = MagicMock()
-        mock_task.uuid = "test-uuid"
+        mock_task.uuid = TEST_UUID
         mock_task.status = "in_progress"
         mock_submit_run_with_info.return_value = (mock_task, True)  # (task, is_new)
         mock_update_run.return_value = mock_task

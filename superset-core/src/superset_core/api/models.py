@@ -379,7 +379,7 @@ class Task(CoreModel):
 
     # Type hints for expected column attributes
     id: int
-    uuid: str
+    uuid: UUID
     task_key: str  # For deduplication
     task_type: str  # e.g., 'sql_execution'
     task_name: str | None  # Human readable name

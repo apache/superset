@@ -77,8 +77,9 @@ class TestUpdateTaskThrottling(SupersetTestCase):
             scope=TaskScope.SYSTEM,
         )
 
+        # Use str(uuid) since Celery serializes args as JSON strings
         result = execute_task.apply(
-            args=[task_obj.uuid, "test_throttle_combined", (), {}]
+            args=[str(task_obj.uuid), "test_throttle_combined", (), {}]
         )
 
         assert result.successful()

@@ -17,8 +17,7 @@
 """Task REST API"""
 
 import logging
-import uuid
-from typing import TYPE_CHECKING
+from uuid import UUID
 
 from flask import Response
 from flask_appbuilder.api import expose, protect, safe
@@ -50,19 +49,7 @@ from superset.views.base_api import (
 )
 from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
 
-if TYPE_CHECKING:
-    pass
-
 logger = logging.getLogger(__name__)
-
-
-def _is_valid_uuid(value: str) -> bool:
-    """Check if a string is a valid UUID format."""
-    try:
-        uuid.UUID(value)
-        return True
-    except (ValueError, AttributeError):
-        return False
 
 
 class TaskRestApi(BaseSupersetModelRestApi):
@@ -81,7 +68,12 @@ class TaskRestApi(BaseSupersetModelRestApi):
         "status": "read",
     }
 
-    include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
+    # Only allow read operations - no create/update/delete through REST API
+    # Tasks are created via SubmitTaskCommand, cancelled via /cancel endpoint
+    include_route_methods = {
+        RouteMethod.GET,
+        RouteMethod.GET_LIST,
+        RouteMethod.INFO,
         "cancel",
         "status",
         "related_subscribers",
@@ -163,7 +155,7 @@ class TaskRestApi(BaseSupersetModelRestApi):
     )
     openapi_spec_methods = openapi_spec_methods_override
 
-    @expose("/<uuid_or_id>", methods=("GET",))
+    @expose("/<task_uuid>", methods=("GET",))
     @protect()
     @safe
     @statsd_metrics
@@ -171,7 +163,7 @@ class TaskRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
         log_to_statsd=False,
     )
-    def get(self, uuid_or_id: str) -> Response:
+    def get(self, task_uuid: str) -> Response:
         """Get a task.
         ---
         get:
@@ -180,8 +172,9 @@ class TaskRestApi(BaseSupersetModelRestApi):
           - in: path
             schema:
               type: string
-            name: uuid_or_id
-            description: The UUID or ID of the task
+              format: uuid
+            name: task_uuid
+            description: The UUID of the task
           responses:
             200:
               description: Task detail
@@ -202,11 +195,8 @@ class TaskRestApi(BaseSupersetModelRestApi):
         from superset.daos.tasks import TaskDAO
 
         try:
-            # Try to find by UUID first, then by ID
-            if _is_valid_uuid(uuid_or_id):
-                task = TaskDAO.find_one_or_none(uuid=uuid_or_id)
-            else:
-                task = TaskDAO.find_by_id(int(uuid_or_id))
+            uuid = UUID(task_uuid)
+            task = TaskDAO.find_one_or_none(uuid=uuid)
 
             if not task:
                 return self.response_404()
@@ -216,7 +206,7 @@ class TaskRestApi(BaseSupersetModelRestApi):
         except (ValueError, TypeError):
             return self.response_404()
 
-    @expose("/<uuid_or_id>/status", methods=("GET",))
+    @expose("/<task_uuid>/status", methods=("GET",))
     @protect()
     @safe
     @statsd_metrics
@@ -224,7 +214,7 @@ class TaskRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.status",
         log_to_statsd=False,
     )
-    def status(self, uuid_or_id: str) -> Response:
+    def status(self, task_uuid: str) -> Response:
         """Get only the status of a task (lightweight for polling).
         ---
         get:
@@ -233,8 +223,9 @@ class TaskRestApi(BaseSupersetModelRestApi):
           - in: path
             schema:
               type: string
-            name: uuid_or_id
-            description: The UUID or ID of the task
+              format: uuid
+            name: task_uuid
+            description: The UUID of the task
           responses:
             200:
               description: Task status
@@ -256,20 +247,17 @@ class TaskRestApi(BaseSupersetModelRestApi):
         from superset.daos.tasks import TaskDAO
 
         try:
-            # Try to find by UUID first, then by ID
-            if _is_valid_uuid(uuid_or_id):
-                task = TaskDAO.find_one_or_none(uuid=uuid_or_id)
-            else:
-                task = TaskDAO.find_by_id(int(uuid_or_id))
+            uuid = UUID(task_uuid)
+            status = TaskDAO.get_status(uuid)
 
-            if not task:
+            if status is None:
                 return self.response_404()
 
-            return self.response(200, status=task.status)
+            return self.response(200, status=status)
         except (ValueError, TypeError):
             return self.response_404()
 
-    @expose("/<uuid_or_id>/cancel", methods=("POST",))
+    @expose("/<task_uuid>/cancel", methods=("POST",))
     @protect()
     @safe
     @statsd_metrics
@@ -277,7 +265,7 @@ class TaskRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.cancel",
         log_to_statsd=False,
     )
-    def cancel(self, uuid_or_id: str) -> Response:
+    def cancel(self, task_uuid: str) -> Response:
         """Cancel a task.
         ---
         post:
@@ -300,8 +288,9 @@ class TaskRestApi(BaseSupersetModelRestApi):
           - in: path
             schema:
               type: string
-            name: uuid_or_id
-            description: The UUID or ID of the task to cancel
+              format: uuid
+            name: task_uuid
+            description: The UUID of the task to cancel
           requestBody:
             content:
               application/json:
@@ -323,14 +312,12 @@ class TaskRestApi(BaseSupersetModelRestApi):
             422:
               $ref: '#/components/responses/422'
         """
-        return self._execute_cancel(uuid_or_id)
+        return self._execute_cancel(task_uuid)
 
-    def _execute_cancel(self, uuid_or_id: str) -> Response:
+    def _execute_cancel(self, task_uuid_str: str) -> Response:
         """Execute the cancel operation with error handling."""
         try:
-            task_uuid = self._resolve_task_uuid(uuid_or_id)
-            if task_uuid is None:
-                return self.response_404()
+            task_uuid = UUID(task_uuid_str)
 
             command, updated_task = self._run_cancel_command(task_uuid)
             return self._build_cancel_response(command, updated_task)
@@ -341,32 +328,22 @@ class TaskRestApi(BaseSupersetModelRestApi):
             if isinstance(ex, TaskPermissionDeniedError):
                 logger.warning(
                     "Permission denied cancelling task %s: %s",
-                    uuid_or_id,
+                    task_uuid_str,
                     str(ex),
                 )
             return self.response_403()
         except TaskNotAbortableError as ex:
-            logger.warning("Task %s is not cancellable: %s", uuid_or_id, str(ex))
+            logger.warning("Task %s is not cancellable: %s", task_uuid_str, str(ex))
             return self.response_422(message=str(ex))
         except TaskAbortFailedError as ex:
             logger.error(
-                "Error cancelling task %s: %s", uuid_or_id, str(ex), exc_info=True
+                "Error cancelling task %s: %s", task_uuid_str, str(ex), exc_info=True
             )
             return self.response_422(message=str(ex))
         except (ValueError, TypeError):
             return self.response_404()
 
-    def _resolve_task_uuid(self, uuid_or_id: str) -> str | None:
-        """Resolve a UUID or ID to a task UUID."""
-        from superset.daos.tasks import TaskDAO
-
-        if _is_valid_uuid(uuid_or_id):
-            return uuid_or_id
-
-        task = TaskDAO.find_by_id(uuid_or_id)
-        return task.uuid if task else None
-
-    def _run_cancel_command(self, task_uuid: str) -> tuple[CancelTaskCommand, "Task"]:
+    def _run_cancel_command(self, task_uuid: UUID) -> tuple[CancelTaskCommand, "Task"]:
         """Parse request and run the cancel command."""
         from flask import request
 

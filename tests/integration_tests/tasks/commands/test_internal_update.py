@@ -16,6 +16,8 @@
 # under the License.
 """Integration tests for internal task state update commands."""
 
+from uuid import UUID
+
 from superset_core.api.tasks import TaskScope, TaskStatus
 
 from superset import db
@@ -138,7 +140,7 @@ def test_internal_update_returns_false_for_nonexistent_task(
     login_as("admin")
 
     command = InternalUpdateTaskCommand(
-        task_uuid="00000000-0000-0000-0000-000000000000",
+        task_uuid=UUID("00000000-0000-0000-0000-000000000000"),
         properties={"is_abortable": True},
     )
     result = command.run()
@@ -409,7 +411,7 @@ def test_status_transition_nonexistent_task(app_context, login_as) -> None:
     login_as("admin")
 
     result = InternalStatusTransitionCommand(
-        task_uuid="00000000-0000-0000-0000-000000000000",
+        task_uuid=UUID("00000000-0000-0000-0000-000000000000"),
         new_status=TaskStatus.IN_PROGRESS,
         expected_status=TaskStatus.PENDING,
     ).run()
