@@ -15,6 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 """Add dashboard version history permissions (get/restore/update version)."""
+# Migration controls transaction (commit/rollback); @transaction not applicable.
+# pylint: disable=consider-using-transaction
 
 from alembic import op
 from sqlalchemy.exc import SQLAlchemyError
