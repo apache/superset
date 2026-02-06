@@ -58,6 +58,7 @@ export default function EchartsTimeseries({
   emitCrossFilters,
   coltypeMapping,
   onLegendScroll,
+  isRefreshing,
 }: TimeseriesChartTransformedProps) {
   const { stack } = formData;
   const echartRef = useRef<EchartsHandler | null>(null);
@@ -372,6 +373,7 @@ export default function EchartsTimeseries({
         zrEventHandlers={zrEventHandlers}
         selectedValues={selectedValues}
         vizType={formData.vizType}
+        isRefreshing={isRefreshing}
       />
     </>
   );

@@ -86,7 +86,6 @@ const headerStyles = (theme: SupersetTheme) => css`
 const buttonsStyles = (theme: SupersetTheme) => css`
   display: flex;
   align-items: center;
-  padding-left: ${theme.sizeUnit * 2}px;
 
   & .anticon-star {
     padding: 0 ${theme.sizeUnit}px;

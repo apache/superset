@@ -17,27 +17,46 @@
  * under the License.
  */
 
+import { DataMaskStateWithId, JsonObject } from '@superset-ui/core';
 import { Layout } from 'src/dashboard/types';
 import { ChartState } from 'src/explore/types';
 import { AlertObject } from 'src/features/alerts/types';
+import { ToastMeta } from 'src/components/MessageToasts/types';
+import { TagType } from 'src/components/Tag/TagType';
+import Owner from 'src/types/Owner';
+import Role from 'src/types/Role';
 
 interface DashboardInfo {
   id: number;
-  userId: string | undefined;
+  userId?: string;
   dash_edit_perm: boolean;
-  dash_save_perm: boolean;
+  dash_save_perm?: boolean;
+  dash_share_perm?: boolean;
   dash_export_perm?: boolean;
-  metadata?: Record<string, any>;
-  common?: { conf: Record<string, any> };
+  is_managed_externally?: boolean;
+  slug?: string;
+  last_modified_time?: number;
+  certified_by?: string;
+  certification_details?: string;
+  owners?: Owner[];
+  roles?: Role[];
+  tags?: TagType[];
+  metadata?: JsonObject & {
+    timed_refresh_immune_slices?: number[];
+    refresh_frequency?: number;
+  };
+  common?: { conf: JsonObject };
   theme?: {
     id: number;
     name: string;
   } | null;
 }
 
+type ToastOptions = Partial<Omit<ToastMeta, 'id' | 'toastType' | 'text'>>;
+
 export interface HeaderDropdownProps {
-  addSuccessToast: (msg: string) => void;
-  addDangerToast: () => void;
+  addSuccessToast: (msg: string, options?: ToastOptions) => void;
+  addDangerToast: (msg: string, options?: ToastOptions) => void;
   customCss: string;
   colorNamespace?: string;
   colorScheme?: string;
@@ -61,9 +80,9 @@ export interface HeaderDropdownProps {
   userCanCurate: boolean;
   userCanExport: boolean;
   manageEmbedded: () => void;
-  dataMask?: any;
+  dataMask?: DataMaskStateWithId;
   lastModifiedTime: number;
-  logEvent: () => void;
+  logEvent: (eventName: string, eventData: JsonObject) => void;
   refreshLimit?: number;
   refreshWarning?: string;
   directPathToChild?: string[];
@@ -72,14 +91,14 @@ export interface HeaderDropdownProps {
 }
 
 export interface HeaderProps {
-  addSuccessToast: () => void;
-  addDangerToast: () => void;
-  addWarningToast: () => void;
+  addSuccessToast: (msg: string, options?: ToastOptions) => void;
+  addDangerToast: (msg: string, options?: ToastOptions) => void;
+  addWarningToast: (msg: string, options?: ToastOptions) => void;
   colorNamespace?: string;
   charts: ChartState | {};
   colorScheme?: string;
   customCss: string;
-  user: object | undefined;
+  user: JsonObject | undefined;
   dashboardInfo: DashboardInfo;
   dashboardTitle: string;
   setColorScheme: () => void;
@@ -91,12 +110,12 @@ export interface HeaderProps {
   fetchFaveStar: () => void;
   saveFaveStar: () => void;
   savePublished: (dashboardId: number, isPublished: boolean) => void;
-  updateDashboardTitle: () => void;
+  updateDashboardTitle: (nextTitle: string) => void;
   editMode: boolean;
   setEditMode: () => void;
   showBuilderPane: () => void;
   updateCss: () => void;
-  logEvent: () => void;
+  logEvent: (eventName: string, eventData: JsonObject) => void;
   hasUnsavedChanges: boolean;
   maxUndoHistoryExceeded: boolean;
   lastModifiedTime: number;

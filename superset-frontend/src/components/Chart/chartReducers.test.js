@@ -33,9 +33,37 @@ describe('chart reducers', () => {
   });
 
   test('should update endtime on fail', () => {
-    const newState = chartReducer(charts, actions.chartUpdateStopped(chartKey));
+    const controller = {};
+    charts[chartKey] = {
+      ...charts[chartKey],
+      queryController: controller,
+    };
+    const newState = chartReducer(
+      charts,
+      actions.chartUpdateStopped(chartKey, controller),
+    );
     expect(newState[chartKey].chartUpdateEndTime).toBeGreaterThan(0);
     expect(newState[chartKey].chartStatus).toEqual('stopped');
+  });
+
+  test('should ignore stopped updates from stale controllers', () => {
+    const controller = {};
+    const staleController = {};
+    charts[chartKey] = {
+      ...charts[chartKey],
+      chartStatus: 'loading',
+      queryController: controller,
+    };
+
+    const newState = chartReducer(
+      charts,
+      actions.chartUpdateStopped(chartKey, staleController),
+    );
+
+    expect(newState[chartKey].chartStatus).toEqual('loading');
+    expect(newState[chartKey].chartUpdateEndTime).toEqual(
+      charts[chartKey].chartUpdateEndTime,
+    );
   });
 
   test('should update endtime on timeout', () => {

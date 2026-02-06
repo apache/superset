@@ -132,6 +132,7 @@ function Echart(
     selectedValues = {},
     refs,
     vizType,
+    isRefreshing,
   }: EchartsProps,
   ref: Ref<EchartsHandler>,
 ) {
@@ -244,15 +245,30 @@ function Echart(
         ? theme.echartsOptionsOverridesByChartType?.[vizType] || {}
         : {};
 
+      // Disable animations during auto-refresh to reduce visual noise
+      const animationOverride = isRefreshing
+        ? {
+            animation: false,
+            animationDuration: 0,
+          }
+        : {};
+
       const themedEchartOptions = mergeReplaceArrays(
         baseTheme,
         echartOptions,
         globalOverrides,
         chartOverrides,
+        animationOverride,
       );
 
-      chartRef.current?.setOption(themedEchartOptions, true);
+      const notMerge = !isRefreshing;
+      chartRef.current?.setOption(themedEchartOptions, {
+        notMerge,
+        replaceMerge: notMerge ? undefined : ['series'],
+        lazyUpdate: isRefreshing,
+      });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- isRefreshing intentionally excluded to prevent extra setOption calls
   }, [didMount, echartOptions, eventHandlers, zrEventHandlers, theme, vizType]);
 
   useEffect(() => () => chartRef.current?.dispose(), []);

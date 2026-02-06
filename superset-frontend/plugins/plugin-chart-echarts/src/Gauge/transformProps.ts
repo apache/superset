@@ -62,7 +62,7 @@ export const getIntervalBoundsAndColors = (
   try {
     intervalBoundsNonNormalized = parseNumbersList(intervals, ',');
     intervalColorIndicesArray = parseNumbersList(intervalColorIndices, ',');
-  } catch (error) {
+  } catch {
     intervalBoundsNonNormalized = [] as number[];
     intervalColorIndicesArray = [] as number[];
   }
@@ -105,6 +105,7 @@ export default function transformProps(
     theme,
     emitCrossFilters,
     datasource,
+    isRefreshing,
   } = chartProps;
 
   const gaugeSeriesOptions = defaultGaugeSeriesOption(theme);
@@ -380,5 +381,6 @@ export default function transformProps(
     onContextMenu,
     refs,
     coltypeMapping,
+    isRefreshing,
   };
 }

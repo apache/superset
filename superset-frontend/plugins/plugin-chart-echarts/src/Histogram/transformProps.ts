@@ -45,6 +45,7 @@ export default function transformProps(
     formData,
     height,
     hooks,
+    isRefreshing,
     legendState = {},
     queriesData,
     theme,
@@ -64,7 +65,8 @@ export default function transformProps(
     yAxisTitle,
     yAxisFormat,
   } = formData;
-  const { data } = queriesData[0];
+  const [queryData] = queriesData;
+  const { data } = queryData;
   const colorFn = CategoricalColorNamespace.getScale(colorScheme);
 
   const formatter = (format: string) =>
@@ -202,6 +204,7 @@ export default function transformProps(
     width,
     height,
     echartOptions,
+    isRefreshing,
     onFocusedSeries,
     onLegendStateChanged,
   };

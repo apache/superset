@@ -113,7 +113,6 @@ const ChartHolder = ({
   const directPathLastUpdated = useSelector(
     (state: RootState) => state.dashboardState.directPathLastUpdated ?? 0,
   );
-
   const [extraControls, setExtraControls] = useState<Record<string, unknown>>(
     {},
   );
@@ -327,6 +326,7 @@ const ChartHolder = ({
       focusHighlightStyles,
       isFullSize,
       fullSizeStyle,
+      theme.colorPrimary,
       chartId,
       outlinedComponentId,
       outlinedColumnName,

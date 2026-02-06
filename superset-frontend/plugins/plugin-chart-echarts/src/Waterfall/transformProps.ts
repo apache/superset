@@ -168,9 +168,11 @@ export default function transformProps(
     hooks,
     theme,
     inContextMenu,
+    isRefreshing,
   } = chartProps;
   const refs: Refs = {};
-  const { data = [] } = queriesData[0];
+  const [queryData] = queriesData;
+  const { data = [] } = queryData;
   const coltypeMapping = getColtypesMapping(queriesData[0]);
   const { setDataMask = () => {}, onContextMenu, onLegendStateChanged } = hooks;
   const {
@@ -439,7 +441,7 @@ export default function transformProps(
     },
     legend: {
       show: showLegend,
-      selected: legendState,
+      ...(legendState != null && { selected: legendState }),
       data: [legendNames.INCREASE, legendNames.DECREASE, legendNames.TOTAL],
     },
     xAxis: {
@@ -488,5 +490,6 @@ export default function transformProps(
     setDataMask,
     onContextMenu,
     onLegendStateChanged,
+    isRefreshing,
   };
 }

@@ -166,6 +166,7 @@ export default function transformProps(
     filterState,
     emitCrossFilters,
     theme,
+    isRefreshing,
   } = chartProps;
   const data: DataRecord[] = queriesData[0].data || [];
   const coltypeMapping = getColtypesMapping(queriesData[0]);
@@ -199,7 +200,7 @@ export default function transformProps(
   const refs: Refs = {};
   const metricLabel = getMetricLabel(metric);
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
-  const firstColor = colorFn.range()[0];
+  const [firstColor] = colorFn.range();
   const nodes: { [name: string]: number } = {};
   const categories: Set<string> = new Set();
   const echartNodes: EChartGraphNode[] = [];
@@ -375,5 +376,6 @@ export default function transformProps(
     refs,
     emitCrossFilters,
     coltypeMapping,
+    isRefreshing,
   };
 }

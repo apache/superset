@@ -88,6 +88,7 @@ export default function transformProps(
       columnFormats = {},
       currencyCodeColumn,
     },
+    isRefreshing,
   } = chartProps;
   const {
     colorPicker,
@@ -115,6 +116,7 @@ export default function transformProps(
     showYAxisMinMaxLabels = false,
   } = formData;
   const granularity = extractTimegrain(rawFormData);
+  const [primaryQueryData] = queriesData;
   const {
     data = [],
     colnames = [],
@@ -122,7 +124,7 @@ export default function transformProps(
     from_dttm: fromDatetime,
     to_dttm: toDatetime,
     detected_currency: detectedCurrency,
-  } = queriesData[0];
+  } = primaryQueryData;
 
   const aggregatedQueryData = queriesData.length > 1 ? queriesData[1] : null;
 
@@ -150,6 +152,7 @@ export default function transformProps(
   let timestamp = data.length === 0 ? null : data[0][xAxisLabel];
   let bigNumberFallback = null;
   let sortedData: [number | null, number | null][] = [];
+  let latestDatum: [number | null, number | null] | undefined;
 
   if (data.length > 0) {
     sortedData = (data as BigNumberDatum[])
@@ -164,7 +167,9 @@ export default function transformProps(
       .sort((a, b) => (a[0] !== null && b[0] !== null ? b[0] - a[0] : 0));
   }
   if (sortedData.length > 0) {
-    timestamp = sortedData[0][0];
+    [latestDatum] = sortedData;
+    const [latestTimestamp] = latestDatum;
+    timestamp = latestTimestamp;
 
     // Raw aggregation uses server-side data, all others use client-side
     if (aggregation === 'raw' && hasAggregatedData && aggregatedData) {
@@ -197,11 +202,12 @@ export default function transformProps(
     }
   }
 
-  if (compareLag > 0 && sortedData.length > 0) {
+  if (compareLag > 0 && sortedData.length > 0 && latestDatum) {
     const compareIndex = compareLag;
     if (compareIndex < sortedData.length) {
-      const compareFromValue = sortedData[compareIndex][1];
-      const compareToValue = sortedData[0][1];
+      const compareDatum = sortedData[compareIndex];
+      const [, compareFromValue] = compareDatum;
+      const [, compareToValue] = latestDatum;
       // compare values must both be non-nulls
       if (compareToValue !== null && compareFromValue !== null) {
         percentChange = compareFromValue
@@ -403,5 +409,6 @@ export default function transformProps(
     onContextMenu,
     xValueFormatter: formatTime,
     refs,
+    isRefreshing,
   };
 }
