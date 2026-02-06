@@ -176,7 +176,7 @@ export const xAxisSortControl = {
       // When there are multiple series (via groupby or multiple metrics),
       // also expose the series-based sort options.
       const multiSeriesOptions = isMultiSortAvailable
-        ? SORT_SERIES_CHOICES.map(([value,label]: [string,string]) => ({
+        ? SORT_SERIES_CHOICES.map(([value, label]: [string, string]) => ({
             value,
             label,
           }))
