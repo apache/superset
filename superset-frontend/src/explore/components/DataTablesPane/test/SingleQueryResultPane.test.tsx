@@ -74,7 +74,7 @@ test('SingleQueryResultPane renders table and filters data', async () => {
   });
 });
 
-test('SingleQueryResultPane resets pagination when filter changes via key prop', () => {
+test('SingleQueryResultPane renders TableView correctly', () => {
   const { container } = render(<SingleQueryResultPane {...defaultProps} />, {
     useTheme: true,
     useRedux: true,
@@ -83,12 +83,6 @@ test('SingleQueryResultPane resets pagination when filter changes via key prop',
   // Verify TableView is rendered
   const tableView = container.querySelector('.table-condensed');
   expect(tableView).toBeInTheDocument();
-
-  // The key={filterText} prop on TableView ensures it remounts when filterText changes.
-  // This is a documented React pattern for resetting component state - when the key
-  // changes, React treats it as a new component instance and resets all internal state,
-  // including pagination. This prevents the "currentPage > totalPages" error when
-  // filtering reduces the number of pages below the current page number.
 });
 
 test('SingleQueryResultPane shows no results message when filter matches nothing', async () => {
