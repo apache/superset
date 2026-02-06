@@ -77,6 +77,14 @@ from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.dashboard import DashboardDAO, EmbeddedDashboardDAO
+from superset.dashboards.activity.commands.get_activity import (
+    GetDashboardActivityCommand,
+)
+from superset.dashboards.activity.schemas import (
+    DashboardActivityQuerySchema,
+    DashboardActivityResponseSchema,
+    DashboardActivitySummarySchema,
+)
 from superset.dashboards.filters import (
     DashboardAccessFilter,
     DashboardCertifiedFilter,
@@ -244,6 +252,8 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         "put_chart_customizations",
         "put_colors",
         "export_as_example",
+        "activity",
+        "activity_summary",
     }
     resource_name = "dashboard"
     allow_browser_login = True
@@ -426,6 +436,8 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         GetFavStarIdsSchema,
         EmbeddedDashboardResponseSchema,
         DashboardScreenshotPostSchema,
+        DashboardActivityResponseSchema,
+        DashboardActivitySummarySchema,
     )
     apispec_parameter_schemas = {
         "get_delete_ids_schema": get_delete_ids_schema,
@@ -1962,6 +1974,142 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         embedded: EmbeddedDashboard = dashboard.embedded[0]
         result = self.embedded_response_schema.dump(embedded)
         return self.response(200, result=result)
+
+    @expose("/<id_or_slug>/activity/", methods=("GET",))
+    @protect()
+    @safe
+    @permission_name("read")
+    @statsd_metrics
+    @validate_feature_flags(["DASHBOARD_ACTIVITY_FEED"])
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.activity",
+        log_to_statsd=False,
+    )
+    @with_dashboard
+    def activity(self, dashboard: Dashboard) -> Response:
+        """Get dashboard activity feed.
+        ---
+        get:
+          summary: Get dashboard activity feed
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: id_or_slug
+            description: The dashboard id or slug
+          - in: query
+            name: page
+            schema:
+              type: integer
+              default: 0
+          - in: query
+            name: page_size
+            schema:
+              type: integer
+              default: 25
+          - in: query
+            name: action_type
+            schema:
+              type: string
+              enum: [view, edit, export, chart_interaction, all]
+              default: all
+          - in: query
+            name: days
+            schema:
+              type: integer
+              default: 30
+          responses:
+            200:
+              description: Dashboard activity feed
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/DashboardActivityResponseSchema'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            args = DashboardActivityQuerySchema().load(request.args)
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+
+        command = GetDashboardActivityCommand(
+            dashboard_id=dashboard.id,
+            page=args["page"],
+            page_size=args["page_size"],
+            action_type=args["action_type"],
+            days=args["days"],
+        )
+        return self.response(200, result=command.run())
+
+    @expose("/<id_or_slug>/activity/summary/", methods=("GET",))
+    @protect()
+    @safe
+    @permission_name("read")
+    @statsd_metrics
+    @validate_feature_flags(["DASHBOARD_ACTIVITY_FEED"])
+    @event_logger.log_this_with_context(
+        action=lambda self,
+        *args,
+        **kwargs: f"{self.__class__.__name__}.activity_summary",
+        log_to_statsd=False,
+    )
+    @with_dashboard
+    def activity_summary(self, dashboard: Dashboard) -> Response:
+        """Get dashboard activity summary.
+        ---
+        get:
+          summary: Get dashboard activity summary
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: id_or_slug
+            description: The dashboard id or slug
+          - in: query
+            name: days
+            schema:
+              type: integer
+              default: 30
+          responses:
+            200:
+              description: Dashboard activity summary
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/DashboardActivitySummarySchema'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            args = DashboardActivityQuerySchema(only=("days",)).load(request.args)
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+
+        command = GetDashboardActivityCommand(
+            dashboard_id=dashboard.id,
+            days=args["days"],
+            summary_only=True,
+        )
+        return self.response(200, result=command.run())
 
     @expose("/<id_or_slug>/embedded", methods=["POST", "PUT"])
     @protect()

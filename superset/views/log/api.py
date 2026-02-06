@@ -17,7 +17,7 @@
 from typing import Any, Optional
 
 from flask import current_app as app
-from flask_appbuilder.api import expose, protect, rison, safe
+from flask_appbuilder.api import expose, permission_name, protect, rison, safe
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.filters import FilterRelationOneToManyEqual
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -28,9 +28,16 @@ from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from superset.daos.log import LogDAO
 from superset.exceptions import SupersetSecurityException
 from superset.superset_typing import FlaskResponse
-from superset.views.base_api import BaseSupersetModelRestApi, statsd_metrics
+from superset.views.base_api import (
+    BaseSupersetModelRestApi,
+    statsd_metrics,
+    validate_feature_flags,
+)
 from superset.views.log import LogMixin
 from superset.views.log.schemas import (
+    AdminActivityItemSchema,
+    AdminActivityResponseSchema,
+    get_admin_activity_schema,
     get_recent_activity_schema,
     openapi_spec_methods_override,
     RecentActivityResponseSchema,
@@ -40,7 +47,13 @@ from superset.views.log.schemas import (
 
 class LogRestApi(LogMixin, BaseSupersetModelRestApi):
     datamodel = SQLAInterface(models.Log)
-    include_route_methods = {"get_list", "get", "post", "recent_activity"}
+    include_route_methods = {
+        "get_list",
+        "get",
+        "post",
+        "recent_activity",
+        "admin_activity",
+    }
     class_permission_name = "Log"
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
     resource_name = "log"
@@ -76,10 +89,13 @@ class LogRestApi(LogMixin, BaseSupersetModelRestApi):
     page_size = 20
     apispec_parameter_schemas = {
         "get_recent_activity_schema": get_recent_activity_schema,
+        "get_admin_activity_schema": get_admin_activity_schema,
     }
     openapi_spec_component_schemas = (
         RecentActivityResponseSchema,
         RecentActivitySchema,
+        AdminActivityItemSchema,
+        AdminActivityResponseSchema,
     )
 
     openapi_spec_methods = openapi_spec_methods_override
@@ -153,3 +169,66 @@ class LogRestApi(LogMixin, BaseSupersetModelRestApi):
         payload = LogDAO.get_recent_activity(actions, distinct, page, page_size)
 
         return self.response(200, result=payload)
+
+    @expose("/admin_activity/", methods=("GET",))
+    @protect()
+    @safe
+    @permission_name("read")
+    @statsd_metrics
+    @validate_feature_flags(["ADMIN_ACTIVITY_FEED"])
+    @rison(get_admin_activity_schema)
+    @event_logger.log_this_with_context(
+        action=lambda self,
+        *args,
+        **kwargs: f"{self.__class__.__name__}.admin_activity",
+        log_to_statsd=False,
+    )
+    def admin_activity(self, **kwargs: Any) -> FlaskResponse:
+        """Get admin-wide activity feed.
+        ---
+        get:
+          summary: Get admin-wide activity feed
+          parameters:
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/get_admin_activity_schema'
+          responses:
+            200:
+              description: A list of admin activity objects
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/AdminActivityResponseSchema'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        args = kwargs["rison"]
+        page, page_size = self._sanitize_page_args(*self._handle_page_args(args))
+        action_types = args.get("action_types", ["view", "edit", "export"])
+        days = max(1, min(args.get("days", 7), 90))
+        coalesce = args.get("coalesce", True)
+
+        result, count = LogDAO.get_admin_activity(
+            action_types=action_types,
+            page=page,
+            page_size=page_size,
+            days=days,
+            coalesce=coalesce,
+        )
+
+        return self.response(
+            200,
+            result=result,
+            count=count,
+            page=page,
+            page_size=page_size,
+        )

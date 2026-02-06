@@ -26,6 +26,17 @@ get_recent_activity_schema = {
     },
 }
 
+get_admin_activity_schema = {
+    "type": "object",
+    "properties": {
+        "page": {"type": "number"},
+        "page_size": {"type": "number"},
+        "days": {"type": "number"},
+        "action_types": {"type": "array", "items": {"type": "string"}},
+        "coalesce": {"type": "boolean"},
+    },
+}
+
 openapi_spec_methods_override = {
     "get": {"get": {"summary": "Get a log detail information"}},
     "get_list": {
@@ -64,3 +75,35 @@ class RecentActivityResponseSchema(Schema):
         fields.Nested(RecentActivitySchema),
         metadata={"description": "A list of recent activity objects"},
     )
+
+
+class AdminActivityActorSchema(Schema):
+    id = fields.Integer(allow_none=True)
+    username = fields.String()
+    first_name = fields.String(allow_none=True)
+    last_name = fields.String(allow_none=True)
+
+
+class AdminActivityItemSchema(Schema):
+    id = fields.Integer()
+    actor = fields.Nested(AdminActivityActorSchema)
+    action = fields.String()
+    action_category = fields.String()
+    object_type = fields.String(allow_none=True)
+    object_id = fields.Integer(allow_none=True)
+    object_title = fields.String(allow_none=True)
+    object_url = fields.String(allow_none=True)
+    timestamp = fields.DateTime()
+    event_count = fields.Integer()
+    first_seen = fields.DateTime()
+    last_seen = fields.DateTime()
+
+
+class AdminActivityResponseSchema(Schema):
+    result = fields.List(
+        fields.Nested(AdminActivityItemSchema),
+        metadata={"description": "A list of admin activity objects"},
+    )
+    count = fields.Integer()
+    page = fields.Integer()
+    page_size = fields.Integer()

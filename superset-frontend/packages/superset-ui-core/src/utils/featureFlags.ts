@@ -22,6 +22,7 @@ import { logging as logger } from '@apache-superset/core';
 // check into source control. We're hardcoding the supported flags for now.
 export enum FeatureFlag {
   // PLEASE KEEP THE LIST SORTED ALPHABETICALLY
+  AdminActivityFeed = 'ADMIN_ACTIVITY_FEED',
   AlertsAttachReports = 'ALERTS_ATTACH_REPORTS',
   AlertReports = 'ALERT_REPORTS',
   AlertReportTabs = 'ALERT_REPORT_TABS',
@@ -33,6 +34,7 @@ export enum FeatureFlag {
   ChartPluginsExperimental = 'CHART_PLUGINS_EXPERIMENTAL',
   ConfirmDashboardDiff = 'CONFIRM_DASHBOARD_DIFF',
   CssTemplates = 'CSS_TEMPLATES',
+  DashboardActivityFeed = 'DASHBOARD_ACTIVITY_FEED',
   DashboardVirtualization = 'DASHBOARD_VIRTUALIZATION',
   DashboardVirtualizationDeferData = 'DASHBOARD_VIRTUALIZATION_DEFER_DATA',
   DashboardRbac = 'DASHBOARD_RBAC',

@@ -62,6 +62,7 @@ import { PageHeaderWithActions } from '@superset-ui/core/components/PageHeaderWi
 import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import DashboardEmbedModal from '../EmbeddedModal';
 import OverwriteConfirm from '../OverwriteConfirm';
+import ActivityFeed from '../ActivityFeed';
 import {
   addDangerToast,
   addSuccessToast,
@@ -715,6 +716,10 @@ const Header = () => {
         ) : (
           <div css={actionButtonsStyle}>
             {NavExtension && <NavExtension />}
+            {!isEmbedded &&
+              isFeatureEnabled(FeatureFlag.DashboardActivityFeed) && (
+                <ActivityFeed dashboardId={dashboardInfo.id} />
+              )}
             {userCanEdit && (
               <Button
                 buttonStyle="secondary"

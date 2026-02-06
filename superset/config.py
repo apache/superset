@@ -590,6 +590,9 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # These features are finished but currently being tested.
     # They are usable, but may still contain some bugs.
     # -----------------------------------------------------------------
+    # Enables admin-wide activity feed panel on the welcome page.
+    # @lifecycle: testing
+    "ADMIN_ACTIVITY_FEED": True,
     # Enables filter functionality in Alerts and Reports
     # @lifecycle: testing
     "ALERT_REPORTS_FILTER": False,
@@ -703,6 +706,10 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # @category: runtime_config
     # @docs: https://superset.apache.org/docs/using-superset/creating-your-first-dashboard
     "DASHBOARD_RBAC": False,
+    # Enables dashboard-level activity feed in dashboard header and API.
+    # @lifecycle: stable
+    # @category: runtime_config
+    "DASHBOARD_ACTIVITY_FEED": True,
     # Supports simultaneous data and dashboard virtualization for backend performance
     # @lifecycle: stable
     # @category: runtime_config

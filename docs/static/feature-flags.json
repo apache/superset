@@ -84,6 +84,12 @@
     ],
     "testing": [
       {
+        "name": "ADMIN_ACTIVITY_FEED",
+        "default": true,
+        "lifecycle": "testing",
+        "description": "Enables admin-wide activity feed panel on the welcome page."
+      },
+      {
         "name": "ALERT_REPORTS",
         "default": false,
         "lifecycle": "testing",
@@ -230,6 +236,13 @@
         "default": true,
         "lifecycle": "stable",
         "description": "Enables CSS Templates in Settings menu and dashboard forms",
+        "category": "runtime_config"
+      },
+      {
+        "name": "DASHBOARD_ACTIVITY_FEED",
+        "default": true,
+        "lifecycle": "stable",
+        "description": "Enables dashboard-level activity feed in dashboard header and API.",
         "category": "runtime_config"
       },
       {

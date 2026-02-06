@@ -52,6 +52,7 @@ import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { userHasPermission } from 'src/dashboard/util/permissionUtils';
 import { WelcomePageLastTab } from 'src/features/home/types';
 import ActivityTable from 'src/features/home/ActivityTable';
+import AdminActivityPanel from 'src/features/home/AdminActivityPanel';
 import ChartTable from 'src/features/home/ChartTable';
 import SavedQueries from 'src/features/home/SavedQueries';
 import DashboardTable from 'src/features/home/DashboardTable';
@@ -156,6 +157,9 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
   const userKey = dangerouslyGetItemDoNotUse(id, null);
   let defaultChecked = false;
   const isThumbnailsEnabled = isFeatureEnabled(FeatureFlag.Thumbnails);
+  const isAdminActivityEnabled = isFeatureEnabled(
+    FeatureFlag.AdminActivityFeed,
+  );
   if (isThumbnailsEnabled) {
     defaultChecked =
       userKey?.thumbnails === undefined ? true : userKey?.thumbnails;
@@ -360,6 +364,17 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
               onChange={handleCollapse}
               ghost
               items={[
+                ...(isAdminActivityEnabled
+                  ? [
+                      {
+                        key: 'admin-activity',
+                        label: t('Activity Feed'),
+                        children: (
+                          <AdminActivityPanel showThumbnails={checked} />
+                        ),
+                      },
+                    ]
+                  : []),
                 {
                   key: 'recents',
                   label: t('Recents'),
