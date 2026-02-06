@@ -154,13 +154,12 @@ def test_select_star(mocker: MockerFixture) -> None:
         )
     )
 
-    engine = mocker.MagicMock()
-    engine.dialect = CloudDatastoreDialect()
+    dialect = CloudDatastoreDialect()
 
     sql = DatastoreEngineSpec.select_star(
         database=database,
         table=Table("my_table"),
-        engine=engine,
+        dialect=dialect,
         limit=100,
         show_cols=True,
         indent=True,
