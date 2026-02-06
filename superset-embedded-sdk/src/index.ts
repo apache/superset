@@ -249,13 +249,17 @@ export async function embedDashboard({
   ourPort.emit('guestToken', { guestToken });
   log('sent guest token');
 
+  let refreshTokenTimerId: ReturnType<typeof setTimeout> | 'INITIAL' | 'UNMOUNTED' = 'INITIAL';
   async function refreshGuestToken() {
     const newGuestToken = await fetchGuestToken();
+    if (refreshTokenTimerId === 'UNMOUNTED') {
+      return;
+    }
     ourPort.emit('guestToken', { guestToken: newGuestToken });
-    setTimeout(refreshGuestToken, getGuestTokenRefreshTiming(newGuestToken));
+    refreshTokenTimerId = setTimeout(refreshGuestToken, getGuestTokenRefreshTiming(newGuestToken));
   }
 
-  setTimeout(refreshGuestToken, getGuestTokenRefreshTiming(guestToken));
+  refreshTokenTimerId = setTimeout(refreshGuestToken, getGuestTokenRefreshTiming(guestToken));
 
   // Register the resolvePermalinkUrl method for the iframe to call
   // Returns null if no callback provided or on error, allowing iframe to use default URL
@@ -277,7 +281,10 @@ export async function embedDashboard({
 
   function unmount() {
     log('unmounting');
-    //@ts-ignore
+
+    clearTimeout(refreshTokenTimerId);
+    refreshTokenTimerId = 'UNMOUNTED';
+
     mountPoint.replaceChildren();
   }
 
