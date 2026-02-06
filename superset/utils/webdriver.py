@@ -159,7 +159,9 @@ class WebDriverProxy(ABC):
         self._screenshot_load_wait = app.config["SCREENSHOT_LOAD_WAIT"]
 
     @abstractmethod
-    def get_screenshot(self, url: str, element_name: str, user: User) -> bytes | None:
+    def get_screenshot(
+        self, url: str, element_name: str, user: User | None = None
+    ) -> bytes | None:
         """
         Run webdriver and return a screenshot
         """
@@ -224,7 +226,7 @@ class WebDriverPlaywright(WebDriverProxy):
             return element.screenshot()
 
     def get_screenshot(  # pylint: disable=too-many-locals, too-many-statements  # noqa: C901
-        self, url: str, element_name: str, user: User
+        self, url: str, element_name: str, user: User | None = None
     ) -> bytes | None:
         if not PLAYWRIGHT_AVAILABLE:
             logger.info(
@@ -252,7 +254,8 @@ class WebDriverPlaywright(WebDriverProxy):
             context.set_default_timeout(
                 app.config["SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT"]
             )
-            self.auth(user, context)
+            if user:
+                self.auth(user, context)
             page = context.new_page()
             try:
                 page.goto(
@@ -318,7 +321,7 @@ class WebDriverPlaywright(WebDriverProxy):
                 logger.debug(
                     "Taking a PNG screenshot of url %s as user %s",
                     url,
-                    user.username,
+                    user.username if user else "None",
                 )
                 if app.config["SCREENSHOT_REPLACE_UNEXPECTED_ERRORS"]:
                     unexpected_errors = WebDriverPlaywright.find_unexpected_errors(page)
@@ -399,6 +402,29 @@ class WebDriverPlaywright(WebDriverProxy):
 
 
 class WebDriverSelenium(WebDriverProxy):
+    def __init__(
+        self,
+        driver_type: str,
+        window: WindowSize | None = None,
+        user: User | None = None,
+    ):
+        super().__init__(driver_type, window)
+        self._user = user
+        self._driver: WebDriver | None = None
+
+    def __del__(self) -> None:
+        self._destroy()
+
+    @property
+    def driver(self) -> WebDriver:
+        if not self._driver:
+            self._driver = self._create()
+            assert self._driver  # for mypy
+            self._driver.set_window_size(*self._window)
+            if self._user:
+                self._auth(self._user)
+        return self._driver
+
     def _create_firefox_driver(
         self, pixel_density: float
     ) -> tuple[type[WebDriver], type[Service], dict[str, Any]]:
@@ -455,7 +481,7 @@ class WebDriverSelenium(WebDriverProxy):
                         )
         return config
 
-    def create(self) -> WebDriver:
+    def _create(self) -> WebDriver:
         pixel_density = app.config["WEBDRIVER_WINDOW"].get("pixel_density", 1)
 
         # Get driver class and initial kwargs based on driver type
@@ -516,25 +542,31 @@ class WebDriverSelenium(WebDriverProxy):
         logger.debug("Init selenium driver")
         return driver_class(**kwargs)
 
-    def auth(self, user: User) -> WebDriver:
-        driver = self.create()
+    def _auth(self, user: User) -> WebDriver:
         return machine_auth_provider_factory.instance.authenticate_webdriver(
-            driver, user
+            self.driver, user
         )
 
-    @staticmethod
-    def destroy(driver: WebDriver, tries: int = 2) -> None:
+    def _destroy(self) -> None:
         """Destroy a driver"""
+        if not self._driver:
+            return
+
         # This is some very flaky code in selenium. Hence the retries
         # and catch-all exceptions
         try:
-            retry_call(driver.close, max_tries=tries)
+            retry_call(
+                self._driver.close,
+                max_tries=app.config["SCREENSHOT_SELENIUM_RETRIES"],
+            )
         except Exception:  # pylint: disable=broad-except  # noqa: S110
             pass
         try:
-            driver.quit()
+            self._driver.quit()
         except Exception:  # pylint: disable=broad-except  # noqa: S110
             pass
+
+        self._driver = None
 
     @staticmethod
     def find_unexpected_errors(driver: WebDriver) -> list[str]:
@@ -592,10 +624,14 @@ class WebDriverSelenium(WebDriverProxy):
 
         return error_messages
 
-    def get_screenshot(self, url: str, element_name: str, user: User) -> bytes | None:  # noqa: C901
-        driver = self.auth(user)
-        driver.set_window_size(*self._window)
-        driver.get(url)
+    def get_screenshot(  # noqa: C901
+        self, url: str, element_name: str, user: User | None = None
+    ) -> bytes | None:
+        if user and not self._user:
+            self._user = user
+            if self._driver:
+                self._auth(user)
+        self.driver.get(url)
         img: bytes | None = None
         selenium_headstart = app.config["SCREENSHOT_SELENIUM_HEADSTART"]
         logger.debug("Sleeping for %i seconds", selenium_headstart)
@@ -607,9 +643,9 @@ class WebDriverSelenium(WebDriverProxy):
                 logger.debug(
                     "Wait for the presence of %s at url: %s", element_name, url
                 )
-                element = WebDriverWait(driver, self._screenshot_locate_wait).until(
-                    EC.presence_of_element_located((By.CLASS_NAME, element_name))
-                )
+                element = WebDriverWait(
+                    self.driver, self._screenshot_locate_wait
+                ).until(EC.presence_of_element_located((By.CLASS_NAME, element_name)))
             except TimeoutException:
                 logger.exception("Selenium timed out requesting url %s", url)
                 raise
@@ -617,7 +653,7 @@ class WebDriverSelenium(WebDriverProxy):
             try:
                 # chart containers didn't render
                 logger.debug("Wait for chart containers to draw at url: %s", url)
-                WebDriverWait(driver, self._screenshot_locate_wait).until(
+                WebDriverWait(self.driver, self._screenshot_locate_wait).until(
                     EC.visibility_of_all_elements_located(
                         (By.CLASS_NAME, "chart-container")
                     )
@@ -626,7 +662,7 @@ class WebDriverSelenium(WebDriverProxy):
                 logger.info("Timeout Exception caught")
                 # Fallback to allow a screenshot of an empty dashboard
                 try:
-                    WebDriverWait(driver, 0).until(
+                    WebDriverWait(self.driver, 0).until(
                         EC.visibility_of_all_elements_located(
                             (By.CLASS_NAME, "grid-container")
                         )
@@ -643,7 +679,7 @@ class WebDriverSelenium(WebDriverProxy):
                 logger.debug(
                     "Wait for loading element of charts to be gone at url: %s", url
                 )
-                WebDriverWait(driver, self._screenshot_load_wait).until_not(
+                WebDriverWait(self.driver, self._screenshot_load_wait).until_not(
                     EC.presence_of_all_elements_located((By.CLASS_NAME, "loading"))
                 )
             except TimeoutException:
@@ -658,11 +694,13 @@ class WebDriverSelenium(WebDriverProxy):
             logger.debug(
                 "Taking a PNG screenshot of url %s as user %s",
                 url,
-                user.username,
+                user.username if user else "None",
             )
 
             if app.config["SCREENSHOT_REPLACE_UNEXPECTED_ERRORS"]:
-                unexpected_errors = WebDriverSelenium.find_unexpected_errors(driver)
+                unexpected_errors = WebDriverSelenium.find_unexpected_errors(
+                    self.driver
+                )
                 if unexpected_errors:
                     logger.warning(
                         "%i errors found in the screenshot. URL: %s. Errors are: %s",
@@ -689,6 +727,4 @@ class WebDriverSelenium(WebDriverProxy):
                 "Encountered an unexpected error when requesting url %s", url
             )
             raise
-        finally:
-            self.destroy(driver, app.config["SCREENSHOT_SELENIUM_RETRIES"])
         return img
