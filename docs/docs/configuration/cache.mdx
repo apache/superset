@@ -83,9 +83,11 @@ See [Async Queries via Celery](/docs/configuration/async-queries-celery) for det
 ## Celery beat
 
 Superset has a Celery task that will periodically warm up the cache based on different strategies.
-To use it, add the following to the `CELERYBEAT_SCHEDULE` section in `config.py`:
+To use it, add the following to your `superset_config.py`:
 
 ```python
+from celery.schedules import crontab
+
 SUPERSET_CACHE_WARMUP_USER = "user_with_permission_to_dashboards"
 
 CELERYBEAT_SCHEDULE = {

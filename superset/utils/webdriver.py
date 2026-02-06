@@ -481,6 +481,22 @@ class WebDriverSelenium(WebDriverProxy):
                         )
         return config
 
+    def create(self) -> WebDriver:
+        """Create and return the WebDriver instance.
+
+        This is the public interface for creating the driver. It wraps
+        the internal _create method for backward compatibility.
+        """
+        return self._create()
+
+    def destroy(self) -> None:
+        """Destroy the WebDriver instance.
+
+        This is the public interface for cleanup. It wraps the internal
+        _destroy method and should be called when done with the driver.
+        """
+        self._destroy()
+
     def _create(self) -> WebDriver:
         pixel_density = app.config["WEBDRIVER_WINDOW"].get("pixel_density", 1)
 
@@ -627,7 +643,8 @@ class WebDriverSelenium(WebDriverProxy):
     def get_screenshot(  # noqa: C901
         self, url: str, element_name: str, user: User | None = None
     ) -> bytes | None:
-        if user and not self._user:
+        # Re-authenticate if a different user is passed
+        if user and user != self._user:
             self._user = user
             if self._driver:
                 self._auth(user)

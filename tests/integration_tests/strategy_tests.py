@@ -39,7 +39,7 @@ from superset.tasks.cache import (
     DashboardTagsStrategy,
     TopNDashboardsStrategy,
 )
-from superset.utils.urls import get_url_host  # noqa: F401
+from superset.utils.urls import get_url_host
 
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.constants import ADMIN_USERNAME
@@ -83,7 +83,7 @@ class TestCacheWarmUp(SupersetTestCase):
 
         strategy = TopNDashboardsStrategy(1)
         result = sorted(strategy.get_urls())
-        expected = sorted([f"http://localhost{dash.url}"])
+        expected = sorted([f"{get_url_host()}{dash.url}"])
         assert result == expected
 
     def reset_tag(self, tag):
@@ -109,7 +109,7 @@ class TestCacheWarmUp(SupersetTestCase):
         # tag dashboard 'births' with `tag1`
         tag1 = get_tag("tag1", db.session, TagType.custom)
         dash = self.get_dash_by_slug("births")
-        tag1_urls = [f"http://localhost{dash.url}"]
+        tag1_urls = [f"{get_url_host()}{dash.url}"]
         tagged_object = TaggedObject(
             tag_id=tag1.id, object_id=dash.id, object_type=ObjectType.dashboard
         )

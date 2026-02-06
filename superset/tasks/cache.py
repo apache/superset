@@ -18,11 +18,12 @@ from __future__ import annotations
 
 import logging
 from typing import Any, Optional, Union
-from urllib.error import URLError
 
 from celery.utils.log import get_task_logger
 from flask import current_app
+from selenium.common.exceptions import WebDriverException
 from sqlalchemy import and_, func
+from sqlalchemy.orm import selectinload
 
 from superset import db, security_manager
 from superset.extensions import celery_app
@@ -100,8 +101,12 @@ class DummyStrategy(Strategy):  # pylint: disable=too-few-public-methods
     name = "dummy"
 
     def get_urls(self) -> list[str]:
+        # Use selectinload to avoid N+1 queries when checking dashboard.slices
         dashboards = (
-            db.session.query(Dashboard).filter(Dashboard.published.is_(True)).all()
+            db.session.query(Dashboard)
+            .options(selectinload(Dashboard.slices))
+            .filter(Dashboard.published.is_(True))
+            .all()
         )
 
         return [get_dash_url(dashboard) for dashboard in dashboards if dashboard.slices]
@@ -237,7 +242,8 @@ def cache_warmup(
     if not user:
         message = (
             f"Cache warmup user '{current_app.config['SUPERSET_CACHE_WARMUP_USER']}' "
-            "not found. Please configure SUPERSET_CACHE_WARMUP_USER with a valid username."
+            "not found. Please configure SUPERSET_CACHE_WARMUP_USER with a valid "
+            "username."
         )
         logger.error(message)
         return message
@@ -250,11 +256,11 @@ def cache_warmup(
                 logger.info("Fetching %s", url)
                 wd.get_screenshot(url, "grid-container")
                 results["success"].append(url)
-            except URLError:
-                logger.exception("Error warming up cache!")
+            except (WebDriverException, Exception) as ex:  # noqa: BLE001
+                logger.exception("Error warming up cache for %s: %s", url, ex)
                 results["errors"].append(url)
     finally:
         # Ensure WebDriver is properly cleaned up
-        del wd
+        wd.destroy()
 
     return results
