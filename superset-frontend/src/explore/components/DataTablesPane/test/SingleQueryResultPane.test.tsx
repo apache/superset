@@ -22,6 +22,7 @@ import {
   waitFor,
   userEvent,
 } from 'spec/helpers/testing-library';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import { SingleQueryResultPane } from '../components/SingleQueryResultPane';
 
 // Mock data matching what useFilteredTableData expects: Record<string, any>[]
@@ -37,10 +38,14 @@ const mockData: Record<string, unknown>[] = Array.from(
 const defaultProps = {
   // Note: The SingleQueryResultPaneProp type expects Record<string, any>[][]
   // but useFilteredTableData and useTableColumns actually work with Record<string, any>[]
-  // This type mismatch exists in the codebase
-  data: mockData as Record<string, unknown>[][],
+  // This type mismatch exists in the codebase - cast through unknown to satisfy TypeScript
+  data: mockData as unknown as Record<string, unknown>[][],
   colnames: ['id', 'name', 'category'],
-  coltypes: [0, 1, 1] as const, // numeric, string, string
+  coltypes: [
+    GenericDataType.Numeric,
+    GenericDataType.String,
+    GenericDataType.String,
+  ],
   rowcount: 30,
   datasourceId: '1__table',
   dataSize: 10, // 10 items per page, so 3 pages total
