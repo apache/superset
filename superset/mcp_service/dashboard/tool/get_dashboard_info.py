@@ -122,10 +122,20 @@ async def get_dashboard_info(
 
                 if permalink_value:
                     # Verify the permalink belongs to the requested dashboard
+                    # dashboardId in permalink is stored as str, result.id is int
                     permalink_dashboard_id = permalink_value.get("dashboardId")
+                    try:
+                        permalink_dashboard_id_int = (
+                            int(permalink_dashboard_id)
+                            if permalink_dashboard_id
+                            else None
+                        )
+                    except (ValueError, TypeError):
+                        permalink_dashboard_id_int = None
+
                     if (
-                        isinstance(permalink_dashboard_id, int)
-                        and permalink_dashboard_id != result.id
+                        permalink_dashboard_id_int is not None
+                        and permalink_dashboard_id_int != result.id
                     ):
                         await ctx.warning(
                             "permalink_key dashboardId (%s) does not match "
