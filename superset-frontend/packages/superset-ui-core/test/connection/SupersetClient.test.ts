@@ -31,33 +31,42 @@ describe('SupersetClient', () => {
 
   afterEach(() => SupersetClient.reset());
 
-  it('exposes reset, configure, init, get, post, postForm, isAuthenticated, and reAuthenticate methods', () => {
+  it('exposes configure, init, get, post, postForm, delete, put, request, reset, getGuestToken, getCSRFToken, getUrl, isAuthenticated, and reAuthenticate methods', () => {
     expect(typeof SupersetClient.configure).toBe('function');
     expect(typeof SupersetClient.init).toBe('function');
     expect(typeof SupersetClient.get).toBe('function');
     expect(typeof SupersetClient.post).toBe('function');
     expect(typeof SupersetClient.postForm).toBe('function');
-    expect(typeof SupersetClient.isAuthenticated).toBe('function');
-    expect(typeof SupersetClient.reAuthenticate).toBe('function');
-    expect(typeof SupersetClient.getGuestToken).toBe('function');
+    expect(typeof SupersetClient.delete).toBe('function');
+    expect(typeof SupersetClient.put).toBe('function');
     expect(typeof SupersetClient.request).toBe('function');
     expect(typeof SupersetClient.reset).toBe('function');
+    expect(typeof SupersetClient.getGuestToken).toBe('function');
+    expect(typeof SupersetClient.getCSRFToken).toBe('function');
+    expect(typeof SupersetClient.getUrl).toBe('function');
+    expect(typeof SupersetClient.isAuthenticated).toBe('function');
+    expect(typeof SupersetClient.reAuthenticate).toBe('function');
   });
 
-  it('throws if you call init, get, post, postForm, isAuthenticated, or reAuthenticate before configure', () => {
+  it('throws if you call init, get, post, postForm, delete, put, request, getGuestToken, getCSRFToken, getUrl, isAuthenticated, or reAuthenticate before configure', () => {
     expect(SupersetClient.init).toThrow();
     expect(SupersetClient.get).toThrow();
     expect(SupersetClient.post).toThrow();
     expect(SupersetClient.postForm).toThrow();
+    expect(SupersetClient.delete).toThrow();
+    expect(SupersetClient.put).toThrow();
+    expect(SupersetClient.request).toThrow();
+    expect(SupersetClient.getGuestToken).toThrow();
+    expect(SupersetClient.getCSRFToken).toThrow();
+    expect(SupersetClient.getUrl).toThrow();
     expect(SupersetClient.isAuthenticated).toThrow();
     expect(SupersetClient.reAuthenticate).toThrow();
-    expect(SupersetClient.request).toThrow();
     expect(SupersetClient.configure).not.toThrow();
   });
 
   // this also tests that the ^above doesn't throw if configure is called appropriately
   it('calls appropriate SupersetClient methods when configured', async () => {
-    expect.assertions(16);
+    expect.assertions(18);
     const mockGetUrl = '/mock/get/url';
     const mockPostUrl = '/mock/post/url';
     const mockRequestUrl = '/mock/request/url';
@@ -88,6 +97,13 @@ describe('SupersetClient', () => {
       SupersetClientClass.prototype,
       'getGuestToken',
     );
+    const getUrlSpy = jest.spyOn(SupersetClientClass.prototype, 'getUrl');
+
+    SupersetClient.configure({ appRoot: '/app' });
+    expect(SupersetClient.getUrl({ endpoint: '/some/path' })).toContain(
+      '/app/some/path',
+    );
+    expect(getUrlSpy).toHaveBeenCalledTimes(1);
 
     SupersetClient.configure({});
     await SupersetClient.init();
@@ -141,6 +157,7 @@ describe('SupersetClient', () => {
     postSpy.mockRestore();
     authenticatedSpy.mockRestore();
     csrfSpy.mockRestore();
+    getUrlSpy.mockRestore();
 
     fetchMock.clearHistory().removeRoutes();
   });
