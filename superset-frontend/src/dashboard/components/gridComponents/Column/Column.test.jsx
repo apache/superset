@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { fireEvent, render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from 'spec/helpers/testing-library';
 
 import { getMockStore } from 'spec/fixtures/mockStore';
 import { dashboardLayout as mockLayout } from 'spec/fixtures/mockDashboardLayout';

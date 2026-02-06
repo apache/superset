@@ -18,7 +18,13 @@
  */
 import '@testing-library/jest-dom';
 import { ReactNode } from 'react';
-import { render, screen, waitFor, act, configure } from '@testing-library/react';
+import {
+  render,
+  screen,
+  waitFor,
+  act,
+  configure,
+} from '@testing-library/react';
 import { renderHook } from '@testing-library/react-hooks';
 import { Theme } from '@apache-superset/core/ui';
 import ComponentThemeProvider, { useComponentTheme } from './index';

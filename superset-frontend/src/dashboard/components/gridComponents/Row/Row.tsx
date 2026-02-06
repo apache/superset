@@ -413,90 +413,92 @@ const Row = memo((props: RowProps) => {
             ref={containerRef}
             editMode={editMode}
           >
-          {editMode && (
-            <Droppable
-              {...(rowItems.length === 0
-                ? {
-                    component: rowComponent,
-                    parentComponent: rowComponent,
-                    dropToChild: true,
-                  }
-                : {
-                    component: rowItems[0],
-                    parentComponent: rowComponent,
-                  })}
-              depth={depth}
-              index={0}
-              orientation="row"
-              onDrop={handleComponentDrop}
-              className={cx(
-                'empty-droptarget',
-                'empty-droptarget--vertical',
-                rowItems.length > 0 && 'droptarget-side',
-              )}
-              editMode
-              style={{
-                height: rowItems.length > 0 ? containerHeight : '100%',
-                ...(rowItems.length > 0 && { width: 16 }),
-              }}
-            >
-              {({ dropIndicatorProps }: { dropIndicatorProps: JsonObject }) =>
-                dropIndicatorProps && <div {...dropIndicatorProps} />
-              }
-            </Droppable>
-          )}
-          {rowItems.length === 0 && (
-            <div css={emptyRowContentStyles as any}>{t('Empty row')}</div>
-          )}
-          {rowItems.length > 0 &&
-            rowItems.map((componentId, itemIndex) => (
-              <Fragment key={componentId}>
-                <DashboardComponent
-                  key={componentId}
-                  id={componentId}
-                  parentId={rowComponent.id as string}
-                  depth={depth + 1}
-                  index={itemIndex}
-                  availableColumnCount={remainColumnCount}
-                  columnWidth={columnWidth}
-                  onResizeStart={onResizeStart}
-                  onResize={onResize}
-                  onResizeStop={onResizeStop}
-                  isComponentVisible={isComponentVisible}
-                  onChangeTab={onChangeTab}
-                  isInView={isInView}
-                />
-                {editMode && (
-                  <Droppable
-                    component={rowItems}
-                    parentComponent={rowComponent}
-                    depth={depth}
-                    index={itemIndex + 1}
-                    orientation="row"
-                    onDrop={handleComponentDrop}
-                    className={cx(
-                      'empty-droptarget',
-                      'empty-droptarget--vertical',
-                      remainColumnCount === 0 &&
-                        itemIndex === rowItems.length - 1 &&
-                        'droptarget-side',
-                    )}
-                    editMode
-                    style={{
-                      height: containerHeight,
-                      ...(remainColumnCount === 0 &&
-                        itemIndex === rowItems.length - 1 && { width: 16 }),
-                    }}
-                  >
-                    {({
-                      dropIndicatorProps,
-                    }: {
-                      dropIndicatorProps: JsonObject;
-                    }) => dropIndicatorProps && <div {...dropIndicatorProps} />}
-                  </Droppable>
+            {editMode && (
+              <Droppable
+                {...(rowItems.length === 0
+                  ? {
+                      component: rowComponent,
+                      parentComponent: rowComponent,
+                      dropToChild: true,
+                    }
+                  : {
+                      component: rowItems[0],
+                      parentComponent: rowComponent,
+                    })}
+                depth={depth}
+                index={0}
+                orientation="row"
+                onDrop={handleComponentDrop}
+                className={cx(
+                  'empty-droptarget',
+                  'empty-droptarget--vertical',
+                  rowItems.length > 0 && 'droptarget-side',
                 )}
-              </Fragment>
-            ))}
+                editMode
+                style={{
+                  height: rowItems.length > 0 ? containerHeight : '100%',
+                  ...(rowItems.length > 0 && { width: 16 }),
+                }}
+              >
+                {({ dropIndicatorProps }: { dropIndicatorProps: JsonObject }) =>
+                  dropIndicatorProps && <div {...dropIndicatorProps} />
+                }
+              </Droppable>
+            )}
+            {rowItems.length === 0 && (
+              <div css={emptyRowContentStyles as any}>{t('Empty row')}</div>
+            )}
+            {rowItems.length > 0 &&
+              rowItems.map((componentId, itemIndex) => (
+                <Fragment key={componentId}>
+                  <DashboardComponent
+                    key={componentId}
+                    id={componentId}
+                    parentId={rowComponent.id as string}
+                    depth={depth + 1}
+                    index={itemIndex}
+                    availableColumnCount={remainColumnCount}
+                    columnWidth={columnWidth}
+                    onResizeStart={onResizeStart}
+                    onResize={onResize}
+                    onResizeStop={onResizeStop}
+                    isComponentVisible={isComponentVisible}
+                    onChangeTab={onChangeTab}
+                    isInView={isInView}
+                  />
+                  {editMode && (
+                    <Droppable
+                      component={rowItems}
+                      parentComponent={rowComponent}
+                      depth={depth}
+                      index={itemIndex + 1}
+                      orientation="row"
+                      onDrop={handleComponentDrop}
+                      className={cx(
+                        'empty-droptarget',
+                        'empty-droptarget--vertical',
+                        remainColumnCount === 0 &&
+                          itemIndex === rowItems.length - 1 &&
+                          'droptarget-side',
+                      )}
+                      editMode
+                      style={{
+                        height: containerHeight,
+                        ...(remainColumnCount === 0 &&
+                          itemIndex === rowItems.length - 1 && { width: 16 }),
+                      }}
+                    >
+                      {({
+                        dropIndicatorProps,
+                      }: {
+                        dropIndicatorProps: JsonObject;
+                      }) =>
+                        dropIndicatorProps && <div {...dropIndicatorProps} />
+                      }
+                    </Droppable>
+                  )}
+                </Fragment>
+              ))}
           </GridRow>
         </ComponentThemeProvider>
       </WithPopoverMenu>

@@ -16,14 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useCallback, useMemo, Key, MouseEvent, KeyboardEvent } from 'react';
-import { t } from '@superset-ui/core';
-import { css, useTheme } from '@apache-superset/core/ui';
-import { Menu, MenuItem } from '@superset-ui/core/components/Menu';
 import {
-  NoAnimationDropdown,
-  Button,
-} from '@superset-ui/core/components';
+  useState,
+  useCallback,
+  useMemo,
+  Key,
+  MouseEvent,
+  KeyboardEvent,
+} from 'react';
+import { t, css, useTheme } from '@apache-superset/core/ui';
+import { Menu, MenuItem } from '@superset-ui/core/components/Menu';
+import { NoAnimationDropdown, Button } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 
 /**
@@ -61,7 +64,10 @@ export interface ComponentHeaderControlsProps {
   menuItems: ComponentMenuItem[];
 
   /** Callback when a menu item is clicked */
-  onMenuClick: (key: string, domEvent: MouseEvent<HTMLElement> | KeyboardEvent<HTMLElement>) => void;
+  onMenuClick: (
+    key: string,
+    domEvent: MouseEvent<HTMLElement> | KeyboardEvent<HTMLElement>,
+  ) => void;
 
   /** Whether the component is in edit mode */
   editMode?: boolean;

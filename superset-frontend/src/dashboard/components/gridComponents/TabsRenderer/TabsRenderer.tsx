@@ -26,8 +26,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { t } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { t, styled } from '@apache-superset/core/ui';
 import {
   LineEditableTabs,
   TabsProps as AntdTabsProps,

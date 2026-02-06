@@ -327,72 +327,72 @@ const Column = props => {
               editMode={editMode}
             >
               {editMode && (
-              <Droppable
-                component={columnComponent}
-                parentComponent={columnComponent}
-                {...(columnItems.length === 0
-                  ? {
-                      dropToChild: true,
-                    }
-                  : {
-                      component: columnItems[0],
-                    })}
-                depth={depth}
-                index={0}
-                orientation="column"
-                onDrop={handleComponentDrop}
-                className={cx(
-                  'empty-droptarget',
-                  columnItems.length > 0 && 'droptarget-edge',
-                )}
-                editMode
-              >
-                {({ dropIndicatorProps }) =>
-                  dropIndicatorProps && <div {...dropIndicatorProps} />
-                }
-              </Droppable>
-            )}
-            {columnItems.length === 0 ? (
-              <div css={emptyColumnContentStyles}>{t('Empty column')}</div>
-            ) : (
-              columnItems.map((componentId, itemIndex) => (
-                <Fragment key={componentId}>
-                  <DashboardComponent
-                    id={componentId}
-                    parentId={columnComponent.id}
-                    depth={depth + 1}
-                    index={itemIndex}
-                    availableColumnCount={columnComponent.meta.width}
-                    columnWidth={columnWidth}
-                    onResizeStart={onResizeStart}
-                    onResize={onResize}
-                    onResizeStop={onResizeStop}
-                    isComponentVisible={isComponentVisible}
-                    onChangeTab={onChangeTab}
-                  />
-                  {editMode && (
-                    <Droppable
-                      component={columnItems}
-                      parentComponent={columnComponent}
-                      depth={depth}
-                      index={itemIndex + 1}
-                      orientation="column"
-                      onDrop={handleComponentDrop}
-                      className={cx(
-                        'empty-droptarget',
-                        itemIndex === columnItems.length - 1 &&
-                          'droptarget-edge',
-                      )}
-                      editMode
-                    >
-                      {({ dropIndicatorProps }) =>
-                        dropIndicatorProps && <div {...dropIndicatorProps} />
+                <Droppable
+                  component={columnComponent}
+                  parentComponent={columnComponent}
+                  {...(columnItems.length === 0
+                    ? {
+                        dropToChild: true,
                       }
-                    </Droppable>
+                    : {
+                        component: columnItems[0],
+                      })}
+                  depth={depth}
+                  index={0}
+                  orientation="column"
+                  onDrop={handleComponentDrop}
+                  className={cx(
+                    'empty-droptarget',
+                    columnItems.length > 0 && 'droptarget-edge',
                   )}
-                </Fragment>
-              ))
-            )}
+                  editMode
+                >
+                  {({ dropIndicatorProps }) =>
+                    dropIndicatorProps && <div {...dropIndicatorProps} />
+                  }
+                </Droppable>
+              )}
+              {columnItems.length === 0 ? (
+                <div css={emptyColumnContentStyles}>{t('Empty column')}</div>
+              ) : (
+                columnItems.map((componentId, itemIndex) => (
+                  <Fragment key={componentId}>
+                    <DashboardComponent
+                      id={componentId}
+                      parentId={columnComponent.id}
+                      depth={depth + 1}
+                      index={itemIndex}
+                      availableColumnCount={columnComponent.meta.width}
+                      columnWidth={columnWidth}
+                      onResizeStart={onResizeStart}
+                      onResize={onResize}
+                      onResizeStop={onResizeStop}
+                      isComponentVisible={isComponentVisible}
+                      onChangeTab={onChangeTab}
+                    />
+                    {editMode && (
+                      <Droppable
+                        component={columnItems}
+                        parentComponent={columnComponent}
+                        depth={depth}
+                        index={itemIndex + 1}
+                        orientation="column"
+                        onDrop={handleComponentDrop}
+                        className={cx(
+                          'empty-droptarget',
+                          itemIndex === columnItems.length - 1 &&
+                            'droptarget-edge',
+                        )}
+                        editMode
+                      >
+                        {({ dropIndicatorProps }) =>
+                          dropIndicatorProps && <div {...dropIndicatorProps} />
+                        }
+                      </Droppable>
+                    )}
+                  </Fragment>
+                ))
+              )}
             </ColumnStyles>
           </ComponentThemeProvider>
         </WithPopoverMenu>
