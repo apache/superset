@@ -17,16 +17,5 @@
  * under the License.
  */
 
-// Core Playwright Components for Superset
-export { AceEditor } from './AceEditor';
-export { Button } from './Button';
-export { Checkbox } from './Checkbox';
-export { Form } from './Form';
-export { Input } from './Input';
-export { Menu } from './Menu';
-export { Modal } from './Modal';
-export { Select } from './Select';
-export { Table } from './Table';
-export { Tabs } from './Tabs';
-export { Textarea } from './Textarea';
-export { Toast } from './Toast';
+// Base fixture with test asset cleanup
+export { test as testWithAssets, expect, type TestAssets } from './testAssets';
