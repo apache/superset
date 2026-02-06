@@ -104,3 +104,16 @@ class DashboardFaveError(CommandInvalidError):
 
 class DashboardUnfaveError(CommandInvalidError):
     message = _("Dashboard cannot be unfavorited.")
+
+
+class DashboardVersionNotFoundError(ObjectNotFoundError):
+    def __init__(
+        self,
+        version_id: Optional[str] = None,
+        exception: Optional[Exception] = None,
+    ) -> None:
+        super().__init__("Dashboard version", version_id, exception)
+
+
+class DashboardRestoreFailedError(UpdateFailedError):
+    message = _("Dashboard version could not be restored.")

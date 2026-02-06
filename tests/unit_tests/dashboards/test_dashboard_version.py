@@ -14,10 +14,15 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from . import (  # noqa: F401
-    core,
-    dashboard_version,
-    dynamic_plugins,
-    sql_lab,
-    user_attributes,
-)
+"""Unit tests for dashboard versioning."""
+
+from superset.commands.dashboard.exceptions import DashboardVersionNotFoundError
+
+
+def test_dashboard_version_not_found_error_with_exception():
+    """DashboardVersionNotFoundError accepts optional exception and formats message."""
+    err = DashboardVersionNotFoundError(
+        version_id="99", exception=ValueError("underlying")
+    )
+    assert "99" in str(err)
+    assert err.status == 404

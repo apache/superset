@@ -36,6 +36,8 @@ import {
 import { Icons } from '@superset-ui/core/components/Icons';
 import {
   Button,
+  Input,
+  Modal,
   Tooltip,
   DeleteModal,
   UnsavedChangesModal,
@@ -59,8 +61,11 @@ import setPeriodicRunner, {
 import ReportModal from 'src/features/reports/ReportModal';
 import { deleteActiveReport } from 'src/features/reports/ReportModal/actions';
 import { PageHeaderWithActions } from '@superset-ui/core/components/PageHeaderWithActions';
+import { useDashboardRestore } from 'src/dashboard/contexts/DashboardRestoreContext';
+import { useModalState } from 'src/hooks/useModalState';
 import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import DashboardEmbedModal from '../EmbeddedModal';
+import HistoryModal from '../HistoryModal';
 import OverwriteConfirm from '../OverwriteConfirm';
 import {
   addDangerToast,
@@ -142,7 +147,7 @@ const undoRedoDisabled = theme => css`
   color: ${theme.colorTextDisabled};
 `;
 
-const saveBtnStyle = theme => css`
+const iconLabelButtonStyle = theme => css`
   min-width: ${theme.sizeUnit * 17}px;
   height: ${theme.sizeUnit * 8}px;
   span > :first-of-type {
@@ -168,11 +173,19 @@ const Header = () => {
     useState(false);
   const [emphasizeUndo, setEmphasizeUndo] = useState(false);
   const [emphasizeRedo, setEmphasizeRedo] = useState(false);
-  const [showingPropertiesModal, setShowingPropertiesModal] = useState(false);
-  const [showingRefreshModal, setShowingRefreshModal] = useState(false);
-  const [showingEmbedModal, setShowingEmbedModal] = useState(false);
-  const [showingReportModal, setShowingReportModal] = useState(false);
+  const [showingPropertiesModal, showPropertiesModal, hidePropertiesModal] =
+    useModalState();
+  const [showingHistoryModal, showHistoryModal, hideHistoryModal] =
+    useModalState();
+  const [showingRefreshModal, showRefreshModal, hideRefreshModal] =
+    useModalState();
+  const [showingEmbedModal, showEmbedModal, hideEmbedModal] = useModalState();
+  const [showingReportModal, showReportModal, hideReportModal] =
+    useModalState();
   const [currentReportDeleting, setCurrentReportDeleting] = useState(null);
+  const [showSaveVersionModal, openSaveVersionModal, closeSaveVersionModal] =
+    useModalState();
+  const [saveVersionDescription, setSaveVersionDescription] = useState('');
   const dashboardInfo = useSelector(state => state.dashboardInfo);
   const layout = useSelector(state => state.dashboardLayout.present);
   const undoLength = useSelector(state => state.dashboardLayout.past.length);
@@ -408,76 +421,83 @@ const Header = () => {
     boundActionCreators.setEditMode(!editMode);
   }, [boundActionCreators, editMode]);
 
-  const overwriteDashboard = useCallback(() => {
-    const currentColorNamespace =
-      dashboardInfo?.metadata?.color_namespace || colorNamespace;
-    const currentColorScheme =
-      dashboardInfo?.metadata?.color_scheme || colorScheme;
+  const overwriteDashboard = useCallback(
+    versionDescriptionOverride => {
+      const currentColorNamespace =
+        dashboardInfo?.metadata?.color_namespace || colorNamespace;
+      const currentColorScheme =
+        dashboardInfo?.metadata?.color_scheme || colorScheme;
 
-    const data = {
-      certified_by: dashboardInfo.certified_by,
-      certification_details: dashboardInfo.certification_details,
-      css: customCss,
-      dashboard_title: dashboardTitle,
-      last_modified_time: actualLastModifiedTime,
-      owners: dashboardInfo.owners,
-      roles: dashboardInfo.roles,
-      slug,
-      tags: (dashboardInfo.tags || []).filter(
-        item => item.type === TagTypeEnum.Custom || !item.type,
-      ),
-      theme_id: dashboardInfo.theme ? dashboardInfo.theme.id : null,
-      metadata: {
-        ...dashboardInfo?.metadata,
-        color_namespace: currentColorNamespace,
-        color_scheme: currentColorScheme,
-        positions: layout,
-        refresh_frequency: shouldPersistRefreshFrequency
-          ? refreshFrequency
-          : dashboardInfo.metadata?.refresh_frequency,
-      },
-    };
-
-    // make sure positions data less than DB storage limitation:
-    const positionJSONLength = safeStringify(layout).length;
-    const limit =
-      dashboardInfo.common?.conf?.SUPERSET_DASHBOARD_POSITION_DATA_LIMIT ||
-      DASHBOARD_POSITION_DATA_LIMIT;
-    if (positionJSONLength >= limit) {
-      boundActionCreators.addDangerToast(
-        t(
-          'Your dashboard is too large. Please reduce its size before saving it.',
+      const data = {
+        certified_by: dashboardInfo.certified_by,
+        certification_details: dashboardInfo.certification_details,
+        css: customCss,
+        dashboard_title: dashboardTitle,
+        last_modified_time: actualLastModifiedTime,
+        owners: dashboardInfo.owners,
+        roles: dashboardInfo.roles,
+        slug,
+        tags: (dashboardInfo.tags || []).filter(
+          item => item.type === TagTypeEnum.Custom || !item.type,
         ),
-      );
-    } else {
-      if (positionJSONLength >= limit * 0.9) {
-        boundActionCreators.addWarningToast(
-          t('Your dashboard is near the size limit.'),
-        );
-      }
+        theme_id: dashboardInfo.theme ? dashboardInfo.theme.id : null,
+        version_description:
+          (typeof versionDescriptionOverride === 'string'
+            ? versionDescriptionOverride?.trim()
+            : undefined) || undefined,
+        metadata: {
+          ...dashboardInfo?.metadata,
+          color_namespace: currentColorNamespace,
+          color_scheme: currentColorScheme,
+          positions: layout,
+          refresh_frequency: shouldPersistRefreshFrequency
+            ? refreshFrequency
+            : dashboardInfo.metadata?.refresh_frequency,
+        },
+      };
 
-      boundActionCreators.onSave(data, dashboardInfo.id, SAVE_TYPE_OVERWRITE);
-    }
-  }, [
-    actualLastModifiedTime,
-    boundActionCreators,
-    colorNamespace,
-    colorScheme,
-    customCss,
-    dashboardInfo.certification_details,
-    dashboardInfo.certified_by,
-    dashboardInfo.common?.conf?.SUPERSET_DASHBOARD_POSITION_DATA_LIMIT,
-    dashboardInfo.id,
-    dashboardInfo.metadata,
-    dashboardInfo.owners,
-    dashboardInfo.roles,
-    dashboardInfo.tags,
-    dashboardTitle,
-    layout,
-    refreshFrequency,
-    shouldPersistRefreshFrequency,
-    slug,
-  ]);
+      // make sure positions data less than DB storage limitation:
+      const positionJSONLength = safeStringify(layout).length;
+      const limit =
+        dashboardInfo.common?.conf?.SUPERSET_DASHBOARD_POSITION_DATA_LIMIT ||
+        DASHBOARD_POSITION_DATA_LIMIT;
+      if (positionJSONLength >= limit) {
+        boundActionCreators.addDangerToast(
+          t(
+            'Your dashboard is too large. Please reduce its size before saving it.',
+          ),
+        );
+      } else {
+        if (positionJSONLength >= limit * 0.9) {
+          boundActionCreators.addWarningToast(
+            t('Your dashboard is near the size limit.'),
+          );
+        }
+
+        boundActionCreators.onSave(data, dashboardInfo.id, SAVE_TYPE_OVERWRITE);
+      }
+    },
+    [
+      actualLastModifiedTime,
+      boundActionCreators,
+      colorNamespace,
+      colorScheme,
+      customCss,
+      dashboardInfo.certification_details,
+      dashboardInfo.certified_by,
+      dashboardInfo.common?.conf?.SUPERSET_DASHBOARD_POSITION_DATA_LIMIT,
+      dashboardInfo.id,
+      dashboardInfo.metadata,
+      dashboardInfo.owners,
+      dashboardInfo.roles,
+      dashboardInfo.tags,
+      dashboardTitle,
+      layout,
+      refreshFrequency,
+      shouldPersistRefreshFrequency,
+      slug,
+    ],
+  );
 
   const {
     showModal: showUnsavedChangesModal,
@@ -489,36 +509,12 @@ const Header = () => {
     onSave: overwriteDashboard,
   });
 
-  const showPropertiesModal = useCallback(() => {
-    setShowingPropertiesModal(true);
-  }, []);
+  const closeSaveVersionModalAndReset = useCallback(() => {
+    closeSaveVersionModal();
+    setSaveVersionDescription('');
+  }, [closeSaveVersionModal]);
 
-  const hidePropertiesModal = useCallback(() => {
-    setShowingPropertiesModal(false);
-  }, []);
-  const showRefreshModal = useCallback(() => {
-    setShowingRefreshModal(true);
-  }, []);
-  const hideRefreshModal = useCallback(() => {
-    setShowingRefreshModal(false);
-  }, []);
-
-  const showEmbedModal = useCallback(() => {
-    setShowingEmbedModal(true);
-  }, []);
-
-  const hideEmbedModal = useCallback(() => {
-    setShowingEmbedModal(false);
-  }, []);
-
-  const showReportModal = useCallback(() => {
-    setShowingReportModal(true);
-  }, []);
-
-  const hideReportModal = useCallback(() => {
-    setShowingReportModal(false);
-  }, []);
-
+  const onDashboardRestored = useDashboardRestore();
   const metadataBar = useDashboardMetadataBar(dashboardInfo);
 
   const userCanEdit =
@@ -695,11 +691,11 @@ const Header = () => {
                   {t('Discard')}
                 </Button>
                 <Button
-                  css={saveBtnStyle}
+                  css={iconLabelButtonStyle}
                   buttonSize="small"
                   disabled={!hasUnsavedChanges}
                   buttonStyle="primary"
-                  onClick={overwriteDashboard}
+                  onClick={openSaveVersionModal}
                   data-test="header-save-button"
                   aria-label={t('Save')}
                 >
@@ -716,16 +712,29 @@ const Header = () => {
           <div css={actionButtonsStyle}>
             {NavExtension && <NavExtension />}
             {userCanEdit && (
-              <Button
-                buttonStyle="secondary"
-                onClick={handleEnterEditMode}
-                data-test="edit-dashboard-button"
-                className="action-button"
-                css={editButtonStyle}
-                aria-label={t('Edit dashboard')}
-              >
-                {t('Edit dashboard')}
-              </Button>
+              <>
+                <Button
+                  css={iconLabelButtonStyle}
+                  buttonSize="small"
+                  buttonStyle="secondary"
+                  onClick={showHistoryModal}
+                  data-test="header-history-button"
+                  aria-label={t('History')}
+                >
+                  <Icons.HistoryOutlined iconSize="m" />
+                  {t('History')}
+                </Button>
+                <Button
+                  buttonStyle="secondary"
+                  onClick={handleEnterEditMode}
+                  data-test="edit-dashboard-button"
+                  className="action-button"
+                  css={editButtonStyle}
+                  aria-label={t('Edit dashboard')}
+                >
+                  {t('Edit dashboard')}
+                </Button>
+              </>
             )}
           </div>
         )}
@@ -745,6 +754,7 @@ const Header = () => {
       hasUnsavedChanges,
       overwriteDashboard,
       redoLength,
+      showHistoryModal,
       toggleEditMode,
       undoLength,
       userCanEdit,
@@ -822,6 +832,74 @@ const Header = () => {
           onlyApply
         />
       )}
+      {showingHistoryModal && (
+        <HistoryModal
+          dashboardId={dashboardInfo.id}
+          show={showingHistoryModal}
+          onHide={hideHistoryModal}
+          onRestore={onDashboardRestored}
+          addSuccessToast={boundActionCreators.addSuccessToast}
+          addDangerToast={boundActionCreators.addDangerToast}
+        />
+      )}
+      <Modal
+        show={showSaveVersionModal}
+        onHide={closeSaveVersionModalAndReset}
+        title={t('Save version')}
+        footer={
+          <>
+            <Button
+              buttonStyle="secondary"
+              onClick={closeSaveVersionModalAndReset}
+            >
+              {t('Cancel')}
+            </Button>
+            <Button
+              buttonStyle="primary"
+              data-test="save-version-modal-save-button"
+              onClick={() => {
+                overwriteDashboard(saveVersionDescription);
+                closeSaveVersionModalAndReset();
+              }}
+            >
+              {t('Save')}
+            </Button>
+          </>
+        }
+        width={440}
+      >
+        <div
+          css={css`
+            .save-version-label {
+              display: block;
+              margin-bottom: 8px;
+              font-size: var(--ant-font-size);
+              color: var(--ant-color-text-secondary);
+            }
+            .save-version-textarea {
+              margin-bottom: 0;
+            }
+          `}
+        >
+          <label
+            htmlFor="save-version-description"
+            className="save-version-label"
+          >
+            {t('Description (optional)')}
+          </label>
+          <Input.TextArea
+            id="save-version-description"
+            className="save-version-textarea"
+            data-test="save-version-description-input"
+            placeholder={t('Add a description for this version')}
+            value={saveVersionDescription}
+            onChange={e => setSaveVersionDescription(e.target.value)}
+            rows={3}
+            maxLength={500}
+            showCount
+          />
+        </div>
+      </Modal>
       {showingRefreshModal && (
         <RefreshIntervalModal
           show={showingRefreshModal}
