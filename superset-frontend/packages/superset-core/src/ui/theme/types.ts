@@ -119,6 +119,7 @@ export interface SupersetSpecificTokens {
 
   // Brand-related
   brandIconMaxWidth: number;
+  brandAppName?: string;
   brandLogoAlt: string;
   brandLogoUrl: string;
   brandLogoMargin: string;
@@ -159,6 +160,13 @@ export interface SupersetSpecificTokens {
   echartsOptionsOverridesByChartType?: {
     [chartType: string]: any;
   };
+
+  // Editor-related
+  /**
+   * Background color for code editor text selection.
+   * Defaults to colorPrimaryBgHover if not specified.
+   */
+  colorEditorSelection?: string;
 }
 
 /**

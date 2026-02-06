@@ -22,7 +22,8 @@ import { connect } from 'react-redux';
 import cx from 'classnames';
 
 import { t, css, styled } from '@apache-superset/core/ui';
-import { SafeMarkdown, MarkdownEditor } from '@superset-ui/core/components';
+import { SafeMarkdown } from '@superset-ui/core/components';
+import { EditorHost } from 'src/core/editors';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
@@ -192,11 +193,10 @@ class Markdown extends PureComponent {
       (prevProps.component.meta.width !== this.props.component.meta.width ||
         prevProps.columnWidth !== this.props.columnWidth)
     ) {
-      this.state.editor.resize(true);
-    }
-    // pre-load AceEditor when entering edit mode
-    if (this.props.editMode) {
-      MarkdownEditor.preload();
+      // Handle both Ace editor (resize method) and EditorHandle (no resize needed)
+      if (typeof this.state.editor.resize === 'function') {
+        this.state.editor.resize(true);
+      }
     }
   }
 
@@ -211,7 +211,12 @@ class Markdown extends PureComponent {
   }
 
   setEditor(editor) {
-    editor.getSession().setUseWrapMode(true);
+    // EditorHandle or Ace editor instance
+    // For Ace: editor.getSession().setUseWrapMode(true)
+    // For EditorHandle: wrapEnabled is handled via options
+    if (editor?.getSession) {
+      editor.getSession().setUseWrapMode(true);
+    }
     this.setState({
       editor,
     });
@@ -282,20 +287,27 @@ class Markdown extends PureComponent {
 
   renderEditMode() {
     return (
-      <MarkdownEditor
+      <EditorHost
+        id={`markdown-editor-${this.props.id}`}
         onChange={this.handleMarkdownChange}
         width="100%"
         height="100%"
-        showGutter={false}
-        editorProps={{ $blockScrolling: true }}
         value={
           // this allows "select all => delete" to give an empty editor
           typeof this.state.markdownSource === 'string'
             ? this.state.markdownSource
             : MARKDOWN_PLACE_HOLDER
         }
+        language="markdown"
         readOnly={false}
-        onLoad={this.setEditor}
+        lineNumbers={false}
+        wordWrap
+        onReady={handle => {
+          // The handle provides access to the underlying editor for resize
+          if (handle && typeof handle.focus === 'function') {
+            this.setEditor(handle);
+          }
+        }}
         data-test="editor"
       />
     );

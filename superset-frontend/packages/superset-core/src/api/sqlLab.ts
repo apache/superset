@@ -30,44 +30,14 @@
  */
 
 import { Event, Database, SupersetError, Column } from './core';
+import { EditorHandle } from './editors';
 
 /**
- * Represents an SQL editor instance within a SQL Lab tab.
- * Contains the editor content and associated database connection information.
+ * Provides imperative control over the code editor component.
+ * Allows extensions to manipulate text content, cursor position,
+ * selections, annotations, and register completion providers.
  */
-export interface Editor {
-  /**
-   * The SQL content of the editor.
-   * This represents the current text in the SQL editor.
-   */
-  content: string;
-
-  /**
-   * The database identifier associated with the editor.
-   * This determines which database the queries will be executed against.
-   */
-  databaseId: number;
-
-  /**
-   * The catalog name associated with the editor.
-   * Can be null if no specific catalog is selected.
-   */
-  catalog: string | null;
-
-  /**
-   * The schema name associated with the editor.
-   * Defines the database schema context for the editor.
-   */
-  schema: string;
-
-  /**
-   * The table name associated with the editor.
-   * Can be null if no specific table is selected.
-   *
-   * @todo Revisit if we actually need the table property
-   */
-  table: string | null;
-}
+export interface Editor extends EditorHandle {}
 
 /**
  * Represents a panel within a SQL Lab tab.
@@ -99,10 +69,40 @@ export interface Tab {
   title: string;
 
   /**
-   * The SQL editor instance associated with this tab.
-   * Contains the editor content and database connection settings.
+   * The database identifier for this tab's query context.
+   * This determines which database the queries will be executed against.
    */
-  editor: Editor;
+  databaseId: number;
+
+  /**
+   * The catalog name for this tab's query context.
+   * Can be null if no specific catalog is selected (for multi-catalog databases like Trino).
+   */
+  catalog: string | null;
+
+  /**
+   * The schema name for this tab's query context.
+   * Can be null if no schema is selected.
+   */
+  schema: string | null;
+
+  /**
+   * Gets the code editor instance for this tab.
+   * Returns a Promise that resolves when the editor is ready.
+   * The returned editor is a proxy that always delegates to the current
+   * editor implementation, even if the editor is swapped (e.g., Ace to Monaco).
+   *
+   * @returns Promise that resolves to the Editor instance
+   *
+   * @example
+   * ```typescript
+   * const tab = sqlLab.getCurrentTab();
+   * const editor = await tab.getEditor();
+   * editor.setValue("SELECT * FROM users");
+   * editor.focus();
+   * ```
+   */
+  getEditor(): Promise<Editor>;
 
   /**
    * The panels associated with the tab.
@@ -239,6 +239,20 @@ export interface QueryResult {
  */
 
 /**
+ * Gets the currently active panel in the current tab.
+ * The active panel defaults to 'Results' when SQL Lab loads.
+ *
+ * @returns The current active panel object.
+ *
+ * @example
+ * ```typescript
+ * const panel = getActivePanel();
+ * console.log(`Active panel: ${panel.id}`);
+ * ```
+ */
+export declare const getActivePanel: () => Panel;
+
+/**
  * Gets the currently active tab in SQL Lab.
  *
  * @returns The current tab object, or undefined if no tab is active.
@@ -248,7 +262,12 @@ export interface QueryResult {
  * const tab = getCurrentTab();
  * if (tab) {
  *   console.log(`Active tab: ${tab.title}`);
- *   console.log(`Database ID: ${tab.editor.databaseId}`);
+ *   console.log(`Database ID: ${tab.databaseId}, Schema: ${tab.schema}`);
+ *
+ *   // Editor manipulation via async getEditor()
+ *   const editor = await tab.getEditor();
+ *   editor.setValue("SELECT * FROM users");
+ *   editor.focus();
  * }
  * ```
  */
@@ -312,9 +331,10 @@ export declare const onDidChangeTabTitle: Event<string>;
  *
  * @example
  * ```typescript
- * onDidQueryRun.event((query) => {
- *   console.log('Query started on database:', query.tab.editor.databaseId);
- *   console.log('Query content:', query.tab.editor.content);
+ * onDidQueryRun.event(async (query) => {
+ *   console.log('Query started on database:', query.tab.databaseId);
+ *   const editor = await query.tab.getEditor();
+ *   console.log('Query SQL:', editor.getValue());
  * });
  * ```
  */
@@ -327,7 +347,7 @@ export declare const onDidQueryRun: Event<QueryContext>;
  * @example
  * ```typescript
  * onDidQueryStop.event((query) => {
- *   console.log('Query stopped for database:', query.tab.editor.databaseId);
+ *   console.log('Query stopped for database:', query.tab.databaseId);
  * });
  * ```
  */
@@ -430,3 +450,253 @@ export declare const onDidCloseTab: Event<Tab>;
  * ```
  */
 export declare const onDidChangeActiveTab: Event<Tab>;
+
+/**
+ * Event fired when a new tab is created in SQL Lab.
+ * Provides the newly created tab object as the event payload.
+ *
+ * @example
+ * ```typescript
+ * onDidCreateTab.event((tab) => {
+ *   console.log('New tab created:', tab.title);
+ *   // Initialize extension state for new tab
+ * });
+ * ```
+ */
+export declare const onDidCreateTab: Event<Tab>;
+
+/**
+ * Tab/Editor Management APIs
+ *
+ * These APIs allow extensions to create, close, and manage SQL Lab tabs.
+ */
+
+/**
+ * Options for creating a new SQL Lab tab.
+ */
+export interface CreateTabOptions {
+  /**
+   * Initial SQL content for the editor.
+   */
+  sql?: string;
+
+  /**
+   * Display title for the tab.
+   * If not provided, defaults to "Untitled Query N".
+   */
+  title?: string;
+
+  /**
+   * Database ID to connect to.
+   * If not provided, inherits from the active tab or uses default.
+   */
+  databaseId?: number;
+
+  /**
+   * Catalog name (for multi-catalog databases like Trino).
+   */
+  catalog?: string | null;
+
+  /**
+   * Schema name for the query context.
+   */
+  schema?: string | null;
+}
+
+/**
+ * Creates a new query editor tab in SQL Lab.
+ *
+ * @param options Optional configuration for the new tab
+ * @returns The newly created tab object
+ *
+ * @example
+ * ```typescript
+ * // Create a tab with default settings
+ * const tab = await createTab();
+ *
+ * // Create a tab with specific SQL and database
+ * const tab = await createTab({
+ *   sql: "SELECT * FROM users LIMIT 10",
+ *   title: "User Query",
+ *   databaseId: 1,
+ *   schema: "public"
+ * });
+ * ```
+ */
+export declare function createTab(options?: CreateTabOptions): Promise<Tab>;
+
+/**
+ * Closes a specific tab in SQL Lab.
+ *
+ * @param tabId The ID of the tab to close
+ * @returns Promise that resolves when the tab is closed
+ *
+ * @example
+ * ```typescript
+ * const tabs = getTabs();
+ * if (tabs.length > 1) {
+ *   await closeTab(tabs[0].id);
+ * }
+ * ```
+ */
+export declare function closeTab(tabId: string): Promise<void>;
+
+/**
+ * Switches to a specific tab in SQL Lab.
+ *
+ * @param tabId The ID of the tab to activate
+ * @returns Promise that resolves when the tab is activated
+ *
+ * @example
+ * ```typescript
+ * const tabs = getTabs();
+ * const targetTab = tabs.find(t => t.title === "My Query");
+ * if (targetTab) {
+ *   await setActiveTab(targetTab.id);
+ * }
+ * ```
+ */
+export declare function setActiveTab(tabId: string): Promise<void>;
+
+/**
+ * Query Execution APIs
+ *
+ * These APIs allow extensions to execute and control SQL queries.
+ */
+
+/**
+ * Options for executing a SQL query.
+ */
+export interface QueryOptions {
+  /**
+   * SQL to execute without modifying editor content.
+   * If not provided, uses the current editor content.
+   */
+  sql?: string;
+
+  /**
+   * Run only the selected text in the editor.
+   * Ignored if `sql` option is provided.
+   */
+  selectedOnly?: boolean;
+
+  /**
+   * Override the query row limit.
+   * If not provided, uses the tab's configured limit.
+   */
+  limit?: number;
+
+  /**
+   * Template parameters for Jinja templating.
+   * Merged with existing template parameters from the editor.
+   */
+  templateParameters?: Record<string, unknown>;
+
+  /**
+   * Create Table/View As Select options.
+   * When provided, query results are stored in a new table instead of returned directly.
+   */
+  ctas?: {
+    /**
+     * Whether to create a TABLE or VIEW.
+     */
+    method: 'TABLE' | 'VIEW';
+
+    /**
+     * Name of the table or view to create.
+     */
+    tableName: string;
+  };
+}
+
+/**
+ * Executes a SQL query in the current tab.
+ *
+ * @param options Optional query execution options
+ * @returns Promise that resolves with the query ID
+ *
+ * @example
+ * ```typescript
+ * // Execute the current editor content
+ * const queryId = await executeQuery();
+ *
+ * // Execute custom SQL without modifying the editor
+ * const queryId = await executeQuery({
+ *   sql: "SELECT * FROM users LIMIT 10"
+ * });
+ *
+ * // Execute only selected text
+ * const queryId = await executeQuery({ selectedOnly: true });
+ *
+ * // Create a table from query results
+ * const queryId = await executeQuery({
+ *   ctas: { method: 'TABLE', tableName: 'my_results' }
+ * });
+ * ```
+ */
+export declare function executeQuery(options?: QueryOptions): Promise<string>;
+
+/**
+ * Cancels a running query.
+ *
+ * @param queryId The client ID of the query to cancel
+ * @returns Promise that resolves when the cancellation request is sent
+ *
+ * @example
+ * ```typescript
+ * const queryId = await executeQuery();
+ * // Later, if needed:
+ * await cancelQuery(queryId);
+ * ```
+ */
+export declare function cancelQuery(queryId: string): Promise<void>;
+
+/**
+ * Tab Context APIs
+ *
+ * These APIs manage tab-level query context and settings.
+ * Text manipulation is handled directly via Editor (e.g., tab.editor.setValue(sql)).
+ */
+
+/**
+ * Sets the database for the current tab.
+ *
+ * @param databaseId The ID of the database to set
+ * @returns Promise that resolves when the database is updated
+ *
+ * @example
+ * ```typescript
+ * const databases = getDatabases();
+ * const prodDb = databases.find(d => d.database_name === "production");
+ * if (prodDb) {
+ *   await setDatabase(prodDb.id);
+ * }
+ * ```
+ */
+export declare function setDatabase(databaseId: number): Promise<void>;
+
+/**
+ * Sets the catalog for the current tab.
+ *
+ * @param catalog The catalog name to set, or null to clear
+ * @returns Promise that resolves when the catalog is updated
+ *
+ * @example
+ * ```typescript
+ * await setCatalog("hive_metastore");
+ * ```
+ */
+export declare function setCatalog(catalog: string | null): Promise<void>;
+
+/**
+ * Sets the schema for the current tab.
+ *
+ * @param schema The schema name to set, or null to clear
+ * @returns Promise that resolves when the schema is updated
+ *
+ * @example
+ * ```typescript
+ * await setSchema("public");
+ * ```
+ */
+export declare function setSchema(schema: string | null): Promise<void>;

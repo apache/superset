@@ -1522,9 +1522,21 @@ def sanitize_clause(clause: str, engine: str) -> str:
         raise QueryClauseValidationException(f"Invalid SQL clause: {clause}") from ex
 
 
-def transpile_to_dialect(sql: str, target_engine: str) -> str:
+def transpile_to_dialect(
+    sql: str,
+    target_engine: str,
+    source_engine: str | None = None,
+) -> str:
     """
-    Transpile SQL from "generic SQL" to the target database dialect using SQLGlot.
+    Transpile SQL from one database dialect to another using SQLGlot.
+
+    Args:
+        sql: The SQL query to transpile
+        target_engine: The target database engine (e.g., "mysql", "postgresql")
+        source_engine: The source database engine. If None, uses generic SQL dialect.
+
+    Returns:
+        The transpiled SQL string
 
     If the target engine is not in SQLGLOT_DIALECTS, returns the SQL as-is.
     """
@@ -1534,8 +1546,11 @@ def transpile_to_dialect(sql: str, target_engine: str) -> str:
     if target_dialect is None:
         return sql
 
+    # Get source dialect (default to generic if not specified)
+    source_dialect = SQLGLOT_DIALECTS.get(source_engine) if source_engine else Dialect
+
     try:
-        parsed = sqlglot.parse_one(sql, dialect=Dialect)
+        parsed = sqlglot.parse_one(sql, dialect=source_dialect)
         return Dialect.get_or_raise(target_dialect).generate(
             parsed,
             copy=True,

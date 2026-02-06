@@ -579,15 +579,11 @@ const ColumnSelectPopover = ({
                     ''
                   }
                   ref={sqlEditorRef}
-                  showLoadingForImport
                   onChange={onSqlExpressionChange}
                   width="100%"
                   height={`${height - 120}px`}
-                  showGutter={false}
-                  editorProps={{ $blockScrolling: true }}
-                  enableLiveAutocompletion
-                  className="filter-sql-editor"
-                  wrapEnabled
+                  lineNumbers={false}
+                  wordWrap
                   keywords={keywords.map((k: any) =>
                     typeof k === 'string' ? k : k.value || k.name || k,
                   )}

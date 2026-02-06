@@ -225,8 +225,12 @@ export const hydrateDashboard =
       directPathToChild.push(directLinkComponentId);
     }
 
+    const chartCustomizations = metadata?.chart_customization_config || [];
+    const filters = metadata?.native_filter_configuration || [];
+    const combinedFilters = [...filters, ...chartCustomizations];
+
     const nativeFilters = getInitialNativeFilterState({
-      filterConfig: metadata?.native_filter_configuration || [],
+      filterConfig: combinedFilters,
     });
 
     const { chartConfiguration, globalChartConfiguration } =
@@ -243,8 +247,6 @@ export const hydrateDashboard =
     const crossFiltersEnabled = isCrossFiltersEnabled(
       metadata.cross_filters_enabled,
     );
-
-    const chartCustomizationItems = metadata?.chart_customization_config || [];
 
     return dispatch({
       type: HYDRATE_DASHBOARD,
@@ -263,6 +265,7 @@ export const hydrateDashboard =
             'Superset',
             roles,
           ),
+          dash_export_perm: findPermission('can_export', 'Dashboard', roles),
           superset_can_explore: findPermission(
             'can_explore',
             'Superset',
@@ -311,7 +314,6 @@ export const hydrateDashboard =
           datasetsStatus:
             dashboardState?.datasetsStatus || ResourceStatus.Loading,
           chartStates: chartStates || dashboardState?.chartStates || {},
-          chartCustomizationItems,
         },
         dashboardLayout,
       },

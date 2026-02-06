@@ -392,7 +392,7 @@ export function startQuery(query: Query, runPreviewOnly?: boolean) {
     id: query.id ? query.id : nanoid(11),
     progress: 0,
     startDttm: now(),
-    state: query.runAsync ? 'pending' : 'running',
+    state: 'pending',
     cached: false,
   });
   return { type: START_QUERY, query, runPreviewOnly } as const;

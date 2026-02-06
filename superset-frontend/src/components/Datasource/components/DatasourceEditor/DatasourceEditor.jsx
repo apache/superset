@@ -30,6 +30,7 @@ import {
   getClientErrorObject,
   getExtensionsRegistry,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import {
   css,
   styled,
@@ -56,8 +57,10 @@ import {
   Col,
   Divider,
   EditableTitle,
+  Flex,
   FormLabel,
   Icons,
+  InfoTooltip,
   Loading,
   Row,
   Select,
@@ -79,6 +82,12 @@ import Fieldset from '../Fieldset';
 import Field from '../Field';
 import { fetchSyncedColumns, updateColumns } from '../../utils';
 import DatasetUsageTab from './components/DatasetUsageTab';
+import {
+  DEFAULT_COLUMNS_FOLDER_UUID,
+  DEFAULT_METRICS_FOLDER_UUID,
+} from '../../FoldersEditor/constants';
+import { validateFolders } from '../../FoldersEditor/folderValidation';
+import FoldersEditor from '../../FoldersEditor';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -157,6 +166,31 @@ const StyledTableTabWrapper = styled.div`
   }
 `;
 
+const DefaultColumnSettingsContainer = styled.div`
+  ${({ theme }) => css`
+    margin-bottom: ${theme.sizeUnit * 4}px;
+  `}
+`;
+
+const DefaultColumnSettingsTitle = styled.h4`
+  ${({ theme }) => css`
+    margin: 0 0 ${theme.sizeUnit * 2}px 0;
+    font-size: ${theme.fontSizeLG}px;
+    font-weight: ${theme.fontWeightMedium};
+    color: ${theme.colorText};
+  `}
+`;
+
+const FieldLabelWithTooltip = styled.div`
+  ${({ theme }) => css`
+    display: flex;
+    align-items: center;
+    gap: ${theme.sizeUnit}px;
+    font-size: ${theme.fontSizeSM}px;
+    color: ${theme.colorTextLabel};
+  `}
+`;
+
 const StyledButtonWrapper = styled.span`
   ${({ theme }) => `
     margin-top: ${theme.sizeUnit * 3}px;
@@ -183,6 +217,7 @@ const TABS_KEYS = {
   COLUMNS: 'COLUMNS',
   CALCULATED_COLUMNS: 'CALCULATED_COLUMNS',
   USAGE: 'USAGE',
+  FOLDERS: 'FOLDERS',
   SETTINGS: 'SETTINGS',
   SPATIAL: 'SPATIAL',
 };
@@ -234,18 +269,10 @@ function ColumnCollectionTable({
               'advanced_data_type',
               'type',
               'is_dttm',
-              'main_dttm_col',
               'filterable',
               'groupby',
             ]
-          : [
-              'column_name',
-              'type',
-              'is_dttm',
-              'main_dttm_col',
-              'filterable',
-              'groupby',
-            ]
+          : ['column_name', 'type', 'is_dttm', 'filterable', 'groupby']
       }
       sortColumns={
         isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)
@@ -254,18 +281,10 @@ function ColumnCollectionTable({
               'advanced_data_type',
               'type',
               'is_dttm',
-              'main_dttm_col',
               'filterable',
               'groupby',
             ]
-          : [
-              'column_name',
-              'type',
-              'is_dttm',
-              'main_dttm_col',
-              'filterable',
-              'groupby',
-            ]
+          : ['column_name', 'type', 'is_dttm', 'filterable', 'groupby']
       }
       allowDeletes
       allowAddItem={allowAddItem}
@@ -316,6 +335,7 @@ function ColumnCollectionTable({
                 control={
                   <Select
                     ariaLabel={t('Data type')}
+                    header={<FormLabel>{t('Data type')}</FormLabel>}
                     options={DATA_TYPES}
                     name="type"
                     allowNewOptions
@@ -403,7 +423,6 @@ function ColumnCollectionTable({
               type: t('Data type'),
               groupby: t('Is dimension'),
               is_dttm: t('Is temporal'),
-              main_dttm_col: t('Default datetime'),
               filterable: t('Is filterable'),
             }
           : {
@@ -411,7 +430,6 @@ function ColumnCollectionTable({
               type: t('Data type'),
               groupby: t('Is dimension'),
               is_dttm: t('Is temporal'),
-              main_dttm_col: t('Default datetime'),
               filterable: t('Is filterable'),
             }
       }
@@ -445,27 +463,6 @@ function ColumnCollectionTable({
                     {v}
                   </StyledLabelWrapper>
                 ),
-              main_dttm_col: (value, _onItemChange, _label, record) => {
-                const checked = datasource.main_dttm_col === record.column_name;
-                const disabled = !record?.is_dttm;
-                return (
-                  <Radio
-                    aria-label={t(
-                      'Set %s as default datetime column',
-                      record.column_name,
-                    )}
-                    data-test={`radio-default-dttm-${record.column_name}`}
-                    checked={checked}
-                    disabled={disabled}
-                    onChange={() =>
-                      onDatasourceChange({
-                        ...datasource,
-                        main_dttm_col: record.column_name,
-                      })
-                    }
-                  />
-                );
-              },
               type: d => (d ? <Label>{d}</Label> : null),
               advanced_data_type: d => (
                 <Label onChange={onColumnsChange}>{d}</Label>
@@ -497,27 +494,6 @@ function ColumnCollectionTable({
                     {v}
                   </StyledLabelWrapper>
                 ),
-              main_dttm_col: (value, _onItemChange, _label, record) => {
-                const checked = datasource.main_dttm_col === record.column_name;
-                const disabled = !record?.is_dttm;
-                return (
-                  <Radio
-                    aria-label={t(
-                      'Set %s as default datetime column',
-                      record.column_name,
-                    )}
-                    data-test={`radio-default-dttm-${record.column_name}`}
-                    checked={checked}
-                    disabled={disabled}
-                    onChange={() =>
-                      onDatasourceChange({
-                        ...datasource,
-                        main_dttm_col: record.column_name,
-                      })
-                    }
-                  />
-                );
-              },
               type: d => (d ? <Label>{d}</Label> : null),
               is_dttm: checkboxGenerator,
               filterable: checkboxGenerator,
@@ -659,6 +635,7 @@ class DatasourceEditor extends PureComponent {
       calculatedColumns: props.datasource.columns.filter(
         col => !!col.expression,
       ),
+      folders: props.datasource.folders || [],
       metadataLoading: false,
       activeTabKey: TABS_KEYS.SOURCE,
       datasourceType: props.datasource.sql
@@ -688,6 +665,7 @@ class DatasourceEditor extends PureComponent {
     this.handleTabSelect = this.handleTabSelect.bind(this);
     this.formatSql = this.formatSql.bind(this);
     this.fetchUsageData = this.fetchUsageData.bind(this);
+    this.handleFoldersChange = this.handleFoldersChange.bind(this);
     this.currencies = ensureIsArray(props.currencies).map(currencyCode => ({
       value: currencyCode,
       label: `${getCurrencySymbol({
@@ -708,6 +686,7 @@ class DatasourceEditor extends PureComponent {
       ...this.state.datasource,
       sql,
       columns: [...this.state.databaseColumns, ...this.state.calculatedColumns],
+      folders: this.state.folders,
     };
 
     this.props.onChange(newDatasource, this.state.errors);
@@ -739,6 +718,21 @@ class DatasourceEditor extends PureComponent {
     // Call onChange after setting datasourceType to ensure
     // SQL is cleared when switching to a physical dataset
     this.setState({ datasourceType }, this.onChange);
+  }
+
+  handleFoldersChange(folders) {
+    const userMadeFolders = folders.filter(
+      f =>
+        f.uuid !== DEFAULT_METRICS_FOLDER_UUID &&
+        f.uuid !== DEFAULT_COLUMNS_FOLDER_UUID &&
+        f.children.length > 0,
+    );
+    this.setState({ folders: userMadeFolders }, () => {
+      this.onDatasourceChange({
+        ...this.state.datasource,
+        folders: userMadeFolders,
+      });
+    });
   }
 
   setColumns(obj) {
@@ -1083,11 +1077,12 @@ class DatasourceEditor extends PureComponent {
       ),
     );
 
-    // validate currency code
+    // validate currency code (skip 'AUTO' - it's a placeholder for auto-detection)
     try {
       this.state.datasource.metrics?.forEach(
         metric =>
           metric.currency?.symbol &&
+          metric.currency.symbol !== 'AUTO' &&
           new Intl.NumberFormat('en-US', {
             style: 'currency',
             currency: metric.currency.symbol,
@@ -1095,6 +1090,12 @@ class DatasourceEditor extends PureComponent {
       );
     } catch {
       errors = errors.concat([t('Invalid currency code in saved metrics')]);
+    }
+
+    // Validate folders
+    if (this.state.folders?.length > 0) {
+      const folderValidation = validateFolders(this.state.folders);
+      errors = errors.concat(folderValidation.errors);
     }
 
     this.setState({ errors }, callback);
@@ -1106,6 +1107,90 @@ class DatasourceEditor extends PureComponent {
 
   sortMetrics(metrics) {
     return metrics.sort(({ id: a }, { id: b }) => b - a);
+  }
+
+  renderDefaultColumnSettings() {
+    const { datasource, databaseColumns, calculatedColumns } = this.state;
+    const { theme } = this.props;
+    const allColumns = [...databaseColumns, ...calculatedColumns];
+
+    // Get datetime-compatible columns for the default datetime dropdown
+    const datetimeColumns = allColumns
+      .filter(col => col.is_dttm)
+      .map(col => ({
+        value: col.column_name,
+        label: col.verbose_name || col.column_name,
+      }));
+
+    // String columns + untyped calculated columns for the currency code dropdown
+    const stringColumns = allColumns
+      .filter(
+        col =>
+          col.type_generic === GenericDataType.String ||
+          (col.expression && col.type_generic == null),
+      )
+      .map(col => ({
+        value: col.column_name,
+        label: col.verbose_name || col.column_name,
+      }));
+
+    return (
+      <DefaultColumnSettingsContainer data-test="default-column-settings">
+        <DefaultColumnSettingsTitle>
+          {t('Default Column Settings')}
+        </DefaultColumnSettingsTitle>
+        <Flex vertical gap={theme.sizeUnit * 3}>
+          <Flex vertical gap={theme.sizeUnit}>
+            <FieldLabelWithTooltip>
+              <span>{t('Default datetime column')}</span>
+              <InfoTooltip
+                tooltip={t(
+                  'Sets the default temporal column for this dataset. Automatically selected as the time column when building charts that require a time dimension and used in dashboard level time filters.',
+                )}
+              />
+            </FieldLabelWithTooltip>
+            <Select
+              ariaLabel={t('Default datetime column')}
+              options={datetimeColumns}
+              value={datasource.main_dttm_col}
+              onChange={value =>
+                this.onDatasourceChange({
+                  ...datasource,
+                  main_dttm_col: value,
+                })
+              }
+              placeholder={t('Select datetime column')}
+              allowClear
+              data-test="default-datetime-column-select"
+            />
+          </Flex>
+          <Flex vertical gap={theme.sizeUnit}>
+            <FieldLabelWithTooltip>
+              <span>{t('Currency code column')}</span>
+              <InfoTooltip
+                tooltip={t(
+                  "Select the column containing currency codes such as USD, EUR, GBP, etc. Used when building charts when 'Auto-detect' currency formatting is enabled. If this column is not set or if a chart metric contains multiple currencies, charts will fall back to neutral numeric formatting.",
+                )}
+              />
+            </FieldLabelWithTooltip>
+            <Select
+              ariaLabel={t('Currency code column')}
+              options={stringColumns}
+              value={datasource.currency_code_column}
+              onChange={value =>
+                this.onDatasourceChange({
+                  ...datasource,
+                  currency_code_column: value,
+                })
+              }
+              placeholder={t('Select currency code column')}
+              allowClear
+              data-test="currency-code-column-select"
+            />
+          </Flex>
+        </Flex>
+      </DefaultColumnSettingsContainer>
+    );
   }
 
   renderSettingsFieldset() {
@@ -1889,6 +1974,10 @@ class DatasourceEditor extends PureComponent {
               ),
               children: (
                 <StyledTableTabWrapper>
+                  {this.renderDefaultColumnSettings()}
+                  <DefaultColumnSettingsTitle>
+                    {t('Column Settings')}
+                  </DefaultColumnSettingsTitle>
                   <ColumnButtonWrapper>
                     <StyledButtonWrapper>
                       <Button
@@ -1926,6 +2015,10 @@ class DatasourceEditor extends PureComponent {
               ),
               children: (
                 <StyledTableTabWrapper>
+                  {this.renderDefaultColumnSettings()}
+                  <DefaultColumnSettingsTitle>
+                    {t('Column Settings')}
+                  </DefaultColumnSettingsTitle>
                   <ColumnCollectionTable
                     columns={this.state.calculatedColumns}
                     onColumnsChange={calculatedColumns =>
@@ -1975,6 +2068,27 @@ class DatasourceEditor extends PureComponent {
                 </StyledTableTabWrapper>
               ),
             },
+            ...(isFeatureEnabled(FeatureFlag.DatasetFolders)
+              ? [
+                  {
+                    key: TABS_KEYS.FOLDERS,
+                    label: (
+                      <CollectionTabTitle
+                        collection={this.state.folders}
+                        title={t('Folders')}
+                      />
+                    ),
+                    children: (
+                      <FoldersEditor
+                        folders={this.state.folders}
+                        metrics={sortedMetrics}
+                        columns={this.state.databaseColumns}
+                        onChange={this.handleFoldersChange}
+                      />
+                    ),
+                  },
+                ]
+              : []),
             {
               key: TABS_KEYS.SETTINGS,
               label: t('Settings'),
