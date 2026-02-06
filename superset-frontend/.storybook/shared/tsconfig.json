@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "composite": true,
+    "rootDir": ".",
+    "outDir": "../../node_modules/.cache/storybook-shared-types",
+    "declarationDir": "../../node_modules/.cache/storybook-shared-types"
+  },
+  "include": ["./**/*"],
+  "exclude": []
+}

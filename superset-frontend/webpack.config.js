@@ -233,6 +233,12 @@ if (!isDevMode) {
             skipLibCheck: true,
             incremental: true,
           },
+          exclude: [
+            '**/node_modules/**',
+            '**/*.stories.*',
+            '**/*.test.*',
+            '.storybook/**',
+          ],
         },
       },
     }),
