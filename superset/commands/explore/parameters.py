@@ -14,14 +14,17 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
+from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import Optional
 
 
 @dataclass
 class CommandParameters:
-    permalink_key: Optional[str]
-    form_data_key: Optional[str]
-    datasource_id: Optional[int]
-    datasource_type: Optional[str]
+    permalink_key: str | None
+    form_data_key: str | None
+    datasource_id: int | str | None
+    datasource_type: str | None
     slice_id: Optional[int]
