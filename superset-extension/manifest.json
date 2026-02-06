@@ -1,0 +1,43 @@
+{
+  "manifest_version": 3,
+  "name": "QuickSet",
+  "version": "1.0.0",
+  "description": "Quick access to Superset dashboard metadata",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting",
+    "contextMenus",
+    "alarms",
+    "downloads",
+    "tabs"
+  ],
+  "host_permissions": [
+    "http://localhost:8088/*",
+    "http://localhost:8089/*",
+    "http://127.0.0.1:8088/*",
+    "http://127.0.0.1:8089/*"
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["icons/*.svg", "icons/*.png"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

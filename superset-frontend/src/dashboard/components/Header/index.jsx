@@ -757,7 +757,7 @@ const Header = () => {
     setCurrentReportDeleting(null);
   };
 
-  const [menu, isDropdownVisible, setIsDropdownVisible] = useHeaderActionsMenu({
+  const [menu, isDropdownVisible, setIsDropdownVisible, dataBrowsingModal] = useHeaderActionsMenu({
     addSuccessToast: boundActionCreators.addSuccessToast,
     addDangerToast: boundActionCreators.addDangerToast,
     dashboardInfo,
@@ -891,6 +891,7 @@ const Header = () => {
         onConfirmNavigation={handleConfirmNavigation}
         handleSave={handleSaveAndCloseModal}
       />
+      {dataBrowsingModal}
     </div>
   );
 };

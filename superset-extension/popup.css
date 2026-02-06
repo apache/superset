@@ -1,0 +1,306 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  width: 400px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background: white;
+  color: #333;
+}
+
+.container {
+  background: white;
+  margin: 0;
+  padding: 0;
+}
+
+.header {
+  background: #20A7C9;
+  color: white;
+  padding: 20px;
+  text-align: center;
+}
+
+.header h1 {
+  font-size: 20px;
+  margin-bottom: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.header-icon {
+  width: 28px;
+  height: 28px;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+.subtitle {
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.status-indicator {
+  font-size: 12px;
+  animation: pulse 2s infinite;
+}
+
+.status-indicator.active {
+  color: #28a745;
+}
+
+.status-indicator.inactive {
+  color: #dc3545;
+}
+
+.status-indicator.warning {
+  color: #ffc107;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+#statusText {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+form {
+  padding: 20px;
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #495057;
+}
+
+.form-group input[type="text"],
+.form-group input[type="password"] {
+  width: 100%;
+  padding: 10px 12px;
+  border: 2px solid #e9ecef;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.checkbox-group {
+  display: flex;
+  align-items: center;
+}
+
+.checkbox-group label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  margin-bottom: 0;
+}
+
+.checkbox-group input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.button-group {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.btn-large {
+  width: 100%;
+}
+
+.btn-small {
+  font-size: 12px;
+  padding: 8px 12px;
+}
+
+.btn {
+  flex: 1;
+  padding: 14px 24px;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+.btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.btn-primary {
+  background: #20A7C9;
+  color: white;
+  border-color: #20A7C9;
+}
+
+.btn-primary:hover {
+  background: #1a8ba8;
+  border-color: #1a8ba8;
+}
+
+.btn-secondary {
+  background: white;
+  color: #20A7C9;
+  border-color: #20A7C9;
+}
+
+.btn-secondary:hover {
+  background: #f0f9fb;
+  border-color: #1a8ba8;
+  color: #1a8ba8;
+}
+
+.btn-success {
+  background: #28a745;
+  color: white;
+  border-color: #28a745;
+}
+
+.btn-success:hover {
+  background: #218838;
+  border-color: #218838;
+}
+
+.btn-danger {
+  background: white;
+  color: #dc3545;
+  border-color: #e9ecef;
+}
+
+.btn-danger:hover {
+  background: #fff5f5;
+  border-color: #dc3545;
+  color: #c82333;
+}
+
+.actions {
+  padding: 0 20px 20px;
+  display: flex;
+  gap: 10px;
+}
+
+.info {
+  background: #f8f9fa;
+  padding: 20px;
+  border-top: 1px solid #e9ecef;
+}
+
+.info h3 {
+  font-size: 14px;
+  margin-bottom: 12px;
+  color: #495057;
+}
+
+.info ul {
+  list-style: none;
+  padding: 0;
+}
+
+.info li {
+  font-size: 12px;
+  color: #6c757d;
+  margin-bottom: 8px;
+  padding-left: 20px;
+  position: relative;
+}
+
+.info li:before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  color: #28a745;
+  font-weight: bold;
+}
+
+.footer {
+  background: #343a40;
+  color: white;
+  text-align: center;
+  padding: 12px;
+  font-size: 11px;
+}
+
+.notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 12px 20px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  animation: slideIn 0.3s ease;
+  z-index: 1000;
+}
+
+.notification.success {
+  background: #28a745;
+  color: white;
+}
+
+.notification.error {
+  background: #dc3545;
+  color: white;
+}
+
+.notification.info {
+  background: #17a2b8;
+  color: white;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
