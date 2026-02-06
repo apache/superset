@@ -350,3 +350,84 @@ describe('ListView', () => {
     expect(mockedPropsComprehensive.fetchData).toHaveBeenCalled();
   });
 });
+
+// Mobile support tests
+test('respects forceViewMode prop and hides view toggle', () => {
+  // Omit cardSortSelectOptions to avoid CardSortSelect needing initialSort
+  const { cardSortSelectOptions, ...propsWithoutSort } = mockedPropsComprehensive;
+  render(
+    <QueryParamProvider location={makeMockLocation()}>
+      <ListView
+        {...propsWithoutSort}
+        renderCard={() => <div>Card</div>}
+        forceViewMode="card"
+      />
+    </QueryParamProvider>,
+    { store: mockStore() },
+  );
+
+  // View toggle should not be present when forceViewMode is set
+  expect(screen.queryByLabelText('card-view')).not.toBeInTheDocument();
+  expect(screen.queryByLabelText('list-view')).not.toBeInTheDocument();
+});
+
+test('shows card view when forceViewMode is card', () => {
+  // Omit cardSortSelectOptions to avoid CardSortSelect needing initialSort
+  const { cardSortSelectOptions, ...propsWithoutSort } = mockedPropsComprehensive;
+  render(
+    <QueryParamProvider location={makeMockLocation()}>
+      <ListView
+        {...propsWithoutSort}
+        renderCard={() => <div data-test="test-card">Card Content</div>}
+        forceViewMode="card"
+      />
+    </QueryParamProvider>,
+    { store: mockStore() },
+  );
+
+  // Should render cards, not table rows
+  expect(screen.getAllByTestId('test-card')).toHaveLength(2);
+});
+
+test('renders mobile filter drawer when mobileFiltersOpen is true', () => {
+  const setMobileFiltersOpen = jest.fn();
+  // Omit cardSortSelectOptions to avoid CardSortSelect needing initialSort
+  const { cardSortSelectOptions, ...propsWithoutSort } = mockedPropsComprehensive;
+  render(
+    <QueryParamProvider location={makeMockLocation()}>
+      <ListView
+        {...propsWithoutSort}
+        mobileFiltersOpen
+        setMobileFiltersOpen={setMobileFiltersOpen}
+        mobileFiltersDrawerTitle="Search Dashboards"
+      />
+    </QueryParamProvider>,
+    { store: mockStore() },
+  );
+
+  // Drawer should be visible with custom title
+  expect(screen.getByText('Search Dashboards')).toBeInTheDocument();
+});
+
+test('calls setMobileFiltersOpen(false) when drawer is closed', async () => {
+  const setMobileFiltersOpen = jest.fn();
+  // Omit cardSortSelectOptions to avoid CardSortSelect needing initialSort
+  const { cardSortSelectOptions, ...propsWithoutSort } = mockedPropsComprehensive;
+  render(
+    <QueryParamProvider location={makeMockLocation()}>
+      <ListView
+        {...propsWithoutSort}
+        mobileFiltersOpen
+        setMobileFiltersOpen={setMobileFiltersOpen}
+        mobileFiltersDrawerTitle="Search"
+      />
+    </QueryParamProvider>,
+    { store: mockStore() },
+  );
+
+  // Click the close button on the drawer
+  const closeButton = screen.getByLabelText('Close');
+  await userEvent.click(closeButton);
+
+  expect(setMobileFiltersOpen).toHaveBeenCalledWith(false);
+});
