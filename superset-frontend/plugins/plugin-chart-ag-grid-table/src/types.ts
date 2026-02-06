@@ -16,14 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  ColorFormatters,
+import type {
   BasicColorFormatterType,
+  ColorFormatters,
   CustomFormatter,
   DataColumnMeta,
-  ServerPaginationData,
-  SortByItem,
-  SearchOption,
   TableColumnConfig,
 } from '@superset-ui/chart-controls';
 import {
@@ -39,7 +36,6 @@ import {
   QueryFormData,
   SetDataMaskHook,
   CurrencyFormatter,
-  Currency,
   JsonObject,
   Metric,
   AgGridChartState,
@@ -51,16 +47,16 @@ import {
   CustomCellRendererProps,
 } from '@superset-ui/core/components/ThemedAgGridReact';
 
-// Re-export shared types for backwards compatibility
+// Re-export shared types used by internal plugin files that import from './types'
+// Types used locally in this file - re-export from local binding
 export type {
   BasicColorFormatterType,
   CustomFormatter,
   DataColumnMeta,
-  ServerPaginationData,
-  SortByItem,
-  SearchOption,
   TableColumnConfig,
 };
+// Types only re-exported, not used locally - direct re-export
+export type { SearchOption, SortByItem } from '@superset-ui/chart-controls';
 
 export interface TableChartData {
   records: DataRecord[];
