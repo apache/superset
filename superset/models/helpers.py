@@ -1245,6 +1245,19 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 return str(formatter)
             return None
 
+        def _is_temporal_column(label: str) -> bool:
+            """Check if a column is temporal (physical or adhoc)."""
+            # First check if it's a physical column in metadata
+            if hasattr(self, "get_column") and (col := self.get_column(label)):
+                return col.get("is_dttm") if isinstance(col, dict) else col.is_dttm
+            
+            # For adhoc columns, check if it's marked as temporal in query_object
+            for column in query_object.columns:
+                if isinstance(column, dict) and column.get("label") == label:
+                    return column.get("columnType") == "BASE_AXIS"
+            
+            return False
+
         # Collect datetime columns
         labels = tuple(
             label
@@ -1252,9 +1265,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 *get_base_axis_labels(query_object.columns),
                 query_object.granularity,
             ]
-            if hasattr(self, "get_column")
-            and (col := self.get_column(label))
-            and (col.get("is_dttm") if isinstance(col, dict) else col.is_dttm)
+            if label and _is_temporal_column(label)
         )
 
         dttm_cols = [
