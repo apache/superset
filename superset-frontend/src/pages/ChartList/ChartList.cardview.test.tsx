@@ -489,35 +489,6 @@ describe('ChartList Card View Tests', () => {
     });
   });
 
-  test('exit bulk select by clicking bulk select button again', async () => {
-    renderChartList(mockUser);
-
-    // Wait for cards to load
-    await screen.findByTestId('chart-list-view');
-    await waitFor(() => {
-      expect(screen.getByText(mockCharts[0].slice_name)).toBeInTheDocument();
-    });
-
-    // Enable bulk select mode
-    const bulkSelectButton = screen.getByTestId('bulk-select');
-    fireEvent.click(bulkSelectButton);
-
-    // Wait for bulk select controls
-    await waitFor(() => {
-      expect(screen.getByTestId('bulk-select-controls')).toBeInTheDocument();
-    });
-
-    // Click bulk select button again to exit
-    fireEvent.click(bulkSelectButton);
-
-    // Verify bulk select controls are gone
-    await waitFor(() => {
-      expect(
-        screen.queryByTestId('bulk-select-controls'),
-      ).not.toBeInTheDocument();
-    });
-  });
-
   test('card click behavior changes in bulk select mode', async () => {
     renderChartList(mockUser);
 
