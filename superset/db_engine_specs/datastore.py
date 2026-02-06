@@ -134,6 +134,7 @@ class DatastoreEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-me
         "homepage_url": "https://cloud.google.com/datastore/",
         "categories": [
             DatabaseCategory.CLOUD_GCP,
+            DatabaseCategory.SEARCH_NOSQL,
             DatabaseCategory.PROPRIETARY,
         ],
         "pypi_packages": ["python-datastore-sqlalchemy"],
