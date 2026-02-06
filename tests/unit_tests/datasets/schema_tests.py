@@ -75,3 +75,59 @@ def test_dataset_put_schema_currency_code_column_optional() -> None:
         "currency_code_column" not in result
         or result.get("currency_code_column") is None
     )
+
+
+def test_dataset_metrics_put_schema_parses_currency_string() -> None:
+    """Test that DatasetMetricsPutSchema parses string currency payloads."""
+    from superset.datasets.schemas import DatasetMetricsPutSchema
+
+    schema = DatasetMetricsPutSchema()
+    data = {
+        "expression": "SUM(amount)",
+        "metric_name": "sum_amount",
+        "currency": '{"symbol": "EUR", "symbolPosition": "suffix"}',
+    }
+    result = schema.load(data)
+    assert result["currency"] == {"symbol": "EUR", "symbolPosition": "suffix"}
+
+
+def test_dataset_metrics_put_schema_parses_python_dict_string() -> None:
+    """Test that DatasetMetricsPutSchema parses Python dict currency strings."""
+    from superset.datasets.schemas import DatasetMetricsPutSchema
+
+    schema = DatasetMetricsPutSchema()
+    data = {
+        "expression": "SUM(amount)",
+        "metric_name": "sum_amount",
+        "currency": "{'symbol': 'GBP', 'symbolPosition': 'prefix'}",
+    }
+    result = schema.load(data)
+    assert result["currency"] == {"symbol": "GBP", "symbolPosition": "prefix"}
+
+
+def test_dataset_metrics_put_schema_handles_malformed_currency() -> None:
+    """Test that DatasetMetricsPutSchema normalizes malformed currency strings."""
+    from superset.datasets.schemas import DatasetMetricsPutSchema
+
+    schema = DatasetMetricsPutSchema()
+    data = {
+        "expression": "SUM(amount)",
+        "metric_name": "sum_amount",
+        "currency": "not valid json",
+    }
+    result = schema.load(data)
+    assert result["currency"] == {}
+
+
+def test_import_v1_metric_schema_parses_currency_string() -> None:
+    """Test that ImportV1MetricSchema parses string currency payloads."""
+    from superset.datasets.schemas import ImportV1MetricSchema
+
+    schema = ImportV1MetricSchema()
+    data = {
+        "metric_name": "sum_amount",
+        "expression": "SUM(amount)",
+        "currency": '{"symbol": "CAD", "symbolPosition": "suffix"}',
+    }
+    result = schema.load(data)
+    assert result["currency"] == {"symbol": "CAD", "symbolPosition": "suffix"}

@@ -1510,7 +1510,7 @@ class TestDatasetApi(SupersetTestCase):
                 {
                     "metric_name": "test",
                     "expression": "COUNT(*)",
-                    "currency": '{"symbol": "USD", "symbolPosition": "suffix"}',
+                    "currency": {"symbol": "", "symbolPosition": ""},
                 },
             ]
         }
