@@ -86,20 +86,15 @@ export default function buildQuery(formData: DeckScatterFormData) {
 
       // Only add metric if point_radius_fixed is a metric type
       const isMetric = isMetricValue(point_radius_fixed);
-      // Extract metric value, handling both legacy string format and object format
-      let metricValue: QueryFormMetric | null = null;
-      if (isMetric) {
-        if (typeof point_radius_fixed === 'string') {
-          // Legacy string format: treat the string itself as the metric
-          metricValue = point_radius_fixed;
-        } else if (
-          point_radius_fixed?.value !== undefined &&
-          typeof point_radius_fixed.value !== 'number'
-        ) {
-          // Metric object format: use the metric value (string or adhoc metric object)
-          metricValue = point_radius_fixed.value as QueryFormMetric;
-        }
-      }
+      // Extract metric value: legacy string format or object with metric value
+      const rawValue =
+        typeof point_radius_fixed === 'string'
+          ? point_radius_fixed
+          : point_radius_fixed?.value;
+      const metricValue: QueryFormMetric | null =
+        isMetric && rawValue !== undefined && typeof rawValue !== 'number'
+          ? (rawValue as QueryFormMetric)
+          : null;
 
       // Preserve existing metrics and only add radius metric if it's metric-based
       const existingMetrics = baseQueryObject.metrics || [];
@@ -110,7 +105,7 @@ export default function buildQuery(formData: DeckScatterFormData) {
       const metrics: QueryFormMetric[] =
         metricValue && !existingLabels.has(getMetricLabel(metricValue))
           ? [...existingMetrics, metricValue]
-          : [...existingMetrics];
+          : existingMetrics;
 
       const filters = addSpatialNullFilters(
         spatial,
