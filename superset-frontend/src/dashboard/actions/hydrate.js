@@ -51,6 +51,7 @@ import { getUrlParam } from 'src/utils/urlUtils';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import extractUrlParams from '../util/extractUrlParams';
 import updateComponentParentsList from '../util/updateComponentParentsList';
+import { migrateChartCustomizationArray } from '../util/migrateChartCustomization';
 import { FilterBarOrientation } from '../types';
 
 export const HYDRATE_DASHBOARD = 'HYDRATE_DASHBOARD';
@@ -225,8 +226,14 @@ export const hydrateDashboard =
       directPathToChild.push(directLinkComponentId);
     }
 
-    const chartCustomizations = metadata?.chart_customization_config || [];
+    const rawChartCustomizations = metadata?.chart_customization_config || [];
+
+    const chartCustomizations = migrateChartCustomizationArray(
+      rawChartCustomizations,
+    );
+
     const filters = metadata?.native_filter_configuration || [];
+
     const combinedFilters = [...filters, ...chartCustomizations];
 
     const nativeFilters = getInitialNativeFilterState({
