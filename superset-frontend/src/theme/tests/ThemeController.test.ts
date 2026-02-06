@@ -858,13 +858,11 @@ test('ThemeController constructor recovers from corrupted stored theme', () => {
     }
   });
 
-  const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
-
   // Should not throw - constructor should recover
   const controller = createController();
 
-  // Verify recovery happened
-  expect(consoleWarnSpy).toHaveBeenCalledWith(
+  // Verify recovery happened - use shared consoleSpy to avoid interfering with other tests
+  expect(consoleSpy).toHaveBeenCalledWith(
     'Failed to apply stored theme, clearing invalid overrides:',
     expect.any(Error),
   );
@@ -882,8 +880,6 @@ test('ThemeController constructor recovers from corrupted stored theme', () => {
 
   // Verify controller is in a valid state
   expect(controller.getCurrentMode()).toBe(ThemeMode.DEFAULT);
-
-  consoleWarnSpy.mockRestore();
 });
 
 test('recovery flow: fetchSystemDefaultTheme returns theme → applies fetched theme', async () => {

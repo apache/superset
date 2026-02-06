@@ -23,12 +23,11 @@ import { theme } from 'antd';
  * These keys are derived from the SupersetSpecificTokens interface to ensure consistency.
  */
 const SUPERSET_CUSTOM_TOKENS: Set<string> = new Set([
-  // Font extensions
+  // Font extensions (fontWeightStrong is an Ant Design token, not Superset-specific)
   'fontSizeXS',
   'fontSizeXXL',
   'fontWeightNormal',
   'fontWeightLight',
-  'fontWeightStrong',
 
   // Brand tokens
   'brandIconMaxWidth',
