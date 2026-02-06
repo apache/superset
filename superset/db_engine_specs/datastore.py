@@ -321,7 +321,7 @@ class DatastoreEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-me
         data = super().fetch_data(cursor, limit)
         # Support type Datastore Row, introduced here PR #4071
         # google.cloud.datastore.table.Row
-        if data and type(data[0]).__name__ == "Row":
+        if data and hasattr(data[0], "values"):
             data = [r.values() for r in data]  # type: ignore
         return data
 
