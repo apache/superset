@@ -19,6 +19,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timezone
 from typing import Any
+from uuid import UUID
 
 from celery import Task
 from celery.exceptions import SoftTimeLimitExceeded
@@ -266,7 +267,10 @@ def execute_task(  # noqa: C901
     """
     from superset.commands.tasks.internal_update import InternalStatusTransitionCommand
 
-    task = TaskDAO.find_one_or_none(uuid=task_uuid)
+    # Convert string UUID to native UUID (Celery deserializes as string)
+    native_uuid = UUID(task_uuid)
+
+    task = TaskDAO.find_one_or_none(uuid=native_uuid)
     if not task:
         logger.error("Task %s not found in metastore", task_uuid)
         return {"status": "error", "message": "Task not found"}
@@ -280,7 +284,7 @@ def execute_task(  # noqa: C901
         )
         # Atomic transition to ABORTED (if not already)
         InternalStatusTransitionCommand(
-            task_uuid=task_uuid,
+            task_uuid=native_uuid,
             new_status=TaskStatus.ABORTED,
             expected_status=[TaskStatus.PENDING, TaskStatus.ABORTING],
             set_ended_at=True,
@@ -289,7 +293,7 @@ def execute_task(  # noqa: C901
 
     # Atomic transition: PENDING → IN_PROGRESS (set started_at for duration tracking)
     if not InternalStatusTransitionCommand(
-        task_uuid=task_uuid,
+        task_uuid=native_uuid,
         new_status=TaskStatus.IN_PROGRESS,
         expected_status=TaskStatus.PENDING,
         set_started_at=True,
@@ -301,7 +305,7 @@ def execute_task(  # noqa: C901
             task_type,
             task_uuid,
         )
-        refreshed = TaskDAO.find_one_or_none(uuid=task_uuid)
+        refreshed = TaskDAO.find_one_or_none(uuid=native_uuid)
         return {
             "status": refreshed.status if refreshed else "unknown",
             "task_uuid": task_uuid,
@@ -350,7 +354,7 @@ def execute_task(  # noqa: C901
             # Normal completion - also allow ABORTING → SUCCESS for late abort
             # (task finished before abort was detected)
             if InternalStatusTransitionCommand(
-                task_uuid=task_uuid,
+                task_uuid=native_uuid,
                 new_status=TaskStatus.SUCCESS,
                 expected_status=[TaskStatus.IN_PROGRESS, TaskStatus.ABORTING],
                 set_ended_at=True,
@@ -376,7 +380,7 @@ def execute_task(  # noqa: C901
 
         # Atomic transition to FAILURE (only if still IN_PROGRESS or ABORTING)
         InternalStatusTransitionCommand(
-            task_uuid=task_uuid,
+            task_uuid=native_uuid,
             new_status=TaskStatus.FAILURE,
             expected_status=[TaskStatus.IN_PROGRESS, TaskStatus.ABORTING],
             properties={"error_message": str(ex)},
@@ -406,7 +410,7 @@ def execute_task(  # noqa: C901
                 # All handlers succeeded - determine terminal state based on cause
                 if ctx.timeout_triggered:
                     InternalStatusTransitionCommand(
-                        task_uuid=task_uuid,
+                        task_uuid=native_uuid,
                         new_status=TaskStatus.TIMED_OUT,
                         expected_status=TaskStatus.ABORTING,
                         set_ended_at=True,
@@ -418,7 +422,7 @@ def execute_task(  # noqa: C901
                     )
                 else:
                     InternalStatusTransitionCommand(
-                        task_uuid=task_uuid,
+                        task_uuid=native_uuid,
                         new_status=TaskStatus.ABORTED,
                         expected_status=TaskStatus.ABORTING,
                         set_ended_at=True,
@@ -431,7 +435,7 @@ def execute_task(  # noqa: C901
             else:
                 # Handlers didn't complete successfully - mark as FAILURE
                 InternalStatusTransitionCommand(
-                    task_uuid=task_uuid,
+                    task_uuid=native_uuid,
                     new_status=TaskStatus.FAILURE,
                     expected_status=TaskStatus.ABORTING,
                     properties={"error_message": "Abort handlers did not complete"},
@@ -444,11 +448,11 @@ def execute_task(  # noqa: C901
                 )
 
         # Refresh to get final status for return value and completion notification
-        refreshed = TaskDAO.find_one_or_none(uuid=task_uuid)
+        refreshed = TaskDAO.find_one_or_none(uuid=native_uuid)
         final_status = refreshed.status if refreshed else "unknown"
 
         # Publish completion notification for any waiters (e.g., sync callers)
         if final_status in TERMINAL_STATES:
-            TaskManager.publish_completion(task_uuid, final_status)
+            TaskManager.publish_completion(native_uuid, final_status)
 
     return {"status": final_status, "task_uuid": task_uuid}

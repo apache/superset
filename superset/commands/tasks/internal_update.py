@@ -31,6 +31,7 @@ from __future__ import annotations
 import logging
 from functools import partial
 from typing import Any
+from uuid import UUID
 
 from superset_core.api.tasks import TaskProperties, TaskStatus
 
@@ -62,7 +63,7 @@ class InternalUpdateTaskCommand(BaseCommand):
 
     def __init__(
         self,
-        task_uuid: str,
+        task_uuid: UUID,
         properties: TaskProperties | None = None,
         payload: dict[str, Any] | None = None,
     ):
@@ -134,7 +135,7 @@ class InternalStatusTransitionCommand(BaseCommand):
 
     def __init__(
         self,
-        task_uuid: str,
+        task_uuid: UUID,
         new_status: TaskStatus | str,
         expected_status: TaskStatus | str | list[TaskStatus | str],
         properties: TaskProperties | None = None,

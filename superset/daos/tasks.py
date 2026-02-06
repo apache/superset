@@ -19,6 +19,7 @@
 import logging
 from datetime import datetime, timezone
 from typing import Any
+from uuid import UUID
 
 from superset_core.api.tasks import TaskProperties, TaskScope, TaskStatus
 
@@ -44,6 +45,27 @@ class TaskDAO(BaseDAO[Task]):
     """
 
     base_filter = TaskFilter
+
+    @classmethod
+    def get_status(cls, task_uuid: UUID) -> str | None:
+        """
+        Get only the status of a task by UUID.
+
+        This is a lightweight query that only fetches the status column,
+        optimized for polling endpoints where full entity loading is unnecessary.
+        Applies the base filter (TaskFilter) to enforce permission checks.
+
+        :param task_uuid: UUID of the task
+        :returns: Task status string, or None if task not found or not accessible
+        """
+        # Start with query on Task model so base filter can be applied
+        query = db.session.query(Task)
+        query = cls._apply_base_filter(query)
+        query = query.filter(Task.uuid == task_uuid)
+
+        # Select only the status column for efficiency
+        result = query.with_entities(Task.status).one_or_none()
+        return result[0] if result else None
 
     @classmethod
     def find_by_task_key(
@@ -168,7 +190,7 @@ class TaskDAO(BaseDAO[Task]):
         return task
 
     @classmethod
-    def abort_task(cls, task_uuid: str, skip_base_filter: bool = False) -> Task | None:
+    def abort_task(cls, task_uuid: UUID, skip_base_filter: bool = False) -> Task | None:
         """
         Abort a task by UUID.
 
@@ -313,7 +335,7 @@ class TaskDAO(BaseDAO[Task]):
     @classmethod
     def set_properties_and_payload(
         cls,
-        task_uuid: str,
+        task_uuid: UUID,
         properties: TaskProperties | None = None,
         payload: dict[str, Any] | None = None,
     ) -> bool:
@@ -365,7 +387,7 @@ class TaskDAO(BaseDAO[Task]):
     @classmethod
     def conditional_status_update(
         cls,
-        task_uuid: str,
+        task_uuid: UUID,
         new_status: TaskStatus | str,
         expected_status: TaskStatus | str | list[TaskStatus | str],
         properties: TaskProperties | None = None,

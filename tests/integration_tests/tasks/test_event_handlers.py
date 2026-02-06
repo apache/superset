@@ -162,7 +162,10 @@ class TestCleanupHandlers(SupersetTestCase):
         )
 
         # Execute task synchronously through Celery executor
-        result = execute_task.apply(args=[task_obj.uuid, "test_cleanup_task", (), {}])
+        # Use str(uuid) since Celery serializes args as JSON strings
+        result = execute_task.apply(
+            args=[str(task_obj.uuid), "test_cleanup_task", (), {}]
+        )
 
         # Verify task completed successfully
         assert result.successful()
@@ -181,7 +184,7 @@ class TestCleanupHandlers(SupersetTestCase):
         )
 
         result = execute_task.apply(
-            args=[task_obj.uuid, "test_multiple_cleanup_task", (), {}]
+            args=[str(task_obj.uuid), "test_multiple_cleanup_task", (), {}]
         )
 
         assert result.successful()
@@ -199,7 +202,7 @@ class TestCleanupHandlers(SupersetTestCase):
         )
 
         result = execute_task.apply(
-            args=[task_obj.uuid, "test_cleanup_with_data", (), {}]
+            args=[str(task_obj.uuid), "test_cleanup_with_data", (), {}]
         )
 
         assert result.successful()
@@ -402,7 +405,9 @@ class TestAbortBeforeExecution(SupersetTestCase):
         _reset_handler_state()
 
         # Try to execute - should skip
-        result = execute_task.apply(args=[task_obj.uuid, "test_cleanup_task", (), {}])
+        result = execute_task.apply(
+            args=[str(task_obj.uuid), "test_cleanup_task", (), {}]
+        )
 
         assert result.successful()
         assert result.result["status"] == TaskStatus.ABORTED.value

@@ -15,6 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from uuid import UUID
+
 import pytest
 from superset_core.api.tasks import TaskScope, TaskStatus
 
@@ -69,7 +71,7 @@ def test_update_task_not_found(app_context, login_as) -> None:
     login_as("admin")
 
     command = UpdateTaskCommand(
-        task_uuid="00000000-0000-0000-0000-000000000000",
+        task_uuid=UUID("00000000-0000-0000-0000-000000000000"),
         status=TaskStatus.SUCCESS.value,
     )
 

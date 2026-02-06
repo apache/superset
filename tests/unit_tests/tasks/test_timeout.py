@@ -18,12 +18,15 @@
 
 import time
 from unittest.mock import MagicMock, patch
+from uuid import UUID
 
 import pytest
 from superset_core.api.tasks import TaskOptions, TaskScope
 
 from superset.tasks.context import TaskContext
 from superset.tasks.decorators import TaskWrapper
+
+TEST_UUID = UUID("b8b61b7b-1cd3-4a31-a74a-0a95341afc06")
 
 # =============================================================================
 # Fixtures
@@ -47,7 +50,7 @@ def mock_flask_app():
 def mock_task_abortable():
     """Create a mock task that is abortable."""
     task = MagicMock()
-    task.uuid = "test-uuid-timeout"
+    task.uuid = TEST_UUID
     task.status = "in_progress"
     task.properties_dict = {"is_abortable": True}
     task.payload_dict = {}
@@ -63,7 +66,7 @@ def mock_task_abortable():
 def mock_task_not_abortable():
     """Create a mock task that is NOT abortable."""
     task = MagicMock()
-    task.uuid = "test-uuid-timeout"
+    task.uuid = TEST_UUID
     task.status = "in_progress"
     task.properties_dict = {}  # No is_abortable means it's not abortable
     task.payload_dict = {}

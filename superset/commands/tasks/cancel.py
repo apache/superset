@@ -19,6 +19,7 @@
 import logging
 from functools import partial
 from typing import TYPE_CHECKING
+from uuid import UUID
 
 from flask import current_app
 from superset_core.api.tasks import TaskScope, TaskStatus
@@ -61,7 +62,7 @@ class CancelTaskCommand(BaseCommand):
     we only fetch the task once, then validate permissions on the fetched data.
     """
 
-    def __init__(self, task_uuid: str, force: bool = False):
+    def __init__(self, task_uuid: UUID, force: bool = False):
         """
         Initialize the cancel command.
 

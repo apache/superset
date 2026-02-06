@@ -127,28 +127,6 @@ class TestTaskApi(SupersetTestCase):
         data = json.loads(rv.data.decode("utf-8"))
         assert "permissions" in data
 
-    def test_get_task_by_id(self):
-        """
-        Task API: Test get task by ID
-        """
-        with self._create_tasks():
-            self.login(ADMIN_USERNAME)
-            admin = self.get_user("admin")
-
-            # Get first task created by admin
-            task = db.session.query(Task).filter_by(created_by_fk=admin.id).first()
-            assert task is not None
-
-            uri = f"{self.TASK_API_BASE}/{task.id}"
-            rv = self.client.get(uri)
-            assert rv.status_code == 200
-
-            data = json.loads(rv.data.decode("utf-8"))
-            assert data["result"]["id"] == task.id
-            assert data["result"]["task_key"] == task.task_key
-            assert data["result"]["task_type"] == task.task_type
-            assert data["result"]["status"] == task.status
-
     def test_get_task_by_uuid(self):
         """
         Task API: Test get task by UUID and verify dedup_key is hashed
@@ -172,22 +150,24 @@ class TestTaskApi(SupersetTestCase):
             # Verify active task has hashed dedup_key (64 chars for SHA-256)
             assert len(task.dedup_key) == 64
             assert all(c in "0123456789abcdef" for c in task.dedup_key)
-            assert task.dedup_key != task.uuid
+            assert task.dedup_key != str(task.uuid)
 
             uri = f"{self.TASK_API_BASE}/{task.uuid}"
             rv = self.client.get(uri)
             assert rv.status_code == 200
 
             data = json.loads(rv.data.decode("utf-8"))
-            assert data["result"]["uuid"] == task.uuid
+            # Compare strings since JSON response contains string UUID
+            assert data["result"]["uuid"] == str(task.uuid)
             assert data["result"]["id"] == task.id
 
     def test_get_task_not_found(self):
         """
-        Task API: Test get task not found
+        Task API: Test get task not found with non-existent UUID
         """
         self.login(ADMIN_USERNAME)
-        uri = f"{self.TASK_API_BASE}/99999"
+        # Use a valid UUID that doesn't exist in the database
+        uri = f"{self.TASK_API_BASE}/00000000-0000-0000-0000-000000000000"
         rv = self.client.get(uri)
         assert rv.status_code == 404
 
@@ -283,46 +263,6 @@ class TestTaskApi(SupersetTestCase):
             assert len(data["result"]) <= 2
             assert data["count"] >= 6
 
-    def test_cancel_task_by_id(self):
-        """
-        Task API: Test cancel task by ID
-        """
-        with self._create_tasks():
-            self.login(ADMIN_USERNAME)
-            admin = self.get_user("admin")
-
-            # Find a pending task
-            task = (
-                db.session.query(Task)
-                .filter_by(
-                    created_by_fk=admin.id,
-                    status=TaskStatus.PENDING.value,
-                    task_type="test_type",
-                )
-                .first()
-            )
-            assert task is not None
-
-            # Verify active task has hashed dedup_key (64 chars for SHA-256)
-            original_dedup_key = task.dedup_key
-            assert len(original_dedup_key) == 64
-            assert all(c in "0123456789abcdef" for c in original_dedup_key)
-
-            uri = f"{self.TASK_API_BASE}/{task.id}/cancel"
-            rv = self.client.post(uri, json={})
-            assert rv.status_code == 200
-
-            data = json.loads(rv.data.decode("utf-8"))
-            assert data["message"] == "Task cancelled"
-            assert data["action"] == "aborted"
-            assert data["task"]["status"] == TaskStatus.ABORTED.value
-
-            # Verify task was aborted and dedup_key changed to UUID
-            db.session.refresh(task)
-            assert task.status == TaskStatus.ABORTED.value
-            assert task.dedup_key == task.uuid
-            assert task.dedup_key != original_dedup_key
-
     def test_cancel_task_by_uuid(self):
         """
         Task API: Test cancel task by UUID
@@ -343,16 +283,17 @@ class TestTaskApi(SupersetTestCase):
             assert rv.status_code == 200
 
             data = json.loads(rv.data.decode("utf-8"))
-            assert data["task"]["uuid"] == task.uuid
+            # Compare strings since JSON response contains string UUID
+            assert data["task"]["uuid"] == str(task.uuid)
             assert data["task"]["status"] == TaskStatus.ABORTED.value
             assert data["action"] == "aborted"
 
     def test_cancel_task_not_found(self):
         """
-        Task API: Test cancel task not found
+        Task API: Test cancel task not found with non-existent UUID
         """
         self.login(ADMIN_USERNAME)
-        uri = f"{self.TASK_API_BASE}/99999/cancel"
+        uri = f"{self.TASK_API_BASE}/00000000-0000-0000-0000-000000000000/cancel"
         rv = self.client.post(uri)
         assert rv.status_code == 404
 
@@ -368,7 +309,7 @@ class TestTaskApi(SupersetTestCase):
             task = db.session.query(Task).filter_by(created_by_fk=admin.id).first()
             assert task is not None
 
-            uri = f"{self.TASK_API_BASE}/{task.id}/cancel"
+            uri = f"{self.TASK_API_BASE}/{task.uuid}/cancel"
             rv = self.client.post(uri)
             assert rv.status_code == 404
 
@@ -384,33 +325,9 @@ class TestTaskApi(SupersetTestCase):
             task = db.session.query(Task).filter_by(created_by_fk=gamma.id).first()
             assert task is not None
 
-            uri = f"{self.TASK_API_BASE}/{task.id}/cancel"
+            uri = f"{self.TASK_API_BASE}/{task.uuid}/cancel"
             rv = self.client.post(uri)
             assert rv.status_code == 200
-
-    def test_get_task_status_by_id(self):
-        """
-        Task API: Test get task status by ID (lightweight)
-        """
-        with self._create_tasks():
-            self.login(ADMIN_USERNAME)
-            admin = self.get_user("admin")
-
-            task = db.session.query(Task).filter_by(created_by_fk=admin.id).first()
-            assert task is not None
-
-            uri = f"{self.TASK_API_BASE}/{task.id}/status"
-            rv = self.client.get(uri)
-            assert rv.status_code == 200
-
-            data = json.loads(rv.data.decode("utf-8"))
-            # Should only return status, not full task details
-            assert "status" in data
-            assert data["status"] == task.status
-            # Verify it's lightweight - no other fields
-            assert "payload" not in data
-            assert "created_by" not in data
-            assert "error_message" not in data
 
     def test_get_task_status_by_uuid(self):
         """
@@ -433,10 +350,10 @@ class TestTaskApi(SupersetTestCase):
 
     def test_get_task_status_not_found(self):
         """
-        Task API: Test get task status not found
+        Task API: Test get task status not found with non-existent UUID
         """
         self.login(ADMIN_USERNAME)
-        uri = f"{self.TASK_API_BASE}/99999/status"
+        uri = f"{self.TASK_API_BASE}/00000000-0000-0000-0000-000000000000/status"
         rv = self.client.get(uri)
         assert rv.status_code == 404
 
@@ -452,7 +369,7 @@ class TestTaskApi(SupersetTestCase):
             task = db.session.query(Task).filter_by(created_by_fk=admin.id).first()
             assert task is not None
 
-            uri = f"{self.TASK_API_BASE}/{task.id}/status"
+            uri = f"{self.TASK_API_BASE}/{task.uuid}/status"
             rv = self.client.get(uri)
             # Should be forbidden due to base filter
             assert rv.status_code == 404
@@ -469,7 +386,7 @@ class TestTaskApi(SupersetTestCase):
             task = db.session.query(Task).filter_by(created_by_fk=gamma.id).first()
             assert task is not None
 
-            uri = f"{self.TASK_API_BASE}/{task.id}/status"
+            uri = f"{self.TASK_API_BASE}/{task.uuid}/status"
             rv = self.client.get(uri)
             assert rv.status_code == 200
 
@@ -517,7 +434,7 @@ class TestTaskApi(SupersetTestCase):
             admin = self.get_user("admin")
 
             task = db.session.query(Task).filter_by(created_by_fk=admin.id).first()
-            uri = f"{self.TASK_API_BASE}/{task.id}"
+            uri = f"{self.TASK_API_BASE}/{task.uuid}"
             rv = self.client.get(uri)
             assert rv.status_code == 200
 
@@ -568,7 +485,7 @@ class TestTaskApi(SupersetTestCase):
                 .filter_by(created_by_fk=admin.id, task_type="test_type")
                 .first()
             )
-            uri = f"{self.TASK_API_BASE}/{task.id}"
+            uri = f"{self.TASK_API_BASE}/{task.uuid}"
             rv = self.client.get(uri)
             assert rv.status_code == 200
 
@@ -583,6 +500,10 @@ class TestTaskApi(SupersetTestCase):
     def test_task_computed_properties(self):
         """
         Task API: Test computed properties in response
+
+        This test verifies that computed properties (status, duration_seconds)
+        are correctly returned in the API response. Internal DB columns like
+        dedup_key are tested in unit tests (test_find_by_task_key_finished_not_found).
         """
         with self._create_tasks():
             self.login(ADMIN_USERNAME)
@@ -596,10 +517,7 @@ class TestTaskApi(SupersetTestCase):
             )
             assert task is not None
 
-            # Verify finished task has UUID as dedup_key
-            assert task.dedup_key == task.uuid
-
-            uri = f"{self.TASK_API_BASE}/{task.id}"
+            uri = f"{self.TASK_API_BASE}/{task.uuid}"
             rv = self.client.get(uri)
             assert rv.status_code == 200
 

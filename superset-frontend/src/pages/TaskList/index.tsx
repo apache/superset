@@ -338,7 +338,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
           }
 
           // Convert subscribers to FacePile format
-          const users = subscribers.map((sub: any) => ({
+          const users = subscribers.map((sub: TaskSubscriber) => ({
             id: sub.user_id,
             first_name: sub.first_name,
             last_name: sub.last_name,

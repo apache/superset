@@ -55,7 +55,7 @@ def get_context() -> TaskContext:
     if ctx is None:
         raise RuntimeError(
             "get_context() called outside task execution context. "
-            "This function can only be called from within an @async_task "
+            "This function can only be called from within a @task "
             "decorated function."
         )
     return ctx

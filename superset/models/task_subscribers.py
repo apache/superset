@@ -16,7 +16,7 @@
 # under the License.
 """TaskSubscriber model for tracking multi-user task subscriptions"""
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from flask_appbuilder import Model
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, UniqueConstraint
@@ -48,12 +48,11 @@ class TaskSubscriber(CoreTaskSubscriber, AuditMixinNullable, Model):
     user_id = Column(
         Integer, ForeignKey("ab_user.id", ondelete="CASCADE"), nullable=False
     )
-    subscribed_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    subscribed_at = Column(DateTime, nullable=False, default=datetime.now(timezone.utc))
 
     # Relationships
     task = relationship("Task", back_populates="subscribers")
-    # Explicitly specify foreign_keys to avoid ambiguity with audit fields
-    user = relationship("User", foreign_keys=[user_id])
+    user = relationship("User", foreign_keys=[user_id], lazy="joined")
 
     __table_args__ = (
         UniqueConstraint("task_id", "user_id", name="uq_task_subscribers_task_user"),

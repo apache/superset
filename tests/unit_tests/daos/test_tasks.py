@@ -16,6 +16,7 @@
 # under the License.
 
 from collections.abc import Iterator
+from uuid import UUID
 
 import pytest
 from sqlalchemy.orm.session import Session
@@ -26,7 +27,8 @@ from superset.models.tasks import Task
 from superset.tasks.utils import get_active_dedup_key, get_finished_dedup_key
 
 # Test constants
-TASK_UUID = "e7765491-40c1-4f35-a4f5-06308e79310e"
+TASK_UUID = UUID("e7765491-40c1-4f35-a4f5-06308e79310e")
+TASK_ID = 42
 TEST_TASK_TYPE = "test_type"
 TEST_TASK_KEY = "test-key"
 TEST_USER_ID = 1
@@ -35,6 +37,8 @@ TEST_USER_ID = 1
 def create_task(
     session: Session,
     *,
+    task_id: int | None = None,
+    task_uuid: UUID | None = None,
     task_key: str = TEST_TASK_KEY,
     task_type: str = TEST_TASK_TYPE,
     scope: TaskScope = TaskScope.PRIVATE,
@@ -42,7 +46,6 @@ def create_task(
     user_id: int | None = TEST_USER_ID,
     properties: TaskProperties | None = None,
     use_finished_dedup_key: bool = False,
-    task_uuid: str | None = None,
 ) -> Task:
     """Helper to create a task with sensible defaults for testing."""
     if use_finished_dedup_key:
@@ -63,6 +66,8 @@ def create_task(
         dedup_key=dedup_key,
         user_id=user_id,
     )
+    if task_id is not None:
+        task.id = task_id
     if task_uuid:
         task.uuid = task_uuid
     if properties:
@@ -207,7 +212,7 @@ def test_abort_task_pending_success(session_with_task: Session) -> None:
         status=TaskStatus.PENDING,
     )
 
-    result = TaskDAO.abort_task(str(task.uuid), skip_base_filter=True)
+    result = TaskDAO.abort_task(task.uuid, skip_base_filter=True)
 
     assert result is not None
     assert result.status == TaskStatus.ABORTED.value
@@ -227,7 +232,7 @@ def test_abort_task_in_progress_abortable(session_with_task: Session) -> None:
         properties={"is_abortable": True},
     )
 
-    result = TaskDAO.abort_task(str(task.uuid), skip_base_filter=True)
+    result = TaskDAO.abort_task(task.uuid, skip_base_filter=True)
 
     assert result is not None
     # Should set status to ABORTING, not ABORTED
@@ -246,7 +251,7 @@ def test_abort_task_in_progress_not_abortable(session_with_task: Session) -> Non
     )
 
     with pytest.raises(TaskNotAbortableError):
-        TaskDAO.abort_task(str(task.uuid), skip_base_filter=True)
+        TaskDAO.abort_task(task.uuid, skip_base_filter=True)
 
 
 def test_abort_task_in_progress_is_abortable_none(session_with_task: Session) -> None:
@@ -261,7 +266,7 @@ def test_abort_task_in_progress_is_abortable_none(session_with_task: Session) ->
     )
 
     with pytest.raises(TaskNotAbortableError):
-        TaskDAO.abort_task(str(task.uuid), skip_base_filter=True)
+        TaskDAO.abort_task(task.uuid, skip_base_filter=True)
 
 
 def test_abort_task_already_aborting(session_with_task: Session) -> None:
@@ -274,7 +279,7 @@ def test_abort_task_already_aborting(session_with_task: Session) -> None:
         status=TaskStatus.ABORTING,
     )
 
-    result = TaskDAO.abort_task(str(task.uuid), skip_base_filter=True)
+    result = TaskDAO.abort_task(task.uuid, skip_base_filter=True)
 
     # Idempotent - returns task without error
     assert result is not None
@@ -285,7 +290,7 @@ def test_abort_task_not_found(session_with_task: Session) -> None:
     """Test abort fails when task not found"""
     from superset.daos.tasks import TaskDAO
 
-    result = TaskDAO.abort_task("00000000-0000-0000-0000-000000000000")
+    result = TaskDAO.abort_task(UUID("00000000-0000-0000-0000-000000000000"))
 
     assert result is None
 
@@ -302,7 +307,7 @@ def test_abort_task_already_finished(session_with_task: Session) -> None:
         task_uuid=TASK_UUID,
     )
 
-    result = TaskDAO.abort_task(str(task.uuid), skip_base_filter=True)
+    result = TaskDAO.abort_task(task.uuid, skip_base_filter=True)
 
     assert result is None
 
@@ -386,5 +391,30 @@ def test_remove_subscriber_not_subscribed(session_with_task: Session) -> None:
 
     # Try to remove non-existent subscriber
     result = TaskDAO.remove_subscriber(task.id, user_id=999)
+
+    assert result is None
+
+
+def test_get_status(session_with_task: Session) -> None:
+    """Test get_status returns status string when task found by UUID"""
+    from superset.daos.tasks import TaskDAO
+
+    task = create_task(
+        session_with_task,
+        task_uuid=TASK_UUID,
+        task_key="status-task",
+        status=TaskStatus.IN_PROGRESS,
+    )
+
+    result = TaskDAO.get_status(task.uuid)
+
+    assert result == TaskStatus.IN_PROGRESS.value
+
+
+def test_get_status_not_found(session_with_task: Session) -> None:
+    """Test get_status returns None when task not found"""
+    from superset.daos.tasks import TaskDAO
+
+    result = TaskDAO.get_status(UUID("00000000-0000-0000-0000-000000000000"))
 
     assert result is None

@@ -19,6 +19,7 @@
 import time
 from datetime import datetime, timezone
 from unittest.mock import MagicMock, Mock, patch
+from uuid import UUID
 
 import pytest
 from freezegun import freeze_time
@@ -26,12 +27,14 @@ from superset_core.api.tasks import TaskStatus
 
 from superset.tasks.context import TaskContext
 
+TEST_UUID = UUID("b8b61b7b-1cd3-4a31-a74a-0a95341afc06")
+
 
 @pytest.fixture
 def mock_task():
     """Create a mock task for testing."""
     task = MagicMock()
-    task.uuid = "test-uuid-1234"
+    task.uuid = TEST_UUID
     task.status = TaskStatus.PENDING.value
     return task
 
@@ -281,7 +284,7 @@ class TestAbortHandlerRegistration:
         mock_app.config = {"TASK_ABORT_POLLING_DEFAULT_INTERVAL": 1.0}
         mock_app._get_current_object = Mock(return_value=mock_app)
         mock_task = MagicMock()
-        mock_task.uuid = "test-uuid"
+        mock_task.uuid = TEST_UUID
         mock_task.properties_dict = {"is_abortable": False}
         mock_task.payload_dict = {}
 
@@ -303,7 +306,7 @@ class TestAbortHandlerRegistration:
         mock_app.config = {"TASK_ABORT_POLLING_DEFAULT_INTERVAL": 1.0}
         mock_app._get_current_object = Mock(return_value=mock_app)
         mock_task = MagicMock()
-        mock_task.uuid = "test-uuid"
+        mock_task.uuid = TEST_UUID
         mock_task.properties_dict = {"is_abortable": False}
         mock_task.payload_dict = {}
 
@@ -327,7 +330,7 @@ class TestAbortHandlerRegistration:
     def test_abort_handlers_completed_initially_false(self):
         """Test abort_handlers_completed is False initially."""
         mock_task = MagicMock()
-        mock_task.uuid = "test-uuid"
+        mock_task.uuid = TEST_UUID
         mock_task.properties_dict = {}
         mock_task.payload_dict = {}
 

@@ -15,8 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import uuid as uuid_lib
 from unittest.mock import patch
+from uuid import UUID, uuid4
 
 import pytest
 from superset_core.api.tasks import TaskScope, TaskStatus
@@ -51,7 +51,7 @@ def test_cancel_pending_task_aborts(app_context, get_user) -> None:
     try:
         # Cancel the pending task with admin user context
         with override_user(admin):
-            command = CancelTaskCommand(task_uuid=str(task.uuid))
+            command = CancelTaskCommand(task_uuid=task.uuid)
             result = command.run()
 
         # Verify task is aborted (pending goes directly to ABORTED)
@@ -90,7 +90,7 @@ def test_cancel_in_progress_abortable_task_sets_aborting(app_context, get_user) 
             override_user(admin),
             patch("superset.tasks.manager.TaskManager.publish_abort"),
         ):
-            command = CancelTaskCommand(task_uuid=str(task.uuid))
+            command = CancelTaskCommand(task_uuid=task.uuid)
             result = command.run()
 
         # In-progress tasks go to ABORTING (not ABORTED)
@@ -109,10 +109,8 @@ def test_cancel_in_progress_abortable_task_sets_aborting(app_context, get_user) 
 
 def test_cancel_in_progress_not_abortable_raises_error(app_context, get_user) -> None:
     """Test canceling an in-progress task without abort handler raises error"""
-    import uuid as uuid_lib
-
     admin = get_user("admin")
-    unique_key = f"cancel_not_abortable_test_{uuid_lib.uuid4().hex[:8]}"
+    unique_key = f"cancel_not_abortable_test_{uuid4().hex[:8]}"
 
     # Create an in-progress non-abortable task
     task = TaskDAO.create_task(
@@ -128,7 +126,7 @@ def test_cancel_in_progress_not_abortable_raises_error(app_context, get_user) ->
 
     try:
         with override_user(admin):
-            command = CancelTaskCommand(task_uuid=str(task.uuid))
+            command = CancelTaskCommand(task_uuid=task.uuid)
 
             with pytest.raises(TaskNotAbortableError):
                 command.run()
@@ -147,7 +145,9 @@ def test_cancel_task_not_found(app_context, get_user) -> None:
     admin = get_user("admin")
 
     with override_user(admin):
-        command = CancelTaskCommand(task_uuid="00000000-0000-0000-0000-000000000000")
+        command = CancelTaskCommand(
+            task_uuid=UUID("00000000-0000-0000-0000-000000000000")
+        )
 
         with pytest.raises(TaskNotFoundError):
             command.run()
@@ -155,10 +155,9 @@ def test_cancel_task_not_found(app_context, get_user) -> None:
 
 def test_cancel_finished_task_raises_error(app_context, get_user) -> None:
     """Test canceling an already finished task raises error"""
-    import uuid as uuid_lib
 
     admin = get_user("admin")
-    unique_key = f"cancel_finished_test_{uuid_lib.uuid4().hex[:8]}"
+    unique_key = f"cancel_finished_test_{uuid4().hex[:8]}"
 
     # Create a finished task
     task = TaskDAO.create_task(
@@ -173,7 +172,7 @@ def test_cancel_finished_task_raises_error(app_context, get_user) -> None:
 
     try:
         with override_user(admin):
-            command = CancelTaskCommand(task_uuid=str(task.uuid))
+            command = CancelTaskCommand(task_uuid=task.uuid)
 
             with pytest.raises(TaskAbortFailedError):
                 command.run()
@@ -215,7 +214,7 @@ def test_cancel_shared_task_with_multiple_subscribers_unsubscribes(
 
         # Cancel as gamma (non-admin subscriber)
         with override_user(gamma):
-            command = CancelTaskCommand(task_uuid=str(task.uuid))
+            command = CancelTaskCommand(task_uuid=task.uuid)
             result = command.run()
 
         # Should unsubscribe, not abort
@@ -254,7 +253,7 @@ def test_cancel_shared_task_last_subscriber_aborts(app_context, get_user) -> Non
 
         # Cancel as the only subscriber
         with override_user(admin):
-            command = CancelTaskCommand(task_uuid=str(task.uuid))
+            command = CancelTaskCommand(task_uuid=task.uuid)
             result = command.run()
 
         # Should abort since last subscriber
@@ -292,7 +291,7 @@ def test_cancel_with_force_aborts_for_all_subscribers(app_context, get_user) -> 
 
         # Force cancel as admin
         with override_user(admin):
-            command = CancelTaskCommand(task_uuid=str(task.uuid), force=True)
+            command = CancelTaskCommand(task_uuid=task.uuid, force=True)
             result = command.run()
 
         # Should abort despite multiple subscribers
@@ -326,7 +325,7 @@ def test_cancel_with_force_requires_admin(app_context, get_user) -> None:
     try:
         # Try to force cancel as gamma (non-admin)
         with override_user(gamma):
-            command = CancelTaskCommand(task_uuid=str(task.uuid), force=True)
+            command = CancelTaskCommand(task_uuid=task.uuid, force=True)
 
             with pytest.raises(TaskPermissionDeniedError):
                 command.run()
@@ -344,7 +343,7 @@ def test_cancel_private_task_permission_denied(app_context, get_user) -> None:
     """Test non-owner cannot cancel private task"""
     admin = get_user("admin")
     gamma = get_user("gamma")
-    unique_key = f"private_permission_test_{uuid_lib.uuid4().hex[:8]}"
+    unique_key = f"private_permission_test_{uuid4().hex[:8]}"
 
     # Use test_request_context to ensure has_request_context() returns True
     # so that TaskFilter properly applies permission filtering
@@ -362,7 +361,7 @@ def test_cancel_private_task_permission_denied(app_context, get_user) -> None:
         try:
             # Try to cancel admin's private task as gamma (non-owner)
             with override_user(gamma):
-                command = CancelTaskCommand(task_uuid=str(task.uuid))
+                command = CancelTaskCommand(task_uuid=task.uuid)
 
                 # Should fail because gamma can't see admin's private task (base filter)
                 with pytest.raises(TaskNotFoundError):
@@ -381,7 +380,7 @@ def test_cancel_system_task_requires_admin(app_context, get_user) -> None:
     """Test system tasks can only be canceled by admin"""
     admin = get_user("admin")
     gamma = get_user("gamma")
-    unique_key = f"system_task_test_{uuid_lib.uuid4().hex[:8]}"
+    unique_key = f"system_task_test_{uuid4().hex[:8]}"
 
     # Use test_request_context to ensure has_request_context() returns True
     # so that TaskFilter properly applies permission filtering
@@ -399,7 +398,7 @@ def test_cancel_system_task_requires_admin(app_context, get_user) -> None:
         try:
             # Try to cancel as gamma (non-admin)
             with override_user(gamma):
-                command = CancelTaskCommand(task_uuid=str(task.uuid))
+                command = CancelTaskCommand(task_uuid=task.uuid)
 
                 # System tasks are not visible to non-admins via base filter
                 with pytest.raises(TaskNotFoundError):
@@ -411,7 +410,7 @@ def test_cancel_system_task_requires_admin(app_context, get_user) -> None:
 
             # But admin can cancel it
             with override_user(admin):
-                command = CancelTaskCommand(task_uuid=str(task.uuid))
+                command = CancelTaskCommand(task_uuid=task.uuid)
                 result = command.run()
 
             assert result.status == TaskStatus.ABORTED.value
@@ -439,7 +438,7 @@ def test_cancel_already_aborting_is_idempotent(app_context, get_user) -> None:
     try:
         # Cancel the already aborting task
         with override_user(admin):
-            command = CancelTaskCommand(task_uuid=str(task.uuid))
+            command = CancelTaskCommand(task_uuid=task.uuid)
             result = command.run()
 
         # Should succeed without error
@@ -469,7 +468,7 @@ def test_cancel_shared_task_not_subscribed_raises_error(app_context, get_user) -
     try:
         # Try to cancel as gamma (not subscribed)
         with override_user(gamma):
-            command = CancelTaskCommand(task_uuid=str(task.uuid))
+            command = CancelTaskCommand(task_uuid=task.uuid)
 
             with pytest.raises(TaskPermissionDeniedError):
                 command.run()
