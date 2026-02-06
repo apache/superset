@@ -22,6 +22,10 @@ import { t } from '@apache-superset/core';
 import { useTheme } from '@apache-superset/core/ui';
 import { Button } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
+import {
+  CREATE_CHART_DATA_WITH_FILTERS_STEP_INDEX,
+  STEPS,
+} from 'src/components/OnboardingWorkflows/CreateDashboardWithNoExistingChart/constants';
 
 export type RunQueryButtonProps = {
   loading: boolean;
@@ -54,6 +58,9 @@ export const RunQueryButton = ({
       buttonStyle={chartIsStale ? 'primary' : 'secondary'}
       disabled={!!errorMessage}
       data-test="run-query-button"
+      className={
+        STEPS[CREATE_CHART_DATA_WITH_FILTERS_STEP_INDEX].targetClassName
+      }
     >
       {isNewChart ? t('Create chart') : t('Update chart')}
     </Button>

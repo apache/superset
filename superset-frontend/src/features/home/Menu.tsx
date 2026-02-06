@@ -36,6 +36,10 @@ import {
 } from 'src/types/bootstrapTypes';
 import RightMenu from './RightMenu';
 import { NAVBAR_MENU_POPUP_OFFSET } from './commonMenuData';
+import {
+  GO_TO_DASHBOARDS_STEP_INDEX,
+  STEPS,
+} from 'src/components/OnboardingWorkflows/CreateDashboardWithNoExistingChart/constants';
 
 interface MenuProps {
   data: MenuData;
@@ -242,6 +246,7 @@ export function Menu({
   }: MenuObjectProps): MenuItem => {
     if (url && isFrontendRoute) {
       return {
+        className: STEPS[GO_TO_DASHBOARDS_STEP_INDEX].targetClassName,
         key: label,
         label: (
           <NavLink role="button" to={url} activeClassName="is-active">

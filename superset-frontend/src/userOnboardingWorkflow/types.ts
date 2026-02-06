@@ -23,5 +23,6 @@ export default interface UserOnboardingWorkflowsState {
   isLoading: boolean | null;
   userOnboardingWorkflows: UserOnboardingWorkflow[] | null;
   userOnboardingWorkflowNamesMap: Record<string, UserOnboardingWorkflow> | null;
+  onboardingWorkflowStepIndex: number;
   error: string | null;
 }

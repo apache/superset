@@ -67,6 +67,13 @@ export function setUserOnboardingWorkflowsError(error: string) {
   };
 }
 
+export function setUserOnboardingWorkflowsStepIndex(stepIndex: number) {
+  return {
+    type: 'SET_USER_ONBOARDING_WORKFLOWS_STEP_INDEX',
+    payload: stepIndex,
+  };
+}
+
 export function fetchCurrentUserOnboardingworkflows() {
   return async function (dispatch: ThunkDispatch<any, undefined, AnyAction>) {
     try {
@@ -121,4 +128,8 @@ export type OnboardingWorkflowActions =
     }
   | {
       type: 'RESET_USER_ONBOARDING_WORKFLOWS_STATE';
+    }
+  | {
+      type: 'SET_USER_ONBOARDING_WORKFLOWS_STEP_INDEX';
+      payload: number;
     };

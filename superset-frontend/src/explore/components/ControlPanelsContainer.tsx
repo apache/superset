@@ -77,6 +77,10 @@ import { RunQueryButton } from './RunQueryButton';
 import { Operators } from '../constants';
 import { Clauses } from './controls/FilterControl/types';
 import StashFormDataContainer from './StashFormDataContainer';
+import {
+  EDIT_CHART_DATA_FILTERS_STEP_INDEX,
+  STEPS,
+} from 'src/components/OnboardingWorkflows/CreateDashboardWithNoExistingChart/constants';
 
 const TABS_KEYS = {
   DATA: 'DATA',
@@ -909,6 +913,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
           allowOverflow={false}
           activeKey={activeTabKey}
           onChange={(key: string) => setActiveTabKey(key)}
+          className={STEPS[EDIT_CHART_DATA_FILTERS_STEP_INDEX].targetClassName}
           items={[
             {
               key: TABS_KEYS.DATA,

@@ -20,7 +20,7 @@
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
-import { connect } from 'react-redux';
+import { connect, useDispatch } from 'react-redux';
 import {
   useChangeEffect,
   useComponentDidMount,
@@ -69,6 +69,8 @@ import SaveModal from '../SaveModal';
 import DataSourcePanel from '../DatasourcePanel';
 import ConnectedExploreChartHeader from '../ExploreChartHeader';
 import ExploreContainer from '../ExploreContainer';
+import { setUserOnboardingWorkflowsStepIndex } from 'src/userOnboardingWorkflow/actions';
+import { OPEN_SAVE_CHART_TO_DASHBOARD_MODAL_STEP_INDEX } from 'src/components/OnboardingWorkflows/CreateDashboardWithNoExistingChart/constants';
 
 const propTypes = {
   ...ExploreChartPanel.propTypes,
@@ -271,6 +273,7 @@ function isAggregatedChartType(vizType) {
 }
 
 function ExploreViewContainer(props) {
+  const dispatch = useDispatch();
   const dynamicPluginContext = usePluginContext();
   const dynamicPlugin = dynamicPluginContext.dynamicPlugins[props.vizType];
   const isDynamicPluginLoading = dynamicPlugin && dynamicPlugin.mounting;
@@ -359,6 +362,11 @@ function ExploreViewContainer(props) {
   }, [props.actions, props.chart.id, props.timeout]);
 
   const onQuery = useCallback(() => {
+    dispatch(
+      setUserOnboardingWorkflowsStepIndex(
+        OPEN_SAVE_CHART_TO_DASHBOARD_MODAL_STEP_INDEX,
+      ),
+    );
     props.actions.setForceQuery(false);
 
     // Skip main query if Matrixify is enabled

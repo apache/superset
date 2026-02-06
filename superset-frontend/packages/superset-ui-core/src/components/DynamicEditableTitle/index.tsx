@@ -70,6 +70,7 @@ export const DynamicEditableTitle = memo(
     onSave,
     canEdit,
     label,
+    className,
   }: DynamicEditableTitleProps) => {
     const theme = useTheme();
     const [isEditing, setIsEditing] = useState(false);
@@ -160,7 +161,7 @@ export const DynamicEditableTitle = memo(
     );
 
     return (
-      <div css={titleStyles} ref={containerRef}>
+      <div css={titleStyles} ref={containerRef} className={className}>
         <Tooltip
           id="title-tooltip"
           title={

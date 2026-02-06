@@ -145,6 +145,7 @@ export interface ButtonProps {
   buttonStyle: 'primary' | 'secondary' | 'dashed' | 'link' | 'tertiary';
   loading?: boolean;
   icon?: IconType;
+  className?: string;
 }
 
 export interface SubMenuProps {
@@ -303,6 +304,7 @@ const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
               onClick={btn.onClick}
               data-test={btn['data-test']}
               loading={btn.loading ?? false}
+              className={btn.className}
             >
               {btn.name}
             </Button>

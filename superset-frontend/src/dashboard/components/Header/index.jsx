@@ -94,6 +94,13 @@ import isDashboardLoading from '../../util/isDashboardLoading';
 import { useChartIds } from '../../util/charts/useChartIds';
 import { useDashboardMetadataBar } from './useDashboardMetadataBar';
 import { useHeaderActionsMenu } from './useHeaderActionsDropdownMenu';
+import {
+  EDIT_DASHBOARD_NAME_STEP_INDEX,
+  EDIT_DASHBOARD_STEP_INDEX,
+  SAVE_DASHBOARD_STEP_INDEX,
+  STEPS,
+} from 'src/components/OnboardingWorkflows/CreateDashboardWithNoExistingChart/constants';
+import { setUserOnboardingWorkflowsStepIndex } from 'src/userOnboardingWorkflow/actions';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -409,6 +416,7 @@ const Header = () => {
   }, [boundActionCreators, editMode]);
 
   const overwriteDashboard = useCallback(() => {
+    dispatch(setUserOnboardingWorkflowsStepIndex(EDIT_DASHBOARD_STEP_INDEX));
     const currentColorNamespace =
       dashboardInfo?.metadata?.color_namespace || colorNamespace;
     const currentColorScheme =
@@ -577,6 +585,7 @@ const Header = () => {
       placeholder: t('Add the name of the dashboard'),
       label: t('Dashboard title'),
       showTooltip: false,
+      className: STEPS[EDIT_DASHBOARD_NAME_STEP_INDEX].targetClassName,
     }),
     [dashboardTitle, editMode, handleChangeText, userCanEdit],
   );
@@ -702,6 +711,7 @@ const Header = () => {
                   onClick={overwriteDashboard}
                   data-test="header-save-button"
                   aria-label={t('Save')}
+                  className={STEPS[SAVE_DASHBOARD_STEP_INDEX].targetClassName}
                 >
                   <Icons.SaveOutlined iconSize="m" />
                   {t('Save')}

@@ -33,4 +33,5 @@ export type EmptyStateProps = {
   /** Controls title and description text size. Defaults to the value of `size` if not provided. */
   textSize?: EmptyStateSize;
   children?: ReactNode;
+  buttonClassName?: string;
 };

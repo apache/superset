@@ -45,6 +45,13 @@ import { StreamingExportModal } from 'src/components/StreamingExportModal';
 import { Tag } from 'src/components/Tag';
 import { useExploreAdditionalActionsMenu } from '../useExploreAdditionalActionsMenu';
 import { useExploreMetadataBar } from './useExploreMetadataBar';
+import {
+  EDIT_CHART_NAME_STEP_INDEX,
+  OPEN_SAVE_CHART_TO_DASHBOARD_MODAL_STEP_INDEX,
+  SAVE_CHART_AND_GO_TO_DASHBOARD_PAGE_STEP_INDEX,
+  STEPS,
+} from 'src/components/OnboardingWorkflows/CreateDashboardWithNoExistingChart/constants';
+import { setUserOnboardingWorkflowsStepIndex } from 'src/userOnboardingWorkflow/actions';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -224,6 +231,11 @@ export const ExploreChartHeader = ({
   });
 
   const showModal = useCallback(() => {
+    dispatch(
+      setUserOnboardingWorkflowsStepIndex(
+        SAVE_CHART_AND_GO_TO_DASHBOARD_PAGE_STEP_INDEX,
+      ),
+    );
     triggerManualSave();
   }, [triggerManualSave]);
 
@@ -249,6 +261,7 @@ export const ExploreChartHeader = ({
           onSave: actions.updateChartTitle,
           placeholder: t('Add the name of the chart'),
           label: t('Chart title'),
+          className: STEPS[EDIT_CHART_NAME_STEP_INDEX].targetClassName,
         }}
         showTitlePanelItems={!!slice}
         certificatiedBadgeProps={{
@@ -296,6 +309,10 @@ export const ExploreChartHeader = ({
                 data-test="query-save-button"
                 css={saveButtonStyles}
                 icon={<Icons.SaveOutlined />}
+                className={
+                  STEPS[OPEN_SAVE_CHART_TO_DASHBOARD_MODAL_STEP_INDEX]
+                    .targetClassName
+                }
               >
                 {t('Save')}
               </Button>

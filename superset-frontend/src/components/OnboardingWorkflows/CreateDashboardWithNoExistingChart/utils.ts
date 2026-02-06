@@ -16,21 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Step } from 'react-joyride';
-import OnboardingWorkflow from '.';
-import { OnboardingWorkflowNames } from './constants';
-import { useMemo } from 'react';
 
-export default function CreateDashboardWithNoExistingChartOnboardingWorkflow() {
-  const steps: Step[] = useMemo(() => [], []);
+import {
+  CHART_ADD_PAGE,
+  DASHBOARD_LIST_PAGE,
+  EXPLORE_PAGE,
+  SUPERSET_DASHBOARD_PAGE,
+  WELCOME_PAGE,
+} from './constants';
 
-  return (
-    <OnboardingWorkflow
-      onboardginWorkflowName={
-        OnboardingWorkflowNames.CreateDashboardWithNoExistingChart
-      }
-      run
-      steps={steps}
-    />
-  );
+export default function getCurrentPageFromLocation(pathname: string) {
+  if (pathname.includes(WELCOME_PAGE)) {
+    return WELCOME_PAGE;
+  } else if (pathname.includes(DASHBOARD_LIST_PAGE)) {
+    return DASHBOARD_LIST_PAGE;
+  } else if (pathname.includes(SUPERSET_DASHBOARD_PAGE)) {
+    return SUPERSET_DASHBOARD_PAGE;
+  } else if (pathname.includes(CHART_ADD_PAGE)) {
+    return CHART_ADD_PAGE;
+  } else if (pathname.includes(EXPLORE_PAGE)) {
+    return EXPLORE_PAGE;
+  }
+
+  return undefined;
 }

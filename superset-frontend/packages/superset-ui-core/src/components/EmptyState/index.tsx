@@ -159,6 +159,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   size = 'medium',
   textSize,
   children,
+  buttonClassName,
 }) => {
   const effectiveTextSize = textSize ?? size;
   const containerSize = getLargerSize(size, effectiveTextSize);
@@ -183,6 +184,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
         )}
         {buttonText && buttonAction && (
           <Button
+            className={buttonClassName}
             icon={buttonIcon}
             buttonStyle="primary"
             onClick={buttonAction}

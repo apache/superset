@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Suspense, useEffect } from 'react';
+import { Suspense, useEffect, useMemo } from 'react';
 import { hot } from 'react-hot-loader/root';
 import {
   BrowserRouter as Router,
@@ -44,6 +44,7 @@ import { RootContextProviders } from './RootContextProviders';
 import { ScrollToTop } from './ScrollToTop';
 import { fetchCurrentUserOnboardingworkflows } from 'src/userOnboardingWorkflow/actions';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+import CreateDashboardWithNoExistingChartOnboardingWorkflow from 'src/components/OnboardingWorkflows/CreateDashboardWithNoExistingChart';
 
 setupApp();
 setupPlugins();
@@ -74,12 +75,26 @@ const LocationPathnameLogger = () => {
 };
 
 const UserOnboardingWorkflowsLoader = () => {
+  const isEnableOnboardingWorkflows = useMemo(
+    () => isFeatureEnabled(FeatureFlag.EnableOnboardingWorkflows),
+    [],
+  );
+
   useEffect(() => {
-    if (isFeatureEnabled(FeatureFlag.EnableOnboardingWorkflows)) {
+    if (isEnableOnboardingWorkflows) {
       store.dispatch(fetchCurrentUserOnboardingworkflows() as any);
     }
-  }, []);
-  return <></>;
+  }, [isEnableOnboardingWorkflows]);
+
+  if (!isEnableOnboardingWorkflows) {
+    return <></>;
+  }
+
+  return (
+    <>
+      <CreateDashboardWithNoExistingChartOnboardingWorkflow />
+    </>
+  );
 };
 
 const App = () => (

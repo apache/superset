@@ -22,4 +22,5 @@ export type DynamicEditableTitleProps = {
   onSave: (title: string) => void;
   canEdit: boolean;
   label: string | undefined;
+  className?: string;
 };

@@ -44,6 +44,15 @@ import {
   DatasetSelectLabel,
 } from 'src/features/datasets/DatasetSelectLabel';
 import { Icons } from '@superset-ui/core/components/Icons';
+import {
+  EDIT_CHART_NAME_STEP_INDEX,
+  GO_TO_CONFIGURE_CHART_STEP_INDEX,
+  SELECT_CHART_STEP_INDEX,
+  SELECT_DATASET_STEP_INDEX,
+  STEPS,
+} from 'src/components/OnboardingWorkflows/CreateDashboardWithNoExistingChart/constants';
+import { store } from 'src/views/store';
+import { setUserOnboardingWorkflowsStepIndex } from 'src/userOnboardingWorkflow/actions';
 
 export interface ChartCreationProps extends RouteComponentProps {
   user: UserWithPermissionsAndRoles;
@@ -224,14 +233,23 @@ export class ChartCreation extends PureComponent<
   }
 
   gotoSlice() {
+    store.dispatch(
+      setUserOnboardingWorkflowsStepIndex(EDIT_CHART_NAME_STEP_INDEX),
+    );
     this.props.history.push(this.exploreUrl());
   }
 
   changeDatasource(datasource: { label: string | ReactNode; value: string }) {
+    store.dispatch(
+      setUserOnboardingWorkflowsStepIndex(SELECT_CHART_STEP_INDEX),
+    );
     this.setState({ datasource });
   }
 
   changeVizType(vizType: string | null) {
+    store.dispatch(
+      setUserOnboardingWorkflowsStepIndex(GO_TO_CONFIGURE_CHART_STEP_INDEX),
+    );
     this.setState({ vizType });
   }
 
@@ -332,6 +350,7 @@ export class ChartCreation extends PureComponent<
         <h3>{t('Create a new chart')}</h3>
         <Steps direction="vertical" size="small">
           <Steps.Step
+            className={STEPS[SELECT_DATASET_STEP_INDEX].targetClassName}
             title={<StyledStepTitle>{t('Choose a dataset')}</StyledStepTitle>}
             status={this.state.datasource?.value ? 'finish' : 'process'}
             description={
@@ -352,6 +371,7 @@ export class ChartCreation extends PureComponent<
             }
           />
           <Steps.Step
+            className={STEPS[SELECT_CHART_STEP_INDEX].targetClassName}
             title={<StyledStepTitle>{t('Choose chart type')}</StyledStepTitle>}
             status={this.state.vizType ? 'finish' : 'process'}
             description={
@@ -377,6 +397,7 @@ export class ChartCreation extends PureComponent<
             buttonStyle="primary"
             disabled={isButtonDisabled}
             onClick={this.gotoSlice}
+            className={STEPS[GO_TO_CONFIGURE_CHART_STEP_INDEX].targetClassName}
           >
             {t('Create new chart')}
           </Button>

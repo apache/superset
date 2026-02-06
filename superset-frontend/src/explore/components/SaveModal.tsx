@@ -51,6 +51,12 @@ import {
 import { Dashboard } from 'src/types/Dashboard';
 import { TabNode, TabTreeNode } from '../types';
 import { CHART_WIDTH, CHART_HEIGHT } from 'src/dashboard/constants';
+import {
+  FINAL_STEP_INDEX,
+  SAVE_CHART_AND_GO_TO_DASHBOARD_PAGE_STEP_INDEX,
+  STEPS,
+} from 'src/components/OnboardingWorkflows/CreateDashboardWithNoExistingChart/constants';
+import { setUserOnboardingWorkflowsStepIndex } from 'src/userOnboardingWorkflow/actions';
 
 // Session storage key for recent dashboard
 const SK_DASHBOARD_ID = 'save_chart_recent_dashboard';
@@ -196,6 +202,7 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
   };
 
   async saveOrOverwrite(gotodash: boolean) {
+    this.props.dispatch(setUserOnboardingWorkflowsStepIndex(FINAL_STEP_INDEX));
     this.setState({ isLoading: true });
     this.props.dispatch(updateChartState(this.props.form_data?.table_state));
 
@@ -722,6 +729,9 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
       <Button
         id="btn_modal_save_goto_dash"
         buttonSize="small"
+        className={
+          STEPS[SAVE_CHART_AND_GO_TO_DASHBOARD_PAGE_STEP_INDEX].targetClassName
+        }
         disabled={
           !this.state.newSliceName ||
           !this.state.dashboard ||

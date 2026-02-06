@@ -71,6 +71,12 @@ import { getRootLevelTabsComponent, shouldFocusTabs } from './utils';
 import DashboardContainer from './DashboardContainer';
 import { useNativeFilters } from './state';
 import DashboardWrapper from './DashboardWrapper';
+import { setUserOnboardingWorkflowsStepIndex } from 'src/userOnboardingWorkflow/actions';
+import {
+  EDIT_DASHBOARD_STEP_INDEX,
+  GO_TO_CREATE_CHART_STEP_INDEX,
+  STEPS,
+} from 'src/components/OnboardingWorkflows/CreateDashboardWithNoExistingChart/constants';
 
 // @z-index-above-dashboard-charts + 1 = 11
 const FiltersPanel = styled.div<{ width: number; hidden: boolean }>`
@@ -659,8 +665,14 @@ const DashboardBuilder = () => {
                   'Go to the edit mode to configure the dashboard and add charts',
                 )
               }
+              buttonClassName={STEPS[EDIT_DASHBOARD_STEP_INDEX].targetClassName}
               buttonText={canEdit && t('Edit the dashboard')}
               buttonAction={() => {
+                dispatch(
+                  setUserOnboardingWorkflowsStepIndex(
+                    GO_TO_CREATE_CHART_STEP_INDEX,
+                  ),
+                );
                 dispatch(setEditMode(true));
                 dispatch(clearDashboardHistory());
               }}

@@ -30,6 +30,11 @@ import DashboardComponent from '../containers/DashboardComponent';
 import { Droppable } from './dnd/DragDroppable';
 import { GRID_GUTTER_SIZE, GRID_COLUMN_COUNT } from '../util/constants';
 import { TAB_TYPE } from '../util/componentTypes';
+import {
+  FINAL_STEP_INDEX,
+  GO_TO_CREATE_CHART_STEP_INDEX,
+  STEPS,
+} from 'src/components/OnboardingWorkflows/CreateDashboardWithNoExistingChart/constants';
 
 const propTypes = {
   depth: PropTypes.number.isRequired,
@@ -212,6 +217,7 @@ class DashboardGrid extends PureComponent {
           'You can create a new chart or use existing ones from the panel on the right',
         )}
         size="large"
+        buttonClassName={STEPS[GO_TO_CREATE_CHART_STEP_INDEX].targetClassName}
         buttonText={
           <>
             <Icons.PlusOutlined iconSize="m" color={theme.colorPrimary} />
@@ -274,7 +280,10 @@ class DashboardGrid extends PureComponent {
               : dashboardEmptyState}
           </DashboardEmptyStateContainer>
         )}
-        <div className="dashboard-grid" ref={this.setGridRef}>
+        <div
+          className={`dashboard-grid ${STEPS[FINAL_STEP_INDEX].targetClassName}`}
+          ref={this.setGridRef}
+        >
           <GridContent
             className="grid-content"
             data-test="grid-content"

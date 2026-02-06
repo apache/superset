@@ -75,6 +75,10 @@ import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { findPermission } from 'src/utils/findPermission';
 import { navigateTo } from 'src/utils/navigationUtils';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
+import {
+  GO_TO_CREATE_DASHBOARD_STEP_INDEX,
+  STEPS,
+} from 'src/components/OnboardingWorkflows/CreateDashboardWithNoExistingChart/constants';
 
 const PAGE_SIZE = 25;
 const PASSWORDS_NEEDED_MESSAGE = t(
@@ -719,6 +723,7 @@ function DashboardList(props: DashboardListProps) {
   if (canCreate) {
     subMenuButtons.push({
       icon: <Icons.PlusOutlined iconSize="m" />,
+      className: STEPS[GO_TO_CREATE_DASHBOARD_STEP_INDEX].targetClassName,
       name: t('Dashboard'),
       buttonStyle: 'primary',
       onClick: () => {

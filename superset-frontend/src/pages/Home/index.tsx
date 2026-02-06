@@ -55,6 +55,10 @@ import ActivityTable from 'src/features/home/ActivityTable';
 import ChartTable from 'src/features/home/ChartTable';
 import SavedQueries from 'src/features/home/SavedQueries';
 import DashboardTable from 'src/features/home/DashboardTable';
+import {
+  INTRO_STEP_INDEX,
+  STEPS,
+} from 'src/components/OnboardingWorkflows/CreateDashboardWithNoExistingChart/constants';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -343,7 +347,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
   }
 
   return (
-    <>
+    <div className={STEPS[INTRO_STEP_INDEX].targetClassName}>
       {SubmenuExtension ? (
         <SubmenuExtension {...menuData} />
       ) : (
@@ -437,7 +441,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
           </>
         )}
       </WelcomeContainer>
-    </>
+    </div>
   );
 }
 

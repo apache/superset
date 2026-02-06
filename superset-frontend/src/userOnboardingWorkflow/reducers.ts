@@ -24,6 +24,7 @@ const initialState: UserOnboardingWorkflowState = {
   isLoading: null,
   userOnboardingWorkflows: null,
   userOnboardingWorkflowNamesMap: null,
+  onboardingWorkflowStepIndex: 0,
   error: null,
 };
 
@@ -54,6 +55,11 @@ export default function userOnboardingWorkflowsReducer(
       return {
         ...initialState,
         error: action.payload,
+      };
+    case 'SET_USER_ONBOARDING_WORKFLOWS_STEP_INDEX':
+      return {
+        ...state,
+        onboardingWorkflowStepIndex: action.payload,
       };
     case 'RESET_USER_ONBOARDING_WORKFLOWS_STATE':
       return initialState;
