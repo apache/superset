@@ -404,15 +404,14 @@ class DatastoreEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-me
         query = parameters.get("query", {})
         query_params = parse.urlencode(query)
 
-        if encrypted_extra:
-            credentials_info = encrypted_extra.get("credentials_info", {})
-            if isinstance(credentials_info, str):
-                credentials_info = json.loads(credentials_info)
-            project_id = credentials_info.get("project_id")
         if not encrypted_extra:
             raise ValidationError("Missing service credentials")
 
-        if project_id:
+        credentials_info = encrypted_extra.get("credentials_info", {})
+        if isinstance(credentials_info, str):
+            credentials_info = json.loads(credentials_info)
+
+        if project_id := credentials_info.get("project_id"):
             return f"{cls.default_driver}://{project_id}/?{query_params}"
 
         raise ValidationError("Invalid service credentials")
