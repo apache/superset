@@ -684,9 +684,7 @@ const config: ControlPanelConfig = {
               type: 'ConditionalFormattingControl',
               renderTrigger: true,
               label: t('Custom conditional formatting'),
-              description: t(
-                'Apply conditional color formatting to numeric columns',
-              ),
+              description: t('Apply conditional color formatting to columns'),
               shouldMapStateToProps() {
                 return true;
               },
@@ -720,7 +718,9 @@ const config: ControlPanelConfig = {
                     ? colnames
                         .filter(
                           (colname: string, index: number) =>
-                            coltypes[index] === GenericDataType.Numeric,
+                            coltypes[index] === GenericDataType.Numeric ||
+                            coltypes[index] === GenericDataType.String ||
+                            coltypes[index] === GenericDataType.Boolean,
                         )
                         .map((colname: string) => ({
                           value: colname,

@@ -744,9 +744,7 @@ const config: ControlPanelConfig = {
               type: 'ConditionalFormattingControl',
               renderTrigger: true,
               label: t('Custom conditional formatting'),
-              description: t(
-                'Apply conditional color formatting to numeric columns',
-              ),
+              description: t('Apply conditional color formatting to columns'),
               shouldMapStateToProps() {
                 return true;
               },
@@ -800,9 +798,8 @@ const config: ControlPanelConfig = {
                     ? colnames.reduce((acc, colname, index) => {
                         if (
                           coltypes[index] === GenericDataType.Numeric ||
-                          (!hasTimeComparison &&
-                            (coltypes[index] === GenericDataType.String ||
-                              coltypes[index] === GenericDataType.Boolean))
+                          coltypes[index] === GenericDataType.String ||
+                          coltypes[index] === GenericDataType.Boolean
                         ) {
                           acc.push({
                             value: colname,
