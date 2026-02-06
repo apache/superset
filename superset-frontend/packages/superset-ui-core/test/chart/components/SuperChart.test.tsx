@@ -21,7 +21,7 @@ import '@testing-library/jest-dom';
 import { render, screen } from '@superset-ui/core/spec';
 import mockConsole, { RestoreConsole } from 'jest-mock-console';
 import { triggerResizeObserver } from 'resize-observer-polyfill';
-import { ErrorBoundary } from 'react-error-boundary';
+import { ErrorBoundary } from '../../../src/chart/components/ErrorBoundary';
 
 import { promiseTimeout, SuperChart } from '@superset-ui/core';
 import { WrapperProps } from '../../../src/chart/components/SuperChart';

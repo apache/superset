@@ -20,7 +20,7 @@ import type React from 'react';
 import { createRef, Component, type RefObject } from 'react';
 import type { SupersetTheme } from '@apache-superset/core/ui';
 import { Button, Icons, Select } from '@superset-ui/core/components';
-import { ErrorBoundary } from 'src/components';
+import { ErrorBoundary } from '@superset-ui/core';
 import { SupersetClient } from '@superset-ui/core';
 import { t } from '@apache-superset/core';
 import { styled } from '@apache-superset/core/ui';

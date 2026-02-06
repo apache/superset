@@ -24,7 +24,7 @@ import {
   useEffect,
   useMemo,
 } from 'react';
-import { ErrorBoundary } from 'src/components';
+import { ErrorBoundary } from '@superset-ui/core';
 import { setExtensionsContextValue } from './ExtensionsContextUtils';
 import ExtensionPlaceholder from './ExtensionPlaceholder';
 

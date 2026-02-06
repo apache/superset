@@ -18,7 +18,7 @@
  */
 import { ReactNode, useState, useCallback } from 'react';
 import type { FormInstance } from '@superset-ui/core/components';
-import { ErrorBoundary } from 'src/components/ErrorBoundary';
+import { ErrorBoundary } from '@superset-ui/core';
 import { BaseModalBody, BaseForm, BaseModalWrapper } from './SharedStyles';
 import { ModalFooter } from './ModalFooter';
 

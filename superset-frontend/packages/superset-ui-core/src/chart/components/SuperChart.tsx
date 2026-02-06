@@ -29,7 +29,7 @@ import {
   ErrorBoundary,
   ErrorBoundaryProps,
   FallbackProps,
-} from 'react-error-boundary';
+} from './ErrorBoundary';
 import { ParentSize } from '@visx/responsive';
 import { createSelector } from 'reselect';
 import { withTheme } from '@emotion/react';

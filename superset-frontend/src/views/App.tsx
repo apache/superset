@@ -27,7 +27,7 @@ import { bindActionCreators } from 'redux';
 import { css } from '@apache-superset/core/ui';
 import { Layout, Loading } from '@superset-ui/core/components';
 import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
-import { ErrorBoundary } from 'src/components';
+import { ErrorBoundary } from '@superset-ui/core';
 import Menu from 'src/features/home/Menu';
 import getBootstrapData, { applicationRoot } from 'src/utils/getBootstrapData';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
@@ -91,11 +91,7 @@ const App = () => (
                     flex-direction: column;
                   `}
                 >
-                  <ErrorBoundary
-                    css={css`
-                      margin: 16px;
-                    `}
-                  >
+                  <ErrorBoundary>
                     <Component user={bootstrapData.user} {...props} />
                   </ErrorBoundary>
                 </Layout.Content>

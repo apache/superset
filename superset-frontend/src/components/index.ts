@@ -36,7 +36,6 @@ export { DatabaseSelector, type DatabaseObject } from './DatabaseSelector';
 export * from './Datasource';
 export * from './ErrorMessage';
 export { ImportModal, type ImportModelsModalProps } from './ImportModal';
-export { ErrorBoundary, type ErrorBoundaryProps } from './ErrorBoundary';
 export * from './GenericLink';
 export { GridTable, type TableProps } from './GridTable';
 export * from './Tag';
