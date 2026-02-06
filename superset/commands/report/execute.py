@@ -436,6 +436,20 @@ class BaseReportState:
 
         return pdf
 
+    def _ensure_utf8_bom(self, csv_data: bytes, encoding: str) -> bytes:
+        """
+        Ensure CSV bytes contain UTF-8 BOM when encoding is utf-8-sig.
+        Avoid double BOM.
+        """
+        if not csv_data:
+            return csv_data
+
+        enc = (encoding or "").lower().replace("_", "-")
+        if enc in ("utf-8-sig", "utf8-sig"):
+            if not csv_data.startswith(b"\xef\xbb\xbf"):
+                return b"\xef\xbb\xbf" + csv_data
+        return csv_data
+
     def _get_csv_data(self) -> bytes:
         start_time = datetime.utcnow()
         url = self._get_url(result_format=ChartDataResultFormat.CSV)
@@ -480,6 +494,9 @@ class BaseReportState:
             ) from ex
         if not csv_data:
             raise ReportScheduleCsvFailedError()
+
+        encoding = app.config.get("CSV_EXPORT", {}).get("encoding", "utf-8")
+        csv_data = self._ensure_utf8_bom(csv_data, encoding)
         return csv_data
 
     def _get_embedded_data(self) -> pd.DataFrame:
