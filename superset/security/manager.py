@@ -21,7 +21,7 @@ import logging
 import re
 import time
 from collections import defaultdict
-from typing import Any, Callable, cast, NamedTuple, Optional, TYPE_CHECKING
+from typing import Any, Callable, cast, NamedTuple, Optional, TYPE_CHECKING, TypedDict
 
 from flask import current_app, Flask, g, Request
 from flask_appbuilder import Model
@@ -53,6 +53,7 @@ from sqlalchemy.orm import eagerload
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
 from sqlalchemy.sql import exists
+from typing_extensions import NotRequired
 
 from superset.constants import RouteMethod
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -187,6 +188,182 @@ def freeze_value(value: Any) -> str:
     return json.dumps(value, sort_keys=True)
 
 
+# -----------------------------------------------------------------------------
+# Field comparison configuration for query_context_modified()
+# -----------------------------------------------------------------------------
+
+
+class FieldMapping(TypedDict):
+    """Configuration for comparing a field between requested and stored values."""
+
+    field: str
+    equivalent: list[str]
+    comparator: NotRequired[
+        Callable[
+            ["QueryContext", "Slice", set[str]],  # query_context, stored_chart, visible
+            bool,  # True if modified (should block)
+        ]
+    ]
+
+
+def _extract_orderby_column_name(orderby_item: Any) -> str | None:
+    """
+    Extract column/metric name from an orderby tuple element.
+
+    Returns None for SQL expressions which should be blocked for security.
+    """
+    if isinstance(orderby_item, str):
+        return orderby_item
+
+    if isinstance(orderby_item, dict):
+        # Block adhoc SQL expressions - potential injection vector
+        if orderby_item.get("expressionType") == "SQL":
+            return None
+        if label := orderby_item.get("label"):
+            return label
+        if col := orderby_item.get("column"):
+            if isinstance(col, dict):
+                return col.get("column_name")
+            return None
+
+    return None
+
+
+def _get_visible_columns(stored_chart: "Slice") -> set[str]:
+    """
+    Extract column/metric names visible in the chart.
+
+    Guest users can only sort by these columns (whitelist approach).
+    """
+    params = stored_chart.params_dict
+    visible: set[str] = set()
+
+    for col in params.get("columns") or []:
+        if isinstance(col, str):
+            visible.add(col)
+        elif isinstance(col, dict) and (label := col.get("label")):
+            visible.add(label)
+
+    for col in params.get("groupby") or []:
+        if isinstance(col, str):
+            visible.add(col)
+        elif isinstance(col, dict) and (label := col.get("label")):
+            visible.add(label)
+
+    for metric in params.get("metrics") or []:
+        if isinstance(metric, str):
+            visible.add(metric)
+        elif isinstance(metric, dict) and (label := metric.get("label")):
+            visible.add(label)
+
+    return visible
+
+
+def _validate_orderby_list(
+    orderby: Any,
+    visible_columns: set[str],
+) -> bool:
+    """
+    Validate a single orderby list against visible columns.
+
+    Returns True if invalid (should block), False if valid.
+    """
+    if orderby is not None and not isinstance(orderby, list):
+        return True
+    for orderby_tuple in orderby or []:
+        if not isinstance(orderby_tuple, (list, tuple)) or len(orderby_tuple) < 1:
+            return True
+        col_name = _extract_orderby_column_name(orderby_tuple[0])
+        if col_name is None or col_name not in visible_columns:
+            return True
+    return False
+
+
+def _orderby_whitelist_compare(
+    query_context: "QueryContext",
+    stored_chart: "Slice",
+    visible_columns: set[str],
+) -> bool:
+    """
+    Compare orderby using whitelist approach.
+
+    Allows sorting by any visible column, blocks hidden columns and SQL expressions.
+    Returns True if modified (request should be blocked).
+
+    Defensive barriers:
+    - If orderby is not a list, block (fail-closed)
+    - If orderby element is not a tuple/list, block (fail-closed)
+    """
+    form_data = query_context.form_data or {}
+
+    # Check form_data orderby
+    if _validate_orderby_list(form_data.get("orderby"), visible_columns):
+        return True
+
+    # Check queries orderby
+    for query in query_context.queries:
+        if _validate_orderby_list(getattr(query, "orderby", None), visible_columns):
+            return True
+
+    return False
+
+
+def _default_field_compare(
+    query_context: "QueryContext",
+    stored_chart: "Slice",
+    stored_query_context: dict[str, Any] | None,
+    field_name: str,
+    equiv_fields: list[str],
+) -> bool:
+    """
+    Default comparison: requested values must be subset of stored values.
+
+    Returns True if the field was modified (should block request).
+    """
+    form_data = query_context.form_data or {}
+
+    requested_values = {
+        freeze_value(value) for value in form_data.get(field_name) or []
+    }
+    stored_values = {
+        freeze_value(value) for value in stored_chart.params_dict.get(field_name) or []
+    }
+    if not requested_values.issubset(stored_values):
+        return True
+
+    # Compare queries in query_context
+    queries_values = {
+        freeze_value(value)
+        for query in query_context.queries
+        for value in getattr(query, field_name, []) or []
+    }
+    if stored_query_context:
+        for query in stored_query_context.get("queries") or []:
+            for equiv_field in equiv_fields:
+                stored_values.update(
+                    {freeze_value(value) for value in query.get(equiv_field) or []}
+                )
+
+    if not queries_values.issubset(stored_values):
+        return True
+
+    return False
+
+
+# Field mappings with optional custom comparators
+# Note: orderby uses whitelist comparator to allow sorting by any visible column
+_FIELD_MAPPINGS: list[FieldMapping] = [
+    {"field": "metrics", "equivalent": ["metrics"]},
+    {"field": "columns", "equivalent": ["columns", "groupby"]},
+    {"field": "groupby", "equivalent": ["columns", "groupby"]},
+    {
+        "field": "orderby",
+        "equivalent": ["orderby"],
+        "comparator": _orderby_whitelist_compare,
+    },
+]
+
+
 def query_context_modified(query_context: "QueryContext") -> bool:
     """
     Check if a query context has been modified.
@@ -197,11 +374,9 @@ def query_context_modified(query_context: "QueryContext") -> bool:
     form_data = query_context.form_data
     stored_chart = query_context.slice_
 
-    # native filter requests
     if form_data is None or stored_chart is None:
         return False
 
-    # cannot request a different chart
     if form_data.get("slice_id") != stored_chart.id:
         return True
 
@@ -211,34 +386,24 @@ def query_context_modified(query_context: "QueryContext") -> bool:
         else None
     )
 
-    # compare columns and metrics in form_data with stored values
-    for key, equivalent in [
-        ("metrics", ["metrics"]),
-        ("columns", ["columns", "groupby"]),
-        ("groupby", ["columns", "groupby"]),
-        ("orderby", ["orderby"]),
-    ]:
-        requested_values = {freeze_value(value) for value in form_data.get(key) or []}
-        stored_values = {
-            freeze_value(value) for value in stored_chart.params_dict.get(key) or []
-        }
-        if not requested_values.issubset(stored_values):
-            return True
+    # Pre-compute visible columns for whitelist comparators
+    visible_columns = _get_visible_columns(stored_chart)
 
-        # compare queries in query_context
-        queries_values = {
-            freeze_value(value)
-            for query in query_context.queries
-            for value in getattr(query, key, []) or []
-        }
-        if stored_query_context:
-            for query in stored_query_context.get("queries") or []:
-                for key in equivalent:
-                    stored_values.update(
-                        {freeze_value(value) for value in query.get(key) or []}
-                    )
+    for mapping in _FIELD_MAPPINGS:
+        field_name = mapping["field"]
+        equiv_fields = mapping["equivalent"]
+        custom_comparator = mapping.get("comparator")
 
-        if not queries_values.issubset(stored_values):
+        # Use custom comparator if provided (e.g., whitelist for orderby)
+        if custom_comparator is not None:
+            if custom_comparator(query_context, stored_chart, visible_columns):
+                return True
+            continue
+
+        # Default comparison: requested values must be subset of stored values
+        if _default_field_compare(
+            query_context, stored_chart, stored_query_context, field_name, equiv_fields
+        ):
             return True
 
     return False
