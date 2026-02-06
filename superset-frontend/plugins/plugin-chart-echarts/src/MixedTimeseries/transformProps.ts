@@ -19,6 +19,7 @@
 /* eslint-disable camelcase */
 import { invert } from 'lodash';
 import {
+  addLabelMapToVerboseMap,
   AnnotationLayer,
   AxisType,
   buildCustomFormatters,
@@ -136,7 +137,7 @@ export default function transformProps(
   let focusedSeries: string | null = null;
 
   const {
-    verboseMap = {},
+    verboseMap: originalVerboseMap = {},
     currencyFormats = {},
     columnFormats = {},
     currencyCodeColumn,
@@ -145,6 +146,13 @@ export default function transformProps(
     queriesData[0] as TimeseriesChartDataResponseResult;
   const { label_map: labelMapB, detected_currency: backendDetectedCurrencyB } =
     queriesData[1] as TimeseriesChartDataResponseResult;
+
+  const verboseMapWithLabelMap = addLabelMapToVerboseMap(
+    labelMap,
+    originalVerboseMap,
+  );
+  const verboseMap = addLabelMapToVerboseMap(labelMapB, verboseMapWithLabelMap);
+
   const data1 = (queriesData[0].data || []) as TimeseriesDataRecord[];
   const data2 = (queriesData[1].data || []) as TimeseriesDataRecord[];
   const annotationData = getAnnotationData(chartProps);

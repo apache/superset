@@ -20,6 +20,7 @@
 import { invert } from 'lodash';
 import { t } from '@apache-superset/core';
 import {
+  addLabelMapToVerboseMap,
   AnnotationLayer,
   AxisType,
   buildCustomFormatters,
@@ -134,7 +135,7 @@ export default function transformProps(
   let focusedSeries: string | null = null;
 
   const {
-    verboseMap = {},
+    verboseMap: originalVerboseMap = {},
     columnFormats = {},
     currencyFormats = {},
     currencyCodeColumn,
@@ -145,6 +146,8 @@ export default function transformProps(
     label_map = {},
     detected_currency: backendDetectedCurrency,
   } = queryData as TimeseriesChartDataResponseResult;
+
+  const verboseMap = addLabelMapToVerboseMap(label_map, originalVerboseMap);
 
   const dataTypes = getColtypesMapping(queryData);
   const annotationData = getAnnotationData(chartProps);
