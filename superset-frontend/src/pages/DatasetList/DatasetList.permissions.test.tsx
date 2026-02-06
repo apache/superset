@@ -34,6 +34,7 @@ import {
 jest.setTimeout(30000);
 
 beforeEach(() => {
+  jest.useRealTimers();
   // Default setup - tests that need different permissions will call setupMocks() again
   jest.clearAllMocks();
 });

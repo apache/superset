@@ -42,12 +42,15 @@ jest.mock('@superset-ui/core', () => ({
 }));
 
 beforeEach(() => {
+  jest.useRealTimers();
+  fetchMock.removeRoutes();
   fetchMock.get(DATASOURCE_ENDPOINT, [], { name: DATASOURCE_ENDPOINT });
   setupDatasourceEditorMocks();
   jest.clearAllMocks();
 });
 
 afterEach(async () => {
+  jest.useRealTimers();
   await cleanupAsyncOperations();
   fetchMock.clearHistory().removeRoutes();
   // Reset module mock since jest.fn() doesn't support mockRestore()
