@@ -124,7 +124,7 @@ class GetExploreCommand(BaseCommand, ABC):
             security_manager.raise_for_access(datasource=datasource)
 
         viz_type = form_data.get("viz_type")
-        if not viz_type and datasource and datasource.default_endpoint:
+        if not viz_type and datasource and getattr(datasource, "default_endpoint", None):
             raise WrongEndpointError(redirect=datasource.default_endpoint)
 
         form_data["datasource"] = (
