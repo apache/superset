@@ -55,6 +55,32 @@ export const showThemeTokenFailureToast = (
 };
 
 /**
+ * Display a single grouped toast notification for multiple theme token loading failures (admin-only)
+ */
+export const showGroupedThemeTokenFailureToast = (
+  tokenNames: string[],
+  themeName: string,
+): void => {
+  const currentUser = getCurrentUser();
+
+  if (!isUserAdmin(currentUser) || tokenNames.length === 0) {
+    return;
+  }
+
+  const tokenLabel = tokenNames.length === 1 ? 'token' : 'tokens';
+  const tokenList = tokenNames.join(', ');
+  const message = `Theme ${tokenLabel} ${tokenList} in ${themeName} was unable to be loaded. Visit the Themes page to fix it.`;
+
+  // Dispatch the toast action directly to the store
+  store.dispatch(
+    addInfoToast(message, {
+      duration: 8000,
+      noDuplicate: true,
+    }),
+  );
+};
+
+/**
  * Safely get theme token value with error handling and admin notification
  */
 export const getThemeTokenWithErrorHandling = (
@@ -100,7 +126,7 @@ export const validateThemeTokens = (
     return false;
   }
 
-  let isValid = true;
+  const failedTokens: string[] = [];
 
   requiredTokens.forEach(tokenName => {
     const tokenValue = themeConfig.token[tokenName];
@@ -109,12 +135,16 @@ export const validateThemeTokens = (
       logging.warn(
         `Missing required token: ${tokenName} in theme: ${themeName}`,
       );
-      showThemeTokenFailureToast(tokenName, themeName);
-      isValid = false;
+      failedTokens.push(tokenName);
     }
   });
 
-  return isValid;
+  // Show single grouped toast for all failures
+  if (failedTokens.length > 0) {
+    showGroupedThemeTokenFailureToast(failedTokens, themeName);
+  }
+
+  return failedTokens.length === 0;
 };
 
 /**
