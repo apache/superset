@@ -33,6 +33,7 @@ import {
   Input,
   Loading,
   Divider,
+  Flex,
   TreeSelect,
 } from '@superset-ui/core/components';
 import { t, logging } from '@apache-superset/core';
@@ -618,11 +619,28 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
           />
         </FormItem>
         {this.props.datasource?.type === 'query' && (
-          <FormItem label={t('Dataset Name')} required>
-            <InfoTooltip
-              tooltip={t('A reusable dataset will be saved with your chart.')}
-              placement="right"
-            />
+          <FormItem
+            label={
+              <div>
+                {t('Dataset Name')}
+                <Flex
+                  css={theme => css`
+                    display: inline-flex;
+                    margin-left: ${theme.sizeUnit}px;
+                  `}
+                >
+                  <InfoTooltip
+                    data-test="info-tooltip-icon"
+                    tooltip={t(
+                      'A reusable dataset will be saved with your chart.',
+                    )}
+                    placement="right"
+                  />
+                </Flex>
+              </div>
+            }
+            required
+          >
             <Input
               name="dataset_name"
               type="text"

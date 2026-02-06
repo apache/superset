@@ -25,6 +25,8 @@ import {
   render,
   waitFor,
   within,
+  screen,
+  userEvent,
 } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 
@@ -305,6 +307,19 @@ test('updates slice name and selected dashboard', async () => {
 test('set dataset name when chart source is query', () => {
   const { getByTestId } = setup({}, queryStore);
   expect(getByTestId('new-dataset-name')).toHaveValue('test');
+});
+
+test('renders InfoTooltip icon next to Dataset Name label when datasource type is query', () => {
+  const { getByTestId, getByText } = setup({}, queryStore);
+
+  const datasetNameLabel = getByText('Dataset Name');
+  expect(datasetNameLabel).toBeInTheDocument();
+
+  const infoTooltip = getByTestId('info-tooltip-icon');
+  expect(infoTooltip).toBeInTheDocument();
+
+  const labelContainer = datasetNameLabel.parentElement;
+  expect(labelContainer).toContainElement(infoTooltip);
 });
 
 test('make sure slice_id in the URLSearchParams before the redirect', () => {
