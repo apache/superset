@@ -68,8 +68,6 @@ if TYPE_CHECKING:
     from superset.models.core import Database  # pragma: no cover
     from superset.models.sql_lab import Query  # pragma: no cover
 
-logger = logging.getLogger()
-
 CONNECTION_DATABASE_PERMISSIONS_REGEX = re.compile(
     "Access Denied: Project (?P<project_name>.+?): User does not have "
     + "datastore.databases.create permission in project (?P<project>.+?)"
