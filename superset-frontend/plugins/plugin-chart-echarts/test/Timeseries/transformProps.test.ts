@@ -644,29 +644,23 @@ describe('Does transformProps transform series correctly', () => {
   });
 
   describe('Tooltip with long labels', () => {
-    it('should use axisValue for tooltip when available (richTooltip)', () => {
-      const longLabelData = [
-        {
-          data: [
-            {
-              'This is a very long category name that would normally be truncated': 100,
-              __timestamp: 599616000000,
-            },
-            {
-              'Another extremely long category name for testing purposes': 200,
-              __timestamp: 599916000000,
-            },
-          ],
-        },
-      ];
-
+    it('should use axisValue for tooltip title when available (richTooltip)', () => {
       const chartProps = new ChartProps({
         ...chartPropsConfig,
         formData: {
           ...formData,
           richTooltip: true,
         },
-        queriesData: longLabelData,
+        queriesData: [
+          {
+            data: [
+              {
+                'Series A': 100,
+                __timestamp: 599616000000,
+              },
+            ],
+          },
+        ],
       });
 
       const transformedProps = transformProps(
@@ -677,22 +671,26 @@ describe('Does transformProps transform series correctly', () => {
       const tooltipFormatter = (transformedProps.echartOptions as any).tooltip
         .formatter;
 
-      // Simulate params from ECharts with axisValue containing full label
+      // Simulate ECharts params where axisValue contains the full category label
+      // (which may be truncated on the axis display but is preserved in axisValue)
+      // Use distinct values for axisValue and seriesName to verify axisValue is used for title
+      const fullCategoryLabel =
+        'This is a very long category name that would normally be truncated on the axis';
       const mockParams = [
         {
-          axisValue:
-            'This is a very long category name that would normally be truncated',
+          // axisValue contains the full x-axis label (category name for bar charts)
+          axisValue: fullCategoryLabel,
+          // value array contains [x, y] where x is typically a timestamp or index
           value: [599616000000, 100],
-          seriesName:
-            'This is a very long category name that would normally be truncated',
+          // seriesName is the metric/series name, distinct from axisValue
+          seriesName: 'Series A',
         },
       ];
 
-      // Call the formatter and check it uses the full label
+      // Call the formatter and verify it uses axisValue for the tooltip title
       const result = tooltipFormatter(mockParams);
-      expect(result).toContain(
-        'This is a very long category name that would normally be truncated',
-      );
+      // The tooltip should contain the full category label from axisValue as the title
+      expect(result).toContain(fullCategoryLabel);
     });
 
     it('should fallback to value when axisValue is not available', () => {
