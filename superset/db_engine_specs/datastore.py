@@ -344,7 +344,7 @@ class DatastoreEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-me
 
         try:
             credentials = google.auth.default()[0]
-            return datastore.Client(credentials=credentials, database=database)
+            return datastore.Client(credentials=credentials)
         except google.auth.exceptions.DefaultCredentialsError as ex:
             raise SupersetDBAPIConnectionError(
                 "The database credentials could not be found."
