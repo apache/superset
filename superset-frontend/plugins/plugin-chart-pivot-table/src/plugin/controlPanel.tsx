@@ -226,6 +226,36 @@ const config: ControlPanelConfig = {
         ],
         [
           {
+            name: 'defaultRowExpansionDepth',
+            config: {
+              type: 'SelectControl',
+              label: t('Default row expansion depth'),
+              default: 0,
+              renderTrigger: true,
+              description: t(
+                'How many row group levels to show expanded on initial load. ' +
+                  'Select "Fully expanded" (0) to show all levels. ' +
+                  'Select "1" to show only top-level rows (children collapsed).',
+              ),
+              mapStateToProps: explore => {
+                const rowCount = ensureIsArray(
+                  explore?.controls?.groupbyRows?.value,
+                ).length;
+                // 0 = fully expanded (no collapse), 1..N = collapse deeper levels
+                const choices: [number, string][] = [[0, t('Fully expanded')]];
+                for (let i = 1; i < rowCount; i += 1) {
+                  choices.push([i, t('Expand %s level(s)', i)]);
+                }
+                return { choices };
+              },
+              visibility: ({ controls }) =>
+                !!controls?.rowSubTotals?.value &&
+                ensureIsArray(controls?.groupbyRows?.value).length > 1,
+            },
+          },
+        ],
+        [
+          {
             name: 'colTotals',
             config: {
               type: 'CheckboxControl',
@@ -245,6 +275,36 @@ const config: ControlPanelConfig = {
               default: false,
               renderTrigger: true,
               description: t('Display column level subtotal'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'defaultColExpansionDepth',
+            config: {
+              type: 'SelectControl',
+              label: t('Default column expansion depth'),
+              default: 0,
+              renderTrigger: true,
+              description: t(
+                'How many column group levels to show expanded on initial load. ' +
+                  'Select "Fully expanded" (0) to show all levels. ' +
+                  'Select "1" to show only top-level columns (children collapsed).',
+              ),
+              mapStateToProps: explore => {
+                const colCount = ensureIsArray(
+                  explore?.controls?.groupbyColumns?.value,
+                ).length;
+                // 0 = fully expanded (no collapse), 1..N = collapse deeper levels
+                const choices: [number, string][] = [[0, t('Fully expanded')]];
+                for (let i = 1; i < colCount; i += 1) {
+                  choices.push([i, t('Expand %s level(s)', i)]);
+                }
+                return { choices };
+              },
+              visibility: ({ controls }) =>
+                !!controls?.colSubTotals?.value &&
+                ensureIsArray(controls?.groupbyColumns?.value).length > 1,
             },
           },
         ],

@@ -253,6 +253,8 @@ export default function PivotTableChart(props: PivotTableProps) {
     onContextMenu,
     timeGrainSqla,
     allowRenderHtml,
+    defaultRowExpansionDepth = 0,
+    defaultColExpansionDepth = 0,
   } = props;
 
   const theme = useTheme();
@@ -683,6 +685,8 @@ export default function PivotTableChart(props: PivotTableProps) {
           namesMapping={verboseMap}
           onContextMenu={handleContextMenu}
           allowRenderHtml={allowRenderHtml}
+          defaultRowExpansionDepth={defaultRowExpansionDepth}
+          defaultColExpansionDepth={defaultColExpansionDepth}
         />
       </PivotTableWrapper>
     </Styles>

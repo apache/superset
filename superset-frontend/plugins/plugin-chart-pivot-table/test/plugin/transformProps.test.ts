@@ -94,6 +94,9 @@ describe('PivotTableChart transformProps', () => {
       columnFormats: {},
       currencyFormats: {},
       currencyFormat: { symbol: 'USD', symbolPosition: 'prefix' },
+      defaultRowExpansionDepth: 0,
+      defaultColExpansionDepth: 0,
+      timeGrainSqla: undefined,
     });
   });
 
