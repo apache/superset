@@ -247,7 +247,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
       if (decimalMatch) {
         const decimalPlaces = decimalMatch[1].length;
         // Use a step that gives approximately 100 steps across the range
-        return Math.pow(10, -Math.min(decimalPlaces + 1, 6)) || 0.001;
+        return Math.pow(10, -Math.min(decimalPlaces + 1, 6));
       }
       return 0.01;
     }
@@ -258,7 +258,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
 
     // Round step to a nice value (0.001, 0.01, 0.1, 1, 10, etc.)
     const magnitude = Math.pow(10, Math.floor(Math.log10(step)));
-    step = Math.ceil(step / magnitude) * magnitude;
+    step = Math.round(step / magnitude) * magnitude;
 
     return step;
   }, []);
