@@ -64,6 +64,7 @@ export default function chartReducer(
         chartAlert: null,
         queriesResponse: action.queriesResponse,
         chartUpdateEndTime: now(),
+        form_data: state.latestQueryFormData,
       };
     },
     [actions.CHART_UPDATE_STARTED](state) {
@@ -190,6 +191,20 @@ export default function chartReducer(
       id: newId,
     };
     delete charts[key];
+    return charts;
+  }
+  if (action.type === actions.UPDATE_CHART_FORM_DATA) {
+    const { chartId, formData } = action;
+    if (charts[chartId]) {
+      return {
+        ...charts,
+        [chartId]: {
+          ...charts[chartId],
+          form_data: formData,
+          latestQueryFormData: formData,
+        },
+      };
+    }
     return charts;
   }
   if (action.type === HYDRATE_DASHBOARD || action.type === HYDRATE_EXPLORE) {

@@ -536,3 +536,94 @@ describe('chart actions timeout', () => {
     expect(postSpy).toHaveBeenCalledWith(expectedPayload);
   });
 });
+
+test('refreshChart dispatches postChartFormData with chart.latestQueryFormData', () => {
+  const chartKey = 1;
+  const chartId = 123;
+  const dashboardId = 456;
+
+  const mockFormData = {
+    datasource: '1__table',
+    viz_type: 'big_number_total',
+    slice_id: chartId,
+    metric: { aggregate: 'MAX' },
+  };
+
+  const mockState = {
+    charts: {
+      [chartKey]: {
+        id: chartId,
+        form_data: { datasource: '1__table', viz_type: 'big_number_total' },
+        latestQueryFormData: mockFormData,
+      },
+    },
+    dashboardInfo: {
+      common: {
+        conf: {
+          SUPERSET_WEBSERVER_TIMEOUT: 60,
+        },
+      },
+    },
+    dataMask: {
+      [chartId]: {
+        ownState: {},
+      },
+    },
+  };
+
+  const actionThunk = actions.refreshChart(chartKey, true, dashboardId);
+  const mockDispatch = sinon.spy();
+  const mockGetState = () => mockState;
+
+  actionThunk(mockDispatch, mockGetState);
+
+  expect(mockDispatch.calledOnce).toBe(true);
+  const dispatchedAction = mockDispatch.getCall(0).args[0];
+  expect(typeof dispatchedAction).toBe('function');
+});
+
+test('refreshChart uses latestQueryFormData from Redux state without fetching from API', () => {
+  const chartKey = 1;
+  const chartId = 123;
+  const dashboardId = 456;
+
+  const mockFormData = {
+    datasource: '1__table',
+    viz_type: 'big_number_total',
+    slice_id: chartId,
+    metric: { aggregate: 'MAX' },
+  };
+
+  const mockState = {
+    charts: {
+      [chartKey]: {
+        id: chartId,
+        form_data: { datasource: '1__table', viz_type: 'big_number_total' },
+        latestQueryFormData: mockFormData,
+      },
+    },
+    dashboardInfo: {
+      common: {
+        conf: {
+          SUPERSET_WEBSERVER_TIMEOUT: 60,
+        },
+      },
+    },
+    dataMask: {
+      [chartId]: {
+        ownState: {},
+      },
+    },
+  };
+
+  fetchMock.resetHistory();
+
+  const actionThunk = actions.refreshChart(chartKey, true, dashboardId);
+  const mockDispatch = sinon.spy();
+  const mockGetState = () => mockState;
+
+  actionThunk(mockDispatch, mockGetState);
+
+  // Verify no API calls were made to fetch chart definition
+  expect(fetchMock.calls(/\/api\/v1\/chart\/\d+/).length).toBe(0);
+});
