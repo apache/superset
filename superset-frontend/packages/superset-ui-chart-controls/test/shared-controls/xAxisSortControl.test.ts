@@ -17,8 +17,8 @@
  * under the License.
  */
 
-import { ControlPanelState } from '../../src/types';
-import { xAxisSortControl } from '../../src/shared-controls/customControls';
+import { ControlPanelState } from '../../lib/types';
+import { xAxisSortControl } from '../../lib/shared-controls/customControls';
 
 const createState = (overrides: Partial<ControlPanelState>): ControlPanelState =>
   ({
@@ -96,4 +96,3 @@ test('xAxisSortControl keeps axis and metric options when a dimension is set', (
   expect(values).toContain('name');
   expect(values).toContain('sum');
 });
-
