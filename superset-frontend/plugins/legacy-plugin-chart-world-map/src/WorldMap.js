@@ -249,23 +249,25 @@ function WorldMap(element, props) {
           if (inContextMenu) {
             return;
           }
-          const countryId = d3.select(this).attr('class').split(' ')[1];
+          const element = d3.select(this);
+          const classes = element.attr('class') || '';
+          const countryId = classes.split(' ')[1];
+          const countryData = mapData[countryId];
+          const originalFill =
+            (countryData && countryData.fillColor) || theme.colorBorder;
           // Store original fill color for restoration
-          d3.select(this).attr(
-            'data-original-fill',
-            d3.select(this).style('fill'),
-          );
+          element.attr('data-original-fill', originalFill);
         })
         .on('mouseout', function onMouseOut() {
           if (inContextMenu) {
             return;
           }
-          const countryId = d3.select(this).attr('class').split(' ')[1];
-          const originalFill = d3.select(this).attr('data-original-fill');
+          const element = d3.select(this);
+          const originalFill = element.attr('data-original-fill');
           // Restore the original fill color (data-based or default no-data color)
           if (originalFill) {
-            d3.select(this).style('fill', originalFill);
-            d3.select(this).attr('data-original-fill', null);
+            element.style('fill', originalFill);
+            element.attr('data-original-fill', null);
           }
         });
     },

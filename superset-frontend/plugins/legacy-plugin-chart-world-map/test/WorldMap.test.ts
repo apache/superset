@@ -184,8 +184,9 @@ test('restores original fill color on mouseout for country with data', () => {
         } else {
           mockElement.setAttribute(attrName, value);
         }
+        return mockD3Selection;
       }
-      return mockElement.getAttribute(attrName) || mockD3Selection;
+      return mockElement.getAttribute(attrName);
     }),
     style: jest.fn((styleName: string, value?: string) => {
       if (value !== undefined) {
@@ -239,8 +240,9 @@ test('restores default fill color on mouseout for country with no data', () => {
         } else {
           mockElement.setAttribute(attrName, value);
         }
+        return mockD3Selection;
       }
-      return mockElement.getAttribute(attrName) || mockD3Selection;
+      return mockElement.getAttribute(attrName);
     }),
     style: jest.fn((styleName: string, value?: string) => {
       if (value !== undefined) {
@@ -323,7 +325,11 @@ test('does not handle mouse events when inContextMenu is true', () => {
     (call: [string, unknown]) =>
       call[0] === 'data-original-fill' && call[1] !== undefined,
   );
-
+  const styleCalls = mockD3Selection.style.mock.calls;
+  const fillStyleChangeCalls = styleCalls.filter(
+    (call: [string, unknown]) => call[0] === 'fill' && call[1] !== undefined,
+  );
   // The handlers should return early, so no state changes
   expect(fillChangeCalls.length).toBe(0);
+  expect(fillStyleChangeCalls.length).toBe(0);
 });
