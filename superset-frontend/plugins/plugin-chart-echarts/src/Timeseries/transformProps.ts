@@ -606,14 +606,16 @@ export default function transformProps(
     nameGap: convertInteger(xAxisTitleMargin),
     nameLocation: 'middle',
     axisLabel: {
-      hideOverlap: true,
+      // When rotation is applied on time axes, hideOverlap can
+      // aggressively hide the last label. Rotated labels already
+      // have less overlap, so disabling hideOverlap is safe.
+      // At 0° rotation, keep hideOverlap to prevent long labels
+      // from overlapping each other.
+      hideOverlap:
+        !(xAxisType === AxisType.Time && xAxisLabelRotation !== 0),
       formatter: xAxisFormatter,
       rotate: xAxisLabelRotation,
       interval: xAxisLabelInterval,
-      ...(xAxisType === AxisType.Time && {
-        showMaxLabel: true,
-        alignMaxLabel: 'right',
-      }),
     },
     minorTick: { show: minorTicks },
     minInterval:
@@ -658,6 +660,22 @@ export default function transformProps(
     nameGap: convertInteger(yAxisTitleMargin),
     nameLocation: yAxisTitlePosition === 'Left' ? 'middle' : 'end',
   };
+
+  // Increase right padding for rotated time axis labels to prevent
+  // the last label from being clipped at the chart boundary.
+  if (
+    xAxisType === AxisType.Time &&
+    xAxisLabelRotation !== 0 &&
+    !isHorizontal
+  ) {
+    padding.right = Math.max(
+      padding.right || 0,
+      TIMESERIES_CONSTANTS.gridOffsetRight +
+        Math.ceil(
+          Math.abs(Math.sin((xAxisLabelRotation * Math.PI) / 180)) * 80,
+        ),
+    );
+  }
 
   if (isHorizontal) {
     [xAxis, yAxis] = [yAxis, xAxis];
