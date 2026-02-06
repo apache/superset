@@ -75,7 +75,12 @@ export const SingleQueryResultPane = ({
         canDownload={canDownload}
       />
       {/* key={filterText} resets TableView when filter changes, preventing
-          "currentPage > totalPages" errors when filtering reduces page count */}
+          "currentPage > totalPages" errors when filtering reduces page count.
+          This causes a remount on each keystroke, but the trade-off is acceptable:
+          1) Tables in this context are reasonably sized
+          2) Simpler than adding controlled pagination to TableView
+          3) Using key={filterText ? 'filtered' : 'unfiltered'} wouldn't work
+             because page count can change within filtered state */}
       <TableView
         columns={columns}
         size={TableSize.Small}
