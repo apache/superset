@@ -1122,9 +1122,13 @@ class DatasourceEditor extends PureComponent {
         label: col.verbose_name || col.column_name,
       }));
 
-    // Get string-type columns for the currency code dropdown
+    // String columns + untyped calculated columns for the currency code dropdown
     const stringColumns = allColumns
-      .filter(col => col.type_generic === GenericDataType.String)
+      .filter(
+        col =>
+          col.type_generic === GenericDataType.String ||
+          (col.expression && col.type_generic == null),
+      )
       .map(col => ({
         value: col.column_name,
         label: col.verbose_name || col.column_name,

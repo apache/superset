@@ -16,12 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-@primary-color: #20a7c9;
-@info-color: #66bcfe;
-@success-color: #59c189;
-@processing-color: #66bcfe;
-@error-color: #e04355;
-@highlight-color: #e04355;
-@normal-color: #d9d9d9;
-@white: #FFF;
-@black: #000;
+
+// ListView-specific Playwright Components for Superset
+export { BulkSelect } from './BulkSelect';

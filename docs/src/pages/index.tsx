@@ -28,7 +28,7 @@ import databaseData from '../data/databases.json';
 import BlurredSection from '../components/BlurredSection';
 import DataSet from '../../../RESOURCES/INTHEWILD.yaml';
 import type { DatabaseData } from '../components/databases/types';
-import '../styles/main.less';
+import '../styles/main.css';
 
 // Build database list from databases.json (databases with logos)
 // Deduplicate by logo filename to avoid showing the same logo twice
@@ -795,7 +795,7 @@ export default function Home(): JSX.Element {
           </StyledIntegrations>
         </BlurredSection>
         {/* Only show carousel when we have enough logos (>10) for a good display */}
-        {companiesWithLogos.length > 10 && (
+        {companiesWithLogos.length > 7 && (
           <BlurredSection>
             <div style={{ padding: '0 20px' }}>
               <SectionHeader

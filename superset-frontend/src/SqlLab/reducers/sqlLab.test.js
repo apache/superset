@@ -572,6 +572,28 @@ describe('sqlLabReducer', () => {
     test('should refresh queries when polling returns empty', () => {
       newState = sqlLabReducer(newState, actions.refreshQueries({}));
     });
+    test('should set state to fetching when sync query succeeds without results', () => {
+      const syncQuery = {
+        ...query,
+        id: 'sync-query',
+        state: QueryState.Pending,
+        runAsync: false,
+        results: null,
+      };
+      newState = sqlLabReducer(
+        {
+          ...newState,
+          queries: { 'sync-query': syncQuery },
+        },
+        actions.refreshQueries({
+          'sync-query': {
+            ...syncQuery,
+            state: QueryState.Success,
+          },
+        }),
+      );
+      expect(newState.queries['sync-query'].state).toBe(QueryState.Fetching);
+    });
   });
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('CLEAR_INACTIVE_QUERIES', () => {
