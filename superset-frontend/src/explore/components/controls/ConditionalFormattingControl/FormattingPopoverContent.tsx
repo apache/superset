@@ -266,17 +266,21 @@ export const FormattingPopoverContent = ({
   const [column, setColumn] = useState<string>(
     config?.column || columns[0]?.value,
   );
-  const visibleAllColomns = useMemo(
+  const visibleAllColumns = useMemo(
     () => !!(allColumns && Array.isArray(allColumns) && allColumns.length),
     [allColumns],
   );
 
-  const [columnFormatting, setColumnFormating] = useState<string>(
-    config?.columnFormatting ||
-      allColumns.filter(item => item.value === column)[0]?.value,
+  const [columnFormatting, setColumnFormating] = useState<
+    string | ObjectFormattingEnum | undefined
+  >(
+    config?.columnFormatting ??
+      (Array.isArray(allColumns)
+        ? allColumns.find(item => item.value === column)?.value
+        : undefined),
   );
 
-  const [objectFormatting, setObjectFormating] = useState<string>(
+  const [objectFormatting, setObjectFormating] = useState<ObjectFormattingEnum>(
     config?.objectFormatting || formattingOptions[0].value,
   );
 
@@ -315,7 +319,9 @@ export const FormattingPopoverContent = ({
     setPreviousColumnType(newColumnType);
   };
 
-  const handleAllColumnChange = (value: string) => {
+  const handleAllColumnChange = (
+    value: string | ObjectFormattingEnum | undefined,
+  ) => {
     setColumnFormating(value);
   };
   const numericColumns = useMemo(
@@ -323,7 +329,7 @@ export const FormattingPopoverContent = ({
     [allColumns],
   );
 
-  const handleObjectChange = (value: string) => {
+  const handleObjectChange = (value: ObjectFormattingEnum) => {
     setObjectFormating(value);
 
     if (value === ObjectFormattingEnum.CELL_BAR) {
@@ -399,7 +405,7 @@ export const FormattingPopoverContent = ({
           </FormItem>
         </Col>
       </Row>
-      {visibleAllColomns && showOperatorFields ? (
+      {visibleAllColumns && showOperatorFields ? (
         <Row gutter={12}>
           <Col span={12}>
             <FormItem
@@ -411,7 +417,9 @@ export const FormattingPopoverContent = ({
               <Select
                 ariaLabel={t('Select column name')}
                 options={getColumnOptions()}
-                onChange={value => {
+                onChange={(
+                  value: string | ObjectFormattingEnum | undefined,
+                ) => {
                   handleAllColumnChange(value as string);
                 }}
               />
@@ -423,15 +431,19 @@ export const FormattingPopoverContent = ({
               label={t('Formatting object')}
               rules={rulesRequired}
               initialValue={objectFormatting}
-              tooltip={t(
-                'The background of the histogram columns is displayed if the "Show cell bars" flag is enabled.',
-              )}
+              tooltip={
+                objectFormatting === ObjectFormattingEnum.CELL_BAR
+                  ? t(
+                      'Applies only when "Cell bars" formatting is selected: the background of the histogram columns is displayed if the "Show cell bars" flag is enabled.',
+                    )
+                  : null
+              }
             >
               <Select
                 ariaLabel={t('Select object name')}
                 options={formattingOptions}
-                onChange={value => {
-                  handleObjectChange(value as string);
+                onChange={(value: ObjectFormattingEnum) => {
+                  handleObjectChange(value);
                 }}
               />
             </FormItem>

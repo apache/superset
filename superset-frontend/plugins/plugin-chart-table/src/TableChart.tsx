@@ -963,10 +963,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               .forEach(formatter => {
                 let valueToFormat;
                 if (formatter.columnFormatting) {
-                  const index = Object.keys(row.original).findIndex(
-                    key => key === formatter.column,
-                  );
-                  valueToFormat = row.values[index];
+                  valueToFormat = row.original[formatter.column];
                 } else {
                   valueToFormat = value;
                 }
