@@ -74,9 +74,7 @@ describe('getXAxisFormatter', () => {
     expect(formatter).toEqual(expectedFormatter);
   });
 
-  it('should return String constructor as fallback', () => {
-    // This test verifies that the String constructor is returned
-    // Note: the current logic may not reach this case, but keeping for completeness
+  it('should return undefined for falsy values', () => {
     const formatter = getXAxisFormatter(null as any);
     expect(formatter).toBeUndefined();
   });
