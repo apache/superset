@@ -110,6 +110,8 @@ export type EmbeddedDashboard = {
   getChartDataPayloads: (params?: { chartId?: number }) => Promise<Record<string, any>>;
   setThemeConfig: (themeConfig: Record<string, any>) => void;
   setThemeMode: (mode: ThemeMode) => void;
+  /** Switches the embedded dashboard to a different locale (e.g. 'de', 'fr'). Triggers page reload. */
+  setLocale: (locale: string) => void;
 };
 
 /**
@@ -319,6 +321,18 @@ export async function embedDashboard({
     }
   };
 
+  const setLocale = (locale: string): void => {
+    try {
+      ourPort.emit('setLocale', { locale });
+      log(`Locale set to: ${locale}`);
+    } catch (error) {
+      log(
+        'Error sending locale. Ensure the iframe side implements the "setLocale" method.',
+      );
+      throw error;
+    }
+  };
+
   return {
     getScrollSize,
     unmount,
@@ -330,5 +344,6 @@ export async function embedDashboard({
     getChartDataPayloads,
     setThemeConfig,
     setThemeMode,
+    setLocale,
   };
 }

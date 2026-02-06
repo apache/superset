@@ -43,6 +43,7 @@ import {
 } from './EmbeddedContextProviders';
 import { embeddedApi } from './api';
 import { getDataMaskChangeTrigger } from './utils';
+import { applyLocale } from './locale';
 
 setupPlugins();
 setupCodeOverrides({ embedded: true });
@@ -300,6 +301,14 @@ window.addEventListener('message', function embeddedPageInitializer(event) {
             silent: true,
           };
         }
+      },
+    );
+
+    Switchboard.defineMethod(
+      'setLocale',
+      ({ locale }: { locale: string }) => {
+        log('Received setLocale request:', locale);
+        applyLocale(locale);
       },
     );
 
