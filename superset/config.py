@@ -579,6 +579,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # that will be displayed based on the viewer's UI language setting.
     # Requires database migration for 'translations' column.
     # @lifecycle: development
+    # @docs: https://superset.apache.org/docs/configuration/content-localization
     "ENABLE_CONTENT_LOCALIZATION": False,
     # Enable Superset extensions for custom functionality without modifying core
     # @lifecycle: development

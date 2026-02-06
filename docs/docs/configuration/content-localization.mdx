@@ -1,0 +1,280 @@
+---
+title: Content Localization
+hide_title: true
+sidebar_position: 13
+version: 1
+---
+
+# Content Localization
+
+Superset supports localization of user-created content: dashboard titles, chart names, filter labels,
+and descriptions. When a viewer's UI language changes, translated content is served automatically
+via the API.
+
+:::note
+Requires the `ENABLE_CONTENT_LOCALIZATION` [feature flag](/docs/configuration/feature-flags)
+and a database migration (`1af0da0adfec`).
+:::
+
+## Enabling Content Localization
+
+### 1. Enable the Feature Flag
+
+```python
+# superset_config.py
+FEATURE_FLAGS = {
+    "ENABLE_CONTENT_LOCALIZATION": True,
+}
+```
+
+### 2. Configure Available Languages
+
+Content localization uses the same `LANGUAGES` config as UI translations:
+
+```python
+# superset_config.py
+LANGUAGES = {
+    "en": {"flag": "us", "name": "English"},
+    "de": {"flag": "de", "name": "German"},
+    "fr": {"flag": "fr", "name": "French"},
+    "ru": {"flag": "ru", "name": "Russian"},
+}
+```
+
+### 3. Run the Database Migration
+
+The migration adds a `translations` JSON column to the `dashboards` and `slices` tables:
+
+```bash
+superset db upgrade
+```
+
+## How It Works
+
+### Translation Storage
+
+Translations are stored as JSON alongside the original content:
+
+```json
+{
+  "dashboard_title": {
+    "de": "Verkaufs-Dashboard",
+    "fr": "Tableau de bord des ventes"
+  },
+  "description": {
+    "de": "Monatlicher Verkaufsbericht"
+  }
+}
+```
+
+Each entity (dashboard, chart) has a `translations` field. Native filter translations
+are stored inside `json_metadata.native_filter_configuration[].translations`.
+
+### Locale Detection
+
+When a user views a dashboard, the API resolves the locale using this priority chain:
+
+1. **Guest token locale** (embedded dashboards)
+2. **`Accept-Language` header**
+3. **User preference** (`user.language`)
+4. **Config default** (`BABEL_DEFAULT_LOCALE`)
+
+### Fallback Chain
+
+If a translation is missing for the resolved locale:
+
+1. Exact locale match (e.g., `pt-BR`)
+2. Base language (e.g., `pt`)
+3. Original field value
+
+## Adding Translations
+
+### Dashboard Translations
+
+1. Open **Dashboard Properties** (pencil icon &rarr; **Edit Dashboard Properties**)
+2. Click the **Translations** button next to the Title field
+3. Select a language and enter the translated title
+4. Click **Save**
+
+Translatable fields: `dashboard_title`
+
+### Chart Translations
+
+1. Open **Edit Chart Properties** from the chart menu
+2. Click the **Translations** button next to the Name or Description field
+3. Enter translations for each language
+4. Click **Save**
+
+Translatable fields: `slice_name`, `description`
+
+### Native Filter Translations
+
+1. Open the filter bar &rarr; click the gear icon to configure filters
+2. Select a filter and click the **Translations** button next to the filter name
+3. Enter translated filter names
+4. Click **Save**
+
+Translatable field: `name`
+
+### Chart Name Override Translations
+
+Dashboard-level chart name overrides support separate translations. The display priority chain:
+
+1. Override translation for viewer's locale
+2. Override name (untranslated)
+3. Chart translation for viewer's locale
+4. Chart original name
+
+Override translations are stored in `json_metadata.slice_name_overrides`.
+
+## API
+
+### Response Modes
+
+The API supports two modes controlled by the `include_translations` query parameter.
+
+**Default mode** &mdash; returns localized field values:
+
+```
+GET /api/v1/dashboard/123
+Accept-Language: de
+```
+
+```json
+{
+  "dashboard_title": "Verkaufs-Dashboard",
+  "available_locales": ["de", "fr"]
+}
+```
+
+**Editor mode** &mdash; returns original values with full translations dict:
+
+```
+GET /api/v1/dashboard/123?include_translations=true
+```
+
+```json
+{
+  "dashboard_title": "Sales Dashboard",
+  "translations": {
+    "dashboard_title": {"de": "Verkaufs-Dashboard", "fr": "Tableau de bord"}
+  },
+  "available_locales": ["de", "fr"]
+}
+```
+
+### Saving Translations
+
+Include the `translations` field in a standard PUT request:
+
+```
+PUT /api/v1/dashboard/123
+Content-Type: application/json
+
+{
+  "translations": {
+    "dashboard_title": {
+      "de": "Verkaufs-Dashboard",
+      "fr": "Tableau de bord des ventes"
+    }
+  }
+}
+```
+
+The same pattern applies to charts via `PUT /api/v1/chart/{id}`.
+
+### Available Locales Endpoint
+
+```
+GET /api/v1/localization/available_locales
+```
+
+```json
+{
+  "result": {
+    "locales": [
+      {"code": "de", "name": "German", "flag": "de"},
+      {"code": "en", "name": "English", "flag": "us"}
+    ],
+    "default_locale": "en"
+  }
+}
+```
+
+## SQL Templating
+
+When `ENABLE_TEMPLATE_PROCESSING` is enabled, the `{{ current_user_locale() }}` Jinja macro
+returns the viewer's resolved locale. This enables locale-aware SQL queries:
+
+```sql
+SELECT product_name
+FROM products
+WHERE language = '{{ current_user_locale() }}'
+```
+
+The locale value is automatically included in the cache key. To disable cache key inclusion:
+
+```sql
+{{ current_user_locale(add_to_cache_keys=False) }}
+```
+
+See [SQL Templating](/docs/configuration/sql-templating) for more Jinja macros.
+
+## Embedded Dashboards
+
+The [Embedded SDK](https://www.npmjs.com/package/@superset-ui/embedded-sdk) supports
+dynamic locale switching via the `setLocale` method:
+
+```js
+import { embedDashboard } from "@superset-ui/embedded-sdk";
+
+const dashboard = await embedDashboard({
+  id: "abc123",
+  supersetDomain: "https://superset.example.com",
+  mountPoint: document.getElementById("my-superset-container"),
+  fetchGuestToken: () => fetchGuestTokenFromBackend(),
+});
+
+// Switch locale when host app language changes
+languageSelector.onChange = (locale) => {
+  dashboard.setLocale(locale); // triggers page reload inside iframe
+};
+```
+
+## Export and Import
+
+Translations are included in dashboard and chart YAML exports:
+
+```yaml
+dashboard_title: Sales Dashboard
+description: Monthly sales report
+translations:
+  dashboard_title:
+    de: Verkaufs-Dashboard
+    fr: Tableau de bord des ventes
+  description:
+    de: Monatlicher Verkaufsbericht
+```
+
+Importing a YAML without the `translations` field sets translations to `null` (backward compatible).
+
+## Configuration Limits
+
+Protect against oversized payloads with these settings in `superset_config.py`:
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `CONTENT_LOCALIZATION_MAX_LOCALES` | 50 | Max unique locales per entity |
+| `CONTENT_LOCALIZATION_MAX_TEXT_LENGTH` | 10000 | Max characters per translation value |
+| `CONTENT_LOCALIZATION_MAX_FIELD_LENGTH` | 50 | Max characters for field names |
+| `CONTENT_LOCALIZATION_MAX_JSON_SIZE` | 1048576 | Max translations JSON size in bytes (1 MB) |
+
+## Security
+
+- **Permissions**: Translation editing follows entity permissions. Users who can edit a dashboard
+  can edit its translations.
+- **XSS prevention**: All translation values are sanitized on save (HTML tags stripped).
+- **Validation**: Locale codes are validated against BCP 47 / POSIX formats. Field names and
+  values are validated against configured size limits.
+- **Feature flag guard**: `PUT` requests with `translations` are rejected when the feature flag
+  is disabled.
