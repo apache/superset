@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Preset } from '@superset-ui/core';
+import { isFeatureEnabled, FeatureFlag, Preset } from '@superset-ui/core';
 import fetchMock from 'fetch-mock';
 import chartQueries from 'spec/fixtures/mockChartQueries';
 import { dashboardLayout } from 'spec/fixtures/mockDashboardLayout';
@@ -40,6 +40,13 @@ import {
 import FiltersConfigModal, {
   FiltersConfigModalProps,
 } from './FiltersConfigModal';
+
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(),
+}));
+
+const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 
 class MainPreset extends Preset {
   constructor() {
@@ -142,6 +149,26 @@ fetchMock.post('glob:*/api/v1/chart/data', {
     },
   ],
 });
+
+fetchMock.get('glob:*/api/v1/localization/available_locales', {
+  body: {
+    result: {
+      locales: [
+        { code: 'en', name: 'English' },
+        { code: 'de', name: 'German' },
+        { code: 'fr', name: 'French' },
+      ],
+      default_locale: 'en',
+    },
+  },
+});
+
+const filterTranslations = {
+  name: {
+    de: 'Bundesland',
+    fr: 'État',
+  },
+};
 
 const FILTER_TYPE_REGEX = /^filter type$/i;
 const FILTER_NAME_REGEX = /^filter name$/i;
@@ -692,3 +719,145 @@ test('renders a filter with a chart containing BigInt values', async () => {
 
   expect(screen.getByText(FILTER_TYPE_REGEX)).toBeInTheDocument();
 });
+
+test('translation button hidden when content localization flag is off', () => {
+  mockedIsFeatureEnabled.mockReturnValue(false);
+  const nativeFilterConfig = [
+    {
+      ...buildNativeFilter('NATIVE_FILTER-1', 'state', []),
+      translations: filterTranslations,
+    },
+  ];
+  const state = {
+    ...defaultState(),
+    dashboardInfo: {
+      metadata: {
+        native_filter_configuration: nativeFilterConfig,
+      },
+    },
+    dashboardLayout,
+  };
+  defaultRender(state, { ...props, createNewOnOpen: false });
+
+  expect(
+    screen.queryByRole('button', { name: /translations/i }),
+  ).not.toBeInTheDocument();
+});
+
+test('translation button visible when content localization flag is on', async () => {
+  mockedIsFeatureEnabled.mockImplementation(
+    flag => flag === FeatureFlag.EnableContentLocalization,
+  );
+  const nativeFilterConfig = [
+    {
+      ...buildNativeFilter('NATIVE_FILTER-1', 'state', []),
+      translations: filterTranslations,
+    },
+  ];
+  const state = {
+    ...defaultState(),
+    dashboardInfo: {
+      metadata: {
+        native_filter_configuration: nativeFilterConfig,
+      },
+    },
+    dashboardLayout,
+  };
+  defaultRender(state, { ...props, createNewOnOpen: false });
+
+  await waitFor(() => {
+    expect(
+      screen.getByRole('button', { name: /translations \(2\)/i }),
+    ).toBeInTheDocument();
+  });
+});
+
+test('clicking translation button opens translation editor modal', async () => {
+  mockedIsFeatureEnabled.mockImplementation(
+    flag => flag === FeatureFlag.EnableContentLocalization,
+  );
+  const nativeFilterConfig = [
+    {
+      ...buildNativeFilter('NATIVE_FILTER-1', 'state', []),
+      translations: filterTranslations,
+    },
+  ];
+  const state = {
+    ...defaultState(),
+    dashboardInfo: {
+      metadata: {
+        native_filter_configuration: nativeFilterConfig,
+      },
+    },
+    dashboardLayout,
+  };
+  defaultRender(state, { ...props, createNewOnOpen: false });
+
+  await waitFor(() => {
+    expect(
+      screen.getByRole('button', { name: /translations/i }),
+    ).toBeInTheDocument();
+  });
+
+  await userEvent.click(
+    screen.getByRole('button', { name: /translations/i }),
+  );
+
+  await waitFor(() => {
+    expect(screen.getByText('Edit Translations')).toBeInTheDocument();
+  });
+}, 60000);
+
+test('save includes translations in filter config', async () => {
+  jest.useFakeTimers();
+  try {
+    mockedIsFeatureEnabled.mockImplementation(
+      flag => flag === FeatureFlag.EnableContentLocalization,
+    );
+    const nativeFilterConfig = [
+      {
+        ...buildNativeFilter('NATIVE_FILTER-1', 'state', []),
+        translations: filterTranslations,
+      },
+    ];
+    const state = {
+      ...defaultState(),
+      dashboardInfo: {
+        metadata: {
+          native_filter_configuration: nativeFilterConfig,
+        },
+      },
+      dashboardLayout,
+    };
+    const onSave = jest.fn();
+    defaultRender(state, { ...props, createNewOnOpen: false, onSave });
+
+    const filterNameInput = screen.getByRole('textbox', {
+      name: FILTER_NAME_REGEX,
+    });
+
+    await userEvent.clear(filterNameInput);
+    await userEvent.type(filterNameInput, 'Renamed Filter');
+
+    jest.runAllTimers();
+
+    await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
+
+    await waitFor(() =>
+      expect(onSave).toHaveBeenCalledWith(
+        expect.objectContaining({
+          filterChanges: expect.objectContaining({
+            modified: expect.arrayContaining([
+              expect.objectContaining({
+                name: 'Renamed Filter',
+                translations: filterTranslations,
+              }),
+            ]),
+          }),
+        }),
+      ),
+    );
+  } finally {
+    jest.useRealTimers();
+  }
+}, 60000);

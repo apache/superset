@@ -32,6 +32,7 @@ import {
   JsonResponse,
   NativeFilterType,
   SupersetApiError,
+  SupersetClient,
   ClientErrorObject,
   getClientErrorObject,
   getExtensionsRegistry,
@@ -88,6 +89,12 @@ import {
   mergeExtraFormData,
 } from 'src/dashboard/components/nativeFilters/utils';
 import { DatasetSelectLabel } from 'src/features/datasets/DatasetSelectLabel';
+import {
+  TranslationButton,
+  TranslationEditorModal,
+  type TranslatableField,
+} from 'src/components/TranslationEditor';
+import type { Translations, LocaleInfo } from 'src/types/Localization';
 import {
   ALLOW_DEPENDENCIES as TYPES_SUPPORT_DEPENDENCIES,
   getFiltersConfigModalTestId,
@@ -307,6 +314,8 @@ const FiltersConfigForm = (
     any
   > | null>(null);
   const forceUpdate = useForceUpdate(isActive);
+  const [showTranslationModal, setShowTranslationModal] = useState(false);
+  const [availableLocales, setAvailableLocales] = useState<LocaleInfo[]>([]);
   const [datasetDetails, setDatasetDetails] = useState<Record<string, any>>();
   const defaultFormFilter = useMemo(() => ({}), []);
   const filters = form.getFieldValue('filters');
@@ -568,6 +577,67 @@ const FiltersConfigForm = (
     [filterId, form, formChanged],
   );
 
+  const localizationEnabled = isFeatureEnabled(
+    FeatureFlag.EnableContentLocalization,
+  );
+
+  const currentTranslations: Translations =
+    formFilter?.translations ?? filterToEdit?.translations ?? {};
+
+  useEffect(() => {
+    if (filterToEdit?.translations) {
+      setNativeFilterFieldValues(form, filterId, {
+        translations: filterToEdit.translations,
+      });
+    }
+  }, [filterId, filterToEdit?.translations, form]);
+
+  useEffect(() => {
+    if (localizationEnabled) {
+      SupersetClient.get({
+        endpoint: '/api/v1/localization/available_locales',
+      }).then(
+        response => {
+          const { locales, default_locale } = response.json.result;
+          setAvailableLocales(
+            locales.filter((loc: LocaleInfo) => loc.code !== default_locale),
+          );
+        },
+        err => getClientErrorObject(err).then(setError),
+      );
+    }
+  }, [localizationEnabled]);
+
+  const translationCount = useMemo(() => {
+    const locales = new Set<string>();
+    Object.values(currentTranslations).forEach(fieldTrans => {
+      Object.keys(fieldTrans).forEach(locale => locales.add(locale));
+    });
+    return locales.size;
+  }, [currentTranslations]);
+
+  const translatableFields: TranslatableField[] = useMemo(
+    () => [
+      {
+        name: 'name',
+        label: t('Filter name'),
+        value: formFilter?.name ?? filterToEdit?.name ?? '',
+      },
+    ],
+    [formFilter?.name, filterToEdit?.name],
+  );
+
+  const handleSaveTranslations = useCallback(
+    (updatedTranslations: Translations) => {
+      setNativeFilterFieldValues(form, filterId, {
+        translations: updatedTranslations,
+      });
+      formChanged();
+      setShowTranslationModal(false);
+    },
+    [form, filterId, formChanged],
+  );
+
   const hasPreFilter =
     !!formFilter?.adhoc_filters ||
     !!formFilter?.time_range ||
@@ -825,6 +895,7 @@ const FiltersConfigForm = (
     return !!value;
   };
   return (
+  <>
     <Tabs
       activeKey={activeTabKey}
       onChange={activeKey => setActiveTabKey(activeKey)}
@@ -861,6 +932,20 @@ const FiltersConfigForm = (
                       onChange={debouncedFormChanged}
                     />
                   </StyledFormItem>
+                  {localizationEnabled && !isChartCustomization && (
+                    <>
+                      <FormItem
+                        name={['filters', filterId, 'translations']}
+                        initialValue={filterToEdit?.translations}
+                        hidden
+                        noStyle
+                      />
+                      <TranslationButton
+                        translationCount={translationCount}
+                        onClick={() => setShowTranslationModal(true)}
+                      />
+                    </>
+                  )}
                   {isChartCustomization ? (
                     <StyledFormItem
                       expanded={expanded}
@@ -1733,6 +1818,17 @@ const FiltersConfigForm = (
         },
       ]}
     />
+    {localizationEnabled && !isChartCustomization && (
+      <TranslationEditorModal
+        show={showTranslationModal}
+        fields={translatableFields}
+        translations={currentTranslations}
+        availableLocales={availableLocales}
+        onSave={handleSaveTranslations}
+        onClose={() => setShowTranslationModal(false)}
+      />
+    )}
+  </>
   );
 };
 
