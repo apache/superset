@@ -192,13 +192,23 @@ export const ExploreChartHeader = ({
   const metadataBar = useExploreMetadataBar(metadata, slice);
   const oldSliceName = slice?.slice_name;
 
+  // Capture initial form data for new charts
+  const [initialFormDataForNewChart] = useState(() =>
+    !slice ? { ...formData, chartTitle: oldSliceName } : null,
+  );
+
   const originalFormData = useMemo(() => {
+    // For new charts (no slice), use the captured initial formData
+    if (!slice && initialFormDataForNewChart) {
+      return initialFormDataForNewChart;
+    }
+    // For existing charts, use the saved sliceFormData if available
     if (!sliceFormData) return {};
     return {
       ...sliceFormData,
       chartTitle: oldSliceName,
     };
-  }, [sliceFormData, oldSliceName]);
+  }, [sliceFormData, oldSliceName, slice, initialFormDataForNewChart]);
 
   const currentFormData = useMemo(
     () => ({ ...formData, chartTitle: sliceName }),
@@ -210,6 +220,8 @@ export const ExploreChartHeader = ({
     [originalFormData, currentFormData],
   );
 
+  const hasUnsavedChanges = Object.keys(formDiffs).length > 0;
+
   const {
     showModal: showUnsavedChangesModal,
     setShowModal: setShowUnsavedChangesModal,
@@ -217,7 +229,7 @@ export const ExploreChartHeader = ({
     handleSaveAndCloseModal,
     triggerManualSave,
   } = useUnsavedChangesPrompt({
-    hasUnsavedChanges: Object.keys(formDiffs).length > 0,
+    hasUnsavedChanges,
     onSave: () => dispatch(setSaveChartModalVisibility(true)),
     isSaveModalVisible,
     manualSaveOnUnsavedChanges: true,
