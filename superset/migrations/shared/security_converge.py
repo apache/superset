@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+# Caller passes session and controls transaction; @transaction not applicable.
+# pylint: disable=consider-using-transaction
 import logging
 from dataclasses import dataclass
 
