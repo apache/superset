@@ -49,7 +49,7 @@ interface WorldMapFilterState {
   [key: string]: unknown;
 }
 
-interface WorldMapProps {
+export interface WorldMapProps {
   countryFieldtype: string;
   entity: string;
   data: WorldMapDataEntry[];
