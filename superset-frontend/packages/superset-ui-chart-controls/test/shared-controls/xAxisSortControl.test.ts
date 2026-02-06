@@ -17,10 +17,12 @@
  * under the License.
  */
 
-import { ControlPanelState } from '../../lib/types';
-import { xAxisSortControl } from '../../lib/shared-controls/customControls';
+import { ControlPanelState } from '../../src/types';
+import { xAxisSortControl } from '../../src/shared-controls/customControls';
 
-const createState = (overrides: Partial<ControlPanelState>): ControlPanelState =>
+const createState = (
+  overrides: Partial<ControlPanelState>,
+): ControlPanelState =>
   ({
     slice: { slice_id: 1 },
     form_data: {},
@@ -32,9 +34,9 @@ const createState = (overrides: Partial<ControlPanelState>): ControlPanelState =
     common: {},
     metadata: {},
     ...overrides,
-  } as ControlPanelState);
+  }) as ControlPanelState;
 
-const createControlState = (value: unknown = undefined) => ({ value } as any);
+const createControlState = (value: unknown = undefined) => ({ value }) as any;
 
 test('xAxisSortControl includes axis and metric options when there is no dimension', () => {
   const state = createState({

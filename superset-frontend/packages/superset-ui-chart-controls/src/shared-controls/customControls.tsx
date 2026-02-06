@@ -164,21 +164,21 @@ export const xAxisSortControl = {
           const value = getColumnLabel(column);
           return {
             value,
-            label: dataset?.verbose_map?.[value] || value,
+            label: dataset?.verbose_map?.[value as string] ?? value,
           };
         }),
         ...metricLabels.map(value => ({
           value,
-          label: dataset?.verbose_map?.[value] || value,
+          label: dataset?.verbose_map?.[value as string] ?? value,
         })),
       ];
 
       // When there are multiple series (via groupby or multiple metrics),
       // also expose the series-based sort options.
       const multiSeriesOptions = isMultiSortAvailable
-        ? SORT_SERIES_CHOICES.map(choice => ({
-            value: choice[0],
-            label: choice[1],
+        ? SORT_SERIES_CHOICES.map(([value,label]: [string,string]) => ({
+            value,
+            label,
           }))
         : [];
 
