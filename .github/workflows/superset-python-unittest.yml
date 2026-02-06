@@ -52,6 +52,7 @@ jobs:
           SUPERSET_SECRET_KEY: not-a-secret
         run: |
           pytest --durations-min=0.5 --cov=superset/sql/ ./tests/unit_tests/sql/ --cache-clear --cov-fail-under=100
+          pytest --durations-min=0.5 --cov=superset/semantic_layers/ ./tests/unit_tests/semantic_layers/ --cache-clear --cov-fail-under=100
       - name: Upload code coverage
         uses: codecov/codecov-action@v5
         with:
