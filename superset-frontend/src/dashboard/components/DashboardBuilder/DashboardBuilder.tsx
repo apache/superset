@@ -119,7 +119,7 @@ const StyledContent = styled.div<{
 }>`
   grid-column: 2;
   grid-row: 2;
-  // @z-index-above-dashboard-header (100) + 1 = 101
+  /* @z-index-above-dashboard-header (100) + 1 = 101 */
   ${({ fullSizeChartId }) => fullSizeChartId && `z-index: 101;`}
 `;
 
@@ -137,7 +137,7 @@ const DashboardContentWrapper = styled.div`
         box-shadow: 0 ${theme.sizeUnit}px ${theme.sizeUnit}px 0
           ${addAlpha(theme.colorBorderSecondary, 0.1)};
         padding-left: ${theme.sizeUnit *
-        2}px; /* note this is added to tab-level padding, to match header */
+    2}px; /* note this is added to tab-level padding, to match header */
       }
 
       .dropdown-toggle.btn.btn-primary .caret {
@@ -296,10 +296,9 @@ const StyledDashboardContent = styled.div<{
       margin-left: ${marginLeft}px;
 
       ${editMode &&
-      `
-      max-width: calc(100% - ${
-        BUILDER_SIDEPANEL_WIDTH + theme.sizeUnit * 16
-      }px);
+    `
+      max-width: calc(100% - ${BUILDER_SIDEPANEL_WIDTH + theme.sizeUnit * 16
+    }px);
     `}
 
       /* this is the ParentSize wrapper */
@@ -314,6 +313,9 @@ const StyledDashboardContent = styled.div<{
     }
 
     .dashboard-component-chart-holder {
+      /* Explicit box-sizing ensures consistent behavior in embedded mode,
+         where the global .ant-layout wrapper providing border-box is absent */
+      box-sizing: border-box;
       width: 100%;
       height: 100%;
       background-color: ${theme.colorBgContainer};
@@ -321,7 +323,7 @@ const StyledDashboardContent = styled.div<{
       padding: ${theme.sizeUnit * 4}px;
       overflow-y: visible;
 
-      // transitionable traits to show filter relevance
+      /* transitionable traits to show filter relevance */
       transition:
         opacity ${theme.motionDurationMid} ease-in-out,
         border-color ${theme.motionDurationMid} ease-in-out,
@@ -473,9 +475,9 @@ const DashboardBuilder = () => {
     () => ({
       marginLeft:
         dashboardFiltersOpen ||
-        editMode ||
-        !nativeFiltersEnabled ||
-        filterBarOrientation === FilterBarOrientation.Horizontal
+          editMode ||
+          !nativeFiltersEnabled ||
+          filterBarOrientation === FilterBarOrientation.Horizontal
           ? 0
           : -32,
     }),
