@@ -25,7 +25,9 @@ from pytest_mock import MockerFixture
 from sqlalchemy import select
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.sql import sqltypes
-from sqlalchemy_datastore import CloudDatastoreDialect
+
+pytest.importorskip("sqlalchemy_datastore")
+from sqlalchemy_datastore import CloudDatastoreDialect  # noqa: E402
 
 from superset.sql.parse import Table
 from superset.superset_typing import ResultSetColumnType
