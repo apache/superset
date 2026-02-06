@@ -764,6 +764,10 @@ pydruid==0.6.9
     # via apache-superset
 pyfakefs==5.3.5
     # via apache-superset
+pygeohash==3.2.2
+    # via
+    #   -c requirements/base-constraint.txt
+    #   apache-superset
 pygments==2.19.1
     # via
     #   -c requirements/base-constraint.txt
@@ -840,10 +844,6 @@ python-dotenv==1.1.0
     #   apache-superset
     #   fastmcp
     #   pydantic-settings
-python-geohash==0.8.5
-    # via
-    #   -c requirements/base-constraint.txt
-    #   apache-superset
 python-json-logger==4.0.0
     # via pydocket
 python-ldap==3.4.4

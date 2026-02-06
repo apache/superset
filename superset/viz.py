@@ -32,10 +32,10 @@ from datetime import datetime, timedelta
 from itertools import product
 from typing import Any, cast, Optional, TYPE_CHECKING
 
-import geohash
 import numpy as np
 import pandas as pd
 import polyline
+import pygeohash
 from dateutil import relativedelta as rdelta
 from deprecation import deprecated
 from flask import current_app, request
@@ -1830,7 +1830,7 @@ class BaseDeckGLViz(BaseViz):
     @staticmethod
     @deprecated(deprecated_in="3.0")
     def reverse_geohash_decode(geohash_code: str) -> tuple[str, str]:
-        lat, lng = geohash.decode(geohash_code)
+        lat, lng = pygeohash.decode(geohash_code)
         return (lng, lat)
 
     @staticmethod
@@ -2133,13 +2133,21 @@ class DeckGrid(BaseDeckGLViz):
 
 @deprecated(deprecated_in="3.0")
 def geohash_to_json(geohash_code: str) -> list[list[float]]:
-    bbox = geohash.bbox(geohash_code)
+    # Get the center and the error margins
+    lat, lon, lat_err, lon_err = pygeohash.decode_exactly(geohash_code)
+    # Calculate the Bounding Box
+    bbox = {
+        "n": lat + lat_err,
+        "s": lat - lat_err,
+        "e": lon + lon_err,
+        "w": lon - lon_err,
+    }
     return [
-        [bbox.get("w"), bbox.get("n")],
-        [bbox.get("e"), bbox.get("n")],
-        [bbox.get("e"), bbox.get("s")],
-        [bbox.get("w"), bbox.get("s")],
-        [bbox.get("w"), bbox.get("n")],
+        [bbox["w"], bbox["n"]],
+        [bbox["e"], bbox["n"]],
+        [bbox["e"], bbox["s"]],
+        [bbox["w"], bbox["s"]],
+        [bbox["w"], bbox["n"]],
     ]
 
 
