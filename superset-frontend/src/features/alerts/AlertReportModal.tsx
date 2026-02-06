@@ -445,7 +445,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const [isScreenshot, setIsScreenshot] = useState<boolean>(false);
   useEffect(() => {
-    setIsScreenshot(reportFormat === 'PNG');
+    setIsScreenshot(reportFormat === 'PNG' || reportFormat === 'PDF');
   }, [reportFormat]);
 
   // Dropdown options
