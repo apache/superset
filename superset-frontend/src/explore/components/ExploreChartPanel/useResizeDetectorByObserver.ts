@@ -16,30 +16,35 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useCallback, useRef } from 'react';
+import { useMemo } from 'react';
 import { useResizeDetector } from 'react-resize-detector';
 
 export default function useResizeDetectorByObserver() {
-  const ref = useRef<HTMLDivElement>(null);
-  const [{ width, height }, setChartPanelSize] = useState<{
-    width?: number;
-    height?: number;
-  }>({});
-  const onResize = useCallback(() => {
-    if (ref.current) {
-      const { width, height } = ref.current.getBoundingClientRect?.() || {};
-      setChartPanelSize({ width, height });
-    }
-  }, []);
-  const { ref: observerRef } = useResizeDetector({
+  const {
+    width: rawWidth,
+    height: rawHeight,
+    ref,
+  } = useResizeDetector({
     refreshMode: 'debounce',
-    refreshRate: 300,
-    onResize,
+    refreshRate: 250,
+    handleHeight: true,
+    handleWidth: true,
+    skipOnMount: true,
   });
+
+  // Round dimensions immediately to prevent sub-pixel render loops
+  const width = useMemo(
+    () => (rawWidth ? Math.floor(rawWidth) : undefined),
+    [rawWidth],
+  );
+
+  const height = useMemo(
+    () => (rawHeight ? Math.floor(rawHeight) : undefined),
+    [rawHeight],
+  );
 
   return {
     ref,
-    observerRef,
     width,
     height,
   };
