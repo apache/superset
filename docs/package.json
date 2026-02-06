@@ -76,7 +76,7 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-github-btn": "^1.4.0",
-    "react-resize-detector": "7.1.2",
+    "react-resize-detector": "^9.1.1",
     "react-svg-pan-zoom": "^3.13.1",
     "react-table": "^7.8.0",
     "remark-import-partial": "^0.0.2",
