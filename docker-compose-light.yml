@@ -138,6 +138,10 @@ services:
       DATABASE_DB: superset_light
       POSTGRES_DB: superset_light
       SUPERSET_CONFIG_PATH: /app/docker/pythonpath_dev/superset_config_docker_light.py
+      # Override examples host to use light DB service
+      EXAMPLES_HOST: db-light
+      # Skip example loading for faster startup
+      SUPERSET_LOAD_EXAMPLES: "no"
     healthcheck:
       disable: true
 
@@ -160,7 +164,7 @@ services:
       # configuring the dev-server to use the host.docker.internal to connect to the backend
       superset: "http://superset-light:8088"
       # Webpack dev server configuration
-      WEBPACK_DEVSERVER_HOST: "${WEBPACK_DEVSERVER_HOST:-127.0.0.1}"
+      WEBPACK_DEVSERVER_HOST: "${WEBPACK_DEVSERVER_HOST:-0.0.0.0}"
       WEBPACK_DEVSERVER_PORT: "${WEBPACK_DEVSERVER_PORT:-9000}"
     ports:
       - "${NODE_PORT:-9001}:9000"  # Parameterized port, accessible on all interfaces
