@@ -588,9 +588,8 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         db.session.delete(dashboard)
         db.session.commit()
 
-    def test_update_dashboard_version_success(
-        self, admin_has_dashboard_version_permissions
-    ):
+    @pytest.mark.usefixtures("admin_has_dashboard_version_permissions")
+    def test_update_dashboard_version_success(self):
         """
         Dashboard API: Test update dashboard version description
         """
@@ -624,9 +623,8 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             db.session.delete(dashboard)
             db.session.commit()
 
-    def test_update_dashboard_version_validation_error(
-        self, admin_has_dashboard_version_permissions
-    ):
+    @pytest.mark.usefixtures("admin_has_dashboard_version_permissions")
+    def test_update_dashboard_version_validation_error(self):
         """
         Dashboard API: Test update dashboard version with invalid payload returns 400
         """
@@ -658,9 +656,8 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             db.session.delete(dashboard)
             db.session.commit()
 
-    def test_update_dashboard_version_not_found(
-        self, admin_has_dashboard_version_permissions
-    ):
+    @pytest.mark.usefixtures("admin_has_dashboard_version_permissions")
+    def test_update_dashboard_version_not_found(self):
         """
         Dashboard API: Test update dashboard version when version does not exist
         """
@@ -682,9 +679,8 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             db.session.delete(dashboard)
             db.session.commit()
 
-    def test_update_dashboard_version_dashboard_not_found(
-        self, admin_has_dashboard_version_permissions
-    ):
+    @pytest.mark.usefixtures("admin_has_dashboard_version_permissions")
+    def test_update_dashboard_version_dashboard_not_found(self):
         """
         Dashboard API: Test update dashboard version when dashboard does not exist
         """
@@ -698,9 +694,8 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         )
         assert rv.status_code == 404
 
-    def test_restore_dashboard_version_success(
-        self, admin_has_dashboard_version_permissions
-    ):
+    @pytest.mark.usefixtures("admin_has_dashboard_version_permissions")
+    def test_restore_dashboard_version_success(self):
         """
         Dashboard API: Test restore dashboard to a previous version
         """
@@ -888,7 +883,8 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         rv = self.get_assert_metric(uri, "info")
         assert rv.status_code == 200
 
-    def test_info_security_dashboard(self, admin_has_dashboard_version_permissions):
+    @pytest.mark.usefixtures("admin_has_dashboard_version_permissions")
+    def test_info_security_dashboard(self):
         """
         Dashboard API: Test info security
         """
