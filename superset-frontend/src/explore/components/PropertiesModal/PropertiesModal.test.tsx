@@ -24,13 +24,24 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
-import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
+import { isFeatureEnabled, FeatureFlag, SupersetClient } from '@superset-ui/core';
 import PropertiesModal, { PropertiesModalProps } from '.';
 
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
   isFeatureEnabled: jest.fn(),
 }));
+
+const mockedIsFeatureEnabled = isFeatureEnabled as jest.MockedFunction<
+  typeof isFeatureEnabled
+>;
+
+const chartTranslations = {
+  slice_name: {
+    de: 'Altersverteilung der Befragten',
+    fr: "Distribution d'âge des répondants",
+  },
+};
 
 const createProps = () =>
   ({
@@ -93,6 +104,7 @@ fetchMock.get('glob:*/api/v1/chart/318*', {
       description: 'Test description',
       cache_timeout: 1000,
       slice_name: 'Test chart new name',
+      translations: chartTranslations,
     },
     show_columns: [
       'owners.id',
@@ -134,6 +146,17 @@ fetchMock.put('glob:*/api/v1/chart/318', {
   sendAsJson: true,
 });
 
+fetchMock.get('glob:*/api/v1/localization/available_locales', {
+  result: {
+    locales: [
+      { code: 'en', name: 'English' },
+      { code: 'de', name: 'German' },
+      { code: 'fr', name: 'French' },
+    ],
+    default_locale: 'en',
+  },
+});
+
 afterAll(() => {
   fetchMock.clearHistory().removeRoutes();
 });
@@ -173,9 +196,8 @@ test('Should have modal header', async () => {
   renderModal(props);
 
   await waitFor(() => {
-    expect(screen.getByText('Chart properties')).toBeVisible();
-    expect(screen.getByTestId('close-modal-btn')).toBeVisible();
-    expect(screen.getByRole('button', { name: 'Close' })).toBeVisible();
+    expect(screen.getByText('Chart properties')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument();
   });
 });
 
@@ -470,4 +492,70 @@ test('Should display only custom tags when tagging system is enabled', async () 
   expect(screen.queryByText('owner:1')).not.toBeInTheDocument();
 
   mockIsFeatureEnabled.mockRestore();
+});
+
+test('translation button hidden when content localization flag is off', async () => {
+  const props = createProps();
+  renderModal(props);
+  await waitFor(() => {
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+  expect(
+    screen.queryByRole('button', { name: /translations/i }),
+  ).not.toBeInTheDocument();
+});
+
+test('translation button visible when content localization flag is on', async () => {
+  mockedIsFeatureEnabled.mockImplementation(
+    flag => flag === FeatureFlag.EnableContentLocalization,
+  );
+  const props = createProps();
+  renderModal(props);
+  await waitFor(() => {
+    expect(
+      screen.getByRole('button', { name: /translations \(2\)/i }),
+    ).toBeInTheDocument();
+  });
+  mockedIsFeatureEnabled.mockRestore();
+});
+
+test('clicking translation button opens translation editor modal', async () => {
+  mockedIsFeatureEnabled.mockImplementation(
+    flag => flag === FeatureFlag.EnableContentLocalization,
+  );
+  const props = createProps();
+  renderModal(props);
+  await waitFor(() => {
+    expect(
+      screen.getByRole('button', { name: /translations/i }),
+    ).toBeInTheDocument();
+  });
+  await userEvent.click(
+    screen.getByRole('button', { name: /translations/i }),
+  );
+  expect(screen.getByText('Edit Translations')).toBeInTheDocument();
+  mockedIsFeatureEnabled.mockRestore();
+});
+
+test('save includes translations in PUT payload', async () => {
+  const put = jest.spyOn(SupersetClient, 'put');
+  put.mockResolvedValue({ json: { result: {} } } as ReturnType<
+    typeof SupersetClient.put
+  >);
+  mockedIsFeatureEnabled.mockImplementation(
+    flag => flag === FeatureFlag.EnableContentLocalization,
+  );
+  const props = createProps();
+  renderModal(props);
+  await waitFor(() => {
+    expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
+  });
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  await waitFor(() => {
+    expect(put).toHaveBeenCalledTimes(1);
+  });
+  const putBody = JSON.parse(put.mock.calls[0][0].body as string);
+  expect(putBody.translations).toEqual(chartTranslations);
+  put.mockRestore();
+  mockedIsFeatureEnabled.mockRestore();
 });

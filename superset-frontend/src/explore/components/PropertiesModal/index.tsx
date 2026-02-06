@@ -44,6 +44,12 @@ import {
   ModalFormField,
   useModalValidation,
 } from 'src/components/Modal';
+import {
+  TranslationButton,
+  TranslationEditorModal,
+  type TranslatableField,
+} from 'src/components/TranslationEditor';
+import type { Translations, LocaleInfo } from 'src/types/Localization';
 
 export type PropertiesModalProps = {
   slice: Slice;
@@ -81,6 +87,9 @@ function PropertiesModal({
     null,
   );
   const [tags, setTags] = useState<TagType[]>([]);
+  const [translations, setTranslations] = useState<Translations>({});
+  const [availableLocales, setAvailableLocales] = useState<LocaleInfo[]>([]);
+  const [showTranslationModal, setShowTranslationModal] = useState(false);
 
   // Validation setup
   const modalSections = useMemo(
@@ -148,20 +157,23 @@ function PropertiesModal({
 
   const fetchChartProperties = useCallback(
     async function fetchChartProperties() {
-      const queryParams = rison.encode({
-        select_columns: [
-          'owners.id',
-          'owners.first_name',
-          'owners.last_name',
-          'tags.id',
-          'tags.name',
-          'tags.type',
-        ],
-      });
+      const localizationEnabled = isFeatureEnabled(
+        FeatureFlag.EnableContentLocalization,
+      );
+      const endpoint = localizationEnabled
+        ? `/api/v1/chart/${slice.slice_id}?include_translations=true`
+        : `/api/v1/chart/${slice.slice_id}?q=${rison.encode({
+            select_columns: [
+              'owners.id',
+              'owners.first_name',
+              'owners.last_name',
+              'tags.id',
+              'tags.name',
+              'tags.type',
+            ],
+          })}`;
       try {
-        const response = await SupersetClient.get({
-          endpoint: `/api/v1/chart/${slice.slice_id}?q=${queryParams}`,
-        });
+        const response = await SupersetClient.get({ endpoint });
         const chart = response.json.result;
         setSelectedOwners(
           chart?.owners?.map((owner: any) => ({
@@ -174,6 +186,11 @@ function PropertiesModal({
             (tag: TagType) => tag.type === TagTypeEnum.Custom,
           );
           setTags(customTags);
+        }
+        if (localizationEnabled) {
+          setName(chart.slice_name || '');
+          setDescription(chart.description || '');
+          setTranslations(chart.translations ?? {});
         }
       } catch (response) {
         const clientError = await getClientErrorObject(response);
@@ -232,6 +249,9 @@ function PropertiesModal({
     if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
       payload.tags = tags.map(tag => tag.id);
     }
+    if (isFeatureEnabled(FeatureFlag.EnableContentLocalization)) {
+      payload.translations = translations;
+    }
 
     try {
       const chartEndpoint = `/api/v1/chart/${slice.slice_id}`;
@@ -258,6 +278,19 @@ function PropertiesModal({
   // get the owners of this slice
   useEffect(() => {
     fetchChartProperties();
+    if (isFeatureEnabled(FeatureFlag.EnableContentLocalization)) {
+      SupersetClient.get({
+        endpoint: '/api/v1/localization/available_locales',
+      }).then(
+        response => {
+          const { locales, default_locale } = response.json.result;
+          setAvailableLocales(
+            locales.filter((loc: LocaleInfo) => loc.code !== default_locale),
+          );
+        },
+        err => getClientErrorObject(err).then(showError),
+      );
+    }
   }, [slice.slice_id]);
 
   // update name after it's changed in another modal
@@ -287,7 +320,40 @@ function PropertiesModal({
     setTags([]);
   };
 
+  const translationCount = useMemo(() => {
+    const locales = new Set<string>();
+    Object.values(translations).forEach(fieldTrans => {
+      Object.keys(fieldTrans).forEach(locale => locales.add(locale));
+    });
+    return locales.size;
+  }, [translations]);
+
+  const translatableFields: TranslatableField[] = useMemo(
+    () => [
+      {
+        name: 'slice_name',
+        label: t('Chart Name'),
+        value: name,
+      },
+      {
+        name: 'description',
+        label: t('Description'),
+        value: description,
+      },
+    ],
+    [name, description],
+  );
+
+  const handleSaveTranslations = useCallback(
+    (updatedTranslations: Translations) => {
+      setTranslations(updatedTranslations);
+      setShowTranslationModal(false);
+    },
+    [],
+  );
+
   return (
+    <>
     <StandardModal
       show={show}
       onHide={onHide}
@@ -393,6 +459,12 @@ function PropertiesModal({
                     />
                   </ModalFormField>
                 )}
+                {isFeatureEnabled(FeatureFlag.EnableContentLocalization) && (
+                  <TranslationButton
+                    translationCount={translationCount}
+                    onClick={() => setShowTranslationModal(true)}
+                  />
+                )}
               </>
             ),
           },
@@ -478,6 +550,17 @@ function PropertiesModal({
         ]}
       />
     </StandardModal>
+    {isFeatureEnabled(FeatureFlag.EnableContentLocalization) && (
+      <TranslationEditorModal
+        show={showTranslationModal}
+        fields={translatableFields}
+        translations={translations}
+        availableLocales={availableLocales}
+        onSave={handleSaveTranslations}
+        onClose={() => setShowTranslationModal(false)}
+      />
+    )}
+    </>
   );
 }
 
