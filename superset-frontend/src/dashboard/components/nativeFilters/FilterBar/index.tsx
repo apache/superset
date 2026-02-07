@@ -63,7 +63,7 @@ import { LOG_ACTIONS_CHANGE_DASHBOARD_FILTER } from 'src/logger/LogUtils';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { isChartCustomization } from '../FiltersConfigModal/utils';
-import { checkIsApplyDisabled } from './utils';
+import { checkIsApplyDisabled, getFiltersToApply } from './utils';
 import { extractLabel } from '../selectors';
 import { FiltersBarProps } from './types';
 import {
@@ -196,6 +196,21 @@ const FilterBar: FC<FiltersBarProps> = ({
   >(state => state.user);
 
   const [filtersInScope] = useSelectFiltersInScope(nativeFilterValues);
+  const inScopeFilterIds = useMemo(
+    () => new Set(filtersInScope.map(f => f.id)),
+    [filtersInScope],
+  );
+
+  const hasOutOfScopeRequiredFilters = useMemo(
+    () =>
+      nativeFilterValues.some(
+        filter =>
+          !inScopeFilterIds.has(filter.id) &&
+          !!filter.controlValues?.enableEmptyFilter,
+      ),
+    [nativeFilterValues, inScopeFilterIds],
+  );
+
   const [clearAllTriggers, setClearAllTriggers] = useState<
     Record<string, boolean>
   >({});
@@ -319,10 +334,38 @@ const FilterBar: FC<FiltersBarProps> = ({
   }, [dashboardId, filters, previousDashboardId, setDataMaskSelected]);
 
   const dataMaskAppliedText = JSON.stringify(dataMaskApplied);
+  const prevDataMaskAppliedRef = useRef(dataMaskApplied);
 
   useEffect(() => {
-    setDataMaskSelected(() => dataMaskApplied);
-  }, [dataMaskAppliedText, setDataMaskSelected, dashboardId]);
+    const dashboardChanged = dashboardId !== previousDashboardId;
+
+    if (dashboardChanged) {
+      setDataMaskSelected(() => dataMaskApplied);
+    } else {
+      const prevApplied = prevDataMaskAppliedRef.current;
+
+      // Only sync filters whose applied state actually changed
+      setDataMaskSelected(prev => {
+        let hasChanges = false;
+        const updated = { ...prev };
+
+        Object.entries(dataMaskApplied).forEach(([filterId, appliedMask]) => {
+          const prevAppliedMask = prevApplied[filterId];
+          const appliedChanged = !isEqual(appliedMask, prevAppliedMask);
+          const notInitialized = !prev[filterId];
+
+          if (appliedChanged || notInitialized) {
+            updated[filterId] = appliedMask;
+            hasChanges = true;
+          }
+        });
+
+        return hasChanges ? updated : prev;
+      });
+    }
+
+    prevDataMaskAppliedRef.current = dataMaskApplied;
+  }, [dataMaskApplied, setDataMaskSelected, dashboardId, previousDashboardId]);
 
   useEffect(() => {
     // embedded users can't persist filter combinations
@@ -351,7 +394,13 @@ const FilterBar: FC<FiltersBarProps> = ({
     dispatch(logEvent(LOG_ACTIONS_CHANGE_DASHBOARD_FILTER, {}));
     setUpdateKey(1);
 
-    Object.entries(dataMaskSelected).forEach(([filterId, dataMask]) => {
+    const filtersToApply = getFiltersToApply(
+      dataMaskSelected,
+      inScopeFilterIds,
+    );
+
+    filtersToApply.forEach(filterId => {
+      const dataMask = dataMaskSelected[filterId];
       if (dataMask) {
         dispatch(updateDataMask(filterId, dataMask));
       }
@@ -407,6 +456,7 @@ const FilterBar: FC<FiltersBarProps> = ({
   }, [
     dataMaskSelected,
     dispatch,
+    inScopeFilterIds,
     pendingChartCustomizations,
     pendingCustomizationDataMasks,
     hasClearedChartCustomizations,
@@ -415,8 +465,13 @@ const FilterBar: FC<FiltersBarProps> = ({
 
   const handleClearAll = useCallback(() => {
     const newClearAllTriggers = { ...clearAllTriggers };
+
     nativeFilterValues.forEach(filter => {
       const { id, filterType } = filter;
+
+      // Only clear in-scope filters
+      if (!inScopeFilterIds.has(id)) return;
+
       // Range filters use [null, null] as the cleared value; others use undefined
       const clearedValue =
         filterType === 'filter_range' ? [null, null] : undefined;
@@ -468,6 +523,7 @@ const FilterBar: FC<FiltersBarProps> = ({
     dataMaskSelected,
     dataMaskApplied,
     nativeFilterValues,
+    inScopeFilterIds,
     setDataMaskSelected,
     chartCustomizationValues,
     clearAllTriggers,
@@ -528,6 +584,7 @@ const FilterBar: FC<FiltersBarProps> = ({
         dataMaskApplied={dataMaskApplied}
         isApplyDisabled={isApplyDisabled}
         chartCustomizationItems={chartCustomizationValues}
+        hasOutOfScopeRequiredFilters={hasOutOfScopeRequiredFilters}
       />
     ),
     [
@@ -539,6 +596,7 @@ const FilterBar: FC<FiltersBarProps> = ({
       dataMaskApplied,
       isApplyDisabled,
       chartCustomizationValues,
+      hasOutOfScopeRequiredFilters,
     ],
   );
 
