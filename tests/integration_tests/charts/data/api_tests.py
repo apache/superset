@@ -664,6 +664,19 @@ class TestPostChartDataApi(BaseTestChartDataApi):
 
         assert rv.status_code == 400
 
+    @with_config({"DISABLE_EXTRAS_WHERE": True})
+    def test_disable_extras_where_strips_invalid_where__200(self):
+        """
+        When DISABLE_EXTRAS_WHERE is enabled, any client-provided extras.where
+        should be stripped by the backend, avoiding 400s from invalid clauses.
+        """
+        self.query_context_payload["queries"][0]["filters"] = []
+        # Invalid where clause that normally yields 400
+        self.query_context_payload["queries"][0]["extras"]["where"] = "(gender abc def)"
+
+        rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
+        assert rv.status_code == 200
+
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_with_where_parameter_including_comment___200(self):
         self.query_context_payload["queries"][0]["filters"] = []

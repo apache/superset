@@ -1240,6 +1240,37 @@ TIME_GRAIN_JOIN_COLUMN_PRODUCERS: dict[str, Callable[[Series, int], str]] = {}
 
 VIZ_TYPE_DENYLIST: list[str] = []
 
+# ---------------------------------------------------
+# Remita Table Plugin - Allowed Action Origins
+# ---------------------------------------------------
+# Configure allowed origins for action URLs in the Remita Table plugin.
+# This prevents open redirect vulnerabilities by validating that action URLs
+# only navigate to trusted domains.
+#
+# By default, only same-origin URLs are allowed. Add additional trusted
+# origins here (for example, partner reporting systems or external dashboards).
+#
+# Example:
+#   REMITA_TABLE_ALLOWED_ACTION_ORIGINS = [
+#       "https://superset.example.com",
+#       "https://reports.example.com",
+#       "https://analytics.partner.com",
+#   ]
+#
+# Security note: Only add origins that are trusted. External origins may
+# receive dashboard filter data and user selections via URL parameters.
+REMITA_TABLE_ALLOWED_ACTION_ORIGINS: list[str] = []
+
+# CSV streaming export chunk size (bytes). Larger chunks improve throughput by
+# reducing the number of write syscalls at the cost of memory per response.
+CSV_STREAMING_CHUNK_SIZE: int = 65536
+
+# High-security feature flag: when enabled, the backend will drop any
+# extras.where clauses submitted by clients in chart query requests. This can
+# reduce the attack surface of raw SQL snippets at the cost of disabling
+# client-provided WHERE expressions.
+DISABLE_EXTRAS_WHERE: bool = False
+
 # --------------------------------------------------
 # Modules, datasources and middleware to be registered
 # --------------------------------------------------

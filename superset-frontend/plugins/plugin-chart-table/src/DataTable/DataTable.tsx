@@ -91,6 +91,8 @@ export interface DataTableProps<D extends object> extends TableOptions<D> {
   searchOptions: SearchOption[];
   onFilteredDataChange?: (rows: Row<D>[], filterValue?: string) => void;
   onFilteredRowsChange?: (rows: D[]) => void;
+  // Emits the currently visible rows on the page (post-pagination)
+  onVisiblePageRowsChange?: (rows: D[]) => void;
 }
 
 export interface RenderHTMLCellProps extends HTMLProps<HTMLTableCellElement> {
@@ -135,6 +137,7 @@ export default typedMemo(function DataTable<D extends object>({
   searchOptions,
   onFilteredDataChange,
   onFilteredRowsChange,
+  onVisiblePageRowsChange,
   ...moreUseTableOptions
 }: DataTableProps<D>): JSX.Element {
   const tableHooks: PluginHook<D>[] = [
@@ -266,6 +269,15 @@ export default typedMemo(function DataTable<D extends object>({
 
     onFilteredDataChange(rowsRef.current, searchText);
   }, [filterValue, onFilteredDataChange, rowSignature]);
+
+  // Emit currently visible page rows to parent (client and server pagination)
+  useEffect(() => {
+    if (typeof onVisiblePageRowsChange === 'function') {
+      try {
+        onVisiblePageRowsChange(page.map(r => r.original as D));
+      } catch {}
+    }
+  }, [page, onVisiblePageRowsChange]);
 
   const handleSearchChange = useCallback(
     (query: string) => {

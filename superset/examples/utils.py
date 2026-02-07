@@ -19,6 +19,7 @@ import re
 from importlib.resources import files
 from pathlib import Path
 from typing import Any
+from uuid import UUID, uuid4
 
 import yaml
 
@@ -238,6 +239,15 @@ def load_contents(load_test_data: bool = False) -> dict[str, Any]:
         contents.update(example_contents)
 
     return contents
+
+
+# Example utilities
+def get_uuid() -> UUID:
+    """Generate a new UUID for example objects.
+
+    Returns a UUID instance suitable for models using UUIDType columns.
+    """
+    return uuid4()
 
 
 def load_configs_from_directory(

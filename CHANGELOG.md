@@ -19,6 +19,7 @@ under the License.
 
 ## Change Log
 
+- [6.1.0](./CHANGELOG/6.1.0.md)
 - [1.4.1](./CHANGELOG/1.4.1.md)
 - [1.4.2](./CHANGELOG/1.4.2.md)
 - [1.5.0](./CHANGELOG/1.5.0.md)

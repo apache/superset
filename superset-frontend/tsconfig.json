@@ -44,6 +44,12 @@
 
     "baseUrl": ".",
     "paths": {
+      "@superset-ui/plugin-chart-remita-table": [
+        "./plugins/plugin-chart-remita-table/lib"
+      ],
+      "@superset-ui/plugin-chart-remita-table/*": [
+        "./plugins/plugin-chart-remita-table/lib/*"
+      ],
       "@superset-ui/core": ["./packages/superset-ui-core/src"],
       "@superset-ui/core/*": ["./packages/superset-ui-core/src/*"],
       "@superset-ui/chart-controls": [
@@ -96,5 +102,10 @@
     { "path": "./plugins/plugin-chart-table" },
     { "path": "./plugins/plugin-chart-word-cloud" }
   ],
-  "exclude": []
+  "exclude": [
+    "./plugins/plugin-chart-remita-table/src",
+    "./plugins/plugin-chart-remita-table/test",
+    "./plugins/plugin-chart-remita-table/types",
+    "./plugins/plugin-chart-remita-table/plugins"
+  ]
 }

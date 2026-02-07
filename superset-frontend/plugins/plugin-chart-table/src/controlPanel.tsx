@@ -389,10 +389,42 @@ const config: ControlPanelConfig = {
             config: {
               type: 'CheckboxControl',
               label: t('Server pagination'),
+              description: t('Paginate results on the server. For precise totals, enable "Exact total row count" below (adds a COUNT(*) query).'),
+              default: false,
+            },
+          },
+        ],
+        [
+          {
+            name: 'server_search_match_mode',
+            config: {
+              type: 'SelectControl',
+              label: t('Server Search Match'),
+              default: 'contains',
+              renderTrigger: true,
+              choices: [
+                ['prefix', t('Starts with')],
+                ['contains', t('Contains')],
+              ],
               description: t(
-                'Enable server side pagination of results (experimental feature)',
+                'When using server pagination with search column, choose how the backend search matches. Contains may be slower; use “Starts with” for better index usage.'
+              ),
+              visibility: ({ controls }: ControlPanelsContainerProps) =>
+                Boolean(controls?.server_pagination?.value),
+            },
+          },
+        ],
+        [
+          {
+            name: 'server_rowcount_exact',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Exact total row count'),
+              description: t(
+                'Adds a second COUNT(*) query to compute total rows for pagination. Increases load; enable only when precise totals are required.'
               ),
               default: false,
+              visibility: ({ controls }: ControlPanelsContainerProps) => Boolean(controls?.server_pagination?.value),
             },
           },
         ],

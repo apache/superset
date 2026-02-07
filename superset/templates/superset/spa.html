@@ -131,5 +131,37 @@
         });
       });
     </script>
+
+    <script nonce="{{ macros.get_nonce() }}">
+      // Configure allowed origins for Remita Table plugin action URLs
+      // Always include current origin and merge any configured origins from backend
+      (function() {
+        try {
+          var bootstrapEl = document.getElementById('app');
+          var bootstrap = bootstrapEl ? JSON.parse(bootstrapEl.getAttribute('data-bootstrap') || '{}') : {};
+          var configured = (bootstrap.common && bootstrap.common.conf && bootstrap.common.conf.REMITA_TABLE_ALLOWED_ACTION_ORIGINS) || [];
+
+          var allowed = [window.location.origin];
+          if (Array.isArray(configured)) {
+            configured.forEach(function(origin) {
+              if (origin && typeof origin === 'string' && allowed.indexOf(origin) === -1) {
+                allowed.push(origin);
+              }
+            });
+          }
+          window.REMITA_TABLE_ALLOWED_ACTION_ORIGINS = allowed;
+        } catch (e) {
+          // Fallback to same-origin only
+          window.REMITA_TABLE_ALLOWED_ACTION_ORIGINS = [window.location.origin];
+        }
+      })();
+    </script>
+    {% if appbuilder.app.debug or appbuilder.app.config.get('REMITA_EXAMPLES_ALLOW_ALL_ORIGINS') %}
+    <script nonce="{{ macros.get_nonce() }}">
+      // Dev-only example: allow all origins for Remita Table examples
+      // Do NOT enable in production
+      window.REMITA_TABLE_ALLOWED_ACTION_ORIGINS = ['*'];
+    </script>
+    {% endif %}
   </body>
 </html>

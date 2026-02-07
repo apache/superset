@@ -304,10 +304,26 @@ function SelectPageSize({
 const getNoResultsMessage = (filter: string) =>
   filter ? t('No matching records found') : t('No records found');
 
+interface RemitaExtras<D extends DataRecord> {
+  remitaSelectedIds?: Set<string>;
+  remitaRowIdColumn?: string;
+  onRemitaToggle?: (id: string, checked: boolean, row: D) => void;
+  onRemitaBulkToggle?: (ids: string[], checked: boolean) => void;
+  remitaRowActions?: Array<{
+    label: string;
+    url?: string;
+    actionType?: string;
+    tooltip?: string;
+    key?: string;
+    openInNewTab?: boolean;
+  }>;
+  onRemitaRowAction?: (action: any, row: D) => void;
+}
+
 export default function TableChart<D extends DataRecord = DataRecord>(
   props: TableChartTransformedProps<D> & {
     sticky?: DataTableProps<D>['sticky'];
-  },
+  } & RemitaExtras<D>,
 ) {
   const {
     timeGrain,
@@ -340,6 +356,13 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     hasServerPageLengthChanged,
     serverPageLength,
     slice_id,
+    // Remita extras (optional)
+    remitaSelectedIds,
+    remitaRowIdColumn,
+    onRemitaToggle,
+    onRemitaBulkToggle,
+    remitaRowActions,
+    onRemitaRowAction,
   } = props;
 
   const comparisonColumns = useMemo(
@@ -369,6 +392,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   const [hideComparisonKeys, setHideComparisonKeys] = useState<string[]>([]);
   // recalculated totals to display when the search filter is applied (client-side pagination)
   const [displayedTotals, setDisplayedTotals] = useState<D | undefined>(totals);
+  // Track visible rows on current page for Select All header checkbox
+  const [visiblePageRows, setVisiblePageRows] = useState<D[]>([]);
   const theme = useTheme();
 
   useEffect(() => {
@@ -385,21 +410,31 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     ) as SizeOption[];
   }, [data.length, rowCount, serverPagination]);
 
+  // Cache numeric value ranges per column to avoid repeated O(rows) scans.
+  // Cache resets whenever `data` changes.
+  const valueRangeCache = useMemo(() => new Map<string, ValueRange | null>(), [
+    data,
+  ]);
+
   const getValueRange = useCallback(
     function getValueRange(key: string, alignPositiveNegative: boolean) {
-      const nums = data
+      const cacheKey = `${alignPositiveNegative ? 'P' : 'N'}:${key}`;
+      if (valueRangeCache.has(cacheKey)) return valueRangeCache.get(cacheKey)!;
+
+      const nums = (data
         ?.map(row => row?.[key])
-        .filter(value => typeof value === 'number') as number[];
+        .filter(value => typeof value === 'number') || []) as number[];
+
+      let result: ValueRange | null = null;
       if (nums.length > 0) {
-        return (
-          alignPositiveNegative
-            ? [0, d3Max(nums.map(Math.abs))]
-            : d3Extent(nums)
-        ) as ValueRange;
+        result = (alignPositiveNegative
+          ? [0, d3Max(nums.map(Math.abs))]
+          : d3Extent(nums)) as ValueRange;
       }
-      return null;
+      valueRangeCache.set(cacheKey, result);
+      return result;
     },
-    [data],
+    [data, valueRangeCache],
   );
 
   const isActiveFilterValue = useCallback(
@@ -902,6 +937,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       // Cache sanitized header ID to avoid recomputing it multiple times
       const headerId = sanitizeHeaderId(column.originalLabel ?? column.key);
 
+      const isRemitaSelectCol = key === '__remita_select' && remitaRowIdColumn && onRemitaToggle;
+      const isRemitaActionsCol = key === '__remita_actions' && Array.isArray(remitaRowActions) && remitaRowActions.length > 0 && typeof onRemitaRowAction === 'function';
+
       return {
         id: String(i), // to allow duplicate column keys
         // must use custom accessor to allow `.` in column names
@@ -909,7 +947,62 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         // so we ask TS not to check.
         columnKey: key,
         accessor: ((datum: D) => datum[key]) as never,
+        // Header handled below in a unified function (also supports select-all)
         Cell: ({ value, row }: { value: DataRecordValue; row: Row<D> }) => {
+          // Special React-rendered checkbox cell for Remita selection
+          if (isRemitaSelectCol) {
+            const rowIdVal = String((row.original as any)[remitaRowIdColumn!] ?? '');
+            return (
+              <td role="cell" aria-labelledby={`header-${headerId}`} style={{ textAlign: 'center' }}>
+                <input
+                  type="checkbox"
+                  className="remita-select"
+                  data-rowid={rowIdVal}
+                  checked={Boolean(remitaSelectedIds?.has(rowIdVal))}
+                  onChange={e => onRemitaToggle!(rowIdVal, e.currentTarget.checked, row.original)}
+                />
+              </td>
+            );
+          }
+          // React-rendered actions column (no innerHTML)
+          if (isRemitaActionsCol) {
+            const rowIdVal = String((row.original as any)[remitaRowIdColumn!] ?? '');
+            return (
+              <td role="cell" aria-labelledby={`header-${headerId}`}>
+                <span>
+                  {remitaRowActions!.map((a, idx) => (
+                    // eslint-disable-next-line react/no-array-index-key
+                    <button
+                      key={`act-${idx}`}
+                      type="button"
+                      title={a.tooltip || a.label}
+                      aria-label={`${a.label || 'Action'}${rowIdVal ? ` for row ${rowIdVal}` : ''}`}
+                      css={css`
+                        &:focus-visible {
+                          outline: 2px solid ${theme.colorPrimary};
+                          outline-offset: 2px;
+                          border-radius: 2px;
+                        }
+                      `}
+                      onClick={e => {
+                        e.preventDefault();
+                        onRemitaRowAction!(a, row.original);
+                      }}
+                      onKeyDown={(e: ReactKeyboardEvent<HTMLButtonElement>) => {
+                        if (e.key === ACTION_KEYS.enter || e.key === ACTION_KEYS.space || e.key === ACTION_KEYS.spacebar) {
+                          e.preventDefault();
+                          onRemitaRowAction!(a, row.original);
+                        }
+                      }}
+                      style={{ marginRight: idx < remitaRowActions!.length - 1 ? 8 : 0 }}
+                    >
+                      {a.label || 'Action'}
+                    </button>
+                  ))}
+                </span>
+              </td>
+            );
+          }
           const [isHtml, text] = formatColumnValue(column, value, row.original);
           const html = isHtml && allowRenderHtml ? { __html: text } : undefined;
 
@@ -1109,57 +1202,95 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             </StyledCell>
           );
         },
-        Header: ({ column: col, onClick, style, onDragStart, onDrop }) => (
-          <th
-            id={`header-${headerId}`}
-            title={
-              description || t('Shift + Click to sort by multiple columns')
+        Header: ({ column: col, onClick, style, onDragStart, onDrop }) => {
+          // Special Remita select-all header
+          if (isRemitaSelectCol) {
+            const rows = visiblePageRows || [];
+            let selectedCount = 0;
+            const ids: string[] = [];
+            for (let i = 0; i < rows.length; i += 1) {
+              const id = String((rows[i] as any)[remitaRowIdColumn!]);
+              ids.push(id);
+              if (remitaSelectedIds?.has(id)) selectedCount += 1;
             }
-            className={[className, col.isSorted ? 'is-sorted' : ''].join(' ')}
-            style={{
-              ...sharedStyle,
-              ...style,
-            }}
-            onKeyDown={(e: ReactKeyboardEvent<HTMLElement>) => {
-              // programatically sort column on keypress
-              if (Object.values(ACTION_KEYS).includes(e.key)) {
-                col.toggleSortBy();
-              }
-            }}
-            role="columnheader button"
-            onClick={onClick}
-            data-column-name={col.id}
-            {...(allowRearrangeColumns && {
-              draggable: 'true',
-              onDragStart,
-              onDragOver: e => e.preventDefault(),
-              onDragEnter: e => e.preventDefault(),
-              onDrop,
-            })}
-            tabIndex={0}
-          >
-            {/* can't use `columnWidth &&` because it may also be zero */}
-            {config.columnWidth ? (
-              // column width hint
-              <div
-                style={{
-                  width: columnWidth,
-                  height: 0.01,
-                }}
-              />
-            ) : null}
-            <div
-              data-column-name={col.id}
-              css={{
-                display: 'inline-flex',
-                alignItems: 'flex-end',
+            const allVisibleSelected = rows.length > 0 && selectedCount === rows.length;
+            const someVisibleSelected = selectedCount > 0 && selectedCount < rows.length;
+            const ariaChecked: boolean | 'mixed' = someVisibleSelected ? 'mixed' : allVisibleSelected;
+            return (
+              <th role="columnheader" aria-label={t('Selection')} aria-labelledby={`header-${headerId}`} style={{ textAlign: 'center' }}>
+                <input
+                  type="checkbox"
+                  aria-label={t('Select all rows on this page')}
+                  aria-checked={ariaChecked as any}
+                  checked={Boolean(allVisibleSelected)}
+                  ref={el => {
+                    if (el) el.indeterminate = someVisibleSelected;
+                  }}
+                  css={css`
+                    &:focus-visible {
+                      outline: 2px solid ${theme.colorPrimary};
+                      outline-offset: 2px;
+                      border-radius: 2px;
+                    }
+                  `}
+                  onKeyDown={(e: ReactKeyboardEvent<HTMLInputElement>) => {
+                    if (e.key === ACTION_KEYS.space || e.key === ACTION_KEYS.enter || e.key === ACTION_KEYS.spacebar) {
+                      e.preventDefault();
+                      if (onRemitaBulkToggle) {
+                        onRemitaBulkToggle(ids, !allVisibleSelected);
+                      } else if (onRemitaToggle) {
+                        ids.forEach(id => onRemitaToggle(id, !allVisibleSelected, ({} as unknown) as D));
+                      }
+                    }
+                  }}
+                  onChange={() => {
+                    if (onRemitaBulkToggle) {
+                      onRemitaBulkToggle(ids, !allVisibleSelected);
+                    } else if (onRemitaToggle) {
+                      ids.forEach(id => onRemitaToggle(id, !allVisibleSelected, ({} as unknown) as D));
+                    }
+                  }}
+                  disabled={!rows.length}
+                />
+              </th>
+            );
+          }
+          // Standard header
+          return (
+            <th
+              id={`header-${headerId}`}
+              title={description || t('Shift + Click to sort by multiple columns')}
+              className={[className, col.isSorted ? 'is-sorted' : ''].join(' ')}
+              style={{ ...sharedStyle, ...style }}
+              onKeyDown={(e: ReactKeyboardEvent<HTMLElement>) => {
+                if (Object.values(ACTION_KEYS).includes(e.key)) {
+                  col.toggleSortBy();
+                }
               }}
+              role="columnheader button"
+              onClick={onClick}
+              data-column-name={col.id}
+              {...(allowRearrangeColumns && {
+                draggable: 'true',
+                onDragStart,
+                onDragOver: e => e.preventDefault(),
+                onDragEnter: e => e.preventDefault(),
+                onDrop,
+              })}
+              tabIndex={0}
             >
-              <span data-column-name={col.id}>{displayLabel}</span>
-              <SortIcon column={col} />
-            </div>
-          </th>
-        ),
+              {/* can't use `columnWidth &&` because it may also be zero */}
+              {config.columnWidth ? (
+                // column width hint
+                <div style={{ width: columnWidth, height: 0.01 }} />
+              ) : null}
+              <div data-column-name={col.id} css={{ display: 'inline-flex', alignItems: 'flex-end' }}>
+                <span data-column-name={col.id}>{displayLabel}</span>
+                <SortIcon column={col} />
+              </div>
+            </th>
+          );
+        },
 
         Footer: displayedTotals ? (
           i === 0 ? (
@@ -1458,6 +1589,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         searchOptions={searchOptions}
         onFilteredDataChange={handleFilteredDataChange}
         onFilteredRowsChange={setClientViewRows}
+        onVisiblePageRowsChange={setVisiblePageRows}
       />
     </Styles>
   );

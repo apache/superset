@@ -22,6 +22,7 @@ import {
   Preset,
   VizType,
 } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import CalendarChartPlugin from '@superset-ui/legacy-plugin-chart-calendar';
 import ChordChartPlugin from '@superset-ui/legacy-plugin-chart-chord';
 import CountryMapChartPlugin from '@superset-ui/legacy-plugin-chart-country-map';
@@ -32,6 +33,13 @@ import ParallelCoordinatesChartPlugin from '@superset-ui/legacy-plugin-chart-par
 import PartitionChartPlugin from '@superset-ui/legacy-plugin-chart-partition';
 import RoseChartPlugin from '@superset-ui/legacy-plugin-chart-rose';
 import TableChartPlugin from '@superset-ui/plugin-chart-table';
+// Import from the package root (source present in workspace)
+import { ChartPlugin, ChartMetadata } from '@superset-ui/core';
+// Wire Remita Table using local plugin source to ensure latest control panel UI
+// Use direct relative paths to avoid package subpath resolution issues
+import remitaBuildQuery from '../../../plugins/plugin-chart-remita-table/src/buildQuery';
+import remitaControlPanel from '../../../plugins/plugin-chart-remita-table/src/controlPanel';
+import remitaTransformProps from '../../../plugins/plugin-chart-remita-table/src/transformProps';
 import { WordCloudChartPlugin } from '@superset-ui/plugin-chart-word-cloud';
 import WorldMapChartPlugin from '@superset-ui/legacy-plugin-chart-world-map';
 import {
@@ -141,6 +149,20 @@ export default class MainPreset extends Preset {
         new PivotTableChartPluginV2().configure({ key: VizType.PivotTable }),
         new RoseChartPlugin().configure({ key: VizType.Rose }),
         new TableChartPlugin().configure({ key: VizType.Table }),
+        // Register Remita Table using base Table chart component and Remita transforms
+        new ChartPlugin({
+          // Load the full Remita TableChart from source for latest features
+          loadChart: () => import('../../../plugins/plugin-chart-remita-table/src/TableChart'),
+          buildQuery: remitaBuildQuery,
+          controlPanel: remitaControlPanel,
+          transformProps: remitaTransformProps,
+          metadata: new ChartMetadata({
+            category: t('Table'),
+            name: t('Remita Table'),
+            description: t('Custom Table fork with back-compat defaults and server pagination.'),
+            tags: [t('Tabular')],
+          }),
+        }).configure({ key: 'remita_table' }),
         new TimePivotChartPlugin().configure({ key: VizType.TimePivot }),
         new TimeTableChartPlugin().configure({ key: VizType.TimeTable }),
         new WordCloudChartPlugin().configure({ key: VizType.WordCloud }),

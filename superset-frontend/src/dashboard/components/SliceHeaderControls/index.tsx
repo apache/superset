@@ -23,6 +23,7 @@ import {
   useState,
   useRef,
   RefObject,
+  useEffect,
 } from 'react';
 
 import { RouteComponentProps, useHistory } from 'react-router-dom';
@@ -197,6 +198,119 @@ const SliceHeaderControls = (
     }
   };
 
+  // -------- Remita header actions (non-invasive, guarded by viz_type) --------
+  type HeaderAction = {
+    key: string;
+    label: string;
+    boundToSelection?: boolean;
+    showInSliceHeader?: boolean;
+  };
+
+  const isRemitaTable = props.slice.viz_type === 'remita_table';
+
+  const parseJsonList = (value: unknown): unknown[] => {
+    if (!value) return [];
+    if (Array.isArray(value)) return value;
+    if (value instanceof Set) return Array.from(value);
+    if (typeof value === 'string') {
+      try {
+        const parsed = JSON.parse(value);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  };
+
+  const rawActionsConfig = (props.formData as unknown as { actions_config?: unknown })
+    ?.actions_config as Record<string, unknown> | undefined;
+  const actionsConfig = rawActionsConfig || (props.formData as Record<string, unknown>);
+
+  const splitActions: HeaderAction[] = isRemitaTable
+    ? (parseJsonList(actionsConfig?.split_actions) as HeaderAction[])
+    : [];
+  const nonSplitActions: HeaderAction[] = isRemitaTable
+    ? (parseJsonList(actionsConfig?.non_split_actions) as HeaderAction[])
+    : [];
+  const bulkActionLabel: string | undefined = isRemitaTable
+    ? (actionsConfig?.bulk_action_label as string | undefined)
+    : undefined;
+  const showSplitInSliceHeader: boolean = isRemitaTable
+    ? Boolean(actionsConfig?.show_split_buttons_in_slice_header)
+    : false;
+
+  const [hasSelection, setHasSelection] = useState<boolean>(false);
+  const isActionVisible = (a: HeaderAction, selection: boolean) =>
+    !a?.boundToSelection || selection;
+
+  // Read current Remita selection from sessionStorage (kept by the plugin)
+  // Key format is remita_table_sel_${sliceId}
+  const updateSelectionFromStorage = () => {
+    try {
+      const stored = sessionStorage.getItem(`remita_table_sel_${props.slice.slice_id}`);
+      if (!stored) {
+        setHasSelection(false);
+        return;
+      }
+      const arr = JSON.parse(stored);
+      setHasSelection(Array.isArray(arr) && arr.length > 0);
+    } catch {
+      setHasSelection(false);
+    }
+  };
+
+  // Initialize and keep selection up to date when dropdown opens
+  // or periodically via storage events in the same tab.
+  useEffect(() => {
+    if (!isRemitaTable) return;
+    updateSelectionFromStorage();
+    const onStorage = (e: StorageEvent) => {
+      if (e.storageArea === sessionStorage && e.key === `remita_table_sel_${props.slice.slice_id}`) {
+        updateSelectionFromStorage();
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.slice.slice_id, isRemitaTable]);
+
+  const findHeaderActionByKey = (key: string): HeaderAction | undefined => {
+    if (!isRemitaTable || !key) return undefined;
+    const all = [...splitActions, ...nonSplitActions];
+    return all.find(a => String(a?.key) === String(key));
+  };
+
+  const sendRemitaEvent = (messageData: Record<string, unknown>) => {
+    const detail = {
+      notification: window.self !== window.top ? 'publish-event' : 'alert-event',
+      data: { ...messageData, origin: 'header' },
+    };
+    const event = new CustomEvent('remita.notification', {
+      detail,
+      bubbles: true,
+      cancelable: true,
+    });
+    window.dispatchEvent(event);
+  };
+
+  const onBulkActionClick = (actionKey: string) => {
+    try {
+      const stored = sessionStorage.getItem(`remita_table_sel_${props.slice.slice_id}`);
+      const ids = stored ? (JSON.parse(stored) as unknown[]) : [];
+      const selectedIds = Array.isArray(ids) ? ids.map(String) : [];
+      sendRemitaEvent({ action: 'bulk-action', chartId: props.slice.slice_id, actionType: actionKey, values: { ids: selectedIds } });
+    } catch {
+      sendRemitaEvent({ action: 'bulk-action', chartId: props.slice.slice_id, actionType: actionKey, values: { ids: [] } });
+    }
+  };
+
+  // Refresh selection when dropdown opens
+  useEffect(() => {
+    if (isRemitaTable && isDropdownVisible) updateSelectionFromStorage();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDropdownVisible, isRemitaTable]);
+
   const handleMenuClick = ({
     key,
     domEvent,
@@ -204,6 +318,15 @@ const SliceHeaderControls = (
     key: Key;
     domEvent: MouseEvent<HTMLElement> | KeyboardEvent<HTMLElement>;
   }) => {
+    // Intercept Remita custom actions first
+    if (isRemitaTable) {
+      const action = findHeaderActionByKey(String(key));
+      if (action) {
+        onBulkActionClick(String(key));
+        setIsDropdownVisible(false);
+        return;
+      }
+    }
     switch (key) {
       case MenuKeys.ForceRefresh:
         refreshChart();
@@ -552,6 +675,35 @@ const SliceHeaderControls = (
         },
       ],
     });
+  }
+
+  // Inject Remita split actions submenu (controlled by flag)
+  if (isRemitaTable && showSplitInSliceHeader && Array.isArray(splitActions) && splitActions.length > 0) {
+    newMenuItems.push({
+      type: 'submenu',
+      key: 'remita-split-actions',
+      label: bulkActionLabel || t('Actions'),
+      children: splitActions.map(a => ({
+        key: a.key,
+        disabled: a.boundToSelection === true && !isActionVisible(a, hasSelection),
+        label: a.label,
+      })),
+    });
+  }
+
+  // Inject Remita non-split actions visible in header
+  if (isRemitaTable && Array.isArray(nonSplitActions)) {
+    const headerButtons = nonSplitActions.filter(a => a?.showInSliceHeader);
+    if (headerButtons.length > 0) {
+      newMenuItems.push({ type: 'divider' });
+      headerButtons.forEach(a => {
+        newMenuItems.push({
+          key: a.key,
+          disabled: a.boundToSelection === true && !isActionVisible(a, hasSelection),
+          label: a.label,
+        });
+      });
+    }
   }
 
   return (

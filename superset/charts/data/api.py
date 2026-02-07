@@ -22,6 +22,7 @@ from datetime import datetime
 from typing import Any, Callable, TYPE_CHECKING
 
 from flask import current_app as app, g, make_response, request, Response
+import re
 from flask_appbuilder.api import expose, protect
 from flask_babel import gettext as _
 from marshmallow import ValidationError
@@ -64,6 +65,11 @@ if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
 
 logger = logging.getLogger(__name__)
+
+# Precompiled sanitizer for filenames: replace non-alphanumerics with underscore
+_SAFE_FILENAME_RE = re.compile(r"[^A-Za-z0-9]+")
+# Cap the base (prefix/slice) length to avoid extremely long filenames
+_MAX_BASE_FILENAME_LEN = 120
 
 
 class ChartDataRestApi(ChartRestApi):
@@ -410,9 +416,16 @@ class ChartDataRestApi(ChartRestApi):
                 # return single query results
                 data = result["queries"][0]["data"]
                 if is_csv_format:
-                    return CsvResponse(data, headers=generate_download_headers("csv"))
+                    # Build a friendly filename (prefix > slice name) if frontend didn't supply one
+                    basename = self._build_download_basename(form_data)
+                    return CsvResponse(
+                        data, headers=generate_download_headers("csv", basename)
+                    )
 
-                return XlsxResponse(data, headers=generate_download_headers("xlsx"))
+                basename = self._build_download_basename(form_data)
+                return XlsxResponse(
+                    data, headers=generate_download_headers("xlsx", basename)
+                )
 
             # return multi-query results bundled as a zip file
             def _process_data(query_data: Any) -> Any:
@@ -425,9 +438,10 @@ class ChartDataRestApi(ChartRestApi):
                 f"query_{idx + 1}.{result_format}": _process_data(query["data"])
                 for idx, query in enumerate(result["queries"])
             }
+            basename = self._build_download_basename(form_data)
             return Response(
                 create_zip(files),
-                headers=generate_download_headers("zip"),
+                headers=generate_download_headers("zip", basename),
                 mimetype="application/zip",
             )
 
@@ -542,6 +556,22 @@ class ChartDataRestApi(ChartRestApi):
         :raises ValidationError: If the request is incorrect
         """
 
+        # Optional high-security mode: strip extras.where directives entirely
+        try:
+            if app.config.get("DISABLE_EXTRAS_WHERE", False) and isinstance(form_data, dict):
+                queries = form_data.get("queries")
+                if isinstance(queries, list):
+                    for q in queries:
+                        if isinstance(q, dict):
+                            extras = q.get("extras") or {}
+                            if isinstance(extras, dict) and "where" in extras:
+                                # Remove client-provided WHERE clause
+                                extras.pop("where", None)
+                                q["extras"] = extras
+        except Exception:
+            # Non-fatal; proceed with loading
+            pass
+
         try:
             return ChartDataQueryContextSchema().load(form_data)
         except KeyError as ex:
@@ -599,24 +629,19 @@ class ChartDataRestApi(ChartRestApi):
 
         # Use filename from frontend if provided, otherwise generate one
         if not filename:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            chart_name = "export"
-
-            if form_data and form_data.get("slice_name"):
-                chart_name = form_data["slice_name"]
-            elif form_data and form_data.get("viz_type"):
-                chart_name = form_data["viz_type"]
-
-            # Sanitize chart name for filename
-            filename = secure_filename(f"superset_{chart_name}_{timestamp}.csv")
+            # Build a friendly filename (prefix > slice name)
+            filename = f"{self._build_download_basename(form_data)}.csv"
 
         logger.info("Creating streaming CSV response: %s", filename)
         if expected_rows:
             logger.info("Using expected_rows from frontend: %d", expected_rows)
 
         # Execute streaming command
-        # TODO: Make chunk size configurable via SUPERSET_CONFIG
-        chunk_size = 1024
+        # Configurable chunk size for better throughput
+        try:
+            chunk_size = int(app.config.get("CSV_STREAMING_CHUNK_SIZE", 65536))
+        except Exception:
+            chunk_size = 65536
         command = StreamingCSVExportCommand(query_context, chunk_size)
         command.validate()
 
@@ -642,3 +667,35 @@ class ChartDataRestApi(ChartRestApi):
         response.implicit_sequence_conversion = False
 
         return response
+
+    def _build_download_basename(self, form_data: dict[str, Any] | None) -> str:
+        """Build a safe base filename (without extension).
+
+        - Prefer form_data.file_download_prefix if provided and non-empty
+        - Else fallback to slice_name; else viz_type; else 'export'
+        - Sanitize non-alphanumerics to underscores
+        - Append timestamp "YYYYMMDD_HHMMSS"
+        """
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        base = "export"
+        try:
+            if form_data:
+                prefix = form_data.get("file_download_prefix")
+                if isinstance(prefix, str) and prefix.strip():
+                    base = prefix.strip()
+                elif isinstance(form_data.get("slice_name"), str) and form_data.get("slice_name").strip():
+                    base = form_data.get("slice_name")
+                elif isinstance(form_data.get("viz_type"), str) and form_data.get("viz_type").strip():
+                    base = form_data.get("viz_type")
+        except Exception:
+            # ignore malformed form_data
+            pass
+
+        # Sanitize: replace non-alphanumeric with underscore
+        safe = _SAFE_FILENAME_RE.sub("_", str(base))
+        safe = safe.strip("_") or "export"
+        # Cap length of base to avoid filesystem/path issues; keep timestamp suffix
+        if len(safe) > _MAX_BASE_FILENAME_LEN:
+            safe = safe[:_MAX_BASE_FILENAME_LEN].rstrip("_") or "export"
+        return f"{safe}_{timestamp}"

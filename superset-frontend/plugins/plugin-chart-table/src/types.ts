@@ -86,6 +86,8 @@ export type TableChartFormData = QueryFormData & {
   color_pn?: boolean;
   include_time?: boolean;
   include_search?: boolean;
+  // Server-side search match mode (when server pagination + search column)
+  server_search_match_mode?: 'prefix' | 'contains';
   query_mode?: QueryMode;
   page_length?: string | number | null; // null means auto-paginate
   metrics?: QueryFormMetric[] | null;

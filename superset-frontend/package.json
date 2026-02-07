@@ -223,6 +223,7 @@
     "yargs": "^17.7.2"
   },
   "devDependencies": {
+    "axe-core": "^4.9.1",
     "@applitools/eyes-storybook": "^3.63.10",
     "@babel/cli": "^7.28.6",
     "@babel/compat-data": "^7.28.4",
