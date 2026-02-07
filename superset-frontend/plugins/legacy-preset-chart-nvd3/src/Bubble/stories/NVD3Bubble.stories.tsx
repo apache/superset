@@ -17,8 +17,10 @@
  * under the License.
  */
 
-import { VizType } from '@superset-ui/core';
+import { SuperChart, VizType } from '@superset-ui/core';
 import { BubbleChartPlugin } from '@superset-ui/legacy-preset-chart-nvd3';
+import { dummyDatasource } from '@storybook-shared';
+import data from './data';
 
 new BubbleChartPlugin().configure({ key: VizType.LegacyBubble }).register();
 
@@ -26,4 +28,35 @@ export default {
   title: 'Legacy Chart Plugins/legacy-preset-chart-nvd3/Bubble',
 };
 
-export { basic } from './stories/basic';
+export const basic = () => (
+  <SuperChart
+    chartType={VizType.LegacyBubble}
+    width={400}
+    height={400}
+    datasource={dummyDatasource}
+    queriesData={[{ data }]}
+    formData={{
+      annotationData: {},
+      bottomMargin: 'auto',
+      colorScheme: 'd3Category10',
+      entity: 'country_name',
+      leftMargin: 'auto',
+      maxBubbleSize: '50',
+      series: 'region',
+      showLegend: true,
+      size: 'sum__SP_POP_TOTL',
+      vizType: VizType.LegacyBubble,
+      x: 'sum__SP_RUR_TOTL_ZS',
+      xAxisFormat: '.3s',
+      xAxisLabel: 'x-axis label',
+      xAxisShowminmax: false,
+      xLogScale: false,
+      xTicksLayout: 'auto',
+      y: 'sum__SP_DYN_LE00_IN',
+      yAxisFormat: '.3s',
+      yAxisLabel: '',
+      yAxisShowminmax: false,
+      yLogScale: false,
+    }}
+  />
+);

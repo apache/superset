@@ -17,7 +17,10 @@
  * under the License.
  */
 
+import { SuperChart, VizType } from '@superset-ui/core';
 import { EchartsBoxPlotChartPlugin } from '@superset-ui/plugin-chart-echarts';
+import { dummyDatasource } from '@storybook-shared';
+import data from './data';
 
 new EchartsBoxPlotChartPlugin().configure({ key: 'box-plot' }).register();
 
@@ -25,4 +28,17 @@ export default {
   title: 'Legacy Chart Plugins/legacy-preset-chart-nvd3/BoxPlot',
 };
 
-export { basic } from './stories/basic';
+export const basic = () => (
+  <SuperChart
+    chartType="box-plot"
+    width={800}
+    height={600}
+    datasource={dummyDatasource}
+    queriesData={[{ data }]}
+    formData={{
+      colorScheme: 'd3Category10',
+      vizType: VizType.BoxPlot,
+      whiskerOptions: 'Min/max (no outliers)',
+    }}
+  />
+);

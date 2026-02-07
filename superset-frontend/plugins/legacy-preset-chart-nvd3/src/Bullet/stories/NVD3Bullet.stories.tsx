@@ -17,8 +17,10 @@
  * under the License.
  */
 
-import { VizType } from '@superset-ui/core';
+import { SuperChart, VizType } from '@superset-ui/core';
 import { BulletChartPlugin } from '@superset-ui/legacy-preset-chart-nvd3';
+import { dummyDatasource } from '@storybook-shared';
+import data from './data';
 
 new BulletChartPlugin().configure({ key: VizType.Bullet }).register();
 
@@ -26,4 +28,21 @@ export default {
   title: 'Legacy Chart Plugins/legacy-preset-chart-nvd3/Bullet',
 };
 
-export { basic } from './stories/basic';
+export const basic = () => (
+  <SuperChart
+    chartType={VizType.Bullet}
+    width={400}
+    height={400}
+    datasource={dummyDatasource}
+    queriesData={[{ data }]}
+    formData={{
+      markerLabels: '',
+      markerLineLabels: '',
+      markerLines: '',
+      markers: '',
+      rangeLabels: '',
+      ranges: '',
+      vizType: VizType.Bullet,
+    }}
+  />
+);

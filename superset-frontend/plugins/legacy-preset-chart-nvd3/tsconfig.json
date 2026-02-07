@@ -12,7 +12,7 @@
     "declarationDir": "lib"
   },
   "include": ["src/**/*", "types/**/*"],
-  "exclude": ["src/**/*.test.*", "src/**/*.stories.*", "src/**/stories/**"],
+  "exclude": ["src/**/*.test.*", "src/**/*.stories.*"],
   "references": [
     { "path": "../../packages/superset-core" },
     { "path": "../../packages/superset-ui-core" },
