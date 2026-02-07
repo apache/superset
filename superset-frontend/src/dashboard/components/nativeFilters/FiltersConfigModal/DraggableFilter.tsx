@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@apache-superset/core';
 import { styled } from '@apache-superset/core/ui';
 import { useRef, FC } from 'react';
 import {
@@ -155,7 +156,7 @@ export const DraggableFilter: FC<FilterTabTitleProps> = ({
     <Container ref={ref} isDragging={isDragging}>
       <DragIcon
         isDragging={isDragging}
-        alt="Move icon"
+        alt={t('Move')}
         className="dragIcon"
         viewBox="4 4 16 16"
       />
