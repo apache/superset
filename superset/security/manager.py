@@ -3033,8 +3033,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
             for view in list(self.appbuilder.baseviews):
                 if isinstance(view, (ResetPasswordView, ResetMyPasswordView)):
-                    if getattr(view, "blueprint", None) is not None:
-                        current_app.unregister_blueprint(view.blueprint)
+                    blueprint = getattr(view, "blueprint", None)
+                    if blueprint is not None and hasattr(
+                        current_app, "unregister_blueprint"
+                    ):
+                        current_app.unregister_blueprint(blueprint)
                     self.appbuilder.baseviews.remove(view)
 
         security_menu = next(
