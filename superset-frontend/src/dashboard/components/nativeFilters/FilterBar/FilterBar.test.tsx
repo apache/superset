@@ -636,10 +636,12 @@ test('handleClearAll only dispatches for filters present in dataMask', async () 
   updateDataMaskSpy.mockRestore();
 });
 
-test('FilterBar Clear All does not clear out-of-scope filters', async () => {
-  const inScopeFilterId = 'in-scope-filter';
-  const outOfScopeRequiredFilterId = 'out-of-scope-required-filter';
-  const outOfScopeNonRequiredFilterId = 'out-of-scope-non-required-filter';
+test('FilterBar Clear All only clears in-scope filters, not out-of-scope ones', async () => {
+  const inScopeFilterId = 'NATIVE_FILTER-in-scope';
+  const outOfScopeRequiredFilterId = 'NATIVE_FILTER-out-of-scope-required';
+  const outOfScopeNonRequiredFilterId =
+    'NATIVE_FILTER-out-of-scope-non-required';
+  const updateDataMaskSpy = jest.spyOn(dataMaskActions, 'updateDataMask');
 
   const dashboardLayoutWithTabs = {
     ROOT_ID: { id: 'ROOT_ID', type: 'ROOT', children: ['TABS-1'] },
@@ -754,18 +756,27 @@ test('FilterBar Clear All does not clear out-of-scope filters', async () => {
   renderFilterBar(props, stateWithTabsAndFilters);
 
   await act(async () => {
-    jest.advanceTimersByTime(100);
+    jest.advanceTimersByTime(300);
   });
 
   const clearButton = screen.getByTestId(getTestId('clear-button'));
   expect(clearButton).toBeInTheDocument();
 
-  await userEvent.click(clearButton);
-
   await act(async () => {
-    jest.advanceTimersByTime(100);
+    userEvent.click(clearButton);
   });
 
-  // Verify Clear All works without crashing
-  expect(clearButton).toBeInTheDocument();
+  // Verify only the in-scope filter was cleared, not the out-of-scope ones
+  const clearedFilterIds = updateDataMaskSpy.mock.calls.map(call => call[0]);
+  expect(clearedFilterIds).toContain(inScopeFilterId);
+  expect(clearedFilterIds).not.toContain(outOfScopeRequiredFilterId);
+  expect(clearedFilterIds).not.toContain(outOfScopeNonRequiredFilterId);
+
+  // Verify the in-scope filter was cleared with the correct value
+  expect(updateDataMaskSpy).toHaveBeenCalledWith(inScopeFilterId, {
+    filterState: { value: undefined },
+    extraFormData: {},
+  });
+
+  updateDataMaskSpy.mockRestore();
 });
