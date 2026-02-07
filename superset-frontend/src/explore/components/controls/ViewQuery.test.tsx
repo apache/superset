@@ -24,7 +24,6 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
-import copyTextToClipboard from 'src/utils/copy';
 import { RootState } from 'src/dashboard/types';
 import ViewQuery, { ViewQueryProps } from './ViewQuery';
 
@@ -36,7 +35,13 @@ jest.mock('react-router-dom', () => ({
   }),
 }));
 
-jest.mock('src/utils/copy');
+// Mock the clipboard utility
+const mockCopyTextToClipboard = jest.fn(() => Promise.resolve());
+jest.mock('src/utils/copy', () => ({
+  __esModule: true,
+  default: (...args: unknown[]) => mockCopyTextToClipboard(...args),
+  copyTextToClipboard: (...args: unknown[]) => mockCopyTextToClipboard(...args),
+}));
 
 const mockState = (
   roles: Record<string, [string, string][]> = {
@@ -115,13 +120,14 @@ test('renders the component with Formatted SQL and buttons', async () => {
 });
 
 test('copies the SQL to the clipboard when Copy button is clicked', async () => {
+  mockCopyTextToClipboard.mockClear();
+  mockCopyTextToClipboard.mockResolvedValue(undefined);
   setup(mockProps);
 
-  (copyTextToClipboard as jest.Mock).mockResolvedValue('');
   const copyButton = screen.getByText('Copy');
-  expect(copyTextToClipboard as jest.Mock).not.toHaveBeenCalled();
+  expect(mockCopyTextToClipboard).not.toHaveBeenCalled();
   fireEvent.click(copyButton);
-  expect(copyTextToClipboard as jest.Mock).toHaveBeenCalled();
+  expect(mockCopyTextToClipboard).toHaveBeenCalled();
 });
 
 test('shows the original SQL when Format switch is unchecked', async () => {
