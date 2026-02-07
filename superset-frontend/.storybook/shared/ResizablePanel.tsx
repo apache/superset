@@ -23,8 +23,24 @@ import {
   ResizableBoxProps,
   ResizeCallbackData,
 } from 'react-resizable';
+import { styled } from '@apache-superset/core/ui';
 
 import 'react-resizable/css/styles.css';
+
+const StyledResizableBox = styled(ResizableBox)`
+  &.panel {
+    overflow: hidden;
+    background: ${({ theme }) => theme.colorBgContainer};
+    border: 1px solid ${({ theme }) => theme.colorBorder};
+    border-radius: ${({ theme }) => theme.borderRadius}px;
+  }
+
+  .panel-body {
+    overflow: hidden;
+    width: 100%;
+    height: 100%;
+  }
+`;
 
 export type Size = ResizeCallbackData['size'];
 
@@ -41,7 +57,7 @@ export default function ResizablePanel({
 }) {
   const { width, height } = initialSize;
   return (
-    <ResizableBox
+    <StyledResizableBox
       className="panel"
       width={width}
       height={height}
@@ -60,6 +76,6 @@ export default function ResizablePanel({
         {heading ? <div className="panel-heading">{heading}</div> : null}
         <div className="panel-body">{children}</div>
       </>
-    </ResizableBox>
+    </StyledResizableBox>
   );
 }
