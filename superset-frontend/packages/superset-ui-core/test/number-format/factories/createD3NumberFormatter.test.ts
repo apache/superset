@@ -85,4 +85,18 @@ describe('createD3NumberFormatter(config)', () => {
       expect(formatter(200)).toEqual('€200.00');
     });
   });
+  describe('negative numbers', () => {
+    it('uses ASCII hyphen-minus (U+002D) for negative numbers, not Unicode minus (U+2212)', () => {
+      const formatter = createD3NumberFormatter({ formatString: ',d' });
+      const result = formatter(-1234);
+      // Verify the result contains ASCII hyphen-minus (char code 45), not Unicode minus (char code 8722)
+      // This is important for backward compatibility after d3-format v3 upgrade
+      expect(result).toEqual('-1,234');
+      expect(result.charCodeAt(0)).toEqual(45); // ASCII hyphen-minus
+    });
+    it('formats negative decimals correctly', () => {
+      const formatter = createD3NumberFormatter({ formatString: ',.2f' });
+      expect(formatter(-1234.5)).toEqual('-1,234.50');
+    });
+  });
 });
