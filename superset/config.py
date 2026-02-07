@@ -1811,6 +1811,34 @@ DISALLOWED_SQL_FUNCTIONS: dict[str, set[str]] = {
     },
 }
 
+# Per-engine blocklist of system catalog tables/views that should not be queried.
+# Prevents information disclosure through system catalog access.
+DISALLOWED_SQL_TABLES: dict[str, set[str]] = {
+    "postgresql": {
+        "pg_stat_activity",
+        "pg_roles",
+        "pg_shadow",
+        "pg_authid",
+        "pg_settings",
+        "pg_config",
+        "pg_hba_file_rules",
+        "pg_stat_ssl",
+        "pg_stat_replication",
+        "pg_stat_wal_receiver",
+        "pg_user",
+    },
+    "mysql": {
+        "mysql.user",
+        "performance_schema.threads",
+        "performance_schema.processlist",
+    },
+    "mssql": {
+        "sys.server_principals",
+        "sys.sql_logins",
+        "sys.configurations",
+    },
+}
+
 
 # A function that intercepts the SQL to be executed and can alter it.
 # A common use case for this is around adding some sort of comment header to the SQL
