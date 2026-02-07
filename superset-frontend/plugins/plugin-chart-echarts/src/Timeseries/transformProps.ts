@@ -364,6 +364,24 @@ export default function transformProps(
       });
     }
 
+    // Calculate min/max from forecast series to handle negative confidence bounds
+    // This ensures forecast lower bounds that go negative are not clipped at zero
+    const forecastContext = extractForecastSeriesContext(entryName);
+    if (
+      forecastContext.type === ForecastSeriesEnum.ForecastLower &&
+      entry.data &&
+      Array.isArray(entry.data)
+    ) {
+      (entry.data as [any, number][]).forEach((datum: [any, number]) => {
+        const value = isHorizontal ? datum[0] : datum[1];
+        if (typeof value === 'number' && !Number.isNaN(value) && value < 0) {
+          if (dataMin === undefined || value < dataMin) {
+            dataMin = value;
+          }
+        }
+      });
+    }
+
     let colorScaleKey = getOriginalSeries(seriesName, array);
 
     // If series name exactly matches a time offset (single metric case),
@@ -553,6 +571,19 @@ export default function transformProps(
     if (dataMin !== undefined && yAxisMin === undefined && dataMin < 0) {
       yAxisMin = dataMin;
     }
+  }
+
+  // For all chart types, if we have negative forecast lower bounds,
+  // ensure yAxisMin accommodates them to prevent clipping at zero
+  // Skip for log axes since they cannot display negative values
+  if (
+    !shouldCalculateDataBounds &&
+    !logAxis &&
+    dataMin !== undefined &&
+    yAxisMin === undefined &&
+    dataMin < 0
+  ) {
+    yAxisMin = dataMin;
   }
 
   const tooltipFormatter =
