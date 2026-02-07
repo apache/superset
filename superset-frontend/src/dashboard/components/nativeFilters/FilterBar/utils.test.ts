@@ -770,14 +770,14 @@ test('getFiltersToApply handles empty dataMaskSelected', () => {
 });
 
 test('getFiltersToApply handles null dataMask entries', () => {
-  const dataMaskSelected: DataMaskStateWithId = {
-    'filter-1': null as any,
+  const dataMaskSelected = {
+    'filter-1': null,
     'filter-2': {
       id: 'filter-2',
       filterState: { value: ['CA'] },
       extraFormData: {},
     },
-  };
+  } as unknown as DataMaskStateWithId;
   const inScopeFilterIds = new Set(['filter-1', 'filter-2']);
 
   const result = getFiltersToApply(dataMaskSelected, inScopeFilterIds);
