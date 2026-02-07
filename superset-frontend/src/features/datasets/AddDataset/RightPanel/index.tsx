@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@apache-superset/core';
+
 export default function RightPanel() {
-  return <div>Right Panel</div>;
+  return <div>{t('Right Panel')}</div>;
 }
