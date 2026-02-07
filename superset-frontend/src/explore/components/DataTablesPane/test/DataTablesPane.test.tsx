@@ -27,10 +27,9 @@ import {
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 
 // Mock the clipboard utility
-const mockCopyTextToClipboard = jest.fn<
-  Promise<void>,
-  [() => Promise<string>]
->(() => Promise.resolve());
+const mockCopyTextToClipboard = jest.fn<Promise<void>, [() => Promise<string>]>(
+  () => Promise.resolve(),
+);
 jest.mock('src/utils/copy', () => ({
   __esModule: true,
   default: (getText: () => Promise<string>) => mockCopyTextToClipboard(getText),
