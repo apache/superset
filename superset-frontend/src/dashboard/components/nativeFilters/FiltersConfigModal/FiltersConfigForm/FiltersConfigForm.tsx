@@ -821,6 +821,11 @@ const FiltersConfigForm = (
   );
   return (
     <Tabs
+      allowOverflow={false}
+      contentHeight={630}
+      contentPadding={css`
+        padding-top: ${theme.sizeUnit * 4}px;
+      `}
       activeKey={activeTabKey}
       onChange={activeKey => setActiveTabKey(activeKey)}
       items={[
