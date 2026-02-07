@@ -78,9 +78,9 @@ const disableDevModeInRules = rules =>
 
 module.exports = {
   stories: [
-    '../src/**/*.stories.@(tsx|jsx)',
-    '../packages/superset-ui-core/src/**/*.stories.@(tsx|jsx)',
-    '../plugins/*/src/**/*.stories.@(tsx|jsx)',
+    '../src/**/*.stories.tsx',
+    '../packages/superset-ui-core/src/**/*.stories.tsx',
+    '../plugins/*/src/**/*.stories.tsx',
   ],
 
   addons: [
