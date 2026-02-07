@@ -38,14 +38,15 @@ export default {
   },
 };
 
-export const basic = (
-  {
-    rotation,
-  }: {
-    rotation: string;
-  },
-  { width, height }: { width: number; height: number },
-) => (
+export const basic = ({
+  rotation,
+  width,
+  height,
+}: {
+  rotation: string;
+  width: number;
+  height: number;
+}) => (
   <SuperChart
     chartType="word-cloud2"
     width={width}
@@ -75,14 +76,15 @@ export const basic = (
   />
 );
 
-export const encodesColorByWordLength = (
-  {
-    rotation,
-  }: {
-    rotation: string;
-  },
-  { width, height }: { width: number; height: number },
-) => (
+export const encodesColorByWordLength = ({
+  rotation,
+  width,
+  height,
+}: {
+  rotation: string;
+  width: number;
+  height: number;
+}) => (
   <SuperChart
     chartType="word-cloud2"
     width={width}
@@ -118,14 +120,15 @@ export const encodesColorByWordLength = (
   />
 );
 
-export const encodesFontByFirstLetter = (
-  {
-    rotation,
-  }: {
-    rotation: string;
-  },
-  { width, height }: { width: number; height: number },
-) => (
+export const encodesFontByFirstLetter = ({
+  rotation,
+  width,
+  height,
+}: {
+  rotation: string;
+  width: number;
+  height: number;
+}) => (
   <SuperChart
     chartType="word-cloud2"
     width={width}
@@ -163,26 +166,3 @@ export const encodesFontByFirstLetter = (
   />
 );
 
-export const legacyShim = (
-  {
-    rotation,
-  }: {
-    rotation: string;
-  },
-  { width, height }: { width: number; height: number },
-) => (
-  <SuperChart
-    chartType="legacy-word-cloud2"
-    width={width}
-    height={height}
-    queriesData={[{ data }]}
-    formData={{
-      colorScheme: 'd3Category10',
-      metric: 'sum__num',
-      rotation,
-      series: 'name',
-      sizeFrom: '10',
-      sizeTo: '70',
-    }}
-  />
-);

@@ -161,26 +161,27 @@ Basic.parameters = {
   },
 };
 
-export const BigTable = (
-  {
-    rows,
-    cols,
-    pageLength,
-    includeSearch,
-    alignPn,
-    showCellBars,
-    allowRearrangeColumns,
-  }: {
-    rows: number;
-    cols: number;
-    pageLength: number;
-    includeSearch: boolean;
-    alignPn: boolean;
-    showCellBars: boolean;
-    allowRearrangeColumns: boolean;
-  },
-  { width, height }: { width: number; height: number },
-) => {
+export const BigTable = ({
+  rows,
+  cols,
+  pageLength,
+  includeSearch,
+  alignPn,
+  showCellBars,
+  allowRearrangeColumns,
+  width,
+  height,
+}: {
+  rows: number;
+  cols: number;
+  pageLength: number;
+  includeSearch: boolean;
+  alignPn: boolean;
+  showCellBars: boolean;
+  allowRearrangeColumns: boolean;
+  width: number;
+  height: number;
+}) => {
   const chartProps = loadData(birthNames, {
     pageLength,
     rows,
