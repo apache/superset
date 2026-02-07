@@ -314,6 +314,7 @@ export default function DrillDetailPane({
           columns={mappedColumns}
           size={TableSize.Small}
           defaultPageSize={PAGE_SIZE}
+          pageSizeOptions={['50']}
           recordCount={resultsPage?.total}
           usePagination
           loading={isLoading}
