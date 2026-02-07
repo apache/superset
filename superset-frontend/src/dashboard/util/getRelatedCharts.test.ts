@@ -105,3 +105,8 @@ test('Return only chart ids in specific scope with cross filter', () => {
   const result = getRelatedCharts('1', filters['1'], slices);
   expect(result).toEqual([2]);
 });
+
+test('Gracefully handle undefined filter input', () => {
+  const result = getRelatedCharts('missing', undefined as any, slices);
+  expect(result).toEqual([]);
+});

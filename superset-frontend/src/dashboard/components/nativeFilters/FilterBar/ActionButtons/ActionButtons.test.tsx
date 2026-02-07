@@ -77,6 +77,14 @@ test('should apply', () => {
   expect(mockedProps.onApply).toHaveBeenCalled();
 });
 
+test('hides Apply button when hideApplyButton is true', () => {
+  const mockedProps = createProps();
+  render(<ActionButtons {...mockedProps} hideApplyButton />, { useRedux: true });
+  expect(screen.queryByText('Apply filters')).not.toBeInTheDocument();
+  // Clear all still renders
+  expect(screen.getByText('Clear all')).toBeInTheDocument();
+});
+
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('custom width', () => {
   test('sets its default width with OPEN_FILTER_BAR_WIDTH', () => {

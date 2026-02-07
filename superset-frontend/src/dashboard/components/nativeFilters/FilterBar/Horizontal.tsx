@@ -39,6 +39,7 @@ const HorizontalBar = styled.div`
     }px ${theme.sizeUnit * 4}px;
     background: ${theme.colorBgBase};
     box-shadow: inset 0px -2px 2px -1px ${theme.colorSplit};
+    position: relative;
   `}
 `;
 
@@ -56,6 +57,40 @@ const HorizontalBarContent = styled.div`
   `}
 `;
 
+const ProgressBar = styled.div`
+  ${({ theme }) => `
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    overflow: hidden;
+    background: transparent;
+    opacity: 0.9;
+    pointer-events: none;
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -40%;
+      height: 100%;
+      width: 40%;
+      background: linear-gradient(90deg, transparent, ${theme.colorPrimary}, transparent);
+      animation: filterbar-progress 1.1s ease-in-out infinite;
+    }
+
+    @keyframes filterbar-progress {
+      0% {
+        left: -40%;
+      }
+      100% {
+        left: 100%;
+      }
+    }
+  `}
+`;
+
 const FilterBarEmptyStateContainer = styled.div`
   ${({ theme }) => `
     font-weight: ${theme.fontWeightStrong};
@@ -65,7 +100,7 @@ const FilterBarEmptyStateContainer = styled.div`
   `}
 `;
 
-const HorizontalFilterBar: FC<HorizontalBarProps> = ({
+const HorizontalFilterBar: FC<HorizontalBarProps & { showProgressOverlay?: boolean }> = ({
   actions,
   dataMaskSelected,
   filterValues,
@@ -75,6 +110,7 @@ const HorizontalFilterBar: FC<HorizontalBarProps> = ({
   onPendingCustomizationDataMaskChange,
   clearAllTriggers,
   onClearAllComplete,
+  showProgressOverlay = false,
 }) => {
   const dataMask = useSelector<RootState, DataMaskStateWithId>(
     state => state.dataMask,
@@ -101,6 +137,7 @@ const HorizontalFilterBar: FC<HorizontalBarProps> = ({
 
   return (
     <HorizontalBar {...getFilterBarTestId()}>
+      {showProgressOverlay && <ProgressBar />}
       <HorizontalBarContent>
         {!isInitialized ? (
           <Loading position="inline-centered" size="s" muted />

@@ -41,6 +41,10 @@ interface ActionButtonsProps {
   chartCustomizationItems?: (ChartCustomization | ChartCustomizationDivider)[];
   isApplyDisabled: boolean;
   filterBarOrientation?: FilterBarOrientation;
+  // When true, hide the Apply button (auto-apply mode)
+  hideApplyButton?: boolean;
+  // When true, show a thin animated progress overlay bar
+  showProgressOverlay?: boolean;
 }
 
 const containerStyle = (theme: SupersetTheme) => css`
@@ -99,6 +103,40 @@ const ButtonsContainer = styled.div<{ isVertical: boolean; width: number }>`
   `}
 `;
 
+const ProgressBar = styled.div`
+  ${({ theme }) => css`
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    overflow: hidden;
+    background: transparent;
+    opacity: 0.9;
+    pointer-events: none;
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -40%;
+      height: 100%;
+      width: 40%;
+      background: linear-gradient(90deg, transparent, ${theme.colorPrimary}, transparent);
+      animation: filterbar-progress 1.1s ease-in-out infinite;
+    }
+
+    @keyframes filterbar-progress {
+      0% {
+        left: -40%;
+      }
+      100% {
+        left: 100%;
+      }
+    }
+  `}
+`;
+
 const ActionButtons = ({
   width = OPEN_FILTER_BAR_WIDTH,
   onApply,
@@ -108,6 +146,8 @@ const ActionButtons = ({
   isApplyDisabled,
   filterBarOrientation = FilterBarOrientation.Vertical,
   chartCustomizationItems,
+  hideApplyButton = false,
+  showProgressOverlay = false,
 }: ActionButtonsProps) => {
   const isClearAllEnabled = useMemo(() => {
     const hasSelectedChanges = Object.entries(dataMaskSelected).some(
@@ -144,16 +184,19 @@ const ActionButtons = ({
       width={width}
       data-test="filterbar-action-buttons"
     >
-      <Button
-        disabled={isApplyDisabled}
-        buttonStyle="primary"
-        htmlType="submit"
-        className="filter-apply-button"
-        onClick={onApply}
-        {...getFilterBarTestId('apply-button')}
-      >
-        {isVertical ? t('Apply filters') : t('Apply')}
-      </Button>
+      {isVertical && showProgressOverlay && <ProgressBar />}
+      {!hideApplyButton && (
+        <Button
+          disabled={isApplyDisabled}
+          buttonStyle="primary"
+          htmlType="submit"
+          className="filter-apply-button"
+          onClick={onApply}
+          {...getFilterBarTestId('apply-button')}
+        >
+          {isVertical ? t('Apply filters') : t('Apply')}
+        </Button>
+      )}
       <Button
         disabled={!isClearAllEnabled}
         buttonStyle="link"

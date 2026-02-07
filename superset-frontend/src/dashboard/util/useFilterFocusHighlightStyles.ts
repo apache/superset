@@ -62,9 +62,15 @@ const useFilterFocusHighlightStyles = (chartId: number) => {
   }
 
   if (highlightedFilterId) {
+    const filterObj = nativeFilters.filters[
+      highlightedFilterId as string
+    ] as Filter | undefined;
+    if (!filterObj) {
+      return EMPTY;
+    }
     const relatedCharts = getRelatedCharts(
       highlightedFilterId as string,
-      nativeFilters.filters[highlightedFilterId as string] as Filter,
+      filterObj,
       slices,
     );
 

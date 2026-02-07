@@ -84,9 +84,16 @@ function getRelatedChartsForCrossFilter(
 
 export function getRelatedCharts(
   filterKey: string,
-  filter: AppliedNativeFilterType | AppliedCrossFilterType | Filter,
+  filter:
+    | AppliedNativeFilterType
+    | AppliedCrossFilterType
+    | Filter
+    | undefined,
   slices: Record<string, Slice>,
 ) {
+  if (!filter) {
+    return [];
+  }
   let related: number[] = [];
   const isCrossFilter =
     Object.keys(slices).includes(filterKey) && isAppliedCrossFilterType(filter);

@@ -63,6 +63,7 @@ export interface FiltersBarProps {
 
 export type HorizontalBarProps = CommonFiltersBarProps & {
   dashboardId: number;
+  showProgressOverlay?: boolean;
 };
 
 export type VerticalBarProps = Omit<FiltersBarProps, 'orientation'> &

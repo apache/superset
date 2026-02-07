@@ -28,7 +28,7 @@ import {
   useMemo,
 } from 'react';
 
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch, useSelector, batch } from 'react-redux';
 import {
   DataMaskStateWithId,
   DataMaskWithId,
@@ -40,6 +40,8 @@ import {
   NativeFilterTarget,
   ChartCustomization,
   ChartCustomizationDivider,
+  FeatureFlag,
+  isFeatureEnabled,
 } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';
 import { Constants } from '@superset-ui/core/components';
@@ -53,9 +55,10 @@ import {
 
 import { useImmer } from 'use-immer';
 import { isEmpty, isEqual, debounce } from 'lodash';
+import { areObjectsEqual } from 'src/reduxUtils';
 import { getInitialDataMask } from 'src/dataMask/reducer';
 import { URL_PARAMS } from 'src/constants';
-import { applicationRoot } from 'src/utils/getBootstrapData';
+import getBootstrapData, { applicationRoot } from 'src/utils/getBootstrapData';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { useTabId } from 'src/hooks/useTabId';
 import { logEvent } from 'src/logger/actions';
@@ -205,8 +208,19 @@ const FilterBar: FC<FiltersBarProps> = ({
   const [hasClearedChartCustomizations, setHasClearedChartCustomizations] =
     useState(false);
 
-  const dataMaskSelectedRef = useRef(dataMaskSelected);
-  dataMaskSelectedRef.current = dataMaskSelected;
+  // Progress indicator state (visible for at least MIN_VISIBLE_MS)
+  const MIN_VISIBLE_MS = 400;
+  // Auto-apply debounce interval, configurable via backend conf
+  const configuredDebounce =
+    getBootstrapData()?.common?.conf?.AUTO_APPLY_DASHBOARD_FILTERS_DEBOUNCE_MS;
+  const AUTO_APPLY_DEBOUNCE_MS =
+    (typeof configuredDebounce === 'number' && configuredDebounce > 0
+      ? configuredDebounce
+      : 700);
+  const [isApplying, setIsApplying] = useState(false);
+  const applyStartTsRef = useRef<number | null>(null);
+
+  // keep local selection state; avoid unused refs
   const handleFilterSelectionChange = useCallback(
     (
       filter: Pick<Filter, 'id'> & Partial<Filter>,
@@ -318,7 +332,10 @@ const FilterBar: FC<FiltersBarProps> = ({
     }
   }, [dashboardId, filters, previousDashboardId, setDataMaskSelected]);
 
-  const dataMaskAppliedText = JSON.stringify(dataMaskApplied);
+  const dataMaskAppliedText = useMemo(
+    () => JSON.stringify(dataMaskApplied),
+    [dataMaskApplied],
+  );
 
   useEffect(() => {
     setDataMaskSelected(() => dataMaskApplied);
@@ -348,13 +365,43 @@ const FilterBar: FC<FiltersBarProps> = ({
   );
 
   const handleApply = useCallback(() => {
-    dispatch(logEvent(LOG_ACTIONS_CHANGE_DASHBOARD_FILTER, {}));
-    setUpdateKey(1);
-
-    Object.entries(dataMaskSelected).forEach(([filterId, dataMask]) => {
-      if (dataMask) {
-        dispatch(updateDataMask(filterId, dataMask));
+    // start progress overlay if feature flag is enabled
+    if (isFeatureEnabled(FeatureFlag.FilterBarProgressIndicator)) {
+      if (!isApplying) {
+        setIsApplying(true);
+        applyStartTsRef.current = Date.now();
+      } else {
+        // already applying; extend timing window
+        applyStartTsRef.current = applyStartTsRef.current || Date.now();
       }
+    }
+    // Batch updates to minimize re-renders and expensive downstream work
+    batch(() => {
+      dispatch(logEvent(LOG_ACTIONS_CHANGE_DASHBOARD_FILTER, {}));
+      setUpdateKey(1);
+
+      Object.entries(dataMaskSelected).forEach(([filterId, selectedMask]) => {
+        if (!selectedMask) return;
+        const appliedMask = dataMaskApplied[filterId];
+        const changed = !areObjectsEqual(
+          {
+            filterState: selectedMask.filterState,
+            ownState: selectedMask.ownState,
+            extraFormData: selectedMask.extraFormData,
+          },
+          appliedMask
+            ? {
+                filterState: appliedMask.filterState,
+                ownState: appliedMask.ownState,
+                extraFormData: appliedMask.extraFormData,
+              }
+            : undefined,
+          { ignoreUndefined: true },
+        );
+        if (changed) {
+          dispatch(updateDataMask(filterId, selectedMask));
+        }
+      });
     });
 
     if (
@@ -404,6 +451,17 @@ const FilterBar: FC<FiltersBarProps> = ({
     }
 
     setHasClearedChartCustomizations(false);
+
+    // ensure progress overlay stays for a minimum visible duration
+    if (isFeatureEnabled(FeatureFlag.FilterBarProgressIndicator)) {
+      const start = applyStartTsRef.current || Date.now();
+      const elapsed = Date.now() - start;
+      const remaining = Math.max(MIN_VISIBLE_MS - elapsed, 0);
+      window.setTimeout(() => {
+        setIsApplying(false);
+        applyStartTsRef.current = null;
+      }, remaining);
+    }
   }, [
     dataMaskSelected,
     dispatch,
@@ -411,6 +469,7 @@ const FilterBar: FC<FiltersBarProps> = ({
     pendingCustomizationDataMasks,
     hasClearedChartCustomizations,
     chartCustomizationValues,
+    isApplying,
   ]);
 
   const handleClearAll = useCallback(() => {
@@ -494,19 +553,59 @@ const FilterBar: FC<FiltersBarProps> = ({
       return !hasValue;
     }) || false;
 
-  const checkResult = checkIsApplyDisabled(
+  const isApplyDisabled = useMemo(() => {
+    const checkResult = checkIsApplyDisabled(
+      dataMaskSelected,
+      dataMaskApplied,
+      filtersInScope.filter(isNativeFilter),
+    );
+
+    return (
+      (checkResult &&
+        !hasPendingChartCustomizations &&
+        !hasClearedChartCustomizations) ||
+      hasMissingRequiredChartCustomization
+    );
+  }, [
     dataMaskSelected,
     dataMaskApplied,
-    filtersInScope.filter(isNativeFilter),
-  );
-
-  const isApplyDisabled =
-    (checkResult &&
-      !hasPendingChartCustomizations &&
-      !hasClearedChartCustomizations) ||
-    hasMissingRequiredChartCustomization;
+    filtersInScope,
+    hasPendingChartCustomizations,
+    hasClearedChartCustomizations,
+    hasMissingRequiredChartCustomization,
+  ]);
 
   const isInitialized = useInitialization();
+
+  // Auto-apply support: debounced apply when changes exist
+  const autoApplyEnabled = isFeatureEnabled(
+    FeatureFlag.AutoApplyDashboardFilters,
+  );
+  const autoApplyFnRef = useRef<ReturnType<typeof debounce>>();
+  const stableApplyRef = useRef(handleApply);
+  stableApplyRef.current = handleApply;
+  useEffect(() => {
+    if (!autoApplyFnRef.current) {
+      autoApplyFnRef.current = debounce(() => {
+        stableApplyRef.current();
+      }, AUTO_APPLY_DEBOUNCE_MS);
+    }
+    return () => {
+      autoApplyFnRef.current?.cancel();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    if (!autoApplyEnabled) {
+      autoApplyFnRef.current?.cancel();
+      return;
+    }
+    if (!isApplyDisabled) {
+      autoApplyFnRef.current?.();
+    } else {
+      autoApplyFnRef.current?.cancel();
+    }
+  }, [autoApplyEnabled, isApplyDisabled, dataMaskSelected]);
 
   const actions = useMemo(
     () => (
@@ -518,6 +617,10 @@ const FilterBar: FC<FiltersBarProps> = ({
         dataMaskSelected={dataMaskSelected}
         dataMaskApplied={dataMaskApplied}
         isApplyDisabled={isApplyDisabled}
+        hideApplyButton={autoApplyEnabled}
+        showProgressOverlay={
+          isFeatureEnabled(FeatureFlag.FilterBarProgressIndicator) && isApplying
+        }
         chartCustomizationItems={chartCustomizationValues}
       />
     ),
@@ -529,6 +632,8 @@ const FilterBar: FC<FiltersBarProps> = ({
       dataMaskSelected,
       dataMaskApplied,
       isApplyDisabled,
+      autoApplyEnabled,
+      isApplying,
       chartCustomizationValues,
     ],
   );
@@ -543,6 +648,9 @@ const FilterBar: FC<FiltersBarProps> = ({
         filterValues={filterValues}
         chartCustomizationValues={chartCustomizationValues}
         isInitialized={isInitialized}
+        showProgressOverlay={
+          isFeatureEnabled(FeatureFlag.FilterBarProgressIndicator) && isApplying
+        }
         onSelectionChange={handleFilterSelectionChange}
         onPendingCustomizationDataMaskChange={
           handlePendingCustomizationDataMaskChange
