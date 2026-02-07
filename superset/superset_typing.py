@@ -18,16 +18,41 @@ from __future__ import annotations
 
 from collections.abc import Hashable, Sequence
 from datetime import datetime
-from typing import Any, Literal, TYPE_CHECKING, TypeAlias, TypedDict
+from typing import (
+    Any,
+    Callable,
+    ContextManager,
+    Literal,
+    TYPE_CHECKING,
+    TypeAlias,
+    TypedDict,
+)
 
+from sqlalchemy.engine.url import URL
 from sqlalchemy.sql.type_api import TypeEngine
 from typing_extensions import NotRequired
 from werkzeug.wrappers import Response
 
 if TYPE_CHECKING:
-    from superset.utils.core import GenericDataType, QueryObjectFilterClause
+    from superset.models.core import Database
+    from superset.utils.core import (
+        GenericDataType,
+        QueryObjectFilterClause,
+        QuerySource,
+    )
 
 SQLType: TypeAlias = TypeEngine | type[TypeEngine]
+
+# Type alias for database connection mutator function
+DBConnectionMutator: TypeAlias = Callable[
+    [URL, dict[str, Any], str | None, Any, "QuerySource | None"],
+    tuple[URL, dict[str, Any]],
+]
+
+# Type alias for engine context manager
+EngineContextManager: TypeAlias = Callable[
+    ["Database", str | None, str | None], ContextManager[None]
+]
 
 
 class LegacyMetric(TypedDict):

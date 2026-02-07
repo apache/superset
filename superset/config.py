@@ -52,10 +52,15 @@ from superset.advanced_data_type.plugins.internet_address import internet_addres
 from superset.advanced_data_type.plugins.internet_port import internet_port
 from superset.advanced_data_type.types import AdvancedDataType
 from superset.constants import CHANGE_ME_SECRET_KEY
+from superset.engines.manager import EngineModes
 from superset.jinja_context import BaseTemplateProcessor
 from superset.key_value.types import JsonKeyValueCodec
 from superset.stats_logger import DummyStatsLogger
-from superset.superset_typing import CacheConfig
+from superset.superset_typing import (
+    CacheConfig,
+    DBConnectionMutator,
+    EngineContextManager,
+)
 from superset.tasks.types import ExecutorType
 from superset.themes.types import Theme
 from superset.utils import core as utils
@@ -259,6 +264,22 @@ SQLALCHEMY_ENGINE_OPTIONS = {}
 #     return 'secret'
 # SQLALCHEMY_CUSTOM_PASSWORD_STORE = lookup_password
 SQLALCHEMY_CUSTOM_PASSWORD_STORE = None
+
+# ---------------------------------------------------------
+# Engine Manager Configuration
+# ---------------------------------------------------------
+
+# Engine manager mode: "NEW" creates a new engine for every connection (default),
+# "SINGLETON" reuses engines with connection pooling
+ENGINE_MANAGER_MODE = EngineModes.NEW
+
+# Cleanup interval for abandoned locks in seconds (default: 5 minutes)
+ENGINE_MANAGER_CLEANUP_INTERVAL = timedelta(minutes=5)
+
+# Automatically start cleanup thread for SINGLETON mode (default: True)
+ENGINE_MANAGER_AUTO_START_CLEANUP = True
+
+# ---------------------------------------------------------
 
 #
 # The EncryptedFieldTypeAdapter is used whenever we're building SqlAlchemy models
@@ -809,7 +830,6 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
 #                          FIREWALL (only port 22 is open)
 
 # ----------------------------------------------------------------------
-SSH_TUNNEL_MANAGER_CLASS = "superset.extensions.ssh.SSHManager"
 SSH_TUNNEL_LOCAL_BIND_ADDRESS = "127.0.0.1"
 #: Timeout (seconds) for tunnel connection (open_channel timeout)
 SSH_TUNNEL_TIMEOUT_SEC = 10.0
@@ -1684,7 +1704,7 @@ def engine_context_manager(  # pylint: disable=unused-argument
     yield None
 
 
-ENGINE_CONTEXT_MANAGER = engine_context_manager
+ENGINE_CONTEXT_MANAGER: EngineContextManager = engine_context_manager
 
 # A callable that allows altering the database connection URL and params
 # on the fly, at runtime. This allows for things like impersonation or
@@ -1701,7 +1721,7 @@ ENGINE_CONTEXT_MANAGER = engine_context_manager
 #
 # Note that the returned uri and params are passed directly to sqlalchemy's
 # as such `create_engine(url, **params)`
-DB_CONNECTION_MUTATOR = None
+DB_CONNECTION_MUTATOR: DBConnectionMutator | None = None
 
 
 # A callable that is invoked for every invocation of DB Engine Specs

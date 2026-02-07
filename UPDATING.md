@@ -24,6 +24,41 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Engine Manager for Connection Pooling
+
+A new `EngineManager` class has been introduced to centralize SQLAlchemy engine creation and management. This enables connection pooling for analytics databases and provides a more flexible architecture for engine configuration.
+
+#### Breaking Changes
+
+1. **Removed `SSH_TUNNEL_MANAGER_CLASS` config**: SSH tunnel handling is now integrated into the EngineManager. If you have custom SSH tunnel managers, you'll need to migrate to the new architecture.
+
+2. **Removed `nullpool` parameter**: The `get_sqla_engine()` and `get_raw_connection()` methods on the `Database` model no longer accept a `nullpool` parameter. Pool configuration is now controlled through the engine manager.
+
+3. **Removed `_get_sqla_engine()` method**: The private `_get_sqla_engine()` method has been removed from the `Database` model. All engine creation now goes through the `EngineManager`.
+
+#### New Configuration Options
+
+```python
+# Engine manager mode:
+# - EngineModes.NEW: Creates a new engine for every connection (default, original behavior)
+# - EngineModes.SINGLETON: Reuses engines with connection pooling
+from superset.engines.manager import EngineModes
+ENGINE_MANAGER_MODE = EngineModes.NEW
+
+# Cleanup interval for abandoned locks (default: 5 minutes)
+from datetime import timedelta
+ENGINE_MANAGER_CLEANUP_INTERVAL = timedelta(minutes=5)
+
+# Automatically start cleanup thread for SINGLETON mode (default: True)
+ENGINE_MANAGER_AUTO_START_CLEANUP = True
+```
+
+#### Migration Guide
+
+- If you were using the `nullpool` parameter, remove it from your calls
+- If you had a custom `SSH_TUNNEL_MANAGER_CLASS`, refactor to use the new EngineManager architecture
+- If you need connection pooling, set `ENGINE_MANAGER_MODE = EngineModes.SINGLETON` and configure the pool in your database's `extra` JSON field
+
 ### WebSocket config for GAQ with Docker
 
 [35896](https://github.com/apache/superset/pull/35896) and [37624](https://github.com/apache/superset/pull/37624) updated documentation on how to run and configure Superset with Docker. Specifically for the WebSocket configuration, a new `docker/superset-websocket/config.example.json` was added to the repo, so that users could copy it to create a `docker/superset-websocket/config.json` file. The existing `docker/superset-websocket/config.json` was removed and git-ignored, so if you're using GAQ / WebSocket make sure to:
