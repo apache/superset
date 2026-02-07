@@ -17,6 +17,7 @@
  * under the License.
  */
 import '@testing-library/jest-dom';
+import { ObjectFormattingEnum } from '@superset-ui/chart-controls';
 import {
   render,
   screen,
@@ -1252,7 +1253,7 @@ describe('plugin-chart-table', () => {
                         column: 'sum__num',
                         operator: '>',
                         targetValue: 2467,
-                        toAllRow: true,
+                        columnFormatting: ObjectFormattingEnum.ENTIRE_ROW,
                       },
                     ],
                   },
@@ -1288,7 +1289,7 @@ describe('plugin-chart-table', () => {
                         column: 'sum__num',
                         operator: '>',
                         targetValue: 2467,
-                        toTextColor: true,
+                        objectFormatting: ObjectFormattingEnum.TEXT_COLOR,
                       },
                     ],
                   },
@@ -1321,8 +1322,8 @@ describe('plugin-chart-table', () => {
                         column: 'sum__num',
                         operator: '>',
                         targetValue: 2467,
-                        toAllRow: true,
-                        toTextColor: true,
+                        columnFormatting: ObjectFormattingEnum.ENTIRE_ROW,
+                        objectFormatting: ObjectFormattingEnum.TEXT_COLOR,
                       },
                     ],
                   },

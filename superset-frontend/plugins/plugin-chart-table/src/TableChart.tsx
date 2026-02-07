@@ -74,7 +74,10 @@ import {
   TableOutlined,
 } from '@ant-design/icons';
 import { isEmpty, debounce, isEqual } from 'lodash';
-import { ColorFormatters } from '@superset-ui/chart-controls';
+import {
+  ColorFormatters,
+  ObjectFormattingEnum,
+} from '@superset-ui/chart-controls';
 import {
   ColorSchemeEnum,
   DataColumnMeta,
@@ -877,7 +880,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         basicColorFormatters.length > 0;
       const valueRange =
         !hasBasicColorFormatters &&
-        !hasColumnColorFormatters &&
         (config.showCellBars === undefined
           ? showCellBars
           : config.showCellBars) &&
@@ -915,6 +917,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
           let backgroundColor;
           let color;
+          let backgroundColorCellBar;
+          let valueRangeFlag = true;
           let arrow = '';
           const originKey = column.key.substring(column.label.length).trim();
           if (!hasColumnColorFormatters && hasBasicColorFormatters) {
@@ -935,18 +939,43 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 formatter.getColorFromValue(valueToFormat);
               if (!formatterResult) return;
 
-              if (formatter.toTextColor) {
+              if (
+                formatter.objectFormatting === ObjectFormattingEnum.TEXT_COLOR
+              ) {
                 color = formatterResult.slice(0, -2);
+              } else if (
+                formatter.objectFormatting === ObjectFormattingEnum.CELL_BAR
+              ) {
+                if (showCellBars)
+                  backgroundColorCellBar = formatterResult.slice(0, -2);
               } else {
                 backgroundColor = formatterResult;
+                valueRangeFlag = false;
               }
             };
             columnColorFormatters
-              .filter(formatter => formatter.column === column.key)
-              .forEach(formatter => applyFormatter(formatter, value));
+              .filter(formatter => {
+                if (formatter.columnFormatting) {
+                  return formatter.columnFormatting === column.key;
+                }
+                return formatter.column === column.key;
+              })
+              .forEach(formatter => {
+                let valueToFormat;
+                if (formatter.columnFormatting) {
+                  valueToFormat = row.original[formatter.column];
+                } else {
+                  valueToFormat = value;
+                }
+                applyFormatter(formatter, valueToFormat);
+              });
 
             columnColorFormatters
-              .filter(formatter => formatter.toAllRow)
+              .filter(
+                formatter =>
+                  formatter.columnFormatting ===
+                  ObjectFormattingEnum.ENTIRE_ROW,
+              )
               .forEach(formatter =>
                 applyFormatter(formatter, row.original[formatter.column]),
               );
@@ -969,6 +998,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             text-align: ${sharedStyle.textAlign};
             white-space: ${value instanceof Date ? 'nowrap' : undefined};
             position: relative;
+            font-weight: ${color ? `bold` : 'normal'};
             background: ${backgroundColor || undefined};
             padding-left: ${column.isChildColumn
               ? `${theme.sizeUnit * 5}px`
@@ -982,6 +1012,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             top: 0;
             ${valueRange &&
             typeof value === 'number' &&
+            valueRangeFlag &&
             `
                 width: ${`${cellWidth({
                   value: value as number,
@@ -993,11 +1024,14 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                   valueRange,
                   alignPositiveNegative,
                 })}%`};
-                background-color: ${cellBackground({
-                  value: value as number,
-                  colorPositiveNegative,
-                  theme,
-                })};
+                background-color: ${
+                  (backgroundColorCellBar && `${backgroundColorCellBar}99`) ||
+                  cellBackground({
+                    value: value as number,
+                    colorPositiveNegative,
+                    theme,
+                  })
+                };
               `}
           `;
 
