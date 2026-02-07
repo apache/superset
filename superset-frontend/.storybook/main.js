@@ -23,8 +23,13 @@ const customConfig = require('../webpack.config.js');
 // Filter out plugins that shouldn't be included in Storybook's static build
 // ReactRefreshWebpackPlugin adds Fast Refresh code that requires a dev server runtime,
 // which isn't available when serving the static storybook build
+// ForkTsCheckerWebpackPlugin causes TypeScript project reference errors in Storybook context
+const pluginsToExclude = [
+  'ReactRefreshWebpackPlugin',
+  'ForkTsCheckerWebpackPlugin',
+];
 const filteredPlugins = customConfig.plugins.filter(
-  plugin => plugin.constructor.name !== 'ReactRefreshWebpackPlugin',
+  plugin => !pluginsToExclude.includes(plugin.constructor.name),
 );
 
 // Deep clone and modify rules to disable React Fast Refresh and dev mode in SWC loader
