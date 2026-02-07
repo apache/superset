@@ -188,14 +188,22 @@ export const DataTablesPane = ({
     queryForce,
     ownState,
     isRequest: isRequest.results,
-    setForceQuery,
-    isVisible: ResultTypes.Results === activeTabKey,
+    actions,
     canDownload,
-  }).map((pane, idx) => ({
-    key: idx === 0 ? ResultTypes.Results : `${ResultTypes.Results} ${idx + 1}`,
-    label: idx === 0 ? t('Results') : t('Results %s', idx + 1),
-    children: pane,
-  }));
+  }).map((pane, idx) => {
+      const tabKey =
+        idx === 0 ? ResultTypes.Results : `${ResultTypes.Results} ${idx + 1}`;
+    
+      return {
+        key: tabKey,
+        label: idx === 0 ? t('Results') : t('Results %s', idx + 1),
+        children:
+          activeTabKey === tabKey ? (
+            pane
+          ) : null,
+      };
+    });
+
 
   const tabItems = [
     ...queryResultsPanes,
