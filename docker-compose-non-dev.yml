@@ -17,15 +17,10 @@
 
 # -----------------------------------------------------------------------
 # We don't support docker compose for production environments.
-# If you choose to use this type of deployment make sure to
-# create you own docker environment file (docker/.env) with your own
-# unique random secure passwords and SECRET_KEY.
-#
-# For verbose logging during development:
-# - Set SUPERSET_LOG_LEVEL=debug in docker/.env-local for detailed Superset logs
 # -----------------------------------------------------------------------
+
 x-superset-volumes:
-  &superset-volumes # /app/pythonpath_docker will be appended to the PYTHONPATH in the final container
+  &superset-volumes
   - ./docker:/app/docker
   - superset_home:/app/superset_home
 
@@ -45,9 +40,9 @@ services:
 
   db:
     env_file:
-      - path: docker/.env # default
+      - path: docker/.env
         required: true
-      - path: docker/.env-local # optional override
+      - path: docker/.env-local
         required: false
     image: postgres:16
     container_name: superset_db
@@ -58,9 +53,9 @@ services:
 
   superset:
     env_file:
-      - path: docker/.env # default
+      - path: docker/.env
         required: true
-      - path: docker/.env-local # optional override
+      - path: docker/.env-local
         required: false
     build:
       <<: *common-build
@@ -69,7 +64,7 @@ services:
     user: "root"
     restart: unless-stopped
     ports:
-      - 8088:8088
+      - "8088:8088"
     depends_on:
       superset-init:
         condition: service_completed_successfully
@@ -81,9 +76,9 @@ services:
       <<: *common-build
     command: ["/app/docker/docker-init.sh"]
     env_file:
-      - path: docker/.env # default
+      - path: docker/.env
         required: true
-      - path: docker/.env-local # optional override
+      - path: docker/.env-local
         required: false
     depends_on:
       db:
@@ -101,9 +96,9 @@ services:
     container_name: superset_worker
     command: ["/app/docker/docker-bootstrap.sh", "worker"]
     env_file:
-      - path: docker/.env # default
+      - path: docker/.env
         required: true
-      - path: docker/.env-local # optional override
+      - path: docker/.env-local
         required: false
     restart: unless-stopped
     depends_on:
@@ -124,9 +119,9 @@ services:
     container_name: superset_worker_beat
     command: ["/app/docker/docker-bootstrap.sh", "beat"]
     env_file:
-      - path: docker/.env # default
+      - path: docker/.env
         required: true
-      - path: docker/.env-local # optional override
+      - path: docker/.env-local
         required: false
     restart: unless-stopped
     depends_on:
@@ -136,6 +131,19 @@ services:
     volumes: *superset-volumes
     healthcheck:
       disable: true
+
+  # -------------------------------
+  # Cloudflare Tunnel (PUBLIC URL)
+  # -------------------------------
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: superset_cloudflared
+    depends_on:
+      - superset
+    command: >
+      tunnel --no-autoupdate
+      --url http://superset_app:8088
+    restart: unless-stopped
 
 volumes:
   superset_home:
