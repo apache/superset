@@ -16,57 +16,117 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-/**
- * This is a Superset-specific wrapper around the generic CopyToClipboard
- * component from @superset-ui/core. It integrates with Superset's toast
- * notification system to show success/error messages.
- *
- * For the generic component without toast integration, import directly from:
- * import { CopyToClipboard } from '@superset-ui/core/components';
- */
+import { Component, cloneElement, ReactElement } from 'react';
 import { t } from '@apache-superset/core';
-import {
-  CopyToClipboard as BaseCopyToClipboard,
-  type CopyToClipboardProps as BaseCopyToClipboardProps,
-} from '@superset-ui/core/components';
-import withToasts, { type ToastProps } from '../MessageToasts/withToasts';
+import { css, SupersetTheme } from '@apache-superset/core/ui';
+import copyTextToClipboard from 'src/utils/copy';
+import { Tooltip } from '@superset-ui/core/components';
+import withToasts from '../MessageToasts/withToasts';
+import type { CopyToClipboardProps } from './types';
 
-export interface CopyToClipboardProps extends Omit<
-  BaseCopyToClipboardProps,
-  'onSuccess' | 'onError'
-> {
-  /** Custom success message (defaults to "Copied to clipboard!") */
-  successMessage?: string;
-  /** Custom error message (defaults to browser not supporting copying message) */
-  errorMessage?: string;
+const defaultProps: Partial<CopyToClipboardProps> = {
+  copyNode: <span>{t('Copy')}</span>,
+  onCopyEnd: () => {},
+  shouldShowText: true,
+  wrapped: true,
+  tooltipText: t('Copy to clipboard'),
+  hideTooltip: false,
+};
+
+class CopyToClip extends Component<CopyToClipboardProps> {
+  static defaultProps = defaultProps;
+
+  constructor(props: CopyToClipboardProps) {
+    super(props);
+    this.copyToClipboard = this.copyToClipboard.bind(this);
+    this.onClick = this.onClick.bind(this);
+  }
+
+  onClick() {
+    if (this.props.getText) {
+      this.props.getText((d: string) => {
+        this.copyToClipboard(Promise.resolve(d));
+      });
+    } else {
+      this.copyToClipboard(Promise.resolve(this.props.text || ''));
+    }
+  }
+
+  getDecoratedCopyNode() {
+    return cloneElement(this.props.copyNode as ReactElement, {
+      style: { cursor: 'pointer' },
+      onClick: this.onClick,
+    });
+  }
+
+  copyToClipboard(textToCopy: Promise<string>) {
+    copyTextToClipboard(() => textToCopy)
+      .then(() => {
+        this.props.addSuccessToast(t('Copied to clipboard!'));
+      })
+      .catch(() => {
+        this.props.addDangerToast(
+          t(
+            'Sorry, your browser does not support copying. Use Ctrl / Cmd + C!',
+          ),
+        );
+      })
+      .finally(() => {
+        if (this.props.onCopyEnd) this.props.onCopyEnd();
+      });
+  }
+
+  renderTooltip(cursor: string) {
+    return (
+      <>
+        {!this.props.hideTooltip ? (
+          <Tooltip
+            id="copy-to-clipboard-tooltip"
+            placement="topRight"
+            style={{ cursor }}
+            title={this.props.tooltipText || ''}
+            trigger={['hover']}
+            arrow={{ pointAtCenter: true }}
+          >
+            {this.getDecoratedCopyNode()}
+          </Tooltip>
+        ) : (
+          this.getDecoratedCopyNode()
+        )}
+      </>
+    );
+  }
+
+  renderNotWrapped() {
+    return this.renderTooltip('pointer');
+  }
+
+  renderLink() {
+    return (
+      <span css={{ display: 'inline-flex', alignItems: 'center' }}>
+        {this.props.shouldShowText && this.props.text && (
+          <span
+            data-test="short-url"
+            css={(theme: SupersetTheme) => css`
+              margin-right: ${theme.sizeUnit}px;
+            `}
+          >
+            {this.props.text}
+          </span>
+        )}
+        {this.renderTooltip('pointer')}
+      </span>
+    );
+  }
+
+  render() {
+    const { wrapped } = this.props;
+    if (!wrapped) {
+      return this.renderNotWrapped();
+    }
+    return this.renderLink();
+  }
 }
 
-type CopyToClipboardWithToastsProps = CopyToClipboardProps & ToastProps;
-
-function CopyToClipboardWithToasts({
-  addSuccessToast,
-  addDangerToast,
-  successMessage,
-  errorMessage,
-  ...props
-}: CopyToClipboardWithToastsProps) {
-  return (
-    <BaseCopyToClipboard
-      {...props}
-      onSuccess={() =>
-        addSuccessToast(successMessage || t('Copied to clipboard!'))
-      }
-      onError={() =>
-        addDangerToast(
-          errorMessage ||
-            t(
-              'Sorry, your browser does not support copying. Use Ctrl / Cmd + C!',
-            ),
-        )
-      }
-    />
-  );
-}
-
-export const CopyToClipboard = withToasts(CopyToClipboardWithToasts);
+export const CopyToClipboard = withToasts(CopyToClip);
+export type { CopyToClipboardProps };
