@@ -1186,3 +1186,40 @@ def test_get_catalogs_accessible_by_user_schema_access(
     catalogs = {"catalog1", "catalog2"}
 
     assert sm.get_catalogs_accessible_by_user(database, catalogs) == {"catalog2"}
+
+
+def test_get_rls_filters_uses_table_id_directly(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Test that get_rls_filters() uses table.id directly instead of table.data["id"].
+
+    Accessing table.data triggers the full data property chain including select_star,
+    which requires a live database engine connection. When the DB is unreachable, this
+    causes the entire dashboard GET endpoint to fail with a 500 error.
+
+    This test ensures we use the direct .id attribute and never access .data,
+    preventing regressions that would break dashboard loading when DBs are unavailable.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+
+    # Create a mock table where .data raises an exception if accessed
+    table = mocker.MagicMock()
+    table.id = 42
+    type(table).data = mocker.PropertyMock(
+        side_effect=Exception(
+            "table.data should not be accessed - use table.id directly"
+        )
+    )
+
+    # Mock user context
+    mock_user = mocker.MagicMock()
+    mock_user.roles = [mocker.MagicMock(id=1)]
+    mocker.patch("superset.security.manager.g", user=mock_user)
+    mocker.patch.object(sm, "get_user_roles", return_value=mock_user.roles)
+
+    # Call get_rls_filters - if it accesses table.data, the PropertyMock will raise
+    # If it uses table.id directly (correct behavior), it will complete successfully
+    result = sm.get_rls_filters(table)
+    assert isinstance(result, list)
