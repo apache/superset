@@ -15,13 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Optional
 
 import pytest
 from pytest_mock import MockerFixture
 from sqlalchemy import column, types
-from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION, ENUM, JSON
+from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION, ENUM, INTERVAL, JSON
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.engine.url import make_url
 
@@ -280,3 +280,34 @@ SELECT * \nFROM my_schema.my_table
  LIMIT :param_1
     """.strip()
     )
+
+
+def test_interval_type_mutator() -> None:
+    """
+    DB Eng Specs (postgres): Test INTERVAL type mutator
+
+    INTERVAL values are converted to milliseconds so users can apply
+    the built-in "DURATION" number format for human-readable display.
+    """
+    mutator = spec.column_type_mutators[INTERVAL]
+
+    # Test timedelta conversion (most common case from psycopg2)
+    # Result is in milliseconds for compatibility with DURATION formatter
+    td = timedelta(days=1, hours=2, minutes=30, seconds=45)
+    assert mutator(td) == 95445000.0  # Total ms: (1*86400 + 2*3600 + 30*60 + 45) * 1000
+
+    # Test numeric values (assumed to be seconds) are converted to milliseconds
+    assert mutator(12345) == 12345000.0
+    assert mutator(123.45) == 123450.0
+
+    # Test None returns 0 (for aggregations)
+    assert mutator(None) == 0
+
+    # Test string values pass through unchanged
+    # (PostgreSQL may return string representations in some cases)
+    assert mutator("1 day 02:30:45") == "1 day 02:30:45"
+    assert mutator("P1DT2H30M45S") == "P1DT2H30M45S"  # ISO 8601 duration
+
+    # Test other types pass through unchanged
+    assert mutator([1, 2, 3]) == [1, 2, 3]
+    assert mutator({"days": 1}) == {"days": 1}
