@@ -3022,6 +3022,21 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             ) in ["/roles", "/users", "/groups", "registrations"]:
                 self.appbuilder.baseviews.remove(view)
 
+        # When legacy FAB password views are disabled, unregister their routes
+        # so direct URL access to /superset/resetpassword and /superset/resetmypassword
+        # is no longer possible (SPA handles password changes post-porting).
+        if not current_app.config.get("ENABLE_LEGACY_FAB_PASSWORD_VIEWS", False):
+            from flask_appbuilder.security.views import (
+                ResetMyPasswordView,
+                ResetPasswordView,
+            )
+
+            for view in list(self.appbuilder.baseviews):
+                if isinstance(view, (ResetPasswordView, ResetMyPasswordView)):
+                    if getattr(view, "blueprint", None) is not None:
+                        current_app.unregister_blueprint(view.blueprint)
+                    self.appbuilder.baseviews.remove(view)
+
         security_menu = next(
             (m for m in self.appbuilder.menu.get_list() if m.name == "Security"), None
         )
