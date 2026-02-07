@@ -27,11 +27,15 @@ import {
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 
 // Mock the clipboard utility
-const mockCopyTextToClipboard = jest.fn(() => Promise.resolve());
+const mockCopyTextToClipboard = jest.fn<
+  Promise<void>,
+  [() => Promise<string>]
+>(() => Promise.resolve());
 jest.mock('src/utils/copy', () => ({
   __esModule: true,
-  default: (...args: unknown[]) => mockCopyTextToClipboard(...args),
-  copyTextToClipboard: (...args: unknown[]) => mockCopyTextToClipboard(...args),
+  default: (getText: () => Promise<string>) => mockCopyTextToClipboard(getText),
+  copyTextToClipboard: (getText: () => Promise<string>) =>
+    mockCopyTextToClipboard(getText),
 }));
 import { DataTablesPane } from '..';
 import { createDataTablesPaneProps } from './fixture';
@@ -121,7 +125,8 @@ describe('DataTablesPane', () => {
 
     userEvent.click(screen.getByLabelText('Copy'));
     expect(mockCopyTextToClipboard).toHaveBeenCalledTimes(1);
-    const value = await mockCopyTextToClipboard.mock.calls[0][0]();
+    const getText = mockCopyTextToClipboard.mock.calls[0]![0];
+    const value = await getText();
     expect(value).toBe('__timestamp\tgenre\n2009-01-01 00:00:00\tAction\n');
     fetchMock.clearHistory().removeRoutes();
   });
