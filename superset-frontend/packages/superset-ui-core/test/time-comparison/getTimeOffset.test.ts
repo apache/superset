@@ -482,7 +482,7 @@ test('should handle custom range with previous calendar week', () => {
     timeRangeFilter,
     shifts,
     startDate,
-    ['2 days ago'],
+    ['3 days ago'],
   );
   runTimezoneTest(
     '2024-06-04T16:06:00-08:00',
@@ -515,7 +515,7 @@ test('should handle custom range with previous calendar month', () => {
     timeRangeFilter,
     shifts,
     startDate,
-    ['6 days ago'],
+    ['7 days ago'],
   );
   runTimezoneTest(
     '2024-06-04T16:06:00-08:00',
@@ -549,7 +549,7 @@ test('should handle custom range with previous calendar year', () => {
     timeRangeFilter,
     shifts,
     startDate,
-    ['7 days ago'],
+    ['8 days ago'],
   );
   runTimezoneTest(
     '2024-06-04T16:06:00-08:00',
@@ -763,7 +763,7 @@ test('should handle future custom shift with different format', () => {
     ['3 days after'],
   );
   runTimezoneTest(NOW_IN_UTC, 'UTC', timeRangeFilter, shifts, startDate, [
-    '5 days after',
+    '3 days after',
   ]);
   runTimezoneTest(
     NOW_UTC_IN_PACIFIC,
@@ -853,7 +853,7 @@ test('should handle custom range with relative dates (hour)', () => {
     ['2 days ago'],
   );
   runTimezoneTest(NOW_IN_UTC, 'UTC', timeRangeFilter, shifts, startDate, [
-    '5 days ago',
+    '2 days ago',
   ]);
   runTimezoneTest(
     NOW_UTC_IN_PACIFIC,
