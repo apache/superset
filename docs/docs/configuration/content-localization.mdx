@@ -74,9 +74,9 @@ are stored inside `json_metadata.native_filter_configuration[].translations`.
 
 When a user views a dashboard, the API resolves the locale using this priority chain:
 
-1. **Guest token locale** (embedded dashboards)
-2. **`Accept-Language` header**
-3. **User preference** (`user.language`)
+1. **Explicit locale parameter** (API override, if provided)
+2. **Session locale** (`session["locale"]`, set via language switcher or `/lang/<locale>`)
+3. **`Accept-Language` header** (browser preference)
 4. **Config default** (`BABEL_DEFAULT_LOCALE`)
 
 ### Fallback Chain
@@ -91,7 +91,7 @@ If a translation is missing for the resolved locale:
 
 ### Dashboard Translations
 
-1. Open **Dashboard Properties** (pencil icon &rarr; **Edit Dashboard Properties**)
+1. Enter edit mode (**Edit dashboard** button) &rarr; open the **&hellip;** menu &rarr; **Edit properties**
 2. Click the **Translations** button next to the Title field
 3. Select a language and enter the translated title
 4. Click **Save**
@@ -137,8 +137,10 @@ The API supports two modes controlled by the `include_translations` query parame
 
 ```
 GET /api/v1/dashboard/123
-Accept-Language: de
 ```
+
+When the user's session locale is `de` (set via the language switcher), the response
+returns localized values:
 
 ```json
 {
