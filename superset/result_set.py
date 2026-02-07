@@ -99,6 +99,31 @@ def convert_to_string(value: Any) -> str:
     return str(value)
 
 
+def normalize_column_name(value: Any, index: int) -> str:
+    """
+    Normalize a column name from the cursor description.
+
+    Some databases (e.g., MSSQL) return empty strings for unnamed columns
+    (e.g., SELECT COUNT(*) without an alias). This function ensures every
+    column has a valid, non-empty name by generating a positional fallback
+    name when needed.
+
+    :param value: The column name from cursor.description (can be str, bytes, None, etc.)
+    :param index: The 0-based column position, used to generate fallback names
+    :return: A non-empty string column name
+    """
+    if value is None:
+        return f"_col{index}"
+
+    name = convert_to_string(value)
+
+    # Handle empty or whitespace-only names
+    if not name or not name.strip():
+        return f"_col{index}"
+
+    return name
+
+
 class SupersetResultSet:
     def __init__(  # pylint: disable=too-many-locals  # noqa: C901
         self,
@@ -116,8 +141,13 @@ class SupersetResultSet:
 
         if cursor_description:
             # get deduped list of column names
+            # Use normalize_column_name to handle None/empty names from databases
+            # like MSSQL that return empty strings for unnamed columns
             column_names = dedup(
-                [convert_to_string(col[0]) for col in cursor_description]
+                [
+                    normalize_column_name(col[0], idx)
+                    for idx, col in enumerate(cursor_description)
+                ]
             )
 
             # fix cursor descriptor with the deduped names
