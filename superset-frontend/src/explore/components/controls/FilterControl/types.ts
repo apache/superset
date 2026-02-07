@@ -26,10 +26,3 @@ export enum Clauses {
   Having = 'HAVING',
   Where = 'WHERE',
 }
-
-// Re-export AdhocFilter types for convenient access
-export type {
-  AdhocFilterSimple,
-  AdhocFilterSql,
-  AdhocFilterType,
-} from './adhocFilterType';

@@ -41,7 +41,6 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  // @ts-ignore
   window.location = originalLocation;
   fetchMock.clearHistory().removeRoutes();
   jest.clearAllMocks(); // Clears mock history but keeps spy in place
@@ -524,9 +523,9 @@ test('should show missing params state', () => {
 });
 
 test('should show missing dataset state', () => {
-  // @ts-ignore
+  // @ts-expect-error - overriding window.location for test
   delete window.location;
-  // @ts-ignore
+  // @ts-expect-error - overriding window.location for test
   window.location = { search: '?slice_id=152' };
   const props = createProps({ datasource: fallbackExploreInitialData.dataset });
   render(<DatasourceControl {...props} />, { useRedux: true, useRouter: true });
@@ -539,9 +538,9 @@ test('should show missing dataset state', () => {
 });
 
 test('should show forbidden dataset state', () => {
-  // @ts-ignore
+  // @ts-expect-error - overriding window.location for test
   delete window.location;
-  // @ts-ignore
+  // @ts-expect-error - overriding window.location for test
   window.location = { search: '?slice_id=152' };
   const error = {
     error_type: 'TABLE_SECURITY_ACCESS_ERROR',

@@ -154,13 +154,12 @@ def test_select_star(mocker: MockerFixture) -> None:
         query.compile(dialect=BigQueryDialect(), compile_kwargs={"literal_binds": True})
     )
 
-    engine = mocker.MagicMock()
-    engine.dialect = BigQueryDialect()
+    dialect = BigQueryDialect()
 
     sql = BigQueryEngineSpec.select_star(
         database=database,
         table=Table("my_table"),
-        engine=engine,
+        dialect=dialect,
         limit=100,
         show_cols=True,
         indent=True,

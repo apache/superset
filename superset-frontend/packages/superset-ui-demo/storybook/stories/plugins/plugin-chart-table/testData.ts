@@ -22,8 +22,8 @@ import {
   TableChartFormData,
   TableChartProps,
 } from '@superset-ui/plugin-chart-table';
-// @ts-ignore
 // eslint-disable-next-line import/extensions
+// @ts-ignore -- TS6307: this file is outside the tsconfig project scope, @ts-expect-error does not suppress project-level errors
 import birthNamesJson from './birthNames.json';
 
 export const birthNames = birthNamesJson as unknown as TableChartProps;

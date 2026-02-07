@@ -26,7 +26,7 @@ const props = {
 describe('NoAnimationDropdown', () => {
   it('requires children', () => {
     expect(() => {
-      // @ts-ignore need to test the error case
+      // @ts-expect-error need to test the error case
       render(<NoAnimationDropdown {...props} />);
     }).toThrow();
   });

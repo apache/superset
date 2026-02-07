@@ -27,7 +27,7 @@ import {
   useState,
 } from 'react';
 import { useSelector } from 'react-redux';
-import { t } from '@apache-superset/core';
+import { t, editors } from '@apache-superset/core';
 import {
   AdhocColumn,
   isAdhocColumn,
@@ -164,7 +164,7 @@ const ColumnSelectPopover = ({
     POPOVER_INITIAL_HEIGHT,
   );
 
-  const sqlEditorRef = useRef(null);
+  const sqlEditorRef = useRef<editors.EditorHandle>(null);
 
   const [calculatedColumns, simpleColumns] = useMemo(
     () =>
@@ -351,8 +351,7 @@ const ColumnSelectPopover = ({
     tab => {
       getCurrentTab(tab);
       setSelectedTab(tab);
-      // @ts-ignore
-      sqlEditorRef.current?.editor.focus();
+      sqlEditorRef.current?.focus();
     },
     [getCurrentTab],
   );
