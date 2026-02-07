@@ -19,6 +19,7 @@
 
 import cls from 'classnames';
 import { styled, useTheme } from '@apache-superset/core/ui';
+import { FeatureFlag, isFeatureEnabled } from '../../utils/featureFlags';
 import { Loading as LoaderSvg } from '../assets';
 import type { LoadingProps, SizeOption } from './types';
 
@@ -81,12 +82,15 @@ export function Loading({
     if (image) {
       return <img src={image} alt="Loading..." />;
     }
-    if (theme.brandSpinnerSvg) {
-      const svgDataUri = `data:image/svg+xml;base64,${btoa(theme.brandSpinnerSvg)}`;
-      return <img src={svgDataUri} alt="Loading..." />;
-    }
-    if (theme.brandSpinnerUrl) {
-      return <img src={theme.brandSpinnerUrl} alt="Loading..." />;
+    if (isFeatureEnabled(FeatureFlag.BrandedLoader)) {
+      if ((theme as any).brandSpinnerSvg) {
+        const svg: string = (theme as any).brandSpinnerSvg as string;
+        const svgDataUri = `data:image/svg+xml;base64,${btoa(svg)}`;
+        return <img src={svgDataUri} alt="Loading..." />;
+      }
+      if ((theme as any).brandSpinnerUrl) {
+        return <img src={(theme as any).brandSpinnerUrl as string} alt="Loading..." />;
+      }
     }
     // Default: use the imported SVG component
     return <LoaderSvg />;

@@ -64,6 +64,7 @@ from superset.superset_typing import FlaskResponse
 from superset.themes.types import Theme, ThemeMode
 from superset.themes.utils import (
     is_valid_theme,
+    sanitize_theme_tokens,
 )
 from superset.utils import core as utils, json
 from superset.utils.filters import get_dataset_access_filters
@@ -110,6 +111,7 @@ FRONTEND_CONF_KEYS = (
     "ALERT_REPORTS_DEFAULT_RETENTION",
     "ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT",
     "NATIVE_FILTER_DEFAULT_ROW_LIMIT",
+    "AUTO_APPLY_DASHBOARD_FILTERS_DEBOUNCE_MS",
     "SUPERSET_CLIENT_RETRY_ATTEMPTS",
     "SUPERSET_CLIENT_RETRY_DELAY",
     "SUPERSET_CLIENT_RETRY_BACKOFF_MULTIPLIER",
@@ -397,6 +399,23 @@ def get_theme_bootstrap_data() -> dict[str, Any]:
     # Process and validate themes
     default_theme = _process_theme(default_theme, ThemeMode.DEFAULT)
     dark_theme = _process_theme(dark_theme, ThemeMode.DARK)
+
+    # Inject branded loader tokens from config if provided
+    brand_spinner_url = app.config.get("BRAND_SPINNER_URL")
+    brand_spinner_svg = app.config.get("BRAND_SPINNER_SVG")
+    overlay_token: dict[str, Any] = {}
+    if brand_spinner_url:
+        overlay_token["brandSpinnerUrl"] = brand_spinner_url
+    if brand_spinner_svg:
+        overlay_token["brandSpinnerSvg"] = brand_spinner_svg
+    if overlay_token:
+        overlay_theme = {"token": overlay_token}
+        default_theme = sanitize_theme_tokens(
+            _merge_theme_dicts(default_theme or {}, overlay_theme)
+        )
+        dark_theme = sanitize_theme_tokens(
+            _merge_theme_dicts(dark_theme or {}, overlay_theme)
+        )
 
     return {
         "theme": {

@@ -50,6 +50,9 @@ test('uses default spinner when no theme spinner configured', () => {
 });
 
 test('uses brandSpinnerUrl from theme when configured', () => {
+  const orig = (global as any).window?.featureFlags;
+  (global as any).window = (global as any).window || {};
+  (global as any).window.featureFlags = { ...(orig || {}), BRANDED_LOADER: true };
   mockUseTheme.mockReturnValue({
     brandSpinnerUrl: '/custom/spinner.png',
   });
@@ -59,10 +62,14 @@ test('uses brandSpinnerUrl from theme when configured', () => {
   expect(loading).toBeInTheDocument();
   const img = loading.querySelector('img');
   expect(img).toHaveAttribute('src', '/custom/spinner.png');
+  (global as any).window.featureFlags = orig;
 });
 
 test('uses brandSpinnerSvg from theme when configured', () => {
   const svgContent = '<svg><circle cx="25" cy="25" r="20"/></svg>';
+  const orig = (global as any).window?.featureFlags;
+  (global as any).window = (global as any).window || {};
+  (global as any).window.featureFlags = { ...(orig || {}), BRANDED_LOADER: true };
   mockUseTheme.mockReturnValue({
     brandSpinnerSvg: svgContent,
   });
@@ -74,10 +81,14 @@ test('uses brandSpinnerSvg from theme when configured', () => {
   const src = img?.getAttribute('src');
   expect(src).toContain('data:image/svg+xml;base64,');
   expect(atob(src!.split(',')[1])).toBe(svgContent);
+  (global as any).window.featureFlags = orig;
 });
 
 test('brandSpinnerSvg takes precedence over brandSpinnerUrl', () => {
   const svgContent = '<svg><circle cx="25" cy="25" r="20"/></svg>';
+  const orig = (global as any).window?.featureFlags;
+  (global as any).window = (global as any).window || {};
+  (global as any).window.featureFlags = { ...(orig || {}), BRANDED_LOADER: true };
   mockUseTheme.mockReturnValue({
     brandSpinnerUrl: '/custom/spinner.png',
     brandSpinnerSvg: svgContent,
@@ -90,6 +101,7 @@ test('brandSpinnerSvg takes precedence over brandSpinnerUrl', () => {
   const src = img?.getAttribute('src');
   expect(src).toContain('data:image/svg+xml;base64,');
   expect(src).not.toBe('/custom/spinner.png');
+  (global as any).window.featureFlags = orig;
 });
 
 test('explicit image prop takes precedence over theme spinners', () => {

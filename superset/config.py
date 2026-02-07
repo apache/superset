@@ -165,6 +165,10 @@ ROW_LIMIT = 50000
 SAMPLES_ROW_LIMIT = 1000
 # default row limit for native filters
 NATIVE_FILTER_DEFAULT_ROW_LIMIT = 1000
+# Debounce interval (ms) for auto-applying dashboard filters on change.
+# Controls how long to wait after the last change before applying.
+# Lower values give snappier UX but may increase backend load.
+AUTO_APPLY_DASHBOARD_FILTERS_DEBOUNCE_MS = 700
 # max rows retrieved by filter select auto complete
 FILTER_SELECT_ROW_LIMIT = 10000
 
@@ -759,6 +763,17 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # @lifecycle: stable
     # @category: runtime_config
     "SQLLAB_BACKEND_PERSISTENCE": True,
+    # Automatically apply dashboard filter changes without requiring users
+    # to click an Apply button. Hides the Apply button in the Filter Bar.
+    # @lifecycle: stable
+    # @category: runtime_config
+    "AUTO_APPLY_DASHBOARD_FILTERS": True,
+    # Show a lightweight progress indicator at the top of the Filter Bar
+    # while filters are being applied. Intended to provide visual feedback
+    # during auto-apply and manual apply flows.
+    # @lifecycle: stable
+    # @category: runtime_config
+    "FILTERBAR_PROGRESS_INDICATOR": True,
     # Force SQL Lab to run async via Celery regardless of database settings
     # @lifecycle: stable
     # @category: runtime_config
@@ -2508,3 +2523,8 @@ for env_var in ENV_VAR_KEYS:
     if env_var in os.environ:
         config_var = env_var.replace("SUPERSET__", "")
         globals()[config_var] = os.environ[env_var]
+# Optional branded loader configuration (config-driven)
+# If provided and BRANDED_LOADER feature flag is enabled, the frontend Loading
+# component will prefer these values over the default spinner.
+BRAND_SPINNER_URL: str | None = None  # e.g., "/static/assets/images/my-spinner.svg"
+BRAND_SPINNER_SVG: str | None = None  # inline SVG markup as a string
