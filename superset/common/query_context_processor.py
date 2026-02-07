@@ -405,6 +405,26 @@ class QueryContextProcessor:
         return annotation_data
 
     @staticmethod
+    def _is_time_grain_value(column: Any) -> bool:
+        """
+        Check if a column value is a time grain identifier (e.g., P1D, PT1H).
+        Time grain values follow ISO 8601 duration format and should never be
+        treated as physical column names.
+
+        :param column: Column value to check
+        :return: True if the value is a time grain identifier
+        """
+        if not isinstance(column, str):
+            return False
+        # Match ISO 8601 duration format: P[n]Y/M/W/D or PT[n]H/M/S
+        # Also match week-with-epoch formats like "1969-12-28T00:00:00Z/P1W"
+        return bool(
+            re.match(r"^(P(\d+(\.\d+)?[YMWD])+|PT(\d+(\.\d+)?[HMS])+)", column)
+            or re.match(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z/P\d+[YMWD]", column)
+            or re.match(r"^P\d+[YMWD]/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", column)
+        )
+
+    @staticmethod
     def get_native_annotation_data(query_obj: QueryObject) -> dict[str, Any]:
         annotation_data = {}
         annotation_layers = [
@@ -492,6 +512,14 @@ class QueryContextProcessor:
                 if time_grain_sqla := overrides.get("time_grain_sqla"):
                     for query_object in query_context.queries:
                         query_object.extras["time_grain_sqla"] = time_grain_sqla
+                        # Remove time grain values from columns list to prevent them
+                        # from being treated as physical column names. Time grains
+                        # (P1D, PT1H, etc.) should only exist in extras metadata.
+                        query_object.columns = [
+                            col
+                            for col in query_object.columns
+                            if not self._is_time_grain_value(col)
+                        ]
 
                 if time_range := overrides.get("time_range"):
                     from_dttm, to_dttm = get_since_until_from_time_range(time_range)
