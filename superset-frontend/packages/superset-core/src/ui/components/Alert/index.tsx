@@ -19,7 +19,7 @@
 import { Alert as AntdAlert } from 'antd';
 import type { PropsWithChildren } from 'react';
 import type { AlertProps as AntdAlertProps } from 'antd/es/alert';
-import { t } from '@apache-superset/core';
+import { t } from '../../translation';
 
 /**
  * Props for the Alert component, extending Ant Design's AlertProps
