@@ -29,10 +29,8 @@ from typing import Any
 import uvicorn
 
 from superset.mcp_service.app import create_mcp_app, init_fastmcp_server
-from superset.mcp_service.mcp_config import (
-    get_mcp_factory_config,
-    MCP_STORE_CONFIG,
-)
+from superset.mcp_service.mcp_config import get_mcp_factory_config, MCP_STORE_CONFIG
+from superset.mcp_service.middleware import create_response_size_guard_middleware
 from superset.mcp_service.storage import _create_redis_store
 
 
@@ -176,6 +174,12 @@ def run_server(
 
         # Build middleware list
         middleware_list = []
+
+        # Add response size guard (protects LLM clients from huge responses)
+        if size_guard_middleware := create_response_size_guard_middleware():
+            middleware_list.append(size_guard_middleware)
+
+        # Add caching middleware
         caching_middleware = create_response_caching_middleware()
         if caching_middleware:
             middleware_list.append(caching_middleware)
