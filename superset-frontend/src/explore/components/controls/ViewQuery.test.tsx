@@ -36,11 +36,13 @@ jest.mock('react-router-dom', () => ({
 }));
 
 // Mock the clipboard utility
-const mockCopyTextToClipboard = jest.fn(() => Promise.resolve());
+const mockCopyTextToClipboard = jest.fn<Promise<void>, [string]>(() =>
+  Promise.resolve(),
+);
 jest.mock('src/utils/copy', () => ({
   __esModule: true,
-  default: (...args: unknown[]) => mockCopyTextToClipboard(...args),
-  copyTextToClipboard: (...args: unknown[]) => mockCopyTextToClipboard(...args),
+  default: (text: string) => mockCopyTextToClipboard(text),
+  copyTextToClipboard: (text: string) => mockCopyTextToClipboard(text),
 }));
 
 const mockState = (
