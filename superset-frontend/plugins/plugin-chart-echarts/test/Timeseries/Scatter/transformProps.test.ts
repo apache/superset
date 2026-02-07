@@ -63,10 +63,14 @@ describe('Scatter Chart X-axis Time Formatting', () => {
     theme: supersetTheme,
   };
 
-  test('xAxisTimeFormat has no default formatter', () => {
+  test('xAxisTimeFormat has no formatter when explicitly undefined', () => {
     const chartProps = new ChartProps({
       ...baseChartPropsConfig,
-      formData: baseFormData,
+      formData: {
+        ...baseFormData,
+        // Explicitly override the default smart_date format to test no-format case
+        xAxisTimeFormat: undefined,
+      },
     });
 
     const transformedProps = transformProps(
@@ -76,6 +80,8 @@ describe('Scatter Chart X-axis Time Formatting', () => {
     expect(transformedProps.echartOptions.xAxis).toHaveProperty('axisLabel');
     const xAxis = transformedProps.echartOptions.xAxis as any;
     expect(xAxis.axisLabel).toHaveProperty('formatter');
+    // When no format is specified, formatter should be undefined
+    // (D3 locale formatting is only applied when a format is explicitly set)
     expect(xAxis.axisLabel.formatter).toBeUndefined();
   });
 
@@ -96,10 +102,9 @@ describe('Scatter Chart X-axis Time Formatting', () => {
 
       const xAxis = transformedProps.echartOptions.xAxis as any;
       expect(xAxis.axisLabel).toHaveProperty('formatter');
-      if (format === SMART_DATE_ID) {
-        expect(xAxis.axisLabel.formatter).toBeUndefined();
-      } else {
-        expect(typeof xAxis.axisLabel.formatter).toBe('function');
+      // All time formats including SMART_DATE should have a formatter function
+      expect(typeof xAxis.axisLabel.formatter).toBe('function');
+      if (format !== SMART_DATE_ID) {
         expect(xAxis.axisLabel.formatter.id).toBe(format);
       }
     },
