@@ -33,6 +33,12 @@ export function getDefaultTooltip(refs: Refs) {
     borderColor: 'transparent',
     // CSS hack applied on this class to resolve https://github.com/apache/superset/issues/30058
     className: 'echarts-tooltip',
+    // allow scrolling inside tooltip without re-triggering the chart
+    enterable: true,
+    // keep within viewport and above header; enable internal scroll
+    confine: true,
+    // optional: reduce flicker when moving in/out of tooltip
+    hideDelay: 50,
     position: (
       canvasMousePos: [number, number],
       params: CallbackDataParams,
@@ -47,20 +53,36 @@ export function getDefaultTooltip(refs: Refs) {
       const divRect = refs.divRef?.current?.getBoundingClientRect();
 
       // The mouse coordinates relative to the whole window
-      // The first parameter to the position function is the mouse position relative to the canvas
       const mouseX = canvasMousePos[0] + (divRect?.x || 0);
       const mouseY = canvasMousePos[1] + (divRect?.y || 0);
+
+      // Available viewport dimensions
+      const viewportWidth = document.documentElement.clientWidth;
+      const viewportHeight = document.documentElement.clientHeight;
 
       // The width and height of the tooltip dom element
       const tooltipWidth = sizes.contentSize[0];
       const tooltipHeight = sizes.contentSize[1];
 
+      // Cap tooltip height to the smaller of 800px or 80vh
+      const maxAllowedHeight = Math.min(800, Math.floor(viewportHeight * 0.8));
+
+      if (tooltipDom) {
+        tooltipDom.style.maxHeight = `${maxAllowedHeight}px`;
+        tooltipDom.style.overflow = 'auto';
+        // ensure interactions within tooltip don't get swallowed
+        tooltipDom.style.pointerEvents = 'auto';
+      }
+
+      // Use effective height for positioning after applying the cap
+      const effectiveTooltipHeight = Math.min(tooltipHeight, maxAllowedHeight);
+
       // Start by placing the tooltip top and right relative to the mouse position
       let xPos = mouseX + TOOLTIP_POINTER_MARGIN;
-      let yPos = mouseY - TOOLTIP_POINTER_MARGIN - tooltipHeight;
+      let yPos = mouseY - TOOLTIP_POINTER_MARGIN - effectiveTooltipHeight;
 
       // The tooltip is overflowing past the right edge of the window
-      if (xPos + tooltipWidth >= document.documentElement.clientWidth) {
+      if (xPos + tooltipWidth >= viewportWidth) {
         // Attempt to place the tooltip to the left of the mouse position
         xPos = mouseX - TOOLTIP_POINTER_MARGIN - tooltipWidth;
 
@@ -76,7 +98,7 @@ export function getDefaultTooltip(refs: Refs) {
         yPos = mouseY + TOOLTIP_POINTER_MARGIN;
 
         // The tooltip is overflowing past the bottom edge of the window
-        if (yPos + tooltipHeight >= document.documentElement.clientHeight)
+        if (yPos + effectiveTooltipHeight >= viewportHeight)
           // Place the tooltip a fixed distance from the top edge of the window
           yPos = TOOLTIP_OVERFLOW_MARGIN;
       }
