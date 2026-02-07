@@ -107,4 +107,22 @@ export class DashboardPage {
     await this.page.getByText('Export as Example').click();
     return downloadPromise;
   }
+
+  /**
+   * Enter edit mode by clicking "Edit dashboard" button.
+   * Required before accessing edit-only menu items like "Edit properties".
+   */
+  async enterEditMode(): Promise<void> {
+    await this.page.click('[data-test="edit-dashboard-button"]');
+  }
+
+  /**
+   * Click "Edit properties" in the header actions menu.
+   * Requires edit mode — call enterEditMode() first.
+   */
+  async clickEditProperties(): Promise<void> {
+    await this.openHeaderActionsMenu();
+    const menu = this.page.locator(DashboardPage.SELECTORS.HEADER_ACTIONS_MENU);
+    await menu.getByText('Edit properties', { exact: true }).click();
+  }
 }

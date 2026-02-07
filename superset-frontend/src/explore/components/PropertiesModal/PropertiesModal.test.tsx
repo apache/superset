@@ -539,7 +539,7 @@ test('clicking translation button opens translation editor modal', async () => {
 
 test('save includes translations in PUT payload', async () => {
   const put = jest.spyOn(SupersetClient, 'put');
-  put.mockResolvedValue({ json: { result: {} } } as ReturnType<
+  put.mockResolvedValue({ json: { result: {} } } as unknown as ReturnType<
     typeof SupersetClient.put
   >);
   mockedIsFeatureEnabled.mockImplementation(
