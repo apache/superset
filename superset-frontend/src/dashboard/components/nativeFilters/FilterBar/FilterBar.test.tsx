@@ -215,6 +215,20 @@ describe('FilterBar', () => {
     expect(screen.getByText('Apply filters')).toBeInTheDocument();
   });
 
+  test('hides Apply button when AUTO_APPLY_DASHBOARD_FILTERS is enabled', () => {
+    const original = { ...(global as any).window.featureFlags };
+    (global as any).window.featureFlags = {
+      ...original,
+      AUTO_APPLY_DASHBOARD_FILTERS: true,
+    };
+    try {
+      renderWrapper();
+      expect(screen.queryByText('Apply filters')).not.toBeInTheDocument();
+    } finally {
+      (global as any).window.featureFlags = original;
+    }
+  });
+
   test('should render the collapse icon', () => {
     renderWrapper();
     expect(
