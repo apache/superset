@@ -38,7 +38,13 @@ export default function FallbackComponent({ error, height, width }: Props) {
         <div>
           <b>{t('Oops! An error occurred!')}</b>
         </div>
-        <code>{error ? error.toString() : 'Unknown Error'}</code>
+        <code>
+          {error instanceof Error
+            ? error.message
+            : error
+              ? String(error)
+              : t('Unknown Error')}
+        </code>
       </div>
     </div>
   );

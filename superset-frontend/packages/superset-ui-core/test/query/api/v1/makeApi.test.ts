@@ -151,7 +151,7 @@ describe('makeApi()', () => {
       makeApi({
         method: 'POST',
         endpoint: '/test-formdata',
-        // @ts-ignore
+        // @ts-expect-error
         requestType: 'text',
       });
     }).toThrow('Invalid request payload type');

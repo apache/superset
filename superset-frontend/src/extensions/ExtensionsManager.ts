@@ -156,11 +156,11 @@ class ExtensionsManager {
     });
 
     // Initialize Webpack module federation
-    // @ts-ignore
+    // @ts-expect-error
     await __webpack_init_sharing__('default');
     const container = (window as any)[id];
 
-    // @ts-ignore
+    // @ts-expect-error
     await container.init(__webpack_share_scopes__.default);
 
     const factory = await container.get(exposedModules[0]);

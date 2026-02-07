@@ -82,7 +82,6 @@ export default class EchartsTimeseriesChartPlugin extends EchartsChartPlugin<
         ],
         queryObjectCount: 2,
       },
-      // @ts-ignore
       transformProps,
     });
   }

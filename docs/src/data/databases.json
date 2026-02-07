@@ -1,16 +1,16 @@
 {
-  "generated": "2026-01-27T23:17:43.310Z",
+  "generated": "2026-01-31T10:47:01.730Z",
   "statistics": {
-    "totalDatabases": 68,
-    "withDocumentation": 68,
-    "withConnectionString": 68,
-    "withDrivers": 35,
+    "totalDatabases": 70,
+    "withDocumentation": 70,
+    "withConnectionString": 70,
+    "withDrivers": 36,
     "withAuthMethods": 4,
-    "supportsJoins": 64,
-    "supportsSubqueries": 65,
+    "supportsJoins": 66,
+    "supportsSubqueries": 67,
     "supportsDynamicSchema": 15,
     "supportsCatalog": 9,
-    "averageScore": 33,
+    "averageScore": 32,
     "maxScore": 201,
     "byCategory": {
       "Other Databases": [
@@ -109,6 +109,8 @@
       "Traditional RDBMS": [
         "Aurora MySQL (Data API)",
         "Aurora PostgreSQL (Data API)",
+        "Aurora MySQL",
+        "Aurora PostgreSQL",
         "CockroachDB",
         "Cloudflare D1",
         "IBM Db2",
@@ -133,6 +135,8 @@
       "Open Source": [
         "Aurora MySQL (Data API)",
         "Aurora PostgreSQL (Data API)",
+        "Aurora MySQL",
+        "Aurora PostgreSQL",
         "ClickHouse",
         "CockroachDB",
         "Couchbase",
@@ -440,6 +444,132 @@
     "Aurora PostgreSQL (Data API)": {
       "engine": "aurora_postgresql_(data_api)",
       "engine_name": "Aurora PostgreSQL (Data API)",
+      "module": "aurora",
+      "documentation": {
+        "description": "PostgreSQL is an advanced open-source relational database.",
+        "logo": "postgresql.svg",
+        "homepage_url": "https://www.postgresql.org/",
+        "categories": [
+          "TRADITIONAL_RDBMS",
+          "OPEN_SOURCE"
+        ],
+        "pypi_packages": [
+          "psycopg2"
+        ],
+        "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}",
+        "default_port": 5432,
+        "parameters": {
+          "username": "Database username",
+          "password": "Database password",
+          "host": "For localhost: localhost or 127.0.0.1. For AWS: endpoint URL",
+          "port": "Default 5432",
+          "database": "Database name"
+        },
+        "notes": "The psycopg2 library comes bundled with Superset Docker images.",
+        "connection_examples": [
+          {
+            "description": "Basic connection",
+            "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}"
+          },
+          {
+            "description": "With SSL required",
+            "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}?sslmode=require"
+          }
+        ],
+        "docs_url": "https://www.postgresql.org/docs/",
+        "sqlalchemy_docs_url": "https://docs.sqlalchemy.org/en/13/dialects/postgresql.html"
+      },
+      "time_grains": {},
+      "score": 0,
+      "max_score": 0,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "Aurora MySQL": {
+      "engine": "aurora_mysql",
+      "engine_name": "Aurora MySQL",
+      "module": "aurora",
+      "documentation": {
+        "description": "MySQL is a popular open-source relational database.",
+        "logo": "mysql.png",
+        "homepage_url": "https://www.mysql.com/",
+        "categories": [
+          "TRADITIONAL_RDBMS",
+          "OPEN_SOURCE"
+        ],
+        "pypi_packages": [
+          "mysqlclient"
+        ],
+        "connection_string": "mysql://{username}:{password}@{host}/{database}",
+        "default_port": 3306,
+        "parameters": {
+          "username": "Database username",
+          "password": "Database password",
+          "host": "localhost, 127.0.0.1, IP address, or hostname",
+          "database": "Database name"
+        },
+        "host_examples": [
+          {
+            "platform": "Localhost",
+            "host": "localhost or 127.0.0.1"
+          },
+          {
+            "platform": "Docker on Linux",
+            "host": "172.18.0.1"
+          },
+          {
+            "platform": "Docker on macOS",
+            "host": "docker.for.mac.host.internal"
+          },
+          {
+            "platform": "On-premise",
+            "host": "IP address or hostname"
+          }
+        ],
+        "drivers": [
+          {
+            "name": "mysqlclient",
+            "pypi_package": "mysqlclient",
+            "connection_string": "mysql://{username}:{password}@{host}/{database}",
+            "is_recommended": true,
+            "notes": "Recommended driver. May fail with caching_sha2_password auth."
+          },
+          {
+            "name": "mysql-connector-python",
+            "pypi_package": "mysql-connector-python",
+            "connection_string": "mysql+mysqlconnector://{username}:{password}@{host}/{database}",
+            "is_recommended": false,
+            "notes": "Required for newer MySQL databases using caching_sha2_password authentication."
+          }
+        ]
+      },
+      "time_grains": {},
+      "score": 0,
+      "max_score": 0,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
+    "Aurora PostgreSQL": {
+      "engine": "aurora_postgresql",
+      "engine_name": "Aurora PostgreSQL",
       "module": "aurora",
       "documentation": {
         "description": "PostgreSQL is an advanced open-source relational database.",

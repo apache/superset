@@ -157,7 +157,7 @@ export const useHeaderActionsMenu = ({
   const downloadMenuItem = useDownloadMenuItems({
     pdfMenuItemTitle: t('Export to PDF'),
     imageMenuItemTitle: t('Download as Image'),
-    dashboardTitle,
+    dashboardTitle: dashboardTitle ?? '',
     dashboardId,
     title: t('Download'),
     disabled: isLoading,
@@ -168,7 +168,9 @@ export const useHeaderActionsMenu = ({
   const reportMenuItem = useHeaderReportMenuItems({
     dashboardId: dashboardInfo?.id,
     showReportModal,
-    setCurrentReportDeleting,
+    setCurrentReportDeleting: setCurrentReportDeleting as (
+      report: unknown,
+    ) => void,
   });
 
   // Helper function to create menu items for components with triggerNode
@@ -231,22 +233,22 @@ export const useHeaderActionsMenu = ({
             addSuccessToast={addSuccessToast}
             addDangerToast={addDangerToast}
             dashboardId={dashboardId}
-            dashboardTitle={dashboardTitle}
+            dashboardTitle={dashboardTitle ?? ''}
             dashboardInfo={dashboardInfo}
             saveType={SAVE_TYPE_NEWDASHBOARD}
             layout={layout}
-            expandedSlices={expandedSlices}
+            expandedSlices={expandedSlices ?? {}}
             refreshFrequency={refreshFrequency}
             shouldPersistRefreshFrequency={shouldPersistRefreshFrequency}
             lastModifiedTime={lastModifiedTime}
-            customCss={customCss}
+            customCss={customCss ?? ''}
             colorNamespace={colorNamespace}
             colorScheme={colorScheme}
             onSave={onSave}
             triggerNode={
               <div data-test="save-as-menu-item">{t('Save as')}</div>
             }
-            canOverwrite={userCanEdit}
+            canOverwrite={userCanEdit ?? false}
           />,
         ),
       );

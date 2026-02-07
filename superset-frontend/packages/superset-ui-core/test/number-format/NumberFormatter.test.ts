@@ -24,7 +24,7 @@ describe('NumberFormatter', () => {
     it('requires config.id', () => {
       expect(
         () =>
-          // @ts-ignore
+          // @ts-expect-error
           new NumberFormatter({
             formatFunc: () => '',
           }),
@@ -33,7 +33,7 @@ describe('NumberFormatter', () => {
     it('requires config.formatFunc', () => {
       expect(
         () =>
-          // @ts-ignore
+          // @ts-expect-error
           new NumberFormatter({
             id: 'my_format',
           }),
