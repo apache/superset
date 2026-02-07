@@ -40,48 +40,49 @@ export default {
   decorators: [withResizableChartDemo],
 };
 
-export const Timeseries = (
-  {
-    zoomable,
-    logAxis,
-    yAxisFormat,
-    yAxisTitle,
-    yAxisIndexB,
-    minorSplitLine,
-    seriesType,
-    stack,
-    area,
-    markerEnabled,
-    markerSize,
-    opacity,
-    seriesTypeB,
-    stackB,
-    areaB,
-    markerEnabledB,
-    markerSizeB,
-    opacityB,
-  }: {
-    zoomable: boolean;
-    logAxis: boolean;
-    yAxisFormat: string;
-    yAxisTitle: string;
-    yAxisIndexB: number;
-    minorSplitLine: boolean;
-    seriesType: string;
-    stack: boolean;
-    area: boolean;
-    markerEnabled: boolean;
-    markerSize: number;
-    opacity: number;
-    seriesTypeB: string;
-    stackB: boolean;
-    areaB: boolean;
-    markerEnabledB: boolean;
-    markerSizeB: number;
-    opacityB: number;
-  },
-  { width, height }: { width: number; height: number },
-) => {
+export const Timeseries = ({
+  zoomable,
+  logAxis,
+  yAxisFormat,
+  yAxisTitle,
+  yAxisIndexB,
+  minorSplitLine,
+  seriesType,
+  stack,
+  area,
+  markerEnabled,
+  markerSize,
+  opacity,
+  seriesTypeB,
+  stackB,
+  areaB,
+  markerEnabledB,
+  markerSizeB,
+  opacityB,
+  width,
+  height,
+}: {
+  zoomable: boolean;
+  logAxis: boolean;
+  yAxisFormat: string;
+  yAxisTitle: string;
+  yAxisIndexB: number;
+  minorSplitLine: boolean;
+  seriesType: string;
+  stack: boolean;
+  area: boolean;
+  markerEnabled: boolean;
+  markerSize: number;
+  opacity: number;
+  seriesTypeB: string;
+  stackB: boolean;
+  areaB: boolean;
+  markerEnabledB: boolean;
+  markerSizeB: number;
+  opacityB: number;
+  width: number;
+  height: number;
+}) => {
   const queriesData = [
     {
       data: data
@@ -135,6 +136,8 @@ export const Timeseries = (
         markerSizeB,
         opacityB,
         showValue: true,
+        metrics: [{ label: 'Boston' }],
+        metricsB: [{ label: 'California' }, { label: 'WestTexNewMexico' }],
       }}
     />
   );
@@ -164,115 +167,98 @@ Timeseries.argTypes = {
   zoomable: {
     control: 'boolean',
     description: 'Zoomable',
-    defaultValue: false,
   },
   logAxis: {
     control: 'boolean',
     description: 'Log axis',
-    defaultValue: false,
   },
   yAxisFormat: {
     control: 'select',
     description: 'Y Axis format',
     options: ['$,.2f', 'SMART_NUMBER'],
-    defaultValue: '$,.2f',
   },
   yAxisTitle: {
     control: 'text',
     description: 'Y Axis title',
-    defaultValue: '',
   },
   yAxisIndexB: {
     control: 'select',
     description: 'Y Axis index for Query 2',
     options: [0, 1],
-    defaultValue: 1,
   },
   minorSplitLine: {
     control: 'boolean',
     description: 'Query 1: Minor splitline',
-    defaultValue: false,
   },
   seriesType: {
     control: 'select',
     description: 'Query 1: Line type',
     options: ['line', 'scatter', 'smooth', 'bar', 'start', 'middle', 'end'],
-    defaultValue: 'line',
   },
   stack: {
     control: 'boolean',
     description: 'Query 1: Stack',
-    defaultValue: false,
   },
   area: {
     control: 'boolean',
     description: 'Query 1: Area chart',
-    defaultValue: false,
   },
   markerEnabled: {
     control: 'boolean',
     description: 'Query 1: Enable markers',
-    defaultValue: false,
   },
   markerSize: {
     control: 'number',
     description: 'Query 1: Marker Size',
-    defaultValue: 6,
   },
   opacity: {
     control: 'number',
     description: 'Query 1: Opacity',
-    defaultValue: 0.2,
   },
   seriesTypeB: {
     control: 'select',
     description: 'Query 2: Line type',
     options: ['line', 'scatter', 'smooth', 'bar', 'start', 'middle', 'end'],
-    defaultValue: 'bar',
   },
   stackB: {
     control: 'boolean',
     description: 'Query 2: Stack',
-    defaultValue: false,
   },
   areaB: {
     control: 'boolean',
     description: 'Query 2: Area chart',
-    defaultValue: false,
   },
   markerEnabledB: {
     control: 'boolean',
     description: 'Query 2: Enable markers',
-    defaultValue: false,
   },
   markerSizeB: {
     control: 'number',
     description: 'Query 2: Marker Size',
-    defaultValue: 6,
   },
   opacityB: {
     control: 'number',
     description: 'Query 2: Opacity',
-    defaultValue: 0.2,
   },
 };
 
-export const WithNegativeNumbers = (
-  {
-    seriesType,
-    yAxisFormat,
-    showValue,
-    showValueB,
-    yAxisIndexB,
-  }: {
-    seriesType: string;
-    yAxisFormat: string;
-    showValue: boolean;
-    showValueB: boolean;
-    yAxisIndexB: number;
-  },
-  { width, height }: { width: number; height: number },
-) => (
+export const WithNegativeNumbers = ({
+  seriesType,
+  yAxisFormat,
+  showValue,
+  showValueB,
+  yAxisIndexB,
+  width,
+  height,
+}: {
+  seriesType: string;
+  yAxisFormat: string;
+  showValue: boolean;
+  showValueB: boolean;
+  yAxisIndexB: number;
+  width: number;
+  height: number;
+}) => (
   <SuperChart
     chartType="mixed-timeseries"
     width={width}
@@ -302,13 +288,13 @@ export const WithNegativeNumbers = (
       showLegend: true,
       markerEnabledB: true,
       yAxisIndexB,
+      metrics: [{ label: 'Boston' }],
+      metricsB: [{ label: 'avgRate' }],
     }}
   />
 );
 
 WithNegativeNumbers.args = {
-  width: 400,
-  height: 400,
   seriesType: 'line',
   yAxisFormat: '$,.2f',
   showValue: true,
@@ -332,12 +318,10 @@ WithNegativeNumbers.argTypes = {
   showValue: {
     control: 'boolean',
     description: 'Query 1: Show Value',
-    defaultValue: true,
   },
   showValueB: {
     control: 'boolean',
     description: 'Query 2: Show Value',
-    defaultValue: false,
   },
   yAxisIndexB: {
     control: 'select',
@@ -346,6 +330,5 @@ WithNegativeNumbers.argTypes = {
       Primary: 0,
       Secondary: 1,
     },
-    defaultValue: 1,
   },
 };
