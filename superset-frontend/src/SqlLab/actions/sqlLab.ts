@@ -1305,6 +1305,7 @@ export function runTablePreviewQuery(
     const { dbId, catalog, schema } = newTable;
 
     if (database && !database.disable_data_preview) {
+      const PREVIEW_QUERY_LIMIT = 100;
       const dataPreviewQuery: Query = {
         id: newTable.previewQueryId ?? nanoid(11),
         dbId: dbId as number | undefined,
@@ -1317,6 +1318,7 @@ export function runTablePreviewQuery(
         runAsync: database.allow_run_async,
         ctas: false,
         isDataPreview: true,
+        queryLimit: PREVIEW_QUERY_LIMIT,
       };
       if (runPreviewOnly) {
         return dispatch(runQuery(dataPreviewQuery, runPreviewOnly));
