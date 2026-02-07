@@ -67,3 +67,25 @@ export interface RecentActivity {
   time: number;
   time_delta_humanized?: string;
 }
+
+export interface AdminActivityActor {
+  id: number | null;
+  username: string;
+  first_name: string | null;
+  last_name: string | null;
+}
+
+export interface AdminActivityItem {
+  id: number;
+  actor: AdminActivityActor;
+  action: string;
+  action_category: string;
+  object_type: string | null;
+  object_id: number | null;
+  object_title: string | null;
+  object_url: string | null;
+  timestamp: string;
+  event_count: number;
+  first_seen: string;
+  last_seen: string;
+}

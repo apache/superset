@@ -369,9 +369,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
                       {
                         key: 'admin-activity',
                         label: t('Activity Feed'),
-                        children: (
-                          <AdminActivityPanel showThumbnails={checked} />
-                        ),
+                        children: <AdminActivityPanel />,
                       },
                     ]
                   : []),

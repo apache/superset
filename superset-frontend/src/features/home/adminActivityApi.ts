@@ -45,14 +45,14 @@ export async function fetchAdminActivity(options: {
     coalesce = true,
   } = options;
 
-  const action_types =
+  const actionTypes =
     actionType === 'all' ? ['view', 'edit', 'export'] : [actionType];
 
   const q = rison.encode({
     page,
     page_size: pageSize,
     days,
-    action_types,
+    action_types: actionTypes,
     coalesce,
   });
 

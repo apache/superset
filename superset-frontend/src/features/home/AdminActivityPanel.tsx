@@ -30,7 +30,7 @@ import {
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import { Icons } from '@superset-ui/core/components/Icons';
 
-import { CardContainer, CardStyles } from 'src/views/CRUD/utils';
+import { CardStyles } from 'src/views/CRUD/utils';
 import {
   AdminActionFilter,
   fetchAdminActivity,
@@ -51,6 +51,18 @@ const LoadMore = styled.div`
   margin-top: ${({ theme }) => theme.sizeUnit * 4}px;
 `;
 
+export const CardContainer = styled.div`
+  ${({ theme }) => `
+    overflow: hidden;
+    display: grid;
+    justify-content: center;
+    grid-gap: ${theme.sizeUnit * 12}px ${theme.sizeUnit * 4}px;
+    grid-template-columns: repeat(auto-fit, 300px);
+    margin-top: ${theme.sizeUnit * -6}px;
+    padding: ${`${theme.sizeUnit * 8 + 1}px ${theme.sizeUnit * 20}px`};
+  `}
+`;
+
 function getActorName(item: AdminActivityItem): string {
   const firstName = item.actor.first_name?.trim();
   const lastName = item.actor.last_name?.trim();
@@ -62,16 +74,16 @@ function getDescription(item: AdminActivityItem): string {
   const relativeTime = extendedDayjs(item.timestamp).fromNow();
   const countSuffix =
     item.event_count > 1 ? t(' (%s times)', item.event_count) : '';
-  return t('%s · %s%s · %s', getActorName(item), item.action, countSuffix, relativeTime);
+  return t(
+    '%s · %s%s · %s',
+    getActorName(item),
+    item.action,
+    countSuffix,
+    relativeTime,
+  );
 }
 
-interface AdminActivityPanelProps {
-  showThumbnails: boolean;
-}
-
-export default function AdminActivityPanel({
-  showThumbnails,
-}: AdminActivityPanelProps) {
+export default function AdminActivityPanel() {
   const [items, setItems] = useState<AdminActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -97,12 +109,14 @@ export default function AdminActivityPanel({
         });
 
         setCanAccess(true);
-        setItems(prev => (reset ? response.result : [...prev, ...response.result]));
+        setItems(prev =>
+          reset ? response.result : [...prev, ...response.result],
+        );
         setCount(response.count);
         setPage(nextPage);
       } catch (caught) {
         const errorObject = await getClientErrorObject(caught);
-        if (errorObject.status === 403) {
+        if (errorObject.statusText === '403') {
           setCanAccess(false);
         } else {
           setError(t('Failed to load admin activity'));
@@ -165,7 +179,7 @@ export default function AdminActivityPanel({
           }}
           options={actionOptions}
           ariaLabel={t('Admin activity type')}
-          style={{ minWidth: 190 }}
+          css={{ minWidth: 190 }}
         />
         <Select
           value={days}
@@ -174,7 +188,7 @@ export default function AdminActivityPanel({
           }}
           options={dayOptions}
           ariaLabel={t('Admin activity time range')}
-          style={{ minWidth: 130 }}
+          css={{ minWidth: 130 }}
         />
         <Button
           buttonStyle="secondary"
@@ -193,7 +207,7 @@ export default function AdminActivityPanel({
           data-test="admin-activity-empty"
         />
       ) : (
-        <CardContainer showThumbnails={showThumbnails}>
+        <CardContainer>
           {items.map(item => (
             <CardStyles key={`${item.id}-${item.timestamp}`}>
               <ListViewCard

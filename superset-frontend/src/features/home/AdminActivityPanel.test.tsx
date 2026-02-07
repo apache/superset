@@ -56,7 +56,7 @@ test('renders admin activity items', async () => {
     page_size: 20,
   });
 
-  render(<AdminActivityPanel showThumbnails={false} />, {
+  render(<AdminActivityPanel />, {
     useRedux: true,
     useRouter: true,
   });
@@ -68,12 +68,14 @@ test('renders admin activity items', async () => {
 test('hides panel on unauthorized response', async () => {
   fetchMock.get(adminActivityEndpoint, 403);
 
-  render(<AdminActivityPanel showThumbnails={false} />, {
+  render(<AdminActivityPanel />, {
     useRedux: true,
     useRouter: true,
   });
 
   await waitFor(() => {
-    expect(screen.queryByLabelText('Admin activity type')).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText('Admin activity type'),
+    ).not.toBeInTheDocument();
   });
 });
