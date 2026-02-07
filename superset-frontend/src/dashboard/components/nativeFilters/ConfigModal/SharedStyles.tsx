@@ -39,8 +39,21 @@ export const BaseModalWrapper = styled(StyledModal)<BaseModalWrapperProps>`
     min-width: auto;
   }
 
+  .ant-modal-header {
+    margin-bottom: 0;
+  }
+
   .ant-modal-body {
-    padding: 0px;
+    overflow: hidden;
+    padding: 0;
+  }
+
+  .ant-collapse {
+    border-bottom: 0;
+
+    .ant-collapse-item:last-child > .ant-collapse-content {
+      border-radius: 0;
+    }
   }
 
   ${({ expanded }) =>
@@ -59,7 +72,7 @@ export const BaseModalWrapper = styled(StyledModal)<BaseModalWrapperProps>`
 
 export const BaseModalBody = styled.div<BaseModalBodyProps>`
   display: flex;
-  height: ${({ expanded }) => (expanded ? '100%' : '700px')};
+  height: 100%;
   flex-direction: row;
   flex: 1;
 
