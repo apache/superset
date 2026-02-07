@@ -22,7 +22,7 @@
 import { SuperChart } from '@superset-ui/core';
 import { useTheme } from '@apache-superset/core/ui';
 import { PathChartPlugin } from '@superset-ui/legacy-preset-chart-deckgl';
-import { payload } from './payload';
+import payload from './payload';
 import { dummyDatasource } from '@storybook-shared';
 
 new PathChartPlugin().configure({ key: 'deck_path' }).register();
