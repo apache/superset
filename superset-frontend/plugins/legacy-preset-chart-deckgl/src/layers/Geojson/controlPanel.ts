@@ -22,6 +22,8 @@ import {
   legacyValidateInteger,
   isFeatureEnabled,
   FeatureFlag,
+  validateNumber,
+  validateInteger,
 } from '@superset-ui/core';
 import { formatSelectOptions } from '../../utilities/utils';
 import {
@@ -344,14 +346,55 @@ const config: ControlPanelConfig = {
         ],
         [
           {
+            name: 'point_radius',
+            config: {
+              type: 'SelectControl',
+              freeForm: true,
+              label: t('Point Radius'),
+              description: t(
+                'The radius of point features, in the units specified below. ' +
+                  'The final rendered size is this value multiplied by Point Radius Scale.',
+              ),
+              validators: [validateInteger],
+              default: 10,
+              choices: formatSelectOptions([1, 5, 10, 20, 50, 100]),
+              renderTrigger: true,
+            },
+          },
+          {
             name: 'point_radius_scale',
             config: {
               type: 'SelectControl',
               freeForm: true,
               label: t('Point Radius Scale'),
-              validators: [legacyValidateInteger],
-              default: null,
-              choices: formatSelectOptions([0, 100, 200, 300, 500]),
+              description: t(
+                'A multiplier applied to the point radius. ' +
+                  'Use this to uniformly scale all points.',
+              ),
+              validators: [validateNumber],
+              default: 1,
+              choices: formatSelectOptions([0.1, 0.5, 1, 2, 5, 10]),
+              renderTrigger: true,
+            },
+          },
+        ],
+        [
+          {
+            name: 'point_radius_units',
+            config: {
+              type: 'SelectControl',
+              label: t('Point Radius Units'),
+              description: t(
+                'The unit for point radius. Use "pixels" for consistent ' +
+                  'screen-space sizing regardless of zoom level.',
+              ),
+              default: 'pixels',
+              choices: [
+                ['pixels', t('Pixels')],
+                ['meters', t('Meters')],
+                ['common', t('Common (unit per pixel at zoom 0)')],
+              ],
+              renderTrigger: true,
             },
           },
         ],
