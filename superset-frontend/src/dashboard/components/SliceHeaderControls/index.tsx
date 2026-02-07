@@ -583,7 +583,7 @@ const SliceHeaderControls = (
         <Button
           id={`slice_${slice.slice_id}-controls`}
           buttonStyle="link"
-          aria-label="More Options"
+          aria-label={t('More Options')}
           aria-haspopup="true"
           css={theme => css`
             padding: ${theme.sizeUnit * 2}px;

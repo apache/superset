@@ -114,7 +114,7 @@ export default function URLShortLinkButton({
             }
           />
           &nbsp;&nbsp;
-          <Typography.Link href={emailLink} aria-label="Email link">
+          <Typography.Link href={emailLink} aria-label={t('Email link')}>
             <Icons.MailOutlined iconSize="m" iconColor={theme.colorPrimary} />
           </Typography.Link>
         </div>

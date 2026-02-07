@@ -97,7 +97,7 @@ export const httpPath = ({
       validationMethods={{ onBlur: getValidation }}
       errorMessage={validationErrors?.http_path}
       placeholder={t('e.g. sql/protocolv1/o/12345')}
-      label="HTTP Path"
+      label={t('HTTP Path')}
       onChange={changeMethods.onExtraInputChange}
       helpText={t('Copy the name of the HTTP Path of your cluster.')}
     />
@@ -187,7 +187,7 @@ export const httpPathField = ({
     validationMethods={{ onBlur: getValidation }}
     errorMessage={validationErrors?.http_path}
     placeholder={t('e.g. sql/protocolv1/o/12345')}
-    label="HTTP Path"
+    label={t('HTTP Path')}
     onChange={changeMethods.onParametersChange}
     helpText={t('Copy the name of the HTTP Path of your cluster.')}
   />
@@ -335,7 +335,7 @@ export const forceSSLField = ({
         });
       }}
     />
-    <span css={toggleStyle}>SSL</span>
+    <span css={toggleStyle}>{t('SSL')}</span>
     <InfoTooltip
       tooltip={t('SSL Mode "require" will be used.')}
       placement="right"
@@ -359,7 +359,7 @@ export const projectIdfield = ({
       value={db?.parameters?.project_id}
       validationMethods={{ onBlur: getValidation }}
       errorMessage={validationErrors?.project_id}
-      placeholder="your-project-1234-a1"
+      placeholder={t('your-project-1234-a1')}
       label={t('Project Id')}
       onChange={changeMethods.onParametersChange}
       helpText={t('Enter the unique project id for your database.')}

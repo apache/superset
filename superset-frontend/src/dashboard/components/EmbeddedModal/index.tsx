@@ -212,7 +212,7 @@ export const DashboardEmbedControls = ({ dashboardId, onHide }: Props) => {
           <Input
             id="allowed-domains"
             value={allowedDomains}
-            placeholder="superset.example.com"
+            placeholder={t('superset.example.com')}
             onChange={event => setAllowedDomains(event.target.value)}
           />
         </FormItem>

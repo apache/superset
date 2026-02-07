@@ -470,7 +470,7 @@ export default class AdhocFilterEditPopover extends Component<
           </Button>
           <Icons.ArrowsAltOutlined
             role="button"
-            aria-label="Resize"
+            aria-label={t('Resize')}
             tabIndex={0}
             onMouseDown={this.onDragDown}
             className="edit-popover-resize"
