@@ -26,16 +26,16 @@ import {
   FormLabel,
 } from '@superset-ui/core/components';
 
-interface FieldProps<V> {
+export interface FieldProps<V> {
   fieldKey: string;
   value?: V;
   label: string;
   description?: ReactNode;
   control: ReactElement;
   additionalControl?: ReactElement;
-  onChange: (fieldKey: string, newValue: V) => void;
-  compact: boolean;
-  inline: boolean;
+  onChange?: (fieldKey: string, newValue: V) => void;
+  compact?: boolean;
+  inline?: boolean;
   errorMessage?: string | ReactElement;
 }
 
@@ -48,7 +48,7 @@ export default function Field<V>({
   additionalControl,
   onChange = () => {},
   compact = false,
-  inline,
+  inline = false,
   errorMessage,
 }: FieldProps<V>) {
   const onControlChange = useCallback(

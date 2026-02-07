@@ -29,6 +29,7 @@ import {
 } from 'spec/helpers/testing-library';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
+import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import UsersList from './index';
 
 const mockStore = configureStore([thunk]);
@@ -36,6 +37,7 @@ const store = mockStore({});
 
 const rolesEndpoint = 'glob:*/security/roles/?*';
 const usersEndpoint = 'glob:*/security/users/?*';
+const groupsEndpoint = 'glob:*/security/groups/*';
 
 const mockRoles = new Array(3).fill(undefined).map((_, i) => ({
   id: i,
@@ -73,6 +75,8 @@ fetchMock.get(rolesEndpoint, {
   count: 3,
 });
 
+fetchMock.get(groupsEndpoint, { result: [] });
+
 jest.mock('src/dashboard/util/permissionUtils', () => ({
   ...jest.requireActual('src/dashboard/util/permissionUtils'),
   isUserAdmin: jest.fn(() => true),
@@ -97,7 +101,7 @@ describe('UsersList', () => {
       const mockedProps = {};
       render(
         <MemoryRouter>
-          <QueryParamProvider>
+          <QueryParamProvider adapter={ReactRouter5Adapter}>
             <UsersList user={mockUser} {...mockedProps} />
           </QueryParamProvider>
         </MemoryRouter>,
@@ -107,7 +111,7 @@ describe('UsersList', () => {
     return mounted;
   }
   beforeEach(() => {
-    fetchMock.resetHistory();
+    fetchMock.clearHistory();
   });
 
   test('renders', async () => {
@@ -118,7 +122,7 @@ describe('UsersList', () => {
   test('fetches users on load', async () => {
     await renderAndWait();
     await waitFor(() => {
-      const calls = fetchMock.calls(usersEndpoint);
+      const calls = fetchMock.callHistory.calls(usersEndpoint);
       expect(calls.length).toBeGreaterThan(0);
     });
   });
@@ -126,7 +130,7 @@ describe('UsersList', () => {
   test('fetches roles on load', async () => {
     await renderAndWait();
     await waitFor(() => {
-      const calls = fetchMock.calls(rolesEndpoint);
+      const calls = fetchMock.callHistory.calls(rolesEndpoint);
       expect(calls.length).toBeGreaterThan(0);
     });
   });

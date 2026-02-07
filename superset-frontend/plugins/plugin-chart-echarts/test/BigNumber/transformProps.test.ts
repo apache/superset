@@ -35,6 +35,7 @@ const formData = {
     a: 1,
   },
   compareLag: 1,
+  xAxis: '__timestamp',
   timeGrainSqla: TimeGranularity.QUARTER,
   granularitySqla: 'ds',
   compareSuffix: 'over last quarter',
@@ -54,11 +55,13 @@ const rawFormData: BigNumberWithTrendlineFormData = {
     a: 1,
   },
   compare_lag: 1,
+  x_axis: '__timestamp',
   time_grain_sqla: TimeGranularity.QUARTER,
   granularity_sqla: 'ds',
   compare_suffix: 'over last quarter',
   viz_type: VizType.BigNumber,
   y_axis_format: '.3s',
+  xAxis: '__timestamp',
 };
 
 function generateProps(
@@ -131,7 +134,7 @@ describe('BigNumberWithTrendline', () => {
       expect(transformed.bigNumberFallback).toBeNull();
 
       // should successfully formatTime by granularity
-      // @ts-ignore
+      // @ts-expect-error
       expect(transformed.formatTime(new Date('2020-01-01'))).toStrictEqual(
         '2020-01-01 00:00:00',
       );
@@ -153,7 +156,7 @@ describe('BigNumberWithTrendline', () => {
         },
       };
       const transformed = transformProps(propsWithDatasource);
-      // @ts-ignore
+      // @ts-expect-error
       expect(transformed.headerFormatter(transformed.bigNumber)).toStrictEqual(
         '1.23',
       );
@@ -179,7 +182,7 @@ describe('BigNumberWithTrendline', () => {
         },
       };
       const transformed = transformProps(propsWithDatasource);
-      // @ts-ignore
+      // @ts-expect-error
       expect(transformed.headerFormatter(transformed.bigNumber)).toStrictEqual(
         '$ 1.23',
       );

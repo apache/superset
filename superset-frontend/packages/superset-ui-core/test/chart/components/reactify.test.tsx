@@ -129,7 +129,7 @@ describe('reactify(renderFn)', () => {
   it('does not try to render if not mounted', () => {
     const anotherRenderFn = jest.fn();
     const AnotherChart = reactify(anotherRenderFn); // enables valid new AnotherChart() call
-    // @ts-ignore
+    // @ts-expect-error
     new AnotherChart({ id: 'test' }).execute();
     expect(anotherRenderFn).not.toHaveBeenCalled();
   });

@@ -45,7 +45,7 @@ describe('TimeFormatterRegistry', () => {
     });
     it('falls back to default format if format is null', () => {
       registry.setDefaultKey(TimeFormats.INTERNATIONAL_DATE);
-      // @ts-ignore
+      // @ts-expect-error
       const formatter = registry.get(null);
       expect(formatter.format(PREVIEW_TIME)).toEqual('14/02/2017');
     });

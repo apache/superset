@@ -50,7 +50,6 @@ export const getSelectExtraFormData = (
       {
         col,
         op: shouldExcludeFilter ? ('NOT IN' as const) : ('IN' as const),
-        // @ts-ignore
         val: value,
       },
     ];

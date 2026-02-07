@@ -87,7 +87,7 @@ export interface TabItem {
   key: string;
   label: ReactElement;
   closeIcon: ReactElement;
-  children: ReactElement;
+  children?: ReactElement;
 }
 
 export interface TabsComponent {

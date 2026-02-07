@@ -86,7 +86,7 @@ describe('SuperChartCore', () => {
     });
 
     it('does not render if chartType is not set', async () => {
-      // @ts-ignore chartType is required
+      // @ts-expect-error chartType is required
       const { container } = render(<SuperChartCore />);
 
       await waitFor(() => {

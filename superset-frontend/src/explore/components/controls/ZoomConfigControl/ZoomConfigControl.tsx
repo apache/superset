@@ -195,7 +195,7 @@ export const ZoomConfigControl: FC<ZoomConfigsControlProps> = ({
           description={baseWidthDescription}
           value={baseWidth}
           name="baseWidth"
-          // @ts-ignore
+          // @ts-expect-error - Slider onAfterChange type mismatch
           onAfterChange={onBaseWidthChange}
           step={1}
           min={0}
@@ -207,7 +207,7 @@ export const ZoomConfigControl: FC<ZoomConfigsControlProps> = ({
           description={baseHeightDescription}
           value={baseHeight}
           name="baseHeight"
-          // @ts-ignore
+          // @ts-expect-error - Slider onAfterChange type mismatch
           onAfterChange={onBaseHeightChange}
           step={1}
           min={0}
@@ -219,7 +219,7 @@ export const ZoomConfigControl: FC<ZoomConfigsControlProps> = ({
           description={baseSlopeDescription}
           value={baseSlope}
           name="slope"
-          // @ts-ignore
+          // @ts-expect-error - Slider onAfterChange type mismatch
           onAfterChange={onBaseSlopeChange}
           disabled={!!(value && !isZoomConfigsLinear(value))}
           step={1}
@@ -232,7 +232,7 @@ export const ZoomConfigControl: FC<ZoomConfigsControlProps> = ({
           description={baseExponentDescription}
           value={baseExponent}
           name="exponent"
-          // @ts-ignore
+          // @ts-expect-error - Slider onAfterChange type mismatch
           onAfterChange={onBaseExponentChange}
           disabled={!!(value && !isZoomConfigsExp(value))}
           step={0.2}

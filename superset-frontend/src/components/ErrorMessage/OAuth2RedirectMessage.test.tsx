@@ -151,12 +151,8 @@ describe('OAuth2RedirectMessage Component', () => {
     simulateMessageEvent({ tabId: 'tabId' }, 'https://redirect.example.com');
 
     await waitFor(() => {
-      expect(onRefresh).toHaveBeenCalledWith(
-        ['1', '2'],
-        true,
-        0,
-        'dashboard-id',
-      );
+      // Chart IDs are converted to numbers by the component via chartList.map(Number)
+      expect(onRefresh).toHaveBeenCalledWith([1, 2], true, 0, 'dashboard-id');
     });
   });
 });
