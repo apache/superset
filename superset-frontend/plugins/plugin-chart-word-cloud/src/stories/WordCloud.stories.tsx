@@ -53,116 +53,12 @@ export const basic = ({
     height={height}
     queriesData={[{ data }]}
     formData={{
-      encoding: {
-        color: {
-          field: 'name',
-        },
-        fontSize: {
-          field: 'sum__num',
-          scale: {
-            range: [0, 70],
-            zero: true,
-          },
-          type: 'quantitative',
-        },
-        text: {
-          field: 'name',
-        },
-      },
+      colorScheme: 'd3Category10',
       metric: 'sum__num',
-      rotation,
       series: 'name',
+      rotation,
+      sizeFrom: 10,
+      sizeTo: 70,
     }}
   />
 );
-
-export const encodesColorByWordLength = ({
-  rotation,
-  width,
-  height,
-}: {
-  rotation: string;
-  width: number;
-  height: number;
-}) => (
-  <SuperChart
-    chartType="word-cloud2"
-    width={width}
-    height={height}
-    queriesData={[{ data }]}
-    formData={{
-      encoding: {
-        color: {
-          field: 'name.length',
-          scale: {
-            range: ['#fbc531', '#c23616'],
-            type: 'linear',
-            zero: false,
-          },
-          type: 'quantitative',
-        },
-        fontSize: {
-          field: 'sum__num',
-          scale: {
-            range: [0, 70],
-            zero: true,
-          },
-          type: 'quantitative',
-        },
-        text: {
-          field: 'name',
-        },
-      },
-      metric: 'sum__num',
-      rotation,
-      series: 'name',
-    }}
-  />
-);
-
-export const encodesFontByFirstLetter = ({
-  rotation,
-  width,
-  height,
-}: {
-  rotation: string;
-  width: number;
-  height: number;
-}) => (
-  <SuperChart
-    chartType="word-cloud2"
-    width={width}
-    height={height}
-    queriesData={[{ data }]}
-    formData={{
-      encoding: {
-        color: {
-          field: 'name',
-        },
-        fontFamily: {
-          field: 'name[0]',
-          scale: {
-            range: ['Helvetica', 'Monaco'],
-            type: 'ordinal',
-          },
-          type: 'nominal',
-        },
-        fontSize: {
-          field: 'sum__num',
-          scale: {
-            range: [0, 70],
-            zero: true,
-          },
-          type: 'quantitative',
-        },
-        text: {
-          field: 'name',
-        },
-      },
-      metric: 'sum__num',
-      rotation,
-      series: 'name',
-    }}
-  />
-);
-

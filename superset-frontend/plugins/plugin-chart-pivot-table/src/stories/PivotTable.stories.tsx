@@ -47,28 +47,3 @@ Basic.parameters = {
     height: 420,
   },
 };
-
-export const MaximumAggregation = ({
-  width,
-  height,
-}: {
-  width: number;
-  height: number;
-}) => (
-  <SuperChart
-    chartType={VizType.PivotTable}
-    datasource={{
-      columnFormats: {},
-    }}
-    width={width}
-    height={height}
-    queriesData={[basicData]}
-    formData={{ ...basicFormData, aggregateFunction: 'Maximum' }}
-  />
-);
-MaximumAggregation.parameters = {
-  initialSize: {
-    width: 680,
-    height: 420,
-  },
-};
