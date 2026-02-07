@@ -161,7 +161,7 @@ const FilterTitleContainer = forwardRef<HTMLDivElement, Props>(
                   event.stopPropagation();
                   onRemove(id);
                 }}
-                alt="RemoveFilter"
+                alt={t('Remove filter')}
               />
             )}
           </div>

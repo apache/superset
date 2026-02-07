@@ -1051,7 +1051,7 @@ class AnnotationLayer extends PureComponent<
       <>
         {this.props.error && (
           <span style={{ color: this.props.theme.colorError }}>
-            ERROR: {this.props.error}
+            {t('ERROR:')} {this.props.error}
           </span>
         )}
         <div style={{ display: 'flex', flexDirection: 'row' }}>

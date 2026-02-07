@@ -731,7 +731,10 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
                         name="table_name"
                         required
                         rules={[
-                          { required: true, message: t('Table name is required') },
+                          {
+                            required: true,
+                            message: t('Table name is required'),
+                          },
                         ]}
                       >
                         <Input
