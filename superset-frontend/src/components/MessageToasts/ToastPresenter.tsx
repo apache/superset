@@ -47,10 +47,17 @@ const StyledToastPresenter = styled.div<VisualProps>(
     overscroll-behavior: contain;
     overflow-x: hidden;
     scrollbar-width: thin;
-    scrollbar-color: transparent transparent;
 
-    &:hover {
-      scrollbar-color: rgba(255, 255, 255, 0.4) transparent;
+    scrollbar-color:
+      color-mix(in srgb, ${theme.colorText}, transparent 75%)
+      transparent;
+
+    &:hover,
+    &:focus-within,
+    &:active {
+      scrollbar-color:
+        color-mix(in srgb, ${theme.colorText}, transparent 60%)
+        transparent;
     }
 
     /* Chromium / WebKit */
@@ -63,18 +70,23 @@ const StyledToastPresenter = styled.div<VisualProps>(
     }
 
     &::-webkit-scrollbar-thumb {
-      background-color: rgba(255, 255, 255, 0.25);
+      background-color: color-mix(
+        in srgb,
+        ${theme.colorText},
+        transparent 75%
+      );
       border-radius: 6px;
-      opacity: 0;
-      transition: opacity 0.2s ease;
+      transition: background-color 0.2s ease;
     }
 
-    &:hover::-webkit-scrollbar-thumb {
-      opacity: 1;
-    }
-
+    &:hover::-webkit-scrollbar-thumb,
+    &:focus-within::-webkit-scrollbar-thumb,
     &:active::-webkit-scrollbar-thumb {
-      opacity: 1;
+      background-color: color-mix(
+        in srgb,
+        ${theme.colorText},
+        transparent 60%
+      );
     }
 
     .toast {
@@ -106,7 +118,7 @@ const StyledToastPresenter = styled.div<VisualProps>(
     }
 
     .toast > button {
-      color: ${theme.colorTextLightSolid};
+      color: ${theme.colorText};
       opacity: 1;
     }
 
