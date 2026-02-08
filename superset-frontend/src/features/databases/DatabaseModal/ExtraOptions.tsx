@@ -537,7 +537,7 @@ const ExtraOptions = ({
                       type="text"
                       name="schemas_allowed_for_file_upload"
                       value={schemasText}
-                      placeholder="schema1,schema2"
+                      placeholder={t('schema1,schema2')}
                       onChange={e => setSchemasText(e.target.value)}
                       onBlur={() =>
                         onExtraInputChange({

@@ -72,7 +72,7 @@ const SortableList = SortableContainer(List);
 const SortableDragger = SortableHandle(() => (
   <Icons.MenuOutlined
     role="img"
-    aria-label="drag"
+    aria-label={t('Drag to reorder')}
     className="text-primary"
     style={{ cursor: 'ns-resize' }}
   />

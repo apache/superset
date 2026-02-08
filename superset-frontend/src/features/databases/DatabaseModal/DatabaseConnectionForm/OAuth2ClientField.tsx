@@ -18,15 +18,16 @@
  */
 
 import { useState } from 'react';
+import { t } from '@apache-superset/core';
 import { Input, Collapse, FormItem } from '@superset-ui/core/components';
 import { CustomParametersChangeType, FieldPropTypes } from '../../types';
 
 const LABELS = {
-  CLIENT_ID: 'Client ID',
-  SECRET: 'Client Secret',
-  AUTH_URI: 'Authorization Request URI',
-  TOKEN_URI: 'Token Request URI',
-  SCOPE: 'Scope',
+  CLIENT_ID: t('Client ID'),
+  SECRET: t('Client Secret'),
+  AUTH_URI: t('Authorization Request URI'),
+  TOKEN_URI: t('Token Request URI'),
+  SCOPE: t('Scope'),
 };
 
 interface OAuth2ClientInfo {
@@ -81,7 +82,7 @@ export const OAuth2ClientField = ({
       items={[
         {
           key: 'oauth2-client-information',
-          label: 'OAuth2 client information',
+          label: t('OAuth2 client information'),
           children: (
             <>
               <FormItem label={LABELS.CLIENT_ID}>
@@ -102,7 +103,7 @@ export const OAuth2ClientField = ({
               <FormItem label={LABELS.AUTH_URI}>
                 <Input
                   data-test="client-authorization-request-uri"
-                  placeholder="https://"
+                  placeholder={t('https://')}
                   value={oauth2ClientInfo.authorization_request_uri}
                   onChange={handleChange('authorization_request_uri')}
                 />
@@ -110,7 +111,7 @@ export const OAuth2ClientField = ({
               <FormItem label={LABELS.TOKEN_URI}>
                 <Input
                   data-test="client-token-request-uri"
-                  placeholder="https://"
+                  placeholder={t('https://')}
                   value={oauth2ClientInfo.token_request_uri}
                   onChange={handleChange('token_request_uri')}
                 />

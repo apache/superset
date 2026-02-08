@@ -25,6 +25,7 @@ import {
   Ref,
 } from 'react';
 import { Row, FilterValue } from 'react-table';
+import { t, tn } from '@apache-superset/core';
 import { Input, type InputRef, Space } from '@superset-ui/core/components';
 import useAsyncState from '../utils/useAsyncState';
 
@@ -59,11 +60,11 @@ function DefaultSearchInput({
 }: SearchInputProps) {
   return (
     <Space direction="horizontal" size={4} className="dt-global-filter">
-      Search
+      {t('Search')}
       <Input
         size="small"
         ref={inputRef}
-        placeholder={`${count} records...`}
+        placeholder={tn('%s record...', '%s records...', count, count)}
         value={value}
         onChange={onChange}
         onBlur={onBlur}

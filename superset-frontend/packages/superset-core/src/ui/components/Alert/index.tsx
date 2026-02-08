@@ -19,6 +19,7 @@
 import { Alert as AntdAlert } from 'antd';
 import type { PropsWithChildren } from 'react';
 import type { AlertProps as AntdAlertProps } from 'antd/es/alert';
+import { t } from '../../translation';
 
 /**
  * Props for the Alert component, extending Ant Design's AlertProps
@@ -74,7 +75,7 @@ export const Alert = (props: AlertProps) => {
       type={type}
       showIcon={showIcon}
       closable={closable}
-      message={children || 'Default message'}
+      message={children || t('Default message')}
       description={description}
       {...rest}
     />

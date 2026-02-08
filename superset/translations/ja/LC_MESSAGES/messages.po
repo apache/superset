@@ -17,16 +17,16 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2025-06-30 15:30+0900\n"
+"POT-Creation-Date: 2026-02-06 23:58-0800\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
 "Language-Team: ja <LL@li.org>\n"
-"Plural-Forms: nplurals=1; plural=0\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.9.1\n"
+"Generated-By: Babel 2.15.0\n"
 
 msgid ""
 "\n"
@@ -98,6 +98,10 @@ msgstr ""
 msgid " expression which needs to adhere to the "
 msgstr "遵守すべき表現"
 
+#, fuzzy
+msgid " for details."
+msgstr "詳細"
+
 #, python-format
 msgid " near '%(highlight)s'"
 msgstr ""
@@ -137,6 +141,9 @@ msgstr "計算列を追加するには"
 msgid " to add metrics"
 msgstr "指標を追加するには"
 
+msgid " to check for details."
+msgstr ""
+
 msgid " to edit or add columns and metrics."
 msgstr "列とメトリックを編集または追加します。"
 
@@ -146,11 +153,23 @@ msgstr "列を時間列としてマークする"
 msgid " to open SQL Lab. From there you can save the query as a dataset."
 msgstr "SQL ラボを開きます。そこから、クエリをデータセットとして保存できます。"
 
+#, fuzzy
+msgid " to see details."
+msgstr "クエリの詳細を参照"
+
 msgid " to visualize your data."
 msgstr "データを視覚化します。"
 
 msgid "!= (Is not equal)"
 msgstr "!= (等しくない)"
+
+#, python-format
+msgid "\"%s\" is now the system dark theme"
+msgstr ""
+
+#, python-format
+msgid "\"%s\" is now the system default theme"
+msgstr ""
 
 #, python-format
 msgid "% calculation"
@@ -254,6 +273,10 @@ msgstr "%s が選択されました (物理)"
 msgid "%s Selected (Virtual)"
 msgstr "%s が選択されました (仮想)"
 
+#, fuzzy, python-format
+msgid "%s URL"
+msgstr "URL"
+
 #, python-format
 msgid "%s aggregates(s)"
 msgstr "%s 集約"
@@ -261,6 +284,10 @@ msgstr "%s 集約"
 #, python-format
 msgid "%s column(s)"
 msgstr "%s 列"
+
+#, fuzzy, python-format
+msgid "%s item(s)"
+msgstr "%s オプション"
 
 #, python-format
 msgid ""
@@ -285,6 +312,11 @@ msgstr "%s オプション"
 msgid "%s recipients"
 msgstr "%s 受信者"
 
+#, fuzzy, python-format
+msgid "%s record"
+msgid_plural "%s records..."
+msgstr[0] "%s エラー"
+
 #, python-format
 msgid "%s row"
 msgid_plural "%s rows"
@@ -294,6 +326,10 @@ msgstr[0] "%s 行"
 msgid "%s saved metric(s)"
 msgstr "%s が保存した指標"
 
+#, fuzzy, python-format
+msgid "%s tab selected"
+msgstr "%s が選択されました"
+
 #, python-format
 msgid "%s updated"
 msgstr "%sが更新されました"
@@ -301,10 +337,6 @@ msgstr "%sが更新されました"
 #, python-format
 msgid "%s%s"
 msgstr "%s%s"
-
-#, python-format
-msgid "%s-%s of %s"
-msgstr "%s-%s/%s"
 
 msgid "(Removed)"
 msgstr "(削除)"
@@ -354,6 +386,9 @@ msgstr ""
 #, python-format
 msgid "+ %s more"
 msgstr "%s 詳細"
+
+msgid ", then paste the JSON below. See our"
+msgstr ""
 
 #, fuzzy
 msgid ""
@@ -429,6 +464,10 @@ msgid "10 minute"
 msgstr "10分"
 
 #, fuzzy
+msgid "10 seconds"
+msgstr "30秒"
+
+#, fuzzy
 msgid "10/90 percentiles"
 msgstr "10/90 パーセンタイル"
 
@@ -440,6 +479,10 @@ msgstr "104週間"
 
 msgid "104 weeks ago"
 msgstr "104週間前"
+
+#, fuzzy
+msgid "12 hours"
+msgstr "1時間"
 
 msgid "15 minute"
 msgstr "15分"
@@ -476,6 +519,10 @@ msgstr "2/98 パーセンタイル"
 
 msgid "22"
 msgstr "22"
+
+#, fuzzy
+msgid "24 hours"
+msgstr "6時間"
 
 msgid "28 days"
 msgstr "28日"
@@ -547,6 +594,10 @@ msgstr "月曜日から始まる 52週間"
 msgid "6 hour"
 msgstr "6時間"
 
+#, fuzzy
+msgid "6 hours"
+msgstr "6時間"
+
 msgid "60 days"
 msgstr "60日"
 
@@ -601,6 +652,16 @@ msgstr ">= (大きいか等しい)"
 msgid "A Big Number"
 msgstr "大きな数字"
 
+msgid "A JavaScript function that generates a label configuration object"
+msgstr ""
+
+msgid "A JavaScript function that generates an icon configuration object"
+msgstr ""
+
+#, fuzzy
+msgid "A comma separated list of columns that should be parsed as dates"
+msgstr "日付として解析される列の選択"
+
 msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr "ファイルのアップロードを許可するスキーマのカンマ区切りのリスト"
 
@@ -637,6 +698,10 @@ msgid ""
 msgstr "このダッシュボードを埋め込むことができるドメイン名のリスト。このフィールドを空のままにすると、任意のドメインからの埋め込みが許可されます。"
 
 msgid "A list of tags that have been applied to this chart."
+msgstr "このチャートに適用されているタグのリスト。"
+
+#, fuzzy
+msgid "A list of tags that have been applied to this dashboard."
 msgstr "このチャートに適用されているタグのリスト。"
 
 msgid "A list of users who can alter the chart. Searchable by name or username."
@@ -713,6 +778,10 @@ msgstr ""
 "          連続的に導入された正または負の値の累積効果。\n"
 "          これらの中間値は、時間ベースまたはカテゴリベースのいずれかにすることができます。"
 
+#, fuzzy
+msgid "AND"
+msgstr "ランダム"
+
 msgid "APPLY"
 msgstr "適用"
 
@@ -725,25 +794,28 @@ msgstr "AQE"
 msgid "AUG"
 msgstr "8月"
 
-msgid "Axis title margin"
-msgstr "軸のタイトルの余白"
-
-msgid "Axis title position"
-msgstr "軸タイトルの位置"
-
 msgid "About"
 msgstr "について"
 
-msgid "Access"
-msgstr "アクセス"
+#, fuzzy
+msgid "Access & ownership"
+msgstr "アクセストークン"
 
 msgid "Access token"
 msgstr "アクセストークン"
+
+#, fuzzy
+msgid "Account"
+msgstr "カウント"
 
 msgid "Action"
 msgstr "アクション"
 
 msgid "Action Log"
+msgstr "操作履歴"
+
+#, fuzzy
+msgid "Action Logs"
 msgstr "操作履歴"
 
 msgid "Actions"
@@ -773,9 +845,6 @@ msgstr "適応型フォーマット"
 msgid "Add"
 msgstr "追加"
 
-msgid "Add Alert"
-msgstr "アラートを追加"
-
 msgid "Add BCC Recipients"
 msgstr "BCCの追加"
 
@@ -788,11 +857,9 @@ msgstr "CSSテンプレートを追加"
 msgid "Add Dashboard"
 msgstr "ダッシュボードを追加"
 
-msgid "Add divider"
-msgstr "仕切りを追加"
-
-msgid "Add filter"
-msgstr "フィルターを追加"
+#, fuzzy
+msgid "Add Group"
+msgstr "ルールを追加"
 
 msgid "Add Layer"
 msgstr "レイヤーを追加"
@@ -800,8 +867,10 @@ msgstr "レイヤーを追加"
 msgid "Add Log"
 msgstr "ログを追加"
 
-msgid "Add Report"
-msgstr "レポートを追加"
+msgid ""
+"Add Query A and Query B identifiers to tooltips to help differentiate "
+"series"
+msgstr ""
 
 msgid "Add Role"
 msgstr "ロールを追加"
@@ -830,14 +899,15 @@ msgstr "SQLクエリを作成するための新しいタブを追加"
 msgid "Add additional custom parameters"
 msgstr "カスタムパラメータを追加"
 
+#, fuzzy
+msgid "Add alert"
+msgstr "アラートを追加"
+
 msgid "Add an annotation layer"
 msgstr "注釈レイヤーを追加"
 
 msgid "Add an item"
 msgstr "アイテムを追加"
-
-msgid "Add and edit filters"
-msgstr "フィルターの追加と編集"
 
 msgid "Add annotation"
 msgstr "注釈を追加"
@@ -854,8 +924,15 @@ msgstr "「データソースの編集」モーダルで計算列をデータセ
 msgid "Add calculated temporal columns to dataset in \"Edit datasource\" modal"
 msgstr "「データソースの編集」モーダルで計算された時間列をデータセットに追加します"
 
+#, fuzzy
+msgid "Add certification details for this dashboard"
+msgstr "認証の詳細"
+
 msgid "Add color for positive/negative change"
 msgstr "プラス/マイナスの変化に色を追加"
+
+msgid "Add colors to cell bars for +/-"
+msgstr ""
 
 msgid "Add cross-filter"
 msgstr "クロスフィルターを追加"
@@ -872,11 +949,18 @@ msgstr "配送方法の追加"
 msgid "Add description of your tag"
 msgstr "タグの説明を追加する"
 
+#, fuzzy
+msgid "Add display control"
+msgstr "表示設定"
+
+msgid "Add divider"
+msgstr "仕切りを追加"
+
 msgid "Add extra connection information."
 msgstr "追加の接続情報を追加します"
 
 msgid "Add filter"
-msgstr "フィルタを追加"
+msgstr "フィルターを追加"
 
 msgid ""
 "Add filter clauses to control the filter's source query,\n"
@@ -895,6 +979,10 @@ msgstr ""
 "サブセットのみをスキャンしてクエリのパフォーマンスを向上させたい場合\n"
 "基になるデータの値を変更するか、フィルターに表示される使用可能な値を制限します。"
 
+#, fuzzy
+msgid "Add folder"
+msgstr "フィルターを追加"
+
 msgid "Add item"
 msgstr "項目の追加"
 
@@ -910,8 +998,17 @@ msgstr "新しいカラーフォーマッタを追加"
 msgid "Add new formatter"
 msgstr "新しいフォーマッタを追加"
 
-msgid "Add or edit filters"
+#, fuzzy
+msgid "Add or edit display controls"
 msgstr "フィルターの追加または編集"
+
+#, fuzzy
+msgid "Add or edit filters and controls"
+msgstr "フィルターの追加または編集"
+
+#, fuzzy
+msgid "Add report"
+msgstr "レポートを追加"
 
 msgid "Add required control values to preview chart"
 msgstr "必要なコントロール値をプレビューチャートに追加します"
@@ -931,7 +1028,15 @@ msgstr "チャートの名前を追加"
 msgid "Add the name of the dashboard"
 msgstr "ダッシュボードの名前を追加"
 
+#, fuzzy
+msgid "Add theme"
+msgstr "項目の追加"
+
 msgid "Add to dashboard"
+msgstr "ダッシュボードに追加"
+
+#, fuzzy
+msgid "Add to tabs"
 msgstr "ダッシュボードに追加"
 
 msgid "Added"
@@ -976,16 +1081,6 @@ msgid ""
 "from the comparison value."
 msgstr "比較値からの正または負の変化に基づいてチャート シンボルに色を追加します。"
 
-msgid ""
-"Adjust column settings such as specifying the columns to read, how "
-"duplicates are handled, column data types, and more."
-msgstr "列の設定を調整する。(例：読み込む列の指定、重複の処理方法、列のデータ型）"
-
-msgid ""
-"Adjust how spaces, blank lines, null values are handled and other file "
-"wide settings."
-msgstr "スペース、空白行、NULL値の扱い方や、その他のファイル全体の設定を調整する。"
-
 msgid "Adjust how this database will interact with SQL Lab."
 msgstr "このデータベースが SQL Lab とどのように対話するかを調整"
 
@@ -1016,6 +1111,10 @@ msgstr "高度な分析の後処理"
 msgid "Advanced data type"
 msgstr "高度なデータ型"
 
+#, fuzzy
+msgid "Advanced settings"
+msgstr "高度な分析"
+
 msgid "Advanced-Analytics"
 msgstr "高度な分析"
 
@@ -1027,6 +1126,11 @@ msgstr "影響を受けるダッシュボード"
 
 msgid "After"
 msgstr "後"
+
+msgid ""
+"After making the changes, copy the query and paste in the virtual dataset"
+" SQL snippet settings."
+msgstr ""
 
 msgid "Aggregate"
 msgstr "集計"
@@ -1154,6 +1258,10 @@ msgstr "すべてのフィルタ"
 msgid "All panels"
 msgstr "すべてのパネル"
 
+#, fuzzy
+msgid "All records"
+msgstr "生のレコード"
+
 msgid "Allow CREATE TABLE AS"
 msgstr "テーブル作成を許可"
 
@@ -1197,9 +1305,6 @@ msgstr "データベースへのファイルのアップロードを許可する
 msgid "Allow node selections"
 msgstr "ノード選択を許可する"
 
-msgid "Allow sending multiple polygons as a filter event"
-msgstr "複数のポリゴンをフィルター イベントとして送信できるようにする"
-
 msgid ""
 "Allow the execution of DDL (Data Definition Language: CREATE, DROP, "
 "TRUNCATE, etc.) and DML (Data Modification Language: INSERT, UPDATE, "
@@ -1211,6 +1316,10 @@ msgstr "このデータベースの探索を許可"
 
 msgid "Allow this database to be queried in SQL Lab"
 msgstr "SQL Lab でのこのデータベースのクエリを許可"
+
+#, fuzzy
+msgid "Allow users to select multiple values"
+msgstr "複数の値を選択できます"
 
 msgid "Allowed Domains (comma separated)"
 msgstr "許可されたドメイン (カンマ区切り)"
@@ -1253,10 +1362,6 @@ msgstr "データベースに個々のパラメータを渡すときは、エン
 msgid "An error has occurred"
 msgstr "エラーが発生しました。"
 
-#, python-format
-msgid "An error has occurred while syncing virtual dataset columns"
-msgstr "仮想データセット列の同期中にエラーが発生しました。: %s"
-
 msgid "An error occurred"
 msgstr "エラーが発生しました。"
 
@@ -1268,6 +1373,10 @@ msgstr "アラート クエリの実行中にエラーが発生しました。"
 
 msgid "An error occurred while accessing the copy link."
 msgstr "コピーリンクへのアクセス中にエラーが発生しました。"
+
+#, fuzzy
+msgid "An error occurred while accessing the extension."
+msgstr "値へのアクセス中にエラーが発生しました。"
 
 msgid "An error occurred while accessing the value."
 msgstr "値へのアクセス中にエラーが発生しました。"
@@ -1287,8 +1396,16 @@ msgstr "コピーリンクの作成中にエラーが発生しました。"
 msgid "An error occurred while creating the data source"
 msgstr "データ ソースの作成中にエラーが発生しました"
 
+#, fuzzy
+msgid "An error occurred while creating the extension."
+msgstr "値の作成中にエラーが発生しました。"
+
 msgid "An error occurred while creating the value."
 msgstr "値の作成中にエラーが発生しました。"
+
+#, fuzzy
+msgid "An error occurred while deleting the extension."
+msgstr "値の削除中にエラーが発生しました。"
 
 msgid "An error occurred while deleting the value."
 msgstr "値の削除中にエラーが発生しました。"
@@ -1307,6 +1424,10 @@ msgid "An error occurred while fetching %ss: %s"
 msgstr "%ss の取得中にエラーが発生しました: %s"
 
 msgid "An error occurred while fetching available CSS templates"
+msgstr "利用可能なCSSテンプレートの取得中にエラーが発生しました"
+
+#, fuzzy
+msgid "An error occurred while fetching available themes"
 msgstr "利用可能なCSSテンプレートの取得中にエラーが発生しました"
 
 #, python-format
@@ -1373,9 +1494,21 @@ msgid ""
 "administrator."
 msgstr "テーブルのメタデータを取得中にエラーが発生しました。管理者に連絡してください。"
 
+#, fuzzy, python-format
+msgid "An error occurred while fetching theme datasource values: %s"
+msgstr "データセット・データソース値の取得中にエラーが発生しました: %s"
+
+#, fuzzy
+msgid "An error occurred while fetching usage data"
+msgstr "テーブルのメタデータの取得中にエラーが発生しました"
+
 #, python-format
 msgid "An error occurred while fetching user values: %s"
 msgstr "ユーザー値の取得中にエラーが発生しました: %s"
+
+#, fuzzy
+msgid "An error occurred while formatting SQL"
+msgstr "SQL のロード中にエラーが発生しました"
 
 #, python-format
 msgid "An error occurred while importing %s: %s"
@@ -1387,8 +1520,9 @@ msgstr "ダッシュボード情報の読み込み中にエラーが発生しま
 msgid "An error occurred while loading the SQL"
 msgstr "SQL のロード中にエラーが発生しました"
 
-msgid "An error occurred while opening Explore"
-msgstr "エクスプローラーを開くときにエラーが発生しました"
+#, fuzzy
+msgid "An error occurred while overwriting the dataset"
+msgstr "データ ソースの作成中にエラーが発生しました"
 
 msgid "An error occurred while parsing the key."
 msgstr "キーの解析中にエラーが発生しました。"
@@ -1421,8 +1555,16 @@ msgstr "クエリをバックエンドに保存中にエラーが発生しまし
 msgid "An error occurred while syncing permissions for %s: %s"
 msgstr "%s の権限の同期中にエラーが発生しました。: %s"
 
+#, fuzzy
+msgid "An error occurred while updating the extension."
+msgstr "値の更新中にエラーが発生しました。"
+
 msgid "An error occurred while updating the value."
 msgstr "値の更新中にエラーが発生しました。"
+
+#, fuzzy
+msgid "An error occurred while upserting the extension."
+msgstr "値の更新挿入中にエラーが発生しました。"
 
 msgid "An error occurred while upserting the value."
 msgstr "値の更新挿入中にエラーが発生しました。"
@@ -1542,6 +1684,9 @@ msgstr "注釈とレイヤー"
 msgid "Annotations could not be deleted."
 msgstr "注釈を削除できませんでした。"
 
+msgid "Ant Design Theme Editor"
+msgstr ""
+
 msgid "Any"
 msgstr "任意"
 
@@ -1552,6 +1697,14 @@ msgid ""
 "Any color palette selected here will override the colors applied to this "
 "dashboard's individual charts"
 msgstr "ここで選択したカラーパレットは、このダッシュボードの個々のチャートに適用される色を上書きします"
+
+msgid ""
+"Any dashboards using these themes will be automatically dissociated from "
+"them."
+msgstr ""
+
+msgid "Any dashboards using this theme will be automatically dissociated from it."
+msgstr ""
 
 msgid "Any databases that allow connections via SQL Alchemy URIs can be added. "
 msgstr "SQL Alchemy URI を介した接続を許可するデータベースを追加できます。"
@@ -1587,6 +1740,14 @@ msgstr ""
 msgid "Apply"
 msgstr "適用"
 
+#, fuzzy
+msgid "Apply Filter"
+msgstr "フィルターを適用する"
+
+#, fuzzy
+msgid "Apply another dashboard filter"
+msgstr "フィルタを読み込めません"
+
 msgid "Apply conditional color formatting to metric"
 msgstr "条件付き書式設定をメトリックに適用する"
 
@@ -1595,6 +1756,11 @@ msgstr "条件付き書式設定をメトリクスに適用する"
 
 msgid "Apply conditional color formatting to numeric columns"
 msgstr "条件付き書式設定を数値列に適用する"
+
+msgid ""
+"Apply custom CSS to the dashboard. Use class names or element selectors "
+"to target specific components."
+msgstr ""
 
 msgid "Apply filters"
 msgstr "フィルターを適用する"
@@ -1637,11 +1803,12 @@ msgstr "選択したダッシュボードを削除してもよろしいですか
 msgid "Are you sure you want to delete the selected datasets?"
 msgstr "選択したデータセットを削除しますか？"
 
+#, fuzzy
+msgid "Are you sure you want to delete the selected groups?"
+msgstr "選択したルールを削除してもよろしいですか？"
+
 msgid "Are you sure you want to delete the selected layers?"
 msgstr "選択したレイヤーを削除してもよろしいですか？"
-
-msgid "Are you sure you want to delete the selected queries?"
-msgstr "選択したクエリを削除しますか？"
 
 msgid "Are you sure you want to delete the selected roles?"
 msgstr "選択したロールを削除してもよろしいですか？"
@@ -1655,6 +1822,10 @@ msgstr "選択したタグを削除してもよろしいですか？"
 msgid "Are you sure you want to delete the selected templates?"
 msgstr "選択したテンプレートを削除してもよろしいですか？"
 
+#, fuzzy
+msgid "Are you sure you want to delete the selected themes?"
+msgstr "選択したテンプレートを削除してもよろしいですか？"
+
 msgid "Are you sure you want to delete the selected users?"
 msgstr "選択したユーザーを削除しますか？"
 
@@ -1664,8 +1835,30 @@ msgstr "このデータセットを上書きしてもよろしいですか？"
 msgid "Are you sure you want to proceed?"
 msgstr "続行してもよろしいですか？"
 
+msgid ""
+"Are you sure you want to remove the system dark theme? The application "
+"will fall back to the configuration file dark theme."
+msgstr ""
+
+msgid ""
+"Are you sure you want to remove the system default theme? The application"
+" will fall back to the configuration file default."
+msgstr ""
+
 msgid "Are you sure you want to save and apply changes?"
 msgstr "変更を保存して適用してもよろしいですか？"
+
+#, python-format
+msgid ""
+"Are you sure you want to set \"%s\" as the system dark theme? This will "
+"apply to all users who haven't set a personal preference."
+msgstr ""
+
+#, python-format
+msgid ""
+"Are you sure you want to set \"%s\" as the system default theme? This "
+"will apply to all users who haven't set a personal preference."
+msgstr ""
 
 #, fuzzy
 msgid "Area"
@@ -1689,6 +1882,10 @@ msgstr "面グラフは、変数を同じスケールで表すという点で折
 msgid "Arrow"
 msgstr "矢印"
 
+#, fuzzy
+msgid "Ascending"
+msgstr "昇順に並べ替え"
+
 msgid "Assign a set of parameters as"
 msgstr "パラメータのセットを次のように割り当てます"
 
@@ -1704,6 +1901,10 @@ msgstr "属性"
 msgid "August"
 msgstr "8月"
 
+#, fuzzy
+msgid "Authorization Request URI"
+msgstr "許可が必要です。"
+
 msgid "Authorization needed"
 msgstr "許可が必要です。"
 
@@ -1712,6 +1913,10 @@ msgstr "自動"
 
 msgid "Auto Zoom"
 msgstr "自動拡大"
+
+#, fuzzy
+msgid "Auto-detect"
+msgstr "自動補完"
 
 msgid "Autocomplete"
 msgstr "自動補完"
@@ -1722,10 +1927,25 @@ msgstr "自動補完 フィルタ"
 msgid "Autocomplete query predicate"
 msgstr "自動補完のクエリ述語"
 
-msgid "Automatic color"
-msgstr "自動カラー"
+msgid "Automatically adjust column width based on available space"
+msgstr ""
+
+msgid "Automatically adjust column width based on content"
+msgstr ""
+
+#, fuzzy
+msgid "Automatically sync columns"
+msgstr "すべての列のサイズを自動調整する"
+
+#, fuzzy
+msgid "Autosize All Columns"
+msgstr "すべての列のサイズを自動調整する"
 
 msgid "Autosize Column"
+msgstr "列のサイズを自動調整する"
+
+#, fuzzy
+msgid "Autosize This Column"
 msgstr "列のサイズを自動調整する"
 
 msgid "Autosize all columns"
@@ -1739,9 +1959,6 @@ msgstr "利用可能な並べ替えモード"
 
 msgid "Average"
 msgstr "平均"
-
-msgid "Average (Mean)"
-msgstr ""
 
 msgid "Average value"
 msgstr "平均値"
@@ -1763,6 +1980,12 @@ msgstr "軸上昇"
 
 msgid "Axis descending"
 msgstr "軸下降"
+
+msgid "Axis title margin"
+msgstr "軸のタイトルの余白"
+
+msgid "Axis title position"
+msgstr "軸タイトルの位置"
 
 msgid "BCC recipients"
 msgstr "BCC"
@@ -1837,7 +2060,11 @@ msgstr "チャートと凡例でシリーズを順序付ける必要があるこ
 msgid "Basic"
 msgstr "基本"
 
-msgid "Basic information"
+msgid "Basic conditional formatting"
+msgstr "基本的な条件付き書式"
+
+#, fuzzy
+msgid "Basic information about the chart"
 msgstr "基本情報"
 
 #, python-format
@@ -1853,9 +2080,6 @@ msgstr "前"
 msgid "Big Number"
 msgstr "大きな数値"
 
-msgid "Big Number Font Size"
-msgstr "大きな数字のフォントサイズ"
-
 msgid "Big Number with Time Period Comparison"
 msgstr "期間比較による大きな数"
 
@@ -1865,6 +2089,14 @@ msgstr "トレンドラインのある大きな数"
 #, fuzzy
 msgid "Bins"
 msgstr "In"
+
+#, fuzzy
+msgid "Blanks"
+msgstr "ブール値"
+
+#, python-format
+msgid "Block %(block_num)s out of %(block_count)s"
+msgstr ""
 
 msgid "Border color"
 msgstr "線の色"
@@ -1890,6 +2122,10 @@ msgstr "右下"
 msgid "Bottom to Top"
 msgstr "下から上へ"
 
+#, fuzzy
+msgid "Bounds"
+msgstr "Y 境界"
+
 msgid ""
 "Bounds for numerical X axis. Not applicable for temporal or categorical "
 "axes. When left empty, the bounds are dynamically defined based on the "
@@ -1898,6 +2134,12 @@ msgid ""
 msgstr ""
 "数値 X "
 "軸の範囲。時間軸またはカテゴリ軸には適用されません。空のままにすると、データの最小値/最大値に基づいて境界が動的に定義されます。この機能は軸の範囲を拡大するだけであることに注意してください。データの範囲は狭まりません。"
+
+msgid ""
+"Bounds for the X-axis. Selected time merges with min/max date of the "
+"data. When left empty, bounds dynamically defined based on the min/max of"
+" the data."
+msgstr ""
 
 msgid ""
 "Bounds for the Y-axis. When left empty, the bounds are dynamically "
@@ -1969,9 +2211,6 @@ msgstr "バブルサイズの数値形式"
 msgid "Bucket break points"
 msgstr "バケットのブレークポイント"
 
-msgid "Build"
-msgstr "構築"
-
 msgid "Bulk select"
 msgstr "一括選択"
 
@@ -2009,8 +2248,9 @@ msgstr "キャンセル"
 msgid "CC recipients"
 msgstr "CC"
 
-msgid "CREATE DATASET"
-msgstr "データセットを作成"
+#, fuzzy
+msgid "COPY QUERY"
+msgstr "クエリ URL のコピー"
 
 msgid "CREATE TABLE AS"
 msgstr "テーブルを次のように作成"
@@ -2051,6 +2291,14 @@ msgstr "CSSテンプレート"
 msgid "CSS templates could not be deleted."
 msgstr "CSS テンプレートを削除できませんでした。"
 
+#, fuzzy
+msgid "CSV Export"
+msgstr "エクスポート"
+
+#, fuzzy
+msgid "CSV file downloaded successfully"
+msgstr "このダッシュボードは正常に保存されました。"
+
 msgid "CSV upload"
 msgstr "CSVアップロード"
 
@@ -2086,8 +2334,17 @@ msgstr "CVAS (選択としてビューを作成) クエリは SELECT ステー�
 msgid "Cache Timeout (seconds)"
 msgstr "キャッシュタイムアウト (秒)"
 
+msgid ""
+"Cache data separately for each user based on their data access roles and "
+"permissions. When disabled, a single cache will be used for all users."
+msgstr ""
+
 msgid "Cache timeout"
 msgstr "キャッシュタイムアウト"
+
+#, fuzzy
+msgid "Cache timeout must be a number"
+msgstr "ピリオドは整数でなければなりません。"
 
 msgid "Cached"
 msgstr "キャッシュ済み"
@@ -2139,6 +2396,16 @@ msgstr "クエリにアクセスできません。"
 msgid "Cannot delete a database that has datasets attached"
 msgstr "データセットがアタッチされているデータベースは削除できません。"
 
+#, fuzzy
+msgid "Cannot delete system themes"
+msgstr "クエリにアクセスできません。"
+
+msgid "Cannot delete theme that is set as system default or dark theme"
+msgstr ""
+
+msgid "Cannot delete theme that is set as system default or dark theme."
+msgstr ""
+
 #, python-format
 msgid "Cannot find the table (%s) metadata."
 msgstr ""
@@ -2149,9 +2416,19 @@ msgstr "SSH トンネルに複数の認証情報を持つことはできませ�
 msgid "Cannot load filter"
 msgstr "フィルタを読み込めません"
 
+msgid "Cannot modify system themes."
+msgstr ""
+
+msgid "Cannot nest folders in default folders"
+msgstr ""
+
 #, python-format
 msgid "Cannot parse time string [%(human_readable)s]"
 msgstr "時間文字列 [%(human_readable)s] を解析できません。"
+
+#, fuzzy
+msgid "Captcha"
+msgstr "チャートを作成"
 
 #, fuzzy
 msgid "Cartodiagram"
@@ -2165,6 +2442,10 @@ msgstr "カテゴリカル"
 
 msgid "Categorical Color"
 msgstr "カテゴリカルカラー"
+
+#, fuzzy
+msgid "Categorical palette"
+msgstr "カテゴリカル"
 
 msgid "Categories to group by on the x-axis."
 msgstr "X 軸でグループ化するカテゴリ。"
@@ -2202,14 +2483,25 @@ msgstr "セルサイズ"
 msgid "Cell content"
 msgstr "セルの内容"
 
+msgid "Cell layout & styling"
+msgstr ""
+
 msgid "Cell limit"
 msgstr "セル制限"
+
+#, fuzzy
+msgid "Cell title template"
+msgstr "テンプレートを削除"
 
 msgid "Centroid (Longitude and Latitude): "
 msgstr "重心 (経度と緯度):"
 
 msgid "Certification"
 msgstr "認証"
+
+#, fuzzy
+msgid "Certification and additional settings"
+msgstr "追加の設定"
 
 msgid "Certification details"
 msgstr "認証の詳細"
@@ -2242,6 +2534,9 @@ msgstr "変化"
 
 msgid "Changes saved."
 msgstr "変更が保存されました。"
+
+msgid "Changes the sort value of the items in the legend only"
+msgstr ""
 
 msgid "Changing one or more of these dashboards is forbidden"
 msgstr "これらのダッシュボードの 1 つ以上を変更することは禁止されています。"
@@ -2311,6 +2606,10 @@ msgstr "チャートソース"
 msgid "Chart Title"
 msgstr "チャートのタイトル"
 
+#, fuzzy
+msgid "Chart Type"
+msgstr "チャートのタイトル"
+
 #, python-format
 msgid "Chart [%s] has been overwritten"
 msgstr "チャート [%s] は上書きされました"
@@ -2322,15 +2621,6 @@ msgstr "チャート [%s] が保存されました"
 #, python-format
 msgid "Chart [%s] was added to dashboard [%s]"
 msgstr "チャート [%s] がダッシュボード [%s] に追加されました"
-
-msgid "Chart [{}] has been overwritten"
-msgstr "チャート [{}] が上書きされました。"
-
-msgid "Chart [{}] has been saved"
-msgstr "チャート [{}] が保存されました。"
-
-msgid "Chart [{}] was added to dashboard [{}]"
-msgstr "チャート [{}] はダッシュボード [{}] に追加されました。"
 
 msgid "Chart cache timeout"
 msgstr "チャートキャッシュタイムアウト"
@@ -2344,6 +2634,13 @@ msgstr "チャートを作成できませんでした。"
 msgid "Chart could not be updated."
 msgstr "チャートをアップロードできませんでした。"
 
+msgid "Chart customization to control deck.gl layer visibility"
+msgstr ""
+
+#, fuzzy
+msgid "Chart customization value is required"
+msgstr "フィルター値は必須です"
+
 msgid "Chart does not exist"
 msgstr "チャートが存在しません。"
 
@@ -2356,14 +2653,12 @@ msgstr "チャートの高さ"
 msgid "Chart imported"
 msgstr "インポートされたチャート"
 
-msgid "Chart last modified"
-msgstr "チャートの最終更新日"
-
-msgid "Chart last modified by"
-msgstr "チャートの最終更新者"
-
 msgid "Chart name"
 msgstr "チャート名"
+
+#, fuzzy
+msgid "Chart name is required"
+msgstr "姓が必要です"
 
 msgid "Chart not found"
 msgstr "チャートが見つかりません。"
@@ -2377,6 +2672,10 @@ msgstr "チャートの所有者"
 msgid "Chart parameters are invalid."
 msgstr "チャートのパラメータが無効です。"
 
+#, fuzzy
+msgid "Chart properties"
+msgstr "チャートのプロパティを編集"
+
 msgid "Chart properties updated"
 msgstr "チャートのプロパティが更新されました"
 
@@ -2386,8 +2685,16 @@ msgstr "チャートのサイズ"
 msgid "Chart title"
 msgstr "チャートのタイトル"
 
+#, fuzzy
+msgid "Chart type"
+msgstr "チャートのタイトル"
+
 msgid "Chart type requires a dataset"
 msgstr "チャートの種類にはデータセットが必要です"
+
+#, fuzzy
+msgid "Chart was saved but could not be added to the selected tab."
+msgstr "チャートを削除できませんでした。"
 
 msgid "Chart width"
 msgstr "チャートの幅"
@@ -2397,6 +2704,10 @@ msgstr "チャート"
 
 msgid "Charts could not be deleted."
 msgstr "チャートを削除できませんでした。"
+
+#, fuzzy
+msgid "Charts per row"
+msgstr "ヘッダー行"
 
 msgid "Check for sorting ascending"
 msgstr "昇順ソートのチェック"
@@ -2426,9 +2737,6 @@ msgstr "[グループ化]に[ラベル]の選択肢が存在する必要があ�
 
 msgid "Choice of [Point Radius] must be present in [Group By]"
 msgstr "[グループ化]に[点半径]の選択肢が存在する必要があります。"
-
-msgid "Choose File"
-msgstr "ファイルを選択"
 
 msgid "Choose a chart for displaying on the map"
 msgstr "マップに表示するチャートを選択してください。"
@@ -2469,11 +2777,28 @@ msgstr "日付として解析される列の選択"
 msgid "Choose columns to read"
 msgstr "読み取る列を選択"
 
+msgid ""
+"Choose from existing dashboard filters and select a value to refine your "
+"report results."
+msgstr ""
+
+msgid "Choose how many X-Axis labels to show"
+msgstr ""
+
 msgid "Choose index column"
 msgstr "インデックス列を選択"
 
+msgid ""
+"Choose layers to hide from all deck.gl Multiple Layer charts in this "
+"dashboard."
+msgstr ""
+
 msgid "Choose notification method and recipients."
 msgstr "通知方法と受信者の選択"
+
+#, fuzzy, python-format
+msgid "Choose numbers between %(min)s and %(max)s"
+msgstr "スクリーンショットの幅は %(min)spx から %(max)spx の間である必要があります。"
 
 msgid "Choose one of the available databases from the panel on the left."
 msgstr "左側のパネルから利用可能なデータベースの 1 つを選択します。"
@@ -2510,6 +2835,10 @@ msgid ""
 "color based on a categorical color palette"
 msgstr "国を指標で網掛けするか、カテゴリ別カラーパレットに基づいて色を割り当てるかを選択します"
 
+#, fuzzy
+msgid "Choose..."
+msgstr "データベースを選択してください..."
+
 msgid "Chord Diagram"
 msgstr "コードダイアグラム"
 
@@ -2542,18 +2871,41 @@ msgstr "条項"
 msgid "Clear"
 msgstr "クリア"
 
+#, fuzzy
+msgid "Clear Sort"
+msgstr "クリアフォーム"
+
 msgid "Clear all"
 msgstr "すべてクリア"
 
 msgid "Clear all data"
 msgstr "すべてのデータをクリア"
 
+#, fuzzy
+msgid "Clear all filters"
+msgstr "すべてのフィルターをクリアする"
+
+#, fuzzy
+msgid "Clear default dark theme"
+msgstr "デフォルトの日時"
+
+msgid "Clear default light theme"
+msgstr ""
+
 msgid "Clear form"
 msgstr "クリアフォーム"
 
+#, fuzzy
+msgid "Clear local theme"
+msgstr "線形配色"
+
+msgid "Clear the selection to revert to the system default theme"
+msgstr ""
+
+#, fuzzy
 msgid ""
-"Click on \"Add or Edit Filters\" option in Settings to create new "
-"dashboard filters"
+"Click on \"Add or edit filters and controls\" option in Settings to "
+"create new dashboard filters"
 msgstr "設定の「フィルタの追加/編集」オプションをクリックして、新しいダッシュボード フィルタを作成します"
 
 msgid ""
@@ -2579,6 +2931,10 @@ msgstr "このデータベースに接続するために必要な必須フィー
 
 msgid "Click to add a contour"
 msgstr "クリックして輪郭を追加します"
+
+#, fuzzy
+msgid "Click to add new breakpoint"
+msgstr "クリックしてレイヤーを追加します"
 
 msgid "Click to add new layer"
 msgstr "クリックしてレイヤーを追加します"
@@ -2614,11 +2970,22 @@ msgstr "クリックして昇順に並べ替えます"
 msgid "Click to sort descending"
 msgstr "クリックして降順に並べ替えます"
 
+#, fuzzy
+msgid "Client ID"
+msgstr "線の幅"
+
+#, fuzzy
+msgid "Client Secret"
+msgstr "列選択"
+
 msgid "Close"
 msgstr "閉じる"
 
 msgid "Close all other tabs"
 msgstr "他のタブをすべて閉じる"
+
+msgid "Close color breakpoint editor"
+msgstr ""
 
 msgid "Close tab"
 msgstr "タブを閉じる"
@@ -2632,6 +2999,14 @@ msgstr "クラスタリング半径"
 msgid "Code"
 msgstr "コード"
 
+#, fuzzy
+msgid "Code Copied!"
+msgstr "SQL がコピーされました!"
+
+#, fuzzy
+msgid "Collapse All"
+msgstr "すべて折りたたむ"
+
 msgid "Collapse all"
 msgstr "すべて折りたたむ"
 
@@ -2643,9 +3018,6 @@ msgstr "行を折りたたむ"
 
 msgid "Collapse tab content"
 msgstr "タブのコンテンツを折りたたむ"
-
-msgid "Collapse table preview"
-msgstr "テーブルのプレビューを折りたたむ"
 
 msgid "Color"
 msgstr "カラー"
@@ -2659,17 +3031,33 @@ msgstr "色の指標"
 msgid "Color Scheme"
 msgstr "配色"
 
+#, fuzzy
+msgid "Color Scheme Type"
+msgstr "配色"
+
 msgid "Color Steps"
 msgstr "カラーステップ"
 
 msgid "Color bounds"
 msgstr "色の境界"
 
+#, fuzzy
+msgid "Color breakpoints"
+msgstr "バケットのブレークポイント"
+
 msgid "Color by"
 msgstr "色分け"
 
+#, fuzzy
+msgid "Color for breakpoint"
+msgstr "バケットのブレークポイント"
+
 msgid "Color metric"
 msgstr "色の指標"
+
+#, fuzzy
+msgid "Color of the source location"
+msgstr "対象箇所の色"
 
 msgid "Color of the target location"
 msgstr "対象箇所の色"
@@ -2684,9 +3072,6 @@ msgstr "色は、選択した範囲内の他のセルに対する特定のセル
 
 msgid "Color: "
 msgstr "色:"
-
-msgid "Colors"
-msgstr "色"
 
 msgid "Column"
 msgstr "列"
@@ -2740,6 +3125,10 @@ msgstr "集計によって参照される列が未定義です。: %(column)s"
 msgid "Column select"
 msgstr "列選択"
 
+#, fuzzy
+msgid "Column to group by"
+msgstr "グループ化する列"
+
 msgid ""
 "Column to use as the index of the dataframe. If None is given, Index "
 "label is used."
@@ -2757,6 +3146,13 @@ msgstr "列"
 #, python-format
 msgid "Columns (%s)"
 msgstr "%s 列"
+
+#, fuzzy
+msgid "Columns and metrics"
+msgstr "指標を追加するには"
+
+msgid "Columns folder can only contain column items"
+msgstr ""
 
 #, python-format
 msgid "Columns missing in dataset: %(invalid_columns)s"
@@ -2789,6 +3185,10 @@ msgstr "行をグループ化するための列"
 
 msgid "Columns to read"
 msgstr "読み取る列"
+
+#, fuzzy
+msgid "Columns to show in the tooltip."
+msgstr "列ヘッダーのツールチップ"
 
 msgid "Combine metrics"
 msgstr "メトリクスを結合する"
@@ -2827,6 +3227,12 @@ msgid ""
 "group is mapped to a row and change over time is visualized bar lengths "
 "and color."
 msgstr "異なるグループ間でメトリクスが時間の経過とともにどのように変化するかを比較します。各グループは行にマッピングされ、時間の経過に伴う変化がバーの長さと色で視覚化されます。"
+
+msgid ""
+"Compares metrics between different time periods. Displays time series "
+"data across multiple periods (like weeks or months) to show period-over-"
+"period trends and patterns."
+msgstr ""
 
 msgid "Comparison"
 msgstr "比較"
@@ -2876,8 +3282,17 @@ msgstr "時間範囲の構成: 前回..."
 msgid "Configure Time Range: Previous..."
 msgstr "時間範囲の構成: 前..."
 
+msgid "Configure automatic dashboard refresh"
+msgstr ""
+
+msgid "Configure caching and performance settings"
+msgstr ""
+
 msgid "Configure custom time range"
 msgstr "カスタム時間範囲の構成"
+
+msgid "Configure dashboard appearance, colors, and custom CSS"
+msgstr ""
 
 msgid "Configure filter scopes"
 msgstr "フィルタスコープを構成する"
@@ -2894,11 +3309,19 @@ msgstr "このダッシュボードを外部 Web アプリケーションに埋�
 msgid "Configure your how you overlay is displayed here."
 msgstr "ここでオーバーレイの表示方法を設定します。"
 
+#, fuzzy
+msgid "Confirm"
+msgstr "保存の確認"
+
 msgid "Confirm Password"
 msgstr "パスワードの確認"
 
 msgid "Confirm overwrite"
 msgstr "上書きの確認"
+
+#, fuzzy
+msgid "Confirm password"
+msgstr "パスワードの確認"
 
 msgid "Confirm save"
 msgstr "保存の確認"
@@ -2927,6 +3350,10 @@ msgstr "代わりに動的フォームを使用してこのデータベースに
 msgid "Connect this database with a SQLAlchemy URI string instead"
 msgstr "代わりに SQLAlchemy URI 文字列を使用してこのデータベースを接続します"
 
+#, fuzzy
+msgid "Connect to engine"
+msgstr "繋がり"
+
 msgid "Connection"
 msgstr "繋がり"
 
@@ -2935,6 +3362,10 @@ msgstr "接続に失敗しました。接続設定を確認してください。
 
 msgid "Connection failed, please check your connection settings."
 msgstr "接続に失敗しました。接続設定を確認してください"
+
+#, fuzzy
+msgid "Contains"
+msgstr "連続"
 
 msgid "Content format"
 msgstr "コンテンツ形式"
@@ -2956,6 +3387,10 @@ msgstr "貢献"
 
 msgid "Contribution Mode"
 msgstr "貢献モード"
+
+#, fuzzy
+msgid "Contributions"
+msgstr "貢献"
 
 msgid "Control"
 msgstr "コントロール"
@@ -2984,8 +3419,9 @@ msgstr ""
 msgid "Copy and Paste JSON credentials"
 msgstr "JSON認証情報をコピーして貼り付けます"
 
-msgid "Copy link"
-msgstr "リンクをコピー"
+#, fuzzy
+msgid "Copy code to clipboard"
+msgstr "クリップボードにコピー"
 
 #, python-format
 msgid "Copy of %s"
@@ -2996,9 +3432,6 @@ msgstr "パーティションクエリをクリップボードにコピー"
 
 msgid "Copy permalink to clipboard"
 msgstr "パーマリンクをクリップボードにコピー"
-
-msgid "Copy query URL"
-msgstr "クエリ URL のコピー"
 
 msgid "Copy query link to your clipboard"
 msgstr "クエリのlinkをクリップボードにコピー"
@@ -3020,6 +3453,10 @@ msgstr "クリップボードにコピー"
 
 msgid "Copy to clipboard"
 msgstr "クリップボードにコピー"
+
+#, fuzzy
+msgid "Copy with Headers"
+msgstr "サブヘッダーあり"
 
 #, fuzzy
 msgid "Corner Radius"
@@ -3047,7 +3484,8 @@ msgstr "viz オブジェクトが見つかりませんでした。"
 msgid "Could not load database driver"
 msgstr "データベースドライバーをロードできませんでした。"
 
-msgid "Could not load database driver: {}"
+#, fuzzy, python-format
+msgid "Could not load database driver for: %(engine)s"
 msgstr "データベース ドライバーを読み込めませんでした。: {}"
 
 #, python-format
@@ -3090,8 +3528,9 @@ msgstr "国別地図"
 msgid "Create"
 msgstr "作成"
 
-msgid "Create chart"
-msgstr "チャートを作成"
+#, fuzzy
+msgid "Create Tag"
+msgstr "データセットを作成"
 
 msgid "Create a dataset"
 msgstr "データセットを作成"
@@ -3103,14 +3542,19 @@ msgstr ""
 "データセットを作成してデータをチャートとして視覚化するか、\n"
 " SQL Lab に移動してデータをクエリします。"
 
+#, fuzzy
+msgid "Create a new Tag"
+msgstr "新しいチャートを作成"
+
 msgid "Create a new chart"
 msgstr "新しいチャートを作成"
 
+#, fuzzy
+msgid "Create and explore dataset"
+msgstr "データセットを作成"
+
 msgid "Create chart"
 msgstr "チャートを作成"
-
-msgid "Create chart with dataset"
-msgstr "データセットを使用してチャートを作成する"
 
 msgid "Create dataframe index"
 msgstr "データフレームインデックスの作成"
@@ -3118,8 +3562,11 @@ msgstr "データフレームインデックスの作成"
 msgid "Create dataset"
 msgstr "データセットを作成"
 
-msgid "Create dataset and create chart"
-msgstr "データセットの作成とチャートの作成"
+msgid "Create matrix columns by placing charts side-by-side"
+msgstr ""
+
+msgid "Create matrix rows by stacking charts vertically"
+msgstr ""
 
 msgid "Create new chart"
 msgstr "新しいチャートを作成"
@@ -3148,9 +3595,6 @@ msgstr "データソースの作成と新しいタブの作成"
 msgid "Creator"
 msgstr "作成者"
 
-msgid "Credentials uploaded"
-msgstr ""
-
 msgid "Crimson"
 msgstr "真紅"
 
@@ -3174,6 +3618,10 @@ msgstr "累積的な"
 
 msgid "Currency"
 msgstr "通貨"
+
+#, fuzzy
+msgid "Currency code column"
+msgstr "通貨記号"
 
 msgid "Currency format"
 msgstr "通貨形式"
@@ -3209,9 +3657,6 @@ msgstr "現在レンダリング中: %s"
 msgid "Custom"
 msgstr "カスタム"
 
-msgid "Custom conditional formatting"
-msgstr "カスタム条件付き書式"
-
 msgid "Custom Plugin"
 msgstr "カスタムプラグイン"
 
@@ -3233,17 +3678,36 @@ msgstr "カスタムカラーパレット"
 msgid "Custom column name (leave blank for default)"
 msgstr ""
 
+msgid "Custom conditional formatting"
+msgstr "カスタム条件付き書式"
+
 msgid "Custom date"
 msgstr "カスタム日付"
 
-msgid "Custom interval"
-msgstr "カスタム間隔"
+msgid "Custom fields not available in aggregated heatmap cells"
+msgstr ""
 
 msgid "Custom time filter plugin"
 msgstr "カスタムタイムフィルタープラグイン"
 
 msgid "Custom width of the screenshot in pixels"
 msgstr "スクリーンショットのカスタム幅 (ピクセル単位)"
+
+#, fuzzy
+msgid "Custom..."
+msgstr "カスタム"
+
+#, fuzzy
+msgid "Customization type"
+msgstr "可視化タイプ"
+
+#, fuzzy
+msgid "Customization value is required"
+msgstr "フィルター値は必須です"
+
+#, fuzzy, python-format
+msgid "Customizations out of scope (%d)"
+msgstr "フィルターは範囲外です (%d)"
 
 msgid "Customize"
 msgstr "カスタマイズ"
@@ -3252,15 +3716,34 @@ msgid "Customize Metrics"
 msgstr "メトリクスのカスタマイズ"
 
 msgid ""
-"Customize chart metrics or columns with currency symbols as prefixes or "
-"suffixes. Choose a symbol from dropdown or type your own."
-msgstr "通貨記号をプレフィックスまたはサフィックスとして使用してチャートのメトリクスまたは列をカスタマイズします。"
+"Customize cell titles using Handlebars template syntax. Available "
+"variables: {{rowLabel}}, {{colLabel}}"
+msgstr ""
 
 msgid "Customize columns"
 msgstr "列をカスタマイズする"
 
 msgid "Customize data source, filters, and layout."
 msgstr "データソース、フィルター、レイアウトをカスタマイズします。"
+
+msgid ""
+"Customize the label displayed for decreasing values in the chart tooltips"
+" and legend."
+msgstr ""
+
+msgid ""
+"Customize the label displayed for increasing values in the chart tooltips"
+" and legend."
+msgstr ""
+
+msgid ""
+"Customize the label displayed for total values in the chart tooltips, "
+"legend, and chart axis."
+msgstr ""
+
+#, fuzzy
+msgid "Customize tooltips template"
+msgstr "CSSテンプレート"
 
 msgid "Cyclic dependency detected"
 msgstr "循環依存関係が検出されました"
@@ -3316,12 +3799,17 @@ msgstr "ダークモード"
 msgid "Dashboard"
 msgstr "ダッシュボード"
 
+#, fuzzy
+msgid "Dashboard Filter"
+msgstr "ダッシュボードのタイトル"
+
+#, fuzzy
+msgid "Dashboard Id"
+msgstr "ダッシュボード"
+
 #, python-format
 msgid "Dashboard [%s] just got created and chart [%s] was added to it"
 msgstr "ダッシュボード [%s] が作成され、チャート [%s] が追加されました"
-
-msgid "Dashboard [{}] just got created and chart [{}] was added to it"
-msgstr "ダッシュボード [{}] が作成されチャート [{}] が追加されました。"
 
 msgid "Dashboard cannot be copied due to invalid parameters."
 msgstr ""
@@ -3331,6 +3819,10 @@ msgstr "ダッシュボードをお気に入りにできませんでした。"
 
 msgid "Dashboard cannot be unfavorited."
 msgstr "ダッシュボードをお気に入り解除できませんでした。"
+
+#, fuzzy
+msgid "Dashboard chart customizations could not be updated."
+msgstr "ダッシュボードの色設定を更新できませんでした。"
 
 msgid "Dashboard color configuration could not be updated."
 msgstr "ダッシュボードの色設定を更新できませんでした。"
@@ -3344,8 +3836,23 @@ msgstr "ダッシュボードを更新できませんでした。"
 msgid "Dashboard does not exist"
 msgstr "ダッシュボードが存在しません。"
 
+#, fuzzy
+msgid "Dashboard exported as example successfully"
+msgstr "このダッシュボードは正常に保存されました。"
+
+#, fuzzy
+msgid "Dashboard exported successfully"
+msgstr "このダッシュボードは正常に保存されました。"
+
 msgid "Dashboard imported"
 msgstr "ダッシュボードがインポートされました"
+
+msgid "Dashboard name and URL configuration"
+msgstr ""
+
+#, fuzzy
+msgid "Dashboard name is required"
+msgstr "姓が必要です"
 
 msgid "Dashboard native filters could not be patched."
 msgstr "ダッシュボードのネイティブフィルタにパッチを適用できませんでした。"
@@ -3392,6 +3899,10 @@ msgstr "破線"
 
 msgid "Data"
 msgstr "データ"
+
+#, fuzzy
+msgid "Data Export Options"
+msgstr "チャートのオプション"
 
 msgid "Data Table"
 msgstr "データテーブル"
@@ -3481,9 +3992,6 @@ msgstr "アラートにはデータベースが必要です。"
 
 msgid "Database name"
 msgstr "データベース名"
-
-msgid "Database not allowed to change"
-msgstr "データベースの変更は許可されていません。"
 
 msgid "Database not found."
 msgstr "データベースが見つかりません。"
@@ -3588,6 +4096,10 @@ msgstr "データソースとチャートの種類"
 msgid "Datasource does not exist"
 msgstr "データソースが存在しません。"
 
+#, fuzzy
+msgid "Datasource is required for validation"
+msgstr "アラートにはデータベースが必要です。"
+
 msgid "Datasource type is invalid"
 msgstr "データソースのタイプが無効です。"
 
@@ -3673,11 +4185,35 @@ msgstr "Deck.gl - 散布図"
 msgid "Deck.gl - Screen Grid"
 msgstr "Deck.gl - スクリーングリッド"
 
+#, fuzzy
+msgid "Deck.gl Layer Visibility"
+msgstr "Deck.gl - 散布図"
+
+#, fuzzy
+msgid "Deckgl"
+msgstr "deckGL"
+
 msgid "Decrease"
 msgstr "減少"
 
+#, fuzzy
+msgid "Decrease color"
+msgstr "減少"
+
+#, fuzzy
+msgid "Decrease label"
+msgstr "減少"
+
+#, fuzzy
+msgid "Default"
+msgstr "デフォルト"
+
 msgid "Default Catalog"
 msgstr "デフォルトのカタログ"
+
+#, fuzzy
+msgid "Default Column Settings"
+msgstr "列の設定"
 
 msgid "Default Schema"
 msgstr "デフォルトのスキーマ"
@@ -3686,22 +4222,34 @@ msgid "Default URL"
 msgstr "デフォルトのURL"
 
 msgid ""
-"Default URL to redirect to when accessing from the dataset list page.\n"
-"            Accepts relative URLs such as <span style=„white-space: "
-"nowrap;”>/superset/dashboard/{id}/</span>"
+"Default URL to redirect to when accessing from the dataset list page. "
+"Accepts relative URLs such as"
 msgstr ""
 
 msgid "Default Value"
 msgstr "デフォルト値"
 
-msgid "Default datetime"
+#, fuzzy
+msgid "Default color"
+msgstr "デフォルトのカタログ"
+
+#, fuzzy
+msgid "Default datetime column"
 msgstr "デフォルトの日時"
+
+#, fuzzy
+msgid "Default folders cannot be nested"
+msgstr "データセットを作成できませんでした。"
 
 msgid "Default latitude"
 msgstr "デフォルトの緯度"
 
 msgid "Default longitude"
 msgstr "デフォルトの経度"
+
+#, fuzzy
+msgid "Default message"
+msgstr "デフォルト値"
 
 msgid ""
 "Default minimal column width in pixels, actual width may still be larger "
@@ -3736,6 +4284,9 @@ msgstr ""
 "視覚化で使用されるデータ配列を受け取り、その配列の変更されたバージョンを返すことが期待される JavaScript "
 "関数を定義します。これを使用して、データのプロパティを変更したり、配列をフィルターしたり、強化したりできます。"
 
+msgid "Define color breakpoints for the data"
+msgstr ""
+
 msgid ""
 "Define contour layers. Isolines represent a collection of line segments "
 "that serparate the area above and below a given threshold. Isobands "
@@ -3748,6 +4299,10 @@ msgstr "配送スケジュール、タイムゾーン、および頻度の設定
 
 msgid "Define the database, SQL query, and triggering conditions for alert."
 msgstr "データベース、SQLクエリ、およびアラートのトリガー条件を定義します。"
+
+#, fuzzy
+msgid "Defined through system configuration."
+msgstr "緯度/経度の設定が無効です。"
 
 msgid ""
 "Defines a rolling window function to apply, works along with the "
@@ -3798,6 +4353,10 @@ msgstr "データベースを削除しますか？"
 msgid "Delete Dataset?"
 msgstr "データセットを削除しますか？"
 
+#, fuzzy
+msgid "Delete Group?"
+msgstr "ロールを削除しますか？"
+
 msgid "Delete Layer?"
 msgstr "本当にレイヤーを削除しますか？"
 
@@ -3811,6 +4370,10 @@ msgid "Delete Role?"
 msgstr "ロールを削除しますか？"
 
 msgid "Delete Template?"
+msgstr "テンプレートを削除しますか？"
+
+#, fuzzy
+msgid "Delete Theme?"
 msgstr "テンプレートを削除しますか？"
 
 msgid "Delete User?"
@@ -3831,8 +4394,13 @@ msgstr "データベースを削除"
 msgid "Delete email report"
 msgstr "電子メールレポートを削除する"
 
-msgid "Delete query"
-msgstr "クエリを削除"
+#, fuzzy
+msgid "Delete group"
+msgstr "ロールを削除"
+
+#, fuzzy
+msgid "Delete item"
+msgstr "テンプレートを削除"
 
 msgid "Delete role"
 msgstr "ロールを削除"
@@ -3840,11 +4408,23 @@ msgstr "ロールを削除"
 msgid "Delete template"
 msgstr "テンプレートを削除"
 
+#, fuzzy
+msgid "Delete theme"
+msgstr "テンプレートを削除"
+
 msgid "Delete this container and save to remove this message."
 msgstr "このコンテナを削除し、保存してこのメ​​ッセージを削除します。"
 
 msgid "Delete user"
 msgstr "ユーザーを削除"
+
+#, fuzzy, python-format
+msgid "Delete user registration"
+msgstr "ユーザー削除しました: %s"
+
+#, fuzzy
+msgid "Delete user registration?"
+msgstr "注釈を削除しますか？"
 
 msgid "Deleted"
 msgstr "削除"
@@ -3894,9 +4474,22 @@ msgid "Deleted %(num)d saved query"
 msgid_plural "Deleted %(num)d saved queries"
 msgstr[0] " %(num)d 件の保存したクエリを削除しました。"
 
+#, fuzzy, python-format
+msgid "Deleted %(num)d theme"
+msgid_plural "Deleted %(num)d themes"
+msgstr[0] " %(num)d 件のデータセットを削除しました。"
+
 #, python-format
 msgid "Deleted %s"
 msgstr "%s を削除しました"
+
+#, fuzzy, python-format
+msgid "Deleted group: %s"
+msgstr "ロールを削除しました: %s"
+
+#, fuzzy, python-format
+msgid "Deleted groups: %s"
+msgstr "ロールを削除しました: %s"
 
 #, python-format
 msgid "Deleted role: %s"
@@ -3905,6 +4498,10 @@ msgstr "ロールを削除しました: %s"
 #, python-format
 msgid "Deleted roles: %s"
 msgstr "ロールを削除しました: %s"
+
+#, fuzzy, python-format
+msgid "Deleted user registration for user: %s"
+msgstr "ユーザー削除しました: %s"
 
 #, python-format
 msgid "Deleted user: %s"
@@ -3939,6 +4536,10 @@ msgstr "密度"
 msgid "Dependent on"
 msgstr "応じて"
 
+#, fuzzy
+msgid "Descending"
+msgstr "降順で並べ替え"
+
 msgid "Description"
 msgstr "廃止された"
 
@@ -3953,6 +4554,10 @@ msgstr "Big Number の下に表示される説明テキスト"
 
 msgid "Deselect all"
 msgstr "すべての選択を解除"
+
+#, fuzzy
+msgid "Design with"
+msgstr "最小幅"
 
 msgid "Details"
 msgstr "詳細"
@@ -3983,11 +4588,27 @@ msgstr "Dim Gray"
 msgid "Dimension"
 msgstr "寸法"
 
+#, fuzzy
+msgid "Dimension is required"
+msgstr "名前が必要です"
+
+#, fuzzy
+msgid "Dimension members"
+msgstr "寸法"
+
+#, fuzzy
+msgid "Dimension selection"
+msgstr "タイムゾーンセレクター"
+
 msgid "Dimension to use on x-axis."
 msgstr "X 軸に使用する次元"
 
 msgid "Dimension to use on y-axis."
 msgstr "Y 軸で使用する次元"
+
+#, fuzzy
+msgid "Dimension values"
+msgstr "寸法"
 
 msgid "Dimensions"
 msgstr "寸法"
@@ -4051,6 +4672,48 @@ msgstr "列名を表示します"
 msgid "Display configuration"
 msgstr "表示設定"
 
+#, fuzzy
+msgid "Display control configuration"
+msgstr "表示設定"
+
+#, fuzzy
+msgid "Display control has default value"
+msgstr "フィルターにはデフォルト値があります"
+
+#, fuzzy
+msgid "Display control name"
+msgstr "列名を表示します"
+
+#, fuzzy
+msgid "Display control settings"
+msgstr "コントロール設定を保持しますか？"
+
+#, fuzzy
+msgid "Display control type"
+msgstr "列名を表示します"
+
+#, fuzzy
+msgid "Display controls"
+msgstr "表示設定"
+
+#, fuzzy, python-format
+msgid "Display controls (%d)"
+msgstr "表示設定"
+
+#, fuzzy, python-format
+msgid "Display controls (%s)"
+msgstr "表示設定"
+
+#, fuzzy
+msgid "Display cumulative total at end"
+msgstr "列レベルの合計を表示します"
+
+msgid "Display headers for each column at the top of the matrix"
+msgstr ""
+
+msgid "Display labels for each row on the left side of the matrix"
+msgstr ""
+
 msgid ""
 "Display metrics side by side within each column, as opposed to each "
 "column being displayed side by side for each metric."
@@ -4068,6 +4731,9 @@ msgstr "行レベルの小計を表示する"
 msgid "Display row level total"
 msgstr "行レベルの合計を表示します"
 
+msgid "Display the last queried timestamp on charts in the dashboard view"
+msgstr ""
+
 msgid "Display type icon"
 msgstr "タイプアイコンを表示します"
 
@@ -4077,9 +4743,8 @@ msgid ""
 " Graph charts can be configured to be force-directed or circulate. If "
 "your data has a geospatial component, try the deck.gl Arc chart."
 msgstr ""
-"グラフ構造内のエンティティ間の接続を表示します。関係をマッピングし、ネットワーク内でどのノードが重要であるかを示すのに役立ちます。"
-"チャートは、力を指定したり循環したりするように構成できます。データに地理空間コンポーネントが含まれている場合は、deck.gl "
-"円弧チャートを試してください。"
+"グラフ構造内のエンティティ間の接続を表示します。関係をマッピングし、ネットワーク内でどのノードが重要であるかを示すのに役立ちます。チャートは、力を指定したり循環したりするように構成できます。データに地理空間コンポーネントが含まれている場合は、deck.gl"
+" 円弧チャートを試してください。"
 
 msgid "Distribute across"
 msgstr "全体に分散"
@@ -4090,6 +4755,11 @@ msgstr "分布"
 msgid "Divider"
 msgstr "区切り線"
 
+msgid ""
+"Divides each category into subcategories based on the values in the "
+"dimension. It can be used to exclude intersections."
+msgstr ""
+
 msgid "Do you want a donut or a pie?"
 msgstr "ドーナツと円どちらにしますか？"
 
@@ -4098,6 +4768,10 @@ msgstr "ドキュメンテーション"
 
 msgid "Domain"
 msgstr "ドメイン"
+
+#, fuzzy
+msgid "Don't refresh"
+msgstr "データが更新されました"
 
 msgid "Donut"
 msgstr "ドーナツ"
@@ -4120,6 +4794,10 @@ msgstr ""
 msgid "Download to CSV"
 msgstr "CSVにダウンロード"
 
+#, fuzzy
+msgid "Download to client"
+msgstr "CSVにダウンロード"
+
 #, python-format
 msgid ""
 "Downloading %(rows)s rows based on the LIMIT configuration. If you want "
@@ -4134,6 +4812,12 @@ msgstr "コンポーネントとチャートをダッシュ​​ボードにド
 
 msgid "Drag and drop components to this tab"
 msgstr "コンポーネントをこのタブにドラッグ アンド ドロップします"
+
+msgid ""
+"Drag columns and metrics here to customize tooltip content. Order matters"
+" - items will appear in the same order in tooltips. Click the button to "
+"manually select columns and metrics."
+msgstr ""
 
 msgid "Draw a marker on data points. Only applicable for line types."
 msgstr "データポイント上にマーカーを描画します。線種にのみ適用されます。"
@@ -4200,6 +4884,10 @@ msgstr "ここにテンポラル列をドロップするか、クリック"
 msgid "Drop columns/metrics here or click"
 msgstr "ここに列/指標をドロップするか、クリック"
 
+#, fuzzy
+msgid "Dttm"
+msgstr "dttm"
+
 msgid "Duplicate"
 msgstr "重複"
 
@@ -4215,6 +4903,10 @@ msgstr "重複する列/メトリック ラベル: %(labels)s。すべての列�
 
 msgid "Duplicate dataset"
 msgstr "重複したデータセット"
+
+#, fuzzy, python-format
+msgid "Duplicate folder name: %s"
+msgstr "ロール名が重複しています: %(name)s"
 
 msgid "Duplicate role"
 msgstr "ロールの重複"
@@ -4255,6 +4947,10 @@ msgid ""
 "database. If left unset, the cache never expires. "
 msgstr "このデータベースのテーブルのメタデータ キャッシュ タイムアウトの期間 (秒単位)。設定しない場合、キャッシュは期限切れになりません。"
 
+#, fuzzy
+msgid "Duration Ms"
+msgstr "期限"
+
 msgid "Duration in ms (1.40008 => 1ms 400µs 80ns)"
 msgstr "持続時間 (ms) (1.40008 => 1ms 400µs 80ns)"
 
@@ -4268,20 +4964,27 @@ msgstr "持続時間 (ms) (10500 => 10 分 5 秒)"
 msgid "Duration in ms (66000 => 1m 6s)"
 msgstr "持続時間 (ms) (66000 => 1 分 6 秒)"
 
+msgid "Dynamic"
+msgstr ""
+
 msgid "Dynamic Aggregation Function"
 msgstr "動的集計関数"
 
+#, fuzzy
+msgid "Dynamic group by"
+msgstr "グループ化されていません"
+
 msgid "Dynamically search all filter values"
 msgstr "すべてのフィルター値を動的に検索します"
+
+msgid "Dynamically select grouping columns from a dataset"
+msgstr ""
 
 msgid "ECharts"
 msgstr "Eチャート"
 
 msgid "EMAIL_REPORTS_CTA"
 msgstr "EMAIL_REPORTS_CTA"
-
-msgid "END (EXCLUSIVE)"
-msgstr "終了 (独占)"
 
 msgid "ERROR"
 msgstr "エラー"
@@ -4301,17 +5004,12 @@ msgstr "線の幅"
 msgid "Edit"
 msgstr "編集"
 
-msgid "Edit Alert"
-msgstr "アラートの編集"
-
-msgid "Edit CSS"
-msgstr "CSSを編集"
+#, fuzzy, python-format
+msgid "Edit %s in modal"
+msgstr "モーダルで"
 
 msgid "Edit CSS template properties"
 msgstr "CSSテンプレートのプロパティを編集する"
-
-msgid "Edit Chart Properties"
-msgstr "チャートのプロパティを編集"
 
 msgid "Edit Dashboard"
 msgstr "ダッシュボードを編集"
@@ -4319,14 +5017,15 @@ msgstr "ダッシュボードを編集"
 msgid "Edit Dataset "
 msgstr "データセットの編集"
 
+#, fuzzy
+msgid "Edit Group"
+msgstr "ルールの編集"
+
 msgid "Edit Log"
 msgstr "ログを編集"
 
 msgid "Edit Plugin"
 msgstr "プラグインの編集"
-
-msgid "Edit Report"
-msgstr "レポートの編集"
 
 msgid "Edit Role"
 msgstr "ロールの編集"
@@ -4339,6 +5038,10 @@ msgstr "タグの編集"
 
 msgid "Edit User"
 msgstr "ユーザーの編集"
+
+#, fuzzy
+msgid "Edit alert"
+msgstr "アラートの編集"
 
 msgid "Edit annotation"
 msgstr "注釈を編集する"
@@ -4370,14 +5073,23 @@ msgstr "電子メールレポートの編集"
 msgid "Edit formatter"
 msgstr "フォーマッタの編集"
 
+#, fuzzy
+msgid "Edit group"
+msgstr "ルールの編集"
+
 msgid "Edit properties"
 msgstr "プロパティの編集"
 
-msgid "Edit query"
-msgstr "クエリの編集"
+#, fuzzy
+msgid "Edit report"
+msgstr "レポートの編集"
 
 msgid "Edit role"
 msgstr "ロールの編集"
+
+#, fuzzy
+msgid "Edit tag"
+msgstr "タグの編集"
 
 msgid "Edit template"
 msgstr "テンプレートを編集"
@@ -4387,6 +5099,10 @@ msgstr "テンプレートパラメータの編集"
 
 msgid "Edit the dashboard"
 msgstr "ダッシュボードの編集"
+
+#, fuzzy
+msgid "Edit theme properties"
+msgstr "プロパティの編集"
 
 msgid "Edit time range"
 msgstr "期間の編集"
@@ -4416,14 +5132,23 @@ msgstr "ユーザー名 \"%(username)s\"、パスワード、またはデータ�
 msgid "Either the username or the password is wrong."
 msgstr "ユーザー名またはパスワードが間違っています。"
 
+#, fuzzy
+msgid "Elapsed"
+msgstr "リロード"
+
 msgid "Elevation"
 msgstr "標高"
 
 msgid "Email"
 msgstr "電子メール"
 
-msgid "電子メールが必要です"
-msgstr ""
+#, fuzzy
+msgid "Email is required"
+msgstr "値が要求されます"
+
+#, fuzzy
+msgid "Email link"
+msgstr "電子メール"
 
 msgid "Email reports active"
 msgstr "電子メールレポートが有効です"
@@ -4445,9 +5170,6 @@ msgstr "埋め込みダッシュボードを削除できませんでした。"
 
 msgid "Embedding deactivated."
 msgstr "埋め込みが無効になりました。"
-
-msgid "Emit Filter Events"
-msgstr "フィルターイベントの発行"
 
 msgid "Emphasis"
 msgstr "強調"
@@ -4473,6 +5195,9 @@ msgstr "空の行"
 msgid "Enable 'Allow file uploads to database' in any database's settings"
 msgstr "データベースの設定で「データベースへのファイルのアップロードを許可する」を有効にする"
 
+msgid "Enable Matrixify"
+msgstr ""
+
 msgid "Enable cross-filtering"
 msgstr "クロスフィルタリングを有効にする"
 
@@ -4491,6 +5216,23 @@ msgstr "予測を有効にする"
 msgid "Enable graph roaming"
 msgstr "チャートローミングを有効にする"
 
+msgid "Enable horizontal layout (columns)"
+msgstr ""
+
+msgid "Enable icon JavaScript mode"
+msgstr ""
+
+#, fuzzy
+msgid "Enable icons"
+msgstr "テーブルの列"
+
+msgid "Enable label JavaScript mode"
+msgstr ""
+
+#, fuzzy
+msgid "Enable labels"
+msgstr "範囲ラベル"
+
 msgid "Enable node dragging"
 msgstr "ノードのドラッグを有効にする"
 
@@ -4502,6 +5244,21 @@ msgstr "スキーマでの行拡張を有効にする"
 
 msgid "Enable server side pagination of results (experimental feature)"
 msgstr "サーバー側での結果のページネーションを有効にする (実験的な機能)"
+
+msgid "Enable vertical layout (rows)"
+msgstr ""
+
+msgid "Enables custom icon configuration via JavaScript"
+msgstr ""
+
+msgid "Enables custom label configuration via JavaScript"
+msgstr ""
+
+msgid "Enables rendering of icons for GeoJSON points"
+msgstr ""
+
+msgid "Enables rendering of labels for GeoJSON points"
+msgstr ""
 
 msgid ""
 "Encountered invalid NULL spatial entry,"
@@ -4515,8 +5272,16 @@ msgstr "終了時間"
 msgid "End (Longitude, Latitude): "
 msgstr "終了 (経度、緯度):"
 
+#, fuzzy
+msgid "End (exclusive)"
+msgstr "終了 (独占)"
+
 msgid "End Longitude & Latitude"
 msgstr "終了経度と緯度"
+
+#, fuzzy
+msgid "End Time"
+msgstr "終了日"
 
 msgid "End angle"
 msgstr "エンドアングル"
@@ -4529,6 +5294,10 @@ msgstr "終了日が時間範囲から除外されています"
 
 msgid "End date must be after start date"
 msgstr "終了日は開始日より後である必要があります。"
+
+#, fuzzy
+msgid "Ends With"
+msgstr "線の幅"
 
 #, python-format
 msgid "Engine \"%(engine)s\" cannot be configured through parameters."
@@ -4554,6 +5323,10 @@ msgstr "このシートの名前を入力してください"
 msgid "Enter a new title for the tab"
 msgstr "タブの新しいタイトルを入力します"
 
+#, fuzzy
+msgid "Enter a part of the object name"
+msgstr "オブジェクトを塗りつぶすかどうか"
+
 msgid "Enter alert name"
 msgstr "アラート名を入力してください"
 
@@ -4563,8 +5336,23 @@ msgstr "期間を秒単位で入力してください"
 msgid "Enter fullscreen"
 msgstr "全画面表示に入る"
 
+msgid "Enter minimum and maximum values for the range filter"
+msgstr ""
+
 msgid "Enter report name"
 msgstr "レポート名を入力してください"
+
+#, fuzzy
+msgid "Enter the group's description"
+msgstr "ユーザー名を入力してください"
+
+#, fuzzy
+msgid "Enter the group's label"
+msgstr "ユーザーの姓を入力してください"
+
+#, fuzzy
+msgid "Enter the group's name"
+msgstr "ユーザー名を入力してください"
 
 #, python-format
 msgid "Enter the required %(dbModelName)s credentials"
@@ -4582,8 +5370,19 @@ msgstr "ユーザーの名を入力してください"
 msgid "Enter the user's last name"
 msgstr "ユーザーの姓を入力してください"
 
+#, fuzzy
+msgid "Enter the user's password"
+msgstr "ユーザー名を入力してください"
+
 msgid "Enter the user's username"
 msgstr "ユーザー名を入力してください"
+
+#, fuzzy
+msgid "Enter theme name"
+msgstr "アラート名を入力してください"
+
+msgid "Enter your login and password below:"
+msgstr ""
 
 msgid "Entity"
 msgstr "実在物"
@@ -4593,6 +5392,10 @@ msgstr "等しい日付サイズ"
 
 msgid "Equal to (=)"
 msgstr "(=) に等しい"
+
+#, fuzzy
+msgid "Equals"
+msgstr "一連"
 
 msgid "Error"
 msgstr "エラー"
@@ -4605,12 +5408,20 @@ msgid "Error deleting %s"
 msgstr "データの削除中にエラーが発生しました: %s"
 
 #, fuzzy
+msgid "Error executing query. "
+msgstr "実行したクエリ"
+
+#, fuzzy
 msgid "Error faving chart"
 msgstr "チャートの保存中にエラーが発生しました"
 
-#, python-format
-msgid "Error in jinja expression in HAVING clause: %(msg)s"
-msgstr "HAVING 句の jinja 式にエラーがあります。: %(msg)s"
+#, fuzzy
+msgid "Error fetching charts"
+msgstr "チャートの取得中にエラーが発生しました"
+
+#, fuzzy
+msgid "Error importing theme."
+msgstr "解析エラー"
 
 #, python-format
 msgid "Error in jinja expression in RLS filters: %(msg)s"
@@ -4620,8 +5431,20 @@ msgstr "RLS フィルターの jinja 式のエラー: %(msg)s"
 msgid "Error in jinja expression in WHERE clause: %(msg)s"
 msgstr "WHERE 句の jinja 式にエラーがあります。: %(msg)s"
 
+#, fuzzy, python-format
+msgid "Error in jinja expression in column expression: %(msg)s"
+msgstr "WHERE 句の jinja 式にエラーがあります。: %(msg)s"
+
+#, fuzzy, python-format
+msgid "Error in jinja expression in datetime column: %(msg)s"
+msgstr "WHERE 句の jinja 式にエラーがあります。: %(msg)s"
+
 #, python-format
 msgid "Error in jinja expression in fetch values predicate: %(msg)s"
+msgstr "読込値述語の jinja 式にエラーがあります。: %(msg)s"
+
+#, fuzzy, python-format
+msgid "Error in jinja expression in metric expression: %(msg)s"
 msgstr "読込値述語の jinja 式にエラーがあります。: %(msg)s"
 
 msgid "Error loading chart datasources. Filters may not work correctly."
@@ -4648,15 +5471,6 @@ msgstr "データセットの保存中にエラーが発生しました"
 msgid "Error unfaving chart"
 msgstr "チャートのお気に入り解除中にエラーが発生しました"
 
-msgid "Error while adding role!"
-msgstr "ロールの追加中にエラーが発生しました"
-
-msgid "Error while adding user!"
-msgstr "ユーザーの追加中にエラーが発生しました"
-
-msgid "Error while duplicating role!"
-msgstr "ロールの複製中にエラーが発生しました"
-
 msgid "Error while fetching charts"
 msgstr "チャートの取得中にエラーが発生しました"
 
@@ -4664,24 +5478,16 @@ msgstr "チャートの取得中にエラーが発生しました"
 msgid "Error while fetching data: %s"
 msgstr "データの取得中にエラーが発生しました: %s"
 
-msgid "Error while fetching permissions"
-msgstr "アクセス権の取得中にエラーが発生しました"
+#, fuzzy
+msgid "Error while fetching groups"
+msgstr "ロールの取得中にエラーが発生しました"
 
 msgid "Error while fetching roles"
 msgstr "ロールの取得中にエラーが発生しました"
 
-msgid "Error while fetching users"
-msgstr "ユーザーの取得中にエラーが発生しました"
-
 #, python-format
 msgid "Error while rendering virtual dataset query: %(msg)s"
 msgstr "仮想データセット クエリのレンダリング中にエラーが発生しました。: %(msg)s"
-
-msgid "Error while updating role!"
-msgstr "ロールの更新中にエラーが発生しました"
-
-msgid "Error while updating user!"
-msgstr "ユーザーの更新中にエラーが発生しました"
 
 #, python-format
 msgid "Error: %(error)s"
@@ -4689,6 +5495,10 @@ msgstr "エラー: %(error)s"
 
 #, python-format
 msgid "Error: %(msg)s"
+msgstr "エラー: %(msg)s"
+
+#, fuzzy, python-format
+msgid "Error: %s"
 msgstr "エラー: %(msg)s"
 
 msgid "Error: permalink state not found"
@@ -4727,11 +5537,22 @@ msgstr "例"
 msgid "Examples"
 msgstr "例"
 
+#, fuzzy
+msgid "Excel Export"
+msgstr "週報"
+
+#, fuzzy
+msgid "Excel XML Export"
+msgstr "週報"
+
 msgid "Excel file format cannot be determined"
 msgstr "エクセルファイルの形式が特定できません。"
 
 msgid "Excel upload"
 msgstr "エクセルファイル アップロード"
+
+msgid "Exclude layers (deck.gl)"
+msgstr ""
 
 msgid "Exclude selected values"
 msgstr "選択した値を除外する"
@@ -4760,6 +5581,10 @@ msgstr "全画面表示を終了する"
 msgid "Expand"
 msgstr "拡大する"
 
+#, fuzzy
+msgid "Expand All"
+msgstr "すべて展開"
+
 msgid "Expand all"
 msgstr "すべて展開"
 
@@ -4768,12 +5593,6 @@ msgstr "データパネルを展開する"
 
 msgid "Expand row"
 msgstr "行を展開する"
-
-msgid "Expand table preview"
-msgstr "テーブルのプレビューを展開する"
-
-msgid "Expand tool bar"
-msgstr "ツールバーを展開する"
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -4801,11 +5620,47 @@ msgstr "データ探索ビューで結果セットを探索する"
 msgid "Export"
 msgstr "エクスポート"
 
+#, fuzzy
+msgid "Export All Data"
+msgstr "すべてのデータをクリア"
+
+#, fuzzy
+msgid "Export Current View"
+msgstr "現在のページを反転する"
+
+#, fuzzy
+msgid "Export YAML"
+msgstr "レポート名"
+
+#, fuzzy
+msgid "Export as Example"
+msgstr "Excelにエクスポート"
+
+#, fuzzy
+msgid "Export cancelled"
+msgstr "レポートに失敗しました"
+
 msgid "Export dashboards?"
 msgstr "ダッシュボードをエクスポートしますか？"
 
-msgid "Export query"
-msgstr "クエリのエクスポート"
+#, fuzzy
+msgid "Export failed"
+msgstr "レポートに失敗しました"
+
+#, fuzzy
+msgid "Export failed - please try again"
+msgstr "PDFのダウンロードに失敗しました。更新して再試行してください。"
+
+#, fuzzy, python-format
+msgid "Export failed: %s"
+msgstr "レポートに失敗しました"
+
+msgid "Export screenshot (jpeg)"
+msgstr ""
+
+#, fuzzy, python-format
+msgid "Export successful: %s"
+msgstr "完全なCSVにエクスポート"
 
 msgid "Export to .CSV"
 msgstr ".CSVにエクスポート"
@@ -4820,6 +5675,10 @@ msgid "Export to PDF"
 msgstr "PDFにエクスポート"
 
 msgid "Export to Pivoted .CSV"
+msgstr "ピボットされたCSVにエクスポート"
+
+#, fuzzy
+msgid "Export to Pivoted Excel"
 msgstr "ピボットされたCSVにエクスポート"
 
 msgid "Export to full .CSV"
@@ -4839,6 +5698,14 @@ msgstr "SQL Lab でデータベースを公開する"
 
 msgid "Expose in SQL Lab"
 msgstr "SQL ラボで公開"
+
+#, fuzzy
+msgid "Expression cannot be empty"
+msgstr "空にすることはできません"
+
+#, fuzzy
+msgid "Extensions"
+msgstr "寸法"
 
 msgid "Extent"
 msgstr "範囲"
@@ -4904,12 +5771,18 @@ msgstr "失敗"
 msgid "Failed at retrieving results"
 msgstr "結果の取得に失敗しました"
 
+msgid "Failed to apply theme: Invalid JSON"
+msgstr ""
+
 msgid "Failed to create report"
 msgstr "レポートの作成に失敗しました"
 
 #, python-format
 msgid "Failed to execute %(query)s"
 msgstr "%(クエリ)s の実行に失敗しました。"
+
+msgid "Failed to fetch user info:"
+msgstr ""
 
 msgid "Failed to generate chart edit URL"
 msgstr "チャート編集 URL の生成に失敗しました"
@@ -4920,14 +5793,49 @@ msgstr "チャートデータのロードに失敗しました"
 msgid "Failed to load chart data."
 msgstr "チャートデータのロードに失敗しました。"
 
-msgid "Failed to load dimensions for drill by"
-msgstr "ドリルの寸法のロードに失敗しました"
+#, fuzzy, python-format
+msgid "Failed to load columns for dataset %s"
+msgstr "チャートデータのロードに失敗しました"
+
+#, fuzzy
+msgid "Failed to load top values"
+msgstr "クエリの停止に失敗しました。"
+
+msgid "Failed to open file. Please try again."
+msgstr ""
+
+#, python-format
+msgid "Failed to remove system dark theme: %s"
+msgstr ""
+
+#, fuzzy, python-format
+msgid "Failed to remove system default theme: %s"
+msgstr "選択オプションを確認できませんでした: %s"
 
 msgid "Failed to retrieve advanced type"
 msgstr "高度なタイプの取得に失敗しました"
 
+#, fuzzy
+msgid "Failed to save chart customization"
+msgstr "チャートデータのロードに失敗しました"
+
 msgid "Failed to save cross-filter scoping"
 msgstr "クロスフィルターのスコープを保存できませんでした"
+
+#, fuzzy
+msgid "Failed to save cross-filters setting"
+msgstr "クロスフィルターのスコープを保存できませんでした"
+
+msgid "Failed to set local theme: Invalid JSON configuration"
+msgstr ""
+
+#, python-format
+msgid "Failed to set system dark theme: %s"
+msgstr ""
+
+#, fuzzy, python-format
+msgid "Failed to set system default theme: %s"
+msgstr "選択オプションを確認できませんでした: %s"
 
 msgid "Failed to start remote query on a worker."
 msgstr "ワーカー上でリモート クエリを開始できませんでした。"
@@ -4935,15 +5843,28 @@ msgstr "ワーカー上でリモート クエリを開始できませんでし�
 msgid "Failed to stop query."
 msgstr "クエリの停止に失敗しました。"
 
+msgid "Failed to store query results. Please try again."
+msgstr ""
+
 msgid "Failed to tag items"
 msgstr "アイテムのタグ付けに失敗しました"
 
 msgid "Failed to update report"
 msgstr "レポートの更新に失敗しました"
 
+msgid "Failed to validate expression. Please try again."
+msgstr ""
+
 #, python-format
 msgid "Failed to verify select options: %s"
 msgstr "選択オプションを確認できませんでした: %s"
+
+msgid "Falling back to CSV; Excel export library not available."
+msgstr ""
+
+#, fuzzy
+msgid "False"
+msgstr "誤りです"
 
 msgid "Favorite"
 msgstr "お気に入り"
@@ -4978,11 +5899,13 @@ msgstr "フィールドを JSON でデコードできません。 %(msg)s"
 msgid "Field is required"
 msgstr "フィールドは必須です。"
 
-msgid "File"
-msgstr "ファイル"
-
 msgid "File extension is not allowed."
 msgstr "ファイル拡張子は使用できません。"
+
+msgid ""
+"File handling is not supported in this browser. Please use a modern "
+"browser like Chrome or Edge."
+msgstr ""
 
 msgid "File settings"
 msgstr "フィルター設定"
@@ -4999,6 +5922,9 @@ msgstr "「デフォルト値」を有効にするには、すべての必須フ
 msgid "Fill method"
 msgstr "塗りつぶしメソッド"
 
+msgid "Fill out the registration form"
+msgstr ""
+
 msgid "Filled"
 msgstr "記入済"
 
@@ -5007,9 +5933,6 @@ msgstr "フィルター"
 
 msgid "Filter Configuration"
 msgstr "フィルター構成"
-
-msgid "Filter List"
-msgstr "フィルタリスト"
 
 msgid "Filter Settings"
 msgstr "フィルター設定"
@@ -5052,6 +5975,10 @@ msgstr "チャートを検索"
 
 msgid "Filters"
 msgstr "フィルタ"
+
+#, fuzzy
+msgid "Filters and controls"
+msgstr "追加のコントロール"
 
 msgid "Filters by columns"
 msgstr "列によるフィルター"
@@ -5099,11 +6026,19 @@ msgstr "終了"
 msgid "First"
 msgstr "最初"
 
+#, fuzzy
+msgid "First Name"
+msgstr "名"
+
 msgid "First name"
 msgstr "名"
 
 msgid "First name is required"
 msgstr "名前が必要です"
+
+#, fuzzy
+msgid "Fit columns dynamically"
+msgstr "列をアルファベット順に並べ替え"
 
 msgid ""
 "Fix the trend line to the full time range specified in case filtered "
@@ -5127,6 +6062,14 @@ msgstr "固定小数点の半径"
 
 msgid "Flow"
 msgstr "流れ"
+
+#, fuzzy
+msgid "Folder with content must have a name"
+msgstr "比較用のフィルタには値が必要です"
+
+#, fuzzy
+msgid "Folders"
+msgstr "フィルタ"
 
 msgid "Font size"
 msgstr "フォントサイズ"
@@ -5164,8 +6107,14 @@ msgid ""
 "e.g. Admin if admin should see all data."
 msgstr "通常のフィルターの場合、これらはこのフィルターが適用される役割です。基本フィルターの場合、これらはフィルターが適用されない役割です。管理者がすべてのデータを表示する必要がある場合。"
 
+msgid "Forbidden"
+msgstr ""
+
 msgid "Force"
 msgstr "フォース"
+
+msgid "Force Time Grain as Max Interval"
+msgstr ""
 
 msgid ""
 "Force all tables and views to be created in this schema when clicking "
@@ -5193,6 +6142,9 @@ msgstr "スキーマリストの強制更新"
 msgid "Force refresh table list"
 msgstr "テーブルリストを強制更新"
 
+msgid "Forces selected Time Grain as the maximum interval for X Axis Labels"
+msgstr ""
+
 msgid "Forecast periods"
 msgstr "予測期間"
 
@@ -5211,10 +6163,21 @@ msgstr "フォーム データがキャッシュ内に見つからないため�
 msgid "Format SQL"
 msgstr "SQLのフォーマット"
 
+#, fuzzy
+msgid "Format SQL query"
+msgstr "SQLのフォーマット"
+
 msgid ""
 "Format data labels. Use variables: {name}, {value}, {percent}. \\n "
 "represents a new line. ECharts compatibility:\n"
 "{a} (series), {b} (name), {c} (value), {d} (percentage)"
+msgstr ""
+
+msgid ""
+"Format metrics or columns with currency symbols as prefixes or suffixes. "
+"Choose a symbol manually or use 'Auto-detect' to apply the correct symbol"
+" based on the dataset's currency code column. When multiple currencies "
+"are present, formatting falls back to neutral numbers."
 msgstr ""
 
 msgid "Formatted CSV attached in email"
@@ -5271,6 +6234,15 @@ msgstr "各メトリクスの表示方法をさらにカスタマイズする"
 msgid "GROUP BY"
 msgstr "グループ化"
 
+#, fuzzy
+msgid "Gantt Chart"
+msgstr "グラフチャート"
+
+msgid ""
+"Gantt chart visualizes important events over a time span. Every data "
+"point displayed as a separate event along a horizontal line."
+msgstr ""
+
 msgid "Gauge Chart"
 msgstr "ゲージチャート"
 
@@ -5279,6 +6251,10 @@ msgstr "一般"
 
 msgid "General information"
 msgstr "一般情報"
+
+#, fuzzy
+msgid "General settings"
+msgstr "GeoJson 設定"
 
 msgid "Generating link, please wait.."
 msgstr "リンクを生成中です。しばらくお待ちください。"
@@ -5332,6 +6308,14 @@ msgstr "グラフレイアウト"
 msgid "Gravity"
 msgstr "重力"
 
+#, fuzzy
+msgid "Greater Than"
+msgstr "より大きい (>)"
+
+#, fuzzy
+msgid "Greater Than or Equal"
+msgstr "以上(>=)"
+
 msgid "Greater or equal (>=)"
 msgstr "以上(>=)"
 
@@ -5347,6 +6331,10 @@ msgstr "グリッド"
 msgid "Grid Size"
 msgstr "グリッドサイズ"
 
+#, fuzzy
+msgid "Group"
+msgstr "グループ化"
+
 msgid "Group By"
 msgstr "グループ化"
 
@@ -5359,11 +6347,27 @@ msgstr "グループキー"
 msgid "Group by"
 msgstr "グループ化"
 
+msgid "Group remaining as \"Others\""
+msgstr ""
+
+#, fuzzy
+msgid "Grouping"
+msgstr "スコープ"
+
+#, fuzzy
+msgid "Groups"
+msgstr "グループ化"
+
+msgid ""
+"Groups remaining series into an \"Others\" category when series limit is "
+"reached. This prevents incomplete time series data from being displayed."
+msgstr ""
+
 msgid "Guest user cannot modify chart payload"
 msgstr "ゲストユーザーはチャートペイロードを変更できません。"
 
-msgid "HOUR"
-msgstr "時間"
+msgid "HTTP Path"
+msgstr ""
 
 msgid "Handlebars"
 msgstr "ハンドルバー"
@@ -5383,14 +6387,26 @@ msgstr "見出し"
 msgid "Header row"
 msgstr "ヘッダー行"
 
+#, fuzzy
+msgid "Header row is required"
+msgstr "ロールが必要です"
+
 msgid "Heatmap"
 msgstr "ヒートマップ"
 
 msgid "Height"
 msgstr "高さ"
 
+#, fuzzy
+msgid "Height of each row in pixels"
+msgstr "等値線の幅 (ピクセル単位)"
+
 msgid "Height of the sparkline"
 msgstr "スパークラインの高さ"
+
+#, fuzzy
+msgid "Hidden"
+msgstr "表示"
 
 msgid "Hide Column"
 msgstr "列非表示"
@@ -5406,9 +6422,6 @@ msgstr "レイヤーを隠す"
 
 msgid "Hide password."
 msgstr "パスワードを非表示にします。"
-
-msgid "Hide tool bar"
-msgstr "ツールバーを隠す"
 
 msgid "Hides the Line for the time series"
 msgstr "時系列の線を非表示にします"
@@ -5437,6 +6450,10 @@ msgstr "横(上)"
 msgid "Horizontal alignment"
 msgstr "水平方向の配置"
 
+#, fuzzy
+msgid "Horizontal layout (columns)"
+msgstr "横(上)"
+
 msgid "Host"
 msgstr "ホスト"
 
@@ -5462,6 +6479,9 @@ msgstr "データをグループ化するバケットの数。"
 msgid "How many periods into the future do we want to predict"
 msgstr "将来何期先まで予測したいですか"
 
+msgid "How many top values to select"
+msgstr ""
+
 msgid ""
 "How to display time shifts: as individual lines; as the difference "
 "between the main time series and each time shift; as the percentage "
@@ -5476,6 +6496,22 @@ msgstr "ISO 3166-2 コード"
 
 msgid "ISO 8601"
 msgstr "ISO 8601"
+
+#, fuzzy
+msgid "Icon JavaScript config generator"
+msgstr "JavaScriptツールチップジェネレーター"
+
+#, fuzzy
+msgid "Icon URL"
+msgstr "コントロール"
+
+#, fuzzy
+msgid "Icon size"
+msgstr "フォントサイズ"
+
+#, fuzzy
+msgid "Icon size unit"
+msgstr "フォントサイズ"
 
 msgid "Id"
 msgstr "ID"
@@ -5498,17 +6534,20 @@ msgid "If a metric is specified, sorting will be done based on the metric value"
 msgstr "メトリックが指定されている場合、ソートはメトリック値に基づいて行われます"
 
 msgid ""
-"If changes are made to your SQL query, columns in your dataset will be "
-"synced when saving the dataset."
-msgstr ""
-
-msgid ""
 "If enabled, this control sorts the results/values descending, otherwise "
 "it sorts the results ascending."
 msgstr "このコントロールが有効な場合、結果/値は降順で並べ替えられ、それ以外の場合は結果は昇順で並べ替えられます。"
 
+msgid ""
+"If it stays empty, it won't be saved and will be removed from the list. "
+"To remove folders, move metrics and columns to other folders."
+msgstr ""
+
 msgid "If table already exists"
 msgstr "テーブルはすでに存在します。"
+
+msgid "If you don't save, changes will be lost."
+msgstr ""
 
 msgid "Ignore cache when generating report"
 msgstr "レポート生成時にキャッシュを無視する"
@@ -5535,8 +6574,9 @@ msgstr "インポート"
 msgid "Import %s"
 msgstr "インポート %s"
 
-msgid "Import Dashboard(s)"
-msgstr "ダッシュボードをインポート"
+#, fuzzy
+msgid "Import Error"
+msgstr "タイムアウトエラー"
 
 msgid "Import chart failed for an unknown reason"
 msgstr "不明な理由でチャートのインポートに失敗しました。"
@@ -5568,16 +6608,31 @@ msgstr "クエリのインポート"
 msgid "Import saved query failed for an unknown reason."
 msgstr "不明な理由により、保存したクエリをインポートできませんでした。"
 
+#, fuzzy
+msgid "Import themes"
+msgstr "クエリのインポート"
+
 msgid "In"
 msgstr "In"
+
+#, fuzzy
+msgid "In Range"
+msgstr "時間範囲"
 
 msgid ""
 "In order to connect to non-public sheets you need to either provide a "
 "service account or configure an OAuth2 client."
 msgstr ""
 
+msgid "In this view you can preview the first 25 rows. "
+msgstr ""
+
 msgid "Include Series"
 msgstr "シリーズを含める"
+
+#, fuzzy
+msgid "Include Template Parameters"
+msgstr "テンプレートパラメータ"
 
 msgid "Include a description that will be sent with your report"
 msgstr "レポートと一緒に送信される説明を含めてください"
@@ -5593,6 +6648,14 @@ msgid "Include time"
 msgstr "時間を含む"
 
 msgid "Increase"
+msgstr "増加"
+
+#, fuzzy
+msgid "Increase color"
+msgstr "増加"
+
+#, fuzzy
+msgid "Increase label"
 msgstr "増加"
 
 msgid "Index"
@@ -5614,6 +6677,9 @@ msgstr "情報"
 msgid "Inherit range from time filter"
 msgstr "時間フィルターの範囲を流用する。"
 
+msgid "Initial tree depth"
+msgstr ""
+
 msgid "Inner Radius"
 msgstr "内半径"
 
@@ -5631,6 +6697,41 @@ msgstr "レイヤーのURLを挿入"
 
 msgid "Insert Layer title"
 msgstr "レイヤーのUタイトルを挿入"
+
+#, fuzzy
+msgid "Inside"
+msgstr "索引"
+
+#, fuzzy
+msgid "Inside bottom"
+msgstr "下"
+
+#, fuzzy
+msgid "Inside bottom left"
+msgstr "左下"
+
+#, fuzzy
+msgid "Inside bottom right"
+msgstr "右下"
+
+#, fuzzy
+msgid "Inside left"
+msgstr "左上"
+
+#, fuzzy
+msgid "Inside right"
+msgstr "右上"
+
+msgid "Inside top"
+msgstr ""
+
+#, fuzzy
+msgid "Inside top left"
+msgstr "左上"
+
+#, fuzzy
+msgid "Inside top right"
+msgstr "右上"
 
 msgid "Intensity"
 msgstr "強度"
@@ -5670,12 +6771,24 @@ msgstr "無効な接続文字列: 'ocient://user:pass@host:port/database' 形式
 msgid "Invalid JSON"
 msgstr "無効な JSON"
 
+#, fuzzy
+msgid "Invalid JSON metadata"
+msgstr "JSONメタデータ"
+
+#, fuzzy, python-format
+msgid "Invalid SQL: %(error)s"
+msgstr "無効な numpy 関数: %(operator)s"
+
 #, python-format
 msgid "Invalid advanced data type: %(advanced_data_type)s"
 msgstr "無効な詳細データ タイプ: %(advanced_data_type)s"
 
 msgid "Invalid certificate"
 msgstr "無効な証明書"
+
+#, fuzzy
+msgid "Invalid color"
+msgstr "インターバルカラー"
 
 msgid ""
 "Invalid connection string, a valid string usually follows: "
@@ -5709,9 +6822,17 @@ msgstr "無効な日付/タイムスタンプのフォーマット"
 msgid "Invalid executor type"
 msgstr ""
 
+#, fuzzy
+msgid "Invalid expression"
+msgstr "無効な cron 式です"
+
 #, python-format
 msgid "Invalid filter operation type: %(op)s"
 msgstr "無効なフィルタ操作タイプ: %(op)s"
+
+#, fuzzy
+msgid "Invalid formula expression"
+msgstr "無効な cron 式です"
 
 msgid "Invalid geodetic string"
 msgstr "無効な測地文字列です。"
@@ -5766,11 +6887,19 @@ msgstr "無効な状態です。"
 msgid "Invalid tab ids: %s(tab_ids)"
 msgstr "無効なタブ ID: %s(tab_ids)"
 
+#, fuzzy
+msgid "Invalid username or password"
+msgstr "ユーザー名またはパスワードが間違っています。"
+
 msgid "Inverse selection"
 msgstr "逆選択"
 
 msgid "Invert current page"
 msgstr "現在のページを反転する"
+
+#, fuzzy
+msgid "Is Active?"
+msgstr "有効ですか？"
 
 msgid "Is active?"
 msgstr "有効ですか？"
@@ -5820,7 +6949,13 @@ msgstr "Issue 1000 - データセットが大きすぎてクエリできませ�
 msgid "Issue 1001 - The database is under an unusual load."
 msgstr "Issue 1001 - データベースに異常な負荷がかかっています。"
 
-msgid "It’s not recommended to truncate axis in Bar chart."
+msgid ""
+"It won't be removed even if empty. It won't be shown in chart editing "
+"view if empty."
+msgstr ""
+
+#, fuzzy
+msgid "It’s not recommended to truncate Y axis in Bar chart."
 msgstr "棒グラフで軸を切り捨てることはお勧めしません。"
 
 msgid "JAN"
@@ -5829,11 +6964,18 @@ msgstr "1月"
 msgid "JSON"
 msgstr "JSON"
 
+#, fuzzy
+msgid "JSON Configuration"
+msgstr "列構成"
+
 msgid "JSON Metadata"
 msgstr "JSONメタデータ"
 
 msgid "JSON metadata"
 msgstr "JSONメタデータ"
+
+msgid "JSON metadata and advanced configuration"
+msgstr ""
 
 msgid "JSON metadata is invalid!"
 msgstr "JSON メタデータが無効です!"
@@ -5895,14 +7037,15 @@ msgstr "テーブルのキー"
 msgid "Kilometers"
 msgstr "キロメートル"
 
-msgid "LIMIT"
-msgstr "制限"
-
 msgid "Label"
 msgstr "ラベル"
 
 msgid "Label Contents"
 msgstr "ラベルの内容"
+
+#, fuzzy
+msgid "Label JavaScript config generator"
+msgstr "JavaScriptツールチップジェネレーター"
 
 msgid "Label Line"
 msgstr "ラベル行"
@@ -5916,6 +7059,18 @@ msgstr "ラベルの種類"
 msgid "Label already exists"
 msgstr "ラベルはすでに存在します。"
 
+#, fuzzy
+msgid "Label ascending"
+msgstr "値の昇順"
+
+#, fuzzy
+msgid "Label color"
+msgstr "塗りつぶしの色"
+
+#, fuzzy
+msgid "Label descending"
+msgstr "値の降順"
+
 msgid "Label for the index column. Don't use an existing column name."
 msgstr "インデックスカラムのラベルです。既存のカラム名は使用しないでください。"
 
@@ -5924,6 +7079,18 @@ msgstr "クエリのラベル"
 
 msgid "Label position"
 msgstr "ラベルの位置"
+
+#, fuzzy
+msgid "Label property name"
+msgstr "アラート名"
+
+#, fuzzy
+msgid "Label size"
+msgstr "ラベル行"
+
+#, fuzzy
+msgid "Label size unit"
+msgstr "ラベル行"
 
 msgid "Label threshold"
 msgstr "ラベル閾値"
@@ -5943,11 +7110,19 @@ msgstr "マーカーのラベル"
 msgid "Labels for the ranges"
 msgstr "範囲のラベル"
 
+#, fuzzy
+msgid "Languages"
+msgstr "範囲"
+
 msgid "Large"
 msgstr "大きい"
 
 msgid "Last"
 msgstr "ラスト"
+
+#, fuzzy
+msgid "Last Name"
+msgstr "姓"
 
 #, python-format
 msgid "Last Updated %s"
@@ -5956,9 +7131,6 @@ msgstr "最終更新 %s"
 #, python-format
 msgid "Last Updated %s by %s"
 msgstr "最終更新日: %s、作成者: %s"
-
-msgid "Last Value"
-msgstr "最終値"
 
 #, python-format
 msgid "Last available value seen on %s"
@@ -5983,6 +7155,10 @@ msgid "Last name is required"
 msgstr "姓が必要です"
 
 msgid "Last quarter"
+msgstr "最後の四半期"
+
+#, fuzzy
+msgid "Last queried at"
 msgstr "最後の四半期"
 
 msgid "Last run"
@@ -6075,6 +7251,14 @@ msgstr "凡例の種類"
 msgid "Legend type"
 msgstr "凡例の種類"
 
+#, fuzzy
+msgid "Less Than"
+msgstr "未満(<)"
+
+#, fuzzy
+msgid "Less Than or Equal"
+msgstr "以下(<=)"
+
 msgid "Less or equal (<=)"
 msgstr "以下(<=)"
 
@@ -6095,6 +7279,10 @@ msgstr "いいね"
 
 msgid "Like (case insensitive)"
 msgstr "いいね (大文字と小文字は区別されません)"
+
+#, fuzzy
+msgid "Limit"
+msgstr "制限"
 
 msgid "Limit type"
 msgstr "制限の種類"
@@ -6159,14 +7347,23 @@ msgstr "線形配色"
 msgid "Linear interpolation"
 msgstr "線形補間"
 
+#, fuzzy
+msgid "Linear palette"
+msgstr "すべてクリア"
+
 msgid "Lines column"
 msgstr "行列"
 
 msgid "Lines encoding"
 msgstr "行のエンコーディング"
 
-msgid "Link Copied!"
-msgstr "リンクをコピーしました!"
+#, fuzzy
+msgid "List"
+msgstr "ラスト"
+
+#, fuzzy
+msgid "List Groups"
+msgstr "ユーザーリスト"
 
 msgid "List Roles"
 msgstr ""
@@ -6195,13 +7392,11 @@ msgstr "三角形でマークする値のリスト"
 msgid "List updated"
 msgstr "リストが更新されました"
 
-msgid "Live CSS editor"
-msgstr "ライブCSSエディター"
-
 msgid "Live render"
 msgstr "ライブレンダリング"
 
-msgid "Load a CSS template"
+#, fuzzy
+msgid "Load CSS template (optional)"
 msgstr "CSSテンプレートの読み込み"
 
 msgid "Loaded data cached"
@@ -6210,14 +7405,33 @@ msgstr "ロードされたデータがキャッシュされました"
 msgid "Loaded from cache"
 msgstr "キャッシュからロードされました"
 
-msgid "Loading"
-msgstr "読み込み中"
+msgid "Loading deck.gl layers..."
+msgstr ""
+
+#, fuzzy
+msgid "Loading timezones..."
+msgstr "読み込み中..."
 
 msgid "Loading..."
 msgstr "読み込み中..."
 
+#, fuzzy
+msgid "Local"
+msgstr "ログスケール"
+
+msgid "Local theme set for preview"
+msgstr ""
+
+#, python-format
+msgid "Local theme set to \"%s\""
+msgstr ""
+
 msgid "Locate the chart"
 msgstr "チャートを見つける"
+
+#, fuzzy
+msgid "Log"
+msgstr "ログ"
 
 msgid "Log Scale"
 msgstr "ログスケール"
@@ -6289,9 +7503,6 @@ msgstr "3月"
 msgid "MAY"
 msgstr "5月"
 
-msgid "MINUTE"
-msgstr "分"
-
 msgid "MON"
 msgstr "月"
 
@@ -6313,6 +7524,9 @@ msgstr "不正な形式のリクエストです。引数には、slice_id また
 
 msgid "Manage"
 msgstr "管理"
+
+msgid "Manage dashboard owners and access permissions"
+msgstr ""
 
 msgid "Manage email report"
 msgstr "電子メールレポートを管理する"
@@ -6374,7 +7588,13 @@ msgstr "Markers"
 msgid "Markup type"
 msgstr "マークアップの種類"
 
+msgid "Match system"
+msgstr ""
+
 msgid "Match time shift color with original series"
+msgstr ""
+
+msgid "Matrixify"
 msgstr ""
 
 msgid "Max"
@@ -6382,6 +7602,10 @@ msgstr "最大値"
 
 msgid "Max Bubble Size"
 msgstr "最大バブルサイズ"
+
+#, fuzzy
+msgid "Max value"
+msgstr "最大値"
 
 msgid "Max. features"
 msgstr ""
@@ -6394,6 +7618,9 @@ msgstr "最大フォントサイズ"
 
 msgid "Maximum Radius"
 msgstr "最大半径"
+
+msgid "Maximum folder nesting depth reached"
+msgstr ""
 
 msgid "Maximum number of features to fetch from service"
 msgstr ""
@@ -6464,8 +7691,19 @@ msgstr "メタデータパラメータ"
 msgid "Metadata has been synced"
 msgstr "メタデータが同期されました"
 
+#, fuzzy
+msgid "Meters"
+msgstr "メートル"
+
 msgid "Method"
 msgstr "方法"
+
+msgid ""
+"Method to compute the displayed value. \"Overall value\" calculates a "
+"single metric across the entire filtered time period, ideal for non-"
+"additive metrics like ratios, averages, or distinct counts. Other methods"
+" operate over the time series data points."
+msgstr ""
 
 msgid "Metric"
 msgstr "指標"
@@ -6505,6 +7743,10 @@ msgstr "指標係数が「since」から「until」に変更されました"
 msgid "Metric for node values"
 msgstr "ノード値のメトリック"
 
+#, fuzzy
+msgid "Metric for ordering"
+msgstr "ノード値のメトリック"
+
 msgid "Metric name"
 msgstr "メトリクス名"
 
@@ -6520,6 +7762,10 @@ msgstr "バブルの大きさを定義する指標"
 
 msgid "Metric to display bottom title"
 msgstr "下部タイトルを表示するための指標"
+
+#, fuzzy
+msgid "Metric to use for ordering Top N values"
+msgstr "ノード値のメトリック"
 
 msgid "Metric used as a weight for the grid's coloring"
 msgstr "グリッドの色の重みとして使用されるメトリック"
@@ -6549,6 +7795,17 @@ msgstr ""
 msgid "Metrics"
 msgstr "指標"
 
+#, fuzzy
+msgid "Metrics / Dimensions"
+msgstr "次元は"
+
+msgid "Metrics folder can only contain metric items"
+msgstr ""
+
+#, fuzzy
+msgid "Metrics to show in the tooltip."
+msgstr "ツールチップの合計値を表示するかどうか"
+
 msgid "Middle"
 msgstr "中間"
 
@@ -6569,6 +7826,18 @@ msgstr "最小幅"
 
 msgid "Min periods"
 msgstr "最小期間"
+
+#, fuzzy
+msgid "Min value"
+msgstr "最小値"
+
+#, fuzzy
+msgid "Min value cannot be greater than max value"
+msgstr "最小値を最大値を超えてはいけません。"
+
+#, fuzzy
+msgid "Min value should be smaller or equal to max value"
+msgstr "この値は正しい目標値よりも小さい必要があります"
 
 msgid "Min/max (no outliers)"
 msgstr "最小/最大 (外れ値なし)"
@@ -6599,9 +7868,6 @@ msgstr "ラベルを表示するためのパーセントポイント単位の最
 msgid "Minimum value"
 msgstr "最小値"
 
-msgid "Minimum value cannot be higher than maximum value"
-msgstr "最小値を最大値を超えてはいけません。"
-
 msgid "Minimum value for label to be displayed on graph."
 msgstr "グラフに表示するラベルの最小値。"
 
@@ -6620,9 +7886,6 @@ msgstr "分"
 #, python-format
 msgid "Minutes %s"
 msgstr "分 %s"
-
-msgid "Minutes value"
-msgstr "最小値"
 
 msgid "Missing OAuth2 token"
 msgstr ""
@@ -6655,6 +7918,10 @@ msgstr "変更者"
 msgid "Modified by: %s"
 msgstr "変更者: %s"
 
+#, fuzzy, python-format
+msgid "Modified from \"%s\" template"
+msgstr "CSSテンプレートの読み込み"
+
 msgid "Monday"
 msgstr "月曜日"
 
@@ -6667,6 +7934,10 @@ msgstr "月 %s"
 
 msgid "More"
 msgstr "もっと"
+
+#, fuzzy
+msgid "More Options"
+msgstr "マップオプション"
 
 msgid "More filters"
 msgstr "その他のフィルター"
@@ -6694,9 +7965,6 @@ msgstr "多変数"
 
 msgid "Multiple"
 msgstr "複数"
-
-msgid "Multiple filtering"
-msgstr "複数のフィルタリング"
 
 msgid ""
 "Multiple formats accepted, look the geopy.points Python library for more "
@@ -6772,6 +8040,17 @@ msgstr "タグの名前"
 msgid "Name your database"
 msgstr "データベースに名前を付けます"
 
+msgid "Name your folder and to edit it later, click on the folder name"
+msgstr ""
+
+#, fuzzy
+msgid "Native filter column is required"
+msgstr "フィルター値は必須です"
+
+#, fuzzy
+msgid "Native filter values has no values"
+msgstr "利用可能な値を事前にフィルタリングする"
+
 msgid "Need help? Learn how to connect your database"
 msgstr "助けが必要？データベースに接続する方法を学ぶ"
 
@@ -6789,6 +8068,10 @@ msgstr "リソースの取得中にネットワークエラーが発生しまし
 
 msgid "Network error."
 msgstr "ネットワークエラー"
+
+#, fuzzy
+msgid "New"
+msgstr "今"
 
 msgid "New chart"
 msgstr "新しいチャート"
@@ -6831,11 +8114,19 @@ msgstr "%s はまだありません"
 msgid "No Data"
 msgstr "データなし"
 
+#, fuzzy, python-format
+msgid "No Logs yet"
+msgstr "%s はまだありません"
+
 msgid "No Results"
 msgstr "結果がありません"
 
 msgid "No Rules yet"
 msgstr "まだルールはありません"
+
+#, fuzzy
+msgid "No SQL query found"
+msgstr "SQLクエリ"
 
 msgid "No Tags created"
 msgstr "タグは作成されていません"
@@ -6857,9 +8148,6 @@ msgstr "適用されたフィルターはありません"
 
 msgid "No available filters."
 msgstr "使用可能なフィルターはありません。"
-
-msgid "No charts"
-msgstr "チャートなし"
 
 msgid "No columns found"
 msgstr "列が見つかりません"
@@ -6891,6 +8179,9 @@ msgstr "使用可能なデータベースがありません"
 msgid "No databases match your search"
 msgstr "検索に一致するデータベースはありません"
 
+msgid "No deck.gl multi layer charts found in this dashboard."
+msgstr ""
+
 msgid "No description available."
 msgstr "説明がありません。"
 
@@ -6915,7 +8206,23 @@ msgstr "フォーム設定が維持されていません"
 msgid "No global filters are currently added"
 msgstr "現在追加されているグローバル フィルターはありません"
 
+#, fuzzy
+msgid "No groups"
+msgstr "グループ化されていません"
+
+#, fuzzy
+msgid "No groups yet"
+msgstr "まだルールはありません"
+
+#, fuzzy
+msgid "No items"
+msgstr "フィルターなし"
+
 msgid "No matching records found"
+msgstr "該当する記録が見つかりません"
+
+#, fuzzy
+msgid "No matching results found"
 msgstr "該当する記録が見つかりません"
 
 msgid "No records found"
@@ -6938,6 +8245,10 @@ msgid ""
 "returned, ensure any filters are configured properly and the datasource "
 "contains data for the selected time range."
 msgstr "このクエリでは結果が返されませんでした。結果が返されることを期待していた場合は、フィルターが適切に構成されていること、およびデータソースに選択した時間範囲のデータが含まれていることを確認してください。"
+
+#, fuzzy
+msgid "No roles"
+msgstr "まだロールはありません"
 
 msgid "No roles yet"
 msgstr "まだロールはありません"
@@ -6968,6 +8279,10 @@ msgstr "テンポラル列が見つかりません"
 
 msgid "No time columns"
 msgstr "時間列はありません"
+
+#, fuzzy
+msgid "No user registrations yet"
+msgstr "まだユーザーはありません"
 
 msgid "No users yet"
 msgstr "まだユーザーはありません"
@@ -7014,6 +8329,14 @@ msgstr "列名を正規化する"
 msgid "Normalized"
 msgstr "正規化"
 
+#, fuzzy
+msgid "Not Contains"
+msgstr "レポートの内容"
+
+#, fuzzy
+msgid "Not Equal"
+msgstr "等しくない(≠)"
+
 msgid "Not Time Series"
 msgstr "時系列ではない"
 
@@ -7040,6 +8363,10 @@ msgstr "ありません"
 
 msgid "Not null"
 msgstr "nullではありません"
+
+#, fuzzy, python-format
+msgid "Not set"
+msgstr "%s はまだありません"
 
 msgid "Not triggered"
 msgstr "トリガーされません"
@@ -7099,6 +8426,12 @@ msgstr "数値の書式設定"
 msgid "Number of buckets to group data"
 msgstr "データをグループ化するバケットの数"
 
+msgid "Number of charts per row when not fitting dynamically"
+msgstr ""
+
+msgid "Number of charts to display per row"
+msgstr ""
+
 msgid "Number of decimal digits to round numbers to"
 msgstr "数値を四捨五入する小数点以下の桁数"
 
@@ -7131,17 +8464,33 @@ msgstr "X スケールを表示するときに目盛りの間に必要なステ�
 msgid "Number of steps to take between ticks when displaying the Y scale"
 msgstr "Y スケールを表示するときに目盛りの間に必要なステップ数"
 
+#, fuzzy
+msgid "Number of top values"
+msgstr "数値フォーマット"
+
+#, fuzzy, python-format
+msgid "Numbers must be within %(min)s and %(max)s"
+msgstr "スクリーンショットの幅は %(min)spx から %(max)spx の間である必要があります。"
+
 msgid "Numeric column used to calculate the histogram."
 msgstr "ヒストグラムの計算に使用される数値列"
 
 msgid "Numerical range"
 msgstr "数値範囲"
 
+#, fuzzy
+msgid "OAuth2 client information"
+msgstr "基本情報"
+
 msgid "OCT"
 msgstr "10月"
 
 msgid "OK"
 msgstr "OK"
+
+#, fuzzy
+msgid "OR"
+msgstr "または"
 
 msgid "OVERWRITE"
 msgstr "上書き"
@@ -7227,6 +8576,10 @@ msgstr "積み上げグラフに合計値のみを表示し、選択したカテ
 msgid "Only single queries supported"
 msgstr "単一のクエリのみがサポートされています。"
 
+#, fuzzy
+msgid "Only the default catalog is supported for this connection"
+msgstr "接続に使用するデフォルトのカタログ"
+
 msgid "Oops! An error occurred!"
 msgstr "おっとっと！エラーが発生しました！"
 
@@ -7251,7 +8604,15 @@ msgstr "不透明度、0 から 100 までの値が必要です"
 msgid "Open Datasource tab"
 msgstr "データソースタブを開く"
 
+#, fuzzy
+msgid "Open SQL Lab in a new tab"
+msgstr "新しいタブでクエリを実行"
+
 msgid "Open in SQL Lab"
+msgstr "SQL Labで開く"
+
+#, fuzzy
+msgid "Open in SQL lab"
 msgstr "SQL Labで開く"
 
 msgid "Open query in SQL Lab"
@@ -7426,6 +8787,14 @@ msgstr "所有者は、ダッシュボードを変更できるユーザーのリ
 msgid "PDF download failed, please refresh and try again."
 msgstr "PDFのダウンロードに失敗しました。更新して再試行してください。"
 
+#, fuzzy
+msgid "Page"
+msgstr "使用法"
+
+#, fuzzy
+msgid "Page Size:"
+msgstr "page_size.all"
+
 msgid "Page length"
 msgstr "ページの長さ"
 
@@ -7486,8 +8855,16 @@ msgstr "パスワード"
 msgid "Password is required"
 msgstr "パスワードが必要です。"
 
+#, fuzzy
+msgid "Password:"
+msgstr "パスワード"
+
 msgid "Passwords do not match!"
 msgstr "パスワードが一致しません！"
+
+#, fuzzy
+msgid "Paste"
+msgstr "更新"
 
 msgid "Paste Private Key here"
 msgstr "秘密キーをここに貼り付けます"
@@ -7503,6 +8880,10 @@ msgstr "アクセストークンをここに貼り付けてください"
 
 msgid "Pattern"
 msgstr "パターン"
+
+#, fuzzy
+msgid "Per user caching"
+msgstr "変化率"
 
 msgid "Percent Change"
 msgstr "変化率"
@@ -7521,6 +8902,10 @@ msgstr "変化率"
 
 msgid "Percentage difference between the time periods"
 msgstr "期間間の差異の割合"
+
+#, fuzzy
+msgid "Percentage metric calculation"
+msgstr "パーセンテージメトリクス"
 
 msgid "Percentage metrics"
 msgstr "パーセンテージメトリクス"
@@ -7559,6 +8944,9 @@ msgstr "このダッシュボードを認定した個人またはグループ。
 msgid "Person or group that has certified this metric"
 msgstr "この指標を認証した個人またはグループ"
 
+msgid "Personal info"
+msgstr ""
+
 msgid "Physical"
 msgstr "物理"
 
@@ -7579,9 +8967,6 @@ msgstr "このデータベースを識別しやすい名前を選択してくだ
 
 msgid "Pick a nickname for how the database will display in Superset."
 msgstr "スーパーセットでのデータベースの表示方法のニックネームを選択します。"
-
-msgid "Pick a set of deck.gl charts to layer on top of one another"
-msgstr "deck.gl チャートのセットを選択して重ね合わせる"
 
 msgid "Pick a title for you annotation."
 msgstr "注釈のタイトルを選択してください。"
@@ -7613,12 +8998,23 @@ msgid "Pin"
 msgstr "Pin"
 
 #, fuzzy
+msgid "Pin Column"
+msgstr "行列"
+
+#, fuzzy
 msgid "Pin Left"
 msgstr "左上"
 
 #, fuzzy
 msgid "Pin Right"
 msgstr "右上"
+
+msgid "Pin to the result panel"
+msgstr ""
+
+#, fuzzy
+msgid "Pivot Mode"
+msgstr "編集モード"
 
 msgid "Pivot Table"
 msgstr "ピボットテーブル"
@@ -7632,6 +9028,10 @@ msgstr "ピボット操作には少なくとも 1 つのインデックスが必
 msgid "Pivoted"
 msgstr "ピボット"
 
+#, fuzzy
+msgid "Pivots"
+msgstr "ピボット"
+
 msgid "Pixel height of each series"
 msgstr "各シリーズのピクセル高さ"
 
@@ -7640,9 +9040,6 @@ msgstr "ピクセル"
 
 msgid "Plain"
 msgstr "プレーン"
-
-msgid "Please DO NOT overwrite the \"filter_scopes\" key."
-msgstr "「filter_scopes」キーを上書きしないでください。"
 
 msgid ""
 "Please check your query and confirm that all template parameters are "
@@ -7690,16 +9087,41 @@ msgstr "パスワードを確認してください"
 msgid "Please enter a SQLAlchemy URI to test"
 msgstr "テストするには SQLAlchemy URI を入力してください"
 
+#, fuzzy
+msgid "Please enter a valid email"
+msgstr "テストするには SQLAlchemy URI を入力してください"
+
 msgid "Please enter a valid email address"
 msgstr ""
 
 msgid "Please enter valid text. Spaces alone are not permitted."
 msgstr "有効なテキストを入力してください。スペースのみの入力はできません。"
 
-msgid "Please provide a valid range"
-msgstr ""
+#, fuzzy
+msgid "Please enter your email"
+msgstr "パスワードを確認してください"
 
-msgid "Please provide a value within range"
+#, fuzzy
+msgid "Please enter your first name"
+msgstr "ユーザーの名を入力してください"
+
+#, fuzzy
+msgid "Please enter your last name"
+msgstr "ユーザーの姓を入力してください"
+
+#, fuzzy
+msgid "Please enter your password"
+msgstr "パスワードを確認してください"
+
+#, fuzzy
+msgid "Please enter your username"
+msgstr "ユーザー名を入力してください"
+
+#, fuzzy, python-format
+msgid "Please fix the following errors"
+msgstr "次のキーがあります: %s"
+
+msgid "Please provide a valid min or max value"
 msgstr ""
 
 msgid "Please re-enter the password."
@@ -7717,6 +9139,10 @@ msgstr "まずチャートを保存してから、新しい電子メール レ�
 
 msgid "Please save your dashboard first, then try creating a new email report."
 msgstr "まずダッシュボードを保存してから、新しい電子メール レポートを作成してみてください。"
+
+#, fuzzy
+msgid "Please select at least one role or group"
+msgstr "少なくとも1つのグループを選択してください。"
 
 msgid "Please select both a Dataset and a Chart type to proceed"
 msgstr "続行するには、データセットとチャート タイプの両方を選択してください"
@@ -7878,6 +9304,13 @@ msgstr "個人キーのパスワード"
 msgid "Proceed"
 msgstr "進む"
 
+#, python-format
+msgid "Processing export for %s"
+msgstr ""
+
+msgid "Processing export..."
+msgstr ""
+
 msgid "Progress"
 msgstr "進捗"
 
@@ -7899,12 +9332,6 @@ msgstr "パープル"
 msgid "Put labels outside"
 msgstr "ラベルを外側に貼ります"
 
-msgid "Put positive values and valid minute and second value less than 60"
-msgstr "正の値を入れ、分と秒は60を超えない範囲で指定してください。"
-
-msgid "Put some positive value greater than 0"
-msgstr "値は 0 より大きくする必要があります"
-
 msgid "Put the labels outside of the pie?"
 msgstr "ラベルを円の外側に置きますか？"
 
@@ -7913,9 +9340,6 @@ msgstr "ここにコードを入力してください"
 
 msgid "Python datetime string pattern"
 msgstr "Python の日時文字列パターン"
-
-msgid "QUERY DATA IN SQL LAB"
-msgstr "SQL LABでデータをクエリする"
 
 msgid "Quarter"
 msgstr "四半期"
@@ -7942,6 +9366,18 @@ msgstr "クエリB"
 
 msgid "Query History"
 msgstr "クエリ履歴"
+
+#, fuzzy
+msgid "Query State"
+msgstr "クエリA"
+
+#, fuzzy
+msgid "Query cannot be loaded."
+msgstr "クエリをロードできませんでした"
+
+#, fuzzy
+msgid "Query data in SQL Lab"
+msgstr "SQL LABでデータをクエリする"
 
 msgid "Query does not exist"
 msgstr "クエリが存在しません。"
@@ -7973,8 +9409,9 @@ msgstr "クエリは停止されました"
 msgid "Query was stopped."
 msgstr "クエリは停止されました"
 
-msgid "RANGE TYPE"
-msgstr "範囲のタイプ"
+#, fuzzy
+msgid "Queued"
+msgstr "クエリ"
 
 msgid "RGB Color"
 msgstr "RGBカラー"
@@ -8012,6 +9449,14 @@ msgstr "半径(マイル)"
 msgid "Range"
 msgstr "範囲"
 
+#, fuzzy
+msgid "Range Inputs"
+msgstr "範囲"
+
+#, fuzzy
+msgid "Range Type"
+msgstr "範囲のタイプ"
+
 msgid "Range filter"
 msgstr "範囲フィルター"
 
@@ -8020,6 +9465,10 @@ msgstr "AntD を使用した範囲フィルター プラグイン"
 
 msgid "Range labels"
 msgstr "範囲ラベル"
+
+#, fuzzy
+msgid "Range type"
+msgstr "範囲のタイプ"
 
 msgid "Ranges"
 msgstr "範囲"
@@ -8044,9 +9493,6 @@ msgstr "最近"
 
 msgid "Recipients are separated by \",\" or \";\""
 msgstr "受信者は「,」または「;」で区切られます。"
-
-msgid "Record Count"
-msgstr "レコード数"
 
 msgid "Rectangle"
 msgstr "長方形"
@@ -8078,11 +9524,12 @@ msgstr "参照"
 msgid "Referenced columns not available in DataFrame."
 msgstr "参照された列は DataFrame では使用できません。"
 
+#, fuzzy
+msgid "Referrer"
+msgstr "更新"
+
 msgid "Refetch results"
 msgstr "結果の再取得"
-
-msgid "Refresh"
-msgstr "更新"
 
 msgid "Refresh dashboard"
 msgstr "ダッシュボードを更新"
@@ -8090,11 +9537,23 @@ msgstr "ダッシュボードを更新"
 msgid "Refresh frequency"
 msgstr "更新頻度"
 
+#, python-format
+msgid "Refresh frequency must be at least %s seconds"
+msgstr ""
+
 msgid "Refresh interval"
 msgstr "更新間隔"
 
 msgid "Refresh interval saved"
 msgstr "更新間隔が保存されました"
+
+#, fuzzy
+msgid "Refresh interval set for this session"
+msgstr "このセッションのために保存"
+
+#, fuzzy
+msgid "Refresh settings"
+msgstr "フィルター設定"
 
 msgid "Refresh table schema"
 msgstr "テーブルスキーマの更新"
@@ -8107,6 +9566,20 @@ msgstr "チャートの更新"
 
 msgid "Refreshing columns"
 msgstr "列のリフレッシュ"
+
+#, fuzzy
+msgid "Register"
+msgstr "プレフィルター"
+
+#, fuzzy
+msgid "Registration date"
+msgstr "開始日"
+
+msgid "Registration hash"
+msgstr ""
+
+msgid "Registration successful"
+msgstr ""
 
 msgid "Regular"
 msgstr "レギュラー"
@@ -8141,6 +9614,13 @@ msgstr "リロード"
 
 msgid "Remove"
 msgstr "削除"
+
+msgid "Remove System Dark Theme"
+msgstr ""
+
+#, fuzzy
+msgid "Remove System Default Theme"
+msgstr "デフォルト値を更新する"
 
 msgid "Remove cross-filter"
 msgstr "クロスフィルターを削除する"
@@ -8301,11 +9781,34 @@ msgstr "リサンプル操作には DatetimeIndex が必要です。"
 msgid "Reset"
 msgstr "リセット"
 
+#, fuzzy
+msgid "Reset Columns"
+msgstr "列をリセット"
+
+msgid "Reset all folders to default"
+msgstr ""
+
 msgid "Reset columns"
 msgstr "列をリセット"
 
+#, fuzzy, python-format
+msgid "Reset my password"
+msgstr "%s パスワード"
+
+#, fuzzy, python-format
+msgid "Reset password"
+msgstr "%s パスワード"
+
 msgid "Reset state"
 msgstr "リセット状態"
+
+#, fuzzy
+msgid "Reset to default folders?"
+msgstr "デフォルト値を更新する"
+
+#, fuzzy
+msgid "Resize"
+msgstr "リセット"
 
 msgid "Resource already has an attached report."
 msgstr "リソースにはすでにレポートが添付されています。"
@@ -8328,6 +9831,10 @@ msgstr "結果バックエンドが構成されていません。"
 
 msgid "Results backend needed for asynchronous queries is not configured."
 msgstr "非同期クエリに必要な結果バックエンドが構成されていません。"
+
+#, fuzzy
+msgid "Retry"
+msgstr "作成者"
 
 msgid "Retry fetching results"
 msgstr "結果の取得を再試行"
@@ -8356,6 +9863,10 @@ msgstr "右軸のフォーマット"
 msgid "Right Axis Metric"
 msgstr "右軸のメートル法"
 
+#, fuzzy
+msgid "Right Panel"
+msgstr "正しい値"
+
 msgid "Right axis metric"
 msgstr "右軸の指標"
 
@@ -8374,20 +9885,8 @@ msgstr "役割"
 msgid "Role Name"
 msgstr "ロール名"
 
-msgid "Role is required"
-msgstr "ロールが必要です"
-
 msgid "Role name is required"
 msgstr "ロール名が必要です"
-
-msgid "Role successfully updated!"
-msgstr "ロールが正常に更新されました。"
-
-msgid "Role was successfully created!"
-msgstr ""
-
-msgid "Role was successfully duplicated!"
-msgstr ""
 
 msgid "Roles"
 msgstr "役割"
@@ -8449,9 +9948,19 @@ msgid "Row Level Security"
 msgstr "行レベルのセキュリティ"
 
 msgid ""
+"Row Limit: percentages are calculated based on the subset of data "
+"retrieved, respecting the row limit. All Records: Percentages are "
+"calculated based on the total dataset, ignoring the row limit."
+msgstr ""
+
+msgid ""
 "Row containing the headers to use as column names (0 is first line of "
 "data)."
 msgstr "列名として使用するヘッダーを含む行 (0 はデータの最初の行)"
+
+#, fuzzy
+msgid "Row height"
+msgstr "重さ"
 
 msgid "Row limit"
 msgstr "行制限"
@@ -8507,27 +10016,18 @@ msgstr "選択の実行"
 msgid "Running"
 msgstr "実行中"
 
-#, python-format
-msgid "Running statement %(statement_num)s out of %(statement_count)s"
+#, fuzzy, python-format
+msgid "Running block %(block_num)s out of %(block_count)s"
 msgstr "%(statement_count)s 個中 %(statement_num)s 個のステートメントを実行中"
 
 msgid "SAT"
 msgstr "土"
 
-msgid "SECOND"
-msgstr "秒"
-
 msgid "SEP"
 msgstr "9月"
 
-msgid "SHA"
-msgstr "SHA"
-
 msgid "SQL"
 msgstr "SQL"
-
-msgid "SQL Copied!"
-msgstr "SQL がコピーされました!"
 
 msgid "SQL Lab"
 msgstr "SQL Lab"
@@ -8557,6 +10057,10 @@ msgstr "SQL 式"
 
 msgid "SQL query"
 msgstr "SQLクエリ"
+
+#, fuzzy
+msgid "SQL was formatted"
+msgstr "Y 軸フォーマット"
 
 msgid "SQLAlchemy URI"
 msgstr "SQLAlchemy URI"
@@ -8591,11 +10095,12 @@ msgstr "SSH トンネルのパラメータが無効です。"
 msgid "SSH Tunneling is not enabled"
 msgstr "SSH トンネリングが有効になっていません。"
 
+#, fuzzy
+msgid "SSL"
+msgstr "SQL"
+
 msgid "SSL Mode \"require\" will be used."
 msgstr "SSL モード「必須」が使用されます。"
-
-msgid "START (INCLUSIVE)"
-msgstr "開始 (包括的)"
 
 #, python-format
 msgid "STEP %(stepCurr)s OF %(stepLast)s"
@@ -8667,8 +10172,19 @@ msgstr "別名で保存:"
 msgid "Save changes"
 msgstr "変更内容を保存"
 
+#, fuzzy
+msgid "Save changes to your chart?"
+msgstr "変更内容を保存"
+
+#, fuzzy
+msgid "Save changes to your dashboard?"
+msgstr "保存してダッシュボードに移動"
+
 msgid "Save chart"
 msgstr "チャートを保存"
+
+msgid "Save color breakpoint values"
+msgstr ""
 
 msgid "Save dashboard"
 msgstr "ダッシュボードを保存"
@@ -8739,9 +10255,6 @@ msgstr "スケジュール"
 msgid "Schedule a new email report"
 msgstr "新しい電子メールレポートをスケジュールする"
 
-msgid "Schedule email report"
-msgstr "電子メールレポートのスケジュールを設定する"
-
 msgid "Schedule query"
 msgstr "スケジュールクエリ"
 
@@ -8804,6 +10317,10 @@ msgstr "検索指標と列"
 msgid "Search all charts"
 msgstr "すべてのチャートを検索"
 
+#, fuzzy
+msgid "Search all metrics & columns"
+msgstr "検索指標と列"
+
 msgid "Search box"
 msgstr "検索ボックス"
 
@@ -8813,8 +10330,24 @@ msgstr "クエリテキストによる検索"
 msgid "Search columns"
 msgstr "検索列"
 
+#, fuzzy
+msgid "Search columns..."
+msgstr "検索列"
+
 msgid "Search in filters"
 msgstr "フィルターで検索"
+
+#, fuzzy
+msgid "Search owners"
+msgstr "所有者の選択"
+
+#, fuzzy
+msgid "Search roles"
+msgstr "検索列"
+
+#, fuzzy
+msgid "Search tags"
+msgstr "タグの選択"
 
 msgid "Search..."
 msgstr "検索…"
@@ -8844,9 +10377,6 @@ msgstr "2番目のy軸タイトル"
 msgid "Seconds %s"
 msgstr "秒 %s"
 
-msgid "Seconds value"
-msgstr "秒"
-
 msgid "Secure extra"
 msgstr "追加の安全性"
 
@@ -8866,23 +10396,37 @@ msgstr "続きを見る"
 msgid "See query details"
 msgstr "クエリの詳細を参照"
 
-msgid "See table schema"
-msgstr "テーブルスキーマを参照"
-
 msgid "Select"
 msgstr "選択する"
 
 msgid "Select ..."
 msgstr "選択する"
 
+#, fuzzy
+msgid "Select All"
+msgstr "すべての選択を解除"
+
+#, fuzzy
+msgid "Select Database and Schema"
+msgstr "データベースを選択"
+
 msgid "Select Delivery Method"
 msgstr "配送方法の選択"
+
+#, fuzzy
+msgid "Select Filter"
+msgstr "フィルターを選択"
 
 msgid "Select Tags"
 msgstr "タグの選択"
 
-msgid "Select chart type"
-msgstr "Viz タイプの選択"
+#, fuzzy
+msgid "Select Value"
+msgstr "左の値"
+
+#, fuzzy
+msgid "Select a CSS template"
+msgstr "CSSテンプレートの読み込み"
 
 msgid "Select a column"
 msgstr "列を選択してください"
@@ -8917,6 +10461,10 @@ msgstr "このデータの区切り文字を選択してください。"
 msgid "Select a dimension"
 msgstr "寸法を選択してください"
 
+#, fuzzy
+msgid "Select a linear color scheme"
+msgstr "配色を選択してください"
+
 msgid "Select a metric to display on the right axis"
 msgstr "右軸に表示するメトリックを選択してください。"
 
@@ -8924,6 +10472,9 @@ msgid ""
 "Select a metric to display. You can use an aggregation function on a "
 "column or write custom SQL to create a metric."
 msgstr "表示するメトリックを選択します。列に対して集計関数を使用することも、カスタム SQL を作成してメトリクスを作成することもできます。"
+
+msgid "Select a predefined CSS template to apply to your dashboard"
+msgstr ""
 
 msgid "Select a schema"
 msgstr "スキーマの選択"
@@ -8937,6 +10488,10 @@ msgstr "アップロードしたファイルからシート名を選択してく
 msgid "Select a tab"
 msgstr "タブを削除"
 
+#, fuzzy
+msgid "Select a theme"
+msgstr "スキーマの選択"
+
 msgid ""
 "Select a time grain for the visualization. The grain is the time interval"
 " represented by a single point on the chart."
@@ -8948,14 +10503,15 @@ msgstr "可視化方式を選んでください"
 msgid "Select aggregate options"
 msgstr "集計オプションの選択"
 
+#, fuzzy
+msgid "Select all"
+msgstr "すべての選択を解除"
+
 msgid "Select all data"
 msgstr "すべてのデータを選択"
 
 msgid "Select all items"
 msgstr "すべての項目を選択"
-
-msgid "Select an aggregation method to apply to the metric."
-msgstr ""
 
 msgid "Select catalog or type to search catalogs"
 msgstr "カタログまたはタイプを選択してカタログを検索してください"
@@ -8969,6 +10525,9 @@ msgstr "チャートを選択"
 msgid "Select chart to use"
 msgstr "使用するチャートを選択"
 
+msgid "Select chart type"
+msgstr "Viz タイプの選択"
+
 msgid "Select charts"
 msgstr "チャートを選択"
 
@@ -8978,9 +10537,6 @@ msgstr "配色を選択してください"
 msgid "Select column"
 msgstr "列を選択"
 
-msgid "Select column names from a dropdown list that should be parsed as dates."
-msgstr "日付として解析する列の名前をドロップダウン・リストから選択する。"
-
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
 "columns."
@@ -8988,6 +10544,10 @@ msgstr ""
 
 msgid "Select content type"
 msgstr "コンテンツタイプを選択"
+
+#, fuzzy
+msgid "Select currency code column"
+msgstr "列を選択してください"
 
 msgid "Select current page"
 msgstr "現在のページを選択"
@@ -9018,6 +10578,26 @@ msgstr ""
 msgid "Select dataset source"
 msgstr "データセットソースの選択"
 
+#, fuzzy
+msgid "Select datetime column"
+msgstr "列を選択してください"
+
+#, fuzzy
+msgid "Select dimension"
+msgstr "寸法を選択してください"
+
+#, fuzzy
+msgid "Select dimension and values"
+msgstr "寸法を選択してください"
+
+#, fuzzy
+msgid "Select dimension for Top N"
+msgstr "寸法を選択してください"
+
+#, fuzzy
+msgid "Select dimension values"
+msgstr "寸法を選択してください"
+
 msgid "Select file"
 msgstr "ファイルを選ぶ"
 
@@ -9032,6 +10612,22 @@ msgstr "デフォルトで最初のフィルタ値を選択します"
 
 msgid "Select format"
 msgstr "書式を選択"
+
+#, fuzzy
+msgid "Select groups"
+msgstr "ロールを選択"
+
+msgid ""
+"Select layers in the order you want them stacked. First selected appears "
+"at the bottom.Layers let you combine multiple visualizations on one map. "
+"Each layer is a saved deck.gl chart (like scatter plots, polygons, or "
+"arcs) that displays different data or insights. Stack them to reveal "
+"patterns and relationships across your data."
+msgstr ""
+
+#, fuzzy
+msgid "Select layers to hide"
+msgstr "使用するチャートを選択"
 
 msgid ""
 "Select one or many metrics to display, that will be displayed in the "
@@ -9055,9 +10651,6 @@ msgstr "演算子の選択"
 
 msgid "Select or type a custom value..."
 msgstr "カスタム値を選択または入力..."
-
-msgid "Select or type a value"
-msgstr "値を選択または入力します"
 
 msgid "Select or type currency symbol"
 msgstr "通貨記号を選択または入力します"
@@ -9124,8 +10717,40 @@ msgstr ""
 "このチャートを操作するときにクロスフィルターを適用するチャートを選択します。 "
 "「すべてのチャート」を選択すると、ダッシュボードで同じデータセットを使用するか、同じ列名を含むすべてのチャートにフィルタを適用できます。"
 
+msgid "Select the color used for values that indicate an increase in the chart"
+msgstr ""
+
+msgid "Select the color used for values that represent total bars in the chart"
+msgstr ""
+
+msgid "Select the color used for values ​​that indicate a decrease in the chart."
+msgstr ""
+
+msgid ""
+"Select the column containing currency codes such as USD, EUR, GBP, etc. "
+"Used when building charts when 'Auto-detect' currency formatting is "
+"enabled. If this column is not set or if a chart metric contains multiple"
+" currencies, charts will fall back to neutral numeric formatting."
+msgstr ""
+
+#, fuzzy
+msgid "Select the fixed color"
+msgstr "geojson列を選択します"
+
 msgid "Select the geojson column"
 msgstr "geojson列を選択します"
+
+#, fuzzy
+msgid "Select the type of color scheme to use."
+msgstr "配色を選択してください"
+
+#, fuzzy
+msgid "Select users"
+msgstr "所有者の選択"
+
+#, fuzzy
+msgid "Select values"
+msgstr "ロールを選択"
 
 #, python-format
 msgid ""
@@ -9135,6 +10760,10 @@ msgstr "コントロール パネルの強調表示されたフィールドの�
 
 msgid "Selecting a database is required"
 msgstr "データベースを選択する必要があります"
+
+#, fuzzy
+msgid "Selection method"
+msgstr "配送方法の選択"
 
 msgid "Send as CSV"
 msgstr "CSVとして送信"
@@ -9169,11 +10798,22 @@ msgstr "シリーズスタイル"
 msgid "Series chart type (line, bar etc)"
 msgstr "系列チャートの種類 (折れ線、棒など)"
 
-msgid "Series colors"
-msgstr "シリーズカラー"
+msgid "Series decrease setting"
+msgstr ""
+
+msgid "Series increase setting"
+msgstr ""
 
 msgid "Series limit"
 msgstr "シリーズ制限"
+
+#, fuzzy
+msgid "Series settings"
+msgstr "フィルター設定"
+
+#, fuzzy
+msgid "Series total setting"
+msgstr "コントロール設定を保持しますか？"
 
 msgid "Series type"
 msgstr "シリーズタイプ"
@@ -9184,26 +10824,67 @@ msgstr "サーバーページの長さ"
 msgid "Server pagination"
 msgstr "サーバーのページネーション"
 
+#, python-format
+msgid "Server pagination needs to be enabled for values over %s"
+msgstr ""
+
 msgid "Service Account"
 msgstr "サービスアカウント"
 
 msgid "Service version"
 msgstr "サービスバージョン"
 
-msgid "Set auto-refresh interval"
+msgid "Set System Dark Theme"
+msgstr ""
+
+#, fuzzy
+msgid "Set System Default Theme"
+msgstr "デフォルトの日時"
+
+#, fuzzy
+msgid "Set as default dark theme"
+msgstr "デフォルトの日時"
+
+#, fuzzy
+msgid "Set as default light theme"
+msgstr "フィルターにはデフォルト値があります"
+
+#, fuzzy
+msgid "Set auto-refresh"
 msgstr "自動更新間隔を設定"
 
 msgid "Set filter mapping"
 msgstr "フィルタマッピングを設定"
 
-msgid "Set header rows and the number of rows to read or skip."
-msgstr "ヘッダー行と、データとして扱う行数を設定してください。"
+#, fuzzy
+msgid "Set local theme for testing"
+msgstr "予測を有効にする"
+
+msgid "Set local theme for testing (preview only)"
+msgstr ""
+
+msgid "Set refresh frequency for current session only."
+msgstr ""
+
+msgid "Set the automatic refresh frequency for this dashboard."
+msgstr ""
+
+msgid ""
+"Set the automatic refresh frequency for this dashboard. The dashboard "
+"will reload its data at the specified interval."
+msgstr ""
 
 msgid "Set up an email report"
 msgstr "電子メールレポートを設定する"
 
 msgid "Set up basic details, such as name and description."
 msgstr "名前や説明などの基本的な詳細を設定します。"
+
+msgid ""
+"Sets the default temporal column for this dataset. Automatically selected"
+" as the time column when building charts that require a time dimension "
+"and used in dashboard level time filters."
+msgstr ""
 
 msgid ""
 "Sets the hierarchy levels of the chart. Each level is\n"
@@ -9277,9 +10958,6 @@ msgstr "バブルを表示"
 msgid "Show CREATE VIEW statement"
 msgstr "CREATE VIEW文を表示"
 
-msgid "Show cell bars"
-msgstr "セルバーを表示"
-
 msgid "Show Dashboard"
 msgstr "ダッシュボードを表示"
 
@@ -9291,6 +10969,10 @@ msgstr "ログを表示"
 
 msgid "Show Markers"
 msgstr "マーカーを表示"
+
+#, fuzzy
+msgid "Show Metric Name"
+msgstr "メトリック名の表示"
 
 msgid "Show Metric Names"
 msgstr "メトリック名の表示"
@@ -9313,11 +10995,12 @@ msgstr "トレンドラインを表示"
 msgid "Show Upper Labels"
 msgstr "上部ラベルを表示"
 
-msgid "Show Value"
-msgstr "価値を示す"
-
 msgid "Show Values"
 msgstr "価値を示す"
+
+#, fuzzy
+msgid "Show X-axis"
+msgstr "Y軸を表示"
 
 msgid "Show Y-axis"
 msgstr "Y軸を表示"
@@ -9340,6 +11023,14 @@ msgstr "セルバーを表示"
 
 msgid "Show chart description"
 msgstr "チャートの説明を表示"
+
+#, fuzzy
+msgid "Show chart query timestamps"
+msgstr "タイムスタンプを表示"
+
+#, fuzzy
+msgid "Show column headers"
+msgstr "列ヘッダーのラベル"
 
 msgid "Show columns subtotal"
 msgstr "列の小計を表示"
@@ -9376,6 +11067,10 @@ msgstr "凡例を表示"
 msgid "Show less columns"
 msgstr "表示する列を減らします"
 
+#, fuzzy
+msgid "Show min/max axis labels"
+msgstr "X 軸ラベル"
+
 msgid "Show minor ticks on axes."
 msgstr "軸に小さな目盛りを表示します。"
 
@@ -9393,6 +11088,14 @@ msgstr "ポインターを表示"
 
 msgid "Show progress"
 msgstr "進行状況を表示する"
+
+#, fuzzy
+msgid "Show query identifiers"
+msgstr "クエリの詳細を参照"
+
+#, fuzzy
+msgid "Show row labels"
+msgstr "ラベルを表示"
 
 msgid "Show rows subtotal"
 msgstr "行の小計を表示"
@@ -9419,6 +11122,10 @@ msgid ""
 "Show total aggregations of selected metrics. Note that row limit does not"
 " apply to the result."
 msgstr "選択したメトリクスの合計集計を表示します。"
+
+#, fuzzy
+msgid "Show value"
+msgstr "価値を示す"
 
 msgid ""
 "Showcases a single metric front-and-center. Big number is best used to "
@@ -9460,6 +11167,14 @@ msgstr "その時点で利用可能なすべてのシリーズのリストを表
 msgid "Shows or hides markers for the time series"
 msgstr "時系列のマーカーを表示または非表示にします"
 
+#, fuzzy
+msgid "Sign in"
+msgstr "ありません"
+
+#, fuzzy
+msgid "Sign in with"
+msgstr "でログイン"
+
 msgid "Significance Level"
 msgstr "有意水準"
 
@@ -9499,8 +11214,27 @@ msgstr "空白行を数値ではない値として解釈せずにスキップす
 msgid "Skip rows"
 msgstr "行をスキップ"
 
+#, fuzzy
+msgid "Skip rows is required"
+msgstr "ロールが必要です"
+
 msgid "Skip spaces after delimiter"
 msgstr "区切り文字後のスペースをスキップ"
+
+#, python-format
+msgid "Skipped %d system themes that cannot be deleted"
+msgstr ""
+
+#, fuzzy
+msgid "Slice Id"
+msgstr "線の幅"
+
+#, fuzzy
+msgid "Slider"
+msgstr "ソリッド"
+
+msgid "Slider and range input"
+msgstr ""
 
 msgid "Slug"
 msgstr "スラッグ"
@@ -9524,6 +11258,10 @@ msgstr "ソリッド"
 
 msgid "Some roles do not exist"
 msgstr "一部のロールが存在しません"
+
+#, fuzzy
+msgid "Something went wrong while saving the user info"
+msgstr "申し訳ありませんが、問題が発生しました。もう一度試してください。"
 
 msgid ""
 "Something went wrong with embedded authentication. Check the dev console "
@@ -9578,6 +11316,10 @@ msgstr "申し訳ありませんが、お使いのブラウザはコピーをサ
 msgid "Sort"
 msgstr "種類"
 
+#, fuzzy
+msgid "Sort Ascending"
+msgstr "昇順に並べ替え"
+
 msgid "Sort Descending"
 msgstr "降順で並べ替え"
 
@@ -9606,6 +11348,10 @@ msgstr "並ベ替え"
 msgid "Sort by %s"
 msgstr "%s で並べ替え"
 
+#, fuzzy
+msgid "Sort by data"
+msgstr "並ベ替え"
+
 msgid "Sort by metric"
 msgstr "メトリックで並べ替える"
 
@@ -9618,11 +11364,23 @@ msgstr "列の並べ替え基準"
 msgid "Sort descending"
 msgstr "降順で並べ替え"
 
+#, fuzzy
+msgid "Sort display control values"
+msgstr "ソートフィルター値"
+
 msgid "Sort filter values"
 msgstr "ソートフィルター値"
 
+#, fuzzy
+msgid "Sort legend"
+msgstr "凡例を表示"
+
 msgid "Sort metric"
 msgstr "ソートメトリック"
+
+#, fuzzy
+msgid "Sort order"
+msgstr "シリーズの順序"
 
 msgid "Sort query by"
 msgstr "クエリの並べ替え基準"
@@ -9638,6 +11396,10 @@ msgstr "ソートタイプ"
 
 msgid "Source"
 msgstr "ソース"
+
+#, fuzzy
+msgid "Source Color"
+msgstr "ストロークの色"
 
 msgid "Source SQL"
 msgstr "ソースSQL"
@@ -9668,6 +11430,9 @@ msgstr "データベースのバージョンを指定します。これは、Pre
 msgid "Split number"
 msgstr "スプリット番号"
 
+msgid "Split stack by"
+msgstr ""
+
 msgid "Square kilometers"
 msgstr "平方キロメートル"
 
@@ -9679,6 +11444,9 @@ msgstr "平方マイル"
 
 msgid "Stack"
 msgstr "スタック"
+
+msgid "Stack in groups, where each group corresponds to a dimension"
+msgstr ""
 
 msgid "Stack series"
 msgstr "スタックシリーズ"
@@ -9704,8 +11472,16 @@ msgstr "開始時間"
 msgid "Start (Longitude, Latitude): "
 msgstr "開始(経度、緯度):"
 
+#, fuzzy
+msgid "Start (inclusive)"
+msgstr "開始 (包括的)"
+
 msgid "Start Longitude & Latitude"
 msgstr "開始経度と緯度"
+
+#, fuzzy
+msgid "Start Time"
+msgstr "開始日"
 
 msgid "Start angle"
 msgstr "開始角度"
@@ -9730,12 +11506,12 @@ msgstr "Y 軸をゼロから開始します。チェックを外すと、デー�
 msgid "Started"
 msgstr "開始しました"
 
+#, fuzzy
+msgid "Starts With"
+msgstr "チャートの幅"
+
 msgid "State"
 msgstr "状態"
-
-#, python-format
-msgid "Statement %(statement_num)s out of %(statement_count)s"
-msgstr "%(statement_count)s 件中 %(statement_num)s 件のステートメント"
 
 msgid "Statistical"
 msgstr "統計的"
@@ -9809,20 +11585,22 @@ msgstr "スタイル"
 msgid "Style the ends of the progress bar with a round cap"
 msgstr "進行状況バーの端を丸いキャップでスタイル設定します。"
 
+#, fuzzy
+msgid "Styling"
+msgstr "STRING"
+
+#, fuzzy
+msgid "Subcategories"
+msgstr "カテゴリー"
+
 msgid "Subdomain"
 msgstr "サブドメイン"
-
-msgid "Subheader Font Size"
-msgstr "サブヘッダーのフォントサイズ"
 
 msgid "Submit"
 msgstr "提出する"
 
 msgid "Subtitle"
 msgstr "サブタイトル"
-
-msgid "Subtitle Font Size"
-msgstr "サブタイトル フォントサイズ"
 
 msgid "Subtotal"
 msgstr "小計"
@@ -9874,6 +11652,10 @@ msgid "Superset Embedded SDK documentation."
 msgstr "Superset組み込み SDK ドキュメント。"
 
 msgid "Superset chart"
+msgstr "Supersetチャート"
+
+#, fuzzy
+msgid "Superset docs link"
 msgstr "Supersetチャート"
 
 msgid "Superset encountered an error while running a command."
@@ -9935,6 +11717,19 @@ msgstr "構文"
 msgid "Syntax Error: %(qualifier)s input \"%(input)s\" expecting \"%(expected)s"
 msgstr "構文エラー: %(qualifier)s 入力 \"%(input)s\" は \"%(expected)s を期待しています"
 
+#, fuzzy
+msgid "System"
+msgstr "ストリーム"
+
+msgid "System Theme - Read Only"
+msgstr ""
+
+msgid "System dark theme removed"
+msgstr ""
+
+msgid "System default theme removed"
+msgstr ""
+
 msgid "TABLES"
 msgstr "テーブル"
 
@@ -9967,14 +11762,15 @@ msgstr "テーブル %(table)s はデータベース %(db)s にありません�
 msgid "Table Name"
 msgstr "テーブル名"
 
+#, fuzzy
+msgid "Table V2"
+msgstr "テーブル"
+
 #, python-format
 msgid ""
 "Table [%(table)s] could not be found, please double check your database "
 "connection, schema, and table name"
 msgstr "テーブル [%(table_name)s] が見つかりませんでした。データベース接続、スキーマ、テーブル名を再確認してください。"
-
-msgid "Table actions"
-msgstr "テーブルアクション"
 
 msgid ""
 "Table already exists. You can change your 'if table already exists' "
@@ -9989,6 +11785,10 @@ msgstr "テーブルの列"
 
 msgid "Table name"
 msgstr "テーブル名"
+
+#, fuzzy
+msgid "Table name is required"
+msgstr "ロール名が必要です"
 
 msgid "Table name undefined"
 msgstr "テーブル名が未定義です。"
@@ -10066,8 +11866,22 @@ msgstr "目標値"
 msgid "Template"
 msgstr "テンプレート"
 
+msgid ""
+"Template for cell titles. Use Handlebars templating syntax (a popular "
+"templating library that uses double curly brackets for variable "
+"substitution): {{row}}, {{column}}, {{rowLabel}}, {{columnLabel}}"
+msgstr ""
+
 msgid "Template parameters"
 msgstr "テンプレートパラメータ"
+
+#, fuzzy, python-format
+msgid "Template processing error: %(error)s"
+msgstr "解析エラー: %(error)s"
+
+#, python-format
+msgid "Template processing failed: %(ex)s"
+msgstr ""
 
 msgid ""
 "Templated link, it's possible to include {{ metric }} or other values "
@@ -10082,9 +11896,6 @@ msgid ""
 "another page. Available for Presto, Hive, MySQL, Postgres and Snowflake "
 "databases."
 msgstr "ブラウザ ウィンドウが閉じられたとき、または別のページに移動したときに、実行中のクエリを終了します。"
-
-msgid "Test Connection"
-msgstr "接続設定"
 
 msgid "Test connection"
 msgstr "接続設定"
@@ -10141,11 +11952,11 @@ msgstr "URL に dataset_id または slide_id パラメータがありません�
 msgid "The X-axis is not on the filters list"
 msgstr "X 軸がフィルター リストにありません"
 
+#, fuzzy
 msgid ""
 "The X-axis is not on the filters list which will prevent it from being "
-"used in\n"
-"            time range filters in dashboards. Would you like to add it to"
-" the filters list?"
+"used in time range filters in dashboards. Would you like to add it to the"
+" filters list?"
 msgstr ""
 "X 軸はフィルター リストにないため、次の目的で使用できません。\n"
 "            ダッシュボードの時間範囲フィルター。フィルタリストに追加しますか？"
@@ -10163,15 +11974,6 @@ msgid ""
 "The category of source nodes used to assign colors. If a node is "
 "associated with more than one category, only the first will be used."
 msgstr "色の割り当てに使用されるソース ノードのカテゴリ。ノードが複数のカテゴリに関連付けられている場合は、最初のカテゴリのみが使用されます。"
-
-msgid "The chart datasource does not exist"
-msgstr "チャートのデータソースが存在しません。"
-
-msgid "The chart does not exist"
-msgstr "チャートが存在しません"
-
-msgid "The chart query context does not exist"
-msgstr "チャートクエリコンテキストが存在しません。"
 
 msgid ""
 "The classic. Great for showing how much of a company each investor gets, "
@@ -10200,6 +12002,10 @@ msgstr "等帯域の色"
 msgid "The color of the isoline"
 msgstr "等値線の色"
 
+#, fuzzy
+msgid "The color of the point labels"
+msgstr "等値線の色"
+
 msgid "The color scheme for rendering chart"
 msgstr "レンダリングチャートの配色"
 
@@ -10209,6 +12015,9 @@ msgid ""
 msgstr ""
 "配色は、関連するダッシュボードによって決まります。\n"
 " ダッシュボードのプロパティで配色を編集します。"
+
+msgid "The color used when a value doesn't match any defined breakpoints."
+msgstr ""
 
 #, fuzzy
 msgid ""
@@ -10293,6 +12102,14 @@ msgid "The dataset column/metric that returns the values on your chart's y-axis.
 msgstr "チャートの Y 軸の値を返すデータセット列/メトリック。"
 
 msgid ""
+"The dataset columns will be automatically synced\n"
+"              based on the changes in your SQL query. If your changes "
+"don't\n"
+"              impact the column definitions, you might want to skip this "
+"step."
+msgstr ""
+
+msgid ""
 "The dataset configuration exposed here\n"
 "                affects all the charts using this dataset.\n"
 "                Be mindful that changing settings\n"
@@ -10327,6 +12144,10 @@ msgid ""
 " Supports markdown."
 msgstr "説明は、ダッシュボード ビューのウィジェット ヘッダーとして表示できます。マークダウンをサポートします。"
 
+#, fuzzy
+msgid "The display name of your dashboard"
+msgstr "ダッシュボードの名前を追加"
+
 msgid "The distance between cells, in pixels"
 msgstr "セル間の距離（ピクセル単位）"
 
@@ -10346,10 +12167,17 @@ msgstr "engine_params オブジェクトは sqlalchemy.create_engine 呼び出�
 msgid "The exponent to compute all sizes from. \"EXP\" only"
 msgstr ""
 
+#, fuzzy, python-format
+msgid "The extension %(id)s could not be loaded."
+msgstr "ファイル拡張子は使用できません。"
+
 msgid ""
 "The extent of the map on application start. FIT DATA automatically sets "
 "the extent so that all data points are included in the viewport. CUSTOM "
 "allows users to define the extent manually."
+msgstr ""
+
+msgid "The feature property to use for point labels"
 msgstr ""
 
 #, python-format
@@ -10366,8 +12194,20 @@ msgid ""
 "                    from rendering: %s"
 msgstr ""
 
+#, fuzzy
+msgid "The font size of the point labels"
+msgstr "ポインタを表示するかどうか"
+
 msgid "The function to use when aggregating points into groups"
 msgstr "ポイントをグループに集約するときに使用する関数"
+
+#, fuzzy
+msgid "The group has been created successfully."
+msgstr "レポートが作成されました"
+
+#, fuzzy
+msgid "The group has been updated successfully."
+msgstr "注釈が更新されました"
 
 msgid "The height of the current zoom level to compute all heights from"
 msgstr ""
@@ -10403,6 +12243,17 @@ msgstr "指定されたホスト名を解決できません。"
 
 msgid "The id of the active chart"
 msgstr "アクティブなチャートのID"
+
+msgid ""
+"The image URL of the icon to display for GeoJSON points. Note that the "
+"image URL must conform to the content security policy (CSP) in order to "
+"load correctly."
+msgstr ""
+
+msgid ""
+"The initial level (depth) of the tree. If set as -1 all nodes are "
+"expanded."
+msgstr ""
 
 msgid "The layer attribution"
 msgstr "レイヤーの属性"
@@ -10471,23 +12322,9 @@ msgid ""
 " can be used to move UTC time to local time."
 msgstr "時間列をシフトする時間数 (負または正)。これを使用して、UTC 時間を現地時間に移動することができます。"
 
-#, python-format
-msgid ""
-"The number of results displayed is limited to %(rows)d by the "
-"configuration DISPLAY_MAX_ROW. Please add additional limits/filters or "
-"download to csv to see more rows up to the %(limit)d limit."
-msgstr ""
-"表示される結果の数は、DISPLAY_MAX_ROW 構成によって %(rows)d に制限されます。 %(limit)d "
-"制限までのさらに多くの行を表示するには、制限/フィルターを追加するか、CSV にダウンロードしてください。"
-
-#, python-format
-msgid ""
-"The number of results displayed is limited to %(rows)d. Please add "
-"additional limits/filters, download to csv, or contact an admin to see "
-"more rows up to the %(limit)d limit."
-msgstr ""
-"表示される結果の数は %(rows)d に制限されています。 %(limit)d "
-"制限までのさらに多くの行を表示するには、制限/フィルターを追加するか、CSV にダウンロードするか、管理者に問い合わせてください。"
+#, fuzzy, python-format
+msgid "The number of results displayed is limited to %(rows)d."
+msgstr "表示される行数はクエリによって %(rows)d に制限されています"
 
 #, python-format
 msgid "The number of rows displayed is limited to %(rows)d by the dropdown."
@@ -10524,6 +12361,10 @@ msgstr "ユーザー名 \"%(username)s\" に指定されたパスワードが正
 
 msgid "The password provided when connecting to a database is not valid."
 msgstr "データベース接続時に指定されたパスワードが無効です。"
+
+#, fuzzy
+msgid "The password reset was successful"
+msgstr "このダッシュボードは正常に保存されました。"
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
@@ -10688,6 +12529,18 @@ msgstr "バックエンドに保存された結果は別の形式で保存され
 msgid "The rich tooltip shows a list of all series for that point in time"
 msgstr "豊富なツールチップには、その時点のすべてのシリーズのリストが表示されます"
 
+#, fuzzy
+msgid "The role has been created successfully."
+msgstr "レポートが作成されました"
+
+#, fuzzy
+msgid "The role has been duplicated successfully."
+msgstr "レポートが作成されました"
+
+#, fuzzy
+msgid "The role has been updated successfully."
+msgstr "注釈が更新されました"
+
 msgid ""
 "The row limit set for the chart was reached. The chart may show partial "
 "data."
@@ -10725,6 +12578,10 @@ msgstr "レイヤーのサービスURL"
 
 msgid "The size of each cell in meters"
 msgstr "各セルのサイズ (メートル単位)"
+
+#, fuzzy
+msgid "The size of the point icons"
+msgstr "等値線の幅 (ピクセル単位)"
 
 msgid "The size of the square cell, in pixels"
 msgstr "正方形のセルのサイズ (ピクセル単位)"
@@ -10806,11 +12663,22 @@ msgstr "各ブロックの時間単位。 Domain_granularity よりも小さい�
 msgid "The time unit used for the grouping of blocks"
 msgstr "ブロックのグループ化に使用される時間単位"
 
+#, fuzzy
+msgid "The two passwords that you entered do not match!"
+msgstr "パスワードが一致しません！"
+
 msgid "The type of the layer"
 msgstr "レイヤーのタイプ"
 
 msgid "The type of visualization to display"
 msgstr "表示する可視化のタイプ"
+
+#, fuzzy
+msgid "The unit for icon size"
+msgstr "サブタイトル フォントサイズ"
+
+msgid "The unit for label size"
+msgstr ""
 
 msgid "The unit of measure for the specified point radius"
 msgstr "指定された点の半径の測定単位"
@@ -10818,8 +12686,16 @@ msgstr "指定された点の半径の測定単位"
 msgid "The upper limit of the threshold range of the Isoband"
 msgstr "Isoband のしきい値範囲の上限"
 
+#, fuzzy
+msgid "The user has been updated successfully."
+msgstr "このダッシュボードは正常に保存されました。"
+
 msgid "The user seems to have been deleted"
 msgstr "ユーザーが削除されたようです。"
+
+#, fuzzy
+msgid "The user was updated successfully"
+msgstr "このダッシュボードは正常に保存されました。"
 
 msgid "The user/password combination is not valid (Incorrect password for user)."
 msgstr "ユーザーとパスワードの組み合わせが無効です。 (ユーザーのパスワードが正しくありません)。"
@@ -10830,6 +12706,9 @@ msgstr "ユーザー名「%(ユーザー名)s」は存在しません。"
 
 msgid "The username provided when connecting to a database is not valid."
 msgstr "データベース接続時に指定されたユーザー名が無効です。"
+
+msgid "The values overlap other breakpoint values"
+msgstr ""
 
 msgid "The version of the service"
 msgstr "サービスのバージョン"
@@ -10851,6 +12730,26 @@ msgstr "要素の境界線の幅"
 
 msgid "The width of the lines"
 msgstr "線の幅"
+
+#, fuzzy
+msgid "Theme"
+msgstr "時間"
+
+#, fuzzy
+msgid "Theme imported"
+msgstr "インポートされたデータ"
+
+#, fuzzy
+msgid "Theme not found."
+msgstr "CSS テンプレートが見つかりません。"
+
+#, fuzzy
+msgid "Themes"
+msgstr "時間"
+
+#, fuzzy
+msgid "Themes could not be deleted."
+msgstr "タグを削除できませんでした。"
 
 msgid "There are associated alerts or reports"
 msgstr "関連するアラートまたはレポートがあります。"
@@ -10889,6 +12788,22 @@ msgid ""
 "or increasing the destination width."
 msgstr "このコンポーネント用の十分なスペースがありません。幅を狭くするか、移動先の幅を大きくしてみてください。"
 
+#, fuzzy
+msgid "There was an error creating the group. Please, try again."
+msgstr "パーマリンクの生成中にエラーが発生しました。"
+
+#, fuzzy
+msgid "There was an error creating the role. Please, try again."
+msgstr "パーマリンクの生成中にエラーが発生しました。"
+
+#, fuzzy
+msgid "There was an error creating the user. Please, try again."
+msgstr "パーマリンクの生成中にエラーが発生しました。"
+
+#, fuzzy
+msgid "There was an error duplicating the role. Please, try again."
+msgstr "データセットの複製中に問題が発生しました。"
+
 msgid "There was an error fetching dataset"
 msgstr "データセットの取得中にエラーが発生しました"
 
@@ -10902,22 +12817,20 @@ msgstr "お気に入りステータスの取得中にエラーが発生しまし
 msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr "フィルタされたグラフとダッシュボードの取得中にエラーが発生しました:"
 
-msgid "There was an error generating the permalink."
-msgstr "パーマリンクの生成中にエラーが発生しました。"
-
 msgid "There was an error loading the catalogs"
 msgstr "カタログのロード中にエラーが発生しました"
 
 msgid "There was an error loading the chart data"
 msgstr "チャートデータのロード中にエラーが発生しました"
 
-msgid "There was an error loading the dataset metadata"
-msgstr "データセットのメタデータのロード中にエラーが発生しました"
-
 msgid "There was an error loading the schemas"
 msgstr "スキーマのロード中にエラーが発生しました"
 
 msgid "There was an error loading the tables"
+msgstr "テーブルのロード中にエラーが発生しました"
+
+#, fuzzy
+msgid "There was an error loading users."
 msgstr "テーブルのロード中にエラーが発生しました"
 
 msgid "There was an error retrieving dashboard tabs."
@@ -10926,6 +12839,22 @@ msgstr "ダッシュボードタブの取得中にエラーが発生しました
 #, python-format
 msgid "There was an error saving the favorite status: %s"
 msgstr "お気に入りステータスの保存中にエラーが発生しました: %s"
+
+#, fuzzy
+msgid "There was an error updating the group. Please, try again."
+msgstr "パーマリンクの生成中にエラーが発生しました。"
+
+#, fuzzy
+msgid "There was an error updating the role. Please, try again."
+msgstr "パーマリンクの生成中にエラーが発生しました。"
+
+#, fuzzy
+msgid "There was an error updating the user. Please, try again."
+msgstr "パーマリンクの生成中にエラーが発生しました。"
+
+#, fuzzy
+msgid "There was an error while fetching users"
+msgstr "データセットの取得中にエラーが発生しました"
 
 msgid "There was an error with your request"
 msgstr "リクエストにエラーがありました"
@@ -10937,6 +12866,10 @@ msgstr "削除中に問題が発生しました: %s"
 #, python-format
 msgid "There was an issue deleting %s: %s"
 msgstr "%s の削除中に問題が発生しました: %s"
+
+#, fuzzy, python-format
+msgid "There was an issue deleting registration for user: %s"
+msgstr "ルールの削除中に問題が発生しました: %s"
 
 #, python-format
 msgid "There was an issue deleting rules: %s"
@@ -10966,11 +12899,11 @@ msgid "There was an issue deleting the selected layers: %s"
 msgstr "選択したレイヤーの削除で問題が発生しました: %s"
 
 #, python-format
-msgid "There was an issue deleting the selected queries: %s"
-msgstr "選択したクエリの削除に問題が発生しました: %s"
-
-#, python-format
 msgid "There was an issue deleting the selected templates: %s"
+msgstr "選択したテンプレートの削除で問題が発生しました: %s"
+
+#, fuzzy, python-format
+msgid "There was an issue deleting the selected themes: %s"
 msgstr "選択したテンプレートの削除で問題が発生しました: %s"
 
 #, python-format
@@ -10984,11 +12917,32 @@ msgstr "データセットの複製中に問題が発生しました。"
 msgid "There was an issue duplicating the selected datasets: %s"
 msgstr "選択したデータセットの複製中に問題が発生しました: %s"
 
+#, fuzzy
+msgid "There was an issue exporting the database"
+msgstr "データセットの複製中に問題が発生しました。"
+
+#, fuzzy, python-format
+msgid "There was an issue exporting the selected charts"
+msgstr "選択したチャートの削除中に問題が発生しました: %s"
+
+#, fuzzy
+msgid "There was an issue exporting the selected dashboards"
+msgstr "選択したダッシュボードの削除で問題が発生しました。: "
+
+#, fuzzy, python-format
+msgid "There was an issue exporting the selected datasets"
+msgstr "選択したデータセットの削除に問題が発生しました: %s"
+
+#, fuzzy, python-format
+msgid "There was an issue exporting the selected themes"
+msgstr "選択したテンプレートの削除で問題が発生しました: %s"
+
 msgid "There was an issue favoriting this dashboard."
 msgstr "このダッシュボードのお気に入りする際に問題が発生しました。"
 
-msgid "There was an issue fetching reports attached to this dashboard."
-msgstr "このダッシュボードに添付されたレポートの取得で問題が発生しました。"
+#, fuzzy, python-format
+msgid "There was an issue fetching reports."
+msgstr "チャートの取得中に問題が発生しました: %s"
 
 msgid "There was an issue fetching the favorite status of this dashboard."
 msgstr "このダッシュボードのお気に入りのステータスを取得する際に問題が発生しました。"
@@ -11033,6 +12987,10 @@ msgstr ""
 msgid "This action will permanently delete %s."
 msgstr "この操作により %s が完全に削除されます。"
 
+#, fuzzy
+msgid "This action will permanently delete the group."
+msgstr "このアクションにより、ロールが完全に削除されます。"
+
 msgid "This action will permanently delete the layer."
 msgstr "このアクションにより、レイヤーが完全に削除されます。"
 
@@ -11044,6 +13002,14 @@ msgstr "この操作を実行すると、保存したクエリは完全に削除
 
 msgid "This action will permanently delete the template."
 msgstr "このアクションにより、テンプレートが完全に削除されます。"
+
+#, fuzzy
+msgid "This action will permanently delete the theme."
+msgstr "このアクションにより、テンプレートが完全に削除されます。"
+
+#, fuzzy
+msgid "This action will permanently delete the user registration."
+msgstr "このアクションにより、ユーザーが完全に削除されます。"
 
 msgid "This action will permanently delete the user."
 msgstr "このアクションにより、ユーザーが完全に削除されます。"
@@ -11147,11 +13113,11 @@ msgstr "このダッシュボードはすぐに埋め込むことができます
 msgid "This dashboard was saved successfully."
 msgstr "このダッシュボードは正常に保存されました。"
 
+#, fuzzy
 msgid ""
-"This database does not allow for DDL/DML, and the query could not be "
-"parsed to confirm it is a read-only query. Please contact your "
-"administrator for more assistance."
-msgstr ""
+"This database does not allow for DDL/DML, but the query mutates data. "
+"Please contact your administrator for more assistance."
+msgstr "このクエリで参照されているデータベースが見つかりませんでした。管理者に問い合わせてサポートを求めるか、もう一度試してください。"
 
 msgid "This database is managed externally, and can't be edited in Superset"
 msgstr "このデータベースは外部で管理されており、Supersetでは編集できません"
@@ -11164,30 +13130,63 @@ msgstr "このデータベース テーブルにはデータが含まれてい�
 msgid "This dataset is managed externally, and can't be edited in Superset"
 msgstr "このデータセットは外部で管理されており、Supersetでは編集できません"
 
-msgid "This dataset is not used to power any charts."
-msgstr "このデータセットはチャートの作成には使用されません。"
-
 msgid "This defines the element to be plotted on the chart"
 msgstr "これは、チャート上にプロットされる要素を定義します。"
 
-msgid "This email is already associated with an account."
+msgid ""
+"This email is already associated with an account. Please choose another "
+"one."
+msgstr ""
+
+msgid "This feature is experimental and may change or have limitations"
 msgstr ""
 
 msgid ""
 "This field is used as a unique identifier to attach the calculated "
 "dimension to charts. It is also used as the alias in the SQL query."
-msgstr "このフィールドは、計算されたディメンションをチャートに添付するための一意の識別子として使用されます。 SQL クエリのエイリアスとしても使用されます。"
+msgstr ""
+"このフィールドは、計算されたディメンションをチャートに添付するための一意の識別子として使用されます。 SQL "
+"クエリのエイリアスとしても使用されます。"
 
 msgid ""
 "This field is used as a unique identifier to attach the metric to charts."
 " It is also used as the alias in the SQL query."
 msgstr "このフィールドは、メトリクスをチャートに添付するための一意の識別子として使用されます。 SQL クエリのエイリアスとしても使用されます。"
 
+#, fuzzy
+msgid "This filter already exist on the report"
+msgstr "フィルター値リストを空にすることはできません。"
+
 msgid "This filter might be incompatible with current dataset"
 msgstr "このフィルターは現在のデータセットと互換性がない可能性があります"
 
+msgid "This folder is currently empty"
+msgstr ""
+
+msgid "This folder only accepts columns"
+msgstr ""
+
+msgid "This folder only accepts metrics"
+msgstr ""
+
 msgid "This functionality is disabled in your environment for security reasons."
 msgstr "セキュリティ上の理由から、この機能はご使用の環境では無効になっています。"
+
+msgid ""
+"This is a default columns folder. Its name cannot be changed or removed. "
+"It can stay empty but will only accept column items."
+msgstr ""
+
+msgid ""
+"This is a default metrics folder. Its name cannot be changed or removed. "
+"It can stay empty but will only accept metric items."
+msgstr ""
+
+msgid "This is custom error message for a"
+msgstr ""
+
+msgid "This is custom error message for b"
+msgstr ""
 
 msgid ""
 "This is the condition that will be added to the WHERE clause. For "
@@ -11199,6 +13198,17 @@ msgstr ""
 "これは、WHERE 句に追加される条件です。たとえば、特定のクライアントの行のみを返すには、「client_id = "
 "9」句を使用して通常のフィルターを定義できます。ユーザーが RLS フィルター ロールに属していない限り行を表示しないようにするには、句 `1 ="
 " 0` (常に false) を使用してベース フィルターを作成できます。"
+
+#, fuzzy
+msgid "This is the default dark theme"
+msgstr "デフォルトの日時"
+
+#, fuzzy
+msgid "This is the default folder"
+msgstr "デフォルト値を更新する"
+
+msgid "This is the default light theme"
+msgstr ""
 
 msgid ""
 "This json object describes the positioning of the widgets in the "
@@ -11214,11 +13224,19 @@ msgstr "このマークダウンコンポーネントにエラーがあります
 msgid "This markdown component has an error. Please revert your recent changes."
 msgstr "このマークダウンコンポーネントにエラーがあります。最近の変更を元に戻してください。"
 
+msgid ""
+"This may be due to the extension not being activated or the content not "
+"being available."
+msgstr ""
+
 msgid "This may be triggered by:"
 msgstr "これは次のような原因で引き起こされる可能性があります:"
 
 msgid "This metric might be incompatible with current dataset"
 msgstr "このメトリクスは現在のデータセットと互換性がない可能性があります"
+
+msgid "This name is already taken. Please choose another one."
+msgstr ""
 
 msgid "This option has been disabled by the administrator."
 msgstr ""
@@ -11259,6 +13277,12 @@ msgid ""
 "associate one dataset with a table.\n"
 msgstr "このテーブルにはすでにデータセットが関連付けられています。 1 つのテーブルに関連付けられるのは 1 つのデータセットのみです。\n"
 
+msgid "This theme is set locally"
+msgstr ""
+
+msgid "This theme is set locally for your session"
+msgstr ""
+
 msgid "This username is already taken. Please choose another one."
 msgstr ""
 
@@ -11288,11 +13312,20 @@ msgstr ""
 msgid "This will remove your current embed configuration."
 msgstr "これにより、現在の埋め込み設定が削除されます。"
 
+msgid ""
+"This will reorganize all metrics and columns into default folders. Any "
+"custom folders will be removed."
+msgstr ""
+
 msgid "Threshold"
 msgstr "しきい値"
 
 msgid "Threshold alpha level for determining significance"
 msgstr "重要性を判断するための閾値アルファレベル"
+
+#, fuzzy
+msgid "Threshold for Other"
+msgstr "しきい値"
 
 msgid "Threshold: "
 msgstr "しきい値:"
@@ -11367,6 +13400,10 @@ msgstr "時間列"
 msgid "Time column \"%(col)s\" does not exist in dataset"
 msgstr "時間列 \"%(col)s\" がデータセットに存在しません。"
 
+#, fuzzy
+msgid "Time column chart customization plugin"
+msgstr "時間列フィルタープラグイン"
+
 msgid "Time column filter plugin"
 msgstr "時間列フィルタープラグイン"
 
@@ -11400,6 +13437,10 @@ msgstr "時間の形式"
 
 msgid "Time grain"
 msgstr "時間粒度"
+
+#, fuzzy
+msgid "Time grain chart customization plugin"
+msgstr "タイムグレインフィルタープラグイン"
 
 msgid "Time grain filter plugin"
 msgstr "タイムグレインフィルタープラグイン"
@@ -11449,6 +13490,10 @@ msgstr "時系列期間ピボット"
 msgid "Time-series Table"
 msgstr "時系列 - 表"
 
+#, fuzzy
+msgid "Timeline"
+msgstr "タイムゾーン"
+
 msgid "Timeout error"
 msgstr "タイムアウトエラー"
 
@@ -11477,8 +13522,18 @@ msgid "Title or Slug"
 msgstr "タイトルまたはスラッグ"
 
 msgid ""
+"To begin using your Google Sheets, you need to create a database first. "
+"Databases are used as a way to identify your data so that it can be "
+"queried and visualized. This database will hold all of your individual "
+"Google Sheets you choose to connect here."
+msgstr ""
+
+msgid ""
 "To enable multiple column sorting, hold down the ⇧ Shift key while "
 "clicking the column header."
+msgstr ""
+
+msgid "To entire row"
 msgstr ""
 
 msgid "To filter on a metric, use Custom SQL tab."
@@ -11487,10 +13542,33 @@ msgstr "メトリックでフィルタするには、[カスタム SQL] タブ�
 msgid "To get a readable URL for your dashboard"
 msgstr "ダッシュボードの読み取り可能なURLを取得するには"
 
+#, fuzzy
+msgid "To text color"
+msgstr "ターゲットカラー"
+
+msgid "Token Request URI"
+msgstr ""
+
+#, fuzzy
+msgid "Tool Panel"
+msgstr "すべてのパネル"
+
 msgid "Tooltip"
 msgstr "ツールチップ"
 
+#, fuzzy
+msgid "Tooltip (columns)"
+msgstr "ツールチップの内容"
+
+#, fuzzy
+msgid "Tooltip (metrics)"
+msgstr "ツールチップのメトリックによる並べ替え"
+
 msgid "Tooltip Contents"
+msgstr "ツールチップの内容"
+
+#, fuzzy
+msgid "Tooltip contents"
 msgstr "ツールチップの内容"
 
 msgid "Tooltip sort by metric"
@@ -11504,6 +13582,10 @@ msgstr "上"
 
 msgid "Top left"
 msgstr "左上"
+
+#, fuzzy
+msgid "Top n"
+msgstr "上"
 
 msgid "Top right"
 msgstr "右上"
@@ -11522,8 +13604,13 @@ msgstr "合計 (%(aggfunc)s)"
 msgid "Total (%(aggregatorName)s)"
 msgstr "合計 (%(aggregatorName)s)"
 
-msgid "Total (Sum)"
-msgstr "合計"
+#, fuzzy
+msgid "Total color"
+msgstr "ポイントカラー"
+
+#, fuzzy
+msgid "Total label"
+msgstr "総価値"
 
 msgid "Total value"
 msgstr "総価値"
@@ -11568,8 +13655,9 @@ msgstr "トライアングル"
 msgid "Trigger Alert If..."
 msgstr "アラートをトリガーする場合..."
 
-msgid "Truncate Axis"
-msgstr "軸の切り詰め"
+#, fuzzy
+msgid "True"
+msgstr "火"
 
 msgid "Truncate Cells"
 msgstr "セルの切り詰め"
@@ -11616,9 +13704,6 @@ msgstr "タイプ"
 msgid "Type \"%s\" to confirm"
 msgstr "確認するには「%s」と入力してください"
 
-msgid "Type a number"
-msgstr "数値を入力します"
-
 msgid "Type a value"
 msgstr "値を入力します"
 
@@ -11628,11 +13713,17 @@ msgstr "ここに値を入力してください"
 msgid "Type is required"
 msgstr "タイプが必要です。"
 
+msgid "Type of chart to display in sparkline"
+msgstr ""
+
 msgid "Type of comparison, value difference or percentage"
 msgstr "比較の種類、値の差またはパーセンテージ"
 
 msgid "UI Configuration"
 msgstr "UI構成"
+
+msgid "UI theme administration is not enabled."
+msgstr ""
 
 msgid "URL"
 msgstr "URL"
@@ -11640,11 +13731,12 @@ msgstr "URL"
 msgid "URL Parameters"
 msgstr "URLパラメータ"
 
+#, fuzzy
+msgid "URL Slug"
+msgstr "URLスラッグ"
+
 msgid "URL parameters"
 msgstr "URLパラメータ"
-
-msgid "URL slug"
-msgstr "URLスラッグ"
 
 msgid "Unable to calculate such a date delta"
 msgstr "そのような日付デルタを計算できません。"
@@ -11669,6 +13761,11 @@ msgstr ""
 msgid "Unable to create chart without a query id."
 msgstr "クエリ ID がないとチャートを作成できません。"
 
+msgid ""
+"Unable to create report: User email address is required but not found. "
+"Please ensure your user profile has a valid email address."
+msgstr ""
+
 msgid "Unable to decode value"
 msgstr "値をデコードできません。"
 
@@ -11678,6 +13775,11 @@ msgstr "値をエンコードできません。"
 #, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "そのような休日が見つかりません。: [%(holiday)s]"
+
+msgid ""
+"Unable to identify temporal column for date range time comparison.Please "
+"ensure your dataset has a properly configured time column."
+msgstr ""
 
 msgid ""
 "Unable to load columns for the selected table. Please select a different "
@@ -11704,6 +13806,10 @@ msgstr "テーブル スキーマの状態をバックエンドに移行でき�
 
 msgid "Unable to parse SQL"
 msgstr ""
+
+#, fuzzy
+msgid "Unable to read the file, please refresh and try again."
+msgstr "イメージのダウンロードに失敗しました。更新して再試行してください。"
 
 msgid "Unable to retrieve dashboard colors"
 msgstr "ダッシュボードの色を取得できません"
@@ -11739,6 +13845,10 @@ msgstr "予期しないファイル拡張子が見つかりました"
 msgid "Unexpected time range: %(error)s"
 msgstr "予期しない時間範囲: %(error)s"
 
+#, fuzzy
+msgid "Ungroup By"
+msgstr "グループ化"
+
 msgid "Unhide"
 msgstr "表示"
 
@@ -11748,6 +13858,10 @@ msgstr "不明"
 #, python-format
 msgid "Unknown Doris server host \"%(hostname)s\"."
 msgstr "不明な Doris サーバー ホスト \"%(hostname)s\"。"
+
+#, fuzzy
+msgid "Unknown Error"
+msgstr "不明なエラー"
 
 #, python-format
 msgid "Unknown MySQL server host \"%(hostname)s\"."
@@ -11795,6 +13909,9 @@ msgstr "キー %(key)s の安全でないテンプレート値: %(value_type)s"
 msgid "Unsupported clause type: %(clause)s"
 msgstr "サポートされていない句タイプ: %(clause)s"
 
+msgid "Unsupported file type. Please use CSV, Excel, or Columnar files."
+msgstr ""
+
 #, python-format
 msgid "Unsupported post processing operation: %(operation)s"
 msgstr "サポートされていない後処理操作: %(operation)s"
@@ -11819,6 +13936,10 @@ msgstr "無題のクエリ"
 
 msgid "Untitled query"
 msgstr "無題のクエリ"
+
+#, fuzzy
+msgid "Unverified"
+msgstr "未定義"
 
 msgid "Update"
 msgstr "更新"
@@ -11856,9 +13977,6 @@ msgstr "Excelファイルをデータベースにアップロード"
 msgid "Upload JSON file"
 msgstr "JSONファイルをアップロードする"
 
-msgid "Upload a file to a database."
-msgstr "ファイルをデータベースにアップロードする"
-
 #, python-format
 msgid "Upload a file with a valid extension. Valid: [%s]"
 msgstr "有効な拡張子のファイルをアップロードしてください。有効なもの： [%s]"
@@ -11885,15 +14003,16 @@ msgid "Usage"
 msgstr "使用法"
 
 #, python-format
-msgid "Use \"%(menuName)s\" menu instead."
-msgstr "代わりに「%(menuName)s」メニューを使用してください。"
-
-#, python-format
 msgid "Use %s to open in a new tab."
 msgstr "新しいタブで開くには %s を使用してください。"
 
 msgid "Use Area Proportions"
 msgstr "面積比率を使用する"
+
+msgid ""
+"Use Handlebars syntax to create custom tooltips. Available variables are "
+"based on your tooltip contents selection above."
+msgstr ""
 
 msgid "Use a log scale"
 msgstr "対数スケールを使用する"
@@ -11918,11 +14037,19 @@ msgstr ""
 "別の既存のグラフを注釈とオーバーレイのソースとして使用してください。\n"
 " チャートは次の視覚化タイプのいずれかである必要があります: [%s]"
 
+#, fuzzy
+msgid "Use automatic color"
+msgstr "自動カラー"
+
 msgid "Use current extent"
 msgstr "現在の範囲を使用"
 
 msgid "Use date formatting even when metric value is not a timestamp"
 msgstr "メトリック値がタイムスタンプでない場合でも日付形式を使用する"
+
+#, fuzzy
+msgid "Use gradient"
+msgstr "時間粒度"
 
 msgid "Use metrics as a top level group for columns or for rows"
 msgstr "メトリクスを列または行の最上位グループとして使用する"
@@ -11932,9 +14059,6 @@ msgstr "単一の値のみを使用します。"
 
 msgid "Use the Advanced Analytics options below"
 msgstr "以下の高度な分析オプションを使用してください"
-
-msgid "Use the edit button to change this field"
-msgstr "このフィールドを変更するには編集ボタンを使用してください。"
 
 msgid "Use this section if you want a query that aggregates"
 msgstr "集計するクエリが必要な場合は、このセクションを使用してください"
@@ -11963,8 +14087,28 @@ msgstr ""
 msgid "User"
 msgstr "ユーザー"
 
+#, fuzzy
+msgid "User Name"
+msgstr "ユーザー名"
+
+#, fuzzy
+msgid "User Registrations"
+msgstr "面積比率を使用する"
+
 msgid "User doesn't have the proper permissions."
 msgstr "ユーザーに適切なアクセス許可がありません。"
+
+#, fuzzy
+msgid "User info"
+msgstr "ユーザー"
+
+#, fuzzy
+msgid "User must select a value before applying the chart customization"
+msgstr "ユーザーはフィルターを適用する前に値を選択する必要があります"
+
+#, fuzzy
+msgid "User must select a value before applying the customization"
+msgstr "ユーザーはフィルターを適用する前に値を選択する必要があります"
 
 msgid "User must select a value before applying the filter"
 msgstr "ユーザーはフィルターを適用する前に値を選択する必要があります"
@@ -11972,17 +14116,19 @@ msgstr "ユーザーはフィルターを適用する前に値を選択する必
 msgid "User query"
 msgstr "ユーザークエリ"
 
-msgid "User was successfully created!"
-msgstr ""
-
-msgid "User was successfully updated!"
-msgstr ""
+#, fuzzy
+msgid "User registrations"
+msgstr "面積比率を使用する"
 
 msgid "Username"
 msgstr "ユーザー名"
 
 msgid "Username is required"
 msgstr "ユーザー名が必要です"
+
+#, fuzzy
+msgid "Username:"
+msgstr "ユーザー名"
 
 msgid "Users"
 msgstr "ユーザー"
@@ -12008,12 +14154,36 @@ msgid ""
 "funnels and pipelines."
 msgstr "円を使用して、システムのさまざまな段階を通るデータの流れを視覚化します。ビジュアライゼーション内の個々のパスの上にマウスを移動すると、値がどの段階を経たかを理解できます。マルチステージ、マルチグループのファネルとパイプラインの視覚化に役立ちます。"
 
+#, fuzzy
+msgid "Valid SQL expression"
+msgstr "SQL 式"
+
+#, fuzzy
+msgid "Validate query"
+msgstr "クエリの表示"
+
+#, fuzzy
+msgid "Validate your expression"
+msgstr "無効な cron 式です"
+
 #, python-format
 msgid "Validating connectivity for %s"
 msgstr ""
 
+#, fuzzy
+msgid "Validating..."
+msgstr "読み込み中..."
+
 msgid "Value"
 msgstr "値"
+
+#, fuzzy
+msgid "Value Aggregation"
+msgstr "集計"
+
+#, fuzzy
+msgid "Value Columns"
+msgstr "テーブルの列"
 
 msgid "Value Domain"
 msgstr "バリュードメイン"
@@ -12052,11 +14222,18 @@ msgstr "値は0以上でなければなりません"
 msgid "Value must be greater than 0"
 msgstr "値は 0 より大きくする必要があります"
 
+#, fuzzy
+msgid "Values"
+msgstr "値"
+
 msgid "Values are dependent on other filters"
 msgstr "値は他のフィルターに依存しています"
 
 msgid "Values dependent on"
 msgstr "依存する値"
+
+msgid "Values less than this percentage will be grouped into the Other category."
+msgstr ""
 
 msgid ""
 "Values selected in other filters will affect the filter options to only "
@@ -12074,6 +14251,9 @@ msgstr "垂直"
 
 msgid "Vertical (Left)"
 msgstr "縦型(左)"
+
+msgid "Vertical layout (rows)"
+msgstr ""
 
 msgid "View"
 msgstr "表示"
@@ -12099,6 +14279,10 @@ msgstr "キーとインデックスを表示 (%s)"
 
 msgid "View query"
 msgstr "クエリの表示"
+
+#, fuzzy
+msgid "View theme properties"
+msgstr "プロパティの編集"
 
 msgid "Viewed"
 msgstr "表示した項目"
@@ -12236,6 +14420,9 @@ msgstr "データベースで待機中..."
 msgid "Want to add a new database?"
 msgstr "新しいデータベースを追加しますか？"
 
+msgid "Warehouse"
+msgstr ""
+
 msgid "Warning"
 msgstr "警告"
 
@@ -12253,12 +14440,13 @@ msgstr "クエリを確認できませんでした。"
 msgid "Waterfall Chart"
 msgstr "ウォーターフォールチャート"
 
-msgid ""
-"We are unable to connect to your database. Click \"See more\" for "
-"database-provided information that may help troubleshoot the issue."
-msgstr ""
-"データベースに接続できません。問題のトラブルシューティングに役立つ可能性のあるデータベースが提供する情報については、[詳細を見る] "
-"をクリックしてください。"
+#, fuzzy, python-format
+msgid "We are unable to connect to your database."
+msgstr "“%(database)s” に接続できません。"
+
+#, fuzzy
+msgid "We are working on your query"
+msgstr "クエリのラベル"
 
 #, python-format
 msgid "We can't seem to resolve column \"%(column)s\" at line %(location)s."
@@ -12278,7 +14466,8 @@ msgstr "行 %(location)s の列 \"%(column_name)s\" を解決できないよう�
 msgid "We have the following keys: %s"
 msgstr "次のキーがあります: %s"
 
-msgid "We were unable to active or deactivate this report."
+#, fuzzy
+msgid "We were unable to activate or deactivate this report."
 msgstr "このレポートをアクティブまたは非アクティブにすることができませんでした。"
 
 msgid ""
@@ -12371,16 +14560,24 @@ msgstr "二次メトリックが提供される場合、線形カラー スケ�
 msgid "When checked, the map will zoom to your data after each query"
 msgstr "チェックすると、各クエリの後にマップがデータにズームします"
 
+#, fuzzy
+msgid ""
+"When enabled, the axis will display labels for the minimum and maximum "
+"values of your data"
+msgstr "Y軸の最小値と最大値を表示するかどうか"
+
 msgid "When enabled, users are able to visualize SQL Lab results in Explore."
 msgstr "有効にすると、ユーザーは SQL Lab の結果を Explore で視覚化できます。"
 
 msgid "When only a primary metric is provided, a categorical color scale is used."
 msgstr "プライマリ メトリックのみが指定されている場合は、カテゴリカル カラー スケールが使用されます。"
 
+#, fuzzy
 msgid ""
 "When specifying SQL, the datasource acts as a view. Superset will use "
 "this statement as a subquery while grouping and filtering on the "
-"generated parent queries."
+"generated parent queries.If changes are made to your SQL query, columns "
+"in your dataset will be synced when saving the dataset."
 msgstr ""
 "SQL "
 "を指定すると、データソースはビューとして機能します。スーパーセットは、生成された親クエリのグループ化とフィルター処理中に、このステートメントをサブクエリとして使用します。"
@@ -12440,9 +14637,6 @@ msgstr "進行状況と値をアニメーション化するか、単に表示す
 msgid "Whether to apply a normal distribution based on rank on the color scale"
 msgstr "カラースケール上のランクに基づいて正規分布を適用するかどうか"
 
-msgid "Whether to apply filter when items are clicked"
-msgstr "項目をクリックしたときにフィルターを適用するかどうか"
-
 msgid "Whether to colorize numeric values by if they are positive or negative"
 msgstr "数値を正か負かで色分けするかどうか"
 
@@ -12463,6 +14657,14 @@ msgstr "国の上にバブルを表示するかどうか"
 msgid "Whether to display in the chart"
 msgstr "チャートに表示するかどうか"
 
+#, fuzzy
+msgid "Whether to display the X Axis"
+msgstr "ラベルを表示するかどうか。"
+
+#, fuzzy
+msgid "Whether to display the Y Axis"
+msgstr "ラベルを表示するかどうか。"
+
 msgid "Whether to display the aggregate count"
 msgstr "集計数を表示するかどうか"
 
@@ -12474,6 +14676,10 @@ msgstr "ラベルを表示するかどうか。"
 
 msgid "Whether to display the legend (toggles)"
 msgstr "凡例を表示するかどうか(切り替え)"
+
+#, fuzzy
+msgid "Whether to display the metric name"
+msgstr "メトリクス名をタイトルとして表示するかどうか"
 
 msgid "Whether to display the metric name as a title"
 msgstr "メトリクス名をタイトルとして表示するかどうか"
@@ -12509,7 +14715,7 @@ msgid "Whether to display the trend line"
 msgstr "トレンドラインを表示するかどうか"
 
 msgid "Whether to display the type icon (#, Δ, %)"
-msgstr タイプアイコン(#, Δ, %)を表示するかどうか"
+msgstr "イプアイコン(#, Δ, %)を表示するかどうか"
 
 msgid "Whether to enable changing graph position and scaling."
 msgstr "グラフの位置とスケーリングの変更を有効にするかどうか。"
@@ -12583,8 +14789,9 @@ msgstr "ホバー時にどの親戚を強調表示するか"
 msgid "Whisker/outlier options"
 msgstr "ウィスカー/外れ値オプション"
 
-msgid "White"
-msgstr "白"
+#, fuzzy
+msgid "Why do I need to create a database?"
+msgstr "新しいデータベースを追加しますか？"
 
 msgid "Width"
 msgstr "幅"
@@ -12622,9 +14829,6 @@ msgstr "クエリの説明を書いてください"
 msgid "Write a handlebars template to render the data"
 msgstr "データをレンダリングするハンドルバー テンプレートを作成する"
 
-msgid "X axis title margin"
-msgstr "X 軸のタイトルマージン"
-
 msgid "X Axis"
 msgstr "X軸"
 
@@ -12637,6 +14841,14 @@ msgstr "X 軸の形式"
 msgid "X Axis Label"
 msgstr "X 軸ラベル"
 
+#, fuzzy
+msgid "X Axis Label Interval"
+msgstr "X 軸ラベル"
+
+#, fuzzy
+msgid "X Axis Number Format"
+msgstr "X 軸の形式"
+
 msgid "X Axis Title"
 msgstr "X 軸タイトル"
 
@@ -12648,6 +14860,9 @@ msgstr "X ログスケール"
 
 msgid "X Tick Layout"
 msgstr "X 目盛レイアウト"
+
+msgid "X axis title margin"
+msgstr "X 軸のタイトルマージン"
 
 msgid "X bounds"
 msgstr "X 境界"
@@ -12669,9 +14884,6 @@ msgstr ""
 
 msgid "Y 2 bounds"
 msgstr "Y 2 バウンド"
-
-msgid "Y axis title margin"
-msgstr "Y 軸のタイトルマージン"
 
 msgid "Y Axis"
 msgstr "Y軸"
@@ -12699,6 +14911,9 @@ msgstr "Y軸タイトル位置"
 
 msgid "Y Log Scale"
 msgstr "Y ログスケール"
+
+msgid "Y axis title margin"
+msgstr "Y 軸のタイトルマージン"
 
 msgid "Y bounds"
 msgstr "Y 境界"
@@ -12747,6 +14962,10 @@ msgstr "はい、変更を上書きします"
 msgid "You are adding tags to %s %ss"
 msgstr "%s %ss にタグを追加しています"
 
+#, fuzzy, python-format
+msgid "You are editing a query from the virtual dataset "
+msgstr ""
+
 msgid ""
 "You are importing one or more charts that already exist. Overwriting "
 "might cause you to lose some of your work. Are you sure you want to "
@@ -12780,6 +14999,13 @@ msgid ""
 msgstr ""
 "すでに存在する 1 "
 "つ以上の保存済みクエリをインポートしています。上書きすると、作業内容の一部が失われる可能性があります。上書きしてもよろしいですか？"
+
+#, fuzzy
+msgid ""
+"You are importing one or more themes that already exist. Overwriting "
+"might cause you to lose some of your work. Are you sure you want to "
+"overwrite?"
+msgstr "すでに存在する 1 つ以上のデータセットをインポートしています。上書きすると、作業内容の一部が失われる可能性があります。上書きしてもよろしいですか？"
 
 msgid ""
 "You are viewing this chart in a dashboard context with labels shared "
@@ -12893,6 +15119,10 @@ msgstr "CSVとしてダウンロードする権限がありません。"
 msgid "You have removed this filter."
 msgstr "このフィルタを削除しました。"
 
+#, fuzzy
+msgid "You have unsaved changes"
+msgstr "未保存の変更があります。"
+
 msgid "You have unsaved changes."
 msgstr "未保存の変更があります。"
 
@@ -12902,9 +15132,6 @@ msgid ""
 "fully undo subsequent actions. You may save your current state to reset "
 "the history."
 msgstr "%(historyLength)s 個の元に戻すスロットをすべて使用しました。後続のアクションを完全に元に戻すことはできません。"
-
-msgid "You may have an error in your SQL statement. {message}"
-msgstr "SQL ステートメントにエラーがある可能性があります。 {message}"
 
 msgid ""
 "You must be a dataset owner in order to edit. Please reach out to a "
@@ -12930,6 +15157,12 @@ msgid ""
 "You've changed datasets. Any controls with data (columns, metrics) that "
 "match this new dataset have been retained."
 msgstr "データセットを変更しました。"
+
+msgid "Your account is activated. You can log in with your credentials."
+msgstr ""
+
+msgid "Your changes will be lost if you leave without saving."
+msgstr ""
 
 msgid "Your chart is not up to date"
 msgstr "チャートが最新ではありません"
@@ -12966,11 +15199,12 @@ msgstr "クエリが保存されました"
 msgid "Your query was updated"
 msgstr "クエリが更新されました"
 
-msgid "Your range is not within the dataset range"
-msgstr ""
-
 msgid "Your report could not be deleted"
 msgstr "レポートを削除できませんでした"
+
+#, fuzzy
+msgid "Your user information"
+msgstr "一般情報"
 
 msgid "ZIP file contains multiple file types"
 msgstr "ZIPファイルには複数のファイルタイプが含まれています。"
@@ -13017,8 +15251,8 @@ msgid ""
 "based on labels"
 msgstr "[オプション] この二次メトリックは、一次メトリックに対する比率として色を定義するために使用されます。"
 
-msgid "[untitled]"
-msgstr "[無題]"
+msgid "[untitled customization]"
+msgstr ""
 
 msgid "`compare_columns` must have the same length as `source_columns`."
 msgstr "`compare_columns` は `source_columns` と同じ長さでなければなりません。"
@@ -13058,9 +15292,6 @@ msgstr "「row_offset」は 0 以上でなければなりません。"
 msgid "`width` must be greater or equal to 0"
 msgstr "「幅」は 0 以上でなければなりません。"
 
-msgid "Add colors to cell bars for +/-"
-msgstr ""
-
 msgid "aggregate"
 msgstr "集計"
 
@@ -13069,9 +15300,6 @@ msgstr "アラート"
 
 msgid "alert condition"
 msgstr "アラート状態"
-
-msgid "alert dark"
-msgstr "アラート暗い"
 
 msgid "alerts"
 msgstr "アラート"
@@ -13103,14 +15331,19 @@ msgstr "自動"
 msgid "background"
 msgstr "背景"
 
-msgid "Basic conditional formatting"
-msgstr "基本的な条件付き書式"
-
 msgid "basis"
 msgstr "基礎"
 
+#, fuzzy
+msgid "begins with"
+msgstr "でログイン"
+
 msgid "below (example:"
 msgstr "以下(例:"
+
+#, fuzzy
+msgid "beta"
+msgstr "エクストラ"
 
 msgid "between {down} and {up} {name}"
 msgstr "{ダウン} と {アップ} {名前}の間"
@@ -13145,11 +15378,12 @@ msgstr "変化"
 msgid "chart"
 msgstr "チャート"
 
+#, fuzzy
+msgid "charts"
+msgstr "チャート"
+
 msgid "choose WHERE or HAVING..."
 msgstr "どこにあるか、持っているかを選択してください..."
-
-msgid "clear all filters"
-msgstr "すべてのフィルターをクリアする"
 
 msgid "click here"
 msgstr "ここをクリック"
@@ -13180,6 +15414,10 @@ msgstr "列"
 msgid "connecting to %(dbModelName)s"
 msgstr "%(dbModelName)s に接続しています。"
 
+#, fuzzy
+msgid "containing"
+msgstr "継続"
+
 msgid "content type"
 msgstr "コンテンツタイプ"
 
@@ -13209,6 +15447,10 @@ msgid "cumsum"
 msgstr "合計"
 
 msgid "dashboard"
+msgstr "ダッシュボード"
+
+#, fuzzy
+msgid "dashboards"
 msgstr "ダッシュボード"
 
 msgid "database"
@@ -13265,7 +15507,8 @@ msgstr "deck.gl 散布図"
 msgid "deck.gl Screen Grid"
 msgstr "deck.gl スクリーングリッド"
 
-msgid "deck.gl charts"
+#, fuzzy
+msgid "deck.gl layers (charts)"
 msgstr "deck.gl charts"
 
 msgid "deckGL"
@@ -13285,6 +15528,10 @@ msgstr "偏差"
 
 msgid "dialect+driver://username:password@host:port/database"
 msgstr "方言ドライバー://ユーザー名:パスワード@ホスト:ポート/データベース"
+
+#, fuzzy
+msgid "documentation"
+msgstr "ドキュメンテーション"
 
 msgid "dttm"
 msgstr "dttm"
@@ -13331,6 +15578,10 @@ msgstr "編集モード"
 msgid "email subject"
 msgstr "電子メールの件名"
 
+#, fuzzy
+msgid "ends with"
+msgstr "線の幅"
+
 msgid "entries"
 msgstr "エントリ"
 
@@ -13339,9 +15590,6 @@ msgstr "ページあたりのエントリ数"
 
 msgid "error"
 msgstr "エラー"
-
-msgid "error dark"
-msgstr "エラーダーク"
 
 msgid "error_message"
 msgstr "エラーメッセージ"
@@ -13367,9 +15615,6 @@ msgstr "毎月"
 msgid "expand"
 msgstr "拡大する"
 
-msgid "explore"
-msgstr "探検する"
-
 msgid "failed"
 msgstr "失敗"
 
@@ -13384,6 +15629,10 @@ msgstr "フラット"
 
 msgid "for more information on how to structure your URI."
 msgstr "URI を構造化する方法の詳細については、「」を参照してください。"
+
+#, fuzzy
+msgid "formatted"
+msgstr "フォーマットされた日付"
 
 msgid "function type icon"
 msgstr "機能タイプアイコン"
@@ -13403,11 +15652,11 @@ msgstr "ここ"
 msgid "hour"
 msgstr "時間"
 
+msgid "https://"
+msgstr ""
+
 msgid "in"
 msgstr "In"
-
-msgid "in modal"
-msgstr "モーダルで"
 
 msgid "invalid email"
 msgstr "無効な電子メール"
@@ -13416,8 +15665,10 @@ msgstr "無効な電子メール"
 msgid "is"
 msgstr "In"
 
-msgid "is expected to be a Mapbox URL"
-msgstr "Mapbox URL であることが期待されます"
+msgid ""
+"is expected to be a Mapbox/OSM URL (eg. mapbox://styles/...) or a tile "
+"server URL (eg. tile://http...)"
+msgstr ""
 
 msgid "is expected to be a number"
 msgstr "は数値であると予想されます"
@@ -13425,14 +15676,18 @@ msgstr "は数値であると予想されます"
 msgid "is expected to be an integer"
 msgstr "整数であることが期待されます"
 
+#, fuzzy
+msgid "is false"
+msgstr "誤りです"
+
 #, fuzzy, python-format
 msgid ""
 "is linked to %s charts that appear on %s dashboards and users have %s SQL"
 " Lab tabs using this database open. Are you sure you want to continue? "
 "Deleting the database will break those objects."
 msgstr ""
-"データベース %s は、%s ダッシュボードに表示される %s チャートにリンクされており、ユーザーはこのデータベースを使用する %s SQL ラボ"
-" タブを開いています。続行してもよろしいですか?データベースを削除すると、それらのオブジェクトが壊れます。"
+"データベース %s は、%s ダッシュボードに表示される %s チャートにリンクされており、ユーザーはこのデータベースを使用する %s SQL "
+"ラボ タブを開いています。続行してもよろしいですか?データベースを削除すると、それらのオブジェクトが壊れます。"
 
 #, fuzzy, python-format
 msgid ""
@@ -13444,6 +15699,18 @@ msgstr ""
 
 msgid "is not"
 msgstr ""
+
+#, fuzzy
+msgid "is not null"
+msgstr "nullではありません"
+
+#, fuzzy
+msgid "is null"
+msgstr "nullです"
+
+#, fuzzy
+msgid "is true"
+msgstr "本当です"
 
 msgid "key a-z"
 msgstr "key a-z"
@@ -13489,6 +15756,10 @@ msgstr "メートル"
 msgid "metric"
 msgstr "指標"
 
+#, fuzzy
+msgid "metric type icon"
+msgstr "数値型アイコン"
+
 msgid "min"
 msgstr "最小値"
 
@@ -13520,11 +15791,18 @@ msgstr "SQL バリデータが構成されていません。"
 msgid "no SQL validator is configured for %(engine_spec)s"
 msgstr "%(engine_spec)s に対して SQL バリデータが構成されていません。"
 
+#, fuzzy
+msgid "not containing"
+msgstr "ありません"
+
 msgid "numeric type icon"
 msgstr "数値型アイコン"
 
 msgid "nvd3"
 msgstr "nvd3"
+
+msgid "of"
+msgstr ""
 
 msgid "offline"
 msgstr "オフライン"
@@ -13540,6 +15818,10 @@ msgstr "または、右側のパネルから既存のものを使用します"
 
 msgid "orderby column must be populated"
 msgstr "orderby列に値を入力する必要があります"
+
+#, fuzzy
+msgid "original"
+msgstr "オリジナル"
 
 msgid "overall"
 msgstr "全体"
@@ -13562,9 +15844,6 @@ msgstr "p95"
 msgid "p99"
 msgstr "p99"
 
-msgid "page_size.all"
-msgstr "page_size.all"
-
 msgid "pending"
 msgstr "保留中"
 
@@ -13575,6 +15854,10 @@ msgstr "percentiles は2つの数値を含むリストまたはタプルでな�
 
 msgid "permalink state not found"
 msgstr "パーマリンクの状態が見つかりません。"
+
+#, fuzzy
+msgid "pivoted_xlsx"
+msgstr "ピボット"
 
 msgid "pixels"
 msgstr "ピクセル"
@@ -13593,9 +15876,6 @@ msgstr "前暦年"
 
 msgid "quarter"
 msgstr "四半期"
-
-msgid "queries"
-msgstr "クエリ"
 
 msgid "query"
 msgstr "クエリ"
@@ -13632,6 +15912,9 @@ msgstr "実行中"
 
 msgid "save"
 msgstr "保存"
+
+msgid "schema1,schema2"
+msgstr ""
 
 msgid "seconds"
 msgstr "秒"
@@ -13680,11 +15963,11 @@ msgstr "文字列型アイコン"
 msgid "success"
 msgstr "成功"
 
-msgid "success dark"
-msgstr "成功ダーク"
-
 msgid "sum"
 msgstr "和"
+
+msgid "superset.example.com"
+msgstr ""
 
 msgid "syntax."
 msgstr "構文。"
@@ -13701,6 +15984,14 @@ msgstr "テンポラルタイプアイコン"
 msgid "textarea"
 msgstr "テキストエリア"
 
+#, fuzzy
+msgid "theme"
+msgstr "時間"
+
+#, fuzzy
+msgid "to"
+msgstr "上"
+
 msgid "top"
 msgstr "上"
 
@@ -13713,7 +16004,6 @@ msgstr "不明なタイプのアイコン"
 msgid "unset"
 msgstr "未設定"
 
-#, python-format
 msgid "updated"
 msgstr "%s が更新されました"
 
@@ -13724,6 +16014,10 @@ msgstr "上位パーセンタイルは 0 より大きく 100 未満でなけれ�
 
 msgid "use latest_partition template"
 msgstr "latest_partition テンプレートを使用する"
+
+#, fuzzy
+msgid "username"
+msgstr "ユーザー名"
 
 msgid "value ascending"
 msgstr "値の昇順"
@@ -13773,6 +16067,9 @@ msgstr "y: 値は各行内で正規化されます"
 
 msgid "year"
 msgstr "年"
+
+msgid "your-project-1234-a1"
+msgstr ""
 
 msgid "zoom area"
 msgstr "ズームエリア"

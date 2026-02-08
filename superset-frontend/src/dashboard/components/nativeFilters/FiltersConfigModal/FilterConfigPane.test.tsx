@@ -88,7 +88,7 @@ test('drag and drop', async () => {
 test('remove filter', async () => {
   defaultRender();
   // First trash icon
-  const removeFilterIcon = document.querySelector("[alt='RemoveFilter']")!;
+  const removeFilterIcon = document.querySelector("[alt='Remove filter']")!;
   userEvent.click(removeFilterIcon);
   expect(defaultProps.onRemove).toHaveBeenCalledWith('NATIVE_FILTER-1');
 });

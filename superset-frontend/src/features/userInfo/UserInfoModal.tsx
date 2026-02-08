@@ -95,7 +95,7 @@ function UserInfoModal({
       >
         <Input.Password
           name="password"
-          placeholder="Enter the user's password"
+          placeholder={t("Enter the user's password")}
         />
       </FormItem>
       <FormItem
