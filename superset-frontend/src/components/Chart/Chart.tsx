@@ -33,7 +33,7 @@ import { styled } from '@apache-superset/core/ui';
 import type { ChartState, Datasource, ChartStatus } from 'src/explore/types';
 import { PLACEHOLDER_DATASOURCE } from 'src/dashboard/constants';
 import { EmptyState, Loading } from '@superset-ui/core/components';
-import { ErrorBoundary } from 'src/components';
+import { ErrorBoundary } from '@superset-ui/core';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
@@ -396,10 +396,7 @@ class Chart extends PureComponent<ChartProps, {}> {
     }
 
     return (
-      <ErrorBoundary
-        onError={this.handleRenderContainerFailure}
-        showMessage={false}
-      >
+      <ErrorBoundary onError={this.handleRenderContainerFailure}>
         <Styles
           data-ui-anchor="chart"
           className="chart-container"

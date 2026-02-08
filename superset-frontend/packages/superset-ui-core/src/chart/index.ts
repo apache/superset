@@ -26,6 +26,13 @@ export { ChartProps };
 export type { ChartPropsConfig };
 
 export { default as createLoadableRenderer } from './components/createLoadableRenderer';
+export {
+  ErrorBoundary,
+  type ErrorBoundaryProps,
+  type FallbackProps,
+  useErrorBoundary,
+  withErrorBoundary,
+} from './components/ErrorBoundary';
 export { default as reactify } from './components/reactify';
 export { default as SuperChart } from './components/SuperChart';
 

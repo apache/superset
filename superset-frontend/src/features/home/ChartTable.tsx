@@ -43,7 +43,7 @@ import ChartCard from 'src/features/charts/ChartCard';
 import Chart from 'src/types/Chart';
 import handleResourceExport from 'src/utils/export';
 import { Loading } from '@superset-ui/core/components';
-import { ErrorBoundary } from 'src/components';
+import { ErrorBoundary } from '@superset-ui/core';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { navigateTo } from 'src/utils/navigationUtils';
 import EmptyState from './EmptyState';
