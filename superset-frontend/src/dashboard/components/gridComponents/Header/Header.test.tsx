@@ -19,8 +19,6 @@
 import { Provider } from 'react-redux';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import sinon from 'sinon';
-
 import { render, screen, fireEvent } from 'spec/helpers/testing-library';
 import newComponentFactory from 'src/dashboard/util/newComponentFactory';
 import {
@@ -45,8 +43,8 @@ describe('Header', () => {
     embeddedMode: boolean;
     filters: Record<string, any>;
     handleComponentDrop: () => void;
-    deleteComponent: sinon.SinonSpy;
-    updateComponents: sinon.SinonSpy;
+    deleteComponent: jest.Mock;
+    updateComponents: jest.Mock;
   }
 
   const baseComponent = newComponentFactory(HEADER_TYPE);
@@ -69,8 +67,8 @@ describe('Header', () => {
     embeddedMode: false,
     filters: {},
     handleComponentDrop: () => {},
-    deleteComponent: sinon.spy(),
-    updateComponents: sinon.spy(),
+    deleteComponent: jest.fn(),
+    updateComponents: jest.fn(),
   };
 
   function setup(overrideProps: Partial<HeaderTestProps> = {}) {
@@ -84,8 +82,8 @@ describe('Header', () => {
   }
 
   beforeEach(() => {
-    if (props.deleteComponent) props.deleteComponent.resetHistory();
-    if (props.updateComponents) props.updateComponents.resetHistory();
+    if (props.deleteComponent) props.deleteComponent.mockClear();
+    if (props.updateComponents) props.updateComponents.mockClear();
   });
 
   test('should render a Draggable', () => {
@@ -115,7 +113,7 @@ describe('Header', () => {
   });
 
   test('should call updateComponents when EditableTitle changes', () => {
-    const updateComponents = sinon.spy();
+    const updateComponents = jest.fn();
     setup({ editMode: true, updateComponents });
 
     // First click to enter edit mode
@@ -128,8 +126,8 @@ describe('Header', () => {
     fireEvent.blur(titleInput);
 
     const headerId = props.id;
-    expect(updateComponents.callCount).toBe(1);
-    const componentUpdates = updateComponents.getCall(0).args[0] as Record<
+    expect(updateComponents).toHaveBeenCalledTimes(1);
+    const componentUpdates = updateComponents.mock.calls[0][0] as Record<
       string,
       any
     >;
@@ -143,13 +141,13 @@ describe('Header', () => {
   });
 
   test('should call deleteComponent when deleted', () => {
-    const deleteComponent = sinon.spy();
+    const deleteComponent = jest.fn();
     setup({ editMode: true, deleteComponent });
 
     const trashButton = screen.getByRole('button', { name: 'delete' });
     fireEvent.click(trashButton);
 
-    expect(deleteComponent.callCount).toBe(1);
+    expect(deleteComponent).toHaveBeenCalledTimes(1);
   });
 
   test('should render the AnchorLink in view mode', () => {

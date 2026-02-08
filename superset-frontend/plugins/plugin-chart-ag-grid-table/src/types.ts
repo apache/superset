@@ -181,11 +181,6 @@ export interface AgGridTableChartTransformedProps<
   chartState?: AgGridChartState;
 }
 
-export enum ColorSchemeEnum {
-  'Green' = 'Green',
-  'Red' = 'Red',
-}
-
 export interface SortState {
   colId: string;
   sort: 'asc' | 'desc' | null;

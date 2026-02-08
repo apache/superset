@@ -35,6 +35,7 @@ import { chart } from 'src/components/Chart/chartReducer';
 import componentTypes from 'src/dashboard/util/componentTypes';
 import Database from 'src/types/Database';
 import { UrlParamEntries } from 'src/utils/urlUtils';
+import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import Owner from 'src/types/Owner';
 import { ChartState } from '../explore/types';
@@ -46,6 +47,15 @@ export type { Translations } from 'src/types/Localization';
 
 export interface ExtendedNativeFilterScope extends NativeFilterScope {
   selectedLayers?: string[];
+}
+
+/** Configuration item for native filters and chart customizations */
+export interface FilterConfigItem extends JsonObject {
+  id: string;
+  chartsInScope?: number[];
+  tabsInScope?: string[];
+  type?: string;
+  targets?: Partial<NativeFilterTarget>[];
 }
 
 export type ChartReducerInitialState = typeof chart;
@@ -97,7 +107,11 @@ export type ChartConfiguration = {
 
 export type ActiveTabs = string[];
 export type DashboardLayout = { [key: string]: LayoutItem };
-export type DashboardLayoutState = { present: DashboardLayout };
+export type DashboardLayoutState = {
+  past: DashboardLayout[];
+  present: DashboardLayout;
+  future: DashboardLayout[];
+};
 export type DashboardState = {
   preselectNativeFilters?: JsonObject;
   editMode: boolean;
@@ -129,7 +143,20 @@ export type DashboardState = {
     dashboardId: number;
     data: JsonObject;
   };
-  chartStates?: Record<string, any>;
+  chartStates?: Record<string, JsonObject>;
+  labelsColorMapMustSync?: boolean;
+  sharedLabelsColorsMustSync?: boolean;
+  maxUndoHistoryExceeded?: boolean;
+  updatedColorScheme?: boolean;
+  inactiveTabs?: string[];
+  datasetsStatus?: ResourceStatus;
+  expandedSlices?: Record<number, boolean>;
+  refreshFrequency: number;
+  shouldPersistRefreshFrequency?: boolean;
+  colorNamespace?: string;
+  isStarred?: boolean;
+  lastRefreshTime?: number;
+  tabActivationTimes?: Record<string, number>;
 };
 export type DashboardInfo = {
   id: number;
@@ -140,7 +167,7 @@ export type DashboardInfo = {
   dash_edit_perm: boolean;
   json_metadata: string;
   metadata: {
-    native_filter_configuration: JsonObject;
+    native_filter_configuration: FilterConfigItem[];
     chart_configuration: ChartConfiguration;
     global_chart_configuration: GlobalChartCrossFilterConfig;
     color_scheme: string;
@@ -154,6 +181,10 @@ export type DashboardInfo = {
       | ChartCustomization
       | ChartCustomizationDivider
     )[];
+    timed_refresh_immune_slices?: number[];
+    refresh_frequency?: number;
+    positions?: JsonObject;
+    filter_scopes?: JsonObject;
   };
   crossFiltersEnabled: boolean;
   filterBarOrientation: FilterBarOrientation;
@@ -171,6 +202,16 @@ export type DashboardInfo = {
   } | null;
   theme_id?: number | null;
   css?: string;
+  slug?: string;
+  last_modified_time: number;
+  certified_by?: string;
+  certification_details?: string;
+  roles?: { id: number }[] | number[];
+  tags?: { type?: string | number }[];
+  is_managed_externally?: boolean;
+  dash_share_perm?: boolean;
+  dash_save_perm?: boolean;
+  dash_export_perm?: boolean;
 
   // Content localization fields
   translations?: Translations;
@@ -190,18 +231,22 @@ export type DatasourcesState = {
 };
 
 /** Root state of redux */
+export type GetState = () => RootState;
+
 export type RootState = {
   datasources: DatasourcesState;
-  sliceEntities: JsonObject;
+  sliceEntities: SliceEntitiesState;
   charts: ChartsState;
   dashboardLayout: DashboardLayoutState;
-  dashboardFilters: {};
+  dashboardFilters: JsonObject;
   dashboardState: DashboardState;
   dashboardInfo: DashboardInfo;
   dataMask: DataMaskStateWithId;
   impressionId: string;
   nativeFilters: NativeFiltersState;
   user: UserWithPermissionsAndRoles;
+  common?: { conf: JsonObject };
+  lastModifiedTime: number;
 };
 
 /** State of dashboardLayout in redux */
@@ -214,15 +259,22 @@ type ComponentTypesKeys = keyof typeof componentTypes;
 export type ComponentType = (typeof componentTypes)[ComponentTypesKeys];
 
 export type LayoutItemMeta = {
-  chartId: number;
+  chartId?: number;
   defaultText?: string;
-  height: number;
+  height?: number;
   placeholder?: string;
   sliceName?: string;
   sliceNameOverride?: string;
   text?: string;
-  uuid: string;
-  width: number;
+  uuid?: string;
+  width?: number;
+  headerSize?: string;
+  /** Markdown source code for markdown components */
+  code?: string;
+  /** Background style value for columns and rows */
+  background?: string;
+  /** Allow additional meta properties used by different component types */
+  [key: string]: unknown;
 };
 
 /** State of dashboardLayout item in redux */
@@ -233,6 +285,18 @@ export type LayoutItem = {
   id: string;
   meta: LayoutItemMeta;
 };
+
+/** Loose component type used by utility and factory functions */
+export interface DashboardComponent {
+  id: string;
+  type: string;
+  children: string[];
+  parents?: string[];
+  meta: LayoutItemMeta;
+}
+
+/** Map of dashboard components keyed by ID */
+export type DashboardComponentMap = { [id: string]: DashboardComponent };
 
 type ActiveFilter = {
   filterType?: string;
@@ -253,7 +317,7 @@ export interface DashboardPermalinkState {
   activeTabs: string[];
   anchor: string;
   urlParams?: UrlParamEntries;
-  chartStates?: Record<string, any>;
+  chartStates?: Record<string, JsonObject>;
 }
 
 export interface DashboardPermalinkValue {
@@ -290,6 +354,13 @@ export type Slice = {
   translations?: Translations;
   available_locales?: string[];
 };
+
+export interface SliceEntitiesState {
+  slices: Record<number, Slice>;
+  isLoading: boolean;
+  errorMessage: string | null;
+  lastUpdated: number;
+}
 
 export enum MenuKeys {
   DownloadAsImage = 'download_as_image',

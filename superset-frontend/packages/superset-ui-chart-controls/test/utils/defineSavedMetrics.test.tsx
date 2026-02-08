@@ -51,7 +51,7 @@ describe('defineSavedMetrics', () => {
         uuid: '1',
       },
     ]);
-    // @ts-ignore
+    // @ts-expect-error
     expect(defineSavedMetrics({ ...dataset, metrics: undefined })).toEqual([]);
   });
 

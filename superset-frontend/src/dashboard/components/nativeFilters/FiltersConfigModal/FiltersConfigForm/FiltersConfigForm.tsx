@@ -110,8 +110,10 @@ import RemovedFilter from './RemovedFilter';
 import { useBackendFormUpdate, useDefaultValue } from './state';
 import {
   hasTemporalColumns,
+  isValidFilterValue,
   mostUsedDataset,
   setNativeFilterFieldValues,
+  shouldShowTimeRangePicker,
   useForceUpdate,
 } from './utils';
 import {
@@ -338,14 +340,14 @@ const FiltersConfigForm = (
 
   const nativeFilterAndCustomizationItems = getChartMetadataRegistry().items;
   const nativeFilterVizTypes = Object.entries(nativeFilterAndCustomizationItems)
-    // @ts-ignore
+    // @ts-expect-error
     .filter(([, { value }]) => value.behaviors?.includes(Behavior.NativeFilter))
     .map(([key]) => key as keyof typeof FILTER_SUPPORTED_TYPES);
 
   const chartCustomizationVizTypes = Object.entries(
     nativeFilterAndCustomizationItems,
   )
-    // @ts-ignore
+    // @ts-expect-error
     .filter(([, { value }]) =>
       value.behaviors?.includes(Behavior.ChartCustomization),
     )
@@ -369,8 +371,7 @@ const FiltersConfigForm = (
     const currentDataset = Object.values(loadedDatasets).find(
       dataset => dataset.id === formFilter?.dataset?.value,
     );
-
-    return currentDataset ? hasTemporalColumns(currentDataset) : true;
+    return shouldShowTimeRangePicker(currentDataset);
   }, [formFilter?.dataset?.value, loadedDatasets]);
 
   const itemTypeField =
@@ -380,7 +381,7 @@ const FiltersConfigForm = (
       : filterToEdit?.filterType || 'filter_select');
 
   const hasDataset =
-    // @ts-ignore
+    // @ts-expect-error
     !!nativeFilterAndCustomizationItems[itemTypeField]?.value?.datasourceCount;
 
   const getDatasetId = () => {
@@ -437,7 +438,7 @@ const FiltersConfigForm = (
 
   const nativeFilterItem =
     nativeFilterAndCustomizationItems[itemTypeField] ?? {};
-  // @ts-ignore
+  // @ts-expect-error
   const enableNoResults = !!nativeFilterItem.value?.enableNoResults;
 
   const hasMetrics = hasColumn && !!metrics.length;
@@ -513,10 +514,10 @@ const FiltersConfigForm = (
 
             if (response.status === 200) {
               setNativeFilterFieldValuesWrapper({
-                defaultValueQueriesData: [result],
+                defaultValueQueriesData: [result as ChartDataResponseResult],
               });
             } else if (response.status === 202) {
-              waitForAsyncData(result)
+              waitForAsyncData(result as Parameters<typeof waitForAsyncData>[0])
                 .then((asyncResult: ChartDataResponseResult[]) => {
                   setNativeFilterFieldValuesWrapper({
                     defaultValueQueriesData: asyncResult,
@@ -922,12 +923,6 @@ const FiltersConfigForm = (
       />
     </StyledRowFormItem>
   );
-  const isValidFilterValue = (value: unknown, isRangeFilter: boolean) => {
-    if (isRangeFilter) {
-      return Array.isArray(value) && (value[0] !== null || value[1] !== null);
-    }
-    return !!value;
-  };
   return (
   <>
     <Tabs
@@ -1016,7 +1011,7 @@ const FiltersConfigForm = (
                         ariaLabel={t('Customization type')}
                         options={chartCustomizationVizTypes.map(pluginKey => {
                           const name =
-                            // @ts-ignore
+                            // @ts-expect-error
                             nativeFilterAndCustomizationItems[pluginKey]?.value
                               ?.name;
                           return {
@@ -1054,7 +1049,7 @@ const FiltersConfigForm = (
                         ariaLabel={t('Filter type')}
                         options={nativeFilterVizTypes.map(filterType => {
                           const name =
-                            // @ts-ignore
+                            // @ts-expect-error
                             nativeFilterAndCustomizationItems[filterType]?.value
                               .name;
                           const mappedName = name

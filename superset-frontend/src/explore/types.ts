@@ -88,6 +88,7 @@ export interface ExplorePageInitialData {
     owners: string[];
     created_by?: string;
     changed_by?: string;
+    color_namespace?: string;
     dashboards?: {
       id: number;
       dashboard_title: string;

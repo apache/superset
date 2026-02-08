@@ -136,6 +136,11 @@ General usage tips:
 - All tools return structured, Pydantic-typed responses
 - Chart previews are served as PNG images via custom screenshot endpoints
 
+Input format:
+- Tool request parameters accept structured objects (dicts/JSON)
+- When MCP_PARSE_REQUEST_ENABLED is True (default), string-serialized JSON is also
+  accepted as input, which works around double-serialization bugs in some MCP clients
+
 If you are unsure which tool to use, start with get_instance_info
 or use the quickstart prompt for an interactive guide.
 """

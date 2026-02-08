@@ -27,6 +27,12 @@ describe('createSiAtMostNDigitFormatter({ n })', () => {
     const formatter = createSiAtMostNDigitFormatter({ n: 4 });
     expect(formatter).toBeInstanceOf(NumberFormatter);
   });
+  it('uses ASCII hyphen-minus (U+002D) for negative numbers, not Unicode minus (U+2212)', () => {
+    // This is important for backward compatibility after d3-format v3 upgrade
+    const formatter = createSiAtMostNDigitFormatter({ n: 3 });
+    const result = formatter(-1000);
+    expect(result.charCodeAt(0)).toBe(45); // ASCII hyphen-minus
+  });
   it('when n is specified, it formats number in SI format with at most n significant digits', () => {
     const formatter = createSiAtMostNDigitFormatter({ n: 2 });
     expect(formatter(10)).toBe('10');
