@@ -17,10 +17,53 @@
  * under the License.
  */
 
-export const sampleData = [
-  { name: 'Michael', num: 2467063, category: 'A' },
-  { name: 'Christopher', num: 1725265, category: 'B' },
-  { name: 'David', num: 1570516, category: 'A' },
-  { name: 'James', num: 1506025, category: 'C' },
-  { name: 'John', num: 1426074, category: 'B' },
+export const kpiData = [
+  {
+    metric: 'Total Revenue',
+    value: 2847563,
+    change: 12.5,
+    target: 2500000,
+    icon: '💰',
+    status: 'success',
+  },
+  {
+    metric: 'Active Users',
+    value: 84521,
+    change: -3.2,
+    target: 90000,
+    icon: '👥',
+    status: 'warning',
+  },
+  {
+    metric: 'Conversion Rate',
+    value: 4.7,
+    change: 0.8,
+    target: 5.0,
+    icon: '📈',
+    status: 'success',
+  },
+  {
+    metric: 'Avg Response Time',
+    value: 142,
+    change: -15.3,
+    target: 150,
+    icon: '⚡',
+    status: 'success',
+  },
+];
+
+export const leaderboardData = [
+  { rank: 1, name: 'Sarah Chen', team: 'Engineering', score: 2847, avatar: '👩‍💻', trend: 'up' },
+  { rank: 2, name: 'Marcus Johnson', team: 'Sales', score: 2654, avatar: '👨‍💼', trend: 'up' },
+  { rank: 3, name: 'Emily Rodriguez', team: 'Marketing', score: 2432, avatar: '👩‍🎨', trend: 'down' },
+  { rank: 4, name: 'David Kim', team: 'Engineering', score: 2198, avatar: '👨‍💻', trend: 'up' },
+  { rank: 5, name: 'Lisa Thompson', team: 'Support', score: 2045, avatar: '👩‍🔧', trend: 'same' },
+];
+
+export const timelineData = [
+  { date: '2024-01-15', event: 'Product Launch', type: 'milestone', description: 'Successfully launched v2.0 to production' },
+  { date: '2024-01-10', event: 'Beta Testing Complete', type: 'success', description: '500+ users tested with 98% satisfaction' },
+  { date: '2024-01-05', event: 'Security Audit', type: 'warning', description: '2 minor issues found and resolved' },
+  { date: '2023-12-20', event: 'Development Sprint', type: 'info', description: 'Completed 47 story points' },
+  { date: '2023-12-15', event: 'Design Review', type: 'info', description: 'UI/UX approved by stakeholders' },
 ];
