@@ -52,11 +52,13 @@ export default {
 export const BoxPlot = (
   {
     xTicksLayout,
+    width,
+    height,
   }: {
     xTicksLayout: string;
-  },
-  { width, height }: { width: number; height: number },
-) => (
+    width: number;
+  height: number;
+}) => (
   <SuperChart
     chartType="echarts-boxplot"
     width={width}

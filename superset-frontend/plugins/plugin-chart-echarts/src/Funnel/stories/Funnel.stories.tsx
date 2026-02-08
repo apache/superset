@@ -80,6 +80,8 @@ export const Funnel = (
     labelLine,
     showLabels,
     showLegend,
+    width,
+    height,
   }: {
     orient: string;
     sort: string;
@@ -88,9 +90,9 @@ export const Funnel = (
     labelLine: boolean;
     showLabels: boolean;
     showLegend: boolean;
-  },
-  { width, height }: { width: number; height: number },
-) => (
+    width: number;
+  height: number;
+}) => (
   <SuperChart
     chartType={VizType.Funnel}
     width={width}

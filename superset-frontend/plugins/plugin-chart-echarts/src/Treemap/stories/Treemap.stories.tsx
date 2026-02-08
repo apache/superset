@@ -44,13 +44,15 @@ export const Treemap = (
     showLabels,
     showUpperLabels,
     labelType,
+    width,
+    height,
   }: {
     showLabels: boolean;
     showUpperLabels: boolean;
     labelType: string;
-  },
-  { width, height }: { width: number; height: number },
-) => (
+    width: number;
+  height: number;
+}) => (
   <SuperChart
     chartType="echarts-treemap"
     width={width}
