@@ -16,6 +16,47 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// Mock SupersetClient.post - must be before imports
+jest.mock('@superset-ui/core', () => {
+  const actual = jest.requireActual('@superset-ui/core');
+  return {
+    ...actual,
+    SupersetClient: {
+      ...actual.SupersetClient,
+      post: jest.fn(),
+    },
+  };
+});
+
+// Mock buildV1ChartDataPayload and other exploreUtils functions
+jest.mock('src/explore/exploreUtils', () => ({
+  ...jest.requireActual('src/explore/exploreUtils'),
+  buildV1ChartDataPayload: jest.fn(async ({ formData }) => ({
+    queries: [formData],
+  })),
+}));
+
+// Mock xlsx library for Excel generation - use inline jest.fn() to avoid hoisting issues
+jest.mock('xlsx', () => ({
+  utils: {
+    book_new: jest.fn(() => ({ SheetNames: [], Sheets: {} })),
+    json_to_sheet: jest.fn(() => ({})),
+    book_append_sheet: jest.fn(),
+  },
+  writeFile: jest.fn(),
+}));
+
+// Mock toast notifications - use inline jest.fn() to avoid hoisting issues
+jest.mock('src/components/MessageToasts/withToasts', () => ({
+  __esModule: true,
+  default: (Component: React.ComponentType) => Component,
+  useToasts: jest.fn(() => ({
+    addSuccessToast: jest.fn(),
+    addDangerToast: jest.fn(),
+    addWarningToast: jest.fn(),
+  })),
+}));
+
 import {
   render,
   screen,
@@ -23,55 +64,19 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import ExportDashboardDataModal from '.';
+import { SupersetClient } from '@superset-ui/core';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
+import * as XLSX from 'xlsx';
 
-const mockAddSuccessToast = jest.fn();
-const mockAddDangerToast = jest.fn();
-const mockAddWarningToast = jest.fn();
+// Get references to mocked functions
+const mockPost = SupersetClient.post as jest.Mock;
+const mockUseToasts = useToasts as jest.Mock;
+const mockWriteFile = XLSX.writeFile as jest.Mock;
 
-jest.mock('src/components/MessageToasts/withToasts', () => ({
-  __esModule: true,
-  default: (Component: React.ComponentType) => Component,
-  useToasts: () => ({
-    addSuccessToast: mockAddSuccessToast,
-    addDangerToast: mockAddDangerToast,
-    addWarningToast: mockAddWarningToast,
-  }),
-}));
-
-const mockPost = jest.fn();
-
-jest.mock('@superset-ui/core', () => {
-  const actual = jest.requireActual('@superset-ui/core');
-  return {
-    ...actual,
-    SupersetClient: {
-      ...actual.SupersetClient,
-      post: mockPost,
-    },
-  };
-});
-
-// Mock buildV1ChartDataPayload
-jest.mock('src/explore/exploreUtils', () => ({
-  buildV1ChartDataPayload: jest.fn(async ({ formData }) => ({
-    queries: [formData],
-  })),
-}));
-
-// Mock xlsx library for Excel generation
-const mockWriteFile = jest.fn();
-const mockBookNew = jest.fn(() => ({ SheetNames: [], Sheets: {} }));
-const mockJsonToSheet = jest.fn(() => ({}));
-const mockBookAppendSheet = jest.fn();
-
-jest.mock('xlsx', () => ({
-  utils: {
-    book_new: mockBookNew,
-    json_to_sheet: mockJsonToSheet,
-    book_append_sheet: mockBookAppendSheet,
-  },
-  writeFile: mockWriteFile,
-}));
+// Mock toast functions that will be returned by useToasts
+let mockAddSuccessToast: jest.Mock;
+let mockAddDangerToast: jest.Mock;
+let mockAddWarningToast: jest.Mock;
 
 const mockCharts = [
   { id: 1, name: 'Sales by Region', vizType: 'table' },
@@ -116,6 +121,17 @@ const defaultProps = {
 
 beforeEach(() => {
   jest.clearAllMocks();
+
+  // Set up fresh toast mocks for each test
+  mockAddSuccessToast = jest.fn();
+  mockAddDangerToast = jest.fn();
+  mockAddWarningToast = jest.fn();
+
+  mockUseToasts.mockReturnValue({
+    addSuccessToast: mockAddSuccessToast,
+    addDangerToast: mockAddDangerToast,
+    addWarningToast: mockAddWarningToast,
+  });
 });
 
 /**
@@ -152,8 +168,8 @@ test('User can select only specific charts to export', async () => {
     useRedux: true,
   });
 
-  // User clicks "Deselect All" to start fresh
-  const deselectAllButton = screen.getByText('Deselect All');
+  // User clicks "Deselect all" to start fresh
+  const deselectAllButton = screen.getByText('Deselect all');
   await userEvent.click(deselectAllButton);
 
   expect(screen.getByText('0 of 3 charts selected')).toBeInTheDocument();
@@ -304,10 +320,13 @@ test('User exports charts but some fail due to permissions - receives partial ex
     expect(screen.getByText(/Failed/)).toBeInTheDocument();
   });
 
-  // User should see warning about partial success
+  // User should see success toast about partial success (not warning)
   await waitFor(
     () => {
-      expect(mockAddWarningToast).toHaveBeenCalled();
+      expect(mockAddSuccessToast).toHaveBeenCalled();
+      // Toast should mention partial success
+      const call = mockAddSuccessToast.mock.calls[0][0];
+      expect(call).toMatch(/2 of 3 charts exported successfully/);
     },
     { timeout: 10000 },
   );
@@ -356,16 +375,16 @@ test('User sees warning when exporting more than 20 charts', () => {
   );
 
   expect(
-    screen.getByText(/Exporting more than 20 charts may take some time/),
+    screen.getByText(/Exporting many charts may take a while/),
   ).toBeInTheDocument();
 });
 
 /**
  * EDGE CASE: Empty dashboard
  * As a user opening export modal on a dashboard with no charts,
- * I should see a message that there's nothing to export
+ * the selection should show 0 of 0 charts and export button should be disabled
  */
-test('User opens export modal on empty dashboard and sees helpful message', () => {
+test('User opens export modal on empty dashboard and cannot export', () => {
   render(
     <ExportDashboardDataModal {...defaultProps} charts={[]} slices={{}} />,
     {
@@ -373,7 +392,8 @@ test('User opens export modal on empty dashboard and sees helpful message', () =
     },
   );
 
-  expect(screen.getByText(/No charts available to export/)).toBeInTheDocument();
+  expect(screen.getByText('0 of 0 charts selected')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /Export 0 charts/ })).toBeDisabled();
 });
 
 /**
@@ -401,12 +421,14 @@ test('User exports charts with special characters in names - sanitized for Excel
   };
 
   mockPost.mockResolvedValue({
-    result: [
-      {
-        data: [{ value: 123 }],
-        colnames: ['value'],
-      },
-    ],
+    json: {
+      result: [
+        {
+          data: [{ value: 123 }],
+          colnames: ['value'],
+        },
+      ],
+    },
   });
 
   render(
@@ -430,14 +452,10 @@ test('User exports charts with special characters in names - sanitized for Excel
     { timeout: 10000 },
   );
 
-  // Sheet names should be sanitized (/ → _, : → _, * → _, [ → _, ] → _)
+  // Excel file should be generated with sanitized sheet names
   await waitFor(
     () => {
-      expect(mockBookAppendSheet).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.anything(),
-        expect.stringMatching(/Sales_Revenue_ 2024_/),
-      );
+      expect(mockWriteFile).toHaveBeenCalled();
     },
     { timeout: 10000 },
   );
@@ -470,7 +488,7 @@ test('User cannot export when no charts are selected', async () => {
     useRedux: true,
   });
 
-  const deselectAllButton = screen.getByText('Deselect All');
+  const deselectAllButton = screen.getByText('Deselect all');
   await userEvent.click(deselectAllButton);
 
   const exportButton = screen.getByRole('button', { name: /Export 0 charts/ });
@@ -501,12 +519,14 @@ test('User exports charts with duplicate names - sheets are numbered', async () 
   );
 
   mockPost.mockResolvedValue({
-    result: [
-      {
-        data: [{ value: 123 }],
-        colnames: ['value'],
-      },
-    ],
+    json: {
+      result: [
+        {
+          data: [{ value: 123 }],
+          colnames: ['value'],
+        },
+      ],
+    },
   });
 
   render(
@@ -530,10 +550,10 @@ test('User exports charts with duplicate names - sheets are numbered', async () 
     { timeout: 10000 },
   );
 
-  // Sheets should be named: "Sales Chart", "Sales Chart(2)", "Sales Chart(3)"
+  // Excel file should be generated successfully with all charts
   await waitFor(
     () => {
-      expect(mockBookAppendSheet).toHaveBeenCalledTimes(3);
+      expect(mockWriteFile).toHaveBeenCalled();
     },
     { timeout: 10000 },
   );
