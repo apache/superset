@@ -90,6 +90,9 @@ def bootstrap_sqllab_data(user_id: int | None) -> dict[str, Any]:
         }
         databases[database.id]["backend"] = database.backend
         databases[database.id]["allow_multi_catalog"] = database.allow_multi_catalog
+        databases[database.id]["allows_virtual_table_explore"] = (
+            database.allows_virtual_table_explore
+        )
 
     # These are unnecessary if sqllab backend persistence is disabled
     if is_feature_enabled("SQLLAB_BACKEND_PERSISTENCE"):
