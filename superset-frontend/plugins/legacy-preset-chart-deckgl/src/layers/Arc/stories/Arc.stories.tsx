@@ -21,6 +21,7 @@
 /* eslint-disable no-magic-numbers */
 import { SuperChart } from '@superset-ui/core';
 import { ArcChartPlugin } from '@superset-ui/legacy-preset-chart-deckgl';
+import { withResizableChartDemo } from '@storybook-shared';
 import payload from './payload';
 import { dummyDatasource } from '@storybook-shared';
 
@@ -28,13 +29,46 @@ new ArcChartPlugin().configure({ key: 'deck_arc' }).register();
 
 export default {
   title: 'Legacy Chart Plugins/legacy-preset-chart-deckgl/ArcChartPlugin',
+  decorators: [withResizableChartDemo],
+  args: {
+    strokeWidth: 1,
+    autozoom: true,
+  },
+  argTypes: {
+    strokeWidth: {
+      control: { type: 'range', min: 1, max: 10, step: 1 },
+      description: 'Width of arc lines',
+    },
+    autozoom: {
+      control: 'boolean',
+      description: 'Automatically zoom to fit data',
+    },
+  },
+  parameters: {
+    docs: {
+      description: {
+        component:
+          'Arc chart showing connections between geographic points. Uses OpenStreetMap tiles for the base map.',
+      },
+    },
+  },
 };
 
-export const ArcChartViz = () => (
+export const ArcChartViz = ({
+  strokeWidth,
+  autozoom,
+  width,
+  height,
+}: {
+  strokeWidth: number;
+  autozoom: boolean;
+  width: number;
+  height: number;
+}) => (
   <SuperChart
     chartType="deck_arc"
-    width={400}
-    height={400}
+    width={width}
+    height={height}
     datasource={dummyDatasource}
     queriesData={[payload]}
     formData={{
@@ -56,7 +90,7 @@ export const ArcChartViz = () => (
       row_limit: 5000,
       filter_nulls: true,
       adhoc_filters: [],
-      mapbox_style: 'mapbox://styles/mapbox/light-v9',
+      mapbox_style: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
       viewport: {
         altitude: 1.5,
         bearing: 8.546256357301871,
@@ -73,7 +107,7 @@ export const ArcChartViz = () => (
         width: 997,
         zoom: 2.929837070560775,
       },
-      autozoom: true,
+      autozoom,
       color_picker: {
         a: 1,
         b: 135,
@@ -88,7 +122,7 @@ export const ArcChartViz = () => (
       },
       dimension: null,
       label_colors: {},
-      stroke_width: 1,
+      stroke_width: strokeWidth,
       legend_position: 'tr',
       legend_format: null,
       js_columns: [],

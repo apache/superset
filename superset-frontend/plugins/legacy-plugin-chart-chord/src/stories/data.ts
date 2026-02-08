@@ -27,13 +27,5 @@ export default {
     [16, 32, 299, 123, 146, 1],
     [22, 83, 53, 21, 22, 6],
   ],
-  nodes: [
-    'Hong Kong',
-    'Tokyo',
-    'Taipei',
-    'Beijing',
-    'Bangkok',
-    'Jakarta',
-    'Singapore',
-  ],
+  nodes: ['Hong Kong', 'Tokyo', 'Taipei', 'Beijing', 'Bangkok', 'Jakarta'],
 };

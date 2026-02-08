@@ -35,9 +35,66 @@ getChartTransformPropsRegistry().registerValue(
 export default {
   title: 'Chart Plugins/plugin-chart-echarts/Gauge',
   decorators: [withResizableChartDemo],
+  args: {
+    colorScheme: 'supersetColors',
+    showProgress: true,
+    showPointer: true,
+    splitNumber: 10,
+    numberFormat: 'SMART_NUMBER',
+    minVal: 0,
+    maxVal: 100,
+    startAngle: 225,
+    endAngle: -45,
+  },
+  argTypes: {
+    colorScheme: {
+      control: 'select',
+      options: [
+        'supersetColors',
+        'd3Category10',
+        'bnbColors',
+        'googleCategory20c',
+      ],
+    },
+    showProgress: { control: 'boolean' },
+    showPointer: { control: 'boolean' },
+    splitNumber: { control: { type: 'range', min: 2, max: 20, step: 1 } },
+    numberFormat: {
+      control: 'select',
+      options: ['SMART_NUMBER', '.2f', '.0%', '$,.2f', '.3s'],
+    },
+    minVal: { control: 'number' },
+    maxVal: { control: 'number' },
+    startAngle: { control: { type: 'range', min: 0, max: 360, step: 15 } },
+    endAngle: { control: { type: 'range', min: -360, max: 0, step: 15 } },
+  },
 };
 
-export const Gauge = ({ width, height }: { width: number; height: number }) => (
+export const Gauge = ({
+  width,
+  height,
+  colorScheme,
+  showProgress,
+  showPointer,
+  splitNumber,
+  numberFormat,
+  minVal,
+  maxVal,
+  startAngle,
+  endAngle,
+}: {
+  width: number;
+  height: number;
+  colorScheme: string;
+  showProgress: boolean;
+  showPointer: boolean;
+  splitNumber: number;
+  numberFormat: string;
+  minVal: number;
+  maxVal: number;
+  startAngle: number;
+  endAngle: number;
+}) => (
   <SuperChart
     chartType="echarts-gauge"
     width={width}
@@ -47,6 +104,15 @@ export const Gauge = ({ width, height }: { width: number; height: number }) => (
       columns: [],
       groupby: ['name'],
       metric: 'value',
+      colorScheme,
+      showProgress,
+      showPointer,
+      splitNumber,
+      numberFormat,
+      minVal,
+      maxVal,
+      startAngle,
+      endAngle,
     }}
   />
 );

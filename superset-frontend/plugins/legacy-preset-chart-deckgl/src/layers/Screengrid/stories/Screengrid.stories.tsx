@@ -21,21 +21,43 @@
 /* eslint-disable no-magic-numbers */
 import { SuperChart } from '@superset-ui/core';
 import { ScreengridChartPlugin } from '@superset-ui/legacy-preset-chart-deckgl';
+import { withResizableChartDemo, dummyDatasource } from '@storybook-shared';
 import payload from './payload';
-import { dummyDatasource } from '@storybook-shared';
 
 new ScreengridChartPlugin().configure({ key: 'deck_screengrid' }).register();
 
 export default {
   title:
     'Legacy Chart Plugins/legacy-preset-chart-deckgl/ScreengridChartPlugin',
+  decorators: [withResizableChartDemo],
+  args: {
+    gridSize: 20,
+    autozoom: true,
+  },
+  argTypes: {
+    gridSize: {
+      control: { type: 'range', min: 5, max: 100, step: 5 },
+      description: 'Size of screen grid cells in pixels',
+    },
+    autozoom: { control: 'boolean' },
+  },
 };
 
-export const ScreengridChartViz = () => (
+export const ScreengridChartViz = ({
+  gridSize,
+  autozoom,
+  width,
+  height,
+}: {
+  gridSize: number;
+  autozoom: boolean;
+  width: number;
+  height: number;
+}) => (
   <SuperChart
     chartType="deck_screengrid"
-    width={400}
-    height={400}
+    width={width}
+    height={height}
     datasource={dummyDatasource}
     queriesData={[payload]}
     formData={{
@@ -51,7 +73,7 @@ export const ScreengridChartViz = () => (
       row_limit: 5000,
       filter_nulls: true,
       adhoc_filters: [],
-      mapbox_style: 'mapbox://styles/mapbox/dark-v9',
+      mapbox_style: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
       viewport: {
         bearing: -4.952916738791771,
         latitude: 37.76024135844065,
@@ -59,8 +81,8 @@ export const ScreengridChartViz = () => (
         pitch: 4.750411100577438,
         zoom: 14.161641703941438,
       },
-      autozoom: true,
-      grid_size: 20,
+      autozoom,
+      grid_size: gridSize,
       color_picker: { a: 1, b: 0, g: 255, r: 14 },
       js_columns: [],
       js_data_mutator: '',

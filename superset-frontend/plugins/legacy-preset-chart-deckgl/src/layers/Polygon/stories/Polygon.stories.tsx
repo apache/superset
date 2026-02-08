@@ -21,66 +21,71 @@
 /* eslint-disable no-magic-numbers */
 import { SuperChart } from '@superset-ui/core';
 import { PolygonChartPlugin } from '@superset-ui/legacy-preset-chart-deckgl';
+import { withResizableChartDemo, dummyDatasource } from '@storybook-shared';
 import payload from './payload';
 import geojsonPayload from './geojsonPayload';
-import { dummyDatasource } from '@storybook-shared';
 
 new PolygonChartPlugin().configure({ key: 'deck_polygon' }).register();
 
 export default {
   title: 'Legacy Chart Plugins/legacy-preset-chart-deckgl/PolygonChartPlugin',
+  decorators: [withResizableChartDemo],
+  args: {
+    filled: true,
+    stroked: false,
+    extruded: true,
+    opacity: 80,
+    lineWidth: 10,
+    autozoom: true,
+  },
+  argTypes: {
+    filled: {
+      control: 'boolean',
+      description: 'Fill polygons with color',
+    },
+    stroked: {
+      control: 'boolean',
+      description: 'Draw polygon outlines',
+    },
+    extruded: {
+      control: 'boolean',
+      description: 'Extrude polygons in 3D based on metric values',
+    },
+    opacity: {
+      control: { type: 'range', min: 0, max: 100, step: 5 },
+      description: 'Polygon opacity percentage',
+    },
+    lineWidth: {
+      control: { type: 'range', min: 1, max: 100, step: 1 },
+      description: 'Width of polygon stroke lines',
+    },
+    autozoom: { control: 'boolean' },
+  },
 };
 
-export const GeojsonPayload = () => (
+export const PolygonChartViz = ({
+  filled,
+  stroked,
+  extruded,
+  opacity,
+  lineWidth,
+  autozoom,
+  width,
+  height,
+}: {
+  filled: boolean;
+  stroked: boolean;
+  extruded: boolean;
+  opacity: number;
+  lineWidth: number;
+  autozoom: boolean;
+  width: number;
+  height: number;
+}) => (
   <SuperChart
     chartType="deck_polygon"
-    width={400}
-    height={400}
-    datasource={dummyDatasource}
-    queriesData={[geojsonPayload]}
-    formData={{
-      datasource: '9__table',
-      viz_type: 'deck_polygon',
-      time_range: '+:+',
-      line_column: 'contour',
-      line_type: 'json',
-      adhoc_filters: [],
-      metric: 'count',
-      point_radius_fixed: { type: 'fix', value: 1000 },
-      row_limit: 10000,
-      reverse_long_lat: false,
-      filter_nulls: true,
-      mapbox_style: 'mapbox://styles/mapbox/light-v9',
-      viewport: {
-        longitude: 6.85236157047845,
-        latitude: 31.222656842808707,
-        zoom: 1,
-        bearing: 0,
-        pitch: 0,
-      },
-      autozoom: true,
-      fill_color_picker: { a: 1, b: 73, g: 65, r: 3 },
-      stroke_color_picker: { a: 1, b: 135, g: 122, r: 0 },
-      filled: true,
-      stroked: false,
-      extruded: true,
-      multiplier: 1,
-      line_width: 10,
-      linear_color_scheme: 'blue_white_yellow',
-      opacity: 80,
-      num_buckets: 5,
-      table_filter: false,
-      toggle_polygons: true,
-      legend_position: 'tr',
-    }}
-  />
-);
-
-export const Payload = () => (
-  <SuperChart
-    chartType="deck_polygon"
-    width={400}
-    height={400}
+    width={width}
+    height={height}
     datasource={dummyDatasource}
     queriesData={[payload]}
     formData={{
@@ -99,7 +104,7 @@ export const Payload = () => (
       row_limit: 10000,
       reverse_long_lat: false,
       filter_nulls: true,
-      mapbox_style: 'mapbox://styles/mapbox/light-v9',
+      mapbox_style: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
       viewport: {
         altitude: 1.5,
         bearing: 37.89506450385642,
@@ -116,16 +121,16 @@ export const Payload = () => (
         width: 667,
         zoom: 11.133995608594631,
       },
-      autozoom: true,
+      autozoom,
       fill_color_picker: { a: 1, b: 73, g: 65, r: 3 },
       stroke_color_picker: { a: 1, b: 135, g: 122, r: 0 },
-      filled: true,
-      stroked: false,
-      extruded: true,
+      filled,
+      stroked,
+      extruded,
       multiplier: 1,
-      line_width: 10,
+      line_width: lineWidth,
       linear_color_scheme: 'blue_white_yellow',
-      opacity: 80,
+      opacity,
       num_buckets: 5,
       table_filter: false,
       toggle_polygons: true,
@@ -135,6 +140,69 @@ export const Payload = () => (
       js_data_mutator: '',
       js_tooltip: '',
       js_onclick_href: '',
+    }}
+  />
+);
+
+export const GeojsonPolygonViz = ({
+  filled,
+  stroked,
+  extruded,
+  opacity,
+  lineWidth,
+  autozoom,
+  width,
+  height,
+}: {
+  filled: boolean;
+  stroked: boolean;
+  extruded: boolean;
+  opacity: number;
+  lineWidth: number;
+  autozoom: boolean;
+  width: number;
+  height: number;
+}) => (
+  <SuperChart
+    chartType="deck_polygon"
+    width={width}
+    height={height}
+    datasource={dummyDatasource}
+    queriesData={[geojsonPayload]}
+    formData={{
+      datasource: '9__table',
+      viz_type: 'deck_polygon',
+      time_range: '+:+',
+      line_column: 'contour',
+      line_type: 'json',
+      adhoc_filters: [],
+      metric: 'count',
+      point_radius_fixed: { type: 'fix', value: 1000 },
+      row_limit: 10000,
+      reverse_long_lat: false,
+      filter_nulls: true,
+      mapbox_style: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+      viewport: {
+        longitude: 6.85236157047845,
+        latitude: 31.222656842808707,
+        zoom: 1,
+        bearing: 0,
+        pitch: 0,
+      },
+      autozoom,
+      fill_color_picker: { a: 1, b: 73, g: 65, r: 3 },
+      stroke_color_picker: { a: 1, b: 135, g: 122, r: 0 },
+      filled,
+      stroked,
+      extruded,
+      multiplier: 1,
+      line_width: lineWidth,
+      linear_color_scheme: 'blue_white_yellow',
+      opacity,
+      num_buckets: 5,
+      table_filter: false,
+      toggle_polygons: true,
+      legend_position: 'tr',
     }}
   />
 );

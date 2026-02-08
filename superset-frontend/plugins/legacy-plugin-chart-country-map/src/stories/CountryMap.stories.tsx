@@ -96,9 +96,9 @@ export const BasicCountryMapStory = ({
       height={height}
       queriesData={[{ data }]}
       formData={{
-        linearColorScheme: colorSchema,
-        numberFormat: '.3s',
-        selectCountry: country,
+        linear_color_scheme: colorSchema,
+        number_format: '.3s',
+        select_country: country,
       }}
     />
   );

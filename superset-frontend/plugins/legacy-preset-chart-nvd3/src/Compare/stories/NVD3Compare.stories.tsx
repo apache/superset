@@ -19,37 +19,66 @@
 
 import { SuperChart, VizType } from '@superset-ui/core';
 import { CompareChartPlugin } from '@superset-ui/legacy-preset-chart-nvd3';
-import { dummyDatasource } from '@storybook-shared';
+import { dummyDatasource, withResizableChartDemo } from '@storybook-shared';
 import data from './data';
 
 new CompareChartPlugin().configure({ key: VizType.Compare }).register();
 
 export default {
   title: 'Legacy Chart Plugins/legacy-preset-chart-nvd3/Compare',
+  decorators: [withResizableChartDemo],
+  args: {
+    colorScheme: 'd3Category10',
+    contribution: false,
+    yLogScale: false,
+  },
+  argTypes: {
+    colorScheme: {
+      control: 'select',
+      options: ['supersetColors', 'd3Category10', 'bnbColors', 'googleCategory20c'],
+    },
+    contribution: {
+      control: 'boolean',
+      description: 'Compute contribution to total',
+    },
+    yLogScale: { control: 'boolean' },
+  },
 };
 
-export const basic = () => (
+export const Basic = ({
+  colorScheme,
+  contribution,
+  yLogScale,
+  width,
+  height,
+}: {
+  colorScheme: string;
+  contribution: boolean;
+  yLogScale: boolean;
+  width: number;
+  height: number;
+}) => (
   <SuperChart
     chartType="compare"
-    width={400}
-    height={400}
+    width={width}
+    height={height}
     datasource={dummyDatasource}
     queriesData={[{ data }]}
     formData={{
-      bottomMargin: 'auto',
-      colorScheme: 'd3Category10',
-      contribution: false,
-      leftMargin: 'auto',
-      vizType: VizType.Compare,
-      xAxisFormat: 'smart_date',
-      xAxisLabel: '',
-      xAxisShowminmax: false,
-      xTicksLayout: 'auto',
-      yAxisBounds: [null, null],
-      yAxisFormat: '.3s',
-      yAxisLabel: '',
-      yAxisShowminmax: false,
-      yLogscale: false,
+      bottom_margin: 'auto',
+      color_scheme: colorScheme,
+      contribution,
+      left_margin: 'auto',
+      viz_type: VizType.Compare,
+      x_axis_format: 'smart_date',
+      x_axis_label: '',
+      x_axis_showminmax: false,
+      x_ticks_layout: 'auto',
+      y_axis_bounds: [null, null],
+      y_axis_format: '.3s',
+      y_axis_label: '',
+      y_axis_showminmax: false,
+      y_log_scale: yLogScale,
     }}
   />
 );

@@ -19,26 +19,53 @@
 
 import { SuperChart, VizType } from '@superset-ui/core';
 import { EchartsBoxPlotChartPlugin } from '@superset-ui/plugin-chart-echarts';
-import { dummyDatasource } from '@storybook-shared';
+import { dummyDatasource, withResizableChartDemo } from '@storybook-shared';
 import data from './data';
 
 new EchartsBoxPlotChartPlugin().configure({ key: 'box-plot' }).register();
 
 export default {
   title: 'Legacy Chart Plugins/legacy-preset-chart-nvd3/BoxPlot',
+  decorators: [withResizableChartDemo],
+  args: {
+    colorScheme: 'd3Category10',
+    whiskerOptions: 'Min/max (no outliers)',
+  },
+  argTypes: {
+    colorScheme: {
+      control: 'select',
+      options: ['supersetColors', 'd3Category10', 'bnbColors', 'googleCategory20c'],
+    },
+    whiskerOptions: {
+      control: 'select',
+      options: ['Tukey', 'Min/max (no outliers)', '2/98 percentiles', '9/91 percentiles'],
+    },
+  },
 };
 
-export const basic = () => (
+export const Basic = ({
+  colorScheme,
+  whiskerOptions,
+  width,
+  height,
+}: {
+  colorScheme: string;
+  whiskerOptions: string;
+  width: number;
+  height: number;
+}) => (
   <SuperChart
     chartType="box-plot"
-    width={800}
-    height={600}
+    width={width}
+    height={height}
     datasource={dummyDatasource}
     queriesData={[{ data }]}
     formData={{
-      colorScheme: 'd3Category10',
-      vizType: VizType.BoxPlot,
-      whiskerOptions: 'Min/max (no outliers)',
+      color_scheme: colorScheme,
+      viz_type: VizType.BoxPlot,
+      whisker_options: whiskerOptions,
+      groupby: ['region'],
+      metrics: ['sum__SP_POP_TOTL'],
     }}
   />
 );

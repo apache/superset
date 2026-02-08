@@ -19,30 +19,69 @@
 
 import { SuperChart, VizType } from '@superset-ui/core';
 import { BulletChartPlugin } from '@superset-ui/legacy-preset-chart-nvd3';
-import { dummyDatasource } from '@storybook-shared';
+import { dummyDatasource, withResizableChartDemo } from '@storybook-shared';
 import data from './data';
 
 new BulletChartPlugin().configure({ key: VizType.Bullet }).register();
 
 export default {
   title: 'Legacy Chart Plugins/legacy-preset-chart-nvd3/Bullet',
+  decorators: [withResizableChartDemo],
+  args: {
+    ranges: '0, 50, 75, 100',
+    rangeLabels: 'Low, Medium, High',
+    markers: '65',
+    markerLabels: 'Target',
+  },
+  argTypes: {
+    ranges: {
+      control: 'text',
+      description: 'Comma-separated range values',
+    },
+    rangeLabels: {
+      control: 'text',
+      description: 'Comma-separated range labels',
+    },
+    markers: {
+      control: 'text',
+      description: 'Comma-separated marker values',
+    },
+    markerLabels: {
+      control: 'text',
+      description: 'Comma-separated marker labels',
+    },
+  },
 };
 
-export const basic = () => (
+export const Basic = ({
+  ranges,
+  rangeLabels,
+  markers,
+  markerLabels,
+  width,
+  height,
+}: {
+  ranges: string;
+  rangeLabels: string;
+  markers: string;
+  markerLabels: string;
+  width: number;
+  height: number;
+}) => (
   <SuperChart
     chartType={VizType.Bullet}
-    width={400}
-    height={400}
+    width={width}
+    height={height}
     datasource={dummyDatasource}
     queriesData={[{ data }]}
     formData={{
-      markerLabels: '',
-      markerLineLabels: '',
-      markerLines: '',
-      markers: '',
-      rangeLabels: '',
-      ranges: '',
-      vizType: VizType.Bullet,
+      marker_labels: markerLabels,
+      marker_line_labels: '',
+      marker_lines: '',
+      markers,
+      range_labels: rangeLabels,
+      ranges,
+      viz_type: VizType.Bullet,
     }}
   />
 );
