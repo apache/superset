@@ -96,7 +96,7 @@ export const useBulkExport = ({
 
       // Extract data from response
       if (response.json?.result?.[0]) {
-        const queryResult = response.json.result[0];
+        const [queryResult] = response.json.result;
         chartData.data = queryResult.data || [];
         chartData.columns = queryResult.colnames || [];
         chartData.status = 'success';
