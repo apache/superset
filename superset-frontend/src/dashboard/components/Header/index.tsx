@@ -72,6 +72,7 @@ import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import type { RootState, DashboardInfo } from 'src/dashboard/types';
 import DashboardEmbedModal from '../EmbeddedModal';
 import OverwriteConfirm from '../OverwriteConfirm';
+import ExportDashboardDataModal from '../ExportDashboardDataModal';
 import {
   addDangerToast,
   addSuccessToast,
@@ -194,6 +195,9 @@ const Header = (): ReactElement => {
   const dispatch = useDispatch();
   const [didNotifyMaxUndoHistoryToast, setDidNotifyMaxUndoHistoryToast] =
     useState<boolean>(false);
+  const sliceEntities = useSelector(
+    (state: RootState) => state.sliceEntities?.slices || {},
+  );
   const [emphasizeUndo, setEmphasizeUndo] = useState<boolean>(false);
   const [emphasizeRedo, setEmphasizeRedo] = useState<boolean>(false);
   const [showingPropertiesModal, setShowingPropertiesModal] =
@@ -805,7 +809,13 @@ const Header = (): ReactElement => {
     setCurrentReportDeleting(null);
   };
 
-  const [menu, isDropdownVisible, setIsDropdownVisible] = useHeaderActionsMenu({
+  const [
+    menu,
+    isDropdownVisible,
+    setIsDropdownVisible,
+    showExportModal,
+    setShowExportModal,
+  ] = useHeaderActionsMenu({
     addSuccessToast: boundActionCreators.addSuccessToast,
     addDangerToast: boundActionCreators.addDangerToast,
     dashboardInfo,
@@ -941,6 +951,18 @@ const Header = (): ReactElement => {
         onHide={() => setShowUnsavedChangesModal(false)}
         onConfirmNavigation={handleConfirmNavigation}
         handleSave={handleSaveAndCloseModal}
+      />
+
+      <ExportDashboardDataModal
+        show={showExportModal}
+        onHide={() => setShowExportModal(false)}
+        dashboardTitle={dashboardTitle ?? ''}
+        charts={chartIds.map(id => ({
+          id,
+          name: sliceEntities[id]?.slice_name || `Chart ${id}`,
+          vizType: sliceEntities[id]?.viz_type,
+        }))}
+        slices={sliceEntities}
       />
     </div>
   );
