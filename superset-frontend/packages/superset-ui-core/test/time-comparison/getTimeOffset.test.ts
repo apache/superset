@@ -771,7 +771,7 @@ test('should handle future custom shift with different format', () => {
     timeRangeFilter,
     shifts,
     startDate,
-    ['5 days after'],
+    ['4 days after'],
   );
 });
 
