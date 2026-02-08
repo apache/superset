@@ -25,9 +25,7 @@ import { ExportProgress } from './ExportProgress';
 import { useBulkExport } from './useBulkExport';
 
 const ModalContent = styled.div`
-  ${({ theme }) => `
-    min-height: 400px;
-  `}
+  min-height: 400px;
 `;
 
 const Description = styled.div`

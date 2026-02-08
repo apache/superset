@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// Mock SupersetClient.post - must be before imports
+/* eslint-disable import/first, import/order */
+// Mock SupersetClient.post - must be before imports to avoid hoisting issues
 jest.mock('@superset-ui/core', () => {
   const actual = jest.requireActual('@superset-ui/core');
   return {
@@ -325,7 +326,7 @@ test('User exports charts but some fail due to permissions - receives partial ex
     () => {
       expect(mockAddSuccessToast).toHaveBeenCalled();
       // Toast should mention partial success
-      const call = mockAddSuccessToast.mock.calls[0][0];
+      const [[call]] = mockAddSuccessToast.mock.calls;
       expect(call).toMatch(/2 of 3 charts exported successfully/);
     },
     { timeout: 10000 },
