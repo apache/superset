@@ -77,8 +77,8 @@ const mockSvg = {
   style: jest.fn().mockReturnThis(),
 };
 
-jest.mock('datamaps/dist/datamaps.all.min', () => {
-  return jest.fn().mockImplementation(config => {
+jest.mock('datamaps/dist/datamaps.all.min', () =>
+  jest.fn().mockImplementation(config => {
     // Call the done callback immediately to simulate Datamap initialization
     if (config.done) {
       config.done({
@@ -90,8 +90,8 @@ jest.mock('datamaps/dist/datamaps.all.min', () => {
       updateChoropleth: mockUpdateChoropleth,
       svg: mockSvg,
     };
-  });
-});
+  }),
+);
 
 let container: HTMLElement;
 const formatter = getNumberFormatter();

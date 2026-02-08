@@ -21,15 +21,15 @@ import { getPercentFormatter } from '../../src/utils/formatters';
 
 describe('getPercentFormatter', () => {
   const value = 0.6;
-  it('should format as percent if no format is specified', () => {
+  test('should format as percent if no format is specified', () => {
     expect(getPercentFormatter().format(value)).toEqual('60%');
   });
-  it('should format as percent if SMART_NUMBER is specified', () => {
+  test('should format as percent if SMART_NUMBER is specified', () => {
     expect(
       getPercentFormatter(NumberFormats.SMART_NUMBER).format(value),
     ).toEqual('60%');
   });
-  it('should format using a provided format', () => {
+  test('should format using a provided format', () => {
     expect(
       getPercentFormatter(NumberFormats.PERCENT_2_POINT).format(value),
     ).toEqual('60.00%');

@@ -70,37 +70,43 @@ jest.mock('src/dashboard/components/dnd/DragDroppable', () => ({
   ),
 }));
 
-jest.mock('src/dashboard/containers/DashboardComponent', () => {
-  return ({
-    availableColumnCount,
-    depth,
-  }: {
-    availableColumnCount: number;
-    depth: number;
-  }) => (
-    <div data-test="mock-dashboard-component" data-depth={depth}>
-      {availableColumnCount}
-    </div>
-  );
-});
+jest.mock(
+  'src/dashboard/containers/DashboardComponent',
+  () =>
+    ({
+      availableColumnCount,
+      depth,
+    }: {
+      availableColumnCount: number;
+      depth: number;
+    }) => (
+      <div data-test="mock-dashboard-component" data-depth={depth}>
+        {availableColumnCount}
+      </div>
+    ),
+);
 
-jest.mock('src/dashboard/components/menu/WithPopoverMenu', () => {
-  return ({ children }: { children: React.ReactNode }) => (
-    <div data-test="mock-with-popover-menu">{children}</div>
-  );
-});
+jest.mock(
+  'src/dashboard/components/menu/WithPopoverMenu',
+  () =>
+    ({ children }: { children: React.ReactNode }) => (
+      <div data-test="mock-with-popover-menu">{children}</div>
+    ),
+);
 
-jest.mock('src/dashboard/components/DeleteComponentButton', () => {
-  return ({ onDelete }: { onDelete: () => void }) => (
-    <button
-      type="button"
-      data-test="mock-delete-component-button"
-      onClick={onDelete}
-    >
-      Delete
-    </button>
-  );
-});
+jest.mock(
+  'src/dashboard/components/DeleteComponentButton',
+  () =>
+    ({ onDelete }: { onDelete: () => void }) => (
+      <button
+        type="button"
+        data-test="mock-delete-component-button"
+        onClick={onDelete}
+      >
+        Delete
+      </button>
+    ),
+);
 
 const rowWithoutChildren = {
   ...mockLayout.present.ROW_ID,
@@ -213,12 +219,13 @@ test('should render a DeleteComponentButton in editMode', () => {
   expect(getByTestId('mock-delete-component-button')).toBeInTheDocument();
 });
 
+/* oxlint-disable-next-line jest/no-disabled-tests */
 test.skip('should render a BackgroundStyleDropdown when focused', () => {
   let { rerender } = setup({ component: rowWithoutChildren });
   expect(screen.queryByTestId('background-style-dropdown')).toBeFalsy();
 
   // we cannot set props on the Row because of the WithDragDropContext wrapper
-  rerender(<Row {...props} component={rowWithoutChildren} editMode={true} />);
+  rerender(<Row {...props} component={rowWithoutChildren} editMode />);
   const buttons = screen.getAllByRole('button');
   const settingsButton = buttons[1];
   fireEvent.click(settingsButton);
