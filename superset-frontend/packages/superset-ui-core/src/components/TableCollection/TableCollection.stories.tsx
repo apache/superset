@@ -30,7 +30,7 @@ import TableCollection from '.';
 import { TableSize } from '../Table';
 
 // Helper type to cast columns for TableCollection which uses generic object type
-type AnyColumns = readonly ColumnInstance<object>[];
+type AnyColumns = ColumnInstance<object>[];
 type AnyRows = Row<object>[];
 
 export default {
@@ -84,7 +84,7 @@ export const Basic: StoryFn = () => {
     rows,
     prepareRow,
     columns: tableColumns,
-  } = useTable({ columns, data }, useSortBy);
+  } = useTable<SampleData>({ columns, data }, useSortBy);
 
   return (
     <TableCollection
@@ -139,7 +139,7 @@ export const WithPagination: StoryFn = () => {
     rows,
     prepareRow,
     columns: tableColumns,
-  } = useTable({ columns, data: paginatedData }, useSortBy);
+  } = useTable<SampleData>({ columns, data: paginatedData }, useSortBy);
 
   const handlePageChange = useCallback((page: number) => {
     setPageIndex(page);
@@ -194,7 +194,7 @@ export const WithRowSelection: StoryFn = () => {
     rows,
     prepareRow,
     columns: tableColumns,
-  } = useTable({ columns, data }, useSortBy);
+  } = useTable<SampleData>({ columns, data }, useSortBy);
 
   const toggleRowSelected = useCallback(
     (rowId: string, selected: boolean) => {
@@ -284,7 +284,7 @@ export const LoadingState: StoryFn = () => {
     rows,
     prepareRow,
     columns: tableColumns,
-  } = useTable({ columns, data }, useSortBy);
+  } = useTable<SampleData>({ columns, data }, useSortBy);
 
   return (
     <TableCollection
@@ -339,7 +339,7 @@ export const TableSizes: StoryFn = () => {
           rows,
           prepareRow,
           columns: tableColumns,
-        } = useTable({ columns, data }, useSortBy);
+        } = useTable<SampleData>({ columns, data }, useSortBy);
 
         return (
           <div key={size}>
@@ -410,7 +410,7 @@ export const WithControlledSorting: StoryFn = () => {
     rows,
     prepareRow,
     columns: tableColumns,
-  } = useTable(
+  } = useTable<SampleData>(
     {
       columns,
       data,
@@ -475,7 +475,7 @@ export const WithRowHighlighting: StoryFn = () => {
     rows,
     prepareRow,
     columns: tableColumns,
-  } = useTable({ columns, data }, useSortBy);
+  } = useTable<SampleData>({ columns, data }, useSortBy);
 
   return (
     <div>
