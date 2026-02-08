@@ -28,6 +28,27 @@ import { App, Layout, Space, Content } from 'antd';
 import 'src/theme.ts';
 import './storybook.css';
 
+// Set up bootstrap data for components that check HTML_SANITIZATION config
+// (e.g., HandlebarsViewer). This allows <style> tags in Handlebars templates.
+if (typeof document !== 'undefined') {
+  let appEl = document.getElementById('app');
+  if (!appEl) {
+    appEl = document.createElement('div');
+    appEl.id = 'app';
+    document.body.appendChild(appEl);
+  }
+  appEl.setAttribute(
+    'data-bootstrap',
+    JSON.stringify({
+      common: {
+        conf: {
+          HTML_SANITIZATION: false,
+        },
+      },
+    }),
+  );
+}
+
 export const GlobalStylesOverrides = () => (
   <Global
     styles={css`
