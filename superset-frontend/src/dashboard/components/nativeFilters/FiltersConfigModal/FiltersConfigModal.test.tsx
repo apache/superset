@@ -162,20 +162,20 @@ function setupFetchMocks() {
       },
     ],
   });
-}
 
-fetchMock.get('glob:*/api/v1/localization/available_locales', {
-  body: {
-    result: {
-      locales: [
-        { code: 'en', name: 'English' },
-        { code: 'de', name: 'German' },
-        { code: 'fr', name: 'French' },
-      ],
-      default_locale: 'en',
+  fetchMock.get('glob:*/api/v1/localization/available_locales', {
+    body: {
+      result: {
+        locales: [
+          { code: 'en', name: 'English' },
+          { code: 'de', name: 'German' },
+          { code: 'fr', name: 'French' },
+        ],
+        default_locale: 'en',
+      },
     },
-  },
-});
+  });
+}
 
 const filterTranslations = {
   name: {

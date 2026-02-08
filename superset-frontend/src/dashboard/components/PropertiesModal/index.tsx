@@ -115,6 +115,7 @@ const PropertiesModal = ({
 }: PropertiesModalProps) => {
   const dispatch = useDispatch();
   const [form] = Form.useForm();
+  const currentTitle: string = Form.useWatch('title', form) ?? '';
 
   const [isLoading, setIsLoading] = useState(true);
   const [isApplying, setIsApplying] = useState(false);
@@ -764,7 +765,7 @@ const PropertiesModal = ({
                     ) ? (
                       <LocaleSwitcher
                         fieldName="dashboard_title"
-                        defaultValue={dashboardInfo?.title ?? ''}
+                        defaultValue={currentTitle}
                         translations={translations}
                         allLocales={allLocales}
                         defaultLocale={defaultLocale}
