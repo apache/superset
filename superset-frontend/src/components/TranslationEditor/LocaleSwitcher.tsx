@@ -90,7 +90,6 @@ export default function LocaleSwitcher({
 
   const isDefault = activeLocale === DEFAULT_LOCALE_KEY;
   const activeLocaleInfo = isDefault ? undefined : localeMap.get(activeLocale);
-  const triggerLabel = isDefault ? t('DEFAULT') : activeLocale.toUpperCase();
   const triggerFlag = activeLocaleInfo?.flag;
 
   const menuItems: MenuProps['items'] = useMemo(() => {
@@ -203,14 +202,6 @@ export default function LocaleSwitcher({
             `}
           />
         )}
-        <span
-          css={css`
-            font-size: 11px;
-            font-weight: 500;
-          `}
-        >
-          {triggerLabel}
-        </span>
         <Badge count={translationCount} size="small" showZero={false} />
         <Icons.CaretDownOutlined
           iconSize="s"
