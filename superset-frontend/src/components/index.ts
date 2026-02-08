@@ -41,7 +41,7 @@ export * from './GenericLink';
 export { GridTable, type TableProps } from './GridTable';
 export * from './Tag';
 export * from './TagsList';
-export { ModifiedInfo, type ModifiedInfoProps } from './AuditInfo';
+export { CreatedInfo, ModifiedInfo, type AuditInfoProps } from './AuditInfo';
 export {
   DynamicPluginProvider,
   PluginContext,
