@@ -24,12 +24,20 @@ import {
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
-import * as copyTextToClipboard from 'src/utils/copy';
 import fetchMock from 'fetch-mock';
 import { ComponentProps } from 'react';
 import { useShareMenuItems, ShareMenuItemProps } from '.';
 
-const spy = jest.spyOn(copyTextToClipboard, 'default');
+// Mock the clipboard utility
+const mockCopyTextToClipboard = jest.fn<Promise<void>, [() => Promise<string>]>(
+  () => Promise.resolve(),
+);
+jest.mock('src/utils/copy', () => ({
+  __esModule: true,
+  default: (getText: () => Promise<string>) => mockCopyTextToClipboard(getText),
+  copyTextToClipboard: (getText: () => Promise<string>) =>
+    mockCopyTextToClipboard(getText),
+}));
 
 const DASHBOARD_ID = '26';
 const createProps = () => ({
@@ -94,7 +102,7 @@ test('Should render menu items', () => {
 });
 
 test('Click on "Copy dashboard URL" and succeed', async () => {
-  spy.mockResolvedValue(undefined);
+  mockCopyTextToClipboard.mockResolvedValue(undefined);
   const props = createProps();
   render(
     <MenuWrapper
@@ -108,7 +116,7 @@ test('Click on "Copy dashboard URL" and succeed', async () => {
   );
 
   await waitFor(() => {
-    expect(spy).toHaveBeenCalledTimes(0);
+    expect(mockCopyTextToClipboard).toHaveBeenCalledTimes(0);
     expect(props.addSuccessToast).toHaveBeenCalledTimes(0);
     expect(props.addDangerToast).toHaveBeenCalledTimes(0);
   });
@@ -116,8 +124,9 @@ test('Click on "Copy dashboard URL" and succeed', async () => {
   userEvent.click(screen.getByText('Copy dashboard URL'));
 
   await waitFor(async () => {
-    expect(spy).toHaveBeenCalledTimes(1);
-    const value = await spy.mock.calls[0][0]();
+    expect(mockCopyTextToClipboard).toHaveBeenCalledTimes(1);
+    const getText = mockCopyTextToClipboard.mock.calls[0]![0];
+    const value = await getText();
     expect(value).toBe('http://localhost/superset/dashboard/p/123/');
     expect(props.addSuccessToast).toHaveBeenCalledTimes(1);
     expect(props.addSuccessToast).toHaveBeenCalledWith('Copied to clipboard!');
@@ -126,7 +135,7 @@ test('Click on "Copy dashboard URL" and succeed', async () => {
 });
 
 test('Click on "Copy dashboard URL" and fail', async () => {
-  spy.mockRejectedValue(undefined);
+  mockCopyTextToClipboard.mockRejectedValue(undefined);
   const props = createProps();
   render(
     <MenuWrapper
@@ -140,7 +149,7 @@ test('Click on "Copy dashboard URL" and fail', async () => {
   );
 
   await waitFor(() => {
-    expect(spy).toHaveBeenCalledTimes(0);
+    expect(mockCopyTextToClipboard).toHaveBeenCalledTimes(0);
     expect(props.addSuccessToast).toHaveBeenCalledTimes(0);
     expect(props.addDangerToast).toHaveBeenCalledTimes(0);
   });
@@ -148,8 +157,9 @@ test('Click on "Copy dashboard URL" and fail', async () => {
   userEvent.click(screen.getByText('Copy dashboard URL'));
 
   await waitFor(async () => {
-    expect(spy).toHaveBeenCalledTimes(1);
-    const value = await spy.mock.calls[0][0]();
+    expect(mockCopyTextToClipboard).toHaveBeenCalledTimes(1);
+    const getText = mockCopyTextToClipboard.mock.calls[0]![0];
+    const value = await getText();
     expect(value).toBe('http://localhost/superset/dashboard/p/123/');
     expect(props.addSuccessToast).toHaveBeenCalledTimes(0);
     expect(props.addDangerToast).toHaveBeenCalledTimes(1);

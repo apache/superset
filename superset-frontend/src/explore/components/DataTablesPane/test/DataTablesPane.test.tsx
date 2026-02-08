@@ -18,7 +18,6 @@
  */
 import fetchMock from 'fetch-mock';
 import { FeatureFlag } from '@superset-ui/core';
-import * as copyUtils from 'src/utils/copy';
 import {
   render,
   screen,
@@ -26,6 +25,17 @@ import {
   waitForElementToBeRemoved,
 } from 'spec/helpers/testing-library';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
+
+// Mock the clipboard utility
+const mockCopyTextToClipboard = jest.fn<Promise<void>, [() => Promise<string>]>(
+  () => Promise.resolve(),
+);
+jest.mock('src/utils/copy', () => ({
+  __esModule: true,
+  default: (getText: () => Promise<string>) => mockCopyTextToClipboard(getText),
+  copyTextToClipboard: (getText: () => Promise<string>) =>
+    mockCopyTextToClipboard(getText),
+}));
 import { DataTablesPane } from '..';
 import { createDataTablesPaneProps } from './fixture';
 
@@ -104,7 +114,7 @@ describe('DataTablesPane', () => {
         ],
       },
     );
-    const copyToClipboardSpy = jest.spyOn(copyUtils, 'default');
+    mockCopyTextToClipboard.mockClear();
     const props = createDataTablesPaneProps(456);
     render(<DataTablesPane {...props} />, {
       useRedux: true,
@@ -113,10 +123,10 @@ describe('DataTablesPane', () => {
     expect(await screen.findByText('1 row')).toBeVisible();
 
     userEvent.click(screen.getByLabelText('Copy'));
-    expect(copyToClipboardSpy).toHaveBeenCalledTimes(1);
-    const value = await copyToClipboardSpy.mock.calls[0][0]();
+    expect(mockCopyTextToClipboard).toHaveBeenCalledTimes(1);
+    const getText = mockCopyTextToClipboard.mock.calls[0]![0];
+    const value = await getText();
     expect(value).toBe('__timestamp\tgenre\n2009-01-01 00:00:00\tAction\n');
-    copyToClipboardSpy.mockRestore();
     fetchMock.clearHistory().removeRoutes();
   });
 

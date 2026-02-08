@@ -34,3 +34,4 @@ export * from './typedMemo';
 export * from './html';
 export * from './tooltip';
 export * from './merge';
+export * from './clipboard';
