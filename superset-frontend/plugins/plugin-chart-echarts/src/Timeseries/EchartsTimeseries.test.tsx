@@ -43,9 +43,8 @@ const mockEchart = jest.fn();
 jest.mock('../components/Echart', () => {
   const { forwardRef } = jest.requireActual<typeof import('react')>('react');
   const MockEchart = forwardRef<EchartsHandler | null, EchartsProps>(
-    (props, ref) => {
+    (props, _ref) => {
       mockEchart(props);
-      console.log(ref);
       return null;
     },
   );
@@ -227,9 +226,7 @@ test('observes extra control height changes when ResizeObserver is available', a
       observeSpy(target);
     };
 
-    unobserve(_target: Element): void {
-      console.log(_target);
-    }
+    unobserve(_target: Element): void {}
 
     disconnect = () => {
       disconnectSpy();
