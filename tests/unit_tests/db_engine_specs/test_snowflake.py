@@ -26,6 +26,7 @@ from pytest_mock import MockerFixture
 from sqlalchemy.engine.url import make_url
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.superset_typing import OAuth2ClientConfig
 from superset.utils import json
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm  # noqa: F401
@@ -437,4 +438,123 @@ def test_unmask_encrypted_extra() -> None:
                 "privatekey_pass": "my_password",
             },
         }
+    )
+
+
+@pytest.fixture
+def oauth2_config() -> OAuth2ClientConfig:
+    """
+    Config for Snowflake OAuth2.
+    """
+    return {
+        "id": "snowflake-oauth2-client-id",
+        "secret": "snowflake-oauth2-client-secret",
+        "scope": "refresh_token",
+        "redirect_uri": "http://localhost:8088/api/v1/database/oauth2/",
+        "authorization_request_uri": "https://snowflake.oauth2.example/oauth/authorize",
+        "token_request_uri": "https://snowflake.oauth2.example/oauth/token-request",
+        "request_content_type": "data",
+    }
+
+
+def test_get_oauth2_token(
+    mocker: MockerFixture,
+    oauth2_config: OAuth2ClientConfig,
+) -> None:
+    """
+    Test `get_oauth2_token`.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    requests = mocker.patch("superset.db_engine_specs.base.requests")
+    requests.post().json.return_value = {
+        "access_token": "access-token",
+        "expires_in": 3600,
+        "scope": "scope",
+        "token_type": "Bearer",
+        "refresh_token": "refresh-token",
+    }
+
+    assert SnowflakeEngineSpec.get_oauth2_token(oauth2_config, "code") == {
+        "access_token": "access-token",
+        "expires_in": 3600,
+        "scope": "scope",
+        "token_type": "Bearer",
+        "refresh_token": "refresh-token",
+    }
+    requests.post.assert_called_with(
+        "https://snowflake.oauth2.example/oauth/token-request",
+        data={
+            "code": "code",
+            "client_id": "snowflake-oauth2-client-id",
+            "client_secret": "snowflake-oauth2-client-secret",
+            "redirect_uri": "http://localhost:8088/api/v1/database/oauth2/",
+            "grant_type": "authorization_code",
+        },
+        timeout=30.0,
+    )
+
+
+def test_impersonate_user(mocker: MockerFixture) -> None:
+    """
+    Test that Snowflake supports user impersonation.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+    from superset.models.core import Database
+
+    database = Database(sqlalchemy_uri="snowflake://abc")
+
+    mocker.patch(
+        "superset.db_engine_specs.snowflake.SnowflakeEngineSpec.is_oauth2_enabled",
+        return_value=True,
+    )
+
+    assert SnowflakeEngineSpec.impersonate_user(
+        database=database,
+        username=None,
+        user_token=None,
+        url=make_url("snowflake://user:pass@account/database_name/default"),
+        engine_kwargs={
+            "connect_args": {
+                "validate_default_parameters": True,
+            },
+        },
+    ) == (
+        make_url("snowflake://user:pass@account/database_name/default"),
+        {"connect_args": {"validate_default_parameters": True}},
+    )
+
+    assert SnowflakeEngineSpec.impersonate_user(
+        database=database,
+        username=None,
+        user_token=None,
+        url=make_url("snowflake://user:pass@account/database_name/default"),
+        engine_kwargs={},
+    ) == (
+        make_url(
+            "snowflake://user:pass@account/database_name/default?authenticator=oauth"
+        ),
+        {"connect_args": {"authenticator": "oauth"}},
+    )
+
+    mocker.patch(
+        "superset.db_engine_specs.snowflake.is_feature_enabled",
+        return_value=True,
+    )
+
+    mocker.patch(
+        "superset.security_manager.find_user",
+        return_value=mocker.MagicMock(email="impersonated_user@example.com"),
+    )
+    assert SnowflakeEngineSpec.impersonate_user(
+        database=database,
+        username="impersonated_user",
+        user_token="test_token",  # noqa: S106
+        url=make_url("snowflake://user:pass@account/database_name/default"),
+        engine_kwargs={},
+    ) == (
+        make_url(
+            "snowflake://impersonated_user:pass@account/database_name/default?authenticator=oauth&token=test_token"
+        ),
+        {"connect_args": {"authenticator": "oauth"}},
     )
