@@ -146,36 +146,43 @@ export const xAxisSortControl = {
       const columns = [controls?.x_axis?.value as QueryFormColumn].filter(
         Boolean,
       );
-      const isSingleSortAvailable =
-        ensureIsArray(controls?.groupby?.value).length === 0;
-      const isMultiSortAvailable =
-        !!ensureIsArray(controls?.groupby?.value).length ||
+      const hasGroupBy = ensureIsArray(controls?.groupby?.value).length > 0;
+      const hasMultipleMetrics =
         ensureIsArray(controls?.metrics?.value).length > 1;
+      const isMultiSortAvailable = hasGroupBy || hasMultipleMetrics;
       const metrics = [
         ...ensureIsArray(controls?.metrics?.value as QueryFormMetric),
         controls?.timeseries_limit_metric?.value as QueryFormMetric,
       ].filter(Boolean);
       const metricLabels = [...new Set(metrics.map(getMetricLabel))];
-      const options = [
-        ...(isSingleSortAvailable
-          ? [
-              ...columns.map(column => {
-                const value = getColumnLabel(column);
-                return { value, label: dataset?.verbose_map?.[value] || value };
-              }),
-              ...metricLabels.map(value => ({
-                value,
-                label: dataset?.verbose_map?.[value] || value,
-              })),
-            ]
-          : []),
-        ...(isMultiSortAvailable
-          ? SORT_SERIES_CHOICES.map(choice => ({
-              value: choice[0],
-              label: choice[1],
-            }))
-          : []),
+
+      // Base axis sort options: always include the explicit axis column and metrics,
+      // regardless of whether a dimension (groupby) is present. This keeps the
+      // "X-Axis Sort By" dropdown consistent when toggling dimensions.
+      const axisSortOptions = [
+        ...columns.map(column => {
+          const value = getColumnLabel(column);
+          return {
+            value,
+            label: dataset?.verbose_map?.[value as string] ?? value,
+          };
+        }),
+        ...metricLabels.map(value => ({
+          value,
+          label: dataset?.verbose_map?.[value as string] ?? value,
+        })),
       ];
+
+      // When there are multiple series (via groupby or multiple metrics),
+      // also expose the series-based sort options.
+      const multiSeriesOptions = isMultiSortAvailable
+        ? SORT_SERIES_CHOICES.map(([value, label]: [string, string]) => ({
+            value,
+            label,
+          }))
+        : [];
+
+      const options = [...axisSortOptions, ...multiSeriesOptions];
 
       const shouldReset = !(
         typeof controlState.value === 'string' &&
