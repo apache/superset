@@ -127,8 +127,8 @@ def get_user_locale(locale: str | None = None, validate: bool = False) -> str:
     if locale:
         resolved_locale = locale
 
-    # Priority 2: Session locale
-    if not resolved_locale:
+    # Priority 2: Session locale (only if in request context)
+    if not resolved_locale and has_request_context():
         resolved_locale = session.get("locale")
 
     # Priority 3: Accept-Language header (only if in request context)

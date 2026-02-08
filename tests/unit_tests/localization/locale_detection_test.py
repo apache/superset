@@ -30,6 +30,8 @@ dashboards and charts to display translated titles and descriptions.
 
 from unittest.mock import patch
 
+from flask import current_app
+
 from superset.localization.locale_utils import (
     get_user_locale,
     parse_accept_language,
@@ -132,12 +134,13 @@ def test_get_user_locale_returns_session_locale(app_context: None) -> None:
     """
     Verify get_user_locale returns locale from Flask session.
 
-    Given session["locale"] = "de",
+    Given session["locale"] = "de" inside a request context,
     when get_user_locale is called,
     then it returns "de".
     """
-    with patch("superset.localization.locale_utils.session", {"locale": "de"}):
-        result = get_user_locale()
+    with current_app.test_request_context():
+        with patch("superset.localization.locale_utils.session", {"locale": "de"}):
+            result = get_user_locale()
 
     assert result == "de"
 
@@ -169,9 +172,9 @@ def test_get_user_locale_falls_back_to_default(app_context: None) -> None:
     when get_user_locale is called,
     then it returns the default locale "en".
     """
-    with patch("superset.localization.locale_utils.session", {}):
-        # No request context, so Accept-Language is skipped
-        result = get_user_locale()
+    with current_app.test_request_context():
+        with patch("superset.localization.locale_utils.session", {}):
+            result = get_user_locale()
 
     assert result == "en"
 
@@ -186,8 +189,9 @@ def test_get_user_locale_explicit_parameter_takes_priority(
     when get_user_locale(locale="fr") is called,
     then it returns "fr" (explicit parameter wins).
     """
-    with patch("superset.localization.locale_utils.session", {"locale": "de"}):
-        result = get_user_locale(locale="fr")
+    with current_app.test_request_context():
+        with patch("superset.localization.locale_utils.session", {"locale": "de"}):
+            result = get_user_locale(locale="fr")
 
     assert result == "fr"
 
@@ -202,13 +206,14 @@ def test_get_user_locale_validates_against_available_languages(
     when get_user_locale is called with validate=True,
     then it falls back to default locale.
     """
-    with patch("superset.localization.locale_utils.session", {"locale": "xx"}):
-        with patch("superset.localization.locale_utils.current_app") as mock_app:
-            mock_app.config = {
-                "LANGUAGES": {"en": {}, "de": {}, "fr": {}},
-                "BABEL_DEFAULT_LOCALE": "en",
-            }
-            result = get_user_locale(validate=True)
+    with current_app.test_request_context():
+        with patch("superset.localization.locale_utils.session", {"locale": "xx"}):
+            with patch("superset.localization.locale_utils.current_app") as mock_app:
+                mock_app.config = {
+                    "LANGUAGES": {"en": {}, "de": {}, "fr": {}},
+                    "BABEL_DEFAULT_LOCALE": "en",
+                }
+                result = get_user_locale(validate=True)
 
     assert result == "en"
 
@@ -223,7 +228,21 @@ def test_get_user_locale_without_validation_returns_any_locale(
     when get_user_locale is called without validate parameter,
     then it returns "xx" (no validation performed).
     """
-    with patch("superset.localization.locale_utils.session", {"locale": "xx"}):
-        result = get_user_locale()
+    with current_app.test_request_context():
+        with patch("superset.localization.locale_utils.session", {"locale": "xx"}):
+            result = get_user_locale()
 
     assert result == "xx"
+
+
+def test_get_user_locale_without_request_context(app_context: None) -> None:
+    """
+    Verify get_user_locale works outside request context (CLI, background jobs).
+
+    Given no request context (only app context),
+    when get_user_locale is called,
+    then it returns default locale without raising RuntimeError.
+    """
+    result = get_user_locale()
+
+    assert result == "en"
