@@ -221,6 +221,9 @@ EXPOSE ${SUPERSET_PORT}
 ######################################################################
 FROM python-common AS lean
 
+# Cache bust: increment to invalidate cached layers (e.g., when cache is corrupted)
+ARG CACHE_BUST_LEAN=1
+
 # Install Python dependencies using docker/pip-install.sh
 COPY requirements/base.txt requirements/
 
