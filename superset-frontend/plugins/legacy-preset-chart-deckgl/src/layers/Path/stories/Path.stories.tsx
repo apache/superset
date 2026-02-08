@@ -22,22 +22,44 @@
 import { SuperChart } from '@superset-ui/core';
 import { useTheme } from '@apache-superset/core/ui';
 import { PathChartPlugin } from '@superset-ui/legacy-preset-chart-deckgl';
+import { withResizableChartDemo, dummyDatasource } from '@storybook-shared';
 import payload from './payload';
-import { dummyDatasource } from '@storybook-shared';
 
 new PathChartPlugin().configure({ key: 'deck_path' }).register();
 
 export default {
   title: 'Legacy Chart Plugins/legacy-preset-chart-deckgl/PathChartPlugin',
+  decorators: [withResizableChartDemo],
+  args: {
+    lineWidth: 150,
+    autozoom: true,
+  },
+  argTypes: {
+    lineWidth: {
+      control: { type: 'range', min: 10, max: 500, step: 10 },
+      description: 'Width of path lines in meters',
+    },
+    autozoom: { control: 'boolean' },
+  },
 };
 
-export const PathChartViz = () => {
+export const PathChartViz = ({
+  lineWidth,
+  autozoom,
+  width,
+  height,
+}: {
+  lineWidth: number;
+  autozoom: boolean;
+  width: number;
+  height: number;
+}) => {
   const theme = useTheme();
   return (
     <SuperChart
       chartType="deck_path"
-      width={400}
-      height={400}
+      width={width}
+      height={height}
       datasource={dummyDatasource}
       queriesData={[payload(theme)]}
       formData={{
@@ -53,7 +75,7 @@ export const PathChartViz = () => {
         row_limit: 5000,
         filter_nulls: true,
         adhoc_filters: [],
-        mapbox_style: 'mapbox://styles/mapbox/light-v9',
+        mapbox_style: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
         viewport: {
           altitude: 1.5,
           bearing: 0,
@@ -71,9 +93,9 @@ export const PathChartViz = () => {
           zoom: 9.51847667620428,
         },
         color_picker: { a: 1, b: 135, g: 122, r: 0 },
-        line_width: 150,
+        line_width: lineWidth,
         reverse_long_lat: false,
-        autozoom: true,
+        autozoom,
         js_columns: ['color'],
         js_data_mutator: '',
         js_tooltip: '',

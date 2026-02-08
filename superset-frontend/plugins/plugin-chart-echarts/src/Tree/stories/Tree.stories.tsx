@@ -35,34 +35,60 @@ getChartTransformPropsRegistry().registerValue(
 export default {
   title: 'Chart Plugins/plugin-chart-echarts/Tree',
   decorators: [withResizableChartDemo],
+  args: {
+    colorScheme: 'bnbColors',
+    layout: 'orthogonal',
+    orient: 'LR',
+    symbol: 'circle',
+    symbolSize: 7,
+    roam: true,
+  },
+  argTypes: {
+    colorScheme: {
+      control: 'select',
+      options: ['supersetColors', 'd3Category10', 'bnbColors', 'googleCategory20c'],
+    },
+    layout: {
+      control: 'select',
+      options: ['orthogonal', 'radial'],
+      description: 'Layout type: orthogonal (rectangular) or radial (circular)',
+    },
+    orient: {
+      control: 'select',
+      options: ['LR', 'RL', 'TB', 'BT'],
+      description: 'Orientation: Left-Right, Right-Left, Top-Bottom, Bottom-Top',
+    },
+    symbol: {
+      control: 'select',
+      options: ['emptyCircle', 'circle', 'rect', 'triangle', 'diamond', 'pin', 'arrow'],
+    },
+    symbolSize: {
+      control: { type: 'range', min: 5, max: 30, step: 1 },
+    },
+    roam: {
+      control: 'boolean',
+      description: 'Enable zoom and pan',
+    },
+  },
 };
 
-export const Tree = (
-  {
-    id,
-    rootNodeId,
-    parent,
-    name,
-    position,
-    layout,
-    orient,
-    emphasis,
-    symbol,
-    symbolSize,
-    width,
-    height,
-  }: {
-    id: string;
-    rootNodeId: string;
-    parent: string;
-    name: string;
-    position: string;
-    layout: string;
-    orient: string;
-    emphasis: string;
-    symbol: string;
-    symbolSize: number;
-    width: number;
+export const Tree = ({
+  colorScheme,
+  layout,
+  orient,
+  symbol,
+  symbolSize,
+  roam,
+  width,
+  height,
+}: {
+  colorScheme: string;
+  layout: string;
+  orient: string;
+  symbol: string;
+  symbolSize: number;
+  roam: boolean;
+  width: number;
   height: number;
 }) => (
   <SuperChart
@@ -71,74 +97,19 @@ export const Tree = (
     height={height}
     queriesData={[{ data }]}
     formData={{
-      colorScheme: 'bnbColors',
+      color_scheme: colorScheme,
       datasource: '3__table',
       granularity_sqla: 'ds',
       metric: 'count',
-      id,
-      rootNodeId,
-      parent,
-      name,
-      position,
+      id: 'id_column',
+      root_node_id: '1',
+      parent: 'parent_column',
+      name: 'name_column',
       layout,
       orient,
-      emphasis,
       symbol,
       symbol_size: symbolSize,
+      roam,
     }}
   />
 );
-
-Tree.args = {
-  id: 'id_column',
-  rootNodeId: '1',
-  parent: 'parent_column',
-  name: 'name_column',
-  position: 'top',
-  layout: 'orthogonal',
-  orient: 'LR',
-  emphasis: 'descendant',
-  symbol: 'circle',
-  symbolSize: 7,
-};
-
-Tree.argTypes = {
-  id: {
-    control: 'text',
-  },
-  rootNodeId: {
-    control: 'text',
-  },
-  parent: {
-    control: 'text',
-  },
-  name: {
-    control: 'text',
-  },
-  position: {
-    control: 'select',
-    options: ['top', 'right', 'left', 'bottom'],
-  },
-  layout: {
-    control: 'select',
-    options: ['orthogonal', 'radial'],
-  },
-  orient: {
-    control: 'select',
-    options: ['LR', 'RL', 'TB', 'BT'],
-  },
-  emphasis: {
-    control: 'select',
-    options: ['ancestor', 'descendant'],
-  },
-  symbol: {
-    control: 'select',
-    options: ['emptyCircle', 'circle', 'rect', 'triangle'],
-  },
-  symbolSize: {
-    control: 'number',
-    min: 5,
-    max: 30,
-    step: 2,
-  },
-};

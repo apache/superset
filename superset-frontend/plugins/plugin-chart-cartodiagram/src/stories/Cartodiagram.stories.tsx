@@ -63,6 +63,40 @@ const sampleData = [
 export default {
   title: 'Chart Plugins/plugin-chart-cartodiagram',
   decorators: [withResizableChartDemo],
+  args: {
+    donut: false,
+    showLabels: false,
+    colorScheme: 'supersetColors',
+    chartWidth: 100,
+    chartHeight: 100,
+    borderRadius: 8,
+  },
+  argTypes: {
+    donut: {
+      control: 'boolean',
+      description: 'Display pie charts as donuts',
+    },
+    showLabels: {
+      control: 'boolean',
+      description: 'Show labels on embedded charts',
+    },
+    colorScheme: {
+      control: 'select',
+      options: ['supersetColors', 'd3Category10', 'bnbColors', 'googleCategory20c'],
+    },
+    chartWidth: {
+      control: { type: 'range', min: 50, max: 200, step: 10 },
+      description: 'Width of embedded charts in pixels',
+    },
+    chartHeight: {
+      control: { type: 'range', min: 50, max: 200, step: 10 },
+      description: 'Height of embedded charts in pixels',
+    },
+    borderRadius: {
+      control: { type: 'range', min: 0, max: 50, step: 2 },
+      description: 'Border radius of chart containers',
+    },
+  },
   parameters: {
     docs: {
       description: {
@@ -90,9 +124,21 @@ Each GeoJSON point location gets a small chart (pie, bar, etc.) rendered on it.
 export const BasicMap = ({
   width,
   height,
+  donut,
+  showLabels,
+  colorScheme,
+  chartWidth,
+  chartHeight,
+  borderRadius,
 }: {
   width: number;
   height: number;
+  donut: boolean;
+  showLabels: boolean;
+  colorScheme: string;
+  chartWidth: number;
+  chartHeight: number;
+  borderRadius: number;
 }) => (
   <SuperChart
     chartType={VIZ_TYPE}
@@ -110,26 +156,32 @@ export const BasicMap = ({
       datasource: '1__table',
       viz_type: VIZ_TYPE,
       geom_column: 'geom',
-      // selected_chart: { viz_type, params } where params is also stringified JSON
-      // Using the same format that works in the Pie stories
       selected_chart: JSON.stringify({
         viz_type: VizType.Pie,
         params: JSON.stringify({
           groupby: ['category'],
           metric: 'SUM(revenue)',
-          colorScheme: 'supersetColors',
+          colorScheme,
           numberFormat: 'SMART_NUMBER',
-          showLabels: false,
+          showLabels,
           showLegend: false,
-          donut: false,
+          donut,
           outerRadius: 70,
         }),
       }),
-      chart_size: defaultChartSize,
+      chart_size: {
+        type: 'FIXED',
+        configs: { zoom: 6, width: chartWidth, height: chartHeight },
+        values: {
+          6: { width: chartWidth, height: chartHeight },
+          7: { width: chartWidth + 20, height: chartHeight + 20 },
+          8: { width: chartWidth + 40, height: chartHeight + 40 },
+        },
+      },
       layer_configs: defaultLayerConfigs,
       map_view: defaultMapView,
       chart_background_color: defaultChartBackgroundColor,
-      chart_background_border_radius: 8,
+      chart_background_border_radius: borderRadius,
     }}
   />
 );

@@ -18,6 +18,7 @@
  */
 import { SuperChart, VizType } from '@superset-ui/core';
 import { BigNumberChartPlugin } from '@superset-ui/plugin-chart-echarts';
+import { withResizableChartDemo } from '@storybook-shared';
 import testData from './data';
 
 new BigNumberChartPlugin().configure({ key: 'big-number' }).register();
@@ -25,20 +26,21 @@ new BigNumberChartPlugin().configure({ key: 'big-number' }).register();
 const TIME_COLUMN = '__timestamp';
 
 const formData = {
-  colorPicker: {
+  color_picker: {
     r: 0,
     g: 122,
     b: 135,
     a: 1,
   },
-  compareLag: 1,
-  compareSuffix: 'over 10Y',
+  compare_lag: 1,
+  compare_suffix: 'over 10Y',
   metric: 'sum__SP_POP_TOTL',
-  showTrendLine: true,
-  startYAxisAtZero: true,
-  timeGrainSqla: 'P1Y',
-  vizType: VizType.BigNumber,
-  yAxisFormat: '.3s',
+  show_trend_line: true,
+  start_y_axis_at_zero: true,
+  time_grain_sqla: 'P1Y',
+  viz_type: VizType.BigNumber,
+  x_axis: TIME_COLUMN,
+  y_axis_format: '.3s',
 };
 
 /**
@@ -56,15 +58,59 @@ function withNulls(origData: object[], nullPosition = 3) {
 
 export default {
   title: 'Legacy Chart Plugins/legacy-preset-big-number/BigNumberWithTrendline',
+  decorators: [withResizableChartDemo],
+  args: {
+    showTrendLine: true,
+    startYAxisAtZero: true,
+    compareLag: 1,
+    compareSuffix: 'over 10Y',
+    yAxisFormat: '.3s',
+  },
+  argTypes: {
+    showTrendLine: { control: 'boolean' },
+    startYAxisAtZero: { control: 'boolean' },
+    compareLag: {
+      control: { type: 'range', min: 0, max: 10, step: 1 },
+      description: 'Number of periods to compare against',
+    },
+    compareSuffix: { control: 'text' },
+    yAxisFormat: {
+      control: 'select',
+      options: ['SMART_NUMBER', '.2f', '.0%', '$,.2f', '.3s', ',d'],
+    },
+  },
 };
 
-export const basicWithTrendline = () => (
+export const BasicWithTrendline = ({
+  width,
+  height,
+  showTrendLine,
+  startYAxisAtZero,
+  compareLag,
+  compareSuffix,
+  yAxisFormat,
+}: {
+  width: number;
+  height: number;
+  showTrendLine: boolean;
+  startYAxisAtZero: boolean;
+  compareLag: number;
+  compareSuffix: string;
+  yAxisFormat: string;
+}) => (
   <SuperChart
     chartType="big-number"
-    width={400}
-    height={400}
+    width={width}
+    height={height}
     queriesData={[{ data: testData }]}
-    formData={formData}
+    formData={{
+      ...formData,
+      show_trend_line: showTrendLine,
+      start_y_axis_at_zero: startYAxisAtZero,
+      compare_lag: compareLag,
+      compare_suffix: compareSuffix,
+      y_axis_format: yAxisFormat,
+    }}
   />
 );
 
@@ -76,7 +122,7 @@ export const weeklyTimeGranularity = () => (
     queriesData={[{ data: testData }]}
     formData={{
       ...formData,
-      timeGrainSqla: 'P1W',
+      time_grain_sqla: 'P1W',
     }}
   />
 );
@@ -105,7 +151,7 @@ export const fixedRange = () => (
     ]}
     formData={{
       ...formData,
-      timeRangeFixed: true,
+      time_range_fixed: true,
     }}
   />
 );
@@ -124,7 +170,7 @@ export const noFixedRange = () => (
     ]}
     formData={{
       ...formData,
-      timeRangeFixed: false,
+      time_range_fixed: false,
     }}
   />
 );

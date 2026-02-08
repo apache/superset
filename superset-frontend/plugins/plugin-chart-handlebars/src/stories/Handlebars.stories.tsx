@@ -98,9 +98,92 @@ const timelineTemplate = `
 </div>
 `;
 
+// Simple editable template for the interactive demo
+const simpleTemplate = `<div style="font-family: sans-serif; padding: 16px;">
+  <h2 style="margin: 0 0 16px 0;">{{title}}</h2>
+  <ul style="list-style: none; padding: 0; margin: 0;">
+    {{#each data}}
+    <li style="padding: 8px; margin: 4px 0; background: #f5f5f5; border-radius: 4px;">
+      <strong>{{metric}}</strong>: {{formatNumber value}}
+    </li>
+    {{/each}}
+  </ul>
+</div>`;
+
+// Simple CSS for the interactive demo
+const simpleCSS = `.handlebars-container {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.handlebars-container h2 {
+  color: #333;
+  margin-bottom: 16px;
+}
+
+.handlebars-container ul {
+  list-style: none;
+  padding: 0;
+}
+
+.handlebars-container li {
+  padding: 12px;
+  margin: 8px 0;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 8px;
+}`;
+
 export default {
   title: 'Chart Plugins/plugin-chart-handlebars',
   decorators: [withResizableChartDemo],
+};
+
+export const InteractiveHandlebars = ({
+  handlebarsTemplate,
+  styleTemplate,
+  width,
+  height,
+}: {
+  handlebarsTemplate: string;
+  styleTemplate: string;
+  width: number;
+  height: number;
+}) => (
+  <SuperChart
+    chartType={VIZ_TYPE}
+    width={width}
+    height={height}
+    queriesData={[{ data: kpiData }]}
+    formData={{
+      datasource: '1__table',
+      viz_type: VIZ_TYPE,
+      handlebars_template: handlebarsTemplate,
+      style_template: styleTemplate,
+    }}
+  />
+);
+
+InteractiveHandlebars.args = {
+  handlebarsTemplate: simpleTemplate,
+  styleTemplate: simpleCSS,
+};
+
+InteractiveHandlebars.argTypes = {
+  handlebarsTemplate: {
+    control: { type: 'text' },
+    description: 'Handlebars template for rendering data',
+  },
+  styleTemplate: {
+    control: { type: 'text' },
+    description: 'CSS styles to apply to the chart',
+  },
+};
+
+InteractiveHandlebars.parameters = {
+  initialSize: {
+    width: 600,
+    height: 400,
+  },
 };
 
 export const KPIDashboard = ({
@@ -118,7 +201,7 @@ export const KPIDashboard = ({
     formData={{
       datasource: '1__table',
       viz_type: VIZ_TYPE,
-      handlebarsTemplate: kpiTemplate,
+      handlebars_template: kpiTemplate,
     }}
   />
 );
@@ -145,7 +228,7 @@ export const Leaderboard = ({
     formData={{
       datasource: '1__table',
       viz_type: VIZ_TYPE,
-      handlebarsTemplate: leaderboardTemplate,
+      handlebars_template: leaderboardTemplate,
     }}
   />
 );
@@ -172,7 +255,7 @@ export const Timeline = ({
     formData={{
       datasource: '1__table',
       viz_type: VIZ_TYPE,
-      handlebarsTemplate: timelineTemplate,
+      handlebars_template: timelineTemplate,
     }}
   />
 );

@@ -21,20 +21,49 @@
 /* eslint-disable no-magic-numbers */
 import { SuperChart } from '@superset-ui/core';
 import { GridChartPlugin } from '@superset-ui/legacy-preset-chart-deckgl';
+import { withResizableChartDemo, dummyDatasource } from '@storybook-shared';
 import payload from './payload';
-import { dummyDatasource } from '@storybook-shared';
 
 new GridChartPlugin().configure({ key: 'deck_grid' }).register();
 
 export default {
   title: 'Legacy Chart Plugins/legacy-preset-chart-deckgl/GridChartPlugin',
+  decorators: [withResizableChartDemo],
+  args: {
+    gridSize: 120,
+    extruded: true,
+    autozoom: true,
+  },
+  argTypes: {
+    gridSize: {
+      control: { type: 'range', min: 20, max: 500, step: 20 },
+      description: 'Size of grid cells in meters',
+    },
+    extruded: {
+      control: 'boolean',
+      description: 'Extrude cells in 3D',
+    },
+    autozoom: { control: 'boolean' },
+  },
 };
 
-export const GridChartViz = () => (
+export const GridChartViz = ({
+  gridSize,
+  extruded,
+  autozoom,
+  width,
+  height,
+}: {
+  gridSize: number;
+  extruded: boolean;
+  autozoom: boolean;
+  width: number;
+  height: number;
+}) => (
   <SuperChart
     chartType="deck_grid"
-    width={400}
-    height={400}
+    width={width}
+    height={height}
     datasource={dummyDatasource}
     queriesData={[payload]}
     formData={{
@@ -50,7 +79,7 @@ export const GridChartViz = () => (
       row_limit: 5000,
       filter_nulls: true,
       adhoc_filters: [],
-      mapbox_style: 'mapbox://styles/mapbox/satellite-streets-v9',
+      mapbox_style: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
       viewport: {
         bearing: 155.80099696026355,
         latitude: 37.7942314882596,
@@ -59,9 +88,9 @@ export const GridChartViz = () => (
         zoom: 12.699690845482069,
       },
       color_picker: { a: 1, b: 0, g: 255, r: 14 },
-      autozoom: true,
-      grid_size: 120,
-      extruded: true,
+      autozoom,
+      grid_size: gridSize,
+      extruded,
       js_columns: [],
       js_data_mutator: '',
       js_tooltip: '',

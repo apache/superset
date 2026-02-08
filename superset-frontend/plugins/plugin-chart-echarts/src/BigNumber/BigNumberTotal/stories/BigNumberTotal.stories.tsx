@@ -18,6 +18,7 @@
  */
 import { SuperChart, VizType } from '@superset-ui/core';
 import { BigNumberTotalChartPlugin } from '@superset-ui/plugin-chart-echarts';
+import { withResizableChartDemo } from '@storybook-shared';
 import data from './data';
 
 new BigNumberTotalChartPlugin()
@@ -26,34 +27,67 @@ new BigNumberTotalChartPlugin()
 
 export default {
   title: 'Legacy Chart Plugins/legacy-preset-big-number/BigNumberTotal',
+  decorators: [withResizableChartDemo],
+  args: {
+    subheader: 'total female participants',
+    yAxisFormat: '.3s',
+    forceTimestampFormatting: false,
+  },
+  argTypes: {
+    subheader: { control: 'text' },
+    yAxisFormat: {
+      control: 'select',
+      options: ['SMART_NUMBER', '.2f', '.0%', '$,.2f', '.3s', ',d'],
+    },
+    forceTimestampFormatting: { control: 'boolean' },
+  },
 };
 
-export const totalBasic = () => (
+export const TotalBasic = ({
+  subheader,
+  yAxisFormat,
+  forceTimestampFormatting,
+  width,
+  height,
+}: {
+  subheader: string;
+  yAxisFormat: string;
+  forceTimestampFormatting: boolean;
+  width: number;
+  height: number;
+}) => (
   <SuperChart
     chartType="big-number-total"
-    width={400}
-    height={400}
+    width={width}
+    height={height}
     queriesData={[{ data }]}
     formData={{
       metric: 'sum__num',
-      subheader: 'total female participants',
-      vizType: VizType.BigNumberTotal,
-      yAxisFormat: '.3s',
+      subheader,
+      viz_type: VizType.BigNumberTotal,
+      y_axis_format: yAxisFormat,
+      force_timestamp_formatting: forceTimestampFormatting,
     }}
   />
 );
 
-export const totalNoData = () => (
+export const TotalNoData = ({
+  width,
+  height,
+}: {
+  width: number;
+  height: number;
+}) => (
   <SuperChart
     chartType="big-number-total"
-    width={400}
-    height={400}
+    width={width}
+    height={height}
     queriesData={[{ data: [] }]}
     formData={{
       metric: 'sum__num',
       subheader: 'total female participants',
-      vizType: VizType.BigNumberTotal,
-      yAxisFormat: '.3s',
+      viz_type: VizType.BigNumberTotal,
+      y_axis_format: '.3s',
     }}
   />
 );

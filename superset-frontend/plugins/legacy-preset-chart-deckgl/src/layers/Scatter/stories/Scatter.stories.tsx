@@ -21,20 +21,56 @@
 /* eslint-disable no-magic-numbers */
 import { SuperChart } from '@superset-ui/core';
 import { ScatterChartPlugin } from '@superset-ui/legacy-preset-chart-deckgl';
+import { withResizableChartDemo, dummyDatasource } from '@storybook-shared';
 import payload from './payload';
-import { dummyDatasource } from '@storybook-shared';
 
 new ScatterChartPlugin().configure({ key: 'deck_scatter' }).register();
 
 export default {
   title: 'Legacy Chart Plugins/legacy-preset-chart-deckgl/ScatterChartPlugin',
+  decorators: [withResizableChartDemo],
+  args: {
+    minRadius: 2,
+    maxRadius: 250,
+    multiplier: 10,
+    autozoom: true,
+  },
+  argTypes: {
+    minRadius: {
+      control: { type: 'range', min: 1, max: 50, step: 1 },
+      description: 'Minimum point radius',
+    },
+    maxRadius: {
+      control: { type: 'range', min: 50, max: 500, step: 10 },
+      description: 'Maximum point radius',
+    },
+    multiplier: {
+      control: { type: 'range', min: 1, max: 100, step: 1 },
+      description: 'Point size multiplier',
+    },
+    autozoom: { control: 'boolean' },
+  },
 };
 
-export const ScatterChartViz = () => (
+export const ScatterChartViz = ({
+  minRadius,
+  maxRadius,
+  multiplier,
+  autozoom,
+  width,
+  height,
+}: {
+  minRadius: number;
+  maxRadius: number;
+  multiplier: number;
+  autozoom: boolean;
+  width: number;
+  height: number;
+}) => (
   <SuperChart
     chartType="deck_scatter"
-    width={400}
-    height={400}
+    width={width}
+    height={height}
     datasource={dummyDatasource}
     queriesData={[payload]}
     formData={{
@@ -49,7 +85,7 @@ export const ScatterChartViz = () => (
       row_limit: 5000,
       filter_nulls: true,
       adhoc_filters: [],
-      mapbox_style: 'mapbox://styles/mapbox/light-v9',
+      mapbox_style: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
       viewport: {
         bearing: -4.952916738791771,
         latitude: 37.78926922909199,
@@ -57,12 +93,12 @@ export const ScatterChartViz = () => (
         pitch: 4.750411100577438,
         zoom: 12.729132798697304,
       },
-      autozoom: true,
+      autozoom,
       point_radius_fixed: { type: 'metric', value: 'count' },
       point_unit: 'square_m',
-      min_radius: 2,
-      max_radius: 250,
-      multiplier: 10,
+      min_radius: minRadius,
+      max_radius: maxRadius,
+      multiplier,
       color_picker: { a: 0.82, b: 3, g: 0, r: 205 },
       legend_position: 'tr',
       legend_format: null,

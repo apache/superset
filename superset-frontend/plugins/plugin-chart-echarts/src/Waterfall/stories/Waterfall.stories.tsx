@@ -40,14 +40,44 @@ getChartTransformPropsRegistry().registerValue(
 export default {
   title: 'Chart Plugins/plugin-chart-echarts/Waterfall',
   decorators: [withResizableChartDemo],
+  args: {
+    xTicksLayout: '45°',
+    showLegend: true,
+    showValue: true,
+    richTooltip: true,
+    yAxisFormat: 'SMART_NUMBER',
+  },
+  argTypes: {
+    xTicksLayout: {
+      control: 'select',
+      options: ['auto', 'flat', '45°', '90°', 'staggered'],
+    },
+    showLegend: { control: 'boolean' },
+    showValue: { control: 'boolean' },
+    richTooltip: { control: 'boolean' },
+    yAxisFormat: {
+      control: 'select',
+      options: ['SMART_NUMBER', '.2f', '.0%', '$,.2f', '.3s', ',d'],
+    },
+  },
 };
 
 export const Waterfall = ({
   width,
   height,
+  xTicksLayout,
+  showLegend,
+  showValue,
+  richTooltip,
+  yAxisFormat,
 }: {
   width: number;
   height: number;
+  xTicksLayout: string;
+  showLegend: boolean;
+  showValue: boolean;
+  richTooltip: boolean;
+  yAxisFormat: string;
 }) => (
   <SuperChart
     chartType={VizType.Waterfall}
@@ -58,7 +88,11 @@ export const Waterfall = ({
       metric: `SUM(decomp_volume)`,
       columns: 'due_to_group',
       series: 'period',
-      x_ticks_layout: '45°',
+      x_ticks_layout: xTicksLayout,
+      show_legend: showLegend,
+      show_value: showValue,
+      rich_tooltip: richTooltip,
+      y_axis_format: yAxisFormat,
       adhocFilters: [
         {
           clause: 'WHERE',

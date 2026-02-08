@@ -32,16 +32,44 @@ getChartTransformPropsRegistry().registerValue(VIZ_TYPE, transformProps);
 export default {
   title: 'Chart Plugins/plugin-chart-ag-grid-table',
   decorators: [withResizableChartDemo],
+  args: {
+    includeSearch: true,
+    showCellBars: true,
+    alignPn: false,
+    colorPn: true,
+  },
+  argTypes: {
+    includeSearch: {
+      control: 'boolean',
+      description: 'Show search box',
+    },
+    showCellBars: {
+      control: 'boolean',
+      description: 'Show cell bars for numeric columns',
+    },
+    alignPn: {
+      control: 'boolean',
+      description: 'Align positive/negative values',
+    },
+    colorPn: {
+      control: 'boolean',
+      description: 'Color positive/negative values',
+    },
+  },
 };
 
 export const Basic = ({
   includeSearch,
   showCellBars,
+  alignPn,
+  colorPn,
   width,
   height,
 }: {
   includeSearch: boolean;
   showCellBars: boolean;
+  alignPn: boolean;
+  colorPn: boolean;
   width: number;
   height: number;
 }) => (
@@ -51,25 +79,18 @@ export const Basic = ({
     height={height}
     datasource={{
       columnFormats: {},
+      verboseMap: {},
     }}
     queriesData={[basicData]}
     formData={{
       ...basicFormData,
       include_search: includeSearch,
       show_cell_bars: showCellBars,
+      align_pn: alignPn,
+      color_pn: colorPn,
     }}
   />
 );
-
-Basic.args = {
-  includeSearch: true,
-  showCellBars: true,
-};
-
-Basic.argTypes = {
-  includeSearch: { control: 'boolean' },
-  showCellBars: { control: 'boolean' },
-};
 
 Basic.parameters = {
   initialSize: {
