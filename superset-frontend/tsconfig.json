@@ -8,10 +8,14 @@
     "strictNullChecks": true,
     "module": "esnext",
     "moduleResolution": "bundler",
-
-    "types": ["jest", "node"],
-    "typeRoots": ["src/types", "node_modules/@types"],
-
+    "types": [
+      "jest",
+      "node"
+    ],
+    "typeRoots": [
+      "src/types",
+      "node_modules/@types"
+    ],
     /* Emit */
     "declaration": true,
     "declarationMap": true,
@@ -21,44 +25,60 @@
     "rootDir": ".",
     "declarationDir": "lib",
     "sourceMap": true,
-
     /* JavaScript Support */
     "allowJs": true,
-
     /* Interop Constraints */
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-
     /* Language and Environment */
     "target": "es2020",
     "jsx": "react-jsx",
     "jsxImportSource": "@emotion/react",
-    "lib": ["dom", "dom.iterable", "esnext"],
-
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     /* Projects */
     "composite": true,
-
     /* Completeness */
     "skipLibCheck": true,
-
     "baseUrl": ".",
     "paths": {
-      "@superset-ui/core": ["./packages/superset-ui-core/src"],
-      "@superset-ui/core/*": ["./packages/superset-ui-core/src/*"],
+      "@superset-ui/core": [
+        "./packages/superset-ui-core/src"
+      ],
+      "@superset-ui/core/*": [
+        "./packages/superset-ui-core/src/*"
+      ],
       "@superset-ui/chart-controls": [
         "./packages/superset-ui-chart-controls/src"
       ],
       "@superset-ui/chart-controls/*": [
         "./packages/superset-ui-chart-controls/src/*"
       ],
-      "@superset-ui/switchboard": ["./packages/superset-ui-switchboard/src"],
-      "@apache-superset/core": ["./packages/superset-core/src"],
-      "@apache-superset/core/*": ["./packages/superset-core/src/*"],
-      "@superset-ui/plugin-chart-*": ["./plugins/plugin-chart-*/src"],
-      "@superset-ui/legacy-plugin-chart-*": ["./plugins/legacy-plugin-chart-*/src"],
-      "@superset-ui/legacy-preset-chart-*": ["./plugins/legacy-preset-chart-*/src"],
-      "echarts/types/src/*": ["./node_modules/echarts/types/src/*"]
+      "@superset-ui/switchboard": [
+        "./packages/superset-ui-switchboard/src"
+      ],
+      "@apache-superset/core": [
+        "./packages/superset-core/src"
+      ],
+      "@apache-superset/core/*": [
+        "./packages/superset-core/src/*"
+      ],
+      "@superset-ui/plugin-chart-*": [
+        "./plugins/plugin-chart-*/src"
+      ],
+      "@superset-ui/legacy-plugin-chart-*": [
+        "./plugins/legacy-plugin-chart-*/src"
+      ],
+      "@superset-ui/legacy-preset-chart-*": [
+        "./plugins/legacy-preset-chart-*/src"
+      ],
+      "echarts/types/src/*": [
+        "./node_modules/echarts/types/src/*"
+      ]
     }
   },
   "include": [
@@ -72,29 +92,78 @@
     "./package.json"
   ],
   "references": [
-    { "path": "./packages/superset-core" },
-    { "path": "./packages/superset-ui-core" },
-    { "path": "./packages/superset-ui-chart-controls" },
-    { "path": "./packages/superset-ui-switchboard" },
-    { "path": "./plugins/legacy-plugin-chart-calendar" },
-    { "path": "./plugins/legacy-plugin-chart-chord" },
-    { "path": "./plugins/legacy-plugin-chart-country-map" },
-    { "path": "./plugins/legacy-plugin-chart-horizon" },
-    { "path": "./plugins/legacy-plugin-chart-map-box" },
-    { "path": "./plugins/legacy-plugin-chart-paired-t-test" },
-    { "path": "./plugins/legacy-plugin-chart-parallel-coordinates" },
-    { "path": "./plugins/legacy-plugin-chart-partition" },
-    { "path": "./plugins/legacy-plugin-chart-rose" },
-    { "path": "./plugins/legacy-plugin-chart-world-map" },
-    { "path": "./plugins/legacy-preset-chart-deckgl" },
-    { "path": "./plugins/legacy-preset-chart-nvd3" },
-    { "path": "./plugins/plugin-chart-ag-grid-table" },
-    { "path": "./plugins/plugin-chart-cartodiagram" },
-    { "path": "./plugins/plugin-chart-echarts" },
-    { "path": "./plugins/plugin-chart-handlebars" },
-    { "path": "./plugins/plugin-chart-pivot-table" },
-    { "path": "./plugins/plugin-chart-table" },
-    { "path": "./plugins/plugin-chart-word-cloud" }
+    {
+      "path": "./packages/superset-core"
+    },
+    {
+      "path": "./packages/superset-ui-core"
+    },
+    {
+      "path": "./packages/superset-ui-chart-controls"
+    },
+    {
+      "path": "./packages/superset-ui-switchboard"
+    },
+    {
+      "path": "./plugins/legacy-plugin-chart-calendar"
+    },
+    {
+      "path": "./plugins/legacy-plugin-chart-chord"
+    },
+    {
+      "path": "./plugins/legacy-plugin-chart-country-map"
+    },
+    {
+      "path": "./plugins/legacy-plugin-chart-horizon"
+    },
+    {
+      "path": "./plugins/legacy-plugin-chart-map-box"
+    },
+    {
+      "path": "./plugins/legacy-plugin-chart-paired-t-test"
+    },
+    {
+      "path": "./plugins/legacy-plugin-chart-parallel-coordinates"
+    },
+    {
+      "path": "./plugins/legacy-plugin-chart-partition"
+    },
+    {
+      "path": "./plugins/legacy-plugin-chart-rose"
+    },
+    {
+      "path": "./plugins/legacy-plugin-chart-world-map"
+    },
+    {
+      "path": "./plugins/legacy-preset-chart-deckgl"
+    },
+    {
+      "path": "./plugins/legacy-preset-chart-nvd3"
+    },
+    {
+      "path": "./plugins/plugin-chart-ag-grid-table"
+    },
+    {
+      "path": "./plugins/plugin-chart-cartodiagram"
+    },
+    {
+      "path": "./plugins/plugin-chart-echarts"
+    },
+    {
+      "path": "./plugins/plugin-chart-handlebars"
+    },
+    {
+      "path": "./plugins/plugin-chart-pivot-table"
+    },
+    {
+      "path": "./plugins/plugin-chart-table"
+    },
+    {
+      "path": "./plugins/plugin-chart-unified-list-bar"
+    },
+    {
+      "path": "./plugins/plugin-chart-word-cloud"
+    }
   ],
   "exclude": []
 }
