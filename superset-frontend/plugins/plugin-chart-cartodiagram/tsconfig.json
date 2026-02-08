@@ -15,8 +15,7 @@
   "exclude": [
     "src/**/*.js",
     "src/**/*.jsx",
-    "src/**/*.test.*",
-    "src/**/*.stories.*"],
+    "src/**/*.test.*"],
   "references": [
     { "path": "../../packages/superset-core" },
     { "path": "../../packages/superset-ui-core" },
