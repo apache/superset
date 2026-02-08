@@ -37,7 +37,12 @@ export default {
   argTypes: {
     colorScheme: {
       control: 'select',
-      options: ['supersetColors', 'd3Category10', 'bnbColors', 'googleCategory20c'],
+      options: [
+        'supersetColors',
+        'd3Category10',
+        'bnbColors',
+        'googleCategory20c',
+      ],
     },
     maxBubbleSize: {
       control: { type: 'range', min: 10, max: 100, step: 5 },

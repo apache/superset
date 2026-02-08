@@ -46,7 +46,12 @@ export default {
   argTypes: {
     colorScheme: {
       control: 'select',
-      options: ['supersetColors', 'd3Category10', 'bnbColors', 'googleCategory20c'],
+      options: [
+        'supersetColors',
+        'd3Category10',
+        'bnbColors',
+        'googleCategory20c',
+      ],
     },
     layout: {
       control: 'select',
@@ -56,11 +61,20 @@ export default {
     orient: {
       control: 'select',
       options: ['LR', 'RL', 'TB', 'BT'],
-      description: 'Orientation: Left-Right, Right-Left, Top-Bottom, Bottom-Top',
+      description:
+        'Orientation: Left-Right, Right-Left, Top-Bottom, Bottom-Top',
     },
     symbol: {
       control: 'select',
-      options: ['emptyCircle', 'circle', 'rect', 'triangle', 'diamond', 'pin', 'arrow'],
+      options: [
+        'emptyCircle',
+        'circle',
+        'rect',
+        'triangle',
+        'diamond',
+        'pin',
+        'arrow',
+      ],
     },
     symbolSize: {
       control: { type: 'range', min: 5, max: 30, step: 1 },
