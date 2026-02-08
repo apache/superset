@@ -18,20 +18,9 @@
  */
 import { useMemo, useState, useCallback } from 'react';
 import { Meta, StoryFn } from '@storybook/react';
-import {
-  useTable,
-  useSortBy,
-  Column,
-  Row,
-  SortingRule,
-  ColumnInstance,
-} from 'react-table';
+import { useTable, useSortBy, Column, Row, SortingRule } from 'react-table';
 import TableCollection from '.';
 import { TableSize } from '../Table';
-
-// Helper type to cast columns for TableCollection which uses generic object type
-type AnyColumns = ColumnInstance<object>[];
-type AnyRows = Row<object>[];
 
 export default {
   title: 'Components/TableCollection',
@@ -87,12 +76,12 @@ export const Basic: StoryFn = () => {
   } = useTable<SampleData>({ columns, data }, useSortBy);
 
   return (
-    <TableCollection
+    <TableCollection<SampleData>
       getTableProps={getTableProps}
       getTableBodyProps={getTableBodyProps}
       headerGroups={headerGroups}
-      rows={rows as AnyRows}
-      columns={tableColumns as AnyColumns}
+      rows={rows}
+      columns={tableColumns}
       prepareRow={prepareRow}
       loading={false}
       totalCount={rows.length}
@@ -146,12 +135,12 @@ export const WithPagination: StoryFn = () => {
   }, []);
 
   return (
-    <TableCollection
+    <TableCollection<SampleData>
       getTableProps={getTableProps}
       getTableBodyProps={getTableBodyProps}
       headerGroups={headerGroups}
-      rows={rows as AnyRows}
-      columns={tableColumns as AnyColumns}
+      rows={rows}
+      columns={tableColumns}
       prepareRow={prepareRow}
       loading={false}
       pageIndex={pageIndex}
@@ -234,16 +223,16 @@ export const WithRowSelection: StoryFn = () => {
           </span>
         )}
       </div>
-      <TableCollection
+      <TableCollection<SampleData>
         getTableProps={getTableProps}
         getTableBodyProps={getTableBodyProps}
         headerGroups={headerGroups}
-        rows={rows as AnyRows}
-        columns={tableColumns as AnyColumns}
+        rows={rows}
+        columns={tableColumns}
         prepareRow={prepareRow}
         loading={false}
         bulkSelectEnabled
-        selectedFlatRows={selectedRows as AnyRows}
+        selectedFlatRows={selectedRows}
         toggleRowSelected={toggleRowSelected}
         toggleAllRowsSelected={toggleAllRowsSelected}
         totalCount={rows.length}
@@ -287,12 +276,12 @@ export const LoadingState: StoryFn = () => {
   } = useTable<SampleData>({ columns, data }, useSortBy);
 
   return (
-    <TableCollection
+    <TableCollection<SampleData>
       getTableProps={getTableProps}
       getTableBodyProps={getTableBodyProps}
       headerGroups={headerGroups}
-      rows={rows as AnyRows}
-      columns={tableColumns as AnyColumns}
+      rows={rows}
+      columns={tableColumns}
       prepareRow={prepareRow}
       loading
       totalCount={0}
@@ -344,12 +333,12 @@ export const TableSizes: StoryFn = () => {
         return (
           <div key={size}>
             <h4 style={{ marginBottom: 8 }}>Size: {size}</h4>
-            <TableCollection
+            <TableCollection<SampleData>
               getTableProps={getTableProps}
               getTableBodyProps={getTableBodyProps}
               headerGroups={headerGroups}
-              rows={rows as AnyRows}
-              columns={tableColumns as AnyColumns}
+              rows={rows}
+              columns={tableColumns}
               prepareRow={prepareRow}
               loading={false}
               size={size}
@@ -428,12 +417,12 @@ export const WithControlledSorting: StoryFn = () => {
           ? `${sortBy[0].id} (${sortBy[0].desc ? 'descending' : 'ascending'})`
           : 'none'}
       </div>
-      <TableCollection
+      <TableCollection<SampleData>
         getTableProps={getTableProps}
         getTableBodyProps={getTableBodyProps}
         headerGroups={headerGroups}
-        rows={rows as AnyRows}
-        columns={tableColumns as AnyColumns}
+        rows={rows}
+        columns={tableColumns}
         prepareRow={prepareRow}
         loading={false}
         setSortBy={setSortBy}
@@ -499,12 +488,12 @@ export const WithRowHighlighting: StoryFn = () => {
           </select>
         </label>
       </div>
-      <TableCollection
+      <TableCollection<SampleData>
         getTableProps={getTableProps}
         getTableBodyProps={getTableBodyProps}
         headerGroups={headerGroups}
-        rows={rows as AnyRows}
-        columns={tableColumns as AnyColumns}
+        rows={rows}
+        columns={tableColumns}
         prepareRow={prepareRow}
         loading={false}
         highlightRowId={highlightRowId}
