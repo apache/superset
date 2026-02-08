@@ -34,11 +34,21 @@ export default {
   argTypes: {
     colorScheme: {
       control: 'select',
-      options: ['supersetColors', 'd3Category10', 'bnbColors', 'googleCategory20c'],
+      options: [
+        'supersetColors',
+        'd3Category10',
+        'bnbColors',
+        'googleCategory20c',
+      ],
     },
     whiskerOptions: {
       control: 'select',
-      options: ['Tukey', 'Min/max (no outliers)', '2/98 percentiles', '9/91 percentiles'],
+      options: [
+        'Tukey',
+        'Min/max (no outliers)',
+        '2/98 percentiles',
+        '9/91 percentiles',
+      ],
     },
   },
 };

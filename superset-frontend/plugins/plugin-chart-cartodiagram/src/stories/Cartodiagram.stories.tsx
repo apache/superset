@@ -31,7 +31,6 @@ import { withResizableChartDemo, dummyDatasource } from '@storybook-shared';
 import {
   defaultLayerConfigs,
   defaultMapView,
-  defaultChartSize,
   defaultChartBackgroundColor,
 } from './data';
 
@@ -82,7 +81,12 @@ export default {
     },
     colorScheme: {
       control: 'select',
-      options: ['supersetColors', 'd3Category10', 'bnbColors', 'googleCategory20c'],
+      options: [
+        'supersetColors',
+        'd3Category10',
+        'bnbColors',
+        'googleCategory20c',
+      ],
     },
     chartWidth: {
       control: { type: 'range', min: 50, max: 200, step: 10 },

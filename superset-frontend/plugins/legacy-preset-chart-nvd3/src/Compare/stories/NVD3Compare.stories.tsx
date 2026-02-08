@@ -35,7 +35,12 @@ export default {
   argTypes: {
     colorScheme: {
       control: 'select',
-      options: ['supersetColors', 'd3Category10', 'bnbColors', 'googleCategory20c'],
+      options: [
+        'supersetColors',
+        'd3Category10',
+        'bnbColors',
+        'googleCategory20c',
+      ],
     },
     contribution: {
       control: 'boolean',
