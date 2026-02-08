@@ -132,8 +132,8 @@ const percentMetricsControl: typeof sharedControls.metrics = {
   label: t('Percentage metrics'),
   description: t(
     'Select one or many metrics to display, that will be displayed in the percentages of total. ' +
-      'Percentage metrics will be calculated only from data within the row limit. ' +
-      'You can use an aggregation function on a column or write custom SQL to create a percentage metric.',
+    'Percentage metrics will be calculated only from data within the row limit. ' +
+    'You can use an aggregation function on a column or write custom SQL to create a percentage metric.',
   ),
   visibility: isAggMode,
   resetOnHide: false,
@@ -175,7 +175,7 @@ const percentMetricCalculationControl: ControlConfig<'SelectControl'> = {
   label: t('Percentage metric calculation'),
   description: t(
     'Row Limit: percentages are calculated based on the subset of data retrieved, respecting the row limit. ' +
-      'All Records: Percentages are calculated based on the total dataset, ignoring the row limit.',
+    'All Records: Percentages are calculated based on the total dataset, ignoring the row limit.',
   ),
   default: 'row_limit',
   clearable: false,
@@ -307,8 +307,8 @@ const config: ControlPanelConfig = {
               ) => ({
                 columns: datasource?.columns[0]?.hasOwnProperty('filterable')
                   ? (datasource as Dataset)?.columns?.filter(
-                      (c: ColumnMeta) => c.filterable,
-                    )
+                    (c: ColumnMeta) => c.filterable,
+                  )
                   : datasource?.columns,
                 savedMetrics: defineSavedMetrics(datasource),
                 // current active adhoc metrics
@@ -709,8 +709,8 @@ const config: ControlPanelConfig = {
               default: false,
               description: t(
                 'This will be applied to the whole table. Arrows (↑ and ↓) will be added to ' +
-                  'main columns for increase and decrease. Basic conditional formatting can be ' +
-                  'overwritten by conditional formatting below.',
+                'main columns for increase and decrease. Basic conditional formatting can be ' +
+                'overwritten by conditional formatting below.',
               ),
             },
           },
@@ -732,7 +732,7 @@ const config: ControlPanelConfig = {
                 Boolean(controls?.comparison_color_enabled?.value),
               description: t(
                 'Adds color to the chart symbols based on the positive or ' +
-                  'negative change from the comparison value.',
+                'negative change from the comparison value.',
               ),
             },
           },
@@ -744,9 +744,7 @@ const config: ControlPanelConfig = {
               type: 'ConditionalFormattingControl',
               renderTrigger: true,
               label: t('Custom conditional formatting'),
-              description: t(
-                'Apply conditional color formatting to numeric columns',
-              ),
+              description: t('Apply conditional color formatting to columns'),
               shouldMapStateToProps() {
                 return true;
               },
@@ -761,15 +759,15 @@ const config: ControlPanelConfig = {
 
                 const extraColorChoices = hasTimeComparison
                   ? [
-                      {
-                        value: ColorSchemeEnum.Green,
-                        label: t('Green for increase, red for decrease'),
-                      },
-                      {
-                        value: ColorSchemeEnum.Red,
-                        label: t('Red for increase, green for decrease'),
-                      },
-                    ]
+                    {
+                      value: ColorSchemeEnum.Green,
+                      label: t('Green for increase, red for decrease'),
+                    },
+                    {
+                      value: ColorSchemeEnum.Red,
+                      label: t('Red for increase, green for decrease'),
+                    },
+                  ]
                   : [];
 
                 const chartStatus = chart?.chartStatus;
@@ -795,32 +793,32 @@ const config: ControlPanelConfig = {
                 }
                 const { colnames, coltypes } =
                   chart?.queriesResponse?.[0] ?? {};
-                const numericColumns =
+                const eligibleColumns =
                   Array.isArray(colnames) && Array.isArray(coltypes)
                     ? colnames.reduce((acc, colname, index) => {
-                        if (
-                          coltypes[index] === GenericDataType.Numeric ||
-                          (!hasTimeComparison &&
-                            (coltypes[index] === GenericDataType.String ||
-                              coltypes[index] === GenericDataType.Boolean))
-                        ) {
-                          acc.push({
-                            value: colname,
-                            label: Array.isArray(verboseMap)
-                              ? colname
-                              : (verboseMap[colname] ?? colname),
-                            dataType: coltypes[index],
-                          });
-                        }
-                        return acc;
-                      }, [])
+                      if (
+                        coltypes[index] === GenericDataType.Numeric ||
+                        (!hasTimeComparison &&
+                          (coltypes[index] === GenericDataType.String ||
+                            coltypes[index] === GenericDataType.Boolean))
+                      ) {
+                        acc.push({
+                          value: colname,
+                          label: Array.isArray(verboseMap)
+                            ? colname
+                            : (verboseMap[colname] ?? colname),
+                          dataType: coltypes[index],
+                        });
+                      }
+                      return acc;
+                    }, [])
                     : [];
                 const columnOptions = hasTimeComparison
                   ? processComparisonColumns(
-                      numericColumns || [],
-                      ensureIsArray(timeCompareValue)[0]?.toString() || '',
-                    )
-                  : numericColumns;
+                    eligibleColumns || [],
+                    ensureIsArray(timeCompareValue)[0]?.toString() || '',
+                  )
+                  : eligibleColumns;
 
                 return {
                   removeIrrelevantConditions: chartStatus === 'success',
