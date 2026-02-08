@@ -28,11 +28,17 @@ from typing import Any, Callable
 import click
 import semver
 from jinja2 import Environment, FileSystemLoader
+from superset_core.extensions.signing import (
+    generate_keypair,
+    get_public_key_fingerprint,
+    sign_manifest,
+)
 from superset_core.extensions.types import (
     ExtensionConfig,
     Manifest,
     ManifestBackend,
     ManifestFrontend,
+    SandboxConfig,
 )
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
@@ -129,7 +135,11 @@ def clean_dist_frontend(cwd: Path) -> None:
         shutil.rmtree(frontend_dist)
 
 
-def build_manifest(cwd: Path, remote_entry: str | None) -> Manifest:
+def build_manifest(
+    cwd: Path,
+    remote_entry: str | None,
+    worker_entry: str | None = None,
+) -> Manifest:
     extension_data = read_json(cwd / "extension.json")
     if not extension_data:
         click.secho("❌ extension.json not found.", err=True, fg="red")
@@ -137,13 +147,32 @@ def build_manifest(cwd: Path, remote_entry: str | None) -> Manifest:
 
     extension = ExtensionConfig.model_validate(extension_data)
 
+    # Determine sandbox configuration
+    sandbox: SandboxConfig | None = None
+    if extension.sandbox:
+        sandbox = extension.sandbox
+
+    # Build frontend manifest based on sandbox type
     frontend: ManifestFrontend | None = None
-    if extension.frontend and remote_entry:
-        frontend = ManifestFrontend(
-            contributions=extension.frontend.contributions,
-            moduleFederation=extension.frontend.moduleFederation,
-            remoteEntry=remote_entry,
-        )
+    is_worker_sandbox = sandbox and sandbox.trustLevel == "worker"
+
+    if extension.frontend:
+        if is_worker_sandbox and worker_entry:
+            # Worker sandbox: use workerEntry, no Module Federation
+            frontend = ManifestFrontend(
+                contributions=extension.frontend.contributions,
+                moduleFederation=None,
+                remoteEntry=None,
+                workerEntry=worker_entry,
+            )
+        elif remote_entry:
+            # Standard iframe/core sandbox: use remoteEntry
+            frontend = ManifestFrontend(
+                contributions=extension.frontend.contributions,
+                moduleFederation=extension.frontend.moduleFederation,
+                remoteEntry=remote_entry,
+                workerEntry=None,
+            )
 
     backend: ManifestBackend | None = None
     if extension.backend and extension.backend.entryPoints:
@@ -155,6 +184,7 @@ def build_manifest(cwd: Path, remote_entry: str | None) -> Manifest:
         version=extension.version,
         permissions=extension.permissions,
         dependencies=extension.dependencies,
+        sandbox=sandbox,
         frontend=frontend,
         backend=backend,
     )
@@ -178,24 +208,43 @@ def run_frontend_build(frontend_dir: Path) -> subprocess.CompletedProcess[str]:
     )
 
 
-def copy_frontend_dist(cwd: Path) -> str:
+def copy_frontend_dist(
+    cwd: Path, is_worker_sandbox: bool = False
+) -> tuple[str | None, str | None]:
+    """
+    Copy frontend dist files and return (remote_entry, worker_entry) tuple.
+
+    For worker sandboxes, looks for worker.js instead of remoteEntry.*.js
+    """
     dist_dir = cwd / "dist"
     frontend_dist = cwd / "frontend" / "dist"
     remote_entry: str | None = None
+    worker_entry: str | None = None
 
     for f in frontend_dist.rglob("*"):
         if not f.is_file():
             continue
         if REMOTE_ENTRY_REGEX.match(f.name):
             remote_entry = f.name
+        if f.name == "worker.js":
+            worker_entry = f.name
         tgt = dist_dir / f.relative_to(cwd)
         tgt.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(f, tgt)
 
-    if not remote_entry:
-        click.secho("❌ No remote entry file found.", err=True, fg="red")
-        sys.exit(1)
-    return remote_entry
+    # Validate based on sandbox type
+    if is_worker_sandbox:
+        if not worker_entry:
+            click.secho(
+                "❌ No worker.js file found for worker sandbox.", err=True, fg="red"
+            )
+            sys.exit(1)
+    else:
+        if not remote_entry:
+            click.secho("❌ No remote entry file found.", err=True, fg="red")
+            sys.exit(1)
+
+    return remote_entry, worker_entry
 
 
 def copy_backend_files(cwd: Path) -> None:
@@ -214,18 +263,20 @@ def copy_backend_files(cwd: Path) -> None:
             shutil.copy2(f, tgt)
 
 
-def rebuild_frontend(cwd: Path, frontend_dir: Path) -> str | None:
-    """Clean and rebuild frontend, return the remoteEntry filename."""
+def rebuild_frontend(
+    cwd: Path, frontend_dir: Path, is_worker_sandbox: bool = False
+) -> tuple[str | None, str | None]:
+    """Clean and rebuild frontend, return (remoteEntry, workerEntry) tuple."""
     clean_dist_frontend(cwd)
 
     res = run_frontend_build(frontend_dir)
     if res.returncode != 0:
         click.secho("❌ Frontend build failed", fg="red")
-        return None
+        return None, None
 
-    remote_entry = copy_frontend_dist(cwd)
+    remote_entry, worker_entry = copy_frontend_dist(cwd, is_worker_sandbox)
     click.secho("✅ Frontend rebuilt", fg="green")
-    return remote_entry
+    return remote_entry, worker_entry
 
 
 def rebuild_backend(cwd: Path) -> None:
@@ -267,11 +318,21 @@ def build(ctx: click.Context) -> None:
 
     clean_dist(cwd)
 
+    # Check if this is a worker sandbox
+    extension_data = read_json(cwd / "extension.json")
+    is_worker_sandbox: bool = bool(
+        extension_data
+        and extension_data.get("sandbox", {}).get("trustLevel") == "worker"
+    )
+
     # Build frontend if it exists
     remote_entry = None
+    worker_entry = None
     if frontend_dir.exists():
         init_frontend_deps(frontend_dir)
-        remote_entry = rebuild_frontend(cwd, frontend_dir)
+        remote_entry, worker_entry = rebuild_frontend(
+            cwd, frontend_dir, is_worker_sandbox
+        )
 
     # Build backend independently if it exists
     if backend_dir.exists():
@@ -280,7 +341,7 @@ def build(ctx: click.Context) -> None:
             rebuild_backend(cwd)
 
     # Build manifest and write it
-    manifest = build_manifest(cwd, remote_entry)
+    manifest = build_manifest(cwd, remote_entry, worker_entry)
     write_manifest(cwd, manifest)
 
     click.secho("✅ Full build completed in dist/", fg="green")
@@ -293,8 +354,14 @@ def build(ctx: click.Context) -> None:
     type=click.Path(path_type=Path, dir_okay=True, file_okay=True, writable=True),
     help="Optional output path or filename for the bundle.",
 )
+@click.option(
+    "--sign",
+    "-s",
+    type=click.Path(exists=True, path_type=Path),
+    help="Path to private key file (PEM format) for signing the manifest.",
+)
 @click.pass_context
-def bundle(ctx: click.Context, output: Path | None) -> None:
+def bundle(ctx: click.Context, output: Path | None, sign: Path | None) -> None:
     ctx.invoke(build)
 
     cwd = Path.cwd()
@@ -306,6 +373,23 @@ def bundle(ctx: click.Context, output: Path | None) -> None:
             "❌ dist/manifest.json not found. Run `build` first.", err=True, fg="red"
         )
         sys.exit(1)
+
+    # Sign manifest if key provided
+    if sign:
+        try:
+            private_key = sign.read_bytes()
+            manifest_bytes = manifest_path.read_bytes()
+            signature = sign_manifest(manifest_bytes, private_key)
+
+            sig_path = dist_dir / "manifest.sig"
+            sig_path.write_bytes(signature)
+            click.secho("✅ Manifest signed", fg="green")
+        except ValueError as e:
+            click.secho(f"❌ Signing failed: {e}", err=True, fg="red")
+            sys.exit(1)
+        except Exception as e:
+            click.secho(f"❌ Failed to sign manifest: {e}", err=True, fg="red")
+            sys.exit(1)
 
     manifest = json.loads(manifest_path.read_text())
     id_ = manifest["id"]
@@ -329,7 +413,8 @@ def bundle(ctx: click.Context, output: Path | None) -> None:
         click.secho(f"❌ Failed to create bundle: {ex}", err=True, fg="red")
         sys.exit(1)
 
-    click.secho(f"✅ Bundle created: {zip_path}", fg="green")
+    signed_msg = " (signed)" if sign else ""
+    click.secho(f"✅ Bundle created{signed_msg}: {zip_path}", fg="green")
 
 
 @app.command()
@@ -341,23 +426,35 @@ def dev(ctx: click.Context) -> None:
 
     clean_dist(cwd)
 
+    # Check if this is a worker sandbox
+    extension_data = read_json(cwd / "extension.json")
+    is_worker_sandbox: bool = bool(
+        extension_data
+        and extension_data.get("sandbox", {}).get("trustLevel") == "worker"
+    )
+
     # Build frontend if it exists
     remote_entry = None
+    worker_entry = None
     if frontend_dir.exists():
         init_frontend_deps(frontend_dir)
-        remote_entry = rebuild_frontend(cwd, frontend_dir)
+        remote_entry, worker_entry = rebuild_frontend(
+            cwd, frontend_dir, is_worker_sandbox
+        )
 
     # Build backend if it exists
     if backend_dir.exists():
         rebuild_backend(cwd)
 
-    manifest = build_manifest(cwd, remote_entry)
+    manifest = build_manifest(cwd, remote_entry, worker_entry)
     write_manifest(cwd, manifest)
 
     def frontend_watcher() -> None:
         if frontend_dir.exists():
-            if (remote_entry := rebuild_frontend(cwd, frontend_dir)) is not None:
-                manifest = build_manifest(cwd, remote_entry)
+            result = rebuild_frontend(cwd, frontend_dir, is_worker_sandbox)
+            if result != (None, None):
+                remote_entry, worker_entry = result
+                manifest = build_manifest(cwd, remote_entry, worker_entry)
                 write_manifest(cwd, manifest)
 
     def backend_watcher() -> None:
@@ -526,6 +623,102 @@ def init(
     click.secho(
         f"🎉 Extension {name} (ID: {id_}) initialized at {target_dir}", fg="cyan"
     )
+
+
+@app.command("generate-keys")
+@click.option(
+    "--output",
+    "-o",
+    type=click.Path(path_type=Path),
+    default=Path("extension-signing-key.pem"),
+    help="Output path for private key (public key will be .pub)",
+)
+def generate_keys(output: Path) -> None:
+    """Generate a new Ed25519 keypair for signing extensions.
+
+    Creates two files:
+    - Private key (keep secure, never share)
+    - Public key (.pub suffix, share with administrators)
+
+    Example:
+        superset-extensions generate-keys --output my-key.pem
+    """
+    private_pem, public_pem = generate_keypair()
+
+    private_path = output
+    public_path = output.with_suffix(".pub")
+
+    # Check if files already exist
+    if private_path.exists():
+        if not click.confirm(f"⚠️  {private_path} already exists. Overwrite?"):
+            click.secho("Aborted.", fg="yellow")
+            sys.exit(0)
+
+    if public_path.exists():
+        if not click.confirm(f"⚠️  {public_path} already exists. Overwrite?"):
+            click.secho("Aborted.", fg="yellow")
+            sys.exit(0)
+
+    private_path.write_bytes(private_pem)
+    public_path.write_bytes(public_pem)
+
+    fingerprint = get_public_key_fingerprint(public_pem)
+
+    click.secho(f"✅ Private key: {private_path}", fg="green")
+    click.secho(f"✅ Public key:  {public_path}", fg="green")
+    click.secho(f"   Fingerprint: {fingerprint}", fg="cyan")
+    click.echo()
+    click.secho(
+        "⚠️  Keep the private key secure! Only share the public key with administrators.",
+        fg="yellow",
+    )
+    click.echo()
+    click.secho("Usage:", fg="cyan")
+    click.echo(
+        f"  Sign an extension:  superset-extensions bundle --sign {private_path}"
+    )
+    click.echo(f"  Share with admins:  {public_path}")
+
+
+@app.command("sign")
+@click.option(
+    "--key",
+    "-k",
+    type=click.Path(exists=True, path_type=Path),
+    required=True,
+    help="Path to private key file (PEM format)",
+)
+@click.option(
+    "--manifest",
+    "-m",
+    type=click.Path(exists=True, path_type=Path),
+    default=Path("dist/manifest.json"),
+    help="Path to manifest.json (default: dist/manifest.json)",
+)
+def sign_command(key: Path, manifest: Path) -> None:
+    """Sign an existing manifest.json file.
+
+    This is useful for signing a manifest after the build step,
+    or for re-signing with a different key.
+
+    Example:
+        superset-extensions sign --key my-key.pem --manifest dist/manifest.json
+    """
+    try:
+        private_key = key.read_bytes()
+        manifest_bytes = manifest.read_bytes()
+        signature = sign_manifest(manifest_bytes, private_key)
+
+        sig_path = manifest.with_suffix(".sig")
+        sig_path.write_bytes(signature)
+
+        click.secho(f"✅ Signature written to: {sig_path}", fg="green")
+    except ValueError as e:
+        click.secho(f"❌ Signing failed: {e}", err=True, fg="red")
+        sys.exit(1)
+    except Exception as e:
+        click.secho(f"❌ Failed to sign manifest: {e}", err=True, fg="red")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

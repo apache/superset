@@ -18,8 +18,45 @@
  */
 import { SupersetClient } from '@superset-ui/core';
 import { logging } from '@apache-superset/core';
-import type { contributions, core } from '@apache-superset/core';
+import type { contributions, core, sandbox } from '@apache-superset/core';
 import { ExtensionContext } from '../core/models';
+import { commands } from '../core/commands';
+import { WASMSandbox, SandboxConfig } from './sandbox';
+import { SandboxManager } from './sandbox/SandboxManager';
+
+/**
+ * Tracked sandboxed extension instance.
+ */
+interface SandboxedExtensionInstance {
+  /** Extension ID */
+  extensionId: string;
+  /** Extension name */
+  extensionName: string;
+  /** Trust level of the sandbox */
+  trustLevel: sandbox.SandboxTrustLevel;
+  /** WASM sandbox instance (for 'wasm' trust level) */
+  wasmSandbox?: WASMSandbox;
+  /** Sandbox configuration */
+  config: SandboxConfig;
+  /** URL to fetch worker code from (for 'worker' trust level) */
+  workerCodeUrl?: string;
+  /** Whether the worker is currently being initialized */
+  workerInitializing?: boolean;
+  /** Promise that resolves when worker is ready (for deduplication) */
+  workerInitPromise?: Promise<void>;
+}
+
+/**
+ * Configuration for trusted extension sources.
+ */
+interface TrustConfiguration {
+  /** List of trusted extension IDs that can run as 'core' */
+  trustedExtensions: string[];
+  /** Whether to allow unsigned extensions to run as 'core' */
+  allowUnsignedCore: boolean;
+  /** Default trust level for extensions without explicit configuration */
+  defaultTrustLevel: sandbox.SandboxTrustLevel;
+}
 
 class ExtensionsManager {
   private static instance: ExtensionsManager;
@@ -36,6 +73,17 @@ class ExtensionsManager {
       commands?: contributions.CommandContribution[];
     }
   > = new Map();
+
+  /** Sandboxed extension instances */
+  private sandboxedExtensions: Map<string, SandboxedExtensionInstance> =
+    new Map();
+
+  /** Trust configuration for extension loading */
+  private trustConfig: TrustConfiguration = {
+    trustedExtensions: [],
+    allowUnsignedCore: false,
+    defaultTrustLevel: 'iframe',
+  };
 
   // eslint-disable-next-line no-useless-constructor
   private constructor() {
@@ -71,23 +119,316 @@ class ExtensionsManager {
 
   /**
    * Initializes an extension by its instance.
-   * If the extension has a remote entry, it will load the module.
+   * The extension is loaded based on its trust level:
+   * - 'core': Loaded via Module Federation in main context (requires trust)
+   * - 'iframe': Loaded in sandboxed iframe with postMessage API
+   * - 'worker': Loaded in Web Worker with postMessage API (command-only)
+   * - 'wasm': Loaded in WASM sandbox for logic-only extensions
+   *
    * @param extension The extension to initialize.
    */
   public async initializeExtension(extension: core.Extension) {
     try {
-      let loadedExtension = extension;
-      if (extension.remoteEntry) {
-        loadedExtension = await this.loadModule(extension);
-        this.enableExtension(loadedExtension);
+      // Use backend-validated trust level if available, otherwise fall back to frontend determination
+      const trustLevel =
+        extension.trustLevel ?? this.determineTrustLevel(extension);
+
+      // Build informative log message
+      let logMessage = `Initializing extension ${extension.name} with trust level: ${trustLevel}`;
+      if (
+        extension.signatureValid !== undefined &&
+        extension.signatureValid !== null
+      ) {
+        logMessage += ` (signature: ${extension.signatureValid ? 'valid' : 'invalid'})`;
       }
-      this.extensionIndex.set(loadedExtension.id, loadedExtension);
+      if (extension.trustDowngraded) {
+        logMessage += ` [downgraded: ${extension.trustDowngradeReason}]`;
+      }
+      logging.info(logMessage);
+
+      switch (trustLevel) {
+        case 'core':
+          await this.initializeCoreExtension(extension);
+          break;
+        case 'iframe':
+          await this.initializeIframeSandboxedExtension(extension);
+          break;
+        case 'worker':
+          await this.initializeWorkerSandboxedExtension(extension);
+          break;
+        case 'wasm':
+          await this.initializeWASMSandboxedExtension(extension);
+          break;
+        default:
+          logging.error(
+            `Unknown trust level '${trustLevel}' for extension ${extension.name}`,
+          );
+      }
+
+      this.extensionIndex.set(extension.id, extension);
     } catch (error) {
       logging.error(
         `Failed to initialize extension ${extension.name}\n`,
         error,
       );
     }
+  }
+
+  /**
+   * Initialize a trusted extension using Module Federation (Tier 1).
+   */
+  private async initializeCoreExtension(
+    extension: core.Extension,
+  ): Promise<void> {
+    if (!extension.remoteEntry) {
+      logging.warn(
+        `Core extension ${extension.name} has no remote entry, skipping`,
+      );
+      return;
+    }
+
+    const loadedExtension = await this.loadModule(extension);
+    this.enableExtension(loadedExtension);
+  }
+
+  /**
+   * Initialize an iframe-sandboxed extension (Tier 2).
+   *
+   * @remarks
+   * For iframe sandboxed extensions, we don't load the module directly.
+   * Instead, we store the configuration and let the IframeSandbox component
+   * handle the loading when the extension's view is rendered.
+   */
+  private async initializeIframeSandboxedExtension(
+    extension: core.Extension,
+  ): Promise<void> {
+    const config: SandboxConfig = {
+      trustLevel: 'iframe',
+      permissions: extension.sandbox?.permissions ?? [],
+      csp: extension.sandbox?.csp,
+    };
+
+    this.sandboxedExtensions.set(extension.id, {
+      extensionId: extension.id,
+      extensionName: extension.name,
+      trustLevel: 'iframe',
+      config,
+    });
+
+    // Index contributions from the extension manifest
+    // (iframe extensions declare contributions in extension.json)
+    if (extension.contributions) {
+      this.indexContributions(extension);
+    }
+
+    logging.info(`Iframe sandbox registered for extension ${extension.name}`);
+  }
+
+  /**
+   * Initialize a worker-sandboxed extension for command-only extensions.
+   *
+   * @remarks
+   * Worker sandboxed extensions run in a Web Worker with no DOM access.
+   * They are ideal for extensions that only register commands and don't
+   * need to render any UI. The worker is created lazily on first command
+   * to avoid loading unused extensions.
+   */
+  private async initializeWorkerSandboxedExtension(
+    extension: core.Extension,
+  ): Promise<void> {
+    const config: SandboxConfig = {
+      trustLevel: 'worker',
+      permissions: extension.sandbox?.permissions ?? [],
+    };
+
+    // Determine the URL to fetch worker code from
+    // Priority: workerEntry (if added to manifest) > derived from remoteEntry
+    const workerCodeUrl = this.getWorkerCodeUrl(extension);
+
+    this.sandboxedExtensions.set(extension.id, {
+      extensionId: extension.id,
+      extensionName: extension.name,
+      trustLevel: 'worker',
+      config,
+      workerCodeUrl,
+    });
+
+    // Index contributions from the extension manifest
+    if (extension.contributions) {
+      this.indexContributions(extension);
+    }
+
+    logging.info(
+      `Worker sandbox registered for extension ${extension.name} (lazy loading enabled)`,
+    );
+  }
+
+  /**
+   * Get the URL to fetch worker code from for a worker extension.
+   *
+   * @remarks
+   * Worker extensions need their code as a plain JS string (not Module Federation).
+   * Priority: workerEntry from manifest > derived from remoteEntry > API endpoint
+   */
+  private getWorkerCodeUrl(extension: core.Extension): string {
+    // If the extension explicitly specifies a workerEntry, use it
+    if (extension.workerEntry) {
+      // If it's a relative path, prepend the extension's base URL
+      if (!extension.workerEntry.startsWith('http') && extension.remoteEntry) {
+        const baseUrl = extension.remoteEntry.replace(/\/[^/]+$/, '');
+        return `${baseUrl}/${extension.workerEntry}`;
+      }
+      return extension.workerEntry;
+    }
+
+    // If the extension has a remoteEntry, derive worker URL from it
+    // Convention: worker.js is in the same directory as remoteEntry
+    if (extension.remoteEntry) {
+      const baseUrl = extension.remoteEntry.replace(/\/[^/]+$/, '');
+      return `${baseUrl}/worker.js`;
+    }
+
+    // Fallback: use extension API endpoint
+    return `/api/v1/extensions/${extension.id}/worker.js`;
+  }
+
+  /**
+   * Initialize a WASM-sandboxed extension (Tier 3).
+   *
+   * @remarks
+   * WASM sandboxed extensions are for logic-only code (formatters, validators).
+   * They are initialized lazily when first used.
+   */
+  private async initializeWASMSandboxedExtension(
+    extension: core.Extension,
+  ): Promise<void> {
+    const config: SandboxConfig = {
+      trustLevel: 'wasm',
+      permissions: extension.sandbox?.permissions ?? [],
+      resourceLimits: extension.sandbox?.resourceLimits,
+    };
+
+    this.sandboxedExtensions.set(extension.id, {
+      extensionId: extension.id,
+      extensionName: extension.name,
+      trustLevel: 'wasm',
+      config,
+    });
+
+    // Index contributions from the extension manifest
+    if (extension.contributions) {
+      this.indexContributions(extension);
+    }
+
+    logging.info(`WASM sandbox registered for extension ${extension.name}`);
+  }
+
+  /**
+   * Determine the trust level for an extension.
+   *
+   * @remarks
+   * Trust level is determined by:
+   * 1. Explicit sandbox.trustLevel in extension manifest
+   * 2. Whether the extension is in the trusted list (for 'core')
+   * 3. Default trust level from configuration
+   */
+  private determineTrustLevel(
+    extension: core.Extension,
+  ): sandbox.SandboxTrustLevel {
+    // Check explicit manifest configuration
+    const manifestTrustLevel = extension.sandbox?.trustLevel;
+
+    if (manifestTrustLevel === 'core') {
+      // Verify the extension is allowed to run as core
+      if (
+        this.trustConfig.trustedExtensions.includes(extension.id) ||
+        this.trustConfig.allowUnsignedCore
+      ) {
+        return 'core';
+      }
+      logging.warn(
+        `Extension ${extension.name} requested 'core' trust level but is not trusted. ` +
+          `Falling back to '${this.trustConfig.defaultTrustLevel}'.`,
+      );
+      return this.trustConfig.defaultTrustLevel;
+    }
+
+    if (manifestTrustLevel) {
+      return manifestTrustLevel;
+    }
+
+    // Legacy extensions without sandbox config default to core for backward compatibility
+    // This can be changed to 'iframe' once extensions are migrated
+    if (!extension.sandbox) {
+      logging.info(
+        `Extension ${extension.name} has no sandbox config, using legacy 'core' mode`,
+      );
+      return 'core';
+    }
+
+    return this.trustConfig.defaultTrustLevel;
+  }
+
+  /**
+   * Configure trust settings for extension loading.
+   *
+   * @param config Trust configuration options
+   */
+  public configureTrust(config: Partial<TrustConfiguration>): void {
+    this.trustConfig = {
+      ...this.trustConfig,
+      ...config,
+    };
+    logging.info('Trust configuration updated:', this.trustConfig);
+  }
+
+  /**
+   * Get the sandboxed extension instance for an extension ID.
+   *
+   * @param extensionId The extension ID
+   * @returns The sandboxed extension instance, or undefined if not sandboxed
+   */
+  public getSandboxedExtension(
+    extensionId: string,
+  ): SandboxedExtensionInstance | undefined {
+    return this.sandboxedExtensions.get(extensionId);
+  }
+
+  /**
+   * Check if an extension is sandboxed.
+   *
+   * @param extensionId The extension ID
+   * @returns True if the extension is running in a sandbox
+   */
+  public isExtensionSandboxed(extensionId: string): boolean {
+    return this.sandboxedExtensions.has(extensionId);
+  }
+
+  /**
+   * Get the sandbox configuration for a sandboxed view contribution.
+   *
+   * @param viewId The view contribution ID
+   * @returns Sandbox config for rendering the view, or null if not sandboxed
+   */
+  public getSandboxConfigForView(viewId: string): {
+    extensionId: string;
+    config: SandboxConfig;
+  } | null {
+    // Find which extension owns this view
+    for (const [extensionId, instance] of this.sandboxedExtensions) {
+      const extension = this.extensionIndex.get(extensionId);
+      if (extension?.contributions?.views) {
+        for (const views of Object.values(extension.contributions.views)) {
+          if (views.some(v => v.id === viewId)) {
+            return {
+              extensionId,
+              config: instance.config,
+            };
+          }
+        }
+      }
+    }
+    return null;
   }
 
   /**
@@ -211,15 +552,149 @@ class ExtensionsManager {
 
   /**
    * Indexes contributions from an extension for quick retrieval.
+   * For sandboxed extensions, also registers proxy commands.
    * @param extension The extension to index.
    */
   private indexContributions(extension: core.Extension): void {
-    const { contributions, id } = extension;
+    const { contributions: extensionContributions, id } = extension;
     this.extensionContributions.set(id, {
-      menus: contributions.menus,
-      views: contributions.views,
-      commands: contributions.commands,
+      menus: extensionContributions.menus,
+      views: extensionContributions.views,
+      commands: extensionContributions.commands,
     });
+
+    // For sandboxed extensions, register proxy commands
+    if (this.sandboxedExtensions.has(id) && extensionContributions.commands) {
+      this.registerSandboxedCommands(id, extensionContributions.commands);
+    }
+  }
+
+  /**
+   * Register proxy commands for a sandboxed extension.
+   * These commands forward execution to the sandbox via SandboxManager.
+   * For worker sandboxes, the worker is created lazily on first command.
+   */
+  private registerSandboxedCommands(
+    extensionId: string,
+    commandContributions: contributions.CommandContribution[],
+  ): void {
+    const sandboxManager = SandboxManager.getInstance();
+    const instance = this.sandboxedExtensions.get(extensionId);
+
+    for (const cmd of commandContributions) {
+      logging.info(
+        `Registering sandboxed proxy command: ${cmd.command} for extension ${extensionId}`,
+      );
+
+      if (instance?.trustLevel === 'worker') {
+        // Worker sandbox: lazy initialization on first command
+        commands.registerCommand(cmd.command, async (...args: unknown[]) => {
+          logging.info(`Executing worker sandboxed command: ${cmd.command}`);
+          await this.ensureWorkerSandboxReady(extensionId);
+          sandboxManager.dispatchCommandToExtension(
+            extensionId,
+            cmd.command,
+            args,
+          );
+        });
+      } else {
+        // Iframe/WASM sandbox: direct dispatch
+        commands.registerCommand(cmd.command, (...args: unknown[]) => {
+          logging.info(`Executing sandboxed command: ${cmd.command}`);
+          sandboxManager.dispatchCommandToExtension(
+            extensionId,
+            cmd.command,
+            args,
+          );
+        });
+      }
+    }
+  }
+
+  /**
+   * Ensure the worker sandbox is ready for an extension.
+   * Creates the worker lazily on first use.
+   */
+  private async ensureWorkerSandboxReady(extensionId: string): Promise<void> {
+    const sandboxManager = SandboxManager.getInstance();
+    const instance = this.sandboxedExtensions.get(extensionId);
+
+    if (!instance || instance.trustLevel !== 'worker') {
+      return;
+    }
+
+    // Check if worker already exists
+    if (sandboxManager.hasReadySandbox(extensionId)) {
+      return;
+    }
+
+    // Check if already initializing (deduplicate concurrent calls)
+    if (instance.workerInitPromise) {
+      await instance.workerInitPromise;
+      return;
+    }
+
+    // Start initialization
+    instance.workerInitializing = true;
+    instance.workerInitPromise = this.createWorkerSandbox(
+      extensionId,
+      instance,
+    );
+
+    try {
+      await instance.workerInitPromise;
+    } finally {
+      instance.workerInitializing = false;
+      instance.workerInitPromise = undefined;
+    }
+  }
+
+  /**
+   * Create the worker sandbox for an extension.
+   * Fetches the code and initializes the worker.
+   */
+  private async createWorkerSandbox(
+    extensionId: string,
+    instance: SandboxedExtensionInstance,
+  ): Promise<void> {
+    const sandboxManager = SandboxManager.getInstance();
+
+    if (!instance.workerCodeUrl) {
+      logging.error(`No worker code URL for extension ${extensionId}`);
+      return;
+    }
+
+    logging.info(
+      `Fetching worker code for extension ${extensionId} from ${instance.workerCodeUrl}`,
+    );
+
+    try {
+      // Fetch the worker code
+      const response = await fetch(instance.workerCodeUrl);
+      if (!response.ok) {
+        throw new Error(
+          `Failed to fetch worker code: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      const code = await response.text();
+
+      // Create the worker sandbox
+      await sandboxManager.createWorkerSandbox(
+        extensionId,
+        instance.extensionName,
+        code,
+        instance.config,
+      );
+
+      logging.info(`Worker sandbox created for extension ${extensionId}`);
+    } catch (error) {
+      logging.error(
+        `Failed to create worker sandbox for ${extensionId}:`,
+        error,
+      );
+      throw error;
+    }
   }
 
   /**
@@ -317,6 +792,27 @@ class ExtensionsManager {
   public getExtension(id: string): core.Extension | undefined {
     return this.extensionIndex.get(id);
   }
+
+  /**
+   * Dispose of all sandboxed extensions and clean up resources.
+   */
+  public disposeAll(): void {
+    for (const [id, instance] of this.sandboxedExtensions) {
+      try {
+        if (instance.wasmSandbox) {
+          instance.wasmSandbox.dispose();
+        }
+        this.deactivateExtension(id);
+      } catch (error) {
+        logging.warn(`Error disposing extension ${id}:`, error);
+      }
+    }
+    this.sandboxedExtensions.clear();
+    this.extensionIndex.clear();
+    this.contextIndex.clear();
+    this.extensionContributions.clear();
+  }
 }
 
 export default ExtensionsManager;
+export type { TrustConfiguration };

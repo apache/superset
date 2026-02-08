@@ -15,9 +15,15 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from dataclasses import dataclass
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
 from superset_core.extensions.types import Manifest
+
+if TYPE_CHECKING:
+    from superset.extensions.security import TrustDecision
 
 
 @dataclass
@@ -34,6 +40,7 @@ class LoadedExtension:
     frontend: dict[str, bytes]
     backend: dict[str, bytes]
     version: str
-    source_base_path: (
-        str  # Base path for traceback filenames (absolute path or supx:// URL)
-    )
+    source_base_path: str  # Base path for traceback filenames (absolute or supx://)
+    signature: bytes | None = None  # Base64-encoded Ed25519 signature
+    manifest_bytes: bytes | None = None  # Raw manifest.json for signature verification
+    trust_decision: TrustDecision | None = field(default=None, repr=False)

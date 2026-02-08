@@ -49,7 +49,17 @@ module.exports = {
         'extensions/development',
         'extensions/deployment',
         'extensions/mcp',
-        'extensions/security',
+        {
+          type: 'category',
+          label: 'Security',
+          collapsed: true,
+          items: [
+            'extensions/security',
+            'extensions/sandbox',
+            'extensions/signing',
+            'extensions/admin-configuration',
+          ],
+        },
         'extensions/registry',
       ],
     },

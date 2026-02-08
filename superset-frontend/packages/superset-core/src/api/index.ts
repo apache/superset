@@ -29,6 +29,7 @@
  * - `contributions`: Register UI contributions and customizations
  * - `core`: Access fundamental Superset types and utilities
  * - `extensions`: Manage extension lifecycle and metadata
+ * - `sandbox`: Sandbox types and APIs for secure extension execution
  * - `sqlLab`: Integrate with SQL Lab functionality
  */
 
@@ -37,4 +38,5 @@ export * as commands from './commands';
 export * as contributions from './contributions';
 export * as core from './core';
 export * as extensions from './extensions';
+export * as sandbox from './sandbox';
 export * as sqlLab from './sqlLab';

@@ -148,7 +148,9 @@ def get_bundle_files_from_path(base_path: str) -> Generator[BundleFile, None, No
 
 
 def get_loaded_extension(
-    files: Iterable[BundleFile], source_base_path: str
+    files: Iterable[BundleFile],
+    source_base_path: str,
+    signature: bytes | None = None,
 ) -> LoadedExtension:
     """
     Load an extension from bundle files.
@@ -158,9 +160,11 @@ def get_loaded_extension(
         this should be an absolute filesystem path to the dist directory.
         For EXTENSIONS_PATH (.supx files), this should be a supx:// URL
         (e.g., "supx://extension-id").
+    :param signature: Optional base64-encoded signature of manifest.json
     :returns: LoadedExtension instance
     """
     manifest: Manifest | None = None
+    manifest_bytes: bytes | None = None
     frontend: dict[str, bytes] = {}
     backend: dict[str, bytes] = {}
 
@@ -169,6 +173,7 @@ def get_loaded_extension(
         content = file.content
 
         if filename == "manifest.json":
+            manifest_bytes = content
             try:
                 manifest_data = json.loads(content)
                 manifest = Manifest.model_validate(manifest_data)
@@ -176,6 +181,10 @@ def get_loaded_extension(
                 raise Exception(f"Invalid manifest.json: {e}") from e
             except Exception as e:
                 raise Exception(f"Failed to parse manifest.json: {e}") from e
+
+        elif filename == "manifest.sig":
+            # Signature file - store for later use
+            signature = content
 
         elif (match := FRONTEND_REGEX.match(filename)) is not None:
             frontend[match.group(1)] = content
@@ -197,6 +206,8 @@ def get_loaded_extension(
         backend=backend,
         version=manifest.version,
         source_base_path=source_base_path,
+        signature=signature,
+        manifest_bytes=manifest_bytes,
     )
 
 
@@ -209,18 +220,94 @@ def build_extension_data(extension: LoadedExtension) -> dict[str, Any]:
         "description": manifest.description or "",
         "dependencies": manifest.dependencies,
     }
+
+    # Include sandbox configuration if present
+    if manifest.sandbox:
+        extension_data["sandbox"] = manifest.sandbox.model_dump()
+
+    # Include trust decision from backend validation
+    if extension.trust_decision:
+        extension_data["trustLevel"] = extension.trust_decision.granted_trust_level
+        extension_data["signatureValid"] = extension.trust_decision.signature_valid
+        if extension.trust_decision.was_downgraded:
+            extension_data["trustDowngraded"] = True
+            extension_data["trustDowngradeReason"] = (
+                extension.trust_decision.rejection_reason
+            )
+    elif manifest.sandbox:
+        # Fallback to manifest trust level if no decision (shouldn't happen)
+        extension_data["trustLevel"] = manifest.sandbox.trustLevel
+        extension_data["signatureValid"] = None
+
     if manifest.frontend:
         frontend = manifest.frontend
-        module_federation = frontend.moduleFederation
-        remote_entry_url = f"/api/v1/extensions/{manifest.id}/{frontend.remoteEntry}"
-        extension_data.update(
-            {
-                "remoteEntry": remote_entry_url,
-                "exposedModules": module_federation.exposes,
-                "contributions": frontend.contributions.model_dump(),
-            }
-        )
+
+        # Build frontend data based on sandbox type
+        frontend_data: dict[str, Any] = {
+            "contributions": frontend.contributions.model_dump(),
+        }
+
+        # Include remoteEntry for iframe/core sandboxes
+        if frontend.remoteEntry:
+            remote_entry_url = (
+                f"/api/v1/extensions/{manifest.id}/{frontend.remoteEntry}"
+            )
+            frontend_data["remoteEntry"] = remote_entry_url
+
+            # Include Module Federation config if available
+            if frontend.moduleFederation:
+                frontend_data["exposedModules"] = frontend.moduleFederation.exposes
+
+        # Include workerEntry for worker sandboxes
+        if frontend.workerEntry:
+            worker_entry_url = (
+                f"/api/v1/extensions/{manifest.id}/{frontend.workerEntry}"
+            )
+            frontend_data["workerEntry"] = worker_entry_url
+
+        extension_data.update(frontend_data)
+
     return extension_data
+
+
+def _apply_trust_validation(extension: LoadedExtension) -> LoadedExtension:
+    """Apply trust validation to a loaded extension.
+
+    This validates the extension's requested trust level against the
+    configured trust policy and updates the extension with the decision.
+    """
+    from superset.extensions.security import get_extension_security_manager
+
+    security_manager = get_extension_security_manager()
+
+    # Get the requested trust level from manifest
+    manifest_trust_level = None
+    if extension.manifest.sandbox:
+        manifest_trust_level = extension.manifest.sandbox.trustLevel
+
+    # Validate trust level
+    trust_decision = security_manager.validate_trust_level(
+        extension_id=extension.id,
+        manifest_trust_level=manifest_trust_level,
+        signature=extension.signature,
+        manifest_bytes=extension.manifest_bytes,
+    )
+
+    # Update extension with trust decision
+    extension.trust_decision = trust_decision
+
+    # If trust was downgraded, update the manifest sandbox config
+    if trust_decision.was_downgraded and extension.manifest.sandbox:
+        logger.warning(
+            "Extension %s trust downgraded from %s to %s: %s",
+            extension.id,
+            trust_decision.requested_trust_level,
+            trust_decision.granted_trust_level,
+            trust_decision.rejection_reason,
+        )
+        extension.manifest.sandbox.trustLevel = trust_decision.granted_trust_level
+
+    return extension
 
 
 def get_extensions() -> dict[str, LoadedExtension]:
@@ -232,12 +319,16 @@ def get_extensions() -> dict[str, LoadedExtension]:
         # Use absolute filesystem path to dist directory for tracebacks
         abs_dist_path = str((Path(path) / "dist").resolve())
         extension = get_loaded_extension(files, source_base_path=abs_dist_path)
+        extension = _apply_trust_validation(extension)
         extension_id = extension.manifest.id
         extensions[extension_id] = extension
         logger.info(
-            "Loading extension %s (ID: %s) from local filesystem",
+            "Loading extension %s (ID: %s) from local filesystem with trust level %s",
             extension.name,
             extension_id,
+            extension.trust_decision.granted_trust_level
+            if extension.trust_decision
+            else "unknown",
         )
 
     # Load extensions from discovery path (.supx files)
@@ -245,13 +336,18 @@ def get_extensions() -> dict[str, LoadedExtension]:
         from superset.extensions.discovery import discover_and_load_extensions
 
         for extension in discover_and_load_extensions(extensions_path):
+            extension = _apply_trust_validation(extension)
             extension_id = extension.manifest.id
             if extension_id not in extensions:  # Don't override LOCAL_EXTENSIONS
                 extensions[extension_id] = extension
                 logger.info(
-                    "Loading extension %s (ID: %s) from discovery path",
+                    "Loading extension %s (ID: %s) from discovery path "
+                    "with trust level %s",
                     extension.name,
                     extension_id,
+                    extension.trust_decision.granted_trust_level
+                    if extension.trust_decision
+                    else "unknown",
                 )
             else:
                 logger.info(

@@ -27,6 +27,7 @@
 
 import { ReactElement } from 'react';
 import { Contributions } from './contributions';
+import { SandboxManifest } from './sandbox';
 
 /**
  * Represents a database column with its name and data type.
@@ -239,10 +240,52 @@ export interface Extension {
   id: string;
   /** Human-readable name of the extension */
   name: string;
-  /** URL or path to the extension's remote entry point */
+  /** URL or path to the extension's remote entry point (for iframe/core sandboxes) */
   remoteEntry: string;
+  /**
+   * Sandbox configuration for secure extension execution.
+   *
+   * @remarks
+   * When specified, the extension will be loaded in a sandboxed environment
+   * based on the trust level:
+   * - `core`: Full access (requires trust verification)
+   * - `iframe`: Browser-isolated iframe sandbox
+   * - `worker`: Web Worker sandbox for command-only extensions
+   * - `wasm`: WASM-based sandbox for logic-only extensions
+   */
+  sandbox?: SandboxManifest;
+  /**
+   * Whether the extension's signature was successfully verified.
+   *
+   * @remarks
+   * This is determined by the backend based on the EXTENSIONS_TRUST_CONFIG.
+   * - `true`: Signature verified against a trusted signer
+   * - `false`: Signature verification failed
+   * - `null`/`undefined`: No signature verification was performed
+   */
+  signatureValid?: boolean | null;
+  /**
+   * Backend-validated trust level for this extension.
+   *
+   * @remarks
+   * This is the actual trust level granted by the backend after validation,
+   * which may differ from what the extension requested in its manifest.
+   * For example, an extension requesting 'core' trust may be downgraded
+   * to 'iframe' if it's not in the trusted extensions list.
+   */
+  trustLevel?: 'core' | 'iframe' | 'worker' | 'wasm';
+  /**
+   * Whether the extension's trust level was downgraded from what it requested.
+   */
+  trustDowngraded?: boolean;
+  /**
+   * Reason why the extension's trust was downgraded (if applicable).
+   */
+  trustDowngradeReason?: string;
   /** Version of the extension */
   version: string;
+  /** URL or path to the extension's worker entry point (for worker sandboxes) */
+  workerEntry?: string;
 }
 
 /**

@@ -2415,6 +2415,24 @@ except ImportError:
 LOCAL_EXTENSIONS: list[str] = []
 EXTENSIONS_PATH: str | None = None
 
+# Extension Trust Configuration
+# Controls which extensions can run at which trust level
+EXTENSIONS_TRUST_CONFIG: dict[str, Any] = {
+    # List of extension IDs allowed to run as 'core' (full main-context access)
+    "trusted_extensions": [],
+    # Allow any extension to run as 'core' without signature verification
+    # WARNING: Only enable for development, never in production
+    "allow_unsigned_core": False,
+    # Default trust level for extensions without explicit sandbox config
+    # Options: 'core', 'iframe', 'worker', 'wasm'
+    "default_trust_level": "iframe",
+    # Require valid signatures for extensions requesting 'core' trust
+    # Recommended for production deployments
+    "require_core_signatures": False,
+    # Public keys for signature verification (file paths or PEM strings)
+    "trusted_signers": [],
+}
+
 # -------------------------------------------------------------------
 # *                WARNING:  STOP EDITING  HERE                    *
 # -------------------------------------------------------------------

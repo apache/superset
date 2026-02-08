@@ -74,6 +74,8 @@ const TYPESCRIPT_MEMORY_LIMIT = 4096;
 const output = {
   path: BUILD_DIR,
   publicPath: '/static/assets/',
+  // Output path for WebAssembly modules (used by QuickJS sandbox)
+  webassemblyModuleFilename: 'wasm/[hash].wasm',
 };
 if (isDevMode) {
   output.filename = '[name].[contenthash:8].entry.js';
@@ -307,6 +309,10 @@ const config = {
     buildDependencies: {
       config: [__filename],
     },
+  },
+  // Enable WebAssembly support for QuickJS sandbox
+  experiments: {
+    asyncWebAssembly: true,
   },
   output,
   stats: 'minimal',

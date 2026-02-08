@@ -26,9 +26,44 @@ under the License.
 
 By default, extensions are disabled and must be explicitly enabled by setting the `ENABLE_EXTENSIONS` feature flag. Built-in extensions are included as part of the Superset codebase and are held to the same security standards and review processes as the rest of the application.
 
-For external extensions, administrators are responsible for evaluating and verifying the security of any extensions they choose to install, just as they would when installing third-party NPM or PyPI packages. At this stage, all extensions run in the same context as the host application, without additional sandboxing. This means that external extensions can impact the security and performance of a Superset environment in the same way as any other installed dependency.
+## Extension Sandboxing
 
-We plan to introduce an optional sandboxed execution model for extensions in the future (as part of an additional SIP). Until then, administrators should exercise caution and follow best practices when selecting and deploying third-party extensions. A directory of community extensions is available in the [Community Extensions](./registry) page. Note that these extensions are not vetted by the Apache Superset project—administrators must evaluate each extension before installation.
+Superset provides a tiered sandbox architecture for running extensions with varying levels of trust and isolation. Extensions can declare their trust level and permissions in their manifest, and Superset will load them in the appropriate sandbox:
+
+- **Core (Tier 1)**: Trusted extensions run in the main context with full access
+- **Iframe (Tier 2)**: Semi-trusted extensions run in browser-sandboxed iframes
+- **WASM (Tier 3)**: Untrusted logic runs in WebAssembly sandboxes
+
+For detailed information about the sandbox system, see [Extension Sandboxing](./sandbox).
+
+## Trust Model
+
+Administrators are responsible for evaluating and verifying the security of any extensions they choose to install. Superset's sandbox system provides defense-in-depth:
+
+1. **Core extensions** require explicit trust configuration and optionally signature verification
+2. **Iframe-sandboxed extensions** are isolated by the browser's same-origin policy
+3. **WASM-sandboxed extensions** have no access to browser APIs
+
+A directory of community extensions is available in the [Community Extensions](./registry) page. Note that these extensions are not vetted by the Apache Superset project—administrators must evaluate each extension before installation.
+
+## Extension Signing
+
+Extensions can be cryptographically signed to verify their authenticity and integrity. This is required for extensions that need `core` trust level in production environments with signature verification enabled.
+
+- **Developers**: See [Extension Signing](./signing) to learn how to sign your extensions
+- **Administrators**: See [Administrator Configuration](./admin-configuration) to configure trusted signers
+
+## Administrator Configuration
+
+Superset provides extensive configuration options for controlling extension trust levels, signature verification, and security policies. Key settings include:
+
+- **Trusted extensions list**: Extensions allowed to run as `core`
+- **Signature verification**: Require valid signatures for core trust
+- **Default trust level**: Sandbox level for unlisted extensions
+
+For complete configuration details, see [Administrator Configuration](./admin-configuration).
+
+## Security Reporting
 
 **Any performance or security vulnerabilities introduced by external extensions should be reported directly to the extension author, not as Superset vulnerabilities.**
 
