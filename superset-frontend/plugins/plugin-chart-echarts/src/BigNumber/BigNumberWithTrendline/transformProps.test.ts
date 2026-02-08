@@ -106,6 +106,7 @@ describe('BigNumberWithTrendline transformProps', () => {
     subtitleFontSize: 14,
     forceTimestampFormatting: false,
     timeFormat: 'YYYY-MM-DD',
+    xAxis: '__timestamp',
     yAxisFormat: 'SMART_NUMBER',
     compareLag: 1,
     compareSuffix: 'WoW',

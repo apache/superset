@@ -27,6 +27,7 @@ import {
 } from 'spec/helpers/testing-library';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
+import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import SavedQueryList from '.';
 
 // Increase default timeout
@@ -58,26 +59,34 @@ const queriesEndpoint = 'glob:*/api/v1/saved_query/?*';
 const queryEndpoint = 'glob:*/api/v1/saved_query/*';
 const permalinkEndpoint = 'glob:*/api/v1/sqllab/permalink';
 
-fetchMock.get(queriesInfoEndpoint, {
-  permissions: ['can_write', 'can_read', 'can_export'],
-});
+fetchMock.get(
+  queriesInfoEndpoint,
+  {
+    permissions: ['can_write', 'can_read', 'can_export'],
+  },
+  { name: queriesInfoEndpoint },
+);
 
-fetchMock.get(queriesEndpoint, {
-  ids: [2, 0, 1],
-  result: mockQueries,
-  count: mockQueries.length,
-});
+fetchMock.get(
+  queriesEndpoint,
+  {
+    ids: [2, 0, 1],
+    result: mockQueries,
+    count: mockQueries.length,
+  },
+  { name: queriesEndpoint },
+);
 
 fetchMock.post(permalinkEndpoint, {
   url: 'http://localhost/permalink',
 });
 
-fetchMock.delete(queryEndpoint, {});
+fetchMock.delete(queryEndpoint, {}, { name: queryEndpoint });
 
 const renderList = (props = {}, storeOverrides = {}) =>
   render(
     <MemoryRouter>
-      <QueryParamProvider>
+      <QueryParamProvider adapter={ReactRouter5Adapter}>
         <SavedQueryList user={mockUser} {...props} />
       </QueryParamProvider>
     </MemoryRouter>,
@@ -96,7 +105,7 @@ const renderList = (props = {}, storeOverrides = {}) =>
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('SavedQueryList', () => {
   beforeEach(() => {
-    fetchMock.resetHistory();
+    fetchMock.clearHistory();
   });
 
   test('renders', async () => {
@@ -148,7 +157,7 @@ describe('SavedQueryList', () => {
 
     // Verify API call
     await waitFor(() => {
-      expect(fetchMock.calls(/saved_query\/0/, 'DELETE')).toHaveLength(1);
+      expect(fetchMock.callHistory.calls(/saved_query\/0/)).toHaveLength(1);
     });
   });
 
@@ -165,21 +174,20 @@ describe('SavedQueryList', () => {
 
     // Verify API call
     await waitFor(() => {
-      const calls = fetchMock.calls(/saved_query\/\?q/);
-      expect(calls.length).toBeGreaterThan(0);
-      const lastCall = calls[calls.length - 1][0];
-      expect(lastCall).toContain('order_column');
-      expect(lastCall).toContain('page');
+      const lastCall = fetchMock.callHistory.lastCall(/saved_query\/\?q/);
+      expect(lastCall).toBeDefined();
+      expect(lastCall?.url).toContain('order_column');
+      expect(lastCall?.url).toContain('page');
     });
   });
 
   test('fetches data', async () => {
     renderList();
     await waitFor(() => {
-      const calls = fetchMock.calls(/saved_query\/\?q/);
-      expect(calls).toHaveLength(1);
-      expect(calls[0][0]).toContain('order_column');
-      expect(calls[0][0]).toContain('page');
+      const lastCall = fetchMock.callHistory.lastCall(/saved_query\/\?q/);
+      expect(lastCall).toBeDefined();
+      expect(lastCall?.url).toContain('order_column');
+      expect(lastCall?.url).toContain('page');
     });
   });
 
@@ -195,9 +203,9 @@ describe('SavedQueryList', () => {
 
     // Verify API call includes sorting
     await waitFor(() => {
-      const calls = fetchMock.calls(/saved_query\/\?q/);
-      const lastCall = calls[calls.length - 1][0];
-      const url = new URL(lastCall);
+      const url = new URL(
+        fetchMock.callHistory.lastCall(/saved_query\/\?q/)?.url as string,
+      );
       const params = new URLSearchParams(url.search);
       const qParam = params.get('q');
       expect(qParam).toContain('order_column:label');
@@ -206,17 +214,19 @@ describe('SavedQueryList', () => {
 
   test('shows/hides elements based on permissions', async () => {
     // Mock info response without write permission
+    fetchMock.removeRoute(queriesInfoEndpoint);
     fetchMock.get(
       queriesInfoEndpoint,
       { permissions: ['can_read'] },
-      { overwriteRoutes: true },
+      { name: queriesInfoEndpoint },
     );
 
     // Mock list response
+    fetchMock.removeRoute(queriesEndpoint);
     fetchMock.get(
       queriesEndpoint,
       { result: mockQueries, count: mockQueries.length },
-      { overwriteRoutes: true },
+      { name: queriesEndpoint },
     );
 
     renderList();

@@ -21,7 +21,7 @@ import { GenericDataType } from '@apache-superset/core/api/core';
 import userEvent from '@testing-library/user-event';
 import { render, screen } from 'spec/helpers/testing-library';
 import RangeFilterPlugin from './RangeFilterPlugin';
-import { RangeDisplayMode } from './types';
+import { RangeDisplayMode, type PluginFilterRangeProps } from './types';
 import { SingleValueType } from './SingleValueType';
 import transformProps from './transformProps';
 
@@ -89,14 +89,12 @@ describe('RangeFilterPlugin', () => {
   const setDataMask = jest.fn();
   const getWrapper = (props: any = {}) =>
     render(
-      // @ts-ignore
       <RangeFilterPlugin
-        // @ts-ignore
-        {...transformProps({
+        {...(transformProps({
           ...rangeProps,
           ...props,
           formData: { ...rangeProps.formData, ...props.formData },
-        })}
+        }) as PluginFilterRangeProps)}
         setDataMask={setDataMask}
       />,
     );

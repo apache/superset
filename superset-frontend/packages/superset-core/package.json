@@ -1,6 +1,6 @@
 {
   "name": "@apache-superset/core",
-  "version": "0.0.1-rc9",
+  "version": "0.0.1-rc10",
   "description": "This package contains UI elements, APIs, and utility functions used by Superset.",
   "sideEffects": false,
   "main": "lib/index.js",
@@ -12,12 +12,12 @@
   "license": "ISC",
   "devDependencies": {
     "@babel/cli": "^7.28.6",
-    "@babel/core": "^7.28.6",
-    "@babel/preset-env": "^7.28.5",
+    "@babel/core": "^7.29.0",
+    "@babel/preset-env": "^7.29.0",
     "@babel/preset-react": "^7.28.5",
     "@babel/preset-typescript": "^7.28.5",
     "install": "^0.13.0",
-    "npm": "^11.7.0",
+    "npm": "^11.8.0",
     "typescript": "^5.0.0",
     "@emotion/styled": "^11.14.1",
     "@types/lodash": "^4.17.23",

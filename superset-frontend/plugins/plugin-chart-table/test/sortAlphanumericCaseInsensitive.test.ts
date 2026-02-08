@@ -80,7 +80,7 @@ const testData = [
 describe('sortAlphanumericCaseInsensitive', () => {
   it('Sort rows', () => {
     const sorted = [...testData].sort((a, b) =>
-      // @ts-ignore
+      // @ts-expect-error
       sortAlphanumericCaseInsensitive(a, b, 'col'),
     );
 

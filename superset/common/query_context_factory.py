@@ -120,6 +120,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
         self._apply_granularity(query_object, form_data, datasource)
         self._apply_filters(query_object)
         self._add_tooltip_columns(query_object, form_data)
+        self._add_currency_column(query_object, form_data, datasource)
         return query_object
 
     def _add_tooltip_columns(
@@ -194,6 +195,39 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
                     if column_name:
                         tooltip_columns.append(column_name)
         return tooltip_columns
+
+    def _add_currency_column(
+        self,
+        query_object: QueryObject,
+        form_data: dict[str, Any] | None,
+        datasource: Explorable,
+    ) -> None:
+        """
+        Add currency_code_column to the query for pivot_table_v2 cell-level formatting.
+
+        When currency_format.symbol is 'AUTO', injects the datasource's
+        currency_code_column into query columns for per-cell currency formatting.
+        """
+        if not form_data or not query_object.columns:
+            return
+
+        if form_data.get("viz_type") != "pivot_table_v2":
+            return
+
+        currency_format = form_data.get("currency_format", {})
+        if not (
+            isinstance(currency_format, dict)
+            and currency_format.get("symbol") == "AUTO"
+        ):
+            return
+
+        currency_column = getattr(datasource, "currency_code_column", None)
+        if not currency_column:
+            return
+
+        existing_columns = self._get_existing_column_names(query_object.columns)
+        if currency_column not in existing_columns:
+            query_object.columns.append(currency_column)
 
     def _apply_granularity(  # noqa: C901
         self,

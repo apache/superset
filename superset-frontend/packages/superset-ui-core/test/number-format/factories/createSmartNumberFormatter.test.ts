@@ -66,6 +66,11 @@ describe('createSmartNumberFormatter(options)', () => {
       });
     });
     describe('for negative numbers', () => {
+      it('uses ASCII hyphen-minus (U+002D), not Unicode minus (U+2212)', () => {
+        // This is important for backward compatibility after d3-format v3 upgrade
+        const result = formatter(-1000);
+        expect(result.charCodeAt(0)).toBe(45); // ASCII hyphen-minus
+      });
       it('formats billion with B in stead of G', () => {
         expect(formatter(-1000000000)).toBe('-1B');
         expect(formatter(-4560000000)).toBe('-4.56B');

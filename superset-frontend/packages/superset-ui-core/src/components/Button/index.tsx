@@ -126,7 +126,7 @@ export function Button(props: ButtonProps) {
         minWidth: cta ? theme.sizeUnit * 36 : undefined,
         minHeight: cta ? theme.sizeUnit * 8 : undefined,
         marginLeft: 0,
-        '& + .superset-button': {
+        '& + .superset-button:not(.ant-btn-compact-item)': {
           marginLeft: theme.sizeUnit * 2,
         },
         '& > span > :first-of-type': {

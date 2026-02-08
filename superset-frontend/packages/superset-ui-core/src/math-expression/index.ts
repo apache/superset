@@ -109,7 +109,7 @@ export function evalExpression(expression: string, value: number): number {
   parsedExpression = subExpressions[1] ?? subExpressions[0];
   // we can ignore the type requirement on `TOKENS`, as value is always `number`
   // and doesn't need to consider `number | undefined`.
-  // @ts-ignore
+  // @ts-expect-error
   return Number(mexp.eval(parsedExpression, TOKENS, { x: value }));
 }
 

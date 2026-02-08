@@ -72,6 +72,8 @@ export interface DataColumnMeta {
   isNumeric?: boolean;
   config?: TableColumnConfig;
   isChildColumn?: boolean;
+  description?: string;
+  currencyCodeColumn?: string;
 }
 
 export interface TableChartData {
@@ -176,11 +178,6 @@ export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
   hasServerPageLengthChanged: boolean;
   serverPageLength: number;
   slice_id: number;
-}
-
-export enum ColorSchemeEnum {
-  'Green' = 'Green',
-  'Red' = 'Red',
 }
 
 export default {};

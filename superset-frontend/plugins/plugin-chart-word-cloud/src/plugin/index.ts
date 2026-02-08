@@ -29,9 +29,6 @@ import example1Dark from '../images/Word_Cloud-dark.jpg';
 import example2 from '../images/Word_Cloud_2.jpg';
 import example2Dark from '../images/Word_Cloud_2-dark.jpg';
 import controlPanel from './controlPanel';
-import configureEncodable from '../configureEncodable';
-
-configureEncodable();
 
 const metadata = new ChartMetadata({
   category: t('Ranking'),

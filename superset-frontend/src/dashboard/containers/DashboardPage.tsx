@@ -51,6 +51,7 @@ import CrudThemeProvider from 'src/components/CrudThemeProvider';
 import type { DashboardChartStates } from 'src/dashboard/types/chartState';
 
 import { nanoid } from 'nanoid';
+import type { ActiveFilters } from '../types';
 import { RootState } from '../types';
 import {
   chartContextMenuStyles,
@@ -175,14 +176,16 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
       let dataMask = nativeFilterKeyValue || {};
       // activeTabs is initialized with undefined so that it doesn't override
       // the currently stored value when hydrating
-      let activeTabs: string[] | undefined;
-      let chartStates: DashboardChartStates | undefined;
+      let activeTabs: string[] | null | undefined;
+      let chartStates: DashboardChartStates | null | undefined;
       let anchor: string | undefined;
       if (permalinkKey) {
         const permalinkValue = await getPermalinkValue(permalinkKey);
         if (permalinkValue?.state) {
-          ({ dataMask, activeTabs, chartStates, anchor } =
-            permalinkValue.state);
+          ({ dataMask, activeTabs, anchor } = permalinkValue.state);
+          chartStates = permalinkValue.state.chartStates as
+            | DashboardChartStates
+            | undefined;
         }
       } else if (nativeFilterKeyValue) {
         dataMask = await getFilterValue(id, nativeFilterKeyValue);
@@ -198,12 +201,12 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
         dispatch(
           hydrateDashboard({
             history,
-            dashboard,
-            charts,
-            activeTabs,
+            dashboard: dashboard!,
+            charts: charts!,
+            activeTabs: activeTabs ?? null,
             dataMask,
-            chartStates,
-          }),
+            chartStates: chartStates ?? null,
+          } as unknown as Parameters<typeof hydrateDashboard>[0]),
         );
 
         // Scroll to anchor element if specified in permalink state
@@ -223,14 +226,27 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [readyToRender]);
 
+  // Capture original title before any effects run
+  const originalTitle = useMemo(() => document.title, []);
+
+  // Update document title when dashboard title changes
   useEffect(() => {
     if (dashboard_title) {
       document.title = dashboard_title;
     }
-    return () => {
-      document.title = 'Superset';
-    };
   }, [dashboard_title]);
+
+  // Restore original title on unmount
+  useEffect(
+    () => () => {
+      document.title =
+        originalTitle ||
+        theme?.brandAppName ||
+        theme?.brandLogoAlt ||
+        'Superset';
+    },
+    [originalTitle, theme?.brandAppName, theme?.brandLogoAlt],
+  );
 
   useEffect(() => {
     if (typeof css === 'string') {
@@ -285,7 +301,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
               }
             >
               <DashboardContainer
-                activeFilters={activeFilters}
+                activeFilters={activeFilters as ActiveFilters}
                 ownDataCharts={relevantDataMask}
               >
                 {DashboardBuilderComponent}

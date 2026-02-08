@@ -306,7 +306,7 @@ test('getColorFunction BETWEEN with target value right undefined', () => {
 test('getColorFunction unsupported operator', () => {
   const colorFunction = getColorFunction(
     {
-      // @ts-ignore
+      // @ts-expect-error
       operator: 'unsupported operator',
       targetValue: 50,
       colorScheme: '#FF0000',

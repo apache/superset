@@ -514,7 +514,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
             allowClear
             allowNewOptions={!searchAllOptions && creatable !== false}
             allowSelectAll={!searchAllOptions}
-            value={filterState.value || []}
+            value={multiSelect ? filterState.value || [] : filterState.value}
             disabled={isDisabled}
             getPopupContainer={
               showOverflow
@@ -531,7 +531,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
             onFocus={setFocusedFilter}
             onMouseEnter={setHoveredFilter}
             onMouseLeave={unsetHoveredFilter}
-            // @ts-ignore
+            // @ts-expect-error
             onChange={handleChange}
             ref={inputRef}
             loading={isRefreshing}

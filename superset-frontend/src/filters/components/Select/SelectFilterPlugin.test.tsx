@@ -17,7 +17,12 @@
  * under the License.
  */
 import { AppSection } from '@superset-ui/core';
-import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import { NULL_STRING } from 'src/utils/common';
 import SelectFilterPlugin from './SelectFilterPlugin';
 import transformProps from './transformProps';
@@ -74,9 +79,9 @@ describe('SelectFilterPlugin', () => {
   const setDataMask = jest.fn();
   const getWrapper = (props = {}) =>
     render(
-      // @ts-ignore
+      // @ts-expect-error
       <SelectFilterPlugin
-        // @ts-ignore
+        // @ts-expect-error
         {...transformProps({
           ...selectMultipleProps,
           formData: { ...selectMultipleProps.formData, ...props },
@@ -292,9 +297,9 @@ describe('SelectFilterPlugin', () => {
   test('Select big int value', async () => {
     const bigValue = 1100924931345932234n;
     render(
-      // @ts-ignore
+      // @ts-expect-error
       <SelectFilterPlugin
-        // @ts-ignore
+        // @ts-expect-error
         {...transformProps({
           ...selectMultipleProps,
           formData: { ...selectMultipleProps.formData, groupby: 'bval' },
@@ -412,9 +417,9 @@ describe('SelectFilterPlugin', () => {
     };
 
     render(
-      // @ts-ignore
+      // @ts-expect-error
       <SelectFilterPlugin
-        // @ts-ignore
+        // @ts-expect-error
         {...transformProps(testProps)}
         setDataMask={jest.fn()}
         showOverflow={false}
@@ -486,9 +491,9 @@ describe('SelectFilterPlugin', () => {
     };
 
     render(
-      // @ts-ignore
+      // @ts-expect-error
       <SelectFilterPlugin
-        // @ts-ignore
+        // @ts-expect-error
         {...transformProps(testProps)}
         setDataMask={jest.fn()}
         showOverflow={false}
@@ -560,9 +565,9 @@ describe('SelectFilterPlugin', () => {
     };
 
     render(
-      // @ts-ignore
+      // @ts-expect-error
       <SelectFilterPlugin
-        // @ts-ignore
+        // @ts-expect-error
         {...transformProps(testProps)}
         setDataMask={jest.fn()}
         showOverflow={false}
@@ -634,9 +639,9 @@ describe('SelectFilterPlugin', () => {
     };
 
     render(
-      // @ts-ignore
+      // @ts-expect-error
       <SelectFilterPlugin
-        // @ts-ignore
+        // @ts-expect-error
         {...transformProps(testProps)}
         setDataMask={jest.fn()}
         showOverflow={false}
@@ -674,5 +679,455 @@ describe('SelectFilterPlugin', () => {
     expect(options[0]).toHaveTextContent('zebra');
     expect(options[1]).toHaveTextContent('alpha');
     expect(options[2]).toHaveTextContent('beta');
+  });
+});
+
+test('Select boolean FALSE value in single-select mode', async () => {
+  jest.useRealTimers();
+  const setDataMaskMock = jest.fn();
+  const testProps = {
+    ...selectMultipleProps,
+    formData: {
+      ...selectMultipleProps.formData,
+      multiSelect: false,
+      groupby: ['is_active'],
+    },
+    queriesData: [
+      {
+        ...selectMultipleProps.queriesData[0],
+        colnames: ['is_active'],
+        data: [{ is_active: true }, { is_active: false }],
+        applied_filters: [{ column: 'is_active' }],
+      },
+    ],
+    filterState: { value: undefined },
+  };
+
+  render(
+    // @ts-expect-error
+    <SelectFilterPlugin
+      // @ts-expect-error
+      {...transformProps(testProps)}
+      setDataMask={setDataMaskMock}
+      showOverflow={false}
+    />,
+    {
+      useRedux: true,
+      initialState: {
+        nativeFilters: {
+          filters: {
+            'test-filter': {
+              name: 'Test Filter',
+            },
+          },
+        },
+        dataMask: {
+          'test-filter': {
+            extraFormData: {},
+            filterState: {
+              value: undefined,
+            },
+          },
+        },
+      },
+    },
+  );
+
+  const filterSelect = screen.getByRole('combobox');
+  userEvent.click(filterSelect);
+
+  const falseOption = await screen.findByRole('option', { name: /false/i });
+  userEvent.click(falseOption);
+
+  await waitFor(() => {
+    expect(setDataMaskMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        extraFormData: {
+          filters: [
+            {
+              col: 'is_active',
+              op: 'IN',
+              val: [false],
+            },
+          ],
+        },
+        filterState: expect.objectContaining({
+          value: [false],
+        }),
+      }),
+    );
+  });
+});
+
+test('Select boolean TRUE value in single-select mode', async () => {
+  jest.useRealTimers();
+  const setDataMaskMock = jest.fn();
+  const testProps = {
+    ...selectMultipleProps,
+    formData: {
+      ...selectMultipleProps.formData,
+      multiSelect: false,
+      groupby: ['is_active'],
+    },
+    queriesData: [
+      {
+        ...selectMultipleProps.queriesData[0],
+        colnames: ['is_active'],
+        data: [{ is_active: true }, { is_active: false }],
+        applied_filters: [{ column: 'is_active' }],
+      },
+    ],
+    filterState: { value: undefined },
+  };
+
+  render(
+    // @ts-expect-error
+    <SelectFilterPlugin
+      // @ts-expect-error
+      {...transformProps(testProps)}
+      setDataMask={setDataMaskMock}
+      showOverflow={false}
+    />,
+    {
+      useRedux: true,
+      initialState: {
+        nativeFilters: {
+          filters: {
+            'test-filter': {
+              name: 'Test Filter',
+            },
+          },
+        },
+        dataMask: {
+          'test-filter': {
+            extraFormData: {},
+            filterState: {
+              value: undefined,
+            },
+          },
+        },
+      },
+    },
+  );
+
+  const filterSelect = screen.getByRole('combobox');
+  userEvent.click(filterSelect);
+
+  const trueOption = await screen.findByRole('option', { name: /true/i });
+  userEvent.click(trueOption);
+
+  await waitFor(() => {
+    expect(setDataMaskMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        extraFormData: {
+          filters: [
+            {
+              col: 'is_active',
+              op: 'IN',
+              val: [true],
+            },
+          ],
+        },
+        filterState: expect.objectContaining({
+          value: [true],
+        }),
+      }),
+    );
+  });
+});
+
+test('Select both boolean values in multi-select mode', async () => {
+  jest.useRealTimers();
+  const setDataMaskMock = jest.fn();
+  const testProps = {
+    ...selectMultipleProps,
+    formData: {
+      ...selectMultipleProps.formData,
+      multiSelect: true,
+      groupby: ['is_active'],
+    },
+    queriesData: [
+      {
+        ...selectMultipleProps.queriesData[0],
+        colnames: ['is_active'],
+        data: [{ is_active: true }, { is_active: false }],
+        applied_filters: [{ column: 'is_active' }],
+      },
+    ],
+    filterState: { value: [true] },
+  };
+
+  render(
+    // @ts-expect-error
+    <SelectFilterPlugin
+      // @ts-expect-error
+      {...transformProps(testProps)}
+      setDataMask={setDataMaskMock}
+      showOverflow={false}
+    />,
+    {
+      useRedux: true,
+      initialState: {
+        nativeFilters: {
+          filters: {
+            'test-filter': {
+              name: 'Test Filter',
+            },
+          },
+        },
+        dataMask: {
+          'test-filter': {
+            extraFormData: {},
+            filterState: {
+              value: [true],
+            },
+          },
+        },
+      },
+    },
+  );
+
+  const filterSelect = screen.getByRole('combobox');
+  userEvent.click(filterSelect);
+
+  const falseOption = await screen.findByRole('option', { name: /false/i });
+  userEvent.click(falseOption);
+
+  await waitFor(() => {
+    expect(setDataMaskMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        extraFormData: {
+          filters: [
+            {
+              col: 'is_active',
+              op: 'IN',
+              val: [true, false],
+            },
+          ],
+        },
+        filterState: expect.objectContaining({
+          value: [true, false],
+        }),
+      }),
+    );
+  });
+});
+
+test('Select boolean filter with null values', async () => {
+  jest.useRealTimers();
+  const setDataMaskMock = jest.fn();
+  const testProps = {
+    ...selectMultipleProps,
+    formData: {
+      ...selectMultipleProps.formData,
+      multiSelect: true,
+      groupby: ['is_active'],
+    },
+    queriesData: [
+      {
+        ...selectMultipleProps.queriesData[0],
+        colnames: ['is_active'],
+        data: [{ is_active: true }, { is_active: false }, { is_active: null }],
+        applied_filters: [{ column: 'is_active' }],
+      },
+    ],
+    filterState: { value: [false] },
+  };
+
+  render(
+    // @ts-expect-error
+    <SelectFilterPlugin
+      // @ts-expect-error
+      {...transformProps(testProps)}
+      setDataMask={setDataMaskMock}
+      showOverflow={false}
+    />,
+    {
+      useRedux: true,
+      initialState: {
+        nativeFilters: {
+          filters: {
+            'test-filter': {
+              name: 'Test Filter',
+            },
+          },
+        },
+        dataMask: {
+          'test-filter': {
+            extraFormData: {},
+            filterState: {
+              value: [false],
+            },
+          },
+        },
+      },
+    },
+  );
+
+  const filterSelect = screen.getByRole('combobox');
+  userEvent.click(filterSelect);
+
+  const nullOption = await screen.findByRole('option', { name: NULL_STRING });
+  userEvent.click(nullOption);
+
+  await waitFor(() => {
+    expect(setDataMaskMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        extraFormData: {
+          filters: [
+            {
+              col: 'is_active',
+              op: 'IN',
+              val: [false, null],
+            },
+          ],
+        },
+        filterState: expect.objectContaining({
+          value: [false, null],
+        }),
+      }),
+    );
+  });
+});
+
+test('Clear boolean FALSE value', async () => {
+  jest.useRealTimers();
+  const setDataMaskMock = jest.fn();
+  const testProps = {
+    ...selectMultipleProps,
+    formData: {
+      ...selectMultipleProps.formData,
+      multiSelect: false,
+      enableEmptyFilter: false,
+      groupby: ['is_active'],
+    },
+    queriesData: [
+      {
+        ...selectMultipleProps.queriesData[0],
+        colnames: ['is_active'],
+        data: [{ is_active: true }, { is_active: false }],
+        applied_filters: [{ column: 'is_active' }],
+      },
+    ],
+    filterState: { value: [false] },
+  };
+
+  render(
+    // @ts-expect-error
+    <SelectFilterPlugin
+      // @ts-expect-error
+      {...transformProps(testProps)}
+      setDataMask={setDataMaskMock}
+      showOverflow={false}
+    />,
+    {
+      useRedux: true,
+      initialState: {
+        nativeFilters: {
+          filters: {
+            'test-filter': {
+              name: 'Test Filter',
+            },
+          },
+        },
+        dataMask: {
+          'test-filter': {
+            extraFormData: {},
+            filterState: {
+              value: [false],
+            },
+          },
+        },
+      },
+    },
+  );
+
+  userEvent.click(
+    screen.getByRole('img', {
+      name: /close-circle/i,
+      hidden: true,
+    }),
+  );
+
+  await waitFor(() => {
+    expect(setDataMaskMock).toHaveBeenCalledWith({
+      extraFormData: {},
+      filterState: {
+        label: undefined,
+        value: null,
+        excludeFilterValues: true,
+      },
+    });
+  });
+});
+
+test('Clear boolean TRUE value', async () => {
+  jest.useRealTimers();
+  const setDataMaskMock = jest.fn();
+  const testProps = {
+    ...selectMultipleProps,
+    formData: {
+      ...selectMultipleProps.formData,
+      multiSelect: false,
+      enableEmptyFilter: false,
+      groupby: ['is_active'],
+    },
+    queriesData: [
+      {
+        ...selectMultipleProps.queriesData[0],
+        colnames: ['is_active'],
+        data: [{ is_active: true }, { is_active: false }],
+        applied_filters: [{ column: 'is_active' }],
+      },
+    ],
+    filterState: { value: [true] },
+  };
+
+  render(
+    // @ts-expect-error
+    <SelectFilterPlugin
+      // @ts-expect-error
+      {...transformProps(testProps)}
+      setDataMask={setDataMaskMock}
+      showOverflow={false}
+    />,
+    {
+      useRedux: true,
+      initialState: {
+        nativeFilters: {
+          filters: {
+            'test-filter': {
+              name: 'Test Filter',
+            },
+          },
+        },
+        dataMask: {
+          'test-filter': {
+            extraFormData: {},
+            filterState: {
+              value: [true],
+            },
+          },
+        },
+      },
+    },
+  );
+
+  userEvent.click(
+    screen.getByRole('img', {
+      name: /close-circle/i,
+      hidden: true,
+    }),
+  );
+
+  await waitFor(() => {
+    expect(setDataMaskMock).toHaveBeenCalledWith({
+      extraFormData: {},
+      filterState: {
+        label: undefined,
+        value: null,
+        excludeFilterValues: true,
+      },
+    });
   });
 });
