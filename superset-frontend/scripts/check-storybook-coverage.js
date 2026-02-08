@@ -123,16 +123,16 @@ function main() {
         return pluginDir.includes(exc.replace(/\*/g, ''));
       });
       if (isExcluded) {
-        if (verbose) console.log('  SKIP ' + pluginName + ' (excluded)');
+        if (verbose) console.log(`  SKIP ${pluginName} (excluded)`);
         continue;
       }
 
       if (hasStoriesFile(fullPath)) {
         covered.push({ type: 'plugin', name: pluginName, path: pluginDir });
-        if (verbose) console.log('  OK   ' + pluginName);
+        if (verbose) console.log(`  OK   ${pluginName}`);
       } else if (hasReactComponents(fullPath)) {
         missing.push({ type: 'plugin', name: pluginName, path: pluginDir });
-        console.log('  MISS ' + pluginName);
+        console.log(`  MISS ${pluginName}`);
       }
     }
   }
@@ -153,44 +153,44 @@ function main() {
 
       if (hasStoriesFile(fullPath)) {
         covered.push({ type: 'component', name: componentName, path: componentDir });
-        if (verbose) console.log('  OK   ' + componentName);
+        if (verbose) console.log(`  OK   ${componentName}`);
       } else if (hasReactComponents(fullPath)) {
         missing.push({ type: 'component', name: componentName, path: componentDir });
-        console.log('  MISS ' + componentName);
+        console.log(`  MISS ${componentName}`);
       }
     }
   }
 
   // Summary
-  console.log('\n' + '='.repeat(60));
+  console.log(`\n${'='.repeat(60)}`);
   console.log('Summary');
   console.log('='.repeat(60));
-  console.log('With stories: ' + covered.length);
-  console.log('Missing stories: ' + missing.length);
+  console.log(`With stories: ${covered.length}`);
+  console.log(`Missing stories: ${missing.length}`);
 
   if (missing.length > 0) {
     console.log('\nComponents/plugins missing Storybook stories:');
     for (const item of missing) {
-      console.log('   - ' + item.name + ' (' + item.path + ')');
+      console.log(`   - ${item.name} (${item.path})`);
     }
 
     if (showFix) {
       console.log('\nTo add stories, create a file like:');
-      var shown = 0;
+      let shown = 0;
       for (const item of missing) {
         if (shown >= 3) break;
-        var storiesPath;
+        let storiesPath;
         if (item.type === 'plugin') {
-          var shortName = item.name.replace('plugin-chart-', '').replace('legacy-', '');
-          storiesPath = item.path + '/stories/' + shortName + '.stories.tsx';
+          const shortName = item.name.replace('plugin-chart-', '').replace('legacy-', '');
+          storiesPath = `${item.path}/stories/${shortName}.stories.tsx`;
         } else {
-          storiesPath = item.path + '/' + item.name + '.stories.tsx';
+          storiesPath = `${item.path}/${item.name}.stories.tsx`;
         }
-        console.log('   ' + storiesPath);
+        console.log(`   ${storiesPath}`);
         shown++;
       }
       if (missing.length > 3) {
-        console.log('   ... and ' + (missing.length - 3) + ' more');
+        console.log(`   ... and ${missing.length - 3} more`);
       }
     }
 
