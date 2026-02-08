@@ -45,6 +45,7 @@ from superset.exceptions import (
     SupersetTemplateException,
 )
 from superset.extensions import feature_flag_manager
+from superset.localization.locale_utils import get_user_locale
 from superset.sql.parse import Table
 from superset.superset_typing import Column, QueryObjectDict
 from superset.utils import json
@@ -125,6 +126,7 @@ class ExtraCache:
         r"current_user_id\([^()]*\)|"
         r"current_username\([^()]*\)|"
         r"current_user_email\([^()]*\)|"
+        r"current_user_locale\([^()]*\)|"
         r"current_user_rls_rules\([^()]*\)|"
         r"current_user_roles\([^()]*\)|"
         r"cache_key_wrapper\([^()]*\)|"
@@ -190,6 +192,21 @@ class ExtraCache:
                 self.cache_key_wrapper(email_address)
             return email_address
         return None
+
+    def current_user_locale(self, add_to_cache_keys: bool = True) -> str:
+        """
+        Return the locale of the user who is currently logged in.
+
+        Enables locale-aware SQL queries:
+            SELECT * FROM table WHERE language = '{{ current_user_locale() }}'
+
+        :param add_to_cache_keys: Whether the value should be included in the cache key
+        :returns: Locale code (e.g., "de", "fr", "en"). Always returns a value.
+        """
+        locale = get_user_locale()
+        if add_to_cache_keys:
+            self.cache_key_wrapper(locale)
+        return locale
 
     def current_user_roles(self, add_to_cache_keys: bool = True) -> list[str] | None:
         """
@@ -834,6 +851,9 @@ class JinjaTemplateProcessor(BaseTemplateProcessor):
                 "current_username": partial(safe_proxy, extra_cache.current_username),
                 "current_user_email": partial(
                     safe_proxy, extra_cache.current_user_email
+                ),
+                "current_user_locale": partial(
+                    safe_proxy, extra_cache.current_user_locale
                 ),
                 "current_user_roles": partial(
                     safe_proxy, extra_cache.current_user_roles

@@ -18,6 +18,7 @@
  */
 import Owner from './Owner';
 import Role from './Role';
+import { Translations } from './Localization';
 
 export interface Dashboard {
   id: number;
@@ -40,4 +41,8 @@ export interface Dashboard {
     theme_name: string;
     json_data: string;
   } | null;
+
+  // Content localization fields
+  translations?: Translations;
+  available_locales?: string[];
 }

@@ -26,7 +26,7 @@ import {
   type SelectValue,
 } from '@superset-ui/core/components';
 import rison from 'rison';
-import { t } from '@apache-superset/core';
+import { logging, t } from '@apache-superset/core';
 import {
   SupersetClient,
   isFeatureEnabled,
@@ -34,6 +34,7 @@ import {
   getClientErrorObject,
   ensureIsArray,
 } from '@superset-ui/core';
+import { useSelector } from 'react-redux';
 import Chart, { Slice } from 'src/types/Chart';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { type TagType } from 'src/components';
@@ -44,6 +45,13 @@ import {
   ModalFormField,
   useModalValidation,
 } from 'src/components/Modal';
+import {
+  LocaleSwitcher,
+  TranslationTextAreaWrapper,
+  DEFAULT_LOCALE_KEY,
+  stripEmptyValues,
+} from 'src/components/TranslationEditor';
+import type { Translations, LocaleInfo } from 'src/types/Localization';
 
 export type PropertiesModalProps = {
   slice: Slice;
@@ -81,6 +89,14 @@ function PropertiesModal({
     null,
   );
   const [tags, setTags] = useState<TagType[]>([]);
+  const [translations, setTranslations] = useState<Translations>({});
+  const [allLocales, setAllLocales] = useState<LocaleInfo[]>([]);
+  const [defaultLocale, setDefaultLocale] = useState('');
+  const [nameActiveLocale, setNameActiveLocale] = useState(DEFAULT_LOCALE_KEY);
+  const [descActiveLocale, setDescActiveLocale] = useState(DEFAULT_LOCALE_KEY);
+  const userLocale: string = useSelector(
+    (state: { common: { locale: string } }) => state.common.locale,
+  );
 
   // Validation setup
   const modalSections = useMemo(
@@ -148,20 +164,23 @@ function PropertiesModal({
 
   const fetchChartProperties = useCallback(
     async function fetchChartProperties() {
-      const queryParams = rison.encode({
-        select_columns: [
-          'owners.id',
-          'owners.first_name',
-          'owners.last_name',
-          'tags.id',
-          'tags.name',
-          'tags.type',
-        ],
-      });
+      const localizationEnabled = isFeatureEnabled(
+        FeatureFlag.EnableContentLocalization,
+      );
+      const endpoint = localizationEnabled
+        ? `/api/v1/chart/${slice.slice_id}?include_translations=true`
+        : `/api/v1/chart/${slice.slice_id}?q=${rison.encode({
+            select_columns: [
+              'owners.id',
+              'owners.first_name',
+              'owners.last_name',
+              'tags.id',
+              'tags.name',
+              'tags.type',
+            ],
+          })}`;
       try {
-        const response = await SupersetClient.get({
-          endpoint: `/api/v1/chart/${slice.slice_id}?q=${queryParams}`,
-        });
+        const response = await SupersetClient.get({ endpoint });
         const chart = response.json.result;
         setSelectedOwners(
           chart?.owners?.map((owner: any) => ({
@@ -175,12 +194,24 @@ function PropertiesModal({
           );
           setTags(customTags);
         }
+        if (localizationEnabled) {
+          setName(chart.slice_name || '');
+          setDescription(chart.description || '');
+          const loaded: Translations = chart.translations ?? {};
+          setTranslations(loaded);
+          setNameActiveLocale(
+            loaded.slice_name?.[userLocale] ? userLocale : DEFAULT_LOCALE_KEY,
+          );
+          setDescActiveLocale(
+            loaded.description?.[userLocale] ? userLocale : DEFAULT_LOCALE_KEY,
+          );
+        }
       } catch (response) {
         const clientError = await getClientErrorObject(response);
         showError(clientError);
       }
     },
-    [showError, slice.slice_id],
+    [showError, slice.slice_id, userLocale],
   );
 
   const loadOptions = useMemo(
@@ -232,6 +263,9 @@ function PropertiesModal({
     if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
       payload.tags = tags.map(tag => tag.id);
     }
+    if (isFeatureEnabled(FeatureFlag.EnableContentLocalization)) {
+      payload.translations = stripEmptyValues(translations);
+    }
 
     try {
       const chartEndpoint = `/api/v1/chart/${slice.slice_id}`;
@@ -258,6 +292,18 @@ function PropertiesModal({
   // get the owners of this slice
   useEffect(() => {
     fetchChartProperties();
+    if (isFeatureEnabled(FeatureFlag.EnableContentLocalization)) {
+      SupersetClient.get({
+        endpoint: '/api/v1/localization/available_locales',
+      }).then(
+        response => {
+          const { locales, default_locale } = response.json.result;
+          setAllLocales(locales);
+          setDefaultLocale(default_locale);
+        },
+        err => logging.error('Failed to fetch available locales', err),
+      );
+    }
   }, [slice.slice_id]);
 
   // update name after it's changed in another modal
@@ -286,6 +332,37 @@ function PropertiesModal({
   const handleClearTags = () => {
     setTags([]);
   };
+
+  const handleTranslationChange = useCallback(
+    (fieldName: string, locale: string, value: string) => {
+      setTranslations(prev => ({
+        ...prev,
+        [fieldName]: { ...prev[fieldName], [locale]: value },
+      }));
+    },
+    [],
+  );
+
+  /** Validate default is non-empty before switching to a translation locale. */
+  const handleNameLocaleChange = useCallback(
+    (locale: string) => {
+      if (locale !== DEFAULT_LOCALE_KEY && !name.trim()) {
+        addDangerToast(
+          t('Default text is required before adding translations'),
+        );
+        return;
+      }
+      setNameActiveLocale(locale);
+    },
+    [name, addDangerToast],
+  );
+
+  const handleDescLocaleChange = useCallback(
+    (locale: string) => {
+      setDescActiveLocale(locale);
+    },
+    [],
+  );
 
   return (
     <StandardModal
@@ -332,14 +409,54 @@ function PropertiesModal({
                       ? t('Chart name is required')
                       : undefined
                   }
+                  helperText={
+                    nameActiveLocale === DEFAULT_LOCALE_KEY &&
+                    isFeatureEnabled(FeatureFlag.EnableContentLocalization)
+                      ? t('Default text — shown to users without a translation for their language')
+                      : undefined
+                  }
                 >
                   <Input
                     aria-label={t('Name')}
                     data-test="properties-modal-name-input"
                     type="text"
-                    value={name}
-                    onChange={(event: ChangeEvent<HTMLInputElement>) =>
-                      setName(event.target.value ?? '')
+                    value={
+                      nameActiveLocale === DEFAULT_LOCALE_KEY
+                        ? name
+                        : translations.slice_name?.[nameActiveLocale] ?? ''
+                    }
+                    onChange={(event: ChangeEvent<HTMLInputElement>) => {
+                      if (nameActiveLocale === DEFAULT_LOCALE_KEY) {
+                        setName(event.target.value ?? '');
+                      } else {
+                        handleTranslationChange(
+                          'slice_name',
+                          nameActiveLocale,
+                          event.target.value ?? '',
+                        );
+                      }
+                    }}
+                    placeholder={
+                      nameActiveLocale === DEFAULT_LOCALE_KEY
+                        ? t('The display name of your chart')
+                        : t('Translation for %s', nameActiveLocale.toUpperCase())
+                    }
+                    suffix={
+                      isFeatureEnabled(
+                        FeatureFlag.EnableContentLocalization,
+                      ) ? (
+                        <LocaleSwitcher
+                          fieldName="slice_name"
+                          defaultValue={name}
+                          translations={translations}
+                          allLocales={allLocales}
+                          defaultLocale={defaultLocale}
+                          userLocale={userLocale}
+                          activeLocale={nameActiveLocale}
+                          onLocaleChange={handleNameLocaleChange}
+                          fieldLabel={t('Chart Name')}
+                        />
+                      ) : undefined
                     }
                   />
                 </ModalFormField>
@@ -349,13 +466,55 @@ function PropertiesModal({
                     'The description can be displayed as widget headers in the dashboard view. Supports markdown.',
                   )}
                 >
-                  <Input.TextArea
-                    rows={3}
-                    value={description}
-                    onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
-                      setDescription(event.target.value ?? '')
-                    }
-                  />
+                  {isFeatureEnabled(
+                    FeatureFlag.EnableContentLocalization,
+                  ) ? (
+                    <TranslationTextAreaWrapper
+                      suffix={
+                        <LocaleSwitcher
+                          fieldName="description"
+                          defaultValue={description}
+                          translations={translations}
+                          allLocales={allLocales}
+                          defaultLocale={defaultLocale}
+                          userLocale={userLocale}
+                          activeLocale={descActiveLocale}
+                          onLocaleChange={handleDescLocaleChange}
+                          fieldLabel={t('Description')}
+                        />
+                      }
+                    >
+                      <Input.TextArea
+                        rows={3}
+                        value={
+                          descActiveLocale === DEFAULT_LOCALE_KEY
+                            ? description
+                            : translations.description?.[descActiveLocale] ?? ''
+                        }
+                        onChange={(
+                          event: ChangeEvent<HTMLTextAreaElement>,
+                        ) => {
+                          if (descActiveLocale === DEFAULT_LOCALE_KEY) {
+                            setDescription(event.target.value ?? '');
+                          } else {
+                            handleTranslationChange(
+                              'description',
+                              descActiveLocale,
+                              event.target.value ?? '',
+                            );
+                          }
+                        }}
+                      />
+                    </TranslationTextAreaWrapper>
+                  ) : (
+                    <Input.TextArea
+                      rows={3}
+                      value={description}
+                      onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
+                        setDescription(event.target.value ?? '')
+                      }
+                    />
+                  )}
                 </ModalFormField>
                 <ModalFormField
                   label={t('Owners')}

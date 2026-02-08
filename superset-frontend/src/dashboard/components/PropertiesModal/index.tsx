@@ -27,7 +27,7 @@ import {
 import { useJsonValidation } from '@superset-ui/core/components/AsyncAceEditor';
 import { type TagType } from 'src/components';
 import rison from 'rison';
-import { t } from '@apache-superset/core';
+import { logging, t } from '@apache-superset/core';
 import {
   ensureIsArray,
   isFeatureEnabled,
@@ -44,7 +44,7 @@ import {
   getColorNamespace,
   getFreshLabelsColorMapEntries,
 } from 'src/utils/colorScheme';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import {
   setColorScheme,
   setDashboardMetadata,
@@ -59,6 +59,12 @@ import {
   CertificationSection,
   AdvancedSection,
 } from './sections';
+import {
+  LocaleSwitcher,
+  DEFAULT_LOCALE_KEY,
+  stripEmptyValues,
+} from 'src/components/TranslationEditor';
+import type { Translations, LocaleInfo } from 'src/types/Localization';
 
 type PropertiesModalProps = {
   dashboardId: number;
@@ -109,6 +115,7 @@ const PropertiesModal = ({
 }: PropertiesModalProps) => {
   const dispatch = useDispatch();
   const [form] = Form.useForm();
+  const currentTitle: string = Form.useWatch('title', form) ?? '';
 
   const [isLoading, setIsLoading] = useState(true);
   const [isApplying, setIsApplying] = useState(false);
@@ -128,6 +135,13 @@ const PropertiesModal = ({
   const [refreshFrequency, setRefreshFrequency] = useState(0);
   const [selectedThemeId, setSelectedThemeId] = useState<number | null>(null);
   const [showChartTimestamps, setShowChartTimestamps] = useState(false);
+  const [translations, setTranslations] = useState<Translations>({});
+  const [allLocales, setAllLocales] = useState<LocaleInfo[]>([]);
+  const [defaultLocale, setDefaultLocale] = useState('');
+  const [titleActiveLocale, setTitleActiveLocale] = useState(DEFAULT_LOCALE_KEY);
+  const userLocale: string = useSelector(
+    (state: { common: { locale: string } }) => state.common.locale,
+  );
   const [themes, setThemes] = useState<
     Array<{
       id: number;
@@ -171,6 +185,7 @@ const PropertiesModal = ({
         is_managed_externally,
         theme,
         css,
+        translations: rawTranslations,
       } = dashboardData;
       const dashboardInfo = {
         id,
@@ -188,6 +203,13 @@ const PropertiesModal = ({
       setOwners(owners);
       setRoles(roles);
       setCustomCss(css || '');
+      const loadedTranslations: Translations = rawTranslations ?? {};
+      setTranslations(loadedTranslations);
+      setTitleActiveLocale(
+        loadedTranslations.dashboard_title?.[userLocale]
+          ? userLocale
+          : DEFAULT_LOCALE_KEY,
+      );
       setCurrentColorScheme(metadata?.color_scheme);
       setSelectedThemeId(theme?.id || null);
 
@@ -204,7 +226,7 @@ const PropertiesModal = ({
       setShowChartTimestamps(metadata?.show_chart_timestamps ?? false);
       originalDashboardMetadata.current = metadata;
     },
-    [form],
+    [form, userLocale],
   );
 
   const fetchDashboardDetails = useCallback(() => {
@@ -212,9 +234,10 @@ const PropertiesModal = ({
     // that renders this component have all the values we need.
     // At some point when we have a more consistent frontend
     // datamodel, the dashboard could probably just be passed as a prop.
-    SupersetClient.get({
-      endpoint: `/api/v1/dashboard/${dashboardId}`,
-    }).then(response => {
+    const endpoint = isFeatureEnabled(FeatureFlag.EnableContentLocalization)
+      ? `/api/v1/dashboard/${dashboardId}?include_translations=true`
+      : `/api/v1/dashboard/${dashboardId}`;
+    SupersetClient.get({ endpoint }).then(response => {
       const dashboard = response.json.result;
       const jsonMetadataObj = dashboard.json_metadata?.length
         ? JSON.parse(dashboard.json_metadata)
@@ -350,10 +373,15 @@ const PropertiesModal = ({
 
     currentJsonMetadata = jsonStringify(jsonMetadataObj);
 
-    const moreOnSubmitProps: { roles?: Roles; tags?: TagType[] } = {};
+    const moreOnSubmitProps: {
+      roles?: Roles;
+      tags?: TagType[];
+      translations?: Translations;
+    } = {};
     const morePutProps: {
       roles?: number[];
       tags?: (string | number | undefined)[];
+      translations?: Translations;
     } = {};
     if (isFeatureEnabled(FeatureFlag.DashboardRbac)) {
       moreOnSubmitProps.roles = roles;
@@ -362,6 +390,11 @@ const PropertiesModal = ({
     if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
       moreOnSubmitProps.tags = tags;
       morePutProps.tags = tags.map(tag => tag.id);
+    }
+    if (isFeatureEnabled(FeatureFlag.EnableContentLocalization)) {
+      const cleaned = stripEmptyValues(translations);
+      moreOnSubmitProps.translations = cleaned;
+      morePutProps.translations = cleaned;
     }
     const onSubmitProps = {
       id: dashboardId,
@@ -448,6 +481,19 @@ const PropertiesModal = ({
             t('An error occurred while fetching available themes'),
           );
         });
+
+      if (isFeatureEnabled(FeatureFlag.EnableContentLocalization)) {
+        SupersetClient.get({
+          endpoint: '/api/v1/localization/available_locales',
+        }).then(
+          response => {
+            const { locales, default_locale } = response.json.result;
+            setAllLocales(locales);
+            setDefaultLocale(default_locale);
+          },
+          err => logging.error('Failed to fetch available locales', err),
+        );
+      }
     }
   }, [
     currentDashboardInfo,
@@ -506,6 +552,36 @@ const PropertiesModal = ({
   const handleThemeChange = (value: any) => setSelectedThemeId(value || null);
   const handleRefreshFrequencyChange = (value: any) =>
     setRefreshFrequency(value);
+
+  const handleTitleTranslationChange = useCallback(
+    (value: string) => {
+      setTranslations(prev => ({
+        ...prev,
+        dashboard_title: {
+          ...prev.dashboard_title,
+          [titleActiveLocale]: value,
+        },
+      }));
+    },
+    [titleActiveLocale],
+  );
+
+  /** Validate default is non-empty before switching to a translation locale. */
+  const handleTitleLocaleChange = useCallback(
+    (locale: string) => {
+      if (locale !== DEFAULT_LOCALE_KEY) {
+        const titleValue = form.getFieldValue('title');
+        if (!titleValue?.trim()) {
+          addDangerToast(
+            t('Default text is required before adding translations'),
+          );
+          return;
+        }
+      }
+      setTitleActiveLocale(locale);
+    },
+    [form, addDangerToast],
+  );
 
   // Helper function for styling section
   const hasCustomLabelsColor = !!Object.keys(
@@ -616,8 +692,8 @@ const PropertiesModal = ({
   }, [refreshFrequency, validateSection, isDataReady]);
 
   return (
-    <StandardModal
-      show={show}
+      <StandardModal
+        show={show}
       onHide={handleOnCancel}
       onSave={() => {
         if (validateAll()) {
@@ -672,6 +748,34 @@ const PropertiesModal = ({
                 <BasicInfoSection
                   form={form}
                   validationStatus={validationStatus}
+                  activeLocale={
+                    isFeatureEnabled(FeatureFlag.EnableContentLocalization)
+                      ? titleActiveLocale
+                      : undefined
+                  }
+                  translationValue={
+                    titleActiveLocale !== DEFAULT_LOCALE_KEY
+                      ? translations.dashboard_title?.[titleActiveLocale] ?? ''
+                      : undefined
+                  }
+                  onTranslationChange={handleTitleTranslationChange}
+                  localeSwitcher={
+                    isFeatureEnabled(
+                      FeatureFlag.EnableContentLocalization,
+                    ) ? (
+                      <LocaleSwitcher
+                        fieldName="dashboard_title"
+                        defaultValue={currentTitle}
+                        translations={translations}
+                        allLocales={allLocales}
+                        defaultLocale={defaultLocale}
+                        userLocale={userLocale}
+                        activeLocale={titleActiveLocale}
+                        onLocaleChange={handleTitleLocaleChange}
+                        fieldLabel={t('Dashboard Title')}
+                      />
+                    ) : undefined
+                  }
                 />
               ),
             },
@@ -779,7 +883,7 @@ const PropertiesModal = ({
           ]}
         />
       </Form>
-    </StandardModal>
+      </StandardModal>
   );
 };
 

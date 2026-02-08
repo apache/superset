@@ -86,6 +86,7 @@ export type Filter = {
   chartsInScope?: number[];
   type: typeof NativeFilterType.NativeFilter;
   description: string;
+  translations?: Record<string, Record<string, string>>;
 };
 
 export type ChartCustomization = {
