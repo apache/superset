@@ -76,7 +76,7 @@ services:
         required: true
       - path: docker/.env-local # optional override
         required: false
-    image: postgres:16
+    image: postgres:17
     restart: unless-stopped
     ports:
       - "127.0.0.1:${DATABASE_PORT:-5432}:5432"
