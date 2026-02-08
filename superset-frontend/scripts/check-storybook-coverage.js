@@ -52,9 +52,6 @@ const EXCLUSIONS = [
   '**/utils/**',
   '**/hooks/**',
   '**/constants/**',
-  // Cartodiagram has a partial story (map renders, chart containers created)
-  // but full embedded chart rendering requires complex nested transformProps setup
-  '**/plugin-chart-cartodiagram/**',
 ];
 
 // Check if a directory has a stories file
