@@ -75,7 +75,7 @@ export type RowProps = {
 
   // visibility
   isComponentVisible: boolean;
-  onChangeTab: (tabId: string) => void;
+  onChangeTab: (args: { pathToTabIndex: string[] }) => void;
 };
 
 const GridRow = styled.div<{ editMode: boolean }>`

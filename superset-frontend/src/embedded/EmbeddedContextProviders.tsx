@@ -19,6 +19,7 @@
 import { getExtensionsRegistry } from '@superset-ui/core';
 import { Provider as ReduxProvider } from 'react-redux';
 import { QueryParamProvider } from 'use-query-params';
+import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { DynamicPluginProvider } from 'src/components';
@@ -27,7 +28,6 @@ import { SupersetThemeProvider } from 'src/theme/ThemeProvider';
 import { ThemeController } from 'src/theme/ThemeController';
 import type { ThemeStorage } from '@apache-superset/core/ui';
 import { store } from 'src/views/store';
-import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import querystring from 'query-string';
 
 /**

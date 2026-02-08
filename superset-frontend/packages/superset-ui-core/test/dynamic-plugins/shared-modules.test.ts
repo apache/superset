@@ -24,7 +24,7 @@ describe('shared modules', () => {
     reset();
   });
 
-  it('assigns to window', async () => {
+  test('assigns to window', async () => {
     const fakeModule = { foo: 'bar' };
     const fetchModule = jest.fn().mockResolvedValue(fakeModule);
 
@@ -35,7 +35,7 @@ describe('shared modules', () => {
     );
   });
 
-  it('resolves to the same reference every time', async () => {
+  test('resolves to the same reference every time', async () => {
     const fakeModule = { foo: 'bar' };
     const fetchModule = jest.fn().mockResolvedValue(fakeModule);
 
@@ -46,7 +46,7 @@ describe('shared modules', () => {
     expect(result2).toStrictEqual(fakeModule);
   });
 
-  it('does not redefine unnecessarily', async () => {
+  test('does not redefine unnecessarily', async () => {
     const fakeModule = { foo: 'bar' };
     const fetchModule = jest.fn().mockResolvedValue(fakeModule);
     const duplicateFetchModule = jest.fn().mockResolvedValue(fakeModule);
@@ -62,7 +62,7 @@ describe('shared modules', () => {
     expect(duplicateFetchModule).not.toHaveBeenCalled();
   });
 
-  it('deduplicates in-progress definitions', async () => {
+  test('deduplicates in-progress definitions', async () => {
     const fakeModule = { foo: 'bar' };
     // get a promise that actually takes a moment;
     const fetchModule = jest
@@ -79,7 +79,7 @@ describe('shared modules', () => {
     expect(result1).toStrictEqual(result2);
   });
 
-  it('shares a map of modules', async () => {
+  test('shares a map of modules', async () => {
     const foo = { foo: 'bar' };
     const fizz = { fizz: 'buzz' };
     await defineSharedModules({

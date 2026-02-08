@@ -28,7 +28,7 @@ import {
 import { ForecastSeriesEnum } from '../../src/types';
 
 describe('extractForecastSeriesContext', () => {
-  it('should extract the correct series name and type', () => {
+  test('should extract the correct series name and type', () => {
     expect(extractForecastSeriesContext('abcd')).toEqual({
       name: 'abcd',
       type: ForecastSeriesEnum.Observation,
@@ -49,7 +49,7 @@ describe('extractForecastSeriesContext', () => {
 });
 
 describe('reorderForecastSeries', () => {
-  it('should reorder the forecast series and preserve values', () => {
+  test('should reorder the forecast series and preserve values', () => {
     const input: SeriesOption[] = [
       { id: `series${ForecastSeriesEnum.Observation}`, data: [10, 20, 30] },
       { id: `series${ForecastSeriesEnum.ForecastTrend}`, data: [15, 25, 35] },
@@ -65,16 +65,16 @@ describe('reorderForecastSeries', () => {
     expect(reorderForecastSeries(input)).toEqual(expectedOutput);
   });
 
-  it('should handle an empty array', () => {
+  test('should handle an empty array', () => {
     expect(reorderForecastSeries([])).toEqual([]);
   });
 
-  it('should not reorder if no relevant series are present', () => {
+  test('should not reorder if no relevant series are present', () => {
     const input: SeriesOption[] = [{ id: 'some-other-series' }];
     expect(reorderForecastSeries(input)).toEqual(input);
   });
 
-  it('should handle undefined ids', () => {
+  test('should handle undefined ids', () => {
     const input: SeriesOption[] = [
       { id: `series${ForecastSeriesEnum.ForecastLower}` },
       { id: undefined },
@@ -90,7 +90,7 @@ describe('reorderForecastSeries', () => {
 });
 
 describe('rebaseForecastDatum', () => {
-  it('should subtract lower confidence level from upper value', () => {
+  test('should subtract lower confidence level from upper value', () => {
     expect(
       rebaseForecastDatum([
         {
@@ -146,7 +146,7 @@ describe('rebaseForecastDatum', () => {
     ]);
   });
 
-  it('should rename all series based on verboseMap but leave __timestamp alone', () => {
+  test('should rename all series based on verboseMap but leave __timestamp alone', () => {
     expect(
       rebaseForecastDatum(
         [

@@ -298,7 +298,7 @@ const ResultSet = ({
       const force = false;
       const includeAppRoot = openInNewWindow;
       const url = mountExploreUrl(
-        null,
+        'base',
         {
           [URL_PARAMS.formDataKey.name]: key,
         },
@@ -428,7 +428,10 @@ const ResultSet = ({
           )}
           {canExportData && (
             <CopyToClipboard
-              text={prepareCopyToClipboardTabularData(data, columns)}
+              text={prepareCopyToClipboardTabularData(
+                data,
+                columns.map(c => c.column_name),
+              )}
               wrapped={false}
               copyNode={
                 <Button

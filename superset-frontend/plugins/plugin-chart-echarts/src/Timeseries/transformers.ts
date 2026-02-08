@@ -340,11 +340,11 @@ export function transformSeries(
     yAxisIndex,
     name: forecastSeries.name,
     itemStyle,
-    // @ts-ignore
+    // @ts-expect-error
     type: plotType,
     smooth: seriesType === 'smooth',
     triggerLineEvent: true,
-    // @ts-ignore
+    // @ts-expect-error
     step: ['start', 'middle', 'end'].includes(seriesType as string)
       ? seriesType
       : undefined,
@@ -474,7 +474,7 @@ export function transformIntervalAnnotation(
           position: 'insideTop',
           verticalAlign: 'top',
           fontWeight: 'bold',
-          // @ts-ignore
+          // @ts-expect-error
           emphasis: {
             position: 'insideTop',
             verticalAlign: 'top',
@@ -484,7 +484,6 @@ export function transformIntervalAnnotation(
       : {
           show: false,
           color: theme.colorTextLabel,
-          // @ts-ignore
           emphasis: {
             fontWeight: 'bold',
             show: true,
@@ -555,7 +554,7 @@ export function transformEventAnnotation(
           position: 'insideEndTop',
           fontWeight: 'bold',
           formatter: (params: CallbackDataParams) => params.name,
-          // @ts-ignore
+          // @ts-expect-error
           emphasis: {
             backgroundColor: theme.colorPrimaryBgHover,
           },
@@ -564,7 +563,6 @@ export function transformEventAnnotation(
           show: false,
           color: theme.colorTextLabel,
           position: 'insideEndTop',
-          // @ts-ignore
           emphasis: {
             formatter: (params: CallbackDataParams) => params.name,
             fontWeight: 'bold',

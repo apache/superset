@@ -59,7 +59,7 @@ export interface EchartsFunnelChartProps extends BaseChartProps<EchartsFunnelFor
   formData: EchartsFunnelFormData;
 }
 
-// @ts-ignore
+// @ts-expect-error
 export const DEFAULT_FORM_DATA: EchartsFunnelFormData = {
   ...DEFAULT_LEGEND_FORM_DATA,
   groupby: [],

@@ -180,9 +180,4 @@ export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
   slice_id: number;
 }
 
-export enum ColorSchemeEnum {
-  'Green' = 'Green',
-  'Red' = 'Red',
-}
-
 export default {};
