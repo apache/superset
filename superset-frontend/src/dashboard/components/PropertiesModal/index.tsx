@@ -27,7 +27,7 @@ import {
 import { useJsonValidation } from '@superset-ui/core/components/AsyncAceEditor';
 import { type TagType } from 'src/components';
 import rison from 'rison';
-import { t } from '@apache-superset/core';
+import { logging, t } from '@apache-superset/core';
 import {
   ensureIsArray,
   isFeatureEnabled,
@@ -491,7 +491,7 @@ const PropertiesModal = ({
             setAllLocales(locales);
             setDefaultLocale(default_locale);
           },
-          handleErrorResponse,
+          err => logging.error('Failed to fetch available locales', err),
         );
       }
     }

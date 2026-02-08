@@ -26,7 +26,7 @@ import {
   type SelectValue,
 } from '@superset-ui/core/components';
 import rison from 'rison';
-import { t } from '@apache-superset/core';
+import { logging, t } from '@apache-superset/core';
 import {
   SupersetClient,
   isFeatureEnabled,
@@ -301,7 +301,7 @@ function PropertiesModal({
           setAllLocales(locales);
           setDefaultLocale(default_locale);
         },
-        err => getClientErrorObject(err).then(showError),
+        err => logging.error('Failed to fetch available locales', err),
       );
     }
   }, [slice.slice_id]);

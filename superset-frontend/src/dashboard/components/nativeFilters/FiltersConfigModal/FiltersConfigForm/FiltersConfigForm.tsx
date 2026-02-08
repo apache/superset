@@ -18,7 +18,7 @@
  */
 /* eslint-disable react-hooks/rules-of-hooks */
 import { ColumnMeta, Metric } from '@superset-ui/chart-controls';
-import { t } from '@apache-superset/core';
+import { logging, t } from '@apache-superset/core';
 import {
   Behavior,
   ChartDataResponseResult,
@@ -608,7 +608,7 @@ const FiltersConfigForm = (
           setAllLocales(locales);
           setDefaultLocale(default_locale);
         },
-        err => getClientErrorObject(err).then(setError),
+        err => logging.error('Failed to fetch available locales', err),
       );
     }
   }, [localizationEnabled]);
