@@ -24,7 +24,7 @@ describe('TimeFormatter', () => {
     it('requires config.id', () => {
       expect(
         () =>
-          // @ts-ignore -- intentionally pass invalid input
+          // @ts-expect-error -- intentionally pass invalid input
           new TimeFormatter({
             formatFunc: () => 'test',
           }),
@@ -33,7 +33,7 @@ describe('TimeFormatter', () => {
     it('requires config.formatFunc', () => {
       expect(
         () =>
-          // @ts-ignore -- intentionally pass invalid input
+          // @ts-expect-error -- intentionally pass invalid input
           new TimeFormatter({
             id: 'my_format',
           }),

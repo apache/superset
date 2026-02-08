@@ -232,7 +232,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   } = props;
 
   const [row] = data;
-  // @ts-ignore
+  // @ts-expect-error
   const { min, max }: { min: number; max: number } = row;
   const { groupby, enableSingleValue, enableEmptyFilter, defaultValue } =
     formData;

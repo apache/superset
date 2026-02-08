@@ -79,9 +79,9 @@ describe('SelectFilterPlugin', () => {
   const setDataMask = jest.fn();
   const getWrapper = (props = {}) =>
     render(
-      // @ts-ignore
+      // @ts-expect-error
       <SelectFilterPlugin
-        // @ts-ignore
+        // @ts-expect-error
         {...transformProps({
           ...selectMultipleProps,
           formData: { ...selectMultipleProps.formData, ...props },
@@ -297,9 +297,9 @@ describe('SelectFilterPlugin', () => {
   test('Select big int value', async () => {
     const bigValue = 1100924931345932234n;
     render(
-      // @ts-ignore
+      // @ts-expect-error
       <SelectFilterPlugin
-        // @ts-ignore
+        // @ts-expect-error
         {...transformProps({
           ...selectMultipleProps,
           formData: { ...selectMultipleProps.formData, groupby: 'bval' },
@@ -417,9 +417,9 @@ describe('SelectFilterPlugin', () => {
     };
 
     render(
-      // @ts-ignore
+      // @ts-expect-error
       <SelectFilterPlugin
-        // @ts-ignore
+        // @ts-expect-error
         {...transformProps(testProps)}
         setDataMask={jest.fn()}
         showOverflow={false}
@@ -491,9 +491,9 @@ describe('SelectFilterPlugin', () => {
     };
 
     render(
-      // @ts-ignore
+      // @ts-expect-error
       <SelectFilterPlugin
-        // @ts-ignore
+        // @ts-expect-error
         {...transformProps(testProps)}
         setDataMask={jest.fn()}
         showOverflow={false}
@@ -565,9 +565,9 @@ describe('SelectFilterPlugin', () => {
     };
 
     render(
-      // @ts-ignore
+      // @ts-expect-error
       <SelectFilterPlugin
-        // @ts-ignore
+        // @ts-expect-error
         {...transformProps(testProps)}
         setDataMask={jest.fn()}
         showOverflow={false}
@@ -639,9 +639,9 @@ describe('SelectFilterPlugin', () => {
     };
 
     render(
-      // @ts-ignore
+      // @ts-expect-error
       <SelectFilterPlugin
-        // @ts-ignore
+        // @ts-expect-error
         {...transformProps(testProps)}
         setDataMask={jest.fn()}
         showOverflow={false}
@@ -704,9 +704,9 @@ test('Select boolean FALSE value in single-select mode', async () => {
   };
 
   render(
-    // @ts-ignore
+    // @ts-expect-error
     <SelectFilterPlugin
-      // @ts-ignore
+      // @ts-expect-error
       {...transformProps(testProps)}
       setDataMask={setDataMaskMock}
       showOverflow={false}
@@ -781,9 +781,9 @@ test('Select boolean TRUE value in single-select mode', async () => {
   };
 
   render(
-    // @ts-ignore
+    // @ts-expect-error
     <SelectFilterPlugin
-      // @ts-ignore
+      // @ts-expect-error
       {...transformProps(testProps)}
       setDataMask={setDataMaskMock}
       showOverflow={false}
@@ -858,9 +858,9 @@ test('Select both boolean values in multi-select mode', async () => {
   };
 
   render(
-    // @ts-ignore
+    // @ts-expect-error
     <SelectFilterPlugin
-      // @ts-ignore
+      // @ts-expect-error
       {...transformProps(testProps)}
       setDataMask={setDataMaskMock}
       showOverflow={false}
@@ -935,9 +935,9 @@ test('Select boolean filter with null values', async () => {
   };
 
   render(
-    // @ts-ignore
+    // @ts-expect-error
     <SelectFilterPlugin
-      // @ts-ignore
+      // @ts-expect-error
       {...transformProps(testProps)}
       setDataMask={setDataMaskMock}
       showOverflow={false}
@@ -1013,9 +1013,9 @@ test('Clear boolean FALSE value', async () => {
   };
 
   render(
-    // @ts-ignore
+    // @ts-expect-error
     <SelectFilterPlugin
-      // @ts-ignore
+      // @ts-expect-error
       {...transformProps(testProps)}
       setDataMask={setDataMaskMock}
       showOverflow={false}
@@ -1084,9 +1084,9 @@ test('Clear boolean TRUE value', async () => {
   };
 
   render(
-    // @ts-ignore
+    // @ts-expect-error
     <SelectFilterPlugin
-      // @ts-ignore
+      // @ts-expect-error
       {...transformProps(testProps)}
       setDataMask={setDataMaskMock}
       showOverflow={false}

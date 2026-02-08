@@ -1239,6 +1239,59 @@ class TestDatasetDefaultColumnFiltering:
             assert "metrics" in data["columns_available"]
             assert "description" in data["columns_available"]
 
+    @patch("superset.daos.dataset.DatasetDAO.list")
+    @pytest.mark.asyncio
+    async def test_default_columns_filters_actual_response_data(
+        self, mock_list, mcp_server
+    ):
+        """Test that actual dataset items only contain default columns.
+
+        This verifies the fix for the bug where all 40+ columns were returned
+        with null values even when only default columns were requested.
+        See: https://github.com/apache/superset/pull/37213
+        """
+        dataset = create_mock_dataset()
+        mock_list.return_value = ([dataset], 1)
+
+        async with Client(mcp_server) as client:
+            # Empty select_columns = use default columns
+            request = ListDatasetsRequest(page=1, page_size=10, select_columns=[])
+            result = await client.call_tool(
+                "list_datasets", {"request": request.model_dump()}
+            )
+            data = json.loads(result.content[0].text)
+
+            # Get the actual dataset item
+            assert len(data["datasets"]) == 1
+            dataset_item = data["datasets"][0]
+
+            # Verify ONLY default columns are present in the response item
+            expected_keys = {"id", "table_name", "schema_name", "uuid"}
+            actual_keys = set(dataset_item.keys())
+
+            # The response should only contain the default columns, NOT all columns
+            # with null values (which was the bug)
+            assert actual_keys == expected_keys, (
+                f"Expected only default columns {expected_keys}, "
+                f"but got {actual_keys}. "
+                f"Extra columns: {actual_keys - expected_keys}"
+            )
+
+            # Verify non-default columns are NOT present (not even with null values)
+            non_default_columns = [
+                "description",
+                "database_name",
+                "changed_by",
+                "changed_on",
+                "columns",
+                "metrics",
+            ]
+            for col in non_default_columns:
+                assert col not in dataset_item, (
+                    f"Non-default column '{col}' should not be in response. "
+                    f"This indicates the column filtering is not working."
+                )
+
 
 class TestDatasetSortableColumns:
     """Test sortable columns configuration for dataset tools."""

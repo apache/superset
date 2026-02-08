@@ -64,6 +64,7 @@ import {
 } from './styles';
 import {
   DEFAULT_SORT_COMPARATOR,
+  DROPDOWN_ALIGN_BOTTOM,
   EMPTY_OPTIONS,
   MAX_TAG_COUNT,
   TOKEN_SEPARATORS,
@@ -522,7 +523,7 @@ const Select = forwardRef(
               handleDeselectAll();
             }}
           >
-            {`${t('Deselect all')} (${bulkSelectCounts.deselectable})`}
+            {`${t('Clear')} (${bulkSelectCounts.deselectable})`}
           </Button>
         </StyledBulkActionsContainer>
       ),
@@ -747,7 +748,7 @@ const Select = forwardRef(
           onBlur={handleOnBlur}
           onDeselect={handleOnDeselect}
           onOpenChange={handleOnDropdownVisibleChange}
-          // @ts-ignore
+          // @ts-expect-error
           onPaste={onPaste}
           onPopupScroll={undefined}
           onSearch={shouldShowSearch ? handleOnSearch : undefined}
@@ -776,7 +777,9 @@ const Select = forwardRef(
           options={visibleOptions}
           optionRender={option => <Space>{option.label || option.value}</Space>}
           oneLine={oneLine}
+          popupMatchSelectWidth={selectAllEnabled ? 168 : true}
           css={props.css}
+          dropdownAlign={DROPDOWN_ALIGN_BOTTOM}
           {...props}
           showSearch={shouldShowSearch}
           ref={ref}

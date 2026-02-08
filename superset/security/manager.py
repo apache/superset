@@ -44,7 +44,6 @@ from flask_appbuilder.security.views import (
     PermissionViewModelView,
     ViewMenuModelView,
 )
-from flask_appbuilder.widgets import ListWidget
 from flask_babel import lazy_gettext as _
 from flask_login import AnonymousUserMixin, LoginManager
 from jwt.api_jwt import _jwt_global_obj
@@ -111,27 +110,6 @@ class DatabaseCatalogSchema(NamedTuple):
     schema: str
 
 
-class SupersetSecurityListWidget(ListWidget):  # pylint: disable=too-few-public-methods
-    """
-    Redeclaring to avoid circular imports
-    """
-
-    template = "superset/fab_overrides/list.html"
-
-
-class SupersetRoleListWidget(ListWidget):  # pylint: disable=too-few-public-methods
-    """
-    Role model view from FAB already uses a custom list widget override
-    So we override the override
-    """
-
-    template = "superset/fab_overrides/list_role.html"
-
-    def __init__(self, **kwargs: Any) -> None:
-        kwargs["appbuilder"] = current_app.appbuilder
-        super().__init__(**kwargs)
-
-
 class SupersetRoleApi(RoleApi):
     """
     Overriding the RoleApi to be able to delete roles with permissions
@@ -195,9 +173,6 @@ class SupersetUserApi(UserApi):
         """
         item.roles = []
 
-
-PermissionViewModelView.list_widget = SupersetSecurityListWidget
-PermissionModelView.list_widget = SupersetSecurityListWidget
 
 # Limiting routes on FAB model views
 PermissionViewModelView.include_route_methods = {RouteMethod.LIST}
@@ -2751,7 +2726,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             .filter(RLSFilterRoles.c.role_id.in_(user_roles))
         )
         filter_tables = self.session.query(RLSFilterTables.c.rls_filter_id).filter(
-            RLSFilterTables.c.table_id == table.data["id"]
+            RLSFilterTables.c.table_id == table.id
         )
         query = (
             self.session.query(

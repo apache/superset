@@ -187,7 +187,7 @@ describe('mergeMargin(margin1, margin2, mode?)', () => {
       mergeMargin(
         {
           top: 10,
-          // @ts-ignore to let us pass `null` for testing
+          // @ts-expect-error to let us pass `null` for testing
           left: null,
           bottom: 20,
           right: NaN,

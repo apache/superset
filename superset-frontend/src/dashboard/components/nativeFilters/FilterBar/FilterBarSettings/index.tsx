@@ -171,7 +171,7 @@ const FilterBarSettings = () => {
         key: ADD_EDIT_FILTERS_MENU_KEY,
         label: (
           <FilterConfigurationLink>
-            {t('Filters and customizations')}
+            {t('Add or edit filters and controls')}
           </FilterConfigurationLink>
         ),
       });
