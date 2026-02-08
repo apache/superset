@@ -876,8 +876,11 @@ const config: ControlPanelConfig = {
                 // filtering, so a column's type stays correct even when
                 // colnames has duplicates (filtering first and re-deriving
                 // the type afterwards, by value or by post-filter index,
-                // both break on a duplicate colname).
-                const numericColumns = hasColumns
+                // both break on a duplicate colname). String/Boolean columns
+                // are excluded during time comparison: the synthetic
+                // Main/#/△/% columns processComparisonColumns() generates
+                // below don't carry a categorical dataType of their own.
+                const eligibleColumns = hasColumns
                   ? colnames
                       .map((colname: string, index: number) => ({
                         value: colname,
@@ -889,16 +892,17 @@ const config: ControlPanelConfig = {
                       .filter(
                         col =>
                           col.dataType === GenericDataType.Numeric ||
-                          col.dataType === GenericDataType.String ||
-                          col.dataType === GenericDataType.Boolean,
+                          (!hasTimeComparison &&
+                            (col.dataType === GenericDataType.String ||
+                              col.dataType === GenericDataType.Boolean)),
                       )
                   : [];
                 const columnOptions = hasTimeComparison
                   ? processComparisonColumns(
-                      numericColumns || [],
+                      eligibleColumns || [],
                       ensureIsArray(timeCompareValue)[0]?.toString() || '',
                     )
-                  : numericColumns;
+                  : eligibleColumns;
 
                 return {
                   removeIrrelevantConditions: chartStatus === 'success',
