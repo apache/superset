@@ -251,7 +251,7 @@ export const WithRowSelection: StoryFn = () => {
         prepareRow={prepareRow as AnyPrepareRow}
         loading={false}
         bulkSelectEnabled
-        selectedFlatRows={selectedRows}
+        selectedFlatRows={selectedRows as AnyRows}
         toggleRowSelected={toggleRowSelected}
         toggleAllRowsSelected={toggleAllRowsSelected}
         totalCount={rows.length}
