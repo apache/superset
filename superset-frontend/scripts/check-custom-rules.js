@@ -426,10 +426,10 @@ function needsTranslation(value) {
 
   // Date format patterns (strftime, moment.js, etc.)
   if (/^%[YymdHMSjWwUzZ%-]+$/.test(trimmed)) return false;
-  if (/^%[a-zA-Z][\/%\-a-zA-Z]*$/.test(trimmed)) return false;
+  if (/^%[a-zA-Z][/%\-a-zA-Z]*$/.test(trimmed)) return false;
 
   // Format patterns with slashes/dashes (e.g., YYYY-MM-DD, mm/dd/yyyy)
-  if (/^[YMDHhms\/\-:. ]+$/i.test(trimmed) && /[YMDHhms]{2,}/i.test(trimmed))
+  if (/^[YMDHhms/\-:. ]+$/i.test(trimmed) && /[YMDHhms]{2,}/i.test(trimmed))
     return false;
 
   // Strings ending with colon followed by technical content are often labels
