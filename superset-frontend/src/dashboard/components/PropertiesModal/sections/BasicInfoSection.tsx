@@ -92,7 +92,7 @@ const BasicInfoSection = ({
               onTranslationChange?.(e.target.value)
             }
             placeholder={t('Translation for %s', activeLocale.toUpperCase())}
-            data-test="dashboard-title-input"
+            aria-label={t('Translation for %s', activeLocale.toUpperCase())}
             type="text"
             suffix={localeSwitcher}
           />
