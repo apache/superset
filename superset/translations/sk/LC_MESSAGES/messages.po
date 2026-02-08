@@ -9792,7 +9792,7 @@ msgstr "Importovať dashboard"
 msgid "Subtitle Font Size"
 msgstr ""
 
-msgid "Subtotal"
+msgid "Subvalue"
 msgstr ""
 
 msgid "Success"

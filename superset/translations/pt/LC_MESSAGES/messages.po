@@ -10596,7 +10596,7 @@ msgstr "%s - sem título"
 msgid "Subtitle Font Size"
 msgstr "Tamanho da bolha"
 
-msgid "Subtotal"
+msgid "Subvalue"
 msgstr ""
 
 msgid "Success"

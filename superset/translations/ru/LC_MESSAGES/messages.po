@@ -11291,7 +11291,7 @@ msgstr "Отправить"
 msgid "Subtitle"
 msgstr "Подзаголовок"
 
-msgid "Subtotal"
+msgid "Subvalue"
 msgstr "Подытог"
 
 msgid "Success"
