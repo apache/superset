@@ -39,16 +39,15 @@ export default {
   decorators: [withResizableChartDemo],
 };
 
-export const Sunburst = (
-  {
-    showLabels,
-    showTotal,
-    width,
-    height,
-  }: {
-    showLabels: boolean;
-    showTotal: boolean;
-    width: number;
+export const Sunburst = ({
+  showLabels,
+  showTotal,
+  width,
+  height,
+}: {
+  showLabels: boolean;
+  showTotal: boolean;
+  width: number;
   height: number;
 }) => (
   <SuperChart

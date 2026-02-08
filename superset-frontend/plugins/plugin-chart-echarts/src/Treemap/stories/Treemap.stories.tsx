@@ -39,18 +39,17 @@ export default {
   decorators: [withResizableChartDemo],
 };
 
-export const Treemap = (
-  {
-    showLabels,
-    showUpperLabels,
-    labelType,
-    width,
-    height,
-  }: {
-    showLabels: boolean;
-    showUpperLabels: boolean;
-    labelType: string;
-    width: number;
+export const Treemap = ({
+  showLabels,
+  showUpperLabels,
+  labelType,
+  width,
+  height,
+}: {
+  showLabels: boolean;
+  showUpperLabels: boolean;
+  labelType: string;
+  width: number;
   height: number;
 }) => (
   <SuperChart

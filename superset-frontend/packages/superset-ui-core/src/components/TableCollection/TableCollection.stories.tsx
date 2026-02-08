@@ -211,8 +211,8 @@ export const WithRowSelection: StoryFn = () => {
         if (selected) {
           setSelectedRows(prev => [...prev, row] as Row<SampleData>[]);
         } else {
-          setSelectedRows(prev =>
-            prev.filter(r => r.id !== rowId) as Row<SampleData>[],
+          setSelectedRows(
+            prev => prev.filter(r => r.id !== rowId) as Row<SampleData>[],
           );
         }
       }
@@ -236,10 +236,7 @@ export const WithRowSelection: StoryFn = () => {
       <div style={{ marginBottom: 16, color: '#666' }}>
         Selected: {selectedRows.length} row(s)
         {selectedRows.length > 0 && (
-          <span>
-            {' '}
-            - IDs: {selectedRows.map(r => r.original.id).join(', ')}
-          </span>
+          <span> - IDs: {selectedRows.map(r => r.original.id).join(', ')}</span>
         )}
       </div>
       <TableCollection
