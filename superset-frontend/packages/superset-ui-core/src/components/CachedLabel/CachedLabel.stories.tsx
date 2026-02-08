@@ -28,7 +28,9 @@ export default {
 
 // Interactive CachedLabel story
 export const InteractiveCachedLabel: StoryFn<CacheLabelProps> = args => (
-  <CachedLabel {...args} />
+  <div style={{ display: 'inline-block' }}>
+    <CachedLabel {...args} />
+  </div>
 );
 
 InteractiveCachedLabel.args = {
