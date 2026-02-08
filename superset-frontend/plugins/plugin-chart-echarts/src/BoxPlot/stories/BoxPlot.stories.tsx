@@ -49,14 +49,13 @@ export default {
   },
 };
 
-export const BoxPlot = (
-  {
-    xTicksLayout,
-    width,
-    height,
-  }: {
-    xTicksLayout: string;
-    width: number;
+export const BoxPlot = ({
+  xTicksLayout,
+  width,
+  height,
+}: {
+  xTicksLayout: string;
+  width: number;
   height: number;
 }) => (
   <SuperChart
