@@ -52,7 +52,9 @@ const EXCLUSIONS = [
   '**/utils/**',
   '**/hooks/**',
   '**/constants/**',
-  '**/plugin-chart-cartodiagram/**', // Complex geo plugin, hard to mock
+  // Cartodiagram has a partial story (map renders, chart containers created)
+  // but full embedded chart rendering requires complex nested transformProps setup
+  '**/plugin-chart-cartodiagram/**',
 ];
 
 // Check if a directory has a stories file
