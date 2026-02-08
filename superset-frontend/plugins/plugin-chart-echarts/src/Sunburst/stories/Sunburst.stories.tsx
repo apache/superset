@@ -43,12 +43,14 @@ export const Sunburst = (
   {
     showLabels,
     showTotal,
+    width,
+    height,
   }: {
     showLabels: boolean;
     showTotal: boolean;
-  },
-  { width, height }: { width: number; height: number },
-) => (
+    width: number;
+  height: number;
+}) => (
   <SuperChart
     chartType="echarts-sunburst"
     width={width}

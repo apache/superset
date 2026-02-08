@@ -49,6 +49,8 @@ export const Tree = (
     emphasis,
     symbol,
     symbolSize,
+    width,
+    height,
   }: {
     id: string;
     rootNodeId: string;
@@ -60,9 +62,9 @@ export const Tree = (
     emphasis: string;
     symbol: string;
     symbolSize: number;
-  },
-  { width, height }: { width: number; height: number },
-) => (
+    width: number;
+  height: number;
+}) => (
   <SuperChart
     chartType="echarts-tree"
     width={width}

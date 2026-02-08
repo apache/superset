@@ -48,6 +48,8 @@ export const WeekdayPie = (
     showLabels,
     showLegend,
     labelType,
+    width,
+    height,
   }: {
     donut: boolean;
     innerRadius: number;
@@ -57,9 +59,9 @@ export const WeekdayPie = (
     showLabels: boolean;
     showLegend: boolean;
     labelType: string;
-  },
-  { width, height }: { width: number; height: number },
-) => (
+    width: number;
+  height: number;
+}) => (
   <SuperChart
     chartType={VizType.Pie}
     width={width}
@@ -126,6 +128,8 @@ export const PopulationPie = (
     showLabels,
     showLegend,
     labelType,
+    width,
+    height,
   }: {
     donut: boolean;
     innerRadius: number;
@@ -135,9 +139,9 @@ export const PopulationPie = (
     showLabels: boolean;
     showLegend: boolean;
     labelType: string;
-  },
-  { width, height }: { width: number; height: number },
-) => (
+    width: number;
+  height: number;
+}) => (
   <SuperChart
     chartType={VizType.Pie}
     width={width}
@@ -205,6 +209,8 @@ export const SalesPie = (
     showLegend,
     labelType,
     roseType,
+    width,
+    height,
   }: {
     donut: boolean;
     innerRadius: number;
@@ -215,9 +221,9 @@ export const SalesPie = (
     showLegend: boolean;
     labelType: string;
     roseType: string;
-  },
-  { width, height }: { width: number; height: number },
-) => (
+    width: number;
+  height: number;
+}) => (
   <SuperChart
     chartType={VizType.Pie}
     width={width}

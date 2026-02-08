@@ -96,6 +96,8 @@ export const BubbleChart = (
     yAxisTitleMargin,
     logYAxis,
     logXAxis,
+    width,
+    height,
   }: {
     maxBubbleSize: number;
     xAxisTitle: string;
@@ -104,9 +106,9 @@ export const BubbleChart = (
     yAxisTitleMargin: number;
     logYAxis: boolean;
     logXAxis: boolean;
-  },
-  { width, height }: { width: number; height: number },
-) => (
+    width: number;
+  height: number;
+}) => (
   <SuperChart
     chartType={VizType.Bubble}
     width={width}
