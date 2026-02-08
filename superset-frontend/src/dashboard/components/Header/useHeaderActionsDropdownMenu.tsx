@@ -16,7 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  type Dispatch,
+  type ReactElement,
+  type SetStateAction,
+} from 'react';
 import { useSelector } from 'react-redux';
 import { useHistory } from 'react-router-dom';
 import { Menu, MenuItem } from '@superset-ui/core/components/Menu';
@@ -65,7 +73,13 @@ export const useHeaderActionsMenu = ({
   dashboardTitle,
   logEvent,
   setCurrentReportDeleting,
-}: HeaderDropdownProps) => {
+}: HeaderDropdownProps): [
+  ReactElement,
+  boolean,
+  Dispatch<SetStateAction<boolean>>,
+  boolean,
+  Dispatch<SetStateAction<boolean>>,
+] => {
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const history = useHistory();
@@ -163,7 +177,7 @@ export const useHeaderActionsMenu = ({
   const downloadMenuItem = useDownloadMenuItems({
     pdfMenuItemTitle: t('Export to PDF'),
     imageMenuItemTitle: t('Download as Image'),
-    dashboardTitle,
+    dashboardTitle: dashboardTitle ?? '',
     dashboardId,
     title: t('Download'),
     disabled: isLoading,
@@ -175,7 +189,9 @@ export const useHeaderActionsMenu = ({
   const reportMenuItem = useHeaderReportMenuItems({
     dashboardId: dashboardInfo?.id,
     showReportModal,
-    setCurrentReportDeleting,
+    setCurrentReportDeleting: setCurrentReportDeleting as (
+      report: unknown,
+    ) => void,
   });
 
   // Helper function to create menu items for components with triggerNode
@@ -238,22 +254,22 @@ export const useHeaderActionsMenu = ({
             addSuccessToast={addSuccessToast}
             addDangerToast={addDangerToast}
             dashboardId={dashboardId}
-            dashboardTitle={dashboardTitle}
+            dashboardTitle={dashboardTitle ?? ''}
             dashboardInfo={dashboardInfo}
             saveType={SAVE_TYPE_NEWDASHBOARD}
             layout={layout}
-            expandedSlices={expandedSlices}
+            expandedSlices={expandedSlices ?? {}}
             refreshFrequency={refreshFrequency}
             shouldPersistRefreshFrequency={shouldPersistRefreshFrequency}
             lastModifiedTime={lastModifiedTime}
-            customCss={customCss}
+            customCss={customCss ?? ''}
             colorNamespace={colorNamespace}
             colorScheme={colorScheme}
             onSave={onSave}
             triggerNode={
               <div data-test="save-as-menu-item">{t('Save as')}</div>
             }
-            canOverwrite={userCanEdit}
+            canOverwrite={userCanEdit ?? false}
           />,
         ),
       );

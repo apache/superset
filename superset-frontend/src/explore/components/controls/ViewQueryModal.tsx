@@ -60,7 +60,7 @@ const ViewQueryModal: FC<Props> = ({ latestQueryFormData }) => {
       resultType,
     })
       .then(({ json }) => {
-        setResult(ensureIsArray(json.result));
+        setResult(ensureIsArray(json.result) as Result[]);
         setIsLoading(false);
         setError(null);
       })

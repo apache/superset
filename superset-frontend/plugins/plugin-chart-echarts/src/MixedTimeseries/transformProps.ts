@@ -759,7 +759,6 @@ export default function transformProps(
         legendState,
         chartPadding,
       ),
-      // @ts-ignore
       data: series
         .filter(
           entry =>

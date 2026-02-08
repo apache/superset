@@ -11357,33 +11357,7 @@ msgid "Tree layout"
 msgstr "Diseño del árbol"
 
 msgid "Tree orientation"
-Findings (brief):
-
-- No git merge conflict markers found (no <<<<<<< / ======= / >>>>>>>).
-- PO header mismatch: "Language: en" — this is an Spanish file; set to "es".
-- Duplicate msgid entries with conflicting/empty translations:
-    - " at line %(line)d" — one entry has " en la línea %(line)d", another has an empty msgstr.
-    - "Dashboard cannot be copied due to invalid parameters." — appears multiple times with different/empty msgstr values.
-    - "%(subtitle)s\nThis may be triggered by:\n %(issue)s" — msgstr is empty in one occurrence.
-    - There are other repeated msgids with one occurrence left untranslated (examples: search for repeated msgid strings with one msgstr == "").
-- Empty translations (examples):
-    - msgid "%(subtitle)s\nThis may be triggered by:\n %(issue)s" → msgstr "".
-    - Several other msgid entries have msgstr "" (scan for msgstr "" occurrences).
-- Fuzzy entries present (e.g. entries annotated "#, fuzzy") — these need review and removal of the fuzzy flag after correction.
-- Typo in a translation: msgid "This action will permanently delete the user." → msgstr contains "uduario." (should be "usuario.").
-
-Recommended next steps:
-- Fix header Language to "es".
-- Remove/fix duplicate msgids: consolidate into a single entry and keep the correct translation.
-- Fill in missing msgstr values (or mark as untranslated intentionally).
-- Review and resolve fuzzy entries, then remove the "fuzzy" flag.
-- Fix obvious typos (e.g., "uduario" → "usuario").
-
-If you want, I can produce a patch that:
-- updates header Language to "es",
-- removes duplicate entries by keeping the first translated occurrence,
-- lists all msgids with empty msgstr for you to translate,
-or show exact locations (line ranges) for each problem. Which would you prefer?
+msgstr "Orientación del árbol"
 
 msgid "Treemap"
 msgstr "Diagrama de árbol"
