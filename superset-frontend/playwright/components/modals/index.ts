@@ -20,4 +20,3 @@
 // Specific modal implementations
 export { DeleteConfirmationModal } from './DeleteConfirmationModal';
 export { DuplicateDatasetModal } from './DuplicateDatasetModal';
-export { TranslationEditorModal } from './TranslationEditorModal';

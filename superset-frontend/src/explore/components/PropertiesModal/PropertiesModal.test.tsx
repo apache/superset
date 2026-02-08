@@ -494,18 +494,18 @@ test('Should display only custom tags when tagging system is enabled', async () 
   mockIsFeatureEnabled.mockRestore();
 });
 
-test('translation button hidden when content localization flag is off', async () => {
+test('locale switcher hidden when content localization flag is off', async () => {
   const props = createProps();
   renderModal(props);
   await waitFor(() => {
     expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
   expect(
-    screen.queryByRole('button', { name: /translations/i }),
+    screen.queryByRole('button', { name: /Locale switcher for/i }),
   ).not.toBeInTheDocument();
 });
 
-test('translation button visible when content localization flag is on', async () => {
+test('locale switcher visible when content localization flag is on', async () => {
   mockedIsFeatureEnabled.mockImplementation(
     flag => flag === FeatureFlag.EnableContentLocalization,
   );
@@ -513,13 +513,15 @@ test('translation button visible when content localization flag is on', async ()
   renderModal(props);
   await waitFor(() => {
     expect(
-      screen.getByRole('button', { name: /translations \(2\)/i }),
+      screen.getByRole('button', {
+        name: /Locale switcher for Chart Name/i,
+      }),
     ).toBeInTheDocument();
   });
   mockedIsFeatureEnabled.mockRestore();
 });
 
-test('clicking translation button opens translation editor modal', async () => {
+test('clicking locale switcher opens dropdown with locales', async () => {
   mockedIsFeatureEnabled.mockImplementation(
     flag => flag === FeatureFlag.EnableContentLocalization,
   );
@@ -527,13 +529,16 @@ test('clicking translation button opens translation editor modal', async () => {
   renderModal(props);
   await waitFor(() => {
     expect(
-      screen.getByRole('button', { name: /translations/i }),
+      screen.getByRole('button', { name: /Locale switcher for Chart Name/i }),
     ).toBeInTheDocument();
   });
   await userEvent.click(
-    screen.getByRole('button', { name: /translations/i }),
+    screen.getByRole('button', { name: /Locale switcher for Chart Name/i }),
   );
-  expect(screen.getByText('Edit Translations')).toBeInTheDocument();
+  await waitFor(() => {
+    expect(screen.getByText('English')).toBeInTheDocument();
+    expect(screen.getByText('German')).toBeInTheDocument();
+  });
   mockedIsFeatureEnabled.mockRestore();
 });
 

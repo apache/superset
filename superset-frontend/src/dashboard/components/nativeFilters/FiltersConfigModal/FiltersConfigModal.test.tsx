@@ -720,7 +720,7 @@ test('renders a filter with a chart containing BigInt values', async () => {
   expect(screen.getByText(FILTER_TYPE_REGEX)).toBeInTheDocument();
 });
 
-test('translation button hidden when content localization flag is off', () => {
+test('locale switcher hidden when content localization flag is off', () => {
   mockedIsFeatureEnabled.mockReturnValue(false);
   const nativeFilterConfig = [
     {
@@ -740,11 +740,11 @@ test('translation button hidden when content localization flag is off', () => {
   defaultRender(state, { ...props, createNewOnOpen: false });
 
   expect(
-    screen.queryByRole('button', { name: /translations/i }),
+    screen.queryByRole('button', { name: /Locale switcher for/i }),
   ).not.toBeInTheDocument();
 });
 
-test('translation button visible when content localization flag is on', async () => {
+test('locale switcher visible when content localization flag is on', async () => {
   mockedIsFeatureEnabled.mockImplementation(
     flag => flag === FeatureFlag.EnableContentLocalization,
   );
@@ -767,12 +767,14 @@ test('translation button visible when content localization flag is on', async ()
 
   await waitFor(() => {
     expect(
-      screen.getByRole('button', { name: /translations \(2\)/i }),
+      screen.getByRole('button', {
+        name: /Locale switcher for Filter name/i,
+      }),
     ).toBeInTheDocument();
   });
 });
 
-test('clicking translation button opens translation editor modal', async () => {
+test('clicking locale switcher opens dropdown with locales', async () => {
   mockedIsFeatureEnabled.mockImplementation(
     flag => flag === FeatureFlag.EnableContentLocalization,
   );
@@ -795,16 +797,17 @@ test('clicking translation button opens translation editor modal', async () => {
 
   await waitFor(() => {
     expect(
-      screen.getByRole('button', { name: /translations/i }),
+      screen.getByRole('button', { name: /Locale switcher for Filter name/i }),
     ).toBeInTheDocument();
   });
 
   await userEvent.click(
-    screen.getByRole('button', { name: /translations/i }),
+    screen.getByRole('button', { name: /Locale switcher for Filter name/i }),
   );
 
   await waitFor(() => {
-    expect(screen.getByText('Edit Translations')).toBeInTheDocument();
+    expect(screen.getByText('English')).toBeInTheDocument();
+    expect(screen.getByText('German')).toBeInTheDocument();
   });
 }, 60000);
 

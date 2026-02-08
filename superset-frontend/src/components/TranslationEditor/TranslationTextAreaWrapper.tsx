@@ -16,12 +16,35 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { default as LocaleSwitcher } from './LocaleSwitcher';
-export type { LocaleSwitcherProps } from './LocaleSwitcher';
-export { default as TranslationTextAreaWrapper } from './TranslationTextAreaWrapper';
-export {
-  DEFAULT_LOCALE_KEY,
-  deepCopyTranslations,
-  stripEmptyValues,
-  countFieldTranslations,
-} from './utils';
+import type { ReactNode } from 'react';
+import { css } from '@apache-superset/core/ui';
+
+interface TranslationTextAreaWrapperProps {
+  suffix: ReactNode;
+  children: ReactNode;
+}
+
+export default function TranslationTextAreaWrapper({
+  suffix,
+  children,
+}: TranslationTextAreaWrapperProps) {
+  return (
+    <div
+      css={css`
+        position: relative;
+      `}
+    >
+      {children}
+      <div
+        css={css`
+          position: absolute;
+          top: 8px;
+          right: 8px;
+          z-index: 1;
+        `}
+      >
+        {suffix}
+      </div>
+    </div>
+  );
+}

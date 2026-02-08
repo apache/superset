@@ -44,7 +44,7 @@ import {
   getColorNamespace,
   getFreshLabelsColorMapEntries,
 } from 'src/utils/colorScheme';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import {
   setColorScheme,
   setDashboardMetadata,
@@ -60,9 +60,9 @@ import {
   AdvancedSection,
 } from './sections';
 import {
-  TranslationButton,
-  TranslationEditorModal,
-  type TranslatableField,
+  LocaleSwitcher,
+  DEFAULT_LOCALE_KEY,
+  stripEmptyValues,
 } from 'src/components/TranslationEditor';
 import type { Translations, LocaleInfo } from 'src/types/Localization';
 
@@ -135,8 +135,12 @@ const PropertiesModal = ({
   const [selectedThemeId, setSelectedThemeId] = useState<number | null>(null);
   const [showChartTimestamps, setShowChartTimestamps] = useState(false);
   const [translations, setTranslations] = useState<Translations>({});
-  const [availableLocales, setAvailableLocales] = useState<LocaleInfo[]>([]);
-  const [showTranslationModal, setShowTranslationModal] = useState(false);
+  const [allLocales, setAllLocales] = useState<LocaleInfo[]>([]);
+  const [defaultLocale, setDefaultLocale] = useState('');
+  const [titleActiveLocale, setTitleActiveLocale] = useState(DEFAULT_LOCALE_KEY);
+  const userLocale: string = useSelector(
+    (state: { common: { locale: string } }) => state.common.locale,
+  );
   const [themes, setThemes] = useState<
     Array<{
       id: number;
@@ -198,7 +202,13 @@ const PropertiesModal = ({
       setOwners(owners);
       setRoles(roles);
       setCustomCss(css || '');
-      setTranslations(rawTranslations ?? {});
+      const loadedTranslations: Translations = rawTranslations ?? {};
+      setTranslations(loadedTranslations);
+      setTitleActiveLocale(
+        loadedTranslations.dashboard_title?.[userLocale]
+          ? userLocale
+          : DEFAULT_LOCALE_KEY,
+      );
       setCurrentColorScheme(metadata?.color_scheme);
       setSelectedThemeId(theme?.id || null);
 
@@ -215,7 +225,7 @@ const PropertiesModal = ({
       setShowChartTimestamps(metadata?.show_chart_timestamps ?? false);
       originalDashboardMetadata.current = metadata;
     },
-    [form],
+    [form, userLocale],
   );
 
   const fetchDashboardDetails = useCallback(() => {
@@ -381,8 +391,9 @@ const PropertiesModal = ({
       morePutProps.tags = tags.map(tag => tag.id);
     }
     if (isFeatureEnabled(FeatureFlag.EnableContentLocalization)) {
-      moreOnSubmitProps.translations = translations;
-      morePutProps.translations = translations;
+      const cleaned = stripEmptyValues(translations);
+      moreOnSubmitProps.translations = cleaned;
+      morePutProps.translations = cleaned;
     }
     const onSubmitProps = {
       id: dashboardId,
@@ -476,11 +487,8 @@ const PropertiesModal = ({
         }).then(
           response => {
             const { locales, default_locale } = response.json.result;
-            setAvailableLocales(
-              locales.filter(
-                (loc: LocaleInfo) => loc.code !== default_locale,
-              ),
-            );
+            setAllLocales(locales);
+            setDefaultLocale(default_locale);
           },
           handleErrorResponse,
         );
@@ -544,31 +552,34 @@ const PropertiesModal = ({
   const handleRefreshFrequencyChange = (value: any) =>
     setRefreshFrequency(value);
 
-  const handleSaveTranslations = useCallback(
-    (updatedTranslations: Translations) => {
-      setTranslations(updatedTranslations);
-      setShowTranslationModal(false);
+  const handleTitleTranslationChange = useCallback(
+    (value: string) => {
+      setTranslations(prev => ({
+        ...prev,
+        dashboard_title: {
+          ...prev.dashboard_title,
+          [titleActiveLocale]: value,
+        },
+      }));
     },
-    [],
+    [titleActiveLocale],
   );
 
-  const translationCount = useMemo(() => {
-    const locales = new Set<string>();
-    Object.values(translations).forEach(fieldTrans => {
-      Object.keys(fieldTrans).forEach(locale => locales.add(locale));
-    });
-    return locales.size;
-  }, [translations]);
-
-  const translatableFields: TranslatableField[] = useMemo(
-    () => [
-      {
-        name: 'dashboard_title',
-        label: t('Dashboard Title'),
-        value: dashboardInfo?.title ?? '',
-      },
-    ],
-    [dashboardInfo?.title],
+  /** Validate default is non-empty before switching to a translation locale. */
+  const handleTitleLocaleChange = useCallback(
+    (locale: string) => {
+      if (locale !== DEFAULT_LOCALE_KEY) {
+        const titleValue = form.getFieldValue('title');
+        if (!titleValue?.trim()) {
+          addDangerToast(
+            t('Default text is required before adding translations'),
+          );
+          return;
+        }
+      }
+      setTitleActiveLocale(locale);
+    },
+    [form, addDangerToast],
   );
 
   // Helper function for styling section
@@ -680,7 +691,6 @@ const PropertiesModal = ({
   }, [refreshFrequency, validateSection, isDataReady]);
 
   return (
-    <>
       <StandardModal
         show={show}
       onHide={handleOnCancel}
@@ -734,20 +744,38 @@ const PropertiesModal = ({
                 />
               ),
               children: (
-                <>
-                  <BasicInfoSection
-                    form={form}
-                    validationStatus={validationStatus}
-                  />
-                  {isFeatureEnabled(
-                    FeatureFlag.EnableContentLocalization,
-                  ) && (
-                    <TranslationButton
-                      translationCount={translationCount}
-                      onClick={() => setShowTranslationModal(true)}
-                    />
-                  )}
-                </>
+                <BasicInfoSection
+                  form={form}
+                  validationStatus={validationStatus}
+                  activeLocale={
+                    isFeatureEnabled(FeatureFlag.EnableContentLocalization)
+                      ? titleActiveLocale
+                      : undefined
+                  }
+                  translationValue={
+                    titleActiveLocale !== DEFAULT_LOCALE_KEY
+                      ? translations.dashboard_title?.[titleActiveLocale] ?? ''
+                      : undefined
+                  }
+                  onTranslationChange={handleTitleTranslationChange}
+                  localeSwitcher={
+                    isFeatureEnabled(
+                      FeatureFlag.EnableContentLocalization,
+                    ) ? (
+                      <LocaleSwitcher
+                        fieldName="dashboard_title"
+                        defaultValue={dashboardInfo?.title ?? ''}
+                        translations={translations}
+                        allLocales={allLocales}
+                        defaultLocale={defaultLocale}
+                        userLocale={userLocale}
+                        activeLocale={titleActiveLocale}
+                        onLocaleChange={handleTitleLocaleChange}
+                        fieldLabel={t('Dashboard Title')}
+                      />
+                    ) : undefined
+                  }
+                />
               ),
             },
             {
@@ -855,17 +883,6 @@ const PropertiesModal = ({
         />
       </Form>
       </StandardModal>
-      {isFeatureEnabled(FeatureFlag.EnableContentLocalization) && (
-        <TranslationEditorModal
-          show={showTranslationModal}
-          fields={translatableFields}
-          translations={translations}
-          availableLocales={availableLocales}
-          onSave={handleSaveTranslations}
-          onClose={() => setShowTranslationModal(false)}
-        />
-      )}
-    </>
   );
 };
 

@@ -26,7 +26,6 @@ import {
 } from '../../../helpers/api/dashboard';
 import { apiGetAvailableLocales } from '../../../helpers/api/localization';
 import { DashboardPage } from '../../../pages/DashboardPage';
-import { TranslationEditorModal } from '../../../components/modals/TranslationEditorModal';
 import { TIMEOUT } from '../../../utils/constants';
 
 /**
@@ -169,7 +168,7 @@ test('should return available locales from localization endpoint', async ({
   expect(default_locale.length).toBeGreaterThan(0);
 });
 
-test('should display translation button in dashboard properties modal', async ({
+test('should display locale switcher in dashboard properties modal', async ({
   page,
 }) => {
   // Create hermetic test dashboard
@@ -198,23 +197,16 @@ test('should display translation button in dashboard properties modal', async ({
     timeout: TIMEOUT.FORM_LOAD,
   });
 
-  // Verify TranslationButton is visible (text: "Translations (0)" for new dashboard)
-  const translationButton = propertiesDialog.getByRole('button', {
-    name: /Translations \(\d+\)/,
+  // Verify LocaleSwitcher is visible as input suffix
+  const localeSwitcher = propertiesDialog.getByRole('button', {
+    name: /Locale switcher for Dashboard Title/,
   });
-  await expect(translationButton).toBeVisible();
+  await expect(localeSwitcher).toBeVisible();
 
-  // Click TranslationButton to open translation editor
-  await translationButton.click();
+  // Click LocaleSwitcher to open locale dropdown
+  await localeSwitcher.click();
 
-  // Verify translation editor modal opens
-  const translationModal = new TranslationEditorModal(page);
-  await translationModal.waitForVisible({ timeout: TIMEOUT.FORM_LOAD });
-
-  // Verify modal contains the "Dashboard Title" field section
-  await expect(translationModal.body).toContainText('Dashboard Title');
-
-  // Close via Cancel
-  await translationModal.clickCancel();
-  await translationModal.waitForHidden();
+  // Verify dropdown shows configured locales (menu items from server)
+  const dropdown = page.locator('.ant-dropdown:visible');
+  await expect(dropdown.getByText('English')).toBeVisible();
 });

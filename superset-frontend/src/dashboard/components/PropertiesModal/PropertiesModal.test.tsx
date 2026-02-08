@@ -747,7 +747,7 @@ describe('PropertiesModal', () => {
   });
 });
 
-test('translation button hidden when content localization flag is off', async () => {
+test('locale switcher hidden when content localization flag is off', async () => {
   mockedIsFeatureEnabled.mockReturnValue(false);
   const props = createProps();
   const propsWithDashboardInfo = {
@@ -764,11 +764,11 @@ test('translation button hidden when content localization flag is off', async ()
   });
 
   expect(
-    screen.queryByRole('button', { name: /translations/i }),
+    screen.queryByRole('button', { name: /Locale switcher for/i }),
   ).not.toBeInTheDocument();
 });
 
-test('translation button visible when content localization flag is on', async () => {
+test('locale switcher visible when content localization flag is on', async () => {
   mockedIsFeatureEnabled.mockImplementation(
     flag => flag === FeatureFlag.EnableContentLocalization,
   );
@@ -788,11 +788,13 @@ test('translation button visible when content localization flag is on', async ()
   });
 
   expect(
-    screen.getByRole('button', { name: /translations \(2\)/i }),
+    screen.getByRole('button', {
+      name: /Locale switcher for Dashboard Title/i,
+    }),
   ).toBeInTheDocument();
 });
 
-test('clicking translation button opens translation editor modal', async () => {
+test('clicking locale switcher opens dropdown with locales', async () => {
   mockedIsFeatureEnabled.mockImplementation(
     flag => flag === FeatureFlag.EnableContentLocalization,
   );
@@ -812,16 +814,16 @@ test('clicking translation button opens translation editor modal', async () => {
   });
 
   await userEvent.click(
-    screen.getByRole('button', { name: /translations/i }),
+    screen.getByRole('button', { name: /Locale switcher for Dashboard Title/i }),
   );
 
   await waitFor(() => {
-    expect(screen.getByText('Edit Translations')).toBeInTheDocument();
-    expect(screen.getByText('Dashboard Title')).toBeInTheDocument();
+    expect(screen.getByText('English')).toBeInTheDocument();
+    expect(screen.getByText('German')).toBeInTheDocument();
   });
 });
 
-test('save includes translations in PUT payload', async () => {
+test('save includes translations in PUT payload when localization enabled', async () => {
   const put = jest.spyOn(SupersetCore.SupersetClient, 'put');
   put.mockResolvedValue({ json: { result: {} } } as unknown as ReturnType<
     typeof SupersetCore.SupersetClient.put
