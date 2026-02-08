@@ -113,3 +113,11 @@ export const focusStyle = (theme: SupersetTheme) => css`
     }
   }
 `;
+
+export const boxSizing = css`
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+`;

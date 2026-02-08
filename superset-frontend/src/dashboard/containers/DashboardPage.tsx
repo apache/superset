@@ -59,6 +59,7 @@ import {
   focusStyle,
   headerStyles,
   chartHeaderStyles,
+  boxSizing,
 } from '../styles';
 import SyncDashboardState, {
   getDashboardContextLocalStorage,
@@ -279,6 +280,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
       chartContextMenuStyles(theme),
       focusStyle(theme),
       chartHeaderStyles(theme),
+      boxSizing,
     ],
     [theme],
   );
