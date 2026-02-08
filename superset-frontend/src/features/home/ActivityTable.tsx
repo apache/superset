@@ -126,19 +126,23 @@ export default function ActivityTable({
   const [editedCards, setEditedCards] = useState<ActivityData[]>();
   const [isFetchingEditedCards, setIsFetchingEditedCards] = useState(false);
 
-  const getEditedCards = () => {
-    setIsFetchingEditedCards(true);
-    getEditedObjects(user.userId).then(r => {
-      setEditedCards([...r.editedChart, ...r.editedDash]);
-      setIsFetchingEditedCards(false);
-    });
-  };
-
   useEffect(() => {
+    let isMounted = true;
+
     if (activeChild === TableTab.Edited) {
-      getEditedCards();
+      setIsFetchingEditedCards(true);
+      getEditedObjects(user.userId).then(r => {
+        if (isMounted) {
+          setEditedCards([...r.editedChart, ...r.editedDash]);
+          setIsFetchingEditedCards(false);
+        }
+      });
     }
-  }, [activeChild]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [activeChild, user.userId]);
 
   const tabs = [
     {

@@ -80,7 +80,7 @@ function UIFilters(
             dateFilterValueType,
             min,
             max,
-            dropdownStyle,
+            popupStyle,
             autoComplete,
             inputName,
           },
@@ -112,7 +112,7 @@ function UIFilters(
                 paginate={paginate}
                 selects={selects}
                 loading={loading ?? false}
-                dropdownStyle={dropdownStyle}
+                popupStyle={popupStyle}
               />
             );
           }
