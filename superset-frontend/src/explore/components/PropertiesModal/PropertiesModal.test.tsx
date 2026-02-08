@@ -518,7 +518,7 @@ test('locale switcher visible when content localization flag is on', async () =>
       }),
     ).toBeInTheDocument();
   });
-  mockedIsFeatureEnabled.mockRestore();
+  mockedIsFeatureEnabled.mockReset();
 });
 
 test('clicking locale switcher opens dropdown with locales', async () => {
@@ -539,7 +539,7 @@ test('clicking locale switcher opens dropdown with locales', async () => {
     expect(screen.getByText('English')).toBeInTheDocument();
     expect(screen.getByText('German')).toBeInTheDocument();
   });
-  mockedIsFeatureEnabled.mockRestore();
+  mockedIsFeatureEnabled.mockReset();
 });
 
 test('save includes translations in PUT payload', async () => {
@@ -562,5 +562,5 @@ test('save includes translations in PUT payload', async () => {
   const putBody = JSON.parse(put.mock.calls[0][0].body as string);
   expect(putBody.translations).toEqual(chartTranslations);
   put.mockRestore();
-  mockedIsFeatureEnabled.mockRestore();
+  mockedIsFeatureEnabled.mockReset();
 });
