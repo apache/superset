@@ -187,7 +187,7 @@ function main() {
           storiesPath = `${item.path}/${item.name}.stories.tsx`;
         }
         console.log(`   ${storiesPath}`);
-        shown++;
+        shown += 1;
       }
       if (missing.length > 3) {
         console.log(`   ... and ${missing.length - 3} more`);
