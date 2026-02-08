@@ -54,15 +54,13 @@ jest.mock('@superset-ui/core/components/TreeSelect', () => ({
   }: {
     onChange: (val: any) => void;
     disabled?: boolean;
-  }) => {
-    return (
-      <input
-        data-test="mock-tree-select"
-        disabled={disabled}
-        onChange={({ target: { value } }) => onChange(value)}
-      />
-    );
-  },
+  }) => (
+    <input
+      data-test="mock-tree-select"
+      disabled={disabled}
+      onChange={({ target: { value } }) => onChange(value)}
+    />
+  ),
 }));
 
 const middlewares = [thunk];
@@ -650,7 +648,7 @@ test('addChartToDashboardTab successfully adds chart to existing row with space'
     position_json: JSON.stringify(positionJson),
   };
 
-  const SupersetClient = require('@superset-ui/core').SupersetClient;
+  const { SupersetClient } = require('@superset-ui/core');
   const originalGet = SupersetClient.get;
   const originalPut = SupersetClient.put;
 
@@ -737,7 +735,7 @@ test('addChartToDashboardTab creates new row when no existing row has space', as
     position_json: JSON.stringify(positionJson),
   };
 
-  const SupersetClient = require('@superset-ui/core').SupersetClient;
+  const { SupersetClient } = require('@superset-ui/core');
   const originalGet = SupersetClient.get;
   const originalPut = SupersetClient.put;
 
@@ -798,7 +796,7 @@ test('addChartToDashboardTab handles empty position_json', async () => {
     position_json: null,
   };
 
-  const SupersetClient = require('@superset-ui/core').SupersetClient;
+  const { SupersetClient } = require('@superset-ui/core');
   const originalGet = SupersetClient.get;
   const originalPut = SupersetClient.put;
 

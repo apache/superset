@@ -79,7 +79,7 @@ const chartPropsConfig = {
 };
 
 describe('EchartsTimeseries transformProps', () => {
-  it('should transform chart props for viz', () => {
+  test('should transform chart props for viz', () => {
     const chartProps = new ChartProps(chartPropsConfig);
     expect(transformProps(chartProps as EchartsTimeseriesChartProps)).toEqual(
       expect.objectContaining({
@@ -110,7 +110,7 @@ describe('EchartsTimeseries transformProps', () => {
     );
   });
 
-  it('should transform chart props for horizontal viz', () => {
+  test('should transform chart props for horizontal viz', () => {
     const chartProps = new ChartProps({
       ...chartPropsConfig,
       formData: {
@@ -147,7 +147,7 @@ describe('EchartsTimeseries transformProps', () => {
     );
   });
 
-  it('should add a formula annotation to viz', () => {
+  test('should add a formula annotation to viz', () => {
     const formula: FormulaAnnotationLayer = {
       name: 'My Formula',
       annotationType: AnnotationType.Formula,
@@ -199,7 +199,7 @@ describe('EchartsTimeseries transformProps', () => {
     );
   });
 
-  it('should add an interval, event and timeseries annotation to viz', () => {
+  test('should add an interval, event and timeseries annotation to viz', () => {
     const event: EventAnnotationLayer = {
       annotationType: AnnotationType.Event,
       name: 'My Event',
@@ -309,7 +309,7 @@ describe('EchartsTimeseries transformProps', () => {
     );
   });
 
-  it('Should add a baseline series for stream graph', () => {
+  test('Should add a baseline series for stream graph', () => {
     const streamQueriesData = [
       {
         data: createTestData(
@@ -486,7 +486,7 @@ describe('Does transformProps transform series correctly', () => {
     [] as number[],
   );
 
-  it('should show labels when showValue is true', () => {
+  test('should show labels when showValue is true', () => {
     const chartProps = new ChartProps(chartPropsConfig);
 
     const transformedSeries = transformProps(
@@ -498,7 +498,7 @@ describe('Does transformProps transform series correctly', () => {
     });
   });
 
-  it('should not show labels when showValue is false', () => {
+  test('should not show labels when showValue is false', () => {
     const updatedChartPropsConfig = {
       ...chartPropsConfig,
       formData: { ...formData, showValue: false },
@@ -515,7 +515,7 @@ describe('Does transformProps transform series correctly', () => {
     });
   });
 
-  it('should show only totals when onlyTotal is true', () => {
+  test('should show only totals when onlyTotal is true', () => {
     const updatedChartPropsConfig = {
       ...chartPropsConfig,
       formData: { ...formData, onlyTotal: true },
@@ -560,7 +560,7 @@ describe('Does transformProps transform series correctly', () => {
     });
   });
 
-  it('should show labels on values >= percentageThreshold if onlyTotal is false', () => {
+  test('should show labels on values >= percentageThreshold if onlyTotal is false', () => {
     const chartProps = new ChartProps(chartPropsConfig);
 
     const transformedSeries = transformProps(
@@ -586,7 +586,7 @@ describe('Does transformProps transform series correctly', () => {
     });
   });
 
-  it('should not apply percentage threshold when showValue is true and stack is false', () => {
+  test('should not apply percentage threshold when showValue is true and stack is false', () => {
     const updatedChartPropsConfig = {
       ...chartPropsConfig,
       formData: { ...formData, stack: false },
@@ -612,7 +612,7 @@ describe('Does transformProps transform series correctly', () => {
     });
   });
 
-  it('should remove time shift labels from label_map', () => {
+  test('should remove time shift labels from label_map', () => {
     const updatedChartPropsConfig = {
       ...chartPropsConfig,
       formData: {
@@ -686,7 +686,7 @@ describe('legend sorting', () => {
       queriesData: legendSortData,
     });
 
-  it('sort legend by data', () => {
+  test('sort legend by data', () => {
     const chartProps = getChartProps({
       legendSort: null,
       sortSeriesType: 'min',
@@ -704,7 +704,7 @@ describe('legend sorting', () => {
     ]);
   });
 
-  it('sort legend by label ascending', () => {
+  test('sort legend by label ascending', () => {
     const chartProps = getChartProps({
       legendSort: 'asc',
       sortSeriesType: 'min',
@@ -722,7 +722,7 @@ describe('legend sorting', () => {
     ]);
   });
 
-  it('sort legend by label descending', () => {
+  test('sort legend by label descending', () => {
     const chartProps = getChartProps({
       legendSort: 'desc',
       sortSeriesType: 'min',

@@ -265,7 +265,7 @@ test('API call includes correct page size', async () => {
   await waitFor(() => {
     const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
     expect(calls.length).toBeGreaterThan(0);
-    const url = calls[0].url;
+    const { url } = calls[0];
     expect(url).toContain('page_size');
   });
 });
@@ -296,7 +296,7 @@ test('typing in name filter updates input value and triggers API with decoded se
       expect(calls.length).toBeGreaterThan(initialCallCount);
 
       // Get latest API call
-      const url = calls[calls.length - 1].url;
+      const { url } = calls[calls.length - 1];
 
       // Verify URL contains search filter
       expect(url).toContain('filters');

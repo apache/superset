@@ -78,7 +78,7 @@ const testData = [
 ];
 
 describe('sortAlphanumericCaseInsensitive', () => {
-  it('Sort rows', () => {
+  test('Sort rows', () => {
     const sorted = [...testData].sort((a, b) =>
       // @ts-expect-error
       sortAlphanumericCaseInsensitive(a, b, 'col'),
@@ -185,7 +185,7 @@ const testDataMulti: Array<RecursivePartial<Row<object>>> = [
 ];
 
 describe('sortAlphanumericCaseInsensitiveMulti', () => {
-  it('Sort rows', () => {
+  test('Sort rows', () => {
     const sorted = defaultOrderByFn(
       [...testDataMulti] as Array<Row<object>>,
       [

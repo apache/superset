@@ -667,7 +667,7 @@ test('Should not cause infinite refresh loop with nested tabs - regression test'
 
   // REGRESSION TEST: Multiple re-renders should NOT trigger additional refreshes
   // This simulates the infinite loop scenario that was happening with nested tabs
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 5; i += 1) {
     rerender(<Tab {...props} isComponentVisible />);
     await new Promise(resolve => setTimeout(resolve, 20));
   }

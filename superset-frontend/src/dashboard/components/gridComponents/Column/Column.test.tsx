@@ -176,6 +176,7 @@ test('should render a DeleteComponentButton in editMode', () => {
   expect(getByTestId('mock-delete-component-button')).toBeInTheDocument();
 });
 
+/* oxlint-disable-next-line jest/no-disabled-tests */
 test.skip('should render a BackgroundStyleDropdown when focused', () => {
   let wrapper: ReturnType<typeof setup> = setup({
     component: columnWithoutChildren,
@@ -206,6 +207,7 @@ test('should pass its own width as availableColumnCount to children', () => {
   );
 });
 
+/* oxlint-disable-next-line jest/no-disabled-tests */
 test.skip('should pass appropriate dimensions to ResizableContainer', () => {
   const { container } = setup({ component: columnWithoutChildren });
   const columnWidth = columnWithoutChildren.meta.width;

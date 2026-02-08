@@ -29,7 +29,7 @@ describe('makeApi()', () => {
 
   afterEach(() => fetchMock.clearHistory().removeRoutes());
 
-  it('should expose method and endpoint', () => {
+  test('should expose method and endpoint', () => {
     const api = makeApi({
       method: 'GET',
       endpoint: '/test',
@@ -39,7 +39,7 @@ describe('makeApi()', () => {
     expect(api.requestType).toEqual('search');
   });
 
-  it('should allow custom path', async () => {
+  test('should allow custom path', async () => {
     expect.assertions(2);
     const api = makeApi({
       method: 'GET',
@@ -62,7 +62,7 @@ describe('makeApi()', () => {
     expect(mockRequest).toHaveBeenCalledTimes(1);
   });
 
-  it('should obtain json response by default', async () => {
+  test('should obtain json response by default', async () => {
     expect.assertions(1);
     const api = makeApi({
       method: 'GET',
@@ -72,7 +72,7 @@ describe('makeApi()', () => {
     expect(await api({})).toEqual({ yes: 'ok' });
   });
 
-  it('should allow custom parseResponse', async () => {
+  test('should allow custom parseResponse', async () => {
     expect.assertions(2);
     const responseJson = { items: [1, 2, 3] };
     fetchMock.post('glob:*/test', responseJson);
@@ -86,7 +86,7 @@ describe('makeApi()', () => {
     expect(await api({})).toBe(6);
   });
 
-  it('should post FormData when requestType=form', async () => {
+  test('should post FormData when requestType=form', async () => {
     expect.assertions(3);
     const api = makeApi({
       method: 'POST',
@@ -105,7 +105,7 @@ describe('makeApi()', () => {
     expect(received.get('request')).toEqual(expected.get('request'));
   });
 
-  it('should use searchParams for method=GET (`requestType=search` implied)', async () => {
+  test('should use searchParams for method=GET (`requestType=search` implied)', async () => {
     expect.assertions(1);
     const api = makeApi({
       method: 'GET',
@@ -118,7 +118,7 @@ describe('makeApi()', () => {
     );
   });
 
-  it('should serialize rison for method=GET, requestType=rison', async () => {
+  test('should serialize rison for method=GET, requestType=rison', async () => {
     expect.assertions(1);
     const api = makeApi({
       method: 'GET',
@@ -132,7 +132,7 @@ describe('makeApi()', () => {
     );
   });
 
-  it('should use searchParams for method=POST, requestType=search', async () => {
+  test('should use searchParams for method=POST, requestType=search', async () => {
     expect.assertions(1);
     const api = makeApi({
       method: 'POST',
@@ -146,7 +146,7 @@ describe('makeApi()', () => {
     );
   });
 
-  it('should throw when requestType is invalid', () => {
+  test('should throw when requestType is invalid', () => {
     expect(() => {
       makeApi({
         method: 'POST',
@@ -157,7 +157,7 @@ describe('makeApi()', () => {
     }).toThrow('Invalid request payload type');
   });
 
-  it('should handle errors', async () => {
+  test('should handle errors', async () => {
     expect.assertions(1);
     const api = makeApi({
       method: 'POST',
@@ -177,7 +177,7 @@ describe('makeApi()', () => {
     }
   });
 
-  it('should handle error on 200 response', async () => {
+  test('should handle error on 200 response', async () => {
     expect.assertions(1);
     const api = makeApi({
       method: 'POST',
@@ -196,7 +196,7 @@ describe('makeApi()', () => {
     }
   });
 
-  it('should parse text response when responseType=text', async () => {
+  test('should parse text response when responseType=text', async () => {
     expect.assertions(1);
     const api = makeApi<JsonValue, string, 'text'>({
       method: 'PUT',
@@ -210,7 +210,7 @@ describe('makeApi()', () => {
     expect(result).toBe('ok?');
   });
 
-  it('should return raw response when responseType=raw', async () => {
+  test('should return raw response when responseType=raw', async () => {
     expect.assertions(2);
     const api = makeApi<JsonValue, number, 'raw'>({
       method: 'DELETE',

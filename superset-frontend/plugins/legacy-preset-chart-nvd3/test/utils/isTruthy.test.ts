@@ -19,7 +19,7 @@
 import isTruthy from '../../src/utils/isTruthy';
 
 describe('isTruthy', () => {
-  it('evals false-looking strings properly', () => {
+  test('evals false-looking strings properly', () => {
     expect(isTruthy('f')).toBe(false);
     expect(isTruthy('false')).toBe(false);
     expect(isTruthy('no')).toBe(false);
@@ -29,7 +29,7 @@ describe('isTruthy', () => {
     expect(isTruthy('NO')).toBe(false);
     expect(isTruthy('N')).toBe(false);
   });
-  it('evals true-looking strings properly', () => {
+  test('evals true-looking strings properly', () => {
     expect(isTruthy('t')).toBe(true);
     expect(isTruthy('true')).toBe(true);
     expect(isTruthy('yes')).toBe(true);
@@ -39,19 +39,19 @@ describe('isTruthy', () => {
     expect(isTruthy('Yes')).toBe(true);
     expect(isTruthy('YES')).toBe(true);
   });
-  it('evals bools properly', () => {
+  test('evals bools properly', () => {
     expect(isTruthy(false)).toBe(false);
     expect(isTruthy(true)).toBe(true);
   });
-  it('evals ints properly', () => {
+  test('evals ints properly', () => {
     expect(isTruthy(0)).toBe(false);
     expect(isTruthy(1)).toBe(true);
   });
-  it('evals constants properly', () => {
+  test('evals constants properly', () => {
     expect(isTruthy(null)).toBe(false);
     expect(isTruthy(undefined)).toBe(false);
   });
-  it('string auto is false', () => {
+  test('string auto is false', () => {
     expect(isTruthy('false')).toBe(false);
   });
 });

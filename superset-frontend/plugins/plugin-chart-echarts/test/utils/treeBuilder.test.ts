@@ -64,7 +64,7 @@ describe('test treeBuilder', () => {
       count2: 3,
     },
   ];
-  it('should build tree as expected', () => {
+  test('should build tree as expected', () => {
     const tree = treeBuilder(data, ['foo', 'bar'], 'count');
     expect(tree).toEqual([
       {
@@ -168,7 +168,7 @@ describe('test treeBuilder', () => {
     ]);
   });
 
-  it('should build tree with secondaryValue as expected', () => {
+  test('should build tree with secondaryValue as expected', () => {
     const tree = treeBuilder(data, ['foo', 'bar'], 'count', 'count2');
     expect(tree).toEqual([
       {
