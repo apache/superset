@@ -66,6 +66,11 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
     load_birth_names_data,  # noqa: F401
 )
+from tests.integration_tests.fixtures.client import client  # noqa: F401
+from tests.integration_tests.fixtures.lineage import (
+    inject_expected_dashboard_lineage,  # noqa: F401
+    lineage_test_data,  # noqa: F401
+)
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,  # noqa: F401
     load_world_bank_data,  # noqa: F401
@@ -3817,6 +3822,33 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             # Cleanup
             db.session.delete(dashboard)
             db.session.commit()
+
+    @pytest.mark.usefixtures("inject_expected_dashboard_lineage")
+    def test_get_dashboard_lineage(self):
+        """
+        Dashboard API: Test get dashboard lineage
+        """
+        self.login(ADMIN_USERNAME)
+        dashboard_id = self.dashboard_lineage["dashboard_id"]
+        expected = self.dashboard_lineage["expected"]
+
+        uri = f"api/v1/dashboard/{dashboard_id}/lineage"
+        rv = self.get_assert_metric(uri, "lineage")
+        assert rv.status_code == 200
+
+        data = json.loads(rv.data.decode("utf-8"))
+
+        # Assert the entire response matches expected structure
+        assert data == expected
+
+    def test_get_dashboard_lineage_not_found(self):
+        """
+        Dashboard API: Test get dashboard lineage with non-existent dashboard
+        """
+        self.login(ADMIN_USERNAME)
+        uri = "api/v1/dashboard/99999/lineage"
+        rv = self.client.get(uri)
+        assert rv.status_code == 404
 
 
 class TestDashboardCustomTagsFiltering(SupersetTestCase):

@@ -50,6 +50,7 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
     load_birth_names_data,  # noqa: F401
 )
+from tests.integration_tests.fixtures.client import client  # noqa: F401
 from tests.integration_tests.fixtures.energy_dashboard import (
     load_energy_table_data,  # noqa: F401
     load_energy_table_with_slice,  # noqa: F401
@@ -58,6 +59,10 @@ from tests.integration_tests.fixtures.importexport import (
     chart_config,
     database_config,
     dataset_config,
+)
+from tests.integration_tests.fixtures.lineage import (
+    inject_expected_chart_lineage,  # noqa: F401
+    lineage_test_data,  # noqa: F401
 )
 from tests.integration_tests.fixtures.tags import (
     create_custom_tags,  # noqa: F401
@@ -2317,3 +2322,30 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
 
         security_manager.add_permission_role(alpha_role, write_tags_perm)
         security_manager.add_permission_role(alpha_role, tag_charts_perm)
+
+    @pytest.mark.usefixtures("inject_expected_chart_lineage")
+    def test_get_chart_lineage(self):
+        """
+        Chart API: Test get chart lineage
+        """
+        self.login(ADMIN_USERNAME)
+        chart_id = self.chart_lineage["chart_id"]
+        expected = self.chart_lineage["expected"]
+
+        uri = f"api/v1/chart/{chart_id}/lineage"
+        rv = self.get_assert_metric(uri, "lineage")
+        assert rv.status_code == 200
+
+        data = json.loads(rv.data.decode("utf-8"))
+
+        # Assert the entire response matches expected structure
+        assert data == expected
+
+    def test_get_chart_lineage_not_found(self):
+        """
+        Chart API: Test get chart lineage with non-existent chart
+        """
+        self.login(ADMIN_USERNAME)
+        uri = "api/v1/chart/99999/lineage"
+        rv = self.client.get(uri)
+        assert rv.status_code == 404

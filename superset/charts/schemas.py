@@ -1704,6 +1704,53 @@ class ChartGetResponseSchema(Schema):
     datasource_uuid = fields.UUID(attribute="table.uuid")
 
 
+class ChartLineageChartSchema(Schema):
+    id = fields.Integer()
+    slice_name = fields.String()
+    viz_type = fields.String()
+
+
+class ChartLineageDatasetSchema(Schema):
+    id = fields.Integer()
+    name = fields.String()
+    database_id = fields.Integer()
+    database_name = fields.String()
+    schema = fields.String(allow_none=True)
+    table_name = fields.String()
+
+
+class ChartLineageDatabaseSchema(Schema):
+    id = fields.Integer()
+    database_name = fields.String()
+    backend = fields.String()
+
+
+class ChartLineageDashboardSchema(Schema):
+    id = fields.Integer()
+    title = fields.String()
+    slug = fields.String()
+
+
+class ChartLineageUpstreamSchema(Schema):
+    dataset = fields.Nested(ChartLineageDatasetSchema, allow_none=True)
+    database = fields.Nested(ChartLineageDatabaseSchema, allow_none=True)
+
+
+class ChartLineageDownstreamDashboardsSchema(Schema):
+    count = fields.Integer()
+    result = fields.List(fields.Nested(ChartLineageDashboardSchema))
+
+
+class ChartLineageDownstreamSchema(Schema):
+    dashboards = fields.Nested(ChartLineageDownstreamDashboardsSchema)
+
+
+class ChartLineageResponseSchema(Schema):
+    chart = fields.Nested(ChartLineageChartSchema)
+    upstream = fields.Nested(ChartLineageUpstreamSchema)
+    downstream = fields.Nested(ChartLineageDownstreamSchema)
+
+
 CHART_SCHEMAS = (
     ChartCacheWarmUpRequestSchema,
     ChartCacheWarmUpResponseSchema,
@@ -1730,4 +1777,5 @@ CHART_SCHEMAS = (
     ChartGetResponseSchema,
     ChartCacheScreenshotResponseSchema,
     GetFavStarIdsSchema,
+    ChartLineageResponseSchema,
 )
