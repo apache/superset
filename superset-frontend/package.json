@@ -164,6 +164,7 @@
     "dayjs": "^1.11.19",
     "dom-to-image-more": "^3.7.2",
     "dom-to-pdf": "^0.3.2",
+    "driver.js": "^1.4.0",
     "echarts": "^5.6.0",
     "eslint-plugin-i18n-strings": "file:eslint-rules/eslint-plugin-i18n-strings",
     "fast-glob": "^3.3.2",
