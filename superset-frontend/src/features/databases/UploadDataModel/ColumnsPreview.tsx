@@ -25,6 +25,7 @@ import { type TagType, TagsList } from 'src/components';
 interface ColumnsPreviewProps {
   columns: string[];
   maxColumnsToShow?: number;
+  fileTooLarge?: boolean;
 }
 
 export const StyledDivContainer = styled.div`
@@ -35,6 +36,7 @@ export const StyledDivContainer = styled.div`
 const ColumnsPreview: FC<ColumnsPreviewProps> = ({
   columns,
   maxColumnsToShow = 4,
+  fileTooLarge = false,
 }) => {
   const tags: TagType[] = columns.map(column => ({ name: column }));
 
@@ -42,7 +44,11 @@ const ColumnsPreview: FC<ColumnsPreviewProps> = ({
     <StyledDivContainer>
       <Typography.Text type="secondary">Columns:</Typography.Text>
       {columns.length === 0 ? (
-        <p className="help-block">{t('Upload file to preview columns')}</p>
+        <p className="help-block">
+          {fileTooLarge
+            ? t('Preview is not available for files larger than 5MB')
+            : t('Upload file to preview columns')}
+        </p>
       ) : (
         <TagsList tags={tags} maxTags={maxColumnsToShow} />
       )}

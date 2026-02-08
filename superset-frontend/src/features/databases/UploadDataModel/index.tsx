@@ -20,6 +20,7 @@ import {
   FunctionComponent,
   useEffect,
   useMemo,
+  useRef,
   useState,
   ReactNode,
   FC,
@@ -31,6 +32,7 @@ import { SupersetTheme } from '@apache-superset/core/ui';
 import {
   Button,
   Collapse,
+  Flex,
   Form,
   Select,
   AsyncSelect,
@@ -39,6 +41,7 @@ import {
   Col,
   Input,
   InputNumber,
+  Tooltip,
   Upload,
   type UploadChangeParam,
   type UploadFile,
@@ -53,11 +56,14 @@ import {
   antDModalNoPaddingStyles,
   antDModalStyles,
   formStyles,
+  StyledFileDropzone,
   StyledFormItem,
   StyledSwitchContainer,
 } from './styles';
 import ColumnsPreview from './ColumnsPreview';
+import { DataPreviewModal } from './DataPreviewModal';
 import StyledFormItemWithTip from './StyledFormItemWithTip';
+import { startUploadDataModalTour } from './uploadDataModalTour';
 
 type UploadType = 'csv' | 'excel' | 'columnar';
 
@@ -69,7 +75,13 @@ interface UploadDataModalProps {
   allowedExtensions: string[];
   type: UploadType;
   fileListOverride?: File[];
+  showTourOnOpen?: boolean;
 }
+
+const PREVIEW_FILE_SIZE_LIMIT = 5 * 1024 * 1024; // 5MB
+
+const isFileTooLargeForPreview = (file: File | undefined | null): boolean =>
+  !!file && file.size > PREVIEW_FILE_SIZE_LIMIT;
 
 const CSVSpecificFields = [
   'delimiter',
@@ -218,10 +230,12 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
   allowedExtensions,
   type = 'csv',
   fileListOverride,
+  showTourOnOpen = false,
 }) => {
   const [form] = Form.useForm();
   const [currentDatabaseId, setCurrentDatabaseId] = useState<number>(0);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
+  const fileListRef = useRef<UploadFile[]>([]);
   const [columns, setColumns] = useState<string[]>([]);
   const [sheetNames, setSheetNames] = useState<string[]>([]);
   const [sheetsColumnNames, setSheetsColumnNames] = useState<
@@ -235,6 +249,8 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
   const [previewUploadedFile, setPreviewUploadedFile] = useState<boolean>(true);
   const [fileLoading, setFileLoading] = useState<boolean>(false);
   const [activeKey, setActiveKey] = useState<string | string[]>('general');
+  const [dataPreviewModalOpen, setDataPreviewModalOpen] =
+    useState<boolean>(false);
 
   const createTypeToEndpointMap = (databaseId: number) =>
     `/api/v1/database/${databaseId}/upload/`;
@@ -316,7 +332,9 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
 
   const clearModal = () => {
     setFileList([]);
+    fileListRef.current = [];
     setColumns([]);
+    setDataPreviewModalOpen(false);
     setCurrentSchema('');
     setCurrentDatabaseId(0);
     setSheetNames([]);
@@ -491,7 +509,9 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
   };
 
   const onRemoveFile = (removedFile: UploadFile) => {
-    setFileList(fileList.filter(file => file.uid !== removedFile.uid));
+    const newFileList = fileList.filter(file => file.uid !== removedFile.uid);
+    setFileList(newFileList);
+    fileListRef.current = newFileList;
     setColumns([]);
     setSheetNames([]);
     form.setFieldsValue({ sheet_name: undefined });
@@ -515,13 +535,22 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
     }));
 
   const onChangeFile = async (info: UploadChangeParam<any>) => {
-    setFileList([
+    const newFileList = [
       {
         ...info.file,
-        status: 'done',
+        status: 'done' as const,
       },
-    ]);
+    ];
+    setFileList(newFileList);
+    fileListRef.current = newFileList;
+    if (info.file.originFileObj) {
+      form.validateFields(['file']).catch(() => {});
+    }
     if (!previewUploadedFile) {
+      return;
+    }
+    if (isFileTooLargeForPreview(info.file.originFileObj)) {
+      setColumns([]);
       return;
     }
     await loadFileMetadata(info.file.originFileObj);
@@ -529,16 +558,21 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
 
   useEffect(() => {
     if (fileListOverride?.length) {
-      setFileList(
-        fileListOverride.map(file => ({
-          uid: file.name,
-          name: file.name,
-          originFileObj: file as UploadFile['originFileObj'],
-          status: 'done' as const,
-        })),
-      );
-      if (previewUploadedFile) {
+      const newFileList = fileListOverride.map(file => ({
+        uid: file.name,
+        name: file.name,
+        originFileObj: file as UploadFile['originFileObj'],
+        status: 'done' as const,
+      }));
+      setFileList(newFileList);
+      fileListRef.current = newFileList;
+      if (
+        previewUploadedFile &&
+        !isFileTooLargeForPreview(fileListOverride[0])
+      ) {
         loadFileMetadata(fileListOverride[0]).then(r => r);
+      } else if (isFileTooLargeForPreview(fileListOverride[0])) {
+        setColumns([]);
       }
     }
   }, [fileListOverride, previewUploadedFile]);
@@ -552,6 +586,9 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
       if (!previewUploadedFile) {
         return;
       }
+      if (isFileTooLargeForPreview(fileList[0].originFileObj)) {
+        return;
+      }
       loadFileMetadata(fileList[0].originFileObj).then(r => r);
     }
   }, [delimiter]);
@@ -563,11 +600,49 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
     }
   }, [show]);
 
+  // Start tour when modal opens (with delay for DOM to render)
+  useEffect(() => {
+    if (!show || !showTourOnOpen) {
+      return undefined;
+    }
+    const timer = setTimeout(() => {
+      startUploadDataModalTour(type);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [show, showTourOnOpen, type]);
+
+  const modalFooter = (
+    <>
+      <Button
+        key="back"
+        cta
+        data-test="modal-cancel-button"
+        buttonStyle="secondary"
+        onClick={onClose}
+      >
+        {t('Cancel')}
+      </Button>
+      <Button
+        key="submit"
+        buttonStyle="primary"
+        disabled={isLoading}
+        loading={isLoading}
+        onClick={() => form.submit()}
+        cta
+        data-test="modal-confirm-button"
+        data-tour={`upload-submit-button-${type}`}
+      >
+        {t('Upload')}
+      </Button>
+    </>
+  );
+
   const validateUpload = (_: any, value: string) => {
-    if (fileList.length === 0) {
+    const currentFileList = fileListRef.current;
+    if (currentFileList.length === 0) {
       return Promise.reject(t('Uploading a file is required'));
     }
-    if (!validateUploadFileExtension(fileList[0], allowedExtensions)) {
+    if (!validateUploadFileExtension(currentFileList[0], allowedExtensions)) {
       return Promise.reject(
         t(
           'Upload a file with a valid extension. Valid: [%s]',
@@ -593,391 +668,379 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
 
   const UploadTitle: FC = () => {
     const title = uploadTitles[type] || t('Upload');
-    return <ModalTitleWithIcon title={title} />;
+    return (
+      <Flex align="center" gap="sm">
+        <ModalTitleWithIcon title={title} />
+        <Tooltip title={t('Take a tour')}>
+          <Button
+            buttonStyle="link"
+            buttonSize="small"
+            onClick={e => {
+              e.stopPropagation();
+              startUploadDataModalTour(type);
+            }}
+            icon={<Icons.QuestionCircleOutlined iconSize="m" />}
+            aria-label={t('Take a tour')}
+          />
+        </Tooltip>
+      </Flex>
+    );
   };
 
+  const formValues = form.getFieldsValue();
+
   return (
-    <Modal
-      css={(theme: SupersetTheme) => [
-        antDModalNoPaddingStyles,
-        antDModalStyles(theme),
-        formStyles(theme),
-      ]}
-      primaryButtonLoading={isLoading}
-      name="database"
-      data-test="upload-modal"
-      onHandledPrimaryAction={form.submit}
-      onHide={onClose}
-      width="500px"
-      primaryButtonName={t('Upload')}
-      centered
-      show={show}
-      title={<UploadTitle />}
-    >
-      <Form
-        form={form}
-        onFinish={onFinish}
-        data-test="dashboard-edit-properties-form"
-        layout="vertical"
-        initialValues={defaultUploadInfo}
+    <>
+      <Modal
+        css={(theme: SupersetTheme) => [
+          antDModalNoPaddingStyles,
+          antDModalStyles(theme),
+          formStyles(theme),
+        ]}
+        primaryButtonLoading={isLoading}
+        name="database"
+        data-test="upload-modal"
+        onHandledPrimaryAction={form.submit}
+        onHide={onClose}
+        width="700px"
+        primaryButtonName={t('Upload')}
+        centered
+        show={show}
+        title={<UploadTitle />}
+        wrapProps={{ 'data-tour': `upload-modal-${type}` }}
+        footer={modalFooter}
       >
-        <Collapse
-          expandIconPosition="end"
-          accordion
-          activeKey={activeKey}
-          onChange={key => setActiveKey(key)}
-          defaultActiveKey="general"
-          modalMode
-          items={[
-            {
-              key: 'general',
-              label: (
-                <Typography.Text strong>
-                  {t('General information')}
-                </Typography.Text>
-              ),
-              children: (
-                <>
-                  <Row>
-                    <Col span={24}>
-                      <StyledFormItem
-                        label={t('%(label)s file', {
-                          label: extensionsToLabel[type],
-                        })}
-                        name="file"
-                        required
-                        rules={[{ validator: validateUpload }]}
-                      >
-                        <Upload
-                          name="modelFile"
-                          id="modelFile"
-                          data-test="model-file-input"
-                          accept={allowedExtensionsToAccept[type]}
-                          fileList={fileList}
-                          onChange={onChangeFile}
-                          onRemove={onRemoveFile}
-                          // upload is handled by hook
-                          customRequest={() => {}}
+        <Form
+          form={form}
+          onFinish={onFinish}
+          data-test="dashboard-edit-properties-form"
+          layout="vertical"
+          initialValues={defaultUploadInfo}
+        >
+          <Collapse
+            expandIconPosition="end"
+            accordion
+            activeKey={activeKey}
+            onChange={key => setActiveKey(key)}
+            defaultActiveKey="general"
+            modalMode
+            items={[
+              {
+                key: 'general',
+                label: (
+                  <Typography.Text strong>
+                    {t('General information')}
+                  </Typography.Text>
+                ),
+                children: (
+                  <>
+                    <Row>
+                      <Col span={24}>
+                        <StyledFormItem
+                          label={t('%(label)s file', {
+                            label: extensionsToLabel[type],
+                          })}
+                          name="file"
+                          required
+                          rules={[{ validator: validateUpload }]}
                         >
-                          <Button
-                            aria-label={t('Select')}
-                            icon={<Icons.UploadOutlined />}
-                            loading={fileLoading}
+                          <StyledFileDropzone
+                            data-tour={`upload-file-dropzone-${type}`}
                           >
-                            {t('Select')}
-                          </Button>
-                        </Upload>
-                      </StyledFormItem>
-                    </Col>
-                  </Row>
-                  <Row>
-                    <Col span={24}>
-                      <StyledFormItem>
-                        <SwitchContainer
-                          label={t('Preview uploaded file')}
-                          dataTest="previewUploadedFile"
-                          onChange={onChangePreviewUploadedFile}
-                          checked={previewUploadedFile}
-                        />
-                      </StyledFormItem>
-                    </Col>
-                  </Row>
-                  {previewUploadedFile && (
-                    <Row>
-                      <Col span={24}>
-                        <ColumnsPreview columns={columns} />
+                            <Upload.Dragger
+                              name="modelFile"
+                              id="modelFile"
+                              data-test="model-file-input"
+                              accept={allowedExtensionsToAccept[type]}
+                              fileList={fileList}
+                              onChange={onChangeFile}
+                              onRemove={onRemoveFile}
+                              customRequest={() => {}}
+                              disabled={fileLoading}
+                              showUploadList={{
+                                showRemoveIcon: true,
+                              }}
+                            >
+                              <p className="ant-upload-drag-icon">
+                                <Icons.UploadOutlined
+                                  iconSize="xl"
+                                  iconColor="primary"
+                                />
+                              </p>
+                              <p className="ant-upload-text">
+                                {t('Drag and drop your file here')}
+                              </p>
+                              <p className="ant-upload-hint">
+                                {t('or')}{' '}
+                                <label
+                                  htmlFor="modelFile"
+                                  onClick={e => e.stopPropagation()}
+                                >
+                                  <span
+                                    role="button"
+                                    tabIndex={0}
+                                    onKeyDown={e => {
+                                      if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault();
+                                        document
+                                          .getElementById('modelFile')
+                                          ?.click();
+                                      }
+                                    }}
+                                    style={{
+                                      color: 'inherit',
+                                      textDecoration: 'underline',
+                                      cursor: 'pointer',
+                                      fontWeight: 500,
+                                    }}
+                                  >
+                                    {t('Select')}
+                                  </span>
+                                </label>{' '}
+                                — {allowedExtensionsToAccept[type]}
+                              </p>
+                            </Upload.Dragger>
+                          </StyledFileDropzone>
+                        </StyledFormItem>
                       </Col>
                     </Row>
-                  )}
-                  <Row>
-                    <Col span={24}>
-                      <StyledFormItem
-                        label={t('Database')}
-                        required
-                        name="database"
-                        rules={[{ validator: validateDatabase }]}
-                      >
-                        <AsyncSelect
-                          ariaLabel={t('Select a database')}
-                          options={loadDatabaseOptions}
-                          onChange={onChangeDatabase}
-                          allowClear
-                          placeholder={t(
-                            'Select a database to upload the file to',
-                          )}
-                        />
-                      </StyledFormItem>
-                    </Col>
-                  </Row>
-                  <Row>
-                    <Col span={24}>
-                      <StyledFormItem label={t('Schema')} name="schema">
-                        <AsyncSelect
-                          ariaLabel={t('Select a schema')}
-                          options={loadSchemaOptions}
-                          onChange={onChangeSchema}
-                          allowClear
-                          placeholder={t(
-                            'Select a schema if the database supports this',
-                          )}
-                        />
-                      </StyledFormItem>
-                    </Col>
-                  </Row>
-                  <Row>
-                    <Col span={24}>
-                      <StyledFormItem
-                        label={t('Table name')}
-                        name="table_name"
-                        required
-                        rules={[
-                          { required: true, message: 'Table name is required' },
-                        ]}
-                      >
-                        <Input
-                          aria-label={t('Table Name')}
+                    <div data-tour={`upload-preview-${type}`}>
+                      <Row>
+                        <Col span={24}>
+                          <StyledFormItem>
+                            <StyledSwitchContainer>
+                              {type !== 'columnar' && (
+                                <Tooltip
+                                  title={
+                                    isFileTooLargeForPreview(
+                                      fileList[0]?.originFileObj,
+                                    )
+                                      ? t(
+                                          'Preview is not available for files larger than 5MB',
+                                        )
+                                      : t(
+                                          'Preview will be available for files smaller than 5MB',
+                                        )
+                                  }
+                                >
+                                  <Button
+                                    buttonStyle="link"
+                                    buttonSize="small"
+                                    icon={<Icons.EyeOutlined iconSize="m" />}
+                                    onClick={() =>
+                                      setDataPreviewModalOpen(true)
+                                    }
+                                    disabled={
+                                      !fileList.length ||
+                                      !fileList[0]?.originFileObj ||
+                                      isFileTooLargeForPreview(
+                                        fileList[0]?.originFileObj,
+                                      )
+                                    }
+                                    aria-label={t('Preview data')}
+                                    style={{ marginRight: 8 }}
+                                  >
+                                    {t('Preview data')}
+                                  </Button>
+                                </Tooltip>
+                              )}
+                              <Switch
+                                data-test="previewUploadedFile"
+                                onChange={onChangePreviewUploadedFile}
+                                checked={previewUploadedFile}
+                              />
+                              <div className="switch-label">
+                                {t('Preview columns')}
+                              </div>
+                            </StyledSwitchContainer>
+                          </StyledFormItem>
+                        </Col>
+                      </Row>
+                      {previewUploadedFile && (
+                        <Row>
+                          <Col span={24}>
+                            <ColumnsPreview
+                              columns={columns}
+                              fileTooLarge={isFileTooLargeForPreview(
+                                fileList[0]?.originFileObj,
+                              )}
+                            />
+                          </Col>
+                        </Row>
+                      )}
+                    </div>
+                    <Row data-tour={`upload-database-${type}`}>
+                      <Col span={24}>
+                        <StyledFormItem
+                          label={t('Database')}
+                          required
+                          name="database"
+                          rules={[{ validator: validateDatabase }]}
+                        >
+                          <AsyncSelect
+                            ariaLabel={t('Select a database')}
+                            options={loadDatabaseOptions}
+                            onChange={onChangeDatabase}
+                            allowClear
+                            placeholder={t(
+                              'Select a database to upload the file to',
+                            )}
+                          />
+                        </StyledFormItem>
+                      </Col>
+                    </Row>
+                    <Row>
+                      <Col span={24}>
+                        <StyledFormItem label={t('Schema')} name="schema">
+                          <AsyncSelect
+                            ariaLabel={t('Select a schema')}
+                            options={loadSchemaOptions}
+                            onChange={onChangeSchema}
+                            allowClear
+                            placeholder={t(
+                              'Select a schema if the database supports this',
+                            )}
+                          />
+                        </StyledFormItem>
+                      </Col>
+                    </Row>
+                    <Row data-tour={`upload-table-name-${type}`}>
+                      <Col span={24}>
+                        <StyledFormItem
+                          label={t('Table name')}
                           name="table_name"
-                          data-test="properties-modal-name-input"
-                          type="text"
-                          placeholder={t('Name of table to be created')}
-                        />
-                      </StyledFormItem>
-                    </Col>
-                  </Row>
-                  {isFieldATypeSpecificField('delimiter', type) && (
-                    <Row>
-                      <Col span={24}>
-                        <StyledFormItemWithTip
-                          label={t('Delimiter')}
-                          tip={t('Select a delimiter for this data')}
-                          name="delimiter"
-                        >
-                          <Select
-                            ariaLabel={t('Choose a delimiter')}
-                            options={delimiterOptions}
-                            onChange={onChangeDelimiter}
-                            allowNewOptions
-                          />
-                        </StyledFormItemWithTip>
-                      </Col>
-                    </Row>
-                  )}
-                  {isFieldATypeSpecificField('sheet_name', type) && (
-                    <Row>
-                      <Col span={24}>
-                        <StyledFormItem
-                          label={t('Sheet name')}
-                          name="sheet_name"
-                        >
-                          <Select
-                            ariaLabel={t('Choose sheet name')}
-                            options={sheetNamesToOptions()}
-                            onChange={onSheetNameChange}
-                            allowNewOptions
-                            placeholder={t(
-                              'Select a sheet name from the uploaded file',
-                            )}
-                          />
-                        </StyledFormItem>
-                      </Col>
-                    </Row>
-                  )}
-                </>
-              ),
-            },
-            {
-              key: 'file-settings',
-              label: (
-                <Typography.Text strong>{t('File settings')}</Typography.Text>
-              ),
-              children: (
-                <>
-                  <Row>
-                    <Col span={24}>
-                      <StyledFormItemWithTip
-                        label={t('If table already exists')}
-                        tip={t(
-                          'What should happen if the table already exists',
-                        )}
-                        name="already_exists"
-                      >
-                        <Select
-                          ariaLabel={t('Choose already exists')}
-                          options={tableAlreadyExistsOptions}
-                          onChange={() => {}}
-                        />
-                      </StyledFormItemWithTip>
-                    </Col>
-                  </Row>
-                  {isFieldATypeSpecificField('column_dates', type) && (
-                    <Row>
-                      <Col span={24}>
-                        <StyledFormItem
-                          label={t('Columns to be parsed as dates')}
-                          name="column_dates"
-                        >
-                          <Select
-                            ariaLabel={t(
-                              'Choose columns to be parsed as dates',
-                            )}
-                            mode="multiple"
-                            options={columnsToOptions()}
-                            allowClear
-                            allowNewOptions
-                            placeholder={t(
-                              'A comma separated list of columns that should be parsed as dates',
-                            )}
-                          />
-                        </StyledFormItem>
-                      </Col>
-                    </Row>
-                  )}
-                  {isFieldATypeSpecificField('decimal_character', type) && (
-                    <Row>
-                      <Col span={24}>
-                        <StyledFormItemWithTip
-                          label={t('Decimal character')}
-                          tip={t('Character to interpret as decimal point')}
-                          name="decimal_character"
-                        >
-                          <Input type="text" />
-                        </StyledFormItemWithTip>
-                      </Col>
-                    </Row>
-                  )}
-                  {isFieldATypeSpecificField('null_values', type) && (
-                    <Row>
-                      <Col span={24}>
-                        <StyledFormItemWithTip
-                          label={t('Null Values')}
-                          tip={t(
-                            'Choose values that should be treated as null. Warning: Hive database supports only a single value',
-                          )}
-                          name="null_values"
-                        >
-                          <Select
-                            mode="multiple"
-                            options={nullValuesOptions}
-                            allowClear
-                            allowNewOptions
-                          />
-                        </StyledFormItemWithTip>
-                      </Col>
-                    </Row>
-                  )}
-                  {isFieldATypeSpecificField('skip_initial_space', type) && (
-                    <Row>
-                      <Col span={24}>
-                        <StyledFormItem name="skip_initial_space">
-                          <SwitchContainer
-                            label={t('Skip spaces after delimiter')}
-                            dataTest="skipInitialSpace"
-                          />
-                        </StyledFormItem>
-                      </Col>
-                    </Row>
-                  )}
-                  {isFieldATypeSpecificField('skip_blank_lines', type) && (
-                    <Row>
-                      <Col span={24}>
-                        <StyledFormItem name="skip_blank_lines">
-                          <SwitchContainer
-                            label={t(
-                              'Skip blank lines rather than interpreting them as Not A Number values',
-                            )}
-                            dataTest="skipBlankLines"
-                          />
-                        </StyledFormItem>
-                      </Col>
-                    </Row>
-                  )}
-                  {isFieldATypeSpecificField('day_first', type) && (
-                    <Row>
-                      <Col span={24}>
-                        <StyledFormItem name="day_first">
-                          <SwitchContainer
-                            label={t(
-                              'DD/MM format dates, international and European format',
-                            )}
-                            dataTest="dayFirst"
-                          />
-                        </StyledFormItem>
-                      </Col>
-                    </Row>
-                  )}
-                </>
-              ),
-            },
-            {
-              key: 'columns',
-              label: <Typography.Text strong>{t('Columns')}</Typography.Text>,
-              children: (
-                <>
-                  <Row>
-                    <Col span={24}>
-                      <StyledFormItem
-                        label={t('Columns to read')}
-                        name="columns_read"
-                      >
-                        <Select
-                          ariaLabel={t('Choose columns to read')}
-                          mode="multiple"
-                          options={columnsToOptions()}
-                          allowClear
-                          allowNewOptions
-                          placeholder={t(
-                            'List of the column names that should be read',
-                          )}
-                        />
-                      </StyledFormItem>
-                    </Col>
-                  </Row>
-                  {isFieldATypeSpecificField('column_data_types', type) && (
-                    <Row>
-                      <Col span={24}>
-                        <StyledFormItemWithTip
-                          label={t('Column data types')}
-                          tip={t(
-                            'A dictionary with column names and their data types if you need to change the defaults. Example: {"user_id":"int"}. Check Python\'s Pandas library for supported data types.',
-                          )}
-                          name="column_data_types"
+                          required
+                          rules={[
+                            {
+                              required: true,
+                              message: 'Table name is required',
+                            },
+                          ]}
                         >
                           <Input
-                            aria-label={t('Column data types')}
+                            aria-label={t('Table Name')}
+                            name="table_name"
+                            data-test="properties-modal-name-input"
                             type="text"
+                            placeholder={t('Name of table to be created')}
                           />
-                        </StyledFormItemWithTip>
+                        </StyledFormItem>
                       </Col>
                     </Row>
-                  )}
-                  <Row>
-                    <Col span={24}>
-                      <StyledFormItem name="dataframe_index">
-                        <SwitchContainer
-                          label={t('Create dataframe index')}
-                          dataTest="dataFrameIndex"
-                          onChange={setCurrentDataframeIndex}
-                        />
-                      </StyledFormItem>
-                    </Col>
-                  </Row>
-                  {currentDataframeIndex &&
-                    isFieldATypeSpecificField('index_column', type) && (
+                    {isFieldATypeSpecificField('delimiter', type) && (
                       <Row>
                         <Col span={24}>
                           <StyledFormItemWithTip
-                            label={t('Index column')}
-                            tip={t(
-                              'Column to use as the index of the dataframe. If None is given, Index label is used.',
-                            )}
-                            name="index_column"
+                            label={t('Delimiter')}
+                            tip={t('Select a delimiter for this data')}
+                            name="delimiter"
                           >
                             <Select
-                              ariaLabel={t('Choose index column')}
-                              options={columns.map(column => ({
-                                value: column,
-                                label: column,
-                              }))}
+                              ariaLabel={t('Choose a delimiter')}
+                              options={delimiterOptions}
+                              onChange={onChangeDelimiter}
+                              allowNewOptions
+                            />
+                          </StyledFormItemWithTip>
+                        </Col>
+                      </Row>
+                    )}
+                    {isFieldATypeSpecificField('sheet_name', type) && (
+                      <Row>
+                        <Col span={24}>
+                          <StyledFormItem
+                            label={t('Sheet name')}
+                            name="sheet_name"
+                          >
+                            <Select
+                              ariaLabel={t('Choose sheet name')}
+                              options={sheetNamesToOptions()}
+                              onChange={onSheetNameChange}
+                              allowNewOptions
+                              placeholder={t(
+                                'Select a sheet name from the uploaded file',
+                              )}
+                            />
+                          </StyledFormItem>
+                        </Col>
+                      </Row>
+                    )}
+                  </>
+                ),
+              },
+              {
+                key: 'file-settings',
+                label: (
+                  <Typography.Text strong>{t('File settings')}</Typography.Text>
+                ),
+                children: (
+                  <>
+                    <Row>
+                      <Col span={24}>
+                        <StyledFormItemWithTip
+                          label={t('If table already exists')}
+                          tip={t(
+                            'What should happen if the table already exists',
+                          )}
+                          name="already_exists"
+                        >
+                          <Select
+                            ariaLabel={t('Choose already exists')}
+                            options={tableAlreadyExistsOptions}
+                            onChange={() => {}}
+                          />
+                        </StyledFormItemWithTip>
+                      </Col>
+                    </Row>
+                    {isFieldATypeSpecificField('column_dates', type) && (
+                      <Row>
+                        <Col span={24}>
+                          <StyledFormItem
+                            label={t('Columns to be parsed as dates')}
+                            name="column_dates"
+                          >
+                            <Select
+                              ariaLabel={t(
+                                'Choose columns to be parsed as dates',
+                              )}
+                              mode="multiple"
+                              options={columnsToOptions()}
+                              allowClear
+                              allowNewOptions
+                              placeholder={t(
+                                'A comma separated list of columns that should be parsed as dates',
+                              )}
+                            />
+                          </StyledFormItem>
+                        </Col>
+                      </Row>
+                    )}
+                    {isFieldATypeSpecificField('decimal_character', type) && (
+                      <Row>
+                        <Col span={24}>
+                          <StyledFormItemWithTip
+                            label={t('Decimal character')}
+                            tip={t('Character to interpret as decimal point')}
+                            name="decimal_character"
+                          >
+                            <Input type="text" />
+                          </StyledFormItemWithTip>
+                        </Col>
+                      </Row>
+                    )}
+                    {isFieldATypeSpecificField('null_values', type) && (
+                      <Row>
+                        <Col span={24}>
+                          <StyledFormItemWithTip
+                            label={t('Null Values')}
+                            tip={t(
+                              'Choose values that should be treated as null. Warning: Hive database supports only a single value',
+                            )}
+                            name="null_values"
+                          >
+                            <Select
+                              mode="multiple"
+                              options={nullValuesOptions}
                               allowClear
                               allowNewOptions
                             />
@@ -985,94 +1048,232 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
                         </Col>
                       </Row>
                     )}
-                  {currentDataframeIndex && (
+                    {isFieldATypeSpecificField('skip_initial_space', type) && (
+                      <Row>
+                        <Col span={24}>
+                          <StyledFormItem name="skip_initial_space">
+                            <SwitchContainer
+                              label={t('Skip spaces after delimiter')}
+                              dataTest="skipInitialSpace"
+                            />
+                          </StyledFormItem>
+                        </Col>
+                      </Row>
+                    )}
+                    {isFieldATypeSpecificField('skip_blank_lines', type) && (
+                      <Row>
+                        <Col span={24}>
+                          <StyledFormItem name="skip_blank_lines">
+                            <SwitchContainer
+                              label={t(
+                                'Skip blank lines rather than interpreting them as Not A Number values',
+                              )}
+                              dataTest="skipBlankLines"
+                            />
+                          </StyledFormItem>
+                        </Col>
+                      </Row>
+                    )}
+                    {isFieldATypeSpecificField('day_first', type) && (
+                      <Row>
+                        <Col span={24}>
+                          <StyledFormItem name="day_first">
+                            <SwitchContainer
+                              label={t(
+                                'DD/MM format dates, international and European format',
+                              )}
+                              dataTest="dayFirst"
+                            />
+                          </StyledFormItem>
+                        </Col>
+                      </Row>
+                    )}
+                  </>
+                ),
+              },
+              {
+                key: 'columns',
+                label: <Typography.Text strong>{t('Columns')}</Typography.Text>,
+                children: (
+                  <>
                     <Row>
                       <Col span={24}>
-                        <StyledFormItemWithTip
-                          label={t('Index label')}
-                          tip={t(
-                            "Label for the index column. Don't use an existing column name.",
-                          )}
-                          name="index_label"
+                        <StyledFormItem
+                          label={t('Columns to read')}
+                          name="columns_read"
                         >
-                          <Input aria-label={t('Index label')} type="text" />
-                        </StyledFormItemWithTip>
+                          <Select
+                            ariaLabel={t('Choose columns to read')}
+                            mode="multiple"
+                            options={columnsToOptions()}
+                            allowClear
+                            allowNewOptions
+                            placeholder={t(
+                              'List of the column names that should be read',
+                            )}
+                          />
+                        </StyledFormItem>
                       </Col>
                     </Row>
-                  )}
-                </>
-              ),
-            },
-            ...(isFieldATypeSpecificField('header_row', type) &&
-            isFieldATypeSpecificField('rows_to_read', type) &&
-            isFieldATypeSpecificField('skip_rows', type)
-              ? [
-                  {
-                    key: 'rows',
-                    label: (
-                      <Typography.Text strong>{t('Rows')}</Typography.Text>
-                    ),
-                    children: (
+                    {isFieldATypeSpecificField('column_data_types', type) && (
                       <Row>
-                        <Col span={8}>
+                        <Col span={24}>
                           <StyledFormItemWithTip
-                            label={t('Header row')}
+                            label={t('Column data types')}
                             tip={t(
-                              'Row containing the headers to use as column names (0 is first line of data).',
+                              'A dictionary with column names and their data types if you need to change the defaults. Example: {"user_id":"int"}. Check Python\'s Pandas library for supported data types.',
                             )}
-                            name="header_row"
-                            rules={[
-                              {
-                                required: true,
-                                message: 'Header row is required',
-                              },
-                            ]}
+                            name="column_data_types"
                           >
-                            <InputNumber
-                              aria-label={t('Header row')}
+                            <Input
+                              aria-label={t('Column data types')}
                               type="text"
-                              min={0}
                             />
-                          </StyledFormItemWithTip>
-                        </Col>
-                        <Col span={8}>
-                          <StyledFormItemWithTip
-                            label={t('Rows to read')}
-                            tip={t(
-                              'Number of rows of file to read. Leave empty (default) to read all rows',
-                            )}
-                            name="rows_to_read"
-                          >
-                            <InputNumber
-                              aria-label={t('Rows to read')}
-                              min={1}
-                            />
-                          </StyledFormItemWithTip>
-                        </Col>
-                        <Col span={8}>
-                          <StyledFormItemWithTip
-                            label={t('Skip rows')}
-                            tip={t('Number of rows to skip at start of file.')}
-                            name="skip_rows"
-                            rules={[
-                              {
-                                required: true,
-                                message: 'Skip rows is required',
-                              },
-                            ]}
-                          >
-                            <InputNumber aria-label={t('Skip rows')} min={0} />
                           </StyledFormItemWithTip>
                         </Col>
                       </Row>
-                    ),
-                  },
-                ]
-              : []),
-          ]}
-        />
-      </Form>
-    </Modal>
+                    )}
+                    <Row>
+                      <Col span={24}>
+                        <StyledFormItem name="dataframe_index">
+                          <SwitchContainer
+                            label={t('Create dataframe index')}
+                            dataTest="dataFrameIndex"
+                            onChange={setCurrentDataframeIndex}
+                          />
+                        </StyledFormItem>
+                      </Col>
+                    </Row>
+                    {currentDataframeIndex &&
+                      isFieldATypeSpecificField('index_column', type) && (
+                        <Row>
+                          <Col span={24}>
+                            <StyledFormItemWithTip
+                              label={t('Index column')}
+                              tip={t(
+                                'Column to use as the index of the dataframe. If None is given, Index label is used.',
+                              )}
+                              name="index_column"
+                            >
+                              <Select
+                                ariaLabel={t('Choose index column')}
+                                options={columns.map(column => ({
+                                  value: column,
+                                  label: column,
+                                }))}
+                                allowClear
+                                allowNewOptions
+                              />
+                            </StyledFormItemWithTip>
+                          </Col>
+                        </Row>
+                      )}
+                    {currentDataframeIndex && (
+                      <Row>
+                        <Col span={24}>
+                          <StyledFormItemWithTip
+                            label={t('Index label')}
+                            tip={t(
+                              "Label for the index column. Don't use an existing column name.",
+                            )}
+                            name="index_label"
+                          >
+                            <Input aria-label={t('Index label')} type="text" />
+                          </StyledFormItemWithTip>
+                        </Col>
+                      </Row>
+                    )}
+                  </>
+                ),
+              },
+              ...(isFieldATypeSpecificField('header_row', type) &&
+              isFieldATypeSpecificField('rows_to_read', type) &&
+              isFieldATypeSpecificField('skip_rows', type)
+                ? [
+                    {
+                      key: 'rows',
+                      label: (
+                        <Typography.Text strong>{t('Rows')}</Typography.Text>
+                      ),
+                      children: (
+                        <Row>
+                          <Col span={8}>
+                            <StyledFormItemWithTip
+                              label={t('Header row')}
+                              tip={t(
+                                'Row containing the headers to use as column names (0 is first line of data).',
+                              )}
+                              name="header_row"
+                              rules={[
+                                {
+                                  required: true,
+                                  message: 'Header row is required',
+                                },
+                              ]}
+                            >
+                              <InputNumber
+                                aria-label={t('Header row')}
+                                type="text"
+                                min={0}
+                              />
+                            </StyledFormItemWithTip>
+                          </Col>
+                          <Col span={8}>
+                            <StyledFormItemWithTip
+                              label={t('Rows to read')}
+                              tip={t(
+                                'Number of rows of file to read. Leave empty (default) to read all rows',
+                              )}
+                              name="rows_to_read"
+                            >
+                              <InputNumber
+                                aria-label={t('Rows to read')}
+                                min={1}
+                              />
+                            </StyledFormItemWithTip>
+                          </Col>
+                          <Col span={8}>
+                            <StyledFormItemWithTip
+                              label={t('Skip rows')}
+                              tip={t(
+                                'Number of rows to skip at start of file.',
+                              )}
+                              name="skip_rows"
+                              rules={[
+                                {
+                                  required: true,
+                                  message: 'Skip rows is required',
+                                },
+                              ]}
+                            >
+                              <InputNumber
+                                aria-label={t('Skip rows')}
+                                min={0}
+                              />
+                            </StyledFormItemWithTip>
+                          </Col>
+                        </Row>
+                      ),
+                    },
+                  ]
+                : []),
+            ]}
+          />
+        </Form>
+      </Modal>
+      <DataPreviewModal
+        show={dataPreviewModalOpen}
+        onHide={() => setDataPreviewModalOpen(false)}
+        file={
+          isFileTooLargeForPreview(fileList[0]?.originFileObj)
+            ? null
+            : (fileList[0]?.originFileObj ?? null)
+        }
+        type={type}
+        delimiter={formValues.delimiter ?? ','}
+        sheetName={formValues.sheet_name}
+      />
+    </>
   );
 };
 
