@@ -57,6 +57,7 @@
     "lint-fix:all": "npx oxlint --config oxlint.json --fix",
     "lint:full": "npm run lint && npm run check:custom-rules",
     "check:custom-rules": "node scripts/check-custom-rules.js",
+    "check:storybook-coverage": "node scripts/check-storybook-coverage.js",
     "ensure-oxc": "echo 'OXC linter is ready' && npx oxlint --version",
     "lint-stats": "node ./scripts/oxlint-metrics-uploader.js",
     "plugins:build": "node ./scripts/build.js",
