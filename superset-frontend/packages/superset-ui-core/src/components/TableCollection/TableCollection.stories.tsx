@@ -18,9 +18,28 @@
  */
 import { useMemo, useState, useCallback } from 'react';
 import { Meta, StoryFn } from '@storybook/react';
-import { useTable, useSortBy, Column, Row, SortingRule } from 'react-table';
+import {
+  useTable,
+  useSortBy,
+  Column,
+  Row,
+  SortingRule,
+  HeaderGroup,
+  ColumnInstance,
+  TablePropGetter,
+  TableBodyPropGetter,
+} from 'react-table';
 import TableCollection from '.';
 import { TableSize } from '../Table';
+
+// Type aliases for casting to the component's expected object-based types
+// Required because memo() loses the generic type parameter
+type AnyProps = TablePropGetter<object>;
+type AnyBodyProps = TableBodyPropGetter<object>;
+type AnyHeaders = HeaderGroup<object>[];
+type AnyRows = Row<object>[];
+type AnyColumns = ColumnInstance<object>[];
+type AnyPrepareRow = (row: Row<object>) => void;
 
 export default {
   title: 'Components/TableCollection',
@@ -76,13 +95,13 @@ export const Basic: StoryFn = () => {
   } = useTable<SampleData>({ columns, data }, useSortBy);
 
   return (
-    <TableCollection<SampleData>
-      getTableProps={getTableProps}
-      getTableBodyProps={getTableBodyProps}
-      headerGroups={headerGroups}
-      rows={rows}
-      columns={tableColumns}
-      prepareRow={prepareRow}
+    <TableCollection
+      getTableProps={getTableProps as AnyProps}
+      getTableBodyProps={getTableBodyProps as AnyBodyProps}
+      headerGroups={headerGroups as AnyHeaders}
+      rows={rows as AnyRows}
+      columns={tableColumns as AnyColumns}
+      prepareRow={prepareRow as AnyPrepareRow}
       loading={false}
       totalCount={rows.length}
       pageSize={10}
@@ -135,13 +154,13 @@ export const WithPagination: StoryFn = () => {
   }, []);
 
   return (
-    <TableCollection<SampleData>
-      getTableProps={getTableProps}
-      getTableBodyProps={getTableBodyProps}
-      headerGroups={headerGroups}
-      rows={rows}
-      columns={tableColumns}
-      prepareRow={prepareRow}
+    <TableCollection
+      getTableProps={getTableProps as AnyProps}
+      getTableBodyProps={getTableBodyProps as AnyBodyProps}
+      headerGroups={headerGroups as AnyHeaders}
+      rows={rows as AnyRows}
+      columns={tableColumns as AnyColumns}
+      prepareRow={prepareRow as AnyPrepareRow}
       loading={false}
       pageIndex={pageIndex}
       pageSize={pageSize}
@@ -223,13 +242,13 @@ export const WithRowSelection: StoryFn = () => {
           </span>
         )}
       </div>
-      <TableCollection<SampleData>
-        getTableProps={getTableProps}
-        getTableBodyProps={getTableBodyProps}
-        headerGroups={headerGroups}
-        rows={rows}
-        columns={tableColumns}
-        prepareRow={prepareRow}
+      <TableCollection
+        getTableProps={getTableProps as AnyProps}
+        getTableBodyProps={getTableBodyProps as AnyBodyProps}
+        headerGroups={headerGroups as AnyHeaders}
+        rows={rows as AnyRows}
+        columns={tableColumns as AnyColumns}
+        prepareRow={prepareRow as AnyPrepareRow}
         loading={false}
         bulkSelectEnabled
         selectedFlatRows={selectedRows}
@@ -276,13 +295,13 @@ export const LoadingState: StoryFn = () => {
   } = useTable<SampleData>({ columns, data }, useSortBy);
 
   return (
-    <TableCollection<SampleData>
-      getTableProps={getTableProps}
-      getTableBodyProps={getTableBodyProps}
-      headerGroups={headerGroups}
-      rows={rows}
-      columns={tableColumns}
-      prepareRow={prepareRow}
+    <TableCollection
+      getTableProps={getTableProps as AnyProps}
+      getTableBodyProps={getTableBodyProps as AnyBodyProps}
+      headerGroups={headerGroups as AnyHeaders}
+      rows={rows as AnyRows}
+      columns={tableColumns as AnyColumns}
+      prepareRow={prepareRow as AnyPrepareRow}
       loading
       totalCount={0}
       pageSize={10}
@@ -333,13 +352,13 @@ export const TableSizes: StoryFn = () => {
         return (
           <div key={size}>
             <h4 style={{ marginBottom: 8 }}>Size: {size}</h4>
-            <TableCollection<SampleData>
-              getTableProps={getTableProps}
-              getTableBodyProps={getTableBodyProps}
-              headerGroups={headerGroups}
-              rows={rows}
-              columns={tableColumns}
-              prepareRow={prepareRow}
+            <TableCollection
+              getTableProps={getTableProps as AnyProps}
+              getTableBodyProps={getTableBodyProps as AnyBodyProps}
+              headerGroups={headerGroups as AnyHeaders}
+              rows={rows as AnyRows}
+              columns={tableColumns as AnyColumns}
+              prepareRow={prepareRow as AnyPrepareRow}
               loading={false}
               size={size}
               totalCount={rows.length}
@@ -417,13 +436,13 @@ export const WithControlledSorting: StoryFn = () => {
           ? `${sortBy[0].id} (${sortBy[0].desc ? 'descending' : 'ascending'})`
           : 'none'}
       </div>
-      <TableCollection<SampleData>
-        getTableProps={getTableProps}
-        getTableBodyProps={getTableBodyProps}
-        headerGroups={headerGroups}
-        rows={rows}
-        columns={tableColumns}
-        prepareRow={prepareRow}
+      <TableCollection
+        getTableProps={getTableProps as AnyProps}
+        getTableBodyProps={getTableBodyProps as AnyBodyProps}
+        headerGroups={headerGroups as AnyHeaders}
+        rows={rows as AnyRows}
+        columns={tableColumns as AnyColumns}
+        prepareRow={prepareRow as AnyPrepareRow}
         loading={false}
         setSortBy={setSortBy}
         totalCount={rows.length}
@@ -488,13 +507,13 @@ export const WithRowHighlighting: StoryFn = () => {
           </select>
         </label>
       </div>
-      <TableCollection<SampleData>
-        getTableProps={getTableProps}
-        getTableBodyProps={getTableBodyProps}
-        headerGroups={headerGroups}
-        rows={rows}
-        columns={tableColumns}
-        prepareRow={prepareRow}
+      <TableCollection
+        getTableProps={getTableProps as AnyProps}
+        getTableBodyProps={getTableBodyProps as AnyBodyProps}
+        headerGroups={headerGroups as AnyHeaders}
+        rows={rows as AnyRows}
+        columns={tableColumns as AnyColumns}
+        prepareRow={prepareRow as AnyPrepareRow}
         loading={false}
         highlightRowId={highlightRowId}
         totalCount={rows.length}
