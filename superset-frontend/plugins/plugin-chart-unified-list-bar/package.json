@@ -1,0 +1,27 @@
+{
+    "name": "@superset-ui/plugin-chart-unified-list-bar",
+    "version": "0.1.0",
+    "description": "Superset Chart - Unified List Bar",
+    "sideEffects": false,
+    "main": "lib/index.js",
+    "module": "esm/index.js",
+    "files": [
+        "esm",
+        "lib"
+    ],
+    "dependencies": {
+        "lodash": "^4.17.21"
+    },
+    "peerDependencies": {
+        "@superset-ui/chart-controls": "*",
+        "@apache-superset/core": "*",
+        "@superset-ui/core": "*",
+        "react": "^16.13.1 || ^17.0.0",
+        "react-dom": "^16.13.1 || ^17.0.0",
+        "@emotion/styled": "^11.0.0",
+        "@emotion/react": "^11.0.0"
+    },
+    "publishConfig": {
+        "access": "public"
+    }
+}

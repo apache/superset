@@ -64,4 +64,5 @@ export enum VizType {
   Waterfall = 'waterfall',
   WordCloud = 'word_cloud',
   WorldMap = 'world_map',
+  UnifiedListBar = 'unified_list_bar',
 }
