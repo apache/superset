@@ -206,6 +206,7 @@ const ViewModeToggle = ({
       <div
         role="button"
         tabIndex={0}
+        aria-pressed={mode === 'card'}
         onClick={(e: React.MouseEvent<HTMLDivElement>) => {
           e.currentTarget.blur();
           setMode('card');
@@ -219,6 +220,7 @@ const ViewModeToggle = ({
       <div
         role="button"
         tabIndex={0}
+        aria-pressed={mode === 'card'}
         onClick={(e: React.MouseEvent<HTMLDivElement>) => {
           e.currentTarget.blur();
           setMode('table');
