@@ -17,73 +17,91 @@
  * under the License.
  */
 
-import { Component, ComponentType, ErrorInfo, ReactNode } from 'react';
+import { ReactNode, ComponentType, ErrorInfo } from 'react';
+import {
+  ErrorBoundary as ReactErrorBoundary,
+  FallbackProps,
+  useErrorBoundary,
+  withErrorBoundary,
+} from 'react-error-boundary';
 
-export interface FallbackProps {
-  error: Error;
-  resetErrorBoundary: () => void;
-}
-
+/**
+ * Props for ErrorBoundary component.
+ * All fallback props are optional - defaults to rendering null on error.
+ */
 export interface ErrorBoundaryProps {
   children: ReactNode;
   FallbackComponent?: ComponentType<FallbackProps>;
   fallbackRender?: (props: FallbackProps) => ReactNode;
+  fallback?: ReactNode;
   onError?: (error: Error, info: ErrorInfo) => void;
-}
-
-interface ErrorBoundaryState {
-  error: Error | null;
+  onReset?: () => void;
 }
 
 /**
- * ErrorBoundary component for catching and handling errors in child components.
- * Provides FallbackComponent support similar to react-error-boundary.
+ * Default fallback that renders nothing (preserves original Superset behavior).
  */
-export class ErrorBoundary extends Component<
-  ErrorBoundaryProps,
-  ErrorBoundaryState
-> {
-  constructor(props: ErrorBoundaryProps) {
-    super(props);
-    this.state = { error: null };
+const defaultFallback = () => null;
+
+/**
+ * ErrorBoundary wrapper that makes fallback optional.
+ * Uses react-error-boundary under the hood but allows usage without
+ * specifying a fallback (defaults to null, matching original behavior).
+ */
+export function ErrorBoundary({
+  children,
+  FallbackComponent,
+  fallbackRender,
+  fallback,
+  onError,
+  onReset,
+}: ErrorBoundaryProps) {
+  if (FallbackComponent) {
+    return (
+      <ReactErrorBoundary
+        FallbackComponent={FallbackComponent}
+        onError={onError}
+        onReset={onReset}
+      >
+        {children}
+      </ReactErrorBoundary>
+    );
   }
 
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    return { error };
+  if (fallbackRender) {
+    return (
+      <ReactErrorBoundary
+        fallbackRender={fallbackRender}
+        onError={onError}
+        onReset={onReset}
+      >
+        {children}
+      </ReactErrorBoundary>
+    );
   }
 
-  componentDidCatch(error: Error, info: ErrorInfo): void {
-    this.props.onError?.(error, info);
+  if (fallback !== undefined) {
+    return (
+      <ReactErrorBoundary
+        fallback={fallback}
+        onError={onError}
+        onReset={onReset}
+      >
+        {children}
+      </ReactErrorBoundary>
+    );
   }
 
-  resetErrorBoundary = (): void => {
-    this.setState({ error: null });
-  };
-
-  render() {
-    const { error } = this.state;
-    const { children, FallbackComponent, fallbackRender } = this.props;
-
-    if (error) {
-      const fallbackProps: FallbackProps = {
-        error,
-        resetErrorBoundary: this.resetErrorBoundary,
-      };
-
-      if (fallbackRender) {
-        return fallbackRender(fallbackProps);
-      }
-
-      if (FallbackComponent) {
-        return <FallbackComponent {...fallbackProps} />;
-      }
-
-      // Default fallback if no FallbackComponent provided
-      return null;
-    }
-
-    return children;
-  }
+  // Default: render null on error
+  return (
+    <ReactErrorBoundary
+      fallbackRender={defaultFallback}
+      onError={onError}
+      onReset={onReset}
+    >
+      {children}
+    </ReactErrorBoundary>
+  );
 }
 
-export default ErrorBoundary;
+export { type FallbackProps, useErrorBoundary, withErrorBoundary };
