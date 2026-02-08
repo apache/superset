@@ -1,0 +1,38 @@
+name: "Sync lockfile for Dependabot PRs in frontend workspaces"
+
+on:
+  pull_request:
+    paths:
+      - 'superset-frontend/packages/**'
+      - 'superset-frontend/plugins/**'
+
+jobs:
+  sync-lockfile-for-npm-dependabot-prs:
+    if: github.actor == 'dependabot[bot]'
+    permissions:
+      contents: write
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: './superset-frontend/.nvmrc'
+
+      - name: Sync lockfile
+        run: npm install
+
+      - name: Commit changes
+        run: |
+          git config --global user.email "action@github.com"
+          git config --global user.name "GitHub Action"
+          git add .
+          # Only commit if there are actual change in lockfile
+          git diff-index --quiet HEAD || git commit -m "chore: sync lockfile"
+          git push
+        continue-on-error: true
