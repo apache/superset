@@ -34,9 +34,7 @@ const PLUGIN_PATTERNS = [
   'plugins/legacy-preset-chart-*/src',
 ];
 
-const CORE_COMPONENT_PATTERNS = [
-  'packages/superset-ui-core/src/components/*',
-];
+const CORE_COMPONENT_PATTERNS = ['packages/superset-ui-core/src/components/*'];
 
 // Directories/patterns to exclude from checks
 const EXCLUSIONS = [
@@ -78,7 +76,12 @@ function hasStoriesFile(dir) {
 function hasReactComponents(dir) {
   const tsxFiles = glob.sync(path.join(dir, '**', '*.tsx'), {
     cwd: ROOT,
-    ignore: ['**/*.test.tsx', '**/*.stories.tsx', '**/types.tsx', '**/index.tsx'],
+    ignore: [
+      '**/*.test.tsx',
+      '**/*.stories.tsx',
+      '**/types.tsx',
+      '**/index.tsx',
+    ],
   });
   return tsxFiles.length > 0;
 }
@@ -119,7 +122,7 @@ function main() {
       const pluginName = getPluginName(pluginDir);
 
       // Skip if excluded
-      const isExcluded = EXCLUSIONS.some(function(exc) {
+      const isExcluded = EXCLUSIONS.some(function (exc) {
         return pluginDir.includes(exc.replace(/\*/g, ''));
       });
       if (isExcluded) {
@@ -147,15 +150,24 @@ function main() {
 
     for (const componentDir of componentDirs) {
       const fullPath = path.join(ROOT, componentDir);
-      if (!fs.existsSync(fullPath) || !fs.statSync(fullPath).isDirectory()) continue;
+      if (!fs.existsSync(fullPath) || !fs.statSync(fullPath).isDirectory())
+        continue;
 
       const componentName = getComponentName(componentDir);
 
       if (hasStoriesFile(fullPath)) {
-        covered.push({ type: 'component', name: componentName, path: componentDir });
+        covered.push({
+          type: 'component',
+          name: componentName,
+          path: componentDir,
+        });
         if (verbose) console.log(`  OK   ${componentName}`);
       } else if (hasReactComponents(fullPath)) {
-        missing.push({ type: 'component', name: componentName, path: componentDir });
+        missing.push({
+          type: 'component',
+          name: componentName,
+          path: componentDir,
+        });
         console.log(`  MISS ${componentName}`);
       }
     }
@@ -181,7 +193,9 @@ function main() {
         if (shown >= 3) break;
         let storiesPath;
         if (item.type === 'plugin') {
-          const shortName = item.name.replace('plugin-chart-', '').replace('legacy-', '');
+          const shortName = item.name
+            .replace('plugin-chart-', '')
+            .replace('legacy-', '');
           storiesPath = `${item.path}/stories/${shortName}.stories.tsx`;
         } else {
           storiesPath = `${item.path}/${item.name}.stories.tsx`;

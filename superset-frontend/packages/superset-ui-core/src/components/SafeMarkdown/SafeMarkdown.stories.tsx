@@ -128,9 +128,7 @@ export const HTMLSanitization: StoryFn = () => (
   <div style={{ display: 'flex', gap: 40 }}>
     <div style={{ flex: 1 }}>
       <h4>With Sanitization (default)</h4>
-      <div
-        style={{ border: '1px solid #ddd', padding: 16, borderRadius: 4 }}
-      >
+      <div style={{ border: '1px solid #ddd', padding: 16, borderRadius: 4 }}>
         <SafeMarkdown
           source={`
 ### Safe HTML
@@ -148,9 +146,7 @@ export const HTMLSanitization: StoryFn = () => (
     </div>
     <div style={{ flex: 1 }}>
       <h4>Without Sanitization</h4>
-      <div
-        style={{ border: '1px solid #ddd', padding: 16, borderRadius: 4 }}
-      >
+      <div style={{ border: '1px solid #ddd', padding: 16, borderRadius: 4 }}>
         <SafeMarkdown
           source={`
 ### Unsanitized HTML
