@@ -208,5 +208,5 @@ test('should display locale switcher in dashboard properties modal', async ({
 
   // Verify dropdown shows configured locales (menu items from server)
   const dropdown = page.locator('.ant-dropdown:visible');
-  await expect(dropdown.getByText('English')).toBeVisible();
+  await expect(dropdown.getByRole('menuitem', { name: 'English' })).toBeVisible();
 });

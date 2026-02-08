@@ -141,6 +141,6 @@ export class DashboardPage {
   async clickEditProperties(): Promise<void> {
     await this.openHeaderActionsMenu();
     const menu = this.page.locator(DashboardPage.SELECTORS.HEADER_ACTIONS_MENU);
-    await menu.getByText('Edit properties', { exact: true }).click();
+    await menu.getByRole('menuitem', { name: 'Edit properties' }).click();
   }
 }
