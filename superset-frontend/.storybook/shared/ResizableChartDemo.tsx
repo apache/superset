@@ -61,10 +61,7 @@ export default function ResizableChartDemo({
   );
 }
 
-export const withResizableChartDemo: Decorator<{
-  width: number;
-  height: number;
-}> = (storyFn, context) => {
+export const withResizableChartDemo: Decorator = (Story, context) => {
   const {
     parameters: { initialSize, panelPadding },
   } = context;
@@ -73,7 +70,14 @@ export const withResizableChartDemo: Decorator<{
       initialSize={initialSize as Size | undefined}
       panelPadding={panelPadding}
     >
-      {innerSize => storyFn({ ...context, ...context.args, ...innerSize })}
+      {innerSize => (
+        <Story
+          args={{
+            ...context.args,
+            ...innerSize,
+          }}
+        />
+      )}
     </ResizableChartDemo>
   );
 };

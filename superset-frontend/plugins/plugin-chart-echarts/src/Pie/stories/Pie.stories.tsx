@@ -38,28 +38,27 @@ export default {
   decorators: [withResizableChartDemo],
 };
 
-export const WeekdayPie = (
-  {
-    donut,
-    innerRadius,
-    outerRadius,
-    labelsOutside,
-    labelLine,
-    showLabels,
-    showLegend,
-    labelType,
-    width,
-    height,
-  }: {
-    donut: boolean;
-    innerRadius: number;
-    outerRadius: number;
-    labelsOutside: boolean;
-    labelLine: boolean;
-    showLabels: boolean;
-    showLegend: boolean;
-    labelType: string;
-    width: number;
+export const WeekdayPie = ({
+  donut,
+  innerRadius,
+  outerRadius,
+  labelsOutside,
+  labelLine,
+  showLabels,
+  showLegend,
+  labelType,
+  width,
+  height,
+}: {
+  donut: boolean;
+  innerRadius: number;
+  outerRadius: number;
+  labelsOutside: boolean;
+  labelLine: boolean;
+  showLabels: boolean;
+  showLegend: boolean;
+  labelType: string;
+  width: number;
   height: number;
 }) => (
   <SuperChart
@@ -118,28 +117,27 @@ WeekdayPie.argTypes = {
   },
 };
 
-export const PopulationPie = (
-  {
-    donut,
-    innerRadius,
-    outerRadius,
-    labelsOutside,
-    labelLine,
-    showLabels,
-    showLegend,
-    labelType,
-    width,
-    height,
-  }: {
-    donut: boolean;
-    innerRadius: number;
-    outerRadius: number;
-    labelsOutside: boolean;
-    labelLine: boolean;
-    showLabels: boolean;
-    showLegend: boolean;
-    labelType: string;
-    width: number;
+export const PopulationPie = ({
+  donut,
+  innerRadius,
+  outerRadius,
+  labelsOutside,
+  labelLine,
+  showLabels,
+  showLegend,
+  labelType,
+  width,
+  height,
+}: {
+  donut: boolean;
+  innerRadius: number;
+  outerRadius: number;
+  labelsOutside: boolean;
+  labelLine: boolean;
+  showLabels: boolean;
+  showLegend: boolean;
+  labelType: string;
+  width: number;
   height: number;
 }) => (
   <SuperChart
@@ -198,30 +196,29 @@ PopulationPie.argTypes = {
   },
 };
 
-export const SalesPie = (
-  {
-    donut,
-    innerRadius,
-    outerRadius,
-    labelsOutside,
-    labelLine,
-    showLabels,
-    showLegend,
-    labelType,
-    roseType,
-    width,
-    height,
-  }: {
-    donut: boolean;
-    innerRadius: number;
-    outerRadius: number;
-    labelsOutside: boolean;
-    labelLine: boolean;
-    showLabels: boolean;
-    showLegend: boolean;
-    labelType: string;
-    roseType: string;
-    width: number;
+export const SalesPie = ({
+  donut,
+  innerRadius,
+  outerRadius,
+  labelsOutside,
+  labelLine,
+  showLabels,
+  showLegend,
+  labelType,
+  roseType,
+  width,
+  height,
+}: {
+  donut: boolean;
+  innerRadius: number;
+  outerRadius: number;
+  labelsOutside: boolean;
+  labelLine: boolean;
+  showLabels: boolean;
+  showLegend: boolean;
+  labelType: string;
+  roseType: string;
+  width: number;
   height: number;
 }) => (
   <SuperChart
