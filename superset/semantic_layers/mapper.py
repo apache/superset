@@ -59,6 +59,7 @@ from superset.common.db_query_status import QueryStatus
 from superset.common.query_object import QueryObject
 from superset.common.utils.time_range_utils import get_since_until_from_query_object
 from superset.connectors.sqla.models import BaseDatasource
+from superset.constants import NO_TIME_RANGE
 from superset.models.helpers import QueryResult
 from superset.superset_typing import AdhocColumn
 from superset.utils.core import (
@@ -561,8 +562,9 @@ def _convert_query_object_filter(
 
     # Special case for temporal range
     if operator_str == FilterOperator.TEMPORAL_RANGE.value:
-        if not isinstance(value, str):
+        if not isinstance(value, str) or value == NO_TIME_RANGE:
             return None
+
         start, end = value.split(" : ")
         return {
             Filter(
