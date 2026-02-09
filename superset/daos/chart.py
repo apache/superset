@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import Dict, List, TYPE_CHECKING
+from typing import Dict, List
 
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
@@ -29,9 +29,6 @@ from superset.extensions import db
 from superset.models.core import FavStar, FavStarClassName
 from superset.models.slice import id_or_uuid_filter, Slice
 from superset.utils.core import get_user_id
-
-if TYPE_CHECKING:
-    pass
 
 logger = logging.getLogger(__name__)
 
