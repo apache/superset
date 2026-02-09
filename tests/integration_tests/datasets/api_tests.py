@@ -55,6 +55,7 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
     load_birth_names_data,  # noqa: F401
 )
+from tests.integration_tests.fixtures.client import client  # noqa: F401
 from tests.integration_tests.fixtures.energy_dashboard import (
     load_energy_table_data,  # noqa: F401
     load_energy_table_with_slice,  # noqa: F401
@@ -63,6 +64,10 @@ from tests.integration_tests.fixtures.importexport import (
     database_config,
     dataset_config,
     dataset_ui_export,
+)
+from tests.integration_tests.fixtures.lineage import (
+    inject_expected_dataset_lineage,  # noqa: F401
+    lineage_test_data,  # noqa: F401
 )
 
 
@@ -3532,3 +3537,30 @@ class TestDatasetApi(SupersetTestCase):
             assert rv.status_code == 404
 
         self.items_to_delete = [dashboard, chart, dataset]
+
+    @pytest.mark.usefixtures("inject_expected_dataset_lineage")
+    def test_get_dataset_lineage(self):
+        """
+        Dataset API: Test get dataset lineage
+        """
+        self.login(ADMIN_USERNAME)
+        dataset_id = self.dataset_lineage["dataset_id"]
+        expected = self.dataset_lineage["expected"]
+
+        uri = f"api/v1/dataset/{dataset_id}/lineage"
+        rv = self.get_assert_metric(uri, "lineage")
+        assert rv.status_code == 200
+
+        data = json.loads(rv.data.decode("utf-8"))
+
+        # Assert the entire response matches expected structure
+        assert data == expected
+
+    def test_get_dataset_lineage_not_found(self):
+        """
+        Dataset API: Test get dataset lineage with non-existent dataset
+        """
+        self.login(ADMIN_USERNAME)
+        uri = "api/v1/dataset/99999/lineage"
+        rv = self.client.get(uri)
+        assert rv.status_code == 404

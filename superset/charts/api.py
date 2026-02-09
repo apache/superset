@@ -130,6 +130,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "screenshot",
         "cache_screenshot",
         "warm_up_cache",
+        "lineage",
     }
     class_permission_name = "Chart"
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
@@ -310,6 +311,103 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response(200, result=result)
         except ChartNotFoundError:
             return self.response_404()
+
+    @expose("/<id_or_uuid>/lineage", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.lineage",
+        log_to_statsd=False,
+    )
+    def lineage(self, id_or_uuid: str) -> Response:
+        """Get lineage information for a chart.
+        ---
+        get:
+          summary: Get lineage information for a chart
+          description: >-
+            Returns upstream (dataset, database) and downstream (dashboards) lineage
+            information for a chart
+          parameters:
+          - in: path
+            name: id_or_uuid
+            schema:
+              type: string
+            description: Either the id of the chart, or its uuid
+          responses:
+            200:
+              description: Lineage information
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/ChartLineageResponseSchema"
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            chart = ChartDAO.get_by_id_or_uuid(id_or_uuid)
+        except ChartNotFoundError:
+            return self.response_404()
+
+        chart_info = {
+            "id": chart.id,
+            "slice_name": chart.slice_name,
+            "viz_type": chart.viz_type,
+        }
+
+        # Get upstream (dataset and database) information
+        upstream: dict[str, Any] = {}
+        if dataset := chart.datasource:
+            upstream["dataset"] = {
+                "id": dataset.id,
+                "name": dataset.name,
+                "database_id": dataset.database_id,
+                "database_name": dataset.database.database_name
+                if dataset.database
+                else None,
+                "schema": dataset.schema,
+                "table_name": dataset.table_name,
+            }
+            if dataset.database:
+                upstream["database"] = {
+                    "id": dataset.database.id,
+                    "database_name": dataset.database.database_name,
+                    "backend": dataset.database.backend,
+                }
+            else:
+                upstream["database"] = None
+        else:
+            upstream["dataset"] = None
+            upstream["database"] = None
+
+        # Get downstream (dashboards) information
+        dashboards = []
+        for dashboard in chart.dashboards:
+            dashboards.append(
+                {
+                    "id": dashboard.id,
+                    "title": dashboard.dashboard_title,
+                    "slug": dashboard.slug,
+                }
+            )
+
+        downstream = {
+            "dashboards": {
+                "count": len(dashboards),
+                "result": dashboards,
+            },
+        }
+
+        return self.response(
+            200,
+            chart=chart_info,
+            upstream=upstream,
+            downstream=downstream,
+        )
 
     @expose("/", methods=("POST",))
     @protect()

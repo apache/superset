@@ -234,6 +234,60 @@ class DatasetRelatedObjectsResponse(Schema):
     dashboards = fields.Nested(DatasetRelatedDashboards)
 
 
+class DatasetLineageDatasetSchema(Schema):
+    id = fields.Integer()
+    name = fields.String()
+    database_id = fields.Integer()
+    database_name = fields.String()
+    schema = fields.String(allow_none=True)
+    table_name = fields.String()
+
+
+class DatasetLineageDatabaseSchema(Schema):
+    id = fields.Integer()
+    database_name = fields.String()
+    backend = fields.String()
+
+
+class DatasetLineageChartSchema(Schema):
+    id = fields.Integer()
+    slice_name = fields.String()
+    viz_type = fields.String()
+    dashboard_ids = fields.List(fields.Integer())
+
+
+class DatasetLineageDashboardSchema(Schema):
+    id = fields.Integer()
+    title = fields.String()
+    slug = fields.String()
+    chart_ids = fields.List(fields.Integer())
+
+
+class DatasetLineageUpstreamSchema(Schema):
+    database = fields.Nested(DatasetLineageDatabaseSchema, allow_none=True)
+
+
+class DatasetLineageDownstreamChartsSchema(Schema):
+    count = fields.Integer()
+    result = fields.List(fields.Nested(DatasetLineageChartSchema))
+
+
+class DatasetLineageDownstreamDashboardsSchema(Schema):
+    count = fields.Integer()
+    result = fields.List(fields.Nested(DatasetLineageDashboardSchema))
+
+
+class DatasetLineageDownstreamSchema(Schema):
+    charts = fields.Nested(DatasetLineageDownstreamChartsSchema)
+    dashboards = fields.Nested(DatasetLineageDownstreamDashboardsSchema)
+
+
+class DatasetLineageResponseSchema(Schema):
+    dataset = fields.Nested(DatasetLineageDatasetSchema)
+    upstream = fields.Nested(DatasetLineageUpstreamSchema)
+    downstream = fields.Nested(DatasetLineageDownstreamSchema)
+
+
 class ImportV1ColumnSchema(Schema):
     # pylint: disable=unused-argument
     @pre_load
