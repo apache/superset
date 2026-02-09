@@ -251,6 +251,7 @@ describe('ExploreChartHeader', () => {
   test('does not show unsaved changes for new charts on initial load', async () => {
     const props = createProps({
       slice: null,
+      sliceName: '',
       chart: {
         ...createProps().chart,
         sliceFormData: null,
@@ -288,6 +289,7 @@ describe('ExploreChartHeader', () => {
 
     const props = createProps({
       slice: null,
+      sliceName: '',
       chart: {
         ...createProps().chart,
         sliceFormData: null,
@@ -312,7 +314,7 @@ describe('ExploreChartHeader', () => {
       formData: modifiedFormData,
     };
 
-    rerender(<ExploreHeader {...modifiedProps} />, { useRedux: true });
+    rerender(<ExploreHeader {...modifiedProps} />);
 
     await waitFor(() => {
       expect(useUnsavedChangesPrompt).toHaveBeenLastCalledWith(

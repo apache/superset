@@ -250,7 +250,9 @@ export const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
     triggerManualSave,
   } = useUnsavedChangesPrompt({
     hasUnsavedChanges,
-    onSave: () => dispatch(setSaveChartModalVisibility(true)),
+    onSave: () => {
+      dispatch(setSaveChartModalVisibility(true));
+    },
     isSaveModalVisible,
     manualSaveOnUnsavedChanges: true,
   });
