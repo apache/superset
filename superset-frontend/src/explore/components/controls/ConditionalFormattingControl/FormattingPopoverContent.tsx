@@ -334,7 +334,7 @@ export const FormattingPopoverContent = ({
       numericColumns.length > 0
         ? numericColumns.some((col: ColumnOption) => col.value === column)
         : false,
-    [column],
+    [column, numericColumns],
   );
 
   const handleObjectChange = (value: ObjectFormattingEnum) => {

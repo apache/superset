@@ -22,7 +22,11 @@ import {
   fireEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
-import { Comparator, ColorSchemeEnum } from '@superset-ui/chart-controls';
+import {
+  Comparator,
+  ColorSchemeEnum,
+  ObjectFormattingEnum,
+} from '@superset-ui/chart-controls';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import { FormattingPopoverContent } from './FormattingPopoverContent';
 
@@ -164,7 +168,11 @@ test('does not display the input fields when selected a boolean type operator', 
 
 test('displays Use gradient checkbox', () => {
   render(
-    <FormattingPopoverContent onChange={mockOnChange} columns={columns} />,
+    <FormattingPopoverContent
+      onChange={mockOnChange}
+      columns={columns}
+      allColumns={columns}
+    />,
   );
 
   expect(screen.getByText('Use gradient')).toBeInTheDocument();
@@ -188,7 +196,11 @@ const findUseGradientCheckbox = (): HTMLInputElement => {
 
 test('Use gradient checkbox defaults to checked', () => {
   render(
-    <FormattingPopoverContent onChange={mockOnChange} columns={columns} />,
+    <FormattingPopoverContent
+      onChange={mockOnChange}
+      columns={columns}
+      allColumns={columns}
+    />,
   );
 
   const checkbox = findUseGradientCheckbox();
@@ -197,7 +209,11 @@ test('Use gradient checkbox defaults to checked', () => {
 
 test('Use gradient checkbox can be toggled', async () => {
   render(
-    <FormattingPopoverContent onChange={mockOnChange} columns={columns} />,
+    <FormattingPopoverContent
+      onChange={mockOnChange}
+      columns={columns}
+      allColumns={columns}
+    />,
   );
 
   const checkbox = findUseGradientCheckbox();
@@ -210,4 +226,26 @@ test('Use gradient checkbox can be toggled', async () => {
   // Check the checkbox again
   fireEvent.click(checkbox);
   expect(checkbox).toBeChecked();
+});
+
+test('The "Use gradient" checkbox is not shown for string and boolean types.', () => {
+  render(
+    <FormattingPopoverContent
+      onChange={mockOnChange}
+      columns={columnsStringType}
+      allColumns={columnsStringType}
+    />,
+  );
+
+  expect(screen.queryByText('Use gradient')).not.toBeInTheDocument();
+
+  render(
+    <FormattingPopoverContent
+      onChange={mockOnChange}
+      columns={columnsBooleanType}
+      allColumns={columnsBooleanType}
+    />,
+  );
+
+  expect(screen.queryByText('Use gradient')).not.toBeInTheDocument();
 });
