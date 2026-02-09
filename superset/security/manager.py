@@ -3016,22 +3016,25 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             # Restore original value even if an exception occurs
             current_app.config["AUTH_RATE_LIMITED"] = original_auth_rate_limited
 
+        from flask_appbuilder.security.views import (
+            ResetMyPasswordView,
+            ResetPasswordView,
+        )
+
         for view in list(self.appbuilder.baseviews):
-            if isinstance(view, self.rolemodelview.__class__) and getattr(
-                view, "route_base", None
-            ) in ["/roles", "/users", "/groups", "registrations"]:
+            route_base = getattr(view, "route_base", None)
+            # Remove FAB security menu views (roles, users, groups, registrations)
+            if isinstance(view, self.rolemodelview.__class__) and route_base in [
+                "/roles",
+                "/users",
+                "/groups",
+                "registrations",
+            ]:
                 self.appbuilder.baseviews.remove(view)
-
-        # When legacy FAB password views are disabled, unregister their routes
-        # so direct URL access to /superset/resetpassword and /superset/resetmypassword
-        # is no longer possible (SPA handles password changes post-porting).
-        if not current_app.config.get("ENABLE_LEGACY_FAB_PASSWORD_VIEWS", False):
-            from flask_appbuilder.security.views import (
-                ResetMyPasswordView,
-                ResetPasswordView,
-            )
-
-            for view in list(self.appbuilder.baseviews):
+                continue
+            # When legacy FAB password views are disabled, unregister and remove them
+            # so /superset/resetpassword and /superset/resetmypassword are not accessible.
+            if not current_app.config.get("ENABLE_LEGACY_FAB_PASSWORD_VIEWS", False):
                 if isinstance(view, (ResetPasswordView, ResetMyPasswordView)):
                     blueprint = getattr(view, "blueprint", None)
                     if blueprint is not None and hasattr(
