@@ -330,17 +330,15 @@ export const API_ENDPOINTS = {
   DATASET_RELATED_CHANGED_BY: 'glob:*/api/v1/dataset/related/changed_by*',
 };
 
-// Default permissions for admin users
-const DEFAULT_PERMISSIONS = [
-  'can_read',
-  'can_write',
-  'can_export',
-  'can_duplicate',
-];
-
-// Type for payload map used in setupMocks
-// Uses Record type to allow API_ENDPOINTS values as keys
-type PayloadMap = Partial<Record<string, string[]>>;
+// Setup API permissions mock (for permission-based testing)
+export const setupApiPermissions = (permissions: string[]) => {
+  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS_INFO] });
+  fetchMock.get(
+    API_ENDPOINTS.DATASETS_INFO,
+    { permissions },
+    { name: API_ENDPOINTS.DATASETS_INFO },
+  );
+};
 
 // Store utilities
 export const createMockStore = (initialState: Partial<StoreState> = {}) =>
@@ -404,31 +402,37 @@ export const waitForDatasetsPageReady = async () => {
   await screen.findByText('Datasets');
 };
 
-// Route name constants for delete operations (used for call history queries)
-export const DELETE_ROUTE_NAME = 'dataset-delete';
-export const RELATED_OBJECTS_ROUTE_NAME = 'dataset-related-objects';
-
 // Helper functions for specific operations
+// Route names for delete operations (used to query call history)
+export const getDeleteRouteName = (datasetId: number) =>
+  `delete-dataset-${datasetId}`;
+export const getRelatedObjectsRouteName = (datasetId: number) =>
+  `related-objects-${datasetId}`;
+
 export const setupDeleteMocks = (datasetId: number) => {
+  const relatedObjectsRoute = `glob:*/api/v1/dataset/${datasetId}/related_objects*`;
+  const deleteRoute = `glob:*/api/v1/dataset/${datasetId}`;
+  const relatedObjectsName = getRelatedObjectsRouteName(datasetId);
+  const deleteName = getDeleteRouteName(datasetId);
+
+  // Remove existing routes if they exist (safe to call even if they don't)
+  fetchMock.removeRoutes({ names: [relatedObjectsName, deleteName] });
+
   fetchMock.get(
-    `glob:*/api/v1/dataset/${datasetId}/related_objects*`,
-    {
-      charts: mockRelatedCharts,
-      dashboards: mockRelatedDashboards,
-    },
-    { name: RELATED_OBJECTS_ROUTE_NAME },
+    relatedObjectsRoute,
+    { charts: mockRelatedCharts, dashboards: mockRelatedDashboards },
+    { name: relatedObjectsName },
   );
 
   fetchMock.delete(
-    `glob:*/api/v1/dataset/${datasetId}`,
-    {
-      message: 'Dataset deleted successfully',
-    },
-    { name: DELETE_ROUTE_NAME },
+    deleteRoute,
+    { message: 'Dataset deleted successfully' },
+    { name: deleteName },
   );
 };
 
 export const setupDuplicateMocks = () => {
+  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASET_DUPLICATE] });
   fetchMock.post(API_ENDPOINTS.DATASET_DUPLICATE, {
     id: 999,
     table_name: 'Copy of Dataset',
@@ -436,6 +440,7 @@ export const setupDuplicateMocks = () => {
 };
 
 export const setupBulkDeleteMocks = () => {
+  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASET_BULK_DELETE] });
   fetchMock.delete(API_ENDPOINTS.DATASET_BULK_DELETE, {
     message: '3 datasets deleted successfully',
   });
@@ -446,13 +451,16 @@ export const setupDeleteErrorMocks = (
   datasetId: number,
   statusCode: number,
 ) => {
-  fetchMock.get(`glob:*/api/v1/dataset/${datasetId}/related_objects*`, {
+  const relatedObjectsRoute = `glob:*/api/v1/dataset/${datasetId}/related_objects*`;
+  fetchMock.removeRoutes({ names: [relatedObjectsRoute] });
+  fetchMock.get(relatedObjectsRoute, {
     status: statusCode,
     body: { message: 'Failed to fetch related objects' },
   });
 };
 
 export const setupDuplicateErrorMocks = (statusCode: number) => {
+  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASET_DUPLICATE] });
   fetchMock.post(API_ENDPOINTS.DATASET_DUPLICATE, {
     status: statusCode,
     body: { message: 'Failed to duplicate dataset' },
@@ -467,7 +475,9 @@ export const setupDuplicateErrorMocks = (statusCode: number) => {
  * @throws If any unmocked endpoints were called or expected endpoints weren't called
  */
 export const assertOnlyExpectedCalls = (expectedEndpoints: string[]) => {
-  const unmatchedCalls = fetchMock.callHistory.calls('unmatched');
+  const allCalls = fetchMock.callHistory.calls();
+  // In fetch-mock v12, unmatched calls won't have a route property
+  const unmatchedCalls = allCalls.filter(call => !call.route);
 
   if (unmatchedCalls.length > 0) {
     const unmatchedUrls = unmatchedCalls.map(call => call.url);
@@ -490,30 +500,20 @@ export const assertOnlyExpectedCalls = (expectedEndpoints: string[]) => {
 };
 
 // MSW setup using fetch-mock (following ChartList pattern)
-// payloadMap allows customizing permissions for the _info endpoint
-export const setupMocks = (
-  payloadMap: PayloadMap = {
-    [API_ENDPOINTS.DATASETS_INFO]: DEFAULT_PERMISSIONS,
-  },
-) => {
-  fetchMock.removeRoutes();
-
-  // Get permissions from payloadMap or use defaults
-  const permissions =
-    payloadMap[API_ENDPOINTS.DATASETS_INFO] || DEFAULT_PERMISSIONS;
+// Routes are named using the API_ENDPOINTS constant values so they can be
+// removed by name using removeRoutes({ names: [API_ENDPOINTS.X] })
+export const setupMocks = () => {
+  fetchMock.clearHistory().removeRoutes();
 
   fetchMock.get(
     API_ENDPOINTS.DATASETS_INFO,
-    { permissions },
+    { permissions: ['can_read', 'can_write', 'can_export', 'can_duplicate'] },
     { name: API_ENDPOINTS.DATASETS_INFO },
   );
 
   fetchMock.get(
     API_ENDPOINTS.DATASETS,
-    {
-      result: mockDatasets,
-      count: mockDatasets.length,
-    },
+    { result: mockDatasets, count: mockDatasets.length },
     { name: API_ENDPOINTS.DATASETS },
   );
 

@@ -17,6 +17,7 @@
  * under the License.
  */
 import { TableRenderer } from '../../src/react-pivottable/TableRenderers';
+import type { PivotData } from '../../src/react-pivottable/utilities';
 
 let tableRenderer: TableRenderer;
 let mockGetAggregatedData: jest.Mock;
@@ -102,14 +103,13 @@ const mockGroups = {
   },
 };
 
-const createMockPivotData = (rowData: Record<string, number>) => {
-  return {
+const createMockPivotData = (rowData: Record<string, number>) =>
+  ({
     rowKeys: Object.keys(rowData).map(key => key.split('.')),
     getAggregator: (rowKey: string[], colName: string) => ({
       value: () => rowData[rowKey.join('.')],
     }),
-  };
-};
+  }) as unknown as PivotData;
 
 test('should set initial ascending sort when no active sort column', () => {
   mockGetAggregatedData.mockReturnValue({
@@ -477,7 +477,7 @@ test('create hierarchical structure with subtotal at bottom', () => {
   };
 
   const pivotData = createMockPivotData(rowData);
-  const result = tableRenderer.getAggregatedData(pivotData, 'Col1', false);
+  const result = tableRenderer.getAggregatedData(pivotData, ['Col1'], false);
 
   expect(result).toEqual({
     A: {
@@ -513,7 +513,7 @@ test('create hierarchical structure with subtotal at top', () => {
   };
 
   const pivotData = createMockPivotData(rowData);
-  const result = tableRenderer.getAggregatedData(pivotData, 'Col1', true);
+  const result = tableRenderer.getAggregatedData(pivotData, ['Col1'], true);
 
   expect(result).toEqual({
     A: {
@@ -546,7 +546,7 @@ test('values ​​from the 3rd level of the hierarchy with a subtotal at the bo
   };
 
   const pivotData = createMockPivotData(rowData);
-  const result = tableRenderer.getAggregatedData(pivotData, 'Col1', false);
+  const result = tableRenderer.getAggregatedData(pivotData, ['Col1'], false);
 
   expect(result).toEqual({
     A: {
@@ -574,7 +574,7 @@ test('values ​​from the 3rd level of the hierarchy with a subtotal at the to
   };
 
   const pivotData = createMockPivotData(rowData);
-  const result = tableRenderer.getAggregatedData(pivotData, 'Col1', true);
+  const result = tableRenderer.getAggregatedData(pivotData, ['Col1'], true);
 
   expect(result).toEqual({
     A: {

@@ -17,7 +17,6 @@
  * under the License.
  */
 import { Component } from 'react';
-import PropTypes from 'prop-types';
 import { debounce } from 'lodash';
 import {
   Input,
@@ -81,40 +80,6 @@ interface TextAreaControlProps {
   [key: string]: unknown;
 }
 
-const propTypes = {
-  name: PropTypes.string,
-  onChange: PropTypes.func,
-  initialValue: PropTypes.string,
-  height: PropTypes.number,
-  minLines: PropTypes.number,
-  maxLines: PropTypes.number,
-  offerEditInModal: PropTypes.bool,
-  language: PropTypes.oneOf([
-    null,
-    'json',
-    'html',
-    'sql',
-    'markdown',
-    'javascript',
-    'handlebars',
-  ]),
-  aboveEditorSection: PropTypes.node,
-  readOnly: PropTypes.bool,
-  resize: PropTypes.oneOf([
-    null,
-    'block',
-    'both',
-    'horizontal',
-    'inline',
-    'none',
-    'vertical',
-  ]),
-  textAreaStyles: PropTypes.object,
-  tooltipOptions: PropTypes.object,
-  hotkeys: PropTypes.array,
-  debounceDelay: PropTypes.number,
-};
-
 const defaultProps = {
   onChange: () => {},
   initialValue: '',
@@ -131,8 +96,6 @@ const defaultProps = {
 };
 
 class TextAreaControl extends Component<TextAreaControlProps> {
-  static propTypes = propTypes;
-
   static defaultProps = defaultProps;
 
   debouncedOnChange:

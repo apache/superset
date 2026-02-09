@@ -50,13 +50,13 @@ describe('parseResponse()', () => {
 
   afterEach(() => fetchMock.removeRoutes().clearHistory());
 
-  it('returns a Promise', () => {
+  test('returns a Promise', () => {
     const apiPromise = callApi({ url: mockGetUrl, method: 'GET' });
     const parsedResponsePromise = parseResponse(apiPromise);
     expect(parsedResponsePromise).toBeInstanceOf(Promise);
   });
 
-  it('resolves to { json, response } if the request succeeds', async () => {
+  test('resolves to { json, response } if the request succeeds', async () => {
     expect.assertions(4);
     const args = await parseResponse(
       callApi({ url: mockGetUrl, method: 'GET' }),
@@ -70,7 +70,7 @@ describe('parseResponse()', () => {
     );
   });
 
-  it('throws if `parseMethod=json` and .json() fails', async () => {
+  test('throws if `parseMethod=json` and .json() fails', async () => {
     expect.assertions(3);
 
     const mockTextUrl = '/mock/text/url';
@@ -90,7 +90,7 @@ describe('parseResponse()', () => {
     }
   });
 
-  it('resolves to { text, response } if the `parseMethod=text`', async () => {
+  test('resolves to { text, response } if the `parseMethod=text`', async () => {
     expect.assertions(4);
 
     // test with json + bigint to ensure that it was not first parsed as json
@@ -109,7 +109,7 @@ describe('parseResponse()', () => {
     expect(args.text).toBe(mockTextJsonResponse);
   });
 
-  it('throws if parseMethod is not null|json|text', async () => {
+  test('throws if parseMethod is not null|json|text', async () => {
     expect.assertions(1);
 
     let error;
@@ -127,7 +127,7 @@ describe('parseResponse()', () => {
     }
   });
 
-  it('resolves to unmodified `Response` object if `parseMethod=null|raw`', async () => {
+  test('resolves to unmodified `Response` object if `parseMethod=null|raw`', async () => {
     expect.assertions(3);
     const responseNull = await parseResponse(
       callApi({ url: mockNoParseUrl, method: 'GET' }),
@@ -142,7 +142,7 @@ describe('parseResponse()', () => {
     expect(responseRaw.bodyUsed).toBe(false);
   });
 
-  it('resolves to big number value if `parseMethod=json-bigint`', async () => {
+  test('resolves to big number value if `parseMethod=json-bigint`', async () => {
     const mockBigIntUrl = '/mock/get/bigInt';
     const mockGetBigIntPayload = `{
       "value": 9223372036854775807, "minus": { "value": -483729382918228373892, "str": "something" },
@@ -183,7 +183,7 @@ describe('parseResponse()', () => {
     expect(responseBigNumber.json.constructor).toEqual('constructor');
   });
 
-  it('rejects if request.ok=false', async () => {
+  test('rejects if request.ok=false', async () => {
     expect.assertions(3);
     const mockNotOkayUrl = '/mock/notokay/url';
     fetchMock.get(mockNotOkayUrl, 404); // 404s result in not response.ok=false

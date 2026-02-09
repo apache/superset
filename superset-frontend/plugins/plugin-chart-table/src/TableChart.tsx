@@ -77,9 +77,9 @@ import { isEmpty, debounce, isEqual } from 'lodash';
 import {
   ColorFormatters,
   ObjectFormattingEnum,
+  ColorSchemeEnum,
 } from '@superset-ui/chart-controls';
 import {
-  ColorSchemeEnum,
   DataColumnMeta,
   SearchOption,
   SortByItem,
