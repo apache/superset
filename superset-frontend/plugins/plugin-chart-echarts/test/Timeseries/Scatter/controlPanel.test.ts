@@ -52,7 +52,7 @@ const mockControls = (
 
   return {
     controls: {
-      // @ts-ignore
+      // @ts-expect-error
       x_axis: {
         value: xAxisColumn,
         options: options,

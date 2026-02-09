@@ -54,6 +54,7 @@ export enum FeatureFlag {
   EstimateQueryCost = 'ESTIMATE_QUERY_COST',
   FilterBarClosedByDefault = 'FILTERBAR_CLOSED_BY_DEFAULT',
   GlobalAsyncQueries = 'GLOBAL_ASYNC_QUERIES',
+  GlobalTaskFramework = 'GLOBAL_TASK_FRAMEWORK',
   ListviewsDefaultCardView = 'LISTVIEWS_DEFAULT_CARD_VIEW',
   Matrixify = 'MATRIXIFY',
   ScheduledQueries = 'SCHEDULED_QUERIES',

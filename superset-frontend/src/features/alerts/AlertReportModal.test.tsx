@@ -132,7 +132,7 @@ fetchMock.get(
 
 // Create a valid alert with all required fields entered for validation check
 
-// @ts-ignore will add id in factory function
+// @ts-expect-error will add id in factory function
 const validAlert: AlertObject = {
   active: false,
   changed_on_delta_humanized: 'now',

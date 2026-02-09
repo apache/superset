@@ -655,7 +655,8 @@ const executeQuery: typeof sqlLabApi.executeQuery = async options => {
     updateTabState,
   };
 
-  store.dispatch(runQueryAction(query));
+  // Cast to any because store.dispatch type doesn't include thunk middleware types
+  store.dispatch(runQueryAction(query) as any);
 
   return queryId;
 };
