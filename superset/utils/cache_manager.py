@@ -14,15 +14,23 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import hashlib
 import logging
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Optional, TYPE_CHECKING, Union
 
 from flask import current_app, Flask
 from flask_caching import Cache
 from markupsafe import Markup
 
 from superset.utils.core import DatasourceType
+
+if TYPE_CHECKING:
+    from superset.async_events.cache_backend import (
+        RedisCacheBackend,
+        RedisSentinelCacheBackend,
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -185,6 +193,7 @@ class CacheManager:
         self._thumbnail_cache = SupersetCache()
         self._filter_state_cache = SupersetCache()
         self._explore_form_data_cache = ExploreFormDataCache()
+        self._signal_cache: RedisCacheBackend | RedisSentinelCacheBackend | None = None
 
     @staticmethod
     def _init_cache(
@@ -226,6 +235,30 @@ class CacheManager:
             "EXPLORE_FORM_DATA_CACHE_CONFIG",
             required=True,
         )
+        self._init_signal_cache(app)
+
+    def _init_signal_cache(self, app: Flask) -> None:
+        """Initialize the signal cache for pub/sub and distributed locks."""
+        from superset.async_events.cache_backend import (
+            RedisCacheBackend,
+            RedisSentinelCacheBackend,
+        )
+
+        config = app.config.get("SIGNAL_CACHE_CONFIG")
+        if not config:
+            return
+
+        cache_type = config.get("CACHE_TYPE")
+        if cache_type == "RedisCache":
+            self._signal_cache = RedisCacheBackend.from_config(config)
+        elif cache_type == "RedisSentinelCache":
+            self._signal_cache = RedisSentinelCacheBackend.from_config(config)
+        else:
+            logger.warning(
+                "Unsupported CACHE_TYPE for SIGNAL_CACHE_CONFIG: %s. "
+                "Use 'RedisCache' or 'RedisSentinelCache'.",
+                cache_type,
+            )
 
     @property
     def data_cache(self) -> Cache:
@@ -246,3 +279,23 @@ class CacheManager:
     @property
     def explore_form_data_cache(self) -> Cache:
         return self._explore_form_data_cache
+
+    @property
+    def signal_cache(
+        self,
+    ) -> RedisCacheBackend | RedisSentinelCacheBackend | None:
+        """
+        Return the signal cache backend.
+
+        Used for signaling features that require Redis-specific primitives:
+        - Pub/Sub messaging for real-time abort/completion notifications
+        - SET NX EX for atomic distributed lock acquisition
+
+        The backend provides:
+        - `._cache`: Raw Redis client
+        - `.key_prefix`: Configured key prefix (from CACHE_KEY_PREFIX)
+        - `.default_timeout`: Default timeout in seconds (from CACHE_DEFAULT_TIMEOUT)
+
+        Returns None if SIGNAL_CACHE_CONFIG is not configured.
+        """
+        return self._signal_cache

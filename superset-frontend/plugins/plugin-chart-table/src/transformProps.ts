@@ -41,6 +41,7 @@ import {
   ColorFormatters,
   ConditionalFormattingConfig,
   getColorFormatters,
+  ColorSchemeEnum,
 } from '@superset-ui/chart-controls';
 
 import { isEmpty, merge } from 'lodash';
@@ -48,7 +49,6 @@ import isEqualColumns from './utils/isEqualColumns';
 import DateWithFormatter from './utils/DateWithFormatter';
 import {
   BasicColorFormatterType,
-  ColorSchemeEnum,
   DataColumnMeta,
   TableChartProps,
   TableChartTransformedProps,

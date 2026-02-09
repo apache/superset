@@ -39,6 +39,7 @@ import {
   shouldSkipMetricColumn,
   isRegularMetric,
   isPercentMetric,
+  ColorSchemeEnum,
 } from '@superset-ui/chart-controls';
 import { t } from '@apache-superset/core';
 import {
@@ -56,7 +57,6 @@ import {
 import { GenericDataType } from '@apache-superset/core/api/core';
 import { isEmpty, last } from 'lodash';
 import { PAGE_SIZE_OPTIONS, SERVER_PAGE_SIZE_OPTIONS } from './consts';
-import { ColorSchemeEnum } from './types';
 
 /**
  * Generate comparison column names for a given column.

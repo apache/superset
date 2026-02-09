@@ -27,14 +27,14 @@ import {
 
 describe('layerUtil', () => {
   describe('createWmsLayer', () => {
-    it('exists', () => {
+    test('exists', () => {
       // function is trivial
       expect(createWmsLayer).toBeDefined();
     });
   });
 
   describe('createWfsLayer', () => {
-    it('properly applies style', async () => {
+    test('properly applies style', async () => {
       const colorToExpect = '#123456';
 
       const wfsLayerConf: WfsLayerConf = {
@@ -82,14 +82,14 @@ describe('layerUtil', () => {
   });
 
   describe('createXyzLayer', () => {
-    it('exists', () => {
+    test('exists', () => {
       // function is trivial
       expect(createXyzLayer).toBeDefined();
     });
   });
 
   describe('createLayer', () => {
-    it('exists', () => {
+    test('exists', () => {
       expect(createLayer).toBeDefined();
     });
   });
