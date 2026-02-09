@@ -56,6 +56,7 @@ from superset.explorables.base import TimeGrainDict
 from superset.extensions import encrypted_field_factory
 from superset.models.helpers import AuditMixinNullable, QueryResult
 from superset.semantic_layers.mapper import get_results
+from superset.semantic_layers.registry import registry
 from superset.utils import json
 from superset.utils.core import GenericDataType
 
@@ -146,7 +147,8 @@ class SemanticLayer(AuditMixinNullable, Model):
         """
         # TODO (betodealmeida):
         # return extension_manager.get_contribution("semanticLayers", self.type)
-        raise NotImplementedError()
+        class_ = registry[self.type]
+        return class_.from_configuration(json.loads(self.configuration))
 
 
 class SemanticView(AuditMixinNullable, Model):
