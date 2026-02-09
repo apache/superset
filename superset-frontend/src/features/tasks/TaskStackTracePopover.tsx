@@ -22,6 +22,7 @@ import { t } from '@apache-superset/core';
 import { styled } from '@apache-superset/core/ui';
 import { Popover, Tooltip } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
 import copyTextToClipboard from 'src/utils/copy';
 
 const StackTraceContainer = styled.div`
@@ -87,6 +88,7 @@ export default function TaskStackTracePopover({
 }: TaskStackTracePopoverProps) {
   const [visible, setVisible] = useState(false);
   const [copied, setCopied] = useState(false);
+  const { addDangerToast } = useToasts();
 
   const handleCopy = useCallback(() => {
     copyTextToClipboard(() => Promise.resolve(stackTrace))
@@ -95,9 +97,9 @@ export default function TaskStackTracePopover({
         setTimeout(() => setCopied(false), 2000);
       })
       .catch(() => {
-        // Failed to copy, ignore
+        addDangerToast(t('Failed to copy stack trace to clipboard'));
       });
-  }, [stackTrace]);
+  }, [stackTrace, addDangerToast]);
 
   const content = (
     <StackTraceContainer>
