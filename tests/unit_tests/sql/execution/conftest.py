@@ -202,7 +202,6 @@ def setup_mock_raw_connection(
     def _raw_connection(
         catalog: str | None = None,
         schema: str | None = None,
-        nullpool: bool = True,
         source: Any | None = None,
     ):
         yield mock_connection
