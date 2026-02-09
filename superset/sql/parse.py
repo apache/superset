@@ -452,6 +452,15 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         """
         raise NotImplementedError()
 
+    def check_tables_present(self, tables: set[str]) -> bool:
+        """
+        Check if any of the given tables are present in the statement.
+
+        :param tables: Set of table names to check for (case-insensitive)
+        :return: True if any of the tables are present
+        """
+        raise NotImplementedError()
+
     def get_limit_value(self) -> int | None:
         """
         Get the limit value of the statement.
@@ -765,6 +774,16 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             for function in self._parsed.find_all(exp.Func)
         }
         return any(function.upper() in present for function in functions)
+
+    def check_tables_present(self, tables: set[str]) -> bool:
+        """
+        Check if any of the given tables are present in the statement.
+
+        :param tables: Set of table names to check for (case-insensitive)
+        :return: True if any of the tables are present
+        """
+        present = {table.table.lower() for table in self.tables}
+        return any(table.lower() in present for table in tables)
 
     def get_limit_value(self) -> int | None:
         """
@@ -1172,6 +1191,16 @@ class KustoKQLStatement(BaseSQLStatement[str]):
         logger.warning("Kusto KQL doesn't support checking for functions present.")
         return False
 
+    def check_tables_present(self, tables: set[str]) -> bool:
+        """
+        Check if any of the given tables are present in the statement.
+
+        :param tables: Set of table names to check for (case-insensitive)
+        :return: True if any of the tables are present
+        """
+        logger.warning("Kusto KQL doesn't support checking for tables present.")
+        return False
+
     def get_limit_value(self) -> int | None:
         """
         Get the limit value of the statement.
@@ -1311,6 +1340,17 @@ class SQLScript:
         return any(
             statement.check_functions_present(functions)
             for statement in self.statements
+        )
+
+    def check_tables_present(self, tables: set[str]) -> bool:
+        """
+        Check if any of the given tables are present in the script.
+
+        :param tables: Set of table names to check for (case-insensitive)
+        :return: True if any of the tables are present
+        """
+        return any(
+            statement.check_tables_present(tables) for statement in self.statements
         )
 
     def is_valid_ctas(self) -> bool:

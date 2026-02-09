@@ -52,6 +52,7 @@ def inject_dao_implementations() -> None:
         SavedQueryDAO as HostSavedQueryDAO,
     )
     from superset.daos.tag import TagDAO as HostTagDAO
+    from superset.daos.tasks import TaskDAO as HostTaskDAO
     from superset.daos.user import UserDAO as HostUserDAO
 
     # Replace abstract classes with concrete implementations
@@ -64,18 +65,7 @@ def inject_dao_implementations() -> None:
     core_dao_module.SavedQueryDAO = HostSavedQueryDAO  # type: ignore[assignment,misc]
     core_dao_module.TagDAO = HostTagDAO  # type: ignore[assignment,misc]
     core_dao_module.KeyValueDAO = HostKeyValueDAO  # type: ignore[assignment,misc]
-
-    core_dao_module.__all__ = [
-        "DatasetDAO",
-        "DatabaseDAO",
-        "ChartDAO",
-        "DashboardDAO",
-        "UserDAO",
-        "QueryDAO",
-        "SavedQueryDAO",
-        "TagDAO",
-        "KeyValueDAO",
-    ]
+    core_dao_module.TaskDAO = HostTaskDAO  # type: ignore[assignment,misc]
 
 
 def inject_model_implementations() -> None:
@@ -94,6 +84,7 @@ def inject_model_implementations() -> None:
     from superset.models.dashboard import Dashboard as HostDashboard
     from superset.models.slice import Slice as HostChart
     from superset.models.sql_lab import Query as HostQuery, SavedQuery as HostSavedQuery
+    from superset.models.tasks import Task as HostTask
     from superset.tags.models import Tag as HostTag
 
     # In-place replacement - extensions will import concrete implementations
@@ -106,6 +97,7 @@ def inject_model_implementations() -> None:
     core_models_module.SavedQuery = HostSavedQuery  # type: ignore[misc]
     core_models_module.Tag = HostTag  # type: ignore[misc]
     core_models_module.KeyValue = HostKeyValue  # type: ignore[misc]
+    core_models_module.Task = HostTask  # type: ignore[misc]
 
 
 def inject_query_implementations() -> None:
@@ -124,7 +116,23 @@ def inject_query_implementations() -> None:
         )
 
     core_query_module.get_sqlglot_dialect = get_sqlglot_dialect
-    core_query_module.__all__ = ["get_sqlglot_dialect"]
+
+
+def inject_task_implementations() -> None:
+    """
+    Replace abstract task functions in superset_core.api.tasks with concrete
+    implementations from Superset.
+    """
+    import superset_core.api.tasks as core_tasks_module
+
+    from superset.tasks.ambient_context import get_context
+    from superset.tasks.context import TaskContext
+    from superset.tasks.decorators import task
+
+    # Replace abstract classes and functions with concrete implementations
+    core_tasks_module.TaskContext = TaskContext  # type: ignore[assignment,misc]
+    core_tasks_module.task = task  # type: ignore[assignment]
+    core_tasks_module.get_context = get_context
 
 
 def inject_rest_api_implementations() -> None:
@@ -147,7 +155,6 @@ def inject_rest_api_implementations() -> None:
 
     core_rest_api_module.add_api = add_api
     core_rest_api_module.add_extension_api = add_extension_api
-    core_rest_api_module.__all__ = ["RestApi", "add_api", "add_extension_api"]
 
 
 def inject_model_session_implementation() -> None:
@@ -163,7 +170,6 @@ def inject_model_session_implementation() -> None:
         return db.session
 
     core_models_module.get_session = get_session
-    # Update __all__ to include get_session (already done in the module)
 
 
 def initialize_core_api_dependencies() -> None:
@@ -177,4 +183,5 @@ def initialize_core_api_dependencies() -> None:
     inject_model_implementations()
     inject_model_session_implementation()
     inject_query_implementations()
+    inject_task_implementations()
     inject_rest_api_implementations()

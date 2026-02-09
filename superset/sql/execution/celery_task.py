@@ -26,7 +26,7 @@ from __future__ import annotations
 import dataclasses
 import logging
 import uuid
-from typing import Any, TYPE_CHECKING
+from typing import Any
 
 import msgpack
 from celery.exceptions import SoftTimeLimitExceeded
@@ -55,9 +55,6 @@ from superset.utils import json
 from superset.utils.core import override_user, zlib_compress
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import stats_timing
-
-if TYPE_CHECKING:
-    pass
 
 logger = logging.getLogger(__name__)
 

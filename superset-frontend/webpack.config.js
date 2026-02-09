@@ -489,6 +489,12 @@ const config = {
         },
       },
       {
+        test: /node_modules\/(geostyler-style|geostyler-qgis-parser)\/.*\.js$/,
+        resolve: {
+          fullySpecified: false,
+        },
+      },
+      {
         test: /\.tsx?$/,
         exclude: [/\.test.tsx?$/, /node_modules/],
         // Skip thread-loader in dev mode - it breaks HMR by running in worker threads
