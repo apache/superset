@@ -22,11 +22,7 @@ import {
   fireEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
-import {
-  Comparator,
-  ColorSchemeEnum,
-  ObjectFormattingEnum,
-} from '@superset-ui/chart-controls';
+import { Comparator, ColorSchemeEnum } from '@superset-ui/chart-controls';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import { FormattingPopoverContent } from './FormattingPopoverContent';
 
