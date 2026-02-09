@@ -28,17 +28,6 @@ import AdhocMetricEditPopoverTitle, {
   AdhocMetricEditPopoverTitleProps,
 } from 'src/explore/components/controls/MetricControl/AdhocMetricEditPopoverTitle';
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
-  isFeatureEnabled: jest.fn(() => false),
-}));
-
-jest.mock('@superset-ui/core/connection', () => ({
-  SupersetClient: {
-    get: jest.fn(() => Promise.resolve({ json: { result: { locales: [], default_locale: 'en' } } })),
-  },
-}));
-
 const titleProps = {
   label: 'COUNT(*)',
   hasCustomLabel: false,
@@ -53,10 +42,6 @@ const setup = (props: Partial<AdhocMetricEditPopoverTitleProps> = {}) => {
       onChange={onChange}
       {...props}
     />,
-    {
-      useRedux: true,
-      initialState: { common: { locale: 'en' } },
-    },
   );
 
   return { container, onChange };

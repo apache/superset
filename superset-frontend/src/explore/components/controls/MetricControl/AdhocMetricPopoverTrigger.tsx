@@ -113,7 +113,7 @@ class AdhocMetricPopoverTrigger extends PureComponent<
   }
 
   onTranslationsChange(translations: Translations) {
-    this.setState({ translations });
+    this.setState({ translations, labelModified: true });
   }
 
   onLabelChange(e: any) {
@@ -230,6 +230,10 @@ class AdhocMetricPopoverTrigger extends PureComponent<
           closePopover: this.closePopover,
         };
 
+    const hasTranslationChanges =
+      JSON.stringify(this.state.translations) !==
+      JSON.stringify(this.props.adhocMetric.translations ?? {});
+
     const overlayContent = (
       <ExplorePopoverContent>
         <AdhocMetricEditPopover
@@ -257,6 +261,11 @@ class AdhocMetricPopoverTrigger extends PureComponent<
             this.state.labelModified &&
             adhocMetricLabel !== this.state.title.label
           }
+          translations={this.state.translations}
+          onTranslationsChange={this.onTranslationsChange}
+          hasCustomLabel={title.hasCustomLabel}
+          currentLabel={title.label}
+          hasTranslationChanges={hasTranslationChanges}
         />
       </ExplorePopoverContent>
     );
@@ -266,8 +275,6 @@ class AdhocMetricPopoverTrigger extends PureComponent<
         title={title}
         onChange={this.onLabelChange}
         isEditDisabled={this.state.isTitleEditDisabled}
-        translations={this.state.translations}
-        onTranslationsChange={this.onTranslationsChange}
       />
     );
 
