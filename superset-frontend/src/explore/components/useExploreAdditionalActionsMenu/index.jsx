@@ -49,6 +49,7 @@ import { useStreamingExport } from 'src/components/StreamingExportModal';
 import ViewQueryModal from '../controls/ViewQueryModal';
 import EmbedCodeContent from '../EmbedCodeContent';
 import { useDashboardsMenuItems } from './DashboardsSubMenu';
+import { LineageModal } from 'src/features/lineage';
 
 export const SEARCH_THRESHOLD = 10;
 
@@ -79,6 +80,7 @@ const MENU_KEYS = {
   EDIT_REPORT: 'edit_report',
   DELETE_REPORT: 'delete_report',
   VIEW_QUERY: 'view_query',
+  VIEW_LINEAGE: 'view_lineage',
   RUN_IN_SQL_LAB: 'run_in_sql_lab',
 };
 
@@ -858,6 +860,23 @@ export const useExploreAdditionalActionsMenu = (
       ),
       onClick: () => setIsDropdownVisible(false),
     });
+
+    // View lineage
+    if (slice?.slice_id) {
+      menuItems.push({
+        key: MENU_KEYS.VIEW_LINEAGE,
+        label: (
+          <LineageModal
+            entityType="chart"
+            entityId={slice.slice_id}
+            triggerNode={
+              <div data-test="view-lineage-menu-item">{t('View lineage')}</div>
+            }
+          />
+        ),
+        onClick: () => setIsDropdownVisible(false),
+      });
+    }
 
     // Run in SQL Lab
     if (datasource) {

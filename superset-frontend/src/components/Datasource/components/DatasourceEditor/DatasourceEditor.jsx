@@ -88,8 +88,26 @@ import {
 } from '../../FoldersEditor/constants';
 import { validateFolders } from '../../FoldersEditor/folderValidation';
 import FoldersEditor from '../../FoldersEditor';
+import { useDatasetLineage } from 'src/hooks/apiResources';
+import { LineageView } from 'src/features/lineage';
 
 const extensionsRegistry = getExtensionsRegistry();
+
+// Functional wrapper component for lineage tab (needed because hooks can't be used in class components)
+function DatasetLineageTab({ datasourceId }) {
+  const lineageResource = useDatasetLineage(datasourceId);
+
+  // Show loading state if datasourceId is not available
+  if (!datasourceId) {
+    return <Loading />;
+  }
+
+  return <LineageView lineageResource={lineageResource} entityType="dataset" />;
+}
+
+DatasetLineageTab.propTypes = {
+  datasourceId: PropTypes.number,
+};
 
 const DatasourceContainer = styled.div`
   .change-warning {
@@ -217,6 +235,7 @@ const TABS_KEYS = {
   COLUMNS: 'COLUMNS',
   CALCULATED_COLUMNS: 'CALCULATED_COLUMNS',
   USAGE: 'USAGE',
+  LINEAGE: 'LINEAGE',
   FOLDERS: 'FOLDERS',
   SETTINGS: 'SETTINGS',
   SPATIAL: 'SPATIAL',
@@ -2065,6 +2084,15 @@ class DatasourceEditor extends PureComponent {
                     onFetchCharts={this.fetchUsageData}
                     addDangerToast={this.props.addDangerToast}
                   />
+                </StyledTableTabWrapper>
+              ),
+            },
+            {
+              key: TABS_KEYS.LINEAGE,
+              label: t('Lineage'),
+              children: (
+                <StyledTableTabWrapper>
+                  <DatasetLineageTab datasourceId={datasource.id} />
                 </StyledTableTabWrapper>
               ),
             },

@@ -21,6 +21,8 @@ import { styled } from '@apache-superset/core/ui';
 import useGetDatasetRelatedCounts from 'src/features/datasets/hooks/useGetDatasetRelatedCounts';
 import { Badge } from '@superset-ui/core/components';
 import Tabs from '@superset-ui/core/components/Tabs';
+import { useDatasetLineage } from 'src/hooks/apiResources';
+import { LineageView } from 'src/features/lineage';
 
 const StyledTabs = styled(Tabs)`
   ${({ theme }) => `
@@ -51,16 +53,19 @@ const TRANSLATIONS = {
   USAGE_TEXT: t('Usage'),
   COLUMNS_TEXT: t('Columns'),
   METRICS_TEXT: t('Metrics'),
+  LINEAGE_TEXT: t('Lineage'),
 };
 
 const TABS_KEYS = {
   COLUMNS: 'COLUMNS',
   METRICS: 'METRICS',
   USAGE: 'USAGE',
+  LINEAGE: 'LINEAGE',
 };
 
 const EditPage = ({ id }: EditPageProps) => {
   const { usageCount } = useGetDatasetRelatedCounts(id);
+  const lineageResource = useDatasetLineage(id);
 
   const usageTab = (
     <TabStyles>
@@ -84,6 +89,13 @@ const EditPage = ({ id }: EditPageProps) => {
       key: TABS_KEYS.USAGE,
       label: usageTab,
       children: null,
+    },
+    {
+      key: TABS_KEYS.LINEAGE,
+      label: TRANSLATIONS.LINEAGE_TEXT,
+      children: (
+        <LineageView lineageResource={lineageResource} entityType="dataset" />
+      ),
     },
   ];
 

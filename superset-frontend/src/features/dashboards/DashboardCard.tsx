@@ -37,6 +37,7 @@ import { Icons } from '@superset-ui/core/components/Icons';
 import { Dashboard } from 'src/views/CRUD/types';
 import { assetUrl } from 'src/utils/assetUrl';
 import { FacePile } from 'src/components';
+import { LineageModal } from 'src/features/lineage';
 
 interface DashboardCardProps {
   isChart?: boolean;
@@ -69,6 +70,7 @@ function DashboardCard({
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
   const canExport = hasPerm('can_export');
+  const canRead = hasPerm('can_read');
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
   const [fetchingThumbnail, setFetchingThumbnail] = useState<boolean>(false);
 
@@ -98,6 +100,23 @@ function DashboardCard({
   }, [dashboard, thumbnailUrl]);
 
   const menuItems: MenuItem[] = [];
+
+  if (canRead) {
+    menuItems.push({
+      key: 'lineage',
+      label: (
+        <LineageModal
+          entityType="dashboard"
+          entityId={dashboard.id}
+          triggerNode={
+            <div data-test="dashboard-card-option-lineage-button">
+              <Icons.ShareAltOutlined iconSize="l" /> {t('View Lineage')}
+            </div>
+          }
+        />
+      ),
+    });
+  }
 
   if (canEdit && openDashboardEditModal) {
     menuItems.push({
@@ -151,55 +170,60 @@ function DashboardCard({
   }
 
   return (
-    <CardStyles
-      onClick={() => {
-        if (!bulkSelectEnabled) {
-          history.push(dashboard.url);
-        }
-      }}
-    >
-      <ListViewCard
-        loading={dashboard.loading || false}
-        title={dashboard.dashboard_title}
-        certifiedBy={dashboard.certified_by}
-        certificationDetails={dashboard.certification_details}
-        titleRight={<PublishedLabel isPublished={dashboard.published} />}
-        cover={
-          !isFeatureEnabled(FeatureFlag.Thumbnails) || !showThumbnails ? (
-            <></>
-          ) : null
-        }
-        url={bulkSelectEnabled ? undefined : dashboard.url}
-        linkComponent={Link}
-        imgURL={thumbnailUrl}
-        imgFallbackURL={assetUrl(
-          '/static/assets/images/dashboard-card-fallback.svg',
-        )}
-        description={t('Modified %s', dashboard.changed_on_delta_humanized)}
-        coverLeft={<FacePile users={dashboard.owners || []} />}
-        actions={
-          <ListViewCard.Actions
-            onClick={e => {
-              e.stopPropagation();
-              e.preventDefault();
-            }}
-          >
-            {userId && (
-              <FaveStar
-                itemId={dashboard.id}
-                saveFaveStar={saveFavoriteStatus}
-                isStarred={favoriteStatus}
-              />
-            )}
-            <Dropdown menu={{ items: menuItems }} trigger={['hover', 'click']}>
-              <Button buttonSize="xsmall" buttonStyle="link">
-                <Icons.MoreOutlined iconSize="xl" />
-              </Button>
-            </Dropdown>
-          </ListViewCard.Actions>
-        }
-      />
-    </CardStyles>
+    <>
+      <CardStyles
+        onClick={() => {
+          if (!bulkSelectEnabled) {
+            history.push(dashboard.url);
+          }
+        }}
+      >
+        <ListViewCard
+          loading={dashboard.loading || false}
+          title={dashboard.dashboard_title}
+          certifiedBy={dashboard.certified_by}
+          certificationDetails={dashboard.certification_details}
+          titleRight={<PublishedLabel isPublished={dashboard.published} />}
+          cover={
+            !isFeatureEnabled(FeatureFlag.Thumbnails) || !showThumbnails ? (
+              <></>
+            ) : null
+          }
+          url={bulkSelectEnabled ? undefined : dashboard.url}
+          linkComponent={Link}
+          imgURL={thumbnailUrl}
+          imgFallbackURL={assetUrl(
+            '/static/assets/images/dashboard-card-fallback.svg',
+          )}
+          description={t('Modified %s', dashboard.changed_on_delta_humanized)}
+          coverLeft={<FacePile users={dashboard.owners || []} />}
+          actions={
+            <ListViewCard.Actions
+              onClick={e => {
+                e.stopPropagation();
+                e.preventDefault();
+              }}
+            >
+              {userId && (
+                <FaveStar
+                  itemId={dashboard.id}
+                  saveFaveStar={saveFavoriteStatus}
+                  isStarred={favoriteStatus}
+                />
+              )}
+              <Dropdown
+                menu={{ items: menuItems }}
+                trigger={['hover', 'click']}
+              >
+                <Button buttonSize="xsmall" buttonStyle="link">
+                  <Icons.MoreOutlined iconSize="xl" />
+                </Button>
+              </Dropdown>
+            </ListViewCard.Actions>
+          }
+        />
+      </CardStyles>
+    </>
   );
 }
 

@@ -402,12 +402,12 @@ class ChartRestApi(BaseSupersetModelRestApi):
             },
         }
 
-        return self.response(
-            200,
-            chart=chart_info,
-            upstream=upstream,
-            downstream=downstream,
-        )
+        result = {
+            "chart": chart_info,
+            "upstream": upstream,
+            "downstream": downstream,
+        }
+        return self.response(200, result=result)
 
     @expose("/", methods=("POST",))
     @protect()

@@ -593,12 +593,12 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             },
         }
 
-        return self.response(
-            200,
-            dashboard=dashboard_info,
-            upstream=upstream,
-            downstream=None,
-        )
+        result = {
+            "dashboard": dashboard_info,
+            "upstream": upstream,
+            "downstream": None,
+        }
+        return self.response(200, result=result)
 
     @expose("/<id_or_slug>/datasets", methods=("GET",))
     @protect()

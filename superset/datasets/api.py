@@ -959,12 +959,12 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             },
         }
 
-        return self.response(
-            200,
-            dataset=dataset_info,
-            upstream=upstream,
-            downstream=downstream,
-        )
+        result = {
+            "dataset": dataset_info,
+            "upstream": upstream,
+            "downstream": downstream,
+        }
+        return self.response(200, result=result)
 
     @expose("/", methods=("DELETE",))
     @protect()
