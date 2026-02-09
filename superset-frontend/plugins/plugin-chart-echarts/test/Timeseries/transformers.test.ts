@@ -258,13 +258,58 @@ function buildTimeseriesChartProps(
   }) as unknown as EchartsTimeseriesChartProps;
 }
 
-test('x-axis dates do not overlap when horizontal (rotation 0°)', () => {
+test('should configure time axis labels to show max label for last month visibility', () => {
+  const formData = {
+    colorScheme: 'bnbColors',
+    datasource: '3__table',
+    granularity_sqla: 'ds',
+    metric: 'sum__num',
+    viz_type: 'my_viz',
+  };
+  const queriesData = [
+    {
+      data: [
+        { sum__num: 100, __timestamp: new Date('2026-01-01').getTime() },
+        { sum__num: 200, __timestamp: new Date('2026-02-01').getTime() },
+        { sum__num: 300, __timestamp: new Date('2026-03-01').getTime() },
+        { sum__num: 400, __timestamp: new Date('2026-04-01').getTime() },
+        { sum__num: 500, __timestamp: new Date('2026-05-01').getTime() },
+      ],
+      colnames: ['sum__num', '__timestamp'],
+      coltypes: [GenericDataType.Numeric, GenericDataType.Temporal],
+    },
+  ];
+  const chartProps = new ChartProps({
+    formData,
+    width: 800,
+    height: 600,
+    queriesData,
+    theme: supersetTheme,
+  });
+
+  const result = transformProps(
+    chartProps as unknown as EchartsTimeseriesChartProps,
+  );
+
+  expect(result.echartOptions.xAxis).toEqual(
+    expect.objectContaining({
+      axisLabel: expect.objectContaining({
+        showMaxLabel: true,
+        alignMaxLabel: 'right',
+      }),
+    }),
+  );
+});
+
+test('x-axis dates do not overlap and last label stays visible at 0° rotation', () => {
   const result = transformProps(buildTimeseriesChartProps());
   const { axisLabel } = result.echartOptions.xAxis as Record<string, any>;
 
   expect(axisLabel.hideOverlap).toBe(true);
-  expect(axisLabel.showMaxLabel).toBeUndefined();
-  expect(axisLabel.alignMaxLabel).toBeUndefined();
+  // showMaxLabel forces the last data point label to render even
+  // when hideOverlap is active, preventing the #37181 regression.
+  expect(axisLabel.showMaxLabel).toBe(true);
+  expect(axisLabel.alignMaxLabel).toBe('right');
 });
 
 test('last x-axis date is visible and not cut off when rotated -45°', () => {
