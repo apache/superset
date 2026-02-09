@@ -31,37 +31,44 @@ export const SET_AUTO_REFRESH_PAUSE_ON_INACTIVE_TAB =
 export interface SetAutoRefreshStatusAction {
   type: typeof SET_AUTO_REFRESH_STATUS;
   status: AutoRefreshStatus;
+  [key: string]: unknown;
 }
 
 export interface SetAutoRefreshPausedAction {
   type: typeof SET_AUTO_REFRESH_PAUSED;
   isPaused: boolean;
+  [key: string]: unknown;
 }
 
 export interface SetAutoRefreshPausedByTabAction {
   type: typeof SET_AUTO_REFRESH_PAUSED_BY_TAB;
   isPausedByTab: boolean;
+  [key: string]: unknown;
 }
 
 export interface RecordAutoRefreshSuccessAction {
   type: typeof RECORD_AUTO_REFRESH_SUCCESS;
   timestamp: number;
+  [key: string]: unknown;
 }
 
 export interface RecordAutoRefreshErrorAction {
   type: typeof RECORD_AUTO_REFRESH_ERROR;
   error: string | undefined;
   timestamp: number;
+  [key: string]: unknown;
 }
 
 export interface SetAutoRefreshFetchStartTimeAction {
   type: typeof SET_AUTO_REFRESH_FETCH_START_TIME;
   timestamp: number | null;
+  [key: string]: unknown;
 }
 
 export interface SetAutoRefreshPauseOnInactiveTabAction {
   type: typeof SET_AUTO_REFRESH_PAUSE_ON_INACTIVE_TAB;
   pauseOnInactiveTab: boolean;
+  [key: string]: unknown;
 }
 
 export type AutoRefreshAction =

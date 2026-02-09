@@ -153,7 +153,6 @@ export type DashboardState = {
   refreshErrorCount?: number;
   autoRefreshFetchStartTime?: number | null;
   autoRefreshPauseOnInactiveTab?: boolean;
-  refreshFrequency: number;
   labelsColorMapMustSync?: boolean;
   sharedLabelsColorsMustSync?: boolean;
   maxUndoHistoryExceeded?: boolean;
@@ -222,16 +221,6 @@ export type DashboardInfo = {
   } | null;
   theme_id?: number | null;
   css?: string;
-  slug?: string;
-  last_modified_time: number;
-  certified_by?: string;
-  certification_details?: string;
-  roles?: { id: number }[] | number[];
-  tags?: { type?: string | number }[];
-  is_managed_externally?: boolean;
-  dash_share_perm?: boolean;
-  dash_save_perm?: boolean;
-  dash_export_perm?: boolean;
 };
 
 export type ChartsState = { [key: string]: Chart };

@@ -411,10 +411,10 @@ interface DashboardSaveData extends JsonObject {
   certification_details?: string;
   css?: string;
   dashboard_title?: string;
-  owners?: { id: number }[] | number[];
-  roles?: { id: number }[] | number[];
+  owners?: JsonObject[] | number[];
+  roles?: JsonObject[] | number[];
   slug?: string | null;
-  tags?: { id: number }[] | number[];
+  tags?: JsonObject[] | number[];
   metadata?: JsonObject;
   positions?: JsonObject;
   duplicate_slices?: boolean;

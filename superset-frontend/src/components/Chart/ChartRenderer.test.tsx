@@ -381,8 +381,8 @@ test('should detect nested matrixify property changes', () => {
 test('renders chart during loading when suppressLoadingSpinner has valid data', () => {
   const props = {
     ...requiredProps,
-    chartStatus: 'loading',
-    chartAlert: null,
+    chartStatus: 'loading' as const,
+    chartAlert: undefined,
     suppressLoadingSpinner: true,
     queriesResponse: [{ data: [{ value: 1 }] }],
   };
@@ -398,10 +398,10 @@ test('renders chart during loading when suppressLoadingSpinner has valid data', 
 test('does not render chart during loading when last data has errors', () => {
   const props = {
     ...requiredProps,
-    chartStatus: 'loading',
-    chartAlert: null,
+    chartStatus: 'loading' as const,
+    chartAlert: undefined,
     suppressLoadingSpinner: true,
-    queriesResponse: [{ errors: [{ message: 'bad' }] }],
+    queriesResponse: [{ error: 'bad' }],
   };
 
   const { queryByTestId } = render(<ChartRenderer {...props} />);

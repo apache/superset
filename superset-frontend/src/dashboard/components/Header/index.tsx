@@ -58,7 +58,10 @@ import {
 } from 'src/dashboard/util/constants';
 import { TagType, TagTypeEnum } from 'src/components/Tag/TagType';
 import ReportModal from 'src/features/reports/ReportModal';
-import { deleteActiveReport } from 'src/features/reports/ReportModal/actions';
+import {
+  deleteActiveReport,
+  DeletableReport,
+} from 'src/features/reports/ReportModal/actions';
 import { PageHeaderWithActions } from '@superset-ui/core/components/PageHeaderWithActions';
 import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import DashboardEmbedModal from '../EmbeddedModal';
@@ -1114,7 +1117,7 @@ const Header = (): JSX.Element => {
   );
 
   const handleReportDelete = async (report: AlertObject) => {
-    await dispatch(deleteActiveReport(report));
+    await dispatch(deleteActiveReport(report as unknown as DeletableReport));
     setCurrentReportDeleting(null);
   };
 

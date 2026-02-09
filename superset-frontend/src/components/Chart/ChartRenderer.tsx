@@ -412,11 +412,9 @@ class ChartRenderer extends Component<ChartRendererProps, ChartRendererState> {
   render(): ReactNode {
     const { chartAlert, chartStatus, chartId, emitCrossFilters } = this.props;
 
-    const hasAnyErrors = this.props.queriesResponse?.some(
-      item => item?.error || item?.errors?.length,
-    );
+    const hasAnyErrors = this.props.queriesResponse?.some(item => item?.error);
     const hasValidPreviousData =
-      this.props.queriesResponse?.length > 0 && !hasAnyErrors;
+      (this.props.queriesResponse?.length ?? 0) > 0 && !hasAnyErrors;
 
     if (!!chartAlert || chartStatus === null) {
       return null;

@@ -35,7 +35,7 @@ describe('chart reducers', () => {
   });
 
   test('should update endtime on fail', () => {
-    const controller = {};
+    const controller = new AbortController();
     charts[chartKey] = {
       ...charts[chartKey],
       queryController: controller,
@@ -49,8 +49,8 @@ describe('chart reducers', () => {
   });
 
   test('should ignore stopped updates from stale controllers', () => {
-    const controller = {};
-    const staleController = {};
+    const controller = new AbortController();
+    const staleController = new AbortController();
     charts[chartKey] = {
       ...charts[chartKey],
       chartStatus: 'loading',

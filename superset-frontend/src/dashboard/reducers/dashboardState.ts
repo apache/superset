@@ -107,6 +107,15 @@ interface DashboardStateShape {
   chartStates?: Record<string, ChartStateEntry>;
   css?: string;
   preselectNativeFilters?: JsonObject;
+  autoRefreshStatus?: AutoRefreshStatus;
+  autoRefreshPaused?: boolean;
+  autoRefreshPausedByTab?: boolean;
+  lastSuccessfulRefresh?: number | null;
+  lastAutoRefreshTime?: number | null;
+  lastRefreshError?: string | null;
+  refreshErrorCount?: number;
+  autoRefreshFetchStartTime?: number | null;
+  autoRefreshPauseOnInactiveTab?: boolean;
   [key: string]: unknown;
 }
 
@@ -139,6 +148,11 @@ interface DashboardStateAction {
   lastModified?: number;
   chartStates?: Record<string, ChartStateEntry>;
   status?: string;
+  isPaused?: boolean;
+  isPausedByTab?: boolean;
+  timestamp?: number | null;
+  error?: string | null;
+  pauseOnInactiveTab?: boolean;
   payload?: {
     maxUndoHistoryExceeded?: boolean;
     hasUnsavedChanges?: boolean;
@@ -450,7 +464,7 @@ export default function dashboardStateReducer(
     [SET_AUTO_REFRESH_STATUS]() {
       return {
         ...state,
-        autoRefreshStatus: action.status,
+        autoRefreshStatus: action.status as AutoRefreshStatus,
       };
     },
     [SET_AUTO_REFRESH_PAUSED]() {

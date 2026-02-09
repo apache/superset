@@ -17,77 +17,52 @@
  * under the License.
  */
 
+import { type Dispatch, type SetStateAction } from 'react';
 import { DataMaskStateWithId, JsonObject } from '@superset-ui/core';
-import { Layout } from 'src/dashboard/types';
+import {
+  DashboardInfo as DashboardInfoType,
+  Layout,
+} from 'src/dashboard/types';
 import { ChartState } from 'src/explore/types';
 import { AlertObject } from 'src/features/alerts/types';
 import { ToastMeta } from 'src/components/MessageToasts/types';
-import { TagType } from 'src/components/Tag/TagType';
-import Owner from 'src/types/Owner';
-import Role from 'src/types/Role';
-
-interface DashboardInfo {
-  id: number;
-  userId?: string;
-  dash_edit_perm: boolean;
-  dash_save_perm?: boolean;
-  dash_share_perm?: boolean;
-  dash_export_perm?: boolean;
-  is_managed_externally?: boolean;
-  slug?: string;
-  last_modified_time?: number;
-  certified_by?: string;
-  certification_details?: string;
-  owners?: Owner[];
-  roles?: Role[];
-  tags?: TagType[];
-  metadata?: JsonObject & {
-    timed_refresh_immune_slices?: number[];
-    refresh_frequency?: number;
-  };
-  common?: { conf: JsonObject };
-  theme?: {
-    id: number;
-    name: string;
-  } | null;
-}
 
 type ToastOptions = Partial<Omit<ToastMeta, 'id' | 'toastType' | 'text'>>;
 
 export interface HeaderDropdownProps {
   addSuccessToast: (msg: string, options?: ToastOptions) => void;
   addDangerToast: (msg: string, options?: ToastOptions) => void;
-  customCss: string;
+  customCss?: string;
   colorNamespace?: string;
   colorScheme?: string;
   dashboardId: number;
-  dashboardInfo: DashboardInfo;
-  dashboardTitle: string;
+  dashboardInfo: DashboardInfoType;
+  dashboardTitle?: string;
   editMode: boolean;
-  expandedSlices: Record<number, boolean>;
-  forceRefreshAllCharts: () => void;
+  expandedSlices?: Record<number, boolean>;
+  forceRefreshAllCharts: () => unknown;
   hasUnsavedChanges: boolean;
   isLoading: boolean;
   layout: Layout;
-  onSave: () => void;
+  onSave: (...args: unknown[]) => unknown;
   refreshFrequency: number;
   shouldPersistRefreshFrequency: boolean;
   showPropertiesModal: () => void;
   showRefreshModal: () => void;
-  userCanEdit: boolean;
-  userCanSave: boolean;
-  userCanShare: boolean;
+  userCanEdit: boolean | undefined;
+  userCanSave: boolean | undefined;
+  userCanShare: boolean | undefined;
   userCanCurate: boolean;
-  userCanExport: boolean;
+  userCanExport: boolean | undefined;
   manageEmbedded: () => void;
   dataMask?: DataMaskStateWithId;
   lastModifiedTime: number;
-  logEvent: (eventName: string, eventData: JsonObject) => void;
+  logEvent: (...args: unknown[]) => unknown;
   refreshLimit?: number;
   refreshWarning?: string;
   directPathToChild?: string[];
   showReportModal: () => void;
-  setCurrentReportDeleting: (alert: AlertObject | null) => void;
+  setCurrentReportDeleting: Dispatch<SetStateAction<AlertObject | null>>;
 }
 
 export interface HeaderProps {
@@ -95,18 +70,18 @@ export interface HeaderProps {
   addDangerToast: (msg: string, options?: ToastOptions) => void;
   addWarningToast: (msg: string, options?: ToastOptions) => void;
   colorNamespace?: string;
-  charts: ChartState | {};
+  charts: ChartState | JsonObject;
   colorScheme?: string;
-  customCss: string;
-  user: JsonObject | undefined;
-  dashboardInfo: DashboardInfo;
-  dashboardTitle: string;
+  customCss?: string;
+  user: object | undefined;
+  dashboardInfo: DashboardInfoType;
+  dashboardTitle?: string;
   setColorScheme: () => void;
   setUnsavedChanges: () => void;
   isStarred: boolean;
   isPublished: boolean;
   onChange: () => void;
-  onSave: () => void;
+  onSave: (...args: unknown[]) => unknown;
   fetchFaveStar: () => void;
   saveFaveStar: () => void;
   savePublished: (dashboardId: number, isPublished: boolean) => void;

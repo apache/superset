@@ -976,7 +976,7 @@ export function refreshChart(
         dashboardId,
         getState().dataMask[chart.id]?.ownState,
       ),
-    ) as Promise<void>;
+    ) as unknown as Promise<void>;
   };
 }
 

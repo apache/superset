@@ -248,16 +248,16 @@ describe('dashboardState actions', () => {
   });
 
   test('fetchCharts returns a Promise that resolves after all refreshes', async () => {
-    refreshChart.mockClear();
+    (refreshChart as jest.Mock).mockClear();
     const { getState } = setup({
       dashboardInfo: {
         metadata: {},
         common: { conf: { SUPERSET_WEBSERVER_TIMEOUT: 60 } },
       },
     });
-    const dispatch = action => {
+    const dispatch = (action: unknown): unknown => {
       if (typeof action === 'function') {
-        return action(dispatch, getState);
+        return (action as Function)(dispatch, getState);
       }
       return action;
     };
@@ -270,16 +270,16 @@ describe('dashboardState actions', () => {
 
   test('fetchCharts resolves for staggered refreshes', async () => {
     jest.useFakeTimers();
-    refreshChart.mockClear();
+    (refreshChart as jest.Mock).mockClear();
     const { getState } = setup({
       dashboardInfo: {
         metadata: { stagger_time: 1000, stagger_refresh: true },
         common: { conf: { SUPERSET_WEBSERVER_TIMEOUT: 60 } },
       },
     });
-    const dispatch = action => {
+    const dispatch = (action: unknown): unknown => {
       if (typeof action === 'function') {
-        return action(dispatch, getState);
+        return (action as Function)(dispatch, getState);
       }
       return action;
     };
@@ -300,16 +300,16 @@ describe('dashboardState actions', () => {
         common: { conf: { SUPERSET_WEBSERVER_TIMEOUT: 60 } },
       },
     });
-    const dispatched = [];
-    const dispatch = action => {
+    const dispatched: { type: string }[] = [];
+    const dispatch = (action: unknown): unknown => {
       if (typeof action === 'function') {
-        return action(dispatch, getState);
+        return (action as Function)(dispatch, getState);
       }
-      dispatched.push(action);
+      dispatched.push(action as { type: string });
       return action;
     };
 
-    await onRefresh([1], true, 0, 10)(dispatch);
+    await onRefresh([1], true, 0, 10)(dispatch as never);
 
     expect(dispatched.map(action => action.type)).toEqual(
       expect.arrayContaining([
@@ -327,16 +327,16 @@ describe('dashboardState actions', () => {
         common: { conf: { SUPERSET_WEBSERVER_TIMEOUT: 60 } },
       },
     });
-    const dispatched = [];
-    const dispatch = action => {
+    const dispatched: { type: string }[] = [];
+    const dispatch = (action: unknown): unknown => {
       if (typeof action === 'function') {
-        return action(dispatch, getState);
+        return (action as Function)(dispatch, getState);
       }
-      dispatched.push(action);
+      dispatched.push(action as { type: string });
       return action;
     };
 
-    await onRefresh([1], true, 0, 10, true)(dispatch);
+    await onRefresh([1], true, 0, 10, true)(dispatch as never);
 
     const dispatchedTypes = dispatched.map(action => action.type);
     expect(dispatchedTypes).toEqual(
@@ -352,16 +352,16 @@ describe('dashboardState actions', () => {
         common: { conf: { SUPERSET_WEBSERVER_TIMEOUT: 60 } },
       },
     });
-    const dispatched = [];
-    const dispatch = action => {
+    const dispatched: { type: string }[] = [];
+    const dispatch = (action: unknown): unknown => {
       if (typeof action === 'function') {
-        return action(dispatch, getState);
+        return (action as Function)(dispatch, getState);
       }
-      dispatched.push(action);
+      dispatched.push(action as { type: string });
       return action;
     };
 
-    await onRefresh([1], true, 0, 10, false, true)(dispatch);
+    await onRefresh([1], true, 0, 10, false, true)(dispatch as never);
 
     const dispatchedTypes = dispatched.map(action => action.type);
     expect(dispatchedTypes).toContain(ON_REFRESH_SUCCESS);
