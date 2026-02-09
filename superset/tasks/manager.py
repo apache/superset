@@ -274,7 +274,7 @@ class TaskManager:
         if task.status in cls.TERMINAL_STATES:
             return task
 
-        logger.info(
+        logger.debug(
             "Waiting for task %s to complete (current status=%s, timeout=%s)",
             task_uuid,
             task.status,
@@ -749,13 +749,13 @@ class TaskManager:
                 kwargs=kwargs,
             )
 
-            logger.info(
+            logger.debug(
                 "Scheduled task %s (uuid=%s) for async execution",
                 task_type,
                 task.uuid,
             )
         else:
-            logger.info(
+            logger.debug(
                 "Joined existing task %s (uuid=%s) - no new Celery task scheduled",
                 task_type,
                 task.uuid,
