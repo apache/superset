@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+@import 'antd-theme.less';
 
 body {
   font-family: var(--ifm-font-family-base);
@@ -80,29 +81,26 @@ a > span > svg {
   text-align: center;
   position: relative;
   z-index: 2;
-}
-
-.default-button-theme::before {
-  border-radius: inherit;
-  background: linear-gradient(180deg, #11b0d8 0%, #116f86 100%);
-  content: '';
-  display: block;
-  height: 100%;
-  position: absolute;
-  top: 0;
-  left: 0;
-  opacity: 0;
-  width: 100%;
-  z-index: -1;
-  transition: all 0.3s;
-}
-
-.default-button-theme:hover {
-  color: #ffffff;
-}
-
-.default-button-theme:hover::before {
-  opacity: 1;
+  &::before {
+    border-radius: inherit;
+    background: linear-gradient(180deg, #11b0d8 0%, #116f86 100%);
+    content: '';
+    display: block;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    opacity: 0;
+    width: 100%;
+    z-index: -1;
+    transition: all 0.3s;
+  }
+  &:hover {
+    color: #ffffff;
+    &::before {
+      opacity: 1;
+    }
+  }
 }
 
 /* Navbar */
@@ -111,32 +109,32 @@ a > span > svg {
   font-size: 14px;
   font-weight: 400;
   transition: all 0.5s;
-}
 
-.navbar .get-started-button {
-  border-radius: 10px;
-  font-size: 18px;
-  font-weight: bold;
-  width: 142px;
-  padding: 7px 0;
-  margin-right: 20px;
-}
+  .get-started-button {
+    border-radius: 10px;
+    font-size: 18px;
+    font-weight: bold;
+    width: 142px;
+    padding: 7px 0;
+    margin-right: 20px;
+  }
 
-.navbar .github-button {
-  background-image: url('/img/github.png');
-  background-size: contain;
-  width: 30px;
-  height: 30px;
-  margin-right: 10px;
+  .github-button {
+    background-image: url('/img/github.png');
+    background-size: contain;
+    width: 30px;
+    height: 30px;
+    margin-right: 10px;
+  }
 }
 
 .navbar--dark {
   background-color: transparent;
   border-bottom: 1px solid rgba(24, 115, 132, 0.4);
-}
 
-.navbar--dark .github-button {
-  background-image: url('/img/github-dark.png');
+  .github-button {
+    background-image: url('/img/github-dark.png');
+  }
 }
 
 .navbar__logo {
@@ -155,11 +153,11 @@ a > span > svg {
   .navbar {
     padding-right: 8px;
     padding-left: 8px;
-  }
 
-  .navbar .get-started-button,
-  .navbar .github-button {
-    display: none;
+    .get-started-button,
+    .github-button {
+      display: none;
+    }
   }
 
   .navbar__items {
@@ -188,20 +186,20 @@ a > span > svg {
   --docsearch-searchbox-background: var(--ifm-navbar-background-color);
   border: 1px solid #187384;
   border-radius: 10px;
-}
 
-.navbar .DocSearch.DocSearch-Button {
-  width: 225px;
-}
+  &.DocSearch-Button {
+    width: 225px;
+  }
 
-.navbar .DocSearch .DocSearch-Search-Icon {
-  width: 16px;
-  height: 16px;
-}
+  .DocSearch-Search-Icon {
+    width: 16px;
+    height: 16px;
+  }
 
-.navbar .DocSearch .DocSearch-Button-Key,
-.navbar .DocSearch .DocSearch-Button-Placeholder {
-  display: none;
+  .DocSearch-Button-Key,
+  .DocSearch-Button-Placeholder {
+    display: none;
+  }
 }
 
 .navbar--dark .DocSearch {
@@ -234,25 +232,25 @@ a > span > svg {
   align-items: center;
   justify-content: center;
   gap: 16px;
-}
 
-.footer__ci-services span {
-  font-size: 13px;
-  opacity: 0.85;
-}
+  span {
+    font-size: 13px;
+    opacity: 0.85;
+  }
 
-.footer__ci-services a {
-  display: inline-flex;
-  align-items: center;
-  transition: opacity 0.2s;
-}
+  a {
+    display: inline-flex;
+    align-items: center;
+    transition: opacity 0.2s;
 
-.footer__ci-services a:hover {
-  opacity: 0.8;
-}
+    &:hover {
+      opacity: 0.8;
+    }
+  }
 
-.footer__ci-services img {
-  height: 28px;
+  img {
+    height: 28px;
+  }
 }
 
 .footer__divider {
@@ -270,13 +268,13 @@ a > span > svg {
   .footer__ci-services {
     gap: 12px;
     padding: 10px 16px;
-  }
 
-  .footer__ci-services span {
-    font-size: 12px;
-  }
+    span {
+      font-size: 12px;
+    }
 
-  .footer__ci-services img {
-    height: 22px;
+    img {
+      height: 22px;
+    }
   }
 }

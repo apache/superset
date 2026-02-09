@@ -24,9 +24,9 @@ import {
   ControlConfig,
   ControlPanelState,
   ControlState,
-  ColorSchemeEnum,
 } from '@superset-ui/chart-controls';
 import config from '../src/controlPanel';
+import { ColorSchemeEnum } from '../src/types';
 
 const findConditionalFormattingControl = (): ControlConfig | null => {
   for (const section of config.controlPanelSections) {

@@ -161,6 +161,10 @@ if (!versionsConfig.developer_portal.disabled && !versionsConfig.developer_porta
         label: 'API Reference',
         href: '/docs/api',
       },
+      {
+        label: 'API Reference',
+        href: '/docs/api',
+      },
     ],
   });
 }
@@ -301,6 +305,29 @@ const config: Config = {
             disallow: ['/api/v1/', '/_next/', '/static/js/*.map'],
           },
         ],
+      },
+    ],
+    [
+      'docusaurus-plugin-openapi-docs',
+      {
+        id: 'api',
+        docsPluginId: 'classic',
+        config: {
+          superset: {
+            specPath: 'static/resources/openapi.json',
+            outputDir: 'docs/api',
+            sidebarOptions: {
+              groupPathsBy: 'tag',
+              categoryLinkSource: 'tag',
+              sidebarCollapsible: true,
+              sidebarCollapsed: true,
+            },
+            showSchemas: true,
+            hideSendButton: true,
+            showInfoPage: false,
+            showExtensions: true,
+          } satisfies OpenApiPlugin.Options,
+        },
       },
     ],
     [
