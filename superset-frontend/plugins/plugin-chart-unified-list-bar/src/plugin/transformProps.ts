@@ -55,6 +55,7 @@ export default function transformProps(chartProps: ChartProps): UnifiedListBarCh
         maxMetricColumn,
         severityColumn,
         colorColumn,
+        displayValueColumn,
         rowsPerItem = '2',
         alignMetric = 'right',
         showBar = true,
@@ -63,6 +64,7 @@ export default function transformProps(chartProps: ChartProps): UnifiedListBarCh
         keyColor,
         keySubFontSize = 11,
         secondaryFontSize = 12,
+        displayValueFontSize = 24,
         barColorPositive,
         barColorNegative,
         conditionalColorRules,
@@ -77,7 +79,7 @@ export default function transformProps(chartProps: ChartProps): UnifiedListBarCh
     console.log('keySubColumn:', keySubColumn);
     console.log('colorColumn:', colorColumn);
     console.log('metricColumn:', metricColumn);
-    console.log('keyFontSize:', keyFontSize, 'secondaryFontSize:', secondaryFontSize);
+    console.log('displayValueColumn:', displayValueColumn);
 
     // Extract clean column names
     const keyColumnName = getColumnName(keyColumn);
@@ -87,6 +89,7 @@ export default function transformProps(chartProps: ChartProps): UnifiedListBarCh
     const maxMetricColumnName = getColumnName(maxMetricColumn);
     const severityColumnName = getColumnName(severityColumn);
     const colorColumnName = getColumnName(colorColumn);
+    const displayValueColumnName = getColumnName(displayValueColumn);
 
     const customize: UnifiedListBarChartCustomizeProps = {
         keyColumn: keyColumnName,
@@ -96,6 +99,7 @@ export default function transformProps(chartProps: ChartProps): UnifiedListBarCh
         maxMetricColumn: maxMetricColumnName || undefined,
         severityColumn: severityColumnName || undefined,
         colorColumn: colorColumnName || undefined,
+        displayValueColumn: displayValueColumnName || undefined,
         rowsPerItem: rowsPerItem,
         alignMetric: alignMetric,
         showBar: showBar,
@@ -104,6 +108,7 @@ export default function transformProps(chartProps: ChartProps): UnifiedListBarCh
         keyColor: rgbaToString(keyColor),
         keySubFontSize: Number(keySubFontSize) || 11,
         secondaryFontSize: Number(secondaryFontSize) || 12,
+        displayValueFontSize: Number(displayValueFontSize) || 24,
         barColorPositive: rgbaToString(barColorPositive),
         barColorNegative: rgbaToString(barColorNegative),
         conditionalColorRules: typeof conditionalColorRules === 'string'

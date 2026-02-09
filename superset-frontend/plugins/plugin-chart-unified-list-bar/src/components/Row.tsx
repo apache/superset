@@ -27,10 +27,8 @@ import {
     SecondaryFieldsContainer,
     SecondaryField,
     BarSection,
-    MetricValue,
     BarContainer,
     BarFill,
-    IconContainer,
 } from '../styles';
 import { UnifiedListBarChartCustomizeProps } from '../types';
 
@@ -40,8 +38,8 @@ const getSeverityIcon = (severityValue: any) => {
     switch (numVal) {
         case 0: return null; // No icon
         case 1: return { icon: '⚠', color: '#f39c12' }; // Warning - yellow/orange
-        case 2: return { icon: '✖', color: '#e74c3c' }; // Error - red
-        case 3: return { icon: '🔥', color: '#c0392b' }; // Critical - dark red
+        case 2: return { icon: '⚠', color: '#0e0d0df' }; // Error - redish black (per user's edited Row.tsx)
+        case 3: return { icon: '⚠', color: '#c0392b' }; // Critical - dark red
         default: return null;
     }
 };
@@ -71,26 +69,16 @@ export const Row: React.FC<RowProps> = ({ record, customize, maxMetricValue }) =
         maxMetricColumn,
         severityColumn,
         colorColumn,
+        displayValueColumn,
         rowsPerItem,
         showBar,
-        showMetricValue,
         keyFontSize,
         keyColor,
         keySubFontSize,
         secondaryFontSize,
+        displayValueFontSize,
         barColorPositive,
     } = customize;
-
-    // DEBUG: Log all customize values
-    console.log('=== ROW DEBUG ===');
-    console.log('keyColumn:', keyColumn);
-    console.log('keySubColumn:', keySubColumn);
-    console.log('colorColumn:', colorColumn);
-    console.log('metricColumn:', metricColumn);
-    console.log('showBar:', showBar, 'showMetricValue:', showMetricValue);
-    console.log('keyFontSize:', keyFontSize, 'keySubFontSize:', keySubFontSize, 'secondaryFontSize:', secondaryFontSize);
-    console.log('record keys:', Object.keys(record));
-    console.log('record:', record);
 
     let effectiveKeyColumn = keyColumn;
 
@@ -100,7 +88,6 @@ export const Row: React.FC<RowProps> = ({ record, customize, maxMetricValue }) =
     }
 
     // FALLBACK: If no secondary columns configured, auto-discover from record
-    // EXCLUDE: key column, key sub column, metric column, max metric column, severity column, color column
     let effectiveSecondaryColumns = secondaryColumns;
     if (!effectiveSecondaryColumns || effectiveSecondaryColumns.length === 0) {
         const excludedColumns = [
@@ -110,6 +97,7 @@ export const Row: React.FC<RowProps> = ({ record, customize, maxMetricValue }) =
             maxMetricColumn,
             severityColumn,
             colorColumn,
+            displayValueColumn,
         ].filter(Boolean);
 
         effectiveSecondaryColumns = Object.keys(record).filter(key => !excludedColumns.includes(key));
@@ -119,21 +107,13 @@ export const Row: React.FC<RowProps> = ({ record, customize, maxMetricValue }) =
     const keySubValue = keySubColumn ? record[keySubColumn] : undefined;
     const metricValue = metricColumn ? (record[metricColumn] as number) : 0;
     const severityValue = severityColumn ? record[severityColumn] : undefined;
+    const displayValue = displayValueColumn ? record[displayValueColumn] : undefined;
 
     // Get color from data column if specified, otherwise use default/configured color
     const rawColorValue = colorColumn ? record[colorColumn] : null;
     const dataColor = colorColumn ? ensureHexColor(rawColorValue) : null;
     const effectiveKeyColor = dataColor || keyColor || '#000000';
     const effectiveBarColor = dataColor || barColorPositive || '#4caf50';
-
-    // DEBUG: Log extracted values
-    console.log('keyValue:', keyValue);
-    console.log('keySubValue:', keySubValue);
-    console.log('metricValue:', metricValue);
-    console.log('rawColorValue:', rawColorValue, '-> dataColor:', dataColor);
-    console.log('effectiveKeyColor:', effectiveKeyColor);
-    console.log('effectiveBarColor:', effectiveBarColor);
-    console.log('maxMetricValue:', maxMetricValue);
 
     // DEBUG: If key value is undefined, show error
     if (keyValue === undefined) {
@@ -155,7 +135,7 @@ export const Row: React.FC<RowProps> = ({ record, customize, maxMetricValue }) =
     const percent = maxMetricValue > 0 ? Math.min((metricValue / maxMetricValue) * 100, 100) : 0;
 
     // Determine if we should show bar section
-    const hasBarData = metricColumn && (showBar || showMetricValue);
+    const hasBarData = metricColumn && showBar;
 
     return (
         <RowContainer rowsPerItem={rowsPerItem}>
@@ -171,35 +151,57 @@ export const Row: React.FC<RowProps> = ({ record, customize, maxMetricValue }) =
                 )}
             </KeySection>
 
-            {/* Right: Content area with secondary columns and bar */}
+            {/* Right: Content Section containing secondary info, value, and bar */}
             <ContentSection>
-                {/* Secondary columns stacked vertically */}
-                <SecondaryFieldsContainer>
-                    {effectiveSecondaryColumns.map((col) => (
-                        <SecondaryField key={col} fontSize={secondaryFontSize}>
-                            {safeHtmlSpan(String(record[col]))}
-                        </SecondaryField>
-                    ))}
-                </SecondaryFieldsContainer>
+                {/* Horizontal row for secondary fields (left) and display value (right) */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%' }}>
+                    <SecondaryFieldsContainer>
+                        {effectiveSecondaryColumns.map((col) => (
+                            <SecondaryField key={col} fontSize={secondaryFontSize}>
+                                {safeHtmlSpan(String(record[col]))}
+                            </SecondaryField>
+                        ))}
+                    </SecondaryFieldsContainer>
 
-                {/* Bar section below secondary columns */}
+                    {/* Right-aligned Display Value and Icon */}
+                    {(displayValue !== undefined || severityDisplay) && (
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px',
+                            marginLeft: '16px',
+                            textAlign: 'right'
+                        }}>
+                            {displayValue !== undefined && (
+                                <span style={{
+                                    fontSize: `${displayValueFontSize}px`,
+                                    fontWeight: 'bold',
+                                    color: '#777777', // Grayish as in the image
+                                }}>
+                                    {displayValue}
+                                </span>
+                            )}
+                            <span style={{
+                                color: severityDisplay ? severityDisplay.color : undefined, // Apply color if severityDisplay exists
+                                fontSize: '24px', // Standard icon size
+                                display: 'flex',
+                                alignItems: 'center',
+                                width: '24px',    // Fixed width reservation
+                                justifyContent: 'center',
+                                visibility: severityDisplay ? 'visible' : 'hidden' // Hide but keep space
+                            }}>
+                                {severityDisplay ? severityDisplay.icon : '⚠'}
+                            </span>
+                        </div>
+                    )}
+                </div>
+
+                {/* Bar below secondary columns and display value */}
                 {hasBarData && (
                     <BarSection>
-                        {showBar && (
-                            <BarContainer>
-                                <BarFill width={percent} color={effectiveBarColor} />
-                            </BarContainer>
-                        )}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
-                            {showMetricValue && <MetricValue>{metricValue}</MetricValue>}
-                            {severityDisplay && (
-                                <IconContainer>
-                                    <span style={{ color: severityDisplay.color, fontSize: '18px' }}>
-                                        {severityDisplay.icon}
-                                    </span>
-                                </IconContainer>
-                            )}
-                        </div>
+                        <BarContainer>
+                            <BarFill width={percent} color={effectiveBarColor} />
+                        </BarContainer>
                     </BarSection>
                 )}
             </ContentSection>

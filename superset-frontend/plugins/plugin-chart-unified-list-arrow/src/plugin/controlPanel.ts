@@ -29,11 +29,22 @@ const config: ControlPanelConfig = {
             controlSetRows: [
                 [
                     {
+                        name: 'status_column',
+                        config: {
+                            ...sharedControls.groupby,
+                            label: t('Status Column'),
+                            description: t('Optional status text (displayed above key)'),
+                            multi: false,
+                        },
+                    },
+                ],
+                [
+                    {
                         name: 'key_column',
                         config: {
                             ...sharedControls.groupby,
                             label: t('Key Column'),
-                            description: t('Primary identifier for the row (displayed bold on the left)'),
+                            description: t('Primary identifier for the row'),
                             multi: false,
                             validators: [validateNonEmpty],
                         },
@@ -52,67 +63,61 @@ const config: ControlPanelConfig = {
                 ],
                 [
                     {
+                        name: 'arrow_text_column',
+                        config: {
+                            ...sharedControls.groupby,
+                            label: t('Arrow Text Column'),
+                            description: t('Text to display inside the arrow'),
+                            multi: false,
+                        },
+                    },
+                ],
+                [
+                    {
+                        name: 'arrow_color_column',
+                        config: {
+                            ...sharedControls.groupby,
+                            label: t('Arrow Color Column'),
+                            description: t('Column containing hex color codes for the arrow'),
+                            multi: false,
+                        },
+                    },
+                ],
+                [
+                    {
                         name: 'secondary_columns',
                         config: {
                             ...sharedControls.groupby,
-                            label: t('Secondary Columns'),
-                            description: t('Additional fields to display'),
-                            multi: true,
-                            maxItems: 5,
-                        },
-                    },
-                ],
-                [
-                    {
-                        name: 'metric_column',
-                        config: {
-                            ...sharedControls.groupby,
-                            label: t('Metric Column'),
-                            description: t('Numeric field for bar and value display'),
+                            label: t('Secondary Column'),
+                            description: t('First column on the right side'),
+                            multi: true, // Keeping multi to be safe with types/legacy, but user said "Secondary and Tertiary" - actually user said "two more columns... secondary and tertiary". Multi might be easier if they want more, but request creates specific layout slots. I'll use multi for flexibility or stick to single if I want strict slots.
+                            // The request says: "there will be two more columns which we will show as seconday and tertiary column."
+                            // If I use multi, I can just take the first two.
+                            // But I added `tertiaryColumn` to types. I should probably use `tertiary_column` control.
+                            // So I will make this `secondary_column` (singular name in label, but maybe code uses `secondary_columns` array? I'll stick to `secondary_columns` for now to minimize breakage if I can't change types easily, but I DID change types).
+                            // I'll make it `secondary_column` single select.
                             multi: false,
                         },
                     },
                 ],
                 [
                     {
-                        name: 'max_metric_column',
+                        name: 'tertiary_column',
                         config: {
                             ...sharedControls.groupby,
-                            label: t('Max Metric Column'),
-                            description: t('Optional column for calculating bar percentage'),
+                            label: t('Tertiary Column'),
+                            description: t('Second column on the right side'),
                             multi: false,
                         },
                     },
                 ],
                 [
                     {
-                        name: 'severity_column',
+                        name: 'end_column',
                         config: {
                             ...sharedControls.groupby,
-                            label: t('Severity Column'),
-                            description: t('Column to determine severity icon (values 0=none, 1=warning, 2=error, 3=critical)'),
-                            multi: false,
-                        },
-                    },
-                ],
-                [
-                    {
-                        name: 'color_column',
-                        config: {
-                            ...sharedControls.groupby,
-                            label: t('Color Column'),
-                            description: t('Column containing hex color codes for key and bar (e.g., ff5733)'),
-                            multi: false,
-                        },
-                    },
-                ],
-                [
-                    {
-                        name: 'display_value_column',
-                        config: {
-                            ...sharedControls.groupby,
-                            label: t('Display Value Column'),
-                            description: t('Optional column for a numeric value to show on the right (e.g. Pour Count)'),
+                            label: t('End Column'),
+                            description: t('Column displayed at the far right end'),
                             multi: false,
                         },
                     },
@@ -136,43 +141,6 @@ const config: ControlPanelConfig = {
                                 ['1', '1 Row'],
                                 ['2', '2 Rows'],
                             ],
-                            renderTrigger: true,
-                        },
-                    },
-                ],
-                [
-                    {
-                        name: 'align_metric',
-                        config: {
-                            type: 'SelectControl',
-                            label: t('Align Metric'),
-                            default: 'right',
-                            choices: [
-                                ['left', 'Left'],
-                                ['right', 'Right'],
-                            ],
-                            renderTrigger: true,
-                        },
-                    },
-                ],
-                [
-                    {
-                        name: 'show_bar',
-                        config: {
-                            type: 'CheckboxControl',
-                            label: t('Show Bar'),
-                            default: true,
-                            renderTrigger: true,
-                        },
-                    },
-                ],
-                [
-                    {
-                        name: 'show_metric_value',
-                        config: {
-                            type: 'CheckboxControl',
-                            label: t('Show Metric Value'),
-                            default: true,
                             renderTrigger: true,
                         },
                     },
@@ -223,7 +191,7 @@ const config: ControlPanelConfig = {
                         name: 'secondary_font_size',
                         config: {
                             type: 'TextControl',
-                            label: t('Secondary Font Size'),
+                            label: t('Right Columns Font Size'),
                             default: 12,
                             renderTrigger: true,
                             isInt: true,
@@ -235,46 +203,13 @@ const config: ControlPanelConfig = {
                         name: 'display_value_font_size',
                         config: {
                             type: 'TextControl',
-                            label: t('Display Value Font Size'),
+                            label: t('End Column Font Size'),
                             default: 24,
                             renderTrigger: true,
                             isInt: true,
                         },
                     },
                 ],
-                [
-                    {
-                        name: 'bar_color_positive',
-                        config: {
-                            type: 'ColorPickerControl',
-                            label: t('Bar Color (Positive)'),
-                            default: { r: 50, g: 200, b: 50, a: 1 },
-                            renderTrigger: true,
-                        },
-                    },
-                ],
-                [
-                    {
-                        name: 'conditional_color_rules',
-                        config: {
-                            type: 'TextControl',
-                            label: t('Conditional Color Rules (JSON)'),
-                            description: t('e.g. [{"value": 10, "color": "red"}]'),
-                            renderTrigger: true,
-                        }
-                    }
-                ],
-                [
-                    {
-                        name: 'icon_rules',
-                        config: {
-                            type: 'TextControl',
-                            label: t('Icon Rules (JSON)'),
-                            description: t('e.g. [{"value": 0, "icon": "check", "color": "green"}]'),
-                            renderTrigger: true,
-                        }
-                    }
-                ]
             ],
         },
     ],

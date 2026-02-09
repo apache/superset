@@ -38,14 +38,14 @@ const ensureColumnLabel = (column: any) => {
 
 export default function buildQuery(formData: QueryFormData) {
     const {
+        status_column,
         key_column,
         key_sub_column,
-        secondary_columns = [],
-        metric_column,
-        max_metric_column,
-        severity_column,
-        color_column,
-        display_value_column,
+        arrow_text_column,
+        arrow_color_column,
+        secondary_columns,
+        tertiary_column,
+        end_column,
     } = formData;
 
     // Force raw records mode
@@ -60,21 +60,21 @@ export default function buildQuery(formData: QueryFormData) {
         // ensureIsArray handles both single strings ('col') and arrays of strings (['col']) safely
         // filter(Boolean) ensures that optional columns that are not selected (null/undefined) are NOT included in the query
         const rawColumns = uniq([
+            ...ensureIsArray(status_column),
             ...ensureIsArray(key_column),
             ...ensureIsArray(key_sub_column),
+            ...ensureIsArray(arrow_text_column),
+            ...ensureIsArray(arrow_color_column),
             ...ensureIsArray(secondary_columns),
-            ...ensureIsArray(metric_column),
-            ...ensureIsArray(max_metric_column),
-            ...ensureIsArray(severity_column),
-            ...ensureIsArray(color_column),
-            ...ensureIsArray(display_value_column),
+            ...ensureIsArray(tertiary_column),
+            ...ensureIsArray(end_column),
         ]).filter(Boolean);
 
-        console.log('UnifiedListBarChart plugin buildQuery rawColumns (flattened):', JSON.stringify(rawColumns, null, 2));
+        console.log('UnifiedListArrowChart plugin buildQuery rawColumns (flattened):', JSON.stringify(rawColumns, null, 2));
 
         const columns = rawColumns.map(col => {
             const result = ensureColumnLabel(col);
-            console.log('UnifiedListBarChart plugin ensureColumnLabel input:', JSON.stringify(col), 'output:', JSON.stringify(result));
+            console.log('UnifiedListArrowChart plugin ensureColumnLabel input:', JSON.stringify(col), 'output:', JSON.stringify(result));
             return result;
         });
 

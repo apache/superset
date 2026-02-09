@@ -28,7 +28,13 @@ export interface UnifiedListBarChartStylesProps {
 export interface UnifiedListBarChartCustomizeProps {
     keyColumn: string;
     keySubColumn?: string;
-    secondaryColumns: string[];
+    statusColumn?: string;
+    arrowTextColumn?: string;
+    arrowColorColumn?: string;
+    secondaryColumns?: string[];
+    tertiaryColumn?: string;
+    endColumn?: string;
+
     metricColumn?: string;
     maxMetricColumn?: string;
     severityColumn?: string;

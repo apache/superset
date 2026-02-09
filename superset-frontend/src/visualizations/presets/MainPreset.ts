@@ -89,6 +89,7 @@ import { ChartCustomizationPlugins, FilterPlugins } from 'src/constants';
 import AgGridTableChartPlugin from '@superset-ui/plugin-chart-ag-grid-table';
 import TimeTableChartPlugin from '../TimeTable';
 import UnifiedListBarChartPlugin from '@superset-ui/plugin-chart-unified-list-bar';
+import UnifiedListArrowChartPlugin from '@superset-ui/plugin-chart-unified-list-arrow';
 
 export default class MainPreset extends Preset {
   constructor() {
@@ -111,6 +112,7 @@ export default class MainPreset extends Preset {
       presets: [new DeckGLChartPreset()],
       plugins: [
         new UnifiedListBarChartPlugin().configure({ key: VizType.UnifiedListBar }),
+        new UnifiedListArrowChartPlugin().configure({ key: VizType.UnifiedListArrow }),
         new BigNumberChartPlugin().configure({ key: VizType.BigNumber }),
         new BigNumberTotalChartPlugin().configure({
           key: VizType.BigNumberTotal,

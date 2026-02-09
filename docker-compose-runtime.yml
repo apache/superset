@@ -1,0 +1,80 @@
+version: "3.9"
+
+x-superset-user: &superset-user root
+x-superset-volumes: &superset-volumes
+  - superset_home:/app/superset_home
+  - superset_data:/app/data
+
+services:
+  nginx:
+    image: nginx:latest
+    restart: unless-stopped
+    ports:
+      - "${NGINX_PORT:-80}:80"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/templates:/etc/nginx/templates:ro
+    depends_on:
+      - superset
+
+  redis:
+    image: redis:7
+    restart: unless-stopped
+    volumes:
+      - redis:/data
+
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DATABASE_DB:-superset}
+      POSTGRES_USER: ${DATABASE_USER:-superset}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-superset}
+    volumes:
+      - db_home:/var/lib/postgresql/data
+
+  superset:
+    image: apache/superset:latest   # or pin version e.g. apache/superset:4.1.0
+    restart: unless-stopped
+    user: *superset-user
+    env_file:
+      - docker/.env
+      - docker/.env-local
+    command: ["/app/docker/docker-bootstrap.sh", "app"]
+    ports:
+      - "${SUPERSET_PORT:-8088}:8088"
+    depends_on:
+      - db
+      - redis
+    volumes: *superset-volumes
+
+  superset-worker:
+    image: apache/superset:latest
+    restart: unless-stopped
+    user: *superset-user
+    env_file:
+      - docker/.env
+      - docker/.env-local
+    command: ["/app/docker/docker-bootstrap.sh", "worker"]
+    depends_on:
+      - superset
+      - redis
+    volumes: *superset-volumes
+
+  superset-worker-beat:
+    image: apache/superset:latest
+    restart: unless-stopped
+    user: *superset-user
+    env_file:
+      - docker/.env
+      - docker/.env-local
+    command: ["/app/docker/docker-bootstrap.sh", "beat"]
+    depends_on:
+      - superset-worker
+    volumes: *superset-volumes
+
+volumes:
+  superset_home:
+  superset_data:
+  db_home:
+  redis:
