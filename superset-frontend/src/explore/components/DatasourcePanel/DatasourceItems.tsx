@@ -105,6 +105,14 @@ export const DatasourceItems = ({
     ),
   );
 
+  useEffect(() => {
+    setCollapsedFolderIds(
+      new Set(
+        folders.filter(folder => folder.isCollapsed).map(folder => folder.id),
+      ),
+    );
+  }, [folders]);
+
   const { flattenedItems, folderMap } = useMemo(
     () => flattenFolderStructure(folders, collapsedFolderIds),
     [folders, collapsedFolderIds],
