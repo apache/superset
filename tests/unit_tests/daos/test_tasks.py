@@ -418,3 +418,86 @@ def test_get_status_not_found(session_with_task: Session) -> None:
     result = TaskDAO.get_status(UUID("00000000-0000-0000-0000-000000000000"))
 
     assert result is None
+
+
+def test_conditional_status_update_non_terminal_state_keeps_dedup_key(
+    session_with_task: Session,
+) -> None:
+    """Test that conditional_status_update preserves dedup_key for
+    non-terminal transitions"""
+    from superset.daos.tasks import TaskDAO
+
+    # Create task in PENDING state
+    task = create_task(
+        session_with_task,
+        task_uuid=TASK_UUID,
+        task_key="non-terminal-test-task",
+        status=TaskStatus.PENDING,
+    )
+
+    # Store original active dedup_key
+    original_dedup_key = task.dedup_key
+
+    # Transition to non-terminal state (IN_PROGRESS)
+    result = TaskDAO.conditional_status_update(
+        task_uuid=TASK_UUID,
+        new_status=TaskStatus.IN_PROGRESS,
+        expected_status=TaskStatus.PENDING,
+        set_started_at=True,
+    )
+
+    # Should succeed
+    assert result is True
+
+    # Refresh task and verify dedup_key was NOT changed
+    session_with_task.refresh(task)
+    assert task.status == TaskStatus.IN_PROGRESS.value
+    assert task.dedup_key == original_dedup_key  # Should remain the same
+    assert task.started_at is not None
+
+
+@pytest.mark.parametrize(
+    "terminal_state",
+    [
+        TaskStatus.SUCCESS,
+        TaskStatus.FAILURE,
+        TaskStatus.ABORTED,
+        TaskStatus.TIMED_OUT,
+    ],
+)
+def test_conditional_status_update_terminal_state_updates_dedup_key(
+    session_with_task: Session, terminal_state: TaskStatus
+) -> None:
+    """Test that terminal states (SUCCESS, FAILURE, ABORTED, TIMED_OUT)
+    update dedup_key"""
+    from superset.daos.tasks import TaskDAO
+
+    task = create_task(
+        session_with_task,
+        task_uuid=TASK_UUID,
+        task_key=f"terminal-test-{terminal_state.value}",
+        status=TaskStatus.IN_PROGRESS,
+    )
+
+    original_dedup_key = task.dedup_key
+    expected_finished_key = get_finished_dedup_key(TASK_UUID)
+
+    # Transition to terminal state
+    result = TaskDAO.conditional_status_update(
+        task_uuid=TASK_UUID,
+        new_status=terminal_state,
+        expected_status=TaskStatus.IN_PROGRESS,
+        set_ended_at=True,
+    )
+
+    assert result is True, f"Failed to update to {terminal_state.value}"
+
+    # Verify dedup_key was updated
+    session_with_task.refresh(task)
+    assert task.status == terminal_state.value
+    assert (
+        task.dedup_key == expected_finished_key
+    ), f"dedup_key not updated for {terminal_state.value}"
+    assert (
+        task.dedup_key != original_dedup_key
+    ), f"dedup_key should have changed for {terminal_state.value}"
