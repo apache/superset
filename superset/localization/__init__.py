@@ -19,6 +19,7 @@
 from superset.localization.api_utils import localize_list_response
 from superset.localization.locale_utils import get_user_locale, parse_accept_language
 from superset.localization.localizable_mixin import LocalizableMixin
+from superset.localization.metric_label_utils import localize_metric_labels
 from superset.localization.native_filter_utils import localize_native_filters
 from superset.localization.sanitization import (
     sanitize_translation_value,
@@ -33,6 +34,7 @@ from superset.localization.validation import validate_translations
 __all__ = [
     "LocalizableMixin",
     "get_localized_chart_name",
+    "localize_metric_labels",
     "get_user_locale",
     "localize_list_response",
     "localize_chart_names",

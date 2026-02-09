@@ -17,18 +17,27 @@
  * under the License.
  */
 import {
+  ChangeEvent,
   ChangeEventHandler,
   FocusEvent,
   KeyboardEvent,
   useCallback,
+  useEffect,
+  useRef,
   useState,
   FC,
 } from 'react';
+import { useSelector } from 'react-redux';
 
-import { t } from '@apache-superset/core';
-import { styled, useTheme } from '@apache-superset/core/ui';
+import { logging, t } from '@apache-superset/core';
+import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
+import { css, styled, useTheme } from '@apache-superset/core/ui';
 import { Input, Tooltip } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
+import { SupersetClient } from '@superset-ui/core/connection';
+
+import { LocaleSwitcher, DEFAULT_LOCALE_KEY } from 'src/components/TranslationEditor';
+import type { Translations, LocaleInfo } from 'src/types/Localization';
 
 const TitleLabel = styled.span`
   display: inline-block;
@@ -48,16 +57,65 @@ export interface AdhocMetricEditPopoverTitleProps {
   };
   isEditDisabled?: boolean;
   onChange: ChangeEventHandler<HTMLInputElement>;
+  /** Inline translations for the metric label. */
+  translations?: Translations;
+  /** Callback when translations are modified via locale switcher. */
+  onTranslationsChange?: (translations: Translations) => void;
 }
 
 const AdhocMetricEditPopoverTitle: FC<AdhocMetricEditPopoverTitleProps> = ({
   title,
   isEditDisabled,
   onChange,
+  translations: translationsProp,
+  onTranslationsChange,
 }) => {
   const theme = useTheme();
   const [isHovered, setIsHovered] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
+
+  const localizationEnabled = isFeatureEnabled(
+    FeatureFlag.EnableContentLocalization,
+  );
+
+  // Locale data for LocaleSwitcher
+  const [allLocales, setAllLocales] = useState<LocaleInfo[]>([]);
+  const [defaultLocale, setDefaultLocale] = useState('');
+  const userLocale: string = useSelector(
+    (state: { common: { locale: string } }) => state.common.locale,
+  );
+  const [activeLocale, setActiveLocale] = useState(DEFAULT_LOCALE_KEY);
+  const [localesLoaded, setLocalesLoaded] = useState(false);
+
+  const translations = translationsProp ?? {};
+  const translationsRef = useRef(translations);
+  translationsRef.current = translations;
+
+  useEffect(() => {
+    if (!localizationEnabled) return;
+    SupersetClient.get({
+      endpoint: '/api/v1/localization/available_locales',
+    }).then(
+      response => {
+        const { locales, default_locale } = response.json.result;
+        setAllLocales(locales);
+        setDefaultLocale(default_locale);
+        setLocalesLoaded(true);
+      },
+      err => logging.error('Failed to fetch available locales', err),
+    );
+  }, [localizationEnabled]);
+
+  // Initialize activeLocale once when locales load
+  useEffect(() => {
+    if (!localesLoaded || !userLocale) return;
+    const labelTranslations = translationsRef.current.label;
+    if (labelTranslations?.[userLocale]) {
+      setActiveLocale(userLocale);
+    } else {
+      setActiveLocale(DEFAULT_LOCALE_KEY);
+    }
+  }, [localesLoaded, userLocale]);
 
   const defaultLabel = t('My metric');
 
@@ -87,6 +145,33 @@ const AdhocMetricEditPopoverTitle: FC<AdhocMetricEditPopoverTitleProps> = ({
     [onChange, handleBlur],
   );
 
+  const isLocaleMode = activeLocale !== DEFAULT_LOCALE_KEY;
+
+  const handleLocaleInputChange = useCallback(
+    (e: ChangeEvent<HTMLInputElement>) => {
+      if (!isLocaleMode || !onTranslationsChange) return;
+      const newValue = e.target.value;
+      const updated: Translations = {
+        ...translations,
+        label: {
+          ...(translations.label ?? {}),
+          [activeLocale]: newValue,
+        },
+      };
+      onTranslationsChange(updated);
+    },
+    [isLocaleMode, activeLocale, translations, onTranslationsChange],
+  );
+
+  const localeInputValue = isLocaleMode
+    ? (translations.label?.[activeLocale] ?? '')
+    : '';
+
+  const showLocaleSwitcher =
+    localizationEnabled &&
+    allLocales.length > 0 &&
+    title?.hasCustomLabel;
+
   if (isEditDisabled) {
     return (
       <span data-test="AdhocMetricTitle">{title?.label || defaultLabel}</span>
@@ -95,16 +180,43 @@ const AdhocMetricEditPopoverTitle: FC<AdhocMetricEditPopoverTitleProps> = ({
 
   if (isEditMode) {
     return (
-      <StyledInput
-        type="text"
-        placeholder={title?.label}
-        value={title?.hasCustomLabel ? title.label : ''}
-        autoFocus
-        onChange={onChange}
-        onBlur={handleInputBlur}
-        onKeyPress={handleKeyPress}
-        data-test="AdhocMetricEditTitle#input"
-      />
+      <span
+        css={css`
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        `}
+      >
+        <StyledInput
+          type="text"
+          placeholder={title?.label}
+          value={
+            isLocaleMode
+              ? localeInputValue
+              : title?.hasCustomLabel
+                ? title.label
+                : ''
+          }
+          autoFocus
+          onChange={isLocaleMode ? handleLocaleInputChange : onChange}
+          onBlur={handleInputBlur}
+          onKeyPress={handleKeyPress}
+          data-test="AdhocMetricEditTitle#input"
+        />
+        {showLocaleSwitcher && (
+          <LocaleSwitcher
+            fieldName="label"
+            defaultValue={title?.label ?? ''}
+            translations={translations}
+            allLocales={allLocales}
+            defaultLocale={defaultLocale}
+            userLocale={userLocale}
+            activeLocale={activeLocale}
+            onLocaleChange={setActiveLocale}
+            fieldLabel={t('Metric Label')}
+          />
+        )}
+      </span>
     );
   }
 
@@ -119,6 +231,11 @@ const AdhocMetricEditPopoverTitle: FC<AdhocMetricEditPopoverTitleProps> = ({
         onBlur={handleBlur}
         role="button"
         tabIndex={0}
+        css={css`
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+        `}
       >
         <TitleLabel>{title?.label || defaultLabel}</TitleLabel>
         &nbsp;
@@ -126,6 +243,19 @@ const AdhocMetricEditPopoverTitle: FC<AdhocMetricEditPopoverTitleProps> = ({
           iconColor={isHovered ? theme.colorPrimary : theme.colorIcon}
           iconSize="m"
         />
+        {showLocaleSwitcher && (
+          <LocaleSwitcher
+            fieldName="label"
+            defaultValue={title?.label ?? ''}
+            translations={translations}
+            allLocales={allLocales}
+            defaultLocale={defaultLocale}
+            userLocale={userLocale}
+            activeLocale={activeLocale}
+            onLocaleChange={setActiveLocale}
+            fieldLabel={t('Metric Label')}
+          />
+        )}
       </span>
     </Tooltip>
   );

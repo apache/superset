@@ -40,6 +40,7 @@ from superset.common.chart_data import ChartDataResultFormat, ChartDataResultTyp
 from superset.db_engine_specs.base import builtin_time_grains
 from superset.localization import (
     get_user_locale,
+    localize_metric_labels,
     sanitize_translations,
     validate_translations,
 )
@@ -218,6 +219,11 @@ class ChartEntityResponseSchema(Schema):
             serialized["slice_name"] = obj.get_localized("slice_name", locale)
         if "description" in serialized:
             serialized["description"] = obj.get_localized("description", locale)
+
+        if serialized.get("form_data"):
+            serialized["form_data"] = localize_metric_labels(
+                serialized["form_data"], locale
+            )
 
         return serialized
 
@@ -490,6 +496,13 @@ class ChartDataAdhocMetricSchema(Schema):
             "description": "Optional time grain for temporal filters",
             "example": "PT1M",
         },
+    )
+    translations = fields.Dict(
+        metadata={
+            "description": "Per-label translations for content localization. "
+            'Structure: {"label": {"de": "Gesamtumsatz", "fr": "Revenu total"}}',
+        },
+        load_default=None,
     )
     isExtra = fields.Boolean(  # noqa: N815
         metadata={

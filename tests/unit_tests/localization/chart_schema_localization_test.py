@@ -427,3 +427,139 @@ def test_entity_schema_handles_null_translations(app_context: None) -> None:
             result = schema.dump(chart)
 
     assert result["slice_name"] == "Revenue by Region"
+
+
+# ---------------------------------------------------------------------------
+# ChartEntityResponseSchema — metric/column label localization in form_data
+# ---------------------------------------------------------------------------
+
+
+def test_entity_schema_localizes_metric_labels_in_form_data(
+    app_context: None,
+) -> None:
+    """
+    Verify ChartEntityResponseSchema localizes metric labels in form_data.
+
+    Given a Chart with form_data containing an adhoc metric with translations,
+    and ENABLE_CONTENT_LOCALIZATION=True and user locale="de",
+    when ChartEntityResponseSchema.dump() is called,
+    then form_data.metrics[0].label equals German translation.
+    """
+    chart = MockChart(slice_name="Revenue Chart")
+    chart.form_data = {
+        "metrics": [
+            {
+                "label": "Total Revenue",
+                "hasCustomLabel": True,
+                "optionName": "metric_abc",
+                "translations": {"label": {"de": "Gesamtumsatz"}},
+            }
+        ],
+    }
+
+    schema = ChartEntityResponseSchema()
+
+    with patch("superset.charts.schemas.is_feature_enabled", return_value=True):
+        with patch("superset.charts.schemas.get_user_locale", return_value="de"):
+            result = schema.dump(chart)
+
+    assert result["form_data"]["metrics"][0]["label"] == "Gesamtumsatz"
+
+
+def test_entity_schema_skips_metric_localization_when_feature_disabled(
+    app_context: None,
+) -> None:
+    """
+    Verify metric labels unchanged when content localization is disabled.
+
+    Given a Chart with form_data containing translated metrics,
+    and ENABLE_CONTENT_LOCALIZATION=False,
+    when ChartEntityResponseSchema.dump() is called,
+    then form_data.metrics[0].label remains original value.
+    """
+    chart = MockChart(slice_name="Revenue Chart")
+    chart.form_data = {
+        "metrics": [
+            {
+                "label": "Total Revenue",
+                "hasCustomLabel": True,
+                "optionName": "metric_abc",
+                "translations": {"label": {"de": "Gesamtumsatz"}},
+            }
+        ],
+    }
+
+    schema = ChartEntityResponseSchema()
+
+    with patch("superset.charts.schemas.is_feature_enabled", return_value=False):
+        result = schema.dump(chart)
+
+    assert result["form_data"]["metrics"][0]["label"] == "Total Revenue"
+
+
+def test_entity_schema_localizes_column_labels_in_form_data(
+    app_context: None,
+) -> None:
+    """
+    Verify ChartEntityResponseSchema localizes AdhocColumn labels in form_data.
+
+    Given a Chart with form_data containing an AdhocColumn with translations,
+    and ENABLE_CONTENT_LOCALIZATION=True and user locale="de",
+    when ChartEntityResponseSchema.dump() is called,
+    then form_data.columns[0].label equals German translation.
+    """
+    chart = MockChart(slice_name="Date Chart")
+    chart.form_data = {
+        "columns": [
+            {
+                "label": "Order Date",
+                "hasCustomLabel": True,
+                "optionName": "col_abc",
+                "sqlExpression": "order_date",
+                "expressionType": "SQL",
+                "translations": {"label": {"de": "Bestelldatum"}},
+            }
+        ],
+    }
+
+    schema = ChartEntityResponseSchema()
+
+    with patch("superset.charts.schemas.is_feature_enabled", return_value=True):
+        with patch("superset.charts.schemas.get_user_locale", return_value="de"):
+            result = schema.dump(chart)
+
+    assert result["form_data"]["columns"][0]["label"] == "Bestelldatum"
+
+
+def test_entity_schema_preserves_string_metrics_in_form_data(
+    app_context: None,
+) -> None:
+    """
+    Verify ChartEntityResponseSchema preserves string metrics in form_data.
+
+    Given a Chart with form_data containing a mix of string and dict metrics,
+    and ENABLE_CONTENT_LOCALIZATION=True,
+    when ChartEntityResponseSchema.dump() is called,
+    then string metrics pass through unchanged and dict metrics are localized.
+    """
+    chart = MockChart(slice_name="Revenue Chart")
+    chart.form_data = {
+        "metrics": [
+            "count",
+            {
+                "label": "Total Revenue",
+                "hasCustomLabel": True,
+                "optionName": "metric_abc",
+                "translations": {"label": {"de": "Gesamtumsatz"}},
+            },
+        ],
+    }
+
+    schema = ChartEntityResponseSchema()
+
+    with patch("superset.charts.schemas.is_feature_enabled", return_value=True):
+        with patch("superset.charts.schemas.get_user_locale", return_value="de"):
+            result = schema.dump(chart)
+
+    assert result["form_data"]["metrics"][0] == "count"
+    assert result["form_data"]["metrics"][1]["label"] == "Gesamtumsatz"

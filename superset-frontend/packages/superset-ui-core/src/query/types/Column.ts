@@ -31,6 +31,8 @@ export interface AdhocColumn {
   columnType?: 'BASE_AXIS' | 'SERIES';
   timeGrain?: string;
   datasourceWarning?: boolean;
+  /** Per-label translations: {"label": {"de": "Bestelldatum"}} */
+  translations?: Record<string, Record<string, string>>;
 }
 
 /**
