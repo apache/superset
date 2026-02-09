@@ -16,12 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { ChangeEvent, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { t } from '@apache-superset/core';
 import { FormItem, Input, FormInstance } from '@superset-ui/core/components';
 import { ModalFormField } from 'src/components/Modal';
 import { ValidationObject } from 'src/components/Modal/useModalValidation';
 import { DEFAULT_LOCALE_KEY } from 'src/components/TranslationEditor';
+import DeferredInput from 'src/components/DeferredInput';
 
 interface BasicInfoSectionProps {
   form: FormInstance;
@@ -86,11 +87,9 @@ const BasicInfoSection = ({
           />
         </FormItem>
         {isEditingTranslation && (
-          <Input
+          <DeferredInput
             value={translationValue}
-            onChange={(e: ChangeEvent<HTMLInputElement>) =>
-              onTranslationChange?.(e.target.value)
-            }
+            onChange={onTranslationChange}
             placeholder={t('Translation for %s', activeLocale.toUpperCase())}
             aria-label={t('Translation for %s', activeLocale.toUpperCase())}
             type="text"

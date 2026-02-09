@@ -16,20 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  ChangeEvent,
-  FC,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
+import { FC, useCallback, useEffect, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { logging, t } from '@apache-superset/core';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import { css } from '@apache-superset/core/ui';
-import { Input } from '@superset-ui/core/components';
 import { SupersetClient } from '@superset-ui/core/connection';
+import DeferredInput from 'src/components/DeferredInput';
 import {
   LocaleSwitcher,
   DEFAULT_LOCALE_KEY,
@@ -97,18 +90,14 @@ const MetricLabelTranslations: FC<MetricLabelTranslationsProps> = ({
 
   const isLocaleMode = activeLocale !== DEFAULT_LOCALE_KEY;
 
-  const handleTranslationInput = useCallback(
-    (e: ChangeEvent<HTMLInputElement>) => {
-      if (!isLocaleMode) return;
+  const handleTranslationValue = useCallback(
+    (value: string) => {
       onTranslationsChange({
-        ...translations,
-        label: {
-          ...(translations.label ?? {}),
-          [activeLocale]: e.target.value,
-        },
+        ...translationsRef.current,
+        label: { ...(translationsRef.current.label ?? {}), [activeLocale]: value },
       });
     },
-    [isLocaleMode, activeLocale, translations, onTranslationsChange],
+    [activeLocale, onTranslationsChange],
   );
 
   if (!localizationEnabled || !hasCustomLabel || allLocales.length === 0) {
@@ -141,11 +130,11 @@ const MetricLabelTranslations: FC<MetricLabelTranslationsProps> = ({
         fieldLabel={t('Metric Label')}
       />
       {isLocaleMode && (
-        <Input
+        <DeferredInput
           type="text"
           placeholder={currentLabel}
           value={localeInputValue}
-          onChange={handleTranslationInput}
+          onChange={handleTranslationValue}
           data-test="MetricLabelTranslation#input"
           css={css`
             flex: 1;

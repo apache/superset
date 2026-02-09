@@ -52,6 +52,7 @@ import {
   stripEmptyValues,
 } from 'src/components/TranslationEditor';
 import type { Translations, LocaleInfo } from 'src/types/Localization';
+import DeferredInput from 'src/components/DeferredInput';
 
 export type PropertiesModalProps = {
   slice: Slice;
@@ -364,6 +365,22 @@ function PropertiesModal({
     [],
   );
 
+  const nameLocaleSuffix = isFeatureEnabled(
+    FeatureFlag.EnableContentLocalization,
+  ) ? (
+    <LocaleSwitcher
+      fieldName="slice_name"
+      defaultValue={name}
+      translations={translations}
+      allLocales={allLocales}
+      defaultLocale={defaultLocale}
+      userLocale={userLocale}
+      activeLocale={nameActiveLocale}
+      onLocaleChange={handleNameLocaleChange}
+      fieldLabel={t('Chart Name')}
+    />
+  ) : undefined;
+
   return (
     <StandardModal
       show={show}
@@ -416,49 +433,35 @@ function PropertiesModal({
                       : undefined
                   }
                 >
-                  <Input
-                    aria-label={t('Name')}
-                    data-test="properties-modal-name-input"
-                    type="text"
-                    value={
-                      nameActiveLocale === DEFAULT_LOCALE_KEY
-                        ? name
-                        : translations.slice_name?.[nameActiveLocale] ?? ''
-                    }
-                    onChange={(event: ChangeEvent<HTMLInputElement>) => {
-                      if (nameActiveLocale === DEFAULT_LOCALE_KEY) {
-                        setName(event.target.value ?? '');
-                      } else {
+                  {nameActiveLocale === DEFAULT_LOCALE_KEY ? (
+                    <Input
+                      aria-label={t('Name')}
+                      data-test="properties-modal-name-input"
+                      type="text"
+                      value={name}
+                      onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                        setName(event.target.value ?? '')
+                      }
+                      placeholder={t('The display name of your chart')}
+                      suffix={nameLocaleSuffix}
+                    />
+                  ) : (
+                    <DeferredInput
+                      aria-label={t('Name')}
+                      data-test="properties-modal-name-input"
+                      type="text"
+                      value={translations.slice_name?.[nameActiveLocale] ?? ''}
+                      onChange={value =>
                         handleTranslationChange(
                           'slice_name',
                           nameActiveLocale,
-                          event.target.value ?? '',
-                        );
+                          value,
+                        )
                       }
-                    }}
-                    placeholder={
-                      nameActiveLocale === DEFAULT_LOCALE_KEY
-                        ? t('The display name of your chart')
-                        : t('Translation for %s', nameActiveLocale.toUpperCase())
-                    }
-                    suffix={
-                      isFeatureEnabled(
-                        FeatureFlag.EnableContentLocalization,
-                      ) ? (
-                        <LocaleSwitcher
-                          fieldName="slice_name"
-                          defaultValue={name}
-                          translations={translations}
-                          allLocales={allLocales}
-                          defaultLocale={defaultLocale}
-                          userLocale={userLocale}
-                          activeLocale={nameActiveLocale}
-                          onLocaleChange={handleNameLocaleChange}
-                          fieldLabel={t('Chart Name')}
-                        />
-                      ) : undefined
-                    }
-                  />
+                      placeholder={t('Translation for %s', nameActiveLocale.toUpperCase())}
+                      suffix={nameLocaleSuffix}
+                    />
+                  )}
                 </ModalFormField>
                 <ModalFormField
                   label={t('Description')}
