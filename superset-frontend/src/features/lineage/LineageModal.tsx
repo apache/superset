@@ -69,7 +69,7 @@ const LineageModal: FC<LineageModalProps> = ({
           entityType={entityType}
         />
       }
-      width="800px"
+      width="850px"
       responsive
       destroyOnHidden
     />

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { FC, useMemo } from 'react';
-import { t, useTheme } from '@apache-superset/core/ui';
+import { t, useTheme, styled } from '@apache-superset/core/ui';
 import { Empty, Loading } from '@superset-ui/core/components';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import type { Resource } from 'src/hooks/apiResources/apiResources';
@@ -30,6 +30,43 @@ import type {
 } from 'src/hooks/apiResources/lineage';
 import Echart from '../../../plugins/plugin-chart-echarts/src/components/Echart';
 import type { EChartsCoreOption } from 'echarts/core';
+
+const LineageContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+`;
+
+const Legend = styled.div`
+  ${({ theme }) => `
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: ${theme.sizeUnit * 4}px;
+    padding: ${theme.sizeUnit * 3}px;
+    background-color: ${theme.colorBgLayout};
+    border-bottom: 1px solid ${theme.colorBorder};
+  `}
+`;
+
+const LegendItem = styled.div<{ color: string }>`
+  ${({ theme, color }) => `
+    display: flex;
+    align-items: center;
+    gap: ${theme.sizeUnit * 2}px;
+    font-size: ${theme.fontSizeSM}px;
+    color: ${theme.colorText};
+
+    &::before {
+      content: '';
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+      background-color: ${color};
+    }
+  `}
+`;
 
 type LineageViewProps = {
   lineageResource:
@@ -51,17 +88,28 @@ const LineageView: FC<LineageViewProps> = ({ lineageResource, entityType }) => {
     }
 
     const data = lineageResource.result;
-    const nodes: { name: string; itemStyle?: { color: string } }[] = [];
+    const nodes: {
+      name: string;
+      itemStyle?: { color: string };
+      label?: { position?: string };
+    }[] = [];
     const links: { source: string; target: string; value: number }[] = [];
     const nodeSet = new Set<string>();
 
-    // Helper to add a node
-    const addNode = (name: string, color: string) => {
+    // Helper to add a node with label position
+    const addNode = (
+      name: string,
+      color: string,
+      labelPosition: 'left' | 'right' | 'inside',
+    ) => {
       if (!nodeSet.has(name)) {
         nodeSet.add(name);
         nodes.push({
           name,
           itemStyle: { color },
+          label: {
+            position: labelPosition,
+          },
         });
       }
     };
@@ -75,29 +123,29 @@ const LineageView: FC<LineageViewProps> = ({ lineageResource, entityType }) => {
     if (entityType === 'dataset' && 'dataset' in data) {
       const { dataset, upstream, downstream } = data as DatasetLineage;
 
-      // Add current dataset node (center)
-      addNode(dataset.name, theme.colorPrimary);
+      // Add current dataset node (center) - label inside
+      addNode(dataset.name, theme.colorPrimary, 'inside');
 
-      // Add upstream database
+      // Add upstream database - label on left
       if (upstream?.database) {
-        addNode(upstream.database.database_name, theme.colorInfo);
+        addNode(upstream.database.database_name, theme.colorInfo, 'left');
         addLink(upstream.database.database_name, dataset.name);
       }
 
-      // Add downstream charts
+      // Add downstream charts - label on right
       const chartMap = new Map<number, ChartEntity>();
       if (downstream?.charts?.result) {
         downstream.charts.result.forEach((chart: ChartEntity) => {
           chartMap.set(chart.id, chart);
-          addNode(chart.slice_name, theme.colorSuccess);
+          addNode(chart.slice_name, theme.colorSuccess, 'right');
           addLink(dataset.name, chart.slice_name);
         });
       }
 
-      // Add downstream dashboards and link to their specific charts
+      // Add downstream dashboards - label on right
       if (downstream?.dashboards?.result) {
         downstream.dashboards.result.forEach((dashboard: DashboardEntity) => {
-          addNode(dashboard.title, theme.colorWarning);
+          addNode(dashboard.title, theme.colorWarning, 'right');
 
           // Link from charts to dashboards using chart_ids
           if (dashboard.chart_ids && dashboard.chart_ids.length > 0) {
@@ -113,40 +161,41 @@ const LineageView: FC<LineageViewProps> = ({ lineageResource, entityType }) => {
     } else if (entityType === 'chart' && 'chart' in data) {
       const { chart, upstream, downstream } = data as ChartLineage;
 
-      // Add current chart node (center)
-      addNode(chart.slice_name, theme.colorPrimary);
+      // Add current chart node (center) - label inside
+      addNode(chart.slice_name, theme.colorPrimary, 'inside');
 
-      // Add upstream dataset
+      // Add upstream dataset - label on left
       if (upstream?.dataset) {
-        addNode(upstream.dataset.name, theme.colorInfo);
+        addNode(upstream.dataset.name, theme.colorInfo, 'left');
         addLink(upstream.dataset.name, chart.slice_name);
 
-        // Add upstream database
+        // Add upstream database - label on left
         if (upstream.database) {
-          addNode(upstream.database.database_name, theme.colorWarning);
+          addNode(upstream.database.database_name, theme.colorWarning, 'left');
           addLink(upstream.database.database_name, upstream.dataset.name);
         }
       }
 
-      // Add downstream dashboards
+      // Add downstream dashboards - label on right
       if (downstream?.dashboards?.result) {
         downstream.dashboards.result.forEach((dashboard: DashboardEntity) => {
-          addNode(dashboard.title, theme.colorSuccess);
+          addNode(dashboard.title, theme.colorSuccess, 'right');
           addLink(chart.slice_name, dashboard.title);
         });
       }
     } else if (entityType === 'dashboard' && 'dashboard' in data) {
       const { dashboard, upstream } = data as DashboardLineage;
 
-      // Add current dashboard node (right)
-      addNode(dashboard.title, theme.colorPrimary);
+      // Add current dashboard node (right) - label inside
+      addNode(dashboard.title, theme.colorPrimary, 'inside');
 
       // Create a map of chart id to chart for easy lookup
       const chartMap = new Map<number, ChartEntity>();
       if (upstream?.charts?.result) {
         upstream.charts.result.forEach((chart: ChartEntity) => {
           chartMap.set(chart.id, chart);
-          addNode(chart.slice_name, theme.colorInfo);
+          // Charts are upstream - label on left
+          addNode(chart.slice_name, theme.colorInfo, 'left');
           addLink(chart.slice_name, dashboard.title);
         });
       }
@@ -156,7 +205,8 @@ const LineageView: FC<LineageViewProps> = ({ lineageResource, entityType }) => {
       if (upstream?.datasets?.result) {
         upstream.datasets.result.forEach(dataset => {
           datasetMap.set(dataset.id, dataset);
-          addNode(dataset.name, theme.colorSuccess);
+          // Datasets are upstream - label on left
+          addNode(dataset.name, theme.colorSuccess, 'left');
 
           // Link datasets to their specific charts using chart_ids
           if (dataset.chart_ids && dataset.chart_ids.length > 0) {
@@ -173,7 +223,8 @@ const LineageView: FC<LineageViewProps> = ({ lineageResource, entityType }) => {
       // Add upstream databases and link to their specific datasets
       if (upstream?.databases?.result) {
         upstream.databases.result.forEach(database => {
-          addNode(database.database_name, theme.colorWarning);
+          // Databases are upstream - label on left
+          addNode(database.database_name, theme.colorWarning, 'left');
 
           // Link databases to datasets that belong to them using database_id
           if (upstream.datasets?.result) {
@@ -204,6 +255,33 @@ const LineageView: FC<LineageViewProps> = ({ lineageResource, entityType }) => {
     };
   }, [lineageResource, entityType, theme]);
 
+  // Build legend data based on entity type
+  const legendItems: { label: string; color: string }[] = useMemo(() => {
+    if (entityType === 'dataset') {
+      return [
+        { label: 'Database (Upstream)', color: theme.colorInfo },
+        { label: 'Dataset (Current)', color: theme.colorPrimary },
+        { label: 'Chart (Downstream)', color: theme.colorSuccess },
+        { label: 'Dashboard (Downstream)', color: theme.colorWarning },
+      ];
+    } else if (entityType === 'chart') {
+      return [
+        { label: 'Database (Upstream)', color: theme.colorWarning },
+        { label: 'Dataset (Upstream)', color: theme.colorInfo },
+        { label: 'Chart (Current)', color: theme.colorPrimary },
+        { label: 'Dashboard (Downstream)', color: theme.colorSuccess },
+      ];
+    } else if (entityType === 'dashboard') {
+      return [
+        { label: 'Database (Upstream)', color: theme.colorWarning },
+        { label: 'Dataset (Upstream)', color: theme.colorSuccess },
+        { label: 'Chart (Upstream)', color: theme.colorInfo },
+        { label: 'Dashboard (Current)', color: theme.colorPrimary },
+      ];
+    }
+    return [];
+  }, [entityType, theme]);
+
   if (lineageResource.status === ResourceStatus.Loading) {
     return <Loading />;
   }
@@ -220,13 +298,22 @@ const LineageView: FC<LineageViewProps> = ({ lineageResource, entityType }) => {
   }
 
   return (
-    <Echart
-      refs={{}}
-      height={600}
-      width={800}
-      echartOptions={echartOptions}
-      vizType="sankey"
-    />
+    <LineageContainer>
+      <Legend>
+        {legendItems.map(item => (
+          <LegendItem key={item.label} color={item.color}>
+            {item.label}
+          </LegendItem>
+        ))}
+      </Legend>
+      <Echart
+        refs={{}}
+        height={600}
+        width={800}
+        echartOptions={echartOptions}
+        vizType="sankey"
+      />
+    </LineageContainer>
   );
 };
 
