@@ -253,7 +253,8 @@ function WorldMap(element, props) {
           const countryId = classes.split(' ')[1];
           const countryData = mapData[countryId];
           const originalFill =
-            (countryData && countryData.fillColor) || theme.colorBorder;
+            (countryData && countryData.fillColor) ||
+            theme.colors.grayscale.light5;
           // Store original fill color for restoration
           element.attr('data-original-fill', originalFill);
         })

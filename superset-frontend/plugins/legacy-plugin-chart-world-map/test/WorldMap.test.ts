@@ -73,10 +73,13 @@ const baseProps = {
   colorScheme: 'supersetColors',
   sliceId: 123,
   theme: {
-    colorBorder: '#e0e0e0',
-    colorSplit: '#333',
-    colorIcon: '#000',
-    colorTextSecondary: '#666',
+    colors: {
+      grayscale: {
+        dark2: '#616161',
+        light2: '#bdbdbd',
+        light5: '#e0e0e0',
+      },
+    },
   },
   countryFieldtype: 'code',
   entity: 'country',
