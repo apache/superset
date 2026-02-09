@@ -106,7 +106,7 @@ const ChartHolder = ({
   const { chartId } = component.meta;
   const isFullSize = fullSizeChartId === chartId;
 
-  const focusHighlightStyles = useFilterFocusHighlightStyles(chartId);
+  const focusHighlightStyles = useFilterFocusHighlightStyles(chartId ?? 0);
   const directPathToChild = useSelector(
     (state: RootState) => state.dashboardState.directPathToChild,
   );
@@ -197,7 +197,7 @@ const ChartHolder = ({
           CHART_MARGIN,
       );
       height = Math.floor(
-        component.meta.height * GRID_BASE_UNIT - CHART_MARGIN,
+        (component.meta.height ?? 0) * GRID_BASE_UNIT - CHART_MARGIN,
       );
     }
 
@@ -227,7 +227,7 @@ const ChartHolder = ({
   );
 
   const handleToggleFullSize = useCallback(() => {
-    setFullSizeChartId(isFullSize ? null : chartId);
+    setFullSizeChartId(isFullSize ? null : (chartId ?? null));
   }, [chartId, isFullSize, setFullSizeChartId]);
 
   const handleExtraControl = useCallback((name: string, value: unknown) => {
@@ -246,7 +246,7 @@ const ChartHolder = ({
         widthStep={columnWidth}
         widthMultiple={widthMultiple}
         heightStep={GRID_BASE_UNIT}
-        heightMultiple={component.meta.height}
+        heightMultiple={component.meta.height ?? GRID_MIN_ROW_UNITS}
         minWidthMultiple={GRID_MIN_COLUMN_COUNT}
         minHeightMultiple={GRID_MIN_ROW_UNITS}
         maxWidthMultiple={availableColumnCount + widthMultiple}
@@ -284,14 +284,16 @@ const ChartHolder = ({
           )}
           <Chart
             componentId={component.id}
-            id={component.meta.chartId}
+            id={component.meta.chartId ?? 0}
             dashboardId={dashboardId}
             width={chartWidth}
             height={chartHeight}
             sliceName={
               component.meta.sliceNameOverride || component.meta.sliceName || ''
             }
-            updateSliceName={handleUpdateSliceName}
+            updateSliceName={(_sliceId: number, name: string) =>
+              handleUpdateSliceName(name)
+            }
             isComponentVisible={isComponentVisible}
             handleToggleFullSize={handleToggleFullSize}
             isFullSize={isFullSize}

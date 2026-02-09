@@ -273,6 +273,53 @@ module.exports = {
     ],
   },
   overrides: [
+    // Ban JavaScript files in src/ - all new code must be TypeScript
+    {
+      files: ['src/**/*.js', 'src/**/*.jsx'],
+      rules: {
+        'no-restricted-syntax': [
+          'error',
+          {
+            selector: 'Program',
+            message:
+              'JavaScript files are not allowed in src/. Please use TypeScript (.ts/.tsx) instead.',
+          },
+        ],
+      },
+    },
+    // Ban JavaScript files in plugins/ - all plugin source code must be TypeScript
+    {
+      files: ['plugins/**/src/**/*.js', 'plugins/**/src/**/*.jsx'],
+      rules: {
+        'no-restricted-syntax': [
+          'error',
+          {
+            selector: 'Program',
+            message:
+              'JavaScript files are not allowed in plugins/. Please use TypeScript (.ts/.tsx) instead.',
+          },
+        ],
+      },
+    },
+    // Ban JavaScript files in packages/ - with exceptions for config files and generators
+    {
+      files: ['packages/**/src/**/*.js', 'packages/**/src/**/*.jsx'],
+      excludedFiles: [
+        'packages/generator-superset/**/*', // Yeoman generator templates run via Node
+        'packages/superset-ui-demo/.storybook/**/*', // Storybook config files
+        'packages/**/__mocks__/**/*', // Test mocks
+      ],
+      rules: {
+        'no-restricted-syntax': [
+          'error',
+          {
+            selector: 'Program',
+            message:
+              'JavaScript files are not allowed in packages/. Please use TypeScript (.ts/.tsx) instead.',
+          },
+        ],
+      },
+    },
     {
       files: ['*.ts', '*.tsx'],
       parser: '@typescript-eslint/parser',
@@ -399,27 +446,13 @@ module.exports = {
         '**/spec/**/*',
       ],
       excludedFiles: 'cypress-base/cypress/**/*',
-      plugins: ['jest', 'jest-dom', 'no-only-tests', 'testing-library'],
-      env: {
-        'jest/globals': true,
-      },
-      settings: {
-        jest: {
-          version: 'detect',
-        },
-      },
-      extends: [
-        'plugin:jest/recommended',
-        'plugin:jest-dom/recommended',
-        'plugin:testing-library/react',
-      ],
+      plugins: ['jest-dom', 'no-only-tests', 'testing-library'],
+      extends: ['plugin:jest-dom/recommended', 'plugin:testing-library/react'],
       rules: {
         'import/no-extraneous-dependencies': [
           'error',
           { devDependencies: true },
         ],
-        'jest/consistent-test-it': 'error',
-        'no-only-tests/no-only-tests': 'error',
         'prefer-promise-reject-errors': 0,
         'max-classes-per-file': 0,
 

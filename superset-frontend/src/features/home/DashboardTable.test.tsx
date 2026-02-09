@@ -127,13 +127,15 @@ beforeEach(() => {
     }),
   );
 
+  const getDashboardMockUrl = 'glob:*/api/v1/dashboard/*';
+  fetchMock.removeRoute(getDashboardMockUrl);
   fetchMock.get(
-    'glob:*/api/v1/dashboard/*',
+    getDashboardMockUrl,
     {
       result: mockDashboards[0],
     },
-    { overwriteRoutes: true },
-  ); // Add overwriteRoutes option
+    { name: getDashboardMockUrl },
+  );
 
   // Mock loading state for first render
   jest.spyOn(hooks, 'useListViewResource').mockImplementationOnce(() => ({

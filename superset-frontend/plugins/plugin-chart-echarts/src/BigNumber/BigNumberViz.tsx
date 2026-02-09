@@ -24,6 +24,7 @@ import {
   SMART_DATE_VERBOSE_ID,
   computeMaxFontSize,
   BinaryQueryObjectFilterClause,
+  DTTM_ALIAS,
 } from '@superset-ui/core';
 import { styled, useTheme } from '@apache-superset/core/ui';
 import Echart from '../components/Echart';
@@ -187,8 +188,19 @@ function BigNumberVis({
 
   const renderHeader = (maxHeight: number) => {
     const { bigNumber, width, colorThresholdFormatters, onContextMenu } = props;
-    // @ts-ignore
-    const text = bigNumber === null ? t('No data') : headerFormatter(bigNumber);
+    // Format bigNumber based on its type: null/undefined -> "No data", number -> format, else -> string
+    let text: string;
+    if (bigNumber === null || bigNumber === undefined) {
+      text = t('No data');
+    } else if (typeof bigNumber === 'number') {
+      text = headerFormatter(bigNumber);
+    } else {
+      // For string/boolean/Date values, convert to number if possible, else show as string
+      const numValue = Number(bigNumber);
+      text = Number.isNaN(numValue)
+        ? String(bigNumber)
+        : headerFormatter(numValue);
+    }
 
     const hasThresholdColorFormatter =
       Array.isArray(colorThresholdFormatters) &&
@@ -354,7 +366,10 @@ function BigNumberVis({
             const pointerEvent = eventParams.event.event;
             const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
             drillToDetailFilters.push({
-              col: formData?.granularitySqla,
+              col:
+                formData?.xAxis === DTTM_ALIAS
+                  ? formData?.granularitySqla
+                  : formData?.xAxis,
               grain: formData?.timeGrainSqla,
               op: '==',
               val: data[0],

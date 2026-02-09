@@ -47,6 +47,12 @@ type EChartsOption = ComposeOption<HeatmapSeriesOption>;
 const DEFAULT_ECHARTS_BOUNDS = [0, 200];
 
 /**
+ * Column name for the rank values added by the backend's rank post-processing operation.
+ * This is used when the heatmap is in normalized mode to color cells by percentile rank.
+ */
+const RANK_COLUMN_NAME = 'rank';
+
+/**
  * Extract unique values for an axis from the data.
  * Filters out null and undefined values.
  *
@@ -219,7 +225,7 @@ export default function transformProps(
     currencyFormats = {},
     currencyCodeColumn,
   } = datasource;
-  const colorColumn = normalized ? 'rank' : metricLabel;
+  const colorColumn = normalized ? RANK_COLUMN_NAME : metricLabel;
   const colors = getSequentialSchemeRegistry().get(linearColorScheme)?.colors;
   const getAxisFormatter =
     (colType: GenericDataType) => (value: number | string) => {
@@ -297,6 +303,7 @@ export default function transformProps(
         const xValue = row[xAxisColumnName];
         const yValue = row[yAxisColumnName];
         const metricValue = row[metricLabel];
+        const rankValue = row[RANK_COLUMN_NAME];
 
         // Convert to axis indices for ECharts when explicit axis data is provided
         const xIndex = xAxisIndexMap.get(xValue);
@@ -310,8 +317,21 @@ export default function transformProps(
           );
           return [];
         }
-        return [[xIndex, yIndex, metricValue] as [number, number, any]];
-      }),
+        if (normalized && rankValue === undefined) {
+          logging.error(
+            `Heatmap: Skipping row due to missing rank value. xValue: ${xValue}, yValue: ${yValue}, metricValue: ${metricValue}`,
+            row,
+          );
+          return [];
+        }
+
+        // Include rank as 4th dimension when normalized is enabled
+        // This allows visualMap to use dimension: 3 to color by rank percentile
+        if (normalized) {
+          return [[xIndex, yIndex, metricValue, rankValue]];
+        }
+        return [[xIndex, yIndex, metricValue]];
+      }) as any,
       label: {
         show: showValues,
         formatter: (params: CallbackDataParams) => {
@@ -341,6 +361,9 @@ export default function transformProps(
       containLabel: true,
       bottom: bottomMargin,
       left: leftMargin,
+    },
+    legend: {
+      show: false,
     },
     series,
     tooltip: {

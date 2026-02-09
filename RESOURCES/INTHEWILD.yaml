@@ -287,8 +287,10 @@ categories:
       url: https://www.gfk.com/home
       contributors: ["@mherr"]
 
+    # Logo approved by @anmol-hpe on behalf of HPE
     - name: HPE
       url: https://www.hpe.com/in/en/home.html
+      logo: hpe.png
       contributors: ["@anmol-hpe"]
 
     - name: Hydrolix
@@ -427,6 +429,11 @@ categories:
     - name: WinWin Network马上赢
       url: https://brandct.cn/
       contributors: ["@wenbinye"]
+
+    - name: XNET
+      url: https://xnetmobile.com/
+      logo: xnet.png
+      contributors: ["@deuspt"]
 
     - name: Zeta
       url: https://www.zeta.tech/

@@ -17,37 +17,10 @@
  * under the License.
  */
 import buildQuery from '../../src/Tree/buildQuery';
-import { DEFAULT_FORM_DATA } from '../../src/Tree/constants';
-import { EchartsTreeFormData } from '../../src/Tree/types';
 
 describe('Tree buildQuery', () => {
-  const baseFormData: Pick<
-    EchartsTreeFormData,
-    | 'orient'
-    | 'symbol'
-    | 'symbolSize'
-    | 'layout'
-    | 'roam'
-    | 'nodeLabelPosition'
-    | 'childLabelPosition'
-    | 'emphasis'
-    | 'initialTreeDepth'
-  > = {
-    ...DEFAULT_FORM_DATA,
-    orient: 'LR',
-    symbol: 'emptyCircle',
-    symbolSize: 7,
-    layout: 'orthogonal',
-    roam: true,
-    nodeLabelPosition: 'left',
-    childLabelPosition: 'bottom',
-    emphasis: 'descendant',
-    initialTreeDepth: 2,
-  };
-
-  it('should build query', () => {
+  test('should build query', () => {
     const formData = {
-      ...baseFormData,
       datasource: '5__table',
       granularity_sqla: 'ds',
       id: 'id_col',
@@ -61,14 +34,12 @@ describe('Tree buildQuery', () => {
     expect(query.columns).toEqual(['id_col', 'relation_col', 'name_col']);
     expect(query.metrics).toEqual(['foo', 'bar']);
   });
-  it('should build query without name column', () => {
+  test('should build query without name column', () => {
     const formData = {
-      ...baseFormData,
       datasource: '5__table',
       granularity_sqla: 'ds',
       id: 'id_col',
       parent: 'relation_col',
-      name: '',
       metrics: ['foo', 'bar'],
       viz_type: 'my_chart',
     };

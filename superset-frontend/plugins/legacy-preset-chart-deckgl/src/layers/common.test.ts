@@ -35,61 +35,61 @@ const partialformData: Partial<QueryFormData> = {
 };
 
 describe('getAggFunc', () => {
-  it('returns correct function for sum', () => {
+  test('returns correct function for sum', () => {
     const aggFunc = getAggFunc('sum');
     const result = aggFunc([1, 2, 3, 4]);
     expect(result).toBe(10);
   });
 
-  it('returns correct function for min', () => {
+  test('returns correct function for min', () => {
     const aggFunc = getAggFunc('min');
     const result = aggFunc([1, 2, 3, 4]);
     expect(result).toBe(1);
   });
 
-  it('returns correct function for max', () => {
+  test('returns correct function for max', () => {
     const aggFunc = getAggFunc('max');
     const result = aggFunc([1, 2, 3, 4]);
     expect(result).toBe(4);
   });
 
-  it('returns correct function for mean', () => {
+  test('returns correct function for mean', () => {
     const aggFunc = getAggFunc('mean');
     const result = aggFunc([1, 2, 3, 4]);
     expect(result).toBe(2.5);
   });
 
-  it('returns correct function for median', () => {
+  test('returns correct function for median', () => {
     const aggFunc = getAggFunc('median');
     const result = aggFunc([1, 2, 3, 4, 5]);
     expect(result).toBe(3);
   });
 
-  it('returns correct function for variance', () => {
+  test('returns correct function for variance', () => {
     const aggFunc = getAggFunc('variance');
     const result = aggFunc([1, 2, 3, 4]);
     expect(result).toBeCloseTo(1.6666666666666667);
   });
 
-  it('returns correct function for deviation', () => {
+  test('returns correct function for deviation', () => {
     const aggFunc = getAggFunc('deviation');
     const result = aggFunc([1, 2, 3, 4]);
     expect(result).toBeCloseTo(1.29099, 5);
   });
 
-  it('returns correct function for count', () => {
+  test('returns correct function for count', () => {
     const aggFunc = getAggFunc('count');
     const result = aggFunc([1, 2, 3, 4]);
     expect(result).toBe(4);
   });
 
-  it('returns correct function for p95 (percentiles)', () => {
+  test('returns correct function for p95 (percentiles)', () => {
     const aggFunc = getAggFunc('p95');
     const result = aggFunc([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
     expect(result).toBeCloseTo(9.55, 5);
   });
 
-  it('throws an error for unsupported aggregation type', () => {
+  test('throws an error for unsupported aggregation type', () => {
     expect(() => getAggFunc('unsupported')).toThrow(
       'Unsupported aggregation type: unsupported',
     );
@@ -103,7 +103,7 @@ describe('commonLayerProps', () => {
   );
   const mockOnSelect = jest.fn();
 
-  it('returns correct props when js_tooltip is provided', () => {
+  test('returns correct props when js_tooltip is provided', () => {
     const formData = {
       ...partialformData,
       js_tooltip: 'tooltip => tooltip.content',
@@ -117,7 +117,7 @@ describe('commonLayerProps', () => {
     expect(props.onHover).toBeDefined();
   });
 
-  it('calls onHover and sets tooltip', () => {
+  test('calls onHover and sets tooltip', () => {
     const formData = { ...partialformData, js_tooltip: null } as QueryFormData;
     const props = commonLayerProps({
       formData,
@@ -134,7 +134,7 @@ describe('commonLayerProps', () => {
     });
   });
 
-  it('calls onSelect when table_filter is enabled', () => {
+  test('calls onSelect when table_filter is enabled', () => {
     const formData = {
       ...partialformData,
       table_filter: true,
@@ -175,26 +175,26 @@ describe('getColorForBreakpoints', () => {
     { minValue: 21, maxValue: 30, color: { r: 0, g: 0, b: 255, a: 100 } },
   ];
 
-  it('returns correct breakpoint index for value in range', () => {
+  test('returns correct breakpoint index for value in range', () => {
     const aggFunc = (arr: number[]) => arr[0];
     expect(getColorForBreakpoints(aggFunc, [5], colorBreakpoints)).toBe(1);
     expect(getColorForBreakpoints(aggFunc, [15], colorBreakpoints)).toBe(2);
     expect(getColorForBreakpoints(aggFunc, [25], colorBreakpoints)).toBe(3);
   });
 
-  it('returns 0 if value is not in any breakpoint', () => {
+  test('returns 0 if value is not in any breakpoint', () => {
     const aggFunc = () => 100;
     expect(getColorForBreakpoints(aggFunc, [100], colorBreakpoints)).toBe(0);
   });
 
-  it('returns undefined if aggFunc returns undefined', () => {
+  test('returns undefined if aggFunc returns undefined', () => {
     const aggFunc = () => undefined;
     expect(
       getColorForBreakpoints(aggFunc, [5], colorBreakpoints),
     ).toBeUndefined();
   });
 
-  it('returns undefined if aggFunc returns array', () => {
+  test('returns undefined if aggFunc returns array', () => {
     const aggFunc = () => [1, 2];
     expect(
       getColorForBreakpoints(aggFunc, [5], colorBreakpoints),
@@ -211,7 +211,7 @@ describe('getColorRange', () => {
     ],
   };
 
-  it('returns color range for linear_palette', () => {
+  test('returns color range for linear_palette', () => {
     const colorScale = { range: () => ['#ff0000', '#00ff00'] } as any;
     const result = getColorRange({
       defaultBreakpointsColor: DEFAULT_DECKGL_COLOR,
@@ -224,7 +224,7 @@ describe('getColorRange', () => {
     ]);
   });
 
-  it('returns color range for categorical_palette', () => {
+  test('returns color range for categorical_palette', () => {
     const colorScale = { range: () => ['#0000ff', '#00ffff'] } as any;
     const result = getColorRange({
       defaultBreakpointsColor: DEFAULT_DECKGL_COLOR,
@@ -237,7 +237,7 @@ describe('getColorRange', () => {
     ]);
   });
 
-  it('returns color range for color_breakpoints', () => {
+  test('returns color range for color_breakpoints', () => {
     const result = getColorRange({
       colorBreakpoints: fdBase.color_breakpoints,
       defaultBreakpointsColor: DEFAULT_DECKGL_COLOR,
@@ -255,7 +255,7 @@ describe('getColorRange', () => {
     ]);
   });
 
-  it('returns default color if color_picker is missing', () => {
+  test('returns default color if color_picker is missing', () => {
     const result = getColorRange({
       defaultBreakpointsColor: DEFAULT_DECKGL_COLOR,
       colorSchemeType: 'unknown_type' as ColorSchemeType,

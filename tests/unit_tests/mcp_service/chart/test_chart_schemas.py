@@ -219,3 +219,39 @@ class TestXYChartConfig:
             kind="area",
         )
         assert config.kind == "area"
+
+    def test_unknown_fields_rejected(self) -> None:
+        """Test that unknown fields like 'series' are rejected."""
+        with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
+            XYChartConfig(
+                chart_type="xy",
+                x=ColumnRef(name="territory"),
+                y=[ColumnRef(name="sales", aggregate="SUM")],
+                kind="bar",
+                series=ColumnRef(name="year"),
+            )
+
+    def test_group_by_accepted(self) -> None:
+        """Test that group_by is the correct field for series grouping."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="territory"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            kind="bar",
+            group_by=ColumnRef(name="year"),
+        )
+        assert config.group_by is not None
+        assert config.group_by.name == "year"
+
+
+class TestTableChartConfigExtraFields:
+    """Test TableChartConfig rejects unknown fields."""
+
+    def test_unknown_fields_rejected(self) -> None:
+        """Test that unknown fields are rejected."""
+        with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
+            TableChartConfig(
+                chart_type="table",
+                columns=[ColumnRef(name="product")],
+                foo="bar",
+            )

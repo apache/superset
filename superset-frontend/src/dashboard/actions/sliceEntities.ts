@@ -25,18 +25,12 @@ import {
 } from '@superset-ui/core';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { Dispatch } from 'redux';
-import { Slice } from '../types';
+import { Slice, SliceEntitiesState } from '../types';
 import { HYDRATE_DASHBOARD } from './hydrate';
 
-const FETCH_SLICES_PAGE_SIZE = 200;
+export type { SliceEntitiesState };
 
-// State types
-export interface SliceEntitiesState {
-  slices: { [id: number]: Slice };
-  isLoading: boolean;
-  errorMessage: string | null;
-  lastUpdated: number;
-}
+const FETCH_SLICES_PAGE_SIZE = 200;
 
 // Action types
 export type SliceEntitiesActionPayload =

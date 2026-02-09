@@ -25,7 +25,7 @@ import {
 import { CopyToClipboardButton } from '.';
 
 test('Render a button', () => {
-  render(<CopyToClipboardButton data={{ copy: 'data', data: 'copy' }} />, {
+  render(<CopyToClipboardButton data={[{ copy: 'data', data: 'copy' }]} />, {
     useRedux: true,
   });
   expect(screen.getByRole('button')).toBeInTheDocument();
@@ -36,10 +36,10 @@ test('Should copy to clipboard', async () => {
   document.execCommand = callback;
 
   const originalClipboard = { ...global.navigator.clipboard };
-  // @ts-ignore
+  // @ts-expect-error
   global.navigator.clipboard = { write: callback, writeText: callback };
 
-  render(<CopyToClipboardButton data={{ copy: 'data', data: 'copy' }} />, {
+  render(<CopyToClipboardButton data={[{ copy: 'data', data: 'copy' }]} />, {
     useRedux: true,
   });
 
@@ -51,6 +51,6 @@ test('Should copy to clipboard', async () => {
   });
 
   jest.resetAllMocks();
-  // @ts-ignore
+  // @ts-expect-error
   global.navigator.clipboard = originalClipboard;
 });

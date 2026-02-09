@@ -404,7 +404,7 @@ test('sortAndFilterSeries by name with numbers desc', () => {
 });
 
 describe('extractSeries', () => {
-  it('should generate a valid ECharts timeseries series object', () => {
+  test('should generate a valid ECharts timeseries series object', () => {
     const data = [
       {
         __timestamp: '2000-01-01',
@@ -449,7 +449,7 @@ describe('extractSeries', () => {
     ]);
   });
 
-  it('should remove rows that have a null x-value', () => {
+  test('should remove rows that have a null x-value', () => {
     const data = [
       {
         x: 1,
@@ -495,7 +495,7 @@ describe('extractSeries', () => {
     ]);
   });
 
-  it('should convert NULL x-values to NULL_STRING for categorical axis', () => {
+  test('should convert NULL x-values to NULL_STRING for categorical axis', () => {
     const data = [
       {
         browser: 'Firefox',
@@ -532,7 +532,7 @@ describe('extractSeries', () => {
     ]);
   });
 
-  it('should do missing value imputation', () => {
+  test('should do missing value imputation', () => {
     const data = [
       {
         __timestamp: '2000-01-01',
@@ -604,7 +604,7 @@ describe('extractSeries', () => {
 });
 
 describe('extractGroupbyLabel', () => {
-  it('should join together multiple groupby labels', () => {
+  test('should join together multiple groupby labels', () => {
     expect(
       extractGroupbyLabel({
         datum: { a: 'abc', b: 'qwerty' },
@@ -613,13 +613,13 @@ describe('extractGroupbyLabel', () => {
     ).toEqual('abc, qwerty');
   });
 
-  it('should handle a single groupby', () => {
+  test('should handle a single groupby', () => {
     expect(
       extractGroupbyLabel({ datum: { xyz: 'qqq' }, groupby: ['xyz'] }),
     ).toEqual('qqq');
   });
 
-  it('should handle mixed types', () => {
+  test('should handle mixed types', () => {
     expect(
       extractGroupbyLabel({
         datum: { strcol: 'abc', intcol: 123, floatcol: 0.123, boolcol: true },
@@ -628,7 +628,7 @@ describe('extractGroupbyLabel', () => {
     ).toEqual('abc, 123, 0.123, true');
   });
 
-  it('should handle null and undefined groupby', () => {
+  test('should handle null and undefined groupby', () => {
     expect(
       extractGroupbyLabel({
         datum: { strcol: 'abc', intcol: 123, floatcol: 0.123, boolcol: true },
@@ -640,7 +640,7 @@ describe('extractGroupbyLabel', () => {
 });
 
 describe('extractShowValueIndexes', () => {
-  it('should return the latest index for stack', () => {
+  test('should return the latest index for stack', () => {
     expect(
       extractShowValueIndexes(
         [
@@ -698,7 +698,7 @@ describe('extractShowValueIndexes', () => {
     ).toEqual([undefined, 1, 0, 1, undefined, 2, 1, 1, undefined, 1]);
   });
 
-  it('should handle the negative numbers for total only', () => {
+  test('should handle the negative numbers for total only', () => {
     expect(
       extractShowValueIndexes(
         [
@@ -760,40 +760,40 @@ describe('extractShowValueIndexes', () => {
 describe('formatSeriesName', () => {
   const numberFormatter = getNumberFormatter();
   const timeFormatter = getTimeFormatter();
-  it('should handle missing values properly', () => {
+  test('should handle missing values properly', () => {
     expect(formatSeriesName(undefined)).toEqual('<NULL>');
     expect(formatSeriesName(null)).toEqual('<NULL>');
   });
 
-  it('should handle string values properly', () => {
+  test('should handle string values properly', () => {
     expect(formatSeriesName('abc XYZ!')).toEqual('abc XYZ!');
   });
 
-  it('should handle boolean values properly', () => {
+  test('should handle boolean values properly', () => {
     expect(formatSeriesName(true)).toEqual('true');
   });
 
-  it('should use default formatting for numeric values without formatter', () => {
+  test('should use default formatting for numeric values without formatter', () => {
     expect(formatSeriesName(12345678.9)).toEqual('12345678.9');
   });
 
-  it('should use numberFormatter for numeric values when formatter is provided', () => {
+  test('should use numberFormatter for numeric values when formatter is provided', () => {
     expect(formatSeriesName(12345678.9, { numberFormatter })).toEqual('12.3M');
   });
 
-  it('should use default formatting for date values without formatter', () => {
+  test('should use default formatting for date values without formatter', () => {
     expect(formatSeriesName(new Date('2020-09-11'))).toEqual(
       '2020-09-11T00:00:00.000Z',
     );
   });
 
-  it('should use timeFormatter for date values when formatter is provided', () => {
+  test('should use timeFormatter for date values when formatter is provided', () => {
     expect(formatSeriesName(new Date('2020-09-11'), { timeFormatter })).toEqual(
       '2020-09-11 00:00:00',
     );
   });
 
-  it('should normalize non-UTC string based timestamp', () => {
+  test('should normalize non-UTC string based timestamp', () => {
     const annualTimeFormatter = getTimeFormatter('%Y');
     expect(
       formatSeriesName('1995-01-01 00:00:00.000000', {
@@ -805,7 +805,7 @@ describe('formatSeriesName', () => {
 });
 
 describe('getLegendProps', () => {
-  it('should return the correct props for scroll type with top orientation without zoom', () => {
+  test('should return the correct props for scroll type with top orientation without zoom', () => {
     expect(
       getLegendProps(
         LegendType.Scroll,
@@ -824,7 +824,7 @@ describe('getLegendProps', () => {
     });
   });
 
-  it('should return the correct props for scroll type with top orientation with zoom', () => {
+  test('should return the correct props for scroll type with top orientation with zoom', () => {
     expect(
       getLegendProps(
         LegendType.Scroll,
@@ -843,7 +843,7 @@ describe('getLegendProps', () => {
     });
   });
 
-  it('should return the correct props for plain type with left orientation', () => {
+  test('should return the correct props for plain type with left orientation', () => {
     expect(
       getLegendProps(LegendType.Plain, LegendOrientation.Left, true, theme),
     ).toEqual({
@@ -855,7 +855,7 @@ describe('getLegendProps', () => {
     });
   });
 
-  it('should return the correct props for plain type with right orientation without zoom', () => {
+  test('should return the correct props for plain type with right orientation without zoom', () => {
     expect(
       getLegendProps(
         LegendType.Plain,
@@ -874,7 +874,7 @@ describe('getLegendProps', () => {
     });
   });
 
-  it('should return the correct props for plain type with right orientation with zoom', () => {
+  test('should return the correct props for plain type with right orientation with zoom', () => {
     expect(
       getLegendProps(
         LegendType.Plain,
@@ -893,7 +893,7 @@ describe('getLegendProps', () => {
     });
   });
 
-  it('should default plain legends to scroll for bottom orientation', () => {
+  test('should default plain legends to scroll for bottom orientation', () => {
     expect(
       getLegendProps(LegendType.Plain, LegendOrientation.Bottom, false, theme),
     ).toEqual({
@@ -905,7 +905,7 @@ describe('getLegendProps', () => {
     });
   });
 
-  it('should default plain legends to scroll for top orientation', () => {
+  test('should default plain legends to scroll for top orientation', () => {
     expect(
       getLegendProps(LegendType.Plain, LegendOrientation.Top, false, theme),
     ).toEqual({
@@ -920,7 +920,7 @@ describe('getLegendProps', () => {
 });
 
 describe('getChartPadding', () => {
-  it('should handle top default', () => {
+  test('should handle top default', () => {
     expect(getChartPadding(true, LegendOrientation.Top)).toEqual({
       bottom: 0,
       left: 0,
@@ -929,7 +929,7 @@ describe('getChartPadding', () => {
     });
   });
 
-  it('should handle left default', () => {
+  test('should handle left default', () => {
     expect(getChartPadding(true, LegendOrientation.Left)).toEqual({
       bottom: 0,
       left: defaultLegendPadding[LegendOrientation.Left],
@@ -938,7 +938,7 @@ describe('getChartPadding', () => {
     });
   });
 
-  it('should return the default padding when show is false', () => {
+  test('should return the default padding when show is false', () => {
     expect(
       getChartPadding(false, LegendOrientation.Left, 100, {
         top: 10,
@@ -954,7 +954,7 @@ describe('getChartPadding', () => {
     });
   });
 
-  it('should return the correct padding for left orientation', () => {
+  test('should return the correct padding for left orientation', () => {
     expect(getChartPadding(true, LegendOrientation.Left, 100)).toEqual({
       bottom: 0,
       left: 100,
@@ -971,7 +971,7 @@ describe('getChartPadding', () => {
     });
   });
 
-  it('should return the correct padding for right orientation', () => {
+  test('should return the correct padding for right orientation', () => {
     expect(getChartPadding(true, LegendOrientation.Right, 50)).toEqual({
       bottom: 0,
       left: 0,
@@ -988,7 +988,7 @@ describe('getChartPadding', () => {
     });
   });
 
-  it('should return the correct padding for top orientation', () => {
+  test('should return the correct padding for top orientation', () => {
     expect(getChartPadding(true, LegendOrientation.Top, 20)).toEqual({
       bottom: 0,
       left: 0,
@@ -1005,7 +1005,7 @@ describe('getChartPadding', () => {
     });
   });
 
-  it('should return the correct padding for bottom orientation', () => {
+  test('should return the correct padding for bottom orientation', () => {
     expect(getChartPadding(true, LegendOrientation.Bottom, 10)).toEqual({
       bottom: 10,
       left: 0,
@@ -1024,7 +1024,7 @@ describe('getChartPadding', () => {
 });
 
 describe('dedupSeries', () => {
-  it('should deduplicate ids in series', () => {
+  test('should deduplicate ids in series', () => {
     expect(
       dedupSeries([
         {
@@ -1050,17 +1050,17 @@ describe('dedupSeries', () => {
 });
 
 describe('sanitizeHtml', () => {
-  it('should remove html tags from series name', () => {
+  test('should remove html tags from series name', () => {
     expect(sanitizeHtml(NULL_STRING)).toEqual('&lt;NULL&gt;');
   });
 });
 
 describe('getOverMaxHiddenFormatter', () => {
-  it('should hide value if greater than max', () => {
+  test('should hide value if greater than max', () => {
     const formatter = getOverMaxHiddenFormatter({ max: 81000 });
     expect(formatter.format(84500)).toEqual('');
   });
-  it('should show value if less or equal than max', () => {
+  test('should show value if less or equal than max', () => {
     const formatter = getOverMaxHiddenFormatter({ max: 81000 });
     expect(formatter.format(81000)).toEqual('81000');
     expect(formatter.format(50000)).toEqual('50000');
@@ -1209,12 +1209,12 @@ test('getMinAndMaxFromBounds returns automatic lower bound when truncating', () 
 });
 
 describe('getTimeCompareStackId', () => {
-  it('returns the defaultId when timeCompare is empty', () => {
+  test('returns the defaultId when timeCompare is empty', () => {
     const result = getTimeCompareStackId('default', []);
     expect(result).toEqual('default');
   });
 
-  it('returns the defaultId when no value in timeCompare is included in name', () => {
+  test('returns the defaultId when no value in timeCompare is included in name', () => {
     const result = getTimeCompareStackId(
       'default',
       ['compare1', 'compare2'],
@@ -1223,7 +1223,7 @@ describe('getTimeCompareStackId', () => {
     expect(result).toEqual('default');
   });
 
-  it('returns the first value in timeCompare that is included in name', () => {
+  test('returns the first value in timeCompare that is included in name', () => {
     const result = getTimeCompareStackId(
       'default',
       ['compare1', 'compare2'],
@@ -1232,7 +1232,7 @@ describe('getTimeCompareStackId', () => {
     expect(result).toEqual('compare1');
   });
 
-  it('handles name being a number', () => {
+  test('handles name being a number', () => {
     const result = getTimeCompareStackId('default', ['123', '456'], 123);
     expect(result).toEqual('123');
   });

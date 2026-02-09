@@ -76,7 +76,6 @@ export default function EchartsMixedTimeseries({
       return {
         dataMask: {
           extraFormData: {
-            // @ts-ignore
             filters:
               values.length === 0
                 ? []

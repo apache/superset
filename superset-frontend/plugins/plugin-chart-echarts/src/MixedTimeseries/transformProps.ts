@@ -577,8 +577,11 @@ export default function transformProps(
       ? getXAxisFormatter(xAxisTimeFormat)
       : String;
 
-  const addYAxisTitleOffset = !!(yAxisTitle || yAxisTitleSecondary);
-  const addXAxisTitleOffset = !!xAxisTitle;
+  const addYAxisTitleOffset =
+    !!(yAxisTitle || yAxisTitleSecondary) &&
+    convertInteger(yAxisTitleMargin) !== 0;
+  const addXAxisTitleOffset =
+    !!xAxisTitle && convertInteger(xAxisTitleMargin) !== 0;
 
   const chartPadding = getPadding(
     showLegend,
@@ -757,7 +760,6 @@ export default function transformProps(
         legendState,
         chartPadding,
       ),
-      // @ts-ignore
       data: series
         .filter(
           entry =>

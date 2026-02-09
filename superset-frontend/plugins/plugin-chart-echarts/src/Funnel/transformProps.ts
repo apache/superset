@@ -35,7 +35,7 @@ import {
   DEFAULT_FORM_DATA as DEFAULT_FUNNEL_FORM_DATA,
   EchartsFunnelChartProps,
   EchartsFunnelFormData,
-  EchartsFunnelLabelTypeType,
+  EchartsFunnelLabelType,
   FunnelChartTransformedProps,
   PercentCalcType,
 } from './types';
@@ -216,19 +216,19 @@ export default function transformProps(
       percentCalculationType,
     });
     switch (labelType) {
-      case EchartsFunnelLabelTypeType.Key:
+      case EchartsFunnelLabelType.Key:
         return name;
-      case EchartsFunnelLabelTypeType.Value:
+      case EchartsFunnelLabelType.Value:
         return formattedValue;
-      case EchartsFunnelLabelTypeType.Percent:
+      case EchartsFunnelLabelType.Percent:
         return formattedPercent;
-      case EchartsFunnelLabelTypeType.KeyValue:
+      case EchartsFunnelLabelType.KeyValue:
         return `${name}: ${formattedValue}`;
-      case EchartsFunnelLabelTypeType.KeyValuePercent:
+      case EchartsFunnelLabelType.KeyValuePercent:
         return `${name}: ${formattedValue} (${formattedPercent})`;
-      case EchartsFunnelLabelTypeType.KeyPercent:
+      case EchartsFunnelLabelType.KeyPercent:
         return `${name}: ${formattedPercent}`;
-      case EchartsFunnelLabelTypeType.ValuePercent:
+      case EchartsFunnelLabelType.ValuePercent:
         return `${formattedValue} (${formattedPercent})`;
       default:
         return name;
@@ -265,7 +265,6 @@ export default function transformProps(
           fontWeight: 'bold',
         },
       },
-      // @ts-ignore
       data: transformedData,
     },
   ];
@@ -285,7 +284,7 @@ export default function transformProps(
           percentCalculationType,
         });
         const row = [];
-        const enumName = EchartsFunnelLabelTypeType[tooltipLabelType];
+        const enumName = EchartsFunnelLabelType[tooltipLabelType];
         const title = enumName.includes('Key') ? name : undefined;
         if (enumName.includes('Value') || enumName.includes('Percent')) {
           row.push(metricLabel);
