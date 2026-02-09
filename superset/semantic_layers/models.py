@@ -303,9 +303,9 @@ class SemanticView(AuditMixinNullable, Model):
                 get_column_type(dimension.type)
                 for dimension in self.implementation.get_dimensions()
             ],
-            "column_names": {
+            "column_names": [
                 dimension.name for dimension in self.implementation.get_dimensions()
-            },
+            ],
             # rare
             "column_formats": {},
             "datasource_name": self.name,
