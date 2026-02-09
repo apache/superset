@@ -678,6 +678,9 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # sts:AssumeRole permissions to prevent unauthorized access.
     # @lifecycle: testing
     "AWS_DATABASE_IAM_AUTH": False,
+    # Global Task Framework - unified task management with progress tracking,
+    # cancellation, and deduplication.
+    "GLOBAL_TASK_FRAMEWORK": False,
     # Use analogous colors in charts
     # @lifecycle: testing
     "USE_ANALOGOUS_COLORS": False,
@@ -1409,6 +1412,12 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         #     "schedule": crontab(minute="*", hour="*"),
         #     "kwargs": {"retention_period_days": 180, "max_rows_per_run": 10000},
         # },
+        # Uncomment to enable pruning of the tasks table
+        # "prune_tasks": {
+        #     "task": "prune_tasks",
+        #     "schedule": crontab(minute=0, hour=0),
+        #     "kwargs": {"retention_period_days": 90, "max_rows_per_run": 10000},
+        # },
         # Uncomment to enable Slack channel cache warm-up
         # "slack.cache_channels": {
         #     "task": "slack.cache_channels",
@@ -1824,6 +1833,34 @@ DISALLOWED_SQL_FUNCTIONS: dict[str, set[str]] = {
         "getOSInformation",
         "getMacro",
         "getSetting",
+    },
+}
+
+# Per-engine blocklist of system catalog tables/views that should not be queried.
+# Prevents information disclosure through system catalog access.
+DISALLOWED_SQL_TABLES: dict[str, set[str]] = {
+    "postgresql": {
+        "pg_stat_activity",
+        "pg_roles",
+        "pg_shadow",
+        "pg_authid",
+        "pg_settings",
+        "pg_config",
+        "pg_hba_file_rules",
+        "pg_stat_ssl",
+        "pg_stat_replication",
+        "pg_stat_wal_receiver",
+        "pg_user",
+    },
+    "mysql": {
+        "mysql.user",
+        "performance_schema.threads",
+        "performance_schema.processlist",
+    },
+    "mssql": {
+        "sys.server_principals",
+        "sys.sql_logins",
+        "sys.configurations",
     },
 }
 
@@ -2443,6 +2480,62 @@ except ImportError:
 
 LOCAL_EXTENSIONS: list[str] = []
 EXTENSIONS_PATH: str | None = None
+
+# Default polling interval for tasks (seconds)
+TASK_ABORT_POLLING_DEFAULT_INTERVAL = 10
+
+# Minimum interval in seconds between database writes for task progress updates.
+# Set to 0 to disable throttling (write every update to DB).
+TASK_PROGRESS_UPDATE_THROTTLE_INTERVAL = 2  # seconds
+
+# ---------------------------------------------------
+# Signal Cache Configuration
+# ---------------------------------------------------
+# Shared Redis/Valkey configuration for signaling features that require
+# Redis-specific primitives (pub/sub messaging, distributed locks).
+#
+# Uses Flask-Caching style configuration for consistency with other cache backends.
+# Set CACHE_TYPE to 'RedisCache' for standard Redis or 'RedisSentinelCache' for
+# Sentinel.
+#
+# These features cannot use generic cache backends because they rely on:
+# - Pub/Sub: Real-time message broadcasting between workers
+# - SET NX EX: Atomic lock acquisition with automatic expiration
+#
+# When configured, enables:
+# - Real-time abort/completion notifications for GTF tasks (vs database polling)
+# - Redis-based distributed locking (vs KeyValueDAO-backed DistributedLock)
+#
+# Future: This cache will also be used by Global Async Queries, consolidating
+# GLOBAL_ASYNC_QUERIES_CACHE_BACKEND into this unified configuration.
+#
+# Example with standard Redis:
+# SIGNAL_CACHE_CONFIG: CacheConfig = {
+#     "CACHE_TYPE": "RedisCache",
+#     "CACHE_REDIS_HOST": "localhost",
+#     "CACHE_REDIS_PORT": 6379,
+#     "CACHE_REDIS_DB": 0,
+#     "CACHE_REDIS_PASSWORD": "",
+# }
+#
+# Example with Redis Sentinel:
+# SIGNAL_CACHE_CONFIG: CacheConfig = {
+#     "CACHE_TYPE": "RedisSentinelCache",
+#     "CACHE_REDIS_SENTINELS": [("sentinel1", 26379), ("sentinel2", 26379)],
+#     "CACHE_REDIS_SENTINEL_MASTER": "mymaster",
+#     "CACHE_REDIS_SENTINEL_PASSWORD": None,
+#     "CACHE_REDIS_DB": 0,
+#     "CACHE_REDIS_PASSWORD": "",
+# }
+SIGNAL_CACHE_CONFIG: CacheConfig | None = None
+
+# Default lock TTL (time-to-live) in seconds for distributed locks.
+# Can be overridden per-call via the `ttl_seconds` parameter.
+# After TTL expires, the lock is automatically released to prevent deadlocks.
+DISTRIBUTED_LOCK_DEFAULT_TTL = 30
+
+# Channel prefix for task abort pub/sub messages
+TASKS_ABORT_CHANNEL_PREFIX = "gtf:abort:"
 
 # -------------------------------------------------------------------
 # *                WARNING:  STOP EDITING  HERE                    *

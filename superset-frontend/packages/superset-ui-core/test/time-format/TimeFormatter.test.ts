@@ -21,7 +21,7 @@ import { TimeFormatter, PREVIEW_TIME } from '@superset-ui/core';
 
 describe('TimeFormatter', () => {
   describe('new TimeFormatter(config)', () => {
-    it('requires config.id', () => {
+    test('requires config.id', () => {
       expect(
         () =>
           // @ts-expect-error -- intentionally pass invalid input
@@ -30,7 +30,7 @@ describe('TimeFormatter', () => {
           }),
       ).toThrow();
     });
-    it('requires config.formatFunc', () => {
+    test('requires config.formatFunc', () => {
       expect(
         () =>
           // @ts-expect-error -- intentionally pass invalid input
@@ -45,10 +45,10 @@ describe('TimeFormatter', () => {
       id: 'year_only',
       formatFunc: (value: Date) => `${value.getFullYear()}`,
     });
-    it('returns formatted value', () => {
+    test('returns formatted value', () => {
       expect(formatter(PREVIEW_TIME)).toEqual('2017');
     });
-    it('formatter(value) is the same with formatter.format(value)', () => {
+    test('formatter(value) is the same with formatter.format(value)', () => {
       const value = PREVIEW_TIME;
       expect(formatter(value)).toEqual(formatter.format(value));
     });
@@ -58,16 +58,16 @@ describe('TimeFormatter', () => {
       id: 'year_only',
       formatFunc: value => `${value.getFullYear()}`,
     });
-    it('handles null', () => {
+    test('handles null', () => {
       expect(formatter.format(null)).toEqual('null');
     });
-    it('handles undefined', () => {
+    test('handles undefined', () => {
       expect(formatter.format(undefined)).toEqual('undefined');
     });
-    it('handles number, treating it as a timestamp', () => {
+    test('handles number, treating it as a timestamp', () => {
       expect(formatter.format(PREVIEW_TIME.getTime())).toEqual('2017');
     });
-    it('otherwise returns formatted value', () => {
+    test('otherwise returns formatted value', () => {
       expect(formatter.format(PREVIEW_TIME)).toEqual('2017');
     });
   });
@@ -76,13 +76,13 @@ describe('TimeFormatter', () => {
       id: 'year_only',
       formatFunc: value => `${value.getFullYear()}`,
     });
-    it('returns string comparing value before and after formatting', () => {
+    test('returns string comparing value before and after formatting', () => {
       const time = new Date(Date.UTC(2018, 10, 21, 22, 11, 44));
       expect(formatter.preview(time)).toEqual(
         'Wed, 21 Nov 2018 22:11:44 GMT => 2018',
       );
     });
-    it('uses the default preview value if not specified', () => {
+    test('uses the default preview value if not specified', () => {
       expect(formatter.preview()).toEqual(
         'Tue, 14 Feb 2017 11:22:33 GMT => 2017',
       );

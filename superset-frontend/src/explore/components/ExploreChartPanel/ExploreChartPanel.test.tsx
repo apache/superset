@@ -29,12 +29,12 @@ import {
   VizType,
 } from '@superset-ui/core';
 import ChartContainerComponent from 'src/explore/components/ExploreChartPanel';
+import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 
 // Cast to accept partial mock props in tests
 const ChartContainer = ChartContainerComponent as unknown as React.FC<
   Record<string, any>
 >;
-import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 
 const createProps = (overrides = {}) => ({
   sliceName: 'Trend Line',

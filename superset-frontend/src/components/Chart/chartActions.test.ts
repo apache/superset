@@ -156,7 +156,7 @@ describe('chart actions', () => {
       .mockImplementation((data: unknown) => Promise.resolve(data));
   });
 
-  test.only('should defer abort of previous controller to avoid Redux state mutation', async () => {
+  test('should defer abort of previous controller to avoid Redux state mutation', async () => {
     jest.useFakeTimers();
     const chartKey = 'defer_abort_test';
     const formData: Partial<QueryFormData> = {

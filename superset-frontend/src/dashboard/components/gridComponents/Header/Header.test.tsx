@@ -56,7 +56,7 @@ describe('Header', () => {
       ...baseComponent,
       id: 'id',
       meta: {
-        ...(baseComponent.meta || {}),
+        ...baseComponent.meta,
         text: 'New Title',
       },
     },

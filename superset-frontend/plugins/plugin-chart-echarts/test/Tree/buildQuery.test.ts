@@ -19,7 +19,7 @@
 import buildQuery from '../../src/Tree/buildQuery';
 
 describe('Tree buildQuery', () => {
-  it('should build query', () => {
+  test('should build query', () => {
     const formData = {
       datasource: '5__table',
       granularity_sqla: 'ds',
@@ -34,7 +34,7 @@ describe('Tree buildQuery', () => {
     expect(query.columns).toEqual(['id_col', 'relation_col', 'name_col']);
     expect(query.metrics).toEqual(['foo', 'bar']);
   });
-  it('should build query without name column', () => {
+  test('should build query without name column', () => {
     const formData = {
       datasource: '5__table',
       granularity_sqla: 'ds',

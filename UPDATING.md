@@ -70,6 +70,28 @@ Dashboard and chart YAML exports include the `translations` field. Imports witho
 
 See [Content Localization docs](https://superset.apache.org/docs/configuration/content-localization) for full details.
 
+### Signal Cache Backend
+
+A new `SIGNAL_CACHE_CONFIG` configuration provides a unified Redis-based backend for real-time coordination features in Superset. This backend enables:
+
+- **Pub/sub messaging** for real-time event notifications between workers
+- **Atomic distributed locking** using Redis SET NX EX (more performant than database-backed locks)
+- **Event-based coordination** for background task management
+
+The signal cache is used by the Global Task Framework (GTF) for abort notifications and task completion signaling, and will eventually replace `GLOBAL_ASYNC_QUERIES_CACHE_BACKEND` as the standard signaling backend. Configuring this is recommended for Redis enabled production deployments.
+
+Example configuration in `superset_config.py`:
+```python
+SIGNAL_CACHE_CONFIG = {
+    "CACHE_TYPE": "RedisCache",
+    "CACHE_KEY_PREFIX": "signal_",
+    "CACHE_REDIS_URL": "redis://localhost:6379/1",
+    "CACHE_DEFAULT_TIMEOUT": 300,
+}
+```
+
+See `superset/config.py` for complete configuration options.
+
 ### WebSocket config for GAQ with Docker
 
 [35896](https://github.com/apache/superset/pull/35896) and [37624](https://github.com/apache/superset/pull/37624) updated documentation on how to run and configure Superset with Docker. Specifically for the WebSocket configuration, a new `docker/superset-websocket/config.example.json` was added to the repo, so that users could copy it to create a `docker/superset-websocket/config.json` file. The existing `docker/superset-websocket/config.json` was removed and git-ignored, so if you're using GAQ / WebSocket make sure to:

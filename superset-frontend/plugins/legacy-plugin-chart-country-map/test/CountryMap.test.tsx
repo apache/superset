@@ -79,7 +79,7 @@ describe('CountryMap (legacy d3)', () => {
     jest.clearAllMocks();
   });
 
-  it('renders a map after d3.json loads data', async () => {
+  test('renders a map after d3.json loads data', async () => {
     d3Any.json.mockImplementation((_url: string, cb: D3JsonCallback) =>
       cb(null, mockMapData),
     );
@@ -102,7 +102,7 @@ describe('CountryMap (legacy d3)', () => {
     expect(region).not.toBeNull();
   });
 
-  it('shows tooltip on mouseenter/mousemove/mouseout', async () => {
+  test('shows tooltip on mouseenter/mousemove/mouseout', async () => {
     d3Any.json.mockImplementation((_url: string, cb: D3JsonCallback) =>
       cb(null, mockMapData),
     );
@@ -131,7 +131,7 @@ describe('CountryMap (legacy d3)', () => {
     expect(popup!).toHaveStyle({ display: 'none' });
   });
 
-  it('shows tooltip on mouseenter/mousemove/mouseout', async () => {
+  test('shows tooltip on mouseenter/mousemove/mouseout', async () => {
     d3Any.json.mockImplementation((_url: string, cb: D3JsonCallback) =>
       cb(null, mockMapData),
     );

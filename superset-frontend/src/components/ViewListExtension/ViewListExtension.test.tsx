@@ -89,9 +89,8 @@ async function createActivatedExtension(
 
 const TEST_VIEW_ID = 'test.view';
 
-const renderWithExtensionsProvider = (ui: ReactElement) => {
-  return render(ui, { wrapper: ExtensionsProvider as any });
-};
+const renderWithExtensionsProvider = (ui: ReactElement) =>
+  render(ui, { wrapper: ExtensionsProvider as any });
 
 beforeEach(() => {
   (ExtensionsManager as any).instance = undefined;

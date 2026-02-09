@@ -19,7 +19,7 @@
 import { sections } from '../src';
 
 describe('@superset-ui/chart-controls', () => {
-  it('exports sections', () => {
+  test('exports sections', () => {
     expect(sections).toBeDefined();
     expect(sections.datasourceAndVizType).toBeDefined();
   });

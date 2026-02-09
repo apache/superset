@@ -56,7 +56,7 @@ describe('Bar Chart X-axis Time Formatting', () => {
   };
 
   describe('Default xAxisTimeFormat', () => {
-    it('should use smart_date as default xAxisTimeFormat', () => {
+    test('should use smart_date as default xAxisTimeFormat', () => {
       const chartProps = new ChartProps({
         ...baseChartPropsConfig,
         formData: baseFormData,
@@ -73,7 +73,7 @@ describe('Bar Chart X-axis Time Formatting', () => {
       expect(typeof xAxis.axisLabel.formatter).toBe('function');
     });
 
-    it('should apply xAxisTimeFormat from DEFAULT_FORM_DATA when not explicitly set', () => {
+    test('should apply xAxisTimeFormat from DEFAULT_FORM_DATA when not explicitly set', () => {
       const formDataWithoutTimeFormat = {
         ...baseFormData,
       };
@@ -96,7 +96,7 @@ describe('Bar Chart X-axis Time Formatting', () => {
   });
 
   describe('Custom xAxisTimeFormat', () => {
-    it('should respect custom xAxisTimeFormat when explicitly set', () => {
+    test('should respect custom xAxisTimeFormat when explicitly set', () => {
       const customFormData = {
         ...baseFormData,
         xAxisTimeFormat: '%Y-%m-%d',
@@ -123,7 +123,7 @@ describe('Bar Chart X-axis Time Formatting', () => {
       expect(typeof formatter).toBe('function');
     });
 
-    it('should handle different time format options', () => {
+    test('should handle different time format options', () => {
       const timeFormats = [
         '%Y-%m-%d',
         '%Y/%m/%d',
@@ -155,7 +155,7 @@ describe('Bar Chart X-axis Time Formatting', () => {
   });
 
   describe('Orientation-specific behavior', () => {
-    it('should apply time formatting to x-axis in vertical bar charts', () => {
+    test('should apply time formatting to x-axis in vertical bar charts', () => {
       const verticalFormData = {
         ...baseFormData,
         orientation: 'vertical',
@@ -177,7 +177,7 @@ describe('Bar Chart X-axis Time Formatting', () => {
       expect(typeof xAxis.axisLabel.formatter).toBe('function');
     });
 
-    it('should apply time formatting to y-axis in horizontal bar charts', () => {
+    test('should apply time formatting to y-axis in horizontal bar charts', () => {
       const horizontalFormData = {
         ...baseFormData,
         orientation: 'horizontal',
@@ -201,7 +201,7 @@ describe('Bar Chart X-axis Time Formatting', () => {
   });
 
   describe('Integration with existing features', () => {
-    it('should work with axis bounds', () => {
+    test('should work with axis bounds', () => {
       const formDataWithBounds = {
         ...baseFormData,
         xAxisTimeFormat: '%Y-%m-%d',
@@ -224,7 +224,7 @@ describe('Bar Chart X-axis Time Formatting', () => {
       expect(transformedProps.echartOptions.xAxis).toBeDefined();
     });
 
-    it('should work with label rotation', () => {
+    test('should work with label rotation', () => {
       const formDataWithRotation = {
         ...baseFormData,
         xAxisTimeFormat: '%Y-%m-%d',
@@ -245,7 +245,7 @@ describe('Bar Chart X-axis Time Formatting', () => {
       expect(xAxis.axisLabel).toHaveProperty('rotate', 45);
     });
 
-    it('should maintain time formatting consistency with tooltip', () => {
+    test('should maintain time formatting consistency with tooltip', () => {
       const formDataWithTooltip = {
         ...baseFormData,
         xAxisTimeFormat: '%Y-%m-%d',
@@ -270,7 +270,7 @@ describe('Bar Chart X-axis Time Formatting', () => {
   });
 
   describe('Regression test for Issue #30373', () => {
-    it('should not be stuck on adaptive formatting', () => {
+    test('should not be stuck on adaptive formatting', () => {
       // Test the exact scenario described in the issue
       const issueFormData = {
         ...baseFormData,
@@ -297,7 +297,7 @@ describe('Bar Chart X-axis Time Formatting', () => {
       // The actual formatting is handled by the underlying time formatter
     });
 
-    it('should allow changing from smart_date to other formats', () => {
+    test('should allow changing from smart_date to other formats', () => {
       // First create with smart_date (default)
       const smartDateFormData = {
         ...baseFormData,
@@ -340,7 +340,7 @@ describe('Bar Chart X-axis Time Formatting', () => {
       expect(typeof customFormatXAxis.axisLabel.formatter).toBe('function');
     });
 
-    it('should have xAxisTimeFormat in formData by default', () => {
+    test('should have xAxisTimeFormat in formData by default', () => {
       // This test specifically verifies our fix - that DEFAULT_FORM_DATA includes xAxisTimeFormat
       const chartProps = new ChartProps({
         ...baseChartPropsConfig,

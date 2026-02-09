@@ -157,6 +157,7 @@ test('should call refreshChart when SliceHeader calls forceRefresh', () => {
   expect(refreshChart).toHaveBeenCalled();
 });
 
+/* oxlint-disable-next-line jest/no-disabled-tests */
 test.skip('should call changeFilter when ChartContainer calls changeFilter', () => {
   const mockChangeFilter = jest.fn();
   const wrapper = setup({ changeFilter: mockChangeFilter }) as any;
