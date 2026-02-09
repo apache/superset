@@ -17,7 +17,12 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { fireEvent, screen, waitFor, within } from 'spec/helpers/testing-library';
+import {
+  fireEvent,
+  screen,
+  waitFor,
+  within,
+} from 'spec/helpers/testing-library';
 import { isFeatureEnabled } from '@superset-ui/core';
 import {
   mockCharts,
