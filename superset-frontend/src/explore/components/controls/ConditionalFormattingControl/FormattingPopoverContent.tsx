@@ -24,7 +24,6 @@ import {
   Comparator,
   MultipleValueComparators,
   ObjectFormattingEnum,
-  ColorSchemeEnum,
 } from '@superset-ui/chart-controls';
 import {
   Select,
@@ -46,6 +45,13 @@ import {
   formattingOptions,
   colorSchemeOptions,
 } from './constants';
+
+// TODO: tangled redefinition that aligns with @superset-ui/plugin-chart-table
+// used to be imported but main app shouldn't depend on plugins...
+export enum ColorSchemeEnum {
+  'Green' = 'Green',
+  'Red' = 'Red',
+}
 
 const FullWidthInputNumber = styled(InputNumber)`
   width: 100%;
@@ -323,6 +329,14 @@ export const FormattingPopoverContent = ({
     [allColumns],
   );
 
+  const visibleUseGradient = useMemo(
+    () =>
+      numericColumns.length > 0
+        ? numericColumns.some((col: ColumnOption) => col.value === column)
+        : false,
+    [column],
+  );
+
   const handleObjectChange = (value: ObjectFormattingEnum) => {
     setObjectFormating(value);
 
@@ -444,23 +458,25 @@ export const FormattingPopoverContent = ({
           </Col>
         </Row>
       ) : null}
-      <Row gutter={20}>
-        <Col span={1}>
-          <FormItem
-            name="useGradient"
-            valuePropName="checked"
-            initialValue={useGradient}
-          >
-            <Checkbox
-              onChange={event => setUseGradient(event.target.checked)}
-              checked={useGradient}
-            />
-          </FormItem>
-        </Col>
-        <Col>
-          <FormItem required>{t('Use gradient')}</FormItem>
-        </Col>
-      </Row>
+      {visibleUseGradient && (
+        <Row gutter={20}>
+          <Col span={1}>
+            <FormItem
+              name="useGradient"
+              valuePropName="checked"
+              initialValue={useGradient}
+            >
+              <Checkbox
+                onChange={event => setUseGradient(event.target.checked)}
+                checked={useGradient}
+              />
+            </FormItem>
+          </Col>
+          <Col>
+            <FormItem required>{t('Use gradient')}</FormItem>
+          </Col>
+        </Row>
+      )}
       <FormItem noStyle shouldUpdate={shouldFormItemUpdate}>
         {showOperatorFields ? (
           (props: GetFieldValue) => renderOperatorFields(props, columnType)
