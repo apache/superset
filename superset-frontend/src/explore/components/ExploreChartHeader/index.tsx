@@ -240,8 +240,6 @@ export const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
     [originalFormData, currentFormData],
   );
 
-  const hasUnsavedChanges = Object.keys(formDiffs).length > 0;
-
   const {
     showModal: showUnsavedChangesModal,
     setShowModal: setShowUnsavedChangesModal,
@@ -249,7 +247,7 @@ export const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
     handleSaveAndCloseModal,
     triggerManualSave,
   } = useUnsavedChangesPrompt({
-    hasUnsavedChanges,
+    hasUnsavedChanges: Object.keys(formDiffs).length > 0,
     onSave: () => {
       dispatch(setSaveChartModalVisibility(true));
     },
