@@ -18,3 +18,4 @@
  */
 
 export { default as logging } from './logging';
+export { copyTextToClipboard } from './clipboard';

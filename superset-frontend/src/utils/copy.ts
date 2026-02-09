@@ -18,10 +18,10 @@
  */
 
 /**
- * Re-export clipboard utilities from @superset-ui/core for backward compatibility.
+ * Re-export clipboard utilities from @apache-superset/core for backward compatibility.
  *
  * For new code, prefer importing directly from:
- * import { copyTextToClipboard, isSafari } from '@superset-ui/core';
+ * import { copyTextToClipboard } from '@apache-superset/core';
  */
-export { copyTextToClipboard, isSafari } from '@superset-ui/core';
-export { copyTextToClipboard as default } from '@superset-ui/core';
+export { copyTextToClipboard } from '@apache-superset/core';
+export { copyTextToClipboard as default } from '@apache-superset/core';

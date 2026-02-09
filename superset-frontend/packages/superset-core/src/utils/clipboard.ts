@@ -20,19 +20,16 @@
 /**
  * Detects if the browser is Safari (WebKit without Chrome).
  */
-export const isSafari = (): boolean => {
+const isSafari = (): boolean => {
   const { userAgent } = navigator;
   return Boolean(userAgent && /^((?!chrome|android).)*safari/i.test(userAgent));
 };
 
 /**
- * Copy text to clipboard using the modern Clipboard API with fallback
- * for older browsers.
- *
- * @param getText - Function that returns a Promise resolving to the text to copy
- * @returns Promise that resolves when copy succeeds, rejects on failure
+ * Copy text to clipboard using the modern Clipboard API.
+ * Handles Safari's requirement for synchronous clipboard access.
  */
-const copyTextWithClipboardApi = async (
+const copyWithClipboardApi = async (
   getText: () => Promise<string>,
 ): Promise<void> => {
   // Safari (WebKit) does not support delayed generation of clipboard.
@@ -64,6 +61,46 @@ const copyTextWithClipboardApi = async (
 };
 
 /**
+ * Copy text to clipboard using the legacy execCommand API.
+ * Used as fallback for browsers that don't support the Clipboard API.
+ */
+const copyWithExecCommand = (text: string): Promise<void> =>
+  new Promise<void>((resolve, reject) => {
+    const selection: Selection | null = document.getSelection();
+    if (selection) {
+      selection.removeAllRanges();
+      const range = document.createRange();
+      const span = document.createElement('span');
+      span.textContent = text;
+      span.style.position = 'fixed';
+      span.style.top = '0';
+      span.style.clip = 'rect(0, 0, 0, 0)';
+      span.style.whiteSpace = 'pre';
+
+      document.body.appendChild(span);
+      range.selectNode(span);
+      selection.addRange(range);
+
+      try {
+        if (!document.execCommand('copy')) {
+          reject(new Error('execCommand copy failed'));
+        }
+      } catch (err) {
+        reject(err);
+      }
+
+      document.body.removeChild(span);
+      if (selection.removeRange) {
+        selection.removeRange(range);
+      } else {
+        selection.removeAllRanges();
+      }
+    }
+
+    resolve();
+  });
+
+/**
  * Copy text to clipboard with automatic fallback for older browsers.
  *
  * Uses the modern Clipboard API when available, falling back to
@@ -71,48 +108,21 @@ const copyTextWithClipboardApi = async (
  *
  * @param getText - Function that returns a Promise resolving to the text to copy
  * @returns Promise that resolves when copy succeeds, rejects on failure
+ *
+ * @example
+ * // Copy static text
+ * await copyTextToClipboard(() => Promise.resolve('Hello, World!'));
+ *
+ * @example
+ * // Copy dynamic text (e.g., from API)
+ * await copyTextToClipboard(async () => {
+ *   const response = await fetch('/api/text');
+ *   return response.text();
+ * });
  */
 export const copyTextToClipboard = (
   getText: () => Promise<string>,
 ): Promise<void> =>
-  copyTextWithClipboardApi(getText)
-    // If the Clipboard API is not supported, fallback to the older method.
-    .catch(() =>
-      getText().then(
-        text =>
-          new Promise<void>((resolve, reject) => {
-            const selection: Selection | null = document.getSelection();
-            if (selection) {
-              selection.removeAllRanges();
-              const range = document.createRange();
-              const span = document.createElement('span');
-              span.textContent = text;
-              span.style.position = 'fixed';
-              span.style.top = '0';
-              span.style.clip = 'rect(0, 0, 0, 0)';
-              span.style.whiteSpace = 'pre';
-
-              document.body.appendChild(span);
-              range.selectNode(span);
-              selection.addRange(range);
-
-              try {
-                if (!document.execCommand('copy')) {
-                  reject(new Error('execCommand copy failed'));
-                }
-              } catch (err) {
-                reject(err);
-              }
-
-              document.body.removeChild(span);
-              if (selection.removeRange) {
-                selection.removeRange(range);
-              } else {
-                selection.removeAllRanges();
-              }
-            }
-
-            resolve();
-          }),
-      ),
-    );
+  copyWithClipboardApi(getText).catch(() =>
+    getText().then(text => copyWithExecCommand(text)),
+  );
