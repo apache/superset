@@ -87,23 +87,30 @@ To use it, add the following to your `superset_config.py`:
 
 ```python
 from celery.schedules import crontab
+from superset.config import CeleryConfig
 
+# User that will be used to authenticate and render dashboards for cache warmup
 SUPERSET_CACHE_WARMUP_USER = "user_with_permission_to_dashboards"
 
-CELERYBEAT_SCHEDULE = {
-    'cache-warmup-hourly': {
-        'task': 'cache-warmup',
-        'schedule': crontab(minute=0, hour='*'),  # hourly
-        'kwargs': {
-            'strategy_name': 'top_n_dashboards',
-            'top_n': 5,
-            'since': '7 days ago',
+# Extend the default CeleryConfig to add cache warmup schedule
+class CustomCeleryConfig(CeleryConfig):
+    beat_schedule = {
+        **CeleryConfig.beat_schedule,
+        'cache-warmup-hourly': {
+            'task': 'cache-warmup',
+            'schedule': crontab(minute=0, hour='*'),  # hourly
+            'kwargs': {
+                'strategy_name': 'top_n_dashboards',
+                'top_n': 5,
+                'since': '7 days ago',
+            },
         },
-    },
-}
+    }
+
+CELERY_CONFIG = CustomCeleryConfig
 ```
 
-This will cache all the charts in the top 5 most popular dashboards every hour. For other
+This will cache the top 5 most popular dashboards every hour. For other
 strategies, check the `superset/tasks/cache.py` file.
 
 ## Caching Thumbnails
