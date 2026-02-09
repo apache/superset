@@ -33,9 +33,11 @@ from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 
 from superset import security_manager
+from superset.charts.schemas import ImportV1ChartSchema
 from superset.commands.chart.importers.v1.utils import import_chart
 from superset.commands.dashboard.importers.v1.utils import import_dashboard
 from superset.connectors.sqla.models import Database, SqlaTable
+from superset.dashboards.schemas import ImportV1DashboardSchema
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils import json
@@ -382,3 +384,76 @@ def test_chart_roundtrip_preserves_translations(
     imported = import_chart(exported)
 
     assert imported.translations == CHART_TRANSLATIONS
+
+
+# ---------------------------------------------------------------------------
+# Schema validation: ImportV1DashboardSchema / ImportV1ChartSchema
+# ---------------------------------------------------------------------------
+# These tests verify the Marshmallow schema layer used by load_configs()
+# in the ZIP import pipeline. Without the translations field declared on the
+# schema, schema.load() raises ValidationError("Unknown field.").
+
+
+def test_dashboard_import_schema_accepts_translations() -> None:
+    """
+    ImportV1DashboardSchema.load() passes when config contains translations dict.
+
+    This validates the full ZIP import pipeline path: load_configs() calls
+    schema.load(config) before import_dashboard().
+    """
+    config = copy.deepcopy(DASHBOARD_CONFIG_WITH_TRANSLATIONS)
+    result = ImportV1DashboardSchema().load(config)
+    assert result["translations"] == DASHBOARD_TRANSLATIONS
+
+
+def test_dashboard_import_schema_accepts_without_translations() -> None:
+    """
+    ImportV1DashboardSchema.load() passes without translations key (backward compat).
+    """
+    config = copy.deepcopy(DASHBOARD_CONFIG_WITHOUT_TRANSLATIONS)
+    result = ImportV1DashboardSchema().load(config)
+    assert result.get("translations") is None
+
+
+def test_dashboard_import_schema_accepts_null_translations() -> None:
+    """
+    ImportV1DashboardSchema.load() passes when translations is None.
+    """
+    config = copy.deepcopy(DASHBOARD_CONFIG_WITH_TRANSLATIONS)
+    config["translations"] = None
+    result = ImportV1DashboardSchema().load(config)
+    assert result["translations"] is None
+
+
+def test_chart_import_schema_accepts_translations() -> None:
+    """
+    ImportV1ChartSchema.load() passes when config contains translations dict.
+
+    This validates the full ZIP import pipeline path: load_configs() calls
+    schema.load(config) before import_chart().
+    """
+    config = copy.deepcopy(CHART_CONFIG_WITH_TRANSLATIONS)
+    config["dataset_uuid"] = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+    result = ImportV1ChartSchema().load(config)
+    assert result["translations"] == CHART_TRANSLATIONS
+
+
+def test_chart_import_schema_accepts_without_translations() -> None:
+    """
+    ImportV1ChartSchema.load() passes without translations key (backward compat).
+    """
+    config = copy.deepcopy(CHART_CONFIG_WITHOUT_TRANSLATIONS)
+    config["dataset_uuid"] = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+    result = ImportV1ChartSchema().load(config)
+    assert result.get("translations") is None
+
+
+def test_chart_import_schema_accepts_null_translations() -> None:
+    """
+    ImportV1ChartSchema.load() passes when translations is None.
+    """
+    config = copy.deepcopy(CHART_CONFIG_WITH_TRANSLATIONS)
+    config["dataset_uuid"] = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+    config["translations"] = None
+    result = ImportV1ChartSchema().load(config)
+    assert result["translations"] is None

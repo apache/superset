@@ -30,12 +30,61 @@ dashboards and charts to display translated titles and descriptions.
 
 from unittest.mock import patch
 
+import pytest
 from flask import current_app
 
 from superset.localization.locale_utils import (
+    get_translation,
     get_user_locale,
     parse_accept_language,
 )
+
+# =============================================================================
+# Unit Tests: get_translation()
+# =============================================================================
+
+
+@pytest.mark.parametrize(
+    "translations,locale,expected",
+    [
+        # Exact match
+        ({"de": "Titel"}, "de", "Titel"),
+        ({"de-DE": "Titel"}, "de-DE", "Titel"),
+        ({"pt_BR": "Painel"}, "pt_BR", "Painel"),
+        # Hyphen base fallback: de-DE -> de
+        ({"de": "Titel"}, "de-DE", "Titel"),
+        ({"fr": "Titre"}, "fr-CA", "Titre"),
+        # Underscore base fallback: pt_BR -> pt
+        ({"pt": "Painel"}, "pt_BR", "Painel"),
+        ({"zh": "仪表板"}, "zh_TW", "仪表板"),
+        # No match -> None
+        ({"fr": "Titre"}, "de", None),
+        ({}, "de", None),
+        ({"de-DE": "Titel"}, "de-AT", None),
+    ],
+    ids=[
+        "exact-simple",
+        "exact-bcp47",
+        "exact-posix",
+        "fallback-hyphen",
+        "fallback-hyphen-fr",
+        "fallback-underscore",
+        "fallback-underscore-zh",
+        "no-match",
+        "empty-dict",
+        "no-base-match",
+    ],
+)
+def test_get_translation(
+    translations: dict[str, str], locale: str, expected: str | None
+) -> None:
+    """
+    Verify get_translation returns correct value for locale with fallback.
+
+    get_translation tries exact match first, then base language fallback
+    (splitting on hyphen or underscore).
+    """
+    assert get_translation(translations, locale) == expected
 
 
 def test_parse_accept_language_single_locale() -> None:

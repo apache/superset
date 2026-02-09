@@ -82,6 +82,7 @@ from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.chart import ChartDAO
 from superset.exceptions import ScreenshotImageNotAvailableException
 from superset.extensions import event_logger
+from superset.localization.api_utils import localize_list_response
 from superset.models.slice import Slice
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.tasks.utils import get_current_user
@@ -228,6 +229,13 @@ class ChartRestApi(BaseSupersetModelRestApi):
     # Will just affect _info endpoint
     edit_columns = ["slice_name"]
     add_columns = edit_columns
+
+    def pre_get_list(self, response: dict[str, Any]) -> None:
+        """Localize slice_name and description in list response for user's locale."""
+        localize_list_response(
+            response.get("result", []), Slice, ["slice_name", "description"]
+        )
+        super().pre_get_list(response)
 
     add_model_schema = ChartPostSchema()
     edit_model_schema = ChartPutSchema()

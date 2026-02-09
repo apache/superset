@@ -46,13 +46,14 @@ import {
   useEffect,
   useImperativeHandle,
   useMemo,
+  useRef,
   useState,
   RefObject,
   memo,
 } from 'react';
 import rison from 'rison';
 import { PluginFilterSelectCustomizeProps } from 'src/filters/components/Select/types';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import {
   Constants,
@@ -308,6 +309,7 @@ const FiltersConfigForm = (
   const [activeTabKey, setActiveTabKey] = useState<string>(
     FilterTabs.configuration.key,
   );
+  const dispatch = useDispatch();
   const dashboardId = useSelector<RootState, number>(
     state => state.dashboardInfo.id,
   );
@@ -613,10 +615,21 @@ const FiltersConfigForm = (
     }
   }, [localizationEnabled]);
 
-  // Initialize nameActiveLocale based on existing translations
+  // Refs for values read during initialization but not triggering re-runs.
+  // Without refs, editing a translation would reset the active locale
+  // because currentTranslations changes on every keystroke.
+  const currentTranslationsRef = useRef(currentTranslations);
+  currentTranslationsRef.current = currentTranslations;
+  const userLocaleRef = useRef(userLocale);
+  userLocaleRef.current = userLocale;
+
+  // Initialize nameActiveLocale when switching between filters.
   useEffect(() => {
-    if (localizationEnabled && currentTranslations.name?.[userLocale]) {
-      setNameActiveLocale(userLocale);
+    if (
+      localizationEnabled &&
+      currentTranslationsRef.current.name?.[userLocaleRef.current]
+    ) {
+      setNameActiveLocale(userLocaleRef.current);
     } else {
       setNameActiveLocale(DEFAULT_LOCALE_KEY);
     }
@@ -625,15 +638,15 @@ const FiltersConfigForm = (
   const handleNameTranslationChange = useCallback(
     (value: string) => {
       const updated: Translations = {
-        ...currentTranslations,
-        name: { ...currentTranslations.name, [nameActiveLocale]: value },
+        ...currentTranslationsRef.current,
+        name: { ...currentTranslationsRef.current.name, [nameActiveLocale]: value },
       };
       setNativeFilterFieldValues(form, filterId, {
         translations: stripEmptyValues(updated),
       });
-      formChanged();
+      debouncedFormChanged();
     },
-    [currentTranslations, nameActiveLocale, form, filterId, formChanged],
+    [nameActiveLocale, form, filterId, debouncedFormChanged],
   );
 
   /** Validate default name is non-empty before switching to translation. */
@@ -642,15 +655,17 @@ const FiltersConfigForm = (
       if (locale !== DEFAULT_LOCALE_KEY) {
         const nameValue = formFilter?.name ?? filterToEdit?.name ?? '';
         if (!nameValue.trim()) {
-          addDangerToast(
-            t('Default text is required before adding translations'),
+          dispatch(
+            addDangerToast(
+              t('Default text is required before adding translations'),
+            ),
           );
           return;
         }
       }
       setNameActiveLocale(locale);
     },
-    [formFilter?.name, filterToEdit?.name],
+    [dispatch, formFilter?.name, filterToEdit?.name],
   );
 
   const isEditingFilterTranslation =
@@ -814,7 +829,7 @@ const FiltersConfigForm = (
           setDatasetDetails(dataset);
         })
         .catch((response: SupersetApiError) => {
-          addDangerToast(response.message);
+          dispatch(addDangerToast(response.message));
         });
     }
   }, [datasetId]);

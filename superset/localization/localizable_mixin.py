@@ -37,6 +37,8 @@ Example:
 
 from typing import Any
 
+from superset.localization.locale_utils import get_translation
+
 
 class LocalizableMixin:
     """
@@ -71,16 +73,10 @@ class LocalizableMixin:
 
         field_translations = self.translations.get(field, {})
 
-        # Try exact locale match
-        if locale in field_translations:
-            return field_translations[locale]
+        translated = get_translation(field_translations, locale)
+        if translated is not None:
+            return translated
 
-        # Try base language fallback (e.g., "de" from "de-DE")
-        base_locale = locale.split("-")[0] if "-" in locale else None
-        if base_locale and base_locale in field_translations:
-            return field_translations[base_locale]
-
-        # Fallback to original value
         return getattr(self, field)
 
     def set_translation(self, field: str, locale: str, value: str) -> None:

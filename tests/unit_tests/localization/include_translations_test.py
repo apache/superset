@@ -180,10 +180,12 @@ def test_dashboard_returns_localized_title_without_param(app_context: None) -> N
     )
     schema = DashboardGetResponseSchema()
 
-    with current_app.test_request_context("/?foo=bar"):
-        with patch("superset.dashboards.schemas.is_feature_enabled", return_value=True):
-            with patch("superset.dashboards.schemas.get_user_locale", return_value="de"):
-                result = schema.dump(dashboard)
+    with (
+        current_app.test_request_context("/?foo=bar"),
+        patch("superset.dashboards.schemas.is_feature_enabled", return_value=True),
+        patch("superset.dashboards.schemas.get_user_locale", return_value="de"),
+    ):
+        result = schema.dump(dashboard)
 
     assert result["dashboard_title"] == "Verkaufs-Dashboard"
 
@@ -202,10 +204,12 @@ def test_dashboard_excludes_translations_without_param(app_context: None) -> Non
     )
     schema = DashboardGetResponseSchema()
 
-    with current_app.test_request_context("/?foo=bar"):
-        with patch("superset.dashboards.schemas.is_feature_enabled", return_value=True):
-            with patch("superset.dashboards.schemas.get_user_locale", return_value="de"):
-                result = schema.dump(dashboard)
+    with (
+        current_app.test_request_context("/?foo=bar"),
+        patch("superset.dashboards.schemas.is_feature_enabled", return_value=True),
+        patch("superset.dashboards.schemas.get_user_locale", return_value="de"),
+    ):
+        result = schema.dump(dashboard)
 
     assert "translations" not in result
 
@@ -226,10 +230,12 @@ def test_dashboard_returns_original_title_with_include_translations(
     )
     schema = DashboardGetResponseSchema()
 
-    with current_app.test_request_context("/?include_translations=true"):
-        with patch("superset.dashboards.schemas.is_feature_enabled", return_value=True):
-            with patch("superset.dashboards.schemas.get_user_locale", return_value="de"):
-                result = schema.dump(dashboard)
+    with (
+        current_app.test_request_context("/?include_translations=true"),
+        patch("superset.dashboards.schemas.is_feature_enabled", return_value=True),
+        patch("superset.dashboards.schemas.get_user_locale", return_value="de"),
+    ):
+        result = schema.dump(dashboard)
 
     assert result["dashboard_title"] == "Sales Dashboard"
 
@@ -255,10 +261,12 @@ def test_dashboard_includes_translations_dict_with_include_translations(
     )
     schema = DashboardGetResponseSchema()
 
-    with current_app.test_request_context("/?include_translations=true"):
-        with patch("superset.dashboards.schemas.is_feature_enabled", return_value=True):
-            with patch("superset.dashboards.schemas.get_user_locale", return_value="de"):
-                result = schema.dump(dashboard)
+    with (
+        current_app.test_request_context("/?include_translations=true"),
+        patch("superset.dashboards.schemas.is_feature_enabled", return_value=True),
+        patch("superset.dashboards.schemas.get_user_locale", return_value="de"),
+    ):
+        result = schema.dump(dashboard)
 
     assert "translations" in result
     assert result["translations"] == translations
@@ -279,16 +287,20 @@ def test_dashboard_includes_available_locales_both_modes(app_context: None) -> N
     schema = DashboardGetResponseSchema()
 
     # Default mode (no include_translations param)
-    with current_app.test_request_context("/"):
-        with patch("superset.dashboards.schemas.is_feature_enabled", return_value=True):
-            with patch("superset.dashboards.schemas.get_user_locale", return_value="en"):
-                result_default = schema.dump(dashboard)
+    with (
+        current_app.test_request_context("/"),
+        patch("superset.dashboards.schemas.is_feature_enabled", return_value=True),
+        patch("superset.dashboards.schemas.get_user_locale", return_value="en"),
+    ):
+        result_default = schema.dump(dashboard)
 
     # Editor mode (include_translations=true)
-    with current_app.test_request_context("/?include_translations=true"):
-        with patch("superset.dashboards.schemas.is_feature_enabled", return_value=True):
-            with patch("superset.dashboards.schemas.get_user_locale", return_value="en"):
-                result_editor = schema.dump(dashboard)
+    with (
+        current_app.test_request_context("/?include_translations=true"),
+        patch("superset.dashboards.schemas.is_feature_enabled", return_value=True),
+        patch("superset.dashboards.schemas.get_user_locale", return_value="en"),
+    ):
+        result_editor = schema.dump(dashboard)
 
     assert sorted(result_default["available_locales"]) == ["de", "fr"]
     assert sorted(result_editor["available_locales"]) == ["de", "fr"]
@@ -298,7 +310,9 @@ def test_dashboard_empty_translations_with_include_translations(
     app_context: None,
 ) -> None:
     """
-    Verify schema returns empty dict when no translations with ?include_translations=true.
+    Verify schema returns empty dict when no translations exist.
+
+    Uses ?include_translations=true.
 
     Given Dashboard without translations (translations=None),
     when schema.dump() called with ?include_translations=true,
@@ -310,10 +324,12 @@ def test_dashboard_empty_translations_with_include_translations(
     )
     schema = DashboardGetResponseSchema()
 
-    with current_app.test_request_context("/?include_translations=true"):
-        with patch("superset.dashboards.schemas.is_feature_enabled", return_value=True):
-            with patch("superset.dashboards.schemas.get_user_locale", return_value="en"):
-                result = schema.dump(dashboard)
+    with (
+        current_app.test_request_context("/?include_translations=true"),
+        patch("superset.dashboards.schemas.is_feature_enabled", return_value=True),
+        patch("superset.dashboards.schemas.get_user_locale", return_value="en"),
+    ):
+        result = schema.dump(dashboard)
 
     assert result["translations"] == {}
 
@@ -332,10 +348,12 @@ def test_dashboard_include_translations_false_explicit(app_context: None) -> Non
     )
     schema = DashboardGetResponseSchema()
 
-    with current_app.test_request_context("/?include_translations=false"):
-        with patch("superset.dashboards.schemas.is_feature_enabled", return_value=True):
-            with patch("superset.dashboards.schemas.get_user_locale", return_value="de"):
-                result = schema.dump(dashboard)
+    with (
+        current_app.test_request_context("/?include_translations=false"),
+        patch("superset.dashboards.schemas.is_feature_enabled", return_value=True),
+        patch("superset.dashboards.schemas.get_user_locale", return_value="de"),
+    ):
+        result = schema.dump(dashboard)
 
     assert result["dashboard_title"] == "Verkaufs-Dashboard"
     assert "translations" not in result
@@ -360,10 +378,12 @@ def test_chart_returns_localized_name_without_param(app_context: None) -> None:
     )
     schema = ChartGetResponseSchema()
 
-    with current_app.test_request_context("/"):
-        with patch("superset.charts.schemas.is_feature_enabled", return_value=True):
-            with patch("superset.charts.schemas.get_user_locale", return_value="de"):
-                result = schema.dump(chart)
+    with (
+        current_app.test_request_context("/"),
+        patch("superset.charts.schemas.is_feature_enabled", return_value=True),
+        patch("superset.charts.schemas.get_user_locale", return_value="de"),
+    ):
+        result = schema.dump(chart)
 
     assert result["slice_name"] == "Umsatzdiagramm"
 
@@ -382,10 +402,12 @@ def test_chart_excludes_translations_without_param(app_context: None) -> None:
     )
     schema = ChartGetResponseSchema()
 
-    with current_app.test_request_context("/"):
-        with patch("superset.charts.schemas.is_feature_enabled", return_value=True):
-            with patch("superset.charts.schemas.get_user_locale", return_value="de"):
-                result = schema.dump(chart)
+    with (
+        current_app.test_request_context("/"),
+        patch("superset.charts.schemas.is_feature_enabled", return_value=True),
+        patch("superset.charts.schemas.get_user_locale", return_value="de"),
+    ):
+        result = schema.dump(chart)
 
     assert "translations" not in result
 
@@ -406,10 +428,12 @@ def test_chart_returns_original_name_with_include_translations(
     )
     schema = ChartGetResponseSchema()
 
-    with current_app.test_request_context("/?include_translations=true"):
-        with patch("superset.charts.schemas.is_feature_enabled", return_value=True):
-            with patch("superset.charts.schemas.get_user_locale", return_value="de"):
-                result = schema.dump(chart)
+    with (
+        current_app.test_request_context("/?include_translations=true"),
+        patch("superset.charts.schemas.is_feature_enabled", return_value=True),
+        patch("superset.charts.schemas.get_user_locale", return_value="de"),
+    ):
+        result = schema.dump(chart)
 
     assert result["slice_name"] == "Revenue Chart"
 
@@ -435,10 +459,12 @@ def test_chart_includes_translations_dict_with_include_translations(
     )
     schema = ChartGetResponseSchema()
 
-    with current_app.test_request_context("/?include_translations=true"):
-        with patch("superset.charts.schemas.is_feature_enabled", return_value=True):
-            with patch("superset.charts.schemas.get_user_locale", return_value="de"):
-                result = schema.dump(chart)
+    with (
+        current_app.test_request_context("/?include_translations=true"),
+        patch("superset.charts.schemas.is_feature_enabled", return_value=True),
+        patch("superset.charts.schemas.get_user_locale", return_value="de"),
+    ):
+        result = schema.dump(chart)
 
     assert "translations" in result
     assert result["translations"] == translations
@@ -459,16 +485,20 @@ def test_chart_includes_available_locales_both_modes(app_context: None) -> None:
     schema = ChartGetResponseSchema()
 
     # Default mode
-    with current_app.test_request_context("/"):
-        with patch("superset.charts.schemas.is_feature_enabled", return_value=True):
-            with patch("superset.charts.schemas.get_user_locale", return_value="en"):
-                result_default = schema.dump(chart)
+    with (
+        current_app.test_request_context("/"),
+        patch("superset.charts.schemas.is_feature_enabled", return_value=True),
+        patch("superset.charts.schemas.get_user_locale", return_value="en"),
+    ):
+        result_default = schema.dump(chart)
 
     # Editor mode
-    with current_app.test_request_context("/?include_translations=true"):
-        with patch("superset.charts.schemas.is_feature_enabled", return_value=True):
-            with patch("superset.charts.schemas.get_user_locale", return_value="en"):
-                result_editor = schema.dump(chart)
+    with (
+        current_app.test_request_context("/?include_translations=true"),
+        patch("superset.charts.schemas.is_feature_enabled", return_value=True),
+        patch("superset.charts.schemas.get_user_locale", return_value="en"),
+    ):
+        result_editor = schema.dump(chart)
 
     assert sorted(result_default["available_locales"]) == ["de", "fr"]
     assert sorted(result_editor["available_locales"]) == ["de", "fr"]
@@ -521,4 +551,5 @@ def test_dashboard_feature_flag_off_no_localization(app_context: None) -> None:
 
     assert result["dashboard_title"] == "Sales Dashboard"
     # When feature disabled, available_locales not populated
-    assert result.get("available_locales") is None or result.get("available_locales") == []
+    locales = result.get("available_locales")
+    assert locales is None or locales == []

@@ -689,6 +689,7 @@ class ImportV1DashboardSchema(Schema):
     certified_by = fields.String(allow_none=True)
     certification_details = fields.String(allow_none=True)
     published = fields.Boolean(allow_none=True)
+    translations = fields.Dict(allow_none=True, load_default=None)
     tags = fields.List(fields.String(), allow_none=True)
     theme_uuid = fields.UUID(allow_none=True)
     theme_id = fields.Integer(allow_none=True)

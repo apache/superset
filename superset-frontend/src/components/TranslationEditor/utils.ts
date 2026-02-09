@@ -24,15 +24,6 @@ import type { Translations } from 'src/types/Localization';
  */
 export const DEFAULT_LOCALE_KEY = 'default';
 
-/** Shallow-copy each field's locale map to allow safe mutation. */
-export function deepCopyTranslations(src: Translations): Translations {
-  const copy: Translations = {};
-  for (const field of Object.keys(src)) {
-    copy[field] = { ...src[field] };
-  }
-  return copy;
-}
-
 /** Remove empty-string translation values; drop fields with no translations. */
 export function stripEmptyValues(translations: Translations): Translations {
   const cleaned: Translations = {};

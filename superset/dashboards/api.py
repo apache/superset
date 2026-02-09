@@ -114,6 +114,7 @@ from superset.dashboards.schemas import (
 )
 from superset.exceptions import ScreenshotImageNotAvailableException
 from superset.extensions import event_logger
+from superset.localization.api_utils import localize_list_response
 from superset.models.dashboard import Dashboard
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.security.guest_token import GuestUser
@@ -328,6 +329,13 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         return super().get_list(**kwargs)
+
+    def pre_get_list(self, response: dict[str, Any]) -> None:
+        """Localize dashboard_title in list response for user's locale."""
+        localize_list_response(
+            response.get("result", []), Dashboard, ["dashboard_title"]
+        )
+        super().pre_get_list(response)
 
     list_select_columns = list_columns + ["changed_on", "created_on", "changed_by_fk"]
     order_columns = [

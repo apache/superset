@@ -16,6 +16,7 @@
 # under the License.
 """Localization module for user-generated content."""
 
+from superset.localization.api_utils import localize_list_response
 from superset.localization.locale_utils import get_user_locale, parse_accept_language
 from superset.localization.localizable_mixin import LocalizableMixin
 from superset.localization.native_filter_utils import localize_native_filters
@@ -33,6 +34,7 @@ __all__ = [
     "LocalizableMixin",
     "get_localized_chart_name",
     "get_user_locale",
+    "localize_list_response",
     "localize_chart_names",
     "localize_native_filters",
     "parse_accept_language",

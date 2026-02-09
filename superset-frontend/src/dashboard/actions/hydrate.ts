@@ -59,6 +59,7 @@ import { getUrlParam } from 'src/utils/urlUtils';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import type { DashboardChartStates } from 'src/dashboard/types/chartState';
 import extractUrlParams from '../util/extractUrlParams';
+import syncLayoutChartNames from '../util/syncLayoutChartNames';
 import updateComponentParentsList from '../util/updateComponentParentsList';
 import {
   DashboardLayout,
@@ -221,13 +222,12 @@ export const hydrateDashboard =
         newSlicesContainerWidth += GRID_DEFAULT_CHART_WIDTH;
       }
 
-      // sync layout names with current slice names in case a slice was edited
-      // in explore since the layout was updated. name updates go through layout for undo/redo
-      // functionality and python updates slice names based on layout upon dashboard save
-      const layoutId = chartIdToLayoutId[key];
-      if (layoutId && layout[layoutId]) {
-        (layout[layoutId] as LayoutItem).meta.sliceName = slice.slice_name;
-      }
+      syncLayoutChartNames(
+        layout as Record<string, LayoutItem>,
+        chartIdToLayoutId,
+        key,
+        slice.slice_name,
+      );
     });
 
     // make sure that parents tree is built

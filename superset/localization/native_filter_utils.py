@@ -34,6 +34,8 @@ Translation structure within a filter:
 import copy
 from typing import Any
 
+from superset.localization.locale_utils import get_translation
+
 
 def localize_native_filters(
     filters: list[dict[str, Any]] | None,
@@ -89,13 +91,6 @@ def _localize_filter_name(filter_config: dict[str, Any], locale: str) -> None:
     if not name_translations:
         return
 
-    # Try exact locale match
-    if locale in name_translations:
-        filter_config["name"] = name_translations[locale]
-        return
-
-    # Try base language fallback
-    if "-" in locale:
-        base_locale = locale.split("-")[0]
-        if base_locale in name_translations:
-            filter_config["name"] = name_translations[base_locale]
+    translated = get_translation(name_translations, locale)
+    if translated is not None:
+        filter_config["name"] = translated

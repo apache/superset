@@ -43,6 +43,7 @@ export interface DashboardUpdatePayload {
   dashboard_title?: string;
   slug?: string;
   json_metadata?: string;
+  position_json?: string;
   owners?: number[];
   certified_by?: string;
   certification_details?: string;

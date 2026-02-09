@@ -73,6 +73,24 @@ def test_get_localized_falls_back_to_base_language() -> None:
     assert result == "Deutscher Titel"
 
 
+def test_get_localized_falls_back_to_base_language_underscore() -> None:
+    """
+    Verify get_localized falls back to base language for POSIX underscore locales.
+
+    Given a model with translations {"title": {"pt": "Titulo"}},
+    when get_localized("title", "pt_BR") is called,
+    then it returns "Titulo" (base language fallback for underscore separator).
+    """
+    model = MockLocalizableModel(
+        title="Original Title",
+        translations={"title": {"pt": "Titulo"}},
+    )
+
+    result = model.get_localized("title", "pt_BR")
+
+    assert result == "Titulo"
+
+
 def test_get_localized_returns_original_when_no_translation() -> None:
     """
     Verify get_localized returns original value when no translation exists.

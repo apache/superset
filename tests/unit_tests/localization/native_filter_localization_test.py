@@ -126,6 +126,29 @@ def test_localize_native_filters_uses_base_language_fallback() -> None:
     assert result[0]["name"] == "Jahr"
 
 
+def test_localize_native_filters_uses_underscore_base_language_fallback() -> None:
+    """
+    Verify localize_native_filters falls back to base language for POSIX locales.
+
+    Given filter with translations {"name": {"pt": "Ano"}},
+    when localize_native_filters is called with locale="pt_BR",
+    then filter["name"] uses base "pt" translation.
+    """
+    filters = [
+        {
+            "id": "NATIVE_FILTER-abc123",
+            "name": "Year",
+            "translations": {"name": {"pt": "Ano"}},
+            "filterType": "filter_select",
+        }
+    ]
+
+    result = localize_native_filters(filters, locale="pt_BR")
+
+    assert result is not None
+    assert result[0]["name"] == "Ano"
+
+
 def test_localize_native_filters_handles_multiple_filters() -> None:
     """
     Verify localize_native_filters translates all filters in configuration.

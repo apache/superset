@@ -181,7 +181,10 @@ openapi_spec_methods_override = {
 
 class ChartEntityResponseSchema(Schema):
     """
-    Schema for a chart object
+    Lightweight chart schema for /api/v1/dashboard/{id}/charts.
+
+    Localizes slice_name and description so that the frontend hydration
+    sync (hydrate.ts) preserves server-localized chart names.
     """
 
     id = fields.Integer(metadata={"description": id_description})
@@ -198,6 +201,25 @@ class ChartEntityResponseSchema(Schema):
     certification_details = fields.String(
         metadata={"description": certification_details_description}
     )
+
+    @post_dump(pass_original=True)
+    def post_dump(
+        self, serialized: dict[str, Any], obj: Any, **kwargs: Any
+    ) -> dict[str, Any]:
+        """Localize user-facing text fields when content localization is enabled."""
+        if not is_feature_enabled("ENABLE_CONTENT_LOCALIZATION"):
+            return serialized
+        if not hasattr(obj, "get_localized"):
+            return serialized
+
+        locale = get_user_locale()
+
+        if "slice_name" in serialized:
+            serialized["slice_name"] = obj.get_localized("slice_name", locale)
+        if "description" in serialized:
+            serialized["description"] = obj.get_localized("description", locale)
+
+        return serialized
 
 
 class ChartPostSchema(Schema):
@@ -1682,6 +1704,7 @@ class ImportV1ChartSchema(Schema):
     dataset_uuid = fields.UUID(required=True)
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
+    translations = fields.Dict(allow_none=True, load_default=None)
     tags = fields.List(fields.String(), allow_none=True)
 
 

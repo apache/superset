@@ -24,9 +24,11 @@ When enabled, translations updates should be accepted.
 
 from unittest.mock import patch
 
+import pytest
+from marshmallow import ValidationError
+
 from superset.charts.schemas import ChartPutSchema
 from superset.dashboards.schemas import DashboardPutSchema
-
 
 # =============================================================================
 # Schema Tests - Verify translations field is accepted by PUT schemas
@@ -132,8 +134,6 @@ def test_dashboard_put_schema_rejects_translations_when_flag_off(
     when DashboardPutSchema.load() is called with translations,
     then ValidationError is raised with message about disabled feature.
     """
-    from marshmallow import ValidationError
-
     schema = DashboardPutSchema()
     data = {
         "dashboard_title": "Test Dashboard",
@@ -144,13 +144,8 @@ def test_dashboard_put_schema_rejects_translations_when_flag_off(
         "superset.dashboards.schemas.is_feature_enabled", return_value=False
     ) as mock:
         mock.side_effect = lambda flag: flag != "ENABLE_CONTENT_LOCALIZATION"
-        try:
+        with pytest.raises(ValidationError, match=r"(?i)translations|localization"):
             schema.load(data)
-            assert False, "Expected ValidationError"
-        except ValidationError as e:
-            assert "translations" in str(e.messages).lower() or "localization" in str(
-                e.messages
-            ).lower()
 
 
 def test_dashboard_put_schema_accepts_translations_when_flag_on(
@@ -185,8 +180,6 @@ def test_chart_put_schema_rejects_translations_when_flag_off(
     when ChartPutSchema.load() is called with translations,
     then ValidationError is raised with message about disabled feature.
     """
-    from marshmallow import ValidationError
-
     schema = ChartPutSchema()
     data = {
         "slice_name": "Test Chart",
@@ -197,13 +190,8 @@ def test_chart_put_schema_rejects_translations_when_flag_off(
         "superset.charts.schemas.is_feature_enabled", return_value=False
     ) as mock:
         mock.side_effect = lambda flag: flag != "ENABLE_CONTENT_LOCALIZATION"
-        try:
+        with pytest.raises(ValidationError, match=r"(?i)translations|localization"):
             schema.load(data)
-            assert False, "Expected ValidationError"
-        except ValidationError as e:
-            assert "translations" in str(e.messages).lower() or "localization" in str(
-                e.messages
-            ).lower()
 
 
 def test_chart_put_schema_accepts_translations_when_flag_on(

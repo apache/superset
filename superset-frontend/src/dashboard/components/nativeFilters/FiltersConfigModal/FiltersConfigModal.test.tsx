@@ -877,3 +877,254 @@ test('save includes translations in filter config', async () => {
     jest.useRealTimers();
   }
 }, 60000);
+
+test('prevents locale switch when filter name is empty', async () => {
+  mockedIsFeatureEnabled.mockImplementation(
+    flag => flag === FeatureFlag.EnableContentLocalization,
+  );
+  // createNewOnOpen: true → new filter with no name yet
+  defaultRender();
+
+  await waitFor(() => {
+    expect(
+      screen.getByRole('button', { name: /Locale switcher for Filter name/i }),
+    ).toBeInTheDocument();
+  });
+
+  await userEvent.click(
+    screen.getByRole('button', { name: /Locale switcher for Filter name/i }),
+  );
+
+  await waitFor(() => {
+    expect(
+      screen.getByRole('menuitem', { name: /German/i }),
+    ).toBeInTheDocument();
+  });
+
+  await userEvent.click(
+    screen.getByRole('menuitem', { name: /German/i }),
+  );
+
+  // Locale must NOT switch — no translation input should appear
+  // handleNameLocaleChange returns early when name is empty
+  expect(
+    screen.queryByPlaceholderText(/Translation for/i),
+  ).not.toBeInTheDocument();
+}, 60000);
+
+test('shows translation input when filter has translation for user locale', async () => {
+  mockedIsFeatureEnabled.mockImplementation(
+    flag => flag === FeatureFlag.EnableContentLocalization,
+  );
+  const nativeFilterConfig = [
+    {
+      ...buildNativeFilter('NATIVE_FILTER-1', 'state', []),
+      translations: filterTranslations,
+    },
+  ];
+  const state = {
+    ...defaultState(),
+    common: { locale: 'de' },
+    dashboardInfo: {
+      metadata: {
+        native_filter_configuration: nativeFilterConfig,
+      },
+    },
+    dashboardLayout,
+  };
+  defaultRender(state, { ...props, createNewOnOpen: false });
+
+  // useEffect sees localizationEnabled=true and currentTranslations.name.de exists,
+  // so nameActiveLocale is set to 'de' → translation input renders
+  await waitFor(() => {
+    expect(
+      screen.getByPlaceholderText(/Translation for DE/i),
+    ).toBeInTheDocument();
+  });
+
+  expect(screen.getByPlaceholderText(/Translation for DE/i)).toHaveValue(
+    'Bundesland',
+  );
+}, 60000);
+
+test('shows default input when filter has no translation for user locale', async () => {
+  mockedIsFeatureEnabled.mockImplementation(
+    flag => flag === FeatureFlag.EnableContentLocalization,
+  );
+  const nativeFilterConfig = [
+    {
+      ...buildNativeFilter('NATIVE_FILTER-1', 'state', []),
+      translations: { name: { fr: 'État' } },
+    },
+  ];
+  const state = {
+    ...defaultState(),
+    common: { locale: 'de' },
+    dashboardInfo: {
+      metadata: {
+        native_filter_configuration: nativeFilterConfig,
+      },
+    },
+    dashboardLayout,
+  };
+  defaultRender(state, { ...props, createNewOnOpen: false });
+
+  // useEffect sees no translation for 'de', so nameActiveLocale stays DEFAULT_LOCALE_KEY
+  // → default name input visible, no translation input
+  await waitFor(() => {
+    expect(
+      screen.getByRole('button', { name: /Locale switcher for Filter name/i }),
+    ).toBeInTheDocument();
+  });
+
+  expect(
+    screen.queryByPlaceholderText(/Translation for/i),
+  ).not.toBeInTheDocument();
+}, 60000);
+
+test('translation input retains value after change', async () => {
+  jest.useFakeTimers();
+  try {
+    mockedIsFeatureEnabled.mockImplementation(
+      flag => flag === FeatureFlag.EnableContentLocalization,
+    );
+    const nativeFilterConfig = [
+      {
+        ...buildNativeFilter('NATIVE_FILTER-1', 'state', []),
+        translations: filterTranslations,
+      },
+    ];
+    const state = {
+      ...defaultState(),
+      common: { locale: 'de' },
+      dashboardInfo: {
+        metadata: {
+          native_filter_configuration: nativeFilterConfig,
+        },
+      },
+      dashboardLayout,
+    };
+    defaultRender(state, { ...props, createNewOnOpen: false });
+
+    const translationInput = await screen.findByPlaceholderText(
+      /Translation for DE/i,
+    );
+
+    expect(translationInput).toHaveValue('Bundesland');
+
+    fireEvent.change(translationInput, {
+      target: { value: 'Neuer Filtername' },
+    });
+
+    jest.runAllTimers();
+
+    await waitFor(() => {
+      expect(translationInput).toHaveValue('Neuer Filtername');
+    });
+  } finally {
+    jest.useRealTimers();
+  }
+}, 60000);
+
+test('save includes updated translation after editing translation input', async () => {
+  jest.useFakeTimers();
+  try {
+    mockedIsFeatureEnabled.mockImplementation(
+      flag => flag === FeatureFlag.EnableContentLocalization,
+    );
+    const nativeFilterConfig = [
+      {
+        ...buildNativeFilter('NATIVE_FILTER-1', 'state', []),
+        translations: filterTranslations,
+      },
+    ];
+    const state = {
+      ...defaultState(),
+      common: { locale: 'de' },
+      dashboardInfo: {
+        metadata: {
+          native_filter_configuration: nativeFilterConfig,
+        },
+      },
+      dashboardLayout,
+    };
+    const onSave = jest.fn();
+    defaultRender(state, { ...props, createNewOnOpen: false, onSave });
+
+    const translationInput = await screen.findByPlaceholderText(
+      /Translation for DE/i,
+    );
+
+    await userEvent.clear(translationInput);
+    await userEvent.type(translationInput, 'Neuer Name');
+
+    jest.runAllTimers();
+
+    await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
+
+    await waitFor(() =>
+      expect(onSave).toHaveBeenCalledWith(
+        expect.objectContaining({
+          filterChanges: expect.objectContaining({
+            modified: expect.arrayContaining([
+              expect.objectContaining({
+                translations: {
+                  name: { de: 'Neuer Name', fr: 'État' },
+                },
+              }),
+            ]),
+          }),
+        }),
+      ),
+    );
+  } finally {
+    jest.useRealTimers();
+  }
+}, 60000);
+
+test('translation edit is debounced like default name edit', async () => {
+  jest.useFakeTimers();
+  try {
+    mockedIsFeatureEnabled.mockImplementation(
+      flag => flag === FeatureFlag.EnableContentLocalization,
+    );
+    const nativeFilterConfig = [
+      {
+        ...buildNativeFilter('NATIVE_FILTER-1', 'state', []),
+        translations: filterTranslations,
+      },
+    ];
+    const state = {
+      ...defaultState(),
+      common: { locale: 'de' },
+      dashboardInfo: {
+        metadata: {
+          native_filter_configuration: nativeFilterConfig,
+        },
+      },
+      dashboardLayout,
+    };
+    defaultRender(state, { ...props, createNewOnOpen: false });
+
+    const translationInput = await screen.findByPlaceholderText(
+      /Translation for DE/i,
+    );
+
+    await userEvent.clear(translationInput);
+    await userEvent.type(translationInput, 'X');
+
+    // Before debounce fires, Save should NOT be enabled because
+    // formChanged has not yet executed (same as default name input behavior)
+    const saveButton = screen.getByRole('button', { name: SAVE_REGEX });
+    expect(saveButton).toBeDisabled();
+
+    // After debounce fires, Save should become enabled
+    jest.runAllTimers();
+
+    await waitFor(() => {
+      expect(saveButton).toBeEnabled();
+    });
+  } finally {
+    jest.useRealTimers();
+  }
+}, 60000);

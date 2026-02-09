@@ -33,6 +33,8 @@ Storage structure:
 import copy
 from typing import Any, TYPE_CHECKING
 
+from superset.localization.locale_utils import get_translation
+
 if TYPE_CHECKING:
     from superset.models.slice import Slice
 
@@ -71,7 +73,7 @@ def get_localized_chart_name(
     """
     # Priority 1: Override translation
     if override_name and override_translations:
-        if translated := _get_translation(override_translations, locale):
+        if translated := get_translation(override_translations, locale):
             return translated
 
     # Priority 2: Override name (original)
@@ -82,42 +84,11 @@ def get_localized_chart_name(
     if chart_translations:
         slice_name_translations = chart_translations.get("slice_name")
         if slice_name_translations:
-            if translated := _get_translation(slice_name_translations, locale):
+            if translated := get_translation(slice_name_translations, locale):
                 return translated
 
     # Priority 4: Original chart name
     return chart_slice_name
-
-
-def _get_translation(translations: dict[str, str], locale: str) -> str | None:
-    """
-    Get translation for locale with base language fallback.
-
-    Tries exact locale match first, then base language (before hyphen/underscore).
-
-    Args:
-        translations: Dict mapping locale codes to translated values.
-        locale: Target locale code.
-
-    Returns:
-        Translated value if found, None otherwise.
-    """
-    # Exact match
-    if locale in translations:
-        return translations[locale]
-
-    # Base language fallback (de-DE → de, pt_BR → pt)
-    if "-" in locale:
-        base_locale = locale.split("-")[0]
-        if base_locale in translations:
-            return translations[base_locale]
-
-    if "_" in locale:
-        base_locale = locale.split("_")[0]
-        if base_locale in translations:
-            return translations[base_locale]
-
-    return None
 
 
 def localize_chart_names(

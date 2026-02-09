@@ -21,7 +21,6 @@ export type { LocaleSwitcherProps } from './LocaleSwitcher';
 export { default as TranslationTextAreaWrapper } from './TranslationTextAreaWrapper';
 export {
   DEFAULT_LOCALE_KEY,
-  deepCopyTranslations,
   stripEmptyValues,
   countFieldTranslations,
 } from './utils';

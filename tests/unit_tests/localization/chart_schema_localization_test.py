@@ -25,15 +25,20 @@ When ENABLE_CONTENT_LOCALIZATION feature flag is enabled, the schema
 replaces original field values with their translations for the current locale.
 """
 
+from datetime import datetime
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import patch
 
-from superset.charts.schemas import ChartGetResponseSchema
+from superset.charts.schemas import ChartEntityResponseSchema, ChartGetResponseSchema
 
 
 class MockChart:
-    """Mock Chart (Slice) object for schema testing."""
+    """Mock Chart (Slice) object for schema testing.
+
+    Provides attributes for both ChartGetResponseSchema and
+    ChartEntityResponseSchema, plus get_localized() from LocalizableMixin.
+    """
 
     def __init__(
         self,
@@ -43,11 +48,15 @@ class MockChart:
     ) -> None:
         self.id = 1
         self.url = "/superset/explore/?slice_id=1"
+        self.slice_url = "/superset/explore/?slice_id=1"
         self.cache_timeout = None
         self.certified_by = None
         self.certification_details = None
+        self.changed_on = datetime(2025, 1, 1)
         self.changed_on_delta_humanized = "a few seconds ago"
         self.description = description
+        self.description_markeddown = description
+        self.form_data: dict[str, Any] = {}
         self.params = "{}"
         self.slice_name = slice_name
         self.thumbnail_url = None
@@ -304,6 +313,114 @@ def test_chart_schema_handles_empty_translations_dict(app_context: None) -> None
     )
 
     schema = ChartGetResponseSchema()
+
+    with patch("superset.charts.schemas.is_feature_enabled", return_value=True):
+        with patch("superset.charts.schemas.get_user_locale", return_value="de"):
+            result = schema.dump(chart)
+
+    assert result["slice_name"] == "Revenue by Region"
+
+
+# ---------------------------------------------------------------------------
+# ChartEntityResponseSchema (lightweight, used by /api/v1/dashboard/{id}/charts)
+# ---------------------------------------------------------------------------
+
+
+def test_entity_schema_returns_localized_name_when_feature_enabled(
+    app_context: None,
+) -> None:
+    """
+    ChartEntityResponseSchema must localize slice_name for dashboard hydration.
+
+    Without this, hydrate.ts would overwrite the server-localized position_json
+    chart name with the original value from the /charts API response.
+    """
+    chart = MockChart(
+        slice_name="Revenue by Region",
+        translations={"slice_name": {"de": "Umsatz nach Region"}},
+    )
+
+    schema = ChartEntityResponseSchema()
+
+    with patch("superset.charts.schemas.is_feature_enabled", return_value=True):
+        with patch("superset.charts.schemas.get_user_locale", return_value="de"):
+            result = schema.dump(chart)
+
+    assert result["slice_name"] == "Umsatz nach Region"
+
+
+def test_entity_schema_returns_original_name_when_feature_disabled(
+    app_context: None,
+) -> None:
+    """Original slice_name returned when content localization feature is off."""
+    chart = MockChart(
+        slice_name="Revenue by Region",
+        translations={"slice_name": {"de": "Umsatz nach Region"}},
+    )
+
+    schema = ChartEntityResponseSchema()
+
+    with patch("superset.charts.schemas.is_feature_enabled", return_value=False):
+        result = schema.dump(chart)
+
+    assert result["slice_name"] == "Revenue by Region"
+
+
+def test_entity_schema_localizes_description(app_context: None) -> None:
+    """Description field localized alongside slice_name."""
+    chart = MockChart(
+        slice_name="Revenue by Region",
+        description="Shows revenue breakdown",
+        translations={
+            "slice_name": {"de": "Umsatz nach Region"},
+            "description": {"de": "Zeigt Umsatz nach Region"},
+        },
+    )
+
+    schema = ChartEntityResponseSchema()
+
+    with patch("superset.charts.schemas.is_feature_enabled", return_value=True):
+        with patch("superset.charts.schemas.get_user_locale", return_value="de"):
+            result = schema.dump(chart)
+
+    assert result["slice_name"] == "Umsatz nach Region"
+    assert result["description"] == "Zeigt Umsatz nach Region"
+
+
+def test_entity_schema_returns_original_without_get_localized(
+    app_context: None,
+) -> None:
+    """Objects without LocalizableMixin pass through without error."""
+
+    class PlainChart:
+        id = 1
+        slice_name = "Revenue by Region"
+        description = None
+        cache_timeout = None
+        changed_on = datetime(2025, 1, 1)
+        description_markeddown = None
+        form_data: dict[str, Any] = {}
+        slice_url = "/explore/"
+        certified_by = None
+        certification_details = None
+
+    schema = ChartEntityResponseSchema()
+
+    with patch("superset.charts.schemas.is_feature_enabled", return_value=True):
+        with patch("superset.charts.schemas.get_user_locale", return_value="de"):
+            result = schema.dump(PlainChart())
+
+    assert result["slice_name"] == "Revenue by Region"
+
+
+def test_entity_schema_handles_null_translations(app_context: None) -> None:
+    """Null translations → original values, no error."""
+    chart = MockChart(
+        slice_name="Revenue by Region",
+        translations=None,
+    )
+
+    schema = ChartEntityResponseSchema()
 
     with patch("superset.charts.schemas.is_feature_enabled", return_value=True):
         with patch("superset.charts.schemas.get_user_locale", return_value="de"):

@@ -22,13 +22,11 @@ Sanitization strips all HTML tags to store plain text, preventing XSS attacks
 when content is rendered in the frontend.
 """
 
-import pytest
 
 from superset.localization.sanitization import (
     sanitize_translation_value,
     sanitize_translations,
 )
-
 
 # =============================================================================
 # Unit Tests: sanitize_translation_value()
@@ -60,7 +58,7 @@ def test_script_tag_stripped() -> None:
 def test_event_handler_stripped() -> None:
     """HTML elements with event handlers stripped."""
     assert sanitize_translation_value('<img onerror="alert(1)">') == ""
-    assert sanitize_translation_value('<img src=x onerror=alert(1)>') == ""
+    assert sanitize_translation_value("<img src=x onerror=alert(1)>") == ""
     assert sanitize_translation_value('<svg onload="evil()">') == ""
     assert sanitize_translation_value('<div onclick="hack()">text</div>') == "text"
 
@@ -69,7 +67,10 @@ def test_html_tags_stripped_text_preserved() -> None:
     """HTML tags stripped but text content preserved."""
     assert sanitize_translation_value("<b>Bold</b>") == "Bold"
     assert sanitize_translation_value("<i>Italic</i>") == "Italic"
-    assert sanitize_translation_value("<b>Bold</b> and <i>italic</i>") == "Bold and italic"
+    assert (
+        sanitize_translation_value("<b>Bold</b> and <i>italic</i>")
+        == "Bold and italic"
+    )
     assert sanitize_translation_value("<div><p>Nested</p></div>") == "Nested"
 
 
