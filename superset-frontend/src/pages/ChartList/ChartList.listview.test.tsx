@@ -551,16 +551,24 @@ test('renders dashboard crosslinks as navigable links', async () => {
 
   const table = screen.getByTestId('listview-table');
 
-  // mockCharts[1] has 3 dashboards - verify all render with correct hrefs
+  // mockCharts[1] has multiple dashboards - verify all render with correct hrefs
   const chartRow = within(table)
     .getByText(mockCharts[1].slice_name)
     .closest('[data-test="table-row"]') as HTMLElement;
   const crosslinks = within(chartRow).getByTestId('crosslinks');
+  const dashboards = mockCharts[1].dashboards as {
+    dashboard_title: string;
+    id: number;
+  }[];
   const links = within(crosslinks).getAllByRole('link');
-  expect(links).toHaveLength(3);
-  expect(links[0]).toHaveAttribute('href', '/superset/dashboard/2');
-  expect(links[1]).toHaveAttribute('href', '/superset/dashboard/3');
-  expect(links[2]).toHaveAttribute('href', '/superset/dashboard/4');
+  expect(links).toHaveLength(dashboards.length);
+  dashboards.forEach(dashboard => {
+    expect(
+      within(crosslinks).getByRole('link', {
+        name: new RegExp(dashboard.dashboard_title),
+      }),
+    ).toHaveAttribute('href', `/superset/dashboard/${dashboard.id}`);
+  });
 });
 
 test('shows tag column when TAGGING_SYSTEM is enabled', async () => {
