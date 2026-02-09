@@ -27,6 +27,7 @@ import {
 import { QueryParamProvider } from 'use-query-params';
 import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import { TaskStatus, TaskScope } from 'src/features/tasks/types';
+import TaskList from 'src/pages/TaskList';
 
 // Set up window.featureFlags before importing TaskList
 window.featureFlags = { GLOBAL_TASK_FRAMEWORK: true };
@@ -47,8 +48,6 @@ jest.mock('src/utils/getBootstrapData', () => ({
     },
   }),
 }));
-
-import TaskList from 'src/pages/TaskList';
 
 const tasksInfoEndpoint = 'glob:*/api/v1/task/_info*';
 const tasksCreatedByEndpoint = 'glob:*/api/v1/task/related/created_by*';
