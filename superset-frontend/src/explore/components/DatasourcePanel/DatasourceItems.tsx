@@ -104,20 +104,20 @@ export const DatasourceItems = ({
       folders.filter(folder => folder.isCollapsed).map(folder => folder.id),
     ),
   );
-const didInitCollapsedState = useRef(false);
+  const didInitCollapsedState = useRef(false);
 
-useEffect(() => {
-  if (didInitCollapsedState.current) {
-    return;
-  }
-  setCollapsedFolderIds(
-    new Set(
-      folders.filter(folder => folder.isCollapsed).map(folder => folder.id),
-    ),
-  );
+  useEffect(() => {
+    if (didInitCollapsedState.current) {
+      return;
+    }
+    setCollapsedFolderIds(
+      new Set(
+        folders.filter(folder => folder.isCollapsed).map(folder => folder.id),
+      ),
+    );
 
-  didInitCollapsedState.current = true;
-}, [folders]);
+    didInitCollapsedState.current = true;
+  }, [folders]);
 
   const { flattenedItems, folderMap } = useMemo(
     () => flattenFolderStructure(folders, collapsedFolderIds),
