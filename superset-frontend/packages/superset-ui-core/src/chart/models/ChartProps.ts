@@ -108,6 +108,8 @@ export interface ChartPropsConfig {
   legendIndex?: number;
   inContextMenu?: boolean;
   emitCrossFilters?: boolean;
+  /** Dashboard-level empty state configuration for customizing no-data/no-results messages */
+  dashboardEmptyStateConfig?: JsonObject;
 }
 
 const DEFAULT_WIDTH = 800;
@@ -158,6 +160,8 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
 
   emitCrossFilters?: boolean;
 
+  dashboardEmptyStateConfig?: JsonObject;
+
   theme: SupersetTheme;
 
   constructor(
@@ -185,6 +189,7 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
       inputRef,
       inContextMenu = false,
       emitCrossFilters = false,
+      dashboardEmptyStateConfig,
       theme,
     } = config;
     this.width = width;
@@ -208,6 +213,7 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
     this.inputRef = inputRef;
     this.inContextMenu = inContextMenu;
     this.emitCrossFilters = emitCrossFilters;
+    this.dashboardEmptyStateConfig = dashboardEmptyStateConfig;
     this.theme = theme;
   }
 }
@@ -234,6 +240,7 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
     input => input.inputRef,
     input => input.inContextMenu,
     input => input.emitCrossFilters,
+    input => input.dashboardEmptyStateConfig,
     input => input.theme,
     (
       annotationData,
@@ -255,6 +262,7 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
       inputRef,
       inContextMenu,
       emitCrossFilters,
+      dashboardEmptyStateConfig,
       theme,
     ) =>
       new ChartProps({
@@ -277,6 +285,7 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
         inputRef,
         inContextMenu,
         emitCrossFilters,
+        dashboardEmptyStateConfig,
         theme,
       }),
     // Below config is to retain usage of 1-sized `lruMemoize` object in Reselect v4

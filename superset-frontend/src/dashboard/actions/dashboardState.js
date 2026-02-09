@@ -305,6 +305,7 @@ export function saveDashboardRequest(data, id, saveType) {
     const sharedLabelsColor = enforceSharedLabelsColorsArray(
       data.metadata?.shared_label_colors,
     );
+
     const cleanedData = {
       ...data,
       certified_by: certified_by || '',
@@ -379,6 +380,17 @@ export function saveDashboardRequest(data, id, saveType) {
       // syncing with the backend transformations of the metadata
       if (updatedDashboard.json_metadata) {
         const metadata = JSON.parse(updatedDashboard.json_metadata);
+        // Re-add empty_state_config from the top-level DB column into metadata
+        // so Redux state stays in sync (it's stored as a separate DB column)
+        if (updatedDashboard.empty_state_config) {
+          try {
+            metadata.empty_state_config = JSON.parse(
+              updatedDashboard.empty_state_config,
+            );
+          } catch {
+            // ignore parse errors
+          }
+        }
         dispatch(setDashboardMetadata(metadata));
         if (metadata.chart_configuration) {
           dispatch({
@@ -461,17 +473,21 @@ export function saveDashboardRequest(data, id, saveType) {
                 tags: cleanedData.tags || [],
               }),
               theme_id: cleanedData.theme_id,
-              // Only include empty_state_config if it has actual values
-              ...(cleanedData.empty_state_config &&
-              Object.values(cleanedData.empty_state_config).some(val => val)
+              // Send empty_state_config as a top-level API field (stored as DB column)
+              ...(cleanedData.metadata?.empty_state_config &&
+              Object.values(cleanedData.metadata.empty_state_config).some(
+                val => val,
+              )
                 ? {
                     empty_state_config: safeStringify(
-                      cleanedData.empty_state_config,
+                      cleanedData.metadata.empty_state_config,
                     ),
                   }
                 : {}),
               json_metadata: safeStringify({
                 ...cleanedData?.metadata,
+                // Strip empty_state_config from json_metadata since it's a top-level DB column
+                empty_state_config: undefined,
                 default_filters: safeStringify(serializedFilters),
                 filter_scopes: serializedFilterScopes,
                 chart_configuration: chartConfiguration,
@@ -479,19 +495,15 @@ export function saveDashboardRequest(data, id, saveType) {
               }),
             };
 
-      const updateDashboard = () => {
-        console.log(
-          'Dashboard PUT payload:',
-          JSON.stringify(updatedDashboard, null, 2),
-        );
-        return SupersetClient.put({
+      const updateDashboard = () =>
+        SupersetClient.put({
           endpoint: `/api/v1/dashboard/${id}`,
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(updatedDashboard),
         })
           .then(response => onUpdateSuccess(response))
           .catch(response => onError(response));
-      };
+
       return new Promise((resolve, reject) => {
         if (
           !isFeatureEnabled(FeatureFlag.ConfirmDashboardDiff) ||

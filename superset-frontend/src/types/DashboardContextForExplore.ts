@@ -43,4 +43,5 @@ export interface DashboardContextForExplore {
   activeFilters?: ActiveFilters;
   isRedundant?: boolean;
   dashboardPageId?: string;
+  emptyStateConfig?: Record<string, any>;
 }

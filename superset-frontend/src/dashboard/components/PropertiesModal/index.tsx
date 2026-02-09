@@ -146,12 +146,32 @@ const PropertiesModal = ({
   const handleErrorResponse = async (response: Response) => {
     const { error, statusText, message } = await getClientErrorObject(response);
     let errorText = error || statusText || t('An error has occurred');
-    if (
-      typeof message === 'object' &&
-      'json_metadata' in message &&
-      typeof (message as { json_metadata: unknown }).json_metadata === 'string'
-    ) {
-      errorText = (message as { json_metadata: string }).json_metadata;
+    if (typeof message === 'object' && message !== null) {
+      // Handle empty_state_config validation errors
+      if ('empty_state_config' in message) {
+        const emptyStateError = (message as { empty_state_config: unknown })
+          .empty_state_config;
+        errorText = Array.isArray(emptyStateError)
+          ? emptyStateError.join(', ')
+          : String(emptyStateError);
+      }
+      // Handle json_metadata validation errors (string format)
+      else if (
+        'json_metadata' in message &&
+        typeof (message as { json_metadata: unknown }).json_metadata ===
+          'string'
+      ) {
+        errorText = (message as { json_metadata: string }).json_metadata;
+      }
+      // Handle nested validation errors (e.g., json_metadata array with nested errors)
+      else if (
+        'json_metadata' in message &&
+        Array.isArray((message as { json_metadata: unknown }).json_metadata)
+      ) {
+        const jsonMetadataErrors = (message as { json_metadata: any[] })
+          .json_metadata;
+        errorText = JSON.stringify(jsonMetadataErrors, null, 2);
+      }
     } else if (typeof message === 'string') {
       errorText = message;
 
@@ -356,14 +376,13 @@ const PropertiesModal = ({
     jsonMetadataObj.refresh_frequency = refreshFrequency;
     jsonMetadataObj.show_chart_timestamps = Boolean(showChartTimestamps);
 
-    // Only include empty_state_config if it has at least one non-empty value
+    // Include empty_state_config in metadata if it has at least one non-empty value
     const hasEmptyStateValues = Object.values(emptyStateConfig).some(
       val => val,
     );
     if (hasEmptyStateValues) {
       jsonMetadataObj.empty_state_config = emptyStateConfig;
     } else {
-      // Remove empty_state_config if all values are empty
       delete jsonMetadataObj.empty_state_config;
     }
     const customLabelColors = jsonMetadataObj.label_colors || {};
@@ -380,7 +399,6 @@ const PropertiesModal = ({
       setDashboardMetadata({
         ...updatedDashboardMetadata,
         map_label_colors: getFreshLabelsColorMapEntries(customLabelColors),
-        // Only include if it has values
         ...(hasEmptyStateValues
           ? { empty_state_config: emptyStateConfig }
           : {}),
@@ -438,10 +456,9 @@ const PropertiesModal = ({
         dashboard_title: title,
         slug: slug || null,
         json_metadata: currentJsonMetadata || null,
-        empty_state_config:
-          Object.keys(emptyStateConfig).length > 0
-            ? JSON.stringify(emptyStateConfig)
-            : null,
+        empty_state_config: hasEmptyStateValues
+          ? JSON.stringify(emptyStateConfig)
+          : null,
         owners: (owners || []).map(o => o.id),
         certified_by: certifiedBy || null,
         certification_details:

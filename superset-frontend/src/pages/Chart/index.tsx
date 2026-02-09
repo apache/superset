@@ -100,6 +100,7 @@ const getDashboardContextFormData = () => {
       dataMask,
       dashboardId,
       activeFilters,
+      emptyStateConfig,
     } = dashboardContext;
 
     const dashboardContextWithFilters = getFormDataWithExtraFilters({
@@ -120,6 +121,7 @@ const getDashboardContextFormData = () => {
     });
     Object.assign(dashboardContextWithFilters, {
       dashboardId,
+      emptyStateConfig,
     });
     return dashboardContextWithFilters;
   }

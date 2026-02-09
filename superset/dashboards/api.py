@@ -344,6 +344,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         "css",
         "theme_id",
         "json_metadata",
+        "empty_state_config",
         "published",
     ]
     edit_columns = add_columns

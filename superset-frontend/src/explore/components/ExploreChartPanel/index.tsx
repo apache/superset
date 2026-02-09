@@ -88,6 +88,7 @@ export interface ExploreChartPanelProps {
   errorMessage?: ReactNode;
   triggerRender?: boolean;
   chartAlert?: string;
+  dashboardEmptyStateConfig?: JsonObject;
 }
 
 type PanelSizes = [number, number];
@@ -141,6 +142,7 @@ const ExploreChartPanel = ({
   chartIsStale,
   chartAlert,
   can_download: canDownload,
+  dashboardEmptyStateConfig,
 }: ExploreChartPanelProps) => {
   const theme = useTheme();
   const gutterMargin = theme.sizeUnit * GUTTER_SIZE_FACTOR;
@@ -273,6 +275,7 @@ const ExploreChartPanel = ({
             timeout={timeout}
             triggerQuery={chart.triggerQuery}
             vizType={vizType}
+            dashboardEmptyStateConfig={dashboardEmptyStateConfig}
             {...(chart.chartAlert && { chartAlert: chart.chartAlert })}
             {...(chart.chartStackTrace && {
               chartStackTrace: chart.chartStackTrace,

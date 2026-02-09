@@ -83,7 +83,7 @@ const selectDashboardContextForExplore = createSelector(
       allSliceIds: sliceIds,
     });
 
-    return {
+    const dashboardContext = {
       labelsColor: metadata?.label_colors || EMPTY_OBJECT,
       labelsColorMap: metadata?.map_label_colors || EMPTY_OBJECT,
       sharedLabelsColors: enforceSharedLabelsColorsArray(
@@ -96,7 +96,9 @@ const selectDashboardContextForExplore = createSelector(
       dashboardId,
       filterBoxFilters: getActiveFilters(),
       activeFilters,
+      emptyStateConfig: metadata?.empty_state_config || EMPTY_OBJECT,
     };
+    return dashboardContext;
   },
 );
 

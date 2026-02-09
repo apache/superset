@@ -248,6 +248,8 @@ function setSidebarWidths(key, dimension) {
   setItem(key, newDimension);
 }
 
+const EMPTY_OBJECT = {};
+
 // Chart types that use aggregation and can have multiple values in tooltips
 const AGGREGATED_CHART_TYPES = [
   // Deck.gl aggregated charts
@@ -716,6 +718,7 @@ function ExploreViewContainer(props) {
         errorMessage={dataTabErrorMessage}
         chartIsStale={chartIsStale}
         onQuery={onQuery}
+        dashboardEmptyStateConfig={props.dashboardEmptyStateConfig}
       />
     );
   }
@@ -984,6 +987,9 @@ function mapStateToProps(state) {
 
   const patchedFormData = patchBigNumberTotalFormData(form_data, slice);
 
+  const dashboardEmptyStateConfig =
+    explore.form_data?.emptyStateConfig || EMPTY_OBJECT;
+
   return {
     isDatasourceMetaLoading: explore.isDatasourceMetaLoading,
     datasource,
@@ -1020,6 +1026,7 @@ function mapStateToProps(state) {
     metadata,
     saveAction: explore.saveAction,
     isSaveModalVisible: saveModal.isVisible,
+    dashboardEmptyStateConfig,
   };
 }
 

@@ -81,6 +81,7 @@ export interface ChartProps {
   isInView?: boolean;
   emitCrossFilters?: boolean;
   onChartStateChange?: (chartState: AgGridChartState) => void;
+  dashboardEmptyStateConfig?: JsonObject;
 }
 
 export type Actions = {

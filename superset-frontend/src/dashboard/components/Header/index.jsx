@@ -534,9 +534,11 @@ const Header = () => {
 
   const handleOnPropertiesChange = useCallback(
     updates => {
+      const parsedMetadata = JSON.parse(updates.jsonMetadata || '{}');
+
       boundActionCreators.dashboardInfoChanged({
         slug: updates.slug,
-        metadata: JSON.parse(updates.jsonMetadata || '{}'),
+        metadata: parsedMetadata,
         certified_by: updates.certifiedBy,
         certification_details: updates.certificationDetails,
         owners: updates.owners,
