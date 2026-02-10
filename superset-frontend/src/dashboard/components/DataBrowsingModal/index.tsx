@@ -194,7 +194,7 @@ export const DataBrowsingModal: FC<DataBrowsingModalProps> = ({
   const exportChartData = (chart: ChartData, format: 'csv' | 'json') => {
     if (!chart.data) return;
 
-    const data = chart.data;
+    const {data} = chart;
     let content: string;
     let mimeType: string;
     let fileName: string;
@@ -238,7 +238,7 @@ export const DataBrowsingModal: FC<DataBrowsingModalProps> = ({
   };
 
   const renderChartData = (chart: ChartData) => {
-    const data = chart.data;
+    const {data} = chart;
     const colnames = (chart as any).colnames || [];
 
     if (!data || data.length === 0) {
