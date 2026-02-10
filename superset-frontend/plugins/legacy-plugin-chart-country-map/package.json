@@ -35,5 +35,10 @@
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
     "react": "^17.0.2"
+  },
+  "scripts": {
+    "clean": "rm -rf lib esm tsconfig.tsbuildinfo",
+    "build": "npm run clean && npx tsc --build",
+    "type-check": "npx tsc --noEmit"
   }
 }

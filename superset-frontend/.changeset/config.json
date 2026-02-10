@@ -1,0 +1,23 @@
+{
+  "$schema": "https://unpkg.com/@changesets/config@3.1.1/schema.json",
+  "changelog": [
+    "@changesets/changelog-github",
+    { "repo": "apache/superset" }
+  ],
+  "commit": false,
+  "fixed": [],
+  "linked": [
+    ["@superset-ui/*", "@apache-superset/*"]
+  ],
+  "access": "public",
+  "baseBranch": "master",
+  "updateInternalDependencies": "patch",
+  "ignore": [
+    "@superset-ui/demo",
+    "@superset-ui/generator-superset"
+  ],
+  "privatePackages": {
+    "version": false,
+    "tag": false
+  }
+}

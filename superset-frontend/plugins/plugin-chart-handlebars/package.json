@@ -46,5 +46,10 @@
     "@types/jest": "^30.0.0",
     "@types/lodash": "^4.17.23",
     "jest": "^30.2.0"
+  },
+  "scripts": {
+    "clean": "rm -rf lib esm tsconfig.tsbuildinfo",
+    "build": "npm run clean && npx tsc --build",
+    "type-check": "npx tsc --noEmit"
   }
 }

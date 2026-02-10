@@ -1,0 +1,64 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "@superset-ui/core#build": {
+      "dependsOn": [],
+      "inputs": ["src/**", "package.json", "tsconfig.json", "tsconfig.*.json"],
+      "outputs": ["lib/**", "esm/**", "dist/**", "tsconfig.tsbuildinfo"],
+      "cache": true
+    },
+    "@apache-superset/core#build": {
+      "dependsOn": [],
+      "inputs": ["src/**", "package.json", "tsconfig.json", "tsconfig.*.json"],
+      "outputs": ["lib/**", "esm/**", "dist/**", "tsconfig.tsbuildinfo"],
+      "cache": true
+    },
+    "@superset-ui/chart-controls#build": {
+      "dependsOn": ["@superset-ui/core#build", "@apache-superset/core#build"],
+      "inputs": ["src/**", "package.json", "tsconfig.json", "tsconfig.*.json"],
+      "outputs": ["lib/**", "esm/**", "dist/**", "tsconfig.tsbuildinfo"],
+      "cache": true
+    },
+    "build": {
+      "dependsOn": ["@superset-ui/core#build", "@apache-superset/core#build", "@superset-ui/chart-controls#build", "^build"],
+      "inputs": ["src/**", "package.json", "tsconfig.json", "tsconfig.*.json"],
+      "outputs": ["lib/**", "esm/**", "dist/**", "tsconfig.tsbuildinfo"],
+      "cache": true
+    },
+    "build:esm": {
+      "dependsOn": ["^build:esm"],
+      "inputs": ["src/**", "package.json", "tsconfig.json"],
+      "outputs": ["esm/**"],
+      "cache": true
+    },
+    "build:cjs": {
+      "dependsOn": ["^build:cjs"],
+      "inputs": ["src/**", "package.json", "tsconfig.json"],
+      "outputs": ["lib/**"],
+      "cache": true
+    },
+    "type-check": {
+      "dependsOn": ["^build"],
+      "inputs": ["src/**", "*.ts", "*.tsx", "tsconfig.json"],
+      "outputs": [],
+      "cache": true
+    },
+    "lint": {
+      "inputs": ["src/**", "*.ts", "*.tsx", "*.js", "*.jsx"],
+      "outputs": [],
+      "cache": true
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "inputs": ["src/**", "test/**", "spec/**", "**/*.test.*", "**/*.spec.*"],
+      "outputs": ["coverage/**"],
+      "cache": true
+    },
+    "clean": {
+      "cache": false
+    }
+  },
+  "ui": "tui",
+  "daemon": true,
+  "cacheDir": ".turbo"
+}
