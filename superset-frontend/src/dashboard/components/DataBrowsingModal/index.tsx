@@ -35,7 +35,7 @@ const modalStyles = css`
 
 const ChartDataContainer = styled.div`
   margin-bottom: 24px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   border-radius: 4px;
   padding: 16px;
 `;
@@ -44,7 +44,7 @@ const TableWrapper = styled.div`
   overflow-x: auto;
   overflow-y: visible;
   max-width: 100%;
-  border: 1px solid #e0e0e0;
+  border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   border-radius: 4px;
 
   /* Custom scrollbar styling */
@@ -53,17 +53,17 @@ const TableWrapper = styled.div`
   }
 
   &::-webkit-scrollbar-track {
-    background: #f1f1f1;
+    background: ${({ theme }) => theme.colors.grayscale.light1};
     border-radius: 4px;
   }
 
   &::-webkit-scrollbar-thumb {
-    background: #888;
+    background: ${({ theme }) => theme.colors.grayscale.light5};
     border-radius: 4px;
   }
 
   &::-webkit-scrollbar-thumb:hover {
-    background: #555;
+    background: ${({ theme }) => theme.colors.grayscale.dark1};
   }
 `;
 
@@ -73,21 +73,21 @@ const ChartHeader = styled.div`
   align-items: center;
   margin-bottom: 16px;
   padding-bottom: 8px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
 `;
 
 const ChartTitle = styled.h3`
   margin: 0;
   font-size: 18px;
   font-weight: 500;
-  color: #333;
+  color: ${({ theme }) => theme.colors.grayscale.dark1};
 `;
 
 const ChartMeta = styled.div`
   display: flex;
   gap: 16px;
   font-size: 12px;
-  color: #666;
+  color: ${({ theme }) => theme.colors.grayscale.light5};
   margin-bottom: 8px;
 `;
 
@@ -101,22 +101,22 @@ const DataTable = styled.table`
   td {
     padding: 8px 12px;
     text-align: left;
-    border: 1px solid #e0e0e0;
+    border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
     white-space: nowrap;
     min-width: 100px;
   }
 
   th {
-    background: #f5f5f5;
+    background: ${({ theme }) => theme.colors.grayscale.light1};
     font-weight: 600;
-    color: #333;
+    color: ${({ theme }) => theme.colors.grayscale.dark1};
     position: sticky;
     top: 0;
     z-index: 1;
   }
 
   tbody tr:hover {
-    background: #fafafa;
+    background: ${({ theme }) => theme.colors.grayscale.light1};
   }
 `;
 
@@ -126,7 +126,7 @@ const ExportButtonGroup = styled.div`
 `;
 
 const InfoText = styled.p`
-  color: #666;
+  color: ${({ theme }) => theme.colors.grayscale.light5};
   font-size: 14px;
   margin-bottom: 24px;
 `;
@@ -171,23 +171,25 @@ export const DataBrowsingModal: FC<DataBrowsingModalProps> = ({
   const charts = useSelector((state: RootState) => state.charts || {});
 
   // Get chart information
-  const dashboardCharts = useMemo(() => {
-    return sliceIds
-      .map(id => {
-        const sliceEntity = sliceEntities[id];
-        const chartState = charts[id];
-        return {
-          id,
-          slice_name: sliceEntity?.slice_name || `Chart ${id}`,
-          datasource_name_text: sliceEntity?.datasource_name_text,
-          viz_type: sliceEntity?.viz_type,
-          data: chartState?.queriesResponse?.[0]?.data || null,
-          colnames: chartState?.queriesResponse?.[0]?.colnames || [],
-          rowcount: chartState?.queriesResponse?.[0]?.rowcount || 0,
-        };
-      })
-      .filter(chart => chart !== null) as ChartData[];
-  }, [sliceIds, sliceEntities, charts]);
+  const dashboardCharts = useMemo(
+    () =>
+      sliceIds
+        .map(id => {
+          const sliceEntity = sliceEntities[id];
+          const chartState = charts[id];
+          return {
+            id,
+            slice_name: sliceEntity?.slice_name || `Chart ${id}`,
+            datasource_name_text: sliceEntity?.datasource_name,
+            viz_type: sliceEntity?.viz_type,
+            data: chartState?.queriesResponse?.[0]?.data || null,
+            colnames: chartState?.queriesResponse?.[0]?.colnames || [],
+            rowcount: chartState?.queriesResponse?.[0]?.rowcount || 0,
+          };
+        })
+        .filter(chart => chart !== null) as ChartData[],
+    [sliceIds, sliceEntities, charts]
+  );
 
   const exportChartData = (chart: ChartData, format: 'csv' | 'json') => {
     if (!chart.data) return;
