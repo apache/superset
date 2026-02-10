@@ -30,6 +30,7 @@ import {
   ChartDataResponseResult,
 } from '@superset-ui/core';
 import { EchartsTimeseriesChartProps } from '../../src/types';
+import type { SeriesOption } from 'echarts';
 import transformProps from '../../src/Timeseries/transformProps';
 import {
   EchartsTimeseriesSeriesType,
@@ -73,7 +74,6 @@ function createTestQueryData(
     ...overrides,
   } as ChartDataResponseResult & { label_map?: Record<string, string[]> };
 }
-import type { SeriesOption } from 'echarts';
 
 type YAxisFormatter = (value: number, index: number) => string;
 
@@ -140,7 +140,7 @@ const queriesData: ChartDataResponseResult[] = [
   ),
 ];
 describe('EchartsTimeseries transformProps', () => {
-  it('should transform chart props for viz', () => {
+  test('should transform chart props for viz', () => {
     const chartProps = createTestChartProps({});
     expect(transformProps(chartProps)).toEqual(
       expect.objectContaining({
@@ -171,7 +171,7 @@ describe('EchartsTimeseries transformProps', () => {
     );
   });
 
-  it('should transform chart props for horizontal viz', () => {
+  test('should transform chart props for horizontal viz', () => {
     const chartProps = createTestChartProps({
       formData: {
         ...formData,
@@ -258,7 +258,7 @@ describe('EchartsTimeseries transformProps', () => {
     );
   });
 
-  it('should add a formula annotation when X-axis column has dataset-level label', () => {
+  test('should add a formula annotation when X-axis column has dataset-level label', () => {
     const formula: FormulaAnnotationLayer = {
       name: 'My Formula',
       annotationType: AnnotationType.Formula,
@@ -310,7 +310,7 @@ describe('EchartsTimeseries transformProps', () => {
     expect(firstDataPoint[1]).toBe(firstDataPoint[0] * 2);
   });
 
-  it('should add a formula annotation when X-axis column has dataset-level label and verboseMap is empty (backward compatibility)', () => {
+  test('should add a formula annotation when X-axis column has dataset-level label and verboseMap is empty (backward compatibility)', () => {
     const formula: FormulaAnnotationLayer = {
       name: 'My Formula',
       annotationType: AnnotationType.Formula,
@@ -339,7 +339,7 @@ describe('EchartsTimeseries transformProps', () => {
     expect(Array.isArray(formulaSeries?.data)).toBe(true);
   });
 
-  it('should add a formula annotation when X-axis column has dataset-level label in horizontal orientation', () => {
+  test('should add a formula annotation when X-axis column has dataset-level label in horizontal orientation', () => {
     const formula: FormulaAnnotationLayer = {
       name: 'My Formula',
       annotationType: AnnotationType.Formula,
@@ -389,7 +389,7 @@ describe('EchartsTimeseries transformProps', () => {
     expect(firstDataPoint[0]).toBe(firstDataPoint[1] * 2);
   });
 
-  it('should add an interval, event and timeseries annotation to viz', () => {
+  test('should add an interval, event and timeseries annotation to viz', () => {
     const event: EventAnnotationLayer = {
       annotationType: AnnotationType.Event,
       name: 'My Event',
@@ -498,7 +498,7 @@ describe('EchartsTimeseries transformProps', () => {
     );
   });
 
-  it('Should add a baseline series for stream graph', () => {
+  test('Should add a baseline series for stream graph', () => {
     const streamQueriesDataTyped: ChartDataResponseResult[] = [
       createTestQueryData(
         createTestData(
@@ -666,7 +666,7 @@ describe('Does transformProps transform series correctly', () => {
     [] as number[],
   );
 
-  it('should show labels when showValue is true', () => {
+  test('should show labels when showValue is true', () => {
     const chartProps = createTestChartProps({ formData, queriesData });
 
     const transformedSeries = transformProps(chartProps).echartOptions
@@ -677,7 +677,7 @@ describe('Does transformProps transform series correctly', () => {
     });
   });
 
-  it('should not show labels when showValue is false', () => {
+  test('should not show labels when showValue is false', () => {
     const chartProps = createTestChartProps({
       formData: { ...formData, showValue: false },
       queriesData,
@@ -691,7 +691,7 @@ describe('Does transformProps transform series correctly', () => {
     });
   });
 
-  it('should show only totals when onlyTotal is true', () => {
+  test('should show only totals when onlyTotal is true', () => {
     const chartProps = createTestChartProps({
       formData: { ...formData, onlyTotal: true },
       queriesData,
@@ -733,7 +733,7 @@ describe('Does transformProps transform series correctly', () => {
     });
   });
 
-  it('should show labels on values >= percentageThreshold if onlyTotal is false', () => {
+  test('should show labels on values >= percentageThreshold if onlyTotal is false', () => {
     const chartProps = createTestChartProps({ formData, queriesData });
 
     const transformedSeries = transformProps(chartProps).echartOptions
@@ -758,7 +758,7 @@ describe('Does transformProps transform series correctly', () => {
     });
   });
 
-  it('should not apply percentage threshold when showValue is true and stack is false', () => {
+  test('should not apply percentage threshold when showValue is true and stack is false', () => {
     const chartProps = createTestChartProps({
       formData: { ...formData, stack: false },
       queriesData,
@@ -781,7 +781,7 @@ describe('Does transformProps transform series correctly', () => {
     });
   });
 
-  it('should remove time shift labels from label_map', () => {
+  test('should remove time shift labels from label_map', () => {
     const chartProps = createTestChartProps({
       formData: {
         ...formData,
