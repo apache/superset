@@ -19,6 +19,7 @@
 import 'src/public-path';
 
 import ReactDOM from 'react-dom';
+import { logging } from '@apache-superset/core';
 import initPreamble from 'src/preamble';
 
 const appMountPoint = document.getElementById('app');
@@ -32,7 +33,6 @@ if (appMountPoint) {
       ReactDOM.render(<App />, appMountPoint);
     }
   })().catch(err => {
-    // eslint-disable-next-line no-console
-    console.error('Unhandled error during app initialization', err);
+    logging.error('Unhandled error during app initialization', err);
   });
 }

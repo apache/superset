@@ -17,6 +17,7 @@
  * under the License.
  */
 import { configure, LanguagePack } from '@apache-superset/core/ui';
+import { logging } from '@apache-superset/core';
 import { makeApi, initFeatureFlags } from '@superset-ui/core';
 import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
 import setupClient from './setup/setupClient';
@@ -82,7 +83,7 @@ export default function initPreamble(): Promise<void> {
         configure({ languagePack: json as LanguagePack });
         dayjs.locale(lang);
       } catch (err) {
-        console.warn(
+        logging.warn(
           'Failed to fetch language pack, falling back to default.',
           err,
         );
@@ -130,5 +131,5 @@ export default function initPreamble(): Promise<void> {
 // Kick off initialization eagerly, while still allowing entrypoints to `await` it
 // before rendering when needed (e.g. the login page).
 initPreamble().catch(err => {
-  console.warn('Preamble initialization failed.', err);
+  logging.warn('Preamble initialization failed.', err);
 });
