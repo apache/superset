@@ -24,6 +24,7 @@ Tests verify that:
 - _extract_context_info() extracts entity IDs from params
 """
 
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -34,8 +35,8 @@ from superset.mcp_service.middleware import LoggingMiddleware
 def _make_context(
     method: str = "tools/call",
     name: str = "list_charts",
-    params: dict | None = None,
-    metadata: dict | None = None,
+    params: dict[str, Any] | None = None,
+    metadata: dict[str, Any] | None = None,
 ):
     """Create a mock MiddlewareContext."""
     ctx = MagicMock()
