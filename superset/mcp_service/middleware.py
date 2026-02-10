@@ -87,6 +87,29 @@ def _sanitize_error_for_logging(error: Exception) -> str:
     return error_str
 
 
+_SENSITIVE_PARAM_KEYS = frozenset(
+    {
+        "password",
+        "token",
+        "api_key",
+        "secret",
+        "credentials",
+        "authorization",
+        "cookie",
+    }
+)
+
+
+def _sanitize_params(params: dict[str, Any]) -> dict[str, Any]:
+    """Remove sensitive fields from params before logging."""
+    if not isinstance(params, dict):
+        return params
+    return {
+        k: "[REDACTED]" if k.lower() in _SENSITIVE_PARAM_KEYS else v
+        for k, v in params.items()
+    }
+
+
 class LoggingMiddleware(Middleware):
     """
     Middleware that logs every MCP message (request and response) using the
@@ -101,7 +124,9 @@ class LoggingMiddleware(Middleware):
 
     def _extract_context_info(
         self, context: MiddlewareContext
-    ) -> tuple[Any, Any, Any, Any, Any, Any]:
+    ) -> tuple[
+        str | None, int | None, int | None, int | None, int | None, dict[str, Any]
+    ]:
         """Extract agent_id, user_id, and entity IDs from context."""
         agent_id = None
         user_id = None
@@ -152,7 +177,7 @@ class LoggingMiddleware(Middleware):
                 curated_payload={
                     "tool": tool_name,
                     "agent_id": agent_id,
-                    "params": params,
+                    "params": _sanitize_params(params),
                     "method": context.method,
                     "dashboard_id": dashboard_id,
                     "slice_id": slice_id,
@@ -194,7 +219,7 @@ class LoggingMiddleware(Middleware):
             curated_payload={
                 "tool": getattr(context.message, "name", None),
                 "agent_id": agent_id,
-                "params": params,
+                "params": _sanitize_params(params),
                 "method": context.method,
                 "dashboard_id": dashboard_id,
                 "slice_id": slice_id,

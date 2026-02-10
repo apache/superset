@@ -28,6 +28,7 @@ from urllib.parse import parse_qs, urlparse
 from fastmcp import Context
 from superset_core.mcp import tool
 
+from superset.extensions import event_logger
 from superset.mcp_service.chart.chart_utils import (
     generate_explore_link as generate_url,
     map_config_to_form_data,
@@ -91,11 +92,11 @@ async def generate_explore_link(
 
     try:
         await ctx.report_progress(1, 3, "Converting configuration to form data")
-        # Map config to form_data using shared utilities
-        # Pass dataset_id to enable column type checking for proper viz_type selection
-        form_data = map_config_to_form_data(
-            request.config, dataset_id=request.dataset_id
-        )
+        with event_logger.log_context(action="mcp.generate_explore_link.form_data"):
+            # Map config to form_data using shared utilities
+            form_data = map_config_to_form_data(
+                request.config, dataset_id=request.dataset_id
+            )
 
         # Add datasource to form_data for consistency with generate_chart
         # Only set if not already present to avoid overwriting
@@ -112,8 +113,13 @@ async def generate_explore_link(
         )
 
         await ctx.report_progress(2, 3, "Generating explore URL")
-        # Generate explore link using shared utilities
-        explore_url = generate_url(dataset_id=request.dataset_id, form_data=form_data)
+        with event_logger.log_context(
+            action="mcp.generate_explore_link.url_generation"
+        ):
+            # Generate explore link using shared utilities
+            explore_url = generate_url(
+                dataset_id=request.dataset_id, form_data=form_data
+            )
 
         # Extract form_data_key from the explore URL using proper URL parsing
         form_data_key = None
