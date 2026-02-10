@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import type { MenuProps } from 'antd';
 import { t } from '@apache-superset/core';
 import { css, useTheme } from '@apache-superset/core/ui';
@@ -49,6 +49,8 @@ export interface LocaleSwitcherProps {
   fieldLabel: string;
   /** When false, renders as a read-only indicator without dropdown. Default true. */
   interactive?: boolean;
+  /** Called when the dropdown opens or closes. */
+  onDropdownOpenChange?: (open: boolean) => void;
 }
 
 /**
@@ -71,6 +73,7 @@ export default function LocaleSwitcher({
   onLocaleChange,
   fieldLabel,
   interactive = true,
+  onDropdownOpenChange,
 }: LocaleSwitcherProps) {
   const theme = useTheme();
 
@@ -152,9 +155,17 @@ export default function LocaleSwitcher({
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
+  const handleOpenChange = useCallback(
+    (open: boolean) => {
+      setDropdownOpen(open);
+      onDropdownOpenChange?.(open);
+    },
+    [onDropdownOpenChange],
+  );
+
   const handleMenuClick: MenuProps['onClick'] = ({ key }) => {
     onLocaleChange(key);
-    setDropdownOpen(false);
+    handleOpenChange(false);
   };
 
   const suffixColor = isWarning ? theme.colorWarning : theme.colorText;
@@ -207,7 +218,7 @@ export default function LocaleSwitcher({
       menu={{ items: menuItems, onClick: handleMenuClick }}
       trigger={['click']}
       open={dropdownOpen}
-      onOpenChange={setDropdownOpen}
+      onOpenChange={handleOpenChange}
       getPopupContainer={() => document.body}
     >
       <span

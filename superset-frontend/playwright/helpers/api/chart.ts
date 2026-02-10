@@ -47,6 +47,7 @@ export interface ChartUpdatePayload {
   owners?: number[];
   dashboards?: number[];
   translations?: Record<string, Record<string, string>>;
+  params?: string;
 }
 
 /** Chart data shape from API responses */

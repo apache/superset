@@ -28,6 +28,7 @@ import {
   FC,
 } from 'react';
 import { useSelector } from 'react-redux';
+import { InputRef } from 'antd';
 import { logging, t } from '@apache-superset/core';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import { css, styled, useTheme } from '@apache-superset/core/ui';
@@ -132,10 +133,33 @@ const AdhocMetricEditPopoverTitle: FC<AdhocMetricEditPopoverTitleProps> = ({
 
   const defaultLabel = t('My metric');
 
+  // --- Focus management for LocaleSwitcher dropdown portal ---
+  // Ant Design Dropdown opens a portal at document.body. When the portal
+  // receives focus the input blurs. The ref tracks whether the dropdown
+  // is open so blur handlers can ignore portal-induced focus transitions.
+  const dropdownOpenRef = useRef(false);
+  const inputRef = useRef<InputRef>(null);
+
+  const handleDropdownOpenChange = useCallback((open: boolean) => {
+    if (open) {
+      dropdownOpenRef.current = true;
+    } else {
+      // Keep ref true during this frame so the portal-unmount blur
+      // still sees it; clear + refocus on the next animation frame.
+      requestAnimationFrame(() => {
+        dropdownOpenRef.current = false;
+        inputRef.current?.focus();
+      });
+    }
+  }, []);
+
   const handleMouseOver = useCallback(() => setIsHovered(true), []);
   const handleMouseOut = useCallback(() => setIsHovered(false), []);
   const handleClick = useCallback(() => setIsEditMode(true), []);
-  const handleBlur = useCallback(() => setIsEditMode(false), []);
+  const handleBlur = useCallback(() => {
+    if (dropdownOpenRef.current) return;
+    setIsEditMode(false);
+  }, []);
 
   const handleKeyPress = useCallback(
     (ev: KeyboardEvent<HTMLInputElement>) => {
@@ -149,12 +173,13 @@ const AdhocMetricEditPopoverTitle: FC<AdhocMetricEditPopoverTitleProps> = ({
 
   const handleInputBlur = useCallback(
     (e: FocusEvent<HTMLInputElement>) => {
+      if (dropdownOpenRef.current) return;
       if (e.target.value === '') {
         onChange(e);
       }
-      handleBlur();
+      setIsEditMode(false);
     },
-    [onChange, handleBlur],
+    [onChange],
   );
 
   const handleTranslationValue = useCallback(
@@ -174,7 +199,7 @@ const AdhocMetricEditPopoverTitle: FC<AdhocMetricEditPopoverTitleProps> = ({
     handleBlur();
   }, [handleBlur]);
 
-  /** Prevent input blur when clicking suffix (LocaleSwitcher dropdown). */
+  /** Prevent input blur on mousedown (browser default focus change). */
   const preventBlur = useCallback((e: MouseEvent) => {
     e.preventDefault();
   }, []);
@@ -193,6 +218,9 @@ const AdhocMetricEditPopoverTitle: FC<AdhocMetricEditPopoverTitleProps> = ({
           onLocaleChange={setActiveLocale}
           fieldLabel={t('Metric Label')}
           interactive={interactive}
+          onDropdownOpenChange={
+            interactive ? handleDropdownOpenChange : undefined
+          }
         />
       )
     : null;
@@ -224,6 +252,7 @@ const AdhocMetricEditPopoverTitle: FC<AdhocMetricEditPopoverTitleProps> = ({
         translations?.label?.[activeLocale] ?? '';
       return (
         <StyledDeferredInput
+          ref={inputRef}
           type="text"
           placeholder={title?.label}
           value={localeInputValue}
@@ -238,6 +267,7 @@ const AdhocMetricEditPopoverTitle: FC<AdhocMetricEditPopoverTitleProps> = ({
 
     return (
       <StyledInput
+        ref={inputRef}
         type="text"
         placeholder={title?.label}
         value={title?.hasCustomLabel ? title.label : ''}

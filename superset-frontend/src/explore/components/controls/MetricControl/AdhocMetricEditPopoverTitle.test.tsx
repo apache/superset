@@ -273,6 +273,32 @@ test('feature flag ON, select translation locale: input shows translation value'
   });
 });
 
+test('feature flag ON, clicking locale dropdown does not exit edit mode', async () => {
+  (isFeatureEnabled as jest.Mock).mockReturnValue(true);
+
+  const { container } = setup({
+    title: { label: 'Revenue', hasCustomLabel: true },
+    translations: { label: { de: 'Umsatz' } },
+    onTranslationsChange: jest.fn(),
+  });
+
+  await screen.findByLabelText(/Locale switcher for Metric Label/i);
+
+  // Enter edit mode
+  fireEvent.click(
+    container.getElementsByClassName('AdhocMetricEditPopoverTitle')[0],
+  );
+  await screen.findByTestId('AdhocMetricEditTitle#input');
+
+  // Click locale dropdown
+  await userEvent.click(
+    screen.getByRole('button', { name: /Locale switcher/i }),
+  );
+
+  // Input must still be visible (edit mode not cancelled)
+  expect(screen.getByTestId('AdhocMetricEditTitle#input')).toBeInTheDocument();
+});
+
 test('feature flag ON, typing in translation locale calls onTranslationsChange', async () => {
   (isFeatureEnabled as jest.Mock).mockReturnValue(true);
   const onTranslationsChange = jest.fn();

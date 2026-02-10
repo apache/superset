@@ -18,8 +18,8 @@
  */
 import {
   ChangeEvent,
-  FC,
   FocusEvent,
+  forwardRef,
   useCallback,
   useEffect,
   useMemo,
@@ -27,6 +27,7 @@ import {
   useState,
 } from 'react';
 import { debounce } from 'lodash';
+import { InputRef } from 'antd';
 import { Input } from '@superset-ui/core/components';
 import type { InputProps } from '@superset-ui/core/components';
 
@@ -46,61 +47,60 @@ export interface DeferredInputProps extends Omit<InputProps, 'onChange'> {
  * keystroke feedback; propagates to parent only on blur / debounce timeout.
  * Accepts external `value` for locale switching and form resets.
  */
-const DeferredInput: FC<DeferredInputProps> = ({
-  value,
-  onChange,
-  debounceMs = DEFAULT_DEBOUNCE_MS,
-  onBlur,
-  ...rest
-}) => {
-  const [localValue, setLocalValue] = useState(value ?? '');
-  const lastPropagatedRef = useRef(value ?? '');
-  const onChangeRef = useRef(onChange);
-  onChangeRef.current = onChange;
+const DeferredInput = forwardRef<InputRef, DeferredInputProps>(
+  ({ value, onChange, debounceMs = DEFAULT_DEBOUNCE_MS, onBlur, ...rest }, ref) => {
+    const [localValue, setLocalValue] = useState(value ?? '');
+    const lastPropagatedRef = useRef(value ?? '');
+    const onChangeRef = useRef(onChange);
+    onChangeRef.current = onChange;
 
-  useEffect(() => {
-    if (value !== undefined && value !== lastPropagatedRef.current) {
-      setLocalValue(value);
-      lastPropagatedRef.current = value;
-    }
-  }, [value]);
+    useEffect(() => {
+      if (value !== undefined && value !== lastPropagatedRef.current) {
+        setLocalValue(value);
+        lastPropagatedRef.current = value;
+      }
+    }, [value]);
 
-  const debouncedPropagate = useMemo(
-    () =>
-      debounce((val: string) => {
-        lastPropagatedRef.current = val;
-        onChangeRef.current?.(val);
-      }, debounceMs),
-    [debounceMs],
-  );
+    const debouncedPropagate = useMemo(
+      () =>
+        debounce((val: string) => {
+          lastPropagatedRef.current = val;
+          onChangeRef.current?.(val);
+        }, debounceMs),
+      [debounceMs],
+    );
 
-  // Flush pending propagation on unmount
-  useEffect(() => () => debouncedPropagate.flush(), [debouncedPropagate]);
+    // Flush pending propagation on unmount
+    useEffect(() => () => debouncedPropagate.flush(), [debouncedPropagate]);
 
-  const handleChange = useCallback(
-    (e: ChangeEvent<HTMLInputElement>) => {
-      setLocalValue(e.target.value);
-      debouncedPropagate(e.target.value);
-    },
-    [debouncedPropagate],
-  );
+    const handleChange = useCallback(
+      (e: ChangeEvent<HTMLInputElement>) => {
+        setLocalValue(e.target.value);
+        debouncedPropagate(e.target.value);
+      },
+      [debouncedPropagate],
+    );
 
-  const handleBlur = useCallback(
-    (e: FocusEvent<HTMLInputElement>) => {
-      debouncedPropagate.flush();
-      onBlur?.(e);
-    },
-    [debouncedPropagate, onBlur],
-  );
+    const handleBlur = useCallback(
+      (e: FocusEvent<HTMLInputElement>) => {
+        debouncedPropagate.flush();
+        onBlur?.(e);
+      },
+      [debouncedPropagate, onBlur],
+    );
 
-  return (
-    <Input
-      {...rest}
-      value={localValue}
-      onChange={handleChange}
-      onBlur={handleBlur}
-    />
-  );
-};
+    return (
+      <Input
+        ref={ref}
+        {...rest}
+        value={localValue}
+        onChange={handleChange}
+        onBlur={handleBlur}
+      />
+    );
+  },
+);
+
+DeferredInput.displayName = 'DeferredInput';
 
 export default DeferredInput;
