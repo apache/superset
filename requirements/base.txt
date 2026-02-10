@@ -396,7 +396,7 @@ sqlalchemy-utils==0.38.3
     # via
     #   apache-superset (pyproject.toml)
     #   flask-appbuilder
-sqlglot==27.15.2
+sqlglot==28.10.0
     # via apache-superset (pyproject.toml)
 sshtunnel==0.4.0
     # via apache-superset (pyproject.toml)
