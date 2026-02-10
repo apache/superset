@@ -596,9 +596,7 @@ const ColumnSelectPopover = ({
                   height={`${height - 120}px`}
                   lineNumbers={false}
                   wordWrap
-                  keywords={keywords.map((k: any) =>
-                    typeof k === 'string' ? k : k.value || k.name || k,
-                  )}
+                  keywords={keywords}
                   showValidation
                   expressionType="column"
                   datasourceId={datasource?.id}
