@@ -47,7 +47,7 @@
   "scripts": {
     "clean": "rm -rf lib tsconfig.tsbuildinfo",
     "build": "npm run clean && npx tsc --build",
-    "type": "npx tsc --noEmit"
+    "type-check": "npx tsc --noEmit"
   },
   "publishConfig": {
     "access": "public"

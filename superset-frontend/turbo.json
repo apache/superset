@@ -1,0 +1,46 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "inputs": ["src/**", "package.json", "tsconfig.json", "tsconfig.*.json"],
+      "outputs": ["lib/**", "esm/**", "dist/**", "tsconfig.tsbuildinfo"],
+      "cache": true
+    },
+    "build:esm": {
+      "dependsOn": ["^build:esm"],
+      "inputs": ["src/**", "package.json", "tsconfig.json"],
+      "outputs": ["esm/**"],
+      "cache": true
+    },
+    "build:cjs": {
+      "dependsOn": ["^build:cjs"],
+      "inputs": ["src/**", "package.json", "tsconfig.json"],
+      "outputs": ["lib/**"],
+      "cache": true
+    },
+    "type-check": {
+      "dependsOn": ["^build"],
+      "inputs": ["src/**", "*.ts", "*.tsx", "tsconfig.json"],
+      "outputs": [],
+      "cache": true
+    },
+    "lint": {
+      "inputs": ["src/**", "*.ts", "*.tsx", "*.js", "*.jsx"],
+      "outputs": [],
+      "cache": true
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "inputs": ["src/**", "test/**", "spec/**", "**/*.test.*", "**/*.spec.*"],
+      "outputs": ["coverage/**"],
+      "cache": true
+    },
+    "clean": {
+      "cache": false
+    }
+  },
+  "ui": "tui",
+  "daemon": true,
+  "cacheDir": ".turbo"
+}

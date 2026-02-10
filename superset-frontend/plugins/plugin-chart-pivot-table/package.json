@@ -41,5 +41,10 @@
     "@babel/types": "^7.29.0",
     "@types/jest": "^30.0.0",
     "jest": "^30.2.0"
+  },
+  "scripts": {
+    "clean": "rm -rf lib esm tsconfig.tsbuildinfo",
+    "build": "npm run clean && npx tsc --build",
+    "type-check": "npx tsc --noEmit"
   }
 }

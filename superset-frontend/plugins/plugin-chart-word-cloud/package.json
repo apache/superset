@@ -43,5 +43,10 @@
   },
   "devDependencies": {
     "@types/d3-cloud": "^1.2.9"
+  },
+  "scripts": {
+    "clean": "rm -rf lib esm tsconfig.tsbuildinfo",
+    "build": "npm run clean && npx tsc --build",
+    "type-check": "npx tsc --noEmit"
   }
 }

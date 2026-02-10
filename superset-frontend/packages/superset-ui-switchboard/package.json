@@ -30,5 +30,10 @@
   "homepage": "https://github.com/apache/superset#readme",
   "publishConfig": {
     "access": "public"
+  },
+  "scripts": {
+    "clean": "rm -rf lib esm tsconfig.tsbuildinfo",
+    "build": "npm run clean && npx tsc --build",
+    "type-check": "npx tsc --noEmit"
   }
 }

@@ -12,3 +12,5 @@ src/temp
 **/lib/*
 **/storybook-static/*
 migration-storybook.log
+# Turborepo cache
+.turbo
