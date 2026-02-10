@@ -21,35 +21,10 @@ import {
   screen,
   selectOption,
   userEvent,
-  waitFor,
   within,
 } from 'spec/helpers/testing-library';
-import { isFeatureEnabled } from '@superset-ui/core';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import AdhocMetricEditPopover from '.';
-
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
-  isFeatureEnabled: jest.fn(() => false),
-}));
-
-jest.mock('@superset-ui/core/connection', () => ({
-  SupersetClient: {
-    get: jest.fn(() =>
-      Promise.resolve({
-        json: {
-          result: {
-            locales: [
-              { code: 'de', name: 'Deutsch', flag: '\ud83c\udde9\ud83c\uddea' },
-              { code: 'fr', name: 'Fran\u00e7ais', flag: '\ud83c\uddeb\ud83c\uddf7' },
-            ],
-            default_locale: 'en',
-          },
-        },
-      }),
-    ),
-  },
-}));
 
 const createProps = () => ({
   onChange: jest.fn(),
