@@ -19,11 +19,11 @@
 import { getMetricLabel } from '@superset-ui/core';
 
 describe('getMetricLabel', () => {
-  it('should handle predefined metric name', () => {
+  test('should handle predefined metric name', () => {
     expect(getMetricLabel('sum__num')).toEqual('sum__num');
   });
 
-  it('should handle simple adhoc metrics', () => {
+  test('should handle simple adhoc metrics', () => {
     expect(
       getMetricLabel({
         expressionType: 'SIMPLE',
@@ -37,7 +37,7 @@ describe('getMetricLabel', () => {
     ).toEqual('AVG(sum_girls)');
   });
 
-  it('should handle column_name in alternative field', () => {
+  test('should handle column_name in alternative field', () => {
     expect(
       getMetricLabel({
         expressionType: 'SIMPLE',
@@ -51,7 +51,7 @@ describe('getMetricLabel', () => {
     ).toEqual('AVG(sum_girls)');
   });
 
-  it('should handle SQL adhoc metrics', () => {
+  test('should handle SQL adhoc metrics', () => {
     expect(
       getMetricLabel({
         expressionType: 'SQL',
@@ -60,7 +60,7 @@ describe('getMetricLabel', () => {
     ).toEqual('COUNT(sum_girls)');
   });
 
-  it('should handle adhoc metrics with custom labels', () => {
+  test('should handle adhoc metrics with custom labels', () => {
     expect(
       getMetricLabel({
         expressionType: 'SQL',

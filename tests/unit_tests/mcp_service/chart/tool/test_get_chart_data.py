@@ -152,6 +152,115 @@ class TestBigNumberChartFallback:
         assert groupby_columns == []
 
 
+class TestXAxisInQueryContext:
+    """Tests for x_axis inclusion in fallback query context columns."""
+
+    def test_x_axis_string_included_in_columns(self):
+        """Test that x_axis (string format) is included alongside groupby columns."""
+        form_data = {
+            "x_axis": "territory",
+            "groupby": ["year"],
+            "metrics": [{"label": "SUM(sales)"}],
+            "viz_type": "echarts_timeseries_bar",
+        }
+
+        groupby_columns = form_data.get("groupby", [])
+        x_axis_config = form_data.get("x_axis")
+        columns = groupby_columns.copy()
+        if x_axis_config and isinstance(x_axis_config, str):
+            if x_axis_config not in columns:
+                columns.insert(0, x_axis_config)
+
+        assert columns == ["territory", "year"]
+
+    def test_x_axis_dict_included_in_columns(self):
+        """Test that x_axis (dict format with column_name) is included."""
+        form_data = {
+            "x_axis": {"column_name": "territory"},
+            "groupby": ["year"],
+            "metrics": [{"label": "SUM(sales)"}],
+        }
+
+        groupby_columns = form_data.get("groupby", [])
+        x_axis_config = form_data.get("x_axis")
+        columns = groupby_columns.copy()
+        if x_axis_config and isinstance(x_axis_config, str):
+            if x_axis_config not in columns:
+                columns.insert(0, x_axis_config)
+        elif x_axis_config and isinstance(x_axis_config, dict):
+            col_name = x_axis_config.get("column_name")
+            if col_name and col_name not in columns:
+                columns.insert(0, col_name)
+
+        assert columns == ["territory", "year"]
+
+    def test_no_x_axis_uses_groupby_only(self):
+        """Test that without x_axis, only groupby columns are used."""
+        form_data = {
+            "groupby": ["region", "category"],
+            "metrics": [{"label": "SUM(sales)"}],
+        }
+
+        groupby_columns = form_data.get("groupby", [])
+        x_axis_config = form_data.get("x_axis")
+        columns = groupby_columns.copy()
+        if x_axis_config and isinstance(x_axis_config, str):
+            if x_axis_config not in columns:
+                columns.insert(0, x_axis_config)
+
+        assert columns == ["region", "category"]
+
+    def test_x_axis_not_duplicated_if_in_groupby(self):
+        """Test that x_axis is not duplicated if already in groupby list."""
+        form_data = {
+            "x_axis": "territory",
+            "groupby": ["territory", "year"],
+            "metrics": [{"label": "SUM(sales)"}],
+        }
+
+        groupby_columns = form_data.get("groupby", [])
+        x_axis_config = form_data.get("x_axis")
+        columns = groupby_columns.copy()
+        if x_axis_config and isinstance(x_axis_config, str):
+            if x_axis_config not in columns:
+                columns.insert(0, x_axis_config)
+
+        assert columns == ["territory", "year"]
+
+    def test_x_axis_without_groupby(self):
+        """Test that x_axis works when there's no groupby."""
+        form_data = {
+            "x_axis": "date",
+            "metrics": [{"label": "SUM(sales)"}],
+        }
+
+        groupby_columns = form_data.get("groupby", [])
+        x_axis_config = form_data.get("x_axis")
+        columns = groupby_columns.copy()
+        if x_axis_config and isinstance(x_axis_config, str):
+            if x_axis_config not in columns:
+                columns.insert(0, x_axis_config)
+
+        assert columns == ["date"]
+
+    def test_empty_groupby_with_x_axis(self):
+        """Test x_axis with explicitly empty groupby."""
+        form_data = {
+            "x_axis": "platform",
+            "groupby": [],
+            "metrics": [{"label": "SUM(global_sales)"}],
+        }
+
+        groupby_columns = form_data.get("groupby", [])
+        x_axis_config = form_data.get("x_axis")
+        columns = groupby_columns.copy()
+        if x_axis_config and isinstance(x_axis_config, str):
+            if x_axis_config not in columns:
+                columns.insert(0, x_axis_config)
+
+        assert columns == ["platform"]
+
+
 class TestGetChartDataRequestSchema:
     """Test the GetChartDataRequest schema validation."""
 

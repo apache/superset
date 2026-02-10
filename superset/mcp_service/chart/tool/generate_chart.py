@@ -123,6 +123,9 @@ async def generate_chart(  # noqa: C901
         "Chart configuration details: config=%s" % (request.config.model_dump(),)
     )
 
+    # Track runtime warnings to include in response
+    runtime_warnings: list[str] = []
+
     try:
         # Run comprehensive validation pipeline
         await ctx.report_progress(1, 5, "Running validation pipeline")
@@ -131,22 +134,34 @@ async def generate_chart(  # noqa: C901
         )
         from superset.mcp_service.chart.validation import ValidationPipeline
 
-        is_valid, parsed_request, validation_error = (
-            ValidationPipeline.validate_request(request.model_dump())
+        validation_result = ValidationPipeline.validate_request_with_warnings(
+            request.model_dump()
         )
-        if is_valid and parsed_request is not None:
+
+        if validation_result.is_valid and validation_result.request is not None:
             # Use the validated request going forward
-            request = parsed_request
-        if not is_valid:
+            request = validation_result.request
+
+        # Capture runtime warnings (informational, not blocking)
+        if validation_result.warnings:
+            runtime_warnings = validation_result.warnings.get("warnings", [])
+            if runtime_warnings:
+                await ctx.info(
+                    "Runtime suggestions: %s" % ("; ".join(runtime_warnings[:3]),)
+                )
+
+        if not validation_result.is_valid:
             execution_time = int((time.time() - start_time) * 1000)
-            assert validation_error is not None  # Type narrowing for mypy
+            if validation_result.error is None:
+                raise RuntimeError("Validation failed but error object is missing")
             await ctx.error(
-                "Chart validation failed: error=%s" % (validation_error.model_dump(),)
+                "Chart validation failed: error=%s"
+                % (validation_result.error.model_dump(),)
             )
             return GenerateChartResponse.model_validate(
                 {
                     "chart": None,
-                    "error": validation_error.model_dump(),
+                    "error": validation_result.error.model_dump(),
                     "performance": {
                         "query_duration_ms": execution_time,
                         "cache_status": "error",
@@ -159,7 +174,10 @@ async def generate_chart(  # noqa: C901
             )
 
         # Map the simplified config to Superset's form_data format
-        form_data = map_config_to_form_data(request.config)
+        # Pass dataset_id to enable column type checking for proper viz_type selection
+        form_data = map_config_to_form_data(
+            request.config, dataset_id=request.dataset_id
+        )
 
         chart = None
         chart_id = None
@@ -171,9 +189,9 @@ async def generate_chart(  # noqa: C901
             await ctx.report_progress(2, 5, "Creating chart in database")
             from superset.commands.chart.create import CreateChartCommand
 
-            # Generate a chart name
-            chart_name = generate_chart_name(request.config)
-            await ctx.debug("Generated chart name: chart_name=%s" % (chart_name,))
+            # Use custom chart name if provided, otherwise auto-generate
+            chart_name = request.chart_name or generate_chart_name(request.config)
+            await ctx.debug("Chart name: chart_name=%s" % (chart_name,))
 
             # Find the dataset to get its numeric ID
             from superset.daos.dataset import DatasetDAO
@@ -369,10 +387,6 @@ async def generate_chart(  # noqa: C901
                     await ctx.debug(
                         "Processing preview format: format=%s" % (format_type,)
                     )
-                    # Skip base64 format - we never return base64
-                    if format_type == "base64":
-                        logger.info("Skipping base64 format - not supported")
-                        continue
 
                     if chart_id:
                         # For saved charts, use the existing preview generation
@@ -475,6 +489,8 @@ async def generate_chart(  # noqa: C901
             else {},
             "performance": performance.model_dump() if performance else None,
             "accessibility": accessibility.model_dump() if accessibility else None,
+            # Runtime warnings (informational suggestions, not errors)
+            "warnings": runtime_warnings,
             "success": True,
             "schema_version": "2.0",
             "api_version": "v1",

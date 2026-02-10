@@ -40,6 +40,7 @@ def get_dataset_config_from_yaml(example_dir: Path) -> Dict[str, Optional[str]]:
         "table_name": None,
         "schema": None,
         "data_file": None,
+        "uuid": None,
     }
     dataset_yaml = example_dir / "dataset.yaml"
     if dataset_yaml.exists():
@@ -48,6 +49,7 @@ def get_dataset_config_from_yaml(example_dir: Path) -> Dict[str, Optional[str]]:
                 config = yaml.safe_load(f)
                 result["table_name"] = config.get("table_name")
                 result["data_file"] = config.get("data_file")
+                result["uuid"] = config.get("uuid")
                 schema = config.get("schema")
                 # Treat SQLite's 'main' schema as null (use target database default)
                 result["schema"] = None if schema == "main" else schema
@@ -81,6 +83,7 @@ def _get_multi_dataset_config(
         with open(datasets_yaml) as f:
             yaml_config = yaml.safe_load(f)
             result["table_name"] = yaml_config.get("table_name") or dataset_name
+            result["uuid"] = yaml_config.get("uuid")
             raw_schema = yaml_config.get("schema")
             result["schema"] = None if raw_schema == "main" else raw_schema
 
@@ -142,6 +145,7 @@ def discover_datasets() -> Dict[str, Callable[..., None]]:
             table_name=table_name,
             schema=config["schema"],
             data_file=resolved_file,
+            uuid=config.get("uuid"),
         )
 
     # Discover multiple parquet files in data/ folders (complex examples)
@@ -160,6 +164,7 @@ def discover_datasets() -> Dict[str, Callable[..., None]]:
                 table_name=config["table_name"],
                 schema=config["schema"],
                 data_file=config["data_file"],
+                uuid=config.get("uuid"),
             )
 
     return loaders

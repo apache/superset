@@ -58,7 +58,7 @@ const mockFormulaAnnotationLayer: FormulaAnnotationLayer = {
 };
 
 describe('transformFormulaAnnotation', () => {
-  it('should transform data correctly', () => {
+  test('should transform data correctly', () => {
     expect(
       transformFormulaAnnotation(
         mockFormulaAnnotationLayer,
@@ -74,7 +74,7 @@ describe('transformFormulaAnnotation', () => {
     ]);
   });
 
-  it('should swap x and y for horizontal chart', () => {
+  test('should swap x and y for horizontal chart', () => {
     expect(
       transformFormulaAnnotation(
         mockFormulaAnnotationLayer,
@@ -126,7 +126,7 @@ const mockIntervalAnnotationData: AnnotationData = {
 };
 
 describe('transformIntervalAnnotation', () => {
-  it('should transform data correctly', () => {
+  test('should transform data correctly', () => {
     expect(
       transformIntervalAnnotation(
         mockIntervalAnnotationLayer,
@@ -153,7 +153,7 @@ describe('transformIntervalAnnotation', () => {
     ]);
   });
 
-  it('should use yAxis for horizontal chart data', () => {
+  test('should use yAxis for horizontal chart data', () => {
     expect(
       transformIntervalAnnotation(
         mockIntervalAnnotationLayer,
@@ -217,7 +217,7 @@ const mockEventAnnotationData: AnnotationData = {
 };
 
 describe('transformEventAnnotation', () => {
-  it('should transform data correctly', () => {
+  test('should transform data correctly', () => {
     expect(
       transformEventAnnotation(
         mockEventAnnotationLayer,
@@ -239,7 +239,7 @@ describe('transformEventAnnotation', () => {
     ]);
   });
 
-  it('should use yAxis for horizontal chart data', () => {
+  test('should use yAxis for horizontal chart data', () => {
     expect(
       transformEventAnnotation(
         mockEventAnnotationLayer,
@@ -292,7 +292,7 @@ const mockTimeseriesAnnotationData: AnnotationData = {
 };
 
 describe('transformTimeseriesAnnotation', () => {
-  it('should transform data correctly', () => {
+  test('should transform data correctly', () => {
     expect(
       transformTimeseriesAnnotation(
         mockTimeseriesAnnotationLayer,
@@ -310,7 +310,7 @@ describe('transformTimeseriesAnnotation', () => {
     ]);
   });
 
-  it('should swap x and y for horizontal chart', () => {
+  test('should swap x and y for horizontal chart', () => {
     expect(
       transformTimeseriesAnnotation(
         mockTimeseriesAnnotationLayer,

@@ -207,7 +207,7 @@ describe('EchartsTimeseries transformProps', () => {
     );
   });
 
-  it('should add a formula annotation to viz', () => {
+  test('should add a formula annotation to viz', () => {
     const formula: FormulaAnnotationLayer = {
       name: 'My Formula',
       annotationType: AnnotationType.Formula,
@@ -849,7 +849,7 @@ describe('legend sorting', () => {
       queriesData: legendSortData,
     });
 
-  it('sort legend by data', () => {
+  test('sort legend by data', () => {
     const chartProps = getChartProps({
       legendSort: null,
       sortSeriesType: 'min',
@@ -865,7 +865,7 @@ describe('legend sorting', () => {
     ]);
   });
 
-  it('sort legend by label ascending', () => {
+  test('sort legend by label ascending', () => {
     const chartProps = getChartProps({
       legendSort: 'asc',
       sortSeriesType: 'min',
@@ -881,7 +881,7 @@ describe('legend sorting', () => {
     ]);
   });
 
-  it('sort legend by label descending', () => {
+  test('sort legend by label descending', () => {
     const chartProps = getChartProps({
       legendSort: 'desc',
       sortSeriesType: 'min',

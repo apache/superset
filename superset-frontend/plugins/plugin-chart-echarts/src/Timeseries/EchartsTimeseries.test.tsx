@@ -43,9 +43,8 @@ const mockEchart = jest.fn();
 jest.mock('../components/Echart', () => {
   const { forwardRef } = jest.requireActual<typeof import('react')>('react');
   const MockEchart = forwardRef<EchartsHandler | null, EchartsProps>(
-    (props, ref) => {
+    (props, _ref) => {
       mockEchart(props);
-      void ref;
       return null;
     },
   );
@@ -227,9 +226,7 @@ test('observes extra control height changes when ResizeObserver is available', a
       observeSpy(target);
     };
 
-    unobserve(_target: Element): void {
-      void _target;
-    }
+    unobserve(_target: Element): void {}
 
     disconnect = () => {
       disconnectSpy();
@@ -308,4 +305,94 @@ test('falls back to window resize listener when ResizeObserver is unavailable', 
 
   addEventListenerSpy.mockRestore();
   removeEventListenerSpy.mockRestore();
+});
+
+// Test for issue #25334: Bar chart cross-filter without dimensions
+test('emits cross-filter on X-axis value when no dimensions and categorical X-axis', async () => {
+  const setDataMaskMock = jest.fn();
+
+  const propsWithCategoricalXAxis: TimeseriesChartTransformedProps = {
+    ...defaultProps,
+    emitCrossFilters: true,
+    setDataMask: setDataMaskMock,
+    groupby: [], // No dimensions
+    xAxis: {
+      label: 'category_column',
+      type: AxisType.Category, // Categorical X-axis
+    },
+  };
+
+  render(<EchartsTimeseries {...propsWithCategoricalXAxis} />);
+
+  // Get the click handler from the mock
+  const lastCall = mockEchart.mock.calls.at(-1);
+  expect(lastCall).toBeDefined();
+  const [props] = lastCall as [EchartsProps];
+  expect(props.eventHandlers).toBeDefined();
+  expect(props.eventHandlers?.click).toBeDefined();
+
+  // Simulate a click event with X-axis data
+  const clickHandler = props.eventHandlers?.click;
+  if (clickHandler) {
+    clickHandler({
+      seriesName: 'Sales', // This is the metric name
+      data: ['Product A', 100], // X-axis value is 'Product A'
+      name: 'Product A',
+      dataIndex: 0,
+    });
+
+    // Wait for the timer (TIMER_DURATION = 300ms)
+    await waitFor(
+      () => {
+        expect(setDataMaskMock).toHaveBeenCalled();
+      },
+      { timeout: 500 },
+    );
+
+    // Verify the cross-filter uses the X-axis column and value, not the metric
+    const dataMaskCall = setDataMaskMock.mock.calls[0][0];
+    expect(dataMaskCall.extraFormData.filters).toEqual([
+      {
+        col: 'category_column', // X-axis column
+        op: 'IN',
+        val: ['Product A'], // X-axis value, not 'Sales' (metric)
+      },
+    ]);
+  }
+});
+
+test('does not emit cross-filter when no dimensions and time-based X-axis', async () => {
+  const setDataMaskMock = jest.fn();
+
+  const propsWithTimeXAxis: TimeseriesChartTransformedProps = {
+    ...defaultProps,
+    emitCrossFilters: true,
+    setDataMask: setDataMaskMock,
+    groupby: [], // No dimensions
+    xAxis: {
+      label: '__timestamp',
+      type: AxisType.Time, // Time-based X-axis (not categorical)
+    },
+  };
+
+  render(<EchartsTimeseries {...propsWithTimeXAxis} />);
+
+  const lastCall = mockEchart.mock.calls.at(-1);
+  expect(lastCall).toBeDefined();
+  const [props] = lastCall as [EchartsProps];
+
+  // Simulate a click event
+  const clickHandler = props.eventHandlers?.click;
+  if (clickHandler) {
+    clickHandler({
+      seriesName: 'Sales',
+      data: [1609459200000, 100], // Timestamp
+      name: '2021-01-01',
+      dataIndex: 0,
+    });
+
+    // Wait a bit and verify setDataMask was NOT called
+    await new Promise(resolve => setTimeout(resolve, 400));
+    expect(setDataMaskMock).not.toHaveBeenCalled();
+  }
 });
