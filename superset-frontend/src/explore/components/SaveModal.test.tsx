@@ -25,8 +25,6 @@ import {
   render,
   waitFor,
   within,
-  screen,
-  userEvent,
 } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 
