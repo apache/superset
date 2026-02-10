@@ -259,7 +259,7 @@ def task(
         is discarded; only side effects and context updates matter.
 
     Example:
-        from superset_core.api.types import task, get_context, TaskScope
+        from superset_core.api.tasks import task, get_context, TaskScope
 
         # Private task (default scope)
         @task
