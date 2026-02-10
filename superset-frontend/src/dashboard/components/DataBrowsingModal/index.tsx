@@ -188,7 +188,7 @@ export const DataBrowsingModal: FC<DataBrowsingModalProps> = ({
           };
         })
         .filter(chart => chart !== null) as ChartData[],
-    [sliceIds, sliceEntities, charts]
+    [sliceIds, sliceEntities, charts],
   );
 
   const exportChartData = (chart: ChartData, format: 'csv' | 'json') => {
