@@ -27,7 +27,7 @@ import { DeleteConfirmationModal } from '../../../components/modals/DeleteConfir
 import { Toast } from '../../../components/core/Toast';
 import { apiGetChart, ENDPOINTS } from '../../../helpers/api/chart';
 import { createTestChart } from './chart-test-helpers';
-import { waitForGet } from '../../../helpers/api/intercepts';
+import { waitForGet, waitForPut } from '../../../helpers/api/intercepts';
 import {
   expectStatusOneOf,
   expectValidExportZip,
@@ -133,8 +133,17 @@ test('should edit chart name via properties modal', async ({
   const newName = `renamed_${Date.now()}_${test.info().parallelIndex}`;
   await propertiesModal.fillName(newName);
 
+  // Set up response intercept for save
+  const saveResponsePromise = waitForPut(
+    page,
+    `${ENDPOINTS.CHART}${chartId}`,
+  );
+
   // Click Save button
   await propertiesModal.clickSave();
+
+  // Wait for save to complete and verify success
+  expectStatusOneOf(await saveResponsePromise, [200, 201]);
 
   // Modal should close
   await propertiesModal.waitForHidden();
@@ -144,18 +153,9 @@ test('should edit chart name via properties modal', async ({
   await expect(toast.getSuccess()).toBeVisible();
 
   // Backend verification: API returns updated name
-  await expect
-    .poll(
-      async () => {
-        const response = await apiGetChart(page, chartId);
-        return (await response.json()).result.slice_name;
-      },
-      {
-        timeout: 10000,
-        message: `Chart ${chartId} should have name ${newName}`,
-      },
-    )
-    .toBe(newName);
+  const response = await apiGetChart(page, chartId);
+  const chart = (await response.json()).result;
+  expect(chart.slice_name).toBe(newName);
 });
 
 test('should export a chart as a zip file', async ({
