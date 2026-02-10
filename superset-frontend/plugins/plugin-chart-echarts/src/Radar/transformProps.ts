@@ -125,7 +125,7 @@ export default function transformProps(
     ...DEFAULT_RADAR_FORM_DATA,
     ...formData,
   };
-  const { setDataMask = () => { }, onContextMenu } = hooks ?? {};
+  const { setDataMask = () => {}, onContextMenu } = hooks ?? {};
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const numberFormatter = getNumberFormatter(numberFormat);
   const denormalizedSeriesValues: SeriesNormalizedMap = {};
