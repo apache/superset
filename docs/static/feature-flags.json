@@ -74,12 +74,6 @@
         "default": false,
         "lifecycle": "development",
         "description": "Enable Table V2 time comparison feature"
-      },
-      {
-        "name": "TAGGING_SYSTEM",
-        "default": false,
-        "lifecycle": "development",
-        "description": "Enables the tagging system for organizing assets"
       }
     ],
     "testing": [
@@ -195,6 +189,12 @@
         "lifecycle": "testing",
         "description": "Allow users to enable SSH tunneling when creating a DB connection. DB engine must support SSH Tunnels.",
         "docs": "https://superset.apache.org/docs/configuration/setup-ssh-tunneling"
+      },
+      {
+        "name": "TAGGING_SYSTEM",
+        "default": true,
+        "lifecycle": "testing",
+        "description": "Enables the tagging system for organizing assets"
       },
       {
         "name": "USE_ANALOGOUS_COLORS",
