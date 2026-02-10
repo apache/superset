@@ -35,7 +35,7 @@ const modalStyles = css`
 
 const ChartDataContainer = styled.div`
   margin-bottom: 24px;
-  border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  border: 1px solid ${({ theme }) => theme.colorBorder};
   border-radius: 4px;
   padding: 16px;
 `;
@@ -44,7 +44,7 @@ const TableWrapper = styled.div`
   overflow-x: auto;
   overflow-y: visible;
   max-width: 100%;
-  border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  border: 1px solid ${({ theme }) => theme.colorBorder};
   border-radius: 4px;
 
   /* Custom scrollbar styling */
@@ -53,17 +53,17 @@ const TableWrapper = styled.div`
   }
 
   &::-webkit-scrollbar-track {
-    background: ${({ theme }) => theme.colors.grayscale.light1};
+    background: ${({ theme }) => theme.colorBgContainer};
     border-radius: 4px;
   }
 
   &::-webkit-scrollbar-thumb {
-    background: ${({ theme }) => theme.colors.grayscale.light5};
+    background: ${({ theme }) => theme.colorBorder};
     border-radius: 4px;
   }
 
   &::-webkit-scrollbar-thumb:hover {
-    background: ${({ theme }) => theme.colors.grayscale.dark1};
+    background: ${({ theme }) => theme.colorText};
   }
 `;
 
@@ -73,21 +73,21 @@ const ChartHeader = styled.div`
   align-items: center;
   margin-bottom: 16px;
   padding-bottom: 8px;
-  border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  border-bottom: 1px solid ${({ theme }) => theme.colorBorder};
 `;
 
 const ChartTitle = styled.h3`
   margin: 0;
   font-size: 18px;
   font-weight: 500;
-  color: ${({ theme }) => theme.colors.grayscale.dark1};
+  color: ${({ theme }) => theme.colorText};
 `;
 
 const ChartMeta = styled.div`
   display: flex;
   gap: 16px;
   font-size: 12px;
-  color: ${({ theme }) => theme.colors.grayscale.light5};
+  color: ${({ theme }) => theme.colorTextTertiary};
   margin-bottom: 8px;
 `;
 
@@ -101,22 +101,22 @@ const DataTable = styled.table`
   td {
     padding: 8px 12px;
     text-align: left;
-    border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+    border: 1px solid ${({ theme }) => theme.colorBorder};
     white-space: nowrap;
     min-width: 100px;
   }
 
   th {
-    background: ${({ theme }) => theme.colors.grayscale.light1};
+    background: ${({ theme }) => theme.colorBgElevated};
     font-weight: 600;
-    color: ${({ theme }) => theme.colors.grayscale.dark1};
+    color: ${({ theme }) => theme.colorText};
     position: sticky;
     top: 0;
     z-index: 1;
   }
 
   tbody tr:hover {
-    background: ${({ theme }) => theme.colors.grayscale.light1};
+    background: ${({ theme }) => theme.colorBgElevated};
   }
 `;
 
@@ -126,7 +126,7 @@ const ExportButtonGroup = styled.div`
 `;
 
 const InfoText = styled.p`
-  color: ${({ theme }) => theme.colors.grayscale.light5};
+  color: ${({ theme }) => theme.colorTextTertiary};
   font-size: 14px;
   margin-bottom: 24px;
 `;
