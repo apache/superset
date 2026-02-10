@@ -151,7 +151,6 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   const [col] = groupby;
   const [initialColtypeMap] = useState(coltypeMap);
   const [search, setSearch] = useState('');
-  const isChangedByUser = useRef(false);
   const prevDataRef = useRef(data);
   const [dataMask, dispatchDataMask] = useImmerReducer(reducer, {
     extraFormData: {},
@@ -273,8 +272,6 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       } else {
         updateDataMask(values);
       }
-
-      isChangedByUser.current = true;
     },
     [updateDataMask, formData.nativeFilterId, clearAllTrigger],
   );
@@ -400,16 +397,13 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
 
     // If data actually changed (e.g., due to parent filter), reset flag
     if (hasDataChanged) {
-      isChangedByUser.current = false;
       prevDataRef.current = data;
     }
   }, [data, col]);
 
   useEffect(() => {
     if (
-      isChangedByUser.current &&
-      filterState.value &&
-      filterState.value.every((value?: any) =>
+      filterState.value?.every((value?: any) =>
         data.some(row => row[col] === value),
       )
     )
@@ -438,7 +432,6 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     formData,
     data,
     JSON.stringify(filterState.value),
-    isChangedByUser.current,
     clearAllTrigger,
   ]);
 
