@@ -32,7 +32,6 @@ import numpy as np
 from superset_core.semantic_layers.semantic_view import SemanticViewFeature
 from superset_core.semantic_layers.types import (
     AdhocExpression,
-    AdhocFilter,
     Day,
     Dimension,
     Filter,
@@ -370,14 +369,14 @@ def _get_filters_from_query_object(
     query_object: ValidatedQueryObject,
     time_offset: str | None,
     all_dimensions: dict[str, Dimension],
-) -> set[Filter | AdhocFilter]:
+) -> set[Filter]:
     """
     Extract all filters from the query object, including time range filters.
 
     This simplifies the complexity of from_dttm/to_dttm/inner_from_dttm/inner_to_dttm
     by converting all time constraints into filters.
     """
-    filters: set[Filter | AdhocFilter] = set()
+    filters: set[Filter] = set()
 
     # 1. Add fetch values predicate if present
     if (
@@ -385,9 +384,11 @@ def _get_filters_from_query_object(
         and query_object.datasource.fetch_values_predicate
     ):
         filters.add(
-            AdhocFilter(
+            Filter(
                 type=PredicateType.WHERE,
-                definition=query_object.datasource.fetch_values_predicate,
+                column=None,
+                operator=Operator.ADHOC,
+                value=query_object.datasource.fetch_values_predicate,
             )
         )
 
@@ -415,7 +416,7 @@ def _get_filters_from_query_object(
     return filters
 
 
-def _get_filters_from_extras(extras: dict[str, Any]) -> set[AdhocFilter]:
+def _get_filters_from_extras(extras: dict[str, Any]) -> set[Filter]:
     """
     Extract filters from the extras dict.
 
@@ -430,25 +431,29 @@ def _get_filters_from_extras(extras: dict[str, Any]) -> set[AdhocFilter]:
       Handled in _convert_time_grain() and used for dimension grain matching
 
     Note: The WHERE and HAVING clauses from extras are SQL expressions that
-    are passed through as-is to the semantic layer as AdhocFilter objects.
+    are passed through as-is to the semantic layer as adhoc Filter objects.
     """
-    filters: set[AdhocFilter] = set()
+    filters: set[Filter] = set()
 
     # Add WHERE clause from extras
     if where_clause := extras.get("where"):
         filters.add(
-            AdhocFilter(
+            Filter(
                 type=PredicateType.WHERE,
-                definition=where_clause,
+                column=None,
+                operator=Operator.ADHOC,
+                value=where_clause,
             )
         )
 
     # Add HAVING clause from extras
     if having_clause := extras.get("having"):
         filters.add(
-            AdhocFilter(
+            Filter(
                 type=PredicateType.HAVING,
-                definition=having_clause,
+                column=None,
+                operator=Operator.ADHOC,
+                value=having_clause,
             )
         )
 
@@ -540,7 +545,7 @@ def _convert_query_object_filter(
     all_dimensions: dict[str, Dimension],
 ) -> set[Filter] | None:
     """
-    Convert a QueryObject filter dict to a semantic layer Filter or AdhocFilter.
+    Convert a QueryObject filter dict to a semantic layer Filter.
     """
     operator_str = filter_["op"]
 
@@ -676,7 +681,7 @@ def _get_group_limit_from_query_object(
 def _get_group_limit_filters(
     query_object: ValidatedQueryObject,
     all_dimensions: dict[str, Dimension],
-) -> set[Filter | AdhocFilter] | None:
+) -> set[Filter] | None:
     """
     Get separate filters for the group limit subquery if needed.
 
@@ -699,7 +704,7 @@ def _get_group_limit_filters(
         return None
 
     # Create separate filters for the group limit subquery
-    filters: set[Filter | AdhocFilter] = set()
+    filters: set[Filter] = set()
 
     # Add time range filter using inner bounds
     if query_object.granularity:
@@ -732,9 +737,11 @@ def _get_group_limit_filters(
         and query_object.datasource.fetch_values_predicate
     ):
         filters.add(
-            AdhocFilter(
+            Filter(
                 type=PredicateType.WHERE,
-                definition=query_object.datasource.fetch_values_predicate,
+                column=None,
+                operator=Operator.ADHOC,
+                value=query_object.datasource.fetch_values_predicate,
             )
         )
 
