@@ -25,6 +25,8 @@ import {
   waitForElementToBeRemoved,
 } from 'spec/helpers/testing-library';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
+import { DataTablesPane } from '..';
+import { createDataTablesPaneProps } from './fixture';
 
 // Mock the clipboard utility
 const mockCopyTextToClipboard = jest.fn<Promise<void>, [() => Promise<string>]>(
@@ -36,8 +38,6 @@ jest.mock('src/utils/copy', () => ({
   copyTextToClipboard: (getText: () => Promise<string>) =>
     mockCopyTextToClipboard(getText),
 }));
-import { DataTablesPane } from '..';
-import { createDataTablesPaneProps } from './fixture';
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DataTablesPane', () => {
