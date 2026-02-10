@@ -230,7 +230,7 @@ test('Use gradient checkbox can be toggled', async () => {
   expect(checkbox).toBeChecked();
 });
 
-test('The Use Gradient check box is not displayed for string and logical data types and is displayed for numeric data types.', () => {
+test('The Use Gradient check box is not displayed for string and boolean and is displayed for numeric data types.', () => {
   render(
     <FormattingPopoverContent
       onChange={mockOnChange}

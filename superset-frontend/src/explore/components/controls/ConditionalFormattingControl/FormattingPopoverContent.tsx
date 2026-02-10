@@ -271,7 +271,7 @@ export const FormattingPopoverContent = ({
     [allColumns],
   );
 
-  const [columnFormatting, setColumnFormating] = useState<
+  const [columnFormatting, setColumnFormatting] = useState<
     string | ObjectFormattingEnum | undefined
   >(
     config?.columnFormatting ??
@@ -280,9 +280,10 @@ export const FormattingPopoverContent = ({
         : undefined),
   );
 
-  const [objectFormatting, setObjectFormating] = useState<ObjectFormattingEnum>(
-    config?.objectFormatting || formattingOptions[0].value,
-  );
+  const [objectFormatting, setObjectFormatting] =
+    useState<ObjectFormattingEnum>(
+      config?.objectFormatting || formattingOptions[0].value,
+    );
 
   const [previousColumnType, setPreviousColumnType] = useState<
     GenericDataType | undefined
@@ -322,7 +323,7 @@ export const FormattingPopoverContent = ({
   const handleAllColumnChange = (
     value: string | ObjectFormattingEnum | undefined,
   ) => {
-    setColumnFormating(value);
+    setColumnFormatting(value);
   };
   const numericColumns = useMemo(
     () => allColumns.filter(col => col.dataType === GenericDataType.Numeric),
@@ -338,7 +339,7 @@ export const FormattingPopoverContent = ({
   );
 
   const handleObjectChange = (value: ObjectFormattingEnum) => {
-    setObjectFormating(value);
+    setObjectFormatting(value);
 
     if (value === ObjectFormattingEnum.CELL_BAR) {
       const currentColumnValue = form.getFieldValue('columnFormatting');
@@ -352,7 +353,7 @@ export const FormattingPopoverContent = ({
         form.setFieldsValue({
           columnFormatting: newValue,
         });
-        setColumnFormating(newValue);
+        setColumnFormatting(newValue);
       }
     }
   };
