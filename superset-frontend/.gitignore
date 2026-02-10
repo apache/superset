@@ -14,3 +14,6 @@ src/temp
 migration-storybook.log
 # Turborepo cache
 .turbo
+
+# npm lockfile (using bun.lock instead)
+package-lock.json
