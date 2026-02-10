@@ -93,14 +93,16 @@ class LoggingMiddleware(Middleware):
     event logger. This matches the core audit log system (Action Log UI,
     logs table, custom loggers). Also attempts to log dashboard_id, chart_id
     (slice_id), and dataset_id if present in tool params.
+
+    Tool calls are handled in on_call_tool() which wraps execution to capture
+    duration_ms. Non-tool messages (resource reads, prompts, etc.) are handled
+    in on_message().
     """
 
-    async def on_message(
-        self,
-        context: MiddlewareContext,
-        call_next: Callable[[MiddlewareContext], Awaitable[Any]],
-    ) -> Any:
-        # Extract agent_id and user_id
+    def _extract_context_info(
+        self, context: MiddlewareContext
+    ) -> tuple[Any, Any, Any, Any, Any, Any]:
+        """Extract agent_id, user_id, and entity IDs from context."""
         agent_id = None
         user_id = None
         dashboard_id = None
@@ -115,16 +117,76 @@ class LoggingMiddleware(Middleware):
             user_id = get_user_id()
         except Exception:
             user_id = None
-        # Try to extract IDs from params
         if isinstance(params, dict):
             dashboard_id = params.get("dashboard_id")
-            # Chart ID may be under 'chart_id' or 'slice_id'
             slice_id = params.get("chart_id") or params.get("slice_id")
             dataset_id = params.get("dataset_id")
-        # Log to Superset's event logger (DB, Action Log UI, or custom)
+        return agent_id, user_id, dashboard_id, slice_id, dataset_id, params
+
+    async def on_call_tool(
+        self,
+        context: MiddlewareContext,
+        call_next: Callable[[MiddlewareContext], Awaitable[Any]],
+    ) -> Any:
+        """Log tool calls with duration tracking."""
+        agent_id, user_id, dashboard_id, slice_id, dataset_id, params = (
+            self._extract_context_info(context)
+        )
+        tool_name = getattr(context.message, "name", None)
+
+        start_time = time.time()
+        success = False
+        try:
+            result = await call_next(context)
+            success = True
+            return result
+        finally:
+            duration_ms = int((time.time() - start_time) * 1000)
+            event_logger.log(
+                user_id=user_id,
+                action="mcp_tool_call",
+                dashboard_id=dashboard_id,
+                duration_ms=duration_ms,
+                slice_id=slice_id,
+                referrer=None,
+                curated_payload={
+                    "tool": tool_name,
+                    "agent_id": agent_id,
+                    "params": params,
+                    "method": context.method,
+                    "dashboard_id": dashboard_id,
+                    "slice_id": slice_id,
+                    "dataset_id": dataset_id,
+                    "success": success,
+                },
+            )
+            logger.info(
+                "MCP tool call: tool=%s, agent_id=%s, user_id=%s, method=%s, "
+                "dashboard_id=%s, slice_id=%s, dataset_id=%s, duration_ms=%s, "
+                "success=%s",
+                tool_name,
+                agent_id,
+                user_id,
+                context.method,
+                dashboard_id,
+                slice_id,
+                dataset_id,
+                duration_ms,
+                success,
+            )
+
+    async def on_message(
+        self,
+        context: MiddlewareContext,
+        call_next: Callable[[MiddlewareContext], Awaitable[Any]],
+    ) -> Any:
+        """Log non-tool messages (resource reads, prompts, etc.)."""
+        agent_id, user_id, dashboard_id, slice_id, dataset_id, params = (
+            self._extract_context_info(context)
+        )
         event_logger.log(
             user_id=user_id,
-            action="mcp_tool_call",
+            action="mcp_message",
             dashboard_id=dashboard_id,
             duration_ms=None,
             slice_id=slice_id,
@@ -139,17 +201,12 @@ class LoggingMiddleware(Middleware):
                 "dataset_id": dataset_id,
             },
         )
-        # (Optional) also log to standard logger for debugging
         logger.info(
-            "MCP tool call: tool=%s, agent_id=%s, user_id=%s, method=%s, "
-            "dashboard_id=%s, slice_id=%s, dataset_id=%s",
+            "MCP message: tool=%s, agent_id=%s, user_id=%s, method=%s",
             getattr(context.message, "name", None),
             agent_id,
             user_id,
             context.method,
-            dashboard_id,
-            slice_id,
-            dataset_id,
         )
         return await call_next(context)
 
