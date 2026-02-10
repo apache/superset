@@ -21,31 +21,20 @@ import {
   QueryFormData,
   QueryFormOrderBy,
 } from '@superset-ui/core';
+import { buildColumnsOrderBy, applyOrderBy } from '../utils/orderby';
 
 export default function buildQuery(formData: QueryFormData) {
   const { metric, sort_by_metric, groupby = [], row_limit } = formData;
   const orderby: QueryFormOrderBy[] = [];
-  const shouldApplyOrderBy =
-    row_limit !== undefined && row_limit !== null && row_limit !== 0;
-
   if (sort_by_metric && metric) {
     orderby.push([metric, false]);
   }
-  if (!sort_by_metric && groupby.length > 0) {
-    groupby.forEach(column => {
-      orderby.push([column, true]);
-    });
-  }
-  if (sort_by_metric && groupby.length > 0) {
-    groupby.forEach(column => {
-      orderby.push([column, true]);
-    });
-  }
+  orderby.push(...buildColumnsOrderBy(groupby));
 
   return buildQueryContext(formData, baseQueryObject => [
     {
       ...baseQueryObject,
-      ...(shouldApplyOrderBy && orderby.length > 0 && { orderby }),
+      ...applyOrderBy(orderby, row_limit),
     },
   ]);
 }

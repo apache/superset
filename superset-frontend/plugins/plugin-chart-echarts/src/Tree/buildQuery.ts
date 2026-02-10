@@ -16,24 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { buildQueryContext, QueryFormOrderBy } from '@superset-ui/core';
+import { buildQueryContext } from '@superset-ui/core';
 import { EchartsTreeFormData } from './types';
+import { buildColumnsOrderBy, applyOrderBy } from '../utils/orderby';
 
 export default function buildQuery(formData: EchartsTreeFormData) {
   const { id, parent, name, row_limit } = formData;
-  const orderby: QueryFormOrderBy[] = [];
-  const shouldApplyOrderBy =
-    row_limit !== undefined && row_limit !== null && row_limit !== 0;
-  const orderbyColumns: string[] = [];
-
-  [parent, id, name].forEach(column => {
-    if (column) {
-      orderbyColumns.push(column);
-    }
-  });
-  orderbyColumns.forEach(column => {
-    orderby.push([column, true]);
-  });
+  const orderby = buildColumnsOrderBy([parent, id, name]);
 
   return buildQueryContext(formData, {
     queryFields: {
@@ -44,7 +33,7 @@ export default function buildQuery(formData: EchartsTreeFormData) {
     buildQuery: baseQueryObject => [
       {
         ...baseQueryObject,
-        ...(shouldApplyOrderBy && orderby.length > 0 && { orderby }),
+        ...applyOrderBy(orderby, row_limit),
       },
     ],
   });
