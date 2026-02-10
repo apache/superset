@@ -128,6 +128,8 @@ const createProps = (
 const getDbWithQuery = 'glob:*/api/v1/database/?q=*';
 const getDatasetWithAll = 'glob:*/api/v1/dataset/*';
 const putDatasetWithAll = 'glob:*/api/v1/dataset/*';
+const getDatasetWithAllMockRouteName = `get${getDatasetWithAll}`;
+const putDatasetWithAllMockRouteName = `put${putDatasetWithAll}`;
 
 async function openAndSaveChanges(
   datasource: TestDatasource | Record<string, unknown>,
@@ -135,15 +137,19 @@ async function openAndSaveChanges(
   fetchMock.removeRoute(getDbWithQuery);
   fetchMock.get(getDbWithQuery, { result: [] }, { name: getDbWithQuery });
 
-  fetchMock.removeRoute('put' + putDatasetWithAll);
-  fetchMock.put(putDatasetWithAll, {}, { name: 'put' + putDatasetWithAll });
+  fetchMock.removeRoute(putDatasetWithAllMockRouteName);
+  fetchMock.put(
+    putDatasetWithAll,
+    {},
+    { name: putDatasetWithAllMockRouteName },
+  );
 
-  fetchMock.removeRoute('get' + getDatasetWithAll);
+  fetchMock.removeRoute(getDatasetWithAllMockRouteName);
   fetchMock.get(
     getDatasetWithAll,
     { result: datasource },
     {
-      name: 'get' + getDatasetWithAll,
+      name: getDatasetWithAllMockRouteName,
     },
   );
   await userEvent.click(screen.getByTestId('datasource-menu-trigger'));

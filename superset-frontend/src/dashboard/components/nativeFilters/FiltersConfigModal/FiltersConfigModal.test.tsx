@@ -506,7 +506,7 @@ test('deletes a filter including dependencies', async () => {
   const filterTabs = within(filterContainer).getAllByRole('tab');
   const deleteIcon = filterTabs[1].querySelector('[data-icon="delete"]');
   fireEvent.click(deleteIcon!);
-  userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
+  await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
   await waitFor(() =>
     expect(onSave).toHaveBeenCalledWith(
       expect.objectContaining({

@@ -19,13 +19,6 @@
 // Layout type not directly used in tests - using object shapes for test data
 import dropOverflowsParent from 'src/dashboard/util/dropOverflowsParent';
 import type { DropResult } from 'src/dashboard/components/dnd/dragDroppableConfig';
-
-// Test data uses minimal shapes - cast to satisfy DropResult interface
-const mockDropResult = (
-  source: { id: string },
-  destination: { id: string },
-  dragging: { id: string },
-): DropResult => ({ source, destination, dragging }) as unknown as DropResult;
 import { NEW_COMPONENTS_SOURCE_ID } from 'src/dashboard/util/constants';
 import {
   CHART_TYPE,
@@ -34,6 +27,13 @@ import {
   HEADER_TYPE,
   TAB_TYPE,
 } from 'src/dashboard/util/componentTypes';
+
+// Test data uses minimal shapes - cast to satisfy DropResult interface
+const mockDropResult = (
+  source: { id: string },
+  destination: { id: string },
+  dragging: { id: string },
+): DropResult => ({ source, destination, dragging }) as unknown as DropResult;
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('dropOverflowsParent', () => {
