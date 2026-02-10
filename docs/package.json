@@ -64,7 +64,7 @@
     "@storybook/theming": "^8.6.15",
     "@superset-ui/core": "^0.20.4",
     "@swc/core": "^1.15.11",
-    "antd": "^6.2.3",
+    "antd": "^6.3.0",
     "baseline-browser-mapping": "^2.9.19",
     "caniuse-lite": "^1.0.30001769",
     "docusaurus-plugin-openapi-docs": "^4.6.0",
