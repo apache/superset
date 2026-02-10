@@ -121,12 +121,12 @@ function createDashboardCard(dashboard) {
   const owners = dashboard.owners?.map(o => o.username || o.first_name || 'Unknown').join(', ') || 'Unknown';
   const modifiedDate = dashboard.changed_on_delta_humanized || 'Unknown';
   const isPublished = dashboard.published;
-  const statusBadge = isPublished 
-    ? '<span class="status-badge status-published"><img src="icons/check-circle.svg" class="status-icon" alt="Published"> Published</span>' 
+  const statusBadge = isPublished
+    ? '<span class="status-badge status-published"><img src="icons/check-circle.svg" class="status-icon" alt="Published"> Published</span>'
     : '<span class="status-badge status-draft"><img src="icons/dash-circle.svg" class="status-icon" alt="Draft"> Draft</span>';
 
   card.innerHTML = `
-    <div class="dashboard-header">  
+    <div class="dashboard-header">
       <div class="dashboard-icon">📊</div>
       <div class="dashboard-info">
         <div class="dashboard-title-container">
@@ -755,25 +755,25 @@ async function exportDashboardConfig(dashboardId, dashboardTitle) {
 // Enable inline title editing
 function enableTitleEdit(titleElement, dashboardId, currentTitle) {
   const originalTitle = currentTitle;
-  
+
   // Make element editable
   titleElement.contentEditable = 'true';
   titleElement.classList.add('editing');
-  
+
   // Select all text
   const range = document.createRange();
   range.selectNodeContents(titleElement);
   const selection = window.getSelection();
   selection.removeAllRanges();
   selection.addRange(range);
-  
+
   // Focus the element
   titleElement.focus();
-  
+
   // Handle save on blur or Enter key
   const saveEdit = async () => {
     const newTitle = titleElement.textContent.trim();
-    
+
     if (!newTitle) {
       titleElement.textContent = originalTitle;
       titleElement.contentEditable = 'false';
@@ -781,28 +781,28 @@ function enableTitleEdit(titleElement, dashboardId, currentTitle) {
       showNotification('❌ Dashboard name cannot be empty', 'error');
       return;
     }
-    
+
     if (newTitle === originalTitle) {
       titleElement.contentEditable = 'false';
       titleElement.classList.remove('editing');
       return;
     }
-    
+
     // Save the new title
     await performRename(dashboardId, newTitle);
     titleElement.contentEditable = 'false';
     titleElement.classList.remove('editing');
   };
-  
+
   const cancelEdit = () => {
     titleElement.textContent = originalTitle;
     titleElement.contentEditable = 'false';
     titleElement.classList.remove('editing');
   };
-  
+
   // Save on blur (when clicking outside)
   titleElement.addEventListener('blur', saveEdit, { once: true });
-  
+
   // Save on Enter, cancel on Escape
   titleElement.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
@@ -842,7 +842,7 @@ async function performRename(dashboardId, newTitle) {
     }
 
     const data = await response.json();
-    
+
     // Update the dashboard in our local array
     const dashboardIndex = dashboards.findIndex(d => d.id === dashboardId);
     if (dashboardIndex !== -1) {
@@ -851,7 +851,7 @@ async function performRename(dashboardId, newTitle) {
 
     // Reload dashboards to refresh the UI
     await loadDashboards();
-    
+
     hideInfoModal();
     showNotification('✅ Dashboard renamed successfully!', 'success');
   } catch (error) {

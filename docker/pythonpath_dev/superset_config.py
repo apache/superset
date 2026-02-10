@@ -105,13 +105,7 @@ class CeleryConfig:
 
 CELERY_CONFIG = CeleryConfig
 
-FEATURE_FLAGS = {
-    "ALERT_REPORTS": True,
-    "DATASET_FOLDERS": True,
-    "THUMBNAILS": True,  # Enable thumbnails/screenshots
-    "THUMBNAILS_SQLA_LISTENERS": True,  # Enable thumbnail generation
-    "ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS": True,  # Enable screenshot API endpoints
-}
+FEATURE_FLAGS = {"ALERT_REPORTS": True, "DATASET_FOLDERS": True}
 ALERT_REPORTS_NOTIFICATION_DRY_RUN = True
 WEBDRIVER_BASEURL = f"http://superset_app{os.environ.get('SUPERSET_APP_ROOT', '/')}/"  # When using docker compose baseurl should be http://superset_nginx{ENV{BASEPATH}}/  # noqa: E501
 # The base URL for the email report hyperlinks.
@@ -119,10 +113,6 @@ WEBDRIVER_BASEURL_USER_FRIENDLY = (
     f"http://localhost:8888/{os.environ.get('SUPERSET_APP_ROOT', '/')}/"
 )
 SQLLAB_CTAS_NO_LIMIT = True
-
-# Screenshot configuration for image exports
-SCREENSHOT_LOCATE_WAIT = 100
-SCREENSHOT_LOAD_WAIT = 600
 
 log_level_text = os.getenv("SUPERSET_LOG_LEVEL", "INFO")
 LOG_LEVEL = getattr(logging, log_level_text.upper(), logging.INFO)
