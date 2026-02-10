@@ -1,8 +1,26 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "tasks": {
+    "@superset-ui/core#build": {
+      "dependsOn": [],
+      "inputs": ["src/**", "package.json", "tsconfig.json", "tsconfig.*.json"],
+      "outputs": ["lib/**", "esm/**", "dist/**", "tsconfig.tsbuildinfo"],
+      "cache": true
+    },
+    "@apache-superset/core#build": {
+      "dependsOn": [],
+      "inputs": ["src/**", "package.json", "tsconfig.json", "tsconfig.*.json"],
+      "outputs": ["lib/**", "esm/**", "dist/**", "tsconfig.tsbuildinfo"],
+      "cache": true
+    },
+    "@superset-ui/chart-controls#build": {
+      "dependsOn": ["@superset-ui/core#build", "@apache-superset/core#build"],
+      "inputs": ["src/**", "package.json", "tsconfig.json", "tsconfig.*.json"],
+      "outputs": ["lib/**", "esm/**", "dist/**", "tsconfig.tsbuildinfo"],
+      "cache": true
+    },
     "build": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["@superset-ui/core#build", "@apache-superset/core#build", "@superset-ui/chart-controls#build", "^build"],
       "inputs": ["src/**", "package.json", "tsconfig.json", "tsconfig.*.json"],
       "outputs": ["lib/**", "esm/**", "dist/**", "tsconfig.tsbuildinfo"],
       "cache": true
