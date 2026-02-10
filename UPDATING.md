@@ -24,7 +24,7 @@ assists people when migrating to a new version.
 
 ## Next
 
-### Feature Flag Changed
+### Feature Flags Changed
 
 - The default value of **TAGGING_SYSTEM** was flipped from `False` to `True`([37852](https://github.com/apache/superset/pull/37852)).
 
