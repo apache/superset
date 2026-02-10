@@ -603,9 +603,7 @@ const ColumnSelectPopover = ({
                   enableLiveAutocompletion
                   className="filter-sql-editor"
                   wrapEnabled
-                  keywords={keywords.map((k: any) =>
-                    typeof k === 'string' ? k : k.value || k.name || k,
-                  )}
+                  keywords={keywords}
                   showValidation
                   expressionType="column"
                   datasourceId={datasource?.id}
