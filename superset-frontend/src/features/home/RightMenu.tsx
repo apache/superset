@@ -40,6 +40,7 @@ import {
 } from '@superset-ui/core/components';
 import type { ItemType, MenuItem } from '@superset-ui/core/components/Menu';
 import { ensureAppRoot, makeUrl } from 'src/utils/pathUtils';
+import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import { findPermission } from 'src/utils/findPermission';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import {
@@ -494,7 +495,10 @@ const RightMenu = ({
             ),
           });
         }
-        if (!isFeatureEnabled(FeatureFlag.DisableEmbeddedSupersetLogout)) {
+        const showLogout =
+          !isEmbedded() ||
+          !isFeatureEnabled(FeatureFlag.DisableEmbeddedSupersetLogout);
+        if (showLogout) {
           userItems.push({
             key: 'logout',
             label: (
