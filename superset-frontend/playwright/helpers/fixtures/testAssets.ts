@@ -18,6 +18,7 @@
  */
 
 import { test as base } from '@playwright/test';
+import { apiDeleteChart } from '../api/chart';
 import { apiDeleteDataset } from '../api/dataset';
 import { apiDeleteDatabase } from '../api/database';
 
@@ -26,6 +27,7 @@ import { apiDeleteDatabase } from '../api/database';
  * Inspired by Cypress's cleanDashboards/cleanCharts pattern.
  */
 export interface TestAssets {
+  trackChart(id: number): void;
   trackDataset(id: number): void;
   trackDatabase(id: number): void;
 }
@@ -33,16 +35,25 @@ export interface TestAssets {
 export const test = base.extend<{ testAssets: TestAssets }>({
   testAssets: async ({ page }, use) => {
     // Use Set to de-dupe IDs (same resource may be tracked multiple times)
+    const chartIds = new Set<number>();
     const datasetIds = new Set<number>();
     const databaseIds = new Set<number>();
 
     await use({
+      trackChart: id => chartIds.add(id),
       trackDataset: id => datasetIds.add(id),
       trackDatabase: id => databaseIds.add(id),
     });
 
-    // Cleanup: Delete datasets FIRST (they reference databases)
-    // Then delete databases. Use failOnStatusCode: false for tolerance.
+    // Cleanup order: charts → datasets → databases (respects FK dependencies)
+    // Use failOnStatusCode: false + .catch() to tolerate 404s (resources deleted by tests)
+    await Promise.all(
+      [...chartIds].map(id =>
+        apiDeleteChart(page, id, { failOnStatusCode: false }).catch(error => {
+          console.warn(`[testAssets] Failed to cleanup chart ${id}:`, error);
+        }),
+      ),
+    );
     await Promise.all(
       [...datasetIds].map(id =>
         apiDeleteDataset(page, id, { failOnStatusCode: false }).catch(error => {
