@@ -257,7 +257,7 @@
     "@emotion/jest": "^11.14.2",
     "@istanbuljs/nyc-config-typescript": "^1.0.1",
     "@mihkeleidast/storybook-addon-source": "^1.0.1",
-    "@playwright/test": "^1.58.1",
+    "@playwright/test": "^1.58.2",
     "@pmmmwh/react-refresh-webpack-plugin": "^0.6.2",
     "@storybook/addon-actions": "^8.6.15",
     "@storybook/addon-controls": "^8.6.15",
