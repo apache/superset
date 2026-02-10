@@ -33,11 +33,11 @@ const QUERIES_DATA = [QUERY_DATA];
 const BEHAVIORS = [Behavior.NativeFilter, Behavior.InteractiveChart];
 
 describe('ChartProps', () => {
-  it('exists', () => {
+  test('exists', () => {
     expect(ChartProps).toBeDefined();
   });
   describe('new ChartProps({})', () => {
-    it('returns new instance', () => {
+    test('returns new instance', () => {
       const props = new ChartProps({
         width: 800,
         height: 600,
@@ -47,7 +47,7 @@ describe('ChartProps', () => {
       });
       expect(props).toBeInstanceOf(ChartProps);
     });
-    it('processes formData and datasource to convert field names to camelCase', () => {
+    test('processes formData and datasource to convert field names to camelCase', () => {
       const props = new ChartProps({
         width: 800,
         height: 600,
@@ -66,10 +66,10 @@ describe('ChartProps', () => {
   });
   describe('ChartProps.createSelector()', () => {
     const selector = ChartProps.createSelector();
-    it('returns a selector function', () => {
+    test('returns a selector function', () => {
       expect(selector).toBeInstanceOf(Function);
     });
-    it('selector returns previous chartProps if all input fields do not change', () => {
+    test('selector returns previous chartProps if all input fields do not change', () => {
       const props1 = selector({
         width: 800,
         height: 600,
@@ -92,7 +92,7 @@ describe('ChartProps', () => {
       });
       expect(props1).toBe(props2);
     });
-    it('selector returns a new chartProps if the 13th field changes', () => {
+    test('selector returns a new chartProps if the 13th field changes', () => {
       /** this test is here to test for selectors that exceed 12 arguments (
        * isRefreshing is the 13th argument, which is missing TS declarations).
        * See: https://github.com/reduxjs/reselect/issues/378
@@ -120,7 +120,7 @@ describe('ChartProps', () => {
       });
       expect(props1).not.toBe(props2);
     });
-    it('selector returns a new chartProps if some input fields change and returns memoized chart props', () => {
+    test('selector returns a new chartProps if some input fields change and returns memoized chart props', () => {
       const props1 = selector({
         width: 800,
         height: 600,

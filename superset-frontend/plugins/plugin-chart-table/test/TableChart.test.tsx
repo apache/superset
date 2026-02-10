@@ -1473,7 +1473,7 @@ describe('plugin-chart-table', () => {
         );
       });
 
-      it('recalculates totals when user filters data', async () => {
+      test('recalculates totals when user filters data', async () => {
         const formDataWithTotals = {
           ...testData.basic.formData,
           show_totals: true,
@@ -1482,7 +1482,7 @@ describe('plugin-chart-table', () => {
           metrics: ['sum__num'],
         };
 
-        const data = testData.basic.queriesData[0].data;
+        const { data } = testData.basic.queriesData[0];
         const totalBeforeFilter = data.reduce(
           (sum, row) => sum + Number(row.sum__num || 0),
           0,

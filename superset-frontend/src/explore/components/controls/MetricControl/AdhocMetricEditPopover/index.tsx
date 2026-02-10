@@ -18,7 +18,6 @@
  */
 /* eslint-disable camelcase */
 import { PureComponent, createRef } from 'react';
-import PropTypes from 'prop-types';
 import { isDefined, ensureIsArray, DatasourceType } from '@superset-ui/core';
 import { t } from '@apache-superset/core';
 import type { editors } from '@apache-superset/core';
@@ -40,8 +39,6 @@ import {
   POPOVER_INITIAL_HEIGHT,
   POPOVER_INITIAL_WIDTH,
 } from 'src/explore/constants';
-import columnType from 'src/explore/components/controls/MetricControl/columnType';
-import savedMetricType from 'src/explore/components/controls/MetricControl/savedMetricType';
 import AdhocMetric, {
   EXPRESSION_TYPES,
 } from 'src/explore/components/controls/MetricControl/AdhocMetric';
@@ -105,21 +102,6 @@ interface AdhocMetricEditPopoverState {
   width: number;
   height: number;
 }
-
-const propTypes = {
-  onChange: PropTypes.func.isRequired,
-  onClose: PropTypes.func.isRequired,
-  onResize: PropTypes.func.isRequired,
-  getCurrentTab: PropTypes.func,
-  getCurrentLabel: PropTypes.func,
-  adhocMetric: PropTypes.instanceOf(AdhocMetric).isRequired,
-  columns: PropTypes.arrayOf(columnType),
-  savedMetricsOptions: PropTypes.arrayOf(savedMetricType),
-  savedMetric: savedMetricType,
-  datasource: PropTypes.object,
-  isNewMetric: PropTypes.bool,
-  isLabelModified: PropTypes.bool,
-};
 
 const defaultProps = {
   columns: [],
@@ -468,8 +450,11 @@ export default class AdhocMetricEditPopover extends PureComponent<
                           value: savedMetric.metric_name,
                           label: this.renderMetricOption(savedMetric),
                           key: savedMetric.id,
+                          metric_name: savedMetric.metric_name,
+                          verbose_name: savedMetric.verbose_name ?? '',
                         }),
                       )}
+                      optionFilterProps={['metric_name', 'verbose_name']}
                       {...savedSelectProps}
                     />
                   </FormItem>
@@ -527,7 +512,10 @@ export default class AdhocMetricEditPopover extends PureComponent<
                         value: column.column_name,
                         key: (column as { id?: unknown }).id,
                         label: this.renderColumnOption(column),
+                        column_name: column.column_name,
+                        verbose_name: column.verbose_name ?? '',
                       }))}
+                      optionFilterProps={['column_name', 'verbose_name']}
                       {...columnSelectProps}
                     />
                   </FormItem>
@@ -613,7 +601,5 @@ export default class AdhocMetricEditPopover extends PureComponent<
     );
   }
 }
-// @ts-expect-error - propTypes are defined for runtime validation but TypeScript handles type checking
-AdhocMetricEditPopover.propTypes = propTypes;
-// @ts-expect-error - defaultProps for backward compatibility with PropTypes
+// @ts-expect-error - defaultProps for backward compatibility
 AdhocMetricEditPopover.defaultProps = defaultProps;

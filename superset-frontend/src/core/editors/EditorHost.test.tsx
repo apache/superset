@@ -18,12 +18,7 @@
  */
 import { render, screen, cleanup } from 'spec/helpers/testing-library';
 import type { editors } from '@apache-superset/core';
-
-afterEach(() => {
-  cleanup();
-});
-
-type EditorProps = editors.EditorProps;
+import EditorHost from './EditorHost';
 
 // Mock the AceEditorProvider to avoid loading the full Ace editor in tests
 jest.mock('./AceEditorProvider', () => ({
@@ -50,8 +45,11 @@ jest.mock('./EditorProviders', () => ({
   },
 }));
 
-// Import EditorHost after mocks are set up
-import EditorHost from './EditorHost';
+afterEach(() => {
+  cleanup();
+});
+
+type EditorProps = editors.EditorProps;
 
 const defaultProps: EditorProps = {
   id: 'test-editor',

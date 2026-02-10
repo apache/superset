@@ -27,7 +27,7 @@ import {
   useState,
 } from 'react';
 import { useSelector } from 'react-redux';
-import { t } from '@apache-superset/core';
+import { t, editors } from '@apache-superset/core';
 import {
   AdhocColumn,
   isAdhocColumn,
@@ -164,7 +164,7 @@ const ColumnSelectPopover = ({
     POPOVER_INITIAL_HEIGHT,
   );
 
-  const sqlEditorRef = useRef(null);
+  const sqlEditorRef = useRef<editors.EditorHandle>(null);
 
   const [calculatedColumns, simpleColumns] = useMemo(
     () =>
@@ -351,8 +351,7 @@ const ColumnSelectPopover = ({
     tab => {
       getCurrentTab(tab);
       setSelectedTab(tab);
-      // @ts-ignore
-      sqlEditorRef.current?.editor.focus();
+      sqlEditorRef.current?.focus();
     },
     [getCurrentTab],
   );
@@ -428,8 +427,12 @@ const ColumnSelectPopover = ({
                                   />
                                 ),
                                 key: calculatedColumn.column_name,
+                                column_name: calculatedColumn.column_name,
+                                verbose_name:
+                                  calculatedColumn.verbose_name ?? '',
                               }),
                             )}
+                            optionFilterProps={['column_name', 'verbose_name']}
                           />
                         </FormItem>
                       ) : datasourceType === DatasourceType.Table ? (
@@ -545,6 +548,8 @@ const ColumnSelectPopover = ({
                             />
                           ),
                           key: `column-${simpleColumn.column_name}`,
+                          column_name: simpleColumn.column_name,
+                          verbose_name: simpleColumn.verbose_name ?? '',
                         })),
                         ...availableMetrics.map(metric => ({
                           value: metric.metric_name,
@@ -557,7 +562,14 @@ const ColumnSelectPopover = ({
                             </MetricOptionContainer>
                           ),
                           key: `metric-${metric.metric_name}`,
+                          metric_name: metric.metric_name,
+                          verbose_name: metric.verbose_name ?? '',
                         })),
+                      ]}
+                      optionFilterProps={[
+                        'column_name',
+                        'verbose_name',
+                        'metric_name',
                       ]}
                     />
                   </FormItem>
