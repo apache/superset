@@ -211,6 +211,7 @@ async function downloadBadge(url, staticDir) {
         `[remark-localize-badges] Failed to download badge: ${url}\n` +
           `Error: ${error.message}\n` +
           `Build cannot continue with broken badges. Please fix the badge URL or remove it.`,
+        { cause: error },
       );
     } finally {
       // Clean up the in-flight tracker
