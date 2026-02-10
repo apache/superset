@@ -878,11 +878,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         isUsingTimeComparison &&
         Array.isArray(basicColorFormatters) &&
         basicColorFormatters.length > 0;
+      const generalShowCellBars =
+        config.showCellBars === undefined ? showCellBars : config.showCellBars;
       const valueRange =
         !hasBasicColorFormatters &&
-        (config.showCellBars === undefined
-          ? showCellBars
-          : config.showCellBars) &&
+        generalShowCellBars &&
         (isMetric || isRawRecords || isPercentMetric) &&
         getValueRange(key, alignPositiveNegative);
 
@@ -946,7 +946,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               } else if (
                 formatter.objectFormatting === ObjectFormattingEnum.CELL_BAR
               ) {
-                if (showCellBars)
+                if (generalShowCellBars)
                   backgroundColorCellBar = formatterResult.slice(0, -2);
               } else {
                 backgroundColor = formatterResult;

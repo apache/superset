@@ -333,9 +333,10 @@ export const FormattingPopoverContent = ({
   const visibleUseGradient = useMemo(
     () =>
       numericColumns.length > 0
-        ? numericColumns.some((col: ColumnOption) => col.value === column)
+        ? numericColumns.some((col: ColumnOption) => col.value === column) &&
+          objectFormatting === ObjectFormattingEnum.BACKGROUND_COLOR
         : false,
-    [column, numericColumns],
+    [column, numericColumns, objectFormatting],
   );
 
   const handleObjectChange = (value: ObjectFormattingEnum) => {
