@@ -51,28 +51,26 @@ Available tools:
 Dashboard Management:
 - list_dashboards: List dashboards with advanced filters (1-based pagination)
 - get_dashboard_info: Get detailed dashboard information by ID
-- generate_dashboard: Automatically create a dashboard from datasets with AI
+- generate_dashboard: Create a dashboard from chart IDs
 - add_chart_to_existing_dashboard: Add a chart to an existing dashboard
 
 Dataset Management:
 - list_datasets: List datasets with advanced filters (1-based pagination)
-- get_dataset_info: Get detailed dataset information by ID
+- get_dataset_info: Get detailed dataset information by ID (includes columns/metrics)
 
 Chart Management:
 - list_charts: List charts with advanced filters (1-based pagination)
 - get_chart_info: Get detailed chart information by ID
 - get_chart_preview: Get a visual preview of a chart with image URL
 - get_chart_data: Get underlying chart data in text-friendly format
-- generate_chart: Create a new chart with AI assistance
-- update_chart: Update existing chart configuration
-- update_chart_preview: Update chart and get preview in one operation
+- generate_chart: Create and save a new chart permanently
+- generate_explore_link: Create an interactive explore URL (preferred for exploration)
+- update_chart: Update existing saved chart configuration
+- update_chart_preview: Update cached chart preview without saving
 
 SQL Lab Integration:
-- execute_sql: Execute SQL queries and get results
+- execute_sql: Execute SQL queries and get results (requires database_id)
 - open_sql_lab_with_context: Generate SQL Lab URL with pre-filled query
-
-Explore & Analysis:
-- generate_explore_link: Create pre-configured explore URL with dataset/metrics/filters
 
 Schema Discovery:
 - get_schema: Get schema metadata for chart/dataset/dashboard (columns, filters)
@@ -82,42 +80,49 @@ System Information:
 - health_check: Simple health check tool (takes NO parameters, call without arguments)
 
 Available Resources:
-- instance/metadata: Access instance configuration and metadata
-- chart/templates: Access chart configuration templates
+- instance://metadata: Instance configuration, stats, and available dataset IDs
+- chart://configs: Valid chart configuration examples and best practices
 
 Available Prompts:
 - quickstart: Interactive guide for getting started with the MCP service
 - create_chart_guided: Step-by-step chart creation wizard
 
-Common Chart Types (viz_type) and Behaviors:
+Recommended Workflows:
 
-Interactive Charts (support sorting, filtering, drill-down):
-- table: Standard table view with sorting and filtering
-- pivot_table_v2: Pivot table with grouping and aggregations
-- echarts_timeseries_line: Time series line chart
-- echarts_timeseries_bar: Time series bar chart
-- echarts_timeseries_area: Time series area chart
-- echarts_timeseries_scatter: Time series scatter plot
-- mixed_timeseries: Combined line/bar time series
+To create a chart:
+1. list_datasets -> find a dataset
+2. get_dataset_info(id) -> examine columns and metrics
+3. generate_explore_link(dataset_id, config) -> preview interactively
+4. generate_chart(dataset_id, config, save_chart=True) -> save permanently
 
-Common Visualization Types:
-- big_number: Single metric display
-- big_number_total: Total value display
-- pie: Pie chart for proportions
-- echarts_timeseries: Generic time series chart
-- funnel: Funnel chart for conversion analysis
-- gauge_chart: Gauge/speedometer visualization
-- heatmap_v2: Heat map for correlation analysis
-- sankey_v2: Sankey diagram for flow visualization
-- sunburst_v2: Sunburst chart for hierarchical data
-- treemap_v2: Tree map for hierarchical proportions
-- word_cloud: Word cloud visualization
-- world_map: Geographic world map
-- box_plot: Box plot for distribution analysis
-- bubble: Bubble chart for 3-dimensional data
+To explore data with SQL:
+1. get_instance_info -> find database_id
+2. execute_sql(database_id, sql) -> run query
+3. open_sql_lab_with_context(database_id) -> open SQL Lab UI
+
+generate_explore_link vs generate_chart:
+- Use generate_explore_link for exploration (no permanent chart created)
+- Use generate_chart with save_chart=True only when user wants to save permanently
+
+Chart Types You Can CREATE with generate_chart/generate_explore_link:
+- chart_type="xy", kind="line": Line chart for time series and trends
+- chart_type="xy", kind="bar": Bar chart for category comparison
+- chart_type="xy", kind="area": Area chart for volume visualization
+- chart_type="xy", kind="scatter": Scatter plot for correlation analysis
+- chart_type="table": Data table for detailed views
+- chart_type="table", viz_type="ag-grid-table": Interactive AG Grid table
+
+Time grain for temporal x-axis (time_grain parameter):
+- PT1H (hourly), P1D (daily), P1W (weekly), P1M (monthly), P1Y (yearly)
+
+Chart Types in Existing Charts (viewable via list_charts/get_chart_info):
+- pie, big_number, big_number_total, funnel, gauge_chart
+- echarts_timeseries_line, echarts_timeseries_bar, echarts_timeseries_area
+- pivot_table_v2, heatmap_v2, sankey_v2, sunburst_v2, treemap_v2
+- word_cloud, world_map, box_plot, bubble, mixed_timeseries
 
 Query Examples:
-- List all interactive tables:
+- List all tables:
   filters=[{{"col": "viz_type", "opr": "in", "value": ["table", "pivot_table_v2"]}}]
 - List time series charts:
   filters=[{{"col": "viz_type", "opr": "sw", "value": "echarts_timeseries"}}]
@@ -130,6 +135,11 @@ General usage tips:
 - IDs can be integer or UUID format where supported
 - All tools return structured, Pydantic-typed responses
 - Chart previews are served as PNG images via custom screenshot endpoints
+
+Input format:
+- Tool request parameters accept structured objects (dicts/JSON)
+- When MCP_PARSE_REQUEST_ENABLED is True (default), string-serialized JSON is also
+  accepted as input, which works around double-serialization bugs in some MCP clients
 
 If you are unsure which tool to use, start with get_instance_info
 or use the quickstart prompt for an interactive guide.
@@ -352,9 +362,8 @@ def init_fastmcp_server(
     """
     Initialize and configure the FastMCP server.
 
-    This function provides a way to create a custom FastMCP instance
-    instead of using the default global one. If parameters are provided,
-    a new instance will be created with those settings.
+    This function configures the global MCP instance (which has all tools
+    already registered) with auth, middleware, and other settings.
 
     Args:
         name: Server name (defaults to "{APP_NAME} MCP Server")
@@ -364,7 +373,7 @@ def init_fastmcp_server(
         **kwargs: Additional FastMCP configuration
 
     Returns:
-        FastMCP instance (either the global one or a new custom one)
+        The global FastMCP instance configured with the provided settings
     """
     # Read branding from Flask config's APP_NAME
     from superset.mcp_service.flask_singleton import app as flask_app
@@ -380,38 +389,32 @@ def init_fastmcp_server(
     if instructions is None:
         instructions = get_default_instructions(branding)
 
-    # If any custom parameters are provided, create a new instance
-    custom_params_provided = any(
-        [
-            name != default_name,
-            instructions != get_default_instructions(branding),
-            auth is not None,
-            lifespan is not None,
-            tools is not None,
-            include_tags is not None,
-            exclude_tags is not None,
-            config is not None,
-            middleware is not None,
-            kwargs,
-        ]
-    )
+    # Configure the global mcp instance with provided settings.
+    # Tools are already registered on this instance via @tool decorator imports above.
+    # name and instructions are read-only properties that delegate to _mcp_server
+    mcp._mcp_server.name = name
+    mcp._mcp_server.instructions = instructions
 
-    if custom_params_provided:
-        logger.info("Creating custom FastMCP instance with provided configuration")
-        return create_mcp_app(
-            name=name,
-            instructions=instructions,
-            auth=auth,
-            lifespan=lifespan,
-            tools=tools,
-            include_tags=include_tags,
-            exclude_tags=exclude_tags,
-            config=config,
-            middleware=middleware,
-            **kwargs,
-        )
-    else:
-        # Use the default global instance
-        logger.setLevel(logging.DEBUG)
-        logger.info("Using default FastMCP instance - scaffold version without auth")
-        return mcp
+    if auth is not None:
+        mcp.auth = auth
+        logger.info("Authentication configured on MCP instance")
+
+    if middleware is not None:
+        for mw in middleware:
+            mcp.add_middleware(mw)
+        logger.info("Added %d middleware(s) to MCP instance", len(middleware))
+
+    if lifespan is not None:
+        mcp.lifespan = lifespan
+
+    if include_tags is not None:
+        mcp.include_tags = include_tags
+
+    if exclude_tags is not None:
+        mcp.exclude_tags = exclude_tags
+
+    # Apply any additional configuration
+    _apply_config(mcp, config)
+
+    logger.info("Configured FastMCP instance: %s (auth=%s)", name, auth is not None)
+    return mcp

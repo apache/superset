@@ -24,6 +24,78 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Signal Cache Backend
+
+A new `SIGNAL_CACHE_CONFIG` configuration provides a unified Redis-based backend for real-time coordination features in Superset. This backend enables:
+
+- **Pub/sub messaging** for real-time event notifications between workers
+- **Atomic distributed locking** using Redis SET NX EX (more performant than database-backed locks)
+- **Event-based coordination** for background task management
+
+The signal cache is used by the Global Task Framework (GTF) for abort notifications and task completion signaling, and will eventually replace `GLOBAL_ASYNC_QUERIES_CACHE_BACKEND` as the standard signaling backend. Configuring this is recommended for Redis enabled production deployments.
+
+Example configuration in `superset_config.py`:
+```python
+SIGNAL_CACHE_CONFIG = {
+    "CACHE_TYPE": "RedisCache",
+    "CACHE_KEY_PREFIX": "signal_",
+    "CACHE_REDIS_URL": "redis://localhost:6379/1",
+    "CACHE_DEFAULT_TIMEOUT": 300,
+}
+```
+
+See `superset/config.py` for complete configuration options.
+
+### WebSocket config for GAQ with Docker
+
+[35896](https://github.com/apache/superset/pull/35896) and [37624](https://github.com/apache/superset/pull/37624) updated documentation on how to run and configure Superset with Docker. Specifically for the WebSocket configuration, a new `docker/superset-websocket/config.example.json` was added to the repo, so that users could copy it to create a `docker/superset-websocket/config.json` file. The existing `docker/superset-websocket/config.json` was removed and git-ignored, so if you're using GAQ / WebSocket make sure to:
+- Stash/backup your existing `config.json` file, to re-apply it after (will get git-ignored going forward)
+- Update the `volumes` configuration for the `superset-websocket` service in your `docker-compose.override.yml` file, to include the `docker/superset-websocket/config.json` file. For example:
+``` yaml
+services:
+  superset-websocket:
+    volumes:
+      - ./superset-websocket:/home/superset-websocket
+      - /home/superset-websocket/node_modules
+      - /home/superset-websocket/dist
+      - ./docker/superset-websocket/config.json:/home/superset-websocket/config.json:ro
+```
+
+### Example Data Loading Improvements
+
+#### New Directory Structure
+Examples are now organized by name with data and configs co-located:
+```
+superset/examples/
+├── _shared/              # Shared database & metadata configs
+├── birth_names/          # Each example is self-contained
+│   ├── data.parquet     # Dataset (Parquet format)
+│   ├── dataset.yaml     # Dataset metadata
+│   ├── dashboard.yaml   # Dashboard config (optional)
+│   └── charts/          # Chart configs (optional)
+└── ...
+```
+
+#### Simplified Parquet-based Loading
+- Auto-discovery: create `superset/examples/my_dataset/data.parquet` to add a new example
+- Parquet is an Apache project format: compressed (~27% smaller), self-describing schema
+- YAML configs define datasets, charts, and dashboards declaratively
+- Removed Python-based data generation from individual example files
+
+#### Test Data Reorganization
+- Moved `big_data.py` to `superset/cli/test_loaders.py` - better reflects its purpose as a test utility
+- Fixed inverted logic for `--load-test-data` flag (now correctly includes .test.yaml files when flag is set)
+- Clarified CLI flags:
+  - `--force` / `-f`: Force reload even if tables exist
+  - `--only-metadata` / `-m`: Create table metadata without loading data
+  - `--load-test-data` / `-t`: Include test dashboards and .test.yaml configs
+  - `--load-big-data` / `-b`: Generate synthetic stress-test data
+
+#### Bug Fixes
+- Fixed numpy array serialization for PostgreSQL (converts complex types to JSON strings)
+- Fixed KeyError for `allow_csv_upload` field in database configs (now optional with default)
+- Fixed test data loading logic that was incorrectly filtering files
+
 ### MCP Service
 
 The MCP (Model Context Protocol) service enables AI assistants and automation tools to interact programmatically with Superset.
@@ -128,6 +200,28 @@ See `superset/mcp_service/PRODUCTION.md` for deployment guides.
 - [35062](https://github.com/apache/superset/pull/35062): Changed the function signature of `setupExtensions` to `setupCodeOverrides` with options as arguments.
 
 ### Breaking Changes
+- [37370](https://github.com/apache/superset/pull/37370): The `APP_NAME` configuration variable no longer controls the browser window/tab title or other frontend branding. Application names should now be configured using the theme system with the `brandAppName` token. The `APP_NAME` config is still used for backend contexts (MCP service, logs, etc.) and serves as a fallback if `brandAppName` is not set.
+  - **Migration:**
+  ```python
+  # Before (Superset 5.x)
+  APP_NAME = "My Custom App"
+
+  # After (Superset 6.x) - Option 1: Use theme system (recommended)
+  THEME_DEFAULT = {
+    "token": {
+      "brandAppName": "My Custom App",  # Window titles
+      "brandLogoAlt": "My Custom App",  # Logo alt text
+      "brandLogoUrl": "/static/assets/images/custom_logo.png"
+    }
+  }
+
+  # After (Superset 6.x) - Option 2: Temporary fallback
+  # Keep APP_NAME for now (will be used as fallback for brandAppName)
+  APP_NAME = "My Custom App"
+  # But you should migrate to THEME_DEFAULT.token.brandAppName
+  ```
+  - **Note:** For dark mode, set the same tokens in `THEME_DARK` configuration.
+
 - [36317](https://github.com/apache/superset/pull/36317): The `CUSTOM_FONT_URLS` configuration option has been removed. Use the new per-theme `fontUrls` token in `THEME_DEFAULT` or database-managed themes instead.
   - **Before:**
   ```python
@@ -142,7 +236,7 @@ See `superset/mcp_service/PRODUCTION.md` for deployment guides.
       "fontUrls": [
         "https://fonts.example.com/myfont.css",
         ],
-        # ... other tokens  
+        # ... other tokens
     }
   }
   ```

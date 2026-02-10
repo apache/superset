@@ -1,10 +1,11 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["import", "react", "jsx-a11y", "typescript", "unicorn"],
+  "plugins": ["import", "react", "jest", "jsx-a11y", "typescript", "unicorn"],
   "env": {
     "browser": true,
     "node": true,
-    "es2020": true
+    "es2020": true,
+    "jest": true
   },
   "globals": {
     "__webpack_public_path__": "writable",
@@ -14,7 +15,7 @@
   },
   "settings": {
     "react": {
-      "version": "detect"
+      "version": "17.0.2"
     }
   },
   "rules": {
@@ -256,18 +257,14 @@
     "unicorn/no-array-for-each": "off",
     "unicorn/prefer-module": "off",
     "unicorn/prefer-node-protocol": "off",
-    "unicorn/no-useless-undefined": "off"
+    "unicorn/no-useless-undefined": "off",
+
+    // === Jest rules ===
+    "jest/consistent-test-it": ["error", { "fn": "test" }],
+    "jest/no-focused-tests": "error",
+    "jest/no-disabled-tests": "error"
   },
   "ignorePatterns": [
-    "*.test.{js,ts,jsx,tsx}",
-    "*.spec.{js,ts,jsx,tsx}",
-    "**/__tests__/**",
-    "**/__mocks__/**",
-    "**/test/**",
-    "**/tests/**",
-    "**/spec/**",
-    "plugins/**/test/**/*",
-    "packages/**/test/**/*",
     "packages/generator-superset/**/*",
     "cypress-base/**",
     "node_modules/**",

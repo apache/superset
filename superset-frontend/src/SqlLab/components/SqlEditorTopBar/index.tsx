@@ -16,25 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Divider, Flex } from '@superset-ui/core/components';
+import { Flex } from '@superset-ui/core/components';
 import { styled } from '@apache-superset/core/ui';
-import { ViewContribution } from 'src/SqlLab/contributions';
-import MenuListExtension, {
-  type MenuListExtensionProps,
-} from 'src/components/MenuListExtension';
+import { MenuItemType } from '@superset-ui/core/components/Menu';
+import { ViewLocations } from 'src/SqlLab/contributions';
+import PanelToolbar from 'src/components/PanelToolbar';
 
 const StyledFlex = styled(Flex)`
   margin-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
-
-  & .ant-divider {
-    margin: ${({ theme }) => theme.sizeUnit * 2}px 0;
-    height: ${({ theme }) => theme.sizeUnit * 6}px;
-  }
+  padding: ${({ theme }) => theme.sizeUnit}px 0;
 `;
+
 export interface SqlEditorTopBarProps {
   queryEditorId: string;
   defaultPrimaryActions: React.ReactNode;
-  defaultSecondaryActions: MenuListExtensionProps['defaultItems'];
+  defaultSecondaryActions: MenuItemType[];
 }
 
 const SqlEditorTopBar = ({
@@ -42,19 +38,14 @@ const SqlEditorTopBar = ({
   defaultSecondaryActions,
 }: SqlEditorTopBarProps) => (
   <StyledFlex justify="space-between" gap="small" id="js-sql-toolbar">
-    <Flex flex={1} gap="small" align="center">
+    <Flex gap="small" align="center">
       <Flex gap="small" align="center">
-        <MenuListExtension viewId={ViewContribution.Editor} primary compactMode>
-          {defaultPrimaryActions}
-        </MenuListExtension>
+        <PanelToolbar
+          viewId={ViewLocations.sqllab.editor}
+          defaultPrimaryActions={defaultPrimaryActions}
+          defaultSecondaryActions={defaultSecondaryActions}
+        />
       </Flex>
-      <Divider type="vertical" />
-      <MenuListExtension
-        viewId={ViewContribution.Editor}
-        secondary
-        defaultItems={defaultSecondaryActions}
-      />
-      <Divider type="vertical" />
     </Flex>
   </StyledFlex>
 );

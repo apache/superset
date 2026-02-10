@@ -55,15 +55,30 @@ class InMemoryLoader(importlib.abc.Loader):
         )
         if self.is_package:
             module.__path__ = []
-        exec(self.source, module.__dict__)  # noqa: S102
+        # Compile with filename for proper tracebacks
+        code = compile(self.source, self.origin, "exec")
+        exec(code, module.__dict__)  # noqa: S102
 
 
 class InMemoryFinder(importlib.abc.MetaPathFinder):
-    def __init__(self, file_dict: dict[str, bytes]) -> None:
+    def __init__(self, file_dict: dict[str, bytes], source_base_path: str) -> None:
         self.modules: dict[str, Tuple[Any, Any, Any]] = {}
+
+        # Detect if this is a virtual path (supx://) or filesystem path
+        is_virtual_path = source_base_path.startswith("supx://")
+
         for path, content in file_dict.items():
             mod_name, is_package = self._get_module_name(path)
-            self.modules[mod_name] = (content, is_package, path)
+
+            # Reconstruct full path for tracebacks
+            if is_virtual_path:
+                # Virtual paths always use forward slashes
+                # e.g., supx://extension-id/backend/src/tasks.py
+                full_path = f"{source_base_path}/backend/src/{path}"
+            else:
+                full_path = str(Path(source_base_path) / "backend" / "src" / path)
+
+            self.modules[mod_name] = (content, is_package, full_path)
 
     def _get_module_name(self, file_path: str) -> Tuple[str, bool]:
         parts = list(Path(file_path).parts)
@@ -88,8 +103,19 @@ class InMemoryFinder(importlib.abc.MetaPathFinder):
         return None
 
 
-def install_in_memory_importer(file_dict: dict[str, bytes]) -> None:
-    finder = InMemoryFinder(file_dict)
+def install_in_memory_importer(
+    file_dict: dict[str, bytes], source_base_path: str
+) -> None:
+    """
+    Install an in-memory module importer for extension backend code.
+
+    :param file_dict: Dictionary mapping relative file paths to their content
+    :param source_base_path: Base path for traceback filenames. For LOCAL_EXTENSIONS,
+        this should be an absolute filesystem path to the dist directory.
+        For EXTENSIONS_PATH (.supx files), this should be a supx:// URL
+        (e.g., "supx://extension-id").
+    """
+    finder = InMemoryFinder(file_dict, source_base_path)
     sys.meta_path.insert(0, finder)
 
 
@@ -121,7 +147,19 @@ def get_bundle_files_from_path(base_path: str) -> Generator[BundleFile, None, No
             yield BundleFile(name=rel_path, content=content)
 
 
-def get_loaded_extension(files: Iterable[BundleFile]) -> LoadedExtension:
+def get_loaded_extension(
+    files: Iterable[BundleFile], source_base_path: str
+) -> LoadedExtension:
+    """
+    Load an extension from bundle files.
+
+    :param files: Iterable of BundleFile objects containing the extension files
+    :param source_base_path: Base path for traceback filenames. For LOCAL_EXTENSIONS,
+        this should be an absolute filesystem path to the dist directory.
+        For EXTENSIONS_PATH (.supx files), this should be a supx:// URL
+        (e.g., "supx://extension-id").
+    :returns: LoadedExtension instance
+    """
     manifest: Manifest | None = None
     frontend: dict[str, bytes] = {}
     backend: dict[str, bytes] = {}
@@ -158,6 +196,7 @@ def get_loaded_extension(files: Iterable[BundleFile]) -> LoadedExtension:
         frontend=frontend,
         backend=backend,
         version=manifest.version,
+        source_base_path=source_base_path,
     )
 
 
@@ -190,7 +229,9 @@ def get_extensions() -> dict[str, LoadedExtension]:
     # Load extensions from LOCAL_EXTENSIONS configuration (filesystem paths)
     for path in current_app.config["LOCAL_EXTENSIONS"]:
         files = get_bundle_files_from_path(path)
-        extension = get_loaded_extension(files)
+        # Use absolute filesystem path to dist directory for tracebacks
+        abs_dist_path = str((Path(path) / "dist").resolve())
+        extension = get_loaded_extension(files, source_base_path=abs_dist_path)
         extension_id = extension.manifest.id
         extensions[extension_id] = extension
         logger.info(

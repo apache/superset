@@ -19,7 +19,7 @@
 import processFilters from '../../src/query/processFilters';
 
 describe('processFilters', () => {
-  it('should handle non-array adhoc_filters', () => {
+  test('should handle non-array adhoc_filters', () => {
     expect(
       processFilters({
         granularity: 'something',
@@ -34,7 +34,7 @@ describe('processFilters', () => {
     );
   });
 
-  it('should merge simple adhoc_filters and filters', () => {
+  test('should merge simple adhoc_filters and filters', () => {
     expect(
       processFilters({
         granularity: 'something',
@@ -83,7 +83,7 @@ describe('processFilters', () => {
     });
   });
 
-  it('should handle an empty array', () => {
+  test('should handle an empty array', () => {
     expect(
       processFilters({
         where: '1 = 1',
@@ -101,7 +101,7 @@ describe('processFilters', () => {
     });
   });
 
-  it('should put adhoc_filters into the correct group and format accordingly', () => {
+  test('should put adhoc_filters into the correct group and format accordingly', () => {
     expect(
       processFilters({
         granularity: 'something',

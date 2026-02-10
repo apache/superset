@@ -33,8 +33,8 @@ export type EchartsFunnelFormData = QueryFormData &
     colorScheme?: string;
     groupby: QueryFormData[];
     labelLine: boolean;
-    labelType: EchartsFunnelLabelTypeType;
-    tooltipLabelType: EchartsFunnelLabelTypeType;
+    labelType: EchartsFunnelLabelType;
+    tooltipLabelType: EchartsFunnelLabelType;
     metric?: string;
     showLabels: boolean;
     showTooltipLabels: boolean;
@@ -45,7 +45,7 @@ export type EchartsFunnelFormData = QueryFormData &
     percentCalculationType: PercentCalcType;
   };
 
-export enum EchartsFunnelLabelTypeType {
+export enum EchartsFunnelLabelType {
   Key,
   Value,
   Percent,
@@ -59,13 +59,13 @@ export interface EchartsFunnelChartProps extends BaseChartProps<EchartsFunnelFor
   formData: EchartsFunnelFormData;
 }
 
-// @ts-ignore
+// @ts-expect-error
 export const DEFAULT_FORM_DATA: EchartsFunnelFormData = {
   ...DEFAULT_LEGEND_FORM_DATA,
   groupby: [],
   labelLine: false,
-  labelType: EchartsFunnelLabelTypeType.Key,
-  defaultTooltipLabel: EchartsFunnelLabelTypeType.KeyValuePercent,
+  labelType: EchartsFunnelLabelType.Key,
+  defaultTooltipLabel: EchartsFunnelLabelType.KeyValuePercent,
   legendOrientation: LegendOrientation.Top,
   legendType: LegendType.Scroll,
   numberFormat: 'SMART_NUMBER',

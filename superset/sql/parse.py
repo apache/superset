@@ -271,7 +271,7 @@ class RLSAsSubqueryTransformer(RLSTransformer):
                 this=exp.Select(
                     expressions=[exp.Star()],
                     where=exp.Where(this=predicate),
-                    **{"from": exp.From(this=node.copy())},
+                    from_=exp.From(this=node.copy()),
                 ),
                 alias=alias,
             )
@@ -449,6 +449,15 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
 
         :param functions: List of functions to check for
         :return: True if any of the functions are present
+        """
+        raise NotImplementedError()
+
+    def check_tables_present(self, tables: set[str]) -> bool:
+        """
+        Check if any of the given tables are present in the statement.
+
+        :param tables: Set of table names to check for (case-insensitive)
+        :return: True if any of the tables are present
         """
         raise NotImplementedError()
 
@@ -766,6 +775,16 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         }
         return any(function.upper() in present for function in functions)
 
+    def check_tables_present(self, tables: set[str]) -> bool:
+        """
+        Check if any of the given tables are present in the statement.
+
+        :param tables: Set of table names to check for (case-insensitive)
+        :return: True if any of the tables are present
+        """
+        present = {table.table.lower() for table in self.tables}
+        return any(table.lower() in present for table in tables)
+
     def get_limit_value(self) -> int | None:
         """
         Parse a SQL query and return the `LIMIT` or `TOP` value, if present.
@@ -797,7 +816,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
                 limit=exp.Limit(
                     expression=exp.Literal(this=str(limit), is_string=False)
                 ),
-                **{"from": exp.From(this=exp.Subquery(this=self._parsed.copy()))},
+                from_=exp.From(this=exp.Subquery(this=self._parsed.copy())),
             )
         else:  # method == LimitMethod.FETCH_MANY
             pass
@@ -808,7 +827,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
 
         :return: True if the statement has a CTE at the top level.
         """
-        return "with" in self._parsed.args
+        return bool(self._parsed.args.get("with_"))
 
     def as_cte(self, alias: str = "__cte") -> SQLStatement:
         """
@@ -821,8 +840,8 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         :param alias: The alias to use for the CTE.
         :return: A new SQLStatement with the CTE.
         """
-        existing_ctes = self._parsed.args["with"].expressions if self.has_cte() else []
-        self._parsed.args["with"] = None
+        existing_ctes = self._parsed.args["with_"].expressions if self.has_cte() else []
+        self._parsed.args["with_"] = None
         new_cte = exp.CTE(
             this=self._parsed.copy(),
             alias=exp.TableAlias(this=exp.Identifier(this=alias)),
@@ -1172,6 +1191,16 @@ class KustoKQLStatement(BaseSQLStatement[str]):
         logger.warning("Kusto KQL doesn't support checking for functions present.")
         return False
 
+    def check_tables_present(self, tables: set[str]) -> bool:
+        """
+        Check if any of the given tables are present in the statement.
+
+        :param tables: Set of table names to check for (case-insensitive)
+        :return: True if any of the tables are present
+        """
+        logger.warning("Kusto KQL doesn't support checking for tables present.")
+        return False
+
     def get_limit_value(self) -> int | None:
         """
         Get the limit value of the statement.
@@ -1311,6 +1340,17 @@ class SQLScript:
         return any(
             statement.check_functions_present(functions)
             for statement in self.statements
+        )
+
+    def check_tables_present(self, tables: set[str]) -> bool:
+        """
+        Check if any of the given tables are present in the script.
+
+        :param tables: Set of table names to check for (case-insensitive)
+        :return: True if any of the tables are present
+        """
+        return any(
+            statement.check_tables_present(tables) for statement in self.statements
         )
 
     def is_valid_ctas(self) -> bool:
@@ -1522,9 +1562,21 @@ def sanitize_clause(clause: str, engine: str) -> str:
         raise QueryClauseValidationException(f"Invalid SQL clause: {clause}") from ex
 
 
-def transpile_to_dialect(sql: str, target_engine: str) -> str:
+def transpile_to_dialect(
+    sql: str,
+    target_engine: str,
+    source_engine: str | None = None,
+) -> str:
     """
-    Transpile SQL from "generic SQL" to the target database dialect using SQLGlot.
+    Transpile SQL from one database dialect to another using SQLGlot.
+
+    Args:
+        sql: The SQL query to transpile
+        target_engine: The target database engine (e.g., "mysql", "postgresql")
+        source_engine: The source database engine. If None, uses generic SQL dialect.
+
+    Returns:
+        The transpiled SQL string
 
     If the target engine is not in SQLGLOT_DIALECTS, returns the SQL as-is.
     """
@@ -1534,8 +1586,11 @@ def transpile_to_dialect(sql: str, target_engine: str) -> str:
     if target_dialect is None:
         return sql
 
+    # Get source dialect (default to generic if not specified)
+    source_dialect = SQLGLOT_DIALECTS.get(source_engine) if source_engine else Dialect
+
     try:
-        parsed = sqlglot.parse_one(sql, dialect=Dialect)
+        parsed = sqlglot.parse_one(sql, dialect=source_dialect)
         return Dialect.get_or_raise(target_dialect).generate(
             parsed,
             copy=True,

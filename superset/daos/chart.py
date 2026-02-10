@@ -31,9 +31,6 @@ from superset.models.embedded_chart import EmbeddedChart
 from superset.models.slice import id_or_uuid_filter, Slice
 from superset.utils.core import get_user_id
 
-if TYPE_CHECKING:
-    pass
-
 logger = logging.getLogger(__name__)
 
 # Custom filterable fields for charts

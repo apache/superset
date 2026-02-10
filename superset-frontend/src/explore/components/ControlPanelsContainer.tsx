@@ -40,6 +40,7 @@ import {
   usePrevious,
   isFeatureEnabled,
   FeatureFlag,
+  VizType,
 } from '@superset-ui/core';
 import { styled, css, SupersetTheme, useTheme } from '@apache-superset/core/ui';
 import {
@@ -83,9 +84,19 @@ const TABS_KEYS = {
   MATRIXIFY: 'MATRIXIFY',
 };
 
+// Table charts don't support matrixify feature
+const MATRIXIFY_INCOMPATIBLE_CHARTS = new Set([
+  VizType.Table,
+  VizType.TableAgGrid,
+  VizType.PivotTable,
+  VizType.TimeTable,
+  VizType.TimePivot,
+]);
+
 export type ControlPanelsContainerProps = {
   exploreState: ExplorePageState['explore'];
-  actions: ExploreActions;
+  // Only setControlValue is used from actions in this component
+  actions: Pick<ExploreActions, 'setControlValue'>;
   datasource_type: DatasourceType;
   chart: ChartState;
   controls: Record<string, ControlState>;
@@ -716,7 +727,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       label: <PanelHeader />,
       children: PanelChildren,
       className: section.label ? '' : 'hidden-collapse-header',
-      style: { visibility: isVisible ? 'visible' : 'hidden' },
+      style: { display: isVisible ? 'block' : 'none' },
     };
   };
 
@@ -794,7 +805,9 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   ]);
 
   const showCustomizeTab = customizeSections.length > 0;
-  const showMatrixifyTab = isFeatureEnabled(FeatureFlag.Matrixify);
+  const showMatrixifyTab =
+    isFeatureEnabled(FeatureFlag.Matrixify) &&
+    !MATRIXIFY_INCOMPATIBLE_CHARTS.has(form_data.viz_type as VizType);
 
   // Check if matrixify is enabled in form_data
   const matrixifyIsEnabled =

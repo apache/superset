@@ -21,7 +21,7 @@ import { mergeReplaceArrays } from './merge';
 
 describe('lodash utilities', () => {
   describe('mergeReplaceArrays', () => {
-    it('should merge objects and replace arrays', () => {
+    test('should merge objects and replace arrays', () => {
       const obj1 = { a: [1, 2], b: { c: 3 } };
       const obj2 = { a: [4, 5], b: { d: 6 } };
 
@@ -33,7 +33,7 @@ describe('lodash utilities', () => {
       });
     });
 
-    it('should handle precedence with multiple sources', () => {
+    test('should handle precedence with multiple sources', () => {
       const base = { x: { y: 1 }, z: [1] };
       const override1 = { x: { y: 2 }, z: [2, 3] };
       const override2 = { x: { y: 3 }, z: [4] };
@@ -46,7 +46,7 @@ describe('lodash utilities', () => {
       });
     });
 
-    it('should handle empty and null values', () => {
+    test('should handle empty and null values', () => {
       const base = { a: [1], b: { x: 1 } };
       const override = { a: [], b: { x: null } };
 

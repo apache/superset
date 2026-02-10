@@ -436,6 +436,7 @@ LANGUAGES = {
     "sl": {"flag": "si", "name": "Slovenian"},
     "nl": {"flag": "nl", "name": "Dutch"},
     "uk": {"flag": "uk", "name": "Ukranian"},
+    "mi": {"flag": "nz", "name": "Māori"},
 }
 # Turning off i18n by default as translation in most languages are
 # incomplete and not well maintained.
@@ -519,143 +520,281 @@ CURRENCIES = ["USD", "EUR", "GBP", "INR", "MXN", "JPY", "CNY"]
 # ---------------------------------------------------
 # Feature flags
 # ---------------------------------------------------
-# Feature flags that are set by default go here. Their values can be
-# overwritten by those specified under FEATURE_FLAGS in superset_config.py
-# For example, DEFAULT_FEATURE_FLAGS = { 'FOO': True, 'BAR': False } here
-# and FEATURE_FLAGS = { 'BAR': True, 'BAZ': True } in superset_config.py
-# will result in combined feature flags of { 'FOO': True, 'BAR': True, 'BAZ': True }
+# Feature flags control optional functionality in Superset. They can be set in
+# superset_config.py to override the defaults below.
+#
+# Example: FEATURE_FLAGS = { 'ALERT_REPORTS': True }
+#
+# Each flag is annotated with:
+#   @lifecycle: development | testing | stable | deprecated
+#   @docs: URL to documentation (optional)
+#   @category: runtime_config | path_to_deprecation (for stable flags)
+#
+# Lifecycle meanings:
+#   - development: Unfinished, for dev environments only
+#   - testing: Complete but being validated, may have bugs
+#   - stable: Production-ready, tested and supported
+#   - deprecated: Will be removed in a future major release
+
 DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
-    # When using a recent version of Druid that supports JOINs turn this on
-    "DRUID_JOINS": False,
-    "DYNAMIC_PLUGINS": False,
-    "ENABLE_TEMPLATE_PROCESSING": False,
-    # Allow for javascript controls components
-    # this enables programmers to customize certain charts (like the
-    # geospatial ones) by inputting javascript in controls. This exposes
-    # an XSS security vulnerability
-    "ENABLE_JAVASCRIPT_CONTROLS": False,  # deprecated
-    # Experimental PyArrow engine for CSV parsing (may have issues with dates/nulls)
-    "CSV_UPLOAD_PYARROW_ENGINE": False,
-    # When this feature is enabled, nested types in Presto will be
-    # expanded into extra columns and/or arrays. This is experimental,
-    # and doesn't work with all nested types.
-    "PRESTO_EXPAND_DATA": False,
-    # Exposes API endpoint to compute thumbnails
-    "THUMBNAILS": False,
-    # Enables the endpoints to cache and retrieve dashboard screenshots via webdriver.
-    # Requires configuring Celery and a cache using THUMBNAIL_CACHE_CONFIG.
-    "ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS": False,
-    # Generate screenshots (PDF or JPG) of dashboards using the web driver.
-    # When disabled, screenshots are generated on the fly by the browser.
-    # This feature flag is used by the download feature in the dashboard view.
-    # It is dependent on ENABLE_DASHBOARD_SCREENSHOT_ENDPOINT being enabled.
-    "ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT": False,
-    "TAGGING_SYSTEM": False,
-    "SQLLAB_BACKEND_PERSISTENCE": True,
-    "LISTVIEWS_DEFAULT_CARD_VIEW": False,
-    # When True, this escapes HTML (rather than rendering it) in Markdown components
-    "ESCAPE_MARKDOWN_HTML": False,
-    "DASHBOARD_VIRTUALIZATION": True,
-    # This feature flag is stil in beta and is not recommended for production use.
-    "GLOBAL_ASYNC_QUERIES": False,
-    "EMBEDDED_SUPERSET": False,
-    # Enables the "Embed code" and "Embed chart" options in the Share menu
-    "EMBEDDABLE_CHARTS": True,
-    # Enables Alerts and reports new implementation
-    "ALERT_REPORTS": False,
-    "ALERT_REPORT_TABS": False,
-    "ALERT_REPORTS_FILTER": False,
-    "ALERT_REPORT_SLACK_V2": False,
-    "ALERT_REPORT_WEBHOOK": False,
-    "DASHBOARD_RBAC": False,
-    "ENABLE_ADVANCED_DATA_TYPES": False,
-    # Enabling ALERTS_ATTACH_REPORTS, the system sends email and slack message
-    # with screenshot and link
-    # Disables ALERTS_ATTACH_REPORTS, the system DOES NOT generate screenshot
-    # for report with type 'alert' and sends email and slack message with only link;
-    # for report with type 'report' still send with email and slack message with
-    # screenshot and link
-    "ALERTS_ATTACH_REPORTS": True,
-    # Allow users to export full CSV of table viz type.
-    # This could cause the server to run out of memory or compute.
-    "ALLOW_FULL_CSV_EXPORT": False,
-    "ALLOW_ADHOC_SUBQUERY": False,
-    "USE_ANALOGOUS_COLORS": False,
-    # Apply RLS rules to SQL Lab queries. This requires parsing and manipulating the
-    # query, and might break queries and/or allow users to bypass RLS. Use with care!
-    "RLS_IN_SQLLAB": False,
-    # Try to optimize SQL queries — for now only predicate pushdown is supported.
-    "OPTIMIZE_SQL": False,
-    # When impersonating a user, use the email prefix instead of the username
-    "IMPERSONATE_WITH_EMAIL_PREFIX": False,
-    # Enable caching per impersonation key (e.g username) in a datasource where user
-    # impersonation is enabled
-    "CACHE_IMPERSONATION": False,
-    # Enable caching per user key for Superset cache (not database cache impersonation)
-    "CACHE_QUERY_BY_USER": False,
-    "DRILL_TO_DETAIL": True,  # deprecated
-    "DRILL_BY": True,
-    "DATAPANEL_CLOSED_BY_DEFAULT": False,
-    # When you open the dashboard, the filter panel will be closed
-    "FILTERBAR_CLOSED_BY_DEFAULT": False,
-    # The feature is off by default, and currently only supported in Presto and Postgres,  # noqa: E501
-    # and Bigquery.
-    # It also needs to be enabled on a per-database basis, by adding the key/value pair
-    # `cost_estimate_enabled: true` to the database `extra` attribute.
-    "ESTIMATE_QUERY_COST": False,
-    # Allow users to enable ssh tunneling when creating a DB.
-    # Users must check whether the DB engine supports SSH Tunnels
-    # otherwise enabling this flag won't have any effect on the DB.
-    "SSH_TUNNELING": False,
-    "AVOID_COLORS_COLLISION": True,
-    # Do not show user info in the menu
-    "MENU_HIDE_USER_INFO": False,
-    # Allows users to add a ``superset://`` DB that can query across databases. This is
-    # an experimental feature with potential security and performance risks, so use with
-    # caution. If the feature is enabled you can also set a limit for how much data is
-    # returned from each database in the ``SUPERSET_META_DB_LIMIT`` configuration value
-    # in this file.
-    "ENABLE_SUPERSET_META_DB": False,
-    # Set to True to replace Selenium with Playwright to execute reports and thumbnails.
-    # Unlike Selenium, Playwright reports support deck.gl visualizations
-    # Enabling this feature flag requires installing "playwright" pip package
-    "PLAYWRIGHT_REPORTS_AND_THUMBNAILS": False,
-    # Set to True to enable experimental chart plugins
-    "CHART_PLUGINS_EXPERIMENTAL": False,
-    # Regardless of database configuration settings, force SQLLAB to run async
-    # using Celery
-    "SQLLAB_FORCE_RUN_ASYNC": False,
-    # Set to True to to enable factory resent CLI command
-    "ENABLE_FACTORY_RESET_COMMAND": False,
-    # Whether Superset should use Slack avatars for users.
-    # If on, you'll want to add "https://avatars.slack-edge.com" to the list of allowed
-    # domains in your TALISMAN_CONFIG
-    "SLACK_ENABLE_AVATARS": False,
-    # Adds a theme editor as a modal dialog in the navbar. Allows people to type in JSON
-    # Enables CSS Templates functionality in Settings menu and dashboard forms.
-    # When disabled, users can still add custom CSS to dashboards but cannot use
-    # pre-built CSS templates.
-    "CSS_TEMPLATES": True,
-    # Allow users to optionally specify date formats in email subjects, which will
-    # be parsed if enabled
-    "DATE_FORMAT_IN_EMAIL_SUBJECT": False,
-    # Allow metrics and columns to be grouped into (potentially nested) folders in the
-    # chart builder
-    "DATASET_FOLDERS": False,
-    # Enable Table V2 Viz plugin
+    # =================================================================
+    # IN DEVELOPMENT
+    # =================================================================
+    # These features are considered unfinished and should only be used
+    # on development environments.
+    # -----------------------------------------------------------------
+    # Enables Table V2 (AG Grid) viz plugin
+    # @lifecycle: development
     "AG_GRID_TABLE_ENABLED": False,
-    # Enable Table v2 time comparison feature
-    "TABLE_V2_TIME_COMPARISON_ENABLED": False,
-    # Enable Superset extensions, which allow users to add custom functionality
-    # to Superset without modifying the core codebase.
-    "ENABLE_EXTENSIONS": False,
+    # Enables experimental tabs UI for Alerts and Reports
+    # @lifecycle: development
+    "ALERT_REPORT_TABS": False,
+    # Enables experimental chart plugins
+    # @lifecycle: development
+    "CHART_PLUGINS_EXPERIMENTAL": False,
+    # Experimental PyArrow engine for CSV parsing (may have issues with dates/nulls)
+    # @lifecycle: development
+    "CSV_UPLOAD_PYARROW_ENGINE": False,
+    # Allow metrics and columns to be grouped into folders in the chart builder
+    # @lifecycle: development
+    "DATASET_FOLDERS": False,
     # Enable support for date range timeshifts (e.g., "2015-01-03 : 2015-01-04")
     # in addition to relative timeshifts (e.g., "1 day ago")
+    # @lifecycle: development
     "DATE_RANGE_TIMESHIFTS_ENABLED": False,
+    # Enables advanced data type support
+    # @lifecycle: development
+    "ENABLE_ADVANCED_DATA_TYPES": False,
+    # Enable Superset extensions for custom functionality without modifying core
+    # @lifecycle: development
+    "ENABLE_EXTENSIONS": False,
     # Enable Matrixify feature for matrix-style chart layouts
+    # @lifecycle: development
     "MATRIXIFY": False,
+    # Try to optimize SQL queries — for now only predicate pushdown is supported
+    # @lifecycle: development
+    "OPTIMIZE_SQL": False,
+    # Expand nested types in Presto into extra columns/arrays. Experimental,
+    # doesn't work with all nested types.
+    # @lifecycle: development
+    "PRESTO_EXPAND_DATA": False,
+    # Enable Table V2 time comparison feature
+    # @lifecycle: development
+    "TABLE_V2_TIME_COMPARISON_ENABLED": False,
+    # Enables the tagging system for organizing assets
+    # @lifecycle: development
+    "TAGGING_SYSTEM": False,
+    # =================================================================
+    # IN TESTING
+    # =================================================================
+    # These features are finished but currently being tested.
+    # They are usable, but may still contain some bugs.
+    # -----------------------------------------------------------------
+    # Enables filter functionality in Alerts and Reports
+    # @lifecycle: testing
+    "ALERT_REPORTS_FILTER": False,
+    # Enables Alerts and Reports functionality
+    # @lifecycle: testing
+    # @docs: https://superset.apache.org/docs/configuration/alerts-reports
+    "ALERT_REPORTS": False,
+    # Enables Slack V2 integration for Alerts and Reports
+    # @lifecycle: testing
+    "ALERT_REPORT_SLACK_V2": False,
+    # Enables webhook integration for Alerts and Reports
+    # @lifecycle: testing
+    "ALERT_REPORT_WEBHOOK": False,
+    # Allow users to export full CSV of table viz type.
+    # Warning: Could cause server memory/compute issues with large datasets.
+    # @lifecycle: testing
+    "ALLOW_FULL_CSV_EXPORT": False,
+    # Enable caching per impersonation key in datasources with user impersonation
+    # @lifecycle: testing
+    "CACHE_IMPERSONATION": False,
+    # Allow users to optionally specify date formats in email subjects
+    # @lifecycle: testing
+    # @docs: https://superset.apache.org/docs/configuration/alerts-reports
+    "DATE_FORMAT_IN_EMAIL_SUBJECT": False,
+    # Enable dynamic plugin loading
+    # @lifecycle: testing
+    "DYNAMIC_PLUGINS": False,
+    # Enables endpoints to cache and retrieve dashboard screenshots via webdriver.
+    # Requires Celery and THUMBNAIL_CACHE_CONFIG.
+    # @lifecycle: testing
+    "ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS": False,
+    # Generate screenshots (PDF/JPG) of dashboards using web driver.
+    # Depends on ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS.
+    # @lifecycle: testing
+    "ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT": False,
+    # Allows users to add a superset:// DB that can query across databases.
+    # Experimental with potential security/performance risks.
+    # See SUPERSET_META_DB_LIMIT.
+    # @lifecycle: testing
+    # @docs: https://superset.apache.org/docs/configuration/databases/#querying-across-databases
+    "ENABLE_SUPERSET_META_DB": False,
+    # Enable query cost estimation. Supported in Presto, Postgres, and BigQuery.
+    # Requires `cost_estimate_enabled: true` in database `extra` attribute.
+    # @lifecycle: testing
+    "ESTIMATE_QUERY_COST": False,
+    # Enable async queries for dashboards and Explore via WebSocket.
+    # Requires Redis 5.0+ and Celery workers.
+    # @lifecycle: testing
+    # @docs: https://superset.apache.org/docs/contributing/misc#async-chart-queries
+    "GLOBAL_ASYNC_QUERIES": False,
+    # When impersonating a user, use the email prefix instead of username
+    # @lifecycle: testing
+    "IMPERSONATE_WITH_EMAIL_PREFIX": False,
+    # Replace Selenium with Playwright for reports and thumbnails.
+    # Supports deck.gl visualizations. Requires playwright pip package.
+    # @lifecycle: testing
+    "PLAYWRIGHT_REPORTS_AND_THUMBNAILS": False,
+    # Apply RLS rules to SQL Lab queries. Requires query parsing/manipulation.
+    # May break queries or allow RLS bypass. Use with care!
+    # @lifecycle: testing
+    "RLS_IN_SQLLAB": False,
+    # Allow users to enable SSH tunneling when creating a DB connection.
+    # DB engine must support SSH Tunnels.
+    # @lifecycle: testing
+    # @docs: https://superset.apache.org/docs/configuration/setup-ssh-tunneling
+    "SSH_TUNNELING": False,
+    # Enable AWS IAM authentication for database connections (Aurora, Redshift).
+    # Allows cross-account role assumption via STS AssumeRole.
+    # Security note: When enabled, ensure Superset's IAM role has restricted
+    # sts:AssumeRole permissions to prevent unauthorized access.
+    # @lifecycle: testing
+    "AWS_DATABASE_IAM_AUTH": False,
+    # Global Task Framework - unified task management with progress tracking,
+    # cancellation, and deduplication.
+    "GLOBAL_TASK_FRAMEWORK": False,
+    # Use analogous colors in charts
+    # @lifecycle: testing
+    "USE_ANALOGOUS_COLORS": False,
+    # =================================================================
+    # STABLE - PATH TO DEPRECATION
+    # =================================================================
+    # These flags are stable and on path to becoming default behavior,
+    # after which the flag will be deprecated.
+    # -----------------------------------------------------------------
+    # Enables dashboard virtualization for improved performance
+    # @lifecycle: stable
+    # @category: path_to_deprecation
+    "DASHBOARD_VIRTUALIZATION": True,
+    # =================================================================
+    # STABLE - RUNTIME CONFIGURATION
+    # =================================================================
+    # These flags act as runtime configuration options. They are stable
+    # but will be retained as configuration options rather than deprecated.
+    # -----------------------------------------------------------------
+    # When enabled, alerts send email/slack with screenshot AND link.
+    # When disabled, alerts send only link; reports still send screenshot.
+    # @lifecycle: stable
+    # @category: runtime_config
+    "ALERTS_ATTACH_REPORTS": True,
+    # Allow ad-hoc subqueries in SQL Lab
+    # @lifecycle: stable
+    # @category: runtime_config
+    "ALLOW_ADHOC_SUBQUERY": False,
+    # Enable caching per user key for Superset cache
+    # @lifecycle: stable
+    # @category: runtime_config
+    "CACHE_QUERY_BY_USER": False,
+    # Enables CSS Templates in Settings menu and dashboard forms
+    # @lifecycle: stable
+    # @category: runtime_config
+    "CSS_TEMPLATES": True,
+    # Role-based access control for dashboards
+    # @lifecycle: stable
+    # @category: runtime_config
+    # @docs: https://superset.apache.org/docs/using-superset/creating-your-first-dashboard
+    "DASHBOARD_RBAC": False,
+    # Supports simultaneous data and dashboard virtualization for backend performance
+    # @lifecycle: stable
+    # @category: runtime_config
+    "DASHBOARD_VIRTUALIZATION_DEFER_DATA": False,
+    # Data panel closed by default in chart builder
+    # @lifecycle: stable
+    # @category: runtime_config
+    "DATAPANEL_CLOSED_BY_DEFAULT": False,
+    # Enable drill-by functionality in charts
+    # @lifecycle: stable
+    # @category: runtime_config
+    "DRILL_BY": True,
+    # Enable Druid JOINs (requires Druid version with JOIN support)
+    # @lifecycle: stable
+    # @category: runtime_config
+    "DRUID_JOINS": False,
+    # Enable sharing charts with embedding
+    # @lifecycle: stable
+    # @category: runtime_config
+    "EMBEDDABLE_CHARTS": True,
+    # Enable embedded Superset functionality
+    # @lifecycle: stable
+    # @category: runtime_config
+    "EMBEDDED_SUPERSET": False,
+    # Enable Jinja templating in SQL queries
+    # @lifecycle: stable
+    # @category: runtime_config
+    "ENABLE_TEMPLATE_PROCESSING": False,
+    # Escape HTML in Markdown components (rather than rendering it)
+    # @lifecycle: stable
+    # @category: runtime_config
+    "ESCAPE_MARKDOWN_HTML": False,
+    # Filter bar closed by default when opening dashboard
+    # @lifecycle: stable
+    # @category: runtime_config
+    "FILTERBAR_CLOSED_BY_DEFAULT": False,
     # Force garbage collection after every request
+    # @lifecycle: stable
+    # @category: runtime_config
     "FORCE_GARBAGE_COLLECTION_AFTER_EVERY_REQUEST": False,
+    # Use card view as default in list views
+    # @lifecycle: stable
+    # @category: runtime_config
+    "LISTVIEWS_DEFAULT_CARD_VIEW": False,
+    # Hide user info in the navigation menu
+    # @lifecycle: stable
+    # @category: runtime_config
+    "MENU_HIDE_USER_INFO": False,
+    # Use Slack avatars for users. Requires adding slack-edge.com to TALISMAN_CONFIG.
+    # @lifecycle: stable
+    # @category: runtime_config
+    "SLACK_ENABLE_AVATARS": False,
+    # Enable SQL Lab backend persistence for query state
+    # @lifecycle: stable
+    # @category: runtime_config
+    "SQLLAB_BACKEND_PERSISTENCE": True,
+    # Force SQL Lab to run async via Celery regardless of database settings
+    # @lifecycle: stable
+    # @category: runtime_config
+    "SQLLAB_FORCE_RUN_ASYNC": False,
+    # Exposes API endpoint to compute thumbnails
+    # @lifecycle: stable
+    # @category: runtime_config
+    # @docs: https://superset.apache.org/docs/configuration/cache
+    "THUMBNAILS": False,
+    # =================================================================
+    # STABLE - INTERNAL/ADMIN
+    # =================================================================
+    # These flags are for internal use or administrative purposes.
+    # -----------------------------------------------------------------
+    # Enable factory reset CLI command
+    # @lifecycle: stable
+    # @category: internal
+    "ENABLE_FACTORY_RESET_COMMAND": False,
+    # =================================================================
+    # DEPRECATED
+    # =================================================================
+    # These flags default to True and will be removed in a future major
+    # release. Set to True in your config to avoid unexpected changes.
+    # -----------------------------------------------------------------
+    # Avoid color collisions in charts by using distinct colors
+    # @lifecycle: deprecated
+    "AVOID_COLORS_COLLISION": True,
+    # Enable drill-to-detail functionality in charts
+    # @lifecycle: deprecated
+    "DRILL_TO_DETAIL": True,
+    # Allow JavaScript in chart controls. WARNING: XSS security vulnerability!
+    # @lifecycle: deprecated
+    "ENABLE_JAVASCRIPT_CONTROLS": False,
 }
 
 # ------------------------------
@@ -777,6 +916,8 @@ EXTRA_CATEGORICAL_COLOR_SCHEMES: list[dict[str, Any]] = []
 THEME_DEFAULT: Theme = {
     "token": {
         # Brand
+        # Application name for window titles
+        "brandAppName": APP_NAME,
         "brandLogoAlt": "Apache Superset",
         "brandLogoUrl": APP_ICON,
         "brandLogoMargin": "18px 0",
@@ -794,7 +935,7 @@ THEME_DEFAULT: Theme = {
         "colorInfo": "#66bcfe",
         # Fonts
         "fontUrls": [],
-        "fontFamily": "Inter, Helvetica, Arial",
+        "fontFamily": "Inter, Helvetica, Arial, sans-serif",
         "fontFamilyCode": "'Fira Code', 'Courier New', monospace",
         # Extra tokens
         "transitionTiming": 0.3,
@@ -804,6 +945,8 @@ THEME_DEFAULT: Theme = {
         "fontWeightNormal": "400",
         "fontWeightLight": "300",
         "fontWeightStrong": "500",
+        # Editor selection color (for SQL Lab text highlighting)
+        "colorEditorSelection": "#fff5cf",
     },
     "algorithm": "default",
 }
@@ -813,6 +956,11 @@ THEME_DEFAULT: Theme = {
 # Set to None to disable dark mode
 THEME_DARK: Optional[Theme] = {
     **THEME_DEFAULT,
+    "token": {
+        **THEME_DEFAULT["token"],
+        # Darker selection color for dark mode
+        "colorEditorSelection": "#5c4d1a",
+    },
     "algorithm": "dark",
 }
 
@@ -1248,6 +1396,12 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         #     "schedule": crontab(minute="*", hour="*"),
         #     "kwargs": {"retention_period_days": 180, "max_rows_per_run": 10000},
         # },
+        # Uncomment to enable pruning of the tasks table
+        # "prune_tasks": {
+        #     "task": "prune_tasks",
+        #     "schedule": crontab(minute=0, hour=0),
+        #     "kwargs": {"retention_period_days": 90, "max_rows_per_run": 10000},
+        # },
         # Uncomment to enable Slack channel cache warm-up
         # "slack.cache_channels": {
         #     "task": "slack.cache_channels",
@@ -1663,6 +1817,34 @@ DISALLOWED_SQL_FUNCTIONS: dict[str, set[str]] = {
         "getOSInformation",
         "getMacro",
         "getSetting",
+    },
+}
+
+# Per-engine blocklist of system catalog tables/views that should not be queried.
+# Prevents information disclosure through system catalog access.
+DISALLOWED_SQL_TABLES: dict[str, set[str]] = {
+    "postgresql": {
+        "pg_stat_activity",
+        "pg_roles",
+        "pg_shadow",
+        "pg_authid",
+        "pg_settings",
+        "pg_config",
+        "pg_hba_file_rules",
+        "pg_stat_ssl",
+        "pg_stat_replication",
+        "pg_stat_wal_receiver",
+        "pg_user",
+    },
+    "mysql": {
+        "mysql.user",
+        "performance_schema.threads",
+        "performance_schema.processlist",
+    },
+    "mssql": {
+        "sys.server_principals",
+        "sys.sql_logins",
+        "sys.configurations",
     },
 }
 
@@ -2282,6 +2464,62 @@ except ImportError:
 
 LOCAL_EXTENSIONS: list[str] = []
 EXTENSIONS_PATH: str | None = None
+
+# Default polling interval for tasks (seconds)
+TASK_ABORT_POLLING_DEFAULT_INTERVAL = 10
+
+# Minimum interval in seconds between database writes for task progress updates.
+# Set to 0 to disable throttling (write every update to DB).
+TASK_PROGRESS_UPDATE_THROTTLE_INTERVAL = 2  # seconds
+
+# ---------------------------------------------------
+# Signal Cache Configuration
+# ---------------------------------------------------
+# Shared Redis/Valkey configuration for signaling features that require
+# Redis-specific primitives (pub/sub messaging, distributed locks).
+#
+# Uses Flask-Caching style configuration for consistency with other cache backends.
+# Set CACHE_TYPE to 'RedisCache' for standard Redis or 'RedisSentinelCache' for
+# Sentinel.
+#
+# These features cannot use generic cache backends because they rely on:
+# - Pub/Sub: Real-time message broadcasting between workers
+# - SET NX EX: Atomic lock acquisition with automatic expiration
+#
+# When configured, enables:
+# - Real-time abort/completion notifications for GTF tasks (vs database polling)
+# - Redis-based distributed locking (vs KeyValueDAO-backed DistributedLock)
+#
+# Future: This cache will also be used by Global Async Queries, consolidating
+# GLOBAL_ASYNC_QUERIES_CACHE_BACKEND into this unified configuration.
+#
+# Example with standard Redis:
+# SIGNAL_CACHE_CONFIG: CacheConfig = {
+#     "CACHE_TYPE": "RedisCache",
+#     "CACHE_REDIS_HOST": "localhost",
+#     "CACHE_REDIS_PORT": 6379,
+#     "CACHE_REDIS_DB": 0,
+#     "CACHE_REDIS_PASSWORD": "",
+# }
+#
+# Example with Redis Sentinel:
+# SIGNAL_CACHE_CONFIG: CacheConfig = {
+#     "CACHE_TYPE": "RedisSentinelCache",
+#     "CACHE_REDIS_SENTINELS": [("sentinel1", 26379), ("sentinel2", 26379)],
+#     "CACHE_REDIS_SENTINEL_MASTER": "mymaster",
+#     "CACHE_REDIS_SENTINEL_PASSWORD": None,
+#     "CACHE_REDIS_DB": 0,
+#     "CACHE_REDIS_PASSWORD": "",
+# }
+SIGNAL_CACHE_CONFIG: CacheConfig | None = None
+
+# Default lock TTL (time-to-live) in seconds for distributed locks.
+# Can be overridden per-call via the `ttl_seconds` parameter.
+# After TTL expires, the lock is automatically released to prevent deadlocks.
+DISTRIBUTED_LOCK_DEFAULT_TTL = 30
+
+# Channel prefix for task abort pub/sub messages
+TASKS_ABORT_CHANNEL_PREFIX = "gtf:abort:"
 
 # -------------------------------------------------------------------
 # *                WARNING:  STOP EDITING  HERE                    *
