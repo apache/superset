@@ -67,17 +67,22 @@ class DatasetDAO(BaseDAO[SqlaTable]):
             return query
 
         remaining_operators: list[ColumnOperator] = []
+        db_name_operators: list[ColumnOperator] = []
         for c in column_operators:
             if not isinstance(c, ColumnOperator):
                 c = ColumnOperator.model_validate(c)
             if c.col == "database_name":
-                query = query.join(Database, SqlaTable.database_id == Database.id)
+                db_name_operators.append(c)
+            else:
+                remaining_operators.append(c)
+
+        if db_name_operators:
+            query = query.join(Database, SqlaTable.database_id == Database.id)
+            for c in db_name_operators:
                 operator_enum = ColumnOperatorEnum(c.opr)
                 query = query.filter(
                     operator_enum.apply(Database.database_name, c.value)
                 )
-            else:
-                remaining_operators.append(c)
 
         if remaining_operators:
             query = super().apply_column_operators(query, remaining_operators)
