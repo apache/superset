@@ -26,7 +26,7 @@ import { fitMapToCharts } from '../../src/util/mapUtil';
 
 describe('mapUtil', () => {
   describe('fitMapToCharts', () => {
-    it('changes the center of the map', () => {
+    test('changes the center of the map', () => {
       const chartConfig: ChartConfig = {
         type: 'FeatureCollection',
         features: [

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
 import {
   render,
@@ -115,7 +114,7 @@ describe('Email Report Modal', () => {
     let dispatch: any;
 
     beforeEach(async () => {
-      dispatch = sinon.spy();
+      dispatch = jest.fn();
     });
 
     test('creates a new email report', async () => {
@@ -163,7 +162,7 @@ describe('Email Report Modal', () => {
       expect(fetchMock.callHistory.lastCall()?.options?.body).toEqual(
         stringyReportValues,
       );
-      expect(dispatch.callCount).toBe(2);
+      expect(dispatch).toHaveBeenCalledTimes(2);
       const reportCalls = fetchMock.callHistory.calls(REPORT_ENDPOINT);
       expect(reportCalls).toHaveLength(2);
     });

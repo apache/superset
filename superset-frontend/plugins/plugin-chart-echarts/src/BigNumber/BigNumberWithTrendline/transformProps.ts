@@ -215,10 +215,13 @@ export default function transformProps(
     }
   }
 
-  if (data.length > 0) {
-    const reversedData = [...sortedData].reverse();
-    // @ts-ignore
-    trendLineData = showTrendLine ? reversedData : undefined;
+  if (data.length > 0 && showTrendLine) {
+    // Filter out entries with null timestamps and reverse for chronological order
+    // TimeSeriesDatum requires [number, number | null] - timestamp must be non-null
+    const validData = sortedData.filter(
+      (d): d is [number, number | null] => d[0] !== null,
+    );
+    trendLineData = [...validData].reverse();
   }
 
   let className = '';
@@ -379,7 +382,7 @@ export default function transformProps(
     width,
     height,
     bigNumber,
-    // @ts-ignore
+    // @ts-expect-error
     bigNumberFallback,
     className,
     headerFormatter: yAxisFormatter,

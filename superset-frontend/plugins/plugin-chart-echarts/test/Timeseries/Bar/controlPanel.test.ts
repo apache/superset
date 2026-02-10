@@ -20,7 +20,7 @@ import controlPanel from '../../../src/Timeseries/Regular/Bar/controlPanel';
 
 describe('Bar Chart Control Panel', () => {
   describe('x_axis_time_format control', () => {
-    it('should include x_axis_time_format control in the panel', () => {
+    test('should include x_axis_time_format control in the panel', () => {
       const config = controlPanel;
 
       // Look for x_axis_time_format control in all sections and rows
@@ -49,7 +49,7 @@ describe('Bar Chart Control Panel', () => {
       expect(foundTimeFormatControl).toBe(true);
     });
 
-    it('should have correct default value for x_axis_time_format', () => {
+    test('should have correct default value for x_axis_time_format', () => {
       const config = controlPanel;
 
       // Find the x_axis_time_format control
@@ -80,7 +80,7 @@ describe('Bar Chart Control Panel', () => {
       expect(timeFormatControl.config.default).toBe('smart_date');
     });
 
-    it('should have visibility function for x_axis_time_format', () => {
+    test('should have visibility function for x_axis_time_format', () => {
       const config = controlPanel;
 
       // Find the x_axis_time_format control
@@ -114,7 +114,7 @@ describe('Bar Chart Control Panel', () => {
       // The important part is that the control has proper visibility configuration
     });
 
-    it('should have proper control configuration', () => {
+    test('should have proper control configuration', () => {
       const config = controlPanel;
 
       // Find the x_axis_time_format control
@@ -153,7 +153,7 @@ describe('Bar Chart Control Panel', () => {
   });
 
   describe('Control panel structure for bar charts', () => {
-    it('should have Chart Orientation section', () => {
+    test('should have Chart Orientation section', () => {
       const config = controlPanel;
 
       const orientationSection = config.controlPanelSections.find(
@@ -164,7 +164,7 @@ describe('Bar Chart Control Panel', () => {
       expect(orientationSection!.expanded).toBe(true);
     });
 
-    it('should have Chart Options section with X Axis controls', () => {
+    test('should have Chart Options section with X Axis controls', () => {
       const config = controlPanel;
 
       const chartOptionsSection = config.controlPanelSections.find(
@@ -179,7 +179,7 @@ describe('Bar Chart Control Panel', () => {
       expect(chartOptionsSection!.controlSetRows!.length).toBeGreaterThan(0);
     });
 
-    it('should have proper form data overrides', () => {
+    test('should have proper form data overrides', () => {
       const config = controlPanel;
 
       expect(config.formDataOverrides).toBeDefined();
