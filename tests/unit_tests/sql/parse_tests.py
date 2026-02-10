@@ -1867,6 +1867,23 @@ def test_as_cte(sql: str, engine: str, expected: str) -> None:
     assert SQLStatement(sql, engine).as_cte().format() == expected
 
 
+def test_as_cte_called_twice() -> None:
+    """
+    Test that calling as_cte() multiple times on the same instance works.
+
+    Regression test for a bug where as_cte() sets self._parsed.args["with_"] = None
+    after extracting CTEs, but has_cte() only checked if the key existed, not if
+    the value was truthy. This caused an AttributeError on subsequent as_cte() calls.
+    """
+    sql = "WITH cte AS (SELECT 1) SELECT * FROM cte"
+    stmt = SQLStatement(sql, "postgresql")
+
+    assert stmt.has_cte() is True
+    stmt.as_cte()
+    assert stmt.has_cte() is False
+    stmt.as_cte()
+
+
 @pytest.mark.parametrize(
     "sql, rules, expected",
     [

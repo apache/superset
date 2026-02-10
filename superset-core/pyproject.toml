@@ -46,7 +46,7 @@ dependencies = [
     "pydantic>=2.8.0",
     "sqlalchemy>=1.4.0,<2.0",
     "sqlalchemy-utils>=0.38.0",
-    "sqlglot>=27.15.2, <28",
+    "sqlglot>=28.10.0, <29",
     "typing-extensions>=4.0.0",
 ]
 

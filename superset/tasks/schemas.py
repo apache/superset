@@ -25,6 +25,9 @@ get_delete_ids_schema = {"type": "array", "items": {"type": "string"}}
 # Field descriptions
 uuid_description = "The unique identifier (UUID) of the task"
 task_key_description = "The task identifier used for deduplication"
+dedup_key_description = (
+    "The hashed deduplication key used internally for task deduplication"
+)
 task_type_description = (
     "The type of task (e.g., 'sql_execution', 'thumbnail_generation')"
 )
@@ -74,6 +77,7 @@ class TaskResponseSchema(Schema):
     id = fields.Int(metadata={"description": "Internal task ID"})
     uuid = fields.UUID(metadata={"description": uuid_description})
     task_key = fields.String(metadata={"description": task_key_description})
+    dedup_key = fields.String(metadata={"description": dedup_key_description})
     task_type = fields.String(metadata={"description": task_type_description})
     task_name = fields.String(
         metadata={"description": task_name_description}, allow_none=True

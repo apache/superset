@@ -50,7 +50,7 @@ When GTF is considered stable, it will replace legacy Celery tasks for built-in 
 ### Define a Task
 
 ```python
-from superset_core.api.types import task, get_context
+from superset_core.api.tasks import task, get_context
 
 @task
 def process_data(dataset_id: int) -> None:
@@ -245,7 +245,7 @@ Always implement an abort handler for long-running tasks. This allows users to c
 Set a timeout to automatically abort tasks that run too long:
 
 ```python
-from superset_core.api.types import task, get_context, TaskOptions
+from superset_core.api.tasks import task, get_context, TaskOptions
 
 # Set default timeout in decorator
 @task(timeout=300)  # 5 minutes
@@ -299,7 +299,7 @@ Timeouts require an abort handler to be effective. Without one, the timeout trig
 Use `task_key` to prevent duplicate task execution:
 
 ```python
-from superset_core.api.types import TaskOptions
+from superset_core.api.tasks import TaskOptions
 
 # Without key - creates new task each time (random UUID)
 task1 = my_task.schedule(x=1)
@@ -331,7 +331,7 @@ print(task2.status)  # "success" (terminal status)
 ## Task Scopes
 
 ```python
-from superset_core.api.types import task, TaskScope
+from superset_core.api.tasks import task, TaskScope
 
 @task  # Private by default
 def private_task(): ...

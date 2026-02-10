@@ -37,6 +37,7 @@ from superset_core.api.tasks import TaskProperties, TaskStatus
 
 from superset.models.helpers import AuditMixinNullable
 from superset.models.task_subscribers import TaskSubscriber
+from superset.tasks.constants import TERMINAL_STATES
 from superset.tasks.utils import (
     error_update,
     get_finished_dedup_key,
@@ -218,12 +219,7 @@ class Task(CoreTask, AuditMixinNullable, Model):
             # (will be set to True if/when an abort handler is registered)
             if self.properties_dict.get("is_abortable") is None:
                 self.update_properties({"is_abortable": False})
-        elif status in [
-            TaskStatus.SUCCESS.value,
-            TaskStatus.FAILURE.value,
-            TaskStatus.ABORTED.value,
-            TaskStatus.TIMED_OUT.value,
-        ]:
+        elif status in TERMINAL_STATES:
             if not self.ended_at:
                 self.ended_at = now
             # Update dedup_key to UUID to free up the slot for new tasks
@@ -244,12 +240,7 @@ class Task(CoreTask, AuditMixinNullable, Model):
     @property
     def is_finished(self) -> bool:
         """Check if task has finished (success, failure, aborted, or timed out)."""
-        return self.status in [
-            TaskStatus.SUCCESS.value,
-            TaskStatus.FAILURE.value,
-            TaskStatus.ABORTED.value,
-            TaskStatus.TIMED_OUT.value,
-        ]
+        return self.status in TERMINAL_STATES
 
     @property
     def is_successful(self) -> bool:

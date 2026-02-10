@@ -92,4 +92,5 @@ export interface SingleQueryResultPaneProp extends QueryResultInterface {
   canDownload: boolean;
   // Optional map of column/metric name -> verbose label
   columnDisplayNames?: Record<string, string>;
+  isPaginationSticky?: boolean;
 }

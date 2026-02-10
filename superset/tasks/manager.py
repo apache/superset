@@ -112,9 +112,6 @@ class TaskManager:
     _completion_channel_prefix: str = "gtf:complete:"
     _initialized: bool = False
 
-    # Backward compatibility alias - prefer importing from superset.tasks.constants
-    TERMINAL_STATES = TERMINAL_STATES
-
     @classmethod
     def init_app(cls, app: Flask) -> None:
         """
@@ -271,7 +268,7 @@ class TaskManager:
         if not task:
             raise ValueError(f"Task {task_uuid} not found")
 
-        if task.status in cls.TERMINAL_STATES:
+        if task.status in TERMINAL_STATES:
             return task
 
         logger.debug(
@@ -342,13 +339,13 @@ class TaskManager:
                         message.get("data"),
                     )
                     task = get_task()
-                    if task and task.status in cls.TERMINAL_STATES:
+                    if task and task.status in TERMINAL_STATES:
                         return task
 
                 # Also check database periodically in case we missed the message
                 # (e.g., task completed before we subscribed)
                 task = get_task()
-                if task and task.status in cls.TERMINAL_STATES:
+                if task and task.status in TERMINAL_STATES:
                     logger.debug(
                         "Task %s completed (detected via db check): status=%s",
                         task_uuid,
@@ -384,7 +381,7 @@ class TaskManager:
             if not task:
                 raise ValueError(f"Task {task_uuid} not found")
 
-            if task.status in cls.TERMINAL_STATES:
+            if task.status in TERMINAL_STATES:
                 logger.debug(
                     "Task %s completed (detected via polling): status=%s",
                     task_uuid,

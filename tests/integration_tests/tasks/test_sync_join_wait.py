@@ -68,21 +68,6 @@ def test_submit_task_distinguishes_new_vs_existing(
         db.session.commit()
 
 
-def test_terminal_states_recognized_correctly(app_context) -> None:
-    """
-    Test that TaskManager.TERMINAL_STATES contains the expected values.
-    """
-    assert TaskStatus.SUCCESS.value in TaskManager.TERMINAL_STATES
-    assert TaskStatus.FAILURE.value in TaskManager.TERMINAL_STATES
-    assert TaskStatus.ABORTED.value in TaskManager.TERMINAL_STATES
-    assert TaskStatus.TIMED_OUT.value in TaskManager.TERMINAL_STATES
-
-    # Non-terminal states should not be in the set
-    assert TaskStatus.PENDING.value not in TaskManager.TERMINAL_STATES
-    assert TaskStatus.IN_PROGRESS.value not in TaskManager.TERMINAL_STATES
-    assert TaskStatus.ABORTING.value not in TaskManager.TERMINAL_STATES
-
-
 def test_wait_for_completion_timeout(app_context, login_as, get_user) -> None:
     """
     Test that wait_for_completion raises TimeoutError on timeout.
