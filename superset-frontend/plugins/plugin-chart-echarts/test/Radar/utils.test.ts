@@ -20,36 +20,36 @@ import { getNumberFormatter } from '@superset-ui/core';
 import { renderNormalizedTooltip } from '../../src/Radar/utils';
 
 describe('renderNormalizedTooltip', () => {
-    const mockGetDenormalizedValue = jest.fn((_, value) => Number(value));
-    const metrics = ['metric1', 'metric2'];
-    const params = {
-        color: 'red',
-        name: 'series1',
-        value: [100, 200],
-    };
-    const metricsWithCustomBounds = new Set<string>();
+  const mockGetDenormalizedValue = jest.fn((_, value) => Number(value));
+  const metrics = ['metric1', 'metric2'];
+  const params = {
+    color: 'red',
+    name: 'series1',
+    value: [100, 200],
+  };
+  const metricsWithCustomBounds = new Set<string>();
 
-    it('should render tooltip with formatted values when formatter is provided', () => {
-        const formatter = getNumberFormatter(',.2f');
-        const tooltip = renderNormalizedTooltip(
-            params,
-            metrics,
-            mockGetDenormalizedValue,
-            metricsWithCustomBounds,
-            formatter,
-        );
-        expect(tooltip).toContain(formatter(100));
-        expect(tooltip).toContain(formatter(200));
-    });
+  it('should render tooltip with formatted values when formatter is provided', () => {
+    const formatter = getNumberFormatter(',.2f');
+    const tooltip = renderNormalizedTooltip(
+      params,
+      metrics,
+      mockGetDenormalizedValue,
+      metricsWithCustomBounds,
+      formatter,
+    );
+    expect(tooltip).toContain(formatter(100));
+    expect(tooltip).toContain(formatter(200));
+  });
 
-    it('should render tooltip with raw values when formatter is not provided', () => {
-        const tooltip = renderNormalizedTooltip(
-            params,
-            metrics,
-            mockGetDenormalizedValue,
-            metricsWithCustomBounds,
-        );
-        expect(tooltip).toContain('100');
-        expect(tooltip).toContain('200');
-    });
+  it('should render tooltip with raw values when formatter is not provided', () => {
+    const tooltip = renderNormalizedTooltip(
+      params,
+      metrics,
+      mockGetDenormalizedValue,
+      metricsWithCustomBounds,
+    );
+    expect(tooltip).toContain('100');
+    expect(tooltip).toContain('200');
+  });
 });
