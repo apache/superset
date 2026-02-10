@@ -267,7 +267,7 @@ class EmbeddedChartRestApi(BaseSupersetApi):
 
             resources: list[GuestTokenResource] = [
                 {
-                    "type": GuestTokenResourceType.CHART_PERMALINK.value,
+                    "type": GuestTokenResourceType.CHART_PERMALINK,
                     "id": permalink_key,
                 }
             ]
