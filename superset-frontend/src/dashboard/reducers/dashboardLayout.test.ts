@@ -513,10 +513,6 @@ describe('dashboardLayout reducer', () => {
       payload: { dropResult },
     });
 
-    const tabsComponent = Object.values(result).find(
-      component => component.type === TABS_TYPE,
-    )!;
-
     const tabComponent = Object.values(result).find(
       component => component.type === TAB_TYPE,
     )!;
