@@ -102,7 +102,7 @@
     "globals": "^17.3.0",
     "prettier": "^3.8.1",
     "typescript": "~5.9.3",
-    "typescript-eslint": "^8.54.0",
+    "typescript-eslint": "^8.55.0",
     "webpack": "^5.105.0"
   },
   "browserslist": {
