@@ -42,7 +42,6 @@ export class ChartPropertiesModal extends Modal {
     const input = this.body.locator(
       ChartPropertiesModal.SELECTORS.NAME_INPUT,
     );
-    await input.clear();
     await input.fill(name);
   }
 

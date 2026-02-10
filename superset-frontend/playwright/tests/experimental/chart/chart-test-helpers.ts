@@ -74,7 +74,7 @@ export async function createTestChart(
   }
 
   const body = await response.json();
-  // Chart POST returns { id: number, result: <payload> } — ID is at top level
+  // Handle both response shapes: { id } or { result: { id } }
   const id = body.result?.id ?? body.id;
   if (!id) {
     throw new Error(
