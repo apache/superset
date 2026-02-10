@@ -1,16 +1,13 @@
 // Dashboard List and Export Logic
-
 let dashboards = [];
 let accessToken = null;
 let supersetUrl = null;
 let username = null;
 
-// Utility function for delays
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// Initialize on page load
 document.addEventListener('DOMContentLoaded', async () => {
   await loadUserData();
   await loadDashboards();
@@ -34,22 +31,17 @@ function setupEventListeners() {
 
 async function loadUserData() {
   try {
-    // Get URL from storage (set during login)
     const data = await chrome.storage.local.get(['supersetUrl', 'accessToken', 'username']);
 
     if (!data.accessToken) {
       showError('Not logged in. Please login first.');
-      setTimeout(() => {
-        window.location.href = 'popup.html';
-      }, 2000);
+      setTimeout(() => window.location.href = 'popup.html', 2000);
       return;
     }
 
     if (!data.supersetUrl) {
       showError('Superset URL not configured. Please login first.');
-      setTimeout(() => {
-        window.location.href = 'popup.html';
-      }, 2000);
+      setTimeout(() => window.location.href = 'popup.html', 2000);
       return;
     }
 
@@ -313,16 +305,14 @@ async function showBrowseDataModal(dashboardId, dashboardTitle) {
   }
 }
 
-// Load charts list for browsing (like Superset)
+// Load charts list for browsing (similar to Superset)
 async function loadChartsForBrowsing(dashboardId, dashboardTitle) {
   const container = document.getElementById('charts-list-container');
 
   try {
     const response = await fetch(`${supersetUrl}/api/v1/dashboard/${dashboardId}/charts`, {
       method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`
-      }
+      headers: { 'Authorization': `Bearer ${accessToken}` }
     });
 
     if (!response.ok) {
@@ -337,7 +327,6 @@ async function loadChartsForBrowsing(dashboardId, dashboardTitle) {
       return;
     }
 
-    // Display charts list like Superset (initially with "Loading..." for row count)
     const chartsHtml = charts.map(chart => `
       <div class="chart-browse-item" data-chart-id="${chart.id}">
         <div class="chart-browse-header">
@@ -361,38 +350,28 @@ async function loadChartsForBrowsing(dashboardId, dashboardTitle) {
 
     container.innerHTML = chartsHtml;
 
-    // Load row counts asynchronously for each chart
     charts.forEach(async (chart) => {
       try {
         const chartData = await getChartData(chart.id);
         const rowCount = Array.isArray(chartData) ? chartData.length : 0;
         const rowCountElement = document.getElementById(`row-count-${chart.id}`);
-        if (rowCountElement) {
-          rowCountElement.textContent = `${rowCount} rows`;
-        }
+        if (rowCountElement) rowCountElement.textContent = `${rowCount} rows`;
       } catch (error) {
         console.error(`Error loading row count for chart ${chart.id}:`, error);
         const rowCountElement = document.getElementById(`row-count-${chart.id}`);
-        if (rowCountElement) {
-          rowCountElement.textContent = 'N/A';
-        }
+        if (rowCountElement) rowCountElement.textContent = 'N/A';
       }
     });
 
-    // Add event listeners for individual chart exports
     container.querySelectorAll('.export-chart-csv').forEach(btn => {
       btn.addEventListener('click', () => {
-        const chartId = btn.dataset.chartId;
-        const chartName = btn.dataset.chartName;
-        exportSingleChartData(chartId, chartName, 'csv');
+        exportSingleChartData(btn.dataset.chartId, btn.dataset.chartName, 'csv');
       });
     });
 
     container.querySelectorAll('.export-chart-json').forEach(btn => {
       btn.addEventListener('click', () => {
-        const chartId = btn.dataset.chartId;
-        const chartName = btn.dataset.chartName;
-        exportSingleChartData(chartId, chartName, 'json');
+        exportSingleChartData(btn.dataset.chartId, btn.dataset.chartName, 'json');
       });
     });
 
@@ -1427,7 +1406,6 @@ async function getCSRFToken() {
 }
 
 async function deleteDashboard(dashboardId, dashboardTitle) {
-  // Confirm deletion
   if (!confirm(`Are you sure you want to delete "${dashboardTitle}"?\n\nThis action cannot be undone.`)) {
     return;
   }
@@ -1450,13 +1428,9 @@ async function deleteDashboard(dashboardId, dashboardTitle) {
       throw new Error(errorData.message || `Failed to delete dashboard: ${response.status}`);
     }
 
-    // Remove dashboard from local array
     const index = dashboards.findIndex(d => d.id === dashboardId);
-    if (index !== -1) {
-      dashboards.splice(index, 1);
-    }
+    if (index !== -1) dashboards.splice(index, 1);
 
-    // Refresh the display
     displayDashboards(dashboards);
     showNotification(`✅ Dashboard "${dashboardTitle}" deleted successfully!`, 'success');
   } catch (error) {

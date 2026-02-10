@@ -1,23 +1,26 @@
-// Load saved credentials when popup opens
+// Utility: Sleep helper
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+// Initialize on page load
 document.addEventListener('DOMContentLoaded', async () => {
   await loadCredentials();
   updateStatus();
 
-  // Check if already logged in, redirect to dashboards
-  const data = await chrome.storage.local.get(['accessToken', 'username', 'password']);
-  if (data.accessToken && data.username && data.password) {
-    // Already logged in, go directly to dashboards
+  // Redirect if already logged in
+  const { accessToken, username, password } = await chrome.storage.local.get(
+    ['accessToken', 'username', 'password']
+  );
+  if (accessToken && username && password) {
     window.location.href = 'dashboard-list.html';
   }
 });
 
-// Save credentials and login
+// Event listeners
 document.getElementById('credentialsForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   await saveAndLogin();
 });
 
-// Clear credentials
 document.getElementById('clearCredentials').addEventListener('click', async () => {
   if (confirm('Are you sure you want to clear all saved credentials?')) {
     await clearCredentials();
@@ -25,32 +28,30 @@ document.getElementById('clearCredentials').addEventListener('click', async () =
 });
 
 async function loadCredentials() {
-  const data = await chrome.storage.local.get(['supersetUrl', 'username', 'password', 'rememberPassword']);
+  const data = await chrome.storage.local.get([
+    'supersetUrl',
+    'username',
+    'password',
+    'rememberPassword'
+  ]);
 
-  // Load Superset URL (always load this)
   if (data.supersetUrl) {
     document.getElementById('supersetUrl').value = data.supersetUrl;
   }
-  // If no URL saved, field remains empty for user to enter
 
-  // Load credentials if rememberPassword is not explicitly false (default is true)
   const shouldRemember = data.rememberPassword !== false;
 
-  if (shouldRemember) {
-    if (data.username) {
-      document.getElementById('username').value = data.username;
-    }
-    if (data.password) {
-      document.getElementById('password').value = atob(data.password); // Decode from base64
-    }
+  if (shouldRemember && data.username) {
+    document.getElementById('username').value = data.username;
+  }
+  if (shouldRemember && data.password) {
+    document.getElementById('password').value = atob(data.password);
   }
 
-  // Set checkbox state (default checked)
   document.getElementById('rememberPassword').checked = shouldRemember;
 }
 
 async function saveAndLogin() {
-  // Get URL from input field
   let supersetUrl = document.getElementById('supersetUrl').value.trim();
   const username = document.getElementById('username').value.trim();
   const password = document.getElementById('password').value;
@@ -61,7 +62,7 @@ async function saveAndLogin() {
     return;
   }
 
-  // Ensure URL doesn't end with a slash
+  // Normalize URL
   if (supersetUrl.endsWith('/')) {
     supersetUrl = supersetUrl.slice(0, -1);
   }
@@ -69,26 +70,21 @@ async function saveAndLogin() {
   // Validate URL format
   try {
     new URL(supersetUrl);
-  } catch (error) {
+  } catch {
     showNotification('❌ Invalid URL format', 'error');
     return;
   }
 
-  // Save to storage only if rememberPassword is checked
+  // Save credentials
   if (rememberPassword) {
     await chrome.storage.local.set({
       supersetUrl,
       username,
-      password: btoa(password), // Encode to base64
+      password: btoa(password),
       rememberPassword: true
     });
   } else {
-    // Don't save credentials, only save the preference
-    await chrome.storage.local.set({
-      supersetUrl,
-      rememberPassword: false
-    });
-    // Clear any previously saved credentials
+    await chrome.storage.local.set({ supersetUrl, rememberPassword: false });
     await chrome.storage.local.remove(['username', 'password']);
   }
 
@@ -98,12 +94,10 @@ async function saveAndLogin() {
   try {
     const response = await fetch(`${supersetUrl}/api/v1/security/login`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        username: username,
-        password: password,
+        username,
+        password,
         provider: 'db',
         refresh: true
       })
@@ -112,21 +106,15 @@ async function saveAndLogin() {
     if (response.ok) {
       const result = await response.json();
 
-      // Store access token
       if (result.access_token) {
-        await chrome.storage.local.set({
-          accessToken: result.access_token
-        });
-
+        await chrome.storage.local.set({ accessToken: result.access_token });
         showNotification('✅ Login successful! Loading dashboards...', 'success');
 
-        // Navigate to dashboard list after a short delay
         setTimeout(() => {
           window.location.href = 'dashboard-list.html';
         }, 500);
       }
     } else {
-      const error = await response.text();
       showNotification('❌ Login failed: Invalid credentials', 'error');
     }
   } catch (error) {
@@ -143,11 +131,13 @@ async function clearCredentials() {
 }
 
 async function updateStatus() {
-  const data = await chrome.storage.local.get(['username', 'password', 'rememberPassword']);
+  const { username, password, rememberPassword } = await chrome.storage.local.get(
+    ['username', 'password', 'rememberPassword']
+  );
   const indicator = document.getElementById('statusIndicator');
   const statusText = document.getElementById('statusText');
 
-  if (data.username && data.password && data.rememberPassword) {
+  if (username && password && rememberPassword) {
     indicator.className = 'status-indicator active';
     statusText.textContent = 'Credentials saved';
   } else {
@@ -162,7 +152,5 @@ function showNotification(message, type = 'info') {
   notification.textContent = message;
   document.body.appendChild(notification);
 
-  setTimeout(() => {
-    notification.remove();
-  }, 3000);
+  setTimeout(() => notification.remove(), 3000);
 }
