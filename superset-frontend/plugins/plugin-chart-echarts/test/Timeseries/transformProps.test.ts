@@ -1183,3 +1183,54 @@ test('should not apply axis bounds calculation when seriesType is not Bar for ho
   // Should not have explicit max set when seriesType is not Bar
   expect(xAxisRaw.max).toBeUndefined();
 });
+test('should set yAxis min to accommodate negative forecast lower bounds', () => {
+  // Test for Issue #21734: Forecast uncertainty intervals should not be clipped at zero
+  const queriesData = [
+    {
+      data: [
+        {
+          __timestamp: BASE_TIMESTAMP,
+          metric: 10,
+          metric__yhat: 10,
+          metric__yhat_lower: -5,
+          metric__yhat_upper: 25,
+        },
+        {
+          __timestamp: BASE_TIMESTAMP + 300000000,
+          metric: 5,
+          metric__yhat: 5,
+          metric__yhat_lower: -10,
+          metric__yhat_upper: 20,
+        },
+        {
+          __timestamp: BASE_TIMESTAMP + 600000000,
+          metric: 15,
+          metric__yhat: 15,
+          metric__yhat_lower: -2,
+          metric__yhat_upper: 32,
+        },
+      ],
+    },
+  ];
+
+  const chartProps = new ChartProps({
+    formData: {
+      ...formData,
+      metrics: ['metric'],
+    },
+    width: 800,
+    height: 600,
+    queriesData,
+    theme: supersetTheme,
+  });
+
+  const transformedProps = transformProps(
+    chartProps as EchartsTimeseriesChartProps,
+  );
+
+  const yAxis = transformedProps.echartOptions.yAxis as any;
+  // Should set min to include the most negative forecast lower bound
+  expect(yAxis.min).toBe(-10);
+  // Max should remain undefined to let ECharts handle it
+  expect(yAxis.max).toBeUndefined();
+});
