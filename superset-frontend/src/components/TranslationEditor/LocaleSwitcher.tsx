@@ -47,6 +47,8 @@ export interface LocaleSwitcherProps {
   onLocaleChange: (locale: string) => void;
   /** Human-readable field label for accessibility (e.g., 'Dashboard Title'). */
   fieldLabel: string;
+  /** When false, renders as a read-only indicator without dropdown. Default true. */
+  interactive?: boolean;
 }
 
 /**
@@ -68,6 +70,7 @@ export default function LocaleSwitcher({
   activeLocale,
   onLocaleChange,
   fieldLabel,
+  interactive = true,
 }: LocaleSwitcherProps) {
   const theme = useTheme();
 
@@ -156,6 +159,49 @@ export default function LocaleSwitcher({
 
   const suffixColor = isWarning ? theme.colorWarning : theme.colorText;
 
+  const ariaLabel = t(
+    'Locale switcher for %s: %s (%s translations)',
+    fieldLabel,
+    isDefault ? t('DEFAULT') : activeLocale,
+    translationCount,
+  );
+
+  const iconElement = triggerFlag ? (
+    <span
+      css={css`
+        font-size: 14px;
+      `}
+    >
+      {triggerFlag}
+    </span>
+  ) : (
+    <Icons.GlobalOutlined
+      iconSize="m"
+      css={css`
+        color: ${suffixColor};
+      `}
+    />
+  );
+
+  const indicatorCss = css`
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    line-height: 1;
+    color: ${suffixColor};
+    white-space: nowrap;
+    user-select: none;
+  `;
+
+  if (!interactive) {
+    return (
+      <span aria-label={ariaLabel} css={indicatorCss}>
+        {iconElement}
+        <Badge count={translationCount} size="small" showZero={false} />
+      </span>
+    );
+  }
+
   return (
     <Dropdown
       menu={{ items: menuItems, onClick: handleMenuClick }}
@@ -167,12 +213,7 @@ export default function LocaleSwitcher({
       <span
         role="button"
         tabIndex={0}
-        aria-label={t(
-          'Locale switcher for %s: %s (%s translations)',
-          fieldLabel,
-          isDefault ? t('DEFAULT') : activeLocale,
-          translationCount,
-        )}
+        aria-label={ariaLabel}
         onClick={e => e.stopPropagation()}
         onKeyDown={e => {
           if (e.key === 'Enter' || e.key === ' ') {
@@ -182,32 +223,11 @@ export default function LocaleSwitcher({
           }
         }}
         css={css`
+          ${indicatorCss}
           cursor: pointer;
-          display: inline-flex;
-          align-items: center;
-          gap: 4px;
-          line-height: 1;
-          color: ${suffixColor};
-          white-space: nowrap;
-          user-select: none;
         `}
       >
-        {triggerFlag ? (
-          <span
-            css={css`
-              font-size: 14px;
-            `}
-          >
-            {triggerFlag}
-          </span>
-        ) : (
-          <Icons.GlobalOutlined
-            iconSize="m"
-            css={css`
-              color: ${suffixColor};
-            `}
-          />
-        )}
+        {iconElement}
         <Badge count={translationCount} size="small" showZero={false} />
         <Icons.CaretDownOutlined
           iconSize="s"

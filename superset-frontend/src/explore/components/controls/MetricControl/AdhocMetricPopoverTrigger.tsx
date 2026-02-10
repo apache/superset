@@ -261,10 +261,6 @@ class AdhocMetricPopoverTrigger extends PureComponent<
             this.state.labelModified &&
             adhocMetricLabel !== this.state.title.label
           }
-          translations={this.state.translations}
-          onTranslationsChange={this.onTranslationsChange}
-          hasCustomLabel={title.hasCustomLabel}
-          currentLabel={title.label}
           hasTranslationChanges={hasTranslationChanges}
         />
       </ExplorePopoverContent>
@@ -275,6 +271,8 @@ class AdhocMetricPopoverTrigger extends PureComponent<
         title={title}
         onChange={this.onLabelChange}
         isEditDisabled={this.state.isTitleEditDisabled}
+        translations={this.state.translations}
+        onTranslationsChange={this.onTranslationsChange}
       />
     );
 

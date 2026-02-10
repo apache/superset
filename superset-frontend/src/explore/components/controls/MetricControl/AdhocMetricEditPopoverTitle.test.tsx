@@ -23,14 +23,47 @@ import {
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
+import { isFeatureEnabled } from '@superset-ui/core';
+import { SupersetClient } from '@superset-ui/core/connection';
 
 import AdhocMetricEditPopoverTitle, {
   AdhocMetricEditPopoverTitleProps,
 } from 'src/explore/components/controls/MetricControl/AdhocMetricEditPopoverTitle';
 
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(() => false),
+}));
+
+jest.mock('@superset-ui/core/connection', () => ({
+  SupersetClient: { get: jest.fn() },
+}));
+
+const MOCK_LOCALES_RESPONSE = {
+  json: {
+    result: {
+      locales: [
+        { code: 'en', name: 'English', flag: '🇺🇸' },
+        { code: 'de', name: 'German', flag: '🇩🇪' },
+      ],
+      default_locale: 'en',
+    },
+  },
+};
+
 const titleProps = {
   label: 'COUNT(*)',
   hasCustomLabel: false,
+};
+
+beforeEach(() => {
+  (isFeatureEnabled as jest.Mock).mockReturnValue(false);
+  (SupersetClient.get as jest.Mock).mockResolvedValue(MOCK_LOCALES_RESPONSE);
+});
+
+const RENDER_OPTIONS = {
+  useRedux: true,
+  initialState: { common: { locale: 'en' } },
 };
 
 const setup = (props: Partial<AdhocMetricEditPopoverTitleProps> = {}) => {
@@ -42,6 +75,7 @@ const setup = (props: Partial<AdhocMetricEditPopoverTitleProps> = {}) => {
       onChange={onChange}
       {...props}
     />,
+    RENDER_OPTIONS,
   );
 
   return { container, onChange };
@@ -136,4 +170,144 @@ test('start and end the title edit mode', async () => {
   expect(
     screen.queryByTestId('AdhocMetricEditTitle#input'),
   ).not.toBeInTheDocument();
+});
+
+// --- Locale support ---
+
+test('feature flag OFF: no locale indicator', () => {
+  setup({
+    title: { label: 'Revenue', hasCustomLabel: true },
+    translations: {},
+    onTranslationsChange: jest.fn(),
+  });
+
+  expect(screen.queryByLabelText(/Locale switcher/i)).not.toBeInTheDocument();
+});
+
+test('feature flag ON, view mode: locale indicator visible for custom label', async () => {
+  (isFeatureEnabled as jest.Mock).mockReturnValue(true);
+
+  setup({
+    title: { label: 'Revenue', hasCustomLabel: true },
+    translations: { label: { de: 'Umsatz' } },
+    onTranslationsChange: jest.fn(),
+  });
+
+  expect(
+    await screen.findByLabelText(/Locale switcher for Metric Label/i),
+  ).toBeInTheDocument();
+});
+
+test('feature flag ON, no custom label: no locale indicator', async () => {
+  (isFeatureEnabled as jest.Mock).mockReturnValue(true);
+
+  setup({
+    title: { label: 'COUNT(*)', hasCustomLabel: false },
+    translations: {},
+    onTranslationsChange: jest.fn(),
+  });
+
+  // Wait for any async effects to settle
+  await waitFor(() => {
+    expect(screen.queryByLabelText(/Locale switcher/i)).not.toBeInTheDocument();
+  });
+});
+
+test('feature flag ON, edit mode: locale dropdown as input suffix', async () => {
+  (isFeatureEnabled as jest.Mock).mockReturnValue(true);
+
+  const { container } = setup({
+    title: { label: 'Revenue', hasCustomLabel: true },
+    translations: {},
+    onTranslationsChange: jest.fn(),
+  });
+
+  // Wait for locales to load
+  await screen.findByLabelText(/Locale switcher for Metric Label/i);
+
+  // Enter edit mode
+  fireEvent.click(
+    container.getElementsByClassName('AdhocMetricEditPopoverTitle')[0],
+  );
+
+  await screen.findByTestId('AdhocMetricEditTitle#input');
+
+  // In edit mode, LocaleSwitcher is an interactive dropdown (role="button")
+  expect(
+    screen.getByRole('button', { name: /Locale switcher/i }),
+  ).toBeInTheDocument();
+});
+
+test('feature flag ON, select translation locale: input shows translation value', async () => {
+  (isFeatureEnabled as jest.Mock).mockReturnValue(true);
+
+  const { container } = setup({
+    title: { label: 'Revenue', hasCustomLabel: true },
+    translations: { label: { de: 'Umsatz' } },
+    onTranslationsChange: jest.fn(),
+  });
+
+  await screen.findByLabelText(/Locale switcher for Metric Label/i);
+
+  // Enter edit mode
+  fireEvent.click(
+    container.getElementsByClassName('AdhocMetricEditPopoverTitle')[0],
+  );
+  await screen.findByTestId('AdhocMetricEditTitle#input');
+
+  // Open locale dropdown
+  await userEvent.click(
+    screen.getByRole('button', { name: /Locale switcher/i }),
+  );
+
+  // Select German
+  await waitFor(() => {
+    expect(screen.getByRole('menuitem', { name: /German/i })).toBeInTheDocument();
+  });
+  await userEvent.click(screen.getByRole('menuitem', { name: /German/i }));
+
+  // Input now shows translation value
+  await waitFor(() => {
+    const input = screen.getByTestId('AdhocMetricEditTitle#input');
+    expect(input).toHaveValue('Umsatz');
+  });
+});
+
+test('feature flag ON, typing in translation locale calls onTranslationsChange', async () => {
+  (isFeatureEnabled as jest.Mock).mockReturnValue(true);
+  const onTranslationsChange = jest.fn();
+
+  const { container } = setup({
+    title: { label: 'Revenue', hasCustomLabel: true },
+    translations: {},
+    onTranslationsChange,
+  });
+
+  await screen.findByLabelText(/Locale switcher for Metric Label/i);
+
+  // Enter edit mode
+  fireEvent.click(
+    container.getElementsByClassName('AdhocMetricEditPopoverTitle')[0],
+  );
+  await screen.findByTestId('AdhocMetricEditTitle#input');
+
+  // Switch to German locale
+  await userEvent.click(
+    screen.getByRole('button', { name: /Locale switcher/i }),
+  );
+  await waitFor(() => {
+    expect(screen.getByRole('menuitem', { name: /German/i })).toBeInTheDocument();
+  });
+  await userEvent.click(screen.getByRole('menuitem', { name: /German/i }));
+
+  // Type translation and blur to flush
+  const input = screen.getByTestId('AdhocMetricEditTitle#input');
+  await userEvent.type(input, 'Umsatz');
+  fireEvent.blur(input);
+
+  expect(onTranslationsChange).toHaveBeenCalledWith(
+    expect.objectContaining({
+      label: expect.objectContaining({ de: 'Umsatz' }),
+    }),
+  );
 });

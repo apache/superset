@@ -124,3 +124,39 @@ test('renders with zero translations when field has none', () => {
     screen.getByRole('button', { name: /0 translations/i }),
   ).toBeInTheDocument();
 });
+
+test('interactive=false is not a button and does not open dropdown on click', async () => {
+  render(
+    <LocaleSwitcher {...createProps({ interactive: false })} />,
+    { useTheme: true },
+  );
+
+  expect(screen.queryByRole('button')).not.toBeInTheDocument();
+
+  const indicator = screen.getByLabelText(/Locale switcher for Dashboard Title/i);
+  await userEvent.click(indicator);
+
+  expect(screen.queryByRole('menuitem')).not.toBeInTheDocument();
+});
+
+test('interactive=false shows translation count in aria-label', () => {
+  render(
+    <LocaleSwitcher {...createProps({ interactive: false })} />,
+    { useTheme: true },
+  );
+
+  expect(
+    screen.getByLabelText(/1 translations/i),
+  ).toBeInTheDocument();
+});
+
+test('interactive=false shows flag for non-default activeLocale', () => {
+  render(
+    <LocaleSwitcher
+      {...createProps({ interactive: false, activeLocale: 'de' })}
+    />,
+    { useTheme: true },
+  );
+
+  expect(screen.getByText('🇩🇪')).toBeInTheDocument();
+});

@@ -48,9 +48,7 @@ import {
 } from 'src/explore/components/optionRenderers';
 import { getColumnKeywords } from 'src/explore/controlUtils/getColumnKeywords';
 import SQLEditorWithValidation from 'src/components/SQLEditorWithValidation';
-import type { Translations } from 'src/types/Localization';
 import type { RefObject } from 'react';
-import MetricLabelTranslations from './MetricLabelTranslations';
 
 interface ColumnType {
   column_name: string;
@@ -96,10 +94,6 @@ interface AdhocMetricEditPopoverProps {
   datasource?: DatasourceInfo;
   isNewMetric?: boolean;
   isLabelModified?: boolean;
-  translations?: Translations;
-  onTranslationsChange?: (translations: Translations) => void;
-  hasCustomLabel?: boolean;
-  currentLabel?: string;
   hasTranslationChanges?: boolean;
 }
 
@@ -366,10 +360,6 @@ export default class AdhocMetricEditPopover extends PureComponent<
       datasource,
       isNewMetric,
       isLabelModified,
-      translations,
-      onTranslationsChange,
-      hasCustomLabel,
-      currentLabel,
       hasTranslationChanges,
       ...popoverProps
     } = this.props;
@@ -582,14 +572,6 @@ export default class AdhocMetricEditPopover extends PureComponent<
             },
           ]}
         />
-        {hasCustomLabel && onTranslationsChange && (
-          <MetricLabelTranslations
-            currentLabel={currentLabel ?? ''}
-            hasCustomLabel
-            translations={translations ?? {}}
-            onTranslationsChange={onTranslationsChange}
-          />
-        )}
         <div>
           <Button
             buttonSize="small"
