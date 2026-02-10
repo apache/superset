@@ -96,7 +96,6 @@ from superset.exceptions import (
     SupersetException,
     SupersetTimeoutException,
 )
-from superset.explorables.base import Explorable
 from superset.sql.parse import sanitize_clause
 from superset.superset_typing import (
     AdhocColumn,
@@ -115,7 +114,7 @@ from superset.utils.hashing import hash_from_dict, hash_from_str
 from superset.utils.pandas import detect_datetime_format
 
 if TYPE_CHECKING:
-    from superset.connectors.sqla.models import TableColumn
+    from superset.explorables.base import ColumnMetadata, Explorable
     from superset.models.core import Database
 
 logging.getLogger("MARKDOWN").setLevel(logging.INFO)
@@ -200,6 +199,7 @@ class DatasourceType(StrEnum):
     QUERY = "query"
     SAVEDQUERY = "saved_query"
     VIEW = "view"
+    SEMANTIC_VIEW = "semantic_view"
 
 
 class LoggerLevel(StrEnum):
@@ -1730,15 +1730,12 @@ def get_metric_type_from_column(column: Any, datasource: Explorable) -> str:
     :return: The inferred metric type as a string, or an empty string if the
              column is not a metric or no valid operation is found.
     """
-
-    from superset.connectors.sqla.models import SqlMetric
-
-    metric: SqlMetric = next(
-        (metric for metric in datasource.metrics if metric.metric_name == column),
-        SqlMetric(metric_name=""),
+    metric = next(
+        (m for m in datasource.metrics if m.metric_name == column),
+        None,
     )
 
-    if metric.metric_name == "":
+    if metric is None:
         return ""
 
     expression: str = metric.expression
@@ -1784,7 +1781,7 @@ def extract_dataframe_dtypes(
 
     generic_types: list[GenericDataType] = []
     for column in df.columns:
-        column_object = columns_by_name.get(column)
+        column_object = columns_by_name.get(str(column))
         series = df[column]
         inferred_type: str = ""
         if series.isna().all():
@@ -1814,11 +1811,17 @@ def extract_dataframe_dtypes(
     return generic_types
 
 
-def extract_column_dtype(col: TableColumn) -> GenericDataType:
-    if col.is_temporal:
+def extract_column_dtype(col: ColumnMetadata) -> GenericDataType:
+    # Check for temporal type
+    if hasattr(col, "is_temporal") and col.is_temporal:
         return GenericDataType.TEMPORAL
-    if col.is_numeric:
+    if col.is_dttm:
+        return GenericDataType.TEMPORAL
+
+    # Check for numeric type
+    if hasattr(col, "is_numeric") and col.is_numeric:
         return GenericDataType.NUMERIC
+
     # TODO: add check for boolean data type when proper support is added
     return GenericDataType.STRING
 
@@ -1832,9 +1835,7 @@ def get_time_filter_status(
     applied_time_extras: dict[str, str],
 ) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
     temporal_columns: set[Any] = {
-        (col.column_name if hasattr(col, "column_name") else col.get("column_name"))
-        for col in datasource.columns
-        if (col.is_dttm if hasattr(col, "is_dttm") else col.get("is_dttm"))
+        col.column_name for col in datasource.columns if col.is_dttm
     }
     applied: list[dict[str, str]] = []
     rejected: list[dict[str, str]] = []
