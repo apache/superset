@@ -21,7 +21,6 @@ import enum
 from typing import Protocol, runtime_checkable
 
 from superset_core.semantic_layers.types import (
-    AdhocFilter,
     Dimension,
     Filter,
     GroupLimit,
@@ -69,7 +68,7 @@ class SemanticView(Protocol):
     def get_values(
         self,
         dimension: Dimension,
-        filters: set[Filter | AdhocFilter] | None = None,
+        filters: set[Filter] | None = None,
     ) -> SemanticResult:
         """
         Return distinct values for a dimension.
@@ -79,7 +78,7 @@ class SemanticView(Protocol):
         self,
         metrics: list[Metric],
         dimensions: list[Dimension],
-        filters: set[Filter | AdhocFilter] | None = None,
+        filters: set[Filter] | None = None,
         order: list[OrderTuple] | None = None,
         limit: int | None = None,
         offset: int | None = None,
@@ -94,7 +93,7 @@ class SemanticView(Protocol):
         self,
         metrics: list[Metric],
         dimensions: list[Dimension],
-        filters: set[Filter | AdhocFilter] | None = None,
+        filters: set[Filter] | None = None,
         order: list[OrderTuple] | None = None,
         limit: int | None = None,
         offset: int | None = None,

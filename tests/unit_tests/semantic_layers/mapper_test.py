@@ -24,7 +24,6 @@ from pytest_mock import MockerFixture
 from superset_core.semantic_layers.semantic_view import SemanticViewFeature
 from superset_core.semantic_layers.types import (
     AdhocExpression,
-    AdhocFilter,
     Day,
     Dimension,
     Filter,
@@ -202,9 +201,11 @@ def test_get_filters_from_extras_where() -> None:
 
     assert len(result) == 1
     filter_ = next(iter(result))
-    assert isinstance(filter_, AdhocFilter)
+    assert isinstance(filter_, Filter)
     assert filter_.type == PredicateType.WHERE
-    assert filter_.definition == "customer_id > 100"
+    assert filter_.column is None
+    assert filter_.operator == Operator.ADHOC
+    assert filter_.value == "customer_id > 100"
 
 
 def test_get_filters_from_extras_having() -> None:
@@ -215,7 +216,12 @@ def test_get_filters_from_extras_having() -> None:
     result = _get_filters_from_extras(extras)
 
     assert result == {
-        AdhocFilter(type=PredicateType.HAVING, definition="SUM(sales) > 1000"),
+        Filter(
+            type=PredicateType.HAVING,
+            column=None,
+            operator=Operator.ADHOC,
+            value="SUM(sales) > 1000",
+        ),
     }
 
 
@@ -230,8 +236,18 @@ def test_get_filters_from_extras_both() -> None:
     result = _get_filters_from_extras(extras)
 
     assert result == {
-        AdhocFilter(type=PredicateType.WHERE, definition="region = 'US'"),
-        AdhocFilter(type=PredicateType.HAVING, definition="COUNT(*) > 10"),
+        Filter(
+            type=PredicateType.WHERE,
+            column=None,
+            operator=Operator.ADHOC,
+            value="region = 'US'",
+        ),
+        Filter(
+            type=PredicateType.HAVING,
+            column=None,
+            operator=Operator.ADHOC,
+            value="COUNT(*) > 10",
+        ),
     }
 
 
@@ -450,9 +466,11 @@ def test_get_filters_from_query_object_with_extras(mock_datasource: MagicMock) -
             operator=Operator.LESS_THAN,
             value=datetime(2025, 10, 22),
         ),
-        AdhocFilter(
+        Filter(
             type=PredicateType.WHERE,
-            definition="customer_id > 100",
+            column=None,
+            operator=Operator.ADHOC,
+            value="customer_id > 100",
         ),
     }
 
@@ -494,9 +512,11 @@ def test_get_filters_from_query_object_with_fetch_values(
             operator=Operator.LESS_THAN,
             value=datetime(2025, 10, 22),
         ),
-        AdhocFilter(
+        Filter(
             type=PredicateType.WHERE,
-            definition="tenant_id = 123",
+            column=None,
+            operator=Operator.ADHOC,
+            value="tenant_id = 123",
         ),
     }
 
@@ -796,9 +816,11 @@ def test_get_group_limit_filters_with_extras(mock_datasource: MagicMock) -> None
             operator=Operator.LESS_THAN,
             value=datetime(2025, 10, 22),
         ),
-        AdhocFilter(
+        Filter(
             type=PredicateType.WHERE,
-            definition="customer_id > 100",
+            column=None,
+            operator=Operator.ADHOC,
+            value="customer_id > 100",
         ),
     }
 
@@ -2019,9 +2041,11 @@ def test_get_group_limit_filters_with_fetch_values_predicate(
 
     assert result is not None
     assert (
-        AdhocFilter(
+        Filter(
             type=PredicateType.WHERE,
-            definition="tenant_id = 123",
+            column=None,
+            operator=Operator.ADHOC,
+            value="tenant_id = 123",
         )
         in result
     )
@@ -2372,6 +2396,7 @@ def test_get_filters_from_query_object_with_filter_loop(
         f
         for f in result
         if isinstance(f, Filter)
+        and f.column
         and f.column.name == "category"
         and f.operator == Operator.EQUALS
     ]
@@ -2444,6 +2469,7 @@ def test_get_group_limit_filters_with_filter_loop(
         f
         for f in result
         if isinstance(f, Filter)
+        and f.column
         and f.column.name == "category"
         and f.operator == Operator.EQUALS
     ]
@@ -2555,6 +2581,7 @@ def test_get_filters_from_query_object_filter_returns_none(
         f
         for f in result
         if isinstance(f, Filter)
+        and f.column
         and f.column.name == "category"
         and f.operator == Operator.EQUALS
     ]
@@ -2607,6 +2634,7 @@ def test_get_group_limit_filters_filter_returns_none(
         f
         for f in result
         if isinstance(f, Filter)
+        and f.column
         and f.column.name == "category"
         and f.operator == Operator.EQUALS
     ]

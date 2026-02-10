@@ -239,6 +239,7 @@ class Operator(str, enum.Enum):
     NOT_LIKE = "NOT LIKE"
     IS_NULL = "IS NULL"
     IS_NOT_NULL = "IS NOT NULL"
+    ADHOC = "ADHOC"
 
 
 FilterValues = str | int | float | bool | datetime | date | time | timedelta | None
@@ -252,17 +253,9 @@ class PredicateType(enum.Enum):
 @dataclass(frozen=True, order=True)
 class Filter:
     type: PredicateType
-    column: Dimension | Metric
+    column: Dimension | Metric | None
     operator: Operator
     value: FilterValues | frozenset[FilterValues]
-
-
-# TODO (betodealmeida): convert into Operator:
-# Filter(type=..., column=None, operator=Operator.AdHoc, value="some definition")
-@dataclass(frozen=True, order=True)
-class AdhocFilter:
-    type: PredicateType
-    definition: str
 
 
 class OrderDirection(enum.Enum):
@@ -291,7 +284,7 @@ class GroupLimit:
     metric: Metric | None
     direction: OrderDirection = OrderDirection.DESC
     group_others: bool = False
-    filters: set[Filter | AdhocFilter] | None = None
+    filters: set[Filter] | None = None
 
 
 @dataclass(frozen=True)
@@ -328,7 +321,7 @@ class SemanticQuery:
 
     metrics: list[Metric]
     dimensions: list[Dimension]
-    filters: set[Filter | AdhocFilter] | None = None
+    filters: set[Filter] | None = None
     order: list[OrderTuple] | None = None
     limit: int | None = None
     offset: int | None = None
