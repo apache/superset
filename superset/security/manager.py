@@ -2808,6 +2808,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         from superset.embedded_chart.exceptions import (
             EmbeddedChartPermalinkNotFoundError,
         )
+        from superset.explore.permalink.exceptions import (
+            ExplorePermalinkGetFailedError,
+        )
         from superset.models.dashboard import Dashboard
 
         for resource in resources:
@@ -2827,8 +2830,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                         raise EmbeddedChartPermalinkNotFoundError()
                 except EmbeddedChartPermalinkNotFoundError:
                     raise
-                except Exception:
-                    raise EmbeddedChartPermalinkNotFoundError() from None
+                except (ExplorePermalinkGetFailedError, ValueError) as ex:
+                    raise EmbeddedChartPermalinkNotFoundError() from ex
 
     def create_guest_access_token(
         self,
