@@ -155,7 +155,7 @@
     "@visx/xychart": "^3.5.1",
     "ag-grid-community": "35.0.1",
     "ag-grid-react": "35.0.1",
-    "antd": "^5.26.0",
+    "antd": "^6.3.0",
     "chrono-node": "^2.9.0",
     "classnames": "^2.2.5",
     "content-disposition": "^1.0.1",
