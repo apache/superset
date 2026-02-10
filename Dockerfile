@@ -29,7 +29,7 @@ ARG BUILD_TRANSLATIONS="false"
 ######################################################################
 # superset-node-ci used as a base for building frontend assets and CI
 ######################################################################
-FROM --platform=${BUILDPLATFORM} node:20-trixie-slim AS superset-node-ci
+FROM --platform=${BUILDPLATFORM} oven/bun:1-debian AS superset-node-ci
 ARG BUILD_TRANSLATIONS
 ENV BUILD_TRANSLATIONS=${BUILD_TRANSLATIONS}
 ARG DEV_MODE="false"           # Skip frontend build in dev mode
@@ -37,13 +37,13 @@ ENV DEV_MODE=${DEV_MODE}
 
 COPY docker/ /app/docker/
 # Arguments for build configuration
-ARG NPM_BUILD_CMD="build"
+ARG BUN_BUILD_CMD="build"
 
 # Install system dependencies required for node-gyp
 RUN /app/docker/apt-install.sh build-essential python3 zstd
 
 # Define environment variables for frontend build
-ENV BUILD_CMD=${NPM_BUILD_CMD} \
+ENV BUILD_CMD=${BUN_BUILD_CMD} \
     PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
 # Run the frontend memory monitoring script
@@ -57,17 +57,17 @@ RUN mkdir -p /app/superset/static/assets \
 
 # Mount package files and install dependencies if not in dev mode
 # NOTE: we mount packages and plugins as they are referenced in package.json as workspaces
-# ideally we'd COPY only their package.json. Here npm ci will be cached as long
+# ideally we'd COPY only their package.json. Here bun install will be cached as long
 # as the full content of these folders don't change, yielding a decent cache reuse rate.
 # Note that it's not possible to selectively COPY or mount using blobs.
 RUN --mount=type=bind,source=./superset-frontend/package.json,target=./package.json \
-    --mount=type=bind,source=./superset-frontend/package-lock.json,target=./package-lock.json \
+    --mount=type=bind,source=./superset-frontend/bun.lock,target=./bun.lock \
     --mount=type=cache,target=/root/.cache \
-    --mount=type=cache,target=/root/.npm \
+    --mount=type=cache,target=/root/.bun/install/cache \
     if [ "${DEV_MODE}" = "false" ]; then \
-        npm ci; \
+        bun install --frozen-lockfile; \
     else \
-        echo "Skipping 'npm ci' in dev mode"; \
+        echo "Skipping 'bun install' in dev mode"; \
     fi
 
 # Runs the webpack build process
@@ -79,12 +79,12 @@ COPY superset-frontend /app/superset-frontend
 FROM superset-node-ci AS superset-node
 
 # Build the frontend if not in dev mode
-RUN --mount=type=cache,target=/root/.npm \
+RUN --mount=type=cache,target=/root/.bun/install/cache \
     if [ "${DEV_MODE}" = "false" ]; then \
-        echo "Running 'npm run ${BUILD_CMD}'"; \
-        npm run ${BUILD_CMD}; \
+        echo "Running 'bun run ${BUILD_CMD}'"; \
+        bun run ${BUILD_CMD}; \
     else \
-        echo "Skipping 'npm run ${BUILD_CMD}' in dev mode"; \
+        echo "Skipping 'bun run ${BUILD_CMD}' in dev mode"; \
     fi;
 
 # Copy translation files
@@ -92,7 +92,7 @@ COPY superset/translations /app/superset/translations
 
 # Build translations if enabled, then cleanup localization files
 RUN if [ "${BUILD_TRANSLATIONS}" = "true" ]; then \
-        npm run build-translation; \
+        bun run build-translation; \
     fi; \
     rm -rf /app/superset/translations/*/*/*.[po,mo];
 

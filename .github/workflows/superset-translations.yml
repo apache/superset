@@ -29,21 +29,21 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Setup Node.js
+      - name: Setup Bun
         if: steps.check.outputs.frontend
-        uses: actions/setup-node@v6
+        uses: oven-sh/setup-bun@v2
         with:
-          node-version-file:  './superset-frontend/.nvmrc'
+          bun-version: latest
       - name: Install dependencies
         if: steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         with:
           run: npm-install
-      - name: lint
+      - name: Build translations
         if: steps.check.outputs.frontend
         working-directory: ./superset-frontend
         run: |
-          npm run build-translation
+          bun run build-translation
 
   babel-extract:
     runs-on: ubuntu-24.04

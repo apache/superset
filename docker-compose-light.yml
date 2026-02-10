@@ -152,10 +152,10 @@ services:
         DEV_MODE: "true"
         BUILD_TRANSLATIONS: ${BUILD_TRANSLATIONS:-false}
     environment:
-      # set this to false if you have perf issues running the npm i; npm run dev in-docker
+      # set this to false if you have perf issues running bun install; bun run dev in-docker
       # if you do so, you have to run this manually on the host, which should perform better!
       BUILD_SUPERSET_FRONTEND_IN_DOCKER: true
-      NPM_RUN_PRUNE: false
+      BUN_RUN_PRUNE: false
       SCARF_ANALYTICS: "${SCARF_ANALYTICS:-}"
       # configuring the dev-server to use the host.docker.internal to connect to the backend
       superset: "http://superset-light:8088"

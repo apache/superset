@@ -41,21 +41,21 @@ pip-upgrade() {
 npm-install() {
   cd "$GITHUB_WORKSPACE/superset-frontend"
 
-  # cache-restore npm
-  say "::group::Install npm packages"
-  echo "npm: $(npm --version)"
+  # cache-restore bun
+  say "::group::Install packages with bun"
+  echo "bun: $(bun --version)"
   echo "node: $(node --version)"
-  npm ci
+  bun install --frozen-lockfile
   say "::endgroup::"
 
-  # cache-save npm
+  # cache-save bun
 }
 
 build-assets() {
   cd "$GITHUB_WORKSPACE/superset-frontend"
 
   say "::group::Build static assets"
-  npm run build
+  bun run build
   say "::endgroup::"
 }
 
@@ -67,7 +67,7 @@ build-instrumented-assets() {
   if [[ -f "$ASSETS_MANIFEST" ]]; then
     echo 'Skip frontend build because instrumented static assets already exist.'
   else
-    npm run build-instrumented
+    bun run build-instrumented
     cache-save instrumented-assets
   fi
   say "::endgroup::"

@@ -107,12 +107,12 @@ jobs:
         uses: ./.github/actions/cached-dependencies
         with:
           run: testdata
-      - name: Setup Node.js
+      - name: Setup Bun
         if: steps.check.outputs.python || steps.check.outputs.frontend
-        uses: actions/setup-node@v6
+        uses: oven-sh/setup-bun@v2
         with:
-          node-version-file: './superset-frontend/.nvmrc'
-      - name: Install npm dependencies
+          bun-version: latest
+      - name: Install dependencies
         if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         with:
@@ -224,12 +224,12 @@ jobs:
         uses: ./.github/actions/cached-dependencies
         with:
           run: playwright_testdata
-      - name: Setup Node.js
+      - name: Setup Bun
         if: steps.check.outputs.python || steps.check.outputs.frontend
-        uses: actions/setup-node@v6
+        uses: oven-sh/setup-bun@v2
         with:
-          node-version-file: './superset-frontend/.nvmrc'
-      - name: Install npm dependencies
+          bun-version: latest
+      - name: Install dependencies
         if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         with:

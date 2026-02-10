@@ -40,48 +40,33 @@ jobs:
           git fetch --prune --unshallow
           git tag -d `git tag | grep -E '^trigger-'`
 
-      - name: Install Node.js
+      - name: Install Bun
         if: env.HAS_TAGS
-        uses: actions/setup-node@v6
+        uses: oven-sh/setup-bun@v2
         with:
-          node-version-file: './superset-frontend/.nvmrc'
+          bun-version: latest
 
-      - name: Cache npm
+      - name: Cache bun
         if: env.HAS_TAGS
         uses: actions/cache@v5
         with:
-          path: ~/.npm # npm cache files are stored in `~/.npm` on Linux/macOS
-          key: ${{ runner.OS }}-node-${{ hashFiles('**/package-lock.json') }}
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
           restore-keys: |
-            ${{ runner.OS }}-node-
-            ${{ runner.OS }}-
-
-      - name: Get npm cache directory path
-        if: env.HAS_TAGS
-        id: npm-cache-dir-path
-        run: echo "dir=$(npm config get cache)" >> $GITHUB_OUTPUT
-      - name: Cache npm
-        if: env.HAS_TAGS
-        uses: actions/cache@v5
-        id: npm-cache # use this to check for `cache-hit` (`steps.npm-cache.outputs.cache-hit != 'true'`)
-        with:
-          path: ${{ steps.npm-cache-dir-path.outputs.dir }}
-          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-npm-
+            ${{ runner.os }}-bun-
 
       - name: Install dependencies
         if: env.HAS_TAGS
         working-directory: ./superset-frontend
-        run: npm ci
+        run: bun install --frozen-lockfile
       - name: Run unit tests
         if: env.HAS_TAGS
         working-directory: ./superset-frontend
-        run: npm run test -- plugins packages
+        run: bun run test -- plugins packages
       - name: Build packages
         if: env.HAS_TAGS
         working-directory: ./superset-frontend
-        run: npm run plugins:build
+        run: bun run turbo:build
 
       - name: Configure npm and git
         if: env.HAS_TAGS
@@ -96,12 +81,12 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           GITHUB_TOKEN: ${{ github.token }}
 
-      - name: Bump version and publish package(s)
+      - name: Publish packages with changesets
         if: env.HAS_TAGS
         working-directory: ./superset-frontend
         run: |
           git tag -d `git tag | grep -E '^trigger-'`
-          npm run plugins:release-from-tag
+          bun run changeset:publish
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           GITHUB_TOKEN: ${{ github.token }}
