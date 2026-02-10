@@ -186,6 +186,7 @@ export type UseExploreAdditionalActionsMenuReturn = [
   boolean,
   Dispatch<SetStateAction<boolean>>,
   StreamingExportState,
+  ReactElement | null,
 ];
 
 export const useExploreAdditionalActionsMenu = (

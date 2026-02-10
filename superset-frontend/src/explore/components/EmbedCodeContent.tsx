@@ -41,7 +41,7 @@ const EmbedCodeContent: FC<EmbedCodeContentProps> = ({
 }) => {
   const [height, setHeight] = useState('400');
   const [width, setWidth] = useState('600');
-  const [embedData, setEmbedData] = useState(null);
+  const [embedData, setEmbedData] = useState<Record<string, any> | null>(null);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -76,7 +76,7 @@ const EmbedCodeContent: FC<EmbedCodeContentProps> = ({
       setEmbedData(response);
     } catch (err) {
       setErrorMessage(t('Error generating embed code'));
-      addDangerToast(t('Sorry, something went wrong. Try again later.'));
+      addDangerToast?.(t('Sorry, something went wrong. Try again later.'));
     } finally {
       setLoading(false);
     }
