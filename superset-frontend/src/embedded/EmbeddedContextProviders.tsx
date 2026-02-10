@@ -19,6 +19,7 @@
 import { getExtensionsRegistry } from '@superset-ui/core';
 import { Provider as ReduxProvider } from 'react-redux';
 import { QueryParamProvider } from 'use-query-params';
+import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { DynamicPluginProvider } from 'src/components';
@@ -27,8 +28,7 @@ import { SupersetThemeProvider } from 'src/theme/ThemeProvider';
 import { ThemeController } from 'src/theme/ThemeController';
 import type { ThemeStorage } from '@apache-superset/core/ui';
 import { store } from 'src/views/store';
-import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
-import { parse, stringify } from 'query-string';
+import querystring from 'query-string';
 
 /**
  * In-memory implementation of ThemeStorage interface for embedded contexts.
@@ -72,9 +72,9 @@ export const EmbeddedContextProviders: React.FC = ({ children }) => {
               <QueryParamProvider
                 adapter={ReactRouter5Adapter}
                 options={{
-                  searchStringToObject: parse,
+                  searchStringToObject: querystring.parse,
                   objectToSearchString: (object: Record<string, any>) =>
-                    stringify(object, { encode: false }),
+                    querystring.stringify(object, { encode: false }),
                 }}
               >
                 {RootContextProviderExtension ? (

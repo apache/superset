@@ -176,7 +176,18 @@ async def get_chart_data(  # noqa: C901
                 else:
                     # Standard charts use "metrics" (plural) and "groupby"
                     metrics = form_data.get("metrics", [])
-                    groupby_columns = form_data.get("groupby", [])
+                    groupby_columns = form_data.get("groupby") or []
+
+                # Build query columns list: include both x_axis and groupby
+                x_axis_config = form_data.get("x_axis")
+                query_columns = groupby_columns.copy()
+                if x_axis_config and isinstance(x_axis_config, str):
+                    if x_axis_config not in query_columns:
+                        query_columns.insert(0, x_axis_config)
+                elif x_axis_config and isinstance(x_axis_config, dict):
+                    col_name = x_axis_config.get("column_name")
+                    if col_name and col_name not in query_columns:
+                        query_columns.insert(0, col_name)
 
                 query_context = factory.create(
                     datasource={
@@ -186,7 +197,7 @@ async def get_chart_data(  # noqa: C901
                     queries=[
                         {
                             "filters": form_data.get("filters", []),
-                            "columns": groupby_columns,
+                            "columns": query_columns,
                             "metrics": metrics,
                             "row_limit": row_limit,
                             "order_desc": True,

@@ -100,7 +100,7 @@ npm link superset-plugin-chart-hello-world
 ```
 
 7. **Import and register in Superset**:
-Edit `superset-frontend/src/visualizations/presets/MainPreset.js` to include your plugin.
+Edit `superset-frontend/src/visualizations/presets/MainPreset.ts` to include your plugin.
 
 ## Testing
 

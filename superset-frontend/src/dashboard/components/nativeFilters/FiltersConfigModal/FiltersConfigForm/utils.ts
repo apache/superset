@@ -78,12 +78,37 @@ export const hasTemporalColumns = (
   );
 };
 
+// Determines whether to show the time range picker in pre-filter settings.
+// Returns true if dataset is undefined (precautionary default) or has temporal columns.
+export const shouldShowTimeRangePicker = (
+  currentDataset: (Dataset & { column_types: GenericDataType[] }) | undefined,
+): boolean => (currentDataset ? hasTemporalColumns(currentDataset) : true);
+
 export const doesColumnMatchFilterType = (filterType: string, column: Column) =>
   !column.type_generic ||
   !(filterType in FILTER_SUPPORTED_TYPES) ||
   FILTER_SUPPORTED_TYPES[
     filterType as keyof typeof FILTER_SUPPORTED_TYPES
   ]?.includes(column.type_generic);
+
+// Validates that a filter default value is present when the default value option is enabled.
+// For range filters, at least one of the two values must be non-null.
+// For other filters (e.g., filter_select), the value must be non-empty.
+// Arrays must have at least one element (empty array means no selection).
+export const isValidFilterValue = (
+  value: unknown,
+  isRangeFilter: boolean,
+): boolean => {
+  if (isRangeFilter) {
+    return Array.isArray(value) && (value[0] !== null || value[1] !== null);
+  }
+  // For multi-select filters, an empty array means no selection was made
+  if (Array.isArray(value)) {
+    return value.length > 0;
+  }
+  // For other values, check if truthy (note: 0 is falsy but unlikely for non-range filters)
+  return !!value;
+};
 
 export const mostUsedDataset = (
   datasets: DatasourcesState,

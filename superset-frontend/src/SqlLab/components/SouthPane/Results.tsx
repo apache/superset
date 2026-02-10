@@ -83,25 +83,27 @@ const Results: FC<Props> = ({
     !latestQuery.resultsKey &&
     !latestQuery.results;
 
+  if (hasNoStoredResults) {
+    return (
+      <Alert
+        type="info"
+        message={t('No stored results found, you need to re-run your query')}
+      />
+    );
+  }
+
   return (
     <>
       <QueryStatusBar key={latestQueryId} query={latestQuery} />
-      {hasNoStoredResults ? (
-        <Alert
-          type="info"
-          message={t('No stored results found, you need to re-run your query')}
-        />
-      ) : (
-        <ResultSet
-          search
-          queryId={latestQuery.id}
-          database={databases[latestQuery.dbId]}
-          displayLimit={displayLimit}
-          defaultQueryLimit={defaultQueryLimit}
-          showSql
-          showSqlInline
-        />
-      )}
+      <ResultSet
+        search
+        queryId={latestQuery.id}
+        database={databases[latestQuery.dbId]}
+        displayLimit={displayLimit}
+        defaultQueryLimit={defaultQueryLimit}
+        showSql
+        showSqlInline
+      />
     </>
   );
 };

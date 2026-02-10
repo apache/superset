@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import sinon from 'sinon';
 import * as actions from 'src/SqlLab/actions/sqlLab';
 import { ColumnKeyTypeType } from 'src/SqlLab/components/ColumnElement';
 import {
@@ -30,7 +29,9 @@ import { GenericDataType } from '@apache-superset/core/api/core';
 import { LatestQueryEditorVersion } from 'src/SqlLab/types';
 import { ISaveableDatasource } from 'src/SqlLab/components/SaveDatasetModal';
 
-export const mockedActions = sinon.stub({ ...actions });
+export const mockedActions = Object.fromEntries(
+  Object.keys(actions).map(key => [key, jest.fn()]),
+);
 
 export const alert = { bsStyle: 'danger', msg: 'Oops', id: 'lksvmcx32' };
 export const table = {

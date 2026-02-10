@@ -18,12 +18,19 @@
  */
 
 /**
- * @fileoverview Editors API for Superset extension editor contributions.
+ * @fileoverview Editors API for Superset text editor integration.
  *
- * This module defines the interfaces and types for editor contributions to the
- * Superset platform. Extensions can register custom text editor implementations
- * (e.g., Monaco, CodeMirror) through the extension manifest, replacing the
- * default Ace editor for specific languages.
+ * This module defines the interfaces and types for working with text editors
+ * in Superset. It provides:
+ *
+ * - `EditorHandle`: Imperative API for programmatically controlling editors
+ *   (get/set content, cursor position, selections, annotations, completions)
+ * - `EditorProps`: Props contract for editor React components
+ * - `CompletionProvider`: Interface for registering custom autocomplete providers
+ * - Registration functions for custom editor implementations
+ *
+ * The API is editor-agnostic, supporting Ace, Monaco, CodeMirror, or any
+ * compliant implementation.
  */
 
 import { ForwardRefExoticComponent, RefAttributes } from 'react';
@@ -36,69 +43,111 @@ export type { EditorContribution, EditorLanguage };
 
 /**
  * Represents a position in the editor (line and column).
+ * Both line and column are zero-based indices.
+ *
+ * @example
+ * // Position at the start of line 5, column 10
+ * const pos: Position = { line: 4, column: 9 };
  */
 export interface Position {
-  /** Zero-based line number */
+  /** Zero-based line number (first line is 0) */
   line: number;
-  /** Zero-based column number */
+  /** Zero-based column number (first column is 0) */
   column: number;
 }
 
 /**
- * Represents a range in the editor with start and end positions.
+ * Represents a contiguous range in the editor defined by start and end positions.
+ * The range is inclusive of the start position and exclusive of the end position.
  */
 export interface Range {
-  /** Start position of the range */
+  /** Start position of the range (inclusive) */
   start: Position;
-  /** End position of the range */
+  /** End position of the range (exclusive) */
   end: Position;
 }
 
 /**
- * Represents a selection in the editor.
+ * Represents a selection in the editor, extending Range with direction information.
+ * A selection is a highlighted range of text that can be manipulated.
  */
 export interface Selection extends Range {
-  /** Direction of the selection */
+  /**
+   * Direction of the selection.
+   * - 'ltr': Selection was made left-to-right (anchor at start, cursor at end)
+   * - 'rtl': Selection was made right-to-left (anchor at end, cursor at start)
+   */
   direction?: 'ltr' | 'rtl';
 }
 
 /**
- * Annotation severity levels for editor markers.
+ * Severity levels for editor annotations.
+ * Determines the visual style and icon used to display the annotation.
  */
 export type AnnotationSeverity = 'error' | 'warning' | 'info';
 
 /**
- * Represents an annotation (marker/diagnostic) in the editor.
+ * Represents a diagnostic annotation displayed in the editor.
+ * Annotations are used to highlight issues like syntax errors, linting warnings,
+ * or informational messages at specific locations in the code.
+ *
+ * @example
+ * const annotation: EditorAnnotation = {
+ *   line: 5,
+ *   column: 10,
+ *   message: 'Unknown column "user_id"',
+ *   severity: 'error',
+ *   source: 'sql-validator',
+ * };
  */
 export interface EditorAnnotation {
-  /** Zero-based line number */
+  /** Zero-based line number where the annotation appears */
   line: number;
-  /** Zero-based column number (optional) */
+  /** Zero-based column number for precise positioning (optional) */
   column?: number;
-  /** Annotation message to display */
+  /** Human-readable message describing the issue or information */
   message: string;
-  /** Severity level of the annotation */
+  /** Severity determines visual styling (red for error, yellow for warning, blue for info) */
   severity: AnnotationSeverity;
-  /** Optional source of the annotation (e.g., "linter", "typescript") */
+  /** Identifies what produced this annotation (e.g., "linter", "sql-validator") */
   source?: string;
 }
 
 /**
- * Represents a keyboard shortcut binding.
+ * Defines a keyboard shortcut that triggers a custom action in the editor.
+ * Hotkeys allow binding key combinations to functions that manipulate
+ * the editor or perform other actions.
+ *
+ * @example
+ * const runQueryHotkey: EditorHotkey = {
+ *   name: 'runQuery',
+ *   key: 'Ctrl+Enter',
+ *   description: 'Execute the current query',
+ *   exec: (handle) => {
+ *     const sql = handle.getValue();
+ *     executeQuery(sql);
+ *   },
+ * };
  */
 export interface EditorHotkey {
-  /** Unique name for the hotkey command */
+  /** Unique identifier for this hotkey command */
   name: string;
-  /** Key binding string (e.g., "Ctrl+Enter", "Alt+Enter") */
+  /**
+   * Key combination string. Format varies by editor but typically uses:
+   * - Modifiers: Ctrl, Alt, Shift, Meta (Cmd on Mac)
+   * - Separator: + (e.g., "Ctrl+Enter", "Ctrl+Shift+F")
+   */
   key: string;
-  /** Description of what the hotkey does */
+  /** Human-readable description shown in keyboard shortcut help */
   description?: string;
-  /** Function to execute when the hotkey is triggered */
+  /** Callback invoked when the hotkey is pressed, receives the editor handle */
   exec: (handle: EditorHandle) => void;
 }
 
 /**
- * Completion item kinds for autocompletion.
+ * Categories for completion items, determining the icon displayed.
+ * Includes standard programming concepts plus SQL-specific types
+ * (table, column, schema, catalog, database).
  */
 export type CompletionItemKind =
   | 'text'
@@ -132,53 +181,87 @@ export type CompletionItemKind =
   | 'database';
 
 /**
- * Represents a completion item for autocompletion.
+ * Represents a single item in the autocompletion dropdown.
+ * Completion items are suggestions shown to users as they type,
+ * allowing quick insertion of code snippets, keywords, or identifiers.
+ *
+ * @example
+ * const tableCompletion: CompletionItem = {
+ *   label: 'users',
+ *   insertText: 'users',
+ *   kind: 'table',
+ *   detail: 'public schema',
+ *   documentation: 'User accounts table with profile information',
+ * };
  */
 export interface CompletionItem {
-  /** Display label for the completion item */
+  /** Text displayed in the completion dropdown */
   label: string;
-  /** Text to insert when the item is selected */
+  /** Text inserted into the editor when this item is selected */
   insertText: string;
-  /** Kind of completion item for icon display */
+  /** Category of completion, determines the icon shown (e.g., table, column, function) */
   kind: CompletionItemKind;
-  /** Optional documentation to show in the completion popup */
+  /** Extended description shown in a details pane or tooltip */
   documentation?: string;
-  /** Optional detail text to show alongside the label */
+  /** Short additional info displayed next to the label (e.g., type, schema) */
   detail?: string;
-  /** Sorting priority (higher numbers appear first) */
+  /** String used for sorting; items are sorted lexicographically by this value */
   sortText?: string;
-  /** Text used for filtering completions */
+  /** String used for filtering; if omitted, label is used for matching user input */
   filterText?: string;
 }
 
 /**
- * Context provided to completion providers.
+ * Context information passed to completion providers when requesting suggestions.
+ * Contains details about how completion was triggered and the current environment.
  */
 export interface CompletionContext {
-  /** Character that triggered the completion (if any) */
+  /** The character that triggered automatic completion (e.g., '.', ' '), if applicable */
   triggerCharacter?: string;
-  /** How the completion was triggered */
+  /**
+   * How the completion was triggered:
+   * - 'invoke': User explicitly requested completion (e.g., Ctrl+Space)
+   * - 'automatic': Triggered automatically by typing a trigger character
+   */
   triggerKind: 'invoke' | 'automatic';
-  /** Language of the editor */
+  /** The language mode of the editor (e.g., 'sql', 'json') */
   language: EditorLanguage;
-  /** Generic metadata passed from the host (e.g., SQL Lab can pass database context) */
+  /** Host-provided context (e.g., database ID, schema name for SQL completions) */
   metadata?: Record<string, unknown>;
 }
 
 /**
- * Provider interface for dynamic completions.
+ * Interface for providing dynamic autocompletion suggestions.
+ * Providers are invoked when the user triggers completion, allowing
+ * context-aware suggestions based on cursor position and editor content.
+ *
+ * @example
+ * const tableCompletionProvider: CompletionProvider = {
+ *   id: 'sql-tables',
+ *   triggerCharacters: [' ', '.'],
+ *   provideCompletions: async (content, position, context) => {
+ *     const dbId = context.metadata?.databaseId;
+ *     const tables = await fetchTables(dbId);
+ *     return tables.map(t => ({
+ *       label: t.name,
+ *       insertText: t.name,
+ *       kind: 'table',
+ *     }));
+ *   },
+ * };
  */
 export interface CompletionProvider {
-  /** Unique identifier for this provider */
+  /** Unique identifier for this provider, used for debugging and deduplication */
   id: string;
-  /** Trigger characters that invoke this provider (e.g., '.', ' ') */
+  /** Characters that trigger this provider automatically when typed (e.g., '.', ' ') */
   triggerCharacters?: string[];
   /**
-   * Provide completions at the given position.
-   * @param content The editor content
-   * @param position The cursor position
-   * @param context Completion context with trigger info and metadata
-   * @returns Array of completion items or a promise that resolves to them
+   * Generate completion suggestions for the current cursor position.
+   *
+   * @param content Full text content of the editor
+   * @param position Current cursor position where completion was triggered
+   * @param context Additional context about the trigger and environment
+   * @returns Array of completion items, or a Promise resolving to them for async providers
    */
   provideCompletions(
     content: string,
@@ -188,98 +271,186 @@ export interface CompletionProvider {
 }
 
 /**
- * A keyword for editor autocomplete.
- * This is a generic format that editor implementations convert to their native format.
+ * Represents a static keyword for basic autocomplete.
+ * Keywords are simpler than CompletionItems and are used for static lists
+ * of suggestions (e.g., SQL keywords, table names) that don't require
+ * dynamic computation.
+ *
+ * Editor implementations convert these to their native completion format.
+ *
+ * @example
+ * const sqlKeywords: EditorKeyword[] = [
+ *   { name: 'SELECT', meta: 'keyword', score: 100 },
+ *   { name: 'FROM', meta: 'keyword', score: 100 },
+ *   { name: 'users', value: 'users', meta: 'table', score: 50 },
+ * ];
  */
 export interface EditorKeyword {
-  /** Display name of the keyword */
+  /** Display name shown in the completion dropdown */
   name: string;
-  /** Value to insert when selected (defaults to name if not provided) */
+  /** Text to insert when selected; defaults to name if not provided */
   value?: string;
-  /** Category/type of the keyword (e.g., "column", "table", "function") */
+  /** Category label shown alongside the name (e.g., "column", "table", "function") */
   meta?: string;
-  /** Optional score for sorting (higher = more relevant) */
+  /** Sorting priority; higher scores appear first in the completion list */
   score?: number;
 }
 
 /**
- * Props that all editor implementations must accept.
+ * Props accepted by all editor component implementations.
+ * This interface defines the contract between Superset and editor components,
+ * ensuring consistent behavior regardless of the underlying editor library.
  */
 export interface EditorProps {
-  /** Instance identifier */
+  /** Unique identifier for this editor instance */
   id: string;
-  /** Controlled value */
+  /** Current editor content (controlled component pattern) */
   value: string;
-  /** Content change handler */
+  /** Called when the editor content changes */
   onChange: (value: string) => void;
-  /** Blur handler */
+  /** Called when the editor loses focus, with the current value */
   onBlur?: (value: string) => void;
-  /** Cursor position change handler */
+  /** Called when the cursor position changes */
   onCursorPositionChange?: (pos: Position) => void;
-  /** Selection change handler */
+  /** Called when the selection(s) change */
   onSelectionChange?: (sel: Selection[]) => void;
-  /** Language mode for syntax highlighting */
+  /** Language mode for syntax highlighting and language features */
   language: EditorLanguage;
-  /** Whether the editor is read-only */
+  /** When true, prevents editing (view-only mode) */
   readOnly?: boolean;
-  /** Tab size in spaces */
+  /** Number of spaces per tab character */
   tabSize?: number;
-  /** Whether to show line numbers */
+  /** Whether to display line numbers in the gutter */
   lineNumbers?: boolean;
-  /** Whether to enable word wrap */
+  /** Whether long lines should wrap to the next visual line */
   wordWrap?: boolean;
-  /** Linting/error annotations */
+  /** Diagnostic annotations to display (errors, warnings, info) */
   annotations?: EditorAnnotation[];
-  /** Keyboard shortcuts */
+  /** Custom keyboard shortcuts */
   hotkeys?: EditorHotkey[];
-  /** Static keywords for autocomplete */
+  /** Static keywords for basic autocomplete */
   keywords?: EditorKeyword[];
-  /** CSS height (e.g., "100%", "500px") */
+  /** CSS height value (e.g., "100%", "500px", "calc(100vh - 200px)") */
   height?: string;
-  /** CSS width (e.g., "100%", "800px") */
+  /** CSS width value (e.g., "100%", "800px") */
   width?: string;
-  /** Callback when editor is ready with imperative handle */
+  /** Called when the editor is fully initialized, providing the imperative handle */
   onReady?: (handle: EditorHandle) => void;
-  /** Host-specific context (e.g., database info from SQL Lab) */
+  /** Contextual data passed to completion providers (e.g., database ID, schema) */
   metadata?: Record<string, unknown>;
-  /** Theme object for styling the editor */
+  /** Theme object for styling the editor to match Superset's appearance */
   theme?: SupersetTheme;
 }
 
 /**
  * Imperative API for controlling the editor programmatically.
+ *
+ * This handle provides a unified interface for interacting with text editors
+ * regardless of the underlying implementation (Ace, Monaco, CodeMirror, etc.).
+ * It can be used by any part of Superset that needs to manipulate editor content,
+ * read selections, or register custom behaviors.
  */
 export interface EditorHandle {
-  /** Focus the editor */
-  focus(): void;
-  /** Get the current editor content */
-  getValue(): string;
-  /** Set the editor content */
-  setValue(value: string): void;
-  /** Get the current cursor position */
-  getCursorPosition(): Position;
-  /** Move the cursor to a specific position */
-  moveCursorToPosition(position: Position): void;
-  /** Get all selections in the editor */
-  getSelections(): Selection[];
-  /** Set the selection range */
-  setSelection(selection: Range): void;
-  /** Get the selected text */
-  getSelectedText(): string;
-  /** Insert text at the current cursor position */
-  insertText(text: string): void;
-  /** Execute a named editor command */
-  executeCommand(commandName: string): void;
-  /** Scroll to a specific line */
-  scrollToLine(line: number): void;
-  /** Set annotations (replaces existing) */
-  setAnnotations(annotations: EditorAnnotation[]): void;
-  /** Clear all annotations */
-  clearAnnotations(): void;
   /**
-   * Register a completion provider for dynamic suggestions.
+   * Moves keyboard focus to the editor.
+   * Useful after programmatic operations to return user focus to the editing area.
+   */
+  focus(): void;
+
+  /**
+   * Returns the complete text content of the editor.
+   * @returns The full editor content as a string
+   */
+  getValue(): string;
+
+  /**
+   * Replaces the entire editor content with the provided value.
+   * This will clear any existing content and reset the undo history in most editors.
+   * @param value The new content to set
+   */
+  setValue(value: string): void;
+
+  /**
+   * Returns the current cursor position in the editor.
+   * @returns Position object with zero-based line and column numbers
+   */
+  getCursorPosition(): Position;
+
+  /**
+   * Moves the cursor to the specified position.
+   * @param position Target position with zero-based line and column numbers
+   */
+  moveCursorToPosition(position: Position): void;
+
+  /**
+   * Returns all active selections in the editor.
+   * Most editors support multiple selections (e.g., via Ctrl+click).
+   * Each selection includes start/end positions and optional direction.
+   * @returns Array of Selection objects, empty array if no selections
+   */
+  getSelections(): Selection[];
+
+  /**
+   * Sets the selection to the specified range.
+   * This replaces any existing selections with a single new selection.
+   * @param selection Range to select, with start and end positions
+   */
+  setSelection(selection: Range): void;
+
+  /**
+   * Returns the text within the current selection.
+   * If multiple selections exist, behavior depends on the editor implementation
+   * (typically returns the primary/first selection's text).
+   * @returns The selected text, or empty string if no selection
+   */
+  getSelectedText(): string;
+
+  /**
+   * Inserts text at the current cursor position.
+   * If text is selected, the selection is replaced with the inserted text.
+   * @param text The text to insert
+   */
+  insertText(text: string): void;
+  /**
+   * Execute a named editor command.
+   *
+   * Note: Command names are editor-specific. For example:
+   * - Ace: 'centerselection', 'gotoline', 'fold', 'unfold'
+   * - Monaco: 'editor.action.formatDocument', 'editor.action.commentLine'
+   *
+   * Callers using this method should be aware of which editor is active
+   * or handle cases where the command may not exist.
+   *
+   * @param commandName The editor-specific command name to execute
+   */
+  executeCommand(commandName: string): void;
+  /**
+   * Scrolls the editor viewport to bring the specified line into view.
+   * The exact positioning (top, center, bottom) depends on the editor implementation.
+   * @param line Zero-based line number to scroll to
+   */
+  scrollToLine(line: number): void;
+
+  /**
+   * Sets diagnostic annotations (errors, warnings, info markers) in the editor.
+   * This replaces any previously set annotations.
+   * Annotations appear as markers in the gutter and/or inline decorations.
+   * @param annotations Array of annotations to display
+   */
+  setAnnotations(annotations: EditorAnnotation[]): void;
+
+  /**
+   * Removes all annotations from the editor.
+   * Equivalent to calling setAnnotations([]).
+   */
+  clearAnnotations(): void;
+
+  /**
+   * Registers a provider for dynamic autocompletion suggestions.
+   * The provider will be invoked when completion is triggered (manually or automatically).
+   * Multiple providers can be registered; their results are merged.
    * @param provider The completion provider to register
-   * @returns A Disposable to unregister the provider
+   * @returns A Disposable that removes the provider when disposed
    */
   registerCompletionProvider(provider: CompletionProvider): Disposable;
 }

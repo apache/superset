@@ -230,14 +230,14 @@ test('returns column keywords among selected tables', async () => {
         },
       ),
     );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     storeWithSqlLab.dispatch(
       addTable(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         { id: expectQueryEditorId } as any,
         expectTable,
         expectCatalog,
         expectSchema,
-      ),
+      ) as any,
     );
   });
 
@@ -275,14 +275,14 @@ test('returns column keywords among selected tables', async () => {
   );
 
   act(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     storeWithSqlLab.dispatch(
       addTable(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         { id: expectQueryEditorId } as any,
         unexpectedTable,
         expectCatalog,
         expectSchema,
-      ),
+      ) as any,
     );
   });
 

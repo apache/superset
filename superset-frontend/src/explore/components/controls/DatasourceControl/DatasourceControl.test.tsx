@@ -41,7 +41,6 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  // @ts-ignore
   window.location = originalLocation;
   fetchMock.clearHistory().removeRoutes();
   jest.clearAllMocks(); // Clears mock history but keeps spy in place
@@ -129,6 +128,8 @@ const createProps = (
 const getDbWithQuery = 'glob:*/api/v1/database/?q=*';
 const getDatasetWithAll = 'glob:*/api/v1/dataset/*';
 const putDatasetWithAll = 'glob:*/api/v1/dataset/*';
+const getDatasetWithAllMockRouteName = `get${getDatasetWithAll}`;
+const putDatasetWithAllMockRouteName = `put${putDatasetWithAll}`;
 
 async function openAndSaveChanges(
   datasource: TestDatasource | Record<string, unknown>,
@@ -136,15 +137,19 @@ async function openAndSaveChanges(
   fetchMock.removeRoute(getDbWithQuery);
   fetchMock.get(getDbWithQuery, { result: [] }, { name: getDbWithQuery });
 
-  fetchMock.removeRoute('put' + putDatasetWithAll);
-  fetchMock.put(putDatasetWithAll, {}, { name: 'put' + putDatasetWithAll });
+  fetchMock.removeRoute(putDatasetWithAllMockRouteName);
+  fetchMock.put(
+    putDatasetWithAll,
+    {},
+    { name: putDatasetWithAllMockRouteName },
+  );
 
-  fetchMock.removeRoute('get' + getDatasetWithAll);
+  fetchMock.removeRoute(getDatasetWithAllMockRouteName);
   fetchMock.get(
     getDatasetWithAll,
     { result: datasource },
     {
-      name: 'get' + getDatasetWithAll,
+      name: getDatasetWithAllMockRouteName,
     },
   );
   await userEvent.click(screen.getByTestId('datasource-menu-trigger'));
@@ -524,9 +529,9 @@ test('should show missing params state', () => {
 });
 
 test('should show missing dataset state', () => {
-  // @ts-ignore
+  // @ts-expect-error - overriding window.location for test
   delete window.location;
-  // @ts-ignore
+  // @ts-expect-error - overriding window.location for test
   window.location = { search: '?slice_id=152' };
   const props = createProps({ datasource: fallbackExploreInitialData.dataset });
   render(<DatasourceControl {...props} />, { useRedux: true, useRouter: true });
@@ -539,9 +544,9 @@ test('should show missing dataset state', () => {
 });
 
 test('should show forbidden dataset state', () => {
-  // @ts-ignore
+  // @ts-expect-error - overriding window.location for test
   delete window.location;
-  // @ts-ignore
+  // @ts-expect-error - overriding window.location for test
   window.location = { search: '?slice_id=152' };
   const error = {
     error_type: 'TABLE_SECURITY_ACCESS_ERROR',

@@ -26,7 +26,7 @@ import updateTextNode from '../../../src/dimension/svg/updateTextNode';
 import createTextNode from '../../../src/dimension/svg/createTextNode';
 
 describe('updateTextNode(node, options)', () => {
-  it('handles empty options', () => {
+  test('handles empty options', () => {
     const node = updateTextNode(createTextNode());
     expect(node.getAttribute('class')).toEqual('');
     expect(node.style.font).toEqual('');
@@ -38,7 +38,7 @@ describe('updateTextNode(node, options)', () => {
     expect(node.textContent).toEqual('');
   });
 
-  it('handles setting class', () => {
+  test('handles setting class', () => {
     const node = updateTextNode(createTextNode(), { className: 'abc' });
     expect(node.getAttribute('class')).toEqual('abc');
     expect(node.style.font).toEqual('');
@@ -50,7 +50,7 @@ describe('updateTextNode(node, options)', () => {
     expect(node.textContent).toEqual('');
   });
 
-  it('handles setting text', () => {
+  test('handles setting text', () => {
     const node = updateTextNode(createTextNode(), { text: 'abc' });
     expect(node.getAttribute('class')).toEqual('');
     expect(node.style.font).toEqual('');
@@ -62,7 +62,7 @@ describe('updateTextNode(node, options)', () => {
     expect(node.textContent).toEqual('abc');
   });
 
-  it('handles setting font', () => {
+  test('handles setting font', () => {
     const node = updateTextNode(createTextNode(), {
       style: {
         font: 'italic 30px Lobster 700',
@@ -77,7 +77,7 @@ describe('updateTextNode(node, options)', () => {
     expect(node.textContent).toEqual('');
   });
 
-  it('handles setting specific font style', () => {
+  test('handles setting specific font style', () => {
     const node = updateTextNode(createTextNode(), {
       style: {
         fontFamily: 'Lobster',

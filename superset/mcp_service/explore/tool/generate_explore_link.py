@@ -92,7 +92,10 @@ async def generate_explore_link(
     try:
         await ctx.report_progress(1, 3, "Converting configuration to form data")
         # Map config to form_data using shared utilities
-        form_data = map_config_to_form_data(request.config)
+        # Pass dataset_id to enable column type checking for proper viz_type selection
+        form_data = map_config_to_form_data(
+            request.config, dataset_id=request.dataset_id
+        )
 
         # Add datasource to form_data for consistency with generate_chart
         # Only set if not already present to avoid overwriting

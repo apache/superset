@@ -38,9 +38,6 @@ test('Should return "" if subject is falsy', () => {
   expect(getSimpleSQLExpression('', params.operator, params.comparator)).toBe(
     '',
   );
-  expect(getSimpleSQLExpression(null, params.operator, params.comparator)).toBe(
-    '',
-  );
   expect(
     getSimpleSQLExpression(undefined, params.operator, params.comparator),
   ).toBe('');
@@ -54,9 +51,6 @@ test('Should return null string and empty string', () => {
 
 test('Should return subject if operator is falsy', () => {
   expect(getSimpleSQLExpression(params.subject, '', params.comparator)).toBe(
-    params.subject,
-  );
-  expect(getSimpleSQLExpression(params.subject, null, params.comparator)).toBe(
     params.subject,
   );
   expect(

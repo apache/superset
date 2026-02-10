@@ -48,7 +48,7 @@ const chartProps = new ChartProps({
 });
 
 describe('Funnel transformProps', () => {
-  it('should transform chart props for viz', () => {
+  test('should transform chart props for viz', () => {
     expect(transformProps(chartProps as EchartsFunnelChartProps)).toEqual(
       expect.objectContaining({
         width: 800,
@@ -75,7 +75,7 @@ describe('Funnel transformProps', () => {
 });
 
 describe('formatFunnelLabel', () => {
-  it('should generate a valid funnel chart label', () => {
+  test('should generate a valid funnel chart label', () => {
     const numberFormatter = getNumberFormatter();
     const params = {
       name: 'My Label',
@@ -143,7 +143,7 @@ describe('legend sorting', () => {
       queriesData: legendQueriesData,
     });
 
-  it('preserves original data order when no sort specified', () => {
+  test('preserves original data order when no sort specified', () => {
     const props = createChartProps({ legendSort: null });
     const result = transformProps(props as EchartsFunnelChartProps);
 
@@ -151,7 +151,7 @@ describe('legend sorting', () => {
     expect(legendData).toEqual(['Sylvester', 'Arnold', 'Mark']);
   });
 
-  it('sorts alphabetically ascending when legendSort is "asc"', () => {
+  test('sorts alphabetically ascending when legendSort is "asc"', () => {
     const props = createChartProps({ legendSort: 'asc' });
     const result = transformProps(props as EchartsFunnelChartProps);
 
@@ -159,7 +159,7 @@ describe('legend sorting', () => {
     expect(legendData).toEqual(['Arnold', 'Mark', 'Sylvester']);
   });
 
-  it('sorts alphabetically descending when legendSort is "desc"', () => {
+  test('sorts alphabetically descending when legendSort is "desc"', () => {
     const props = createChartProps({ legendSort: 'desc' });
     const result = transformProps(props as EchartsFunnelChartProps);
 
