@@ -3033,7 +3033,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 self.appbuilder.baseviews.remove(view)
                 continue
             # When legacy FAB password views are disabled, unregister and remove them
-            # so /superset/resetpassword and /superset/resetmypassword are not accessible.
+            # so legacy password reset routes are not directly accessible.
             if not current_app.config.get("ENABLE_LEGACY_FAB_PASSWORD_VIEWS", False):
                 if isinstance(view, (ResetPasswordView, ResetMyPasswordView)):
                     blueprint = getattr(view, "blueprint", None)
