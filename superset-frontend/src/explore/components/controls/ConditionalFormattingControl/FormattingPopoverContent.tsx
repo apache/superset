@@ -271,9 +271,7 @@ export const FormattingPopoverContent = ({
     [allColumns],
   );
 
-  const [columnFormatting, setColumnFormatting] = useState<
-    string | ObjectFormattingEnum | undefined
-  >(
+  const [columnFormatting, setColumnFormatting] = useState<string | undefined>(
     config?.columnFormatting ??
       (Array.isArray(allColumns)
         ? allColumns.find(item => item.value === column)?.value
@@ -320,9 +318,7 @@ export const FormattingPopoverContent = ({
     setPreviousColumnType(newColumnType);
   };
 
-  const handleAllColumnChange = (
-    value: string | ObjectFormattingEnum | undefined,
-  ) => {
+  const handleAllColumnChange = (value: string | undefined) => {
     setColumnFormatting(value);
   };
   const numericColumns = useMemo(
@@ -427,9 +423,7 @@ export const FormattingPopoverContent = ({
               <Select
                 ariaLabel={t('Select column name')}
                 options={getColumnOptions()}
-                onChange={(
-                  value: string | ObjectFormattingEnum | undefined,
-                ) => {
+                onChange={(value: string | undefined) => {
                   handleAllColumnChange(value as string);
                 }}
               />
