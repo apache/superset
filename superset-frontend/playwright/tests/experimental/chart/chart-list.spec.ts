@@ -21,8 +21,6 @@ import {
   test as testWithAssets,
   expect,
 } from '../../../helpers/fixtures/testAssets';
-import type { Response } from '@playwright/test';
-import * as unzipper from 'unzipper';
 import { ChartListPage } from '../../../pages/ChartListPage';
 import { ChartPropertiesModal } from '../../../components/modals/ChartPropertiesModal';
 import { DeleteConfirmationModal } from '../../../components/modals/DeleteConfirmationModal';
@@ -30,7 +28,10 @@ import { Toast } from '../../../components/core/Toast';
 import { apiGetChart, ENDPOINTS } from '../../../helpers/api/chart';
 import { createTestChart } from './chart-test-helpers';
 import { waitForGet } from '../../../helpers/api/intercepts';
-import { expectStatusOneOf } from '../../../helpers/api/assertions';
+import {
+  expectStatusOneOf,
+  expectValidExportZip,
+} from '../../../helpers/api/assertions';
 
 /**
  * Extend testWithAssets with chartListPage navigation (beforeEach equivalent).
@@ -43,35 +44,6 @@ const test = testWithAssets.extend<{ chartListPage: ChartListPage }>({
     await use(chartListPage);
   },
 });
-
-/**
- * Helper to validate an export zip response for charts.
- * Verifies headers, parses zip contents, and validates expected structure.
- */
-async function expectValidChartExportZip(
-  response: Response,
-  options: { minChartCount?: number } = {},
-): Promise<void> {
-  const { minChartCount = 1 } = options;
-
-  // Verify content type (use toContain to handle charset suffixes)
-  expect(response.headers()['content-type']).toContain('application/zip');
-
-  // Parse and validate zip contents
-  const body = await response.body();
-  expect(body.length).toBeGreaterThan(0);
-
-  const entries: string[] = [];
-  const directory = await unzipper.Open.buffer(body);
-  directory.files.forEach(file => entries.push(file.path));
-
-  // Validate structure: charts dir with yaml files + metadata
-  const chartYamlFiles = entries.filter(
-    entry => entry.includes('charts/') && entry.endsWith('.yaml'),
-  );
-  expect(chartYamlFiles.length).toBeGreaterThanOrEqual(minChartCount);
-  expect(entries.some(entry => entry.endsWith('metadata.yaml'))).toBe(true);
-}
 
 test('should delete a chart with confirmation', async ({
   page,
@@ -205,7 +177,7 @@ test('should export a chart as a zip file', async ({
 
   // Wait for export API response and validate zip contents
   const exportResponse = expectStatusOneOf(await exportResponsePromise, [200]);
-  await expectValidChartExportZip(exportResponse);
+  await expectValidExportZip(exportResponse, { resourceDir: 'charts' });
 });
 
 test('should bulk delete multiple charts', async ({
@@ -318,5 +290,8 @@ test('should bulk export multiple charts', async ({
 
   // Wait for export API response and validate zip contains multiple charts
   const exportResponse = expectStatusOneOf(await exportResponsePromise, [200]);
-  await expectValidChartExportZip(exportResponse, { minChartCount: 2 });
+  await expectValidExportZip(exportResponse, {
+    resourceDir: 'charts',
+    minCount: 2,
+  });
 });

@@ -19,6 +19,7 @@
 
 import type { Response, APIResponse } from '@playwright/test';
 import { expect } from '@playwright/test';
+import * as unzipper from 'unzipper';
 
 /**
  * Common interface for response types with status() method.
@@ -58,4 +59,45 @@ export function expectStatusOneOf<T extends ResponseLike>(
     `Expected status to be one of ${expected.join(', ')}, got ${response.status()}`,
   ).toContain(response.status());
   return response;
+}
+
+interface ExportZipOptions {
+  /** Directory name containing resource yaml files (e.g. 'charts', 'datasets') */
+  resourceDir: string;
+  /** Minimum number of resource yaml files expected (default: 1) */
+  minCount?: number;
+  /** Regex to validate Content-Disposition header (skipped if omitted) */
+  contentDispositionPattern?: RegExp;
+}
+
+/**
+ * Validate an export zip response: content-type, zip structure, and resource yaml files.
+ * Shared across chart and dataset export tests.
+ */
+export async function expectValidExportZip(
+  response: Response,
+  options: ExportZipOptions,
+): Promise<void> {
+  const { resourceDir, minCount = 1, contentDispositionPattern } = options;
+
+  expect(response.headers()['content-type']).toContain('application/zip');
+
+  if (contentDispositionPattern) {
+    expect(response.headers()['content-disposition']).toMatch(
+      contentDispositionPattern,
+    );
+  }
+
+  const body = await response.body();
+  expect(body.length).toBeGreaterThan(0);
+
+  const entries: string[] = [];
+  const directory = await unzipper.Open.buffer(body);
+  directory.files.forEach(file => entries.push(file.path));
+
+  const resourceYamlFiles = entries.filter(
+    entry => entry.includes(`${resourceDir}/`) && entry.endsWith('.yaml'),
+  );
+  expect(resourceYamlFiles.length).toBeGreaterThanOrEqual(minCount);
+  expect(entries.some(entry => entry.endsWith('metadata.yaml'))).toBe(true);
 }
