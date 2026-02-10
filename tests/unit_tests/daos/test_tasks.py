@@ -495,9 +495,9 @@ def test_conditional_status_update_terminal_state_updates_dedup_key(
     # Verify dedup_key was updated
     session_with_task.refresh(task)
     assert task.status == terminal_state.value
-    assert (
-        task.dedup_key == expected_finished_key
-    ), f"dedup_key not updated for {terminal_state.value}"
-    assert (
-        task.dedup_key != original_dedup_key
-    ), f"dedup_key should have changed for {terminal_state.value}"
+    assert task.dedup_key == expected_finished_key, (
+        f"dedup_key not updated for {terminal_state.value}"
+    )
+    assert task.dedup_key != original_dedup_key, (
+        f"dedup_key should have changed for {terminal_state.value}"
+    )
