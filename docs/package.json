@@ -103,7 +103,7 @@
     "prettier": "^3.8.1",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.55.0",
-    "webpack": "^5.105.0"
+    "webpack": "^5.105.1"
   },
   "browserslist": {
     "production": [
