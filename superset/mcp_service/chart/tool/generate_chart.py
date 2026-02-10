@@ -288,7 +288,9 @@ async def generate_chart(  # noqa: C901
 
                     # Ensure chart was created successfully before committing
                     if not chart or not chart.id:
-                        raise Exception("Chart creation failed - no chart ID returned")
+                        raise RuntimeError(
+                            "Chart creation failed - no chart ID returned"
+                        )
 
                 await ctx.info(
                     "Chart created successfully: chart_id=%s, chart_name=%s"
@@ -440,7 +442,8 @@ async def generate_chart(  # noqa: C901
                                 else:
                                     # Skip for non-numeric dataset IDs
                                     logger.warning(
-                                        "Cannot generate preview for non-numeric "
+                                        "Cannot generate preview for"
+                                        " non-numeric dataset IDs"
                                     )
                                     continue
 

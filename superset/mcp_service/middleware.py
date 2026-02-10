@@ -115,7 +115,7 @@ class LoggingMiddleware(Middleware):
             agent_id = getattr(context.session, "agent_id", None)
         try:
             user_id = get_user_id()
-        except Exception:
+        except (RuntimeError, AttributeError):
             user_id = None
         if isinstance(params, dict):
             dashboard_id = params.get("dashboard_id")

@@ -172,7 +172,7 @@ class TestExtractContextInfo:
 
     @patch(
         "superset.mcp_service.middleware.get_user_id",
-        side_effect=RuntimeError("no context"),
+        side_effect=RuntimeError("no Flask request context"),
     )
     def test_extract_handles_missing_user(self, mock_get_user_id):
         """Gracefully handles missing user context."""

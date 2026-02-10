@@ -1866,7 +1866,7 @@ async def _get_chart_preview_internal(  # noqa: C901
                                     self.uuid = None
 
                             chart = TransientChart(form_data)
-                    except Exception as e:
+                    except (ValueError, KeyError, AttributeError, TypeError) as e:
                         # Form data key not found or invalid
                         logger.debug(
                             "Failed to get form data for key %s: %s",
