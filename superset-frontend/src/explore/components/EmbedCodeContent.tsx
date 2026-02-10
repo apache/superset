@@ -41,7 +41,7 @@ const EmbedCodeContent: FC<EmbedCodeContentProps> = ({
 }) => {
   const [height, setHeight] = useState('400');
   const [width, setWidth] = useState('600');
-  const [embedData, setEmbedData] = useState(null);
+  const [embedData, setEmbedData] = useState<Record<string, any> | null>(null);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
