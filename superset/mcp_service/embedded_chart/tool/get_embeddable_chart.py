@@ -30,8 +30,8 @@ from flask import g
 from superset_core.mcp import tool
 
 from superset.mcp_service.chart.chart_utils import (
+    map_config_to_form_data,
     resolve_dataset,
-    validate_timeseries_config,
 )
 from superset.mcp_service.embedded_chart.schemas import (
     GetEmbeddableChartRequest,
@@ -47,6 +47,59 @@ from superset.security.guest_token import (
 
 logger = logging.getLogger(__name__)
 
+# Minimum read permissions the guest role needs for embedded charts to work.
+# Same requirement as embedded dashboards — the guest role must be able to
+# read chart metadata and query chart data.
+_REQUIRED_GUEST_PERMISSIONS: list[tuple[str, str]] = [
+    ("can_read", "Chart"),
+    ("can_read", "Dataset"),
+    ("can_read", "CurrentUserRestApi"),
+    ("can_read", "ChartDataRestApi"),
+]
+
+
+def _ensure_guest_role_permissions() -> list[str]:
+    """Ensure the guest role has minimum permissions for embedded charts.
+
+    Checks the role configured by GUEST_ROLE_NAME (defaults to "Public")
+    and adds any missing read permissions. This is idempotent — already
+    present permissions are skipped.
+
+    Returns a list of permissions that were added (empty if none needed).
+    """
+    from flask import current_app
+
+    from superset.extensions import db, security_manager
+
+    role_name = current_app.config.get("GUEST_ROLE_NAME", "Public")
+    role = security_manager.find_role(role_name)
+    if role is None:
+        logger.warning(
+            "Guest role '%s' not found, skipping permission setup", role_name
+        )
+        return []
+
+    added: list[str] = []
+    for perm_name, view_name in _REQUIRED_GUEST_PERMISSIONS:
+        pv = security_manager.find_permission_view_menu(perm_name, view_name)
+        if pv is None:
+            security_manager.add_permission_view_menu(perm_name, view_name)
+            pv = security_manager.find_permission_view_menu(perm_name, view_name)
+        if pv and pv not in role.permissions:
+            security_manager.add_permission_role(role, pv)
+            added.append(f"{perm_name} on {view_name}")
+
+    if added:
+        db.session.commit()
+        logger.info(
+            "Added %d permissions to guest role '%s': %s",
+            len(added),
+            role_name,
+            ", ".join(added),
+        )
+
+    return added
+
 
 @tool(tags=["core"])
 @parse_request(GetEmbeddableChartRequest)
@@ -57,35 +110,49 @@ async def get_embeddable_chart(
     """Create an embeddable chart iframe URL with guest token authentication.
 
     This tool creates an ephemeral chart visualization that can be embedded
-    in external applications via iframe. The chart is configured via form_data
-    and stored as a permalink with TTL.
+    in external applications via iframe. Uses the same simplified ChartConfig
+    schema as generate_chart for consistency.
 
-    IMPORTANT - Chart Type Selection:
-    - For CATEGORICAL data (genre, country, status): use 'bar', 'pie', 'table'
-    - For TIME SERIES data (dates/timestamps): use 'echarts_timeseries_*'
-    - Common mistake: using 'echarts_timeseries_bar' for categorical data
+    Config Types:
+    - chart_type='xy': For line, bar, area, scatter charts
+    - chart_type='table': For tabular data display
 
-    Example 1 - Categorical bar chart (sales by genre):
+    Example 1 - Bar chart (sales by genre):
     ```json
     {
         "datasource_id": 22,
-        "viz_type": "bar",
-        "form_data": {
-            "metrics": [{"aggregate": "SUM", "column": {"column_name": "sales"}}],
-            "groupby": ["genre"]
+        "config": {
+            "chart_type": "xy",
+            "x": {"name": "genre"},
+            "y": [{"name": "sales", "aggregate": "SUM"}],
+            "kind": "bar"
         }
     }
     ```
 
-    Example 2 - Time series line chart (requires datetime column):
+    Example 2 - Line chart (time series):
     ```json
     {
         "datasource_id": 123,
-        "viz_type": "echarts_timeseries_line",
-        "form_data": {
-            "x_axis": "created_at",
-            "metrics": ["count"],
-            "time_range": "Last 7 days"
+        "config": {
+            "chart_type": "xy",
+            "x": {"name": "created_at"},
+            "y": [{"name": "count", "aggregate": "COUNT"}],
+            "kind": "line"
+        }
+    }
+    ```
+
+    Example 3 - Table chart:
+    ```json
+    {
+        "datasource_id": 22,
+        "config": {
+            "chart_type": "table",
+            "columns": [
+                {"name": "genre"},
+                {"name": "sales", "aggregate": "SUM"}
+            ]
         }
     }
     ```
@@ -94,7 +161,7 @@ async def get_embeddable_chart(
     """
     await ctx.info(
         f"Creating embeddable chart: datasource_id={request.datasource_id}, "
-        f"viz_type={request.viz_type}"
+        f"chart_type={request.config.chart_type}"
     )
 
     try:
@@ -105,30 +172,24 @@ async def get_embeddable_chart(
         from superset.extensions import security_manager
         from superset.security.guest_token import GuestTokenResourceType
 
+        # Ensure the guest role has minimum permissions for embedded charts
+        added_perms = _ensure_guest_role_permissions()
+        if added_perms:
+            await ctx.info(
+                f"Auto-configured guest role with {len(added_perms)} permissions: "
+                f"{', '.join(added_perms)}"
+            )
+
         # Resolve dataset using shared utility
         dataset, error = resolve_dataset(request.datasource_id)
-        if error:
-            await ctx.error(error)
-            return GetEmbeddableChartResponse(success=False, error=error)
+        if error or dataset is None:
+            error_msg = error or f"Dataset not found: {request.datasource_id}"
+            await ctx.error(error_msg)
+            return GetEmbeddableChartResponse(success=False, error=error_msg)
 
-        # Validate timeseries viz types have required datetime configuration
-        validation_error = validate_timeseries_config(
-            request.viz_type, request.form_data, dataset
-        )
-        if validation_error:
-            await ctx.error(validation_error)
-            return GetEmbeddableChartResponse(success=False, error=validation_error)
-
-        # Build complete form_data
-        form_data = {
-            **request.form_data,
-            "viz_type": request.viz_type,
-            "datasource": f"{dataset.id}__table",
-        }
-
-        # Apply overrides if provided
-        if request.form_data_overrides:
-            form_data.update(request.form_data_overrides)
+        # Map simplified config to Superset form_data (same as generate_chart)
+        form_data = map_config_to_form_data(request.config)
+        form_data["datasource"] = f"{dataset.id}__table"
 
         # Create permalink with allowed_domains for referrer validation
         state = {
@@ -181,6 +242,7 @@ async def get_embeddable_chart(
         iframe_url = f"{base_url}/embedded/chart/?permalink_key={permalink_key}"
 
         # Generate iframe HTML snippet
+        # Embedded charts use direct postMessage (not MessageChannel handshake)
         iframe_html = f"""<iframe
     src="{iframe_url}"
     width="100%"
@@ -190,23 +252,14 @@ async def get_embeddable_chart(
     sandbox="allow-scripts allow-same-origin allow-popups"
 ></iframe>
 <script>
-    // Pass guest token to iframe on load
+    // Send guest token to embedded chart iframe on load
     (function() {{
         var iframe = document.currentScript.previousElementSibling;
         iframe.addEventListener('load', function() {{
-            var channel = new MessageChannel();
             iframe.contentWindow.postMessage({{
                 type: '__embedded_comms__',
-                handshake: 'port transfer'
-            }}, '{base_url}', [channel.port2]);
-            channel.port1.onmessage = function(event) {{
-                if (event.data && event.data.type === 'guestToken') {{
-                    channel.port1.postMessage({{
-                        type: 'guestToken',
-                        guestToken: '{guest_token}'
-                    }});
-                }}
-            }};
+                guestToken: '{guest_token}'
+            }}, '{base_url}');
         }});
     }})();
 </script>"""

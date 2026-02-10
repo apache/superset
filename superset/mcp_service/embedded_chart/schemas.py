@@ -19,31 +19,28 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
+# Import the same ChartConfig used by generate_chart
+from superset.mcp_service.chart.schemas import ChartConfig
+
 
 class GetEmbeddableChartRequest(BaseModel):
-    """Request schema for get_embeddable_chart tool."""
+    """Request schema for get_embeddable_chart tool.
+
+    Uses the same simplified ChartConfig schema as generate_chart for consistency.
+    """
 
     datasource_id: int | str = Field(
         ...,
         description="Dataset ID (numeric) or UUID",
     )
-    viz_type: str = Field(
+    config: ChartConfig = Field(
         ...,
         description=(
-            "Visualization type. For CATEGORICAL data (e.g., genre, country): use "
-            "'bar', 'pie', 'table'. For TIME SERIES data (requires datetime column): "
-            "use 'echarts_timeseries_line', 'echarts_timeseries_bar', "
-            "'echarts_timeseries_area'. Common mistake: using 'echarts_timeseries_bar' "
-            "for categorical data - use 'bar' instead."
+            "Chart configuration using simplified schema. Use chart_type='xy' for "
+            "line/bar/area/scatter charts, or chart_type='table' for tables. "
+            'Example: {"chart_type": "xy", "x": {"name": "genre"}, '
+            '"y": [{"name": "sales", "aggregate": "SUM"}], "kind": "bar"}'
         ),
-    )
-    form_data: dict[str, Any] = Field(
-        ...,
-        description="Chart configuration including metrics, dimensions, filters",
-    )
-    form_data_overrides: dict[str, Any] | None = Field(
-        default=None,
-        description="Optional overrides to merge with form_data",
     )
     ttl_minutes: int = Field(
         default=60,

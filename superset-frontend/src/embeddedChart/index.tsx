@@ -118,9 +118,11 @@ function guestUnauthorizedHandler() {
  * Configures SupersetClient with the correct settings for the embedded chart page.
  */
 function setupGuestClient(guestToken: string) {
+  // Strip any whitespace/newlines that could make the token an invalid HTTP header value
+  const cleanToken = guestToken.replace(/\s/g, '');
   setupClient({
     appRoot: applicationRoot(),
-    guestToken,
+    guestToken: cleanToken,
     guestTokenHeaderName: bootstrapData.config?.GUEST_TOKEN_HEADER_NAME,
     unauthorizedHandler: guestUnauthorizedHandler,
   });
@@ -257,29 +259,38 @@ function EmbeddedChartWithProviders() {
   );
 }
 
+function getGuestUserFallback(): UserWithPermissionsAndRoles {
+  return {
+    username: 'guest',
+    firstName: 'Guest',
+    lastName: 'User',
+    isActive: true,
+    isAnonymous: false,
+    roles: {},
+    permissions: {},
+  };
+}
+
 function start() {
   const getMeWithRole = makeApi<void, { result: UserWithPermissionsAndRoles }>({
     method: 'GET',
     endpoint: '/api/v1/me/roles/',
   });
   return getMeWithRole().then(
-    ({ result }) => {
-      bootstrapData.user = result;
-      store.dispatch({
-        type: USER_LOADED,
-        user: result,
-      });
-      ReactDOM.render(<EmbeddedChartWithProviders />, appMountPoint);
-    },
+    ({ result }) => result,
     err => {
-      logging.error(err);
-      showFailureMessage(
-        t(
-          'Something went wrong with embedded authentication. Check the dev console for details.',
-        ),
-      );
+      // Guest role may lack can_read on Me — fall back to minimal user
+      log('Could not fetch /api/v1/me/roles/, using guest defaults:', err);
+      return getGuestUserFallback();
     },
-  );
+  ).then(user => {
+    bootstrapData.user = user;
+    store.dispatch({
+      type: USER_LOADED,
+      user,
+    });
+    ReactDOM.render(<EmbeddedChartWithProviders />, appMountPoint);
+  });
 }
 
 let started = false;
