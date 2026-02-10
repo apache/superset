@@ -43,6 +43,12 @@ const columnsBooleanType = [
   { label: 'Column 2', value: 'column2', dataType: GenericDataType.Boolean },
 ];
 
+const mixColumns = [
+  { label: 'Name', value: 'name', dataType: GenericDataType.String },
+  { label: 'Sales', value: 'sales', dataType: GenericDataType.Numeric },
+  { label: 'Active', value: 'active', dataType: GenericDataType.Boolean },
+];
+
 const extraColorChoices = [
   {
     value: ColorSchemeEnum.Green,
@@ -224,7 +230,7 @@ test('Use gradient checkbox can be toggled', async () => {
   expect(checkbox).toBeChecked();
 });
 
-test('The "Use gradient" checkbox is not shown for string and boolean types.', () => {
+test('The Use Gradient check box is not displayed for string and logical data types and is displayed for numeric data types.', () => {
   render(
     <FormattingPopoverContent
       onChange={mockOnChange}
@@ -244,4 +250,60 @@ test('The "Use gradient" checkbox is not shown for string and boolean types.', (
   );
 
   expect(screen.queryByText('Use gradient')).not.toBeInTheDocument();
+
+  render(
+    <FormattingPopoverContent
+      onChange={mockOnChange}
+      columns={columns}
+      allColumns={columns}
+    />,
+  );
+
+  expect(screen.queryByText('Use gradient')).toBeInTheDocument();
+});
+
+test('should display formatting column and object fields when allColumns is provided and non-empty', async () => {
+  render(
+    <FormattingPopoverContent
+      columns={mixColumns}
+      allColumns={mixColumns}
+      onChange={mockOnChange}
+    />,
+  );
+
+  await waitFor(() => {
+    expect(screen.getByText('Formatting column')).toBeInTheDocument();
+    expect(screen.getByText('Formatting object')).toBeInTheDocument();
+  });
+});
+
+test('should hide formatting fields when allColumns is empty', async () => {
+  render(
+    <FormattingPopoverContent
+      columns={mixColumns}
+      allColumns={[]}
+      onChange={mockOnChange}
+    />,
+  );
+
+  await waitFor(() => {
+    expect(screen.queryByText('Formatting column')).not.toBeInTheDocument();
+    expect(screen.queryByText('Formatting object')).not.toBeInTheDocument();
+  });
+});
+
+test('should hide formatting fields when color scheme is Green', async () => {
+  render(
+    <FormattingPopoverContent
+      config={{ colorScheme: extraColorChoices[0].value }}
+      columns={mixColumns}
+      allColumns={mixColumns}
+      onChange={mockOnChange}
+    />,
+  );
+
+  await waitFor(() => {
+    expect(screen.queryByText('Formatting column')).not.toBeInTheDocument();
+    expect(screen.queryByText('Formatting object')).not.toBeInTheDocument();
+  });
 });
