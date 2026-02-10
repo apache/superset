@@ -121,10 +121,14 @@ class TestCore(SupersetTestCase):
         assert resp.status_code == 404
 
     def test_admin_only_menu_views(self):
+        from flask import current_app
+
         def assert_admin_view_menus_in(role_name, assert_func):
             role = security_manager.find_role(role_name)
             view_menus = [p.view_menu.name for p in role.permissions]
-            assert_func("ResetPasswordView", view_menus)
+            # ResetPasswordView only present when legacy FAB password views enabled
+            if current_app.config.get("ENABLE_LEGACY_FAB_PASSWORD_VIEWS", False):
+                assert_func("ResetPasswordView", view_menus)
             assert_func("RoleRestAPI", view_menus)
             assert_func("Security", view_menus)
             assert_func("SQL Lab", view_menus)
