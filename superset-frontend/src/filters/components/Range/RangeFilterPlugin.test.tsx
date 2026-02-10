@@ -322,7 +322,7 @@ describe('RangeFilterPlugin', () => {
   });
 
   describe('Decimal value handling', () => {
-    it('should handle decimal ranges correctly (0.03 to 1.08)', () => {
+    test('should handle decimal ranges correctly (0.03 to 1.08)', () => {
       const decimalProps = {
         queriesData: [
           {
@@ -348,7 +348,7 @@ describe('RangeFilterPlugin', () => {
       expect(sliders.length).toBeGreaterThan(0);
     });
 
-    it('should calculate appropriate step size for small decimal ranges', () => {
+    test('should calculate appropriate step size for small decimal ranges', () => {
       const smallRangeProps = {
         queriesData: [
           {
@@ -369,7 +369,7 @@ describe('RangeFilterPlugin', () => {
       expect(inputs[1]).toHaveValue('0.008');
     });
 
-    it('should handle very large ranges with appropriate step size', () => {
+    test('should handle very large ranges with appropriate step size', () => {
       const largeRangeProps = {
         queriesData: [
           {
@@ -390,7 +390,7 @@ describe('RangeFilterPlugin', () => {
       expect(inputs[1]).toHaveValue('500000');
     });
 
-    it('should handle negative decimal ranges', () => {
+    test('should handle negative decimal ranges', () => {
       const negativeDecimalProps = {
         queriesData: [
           {
@@ -411,7 +411,7 @@ describe('RangeFilterPlugin', () => {
       expect(inputs[1]).toHaveValue('1.5');
     });
 
-    it('should allow decimal input via keyboard', async () => {
+    test('should allow decimal input via keyboard', async () => {
       const decimalProps = {
         queriesData: [
           {
