@@ -33,7 +33,7 @@ import {
  */
 
 describe('getOverrideHtmlSchema', () => {
-  it('should append the override items', () => {
+  test('should append the override items', () => {
     const original = {
       attributes: {
         '*': ['size'],
@@ -71,7 +71,7 @@ describe('SafeMarkdown', () => {
      * This test will FAIL if remark-gfm is upgraded to v4+ without upgrading
      * react-markdown to v9+ (which requires React 18).
      */
-    it('should render GitHub Flavored Markdown tables without errors', () => {
+    test('should render GitHub Flavored Markdown tables without errors', () => {
       const markdownWithTable = `
 | Header 1 | Header 2 | Header 3 |
 |----------|----------|----------|
@@ -92,7 +92,7 @@ describe('SafeMarkdown', () => {
      * Tests that inline code blocks with backticks work correctly.
      * This was the original issue that led to pinning remark-gfm to v3.
      */
-    it('should render inline code blocks with backticks', () => {
+    test('should render inline code blocks with backticks', () => {
       const markdownWithCode = 'Use `console.log()` for debugging';
 
       expect(() => {
@@ -105,7 +105,7 @@ describe('SafeMarkdown', () => {
      *
      * Ensures other remark-gfm features work correctly with v3.
      */
-    it('should render strikethrough text', () => {
+    test('should render strikethrough text', () => {
       const markdownWithStrikethrough = '~~This is strikethrough text~~';
 
       expect(() => {
@@ -118,7 +118,7 @@ describe('SafeMarkdown', () => {
      *
      * Ensures task lists render correctly with v3.
      */
-    it('should render task lists', () => {
+    test('should render task lists', () => {
       const markdownWithTaskList = `
 - [x] Completed task
 - [ ] Incomplete task
@@ -134,7 +134,7 @@ describe('SafeMarkdown', () => {
      *
      * Tests that all GFM features work together without conflicts.
      */
-    it('should render complex markdown with multiple GFM features', () => {
+    test('should render complex markdown with multiple GFM features', () => {
       const complexMarkdown = `
 # Dashboard Overview
 

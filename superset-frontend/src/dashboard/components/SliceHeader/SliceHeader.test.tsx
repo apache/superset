@@ -207,37 +207,21 @@ test('Should render', () => {
 test('Should render - default props', () => {
   const props = createProps();
 
-  // @ts-ignore
   delete props.forceRefresh;
-  // @ts-ignore
   delete props.updateSliceName;
-  // @ts-ignore
   delete props.toggleExpandSlice;
-  // @ts-ignore
   delete props.logExploreChart;
-  // @ts-ignore
   delete props.exportCSV;
-  // @ts-ignore
   delete props.innerRef;
-  // @ts-ignore
   delete props.editMode;
-  // @ts-ignore
   delete props.annotationQuery;
-  // @ts-ignore
   delete props.annotationError;
-  // @ts-ignore
   delete props.cachedDttm;
-  // @ts-ignore
   delete props.updatedDttm;
-  // @ts-ignore
   delete props.isCached;
-  // @ts-ignore
   delete props.isExpanded;
-  // @ts-ignore
   delete props.sliceName;
-  // @ts-ignore
   delete props.supersetCanExplore;
-  // @ts-ignore
   delete props.supersetCanCSV;
 
   render(<SliceHeader {...props} />, {
@@ -251,37 +235,21 @@ test('Should render - default props', () => {
 test('Should render default props and "call" actions', () => {
   const props = createProps();
 
-  // @ts-ignore
   delete props.forceRefresh;
-  // @ts-ignore
   delete props.updateSliceName;
-  // @ts-ignore
   delete props.toggleExpandSlice;
-  // @ts-ignore
   delete props.logExploreChart;
-  // @ts-ignore
   delete props.exportCSV;
-  // @ts-ignore
   delete props.innerRef;
-  // @ts-ignore
   delete props.editMode;
-  // @ts-ignore
   delete props.annotationQuery;
-  // @ts-ignore
   delete props.annotationError;
-  // @ts-ignore
   delete props.cachedDttm;
-  // @ts-ignore
   delete props.updatedDttm;
-  // @ts-ignore
   delete props.isCached;
-  // @ts-ignore
   delete props.isExpanded;
-  // @ts-ignore
   delete props.sliceName;
-  // @ts-ignore
   delete props.supersetCanExplore;
-  // @ts-ignore
   delete props.supersetCanCSV;
 
   render(<SliceHeader {...props} />, {

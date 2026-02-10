@@ -39,11 +39,11 @@ import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import reducerIndex from 'spec/helpers/reducerIndex';
 import { QueryParamProvider } from 'use-query-params';
+import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import { configureStore, Store } from '@reduxjs/toolkit';
 import { api } from 'src/hooks/apiResources/queryApi';
 import userEvent from '@testing-library/user-event';
 import { ExtensionsProvider } from 'src/extensions/ExtensionsContext';
-import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 
 type Options = Omit<RenderOptions, 'queries'> & {
   useRedux?: boolean;

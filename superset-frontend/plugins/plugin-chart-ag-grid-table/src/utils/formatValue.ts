@@ -103,7 +103,7 @@ export const valueFormatter = (
 };
 
 export const valueGetter = (params: ValueGetterParams, col: InputColumn) => {
-  // @ts-ignore
+  // @ts-expect-error
   if (params?.colDef?.isMain) {
     const modifiedColId = `Main ${params.column.getColId()}`;
     return params.data[modifiedColId];

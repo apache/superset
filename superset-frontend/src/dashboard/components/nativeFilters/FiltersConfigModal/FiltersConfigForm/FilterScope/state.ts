@@ -19,7 +19,7 @@
 import { useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { t } from '@apache-superset/core';
-import { Charts, Layout, RootState, Slice } from 'src/dashboard/types';
+import { Charts, Layout, RootState } from 'src/dashboard/types';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import {
   CHART_TYPE,
@@ -44,13 +44,9 @@ export function useFilterScopeTree(
 
   const charts = useSelector<RootState, Charts>(({ charts }) => charts);
 
-  const sliceEntities = useSelector<RootState, Slice>(state => {
-    if (!state.sliceEntities) {
-      console.warn('sliceEntities not found in state');
-      return {};
-    }
-    return state.sliceEntities.slices || {};
-  });
+  const sliceEntities = useSelector(
+    (state: RootState) => state.sliceEntities.slices,
+  );
 
   const tree = {
     children: [],

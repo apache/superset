@@ -262,9 +262,9 @@ test('If only examples DB exist we must show the Connect Database option', async
     useTheme: true,
   });
   const dropdown = screen.getByTestId('new-dropdown-icon');
-  userEvent.hover(dropdown);
+  await userEvent.hover(dropdown);
   const dataMenu = await screen.findByText(dropdownItems[0].label);
-  userEvent.hover(dataMenu);
+  await userEvent.hover(dataMenu);
   expect(await screen.findByText('Connect database')).toBeInTheDocument();
   expect(screen.queryByText('Create dataset')).not.toBeInTheDocument();
 });
@@ -290,9 +290,9 @@ test('If more than just examples DB exist we must show the Create dataset option
     useTheme: true,
   });
   const dropdown = screen.getByTestId('new-dropdown-icon');
-  userEvent.hover(dropdown);
+  await userEvent.hover(dropdown);
   const dataMenu = await screen.findByText(dropdownItems[0].label);
-  userEvent.hover(dataMenu);
+  await userEvent.hover(dataMenu);
   expect(await screen.findByText('Create dataset')).toBeInTheDocument();
   expect(screen.queryByText('Connect database')).not.toBeInTheDocument();
 });
@@ -320,9 +320,9 @@ test('If there is a DB with allow_file_upload set as True the option should be e
     useTheme: true,
   });
   const dropdown = screen.getByTestId('new-dropdown-icon');
-  userEvent.hover(dropdown);
+  await userEvent.hover(dropdown);
   const dataMenu = await screen.findByText(dropdownItems[0].label);
-  userEvent.hover(dataMenu);
+  await userEvent.hover(dataMenu);
   const csvMenu = await screen.findByText('Upload CSV to database');
   expect(csvMenu).toBeInTheDocument();
   expect(
@@ -355,9 +355,9 @@ test('If there is NOT a DB with allow_file_upload set as True the option should 
     useTheme: true,
   });
   const dropdown = screen.getByTestId('new-dropdown-icon');
-  userEvent.hover(dropdown);
+  await userEvent.hover(dropdown);
   const dataMenu = await screen.findByText(dropdownItems[0].label);
-  userEvent.hover(dataMenu);
+  await userEvent.hover(dataMenu);
   const csvMenu = await screen.findByRole('menuitem', {
     name: 'Upload CSV to database',
   });
@@ -381,13 +381,11 @@ test('Logs out and clears local storage item redux', async () => {
   expect(localStorage.getItem('redux')).not.toBeNull();
   expect(sessionStorage.getItem('login_attempted')).not.toBeNull();
 
-  userEvent.hover(await screen.findByText(/Settings/i));
+  await userEvent.hover(await screen.findByText(/Settings/i));
 
   // Simulate user clicking the logout button
-  await waitFor(() => {
-    const logoutButton = screen.getByText('Logout');
-    userEvent.click(logoutButton);
-  });
+  const logoutButton = await screen.findByText('Logout');
+  await userEvent.click(logoutButton);
 
   // Wait for local and session storage to be cleared
   await waitFor(() => {

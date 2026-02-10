@@ -31,7 +31,7 @@ describe('SupersetClient', () => {
 
   afterEach(() => SupersetClient.reset());
 
-  it('exposes reset, configure, init, get, post, postForm, isAuthenticated, and reAuthenticate methods', () => {
+  test('exposes reset, configure, init, get, post, postForm, isAuthenticated, and reAuthenticate methods', () => {
     expect(typeof SupersetClient.configure).toBe('function');
     expect(typeof SupersetClient.init).toBe('function');
     expect(typeof SupersetClient.get).toBe('function');
@@ -44,7 +44,7 @@ describe('SupersetClient', () => {
     expect(typeof SupersetClient.reset).toBe('function');
   });
 
-  it('throws if you call init, get, post, postForm, isAuthenticated, or reAuthenticate before configure', () => {
+  test('throws if you call init, get, post, postForm, isAuthenticated, or reAuthenticate before configure', () => {
     expect(SupersetClient.init).toThrow();
     expect(SupersetClient.get).toThrow();
     expect(SupersetClient.post).toThrow();
@@ -56,7 +56,7 @@ describe('SupersetClient', () => {
   });
 
   // this also tests that the ^above doesn't throw if configure is called appropriately
-  it('calls appropriate SupersetClient methods when configured', async () => {
+  test('calls appropriate SupersetClient methods when configured', async () => {
     expect.assertions(16);
     const mockGetUrl = '/mock/get/url';
     const mockPostUrl = '/mock/post/url';

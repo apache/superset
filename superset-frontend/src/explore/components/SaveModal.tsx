@@ -198,7 +198,12 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
 
   async saveOrOverwrite(gotodash: boolean) {
     this.setState({ isLoading: true });
-    this.props.dispatch(updateChartState(this.props.form_data?.table_state));
+    const tableState = this.props.form_data?.table_state;
+    const sliceId = this.props.slice?.slice_id;
+    const vizType = this.props.form_data?.viz_type;
+    if (sliceId && vizType && tableState) {
+      this.props.dispatch(updateChartState(sliceId, vizType, tableState));
+    }
 
     //  Create or retrieve dashboard
     type DashboardGetResponse = {
