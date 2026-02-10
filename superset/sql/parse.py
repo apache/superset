@@ -827,7 +827,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
 
         :return: True if the statement has a CTE at the top level.
         """
-        return "with_" in self._parsed.args
+        return bool(self._parsed.args.get("with_"))
 
     def as_cte(self, alias: str = "__cte") -> SQLStatement:
         """
