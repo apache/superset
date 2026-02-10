@@ -17,6 +17,10 @@
 
 */}}
 
+{{- if and .Values.extraConfigsFiles .Values.extraConfigs }}
+{{ fail "❌ Cannot use both extraConfigs and extraConfigsFiles at the same time. Please set only one." }}
+{{- end }}
+
 {{- if .Values.extraConfigs }}
 apiVersion: v1
 kind: ConfigMap
@@ -36,4 +40,22 @@ data:
   {{ $path }}: |
     {{- tpl $config $ | nindent 4 -}}
   {{- end -}}
-{{- end -}}
+{{- end }}
+
+{{- if .Values.extraConfigsFiles }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "superset.fullname" . }}-extra-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ template "superset.name" . }}
+    chart: {{ template "superset.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+data:
+  {{- range $filename, $filepath := .Values.extraConfigsFiles }}
+  {{ $filename }}: |
+    {{- $.Files.Get $filepath | nindent 4 }}
+  {{- end }}
+{{- end }}

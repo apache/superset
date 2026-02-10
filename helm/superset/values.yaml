@@ -119,6 +119,8 @@ extraConfigs: {}
   #         }"
   #       sqlalchemy_uri: example://example-db.local
   #       tables: []
+extraConfigsFiles: {}
+  # import_datasources.yaml: files/import_datasources.yaml
 
 # -- Extra files to be mounted as Secrets on the path specified in `configMountPath`
 extraSecrets: {}
