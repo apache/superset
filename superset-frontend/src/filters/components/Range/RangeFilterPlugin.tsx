@@ -236,31 +236,21 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   const { min, max }: { min: number; max: number } = row;
 
   // Calculate appropriate step size for decimal values
+  // Uses a consistent approach for all ranges to avoid floating-point string parsing issues
   const calculateStep = useCallback((minValue: number, maxValue: number) => {
     const range = maxValue - minValue;
+    if (range <= 0) return 0.01;
 
-    // If the range is very small (less than 1), use smaller steps
-    if (range < 1) {
-      // Find the number of decimal places needed
-      const rangeStr = range.toString();
-      const decimalMatch = rangeStr.match(/\.(\d+)/);
-      if (decimalMatch) {
-        const decimalPlaces = decimalMatch[1].length;
-        // Use a step that gives approximately 100 steps across the range
-        return Math.pow(10, -Math.min(decimalPlaces + 1, 6));
-      }
-      return 0.01;
-    }
-
-    // For larger ranges, calculate step to give approximately 100-1000 steps
+    // Calculate step to give approximately 100 steps across the range
     const idealSteps = 100;
     let step = range / idealSteps;
 
-    // Round step to a nice value (0.001, 0.01, 0.1, 1, 10, etc.)
+    // Round step to a nice value (0.0001, 0.001, 0.01, 0.1, 1, 10, etc.)
     const magnitude = Math.pow(10, Math.floor(Math.log10(step)));
     step = Math.round(step / magnitude) * magnitude;
 
-    return step;
+    // Ensure we don't return 0 for very small ranges
+    return step || 0.0001;
   }, []);
 
   const sliderStep = useMemo(

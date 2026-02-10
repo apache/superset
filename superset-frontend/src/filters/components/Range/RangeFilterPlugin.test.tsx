@@ -430,9 +430,9 @@ describe('RangeFilterPlugin', () => {
       const inputs = screen.getAllByRole('spinbutton');
       const fromInput = inputs[0];
 
-      userEvent.clear(fromInput);
-      userEvent.type(fromInput, '2.5');
-      userEvent.tab();
+      await userEvent.clear(fromInput);
+      await userEvent.type(fromInput, '2.5');
+      await userEvent.tab();
 
       expect(setDataMask).toHaveBeenCalledWith(
         expect.objectContaining({
