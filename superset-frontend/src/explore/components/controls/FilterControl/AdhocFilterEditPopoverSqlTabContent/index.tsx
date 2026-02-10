@@ -53,7 +53,7 @@ export default function AdhocFilterEditPopoverSqlTabContent({
   const theme = useTheme();
 
   useEffect(() => {
-    // @ts-ignore
+    // @ts-expect-error - AceEditor ref type doesn't expose editor.resize()
     aceEditorRef?.current?.editor.resize();
   }, [adhocFilter]);
 

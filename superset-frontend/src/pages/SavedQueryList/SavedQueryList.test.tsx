@@ -27,8 +27,8 @@ import {
 } from 'spec/helpers/testing-library';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
-import SavedQueryList from '.';
 import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
+import SavedQueryList from '.';
 
 // Increase default timeout
 jest.setTimeout(30000);

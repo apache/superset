@@ -24,7 +24,7 @@ import {
   useMemo,
 } from 'react';
 import { useSelector, useDispatch, shallowEqual } from 'react-redux';
-import { styled, t } from '@apache-superset/core';
+import { styled, css, t, useTheme } from '@apache-superset/core';
 import AutoSizer from 'react-virtualized-auto-sizer';
 // Due to performance issues with the virtual list in the existing Ant Design (antd)-based tree view,
 // it has been replaced with react-arborist solution.
@@ -109,6 +109,7 @@ const ROW_HEIGHT = 28;
 
 const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
   const dispatch = useDispatch();
+  const theme = useTheme();
   const treeRef = useRef<TreeApi<TreeNodeData>>(null);
   const tables = useSelector(
     ({ sqlLab }: SqlLabRootState) => sqlLab.tables,
@@ -236,31 +237,38 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
 
   return (
     <>
-      <PanelToolbar
-        viewId={ViewContribution.LeftSidebar}
-        defaultPrimaryActions={
-          <>
-            <Button
-              color="primary"
-              variant="text"
-              icon={<Icons.MinusSquareOutlined />}
-              onClick={() => {
-                treeRef.current?.closeAll();
-                setManuallyOpenedNodes({});
-              }}
-              tooltip={t('Collapse all')}
-            />
-            <Button
-              color="primary"
-              variant="text"
-              icon={<Icons.ReloadOutlined />}
-              onClick={() => refetch()}
-              loading={isFetching}
-              tooltip={t('Force refresh schema list')}
-            />
-          </>
-        }
-      />
+      {/* Negative margin to align toolbar icons with other elements on the screen */}
+      <div
+        css={css`
+          margin-left: -${theme.sizeUnit * 2}px;
+        `}
+      >
+        <PanelToolbar
+          viewId={ViewContribution.LeftSidebar}
+          defaultPrimaryActions={
+            <>
+              <Button
+                color="primary"
+                variant="text"
+                icon={<Icons.MinusSquareOutlined />}
+                onClick={() => {
+                  treeRef.current?.closeAll();
+                  setManuallyOpenedNodes({});
+                }}
+                tooltip={t('Collapse all')}
+              />
+              <Button
+                color="primary"
+                variant="text"
+                icon={<Icons.ReloadOutlined />}
+                onClick={() => refetch()}
+                loading={isFetching}
+                tooltip={t('Force refresh schema list')}
+              />
+            </>
+          }
+        />
+      </div>
       <Input
         allowClear
         type="text"
@@ -268,6 +276,9 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
         placeholder={t('Enter a part of the object name')}
         onChange={handleSearchChange}
         value={searchTerm}
+        css={css`
+          margin-bottom: 2px;
+        `}
       />
       {errorPayload && (
         <ErrorMessageWithStackTrace error={errorPayload} source="crud" />

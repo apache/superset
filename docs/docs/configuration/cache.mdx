@@ -7,6 +7,12 @@ version: 1
 
 # Caching
 
+:::note
+When a cache backend is configured, Superset expects it to remain available. Operations will
+fail if the configured backend becomes unavailable rather than silently degrading. This
+fail-fast behavior ensures operators are immediately aware of infrastructure issues.
+:::
+
 Superset uses [Flask-Caching](https://flask-caching.readthedocs.io/) for caching purposes.
 Flask-Caching supports various caching backends, including Redis (recommended), Memcached,
 SimpleCache (in-memory), or the local filesystem.
@@ -152,6 +158,84 @@ Then on configuration:
 ```
 WEBDRIVER_AUTH_FUNC = auth_driver
 ```
+
+## Signal Cache Backend
+
+Superset supports an optional signal cache (`SIGNAL_CACHE_CONFIG`) for
+high-performance distributed operations. This configuration enables:
+
+- **Distributed locking**: Moves lock operations from the metadata database to Redis, improving
+  performance and reducing metastore load
+- **Real-time event notifications**: Enables instant pub/sub messaging for task abort signals and
+  completion notifications instead of polling-based approaches
+
+:::note
+This requires Redis or Valkey specifically—it uses Redis-specific features (pub/sub, `SET NX EX`)
+that are not available in general Flask-Caching backends.
+:::
+
+### Configuration
+
+The signal cache uses Flask-Caching style configuration for consistency with other cache
+backends. Configure `SIGNAL_CACHE_CONFIG` in `superset_config.py`:
+
+```python
+SIGNAL_CACHE_CONFIG = {
+    "CACHE_TYPE": "RedisCache",
+    "CACHE_REDIS_HOST": "localhost",
+    "CACHE_REDIS_PORT": 6379,
+    "CACHE_REDIS_DB": 0,
+    "CACHE_REDIS_PASSWORD": "",  # Optional
+}
+```
+
+For Redis Sentinel deployments:
+
+```python
+SIGNAL_CACHE_CONFIG = {
+    "CACHE_TYPE": "RedisSentinelCache",
+    "CACHE_REDIS_SENTINELS": [("sentinel1", 26379), ("sentinel2", 26379)],
+    "CACHE_REDIS_SENTINEL_MASTER": "mymaster",
+    "CACHE_REDIS_SENTINEL_PASSWORD": None,  # Sentinel password (if different)
+    "CACHE_REDIS_PASSWORD": "",  # Redis password
+    "CACHE_REDIS_DB": 0,
+}
+```
+
+For SSL/TLS connections:
+
+```python
+SIGNAL_CACHE_CONFIG = {
+    "CACHE_TYPE": "RedisCache",
+    "CACHE_REDIS_HOST": "redis.example.com",
+    "CACHE_REDIS_PORT": 6380,
+    "CACHE_REDIS_SSL": True,
+    "CACHE_REDIS_SSL_CERTFILE": "/path/to/client.crt",
+    "CACHE_REDIS_SSL_KEYFILE": "/path/to/client.key",
+    "CACHE_REDIS_SSL_CA_CERTS": "/path/to/ca.crt",
+}
+```
+
+### Distributed Lock TTL
+
+You can configure the default lock TTL (time-to-live) in seconds. Locks automatically expire after
+this duration to prevent deadlocks from crashed processes:
+
+```python
+DISTRIBUTED_LOCK_DEFAULT_TTL = 30  # Default: 30 seconds
+```
+
+Individual lock acquisitions can override this value when needed.
+
+### Database-Only Mode
+
+When `SIGNAL_CACHE_CONFIG` is not configured, Superset uses database-backed operations:
+
+- **Locking**: Uses the KeyValue table with periodic cleanup of expired entries
+- **Event notifications**: Uses database polling instead of pub/sub
+
+While database-backed operations work reliably, the Redis backend is recommended for production
+deployments where low latency and reduced database load are important.
 
 :::resources
 - [Blog: The Data Engineer's Guide to Lightning-Fast Superset Dashboards](https://preset.io/blog/the-data-engineers-guide-to-lightning-fast-apache-superset-dashboards/)

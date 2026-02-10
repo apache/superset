@@ -22,10 +22,10 @@ import { Provider } from 'react-redux';
 import { MemoryRouter } from 'react-router-dom';
 import { configureStore } from '@reduxjs/toolkit';
 import { QueryParamProvider } from 'use-query-params';
+import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import { isFeatureEnabled } from '@superset-ui/core';
 import ChartList from 'src/pages/ChartList';
 import { API_ENDPOINTS, mockCharts, setupMocks } from './ChartList.testHelpers';
-import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 
 // Increase default timeout for all tests
 jest.setTimeout(30000);

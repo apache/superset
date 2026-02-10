@@ -24,6 +24,7 @@ import TableCollection from '@superset-ui/core/components/TableCollection';
 import BulkTagModal from 'src/features/tags/BulkTagModal';
 import {
   Button,
+  Tooltip,
   Checkbox,
   Icons,
   EmptyState,
@@ -201,31 +202,36 @@ const ViewModeToggle = ({
   setMode: (mode: 'table' | 'card') => void;
 }) => (
   <ViewModeContainer>
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={e => {
-        e.currentTarget.blur();
-        setMode('card');
-      }}
-      className={cx('toggle-button', { active: mode === 'card' })}
-    >
-      <Icons.AppstoreOutlined iconSize="xl" />
-    </div>
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={e => {
-        e.currentTarget.blur();
-        setMode('table');
-      }}
-      className={cx('toggle-button', { active: mode === 'table' })}
-    >
-      <Icons.UnorderedListOutlined iconSize="xl" />
-    </div>
+    <Tooltip title={t('Grid view')}>
+      <div
+        role="button"
+        tabIndex={0}
+        aria-pressed={mode === 'card'}
+        onClick={(e: React.MouseEvent<HTMLDivElement>) => {
+          e.currentTarget.blur();
+          setMode('card');
+        }}
+        className={cx('toggle-button', { active: mode === 'card' })}
+      >
+        <Icons.AppstoreOutlined iconSize="xl" />
+      </div>
+    </Tooltip>
+    <Tooltip title={t('List view')}>
+      <div
+        role="button"
+        tabIndex={0}
+        aria-pressed={mode === 'table'}
+        onClick={(e: React.MouseEvent<HTMLDivElement>) => {
+          e.currentTarget.blur();
+          setMode('table');
+        }}
+        className={cx('toggle-button', { active: mode === 'table' })}
+      >
+        <Icons.UnorderedListOutlined iconSize="xl" />
+      </div>
+    </Tooltip>
   </ViewModeContainer>
 );
-
 export interface ListViewProps<T extends object = any> {
   columns: any[];
   data: T[];
@@ -463,7 +469,7 @@ export function ListView<T extends object = any>({
                     current={pageIndex + 1}
                     pageSize={pageSize}
                     total={count}
-                    onChange={page => {
+                    onChange={(page: number) => {
                       gotoPage(page - 1);
                     }}
                     size="default"
