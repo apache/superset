@@ -144,9 +144,18 @@ test('should edit chart name via properties modal', async ({
   await expect(toast.getSuccess()).toBeVisible();
 
   // Backend verification: API returns updated name
-  const response = await apiGetChart(page, chartId);
-  const chart = (await response.json()).result;
-  expect(chart.slice_name).toBe(newName);
+  await expect
+    .poll(
+      async () => {
+        const response = await apiGetChart(page, chartId);
+        return (await response.json()).result.slice_name;
+      },
+      {
+        timeout: 10000,
+        message: `Chart ${chartId} should have name ${newName}`,
+      },
+    )
+    .toBe(newName);
 });
 
 test('should export a chart as a zip file', async ({
@@ -177,7 +186,10 @@ test('should export a chart as a zip file', async ({
 
   // Wait for export API response and validate zip contents
   const exportResponse = expectStatusOneOf(await exportResponsePromise, [200]);
-  await expectValidExportZip(exportResponse, { resourceDir: 'charts' });
+  await expectValidExportZip(exportResponse, {
+    resourceDir: 'charts',
+    expectedNames: [chartName],
+  });
 });
 
 test('should bulk delete multiple charts', async ({
@@ -288,10 +300,11 @@ test('should bulk export multiple charts', async ({
   // Click bulk export action
   await chartListPage.clickBulkAction('Export');
 
-  // Wait for export API response and validate zip contains multiple charts
+  // Wait for export API response and validate zip contains both charts
   const exportResponse = expectStatusOneOf(await exportResponsePromise, [200]);
   await expectValidExportZip(exportResponse, {
     resourceDir: 'charts',
     minCount: 2,
+    expectedNames: [chart1.name, chart2.name],
   });
 });

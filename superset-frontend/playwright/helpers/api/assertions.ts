@@ -68,6 +68,8 @@ interface ExportZipOptions {
   minCount?: number;
   /** Regex to validate Content-Disposition header (skipped if omitted) */
   contentDispositionPattern?: RegExp;
+  /** Resource names that must each appear in at least one YAML filepath */
+  expectedNames?: string[];
 }
 
 /**
@@ -78,7 +80,12 @@ export async function expectValidExportZip(
   response: Response,
   options: ExportZipOptions,
 ): Promise<void> {
-  const { resourceDir, minCount = 1, contentDispositionPattern } = options;
+  const {
+    resourceDir,
+    minCount = 1,
+    contentDispositionPattern,
+    expectedNames,
+  } = options;
 
   expect(response.headers()['content-type']).toContain('application/zip');
 
@@ -100,4 +107,13 @@ export async function expectValidExportZip(
   );
   expect(resourceYamlFiles.length).toBeGreaterThanOrEqual(minCount);
   expect(entries.some(entry => entry.endsWith('metadata.yaml'))).toBe(true);
+
+  if (expectedNames) {
+    for (const name of expectedNames) {
+      expect(
+        resourceYamlFiles.some(f => f.includes(name)),
+        `Expected export zip to contain a YAML file matching "${name}"`,
+      ).toBe(true);
+    }
+  }
 }

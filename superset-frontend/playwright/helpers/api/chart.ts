@@ -18,7 +18,6 @@
  */
 
 import { Page, APIResponse } from '@playwright/test';
-import rison from 'rison';
 import {
   apiGet,
   apiPost,
@@ -102,40 +101,4 @@ export async function apiPutChart(
   options?: ApiRequestOptions,
 ): Promise<APIResponse> {
   return apiPut(page, `${ENDPOINTS.CHART}${chartId}`, data, options);
-}
-
-/**
- * Get a chart by its slice_name
- * @param page - Playwright page instance (provides authentication context)
- * @param sliceName - The slice_name to search for
- * @returns Chart object if found, null if not found
- */
-export async function getChartByName(
-  page: Page,
-  sliceName: string,
-): Promise<{ id: number; slice_name: string } | null> {
-  const filter = {
-    filters: [
-      {
-        col: 'slice_name',
-        opr: 'eq',
-        value: sliceName,
-      },
-    ],
-  };
-  const queryParam = rison.encode(filter);
-  const response = await apiGet(page, `${ENDPOINTS.CHART}?q=${queryParam}`, {
-    failOnStatusCode: false,
-  });
-
-  if (!response.ok()) {
-    return null;
-  }
-
-  const body = await response.json();
-  if (body.result && body.result.length > 0) {
-    return body.result[0];
-  }
-
-  return null;
 }
