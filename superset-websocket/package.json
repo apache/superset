@@ -27,7 +27,7 @@
     "ws": "^8.19.0"
   },
   "devDependencies": {
-    "@eslint/js": "^9.25.1",
+    "@eslint/js": "^10.0.1",
     "@types/eslint__js": "^8.42.3",
     "@types/ioredis": "^5.0.0",
     "@types/jest": "^29.5.14",
