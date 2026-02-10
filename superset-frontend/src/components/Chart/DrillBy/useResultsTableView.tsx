@@ -50,6 +50,7 @@ export const useResultsTableView = (
           datasourceId={datasourceId}
           isVisible
           canDownload={canDownload}
+          isPaginationSticky={false}
         />
       </PaginationContainer>
     );
@@ -71,6 +72,7 @@ export const useResultsTableView = (
               datasourceId={datasourceId}
               isVisible
               canDownload={canDownload}
+              isPaginationSticky={false}
             />
           </PaginationContainer>
         ),

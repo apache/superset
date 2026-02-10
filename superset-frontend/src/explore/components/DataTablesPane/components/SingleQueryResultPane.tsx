@@ -40,6 +40,7 @@ export const SingleQueryResultPane = ({
   isVisible,
   canDownload,
   columnDisplayNames,
+  isPaginationSticky = true,
 }: SingleQueryResultPaneProp) => {
   const [filterText, setFilterText] = useState('');
 
@@ -82,7 +83,7 @@ export const SingleQueryResultPane = ({
         noDataText={t('No results')}
         emptyWrapperType={EmptyWrapperType.Small}
         className="table-condensed"
-        isPaginationSticky
+        isPaginationSticky={isPaginationSticky}
         showRowCount={false}
         small
       />
