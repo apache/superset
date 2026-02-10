@@ -90,7 +90,7 @@ import ExploreCtasResultsButton from '../ExploreCtasResultsButton';
 import ExploreResultsButton from '../ExploreResultsButton';
 import HighlightedSql from '../HighlightedSql';
 import PanelToolbar from 'src/components/PanelToolbar';
-import { ViewContribution } from 'src/SqlLab/contributions';
+import { ViewLocations } from 'src/SqlLab/contributions';
 
 enum LimitingFactor {
   Query = 'QUERY',
@@ -466,7 +466,7 @@ const ResultSet = ({
             datasource={datasource}
           />
           <PanelToolbar
-            viewId={ViewContribution.Results}
+            viewId={ViewLocations.sqllab.results}
             defaultPrimaryActions={defaultPrimaryActions}
           />
         </ResultSetButtons>

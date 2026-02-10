@@ -40,7 +40,7 @@ import type { SqlLabRootState } from 'src/SqlLab/types';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import { addTable } from 'src/SqlLab/actions/sqlLab';
 import PanelToolbar from 'src/components/PanelToolbar';
-import { ViewContribution } from 'src/SqlLab/contributions';
+import { ViewLocations } from 'src/SqlLab/contributions';
 import TreeNodeRenderer from './TreeNodeRenderer';
 import useTreeData, { EMPTY_NODE_ID_PREFIX } from './useTreeData';
 import type { TreeNodeData } from './types';
@@ -244,7 +244,7 @@ const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
         `}
       >
         <PanelToolbar
-          viewId={ViewContribution.LeftSidebar}
+          viewId={ViewLocations.sqllab.leftSidebar}
           defaultPrimaryActions={
             <>
               <Button
