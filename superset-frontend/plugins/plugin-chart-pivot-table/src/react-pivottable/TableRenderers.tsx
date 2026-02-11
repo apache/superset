@@ -846,7 +846,7 @@ export class TableRenderer extends Component<
         const headerCellFormattedValue =
           dateFormatters?.[attrName]?.(colKey[attrIdx]) ?? colKey[attrIdx];
         const { backgroundColor } = getCellColor(
-          [rowAttrs[i]],
+          [attrName],
           headerCellFormattedValue,
           cellColorFormatters,
         );
