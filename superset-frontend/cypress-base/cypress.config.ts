@@ -18,12 +18,10 @@
  */
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { defineConfig } from 'cypress';
-import eyesPlugin from '@applitools/eyes-cypress';
 
 const { verifyDownloadTasks } = require('cy-verify-downloads');
 
-export default eyesPlugin(
-  defineConfig({
+export default defineConfig({
     chromeWebSecurity: false,
     defaultCommandTimeout: 8000,
     numTestsKeptInMemory: 3,
@@ -81,10 +79,6 @@ export default eyesPlugin(
       baseUrl: 'http://localhost:8088',
       excludeSpecPattern: ['**/_skip.*'],
       experimentalRunAllSpecs: true,
-      specPattern: [
-        'cypress/e2e/**/*.{js,jsx,ts,tsx}',
-        'cypress/applitools/**/*.{js,jsx,ts,tsx}',
-      ],
+      specPattern: ['cypress/e2e/**/*.{js,jsx,ts,tsx}'],
     },
-  }),
-);
+  });
