@@ -19,12 +19,14 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from flask import request, Response
-from flask_appbuilder.api import expose, protect, safe
+from flask import make_response, request, Response
+from flask_appbuilder.api import expose, protect, rison, safe
+from flask_appbuilder.api.schemas import get_list_schema
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
+from pydantic import ValidationError as PydanticValidationError
 
-from superset import event_logger
+from superset import db, event_logger, is_feature_enabled
 from superset.commands.semantic_layer.create import CreateSemanticLayerCommand
 from superset.commands.semantic_layer.delete import DeleteSemanticLayerCommand
 from superset.commands.semantic_layer.exceptions import (
@@ -44,6 +46,7 @@ from superset.commands.semantic_layer.update import (
 )
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from superset.daos.semantic_layer import SemanticLayerDAO
+from superset.models.core import Database
 from superset.semantic_layers.models import SemanticLayer, SemanticView
 from superset.semantic_layers.registry import registry
 from superset.semantic_layers.schemas import (
@@ -52,6 +55,7 @@ from superset.semantic_layers.schemas import (
     SemanticViewPutSchema,
 )
 from superset.superset_typing import FlaskResponse
+from superset.utils import json
 from superset.views.base_api import (
     BaseSupersetApi,
     BaseSupersetModelRestApi,
@@ -63,13 +67,91 @@ logger = logging.getLogger(__name__)
 
 
 def _serialize_layer(layer: SemanticLayer) -> dict[str, Any]:
+    config = layer.configuration
+    if isinstance(config, str):
+        config = json.loads(config)
     return {
         "uuid": str(layer.uuid),
         "name": layer.name,
         "description": layer.description,
         "type": layer.type,
         "cache_timeout": layer.cache_timeout,
+        "configuration": config or {},
+        "changed_on_delta_humanized": layer.changed_on_delta_humanized(),
     }
+
+
+def _infer_discriminators(
+    schema: dict[str, Any],
+    data: dict[str, Any],
+) -> dict[str, Any]:
+    """
+    Infer discriminator values for union fields when the frontend omits them.
+
+    Walks the schema's properties looking for discriminated unions (fields with a
+    ``discriminator.mapping``). For each one, tries to match the submitted data
+    against one of the variants by checking which variant's required fields are
+    present, then injects the discriminator value.
+    """
+    defs = schema.get("$defs", {})
+    for prop_name, prop_schema in schema.get("properties", {}).items():
+        value = data.get(prop_name)
+        if not isinstance(value, dict):
+            continue
+
+        # Find discriminated union via discriminator mapping
+        mapping = (
+            prop_schema.get("discriminator", {}).get("mapping")
+            if "discriminator" in prop_schema
+            else None
+        )
+        if not mapping:
+            continue
+
+        discriminator_field = prop_schema["discriminator"].get("propertyName")
+        if not discriminator_field or discriminator_field in value:
+            continue
+
+        # Try each variant: match by required fields present in the data
+        for disc_value, ref in mapping.items():
+            ref_name = ref.rsplit("/", 1)[-1] if "/" in ref else ref
+            variant_def = defs.get(ref_name, {})
+            required = set(variant_def.get("required", []))
+            # Exclude the discriminator itself from the check
+            required.discard(discriminator_field)
+            if required and required.issubset(value.keys()):
+                data = {
+                    **data,
+                    prop_name: {**value, discriminator_field: disc_value},
+                }
+                break
+
+    return data
+
+
+def _parse_partial_config(
+    cls: Any,
+    config: dict[str, Any],
+) -> Any:
+    """
+    Parse a partial configuration, handling discriminator inference and
+    falling back to lenient validation when strict parsing fails.
+    """
+    config_class = cls.configuration_class
+
+    # Infer discriminator values the frontend may have omitted
+    schema = config_class.model_json_schema()
+    config = _infer_discriminators(schema, config)
+
+    try:
+        return config_class.model_validate(config)
+    except (PydanticValidationError, ValueError):
+        pass
+
+    try:
+        return config_class.model_validate(config, context={"partial": True})
+    except (PydanticValidationError, ValueError):
+        return None
 
 
 class SemanticViewRestApi(BaseSupersetModelRestApi):
@@ -230,13 +312,18 @@ class SemanticLayerRestApi(BaseSupersetApi):
 
         parsed_config = None
         if config := body.get("configuration"):
-            try:
-                parsed_config = cls.from_configuration(config).configuration  # type: ignore[attr-defined]
-            except Exception:  # pylint: disable=broad-except
-                parsed_config = None
+            parsed_config = _parse_partial_config(cls, config)
 
-        schema = cls.get_configuration_schema(parsed_config)
-        return self.response(200, result=schema)
+        try:
+            schema = cls.get_configuration_schema(parsed_config)
+        except Exception:  # pylint: disable=broad-except
+            # Connection or query failures during schema enrichment should not
+            # prevent the form from rendering — return the base schema instead.
+            schema = cls.get_configuration_schema(None)
+
+        resp = make_response(json.dumps({"result": schema}, sort_keys=False), 200)
+        resp.headers["Content-Type"] = "application/json; charset=utf-8"
+        return resp
 
     @expose("/<uuid>/schema/runtime", methods=("POST",))
     @protect()
@@ -442,6 +529,176 @@ class SemanticLayerRestApi(BaseSupersetApi):
                 exc_info=True,
             )
             return self.response_422(message=str(ex))
+
+    @expose("/connections/", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @rison(get_list_schema)
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.connections",
+        log_to_statsd=False,
+    )
+    def connections(self, **kwargs: Any) -> FlaskResponse:
+        """List databases and semantic layers combined.
+        ---
+        get:
+          summary: List databases and semantic layers combined
+          parameters:
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/get_list_schema'
+          responses:
+            200:
+              description: Combined list of databases and semantic layers
+            401:
+              $ref: '#/components/responses/401'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        args = kwargs.get("rison", {})
+        page = args.get("page", 0)
+        page_size = args.get("page_size", 25)
+        order_column = args.get("order_column", "changed_on")
+        order_direction = args.get("order_direction", "desc")
+        filters = args.get("filters", [])
+
+        source_type, name_filter = self._parse_connection_filters(filters)
+
+        if not is_feature_enabled("SEMANTIC_LAYERS"):
+            source_type = "database"
+
+        all_items = self._fetch_connection_items(source_type, name_filter)
+
+        sort_key = self._get_connection_sort_key(order_column)
+        all_items.sort(key=sort_key, reverse=order_direction == "desc")  # type: ignore
+        total_count = len(all_items)
+
+        start = page * page_size
+        page_items = all_items[start : start + page_size]
+
+        result = [
+            self._serialize_database(obj)
+            if item_type == "database"
+            else self._serialize_semantic_layer(obj)
+            for item_type, obj in page_items
+        ]
+
+        return self.response(200, count=total_count, result=result)
+
+    @staticmethod
+    def _parse_connection_filters(
+        filters: list[dict[str, Any]],
+    ) -> tuple[str, str | None]:
+        """Parse filters into source_type and name_filter."""
+        source_type = "all"
+        name_filter = None
+        for f in filters:
+            if f.get("col") == "source_type":
+                source_type = f.get("value", "all")
+            elif f.get("col") == "database_name" and f.get("opr") == "ct":
+                name_filter = f.get("value")
+        return source_type, name_filter
+
+    @staticmethod
+    def _fetch_connection_items(
+        source_type: str,
+        name_filter: str | None,
+    ) -> list[tuple[str, Any]]:
+        """Fetch database and semantic layer items based on filters."""
+        db_items: list[tuple[str, Database]] = []
+        if source_type in ("all", "database"):
+            db_q = db.session.query(Database)
+            if name_filter:
+                db_q = db_q.filter(Database.database_name.ilike(f"%{name_filter}%"))
+            db_items = [("database", obj) for obj in db_q.all()]
+
+        sl_items: list[tuple[str, SemanticLayer]] = []
+        if source_type in ("all", "semantic_layer"):
+            sl_q = db.session.query(SemanticLayer)
+            if name_filter:
+                sl_q = sl_q.filter(SemanticLayer.name.ilike(f"%{name_filter}%"))
+            sl_items = [("semantic_layer", obj) for obj in sl_q.all()]
+
+        return db_items + sl_items  # type: ignore
+
+    @staticmethod
+    def _get_connection_sort_key(order_column: str) -> Any:
+        """Return a sort key function for connection items."""
+
+        def _sort_key_changed_on(
+            item: tuple[str, Database | SemanticLayer],
+        ) -> float:
+            changed_on = item[1].changed_on
+            return changed_on.timestamp() if changed_on else 0.0
+
+        def _sort_key_name(
+            item: tuple[str, Database | SemanticLayer],
+        ) -> str:
+            obj = item[1]
+            raw = (
+                obj.database_name  # type: ignore[union-attr]
+                if item[0] == "database"
+                else obj.name
+            )
+            return raw.lower()
+
+        sort_key_map = {
+            "changed_on_delta_humanized": _sort_key_changed_on,
+            "database_name": _sort_key_name,
+        }
+        return sort_key_map.get(order_column, _sort_key_changed_on)
+
+    @staticmethod
+    def _serialize_database(obj: Database) -> dict[str, Any]:
+        changed_by = obj.changed_by
+        return {
+            "source_type": "database",
+            "id": obj.id,
+            "uuid": str(obj.uuid),
+            "database_name": obj.database_name,
+            "backend": obj.backend,
+            "allow_run_async": obj.allow_run_async,
+            "allow_dml": obj.allow_dml,
+            "allow_file_upload": obj.allow_file_upload,
+            "expose_in_sqllab": obj.expose_in_sqllab,
+            "changed_on_delta_humanized": obj.changed_on_delta_humanized(),
+            "changed_by": {
+                "first_name": changed_by.first_name,
+                "last_name": changed_by.last_name,
+            }
+            if changed_by
+            else None,
+        }
+
+    @staticmethod
+    def _serialize_semantic_layer(obj: SemanticLayer) -> dict[str, Any]:
+        changed_by = obj.changed_by
+        sl_type = obj.type
+        cls = registry.get(sl_type)
+        type_name = cls.name if cls else sl_type  # type: ignore[attr-defined]
+        return {
+            "source_type": "semantic_layer",
+            "uuid": str(obj.uuid),
+            "database_name": obj.name,
+            "backend": type_name,
+            "sl_type": sl_type,
+            "description": obj.description,
+            "allow_run_async": None,
+            "allow_dml": None,
+            "allow_file_upload": None,
+            "expose_in_sqllab": None,
+            "changed_on_delta_humanized": obj.changed_on_delta_humanized(),
+            "changed_by": {
+                "first_name": changed_by.first_name,
+                "last_name": changed_by.last_name,
+            }
+            if changed_by
+            else None,
+        }
 
     @expose("/", methods=("GET",))
     @protect()
