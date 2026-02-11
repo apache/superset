@@ -30,6 +30,7 @@ from superset.commands.semantic_layer.exceptions import (
 )
 from superset.daos.semantic_layer import SemanticLayerDAO
 from superset.semantic_layers.registry import registry
+from superset.utils import json
 from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
@@ -48,6 +49,10 @@ class CreateSemanticLayerCommand(BaseCommand):
     )
     def run(self) -> Model:
         self.validate()
+        if isinstance(self._properties.get("configuration"), dict):
+            self._properties["configuration"] = json.dumps(
+                self._properties["configuration"]
+            )
         return SemanticLayerDAO.create(attributes=self._properties)
 
     def validate(self) -> None:
