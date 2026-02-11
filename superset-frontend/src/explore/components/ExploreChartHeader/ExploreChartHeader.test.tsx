@@ -218,6 +218,149 @@ describe('ExploreChartHeader', () => {
     );
   });
 
+  test('does not show unsaved changes for new charts on initial load', async () => {
+    const props = createProps({
+      slice: null,
+      sliceName: '',
+      chart: {
+        ...createProps().chart,
+        sliceFormData: null,
+      },
+      formData: {
+        viz_type: VizType.Histogram,
+        datasource: '49__table',
+      },
+    });
+
+    render(<ExploreHeader {...props} />, { useRedux: true });
+
+    expect(
+      await screen.findByText(/add the name of the chart/i),
+    ).toBeInTheDocument();
+
+    expect(useUnsavedChangesPrompt).toHaveBeenCalledWith(
+      expect.objectContaining({
+        hasUnsavedChanges: false,
+      }),
+    );
+  });
+
+  test('shows unsaved changes for new charts when user makes changes', async () => {
+    const initialFormData = {
+      viz_type: VizType.Histogram,
+      datasource: '49__table',
+      metrics: ['count'],
+    };
+
+    const modifiedFormData = {
+      ...initialFormData,
+      metrics: ['count', 'sum'],
+    };
+
+    const props = createProps({
+      slice: null,
+      sliceName: '',
+      chart: {
+        ...createProps().chart,
+        sliceFormData: null,
+      },
+      formData: initialFormData,
+    });
+
+    const { rerender } = render(<ExploreHeader {...props} />, {
+      useRedux: true,
+    });
+
+    // Initial render should not have unsaved changes
+    expect(useUnsavedChangesPrompt).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        hasUnsavedChanges: false,
+      }),
+    );
+
+    // Simulate user making changes
+    const modifiedProps = {
+      ...props,
+      formData: modifiedFormData,
+    };
+
+    rerender(<ExploreHeader {...modifiedProps} />);
+
+    await waitFor(() => {
+      expect(useUnsavedChangesPrompt).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          hasUnsavedChanges: true,
+        }),
+      );
+    });
+  });
+
+  test('shows unsaved changes for existing charts when form data differs from saved', async () => {
+    const savedFormData = {
+      viz_type: VizType.Histogram,
+      datasource: '49__table',
+      metrics: ['count'],
+    };
+
+    const currentFormData = {
+      ...savedFormData,
+      metrics: ['sum'],
+    };
+
+    const props = createProps({
+      formData: currentFormData,
+      chart: {
+        ...createProps().chart,
+        sliceFormData: savedFormData,
+      },
+    });
+
+    render(<ExploreHeader {...props} />, { useRedux: true });
+
+    expect(useUnsavedChangesPrompt).toHaveBeenCalledWith(
+      expect.objectContaining({
+        hasUnsavedChanges: true,
+      }),
+    );
+  });
+
+  test('does not show unsaved changes for existing charts when form data matches saved', async () => {
+    const baseFormData = {
+      viz_type: VizType.Histogram,
+      datasource: '49__table',
+      slice_id: 318,
+      url_params: {},
+      granularity_sqla: 'time_start',
+      time_range: 'No filter',
+      all_columns_x: ['age'],
+      adhoc_filters: [],
+      row_limit: 10000,
+      groupby: null,
+      color_scheme: 'supersetColors',
+      label_colors: {},
+      link_length: '25',
+      x_axis_label: 'age',
+      y_axis_label: 'count',
+    };
+
+    const props = createProps({
+      formData: baseFormData,
+      sliceName: 'Age distribution of respondents',
+      chart: {
+        ...createProps().chart,
+        sliceFormData: { ...baseFormData },
+      },
+    });
+
+    render(<ExploreHeader {...props} />, { useRedux: true });
+
+    expect(useUnsavedChangesPrompt).toHaveBeenCalledWith(
+      expect.objectContaining({
+        hasUnsavedChanges: false,
+      }),
+    );
+  });
+
   test('Save chart', async () => {
     const setSaveChartModalVisibilitySpy = jest.spyOn(
       saveModalActions,
