@@ -262,7 +262,19 @@
     // === Jest rules ===
     "jest/consistent-test-it": ["error", { "fn": "test" }],
     "jest/no-focused-tests": "error",
-    "jest/no-disabled-tests": "error"
+    "jest/no-disabled-tests": "error",
+    "jest/expect-expect": [
+      "error",
+      {
+        "assertFunctionNames": [
+          "expect",
+          "expect*",
+          "runTimezoneTest",
+          "compareURI",
+          "test*WithInitialValues"
+        ]
+      }
+    ]
   },
   "ignorePatterns": [
     "packages/generator-superset/**/*",
