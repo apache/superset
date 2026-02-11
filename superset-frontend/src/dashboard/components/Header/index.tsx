@@ -71,7 +71,6 @@ import { deleteActiveReport } from 'src/features/reports/ReportModal/actions';
 import type { ReportObject } from 'src/features/reports/types';
 import { PageHeaderWithActions } from '@superset-ui/core/components/PageHeaderWithActions';
 import { useDashboardRestore } from 'src/dashboard/contexts/DashboardRestoreContext';
-import { useModalState } from 'src/hooks/useModalState';
 import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import type { RootState, DashboardInfo } from 'src/dashboard/types';
 import DashboardEmbedModal from '../EmbeddedModal';
@@ -211,10 +210,47 @@ const Header = (): ReactElement => {
   const [showingReportModal, setShowingReportModal] = useState<boolean>(false);
   const [currentReportDeleting, setCurrentReportDeleting] =
     useState<ReportObject | null>(null);
-  const [versionNote, setVersionNote] = useState<string>('');
   const [showSaveVersionModal, setShowSaveVersionModal] =
     useState<boolean>(false);
   const [saveVersionDescription, setSaveVersionDescription] = useState('');
+
+  const showPropertiesModal = useCallback(
+    () => setShowingPropertiesModal(true),
+    [],
+  );
+  const hidePropertiesModal = useCallback(
+    () => setShowingPropertiesModal(false),
+    [],
+  );
+  const showHistoryModal = useCallback(
+    () => setShowingHistoryModal(true),
+    [],
+  );
+  const hideHistoryModal = useCallback(
+    () => setShowingHistoryModal(false),
+    [],
+  );
+  const showRefreshModal = useCallback(
+    () => setShowingRefreshModal(true),
+    [],
+  );
+  const hideRefreshModal = useCallback(
+    () => setShowingRefreshModal(false),
+    [],
+  );
+  const showEmbedModal = useCallback(() => setShowingEmbedModal(true), []);
+  const hideEmbedModal = useCallback(() => setShowingEmbedModal(false), []);
+  const showReportModal = useCallback(() => setShowingReportModal(true), []);
+  const hideReportModal = useCallback(() => setShowingReportModal(false), []);
+  const openSaveVersionModal = useCallback(
+    () => setShowSaveVersionModal(true),
+    [],
+  );
+  const closeSaveVersionModal = useCallback(
+    () => setShowSaveVersionModal(false),
+    [],
+  );
+
   const dashboardInfo = useSelector((state: RootState) => state.dashboardInfo);
   const layout = useSelector(
     (state: RootState) => state.dashboardLayout.present,
@@ -488,7 +524,7 @@ const Header = (): ReactElement => {
       version_description:
         (typeof versionDescriptionOverride === 'string'
           ? versionDescriptionOverride?.trim()
-          : undefined) || versionNote?.trim() || undefined,
+          : undefined) || saveVersionDescription?.trim() || undefined,
       metadata: {
         ...dashboardInfo?.metadata,
         color_namespace: currentColorNamespace,
@@ -540,7 +576,7 @@ const Header = (): ReactElement => {
       refreshFrequency,
       shouldPersistRefreshFrequency,
       slug,
-      versionNote,
+      saveVersionDescription,
     ],
   );
 
@@ -738,7 +774,7 @@ const Header = (): ReactElement => {
                   {t('Discard')}
                 </Button>
                 <Button
-                  css={iconLabelButtonStyle}
+                  css={saveBtnStyle}
                   buttonSize="small"
                   disabled={!hasUnsavedChanges}
                   buttonStyle="primary"
@@ -761,7 +797,7 @@ const Header = (): ReactElement => {
             {userCanEdit && (
               <>
                 <Button
-                  css={iconLabelButtonStyle}
+                  css={saveBtnStyle}
                   buttonSize="small"
                   buttonStyle="secondary"
                   onClick={showHistoryModal}
