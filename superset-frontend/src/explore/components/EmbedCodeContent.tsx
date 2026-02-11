@@ -74,7 +74,7 @@ const EmbedCodeContent: FC<EmbedCodeContentProps> = ({
       });
 
       setEmbedData(response);
-    } catch {
+    } catch (error) {
       setErrorMessage(t('Error generating embed code'));
       addDangerToast?.(t('Sorry, something went wrong. Try again later.'));
     } finally {
