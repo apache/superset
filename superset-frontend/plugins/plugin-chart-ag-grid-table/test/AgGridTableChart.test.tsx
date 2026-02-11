@@ -274,9 +274,9 @@ describe('AgGridTableChart', () => {
       },
     });
     props.serverPagination = true;
-    props.rowCount = 50; // Only 50 rows total
+    props.rowCount = 50;
     props.serverPaginationData = {
-      currentPage: 5, // Invalid: page 5 when only 3 pages exist (50 rows / 20 per page = 3 pages)
+      currentPage: 5,
       pageSize: 20,
     };
 
@@ -293,7 +293,6 @@ describe('AgGridTableChart', () => {
     );
 
     await waitFor(() => {
-      // Should have called setDataMask to correct the page number
       expect(mockSetDataMask).toHaveBeenCalled();
     });
   });
