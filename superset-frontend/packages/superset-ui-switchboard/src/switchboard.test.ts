@@ -122,14 +122,14 @@ describe('comms', () => {
     console.error = originalConsoleError;
   });
 
-  it('constructs with defaults', () => {
+  test('constructs with defaults', () => {
     const sb = new Switchboard({ port: new MessageChannel().port1 });
     expect(sb).not.toBeNull();
     expect(sb).toHaveProperty('name');
     expect(sb).toHaveProperty('debugMode');
   });
 
-  it('singleton', async () => {
+  test('singleton', async () => {
     SingletonSwitchboard.start();
     expect(console.error).toHaveBeenCalledWith(
       '[]',
@@ -154,7 +154,7 @@ describe('comms', () => {
   });
 
   describe('emit', () => {
-    it('triggers the method', async () => {
+    test('triggers the method', async () => {
       const channel = new MessageChannel();
       const ours = new Switchboard({ port: channel.port1, name: 'ours' });
       const theirs = new Switchboard({ port: channel.port2, name: 'theirs' });
@@ -168,7 +168,7 @@ describe('comms', () => {
       expect(handler).toHaveBeenCalledWith(42);
     });
 
-    it('handles a missing method', async () => {
+    test('handles a missing method', async () => {
       const channel = new MessageChannel();
       const ours = new Switchboard({ port: channel.port1, name: 'ours' });
       const theirs = new Switchboard({ port: channel.port2, name: 'theirs' });
@@ -181,7 +181,7 @@ describe('comms', () => {
   });
 
   describe('get', () => {
-    it('returns the value', async () => {
+    test('returns the value', async () => {
       const channel = new MessageChannel();
       const ours = new Switchboard({ port: channel.port1, name: 'ours' });
       const theirs = new Switchboard({ port: channel.port2, name: 'theirs' });
@@ -195,7 +195,7 @@ describe('comms', () => {
       expect(value).toEqual(43);
     });
 
-    it('removes the listener after', async () => {
+    test('removes the listener after', async () => {
       const channel = new MessageChannel();
       const ours = new Switchboard({ port: channel.port1, name: 'ours' });
       const theirs = new Switchboard({ port: channel.port2, name: 'theirs' });
@@ -218,7 +218,7 @@ describe('comms', () => {
       );
     });
 
-    it('can handle one way concurrency', async () => {
+    test('can handle one way concurrency', async () => {
       const channel = new MessageChannel();
       const ours = new Switchboard({ port: channel.port1, name: 'ours' });
       const theirs = new Switchboard({ port: channel.port2, name: 'theirs' });
@@ -238,7 +238,7 @@ describe('comms', () => {
       expect(value2).toEqual(420);
     });
 
-    it('can handle two way concurrency', async () => {
+    test('can handle two way concurrency', async () => {
       const channel = new MessageChannel();
       const ours = new Switchboard({ port: channel.port1, name: 'ours' });
       const theirs = new Switchboard({ port: channel.port2, name: 'theirs' });
@@ -258,7 +258,7 @@ describe('comms', () => {
       expect(value2).toEqual(420);
     });
 
-    it('handles when the method is not defined', async () => {
+    test('handles when the method is not defined', async () => {
       const channel = new MessageChannel();
       const ours = new Switchboard({ port: channel.port1, name: 'ours' });
       const theirs = new Switchboard({ port: channel.port2, name: 'theirs' });
@@ -268,7 +268,7 @@ describe('comms', () => {
       );
     });
 
-    it('handles when the method throws', async () => {
+    test('handles when the method throws', async () => {
       const channel = new MessageChannel();
       const ours = new Switchboard({ port: channel.port1, name: 'ours' });
       const theirs = new Switchboard({ port: channel.port2, name: 'theirs' });
@@ -283,7 +283,7 @@ describe('comms', () => {
       );
     });
 
-    it('handles receiving an unexpected non-reply, non-error response', async () => {
+    test('handles receiving an unexpected non-reply, non-error response', async () => {
       const { port1, port2 } = new MessageChannel();
       const ours = new Switchboard({ port: port1, name: 'ours' });
       // This test is required for 100% coverage. But there's no way to set up these conditions
@@ -300,7 +300,7 @@ describe('comms', () => {
     });
   });
 
-  it('logs in debug mode', async () => {
+  test('logs in debug mode', async () => {
     const { port1, port2 } = new MessageChannel();
     const ours = new Switchboard({
       port: port1,
@@ -319,7 +319,7 @@ describe('comms', () => {
     expect((console.debug as any).mock.calls[0][0]).toBe('[theirs]');
   });
 
-  it('does not log outside debug mode', async () => {
+  test('does not log outside debug mode', async () => {
     const { port1, port2 } = new MessageChannel();
     const ours = new Switchboard({
       port: port1,

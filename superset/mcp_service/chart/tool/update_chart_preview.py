@@ -66,7 +66,10 @@ def update_chart_preview(
 
     try:
         # Map the new config to form_data format
-        new_form_data = map_config_to_form_data(request.config)
+        # Pass dataset_id to enable column type checking for proper viz_type selection
+        new_form_data = map_config_to_form_data(
+            request.config, dataset_id=request.dataset_id
+        )
 
         # Generate new explore link with updated form_data
         explore_url = generate_explore_link(request.dataset_id, new_form_data)

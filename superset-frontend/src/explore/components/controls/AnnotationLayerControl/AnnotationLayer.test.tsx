@@ -181,7 +181,7 @@ test('fetches Superset annotation layer options', async () => {
     screen.getByRole('combobox', { name: 'Annotation layer value' }),
   );
   expect(await screen.findByText('Chart A')).toBeInTheDocument();
-  expect(fetchMock.calls(nativeLayerApiRoute).length).toBe(1);
+  expect(fetchMock.callHistory.calls(nativeLayerApiRoute).length).toBe(1);
 });
 
 test('fetches chart options', async () => {
@@ -197,7 +197,7 @@ test('fetches chart options', async () => {
     screen.getByRole('combobox', { name: 'Annotation layer value' }),
   );
   expect(await screen.findByText('Chart A')).toBeInTheDocument();
-  expect(fetchMock.calls(chartApiRoute).length).toBe(1);
+  expect(fetchMock.callHistory.calls(chartApiRoute).length).toBe(1);
 });
 
 test('fetches chart on mount if value present', async () => {
@@ -207,7 +207,7 @@ test('fetches chart on mount if value present', async () => {
     annotationType: ANNOTATION_TYPES_METADATA.EVENT.value,
     sourceType: 'Table',
   });
-  expect(fetchMock.calls(chartApiWithIdRoute).length).toBe(1);
+  expect(fetchMock.callHistory.calls(chartApiWithIdRoute).length).toBe(1);
 });
 
 test('keeps apply disabled when missing required fields', async () => {

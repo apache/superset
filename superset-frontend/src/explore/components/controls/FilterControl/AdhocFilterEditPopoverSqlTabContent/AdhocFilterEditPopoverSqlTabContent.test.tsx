@@ -23,7 +23,6 @@ import {
   selectOption,
   userEvent,
 } from 'spec/helpers/testing-library';
-import { IAceEditorProps } from 'react-ace';
 import AdhocFilter from '../AdhocFilter';
 import { Clauses, ExpressionTypes } from '../types';
 import AdhocFilterEditPopoverSqlTabContent from '.';
@@ -35,12 +34,15 @@ afterEach(async () => {
   await new Promise(resolve => setTimeout(resolve, 0));
 });
 
-jest.mock('@superset-ui/core/components/AsyncAceEditor', () => ({
-  SQLEditor: ({ value, onChange }: IAceEditorProps) => (
-    <textarea
-      defaultValue={value}
-      onChange={value => onChange?.(value.target.value)}
-    />
+jest.mock('src/core/editors', () => ({
+  EditorHost: ({
+    value,
+    onChange,
+  }: {
+    value: string;
+    onChange: (v: string) => void;
+  }) => (
+    <textarea defaultValue={value} onChange={e => onChange?.(e.target.value)} />
   ),
 }));
 

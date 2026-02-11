@@ -40,6 +40,7 @@ export const core: typeof coreType = {
 
 export * from './authentication';
 export * from './commands';
+export * from './editors';
 export * from './extensions';
 export * from './models';
 export * from './sqlLab';

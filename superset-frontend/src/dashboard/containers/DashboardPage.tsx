@@ -55,6 +55,7 @@ import {
 } from 'src/dashboard/util/chartUpdateChannel';
 
 import { nanoid } from 'nanoid';
+import type { ActiveFilters } from '../types';
 import { RootState } from '../types';
 import {
   chartContextMenuStyles,
@@ -187,14 +188,16 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
       let dataMask = nativeFilterKeyValue || {};
       // activeTabs is initialized with undefined so that it doesn't override
       // the currently stored value when hydrating
-      let activeTabs: string[] | undefined;
-      let chartStates: DashboardChartStates | undefined;
+      let activeTabs: string[] | null | undefined;
+      let chartStates: DashboardChartStates | null | undefined;
       let anchor: string | undefined;
       if (permalinkKey) {
         const permalinkValue = await getPermalinkValue(permalinkKey);
         if (permalinkValue?.state) {
-          ({ dataMask, activeTabs, chartStates, anchor } =
-            permalinkValue.state);
+          ({ dataMask, activeTabs, anchor } = permalinkValue.state);
+          chartStates = permalinkValue.state.chartStates as
+            | DashboardChartStates
+            | undefined;
         }
       } else if (nativeFilterKeyValue) {
         dataMask = await getFilterValue(id, nativeFilterKeyValue);
@@ -210,12 +213,12 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
         dispatch(
           hydrateDashboard({
             history,
-            dashboard,
-            charts,
-            activeTabs,
+            dashboard: dashboard!,
+            charts: charts!,
+            activeTabs: activeTabs ?? null,
             dataMask,
-            chartStates,
-          }),
+            chartStates: chartStates ?? null,
+          } as unknown as Parameters<typeof hydrateDashboard>[0]),
         );
 
         // Scroll to anchor element if specified in permalink state
@@ -310,7 +313,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
               }
             >
               <DashboardContainer
-                activeFilters={activeFilters}
+                activeFilters={activeFilters as ActiveFilters}
                 ownDataCharts={relevantDataMask}
               >
                 {DashboardBuilderComponent}

@@ -197,8 +197,8 @@ export const getSlicePayload = async (
     force: false,
     resultFormat: 'json',
     resultType: 'full',
-    setDataMask: null,
-    ownState: null,
+    setDataMask: undefined,
+    ownState: undefined,
   });
 
   const payload: Partial<PayloadSlice> = {
