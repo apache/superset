@@ -70,6 +70,12 @@
         "description": "Expand nested types in Presto into extra columns/arrays. Experimental, doesn't work with all nested types."
       },
       {
+        "name": "SEMANTIC_LAYERS",
+        "default": false,
+        "lifecycle": "development",
+        "description": "Enable semantic layers and show semantic views alongside datasets"
+      },
+      {
         "name": "TABLE_V2_TIME_COMPARISON_ENABLED",
         "default": false,
         "lifecycle": "development",

@@ -206,6 +206,14 @@ class SemanticView(AuditMixinNullable, Model):
         return "Not implemented for semantic layers"
 
     @property
+    def table_name(self) -> str:
+        return self.name
+
+    @property
+    def kind(self) -> str:
+        return "semantic_view"
+
+    @property
     def uid(self) -> str:
         return self.implementation.uid()
 

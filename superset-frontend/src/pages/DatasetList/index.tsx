@@ -17,7 +17,12 @@
  * under the License.
  */
 import { t } from '@apache-superset/core';
-import { getExtensionsRegistry, SupersetClient } from '@superset-ui/core';
+import {
+  getExtensionsRegistry,
+  SupersetClient,
+  isFeatureEnabled,
+  FeatureFlag,
+} from '@superset-ui/core';
 import { styled, useTheme, css } from '@apache-superset/core/ui';
 import { FunctionComponent, useState, useMemo, useCallback, Key } from 'react';
 import { Link, useHistory } from 'react-router-dom';
@@ -48,6 +53,7 @@ import {
   ListViewFilterOperator as FilterOperator,
   type ListViewProps,
   type ListViewFilters,
+  type ListViewFetchDataConfig,
 } from 'src/components';
 import { Typography } from '@superset-ui/core/components/Typography';
 import handleResourceExport from 'src/utils/export';
@@ -65,6 +71,7 @@ import {
   CONFIRM_OVERWRITE_MESSAGE,
 } from 'src/features/datasets/constants';
 import DuplicateDatasetModal from 'src/features/datasets/DuplicateDatasetModal';
+import SemanticViewEditModal from 'src/features/semanticViews/SemanticViewEditModal';
 import { useSelector } from 'react-redux';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
@@ -118,13 +125,16 @@ type Dataset = {
   database: {
     id: string;
     database_name: string;
-  };
+  } | null;
   kind: string;
+  source_type?: 'database' | 'semantic_layer';
   explore_url: string;
   id: number;
   owners: Array<Owner>;
   schema: string;
   table_name: string;
+  description?: string | null;
+  cache_timeout?: number | null;
 };
 
 interface VirtualDataset extends Dataset {
@@ -150,17 +160,89 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   const history = useHistory();
   const theme = useTheme();
   const {
-    state: {
-      loading,
-      resourceCount: datasetCount,
-      resourceCollection: datasets,
-      bulkSelectEnabled,
-    },
+    state: { bulkSelectEnabled },
     hasPerm,
-    fetchData,
     toggleBulkSelect,
-    refreshData,
   } = useListViewResource<Dataset>('dataset', t('dataset'), addDangerToast);
+
+  // Combined endpoint state
+  const [datasets, setDatasets] = useState<Dataset[]>([]);
+  const [datasetCount, setDatasetCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [lastFetchConfig, setLastFetchConfig] =
+    useState<ListViewFetchDataConfig | null>(null);
+  const [currentSourceFilter, setCurrentSourceFilter] = useState<string>('');
+
+  const fetchData = useCallback((config: ListViewFetchDataConfig) => {
+    setLastFetchConfig(config);
+    setLoading(true);
+    const { pageIndex, pageSize, sortBy, filters: filterValues } = config;
+
+    // Separate source_type filter from other filters
+    const sourceTypeFilter = filterValues.find(f => f.id === 'source_type');
+
+    // Track source filter for conditional Type filter visibility
+    const sourceVal =
+      sourceTypeFilter?.value && typeof sourceTypeFilter.value === 'object'
+        ? (sourceTypeFilter.value as { value: string }).value
+        : ((sourceTypeFilter?.value as string) ?? '');
+    setCurrentSourceFilter(sourceVal);
+    const otherFilters = filterValues
+      .filter(f => f.id !== 'source_type')
+      .filter(
+        ({ value }) => value !== '' && value !== null && value !== undefined,
+      )
+      .map(({ id, operator: opr, value }) => ({
+        col: id,
+        opr,
+        value:
+          value && typeof value === 'object' && 'value' in value
+            ? value.value
+            : value,
+      }));
+
+    // Add source_type filter for the combined endpoint
+    const sourceTypeValue =
+      sourceTypeFilter?.value && typeof sourceTypeFilter.value === 'object'
+        ? (sourceTypeFilter.value as { value: string }).value
+        : sourceTypeFilter?.value;
+    if (sourceTypeValue) {
+      otherFilters.push({
+        col: 'source_type',
+        opr: 'eq',
+        value: sourceTypeValue,
+      });
+    }
+
+    const queryParams = rison.encode_uri({
+      order_column: sortBy[0].id,
+      order_direction: sortBy[0].desc ? 'desc' : 'asc',
+      page: pageIndex,
+      page_size: pageSize,
+      ...(otherFilters.length ? { filters: otherFilters } : {}),
+    });
+
+    return SupersetClient.get({
+      endpoint: `/api/v1/datasource/?q=${queryParams}`,
+    })
+      .then(({ json = {} }) => {
+        setDatasets(json.result);
+        setDatasetCount(json.count);
+      })
+      .catch(() => {
+        addDangerToast(t('An error occurred while fetching datasets'));
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, []);
+
+  const refreshData = useCallback(() => {
+    if (lastFetchConfig) {
+      return fetchData(lastFetchConfig);
+    }
+    return undefined;
+  }, [lastFetchConfig, fetchData]);
 
   const [datasetCurrentlyDeleting, setDatasetCurrentlyDeleting] = useState<
     | (Dataset & {
@@ -175,6 +257,10 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
   const [datasetCurrentlyDuplicating, setDatasetCurrentlyDuplicating] =
     useState<VirtualDataset | null>(null);
+
+  const [svCurrentlyEditing, setSvCurrentlyEditing] = useState<Dataset | null>(
+    null,
+  );
 
   const [importingDataset, showImportModal] = useState<boolean>(false);
   const [passwordFields, setPasswordFields] = useState<string[]>([]);
@@ -366,12 +452,22 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         id: 'kind',
       },
       {
+        Cell: ({
+          row: {
+            original: { database },
+          },
+        }: any) => database?.database_name || '-',
         Header: t('Database'),
         accessor: 'database.database_name',
         size: 'xl',
         id: 'database.database_name',
       },
       {
+        Cell: ({
+          row: {
+            original: { schema },
+          },
+        }: any) => schema || '-',
         Header: t('Schema'),
         accessor: 'schema',
         size: 'lg',
@@ -415,8 +511,39 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         id: 'sql',
       },
       {
+        accessor: 'source_type',
+        hidden: true,
+        disableSortBy: true,
+        id: 'source_type',
+      },
+      {
         Cell: ({ row: { original } }: any) => {
-          // Verify owner or isAdmin
+          const isSemanticView = original.source_type === 'semantic_layer';
+
+          // Semantic view: only show edit button
+          if (isSemanticView) {
+            if (!canEdit) return null;
+            return (
+              <Actions className="actions">
+                <Tooltip
+                  id="edit-action-tooltip"
+                  title={t('Edit')}
+                  placement="bottom"
+                >
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    className="action-button"
+                    onClick={() => setSvCurrentlyEditing(original)}
+                  >
+                    <Icons.EditOutlined iconSize="l" />
+                  </span>
+                </Tooltip>
+              </Actions>
+            );
+          }
+
+          // Dataset: full set of actions
           const allowEdit =
             original.owners.map((o: Owner) => o.id).includes(user.userId) ||
             isUserAdmin(user);
@@ -519,6 +646,22 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
   const filterTypes: ListViewFilters = useMemo(
     () => [
+      ...(isFeatureEnabled(FeatureFlag.SemanticLayers)
+        ? [
+            {
+              Header: t('Source'),
+              key: 'source_type',
+              id: 'source_type',
+              input: 'select' as const,
+              operator: FilterOperator.Equals,
+              unfilteredLabel: t('All'),
+              selects: [
+                { label: t('Database'), value: 'database' },
+                { label: t('Semantic Layer'), value: 'semantic_layer' },
+              ],
+            },
+          ]
+        : []),
       {
         Header: t('Name'),
         key: 'search',
@@ -526,18 +669,42 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         input: 'search',
         operator: FilterOperator.Contains,
       },
-      {
-        Header: t('Type'),
-        key: 'sql',
-        id: 'sql',
-        input: 'select',
-        operator: FilterOperator.DatasetIsNullOrEmpty,
-        unfilteredLabel: 'All',
-        selects: [
-          { label: t('Virtual'), value: false },
-          { label: t('Physical'), value: true },
-        ],
-      },
+      ...(isFeatureEnabled(FeatureFlag.SemanticLayers)
+        ? [
+            {
+              Header: t('Type'),
+              key: 'sql',
+              id: 'sql',
+              input: 'select' as const,
+              operator: FilterOperator.DatasetIsNullOrEmpty,
+              unfilteredLabel: 'All',
+              selects: [
+                ...(currentSourceFilter !== 'semantic_layer'
+                  ? [
+                      { label: t('Physical'), value: true },
+                      { label: t('Virtual'), value: false },
+                    ]
+                  : []),
+                ...(currentSourceFilter !== 'database'
+                  ? [{ label: t('Semantic View'), value: 'semantic_view' }]
+                  : []),
+              ],
+            },
+          ]
+        : [
+            {
+              Header: t('Type'),
+              key: 'sql',
+              id: 'sql',
+              input: 'select' as const,
+              operator: FilterOperator.DatasetIsNullOrEmpty,
+              unfilteredLabel: 'All',
+              selects: [
+                { label: t('Physical'), value: true },
+                { label: t('Virtual'), value: false },
+              ],
+            },
+          ]),
       {
         Header: t('Database'),
         key: 'database',
@@ -628,7 +795,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
     ],
-    [user],
+    [user, currentSourceFilter],
   );
 
   const menuData: SubMenuProps = {
@@ -879,6 +1046,14 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         dataset={datasetCurrentlyDuplicating}
         onHide={closeDatasetDuplicateModal}
         onDuplicate={handleDatasetDuplicate}
+      />
+      <SemanticViewEditModal
+        show={!!svCurrentlyEditing}
+        onHide={() => setSvCurrentlyEditing(null)}
+        onSave={refreshData}
+        addDangerToast={addDangerToast}
+        addSuccessToast={addSuccessToast}
+        semanticView={svCurrentlyEditing}
       />
       <ConfirmStatusChange
         title={t('Please confirm')}
