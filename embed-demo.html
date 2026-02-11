@@ -79,24 +79,40 @@
         return;
       }
 
-      // Insert the iframe HTML
-      container.innerHTML = input;
+      // Safely parse input and only allow iframe elements (prevent XSS)
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(input, 'text/html');
+      const parsedIframe = doc.querySelector('iframe');
 
-      // Find the iframe and send the guest token
-      const iframe = container.querySelector('iframe');
+      if (!parsedIframe) {
+        container.textContent = 'Error: No iframe found in the pasted HTML.';
+        return;
+      }
+
+      // Create a clean iframe with only safe attributes
+      const iframe = document.createElement('iframe');
+      const safeAttrs = ['src', 'width', 'height', 'frameborder', 'data-guest-token'];
+      for (const attr of safeAttrs) {
+        const val = parsedIframe.getAttribute(attr);
+        if (val) iframe.setAttribute(attr, val);
+      }
+
+      container.textContent = '';
+      container.appendChild(iframe);
       if (iframe) {
-        const guestToken = iframe.getAttribute('data-guest-token');
+        // Strip any whitespace/newlines that may have been introduced by copy-paste wrapping
+        const guestToken = (iframe.getAttribute('data-guest-token') || '').replace(/\s/g, '');
         const iframeSrc = iframe.getAttribute('src');
 
         if (guestToken && iframeSrc) {
-          // Extract origin from iframe src
           const url = new URL(iframeSrc);
           const targetOrigin = url.origin;
 
-          // Send guest token when iframe loads
           iframe.addEventListener('load', function() {
-            console.log('Sending guest token to iframe at', targetOrigin);
-            // Use the correct message type: __embedded_comms__
+            console.log('Iframe loaded, sending guest token to', targetOrigin);
+
+            // Embedded charts use direct postMessage (not MessageChannel)
+            // The embeddedChart entry point expects: { type: '__embedded_comms__', guestToken }
             iframe.contentWindow.postMessage(
               { type: '__embedded_comms__', guestToken: guestToken },
               targetOrigin
