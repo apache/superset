@@ -113,8 +113,10 @@ class TestGetEmbeddableChartSchemas:
             config=config,
             allowed_domains=["https://example.com", "https://app.example.com"],
         )
-        assert len(request.allowed_domains) == 2
-        assert "https://example.com" in request.allowed_domains
+        assert request.allowed_domains == [
+            "https://example.com",
+            "https://app.example.com",
+        ]
 
     def test_request_ttl_validation(self):
         """Test TTL minutes validation bounds."""
