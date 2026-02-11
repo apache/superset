@@ -48,12 +48,10 @@ jest.mock('src/hooks/apiResources/dashboards', () => {
   const actual = jest.requireActual('src/hooks/apiResources/dashboards');
   return {
     ...actual,
-    useDashboard: () => {
-      return {
-        result: { ...baseDashboard },
-        error: undefined,
-      };
-    },
+    useDashboard: () => ({
+      result: { ...baseDashboard },
+      error: undefined,
+    }),
     useDashboardCharts: () => ({
       result: [...baseCharts],
       error: undefined,
