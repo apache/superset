@@ -104,11 +104,11 @@ const ColumnStyles = styled.div<{ editMode: boolean }>`
         z-index: ${EMPTY_CONTAINER_Z_INDEX};
         width: 100%;
         height: ${theme.sizeUnit * 4}px;
-        &:first-child {
+        &:first-of-type {
           inset-block-start: 0;
         }
       }
-      &:first-child:not(.droptarget-edge) {
+      &:first-of-type:not(.droptarget-edge) {
         position: absolute;
         top: 0;
         left: 0;
