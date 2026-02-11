@@ -76,7 +76,10 @@ export const getBaselineSeriesForStream = (
   seriesType: EchartsTimeseriesSeriesType,
 ) => {
   const seriesLength = series[0].length;
-  const baselineSeriesDelta = new Array(seriesLength).fill([0, 0]);
+  const baselineSeriesDelta: [string | number, number][] = Array.from(
+    { length: seriesLength },
+    () => [0, 0],
+  );
   const getVal = (value: number | null) => value ?? 0;
   for (let i = 0; i < seriesLength; i += 1) {
     let seriesSum = 0;
@@ -98,7 +101,9 @@ export const getBaselineSeriesForStream = (
     }
     baselineSeriesDelta[i] = [series[0][i][0], -weightedSeriesSum / seriesSum];
   }
-  const baselineSeries = baselineSeriesDelta.reduce((acc, curr, i) => {
+  const baselineSeries = baselineSeriesDelta.reduce<
+    [string | number, number][]
+  >((acc, curr, i) => {
     if (i === 0) {
       acc.push(curr);
     } else {

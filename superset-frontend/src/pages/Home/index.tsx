@@ -135,7 +135,7 @@ const bootstrapData = getBootstrapData();
 
 export const LoadingCards = ({ cover }: LoadingProps) => (
   <CardContainer showThumbnails={cover} className="loading-cards">
-    {new Array(loadingCardCount).fill(undefined).map((_, index) => (
+    {Array.from({ length: loadingCardCount }, (_, index) => (
       <ListViewCard
         key={index}
         cover={cover ? false : <></>}
