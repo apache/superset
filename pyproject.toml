@@ -285,6 +285,7 @@ module = [
     "superset.tags.filters",
     "superset.commands.security.update",
     "superset.commands.security.create",
+    "superset.datasource.api",
 ]
 warn_unused_ignores = false
 
