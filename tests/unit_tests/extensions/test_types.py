@@ -61,6 +61,18 @@ def test_extension_config_full():
             "description": "A query insights extension",
             "dependencies": ["other-extension"],
             "permissions": ["can_read", "can_view"],
+            "frontend": {
+                "contributions": {
+                    "views": {
+                        "sqllab": {
+                            "panels": [
+                                {"id": "query_insights.main", "name": "Query Insights"}
+                            ]
+                        }
+                    }
+                },
+                "moduleFederation": {"exposes": ["./index"]},
+            },
             "backend": {
                 "files": ["backend/src/query_insights/**/*.py"],
             },
