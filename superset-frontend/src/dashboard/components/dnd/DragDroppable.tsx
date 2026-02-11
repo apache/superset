@@ -93,7 +93,7 @@ const DragDroppableStyles = styled.div`
       width: 100%;
     }
     /* workaround to avoid a bug in react-dnd where the drag
-      preview expands outside of the bounds of the drag source card, see: 
+      preview expands outside of the bounds of the drag source card, see:
       https://github.com/react-dnd/react-dnd/issues/832 */
     &.dragdroppable-column {
       /* for chrome */
