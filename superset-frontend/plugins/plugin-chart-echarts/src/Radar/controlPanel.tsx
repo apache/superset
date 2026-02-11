@@ -35,7 +35,7 @@ import {
   getStandardizedControls,
 } from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA } from './types';
-import { LABEL_POSITION } from '../constants';
+import { LabelPositionEnum } from '../types';
 import { legendSection } from '../controls';
 
 const { labelType, labelPosition, numberFormat, showLabels, isCircle } =
@@ -71,6 +71,22 @@ const radarMetricMinValue: { name: string; config: ControlFormItemSpec } = {
     validators: [validateNumber],
   },
 };
+
+const getLabelPositionOptions = (): [LabelPositionEnum, string][] => [
+  [LabelPositionEnum.Top, t('Top')],
+  [LabelPositionEnum.Left, t('Left')],
+  [LabelPositionEnum.Right, t('Right')],
+  [LabelPositionEnum.Bottom, t('Bottom')],
+  [LabelPositionEnum.Inside, t('Inside')],
+  [LabelPositionEnum.InsideLeft, t('Inside left')],
+  [LabelPositionEnum.InsideRight, t('Inside right')],
+  [LabelPositionEnum.InsideTop, t('Inside top')],
+  [LabelPositionEnum.InsideBottom, t('Inside bottom')],
+  [LabelPositionEnum.InsideTopLeft, t('Inside top left')],
+  [LabelPositionEnum.InsideBottomLeft, t('Inside bottom left')],
+  [LabelPositionEnum.InsideTopRight, t('Inside top right')],
+  [LabelPositionEnum.InsideBottomRight, t('Inside bottom right')],
+];
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -136,7 +152,7 @@ const config: ControlPanelConfig = {
               freeForm: false,
               label: t('Label position'),
               renderTrigger: true,
-              choices: LABEL_POSITION,
+              choices: getLabelPositionOptions(),
               default: labelPosition,
               description: D3_FORMAT_DOCS,
             },

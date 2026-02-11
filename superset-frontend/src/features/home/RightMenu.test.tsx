@@ -154,19 +154,26 @@ const mockNonExamplesDB = Array.from({ length: 2 })
 
 const useSelectorMock = jest.spyOn(reactRedux, 'useSelector');
 
+const getDatabaseWithFileFiterMockUrl =
+  'glob:*api/v1/database/?q=(filters:!((col:allow_file_upload,opr:upload_is_enabled,value:!t)))';
+const getDatabaseWithNameFilterMockUrl =
+  'glob:*api/v1/database/?q=(filters:!((col:database_name,opr:neq,value:examples)))';
+
 beforeEach(async () => {
   useSelectorMock.mockReset();
   fetchMock.get(
-    'glob:*api/v1/database/?q=(filters:!((col:allow_file_upload,opr:upload_is_enabled,value:!t)))',
+    getDatabaseWithFileFiterMockUrl,
     { result: [], count: 0 },
+    { name: getDatabaseWithFileFiterMockUrl },
   );
   fetchMock.get(
-    'glob:*api/v1/database/?q=(filters:!((col:database_name,opr:neq,value:examples)))',
+    getDatabaseWithNameFilterMockUrl,
     { result: [], count: 0 },
+    { name: getDatabaseWithNameFilterMockUrl },
   );
 });
 
-afterEach(() => fetchMock.restore());
+afterEach(() => fetchMock.clearHistory().removeRoutes());
 
 const resetUseSelectorMock = () => {
   useSelectorMock.mockReturnValueOnce({
@@ -205,6 +212,7 @@ test('renders', async () => {
   resetUseSelectorMock();
   const { container } = render(<RightMenu {...mockedProps} />, {
     useRedux: true,
+    useRouter: true,
     useQueryParams: true,
     useTheme: true,
   });
@@ -218,32 +226,29 @@ test('If user has permission to upload files AND connect DBs we query existing D
   resetUseSelectorMock();
   const { container } = render(<RightMenu {...mockedProps} />, {
     useRedux: true,
+    useRouter: true,
     useQueryParams: true,
     useTheme: true,
   });
   await waitFor(() => expect(container).toBeVisible());
-  const callsD = fetchMock.calls(/database\/\?q/);
+  const callsD = fetchMock.callHistory.calls(/database\/\?q/);
   expect(callsD).toHaveLength(2);
-  expect(callsD[0][0]).toMatchInlineSnapshot(
+  expect(callsD[0].url).toMatchInlineSnapshot(
     `"http://localhost/api/v1/database/?q=(filters:!((col:allow_file_upload,opr:upload_is_enabled,value:!t)))"`,
   );
-  expect(callsD[1][0]).toMatchInlineSnapshot(
+  expect(callsD[1].url).toMatchInlineSnapshot(
     `"http://localhost/api/v1/database/?q=(filters:!((col:database_name,opr:neq,value:examples)))"`,
   );
 });
 
 test('If only examples DB exist we must show the Connect Database option', async () => {
   const mockedProps = createProps();
-  fetchMock.get(
-    'glob:*api/v1/database/?q=(filters:!((col:allow_file_upload,opr:upload_is_enabled,value:!t)))',
-    { result: [...mockNonExamplesDB], count: 2 },
-    { overwriteRoutes: true },
-  );
-  fetchMock.get(
-    'glob:*api/v1/database/?q=(filters:!((col:database_name,opr:neq,value:examples)))',
-    { result: [], count: 0 },
-    { overwriteRoutes: true },
-  );
+  fetchMock.modifyRoute(getDatabaseWithFileFiterMockUrl, {
+    response: { result: [...mockNonExamplesDB], count: 2 },
+  });
+  fetchMock.modifyRoute(getDatabaseWithNameFilterMockUrl, {
+    response: { result: [], count: 0 },
+  });
   // Initial Load
   resetUseSelectorMock();
   // setAllowUploads called
@@ -266,16 +271,12 @@ test('If only examples DB exist we must show the Connect Database option', async
 
 test('If more than just examples DB exist we must show the Create dataset option', async () => {
   const mockedProps = createProps();
-  fetchMock.get(
-    'glob:*api/v1/database/?q=(filters:!((col:allow_file_upload,opr:upload_is_enabled,value:!t)))',
-    { result: [...mockNonExamplesDB], count: 2 },
-    { overwriteRoutes: true },
-  );
-  fetchMock.get(
-    'glob:*api/v1/database/?q=(filters:!((col:database_name,opr:neq,value:examples)))',
-    { result: [...mockNonExamplesDB], count: 2 },
-    { overwriteRoutes: true },
-  );
+  fetchMock.modifyRoute(getDatabaseWithFileFiterMockUrl, {
+    response: { result: [...mockNonExamplesDB], count: 2 },
+  });
+  fetchMock.modifyRoute(getDatabaseWithNameFilterMockUrl, {
+    response: { result: [...mockNonExamplesDB], count: 2 },
+  });
   // Initial Load
   resetUseSelectorMock();
   // setAllowUploads called
@@ -301,12 +302,10 @@ test('If there is a DB with allow_file_upload set as True the option should be e
   fetchMock.get(
     'glob:*api/v1/database/?q=(filters:!((col:allow_file_upload,opr:upload_is_enabled,value:!t)))',
     { result: [...mockNonExamplesDB], count: 2 },
-    { overwriteRoutes: true },
   );
   fetchMock.get(
     'glob:*api/v1/database/?q=(filters:!((col:database_name,opr:neq,value:examples)))',
     { result: [...mockNonExamplesDB], count: 2 },
-    { overwriteRoutes: true },
   );
   // Initial load
   resetUseSelectorMock();
@@ -338,12 +337,10 @@ test('If there is NOT a DB with allow_file_upload set as True the option should 
   fetchMock.get(
     'glob:*api/v1/database/?q=(filters:!((col:allow_file_upload,opr:upload_is_enabled,value:!t)))',
     { result: [], count: 0 },
-    { overwriteRoutes: true },
   );
   fetchMock.get(
     'glob:*api/v1/database/?q=(filters:!((col:database_name,opr:neq,value:examples)))',
     { result: [...mockNonExamplesDB], count: 2 },
-    { overwriteRoutes: true },
   );
   // Initial load
   resetUseSelectorMock();

@@ -485,6 +485,89 @@ describe('DeckMulti Component Rendering', () => {
     });
   });
 
+  it('should include dashboardId in child slice requests when present', async () => {
+    const props = {
+      ...baseMockProps,
+      formData: {
+        ...baseMockProps.formData,
+        dashboardId: 123, // Simulate embedded dashboard context
+      },
+    };
+
+    renderWithProviders(<DeckMulti {...props} />);
+
+    // Wait for child slice requests
+    await waitFor(() => {
+      expect(SupersetClient.get).toHaveBeenCalled();
+    });
+
+    // Check that all requests include the dashboardId
+    const calls = (SupersetClient.get as jest.Mock).mock.calls;
+    calls.forEach(call => {
+      const url = call[0].endpoint;
+      const urlParams = new URLSearchParams(url.split('?')[1]);
+      const formDataString = urlParams.get('form_data');
+      const formData = JSON.parse(formDataString || '{}');
+      expect(formData.dashboardId).toBe(123);
+    });
+  });
+
+  it('should not include dashboardId when not present', async () => {
+    const props = {
+      ...baseMockProps,
+      formData: {
+        ...baseMockProps.formData,
+        // No dashboardId
+      },
+    };
+
+    renderWithProviders(<DeckMulti {...props} />);
+
+    // Wait for child slice requests
+    await waitFor(() => {
+      expect(SupersetClient.get).toHaveBeenCalled();
+    });
+
+    // Check that requests don't include dashboardId
+    const calls = (SupersetClient.get as jest.Mock).mock.calls;
+    calls.forEach(call => {
+      const url = call[0].endpoint;
+      const formData = JSON.parse(
+        new URLSearchParams(url.split('?')[1]).get('form_data') || '{}',
+      );
+      expect(formData.dashboardId).toBeUndefined();
+    });
+  });
+
+  it('should preserve dashboardId through filter updates', async () => {
+    const props = {
+      ...baseMockProps,
+      formData: {
+        ...baseMockProps.formData,
+        dashboardId: 456,
+        extra_filters: [{ col: 'test', op: 'IN' as const, val: ['value'] }],
+      },
+    };
+
+    renderWithProviders(<DeckMulti {...props} />);
+
+    // Wait for child slice requests
+    await waitFor(() => {
+      expect(SupersetClient.get).toHaveBeenCalled();
+    });
+
+    // Verify dashboardId is preserved with filters
+    const calls = (SupersetClient.get as jest.Mock).mock.calls;
+    calls.forEach(call => {
+      const url = call[0].endpoint;
+      const formData = JSON.parse(
+        new URLSearchParams(url.split('?')[1]).get('form_data') || '{}',
+      );
+      expect(formData.dashboardId).toBe(456);
+      expect(formData.extra_filters).toBeDefined();
+    });
+  });
+
   it('should handle viewport changes', async () => {
     const { rerender } = renderWithProviders(<DeckMulti {...baseMockProps} />);
 

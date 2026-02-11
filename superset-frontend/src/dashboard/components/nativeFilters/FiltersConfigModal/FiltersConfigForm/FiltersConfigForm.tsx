@@ -103,8 +103,10 @@ import RemovedFilter from './RemovedFilter';
 import { useBackendFormUpdate, useDefaultValue } from './state';
 import {
   hasTemporalColumns,
+  isValidFilterValue,
   mostUsedDataset,
   setNativeFilterFieldValues,
+  shouldShowTimeRangePicker,
   useForceUpdate,
 } from './utils';
 import {
@@ -355,8 +357,7 @@ const FiltersConfigForm = (
     const currentDataset = Object.values(loadedDatasets).find(
       dataset => dataset.id === formFilter?.dataset?.value,
     );
-
-    return currentDataset ? hasTemporalColumns(currentDataset) : true;
+    return shouldShowTimeRangePicker(currentDataset);
   }, [formFilter?.dataset?.value, loadedDatasets]);
 
   const itemTypeField =
@@ -818,12 +819,6 @@ const FiltersConfigForm = (
       />
     </StyledRowFormItem>
   );
-  const isValidFilterValue = (value: unknown, isRangeFilter: boolean) => {
-    if (isRangeFilter) {
-      return Array.isArray(value) && (value[0] !== null || value[1] !== null);
-    }
-    return !!value;
-  };
   return (
     <Tabs
       activeKey={activeTabKey}

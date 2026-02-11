@@ -28,47 +28,41 @@ export class Panel implements sqlLabType.Panel {
   }
 }
 
-export class Editor implements sqlLabType.Editor {
-  content: string;
-
-  databaseId: number;
-
-  schema: string;
-
-  // TODO: Check later if we'll use objects instead of strings.
-  catalog: string | null;
-
-  table: string | null;
-
-  constructor(
-    content: string,
-    databaseId: number,
-    catalog: string | null = null,
-    schema = '',
-    table: string | null = null,
-  ) {
-    this.content = content;
-    this.databaseId = databaseId;
-    this.catalog = catalog;
-    this.schema = schema;
-    this.table = table;
-  }
-}
-
 export class Tab implements sqlLabType.Tab {
   id: string;
 
   title: string;
 
-  editor: Editor;
+  databaseId: number;
+
+  catalog: string | null;
+
+  schema: string | null;
 
   panels: Panel[];
 
-  constructor(id: string, title: string, editor: Editor, panels: Panel[] = []) {
+  private editorGetter: () => Promise<sqlLabType.Editor>;
+
+  constructor(
+    id: string,
+    title: string,
+    databaseId: number,
+    catalog: string | null = null,
+    schema: string | null = null,
+    editorGetter: () => Promise<sqlLabType.Editor>,
+    panels: Panel[] = [],
+  ) {
     this.id = id;
     this.title = title;
-    this.editor = editor;
+    this.databaseId = databaseId;
+    this.catalog = catalog;
+    this.schema = schema;
+    this.editorGetter = editorGetter;
     this.panels = panels;
+  }
+
+  getEditor(): Promise<sqlLabType.Editor> {
+    return this.editorGetter();
   }
 }
 
@@ -87,8 +81,6 @@ export class QueryContext implements sqlLabType.QueryContext {
   clientId: string;
 
   ctas: sqlLabType.CTAS | null;
-
-  editor: Editor;
 
   requestedLimit: number | null;
 
@@ -116,7 +108,6 @@ export class QueryContext implements sqlLabType.QueryContext {
   ) {
     this.clientId = clientId;
     this.tab = tab;
-    this.editor = tab.editor;
     this.runAsync = runAsync;
     this.startDttm = startDttm;
     this.requestedLimit = options.requestedLimit ?? null;
