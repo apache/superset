@@ -62,6 +62,122 @@ import { CHART_WIDTH, CHART_HEIGHT } from 'src/dashboard/constants';
 // Session storage key for recent dashboard
 const SK_DASHBOARD_ID = 'save_chart_recent_dashboard';
 
+/**
+ * Creates URLSearchParams with save action and slice ID, removing form_data_key.
+ * Exported for testing purposes.
+ */
+export const createRedirectParams = (
+  windowLocationSearch: string,
+  chart: { id: number },
+  action: string,
+): URLSearchParams => {
+  const searchParams = new URLSearchParams(windowLocationSearch);
+  searchParams.set('save_action', action);
+  searchParams.delete('form_data_key');
+  searchParams.set('slice_id', chart.id.toString());
+  return searchParams;
+};
+
+/**
+ * Adds a chart to a dashboard tab by updating the position_json.
+ * Exported for testing purposes.
+ */
+export const addChartToDashboard = async (
+  dashboardId: number,
+  chartId: number,
+  tabId: string,
+  sliceNameParam: string | undefined,
+): Promise<void> => {
+  const dashboardResponse = await SupersetClient.get({
+    endpoint: `/api/v1/dashboard/${dashboardId}`,
+  });
+
+  const dashboardData = dashboardResponse.json.result;
+
+  let positionJson = dashboardData.position_json;
+  if (typeof positionJson === 'string') {
+    positionJson = JSON.parse(positionJson);
+  }
+  positionJson = positionJson || {};
+
+  const chartKey = `CHART-${chartId}`;
+
+  // Find a row in the tab with available space
+  const tabChildren = positionJson[tabId]?.children || [];
+  let targetRowKey: string | null = null;
+
+  for (const childKey of tabChildren) {
+    const child = positionJson[childKey];
+    if (child?.type === 'ROW') {
+      const rowChildren = child.children || [];
+      const totalWidth = rowChildren.reduce((sum: number, key: string) => {
+        const component = positionJson[key];
+        return sum + (component?.meta?.width || 0);
+      }, 0);
+
+      if (totalWidth + CHART_WIDTH <= GRID_COLUMN_COUNT) {
+        targetRowKey = childKey;
+        break;
+      }
+    }
+  }
+
+  const updatedPositionJson = { ...positionJson };
+
+  // Create a new row if no existing row has space
+  if (!targetRowKey) {
+    targetRowKey = `ROW-${nanoid()}`;
+    updatedPositionJson[targetRowKey] = {
+      type: 'ROW',
+      id: targetRowKey,
+      children: [],
+      parents: ['ROOT_ID', 'GRID_ID', tabId],
+      meta: {
+        background: 'BACKGROUND_TRANSPARENT',
+      },
+    };
+
+    if (positionJson[tabId]) {
+      updatedPositionJson[tabId] = {
+        ...positionJson[tabId],
+        children: [...(positionJson[tabId].children || []), targetRowKey],
+      };
+    } else {
+      throw new Error(`Tab ${tabId} not found in positionJson`);
+    }
+  }
+
+  updatedPositionJson[chartKey] = {
+    type: 'CHART',
+    id: chartKey,
+    children: [],
+    parents: ['ROOT_ID', 'GRID_ID', tabId, targetRowKey],
+    meta: {
+      width: CHART_WIDTH,
+      height: CHART_HEIGHT,
+      chartId,
+      sliceName: sliceNameParam ?? `Chart ${chartId}`,
+    },
+  };
+
+  // Add chart to the target row
+  updatedPositionJson[targetRowKey] = {
+    ...updatedPositionJson[targetRowKey],
+    children: [
+      ...(updatedPositionJson[targetRowKey].children || []),
+      chartKey,
+    ],
+  };
+
+  await SupersetClient.put({
+    endpoint: `/api/v1/dashboard/${dashboardId}`,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      position_json: JSON.stringify(updatedPositionJson),
+    }),
+  });
+};
+
 interface SaveModalProps {
   addDangerToast: (msg: string) => void;
   actions: Record<string, any>;
@@ -268,15 +384,8 @@ const SaveModal = ({
   }, [dispatch]);
 
   const handleRedirect = useCallback(
-    (windowLocationSearch: string, chart: any) => {
-      const searchParams = new URLSearchParams(windowLocationSearch);
-      searchParams.set('save_action', action);
-
-      searchParams.delete('form_data_key');
-
-      searchParams.set('slice_id', chart.id.toString());
-      return searchParams;
-    },
+    (windowLocationSearch: string, chart: { id: number }) =>
+      createRedirectParams(windowLocationSearch, chart, action),
     [action],
   );
 
@@ -288,99 +397,7 @@ const SaveModal = ({
       sliceNameParam: string | undefined,
     ) => {
       try {
-        const dashboardResponse = await SupersetClient.get({
-          endpoint: `/api/v1/dashboard/${dashboardId}`,
-        });
-
-        const dashboardData = dashboardResponse.json.result;
-
-        let positionJson = dashboardData.position_json;
-        if (typeof positionJson === 'string') {
-          positionJson = JSON.parse(positionJson);
-        }
-        positionJson = positionJson || {};
-
-        const chartKey = `CHART-${chartId}`;
-
-        // Find a row in the tab with available space
-        const tabChildren = positionJson[tabId]?.children || [];
-        let targetRowKey: string | null = null;
-
-        for (const childKey of tabChildren) {
-          const child = positionJson[childKey];
-          if (child?.type === 'ROW') {
-            const rowChildren = child.children || [];
-            const totalWidth = rowChildren.reduce(
-              (sum: number, key: string) => {
-                const component = positionJson[key];
-                return sum + (component?.meta?.width || 0);
-              },
-              0,
-            );
-
-            if (totalWidth + CHART_WIDTH <= GRID_COLUMN_COUNT) {
-              targetRowKey = childKey;
-              break;
-            }
-          }
-        }
-
-        const updatedPositionJson = { ...positionJson };
-
-        // Create a new row if no existing row has space
-        if (!targetRowKey) {
-          targetRowKey = `ROW-${nanoid()}`;
-          updatedPositionJson[targetRowKey] = {
-            type: 'ROW',
-            id: targetRowKey,
-            children: [],
-            parents: ['ROOT_ID', 'GRID_ID', tabId],
-            meta: {
-              background: 'BACKGROUND_TRANSPARENT',
-            },
-          };
-
-          if (positionJson[tabId]) {
-            updatedPositionJson[tabId] = {
-              ...positionJson[tabId],
-              children: [...(positionJson[tabId].children || []), targetRowKey],
-            };
-          } else {
-            throw new Error(`Tab ${tabId} not found in positionJson`);
-          }
-        }
-
-        updatedPositionJson[chartKey] = {
-          type: 'CHART',
-          id: chartKey,
-          children: [],
-          parents: ['ROOT_ID', 'GRID_ID', tabId, targetRowKey],
-          meta: {
-            width: CHART_WIDTH,
-            height: CHART_HEIGHT,
-            chartId,
-            sliceName: sliceNameParam ?? `Chart ${chartId}`,
-          },
-        };
-
-        // Add chart to the target row
-        updatedPositionJson[targetRowKey] = {
-          ...updatedPositionJson[targetRowKey],
-          children: [
-            ...(updatedPositionJson[targetRowKey].children || []),
-            chartKey,
-          ],
-        };
-
-        const response = await SupersetClient.put({
-          endpoint: `/api/v1/dashboard/${dashboardId}`,
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            position_json: JSON.stringify(updatedPositionJson),
-          }),
-        });
-
-        return response;
+        await addChartToDashboard(dashboardId, chartId, tabId, sliceNameParam);
       } catch (error) {
         throw new Error(`Error adding chart to dashboard tab: ${error}`);
       }
