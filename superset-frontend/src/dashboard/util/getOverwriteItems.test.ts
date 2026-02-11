@@ -18,6 +18,61 @@
  */
 
 import getOverwriteItems from './getOverwriteItems';
+import { OVERWRITE_INSPECT_FIELDS } from 'src/dashboard/constants';
+
+test('OVERWRITE_INSPECT_FIELDS includes translations', () => {
+  expect(OVERWRITE_INSPECT_FIELDS).toContain('translations');
+});
+
+test('returns diff for translations object changes', () => {
+  const prevTranslations = {
+    dashboard_title: { de: 'Altes Dashboard' },
+  };
+  const nextTranslations = {
+    dashboard_title: { de: 'Neues Dashboard', fr: 'Nouveau tableau' },
+  };
+
+  const prevValue = {
+    css: '',
+    json_metadata: JSON.stringify({ filter_scopes: {} }),
+    translations: prevTranslations,
+  };
+
+  const nextValue = {
+    css: '',
+    json_metadata: JSON.stringify({ filter_scopes: {} }),
+    translations: nextTranslations,
+  };
+
+  const result = getOverwriteItems(prevValue, nextValue);
+
+  expect(result).toContainEqual({
+    keyPath: 'translations',
+    oldValue: JSON.stringify(prevTranslations, null, 2),
+    newValue: JSON.stringify(nextTranslations, null, 2),
+  });
+});
+
+test('excludes translations when unchanged', () => {
+  const translations = { dashboard_title: { de: 'Dashboard' } };
+
+  const prevValue = {
+    css: 'old',
+    json_metadata: JSON.stringify({ filter_scopes: {} }),
+    translations,
+  };
+
+  const nextValue = {
+    css: 'new',
+    json_metadata: JSON.stringify({ filter_scopes: {} }),
+    translations: { ...translations },
+  };
+
+  const result = getOverwriteItems(prevValue, nextValue);
+
+  expect(result.find(item => item.keyPath === 'translations')).toBeUndefined();
+  expect(result.find(item => item.keyPath === 'css')).toBeDefined();
+});
 
 test('returns diff items', () => {
   const prevFilterScopes = {

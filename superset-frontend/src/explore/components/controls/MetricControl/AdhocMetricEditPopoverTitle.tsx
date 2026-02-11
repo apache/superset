@@ -26,7 +26,7 @@ import {
 } from 'react';
 
 import { t } from '@apache-superset/core';
-import { styled, useTheme } from '@apache-superset/core/ui';
+import { css, styled, useTheme } from '@apache-superset/core/ui';
 import { Input, Tooltip } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 
@@ -119,6 +119,11 @@ const AdhocMetricEditPopoverTitle: FC<AdhocMetricEditPopoverTitleProps> = ({
         onBlur={handleBlur}
         role="button"
         tabIndex={0}
+        css={css`
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+        `}
       >
         <TitleLabel>{title?.label || defaultLabel}</TitleLabel>
         &nbsp;

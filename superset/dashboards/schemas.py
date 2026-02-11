@@ -17,12 +17,21 @@
 import re
 from typing import Any, Mapping, Union
 
-from marshmallow import fields, post_dump, post_load, pre_load, Schema
+from flask import has_request_context, request
+from marshmallow import fields, post_dump, post_load, pre_load, Schema, validates_schema
 from marshmallow.validate import Length, ValidationError
 
-from superset import security_manager
+from superset import is_feature_enabled, security_manager
+from superset.localization import (
+    get_user_locale,
+    localize_chart_names,
+    localize_native_filters,
+    sanitize_translations,
+    validate_translations,
+)
 from superset.tags.models import TagType
 from superset.utils import json
+from superset.utils.core import parse_boolean_string
 
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
 get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
@@ -170,6 +179,9 @@ class DashboardJSONMetadataSchema(Schema):
     remote_id = fields.Integer()
     filter_bar_orientation = fields.Str(allow_none=True)
     native_filter_migration = fields.Dict()
+    # Translations for per-dashboard chart name overrides
+    # Structure: {chart_uuid: {translations: {locale: value}}}
+    slice_name_overrides = fields.Dict(allow_none=True)
 
     @pre_load
     def remove_show_native_filters(  # pylint: disable=unused-argument
@@ -220,6 +232,7 @@ class DashboardGetResponseSchema(Schema):
     dashboard_title = fields.String(
         metadata={"description": dashboard_title_description}
     )
+    description = fields.String()
     thumbnail_url = fields.String(allow_none=True)
     published = fields.Boolean()
     css = fields.String(metadata={"description": css_description})
@@ -243,10 +256,13 @@ class DashboardGetResponseSchema(Schema):
     created_on_humanized = fields.String(data_key="created_on_delta_humanized")
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     uuid = fields.UUID(allow_none=True)
+    translations = fields.Dict(dump_only=True)
+    available_locales = fields.List(fields.String(), dump_only=True)
 
-    # pylint: disable=unused-argument
-    @post_dump()
-    def post_dump(self, serialized: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
+    @post_dump(pass_original=True)
+    def post_dump(
+        self, serialized: dict[str, Any], obj: Any, **kwargs: Any
+    ) -> dict[str, Any]:
         # Handle custom_tags → tags renaming when flag is enabled
         # When DASHBOARD_LIST_CUSTOM_TAGS_ONLY=True, FAB populates custom_tags
         # Rename it to tags for frontend compatibility
@@ -257,7 +273,120 @@ class DashboardGetResponseSchema(Schema):
             del serialized["owners"]
             del serialized["changed_by_name"]
             del serialized["changed_by"]
+
+        # Apply content localization when feature is enabled
+        if is_feature_enabled("ENABLE_CONTENT_LOCALIZATION"):
+            self._apply_localization(serialized, obj)
+
         return serialized
+
+    def _apply_localization(self, serialized: dict[str, Any], obj: Any) -> None:
+        """
+        Apply content localization to dashboard fields.
+
+        Supports two modes via ?include_translations query parameter:
+
+        Default mode (include_translations=false):
+            Returns localized field values for user's locale.
+            Excludes raw translations dict from response.
+
+        Editor mode (include_translations=true):
+            Returns original field values (not localized).
+            Includes full translations dict for TranslationEditor UI.
+
+        Both modes include available_locales.
+        """
+        include_translations = self._should_include_translations()
+
+        if include_translations:
+            # Editor mode: return original values + translations dict
+            if hasattr(obj, "translations") and obj.translations:
+                serialized["translations"] = obj.translations
+            else:
+                serialized["translations"] = {}
+
+            if hasattr(obj, "get_available_locales"):
+                serialized["available_locales"] = obj.get_available_locales()
+        else:
+            # Default mode: localize fields, exclude translations
+            serialized.pop("translations", None)
+
+            locale = get_user_locale()
+
+            if hasattr(obj, "get_localized"):
+                if "dashboard_title" in serialized:
+                    serialized["dashboard_title"] = obj.get_localized(
+                        "dashboard_title", locale
+                    )
+                if "description" in serialized:
+                    serialized["description"] = obj.get_localized("description", locale)
+
+                serialized["available_locales"] = obj.get_available_locales()
+
+            # Localize native filter names in json_metadata
+            if serialized.get("json_metadata"):
+                self._localize_native_filters(serialized, locale)
+
+            # Localize chart names in position_json
+            if serialized.get("position_json"):
+                self._localize_chart_names(serialized, obj, locale)
+
+    def _should_include_translations(self) -> bool:
+        """
+        Check if raw translations dict should be included in response.
+
+        Returns True if ?include_translations=true query parameter present.
+        Returns False if outside request context or parameter absent/false.
+        """
+        if not has_request_context():
+            return False
+        return parse_boolean_string(request.args.get("include_translations"))
+
+    def _localize_native_filters(self, serialized: dict[str, Any], locale: str) -> None:
+        """Localize native filter names in json_metadata."""
+        try:
+            metadata = json.loads(serialized["json_metadata"])
+        except (json.JSONDecodeError, TypeError):
+            return
+
+        if filters := metadata.get("native_filter_configuration"):
+            metadata["native_filter_configuration"] = localize_native_filters(
+                filters, locale
+            )
+            serialized["json_metadata"] = json.dumps(metadata)
+
+    def _localize_chart_names(
+        self, serialized: dict[str, Any], obj: Any, locale: str
+    ) -> None:
+        """
+        Localize chart names in position_json.
+
+        Applies priority chain for each chart:
+        1. Override translation (json_metadata.slice_name_overrides)
+        2. Override name (position_json.meta.sliceNameOverride)
+        3. Chart translation (chart.translations)
+        4. Chart original name (chart.slice_name)
+        """
+        try:
+            position = json.loads(serialized["position_json"])
+        except (json.JSONDecodeError, TypeError):
+            return
+
+        # Parse metadata for slice_name_overrides
+        try:
+            metadata = json.loads(serialized.get("json_metadata") or "{}")
+        except (json.JSONDecodeError, TypeError):
+            metadata = {}
+
+        # Build uuid → Slice mapping
+        slices_by_uuid: dict[str, Any] = {}
+        if hasattr(obj, "slices"):
+            slices_by_uuid = {str(slc.uuid): slc for slc in obj.slices}
+
+        localized_position = localize_chart_names(
+            position, metadata, slices_by_uuid, locale
+        )
+        serialized["position_json"] = json.dumps(localized_position)
 
 
 class DatabaseSchema(Schema):
@@ -445,6 +574,50 @@ class DashboardPutSchema(BaseDashboardSchema):
         fields.Integer(metadata={"description": tags_description}, allow_none=True)
     )
     uuid = fields.UUID(allow_none=True)
+    translations = fields.Dict(
+        metadata={"description": "Translations dict for content localization"},
+        allow_none=True,
+    )
+
+    @validates_schema
+    def validate_translations_data(
+        self, data: dict[str, Any], **kwargs: Any
+    ) -> None:
+        """
+        Validate translations field: feature flag and structure.
+
+        Checks:
+        1. Feature flag ENABLE_CONTENT_LOCALIZATION must be enabled
+        2. Structure must be valid: {field: {locale: value}}
+
+        Raises:
+            ValidationError: If feature disabled or structure invalid.
+        """
+        if "translations" not in data:
+            return
+
+        if not is_feature_enabled("ENABLE_CONTENT_LOCALIZATION"):
+            raise ValidationError(
+                "Content localization is not enabled. "
+                "Set ENABLE_CONTENT_LOCALIZATION=True to use translations.",
+                field_name="translations",
+            )
+
+        validate_translations(data["translations"])
+
+    @post_load
+    def sanitize_translations_xss(
+        self, data: dict[str, Any], **kwargs: Any
+    ) -> dict[str, Any]:
+        """
+        Strip HTML from translation values to prevent XSS.
+
+        Sanitization runs after validation. All HTML tags are removed,
+        storing plain text that React will escape when rendering.
+        """
+        if "translations" in data:
+            data["translations"] = sanitize_translations(data["translations"])
+        return data
 
 
 class DashboardNativeFiltersConfigUpdateSchema(BaseDashboardSchema):
@@ -516,6 +689,7 @@ class ImportV1DashboardSchema(Schema):
     certified_by = fields.String(allow_none=True)
     certification_details = fields.String(allow_none=True)
     published = fields.Boolean(allow_none=True)
+    translations = fields.Dict(allow_none=True, load_default=None)
     tags = fields.List(fields.String(), allow_none=True)
     theme_uuid = fields.UUID(allow_none=True)
     theme_id = fields.Integer(allow_none=True)

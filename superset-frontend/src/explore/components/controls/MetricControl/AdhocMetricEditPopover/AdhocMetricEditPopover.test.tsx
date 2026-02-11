@@ -21,10 +21,35 @@ import {
   screen,
   selectOption,
   userEvent,
+  waitFor,
   within,
 } from 'spec/helpers/testing-library';
+import { isFeatureEnabled } from '@superset-ui/core';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import AdhocMetricEditPopover from '.';
+
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(() => false),
+}));
+
+jest.mock('@superset-ui/core/connection', () => ({
+  SupersetClient: {
+    get: jest.fn(() =>
+      Promise.resolve({
+        json: {
+          result: {
+            locales: [
+              { code: 'de', name: 'Deutsch', flag: '\ud83c\udde9\ud83c\uddea' },
+              { code: 'fr', name: 'Fran\u00e7ais', flag: '\ud83c\uddeb\ud83c\uddf7' },
+            ],
+            default_locale: 'en',
+          },
+        },
+      }),
+    ),
+  },
+}));
 
 const createProps = () => ({
   onChange: jest.fn(),
@@ -405,4 +430,74 @@ test('Should filter columns by column_name and verbose_name in Simple tab', asyn
   ).not.toBeInTheDocument();
   expect(within(dropdown).queryByText('Order Amount')).not.toBeInTheDocument();
   expect(within(dropdown).queryByText('Product Title')).not.toBeInTheDocument();
+});
+
+test('Should not render MetricLabelTranslations when localization disabled', () => {
+  const props = createProps();
+  render(
+    <AdhocMetricEditPopover
+      {...props}
+      hasCustomLabel
+      currentLabel="My Metric"
+      translations={{}}
+      onTranslationsChange={jest.fn()}
+    />,
+    { useRedux: true, initialState: { common: { locale: 'en' } } },
+  );
+  expect(
+    screen.queryByTestId('MetricLabelTranslations'),
+  ).not.toBeInTheDocument();
+});
+
+test('Should not render MetricLabelTranslations without custom label', async () => {
+  (isFeatureEnabled as jest.Mock).mockReturnValue(true);
+  const props = createProps();
+  render(
+    <AdhocMetricEditPopover
+      {...props}
+      hasCustomLabel={false}
+      currentLabel="COUNT(*)"
+      translations={{}}
+      onTranslationsChange={jest.fn()}
+    />,
+    { useRedux: true, initialState: { common: { locale: 'en' } } },
+  );
+  await waitFor(() => {
+    expect(
+      screen.queryByTestId('MetricLabelTranslations'),
+    ).not.toBeInTheDocument();
+  });
+  (isFeatureEnabled as jest.Mock).mockReturnValue(false);
+});
+
+test('Should render MetricLabelTranslations when localization enabled and custom label', async () => {
+  (isFeatureEnabled as jest.Mock).mockReturnValue(true);
+  const props = createProps();
+  render(
+    <AdhocMetricEditPopover
+      {...props}
+      hasCustomLabel
+      currentLabel="Total Revenue"
+      translations={{ label: { de: 'Gesamtumsatz' } }}
+      onTranslationsChange={jest.fn()}
+    />,
+    { useRedux: true, initialState: { common: { locale: 'en' } } },
+  );
+  expect(
+    await screen.findByTestId('MetricLabelTranslations'),
+  ).toBeInTheDocument();
+  (isFeatureEnabled as jest.Mock).mockReturnValue(false);
+});
+
+test('Should enable Save when translations changed', () => {
+  const props = createProps();
+  render(
+    <AdhocMetricEditPopover
+      {...props}
+      hasTranslationChanges
+      translations={{ label: { de: 'Neu' } }}
+      onTranslationsChange={jest.fn()}
+    />,
+  );
+  expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
 });

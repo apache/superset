@@ -16,24 +16,42 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import type { ReactNode } from 'react';
 import { t } from '@apache-superset/core';
 import { FormItem, Input, FormInstance } from '@superset-ui/core/components';
 import { ModalFormField } from 'src/components/Modal';
 import { ValidationObject } from 'src/components/Modal/useModalValidation';
+import { DEFAULT_LOCALE_KEY } from 'src/components/TranslationEditor';
+import DeferredInput from 'src/components/DeferredInput';
 
 interface BasicInfoSectionProps {
   form: FormInstance;
   validationStatus: ValidationObject;
+  /** LocaleSwitcher component rendered as Input suffix. Undefined when feature disabled. */
+  localeSwitcher?: ReactNode;
+  /** Currently active locale for the title field. Undefined when feature disabled. */
+  activeLocale?: string;
+  /** Translation text when activeLocale is not 'default'. Undefined otherwise. */
+  translationValue?: string;
+  /** Called when translation text changes (activeLocale !== 'default'). */
+  onTranslationChange?: (value: string) => void;
 }
 
 const BasicInfoSection = ({
   form,
   validationStatus,
+  localeSwitcher,
+  activeLocale,
+  translationValue,
+  onTranslationChange,
 }: BasicInfoSectionProps) => {
-  const titleValue = form.getFieldValue('title');
+  const titleValue = form.getFieldValue('title') ?? '';
   const hasError =
     validationStatus.basic?.hasErrors &&
     (!titleValue || titleValue.trim().length === 0);
+
+  const isEditingTranslation =
+    activeLocale !== undefined && activeLocale !== DEFAULT_LOCALE_KEY;
 
   return (
     <>
@@ -42,10 +60,17 @@ const BasicInfoSection = ({
         required
         testId="dashboard-name-field"
         error={hasError ? t('Dashboard name is required') : undefined}
+        helperText={
+          activeLocale === DEFAULT_LOCALE_KEY
+            ? t('Default text — shown to users without a translation for their language')
+            : undefined
+        }
       >
+        {/* Hidden FormItem preserves form binding for the default title value */}
         <FormItem
           name="title"
           noStyle
+          hidden={isEditingTranslation}
           rules={[
             {
               required: true,
@@ -58,8 +83,19 @@ const BasicInfoSection = ({
             placeholder={t('The display name of your dashboard')}
             data-test="dashboard-title-input"
             type="text"
+            suffix={!isEditingTranslation ? localeSwitcher : undefined}
           />
         </FormItem>
+        {isEditingTranslation && (
+          <DeferredInput
+            value={translationValue}
+            onChange={onTranslationChange}
+            placeholder={t('Translation for %s', activeLocale.toUpperCase())}
+            aria-label={t('Translation for %s', activeLocale.toUpperCase())}
+            type="text"
+            suffix={localeSwitcher}
+          />
+        )}
       </ModalFormField>
       <ModalFormField
         label={t('URL Slug')}

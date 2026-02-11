@@ -442,6 +442,15 @@ LANGUAGES = {
 # incomplete and not well maintained.
 LANGUAGES = {}
 
+# ---------------------------------------------------
+# Content localization limits
+# Used when ENABLE_CONTENT_LOCALIZATION feature flag is enabled.
+# These limits protect against oversized translation payloads.
+# ---------------------------------------------------
+CONTENT_LOCALIZATION_MAX_LOCALES = 50  # Max unique locales per entity
+CONTENT_LOCALIZATION_MAX_TEXT_LENGTH = 10000  # Max chars per translation value
+CONTENT_LOCALIZATION_MAX_FIELD_LENGTH = 50  # Max chars for field names
+CONTENT_LOCALIZATION_MAX_JSON_SIZE = 1048576  # Max JSON size in bytes (1MB)
 
 # Override the default d3 locale format
 # Default values are equivalent to
@@ -565,6 +574,13 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enables advanced data type support
     # @lifecycle: development
     "ENABLE_ADVANCED_DATA_TYPES": False,
+    # Enable localization of user-created content (dashboard titles, chart names,
+    # filter labels). When enabled, users can provide translations for content
+    # that will be displayed based on the viewer's UI language setting.
+    # Requires database migration for 'translations' column.
+    # @lifecycle: development
+    # @docs: https://superset.apache.org/docs/configuration/content-localization
+    "ENABLE_CONTENT_LOCALIZATION": False,
     # Enable Superset extensions for custom functionality without modifying core
     # @lifecycle: development
     "ENABLE_EXTENSIONS": False,

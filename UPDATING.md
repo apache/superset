@@ -24,6 +24,52 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Content Localization
+
+Superset now supports localization of user-created content (dashboard titles, chart names,
+filter labels). Translations are displayed automatically based on the viewer's UI language.
+
+#### Requirements
+
+- Enable feature flag `ENABLE_CONTENT_LOCALIZATION`
+- Run `superset db upgrade` for migration `1af0da0adfec` (adds `translations` JSON column to `dashboards` and `slices` tables)
+- Configure `LANGUAGES` in `superset_config.py` with desired locales
+
+#### New Configuration Options
+
+```python
+# superset_config.py
+FEATURE_FLAGS = {
+    "ENABLE_CONTENT_LOCALIZATION": True,
+}
+
+# Optional: adjust payload limits
+CONTENT_LOCALIZATION_MAX_LOCALES = 50
+CONTENT_LOCALIZATION_MAX_TEXT_LENGTH = 10000
+CONTENT_LOCALIZATION_MAX_JSON_SIZE = 1048576  # 1 MB
+```
+
+#### API Changes
+
+- `GET /api/v1/dashboard/{id}` and `GET /api/v1/chart/{id}` return localized field values based on `Accept-Language` header
+- `GET /api/v1/dashboard/{id}?include_translations=true` returns original values with full translations dict
+- `PUT /api/v1/dashboard/{id}` and `PUT /api/v1/chart/{id}` accept a `translations` field
+- New endpoint: `GET /api/v1/localization/available_locales`
+
+#### Jinja Macro
+
+New `{{ current_user_locale() }}` macro for locale-aware SQL queries (requires `ENABLE_TEMPLATE_PROCESSING`).
+
+#### Embedded SDK
+
+New `setLocale(locale)` method on the `EmbeddedDashboard` object for dynamic locale switching.
+
+#### Export/Import
+
+Dashboard and chart YAML exports include the `translations` field. Imports without `translations` are backward compatible.
+
+See [Content Localization docs](https://superset.apache.org/docs/configuration/content-localization) for full details.
+
 ### Signal Cache Backend
 
 A new `SIGNAL_CACHE_CONFIG` configuration provides a unified Redis-based backend for real-time coordination features in Superset. This backend enables:
@@ -60,7 +106,6 @@ services:
       - /home/superset-websocket/dist
       - ./docker/superset-websocket/config.json:/home/superset-websocket/config.json:ro
 ```
-
 ### Example Data Loading Improvements
 
 #### New Directory Structure

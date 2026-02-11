@@ -30,6 +30,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Integer,
+    JSON,
     String,
     Table,
     Text,
@@ -42,6 +43,7 @@ from superset_core.api.models import Chart as CoreChart
 
 from superset import db, is_feature_enabled, security_manager
 from superset.legacy import update_time_range
+from superset.localization import LocalizableMixin
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.tasks.utils import get_current_user
@@ -66,7 +68,7 @@ logger = logging.getLogger(__name__)
 
 
 class Slice(  # pylint: disable=too-many-public-methods
-    CoreChart, AuditMixinNullable, ImportExportMixin
+    CoreChart, AuditMixinNullable, ImportExportMixin, LocalizableMixin
 ):
     """A slice is essentially a report or a view on data"""
 
@@ -82,6 +84,7 @@ class Slice(  # pylint: disable=too-many-public-methods
     params = Column(utils.MediumText())
     query_context = Column(utils.MediumText())
     description = Column(Text)
+    translations = Column(JSON, nullable=True)
     cache_timeout = Column(Integer)
     perm = Column(String(1000))
     schema_perm = Column(String(1000))
@@ -126,6 +129,7 @@ class Slice(  # pylint: disable=too-many-public-methods
     export_fields = [
         "slice_name",
         "description",
+        "translations",
         "certified_by",
         "certification_details",
         "datasource_type",

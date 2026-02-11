@@ -18,7 +18,7 @@
  */
 /* eslint-disable react-hooks/rules-of-hooks */
 import { ColumnMeta, Metric } from '@superset-ui/chart-controls';
-import { t } from '@apache-superset/core';
+import { logging, t } from '@apache-superset/core';
 import {
   Behavior,
   ChartDataResponseResult,
@@ -32,6 +32,7 @@ import {
   JsonResponse,
   NativeFilterType,
   SupersetApiError,
+  SupersetClient,
   ClientErrorObject,
   getClientErrorObject,
   getExtensionsRegistry,
@@ -45,13 +46,14 @@ import {
   useEffect,
   useImperativeHandle,
   useMemo,
+  useRef,
   useState,
   RefObject,
   memo,
 } from 'react';
 import rison from 'rison';
 import { PluginFilterSelectCustomizeProps } from 'src/filters/components/Select/types';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import {
   Constants,
@@ -88,6 +90,13 @@ import {
   mergeExtraFormData,
 } from 'src/dashboard/components/nativeFilters/utils';
 import { DatasetSelectLabel } from 'src/features/datasets/DatasetSelectLabel';
+import {
+  LocaleSwitcher,
+  DEFAULT_LOCALE_KEY,
+  stripEmptyValues,
+} from 'src/components/TranslationEditor';
+import type { Translations, LocaleInfo } from 'src/types/Localization';
+import DeferredInput from 'src/components/DeferredInput';
 import {
   ALLOW_DEPENDENCIES as TYPES_SUPPORT_DEPENDENCIES,
   getFiltersConfigModalTestId,
@@ -301,6 +310,7 @@ const FiltersConfigForm = (
   const [activeTabKey, setActiveTabKey] = useState<string>(
     FilterTabs.configuration.key,
   );
+  const dispatch = useDispatch();
   const dashboardId = useSelector<RootState, number>(
     state => state.dashboardInfo.id,
   );
@@ -309,6 +319,13 @@ const FiltersConfigForm = (
     any
   > | null>(null);
   const forceUpdate = useForceUpdate(isActive);
+  const [nameActiveLocale, setNameActiveLocale] = useState(DEFAULT_LOCALE_KEY);
+  const [allLocales, setAllLocales] = useState<LocaleInfo[]>([]);
+  const [defaultLocale, setDefaultLocale] = useState('');
+  const userLocale: string = useSelector(
+    (state: RootState & { common: { locale: string } }) =>
+      state.common.locale,
+  );
   const [datasetDetails, setDatasetDetails] = useState<Record<string, any>>();
   const defaultFormFilter = useMemo(() => ({}), []);
   const filters = form.getFieldValue('filters');
@@ -569,6 +586,109 @@ const FiltersConfigForm = (
     [filterId, form, formChanged],
   );
 
+  const localizationEnabled = isFeatureEnabled(
+    FeatureFlag.EnableContentLocalization,
+  );
+
+  const currentTranslations: Translations =
+    formFilter?.translations ?? filterToEdit?.translations ?? {};
+
+  useEffect(() => {
+    if (filterToEdit?.translations) {
+      setNativeFilterFieldValues(form, filterId, {
+        translations: filterToEdit.translations,
+      });
+    }
+  }, [filterId, filterToEdit?.translations, form]);
+
+  useEffect(() => {
+    if (localizationEnabled) {
+      SupersetClient.get({
+        endpoint: '/api/v1/localization/available_locales',
+      }).then(
+        response => {
+          const { locales, default_locale } = response.json.result;
+          setAllLocales(locales);
+          setDefaultLocale(default_locale);
+        },
+        err => logging.error('Failed to fetch available locales', err),
+      );
+    }
+  }, [localizationEnabled]);
+
+  // Refs for values read during initialization but not triggering re-runs.
+  // Without refs, editing a translation would reset the active locale
+  // because currentTranslations changes on every keystroke.
+  const currentTranslationsRef = useRef(currentTranslations);
+  currentTranslationsRef.current = currentTranslations;
+  const userLocaleRef = useRef(userLocale);
+  userLocaleRef.current = userLocale;
+
+  // Initialize nameActiveLocale when switching between filters.
+  useEffect(() => {
+    if (
+      localizationEnabled &&
+      currentTranslationsRef.current.name?.[userLocaleRef.current]
+    ) {
+      setNameActiveLocale(userLocaleRef.current);
+    } else {
+      setNameActiveLocale(DEFAULT_LOCALE_KEY);
+    }
+  }, [localizationEnabled, filterId]);
+
+  const handleNameTranslationChange = useCallback(
+    (value: string) => {
+      const updated: Translations = {
+        ...currentTranslationsRef.current,
+        name: { ...currentTranslationsRef.current.name, [nameActiveLocale]: value },
+      };
+      setNativeFilterFieldValues(form, filterId, {
+        translations: stripEmptyValues(updated),
+      });
+      debouncedFormChanged();
+    },
+    [nameActiveLocale, form, filterId, debouncedFormChanged],
+  );
+
+  /** Validate default name is non-empty before switching to translation. */
+  const handleNameLocaleChange = useCallback(
+    (locale: string) => {
+      if (locale !== DEFAULT_LOCALE_KEY) {
+        const nameValue = formFilter?.name ?? filterToEdit?.name ?? '';
+        if (!nameValue.trim()) {
+          dispatch(
+            addDangerToast(
+              t('Default text is required before adding translations'),
+            ),
+          );
+          return;
+        }
+      }
+      setNameActiveLocale(locale);
+    },
+    [dispatch, formFilter?.name, filterToEdit?.name],
+  );
+
+  const isEditingFilterTranslation =
+    localizationEnabled &&
+    !isChartCustomization &&
+    nameActiveLocale !== DEFAULT_LOCALE_KEY;
+
+  const nameLocaleSwitcher =
+    localizationEnabled && !isChartCustomization ? (
+      <LocaleSwitcher
+        fieldName="name"
+        defaultValue={formFilter?.name ?? filterToEdit?.name ?? ''}
+        translations={currentTranslations}
+        allLocales={allLocales}
+        defaultLocale={defaultLocale}
+        userLocale={userLocale}
+        activeLocale={nameActiveLocale}
+        onLocaleChange={handleNameLocaleChange}
+        fieldLabel={t('Filter name')}
+      />
+    ) : undefined;
+
   const hasPreFilter =
     !!formFilter?.adhoc_filters ||
     !!formFilter?.time_range ||
@@ -710,7 +830,7 @@ const FiltersConfigForm = (
           setDatasetDetails(dataset);
         })
         .catch((response: SupersetApiError) => {
-          addDangerToast(response.message);
+          dispatch(addDangerToast(response.message));
         });
     }
   }, [datasetId]);
@@ -820,6 +940,7 @@ const FiltersConfigForm = (
     </StyledRowFormItem>
   );
   return (
+  <>
     <Tabs
       activeKey={activeTabKey}
       onChange={activeKey => setActiveTabKey(activeKey)}
@@ -850,12 +971,41 @@ const FiltersConfigForm = (
                     rules={[
                       { required: !isRemoved, message: t('Name is required') },
                     ]}
+                    hidden={isEditingFilterTranslation}
                   >
                     <Input
                       {...getFiltersConfigModalTestId('name-input')}
                       onChange={debouncedFormChanged}
+                      suffix={nameLocaleSwitcher}
                     />
                   </StyledFormItem>
+                  {isEditingFilterTranslation && (
+                    <StyledFormItem
+                      expanded={expanded}
+                      label={<StyledLabel>{t('Filter name')}</StyledLabel>}
+                    >
+                      <DeferredInput
+                        {...getFiltersConfigModalTestId('name-input')}
+                        value={
+                          currentTranslations.name?.[nameActiveLocale] ?? ''
+                        }
+                        onChange={handleNameTranslationChange}
+                        suffix={nameLocaleSwitcher}
+                        placeholder={t(
+                          'Translation for %s',
+                          nameActiveLocale.toUpperCase(),
+                        )}
+                      />
+                    </StyledFormItem>
+                  )}
+                  {localizationEnabled && !isChartCustomization && (
+                    <FormItem
+                      name={['filters', filterId, 'translations']}
+                      initialValue={filterToEdit?.translations}
+                      hidden
+                      noStyle
+                    />
+                  )}
                   {isChartCustomization ? (
                     <StyledFormItem
                       expanded={expanded}
@@ -1728,6 +1878,7 @@ const FiltersConfigForm = (
         },
       ]}
     />
+  </>
   );
 };
 
