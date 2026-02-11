@@ -1476,7 +1476,6 @@ describe('plugin-chart-table', () => {
                         column: 'sum__num',
                         operator: '>',
                         targetValue: 2467,
-                        // useGradient is undefined
                       },
                     ],
                   },

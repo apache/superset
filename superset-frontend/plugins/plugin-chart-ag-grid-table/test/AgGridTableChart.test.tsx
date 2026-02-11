@@ -97,7 +97,6 @@ describe('AgGridTableChart', () => {
       }),
     );
 
-    // Wait for AgGrid to render
     await waitFor(() => {
       const grid = document.querySelector('.ag-container');
       expect(grid).toBeInTheDocument();
