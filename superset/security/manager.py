@@ -3001,8 +3001,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                         except (ValueError, IndexError):
                             # Invalid datasource format, continue to next permalink
                             continue
-            except Exception:
+            except Exception as ex:
                 # If we can't fetch or parse the permalink, skip it
+                logger.debug("Failed to fetch or parse permalink for access check: %s", ex)
                 continue
 
         return False
