@@ -47,6 +47,7 @@ import {
   getOriginalSeries,
   getTimeOffset,
   isDerivedSeries,
+  SortSeriesType,
 } from '@superset-ui/chart-controls';
 import type { EChartsCoreOption } from 'echarts/core';
 import type {
@@ -112,6 +113,28 @@ import {
   getXAxisFormatter,
   getYAxisFormatter,
 } from '../utils/formatters';
+
+function mapXAxisSortToSeriesType(
+  xAxisSort?: string,
+): SortSeriesType | undefined {
+  if (!xAxisSort) {
+    return undefined;
+  }
+
+  const value = xAxisSort.toLowerCase();
+
+  if (value.includes('sum')) return SortSeriesType.Sum;
+  if (value.includes('avg') || value.includes('average'))
+    return SortSeriesType.Avg;
+  if (value.includes('min')) return SortSeriesType.Min;
+  if (value.includes('max')) return SortSeriesType.Max;
+
+  // category / axis label sorting
+  if (value.includes('name') || value.includes('category'))
+    return SortSeriesType.Name;
+
+  return undefined;
+}
 
 export default function transformProps(
   chartProps: EchartsTimeseriesChartProps,
@@ -249,6 +272,9 @@ export default function transformProps(
   const isMultiSeries = groupBy.length || metrics?.length > 1;
   const xAxisDataType = dataTypes?.[xAxisLabel] ?? dataTypes?.[xAxisOrig];
   const xAxisType = getAxisType(stack, xAxisForceCategorical, xAxisDataType);
+  const mappedXAxisSortSeries = isMultiSeries
+    ? mapXAxisSortToSeriesType(xAxisSort)
+    : undefined;
 
   const [rawSeries, sortedTotalValues, minPositiveValue] = extractSeries(
     rebasedData,
@@ -261,8 +287,10 @@ export default function transformProps(
       isHorizontal,
       sortSeriesType,
       sortSeriesAscending,
-      xAxisSortSeries: isMultiSeries ? xAxisSort : undefined,
-      xAxisSortSeriesAscending: isMultiSeries ? xAxisSortAsc : undefined,
+      xAxisSortSeries: mappedXAxisSortSeries,
+      xAxisSortSeriesAscending: mappedXAxisSortSeries
+        ? xAxisSortAsc
+        : undefined,
       xAxisType,
     },
   );
