@@ -318,6 +318,7 @@ export const mockApiError404 = {
 export const API_ENDPOINTS = {
   DATASETS_INFO: 'glob:*/api/v1/dataset/_info*',
   DATASETS: 'glob:*/api/v1/dataset/?*',
+  DATASOURCE_COMBINED: 'glob:*/api/v1/datasource/?*',
   DATASET_GET: 'glob:*/api/v1/dataset/[0-9]*',
   DATASET_RELATED_OBJECTS: 'glob:*/api/v1/dataset/*/related_objects*',
   DATASET_DELETE: 'glob:*/api/v1/dataset/[0-9]*',
@@ -499,6 +500,24 @@ export const assertOnlyExpectedCalls = (expectedEndpoints: string[]) => {
   });
 };
 
+/**
+ * Helper to mock the dataset list endpoints.
+ * The component fetches from /api/v1/datasource/ (combined endpoint).
+ * Some tests also need the legacy /api/v1/dataset/ endpoint for
+ * other operations (delete, bulk delete) that still use it.
+ */
+export const mockDatasetListEndpoints = (response: Record<string, unknown>) => {
+  fetchMock.removeRoutes({
+    names: [API_ENDPOINTS.DATASETS, API_ENDPOINTS.DATASOURCE_COMBINED],
+  });
+  fetchMock.get(API_ENDPOINTS.DATASETS, response, {
+    name: API_ENDPOINTS.DATASETS,
+  });
+  fetchMock.get(API_ENDPOINTS.DATASOURCE_COMBINED, response, {
+    name: API_ENDPOINTS.DATASOURCE_COMBINED,
+  });
+};
+
 // MSW setup using fetch-mock (following ChartList pattern)
 // Routes are named using the API_ENDPOINTS constant values so they can be
 // removed by name using removeRoutes({ names: [API_ENDPOINTS.X] })
@@ -511,11 +530,10 @@ export const setupMocks = () => {
     { name: API_ENDPOINTS.DATASETS_INFO },
   );
 
-  fetchMock.get(
-    API_ENDPOINTS.DATASETS,
-    { result: mockDatasets, count: mockDatasets.length },
-    { name: API_ENDPOINTS.DATASETS },
-  );
+  mockDatasetListEndpoints({
+    result: mockDatasets,
+    count: mockDatasets.length,
+  });
 
   fetchMock.get(
     API_ENDPOINTS.DATASET_FAVORITE_STATUS,

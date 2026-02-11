@@ -357,6 +357,19 @@ def test_semantic_view_type() -> None:
     assert view.type == "semantic_view"
 
 
+def test_semantic_view_table_name() -> None:
+    """Test SemanticView table_name property."""
+    view = SemanticView()
+    view.name = "Orders View"
+    assert view.table_name == "Orders View"
+
+
+def test_semantic_view_kind() -> None:
+    """Test SemanticView kind property."""
+    view = SemanticView()
+    assert view.kind == "semantic_view"
+
+
 def test_semantic_view_offset() -> None:
     """Test SemanticView offset property."""
     view = SemanticView()
