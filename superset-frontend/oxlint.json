@@ -231,7 +231,7 @@
     "@typescript-eslint/ban-types": "off",
     "@typescript-eslint/no-empty-function": "off",
     "@typescript-eslint/no-explicit-any": "off",
-    "@typescript-eslint/no-use-before-define": "warn",
+    "@typescript-eslint/no-use-before-define": "error",
     "@typescript-eslint/no-non-null-assertion": "off",
     "@typescript-eslint/explicit-function-return-type": "off",
     "@typescript-eslint/explicit-module-boundary-types": "off",
@@ -250,6 +250,7 @@
     ],
 
     // === Unicorn rules (bonus coverage) ===
+    "unicorn/no-new-array": "error",
     "unicorn/filename-case": "off",
     "unicorn/prevent-abbreviations": "off",
     "unicorn/no-null": "off",
