@@ -223,7 +223,7 @@ describe('optimizeBarLabelPlacement', () => {
     expect((result as any)[4].label.position).toBe('insideTop');
   });
 
-  it('label position for horizontal stacked charts', () => {
+  test('label position for horizontal stacked charts', () => {
     const isHorizontal = true;
     const series: SeriesOption = {
       data: [
