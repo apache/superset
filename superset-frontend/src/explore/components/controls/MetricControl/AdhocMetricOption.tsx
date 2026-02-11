@@ -16,12 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { PureComponent } from 'react';
+import { useMemo, MouseEvent } from 'react';
+import { useSelector } from 'react-redux';
 import { Metric } from '@superset-ui/core';
 import { OptionControlLabel } from 'src/explore/components/controls/OptionControls';
 import { DndItemType } from 'src/explore/components/DndItemType';
 import { Datasource } from 'src/explore/types';
 import { ISaveableDatasource } from 'src/SqlLab/components/SaveDatasetModal';
+import { getLocalizedValue } from 'src/components/TranslationEditor';
 import AdhocMetric from './AdhocMetric';
 import AdhocMetricPopoverTrigger from './AdhocMetricPopoverTrigger';
 import { savedMetricType as SavedMetricTypeDef } from './types';
@@ -42,61 +44,70 @@ interface AdhocMetricOptionProps {
   datasourceWarningMessage?: string;
 }
 
-class AdhocMetricOption extends PureComponent<AdhocMetricOptionProps> {
-  constructor(props: AdhocMetricOptionProps) {
-    super(props);
-    this.onRemoveMetric = this.onRemoveMetric.bind(this);
-  }
+const AdhocMetricOption = ({
+  adhocMetric,
+  onMetricEdit,
+  onRemoveMetric,
+  columns,
+  savedMetricsOptions,
+  savedMetric = {} as SavedMetricTypeDef,
+  datasource,
+  onMoveLabel,
+  onDropLabel,
+  index,
+  type,
+  multi,
+  datasourceWarningMessage,
+}: AdhocMetricOptionProps) => {
+  const userLocale = useSelector(
+    (state: { common: { locale: string } }) => state.common.locale,
+  );
 
-  onRemoveMetric(e?: React.MouseEvent): void {
+  // Get localized label for display
+  const localizedLabel = useMemo(
+    () =>
+      getLocalizedValue(
+        adhocMetric.translations,
+        'label',
+        userLocale,
+        adhocMetric.label,
+      ),
+    [adhocMetric.translations, adhocMetric.label, userLocale],
+  );
+
+  const handleRemoveMetric = (e?: MouseEvent): void => {
     e?.stopPropagation();
-    this.props.onRemoveMetric?.(this.props.index ?? 0);
-  }
+    onRemoveMetric?.(index ?? 0);
+  };
 
-  render() {
-    const {
-      adhocMetric,
-      onMetricEdit,
-      columns,
-      savedMetricsOptions,
-      savedMetric = {} as SavedMetricTypeDef,
-      datasource,
-      onMoveLabel,
-      onDropLabel,
-      index,
-      type,
-      multi,
-      datasourceWarningMessage,
-    } = this.props;
-    const withCaret = !(savedMetric as SavedMetricTypeDef).error_text;
+  const withCaret = !(savedMetric as SavedMetricTypeDef).error_text;
 
-    return (
-      <AdhocMetricPopoverTrigger
+  return (
+    <AdhocMetricPopoverTrigger
+      adhocMetric={adhocMetric}
+      onMetricEdit={onMetricEdit}
+      columns={columns ?? []}
+      savedMetricsOptions={savedMetricsOptions ?? []}
+      savedMetric={savedMetric}
+      datasource={datasource!}
+    >
+      <OptionControlLabel
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        savedMetric={savedMetric as any}
         adhocMetric={adhocMetric}
-        onMetricEdit={onMetricEdit}
-        columns={columns ?? []}
-        savedMetricsOptions={savedMetricsOptions ?? []}
-        savedMetric={savedMetric}
-        datasource={datasource!}
-      >
-        <OptionControlLabel
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          savedMetric={savedMetric as any}
-          adhocMetric={adhocMetric}
-          label={adhocMetric.label}
-          onRemove={() => this.onRemoveMetric()}
-          onMoveLabel={onMoveLabel}
-          onDropLabel={onDropLabel}
-          index={index ?? 0}
-          type={type ?? DndItemType.AdhocMetricOption}
-          withCaret={withCaret}
-          isFunction
-          multi={multi}
-          datasourceWarningMessage={datasourceWarningMessage}
-        />
-      </AdhocMetricPopoverTrigger>
-    );
-  }
-}
+        label={localizedLabel}
+        onRemove={handleRemoveMetric}
+        onMoveLabel={onMoveLabel}
+        onDropLabel={onDropLabel}
+        index={index ?? 0}
+        type={type ?? DndItemType.AdhocMetricOption}
+        withCaret={withCaret}
+        isFunction
+        multi={multi}
+        datasourceWarningMessage={datasourceWarningMessage}
+      />
+    </AdhocMetricPopoverTrigger>
+  );
+};
 
 export default AdhocMetricOption;
