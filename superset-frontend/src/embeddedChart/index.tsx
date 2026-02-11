@@ -20,11 +20,7 @@ import 'src/public-path';
 
 import { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
-import {
-  makeApi,
-  QueryFormData,
-  StatefulChart,
-} from '@superset-ui/core';
+import { makeApi, QueryFormData, StatefulChart } from '@superset-ui/core';
 import { logging } from '@apache-superset/core';
 import { t } from '@apache-superset/core/ui';
 import Switchboard from '@superset-ui/switchboard';
@@ -276,21 +272,23 @@ function start() {
     method: 'GET',
     endpoint: '/api/v1/me/roles/',
   });
-  return getMeWithRole().then(
-    ({ result }) => result,
-    err => {
-      // Guest role may lack can_read on Me — fall back to minimal user
-      log('Could not fetch /api/v1/me/roles/, using guest defaults:', err);
-      return getGuestUserFallback();
-    },
-  ).then(user => {
-    bootstrapData.user = user;
-    store.dispatch({
-      type: USER_LOADED,
-      user,
+  return getMeWithRole()
+    .then(
+      ({ result }) => result,
+      err => {
+        // Guest role may lack can_read on Me — fall back to minimal user
+        log('Could not fetch /api/v1/me/roles/, using guest defaults:', err);
+        return getGuestUserFallback();
+      },
+    )
+    .then(user => {
+      bootstrapData.user = user;
+      store.dispatch({
+        type: USER_LOADED,
+        user,
+      });
+      ReactDOM.render(<EmbeddedChartWithProviders />, appMountPoint);
     });
-    ReactDOM.render(<EmbeddedChartWithProviders />, appMountPoint);
-  });
 }
 
 let started = false;
