@@ -98,10 +98,10 @@ function onBeforeUnload(hasChanged: boolean): void {
   }
 }
 
-function unload(): string {
+function unload(event: BeforeUnloadEvent): string {
   const message = t('You have unsaved changes.');
-  // Gecko + IE: returnValue is typed as boolean but historically accepts string
-  (window.event as BeforeUnloadEvent).returnValue = message;
+  // Set returnValue on the actual event object to trigger the browser prompt
+  event.returnValue = message;
   return message; // Gecko + Webkit, Safari, Chrome etc.
 }
 

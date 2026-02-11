@@ -134,10 +134,23 @@ function TTestTable({
     [data, computeLift, computePValue],
   );
 
-  // Initially populate table on mount
+  // Recompute table when data or control row changes, keeping control index in range
   useEffect(() => {
-    computeTTest(control);
-  }, [computeTTest, control]);
+    if (!data || data.length === 0) {
+      setControl(0);
+      setLiftValues([]);
+      setPValues([]);
+      return;
+    }
+
+    const safeControlIndex = Math.min(control, data.length - 1);
+    if (safeControlIndex !== control) {
+      setControl(safeControlIndex);
+      computeTTest(safeControlIndex);
+    } else {
+      computeTTest(control);
+    }
+  }, [computeTTest, control, data]);
 
   const getLiftStatus = useCallback(
     (row: number): string => {

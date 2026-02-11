@@ -97,7 +97,9 @@ export default function reactify<Props extends object>(
     useEffect(
       () => () => {
         if (callbacks?.componentWillUnmount) {
-          callbacks.componentWillUnmount();
+          // Preserve legacy behavior where `this` was a component instance
+          // exposing a `container` property
+          callbacks.componentWillUnmount.call({ container: containerRef.current });
         }
       },
       [],

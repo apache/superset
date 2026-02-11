@@ -146,9 +146,13 @@ function ChartDataProvider({
   ]);
 
   // Fetch data on mount and when formData or sliceId changes
+  // Note: handleFetchData depends on callback props, so changing callbacks
+  // will also trigger a refetch. This mirrors the original class behavior
+  // where componentDidMount always fetched.
   useEffect(() => {
     handleFetchData();
-  }, [formData, sliceId, handleFetchData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData, sliceId]);
 
   const { status, payload, error } = state;
 

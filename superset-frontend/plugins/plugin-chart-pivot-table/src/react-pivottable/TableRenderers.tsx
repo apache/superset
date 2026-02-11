@@ -709,12 +709,20 @@ export function TableRenderer({
     return getBasePivotSettings();
   }, [getBasePivotSettings]);
 
-  // Reset sort state when props change
+  // Reset sort state when structural props change
   useEffect(() => {
     setSortingOrder([]);
     setActiveSortColumn(null);
     setSortedRowKeys(null);
-  }, [props]);
+  }, [
+    cols,
+    rows,
+    aggregatorName,
+    tableOptions,
+    subtotalOptions,
+    namesMappingProp,
+    allowRenderHtml,
+  ]);
 
   // Use sorted row keys if available, otherwise use base row keys
   const effectiveRowKeys = sortedRowKeys ?? basePivotSettings.rowKeys;

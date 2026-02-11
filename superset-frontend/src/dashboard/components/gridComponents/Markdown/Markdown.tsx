@@ -21,6 +21,7 @@ import { connect } from 'react-redux';
 import cx from 'classnames';
 import type { JsonObject } from '@superset-ui/core';
 import type { ResizeStartCallback, ResizeCallback } from 're-resizable';
+import { ErrorBoundary } from 'src/components';
 
 import { t, css, styled } from '@apache-superset/core/ui';
 import { SafeMarkdown } from '@superset-ui/core/components';
@@ -298,6 +299,20 @@ function Markdown({
     [],
   );
 
+  const handleRenderError = useCallback(
+    (error: Error, info: { componentStack: string } | null): void => {
+      setHasError(true);
+      if (editorMode === 'preview') {
+        addDangerToast(
+          t(
+            'This markdown component has an error. Please revert your recent changes.',
+          ),
+        );
+      }
+    },
+    [addDangerToast, editorMode],
+  );
+
   const renderEditMode = useMemo(
     () => (
       <EditorHost
@@ -329,17 +344,25 @@ function Markdown({
 
   const renderPreviewMode = useMemo(
     () => (
-      <SafeMarkdown
-        source={
-          hasError
-            ? MARKDOWN_ERROR_MESSAGE
-            : markdownSource || MARKDOWN_PLACE_HOLDER
-        }
-        htmlSanitization={htmlSanitization}
-        htmlSchemaOverrides={htmlSchemaOverrides}
-      />
+      <ErrorBoundary onError={handleRenderError} showMessage={false}>
+        <SafeMarkdown
+          source={
+            hasError
+              ? MARKDOWN_ERROR_MESSAGE
+              : markdownSource || MARKDOWN_PLACE_HOLDER
+          }
+          htmlSanitization={htmlSanitization}
+          htmlSchemaOverrides={htmlSchemaOverrides}
+        />
+      </ErrorBoundary>
     ),
-    [hasError, markdownSource, htmlSanitization, htmlSchemaOverrides],
+    [
+      hasError,
+      markdownSource,
+      htmlSanitization,
+      htmlSchemaOverrides,
+      handleRenderError,
+    ],
   );
 
   // inherit the size of parent columns

@@ -83,7 +83,8 @@ export default function CollectionControl({
   isFloat,
   isInt,
   controlName,
-}: CollectionControlProps) {
+  ...headerProps
+}: CollectionControlProps & { [key: string]: unknown }) {
   const theme = useTheme();
 
   const handleChange = useCallback(
@@ -200,11 +201,12 @@ export default function CollectionControl({
     );
   };
 
-  // Props for ControlHeader (excluding label and theme which are handled separately)
+  // Props for ControlHeader, including any header-related props passed from the parent
   const controlHeaderProps = {
     name,
     label,
     description,
+    ...headerProps,
   };
 
   return (

@@ -183,9 +183,22 @@ function SliceAdder({
   const [selectedSliceIdsSet, setSelectedSliceIdsSet] = useState(
     () => new Set(selectedSliceIds),
   );
+
+  // Refs to track latest values for cleanup effect
+  const latestSlicesRef = useRef(slices);
+  const latestSelectedSliceIdsSetRef = useRef(selectedSliceIdsSet);
   const [showOnlyMyCharts, setShowOnlyMyCharts] = useState(() =>
     getItem(LocalStorageKeys.DashboardEditorShowOnlyMyCharts, true),
   );
+
+  // Keep refs updated with latest values
+  useEffect(() => {
+    latestSlicesRef.current = slices;
+  }, [slices]);
+
+  useEffect(() => {
+    latestSelectedSliceIdsSetRef.current = selectedSliceIdsSet;
+  }, [selectedSliceIdsSet]);
 
   const filteredSlices = useMemo(
     () =>
@@ -220,8 +233,10 @@ function SliceAdder({
   useEffect(
     () => () => {
       // Clears the redux store keeping only selected items
-      const selectedSlices = pickBy(slices, (value: Slice) =>
-        selectedSliceIdsSet.has(value.slice_id),
+      // Use refs to get latest values on unmount
+      const selectedSlices = pickBy(
+        latestSlicesRef.current,
+        (value: Slice) => latestSelectedSliceIdsSetRef.current.has(value.slice_id),
       );
 
       updateSlices(selectedSlices);
@@ -229,9 +244,7 @@ function SliceAdder({
         slicesRequestRef.current.abort();
       }
     },
-    // Only run on unmount - capture current values
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
+    [updateSlices],
   );
 
   const searchUpdated = useCallback((term: string) => {

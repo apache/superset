@@ -906,7 +906,7 @@ function DatasourceEditor({
   );
 
   const validate = useCallback(
-    (callback: () => void) => {
+    (callback: (validationErrors: string[]) => void) => {
       let validationErrors: string[] = [];
       let dups: string[];
 
@@ -956,33 +956,36 @@ function DatasourceEditor({
       }
 
       setErrors(validationErrors);
-      callback();
+      callback(validationErrors);
     },
     [datasource, calculatedColumns, folders, findDuplicates],
   );
 
-  const onChangeInternal = useCallback(() => {
-    // Emptying SQL if "Physical" radio button is selected
-    const sql =
-      datasourceType === DATASOURCE_TYPES.physical.key ? '' : datasource.sql;
+  const onChangeInternal = useCallback(
+    (validationErrors: string[] = errors) => {
+      // Emptying SQL if "Physical" radio button is selected
+      const sql =
+        datasourceType === DATASOURCE_TYPES.physical.key ? '' : datasource.sql;
 
-    const newDatasource = {
-      ...datasource,
-      sql,
-      columns: [...databaseColumns, ...calculatedColumns],
+      const newDatasource = {
+        ...datasource,
+        sql,
+        columns: [...databaseColumns, ...calculatedColumns],
+        folders,
+      };
+
+      onChange(newDatasource, validationErrors);
+    },
+    [
+      datasource,
+      datasourceType,
+      databaseColumns,
+      calculatedColumns,
       folders,
-    };
-
-    onChange(newDatasource, errors);
-  }, [
-    datasource,
-    datasourceType,
-    databaseColumns,
-    calculatedColumns,
-    folders,
-    errors,
-    onChange,
-  ]);
+      errors,
+      onChange,
+    ],
+  );
 
   const validateAndChange = useCallback(() => {
     validate(onChangeInternal);

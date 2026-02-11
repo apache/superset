@@ -70,7 +70,7 @@ function HorizonRow({
     if (!canvas) return;
 
     const data =
-      colorScale === 'change'
+      colorScale === 'change' && rawData.length > 0
         ? rawData.map(d => ({ ...d, y: d.y - rawData[0].y }))
         : rawData;
 
