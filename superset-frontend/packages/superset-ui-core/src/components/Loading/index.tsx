@@ -80,14 +80,14 @@ export function Loading({
   const renderSpinner = () => {
     // Precedence: explicit image prop > brandSpinnerSvg > brandSpinnerUrl > default SVG
     if (image) {
-      return <img src={image} alt={t('Loading...')} />;
+      return <img src={image} alt={t('Loading'...)} />;
     }
     if (theme.brandSpinnerSvg) {
       const svgDataUri = `data:image/svg+xml;base64,${btoa(theme.brandSpinnerSvg)}`;
-      return <img src={svgDataUri} alt={t('Loading...')} />;
+      return <img src={svgDataUri} alt={t('Loading'...)} />;
     }
     if (theme.brandSpinnerUrl) {
-      return <img src={theme.brandSpinnerUrl} alt={t('Loading...')} />;
+      return <img src={theme.brandSpinnerUrl} alt={t('Loading')...} />;
     }
     // Default: use the imported SVG component
     return <LoaderSvg />;
