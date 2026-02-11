@@ -65,10 +65,12 @@ def test_extension_config_full():
             "frontend": {
                 "contributions": {
                     "views": {
-                        "sqllab.panels": [
-                            {"id": "query_insights.main", "name": "Query Insights"}
-                        ]
-                    }
+                        "sqllab": {
+                            "panels": [
+                                {"id": "query_insights.main", "name": "Query Insights"}
+                            ],
+                        },
+                    },
                 },
                 "moduleFederation": {"exposes": ["./index"]},
             },

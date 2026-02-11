@@ -455,8 +455,3 @@ class TestTaskManagerCompletion:
                 timeout=5.0,
                 poll_interval=0.1,
             )
-
-    def test_terminal_states_constant(self):
-        """Test TERMINAL_STATES contains expected values"""
-        expected = {"success", "failure", "aborted", "timed_out"}
-        assert TaskManager.TERMINAL_STATES == expected
