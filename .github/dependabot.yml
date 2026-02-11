@@ -15,6 +15,7 @@ updates:
       - dependency-name: "@storybook*"
         update-types: ["version-update:semver-major", "version-update:semver-minor"]
       - dependency-name: "eslint-plugin-storybook"
+      - dependency-name: "react-error-boundary"
       # remark-gfm v4+ requires react-markdown v9+, which needs React 18
       - dependency-name: "remark-gfm"
       - dependency-name: "react-markdown"
@@ -356,6 +357,7 @@ updates:
       # not until React >= 18.0.0
       - dependency-name: "react-markdown"
       - dependency-name: "remark-gfm"
+      - dependency-name: "react-error-boundary"
     schedule:
       interval: "daily"
     labels:
