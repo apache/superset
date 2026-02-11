@@ -33,7 +33,7 @@ import SavedQueryList from '.';
 // Increase default timeout
 jest.setTimeout(30000);
 
-const mockQueries = new Array(3).fill(undefined).map((_, i) => ({
+const mockQueries = Array.from({ length: 3 }, (_, i) => ({
   created_by: { id: i, first_name: 'user', last_name: `${i}` },
   created_on: `${i}-2020`,
   database: { database_name: `db ${i}`, id: i },
