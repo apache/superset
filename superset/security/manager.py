@@ -2956,8 +2956,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         For embedded charts, the guest token contains chart_permalink resources.
         This method validates that the requested datasource matches one of the
-        chart permalinks in the user's token.
+        chart permalinks in the user's token by fetching each permalink and
+        checking if its datasource matches the requested one.
         """
+        from superset.commands.explore.permalink.get import GetExplorePermalinkCommand
+
         user = self.get_current_guest_user_if_guest()
         if not user or not isinstance(user, GuestUser):
             return False
@@ -2972,14 +2975,37 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if not permalink_resources:
             return False
 
-        # For embedded charts, we allow access to any datasource that is
-        # referenced by a chart permalink in the guest token.
-        # The permalink validation happens at the embedded_chart API level,
-        # ensuring the user only accesses charts they have been granted access to.
-        # Here we simply need to verify the user has at least one chart_permalink
-        # resource, as the permalink's form_data already specifies which datasource
-        # to use.
-        return True
+        # Extract the datasource ID from the datasource object
+        # Datasource can be a SQLATableMetadata or other model with an 'id' attribute
+        requested_datasource_id = getattr(datasource, "id", None)
+        if requested_datasource_id is None:
+            return False
+
+        # Check each permalink to see if any grants access to this datasource
+        for resource in permalink_resources:
+            try:
+                permalink_key = str(resource.get("id"))
+                permalink_value = GetExplorePermalinkCommand(permalink_key).run()
+                if permalink_value:
+                    state = permalink_value.get("state", {})
+                    form_data = state.get("formData", {})
+                    # Datasource format is "{id}__table" or "{id}__query"
+                    datasource_str = form_data.get("datasource", "")
+                    if datasource_str:
+                        # Extract the ID from the datasource string
+                        datasource_id_str = datasource_str.split("__")[0]
+                        try:
+                            permalink_datasource_id = int(datasource_id_str)
+                            if permalink_datasource_id == requested_datasource_id:
+                                return True
+                        except (ValueError, IndexError):
+                            # Invalid datasource format, continue to next permalink
+                            continue
+            except Exception:
+                # If we can't fetch or parse the permalink, skip it
+                continue
+
+        return False
 
     def raise_for_ownership(self, resource: Model) -> None:
         """

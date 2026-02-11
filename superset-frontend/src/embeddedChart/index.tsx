@@ -176,12 +176,31 @@ function EmbeddedChartApp() {
           setFormData(state.formData);
           setLoading(false);
         }
-      } catch (err) {
+      } catch (err: any) {
         logging.error('Failed to load permalink data:', err);
         if (isMounted) {
-          setError(
-            t('Failed to load chart data. The permalink may have expired.'),
-          );
+          let errorMessage = t('Failed to load chart data. Please try again.');
+
+          // Provide specific error messages based on error type
+          if (err?.status === 401 || err?.status === 403) {
+            errorMessage = t(
+              'Access denied. Please check that you have a valid guest token.',
+            );
+          } else if (err?.status === 404) {
+            errorMessage = t(
+              'Chart not found. The permalink may have expired or been removed.',
+            );
+          } else if (err?.status >= 500) {
+            errorMessage = t(
+              'Server error. Please contact your administrator.',
+            );
+          } else if (err?.message?.includes('Network')) {
+            errorMessage = t(
+              'Network error. Please check your connection and try again.',
+            );
+          }
+
+          setError(errorMessage);
           setLoading(false);
         }
       }
