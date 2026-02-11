@@ -24,6 +24,10 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Feature Flags Changed
+
+- The default value of **TAGGING_SYSTEM** was flipped from `False` to `True`([37852](https://github.com/apache/superset/pull/37852)).
+
 ### Signal Cache Backend
 
 A new `SIGNAL_CACHE_CONFIG` configuration provides a unified Redis-based backend for real-time coordination features in Superset. This backend enables:

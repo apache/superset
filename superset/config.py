@@ -581,9 +581,6 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enable Table V2 time comparison feature
     # @lifecycle: development
     "TABLE_V2_TIME_COMPARISON_ENABLED": False,
-    # Enables the tagging system for organizing assets
-    # @lifecycle: development
-    "TAGGING_SYSTEM": False,
     # =================================================================
     # IN TESTING
     # =================================================================
@@ -668,6 +665,9 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Use analogous colors in charts
     # @lifecycle: testing
     "USE_ANALOGOUS_COLORS": False,
+    # Enables the tagging system for organizing assets
+    # @lifecycle: testing
+    "TAGGING_SYSTEM": True,
     # =================================================================
     # STABLE - PATH TO DEPRECATION
     # =================================================================
