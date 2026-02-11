@@ -32,6 +32,8 @@ class SemanticLayer(ABC, Generic[ConfigT, SemanticViewT]):
     Abstract base class for semantic layers.
     """
 
+    configuration_class: type[BaseModel]
+
     @classmethod
     @abstractmethod
     def from_configuration(
