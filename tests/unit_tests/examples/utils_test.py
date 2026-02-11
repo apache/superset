@@ -44,7 +44,7 @@ def _create_example_tree(base_dir: Path) -> Path:
         "version: '1.0.0'\ntimestamp: '2020-12-11T22:52:56.534241+00:00'\n"
     )
 
-    # A simple example with dataset.yaml
+    # An example with dataset, dashboard, and chart
     example_dir = examples_dir / "test_example"
     example_dir.mkdir()
     (example_dir / "dataset.yaml").write_text(
@@ -54,6 +54,27 @@ def _create_example_tree(base_dir: Path) -> Path:
                 "schema": "main",
                 "uuid": "14f48794-ebfa-4f60-a26a-582c49132f1b",
                 "database_uuid": "a2dc77af-e654-49bb-b321-40f6b559a1ee",
+                "version": "1.0.0",
+            }
+        )
+    )
+    (example_dir / "dashboard.yaml").write_text(
+        yaml.dump(
+            {
+                "dashboard_title": "Test Dashboard",
+                "uuid": "dddddddd-dddd-dddd-dddd-dddddddddddd",
+                "version": "1.0.0",
+            }
+        )
+    )
+    charts_dir = example_dir / "charts"
+    charts_dir.mkdir()
+    (charts_dir / "test_chart.yaml").write_text(
+        yaml.dump(
+            {
+                "slice_name": "Test Chart",
+                "uuid": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+                "dataset_uuid": "14f48794-ebfa-4f60-a26a-582c49132f1b",
                 "version": "1.0.0",
             }
         )
@@ -95,9 +116,16 @@ def test_load_contents_builds_correct_import_structure():
         # Verify dataset is discovered with correct key prefix
         assert "datasets/examples/test_example.yaml" in contents
 
+        # Verify dashboard is discovered with correct key prefix
+        assert "dashboards/test_example.yaml" in contents
+
+        # Verify chart is discovered with correct key prefix
+        assert "charts/test_example/test_chart.yaml" in contents
+
         # Verify schema normalization happened (main -> null)
         dataset_content = contents["datasets/examples/test_example.yaml"]
         assert "schema: main" not in dataset_content
+        assert "schema: null" in dataset_content
 
 
 def test_load_contents_replaces_sqlalchemy_examples_uri_placeholder():
@@ -123,3 +151,56 @@ def test_load_contents_replaces_sqlalchemy_examples_uri_placeholder():
         assert "databases/examples.yaml" in contents
         assert test_uri in contents["databases/examples.yaml"]
         assert "__SQLALCHEMY_EXAMPLES_URI__" not in contents["databases/examples.yaml"]
+
+
+@patch("superset.examples.utils.ImportExamplesCommand")
+@patch("superset.examples.utils.load_contents")
+def test_load_examples_from_configs_wires_command_correctly(
+    mock_load_contents,
+    mock_command_cls,
+):
+    """load_examples_from_configs() must construct ImportExamplesCommand
+    with overwrite=True and thread force_data through.
+
+    A wiring regression here would silently skip overwriting existing
+    examples or ignore the force_data flag.
+    """
+    from superset.examples.utils import load_examples_from_configs
+
+    mock_load_contents.return_value = {"databases/examples.yaml": "content"}
+    mock_command = MagicMock()
+    mock_command_cls.return_value = mock_command
+
+    load_examples_from_configs(force_data=True)
+
+    mock_load_contents.assert_called_once_with(False)
+    mock_command_cls.assert_called_once_with(
+        {"databases/examples.yaml": "content"},
+        overwrite=True,
+        force_data=True,
+    )
+    mock_command.run.assert_called_once()
+
+
+@patch("superset.examples.utils.ImportExamplesCommand")
+@patch("superset.examples.utils.load_contents")
+def test_load_examples_from_configs_defaults(
+    mock_load_contents,
+    mock_command_cls,
+):
+    """Default call should pass force_data=False and load_test_data=False."""
+    from superset.examples.utils import load_examples_from_configs
+
+    mock_load_contents.return_value = {}
+    mock_command = MagicMock()
+    mock_command_cls.return_value = mock_command
+
+    load_examples_from_configs()
+
+    mock_load_contents.assert_called_once_with(False)
+    mock_command_cls.assert_called_once_with(
+        {},
+        overwrite=True,
+        force_data=False,
+    )
+    mock_command.run.assert_called_once()
