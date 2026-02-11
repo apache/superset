@@ -51,7 +51,8 @@ def test_create_semantic_layer_success(mocker: MockerFixture) -> None:
     result = CreateSemanticLayerCommand(data).run()
 
     assert result == new_model
-    dao.create.assert_called_once_with(attributes=data)
+    expected = {**data, "configuration": '{"account": "test"}'}
+    dao.create.assert_called_once_with(attributes=expected)
     mock_cls.from_configuration.assert_called_once_with({"account": "test"})
 
 
