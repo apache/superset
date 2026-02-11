@@ -77,7 +77,7 @@ interface ExportZipOptions {
  * Shared across chart and dataset export tests.
  */
 export async function expectValidExportZip(
-  response: Response,
+  response: ResponseLike,
   options: ExportZipOptions,
 ): Promise<void> {
   const {
