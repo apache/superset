@@ -93,15 +93,20 @@ class ExportChartsCommand(ExportModelsCommand):
 
     @staticmethod
     def _export(
-        model: Slice, export_related: bool = True
+        model: Slice, export_related: bool = True, seen: set[str] | None = None
     ) -> Iterator[tuple[str, Callable[[], str]]]:
+        # Initialize seen set if not provided
+        if seen is None:
+            seen = set()
+
         yield (
             ExportChartsCommand._file_name(model),
             lambda: ExportChartsCommand._file_content(model),
         )
 
         if model.table and export_related:
-            yield from ExportDatasetsCommand([model.table.id]).run()
+            # Pass the shared seen set to the dataset export command
+            yield from ExportDatasetsCommand([model.table.id]).run(seen=seen)
 
         # Check if the calling class is ExportDashboardCommands
         if (

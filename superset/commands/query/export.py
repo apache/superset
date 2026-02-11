@@ -67,8 +67,12 @@ class ExportSavedQueriesCommand(ExportModelsCommand):
 
     @staticmethod
     def _export(
-        model: SavedQuery, export_related: bool = True
+        model: SavedQuery, export_related: bool = True, seen: set[str] | None = None
     ) -> Iterator[tuple[str, Callable[[], str]]]:
+        # Initialize seen set if not provided
+        if seen is None:
+            seen = set()
+
         yield (
             ExportSavedQueriesCommand._file_name(model),
             lambda: ExportSavedQueriesCommand._file_content(model),
@@ -79,21 +83,23 @@ class ExportSavedQueriesCommand(ExportModelsCommand):
             database_slug = secure_filename(model.database.database_name)
             file_name = f"databases/{database_slug}.yaml"
 
-            payload = model.database.export_to_dict(
-                recursive=False,
-                include_parent_ref=False,
-                include_defaults=True,
-                export_uuids=True,
-            )
-            # TODO (betodealmeida): move this logic to export_to_dict once this
-            # becomes the default export endpoint
-            if "extra" in payload:
-                try:
-                    payload["extra"] = json.loads(payload["extra"])
-                except json.JSONDecodeError:
-                    logger.info("Unable to decode `extra` field: %s", payload["extra"])
+            # Only yield if not already seen (similar to dataset export)
+            if file_name not in seen:
+                payload = model.database.export_to_dict(
+                    recursive=False,
+                    include_parent_ref=False,
+                    include_defaults=True,
+                    export_uuids=True,
+                )
+                # TODO (betodealmeida): move this logic to export_to_dict once this
+                # becomes the default export endpoint
+                if "extra" in payload:
+                    try:
+                        payload["extra"] = json.loads(payload["extra"])
+                    except json.JSONDecodeError:
+                        logger.info("Unable to decode `extra` field: %s", payload["extra"])
 
-            payload["version"] = EXPORT_VERSION
+                payload["version"] = EXPORT_VERSION
 
-            file_content = yaml.safe_dump(payload, sort_keys=False)
-            yield file_name, lambda: file_content
+                file_content = yaml.safe_dump(payload, sort_keys=False)
+                yield file_name, lambda: file_content
