@@ -56,7 +56,10 @@ from superset.utils.profiler import SupersetProfiler
 try:
     apply_mariadb_ddl_fix()
 except Exception as ex:
-    logging.exception("Applying MariaDB DDL fix failed; continuing without patch: %s", ex)
+    logging.exception(
+        "Applying MariaDB DDL fix failed; continuing without patch: %s", ex
+    )
+
 
 class ResultsBackendManager:
     def __init__(self) -> None:
