@@ -26,9 +26,30 @@ import {
 } from 'spec/helpers/testing-library';
 import configureMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
+
 import ColumnSelectPopover, {
   ColumnSelectPopoverProps,
 } from 'src/explore/components/controls/DndColumnSelectControl/ColumnSelectPopover';
+
+// Mock SQLEditorWithValidation to capture props for testing
+const mockSQLEditorProps = jest.fn();
+jest.mock('src/components/SQLEditorWithValidation', () => ({
+  __esModule: true,
+  default: (mockProps: Record<string, unknown>) => {
+    mockSQLEditorProps(mockProps);
+    return (
+      <textarea
+        data-testid="sql-editor"
+        value={mockProps.value as string}
+        onChange={mockEvent =>
+          (mockProps.onChange as (mockValue: string) => void)(
+            (mockEvent.target as HTMLTextAreaElement).value,
+          )
+        }
+      />
+    );
+  },
+}));
 
 const middlewares = [thunk];
 const mockStore = configureMockStore(middlewares);
@@ -121,6 +142,56 @@ test('open with Custom SQL tab selected when there is a custom SQL selected', ()
   expect(getByText('Saved')).toHaveAttribute('aria-selected', 'false');
   expect(getByText('Simple')).toHaveAttribute('aria-selected', 'false');
   expect(getByText('Custom SQL')).toHaveAttribute('aria-selected', 'true');
+});
+
+test('passes keywords as objects to SQLEditorWithValidation for autocomplete', () => {
+  // Reset mock to capture fresh calls
+  mockSQLEditorProps.mockClear();
+
+  const mockColumns = [
+    { column_name: 'year', verbose_name: 'Year', type: 'INTEGER' },
+    { column_name: 'revenue', verbose_name: null, type: 'DECIMAL' },
+  ];
+
+  renderPopover({
+    columns: mockColumns,
+    editedColumn: {
+      sqlExpression: 'year + 1',
+      label: 'test',
+      expressionType: 'SQL',
+    },
+    getCurrentTab: jest.fn(),
+    onChange: jest.fn(),
+  });
+
+  // Verify SQLEditorWithValidation was called
+  expect(mockSQLEditorProps).toHaveBeenCalled();
+
+  // Get the keywords prop passed to SQLEditorWithValidation
+  const { keywords } = mockSQLEditorProps.mock.calls[0][0];
+
+  // Verify keywords exist and are not empty
+  expect(keywords).toBeDefined();
+  expect(keywords.length).toBeGreaterThan(0);
+
+  // Verify keywords are objects with required autocomplete properties
+  // This test will FAIL if someone adds .map(k => k.value) transformation
+  keywords.forEach((keyword: Record<string, unknown>) => {
+    expect(typeof keyword).toBe('object');
+    expect(keyword).toHaveProperty('name');
+    expect(keyword).toHaveProperty('value');
+    expect(keyword).toHaveProperty('score');
+    expect(keyword).toHaveProperty('meta');
+  });
+
+  // Verify column keywords specifically have docHTML for rich tooltips
+  const columnKeywords = keywords.filter(
+    (k: Record<string, unknown>) => k.meta === 'column',
+  );
+  expect(columnKeywords.length).toBe(2); // We passed 2 columns
+  columnKeywords.forEach((keyword: Record<string, unknown>) => {
+    expect(keyword).toHaveProperty('docHTML');
+  });
 });
 
 test('Should filter simple columns by column_name and verbose_name', async () => {
