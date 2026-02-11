@@ -139,7 +139,7 @@ test('should use StackControlOptionsWithoutStream for stack control', () => {
 test('should not include Stream option in stack control choices', () => {
   const stackControl: any = getControl('stack');
   expect(stackControl).toBeDefined();
-  const choices = stackControl.config.choices;
+  const {choices} = stackControl.config;
   const streamOption = choices.find(
     (choice: any[]) => choice[0] === StackControlsValue.Stream,
   );
@@ -149,7 +149,7 @@ test('should not include Stream option in stack control choices', () => {
 test('should include None and Stack options in stack control choices', () => {
   const stackControl: any = getControl('stack');
   expect(stackControl).toBeDefined();
-  const choices = stackControl.config.choices;
+  const {choices} = stackControl.config;
   const noneOption = choices.find((choice: any[]) => choice[0] === null);
   const stackOption = choices.find(
     (choice: any[]) => choice[0] === StackControlsValue.Stack,
