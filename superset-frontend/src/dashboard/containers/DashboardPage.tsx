@@ -219,16 +219,16 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
         if (dashboardRestoreKey > 0) {
           isDashboardHydrated.current = false;
         }
-        if (shouldHydrate) {
+        if (shouldHydrate && dashboard && charts) {
           isDashboardHydrated.current = true;
           dispatch(
             hydrateDashboard({
               history,
               dashboard,
               charts,
-              activeTabs,
+              activeTabs: activeTabs ?? null,
               dataMask,
-              chartStates,
+              chartStates: chartStates ?? null,
             }),
           );
         }
