@@ -130,7 +130,7 @@ class DatastoreEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-me
             "Google Cloud Datastore is a highly scalable NoSQL database "
             "for your applications."
         ),
-        "logo": "google-datastore.png",
+        "logo": "datastore.png",
         "homepage_url": "https://cloud.google.com/datastore/",
         "categories": [
             DatabaseCategory.CLOUD_GCP,
