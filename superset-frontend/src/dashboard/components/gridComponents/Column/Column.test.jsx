@@ -31,7 +31,7 @@ jest.mock('src/dashboard/components/dnd/DragDroppable', () => ({
     <div data-test="mock-draggable">{children({})}</div>
   ),
   Droppable: ({ children, depth }) => (
-    <div data-test="mock-droppable" depth={depth}>
+    <div data-test="mock-droppable" data-depth={depth}>
       {children({})}
     </div>
   ),
@@ -40,7 +40,7 @@ jest.mock(
   'src/dashboard/containers/DashboardComponent',
   () =>
     ({ availableColumnCount, depth }) => (
-      <div data-test="mock-dashboard-component" depth={depth}>
+      <div data-test="mock-dashboard-component" data-depth={depth}>
         {availableColumnCount}
       </div>
     ),
@@ -142,7 +142,7 @@ test('should render a HoverMenu in editMode', () => {
 
   // pass the same depth of its droppable area
   expect(getByTestId('mock-droppable')).toHaveAttribute(
-    'depth',
+    'data-depth',
     `${props.depth}`,
   );
 });
@@ -202,10 +202,20 @@ test.skip('should pass appropriate dimensions to ResizableContainer', () => {
   // );
 });
 
+test('should render between-items Droppables for each child in editMode', () => {
+  const { getAllByTestId } = setup({ editMode: true });
+  // 1 top-edge droptarget + 1 after-child droptarget = 2 total
+  const droppables = getAllByTestId('mock-droppable');
+  expect(droppables).toHaveLength(2);
+  droppables.forEach(droppable => {
+    expect(droppable).toHaveAttribute('data-depth', `${props.depth}`);
+  });
+});
+
 test('should increment the depth of its children', () => {
   const { getByTestId } = setup();
   expect(getByTestId('mock-dashboard-component')).toHaveAttribute(
-    'depth',
+    'data-depth',
     `${props.depth + 1}`,
   );
 });
