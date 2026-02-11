@@ -135,7 +135,7 @@ def test_import_database_sqlite_allowed_with_ignore_permissions(
     from superset.models.core import Database
     from tests.integration_tests.fixtures.importexport import database_config_sqlite
 
-    current_app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = True
+    mocker.patch.dict(current_app.config, {"PREVENT_UNSAFE_DB_CONNECTIONS": True})
     mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
 
     engine = db.session.get_bind()
