@@ -45,7 +45,8 @@ import {
   DataRecordFilters,
 } from '@superset-ui/core';
 import { logging } from '@apache-superset/core';
-import { t } from '@apache-superset/core/ui';
+import { t, SupersetTheme } from '@apache-superset/core/ui';
+import { useTheme } from '@emotion/react';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { EmptyState } from '@superset-ui/core/components';
 import { ChartSource } from 'src/types/ChartSource';
@@ -232,6 +233,8 @@ function ChartRendererComponent({
     cacheBusterProp,
     onChartStateChange,
   } = restProps;
+
+  const theme = useTheme() as SupersetTheme;
 
   const suppressContextMenu = getChartMetadataRegistry().get(
     formData.viz_type ?? propVizType,
@@ -605,6 +608,7 @@ function ChartRendererComponent({
           chartType={vizType}
           width={width}
           height={height}
+          theme={theme}
           annotationData={annotationData}
           datasource={datasource}
           initialValues={initialValues}
