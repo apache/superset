@@ -16,5 +16,5 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { default } from './DeferredInput';
-export type { DeferredInputProps } from './DeferredInput';
+export { default } from './TranslationInput';
+export type { TranslationInputProps } from './TranslationInput';

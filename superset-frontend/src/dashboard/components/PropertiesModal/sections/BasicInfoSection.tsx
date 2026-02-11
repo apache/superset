@@ -22,7 +22,7 @@ import { FormItem, Input, FormInstance } from '@superset-ui/core/components';
 import { ModalFormField } from 'src/components/Modal';
 import { ValidationObject } from 'src/components/Modal/useModalValidation';
 import { DEFAULT_LOCALE_KEY } from 'src/components/TranslationEditor';
-import DeferredInput from 'src/components/DeferredInput';
+import TranslationInput from 'src/components/TranslationInput';
 
 interface BasicInfoSectionProps {
   form: FormInstance;
@@ -87,7 +87,7 @@ const BasicInfoSection = ({
           />
         </FormItem>
         {isEditingTranslation && (
-          <DeferredInput
+          <TranslationInput
             value={translationValue}
             onChange={onTranslationChange}
             placeholder={t('Translation for %s', activeLocale.toUpperCase())}

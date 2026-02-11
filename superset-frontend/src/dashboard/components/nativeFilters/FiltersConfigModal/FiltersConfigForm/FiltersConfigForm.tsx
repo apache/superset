@@ -96,7 +96,7 @@ import {
   stripEmptyValues,
 } from 'src/components/TranslationEditor';
 import type { Translations, LocaleInfo } from 'src/types/Localization';
-import DeferredInput from 'src/components/DeferredInput';
+import TranslationInput from 'src/components/TranslationInput';
 import {
   ALLOW_DEPENDENCIES as TYPES_SUPPORT_DEPENDENCIES,
   getFiltersConfigModalTestId,
@@ -984,7 +984,7 @@ const FiltersConfigForm = (
                       expanded={expanded}
                       label={<StyledLabel>{t('Filter name')}</StyledLabel>}
                     >
-                      <DeferredInput
+                      <TranslationInput
                         {...getFiltersConfigModalTestId('name-input')}
                         value={
                           currentTranslations.name?.[nameActiveLocale] ?? ''

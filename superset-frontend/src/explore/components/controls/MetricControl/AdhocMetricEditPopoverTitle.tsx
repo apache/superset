@@ -35,7 +35,7 @@ import { css, styled, useTheme } from '@apache-superset/core/ui';
 import { Input, Tooltip } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { SupersetClient } from '@superset-ui/core/connection';
-import DeferredInput from 'src/components/DeferredInput';
+import TranslationInput from 'src/components/TranslationInput';
 import {
   LocaleSwitcher,
   DEFAULT_LOCALE_KEY,
@@ -53,7 +53,7 @@ const StyledInput = styled(Input)`
   padding-left: ${({ theme }) => theme.sizeUnit * 2.5}px;
 `;
 
-const StyledDeferredInput = styled(DeferredInput)`
+const StyledTranslationInput = styled(TranslationInput)`
   border-radius: ${({ theme }) => theme.borderRadius};
   height: 26px;
   padding-left: ${({ theme }) => theme.sizeUnit * 2.5}px;
@@ -228,7 +228,7 @@ const AdhocMetricEditPopoverTitle: FC<AdhocMetricEditPopoverTitleProps> = ({
   if (isEditDisabled) {
     return (
       <span
-        data-test="AdhocMetricTitle"
+        aria-label={t('Metric title')}
         css={css`
           display: inline-flex;
           align-items: center;
@@ -251,7 +251,7 @@ const AdhocMetricEditPopoverTitle: FC<AdhocMetricEditPopoverTitleProps> = ({
       const localeInputValue =
         translations?.label?.[activeLocale] ?? '';
       return (
-        <StyledDeferredInput
+        <StyledTranslationInput
           ref={inputRef}
           type="text"
           placeholder={title?.label}
@@ -260,7 +260,7 @@ const AdhocMetricEditPopoverTitle: FC<AdhocMetricEditPopoverTitleProps> = ({
           onChange={handleTranslationValue}
           onBlur={handleTranslationBlur}
           suffix={suffix}
-          data-test="AdhocMetricEditTitle#input"
+          aria-label={t('Edit metric label translation')}
         />
       );
     }
@@ -276,7 +276,7 @@ const AdhocMetricEditPopoverTitle: FC<AdhocMetricEditPopoverTitleProps> = ({
         onBlur={handleInputBlur}
         onKeyPress={handleKeyPress}
         suffix={suffix}
-        data-test="AdhocMetricEditTitle#input"
+        aria-label={t('Edit metric label')}
       />
     );
   }
@@ -285,7 +285,7 @@ const AdhocMetricEditPopoverTitle: FC<AdhocMetricEditPopoverTitleProps> = ({
     <Tooltip placement="top" title={t('Click to edit label')}>
       <span
         className="AdhocMetricEditPopoverTitle inline-editable"
-        data-test="AdhocMetricEditTitle#trigger"
+        aria-label={t('Click to edit metric label')}
         onMouseOver={handleMouseOver}
         onMouseOut={handleMouseOut}
         onClick={handleClick}

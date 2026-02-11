@@ -52,7 +52,7 @@ import {
   stripEmptyValues,
 } from 'src/components/TranslationEditor';
 import type { Translations, LocaleInfo } from 'src/types/Localization';
-import DeferredInput from 'src/components/DeferredInput';
+import TranslationInput from 'src/components/TranslationInput';
 
 export type PropertiesModalProps = {
   slice: Slice;
@@ -446,7 +446,7 @@ function PropertiesModal({
                       suffix={nameLocaleSuffix}
                     />
                   ) : (
-                    <DeferredInput
+                    <TranslationInput
                       aria-label={t('Name')}
                       data-test="properties-modal-name-input"
                       type="text"
