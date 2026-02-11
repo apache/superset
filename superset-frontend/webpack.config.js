@@ -235,6 +235,16 @@ if (!isDevMode) {
           },
         },
       },
+      // Filter out errors from test files during production builds
+      issue: {
+        exclude: [
+          { file: '**/*.test.ts' },
+          { file: '**/*.test.tsx' },
+          { file: '**/spec/**' },
+          { file: '**/__tests__/**' },
+          { file: '**/__mocks__/**' },
+        ],
+      },
     }),
   );
 }
@@ -489,7 +499,7 @@ const config = {
         },
       },
       {
-        test: /node_modules\/(geostyler-style|geostyler-qgis-parser)\/.*\.js$/,
+        test: /node_modules\/(geostyler-style|geostyler-qgis-parser|geostyler-cql-parser)\/.*\.js$/,
         resolve: {
           fullySpecified: false,
         },
