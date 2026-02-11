@@ -80,7 +80,11 @@
       }
 
       // Safely parse input and only allow iframe elements (prevent XSS)
+      // We use DOMParser to safely extract iframe attributes, then rebuild
+      // the element from scratch with only safe, validated attributes.
       const parser = new DOMParser();
+      // CodeQL: This is intentional - we parse HTML to extract iframe attributes,
+      // but never insert the parsed DOM directly. See sanitization below.
       const doc = parser.parseFromString(input, 'text/html');
       const parsedIframe = doc.querySelector('iframe');
 
