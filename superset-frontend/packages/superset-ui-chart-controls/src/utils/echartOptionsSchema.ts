@@ -61,7 +61,8 @@ const symbolTypeSchema = z.string();
 // Text Style Schema
 // =============================================================================
 
-export const textStyleSchema = z.object({
+export const textStyleSchema = z
+  .object({
     color: colorSchema.optional(),
     fontStyle: fontStyleSchema.optional(),
     fontWeight: fontWeightSchema.optional(),
@@ -92,85 +93,86 @@ export const textStyleSchema = z.object({
     ellipsis: z.string().optional(),
     align: z.enum(['left', 'center', 'right']).optional(),
     verticalAlign: z.enum(['top', 'middle', 'bottom']).optional(),
-  }).catchall(z.unknown());
+  })
+  .catchall(z.unknown());
 
 // =============================================================================
 // Style Schemas
 // =============================================================================
 
 export const lineStyleSchema = z.object({
-    color: colorSchema.optional(),
-    width: z.number().optional(),
-    type: lineTypeSchema.optional(),
-    dashOffset: z.number().optional(),
-    cap: z.enum(['butt', 'round', 'square']).optional(),
-    join: z.enum(['bevel', 'round', 'miter']).optional(),
-    miterLimit: z.number().optional(),
-    shadowBlur: z.number().optional(),
-    shadowColor: colorSchema.optional(),
-    shadowOffsetX: z.number().optional(),
-    shadowOffsetY: z.number().optional(),
-    opacity: z.number().min(0).max(1).optional(),
-  });
+  color: colorSchema.optional(),
+  width: z.number().optional(),
+  type: lineTypeSchema.optional(),
+  dashOffset: z.number().optional(),
+  cap: z.enum(['butt', 'round', 'square']).optional(),
+  join: z.enum(['bevel', 'round', 'miter']).optional(),
+  miterLimit: z.number().optional(),
+  shadowBlur: z.number().optional(),
+  shadowColor: colorSchema.optional(),
+  shadowOffsetX: z.number().optional(),
+  shadowOffsetY: z.number().optional(),
+  opacity: z.number().min(0).max(1).optional(),
+});
 
 export const areaStyleSchema = z.object({
-    color: z.union([colorSchema, z.array(colorSchema)]).optional(),
-    origin: z.union([z.enum(['auto', 'start', 'end']), z.number()]).optional(),
-    shadowBlur: z.number().optional(),
-    shadowColor: colorSchema.optional(),
-    shadowOffsetX: z.number().optional(),
-    shadowOffsetY: z.number().optional(),
-    opacity: z.number().min(0).max(1).optional(),
-  });
+  color: z.union([colorSchema, z.array(colorSchema)]).optional(),
+  origin: z.union([z.enum(['auto', 'start', 'end']), z.number()]).optional(),
+  shadowBlur: z.number().optional(),
+  shadowColor: colorSchema.optional(),
+  shadowOffsetX: z.number().optional(),
+  shadowOffsetY: z.number().optional(),
+  opacity: z.number().min(0).max(1).optional(),
+});
 
 export const itemStyleSchema = z.object({
-    color: colorSchema.optional(),
-    borderColor: colorSchema.optional(),
-    borderWidth: z.number().optional(),
-    borderType: lineTypeSchema.optional(),
-    borderRadius: z.union([z.number(), z.array(z.number())]).optional(),
-    shadowBlur: z.number().optional(),
-    shadowColor: colorSchema.optional(),
-    shadowOffsetX: z.number().optional(),
-    shadowOffsetY: z.number().optional(),
-    opacity: z.number().min(0).max(1).optional(),
-  });
+  color: colorSchema.optional(),
+  borderColor: colorSchema.optional(),
+  borderWidth: z.number().optional(),
+  borderType: lineTypeSchema.optional(),
+  borderRadius: z.union([z.number(), z.array(z.number())]).optional(),
+  shadowBlur: z.number().optional(),
+  shadowColor: colorSchema.optional(),
+  shadowOffsetX: z.number().optional(),
+  shadowOffsetY: z.number().optional(),
+  opacity: z.number().min(0).max(1).optional(),
+});
 
 // =============================================================================
 // Label Schema
 // =============================================================================
 
 export const labelSchema = z.object({
-    show: z.boolean().optional(),
-    position: z
-      .enum([
-        'top',
-        'left',
-        'right',
-        'bottom',
-        'inside',
-        'insideLeft',
-        'insideRight',
-        'insideTop',
-        'insideBottom',
-        'insideTopLeft',
-        'insideBottomLeft',
-        'insideTopRight',
-        'insideBottomRight',
-        'outside',
-      ])
-      .optional(),
-    distance: z.number().optional(),
-    rotate: z.number().optional(),
-    offset: z.array(z.number()).optional(),
-    formatter: z.string().optional(), // Only string formatters allowed, not functions
-    color: colorSchema.optional(),
-    fontStyle: fontStyleSchema.optional(),
-    fontWeight: fontWeightSchema.optional(),
-    fontFamily: z.string().optional(),
-    fontSize: z.number().optional(),
-    lineHeight: z.number().optional(),
-  });
+  show: z.boolean().optional(),
+  position: z
+    .enum([
+      'top',
+      'left',
+      'right',
+      'bottom',
+      'inside',
+      'insideLeft',
+      'insideRight',
+      'insideTop',
+      'insideBottom',
+      'insideTopLeft',
+      'insideBottomLeft',
+      'insideTopRight',
+      'insideBottomRight',
+      'outside',
+    ])
+    .optional(),
+  distance: z.number().optional(),
+  rotate: z.number().optional(),
+  offset: z.array(z.number()).optional(),
+  formatter: z.string().optional(), // Only string formatters allowed, not functions
+  color: colorSchema.optional(),
+  fontStyle: fontStyleSchema.optional(),
+  fontWeight: fontWeightSchema.optional(),
+  fontFamily: z.string().optional(),
+  fontSize: z.number().optional(),
+  lineHeight: z.number().optional(),
+});
 
 // =============================================================================
 // Title Schema
@@ -287,90 +289,90 @@ export const gridSchema = z.object({
 // =============================================================================
 
 const axisLineSchema = z.object({
-    show: z.boolean().optional(),
-    onZero: z.boolean().optional(),
-    onZeroAxisIndex: z.number().optional(),
-    symbol: z.union([z.string(), z.array(z.string())]).optional(),
-    symbolSize: z.array(z.number()).optional(),
-    symbolOffset: z.union([z.number(), z.array(z.number())]).optional(),
-    lineStyle: lineStyleSchema.optional(),
-  });
+  show: z.boolean().optional(),
+  onZero: z.boolean().optional(),
+  onZeroAxisIndex: z.number().optional(),
+  symbol: z.union([z.string(), z.array(z.string())]).optional(),
+  symbolSize: z.array(z.number()).optional(),
+  symbolOffset: z.union([z.number(), z.array(z.number())]).optional(),
+  lineStyle: lineStyleSchema.optional(),
+});
 
 const axisTickSchema = z.object({
-    show: z.boolean().optional(),
-    alignWithLabel: z.boolean().optional(),
-    interval: z.union([z.number(), z.literal('auto')]).optional(),
-    inside: z.boolean().optional(),
-    length: z.number().optional(),
-    lineStyle: lineStyleSchema.optional(),
-  });
+  show: z.boolean().optional(),
+  alignWithLabel: z.boolean().optional(),
+  interval: z.union([z.number(), z.literal('auto')]).optional(),
+  inside: z.boolean().optional(),
+  length: z.number().optional(),
+  lineStyle: lineStyleSchema.optional(),
+});
 
 const axisLabelSchema = z.object({
-    show: z.boolean().optional(),
-    interval: z.union([z.number(), z.literal('auto')]).optional(),
-    inside: z.boolean().optional(),
-    rotate: z.number().optional(),
-    margin: z.number().optional(),
-    formatter: z.string().optional(), // Only string formatters
-    showMinLabel: z.boolean().optional(),
-    showMaxLabel: z.boolean().optional(),
-    hideOverlap: z.boolean().optional(),
-    color: colorSchema.optional(),
-    fontStyle: fontStyleSchema.optional(),
-    fontWeight: fontWeightSchema.optional(),
-    fontFamily: z.string().optional(),
-    fontSize: z.number().optional(),
-  });
+  show: z.boolean().optional(),
+  interval: z.union([z.number(), z.literal('auto')]).optional(),
+  inside: z.boolean().optional(),
+  rotate: z.number().optional(),
+  margin: z.number().optional(),
+  formatter: z.string().optional(), // Only string formatters
+  showMinLabel: z.boolean().optional(),
+  showMaxLabel: z.boolean().optional(),
+  hideOverlap: z.boolean().optional(),
+  color: colorSchema.optional(),
+  fontStyle: fontStyleSchema.optional(),
+  fontWeight: fontWeightSchema.optional(),
+  fontFamily: z.string().optional(),
+  fontSize: z.number().optional(),
+});
 
 const splitLineSchema = z.object({
-    show: z.boolean().optional(),
-    interval: z.union([z.number(), z.literal('auto')]).optional(),
-    lineStyle: lineStyleSchema.optional(),
-  });
+  show: z.boolean().optional(),
+  interval: z.union([z.number(), z.literal('auto')]).optional(),
+  lineStyle: lineStyleSchema.optional(),
+});
 
 const splitAreaSchema = z.object({
-    show: z.boolean().optional(),
-    interval: z.union([z.number(), z.literal('auto')]).optional(),
-    areaStyle: areaStyleSchema.optional(),
-  });
+  show: z.boolean().optional(),
+  interval: z.union([z.number(), z.literal('auto')]).optional(),
+  areaStyle: areaStyleSchema.optional(),
+});
 
 export const axisSchema = z.object({
-    id: z.string().optional(),
-    show: z.boolean().optional(),
-    gridIndex: z.number().optional(),
-    alignTicks: z.boolean().optional(),
-    position: z.enum(['top', 'bottom', 'left', 'right']).optional(),
-    offset: z.number().optional(),
-    type: z.enum(['value', 'category', 'time', 'log']).optional(),
-    name: z.string().optional(),
-    nameLocation: z.enum(['start', 'middle', 'center', 'end']).optional(),
-    nameTextStyle: textStyleSchema.optional(),
-    nameGap: z.number().optional(),
-    nameRotate: z.number().optional(),
-    inverse: z.boolean().optional(),
-    boundaryGap: z
-      .union([z.boolean(), z.array(z.union([z.string(), z.number()]))])
-      .optional(),
-    min: z.union([z.number(), z.string(), z.literal('dataMin')]).optional(),
-    max: z.union([z.number(), z.string(), z.literal('dataMax')]).optional(),
-    scale: z.boolean().optional(),
-    splitNumber: z.number().optional(),
-    minInterval: z.number().optional(),
-    maxInterval: z.number().optional(),
-    interval: z.number().optional(),
-    logBase: z.number().optional(),
-    silent: z.boolean().optional(),
-    triggerEvent: z.boolean().optional(),
-    axisLine: axisLineSchema.optional(),
-    axisTick: axisTickSchema.optional(),
-    minorTick: axisTickSchema.optional(),
-    axisLabel: axisLabelSchema.optional(),
-    splitLine: splitLineSchema.optional(),
-    minorSplitLine: splitLineSchema.optional(),
-    splitArea: splitAreaSchema.optional(),
-    zlevel: z.number().optional(),
-    z: z.number().optional(),
-  });
+  id: z.string().optional(),
+  show: z.boolean().optional(),
+  gridIndex: z.number().optional(),
+  alignTicks: z.boolean().optional(),
+  position: z.enum(['top', 'bottom', 'left', 'right']).optional(),
+  offset: z.number().optional(),
+  type: z.enum(['value', 'category', 'time', 'log']).optional(),
+  name: z.string().optional(),
+  nameLocation: z.enum(['start', 'middle', 'center', 'end']).optional(),
+  nameTextStyle: textStyleSchema.optional(),
+  nameGap: z.number().optional(),
+  nameRotate: z.number().optional(),
+  inverse: z.boolean().optional(),
+  boundaryGap: z
+    .union([z.boolean(), z.array(z.union([z.string(), z.number()]))])
+    .optional(),
+  min: z.union([z.number(), z.string(), z.literal('dataMin')]).optional(),
+  max: z.union([z.number(), z.string(), z.literal('dataMax')]).optional(),
+  scale: z.boolean().optional(),
+  splitNumber: z.number().optional(),
+  minInterval: z.number().optional(),
+  maxInterval: z.number().optional(),
+  interval: z.number().optional(),
+  logBase: z.number().optional(),
+  silent: z.boolean().optional(),
+  triggerEvent: z.boolean().optional(),
+  axisLine: axisLineSchema.optional(),
+  axisTick: axisTickSchema.optional(),
+  minorTick: axisTickSchema.optional(),
+  axisLabel: axisLabelSchema.optional(),
+  splitLine: splitLineSchema.optional(),
+  minorSplitLine: splitLineSchema.optional(),
+  splitArea: splitAreaSchema.optional(),
+  zlevel: z.number().optional(),
+  z: z.number().optional(),
+});
 
 // =============================================================================
 // Tooltip Schema
@@ -418,57 +420,57 @@ export const tooltipSchema = z.object({
 // =============================================================================
 
 export const dataZoomSchema = z.object({
-    type: z.enum(['slider', 'inside']).optional(),
-    id: z.string().optional(),
-    show: z.boolean().optional(),
-    disabled: z.boolean().optional(),
-    xAxisIndex: z.union([z.number(), z.array(z.number())]).optional(),
-    yAxisIndex: z.union([z.number(), z.array(z.number())]).optional(),
-    filterMode: z.enum(['filter', 'weakFilter', 'empty', 'none']).optional(),
-    start: z.number().optional(),
-    end: z.number().optional(),
-    startValue: z.union([z.number(), z.string()]).optional(),
-    endValue: z.union([z.number(), z.string()]).optional(),
-    minSpan: z.number().optional(),
-    maxSpan: z.number().optional(),
-    minValueSpan: z.union([z.number(), z.string()]).optional(),
-    maxValueSpan: z.union([z.number(), z.string()]).optional(),
-    orient: z.enum(['horizontal', 'vertical']).optional(),
-    zoomLock: z.boolean().optional(),
-    throttle: z.number().optional(),
-    rangeMode: z.array(z.enum(['value', 'percent'])).optional(),
-    zlevel: z.number().optional(),
-    z: z.number().optional(),
-    left: numberOrPercentSchema.optional(),
-    top: numberOrPercentSchema.optional(),
-    right: numberOrPercentSchema.optional(),
-    bottom: numberOrPercentSchema.optional(),
-    width: numberOrPercentSchema.optional(),
-    height: numberOrPercentSchema.optional(),
-    backgroundColor: colorSchema.optional(),
-    borderColor: colorSchema.optional(),
-    borderRadius: z.number().optional(),
-    fillerColor: colorSchema.optional(),
-    handleSize: numberOrPercentSchema.optional(),
-    handleStyle: itemStyleSchema.optional(),
-    moveHandleSize: z.number().optional(),
-    moveHandleStyle: itemStyleSchema.optional(),
-    labelPrecision: z.union([z.number(), z.literal('auto')]).optional(),
-    textStyle: textStyleSchema.optional(),
-    realtime: z.boolean().optional(),
-    showDetail: z.boolean().optional(),
-    showDataShadow: z.union([z.boolean(), z.literal('auto')]).optional(),
-    zoomOnMouseWheel: z
-      .union([z.boolean(), z.enum(['shift', 'ctrl', 'alt'])])
-      .optional(),
-    moveOnMouseMove: z
-      .union([z.boolean(), z.enum(['shift', 'ctrl', 'alt'])])
-      .optional(),
-    moveOnMouseWheel: z
-      .union([z.boolean(), z.enum(['shift', 'ctrl', 'alt'])])
-      .optional(),
-    preventDefaultMouseMove: z.boolean().optional(),
-  });
+  type: z.enum(['slider', 'inside']).optional(),
+  id: z.string().optional(),
+  show: z.boolean().optional(),
+  disabled: z.boolean().optional(),
+  xAxisIndex: z.union([z.number(), z.array(z.number())]).optional(),
+  yAxisIndex: z.union([z.number(), z.array(z.number())]).optional(),
+  filterMode: z.enum(['filter', 'weakFilter', 'empty', 'none']).optional(),
+  start: z.number().optional(),
+  end: z.number().optional(),
+  startValue: z.union([z.number(), z.string()]).optional(),
+  endValue: z.union([z.number(), z.string()]).optional(),
+  minSpan: z.number().optional(),
+  maxSpan: z.number().optional(),
+  minValueSpan: z.union([z.number(), z.string()]).optional(),
+  maxValueSpan: z.union([z.number(), z.string()]).optional(),
+  orient: z.enum(['horizontal', 'vertical']).optional(),
+  zoomLock: z.boolean().optional(),
+  throttle: z.number().optional(),
+  rangeMode: z.array(z.enum(['value', 'percent'])).optional(),
+  zlevel: z.number().optional(),
+  z: z.number().optional(),
+  left: numberOrPercentSchema.optional(),
+  top: numberOrPercentSchema.optional(),
+  right: numberOrPercentSchema.optional(),
+  bottom: numberOrPercentSchema.optional(),
+  width: numberOrPercentSchema.optional(),
+  height: numberOrPercentSchema.optional(),
+  backgroundColor: colorSchema.optional(),
+  borderColor: colorSchema.optional(),
+  borderRadius: z.number().optional(),
+  fillerColor: colorSchema.optional(),
+  handleSize: numberOrPercentSchema.optional(),
+  handleStyle: itemStyleSchema.optional(),
+  moveHandleSize: z.number().optional(),
+  moveHandleStyle: itemStyleSchema.optional(),
+  labelPrecision: z.union([z.number(), z.literal('auto')]).optional(),
+  textStyle: textStyleSchema.optional(),
+  realtime: z.boolean().optional(),
+  showDetail: z.boolean().optional(),
+  showDataShadow: z.union([z.boolean(), z.literal('auto')]).optional(),
+  zoomOnMouseWheel: z
+    .union([z.boolean(), z.enum(['shift', 'ctrl', 'alt'])])
+    .optional(),
+  moveOnMouseMove: z
+    .union([z.boolean(), z.enum(['shift', 'ctrl', 'alt'])])
+    .optional(),
+  moveOnMouseWheel: z
+    .union([z.boolean(), z.enum(['shift', 'ctrl', 'alt'])])
+    .optional(),
+  preventDefaultMouseMove: z.boolean().optional(),
+});
 
 // =============================================================================
 // Toolbox Schema
@@ -483,9 +485,11 @@ export const toolboxSchema = z.object({
   showTitle: z.boolean().optional(),
   feature: z.record(z.string(), z.unknown()).optional(),
   iconStyle: itemStyleSchema.optional(),
-  emphasis: z.object({
+  emphasis: z
+    .object({
       iconStyle: itemStyleSchema.optional(),
-    }).optional(),
+    })
+    .optional(),
   zlevel: z.number().optional(),
   z: z.number().optional(),
   left: numberOrPercentSchema.optional(),
@@ -501,177 +505,177 @@ export const toolboxSchema = z.object({
 // =============================================================================
 
 export const visualMapSchema = z.object({
-    type: z.enum(['continuous', 'piecewise']).optional(),
-    id: z.string().optional(),
-    min: z.number().optional(),
-    max: z.number().optional(),
-    range: z.array(z.number()).optional(),
-    calculable: z.boolean().optional(),
-    realtime: z.boolean().optional(),
-    inverse: z.boolean().optional(),
-    precision: z.number().optional(),
-    itemWidth: z.number().optional(),
-    itemHeight: z.number().optional(),
-    align: z.enum(['auto', 'left', 'right', 'top', 'bottom']).optional(),
-    text: z.array(z.string()).optional(),
-    textGap: z.number().optional(),
-    show: z.boolean().optional(),
-    dimension: z.union([z.number(), z.string()]).optional(),
-    seriesIndex: z.union([z.number(), z.array(z.number())]).optional(),
-    hoverLink: z.boolean().optional(),
-    inRange: z.record(z.string(), z.unknown()).optional(),
-    outOfRange: z.record(z.string(), z.unknown()).optional(),
-    zlevel: z.number().optional(),
-    z: z.number().optional(),
-    left: numberOrPercentSchema.optional(),
-    top: numberOrPercentSchema.optional(),
-    right: numberOrPercentSchema.optional(),
-    bottom: numberOrPercentSchema.optional(),
-    orient: z.enum(['horizontal', 'vertical']).optional(),
-    padding: z.union([z.number(), z.array(z.number())]).optional(),
-    backgroundColor: colorSchema.optional(),
-    borderColor: colorSchema.optional(),
-    borderWidth: z.number().optional(),
-    color: z.array(colorSchema).optional(),
-    textStyle: textStyleSchema.optional(),
-    splitNumber: z.number().optional(),
-    pieces: z.array(z.record(z.string(), z.unknown())).optional(),
-    categories: z.array(z.string()).optional(),
-    minOpen: z.boolean().optional(),
-    maxOpen: z.boolean().optional(),
-    selectedMode: z
-      .union([z.boolean(), z.enum(['single', 'multiple'])])
-      .optional(),
-    showLabel: z.boolean().optional(),
-    itemGap: z.number().optional(),
-    itemSymbol: symbolTypeSchema.optional(),
-  });
+  type: z.enum(['continuous', 'piecewise']).optional(),
+  id: z.string().optional(),
+  min: z.number().optional(),
+  max: z.number().optional(),
+  range: z.array(z.number()).optional(),
+  calculable: z.boolean().optional(),
+  realtime: z.boolean().optional(),
+  inverse: z.boolean().optional(),
+  precision: z.number().optional(),
+  itemWidth: z.number().optional(),
+  itemHeight: z.number().optional(),
+  align: z.enum(['auto', 'left', 'right', 'top', 'bottom']).optional(),
+  text: z.array(z.string()).optional(),
+  textGap: z.number().optional(),
+  show: z.boolean().optional(),
+  dimension: z.union([z.number(), z.string()]).optional(),
+  seriesIndex: z.union([z.number(), z.array(z.number())]).optional(),
+  hoverLink: z.boolean().optional(),
+  inRange: z.record(z.string(), z.unknown()).optional(),
+  outOfRange: z.record(z.string(), z.unknown()).optional(),
+  zlevel: z.number().optional(),
+  z: z.number().optional(),
+  left: numberOrPercentSchema.optional(),
+  top: numberOrPercentSchema.optional(),
+  right: numberOrPercentSchema.optional(),
+  bottom: numberOrPercentSchema.optional(),
+  orient: z.enum(['horizontal', 'vertical']).optional(),
+  padding: z.union([z.number(), z.array(z.number())]).optional(),
+  backgroundColor: colorSchema.optional(),
+  borderColor: colorSchema.optional(),
+  borderWidth: z.number().optional(),
+  color: z.array(colorSchema).optional(),
+  textStyle: textStyleSchema.optional(),
+  splitNumber: z.number().optional(),
+  pieces: z.array(z.record(z.string(), z.unknown())).optional(),
+  categories: z.array(z.string()).optional(),
+  minOpen: z.boolean().optional(),
+  maxOpen: z.boolean().optional(),
+  selectedMode: z
+    .union([z.boolean(), z.enum(['single', 'multiple'])])
+    .optional(),
+  showLabel: z.boolean().optional(),
+  itemGap: z.number().optional(),
+  itemSymbol: symbolTypeSchema.optional(),
+});
 
 // =============================================================================
 // Series Schema
 // =============================================================================
 
 const emphasisSchema = z.object({
-    disabled: z.boolean().optional(),
-    focus: z
-      .enum(['none', 'self', 'series', 'ancestor', 'descendant', 'relative'])
-      .optional(),
-    blurScope: z.enum(['coordinateSystem', 'series', 'global']).optional(),
-    scale: z.union([z.boolean(), z.number()]).optional(),
-    label: labelSchema.optional(),
-    itemStyle: itemStyleSchema.optional(),
-    lineStyle: lineStyleSchema.optional(),
-    areaStyle: areaStyleSchema.optional(),
-  });
+  disabled: z.boolean().optional(),
+  focus: z
+    .enum(['none', 'self', 'series', 'ancestor', 'descendant', 'relative'])
+    .optional(),
+  blurScope: z.enum(['coordinateSystem', 'series', 'global']).optional(),
+  scale: z.union([z.boolean(), z.number()]).optional(),
+  label: labelSchema.optional(),
+  itemStyle: itemStyleSchema.optional(),
+  lineStyle: lineStyleSchema.optional(),
+  areaStyle: areaStyleSchema.optional(),
+});
 
 const stateSchema = z.object({
-    label: labelSchema.optional(),
-    itemStyle: itemStyleSchema.optional(),
-    lineStyle: lineStyleSchema.optional(),
-    areaStyle: areaStyleSchema.optional(),
-  });
+  label: labelSchema.optional(),
+  itemStyle: itemStyleSchema.optional(),
+  lineStyle: lineStyleSchema.optional(),
+  areaStyle: areaStyleSchema.optional(),
+});
 
 export const seriesSchema = z.object({
-    type: z.string().optional(),
-    id: z.string().optional(),
-    name: z.string().optional(),
-    colorBy: z.enum(['series', 'data']).optional(),
-    legendHoverLink: z.boolean().optional(),
-    coordinateSystem: z.string().optional(),
-    xAxisIndex: z.number().optional(),
-    yAxisIndex: z.number().optional(),
-    polarIndex: z.number().optional(),
-    geoIndex: z.number().optional(),
-    calendarIndex: z.number().optional(),
-    label: labelSchema.optional(),
-    labelLine: z
-      .object({
-        show: z.boolean().optional(),
-        showAbove: z.boolean().optional(),
-        length: z.number().optional(),
-        length2: z.number().optional(),
-        smooth: z.union([z.boolean(), z.number()]).optional(),
-        minTurnAngle: z.number().optional(),
-        lineStyle: lineStyleSchema.optional(),
-      })
-            .optional(),
-    labelLayout: z
-      .object({
-        hideOverlap: z.boolean().optional(),
-        moveOverlap: z.enum(['shiftX', 'shiftY']).optional(),
-      })
-            .optional(),
-    itemStyle: itemStyleSchema.optional(),
-    lineStyle: lineStyleSchema.optional(),
-    areaStyle: areaStyleSchema.optional(),
-    emphasis: emphasisSchema.optional(),
-    blur: stateSchema.optional(),
-    select: stateSchema.optional(),
-    selectedMode: z
-      .union([z.boolean(), z.enum(['single', 'multiple', 'series'])])
-      .optional(),
-    zlevel: z.number().optional(),
-    z: z.number().optional(),
-    silent: z.boolean().optional(),
-    cursor: z.string().optional(),
-    animation: z.boolean().optional(),
-    animationThreshold: z.number().optional(),
-    animationDuration: z.number().optional(),
-    animationEasing: z.string().optional(),
-    animationDelay: z.number().optional(),
-    animationDurationUpdate: z.number().optional(),
-    animationEasingUpdate: z.string().optional(),
-    animationDelayUpdate: z.number().optional(),
-  });
+  type: z.string().optional(),
+  id: z.string().optional(),
+  name: z.string().optional(),
+  colorBy: z.enum(['series', 'data']).optional(),
+  legendHoverLink: z.boolean().optional(),
+  coordinateSystem: z.string().optional(),
+  xAxisIndex: z.number().optional(),
+  yAxisIndex: z.number().optional(),
+  polarIndex: z.number().optional(),
+  geoIndex: z.number().optional(),
+  calendarIndex: z.number().optional(),
+  label: labelSchema.optional(),
+  labelLine: z
+    .object({
+      show: z.boolean().optional(),
+      showAbove: z.boolean().optional(),
+      length: z.number().optional(),
+      length2: z.number().optional(),
+      smooth: z.union([z.boolean(), z.number()]).optional(),
+      minTurnAngle: z.number().optional(),
+      lineStyle: lineStyleSchema.optional(),
+    })
+    .optional(),
+  labelLayout: z
+    .object({
+      hideOverlap: z.boolean().optional(),
+      moveOverlap: z.enum(['shiftX', 'shiftY']).optional(),
+    })
+    .optional(),
+  itemStyle: itemStyleSchema.optional(),
+  lineStyle: lineStyleSchema.optional(),
+  areaStyle: areaStyleSchema.optional(),
+  emphasis: emphasisSchema.optional(),
+  blur: stateSchema.optional(),
+  select: stateSchema.optional(),
+  selectedMode: z
+    .union([z.boolean(), z.enum(['single', 'multiple', 'series'])])
+    .optional(),
+  zlevel: z.number().optional(),
+  z: z.number().optional(),
+  silent: z.boolean().optional(),
+  cursor: z.string().optional(),
+  animation: z.boolean().optional(),
+  animationThreshold: z.number().optional(),
+  animationDuration: z.number().optional(),
+  animationEasing: z.string().optional(),
+  animationDelay: z.number().optional(),
+  animationDurationUpdate: z.number().optional(),
+  animationEasingUpdate: z.string().optional(),
+  animationDelayUpdate: z.number().optional(),
+});
 
 // =============================================================================
 // Graphic Schema
 // =============================================================================
 
 export const graphicElementSchema = z.object({
-    type: z
-      .enum([
-        'group',
-        'image',
-        'text',
-        'rect',
-        'circle',
-        'ring',
-        'sector',
-        'arc',
-        'polygon',
-        'polyline',
-        'line',
-        'bezierCurve',
-      ])
-      .optional(),
-    id: z.string().optional(),
-    $action: z.enum(['merge', 'replace', 'remove']).optional(),
-    left: numberOrPercentSchema.optional(),
-    top: numberOrPercentSchema.optional(),
-    right: numberOrPercentSchema.optional(),
-    bottom: numberOrPercentSchema.optional(),
-    bounding: z.enum(['all', 'raw']).optional(),
-    z: z.number().optional(),
-    zlevel: z.number().optional(),
-    silent: z.boolean().optional(),
-    invisible: z.boolean().optional(),
-    cursor: z.string().optional(),
-    draggable: z
-      .union([z.boolean(), z.enum(['horizontal', 'vertical'])])
-      .optional(),
-    progressive: z.boolean().optional(),
-    width: z.number().optional(),
-    height: z.number().optional(),
-    shape: z.record(z.string(), z.unknown()).optional(),
-    style: z.record(z.string(), z.unknown()).optional(),
-    rotation: z.number().optional(),
-    scaleX: z.number().optional(),
-    scaleY: z.number().optional(),
-    originX: z.number().optional(),
-    originY: z.number().optional(),
-    children: z.array(z.record(z.string(), z.unknown())).optional(),
-  });
+  type: z
+    .enum([
+      'group',
+      'image',
+      'text',
+      'rect',
+      'circle',
+      'ring',
+      'sector',
+      'arc',
+      'polygon',
+      'polyline',
+      'line',
+      'bezierCurve',
+    ])
+    .optional(),
+  id: z.string().optional(),
+  $action: z.enum(['merge', 'replace', 'remove']).optional(),
+  left: numberOrPercentSchema.optional(),
+  top: numberOrPercentSchema.optional(),
+  right: numberOrPercentSchema.optional(),
+  bottom: numberOrPercentSchema.optional(),
+  bounding: z.enum(['all', 'raw']).optional(),
+  z: z.number().optional(),
+  zlevel: z.number().optional(),
+  silent: z.boolean().optional(),
+  invisible: z.boolean().optional(),
+  cursor: z.string().optional(),
+  draggable: z
+    .union([z.boolean(), z.enum(['horizontal', 'vertical'])])
+    .optional(),
+  progressive: z.boolean().optional(),
+  width: z.number().optional(),
+  height: z.number().optional(),
+  shape: z.record(z.string(), z.unknown()).optional(),
+  style: z.record(z.string(), z.unknown()).optional(),
+  rotation: z.number().optional(),
+  scaleX: z.number().optional(),
+  scaleY: z.number().optional(),
+  originX: z.number().optional(),
+  originY: z.number().optional(),
+  children: z.array(z.record(z.string(), z.unknown())).optional(),
+});
 
 // =============================================================================
 // AxisPointer Schema
@@ -704,7 +708,7 @@ export const axisPointerSchema = z.object({
       shadowOffsetX: z.number().optional(),
       shadowOffsetY: z.number().optional(),
     })
-        .optional(),
+    .optional(),
   lineStyle: lineStyleSchema.optional(),
   shadowStyle: areaStyleSchema.optional(),
   triggerTooltip: z.boolean().optional(),
@@ -723,7 +727,7 @@ export const axisPointerSchema = z.object({
       shadowOffsetX: z.number().optional(),
       shadowOffsetY: z.number().optional(),
     })
-        .optional(),
+    .optional(),
   link: z.array(z.record(z.string(), z.unknown())).optional(),
 });
 
