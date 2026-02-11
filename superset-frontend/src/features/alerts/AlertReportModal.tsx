@@ -39,6 +39,11 @@ import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import Owner from 'src/types/Owner';
+import {
+  OwnerSelectLabel,
+  OWNER_TEXT_LABEL_PROP,
+  OWNER_OPTION_FILTER_PROPS,
+} from 'src/features/owners/OwnerSelectLabel';
 // import { Form as AntdForm } from 'src/components/Form';
 import { propertyComparator } from '@superset-ui/core/components/Select/utils';
 import {
@@ -980,9 +985,17 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           endpoint: `/api/v1/report/related/created_by?q=${query}`,
         }).then(response => ({
           data: response.json.result.map(
-            (item: { value: number; text: string }) => ({
+            (item: {
+              value: number;
+              text: string;
+              extra: { username?: string };
+            }) => ({
               value: item.value,
-              label: item.text,
+              label: OwnerSelectLabel({
+                name: item.text,
+                username: item.extra?.username,
+              }),
+              [OWNER_TEXT_LABEL_PROP]: item.text,
             }),
           ),
           totalCount: response.json.count,
@@ -1850,7 +1863,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           ? [
               {
                 value: currentUser.userId,
-                label: `${currentUser.firstName} ${currentUser.lastName}`,
+                label: OwnerSelectLabel({
+                  name: `${currentUser.firstName} ${currentUser.lastName}`,
+                  username: currentUser.username,
+                }),
+                [OWNER_TEXT_LABEL_PROP]: `${currentUser.firstName} ${currentUser.lastName}`,
               },
             ]
           : [],
@@ -1936,12 +1953,20 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               label: (resource.database as DatabaseObject).database_name,
             }
           : undefined,
-        owners: (alert?.owners || []).map(owner => ({
-          value: (owner as MetaObject).value || owner.id,
-          label:
+        owners: (alert?.owners || []).map(owner => {
+          const ownerName =
             (owner as MetaObject).label ||
-            `${(owner as Owner).first_name} ${(owner as Owner).last_name}`,
-        })),
+            `${(owner as Owner).first_name} ${(owner as Owner).last_name}`;
+          return {
+            value: (owner as MetaObject).value || owner.id,
+            label: OwnerSelectLabel({
+              name: typeof ownerName === 'string' ? ownerName : '',
+              username: (owner as Owner).username,
+            }),
+            [OWNER_TEXT_LABEL_PROP]:
+              typeof ownerName === 'string' ? ownerName : '',
+          };
+        }),
         validator_config_json:
           resource.validator_type === 'not null'
             ? {
@@ -2108,6 +2133,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                       options={loadOwnerOptions}
                       onChange={onOwnersChange}
                       data-test="owners-select"
+                      optionFilterProps={OWNER_OPTION_FILTER_PROPS}
                     />
                   </ModalFormField>
                   <ModalFormField label={t('Description')}>

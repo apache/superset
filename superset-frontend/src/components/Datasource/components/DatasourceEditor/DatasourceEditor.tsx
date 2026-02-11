@@ -17,7 +17,7 @@
  * under the License.
  */
 import rison from 'rison';
-import { PureComponent, useCallback, ReactNode } from 'react';
+import { PureComponent, useCallback, type ReactNode } from 'react';
 import { connect, ConnectedProps } from 'react-redux';
 import type { JsonObject } from '@superset-ui/core';
 import type { SupersetTheme } from '@apache-superset/core/ui';
@@ -77,6 +77,11 @@ import {
 import Mousetrap from 'mousetrap';
 import { clearDatasetCache } from 'src/utils/cachedSupersetGet';
 import { makeUrl } from 'src/utils/pathUtils';
+import {
+  OwnerSelectLabel,
+  OWNER_TEXT_LABEL_PROP,
+  OWNER_OPTION_FILTER_PROPS,
+} from 'src/features/owners/OwnerSelectLabel';
 import { DatabaseSelector } from '../../../DatabaseSelector';
 import CollectionTable from '../CollectionTable';
 import Fieldset from '../Fieldset';
@@ -98,9 +103,11 @@ const extensionsRegistry = getExtensionsRegistry();
 interface Owner {
   id?: number;
   value?: number;
-  label?: string;
+  label?: ReactNode;
   first_name?: string;
   last_name?: string;
+  username?: string;
+  [key: string]: unknown;
 }
 
 interface Currency {
@@ -757,7 +764,11 @@ function OwnersSelector({
           .filter(item => item.extra.active)
           .map(item => ({
             value: item.value as number,
-            label: item.text as string,
+            label: OwnerSelectLabel({
+              name: item.text as string,
+              username: item.extra?.username as string | undefined,
+            }),
+            [OWNER_TEXT_LABEL_PROP]: item.text as string,
           })),
         totalCount: response.json.count,
       }));
@@ -775,6 +786,7 @@ function OwnersSelector({
       onChange={value => onChange(value as Owner[])}
       header={<FormLabel>{t('Owners')}</FormLabel>}
       allowClear
+      optionFilterProps={OWNER_OPTION_FILTER_PROPS}
     />
   );
 }
@@ -847,10 +859,19 @@ class DatasourceEditor extends PureComponent<
     this.state = {
       datasource: {
         ...props.datasource,
-        owners: props.datasource.owners.map(owner => ({
-          value: owner.value || owner.id,
-          label: owner.label || `${owner.first_name} ${owner.last_name}`,
-        })),
+        owners: props.datasource.owners.map(owner => {
+          const ownerName =
+            owner.label || `${owner.first_name} ${owner.last_name}`;
+          return {
+            value: owner.value || owner.id,
+            label: OwnerSelectLabel({
+              name: typeof ownerName === 'string' ? ownerName : '',
+              username: owner.username,
+            }),
+            [OWNER_TEXT_LABEL_PROP]:
+              typeof ownerName === 'string' ? ownerName : '',
+          };
+        }),
         metrics: props.datasource.metrics?.map(metric => {
           const {
             certified_by: certifiedByMetric,
