@@ -353,11 +353,14 @@ def test_configuration_schema_with_partial_config(
     mocker: MockerFixture,
 ) -> None:
     """Test POST /schema/configuration enriches schema with partial config."""
-    mock_instance = MagicMock()
-    mock_instance.configuration = {"account": "test"}
+    mock_config_obj = MagicMock()
 
     mock_cls = MagicMock()
-    mock_cls.from_configuration.return_value = mock_instance
+    mock_cls.configuration_class.model_json_schema.return_value = {
+        "type": "object",
+        "properties": {"account": {"type": "string"}},
+    }
+    mock_cls.configuration_class.model_validate.return_value = mock_config_obj
     mock_cls.get_configuration_schema.return_value = {
         "type": "object",
         "properties": {"database": {"enum": ["db1", "db2"]}},
@@ -375,7 +378,7 @@ def test_configuration_schema_with_partial_config(
     )
 
     assert response.status_code == 200
-    mock_cls.get_configuration_schema.assert_called_once_with({"account": "test"})
+    mock_cls.get_configuration_schema.assert_called_once_with(mock_config_obj)
 
 
 @SEMANTIC_LAYERS_APP
@@ -385,8 +388,19 @@ def test_configuration_schema_with_invalid_partial_config(
     mocker: MockerFixture,
 ) -> None:
     """Test /schema/configuration returns schema when partial config fails."""
+    from pydantic import ValidationError as PydanticValidationError
+
     mock_cls = MagicMock()
-    mock_cls.from_configuration.side_effect = ValueError("bad config")
+    mock_cls.configuration_class.model_json_schema.return_value = {
+        "type": "object",
+        "properties": {},
+    }
+    mock_cls.configuration_class.model_validate.side_effect = (
+        PydanticValidationError.from_exception_data(
+            title="test",
+            line_errors=[],
+        )
+    )
     mock_cls.get_configuration_schema.return_value = {"type": "object"}
 
     mocker.patch.dict(
@@ -832,6 +846,8 @@ def test_get_list_semantic_layers(
     layer1.description = "First"
     layer1.type = "snowflake"
     layer1.cache_timeout = None
+    layer1.configuration = "{}"
+    layer1.changed_on_delta_humanized.return_value = "1 day ago"
 
     layer2 = MagicMock()
     layer2.uuid = uuid_lib.uuid4()
@@ -839,6 +855,8 @@ def test_get_list_semantic_layers(
     layer2.description = None
     layer2.type = "snowflake"
     layer2.cache_timeout = 300
+    layer2.configuration = '{"account": "test"}'
+    layer2.changed_on_delta_humanized.return_value = "2 hours ago"
 
     mock_dao = mocker.patch("superset.semantic_layers.api.SemanticLayerDAO")
     mock_dao.find_all.return_value = [layer1, layer2]
@@ -851,6 +869,7 @@ def test_get_list_semantic_layers(
     assert result[0]["name"] == "Layer 1"
     assert result[1]["name"] == "Layer 2"
     assert result[1]["cache_timeout"] == 300
+    assert result[1]["configuration"] == {"account": "test"}
 
 
 @SEMANTIC_LAYERS_APP
@@ -883,6 +902,8 @@ def test_get_semantic_layer(
     layer.description = "A layer"
     layer.type = "snowflake"
     layer.cache_timeout = 600
+    layer.configuration = '{"account": "test"}'
+    layer.changed_on_delta_humanized.return_value = "1 day ago"
 
     mock_dao = mocker.patch("superset.semantic_layers.api.SemanticLayerDAO")
     mock_dao.find_by_uuid.return_value = layer
@@ -895,6 +916,7 @@ def test_get_semantic_layer(
     assert result["name"] == "My Layer"
     assert result["type"] == "snowflake"
     assert result["cache_timeout"] == 600
+    assert result["configuration"] == {"account": "test"}
 
 
 @SEMANTIC_LAYERS_APP
@@ -910,3 +932,559 @@ def test_get_semantic_layer_not_found(
     response = client.get(f"/api/v1/semantic_layer/{uuid_lib.uuid4()}")
 
     assert response.status_code == 404
+
+
+@SEMANTIC_LAYERS_APP
+def test_serialize_layer_string_config(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Test _serialize_layer handles string configuration (JSON)."""
+    layer = MagicMock()
+    layer.uuid = uuid_lib.uuid4()
+    layer.name = "Layer"
+    layer.description = None
+    layer.type = "snowflake"
+    layer.cache_timeout = None
+    layer.configuration = '{"account": "test"}'
+    layer.changed_on_delta_humanized.return_value = "1 day ago"
+
+    mock_dao = mocker.patch("superset.semantic_layers.api.SemanticLayerDAO")
+    mock_dao.find_by_uuid.return_value = layer
+
+    response = client.get(f"/api/v1/semantic_layer/{layer.uuid}")
+
+    assert response.status_code == 200
+    assert response.json["result"]["configuration"] == {"account": "test"}
+
+
+@SEMANTIC_LAYERS_APP
+def test_serialize_layer_dict_config(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Test _serialize_layer handles dict configuration."""
+    layer = MagicMock()
+    layer.uuid = uuid_lib.uuid4()
+    layer.name = "Layer"
+    layer.description = None
+    layer.type = "snowflake"
+    layer.cache_timeout = None
+    layer.configuration = {"account": "test"}
+    layer.changed_on_delta_humanized.return_value = "1 day ago"
+
+    mock_dao = mocker.patch("superset.semantic_layers.api.SemanticLayerDAO")
+    mock_dao.find_by_uuid.return_value = layer
+
+    response = client.get(f"/api/v1/semantic_layer/{layer.uuid}")
+
+    assert response.status_code == 200
+    assert response.json["result"]["configuration"] == {"account": "test"}
+
+
+@SEMANTIC_LAYERS_APP
+def test_serialize_layer_none_config(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Test _serialize_layer handles None configuration."""
+    layer = MagicMock()
+    layer.uuid = uuid_lib.uuid4()
+    layer.name = "Layer"
+    layer.description = None
+    layer.type = "snowflake"
+    layer.cache_timeout = None
+    layer.configuration = None
+    layer.changed_on_delta_humanized.return_value = "1 day ago"
+
+    mock_dao = mocker.patch("superset.semantic_layers.api.SemanticLayerDAO")
+    mock_dao.find_by_uuid.return_value = layer
+
+    response = client.get(f"/api/v1/semantic_layer/{layer.uuid}")
+
+    assert response.status_code == 200
+    assert response.json["result"]["configuration"] == {}
+
+
+def test_infer_discriminators_injects_discriminator() -> None:
+    """Test _infer_discriminators injects discriminator values."""
+    from superset.semantic_layers.api import _infer_discriminators
+
+    schema = {
+        "$defs": {
+            "VariantA": {"required": ["disc", "field_a"]},
+        },
+        "properties": {
+            "auth": {
+                "discriminator": {
+                    "propertyName": "disc",
+                    "mapping": {"a": "#/$defs/VariantA"},
+                },
+            },
+        },
+    }
+    data = {"auth": {"field_a": "value"}}
+    result = _infer_discriminators(schema, data)
+    assert result["auth"]["disc"] == "a"
+
+
+def test_infer_discriminators_no_match() -> None:
+    """Test _infer_discriminators returns data unchanged when no match."""
+    from superset.semantic_layers.api import _infer_discriminators
+
+    schema = {
+        "$defs": {
+            "VariantA": {"required": ["disc", "field_a"]},
+        },
+        "properties": {
+            "auth": {
+                "discriminator": {
+                    "propertyName": "disc",
+                    "mapping": {"a": "#/$defs/VariantA"},
+                },
+            },
+        },
+    }
+    data = {"auth": {"other": "value"}}
+    result = _infer_discriminators(schema, data)
+    assert "disc" not in result["auth"]
+
+
+def test_infer_discriminators_skips_non_dict() -> None:
+    """Test _infer_discriminators skips non-dict values."""
+    from superset.semantic_layers.api import _infer_discriminators
+
+    schema = {
+        "$defs": {},
+        "properties": {"auth": {"discriminator": {"propertyName": "disc"}}},
+    }
+    data = {"auth": "a string"}
+    result = _infer_discriminators(schema, data)
+    assert result == data
+
+
+def test_infer_discriminators_skips_if_discriminator_present() -> None:
+    """Test _infer_discriminators skips when discriminator already set."""
+    from superset.semantic_layers.api import _infer_discriminators
+
+    schema = {
+        "$defs": {},
+        "properties": {
+            "auth": {
+                "discriminator": {
+                    "propertyName": "disc",
+                    "mapping": {"a": "#/$defs/VariantA"},
+                },
+            },
+        },
+    }
+    data = {"auth": {"disc": "a", "field_a": "value"}}
+    result = _infer_discriminators(schema, data)
+    assert result["auth"]["disc"] == "a"
+
+
+def test_infer_discriminators_no_discriminator() -> None:
+    """Test _infer_discriminators skips properties without discriminator."""
+    from superset.semantic_layers.api import _infer_discriminators
+
+    schema = {
+        "$defs": {},
+        "properties": {"auth": {"type": "object"}},
+    }
+    data = {"auth": {"key": "val"}}
+    result = _infer_discriminators(schema, data)
+    assert result == data
+
+
+def test_parse_partial_config_strict_success() -> None:
+    """Test _parse_partial_config returns config on strict validation."""
+    from superset.semantic_layers.api import _parse_partial_config
+
+    mock_cls = MagicMock()
+    mock_cls.configuration_class.model_json_schema.return_value = {
+        "properties": {},
+    }
+    validated = MagicMock()
+    mock_cls.configuration_class.model_validate.return_value = validated
+
+    result = _parse_partial_config(mock_cls, {"key": "val"})
+    assert result == validated
+
+
+def test_parse_partial_config_falls_back_to_partial() -> None:
+    """Test _parse_partial_config falls back to partial validation."""
+    from pydantic import ValidationError as PydanticValidationError
+
+    from superset.semantic_layers.api import _parse_partial_config
+
+    mock_cls = MagicMock()
+    mock_cls.configuration_class.model_json_schema.return_value = {
+        "properties": {},
+    }
+    partial_result = MagicMock()
+    mock_cls.configuration_class.model_validate.side_effect = [
+        PydanticValidationError.from_exception_data(title="test", line_errors=[]),
+        partial_result,
+    ]
+
+    result = _parse_partial_config(mock_cls, {"key": "val"})
+    assert result == partial_result
+
+
+def test_parse_partial_config_returns_none_on_failure() -> None:
+    """Test _parse_partial_config returns None when all validation fails."""
+    from pydantic import ValidationError as PydanticValidationError
+
+    from superset.semantic_layers.api import _parse_partial_config
+
+    mock_cls = MagicMock()
+    mock_cls.configuration_class.model_json_schema.return_value = {
+        "properties": {},
+    }
+    err = PydanticValidationError.from_exception_data(title="test", line_errors=[])
+    mock_cls.configuration_class.model_validate.side_effect = err
+
+    result = _parse_partial_config(mock_cls, {"key": "val"})
+    assert result is None
+
+
+@SEMANTIC_LAYERS_APP
+def test_configuration_schema_enrichment_error_fallback(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Test configuration_schema falls back when enrichment raises."""
+    mock_cls = MagicMock()
+    mock_cls.configuration_class.model_json_schema.return_value = {
+        "properties": {},
+    }
+    mock_cls.configuration_class.model_validate.return_value = MagicMock()
+    mock_cls.get_configuration_schema.side_effect = [
+        RuntimeError("connection failed"),
+        {"type": "object"},
+    ]
+
+    mocker.patch.dict(
+        "superset.semantic_layers.api.registry",
+        {"snowflake": mock_cls},
+        clear=True,
+    )
+
+    response = client.post(
+        "/api/v1/semantic_layer/schema/configuration",
+        json={"type": "snowflake", "configuration": {"account": "test"}},
+    )
+
+    assert response.status_code == 200
+    assert response.json["result"] == {"type": "object"}
+    assert mock_cls.get_configuration_schema.call_count == 2
+
+
+@SEMANTIC_LAYERS_APP
+def test_connections_list(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Test GET /connections/ returns combined database and layer list."""
+    from datetime import datetime
+
+    mock_db = MagicMock()
+    mock_db.id = 1
+    mock_db.uuid = uuid_lib.uuid4()
+    mock_db.database_name = "PostgreSQL"
+    mock_db.backend = "postgresql"
+    mock_db.allow_run_async = False
+    mock_db.allow_dml = False
+    mock_db.allow_file_upload = False
+    mock_db.expose_in_sqllab = True
+    mock_db.changed_on = datetime(2026, 1, 1)
+    mock_db.changed_on_delta_humanized.return_value = "1 month ago"
+    mock_db.changed_by = None
+
+    mock_layer = MagicMock()
+    mock_layer.uuid = uuid_lib.uuid4()
+    mock_layer.name = "My Layer"
+    mock_layer.type = "snowflake"
+    mock_layer.description = "A layer"
+    mock_layer.cache_timeout = None
+    mock_layer.changed_on = datetime(2026, 2, 1)
+    mock_layer.changed_on_delta_humanized.return_value = "1 day ago"
+    mock_layer.changed_by = None
+
+    mock_db_session = mocker.patch("superset.semantic_layers.api.db.session")
+    db_query = MagicMock()
+    db_query.all.return_value = [mock_db]
+    db_query.filter.return_value = db_query
+    sl_query = MagicMock()
+    sl_query.all.return_value = [mock_layer]
+    sl_query.filter.return_value = sl_query
+    mock_db_session.query.side_effect = [db_query, sl_query]
+
+    mock_cls = MagicMock()
+    mock_cls.name = "Snowflake"
+    mocker.patch.dict(
+        "superset.semantic_layers.api.registry",
+        {"snowflake": mock_cls},
+        clear=True,
+    )
+
+    mocker.patch(
+        "superset.semantic_layers.api.is_feature_enabled",
+        return_value=True,
+    )
+
+    response = client.get("/api/v1/semantic_layer/connections/")
+
+    assert response.status_code == 200
+    assert response.json["count"] == 2
+    result = response.json["result"]
+    assert len(result) == 2
+
+
+@SEMANTIC_LAYERS_APP
+def test_connections_database_only(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Test GET /connections/ with semantic layers disabled."""
+    from datetime import datetime
+
+    mock_db = MagicMock()
+    mock_db.id = 1
+    mock_db.uuid = uuid_lib.uuid4()
+    mock_db.database_name = "PostgreSQL"
+    mock_db.backend = "postgresql"
+    mock_db.allow_run_async = False
+    mock_db.allow_dml = False
+    mock_db.allow_file_upload = False
+    mock_db.expose_in_sqllab = True
+    mock_db.changed_on = datetime(2026, 1, 1)
+    mock_db.changed_on_delta_humanized.return_value = "1 month ago"
+    mock_db.changed_by = MagicMock()
+    mock_db.changed_by.first_name = "John"
+    mock_db.changed_by.last_name = "Doe"
+
+    mock_db_session = mocker.patch("superset.semantic_layers.api.db.session")
+    db_query = MagicMock()
+    db_query.all.return_value = [mock_db]
+    mock_db_session.query.return_value = db_query
+
+    mocker.patch(
+        "superset.semantic_layers.api.is_feature_enabled",
+        return_value=False,
+    )
+
+    response = client.get("/api/v1/semantic_layer/connections/")
+
+    assert response.status_code == 200
+    assert response.json["count"] == 1
+    result = response.json["result"][0]
+    assert result["source_type"] == "database"
+    assert result["database_name"] == "PostgreSQL"
+    assert result["changed_by"]["first_name"] == "John"
+
+
+@SEMANTIC_LAYERS_APP
+def test_connections_name_filter(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Test GET /connections/ with name filter."""
+    mock_db_session = mocker.patch("superset.semantic_layers.api.db.session")
+    db_query = MagicMock()
+    db_query.all.return_value = []
+    db_query.filter.return_value = db_query
+    sl_query = MagicMock()
+    sl_query.all.return_value = []
+    sl_query.filter.return_value = sl_query
+    mock_db_session.query.side_effect = [db_query, sl_query]
+
+    mocker.patch(
+        "superset.semantic_layers.api.is_feature_enabled",
+        return_value=True,
+    )
+
+    import prison as rison_lib
+
+    q = rison_lib.dumps(
+        {"filters": [{"col": "database_name", "opr": "ct", "value": "post"}]}
+    )
+    response = client.get(f"/api/v1/semantic_layer/connections/?q={q}")
+
+    assert response.status_code == 200
+    assert response.json["count"] == 0
+    # Verify filter was applied to both queries
+    db_query.filter.assert_called_once()
+    sl_query.filter.assert_called_once()
+
+
+@SEMANTIC_LAYERS_APP
+def test_connections_sort_by_name(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Test GET /connections/ sorts by database_name."""
+    from datetime import datetime
+
+    mock_db = MagicMock()
+    mock_db.id = 1
+    mock_db.uuid = uuid_lib.uuid4()
+    mock_db.database_name = "Zebra DB"
+    mock_db.backend = "postgresql"
+    mock_db.allow_run_async = False
+    mock_db.allow_dml = False
+    mock_db.allow_file_upload = False
+    mock_db.expose_in_sqllab = True
+    mock_db.changed_on = datetime(2026, 1, 1)
+    mock_db.changed_on_delta_humanized.return_value = "1 month ago"
+    mock_db.changed_by = None
+
+    mock_layer = MagicMock()
+    mock_layer.uuid = uuid_lib.uuid4()
+    mock_layer.name = "Alpha Layer"
+    mock_layer.type = "snowflake"
+    mock_layer.description = None
+    mock_layer.cache_timeout = None
+    mock_layer.changed_on = datetime(2026, 2, 1)
+    mock_layer.changed_on_delta_humanized.return_value = "1 day ago"
+    mock_layer.changed_by = None
+
+    mock_db_session = mocker.patch("superset.semantic_layers.api.db.session")
+    db_query = MagicMock()
+    db_query.all.return_value = [mock_db]
+    sl_query = MagicMock()
+    sl_query.all.return_value = [mock_layer]
+    mock_db_session.query.side_effect = [db_query, sl_query]
+
+    mock_cls = MagicMock()
+    mock_cls.name = "Snowflake"
+    mocker.patch.dict(
+        "superset.semantic_layers.api.registry",
+        {"snowflake": mock_cls},
+        clear=True,
+    )
+
+    mocker.patch(
+        "superset.semantic_layers.api.is_feature_enabled",
+        return_value=True,
+    )
+
+    import prison as rison_lib
+
+    q = rison_lib.dumps({"order_column": "database_name", "order_direction": "asc"})
+    response = client.get(f"/api/v1/semantic_layer/connections/?q={q}")
+
+    assert response.status_code == 200
+    result = response.json["result"]
+    assert result[0]["database_name"] == "Alpha Layer"
+    assert result[1]["database_name"] == "Zebra DB"
+
+
+@SEMANTIC_LAYERS_APP
+def test_connections_source_type_filter(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Test GET /connections/ with source_type filter."""
+    from datetime import datetime
+
+    mock_db = MagicMock()
+    mock_db.id = 1
+    mock_db.uuid = uuid_lib.uuid4()
+    mock_db.database_name = "PostgreSQL"
+    mock_db.backend = "postgresql"
+    mock_db.allow_run_async = False
+    mock_db.allow_dml = False
+    mock_db.allow_file_upload = False
+    mock_db.expose_in_sqllab = True
+    mock_db.changed_on = datetime(2026, 1, 1)
+    mock_db.changed_on_delta_humanized.return_value = "1 month ago"
+    mock_db.changed_by = None
+
+    mock_db_session = mocker.patch("superset.semantic_layers.api.db.session")
+    db_query = MagicMock()
+    db_query.all.return_value = [mock_db]
+    mock_db_session.query.return_value = db_query
+
+    mocker.patch(
+        "superset.semantic_layers.api.is_feature_enabled",
+        return_value=True,
+    )
+
+    import prison as rison_lib
+
+    q = rison_lib.dumps(
+        {"filters": [{"col": "source_type", "opr": "eq", "value": "database"}]}
+    )
+    response = client.get(f"/api/v1/semantic_layer/connections/?q={q}")
+
+    assert response.status_code == 200
+    assert response.json["count"] == 1
+    # Only one query call (for Database), not two
+    mock_db_session.query.assert_called_once()
+
+
+@SEMANTIC_LAYERS_APP
+def test_connections_source_type_semantic_layer_only(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Test GET /connections/ with source_type=semantic_layer filter."""
+    from datetime import datetime
+
+    mock_layer = MagicMock()
+    mock_layer.uuid = uuid_lib.uuid4()
+    mock_layer.name = "My Layer"
+    mock_layer.type = "snowflake"
+    mock_layer.description = None
+    mock_layer.cache_timeout = None
+    mock_layer.changed_on = datetime(2026, 1, 1)
+    mock_layer.changed_on_delta_humanized.return_value = "1 day ago"
+    mock_layer.changed_by = None
+
+    mock_db_session = mocker.patch("superset.semantic_layers.api.db.session")
+    sl_query = MagicMock()
+    sl_query.all.return_value = [mock_layer]
+    mock_db_session.query.return_value = sl_query
+
+    mock_cls = MagicMock()
+    mock_cls.name = "Snowflake"
+    mocker.patch.dict(
+        "superset.semantic_layers.api.registry",
+        {"snowflake": mock_cls},
+        clear=True,
+    )
+
+    mocker.patch(
+        "superset.semantic_layers.api.is_feature_enabled",
+        return_value=True,
+    )
+
+    import prison as rison_lib
+
+    q = rison_lib.dumps(
+        {
+            "filters": [
+                {"col": "source_type", "opr": "eq", "value": "semantic_layer"},
+                {"col": "other_col", "opr": "eq", "value": "ignored"},
+            ]
+        }
+    )
+    response = client.get(f"/api/v1/semantic_layer/connections/?q={q}")
+
+    assert response.status_code == 200
+    assert response.json["count"] == 1
+    result = response.json["result"][0]
+    assert result["source_type"] == "semantic_layer"
+    # Only one query (SemanticLayer), no Database query
+    mock_db_session.query.assert_called_once()
