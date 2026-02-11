@@ -49,9 +49,6 @@ class TaskFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         if not user_id or security_manager.is_admin():
             return query
 
-        if security_manager.is_admin():
-            return query
-
         is_subscribed = (
             select(TaskSubscriber.id)
             .where(
