@@ -25,7 +25,6 @@ from superset import is_feature_enabled, security_manager
 from superset.localization import (
     get_user_locale,
     localize_chart_names,
-    localize_native_filters,
     sanitize_translations,
     validate_translations,
 )
@@ -323,9 +322,9 @@ class DashboardGetResponseSchema(Schema):
 
                 serialized["available_locales"] = obj.get_available_locales()
 
-            # Localize native filter names in json_metadata
-            if serialized.get("json_metadata"):
-                self._localize_native_filters(serialized, locale)
+            # NOTE: Native filter names are NOT localized here.
+            # Frontend handles display localization using filter.translations.
+            # This preserves the original filter.name for editing.
 
             # Localize chart names in position_json
             if serialized.get("position_json"):
@@ -341,19 +340,6 @@ class DashboardGetResponseSchema(Schema):
         if not has_request_context():
             return False
         return parse_boolean_string(request.args.get("include_translations"))
-
-    def _localize_native_filters(self, serialized: dict[str, Any], locale: str) -> None:
-        """Localize native filter names in json_metadata."""
-        try:
-            metadata = json.loads(serialized["json_metadata"])
-        except (json.JSONDecodeError, TypeError):
-            return
-
-        if filters := metadata.get("native_filter_configuration"):
-            metadata["native_filter_configuration"] = localize_native_filters(
-                filters, locale
-            )
-            serialized["json_metadata"] = json.dumps(metadata)
 
     def _localize_chart_names(
         self, serialized: dict[str, Any], obj: Any, locale: str

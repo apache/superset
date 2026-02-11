@@ -16,12 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { isChartCustomization, useTruncation } from '@superset-ui/core';
 import { css, SupersetTheme, useTheme } from '@apache-superset/core/ui';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { useFilterConfigModal } from 'src/dashboard/components/nativeFilters/FilterBar/FilterConfigurationLink/useFilterConfigModal';
 import { RootState } from 'src/dashboard/types';
+import { getLocalizedValue } from 'src/components/TranslationEditor';
 import { Row, FilterName, InternalRow } from './Styles';
 import { FilterCardRowProps } from './types';
 import { FilterConfigurationLink } from '../FilterBar/FilterConfigurationLink';
@@ -39,6 +41,24 @@ export const NameRow = ({
 
   const canEdit = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
+  );
+
+  const userLocale = useSelector(
+    (state: { common: { locale: string } }) => state.common.locale,
+  );
+
+  // Get localized filter name for display
+  // Only native filters have translations, not chart customizations
+  const translations = 'translations' in filter ? filter.translations : undefined;
+  const localizedName = useMemo(
+    () =>
+      getLocalizedValue(
+        translations,
+        'name',
+        userLocale,
+        filter.name ?? '',
+      ),
+    [translations, filter.name, userLocale],
   );
 
   const { FilterConfigModalComponent, openFilterConfigModal } =
@@ -72,8 +92,8 @@ export const NameRow = ({
             `}
           />
         )}
-        <TooltipWithTruncation title={elementsTruncated ? filter.name : null}>
-          <FilterName ref={filterNameRef}>{filter.name}</FilterName>
+        <TooltipWithTruncation title={elementsTruncated ? localizedName : null}>
+          <FilterName ref={filterNameRef}>{localizedName}</FilterName>
         </TooltipWithTruncation>
       </InternalRow>
       {canEdit && (

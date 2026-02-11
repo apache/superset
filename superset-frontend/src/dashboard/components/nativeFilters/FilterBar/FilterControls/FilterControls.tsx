@@ -61,6 +61,7 @@ import { useChartIds } from 'src/dashboard/util/charts/useChartIds';
 import { useChartLayoutItems } from 'src/dashboard/util/useChartLayoutItems';
 import { setPendingChartCustomization } from 'src/dashboard/actions/chartCustomizationActions';
 import { getInitialDataMask } from 'src/dataMask/reducer';
+import { getLocalizedValue } from 'src/components/TranslationEditor';
 import { FiltersOutOfScopeCollapsible } from '../FiltersOutOfScopeCollapsible';
 import { CustomizationsOutOfScopeCollapsible } from '../CustomizationsOutOfScopeCollapsible';
 import { useFilterControlFactory } from '../useFilterControlFactory';
@@ -151,6 +152,9 @@ const FilterControls: FC<FilterControlsProps> = ({
   const dispatch = useDispatch();
   const filterBarOrientation = useSelector<RootState, FilterBarOrientation>(
     ({ dashboardInfo }) => dashboardInfo.filterBarOrientation,
+  );
+  const userLocale = useSelector(
+    (state: { common: { locale: string } }) => state.common.locale,
   );
 
   const { outlinedFilterId, lastUpdated } = useFilterOutlined();
@@ -589,7 +593,16 @@ const FilterControls: FC<FilterControlsProps> = ({
               : t(
                   'Applied filters: %s',
                   activeOverflowedFiltersInScope
-                    .map(filter => filter.name)
+                    .map(filter => {
+                      const translations =
+                        'translations' in filter ? filter.translations : undefined;
+                      return getLocalizedValue(
+                        translations,
+                        'name',
+                        userLocale,
+                        filter.name ?? '',
+                      );
+                    })
                     .join(', '),
                 )
           }

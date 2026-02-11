@@ -18,7 +18,7 @@
  */
 
 import type { Translations } from 'src/types/Localization';
-import { stripEmptyValues, countFieldTranslations, DEFAULT_LOCALE_KEY } from './utils';
+import { stripEmptyValues, countFieldTranslations, getLocalizedValue, DEFAULT_LOCALE_KEY } from './utils';
 
 // =============================================================================
 // DEFAULT_LOCALE_KEY
@@ -123,4 +123,51 @@ test('countFieldTranslations ignores other fields', () => {
     description: { de: 'Beschreibung', fr: 'Description' },
   };
   expect(countFieldTranslations(translations, 'dashboard_title')).toBe(1);
+});
+
+// =============================================================================
+// getLocalizedValue
+// =============================================================================
+
+test('getLocalizedValue returns exact locale match', () => {
+  const translations: Translations = {
+    name: { de: 'Name auf Deutsch', fr: 'Nom en français' },
+  };
+  expect(getLocalizedValue(translations, 'name', 'de', 'Default Name')).toBe('Name auf Deutsch');
+});
+
+test('getLocalizedValue falls back to base language', () => {
+  const translations: Translations = {
+    name: { de: 'Name auf Deutsch' },
+  };
+  expect(getLocalizedValue(translations, 'name', 'de-AT', 'Default Name')).toBe('Name auf Deutsch');
+});
+
+test('getLocalizedValue returns default when no translation exists', () => {
+  const translations: Translations = {
+    name: { de: 'Name auf Deutsch' },
+  };
+  expect(getLocalizedValue(translations, 'name', 'fr', 'Default Name')).toBe('Default Name');
+});
+
+test('getLocalizedValue returns default when translations is undefined', () => {
+  expect(getLocalizedValue(undefined, 'name', 'de', 'Default Name')).toBe('Default Name');
+});
+
+test('getLocalizedValue returns default when field does not exist', () => {
+  const translations: Translations = {
+    title: { de: 'Titel' },
+  };
+  expect(getLocalizedValue(translations, 'name', 'de', 'Default Name')).toBe('Default Name');
+});
+
+test('getLocalizedValue returns default when translations is empty', () => {
+  expect(getLocalizedValue({}, 'name', 'de', 'Default Name')).toBe('Default Name');
+});
+
+test('getLocalizedValue prefers exact match over base language', () => {
+  const translations: Translations = {
+    name: { de: 'Deutsch', 'de-AT': 'Österreichisch' },
+  };
+  expect(getLocalizedValue(translations, 'name', 'de-AT', 'Default')).toBe('Österreichisch');
 });

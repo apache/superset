@@ -23,4 +23,5 @@ export {
   DEFAULT_LOCALE_KEY,
   stripEmptyValues,
   countFieldTranslations,
+  getLocalizedValue,
 } from './utils';

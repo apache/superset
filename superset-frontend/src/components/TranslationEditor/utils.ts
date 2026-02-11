@@ -50,3 +50,33 @@ export function countFieldTranslations(
   if (!fieldMap) return 0;
   return Object.values(fieldMap).filter(Boolean).length;
 }
+
+/**
+ * Get localized value for a field with fallback chain:
+ * 1. Exact locale match (e.g., "de-DE")
+ * 2. Base language fallback (e.g., "de" from "de-DE")
+ * 3. Default value (original)
+ */
+export function getLocalizedValue(
+  translations: Translations | undefined,
+  fieldName: string,
+  locale: string,
+  defaultValue: string,
+): string {
+  if (!translations) return defaultValue;
+  const fieldMap = translations[fieldName];
+  if (!fieldMap) return defaultValue;
+
+  // Try exact locale match
+  if (fieldMap[locale]) {
+    return fieldMap[locale];
+  }
+
+  // Try base language (e.g., "de" from "de-DE")
+  const baseLang = locale.split('-')[0];
+  if (baseLang !== locale && fieldMap[baseLang]) {
+    return fieldMap[baseLang];
+  }
+
+  return defaultValue;
+}
