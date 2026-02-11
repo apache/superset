@@ -548,11 +548,9 @@ describe('FilterBar', () => {
   });
 
   test('handleClearAll dispatches updateDataMask with value [null, null] for filter_range', async () => {
-    fetchMock.post(
-      'glob:*/api/v1/chart/data',
-      { result: [{ data: [{ min: 0, max: 100 }] }] },
-      { overwriteRoutes: true },
-    );
+    fetchMock.post('glob:*/api/v1/chart/data', {
+      result: [{ data: [{ min: 0, max: 100 }] }],
+    });
     const filterId = 'NATIVE_FILTER-clear-range';
     const updateDataMaskSpy = jest.spyOn(dataMaskActions, 'updateDataMask');
     const rangeFilterConfig = {
