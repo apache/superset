@@ -135,6 +135,7 @@ module.exports = {
     'icons',
     'i18n-strings',
     'react-prefer-function-component',
+    'react-you-might-not-need-an-effect',
     'prettier',
     'react-you-might-not-need-an-effect',
   ],
@@ -235,6 +236,11 @@ module.exports = {
     'jsx-a11y/click-events-have-key-events': 0,
     'jsx-a11y/mouse-events-have-key-events': 0,
     'jsx-a11y/no-static-element-interactions': 0,
+
+    // React effect best practices
+    'react-you-might-not-need-an-effect/no-empty-effect': 'error',
+    'react-you-might-not-need-an-effect/no-pass-live-state-to-parent': 'error',
+    'react-you-might-not-need-an-effect/no-initialize-state': 'error',
 
     // Lodash
     'lodash/import-scope': [2, 'member'],

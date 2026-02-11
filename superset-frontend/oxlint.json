@@ -28,7 +28,8 @@
     // === Core ESLint rules ===
     // Error prevention
     "no-console": "warn",
-    "no-alert": "warn",
+    "no-alert": "error",
+    "constructor-super": "error",
     "no-debugger": "error",
     "no-unused-vars": "off",
     "no-undef": "error",
@@ -148,7 +149,8 @@
     ],
     "react/no-array-index-key": "off",
     "react/no-children-prop": "error",
-    "react/no-danger": "warn",
+    "react/no-danger": "error",
+    "react/forbid-foreign-prop-types": "error",
     "react/no-danger-with-children": "error",
     "react/no-deprecated": "error",
     "react/no-did-update-set-state": "error",
@@ -251,6 +253,7 @@
 
     // === Unicorn rules (bonus coverage) ===
     "unicorn/no-new-array": "error",
+    "unicorn/no-invalid-remove-event-listener": "error",
     "unicorn/filename-case": "off",
     "unicorn/prevent-abbreviations": "off",
     "unicorn/no-null": "off",
@@ -263,7 +266,19 @@
     // === Jest rules ===
     "jest/consistent-test-it": ["error", { "fn": "test" }],
     "jest/no-focused-tests": "error",
-    "jest/no-disabled-tests": "error"
+    "jest/no-disabled-tests": "error",
+    "jest/expect-expect": [
+      "error",
+      {
+        "assertFunctionNames": [
+          "expect",
+          "expect*",
+          "runTimezoneTest",
+          "compareURI",
+          "test*WithInitialValues"
+        ]
+      }
+    ]
   },
   "ignorePatterns": [
     "packages/generator-superset/**/*",
