@@ -217,13 +217,23 @@ export const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
   const metadataBar = useExploreMetadataBar(metadata, slice ?? null);
   const oldSliceName = slice?.slice_name;
 
+  // Capture initial form data for new charts
+  const [initialFormDataForNewChart] = useState(() =>
+    !slice ? { ...formData, chartTitle: oldSliceName } : null,
+  );
+
   const originalFormData = useMemo(() => {
+    // For new charts (no slice), use the captured initial formData
+    if (!slice && initialFormDataForNewChart) {
+      return initialFormDataForNewChart;
+    }
+    // For existing charts, use the saved sliceFormData if available
     if (!sliceFormData) return {};
     return {
       ...sliceFormData,
       chartTitle: oldSliceName,
     };
-  }, [sliceFormData, oldSliceName]);
+  }, [sliceFormData, oldSliceName, slice, initialFormDataForNewChart]);
 
   const currentFormData = useMemo(
     () => ({ ...formData, chartTitle: sliceName }),
