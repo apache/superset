@@ -33,7 +33,6 @@ import SaveModal, {
   createRedirectParams,
   addChartToDashboard,
 } from 'src/explore/components/SaveModal';
-import * as dashboardStateActions from 'src/dashboard/actions/dashboardState';
 import { CHART_WIDTH } from 'src/dashboard/constants';
 import { GRID_COLUMN_COUNT } from 'src/dashboard/util/constants';
 
