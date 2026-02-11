@@ -90,7 +90,7 @@ import ExploreCtasResultsButton from '../ExploreCtasResultsButton';
 import ExploreResultsButton from '../ExploreResultsButton';
 import HighlightedSql from '../HighlightedSql';
 import PanelToolbar from 'src/components/PanelToolbar';
-import { ViewContribution } from 'src/SqlLab/contributions';
+import { ViewLocations } from 'src/SqlLab/contributions';
 
 enum LimitingFactor {
   Query = 'QUERY',
@@ -298,7 +298,7 @@ const ResultSet = ({
       const force = false;
       const includeAppRoot = openInNewWindow;
       const url = mountExploreUrl(
-        null,
+        'base',
         {
           [URL_PARAMS.formDataKey.name]: key,
         },
@@ -428,7 +428,10 @@ const ResultSet = ({
           )}
           {canExportData && (
             <CopyToClipboard
-              text={prepareCopyToClipboardTabularData(data, columns)}
+              text={prepareCopyToClipboardTabularData(
+                data,
+                columns.map(c => c.column_name),
+              )}
               wrapped={false}
               copyNode={
                 <Button
@@ -463,7 +466,7 @@ const ResultSet = ({
             datasource={datasource}
           />
           <PanelToolbar
-            viewId={ViewContribution.Results}
+            viewId={ViewLocations.sqllab.results}
             defaultPrimaryActions={defaultPrimaryActions}
           />
         </ResultSetButtons>

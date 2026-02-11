@@ -49,7 +49,7 @@ const lastNames = [
   'Tzu',
 ];
 
-const users = new Array(10).fill(undefined).map((_, i) => ({
+const users = Array.from({ length: 10 }, (_, i) => ({
   first_name: firstNames[Math.floor(Math.random() * firstNames.length)],
   last_name: lastNames[Math.floor(Math.random() * lastNames.length)],
   id: i,

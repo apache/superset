@@ -33,9 +33,61 @@ const StyledToastPresenter = styled.div<VisualProps>(
     ${position === 'bottom' ? 'bottom' : 'top'}: 0px;
     right: 0px;
     margin-right: 50px;
-    margin-bottom: 50px;
+    margin-block: 50px;
     z-index: ${theme.zIndexPopupBase + 1};
     word-break: break-word;
+
+    height: calc(100vh - 100px);
+
+    display: flex;
+    flex-direction: ${position === 'bottom' ? 'column-reverse' : 'column'};
+    align-items: stretch;
+    gap: ${theme.sizeUnit * 2}px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+
+    scrollbar-color:
+      color-mix(in srgb, ${theme.colorText}, transparent 75%)
+      transparent;
+
+    &:hover,
+    &:focus-within,
+    &:active {
+      scrollbar-color:
+        color-mix(in srgb, ${theme.colorText}, transparent 60%)
+        transparent;
+    }
+
+    /* Chromium / WebKit */
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background-color: color-mix(
+        in srgb,
+        ${theme.colorText},
+        transparent 75%
+      );
+      border-radius: 6px;
+      transition: background-color 0.2s ease;
+    }
+
+    &:hover::-webkit-scrollbar-thumb,
+    &:focus-within::-webkit-scrollbar-thumb,
+    &:active::-webkit-scrollbar-thumb {
+      background-color: color-mix(
+        in srgb,
+        ${theme.colorText},
+        transparent 60%
+      );
+    }
 
     .toast {
       padding: ${theme.sizeUnit * 4}px;
@@ -44,6 +96,9 @@ const StyledToastPresenter = styled.div<VisualProps>(
       border-radius: ${theme.borderRadius}px;
       box-shadow: ${theme.boxShadow};
       color: ${theme.colorTextLightSolid};
+      display: flex;
+      align-items: flex-start;
+      max-height: 70vh;
       opacity: 0;
       position: relative;
       transform: translateY(-100%);
@@ -63,7 +118,7 @@ const StyledToastPresenter = styled.div<VisualProps>(
     }
 
     .toast > button {
-      color: ${theme.colorTextLightSolid};
+      color: ${theme.colorText};
       opacity: 1;
     }
 

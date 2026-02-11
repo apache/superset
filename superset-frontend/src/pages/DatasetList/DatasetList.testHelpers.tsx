@@ -23,6 +23,7 @@ import { Provider } from 'react-redux';
 import { MemoryRouter } from 'react-router-dom';
 import { configureStore } from '@reduxjs/toolkit';
 import { QueryParamProvider } from 'use-query-params';
+import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import DatasetList from 'src/pages/DatasetList';
 import handleResourceExport from 'src/utils/export';
 
@@ -331,10 +332,11 @@ export const API_ENDPOINTS = {
 
 // Setup API permissions mock (for permission-based testing)
 export const setupApiPermissions = (permissions: string[]) => {
+  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS_INFO] });
   fetchMock.get(
     API_ENDPOINTS.DATASETS_INFO,
     { permissions },
-    { overwriteRoutes: true },
+    { name: API_ENDPOINTS.DATASETS_INFO },
   );
 };
 
@@ -384,7 +386,7 @@ export const renderDatasetList = (
   return render(
     <Provider store={store}>
       <MemoryRouter>
-        <QueryParamProvider>
+        <QueryParamProvider adapter={ReactRouter5Adapter}>
           <DatasetList user={user} {...props} />
         </QueryParamProvider>
       </MemoryRouter>
@@ -401,37 +403,47 @@ export const waitForDatasetsPageReady = async () => {
 };
 
 // Helper functions for specific operations
+// Route names for delete operations (used to query call history)
+export const getDeleteRouteName = (datasetId: number) =>
+  `delete-dataset-${datasetId}`;
+export const getRelatedObjectsRouteName = (datasetId: number) =>
+  `related-objects-${datasetId}`;
+
 export const setupDeleteMocks = (datasetId: number) => {
+  const relatedObjectsRoute = `glob:*/api/v1/dataset/${datasetId}/related_objects*`;
+  const deleteRoute = `glob:*/api/v1/dataset/${datasetId}`;
+  const relatedObjectsName = getRelatedObjectsRouteName(datasetId);
+  const deleteName = getDeleteRouteName(datasetId);
+
+  // Remove existing routes if they exist (safe to call even if they don't)
+  fetchMock.removeRoutes({ names: [relatedObjectsName, deleteName] });
+
   fetchMock.get(
-    `glob:*/api/v1/dataset/${datasetId}/related_objects*`,
-    {
-      charts: mockRelatedCharts,
-      dashboards: mockRelatedDashboards,
-    },
-    { overwriteRoutes: true },
+    relatedObjectsRoute,
+    { charts: mockRelatedCharts, dashboards: mockRelatedDashboards },
+    { name: relatedObjectsName },
   );
 
   fetchMock.delete(
-    `glob:*/api/v1/dataset/${datasetId}`,
+    deleteRoute,
     { message: 'Dataset deleted successfully' },
-    { overwriteRoutes: true },
+    { name: deleteName },
   );
 };
 
 export const setupDuplicateMocks = () => {
-  fetchMock.post(
-    API_ENDPOINTS.DATASET_DUPLICATE,
-    { id: 999, table_name: 'Copy of Dataset' },
-    { overwriteRoutes: true },
-  );
+  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASET_DUPLICATE] });
+  fetchMock.post(API_ENDPOINTS.DATASET_DUPLICATE, {
+    id: 999,
+    table_name: 'Copy of Dataset',
+  });
 };
 
 export const setupBulkDeleteMocks = () => {
-  fetchMock.delete(
-    API_ENDPOINTS.DATASET_BULK_DELETE,
-    { message: '3 datasets deleted successfully' },
-    { overwriteRoutes: true },
-  );
+  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASET_BULK_DELETE] });
+  fetchMock.delete(API_ENDPOINTS.DATASET_BULK_DELETE, {
+    message: '3 datasets deleted successfully',
+  });
 };
 
 // Setup error mocks for negative flow testing
@@ -439,25 +451,20 @@ export const setupDeleteErrorMocks = (
   datasetId: number,
   statusCode: number,
 ) => {
-  fetchMock.get(
-    `glob:*/api/v1/dataset/${datasetId}/related_objects*`,
-    {
-      status: statusCode,
-      body: { message: 'Failed to fetch related objects' },
-    },
-    { overwriteRoutes: true },
-  );
+  const relatedObjectsRoute = `glob:*/api/v1/dataset/${datasetId}/related_objects*`;
+  fetchMock.removeRoutes({ names: [relatedObjectsRoute] });
+  fetchMock.get(relatedObjectsRoute, {
+    status: statusCode,
+    body: { message: 'Failed to fetch related objects' },
+  });
 };
 
 export const setupDuplicateErrorMocks = (statusCode: number) => {
-  fetchMock.post(
-    API_ENDPOINTS.DATASET_DUPLICATE,
-    {
-      status: statusCode,
-      body: { message: 'Failed to duplicate dataset' },
-    },
-    { overwriteRoutes: true },
-  );
+  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASET_DUPLICATE] });
+  fetchMock.post(API_ENDPOINTS.DATASET_DUPLICATE, {
+    status: statusCode,
+    body: { message: 'Failed to duplicate dataset' },
+  });
 };
 
 /**
@@ -468,11 +475,12 @@ export const setupDuplicateErrorMocks = (statusCode: number) => {
  * @throws If any unmocked endpoints were called or expected endpoints weren't called
  */
 export const assertOnlyExpectedCalls = (expectedEndpoints: string[]) => {
-  const allCalls = fetchMock.calls(true); // Get all calls including unmatched
-  const unmatchedCalls = allCalls.filter(call => call.isUnmatched);
+  const allCalls = fetchMock.callHistory.calls();
+  // In fetch-mock v12, unmatched calls won't have a route property
+  const unmatchedCalls = allCalls.filter(call => !call.route);
 
   if (unmatchedCalls.length > 0) {
-    const unmatchedUrls = unmatchedCalls.map(call => call[0]);
+    const unmatchedUrls = unmatchedCalls.map(call => call.url);
     throw new Error(
       `Unmocked endpoints called: ${unmatchedUrls.join(', ')}. ` +
         'Add explicit mocks in setupMocks() or test setup.',
@@ -481,7 +489,7 @@ export const assertOnlyExpectedCalls = (expectedEndpoints: string[]) => {
 
   // Verify expected endpoints were called
   expectedEndpoints.forEach(endpoint => {
-    const calls = fetchMock.calls(endpoint);
+    const calls = fetchMock.callHistory.calls(endpoint);
     if (calls.length === 0) {
       throw new Error(
         `Expected endpoint not called: ${endpoint}. ` +
@@ -492,48 +500,65 @@ export const assertOnlyExpectedCalls = (expectedEndpoints: string[]) => {
 };
 
 // MSW setup using fetch-mock (following ChartList pattern)
+// Routes are named using the API_ENDPOINTS constant values so they can be
+// removed by name using removeRoutes({ names: [API_ENDPOINTS.X] })
 export const setupMocks = () => {
-  fetchMock.reset();
+  fetchMock.clearHistory().removeRoutes();
 
-  fetchMock.get(API_ENDPOINTS.DATASETS_INFO, {
-    permissions: ['can_read', 'can_write', 'can_export', 'can_duplicate'],
-  });
+  fetchMock.get(
+    API_ENDPOINTS.DATASETS_INFO,
+    { permissions: ['can_read', 'can_write', 'can_export', 'can_duplicate'] },
+    { name: API_ENDPOINTS.DATASETS_INFO },
+  );
 
-  fetchMock.get(API_ENDPOINTS.DATASETS, {
-    result: mockDatasets,
-    count: mockDatasets.length,
-  });
+  fetchMock.get(
+    API_ENDPOINTS.DATASETS,
+    { result: mockDatasets, count: mockDatasets.length },
+    { name: API_ENDPOINTS.DATASETS },
+  );
 
-  fetchMock.get(API_ENDPOINTS.DATASET_FAVORITE_STATUS, {
-    result: [],
-  });
+  fetchMock.get(
+    API_ENDPOINTS.DATASET_FAVORITE_STATUS,
+    { result: [] },
+    { name: API_ENDPOINTS.DATASET_FAVORITE_STATUS },
+  );
 
-  fetchMock.get(API_ENDPOINTS.DATASET_RELATED_DATABASE, {
-    result: [
-      { value: 1, text: 'PostgreSQL' },
-      { value: 2, text: 'MySQL' },
-      { value: 3, text: 'Redshift' },
-    ],
-    count: 3,
-  });
+  fetchMock.get(
+    API_ENDPOINTS.DATASET_RELATED_DATABASE,
+    {
+      result: [
+        { value: 1, text: 'PostgreSQL' },
+        { value: 2, text: 'MySQL' },
+        { value: 3, text: 'Redshift' },
+      ],
+      count: 3,
+    },
+    { name: API_ENDPOINTS.DATASET_RELATED_DATABASE },
+  );
 
-  fetchMock.get(API_ENDPOINTS.DATASET_RELATED_SCHEMA, {
-    result: [
-      { value: 'public', text: 'public' },
-      { value: 'analytics', text: 'analytics' },
-      { value: 'metrics', text: 'metrics' },
-      { value: 'reports', text: 'reports' },
-    ],
-    count: 4,
-  });
+  fetchMock.get(
+    API_ENDPOINTS.DATASET_RELATED_SCHEMA,
+    {
+      result: [
+        { value: 'public', text: 'public' },
+        { value: 'analytics', text: 'analytics' },
+        { value: 'metrics', text: 'metrics' },
+        { value: 'reports', text: 'reports' },
+      ],
+      count: 4,
+    },
+    { name: API_ENDPOINTS.DATASET_RELATED_SCHEMA },
+  );
 
-  fetchMock.get(API_ENDPOINTS.DATASET_RELATED_OWNERS, {
-    result: [],
-    count: 0,
-  });
+  fetchMock.get(
+    API_ENDPOINTS.DATASET_RELATED_OWNERS,
+    { result: [], count: 0 },
+    { name: API_ENDPOINTS.DATASET_RELATED_OWNERS },
+  );
 
-  fetchMock.get(API_ENDPOINTS.DATASET_RELATED_CHANGED_BY, {
-    result: [],
-    count: 0,
-  });
+  fetchMock.get(
+    API_ENDPOINTS.DATASET_RELATED_CHANGED_BY,
+    { result: [], count: 0 },
+    { name: API_ENDPOINTS.DATASET_RELATED_CHANGED_BY },
+  );
 };

@@ -9,9 +9,13 @@ updates:
 
   - package-ecosystem: "npm"
     ignore:
-      # not until React >= 18.0.0
+      # TODO: remove below entries until React >= 18.0.0
       - dependency-name: "storybook"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
       - dependency-name: "@storybook*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "eslint-plugin-storybook"
+      - dependency-name: "react-error-boundary"
       # remark-gfm v4+ requires react-markdown v9+, which needs React 18
       - dependency-name: "remark-gfm"
       - dependency-name: "react-markdown"
@@ -23,6 +27,14 @@ updates:
       # See https://github.com/apache/superset/pull/37384#issuecomment-3793991389
       # TODO: remove the plugin once Lodash usage has been migrated to a more readily tree-shakeable alternative
       - dependency-name: "@swc/plugin-transform-imports"
+    groups:
+      storybook:
+        applies-to: version-updates
+        patterns:
+          - "@storybook*"
+          - "storybook"
+        update-types:
+          - "patch"
     directory: "/superset-frontend/"
     schedule:
       interval: "daily"
@@ -345,6 +357,7 @@ updates:
       # not until React >= 18.0.0
       - dependency-name: "react-markdown"
       - dependency-name: "remark-gfm"
+      - dependency-name: "react-error-boundary"
     schedule:
       interval: "daily"
     labels:
@@ -355,6 +368,17 @@ updates:
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/packages/superset-ui-demo/"
+    ignore:
+      # TODO: remove below entries until React >= 18.0.0
+      - dependency-name: "@storybook*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+    groups:
+      storybook:
+        applies-to: version-updates
+        patterns:
+          - "@storybook*"
+        update-types:
+          - "patch"
     schedule:
       interval: "daily"
     labels:

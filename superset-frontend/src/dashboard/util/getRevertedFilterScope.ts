@@ -16,12 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-interface FilterScopeMap {
+interface CheckedByFilterField {
   [key: string]: number[];
 }
 
+interface FilterScopeMapItem {
+  checked?: (string | number)[];
+  expanded?: string[];
+  nodes?: unknown[];
+  nodesFiltered?: unknown[];
+}
+
+interface FilterScopeMap {
+  [key: string]: FilterScopeMapItem;
+}
+
+interface RevertedFilterScopeMap {
+  [key: string]: FilterScopeMapItem;
+}
+
 interface GetRevertFilterScopeProps {
-  checked: string[];
+  checked: (string | number)[];
   filterFields: string[];
   filterScopeMap: FilterScopeMap;
 }
@@ -30,10 +45,10 @@ export default function getRevertedFilterScope({
   checked = [],
   filterFields = [],
   filterScopeMap = {},
-}: GetRevertFilterScopeProps) {
-  const checkedChartIdsByFilterField = checked.reduce<FilterScopeMap>(
+}: GetRevertFilterScopeProps): RevertedFilterScopeMap {
+  const checkedChartIdsByFilterField = checked.reduce<CheckedByFilterField>(
     (map, value) => {
-      const [chartId, filterField] = value.split(':');
+      const [chartId, filterField] = String(value).split(':');
       return {
         ...map,
         [filterField]: (map[filterField] || []).concat(parseInt(chartId, 10)),
@@ -42,7 +57,7 @@ export default function getRevertedFilterScope({
     {},
   );
 
-  return filterFields.reduce<FilterScopeMap>(
+  return filterFields.reduce<RevertedFilterScopeMap>(
     (map, filterField) => ({
       ...map,
       [filterField]: {

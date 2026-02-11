@@ -47,5 +47,5 @@ This is a list of statements that describe how we do frontend development in Sup
   - We do not debate code formatting style in PRs, instead relying on automated tooling to enforce it.
   - If there's not a linting rule, we don't have a rule!
   - See: [Linting How-Tos](../contributing/howtos#typescript--javascript)
-- We use [React Storybook](https://storybook.js.org/) and [Applitools](https://applitools.com/) to help preview/test and stabilize our components
+- We use [React Storybook](https://storybook.js.org/) to help preview/test and stabilize our components
   - A public Storybook with components from the `master` branch is available [here](https://apache-superset.github.io/superset-ui/?path=/story/*)

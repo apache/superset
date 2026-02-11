@@ -27,13 +27,13 @@ import {
 } from 'spec/helpers/testing-library';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
-import SavedQueryList from '.';
 import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
+import SavedQueryList from '.';
 
 // Increase default timeout
 jest.setTimeout(30000);
 
-const mockQueries = new Array(3).fill(undefined).map((_, i) => ({
+const mockQueries = Array.from({ length: 3 }, (_, i) => ({
   created_by: { id: i, first_name: 'user', last_name: `${i}` },
   created_on: `${i}-2020`,
   database: { database_name: `db ${i}`, id: i },

@@ -93,7 +93,7 @@ const chartProps = new ChartProps({
 });
 
 describe('Radar transformProps', () => {
-  it('should transform chart props for normalized radar chart & normalize all metrics except the ones with custom min & max', () => {
+  test('should transform chart props for normalized radar chart & normalize all metrics except the ones with custom min & max', () => {
     const transformedProps = transformProps(
       chartProps as EchartsRadarChartProps,
     );
@@ -166,7 +166,7 @@ describe('legend sorting', () => {
       queriesData: legendSortData,
     });
 
-  it('preserves original data order when no sort specified', () => {
+  test('preserves original data order when no sort specified', () => {
     const props = createChartProps({ legendSort: null });
     const result = transformProps(props as EchartsRadarChartProps);
 
@@ -178,7 +178,7 @@ describe('legend sorting', () => {
     ]);
   });
 
-  it('sorts alphabetically ascending when legendSort is "asc"', () => {
+  test('sorts alphabetically ascending when legendSort is "asc"', () => {
     const props = createChartProps({ legendSort: 'asc' });
     const result = transformProps(props as EchartsRadarChartProps);
 
@@ -190,7 +190,7 @@ describe('legend sorting', () => {
     ]);
   });
 
-  it('sorts alphabetically descending when legendSort is "desc"', () => {
+  test('sorts alphabetically descending when legendSort is "desc"', () => {
     const props = createChartProps({ legendSort: 'desc' });
     const result = transformProps(props as EchartsRadarChartProps);
 

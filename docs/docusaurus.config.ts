@@ -23,6 +23,7 @@ import type * as OpenApiPlugin from 'docusaurus-plugin-openapi-docs';
 import { themes } from 'prism-react-renderer';
 import remarkImportPartial from 'remark-import-partial';
 import remarkLocalizeBadges from './plugins/remark-localize-badges.mjs';
+import remarkTechArticleSchema from './plugins/remark-tech-article-schema.mjs';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -46,7 +47,7 @@ if (!versionsConfig.components.disabled) {
       sidebarPath: require.resolve('./sidebarComponents.js'),
       editUrl:
         'https://github.com/apache/superset/edit/master/docs/components',
-      remarkPlugins: [remarkImportPartial, remarkLocalizeBadges],
+      remarkPlugins: [remarkImportPartial, remarkLocalizeBadges, remarkTechArticleSchema],
       admonitions: {
         keywords: ['note', 'tip', 'info', 'warning', 'danger', 'resources'],
         extendDefaults: true,
@@ -74,7 +75,7 @@ if (!versionsConfig.developer_portal.disabled) {
       sidebarPath: require.resolve('./sidebarTutorials.js'),
       editUrl:
         'https://github.com/apache/superset/edit/master/docs/developer_portal',
-      remarkPlugins: [remarkImportPartial, remarkLocalizeBadges],
+      remarkPlugins: [remarkImportPartial, remarkLocalizeBadges, remarkTechArticleSchema],
       admonitions: {
         keywords: ['note', 'tip', 'info', 'warning', 'danger', 'resources'],
         extendDefaults: true,
@@ -171,13 +172,92 @@ const config: Config = {
   url: 'https://superset.apache.org',
   baseUrl: '/',
   onBrokenLinks: 'warn',
-  onBrokenMarkdownLinks: 'throw',
   markdown: {
     mermaid: true,
+    hooks: {
+      onBrokenMarkdownLinks: 'throw',
+    },
   },
   favicon: '/img/favicon.ico',
   organizationName: 'apache',
   projectName: 'superset',
+
+  // SEO: Structured data (Organization, Software, WebSite with SearchAction)
+  headTags: [
+    // SoftwareApplication schema
+    {
+      tagName: 'script',
+      attributes: {
+        type: 'application/ld+json',
+      },
+      innerHTML: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'SoftwareApplication',
+        name: 'Apache Superset',
+        applicationCategory: 'BusinessApplication',
+        operatingSystem: 'Cross-platform',
+        description: 'Apache Superset is a modern, enterprise-ready business intelligence web application for data exploration and visualization.',
+        url: 'https://superset.apache.org',
+        license: 'https://www.apache.org/licenses/LICENSE-2.0',
+        author: {
+          '@type': 'Organization',
+          name: 'Apache Software Foundation',
+          url: 'https://www.apache.org/',
+          logo: 'https://www.apache.org/foundation/press/kit/asf_logo.png',
+        },
+        offers: {
+          '@type': 'Offer',
+          price: '0',
+          priceCurrency: 'USD',
+        },
+        featureList: [
+          'Interactive dashboards',
+          'SQL IDE',
+          '40+ visualization types',
+          'Semantic layer',
+          'Role-based access control',
+          'REST API',
+        ],
+      }),
+    },
+    // WebSite schema with SearchAction (enables sitelinks search box in Google)
+    {
+      tagName: 'script',
+      attributes: {
+        type: 'application/ld+json',
+      },
+      innerHTML: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'WebSite',
+        name: 'Apache Superset',
+        url: 'https://superset.apache.org',
+        potentialAction: {
+          '@type': 'SearchAction',
+          target: {
+            '@type': 'EntryPoint',
+            urlTemplate: 'https://superset.apache.org/search?q={search_term_string}',
+          },
+          'query-input': 'required name=search_term_string',
+        },
+      }),
+    },
+    // Preconnect hints for faster external resource loading
+    {
+      tagName: 'link',
+      attributes: {
+        rel: 'preconnect',
+        href: 'https://WR5FASX5ED-dsn.algolia.net',
+        crossorigin: 'anonymous',
+      },
+    },
+    {
+      tagName: 'link',
+      attributes: {
+        rel: 'preconnect',
+        href: 'https://analytics.apache.org',
+      },
+    },
+  ],
   themes: [
     '@saucelabs/theme-github-codeblock',
     '@docusaurus/theme-mermaid',
@@ -186,14 +266,6 @@ const config: Config = {
   ],
   plugins: [
     require.resolve('./src/webpack.extend.ts'),
-    [
-      'docusaurus-plugin-less',
-      {
-        lessOptions: {
-          javascriptEnabled: true,
-        },
-      },
-    ],
     ...dynamicPlugins,
     [
       'docusaurus-plugin-openapi-docs',
@@ -216,6 +288,19 @@ const config: Config = {
             showExtensions: true,
           } satisfies OpenApiPlugin.Options,
         },
+      },
+    ],
+    // SEO: Generate robots.txt during build
+    [
+      require.resolve('./plugins/robots-txt-plugin.js'),
+      {
+        policies: [
+          {
+            userAgent: '*',
+            allow: '/',
+            disallow: ['/api/v1/', '/_next/', '/static/js/*.map'],
+          },
+        ],
       },
     ],
     [
@@ -379,7 +464,7 @@ const config: Config = {
             }
             return `https://github.com/apache/superset/edit/master/docs/${versionDocsDirPath}/${docPath}`;
           },
-          remarkPlugins: [remarkImportPartial, remarkLocalizeBadges],
+          remarkPlugins: [remarkImportPartial, remarkLocalizeBadges, remarkTechArticleSchema],
           admonitions: {
             keywords: ['note', 'tip', 'info', 'warning', 'danger', 'resources'],
             extendDefaults: true,
@@ -402,11 +487,57 @@ const config: Config = {
         theme: {
           customCss: require.resolve('./src/styles/custom.css'),
         },
+        // SEO: Sitemap configuration with priorities
+        sitemap: {
+          lastmod: 'date',
+          changefreq: 'weekly',
+          priority: 0.5,
+          ignorePatterns: ['/tags/**'],
+          filename: 'sitemap.xml',
+          createSitemapItems: async (params) => {
+            const { defaultCreateSitemapItems, ...rest } = params;
+            const items = await defaultCreateSitemapItems(rest);
+            return items.map((item) => {
+              // Boost priority for key pages
+              if (item.url.includes('/docs/intro')) {
+                return { ...item, priority: 1.0, changefreq: 'daily' };
+              }
+              if (item.url.includes('/docs/quickstart')) {
+                return { ...item, priority: 0.9, changefreq: 'weekly' };
+              }
+              if (item.url.includes('/docs/installation/')) {
+                return { ...item, priority: 0.8, changefreq: 'weekly' };
+              }
+              if (item.url.includes('/docs/databases')) {
+                return { ...item, priority: 0.8, changefreq: 'weekly' };
+              }
+              if (item.url.includes('/docs/faq')) {
+                return { ...item, priority: 0.7, changefreq: 'monthly' };
+              }
+              if (item.url === 'https://superset.apache.org/') {
+                return { ...item, priority: 1.0, changefreq: 'daily' };
+              }
+              return item;
+            });
+          },
+        },
       } satisfies Options,
     ],
   ],
 
   themeConfig: {
+    // SEO: OpenGraph and Twitter meta tags
+    metadata: [
+      { name: 'keywords', content: 'data visualization, business intelligence, BI, dashboards, SQL, analytics, open source, Apache, charts, reporting' },
+      { property: 'og:type', content: 'website' },
+      { property: 'og:site_name', content: 'Apache Superset' },
+      { property: 'og:image', content: 'https://superset.apache.org/img/superset-og-image.png' },
+      { property: 'og:image:width', content: '1200' },
+      { property: 'og:image:height', content: '630' },
+      { name: 'twitter:card', content: 'summary_large_image' },
+      { name: 'twitter:image', content: 'https://superset.apache.org/img/superset-og-image.png' },
+      { name: 'twitter:site', content: '@ApacheSuperset' },
+    ],
     colorMode: {
       defaultMode: 'dark',
       disableSwitch: false,
@@ -505,7 +636,6 @@ const config: Config = {
       copyright: `
           <div class="footer__ci-services">
             <span>CI powered by</span>
-            <a href="https://applitools.com/" target="_blank" rel="nofollow noopener noreferrer"><img src="/img/applitools.png" alt="Applitools" title="Applitools - Visual Testing" /></a>
             <a href="https://www.netlify.com/" target="_blank" rel="nofollow noopener noreferrer"><img src="/img/netlify.png" alt="Netlify" title="Netlify - Deploy Previews" /></a>
           </div>
           <p>Copyright © ${new Date().getFullYear()},

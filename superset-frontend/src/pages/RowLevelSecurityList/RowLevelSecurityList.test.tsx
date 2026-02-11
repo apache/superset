@@ -20,9 +20,9 @@ import fetchMock from 'fetch-mock';
 import { act, render, screen, within } from 'spec/helpers/testing-library';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
+import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import userEvent from '@testing-library/user-event';
 import RowLevelSecurityList from '.';
-import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 
 const ruleListEndpoint = 'glob:*/api/v1/rowlevelsecurity/?*';
 const ruleInfoEndpoint = 'glob:*/api/v1/rowlevelsecurity/_info*';

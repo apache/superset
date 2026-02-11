@@ -38,12 +38,14 @@ Extensions can add new views or panels to the host application, such as custom S
 "frontend": {
   "contributions": {
     "views": {
-      "sqllab.panels": [
-        {
-          "id": "my_extension.main",
-          "name": "My Panel Name"
-        }
-      ]
+      "sqllab": {
+        "panels": [
+          {
+            "id": "my_extension.main",
+            "name": "My Panel Name"
+          }
+        ]
+      }
     }
   }
 }
@@ -76,25 +78,27 @@ Extensions can contribute new menu items or context menus to the host applicatio
 "frontend": {
   "contributions": {
     "menus": {
-      "sqllab.editor": {
-        "primary": [
-          {
-            "view": "builtin.editor",
-            "command": "my_extension.copy_query"
-          }
-        ],
-        "secondary": [
-          {
-            "view": "builtin.editor",
-            "command": "my_extension.prettify"
-          }
-        ],
-        "context": [
-          {
-            "view": "builtin.editor",
-            "command": "my_extension.clear"
-          }
-        ]
+      "sqllab": {
+        "editor": {
+          "primary": [
+            {
+              "view": "builtin.editor",
+              "command": "my_extension.copy_query"
+            }
+          ],
+          "secondary": [
+            {
+              "view": "builtin.editor",
+              "command": "my_extension.prettify"
+            }
+          ],
+          "context": [
+            {
+              "view": "builtin.editor",
+              "command": "my_extension.clear"
+            }
+          ]
+        }
       }
     }
   }

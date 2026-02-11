@@ -50,7 +50,7 @@ const { location } = window;
 const postDashboardPermalinkMockUrl = `http://localhost/api/v1/dashboard/${DASHBOARD_ID}/permalink`;
 
 beforeAll((): void => {
-  // @ts-ignore
+  // @ts-expect-error
   delete window.location;
   fetchMock.post(
     postDashboardPermalinkMockUrl,
@@ -67,7 +67,6 @@ beforeEach(() => {
 });
 
 afterAll((): void => {
-  // @ts-ignore
   window.location = location;
 });
 

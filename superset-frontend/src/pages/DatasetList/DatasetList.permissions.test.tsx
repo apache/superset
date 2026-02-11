@@ -35,6 +35,7 @@ import {
 jest.setTimeout(30000);
 
 beforeEach(() => {
+  jest.useRealTimers();
   setupMocks();
   jest.clearAllMocks();
 });
@@ -51,8 +52,8 @@ afterEach(async () => {
   // Reset browser history to prevent query param leakage
   window.history.replaceState({}, '', '/');
 
-  fetchMock.resetHistory();
-  fetchMock.restore();
+  fetchMock.clearHistory();
+  fetchMock.removeRoutes();
   jest.restoreAllMocks();
 });
 
@@ -237,11 +238,8 @@ test('action buttons respect user permissions', async () => {
 
   const dataset = mockDatasets[0];
 
-  fetchMock.get(
-    API_ENDPOINTS.DATASETS,
-    { result: [dataset], count: 1 },
-    { overwriteRoutes: true },
-  );
+  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
+  fetchMock.get(API_ENDPOINTS.DATASETS, { result: [dataset], count: 1 });
 
   renderDatasetList(mockAdminUser);
 
@@ -267,11 +265,8 @@ test('read-only user sees no delete or duplicate buttons in row', async () => {
 
   const dataset = mockDatasets[0];
 
-  fetchMock.get(
-    API_ENDPOINTS.DATASETS,
-    { result: [dataset], count: 1 },
-    { overwriteRoutes: true },
-  );
+  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
+  fetchMock.get(API_ENDPOINTS.DATASETS, { result: [dataset], count: 1 });
 
   renderDatasetList(mockReadOnlyUser);
 
@@ -306,11 +301,8 @@ test('write user sees edit, delete, and export actions', async () => {
     owners: [{ id: mockWriteUser.userId, username: 'writeuser' }],
   };
 
-  fetchMock.get(
-    API_ENDPOINTS.DATASETS,
-    { result: [dataset], count: 1 },
-    { overwriteRoutes: true },
-  );
+  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
+  fetchMock.get(API_ENDPOINTS.DATASETS, { result: [dataset], count: 1 });
 
   renderDatasetList(mockWriteUser);
 
@@ -345,11 +337,8 @@ test('export-only user has no Actions column (no write/duplicate permissions)', 
 
   const dataset = mockDatasets[0];
 
-  fetchMock.get(
-    API_ENDPOINTS.DATASETS,
-    { result: [dataset], count: 1 },
-    { overwriteRoutes: true },
-  );
+  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
+  fetchMock.get(API_ENDPOINTS.DATASETS, { result: [dataset], count: 1 });
 
   renderDatasetList(mockExportOnlyUser);
 
@@ -382,11 +371,11 @@ test('user with can_duplicate sees duplicate button only for virtual datasets', 
   const physicalDataset = mockDatasets[0]; // kind: 'physical'
   const virtualDataset = mockDatasets[1]; // kind: 'virtual'
 
-  fetchMock.get(
-    API_ENDPOINTS.DATASETS,
-    { result: [physicalDataset, virtualDataset], count: 2 },
-    { overwriteRoutes: true },
-  );
+  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
+  fetchMock.get(API_ENDPOINTS.DATASETS, {
+    result: [physicalDataset, virtualDataset],
+    count: 2,
+  });
 
   renderDatasetList(mockAdminUser);
 

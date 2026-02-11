@@ -27,6 +27,24 @@ import {
 } from 'spec/helpers/testing-library';
 import { useResultsTableView } from './useResultsTableView';
 
+const capturedProps: any[] = [];
+
+jest.mock(
+  'src/explore/components/DataTablesPane/components/SingleQueryResultPane',
+  () => {
+    const actual = jest.requireActual(
+      'src/explore/components/DataTablesPane/components/SingleQueryResultPane',
+    );
+    return {
+      ...actual,
+      SingleQueryResultPane: (props: any) => {
+        capturedProps.push(props);
+        return actual.SingleQueryResultPane(props);
+      },
+    };
+  },
+);
+
 const MOCK_CHART_DATA_RESULT = [
   {
     colnames: ['name', 'sum__num'],
@@ -110,4 +128,34 @@ test('Displays results for 2 queries', async () => {
   expect(
     within(getActiveTabElement()).getAllByTestId('table-row'),
   ).toHaveLength(2);
+});
+
+test('passes isPaginationSticky={false} to SingleQueryResultPane for single query', () => {
+  capturedProps.length = 0;
+  const { result } = renderHook(() =>
+    useResultsTableView(MOCK_CHART_DATA_RESULT.slice(0, 1), '1__table', true),
+  );
+  render(result.current, { useRedux: true });
+
+  expect(capturedProps.length).toBeGreaterThan(0);
+  capturedProps.forEach(props => {
+    expect(props).toMatchObject({
+      isPaginationSticky: false,
+    });
+  });
+});
+
+test('passes isPaginationSticky={false} to SingleQueryResultPane for multiple queries', () => {
+  capturedProps.length = 0;
+  const { result } = renderHook(() =>
+    useResultsTableView(MOCK_CHART_DATA_RESULT, '1__table', true),
+  );
+  render(result.current, { useRedux: true });
+
+  expect(capturedProps.length).toBeGreaterThanOrEqual(2);
+  capturedProps.forEach(props => {
+    expect(props).toMatchObject({
+      isPaginationSticky: false,
+    });
+  });
 });
