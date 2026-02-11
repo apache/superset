@@ -146,7 +146,7 @@ def test_validate_session_guest_user_creates_valid_token(async_query_manager):
     async_query_manager._jwt_cookie_samesite = "Lax"
 
     app = Flask(__name__)
-    app.secret_key = "test"
+    app.secret_key = "test_secret_key_for_testing"  # noqa: S105
     async_query_manager.register_request_handlers(app)
 
     @app.route("/test")
