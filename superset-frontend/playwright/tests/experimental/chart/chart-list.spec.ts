@@ -134,10 +134,7 @@ test('should edit chart name via properties modal', async ({
   await propertiesModal.fillName(newName);
 
   // Set up response intercept for save
-  const saveResponsePromise = waitForPut(
-    page,
-    `${ENDPOINTS.CHART}${chartId}`,
-  );
+  const saveResponsePromise = waitForPut(page, `${ENDPOINTS.CHART}${chartId}`);
 
   // Click Save button
   await propertiesModal.clickSave();

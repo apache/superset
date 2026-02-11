@@ -39,9 +39,7 @@ export class ChartPropertiesModal extends Modal {
    * @param name - The new chart name
    */
   async fillName(name: string): Promise<void> {
-    const input = this.body.locator(
-      ChartPropertiesModal.SELECTORS.NAME_INPUT,
-    );
+    const input = this.body.locator(ChartPropertiesModal.SELECTORS.NAME_INPUT);
     await input.fill(name);
   }
 
