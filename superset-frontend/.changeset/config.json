@@ -1,15 +1,10 @@
 {
   "$schema": "https://unpkg.com/@changesets/config@3.1.1/schema.json",
-  "changelog": [
-    "@changesets/changelog-github",
-    { "repo": "apache/superset" }
-  ],
+  "changelog": ["@changesets/changelog-github", { "repo": "apache/superset" }],
   "commit": false,
   "gitTag": false,
   "fixed": [],
-  "linked": [
-    ["@superset-ui/*", "@apache-superset/*"]
-  ],
+  "linked": [["@superset-ui/*", "@apache-superset/*"]],
   "access": "public",
   "baseBranch": "master",
   "updateInternalDependencies": "patch",
