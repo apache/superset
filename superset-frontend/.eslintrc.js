@@ -16,6 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+// Register TypeScript require hook so ESLint can load .ts plugin files
+require('tsx/cjs');
+
 const packageConfig = require('./package.json');
 
 const importCoreModules = [];
@@ -146,7 +150,7 @@ module.exports = {
     // Custom Superset rules
     'theme-colors/no-literal-colors': 'error',
     'icons/no-fa-icons-usage': 'error',
-    'i18n-strings/no-template-vars': ['error', true],
+    'i18n-strings/no-template-vars': 'error',
 
     // Core ESLint overrides for Superset
     'no-console': 'warn',
@@ -193,7 +197,7 @@ module.exports = {
           '**/jest.setup.js',
           '**/webpack.config.js',
           '**/webpack.config.*.js',
-          '**/.eslintrc.js',
+          '**/.eslintrc*.js',
         ],
         optionalDependencies: false,
       },

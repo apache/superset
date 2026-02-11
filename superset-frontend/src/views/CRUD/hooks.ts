@@ -17,7 +17,7 @@
  * under the License.
  */
 import rison from 'rison';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { t } from '@apache-superset/core';
 import {
   makeApi,
@@ -91,13 +91,21 @@ export function useListViewResource<D extends object = any>(
     bulkSelectEnabled: false,
   });
 
-  function updateState(update: Partial<ListViewResourceState<D>>) {
-    setState(currentState => ({ ...currentState, ...update }));
-  }
+  const updateState = useCallback(
+    (update: Partial<ListViewResourceState<D>>) => {
+      setState(currentState => ({ ...currentState, ...update }));
+    },
+    [],
+  );
 
   function toggleBulkSelect() {
     updateState({ bulkSelectEnabled: !state.bulkSelectEnabled });
   }
+
+  const handleErrorMsgRef = useRef(handleErrorMsg);
+  useEffect(() => {
+    handleErrorMsgRef.current = handleErrorMsg;
+  });
 
   useEffect(() => {
     if (!infoEnable) return;
@@ -112,7 +120,7 @@ export function useListViewResource<D extends object = any>(
         });
       },
       createErrorHandler(errMsg =>
-        handleErrorMsg(
+        handleErrorMsgRef.current(
           t(
             'An error occurred while fetching %s info: %s',
             resourceLabel,
@@ -121,15 +129,20 @@ export function useListViewResource<D extends object = any>(
         ),
       ),
     );
-  }, []);
+  }, [infoEnable, resource, resourceLabel, updateState]);
 
-  function hasPerm(perm: string) {
-    if (!state.permissions.length) {
-      return false;
-    }
+  const hasPerm = useCallback(
+    (perm: string) => {
+      if (!state.permissions.length) {
+        return false;
+      }
 
-    return Boolean(state.permissions.find(p => p === perm));
-  }
+      return Boolean(state.permissions.find(p => p === perm));
+    },
+    [state.permissions],
+  );
+
+  const lastFetchDataConfigRef = useRef<FetchDataConfig | null>(null);
 
   const fetchData = useCallback(
     ({
@@ -138,14 +151,16 @@ export function useListViewResource<D extends object = any>(
       sortBy,
       filters: filterValues,
     }: FetchDataConfig) => {
+      const config: FetchDataConfig = {
+        filters: filterValues,
+        pageIndex,
+        pageSize,
+        sortBy,
+      };
+      lastFetchDataConfigRef.current = config;
       // set loading state, cache the last config for refreshing data.
       updateState({
-        lastFetchDataConfig: {
-          filters: filterValues,
-          pageIndex,
-          pageSize,
-          sortBy,
-        },
+        lastFetchDataConfig: config,
         loading: true,
       });
       const filterExps = (baseFilters || [])
@@ -196,7 +211,27 @@ export function useListViewResource<D extends object = any>(
           updateState({ loading: false });
         });
     },
-    [baseFilters],
+    [
+      baseFilters,
+      handleErrorMsg,
+      resource,
+      resourceLabel,
+      selectColumns,
+      updateState,
+    ],
+  );
+
+  const refreshData = useCallback(
+    (provideConfig?: FetchDataConfig) => {
+      if (lastFetchDataConfigRef.current) {
+        return fetchData(lastFetchDataConfigRef.current);
+      }
+      if (provideConfig) {
+        return fetchData(provideConfig);
+      }
+      return null;
+    },
+    [fetchData],
   );
 
   return {
@@ -214,15 +249,7 @@ export function useListViewResource<D extends object = any>(
     hasPerm,
     fetchData,
     toggleBulkSelect,
-    refreshData: (provideConfig?: FetchDataConfig) => {
-      if (state.lastFetchDataConfig) {
-        return fetchData(state.lastFetchDataConfig);
-      }
-      if (provideConfig) {
-        return fetchData(provideConfig);
-      }
-      return null;
-    },
+    refreshData,
   };
 }
 
@@ -237,7 +264,7 @@ export function useSingleViewResource<D extends object = any>(
   resourceName: string,
   resourceLabel: string, // resourceLabel for translations
   handleErrorMsg: (errorMsg: string) => void,
-  path_suffix = '',
+  pathSuffix = '',
 ) {
   const [state, setState] = useState<SingleViewResourceState<D>>({
     loading: false,
@@ -245,9 +272,12 @@ export function useSingleViewResource<D extends object = any>(
     error: null,
   });
 
-  function updateState(update: Partial<SingleViewResourceState<D>>) {
-    setState(currentState => ({ ...currentState, ...update }));
-  }
+  const updateState = useCallback(
+    (update: Partial<SingleViewResourceState<D>>) => {
+      setState(currentState => ({ ...currentState, ...update }));
+    },
+    [],
+  );
 
   const fetchResource = useCallback(
     (resourceID: number) => {
@@ -258,7 +288,7 @@ export function useSingleViewResource<D extends object = any>(
 
       const baseEndpoint = `/api/v1/${resourceName}/${resourceID}`;
       const endpoint =
-        path_suffix !== '' ? `${baseEndpoint}/${path_suffix}` : baseEndpoint;
+        pathSuffix !== '' ? `${baseEndpoint}/${pathSuffix}` : baseEndpoint;
       return SupersetClient.get({
         endpoint,
       })
@@ -288,7 +318,7 @@ export function useSingleViewResource<D extends object = any>(
           updateState({ loading: false });
         });
     },
-    [handleErrorMsg, resourceName, resourceLabel],
+    [handleErrorMsg, pathSuffix, resourceName, resourceLabel, updateState],
   );
 
   const createResource = useCallback(
@@ -332,7 +362,7 @@ export function useSingleViewResource<D extends object = any>(
           updateState({ loading: false });
         });
     },
-    [handleErrorMsg, resourceName, resourceLabel],
+    [handleErrorMsg, resourceName, resourceLabel, updateState],
   );
 
   const updateResource = useCallback(
@@ -381,7 +411,7 @@ export function useSingleViewResource<D extends object = any>(
           }
         });
     },
-    [handleErrorMsg, resourceName, resourceLabel],
+    [handleErrorMsg, resourceName, resourceLabel, updateState],
   );
 
   const clearError = () =>
@@ -427,12 +457,12 @@ export function useImportResource(
     failed: false,
   });
 
-  function updateState(update: Partial<ImportResourceState>) {
+  const updateState = useCallback((update: Partial<ImportResourceState>) => {
     setState(currentState => ({ ...currentState, ...update }));
-  }
+  }, []);
 
   const importResource = useCallback(
-    (
+    async (
       bundle: File,
       databasePasswords: Record<string, string> = {},
       sshTunnelPasswords: Record<string, string> = {},
@@ -553,7 +583,7 @@ export function useImportResource(
           updateState({ loading: false });
         });
     },
-    [],
+    [handleErrorMsg, resourceLabel, resourceName, updateState],
   );
 
   return { state, importResource };
@@ -591,8 +621,11 @@ export function useFavoriteStatus(
 ) {
   const [favoriteStatus, setFavoriteStatus] = useState<FavoriteStatus>({});
 
-  const updateFavoriteStatus = (update: FavoriteStatus) =>
-    setFavoriteStatus(currentState => ({ ...currentState, ...update }));
+  const updateFavoriteStatus = useCallback(
+    (update: FavoriteStatus) =>
+      setFavoriteStatus(currentState => ({ ...currentState, ...update })),
+    [],
+  );
 
   useEffect(() => {
     if (!ids.length) {
@@ -615,7 +648,7 @@ export function useFavoriteStatus(
         ),
       ),
     );
-  }, [ids, type, handleErrorMsg]);
+  }, [ids, type, handleErrorMsg, updateFavoriteStatus]);
 
   const saveFaveStar = useCallback(
     (id: number, isStarred: boolean) => {
@@ -639,7 +672,7 @@ export function useFavoriteStatus(
         ),
       );
     },
-    [type],
+    [handleErrorMsg, type, updateFavoriteStatus],
   );
 
   return [saveFaveStar, favoriteStatus] as const;
@@ -652,7 +685,7 @@ export const useChartEditModal = (
   const [sliceCurrentlyEditing, setSliceCurrentlyEditing] =
     useState<Slice | null>(null);
 
-  function openChartEditModal(chart: Chart) {
+  const openChartEditModal = useCallback((chart: Chart) => {
     setSliceCurrentlyEditing({
       slice_id: chart.id,
       slice_name: chart.slice_name,
@@ -662,11 +695,11 @@ export const useChartEditModal = (
       certification_details: chart.certification_details,
       is_managed_externally: chart.is_managed_externally,
     });
-  }
+  }, []);
 
-  function closeChartEditModal() {
+  const closeChartEditModal = useCallback(() => {
     setSliceCurrentlyEditing(null);
-  }
+  }, []);
 
   function handleChartUpdated(edits: Chart) {
     // update the chart in our state with the edited info
@@ -796,8 +829,8 @@ export function useDatabaseValidation() {
                 ];
                 return allowed.includes(err.error_type) || onCreate;
               })
-              .reduce((acc: JsonObject, err_2: any) => {
-                const { message, extra } = err_2;
+              .reduce((acc: JsonObject, err2: any) => {
+                const { message, extra } = err2;
 
                 if (extra?.catalog) {
                   const { idx } = extra.catalog;
@@ -816,8 +849,8 @@ export function useDatabaseValidation() {
                 }
 
                 if (extra?.missing) {
-                  extra.missing.forEach((field_1: string) => {
-                    acc[field_1] = 'This is a required field';
+                  extra.missing.forEach((field1: string) => {
+                    acc[field1] = 'This is a required field';
                   });
                 }
 
