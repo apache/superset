@@ -5,6 +5,7 @@
     { "repo": "apache/superset" }
   ],
   "commit": false,
+  "gitTag": false,
   "fixed": [],
   "linked": [
     ["@superset-ui/*", "@apache-superset/*"]

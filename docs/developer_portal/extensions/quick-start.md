@@ -30,7 +30,7 @@ This guide walks you through creating your first Superset extension - a simple "
 
 Before starting, ensure you have:
 
-- Node.js and npm compatible with your Superset version
+- [Bun](https://bun.sh) (recommended) or Node.js 20+ compatible with your Superset version
 - Python compatible with your Superset version
 - A running Superset development environment
 - Basic knowledge of React, TypeScript, and Flask
@@ -422,7 +422,7 @@ Install the frontend dependencies:
 
 ```bash
 cd frontend
-npm install
+bun install
 cd ..
 ```
 

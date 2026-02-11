@@ -220,7 +220,7 @@ LOCAL_EXTENSIONS = [
 ]
 ```
 
-This instructs Superset to load and serve extensions directly from disk, so you can iterate quickly. Running `superset-extensions dev` watches for file changes and rebuilds assets automatically, while the Webpack development server (started separately with `npm run dev-server`) serves updated files as soon as they're modified. This enables immediate feedback for React components, styles, and other frontend code. Changes to backend files are also detected automatically and immediately synced, ensuring that both frontend and backend updates are reflected in your development environment.
+This instructs Superset to load and serve extensions directly from disk, so you can iterate quickly. Running `superset-extensions dev` watches for file changes and rebuilds assets automatically, while the Webpack development server (started separately with `bun run dev-server`) serves updated files as soon as they're modified. This enables immediate feedback for React components, styles, and other frontend code. Changes to backend files are also detected automatically and immediately synced, ensuring that both frontend and backend updates are reflected in your development environment.
 
 Example output when running in development mode:
 
@@ -285,7 +285,7 @@ InteractiveMyComponent.argTypes = {
 
 ### How Documentation is Generated
 
-When the docs site is built (`yarn start` or `yarn build` in the `docs/` directory):
+When the docs site is built (`bun run start` or `bun run build` in the `docs/` directory):
 
 1. The `generate-extension-components` script scans all stories in `superset-core`
 2. For each story, it generates an MDX page with:

@@ -28,7 +28,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          # pulls all commits (needed for lerna / semantic release to correctly version)
+          # pulls all commits (needed for changesets to correctly version)
           fetch-depth: 0
       - name: Get tags and filter trigger tags
         run: |
@@ -66,7 +66,7 @@ jobs:
       - name: Build packages
         if: env.HAS_TAGS
         working-directory: ./superset-frontend
-        run: bun run turbo:build
+        run: bun run build:packages
 
       - name: Configure npm and git
         if: env.HAS_TAGS

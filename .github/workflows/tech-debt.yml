@@ -29,19 +29,19 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v6
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          node-version-file: './superset-frontend/.nvmrc'
+          bun-version: latest
 
       - name: Install Dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
         working-directory: ./superset-frontend
 
       - name: Run Script
         env:
           SPREADSHEET_ID: "1oABNnzxJYzwUrHjr_c9wfYEq9dFL1ScVof9LlaAdxvo"
           SERVICE_ACCOUNT_KEY: ${{ secrets.GSHEET_KEY }}
-        run: npm run lint-stats
+        run: bun run lint-stats
         continue-on-error: true
         working-directory: ./superset-frontend

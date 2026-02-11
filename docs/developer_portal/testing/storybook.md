@@ -42,10 +42,10 @@ To run the main Superset Storybook locally:
 cd superset-frontend
 
 # Start Storybook (opens at http://localhost:6006)
-npm run storybook
+bun run storybook
 
 # Build static Storybook
-npm run build-storybook
+bun run build-storybook
 ```
 
 ### @superset-ui Package Storybook
@@ -55,12 +55,11 @@ The `@superset-ui` packages have a separate Storybook for component library deve
 ```bash
 cd superset-frontend
 
-# Install dependencies and bootstrap packages
-npm ci && npm run bootstrap
+# Install dependencies and build packages
+bun install && bun run turbo:build
 
 # Start the @superset-ui Storybook (opens at http://localhost:9001)
-cd packages/superset-ui-demo
-npm run storybook
+bun run plugins:storybook
 ```
 
 ## Adding Stories
@@ -78,7 +77,7 @@ storybook/stories/<package>/index.js
 1. Add package dependencies:
 
    ```bash
-   npm install <package>
+   bun add <package>
    ```
 
 2. Create a story folder matching the package name:

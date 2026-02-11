@@ -270,6 +270,26 @@ docker tag apache/superset:X.Y.Z apache/superset:latest
 docker push apache/superset:latest
 ```
 
+#### Publish npm Packages
+
+Superset publishes frontend packages to npm for use by plugin developers and embedders.
+See [RELEASING/README.md](https://github.com/apache/superset/blob/master/RELEASING/README.md#npm-package-publishing)
+for the complete npm publishing guide.
+
+```bash
+cd superset-frontend
+
+# Sync package versions to release version
+bun run sync-versions X.Y.Z
+
+# Review and commit version changes
+git diff
+git add -A && git commit -m "chore(packages): bump versions to X.Y.Z"
+
+# Build and publish (requires npm auth)
+bun run publish:packages
+```
+
 ### 6. Post-Release Tasks
 
 #### Update Documentation
@@ -277,7 +297,7 @@ docker push apache/superset:latest
 # Update docs version
 cd docs
 # Update docusaurus.config.js with new version
-npm run build
+bun run build
 ```
 
 #### Announcement Email
@@ -461,6 +481,7 @@ Credit:
 - [Apache Release Policy](https://www.apache.org/legal/release-policy.html)
 - [Superset Release History](https://github.com/apache/superset/releases)
 - [Version Strategy Discussion](https://github.com/apache/superset/discussions)
+- [npm Publishing Guide](https://github.com/apache/superset/blob/master/RELEASING/README.md#npm-package-publishing) - Detailed instructions for publishing frontend packages
 
 ### Tools
 - [Release Scripts](https://github.com/apache/superset/tree/master/scripts/release)

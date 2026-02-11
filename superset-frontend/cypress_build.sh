@@ -29,8 +29,8 @@ PORT='8081'
 flask run -p $PORT --with-threads --reload --debugger &
 
 #block on the longer running javascript process
-time npm ci
-time npm run build-instrumented
+time bun install --frozen-lockfile
+time bun run build-instrumented
 echo "[completed js build steps]"
 
 #setup cypress

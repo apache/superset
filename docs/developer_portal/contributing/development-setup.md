@@ -348,10 +348,10 @@ curl -f http://localhost:8088/health && echo "✅ Superset ready"
 ```bash
 # Frontend development
 cd superset-frontend
-npm run dev          # Development server on http://localhost:9000
-npm run test         # Run all tests
-npm run test -- filename.test.tsx  # Run single test file
-npm run lint         # Linting and type checking
+bun run dev          # Development server on http://localhost:9000
+bun run test         # Run all tests
+bun run test -- filename.test.tsx  # Run single test file
+bun run lint         # Linting and type checking
 
 # Backend validation
 pre-commit run mypy  # Type checking
@@ -481,19 +481,36 @@ Frontend assets (TypeScript, JavaScript, CSS, and images) must be compiled in or
 
 #### Prerequisite
 
-##### nvm and node
+##### Bun (Recommended)
 
-First, be sure you are using the following versions of Node.js and npm:
+Superset uses [Bun](https://bun.sh) as its JavaScript runtime and package manager. Bun is significantly faster than npm (up to 10x faster installs) and includes native TypeScript support.
 
-- `Node.js`: Version 20
-- `npm`: Version 10
+**Install Bun:**
+
+```bash
+# macOS, Linux, or WSL
+curl -fsSL https://bun.sh/install | bash
+
+# Or using Homebrew (macOS)
+brew install oven-sh/bun/bun
+
+# Verify installation
+bun --version
+```
+
+##### Node.js (Alternative)
+
+If you prefer Node.js, ensure you have:
+
+- `Node.js`: Version 20+
+- `npm`: Version 10+
 
 We recommend using [nvm](https://github.com/nvm-sh/nvm) to manage your node environment:
 
 ```bash
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.0/install.sh | bash
 
-in case it shows '-bash: nvm: command not found'
+# In case it shows '-bash: nvm: command not found'
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
@@ -503,13 +520,9 @@ nvm install --lts
 nvm use --lts
 ```
 
-Or if you use the default macOS starting with Catalina shell `zsh`, try:
-
-```zsh
-sh -c "$(curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.0/install.sh)"
-```
-
-For those interested, you may also try out [avn](https://github.com/nvm-sh/nvm#deeper-shell-integration) to automatically switch to the node version that is required to run Superset frontend.
+:::note
+While Node.js/npm will work, the project is optimized for Bun. CI/CD pipelines and Docker builds use Bun.
+:::
 
 #### Install dependencies
 
@@ -519,11 +532,14 @@ Install third-party dependencies listed in `package.json` via:
 # From the root of the repository
 cd superset-frontend
 
-# Install dependencies from `package-lock.json`
-npm ci
+# Install dependencies from `bun.lock`
+bun install
+
+# Or with frozen lockfile (recommended for CI/reproducible builds)
+bun install --frozen-lockfile
 ```
 
-Note that Superset uses [Scarf](https://docs.scarf.sh) to capture telemetry/analytics about versions being installed, including the `scarf-js` npm package and an analytics pixel. As noted elsewhere in this documentation, Scarf gathers aggregated stats for the sake of security/release strategy and does not capture/retain PII. [You can read here](https://docs.scarf.sh/package-analytics/) about the `scarf-js` package, and various means to opt out of it, but you can opt out of the npm package _and_ the pixel by setting the `SCARF_ANALYTICS` environment variable to `false` or opt out of the pixel by adding this setting in `superset-frontent/package.json`:
+Note that Superset uses [Scarf](https://docs.scarf.sh) to capture telemetry/analytics about versions being installed, including the `scarf-js` package and an analytics pixel. As noted elsewhere in this documentation, Scarf gathers aggregated stats for the sake of security/release strategy and does not capture/retain PII. [You can read here](https://docs.scarf.sh/package-analytics/) about the `scarf-js` package, and various means to opt out of it, but you can opt out of the package _and_ the pixel by setting the `SCARF_ANALYTICS` environment variable to `false` or opt out of the pixel by adding this setting in `superset-frontend/package.json`:
 
 ```json
 // your-package/package.json
@@ -540,9 +556,9 @@ Note that Superset uses [Scarf](https://docs.scarf.sh) to capture telemetry/anal
 
 There are three types of assets you can build:
 
-1. `npm run build`: the production assets, CSS/JSS minified and optimized
-2. `npm run dev-server`: local development assets, with sourcemaps and hot refresh support
-3. `npm run build-instrumented`: instrumented application code for collecting code coverage from Cypress tests
+1. `bun run build`: the production assets, CSS/JSS minified and optimized
+2. `bun run dev-server`: local development assets, with sourcemaps and hot refresh support
+3. `bun run build-instrumented`: instrumented application code for collecting code coverage from E2E tests
 
 If while using the above commands you encounter an error related to the limit of file watchers:
 
@@ -591,7 +607,7 @@ So a typical development workflow is the following:
 2. in parallel, run the Webpack dev server locally on port `9000`,<br/>
 
    ```bash
-   npm run dev-server
+   bun run dev-server
    ```
 
 3. access `http://localhost:9000` (the Webpack server, _not_ Flask) in your web browser. This will use the hot-reloading front-end assets from the Webpack development server while redirecting back-end queries to Flask/Superset: your changes on Superset codebase — either front or back-end — will then be reflected live in the browser.
@@ -600,36 +616,52 @@ It's possible to change the Webpack server settings:
 
 ```bash
 # Start the dev server at http://localhost:9000
-npm run dev-server
+bun run dev-server
 
 # Run the dev server on a non-default port
-npm run dev-server -- --port=9001
+bun run dev-server -- --port=9001
 
 # Proxy backend requests to a Flask server running on a non-default port
-npm run dev-server -- --env=--supersetPort=8081
+bun run dev-server -- --env=--supersetPort=8081
 
 # Proxy to a remote backend but serve local assets
-npm run dev-server -- --env=--superset=https://superset-dev.example.com
+bun run dev-server -- --env=--superset=https://superset-dev.example.com
 ```
 
 The `--superset=` option is useful in case you want to debug a production issue or have to setup Superset behind a firewall. It allows you to run Flask server in another environment while keep assets building locally for the best developer experience.
 
-#### Other npm commands
+#### Other bun commands
 
-Alternatively, there are other NPM commands you may find useful:
+Alternatively, there are other commands you may find useful:
 
-1. `npm run build-dev`: build assets in development mode.
-2. `npm run dev`: built dev assets in watch mode, will automatically rebuild when a file changes
+1. `bun run build-dev`: build assets in development mode.
+2. `bun run dev`: built dev assets in watch mode, will automatically rebuild when a file changes
+3. `bun run build:packages`: build all packages/plugins with Turborepo (intelligent caching)
+4. `bun run build:packages:force`: rebuild all packages ignoring cache
 
 #### Docker (docker compose)
 
 See docs [here](https://superset.apache.org/docs/installation/docker-compose)
 
-#### Updating NPM packages
+#### Updating packages
 
-Use npm in the prescribed way, making sure that
-`superset-frontend/package-lock.json` is updated according to `npm`-prescribed
-best practices.
+Use bun to add or update packages:
+
+```bash
+# Add a new package
+bun add package-name
+
+# Add a dev dependency
+bun add -d package-name
+
+# Update a package
+bun update package-name
+
+# Update all packages
+bun update
+```
+
+The `bun.lock` file will be automatically updated.
 
 #### Feature flags
 
@@ -792,13 +824,13 @@ We use [Jest](https://jestjs.io/) and [React Testing Library](https://testing-li
 
 ```bash
 cd superset-frontend
-npm run test
+bun run test
 ```
 
 To run a single test file:
 
 ```bash
-npm run test -- path/to/file.js
+bun run test -- path/to/file.js
 ```
 
 #### Known Issues and Workarounds
@@ -983,7 +1015,7 @@ Superset includes a [Storybook](https://storybook.js.org/) to preview the layout
 
 ```bash
 cd superset-frontend
-npm run storybook
+bun run storybook
 ```
 
 When contributing new React components to Superset, please try to add a Story alongside the component's `jsx/tsx` file.

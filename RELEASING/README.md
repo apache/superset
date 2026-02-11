@@ -391,7 +391,7 @@ RSA key verified
 
 There are also additional support scripts leveraging this to make it easy for those downloading a release to test it in-situ. You can do either of the following to validate these release assets:
 
-- `cd` into `superset-frontend` and run `npm run validate-release`
+- `cd` into `superset-frontend` and run `bun run validate-release`
 - `cd` into `RELEASES` and run `./validate_this_release.sh`
 
 ## Publishing a successful release
@@ -444,9 +444,9 @@ Create the distribution
 
 ```bash
 cd superset-frontend/
-npm ci && npm run build
+bun install --frozen-lockfile && bun run build
 # Compile translations for the frontend
-npm run build-translation
+bun run build-translation
 
 cd ../
 
@@ -524,23 +524,171 @@ generated images.
 
 **NOTE:** If the docker image isn't built, you'll need to run this [GH action](https://github.com/apache/superset/actions/workflows/tag-release.yml) where you provide it the tag sha.
 
-### Npm Release
+### Npm Package Release
 
-You might want to publish the latest @superset-ui release to npm
+Superset publishes `@superset-ui/*` and `@apache-superset/*` packages to npm. These are considered
+"convenience releases" (not official ASF releases) and can be published independently of Superset releases.
+
+Superset uses [Changesets](https://github.com/changesets/changesets) for version management and
+[Turborepo](https://turbo.build/) for building packages.
+
+#### Two Publishing Workflows
+
+**1. Periodic Publishing (on master)** - For ongoing development, packages are versioned based on
+accumulated changesets and published periodically by maintainers.
+
+**2. Release Publishing (on release branches)** - When cutting a Superset release, packages are
+synced to match the Superset version (e.g., all packages become 6.1.0).
+
+---
+
+#### Workflow 1: Periodic Publishing on Master
+
+##### During Development: Adding Changesets
+
+When a PR changes publishable packages, the author should add a changeset:
 
 ```bash
-cd superset/superset-frontend
+cd superset-frontend
+bun run changeset:add
 ```
 
-An automated GitHub action will run and generate a new tag, which will contain a version number provided as a parameter.
+This interactive CLI asks:
+1. Which packages changed? (multi-select)
+2. Bump type? (major / minor / patch)
+3. Summary for changelog
+
+A markdown file is created in `.changeset/` describing the change.
+
+##### Periodic Publishing (Maintainers)
+
+When ready to publish accumulated changes:
 
 ```bash
-export GH_TOKEN={GITHUB_TOKEN}
-npx lerna version {VERSION} --conventional-commits --create-release github --no-private --yes --message {COMMIT_MESSAGE}
+cd superset-frontend
+
+# 1. Check what's pending
+bun run changeset:status
+
+# 2. Bump versions (consumes changesets, updates CHANGELOGs)
+bun run changeset:version
+
+# 3. Review and commit
+git diff
+git add .
+git commit -m "chore(packages): version packages"
+
+# 4. Dry run to verify
+bun run publish:packages:dry
+
+# 5. Publish to npm
+bun run publish:packages
+
+# 6. Push the version commit
+git push
 ```
 
-This action will publish the specified version to npm registry.
+---
+
+#### Workflow 2: Release Branch Publishing
+
+When cutting a Superset release (e.g., 6.1.0), sync all packages to match:
+
+##### For Release Candidates
 
 ```bash
-npx lerna publish from-package --yes
+cd superset-frontend
+
+# Sync all packages to RC version
+bun run sync-versions 6.1.0-rc.1
+
+# Review changes
+git diff
+
+# Commit
+git add .
+git commit -m "chore(packages): bump versions to 6.1.0-rc.1"
+
+# Dry run
+bun run publish:packages:dry
+
+# Publish (goes to npm with version tag, not @latest)
+bun run publish:packages
 ```
+
+##### For Final Release
+
+After the vote passes:
+
+```bash
+cd superset-frontend
+
+# Sync all packages to final version
+bun run sync-versions 6.1.0
+
+# Commit
+git add .
+git commit -m "chore(packages): bump versions to 6.1.0"
+
+# Publish
+bun run publish:packages
+```
+
+##### Dry Run
+
+Always preview before publishing:
+
+```bash
+# Preview version sync without making changes
+bun run sync-versions:dry 6.1.0
+
+# Preview what would be published
+bun run publish:packages:dry
+```
+
+---
+
+#### Quick Reference
+
+| Task | Command |
+|------|---------|
+| Add a changeset (during PR) | `bun run changeset:add` |
+| Check pending changes | `bun run changeset:status` |
+| Bump versions (from changesets) | `bun run changeset:version` |
+| Sync versions (for releases) | `bun run sync-versions <version>` |
+| Sync versions (dry run) | `bun run sync-versions:dry <version>` |
+| Build packages | `bun run build:packages` |
+| Preview publish | `bun run publish:packages:dry` |
+| Publish to npm | `bun run publish:packages` |
+
+---
+
+#### npm Credentials
+
+To publish, you need npm credentials with publish access to `@superset-ui` and `@apache-superset` scopes.
+
+```bash
+# Login to npm
+npm login
+
+# Verify access
+npm whoami
+npm access ls-packages
+```
+
+Contact a PMC member if you need publish access granted.
+
+---
+
+#### Troubleshooting
+
+**"You do not have permission to publish"**
+- Ensure you're logged in: `npm whoami`
+- Request access from a PMC member
+
+**"Version already exists"**
+- The version was already published; bump to a new version
+
+**Build failures**
+- Run `bun run build:packages:force` to rebuild from scratch
+- Check for TypeScript errors: `bun run turbo:type-check`

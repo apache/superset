@@ -44,16 +44,16 @@ Comprehensive guide for testing Superset's frontend components and features.
 
 ```bash
 # Run all frontend tests
-npm run test
+bun run test
 
 # Run tests in watch mode
-npm run test -- --watch
+bun run test -- --watch
 
 # Run tests with coverage
-npm run test -- --coverage
+bun run test -- --coverage
 
 # Run specific test file
-npm run test -- MyComponent.test.tsx
+bun run test -- MyComponent.test.tsx
 ```
 
 ---

@@ -38,15 +38,15 @@ jobs:
           echo "HOMEBREW_CELLAR=$HOMEBREW_CELLAR" >>"${GITHUB_ENV}"
           echo "HOMEBREW_REPOSITORY=$HOMEBREW_REPOSITORY" >>"${GITHUB_ENV}"
           brew install norwoodj/tap/helm-docs
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          node-version: '20'
+          bun-version: latest
 
       - name: Install Frontend Dependencies
         run: |
           cd superset-frontend
-          npm ci
+          bun install --frozen-lockfile
 
       - name: Install Docs Dependencies
         run: |

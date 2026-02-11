@@ -34,6 +34,11 @@ Common pre-commit failures:
 - **Use antd theming tokens** - Prefer antd tokens over legacy theming tokens
 - **Avoid custom css and styles** - Follow antd best practices and avoid styling and custom CSS whenever possible
 
+### Package Manager Migration
+- **Use Bun instead of npm** - The frontend uses Bun as the package manager (e.g., `bun install`, `bun run build`)
+- **Use Turborepo for builds** - Use `bun run build:packages` to build packages with caching
+- **Use Changesets for versioning** - Use `bun run changeset:add` to track version changes
+
 ### Testing Strategy Migration
 - **Prefer unit tests** over integration tests
 - **Prefer integration tests** over end-to-end tests
@@ -154,22 +159,22 @@ The Developer Portal auto-generates MDX documentation from Storybook stories. **
 ### Running Tests
 ```bash
 # Frontend
-npm run test                           # All tests
-npm run test -- filename.test.tsx     # Single file
+bun run test                           # All tests
+bun run test -- filename.test.tsx      # Single file
 
 # E2E Tests (Playwright - NEW)
-npm run playwright:test                # All Playwright tests
-npm run playwright:ui                  # Interactive UI mode
-npm run playwright:headed              # See browser during tests
-npx playwright test tests/auth/login.spec.ts  # Single file
-npm run playwright:debug tests/auth/login.spec.ts  # Debug specific file
+bun run playwright:test                # All Playwright tests
+bun run playwright:ui                  # Interactive UI mode
+bun run playwright:headed              # See browser during tests
+bun x playwright test tests/auth/login.spec.ts  # Single file
+bun run playwright:debug tests/auth/login.spec.ts  # Debug specific file
 
 # E2E Tests (Cypress - DEPRECATED)
 cd superset-frontend/cypress-base
 npm run cypress-run-chrome             # All Cypress tests (headless)
 npm run cypress-debug                  # Interactive Cypress UI
 
-# Backend  
+# Backend
 pytest                                 # All tests
 pytest tests/unit_tests/specific_test.py  # Single file
 pytest tests/unit_tests/               # Directory
@@ -190,7 +195,8 @@ curl -f http://localhost:8088/health || echo "❌ Setup required - see https://s
 "It appears you aren't set up properly. Please refer to the [Working with LLMs](https://superset.apache.org/docs/contributing/development#working-with-llms) section in the development docs for setup instructions."
 
 **Key Project Files:**
-- `superset-frontend/package.json` - Frontend build scripts (`npm run dev` on port 9000, `npm run test`, `npm run lint`)
+- `superset-frontend/package.json` - Frontend build scripts (`bun run dev` on port 9000, `bun run test`, `bun run lint`)
+- `superset-frontend/turbo.json` - Turborepo build configuration for packages/plugins
 - `pyproject.toml` - Python tooling (ruff, mypy configs)
 - `requirements/` folder - Python dependencies (base.txt, development.txt)
 

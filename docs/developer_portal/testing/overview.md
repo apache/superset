@@ -80,16 +80,16 @@ Superset embraces a testing pyramid approach:
 ### Quick Commands
 ```bash
 # Frontend unit tests
-npm run test
+bun run test
 
-# Backend unit tests  
+# Backend unit tests
 pytest tests/unit_tests/
 
 # End-to-end tests
-npm run playwright:test
+bun run playwright:test
 
 # All tests with coverage
-npm run test:coverage
+bun run test:coverage
 ```
 
 ### Test Development Workflow

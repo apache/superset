@@ -27,4 +27,4 @@ if [[ ! -d "$root_dir/$frontend_dir" ]]; then
 fi
 
 cd "$root_dir/$frontend_dir"
-npm run lint-fix -- "${@//$frontend_dir\//}"
+bun run lint-fix -- "${@//$frontend_dir\//}"

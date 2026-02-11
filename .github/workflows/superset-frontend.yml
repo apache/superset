@@ -143,7 +143,7 @@ jobs:
       - name: tsc
         run: |
           docker run --rm $TAG bash -c \
-          "bun install && bun run turbo:build && bun run type"
+          "bun install && bun run build:packages && bun run type"
 
   validate-frontend:
     needs: frontend-build
@@ -161,7 +161,7 @@ jobs:
       - name: Build Plugins Packages
         run: |
           docker run --rm $TAG bash -c \
-          "bun run turbo:build"
+          "bun run build:packages"
 
       - name: Build Plugins Storybook
         run: |

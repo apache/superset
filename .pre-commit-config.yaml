@@ -55,7 +55,7 @@ repos:
         exclude: ^helm/superset/templates/
       - id: debug-statements
       - id: end-of-file-fixer
-        exclude: .*/lerna\.json$|^docs/static/img/logos/
+        exclude: ^docs/static/img/logos/
       - id: trailing-whitespace
         exclude: ^.*\.(snap)
         args: ["--markdown-linebreak-ext=md"]

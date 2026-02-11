@@ -34,23 +34,23 @@ Apache Superset uses Playwright for end-to-end testing, migrating from the legac
 cd superset-frontend
 
 # Run all tests
-npm run playwright:test
-# or: npx playwright test
+bun run playwright:test
+# or: bun x playwright test
 
 # Run specific test file
-npx playwright test tests/auth/login.spec.ts
+bun x playwright test tests/auth/login.spec.ts
 
 # Run with UI mode for debugging
-npm run playwright:ui
-# or: npx playwright test --ui
+bun run playwright:ui
+# or: bun x playwright test --ui
 
 # Run in headed mode (see browser)
-npm run playwright:headed
-# or: npx playwright test --headed
+bun run playwright:headed
+# or: bun x playwright test --headed
 
 # Debug specific test file
-npm run playwright:debug tests/auth/login.spec.ts
-# or: npx playwright test --debug tests/auth/login.spec.ts
+bun run playwright:debug tests/auth/login.spec.ts
+# or: bun x playwright test --debug tests/auth/login.spec.ts
 ```
 
 ### Cypress (Deprecated)
@@ -152,11 +152,11 @@ Playwright generates multiple reports for better visibility:
 
 ```bash
 # View interactive HTML report (opens automatically on failure)
-npm run playwright:report
-# or: npx playwright show-report
+bun run playwright:report
+# or: bun x playwright show-report
 
 # View test trace for debugging failures
-npx playwright show-trace test-results/[test-name]/trace.zip
+bun x playwright show-trace test-results/[test-name]/trace.zip
 ```
 
 ### Report Types

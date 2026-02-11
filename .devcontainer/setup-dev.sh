@@ -21,9 +21,15 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.bashrc
 echo 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.zshrc
 
-# Install Claude Code CLI via npm
+# Install Bun
+echo "📦 Installing Bun..."
+curl -fsSL https://bun.sh/install | bash
+echo 'export PATH="$HOME/.bun/bin:$PATH"' >> ~/.bashrc
+echo 'export PATH="$HOME/.bun/bin:$PATH"' >> ~/.zshrc
+
+# Install Claude Code CLI
 echo "🤖 Installing Claude Code..."
-npm install -g @anthropic-ai/claude-code
+~/.bun/bin/bun install -g @anthropic-ai/claude-code
 
 # Make the start script executable
 chmod +x .devcontainer/start-superset.sh

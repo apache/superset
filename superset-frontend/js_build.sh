@@ -17,10 +17,10 @@
 #
 set -e
 cd "$(dirname "$0")"
-npm --version
+bun --version
 node --version
-time npm ci
-time npm run lint
-time npm run check
-time npm run cover  # this also runs the tests, so no need to 'npm run test'
-time npm run build
+time bun install --frozen-lockfile
+time bun run lint
+time bun run check
+time bun run cover  # this also runs the tests, so no need to 'bun run test'
+time bun run build

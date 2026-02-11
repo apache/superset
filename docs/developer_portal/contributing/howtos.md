@@ -36,8 +36,8 @@ To set up your local environment for documentation development:
 
 ```bash
 cd docs
-npm install
-npm run start
+bun install
+bun run start
 ```
 
 The site will be available at http://localhost:3000
@@ -47,8 +47,8 @@ The site will be available at http://localhost:3000
 To create a production build:
 
 ```bash
-npm run build
-npm run serve  # Test the build locally
+bun run build
+bun run serve  # Test the build locally
 ```
 
 ### Deployment
@@ -61,15 +61,14 @@ Visualization plugins allow you to add custom chart types to Superset. They are 
 
 ### Prerequisites
 
-- Node.js 18+
-- npm or yarn
+- Bun (recommended) or Node.js 20+
 - A local Superset development environment
 
 ### Creating a simple Hello World viz plugin
 
 1. **Install the Superset Yeoman generator**:
 ```bash
-npm install -g @superset-ui/generator-superset
+bun add -g @superset-ui/generator-superset
 ```
 
 2. **Create a new plugin**:
@@ -89,14 +88,14 @@ The generator creates a complete plugin structure with TypeScript, React compone
 
 5. **Test your plugin locally**:
 ```bash
-npm run dev
+bun run dev
 ```
 
 6. **Link to your local Superset**:
 ```bash
-npm link
+bun link
 # In your Superset frontend directory:
-npm link superset-plugin-chart-hello-world
+bun link superset-plugin-chart-hello-world
 ```
 
 7. **Import and register in Superset**:
@@ -147,16 +146,16 @@ Run frontend tests using Jest:
 cd superset-frontend
 
 # Run all tests
-npm run test
+bun run test
 
 # Run with coverage
-npm run test -- --coverage
+bun run test -- --coverage
 
 # Run in watch mode
-npm run test -- --watch
+bun run test -- --watch
 
 # Run specific test file
-npm run test -- MyComponent.test.tsx
+bun run test -- MyComponent.test.tsx
 ```
 
 ### E2E Integration Testing
@@ -172,26 +171,26 @@ Playwright is our new E2E testing framework, gradually replacing Cypress.
 cd superset-frontend
 
 # Run all Playwright tests
-npm run playwright:test
-# or: npx playwright test
+bun run playwright:test
+# or: bun x playwright test
 
 # Run with interactive UI for debugging
-npm run playwright:ui
-# or: npx playwright test --ui
+bun run playwright:ui
+# or: bun x playwright test --ui
 
 # Run in headed mode (see browser)
-npm run playwright:headed
-# or: npx playwright test --headed
+bun run playwright:headed
+# or: bun x playwright test --headed
 
 # Run specific test file
-npx playwright test tests/auth/login.spec.ts
+bun x playwright test tests/auth/login.spec.ts
 
 # Run with debug mode (step through tests)
-npm run playwright:debug tests/auth/login.spec.ts
-# or: npx playwright test --debug tests/auth/login.spec.ts
+bun run playwright:debug tests/auth/login.spec.ts
+# or: bun x playwright test --debug tests/auth/login.spec.ts
 
 # Generate test report
-npm run playwright:report
+bun run playwright:report
 ```
 
 #### Cypress (DEPRECATED - will be removed)
@@ -290,7 +289,7 @@ pybabel init -i superset/translations/messages.pot -d superset/translations -l d
 pybabel extract -F babel.cfg -o superset/translations/messages.pot -k lazy_gettext superset
 
 # Extract JavaScript strings
-npm run build-translation
+bun run build-translation
 ```
 
 ### Updating language files
@@ -305,7 +304,7 @@ pybabel update -i superset/translations/messages.pot -d superset/translations
 ```bash
 # Frontend
 cd superset-frontend
-npm run build-translation
+bun run build-translation
 
 # Backend
 pybabel compile -d superset/translations
@@ -340,22 +339,22 @@ We use a hybrid linting approach combining OXC (Oxidation Compiler) for standard
 cd superset-frontend
 
 # Run both OXC and custom rules
-npm run lint:full
+bun run lint:full
 
 # Run OXC linter only (faster for most checks)
-npm run lint
+bun run lint
 
 # Fix auto-fixable issues with OXC
-npm run lint-fix
+bun run lint-fix
 
 # Run custom rules checker only
-npm run check:custom-rules
+bun run check:custom-rules
 
 # Run tsc (typescript) checks
-npm run type
+bun run type
 
 # Format with Prettier
-npm run prettier
+bun run prettier
 ```
 
 #### Architecture
@@ -481,15 +480,15 @@ alias sfront='cd superset-frontend && npm run dev-server'
 
 ## Common Issues and Solutions
 
-### Node/npm Issues
+### Bun/Node Issues
 
 ```bash
-# Clear npm cache
-npm cache clean --force
+# Clear bun cache
+bun pm cache rm
 
 # Reinstall dependencies
-rm -rf node_modules package-lock.json
-npm install
+rm -rf node_modules bun.lock
+bun install
 ```
 
 ### Python Environment Issues

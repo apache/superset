@@ -63,7 +63,7 @@ edit files...
 
 # Run tests
 pytest tests/unit_tests/
-cd superset-frontend && npm run test
+cd superset-frontend && bun run test
 
 # Run linting
 pre-commit run --all-files
@@ -226,7 +226,7 @@ pytest tests/integration_tests/ -v
 #### Frontend Test Failures
 ```bash
 cd superset-frontend
-npm run test -- --coverage
+bun run test -- --coverage
 ```
 
 #### Linting Failures

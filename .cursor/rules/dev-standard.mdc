@@ -18,6 +18,11 @@ Apache Superset is a data visualization platform with Flask/Python backend and R
 - **NO Enzyme** - Use React Testing Library/Jest (Enzyme fully removed)
 - **Use @superset-ui/core** - Don't import Ant Design directly
 
+### Package Manager Migration
+- **Use Bun instead of npm** - The frontend uses Bun as the package manager (e.g., `bun install`, `bun run build`)
+- **Use Turborepo for builds** - Use `bun run build:packages` to build packages with caching
+- **Use Changesets for versioning** - Use `bun run changeset:add` to track version changes
+
 ### Testing Strategy Migration
 - **Prefer unit tests** over integration tests
 - **Prefer integration tests** over Cypress end-to-end tests
