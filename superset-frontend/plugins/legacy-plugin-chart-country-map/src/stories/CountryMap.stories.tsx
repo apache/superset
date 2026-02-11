@@ -19,6 +19,7 @@
 
 import { useEffect, useState } from 'react';
 import { JsonObject, seed, SuperChart, SequentialD3 } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/ui';
 import { useTheme } from '@apache-superset/core/ui';
 import CountryMapChartPlugin, {
   countries,
@@ -91,6 +92,7 @@ export const BasicCountryMapStory = ({
   }
   return (
     <SuperChart
+      theme={supersetTheme}
       chartType="country-map"
       width={width}
       height={height}

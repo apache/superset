@@ -17,7 +17,8 @@
  * under the License.
  */
 
-import { SuperChart, VizType } from '@superset-ui/core';
+import { SuperChart, VizType } from '@superset-ui/core'
+import { supersetTheme } from '@apache-superset/core/ui';
 import HorizonChartPlugin from '@superset-ui/legacy-plugin-chart-horizon';
 import { withResizableChartDemo } from '@storybook-shared';
 import data from './data';
@@ -55,6 +56,7 @@ export const Basic = ({
   height: number;
 }) => (
   <SuperChart
+      theme={supersetTheme}
     chartType={VizType.Horizon}
     width={width}
     height={height}

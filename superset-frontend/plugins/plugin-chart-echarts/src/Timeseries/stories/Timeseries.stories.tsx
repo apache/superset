@@ -18,6 +18,7 @@
  */
 
 import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/ui';
 import {
   EchartsTimeseriesChartPlugin,
   TimeseriesTransformProps,
@@ -90,6 +91,7 @@ export const Timeseries = ({
     .filter(row => forecastEnabled || !!row.Boston);
   return (
     <SuperChart
+      theme={supersetTheme}
       chartType="echarts-timeseries"
       width={width}
       height={height}
@@ -169,6 +171,7 @@ export const WithNegativeNumbers = ({
   height: number;
 }) => (
   <SuperChart
+    theme={supersetTheme}
     chartType="echarts-timeseries"
     width={width}
     height={height}
@@ -213,6 +216,7 @@ export const ConfidenceBand = ({
   height: number;
 }) => (
   <SuperChart
+    theme={supersetTheme}
     chartType="echarts-timeseries"
     width={width}
     height={height}
@@ -245,6 +249,7 @@ export const StackWithNulls = ({
   height: number;
 }) => (
   <SuperChart
+    theme={supersetTheme}
     chartType="echarts-timeseries"
     width={width}
     height={height}

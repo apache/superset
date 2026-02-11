@@ -21,6 +21,7 @@ import {
   VizType,
   getChartTransformPropsRegistry,
 } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/ui';
 import {
   EchartsWaterfallChartPlugin,
   WaterfallTransformProps,
@@ -80,6 +81,7 @@ export const Waterfall = ({
   yAxisFormat: string;
 }) => (
   <SuperChart
+    theme={supersetTheme}
     chartType={VizType.Waterfall}
     width={width}
     height={height}
