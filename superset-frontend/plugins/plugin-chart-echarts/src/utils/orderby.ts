@@ -19,9 +19,9 @@
 import { QueryFormColumn, QueryFormOrderBy } from '@superset-ui/core';
 
 /**
- * Builds ascending orderby clauses from a list of columns, filtering out
- * any non-string or nullish values. This ensures deterministic row ordering
- * so that chart elements maintain stable positions across auto-refreshes.
+ * Builds orderby clauses from a list of columns, filtering out any non-string
+ * or nullish values. This ensures deterministic row ordering so that chart
+ * elements maintain stable positions across auto-refreshes.
  */
 export function buildColumnsOrderBy(
   columns: (QueryFormColumn | string | undefined | null)[],
