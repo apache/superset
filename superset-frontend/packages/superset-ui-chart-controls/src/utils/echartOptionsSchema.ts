@@ -61,8 +61,7 @@ const symbolTypeSchema = z.string();
 // Text Style Schema
 // =============================================================================
 
-export const textStyleSchema = z
-  .object({
+export const textStyleSchema = z.object({
     color: colorSchema.optional(),
     fontStyle: fontStyleSchema.optional(),
     fontWeight: fontWeightSchema.optional(),
@@ -91,15 +90,15 @@ export const textStyleSchema = z
     textShadowOffsetY: z.number().optional(),
     overflow: z.enum(['none', 'truncate', 'break', 'breakAll']).optional(),
     ellipsis: z.string().optional(),
-  })
-  .passthrough();
+    align: z.enum(['left', 'center', 'right']).optional(),
+    verticalAlign: z.enum(['top', 'middle', 'bottom']).optional(),
+  }).catchall(z.unknown());
 
 // =============================================================================
 // Style Schemas
 // =============================================================================
 
-export const lineStyleSchema = z
-  .object({
+export const lineStyleSchema = z.object({
     color: colorSchema.optional(),
     width: z.number().optional(),
     type: lineTypeSchema.optional(),
@@ -112,11 +111,9 @@ export const lineStyleSchema = z
     shadowOffsetX: z.number().optional(),
     shadowOffsetY: z.number().optional(),
     opacity: z.number().min(0).max(1).optional(),
-  })
-  .passthrough();
+  });
 
-export const areaStyleSchema = z
-  .object({
+export const areaStyleSchema = z.object({
     color: z.union([colorSchema, z.array(colorSchema)]).optional(),
     origin: z.union([z.enum(['auto', 'start', 'end']), z.number()]).optional(),
     shadowBlur: z.number().optional(),
@@ -124,11 +121,9 @@ export const areaStyleSchema = z
     shadowOffsetX: z.number().optional(),
     shadowOffsetY: z.number().optional(),
     opacity: z.number().min(0).max(1).optional(),
-  })
-  .passthrough();
+  });
 
-export const itemStyleSchema = z
-  .object({
+export const itemStyleSchema = z.object({
     color: colorSchema.optional(),
     borderColor: colorSchema.optional(),
     borderWidth: z.number().optional(),
@@ -139,15 +134,13 @@ export const itemStyleSchema = z
     shadowOffsetX: z.number().optional(),
     shadowOffsetY: z.number().optional(),
     opacity: z.number().min(0).max(1).optional(),
-  })
-  .passthrough();
+  });
 
 // =============================================================================
 // Label Schema
 // =============================================================================
 
-export const labelSchema = z
-  .object({
+export const labelSchema = z.object({
     show: z.boolean().optional(),
     position: z
       .enum([
@@ -177,8 +170,7 @@ export const labelSchema = z
     fontFamily: z.string().optional(),
     fontSize: z.number().optional(),
     lineHeight: z.number().optional(),
-  })
-  .passthrough();
+  });
 
 // =============================================================================
 // Title Schema
@@ -294,8 +286,7 @@ export const gridSchema = z.object({
 // Axis Schemas
 // =============================================================================
 
-const axisLineSchema = z
-  .object({
+const axisLineSchema = z.object({
     show: z.boolean().optional(),
     onZero: z.boolean().optional(),
     onZeroAxisIndex: z.number().optional(),
@@ -303,22 +294,18 @@ const axisLineSchema = z
     symbolSize: z.array(z.number()).optional(),
     symbolOffset: z.union([z.number(), z.array(z.number())]).optional(),
     lineStyle: lineStyleSchema.optional(),
-  })
-  .passthrough();
+  });
 
-const axisTickSchema = z
-  .object({
+const axisTickSchema = z.object({
     show: z.boolean().optional(),
     alignWithLabel: z.boolean().optional(),
     interval: z.union([z.number(), z.literal('auto')]).optional(),
     inside: z.boolean().optional(),
     length: z.number().optional(),
     lineStyle: lineStyleSchema.optional(),
-  })
-  .passthrough();
+  });
 
-const axisLabelSchema = z
-  .object({
+const axisLabelSchema = z.object({
     show: z.boolean().optional(),
     interval: z.union([z.number(), z.literal('auto')]).optional(),
     inside: z.boolean().optional(),
@@ -333,27 +320,21 @@ const axisLabelSchema = z
     fontWeight: fontWeightSchema.optional(),
     fontFamily: z.string().optional(),
     fontSize: z.number().optional(),
-  })
-  .passthrough();
+  });
 
-const splitLineSchema = z
-  .object({
+const splitLineSchema = z.object({
     show: z.boolean().optional(),
     interval: z.union([z.number(), z.literal('auto')]).optional(),
     lineStyle: lineStyleSchema.optional(),
-  })
-  .passthrough();
+  });
 
-const splitAreaSchema = z
-  .object({
+const splitAreaSchema = z.object({
     show: z.boolean().optional(),
     interval: z.union([z.number(), z.literal('auto')]).optional(),
     areaStyle: areaStyleSchema.optional(),
-  })
-  .passthrough();
+  });
 
-export const axisSchema = z
-  .object({
+export const axisSchema = z.object({
     id: z.string().optional(),
     show: z.boolean().optional(),
     gridIndex: z.number().optional(),
@@ -389,8 +370,7 @@ export const axisSchema = z
     splitArea: splitAreaSchema.optional(),
     zlevel: z.number().optional(),
     z: z.number().optional(),
-  })
-  .passthrough();
+  });
 
 // =============================================================================
 // Tooltip Schema
@@ -437,8 +417,7 @@ export const tooltipSchema = z.object({
 // DataZoom Schema
 // =============================================================================
 
-export const dataZoomSchema = z
-  .object({
+export const dataZoomSchema = z.object({
     type: z.enum(['slider', 'inside']).optional(),
     id: z.string().optional(),
     show: z.boolean().optional(),
@@ -489,8 +468,7 @@ export const dataZoomSchema = z
       .union([z.boolean(), z.enum(['shift', 'ctrl', 'alt'])])
       .optional(),
     preventDefaultMouseMove: z.boolean().optional(),
-  })
-  .passthrough();
+  });
 
 // =============================================================================
 // Toolbox Schema
@@ -505,12 +483,9 @@ export const toolboxSchema = z.object({
   showTitle: z.boolean().optional(),
   feature: z.record(z.string(), z.unknown()).optional(),
   iconStyle: itemStyleSchema.optional(),
-  emphasis: z
-    .object({
+  emphasis: z.object({
       iconStyle: itemStyleSchema.optional(),
-    })
-    .passthrough()
-    .optional(),
+    }).optional(),
   zlevel: z.number().optional(),
   z: z.number().optional(),
   left: numberOrPercentSchema.optional(),
@@ -525,8 +500,7 @@ export const toolboxSchema = z.object({
 // VisualMap Schema
 // =============================================================================
 
-export const visualMapSchema = z
-  .object({
+export const visualMapSchema = z.object({
     type: z.enum(['continuous', 'piecewise']).optional(),
     id: z.string().optional(),
     min: z.number().optional(),
@@ -571,15 +545,13 @@ export const visualMapSchema = z
     showLabel: z.boolean().optional(),
     itemGap: z.number().optional(),
     itemSymbol: symbolTypeSchema.optional(),
-  })
-  .passthrough();
+  });
 
 // =============================================================================
 // Series Schema
 // =============================================================================
 
-const emphasisSchema = z
-  .object({
+const emphasisSchema = z.object({
     disabled: z.boolean().optional(),
     focus: z
       .enum(['none', 'self', 'series', 'ancestor', 'descendant', 'relative'])
@@ -590,20 +562,17 @@ const emphasisSchema = z
     itemStyle: itemStyleSchema.optional(),
     lineStyle: lineStyleSchema.optional(),
     areaStyle: areaStyleSchema.optional(),
-  })
-  .passthrough();
+  });
 
-const stateSchema = z
-  .object({
+const stateSchema = z.object({
     label: labelSchema.optional(),
     itemStyle: itemStyleSchema.optional(),
     lineStyle: lineStyleSchema.optional(),
     areaStyle: areaStyleSchema.optional(),
-  })
-  .passthrough();
+  });
 
-export const seriesSchema = z
-  .object({
+export const seriesSchema = z.object({
+    type: z.string().optional(),
     id: z.string().optional(),
     name: z.string().optional(),
     colorBy: z.enum(['series', 'data']).optional(),
@@ -625,15 +594,13 @@ export const seriesSchema = z
         minTurnAngle: z.number().optional(),
         lineStyle: lineStyleSchema.optional(),
       })
-      .passthrough()
-      .optional(),
+            .optional(),
     labelLayout: z
       .object({
         hideOverlap: z.boolean().optional(),
         moveOverlap: z.enum(['shiftX', 'shiftY']).optional(),
       })
-      .passthrough()
-      .optional(),
+            .optional(),
     itemStyle: itemStyleSchema.optional(),
     lineStyle: lineStyleSchema.optional(),
     areaStyle: areaStyleSchema.optional(),
@@ -655,15 +622,13 @@ export const seriesSchema = z
     animationDurationUpdate: z.number().optional(),
     animationEasingUpdate: z.string().optional(),
     animationDelayUpdate: z.number().optional(),
-  })
-  .passthrough();
+  });
 
 // =============================================================================
 // Graphic Schema
 // =============================================================================
 
-export const graphicElementSchema = z
-  .object({
+export const graphicElementSchema = z.object({
     type: z
       .enum([
         'group',
@@ -706,8 +671,7 @@ export const graphicElementSchema = z
     originX: z.number().optional(),
     originY: z.number().optional(),
     children: z.array(z.record(z.string(), z.unknown())).optional(),
-  })
-  .passthrough();
+  });
 
 // =============================================================================
 // AxisPointer Schema
@@ -740,8 +704,7 @@ export const axisPointerSchema = z.object({
       shadowOffsetX: z.number().optional(),
       shadowOffsetY: z.number().optional(),
     })
-    .passthrough()
-    .optional(),
+        .optional(),
   lineStyle: lineStyleSchema.optional(),
   shadowStyle: areaStyleSchema.optional(),
   triggerTooltip: z.boolean().optional(),
@@ -760,8 +723,7 @@ export const axisPointerSchema = z.object({
       shadowOffsetX: z.number().optional(),
       shadowOffsetY: z.number().optional(),
     })
-    .passthrough()
-    .optional(),
+        .optional(),
   link: z.array(z.record(z.string(), z.unknown())).optional(),
 });
 
