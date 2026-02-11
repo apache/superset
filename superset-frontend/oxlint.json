@@ -34,7 +34,8 @@
     "no-unused-vars": "off",
     "no-undef": "error",
     "no-prototype-builtins": "off",
-    "no-unsafe-optional-chaining": "off",
+    "no-unsafe-optional-chaining": "error",
+    "no-constant-binary-expression": "error",
     "no-import-assign": "off",
     "no-promise-executor-return": "off",
 
@@ -136,7 +137,7 @@
     "react/jsx-no-bind": "off",
     "react/jsx-props-no-spreading": "off",
     "react/jsx-boolean-value": ["error", "never", { "always": [] }],
-    "react/jsx-no-duplicate-props": ["error", { "ignoreCase": true }],
+    "react/jsx-no-duplicate-props": "error",
     "react/jsx-no-undef": "error",
     "react/jsx-pascal-case": ["error", { "allowAllCaps": true, "ignore": [] }],
     "react/jsx-uses-vars": "error",
@@ -254,6 +255,7 @@
     // === Unicorn rules (bonus coverage) ===
     "unicorn/no-new-array": "error",
     "unicorn/no-invalid-remove-event-listener": "error",
+    "unicorn/no-useless-length-check": "error",
     "unicorn/filename-case": "off",
     "unicorn/prevent-abbreviations": "off",
     "unicorn/no-null": "off",
