@@ -195,8 +195,12 @@ export const useBulkExport = ({
         let counter = 1;
 
         while (usedSheetNames.has(sheetName)) {
-          const baseName = sanitizeSheetName(result.chartName).substring(0, 28);
-          sheetName = `${baseName}(${counter})`;
+          const suffix = `(${counter})`;
+          const baseName = sanitizeSheetName(result.chartName).substring(
+            0,
+            31 - suffix.length,
+          );
+          sheetName = `${baseName}${suffix}`;
           counter += 1;
         }
 
