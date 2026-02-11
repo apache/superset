@@ -298,7 +298,7 @@ class TestDatastoreDbEngineSpec(SupersetTestCase):
         """
         database = mock.MagicMock()
         result = DatastoreEngineSpec.get_function_names(database)
-        assert result == ["sum", "avg", "count"]
+        assert result == ["sum", "avg", "count", "count_up_to", "min", "max"]
 
     def test_get_view_names(self):
         """

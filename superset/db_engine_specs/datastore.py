@@ -339,15 +339,11 @@ class DatastoreEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-me
             credentials = service_account.Credentials.from_service_account_info(
                 credentials_info
             )
-            return datastore.Client(
-                credentials=credentials, database=database_id
-            )
+            return datastore.Client(credentials=credentials, database=database_id)
 
         try:
             credentials = google.auth.default()[0]
-            return datastore.Client(
-                credentials=credentials, database=database_id
-            )
+            return datastore.Client(credentials=credentials, database=database_id)
         except google.auth.exceptions.DefaultCredentialsError as ex:
             raise SupersetDBAPIConnectionError(
                 "The database credentials could not be found."
@@ -589,7 +585,7 @@ class DatastoreEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-me
         :param database: The database to get functions for
         :return: A list of function names useable in the database
         """
-        return ["sum", "avg", "count"]
+        return ["sum", "avg", "count", "count_up_to", "min", "max"]
 
     @classmethod
     def get_view_names(  # pylint: disable=unused-argument
