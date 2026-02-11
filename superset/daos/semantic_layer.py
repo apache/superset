@@ -30,6 +30,18 @@ class SemanticLayerDAO(BaseDAO[SemanticLayer]):
     """
 
     @staticmethod
+    def find_by_uuid(uuid_str: str) -> SemanticLayer | None:
+        return (
+            db.session.query(SemanticLayer)
+            .filter(SemanticLayer.uuid == uuid_str)
+            .one_or_none()
+        )
+
+    @staticmethod
+    def find_all() -> list[SemanticLayer]:
+        return db.session.query(SemanticLayer).all()
+
+    @staticmethod
     def validate_uniqueness(name: str) -> bool:
         """
         Validate that semantic layer name is unique.

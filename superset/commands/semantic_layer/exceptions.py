@@ -19,6 +19,8 @@ from flask_babel import lazy_gettext as _
 from superset.commands.exceptions import (
     CommandException,
     CommandInvalidError,
+    CreateFailedError,
+    DeleteFailedError,
     ForbiddenError,
     UpdateFailedError,
 )
@@ -39,3 +41,28 @@ class SemanticViewInvalidError(CommandInvalidError):
 
 class SemanticViewUpdateFailedError(UpdateFailedError):
     message = _("Semantic view could not be updated.")
+
+
+class SemanticLayerNotFoundError(CommandException):
+    status = 404
+    message = _("Semantic layer does not exist")
+
+
+class SemanticLayerForbiddenError(ForbiddenError):
+    message = _("Changing this semantic layer is forbidden")
+
+
+class SemanticLayerInvalidError(CommandInvalidError):
+    message = _("Semantic layer parameters are invalid.")
+
+
+class SemanticLayerCreateFailedError(CreateFailedError):
+    message = _("Semantic layer could not be created.")
+
+
+class SemanticLayerUpdateFailedError(UpdateFailedError):
+    message = _("Semantic layer could not be updated.")
+
+
+class SemanticLayerDeleteFailedError(DeleteFailedError):
+    message = _("Semantic layer could not be deleted.")
