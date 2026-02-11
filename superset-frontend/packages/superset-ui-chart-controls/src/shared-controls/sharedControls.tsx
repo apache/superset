@@ -455,6 +455,18 @@ const order_by_cols: SharedControlConfig<'SelectControl'> = {
   resetOnHide: false,
 };
 
+const echart_options: SharedControlConfig<'JSEditorControl'> = {
+  type: 'JSEditorControl',
+  label: t('EChart Options (JS object literals)'),
+  description: t(
+    'A JavaScript object that adheres to the ECharts options specification. ' +
+      '(i.e. { title: { text: "My Chart" }, tooltip: { trigger: "item" } })',
+  ),
+  default: '{}',
+  renderTrigger: true,
+  validators: [],
+};
+
 const sharedControls: Record<string, SharedControlConfig<any>> = {
   metrics: dndAdhocMetricsControl,
   metric: dndAdhocMetricControl,
@@ -501,6 +513,7 @@ const sharedControls: Record<string, SharedControlConfig<any>> = {
   currency_format,
   sort_by_metric,
   order_by_cols,
+  echart_options,
 
   // Add all Matrixify controls
   ...matrixifyControls,

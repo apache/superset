@@ -30,6 +30,7 @@
     "lodash": "^4.17.23"
   },
   "peerDependencies": {
+    "acorn": "*",
     "@ant-design/icons": "^5.2.6",
     "@emotion/react": "^11.4.1",
     "@superset-ui/core": "*",
@@ -43,7 +44,8 @@
     "memoize-one": "^5.1.1",
     "react": "^17.0.2",
     "react-ace": "^10.1.0",
-    "react-dom": "^17.0.2"
+    "react-dom": "^17.0.2",
+    "zod": "*"
   },
   "publishConfig": {
     "access": "public"

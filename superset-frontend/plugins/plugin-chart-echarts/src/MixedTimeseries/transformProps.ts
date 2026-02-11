@@ -43,7 +43,10 @@ import {
   ValueFormatter,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/api/core';
-import { getOriginalSeries } from '@superset-ui/chart-controls';
+import {
+  getOriginalSeries,
+  safeParseEChartOptions,
+} from '@superset-ui/chart-controls';
 import type { EChartsCoreOption } from 'echarts/core';
 import type { SeriesOption } from 'echarts';
 import {
@@ -99,6 +102,7 @@ import {
   getYAxisFormatter,
 } from '../utils/formatters';
 import { getMetricDisplayName } from '../utils/metricDisplayName';
+import { mergeCustomEChartOptions } from '../utils/mergeCustomEChartOptions';
 
 const getFormatter = (
   customFormatters: Record<string, ValueFormatter>,
@@ -122,7 +126,7 @@ export default function transformProps(
   const {
     width,
     height,
-    formData,
+    formData: { echartOptions: _echartOptions, ...formData },
     queriesData,
     hooks,
     filterState,
@@ -803,11 +807,25 @@ export default function transformProps(
     focusedSeries = seriesName;
   };
 
+  let mergedEchartOptions;
+  try {
+    // Parse custom EChart options safely using AST analysis
+    // This replaces the unsafe `new Function()` approach with a secure parser
+    // that only allows static data structures (no function callbacks)
+    const customEchartOptions = safeParseEChartOptions(_echartOptions);
+    mergedEchartOptions = mergeCustomEChartOptions(
+      echartOptions,
+      customEchartOptions,
+    );
+  } catch (_) {
+    mergedEchartOptions = echartOptions;
+  }
+
   return {
     formData,
     width,
     height,
-    echartOptions,
+    echartOptions: mergedEchartOptions,
     setDataMask,
     emitCrossFilters,
     labelMap,
