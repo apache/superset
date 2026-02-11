@@ -96,6 +96,24 @@ To enable this entry, add the following line to the `.env` file:
 SUPERSET_FEATURE_EMBEDDED_SUPERSET=true
 ```
 
+### Hiding the Logout Button in Embedded Contexts
+
+When Superset is embedded in an application that manages authentication via SSO (OAuth2, SAML, or JWT), the logout button should be hidden since session management is handled by the parent application.
+
+To hide the logout button in embedded contexts, add to `superset_config.py`:
+
+```python
+FEATURE_FLAGS = {
+    "DISABLE_EMBEDDED_SUPERSET_LOGOUT": True,
+}
+```
+
+This flag only hides the logout button when Superset detects it is running inside an iframe. Users accessing Superset directly (not embedded) will still see the logout button regardless of this setting.
+
+:::note
+When embedding with SSO, also set `SESSION_COOKIE_SAMESITE = 'None'` and `SESSION_COOKIE_SECURE = True`. See [Security documentation](/docs/security/securing_superset) for details.
+:::
+
 ## CSRF settings
 
 Similarly, [flask-wtf](https://flask-wtf.readthedocs.io/en/0.15.x/config/) is used to manage
