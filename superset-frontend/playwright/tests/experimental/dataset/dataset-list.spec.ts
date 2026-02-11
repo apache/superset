@@ -634,7 +634,7 @@ test('should edit column date format via modal', async ({
 
   // Verify via API
   const updatedRes = await apiGetDataset(page, datasetId);
-  const columns = (await updatedRes.json()).result.columns;
+  const { columns } = (await updatedRes.json()).result;
   const dsColumn = columns.find(
     (c: { column_name: string }) => c.column_name === 'ds',
   );
@@ -677,6 +677,6 @@ test('should edit dataset description via modal', async ({
 
   // Verify via API
   const updatedRes = await apiGetDataset(page, datasetId);
-  const result = (await updatedRes.json()).result;
+  const { result } = await updatedRes.json();
   expect(result.description).toBe(description);
 });

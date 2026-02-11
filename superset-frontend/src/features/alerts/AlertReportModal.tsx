@@ -1887,7 +1887,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             : {};
         return {
           method: setting.type,
-          // @ts-ignore: Type not assignable
           recipients: config.target || setting.recipient_config_json,
           options: allowedNotificationMethods,
           cc: config.ccTarget || '',
@@ -1943,7 +1942,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             (owner as MetaObject).label ||
             `${(owner as Owner).first_name} ${(owner as Owner).last_name}`,
         })),
-        // @ts-ignore: Type not assignable
         validator_config_json:
           resource.validator_type === 'not null'
             ? {

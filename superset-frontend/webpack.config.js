@@ -208,7 +208,7 @@ if (isDevMode) {
 }
 
 if (!isDevMode) {
-  // text loading (webpack 4+)
+  // CSS extraction for production builds
   plugins.push(
     new MiniCssExtractPlugin({
       filename: '[name].[chunkhash].entry.css',
@@ -377,9 +377,6 @@ const config = {
             `/node_modules/(${[
               'react',
               'react-dom',
-              'prop-types',
-              'react-prop-types',
-              'prop-types-extra',
               'redux',
               'react-redux',
               'react-sortable-hoc',
@@ -455,8 +452,9 @@ const config = {
       This prevents "Module not found" errors for moment locale files.
       */
       'moment/min/moment-with-locales': false,
-      // Temporary workaround to allow Storybook 8 to work with existing React v16-compatible stories.
-      // Remove below alias once React has been upgreade to v18.
+      // Storybook 8 expects React 18's createRoot API. Since this project uses React 17,
+      // we alias to the react-16 shim which provides the legacy ReactDOM.render API.
+      // Remove this alias when React is upgraded to v18+.
       '@storybook/react-dom-shim': path.resolve(
         path.join(
           APP_DIR,
@@ -488,6 +486,12 @@ const config = {
         loader: 'imports-loader',
         options: {
           additionalCode: 'var module = module || {exports: {}};',
+        },
+      },
+      {
+        test: /node_modules\/(geostyler-style|geostyler-qgis-parser)\/.*\.js$/,
+        resolve: {
+          fullySpecified: false,
         },
       },
       {

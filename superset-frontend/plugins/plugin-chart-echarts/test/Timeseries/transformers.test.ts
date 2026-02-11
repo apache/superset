@@ -40,7 +40,7 @@ const mockColorScale = jest.fn(
 describe('transformSeries', () => {
   const series = { name: 'test-series' };
 
-  it('should use the colorScaleKey if timeShiftColor is enabled', () => {
+  test('should use the colorScaleKey if timeShiftColor is enabled', () => {
     const opts = {
       timeShiftColor: true,
       colorScaleKey: 'test-key',
@@ -52,7 +52,7 @@ describe('transformSeries', () => {
     expect((result as any)?.itemStyle.color).toBe('color-for-test-key-1');
   });
 
-  it('should use seriesKey if timeShiftColor is not enabled', () => {
+  test('should use seriesKey if timeShiftColor is not enabled', () => {
     const opts = {
       timeShiftColor: false,
       seriesKey: 'series-key',
@@ -64,7 +64,7 @@ describe('transformSeries', () => {
     expect((result as any)?.itemStyle.color).toBe('color-for-series-key-2');
   });
 
-  it('should apply border styles for bar series with connectNulls', () => {
+  test('should apply border styles for bar series with connectNulls', () => {
     const opts = {
       seriesType: EchartsTimeseriesSeriesType.Bar,
       connectNulls: true,
@@ -80,7 +80,7 @@ describe('transformSeries', () => {
     );
   });
 
-  it('should not apply border styles for non-bar series', () => {
+  test('should not apply border styles for non-bar series', () => {
     const opts = {
       seriesType: EchartsTimeseriesSeriesType.Line,
       connectNulls: true,
@@ -94,7 +94,7 @@ describe('transformSeries', () => {
     expect((result as any).itemStyle.borderColor).toBeUndefined();
   });
 
-  it('should dim series when selectedValues does not include series name (dimension-based filtering)', () => {
+  test('should dim series when selectedValues does not include series name (dimension-based filtering)', () => {
     const opts = {
       filterState: { selectedValues: ['other-series'] },
       hasDimensions: true,
@@ -108,7 +108,7 @@ describe('transformSeries', () => {
     expect((result as any).itemStyle.opacity).toBe(0.3);
   });
 
-  it('should not dim series when hasDimensions is false (X-axis cross-filtering)', () => {
+  test('should not dim series when hasDimensions is false (X-axis cross-filtering)', () => {
     const opts = {
       filterState: { selectedValues: ['Product A'] },
       hasDimensions: false,
@@ -124,7 +124,7 @@ describe('transformSeries', () => {
 });
 
 describe('transformNegativeLabelsPosition', () => {
-  it('label position bottom of negative value no Horizontal', () => {
+  test('label position bottom of negative value no Horizontal', () => {
     const isHorizontal = false;
     const series: SeriesOption = {
       data: [
@@ -148,7 +148,7 @@ describe('transformNegativeLabelsPosition', () => {
     expect((result as any)[4].label).toBe(undefined);
   });
 
-  it('label position left of negative value is Horizontal', () => {
+  test('label position left of negative value is Horizontal', () => {
     const isHorizontal = true;
     const series: SeriesOption = {
       data: [
@@ -173,7 +173,7 @@ describe('transformNegativeLabelsPosition', () => {
     expect((result as any)[4].label.position).toBe('outside');
   });
 
-  it('label position to line type', () => {
+  test('label position to line type', () => {
     const isHorizontal = false;
     const series: SeriesOption = {
       data: [
@@ -201,7 +201,7 @@ describe('transformNegativeLabelsPosition', () => {
     expect((result as any)[4].label).toBe(undefined);
   });
 
-  it('label position to bar type and stack', () => {
+  test('label position to bar type and stack', () => {
     const isHorizontal = false;
     const series: SeriesOption = {
       data: [
@@ -286,14 +286,12 @@ function setupGetChartPaddingMock(): jest.SpyInstance {
             top?: number;
           }
         | undefined,
-    ) => {
-      return {
-        bottom: padding?.bottom ?? 0,
-        left: padding?.left ?? 0,
-        right: padding?.right ?? 0,
-        top: padding?.top ?? 0,
-      };
-    },
+    ) => ({
+      bottom: padding?.bottom ?? 0,
+      left: padding?.left ?? 0,
+      right: padding?.right ?? 0,
+      top: padding?.top ?? 0,
+    }),
   );
   return getChartPaddingSpy;
 }

@@ -22,8 +22,7 @@ import {
   fireEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
-import { Comparator } from '@superset-ui/chart-controls';
-import { ColorSchemeEnum } from '@superset-ui/plugin-chart-table';
+import { Comparator, ColorSchemeEnum } from '@superset-ui/chart-controls';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import { FormattingPopoverContent } from './FormattingPopoverContent';
 import { ConditionalFormattingConfig } from './types';

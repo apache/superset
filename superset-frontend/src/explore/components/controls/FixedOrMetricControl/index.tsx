@@ -17,7 +17,6 @@
  * under the License.
  */
 import { Component } from 'react';
-import PropTypes from 'prop-types';
 import { t } from '@apache-superset/core';
 import { Collapse, Label } from '@superset-ui/core/components';
 import TextControl from 'src/explore/components/controls/TextControl';
@@ -64,17 +63,6 @@ interface FixedOrMetricControlState {
   fixedValue: string | number;
   metricValue: MetricValue | null;
 }
-
-const propTypes = {
-  onChange: PropTypes.func,
-  value: PropTypes.object,
-  isFloat: PropTypes.bool,
-  datasource: PropTypes.object.isRequired,
-  default: PropTypes.shape({
-    type: PropTypes.oneOf(['fix', 'metric']),
-    value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-  }),
-};
 
 const defaultProps = {
   onChange: () => {},
@@ -216,7 +204,5 @@ export default class FixedOrMetricControl extends Component<
   }
 }
 
-// @ts-expect-error - propTypes are defined for runtime validation but TypeScript handles type checking
-FixedOrMetricControl.propTypes = propTypes;
-// @ts-expect-error - defaultProps for backward compatibility with PropTypes
+// @ts-expect-error - defaultProps for backward compatibility
 FixedOrMetricControl.defaultProps = defaultProps;

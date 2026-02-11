@@ -18,7 +18,45 @@
  */
 
 import d3 from 'd3';
+import { getNumberFormatter, ValueFormatter } from '@superset-ui/core';
 import WorldMap from '../src/WorldMap';
+import { ColorBy } from '../src/utils';
+
+interface WorldMapDataEntry {
+  country: string;
+  code: string;
+  latitude: number;
+  longitude: number;
+  name: string;
+  m1: number;
+  m2: number;
+}
+
+interface WorldMapProps {
+  countryFieldtype: string;
+  entity: string;
+  data: WorldMapDataEntry[];
+  width: number;
+  height: number;
+  maxBubbleSize: number;
+  showBubbles: boolean;
+  linearColorScheme: string;
+  color: string;
+  colorBy: ColorBy;
+  colorScheme: string;
+  sliceId: number;
+  theme: Record<string, unknown>;
+  onContextMenu: (
+    x: number,
+    y: number,
+    payload: Record<string, unknown>,
+  ) => void;
+  setDataMask: (dataMask: Record<string, unknown>) => void;
+  inContextMenu: boolean;
+  filterState: { selectedValues?: string[] };
+  emitCrossFilters: boolean;
+  formatter: ValueFormatter;
+}
 
 type MouseEventHandler = (this: HTMLElement) => void;
 
@@ -39,8 +77,8 @@ const mockSvg = {
   style: jest.fn().mockReturnThis(),
 };
 
-jest.mock('datamaps/dist/datamaps.all.min', () => {
-  return jest.fn().mockImplementation(config => {
+jest.mock('datamaps/dist/datamaps.all.min', () =>
+  jest.fn().mockImplementation(config => {
     // Call the done callback immediately to simulate Datamap initialization
     if (config.done) {
       config.done({
@@ -52,16 +90,32 @@ jest.mock('datamaps/dist/datamaps.all.min', () => {
       updateChoropleth: mockUpdateChoropleth,
       svg: mockSvg,
     };
-  });
-});
+  }),
+);
 
 let container: HTMLElement;
-const mockFormatter = jest.fn(val => String(val));
+const formatter = getNumberFormatter();
 
-const baseProps = {
+const baseProps: WorldMapProps = {
   data: [
-    { country: 'USA', name: 'United States', m1: 100, m2: 200, code: 'US' },
-    { country: 'CAN', name: 'Canada', m1: 50, m2: 100, code: 'CA' },
+    {
+      country: 'USA',
+      name: 'United States',
+      m1: 100,
+      m2: 200,
+      code: 'US',
+      latitude: 37.0902,
+      longitude: -95.7129,
+    },
+    {
+      country: 'CAN',
+      name: 'Canada',
+      m1: 50,
+      m2: 100,
+      code: 'CA',
+      latitude: 56.1304,
+      longitude: -106.3468,
+    },
   ],
   width: 600,
   height: 400,
@@ -69,7 +123,7 @@ const baseProps = {
   showBubbles: false,
   linearColorScheme: 'schemeRdYlBu',
   color: '#61B0B7',
-  colorBy: 'country',
+  colorBy: ColorBy.Country,
   colorScheme: 'supersetColors',
   sliceId: 123,
   theme: {
@@ -85,7 +139,7 @@ const baseProps = {
   inContextMenu: false,
   filterState: { selectedValues: [] },
   emitCrossFilters: false,
-  formatter: mockFormatter,
+  formatter,
 };
 
 beforeEach(() => {
@@ -143,7 +197,7 @@ test('stores original fill color on mouseover', () => {
     selectAll: jest.fn().mockReturnValue({ remove: jest.fn() }),
   };
 
-  jest.spyOn(d3, 'select').mockReturnValue(mockD3Selection as any);
+  jest.spyOn(d3 as any, 'select').mockReturnValue(mockD3Selection as any);
 
   // Capture the mouseover handler
   mockSvg.on.mockImplementation((event: string, handler: MouseEventHandler) => {
@@ -198,7 +252,7 @@ test('restores original fill color on mouseout for country with data', () => {
     selectAll: jest.fn().mockReturnValue({ remove: jest.fn() }),
   };
 
-  jest.spyOn(d3, 'select').mockReturnValue(mockD3Selection as any);
+  jest.spyOn(d3 as any, 'select').mockReturnValue(mockD3Selection as any);
 
   // Capture the mouseout handler
   mockSvg.on.mockImplementation((event: string, handler: MouseEventHandler) => {
@@ -254,7 +308,7 @@ test('restores default fill color on mouseout for country with no data', () => {
     selectAll: jest.fn().mockReturnValue({ remove: jest.fn() }),
   };
 
-  jest.spyOn(d3, 'select').mockReturnValue(mockD3Selection as any);
+  jest.spyOn(d3 as any, 'select').mockReturnValue(mockD3Selection as any);
 
   mockSvg.on.mockImplementation((event: string, handler: MouseEventHandler) => {
     if (event === 'mouseout') {
@@ -296,7 +350,7 @@ test('does not handle mouse events when inContextMenu is true', () => {
     selectAll: jest.fn().mockReturnValue({ remove: jest.fn() }),
   };
 
-  jest.spyOn(d3, 'select').mockReturnValue(mockD3Selection as any);
+  jest.spyOn(d3 as any, 'select').mockReturnValue(mockD3Selection as any);
 
   mockSvg.on.mockImplementation((event: string, handler: MouseEventHandler) => {
     if (event === 'mouseover') {

@@ -53,7 +53,7 @@ export default function AdhocFilterEditPopoverSqlTabContent({
   const theme = useTheme();
 
   useEffect(() => {
-    // @ts-ignore
+    // @ts-expect-error - AceEditor ref type doesn't expose editor.resize()
     aceEditorRef?.current?.editor.resize();
   }, [adhocFilter]);
 
@@ -126,9 +126,7 @@ export default function AdhocFilterEditPopoverSqlTabContent({
       >
         <SQLEditorWithValidation
           ref={aceEditorRef}
-          keywords={keywords.map((k: any) =>
-            typeof k === 'string' ? k : k.value || k.name || k,
-          )}
+          keywords={keywords}
           height={`${height - 130}px`}
           onChange={onSqlExpressionChange}
           width="100%"

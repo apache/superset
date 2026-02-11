@@ -72,7 +72,7 @@ describe('callApi()', () => {
   afterEach(() => fetchMock.clearHistory().removeRoutes());
 
   describe('request config', () => {
-    it('calls the right url with the specified method', async () => {
+    test('calls the right url with the specified method', async () => {
       expect.assertions(4);
       await Promise.all([
         callApi({ url: mockGetUrl, method: 'GET' }),
@@ -86,7 +86,7 @@ describe('callApi()', () => {
       expect(fetchMock.callHistory.calls(mockPatchUrl)).toHaveLength(1);
     });
 
-    it('passes along mode, cache, credentials, headers, body, signal, and redirect parameters in the request', async () => {
+    test('passes along mode, cache, credentials, headers, body, signal, and redirect parameters in the request', async () => {
       expect.assertions(8);
       const mockRequest: CallApi = {
         url: mockGetUrl,
@@ -119,7 +119,7 @@ describe('callApi()', () => {
   });
 
   describe('POST requests', () => {
-    it('encodes key,value pairs from postPayload', async () => {
+    test('encodes key,value pairs from postPayload', async () => {
       expect.assertions(3);
       const postPayload = { key: 'value', anotherKey: 1237 };
 
@@ -136,7 +136,7 @@ describe('callApi()', () => {
     });
 
     // the reason for this is to omit strings like 'undefined' from making their way to the backend
-    it('omits key,value pairs from postPayload that have undefined values (POST)', async () => {
+    test('omits key,value pairs from postPayload that have undefined values (POST)', async () => {
       expect.assertions(3);
       const postPayload = { key: 'value', noValue: undefined };
 
@@ -150,7 +150,7 @@ describe('callApi()', () => {
       expect(body.get('noValue')).toBeNull();
     });
 
-    it('respects the stringify flag in POST requests', async () => {
+    test('respects the stringify flag in POST requests', async () => {
       const postPayload = {
         string: 'value',
         number: 1237,
@@ -188,7 +188,7 @@ describe('callApi()', () => {
       });
     });
 
-    it('removes corrupt value when building formData with stringify = false', async () => {
+    test('removes corrupt value when building formData with stringify = false', async () => {
       /*
         There has been a case when 'stringify' is false an object value on one of the
         attributes was missing a toString function making the cast to String() fail
@@ -228,7 +228,7 @@ describe('callApi()', () => {
   });
 
   describe('PUT requests', () => {
-    it('encodes key,value pairs from postPayload', async () => {
+    test('encodes key,value pairs from postPayload', async () => {
       expect.assertions(3);
       const postPayload = { key: 'value', anotherKey: 1237 };
 
@@ -245,7 +245,7 @@ describe('callApi()', () => {
     });
 
     // the reason for this is to omit strings like 'undefined' from making their way to the backend
-    it('omits key,value pairs from postPayload that have undefined values (PUT)', async () => {
+    test('omits key,value pairs from postPayload that have undefined values (PUT)', async () => {
       expect.assertions(3);
       const postPayload = { key: 'value', noValue: undefined };
 
@@ -259,7 +259,7 @@ describe('callApi()', () => {
       expect(body.get('noValue')).toBeNull();
     });
 
-    it('respects the stringify flag in PUT requests', async () => {
+    test('respects the stringify flag in PUT requests', async () => {
       const postPayload = {
         string: 'value',
         number: 1237,
@@ -294,7 +294,7 @@ describe('callApi()', () => {
   });
 
   describe('PATCH requests', () => {
-    it('encodes key,value pairs from postPayload', async () => {
+    test('encodes key,value pairs from postPayload', async () => {
       expect.assertions(3);
       const postPayload = { key: 'value', anotherKey: 1237 };
 
@@ -311,7 +311,7 @@ describe('callApi()', () => {
     });
 
     // the reason for this is to omit strings like 'undefined' from making their way to the backend
-    it('omits key,value pairs from postPayload that have undefined values (PATCH)', async () => {
+    test('omits key,value pairs from postPayload that have undefined values (PATCH)', async () => {
       expect.assertions(3);
       const postPayload = { key: 'value', noValue: undefined };
 
@@ -325,7 +325,7 @@ describe('callApi()', () => {
       expect(body.get('noValue')).toBeNull();
     });
 
-    it('respects the stringify flag in PATCH requests', async () => {
+    test('respects the stringify flag in PATCH requests', async () => {
       const postPayload = {
         string: 'value',
         number: 1237,
@@ -375,7 +375,7 @@ describe('callApi()', () => {
       await caches.delete(constants.CACHE_KEY);
     });
 
-    it('caches requests with ETags', async () => {
+    test('caches requests with ETags', async () => {
       expect.assertions(2);
       await callApi({ url: mockCacheUrl, method: 'GET' });
       const calls = fetchMock.callHistory.calls(mockCacheUrl);
@@ -385,7 +385,7 @@ describe('callApi()', () => {
       expect(cachedResponse).toBeDefined();
     });
 
-    it('will not use cache when running off an insecure connection', async () => {
+    test('will not use cache when running off an insecure connection', async () => {
       expect.assertions(2);
       window.location.protocol = 'http:';
 
@@ -398,7 +398,7 @@ describe('callApi()', () => {
       expect(cachedResponse).toBeUndefined();
     });
 
-    it('works when the Cache API is disabled', async () => {
+    test('works when the Cache API is disabled', async () => {
       expect.assertions(5);
       // eslint-disable-next-line no-import-assign
       Object.defineProperty(constants, 'CACHE_AVAILABLE', { value: false });
@@ -425,7 +425,7 @@ describe('callApi()', () => {
       Object.defineProperty(constants, 'CACHE_AVAILABLE', { value: true });
     });
 
-    it('sends known ETags in the If-None-Match header', async () => {
+    test('sends known ETags in the If-None-Match header', async () => {
       expect.assertions(3);
       // first call sets the cache
       await callApi({ url: mockCacheUrl, method: 'GET' });
@@ -443,7 +443,7 @@ describe('callApi()', () => {
       );
     });
 
-    it('reuses cached responses on 304 status', async () => {
+    test('reuses cached responses on 304 status', async () => {
       expect.assertions(3);
       // first call sets the cache
       await callApi({ url: mockCacheUrl, method: 'GET' });
@@ -461,7 +461,7 @@ describe('callApi()', () => {
       expect(secondBody).toEqual('BODY');
     });
 
-    it('throws error when cache fails on 304', async () => {
+    test('throws error when cache fails on 304', async () => {
       expect.assertions(2);
 
       // this should never happen, since a 304 is only returned if we have
@@ -484,7 +484,7 @@ describe('callApi()', () => {
       }
     });
 
-    it('returns original response if no Etag', async () => {
+    test('returns original response if no Etag', async () => {
       expect.assertions(3);
       const url = mockGetUrl;
       const response = await callApi({ url, method: 'GET' });
@@ -495,7 +495,7 @@ describe('callApi()', () => {
       expect(body as typeof mockGetPayload).toEqual(mockGetPayload);
     });
 
-    it('returns original response if status not 304 or 200', async () => {
+    test('returns original response if status not 304 or 200', async () => {
       expect.assertions(2);
       const url = mockNotFound;
       const response = await callApi({ url, method: 'GET' });
@@ -505,7 +505,7 @@ describe('callApi()', () => {
     });
   });
 
-  it('rejects after retrying thrice if the request throws', async () => {
+  test('rejects after retrying thrice if the request throws', async () => {
     expect.assertions(3);
     let error;
     try {
@@ -524,7 +524,7 @@ describe('callApi()', () => {
     }
   });
 
-  it('rejects without retries if the config is set to 0 retries', async () => {
+  test('rejects without retries if the config is set to 0 retries', async () => {
     expect.assertions(3);
     let error;
     try {
@@ -542,7 +542,7 @@ describe('callApi()', () => {
     }
   });
 
-  it('rejects after retrying thrice if the request returns a 503', async () => {
+  test('rejects after retrying thrice if the request returns a 503', async () => {
     expect.assertions(2);
     const url = mock503;
     const response = await callApi({
@@ -555,7 +555,7 @@ describe('callApi()', () => {
     expect(response.status).toEqual(503);
   });
 
-  it('invalid json for postPayload should thrown error', async () => {
+  test('invalid json for postPayload should thrown error', async () => {
     expect.assertions(2);
     let error;
     try {
@@ -572,7 +572,7 @@ describe('callApi()', () => {
     }
   });
 
-  it('should accept search params object', async () => {
+  test('should accept search params object', async () => {
     expect.assertions(3);
     window.location.href = 'http://localhost';
     fetchMock.get(`glob:*/get-search*`, { yes: 'ok' });
@@ -591,7 +591,7 @@ describe('callApi()', () => {
     );
   });
 
-  it('should accept URLSearchParams', async () => {
+  test('should accept URLSearchParams', async () => {
     expect.assertions(2);
     window.location.href = 'http://localhost';
     fetchMock.post(`glob:*/post-search*`, { yes: 'ok' });
@@ -613,7 +613,7 @@ describe('callApi()', () => {
     );
   });
 
-  it('should throw when both payloads provided', async () => {
+  test('should throw when both payloads provided', async () => {
     expect.assertions(1);
     fetchMock.post('/post-both-payload', {});
 
@@ -634,7 +634,7 @@ describe('callApi()', () => {
     }
   });
 
-  it('should accept FormData as postPayload', async () => {
+  test('should accept FormData as postPayload', async () => {
     expect.assertions(1);
     fetchMock.post('/post-formdata', {});
     const payload = new FormData();
@@ -646,7 +646,7 @@ describe('callApi()', () => {
     expect(fetchMock.callHistory.lastCall()?.options.body).toBe(payload);
   });
 
-  it('should ignore "null" postPayload string', async () => {
+  test('should ignore "null" postPayload string', async () => {
     expect.assertions(1);
     fetchMock.post('/post-null-postpayload', {});
     fetchMock.post('/post-formdata', {});

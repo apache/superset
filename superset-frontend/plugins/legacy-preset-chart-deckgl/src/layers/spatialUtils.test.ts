@@ -64,7 +64,7 @@ Object.defineProperty(document, 'getElementById', {
 const mockDecode = decode as jest.MockedFunction<typeof decode>;
 
 describe('spatialUtils', () => {
-  it('getSpatialColumns returns correct columns for latlong type', () => {
+  test('getSpatialColumns returns correct columns for latlong type', () => {
     const spatial: SpatialFormData['spatial'] = {
       type: 'latlong',
       lonCol: 'longitude',
@@ -75,7 +75,7 @@ describe('spatialUtils', () => {
     expect(result).toEqual(['longitude', 'latitude']);
   });
 
-  it('getSpatialColumns returns correct columns for delimited type', () => {
+  test('getSpatialColumns returns correct columns for delimited type', () => {
     const spatial: SpatialFormData['spatial'] = {
       type: 'delimited',
       lonlatCol: 'coordinates',
@@ -85,7 +85,7 @@ describe('spatialUtils', () => {
     expect(result).toEqual(['coordinates']);
   });
 
-  it('getSpatialColumns returns correct columns for geohash type', () => {
+  test('getSpatialColumns returns correct columns for geohash type', () => {
     const spatial: SpatialFormData['spatial'] = {
       type: 'geohash',
       geohashCol: 'geohash_code',
@@ -95,16 +95,16 @@ describe('spatialUtils', () => {
     expect(result).toEqual(['geohash_code']);
   });
 
-  it('getSpatialColumns throws error when spatial is null', () => {
+  test('getSpatialColumns throws error when spatial is null', () => {
     expect(() => getSpatialColumns(null as any)).toThrow('Bad spatial key');
   });
 
-  it('getSpatialColumns throws error when spatial type is missing', () => {
+  test('getSpatialColumns throws error when spatial type is missing', () => {
     const spatial = {} as SpatialFormData['spatial'];
     expect(() => getSpatialColumns(spatial)).toThrow('Bad spatial key');
   });
 
-  it('getSpatialColumns throws error when latlong columns are missing', () => {
+  test('getSpatialColumns throws error when latlong columns are missing', () => {
     const spatial: SpatialFormData['spatial'] = {
       type: 'latlong',
     };
@@ -113,7 +113,7 @@ describe('spatialUtils', () => {
     );
   });
 
-  it('getSpatialColumns throws error when delimited column is missing', () => {
+  test('getSpatialColumns throws error when delimited column is missing', () => {
     const spatial: SpatialFormData['spatial'] = {
       type: 'delimited',
     };
@@ -122,7 +122,7 @@ describe('spatialUtils', () => {
     );
   });
 
-  it('getSpatialColumns throws error when geohash column is missing', () => {
+  test('getSpatialColumns throws error when geohash column is missing', () => {
     const spatial: SpatialFormData['spatial'] = {
       type: 'geohash',
     };
@@ -131,7 +131,7 @@ describe('spatialUtils', () => {
     );
   });
 
-  it('getSpatialColumns throws error for unknown spatial type', () => {
+  test('getSpatialColumns throws error for unknown spatial type', () => {
     const spatial = {
       type: 'unknown',
     } as any;
@@ -140,7 +140,7 @@ describe('spatialUtils', () => {
     );
   });
 
-  it('addSpatialNullFilters adds null filters for spatial columns', () => {
+  test('addSpatialNullFilters adds null filters for spatial columns', () => {
     const spatial: SpatialFormData['spatial'] = {
       type: 'latlong',
       lonCol: 'longitude',
@@ -159,7 +159,7 @@ describe('spatialUtils', () => {
     ]);
   });
 
-  it('addSpatialNullFilters returns original filters when spatial is null', () => {
+  test('addSpatialNullFilters returns original filters when spatial is null', () => {
     const existingFilters: QueryObjectFilterClause[] = [
       { col: 'test_col', op: '==', val: 'test' },
     ];
@@ -168,7 +168,7 @@ describe('spatialUtils', () => {
     expect(result).toBe(existingFilters);
   });
 
-  it('addSpatialNullFilters works with empty filters array', () => {
+  test('addSpatialNullFilters works with empty filters array', () => {
     const spatial: SpatialFormData['spatial'] = {
       type: 'delimited',
       lonlatCol: 'coordinates',
@@ -181,7 +181,7 @@ describe('spatialUtils', () => {
     ]);
   });
 
-  it('buildSpatialQuery throws error when spatial is missing', () => {
+  test('buildSpatialQuery throws error when spatial is missing', () => {
     const formData = {} as SpatialFormData;
 
     expect(() => buildSpatialQuery(formData)).toThrow(
@@ -189,7 +189,7 @@ describe('spatialUtils', () => {
     );
   });
 
-  it('buildSpatialQuery calls buildQueryContext with correct parameters', () => {
+  test('buildSpatialQuery calls buildQueryContext with correct parameters', () => {
     const mockBuildQueryContext =
       jest.requireMock('@superset-ui/core').buildQueryContext;
     const formData: SpatialFormData = {
@@ -209,7 +209,7 @@ describe('spatialUtils', () => {
     });
   });
 
-  it('processSpatialData processes latlong data correctly', () => {
+  test('processSpatialData processes latlong data correctly', () => {
     const records = [
       { longitude: -122.4, latitude: 37.8, count: 10, extra: 'test1' },
       { longitude: -122.5, latitude: 37.9, count: 20, extra: 'test2' },
@@ -237,7 +237,7 @@ describe('spatialUtils', () => {
     });
   });
 
-  it('processSpatialData processes delimited data correctly', () => {
+  test('processSpatialData processes delimited data correctly', () => {
     const records = [
       { coordinates: '-122.4,37.8', count: 15 },
       { coordinates: '-122.5,37.9', count: 25 },
@@ -257,7 +257,7 @@ describe('spatialUtils', () => {
     });
   });
 
-  it('processSpatialData processes geohash data correctly', () => {
+  test('processSpatialData processes geohash data correctly', () => {
     mockDecode.mockReturnValue({
       latitude: 37.8,
       longitude: -122.4,
@@ -284,7 +284,7 @@ describe('spatialUtils', () => {
     expect(mockDecode).toHaveBeenCalledWith('dr5regw3p');
   });
 
-  it('processSpatialData reverses coordinates when reverseCheckbox is true', () => {
+  test('processSpatialData reverses coordinates when reverseCheckbox is true', () => {
     const records = [{ longitude: -122.4, latitude: 37.8, count: 10 }];
     const spatial: SpatialFormData['spatial'] = {
       type: 'latlong',
@@ -298,7 +298,7 @@ describe('spatialUtils', () => {
     expect(result[0].position).toEqual([37.8, -122.4]);
   });
 
-  it('processSpatialData handles invalid coordinates', () => {
+  test('processSpatialData handles invalid coordinates', () => {
     const records = [
       { longitude: 'invalid', latitude: 37.8, count: 10 },
       { longitude: -122.4, latitude: NaN, count: 20 },
@@ -318,7 +318,7 @@ describe('spatialUtils', () => {
     expect(result).toHaveLength(0);
   });
 
-  it('processSpatialData handles missing metric values', () => {
+  test('processSpatialData handles missing metric values', () => {
     const records = [
       { longitude: -122.4, latitude: 37.8, count: null },
       { longitude: -122.5, latitude: 37.9 },
@@ -338,7 +338,7 @@ describe('spatialUtils', () => {
     expect(result[2].weight).toBe(1);
   });
 
-  it('processSpatialData returns empty array for empty records', () => {
+  test('processSpatialData returns empty array for empty records', () => {
     const spatial: SpatialFormData['spatial'] = {
       type: 'latlong',
       lonCol: 'longitude',
@@ -350,7 +350,7 @@ describe('spatialUtils', () => {
     expect(result).toEqual([]);
   });
 
-  it('processSpatialData returns empty array when spatial is null', () => {
+  test('processSpatialData returns empty array when spatial is null', () => {
     const records = [{ longitude: -122.4, latitude: 37.8 }];
 
     const result = processSpatialData(records, null as any);
@@ -358,7 +358,7 @@ describe('spatialUtils', () => {
     expect(result).toEqual([]);
   });
 
-  it('processSpatialData handles delimited coordinate edge cases', () => {
+  test('processSpatialData handles delimited coordinate edge cases', () => {
     const records = [
       { coordinates: '', count: 10 },
       { coordinates: null, count: 20 },
@@ -382,7 +382,7 @@ describe('spatialUtils', () => {
     });
   });
 
-  it('processSpatialData copies additional properties correctly', () => {
+  test('processSpatialData copies additional properties correctly', () => {
     const records = [
       {
         longitude: -122.4,
@@ -416,7 +416,7 @@ describe('spatialUtils', () => {
     expect(result[0]).not.toHaveProperty('extra_col');
   });
 
-  it('transformSpatialProps transforms chart props correctly', () => {
+  test('transformSpatialProps transforms chart props correctly', () => {
     const mockGetMetricLabel =
       jest.requireMock('@superset-ui/core').getMetricLabel;
     mockGetMetricLabel.mockReturnValue('count_label');
@@ -510,7 +510,7 @@ describe('spatialUtils', () => {
     expect(result.payload.data.metricLabels).toEqual(['count_label']);
   });
 
-  it('transformSpatialProps handles missing hooks gracefully', () => {
+  test('transformSpatialProps handles missing hooks gracefully', () => {
     const chartProps: ChartProps = {
       datasource: {
         id: 1,
@@ -556,7 +556,7 @@ describe('spatialUtils', () => {
     expect(typeof result.setTooltip).toBe('function');
   });
 
-  it('transformSpatialProps handles missing metric', () => {
+  test('transformSpatialProps handles missing metric', () => {
     const mockGetMetricLabel =
       jest.requireMock('@superset-ui/core').getMetricLabel;
     mockGetMetricLabel.mockReturnValue(undefined);

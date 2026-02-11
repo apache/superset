@@ -44,13 +44,13 @@ describe('findParentId', () => {
   });
 
   test('should not throw error and return null with bad / missing inputs', () => {
-    // @ts-ignore
+    // @ts-expect-error
     expect(findParentId(null)).toBeNull();
-    // @ts-ignore
+    // @ts-expect-error
     expect(findParentId({ layout })).toBeNull();
-    // @ts-ignore
+    // @ts-expect-error
     expect(findParentId({ childId: 'a' })).toBeNull();
-    // @ts-ignore
+    // @ts-expect-error
     expect(findParentId({ childId: 'a', layout: null })).toBeNull();
   });
 });
