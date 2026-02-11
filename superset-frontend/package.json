@@ -141,6 +141,8 @@
     "@superset-ui/plugin-chart-handlebars": "file:./plugins/plugin-chart-handlebars",
     "@superset-ui/plugin-chart-pivot-table": "file:./plugins/plugin-chart-pivot-table",
     "@superset-ui/plugin-chart-table": "file:./plugins/plugin-chart-table",
+    "@superset-ui/plugin-chart-unified-list-bar": "file:./plugins/plugin-chart-unified-list-bar",
+    "@superset-ui/plugin-chart-unified-list-arrow": "file:./plugins/plugin-chart-unified-list-arrow",
     "@superset-ui/plugin-chart-word-cloud": "file:./plugins/plugin-chart-word-cloud",
     "@superset-ui/switchboard": "file:./packages/superset-ui-switchboard",
     "@types/d3-format": "^3.0.1",

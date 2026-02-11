@@ -142,3 +142,94 @@ try:
     )
 except ImportError:
     logger.info("Using default Docker config...")
+
+
+EXTRA_CATEGORICAL_COLOR_SCHEMES = [
+     {
+         "id": 'risk_meter',
+         "description": '',
+         "label": 'Rik Meter Theme RYG',
+         "colors":
+          ['#008450','#D19900','#B81D13']
+     },
+     {
+        "id": 'ey_color_palette',
+        "description": '',
+        "label": 'EY Color Palette I',
+	        "isDefault": False,
+        "colors":
+         ['#E0B0FF', '#FF736A', '#FFB46A', '#8CE8AD', '#42C9C2', '#87D3F2', '#9C82D4','#922B73','#168736']
+    },
+    {
+        "id": 'ey_color_palette_2',
+        "description": '',
+        "label": 'EY Color Palette II',
+	        "isDefault": False,
+        "colors":
+         ['#B14891', '#FF736A', '#FF9831', '#c9ffe0', '#27ACAA', '#4EBEEB', '#D3888D','#e0b0ff']
+    },
+    {
+        "id": 'subtle_color_palette_1',
+        "description": '',
+        "label": 'Subtle Color Palette I',
+	        "isDefault": False,
+        "colors":
+         ['#D45E77', '#D07687', '#D3888D', '#D4A4A9', '#DCBABF', '#DEC3BE', '#E3D0D5','#E7DDEC','#EDE5DC']
+    },
+    {
+        "id": 'subtle_color_palette_2',
+        "description": '',
+        "label": 'Subtle Color Palette II',
+	        "isDefault": False,
+        "colors":
+         ['#794F6D', '#93727B', '#A5808B', '#AD9489', '#BCA28A', '#CAB095', '#F0D5C7','#FCA692']
+    },
+    {
+        "id": 'subtle_color_palette_3',
+        "description": '',
+        "label": 'Subtle Color Palette III',
+	        "isDefault": False,
+        "colors":
+         ['#B0ABAF', '#C1AEB1', '#C2C1C3', '#D2CCC9', '#D9D7D3', '#D4AF9B', '#DEB891','#E7C188','#EECA81']
+    },
+    {
+        "id": 'subtle_color_palette_4',
+        "description": '',
+        "label": 'Subtle Color Palette IV',
+	        "isDefault": False,
+        "colors":
+         ['#85C7DE', '#A3A5A9', '#D9C8C4', '#D3888D', '#E7C188', '#D07687','#9DA891','#93727B','#A0C4E2']
+    },
+    {
+        "id": 'subtle_color_palette_blue_shades',
+        "description": '',
+        "label": 'Subtle Color Palette Blue Shades',
+	        "isDefault": False,
+        "colors":
+         ['#91C8E4','#37B7C3','#92C7CF', '#AAD7D9', '#BFCFE7', '#E5E1DA','#ADC4CE']
+    },
+    {
+        "id": 'subtle_color_palette_piechart',
+        "description": '',
+        "label": 'Subtle Color Palette Pie Charts',
+	        "isDefault": False,
+        "colors":
+         [ '#083153','#0A558E','#1275C1','#55A6FC','#AFCDFB']
+    },
+    {
+        "id": 'subtle_color_palette_dounut',
+        "description": '',
+        "label": 'Subtle Color Palette Dounut',
+	        "isDefault": False,
+        "colors":
+         [  '#AFCDFB','#55A6FC','#1275C1','#0A558E','#083153']
+    },
+    {
+        "id": 'subtle_color_palette_for_bars',
+        "description": '',
+        "label": 'Subtle Color Palette For Bars',
+	        "isDefault": True,
+        "colors":
+         ['#D2E1FA','#AFCDFB','#85B9FD','#55A6FC','#188CE5','#1275C1','#0F69AE','#0A558E','#064372','#083153']
+    }
+    ]

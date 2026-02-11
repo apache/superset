@@ -78,9 +78,9 @@ import {
   TimeGrainFilterPlugin,
 } from 'src/filters/components';
 import {
+  ChartCustomizationTimeColumnPlugin,
   ChartCustomizationTimeGrainPlugin,
   ChartCustomizationDynamicGroupBy,
-  ChartCustomizationTimeColumnPlugin,
   DeckglLayerVisibilityCustomizationPlugin,
 } from 'src/chartCustomizations/components';
 import { PivotTableChartPlugin as PivotTableChartPluginV2 } from '@superset-ui/plugin-chart-pivot-table';
@@ -88,6 +88,8 @@ import { HandlebarsChartPlugin } from '@superset-ui/plugin-chart-handlebars';
 import { ChartCustomizationPlugins, FilterPlugins } from 'src/constants';
 import AgGridTableChartPlugin from '@superset-ui/plugin-chart-ag-grid-table';
 import TimeTableChartPlugin from '../TimeTable';
+import UnifiedListBarChartPlugin from '@superset-ui/plugin-chart-unified-list-bar';
+import UnifiedListArrowChartPlugin from '@superset-ui/plugin-chart-unified-list-arrow';
 
 export default class MainPreset extends Preset {
   constructor() {
@@ -95,10 +97,10 @@ export default class MainPreset extends Preset {
       FeatureFlag.ChartPluginsExperimental,
     )
       ? [
-          new BigNumberPeriodOverPeriodChartPlugin().configure({
-            key: VizType.BigNumberPeriodOverPeriod,
-          }),
-        ]
+        new BigNumberPeriodOverPeriodChartPlugin().configure({
+          key: VizType.BigNumberPeriodOverPeriod,
+        }),
+      ]
       : [];
 
     const agGridTablePlugin = isFeatureEnabled(FeatureFlag.AgGridTableEnabled)
@@ -109,6 +111,8 @@ export default class MainPreset extends Preset {
       name: 'Legacy charts',
       presets: [new DeckGLChartPreset()],
       plugins: [
+        new UnifiedListBarChartPlugin().configure({ key: VizType.UnifiedListBar }),
+        new UnifiedListArrowChartPlugin().configure({ key: VizType.UnifiedListArrow }),
         new BigNumberChartPlugin().configure({ key: VizType.BigNumber }),
         new BigNumberTotalChartPlugin().configure({
           key: VizType.BigNumberTotal,
