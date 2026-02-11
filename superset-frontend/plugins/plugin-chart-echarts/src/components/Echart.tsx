@@ -173,7 +173,9 @@ function Echart(
       }
       if (!divRef.current) return;
       if (!chartRef.current) {
-        chartRef.current = init(divRef.current, null, { locale });
+        // Pass width and height to init to avoid "Can't get DOM width or height" warning
+        // since the DOM element may not have its dimensions yet when init is called
+        chartRef.current = init(divRef.current, null, { locale, width, height });
       }
       // did mount
       handleSizeChange({ width, height });

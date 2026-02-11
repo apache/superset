@@ -194,13 +194,14 @@ class TabbedSqlEditors extends PureComponent<TabbedSqlEditorsProps> {
               : t('New tab (Ctrl + t)')
           }
         >
-          <Icons.PlusCircleOutlined
-            iconSize="s"
+          <span
             css={css`
+              display: inline-flex;
               vertical-align: middle;
             `}
-            data-test="add-tab-icon"
-          />
+          >
+            <Icons.PlusCircleOutlined iconSize="s" data-test="add-tab-icon" />
+          </span>
         </Tooltip>
       </StyledTab>
     );
@@ -241,13 +242,14 @@ class TabbedSqlEditors extends PureComponent<TabbedSqlEditorsProps> {
                 : t('New tab (Ctrl + t)')
             }
           >
-            <Icons.PlusOutlined
-              iconSize="l"
+            <span
               css={css`
+                display: inline-flex;
                 vertical-align: middle;
               `}
-              data-test="add-tab-icon"
-            />
+            >
+              <Icons.PlusOutlined iconSize="l" data-test="add-tab-icon" />
+            </span>
           </Tooltip>
         }
         items={tabItems}

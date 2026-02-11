@@ -312,7 +312,7 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
         unfilteredLabel: t('All'),
         fetchSelects: async (filterValue, page, pageSize) =>
           fetchUserOptions(filterValue, page, pageSize, addDangerToast),
-        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
+        popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
       {
         Header: t('Permissions'),
@@ -326,7 +326,7 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
           value: permission.id,
         })),
         loading: loadingState.permissions,
-        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
+        popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
       {
         Header: t('Groups'),
@@ -340,7 +340,7 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
           value: group.id,
         })),
         loading: loadingState.groups,
-        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
+        popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
     ],
     [permissions, groups, loadingState.groups, loadingState.permissions],

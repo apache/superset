@@ -356,6 +356,7 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
     () =>
       values.map((adhocFilter: AdhocFilter, index: number) => (
         <DndAdhocFilterOption
+          key={adhocFilter.filterOptionName ?? index}
           index={index}
           adhocFilter={adhocFilter}
           options={options}

@@ -134,7 +134,7 @@ test('Should place popover at the bottom', async () => {
 test('Should close popover on escape press', async () => {
   setupTest({
     ...createProps(),
-    destroyTooltipOnHide: true,
+    destroyOnHidden: true,
   });
 
   expect(screen.getByTestId('control-popover')).toBeInTheDocument();
@@ -165,7 +165,7 @@ test('Should close popover on escape press', async () => {
 test('Controlled mode', async () => {
   const baseProps = {
     ...createProps(),
-    destroyTooltipOnHide: true,
+    destroyOnHidden: true,
     open: false,
   };
 

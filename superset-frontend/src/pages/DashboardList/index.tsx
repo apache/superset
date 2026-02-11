@@ -596,7 +596,7 @@ function DashboardList(props: DashboardListProps) {
           props.user,
         ),
         paginate: true,
-        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
+        popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
       ...(user?.userId ? [favoritesFilter] : []),
       {
@@ -631,7 +631,7 @@ function DashboardList(props: DashboardListProps) {
           user,
         ),
         paginate: true,
-        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
+        popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
     ] as ListViewFilters;
     return filters_list;
