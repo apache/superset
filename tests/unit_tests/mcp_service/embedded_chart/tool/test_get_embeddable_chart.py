@@ -23,6 +23,7 @@ from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
 import pytest
+from pydantic import ValidationError
 
 from superset.mcp_service.chart.schemas import (
     ColumnRef,
@@ -141,14 +142,14 @@ class TestGetEmbeddableChartSchemas:
         assert request.ttl_minutes == 10080
 
         # Invalid TTL should raise
-        with pytest.raises(ValueError, match="greater than or equal to 1"):
+        with pytest.raises(ValidationError, match="greater than or equal to 1"):
             GetEmbeddableChartRequest(
                 datasource_id=1,
                 config=config,
                 ttl_minutes=0,  # below min
             )
 
-        with pytest.raises(ValueError, match="less than or equal to 10080"):
+        with pytest.raises(ValidationError, match="less than or equal to 10080"):
             GetEmbeddableChartRequest(
                 datasource_id=1,
                 config=config,
@@ -178,14 +179,14 @@ class TestGetEmbeddableChartSchemas:
         assert request.height == 2000
 
         # Invalid heights should raise
-        with pytest.raises(ValueError, match="greater than or equal to 100"):
+        with pytest.raises(ValidationError, match="greater than or equal to 100"):
             GetEmbeddableChartRequest(
                 datasource_id=1,
                 config=config,
                 height=99,  # below min
             )
 
-        with pytest.raises(ValueError, match="less than or equal to 2000"):
+        with pytest.raises(ValidationError, match="less than or equal to 2000"):
             GetEmbeddableChartRequest(
                 datasource_id=1,
                 config=config,

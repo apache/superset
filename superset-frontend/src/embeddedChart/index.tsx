@@ -126,7 +126,15 @@ function setupGuestClient(guestToken: string) {
 
 function validateMessageEvent(event: MessageEvent) {
   const { data } = event;
-  if (data == null || typeof data !== 'object' || data.type !== MESSAGE_TYPE) {
+  if (data == null || typeof data !== 'object') {
+    throw new Error(`Invalid message data for embedded comms`);
+  }
+  // Accept messages with correct type, guestToken, or handshake
+  const hasValidType = data.type === MESSAGE_TYPE;
+  const hasGuestToken = 'guestToken' in data;
+  const hasHandshake = 'handshake' in data;
+
+  if (!hasValidType && !hasGuestToken && !hasHandshake) {
     throw new Error(`Message type does not match type used for embedded comms`);
   }
 }
