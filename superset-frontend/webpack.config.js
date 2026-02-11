@@ -497,10 +497,7 @@ const config = {
       {
         test: /\.tsx?$/,
         exclude: [/\.test.tsx?$/, /node_modules/],
-        // Skip thread-loader in dev mode - it breaks HMR by running in worker threads
-        use: isDevMode
-          ? [createSwcLoader('typescript', true)]
-          : ['thread-loader', createSwcLoader('typescript', true)],
+        use: [createSwcLoader('typescript', true)],
       },
       {
         test: /\.jsx?$/,
