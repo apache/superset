@@ -16,6 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { isEmpty, isNaN, isNil, isString, trim } from 'lodash';
 
-export { default as isBlank } from './isBlank';
-export { default as logging } from './logging';
+/**
+ * Checks if a value is null, undefined, NaN, or a whitespace-only string.
+ */
+export default function isBlank(value: unknown): boolean {
+  return (
+    isNil(value) || isNaN(value) || (isString(value) && isEmpty(trim(value)))
+  );
+}
