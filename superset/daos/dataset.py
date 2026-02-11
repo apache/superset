@@ -21,6 +21,7 @@ from datetime import datetime
 from typing import Any, Dict, List
 
 import dateutil.parser
+from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Query
 
@@ -58,31 +59,26 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         query: Query,
         column_operators: list[ColumnOperator] | None = None,
     ) -> Query:
-        """Override to handle database_name filter via join to Database table.
+        """Override to handle database_name filter via subquery on Database.
 
         database_name lives on Database, not SqlaTable, so we intercept it
-        here, join to the Database table, and apply the filter there.
+        here and use a subquery to avoid duplicate joins with DatasourceFilter.
         """
         if not column_operators:
             return query
 
         remaining_operators: list[ColumnOperator] = []
-        db_name_operators: list[ColumnOperator] = []
         for c in column_operators:
             if not isinstance(c, ColumnOperator):
                 c = ColumnOperator.model_validate(c)
             if c.col == "database_name":
-                db_name_operators.append(c)
-            else:
-                remaining_operators.append(c)
-
-        if db_name_operators:
-            query = query.join(Database, SqlaTable.database_id == Database.id)
-            for c in db_name_operators:
                 operator_enum = ColumnOperatorEnum(c.opr)
-                query = query.filter(
+                subq = select(Database.id).where(
                     operator_enum.apply(Database.database_name, c.value)
                 )
+                query = query.filter(SqlaTable.database_id.in_(subq))
+            else:
+                remaining_operators.append(c)
 
         if remaining_operators:
             query = super().apply_column_operators(query, remaining_operators)
