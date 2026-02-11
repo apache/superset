@@ -441,7 +441,7 @@ export default function StatefulChart(props: StatefulChartProps) {
           textAlign: 'center',
         }}
       >
-        {t('Error:')} {error.message}
+        {t('Error')}: {error.message}
       </div>
     );
 
