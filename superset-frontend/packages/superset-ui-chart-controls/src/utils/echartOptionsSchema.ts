@@ -61,40 +61,36 @@ const symbolTypeSchema = z.string();
 // Text Style Schema
 // =============================================================================
 
-export const textStyleSchema = z
-  .object({
-    color: colorSchema.optional(),
-    fontStyle: fontStyleSchema.optional(),
-    fontWeight: fontWeightSchema.optional(),
-    fontFamily: z.string().optional(),
-    fontSize: z.number().optional(),
-    lineHeight: z.number().optional(),
-    backgroundColor: z
-      .union([colorSchema, z.literal('transparent')])
-      .optional(),
-    borderColor: colorSchema.optional(),
-    borderWidth: z.number().optional(),
-    borderType: lineTypeSchema.optional(),
-    borderRadius: z.union([z.number(), z.array(z.number())]).optional(),
-    padding: z.union([z.number(), z.array(z.number())]).optional(),
-    shadowColor: colorSchema.optional(),
-    shadowBlur: z.number().optional(),
-    shadowOffsetX: z.number().optional(),
-    shadowOffsetY: z.number().optional(),
-    width: numberOrPercentSchema.optional(),
-    height: numberOrPercentSchema.optional(),
-    textBorderColor: colorSchema.optional(),
-    textBorderWidth: z.number().optional(),
-    textShadowColor: colorSchema.optional(),
-    textShadowBlur: z.number().optional(),
-    textShadowOffsetX: z.number().optional(),
-    textShadowOffsetY: z.number().optional(),
-    overflow: z.enum(['none', 'truncate', 'break', 'breakAll']).optional(),
-    ellipsis: z.string().optional(),
-    align: z.enum(['left', 'center', 'right']).optional(),
-    verticalAlign: z.enum(['top', 'middle', 'bottom']).optional(),
-  })
-  .catchall(z.unknown());
+export const textStyleSchema = z.object({
+  color: colorSchema.optional(),
+  fontStyle: fontStyleSchema.optional(),
+  fontWeight: fontWeightSchema.optional(),
+  fontFamily: z.string().optional(),
+  fontSize: z.number().optional(),
+  lineHeight: z.number().optional(),
+  backgroundColor: z.union([colorSchema, z.literal('transparent')]).optional(),
+  borderColor: colorSchema.optional(),
+  borderWidth: z.number().optional(),
+  borderType: lineTypeSchema.optional(),
+  borderRadius: z.union([z.number(), z.array(z.number())]).optional(),
+  padding: z.union([z.number(), z.array(z.number())]).optional(),
+  shadowColor: colorSchema.optional(),
+  shadowBlur: z.number().optional(),
+  shadowOffsetX: z.number().optional(),
+  shadowOffsetY: z.number().optional(),
+  width: numberOrPercentSchema.optional(),
+  height: numberOrPercentSchema.optional(),
+  textBorderColor: colorSchema.optional(),
+  textBorderWidth: z.number().optional(),
+  textShadowColor: colorSchema.optional(),
+  textShadowBlur: z.number().optional(),
+  textShadowOffsetX: z.number().optional(),
+  textShadowOffsetY: z.number().optional(),
+  overflow: z.enum(['none', 'truncate', 'break', 'breakAll']).optional(),
+  ellipsis: z.string().optional(),
+  align: z.enum(['left', 'center', 'right']).optional(),
+  verticalAlign: z.enum(['top', 'middle', 'bottom']).optional(),
+});
 
 // =============================================================================
 // Style Schemas
@@ -322,6 +318,8 @@ const axisLabelSchema = z.object({
   fontWeight: fontWeightSchema.optional(),
   fontFamily: z.string().optional(),
   fontSize: z.number().optional(),
+  align: z.enum(['left', 'center', 'right']).optional(),
+  verticalAlign: z.enum(['top', 'middle', 'bottom']).optional(),
 });
 
 const splitLineSchema = z.object({
@@ -685,6 +683,7 @@ export const axisPointerSchema = z.object({
   id: z.string().optional(),
   show: z.boolean().optional(),
   type: z.enum(['line', 'shadow', 'none']).optional(),
+  axis: z.enum(['x', 'y']).optional(),
   snap: z.boolean().optional(),
   z: z.number().optional(),
   label: z

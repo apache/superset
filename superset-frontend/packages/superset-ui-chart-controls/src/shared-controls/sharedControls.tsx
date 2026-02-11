@@ -457,10 +457,12 @@ const order_by_cols: SharedControlConfig<'SelectControl'> = {
 
 const echart_options: SharedControlConfig<'JSEditorControl'> = {
   type: 'JSEditorControl',
-  label: t('EChart Options (JS object literals)'),
+  label: t('ECharts Options (JS object literals)'),
   description: t(
-    'A JavaScript object that adheres to the ECharts options specification. ' +
-      '(i.e. { title: { text: "My Chart" }, tooltip: { trigger: "item" } })',
+    'A JavaScript object that adheres to the ECharts options specification, ' +
+      'overriding other control options with higher precedence. ' +
+      '(i.e. { title: { text: "My Chart" }, tooltip: { trigger: "item" } }). ' +
+      'Details: https://echarts.apache.org/en/option.html. ',
   ),
   default: '{}',
   renderTrigger: true,

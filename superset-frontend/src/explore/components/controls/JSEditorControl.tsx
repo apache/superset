@@ -51,7 +51,6 @@ export default function JSEditorControl({
   value,
 }: ControlHeaderProps & ControlComponentProps<string>) {
   const debouncedValue = useDebounceValue(value);
-  // safeParseEChartOptions;
   const error = useMemo(() => {
     try {
       safeParseEChartOptions(debouncedValue ?? '');
@@ -94,8 +93,8 @@ export default function JSEditorControl({
       </Container>
       {error && (
         <ErrorMessage>
-          {error.validationErrors.map(err => (
-            <div key={err}>{err}</div>
+          {error.validationErrors.map((err, idx) => (
+            <div key={idx}>{err}</div>
           ))}
         </ErrorMessage>
       )}

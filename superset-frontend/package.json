@@ -153,6 +153,7 @@
     "@visx/scale": "^3.5.0",
     "@visx/tooltip": "^3.0.0",
     "@visx/xychart": "^3.5.1",
+    "acorn": "^8.9.0",
     "ag-grid-community": "35.0.1",
     "ag-grid-react": "35.0.1",
     "antd": "^5.26.0",

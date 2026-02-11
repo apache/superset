@@ -97,8 +97,7 @@ export type EditorLanguage =
   | 'yaml'
   | 'markdown'
   | 'css'
-  | 'javascript'
-  | string;
+  | 'javascript';
 
 /**
  * Valid locations within SQL Lab.
