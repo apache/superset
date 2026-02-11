@@ -144,9 +144,11 @@ class Pinot(MySQL):
                 e.args.get("expression"),
                 e.args.get("variant"),
             ),
-            # Preserve Pinot's YEAROFWEEK (sqlglot normalizes to YEAR_OF_WEEK)
-            exp.YearOfWeek: lambda self, e: self.func("YEAROFWEEK", e.this),
         }
+        # Preserve YEAROFWEEK when sqlglot has YearOfWeek (version-dependent)
+        _year_of_week = getattr(exp, "YearOfWeek", None)
+        if _year_of_week is not None:
+            TRANSFORMS[_year_of_week] = lambda self, e: self.func("YEAROFWEEK", e.this)
         # Remove DATE_TRUNC transformation - Pinot supports standard SQL DATE_TRUNC
         TRANSFORMS.pop(exp.DateTrunc, None)
 
