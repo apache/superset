@@ -28,7 +28,7 @@ import {
 } from '../../src/types';
 import {
   transformSeries,
-  transformNegativeLabelsPosition,
+  optimizeBarLabelPlacement,
   getPadding,
 } from '../../src/Timeseries/transformers';
 import transformProps from '../../src/Timeseries/transformProps';
@@ -129,7 +129,7 @@ describe('transformSeries', () => {
   });
 });
 
-describe('transformNegativeLabelsPosition', () => {
+describe('optimizeBarLabelPlacement', () => {
   test('label position for non-stacked vertical charts', () => {
     const isHorizontal = false;
     const series: SeriesOption = {
@@ -143,7 +143,7 @@ describe('transformNegativeLabelsPosition', () => {
       type: EchartsTimeseriesSeriesType.Bar,
       stack: undefined,
     };
-    const result = transformNegativeLabelsPosition(series, isHorizontal);
+    const result = optimizeBarLabelPlacement(series, isHorizontal);
     expect((result as any)[0].label.position).toBe('insideTop');
     expect((result as any)[1].label.position).toBe('insideTop');
     expect((result as any)[2].label.position).toBe('insideBottom');
@@ -165,7 +165,7 @@ describe('transformNegativeLabelsPosition', () => {
       stack: undefined,
     };
 
-    const result = transformNegativeLabelsPosition(series, isHorizontal);
+    const result = optimizeBarLabelPlacement(series, isHorizontal);
     expect((result as any)[0].label.position).toBe('insideRight');
     expect((result as any)[1].label.position).toBe('insideLeft');
     expect((result as any)[2].label.position).toBe('insideRight');
@@ -192,7 +192,7 @@ describe('transformNegativeLabelsPosition', () => {
       !series.stack &&
       series.type !== 'line' &&
       series.type === 'bar'
-        ? transformNegativeLabelsPosition(series, isHorizontal)
+        ? optimizeBarLabelPlacement(series, isHorizontal)
         : series.data;
     expect((result as any)[0].label).toBe(undefined);
     expect((result as any)[1].label).toBe(undefined);
@@ -215,7 +215,7 @@ describe('transformNegativeLabelsPosition', () => {
       stack: 'obs',
     };
 
-    const result = transformNegativeLabelsPosition(series, isHorizontal);
+    const result = optimizeBarLabelPlacement(series, isHorizontal);
     expect((result as any)[0].label.position).toBe('insideTop');
     expect((result as any)[1].label.position).toBe('insideTop');
     expect((result as any)[2].label.position).toBe('insideBottom');
@@ -237,7 +237,7 @@ describe('transformNegativeLabelsPosition', () => {
       stack: 'obs',
     };
 
-    const result = transformNegativeLabelsPosition(series, isHorizontal);
+    const result = optimizeBarLabelPlacement(series, isHorizontal);
     expect((result as any)[0].label.position).toBe('insideRight');
     expect((result as any)[1].label.position).toBe('insideLeft');
     expect((result as any)[2].label.position).toBe('insideRight');

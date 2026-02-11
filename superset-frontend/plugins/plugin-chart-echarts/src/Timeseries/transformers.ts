@@ -143,7 +143,7 @@ export const getBaselineSeriesForStream = (
   };
 };
 
-export function transformNegativeLabelsPosition(
+export function optimizeBarLabelPlacement(
   series: SeriesOption,
   isHorizontal: boolean,
 ): TimeseriesDataRecord[] {
@@ -351,7 +351,7 @@ export function transformSeries(
     ...series,
     ...(Array.isArray(data) && seriesType === 'bar'
       ? {
-          data: transformNegativeLabelsPosition(series, isHorizontal),
+          data: optimizeBarLabelPlacement(series, isHorizontal),
         }
       : null),
     connectNulls,
