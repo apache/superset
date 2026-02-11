@@ -85,9 +85,6 @@ class URLPreviewStrategy(PreviewFormatStrategy):
         )
 
 
-# Base64 preview support removed - we never return base64 data
-
-
 class ASCIIPreviewStrategy(PreviewFormatStrategy):
     """Generate ASCII art preview."""
 

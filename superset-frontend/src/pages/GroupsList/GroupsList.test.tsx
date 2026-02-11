@@ -31,6 +31,7 @@ import {
 import { MemoryRouter } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
 import GroupsList from './index';
+import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
@@ -44,6 +45,7 @@ const mockUser = {
 
 const rolesEndpoint = 'glob:*/security/roles/?*';
 const usersEndpoint = 'glob:*/security/users/?*';
+const groupsEndpoint = 'glob:*/security/groups/*';
 
 const mockRoles = Array.from({ length: 3 }, (_, i) => ({
   id: i,
@@ -65,9 +67,11 @@ fetchMock.get(rolesEndpoint, {
   count: 3,
 });
 
+fetchMock.get(groupsEndpoint, { result: [] }, { name: groupsEndpoint });
+
 jest.mock('src/dashboard/util/permissionUtils', () => ({
   ...jest.requireActual('src/dashboard/util/permissionUtils'),
-  isUserAdmin: jest.fn(() => true),
+  isUserAdmin: () => true,
 }));
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
@@ -76,7 +80,7 @@ describe('GroupsList', () => {
     await act(async () => {
       render(
         <MemoryRouter>
-          <QueryParamProvider>
+          <QueryParamProvider adapter={ReactRouter5Adapter}>
             <GroupsList user={mockUser} />
           </QueryParamProvider>
         </MemoryRouter>,
@@ -86,7 +90,7 @@ describe('GroupsList', () => {
   };
 
   beforeEach(() => {
-    fetchMock.resetHistory();
+    fetchMock.clearHistory();
   });
 
   test('renders the page', async () => {
@@ -97,7 +101,9 @@ describe('GroupsList', () => {
   test('fetches roles on load', async () => {
     await renderComponent();
     await waitFor(() => {
-      expect(fetchMock.calls(rolesEndpoint).length).toBeGreaterThan(0);
+      expect(fetchMock.callHistory.calls(rolesEndpoint).length).toBeGreaterThan(
+        0,
+      );
     });
   });
 
@@ -142,6 +148,7 @@ describe('GroupsList', () => {
   });
 
   test('opens edit modal on edit button click', async () => {
+    fetchMock.removeRoute(groupsEndpoint);
     fetchMock.get('glob:*/security/groups/?*', {
       result: [
         {

@@ -110,13 +110,13 @@ test('saveDataset handles success', async () => {
   const saveDatasetResponse = {
     data: datasource,
   };
-  fetchMock.reset();
+  fetchMock.clearHistory().removeRoutes();
   fetchMock.post(saveDatasetEndpoint, saveDatasetResponse);
   const dispatch = sinon.spy();
   const getState = sinon.spy(() => ({ explore: { datasource } }));
   const dataset = await saveDataset(SAVE_DATASET_POST_ARGS)(dispatch);
 
-  expect(fetchMock.calls(saveDatasetEndpoint)).toHaveLength(1);
+  expect(fetchMock.callHistory.calls(saveDatasetEndpoint)).toHaveLength(1);
   expect(dispatch.callCount).toBe(1);
   const thunk = dispatch.getCall(0).args[0];
   thunk(dispatch, getState);
@@ -126,7 +126,7 @@ test('saveDataset handles success', async () => {
 });
 
 test('updateSlice with add to existing dashboard handles failure', async () => {
-  fetchMock.reset();
+  fetchMock.clearHistory().removeRoutes();
   const sampleError = new Error('sampleError');
   mockedGetClientErrorObject.mockImplementation(() =>
     Promise.resolve(sampleError),
@@ -142,6 +142,6 @@ test('updateSlice with add to existing dashboard handles failure', async () => {
   }
 
   expect(caughtError).toEqual(sampleError);
-  expect(fetchMock.calls(saveDatasetEndpoint)).toHaveLength(4);
+  expect(fetchMock.callHistory.calls(saveDatasetEndpoint)).toHaveLength(4);
   expect(mockedGetClientErrorObject).toHaveBeenCalledWith(sampleError);
 });

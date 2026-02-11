@@ -28,6 +28,7 @@ import {
 import { MemoryRouter } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
 import AlertList from 'src/pages/AlertReportList';
+import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
@@ -86,7 +87,7 @@ fetchMock.delete(alertsEndpoint, {});
 const renderAlertList = (props = {}) =>
   render(
     <MemoryRouter>
-      <QueryParamProvider>
+      <QueryParamProvider adapter={ReactRouter5Adapter}>
         <AlertList user={mockUser} {...props} />
       </QueryParamProvider>
     </MemoryRouter>,
@@ -99,7 +100,7 @@ const renderAlertList = (props = {}) =>
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('AlertList', () => {
   beforeEach(() => {
-    fetchMock.resetHistory();
+    fetchMock.clearHistory();
   });
 
   test('renders', async () => {
@@ -145,7 +146,9 @@ describe('AlertList', () => {
 
     // Wait for delete request
     await waitFor(() => {
-      expect(fetchMock.calls(/report\/0/, 'DELETE')).toHaveLength(1);
+      expect(fetchMock.callHistory.calls(/report\/0/, 'DELETE')).toHaveLength(
+        1,
+      );
     });
   }, 15000);
 
@@ -196,9 +199,9 @@ describe('AlertList', () => {
     // Wait for report list API call and tab states to update
     await waitFor(async () => {
       // Check API call
-      const calls = fetchMock.calls(/report\/\?q/);
+      const calls = fetchMock.callHistory.calls(/report\/\?q/);
       const hasReportCall = calls.some(call =>
-        call[0].includes('filters:!((col:type,opr:eq,value:Report))'),
+        call.url.includes('filters:!((col:type,opr:eq,value:Report))'),
       );
 
       // Check tab states
@@ -227,8 +230,8 @@ describe('AlertList', () => {
     });
 
     // Verify correct API call was made
-    const reportCalls = fetchMock.calls(/report\/\?q/);
-    const lastReportCall = reportCalls[reportCalls.length - 1][0];
+    const reportCalls = fetchMock.callHistory.calls(/report\/\?q/);
+    const lastReportCall = reportCalls[reportCalls.length - 1].url;
     expect(lastReportCall).toContain(
       'filters:!((col:type,opr:eq,value:Report))',
     );

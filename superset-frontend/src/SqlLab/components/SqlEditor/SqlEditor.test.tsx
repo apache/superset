@@ -75,6 +75,15 @@ jest.mock('@superset-ui/core/components/AsyncAceEditor', () => ({
 }));
 jest.mock('src/SqlLab/components/ResultSet', () => jest.fn());
 
+jest.mock('src/components/DatabaseSelector', () => ({
+  __esModule: true,
+  DatabaseSelector: ({ sqlLabMode }: { sqlLabMode?: boolean }) => (
+    <div data-test="mock-database-selector" data-sqllab-mode={sqlLabMode}>
+      Mock DatabaseSelector
+    </div>
+  ),
+}));
+
 fetchMock.get('glob:*/api/v1/database/*/function_names/', {
   function_names: [],
 });
@@ -389,8 +398,8 @@ describe('SqlEditor', () => {
       // click button
       fireEvent.click(button);
       await waitFor(() => {
-        expect(fetchMock.lastUrl()).toEqual(estimateApi);
-        expect(fetchMock.lastOptions()).toEqual(
+        expect(fetchMock.callHistory.lastCall()?.url).toEqual(estimateApi);
+        expect(fetchMock.callHistory.lastCall()?.options).toEqual(
           expect.objectContaining({
             body: JSON.stringify({
               database_id: 2023,
@@ -402,11 +411,11 @@ describe('SqlEditor', () => {
             cache: 'default',
             credentials: 'same-origin',
             headers: {
-              Accept: 'application/json',
-              'Content-Type': 'application/json',
-              'X-CSRFToken': '1234',
+              accept: 'application/json',
+              'content-type': 'application/json',
+              'x-csrftoken': '1234',
             },
-            method: 'POST',
+            method: 'post',
             mode: 'same-origin',
             redirect: 'follow',
             signal: undefined,
@@ -443,10 +452,12 @@ describe('SqlEditor', () => {
       const indicator = getByTestId('sqlEditor-loading');
       expect(indicator).toBeInTheDocument();
       await waitFor(() =>
-        expect(fetchMock.calls('glob:*/tabstateview/*').length).toBe(1),
+        expect(
+          fetchMock.callHistory.calls('glob:*/tabstateview/*').length,
+        ).toBe(1),
       );
       // it will be called from EditorAutoSync
-      expect(fetchMock.calls(switchTabApi).length).toBe(0);
+      expect(fetchMock.callHistory.calls(switchTabApi).length).toBe(0);
     });
   });
 });

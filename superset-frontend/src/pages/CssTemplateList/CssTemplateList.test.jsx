@@ -29,6 +29,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
 
 import CssTemplatesList from 'src/pages/CssTemplateList';
+import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
@@ -75,7 +76,7 @@ fetchMock.get(templatesRelatedEndpoint, {
 const renderCssTemplatesList = (props = {}) =>
   render(
     <MemoryRouter>
-      <QueryParamProvider>
+      <QueryParamProvider adapter={ReactRouter5Adapter}>
         <CssTemplatesList user={mockUser} {...props} />
       </QueryParamProvider>
     </MemoryRouter>,
@@ -88,7 +89,7 @@ const renderCssTemplatesList = (props = {}) =>
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('CssTemplatesList', () => {
   beforeEach(() => {
-    fetchMock.resetHistory();
+    fetchMock.clearHistory();
   });
 
   test('renders', async () => {
@@ -111,9 +112,9 @@ describe('CssTemplatesList', () => {
   test('fetches templates', async () => {
     renderCssTemplatesList();
     await waitFor(() => {
-      const calls = fetchMock.calls(/css_template\/\?q/);
+      const calls = fetchMock.callHistory.calls(/css_template\/\?q/);
       expect(calls).toHaveLength(1);
-      expect(calls[0][0]).toContain(
+      expect(calls[0].url).toContain(
         'order_column:template_name,order_direction:desc,page:0,page_size:25',
       );
     });
@@ -138,9 +139,9 @@ describe('CssTemplatesList', () => {
 
     // Wait for search API call
     await waitFor(() => {
-      const calls = fetchMock.calls(/css_template\/\?q/);
+      const calls = fetchMock.callHistory.calls(/css_template\/\?q/);
       const searchCall = calls.find(call =>
-        call[0].includes('filters:!((col:template_name,opr:ct,value:fooo))'),
+        call.url.includes('filters:!((col:template_name,opr:ct,value:fooo))'),
       );
       expect(searchCall).toBeTruthy();
     });
@@ -170,7 +171,9 @@ describe('CssTemplatesList', () => {
 
     // Wait for delete request
     await waitFor(() => {
-      expect(fetchMock.calls(/css_template\/0/, 'DELETE')).toHaveLength(1);
+      expect(
+        fetchMock.callHistory.calls(/css_template\/0/, 'DELETE'),
+      ).toHaveLength(1);
     });
   });
 
