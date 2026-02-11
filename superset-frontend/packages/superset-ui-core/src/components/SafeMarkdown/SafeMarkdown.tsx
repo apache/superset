@@ -34,7 +34,7 @@ interface SafeMarkdownProps {
 export function getOverrideHtmlSchema(
   originalSchema: typeof defaultSchema,
   htmlSchemaOverrides: SafeMarkdownProps['htmlSchemaOverrides'],
-) {
+): typeof defaultSchema {
   return mergeWith(originalSchema, htmlSchemaOverrides, (objValue, srcValue) =>
     Array.isArray(objValue) ? objValue.concat(srcValue) : undefined,
   );

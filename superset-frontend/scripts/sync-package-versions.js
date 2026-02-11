@@ -39,9 +39,13 @@ const dryRun = args.includes('--dry-run');
 const version = args.find(arg => !arg.startsWith('--'));
 
 if (!version) {
-  console.error('Usage: node scripts/sync-package-versions.js <version> [--dry-run]');
+  console.error(
+    'Usage: node scripts/sync-package-versions.js <version> [--dry-run]',
+  );
   console.error('Example: node scripts/sync-package-versions.js 6.1.0');
-  console.error('Example: node scripts/sync-package-versions.js 6.1.0-rc.1 --dry-run');
+  console.error(
+    'Example: node scripts/sync-package-versions.js 6.1.0-rc.1 --dry-run',
+  );
   process.exit(1);
 }
 
@@ -49,7 +53,9 @@ if (!version) {
 const semverRegex = /^\d+\.\d+\.\d+(-[a-zA-Z0-9.]+)?$/;
 if (!semverRegex.test(version)) {
   console.error(`Invalid version format: ${version}`);
-  console.error('Expected format: MAJOR.MINOR.PATCH or MAJOR.MINOR.PATCH-prerelease');
+  console.error(
+    'Expected format: MAJOR.MINOR.PATCH or MAJOR.MINOR.PATCH-prerelease',
+  );
   process.exit(1);
 }
 
@@ -57,7 +63,10 @@ const rootDir = path.resolve(__dirname, '..');
 
 // Find all publishable packages (those with "private": false or no "private" field)
 // Exclude demo and generator packages per changeset config
-const excludePackages = new Set(['@superset-ui/demo', '@superset-ui/generator-superset']);
+const excludePackages = new Set([
+  '@superset-ui/demo',
+  '@superset-ui/generator-superset',
+]);
 
 function findPackages() {
   const packages = [];
@@ -112,11 +121,13 @@ function updatePackage(pkgPath, newVersion) {
     name: pkg.name,
     oldVersion,
     newVersion,
-    path: pkgPath
+    path: pkgPath,
   };
 }
 
-console.log(`\n${dryRun ? '[DRY RUN] ' : ''}Syncing package versions to ${version}\n`);
+console.log(
+  `\n${dryRun ? '[DRY RUN] ' : ''}Syncing package versions to ${version}\n`,
+);
 
 const packages = findPackages();
 const results = packages.map(pkgPath => updatePackage(pkgPath, version));
@@ -137,14 +148,20 @@ results
   });
 
 const updatedCount = results.filter(r => !r.skipped).length;
-console.log(`\n${dryRun ? 'Would update' : 'Updated'} ${updatedCount} packages.`);
+console.log(
+  `\n${dryRun ? 'Would update' : 'Updated'} ${updatedCount} packages.`,
+);
 
 if (dryRun) {
   console.log('\nRun without --dry-run to apply changes.');
 } else {
   console.log('\nNext steps:');
   console.log('  1. Review changes: git diff');
-  console.log('  2. Commit: git add . && git commit -m "chore(packages): bump versions to ' + version + '"');
+  console.log(
+    '  2. Commit: git add . && git commit -m "chore(packages): bump versions to ' +
+      version +
+      '"',
+  );
   console.log('  3. Dry run publish: bun run publish:packages:dry');
   console.log('  4. Publish: bun run publish:packages');
 }

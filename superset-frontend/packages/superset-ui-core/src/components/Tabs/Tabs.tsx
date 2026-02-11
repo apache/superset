@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { FC } from 'react';
+import type { ComponentType, FC } from 'react';
 import { css, styled, useTheme } from '@apache-superset/core/ui';
 
 // eslint-disable-next-line no-restricted-imports
@@ -29,6 +29,21 @@ export interface TabsProps extends AntdTabsProps {
   fullHeight?: boolean;
   contentStyle?: SerializedStyles;
 }
+
+// Type for TabPane to avoid TS2742 with Bun's module resolution
+// Using a broader type to accommodate all TabPane props (tab, key, closeIcon, etc.)
+type TabPaneProps = {
+  tab?: React.ReactNode;
+  key?: string;
+  closeIcon?: React.ReactNode;
+  disabled?: boolean;
+  forceRender?: boolean;
+  closable?: boolean;
+  children?: React.ReactNode;
+};
+type TabPaneType = ComponentType<TabPaneProps> & {
+  defaultProps?: Partial<TabPaneProps>;
+};
 
 const StyledTabs = ({
   animated = false,
@@ -93,11 +108,14 @@ const StyledTabs = ({
   );
 };
 
-const StyledTabPane = styled(AntdTabs.TabPane)``;
+const StyledTabPane: TabPaneType = styled(AntdTabs.TabPane)``;
 
-const Tabs = Object.assign(StyledTabs, {
-  TabPane: StyledTabPane,
-});
+const Tabs: FC<TabsProps> & { TabPane: TabPaneType } = Object.assign(
+  StyledTabs,
+  {
+    TabPane: StyledTabPane,
+  },
+);
 
 const StyledEditableTabs = styled(StyledTabs)`
   ${({ theme, contentStyle }) => `
@@ -121,9 +139,10 @@ const StyledEditableTabs = styled(StyledTabs)`
 const StyledCloseOutlined = styled(Icons.CloseOutlined)`
   color: ${({ theme }) => theme.colorIcon};
 `;
-export const EditableTabs = Object.assign(StyledEditableTabs, {
-  TabPane: StyledTabPane,
-});
+export const EditableTabs: FC<TabsProps> & { TabPane: TabPaneType } =
+  Object.assign(StyledEditableTabs, {
+    TabPane: StyledTabPane,
+  });
 
 EditableTabs.defaultProps = {
   type: 'editable-card',
@@ -163,7 +182,7 @@ export const StyledLineEditableTabs = styled(EditableTabs)`
 `;
 
 export const LineEditableTabs: FC<TabsProps> & {
-  TabPane: typeof StyledTabPane;
+  TabPane: TabPaneType;
 } = Object.assign(StyledLineEditableTabs, {
   TabPane: StyledTabPane,
 });

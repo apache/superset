@@ -18,7 +18,7 @@
  */
 import userEvent from '@testing-library/user-event';
 import { ReactElement } from 'react';
-import { render, RenderOptions } from '@testing-library/react';
+import { render, RenderOptions, RenderResult } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { themeObject } from '@apache-superset/core/ui';
 
@@ -33,7 +33,7 @@ const AllTheProviders = ({ children }: { children: React.ReactNode }) => (
 const customRender = (
   ui: ReactElement,
   options?: Omit<RenderOptions, 'wrapper'>,
-) => render(ui, { wrapper: AllTheProviders, ...options });
+): RenderResult => render(ui, { wrapper: AllTheProviders, ...options });
 
 export {
   createEvent,

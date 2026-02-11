@@ -142,7 +142,9 @@ export function getBreakPointColorScaler(
   if (!colorScheme) {
     return () => TRANSPARENT_COLOR_ARRAY;
   }
-  let scaler: ScaleLinear<string, string> | ScaleThreshold<number, string>;
+  let scaler:
+    | ScaleLinear<string, string, never>
+    | ScaleThreshold<number, string, never>;
   let maskPoint: (v: number | undefined) => boolean;
   if (breakPoints !== null) {
     // bucket colors into discrete colors
@@ -170,11 +172,15 @@ export function getBreakPointColorScaler(
     // interpolate colors linearly
     const linearScaleDomain = extent(features, accessor);
     if (!linearScaleDomain.some(i => typeof i === 'number')) {
-      scaler = colorScheme.createLinearScale();
+      scaler = colorScheme.createLinearScale() as ScaleLinear<
+        string,
+        string,
+        never
+      >;
     } else {
       scaler = colorScheme.createLinearScale(
         extent(features, accessor) as number[],
-      );
+      ) as ScaleLinear<string, string, never>;
     }
     maskPoint = () => false;
   }

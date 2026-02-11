@@ -24,6 +24,7 @@ import {
   JsonObject,
   QueryFormData,
 } from '@superset-ui/core';
+import type { ScaleLinear } from 'd3-scale';
 import { isPointInBonds } from '../../utilities/utils';
 import { commonLayerProps, getColorRange } from '../common';
 import sandboxedEval from '../../utils/sandbox';
@@ -122,7 +123,9 @@ export const getLayer: GetLayerType<HeatmapLayer> = ({
 
   const colorScale = getSequentialSchemeRegistry()
     ?.get(colorScheme)
-    ?.createLinearScale([0, 6]);
+    ?.createLinearScale([0, 6]) as
+    | ScaleLinear<string, string, never>
+    | undefined;
 
   const colorSchemeType = fd.color_scheme_type;
   const colorRange = getColorRange({

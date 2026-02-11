@@ -17,6 +17,7 @@
  * under the License.
  */
 import { DatePicker as AntdDatePicker } from 'antd';
+import type { FC } from 'react';
 import { css } from '@apache-superset/core/ui';
 import type { DatePickerProps, RangePickerProps } from './types';
 
@@ -29,6 +30,8 @@ export const DatePicker = (props: DatePickerProps) => (
   />
 );
 
-export const { RangePicker } = AntdDatePicker;
+// Explicitly typed to avoid TS2742 with Bun's module resolution
+export const RangePicker: FC<RangePickerProps> =
+  AntdDatePicker.RangePicker as FC<RangePickerProps>;
 
 export type { DatePickerProps, RangePickerProps };
