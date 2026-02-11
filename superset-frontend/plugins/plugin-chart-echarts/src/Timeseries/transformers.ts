@@ -76,7 +76,10 @@ export const getBaselineSeriesForStream = (
   seriesType: EchartsTimeseriesSeriesType,
 ) => {
   const seriesLength = series[0].length;
-  const baselineSeriesDelta = new Array(seriesLength).fill([0, 0]);
+  const baselineSeriesDelta: [string | number, number][] = Array.from(
+    { length: seriesLength },
+    () => [0, 0],
+  );
   const getVal = (value: number | null) => value ?? 0;
   for (let i = 0; i < seriesLength; i += 1) {
     let seriesSum = 0;
@@ -98,7 +101,9 @@ export const getBaselineSeriesForStream = (
     }
     baselineSeriesDelta[i] = [series[0][i][0], -weightedSeriesSum / seriesSum];
   }
-  const baselineSeries = baselineSeriesDelta.reduce((acc, curr, i) => {
+  const baselineSeries = baselineSeriesDelta.reduce<
+    [string | number, number][]
+  >((acc, curr, i) => {
     if (i === 0) {
       acc.push(curr);
     } else {
@@ -196,6 +201,7 @@ export function transformSeries(
     timeCompare?: string[];
     timeShiftColor?: boolean;
     theme?: SupersetTheme;
+    hasDimensions?: boolean;
   },
 ): SeriesOption | undefined {
   const { name, data } = series;
@@ -237,8 +243,12 @@ export function transformSeries(
   const isConfidenceBand =
     forecastSeries.type === ForecastSeriesEnum.ForecastLower ||
     forecastSeries.type === ForecastSeriesEnum.ForecastUpper;
+  // When cross-filtering by X-axis (no dimensions), selectedValues contains
+  // X-axis values rather than series names, so skip series-level dimming.
   const isFiltered =
-    filterState?.selectedValues && !filterState?.selectedValues.includes(name);
+    opts.hasDimensions !== false &&
+    filterState?.selectedValues &&
+    !filterState?.selectedValues.includes(name);
   const opacity = isFiltered
     ? OpacityEnum.SemiTransparent
     : opts.lineStyle?.opacity || OpacityEnum.NonTransparent;
@@ -335,11 +345,11 @@ export function transformSeries(
     yAxisIndex,
     name: forecastSeries.name,
     itemStyle,
-    // @ts-ignore
+    // @ts-expect-error
     type: plotType,
     smooth: seriesType === 'smooth',
     triggerLineEvent: true,
-    // @ts-ignore
+    // @ts-expect-error
     step: ['start', 'middle', 'end'].includes(seriesType as string)
       ? seriesType
       : undefined,
@@ -469,7 +479,7 @@ export function transformIntervalAnnotation(
           position: 'insideTop',
           verticalAlign: 'top',
           fontWeight: 'bold',
-          // @ts-ignore
+          // @ts-expect-error
           emphasis: {
             position: 'insideTop',
             verticalAlign: 'top',
@@ -479,7 +489,6 @@ export function transformIntervalAnnotation(
       : {
           show: false,
           color: theme.colorTextLabel,
-          // @ts-ignore
           emphasis: {
             fontWeight: 'bold',
             show: true,
@@ -550,7 +559,7 @@ export function transformEventAnnotation(
           position: 'insideEndTop',
           fontWeight: 'bold',
           formatter: (params: CallbackDataParams) => params.name,
-          // @ts-ignore
+          // @ts-expect-error
           emphasis: {
             backgroundColor: theme.colorPrimaryBgHover,
           },
@@ -559,7 +568,6 @@ export function transformEventAnnotation(
           show: false,
           color: theme.colorTextLabel,
           position: 'insideEndTop',
-          // @ts-ignore
           emphasis: {
             formatter: (params: CallbackDataParams) => params.name,
             fontWeight: 'bold',
@@ -656,7 +664,9 @@ export function getPadding(
       top:
         yAxisTitlePosition && yAxisTitlePosition === 'Top'
           ? TIMESERIES_CONSTANTS.gridOffsetTop + (Number(yAxisTitleMargin) || 0)
-          : TIMESERIES_CONSTANTS.gridOffsetTop + yAxisOffset,
+          : yAxisTitlePosition === 'Left'
+            ? TIMESERIES_CONSTANTS.gridOffsetTop
+            : TIMESERIES_CONSTANTS.gridOffsetTop + yAxisOffset,
       bottom:
         zoomable && !isHorizontal
           ? TIMESERIES_CONSTANTS.gridOffsetBottomZoomable + xAxisOffset

@@ -74,17 +74,74 @@ export interface ViewContribution {
 }
 
 /**
- * Aggregates all contributions (commands, menus, and views) provided by an extension or module.
+ * Describes an editor that can be contributed to the application.
+ * Extensions declare editor contributions in their extension.json manifest.
+ */
+export interface EditorContribution {
+  /** Unique identifier for the editor (e.g., "acme.monaco-sql") */
+  id: string;
+  /** Display name of the editor */
+  name: string;
+  /** Languages this editor supports */
+  languages: EditorLanguage[];
+  /** Optional description of the editor */
+  description?: string;
+}
+
+/**
+ * Supported editor languages.
+ */
+export type EditorLanguage = 'sql' | 'json' | 'yaml' | 'markdown' | 'css';
+
+/**
+ * Valid locations within SQL Lab.
+ */
+export type SqlLabLocation =
+  | 'leftSidebar'
+  | 'rightSidebar'
+  | 'panels'
+  | 'editor'
+  | 'statusBar'
+  | 'results'
+  | 'queryHistory';
+
+/**
+ * Nested structure for view contributions by scope and location.
+ * @example
+ * {
+ *   sqllab: {
+ *     panels: [{ id: "my-ext.panel", name: "My Panel" }],
+ *     leftSidebar: [{ id: "my-ext.sidebar", name: "My Sidebar" }]
+ *   }
+ * }
+ */
+export interface ViewContributions {
+  sqllab?: Partial<Record<SqlLabLocation, ViewContribution[]>>;
+}
+
+/**
+ * Nested structure for menu contributions by scope and location.
+ * @example
+ * {
+ *   sqllab: {
+ *     editor: { primary: [...], secondary: [...] }
+ *   }
+ * }
+ */
+export interface MenuContributions {
+  sqllab?: Partial<Record<SqlLabLocation, MenuContribution>>;
+}
+
+/**
+ * Aggregates all contributions (commands, menus, views, and editors) provided by an extension or module.
  */
 export interface Contributions {
   /** List of command contributions. */
   commands: CommandContribution[];
-  /** Mapping of menu contributions by menu key. */
-  menus: {
-    [key: string]: MenuContribution;
-  };
-  /** Mapping of view contributions by view key. */
-  views: {
-    [key: string]: ViewContribution[];
-  };
+  /** Nested mapping of menu contributions by scope and location. */
+  menus: MenuContributions;
+  /** Nested mapping of view contributions by scope and location. */
+  views: ViewContributions;
+  /** List of editor contributions. */
+  editors?: EditorContribution[];
 }

@@ -181,13 +181,13 @@ const FilterControls: FC<FilterControlsProps> = ({
     clearAllTriggers,
     onClearAllComplete,
   );
-  const portalNodes = useMemo(() => {
-    const nodes = new Array(filtersWithValues.length);
-    for (let i = 0; i < filtersWithValues.length; i += 1) {
-      nodes[i] = createHtmlPortalNode();
-    }
-    return nodes;
-  }, [filtersWithValues.length]);
+  const portalNodes = useMemo(
+    () =>
+      Array.from({ length: filtersWithValues.length }, () =>
+        createHtmlPortalNode(),
+      ),
+    [filtersWithValues.length],
+  );
 
   const filterIds = new Set(filtersWithValues.map(item => item.id));
 
@@ -366,7 +366,7 @@ const FilterControls: FC<FilterControlsProps> = ({
                     lineHeight: 1.3,
                   }}
                 >
-                  {t('Chart Customization')}
+                  {t('Display controls')}
                 </Title>
                 <StyledIcon
                   iconSize="m"

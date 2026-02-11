@@ -1,10 +1,11 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["import", "react", "jsx-a11y", "typescript", "unicorn"],
+  "plugins": ["import", "react", "jest", "jsx-a11y", "typescript", "unicorn"],
   "env": {
     "browser": true,
     "node": true,
-    "es2020": true
+    "es2020": true,
+    "jest": true
   },
   "globals": {
     "__webpack_public_path__": "writable",
@@ -27,7 +28,8 @@
     // === Core ESLint rules ===
     // Error prevention
     "no-console": "warn",
-    "no-alert": "warn",
+    "no-alert": "error",
+    "constructor-super": "error",
     "no-debugger": "error",
     "no-unused-vars": "off",
     "no-undef": "error",
@@ -147,7 +149,8 @@
     ],
     "react/no-array-index-key": "off",
     "react/no-children-prop": "error",
-    "react/no-danger": "warn",
+    "react/no-danger": "error",
+    "react/forbid-foreign-prop-types": "error",
     "react/no-danger-with-children": "error",
     "react/no-deprecated": "error",
     "react/no-did-update-set-state": "error",
@@ -230,7 +233,7 @@
     "@typescript-eslint/ban-types": "off",
     "@typescript-eslint/no-empty-function": "off",
     "@typescript-eslint/no-explicit-any": "off",
-    "@typescript-eslint/no-use-before-define": "warn",
+    "@typescript-eslint/no-use-before-define": "error",
     "@typescript-eslint/no-non-null-assertion": "off",
     "@typescript-eslint/explicit-function-return-type": "off",
     "@typescript-eslint/explicit-module-boundary-types": "off",
@@ -249,6 +252,8 @@
     ],
 
     // === Unicorn rules (bonus coverage) ===
+    "unicorn/no-new-array": "error",
+    "unicorn/no-invalid-remove-event-listener": "error",
     "unicorn/filename-case": "off",
     "unicorn/prevent-abbreviations": "off",
     "unicorn/no-null": "off",
@@ -256,18 +261,26 @@
     "unicorn/no-array-for-each": "off",
     "unicorn/prefer-module": "off",
     "unicorn/prefer-node-protocol": "off",
-    "unicorn/no-useless-undefined": "off"
+    "unicorn/no-useless-undefined": "off",
+
+    // === Jest rules ===
+    "jest/consistent-test-it": ["error", { "fn": "test" }],
+    "jest/no-focused-tests": "error",
+    "jest/no-disabled-tests": "error",
+    "jest/expect-expect": [
+      "error",
+      {
+        "assertFunctionNames": [
+          "expect",
+          "expect*",
+          "runTimezoneTest",
+          "compareURI",
+          "test*WithInitialValues"
+        ]
+      }
+    ]
   },
   "ignorePatterns": [
-    "*.test.{js,ts,jsx,tsx}",
-    "*.spec.{js,ts,jsx,tsx}",
-    "**/__tests__/**",
-    "**/__mocks__/**",
-    "**/test/**",
-    "**/tests/**",
-    "**/spec/**",
-    "plugins/**/test/**/*",
-    "packages/**/test/**/*",
     "packages/generator-superset/**/*",
     "cypress-base/**",
     "node_modules/**",

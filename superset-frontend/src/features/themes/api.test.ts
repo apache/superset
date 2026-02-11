@@ -27,11 +27,11 @@ import {
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('Theme API', () => {
   beforeEach(() => {
-    fetchMock.reset();
+    fetchMock.clearHistory().removeRoutes();
   });
 
   afterEach(() => {
-    fetchMock.restore();
+    fetchMock.clearHistory().removeRoutes();
   });
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
@@ -42,9 +42,11 @@ describe('Theme API', () => {
 
       await setSystemDefaultTheme(1);
 
-      expect(fetchMock.called('glob:*/api/v1/theme/1/set_system_default')).toBe(
-        true,
-      );
+      expect(
+        fetchMock.callHistory.called(
+          'glob:*/api/v1/theme/1/set_system_default',
+        ),
+      ).toBe(true);
     });
 
     test('should handle errors properly', async () => {
@@ -64,9 +66,9 @@ describe('Theme API', () => {
 
       await setSystemDarkTheme(2);
 
-      expect(fetchMock.called('glob:*/api/v1/theme/2/set_system_dark')).toBe(
-        true,
-      );
+      expect(
+        fetchMock.callHistory.called('glob:*/api/v1/theme/2/set_system_dark'),
+      ).toBe(true);
     });
 
     test('should handle errors properly', async () => {
@@ -89,9 +91,11 @@ describe('Theme API', () => {
 
       await unsetSystemDefaultTheme();
 
-      expect(fetchMock.called('glob:*/api/v1/theme/unset_system_default')).toBe(
-        true,
-      );
+      expect(
+        fetchMock.callHistory.called(
+          'glob:*/api/v1/theme/unset_system_default',
+        ),
+      ).toBe(true);
     });
 
     test('should handle errors properly', async () => {
@@ -111,9 +115,9 @@ describe('Theme API', () => {
 
       await unsetSystemDarkTheme();
 
-      expect(fetchMock.called('glob:*/api/v1/theme/unset_system_dark')).toBe(
-        true,
-      );
+      expect(
+        fetchMock.callHistory.called('glob:*/api/v1/theme/unset_system_dark'),
+      ).toBe(true);
     });
 
     test('should handle errors properly', async () => {

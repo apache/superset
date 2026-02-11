@@ -90,6 +90,7 @@ export interface ConfigModalSidebarProps {
     targetType: 'filter' | 'customization',
   ) => void;
   formValuesVersion?: number;
+  itemTitles?: Record<string, string>;
 }
 
 const ConfigModalSidebar: FC<ConfigModalSidebarProps> = ({
@@ -113,6 +114,7 @@ const ConfigModalSidebar: FC<ConfigModalSidebarProps> = ({
   onCollapseChange,
   onCrossListDrop,
   formValuesVersion,
+  itemTitles,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
 
@@ -210,6 +212,11 @@ const ConfigModalSidebar: FC<ConfigModalSidebarProps> = ({
     setIsDragging(false);
   }, []);
 
+  // Provide title from itemTitles if available, otherwise fallback to getItemTitle
+  const getTitle = useCallback(
+    (id: string) => itemTitles?.[id] ?? getItemTitle(id),
+    [itemTitles, getItemTitle],
+  );
   const handleFilterCrossListDrop = (
     sourceId: string,
     targetIndex: number,
@@ -237,7 +244,7 @@ const ConfigModalSidebar: FC<ConfigModalSidebarProps> = ({
 
   const customizationsHeader: ReactNode = (
     <div>
-      {t('Chart customizations')} ({chartCustomizationIds.length})
+      {t('Display controls')} ({chartCustomizationIds.length})
     </div>
   );
 
@@ -269,7 +276,7 @@ const ConfigModalSidebar: FC<ConfigModalSidebarProps> = ({
               items={filterOrderedIds}
               removedItems={filterRemovedItems}
               erroredItems={filterErroredItems}
-              getItemTitle={getItemTitle}
+              getItemTitle={getTitle}
               onChange={onChange}
               onRearrange={onRearrange}
               onRemove={onRemove}
@@ -281,7 +288,6 @@ const ConfigModalSidebar: FC<ConfigModalSidebarProps> = ({
               onCrossListDrop={handleFilterCrossListDrop}
             />
           </StyledCollapse.Panel>
-
           <StyledCollapse.Panel
             key="chartCustomizations"
             header={customizationsHeader}
@@ -291,7 +297,7 @@ const ConfigModalSidebar: FC<ConfigModalSidebarProps> = ({
               items={customizationOrderedIds}
               removedItems={customizationRemovedItems}
               erroredItems={customizationErroredItems}
-              getItemTitle={getItemTitle}
+              getItemTitle={getTitle}
               onChange={onChange}
               onRearrange={onRearrange}
               onRemove={onRemove}

@@ -20,12 +20,12 @@
 import { TypedRegistry } from '@superset-ui/core';
 
 describe('TypedRegistry', () => {
-  it('gets a value', () => {
+  test('gets a value', () => {
     const reg = new TypedRegistry({ foo: 'bar' });
     expect(reg.get('foo')).toBe('bar');
   });
 
-  it('sets a value', () => {
+  test('sets a value', () => {
     const reg = new TypedRegistry({ foo: 'bar' });
     reg.set('foo', 'blah');
     expect(reg.get('foo')).toBe('blah');

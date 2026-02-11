@@ -30,7 +30,7 @@ import {
   SQL_EDITOR_LEFTBAR_WIDTH,
   SQL_EDITOR_RIGHTBAR_WIDTH,
 } from 'src/SqlLab/constants';
-import { ViewContribution } from 'src/SqlLab/contributions';
+import { ViewLocations } from 'src/SqlLab/contributions';
 import ViewListExtension from 'src/components/ViewListExtension';
 
 import SqlEditorLeftBar from '../SqlEditorLeftBar';
@@ -53,7 +53,11 @@ const StyledContainer = styled.div`
 
 const StyledSidebar = styled.div`
   position: relative;
-  padding: ${({ theme }) => theme.sizeUnit * 2.5}px;
+  padding: ${({ theme }) => theme.sizeUnit * 2.5}px 0;
+  margin: 0 ${({ theme }) => theme.sizeUnit * 2.5}px;
+  flex: 1;
+  height: 100%;
+  background-color: ${({ theme }) => theme.colorBgBase};
 `;
 
 const ContentWrapper = styled.div`
@@ -94,7 +98,7 @@ const AppLayout: React.FC = ({ children }) => {
   };
   const contributions =
     ExtensionsManager.getInstance().getViewContributions(
-      ViewContribution.RightSidebar,
+      ViewLocations.sqllab.rightSidebar,
     ) || [];
 
   return (
@@ -135,7 +139,7 @@ const AppLayout: React.FC = ({ children }) => {
             min={SQL_EDITOR_RIGHTBAR_WIDTH}
           >
             <ContentWrapper>
-              <ViewListExtension viewId={ViewContribution.RightSidebar} />
+              <ViewListExtension viewId={ViewLocations.sqllab.rightSidebar} />
             </ContentWrapper>
           </Splitter.Panel>
         )}

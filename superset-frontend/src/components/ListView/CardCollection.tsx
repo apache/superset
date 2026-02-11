@@ -79,9 +79,9 @@ export default function CardCollection({
     <CardContainer showThumbnails={showThumbnails}>
       {loading &&
         rows.length === 0 &&
-        new Array(25)
-          .fill(undefined)
-          .map((e, i) => <div key={i}>{renderCard({ loading })}</div>)}
+        Array.from({ length: 25 }, (_, i) => (
+          <div key={i}>{renderCard({ loading })}</div>
+        ))}
       {rows.length > 0 &&
         rows.map(row => {
           if (!renderCard) return null;

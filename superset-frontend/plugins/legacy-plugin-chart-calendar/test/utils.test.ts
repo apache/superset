@@ -20,7 +20,7 @@
 import { getFormattedUTCTime, convertUTCTimestampToLocal } from '../src/utils';
 
 describe('getFormattedUTCTime', () => {
-  it('formats local timestamp for display as UTC date', () => {
+  test('formats local timestamp for display as UTC date', () => {
     const utcTimestamp = 1420070400000; // 2015-01-01 00:00:00 UTC
     const localTimestamp = convertUTCTimestampToLocal(utcTimestamp);
     const formattedTime = getFormattedUTCTime(
@@ -33,7 +33,7 @@ describe('getFormattedUTCTime', () => {
 });
 
 describe('convertUTCTimestampToLocal', () => {
-  it('adjusts timestamp so local Date shows UTC date', () => {
+  test('adjusts timestamp so local Date shows UTC date', () => {
     const utcTimestamp = 1704067200000;
     const adjustedTimestamp = convertUTCTimestampToLocal(utcTimestamp);
     const adjustedDate = new Date(adjustedTimestamp);
@@ -43,7 +43,7 @@ describe('convertUTCTimestampToLocal', () => {
     expect(adjustedDate.getDate()).toEqual(1);
   });
 
-  it('handles month boundaries', () => {
+  test('handles month boundaries', () => {
     const utcTimestamp = 1706745600000;
     const adjustedDate = new Date(convertUTCTimestampToLocal(utcTimestamp));
 
@@ -52,7 +52,7 @@ describe('convertUTCTimestampToLocal', () => {
     expect(adjustedDate.getDate()).toEqual(1);
   });
 
-  it('handles year boundaries', () => {
+  test('handles year boundaries', () => {
     const utcTimestamp = 1735689600000;
     const adjustedDate = new Date(convertUTCTimestampToLocal(utcTimestamp));
 
@@ -61,7 +61,7 @@ describe('convertUTCTimestampToLocal', () => {
     expect(adjustedDate.getDate()).toEqual(1);
   });
 
-  it('adds timezone offset to timestamp', () => {
+  test('adds timezone offset to timestamp', () => {
     const utcTimestamp = 1704067200000;
     const adjustedTimestamp = convertUTCTimestampToLocal(utcTimestamp);
     const expectedOffset =
@@ -72,7 +72,7 @@ describe('convertUTCTimestampToLocal', () => {
 });
 
 describe('integration', () => {
-  it('fixes timezone bug for CalHeatMap', () => {
+  test('fixes timezone bug for CalHeatMap', () => {
     const febFirst2024UTC = 1706745600000;
     const adjustedDate = new Date(convertUTCTimestampToLocal(febFirst2024UTC));
 
@@ -80,7 +80,7 @@ describe('integration', () => {
     expect(adjustedDate.getDate()).toEqual(1);
   });
 
-  it('both functions work together to display dates correctly', () => {
+  test('both functions work together to display dates correctly', () => {
     const utcTimestamp = 1704067200000;
 
     // convertUTCTimestampToLocal adjusts UTC for Cal-Heatmap (which interprets as local)
