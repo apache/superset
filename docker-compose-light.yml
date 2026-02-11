@@ -85,7 +85,7 @@ services:
         required: true
       - path: docker/.env-local # optional override
         required: false
-    image: postgres:16
+    image: postgres:17
     restart: unless-stopped
     volumes:
       - db_home_light:/var/lib/postgresql/data
