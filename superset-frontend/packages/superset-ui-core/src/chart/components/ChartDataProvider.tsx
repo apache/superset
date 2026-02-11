@@ -17,8 +17,7 @@
  * under the License.
  */
 
-/* eslint react/sort-comp: 'off' */
-import { PureComponent, ReactNode } from 'react';
+import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import {
   SupersetClientInterface,
   RequestConfig,
@@ -67,103 +66,102 @@ export type ChartDataProviderState = {
   error?: ProvidedProps['error'];
 };
 
-class ChartDataProvider extends PureComponent<
-  ChartDataProviderProps,
-  ChartDataProviderState
-> {
-  readonly chartClient: ChartClient;
+function ChartDataProvider({
+  children,
+  client,
+  formData,
+  sliceId,
+  loadDatasource,
+  onError,
+  onLoaded,
+  formDataRequestOptions,
+  datasourceRequestOptions,
+  queryRequestOptions,
+}: ChartDataProviderProps) {
+  const [state, setState] = useState<ChartDataProviderState>({
+    status: 'uninitialized',
+  });
 
-  constructor(props: ChartDataProviderProps) {
-    super(props);
-    this.state = { status: 'uninitialized' };
-    this.chartClient = new ChartClient({ client: props.client });
-  }
+  const chartClient = useMemo(() => new ChartClient({ client }), [client]);
 
-  componentDidMount() {
-    this.handleFetchData();
-  }
+  const extractSliceIdAndFormData = useCallback(
+    (): SliceIdAndOrFormData =>
+      formData ? { formData } : { sliceId: sliceId as number },
+    [formData, sliceId],
+  );
 
-  componentDidUpdate(prevProps: ChartDataProviderProps) {
-    const { formData, sliceId } = this.props;
-    if (formData !== prevProps.formData || sliceId !== prevProps.sliceId) {
-      this.handleFetchData();
+  const handleReceiveData = useCallback(
+    (payload?: Payload) => {
+      if (onLoaded) onLoaded(payload);
+      setState({ payload, status: 'loaded' });
+    },
+    [onLoaded],
+  );
+
+  const handleError = useCallback(
+    (error: ProvidedProps['error']) => {
+      if (onError) onError(error);
+      setState({ error, status: 'error' });
+    },
+    [onError],
+  );
+
+  const handleFetchData = useCallback(() => {
+    setState({ status: 'loading' });
+    try {
+      chartClient
+        .loadFormData(extractSliceIdAndFormData(), formDataRequestOptions)
+        .then(loadedFormData =>
+          Promise.all([
+            loadDatasource
+              ? chartClient.loadDatasource(
+                  loadedFormData.datasource,
+                  datasourceRequestOptions,
+                )
+              : Promise.resolve(undefined),
+            chartClient.loadQueryData(loadedFormData, queryRequestOptions),
+          ]).then(
+            ([datasource, queriesData]) =>
+              ({
+                datasource,
+                formData: loadedFormData,
+                queriesData,
+              }) as Payload,
+          ),
+        )
+        .then(handleReceiveData)
+        .catch(handleError);
+    } catch (error) {
+      handleError(error as Error);
     }
-  }
+  }, [
+    chartClient,
+    extractSliceIdAndFormData,
+    formDataRequestOptions,
+    loadDatasource,
+    datasourceRequestOptions,
+    queryRequestOptions,
+    handleReceiveData,
+    handleError,
+  ]);
 
-  private extractSliceIdAndFormData() {
-    const { formData, sliceId } = this.props;
-    return formData ? { formData } : { sliceId: sliceId as number };
-  }
+  // Fetch data on mount and when formData or sliceId changes
+  useEffect(() => {
+    handleFetchData();
+  }, [formData, sliceId, handleFetchData]);
 
-  private handleFetchData = () => {
-    const {
-      loadDatasource,
-      formDataRequestOptions,
-      datasourceRequestOptions,
-      queryRequestOptions,
-    } = this.props;
+  const { status, payload, error } = state;
 
-    this.setState({ status: 'loading' }, () => {
-      try {
-        this.chartClient
-          .loadFormData(
-            this.extractSliceIdAndFormData(),
-            formDataRequestOptions,
-          )
-          .then(formData =>
-            Promise.all([
-              loadDatasource
-                ? this.chartClient.loadDatasource(
-                    formData.datasource,
-                    datasourceRequestOptions,
-                  )
-                : Promise.resolve(undefined),
-              this.chartClient.loadQueryData(formData, queryRequestOptions),
-            ]).then(
-              ([datasource, queriesData]) =>
-                // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-                ({
-                  datasource,
-                  formData,
-                  queriesData,
-                }) as Payload,
-            ),
-          )
-          .then(this.handleReceiveData)
-          .catch(this.handleError);
-      } catch (error) {
-        this.handleError(error as Error);
-      }
-    });
-  };
-
-  private handleReceiveData = (payload?: Payload) => {
-    const { onLoaded } = this.props;
-    if (onLoaded) onLoaded(payload);
-    this.setState({ payload, status: 'loaded' });
-  };
-
-  private handleError = (error: ProvidedProps['error']) => {
-    const { onError } = this.props;
-    if (onError) onError(error);
-    this.setState({ error, status: 'error' });
-  };
-
-  render() {
-    const { children } = this.props;
-    const { status, payload, error } = this.state;
-
-    switch (status) {
-      case 'loading':
-        return children({ loading: true });
-      case 'loaded':
-        return children({ payload });
-      case 'error':
-        return children({ error });
-      case 'uninitialized':
-      default:
-        return null;
-    }
+  switch (status) {
+    case 'loading':
+      return children({ loading: true });
+    case 'loaded':
+      return children({ payload });
+    case 'error':
+      return children({ error });
+    case 'uninitialized':
+    default:
+      return null;
   }
 }
 

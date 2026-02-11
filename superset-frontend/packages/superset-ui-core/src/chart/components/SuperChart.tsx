@@ -21,8 +21,10 @@ import {
   ReactNode,
   RefObject,
   ComponentType,
-  PureComponent,
   Fragment,
+  useCallback,
+  useMemo,
+  useRef,
 } from 'react';
 
 import {
@@ -32,22 +34,19 @@ import {
 } from 'react-error-boundary';
 import { ParentSize } from '@visx/responsive';
 import { createSelector } from 'reselect';
-import { withTheme } from '@emotion/react';
+import { useTheme } from '@emotion/react';
 import { parseLength, Dimension } from '../../dimension';
 import getChartMetadataRegistry from '../registries/ChartMetadataRegistrySingleton';
-import SuperChartCore, { Props as SuperChartCoreProps } from './SuperChartCore';
+import SuperChartCore, {
+  Props as SuperChartCoreProps,
+  SuperChartCoreRef,
+} from './SuperChartCore';
 import DefaultFallbackComponent from './FallbackComponent';
 import ChartProps, { ChartPropsConfig } from '../models/ChartProps';
 import NoResultsComponent from './NoResultsComponent';
 import { isMatrixifyEnabled } from '../types/matrixify';
 import MatrixifyGridRenderer from './Matrixify/MatrixifyGridRenderer';
-
-const defaultProps = {
-  FallbackComponent: DefaultFallbackComponent,
-  height: 400 as string | number,
-  width: '100%' as string | number,
-  enableNoResults: true,
-};
+import { SupersetTheme } from '@apache-superset/core/ui';
 
 export type FallbackPropsWithDimension = FallbackProps & Partial<Dimension>;
 
@@ -102,215 +101,261 @@ export type Props = Omit<SuperChartCoreProps, 'chartProps'> &
     inContextMenu?: boolean;
   };
 
-type PropsWithDefault = Props & Readonly<typeof defaultProps>;
-
-class SuperChart extends PureComponent<Props, {}> {
+function SuperChart({
+  id,
+  className,
+  chartType,
+  preTransformProps,
+  overrideTransformProps,
+  postTransformProps,
+  onRenderSuccess,
+  onRenderFailure,
+  disableErrorBoundary,
+  FallbackComponent = DefaultFallbackComponent,
+  onErrorBoundary,
+  Wrapper,
+  queriesData,
+  enableNoResults = true,
+  noResults,
+  theme: themeProp,
+  debounceTime,
+  height = 400,
+  width = '100%',
+  ...rest
+}: Props): JSX.Element {
   /**
-   * SuperChart's core
+   * SuperChart's core ref
    */
-  core?: SuperChartCore | null;
+  const coreRef = useRef<SuperChartCoreRef | null>(null);
 
-  private createChartProps = ChartProps.createSelector();
+  // Use theme from hook, falling back to prop if provided
+  const themeFromContext = useTheme() as SupersetTheme;
+  const theme = themeProp ?? themeFromContext;
 
-  private parseDimension = createSelector(
-    [
-      ({ width }: { width: string | number; height: string | number }) => width,
-      ({ height }) => height,
-    ],
-    (width, height) => {
-      // Parse them in case they are % or 'auto'
-      const widthInfo = parseLength(width);
-      const heightInfo = parseLength(height);
-      const boxHeight = heightInfo.isDynamic
-        ? `${heightInfo.multiplier * 100}%`
-        : heightInfo.value;
-      const boxWidth = widthInfo.isDynamic
-        ? `${widthInfo.multiplier * 100}%`
-        : widthInfo.value;
-      const style = {
-        height: boxHeight,
-        width: boxWidth,
-      };
+  const createChartProps = useMemo(() => ChartProps.createSelector(), []);
 
-      // bounding box will ensure that when one dimension is not dynamic
-      // e.g. height = 300
-      // the auto size will be bound to that value instead of being 100% by default
-      // e.g. height: 300 instead of height: '100%'
-      const BoundingBox =
-        widthInfo.isDynamic &&
-        heightInfo.isDynamic &&
-        widthInfo.multiplier === 1 &&
-        heightInfo.multiplier === 1
-          ? Fragment
-          : ({ children }: { children: ReactNode }) => (
-              <div style={style}>{children}</div>
-            );
+  const parseDimension = useMemo(
+    () =>
+      createSelector(
+        [
+          ({ width: w }: { width: string | number; height: string | number }) =>
+            w,
+          ({
+            height: h,
+          }: {
+            width: string | number;
+            height: string | number;
+          }) => h,
+        ],
+        (w, h) => {
+          // Parse them in case they are % or 'auto'
+          const widthInfo = parseLength(w);
+          const heightInfo = parseLength(h);
+          const boxHeight = heightInfo.isDynamic
+            ? `${heightInfo.multiplier * 100}%`
+            : heightInfo.value;
+          const boxWidth = widthInfo.isDynamic
+            ? `${widthInfo.multiplier * 100}%`
+            : widthInfo.value;
+          const style = {
+            height: boxHeight,
+            width: boxWidth,
+          };
 
-      return { BoundingBox, heightInfo, widthInfo };
-    },
+          // bounding box will ensure that when one dimension is not dynamic
+          // e.g. height = 300
+          // the auto size will be bound to that value instead of being 100% by default
+          // e.g. height: 300 instead of height: '100%'
+          const BoundingBox =
+            widthInfo.isDynamic &&
+            heightInfo.isDynamic &&
+            widthInfo.multiplier === 1 &&
+            heightInfo.multiplier === 1
+              ? Fragment
+              : ({ children }: { children: ReactNode }) => (
+                  <div style={style}>{children}</div>
+                );
+
+          return { BoundingBox, heightInfo, widthInfo };
+        },
+      ),
+    [],
   );
 
-  static defaultProps = defaultProps;
+  const setRef = useCallback((core: SuperChartCoreRef | null) => {
+    coreRef.current = core;
+  }, []);
 
-  private setRef = (core: SuperChartCore | null) => {
-    this.core = core;
-  };
+  const getQueryCount = useCallback(
+    () => getChartMetadataRegistry().get(chartType)?.queryObjectCount ?? 1,
+    [chartType],
+  );
 
-  private getQueryCount = () =>
-    getChartMetadataRegistry().get(this.props.chartType)?.queryObjectCount ?? 1;
+  const renderChart = useCallback(
+    (chartWidth: number, chartHeight: number) => {
+      const chartProps = createChartProps({
+        ...rest,
+        queriesData,
+        height: chartHeight,
+        width: chartWidth,
+        theme,
+      });
 
-  renderChart(width: number, height: number) {
-    const {
+      // Check if Matrixify is enabled - use rawFormData (snake_case)
+      const matrixifyEnabled = isMatrixifyEnabled(chartProps.rawFormData);
+
+      if (matrixifyEnabled) {
+        // When matrixify is enabled, queriesData is expected to be empty
+        // since each cell fetches its own data via StatefulChart
+        const matrixifyChart = (
+          <MatrixifyGridRenderer
+            formData={chartProps.rawFormData}
+            datasource={chartProps.datasource}
+            width={chartWidth}
+            height={chartHeight}
+            hooks={chartProps.hooks}
+          />
+        );
+
+        // Apply wrapper if provided
+        const wrappedChart = Wrapper ? (
+          <Wrapper width={chartWidth} height={chartHeight}>
+            {matrixifyChart}
+          </Wrapper>
+        ) : (
+          matrixifyChart
+        );
+
+        // Include error boundary unless disabled
+        return disableErrorBoundary === true ? (
+          wrappedChart
+        ) : (
+          <ErrorBoundary
+            FallbackComponent={props => (
+              <FallbackComponent
+                width={chartWidth}
+                height={chartHeight}
+                {...props}
+              />
+            )}
+            onError={onErrorBoundary}
+          >
+            {wrappedChart}
+          </ErrorBoundary>
+        );
+      }
+
+      // Check for no results only for non-matrixified charts
+      const noResultQueries =
+        enableNoResults &&
+        (!queriesData ||
+          queriesData
+            .slice(0, getQueryCount())
+            .every(
+              ({ data }) => !data || (Array.isArray(data) && data.length === 0),
+            ));
+
+      let chart: JSX.Element;
+      if (noResultQueries) {
+        chart = noResults ? (
+          <>{noResults}</>
+        ) : (
+          <NoResultsComponent
+            id={id}
+            className={className}
+            height={chartHeight}
+            width={chartWidth}
+          />
+        );
+      } else {
+        const chartWithoutWrapper = (
+          <SuperChartCore
+            ref={setRef}
+            id={id}
+            className={className}
+            chartType={chartType}
+            chartProps={chartProps}
+            preTransformProps={preTransformProps}
+            overrideTransformProps={overrideTransformProps}
+            postTransformProps={postTransformProps}
+            onRenderSuccess={onRenderSuccess}
+            onRenderFailure={onRenderFailure}
+          />
+        );
+        chart = Wrapper ? (
+          <Wrapper width={chartWidth} height={chartHeight}>
+            {chartWithoutWrapper}
+          </Wrapper>
+        ) : (
+          chartWithoutWrapper
+        );
+      }
+      // Include the error boundary by default unless it is specifically disabled.
+      return disableErrorBoundary === true ? (
+        chart
+      ) : (
+        <ErrorBoundary
+          FallbackComponent={props => (
+            <FallbackComponent
+              width={chartWidth}
+              height={chartHeight}
+              {...props}
+            />
+          )}
+          onError={onErrorBoundary}
+        >
+          {chart}
+        </ErrorBoundary>
+      );
+    },
+    [
+      createChartProps,
+      rest,
+      queriesData,
+      theme,
+      Wrapper,
+      disableErrorBoundary,
+      FallbackComponent,
+      onErrorBoundary,
+      enableNoResults,
+      getQueryCount,
+      noResults,
       id,
       className,
+      setRef,
       chartType,
       preTransformProps,
       overrideTransformProps,
       postTransformProps,
       onRenderSuccess,
       onRenderFailure,
-      disableErrorBoundary,
-      FallbackComponent,
-      onErrorBoundary,
-      Wrapper,
-      queriesData,
-      enableNoResults,
-      noResults,
-      theme,
-      ...rest
-    } = this.props as PropsWithDefault;
+    ],
+  );
 
-    const chartProps = this.createChartProps({
-      ...rest,
-      queriesData,
-      height,
-      width,
-      theme,
-    });
+  const { heightInfo, widthInfo, BoundingBox } = parseDimension({
+    width,
+    height,
+  });
 
-    // Check if Matrixify is enabled - use rawFormData (snake_case)
-    const matrixifyEnabled = isMatrixifyEnabled(chartProps.rawFormData);
-
-    if (matrixifyEnabled) {
-      // When matrixify is enabled, queriesData is expected to be empty
-      // since each cell fetches its own data via StatefulChart
-      const matrixifyChart = (
-        <MatrixifyGridRenderer
-          formData={chartProps.rawFormData}
-          datasource={chartProps.datasource}
-          width={width}
-          height={height}
-          hooks={chartProps.hooks}
-        />
-      );
-
-      // Apply wrapper if provided
-      const wrappedChart = Wrapper ? (
-        <Wrapper width={width} height={height}>
-          {matrixifyChart}
-        </Wrapper>
-      ) : (
-        matrixifyChart
-      );
-
-      // Include error boundary unless disabled
-      return disableErrorBoundary === true ? (
-        wrappedChart
-      ) : (
-        <ErrorBoundary
-          FallbackComponent={props => (
-            <FallbackComponent width={width} height={height} {...props} />
-          )}
-          onError={onErrorBoundary}
-        >
-          {wrappedChart}
-        </ErrorBoundary>
-      );
-    }
-
-    // Check for no results only for non-matrixified charts
-    const noResultQueries =
-      enableNoResults &&
-      (!queriesData ||
-        queriesData
-          .slice(0, this.getQueryCount())
-          .every(
-            ({ data }) => !data || (Array.isArray(data) && data.length === 0),
-          ));
-
-    let chart;
-    if (noResultQueries) {
-      chart = noResults || (
-        <NoResultsComponent
-          id={id}
-          className={className}
-          height={height}
-          width={width}
-        />
-      );
-    } else {
-      const chartWithoutWrapper = (
-        <SuperChartCore
-          ref={this.setRef}
-          id={id}
-          className={className}
-          chartType={chartType}
-          chartProps={chartProps}
-          preTransformProps={preTransformProps}
-          overrideTransformProps={overrideTransformProps}
-          postTransformProps={postTransformProps}
-          onRenderSuccess={onRenderSuccess}
-          onRenderFailure={onRenderFailure}
-        />
-      );
-      chart = Wrapper ? (
-        <Wrapper width={width} height={height}>
-          {chartWithoutWrapper}
-        </Wrapper>
-      ) : (
-        chartWithoutWrapper
-      );
-    }
-    // Include the error boundary by default unless it is specifically disabled.
-    return disableErrorBoundary === true ? (
-      chart
-    ) : (
-      <ErrorBoundary
-        FallbackComponent={props => (
-          <FallbackComponent width={width} height={height} {...props} />
-        )}
-        onError={onErrorBoundary}
-      >
-        {chart}
-      </ErrorBoundary>
+  // If any of the dimension is dynamic, get parent's dimension
+  if (widthInfo.isDynamic || heightInfo.isDynamic) {
+    return (
+      <BoundingBox>
+        <ParentSize debounceTime={debounceTime}>
+          {({ width: parentWidth, height: parentHeight }) =>
+            renderChart(
+              widthInfo.isDynamic ? Math.floor(parentWidth) : widthInfo.value,
+              heightInfo.isDynamic
+                ? Math.floor(parentHeight)
+                : heightInfo.value,
+            )
+          }
+        </ParentSize>
+      </BoundingBox>
     );
   }
 
-  render() {
-    const { heightInfo, widthInfo, BoundingBox } = this.parseDimension(
-      this.props as PropsWithDefault,
-    );
-
-    // If any of the dimension is dynamic, get parent's dimension
-    if (widthInfo.isDynamic || heightInfo.isDynamic) {
-      const { debounceTime } = this.props;
-
-      return (
-        <BoundingBox>
-          <ParentSize debounceTime={debounceTime}>
-            {({ width, height }) =>
-              this.renderChart(
-                widthInfo.isDynamic ? Math.floor(width) : widthInfo.value,
-                heightInfo.isDynamic ? Math.floor(height) : heightInfo.value,
-              )
-            }
-          </ParentSize>
-        </BoundingBox>
-      );
-    }
-
-    return this.renderChart(widthInfo.value, heightInfo.value);
-  }
+  return renderChart(widthInfo.value, heightInfo.value);
 }
 
-export default withTheme(SuperChart);
+export default SuperChart;

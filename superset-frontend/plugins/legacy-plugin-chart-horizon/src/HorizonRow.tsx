@@ -17,9 +17,7 @@
  * under the License.
  */
 /* eslint-disable no-continue, no-bitwise */
-/* eslint-disable react/jsx-sort-default-props */
-/* eslint-disable react/sort-prop-types */
-import { PureComponent } from 'react';
+import { useRef, useEffect, useCallback, memo } from 'react';
 import { extent as d3Extent } from 'd3-array';
 import { scaleLinear } from 'd3-scale';
 
@@ -52,162 +50,140 @@ interface HorizonRowProps {
   yDomain?: [number, number];
 }
 
-const defaultProps: Partial<HorizonRowProps> = {
-  className: '',
-  width: 800,
-  height: 20,
-  bands: DEFAULT_COLORS.length >> 1,
-  colors: DEFAULT_COLORS,
-  colorScale: 'series',
-  mode: 'offset',
-  offsetX: 0,
-  title: '',
-  yDomain: undefined,
-};
+function HorizonRow({
+  className = '',
+  width = 800,
+  height = 20,
+  data: rawData,
+  bands = DEFAULT_COLORS.length >> 1,
+  colors = DEFAULT_COLORS,
+  colorScale = 'series',
+  mode = 'offset',
+  offsetX = 0,
+  title = '',
+  yDomain,
+}: HorizonRowProps) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-class HorizonRow extends PureComponent<HorizonRowProps> {
-  static defaultProps = defaultProps;
+  const drawChart = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
-  private canvas: HTMLCanvasElement | null = null;
+    const data =
+      colorScale === 'change'
+        ? rawData.map(d => ({ ...d, y: d.y - rawData[0].y }))
+        : rawData;
 
-  componentDidMount() {
-    this.drawChart();
-  }
+    const context = canvas.getContext('2d');
+    if (!context) return;
+    context.imageSmoothingEnabled = false;
+    context.clearRect(0, 0, width, height);
+    // Reset transform
+    context.setTransform(1, 0, 0, 1, 0, 0);
+    context.translate(0.5, 0.5);
 
-  componentDidUpdate() {
-    this.drawChart();
-  }
+    const step = width / data.length;
+    // the data frame currently being shown:
+    const startIndex = Math.floor(Math.max(0, -(offsetX / step)));
+    const endIndex = Math.floor(
+      Math.min(data.length, startIndex + width / step),
+    );
 
-  componentWillUnmount() {
-    this.canvas = null;
-  }
+    // skip drawing if there's no data to be drawn
+    if (startIndex > data.length) {
+      return;
+    }
 
-  drawChart() {
-    if (this.canvas) {
-      const {
-        data: rawData,
-        yDomain,
-        width = 800,
-        height = 20,
-        bands = DEFAULT_COLORS.length >> 1,
-        colors = DEFAULT_COLORS,
-        colorScale,
-        offsetX = 0,
-        mode,
-      } = this.props;
+    // Create y-scale
+    const [min, max] =
+      yDomain || (d3Extent(data, d => d.y) as [number, number]);
+    const y = scaleLinear()
+      .domain([0, Math.max(-min, max)])
+      .range([0, height]);
 
-      const data =
-        colorScale === 'change'
-          ? rawData.map(d => ({ ...d, y: d.y - rawData[0].y }))
-          : rawData;
+    // we are drawing positive & negative bands separately to avoid mutating canvas state
+    // http://www.html5rocks.com/en/tutorials/canvas/performance/
+    let hasNegative = false;
+    // draw positive bands
+    let value: number;
+    let bExtents: number;
+    for (let b = 0; b < bands; b += 1) {
+      context.fillStyle = colors[bands + b];
 
-      const context = this.canvas.getContext('2d');
-      if (!context) return;
-      context.imageSmoothingEnabled = false;
-      context.clearRect(0, 0, width, height);
-      // Reset transform
-      context.setTransform(1, 0, 0, 1, 0, 0);
-      context.translate(0.5, 0.5);
+      // Adjust the range based on the current band index.
+      bExtents = (b + 1 - bands) * height;
+      y.range([bands * height + bExtents, bExtents]);
 
-      const step = width / data.length;
-      // the data frame currently being shown:
-      const startIndex = Math.floor(Math.max(0, -(offsetX / step)));
-      const endIndex = Math.floor(
-        Math.min(data.length, startIndex + width / step),
-      );
+      // only the current data frame is being drawn i.e. what's visible:
+      for (let i = startIndex; i < endIndex; i += 1) {
+        value = data[i].y;
+        if (value <= 0) {
+          hasNegative = true;
+          continue;
+        }
+        if (value !== undefined) {
+          context.fillRect(
+            offsetX + i * step,
+            y(value)!,
+            step + 1,
+            y(0)! - y(value)!,
+          );
+        }
+      }
+    }
 
-      // skip drawing if there's no data to be drawn
-      if (startIndex > data.length) {
-        return;
+    // draw negative bands
+    if (hasNegative) {
+      // mirror the negative bands, by flipping the canvas
+      if (mode === 'offset') {
+        context.translate(0, height);
+        context.scale(1, -1);
       }
 
-      // Create y-scale
-      const [min, max] =
-        yDomain || (d3Extent(data, d => d.y) as [number, number]);
-      const y = scaleLinear()
-        .domain([0, Math.max(-min, max)])
-        .range([0, height]);
-
-      // we are drawing positive & negative bands separately to avoid mutating canvas state
-      // http://www.html5rocks.com/en/tutorials/canvas/performance/
-      let hasNegative = false;
-      // draw positive bands
-      let value: number;
-      let bExtents: number;
       for (let b = 0; b < bands; b += 1) {
-        context.fillStyle = colors[bands + b];
+        context.fillStyle = colors[bands - b - 1];
 
         // Adjust the range based on the current band index.
         bExtents = (b + 1 - bands) * height;
         y.range([bands * height + bExtents, bExtents]);
 
         // only the current data frame is being drawn i.e. what's visible:
-        for (let i = startIndex; i < endIndex; i += 1) {
-          value = data[i].y;
-          if (value <= 0) {
-            hasNegative = true;
+        for (let ii = startIndex; ii < endIndex; ii += 1) {
+          value = data[ii].y;
+          if (value >= 0) {
             continue;
           }
-          if (value !== undefined) {
-            context.fillRect(
-              offsetX + i * step,
-              y(value)!,
-              step + 1,
-              y(0)! - y(value)!,
-            );
-          }
-        }
-      }
-
-      // draw negative bands
-      if (hasNegative) {
-        // mirror the negative bands, by flipping the canvas
-        if (mode === 'offset') {
-          context.translate(0, height);
-          context.scale(1, -1);
-        }
-
-        for (let b = 0; b < bands; b += 1) {
-          context.fillStyle = colors[bands - b - 1];
-
-          // Adjust the range based on the current band index.
-          bExtents = (b + 1 - bands) * height;
-          y.range([bands * height + bExtents, bExtents]);
-
-          // only the current data frame is being drawn i.e. what's visible:
-          for (let ii = startIndex; ii < endIndex; ii += 1) {
-            value = data[ii].y;
-            if (value >= 0) {
-              continue;
-            }
-            context.fillRect(
-              offsetX + ii * step,
-              y(-value)!,
-              step + 1,
-              y(0)! - y(-value)!,
-            );
-          }
+          context.fillRect(
+            offsetX + ii * step,
+            y(-value)!,
+            step + 1,
+            y(0)! - y(-value)!,
+          );
         }
       }
     }
-  }
+  }, [
+    rawData,
+    yDomain,
+    width,
+    height,
+    bands,
+    colors,
+    colorScale,
+    offsetX,
+    mode,
+  ]);
 
-  render() {
-    const { className, title, width, height } = this.props;
+  useEffect(() => {
+    drawChart();
+  }, [drawChart]);
 
-    return (
-      <div className={`horizon-row ${className}`}>
-        <span className="title">{title}</span>
-        <canvas
-          ref={c => {
-            this.canvas = c;
-          }}
-          width={width}
-          height={height}
-        />
-      </div>
-    );
-  }
+  return (
+    <div className={`horizon-row ${className}`}>
+      <span className="title">{title}</span>
+      <canvas ref={canvasRef} width={width} height={height} />
+    </div>
+  );
 }
 
-export default HorizonRow;
+export default memo(HorizonRow);

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { PureComponent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { connect } from 'react-redux';
 import cx from 'classnames';
 import type { JsonObject } from '@superset-ui/core';
@@ -81,16 +81,6 @@ interface MarkdownStateProps {
 
 type MarkdownProps = MarkdownOwnProps & MarkdownStateProps;
 
-interface MarkdownState {
-  isFocused: boolean;
-  markdownSource: string;
-  editor: EditorInstance | null;
-  editorMode: 'preview' | 'edit';
-  undoLength: number;
-  redoLength: number;
-  hasError?: boolean;
-}
-
 // TODO: localize
 const MARKDOWN_PLACE_HOLDER = `# ✨Header 1
 ## ✨Header 2
@@ -139,193 +129,186 @@ interface DragChildProps {
   dragSourceRef: React.RefCallback<HTMLElement>;
 }
 
-class Markdown extends PureComponent<MarkdownProps, MarkdownState> {
-  renderStartTime: number;
+function Markdown({
+  id,
+  parentId,
+  component,
+  parentComponent,
+  index,
+  depth,
+  editMode,
+  availableColumnCount,
+  columnWidth,
+  onResizeStart,
+  onResize,
+  onResizeStop,
+  deleteComponent,
+  handleComponentDrop,
+  updateComponents,
+  logEvent,
+  addDangerToast,
+  undoLength,
+  redoLength,
+  htmlSanitization,
+  htmlSchemaOverrides,
+}: MarkdownProps) {
+  const [isFocused, setIsFocused] = useState(false);
+  const [markdownSource, setMarkdownSource] = useState<string>(
+    component.meta.code as string,
+  );
+  const [editor, setEditorState] = useState<EditorInstance | null>(null);
+  const [editorMode, setEditorMode] = useState<'preview' | 'edit'>('preview');
+  const [hasError, setHasError] = useState(false);
 
-  constructor(props: MarkdownProps) {
-    super(props);
-    this.state = {
-      isFocused: false,
-      markdownSource: props.component.meta.code as string,
-      editor: null,
-      editorMode: 'preview',
-      undoLength: props.undoLength,
-      redoLength: props.redoLength,
-    };
-    this.renderStartTime = Logger.getTimestamp();
+  const renderStartTimeRef = useRef(Logger.getTimestamp());
+  const prevUndoLengthRef = useRef(undoLength);
+  const prevRedoLengthRef = useRef(redoLength);
+  const prevComponentWidthRef = useRef(component.meta.width);
+  const prevColumnWidthRef = useRef(columnWidth);
 
-    this.handleChangeFocus = this.handleChangeFocus.bind(this);
-    this.handleChangeEditorMode = this.handleChangeEditorMode.bind(this);
-    this.handleMarkdownChange = this.handleMarkdownChange.bind(this);
-    this.handleDeleteComponent = this.handleDeleteComponent.bind(this);
-    this.handleResizeStart = this.handleResizeStart.bind(this);
-    this.setEditor = this.setEditor.bind(this);
-    this.shouldFocusMarkdown = this.shouldFocusMarkdown.bind(this);
-  }
-
-  componentDidMount(): void {
-    this.props.logEvent(LOG_ACTIONS_RENDER_CHART, {
-      viz_type: 'markdown',
-      start_offset: this.renderStartTime,
-      ts: new Date().getTime(),
-      duration: Logger.getTimestamp() - this.renderStartTime,
-    });
-  }
-
-  static getDerivedStateFromProps(
-    nextProps: MarkdownProps,
-    state: MarkdownState,
-  ): MarkdownState | null {
-    const { hasError, editorMode, markdownSource, undoLength, redoLength } =
-      state;
-    const {
-      component: nextComponent,
-      undoLength: nextUndoLength,
-      redoLength: nextRedoLength,
-    } = nextProps;
-    // user click undo or redo ?
-    if (nextUndoLength !== undoLength || nextRedoLength !== redoLength) {
-      return {
-        ...state,
-        undoLength: nextUndoLength,
-        redoLength: nextRedoLength,
-        markdownSource: nextComponent.meta.code as string,
-        hasError: false,
-      };
-    }
+  // getDerivedStateFromProps equivalent: handle undo/redo and external code changes
+  useEffect(() => {
+    // user click undo or redo?
     if (
+      undoLength !== prevUndoLengthRef.current ||
+      redoLength !== prevRedoLengthRef.current
+    ) {
+      setMarkdownSource(component.meta.code as string);
+      setHasError(false);
+      prevUndoLengthRef.current = undoLength;
+      prevRedoLengthRef.current = redoLength;
+    } else if (
       !hasError &&
       editorMode === 'preview' &&
-      nextComponent.meta.code !== markdownSource
+      component.meta.code !== markdownSource
     ) {
-      return {
-        ...state,
-        markdownSource: nextComponent.meta.code as string,
-      };
+      setMarkdownSource(component.meta.code as string);
     }
+  }, [
+    undoLength,
+    redoLength,
+    component.meta.code,
+    hasError,
+    editorMode,
+    markdownSource,
+  ]);
 
-    return state;
-  }
+  // componentDidMount equivalent: log render event
+  useEffect(() => {
+    logEvent(LOG_ACTIONS_RENDER_CHART, {
+      viz_type: 'markdown',
+      start_offset: renderStartTimeRef.current,
+      ts: new Date().getTime(),
+      duration: Logger.getTimestamp() - renderStartTimeRef.current,
+    });
+    // Only run on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  static getDerivedStateFromError(): { hasError: boolean } {
-    return {
-      hasError: true,
-    };
-  }
-
-  componentDidUpdate(prevProps: MarkdownProps): void {
+  // componentDidUpdate equivalent: resize editor when width changes
+  useEffect(() => {
     if (
-      this.state.editor &&
-      (prevProps.component.meta.width !== this.props.component.meta.width ||
-        prevProps.columnWidth !== this.props.columnWidth)
+      editor &&
+      (prevComponentWidthRef.current !== component.meta.width ||
+        prevColumnWidthRef.current !== columnWidth)
     ) {
       // Handle both Ace editor (resize method) and EditorHandle (no resize needed)
-      if (typeof this.state.editor.resize === 'function') {
-        this.state.editor.resize(true);
+      if (typeof editor.resize === 'function') {
+        editor.resize(true);
       }
     }
-  }
+    prevComponentWidthRef.current = component.meta.width;
+    prevColumnWidthRef.current = columnWidth;
+  }, [editor, component.meta.width, columnWidth]);
 
-  componentDidCatch(): void {
-    if (this.state.editor && this.state.editorMode === 'preview') {
-      this.props.addDangerToast(
-        t(
-          'This markdown component has an error. Please revert your recent changes.',
-        ),
-      );
-    }
-  }
-
-  setEditor(editor: EditorInstance): void {
-    // EditorHandle or Ace editor instance
-    // For Ace: editor.getSession().setUseWrapMode(true)
-    // For EditorHandle: wrapEnabled is handled via options
-    if (editor?.getSession) {
-      editor.getSession!().setUseWrapMode(true);
-    }
-    this.setState({
-      editor,
-    });
-  }
-
-  handleChangeFocus(nextFocus: boolean | number): void {
-    const nextFocused = !!nextFocus;
-    const nextEditMode: 'edit' | 'preview' = nextFocused ? 'edit' : 'preview';
-    this.setState(() => ({ isFocused: nextFocused }));
-    this.handleChangeEditorMode(nextEditMode);
-  }
-
-  handleChangeEditorMode(mode: 'edit' | 'preview'): void {
-    const nextState: MarkdownState = {
-      ...this.state,
-      editorMode: mode,
-    };
-    if (mode === 'preview') {
-      this.updateMarkdownContent();
-      nextState.hasError = false;
-    }
-
-    this.setState(nextState);
-  }
-
-  updateMarkdownContent(): void {
-    const { updateComponents, component } = this.props;
-    if (component.meta.code !== this.state.markdownSource) {
+  const updateMarkdownContent = useCallback((): void => {
+    if (component.meta.code !== markdownSource) {
       updateComponents({
         [component.id]: {
           ...component,
           meta: {
             ...component.meta,
-            code: this.state.markdownSource,
+            code: markdownSource,
           },
         },
       });
     }
-  }
+  }, [component, markdownSource, updateComponents]);
 
-  handleMarkdownChange(nextValue: string): void {
-    this.setState({
-      markdownSource: nextValue,
-    });
-  }
-
-  handleDeleteComponent(): void {
-    const { deleteComponent, id, parentId } = this.props;
-    deleteComponent(id, parentId);
-  }
-
-  handleResizeStart(...args: Parameters<ResizeStartCallback>): void {
-    const { editorMode } = this.state;
-    const { editMode, onResizeStart } = this.props;
-    const isEditing = editorMode === 'edit';
-    onResizeStart(...args);
-    if (editMode && isEditing) {
-      this.updateMarkdownContent();
+  const setEditor = useCallback((editorInstance: EditorInstance): void => {
+    // EditorHandle or Ace editor instance
+    // For Ace: editor.getSession().setUseWrapMode(true)
+    // For EditorHandle: wrapEnabled is handled via options
+    if (editorInstance?.getSession) {
+      editorInstance.getSession!().setUseWrapMode(true);
     }
-  }
+    setEditorState(editorInstance);
+  }, []);
 
-  shouldFocusMarkdown(
-    event: MouseEvent,
-    container: HTMLElement | null,
-    menuRef: HTMLElement | null,
-  ): boolean {
-    if (container?.contains(event.target as Node)) return true;
-    if (menuRef?.contains(event.target as Node)) return true;
+  const handleChangeEditorMode = useCallback(
+    (mode: 'edit' | 'preview'): void => {
+      if (mode === 'preview') {
+        updateMarkdownContent();
+        setHasError(false);
+      }
+      setEditorMode(mode);
+    },
+    [updateMarkdownContent],
+  );
 
-    return false;
-  }
+  const handleChangeFocus = useCallback(
+    (nextFocus: boolean | number): void => {
+      const nextFocused = !!nextFocus;
+      const nextEditMode: 'edit' | 'preview' = nextFocused ? 'edit' : 'preview';
+      setIsFocused(nextFocused);
+      handleChangeEditorMode(nextEditMode);
+    },
+    [handleChangeEditorMode],
+  );
 
-  renderEditMode(): JSX.Element {
-    return (
+  const handleMarkdownChange = useCallback((nextValue: string): void => {
+    setMarkdownSource(nextValue);
+  }, []);
+
+  const handleDeleteComponent = useCallback((): void => {
+    deleteComponent(id, parentId);
+  }, [deleteComponent, id, parentId]);
+
+  const handleResizeStart = useCallback(
+    (...args: Parameters<ResizeStartCallback>): void => {
+      const isEditing = editorMode === 'edit';
+      onResizeStart(...args);
+      if (editMode && isEditing) {
+        updateMarkdownContent();
+      }
+    },
+    [editorMode, editMode, onResizeStart, updateMarkdownContent],
+  );
+
+  const shouldFocusMarkdown = useCallback(
+    (
+      event: MouseEvent,
+      container: HTMLElement | null,
+      menuRef: HTMLElement | null,
+    ): boolean => {
+      if (container?.contains(event.target as Node)) return true;
+      if (menuRef?.contains(event.target as Node)) return true;
+      return false;
+    },
+    [],
+  );
+
+  const renderEditMode = useMemo(
+    () => (
       <EditorHost
-        id={`markdown-editor-${this.props.id}`}
-        onChange={this.handleMarkdownChange}
+        id={`markdown-editor-${id}`}
+        onChange={handleMarkdownChange}
         width="100%"
         height="100%"
         value={
           // this allows "select all => delete" to give an empty editor
-          typeof this.state.markdownSource === 'string'
-            ? this.state.markdownSource
+          typeof markdownSource === 'string'
+            ? markdownSource
             : MARKDOWN_PLACE_HOLDER
         }
         language="markdown"
@@ -335,126 +318,110 @@ class Markdown extends PureComponent<MarkdownProps, MarkdownState> {
         onReady={(handle: EditorInstance) => {
           // The handle provides access to the underlying editor for resize
           if (handle && typeof handle.focus === 'function') {
-            this.setEditor(handle);
+            setEditor(handle);
           }
         }}
         data-test="editor"
       />
-    );
-  }
+    ),
+    [id, markdownSource, handleMarkdownChange, setEditor],
+  );
 
-  renderPreviewMode(): JSX.Element {
-    const { hasError } = this.state;
-
-    return (
+  const renderPreviewMode = useMemo(
+    () => (
       <SafeMarkdown
         source={
           hasError
             ? MARKDOWN_ERROR_MESSAGE
-            : this.state.markdownSource || MARKDOWN_PLACE_HOLDER
+            : markdownSource || MARKDOWN_PLACE_HOLDER
         }
-        htmlSanitization={this.props.htmlSanitization}
-        htmlSchemaOverrides={this.props.htmlSchemaOverrides}
+        htmlSanitization={htmlSanitization}
+        htmlSchemaOverrides={htmlSchemaOverrides}
       />
-    );
-  }
+    ),
+    [hasError, markdownSource, htmlSanitization, htmlSchemaOverrides],
+  );
 
-  render() {
-    const { isFocused, editorMode } = this.state;
+  // inherit the size of parent columns
+  const widthMultiple =
+    parentComponent.type === COLUMN_TYPE
+      ? parentComponent.meta.width || GRID_MIN_COLUMN_COUNT
+      : component.meta.width || GRID_MIN_COLUMN_COUNT;
 
-    const {
-      component,
-      parentComponent,
-      index,
-      depth,
-      availableColumnCount,
-      columnWidth,
-      onResize,
-      onResizeStop,
-      handleComponentDrop,
-      editMode,
-    } = this.props;
+  const isEditing = editorMode === 'edit';
 
-    // inherit the size of parent columns
-    const widthMultiple =
-      parentComponent.type === COLUMN_TYPE
-        ? parentComponent.meta.width || GRID_MIN_COLUMN_COUNT
-        : component.meta.width || GRID_MIN_COLUMN_COUNT;
+  const menuItems = useMemo(
+    () => [
+      <MarkdownModeDropdown
+        key={`${component.id}-mode`}
+        id={`${component.id}-mode`}
+        value={editorMode}
+        onChange={handleChangeEditorMode}
+      />,
+    ],
+    [component.id, editorMode, handleChangeEditorMode],
+  );
 
-    const isEditing = editorMode === 'edit';
-
-    return (
-      <Draggable
-        component={component}
-        parentComponent={parentComponent}
-        orientation={parentComponent.type === ROW_TYPE ? 'column' : 'row'}
-        index={index}
-        depth={depth}
-        onDrop={handleComponentDrop}
-        disableDragDrop={isFocused}
-        editMode={editMode}
-      >
-        {({ dragSourceRef }: DragChildProps) => (
-          <WithPopoverMenu
-            onChangeFocus={this.handleChangeFocus}
-            shouldFocus={this.shouldFocusMarkdown}
-            menuItems={[
-              <MarkdownModeDropdown
-                key={`${component.id}-mode`}
-                id={`${component.id}-mode`}
-                value={this.state.editorMode}
-                onChange={this.handleChangeEditorMode}
-              />,
-            ]}
-            editMode={editMode}
+  return (
+    <Draggable
+      component={component}
+      parentComponent={parentComponent}
+      orientation={parentComponent.type === ROW_TYPE ? 'column' : 'row'}
+      index={index}
+      depth={depth}
+      onDrop={handleComponentDrop}
+      disableDragDrop={isFocused}
+      editMode={editMode}
+    >
+      {({ dragSourceRef }: DragChildProps) => (
+        <WithPopoverMenu
+          onChangeFocus={handleChangeFocus}
+          shouldFocus={shouldFocusMarkdown}
+          menuItems={menuItems}
+          editMode={editMode}
+        >
+          <MarkdownStyles
+            data-test="dashboard-markdown-editor"
+            className={cx(
+              'dashboard-markdown',
+              isEditing && 'dashboard-markdown--editing',
+            )}
+            id={component.id}
           >
-            <MarkdownStyles
-              data-test="dashboard-markdown-editor"
-              className={cx(
-                'dashboard-markdown',
-                isEditing && 'dashboard-markdown--editing',
-              )}
+            <ResizableContainer
               id={component.id}
+              adjustableWidth={parentComponent.type === ROW_TYPE}
+              adjustableHeight
+              widthStep={columnWidth}
+              widthMultiple={widthMultiple}
+              heightStep={GRID_BASE_UNIT}
+              heightMultiple={component.meta.height ?? GRID_MIN_ROW_UNITS}
+              minWidthMultiple={GRID_MIN_COLUMN_COUNT}
+              minHeightMultiple={GRID_MIN_ROW_UNITS}
+              maxWidthMultiple={availableColumnCount + widthMultiple}
+              onResizeStart={handleResizeStart}
+              onResize={onResize}
+              onResizeStop={onResizeStop}
+              editMode={isFocused ? false : editMode}
             >
-              <ResizableContainer
-                id={component.id}
-                adjustableWidth={parentComponent.type === ROW_TYPE}
-                adjustableHeight
-                widthStep={columnWidth}
-                widthMultiple={widthMultiple}
-                heightStep={GRID_BASE_UNIT}
-                heightMultiple={component.meta.height ?? GRID_MIN_ROW_UNITS}
-                minWidthMultiple={GRID_MIN_COLUMN_COUNT}
-                minHeightMultiple={GRID_MIN_ROW_UNITS}
-                maxWidthMultiple={availableColumnCount + widthMultiple}
-                onResizeStart={this.handleResizeStart}
-                onResize={onResize}
-                onResizeStop={onResizeStop}
-                editMode={isFocused ? false : editMode}
+              <div
+                ref={dragSourceRef}
+                className="dashboard-component dashboard-component-chart-holder"
+                data-test="dashboard-component-chart-holder"
               >
-                <div
-                  ref={dragSourceRef}
-                  className="dashboard-component dashboard-component-chart-holder"
-                  data-test="dashboard-component-chart-holder"
-                >
-                  {editMode && (
-                    <HoverMenu position="top">
-                      <DeleteComponentButton
-                        onDelete={this.handleDeleteComponent}
-                      />
-                    </HoverMenu>
-                  )}
-                  {editMode && isEditing
-                    ? this.renderEditMode()
-                    : this.renderPreviewMode()}
-                </div>
-              </ResizableContainer>
-            </MarkdownStyles>
-          </WithPopoverMenu>
-        )}
-      </Draggable>
-    );
-  }
+                {editMode && (
+                  <HoverMenu position="top">
+                    <DeleteComponentButton onDelete={handleDeleteComponent} />
+                  </HoverMenu>
+                )}
+                {editMode && isEditing ? renderEditMode : renderPreviewMode}
+              </div>
+            </ResizableContainer>
+          </MarkdownStyles>
+        </WithPopoverMenu>
+      )}
+    </Draggable>
+  );
 }
 
 interface ReduxState {

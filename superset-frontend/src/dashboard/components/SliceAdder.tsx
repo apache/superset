@@ -17,13 +17,13 @@
  * under the License.
  */
 /* eslint-env browser */
-import { Component } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { FixedSizeList as List } from 'react-window';
 // @ts-expect-error
 import { createFilter } from 'react-search-input';
 import { t } from '@apache-superset/core';
-import { styled, css } from '@apache-superset/core/ui';
+import { styled, css, useTheme } from '@apache-superset/core/ui';
 import {
   Button,
   Checkbox,
@@ -49,7 +49,6 @@ import {
 import { debounce, pickBy } from 'lodash';
 import { Dispatch } from 'redux';
 import { Slice } from 'src/dashboard/types';
-import { withTheme, Theme } from '@emotion/react';
 import { navigateTo } from 'src/utils/navigationUtils';
 import type { ConnectDragSource } from 'react-dnd';
 import AddSliceCard from './AddSliceCard';
@@ -57,7 +56,6 @@ import AddSliceDragPreview from './dnd/AddSliceDragPreview';
 import { DragDroppable } from './dnd/DragDroppable';
 
 export type SliceAdderProps = {
-  theme: Theme;
   fetchSlices: (
     userId?: number,
     filter_value?: string,
@@ -74,14 +72,6 @@ export type SliceAdderProps = {
   selectedSliceIds?: number[];
   editMode?: boolean;
   dashboardId: number;
-};
-
-type SliceAdderState = {
-  filteredSlices: Slice[];
-  searchTerm: string;
-  sortBy: keyof Slice;
-  selectedSliceIdsSet: Set<number>;
-  showOnlyMyCharts: boolean;
 };
 
 const KEYS_TO_FILTERS = ['slice_name', 'viz_type', 'datasource_name'];
@@ -173,295 +163,265 @@ function getFilteredSortedSlices(
     .filter(createFilter(searchTerm, KEYS_TO_FILTERS))
     .sort(sortByComparator(sortBy));
 }
-class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
-  private slicesRequest?: AbortController | Promise<void>;
 
-  static defaultProps = {
-    selectedSliceIds: [],
-    editMode: false,
-    errorMessage: '',
-  };
+function SliceAdder({
+  fetchSlices,
+  updateSlices,
+  isLoading,
+  slices,
+  errorMessage = '',
+  userId,
+  selectedSliceIds = [],
+  editMode = false,
+  dashboardId,
+}: SliceAdderProps) {
+  const theme = useTheme();
+  const slicesRequestRef = useRef<AbortController | Promise<void>>();
 
-  constructor(props: SliceAdderProps) {
-    super(props);
-    this.state = {
-      filteredSlices: [],
-      searchTerm: '',
-      sortBy: DEFAULT_SORT_KEY,
-      selectedSliceIdsSet: new Set(props.selectedSliceIds),
-      showOnlyMyCharts: getItem(
-        LocalStorageKeys.DashboardEditorShowOnlyMyCharts,
-        true,
-      ),
-    };
-    this.rowRenderer = this.rowRenderer.bind(this);
-    this.searchUpdated = this.searchUpdated.bind(this);
-    this.handleSelect = this.handleSelect.bind(this);
-    this.userIdForFetch = this.userIdForFetch.bind(this);
-    this.onShowOnlyMyCharts = this.onShowOnlyMyCharts.bind(this);
-  }
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState<keyof Slice>(DEFAULT_SORT_KEY);
+  const [selectedSliceIdsSet, setSelectedSliceIdsSet] = useState(
+    () => new Set(selectedSliceIds),
+  );
+  const [showOnlyMyCharts, setShowOnlyMyCharts] = useState(() =>
+    getItem(LocalStorageKeys.DashboardEditorShowOnlyMyCharts, true),
+  );
 
-  userIdForFetch() {
-    return this.state.showOnlyMyCharts ? this.props.userId : undefined;
-  }
-
-  componentDidMount() {
-    this.slicesRequest = this.props.fetchSlices(
-      this.userIdForFetch(),
-      '',
-      this.state.sortBy,
-    );
-  }
-
-  componentDidUpdate(prevProps: SliceAdderProps) {
-    const nextState: SliceAdderState = {} as SliceAdderState;
-    if (this.props.lastUpdated !== prevProps.lastUpdated) {
-      nextState.filteredSlices = getFilteredSortedSlices(
-        this.props.slices,
-        this.state.searchTerm,
-        this.state.sortBy,
-        this.state.showOnlyMyCharts,
-        this.props.userId,
-      );
-    }
-
-    if (prevProps.selectedSliceIds !== this.props.selectedSliceIds) {
-      nextState.selectedSliceIdsSet = new Set(this.props.selectedSliceIds);
-    }
-
-    if (Object.keys(nextState).length) {
-      this.setState(nextState);
-    }
-  }
-
-  componentWillUnmount() {
-    // Clears the redux store keeping only selected items
-    const selectedSlices = pickBy(this.props.slices, (value: Slice) =>
-      this.state.selectedSliceIdsSet.has(value.slice_id),
-    );
-
-    this.props.updateSlices(selectedSlices);
-    if (this.slicesRequest instanceof AbortController) {
-      this.slicesRequest.abort();
-    }
-  }
-
-  handleChange = debounce(value => {
-    this.searchUpdated(value);
-    this.slicesRequest = this.props.fetchSlices(
-      this.userIdForFetch(),
-      value,
-      this.state.sortBy,
-    );
-  }, 300);
-
-  searchUpdated(searchTerm: string) {
-    this.setState(prevState => ({
-      searchTerm,
-      filteredSlices: getFilteredSortedSlices(
-        this.props.slices,
+  const filteredSlices = useMemo(
+    () =>
+      getFilteredSortedSlices(
+        slices,
         searchTerm,
-        prevState.sortBy,
-        prevState.showOnlyMyCharts,
-        this.props.userId,
-      ),
-    }));
-  }
-
-  handleSelect(sortBy: keyof Slice) {
-    this.setState(prevState => ({
-      sortBy,
-      filteredSlices: getFilteredSortedSlices(
-        this.props.slices,
-        prevState.searchTerm,
         sortBy,
-        prevState.showOnlyMyCharts,
-        this.props.userId,
-      ),
-    }));
-    this.slicesRequest = this.props.fetchSlices(
-      this.userIdForFetch(),
-      this.state.searchTerm,
-      sortBy,
-    );
-  }
-
-  rowRenderer({ index, style }: { index: number; style: React.CSSProperties }) {
-    const { filteredSlices, selectedSliceIdsSet } = this.state;
-    const cellData = filteredSlices[index];
-
-    const isSelected = selectedSliceIdsSet.has(cellData.slice_id);
-    const type = CHART_TYPE;
-    const id = NEW_CHART_ID;
-
-    const meta = {
-      chartId: cellData.slice_id,
-      sliceName: cellData.slice_name,
-    };
-    return (
-      <DragDroppable
-        key={cellData.slice_id}
-        component={{ type, id, meta }}
-        parentComponent={{
-          id: NEW_COMPONENTS_SOURCE_ID,
-          type: NEW_COMPONENT_SOURCE_TYPE,
-        }}
-        index={index}
-        depth={0}
-        disableDragDrop={isSelected}
-        editMode={this.props.editMode}
-        // we must use a custom drag preview within the List because
-        // it does not seem to work within a fixed-position container
-        useEmptyDragPreview
-        // List library expect style props here
-        // actual style should be applied to nested AddSliceCard component
-        style={{}}
-      >
-        {({ dragSourceRef }: { dragSourceRef: ConnectDragSource }) => (
-          <AddSliceCard
-            innerRef={dragSourceRef}
-            style={style}
-            sliceName={cellData.slice_name}
-            lastModified={cellData.changed_on_humanized}
-            visType={cellData.viz_type}
-            datasourceUrl={cellData.datasource_url}
-            datasourceName={cellData.datasource_name}
-            thumbnailUrl={cellData.thumbnail_url}
-            isSelected={isSelected}
-          />
-        )}
-      </DragDroppable>
-    );
-  }
-
-  onShowOnlyMyCharts = (showOnlyMyCharts: boolean) => {
-    if (!showOnlyMyCharts) {
-      this.slicesRequest = this.props.fetchSlices(
-        undefined,
-        this.state.searchTerm,
-        this.state.sortBy,
-      );
-    }
-    this.setState(prevState => ({
-      showOnlyMyCharts,
-      filteredSlices: getFilteredSortedSlices(
-        this.props.slices,
-        prevState.searchTerm,
-        prevState.sortBy,
         showOnlyMyCharts,
-        this.props.userId,
+        userId,
       ),
-    }));
-    setItem(LocalStorageKeys.DashboardEditorShowOnlyMyCharts, showOnlyMyCharts);
-  };
+    [slices, searchTerm, sortBy, showOnlyMyCharts, userId],
+  );
 
-  render() {
-    const { theme } = this.props;
-    return (
-      <div
-        css={css`
-          height: 100%;
-          display: flex;
-          flex-direction: column;
-          button > span > :first-of-type {
-            margin-right: 0;
+  const userIdForFetch = useCallback(
+    () => (showOnlyMyCharts ? userId : undefined),
+    [showOnlyMyCharts, userId],
+  );
+
+  // componentDidMount
+  useEffect(() => {
+    slicesRequestRef.current = fetchSlices(userIdForFetch(), '', sortBy);
+    // Only run on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Update selectedSliceIdsSet when selectedSliceIds prop changes
+  useEffect(() => {
+    setSelectedSliceIdsSet(new Set(selectedSliceIds));
+  }, [selectedSliceIds]);
+
+  // componentWillUnmount
+  useEffect(
+    () => () => {
+      // Clears the redux store keeping only selected items
+      const selectedSlices = pickBy(slices, (value: Slice) =>
+        selectedSliceIdsSet.has(value.slice_id),
+      );
+
+      updateSlices(selectedSlices);
+      if (slicesRequestRef.current instanceof AbortController) {
+        slicesRequestRef.current.abort();
+      }
+    },
+    // Only run on unmount - capture current values
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+
+  const searchUpdated = useCallback((term: string) => {
+    setSearchTerm(term);
+  }, []);
+
+  const handleChange = useMemo(
+    () =>
+      debounce((value: string) => {
+        searchUpdated(value);
+        slicesRequestRef.current = fetchSlices(userIdForFetch(), value, sortBy);
+      }, 300),
+    [fetchSlices, searchUpdated, sortBy, userIdForFetch],
+  );
+
+  const handleSelect = useCallback(
+    (newSortBy: keyof Slice) => {
+      setSortBy(newSortBy);
+      slicesRequestRef.current = fetchSlices(
+        userIdForFetch(),
+        searchTerm,
+        newSortBy,
+      );
+    },
+    [fetchSlices, searchTerm, userIdForFetch],
+  );
+
+  const onShowOnlyMyCharts = useCallback(
+    (checked: boolean) => {
+      if (!checked) {
+        slicesRequestRef.current = fetchSlices(undefined, searchTerm, sortBy);
+      }
+      setShowOnlyMyCharts(checked);
+      setItem(LocalStorageKeys.DashboardEditorShowOnlyMyCharts, checked);
+    },
+    [fetchSlices, searchTerm, sortBy],
+  );
+
+  const rowRenderer = useCallback(
+    ({ index, style }: { index: number; style: React.CSSProperties }) => {
+      const cellData = filteredSlices[index];
+
+      const isSelected = selectedSliceIdsSet.has(cellData.slice_id);
+      const type = CHART_TYPE;
+      const id = NEW_CHART_ID;
+
+      const meta = {
+        chartId: cellData.slice_id,
+        sliceName: cellData.slice_name,
+      };
+      return (
+        <DragDroppable
+          key={cellData.slice_id}
+          component={{ type, id, meta }}
+          parentComponent={{
+            id: NEW_COMPONENTS_SOURCE_ID,
+            type: NEW_COMPONENT_SOURCE_TYPE,
+          }}
+          index={index}
+          depth={0}
+          disableDragDrop={isSelected}
+          editMode={editMode}
+          // we must use a custom drag preview within the List because
+          // it does not seem to work within a fixed-position container
+          useEmptyDragPreview
+          // List library expect style props here
+          // actual style should be applied to nested AddSliceCard component
+          style={{}}
+        >
+          {({ dragSourceRef }: { dragSourceRef: ConnectDragSource }) => (
+            <AddSliceCard
+              innerRef={dragSourceRef}
+              style={style}
+              sliceName={cellData.slice_name}
+              lastModified={cellData.changed_on_humanized}
+              visType={cellData.viz_type}
+              datasourceUrl={cellData.datasource_url}
+              datasourceName={cellData.datasource_name}
+              thumbnailUrl={cellData.thumbnail_url}
+              isSelected={isSelected}
+            />
+          )}
+        </DragDroppable>
+      );
+    },
+    [filteredSlices, selectedSliceIdsSet, editMode],
+  );
+
+  return (
+    <div
+      css={css`
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        button > span > :first-of-type {
+          margin-right: 0;
+        }
+      `}
+    >
+      <NewChartButtonContainer>
+        <NewChartButton
+          buttonStyle="link"
+          buttonSize="xsmall"
+          icon={
+            <Icons.PlusOutlined iconSize="m" iconColor={theme.colorPrimary} />
           }
+          onClick={() =>
+            navigateTo(`/chart/add?dashboard_id=${dashboardId}`, {
+              newWindow: true,
+            })
+          }
+        >
+          {t('Create new chart')}
+        </NewChartButton>
+      </NewChartButtonContainer>
+      <Controls>
+        <Input
+          placeholder={
+            showOnlyMyCharts ? t('Filter your charts') : t('Filter charts')
+          }
+          className="search-input"
+          onChange={ev => handleChange(ev.target.value)}
+          data-test="dashboard-charts-filter-search-input"
+        />
+        <StyledSelect
+          id="slice-adder-sortby"
+          value={sortBy}
+          onChange={handleSelect}
+          options={Object.entries(KEYS_TO_SORT).map(([key, label]) => ({
+            label: t('Sort by %s', label),
+            value: key,
+          }))}
+          placeholder={t('Sort by')}
+        />
+      </Controls>
+      <div
+        css={themeObj => css`
+          display: flex;
+          flex-direction: row;
+          justify-content: flex-start;
+          align-items: center;
+          gap: ${themeObj.sizeUnit}px;
+          padding: 0 ${themeObj.sizeUnit * 3}px ${themeObj.sizeUnit * 4}px
+            ${themeObj.sizeUnit * 3}px;
         `}
       >
-        <NewChartButtonContainer>
-          <NewChartButton
-            buttonStyle="link"
-            buttonSize="xsmall"
-            icon={
-              <Icons.PlusOutlined iconSize="m" iconColor={theme.colorPrimary} />
-            }
-            onClick={() =>
-              navigateTo(`/chart/add?dashboard_id=${this.props.dashboardId}`, {
-                newWindow: true,
-              })
-            }
-          >
-            {t('Create new chart')}
-          </NewChartButton>
-        </NewChartButtonContainer>
-        <Controls>
-          <Input
-            placeholder={
-              this.state.showOnlyMyCharts
-                ? t('Filter your charts')
-                : t('Filter charts')
-            }
-            className="search-input"
-            onChange={ev => this.handleChange(ev.target.value)}
-            data-test="dashboard-charts-filter-search-input"
-          />
-          <StyledSelect
-            id="slice-adder-sortby"
-            value={this.state.sortBy}
-            onChange={this.handleSelect}
-            options={Object.entries(KEYS_TO_SORT).map(([key, label]) => ({
-              label: t('Sort by %s', label),
-              value: key,
-            }))}
-            placeholder={t('Sort by')}
-          />
-        </Controls>
+        <Checkbox
+          onChange={e => onShowOnlyMyCharts(e.target.checked)}
+          checked={showOnlyMyCharts}
+        />
+        {t('Show only my charts')}
+        <InfoTooltip
+          placement="top"
+          tooltip={t(
+            `You can choose to display all charts that you have access to or only the ones you own.
+              Your filter selection will be saved and remain active until you choose to change it.`,
+          )}
+        />
+      </div>
+      {isLoading && <Loading />}
+      {!isLoading && filteredSlices.length > 0 && (
+        <ChartList>
+          <AutoSizer>
+            {({ height, width }: { height: number; width: number }) => (
+              <List
+                width={width}
+                height={height}
+                itemCount={filteredSlices.length}
+                itemSize={DEFAULT_CELL_HEIGHT}
+                itemKey={index => filteredSlices[index].slice_id}
+              >
+                {rowRenderer}
+              </List>
+            )}
+          </AutoSizer>
+        </ChartList>
+      )}
+      {errorMessage && (
         <div
-          css={theme => css`
-            display: flex;
-            flex-direction: row;
-            justify-content: flex-start;
-            align-items: center;
-            gap: ${theme.sizeUnit}px;
-            padding: 0 ${theme.sizeUnit * 3}px ${theme.sizeUnit * 4}px
-              ${theme.sizeUnit * 3}px;
+          css={css`
+            padding: 16px;
           `}
         >
-          <Checkbox
-            onChange={e => this.onShowOnlyMyCharts(e.target.checked)}
-            checked={this.state.showOnlyMyCharts}
-          />
-          {t('Show only my charts')}
-          <InfoTooltip
-            placement="top"
-            tooltip={t(
-              `You can choose to display all charts that you have access to or only the ones you own.
-              Your filter selection will be saved and remain active until you choose to change it.`,
-            )}
-          />
+          {errorMessage}
         </div>
-        {this.props.isLoading && <Loading />}
-        {!this.props.isLoading && this.state.filteredSlices.length > 0 && (
-          <ChartList>
-            <AutoSizer>
-              {({ height, width }: { height: number; width: number }) => (
-                <List
-                  width={width}
-                  height={height}
-                  itemCount={this.state.filteredSlices.length}
-                  itemSize={DEFAULT_CELL_HEIGHT}
-                  itemKey={index => this.state.filteredSlices[index].slice_id}
-                >
-                  {this.rowRenderer}
-                </List>
-              )}
-            </AutoSizer>
-          </ChartList>
-        )}
-        {this.props.errorMessage && (
-          <div
-            css={css`
-              padding: 16px;
-            `}
-          >
-            {this.props.errorMessage}
-          </div>
-        )}
-        {/* Drag preview is just a single fixed-position element */}
-        <AddSliceDragPreview slices={this.state.filteredSlices} />
-      </div>
-    );
-  }
+      )}
+      {/* Drag preview is just a single fixed-position element */}
+      <AddSliceDragPreview slices={filteredSlices} />
+    </div>
+  );
 }
 
-export default withTheme(SliceAdder);
+export default SliceAdder;

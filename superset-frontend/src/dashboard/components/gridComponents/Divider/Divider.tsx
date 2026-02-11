@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { PureComponent } from 'react';
+import { useCallback, memo } from 'react';
 import { css, styled } from '@apache-superset/core/ui';
 
 import { Draggable } from '../../dnd/DragDroppable';
@@ -63,50 +63,43 @@ const DividerLine = styled.div`
   `}
 `;
 
-class Divider extends PureComponent<DividerProps> {
-  constructor(props: DividerProps) {
-    super(props);
-    this.handleDeleteComponent = this.handleDeleteComponent.bind(this);
-  }
-
-  handleDeleteComponent() {
-    const { deleteComponent, id, parentId } = this.props;
+function Divider({
+  id,
+  parentId,
+  component,
+  depth,
+  parentComponent,
+  index,
+  editMode,
+  handleComponentDrop,
+  deleteComponent,
+}: DividerProps) {
+  const handleDeleteComponent = useCallback(() => {
     deleteComponent(id, parentId);
-  }
+  }, [deleteComponent, id, parentId]);
 
-  render() {
-    const {
-      component,
-      depth,
-      parentComponent,
-      index,
-      handleComponentDrop,
-      editMode,
-    } = this.props;
-
-    return (
-      <Draggable
-        component={component}
-        parentComponent={parentComponent}
-        orientation="row"
-        index={index}
-        depth={depth}
-        onDrop={handleComponentDrop}
-        editMode={editMode}
-      >
-        {({ dragSourceRef }: { dragSourceRef: ConnectDragSource }) => (
-          <div ref={dragSourceRef}>
-            {editMode && (
-              <HoverMenu position="left">
-                <DeleteComponentButton onDelete={this.handleDeleteComponent} />
-              </HoverMenu>
-            )}
-            <DividerLine className="dashboard-component dashboard-component-divider" />
-          </div>
-        )}
-      </Draggable>
-    );
-  }
+  return (
+    <Draggable
+      component={component}
+      parentComponent={parentComponent}
+      orientation="row"
+      index={index}
+      depth={depth}
+      onDrop={handleComponentDrop}
+      editMode={editMode}
+    >
+      {({ dragSourceRef }: { dragSourceRef: ConnectDragSource }) => (
+        <div ref={dragSourceRef}>
+          {editMode && (
+            <HoverMenu position="left">
+              <DeleteComponentButton onDelete={handleDeleteComponent} />
+            </HoverMenu>
+          )}
+          <DividerLine className="dashboard-component dashboard-component-divider" />
+        </div>
+      )}
+    </Draggable>
+  );
 }
 
-export default Divider;
+export default memo(Divider);

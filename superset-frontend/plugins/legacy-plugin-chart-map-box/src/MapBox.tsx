@@ -16,9 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable react/jsx-sort-default-props, react/sort-prop-types */
-/* eslint-disable react/forbid-prop-types, react/require-default-props */
-import { Component } from 'react';
+import { useState, useCallback, useMemo, memo } from 'react';
 import MapGL from 'react-map-gl';
 import { WebMercatorViewport } from '@math.gl/web-mercator';
 import ScatterPlotGlowOverlay from './ScatterPlotGlowOverlay';
@@ -63,30 +61,24 @@ interface MapBoxProps {
   bounds?: [[number, number], [number, number]]; // May be undefined for empty datasets
 }
 
-interface MapBoxState {
-  viewport: Viewport;
-}
-
-const defaultProps: Partial<MapBoxProps> = {
-  width: 400,
-  height: 400,
-  globalOpacity: 1,
-  onViewportChange: NOOP,
-  pointRadius: DEFAULT_POINT_RADIUS,
-  pointRadiusUnit: 'Pixels',
-};
-
-class MapBox extends Component<MapBoxProps, MapBoxState> {
-  static defaultProps = defaultProps;
-
-  constructor(props: MapBoxProps) {
-    super(props);
-
-    const { width = 400, height = 400, bounds } = this.props;
-    // Get a viewport that fits the given bounds, which all marks to be clustered.
-    // Derive lat, lon and zoom from this viewport. This is only done on initial
-    // render as the bounds don't update as we pan/zoom in the current design.
-
+function MapBox({
+  width = 400,
+  height = 400,
+  aggregatorName,
+  clusterer,
+  globalOpacity = 1,
+  hasCustomMetric,
+  mapStyle,
+  mapboxApiKey,
+  onViewportChange = NOOP,
+  pointRadius = DEFAULT_POINT_RADIUS,
+  pointRadiusUnit = 'Pixels',
+  renderWhileDragging,
+  rgb,
+  bounds,
+}: MapBoxProps) {
+  // Compute initial viewport from bounds
+  const initialViewport = useMemo((): Viewport => {
     let latitude = 0;
     let longitude = 0;
     let zoom = 1;
@@ -100,92 +92,72 @@ class MapBox extends Component<MapBoxProps, MapBoxState> {
       ({ latitude, longitude, zoom } = mercator);
     }
 
-    this.state = {
-      viewport: {
-        longitude,
-        latitude,
-        zoom,
-      },
-    };
-    this.handleViewportChange = this.handleViewportChange.bind(this);
-  }
+    return { longitude, latitude, zoom };
+  }, []); // Only compute once on mount - bounds don't update as we pan/zoom
 
-  handleViewportChange(viewport: Viewport) {
-    this.setState({ viewport });
-    const { onViewportChange } = this.props;
-    onViewportChange!(viewport);
-  }
+  const [viewport, setViewport] = useState<Viewport>(initialViewport);
 
-  render() {
-    const {
-      width,
-      height,
-      aggregatorName,
-      clusterer,
-      globalOpacity,
-      mapStyle,
-      mapboxApiKey,
-      pointRadius,
-      pointRadiusUnit,
-      renderWhileDragging,
-      rgb,
-      hasCustomMetric,
-      bounds,
-    } = this.props;
-    const { viewport } = this.state;
-    const isDragging =
-      viewport.isDragging === undefined ? false : viewport.isDragging;
+  const handleViewportChange = useCallback(
+    (newViewport: Viewport) => {
+      setViewport(newViewport);
+      onViewportChange(newViewport);
+    },
+    [onViewportChange],
+  );
 
-    // Compute the clusters based on the original bounds and current zoom level. Note when zoom/pan
-    // to an area outside of the original bounds, no additional queries are made to the backend to
-    // retrieve additional data.
-    // add this variable to widen the visible area
-    const offsetHorizontal = ((width ?? 400) * 0.5) / 100;
-    const offsetVertical = ((height ?? 400) * 0.5) / 100;
+  const isDragging =
+    viewport.isDragging === undefined ? false : viewport.isDragging;
 
-    // Guard against empty datasets where bounds may be undefined
-    const bbox =
-      bounds && bounds[0] && bounds[1]
-        ? [
-            bounds[0][0] - offsetHorizontal,
-            bounds[0][1] - offsetVertical,
-            bounds[1][0] + offsetHorizontal,
-            bounds[1][1] + offsetVertical,
-          ]
-        : [-180, -90, 180, 90]; // Default to world bounds
+  // Compute the clusters based on the original bounds and current zoom level. Note when zoom/pan
+  // to an area outside of the original bounds, no additional queries are made to the backend to
+  // retrieve additional data.
+  // add this variable to widen the visible area
+  const offsetHorizontal = (width * 0.5) / 100;
+  const offsetVertical = (height * 0.5) / 100;
 
-    const clusters = clusterer.getClusters(bbox, Math.round(viewport.zoom));
+  // Guard against empty datasets where bounds may be undefined
+  const bbox =
+    bounds && bounds[0] && bounds[1]
+      ? [
+          bounds[0][0] - offsetHorizontal,
+          bounds[0][1] - offsetVertical,
+          bounds[1][0] + offsetHorizontal,
+          bounds[1][1] + offsetVertical,
+        ]
+      : [-180, -90, 180, 90]; // Default to world bounds
 
-    return (
-      <MapGL
+  const clusters = clusterer.getClusters(bbox, Math.round(viewport.zoom));
+
+  const lngLatAccessor = useCallback((location: GeoJSONLocation) => {
+    const { coordinates } = location.geometry;
+    return [coordinates[0], coordinates[1]] as [number, number];
+  }, []);
+
+  return (
+    <MapGL
+      {...viewport}
+      mapStyle={mapStyle}
+      width={width}
+      height={height}
+      mapboxApiAccessToken={mapboxApiKey}
+      onViewportChange={handleViewportChange}
+      preserveDrawingBuffer
+    >
+      <ScatterPlotGlowOverlay
         {...viewport}
-        mapStyle={mapStyle}
-        width={width}
-        height={height}
-        mapboxApiAccessToken={mapboxApiKey}
-        onViewportChange={this.handleViewportChange}
-        preserveDrawingBuffer
-      >
-        <ScatterPlotGlowOverlay
-          {...viewport}
-          isDragging={isDragging}
-          locations={clusters}
-          dotRadius={pointRadius}
-          pointRadiusUnit={pointRadiusUnit}
-          rgb={rgb}
-          globalOpacity={globalOpacity}
-          compositeOperation="screen"
-          renderWhileDragging={renderWhileDragging}
-          aggregation={hasCustomMetric ? aggregatorName : undefined}
-          lngLatAccessor={(location: GeoJSONLocation) => {
-            const { coordinates } = location.geometry;
-
-            return [coordinates[0], coordinates[1]];
-          }}
-        />
-      </MapGL>
-    );
-  }
+        isDragging={isDragging}
+        locations={clusters}
+        dotRadius={pointRadius}
+        pointRadiusUnit={pointRadiusUnit}
+        rgb={rgb}
+        globalOpacity={globalOpacity}
+        compositeOperation="screen"
+        renderWhileDragging={renderWhileDragging}
+        aggregation={hasCustomMetric ? aggregatorName : undefined}
+        lngLatAccessor={lngLatAccessor}
+      />
+    </MapGL>
+  );
 }
 
-export default MapBox;
+export default memo(MapBox);

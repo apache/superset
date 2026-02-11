@@ -18,7 +18,7 @@
  */
 /* eslint-disable react/no-array-index-key, react/jsx-no-bind */
 import dist from 'distributions';
-import { Component } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Table, Tr, Td, Thead, Th } from 'reactable';
 
 interface DataPointValue {
@@ -32,279 +32,295 @@ export interface DataEntry {
 }
 
 interface TTestTableProps {
-  alpha: number;
+  alpha?: number;
   data: DataEntry[];
   groups: string[];
-  liftValPrec: number;
+  liftValPrec?: number;
   metric: string;
-  pValPrec: number;
+  pValPrec?: number;
 }
 
-interface TTestTableState {
-  control: number;
-  liftValues: (string | number)[];
-  pValues: (string | number)[];
-}
+function TTestTable({
+  alpha = 0.05,
+  data,
+  groups,
+  liftValPrec = 4,
+  metric,
+  pValPrec = 6,
+}: TTestTableProps) {
+  const [control, setControl] = useState(0);
+  const [liftValues, setLiftValues] = useState<(string | number)[]>([]);
+  const [pValues, setPValues] = useState<(string | number)[]>([]);
 
-const defaultProps = {
-  alpha: 0.05,
-  liftValPrec: 4,
-  pValPrec: 6,
-};
+  const computeLift = useCallback(
+    (values: DataPointValue[], controlValues: DataPointValue[]): string => {
+      // Compute the lift value between two time series
+      let sumValues = 0;
+      let sumControl = 0;
+      values.forEach((value, i) => {
+        sumValues += value.y;
+        sumControl += controlValues[i].y;
+      });
 
-class TTestTable extends Component<TTestTableProps, TTestTableState> {
-  static defaultProps = defaultProps;
+      return (((sumValues - sumControl) / sumControl) * 100).toFixed(
+        liftValPrec,
+      );
+    },
+    [liftValPrec],
+  );
 
-  constructor(props: TTestTableProps) {
-    super(props);
-    this.state = {
-      control: 0,
-      liftValues: [],
-      pValues: [],
-    };
-  }
-
-  componentDidMount() {
-    const { control } = this.state;
-    this.computeTTest(control); // initially populate table
-  }
-
-  getLiftStatus(row: number): string {
-    const { control, liftValues } = this.state;
-    // Get a css class name for coloring
-    if (row === control) {
-      return 'control';
-    }
-    const liftVal = liftValues[row];
-    if (Number.isNaN(liftVal) || !Number.isFinite(liftVal)) {
-      return 'invalid'; // infinite or NaN values
-    }
-
-    return Number(liftVal) >= 0 ? 'true' : 'false'; // green on true, red on false
-  }
-
-  getPValueStatus(row: number): string {
-    const { control, pValues } = this.state;
-    if (row === control) {
-      return 'control';
-    }
-    const pVal = pValues[row];
-    if (Number.isNaN(pVal) || !Number.isFinite(pVal)) {
-      return 'invalid';
-    }
-
-    return ''; // p-values won't normally be colored
-  }
-
-  getSignificance(row: number): string | boolean {
-    const { control, pValues } = this.state;
-    const { alpha } = this.props;
-    // Color significant as green, else red
-    if (row === control) {
-      return 'control';
-    }
-
-    // p-values significant below set threshold
-    return Number(pValues[row]) <= alpha;
-  }
-
-  computeLift(values: DataPointValue[], control: DataPointValue[]): string {
-    const { liftValPrec } = this.props;
-    // Compute the lift value between two time series
-    let sumValues = 0;
-    let sumControl = 0;
-    values.forEach((value, i) => {
-      sumValues += value.y;
-      sumControl += control[i].y;
-    });
-
-    return (((sumValues - sumControl) / sumControl) * 100).toFixed(liftValPrec);
-  }
-
-  computePValue(
-    values: DataPointValue[],
-    control: DataPointValue[],
-  ): string | number {
-    const { pValPrec } = this.props;
-    // Compute the p-value from Student's t-test
-    // between two time series
-    let diffSum = 0;
-    let diffSqSum = 0;
-    let finiteCount = 0;
-    values.forEach((value, i) => {
-      const diff = control[i].y - value.y;
-      /* eslint-disable-next-line */
-      if (isFinite(diff)) {
-        finiteCount += 1;
-        diffSum += diff;
-        diffSqSum += diff * diff;
+  const computePValue = useCallback(
+    (
+      values: DataPointValue[],
+      controlValues: DataPointValue[],
+    ): string | number => {
+      // Compute the p-value from Student's t-test
+      // between two time series
+      let diffSum = 0;
+      let diffSqSum = 0;
+      let finiteCount = 0;
+      values.forEach((value, i) => {
+        const diff = controlValues[i].y - value.y;
+        /* eslint-disable-next-line */
+        if (isFinite(diff)) {
+          finiteCount += 1;
+          diffSum += diff;
+          diffSqSum += diff * diff;
+        }
+      });
+      const tvalue = -Math.abs(
+        diffSum *
+          Math.sqrt(
+            (finiteCount - 1) / (finiteCount * diffSqSum - diffSum * diffSum),
+          ),
+      );
+      try {
+        return (2 * new dist.Studentt(finiteCount - 1).cdf(tvalue)).toFixed(
+          pValPrec,
+        ); // two-sided test
+      } catch (error) {
+        return NaN;
       }
-    });
-    const tvalue = -Math.abs(
-      diffSum *
-        Math.sqrt(
-          (finiteCount - 1) / (finiteCount * diffSqSum - diffSum * diffSum),
-        ),
-    );
-    try {
-      return (2 * new dist.Studentt(finiteCount - 1).cdf(tvalue)).toFixed(
-        pValPrec,
-      ); // two-sided test
-    } catch (error) {
-      return NaN;
-    }
-  }
+    },
+    [pValPrec],
+  );
 
-  computeTTest(control: number) {
-    // Compute lift and p-values for each row
-    // against the selected control
-    const { data } = this.props;
-    const pValues: (string | number)[] = [];
-    const liftValues: (string | number)[] = [];
-    if (!data) {
-      return;
-    }
-    for (let i = 0; i < data.length; i += 1) {
-      if (i === control) {
-        pValues.push('control');
-        liftValues.push('control');
-      } else {
-        pValues.push(this.computePValue(data[i].values, data[control].values));
-        liftValues.push(this.computeLift(data[i].values, data[control].values));
+  const computeTTest = useCallback(
+    (controlIndex: number) => {
+      // Compute lift and p-values for each row
+      // against the selected control
+      const newPValues: (string | number)[] = [];
+      const newLiftValues: (string | number)[] = [];
+      if (!data) {
+        return;
       }
-    }
-    this.setState({ control, liftValues, pValues });
+      for (let i = 0; i < data.length; i += 1) {
+        if (i === controlIndex) {
+          newPValues.push('control');
+          newLiftValues.push('control');
+        } else {
+          newPValues.push(
+            computePValue(data[i].values, data[controlIndex].values),
+          );
+          newLiftValues.push(
+            computeLift(data[i].values, data[controlIndex].values),
+          );
+        }
+      }
+      setControl(controlIndex);
+      setLiftValues(newLiftValues);
+      setPValues(newPValues);
+    },
+    [data, computeLift, computePValue],
+  );
+
+  // Initially populate table on mount
+  useEffect(() => {
+    computeTTest(control);
+  }, [computeTTest, control]);
+
+  const getLiftStatus = useCallback(
+    (row: number): string => {
+      // Get a css class name for coloring
+      if (row === control) {
+        return 'control';
+      }
+      const liftVal = liftValues[row];
+      if (Number.isNaN(liftVal) || !Number.isFinite(liftVal)) {
+        return 'invalid'; // infinite or NaN values
+      }
+
+      return Number(liftVal) >= 0 ? 'true' : 'false'; // green on true, red on false
+    },
+    [control, liftValues],
+  );
+
+  const getPValueStatus = useCallback(
+    (row: number): string => {
+      if (row === control) {
+        return 'control';
+      }
+      const pVal = pValues[row];
+      if (Number.isNaN(pVal) || !Number.isFinite(pVal)) {
+        return 'invalid';
+      }
+
+      return ''; // p-values won't normally be colored
+    },
+    [control, pValues],
+  );
+
+  const getSignificance = useCallback(
+    (row: number): string | boolean => {
+      // Color significant as green, else red
+      if (row === control) {
+        return 'control';
+      }
+
+      // p-values significant below set threshold
+      return Number(pValues[row]) <= alpha;
+    },
+    [control, pValues, alpha],
+  );
+
+  const handleRowClick = useCallback(
+    (rowIndex: number) => {
+      computeTTest(rowIndex);
+    },
+    [computeTTest],
+  );
+
+  if (!Array.isArray(groups) || groups.length === 0) {
+    throw Error('Group by param is required');
   }
 
-  render() {
-    const { data, metric, groups } = this.props;
-    const { control, liftValues, pValues } = this.state;
+  // Render column header for each group
+  const columns = groups.map((group, i) => (
+    <Th key={i} column={group}>
+      {group}
+    </Th>
+  ));
+  const numGroups = groups.length;
+  // Columns for p-value, lift-value, and significance (true/false)
+  columns.push(
+    <Th key={numGroups + 1} column="pValue">
+      p-value
+    </Th>,
+  );
+  columns.push(
+    <Th key={numGroups + 2} column="liftValue">
+      Lift %
+    </Th>,
+  );
+  columns.push(
+    <Th key={numGroups + 3} column="significant">
+      Significant
+    </Th>,
+  );
 
-    if (!Array.isArray(groups) || groups.length === 0) {
-      throw Error('Group by param is required');
-    }
-
-    // Render column header for each group
-    const columns = groups.map((group, i) => (
-      <Th key={i} column={group}>
-        {group}
-      </Th>
-    ));
-    const numGroups = groups.length;
-    // Columns for p-value, lift-value, and significance (true/false)
-    columns.push(
-      <Th key={numGroups + 1} column="pValue">
-        p-value
-      </Th>,
+  const rows = data.map((entry, i) => {
+    const values = groups.map(
+      (
+        group,
+        j, // group names
+      ) => <Td key={j} column={group} data={entry.group[j]} />,
     );
-    columns.push(
-      <Th key={numGroups + 2} column="liftValue">
-        Lift %
-      </Th>,
+    values.push(
+      <Td
+        key={numGroups + 1}
+        className={getPValueStatus(i)}
+        column="pValue"
+        data={pValues[i]}
+      />,
     );
-    columns.push(
-      <Th key={numGroups + 3} column="significant">
-        Significant
-      </Th>,
+    values.push(
+      <Td
+        key={numGroups + 2}
+        className={getLiftStatus(i)}
+        column="liftValue"
+        data={liftValues[i]}
+      />,
     );
-    const rows = data.map((entry, i) => {
-      const values = groups.map(
-        (
-          group,
-          j, // group names
-        ) => <Td key={j} column={group} data={entry.group[j]} />,
-      );
-      values.push(
-        <Td
-          key={numGroups + 1}
-          className={this.getPValueStatus(i)}
-          column="pValue"
-          data={pValues[i]}
-        />,
-      );
-      values.push(
-        <Td
-          key={numGroups + 2}
-          className={this.getLiftStatus(i)}
-          column="liftValue"
-          data={liftValues[i]}
-        />,
-      );
-      values.push(
-        <Td
-          key={numGroups + 3}
-          className={this.getSignificance(i).toString()}
-          column="significant"
-          data={this.getSignificance(i)}
-        />,
-      );
-
-      return (
-        <Tr
-          key={i}
-          className={i === control ? 'control' : ''}
-          onClick={this.computeTTest.bind(this, i)}
-        >
-          {values}
-        </Tr>
-      );
-    });
-    // When sorted ascending, 'control' will always be at top
-    type SortConfigItem =
-      | string
-      | { column: string; sortFunction: (a: string, b: string) => number };
-    const sortConfig: SortConfigItem[] = (groups as SortConfigItem[]).concat([
-      {
-        column: 'pValue',
-        sortFunction: (a: string, b: string) => {
-          if (a === 'control') {
-            return -1;
-          }
-          if (b === 'control') {
-            return 1;
-          }
-
-          return a > b ? 1 : -1; // p-values ascending
-        },
-      },
-      {
-        column: 'liftValue',
-        sortFunction: (a: string, b: string) => {
-          if (a === 'control') {
-            return -1;
-          }
-          if (b === 'control') {
-            return 1;
-          }
-
-          return parseFloat(a) > parseFloat(b) ? -1 : 1; // lift values descending
-        },
-      },
-      {
-        column: 'significant',
-        sortFunction: (a: string, b: string) => {
-          if (a === 'control') {
-            return -1;
-          }
-          if (b === 'control') {
-            return 1;
-          }
-
-          return a > b ? -1 : 1; // significant values first
-        },
-      },
-    ]);
+    values.push(
+      <Td
+        key={numGroups + 3}
+        className={getSignificance(i).toString()}
+        column="significant"
+        data={getSignificance(i)}
+      />,
+    );
 
     return (
-      <div>
-        <h3>{metric}</h3>
-        <Table className="table" id={`table_${metric}`} sortable={sortConfig}>
-          <Thead>{columns}</Thead>
-          {rows}
-        </Table>
-      </div>
+      <Tr
+        key={i}
+        className={i === control ? 'control' : ''}
+        onClick={() => handleRowClick(i)}
+      >
+        {values}
+      </Tr>
     );
-  }
+  });
+
+  // When sorted ascending, 'control' will always be at top
+  type SortConfigItem =
+    | string
+    | { column: string; sortFunction: (a: string, b: string) => number };
+
+  const sortConfig: SortConfigItem[] = useMemo(
+    () =>
+      (groups as SortConfigItem[]).concat([
+        {
+          column: 'pValue',
+          sortFunction: (a: string, b: string) => {
+            if (a === 'control') {
+              return -1;
+            }
+            if (b === 'control') {
+              return 1;
+            }
+
+            return a > b ? 1 : -1; // p-values ascending
+          },
+        },
+        {
+          column: 'liftValue',
+          sortFunction: (a: string, b: string) => {
+            if (a === 'control') {
+              return -1;
+            }
+            if (b === 'control') {
+              return 1;
+            }
+
+            return parseFloat(a) > parseFloat(b) ? -1 : 1; // lift values descending
+          },
+        },
+        {
+          column: 'significant',
+          sortFunction: (a: string, b: string) => {
+            if (a === 'control') {
+              return -1;
+            }
+            if (b === 'control') {
+              return 1;
+            }
+
+            return a > b ? -1 : 1; // significant values first
+          },
+        },
+      ]),
+    [groups],
+  );
+
+  return (
+    <div>
+      <h3>{metric}</h3>
+      <Table className="table" id={`table_${metric}`} sortable={sortConfig}>
+        <Thead>{columns}</Thead>
+        {rows}
+      </Table>
+    </div>
+  );
 }
 
 export default TTestTable;

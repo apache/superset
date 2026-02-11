@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Component, type ReactNode } from 'react';
+import { useCallback, type ReactNode } from 'react';
 import { t } from '@apache-superset/core';
 import { Popover, FormLabel, Label } from '@superset-ui/core/components';
 import { decimalToSexagesimal } from 'geolib';
@@ -55,63 +55,57 @@ interface ViewportControlProps {
   name: string;
 }
 
-export default class ViewportControl extends Component<ViewportControlProps> {
-  static defaultProps = {
-    onChange: () => {},
-    default: { type: 'fix', value: 5 },
-    value: DEFAULT_VIEWPORT,
-  };
+export default function ViewportControl({
+  onChange = () => {},
+  value = DEFAULT_VIEWPORT,
+  name,
+  ...restProps
+}: ViewportControlProps): JSX.Element {
+  const handleChange = useCallback(
+    (ctrl: keyof Viewport, ctrlValue: number): void => {
+      onChange({
+        ...value,
+        [ctrl]: ctrlValue,
+      });
+    },
+    [onChange, value],
+  );
 
-  onChange = (ctrl: keyof Viewport, value: number): void => {
-    this.props.onChange?.({
-      ...this.props.value!,
-      [ctrl]: value,
-    });
-  };
+  const renderTextControl = (ctrl: keyof Viewport): ReactNode => (
+    <div key={ctrl}>
+      <FormLabel>{ctrl}</FormLabel>
+      <TextControl
+        value={value?.[ctrl]}
+        onChange={(ctrlValue: number) => handleChange(ctrl, ctrlValue)}
+        isFloat
+      />
+    </div>
+  );
 
-  renderTextControl(ctrl: keyof Viewport): ReactNode {
-    return (
-      <div key={ctrl}>
-        <FormLabel>{ctrl}</FormLabel>
-        <TextControl
-          value={this.props.value?.[ctrl]}
-          onChange={(value: number) => this.onChange(ctrl, value)}
-          isFloat
-        />
-      </div>
-    );
-  }
+  const renderPopover = (): ReactNode => (
+    <div id={`filter-popover-${name}`}>
+      {PARAMS.map(ctrl => renderTextControl(ctrl))}
+    </div>
+  );
 
-  renderPopover(): ReactNode {
-    return (
-      <div id={`filter-popover-${this.props.name}`}>
-        {PARAMS.map(ctrl => this.renderTextControl(ctrl))}
-      </div>
-    );
-  }
-
-  renderLabel(): string {
-    if (this.props.value?.longitude && this.props.value?.latitude) {
-      return `${decimalToSexagesimal(
-        this.props.value.longitude,
-      )} | ${decimalToSexagesimal(this.props.value.latitude)}`;
+  const renderLabel = (): string => {
+    if (value?.longitude && value?.latitude) {
+      return `${decimalToSexagesimal(value.longitude)} | ${decimalToSexagesimal(value.latitude)}`;
     }
     return 'N/A';
-  }
+  };
 
-  render(): ReactNode {
-    return (
-      <div>
-        <ControlHeader {...this.props} />
-        <Popover
-          trigger="click"
-          placement="right"
-          content={this.renderPopover()}
-          title={t('Viewport')}
-        >
-          <Label className="pointer">{this.renderLabel()}</Label>
-        </Popover>
-      </div>
-    );
-  }
+  return (
+    <div>
+      <ControlHeader {...restProps} name={name} />
+      <Popover
+        trigger="click"
+        placement="right"
+        content={renderPopover()}
+        title={t('Viewport')}
+      >
+        <Label className="pointer">{renderLabel()}</Label>
+      </Popover>
+    </div>
+  );
 }

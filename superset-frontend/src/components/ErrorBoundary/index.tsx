@@ -21,6 +21,7 @@ import { t } from '@apache-superset/core';
 import { ErrorAlert } from '../ErrorMessage';
 import type { ErrorBoundaryProps, ErrorBoundaryState } from './types';
 
+// eslint-disable-next-line react-prefer-function-component/react-prefer-function-component -- componentDidCatch requires class component
 export class ErrorBoundary extends Component<
   ErrorBoundaryProps,
   ErrorBoundaryState

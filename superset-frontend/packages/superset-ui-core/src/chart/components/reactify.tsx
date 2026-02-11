@@ -17,8 +17,13 @@
  * under the License.
  */
 
-// eslint-disable-next-line no-restricted-syntax -- whole React import is required for `reactify.test.tsx` Jest test passing.
-import { Component, ComponentClass, WeakValidationMap } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
+import type {
+  WeakValidationMap,
+  ForwardRefExoticComponent,
+  PropsWithoutRef,
+  RefAttributes,
+} from 'react';
 
 // TODO: Note that id and className can collide between Props and ReactifyProps
 // leading to (likely) unexpected behaviors. We should either require Props to not
@@ -49,66 +54,78 @@ export interface RenderFuncType<Props> {
   propTypes?: WeakValidationMap<Props & ReactifyProps>;
 }
 
+export interface ReactifiedComponentRef {
+  container?: HTMLDivElement;
+}
+
+type ReactifiedComponent<Props> = ForwardRefExoticComponent<
+  PropsWithoutRef<Props & ReactifyProps> & RefAttributes<ReactifiedComponentRef>
+> & {
+  defaultProps?: Partial<Props & ReactifyProps>;
+  propTypes?: WeakValidationMap<Props & ReactifyProps>;
+};
+
 export default function reactify<Props extends object>(
   renderFn: RenderFuncType<Props>,
   callbacks?: LifeCycleCallbacks,
-): ComponentClass<Props & ReactifyProps> {
-  class ReactifiedComponent extends Component<Props & ReactifyProps> {
-    container?: HTMLDivElement;
+): ReactifiedComponent<Props> {
+  const ReactifiedComponent = forwardRef<
+    ReactifiedComponentRef,
+    Props & ReactifyProps
+  >(function ReactifiedComponent(props, ref) {
+    const containerRef = useRef<HTMLDivElement>(null);
 
-    constructor(props: Props & ReactifyProps) {
-      super(props);
-      this.setContainerRef = this.setContainerRef.bind(this);
-    }
+    // Expose container via ref for external access
+    useImperativeHandle(
+      ref,
+      () => ({
+        get container() {
+          return containerRef.current ?? undefined;
+        },
+      }),
+      [],
+    );
 
-    componentDidMount() {
-      this.execute();
-    }
-
-    componentDidUpdate() {
-      this.execute();
-    }
-
-    componentWillUnmount() {
-      this.container = undefined;
-      if (callbacks?.componentWillUnmount) {
-        callbacks.componentWillUnmount.bind(this)();
+    // Execute renderFn on mount and every update (mimics componentDidMount + componentDidUpdate)
+    useEffect(() => {
+      if (containerRef.current) {
+        renderFn(containerRef.current, props);
       }
-    }
+    });
 
-    setContainerRef(ref: HTMLDivElement) {
-      this.container = ref;
-    }
+    // Cleanup on unmount
+    useEffect(
+      () => () => {
+        if (callbacks?.componentWillUnmount) {
+          callbacks.componentWillUnmount();
+        }
+      },
+      [],
+    );
 
-    execute() {
-      if (this.container) {
-        renderFn(this.container, this.props);
-      }
-    }
+    const { id, className } = props;
 
-    render() {
-      const { id, className } = this.props;
-
-      return <div ref={this.setContainerRef} id={id} className={className} />;
-    }
-  }
-
-  const ReactifiedClass: ComponentClass<Props & ReactifyProps> =
-    ReactifiedComponent;
+    return <div ref={containerRef} id={id} className={className} />;
+  });
 
   if (renderFn.displayName) {
-    ReactifiedClass.displayName = renderFn.displayName;
+    ReactifiedComponent.displayName = renderFn.displayName;
   }
-  // eslint-disable-next-line react/forbid-foreign-prop-types
+
+  // Cast to any to assign propTypes and defaultProps since forwardRef
+  // components have complex typing that makes direct assignment difficult
+  const result = ReactifiedComponent as any;
+
   if (renderFn.propTypes) {
-    ReactifiedClass.propTypes = {
-      ...ReactifiedClass.propTypes,
+    result.propTypes = {
+      ...result.propTypes,
       ...renderFn.propTypes,
     };
   }
+
   if (renderFn.defaultProps) {
-    ReactifiedClass.defaultProps = renderFn.defaultProps;
+    result.defaultProps = renderFn.defaultProps;
   }
 
-  return ReactifiedComponent;
+  return result as ReactifiedComponent<Props>;
 }

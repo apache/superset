@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { Component } from 'react';
+import React, { useCallback } from 'react';
 import { IconTooltip, List } from '@superset-ui/core/components';
 import { nanoid } from 'nanoid';
 import { t } from '@apache-superset/core';
-import { withTheme, type SupersetTheme } from '@apache-superset/core/ui';
+import { useTheme, type SupersetTheme } from '@apache-superset/core/ui';
 import {
   SortableContainer,
   SortableHandle,
@@ -54,19 +54,8 @@ interface CollectionControlProps {
   isFloat?: boolean;
   isInt?: boolean;
   controlName: string;
-  theme: SupersetTheme;
 }
 
-const defaultProps: Partial<CollectionControlProps> = {
-  label: null,
-  description: null,
-  onChange: () => {},
-  placeholder: t('Empty collection'),
-  itemGenerator: () => ({ key: nanoid(11) }),
-  keyAccessor: (o: CollectionItem) => o.key ?? '',
-  value: [],
-  addTooltip: t('Add an item'),
-};
 const SortableListItem = SortableElement(CustomListItem);
 const SortableList = SortableContainer(List);
 const SortableDragger = SortableHandle(() => (
@@ -78,137 +67,158 @@ const SortableDragger = SortableHandle(() => (
   />
 ));
 
-class CollectionControl extends Component<CollectionControlProps> {
-  static defaultProps = defaultProps;
+const defaultItemGenerator = () => ({ key: nanoid(11) });
+const defaultKeyAccessor = (o: CollectionItem) => o.key ?? '';
 
-  constructor(props: CollectionControlProps) {
-    super(props);
-    this.onAdd = this.onAdd.bind(this);
-  }
+export default function CollectionControl({
+  name,
+  label = null,
+  description = null,
+  placeholder = t('Empty collection'),
+  addTooltip = t('Add an item'),
+  itemGenerator = defaultItemGenerator,
+  keyAccessor = defaultKeyAccessor,
+  onChange = () => {},
+  value = [],
+  isFloat,
+  isInt,
+  controlName,
+}: CollectionControlProps) {
+  const theme = useTheme();
 
-  onChange(i: number, value: CollectionItem) {
-    const currentValue = this.props.value ?? [];
-    const newValue = [...currentValue];
-    newValue[i] = { ...currentValue[i], ...value };
-    this.props.onChange?.(newValue);
-  }
+  const handleChange = useCallback(
+    (i: number, itemValue: CollectionItem) => {
+      const newValue = [...value];
+      newValue[i] = { ...value[i], ...itemValue };
+      onChange(newValue);
+    },
+    [value, onChange],
+  );
 
-  onAdd() {
-    const currentValue = this.props.value ?? [];
-    const newItem = this.props.itemGenerator?.();
+  const handleAdd = useCallback(() => {
+    const newItem = itemGenerator();
     // Cast needed: original JS allowed undefined items from itemGenerator
-    this.props.onChange?.(
-      currentValue.concat([newItem] as unknown as CollectionItem[]),
-    );
-  }
+    onChange(value.concat([newItem] as unknown as CollectionItem[]));
+  }, [value, onChange, itemGenerator]);
 
-  onSortEnd({ oldIndex, newIndex }: { oldIndex: number; newIndex: number }) {
-    const currentValue = this.props.value ?? [];
-    this.props.onChange?.(arrayMove(currentValue, oldIndex, newIndex));
-  }
+  const handleSortEnd = useCallback(
+    ({ oldIndex, newIndex }: { oldIndex: number; newIndex: number }) => {
+      onChange(arrayMove(value, oldIndex, newIndex));
+    },
+    [value, onChange],
+  );
 
-  removeItem(i: number) {
-    const currentValue = this.props.value ?? [];
-    this.props.onChange?.(currentValue.filter((o, ix) => i !== ix));
-  }
+  const removeItem = useCallback(
+    (i: number) => {
+      onChange(value.filter((o, ix) => i !== ix));
+    },
+    [value, onChange],
+  );
 
-  renderList() {
-    const currentValue = this.props.value ?? [];
-    if (currentValue.length === 0) {
-      return <div className="text-muted">{this.props.placeholder}</div>;
+  const renderList = () => {
+    if (value.length === 0) {
+      return <div className="text-muted">{placeholder}</div>;
     }
     const Control = (controlMap as Record<string, React.ComponentType<any>>)[
-      this.props.controlName
+      controlName
     ];
-    const keyAccessor =
-      this.props.keyAccessor ?? ((o: CollectionItem) => o.key ?? '');
     return (
       <SortableList
         useDragHandle
         lockAxis="y"
-        onSortEnd={this.onSortEnd.bind(this)}
+        onSortEnd={handleSortEnd}
         bordered
-        css={(theme: SupersetTheme) => ({
-          borderRadius: theme.borderRadius,
+        css={(themeArg: SupersetTheme) => ({
+          borderRadius: themeArg.borderRadius,
         })}
       >
-        {currentValue.map((o: CollectionItem, i: number) => {
-          // label relevant only for header, not here
-          const { label, theme, ...commonProps } = this.props;
-          return (
-            <SortableListItem
-              selectable={false}
-              className="clearfix"
-              css={(theme: SupersetTheme) => ({
-                alignItems: 'center',
-                justifyContent: 'flex-start',
-                display: 'flex',
-                paddingInline: theme.sizeUnit * 6,
+        {value.map((o: CollectionItem, i: number) => (
+          <SortableListItem
+            selectable={false}
+            className="clearfix"
+            css={(themeArg: SupersetTheme) => ({
+              alignItems: 'center',
+              justifyContent: 'flex-start',
+              display: 'flex',
+              paddingInline: themeArg.sizeUnit * 6,
+            })}
+            key={keyAccessor(o)}
+            index={i}
+          >
+            <SortableDragger />
+            <div
+              css={(themeArg: SupersetTheme) => ({
+                flex: 1,
+                marginLeft: themeArg.sizeUnit * 2,
+                marginRight: themeArg.sizeUnit * 2,
               })}
-              key={keyAccessor(o)}
-              index={i}
             >
-              <SortableDragger />
-              <div
-                css={(theme: SupersetTheme) => ({
-                  flex: 1,
-                  marginLeft: theme.sizeUnit * 2,
-                  marginRight: theme.sizeUnit * 2,
-                })}
-              >
-                <Control
-                  {...commonProps}
-                  {...o}
-                  onChange={this.onChange.bind(this, i)}
-                />
-              </div>
-              <IconTooltip
-                className="pointer"
-                placement="right"
-                onClick={this.removeItem.bind(this, i)}
-                tooltip={t('Remove item')}
-                mouseEnterDelay={0}
-                mouseLeaveDelay={0}
-                css={(theme: SupersetTheme) => ({
-                  padding: 0,
-                  minWidth: 'auto',
-                  height: 'auto',
-                  lineHeight: 1,
-                  cursor: 'pointer',
-                  '& svg path': {
-                    fill: theme.colorIcon,
-                    transition: `fill ${theme.motionDurationMid} ease-out`,
-                  },
-                  '&:hover svg path': {
-                    fill: theme.colorError,
-                  },
-                })}
-              >
-                <Icons.CloseOutlined iconSize="s" />
-              </IconTooltip>
-            </SortableListItem>
-          );
-        })}
+              <Control
+                name={name}
+                description={description}
+                placeholder={placeholder}
+                addTooltip={addTooltip}
+                itemGenerator={itemGenerator}
+                keyAccessor={keyAccessor}
+                value={value}
+                isFloat={isFloat}
+                isInt={isInt}
+                controlName={controlName}
+                {...o}
+                onChange={(itemValue: CollectionItem) =>
+                  handleChange(i, itemValue)
+                }
+              />
+            </div>
+            <IconTooltip
+              className="pointer"
+              placement="right"
+              onClick={() => removeItem(i)}
+              tooltip={t('Remove item')}
+              mouseEnterDelay={0}
+              mouseLeaveDelay={0}
+              css={(themeArg: SupersetTheme) => ({
+                padding: 0,
+                minWidth: 'auto',
+                height: 'auto',
+                lineHeight: 1,
+                cursor: 'pointer',
+                '& svg path': {
+                  fill: themeArg.colorIcon,
+                  transition: `fill ${themeArg.motionDurationMid} ease-out`,
+                },
+                '&:hover svg path': {
+                  fill: themeArg.colorError,
+                },
+              })}
+            >
+              <Icons.CloseOutlined iconSize="s" />
+            </IconTooltip>
+          </SortableListItem>
+        ))}
       </SortableList>
     );
-  }
+  };
 
-  render() {
-    return (
-      <div data-test="CollectionControl" className="CollectionControl">
-        <HeaderContainer>
-          <ControlHeader {...this.props} />
-          <AddIconButton onClick={this.onAdd}>
-            <Icons.PlusOutlined
-              iconSize="s"
-              iconColor={this.props.theme.colorTextLightSolid}
-            />
-          </AddIconButton>
-        </HeaderContainer>
-        {this.renderList()}
-      </div>
-    );
-  }
+  // Props for ControlHeader (excluding label and theme which are handled separately)
+  const controlHeaderProps = {
+    name,
+    label,
+    description,
+  };
+
+  return (
+    <div data-test="CollectionControl" className="CollectionControl">
+      <HeaderContainer>
+        <ControlHeader {...controlHeaderProps} />
+        <AddIconButton onClick={handleAdd}>
+          <Icons.PlusOutlined
+            iconSize="s"
+            iconColor={theme.colorTextLightSolid}
+          />
+        </AddIconButton>
+      </HeaderContainer>
+      {renderList()}
+    </div>
+  );
 }
-
-export default withTheme(CollectionControl);
