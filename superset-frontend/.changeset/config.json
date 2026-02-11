@@ -15,7 +15,10 @@
   "updateInternalDependencies": "patch",
   "ignore": [
     "@superset-ui/demo",
-    "@superset-ui/generator-superset"
+    "@superset-ui/generator-superset",
+    "eslint-plugin-i18n-strings",
+    "eslint-plugin-icons",
+    "eslint-plugin-theme-colors"
   ],
   "privatePackages": {
     "version": false,

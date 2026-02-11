@@ -1,6 +1,7 @@
 {
   "name": "eslint-plugin-theme-colors",
   "version": "1.0.0",
+  "private": true,
   "description": "Warns about rgb(a)/hex/literal colors",
   "main": "index.ts",
   "scripts": {

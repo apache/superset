@@ -1,6 +1,7 @@
 {
   "name": "eslint-plugin-icons",
   "version": "1.0.0",
+  "private": true,
   "description": "Warns about direct usage of Ant Design icons",
   "main": "index.ts",
   "scripts": {
