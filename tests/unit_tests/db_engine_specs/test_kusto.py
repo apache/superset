@@ -151,7 +151,8 @@ def test_epoch_to_dttm() -> None:
 
 def test_epoch_ms_to_dttm() -> None:
     """
-    Test that KQL engine spec returns correct epoch milliseconds to datetime conversion template.
+    Test that KQL engine spec returns correct epoch milliseconds to
+    datetime conversion template.
     """
     result = KustoKqlEngineSpec.epoch_ms_to_dttm()
     assert result == "unixtime_milliseconds_todatetime({col})"
@@ -183,13 +184,13 @@ def test_handle_null_filter() -> None:
 
 
 @pytest.mark.parametrize(
-    "raw_query,expected_query",
+    ("raw_query", "expected_query"),
     [
         (
             'database("superset").["FreeCodeCamp"] | extend ["age"] = ARRAY(["age"]) '
-            "| project [\"age\"] | take 100",
+            '| project ["age"] | take 100',
             'database("superset").["FreeCodeCamp"] | extend ["age"] = ["age"] '
-            "| project [\"age\"] | take 100",
+            '| project ["age"] | take 100',
         ),
         (
             'database("superset").["FreeCodeCamp"] | project ["age"] | take 100',
