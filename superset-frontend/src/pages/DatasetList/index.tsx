@@ -351,6 +351,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         },
         Header: t('Name'),
         accessor: 'table_name',
+        size: '3xl',
         id: 'table_name',
       },
       {
@@ -362,7 +363,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         Header: t('Type'),
         accessor: 'kind',
         disableSortBy: true,
-        size: 'xl',
+        size: 'sm',
         id: 'kind',
       },
       {
@@ -374,7 +375,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       {
         Header: t('Schema'),
         accessor: 'schema',
-        size: 'xl',
+        size: 'lg',
         id: 'schema',
       },
       {
@@ -507,7 +508,6 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         id: 'actions',
         hidden: !canEdit && !canDelete && !canDuplicate,
         disableSortBy: true,
-        size: 'xl',
       },
       {
         accessor: QueryObjectColumns.ChangedBy,

@@ -372,6 +372,7 @@ function ChartList(props: ChartListProps) {
         ),
         Header: t('Name'),
         accessor: 'slice_name',
+        size: '3xl',
         id: 'slice_name',
       },
       {
@@ -395,7 +396,6 @@ function ChartList(props: ChartListProps) {
         ),
         Header: t('Type'),
         accessor: 'viz_type',
-        size: 'xxl',
         id: 'viz_type',
       },
       {
@@ -424,7 +424,7 @@ function ChartList(props: ChartListProps) {
         Header: t('Dataset'),
         accessor: 'datasource_id',
         disableSortBy: true,
-        size: 'xxl',
+        size: 'xl',
         id: 'datasource_id',
       },
       {
@@ -460,7 +460,6 @@ function ChartList(props: ChartListProps) {
         accessor: 'tags',
         disableSortBy: true,
         hidden: !isFeatureEnabled(FeatureFlag.TaggingSystem),
-        size: 'xxl',
         id: 'tags',
       },
       {

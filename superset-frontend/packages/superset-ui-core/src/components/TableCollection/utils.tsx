@@ -36,7 +36,7 @@ import {
 
 import { SortOrder } from '../Table';
 
-type TableSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl';
+type TableSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl' | '3xl';
 
 type RowWithId<T extends object> = Row<T> & { rowId: string };
 
@@ -47,6 +47,7 @@ const COLUMN_SIZE_MAP: Record<TableSize, number> = {
   lg: 100,
   xl: 150,
   xxl: 200,
+  '3xl': 360,
 };
 
 type EnhancedColumnInstance<T extends object = any> = RTColumnInstance<T> &
