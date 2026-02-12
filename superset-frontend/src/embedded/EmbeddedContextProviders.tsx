@@ -29,6 +29,8 @@ import { ThemeController } from 'src/theme/ThemeController';
 import type { ThemeStorage } from '@apache-superset/core/ui';
 import { store } from 'src/views/store';
 import querystring from 'query-string';
+import { LocaleProvider } from 'src/locale';
+import { getLocaleController } from './index';
 
 /**
  * In-memory implementation of ThemeStorage interface for embedded contexts.
@@ -65,30 +67,32 @@ export const EmbeddedContextProviders: React.FC = ({ children }) => {
 
   return (
     <SupersetThemeProvider themeController={themeController}>
-      <ReduxProvider store={store}>
-        <DndProvider backend={HTML5Backend}>
-          <EmbeddedUiConfigProvider>
-            <DynamicPluginProvider>
-              <QueryParamProvider
-                adapter={ReactRouter5Adapter}
-                options={{
-                  searchStringToObject: querystring.parse,
-                  objectToSearchString: (object: Record<string, any>) =>
-                    querystring.stringify(object, { encode: false }),
-                }}
-              >
-                {RootContextProviderExtension ? (
-                  <RootContextProviderExtension>
-                    {children}
-                  </RootContextProviderExtension>
-                ) : (
-                  children
-                )}
-              </QueryParamProvider>
-            </DynamicPluginProvider>
-          </EmbeddedUiConfigProvider>
-        </DndProvider>
-      </ReduxProvider>
+      <LocaleProvider controller={getLocaleController()}>
+        <ReduxProvider store={store}>
+          <DndProvider backend={HTML5Backend}>
+            <EmbeddedUiConfigProvider>
+              <DynamicPluginProvider>
+                <QueryParamProvider
+                  adapter={ReactRouter5Adapter}
+                  options={{
+                    searchStringToObject: querystring.parse,
+                    objectToSearchString: (object: Record<string, any>) =>
+                      querystring.stringify(object, { encode: false }),
+                  }}
+                >
+                  {RootContextProviderExtension ? (
+                    <RootContextProviderExtension>
+                      {children}
+                    </RootContextProviderExtension>
+                  ) : (
+                    children
+                  )}
+                </QueryParamProvider>
+              </DynamicPluginProvider>
+            </EmbeddedUiConfigProvider>
+          </DndProvider>
+        </ReduxProvider>
+      </LocaleProvider>
     </SupersetThemeProvider>
   );
 };

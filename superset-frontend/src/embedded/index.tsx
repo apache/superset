@@ -43,7 +43,23 @@ import {
 } from './EmbeddedContextProviders';
 import { embeddedApi } from './api';
 import { getDataMaskChangeTrigger } from './utils';
-import { applyLocale } from './locale';
+import { LocaleController } from 'src/locale';
+
+// Create locale controller for embedded context
+// Initial locale comes from bootstrap data (set by server based on Accept-Language header)
+const localeController = new LocaleController({
+  initialLocale: getBootstrapData().common?.locale || 'en',
+  // Skip initial fetch because preamble may have already loaded it,
+  // or we'll load it when setLocale is called
+  skipInitialFetch: true,
+});
+
+/**
+ * Get the locale controller instance for use in EmbeddedContextProviders.
+ */
+export function getLocaleController(): LocaleController {
+  return localeController;
+}
 
 setupPlugins();
 setupCodeOverrides({ embedded: true });
@@ -306,9 +322,16 @@ window.addEventListener('message', function embeddedPageInitializer(event) {
 
     Switchboard.defineMethod(
       'setLocale',
-      ({ locale }: { locale: string }) => {
+      async ({ locale }: { locale: string }) => {
         log('Received setLocale request:', locale);
-        applyLocale(locale);
+
+        try {
+          await localeController.setLocale(locale);
+          return { success: true, message: `Locale set to ${locale}` };
+        } catch (error) {
+          logging.error('Failed to set locale:', error);
+          throw new Error(`Failed to set locale: ${error.message}`);
+        }
       },
     );
 
@@ -316,16 +339,23 @@ window.addEventListener('message', function embeddedPageInitializer(event) {
   }
 });
 
-// Clean up theme controller on page unload
+// Clean up controllers on page unload
 window.addEventListener('beforeunload', () => {
   try {
-    const controller = getThemeController();
-    if (controller) {
+    const themeCtrl = getThemeController();
+    if (themeCtrl) {
       log('Destroying theme controller');
-      controller.destroy();
+      themeCtrl.destroy();
     }
   } catch (error) {
     logging.warn('Failed to destroy theme controller:', error);
+  }
+
+  try {
+    log('Destroying locale controller');
+    localeController.destroy();
+  } catch (error) {
+    logging.warn('Failed to destroy locale controller:', error);
   }
 });
 
