@@ -26,6 +26,7 @@ import logging
 
 from fastmcp import Context
 
+from superset.extensions import event_logger
 from superset.mcp_service.app import mcp
 from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.sql_lab.execute_sql_core import ExecuteSqlCore
@@ -67,7 +68,8 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
     try:
         # Use the ExecuteSqlCore to handle all the logic
         sql_tool = ExecuteSqlCore(use_command_mode=False, logger=logger)
-        result = sql_tool.run_tool(request)
+        with event_logger.log_context(action="mcp.execute_sql.query_execution"):
+            result = sql_tool.run_tool(request)
 
         # Log successful execution
         if hasattr(result, "data") and result.data:

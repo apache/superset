@@ -23,6 +23,7 @@ import platform
 
 from flask import current_app
 
+from superset.extensions import event_logger
 from superset.mcp_service.app import mcp
 from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.system.schemas import HealthCheckResponse
@@ -66,9 +67,10 @@ async def health_check() -> HealthCheckResponse:
     service_name = f"{app_name} MCP Service"
 
     try:
-        # Get version from Superset version metadata
-        version_metadata = get_version_metadata()
-        version = version_metadata.get("version_string", "unknown")
+        with event_logger.log_context(action="mcp.health_check.status"):
+            # Get version from Superset version metadata
+            version_metadata = get_version_metadata()
+            version = version_metadata.get("version_string", "unknown")
 
         response = HealthCheckResponse(
             status="healthy",

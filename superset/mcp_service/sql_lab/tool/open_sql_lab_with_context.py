@@ -26,6 +26,7 @@ from urllib.parse import urlencode
 
 from fastmcp import Context
 
+from superset.extensions import event_logger
 from superset.mcp_service.app import mcp
 from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.sql_lab.schemas import (
@@ -50,8 +51,9 @@ def open_sql_lab_with_context(
     try:
         from superset.daos.database import DatabaseDAO
 
-        # Validate database exists and is accessible
-        database = DatabaseDAO.find_by_id(request.database_connection_id)
+        with event_logger.log_context(action="mcp.open_sql_lab.db_validation"):
+            # Validate database exists and is accessible
+            database = DatabaseDAO.find_by_id(request.database_connection_id)
         if not database:
             return SqlLabResponse(
                 url="",

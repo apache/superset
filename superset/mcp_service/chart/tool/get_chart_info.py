@@ -23,6 +23,7 @@ import logging
 
 from fastmcp import Context
 
+from superset.extensions import event_logger
 from superset.mcp_service.app import mcp
 from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.chart.schemas import (
@@ -73,16 +74,17 @@ async def get_chart_info(
         "Retrieving chart information: identifier=%s" % (request.identifier,)
     )
 
-    tool = ModelGetInfoCore(
-        dao_class=ChartDAO,
-        output_schema=ChartInfo,
-        error_schema=ChartError,
-        serializer=serialize_chart_object,
-        supports_slug=False,  # Charts don't have slugs
-        logger=logger,
-    )
+    with event_logger.log_context(action="mcp.get_chart_info.lookup"):
+        tool = ModelGetInfoCore(
+            dao_class=ChartDAO,
+            output_schema=ChartInfo,
+            error_schema=ChartError,
+            serializer=serialize_chart_object,
+            supports_slug=False,  # Charts don't have slugs
+            logger=logger,
+        )
 
-    result = tool.run_tool(request.identifier)
+        result = tool.run_tool(request.identifier)
 
     if isinstance(result, ChartInfo):
         await ctx.info(

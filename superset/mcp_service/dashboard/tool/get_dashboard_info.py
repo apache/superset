@@ -27,6 +27,7 @@ from datetime import datetime, timezone
 
 from fastmcp import Context
 
+from superset.extensions import event_logger
 from superset.mcp_service.app import mcp
 from superset.mcp_service.auth import mcp_auth_hook
 from superset.mcp_service.dashboard.schemas import (
@@ -61,16 +62,17 @@ async def get_dashboard_info(
     try:
         from superset.daos.dashboard import DashboardDAO
 
-        tool = ModelGetInfoCore(
-            dao_class=DashboardDAO,
-            output_schema=DashboardInfo,
-            error_schema=DashboardError,
-            serializer=dashboard_serializer,
-            supports_slug=True,  # Dashboards support slugs
-            logger=logger,
-        )
+        with event_logger.log_context(action="mcp.get_dashboard_info.lookup"):
+            tool = ModelGetInfoCore(
+                dao_class=DashboardDAO,
+                output_schema=DashboardInfo,
+                error_schema=DashboardError,
+                serializer=dashboard_serializer,
+                supports_slug=True,  # Dashboards support slugs
+                logger=logger,
+            )
 
-        result = tool.run_tool(request.identifier)
+            result = tool.run_tool(request.identifier)
 
         if isinstance(result, DashboardInfo):
             await ctx.info(
