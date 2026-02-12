@@ -207,14 +207,14 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         Also catches the case where no credentials are configured at all
         (missing Application Default Credentials).
         """
-        error_message = str(ex)
+        error_message = str(ex).lower()
         return (
             g
             and hasattr(g, "user")
             and (
                 isinstance(ex, cls.oauth2_exception)
                 or "credentials do not contain the necessary fields" in error_message
-                or "default credentials were not found" in error_message.lower()
+                or "default credentials were not found" in error_message
             )
         )
 

@@ -84,7 +84,5 @@ test('shows loading spinner for client-side errors without errors array when dat
   );
 
   expect(screen.getByRole('status')).toBeInTheDocument();
-  expect(
-    screen.queryByText(/Some client-side error/),
-  ).not.toBeInTheDocument();
+  expect(screen.queryByText(/Some client-side error/)).not.toBeInTheDocument();
 });
