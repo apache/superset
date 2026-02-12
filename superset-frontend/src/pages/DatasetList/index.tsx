@@ -346,7 +346,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         },
         Header: t('Name'),
         accessor: 'table_name',
-        size: '3xl',
+        size: 'xxxl',
         id: 'table_name',
       },
       {

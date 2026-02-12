@@ -372,7 +372,7 @@ function ChartList(props: ChartListProps) {
         ),
         Header: t('Name'),
         accessor: 'slice_name',
-        size: '3xl',
+        size: 'xxxl',
         id: 'slice_name',
       },
       {

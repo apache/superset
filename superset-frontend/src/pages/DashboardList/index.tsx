@@ -351,7 +351,7 @@ function DashboardList(props: DashboardListProps) {
         ),
         Header: t('Name'),
         accessor: 'dashboard_title',
-        size: '3xl',
+        size: 'xxxl',
         id: 'dashboard_title',
       },
       {
