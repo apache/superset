@@ -295,6 +295,7 @@ TAG_DESCRIPTIONS = {
     "Security Roles": "Manage security roles and their permissions.",
     "Security Users": "Manage user accounts.",
     "Tags": "Organize assets with tags.",
+    "Themes": "Manage UI themes for customizing Superset's appearance.",
     "User": "User profile and preferences.",
 }
 
