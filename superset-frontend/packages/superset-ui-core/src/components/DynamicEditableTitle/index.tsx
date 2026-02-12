@@ -57,9 +57,9 @@ const titleStyles = (theme: SupersetTheme) => css`
 
   & .input-sizer {
     position: absolute;
-    left: -9999px;
     display: inline-block;
     white-space: pre;
+    opacity: 0;
   }
 `;
 
@@ -90,10 +90,11 @@ export const DynamicEditableTitle = memo(
         if (sizerRef.current.setSelectionRange) {
           const { length } = sizerRef.current.value;
           sizerRef.current.setSelectionRange(length, length);
-          sizerRef.current.scrollLeft = sizerRef.current.scrollWidth;
+          sizerRef.current.scrollLeft =
+            theme.direction === 'rtl' ? 0 : sizerRef.current.scrollWidth;
         }
       }
-    }, [isEditing]);
+    }, [isEditing, theme.direction]);
 
     // a trick to make the input grow when user types text
     // we make additional span component, place it somewhere out of view and copy input

@@ -82,6 +82,7 @@ const StyledHeader = styled.div<{ backgroundColor?: string }>`
   }
   .menu {
     align-items: center;
+    justify-content: space-between;
   }
 
   .menu > .ant-menu {

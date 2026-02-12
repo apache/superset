@@ -153,6 +153,7 @@ const RightMenu = ({
   const showUploads = allowUploads || isAdmin;
   const {
     setThemeMode,
+    setDirection,
     themeMode,
     clearLocalOverrides,
     hasDevOverride,
