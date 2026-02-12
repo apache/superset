@@ -29,6 +29,7 @@ import { FiltersBadge } from 'src/dashboard/components/FiltersBadge';
 import {
   getMockStoreWithFilters,
   getMockStoreWithNativeFilters,
+  getMockStoreWithNativeFiltersButNoValues,
 } from 'spec/fixtures/mockStore';
 import { sliceId } from 'spec/fixtures/mockChartQueries';
 import { dashboardFilters } from 'spec/fixtures/mockDashboardFilters';
@@ -107,7 +108,7 @@ test('dashboard filters: shows the indicator when filters have been applied', ()
 
 // Native filters tests
 test('native filters: does not show number when there are no active filters', () => {
-  const store = getMockStoreWithNativeFilters();
+  const store = getMockStoreWithNativeFiltersButNoValues();
   store.dispatch({
     type: CHART_UPDATE_SUCCEEDED,
     key: sliceId,
@@ -162,9 +163,10 @@ test('auto-refresh: preserves indicator count during loading state', () => {
   store.dispatch({ type: CHART_RENDERING_SUCCEEDED, key: sliceId });
 
   // Render with filters applied
-  const { getByTestId, rerender } = render(<FiltersBadge chartId={sliceId} />, {
-    store,
-  });
+  const { getByTestId, rerender } = render(
+    <FiltersBadge chartId={sliceId} />,
+    { store },
+  );
 
   // Verify badge is visible with count 1
   expect(getByTestId('applied-filter-count')).toHaveTextContent('1');
