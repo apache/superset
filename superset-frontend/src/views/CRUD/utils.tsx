@@ -282,6 +282,7 @@ export const createFetchOwners = (
         return {
           label: OwnerSelectLabel({ name: item.label, email }),
           value: item.value,
+          title: item.label,
           [OWNER_TEXT_LABEL_PROP]: item.label,
           [OWNER_EMAIL_PROP]: email ?? '',
         };
