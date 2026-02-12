@@ -301,12 +301,18 @@ class TestReportSchedulesApi(SupersetTestCase):
         for key in expected_result:
             assert data["result"][key] == expected_result[key]
         # needed because order may vary
-        assert {"first_name": "admin", "id": 1, "last_name": "user"} in data["result"][
-            "owners"
-        ]
-        assert {"first_name": "alpha", "id": 5, "last_name": "user"} in data["result"][
-            "owners"
-        ]
+        assert {
+            "email": "admin@fab.org",
+            "first_name": "admin",
+            "id": 1,
+            "last_name": "user",
+        } in data["result"]["owners"]
+        assert {
+            "email": "alpha@fab.org",
+            "first_name": "alpha",
+            "id": 5,
+            "last_name": "user",
+        } in data["result"]["owners"]
         assert len(data["result"]["owners"]) == 2
 
     def test_info_report_schedule(self):
@@ -382,7 +388,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         assert expected_fields == data_keys
 
         # Assert nested fields
-        expected_owners_fields = ["first_name", "id", "last_name"]
+        expected_owners_fields = ["email", "first_name", "id", "last_name"]
         data_keys = sorted(list(data["result"][0]["owners"][0].keys()))  # noqa: C414
         assert expected_owners_fields == data_keys
 
