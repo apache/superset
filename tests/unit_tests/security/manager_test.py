@@ -1223,3 +1223,125 @@ def test_get_rls_filters_uses_table_id_directly(
     # If it uses table.id directly (correct behavior), it will complete successfully
     result = sm.get_rls_filters(table)
     assert isinstance(result, list)
+
+
+def test_get_rls_filters_returns_cached_result(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Test that get_rls_filters() returns cached results on subsequent calls
+    for the same user and table, avoiding redundant DB queries.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+
+    mock_user = mocker.MagicMock()
+    mock_user.id = 1
+    mock_user.roles = [mocker.MagicMock(id=1)]
+    mock_g = mocker.patch("superset.security.manager.g", user=mock_user)
+    mocker.patch("superset.security.manager.get_user_id", return_value=1)
+    mocker.patch.object(sm, "get_user_roles", return_value=mock_user.roles)
+
+    table = mocker.MagicMock()
+    table.id = 42
+
+    # First call populates the cache
+    result1 = sm.get_rls_filters(table)
+
+    # Verify cache was populated
+    assert hasattr(mock_g, "_rls_filter_cache")
+    assert (1, 42) in mock_g._rls_filter_cache
+
+    # Replace session query with something that would fail if called
+    sm.session.query = mocker.MagicMock(
+        side_effect=AssertionError("DB should not be queried on cache hit")
+    )
+
+    # Second call should return cached result without querying DB
+    result2 = sm.get_rls_filters(table)
+    assert result1 == result2
+
+
+def test_prefetch_rls_filters_populates_cache(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Test that prefetch_rls_filters() populates the cache for all provided
+    table_ids, including empty results for tables with no matching filters.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+
+    mock_user = mocker.MagicMock()
+    mock_user.id = 1
+    mock_user.roles = [mocker.MagicMock(id=10)]
+    mock_g = mocker.patch("superset.security.manager.g", user=mock_user)
+    mocker.patch("superset.security.manager.get_user_id", return_value=1)
+    mocker.patch.object(sm, "get_user_roles", return_value=mock_user.roles)
+
+    # Mock the batch query to return filters for table 1 but not table 2
+    mock_query = mocker.MagicMock()
+    mock_query.join.return_value = mock_query
+    mock_query.filter.return_value = mock_query
+    mock_query.all.return_value = [
+        (1, 100, "group_a", "id > 0"),  # table_id=1
+        (1, 101, None, "active = 1"),  # table_id=1
+    ]
+    sm.session.query = mocker.MagicMock(return_value=mock_query)
+
+    sm.prefetch_rls_filters([1, 2])
+
+    assert hasattr(mock_g, "_rls_filter_cache")
+    # Table 1 should have 2 filters (as tuples of id, group_key, clause)
+    assert len(mock_g._rls_filter_cache[(1, 1)]) == 2
+    assert mock_g._rls_filter_cache[(1, 1)][0] == (100, "group_a", "id > 0")
+    assert mock_g._rls_filter_cache[(1, 1)][1] == (101, None, "active = 1")
+    # Table 2 should have empty list
+    assert mock_g._rls_filter_cache[(1, 2)] == []
+
+
+def test_prefetch_rls_filters_skips_cached_ids(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Test that prefetch_rls_filters() skips table_ids already in cache
+    and returns early when all ids are cached.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+
+    mock_user = mocker.MagicMock()
+    mock_user.id = 1
+    mock_user.roles = [mocker.MagicMock(id=10)]
+    mock_g = mocker.patch("superset.security.manager.g", user=mock_user)
+    mocker.patch("superset.security.manager.get_user_id", return_value=1)
+    mocker.patch.object(sm, "get_user_roles", return_value=mock_user.roles)
+
+    # Pre-populate cache for table 1
+    mock_g._rls_filter_cache = {(1, 1): [(100, "group_a", "id > 0")]}
+
+    # If it queries the DB, this will fail
+    sm.session.query = mocker.MagicMock(
+        side_effect=AssertionError("DB should not be queried for cached ids")
+    )
+
+    # All ids already cached -> should return immediately
+    sm.prefetch_rls_filters([1])
+
+
+def test_prefetch_rls_filters_no_user(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Test that prefetch_rls_filters() returns early when no user is present.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mock_g = mocker.patch("superset.security.manager.g")
+    del mock_g.user
+
+    # Should not attempt any DB queries
+    sm.session.query = mocker.MagicMock(
+        side_effect=AssertionError("DB should not be queried without a user")
+    )
+    sm.prefetch_rls_filters([1, 2])
