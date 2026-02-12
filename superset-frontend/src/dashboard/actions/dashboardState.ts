@@ -412,9 +412,9 @@ interface DashboardSaveData extends JsonObject {
   css?: string;
   dashboard_title?: string;
   owners?: { id: number }[] | number[];
-  roles?: { id: number }[] | number[];
+  roles?: JsonObject[];
   slug?: string | null;
-  tags?: { id: number }[] | number[];
+  tags?: JsonObject[];
   metadata?: JsonObject;
   positions?: JsonObject;
   duplicate_slices?: boolean;

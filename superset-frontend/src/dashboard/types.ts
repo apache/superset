@@ -38,6 +38,8 @@ import { UrlParamEntries } from 'src/utils/urlUtils';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import Owner from 'src/types/Owner';
+import Role from 'src/types/Role';
+import { TagType } from 'src/components/Tag/TagType';
 import { ChartState } from '../explore/types';
 import { AutoRefreshStatus } from './types/autoRefresh';
 
@@ -213,8 +215,8 @@ export type DashboardInfo = {
   last_modified_time: number;
   certified_by?: string;
   certification_details?: string;
-  roles?: { id: number }[] | number[];
-  tags?: { type?: string | number }[];
+  roles?: Role[];
+  tags?: TagType[];
   is_managed_externally?: boolean;
   dash_share_perm?: boolean;
   dash_save_perm?: boolean;

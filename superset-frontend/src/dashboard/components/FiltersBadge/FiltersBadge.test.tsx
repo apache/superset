@@ -163,10 +163,9 @@ test('auto-refresh: preserves indicator count during loading state', () => {
   store.dispatch({ type: CHART_RENDERING_SUCCEEDED, key: sliceId });
 
   // Render with filters applied
-  const { getByTestId, rerender } = render(
-    <FiltersBadge chartId={sliceId} />,
-    { store },
-  );
+  const { getByTestId, rerender } = render(<FiltersBadge chartId={sliceId} />, {
+    store,
+  });
 
   // Verify badge is visible with count 1
   expect(getByTestId('applied-filter-count')).toHaveTextContent('1');
