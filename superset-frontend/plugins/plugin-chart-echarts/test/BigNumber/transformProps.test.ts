@@ -261,11 +261,15 @@ describe('BigNumberWithTrendline', () => {
       },
     });
 
+    const series = (transformed.echartOptions?.series as any)?.[0];
+    expect(series?.lineStyle?.width).toBe(2);
+
+    const expectedPad = series.lineStyle.width / 2;
     expect(transformed.echartOptions?.grid).toEqual({
-      bottom: 0,
-      left: 0,
-      right: 0,
-      top: 0,
+      bottom: expectedPad,
+      left: expectedPad,
+      right: expectedPad,
+      top: expectedPad,
     });
   });
 
