@@ -163,11 +163,6 @@ jobs:
           docker run --rm $TAG bash -c \
           "npm run plugins:build"
 
-      - name: Build Plugins Storybook
-        run: |
-          docker run --rm $TAG bash -c \
-          "npm run plugins:build-storybook"
-
   test-storybook:
     needs: frontend-build
     if: needs.frontend-build.outputs.should-run == 'true'
