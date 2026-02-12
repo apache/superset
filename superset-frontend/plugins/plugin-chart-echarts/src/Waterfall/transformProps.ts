@@ -171,8 +171,7 @@ export default function transformProps(
     isRefreshing,
   } = chartProps;
   const refs: Refs = {};
-  const [queryData] = queriesData;
-  const { data = [] } = queryData;
+  const { data = [] } = queriesData[0];
   const coltypeMapping = getColtypesMapping(queriesData[0]);
   const { setDataMask = () => {}, onContextMenu, onLegendStateChanged } = hooks;
   const {
@@ -441,7 +440,7 @@ export default function transformProps(
     },
     legend: {
       show: showLegend,
-      ...(legendState != null && { selected: legendState }),
+      selected: legendState,
       data: [legendNames.INCREASE, legendNames.DECREASE, legendNames.TOTAL],
     },
     xAxis: {

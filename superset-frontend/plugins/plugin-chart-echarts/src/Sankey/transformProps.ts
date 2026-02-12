@@ -43,8 +43,7 @@ export default function transformProps(
     chartProps;
   const { onLegendStateChanged } = hooks;
   const { colorScheme, metric, source, target, sliceId } = formData;
-  const [queryData] = queriesData;
-  const { data } = queryData;
+  const { data } = queriesData[0];
   const colorFn = CategoricalColorNamespace.getScale(colorScheme);
   const metricLabel = getMetricLabel(metric);
   const valueFormatter = getNumberFormatter(NumberFormats.FLOAT_2_POINT);

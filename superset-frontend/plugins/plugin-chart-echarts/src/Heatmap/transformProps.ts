@@ -267,7 +267,8 @@ export default function transformProps(
 
   // Extract and sort unique axis values
   // Use colnames to get the actual column names in the data
-  const [xAxisColumnName, yAxisColumnName] = colnames;
+  const xAxisColumnName = colnames[0];
+  const yAxisColumnName = colnames[1];
 
   const xAxisValues = extractUniqueValues(data, xAxisColumnName);
   const yAxisValues = extractUniqueValues(data, yAxisColumnName);

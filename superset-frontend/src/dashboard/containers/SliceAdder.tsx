@@ -32,7 +32,7 @@ function mapStateToProps(
 ) {
   return {
     height: ownProps.height,
-    userId: Number(dashboardInfo.userId ?? 0),
+    userId: +dashboardInfo.userId,
     dashboardId: dashboardInfo.id,
     selectedSliceIds: dashboardState.sliceIds,
     slices: sliceEntities.slices,

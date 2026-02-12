@@ -1697,7 +1697,7 @@ test('type filter persists after duplicating a dataset', async () => {
       expect.objectContaining({ col: 'sql', value: false }),
     ]),
   );
-}, 45000);
+});
 
 // Error Path Tests - Missing coverage for error handling flows
 

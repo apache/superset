@@ -31,7 +31,7 @@ import {
   TimeFormatter,
   ValueFormatter,
 } from '@superset-ui/core';
-import { SupersetTheme, t } from '@apache-superset/core/ui';
+import { SupersetTheme } from '@apache-superset/core/ui';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import { SortSeriesType, LegendPaddingType } from '@superset-ui/chart-controls';
 import { format } from 'echarts/core';
@@ -452,11 +452,8 @@ export function getLegendProps(
       : 'vertical',
     show,
     type: effectiveType,
-    ...(legendState != null && { selected: legendState }),
-    selector: [
-      { type: 'all', title: t('All') },
-      { type: 'inverse', title: t('Inv') },
-    ],
+    selected: legendState ?? {},
+    selector: ['all', 'inverse'],
     selectorLabel: {
       fontFamily: theme.fontFamily,
       fontSize: theme.fontSizeSM,

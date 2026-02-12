@@ -106,8 +106,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     isRefreshing,
   } = chartProps;
 
-  const [queryData] = queriesData;
-  const { data = [] } = queryData;
+  const { data = [] } = queriesData[0];
   const {
     x,
     y,

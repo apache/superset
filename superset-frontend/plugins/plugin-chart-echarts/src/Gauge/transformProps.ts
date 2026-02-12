@@ -62,7 +62,7 @@ export const getIntervalBoundsAndColors = (
   try {
     intervalBoundsNonNormalized = parseNumbersList(intervals, ',');
     intervalColorIndicesArray = parseNumbersList(intervalColorIndices, ',');
-  } catch {
+  } catch (error) {
     intervalBoundsNonNormalized = [] as number[];
     intervalColorIndicesArray = [] as number[];
   }

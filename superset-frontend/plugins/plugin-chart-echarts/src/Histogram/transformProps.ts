@@ -65,8 +65,7 @@ export default function transformProps(
     yAxisTitle,
     yAxisFormat,
   } = formData;
-  const [queryData] = queriesData;
-  const { data } = queryData;
+  const { data } = queriesData[0];
   const colorFn = CategoricalColorNamespace.getScale(colorScheme);
 
   const formatter = (format: string) =>

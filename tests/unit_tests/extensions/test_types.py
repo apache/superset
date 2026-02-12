@@ -68,9 +68,9 @@ def test_extension_config_full():
                         "sqllab": {
                             "panels": [
                                 {"id": "query_insights.main", "name": "Query Insights"}
-                            ]
-                        }
-                    }
+                            ],
+                        },
+                    },
                 },
                 "moduleFederation": {"exposes": ["./index"]},
             },

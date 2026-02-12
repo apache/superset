@@ -200,7 +200,7 @@ export default function transformProps(
   const refs: Refs = {};
   const metricLabel = getMetricLabel(metric);
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
-  const [firstColor] = colorFn.range();
+  const firstColor = colorFn.range()[0];
   const nodes: { [name: string]: number } = {};
   const categories: Set<string> = new Set();
   const echartNodes: EChartGraphNode[] = [];

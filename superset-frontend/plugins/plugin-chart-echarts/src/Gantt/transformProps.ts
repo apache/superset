@@ -149,8 +149,7 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
 
   const { setControlValue, onLegendStateChanged } = hooks;
 
-  const [queryData] = queriesData;
-  const { data = [], colnames = [], coltypes = [] } = queryData;
+  const { data = [], colnames = [], coltypes = [] } = queriesData[0];
   const refs: Refs = {};
 
   const startTimeLabel = getColumnLabel(startTime);
