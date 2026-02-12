@@ -222,22 +222,10 @@ const Header = (): ReactElement => {
     () => setShowingPropertiesModal(false),
     [],
   );
-  const showHistoryModal = useCallback(
-    () => setShowingHistoryModal(true),
-    [],
-  );
-  const hideHistoryModal = useCallback(
-    () => setShowingHistoryModal(false),
-    [],
-  );
-  const showRefreshModal = useCallback(
-    () => setShowingRefreshModal(true),
-    [],
-  );
-  const hideRefreshModal = useCallback(
-    () => setShowingRefreshModal(false),
-    [],
-  );
+  const showHistoryModal = useCallback(() => setShowingHistoryModal(true), []);
+  const hideHistoryModal = useCallback(() => setShowingHistoryModal(false), []);
+  const showRefreshModal = useCallback(() => setShowingRefreshModal(true), []);
+  const hideRefreshModal = useCallback(() => setShowingRefreshModal(false), []);
   const showEmbedModal = useCallback(() => setShowingEmbedModal(true), []);
   const hideEmbedModal = useCallback(() => setShowingEmbedModal(false), []);
   const showReportModal = useCallback(() => setShowingReportModal(true), []);
@@ -507,56 +495,58 @@ const Header = (): ReactElement => {
       const currentColorScheme =
         dashboardInfo?.metadata?.color_scheme || colorScheme;
 
-    const data = {
-      certified_by: dashboardInfo.certified_by,
-      certification_details: dashboardInfo.certification_details,
-      css: customCss,
-      dashboard_title: dashboardTitle,
-      last_modified_time: actualLastModifiedTime,
-      owners: dashboardInfo.owners,
-      roles: dashboardInfo.roles,
-      slug,
-      tags: (dashboardInfo.tags || []).filter(
-        (item: { type?: string | number }) =>
-          item.type === TagTypeEnum.Custom || !item.type,
-      ) as { id: number }[],
-      theme_id: dashboardInfo.theme ? dashboardInfo.theme.id : null,
-      version_description:
-        (typeof versionDescriptionOverride === 'string'
-          ? versionDescriptionOverride?.trim()
-          : undefined) || saveVersionDescription?.trim() || undefined,
-      metadata: {
-        ...dashboardInfo?.metadata,
-        color_namespace: currentColorNamespace,
-        color_scheme: currentColorScheme,
-        positions: layout,
-        refresh_frequency: shouldPersistRefreshFrequency
-          ? refreshFrequency
-          : dashboardInfo.metadata?.refresh_frequency,
-      },
-    };
+      const data = {
+        certified_by: dashboardInfo.certified_by,
+        certification_details: dashboardInfo.certification_details,
+        css: customCss,
+        dashboard_title: dashboardTitle,
+        last_modified_time: actualLastModifiedTime,
+        owners: dashboardInfo.owners,
+        roles: dashboardInfo.roles,
+        slug,
+        tags: (dashboardInfo.tags || []).filter(
+          (item: { type?: string | number }) =>
+            item.type === TagTypeEnum.Custom || !item.type,
+        ) as { id: number }[],
+        theme_id: dashboardInfo.theme ? dashboardInfo.theme.id : null,
+        version_description:
+          (typeof versionDescriptionOverride === 'string'
+            ? versionDescriptionOverride?.trim()
+            : undefined) ||
+          saveVersionDescription?.trim() ||
+          undefined,
+        metadata: {
+          ...dashboardInfo?.metadata,
+          color_namespace: currentColorNamespace,
+          color_scheme: currentColorScheme,
+          positions: layout,
+          refresh_frequency: shouldPersistRefreshFrequency
+            ? refreshFrequency
+            : dashboardInfo.metadata?.refresh_frequency,
+        },
+      };
 
-    // make sure positions data less than DB storage limitation:
-    const positionJSONLength = safeStringify(layout).length;
-    const limit =
-      dashboardInfo.common?.conf?.SUPERSET_DASHBOARD_POSITION_DATA_LIMIT ||
-      DASHBOARD_POSITION_DATA_LIMIT;
-    if (positionJSONLength >= limit) {
-      boundActionCreators.addDangerToast(
-        t(
-          'Your dashboard is too large. Please reduce its size before saving it.',
-        ),
-      );
-    } else {
-      if (positionJSONLength >= limit * 0.9) {
-        boundActionCreators.addWarningToast(
-          t('Your dashboard is near the size limit.'),
+      // make sure positions data less than DB storage limitation:
+      const positionJSONLength = safeStringify(layout).length;
+      const limit =
+        dashboardInfo.common?.conf?.SUPERSET_DASHBOARD_POSITION_DATA_LIMIT ||
+        DASHBOARD_POSITION_DATA_LIMIT;
+      if (positionJSONLength >= limit) {
+        boundActionCreators.addDangerToast(
+          t(
+            'Your dashboard is too large. Please reduce its size before saving it.',
+          ),
         );
-      }
+      } else {
+        if (positionJSONLength >= limit * 0.9) {
+          boundActionCreators.addWarningToast(
+            t('Your dashboard is near the size limit.'),
+          );
+        }
 
-      boundActionCreators.onSave(data, dashboardInfo.id, SAVE_TYPE_OVERWRITE);
-    }
-  },
+        boundActionCreators.onSave(data, dashboardInfo.id, SAVE_TYPE_OVERWRITE);
+      }
+    },
     [
       actualLastModifiedTime,
       boundActionCreators,
