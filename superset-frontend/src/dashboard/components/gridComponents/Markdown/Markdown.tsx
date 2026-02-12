@@ -344,7 +344,11 @@ function Markdown({
 
   const renderPreviewMode = useMemo(
     () => (
-      <ErrorBoundary onError={handleRenderError} showMessage={false}>
+      <ErrorBoundary
+        key={hasError ? 'markdown-error' : 'markdown-ok'}
+        onError={handleRenderError}
+        showMessage={false}
+      >
         <SafeMarkdown
           source={
             hasError

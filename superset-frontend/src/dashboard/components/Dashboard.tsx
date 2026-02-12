@@ -301,6 +301,7 @@ function Dashboard({
     // componentWillUnmount equivalent
     return () => {
       window.removeEventListener('visibilitychange', onVisibilityChange);
+      onBeforeUnload(false); // Remove beforeunload listener on unmount
       actions.clearDataMaskState();
       actions.clearAllChartStates();
     };

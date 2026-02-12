@@ -205,6 +205,8 @@ function Chart({
   } = restProps;
 
   const renderStartTimeRef = useRef<number>(Logger.getTimestamp());
+  // Update on each render to accurately track render duration
+  renderStartTimeRef.current = Logger.getTimestamp();
 
   const shouldRenderChart = useCallback(
     () =>

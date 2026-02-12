@@ -159,11 +159,12 @@ function TTestTable({
         return 'control';
       }
       const liftVal = liftValues[row];
-      if (Number.isNaN(liftVal) || !Number.isFinite(liftVal)) {
+      const numericLiftVal = Number(liftVal);
+      if (Number.isNaN(numericLiftVal) || !Number.isFinite(numericLiftVal)) {
         return 'invalid'; // infinite or NaN values
       }
 
-      return Number(liftVal) >= 0 ? 'true' : 'false'; // green on true, red on false
+      return numericLiftVal >= 0 ? 'true' : 'false'; // green on true, red on false
     },
     [control, liftValues],
   );
@@ -174,7 +175,8 @@ function TTestTable({
         return 'control';
       }
       const pVal = pValues[row];
-      if (Number.isNaN(pVal) || !Number.isFinite(pVal)) {
+      const numericPVal = Number(pVal);
+      if (Number.isNaN(numericPVal) || !Number.isFinite(numericPVal)) {
         return 'invalid';
       }
 
