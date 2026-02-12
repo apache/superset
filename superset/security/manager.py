@@ -2808,9 +2808,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         from superset.embedded_chart.exceptions import (
             EmbeddedChartPermalinkNotFoundError,
         )
-        from superset.explore.permalink.exceptions import (
-            ExplorePermalinkGetFailedError,
-        )
         from superset.models.dashboard import Dashboard
 
         for resource in resources:
