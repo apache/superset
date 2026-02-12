@@ -131,7 +131,9 @@ export const EncryptedField = ({
               : encryptedValue
           }
           validationMethods={{ onBlur: getValidation }}
-          errorMessage={validationErrors?.query}
+          errorMessage={
+            encryptedField ? validationErrors?.[encryptedField] : null
+          }
           placeholder={t('Paste content of service credentials JSON file here')}
           label={t('Service Account')}
           onChange={changeMethods.onParametersChange}
