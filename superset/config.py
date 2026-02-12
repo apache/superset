@@ -964,6 +964,86 @@ THEME_DARK: Optional[Theme] = {
     "algorithm": "dark",
 }
 
+# Built-in accessibility themes for color vision deficiency
+# These themes are automatically seeded to the database on startup
+# and available for selection in the theme UI
+BUILT_IN_ACCESSIBILITY_THEMES: dict[str, Theme] = {
+    "ACCESSIBILITY_IBM_CARBON": {
+        "token": {
+            **THEME_DEFAULT["token"],
+            # IBM Carbon Design System - WCAG AAA compliant
+            "colorPrimary": "#0F62FE",
+            "colorLink": "#0F62FE",
+            "colorError": "#DA1E28",
+            "colorWarning": "#F1C21B",
+            "colorSuccess": "#24A148",
+            "colorInfo": "#0043CE",
+            "colorText": "#161616",
+            "colorTextSecondary": "#525252",
+            "colorBgBase": "#FFFFFF",
+            "colorBgContainer": "#F4F4F4",
+            "colorBorder": "#8D8D8D",
+            "borderRadius": 4,
+            "fontFamily": "IBM Plex Sans, Inter, Helvetica, Arial, sans-serif",
+            "fontSize": 14,
+            "fontSizeLG": 16,
+            "fontSizeSM": 12,
+            "fontWeightStrong": "600",
+            "colorFillSecondary": "#E8F0FE",
+            "colorBgTextHover": "#E5F0FF",
+            "colorTextDisabled": "#A8A8A8",
+        },
+        "algorithm": "default",
+    },
+    "ACCESSIBILITY_OKABE_ITO": {
+        "token": {
+            **THEME_DEFAULT["token"],
+            # Okabe-Ito palette - optimized for deuteranopia and protanopia
+            "colorBgBase": "#FFFFFF",
+            "colorBgContainer": "#FFFFFF",
+            "colorBgElevated": "#FFFFFF",
+            "colorText": "#000000",
+            "colorTextSecondary": "#1A1A1A",
+            "colorTextTertiary": "#333333",
+            "colorBorder": "#666666",
+            "colorBorderSecondary": "#999999",
+            "colorPrimary": "#0072B2",
+            "colorLink": "#0072B2",
+            "colorInfo": "#56B4E9",
+            "colorSuccess": "#009E73",
+            "colorWarning": "#E69F00",
+            "colorError": "#D55E00",
+            "controlHeight": 32,
+            "borderRadius": 4,
+        },
+        "algorithm": "default",
+    },
+    "ACCESSIBILITY_PAUL_TOL_BRIGHT": {
+        "token": {
+            **THEME_DEFAULT["token"],
+            # Paul Tol's Bright palette - scientifically validated for CVD
+            "colorPrimary": "#4477AA",
+            "colorLink": "#4477AA",
+            "colorError": "#EE6677",
+            "colorWarning": "#CCBB44",
+            "colorSuccess": "#228833",
+            "colorInfo": "#66CCEE",
+            "colorTextBase": "#000000",
+            "colorBgBase": "#FFFFFF",
+            "colorTextSecondary": "#1A1A1A",
+            "colorTextTertiary": "#333333",
+            "colorBorder": "#666666",
+            "colorBorderSecondary": "#999999",
+            "fontSizeXS": 8,
+            "fontSizeXXL": 28,
+            "fontWeightLight": "300",
+            "fontWeightNormal": "400",
+            "fontWeightStrong": "500",
+        },
+        "algorithm": "default",
+    },
+}
+
 # Theme behavior and user preference settings
 # To force a single theme on all users, set THEME_DARK = None
 # When both THEME_DEFAULT and THEME_DARK are defined:

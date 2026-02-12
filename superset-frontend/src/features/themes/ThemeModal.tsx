@@ -49,6 +49,10 @@ import { EditorHost } from 'src/core/editors';
 import { Typography } from '@superset-ui/core/components/Typography';
 import { OnlyKeyWithType } from 'src/utils/types';
 import { ThemeObject } from './types';
+import {
+  AccessibilityScoreResults,
+  useThemeAnalysis,
+} from './AccessibilityScore';
 
 type EditorAnnotation = editors.EditorAnnotation;
 
@@ -147,6 +151,15 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
     SupersetText?.THEME_MODAL?.DOCUMENTATION_URL ||
     'https://superset.apache.org/docs/configuration/theming/';
 
+  // Accessibility analysis hook
+  const {
+    analysis: accessibilityAnalysis,
+    hasColors: hasColorTokens,
+    isValidJson: isAccessibilityJsonValid,
+    runAnalysis: runAccessibilityAnalysis,
+    resetAnalysis: resetAccessibilityAnalysis,
+  } = useThemeAnalysis(currentTheme?.json_data);
+
   // JSON validation annotations using reusable hook
   const jsonAnnotations = useJsonValidation(currentTheme?.json_data, {
     enabled: !isReadOnly,
@@ -175,7 +188,8 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
     setCurrentTheme(null);
     setInitialTheme(null);
     setShowConfirmAlert(false);
-  }, [onHide]);
+    resetAccessibilityAnalysis();
+  }, [onHide, resetAccessibilityAnalysis]);
 
   const onSave = useCallback(() => {
     if (isEditMode) {
@@ -509,26 +523,51 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
                 annotations={toEditorAnnotations(jsonAnnotations)}
               />
             </StyledEditorWrapper>
-            {canDevelopThemes && (
-              <div className="apply-button-container">
+            {accessibilityAnalysis && (
+              <AccessibilityScoreResults
+                analysis={accessibilityAnalysis}
+                onReanalyze={runAccessibilityAnalysis}
+              />
+            )}
+            <div className="apply-button-container">
+              <Space>
                 <Tooltip
-                  title={t('Set local theme for testing (preview only)')}
+                  title={
+                    hasColorTokens
+                      ? t('Analyze contrast accessibility')
+                      : t('Add color tokens to enable analysis')
+                  }
                   placement="top"
                 >
                   <Button
-                    icon={<Icons.ThunderboltOutlined />}
-                    onClick={onApply}
-                    disabled={
-                      !currentTheme?.json_data ||
-                      !isValidJson(currentTheme.json_data)
-                    }
-                    buttonStyle="secondary"
+                    icon={<Icons.EyeOutlined />}
+                    onClick={runAccessibilityAnalysis}
+                    disabled={!isAccessibilityJsonValid || !hasColorTokens}
+                    buttonStyle="tertiary"
                   >
-                    {t('Apply')}
+                    {t('Analyze Contrast')}
                   </Button>
                 </Tooltip>
-              </div>
-            )}
+                {canDevelopThemes && (
+                  <Tooltip
+                    title={t('Set local theme for testing (preview only)')}
+                    placement="top"
+                  >
+                    <Button
+                      icon={<Icons.ThunderboltOutlined />}
+                      onClick={onApply}
+                      disabled={
+                        !currentTheme?.json_data ||
+                        !isValidJson(currentTheme.json_data)
+                      }
+                      buttonStyle="secondary"
+                    >
+                      {t('Apply')}
+                    </Button>
+                  </Tooltip>
+                )}
+              </Space>
+            </div>
           </Form.Item>
         </Form>
       </StyledFormWrapper>
