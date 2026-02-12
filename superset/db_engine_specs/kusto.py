@@ -16,9 +16,9 @@
 # under the License.
 import re
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Optional
+from typing import Any, Optional, TYPE_CHECKING
 
-from sqlalchemy import types, text
+from sqlalchemy import text, types
 from sqlalchemy.dialects.mssql.base import SMALLDATETIME
 
 from superset.constants import TimeGrain
@@ -230,6 +230,7 @@ class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         :return: SQLAlchemy expression for the null filter
         """
         from superset.utils import core as utils
+
         if op == utils.FilterOperator.IS_NULL:
             return text(f"isnull({sqla_col})")
         if op == utils.FilterOperator.IS_NOT_NULL:
@@ -289,7 +290,7 @@ class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         # Replace ARRAY(["identifier"]) with ["identifier"]
         processed_query = re.sub(
             r'ARRAY\(\[("[^"]+")\]\)',
-            r'[\1]',
+            r"[\1]",
             query,
         )
 
