@@ -1329,21 +1329,25 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             if not isinstance(arr, (list, tuple)):
                 arr = [arr]
             length_clause = f"ARRAY_LENGTH({col_expr}) = {len(arr)}"
-            element_clauses = [
-                (f"{col_expr}[OFFSET({i})] = {repr(arr[i])}") for i in range(len(arr))
-            ]
+            element_clauses: list[str] = []
+            params: dict[str, Any] = {}
+            for i, v in enumerate(arr):
+                element_clauses.append(f"{col_expr}[OFFSET({i})] = :val_{i}")
+                params[f"val_{i}"] = v
             sql = f"({length_clause} AND " + " AND ".join(element_clauses) + ")"
-            return text(sql)
+            return text(sql).bindparams(*[bindparam(k, v) for k, v in params.items()])
         elif op == utils.FilterOperator.NOT_EQUALS:
             arr = value
             if not isinstance(arr, (list, tuple)):
                 arr = [arr]
             length_clause = f"ARRAY_LENGTH({col_expr}) != {len(arr)}"
-            element_clauses = [
-                (f"{col_expr}[OFFSET({i})] != {repr(arr[i])}") for i in range(len(arr))
-            ]
+            element_clauses: list[str] = []
+            params: dict[str, Any] = {}
+            for i, v in enumerate(arr):
+                element_clauses.append(f"{col_expr}[OFFSET({i})] != :val_{i}")
+                params[f"val_{i}"] = v
             sql = f"({length_clause} OR " + " OR ".join(element_clauses) + ")"
-            return text(sql)
+            return text(sql).bindparams(*[bindparam(k, v) for k, v in params.items()])
         else:
             raise Exception(f"Unsupported array filter operator: {op}")
 
