@@ -2701,6 +2701,16 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if not (hasattr(g, "user") and g.user is not None):
             return []
 
+        # Check request-scoped cache
+        cache: dict[tuple[int, int | str], list[SqlaQuery]] = getattr(
+            g, "_rls_filter_cache", {}
+        )
+        user_id = get_user_id()
+        if user_id is not None:
+            cache_key = (user_id, table.id)
+            if cache_key in cache:
+                return cache[cache_key]
+
         # pylint: disable=import-outside-toplevel
         from superset.connectors.sqla.models import (
             RLSFilterRoles,
@@ -2750,7 +2760,106 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 )
             )
         )
-        return query.all()
+        result = query.all()
+
+        # Store in request-scoped cache
+        if user_id is not None:
+            if not hasattr(g, "_rls_filter_cache"):
+                g._rls_filter_cache = {}
+            g._rls_filter_cache[(user_id, table.id)] = result
+
+        return result
+
+    def prefetch_rls_filters(self, table_ids: list[int | str]) -> None:
+        """
+        Batch-fetches RLS filters for multiple tables in a single query and
+        populates the request-scoped cache used by get_rls_filters().
+
+        :param table_ids: List of table IDs to prefetch filters for
+        """
+
+        if not (hasattr(g, "user") and g.user is not None):
+            return
+
+        user_id = get_user_id()
+        if user_id is None:
+            return
+
+        if not hasattr(g, "_rls_filter_cache"):
+            g._rls_filter_cache = {}
+
+        # Filter out already-cached table_ids
+        uncached_ids = [
+            tid for tid in table_ids if (user_id, tid) not in g._rls_filter_cache
+        ]
+        if not uncached_ids:
+            return
+
+        # pylint: disable=import-outside-toplevel
+        from superset.connectors.sqla.models import (
+            RLSFilterRoles,
+            RLSFilterTables,
+            RowLevelSecurityFilter,
+        )
+
+        user_roles = [role.id for role in self.get_user_roles(g.user)]
+        regular_filter_roles = (
+            self.session.query(RLSFilterRoles.c.rls_filter_id)
+            .join(RowLevelSecurityFilter)
+            .filter(
+                RowLevelSecurityFilter.filter_type == RowLevelSecurityFilterType.REGULAR
+            )
+            .filter(RLSFilterRoles.c.role_id.in_(user_roles))
+        )
+        base_filter_roles = (
+            self.session.query(RLSFilterRoles.c.rls_filter_id)
+            .join(RowLevelSecurityFilter)
+            .filter(
+                RowLevelSecurityFilter.filter_type == RowLevelSecurityFilterType.BASE
+            )
+            .filter(RLSFilterRoles.c.role_id.in_(user_roles))
+        )
+
+        # Batch query: get (table_id, filter) pairs for all uncached tables
+        filter_table_pairs = (
+            self.session.query(
+                RLSFilterTables.c.table_id,
+                RowLevelSecurityFilter.id,
+                RowLevelSecurityFilter.group_key,
+                RowLevelSecurityFilter.clause,
+            )
+            .join(
+                RowLevelSecurityFilter,
+                RowLevelSecurityFilter.id == RLSFilterTables.c.rls_filter_id,
+            )
+            .filter(RLSFilterTables.c.table_id.in_(uncached_ids))
+            .filter(
+                or_(
+                    and_(
+                        RowLevelSecurityFilter.filter_type
+                        == RowLevelSecurityFilterType.REGULAR,
+                        RowLevelSecurityFilter.id.in_(regular_filter_roles),
+                    ),
+                    and_(
+                        RowLevelSecurityFilter.filter_type
+                        == RowLevelSecurityFilterType.BASE,
+                        RowLevelSecurityFilter.id.notin_(base_filter_roles),
+                    ),
+                )
+            )
+            .all()
+        )
+
+        # Group results by table_id
+        grouped: dict[int | str, list[SqlaQuery]] = defaultdict(list)
+        for row in filter_table_pairs:
+            table_id = row[0]
+            # Create a result matching get_rls_filters output: (id, group_key, clause)
+            grouped[table_id].append(row[1:])
+
+        # Populate cache for all uncached table_ids (including those with no filters)
+        for tid in uncached_ids:
+            g._rls_filter_cache[(user_id, tid)] = grouped.get(tid, [])
 
     def get_rls_sorted(
         self, table: "BaseDatasource | Explorable"
