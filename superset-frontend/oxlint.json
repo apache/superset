@@ -136,7 +136,7 @@
     "react/jsx-no-bind": "off",
     "react/jsx-props-no-spreading": "off",
     "react/jsx-boolean-value": ["error", "never", { "always": [] }],
-    "react/jsx-no-duplicate-props": ["error", { "ignoreCase": true }],
+    "react/jsx-no-duplicate-props": "error",
     "react/jsx-no-undef": "error",
     "react/jsx-pascal-case": ["error", { "allowAllCaps": true, "ignore": [] }],
     "react/jsx-uses-vars": "error",
