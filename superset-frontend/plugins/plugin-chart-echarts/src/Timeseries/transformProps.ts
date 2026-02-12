@@ -23,6 +23,7 @@ import {
   AnnotationLayer,
   AxisType,
   buildCustomFormatters,
+  buildLocalizedMetricLabelMap,
   CategoricalColorNamespace,
   CurrencyFormatter,
   ensureIsArray,
@@ -129,9 +130,16 @@ export default function transformProps(
     inContextMenu,
     emitCrossFilters,
     legendIndex,
+    locale,
   } = chartProps;
 
   let focusedSeries: string | null = null;
+
+  // Build map from original metric labels to localized labels
+  const localizedMetricLabelMap = buildLocalizedMetricLabelMap(
+    formData.metrics,
+    locale,
+  );
 
   const {
     verboseMap = {},
@@ -742,7 +750,8 @@ export default function transformProps(
             }
             const row = formatForecastTooltipSeries({
               ...value,
-              seriesName: key,
+              // Use localized name for tooltip display
+              seriesName: localizedMetricLabelMap[key] || key,
               formatter,
             });
 
@@ -795,6 +804,8 @@ export default function transformProps(
         if (!legendSort) return 0;
         return legendSort === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
       }) as string[],
+      // Localize metric names in legend display
+      formatter: (name: string) => localizedMetricLabelMap[name] || name,
     },
     series: dedupSeries(reorderForecastSeries(series) as SeriesOption[]),
     toolbox: {

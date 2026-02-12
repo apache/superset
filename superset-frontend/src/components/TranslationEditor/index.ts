@@ -24,4 +24,6 @@ export {
   stripEmptyValues,
   countFieldTranslations,
   getLocalizedValue,
+  getLocalizedMetricLabel,
+  buildLocalizedMetricLabelMap,
 } from './utils';

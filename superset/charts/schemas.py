@@ -40,7 +40,6 @@ from superset.common.chart_data import ChartDataResultFormat, ChartDataResultTyp
 from superset.db_engine_specs.base import builtin_time_grains
 from superset.localization import (
     get_user_locale,
-    localize_metric_labels,
     sanitize_translations,
     validate_translations,
 )
@@ -220,10 +219,9 @@ class ChartEntityResponseSchema(Schema):
         if "description" in serialized:
             serialized["description"] = obj.get_localized("description", locale)
 
-        if serialized.get("form_data"):
-            serialized["form_data"] = localize_metric_labels(
-                serialized["form_data"], locale
-            )
+        # NOTE: Metric labels in form_data are NOT localized here.
+        # Frontend handles display localization using adhocMetric.translations.
+        # This preserves the original labels for editing.
 
         return serialized
 

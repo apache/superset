@@ -17,6 +17,8 @@
  * under the License.
  */
 import type { Translations } from 'src/types/Localization';
+import type { QueryFormMetric } from '@superset-ui/core';
+import getBootstrapData from 'src/utils/getBootstrapData';
 
 /**
  * Sentinel value representing the default (untranslated) column text
@@ -79,4 +81,83 @@ export function getLocalizedValue(
   }
 
   return defaultValue;
+}
+
+/**
+ * Get localized label for a metric.
+ * Uses the current user's locale from bootstrap data.
+ *
+ * @param metric - The metric object (adhoc or saved)
+ * @returns The localized label if available, otherwise the original label
+ */
+export function getLocalizedMetricLabel(metric: QueryFormMetric): string {
+  // Saved metrics are just strings, no translations
+  if (typeof metric === 'string') {
+    return metric;
+  }
+
+  const originalLabel =
+    metric.label ??
+    (metric.expressionType === 'SIMPLE' && metric.column
+      ? `${metric.aggregate}(${
+          metric.column.column_name || (metric.column as any).columnName || ''
+        })`
+      : metric.expressionType === 'SQL'
+        ? metric.sqlExpression
+        : '');
+
+  // Check if metric has translations
+  if (!metric.translations) {
+    return originalLabel;
+  }
+
+  const locale = getBootstrapData().common?.locale || 'en';
+  return getLocalizedValue(metric.translations, 'label', locale, originalLabel);
+}
+
+/**
+ * Build a map from original metric labels to localized labels.
+ * Useful for chart plugins to localize series names, legend, tooltips.
+ *
+ * @param metrics - Array of metrics from formData
+ * @returns Map of { originalLabel: localizedLabel }
+ */
+export function buildLocalizedMetricLabelMap(
+  metrics: QueryFormMetric[] | undefined,
+): Record<string, string> {
+  const map: Record<string, string> = {};
+  if (!metrics) return map;
+
+  const locale = getBootstrapData().common?.locale || 'en';
+
+  for (const metric of metrics) {
+    if (typeof metric === 'string') {
+      // Saved metrics have no translations
+      continue;
+    }
+
+    const originalLabel =
+      metric.label ??
+      (metric.expressionType === 'SIMPLE' && metric.column
+        ? `${metric.aggregate}(${
+            metric.column.column_name || (metric.column as any).columnName || ''
+          })`
+        : metric.expressionType === 'SQL'
+          ? metric.sqlExpression
+          : '');
+
+    if (metric.translations?.label) {
+      const localizedLabel = getLocalizedValue(
+        metric.translations,
+        'label',
+        locale,
+        originalLabel,
+      );
+      if (localizedLabel !== originalLabel) {
+        map[originalLabel] = localizedLabel;
+      }
+    }
+  }
+
+  return map;
 }

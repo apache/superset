@@ -33,3 +33,68 @@ export default function getMetricLabel(metric: QueryFormMetric): string {
   }
   return metric.sqlExpression;
 }
+
+/**
+ * Get localized label for a metric.
+ * If locale is provided, attempts to find a translation in metric.translations.
+ * Falls back to the original label if no translation is found.
+ *
+ * @param metric - The metric object (adhoc or saved)
+ * @param locale - The user's locale (e.g., 'de', 'ru')
+ * @returns The localized label if available, otherwise the original label
+ */
+export function getLocalizedMetricLabel(
+  metric: QueryFormMetric,
+  locale?: string,
+): string {
+  const originalLabel = getMetricLabel(metric);
+
+  // Saved metrics (strings) don't have translations
+  if (isSavedMetric(metric)) {
+    return originalLabel;
+  }
+
+  // If no locale or no translations, return original
+  if (!locale || !metric.translations?.label) {
+    return originalLabel;
+  }
+
+  // Try exact locale match (e.g., "de-DE")
+  if (metric.translations.label[locale]) {
+    return metric.translations.label[locale];
+  }
+
+  // Try base language (e.g., "de" from "de-DE")
+  const baseLang = locale.split('-')[0];
+  if (baseLang !== locale && metric.translations.label[baseLang]) {
+    return metric.translations.label[baseLang];
+  }
+
+  return originalLabel;
+}
+
+/**
+ * Build a map from original metric labels to localized labels.
+ * Useful for chart plugins to localize series names, legend, tooltips.
+ *
+ * @param metrics - Array of metrics from formData
+ * @param locale - The user's locale
+ * @returns Map of { originalLabel: localizedLabel }
+ */
+export function buildLocalizedMetricLabelMap(
+  metrics: QueryFormMetric[] | undefined,
+  locale?: string,
+): Record<string, string> {
+  const map: Record<string, string> = {};
+  if (!metrics || !locale) return map;
+
+  for (const metric of metrics) {
+    const originalLabel = getMetricLabel(metric);
+    const localizedLabel = getLocalizedMetricLabel(metric, locale);
+    if (localizedLabel !== originalLabel) {
+      map[originalLabel] = localizedLabel;
+    }
+  }
+
+  return map;
+}
