@@ -155,8 +155,8 @@ test('clicking locale dropdown in metric edit popover does not exit edit mode', 
 
   // Popover opens — title may be in view mode (trigger) or edit mode (input)
   // Try to enter edit mode by clicking the trigger if visible
-  const popoverTitle = page.locator('[data-test="AdhocMetricEditTitle#trigger"]');
-  const input = page.locator('[data-test="AdhocMetricEditTitle#input"]');
+  const popoverTitle = page.getByRole('button', { name: /Click to edit metric label/i });
+  const input = page.getByRole('textbox', { name: /Edit metric label/i });
 
   // Wait for either trigger or input to appear
   await expect(popoverTitle.or(input)).toBeVisible({ timeout: TIMEOUT.FORM_LOAD });
@@ -198,8 +198,8 @@ test('selecting a locale in metric popover shows translation input', async ({
   const metricPill = page.locator('[data-test="option-label"]').first();
   await metricPill.click();
 
-  const popoverTitle = page.locator('[data-test="AdhocMetricEditTitle#trigger"]');
-  const input = page.locator('[data-test="AdhocMetricEditTitle#input"]');
+  const popoverTitle = page.getByRole('button', { name: /Click to edit metric label/i });
+  const input = page.getByRole('textbox', { name: /Edit metric label/i });
 
   await expect(popoverTitle.or(input)).toBeVisible({ timeout: TIMEOUT.FORM_LOAD });
 
