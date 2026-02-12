@@ -28,6 +28,7 @@ import { ModalFormField } from 'src/components/Modal';
 import {
   OwnerSelectLabel,
   OWNER_TEXT_LABEL_PROP,
+  OWNER_EMAIL_PROP,
   OWNER_OPTION_FILTER_PROPS,
 } from 'src/features/owners/OwnerSelectLabel';
 import { useAccessOptions } from '../hooks/useAccessOptions';
@@ -38,7 +39,7 @@ type Owners = {
   full_name?: string;
   first_name?: string;
   last_name?: string;
-  username?: string;
+  email?: string;
 }[];
 
 interface AccessSectionProps {
@@ -69,13 +70,14 @@ const AccessSection = ({
 
   const ownersSelectValue = useMemo(
     () =>
-      (owners || []).map((owner: Owner & { username?: string }) => ({
+      (owners || []).map((owner: Owner & { email?: string }) => ({
         value: owner.id,
         label: OwnerSelectLabel({
           name: getOwnerName(owner),
-          username: owner.username,
+          email: owner.email,
         }),
         [OWNER_TEXT_LABEL_PROP]: getOwnerName(owner),
+        [OWNER_EMAIL_PROP]: owner.email ?? '',
       })),
     [owners],
   );

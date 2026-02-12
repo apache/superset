@@ -197,7 +197,7 @@ BASE_LIST_COLUMNS = [
     "owners.id",
     "owners.first_name",
     "owners.last_name",
-    "owners.username",
+    "owners.email",
     "roles.id",
     "roles.name",
     "is_managed_externally",

@@ -83,8 +83,8 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     allow_browser_login = True
 
     extra_fields_rel_fields = {
-        "owners": ["email", "active", "username"],
-        "created_by": ["email", "active", "username"],
+        **BaseSupersetModelRestApi.extra_fields_rel_fields,
+        "created_by": ["email", "active"],
     }
 
     base_filters = [
@@ -118,7 +118,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "owners.first_name",
         "owners.id",
         "owners.last_name",
-        "owners.username",
+        "owners.email",
         "recipients.id",
         "recipients.recipient_config_json",
         "recipients.type",
@@ -158,7 +158,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "owners.first_name",
         "owners.id",
         "owners.last_name",
-        "owners.username",
+        "owners.email",
         "recipients.id",
         "recipients.type",
         "timezone",

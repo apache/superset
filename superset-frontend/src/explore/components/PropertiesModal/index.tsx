@@ -40,6 +40,7 @@ import { type TagType } from 'src/components';
 import {
   OwnerSelectLabel,
   OWNER_TEXT_LABEL_PROP,
+  OWNER_EMAIL_PROP,
   OWNER_OPTION_FILTER_PROPS,
 } from 'src/features/owners/OwnerSelectLabel';
 import { TagTypeEnum } from 'src/components/Tag/TagType';
@@ -158,7 +159,7 @@ function PropertiesModal({
           'owners.id',
           'owners.first_name',
           'owners.last_name',
-          'owners.username',
+          'owners.email',
           'tags.id',
           'tags.name',
           'tags.type',
@@ -175,16 +176,17 @@ function PropertiesModal({
               id: number;
               first_name: string;
               last_name: string;
-              username?: string;
+              email?: string;
             }) => {
               const ownerName = `${owner.first_name} ${owner.last_name}`;
               return {
                 value: owner.id,
                 label: OwnerSelectLabel({
                   name: ownerName,
-                  username: owner.username,
+                  email: owner.email,
                 }),
                 [OWNER_TEXT_LABEL_PROP]: ownerName,
+                [OWNER_EMAIL_PROP]: owner.email ?? '',
               };
             },
           ),
@@ -215,21 +217,20 @@ function PropertiesModal({
           endpoint: `/api/v1/chart/related/owners?q=${query}`,
         }).then(response => ({
           data: response.json.result
-            .filter(
-              (item: { extra: { active: boolean } }) => item.extra.active,
-            )
+            .filter((item: { extra: { active: boolean } }) => item.extra.active)
             .map(
               (item: {
                 value: number;
                 text: string;
-                extra: { username?: string };
+                extra: { email?: string };
               }) => ({
                 value: item.value,
                 label: OwnerSelectLabel({
                   name: item.text,
-                  username: item.extra?.username,
+                  email: item.extra?.email,
                 }),
                 [OWNER_TEXT_LABEL_PROP]: item.text,
+                [OWNER_EMAIL_PROP]: item.extra?.email ?? '',
               }),
             ),
           totalCount: response.json.count,

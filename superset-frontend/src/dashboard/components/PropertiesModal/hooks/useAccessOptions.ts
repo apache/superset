@@ -22,6 +22,7 @@ import rison from 'rison';
 import {
   OwnerSelectLabel,
   OWNER_TEXT_LABEL_PROP,
+  OWNER_EMAIL_PROP,
 } from 'src/features/owners/OwnerSelectLabel';
 
 /**
@@ -46,16 +47,17 @@ export const useAccessOptions = () => {
             (item: {
               value: number;
               text: string;
-              extra: { username?: string };
+              extra: { email?: string };
             }) => {
               if (accessType === 'owners') {
                 return {
                   value: item.value,
                   label: OwnerSelectLabel({
                     name: item.text,
-                    username: item.extra?.username,
+                    email: item.extra?.email,
                   }),
                   [OWNER_TEXT_LABEL_PROP]: item.text,
+                  [OWNER_EMAIL_PROP]: item.extra?.email ?? '',
                 };
               }
               return {

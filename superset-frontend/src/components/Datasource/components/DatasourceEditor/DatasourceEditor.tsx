@@ -80,6 +80,7 @@ import { makeUrl } from 'src/utils/pathUtils';
 import {
   OwnerSelectLabel,
   OWNER_TEXT_LABEL_PROP,
+  OWNER_EMAIL_PROP,
   OWNER_OPTION_FILTER_PROPS,
 } from 'src/features/owners/OwnerSelectLabel';
 import { DatabaseSelector } from '../../../DatabaseSelector';
@@ -106,7 +107,7 @@ interface Owner {
   label?: ReactNode;
   first_name?: string;
   last_name?: string;
-  username?: string;
+  email?: string;
   [key: string]: unknown;
 }
 
@@ -766,9 +767,10 @@ function OwnersSelector({
             value: item.value as number,
             label: OwnerSelectLabel({
               name: item.text as string,
-              username: item.extra?.username as string | undefined,
+              email: item.extra?.email as string | undefined,
             }),
             [OWNER_TEXT_LABEL_PROP]: item.text as string,
+            [OWNER_EMAIL_PROP]: (item.extra?.email as string) ?? '',
           })),
         totalCount: response.json.count,
       }));
@@ -866,10 +868,11 @@ class DatasourceEditor extends PureComponent<
             value: owner.value || owner.id,
             label: OwnerSelectLabel({
               name: typeof ownerName === 'string' ? ownerName : '',
-              username: owner.username,
+              email: owner.email,
             }),
             [OWNER_TEXT_LABEL_PROP]:
               typeof ownerName === 'string' ? ownerName : '',
+            [OWNER_EMAIL_PROP]: owner.email ?? '',
           };
         }),
         metrics: props.datasource.metrics?.map(metric => {

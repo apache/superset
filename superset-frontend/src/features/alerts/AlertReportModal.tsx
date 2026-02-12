@@ -42,6 +42,7 @@ import Owner from 'src/types/Owner';
 import {
   OwnerSelectLabel,
   OWNER_TEXT_LABEL_PROP,
+  OWNER_EMAIL_PROP,
   OWNER_OPTION_FILTER_PROPS,
 } from 'src/features/owners/OwnerSelectLabel';
 // import { Form as AntdForm } from 'src/components/Form';
@@ -988,14 +989,15 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             (item: {
               value: number;
               text: string;
-              extra: { username?: string };
+              extra: { email?: string };
             }) => ({
               value: item.value,
               label: OwnerSelectLabel({
                 name: item.text,
-                username: item.extra?.username,
+                email: item.extra?.email,
               }),
               [OWNER_TEXT_LABEL_PROP]: item.text,
+              [OWNER_EMAIL_PROP]: item.extra?.email ?? '',
             }),
           ),
           totalCount: response.json.count,
@@ -1865,9 +1867,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 value: currentUser.userId,
                 label: OwnerSelectLabel({
                   name: `${currentUser.firstName} ${currentUser.lastName}`,
-                  username: currentUser.username,
+                  email: currentUser.email,
                 }),
                 [OWNER_TEXT_LABEL_PROP]: `${currentUser.firstName} ${currentUser.lastName}`,
+                [OWNER_EMAIL_PROP]: currentUser.email ?? '',
               },
             ]
           : [],
@@ -1961,10 +1964,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             value: (owner as MetaObject).value || owner.id,
             label: OwnerSelectLabel({
               name: typeof ownerName === 'string' ? ownerName : '',
-              username: (owner as Owner).username,
+              email: (owner as Owner).email,
             }),
             [OWNER_TEXT_LABEL_PROP]:
               typeof ownerName === 'string' ? ownerName : '',
+            [OWNER_EMAIL_PROP]: (owner as Owner).email ?? '',
           };
         }),
         validator_config_json:
