@@ -48,6 +48,7 @@ def tool(
     description: str | None = None,
     tags: list[str] | None = None,
     protect: bool = True,
+    task: bool = False,
 ) -> Any:  # Use Any to avoid mypy issues with dependency injection
     """
     Decorator to register an MCP tool with optional authentication.
@@ -62,6 +63,10 @@ def tool(
         @tool(name="custom_name", protect=False)
         def my_tool(): ...
 
+    Or with background task support (requires async function):
+        @tool(task=True)
+        async def long_running_tool(): ...
+
     Args:
         func_or_name: When used as @tool, this will be the function.
                      When used as @tool("name"), this will be the name.
@@ -69,6 +74,9 @@ def tool(
         description: Tool description (defaults to function docstring)
         tags: List of tags for categorizing the tool (defaults to empty list)
         protect: Whether to require Superset authentication (defaults to True)
+        task: Whether to enable background task execution (defaults to False).
+              When True, the tool can run asynchronously with progress reporting.
+              Requires an async function. Uses FastMCP's task protocol (SEP-1686).
 
     Returns:
         Decorator function that registers and wraps the tool, or the wrapped function
@@ -90,6 +98,11 @@ def tool(
         def public_tool() -> str:
             '''Public tool accessible without auth'''
             return "Hello world"
+
+        @tool(task=True)  # Enable background task execution
+        async def long_running_tool(data: str) -> str:
+            '''Long-running operation with progress support'''
+            return "Done"
     """
     raise NotImplementedError(
         "MCP tool decorator not initialized. "
