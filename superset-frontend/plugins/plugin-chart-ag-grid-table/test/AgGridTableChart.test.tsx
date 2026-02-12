@@ -30,7 +30,7 @@ beforeAll(() => {
 });
 
 describe('transformProps', () => {
-  it('should parse pageLength to pageSize', () => {
+  test('should parse pageLength to pageSize', () => {
     expect(transformProps(testData.basic).pageSize).toBe(20);
     expect(
       transformProps({
@@ -46,7 +46,7 @@ describe('transformProps', () => {
     ).toBe(0);
   });
 
-  it('should not apply time grain formatting in Raw Records mode', () => {
+  test('should not apply time grain formatting in Raw Records mode', () => {
     const rawRecordsProps = {
       ...testData.basic,
       rawFormData: {
@@ -62,7 +62,7 @@ describe('transformProps', () => {
     expect(transformedProps.timeGrain).toBe(TimeGranularity.MONTH);
   });
 
-  it('should handle null/undefined timestamp values correctly', () => {
+  test('should handle null/undefined timestamp values correctly', () => {
     const rawRecordsProps = {
       ...testData.basic,
       rawFormData: {
@@ -83,7 +83,7 @@ describe('AgGridTableChart', () => {
     jest.clearAllMocks();
   });
 
-  it('should render basic data', async () => {
+  test('should render basic data', async () => {
     const props = transformProps(testData.basic);
     render(
       ProviderWrapper({
@@ -103,7 +103,7 @@ describe('AgGridTableChart', () => {
     });
   });
 
-  it('should render with server pagination', async () => {
+  test('should render with server pagination', async () => {
     const props = transformProps({
       ...testData.basic,
       rawFormData: {
@@ -136,7 +136,7 @@ describe('AgGridTableChart', () => {
     });
   });
 
-  it('should render with search enabled', async () => {
+  test('should render with search enabled', async () => {
     const props = transformProps({
       ...testData.basic,
       rawFormData: {
@@ -164,7 +164,7 @@ describe('AgGridTableChart', () => {
     });
   });
 
-  it('should render with totals', async () => {
+  test('should render with totals', async () => {
     const props = transformProps({
       ...testData.basic,
       rawFormData: {
@@ -193,7 +193,7 @@ describe('AgGridTableChart', () => {
     });
   });
 
-  it('should handle empty data', async () => {
+  test('should handle empty data', async () => {
     const props = transformProps(testData.empty);
 
     render(
@@ -214,7 +214,7 @@ describe('AgGridTableChart', () => {
     });
   });
 
-  it('should render with time comparison', async () => {
+  test('should render with time comparison', async () => {
     const props = transformProps(testData.comparison);
     props.isUsingTimeComparison = true;
 
@@ -236,7 +236,7 @@ describe('AgGridTableChart', () => {
     });
   });
 
-  it('should handle raw records mode', async () => {
+  test('should handle raw records mode', async () => {
     const rawRecordsProps = {
       ...testData.basic,
       rawFormData: {
@@ -264,7 +264,7 @@ describe('AgGridTableChart', () => {
     });
   });
 
-  it('should correct invalid page number when currentPage >= totalPages', async () => {
+  test('should correct invalid page number when currentPage >= totalPages', async () => {
     const props = transformProps({
       ...testData.basic,
       rawFormData: {

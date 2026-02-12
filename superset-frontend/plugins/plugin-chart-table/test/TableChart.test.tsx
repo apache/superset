@@ -382,7 +382,7 @@ describe('plugin-chart-table', () => {
       expect(percentMetric2?.originalLabel).toBe('metric_2');
     });
 
-    it('should not apply time grain formatting in Raw Records mode', () => {
+    test('should not apply time grain formatting in Raw Records mode', () => {
       const rawRecordsProps = {
         ...testData.basic,
         rawFormData: {
@@ -410,7 +410,7 @@ describe('plugin-chart-table', () => {
       expect(formatted).toContain('2023');
     });
 
-    it('should handle null/undefined timestamp values correctly', () => {
+    test('should handle null/undefined timestamp values correctly', () => {
       const rawRecordsProps = {
         ...testData.basic,
         rawFormData: {
