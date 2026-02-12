@@ -39,6 +39,7 @@ from flask_appbuilder.const import AUTH_OAUTH
 from flask_appbuilder.forms import DynamicForm
 from flask_appbuilder.models.sqla.filters import BaseFilter
 from flask_appbuilder.security.sqla.models import User
+from babel.core import Locale
 from flask_babel import get_locale, gettext as __
 from flask_jwt_extended.exceptions import NoAuthorizationError
 from flask_wtf.form import FlaskForm
