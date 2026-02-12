@@ -19,7 +19,7 @@
 
 /* eslint-disable sort-keys */
 /* eslint-disable no-magic-numbers */
-import { SuperChart } from '@superset-ui/core'
+import { SuperChart } from '@superset-ui/core';
 import { supersetTheme } from '@apache-superset/core/ui';
 import { ArcChartPlugin } from '@superset-ui/legacy-preset-chart-deckgl';
 import { withResizableChartDemo } from '@storybook-shared';
@@ -67,7 +67,7 @@ export const ArcChartViz = ({
   height: number;
 }) => (
   <SuperChart
-      theme={supersetTheme}
+    theme={supersetTheme}
     chartType="deck_arc"
     width={width}
     height={height}

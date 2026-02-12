@@ -163,10 +163,7 @@ export const addChartToDashboard = async (
   // Add chart to the target row
   updatedPositionJson[targetRowKey] = {
     ...updatedPositionJson[targetRowKey],
-    children: [
-      ...(updatedPositionJson[targetRowKey].children || []),
-      chartKey,
-    ],
+    children: [...(updatedPositionJson[targetRowKey].children || []), chartKey],
   };
 
   await SupersetClient.put({

@@ -36,7 +36,6 @@ import SaveModal, {
 import { CHART_WIDTH } from 'src/dashboard/constants';
 import { GRID_COLUMN_COUNT } from 'src/dashboard/util/constants';
 
-
 jest.mock('@superset-ui/core/components/Select', () => ({
   ...jest.requireActual('@superset-ui/core/components/Select/AsyncSelect'),
   AsyncSelect: ({ onChange }: { onChange: (val: any) => void }) => (
@@ -330,7 +329,11 @@ test('createRedirectParams sets slice_id in the URLSearchParams', () => {
 test('createRedirectParams removes form_data_key from URL parameters', () => {
   // Test with form_data_key in the URL
   const urlWithFormDataKey = '?form_data_key=12345&other_param=value';
-  const result = createRedirectParams(urlWithFormDataKey, { id: 1 }, 'overwrite');
+  const result = createRedirectParams(
+    urlWithFormDataKey,
+    { id: 1 },
+    'overwrite',
+  );
 
   // form_data_key should be removed
   expect(result.has('form_data_key')).toBe(false);

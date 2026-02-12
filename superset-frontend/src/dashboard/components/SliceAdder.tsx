@@ -234,9 +234,8 @@ function SliceAdder({
     () => () => {
       // Clears the redux store keeping only selected items
       // Use refs to get latest values on unmount
-      const selectedSlices = pickBy(
-        latestSlicesRef.current,
-        (value: Slice) => latestSelectedSliceIdsSetRef.current.has(value.slice_id),
+      const selectedSlices = pickBy(latestSlicesRef.current, (value: Slice) =>
+        latestSelectedSliceIdsSetRef.current.has(value.slice_id),
       );
 
       updateSlices(selectedSlices);
