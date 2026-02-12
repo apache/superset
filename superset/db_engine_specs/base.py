@@ -1282,6 +1282,72 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     # DSPM: SO-82
     @classmethod
+    def _get_bq_filter_contains(
+        cls, col_expr: str, value: list[Any]
+    ) -> BinaryExpression:
+        clauses = []
+        params = {}
+        for i, v in enumerate(value):
+            clause = (
+                f"EXISTS (SELECT 1 FROM UNNEST({col_expr}) AS x WHERE x = :val_{i})"  # nosec B608 # noqa: S608
+            )
+            clauses.append(clause)
+            params[f"val_{i}"] = v
+        sql = " AND ".join(clauses)
+        return text(sql).bindparams(*[bindparam(k, v) for k, v in params.items()])
+
+    # DSPM: SO-82
+    @classmethod
+    def _get_bq_filter_not_contains(
+        cls, col_expr: str, value: list[Any]
+    ) -> BinaryExpression:
+        clauses = []
+        params = {}
+        for i, v in enumerate(value):
+            clause = (
+                f"NOT EXISTS (SELECT 1 FROM UNNEST({col_expr}) AS x WHERE x = :val_{i})"  # nosec B608 # noqa: S608
+            )
+            clauses.append(clause)
+            params[f"val_{i}"] = v
+        sql = " AND ".join(clauses)
+        return text(sql).bindparams(*[bindparam(k, v) for k, v in params.items()])
+
+    # DSPM: SO-82
+    @classmethod
+    def _get_bq_filter_equals(cls, col_expr: str, value: list[Any]) -> BinaryExpression:
+        arr = value if isinstance(value, (list, tuple)) else [value]
+        length_clause = f"ARRAY_LENGTH({col_expr}) = {len(arr)}"
+        if not arr:
+            return text(length_clause)
+
+        element_clauses: list[str] = []
+        params: dict[str, Any] = {}
+        for i, v in enumerate(arr):
+            element_clauses.append(f"{col_expr}[OFFSET({i})] = :val_{i}")
+            params[f"val_{i}"] = v
+        sql = f"({length_clause} AND " + " AND ".join(element_clauses) + ")"
+        return text(sql).bindparams(*[bindparam(k, v) for k, v in params.items()])
+
+    # DSPM: SO-82
+    @classmethod
+    def _get_bq_filter_not_equals(
+        cls, col_expr: str, value: list[Any]
+    ) -> BinaryExpression:
+        arr = value if isinstance(value, (list, tuple)) else [value]
+        length_clause = f"ARRAY_LENGTH({col_expr}) != {len(arr)}"
+        if not arr:
+            return text(length_clause)
+
+        element_clauses: list[str] = []
+        params: dict[str, Any] = {}
+        for i, v in enumerate(arr):
+            element_clauses.append(f"{col_expr}[OFFSET({i})] != :val_{i}")
+            params[f"val_{i}"] = v
+        sql = f"({length_clause} OR " + " OR ".join(element_clauses) + ")"
+        return text(sql).bindparams(*[bindparam(k, v) for k, v in params.items()])
+
+    # DSPM: SO-82
+    @classmethod
     def handle_array_filter_big_query(
         cls, sqla_col: Any, op: utils.FilterOperator, value: list[Any]
     ) -> BinaryExpression:
@@ -1299,57 +1365,17 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             raise ValueError(f"Unsafe column name: {col_key}")
         col_expr = f"`{col_key}`"
 
-        if op == utils.FilterOperator.CONTAINS:
-            clauses = []
-            params = {}
-            for i, v in enumerate(value):
-                clause = (
-                    f"EXISTS (SELECT 1 FROM UNNEST({col_expr}) AS x WHERE x = :val_{i})"  # nosec B608  # noqa: S608
-                )
-                clauses.append(clause)
-                params[f"val_{i}"] = v
-            sql = " AND ".join(clauses)
-            return text(sql).bindparams(*[bindparam(k, v) for k, v in params.items()])
+        handler_map = {
+            utils.FilterOperator.CONTAINS: cls._get_bq_filter_contains,
+            utils.FilterOperator.NOT_CONTAINS: cls._get_bq_filter_not_contains,
+            utils.FilterOperator.EQUALS: cls._get_bq_filter_equals,
+            utils.FilterOperator.NOT_EQUALS: cls._get_bq_filter_not_equals,
+        }
 
-        elif op == utils.FilterOperator.NOT_CONTAINS:
-            clauses = []
-            params = {}
-            for i, v in enumerate(value):
-                clause = (
-                    f"NOT EXISTS (SELECT 1 FROM UNNEST({col_expr}) AS x "  # nosec B608  # noqa: S608
-                    f"WHERE x = :val_{i})"
-                )
-                clauses.append(clause)
-                params[f"val_{i}"] = v
-            sql = " AND ".join(clauses)
-            return text(sql).bindparams(*[bindparam(k, v) for k, v in params.items()])
+        if op in handler_map:
+            return handler_map[op](col_expr, value)
 
-        elif op == utils.FilterOperator.EQUALS:
-            arr = value
-            if not isinstance(arr, (list, tuple)):
-                arr = [arr]
-            length_clause = f"ARRAY_LENGTH({col_expr}) = {len(arr)}"
-            element_clauses: list[str] = []
-            params: dict[str, Any] = {}
-            for i, v in enumerate(arr):
-                element_clauses.append(f"{col_expr}[OFFSET({i})] = :val_{i}")
-                params[f"val_{i}"] = v
-            sql = f"({length_clause} AND " + " AND ".join(element_clauses) + ")"
-            return text(sql).bindparams(*[bindparam(k, v) for k, v in params.items()])
-        elif op == utils.FilterOperator.NOT_EQUALS:
-            arr = value
-            if not isinstance(arr, (list, tuple)):
-                arr = [arr]
-            length_clause = f"ARRAY_LENGTH({col_expr}) != {len(arr)}"
-            element_clauses: list[str] = []
-            params: dict[str, Any] = {}
-            for i, v in enumerate(arr):
-                element_clauses.append(f"{col_expr}[OFFSET({i})] != :val_{i}")
-                params[f"val_{i}"] = v
-            sql = f"({length_clause} OR " + " OR ".join(element_clauses) + ")"
-            return text(sql).bindparams(*[bindparam(k, v) for k, v in params.items()])
-        else:
-            raise Exception(f"Unsupported array filter operator: {op}")
+        raise Exception(f"Unsupported array filter operator: {op}")
 
     # DSPM: SO-82
     @classmethod
