@@ -109,6 +109,7 @@
     "@emotion/cache": "^11.4.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
+    "@fontsource/ibm-plex-mono": "^5.2.7",
     "@luma.gl/constants": "~9.2.5",
     "@luma.gl/core": "~9.2.5",
     "@luma.gl/engine": "~9.2.5",
