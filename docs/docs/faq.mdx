@@ -1,6 +1,62 @@
 ---
 sidebar_position: 9
+title: Frequently Asked Questions
+description: Common questions about Apache Superset including performance, database support, visualizations, and configuration.
+keywords: [superset faq, superset questions, superset help, data visualization faq]
 ---
+
+import FAQSchema from '@site/src/components/FAQSchema';
+
+<FAQSchema faqs={[
+  {
+    question: "How big of a dataset can Superset handle?",
+    answer: "Superset can work with even gigantic databases. Superset acts as a thin layer above your underlying databases or data engines, which do all the processing. Superset simply visualizes the results of the query. The key to achieving acceptable performance is whether your database can execute queries and return results at acceptable speed."
+  },
+  {
+    question: "What are the computing specifications required to run Superset?",
+    answer: "The specs depend on how many users you have and their activity, not on the size of your data. Community members have reported 8GB RAM, 2vCPUs as adequate for a moderately-sized instance. Monitor your resource usage and adjust as needed."
+  },
+  {
+    question: "Can I join or query multiple tables at one time?",
+    answer: "Not in the Explore or Visualization UI directly. A Superset SQLAlchemy datasource can only be a single table or a view. You can create a view that joins tables, or use SQL Lab where you can write SQL queries to join multiple tables."
+  },
+  {
+    question: "How do I create my own visualization?",
+    answer: "Read the instructions in the Creating Visualization Plugins documentation to learn how to build custom visualizations for Superset."
+  },
+  {
+    question: "Can I upload and visualize CSV data?",
+    answer: "Yes! Superset supports CSV upload functionality. Read the Exploring Data documentation to learn how to enable and use CSV upload."
+  },
+  {
+    question: "Why are my queries timing out?",
+    answer: "There are many possible causes. For SQL Lab, Superset allows queries to run up to 6 hours by default (configurable via SQLLAB_ASYNC_TIME_LIMIT_SEC). For dashboard timeouts, check your gateway/proxy timeout settings and adjust SUPERSET_WEBSERVER_TIMEOUT in superset_config.py."
+  },
+  {
+    question: "Why is the map not visible in the geospatial visualization?",
+    answer: "You need to register a free account at Mapbox.com, obtain an API key, and add it to your .env file at the key MAPBOX_API_KEY."
+  },
+  {
+    question: "What database engine can I use as a backend for Superset?",
+    answer: "Superset is tested using MySQL, PostgreSQL, and SQLite backends for storing its internal metadata. While Superset supports many databases as data sources, only these are recommended for the metadata store in production."
+  },
+  {
+    question: "Does Superset work with my database?",
+    answer: "Superset supports any database with a Python SQLAlchemy dialect and DBAPI driver. Check the Connecting to Databases documentation for the full list of supported databases."
+  },
+  {
+    question: "Does Superset offer a public API?",
+    answer: "Yes, Superset has a public REST API documented using Swagger. Enable FAB_API_SWAGGER_UI in superset_config.py to access interactive API documentation at /swagger/v1."
+  },
+  {
+    question: "Does Superset collect any telemetry data?",
+    answer: "Superset uses Scarf by default to collect basic telemetry data to help maintainers understand version usage. Users can opt out by setting the SCARF_ANALYTICS environment variable to false."
+  },
+  {
+    question: "Does Superset have a trash bin to recover deleted assets?",
+    answer: "No, there is no built-in way to recover deleted dashboards, charts, or datasets. It is recommended to take periodic backups of the metadata database and use export functionality for recovery."
+  }
+]} />
 
 # FAQ
 
@@ -157,7 +213,7 @@ table afterwards to configure the Columns tab, check the appropriate boxes and s
 
 To clarify, the database backend is an OLTP database used by Superset to store its internal
 information like your list of users and dashboard definitions. While Superset supports a
-[variety of databases as data _sources_](/docs/configuration/databases#installing-database-drivers),
+[variety of databases as data _sources_](/docs/databases#installing-database-drivers),
 only a few database engines are supported for use as the OLTP backend / metadata store.
 
 Superset is tested using MySQL, PostgreSQL, and SQLite backends. It’s recommended you install
@@ -190,7 +246,7 @@ second etc). Example:
 
 ## Does Superset work with [insert database engine here]?
 
-The [Connecting to Databases section](/docs/configuration/databases) provides the best
+The [Connecting to Databases section](/docs/databases) provides the best
 overview for supported databases. Database engines not listed on that page may work too. We rely on
 the community to contribute to this knowledge base.
 

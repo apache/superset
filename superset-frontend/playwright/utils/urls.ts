@@ -28,7 +28,11 @@
  *        = 'http://localhost:8088/app/prefix/tablemodelview/list'
  */
 export const URL = {
+  CHART_ADD: 'chart/add',
+  CHART_LIST: 'chart/list/',
+  DASHBOARD_LIST: 'dashboard/list/',
   DATASET_LIST: 'tablemodelview/list',
   LOGIN: 'login/',
+  SQLLAB: 'sqllab',
   WELCOME: 'superset/welcome/',
 } as const;

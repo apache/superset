@@ -58,7 +58,7 @@ const mockFormulaAnnotationLayer: FormulaAnnotationLayer = {
 };
 
 describe('transformFormulaAnnotation', () => {
-  it('should transform data correctly', () => {
+  test('should transform data correctly', () => {
     expect(
       transformFormulaAnnotation(
         mockFormulaAnnotationLayer,
@@ -74,7 +74,7 @@ describe('transformFormulaAnnotation', () => {
     ]);
   });
 
-  it('should swap x and y for horizontal chart', () => {
+  test('should swap x and y for horizontal chart', () => {
     expect(
       transformFormulaAnnotation(
         mockFormulaAnnotationLayer,
@@ -126,7 +126,7 @@ const mockIntervalAnnotationData: AnnotationData = {
 };
 
 describe('transformIntervalAnnotation', () => {
-  it('should transform data correctly', () => {
+  test('should transform data correctly', () => {
     const result = transformIntervalAnnotation(
       mockIntervalAnnotationLayer,
       mockData,
@@ -149,7 +149,7 @@ describe('transformIntervalAnnotation', () => {
     ]);
   });
 
-  it('should combine labels for intervals with the same start date', () => {
+  test('should combine labels for intervals with the same start date', () => {
     const duplicateStartDateData: AnnotationData = {
       'Interval annotation layer': {
         records: [
@@ -202,7 +202,7 @@ describe('transformIntervalAnnotation', () => {
     ]);
   });
 
-  it('should use yAxis for horizontal chart data', () => {
+  test('should use yAxis for horizontal chart data', () => {
     const result = transformIntervalAnnotation(
       mockIntervalAnnotationLayer,
       mockData,
@@ -262,7 +262,7 @@ const mockEventAnnotationData: AnnotationData = {
 };
 
 describe('transformEventAnnotation', () => {
-  it('should transform data correctly', () => {
+  test('should transform data correctly', () => {
     const result = transformEventAnnotation(
       mockEventAnnotationLayer,
       mockData,
@@ -282,7 +282,7 @@ describe('transformEventAnnotation', () => {
     ]);
   });
 
-  it('should combine labels for events with the same start date', () => {
+  test('should combine labels for events with the same start date', () => {
     const duplicateStartDateData: AnnotationData = {
       'Event annotation layer': {
         records: [
@@ -334,7 +334,7 @@ describe('transformEventAnnotation', () => {
     ]);
   });
 
-  it('should use yAxis for horizontal chart data', () => {
+  test('should use yAxis for horizontal chart data', () => {
     const result = transformEventAnnotation(
       mockEventAnnotationLayer,
       mockData,
@@ -385,7 +385,7 @@ const mockTimeseriesAnnotationData: AnnotationData = {
 };
 
 describe('transformTimeseriesAnnotation', () => {
-  it('should transform data correctly', () => {
+  test('should transform data correctly', () => {
     expect(
       transformTimeseriesAnnotation(
         mockTimeseriesAnnotationLayer,
@@ -403,7 +403,7 @@ describe('transformTimeseriesAnnotation', () => {
     ]);
   });
 
-  it('should swap x and y for horizontal chart', () => {
+  test('should swap x and y for horizontal chart', () => {
     expect(
       transformTimeseriesAnnotation(
         mockTimeseriesAnnotationLayer,

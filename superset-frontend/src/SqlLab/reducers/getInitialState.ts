@@ -254,7 +254,9 @@ export default function getInitialState({
       activeSouthPaneTab: 'Results',
       alerts: [],
       databases,
+      dbConnect: false,
       offline: false,
+      errorMessage: null,
       queries: Object.fromEntries(
         Object.entries(queries).map(([queryId, query]) => [
           queryId,

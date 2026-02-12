@@ -206,21 +206,7 @@ class Dashboard(CoreDashboard, AuditMixinNullable, ImportExportMixin):
 
     @property
     def datasources(self) -> set[BaseDatasource]:
-        # Verbose but efficient database enumeration of dashboard datasources.
-        datasources_by_cls_model: dict[type[BaseDatasource], set[int]] = defaultdict(
-            set
-        )
-
-        for slc in self.slices:
-            datasources_by_cls_model[slc.cls_model].add(slc.datasource_id)
-
-        return {
-            datasource
-            for cls_model, datasource_ids in datasources_by_cls_model.items()
-            for datasource in db.session.query(cls_model)
-            .filter(cls_model.id.in_(datasource_ids))
-            .all()
-        }
+        return {slc.datasource for slc in self.slices if slc.datasource}
 
     @property
     def charts(self) -> list[str]:
@@ -279,24 +265,20 @@ class Dashboard(CoreDashboard, AuditMixinNullable, ImportExportMixin):
         }
 
     def datasets_trimmed_for_slices(self) -> list[dict[str, Any]]:
-        # Verbose but efficient database enumeration of dashboard datasources.
-        slices_by_datasource: dict[tuple[type[BaseDatasource], int], set[Slice]] = (
-            defaultdict(set)
-        )
+        slices_by_datasource: dict[int, set[Slice]] = defaultdict(set)
 
         for slc in self.slices:
-            slices_by_datasource[(slc.cls_model, slc.datasource_id)].add(slc)
+            slices_by_datasource[slc.datasource_id].add(slc)
 
         result: list[dict[str, Any]] = []
 
-        for (cls_model, datasource_id), slices in slices_by_datasource.items():
-            datasource = (
-                db.session.query(cls_model).filter_by(id=datasource_id).one_or_none()
-            )
+        for _, slices in slices_by_datasource.items():
+            # Use the eagerly-loaded datasource from any slice in the group
+            datasource = next(iter(slices)).datasource
 
             if datasource:
                 # Filter out unneeded fields from the datasource payload
-                result.append(datasource.data_for_slices(slices))
+                result.append(datasource.data_for_slices(list(slices)))
 
         return result
 

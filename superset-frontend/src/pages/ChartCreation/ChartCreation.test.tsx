@@ -195,7 +195,7 @@ test('double-click viz type submits with formatted URL if datasource is selected
 });
 
 test('dropdown displays matching datasets when user types a search term', async () => {
-  fetchMock.reset();
+  fetchMock.clearHistory().removeRoutes();
   fetchMock.get(/\/api\/v1\/dataset\/\?q=.*/, {
     body: {
       result: [
@@ -232,7 +232,7 @@ test('dropdown displays matching datasets when user types a search term', async 
 });
 
 test('handles special characters in dataset name from URL parameter', async () => {
-  fetchMock.reset();
+  fetchMock.clearHistory().removeRoutes();
   fetchMock.get(/\/api\/v1\/dataset\/\?q=.*/, {
     body: {
       result: [
@@ -260,7 +260,7 @@ test('handles special characters in dataset name from URL parameter', async () =
 
   await renderComponent();
 
-  await screen.findByText('flightsÆ test');
+  expect(await screen.findByText('flightsÆ test')).toBeInTheDocument();
 
   Object.defineProperty(window, 'location', {
     value: originalLocation,
@@ -269,7 +269,7 @@ test('handles special characters in dataset name from URL parameter', async () =
 });
 
 test('pre-selects the dataset from URL parameter and shows it in dropdown', async () => {
-  fetchMock.reset();
+  fetchMock.clearHistory().removeRoutes();
   fetchMock.get(/\/api\/v1\/dataset\/\?q=.*/, {
     body: {
       result: [
@@ -294,7 +294,7 @@ test('pre-selects the dataset from URL parameter and shows it in dropdown', asyn
 
   await renderComponent();
 
-  await screen.findByText('flights');
+  expect(await screen.findByText('flights')).toBeInTheDocument();
 
   Object.defineProperty(window, 'location', {
     value: originalLocation,
@@ -303,7 +303,7 @@ test('pre-selects the dataset from URL parameter and shows it in dropdown', asyn
 });
 
 test('shows loading spinner when dataset parameter is present in URL', async () => {
-  fetchMock.reset();
+  fetchMock.clearHistory().removeRoutes();
   let resolveRequest: (value: unknown) => void;
   const requestPromise = new Promise(resolve => {
     resolveRequest = resolve;
@@ -361,8 +361,8 @@ test('shows loading spinner when dataset parameter is present in URL', async () 
 });
 
 test('shows only exact match when loading dataset from URL, not partial matches', async () => {
-  fetchMock.reset();
-  fetchMock.get(/\/api\/v1\/dataset\/\?q=.*/, url => {
+  fetchMock.clearHistory().removeRoutes();
+  fetchMock.get(/\/api\/v1\/dataset\/\?q=.*/, ({ url }) => {
     if (url.includes('opr:eq')) {
       return {
         body: {

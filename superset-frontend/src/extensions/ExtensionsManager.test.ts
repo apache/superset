@@ -31,8 +31,8 @@ interface MockExtensionOptions {
   exposedModules?: string[];
   extensionDependencies?: string[];
   commands?: contributions.CommandContribution[];
-  menus?: Record<string, contributions.MenuContribution>;
-  views?: Record<string, contributions.ViewContribution[]>;
+  menus?: Record<string, Record<string, contributions.MenuContribution>>;
+  views?: Record<string, Record<string, contributions.ViewContribution[]>>;
   includeMockFunctions?: boolean;
 }
 
@@ -215,7 +215,7 @@ beforeEach(() => {
   (ExtensionsManager as any).instance = undefined;
 
   // Setup fetch mocks for API calls
-  fetchMock.restore();
+  fetchMock.removeRoutes().clearHistory();
   fetchMock.put('glob:*/api/v1/extensions/*', { ok: true });
   fetchMock.delete('glob:*/api/v1/extensions/*', { ok: true });
   fetchMock.get('glob:*/api/v1/extensions/', {
@@ -231,7 +231,7 @@ beforeEach(() => {
 afterEach(() => {
   // Clean up after each test
   (ExtensionsManager as any).instance = undefined;
-  fetchMock.restore();
+  fetchMock.removeRoutes().clearHistory();
 });
 
 test('creates singleton instance', () => {
@@ -360,14 +360,14 @@ test('initializeExtension handles extension without remoteEntry', async () => {
 
 test('getMenuContributions returns undefined initially', () => {
   const manager = ExtensionsManager.getInstance();
-  const menuContributions = manager.getMenuContributions('nonexistent');
+  const menuContributions = manager.getMenuContributions('non.existent');
 
   expect(menuContributions).toBeUndefined();
 });
 
 test('getViewContributions returns undefined initially', () => {
   const manager = ExtensionsManager.getInstance();
-  const viewContributions = manager.getViewContributions('nonexistent');
+  const viewContributions = manager.getViewContributions('non.existent');
 
   expect(viewContributions).toBeUndefined();
 });
@@ -505,16 +505,20 @@ test('handles contributions with menu items', async () => {
       createMockCommand('ext1.command2'),
     ],
     menus: {
-      testMenu: createMockMenu({
-        primary: [
-          createMockMenuItem('test-view', 'ext1.command1'),
-          createMockMenuItem('test-view2', 'ext1.command2'),
-        ],
-        secondary: [createMockMenuItem('test-view3', 'ext1.command1')],
-      }),
+      test: {
+        menu: createMockMenu({
+          primary: [
+            createMockMenuItem('test-view', 'ext1.command1'),
+            createMockMenuItem('test-view2', 'ext1.command2'),
+          ],
+          secondary: [createMockMenuItem('test-view3', 'ext1.command1')],
+        }),
+      },
     },
     views: {
-      testView: [createMockView('test-view-1'), createMockView('test-view-2')],
+      test: {
+        view: [createMockView('test-view-1'), createMockView('test-view-2')],
+      },
     },
   });
 
@@ -525,13 +529,13 @@ test('handles contributions with menu items', async () => {
   expect(commands.find(cmd => cmd.command === 'ext1.command2')).toBeDefined();
 
   // Test menu contributions
-  const menuContributions = manager.getMenuContributions('testMenu');
+  const menuContributions = manager.getMenuContributions('test.menu');
   expect(menuContributions).toBeDefined();
   expect(menuContributions?.primary).toHaveLength(2);
   expect(menuContributions?.secondary).toHaveLength(1);
 
   // Test view contributions
-  const viewContributions = manager.getViewContributions('testView');
+  const viewContributions = manager.getViewContributions('test.view');
   expect(viewContributions).toBeDefined();
   expect(viewContributions).toHaveLength(2);
 });
@@ -539,8 +543,8 @@ test('handles contributions with menu items', async () => {
 test('handles non-existent menu and view contributions', () => {
   const manager = ExtensionsManager.getInstance();
 
-  expect(manager.getMenuContributions('nonexistent')).toBeUndefined();
-  expect(manager.getViewContributions('nonexistent')).toBeUndefined();
+  expect(manager.getMenuContributions('non.existent')).toBeUndefined();
+  expect(manager.getViewContributions('non.existent')).toBeUndefined();
   expect(manager.getCommandContribution('nonexistent.command')).toBeUndefined();
 });
 

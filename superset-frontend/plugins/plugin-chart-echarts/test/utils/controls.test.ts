@@ -19,14 +19,14 @@
 import { parseAxisBound } from '../../src/utils/controls';
 
 describe('parseYAxisBound', () => {
-  it('should return undefined for invalid values', () => {
+  test('should return undefined for invalid values', () => {
     expect(parseAxisBound(null)).toBeUndefined();
     expect(parseAxisBound(undefined)).toBeUndefined();
     expect(parseAxisBound(NaN)).toBeUndefined();
     expect(parseAxisBound('abc')).toBeUndefined();
   });
 
-  it('should return numeric value for valid values', () => {
+  test('should return numeric value for valid values', () => {
     expect(parseAxisBound(0)).toEqual(0);
     expect(parseAxisBound('0')).toEqual(0);
     expect(parseAxisBound(1)).toEqual(1);

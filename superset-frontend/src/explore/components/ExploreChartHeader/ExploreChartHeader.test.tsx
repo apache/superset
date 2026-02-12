@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import sinon from 'sinon';
 import {
   render,
   screen,
@@ -32,7 +31,7 @@ import * as downloadAsImage from 'src/utils/downloadAsImage';
 import * as exploreUtils from 'src/explore/exploreUtils';
 import { FeatureFlag, VizType } from '@superset-ui/core';
 import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
-import ExploreHeader from '.';
+import ExploreHeader, { ExploreChartHeaderProps } from '.';
 import { getChartMetadataRegistry } from '@superset-ui/core';
 import fs from 'fs';
 import path from 'path';
@@ -56,97 +55,103 @@ const mockExportCurrentViewBehavior = () => {
   } as any);
 };
 
-const createProps = (additionalProps = {}) => ({
-  chart: {
-    id: 1,
-    latestQueryFormData: {
-      viz_type: VizType.Histogram,
-      datasource: '49__table',
-      slice_id: 318,
-      url_params: {},
-      granularity_sqla: 'time_start',
-      time_range: 'No filter',
-      all_columns_x: ['age'],
-      adhoc_filters: [],
-      row_limit: 10000,
-      groupby: null,
-      color_scheme: 'supersetColors',
-      label_colors: {},
-      link_length: '25',
-      x_axis_label: 'age',
-      y_axis_label: 'count',
-      server_pagination: false as any,
-    },
-    chartStatus: 'rendered',
-  },
-  slice: {
-    cache_timeout: null,
-    changed_on: '2021-03-19T16:30:56.750230',
-    changed_on_humanized: '7 days ago',
-    datasource: 'FCC 2018 Survey',
-    description: 'Simple description',
-    description_markeddown: '',
-    edit_url: '/chart/edit/318',
-    form_data: {
-      adhoc_filters: [],
-      all_columns_x: ['age'],
-      color_scheme: 'supersetColors',
-      datasource: '49__table',
-      granularity_sqla: 'time_start',
-      groupby: null,
-      label_colors: {},
-      link_length: '25',
-      queryFields: { groupby: 'groupby' },
-      row_limit: 10000,
-      slice_id: 318,
-      time_range: 'No filter',
-      url_params: {},
-      viz_type: VizType.Histogram,
-      x_axis_label: 'age',
-      y_axis_label: 'count',
-    },
-    modified: '<span class="no-wrap">7 days ago</span>',
-    owners: [
-      {
-        text: 'Superset Admin',
-        value: 1,
+const createProps = (additionalProps = {}) =>
+  ({
+    chart: {
+      id: 1,
+      latestQueryFormData: {
+        viz_type: VizType.Histogram,
+        datasource: '49__table',
+        slice_id: 318,
+        url_params: {},
+        granularity_sqla: 'time_start',
+        time_range: 'No filter',
+        all_columns_x: ['age'],
+        adhoc_filters: [],
+        row_limit: 10000,
+        groupby: null,
+        color_scheme: 'supersetColors',
+        label_colors: {},
+        link_length: '25',
+        x_axis_label: 'age',
+        y_axis_label: 'count',
+        server_pagination: false,
       },
-    ],
-    slice_id: 318,
-    slice_name: 'Age distribution of respondents',
-    slice_url: '/explore/?form_data=%7B%22slice_id%22%3A%20318%7D',
-  },
-  slice_name: 'Age distribution of respondents',
-  actions: {
-    postChartFormData: jest.fn(),
-    updateChartTitle: jest.fn(),
-    fetchFaveStar: jest.fn(),
-    saveFaveStar: jest.fn(),
-    redirectSQLLab: jest.fn(),
-  },
-  user: {
-    userId: 1,
-  },
-  metadata: {
-    created_on_humanized: 'a week ago',
-    changed_on_humanized: '2 days ago',
-    owners: ['John Doe'],
-    created_by: 'John Doe',
-    changed_by: 'John Doe',
-    dashboards: [{ id: 1, dashboard_title: 'Test' }],
-  },
-  canOverwrite: false,
-  canDownload: false,
-  isStarred: false,
-  ...additionalProps,
-});
+      chartStatus: 'rendered' as const,
+      chartAlert: null,
+      chartUpdateEndTime: null,
+      chartUpdateStartTime: 0,
+      lastRendered: 0,
+      sliceFormData: null,
+      queryController: null,
+      queriesResponse: null,
+      triggerQuery: false,
+    },
+    slice: {
+      cache_timeout: null,
+      changed_on: '2021-03-19T16:30:56.750230',
+      changed_on_humanized: '7 days ago',
+      datasource: 'FCC 2018 Survey',
+      description: 'Simple description',
+      description_markeddown: '',
+      edit_url: '/chart/edit/318',
+      form_data: {
+        adhoc_filters: [],
+        all_columns_x: ['age'],
+        color_scheme: 'supersetColors',
+        datasource: '49__table',
+        granularity_sqla: 'time_start',
+        groupby: null,
+        label_colors: {},
+        link_length: '25',
+        queryFields: { groupby: 'groupby' },
+        row_limit: 10000,
+        slice_id: 318,
+        time_range: 'No filter',
+        url_params: {},
+        viz_type: VizType.Histogram,
+        x_axis_label: 'age',
+        y_axis_label: 'count',
+      },
+      modified: '<span class="no-wrap">7 days ago</span>',
+      owners: [
+        {
+          text: 'Superset Admin',
+          value: 1,
+        },
+      ],
+      slice_id: 318,
+      slice_name: 'Age distribution of respondents',
+      slice_url: '/explore/?form_data=%7B%22slice_id%22%3A%20318%7D',
+    },
+    sliceName: 'Age distribution of respondents',
+    actions: {
+      postChartFormData: jest.fn(),
+      updateChartTitle: jest.fn(),
+      fetchFaveStar: jest.fn(),
+      saveFaveStar: jest.fn(),
+      redirectSQLLab: jest.fn(),
+    },
+    user: {
+      userId: 1,
+    },
+    metadata: {
+      created_on_humanized: 'a week ago',
+      changed_on_humanized: '2 days ago',
+      owners: ['John Doe'],
+      created_by: 'John Doe',
+      changed_by: 'John Doe',
+      dashboards: [{ id: 1, dashboard_title: 'Test' }],
+    },
+    canOverwrite: false,
+    canDownload: false,
+    isStarred: false,
+    ...additionalProps,
+  }) as unknown as ExploreChartHeaderProps;
 
 fetchMock.post(
   'http://api/v1/chart/data?form_data=%7B%22slice_id%22%3A318%7D',
   { body: {} },
-  {
-    sendAsJson: false,
-  },
 );
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ExploreChartHeader', () => {
@@ -168,27 +173,40 @@ describe('ExploreChartHeader', () => {
     const props = createProps();
     render(<ExploreHeader {...props} />, { useRedux: true });
     const newChartName = 'New chart name';
-    const prevChartName = props.slice_name;
+    const prevChartName = props.sliceName;
+
+    // Wait for the component to render with the chart title
     expect(
-      await screen.findByText(/add the name of the chart/i),
+      await screen.findByDisplayValue(prevChartName ?? ''),
     ).toBeInTheDocument();
 
-    userEvent.click(screen.getByLabelText('Menu actions trigger'));
-    userEvent.click(screen.getByText('Edit chart properties'));
+    await userEvent.click(screen.getByLabelText('Menu actions trigger'));
+    await userEvent.click(screen.getByText('Edit chart properties'));
 
     const nameInput = await screen.findByRole('textbox', { name: 'Name' });
 
-    userEvent.clear(nameInput);
-    userEvent.type(nameInput, newChartName);
+    await userEvent.clear(nameInput);
+    await userEvent.type(nameInput, newChartName);
 
     expect(screen.getByDisplayValue(newChartName)).toBeInTheDocument();
 
-    userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
-    userEvent.click(screen.getByLabelText('Menu actions trigger'));
-    userEvent.click(screen.getByText('Edit chart properties'));
+    // Wait for the modal to close
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('textbox', { name: 'Name' }),
+      ).not.toBeInTheDocument();
+    });
 
-    expect(await screen.findByDisplayValue(prevChartName)).toBeInTheDocument();
+    await userEvent.click(screen.getByLabelText('Menu actions trigger'));
+    await userEvent.click(screen.getByText('Edit chart properties'));
+
+    // Wait for the modal to reopen and verify the name was reset
+    const reopenedNameInput = await screen.findByRole('textbox', {
+      name: 'Name',
+    });
+    expect(reopenedNameInput).toHaveValue(prevChartName ?? '');
   });
 
   test('renders the metadata bar when saved', async () => {
@@ -206,7 +224,7 @@ describe('ExploreChartHeader', () => {
       <ExploreHeader
         {...props}
         metadata={{
-          ...props.metadata,
+          ...props.metadata!,
           dashboards: [
             { id: 1, dashboard_title: 'Test' },
             { id: 2, dashboard_title: 'Test2' },
@@ -227,6 +245,149 @@ describe('ExploreChartHeader', () => {
       expect(
         screen.queryByText('Added to 1 dashboard'),
       ).not.toBeInTheDocument(),
+    );
+  });
+
+  test('does not show unsaved changes for new charts on initial load', async () => {
+    const props = createProps({
+      slice: null,
+      sliceName: '',
+      chart: {
+        ...createProps().chart,
+        sliceFormData: null,
+      },
+      formData: {
+        viz_type: VizType.Histogram,
+        datasource: '49__table',
+      },
+    });
+
+    render(<ExploreHeader {...props} />, { useRedux: true });
+
+    expect(
+      await screen.findByText(/add the name of the chart/i),
+    ).toBeInTheDocument();
+
+    expect(useUnsavedChangesPrompt).toHaveBeenCalledWith(
+      expect.objectContaining({
+        hasUnsavedChanges: false,
+      }),
+    );
+  });
+
+  test('shows unsaved changes for new charts when user makes changes', async () => {
+    const initialFormData = {
+      viz_type: VizType.Histogram,
+      datasource: '49__table',
+      metrics: ['count'],
+    };
+
+    const modifiedFormData = {
+      ...initialFormData,
+      metrics: ['count', 'sum'],
+    };
+
+    const props = createProps({
+      slice: null,
+      sliceName: '',
+      chart: {
+        ...createProps().chart,
+        sliceFormData: null,
+      },
+      formData: initialFormData,
+    });
+
+    const { rerender } = render(<ExploreHeader {...props} />, {
+      useRedux: true,
+    });
+
+    // Initial render should not have unsaved changes
+    expect(useUnsavedChangesPrompt).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        hasUnsavedChanges: false,
+      }),
+    );
+
+    // Simulate user making changes
+    const modifiedProps = {
+      ...props,
+      formData: modifiedFormData,
+    };
+
+    rerender(<ExploreHeader {...modifiedProps} />);
+
+    await waitFor(() => {
+      expect(useUnsavedChangesPrompt).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          hasUnsavedChanges: true,
+        }),
+      );
+    });
+  });
+
+  test('shows unsaved changes for existing charts when form data differs from saved', async () => {
+    const savedFormData = {
+      viz_type: VizType.Histogram,
+      datasource: '49__table',
+      metrics: ['count'],
+    };
+
+    const currentFormData = {
+      ...savedFormData,
+      metrics: ['sum'],
+    };
+
+    const props = createProps({
+      formData: currentFormData,
+      chart: {
+        ...createProps().chart,
+        sliceFormData: savedFormData,
+      },
+    });
+
+    render(<ExploreHeader {...props} />, { useRedux: true });
+
+    expect(useUnsavedChangesPrompt).toHaveBeenCalledWith(
+      expect.objectContaining({
+        hasUnsavedChanges: true,
+      }),
+    );
+  });
+
+  test('does not show unsaved changes for existing charts when form data matches saved', async () => {
+    const baseFormData = {
+      viz_type: VizType.Histogram,
+      datasource: '49__table',
+      slice_id: 318,
+      url_params: {},
+      granularity_sqla: 'time_start',
+      time_range: 'No filter',
+      all_columns_x: ['age'],
+      adhoc_filters: [],
+      row_limit: 10000,
+      groupby: null,
+      color_scheme: 'supersetColors',
+      label_colors: {},
+      link_length: '25',
+      x_axis_label: 'age',
+      y_axis_label: 'count',
+    };
+
+    const props = createProps({
+      formData: baseFormData,
+      sliceName: 'Age distribution of respondents',
+      chart: {
+        ...createProps().chart,
+        sliceFormData: { ...baseFormData },
+      },
+    });
+
+    render(<ExploreHeader {...props} />, { useRedux: true });
+
+    expect(useUnsavedChangesPrompt).toHaveBeenCalledWith(
+      expect.objectContaining({
+        hasUnsavedChanges: false,
+      }),
     );
   });
 
@@ -382,6 +543,34 @@ describe('ExploreChartHeader', () => {
     userEvent.click(closeButton);
 
     expect(setShowModal).toHaveBeenCalledWith(false);
+  });
+
+  test('renders Matrixify tag when matrixify is enabled', async () => {
+    const props = createProps({
+      formData: {
+        ...createProps().chart.latestQueryFormData,
+        matrixify_enable_vertical_layout: true,
+        matrixify_mode_rows: 'metrics',
+        matrixify_rows: [{ label: 'COUNT(*)', expressionType: 'SIMPLE' }],
+      },
+    });
+    render(<ExploreHeader {...props} />, { useRedux: true });
+
+    const matrixifyTag = await screen.findByText('Matrixified');
+    expect(matrixifyTag).toBeInTheDocument();
+  });
+
+  test('does not render Matrixify tag when matrixify is disabled', async () => {
+    const props = createProps({
+      formData: {
+        ...createProps().chart.latestQueryFormData,
+      },
+    });
+    render(<ExploreHeader {...props} />, { useRedux: true });
+
+    await waitFor(() => {
+      expect(screen.queryByText('Matrixified')).not.toBeInTheDocument();
+    });
   });
 });
 
@@ -550,12 +739,12 @@ describe('Additional actions tests', () => {
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Export All Data', () => {
-    let spyDownloadAsImage = sinon.spy();
-    let spyExportChart = sinon.spy();
+    let spyDownloadAsImage: jest.SpyInstance;
+    let spyExportChart: jest.SpyInstance;
 
     beforeEach(() => {
-      spyDownloadAsImage = sinon.spy(downloadAsImage, 'default');
-      spyExportChart = sinon.spy(exploreUtils, 'exportChart');
+      spyDownloadAsImage = jest.spyOn(downloadAsImage, 'default');
+      spyExportChart = jest.spyOn(exploreUtils, 'exportChart');
 
       (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
         showModal: false,
@@ -567,8 +756,8 @@ describe('Additional actions tests', () => {
     });
 
     afterEach(async () => {
-      spyDownloadAsImage.restore();
-      spyExportChart.restore();
+      spyDownloadAsImage.mockRestore();
+      spyExportChart.mockRestore();
       // Wait for any pending effects to complete
       await new Promise(resolve => setTimeout(resolve, 0));
     });
@@ -589,7 +778,7 @@ describe('Additional actions tests', () => {
       userEvent.click(downloadAsImageElement);
 
       await waitFor(() => {
-        expect(spyDownloadAsImage.callCount).toBe(1);
+        expect(spyDownloadAsImage.mock.calls.length).toBe(1);
       });
     });
 
@@ -603,8 +792,8 @@ describe('Additional actions tests', () => {
       userEvent.hover(await screen.findByText('Export All Data'));
       const exportCSVElement = await screen.findByText('Export to .CSV');
       userEvent.click(exportCSVElement);
-      expect(spyExportChart.callCount).toBe(0);
-      spyExportChart.restore();
+      expect(spyExportChart.mock.calls.length).toBe(0);
+      spyExportChart.mockRestore();
     });
 
     test('Should export to CSV if canDownload=true', async () => {
@@ -619,8 +808,8 @@ describe('Additional actions tests', () => {
       userEvent.hover(await screen.findByText('Export All Data'));
       const exportCSVElement = await screen.findByText('Export to .CSV');
       userEvent.click(exportCSVElement);
-      expect(spyExportChart.callCount).toBe(1);
-      spyExportChart.restore();
+      expect(spyExportChart.mock.calls.length).toBe(1);
+      spyExportChart.mockRestore();
     });
 
     test('Should not export to JSON if canDownload=false', async () => {
@@ -633,8 +822,8 @@ describe('Additional actions tests', () => {
       userEvent.hover(await screen.findByText('Export All Data'));
       const exportJsonElement = await screen.findByText('Export to .JSON');
       userEvent.click(exportJsonElement);
-      expect(spyExportChart.callCount).toBe(0);
-      spyExportChart.restore();
+      expect(spyExportChart.mock.calls.length).toBe(0);
+      spyExportChart.mockRestore();
     });
 
     test('Should export to JSON if canDownload=true', async () => {
@@ -649,7 +838,7 @@ describe('Additional actions tests', () => {
       userEvent.hover(await screen.findByText('Export All Data'));
       const exportJsonElement = await screen.findByText('Export to .JSON');
       userEvent.click(exportJsonElement);
-      expect(spyExportChart.callCount).toBe(1);
+      expect(spyExportChart.mock.calls.length).toBe(1);
     });
 
     test('Should not export to pivoted CSV if canDownloadCSV=false and viz_type=pivot_table_v2', async () => {
@@ -666,7 +855,7 @@ describe('Additional actions tests', () => {
         'Export to pivoted .CSV',
       );
       userEvent.click(exportCSVElement);
-      expect(spyExportChart.callCount).toBe(0);
+      expect(spyExportChart.mock.calls.length).toBe(0);
     });
 
     test('Should export to pivoted CSV if canDownloadCSV=true and viz_type=pivot_table_v2', async () => {
@@ -684,7 +873,7 @@ describe('Additional actions tests', () => {
         'Export to pivoted .CSV',
       );
       userEvent.click(exportCSVElement);
-      expect(spyExportChart.callCount).toBe(1);
+      expect(spyExportChart.mock.calls.length).toBe(1);
     });
 
     test('Should not export to Excel if canDownload=false', async () => {
@@ -697,8 +886,8 @@ describe('Additional actions tests', () => {
       userEvent.hover(await screen.findByText('Export All Data'));
       const exportExcelElement = await screen.findByText('Export to Excel');
       userEvent.click(exportExcelElement);
-      expect(spyExportChart.callCount).toBe(0);
-      spyExportChart.restore();
+      expect(spyExportChart.mock.calls.length).toBe(0);
+      spyExportChart.mockRestore();
     });
 
     test('Should export to Excel if canDownload=true', async () => {
@@ -712,13 +901,13 @@ describe('Additional actions tests', () => {
       userEvent.hover(await screen.findByText('Export All Data'));
       const exportExcelElement = await screen.findByText('Export to Excel');
       userEvent.click(exportExcelElement);
-      expect(spyExportChart.callCount).toBe(1);
+      expect(spyExportChart.mock.calls.length).toBe(1);
     });
   });
 
   describe('Current View', () => {
-    let spyDownloadAsImage = sinon.spy();
-    let spyExportChart = sinon.spy();
+    let spyDownloadAsImage: jest.SpyInstance;
+    let spyExportChart: jest.SpyInstance;
 
     let originalURL: typeof URL;
     let anchorClickSpy: jest.SpyInstance;
@@ -754,8 +943,8 @@ describe('Additional actions tests', () => {
     });
 
     beforeEach(() => {
-      spyDownloadAsImage = sinon.spy(downloadAsImage, 'default');
-      spyExportChart = sinon.spy(exploreUtils, 'exportChart');
+      spyDownloadAsImage = jest.spyOn(downloadAsImage, 'default');
+      spyExportChart = jest.spyOn(exploreUtils, 'exportChart');
 
       (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
         showModal: false,
@@ -767,8 +956,8 @@ describe('Additional actions tests', () => {
     });
 
     afterEach(async () => {
-      spyDownloadAsImage.restore();
-      spyExportChart.restore();
+      spyDownloadAsImage.mockRestore();
+      spyExportChart.mockRestore();
       await new Promise(r => setTimeout(r, 0));
     });
 
@@ -784,14 +973,14 @@ describe('Additional actions tests', () => {
       userEvent.hover(await screen.findByText('Data Export Options'));
       userEvent.hover(await screen.findByText('Export Current View'));
 
-      // clear previous calls on the sinon spy you created in beforeEach
-      spyDownloadAsImage.resetHistory();
+      // clear previous calls on the jest spy created in beforeEach
+      spyDownloadAsImage.mockClear();
 
       const item = await screen.findByText('Export screenshot (jpeg)');
       userEvent.click(item);
 
       await waitFor(() => {
-        expect(spyDownloadAsImage.called).toBe(true);
+        expect(spyDownloadAsImage).toHaveBeenCalled();
       });
 
       getSpy.mockRestore();
@@ -824,11 +1013,11 @@ describe('Additional actions tests', () => {
       userEvent.hover(await screen.findByText('Data Export Options'));
       userEvent.hover(await screen.findByText('Export Current View'));
 
-      spyExportChart.resetHistory();
+      spyExportChart.mockClear();
 
       userEvent.click(await screen.findByText('Export to .CSV'));
 
-      expect(spyExportChart.called).toBe(false); // or: expect(spyExportChart.callCount).toBe(0)
+      expect(spyExportChart).not.toHaveBeenCalled();
 
       getSpy.mockRestore();
     });
@@ -854,10 +1043,10 @@ describe('Additional actions tests', () => {
       userEvent.hover(await screen.findByText('Data Export Options'));
       userEvent.hover(await screen.findByText('Export Current View'));
 
-      spyExportChart.resetHistory();
+      spyExportChart.mockClear();
       userEvent.click(await screen.findByText('Export to .JSON'));
 
-      expect(spyExportChart.called).toBe(false);
+      expect(spyExportChart).not.toHaveBeenCalled();
 
       getSpy.mockRestore();
     });
@@ -876,11 +1065,11 @@ describe('Additional actions tests', () => {
       userEvent.hover(await screen.findByText('Data Export Options'));
       userEvent.hover(await screen.findByText('Export Current View'));
 
-      spyExportChart.resetHistory();
+      spyExportChart.mockClear();
       userEvent.click(await screen.findByText('Export to .CSV'));
 
-      expect(spyExportChart.callCount).toBe(1);
-      const args = spyExportChart.getCall(0).args[0];
+      expect(spyExportChart.mock.calls.length).toBe(1);
+      const args = spyExportChart.mock.calls[0][0];
       expect(args.resultType).toBe('results');
       expect(args.resultFormat).toBe('csv');
 
@@ -907,10 +1096,10 @@ describe('Additional actions tests', () => {
       userEvent.hover(await screen.findByText('Data Export Options'));
       userEvent.hover(await screen.findByText('Export Current View'));
 
-      spyExportChart.resetHistory();
+      spyExportChart.mockClear();
       userEvent.click(await screen.findByText(/Export to (Excel|\.XLSX)/i));
 
-      expect(spyExportChart.called).toBe(false);
+      expect(spyExportChart).not.toHaveBeenCalled();
       getSpy.mockRestore();
     });
 
@@ -927,11 +1116,11 @@ describe('Additional actions tests', () => {
       userEvent.hover(await screen.findByText('Data Export Options'));
       userEvent.hover(await screen.findByText('Export Current View'));
 
-      spyExportChart.resetHistory();
+      spyExportChart.mockClear();
       userEvent.click(await screen.findByText(/Export to (Excel|\.XLSX)/i));
 
-      expect(spyExportChart.callCount).toBe(1);
-      const args = spyExportChart.getCall(0).args[0];
+      expect(spyExportChart.mock.calls.length).toBe(1);
+      const args = spyExportChart.mock.calls[0][0];
       expect(args.resultType).toBe('results');
       expect(args.resultFormat).toBe('xlsx');
       getSpy.mockRestore();
@@ -959,17 +1148,17 @@ describe('Additional actions tests', () => {
       userEvent.hover(await screen.findByText('Data Export Options'));
       userEvent.hover(await screen.findByText('Export Current View'));
 
-      // server path expected → use the sinon spy and inspect call args
-      spyExportChart.resetHistory();
+      // server path expected - use the jest spy and inspect call args
+      spyExportChart.mockClear();
 
       const jsonItem = await screen.findByText('Export to .JSON');
       userEvent.click(jsonItem);
 
       await waitFor(() => {
-        expect(spyExportChart.callCount).toBe(1);
+        expect(spyExportChart.mock.calls.length).toBe(1);
       });
 
-      const args = spyExportChart.getCall(0).args[0];
+      const args = spyExportChart.mock.calls[0][0];
       expect(args.resultType).toBe('results');
       expect(args.resultFormat).toBe('json');
 

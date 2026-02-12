@@ -1,6 +1,6 @@
 ---
 title: Community Extensions
-sidebar_position: 10
+sidebar_position: 11
 ---
 
 <!--
@@ -38,6 +38,7 @@ This page serves as a registry of community-created Superset extensions. These e
 | [SQL Lab Result Stats](https://github.com/michael-s-molina/superset-extensions/tree/main/result_stats)              | A SQL Lab extension that automatically computes statistics for query results, providing type-aware analysis including numeric metrics (min, max, mean, median, std dev), string analysis (length, empty counts), and date range information.        | Michael S. Molina  | <a href="/img/extensions/result-stats.png" target="_blank"><img src="/img/extensions/result-stats.png" alt="Result Stats" width="120" /></a>                        |
 | [SQL Snippets](https://github.com/michael-s-molina/superset-extensions/tree/main/sql_snippets)                      | A SQL Lab extension that provides reusable SQL code snippets, enabling quick insertion of commonly used code blocks such as license headers, author information, and frequently used SQL patterns.                                                  | Michael S. Molina  | <a href="/img/extensions/sql-snippets.png" target="_blank"><img src="/img/extensions/sql-snippets.png" alt="SQL Snippets" width="120" /></a>                        |
 | [SQL Lab Query Estimator](https://github.com/michael-s-molina/superset-extensions/tree/main/query_estimator)        | A SQL Lab panel that analyzes query execution plans to estimate resource impact, detect performance issues like Cartesian products and high-cost operations, and visualize the query plan tree.                                                     | Michael S. Molina  | <a href="/img/extensions/query-estimator.png" target="_blank"><img src="/img/extensions/query-estimator.png" alt="Query Estimator" width="120" /></a>               |
+| [Editors Bundle](https://github.com/michael-s-molina/superset-extensions/tree/main/editors_bundle)                  | A Superset extension that demonstrates how to provide custom code editors for different languages. This extension showcases the editor contribution system by registering alternative editors that can replace Superset's default Ace editor.        | Michael S. Molina  | <a href="/img/extensions/editors-bundle.png" target="_blank"><img src="/img/extensions/editors-bundle.png" alt="Editors Bundle" width="120" /></a>                  |
 
 ## How to Add Your Extension
 

@@ -22,16 +22,21 @@ import { ReactElement, ReactNode, ReactText, ComponentType } from 'react';
 import type {
   AdhocColumn,
   Column,
+  CurrencyFormatter,
   Currency,
   DatasourceType,
+  DataRecordValue,
   JsonObject,
   JsonValue,
   Metric,
+  NumberFormatter,
   QueryFormColumn,
   QueryFormData,
   QueryFormMetric,
   QueryResponse,
+  TimeFormatter,
 } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/api/core';
 import { sharedControls, sharedControlComponents } from './shared-controls';
 
 export type { Metric } from '@superset-ui/core';
@@ -72,6 +77,7 @@ export interface Dataset {
   currency_formats?: Record<string, Currency>;
   verbose_map: Record<string, string>;
   main_dttm_col: string;
+  currency_code_column?: string;
   // eg. ['["ds", true]', 'ds [asc]']
   order_by_choices?: [string, string][] | null;
   time_grain_sqla?: [string, string][];
@@ -607,3 +613,78 @@ export type ControlFormItemSpec<T extends ControlType = ControlType> = {
                 defaultValue?: Currency;
               }
             : {});
+
+export enum ColorSchemeEnum {
+  Green = 'Green',
+  Red = 'Red',
+}
+
+/** ----------------------------------------------
+ * Shared Table Chart Types
+ * Used by plugin-chart-table and plugin-chart-ag-grid-table
+ * --------------------------------------------- */
+
+export type CustomFormatter = (value: DataRecordValue) => string;
+
+export type BasicColorFormatterType = {
+  backgroundColor: string;
+  arrowColor: string;
+  mainArrow: string;
+};
+
+export type SortByItem = {
+  id: string;
+  key: string;
+  desc?: boolean;
+};
+
+export type SearchOption = {
+  value: string;
+  label: string;
+};
+
+export interface ServerPaginationData {
+  pageSize?: number;
+  currentPage?: number;
+  sortBy?: SortByItem[];
+  searchText?: string;
+  searchColumn?: string;
+}
+
+export type TableColumnConfig = {
+  d3NumberFormat?: string;
+  d3SmallNumberFormat?: string;
+  d3TimeFormat?: string;
+  columnWidth?: number;
+  horizontalAlign?: 'left' | 'right' | 'center';
+  showCellBars?: boolean;
+  alignPositiveNegative?: boolean;
+  colorPositiveNegative?: boolean;
+  truncateLongCells?: boolean;
+  currencyFormat?: Currency;
+  visible?: boolean;
+  customColumnName?: string;
+  displayTypeIcon?: boolean;
+};
+
+export interface DataColumnMeta {
+  // `key` is what is called `label` in the input props
+  key: string;
+  // `label` is verbose column name used for rendering
+  label: string;
+  // `originalLabel` preserves the original label when time comparison transforms the labels
+  originalLabel?: string;
+  dataType: GenericDataType;
+  formatter?:
+    | TimeFormatter
+    | NumberFormatter
+    | CustomFormatter
+    | CurrencyFormatter;
+  isMetric?: boolean;
+  isPercentMetric?: boolean;
+  isNumeric?: boolean;
+  config?: TableColumnConfig;
+  isChildColumn?: boolean;
+  description?: string;
+  currencyCodeColumn?: string;
+}

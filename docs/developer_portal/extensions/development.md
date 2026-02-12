@@ -92,12 +92,14 @@ The `extension.json` file contains all metadata necessary for the host applicati
   "frontend": {
     "contributions": {
       "views": {
-        "sqllab.panels": [
-          {
-            "id": "dataset_references.main",
-            "name": "Dataset references"
-          }
-        ]
+        "sqllab": {
+          "panels": [
+            {
+              "id": "dataset_references.main",
+              "name": "Dataset references"
+            }
+          ]
+        }
       }
     },
     "moduleFederation": {
@@ -134,9 +136,9 @@ export const onDidChangeActivePanel: Event<Panel>;
 
 export const onDidChangeTabTitle: Event<string>;
 
-export const onDidQueryRun: Event<Editor>;
+export const onDidQueryRun: Event<QueryContext>;
 
-export const onDidQueryStop: Event<Editor>;
+export const onDidQueryStop: Event<QueryContext>;
 ```
 
 The following code demonstrates more examples of the existing frontend APIs:
@@ -150,16 +152,16 @@ export function activate(context) {
   const panelDisposable = core.registerView('my_extension.panel', <MyPanel><Button/></MyPanel>);
 
   // Register a custom command
-  const commandDisposable = commands.registerCommand('my_extension.copy_query', {
-    title: 'Copy Query',
-    execute: () => {
+  const commandDisposable = commands.registerCommand(
+    'my_extension.copy_query',
+    () => {
       // Command logic here
     },
-  });
+  );
 
   // Listen for query run events in SQL Lab
-  const eventDisposable = sqlLab.onDidQueryRun(editor => {
-    // Handle query execution event
+  const eventDisposable = sqlLab.onDidQueryRun(queryContext => {
+    console.log('Query started on database:', queryContext.tab.databaseId);
   });
 
   // Access a CSRF token for secure API requests

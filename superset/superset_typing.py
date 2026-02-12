@@ -243,6 +243,7 @@ class ExplorableData(TypedDict, total=False):
         granularity_sqla: Available time granularities
         time_grain_sqla: Available time grains
         main_dttm_col: Main datetime column
+        currency_code_column: Column containing currency codes for dynamic formatting
         fetch_values_predicate: Predicate for fetching filter values
         template_params: Template parameters for Jinja
         is_sqllab_view: Whether this is a SQL Lab view
@@ -287,6 +288,7 @@ class ExplorableData(TypedDict, total=False):
     granularity_sqla: list[tuple[Any, Any]]
     time_grain_sqla: list[tuple[Any, Any]]
     main_dttm_col: str | None
+    currency_code_column: str | None
     fetch_values_predicate: str | None
     template_params: str | None
     is_sqllab_view: bool
@@ -354,7 +356,7 @@ class OAuth2TokenResponse(TypedDict, total=False):
     refresh_token: str
 
 
-class OAuth2State(TypedDict):
+class OAuth2State(TypedDict, total=False):
     """
     Type for the state passed during OAuth2.
     """

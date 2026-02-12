@@ -52,11 +52,73 @@ export function sanitizeHtml(htmlString: string) {
   return xssFilter.process(htmlString);
 }
 
-export function hasHtmlTagPattern(str: string): boolean {
-  const htmlTagPattern =
-    /<(html|head|body|div|span|a|p|h[1-6]|title|meta|link|script|style)/i;
+const KNOWN_HTML_TAGS = new Set([
+  'div',
+  'span',
+  'p',
+  'a',
+  'b',
+  'i',
+  'u',
+  'em',
+  'strong',
+  'h1',
+  'h2',
+  'h3',
+  'h4',
+  'h5',
+  'h6',
+  'table',
+  'tr',
+  'td',
+  'th',
+  'tbody',
+  'thead',
+  'tfoot',
+  'ul',
+  'ol',
+  'li',
+  'img',
+  'br',
+  'hr',
+  'pre',
+  'code',
+  'blockquote',
+  'section',
+  'article',
+  'nav',
+  'header',
+  'footer',
+  'form',
+  'input',
+  'button',
+  'select',
+  'option',
+  'textarea',
+  'label',
+  'fieldset',
+  'legend',
+  'video',
+  'audio',
+  'canvas',
+  'iframe',
+  'script',
+  'style',
+  'link',
+  'meta',
+  'title',
+  'html',
+  'head',
+  'body',
+]);
 
-  return htmlTagPattern.test(str);
+const HTML_TAG_PATTERN = new RegExp(
+  `<(${Array.from(KNOWN_HTML_TAGS).join('|')})\\b`,
+  'i',
+);
+
+export function hasHtmlTagPattern(str: string): boolean {
+  return HTML_TAG_PATTERN.test(str);
 }
 
 export function isProbablyHTML(text: string) {
@@ -91,64 +153,7 @@ export function isProbablyHTML(text: string) {
   // This prevents strings like "<abcdef:12345>" from being treated as HTML
   return elements.some(element => {
     const tagName = element.tagName.toLowerCase();
-    // List of common HTML tags we want to recognize
-    const knownHtmlTags = [
-      'div',
-      'span',
-      'p',
-      'a',
-      'b',
-      'i',
-      'u',
-      'em',
-      'strong',
-      'h1',
-      'h2',
-      'h3',
-      'h4',
-      'h5',
-      'h6',
-      'table',
-      'tr',
-      'td',
-      'th',
-      'tbody',
-      'thead',
-      'tfoot',
-      'ul',
-      'ol',
-      'li',
-      'img',
-      'br',
-      'hr',
-      'pre',
-      'code',
-      'blockquote',
-      'section',
-      'article',
-      'nav',
-      'header',
-      'footer',
-      'form',
-      'input',
-      'button',
-      'select',
-      'option',
-      'textarea',
-      'label',
-      'fieldset',
-      'legend',
-      'video',
-      'audio',
-      'canvas',
-      'iframe',
-      'script',
-      'style',
-      'link',
-      'meta',
-      'title',
-    ];
-    return knownHtmlTags.includes(tagName);
+    return KNOWN_HTML_TAGS.has(tagName);
   });
 }
 
@@ -162,6 +167,8 @@ export function safeHtmlSpan(possiblyHtmlString: string) {
     return (
       <span
         className="safe-html-wrapper"
+        // Safe: HTML is sanitized before rendering
+        // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: sanitizeHtml(possiblyHtmlString) }}
       />
     );

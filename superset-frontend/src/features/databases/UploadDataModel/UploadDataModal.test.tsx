@@ -94,7 +94,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  fetchMock.restore();
+  fetchMock.clearHistory().removeRoutes();
 });
 
 // Helper function to get common elements
@@ -412,8 +412,10 @@ describe('UploadDataModal - Database and Schema Population', () => {
     await userEvent.click(selectDatabase);
     await userEvent.click(screen.getByText('database2'));
     await userEvent.click(selectSchema);
-    await waitFor(() => screen.getAllByText('schema1'));
-    await waitFor(() => screen.getAllByText('schema2'));
+    await waitFor(() => {
+      expect(screen.getAllByText('schema1')).not.toHaveLength(0);
+      expect(screen.getAllByText('schema2')).not.toHaveLength(0);
+    });
   }, 60000);
 });
 
@@ -472,16 +474,19 @@ describe('UploadDataModal - Form Submission', () => {
     const uploadButton = screen.getByRole('button', { name: 'Upload' });
     await userEvent.click(uploadButton);
 
-    await waitFor(() => fetchMock.called('glob:*api/v1/database/1/upload/'), {
-      timeout: 10000,
-    });
-    return fetchMock.calls('glob:*api/v1/database/1/upload/')[0];
+    await waitFor(
+      () => fetchMock.callHistory.called('glob:*api/v1/database/1/upload/'),
+      {
+        timeout: 10000,
+      },
+    );
+    return fetchMock.callHistory.calls('glob:*api/v1/database/1/upload/')[0];
   };
 
   test('CSV form submission', async () => {
     render(<UploadDataModal {...csvProps} />, { useRedux: true });
 
-    const [, options] = await fillForm('csv', 'test.csv');
+    const { options } = await fillForm('csv', 'test.csv');
     const formData = options?.body as FormData;
 
     expect(formData.get('type')).toBe('csv');
@@ -493,7 +498,7 @@ describe('UploadDataModal - Form Submission', () => {
   test('Excel form submission', async () => {
     render(<UploadDataModal {...excelProps} />, { useRedux: true });
 
-    const [, options] = await fillForm('excel', 'test.xls', 'text');
+    const { options } = await fillForm('excel', 'test.xls', 'text');
     const formData = options?.body as FormData;
 
     expect(formData.get('type')).toBe('excel');
@@ -505,7 +510,7 @@ describe('UploadDataModal - Form Submission', () => {
   test('Columnar form submission', async () => {
     render(<UploadDataModal {...columnarProps} />, { useRedux: true });
 
-    const [, options] = await fillForm('columnar', 'test.parquet', 'text');
+    const { options } = await fillForm('columnar', 'test.parquet', 'text');
     const formData = options?.body as FormData;
 
     expect(formData.get('type')).toBe('columnar');
