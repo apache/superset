@@ -16,13 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useMemo, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { ClientErrorObject } from '@superset-ui/core';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 import { toQueryString } from 'src/utils/urlUtils';
 import { api, JsonResponse } from './queryApi';
-
-import { useSchemas } from './schemas';
 
 export interface Table {
   label: string;
@@ -168,18 +166,8 @@ export const {
 export function useTables(options: Params) {
   const { dbId, catalog, schema, onSuccess, onError } = options || {};
   const isMountedRef = useRef(false);
-  const { currentData: schemaOptions, isFetching } = useSchemas({
-    dbId,
-    catalog: catalog || undefined,
-  });
-  const schemaOptionsMap = useMemo(
-    () => new Set(schemaOptions?.map(({ value }) => value)),
-    [schemaOptions],
-  );
 
-  const enabled = Boolean(
-    dbId && schema && !isFetching && schemaOptionsMap.has(schema),
-  );
+  const enabled = Boolean(dbId && schema);
 
   const result = useTablesQuery(
     { dbId, catalog, schema, forceRefresh: false },

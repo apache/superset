@@ -172,6 +172,18 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   customTableOptionLabelRenderer,
 }) => {
   const { addSuccessToast } = useToasts();
+  // Track the current database ID locally to avoid relying solely on
+  // the database prop, which can be stale due to Redux state propagation
+  // delay in SqlEditorLeftBar -> useDatabaseSelector -> useEffect chain.
+  const [currentDbId, setCurrentDbId] = useState<number | string | undefined>(
+    database?.id,
+  );
+  useEffect(() => {
+    if (database?.id !== undefined) {
+      setCurrentDbId(database.id);
+    }
+  }, [database?.id]);
+
   const [currentCatalog, setCurrentCatalog] = useState<
     string | null | undefined
   >(catalog);
@@ -187,7 +199,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     isFetching: loadingTables,
     refetch,
   } = useTables({
-    dbId: database?.id,
+    dbId: currentDbId,
     catalog: currentCatalog,
     schema: currentSchema,
     onSuccess: (data, isFetched) => {
@@ -265,6 +277,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
       onDbChange(db);
     }
 
+    setCurrentDbId(db.id);
     setCurrentCatalog(undefined);
     setCurrentSchema(undefined);
     const value = tableSelectMode === 'single' ? undefined : [];
