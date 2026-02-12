@@ -318,7 +318,6 @@ module.exports = {
       files: ['packages/**/src/**/*.js', 'packages/**/src/**/*.jsx'],
       excludedFiles: [
         'packages/generator-superset/**/*', // Yeoman generator templates run via Node
-        'packages/superset-ui-demo/.storybook/**/*', // Storybook config files
         'packages/**/__mocks__/**/*', // Test mocks
       ],
       rules: {
