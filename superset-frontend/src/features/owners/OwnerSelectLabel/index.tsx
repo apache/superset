@@ -43,7 +43,10 @@ const StyledLabelDetail = styled.span`
 
 export const OWNER_TEXT_LABEL_PROP = 'textLabel';
 export const OWNER_EMAIL_PROP = 'ownerEmail';
-export const OWNER_OPTION_FILTER_PROPS = [OWNER_TEXT_LABEL_PROP, OWNER_EMAIL_PROP];
+export const OWNER_OPTION_FILTER_PROPS = [
+  OWNER_TEXT_LABEL_PROP,
+  OWNER_EMAIL_PROP,
+];
 
 export const OwnerSelectLabel = ({
   name,

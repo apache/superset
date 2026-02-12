@@ -38,7 +38,10 @@ import {
 } from '@superset-ui/core';
 
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { OWNER_TEXT_LABEL_PROP } from 'src/features/owners/OwnerSelectLabel';
+import {
+  OWNER_TEXT_LABEL_PROP,
+  OWNER_EMAIL_PROP,
+} from 'src/features/owners/OwnerSelectLabel';
 import { fetchTags, OBJECT_TYPES } from 'src/features/tags/tags';
 import {
   applyColors,
@@ -251,6 +254,7 @@ const PropertiesModal = ({
       full_name:
         (options?.[i]?.[OWNER_TEXT_LABEL_PROP] as string) ||
         (typeof o.label === 'string' ? o.label : ''),
+      email: (options?.[i]?.[OWNER_EMAIL_PROP] as string) || '',
     }));
     setOwners(parsedOwners);
   };

@@ -1956,7 +1956,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               label: (resource.database as DatabaseObject).database_name,
             }
           : undefined,
-        owners: (alert?.owners || []).map(owner => {
+        owners: (resource.owners || []).map(owner => {
           const ownerName =
             (owner as MetaObject).label ||
             `${(owner as Owner).first_name} ${(owner as Owner).last_name}`;
