@@ -342,7 +342,7 @@
     "jest-websocket-mock": "^2.5.0",
     "js-yaml-loader": "^1.2.2",
     "jsdom": "^28.0.0",
-    "lerna": "^8.2.3",
+    "lerna": "^9.0.4",
     "lightningcss": "^1.31.1",
     "mini-css-extract-plugin": "^2.10.0",
     "open-cli": "^8.0.0",
