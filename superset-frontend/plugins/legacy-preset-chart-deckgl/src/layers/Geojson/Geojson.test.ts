@@ -22,6 +22,7 @@ import {
   computeGeoJsonTextOptionsFromFormData,
   computeGeoJsonIconOptionsFromJsOutput,
   computeGeoJsonIconOptionsFromFormData,
+  getLayer,
 } from './Geojson';
 
 jest.mock('@deck.gl/react', () => ({
@@ -118,4 +119,54 @@ test('computeGeoJsonIconOptionsFromFormData computes icon options based on form 
     height: 128,
     width: 128,
   });
+});
+
+const baseFormData: SqlaFormData = {
+  datasource: 'test_datasource',
+  viz_type: 'deck_geojson',
+  slice_id: 1,
+  fill_color_picker: { r: 0, g: 0, b: 255, a: 1 },
+  stroke_color_picker: { r: 0, g: 0, b: 0, a: 1 },
+};
+
+const baseLayerArgs = {
+  onContextMenu: jest.fn(),
+  filterState: undefined,
+  setDataMask: jest.fn(),
+  payload: { data: { type: 'FeatureCollection', features: [] } },
+  setTooltip: jest.fn(),
+  emitCrossFilters: false,
+};
+
+test('getLayer preserves rendering for existing charts without new point radius fields', () => {
+  // Simulate form data from an existing chart that only has point_radius_scale
+  const legacyFormData = {
+    ...baseFormData,
+    point_radius_scale: 200,
+    // point_radius and point_radius_units intentionally absent
+  };
+
+  const layer = getLayer({ formData: legacyFormData, ...baseLayerArgs });
+  const props = layer.props;
+
+  // Should match deck.gl defaults, NOT the new control panel defaults
+  expect(props.getPointRadius).toBe(1); // deck.gl default, not 10
+  expect(props.pointRadiusUnits).toBe('meters'); // deck.gl default, not 'pixels'
+  expect(props.pointRadiusScale).toBe(200); // user's saved value preserved
+});
+
+test('getLayer uses control panel defaults for new charts', () => {
+  const newChartFormData = {
+    ...baseFormData,
+    point_radius: 10,
+    point_radius_units: 'pixels',
+    point_radius_scale: 1,
+  };
+
+  const layer = getLayer({ formData: newChartFormData, ...baseLayerArgs });
+  const props = layer.props;
+
+  expect(props.getPointRadius).toBe(10);
+  expect(props.pointRadiusUnits).toBe('pixels');
+  expect(props.pointRadiusScale).toBe(1);
 });
