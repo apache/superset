@@ -321,8 +321,10 @@ export const getLayer: GetLayerType<GeoJsonLayer> = function ({
       getFillColor(feature, filterState?.value),
     getLineColor,
     getLineWidth: fd.line_width || 1,
-    getPointRadius: fd.point_radius ?? 10,
-    pointRadiusUnits: fd.point_radius_units ?? 'pixels',
+    // Use deck.gl defaults as fallbacks for backward compatibility with existing charts.
+    // New charts will get control panel defaults (point_radius=10, units='pixels', scale=1).
+    getPointRadius: fd.point_radius ?? 1,
+    pointRadiusUnits: fd.point_radius_units ?? 'meters',
     pointRadiusScale: fd.point_radius_scale ?? 1,
     lineWidthUnits: fd.line_width_unit,
     pointType,
