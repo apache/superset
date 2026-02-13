@@ -55,7 +55,9 @@ export type WrapperProps = Dimension & {
 };
 
 export type Props = Omit<SuperChartCoreProps, 'chartProps'> &
-  Omit<ChartPropsConfig, 'width' | 'height'> & {
+  Omit<ChartPropsConfig, 'width' | 'height' | 'theme'> & {
+    /** Theme object (optional, falls back to ThemeProvider context) */
+    theme?: SupersetTheme;
     /**
      * Set this to true to disable error boundary built-in in SuperChart
      * and let the error propagate to upper level
