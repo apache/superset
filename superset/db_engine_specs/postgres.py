@@ -497,21 +497,28 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         ),
     )
 
-    # PostgreSQL INTERVAL values need normalization for chart rendering.
-    # psycopg2 returns timedelta objects which we convert to milliseconds for
-    # numeric operations in bar/pie charts. Using milliseconds allows users to
-    # apply the built-in "DURATION" number format for human-readable display
-    # (e.g., "1d 2h 30m 45s"). String representations pass through unchanged.
+    @staticmethod
+    def _normalize_interval(v: Any) -> Any:
+        """Convert PostgreSQL INTERVAL values to milliseconds.
+
+        psycopg2 returns timedelta objects which we convert to milliseconds for
+        numeric operations in bar/pie charts. Using milliseconds allows users to
+        apply the built-in "DURATION" number format for human-readable display
+        (e.g., "1d 2h 30m 45s").
+
+        Returns None for values that cannot be converted to preserve NULL semantics
+        and avoid mixed-type columns.
+        """
+        if v is None:
+            return None
+        if hasattr(v, "total_seconds"):
+            return v.total_seconds() * 1000
+        if isinstance(v, (int, float)) and not isinstance(v, bool):
+            return float(v) * 1000
+        return None  # Can't convert to numeric — treat as missing
+
     column_type_mutators: dict[types.TypeEngine, Callable[[Any], Any]] = {
-        INTERVAL: lambda v: (
-            v.total_seconds() * 1000
-            if hasattr(v, "total_seconds")
-            else float(v) * 1000
-            if isinstance(v, (int, float))
-            else 0
-            if v is None
-            else v  # Pass through string representations and other types
-        ),
+        INTERVAL: _normalize_interval.__func__,  # type: ignore[attr-defined]
     }
 
     @classmethod
