@@ -2701,13 +2701,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if not (hasattr(g, "user") and g.user is not None):
             return []
 
-        # Check request-scoped cache
-        cache: dict[tuple[int, int | str], list[SqlaQuery]] = getattr(
+        # Check request-scoped cache keyed by (user_identifier, table_id).
+        # Uses user_id for regular users and username for guest users.
+        cache: dict[tuple[int | str, int | str], list[SqlaQuery]] = getattr(
             g, "_rls_filter_cache", {}
         )
-        user_id = get_user_id()
-        if user_id is not None:
-            cache_key = (user_id, table.id)
+        user_key: int | str | None = get_user_id() or getattr(g.user, "username", None)
+        if user_key is not None:
+            cache_key = (user_key, table.id)
             if cache_key in cache:
                 return cache[cache_key]
 
@@ -2763,10 +2764,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         result = query.all()
 
         # Store in request-scoped cache
-        if user_id is not None:
+        if user_key is not None:
             if not hasattr(g, "_rls_filter_cache"):
                 g._rls_filter_cache = {}
-            g._rls_filter_cache[(user_id, table.id)] = result
+            g._rls_filter_cache[(user_key, table.id)] = result
 
         return result
 
@@ -2781,8 +2782,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if not (hasattr(g, "user") and g.user is not None):
             return
 
-        user_id = get_user_id()
-        if user_id is None:
+        user_key: int | str | None = get_user_id() or getattr(g.user, "username", None)
+        if user_key is None:
             return
 
         if not hasattr(g, "_rls_filter_cache"):
@@ -2790,7 +2791,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         # Filter out already-cached table_ids
         uncached_ids = [
-            tid for tid in table_ids if (user_id, tid) not in g._rls_filter_cache
+            tid for tid in table_ids if (user_key, tid) not in g._rls_filter_cache
         ]
         if not uncached_ids:
             return
@@ -2859,7 +2860,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         # Populate cache for all uncached table_ids (including those with no filters)
         for tid in uncached_ids:
-            g._rls_filter_cache[(user_id, tid)] = grouped.get(tid, [])
+            g._rls_filter_cache[(user_key, tid)] = grouped.get(tid, [])
 
     def get_rls_sorted(
         self, table: "BaseDatasource | Explorable"
