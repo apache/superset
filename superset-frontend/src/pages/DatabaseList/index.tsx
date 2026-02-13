@@ -19,7 +19,7 @@
 import { t } from '@apache-superset/core';
 import { getExtensionsRegistry, SupersetClient } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import rison from 'rison';
 import { useSelector } from 'react-redux';
 import { useQueryParams, BooleanParam } from 'use-query-params';
@@ -169,26 +169,29 @@ function DatabaseList({
     }
   }, [query, setQuery, refreshData]);
 
-  const openDatabaseDeleteModal = (database: DatabaseObject) =>
-    SupersetClient.get({
-      endpoint: `/api/v1/database/${database.id}/related_objects/`,
-    })
-      .then(({ json = {} }) => {
-        setDatabaseCurrentlyDeleting({
-          ...database,
-          charts: json.charts,
-          dashboards: json.dashboards,
-          sqllab_tab_count: json.sqllab_tab_states.count,
-        });
+  const openDatabaseDeleteModal = useCallback(
+    (database: DatabaseObject) =>
+      SupersetClient.get({
+        endpoint: `/api/v1/database/${database.id}/related_objects/`,
       })
-      .catch(
-        createErrorHandler(errMsg =>
-          t(
-            'An error occurred while fetching database related data: %s',
-            errMsg,
+        .then(({ json = {} }) => {
+          setDatabaseCurrentlyDeleting({
+            ...database,
+            charts: json.charts,
+            dashboards: json.dashboards,
+            sqllab_tab_count: json.sqllab_tab_states.count,
+          });
+        })
+        .catch(
+          createErrorHandler(errMsg =>
+            t(
+              'An error occurred while fetching database related data: %s',
+              errMsg,
+            ),
           ),
         ),
-      );
+    [],
+  );
 
   function handleDatabaseDelete(database: DatabaseObject) {
     const { id, database_name: dbName } = database;
@@ -216,14 +219,17 @@ function DatabaseList({
     );
   }
 
-  function handleDatabaseEditModal({
-    database = null,
-    modalOpen = false,
-  }: { database?: DatabaseObject | null; modalOpen?: boolean } = {}) {
-    // Set database and modal
-    setCurrentDatabase(database);
-    setDatabaseModalOpen(modalOpen);
-  }
+  const handleDatabaseEditModal = useCallback(
+    ({
+      database = null,
+      modalOpen = false,
+    }: { database?: DatabaseObject | null; modalOpen?: boolean } = {}) => {
+      // Set database and modal
+      setCurrentDatabase(database);
+      setDatabaseModalOpen(modalOpen);
+    },
+    [],
+  );
 
   const canCreate = hasPerm('can_write');
   const canEdit = hasPerm('can_write');
@@ -328,59 +334,70 @@ function DatabaseList({
     ];
   }
 
-  async function handleDatabaseExport(database: DatabaseObject) {
-    if (database.id === undefined) {
-      return;
-    }
+  const handleDatabaseExport = useCallback(
+    async (database: DatabaseObject) => {
+      if (database.id === undefined) {
+        return;
+      }
 
-    setPreparingExport(true);
-    try {
-      await handleResourceExport('database', [database.id], () => {
+      setPreparingExport(true);
+      try {
+        await handleResourceExport('database', [database.id], () => {
+          setPreparingExport(false);
+        });
+      } catch (error) {
         setPreparingExport(false);
-      });
-    } catch (error) {
-      setPreparingExport(false);
-      addDangerToast(t('There was an issue exporting the database'));
-    }
-  }
+        addDangerToast(t('There was an issue exporting the database'));
+      }
+    },
+    [addDangerToast, setPreparingExport],
+  );
 
-  function handleDatabasePermSync(database: DatabaseObject) {
-    if (shouldSyncPermsInAsyncMode) {
-      addInfoToast(t('Validating connectivity for %s', database.database_name));
-    } else {
-      addInfoToast(t('Syncing permissions for %s', database.database_name));
-    }
-    SupersetClient.post({
-      endpoint: `/api/v1/database/${database.id}/sync_permissions/`,
-    }).then(
-      ({ response }) => {
-        // Sync request
-        if (response.status === 200) {
-          addSuccessToast(
-            t('Permissions successfully synced for %s', database.database_name),
-          );
-        }
-        // Async request
-        else {
-          addInfoToast(
+  const handleDatabasePermSync = useCallback(
+    (database: DatabaseObject) => {
+      if (shouldSyncPermsInAsyncMode) {
+        addInfoToast(
+          t('Validating connectivity for %s', database.database_name),
+        );
+      } else {
+        addInfoToast(t('Syncing permissions for %s', database.database_name));
+      }
+      SupersetClient.post({
+        endpoint: `/api/v1/database/${database.id}/sync_permissions/`,
+      }).then(
+        ({ response }) => {
+          // Sync request
+          if (response.status === 200) {
+            addSuccessToast(
+              t(
+                'Permissions successfully synced for %s',
+                database.database_name,
+              ),
+            );
+          }
+          // Async request
+          else {
+            addInfoToast(
+              t(
+                'Syncing permissions for %s in the background',
+                database.database_name,
+              ),
+            );
+          }
+        },
+        createErrorHandler(errMsg =>
+          addDangerToast(
             t(
-              'Syncing permissions for %s in the background',
+              'An error occurred while syncing permissions for %s: %s',
               database.database_name,
+              errMsg,
             ),
-          );
-        }
-      },
-      createErrorHandler(errMsg =>
-        addDangerToast(
-          t(
-            'An error occurred while syncing permissions for %s: %s',
-            database.database_name,
-            errMsg,
           ),
         ),
-      ),
-    );
-  }
+      );
+    },
+    [shouldSyncPermsInAsyncMode, addInfoToast, addSuccessToast, addDangerToast],
+  );
 
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
 
@@ -487,39 +504,6 @@ function DatabaseList({
           }
           return (
             <Actions className="actions">
-              {canDelete && (
-                <span
-                  role="button"
-                  tabIndex={0}
-                  className="action-button"
-                  data-test="database-delete"
-                  onClick={handleDelete}
-                >
-                  <Tooltip
-                    id="delete-action-tooltip"
-                    title={t('Delete database')}
-                    placement="bottom"
-                  >
-                    <Icons.DeleteOutlined iconSize="l" />
-                  </Tooltip>
-                </span>
-              )}
-              {canExport && (
-                <Tooltip
-                  id="export-action-tooltip"
-                  title={t('Export')}
-                  placement="bottom"
-                >
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
-                    onClick={handleExport}
-                  >
-                    <Icons.UploadOutlined iconSize="l" />
-                  </span>
-                </Tooltip>
-              )}
               {canEdit && (
                 <Tooltip
                   id="edit-action-tooltip"
@@ -534,6 +518,22 @@ function DatabaseList({
                     onClick={handleEdit}
                   >
                     <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
+                  </span>
+                </Tooltip>
+              )}
+              {canExport && (
+                <Tooltip
+                  id="export-action-tooltip"
+                  title={t('Export')}
+                  placement="bottom"
+                >
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    className="action-button"
+                    onClick={handleExport}
+                  >
+                    <Icons.UploadOutlined iconSize="l" />
                   </span>
                 </Tooltip>
               )}
@@ -554,6 +554,23 @@ function DatabaseList({
                   </span>
                 </Tooltip>
               )}
+              {canDelete && (
+                <span
+                  role="button"
+                  tabIndex={0}
+                  className="action-button"
+                  data-test="database-delete"
+                  onClick={handleDelete}
+                >
+                  <Tooltip
+                    id="delete-action-tooltip"
+                    title={t('Delete database')}
+                    placement="bottom"
+                  >
+                    <Icons.DeleteOutlined iconSize="l" />
+                  </Tooltip>
+                </span>
+              )}
             </Actions>
           );
         },
@@ -568,7 +585,15 @@ function DatabaseList({
         id: QueryObjectColumns.ChangedBy,
       },
     ],
-    [canDelete, canEdit, canExport],
+    [
+      canDelete,
+      canEdit,
+      canExport,
+      handleDatabaseEditModal,
+      handleDatabaseExport,
+      handleDatabasePermSync,
+      openDatabaseDeleteModal,
+    ],
   );
 
   const filters: ListViewFilters = useMemo(
@@ -634,7 +659,7 @@ function DatabaseList({
         dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
     ],
-    [],
+    [user],
   );
 
   return (

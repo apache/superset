@@ -18,7 +18,7 @@
  */
 import { t } from '@apache-superset/core';
 import { SupersetClient } from '@superset-ui/core';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { ConfirmStatusChange, Tooltip } from '@superset-ui/core/components';
 import {
   ModifiedInfo,
@@ -51,7 +51,7 @@ interface RLSProps {
 function RowLevelSecurityList(props: RLSProps) {
   const { addDangerToast, addSuccessToast, user } = props;
   const [ruleModalOpen, setRuleModalOpen] = useState<boolean>(false);
-  const [currentRule, setCurrentRule] = useState(null);
+  const [currentRule, setCurrentRule] = useState<RLSObject | null>(null);
 
   const {
     state: {
@@ -74,29 +74,31 @@ function RowLevelSecurityList(props: RLSProps) {
     true,
   );
 
-  function handleRuleEdit(rule: null) {
+  const handleRuleEdit = useCallback((rule: RLSObject | null) => {
     setCurrentRule(rule);
     setRuleModalOpen(true);
-  }
+  }, []);
 
-  function handleRuleDelete(
-    { id, name }: RLSObject,
-    refreshData: (arg0?: FetchDataConfig | null) => void,
-    addSuccessToast: (arg0: string) => void,
-    addDangerToast: (arg0: string) => void,
-  ) {
-    return SupersetClient.delete({
-      endpoint: `/api/v1/rowlevelsecurity/${id}`,
-    }).then(
-      () => {
-        refreshData();
-        addSuccessToast(t('Deleted %s', name));
-      },
-      createErrorHandler(errMsg =>
-        addDangerToast(t('There was an issue deleting %s: %s', name, errMsg)),
+  const handleRuleDelete = useCallback(
+    (
+      { id, name }: RLSObject,
+      refreshData: (arg0?: FetchDataConfig | null) => void,
+      addSuccessToast: (arg0: string) => void,
+      addDangerToast: (arg0: string) => void,
+    ) =>
+      SupersetClient.delete({
+        endpoint: `/api/v1/rowlevelsecurity/${id}`,
+      }).then(
+        () => {
+          refreshData();
+          addSuccessToast(t('Deleted %s', name));
+        },
+        createErrorHandler(errMsg =>
+          addDangerToast(t('There was an issue deleting %s: %s', name, errMsg)),
+        ),
       ),
-    );
-  }
+    [],
+  );
   function handleBulkRulesDelete(rulesToDelete: RLSObject[]) {
     const ids = rulesToDelete.map(({ id }) => id);
     return SupersetClient.delete({
@@ -174,6 +176,22 @@ function RowLevelSecurityList(props: RLSProps) {
           const handleEdit = () => handleRuleEdit(original);
           return (
             <div className="actions">
+              {canEdit && (
+                <Tooltip
+                  id="edit-action-tooltip"
+                  title={t('Edit')}
+                  placement="bottom"
+                >
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    className="action-button"
+                    onClick={handleEdit}
+                  >
+                    <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
+                  </span>
+                </Tooltip>
+              )}
               {canWrite && (
                 <ConfirmStatusChange
                   title={t('Please confirm')}
@@ -206,22 +224,6 @@ function RowLevelSecurityList(props: RLSProps) {
                   )}
                 </ConfirmStatusChange>
               )}
-              {canEdit && (
-                <Tooltip
-                  id="edit-action-tooltip"
-                  title={t('Edit')}
-                  placement="bottom"
-                >
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
-                    onClick={handleEdit}
-                  >
-                    <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
-                  </span>
-                </Tooltip>
-              )}
             </div>
           );
         },
@@ -238,14 +240,14 @@ function RowLevelSecurityList(props: RLSProps) {
       },
     ],
     [
-      user.userId,
       canEdit,
       canWrite,
       canExport,
-      hasPerm,
       refreshData,
       addDangerToast,
       addSuccessToast,
+      handleRuleDelete,
+      handleRuleEdit,
     ],
   );
 
