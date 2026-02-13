@@ -82,6 +82,7 @@ export const MapBoxViz = ({
   const theme = useTheme();
   return (
     <SuperChart
+      theme={theme}
       chartType="map-box"
       width={width}
       height={height}
