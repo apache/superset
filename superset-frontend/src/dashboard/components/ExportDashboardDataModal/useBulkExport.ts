@@ -54,7 +54,7 @@ export const useBulkExport = ({
 
   const sanitizeSheetName = (name: string): string => {
     // Excel sheet names: max 31 chars, no special characters
-    let sanitized = name
+    const sanitized = name
       .replace(/[:\\/?*[\]]/g, '_') // Replace invalid chars
       .substring(0, 31); // Truncate to 31 chars
 
