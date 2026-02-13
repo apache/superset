@@ -168,6 +168,7 @@ const SliceHeaderControls = (
 
   const queryMenuRef: RefObject<any> = useRef(null);
   const resultsMenuRef: RefObject<any> = useRef(null);
+  const dropdownOverlayContainerRef = useRef<HTMLDivElement>(null);
 
   const [modalFilters, setFilters] = useState<BinaryQueryObjectFilterClause[]>(
     [],
@@ -252,13 +253,10 @@ const SliceHeaderControls = (
         props.exportXLSX?.(props.slice.slice_id);
         break;
       case MenuKeys.DownloadAsImage: {
-        // menu closes with a delay, we need to hide it manually,
-        // so that we don't capture it on the screenshot
-        const menu = document.querySelector(
-          '.ant-dropdown:not(.ant-dropdown-hidden)',
-        ) as HTMLElement;
-        if (menu) {
-          menu.style.visibility = 'hidden';
+        // Hide the dropdown overlay so it is not captured in the screenshot
+        const overlayContainer = dropdownOverlayContainerRef.current;
+        if (overlayContainer) {
+          overlayContainer.style.visibility = 'hidden';
         }
         downloadAsImage(
           getScreenshotNodeSelector(props.slice.slice_id),
@@ -266,10 +264,11 @@ const SliceHeaderControls = (
           true,
           theme,
         )(domEvent).then(() => {
-          if (menu) {
-            menu.style.visibility = 'visible';
+          if (overlayContainer) {
+            overlayContainer.style.visibility = 'visible';
           }
         });
+        // eslint-disable-next-line no-unused-expressions
         props.logEvent?.(LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE, {
           chartId: props.slice.slice_id,
         });
@@ -277,11 +276,9 @@ const SliceHeaderControls = (
       }
       case MenuKeys.DownloadAsPngTransparent:
       case MenuKeys.DownloadAsPngSolid: {
-        const menu = document.querySelector(
-          '.ant-dropdown:not(.ant-dropdown-hidden)',
-        ) as HTMLElement;
-        if (menu) {
-          menu.style.visibility = 'hidden';
+        const overlayContainer = dropdownOverlayContainerRef.current;
+        if (overlayContainer) {
+          overlayContainer.style.visibility = 'hidden';
         }
 
         const backgroundType =
@@ -294,11 +291,12 @@ const SliceHeaderControls = (
           theme,
           { format: 'png', backgroundType },
         )(domEvent).then(() => {
-          if (menu) {
-            menu.style.visibility = 'visible';
+          if (overlayContainer) {
+            overlayContainer.style.visibility = 'visible';
           }
         });
 
+        // eslint-disable-next-line no-unused-expressions
         props.logEvent?.(LOG_ACTIONS_CHART_DOWNLOAD_AS_PNG, {
           chartId: props.slice.slice_id,
           backgroundType,
@@ -306,11 +304,9 @@ const SliceHeaderControls = (
         break;
       }
       case MenuKeys.DownloadAsPdf: {
-        const menu = document.querySelector(
-          '.ant-dropdown:not(.ant-dropdown-hidden)',
-        ) as HTMLElement;
-        if (menu) {
-          menu.style.visibility = 'hidden';
+        const overlayContainer = dropdownOverlayContainerRef.current;
+        if (overlayContainer) {
+          overlayContainer.style.visibility = 'hidden';
         }
 
         const pdfResult = downloadAsPdf(
@@ -320,11 +316,12 @@ const SliceHeaderControls = (
         )(domEvent);
 
         Promise.resolve(pdfResult).then(() => {
-          if (menu) {
-            menu.style.visibility = 'visible';
+          if (overlayContainer) {
+            overlayContainer.style.visibility = 'visible';
           }
         });
 
+        // eslint-disable-next-line no-unused-expressions
         props.logEvent?.(LOG_ACTIONS_CHART_DOWNLOAD_AS_PDF, {
           chartId: props.slice.slice_id,
         });
@@ -637,6 +634,14 @@ const SliceHeaderControls = (
 
   return (
     <>
+      <div
+        ref={dropdownOverlayContainerRef}
+        data-slice-header-dropdown-container
+        css={css`
+          position: absolute;
+          z-index: 0;
+        `}
+      />
       {isFullSize && (
         <Icons.FullscreenExitOutlined
           style={{ fontSize: 22 }}
@@ -646,6 +651,9 @@ const SliceHeaderControls = (
         />
       )}
       <NoAnimationDropdown
+        getPopupContainer={() =>
+          dropdownOverlayContainerRef.current ?? document.body
+        }
         popupRender={() => (
           <Menu
             onClick={handleMenuClick}
