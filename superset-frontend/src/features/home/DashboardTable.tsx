@@ -201,7 +201,7 @@ function DashboardTable({
             name: t('Dashboard'),
             buttonStyle: 'secondary',
             onClick: () => {
-              navigateTo('/dashboard/new', { assign: true });
+              navigateTo('/dashboard/new/', { assign: true });
             },
           },
           {
