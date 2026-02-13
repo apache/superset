@@ -806,6 +806,114 @@ describe('Does transformProps transform series correctly', () => {
       'foo2, bar2': ['foo2', 'bar2'],
     });
   });
+
+  describe('Tooltip with long labels', () => {
+    it('should use axisValue for tooltip title when available (richTooltip)', () => {
+      const chartProps = new ChartProps({
+        ...chartPropsConfig,
+        formData: {
+          ...formData,
+          richTooltip: true,
+        },
+        queriesData: [
+          {
+            data: [
+              {
+                'Series A': 100,
+                __timestamp: 599616000000,
+              },
+            ],
+          },
+        ],
+      });
+
+      const transformedProps = transformProps(
+        chartProps as EchartsTimeseriesChartProps,
+      );
+
+      // Get the tooltip formatter function
+      const tooltipFormatter = (transformedProps.echartOptions as any).tooltip
+        .formatter;
+
+      // Simulate ECharts params where axisValue contains the full category label
+      // (which may be truncated on the axis display but is preserved in axisValue)
+      // Use distinct values for axisValue and seriesName to verify axisValue is used for title
+      const fullCategoryLabel =
+        'This is a very long category name that would normally be truncated on the axis';
+      const mockParams = [
+        {
+          // axisValue contains the full x-axis label (category name for bar charts)
+          axisValue: fullCategoryLabel,
+          // value array contains [x, y] where x is typically a timestamp or index
+          value: [599616000000, 100],
+          // seriesName is the metric/series name, distinct from axisValue
+          seriesName: 'Series A',
+        },
+      ];
+
+      // Call the formatter and verify it uses axisValue for the tooltip title
+      const result = tooltipFormatter(mockParams);
+      // The tooltip should contain the full category label from axisValue as the title
+      expect(result).toContain(fullCategoryLabel);
+    });
+
+    it('should fallback to value when axisValue is not available', () => {
+      const chartProps = new ChartProps({
+        ...chartPropsConfig,
+        formData: {
+          ...formData,
+          richTooltip: true,
+        },
+      });
+
+      const transformedProps = transformProps(
+        chartProps as EchartsTimeseriesChartProps,
+      );
+
+      const tooltipFormatter = (transformedProps.echartOptions as any).tooltip
+        .formatter;
+
+      // Simulate params without axisValue
+      const mockParams = [
+        {
+          value: [599616000000, 1],
+          seriesName: 'San Francisco',
+        },
+      ];
+
+      // Should still work with fallback to value
+      const result = tooltipFormatter(mockParams);
+      expect(result).toBeDefined();
+      expect(typeof result).toBe('string');
+    });
+
+    it('should handle item tooltips correctly', () => {
+      const chartProps = new ChartProps({
+        ...chartPropsConfig,
+        formData: {
+          ...formData,
+          richTooltip: false,
+        },
+      });
+
+      const transformedProps = transformProps(
+        chartProps as EchartsTimeseriesChartProps,
+      );
+
+      const tooltipFormatter = (transformedProps.echartOptions as any).tooltip
+        .formatter;
+
+      // For item tooltips, params is a single object
+      const mockParams = {
+        value: [599616000000, 1],
+        seriesName: 'San Francisco',
+      };
+
+      const result = tooltipFormatter(mockParams);
+      expect(result).toBeDefined();
+      expect(typeof result).toBe('string');
+    });
+  });
 });
 
 describe('legend sorting', () => {
