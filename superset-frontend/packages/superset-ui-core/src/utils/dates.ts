@@ -55,8 +55,8 @@ export interface ExtendedDayjs extends Dayjs {
 
 // Type for dayjs factory with all plugins loaded
 type DayjsWithPlugins = {
-  (config?: ConfigType, format?: string): ExtendedDayjs;
-  utc(config?: ConfigType, format?: string): ExtendedDayjs;
+  (config?: ConfigType, format?: string, strict?: boolean): ExtendedDayjs;
+  utc(config?: ConfigType, format?: string, strict?: boolean): ExtendedDayjs;
   tz: {
     (input?: ConfigType, timezone?: string): ExtendedDayjs;
     guess(): string;
