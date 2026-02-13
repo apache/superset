@@ -324,3 +324,358 @@ class TestTimeSeriesFilterPromptFix:
 
         # This equality is what the frontend checks - now they match!
         assert normalized.x.name == normalized.filters[0].column
+
+
+@pytest.fixture
+def uppercase_dataset_context() -> DatasetContext:
+    """Create a mock dataset context with all-uppercase column names (like flights)."""
+    return DatasetContext(
+        id=24,
+        table_name="flights",
+        schema="public",
+        database_name="examples",
+        available_columns=[
+            {"name": "DEPARTURE_DELAY", "type": "FLOAT", "is_numeric": True},
+            {"name": "ARRIVAL_DELAY", "type": "FLOAT", "is_numeric": True},
+            {"name": "DISTANCE", "type": "BIGINT", "is_numeric": True},
+            {"name": "AIRLINE", "type": "VARCHAR", "is_temporal": False},
+            {"name": "ds", "type": "TIMESTAMP", "is_temporal": True},
+        ],
+        available_metrics=[
+            {"name": "count", "expression": "COUNT(*)", "description": None},
+        ],
+    )
+
+
+class TestNormalizeMultipleYAxisColumns:
+    """Test normalization of multiple y-axis columns."""
+
+    @patch.object(DatasetValidator, "_get_dataset_context")
+    def test_normalize_multiple_y_columns(
+        self, mock_get_context, uppercase_dataset_context: DatasetContext
+    ) -> None:
+        """Test that all y-axis columns are normalized."""
+        mock_get_context.return_value = uppercase_dataset_context
+
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="ds"),
+            y=[
+                ColumnRef(name="departure_delay", aggregate="AVG"),
+                ColumnRef(name="arrival_delay", aggregate="AVG"),
+            ],
+            kind="area",
+        )
+
+        normalized = DatasetValidator.normalize_column_names(config, dataset_id=24)
+
+        assert normalized.y[0].name == "DEPARTURE_DELAY"
+        assert normalized.y[1].name == "ARRIVAL_DELAY"
+
+
+class TestNormalizeUppercaseDataset:
+    """Test normalization against dataset with all-uppercase column names."""
+
+    @patch.object(DatasetValidator, "_get_dataset_context")
+    def test_lowercase_to_uppercase(
+        self, mock_get_context, uppercase_dataset_context: DatasetContext
+    ) -> None:
+        """Test lowercase input normalizes to uppercase canonical names."""
+        mock_get_context.return_value = uppercase_dataset_context
+
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="ds"),
+            y=[ColumnRef(name="distance", aggregate="AVG")],
+            kind="bar",
+            group_by=ColumnRef(name="airline"),
+            filters=[FilterConfig(column="airline", op="=", value="AA")],
+        )
+
+        normalized = DatasetValidator.normalize_column_names(config, dataset_id=24)
+
+        assert normalized.x.name == "ds"
+        assert normalized.y[0].name == "DISTANCE"
+        assert normalized.group_by is not None
+        assert normalized.group_by.name == "AIRLINE"
+        assert normalized.filters is not None
+        assert normalized.filters[0].column == "AIRLINE"
+
+    @patch.object(DatasetValidator, "_get_dataset_context")
+    def test_exact_match_preserved(
+        self, mock_get_context, uppercase_dataset_context: DatasetContext
+    ) -> None:
+        """Test that already-correct names are preserved unchanged."""
+        mock_get_context.return_value = uppercase_dataset_context
+
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="ds"),
+            y=[ColumnRef(name="DEPARTURE_DELAY", aggregate="AVG")],
+            kind="line",
+        )
+
+        normalized = DatasetValidator.normalize_column_names(config, dataset_id=24)
+
+        assert normalized.x.name == "ds"
+        assert normalized.y[0].name == "DEPARTURE_DELAY"
+
+    @patch.object(DatasetValidator, "_get_dataset_context")
+    def test_metric_normalized_in_y_axis(
+        self, mock_get_context, uppercase_dataset_context: DatasetContext
+    ) -> None:
+        """Test that metric names used in y-axis are normalized."""
+        mock_get_context.return_value = uppercase_dataset_context
+
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="ds"),
+            y=[ColumnRef(name="COUNT", aggregate="SUM")],
+            kind="bar",
+        )
+
+        normalized = DatasetValidator.normalize_column_names(config, dataset_id=24)
+
+        # 'COUNT' should normalize to 'count' (the metric name)
+        assert normalized.y[0].name == "count"
+
+
+class TestNormalizeEdgeCases:
+    """Test edge cases for column name normalization."""
+
+    @patch.object(DatasetValidator, "_get_dataset_context")
+    def test_config_with_no_filters(
+        self, mock_get_context, mock_dataset_context: DatasetContext
+    ) -> None:
+        """Test normalization when config has no filters."""
+        mock_get_context.return_value = mock_dataset_context
+
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="orderdate"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            kind="line",
+        )
+
+        normalized = DatasetValidator.normalize_column_names(config, dataset_id=18)
+
+        assert normalized.x.name == "OrderDate"
+        assert normalized.y[0].name == "Sales"
+        assert normalized.filters is None
+
+    @patch.object(DatasetValidator, "_get_dataset_context")
+    def test_config_with_empty_filters(
+        self, mock_get_context, mock_dataset_context: DatasetContext
+    ) -> None:
+        """Test normalization when config has empty filters list."""
+        mock_get_context.return_value = mock_dataset_context
+
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="orderdate"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            kind="line",
+            filters=[],
+        )
+
+        normalized = DatasetValidator.normalize_column_names(config, dataset_id=18)
+
+        assert normalized.x.name == "OrderDate"
+        assert normalized.filters is not None
+        assert len(normalized.filters) == 0
+
+    @patch.object(DatasetValidator, "_get_dataset_context")
+    def test_config_with_no_group_by(
+        self, mock_get_context, mock_dataset_context: DatasetContext
+    ) -> None:
+        """Test normalization when config has no group_by."""
+        mock_get_context.return_value = mock_dataset_context
+
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="orderdate"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            kind="bar",
+        )
+
+        normalized = DatasetValidator.normalize_column_names(config, dataset_id=18)
+
+        assert normalized.x.name == "OrderDate"
+        assert normalized.group_by is None
+
+    @patch.object(DatasetValidator, "_get_dataset_context")
+    def test_all_fields_normalized_together(
+        self, mock_get_context, mock_dataset_context: DatasetContext
+    ) -> None:
+        """Test that x, y, group_by, and filters are all normalized in one call."""
+        mock_get_context.return_value = mock_dataset_context
+
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="ORDERDATE"),
+            y=[
+                ColumnRef(name="sales", aggregate="SUM"),
+                ColumnRef(name="QUANTITY_ORDERED", aggregate="COUNT"),
+            ],
+            kind="bar",
+            group_by=ColumnRef(name="PRODUCTLINE"),
+            filters=[
+                FilterConfig(column="productline", op="=", value="Classic Cars"),
+                FilterConfig(column="ORDERDATE", op=">", value="2023-01-01"),
+            ],
+        )
+
+        normalized = DatasetValidator.normalize_column_names(config, dataset_id=18)
+
+        assert normalized.x.name == "OrderDate"
+        assert normalized.y[0].name == "Sales"
+        assert normalized.y[1].name == "quantity_ordered"
+        assert normalized.group_by is not None
+        assert normalized.group_by.name == "ProductLine"
+        assert normalized.filters is not None
+        assert normalized.filters[0].column == "ProductLine"
+        assert normalized.filters[1].column == "OrderDate"
+
+    @patch.object(DatasetValidator, "_get_dataset_context")
+    def test_normalization_is_idempotent(
+        self, mock_get_context, mock_dataset_context: DatasetContext
+    ) -> None:
+        """Test that normalizing already-normalized config returns same result."""
+        mock_get_context.return_value = mock_dataset_context
+
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="orderdate"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            kind="line",
+            filters=[FilterConfig(column="productline", op="=", value="Cars")],
+        )
+
+        first = DatasetValidator.normalize_column_names(config, dataset_id=18)
+        second = DatasetValidator.normalize_column_names(first, dataset_id=18)
+
+        assert first.x.name == second.x.name == "OrderDate"
+        assert first.y[0].name == second.y[0].name == "Sales"
+        assert first.filters is not None
+        assert second.filters is not None
+        assert first.filters[0].column == second.filters[0].column == "ProductLine"
+
+    @patch.object(DatasetValidator, "_get_dataset_context")
+    def test_aggregate_preserved_after_normalization(
+        self, mock_get_context, mock_dataset_context: DatasetContext
+    ) -> None:
+        """Test that aggregate functions are preserved during normalization."""
+        mock_get_context.return_value = mock_dataset_context
+
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="orderdate"),
+            y=[
+                ColumnRef(name="sales", aggregate="SUM"),
+                ColumnRef(name="QUANTITY_ORDERED", aggregate="AVG"),
+            ],
+            kind="bar",
+        )
+
+        normalized = DatasetValidator.normalize_column_names(config, dataset_id=18)
+
+        assert normalized.y[0].aggregate == "SUM"
+        assert normalized.y[1].aggregate == "AVG"
+
+    @patch.object(DatasetValidator, "_get_dataset_context")
+    def test_filter_operator_and_value_preserved(
+        self, mock_get_context, mock_dataset_context: DatasetContext
+    ) -> None:
+        """Test that filter op and value are preserved during normalization."""
+        mock_get_context.return_value = mock_dataset_context
+
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="orderdate"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            kind="line",
+            filters=[
+                FilterConfig(column="ORDERDATE", op=">=", value="2023-01-01"),
+                FilterConfig(column="sales", op=">", value=1000),
+            ],
+        )
+
+        normalized = DatasetValidator.normalize_column_names(config, dataset_id=18)
+
+        assert normalized.filters is not None
+        assert normalized.filters[0].column == "OrderDate"
+        assert normalized.filters[0].op == ">="
+        assert normalized.filters[0].value == "2023-01-01"
+        assert normalized.filters[1].column == "Sales"
+        assert normalized.filters[1].op == ">"
+        assert normalized.filters[1].value == 1000
+
+
+class TestNormalizeXAxisFilterConsistency:
+    """Test that x-axis and filter column names are consistent after normalization.
+
+    These tests verify the core bug fix: when x-axis and filter reference
+    the same column but with different cases, normalization ensures they match.
+    """
+
+    @patch.object(DatasetValidator, "_get_dataset_context")
+    def test_both_wrong_case_normalized_to_same(
+        self, mock_get_context, mock_dataset_context: DatasetContext
+    ) -> None:
+        """Both x-axis and filter in wrong case normalize to same canonical name."""
+        mock_get_context.return_value = mock_dataset_context
+
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="ORDERDATE"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            kind="line",
+            filters=[FilterConfig(column="orderdate", op=">", value="2023-01-01")],
+        )
+
+        normalized = DatasetValidator.normalize_column_names(config, dataset_id=18)
+
+        assert normalized.filters is not None
+        assert normalized.x.name == normalized.filters[0].column == "OrderDate"
+
+    @patch.object(DatasetValidator, "_get_dataset_context")
+    def test_uppercase_dataset_x_filter_match(
+        self, mock_get_context, uppercase_dataset_context: DatasetContext
+    ) -> None:
+        """On uppercase-column dataset, both lowercase refs normalize to uppercase."""
+        mock_get_context.return_value = uppercase_dataset_context
+
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="ds"),
+            y=[ColumnRef(name="departure_delay", aggregate="AVG")],
+            kind="line",
+            filters=[FilterConfig(column="ds", op=">", value="2015-01-01")],
+        )
+
+        normalized = DatasetValidator.normalize_column_names(config, dataset_id=24)
+
+        assert normalized.filters is not None
+        assert normalized.x.name == normalized.filters[0].column == "ds"
+
+    @patch.object(DatasetValidator, "_get_dataset_context")
+    def test_group_by_matches_filter_after_normalization(
+        self, mock_get_context, uppercase_dataset_context: DatasetContext
+    ) -> None:
+        """group_by and filter for same column normalize to same canonical name."""
+        mock_get_context.return_value = uppercase_dataset_context
+
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="ds"),
+            y=[ColumnRef(name="distance", aggregate="AVG")],
+            kind="bar",
+            group_by=ColumnRef(name="Airline"),
+            filters=[FilterConfig(column="airline", op="=", value="AA")],
+        )
+
+        normalized = DatasetValidator.normalize_column_names(config, dataset_id=24)
+
+        assert normalized.group_by is not None
+        assert normalized.filters is not None
+        assert normalized.group_by.name == normalized.filters[0].column == "AIRLINE"
