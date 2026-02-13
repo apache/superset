@@ -23,12 +23,11 @@ it needs to call create_app() in order to initialize things properly
 from typing import Any
 
 from celery.signals import task_postrun, worker_process_init
+from flask import has_app_context
 
 # Superset framework imports
 from superset import create_app
 from superset.extensions import celery_app, db
-
-from flask import has_app_context
 
 # Init the Flask app / configure everything
 flask_app = create_app()
