@@ -25,6 +25,12 @@ import { loadTags } from 'src/components/Tag/utils';
 import getOwnerName from 'src/utils/getOwnerName';
 import Owner from 'src/types/Owner';
 import { ModalFormField } from 'src/components/Modal';
+import {
+  OwnerSelectLabel,
+  OWNER_TEXT_LABEL_PROP,
+  OWNER_EMAIL_PROP,
+  OWNER_OPTION_FILTER_PROPS,
+} from 'src/features/owners/OwnerSelectLabel';
 import { useAccessOptions } from '../hooks/useAccessOptions';
 
 type Roles = { id: number; name: string }[];
@@ -33,6 +39,7 @@ type Owners = {
   full_name?: string;
   first_name?: string;
   last_name?: string;
+  email?: string;
 }[];
 
 interface AccessSectionProps {
@@ -40,7 +47,10 @@ interface AccessSectionProps {
   owners: Owners;
   roles: Roles;
   tags: TagType[];
-  onChangeOwners: (owners: { value: number; label: string }[]) => void;
+  onChangeOwners: (
+    owners: { value: number; label: string }[],
+    options: Record<string, unknown>[],
+  ) => void;
   onChangeRoles: (roles: { value: number; label: string }[]) => void;
   onChangeTags: (tags: { label: string; value: number }[]) => void;
   onClearTags: () => void;
@@ -60,9 +70,14 @@ const AccessSection = ({
 
   const ownersSelectValue = useMemo(
     () =>
-      (owners || []).map((owner: Owner) => ({
+      (owners || []).map((owner: Owner & { email?: string }) => ({
         value: owner.id,
-        label: getOwnerName(owner),
+        label: OwnerSelectLabel({
+          name: getOwnerName(owner),
+          email: owner.email,
+        }),
+        [OWNER_TEXT_LABEL_PROP]: getOwnerName(owner),
+        [OWNER_EMAIL_PROP]: owner.email ?? '',
       })),
     [owners],
   );
@@ -107,6 +122,7 @@ const AccessSection = ({
           value={ownersSelectValue}
           showSearch
           placeholder={t('Search owners')}
+          optionFilterProps={OWNER_OPTION_FILTER_PROPS}
         />
       </ModalFormField>
       {isFeatureEnabled(FeatureFlag.DashboardRbac) && (

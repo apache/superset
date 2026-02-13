@@ -29,6 +29,7 @@ from superset_core.mcp import tool
 if TYPE_CHECKING:
     from superset.models.slice import Slice
 
+from superset.extensions import event_logger
 from superset.mcp_service.chart.schemas import (
     ChartData,
     ChartError,
@@ -82,25 +83,27 @@ async def get_chart_data(  # noqa: C901
         from superset.utils import json as utils_json
 
         # Find the chart
-        chart = None
-        if isinstance(request.identifier, int) or (
-            isinstance(request.identifier, str) and request.identifier.isdigit()
-        ):
-            chart_id = (
-                int(request.identifier)
-                if isinstance(request.identifier, str)
-                else request.identifier
-            )
-            await ctx.debug(
-                "Performing ID-based chart lookup: chart_id=%s" % (chart_id,)
-            )
-            chart = ChartDAO.find_by_id(chart_id)
-        else:
-            await ctx.debug(
-                "Performing UUID-based chart lookup: uuid=%s" % (request.identifier,)
-            )
-            # Try UUID lookup using DAO flexible method
-            chart = ChartDAO.find_by_id(request.identifier, id_column="uuid")
+        with event_logger.log_context(action="mcp.get_chart_data.chart_lookup"):
+            chart = None
+            if isinstance(request.identifier, int) or (
+                isinstance(request.identifier, str) and request.identifier.isdigit()
+            ):
+                chart_id = (
+                    int(request.identifier)
+                    if isinstance(request.identifier, str)
+                    else request.identifier
+                )
+                await ctx.debug(
+                    "Performing ID-based chart lookup: chart_id=%s" % (chart_id,)
+                )
+                chart = ChartDAO.find_by_id(chart_id)
+            else:
+                await ctx.debug(
+                    "Performing UUID-based chart lookup: uuid=%s"
+                    % (request.identifier,)
+                )
+                # Try UUID lookup using DAO flexible method
+                chart = ChartDAO.find_by_id(request.identifier, id_column="uuid")
 
         if not chart:
             await ctx.error("Chart not found: identifier=%s" % (request.identifier,))
@@ -232,8 +235,9 @@ async def get_chart_data(  # noqa: C901
             )
 
             # Execute the query
-            command = ChartDataCommand(query_context)
-            result = command.run()
+            with event_logger.log_context(action="mcp.get_chart_data.query_execution"):
+                command = ChartDataCommand(query_context)
+                result = command.run()
 
             # Handle empty query results for certain chart types
             if not result or ("queries" not in result) or len(result["queries"]) == 0:
@@ -385,21 +389,27 @@ async def get_chart_data(  # noqa: C901
 
             # Handle different export formats
             if request.format == "csv":
-                return _export_data_as_csv(
-                    chart,
-                    data[: request.limit] if request.limit else data,
-                    raw_columns,
-                    cache_status,
-                    performance,
-                )
+                with event_logger.log_context(
+                    action="mcp.get_chart_data.format_conversion"
+                ):
+                    return _export_data_as_csv(
+                        chart,
+                        data[: request.limit] if request.limit else data,
+                        raw_columns,
+                        cache_status,
+                        performance,
+                    )
             elif request.format == "excel":
-                return _export_data_as_excel(
-                    chart,
-                    data[: request.limit] if request.limit else data,
-                    raw_columns,
-                    cache_status,
-                    performance,
-                )
+                with event_logger.log_context(
+                    action="mcp.get_chart_data.format_conversion"
+                ):
+                    return _export_data_as_excel(
+                        chart,
+                        data[: request.limit] if request.limit else data,
+                        raw_columns,
+                        cache_status,
+                        performance,
+                    )
 
             await ctx.report_progress(4, 4, "Building response")
 

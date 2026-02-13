@@ -28,6 +28,7 @@ from superset_core.mcp import tool
 if TYPE_CHECKING:
     from superset.models.slice import Slice
 
+from superset.extensions import event_logger
 from superset.mcp_service.chart.schemas import (
     ChartFilter,
     ChartInfo,
@@ -121,15 +122,16 @@ async def list_charts(request: ListChartsRequest, ctx: Context) -> ChartList:
     )
 
     try:
-        result = tool.run_tool(
-            filters=request.filters,
-            search=request.search,
-            select_columns=request.select_columns,
-            order_column=request.order_column,
-            order_direction=request.order_direction,
-            page=max(request.page - 1, 0),
-            page_size=request.page_size,
-        )
+        with event_logger.log_context(action="mcp.list_charts.query"):
+            result = tool.run_tool(
+                filters=request.filters,
+                search=request.search,
+                select_columns=request.select_columns,
+                order_column=request.order_column,
+                order_direction=request.order_direction,
+                page=max(request.page - 1, 0),
+                page_size=request.page_size,
+            )
         count = len(result.charts) if hasattr(result, "charts") else 0
         total_pages = getattr(result, "total_pages", None)
         await ctx.info(
@@ -145,9 +147,10 @@ async def list_charts(request: ListChartsRequest, ctx: Context) -> ChartList:
             "Applying field filtering via serialization context: columns=%s"
             % (columns_to_filter,)
         )
-        return result.model_dump(
-            mode="json", context={"select_columns": columns_to_filter}
-        )
+        with event_logger.log_context(action="mcp.list_charts.serialization"):
+            return result.model_dump(
+                mode="json", context={"select_columns": columns_to_filter}
+            )
     except Exception as e:
         await ctx.error("Failed to list charts: %s" % (str(e),))
         raise

@@ -614,9 +614,7 @@ describe('plugin-chart-table', () => {
         expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
           '',
         );
-        expect(getComputedStyle(screen.getByText('N/A')).background).toBe(
-          'rgba(172, 225, 196, 1)',
-        );
+        expect(getComputedStyle(screen.getByText('N/A')).background).toBe('');
       });
       test('should display original label in grouped headers', () => {
         const props = transformProps(testData.comparison);

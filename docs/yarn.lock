@@ -2446,6 +2446,11 @@
   resolved "https://registry.npmjs.org/@fontsource/fira-code/-/fira-code-5.2.7.tgz"
   integrity sha512-tnB9NNund9TwIym8/7DMJe573nlPEQb+fKUV5GL8TBYXjIhDvL0D7mgmNVNQUPhXp+R7RylQeiBdkA4EbOHPGQ==
 
+"@fontsource/ibm-plex-mono@^5.2.7":
+  version "5.2.7"
+  resolved "https://registry.yarnpkg.com/@fontsource/ibm-plex-mono/-/ibm-plex-mono-5.2.7.tgz#ef5b6f052115fdf6666208a5f8a0f13fcd7ba1fd"
+  integrity sha512-MKAb8qV+CaiMQn2B0dIi1OV3565NYzp3WN5b4oT6LTkk+F0jR6j0ZN+5BKJiIhffDC3rtBULsYZE65+0018z9w==
+
 "@fontsource/inter@^5.2.8":
   version "5.2.8"
   resolved "https://registry.npmjs.org/@fontsource/inter/-/inter-5.2.8.tgz"

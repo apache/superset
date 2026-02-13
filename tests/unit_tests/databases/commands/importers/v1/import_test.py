@@ -120,6 +120,39 @@ def test_import_database_sqlite_invalid(
     current_app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = True
 
 
+def test_import_database_sqlite_allowed_with_ignore_permissions(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Test that SQLite imports succeed when ignore_permissions=True.
+
+    System imports (like examples) use URIs from server config, not user input,
+    so they should bypass the PREVENT_UNSAFE_DB_CONNECTIONS check. This is the
+    key fix from PR #37577 that allows example loading to work in CI/showtime
+    environments where PREVENT_UNSAFE_DB_CONNECTIONS is enabled.
+    """
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.models.core import Database
+    from tests.integration_tests.fixtures.importexport import database_config_sqlite
+
+    mocker.patch.dict(current_app.config, {"PREVENT_UNSAFE_DB_CONNECTIONS": True})
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+
+    engine = db.session.get_bind()
+    Database.metadata.create_all(engine)  # pylint: disable=no-member
+
+    config = copy.deepcopy(database_config_sqlite)
+    # With ignore_permissions=True, the security check should be skipped
+    database = import_database(config, ignore_permissions=True)
+
+    assert database.database_name == "imported_database"
+    assert "sqlite" in database.sqlalchemy_uri
+
+    # Cleanup
+    db.session.delete(database)
+    db.session.flush()
+
+
 def test_import_database_managed_externally(
     mocker: MockerFixture,
     session: Session,
