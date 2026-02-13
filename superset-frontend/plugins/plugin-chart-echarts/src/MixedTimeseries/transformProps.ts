@@ -807,19 +807,20 @@ export default function transformProps(
     focusedSeries = seriesName;
   };
 
-  let mergedEchartOptions;
+  let customEchartOptions;
   try {
     // Parse custom EChart options safely using AST analysis
     // This replaces the unsafe `new Function()` approach with a secure parser
     // that only allows static data structures (no function callbacks)
-    const customEchartOptions = safeParseEChartOptions(_echartOptions);
-    mergedEchartOptions = mergeCustomEChartOptions(
-      echartOptions,
-      customEchartOptions,
-    );
+    customEchartOptions = safeParseEChartOptions(_echartOptions);
+    mergeCustomEChartOptions(echartOptions, customEchartOptions);
   } catch (_) {
-    mergedEchartOptions = echartOptions;
+    customEchartOptions = undefined;
   }
+
+  const mergedEchartOptions = customEchartOptions
+    ? mergeCustomEChartOptions(echartOptions, customEchartOptions)
+    : echartOptions;
 
   return {
     formData,
