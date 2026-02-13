@@ -304,26 +304,3 @@ monitor_memory() {
     sleep 2
   done
 }
-
-cypress-run-applitools() {
-  cd "$GITHUB_WORKSPACE/superset-frontend/cypress-base"
-
-  local flasklog="${HOME}/flask.log"
-  local port=8081
-  local cypress="./node_modules/.bin/cypress run"
-  local browser=${CYPRESS_BROWSER:-chrome}
-
-  export CYPRESS_BASE_URL="http://localhost:${port}"
-
-  nohup flask run --no-debugger -p $port >"$flasklog" 2>&1 </dev/null &
-  local flaskProcessId=$!
-
-  $cypress --spec "cypress/applitools/**/*" --browser "$browser" --headless
-
-  say "::group::Flask log for default run"
-  cat "$flasklog"
-  say "::endgroup::"
-
-  # make sure the program exits
-  kill $flaskProcessId
-}

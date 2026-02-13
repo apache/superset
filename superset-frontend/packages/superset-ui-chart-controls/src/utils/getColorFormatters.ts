@@ -17,6 +17,8 @@
  * under the License.
  */
 import memoizeOne from 'memoize-one';
+import { isString, isBoolean } from 'lodash';
+import { isBlank } from '@apache-superset/core';
 import { addAlpha, DataRecord } from '@superset-ui/core';
 import {
   ColorFormatters,
@@ -254,6 +256,9 @@ export const getColorFunction = (
   }
 
   return (value: number | string | boolean | null) => {
+    if (isBlank(value) && operator !== Comparator.IsNull) {
+      return undefined;
+    }
     const compareResult = comparatorFunction(value, columnValues);
     if (compareResult === false) return undefined;
     const { cutoffValue, extremeValue } = compareResult;
@@ -318,11 +323,3 @@ export const getColorFormatters = memoizeOne(
       [],
     ) ?? [],
 );
-
-function isString(value: unknown) {
-  return typeof value === 'string';
-}
-
-function isBoolean(value: unknown) {
-  return typeof value === 'boolean';
-}

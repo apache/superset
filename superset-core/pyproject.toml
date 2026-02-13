@@ -18,7 +18,7 @@
 
 [project]
 name = "apache-superset-core"
-version = "0.0.1rc3"
+version = "0.0.1rc4"
 description = "Core Python package for building Apache Superset backend extensions and integrations"
 readme = "README.md"
 authors = [
@@ -45,8 +45,8 @@ dependencies = [
     "flask-appbuilder>=5.0.2,<6",
     "pydantic>=2.8.0",
     "sqlalchemy>=1.4.0,<2.0",
-    "sqlalchemy-utils>=0.38.0",
-    "sqlglot>=27.15.2, <28",
+    "sqlalchemy-utils>=0.42.0",
+    "sqlglot>=28.10.0, <29",
     "typing-extensions>=4.0.0",
 ]
 

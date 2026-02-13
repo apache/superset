@@ -28,9 +28,9 @@ from superset.daos.exceptions import DAODeleteFailedError
 from superset.extensions import db
 from superset.models.task_subscribers import TaskSubscriber
 from superset.models.tasks import Task
-from superset.tasks.constants import ABORTABLE_STATES
+from superset.tasks.constants import ABORTABLE_STATES, TERMINAL_STATES
 from superset.tasks.filters import TaskFilter
-from superset.tasks.utils import get_active_dedup_key, json
+from superset.tasks.utils import get_active_dedup_key, get_finished_dedup_key, json
 
 logger = logging.getLogger(__name__)
 
@@ -243,7 +243,7 @@ class TaskDAO(BaseDAO[Task]):
                 )
 
             # Transition to ABORTING (not ABORTED yet)
-            task.status = TaskStatus.ABORTING.value
+            task.set_status(TaskStatus.ABORTING)
             db.session.merge(task)
             logger.info("Set task %s to ABORTING (scope: %s)", task_uuid, task.scope)
 
@@ -443,6 +443,10 @@ class TaskDAO(BaseDAO[Task]):
 
         if set_ended_at:
             update_values["ended_at"] = datetime.now(timezone.utc)
+
+        # Update dedup_key if transitioning to terminal state
+        if new_status_val in TERMINAL_STATES:
+            update_values["dedup_key"] = get_finished_dedup_key(task_uuid)
 
         # Atomic compare-and-swap: only update if status matches expected
         rows_updated = (

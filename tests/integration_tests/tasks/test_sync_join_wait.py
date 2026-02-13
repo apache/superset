@@ -42,11 +42,11 @@ def test_submit_task_distinguishes_new_vs_existing(
             "task_type": "test-type",
             "task_key": "distinguish-key",
             "task_name": "First Task",
-            "user_id": admin.id,
         }
     ).run_with_info()
 
     assert is_new1 is True
+    assert task1.user_id == admin.id
 
     try:
         # Second submission with same key - should join existing
@@ -55,7 +55,6 @@ def test_submit_task_distinguishes_new_vs_existing(
                 "task_type": "test-type",
                 "task_key": "distinguish-key",
                 "task_name": "Second Task",
-                "user_id": admin.id,
             }
         ).run_with_info()
 
@@ -66,21 +65,6 @@ def test_submit_task_distinguishes_new_vs_existing(
         # Cleanup
         db.session.delete(task1)
         db.session.commit()
-
-
-def test_terminal_states_recognized_correctly(app_context) -> None:
-    """
-    Test that TaskManager.TERMINAL_STATES contains the expected values.
-    """
-    assert TaskStatus.SUCCESS.value in TaskManager.TERMINAL_STATES
-    assert TaskStatus.FAILURE.value in TaskManager.TERMINAL_STATES
-    assert TaskStatus.ABORTED.value in TaskManager.TERMINAL_STATES
-    assert TaskStatus.TIMED_OUT.value in TaskManager.TERMINAL_STATES
-
-    # Non-terminal states should not be in the set
-    assert TaskStatus.PENDING.value not in TaskManager.TERMINAL_STATES
-    assert TaskStatus.IN_PROGRESS.value not in TaskManager.TERMINAL_STATES
-    assert TaskStatus.ABORTING.value not in TaskManager.TERMINAL_STATES
 
 
 def test_wait_for_completion_timeout(app_context, login_as, get_user) -> None:
@@ -100,9 +84,9 @@ def test_wait_for_completion_timeout(app_context, login_as, get_user) -> None:
             "task_type": "test-timeout",
             "task_key": "timeout-key",
             "task_name": "Timeout Task",
-            "user_id": admin.id,
         }
     ).run_with_info()
+    assert task.user_id == admin.id
 
     try:
         # Force polling mode by mocking signal_cache as None
@@ -134,9 +118,9 @@ def test_wait_returns_immediately_for_terminal_task(
             "task_type": "test-immediate",
             "task_key": "immediate-key",
             "task_name": "Immediate Task",
-            "user_id": admin.id,
         }
     ).run_with_info()
+    assert task.user_id == admin.id
 
     TaskDAO.update(task, {"status": TaskStatus.SUCCESS.value})
     db.session.commit()
