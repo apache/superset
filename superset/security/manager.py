@@ -119,7 +119,7 @@ class _RLSFilterRow(NamedTuple):
 
 # Cache key components for request-scoped RLS filter cache
 _RLSCacheKey = tuple[str, int | str]
-_RLSCache = dict[_RLSCacheKey, list[Any]]
+_RLSCache = dict[_RLSCacheKey, list[SqlaQuery]]
 
 
 class SupersetRoleApi(RoleApi):
