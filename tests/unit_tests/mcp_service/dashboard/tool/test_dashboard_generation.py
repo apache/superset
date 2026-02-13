@@ -26,6 +26,13 @@ import pytest
 from fastmcp import Client
 
 from superset.mcp_service.app import mcp
+from superset.mcp_service.dashboard.tool.add_chart_to_existing_dashboard import (
+    _add_chart_to_layout,
+    _ensure_layout_structure,
+    _find_next_row_position,
+    _find_tab_insert_target,
+    _generate_id,
+)
 from superset.utils import json
 
 logging.basicConfig(level=logging.DEBUG)
@@ -664,10 +671,6 @@ class TestLayoutHelpers:
 
     def test_generate_id_format(self):
         """Test that _generate_id produces correct format."""
-        from superset.mcp_service.dashboard.tool.add_chart_to_existing_dashboard import (
-            _generate_id,
-        )
-
         row_id = _generate_id("ROW")
         assert row_id.startswith("ROW-")
         assert len(row_id) == 12
@@ -678,38 +681,22 @@ class TestLayoutHelpers:
 
     def test_generate_id_uniqueness(self):
         """Test that _generate_id produces unique IDs."""
-        from superset.mcp_service.dashboard.tool.add_chart_to_existing_dashboard import (
-            _generate_id,
-        )
-
         ids = {_generate_id("ROW") for _ in range(100)}
         assert len(ids) == 100
 
     def test_find_next_row_position_empty_layout(self):
         """Test _find_next_row_position with empty layout."""
-        from superset.mcp_service.dashboard.tool.add_chart_to_existing_dashboard import (
-            _find_next_row_position,
-        )
-
         result = _find_next_row_position({})
         assert isinstance(result, str)
         assert result.startswith("ROW-")
 
     def test_find_tab_insert_target_no_tabs(self):
         """Test _find_tab_insert_target with no tabs."""
-        from superset.mcp_service.dashboard.tool.add_chart_to_existing_dashboard import (
-            _find_tab_insert_target,
-        )
-
         layout = {"GRID_ID": {"children": ["ROW-1"], "type": "GRID"}}
         assert _find_tab_insert_target(layout) is None
 
     def test_find_tab_insert_target_with_tabs(self):
         """Test _find_tab_insert_target with tabbed dashboard."""
-        from superset.mcp_service.dashboard.tool.add_chart_to_existing_dashboard import (
-            _find_tab_insert_target,
-        )
-
         layout = {
             "GRID_ID": {"children": ["TABS-main"], "type": "GRID"},
             "TABS-main": {"children": ["TAB-first", "TAB-second"], "type": "TABS"},
@@ -720,18 +707,10 @@ class TestLayoutHelpers:
 
     def test_find_tab_insert_target_no_grid(self):
         """Test _find_tab_insert_target with missing GRID_ID."""
-        from superset.mcp_service.dashboard.tool.add_chart_to_existing_dashboard import (
-            _find_tab_insert_target,
-        )
-
         assert _find_tab_insert_target({"ROOT_ID": {"type": "ROOT"}}) is None
 
     def test_add_chart_to_layout_creates_column(self):
         """Test that _add_chart_to_layout creates ROW > COLUMN > CHART."""
-        from superset.mcp_service.dashboard.tool.add_chart_to_existing_dashboard import (
-            _add_chart_to_layout,
-        )
-
         layout = {
             "GRID_ID": {"children": [], "parents": ["ROOT_ID"], "type": "GRID"},
         }
@@ -758,10 +737,6 @@ class TestLayoutHelpers:
 
     def test_ensure_layout_structure_creates_missing(self):
         """Test _ensure_layout_structure creates GRID and ROOT if missing."""
-        from superset.mcp_service.dashboard.tool.add_chart_to_existing_dashboard import (
-            _ensure_layout_structure,
-        )
-
         layout: dict = {}
         _ensure_layout_structure(layout, "ROW-test", "GRID_ID")
 
@@ -773,10 +748,6 @@ class TestLayoutHelpers:
 
     def test_ensure_layout_structure_adds_to_tab(self):
         """Test _ensure_layout_structure adds row to tab parent."""
-        from superset.mcp_service.dashboard.tool.add_chart_to_existing_dashboard import (
-            _ensure_layout_structure,
-        )
-
         layout = {
             "ROOT_ID": {"children": ["GRID_ID"], "type": "ROOT"},
             "GRID_ID": {
