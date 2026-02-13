@@ -1237,11 +1237,12 @@ def test_get_rls_filters_returns_cached_result(
 
     mock_user = mocker.MagicMock()
     mock_user.id = 1
+    mock_user.username = "admin"
     mock_user.roles = [mocker.MagicMock(id=1)]
     mock_g = mocker.patch("superset.security.manager.g", user=mock_user)
     # Prevent MagicMock from auto-creating _rls_filter_cache
     del mock_g._rls_filter_cache
-    mocker.patch("superset.security.manager.get_user_id", return_value=1)
+    mocker.patch("superset.security.manager.get_username", return_value="admin")
     mocker.patch.object(sm, "get_user_roles", return_value=mock_user.roles)
 
     table = mocker.MagicMock()
@@ -1250,8 +1251,8 @@ def test_get_rls_filters_returns_cached_result(
     # First call populates the cache
     result1 = sm.get_rls_filters(table)
 
-    # Verify cache was populated
-    assert (1, 42) in mock_g._rls_filter_cache
+    # Verify cache was populated keyed by username
+    assert ("admin", 42) in mock_g._rls_filter_cache
 
     # Replace session query with something that would fail if called
     mocker.patch.object(
@@ -1277,10 +1278,11 @@ def test_prefetch_rls_filters_populates_cache(
 
     mock_user = mocker.MagicMock()
     mock_user.id = 1
+    mock_user.username = "admin"
     mock_user.roles = [mocker.MagicMock(id=10)]
     mock_g = mocker.patch("superset.security.manager.g", user=mock_user)
     del mock_g._rls_filter_cache
-    mocker.patch("superset.security.manager.get_user_id", return_value=1)
+    mocker.patch("superset.security.manager.get_username", return_value="admin")
     mocker.patch.object(sm, "get_user_roles", return_value=mock_user.roles)
 
     # Mock the batch query to return filters for table 1 but not table 2
@@ -1295,12 +1297,17 @@ def test_prefetch_rls_filters_populates_cache(
 
     sm.prefetch_rls_filters([1, 2])
 
-    # Table 1 should have 2 filters (as tuples of id, group_key, clause)
-    assert len(mock_g._rls_filter_cache[(1, 1)]) == 2
-    assert mock_g._rls_filter_cache[(1, 1)][0] == (100, "group_a", "id > 0")
-    assert mock_g._rls_filter_cache[(1, 1)][1] == (101, None, "active = 1")
+    # Table 1 should have 2 filters with named attribute access
+    cached = mock_g._rls_filter_cache[("admin", 1)]
+    assert len(cached) == 2
+    assert cached[0].id == 100
+    assert cached[0].group_key == "group_a"
+    assert cached[0].clause == "id > 0"
+    assert cached[1].id == 101
+    assert cached[1].group_key is None
+    assert cached[1].clause == "active = 1"
     # Table 2 should have empty list
-    assert mock_g._rls_filter_cache[(1, 2)] == []
+    assert mock_g._rls_filter_cache[("admin", 2)] == []
 
 
 def test_prefetch_rls_filters_skips_cached_ids(
@@ -1315,13 +1322,14 @@ def test_prefetch_rls_filters_skips_cached_ids(
 
     mock_user = mocker.MagicMock()
     mock_user.id = 1
+    mock_user.username = "admin"
     mock_user.roles = [mocker.MagicMock(id=10)]
     mock_g = mocker.patch("superset.security.manager.g", user=mock_user)
-    mocker.patch("superset.security.manager.get_user_id", return_value=1)
+    mocker.patch("superset.security.manager.get_username", return_value="admin")
     mocker.patch.object(sm, "get_user_roles", return_value=mock_user.roles)
 
     # Pre-populate cache for table 1
-    mock_g._rls_filter_cache = {(1, 1): [(100, "group_a", "id > 0")]}
+    mock_g._rls_filter_cache = {("admin", 1): [(100, "group_a", "id > 0")]}
 
     # If it queries the DB, this will fail
     mocker.patch.object(
@@ -1359,19 +1367,18 @@ def test_get_rls_filters_cache_works_for_guest_user(
     app_context: None,
 ) -> None:
     """
-    Test that get_rls_filters() caches results for guest users (who have no
-    integer id, only a username) so repeated calls don't re-query the DB.
+    Test that get_rls_filters() caches results for guest users who use
+    the same username-based cache key as regular users.
     """
     sm = SupersetSecurityManager(appbuilder)
 
-    # GuestUser has no .id but has .username
-    mock_guest = mocker.MagicMock(spec=["username", "roles"])
+    mock_guest = mocker.MagicMock()
     mock_guest.username = "guest_user"
     mock_guest.roles = [mocker.MagicMock(id=99)]
 
     mock_g = mocker.patch("superset.security.manager.g", user=mock_guest)
     del mock_g._rls_filter_cache
-    mocker.patch("superset.security.manager.get_user_id", return_value=None)
+    mocker.patch("superset.security.manager.get_username", return_value="guest_user")
     mocker.patch.object(sm, "get_user_roles", return_value=mock_guest.roles)
 
     table = mocker.MagicMock()
@@ -1400,18 +1407,18 @@ def test_prefetch_rls_filters_works_for_guest_user(
     app_context: None,
 ) -> None:
     """
-    Test that prefetch_rls_filters() works for guest users who have no
-    integer id, using username as the cache key instead.
+    Test that prefetch_rls_filters() works for guest users using the
+    same username-based cache key as regular users.
     """
     sm = SupersetSecurityManager(appbuilder)
 
-    mock_guest = mocker.MagicMock(spec=["username", "roles"])
+    mock_guest = mocker.MagicMock()
     mock_guest.username = "guest_user"
     mock_guest.roles = [mocker.MagicMock(id=99)]
 
     mock_g = mocker.patch("superset.security.manager.g", user=mock_guest)
     del mock_g._rls_filter_cache
-    mocker.patch("superset.security.manager.get_user_id", return_value=None)
+    mocker.patch("superset.security.manager.get_username", return_value="guest_user")
     mocker.patch.object(sm, "get_user_roles", return_value=mock_guest.roles)
 
     # Mock the batch query returning no filters
