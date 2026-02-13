@@ -740,9 +740,11 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
     }
   }, [props.ownState]);
 
-  if (chartIsStale) {
-    props.actions.logEvent(LOG_ACTIONS_CHANGE_EXPLORE_CONTROLS, {});
-  }
+  useEffect(() => {
+    if (chartIsStale) {
+      props.actions.logEvent(LOG_ACTIONS_CHANGE_EXPLORE_CONTROLS, {});
+    }
+  }, [chartIsStale, props.actions.logEvent]);
 
   const errorMessage = useMemo(() => {
     // Include all controls with validation errors (for button disabling)
