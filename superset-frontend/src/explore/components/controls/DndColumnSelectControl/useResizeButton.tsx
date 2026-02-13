@@ -23,7 +23,7 @@ import {
   useState,
   MouseEvent as ReactMouseEvent,
 } from 'react';
-
+import { t } from '@apache-superset/core';
 import { throttle } from 'lodash';
 import {
   POPOVER_INITIAL_HEIGHT,
@@ -135,7 +135,7 @@ export default function useResizeButton(
   return [
     <Icons.ArrowsAltOutlined
       role="button"
-      aria-label="Resize"
+      aria-label={t('Resize')}
       tabIndex={0}
       onMouseDown={onDragDown}
       className="edit-popover-resize"

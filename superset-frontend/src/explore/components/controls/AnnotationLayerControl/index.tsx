@@ -206,7 +206,7 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
       );
     }
     if (!anno.show) {
-      return <span style={{ color: theme.colorError }}> Hidden </span>;
+      return <span style={{ color: theme.colorError }}> {t('Hidden')} </span>;
     }
     return '';
   }
