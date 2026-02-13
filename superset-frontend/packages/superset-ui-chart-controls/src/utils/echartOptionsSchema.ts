@@ -68,29 +68,18 @@ export const textStyleSchema = z.object({
   fontFamily: z.string().optional(),
   fontSize: z.number().optional(),
   lineHeight: z.number().optional(),
-  backgroundColor: z.union([colorSchema, z.literal('transparent')]).optional(),
-  borderColor: colorSchema.optional(),
-  borderWidth: z.number().optional(),
-  borderType: lineTypeSchema.optional(),
-  borderRadius: z.union([z.number(), z.array(z.number())]).optional(),
-  padding: z.union([z.number(), z.array(z.number())]).optional(),
-  shadowColor: colorSchema.optional(),
-  shadowBlur: z.number().optional(),
-  shadowOffsetX: z.number().optional(),
-  shadowOffsetY: z.number().optional(),
   width: numberOrPercentSchema.optional(),
   height: numberOrPercentSchema.optional(),
   textBorderColor: colorSchema.optional(),
   textBorderWidth: z.number().optional(),
   textBorderType: lineTypeSchema.optional(),
+  textBorderDashOffset: z.number().optional(),
   textShadowColor: colorSchema.optional(),
   textShadowBlur: z.number().optional(),
   textShadowOffsetX: z.number().optional(),
   textShadowOffsetY: z.number().optional(),
   overflow: z.enum(['none', 'truncate', 'break', 'breakAll']).optional(),
   ellipsis: z.string().optional(),
-  align: z.enum(['left', 'center', 'right']).optional(),
-  verticalAlign: z.enum(['top', 'middle', 'bottom']).optional(),
 });
 
 // =============================================================================
@@ -823,8 +812,8 @@ export function validateEChartOptions(data: unknown) {
 }
 
 /**
- * Validates and returns only the valid portion of the options.
- * Invalid fields are stripped, not rejected.
+ * Validates the options and returns them if valid.
+ * Returns an empty object if validation fails.
  */
 export function parseEChartOptionsStrict(data: unknown): CustomEChartOptions {
   const result = customEChartOptionsSchema.safeParse(data);
