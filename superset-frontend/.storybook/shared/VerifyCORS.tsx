@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { Component, ReactNode } from 'react';
+import { useState, useEffect, useCallback, useRef, ReactNode } from 'react';
 import { t } from '@apache-superset/core';
 import {
   SupersetClient,
@@ -36,12 +36,6 @@ export type Props = {
   postPayload?: string;
 };
 
-type State = {
-  didVerify: boolean;
-  error?: Error | SupersetApiError;
-  payload?: object;
-};
-
 export const renderError = (error: Error) => (
   <div>
     The following error occurred, make sure you have <br />
@@ -54,29 +48,37 @@ export const renderError = (error: Error) => (
   </div>
 );
 
-export default class VerifyCORS extends Component<Props, State> {
-  constructor(props: Props) {
-    super(props);
-    this.state = { didVerify: false };
-    this.handleVerify = this.handleVerify.bind(this);
-  }
+export default function VerifyCORS({
+  children,
+  endpoint,
+  host,
+  method,
+  postPayload,
+}: Props): JSX.Element {
+  const [didVerify, setDidVerify] = useState(false);
+  const [error, setError] = useState<Error | SupersetApiError | undefined>(
+    undefined,
+  );
+  const [payload, setPayload] = useState<object | undefined>(undefined);
 
-  componentDidUpdate(prevProps: Props) {
-    const { endpoint, host, postPayload, method } = this.props;
+  const prevPropsRef = useRef({ endpoint, host, postPayload, method });
+
+  useEffect(() => {
+    const prevProps = prevPropsRef.current;
     if (
-      (this.state.didVerify || this.state.error) &&
+      (didVerify || error) &&
       (prevProps.endpoint !== endpoint ||
         prevProps.host !== host ||
         prevProps.postPayload !== postPayload ||
         prevProps.method !== method)
     ) {
-      // eslint-disable-next-line react/no-did-update-set-state
-      this.setState({ didVerify: false, error: undefined });
+      setDidVerify(false);
+      setError(undefined);
     }
-  }
+    prevPropsRef.current = { endpoint, host, postPayload, method };
+  }, [endpoint, host, postPayload, method, didVerify, error]);
 
-  handleVerify() {
-    const { endpoint, host, postPayload, method } = this.props;
+  const handleVerify = useCallback(() => {
     SupersetClient.reset();
     SupersetClient.configure({
       credentials: 'include',
@@ -94,43 +96,40 @@ export default class VerifyCORS extends Component<Props, State> {
         }
         return { error: 'Must provide valid endpoint and payload.' };
       })
-      .then(result =>
-        this.setState({ didVerify: true, error: undefined, payload: result }),
-      )
-      .catch(error => this.setState({ error }));
-  }
+      .then(result => {
+        setDidVerify(true);
+        setError(undefined);
+        setPayload(result);
+      })
+      .catch(err => setError(err));
+  }, [endpoint, host, method, postPayload]);
 
-  render() {
-    const { didVerify, error, payload } = this.state;
-    const { children } = this.props;
-
-    return didVerify ? (
-      children({ payload })
-    ) : (
-      <div className="row">
-        <div className="col-md-10">
-          This example requires CORS requests from this domain. <br />
-          <br />
-          1) enable CORS requests in your Superset App from{' '}
-          {`${window.location.origin}`}
-          <br />
-          2) configure your Superset App host name below <br />
-          3) click below to verify authentication. You may debug CORS further
-          using the `@superset-ui/connection` story. <br />
-          <br />
-          <Button type="primary" size="small" onClick={this.handleVerify}>
-            {t('Verify')}
-          </Button>
-          <br />
-          <br />
-        </div>
-
-        {error && (
-          <div className="col-md-8">
-            <ErrorMessage error={error} />
-          </div>
-        )}
+  return didVerify ? (
+    <>{children({ payload })}</>
+  ) : (
+    <div className="row">
+      <div className="col-md-10">
+        This example requires CORS requests from this domain. <br />
+        <br />
+        1) enable CORS requests in your Superset App from{' '}
+        {`${window.location.origin}`}
+        <br />
+        2) configure your Superset App host name below <br />
+        3) click below to verify authentication. You may debug CORS further
+        using the `@superset-ui/connection` story. <br />
+        <br />
+        <Button type="primary" size="small" onClick={handleVerify}>
+          {t('Verify')}
+        </Button>
+        <br />
+        <br />
       </div>
-    );
-  }
+
+      {error && (
+        <div className="col-md-8">
+          <ErrorMessage error={error} />
+        </div>
+      )}
+    </div>
+  );
 }

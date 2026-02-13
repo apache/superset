@@ -19,6 +19,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { ParentSize } from '@visx/responsive';
+import { useTheme } from '@emotion/react';
 import {
   QueryFormData,
   QueryData,
@@ -33,6 +34,7 @@ import getChartBuildQueryRegistry from '../registries/ChartBuildQueryRegistrySin
 import getChartMetadataRegistry from '../registries/ChartMetadataRegistrySingleton';
 import getChartControlPanelRegistry from '../registries/ChartControlPanelRegistrySingleton';
 import SuperChart from './SuperChart';
+import { SupersetTheme } from '@apache-superset/core/ui';
 
 // Using more specific states that align with chart loading process
 type LoadingState = 'uninitialized' | 'loading' | 'loaded' | 'error';
@@ -183,6 +185,8 @@ export default function StatefulChart(props: StatefulChartProps) {
   const [data, setData] = useState<QueryData[]>();
   const [error, setError] = useState<Error>();
   const [formData, setFormData] = useState<QueryFormData>();
+
+  const theme = useTheme() as SupersetTheme;
 
   const chartClientRef = useRef<ChartClient>();
   const abortControllerRef = useRef<AbortController>();
@@ -483,6 +487,7 @@ export default function StatefulChart(props: StatefulChartProps) {
         onRenderSuccess={onRenderSuccess}
         onRenderFailure={onRenderFailure}
         hooks={hooks}
+        theme={theme}
       />
     );
 

@@ -17,45 +17,32 @@
  * under the License.
  */
 
-import { Component, ReactNode } from 'react';
+import { useState, useCallback, ReactNode } from 'react';
 
 export type Props = {
   children: ReactNode;
   expandableWhat?: string;
 };
 
-type State = {
-  open: boolean;
-};
+export default function Expandable({ children, expandableWhat }: Props) {
+  const [open, setOpen] = useState(false);
 
-export default class Expandable extends Component<Props, State> {
-  constructor(props: Props) {
-    super(props);
-    this.state = { open: false };
-    this.handleToggle = this.handleToggle.bind(this);
-  }
+  const handleToggle = useCallback(() => {
+    setOpen(prevOpen => !prevOpen);
+  }, []);
 
-  handleToggle() {
-    this.setState(({ open }) => ({ open: !open }));
-  }
-
-  render() {
-    const { open } = this.state;
-    const { children, expandableWhat } = this.props;
-
-    return (
-      <div>
-        <button
-          type="button"
-          className="btn btn-primary btn-sm"
-          onClick={this.handleToggle}
-        >
-          {`${open ? 'Hide' : 'Show'} ${expandableWhat}`}
-        </button>
-        <br />
-        <br />
-        {open ? children : null}
-      </div>
-    );
-  }
+  return (
+    <div>
+      <button
+        type="button"
+        className="btn btn-primary btn-sm"
+        onClick={handleToggle}
+      >
+        {`${open ? 'Hide' : 'Show'} ${expandableWhat}`}
+      </button>
+      <br />
+      <br />
+      {open ? children : null}
+    </div>
+  );
 }

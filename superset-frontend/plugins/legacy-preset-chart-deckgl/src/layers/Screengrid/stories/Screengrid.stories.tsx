@@ -20,6 +20,7 @@
 /* eslint-disable sort-keys */
 /* eslint-disable no-magic-numbers */
 import { SuperChart } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/ui';
 import { ScreengridChartPlugin } from '@superset-ui/legacy-preset-chart-deckgl';
 import { withResizableChartDemo, dummyDatasource } from '@storybook-shared';
 import payload from './payload';
@@ -55,6 +56,7 @@ export const ScreengridChartViz = ({
   height: number;
 }) => (
   <SuperChart
+    theme={supersetTheme}
     chartType="deck_screengrid"
     width={width}
     height={height}

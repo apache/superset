@@ -22,6 +22,7 @@ import {
   VizType,
   getChartTransformPropsRegistry,
 } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/ui';
 import {
   EchartsFunnelChartPlugin,
   FunnelTransformProps,
@@ -93,6 +94,7 @@ export const Funnel = ({
   height: number;
 }) => (
   <SuperChart
+    theme={supersetTheme}
     chartType={VizType.Funnel}
     width={width}
     height={height}

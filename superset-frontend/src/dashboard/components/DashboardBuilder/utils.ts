@@ -32,8 +32,9 @@ export const getRootLevelTabsComponent = (dashboardLayout: DashboardLayout) => {
 
 export const shouldFocusTabs = (
   event: { target: { className: string } },
-  container: { contains: (arg0: any) => any },
-) =>
+  container: { contains: (arg0: any) => any } | null,
+  _menuRef: HTMLDivElement | null,
+): boolean =>
   // don't focus the tabs when we click on a tab
   event.target.className === 'ant-tabs-nav-wrap' ||
-  container.contains(event.target);
+  (container?.contains(event.target) ?? false);

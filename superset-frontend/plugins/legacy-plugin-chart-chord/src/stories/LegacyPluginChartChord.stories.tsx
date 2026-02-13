@@ -18,6 +18,7 @@
  */
 
 import { SuperChart, VizType } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/ui';
 import ChordChartPlugin from '@superset-ui/legacy-plugin-chart-chord';
 import data from './data';
 import { withResizableChartDemo } from '@storybook-shared';
@@ -67,6 +68,7 @@ export const Basic = ({
   sortByMetric: boolean;
 }) => (
   <SuperChart
+    theme={supersetTheme}
     chartType={VizType.Chord}
     width={width}
     height={height}

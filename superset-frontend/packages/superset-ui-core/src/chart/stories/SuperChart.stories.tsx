@@ -18,6 +18,7 @@
  */
 
 import { SuperChart } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/ui';
 import {
   DiligentChartPlugin,
   BuggyChartPlugin,
@@ -37,6 +38,7 @@ export default {
 
 export const basic = ({ width, height }: { width: string; height: string }) => (
   <SuperChart
+    theme={supersetTheme}
     chartType={ChartKeys.DILIGENT}
     width={width}
     height={height}
@@ -61,6 +63,7 @@ export const container50pct = ({
   height: string;
 }) => (
   <SuperChart
+    theme={supersetTheme}
     chartType={ChartKeys.DILIGENT}
     width={width}
     height={height}
@@ -83,6 +86,7 @@ export const Resizable = () => (
   <ResizableChartDemo>
     {size => (
       <SuperChart
+        theme={supersetTheme}
         chartType={ChartKeys.DILIGENT}
         width={size.width}
         height={size.height}
@@ -100,6 +104,7 @@ export const fixedWidth100height = ({
   height: string;
 }) => (
   <SuperChart
+    theme={supersetTheme}
     chartType={ChartKeys.DILIGENT}
     height={height}
     width={width}
@@ -125,6 +130,7 @@ export const fixedHeight100Width = ({
   height: string;
 }) => (
   <SuperChart
+    theme={supersetTheme}
     chartType={ChartKeys.DILIGENT}
     height={height}
     width={width}
@@ -149,6 +155,7 @@ export const withErrorBoundary = ({
   height: string;
 }) => (
   <SuperChart
+    theme={supersetTheme}
     chartType={ChartKeys.BUGGY}
     height={height}
     width={width}
@@ -173,6 +180,7 @@ export const withWrapper = ({
   height: string;
 }) => (
   <SuperChart
+    theme={supersetTheme}
     chartType={ChartKeys.DILIGENT}
     width={width}
     height={height}
@@ -202,7 +210,12 @@ export const withNoResults = ({
   width: string;
   height: string;
 }) => (
-  <SuperChart chartType={ChartKeys.DILIGENT} width={width} height={height} />
+  <SuperChart
+    theme={supersetTheme}
+    chartType={ChartKeys.DILIGENT}
+    width={width}
+    height={height}
+  />
 );
 withNoResults.storyName = 'With no results';
 withNoResults.args = {
@@ -221,7 +234,12 @@ export const withNoResultsAndMedium = ({
   width: string;
   height: string;
 }) => (
-  <SuperChart chartType={ChartKeys.DILIGENT} width={width} height={height} />
+  <SuperChart
+    theme={supersetTheme}
+    chartType={ChartKeys.DILIGENT}
+    width={width}
+    height={height}
+  />
 );
 
 withNoResultsAndMedium.storyName = 'With no results and medium';
@@ -241,7 +259,12 @@ export const withNoResultsAndSmall = ({
   width: string;
   height: string;
 }) => (
-  <SuperChart chartType={ChartKeys.DILIGENT} width={width} height={height} />
+  <SuperChart
+    theme={supersetTheme}
+    chartType={ChartKeys.DILIGENT}
+    width={width}
+    height={height}
+  />
 );
 withNoResultsAndSmall.storyName = 'With no results and small';
 withNoResultsAndSmall.args = {

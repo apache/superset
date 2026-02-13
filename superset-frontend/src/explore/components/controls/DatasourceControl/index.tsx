@@ -18,15 +18,10 @@
  * under the License.
  */
 
-import React, { PureComponent } from 'react';
+import React, { useState, useCallback } from 'react';
 import { DatasourceType, SupersetClient, Datasource } from '@superset-ui/core';
 import { t } from '@apache-superset/core';
-import {
-  css,
-  styled,
-  withTheme,
-  type SupersetTheme,
-} from '@apache-superset/core/ui';
+import { css, styled, useTheme } from '@apache-superset/core/ui';
 import { getTemporalColumns } from '@superset-ui/chart-controls';
 import { getUrlParam } from 'src/utils/urlUtils';
 import {
@@ -99,7 +94,6 @@ interface DatasourceControlProps {
   form_data?: FormData;
   isEditable?: boolean;
   onDatasourceSave?: ((datasource: ExtendedDatasource) => void) | null;
-  theme: SupersetTheme;
   user: User;
   // ControlHeader-related props
   hovered?: boolean;
@@ -110,20 +104,6 @@ interface DatasourceControlProps {
   validationErrors?: string[];
   name?: string;
 }
-
-interface DatasourceControlState {
-  showEditDatasourceModal: boolean;
-  showChangeDatasourceModal: boolean;
-  showSaveDatasetModal: boolean;
-  showDatasource?: boolean;
-}
-
-const defaultProps = {
-  onChange: () => {},
-  onDatasourceSave: null,
-  value: null,
-  isEditable: true,
-};
 
 const getDatasetType = (datasource: ExtendedDatasource): string => {
   if (datasource.type === 'query') {
@@ -234,397 +214,372 @@ const preventRouterLinkWhileMetaClicked = (evt: React.MouseEvent) => {
   }
 };
 
-class DatasourceControl extends PureComponent<
-  DatasourceControlProps,
-  DatasourceControlState
-> {
-  static defaultProps = defaultProps;
+export default function DatasourceControl({
+  actions,
+  onChange = () => {},
+  value = null,
+  datasource,
+  form_data,
+  isEditable = true,
+  onDatasourceSave = null,
+  user,
+}: DatasourceControlProps) {
+  const theme = useTheme();
 
-  constructor(props: DatasourceControlProps) {
-    super(props);
-    this.state = {
-      showEditDatasourceModal: false,
-      showChangeDatasourceModal: false,
-      showSaveDatasetModal: false,
-    };
+  const [showEditDatasourceModal, setShowEditDatasourceModal] = useState(false);
+  const [showChangeDatasourceModal, setShowChangeDatasourceModal] =
+    useState(false);
+  const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
+
+  const handleDatasourceSave = useCallback(
+    (savedDatasource: Datasource) => {
+      // Cast to ExtendedDatasource for the component's internal use
+      actions.changeDatasource(savedDatasource as ExtendedDatasource);
+      // Cast datasource for getTemporalColumns which expects Dataset | QueryResponse
+      const { temporalColumns, defaultTemporalColumn } = getTemporalColumns(
+        savedDatasource as Parameters<typeof getTemporalColumns>[0],
+      );
+      const { columns } = savedDatasource;
+      // the granularity_sqla might not be a temporal column anymore
+      const timeCol = form_data?.granularity_sqla;
+      const isGranularitySqlaTemporal = columns.find(
+        ({ column_name }) => column_name === timeCol,
+      )?.is_dttm;
+      // the main_dttm_col might not be a temporal column anymore
+      const isDefaultTemporal = columns.find(
+        ({ column_name }) => column_name === defaultTemporalColumn,
+      )?.is_dttm;
+
+      // if granularity_sqla is empty or it is not a temporal column anymore
+      // let's update the control value
+      if (savedDatasource.type === 'table' && !isGranularitySqlaTemporal) {
+        const temporalColumn = isDefaultTemporal
+          ? defaultTemporalColumn
+          : temporalColumns?.[0];
+        actions.setControlValue('granularity_sqla', temporalColumn || null);
+      }
+
+      if (onDatasourceSave) {
+        onDatasourceSave(savedDatasource);
+      }
+    },
+    [actions, form_data?.granularity_sqla, onDatasourceSave],
+  );
+
+  const toggleChangeDatasourceModal = useCallback(() => {
+    setShowChangeDatasourceModal(prev => !prev);
+  }, []);
+
+  const toggleEditDatasourceModal = useCallback(() => {
+    setShowEditDatasourceModal(prev => !prev);
+  }, []);
+
+  const toggleSaveDatasetModal = useCallback(() => {
+    setShowSaveDatasetModal(prev => !prev);
+  }, []);
+
+  const handleMenuItemClick = useCallback(
+    ({ key }: { key: string }) => {
+      switch (key) {
+        case CHANGE_DATASET:
+          toggleChangeDatasourceModal();
+          break;
+
+        case EDIT_DATASET:
+          toggleEditDatasourceModal();
+          break;
+
+        case VIEW_IN_SQL_LAB:
+          {
+            const payload = {
+              datasourceKey: `${datasource.id}__${datasource.type}`,
+              sql: datasource.sql,
+            };
+            SupersetClient.postForm('/sqllab/', {
+              form_data: safeStringify(payload),
+            });
+          }
+          break;
+
+        case SAVE_AS_DATASET:
+          toggleSaveDatasetModal();
+          break;
+
+        default:
+          break;
+      }
+    },
+    [
+      datasource,
+      toggleChangeDatasourceModal,
+      toggleEditDatasourceModal,
+      toggleSaveDatasetModal,
+    ],
+  );
+
+  let extra;
+  if (datasource?.extra) {
+    if (typeof datasource.extra === 'string') {
+      try {
+        extra = JSON.parse(datasource.extra);
+      } catch {} // eslint-disable-line no-empty
+    } else {
+      extra = datasource.extra; // eslint-disable-line prefer-destructuring
+    }
+  }
+  const isMissingDatasource = !datasource?.id || Boolean(extra?.error);
+  let isMissingParams = false;
+  if (isMissingDatasource) {
+    const datasourceId = getUrlParam(URL_PARAMS.datasourceId);
+    const sliceId = getUrlParam(URL_PARAMS.sliceId);
+
+    if (!datasourceId && !sliceId) {
+      isMissingParams = true;
+    }
   }
 
-  onDatasourceSave = (datasource: Datasource) => {
-    // Cast to ExtendedDatasource for the component's internal use
-    this.props.actions.changeDatasource(datasource as ExtendedDatasource);
-    // Cast datasource for getTemporalColumns which expects Dataset | QueryResponse
-    const { temporalColumns, defaultTemporalColumn } = getTemporalColumns(
-      datasource as Parameters<typeof getTemporalColumns>[0],
-    );
-    const { columns } = datasource;
-    // the current granularity_sqla might not be a temporal column anymore
-    const timeCol = this.props.form_data?.granularity_sqla;
-    const isGranularitySqlaTemporal = columns.find(
-      ({ column_name }) => column_name === timeCol,
-    )?.is_dttm;
-    // the current main_dttm_col might not be a temporal column anymore
-    const isDefaultTemporal = columns.find(
-      ({ column_name }) => column_name === defaultTemporalColumn,
-    )?.is_dttm;
+  const allowEdit =
+    datasource.owners?.map(o => o.id || o.value).includes(user.userId) ||
+    isUserAdmin(user);
 
-    // if the current granularity_sqla is empty or it is not a temporal column anymore
-    // let's update the control value
-    if (datasource.type === 'table' && !isGranularitySqlaTemporal) {
-      const temporalColumn = isDefaultTemporal
-        ? defaultTemporalColumn
-        : temporalColumns?.[0];
-      this.props.actions.setControlValue(
-        'granularity_sqla',
-        temporalColumn || null,
-      );
-    }
+  const canAccessSqlLab = userHasPermission(user, 'SQL Lab', 'menu_access');
 
-    if (this.props.onDatasourceSave) {
-      this.props.onDatasourceSave(datasource);
-    }
+  const editText = t('Edit dataset');
+  const requestedQuery = {
+    datasourceKey: `${datasource.id}__${datasource.type}`,
+    sql: datasource.sql,
   };
-
-  toggleShowDatasource = () => {
-    this.setState(({ showDatasource }) => ({
-      showDatasource: !showDatasource,
-    }));
-  };
-
-  toggleChangeDatasourceModal = () => {
-    this.setState(({ showChangeDatasourceModal }) => ({
-      showChangeDatasourceModal: !showChangeDatasourceModal,
-    }));
-  };
-
-  toggleEditDatasourceModal = () => {
-    this.setState(({ showEditDatasourceModal }) => ({
-      showEditDatasourceModal: !showEditDatasourceModal,
-    }));
-  };
-
-  toggleSaveDatasetModal = () => {
-    this.setState(({ showSaveDatasetModal }) => ({
-      showSaveDatasetModal: !showSaveDatasetModal,
-    }));
-  };
-
-  handleMenuItemClick = ({ key }: { key: string }) => {
-    switch (key) {
-      case CHANGE_DATASET:
-        this.toggleChangeDatasourceModal();
-        break;
-
-      case EDIT_DATASET:
-        this.toggleEditDatasourceModal();
-        break;
-
-      case VIEW_IN_SQL_LAB:
-        {
-          const { datasource } = this.props;
-          const payload = {
-            datasourceKey: `${datasource.id}__${datasource.type}`,
-            sql: datasource.sql,
-          };
-          SupersetClient.postForm('/sqllab/', {
-            form_data: safeStringify(payload),
-          });
-        }
-        break;
-
-      case SAVE_AS_DATASET:
-        this.toggleSaveDatasetModal();
-        break;
-
-      default:
-        break;
-    }
-  };
-
-  render() {
-    const {
-      showChangeDatasourceModal,
-      showEditDatasourceModal,
-      showSaveDatasetModal,
-    } = this.state;
-    const { datasource, onChange, theme } = this.props;
-    let extra;
-    if (datasource?.extra) {
-      if (typeof datasource.extra === 'string') {
-        try {
-          extra = JSON.parse(datasource.extra);
-        } catch {} // eslint-disable-line no-empty
-      } else {
-        extra = datasource.extra; // eslint-disable-line prefer-destructuring
-      }
-    }
-    const isMissingDatasource = !datasource?.id || Boolean(extra?.error);
-    let isMissingParams = false;
-    if (isMissingDatasource) {
-      const datasourceId = getUrlParam(URL_PARAMS.datasourceId);
-      const sliceId = getUrlParam(URL_PARAMS.sliceId);
-
-      if (!datasourceId && !sliceId) {
-        isMissingParams = true;
-      }
-    }
-
-    const { user } = this.props;
-    const allowEdit =
-      datasource.owners?.map(o => o.id || o.value).includes(user.userId) ||
-      isUserAdmin(user);
-
-    const canAccessSqlLab = userHasPermission(user, 'SQL Lab', 'menu_access');
-
-    const editText = t('Edit dataset');
-    const requestedQuery = {
-      datasourceKey: `${datasource.id}__${datasource.type}`,
-      sql: datasource.sql,
-    };
-    const defaultDatasourceMenuItems = [];
-    if (this.props.isEditable && !isMissingDatasource) {
-      defaultDatasourceMenuItems.push({
-        key: EDIT_DATASET,
-        label: !allowEdit ? (
-          <Tooltip
-            title={t(
-              'You must be a dataset owner in order to edit. Please reach out to a dataset owner to request modifications or edit access.',
-            )}
-          >
-            {editText}
-          </Tooltip>
-        ) : (
-          editText
-        ),
-        disabled: !allowEdit,
-        'data-test': 'edit-dataset',
-      });
-    }
-
+  const defaultDatasourceMenuItems = [];
+  if (isEditable && !isMissingDatasource) {
     defaultDatasourceMenuItems.push({
-      key: CHANGE_DATASET,
-      label: t('Swap dataset'),
-    });
-
-    if (!isMissingDatasource && canAccessSqlLab) {
-      defaultDatasourceMenuItems.push({
-        key: VIEW_IN_SQL_LAB,
-        label: (
-          <Link
-            to={{
-              pathname: '/sqllab',
-              state: { requestedQuery },
-            }}
-            onClick={preventRouterLinkWhileMetaClicked}
-          >
-            {t('View in SQL Lab')}
-          </Link>
-        ),
-      });
-    }
-
-    const defaultDatasourceMenu = (
-      <Menu
-        onClick={this.handleMenuItemClick}
-        items={defaultDatasourceMenuItems}
-      />
-    );
-
-    const queryDatasourceMenuItems = [
-      {
-        key: QUERY_PREVIEW,
-        label: (
-          <ModalTrigger
-            triggerNode={
-              <div data-test="view-query-menu-item">{t('Query preview')}</div>
-            }
-            modalTitle={t('Query preview')}
-            modalBody={
-              <ViewQuery
-                sql={datasource?.sql || datasource?.select_star || ''}
-                datasource={`${datasource.id}__${datasource.type}`}
-              />
-            }
-            modalFooter={
-              <ViewQueryModalFooter
-                changeDatasource={this.toggleSaveDatasetModal}
-                datasource={{
-                  id: String(datasource.id),
-                  sql: datasource.sql || '',
-                  type: datasource.type,
-                }}
-              />
-            }
-            draggable={false}
-            resizable={false}
-            responsive
-          />
-        ),
-      },
-    ];
-
-    if (canAccessSqlLab) {
-      queryDatasourceMenuItems.push({
-        key: VIEW_IN_SQL_LAB,
-        label: (
-          <Link
-            to={{
-              pathname: '/sqllab',
-              state: { requestedQuery },
-            }}
-            onClick={preventRouterLinkWhileMetaClicked}
-          >
-            {t('View in SQL Lab')}
-          </Link>
-        ),
-      });
-    }
-
-    queryDatasourceMenuItems.push({
-      key: SAVE_AS_DATASET,
-      label: <span>{t('Save as dataset')}</span>,
-    });
-
-    const queryDatasourceMenu = (
-      <Menu
-        onClick={this.handleMenuItemClick}
-        items={queryDatasourceMenuItems}
-      />
-    );
-
-    const { health_check_message: healthCheckMessage } = datasource;
-
-    const titleText =
-      isMissingDatasource && !datasource.name
-        ? t('Missing dataset')
-        : getDatasourceTitle(datasource);
-
-    const tooltip = titleText;
-
-    return (
-      <Styles data-test="datasource-control" className="DatasourceControl">
-        <div className="data-container">
-          {datasourceIconLookup[getDatasetType(datasource)]}
-          {renderDatasourceTitle(titleText, tooltip)}
-          {healthCheckMessage && (
-            <Tooltip title={healthCheckMessage}>
-              <Icons.WarningOutlined
-                css={css`
-                  margin-left: ${theme.sizeUnit * 2}px;
-                `}
-                iconColor={theme.colorWarning}
-              />
-            </Tooltip>
+      key: EDIT_DATASET,
+      label: !allowEdit ? (
+        <Tooltip
+          title={t(
+            'You must be a dataset owner in order to edit. Please reach out to a dataset owner to request modifications or edit access.',
           )}
-          {extra?.warning_markdown && (
-            <WarningIconWithTooltip warningMarkdown={extra.warning_markdown} />
-          )}
-          <Dropdown
-            popupRender={() =>
-              datasource.type === DatasourceType.Query
-                ? queryDatasourceMenu
-                : defaultDatasourceMenu
-            }
-            trigger={['click']}
-            data-test="datasource-menu"
-          >
-            <Icons.MoreOutlined
-              iconSize="xl"
-              iconColor={theme.colorPrimary}
-              className="datasource-modal-trigger"
-              data-test="datasource-menu-trigger"
+        >
+          {editText}
+        </Tooltip>
+      ) : (
+        editText
+      ),
+      disabled: !allowEdit,
+      'data-test': 'edit-dataset',
+    });
+  }
+
+  defaultDatasourceMenuItems.push({
+    key: CHANGE_DATASET,
+    label: t('Swap dataset'),
+  });
+
+  if (!isMissingDatasource && canAccessSqlLab) {
+    defaultDatasourceMenuItems.push({
+      key: VIEW_IN_SQL_LAB,
+      label: (
+        <Link
+          to={{
+            pathname: '/sqllab',
+            state: { requestedQuery },
+          }}
+          onClick={preventRouterLinkWhileMetaClicked}
+        >
+          {t('View in SQL Lab')}
+        </Link>
+      ),
+    });
+  }
+
+  const defaultDatasourceMenu = (
+    <Menu onClick={handleMenuItemClick} items={defaultDatasourceMenuItems} />
+  );
+
+  const queryDatasourceMenuItems = [
+    {
+      key: QUERY_PREVIEW,
+      label: (
+        <ModalTrigger
+          triggerNode={
+            <div data-test="view-query-menu-item">{t('Query preview')}</div>
+          }
+          modalTitle={t('Query preview')}
+          modalBody={
+            <ViewQuery
+              sql={datasource?.sql || datasource?.select_star || ''}
+              datasource={`${datasource.id}__${datasource.type}`}
             />
-          </Dropdown>
+          }
+          modalFooter={
+            <ViewQueryModalFooter
+              changeDatasource={toggleSaveDatasetModal}
+              datasource={{
+                id: String(datasource.id),
+                sql: datasource.sql || '',
+                type: datasource.type,
+              }}
+            />
+          }
+          draggable={false}
+          resizable={false}
+          responsive
+        />
+      ),
+    },
+  ];
+
+  if (canAccessSqlLab) {
+    queryDatasourceMenuItems.push({
+      key: VIEW_IN_SQL_LAB,
+      label: (
+        <Link
+          to={{
+            pathname: '/sqllab',
+            state: { requestedQuery },
+          }}
+          onClick={preventRouterLinkWhileMetaClicked}
+        >
+          {t('View in SQL Lab')}
+        </Link>
+      ),
+    });
+  }
+
+  queryDatasourceMenuItems.push({
+    key: SAVE_AS_DATASET,
+    label: <span>{t('Save as dataset')}</span>,
+  });
+
+  const queryDatasourceMenu = (
+    <Menu onClick={handleMenuItemClick} items={queryDatasourceMenuItems} />
+  );
+
+  const { health_check_message: healthCheckMessage } = datasource;
+
+  const titleText =
+    isMissingDatasource && !datasource.name
+      ? t('Missing dataset')
+      : getDatasourceTitle(datasource);
+
+  const tooltip = titleText;
+
+  return (
+    <Styles data-test="datasource-control" className="DatasourceControl">
+      <div className="data-container">
+        {datasourceIconLookup[getDatasetType(datasource)]}
+        {renderDatasourceTitle(titleText, tooltip)}
+        {healthCheckMessage && (
+          <Tooltip title={healthCheckMessage}>
+            <Icons.WarningOutlined
+              css={css`
+                margin-left: ${theme.sizeUnit * 2}px;
+              `}
+              iconColor={theme.colorWarning}
+            />
+          </Tooltip>
+        )}
+        {extra?.warning_markdown && (
+          <WarningIconWithTooltip warningMarkdown={extra.warning_markdown} />
+        )}
+        <Dropdown
+          popupRender={() =>
+            datasource.type === DatasourceType.Query
+              ? queryDatasourceMenu
+              : defaultDatasourceMenu
+          }
+          trigger={['click']}
+          data-test="datasource-menu"
+        >
+          <Icons.MoreOutlined
+            iconSize="xl"
+            iconColor={theme.colorPrimary}
+            className="datasource-modal-trigger"
+            data-test="datasource-menu-trigger"
+          />
+        </Dropdown>
+      </div>
+      {/* missing dataset */}
+      {isMissingDatasource && isMissingParams && (
+        <div className="error-alert">
+          <ErrorAlert
+            type="warning"
+            message={t('Missing URL parameters')}
+            description={t(
+              'The URL is missing the dataset_id or slice_id parameters.',
+            )}
+          />
         </div>
-        {/* missing dataset */}
-        {isMissingDatasource && isMissingParams && (
-          <div className="error-alert">
+      )}
+      {isMissingDatasource && !isMissingParams && (
+        <div className="error-alert">
+          {extra?.error ? (
+            <ErrorMessageWithStackTrace
+              title={extra.error.statusText || extra.error.message}
+              subtitle={
+                extra.error.statusText ? extra.error.message : undefined
+              }
+              error={extra.error}
+              source="explore"
+            />
+          ) : (
             <ErrorAlert
               type="warning"
-              message={t('Missing URL parameters')}
-              description={t(
-                'The URL is missing the dataset_id or slice_id parameters.',
-              )}
+              message={t('Missing dataset')}
+              descriptionPre={false}
+              descriptionDetailsCollapsed={false}
+              descriptionDetails={
+                <>
+                  <p>
+                    {t(
+                      'The dataset linked to this chart may have been deleted.',
+                    )}
+                  </p>
+                  <p>
+                    <Button
+                      buttonStyle="primary"
+                      onClick={() =>
+                        handleMenuItemClick({ key: CHANGE_DATASET })
+                      }
+                    >
+                      {t('Swap dataset')}
+                    </Button>
+                  </p>
+                </>
+              }
             />
-          </div>
-        )}
-        {isMissingDatasource && !isMissingParams && (
-          <div className="error-alert">
-            {extra?.error ? (
-              <ErrorMessageWithStackTrace
-                title={extra.error.statusText || extra.error.message}
-                subtitle={
-                  extra.error.statusText ? extra.error.message : undefined
-                }
-                error={extra.error}
-                source="explore"
-              />
-            ) : (
-              <ErrorAlert
-                type="warning"
-                message={t('Missing dataset')}
-                descriptionPre={false}
-                descriptionDetailsCollapsed={false}
-                descriptionDetails={
-                  <>
-                    <p>
-                      {t(
-                        'The dataset linked to this chart may have been deleted.',
-                      )}
-                    </p>
-                    <p>
-                      <Button
-                        buttonStyle="primary"
-                        onClick={() =>
-                          this.handleMenuItemClick({ key: CHANGE_DATASET })
-                        }
-                      >
-                        {t('Swap dataset')}
-                      </Button>
-                    </p>
-                  </>
-                }
-              />
-            )}
-          </div>
-        )}
-        {showEditDatasourceModal && (
-          <DatasourceModal
-            datasource={datasource}
-            show={showEditDatasourceModal}
-            onDatasourceSave={this.onDatasourceSave}
-            onHide={this.toggleEditDatasourceModal}
-          />
-        )}
-        {showChangeDatasourceModal && (
-          <ChangeDatasourceModal
-            onDatasourceSave={this.onDatasourceSave}
-            onHide={this.toggleChangeDatasourceModal}
-            show={showChangeDatasourceModal}
-            onChange={onChange}
-          />
-        )}
-        {showSaveDatasetModal && (
-          <SaveDatasetModal
-            visible={showSaveDatasetModal}
-            onHide={this.toggleSaveDatasetModal}
-            buttonTextOnSave={t('Save')}
-            buttonTextOnOverwrite={t('Overwrite')}
-            modalDescription={t(
-              'Save this query as a virtual dataset to continue exploring',
-            )}
-            datasource={getDatasourceAsSaveableDataset(datasource)}
-            openWindow={false}
-            formData={this.props.form_data}
-          />
-        )}
-      </Styles>
-    );
-  }
+          )}
+        </div>
+      )}
+      {showEditDatasourceModal && (
+        <DatasourceModal
+          datasource={datasource}
+          show={showEditDatasourceModal}
+          onDatasourceSave={handleDatasourceSave}
+          onHide={toggleEditDatasourceModal}
+        />
+      )}
+      {showChangeDatasourceModal && (
+        <ChangeDatasourceModal
+          onDatasourceSave={handleDatasourceSave}
+          onHide={toggleChangeDatasourceModal}
+          show={showChangeDatasourceModal}
+          onChange={onChange}
+        />
+      )}
+      {showSaveDatasetModal && (
+        <SaveDatasetModal
+          visible={showSaveDatasetModal}
+          onHide={toggleSaveDatasetModal}
+          buttonTextOnSave={t('Save')}
+          buttonTextOnOverwrite={t('Overwrite')}
+          modalDescription={t(
+            'Save this query as a virtual dataset to continue exploring',
+          )}
+          datasource={getDatasourceAsSaveableDataset(datasource)}
+          openWindow={false}
+          formData={form_data}
+        />
+      )}
+    </Styles>
+  );
 }
-
-// withTheme injects the theme prop, so we need to cast the component type
-export default withTheme(
-  DatasourceControl as React.ComponentType<
-    Omit<DatasourceControlProps, 'theme'>
-  >,
-);

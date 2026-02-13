@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { PureComponent, ReactNode } from 'react';
+import { ReactNode, useState, useCallback, useEffect, useMemo } from 'react';
 import { nanoid } from 'nanoid';
 import { t } from '@apache-superset/core';
 import { styled, css, SupersetTheme } from '@apache-superset/core/ui';
@@ -33,8 +33,8 @@ import Fieldset from '../Fieldset';
 import { recurseReactClone } from '../../utils';
 import {
   type CRUDCollectionProps,
-  type CRUDCollectionState,
   type Sort,
+  SortOrder as SortOrderEnum,
 } from '../../types';
 
 const CrudButtonWrapper = styled.div`
@@ -52,18 +52,18 @@ const StyledButtonWrapper = styled.span`
   `}
 `;
 
-type CollectionItem = { id: string | number; [key: string]: any };
+type CollectionItem = { id: string | number; [key: string]: unknown };
 
 function createKeyedCollection(arr: Array<object>) {
   const collectionArray = arr.map(
-    (o: any) =>
+    (o: Record<string, unknown>) =>
       ({
         ...o,
         id: o.id || nanoid(),
       }) as CollectionItem,
   );
 
-  const collection: Record<PropertyKey, any> = {};
+  const collection: Record<PropertyKey, CollectionItem> = {};
   collectionArray.forEach((o: CollectionItem) => {
     collection[o.id] = o;
   });
@@ -74,252 +74,291 @@ function createKeyedCollection(arr: Array<object>) {
   };
 }
 
-export default class CRUDCollection extends PureComponent<
-  CRUDCollectionProps,
-  CRUDCollectionState
-> {
-  constructor(props: CRUDCollectionProps) {
-    super(props);
+export default function CRUDCollection({
+  allowAddItem = false,
+  allowDeletes = false,
+  collection: propsCollection,
+  columnLabels,
+  columnLabelTooltips,
+  emptyMessage = t('No items'),
+  expandFieldset,
+  itemGenerator,
+  itemCellProps,
+  itemRenderers,
+  onChange,
+  tableColumns,
+  sortColumns = [],
+  stickyHeader = false,
+}: CRUDCollectionProps) {
+  const [expandedColumns, setExpandedColumns] = useState<
+    Record<PropertyKey, boolean>
+  >({});
+  const [collection, setCollection] = useState<
+    Record<PropertyKey, CollectionItem>
+  >(() => createKeyedCollection(propsCollection).collection);
+  const [collectionArray, setCollectionArray] = useState<CollectionItem[]>(
+    () => createKeyedCollection(propsCollection).collectionArray,
+  );
+  const [sortColumn, setSortColumn] = useState<string>('');
+  const [sort, setSort] = useState<SortOrderEnum>(SortOrderEnum.Unsorted);
 
-    const { collection, collectionArray } = createKeyedCollection(
-      props.collection,
-    );
-    this.state = {
-      expandedColumns: {},
-      collection,
-      collectionArray,
-      sortColumn: '',
-      sort: 0,
-    };
-    this.onAddItem = this.onAddItem.bind(this);
-    this.renderExpandableSection = this.renderExpandableSection.bind(this);
-    this.getLabel = this.getLabel.bind(this);
-    this.onFieldsetChange = this.onFieldsetChange.bind(this);
-    this.changeCollection = this.changeCollection.bind(this);
-    this.handleTableChange = this.handleTableChange.bind(this);
-    this.buildTableColumns = this.buildTableColumns.bind(this);
-    this.toggleExpand = this.toggleExpand.bind(this);
-  }
+  // Sync with props.collection changes
+  useEffect(() => {
+    const { collection: newCollection, collectionArray: newCollectionArray } =
+      createKeyedCollection(propsCollection);
+    setCollection(newCollection);
+    setCollectionArray(newCollectionArray);
+  }, [propsCollection]);
 
-  componentDidUpdate(prevProps: CRUDCollectionProps) {
-    if (this.props.collection !== prevProps.collection) {
-      const { collection, collectionArray } = createKeyedCollection(
-        this.props.collection,
-      );
+  const onCellChange = useCallback(
+    (id: string | number, col: string, val: unknown) => {
+      setCollection(prevCollection => {
+        const updatedCollection = {
+          ...prevCollection,
+          [id]: {
+            ...prevCollection[id],
+            [col]: val,
+          },
+        };
+        return updatedCollection;
+      });
 
-      this.setState(prevState => ({
-        collection,
-        collectionArray,
-        expandedColumns: prevState.expandedColumns,
-      }));
-    }
-  }
+      setCollectionArray(prevCollectionArray => {
+        const updatedCollectionArray = prevCollectionArray.map(item => {
+          if (item.id === id) {
+            return {
+              ...item,
+              [col]: val,
+            };
+          }
+          return item;
+        });
 
-  onCellChange(id: string | number, col: string, val: unknown) {
-    this.setState(prevState => {
-      const updatedCollection = {
-        ...prevState.collection,
-        [id]: {
-          ...prevState.collection[id],
-          [col]: val,
-        },
-      };
-      const updatedCollectionArray = prevState.collectionArray.map(item =>
-        item.id === id ? updatedCollection[id] : item,
-      );
+        if (onChange) {
+          onChange(updatedCollectionArray);
+        }
 
-      if (this.props.onChange) {
-        this.props.onChange(updatedCollectionArray);
+        return updatedCollectionArray;
+      });
+    },
+    [onChange],
+  );
+
+  const changeCollection = useCallback(
+    (
+      newCollection: Record<PropertyKey, CollectionItem>,
+      currentCollectionArray: CollectionItem[],
+    ) => {
+      // Preserve existing order instead of recreating from Object.keys()
+      const existingIds = new Set(currentCollectionArray.map(item => item.id));
+      const newCollectionArray: CollectionItem[] = [];
+
+      // First pass: preserve existing order and update items
+      for (const existingItem of currentCollectionArray) {
+        if (newCollection[existingItem.id]) {
+          newCollectionArray.push(newCollection[existingItem.id]);
+        }
       }
-      return {
-        collection: updatedCollection,
-        collectionArray: updatedCollectionArray,
-      };
-    });
-  }
 
-  onAddItem() {
-    if (this.props.itemGenerator) {
-      let newItem = this.props.itemGenerator();
+      // Second pass: add new items
+      for (const item of Object.values(newCollection)) {
+        if (!existingIds.has(item.id)) {
+          newCollectionArray.push(item);
+        }
+      }
+
+      setCollection(newCollection);
+      setCollectionArray(newCollectionArray);
+
+      if (onChange) {
+        onChange(newCollectionArray);
+      }
+    },
+    [onChange],
+  );
+
+  const deleteItem = useCallback(
+    (id: string | number) => {
+      setCollection(prevCollection => {
+        const newColl = { ...prevCollection };
+        delete newColl[id];
+        return newColl;
+      });
+
+      setCollectionArray(prevCollectionArray => {
+        const newCollectionArray = prevCollectionArray.filter(
+          item => item.id !== id,
+        );
+
+        if (onChange) {
+          onChange(newCollectionArray);
+        }
+
+        return newCollectionArray;
+      });
+    },
+    [onChange],
+  );
+
+  const onAddItem = useCallback(() => {
+    if (itemGenerator) {
+      let newItem = itemGenerator() as CollectionItem;
       const shouldStartExpanded = newItem.expanded === true;
       if (!newItem.id) {
         newItem = { ...newItem, id: nanoid() };
       }
       delete newItem.expanded;
 
-      this.setState(
-        prevState => {
-          const newCollection = {
-            ...prevState.collection,
-            [newItem.id]: newItem,
-          };
-          const newExpandedColumns = shouldStartExpanded
-            ? { ...prevState.expandedColumns, [newItem.id]: true }
-            : prevState.expandedColumns;
-          const newCollectionArray = [newItem, ...prevState.collectionArray];
+      setCollection(prevCollection => ({
+        ...prevCollection,
+        [newItem.id]: newItem,
+      }));
 
-          return {
-            collection: newCollection,
-            collectionArray: newCollectionArray,
-            expandedColumns: newExpandedColumns,
-          };
-        },
-        () => {
-          if (this.props.onChange) {
-            this.props.onChange(this.state.collectionArray);
-          }
-        },
-      );
-    }
-  }
+      setCollectionArray(prevCollectionArray => {
+        const newCollectionArray = [newItem, ...prevCollectionArray];
 
-  onFieldsetChange(item: any) {
-    this.changeCollection({
-      ...this.state.collection,
-      [item.id]: item,
-    });
-  }
-
-  getLabel(col: any): string {
-    const { columnLabels } = this.props;
-    let label = columnLabels?.[col] ? columnLabels[col] : col;
-    if (label.startsWith('__')) {
-      label = '';
-    }
-    return label;
-  }
-
-  getTooltip(col: string): string | undefined {
-    const { columnLabelTooltips } = this.props;
-    return columnLabelTooltips?.[col];
-  }
-
-  changeCollection(collection: any) {
-    // Preserve existing order instead of recreating from Object.keys()
-    const existingIds = new Set(
-      this.state.collectionArray.map(item => item.id),
-    );
-    const newCollectionArray: CollectionItem[] = [];
-
-    // First pass: preserve existing order and update items
-    for (const existingItem of this.state.collectionArray) {
-      if (collection[existingItem.id]) {
-        newCollectionArray.push(collection[existingItem.id]);
-      }
-    }
-
-    // Second pass: add new items
-    for (const item of Object.values(collection) as CollectionItem[]) {
-      if (!existingIds.has(item.id)) {
-        newCollectionArray.push(item);
-      }
-    }
-
-    this.setState({ collection, collectionArray: newCollectionArray });
-
-    if (this.props.onChange) {
-      this.props.onChange(newCollectionArray);
-    }
-  }
-
-  deleteItem(id: string | number) {
-    const newColl = { ...this.state.collection };
-    delete newColl[id];
-    this.changeCollection(newColl);
-  }
-
-  toggleExpand(id: any) {
-    this.setState(prevState => ({
-      expandedColumns: {
-        ...prevState.expandedColumns,
-        [id]: !prevState.expandedColumns[id],
-      },
-    }));
-  }
-
-  handleTableChange(
-    _pagination: TablePaginationConfig,
-    _filters: Record<string, FilterValue | null>,
-    sorter: SorterResult<CollectionItem> | SorterResult<CollectionItem>[],
-  ) {
-    const columnSorter = Array.isArray(sorter) ? sorter[0] : sorter;
-    let newSortColumn = '';
-    let newSortOrder = 0;
-
-    if (columnSorter?.columnKey && columnSorter?.order) {
-      newSortColumn = columnSorter.columnKey as string;
-      newSortOrder = columnSorter.order === 'ascend' ? 1 : 2;
-    }
-
-    const { sortColumns } = this.props;
-    const col = newSortColumn;
-
-    if (sortColumns?.includes(col) || newSortOrder === 0) {
-      let sortedArray = [...this.props.collection];
-
-      if (newSortOrder !== 0) {
-        const compareSort = (m: Sort, n: Sort) => {
-          if (typeof m === 'string' && typeof n === 'string') {
-            return (m || '').localeCompare(n || '');
-          }
-          if (typeof m === 'number' && typeof n === 'number') {
-            return m - n;
-          }
-          if (typeof m === 'boolean' && typeof n === 'boolean') {
-            return m === n ? 0 : m ? 1 : -1;
-          }
-          const mStr = String(m ?? '');
-          const nStr = String(n ?? '');
-          return mStr.localeCompare(nStr);
-        };
-
-        sortedArray.sort((a: any, b: any) => compareSort(a[col], b[col]));
-        if (newSortOrder === 2) {
-          sortedArray.reverse();
+        if (onChange) {
+          onChange(newCollectionArray);
         }
-      } else {
-        const { collectionArray } = createKeyedCollection(
-          this.props.collection,
-        );
-        sortedArray = collectionArray;
+
+        return newCollectionArray;
+      });
+
+      if (shouldStartExpanded) {
+        setExpandedColumns(prev => ({ ...prev, [newItem.id]: true }));
+      }
+    }
+  }, [itemGenerator, onChange]);
+
+  const onFieldsetChange = useCallback(
+    (item: CollectionItem) => {
+      changeCollection(
+        {
+          ...collection,
+          [item.id]: item,
+        },
+        collectionArray,
+      );
+    },
+    [changeCollection, collection, collectionArray],
+  );
+
+  const getLabel = useCallback(
+    (col: string): string => {
+      let label = columnLabels?.[col] ? columnLabels[col] : col;
+      if (label.startsWith('__')) {
+        label = '';
+      }
+      return label;
+    },
+    [columnLabels],
+  );
+
+  const getTooltip = useCallback(
+    (col: string): string | undefined => columnLabelTooltips?.[col],
+    [columnLabelTooltips],
+  );
+
+  const toggleExpand = useCallback((id: string | number) => {
+    setExpandedColumns(prev => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  }, []);
+
+  const handleTableChange = useCallback(
+    (
+      _pagination: TablePaginationConfig,
+      _filters: Record<string, FilterValue | null>,
+      sorter: SorterResult<CollectionItem> | SorterResult<CollectionItem>[],
+    ) => {
+      const columnSorter = Array.isArray(sorter) ? sorter[0] : sorter;
+      let newSortColumn = '';
+      let newSortOrder = SortOrderEnum.Unsorted;
+
+      if (columnSorter?.columnKey && columnSorter?.order) {
+        newSortColumn = columnSorter.columnKey as string;
+        newSortOrder =
+          columnSorter.order === 'ascend'
+            ? SortOrderEnum.Asc
+            : SortOrderEnum.Desc;
       }
 
-      this.setState({
-        collectionArray: sortedArray,
-        sortColumn: newSortColumn,
-        sort: newSortOrder,
-      });
-    }
-  }
+      const col = newSortColumn;
 
-  renderExpandableSection(item: any): ReactNode {
-    const propsGenerator = () => ({ item, onChange: this.onFieldsetChange });
-    return recurseReactClone(
-      this.props.expandFieldset,
-      Fieldset,
-      propsGenerator,
-    );
-  }
+      if (
+        sortColumns?.includes(col) ||
+        newSortOrder === SortOrderEnum.Unsorted
+      ) {
+        let sortedArray = [...propsCollection] as CollectionItem[];
 
-  renderCell(record: any, col: any): ReactNode {
-    const renderer = this.props.itemRenderers?.[col];
-    const val = record[col];
-    const onChange = this.onCellChange.bind(this, record.id, col);
-    return renderer ? renderer(val, onChange, this.getLabel(col), record) : val;
-  }
+        if (newSortOrder !== SortOrderEnum.Unsorted) {
+          const compareSort = (m: Sort, n: Sort) => {
+            if (typeof m === 'string' && typeof n === 'string') {
+              return (m || '').localeCompare(n || '');
+            }
+            if (typeof m === 'number' && typeof n === 'number') {
+              return m - n;
+            }
+            if (typeof m === 'boolean' && typeof n === 'boolean') {
+              return m === n ? 0 : m ? 1 : -1;
+            }
+            const mStr = String(m ?? '');
+            const nStr = String(n ?? '');
+            return mStr.localeCompare(nStr);
+          };
 
-  buildTableColumns() {
-    const { tableColumns, allowDeletes, sortColumns = [] } = this.props;
+          sortedArray.sort((a: CollectionItem, b: CollectionItem) =>
+            compareSort(a[col] as Sort, b[col] as Sort),
+          );
+          if (newSortOrder === SortOrderEnum.Desc) {
+            sortedArray.reverse();
+          }
+        } else {
+          const { collectionArray: resetArray } =
+            createKeyedCollection(propsCollection);
+          sortedArray = resetArray;
+        }
 
-    const antdColumns: ColumnsType = tableColumns.map(col => {
-      const label = this.getLabel(col);
-      const tooltip = this.getTooltip(col);
+        setCollectionArray(sortedArray);
+        setSortColumn(newSortColumn);
+        setSort(newSortOrder);
+      }
+    },
+    [propsCollection, sortColumns],
+  );
+
+  const renderExpandableSection = useCallback(
+    (item: CollectionItem): ReactNode => {
+      const propsGenerator = () => ({ item, onChange: onFieldsetChange });
+      return recurseReactClone(expandFieldset, Fieldset, propsGenerator);
+    },
+    [expandFieldset, onFieldsetChange],
+  );
+
+  const renderCell = useCallback(
+    (record: CollectionItem, col: string): ReactNode => {
+      const renderer = itemRenderers?.[col];
+      const val = record[col];
+      const cellOnChange = (newVal: unknown) =>
+        onCellChange(record.id, col, newVal);
+      return renderer
+        ? renderer(val, cellOnChange, getLabel(col), record)
+        : (val as ReactNode);
+    },
+    [itemRenderers, onCellChange, getLabel],
+  );
+
+  const antdColumns = useMemo((): ColumnsType<CollectionItem> => {
+    const columns: ColumnsType<CollectionItem> = tableColumns.map(col => {
+      const label = getLabel(col);
+      const tooltip = getTooltip(col);
       const isSortable = sortColumns.includes(col);
       const currentSortOrder: SortOrder | null | undefined =
-        this.state.sortColumn === col
-          ? this.state.sort === 1
+        sortColumn === col
+          ? sort === SortOrderEnum.Asc
             ? 'ascend'
-            : this.state.sort === 2
+            : sort === SortOrderEnum.Desc
               ? 'descend'
               : null
           : null;
@@ -343,10 +382,10 @@ export default class CRUDCollection extends PureComponent<
             )}
           </>
         ),
-        render: (text: any, record: CollectionItem) =>
-          this.renderCell(record, col),
+        render: (_text: unknown, record: CollectionItem) =>
+          renderCell(record, col),
         onCell: (record: CollectionItem) => {
-          const cellPropsFn = this.props.itemCellProps?.[col];
+          const cellPropsFn = itemCellProps?.[col];
           const val = record[col];
           return cellPropsFn ? cellPropsFn(val, label, record) : {};
         },
@@ -356,7 +395,7 @@ export default class CRUDCollection extends PureComponent<
     });
 
     if (allowDeletes) {
-      antdColumns.push({
+      columns.push({
         key: '__actions',
         dataIndex: '__actions',
         sorter: false,
@@ -380,7 +419,7 @@ export default class CRUDCollection extends PureComponent<
               data-test="crud-delete-icon"
               role="button"
               tabIndex={0}
-              onClick={() => this.deleteItem(record.id)}
+              onClick={() => deleteItem(record.id)}
               iconSize="l"
               iconColor="inherit"
             />
@@ -389,74 +428,81 @@ export default class CRUDCollection extends PureComponent<
       });
     }
 
-    return antdColumns as ColumnsType<CollectionItem>;
-  }
+    return columns;
+  }, [
+    tableColumns,
+    getLabel,
+    getTooltip,
+    sortColumns,
+    sortColumn,
+    sort,
+    renderCell,
+    itemCellProps,
+    allowDeletes,
+    deleteItem,
+  ]);
 
-  render() {
-    const {
-      stickyHeader,
-      emptyMessage = t('No items'),
-      expandFieldset,
-    } = this.props;
+  const expandedRowKeys = useMemo(
+    () => Object.keys(expandedColumns).filter(id => expandedColumns[id]),
+    [expandedColumns],
+  );
 
-    const tableColumns = this.buildTableColumns();
-    const expandedRowKeys = Object.keys(this.state.expandedColumns).filter(
-      id => this.state.expandedColumns[id],
-    );
-
-    const expandableConfig = expandFieldset
-      ? {
-          expandedRowRender: (record: CollectionItem) =>
-            this.renderExpandableSection(record),
-          rowExpandable: () => true,
-          expandedRowKeys,
-          onExpand: (expanded: boolean, record: CollectionItem) => {
-            this.toggleExpand(record.id);
-          },
-        }
-      : undefined;
-
-    return (
-      <>
-        <CrudButtonWrapper>
-          {this.props.allowAddItem && (
-            <StyledButtonWrapper>
-              <Button
-                buttonSize="small"
-                buttonStyle="secondary"
-                onClick={this.onAddItem}
-                data-test="add-item-button"
-              >
-                <Icons.PlusOutlined
-                  iconSize="m"
-                  data-test="crud-add-table-item"
-                />
-                {t('Add item')}
-              </Button>
-            </StyledButtonWrapper>
-          )}
-        </CrudButtonWrapper>
-        <Table<CollectionItem>
-          data-test="crud-table"
-          columns={tableColumns}
-          data={this.state.collectionArray as CollectionItem[]}
-          rowKey={(record: CollectionItem) => String(record.id)}
-          sticky={stickyHeader}
-          pagination={false}
-          onChange={this.handleTableChange}
-          locale={{ emptyText: emptyMessage }}
-          css={
-            stickyHeader &&
-            css`
-              height: 350px;
-              overflow: auto;
-            `
+  const expandableConfig = useMemo(
+    () =>
+      expandFieldset
+        ? {
+            expandedRowRender: (record: CollectionItem) =>
+              renderExpandableSection(record),
+            rowExpandable: () => true,
+            expandedRowKeys,
+            onExpand: (_expanded: boolean, record: CollectionItem) => {
+              toggleExpand(record.id);
+            },
           }
-          expandable={expandableConfig}
-          size={TableSize.Middle}
-          tableLayout="auto"
-        />
-      </>
-    );
-  }
+        : undefined,
+    [expandFieldset, renderExpandableSection, expandedRowKeys, toggleExpand],
+  );
+
+  return (
+    <>
+      <CrudButtonWrapper>
+        {allowAddItem && (
+          <StyledButtonWrapper>
+            <Button
+              buttonSize="small"
+              buttonStyle="secondary"
+              onClick={onAddItem}
+              data-test="add-item-button"
+            >
+              <Icons.PlusOutlined
+                iconSize="m"
+                data-test="crud-add-table-item"
+              />
+              {t('Add item')}
+            </Button>
+          </StyledButtonWrapper>
+        )}
+      </CrudButtonWrapper>
+      <Table<CollectionItem>
+        data-test="crud-table"
+        columns={antdColumns}
+        data={collectionArray}
+        rowKey={(record: CollectionItem) => String(record.id)}
+        sticky={stickyHeader}
+        pagination={false}
+        onChange={handleTableChange}
+        locale={{ emptyText: emptyMessage }}
+        css={
+          stickyHeader &&
+          css`
+            height: 350px;
+            overflow: auto;
+          `
+        }
+        expandable={expandableConfig}
+        size={TableSize.Middle}
+        tableLayout="auto"
+      />
+    </>
+  );
 }

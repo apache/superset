@@ -17,10 +17,16 @@
  * under the License.
  */
 import rison from 'rison';
-import { PureComponent, useCallback, ReactNode } from 'react';
+import {
+  useCallback,
+  ReactNode,
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+} from 'react';
 import { connect, ConnectedProps } from 'react-redux';
 import type { JsonObject } from '@superset-ui/core';
-import type { SupersetTheme } from '@apache-superset/core/ui';
 import type { AnyAction } from 'redux';
 import type { ThunkDispatch } from 'redux-thunk';
 import { Radio } from '@superset-ui/core/components/Radio';
@@ -37,7 +43,7 @@ import {
   styled,
   themeObject,
   Alert,
-  withTheme,
+  useTheme,
   t,
 } from '@apache-superset/core/ui';
 import Tabs from '@superset-ui/core/components/Tabs';
@@ -46,7 +52,6 @@ import TableSelector from 'src/components/TableSelector';
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
 import TextControl from 'src/explore/components/controls/TextControl';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
-import SpatialControl from 'src/explore/components/controls/SpatialControl';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import CurrencyControl from 'src/explore/components/controls/CurrencyControl';
 import {
@@ -192,7 +197,6 @@ interface DatasourceEditorOwnProps {
   addDangerToast: (msg: string) => void;
   setIsEditing?: (isEditing: boolean) => void;
   currencies?: string[];
-  theme?: SupersetTheme;
 }
 
 interface QueryResultColumn {
@@ -248,21 +252,6 @@ interface ChartUsageData {
     dashboard_title: string;
     url: string;
   }>;
-}
-
-interface DatasourceEditorState {
-  datasource: DatasourceObject;
-  errors: string[];
-  isSqla: boolean;
-  isEditMode: boolean;
-  databaseColumns: Column[];
-  calculatedColumns: Column[];
-  folders: DatasourceFolder[];
-  metadataLoading: boolean;
-  activeTabKey: string;
-  datasourceType: string;
-  usageCharts: ChartUsageData[];
-  usageChartsCount: number;
 }
 
 interface AbortControllers {
@@ -824,189 +813,287 @@ const mapStateToProps = (state: RootState) => ({
 const connector = connect(mapStateToProps, mapDispatchToProps);
 type PropsFromRedux = ConnectedProps<typeof connector>;
 
-type DatasourceEditorProps = DatasourceEditorOwnProps &
-  PropsFromRedux & {
-    theme?: SupersetTheme;
-  };
+type DatasourceEditorProps = DatasourceEditorOwnProps & PropsFromRedux;
 
-class DatasourceEditor extends PureComponent<
-  DatasourceEditorProps,
-  DatasourceEditorState
-> {
-  private isComponentMounted: boolean;
+function DatasourceEditor({
+  datasource: propsDatasource,
+  onChange = () => {},
+  addSuccessToast,
+  addDangerToast,
+  setIsEditing = () => {},
+  database,
+  runQuery,
+  resetQuery,
+  formatQuery: formatQueryAction,
+}: DatasourceEditorProps) {
+  const theme = useTheme();
+  const isComponentMounted = useRef(false);
+  const abortControllers = useRef<AbortControllers>({
+    formatQuery: null,
+    formatSql: null,
+    syncMetadata: null,
+    fetchUsageData: null,
+  });
 
-  private abortControllers: AbortControllers;
+  // Initialize datasource state with transformed owners and metrics
+  const [datasource, setDatasource] = useState<DatasourceObject>(() => ({
+    ...propsDatasource,
+    owners: propsDatasource.owners.map(owner => ({
+      value: owner.value || owner.id,
+      label: owner.label || `${owner.first_name} ${owner.last_name}`,
+    })),
+    metrics: propsDatasource.metrics?.map(metric => {
+      const {
+        certified_by: certifiedByMetric,
+        certification_details: certificationDetails,
+      } = metric;
+      const {
+        certification: {
+          details = undefined,
+          certified_by: certifiedBy = undefined,
+        } = {},
+        warning_markdown: warningMarkdown,
+      } = JSON.parse(metric.extra || '{}') || {};
+      return {
+        ...metric,
+        certification_details: certificationDetails || details,
+        warning_markdown: warningMarkdown || '',
+        certified_by: certifiedBy || certifiedByMetric,
+      };
+    }),
+  }));
 
-  static defaultProps = {
-    onChange: () => {},
-    setIsEditing: () => {},
-  };
+  const [errors, setErrors] = useState<string[]>([]);
+  const [isSqla] = useState(
+    propsDatasource.datasource_type === 'table' ||
+      propsDatasource.type === 'table',
+  );
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [databaseColumns, setDatabaseColumns] = useState<Column[]>(
+    propsDatasource.columns.filter(col => !col.expression),
+  );
+  const [calculatedColumns, setCalculatedColumns] = useState<Column[]>(
+    propsDatasource.columns.filter(col => !!col.expression),
+  );
+  const [folders, setFolders] = useState<DatasourceFolder[]>(
+    propsDatasource.folders || [],
+  );
+  const [metadataLoading, setMetadataLoading] = useState(false);
+  const [activeTabKey, setActiveTabKey] = useState(TABS_KEYS.SOURCE);
+  const [datasourceType, setDatasourceType] = useState(
+    propsDatasource.sql
+      ? DATASOURCE_TYPES.virtual.key
+      : DATASOURCE_TYPES.physical.key,
+  );
+  const [usageCharts, setUsageCharts] = useState<ChartUsageData[]>([]);
+  const [usageChartsCount, setUsageChartsCount] = useState(0);
 
-  constructor(props: DatasourceEditorProps) {
-    super(props);
-    this.state = {
-      datasource: {
-        ...props.datasource,
-        owners: props.datasource.owners.map(owner => ({
-          value: owner.value || owner.id,
-          label: owner.label || `${owner.first_name} ${owner.last_name}`,
-        })),
-        metrics: props.datasource.metrics?.map(metric => {
-          const {
-            certified_by: certifiedByMetric,
-            certification_details: certificationDetails,
-          } = metric;
-          const {
-            certification: {
-              details = undefined,
-              certified_by: certifiedBy = undefined,
-            } = {},
-            warning_markdown: warningMarkdown,
-          } = JSON.parse(metric.extra || '{}') || {};
-          return {
-            ...metric,
-            certification_details: certificationDetails || details,
-            warning_markdown: warningMarkdown || '',
-            certified_by: certifiedBy || certifiedByMetric,
-          };
-        }),
-      },
-      errors: [],
-      isSqla:
-        props.datasource.datasource_type === 'table' ||
-        props.datasource.type === 'table',
-      isEditMode: false,
-      databaseColumns: props.datasource.columns.filter(col => !col.expression),
-      calculatedColumns: props.datasource.columns.filter(
-        col => !!col.expression,
-      ),
-      folders: props.datasource.folders || [],
-      metadataLoading: false,
-      activeTabKey: TABS_KEYS.SOURCE,
-      datasourceType: props.datasource.sql
-        ? DATASOURCE_TYPES.virtual.key
-        : DATASOURCE_TYPES.physical.key,
-      usageCharts: [],
-      usageChartsCount: 0,
-    };
+  const findDuplicates = useCallback(
+    <T,>(arr: T[], accessor: (obj: T) => string): string[] => {
+      const seen: Record<string, null> = {};
+      const dups: string[] = [];
+      arr.forEach((obj: T) => {
+        const item = accessor(obj);
+        if (item in seen) {
+          dups.push(item);
+        } else {
+          seen[item] = null;
+        }
+      });
+      return dups;
+    },
+    [],
+  );
 
-    this.isComponentMounted = false;
-    this.abortControllers = {
-      formatQuery: null,
-      formatSql: null,
-      syncMetadata: null,
-      fetchUsageData: null,
-    };
+  const validate = useCallback(
+    (callback: (validationErrors: string[]) => void) => {
+      let validationErrors: string[] = [];
+      let dups: string[];
 
-    this.onChange = this.onChange.bind(this);
-    this.onChangeEditMode = this.onChangeEditMode.bind(this);
-    this.onDatasourcePropChange = this.onDatasourcePropChange.bind(this);
-    this.onDatasourceChange = this.onDatasourceChange.bind(this);
-    this.tableChangeAndSyncMetadata =
-      this.tableChangeAndSyncMetadata.bind(this);
-    this.syncMetadata = this.syncMetadata.bind(this);
-    this.setColumns = this.setColumns.bind(this);
-    this.validateAndChange = this.validateAndChange.bind(this);
-    this.handleTabSelect = this.handleTabSelect.bind(this);
-    this.formatSql = this.formatSql.bind(this);
-    this.fetchUsageData = this.fetchUsageData.bind(this);
-    this.handleFoldersChange = this.handleFoldersChange.bind(this);
-  }
+      // Looking for duplicate column_name
+      dups = findDuplicates(datasource.columns, obj => obj.column_name);
+      validationErrors = validationErrors.concat(
+        dups.map(name => t('Column name [%s] is duplicated', name)),
+      );
 
-  onChange() {
-    // Emptying SQL if "Physical" radio button is selected
-    // Currently the logic to know whether the source is
-    // physical or virtual is based on whether SQL is empty or not.
-    const { datasourceType, datasource } = this.state;
-    const sql =
-      datasourceType === DATASOURCE_TYPES.physical.key ? '' : datasource.sql;
+      // Looking for duplicate metric_name
+      dups = findDuplicates(datasource.metrics ?? [], obj => obj.metric_name);
+      validationErrors = validationErrors.concat(
+        dups.map(name => t('Metric name [%s] is duplicated', name)),
+      );
 
-    const newDatasource = {
-      ...this.state.datasource,
-      sql,
-      columns: [...this.state.databaseColumns, ...this.state.calculatedColumns],
-      folders: this.state.folders,
-    };
+      // Making sure calculatedColumns have an expression defined
+      const noFilterCalcCols = calculatedColumns.filter(
+        col => !col.expression && !col.json,
+      );
+      validationErrors = validationErrors.concat(
+        noFilterCalcCols.map(col =>
+          t('Calculated column [%s] requires an expression', col.column_name),
+        ),
+      );
 
-    this.props.onChange?.(newDatasource, this.state.errors);
-  }
+      // validate currency code (skip 'AUTO' - it's a placeholder for auto-detection)
+      try {
+        datasource.metrics?.forEach(
+          metric =>
+            metric.currency?.symbol &&
+            metric.currency.symbol !== 'AUTO' &&
+            new Intl.NumberFormat('en-US', {
+              style: 'currency',
+              currency: metric.currency.symbol,
+            }),
+        );
+      } catch {
+        validationErrors = validationErrors.concat([
+          t('Invalid currency code in saved metrics'),
+        ]);
+      }
 
-  onChangeEditMode() {
-    this.props.setIsEditing?.(!this.state.isEditMode);
-    this.setState(prevState => ({ isEditMode: !prevState.isEditMode }));
-  }
+      // Validate folders
+      if (folders?.length > 0) {
+        const folderValidation = validateFolders(folders);
+        validationErrors = validationErrors.concat(folderValidation.errors);
+      }
 
-  onDatasourceChange(
-    datasource: DatasourceObject,
-    callback: () => void = this.validateAndChange,
-  ) {
-    this.setState({ datasource }, callback);
-  }
+      setErrors(validationErrors);
+      callback(validationErrors);
+    },
+    [datasource, calculatedColumns, folders, findDuplicates],
+  );
 
-  onDatasourcePropChange(attr: string, value: unknown) {
-    if (value === undefined) return; // if value is undefined do not update state
-    const datasource = { ...this.state.datasource, [attr]: value };
-    this.setState(
-      prevState => ({
-        datasource: { ...prevState.datasource, [attr]: value },
-      }),
-      () =>
-        attr === 'table_name'
-          ? this.onDatasourceChange(datasource, this.tableChangeAndSyncMetadata)
-          : this.onDatasourceChange(datasource, this.validateAndChange),
-    );
-  }
+  const onChangeInternal = useCallback(
+    (validationErrors: string[] = errors) => {
+      // Emptying SQL if "Physical" radio button is selected
+      const sql =
+        datasourceType === DATASOURCE_TYPES.physical.key ? '' : datasource.sql;
 
-  onDatasourceTypeChange(datasourceType: string) {
-    // Call onChange after setting datasourceType to ensure
-    // SQL is cleared when switching to a physical dataset
-    this.setState({ datasourceType }, this.onChange);
-  }
+      const newDatasource = {
+        ...datasource,
+        sql,
+        columns: [...databaseColumns, ...calculatedColumns],
+        folders,
+      };
 
-  handleFoldersChange(folders: DatasourceFolder[]) {
-    const userMadeFolders = folders.filter(
+      onChange(newDatasource, validationErrors);
+    },
+    [
+      datasource,
+      datasourceType,
+      databaseColumns,
+      calculatedColumns,
+      folders,
+      errors,
+      onChange,
+    ],
+  );
+
+  const validateAndChange = useCallback(() => {
+    validate(onChangeInternal);
+  }, [validate, onChangeInternal]);
+
+  const onDatasourceChange = useCallback(
+    (
+      newDatasource: DatasourceObject,
+      callback: () => void = validateAndChange,
+    ) => {
+      setDatasource(newDatasource);
+      // Need to call callback after state update
+      setTimeout(callback, 0);
+    },
+    [validateAndChange],
+  );
+
+  const onDatasourcePropChange = useCallback((attr: string, value: unknown) => {
+    if (value === undefined) return;
+    setDatasource(prev => {
+      const newDatasource = { ...prev, [attr]: value };
+      return newDatasource;
+    });
+  }, []);
+
+  // Effect to trigger validation after datasource changes
+  useEffect(() => {
+    if (isComponentMounted.current) {
+      validateAndChange();
+    }
+  }, [datasource]);
+
+  const onChangeEditMode = useCallback(() => {
+    setIsEditing(!isEditMode);
+    setIsEditMode(prev => !prev);
+  }, [isEditMode, setIsEditing]);
+
+  const onDatasourceTypeChange = useCallback((newDatasourceType: string) => {
+    setDatasourceType(newDatasourceType);
+  }, []);
+
+  // Effect to call onChange after datasourceType changes
+  useEffect(() => {
+    if (isComponentMounted.current) {
+      onChangeInternal();
+    }
+  }, [datasourceType]);
+
+  const handleFoldersChange = useCallback((newFolders: DatasourceFolder[]) => {
+    const userMadeFolders = newFolders.filter(
       f =>
         f.uuid !== DEFAULT_METRICS_FOLDER_UUID &&
         f.uuid !== DEFAULT_COLUMNS_FOLDER_UUID &&
         (f.children?.length ?? 0) > 0,
     );
-    this.setState({ folders: userMadeFolders }, () => {
-      this.onDatasourceChange({
-        ...this.state.datasource,
-        folders: userMadeFolders,
-      });
+    setFolders(userMadeFolders);
+    setDatasource(prev => ({ ...prev, folders: userMadeFolders }));
+  }, []);
+
+  const setColumns = useCallback(
+    (
+      obj: { databaseColumns?: Column[] } | { calculatedColumns?: Column[] },
+    ) => {
+      if ('databaseColumns' in obj && obj.databaseColumns) {
+        setDatabaseColumns(obj.databaseColumns);
+      }
+      if ('calculatedColumns' in obj && obj.calculatedColumns) {
+        setCalculatedColumns(obj.calculatedColumns);
+      }
+    },
+    [],
+  );
+
+  // Effect to trigger validation after column changes
+  useEffect(() => {
+    if (isComponentMounted.current) {
+      validateAndChange();
+    }
+  }, [databaseColumns, calculatedColumns]);
+
+  const getSQLLabUrl = useCallback(() => {
+    const queryParams = new URLSearchParams({
+      dbid: String(datasource.database?.id ?? ''),
+      sql: datasource.sql ?? '',
+      name: datasource.datasource_name ?? '',
+      schema: datasource.schema ?? '',
+      autorun: 'true',
+      isDataset: 'true',
     });
-  }
+    return makeUrl(`/sqllab/?${queryParams.toString()}`);
+  }, [datasource]);
 
-  setColumns(
-    obj: { databaseColumns?: Column[] } | { calculatedColumns?: Column[] },
-  ) {
-    // update calculatedColumns or databaseColumns
-    this.setState(
-      obj as Pick<
-        DatasourceEditorState,
-        'databaseColumns' | 'calculatedColumns'
-      >,
-      this.validateAndChange,
-    );
-  }
+  const openOnSqlLab = useCallback(() => {
+    window.open(getSQLLabUrl(), '_blank', 'noopener,noreferrer');
+  }, [getSQLLabUrl]);
 
-  validateAndChange() {
-    this.validate(this.onChange);
-  }
-
-  async onQueryRun() {
-    const databaseId = this.state.datasource.database?.id;
-    const { sql } = this.state.datasource;
+  const onQueryRun = useCallback(async () => {
+    const databaseId = datasource.database?.id;
+    const { sql } = datasource;
     if (!databaseId || !sql) {
       return;
     }
-    this.props.runQuery({
-      client_id: this.props.database?.clientId,
+    runQuery({
+      client_id: database?.clientId,
       database_id: databaseId,
       runAsync: false,
-      catalog: this.state.datasource.catalog,
-      schema: this.state.datasource.schema,
+      catalog: datasource.catalog,
+      schema: datasource.schema,
       sql,
       tmp_table_name: '',
       select_as_cta: false,
@@ -1014,131 +1101,60 @@ class DatasourceEditor extends PureComponent<
       queryLimit: 25,
       expand_data: true,
     });
-  }
+  }, [datasource, database?.clientId, runQuery]);
 
-  /**
-   * Formats SQL query using the formatQuery action.
-   * Aborts any pending format requests before starting a new one.
-   */
-  async onQueryFormat() {
-    const { datasource } = this.state;
-    if (!datasource.sql || !this.state.isEditMode) {
+  const onQueryFormat = useCallback(async () => {
+    if (!datasource.sql || !isEditMode) {
       return;
     }
 
     // Abort previous formatQuery if still pending
-    if (this.abortControllers.formatQuery) {
-      this.abortControllers.formatQuery.abort();
+    if (abortControllers.current.formatQuery) {
+      abortControllers.current.formatQuery.abort();
     }
 
-    this.abortControllers.formatQuery = new AbortController();
-    const { signal } = this.abortControllers.formatQuery;
+    abortControllers.current.formatQuery = new AbortController();
+    const { signal } = abortControllers.current.formatQuery;
 
     try {
-      const response = await this.props.formatQuery(datasource.sql, { signal });
+      const response = await formatQueryAction(datasource.sql, { signal });
 
-      this.onDatasourcePropChange('sql', response.json.result);
-      this.props.addSuccessToast(t('SQL was formatted'));
-    } catch (error) {
-      if (error.name === 'AbortError') return;
+      onDatasourcePropChange('sql', response.json.result);
+      addSuccessToast(t('SQL was formatted'));
+    } catch (error: unknown) {
+      if ((error as Error).name === 'AbortError') return;
 
-      const { error: clientError, statusText } =
-        await getClientErrorObject(error);
+      const { error: clientError, statusText } = await getClientErrorObject(
+        error as Response,
+      );
 
-      this.props.addDangerToast(
+      addDangerToast(
         clientError ||
           statusText ||
           t('An error occurred while formatting SQL'),
       );
     } finally {
-      this.abortControllers.formatQuery = null;
+      abortControllers.current.formatQuery = null;
     }
-  }
+  }, [
+    datasource.sql,
+    isEditMode,
+    formatQueryAction,
+    onDatasourcePropChange,
+    addSuccessToast,
+    addDangerToast,
+  ]);
 
-  getSQLLabUrl() {
-    const queryParams = new URLSearchParams({
-      dbid: String(this.state.datasource.database?.id ?? ''),
-      sql: this.state.datasource.sql ?? '',
-      name: this.state.datasource.datasource_name ?? '',
-      schema: this.state.datasource.schema ?? '',
-      autorun: 'true',
-      isDataset: 'true',
-    });
-    return makeUrl(`/sqllab/?${queryParams.toString()}`);
-  }
-
-  openOnSqlLab() {
-    window.open(this.getSQLLabUrl(), '_blank', 'noopener,noreferrer');
-  }
-
-  tableChangeAndSyncMetadata() {
-    this.validate(() => {
-      this.syncMetadata();
-      this.onChange();
-    });
-  }
-
-  /**
-   * Formats SQL query using the SQL format API endpoint.
-   * Aborts any pending format requests before starting a new one.
-   */
-  async formatSql() {
-    const { datasource } = this.state;
-    if (!datasource.sql) {
-      return;
-    }
-
-    // Abort previous formatSql if still pending
-    if (this.abortControllers.formatSql) {
-      this.abortControllers.formatSql.abort();
-    }
-
-    this.abortControllers.formatSql = new AbortController();
-    const { signal } = this.abortControllers.formatSql;
-
-    try {
-      const response = await SupersetClient.post({
-        endpoint: '/api/v1/sql/format',
-        body: JSON.stringify({ sql: datasource.sql }),
-        headers: { 'Content-Type': 'application/json' },
-        signal,
-      });
-
-      this.onDatasourcePropChange('sql', response.json.result);
-      this.props.addSuccessToast(t('SQL was formatted'));
-    } catch (error) {
-      if (error.name === 'AbortError') return;
-
-      const { error: clientError, statusText } =
-        await getClientErrorObject(error);
-
-      this.props.addDangerToast(
-        clientError ||
-          statusText ||
-          t('An error occurred while formatting SQL'),
-      );
-    } finally {
-      this.abortControllers.formatSql = null;
-    }
-  }
-
-  /**
-   * Syncs dataset columns with the database schema.
-   * Fetches column metadata from the underlying table/view and updates the dataset.
-   * Aborts any pending sync requests before starting a new one.
-   */
-  async syncMetadata() {
-    const { datasource } = this.state;
-
+  const syncMetadata = useCallback(async () => {
     // Abort previous syncMetadata if still pending
-    if (this.abortControllers.syncMetadata) {
-      this.abortControllers.syncMetadata.abort();
+    if (abortControllers.current.syncMetadata) {
+      abortControllers.current.syncMetadata.abort();
     }
 
-    this.abortControllers.syncMetadata = new AbortController();
-    const { signal } = this.abortControllers.syncMetadata;
+    abortControllers.current.syncMetadata = new AbortController();
+    const { signal } = abortControllers.current.syncMetadata;
 
-    this.setState({ metadataLoading: true });
+    setMetadataLoading(true);
 
     try {
       const newCols = await fetchSyncedColumns(datasource, signal);
@@ -1146,11 +1162,11 @@ class DatasourceEditor extends PureComponent<
       const columnChanges = updateColumns(
         datasource.columns,
         newCols,
-        this.props.addSuccessToast,
+        addSuccessToast,
       );
-      this.setColumns({
+      setColumns({
         databaseColumns: columnChanges.finalColumns.filter(
-          col => !col.expression, // remove calculated columns
+          col => !col.expression,
         ) as Column[],
       });
 
@@ -1158,229 +1174,285 @@ class DatasourceEditor extends PureComponent<
         clearDatasetCache(datasource.id);
       }
 
-      this.props.addSuccessToast(t('Metadata has been synced'));
-      this.setState({ metadataLoading: false });
-    } catch (error) {
-      if (error.name === 'AbortError') {
-        // Only update state if still mounted (abort may happen during unmount)
-        if (this.isComponentMounted) {
-          this.setState({ metadataLoading: false });
+      addSuccessToast(t('Metadata has been synced'));
+      setMetadataLoading(false);
+    } catch (error: unknown) {
+      if ((error as Error).name === 'AbortError') {
+        if (isComponentMounted.current) {
+          setMetadataLoading(false);
         }
         return;
       }
 
-      const { error: clientError, statusText } =
-        await getClientErrorObject(error);
-
-      this.props.addDangerToast(
-        clientError || statusText || t('An error has occurred'),
+      const { error: clientError, statusText } = await getClientErrorObject(
+        error as Response,
       );
-      this.setState({ metadataLoading: false });
+
+      addDangerToast(clientError || statusText || t('An error has occurred'));
+      setMetadataLoading(false);
     } finally {
-      this.abortControllers.syncMetadata = null;
+      abortControllers.current.syncMetadata = null;
     }
-  }
+  }, [datasource, addSuccessToast, addDangerToast, setColumns]);
 
-  /**
-   * Fetches chart usage data for this dataset (which charts use this dataset).
-   * Aborts any pending fetch requests before starting a new one.
-   *
-   * @param {number} page - Page number (1-indexed)
-   * @param {number} pageSize - Number of results per page
-   * @param {string} sortColumn - Column to sort by
-   * @param {string} sortDirection - Sort direction ('asc' or 'desc')
-   * @returns {Promise<{charts: Array, count: number, ids: Array}>} Chart usage data
-   */
-  async fetchUsageData(
-    page = 1,
-    pageSize = 25,
-    sortColumn = 'changed_on_delta_humanized',
-    sortDirection = 'desc',
-  ) {
-    const { datasource } = this.state;
+  const fetchUsageData = useCallback(
+    async (
+      page = 1,
+      pageSize = 25,
+      sortColumn = 'changed_on_delta_humanized',
+      sortDirection = 'desc',
+    ) => {
+      // Abort previous fetchUsageData if still pending
+      if (abortControllers.current.fetchUsageData) {
+        abortControllers.current.fetchUsageData.abort();
+      }
 
-    // Abort previous fetchUsageData if still pending
-    if (this.abortControllers.fetchUsageData) {
-      this.abortControllers.fetchUsageData.abort();
-    }
+      abortControllers.current.fetchUsageData = new AbortController();
+      const { signal } = abortControllers.current.fetchUsageData;
 
-    this.abortControllers.fetchUsageData = new AbortController();
-    const { signal } = this.abortControllers.fetchUsageData;
-
-    try {
-      const queryParams = rison.encode({
-        columns: [
-          'slice_name',
-          'url',
-          'certified_by',
-          'certification_details',
-          'description',
-          'owners.first_name',
-          'owners.last_name',
-          'owners.id',
-          'changed_on_delta_humanized',
-          'changed_on',
-          'changed_by.first_name',
-          'changed_by.last_name',
-          'changed_by.id',
-          'dashboards.id',
-          'dashboards.dashboard_title',
-          'dashboards.url',
-        ],
-        filters: [
-          {
-            col: 'datasource_id',
-            opr: 'eq',
-            value: datasource.id,
-          },
-        ],
-        order_column: sortColumn,
-        order_direction: sortDirection,
-        page: page - 1,
-        page_size: pageSize,
-      });
-
-      const { json = {} } = await SupersetClient.get({
-        endpoint: `/api/v1/chart/?q=${queryParams}`,
-        signal,
-      });
-
-      const charts = json?.result || [];
-      const ids = json?.ids || [];
-
-      // Map chart IDs to chart objects
-      const chartsWithIds = charts.map(
-        (chart: Omit<ChartUsageData, 'id'>, index: number) => ({
-          ...chart,
-          id: ids[index],
-        }),
-      );
-
-      // Only update state if not aborted and component still mounted
-      if (!signal.aborted && this.isComponentMounted) {
-        this.setState({
-          usageCharts: chartsWithIds,
-          usageChartsCount: json?.count || 0,
+      try {
+        const queryParams = rison.encode({
+          columns: [
+            'slice_name',
+            'url',
+            'certified_by',
+            'certification_details',
+            'description',
+            'owners.first_name',
+            'owners.last_name',
+            'owners.id',
+            'changed_on_delta_humanized',
+            'changed_on',
+            'changed_by.first_name',
+            'changed_by.last_name',
+            'changed_by.id',
+            'dashboards.id',
+            'dashboards.dashboard_title',
+            'dashboards.url',
+          ],
+          filters: [
+            {
+              col: 'datasource_id',
+              opr: 'eq',
+              value: datasource.id,
+            },
+          ],
+          order_column: sortColumn,
+          order_direction: sortDirection,
+          page: page - 1,
+          page_size: pageSize,
         });
+
+        const { json = {} } = await SupersetClient.get({
+          endpoint: `/api/v1/chart/?q=${queryParams}`,
+          signal,
+        });
+
+        const charts = json?.result || [];
+        const ids = json?.ids || [];
+
+        const chartsWithIds = charts.map(
+          (chart: Omit<ChartUsageData, 'id'>, index: number) => ({
+            ...chart,
+            id: ids[index],
+          }),
+        );
+
+        if (!signal.aborted && isComponentMounted.current) {
+          setUsageCharts(chartsWithIds);
+          setUsageChartsCount(json?.count || 0);
+        }
+
+        return {
+          charts: chartsWithIds,
+          count: json?.count || 0,
+          ids,
+        };
+      } catch (error: unknown) {
+        if ((error as Error).name === 'AbortError') throw error;
+
+        const { error: clientError, statusText } = await getClientErrorObject(
+          error as Response,
+        );
+
+        addDangerToast(
+          clientError ||
+            statusText ||
+            t('An error occurred while fetching usage data'),
+        );
+        setUsageCharts([]);
+        setUsageChartsCount(0);
+
+        return {
+          charts: [],
+          count: 0,
+          ids: [],
+        };
+      } finally {
+        abortControllers.current.fetchUsageData = null;
       }
+    },
+    [datasource.id, addDangerToast],
+  );
 
-      return {
-        charts: chartsWithIds,
-        count: json?.count || 0,
-        ids,
-      };
-    } catch (error) {
-      // Rethrow AbortError so callers can handle gracefully
-      if (error.name === 'AbortError') throw error;
+  const handleTabSelect = useCallback((key: string) => {
+    setActiveTabKey(key);
+  }, []);
 
-      const { error: clientError, statusText } =
-        await getClientErrorObject(error);
+  const sortMetrics = useCallback(
+    (metrics: Metric[]) =>
+      [...metrics].sort(
+        ({ id: a }: { id?: number }, { id: b }: { id?: number }) =>
+          (b ?? 0) - (a ?? 0),
+      ),
+    [],
+  );
 
-      this.props.addDangerToast(
-        clientError ||
-          statusText ||
-          t('An error occurred while fetching usage data'),
-      );
-      this.setState({
-        usageCharts: [],
-        usageChartsCount: 0,
+  // componentDidMount
+  useEffect(() => {
+    isComponentMounted.current = true;
+    Mousetrap.bind('ctrl+shift+f', e => {
+      e.preventDefault();
+      if (isEditMode) {
+        onQueryFormat();
+      }
+      return false;
+    });
+    fetchUsageData().catch(error => {
+      if (error?.name !== 'AbortError') throw error;
+    });
+
+    // componentWillUnmount
+    return () => {
+      isComponentMounted.current = false;
+
+      // Abort all pending requests
+      Object.values(abortControllers.current).forEach(controller => {
+        if (controller) controller.abort();
       });
 
-      return {
-        charts: [],
-        count: 0,
-        ids: [],
-      };
-    } finally {
-      this.abortControllers.fetchUsageData = null;
-    }
-  }
+      Mousetrap.unbind('ctrl+shift+f');
+      resetQuery();
+    };
+  }, []);
 
-  findDuplicates<T>(arr: T[], accessor: (obj: T) => string): string[] {
-    const seen: Record<string, null> = {};
-    const dups: string[] = [];
-    arr.forEach((obj: T) => {
-      const item = accessor(obj);
-      if (item in seen) {
-        dups.push(item);
-      } else {
-        seen[item] = null;
+  // Update Mousetrap binding when isEditMode changes
+  useEffect(() => {
+    Mousetrap.unbind('ctrl+shift+f');
+    Mousetrap.bind('ctrl+shift+f', e => {
+      e.preventDefault();
+      if (isEditMode) {
+        onQueryFormat();
       }
+      return false;
     });
-    return dups;
-  }
+  }, [isEditMode, onQueryFormat]);
 
-  validate(callback: () => void) {
-    let errors: string[] = [];
-    let dups: string[];
-    const { datasource } = this.state;
+  // componentDidUpdate for props.datasource changes
+  useEffect(() => {
+    if (!isComponentMounted.current) return;
 
-    // Looking for duplicate column_name
-    dups = this.findDuplicates(datasource.columns, obj => obj.column_name);
-    errors = errors.concat(
-      dups.map(name => t('Column name [%s] is duplicated', name)),
+    const newCalculatedColumns = propsDatasource.columns.filter(
+      col => !!col.expression,
     );
 
-    // Looking for duplicate metric_name
-    dups = this.findDuplicates(
-      datasource.metrics ?? [],
-      obj => obj.metric_name,
-    );
-    errors = errors.concat(
-      dups.map(name => t('Metric name [%s] is duplicated', name)),
-    );
+    if (newCalculatedColumns.length === calculatedColumns.length) {
+      const orderedCalculatedColumns: Column[] = [];
+      const usedIds = new Set<string | number>();
 
-    // Making sure calculatedColumns have an expression defined
-    const noFilterCalcCols = this.state.calculatedColumns.filter(
-      col => !col.expression && !col.json,
-    );
-    errors = errors.concat(
-      noFilterCalcCols.map(col =>
-        t('Calculated column [%s] requires an expression', col.column_name),
-      ),
-    );
+      calculatedColumns.forEach(currentCol => {
+        const id = currentCol.id || currentCol.column_name;
+        const updatedCol = newCalculatedColumns.find(
+          newCol => (newCol.id || newCol.column_name) === id,
+        );
+        if (updatedCol) {
+          orderedCalculatedColumns.push(updatedCol);
+          usedIds.add(id);
+        }
+      });
 
-    // validate currency code (skip 'AUTO' - it's a placeholder for auto-detection)
-    try {
-      this.state.datasource.metrics?.forEach(
-        metric =>
-          metric.currency?.symbol &&
-          metric.currency.symbol !== 'AUTO' &&
-          new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: metric.currency.symbol,
-          }),
+      newCalculatedColumns.forEach(newCol => {
+        const id = newCol.id || newCol.column_name;
+        if (!usedIds.has(id)) {
+          orderedCalculatedColumns.push(newCol);
+        }
+      });
+
+      setCalculatedColumns(orderedCalculatedColumns);
+      setDatabaseColumns(
+        propsDatasource.columns.filter(col => !col.expression),
       );
-    } catch {
-      errors = errors.concat([t('Invalid currency code in saved metrics')]);
     }
+  }, [propsDatasource]);
 
-    // Validate folders
-    if (this.state.folders?.length > 0) {
-      const folderValidation = validateFolders(this.state.folders);
-      errors = errors.concat(folderValidation.errors);
-    }
+  const renderSqlEditorOverlay = useCallback(
+    () => (
+      <div
+        css={themeParam => css`
+          position: absolute;
+          background: ${themeParam.colorBgLayout};
+          align-items: center;
+          display: flex;
+          height: 100%;
+          width: 100%;
+          justify-content: center;
+        `}
+      >
+        <div>
+          <Loading position="inline-centered" />
+          <span
+            css={themeParam => css`
+              display: block;
+              margin: ${themeParam.sizeUnit * 4}px auto;
+              width: fit-content;
+              color: ${themeParam.colorText};
+            `}
+          >
+            {t('We are working on your query')}
+          </span>
+        </div>
+      </div>
+    ),
+    [],
+  );
 
-    this.setState({ errors }, callback);
-  }
+  const renderOpenInSqlLabLink = useCallback(
+    (isError = false) => (
+      <a
+        href={getSQLLabUrl()}
+        target="_blank"
+        rel="noopener noreferrer"
+        css={themeParam => css`
+          color: ${isError ? themeParam.colorErrorText : themeParam.colorText};
+          font-size: ${themeParam.fontSizeSM}px;
+          text-decoration: underline;
+        `}
+      >
+        {t('Open in SQL lab')}
+      </a>
+    ),
+    [getSQLLabUrl],
+  );
 
-  handleTabSelect(activeTabKey: string) {
-    this.setState({ activeTabKey });
-  }
+  const renderSqlErrorMessage = useCallback(
+    () => (
+      <span
+        css={themeParam => css`
+          font-size: ${themeParam.fontSizeSM}px;
+          color: ${themeParam.colorErrorText};
+        `}
+      >
+        {database?.error && t('Error executing query. ')}
+        {renderOpenInSqlLabLink(true)}
+        {t(' to check for details.')}
+      </span>
+    ),
+    [database?.error, renderOpenInSqlLabLink],
+  );
 
-  sortMetrics(metrics: Metric[]) {
-    return metrics.sort(
-      ({ id: a }: { id?: number }, { id: b }: { id?: number }) =>
-        (b ?? 0) - (a ?? 0),
-    );
-  }
-
-  renderDefaultColumnSettings() {
-    const { datasource, databaseColumns, calculatedColumns } = this.state;
-    const { theme } = this.props;
+  const renderDefaultColumnSettings = useCallback(() => {
     const allColumns = [...databaseColumns, ...calculatedColumns];
 
-    // Get datetime-compatible columns for the default datetime dropdown
     const datetimeColumns = allColumns
       .filter(col => col.is_dttm)
       .map(col => ({
@@ -1388,7 +1460,6 @@ class DatasourceEditor extends PureComponent<
         label: col.verbose_name || col.column_name,
       }));
 
-    // String columns + untyped calculated columns for the currency code dropdown
     const stringColumns = allColumns
       .filter(
         col =>
@@ -1420,7 +1491,7 @@ class DatasourceEditor extends PureComponent<
               options={datetimeColumns}
               value={datasource.main_dttm_col}
               onChange={value =>
-                this.onDatasourceChange({
+                onDatasourceChange({
                   ...datasource,
                   main_dttm_col: value as string | undefined,
                 })
@@ -1444,7 +1515,7 @@ class DatasourceEditor extends PureComponent<
               options={stringColumns}
               value={datasource.currency_code_column}
               onChange={value =>
-                this.onDatasourceChange({
+                onDatasourceChange({
                   ...datasource,
                   currency_code_column: value as string | undefined,
                 })
@@ -1457,15 +1528,20 @@ class DatasourceEditor extends PureComponent<
         </Flex>
       </DefaultColumnSettingsContainer>
     );
-  }
+  }, [
+    databaseColumns,
+    calculatedColumns,
+    theme?.sizeUnit,
+    datasource,
+    onDatasourceChange,
+  ]);
 
-  renderSettingsFieldset() {
-    const { datasource } = this.state;
-    return (
+  const renderSettingsFieldset = useCallback(
+    () => (
       <Fieldset
         title={t('Basic')}
         item={datasource}
-        onChange={this.onDatasourceChange}
+        onChange={onDatasourceChange}
       >
         <Field
           fieldKey="description"
@@ -1500,7 +1576,7 @@ class DatasourceEditor extends PureComponent<
           description={t('Whether to populate autocomplete filters options')}
           control={<CheckboxControl />}
         />
-        {this.state.isSqla && (
+        {isSqla && (
           <Field
             fieldKey="fetch_values_predicate"
             label={t('Autocomplete query predicate')}
@@ -1521,7 +1597,7 @@ class DatasourceEditor extends PureComponent<
             }
           />
         )}
-        {this.state.isSqla && (
+        {isSqla && (
           <Field
             fieldKey="extra"
             label={t('Extra')}
@@ -1544,20 +1620,20 @@ class DatasourceEditor extends PureComponent<
         <OwnersSelector
           datasource={datasource}
           onChange={newOwners => {
-            this.onDatasourceChange({ ...datasource, owners: newOwners });
+            onDatasourceChange({ ...datasource, owners: newOwners });
           }}
         />
       </Fieldset>
-    );
-  }
+    ),
+    [datasource, onDatasourceChange, isSqla],
+  );
 
-  renderAdvancedFieldset() {
-    const { datasource } = this.state;
-    return (
+  const renderAdvancedFieldset = useCallback(
+    () => (
       <Fieldset
         title={t('Advanced')}
         item={datasource}
-        onChange={this.onDatasourceChange}
+        onChange={onDatasourceChange}
       >
         <Field
           fieldKey="cache_timeout"
@@ -1575,7 +1651,7 @@ class DatasourceEditor extends PureComponent<
             'The number of hours, negative or positive, to shift the time column. This can be used to move UTC time to local time.',
           )}
         />
-        {this.state.isSqla && (
+        {isSqla && (
           <Field
             fieldKey="template_params"
             label={t('Template parameters')}
@@ -1604,172 +1680,67 @@ class DatasourceEditor extends PureComponent<
           control={<CheckboxControl />}
         />
       </Fieldset>
-    );
-  }
-
-  renderSpatialTab() {
-    const { datasource } = this.state;
-    const { spatials, all_cols: allCols } = datasource;
-
-    return {
-      key: TABS_KEYS.SPATIAL,
-      label: <CollectionTabTitle collection={spatials} title={t('Spatial')} />,
-      children: (
-        <CollectionTable
-          tableColumns={['name', 'config']}
-          sortColumns={['name']}
-          onChange={this.onDatasourcePropChange.bind(this, 'spatials')}
-          itemGenerator={() => ({
-            name: t('<new spatial>'),
-            type: t('<no type>'),
-            config: null,
-          })}
-          collection={spatials ?? []}
-          allowDeletes
-          itemRenderers={{
-            name: (d, onChange) => (
-              <EditableTitle
-                canEdit
-                title={d as string}
-                onSaveTitle={onChange}
-              />
-            ),
-            config: (v, onChange) => (
-              <SpatialControl
-                value={
-                  v as {
-                    type: 'latlong' | 'delimited' | 'geohash';
-                  }
-                }
-                onChange={onChange}
-                choices={allCols?.map(col => [col, col] as [string, string])}
-              />
-            ),
-          }}
-        />
-      ),
-    };
-  }
-
-  renderSqlEditorOverlay = () => (
-    <div
-      css={theme => css`
-        position: absolute;
-        background: ${theme.colorBgLayout};
-        align-items: center;
-        display: flex;
-        height: 100%;
-        width: 100%;
-        justify-content: center;
-      `}
-    >
-      <div>
-        <Loading position="inline-centered" />
-        <span
-          css={theme => css`
-            display: block;
-            margin: ${theme.sizeUnit * 4}px auto;
-            width: fit-content;
-            color: ${theme.colorText};
-          `}
-        >
-          {t('We are working on your query')}
-        </span>
-      </div>
-    </div>
+    ),
+    [datasource, onDatasourceChange, isSqla],
   );
 
-  renderOpenInSqlLabLink(isError = false) {
-    return (
-      <a
-        href={this.getSQLLabUrl()}
-        target="_blank"
-        rel="noopener noreferrer"
-        css={theme => css`
-          color: ${isError ? theme.colorErrorText : theme.colorText};
-          font-size: ${theme.fontSizeSM}px;
-          text-decoration: underline;
-        `}
-      >
-        {t('Open in SQL lab')}
-      </a>
-    );
-  }
-
-  renderSqlErrorMessage = () => (
-    <span
-      css={theme => css`
-        font-size: ${theme.fontSizeSM}px;
-        color: ${theme.colorErrorText};
-      `}
-    >
-      {this.props.database?.error && t('Error executing query. ')}
-      {this.renderOpenInSqlLabLink(true)}
-      {t(' to check for details.')}
-    </span>
-  );
-
-  renderSourceFieldset() {
-    const { datasource } = this.state;
-
-    return (
+  const renderSourceFieldset = useCallback(
+    () => (
       <div>
         <EditLockContainer>
           <span
-            css={theme => css`
-              color: ${theme.colorTextTertiary};
+            css={themeParam => css`
+              color: ${themeParam.colorTextTertiary};
             `}
             role="button"
             tabIndex={0}
-            onClick={this.onChangeEditMode}
+            onClick={onChangeEditMode}
           >
-            {this.state.isEditMode ? (
+            {isEditMode ? (
               <Icons.UnlockOutlined
                 iconSize="xl"
-                css={theme => css`
-                  margin: auto ${theme.sizeUnit}px auto 0;
+                css={themeParam => css`
+                  margin: auto ${themeParam.sizeUnit}px auto 0;
                 `}
               />
             ) : (
               <Icons.LockOutlined
                 iconSize="xl"
-                css={theme => ({
-                  margin: `auto ${theme.sizeUnit}px auto 0`,
+                css={themeParam => ({
+                  margin: `auto ${themeParam.sizeUnit}px auto 0`,
                 })}
               />
             )}
           </span>
-          {!this.state.isEditMode && (
-            <div>{t('Click the lock to make changes.')}</div>
-          )}
-          {this.state.isEditMode && (
+          {!isEditMode && <div>{t('Click the lock to make changes.')}</div>}
+          {isEditMode && (
             <div>{t('Click the lock to prevent further changes.')}</div>
           )}
         </EditLockContainer>
         <div
-          css={theme => css`
-            margin-top: ${theme.sizeUnit * 3}px;
+          css={themeParam => css`
+            margin-top: ${themeParam.sizeUnit * 3}px;
             display: flex;
-            gap: ${theme.sizeUnit * 4}px;
+            gap: ${themeParam.sizeUnit * 4}px;
           `}
         >
           {DATASOURCE_TYPES_ARR.map(type => (
             <Radio
               key={type.key}
               value={type.key}
-              onChange={this.onDatasourceTypeChange.bind(this, type.key)}
-              checked={this.state.datasourceType === type.key}
-              disabled={!this.state.isEditMode}
+              onChange={() => onDatasourceTypeChange(type.key)}
+              checked={datasourceType === type.key}
+              disabled={!isEditMode}
             >
               {type.label}
             </Radio>
           ))}
         </div>
         <Divider />
-        <Fieldset item={datasource} onChange={this.onDatasourceChange} compact>
-          {this.state.datasourceType === DATASOURCE_TYPES.virtual.key && (
+        <Fieldset item={datasource} onChange={onDatasourceChange} compact>
+          {datasourceType === DATASOURCE_TYPES.virtual.key && (
             <div>
-              {this.state.isSqla && (
+              {isSqla && (
                 <>
                   <Col xs={24} md={12}>
                     <Field
@@ -1793,20 +1764,20 @@ class DatasourceEditor extends PureComponent<
                             catalog={datasource.catalog}
                             schema={datasource.schema}
                             onCatalogChange={catalog =>
-                              this.state.isEditMode &&
-                              this.onDatasourcePropChange('catalog', catalog)
+                              isEditMode &&
+                              onDatasourcePropChange('catalog', catalog)
                             }
                             onSchemaChange={schema =>
-                              this.state.isEditMode &&
-                              this.onDatasourcePropChange('schema', schema)
+                              isEditMode &&
+                              onDatasourcePropChange('schema', schema)
                             }
-                            onDbChange={database =>
-                              this.state.isEditMode &&
-                              this.onDatasourcePropChange('database', database)
+                            onDbChange={db =>
+                              isEditMode &&
+                              onDatasourcePropChange('database', db)
                             }
                             formMode={false}
-                            handleError={this.props.addDangerToast}
-                            readOnly={!this.state.isEditMode}
+                            handleError={addDangerToast}
+                            readOnly={!isEditMode}
                           />
                         </div>
                       }
@@ -1819,10 +1790,10 @@ class DatasourceEditor extends PureComponent<
                           <TextControl
                             controlId="table_name"
                             onChange={table => {
-                              this.onDatasourcePropChange('table_name', table);
+                              onDatasourcePropChange('table_name', table);
                             }}
                             placeholder={t('Dataset name')}
-                            disabled={!this.state.isEditMode}
+                            disabled={!isEditMode}
                           />
                         }
                       />
@@ -1839,17 +1810,16 @@ class DatasourceEditor extends PureComponent<
                         'columns in your dataset will be synced when saving the dataset.',
                     )}
                     control={
-                      this.props.database?.isLoading ? (
+                      database?.isLoading ? (
                         <>
-                          {this.renderSqlEditorOverlay()}
+                          {renderSqlEditorOverlay()}
                           <TextAreaControl
                             hotkeys={[
                               {
                                 name: 'formatQuery',
                                 key: 'ctrl+shift+f',
-                                descr: t('Format SQL query'),
                                 func: () => {
-                                  this.onQueryFormat();
+                                  onQueryFormat();
                                 },
                               },
                             ]}
@@ -1857,22 +1827,21 @@ class DatasourceEditor extends PureComponent<
                             offerEditInModal={false}
                             minLines={10}
                             maxLines={Infinity}
-                            readOnly={!this.state.isEditMode}
+                            readOnly={!isEditMode}
                             resize="both"
                           />
                         </>
                       ) : (
                         <TextAreaControl
-                          css={theme => css`
-                            margin-top: ${theme.sizeUnit * 3}px;
+                          css={themeParam => css`
+                            margin-top: ${themeParam.sizeUnit * 3}px;
                           `}
                           hotkeys={[
                             {
                               name: 'formatQuery',
                               key: 'ctrl+shift+f',
-                              descr: t('Format SQL query'),
                               func: () => {
-                                this.onQueryFormat();
+                                onQueryFormat();
                               },
                             },
                           ]}
@@ -1880,7 +1849,7 @@ class DatasourceEditor extends PureComponent<
                           offerEditInModal={false}
                           minLines={10}
                           maxLines={Infinity}
-                          readOnly={!this.state.isEditMode}
+                          readOnly={!isEditMode}
                           resize="both"
                         />
                       )
@@ -1896,64 +1865,62 @@ class DatasourceEditor extends PureComponent<
                         `}
                       >
                         <Button
-                          disabled={this.props.database?.isLoading}
+                          disabled={database?.isLoading}
                           tooltip={t('Open SQL Lab in a new tab')}
                           buttonStyle="secondary"
                           onClick={() => {
-                            this.openOnSqlLab();
+                            openOnSqlLab();
                           }}
                           icon={<Icons.ExportOutlined iconSize="s" />}
                         />
                         <Button
-                          disabled={this.props.database?.isLoading}
+                          disabled={database?.isLoading}
                           tooltip={t('Run query')}
                           buttonStyle="primary"
                           onClick={() => {
-                            this.onQueryRun();
+                            onQueryRun();
                           }}
                           icon={<Icons.CaretRightFilled iconSize="s" />}
                         />
                       </div>
                     }
                   />
-                  {this.props.database?.queryResult && (
+                  {database?.queryResult && (
                     <>
                       <div
-                        css={theme => css`
-                          margin-bottom: ${theme.sizeUnit}px;
+                        css={themeParam => css`
+                          margin-bottom: ${themeParam.sizeUnit}px;
                         `}
                       >
                         <span
-                          css={theme => css`
-                            color: ${theme.colorText};
-                            font-size: ${theme.fontSizeSM}px;
+                          css={themeParam => css`
+                            color: ${themeParam.colorText};
+                            font-size: ${themeParam.fontSizeSM}px;
                           `}
                         >
                           {t(
                             'In this view you can preview the first 25 rows. ',
                           )}
                         </span>
-                        {this.renderOpenInSqlLabLink()}
+                        {renderOpenInSqlLabLink()}
                         <span
-                          css={theme => css`
-                            color: ${theme.colorText};
-                            font-size: ${theme.fontSizeSM}px;
+                          css={themeParam => css`
+                            color: ${themeParam.colorText};
+                            font-size: ${themeParam.fontSizeSM}px;
                           `}
                         >
                           {t(' to see details.')}
                         </span>
                       </div>
                       <ResultTable
-                        data={this.props.database?.queryResult?.data ?? []}
-                        queryId={
-                          this.props.database?.queryResult?.query?.id ?? ''
-                        }
+                        data={database?.queryResult?.data ?? []}
+                        queryId={database?.queryResult?.query?.id ?? ''}
                         orderedColumnKeys={
-                          this.props.database?.queryResult?.columns?.map(
+                          database?.queryResult?.columns?.map(
                             col => col.column_name,
                           ) ?? []
                         }
-                        expandedColumns={this.props.database?.queryResult?.expanded_columns?.map(
+                        expandedColumns={database?.queryResult?.expanded_columns?.map(
                           col => col.column_name,
                         )}
                         height={300}
@@ -1961,14 +1928,14 @@ class DatasourceEditor extends PureComponent<
                       />
                     </>
                   )}
-                  {this.props.database?.error && this.renderSqlErrorMessage()}
+                  {database?.error && renderSqlErrorMessage()}
                 </>
               )}
             </div>
           )}
-          {this.state.datasourceType === DATASOURCE_TYPES.physical.key && (
+          {datasourceType === DATASOURCE_TYPES.physical.key && (
             <Col xs={24} md={12}>
-              {this.state.isSqla && (
+              {isSqla && (
                 <Field
                   fieldKey="tableSelector"
                   label={t('Physical')}
@@ -1988,38 +1955,33 @@ class DatasourceEditor extends PureComponent<
                               }
                             : null
                         }
-                        handleError={this.props.addDangerToast}
+                        handleError={addDangerToast}
                         catalog={datasource.catalog}
                         schema={datasource.schema}
                         tableValue={datasource.table_name}
                         onCatalogChange={
-                          this.state.isEditMode
+                          isEditMode
                             ? catalog =>
-                                this.onDatasourcePropChange('catalog', catalog)
+                                onDatasourcePropChange('catalog', catalog)
                             : undefined
                         }
                         onSchemaChange={
-                          this.state.isEditMode
-                            ? schema =>
-                                this.onDatasourcePropChange('schema', schema)
+                          isEditMode
+                            ? schema => onDatasourcePropChange('schema', schema)
                             : undefined
                         }
                         onDbChange={
-                          this.state.isEditMode
-                            ? database =>
-                                this.onDatasourcePropChange(
-                                  'database',
-                                  database,
-                                )
+                          isEditMode
+                            ? db => onDatasourcePropChange('database', db)
                             : undefined
                         }
                         onTableSelectChange={
-                          this.state.isEditMode
+                          isEditMode
                             ? table =>
-                                this.onDatasourcePropChange('table_name', table)
+                                onDatasourcePropChange('table_name', table)
                             : undefined
                         }
-                        readOnly={!this.state.isEditMode}
+                        readOnly={!isEditMode}
                       />
                     </div>
                   }
@@ -2034,18 +1996,36 @@ class DatasourceEditor extends PureComponent<
           )}
         </Fieldset>
       </div>
-    );
-  }
+    ),
+    [
+      onChangeEditMode,
+      isEditMode,
+      datasourceType,
+      onDatasourceTypeChange,
+      datasource,
+      onDatasourceChange,
+      isSqla,
+      addDangerToast,
+      onDatasourcePropChange,
+      database,
+      renderSqlEditorOverlay,
+      onQueryFormat,
+      openOnSqlLab,
+      onQueryRun,
+      renderOpenInSqlLabLink,
+      renderSqlErrorMessage,
+    ],
+  );
 
-  renderErrors() {
-    if (this.state.errors.length > 0) {
+  const renderErrors = useCallback(() => {
+    if (errors.length > 0) {
       return (
         <Alert
-          css={theme => ({ marginBottom: theme.sizeUnit * 4 })}
+          css={themeParam => ({ marginBottom: themeParam.sizeUnit * 4 })}
           type="error"
           message={
             <>
-              {this.state.errors.map(err => (
+              {errors.map(err => (
                 <div key={err}>{err}</div>
               ))}
             </>
@@ -2054,12 +2034,11 @@ class DatasourceEditor extends PureComponent<
       );
     }
     return null;
-  }
+  }, [errors]);
 
-  renderMetricCollection() {
-    const { datasource } = this.state;
+  const renderMetricCollection = useCallback(() => {
     const { metrics } = datasource;
-    const sortedMetrics = metrics?.length ? this.sortMetrics(metrics) : [];
+    const sortedMetrics = metrics?.length ? sortMetrics(metrics) : [];
     return (
       <CollectionTable
         tableColumns={['metric_name', 'verbose_name', 'expression']}
@@ -2153,7 +2132,7 @@ class DatasourceEditor extends PureComponent<
         }
         collection={sortedMetrics}
         allowAddItem
-        onChange={this.onDatasourcePropChange.bind(this, 'metrics')}
+        onChange={(value: unknown) => onDatasourcePropChange('metrics', value)}
         itemGenerator={() => ({
           metric_name: t('<new metric>'),
           verbose_name: '',
@@ -2165,7 +2144,7 @@ class DatasourceEditor extends PureComponent<
           }),
         }}
         itemRenderers={{
-          metric_name: (v, onChange, _, record) => (
+          metric_name: (v, onItemChange, _, record) => (
             <FlexRowContainer>
               {record.is_certified && (
                 <CertifiedBadge
@@ -2181,19 +2160,19 @@ class DatasourceEditor extends PureComponent<
               <EditableTitle
                 canEdit
                 title={v as string}
-                onSaveTitle={onChange}
+                onSaveTitle={onItemChange}
                 maxWidth={300}
               />
             </FlexRowContainer>
           ),
-          verbose_name: (v, onChange) => (
-            <TextControl value={v as string} onChange={onChange} />
+          verbose_name: (v, onItemChange) => (
+            <TextControl value={v as string} onChange={onItemChange} />
           ),
-          expression: (v, onChange) => (
+          expression: (v, onItemChange) => (
             <TextAreaControl
               canEdit
               initialValue={v as string}
-              onChange={onChange}
+              onChange={onItemChange}
               extraClasses={['datasource-sql-expression']}
               language="sql"
               offerEditInModal={false}
@@ -2202,19 +2181,19 @@ class DatasourceEditor extends PureComponent<
               resize="both"
             />
           ),
-          description: (v, onChange, label) => (
+          description: (v, onItemChange, label) => (
             <StackedField
               label={label}
               formElement={
-                <TextControl value={v as string} onChange={onChange} />
+                <TextControl value={v as string} onChange={onItemChange} />
               }
             />
           ),
-          d3format: (v, onChange, label) => (
+          d3format: (v, onItemChange, label) => (
             <StackedField
               label={label}
               formElement={
-                <TextControl value={v as string} onChange={onChange} />
+                <TextControl value={v as string} onChange={onItemChange} />
               }
             />
           ),
@@ -2223,276 +2202,215 @@ class DatasourceEditor extends PureComponent<
         stickyHeader
       />
     );
-  }
+  }, [datasource, sortMetrics, onDatasourcePropChange]);
 
-  render() {
-    const { datasource, activeTabKey } = this.state;
-    const { metrics } = datasource;
-    const sortedMetrics = metrics?.length ? this.sortMetrics(metrics) : [];
+  const sortedMetrics = useMemo(
+    () => (datasource.metrics?.length ? sortMetrics(datasource.metrics) : []),
+    [datasource.metrics, sortMetrics],
+  );
 
-    return (
-      <DatasourceContainer data-test="datasource-editor">
-        {this.renderErrors()}
-        <Alert
-          css={theme => ({ marginBottom: theme.sizeUnit * 4 })}
-          type="warning"
-          message={
-            <>
-              {' '}
-              <strong>{t('Be careful.')} </strong>
-              {t(
-                'Changing these settings will affect all charts using this dataset, including charts owned by other people.',
-              )}
-            </>
-          }
-        />
-        <StyledTableTabs
-          id="table-tabs"
-          data-test="edit-dataset-tabs"
-          onChange={this.handleTabSelect}
-          defaultActiveKey={activeTabKey}
-          items={[
+  const tabItems = useMemo(
+    () => [
+      {
+        key: TABS_KEYS.SOURCE,
+        label: t('Source'),
+        children: renderSourceFieldset(),
+      },
+      {
+        key: TABS_KEYS.METRICS,
+        label: (
+          <CollectionTabTitle collection={sortedMetrics} title={t('Metrics')} />
+        ),
+        children: renderMetricCollection(),
+      },
+      {
+        key: TABS_KEYS.COLUMNS,
+        label: (
+          <CollectionTabTitle
+            collection={databaseColumns}
+            title={t('Columns')}
+          />
+        ),
+        children: (
+          <StyledTableTabWrapper>
+            {renderDefaultColumnSettings()}
+            <DefaultColumnSettingsTitle>
+              {t('Column Settings')}
+            </DefaultColumnSettingsTitle>
+            <ColumnButtonWrapper>
+              <StyledButtonWrapper>
+                <Button
+                  buttonSize="small"
+                  buttonStyle="tertiary"
+                  onClick={syncMetadata}
+                  className="sync-from-source"
+                  disabled={isEditMode}
+                >
+                  <Icons.DatabaseOutlined iconSize="m" />
+                  {t('Sync columns from source')}
+                </Button>
+              </StyledButtonWrapper>
+            </ColumnButtonWrapper>
+            <ColumnCollectionTable
+              className="columns-table"
+              columns={databaseColumns}
+              datasource={datasource}
+              onColumnsChange={cols => setColumns({ databaseColumns: cols })}
+              onDatasourceChange={onDatasourceChange}
+            />
+            {metadataLoading && <Loading />}
+          </StyledTableTabWrapper>
+        ),
+      },
+      {
+        key: TABS_KEYS.CALCULATED_COLUMNS,
+        label: (
+          <CollectionTabTitle
+            collection={calculatedColumns}
+            title={t('Calculated columns')}
+          />
+        ),
+        children: (
+          <StyledTableTabWrapper>
+            {renderDefaultColumnSettings()}
+            <DefaultColumnSettingsTitle>
+              {t('Column Settings')}
+            </DefaultColumnSettingsTitle>
+            <ColumnCollectionTable
+              columns={calculatedColumns}
+              onColumnsChange={cols => setColumns({ calculatedColumns: cols })}
+              columnLabelTooltips={{
+                column_name: t(
+                  'This field is used as a unique identifier to attach ' +
+                    'the calculated dimension to charts. It is also used ' +
+                    'as the alias in the SQL query.',
+                ),
+              }}
+              onDatasourceChange={onDatasourceChange}
+              datasource={datasource}
+              editableColumnName
+              showExpression
+              allowAddItem
+              allowEditDataType
+              itemGenerator={() => ({
+                column_name: t('<new column>'),
+                filterable: true,
+                groupby: true,
+                expression: t('<enter SQL expression here>'),
+                expanded: true,
+              })}
+            />
+          </StyledTableTabWrapper>
+        ),
+      },
+      {
+        key: TABS_KEYS.USAGE,
+        label: (
+          <CollectionTabTitle
+            collection={{ length: usageChartsCount }}
+            title={t('Usage')}
+          />
+        ),
+        children: (
+          <StyledTableTabWrapper>
+            <DatasetUsageTab
+              datasourceId={datasource.id ?? 0}
+              charts={
+                usageCharts as React.ComponentProps<
+                  typeof DatasetUsageTab
+                >['charts']
+              }
+              totalCount={usageChartsCount}
+              onFetchCharts={fetchUsageData}
+              addDangerToast={addDangerToast}
+            />
+          </StyledTableTabWrapper>
+        ),
+      },
+      ...(isFeatureEnabled(FeatureFlag.DatasetFolders)
+        ? [
             {
-              key: TABS_KEYS.SOURCE,
-              label: t('Source'),
-              children: this.renderSourceFieldset(),
-            },
-            {
-              key: TABS_KEYS.METRICS,
+              key: TABS_KEYS.FOLDERS,
               label: (
-                <CollectionTabTitle
-                  collection={sortedMetrics}
-                  title={t('Metrics')}
-                />
-              ),
-              children: this.renderMetricCollection(),
-            },
-            {
-              key: TABS_KEYS.COLUMNS,
-              label: (
-                <CollectionTabTitle
-                  collection={this.state.databaseColumns}
-                  title={t('Columns')}
-                />
+                <CollectionTabTitle collection={folders} title={t('Folders')} />
               ),
               children: (
-                <StyledTableTabWrapper>
-                  {this.renderDefaultColumnSettings()}
-                  <DefaultColumnSettingsTitle>
-                    {t('Column Settings')}
-                  </DefaultColumnSettingsTitle>
-                  <ColumnButtonWrapper>
-                    <StyledButtonWrapper>
-                      <Button
-                        buttonSize="small"
-                        buttonStyle="tertiary"
-                        onClick={this.syncMetadata}
-                        className="sync-from-source"
-                        disabled={this.state.isEditMode}
-                      >
-                        <Icons.DatabaseOutlined iconSize="m" />
-                        {t('Sync columns from source')}
-                      </Button>
-                    </StyledButtonWrapper>
-                  </ColumnButtonWrapper>
-                  <ColumnCollectionTable
-                    className="columns-table"
-                    columns={this.state.databaseColumns}
-                    datasource={datasource}
-                    onColumnsChange={databaseColumns =>
-                      this.setColumns({ databaseColumns })
-                    }
-                    onDatasourceChange={this.onDatasourceChange}
-                  />
-                  {this.state.metadataLoading && <Loading />}
-                </StyledTableTabWrapper>
-              ),
-            },
-            {
-              key: TABS_KEYS.CALCULATED_COLUMNS,
-              label: (
-                <CollectionTabTitle
-                  collection={this.state.calculatedColumns}
-                  title={t('Calculated columns')}
+                <FoldersEditor
+                  folders={folders}
+                  metrics={
+                    sortedMetrics as unknown as import('@superset-ui/chart-controls').Metric[]
+                  }
+                  columns={databaseColumns}
+                  onChange={handleFoldersChange}
                 />
               ),
-              children: (
-                <StyledTableTabWrapper>
-                  {this.renderDefaultColumnSettings()}
-                  <DefaultColumnSettingsTitle>
-                    {t('Column Settings')}
-                  </DefaultColumnSettingsTitle>
-                  <ColumnCollectionTable
-                    columns={this.state.calculatedColumns}
-                    onColumnsChange={calculatedColumns =>
-                      this.setColumns({ calculatedColumns })
-                    }
-                    columnLabelTooltips={{
-                      column_name: t(
-                        'This field is used as a unique identifier to attach ' +
-                          'the calculated dimension to charts. It is also used ' +
-                          'as the alias in the SQL query.',
-                      ),
-                    }}
-                    onDatasourceChange={this.onDatasourceChange}
-                    datasource={datasource}
-                    editableColumnName
-                    showExpression
-                    allowAddItem
-                    allowEditDataType
-                    itemGenerator={() => ({
-                      column_name: t('<new column>'),
-                      filterable: true,
-                      groupby: true,
-                      expression: t('<enter SQL expression here>'),
-                      expanded: true,
-                    })}
-                  />
-                </StyledTableTabWrapper>
-              ),
             },
-            {
-              key: TABS_KEYS.USAGE,
-              label: (
-                <CollectionTabTitle
-                  collection={{ length: this.state.usageChartsCount }}
-                  title={t('Usage')}
-                />
-              ),
-              children: (
-                <StyledTableTabWrapper>
-                  <DatasetUsageTab
-                    datasourceId={datasource.id ?? 0}
-                    charts={
-                      this.state.usageCharts as React.ComponentProps<
-                        typeof DatasetUsageTab
-                      >['charts']
-                    }
-                    totalCount={this.state.usageChartsCount}
-                    onFetchCharts={this.fetchUsageData}
-                    addDangerToast={this.props.addDangerToast}
-                  />
-                </StyledTableTabWrapper>
-              ),
-            },
-            ...(isFeatureEnabled(FeatureFlag.DatasetFolders)
-              ? [
-                  {
-                    key: TABS_KEYS.FOLDERS,
-                    label: (
-                      <CollectionTabTitle
-                        collection={this.state.folders}
-                        title={t('Folders')}
-                      />
-                    ),
-                    children: (
-                      <FoldersEditor
-                        folders={this.state.folders}
-                        // Type cast needed: local Metric interface differs slightly from chart-controls Metric
-                        metrics={
-                          sortedMetrics as unknown as import('@superset-ui/chart-controls').Metric[]
-                        }
-                        columns={this.state.databaseColumns}
-                        onChange={this.handleFoldersChange}
-                      />
-                    ),
-                  },
-                ]
-              : []),
-            {
-              key: TABS_KEYS.SETTINGS,
-              label: t('Settings'),
-              children: (
-                <Row gutter={16}>
-                  <Col xs={24} md={12}>
-                    <FormContainer>
-                      {this.renderSettingsFieldset()}
-                    </FormContainer>
-                  </Col>
-                  <Col xs={24} md={12}>
-                    <FormContainer>
-                      {this.renderAdvancedFieldset()}
-                    </FormContainer>
-                  </Col>
-                </Row>
-              ),
-            },
-          ]}
-        />
-      </DatasourceContainer>
-    );
-  }
+          ]
+        : []),
+      {
+        key: TABS_KEYS.SETTINGS,
+        label: t('Settings'),
+        children: (
+          <Row gutter={16}>
+            <Col xs={24} md={12}>
+              <FormContainer>{renderSettingsFieldset()}</FormContainer>
+            </Col>
+            <Col xs={24} md={12}>
+              <FormContainer>{renderAdvancedFieldset()}</FormContainer>
+            </Col>
+          </Row>
+        ),
+      },
+    ],
+    [
+      renderSourceFieldset,
+      sortedMetrics,
+      renderMetricCollection,
+      databaseColumns,
+      renderDefaultColumnSettings,
+      syncMetadata,
+      isEditMode,
+      datasource,
+      setColumns,
+      onDatasourceChange,
+      metadataLoading,
+      calculatedColumns,
+      usageChartsCount,
+      usageCharts,
+      fetchUsageData,
+      addDangerToast,
+      folders,
+      handleFoldersChange,
+      renderSettingsFieldset,
+      renderAdvancedFieldset,
+    ],
+  );
 
-  componentDidUpdate(prevProps: DatasourceEditorProps): void {
-    // Preserve calculated columns order when props change to prevent jumping
-    if (this.props.datasource !== prevProps.datasource) {
-      const newCalculatedColumns = this.props.datasource.columns.filter(
-        col => !!col.expression,
-      );
-      const currentCalculatedColumns = this.state.calculatedColumns;
-
-      if (newCalculatedColumns.length === currentCalculatedColumns.length) {
-        // Try to preserve the order by matching with existing calculated columns
-        const orderedCalculatedColumns: Column[] = [];
-        const usedIds = new Set<string | number>();
-
-        // First, add existing columns in their current order
-        currentCalculatedColumns.forEach(currentCol => {
-          const id = currentCol.id || currentCol.column_name;
-          const updatedCol = newCalculatedColumns.find(
-            newCol => (newCol.id || newCol.column_name) === id,
-          );
-          if (updatedCol) {
-            orderedCalculatedColumns.push(updatedCol);
-            usedIds.add(id);
-          }
-        });
-
-        // Then add any new columns that weren't in the current list
-        newCalculatedColumns.forEach(newCol => {
-          const id = newCol.id || newCol.column_name;
-          if (!usedIds.has(id)) {
-            orderedCalculatedColumns.push(newCol);
-          }
-        });
-
-        this.setState({
-          calculatedColumns: orderedCalculatedColumns,
-          databaseColumns: this.props.datasource.columns.filter(
-            col => !col.expression,
-          ),
-        });
-      }
-    }
-  }
-
-  componentDidMount() {
-    this.isComponentMounted = true;
-    Mousetrap.bind('ctrl+shift+f', e => {
-      e.preventDefault();
-      if (this.state.isEditMode) {
-        this.onQueryFormat();
-      }
-      return false;
-    });
-    this.fetchUsageData().catch(error => {
-      if (error?.name !== 'AbortError') throw error;
-    });
-  }
-
-  componentWillUnmount() {
-    this.isComponentMounted = false;
-
-    // Abort all pending requests
-    Object.values(this.abortControllers).forEach(controller => {
-      if (controller) controller.abort();
-    });
-
-    Mousetrap.unbind('ctrl+shift+f');
-    this.props.resetQuery();
-  }
+  return (
+    <DatasourceContainer data-test="datasource-editor">
+      {renderErrors()}
+      <Alert
+        css={themeParam => ({ marginBottom: themeParam.sizeUnit * 4 })}
+        type="warning"
+        message={
+          <>
+            {' '}
+            <strong>{t('Be careful.')} </strong>
+            {t(
+              'Changing these settings will affect all charts using this dataset, including charts owned by other people.',
+            )}
+          </>
+        }
+      />
+      <StyledTableTabs
+        id="table-tabs"
+        data-test="edit-dataset-tabs"
+        onChange={handleTabSelect}
+        defaultActiveKey={activeTabKey}
+        items={tabItems}
+      />
+    </DatasourceContainer>
+  );
 }
 
-const DataSourceComponent = withTheme(DatasourceEditor);
-
-export default withToasts(connector(DataSourceComponent));
+export default withToasts(connector(DatasourceEditor));

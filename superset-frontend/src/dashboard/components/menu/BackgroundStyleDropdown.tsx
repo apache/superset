@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { PureComponent } from 'react';
 import cx from 'classnames';
 import { t } from '@apache-superset/core';
 import { css, styled } from '@apache-superset/core/ui';
@@ -90,18 +89,19 @@ function renderOption(option: OptionProps) {
   );
 }
 
-export default class BackgroundStyleDropdown extends PureComponent<BackgroundStyleDropdownProps> {
-  render() {
-    const { id, value, onChange } = this.props;
-    return (
-      <PopoverDropdown
-        id={id}
-        options={backgroundStyleOptions}
-        value={value}
-        onChange={onChange}
-        renderButton={renderButton}
-        renderOption={renderOption}
-      />
-    );
-  }
+export default function BackgroundStyleDropdown({
+  id,
+  value,
+  onChange,
+}: BackgroundStyleDropdownProps) {
+  return (
+    <PopoverDropdown
+      id={id}
+      options={backgroundStyleOptions}
+      value={value}
+      onChange={onChange}
+      renderButton={renderButton}
+      renderOption={renderOption}
+    />
+  );
 }
