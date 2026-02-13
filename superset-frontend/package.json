@@ -163,7 +163,7 @@
     "lodash": "^4.18.1",
     "luxon": "^3.5.0",
     "mapbox-gl": "^3.13.0",
-    "markdown-to-jsx": "^9.7.3",
+    "markdown-to-jsx": "^9.7.4",
     "match-sorter": "^6.3.4",
     "memoize-one": "^5.2.1",
     "mousetrap": "^1.6.5",
