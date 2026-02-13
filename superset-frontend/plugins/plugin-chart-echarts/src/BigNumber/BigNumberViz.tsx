@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useEffect, useRef, MouseEvent } from 'react';
+import { useRef } from 'react';
 import { t } from '@apache-superset/core';
 import {
   getNumberFormatter,
@@ -24,13 +24,10 @@ import {
   SMART_DATE_VERBOSE_ID,
   computeMaxFontSize,
   BRAND_COLOR,
-  BinaryQueryObjectFilterClause,
-  DTTM_ALIAS,
 } from '@superset-ui/core';
-import { styled, useTheme } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/ui';
 import Echart from '../components/Echart';
 import { BigNumberVizProps } from './types';
-import { EventHandlers } from '../types';
 
 const defaultNumberFormatter = getNumberFormatter();
 
@@ -57,25 +54,14 @@ function BigNumberVis({
   subheader = '',
   subheaderFontSize = PROPORTION.SUBHEADER,
   subtitleFontSize = PROPORTION.SUBHEADER,
-  timeRangeFixed = false,
   alignment = 'center',
   ...props
 }: BigNumberVizProps) {
-  const theme = useTheme();
-  const [elementsRendered, setElementsRendered] = useState(false);
-
   const metricNameRef = useRef<HTMLDivElement>(null);
   const kickerRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   const subheaderRef = useRef<HTMLDivElement>(null);
   const subtitleRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      setElementsRendered(true);
-    }, 0);
-    return () => clearTimeout(timeout);
-  }, []);
 
   const getClassName = () => {
     const names = `superset-legacy-chart-big-number ${className} ${
@@ -95,13 +81,14 @@ function BigNumberVis({
   const renderFallbackWarning = () => {
     const { bigNumberFallback } = props;
     if (!formatTime || !bigNumberFallback || showTimestamp) return null;
+
     return (
       <span
         className="alert alert-warning"
         role="alert"
         title={t(
-          `Last available value seen on %s`,
-          formatTime(bigNumberFallback[0]),
+          'Last available value seen on %s',
+          formatTime(bigNumberFallback[0] as number | Date),
         )}
       >
         {t('Not up to date')}
@@ -137,7 +124,7 @@ function BigNumberVis({
     const { timestamp, width } = props;
     if (!formatTime || !showTimestamp || timestamp == null) return null;
 
-    const text = formatTime(timestamp);
+    const text = formatTime(timestamp as number | Date);
 
     const container = createTemporaryContainer();
     document.body.append(container);
@@ -189,10 +176,8 @@ function BigNumberVis({
     );
   };
 
-  const renderSubheader = (maxHeight: number) => {
-    if (!subheader) return null;
-
-    return (
+  const renderSubheader = (maxHeight: number) =>
+    subheader ? (
       <div
         ref={subheaderRef}
         className="subheader-line"
@@ -200,26 +185,20 @@ function BigNumberVis({
       >
         {subheader}
       </div>
-    );
-  };
+    ) : null;
 
-  const renderSubtitle = (maxHeight: number) => {
-    const { subtitle } = props;
-    if (!subtitle) return null;
-
-    return (
+  const renderSubtitle = (maxHeight: number) =>
+    props.subtitle ? (
       <div
         ref={subtitleRef}
         className="subtitle-line"
         style={{ fontSize: `${maxHeight}px` }}
       >
-        {subtitle}
+        {props.subtitle}
       </div>
-    );
-  };
+    ) : null;
 
   const { height } = props;
-  const componentClassName = getClassName();
 
   const alignmentStyles = {
     alignItems:
@@ -236,13 +215,10 @@ function BigNumberVis({
     const allTextHeight = height - chartHeight;
 
     return (
-      <div className={componentClassName}>
+      <div className={getClassName()}>
         <div
           className="text-container"
-          style={{
-            height: allTextHeight,
-            ...alignmentStyles,
-          }}
+          style={{ height: allTextHeight, ...alignmentStyles }}
         >
           {renderFallbackWarning()}
           {renderMetricName(metricNameFontSize * height)}
@@ -252,13 +228,17 @@ function BigNumberVis({
           {renderSubtitle(subtitleFontSize * height)}
         </div>
 
-        <Echart {...props} height={chartHeight} />
+        <Echart
+          {...props}
+          height={chartHeight}
+          echartOptions={props.echartOptions ?? {}}
+        />
       </div>
     );
   }
 
   return (
-    <div className={componentClassName} style={{ height }}>
+    <div className={getClassName()} style={{ height }}>
       <div className="text-container" style={alignmentStyles}>
         {renderFallbackWarning()}
         {renderMetricName(metricNameFontSize * height)}
@@ -271,7 +251,7 @@ function BigNumberVis({
   );
 }
 
-const StyledBigNumberVis = styled(BigNumberVis)`
+export default styled(BigNumberVis)`
   ${({ theme }) => `
     font-family: ${theme.fontFamily};
     display: flex;
@@ -284,5 +264,3 @@ const StyledBigNumberVis = styled(BigNumberVis)`
     }
   `}
 `;
-
-export default StyledBigNumberVis;

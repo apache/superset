@@ -16,9 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-
-import { t } from '@apache-superset/core';
 import {
   extractTimegrain,
   getNumberFormatter,
@@ -27,13 +24,10 @@ import {
   getXAxisLabel,
   Metric,
   getValueFormatter,
-  tooltipHtml,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/api/core';
-import { EChartsCoreOption, graphic } from 'echarts/core';
+import { EChartsCoreOption } from 'echarts/core';
 import { aggregationChoices } from '@superset-ui/chart-controls';
-import { TIMESERIES_CONSTANTS } from '../../constants';
-import { getXAxisFormatter } from '../../utils/formatters';
 import {
   BigNumberVizProps,
   BigNumberDatum,
@@ -41,17 +35,15 @@ import {
   TimeSeriesDatum,
 } from '../types';
 import { getDateFormatter, parseMetricValue, getOriginalLabel } from '../utils';
-import { getDefaultTooltip } from '../../utils/tooltip';
 import { Refs } from '../../types';
 
 const formatPercentChange = getNumberFormatter(
   NumberFormats.PERCENT_SIGNED_1_POINT,
 );
 
-// Client-side aggregation
 function computeClientSideAggregation(
   data: [number | null, number | null][],
-  aggregation: string | undefined | null,
+  aggregation?: string | null,
 ): number | null {
   if (!data.length) return null;
 
@@ -59,15 +51,14 @@ function computeClientSideAggregation(
     key => key.toLowerCase() === (aggregation || '').toLowerCase(),
   );
 
-  const selectedMethod = methodKey
-    ? aggregationChoices[methodKey as keyof typeof aggregationChoices]
-    : aggregationChoices.LAST_VALUE;
+  const method =
+    aggregationChoices[
+      (methodKey as keyof typeof aggregationChoices) || 'LAST_VALUE'
+    ];
 
-  const values = data
-    .map(([, value]) => value)
-    .filter((v): v is number => v !== null);
+  const values = data.map(([, v]) => v).filter((v): v is number => v !== null);
 
-  return selectedMethod.compute(values);
+  return method.compute(values);
 }
 
 export default function transformProps(
@@ -80,18 +71,12 @@ export default function transformProps(
     formData,
     rawFormData,
     hooks,
-    inContextMenu,
-    theme,
-    datasource: {
-      currencyFormats = {},
-      columnFormats = {},
-      currencyCodeColumn,
-    },
+    datasource,
   } = chartProps;
 
   const {
     colorPicker,
-    compareLag: compareLag_,
+    compareLag,
     compareSuffix = '',
     timeFormat,
     metricNameFontSize,
@@ -105,151 +90,84 @@ export default function transformProps(
     startYAxisAtZero,
     subheader = '',
     subheaderFontSize,
-    forceTimestampFormatting,
-    yAxisFormat,
-    currencyFormat,
-    timeRangeFixed,
-    showXAxis = false,
-    showXAxisMinMaxLabels = false,
-    showYAxis = false,
-    showYAxisMinMaxLabels = false,
-
-    /** ✅ NEW */
     alignment = 'center',
   } = formData;
 
-  const granularity = extractTimegrain(rawFormData);
-
-  const {
-    data = [],
-    colnames = [],
-    coltypes = [],
-    from_dttm: fromDatetime,
-    to_dttm: toDatetime,
-    detected_currency: detectedCurrency,
-  } = queriesData[0];
-
+  const { data = [], colnames = [], coltypes = [] } = queriesData[0];
   const refs: Refs = {};
+
   const metricName = getMetricLabel(metric);
-  const metrics = chartProps.datasource?.metrics || [];
-  const originalLabel = getOriginalLabel(metric, metrics);
-  const showMetricName = chartProps.rawFormData?.show_metric_name ?? false;
-
-  const compareLag = Number(compareLag_) || 0;
-  let formattedSubheader = subheader;
-
-  const { r, g, b } = colorPicker;
-  const mainColor = `rgb(${r}, ${g}, ${b})`;
+  const originalLabel = getOriginalLabel(metric, datasource?.metrics || []);
+  const showMetricName = rawFormData?.show_metric_name ?? false;
 
   const xAxisLabel = getXAxisLabel(rawFormData) as string;
-
-  let trendLineData: TimeSeriesDatum[] | undefined;
-  let percentChange = 0;
-  let bigNumber = data.length === 0 ? null : data[0][metricName];
-  let timestamp = data.length === 0 ? null : data[0][xAxisLabel];
-  let bigNumberFallback = null;
-
   let sortedData: [number | null, number | null][] = [];
 
-  if (data.length > 0) {
+  if (data.length) {
     sortedData = (data as BigNumberDatum[])
-      .map(d => [d[xAxisLabel], parseMetricValue(d[metricName])])
-      .sort((a, b) => (a[0] && b[0] ? b[0] - a[0] : 0));
+      .map(
+        d =>
+          [d[xAxisLabel] as number | null, parseMetricValue(d[metricName])] as [
+            number | null,
+            number | null,
+          ],
+      )
+      .sort((a, b) => (a[0] !== null && b[0] !== null ? b[0] - a[0] : 0));
   }
 
-  if (sortedData.length > 0) {
-    timestamp = sortedData[0][0];
-    bigNumber = computeClientSideAggregation(sortedData, aggregation);
+  let bigNumber = computeClientSideAggregation(sortedData, aggregation);
+  let timestamp = sortedData[0]?.[0] ?? null;
 
-    if (bigNumber === null) {
-      bigNumberFallback = sortedData.find(d => d[1] !== null);
-      bigNumber = bigNumberFallback ? bigNumberFallback[1] : null;
-      timestamp = bigNumberFallback ? bigNumberFallback[0] : null;
-    }
-  }
+  let formattedSubheader = subheader;
 
-  if (compareLag > 0 && sortedData.length > compareLag) {
-    const compareFrom = sortedData[compareLag][1];
-    const compareTo = sortedData[0][1];
+  if (compareLag && sortedData.length > compareLag) {
+    const prev = sortedData[compareLag][1];
+    const curr = sortedData[0][1];
 
-    if (compareFrom !== null && compareTo !== null) {
-      percentChange = compareFrom
-        ? (Number(compareTo) - compareFrom) / Math.abs(compareFrom)
-        : 0;
-
+    if (prev != null && curr != null && prev !== 0) {
       formattedSubheader = `${formatPercentChange(
-        percentChange,
+        (curr - prev) / Math.abs(prev),
       )} ${compareSuffix}`;
     }
   }
 
-  if (sortedData.length > 0 && showTrendLine) {
-    const validData = sortedData.filter(
-      (d): d is [number, number | null] => d[0] !== null,
-    );
-    trendLineData = [...validData].reverse();
+  let trendLineData: TimeSeriesDatum[] | undefined;
+  if (showTrendLine) {
+    trendLineData = [...sortedData].reverse();
   }
 
-  const metricColtypeIndex = colnames.findIndex(name => name === metricName);
-  const metricColtype =
-    metricColtypeIndex > -1 ? coltypes[metricColtypeIndex] : null;
+  const metricColtype = coltypes[colnames.findIndex(c => c === metricName)];
 
-  let metricEntry: Metric | undefined;
-  if (chartProps.datasource?.metrics) {
-    metricEntry = chartProps.datasource.metrics.find(
-      m => m.metric_name === metric,
-    );
-  }
+  const metricEntry: Metric | undefined = datasource?.metrics?.find(
+    m => m.metric_name === metric,
+  );
 
   const formatTime = getDateFormatter(
     timeFormat,
-    granularity,
+    extractTimegrain(rawFormData),
     metricEntry?.d3format,
   );
 
   const numberFormatter = getValueFormatter(
     metric,
-    currencyFormats,
-    columnFormats,
-    metricEntry?.d3format || yAxisFormat,
-    currencyFormat,
-    undefined,
-    data,
-    currencyCodeColumn,
-    detectedCurrency,
+    datasource?.currencyFormats,
+    datasource?.columnFormats,
+    metricEntry?.d3format,
   );
 
-  const yAxisFormatter =
-    metricColtype === GenericDataType.Temporal ||
-    metricColtype === GenericDataType.String ||
-    forceTimestampFormatting
-      ? formatTime
-      : numberFormatter;
+  const headerFormatter =
+    metricColtype === GenericDataType.Temporal ? formatTime : numberFormatter;
 
-  const echartOptions: EChartsCoreOption = trendLineData
-    ? {
-        series: [
-          {
-            data: trendLineData,
-            type: 'line',
-            smooth: true,
-            showSymbol: false,
-            color: mainColor,
-          },
-        ],
-      }
-    : {};
-
-  const { onContextMenu } = hooks;
+  const echartOptions: EChartsCoreOption =
+    trendLineData && showTrendLine
+      ? { series: [{ type: 'line', data: trendLineData }] }
+      : {};
 
   return {
     width,
     height,
     bigNumber,
-    alignment, /** ✅ NEW */
-    // @ts-expect-error
-    bigNumberFallback,
-    headerFormatter: yAxisFormatter,
+    headerFormatter,
     formatTime,
     metricName: originalLabel,
     showMetricName,
@@ -258,16 +176,15 @@ export default function transformProps(
     subtitleFontSize,
     subtitle,
     subheaderFontSize,
-    mainColor,
+    subheader: formattedSubheader,
     showTimestamp,
     showTrendLine,
     startYAxisAtZero,
-    subheader: formattedSubheader,
     timestamp,
     trendLineData,
     echartOptions,
-    onContextMenu,
-    xValueFormatter: formatTime,
+    alignment,
+    onContextMenu: hooks.onContextMenu,
     refs,
   };
 }
