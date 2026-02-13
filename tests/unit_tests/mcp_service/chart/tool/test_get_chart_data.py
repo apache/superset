@@ -26,70 +26,78 @@ import pytest
 from superset.mcp_service.chart.schemas import GetChartDataRequest
 
 
+def _collect_groupby_extras(
+    form_data: dict[str, Any],
+    groupby_columns: list[str],
+) -> None:
+    """Append entity/series/columns from form_data into groupby_columns."""
+    entity = form_data.get("entity")
+    if entity and entity not in groupby_columns:
+        groupby_columns.append(entity)
+    series = form_data.get("series")
+    if series and series not in groupby_columns:
+        groupby_columns.append(series)
+    form_columns = form_data.get("columns")
+    if form_columns and isinstance(form_columns, list):
+        for col in form_columns:
+            if isinstance(col, str) and col not in groupby_columns:
+                groupby_columns.append(col)
+
+
+def _extract_bubble(
+    form_data: dict[str, Any],
+) -> tuple[list[Any], list[str]]:
+    """Extract metrics and groupby for bubble charts."""
+    metrics: list[Any] = []
+    for field in ("x", "y", "size"):
+        m = form_data.get(field)
+        if m:
+            metrics.append(m)
+    entity = form_data.get("entity")
+    groupby: list[str] = [entity] if entity else []
+    series_field = form_data.get("series")
+    if series_field and series_field not in groupby:
+        groupby.append(series_field)
+    return metrics, groupby
+
+
+_SINGULAR_METRIC_NO_GROUPBY = (
+    "big_number",
+    "big_number_total",
+    "pop_kpi",
+)
+_SINGULAR_METRIC_TYPES = (
+    *_SINGULAR_METRIC_NO_GROUPBY,
+    "world_map",
+    "treemap_v2",
+    "sunburst_v2",
+    "gauge_chart",
+)
+
+
 def _extract_metrics_and_groupby(
     form_data: dict[str, Any],
 ) -> tuple[list[Any], list[str]]:
-    """Mirror the fallback metric/groupby extraction logic from get_chart_data.py.
-
-    This helper replicates the exact branching used in the tool so that
-    unit tests validate the same behaviour without needing a running
-    Flask/MCP context.
-    """
+    """Mirror the fallback metric/groupby extraction logic from get_chart_data.py."""
     viz_type = form_data.get("viz_type", "")
 
-    singular_metric_no_groupby = (
-        "big_number",
-        "big_number_total",
-        "pop_kpi",
-    )
-    singular_metric_types = (
-        *singular_metric_no_groupby,
-        "world_map",
-        "treemap_v2",
-        "sunburst_v2",
-        "gauge_chart",
-    )
-
     if viz_type == "bubble":
-        bubble_metrics: list[Any] = []
-        for field in ("x", "y", "size"):
-            m = form_data.get(field)
-            if m:
-                bubble_metrics.append(m)
-        metrics: list[Any] = bubble_metrics
-        groupby_columns: list[str] = list(
-            form_data.get("entity", None) and [form_data["entity"]] or []
-        )
-        series_field = form_data.get("series")
-        if series_field and series_field not in groupby_columns:
-            groupby_columns.append(series_field)
-    elif viz_type in singular_metric_types:
+        metrics, groupby_columns = _extract_bubble(form_data)
+    elif viz_type in _SINGULAR_METRIC_TYPES:
         metric = form_data.get("metric")
         metrics = [metric] if metric else []
-        if viz_type in singular_metric_no_groupby:
-            groupby_columns = []
+        if viz_type in _SINGULAR_METRIC_NO_GROUPBY:
+            groupby_columns: list[str] = []
         else:
             groupby_columns = list(form_data.get("groupby") or [])
-            entity = form_data.get("entity")
-            if entity and entity not in groupby_columns:
-                groupby_columns.append(entity)
-            series = form_data.get("series")
-            if series and series not in groupby_columns:
-                groupby_columns.append(series)
-            form_columns = form_data.get("columns")
-            if form_columns and isinstance(form_columns, list):
-                for col in form_columns:
-                    if isinstance(col, str) and col not in groupby_columns:
-                        groupby_columns.append(col)
+            _collect_groupby_extras(form_data, groupby_columns)
     else:
         metrics = form_data.get("metrics", [])
         groupby_columns = list(form_data.get("groupby") or [])
         if not groupby_columns:
             form_columns = form_data.get("columns")
             if form_columns and isinstance(form_columns, list):
-                for col in form_columns:
-                    if isinstance(col, str):
-                        groupby_columns.append(col)
+                groupby_columns = [c for c in form_columns if isinstance(c, str)]
 
     # Fallback: try singular metric if metrics still empty
     if not metrics:
@@ -99,12 +107,7 @@ def _extract_metrics_and_groupby(
 
     # Fallback: try entity/series if groupby still empty
     if not groupby_columns:
-        entity = form_data.get("entity")
-        if entity:
-            groupby_columns.append(entity)
-        series = form_data.get("series")
-        if series and series not in groupby_columns:
-            groupby_columns.append(series)
+        _collect_groupby_extras(form_data, groupby_columns)
 
     return metrics, groupby_columns
 
