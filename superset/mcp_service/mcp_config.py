@@ -75,6 +75,11 @@ MCP_FACTORY_CONFIG = {
     "config": None,  # No additional config
 }
 
+# Features unavailable in this deployment that LLMs should not suggest.
+# Override in superset_config.py to list features not available in your deployment.
+# Example: ["Action Log (Settings > Security > Action Log)", "List Users page"]
+MCP_UNAVAILABLE_FEATURES: list[str] = []
+
 # =============================================================================
 # MCP Storage and Caching Configuration
 # =============================================================================
