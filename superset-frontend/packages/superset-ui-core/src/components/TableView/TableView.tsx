@@ -250,6 +250,29 @@ const RawTableView = ({
     }
   }, [initialState.sortBy, onServerPagination, serverPagination, sortBy]);
 
+  // Reset to first page when current page exceeds available pages
+  // (e.g., when filtering reduces the data below the current page)
+  const pageSize = initialPageSize ?? DEFAULT_PAGE_SIZE;
+  const pageCount = Math.ceil(data.length / pageSize);
+  useEffect(() => {
+    if (
+      withPagination &&
+      !serverPagination &&
+      !loading &&
+      pageIndex > pageCount - 1 &&
+      pageCount > 0
+    ) {
+      gotoPage(0);
+    }
+  }, [
+    withPagination,
+    serverPagination,
+    loading,
+    pageIndex,
+    pageCount,
+    gotoPage,
+  ]);
+
   return (
     <TableViewStyles {...props} ref={tableRef}>
       <TableCollection
