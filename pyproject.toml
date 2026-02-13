@@ -88,7 +88,7 @@ dependencies = [
     "pyparsing>=3.0.6, <4",
     "python-dateutil",
     "python-dotenv", # optional dependencies for Flask but required for Superset, see https://flask.palletsprojects.com/en/stable/installation/#optional-dependencies
-    "python-geohash",
+    "pygeohash",
     "pyarrow>=16.1.0, <19", # before upgrading pyarrow, check that all db dependencies support this, see e.g. https://github.com/apache/superset/pull/34693
     "pyyaml>=6.0.0, <7.0.0",
     "PyJWT>=2.4.0, <3.0",
@@ -459,8 +459,6 @@ authorized_licenses = [
 # Seems ok, might need legal review
 # https://github.com/urschrei/pypolyline/blob/master/LICENSE.md
 polyline = "2"
-# Apache 2.0 https://github.com/hkwi/python-geohash
-python-geohash = "0"
 # --------------------------------------------------------------
 
 # TODO REMOVE THESE DEPS FROM CODEBASE
