@@ -32,6 +32,8 @@ import DatasourcePanel, {
 import {
   columns,
   metrics,
+  columnsUnsorted,
+  metricsUnsorted,
 } from 'src/explore/components/DatasourcePanel/fixtures';
 import { DatasourceType } from '@superset-ui/core';
 import DatasourceControl from 'src/explore/components/controls/DatasourceControl';
@@ -100,6 +102,12 @@ const datasourceWithFolders: IDatasource = {
       ],
     },
   ],
+};
+
+const datasourceUnsorted: IDatasource = {
+  ...datasource,
+  columns: columnsUnsorted,
+  metrics: metricsUnsorted,
 };
 
 const mockUser = {
@@ -493,4 +501,44 @@ test('Default Metrics and Columns folders dont render when all metrics and colum
 
   expect(screen.getAllByTestId('DatasourcePanelDragOption').length).toEqual(5);
   expect(screen.getAllByTestId('datasource-panel-divider').length).toEqual(1);
+});
+
+test('Displays metrics and columns in alphabetical order', () => {
+  const panelProps = {
+    ...props,
+    datasource: datasourceUnsorted,
+    controls: {
+      ...props.controls,
+      datasource: {
+        ...props.controls.datasource,
+        datasource: datasourceUnsorted,
+      },
+    },
+  };
+
+  render(
+    <ExploreContainer>
+      <DatasourcePanel {...panelProps} />
+      <DndMetricSelect {...metricProps} />
+    </ExploreContainer>,
+    {
+      useRedux: true,
+      useDnd: true,
+    },
+  );
+
+  const items = screen.getAllByTestId('DatasourcePanelDragOption');
+  expect(items.map(it => it.textContent)).toEqual([
+    'ee (certified)',
+    'aa',
+    'bb',
+    'cc (has empty verbose_name)',
+    'dd',
+    'yyy (certified)',
+    'BBB (has empty verbose_name)',
+    'Cbb',
+    'ccc',
+    'Cdd',
+    'Www',
+  ]);
 });
