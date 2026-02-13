@@ -101,11 +101,25 @@ export class Theme {
     // First phase: Let Ant Design compute the tokens
     const tokens = Theme.getFilteredAntdTheme(antdConfig);
 
+    // Extract Superset-specific properties from top-level config.
+    // These are custom properties that aren't part of Ant Design's token system
+    // but need to be passed through to the SupersetTheme for ECharts customization.
+    const { echartsOptionsOverrides, echartsOptionsOverridesByChartType } =
+      config as AnyThemeConfig & {
+        echartsOptionsOverrides?: any;
+        echartsOptionsOverridesByChartType?: Record<string, any>;
+      };
+
     // Set the base theme properties
     this.antdConfig = antdConfig;
     this.theme = {
       ...tokens, // First apply Ant Design computed tokens
       ...antdConfig.token, // Then override with our custom tokens
+      // Include Superset-specific properties from top-level config
+      ...(echartsOptionsOverrides && { echartsOptionsOverrides }),
+      ...(echartsOptionsOverridesByChartType && {
+        echartsOptionsOverridesByChartType,
+      }),
     } as SupersetTheme;
 
     // Update the providers with the fully formed theme

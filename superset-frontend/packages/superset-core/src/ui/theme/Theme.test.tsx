@@ -766,3 +766,76 @@ test('Theme base theme integration arrays in themes are replaced entirely, not m
   expect(serialized.algorithm).not.toContain(ThemeAlgorithm.COMPACT);
   expect(serialized.algorithm).not.toContain(ThemeAlgorithm.DEFAULT);
 });
+
+test('Theme includes echartsOptionsOverrides from top-level config', () => {
+  const config = {
+    token: {
+      colorPrimary: '#ff0000',
+    },
+    echartsOptionsOverrides: {
+      grid: { left: '10%' },
+      tooltip: { trigger: 'axis' },
+    },
+  };
+
+  const theme = Theme.fromConfig(config as AnyThemeConfig);
+
+  expect((theme.theme as any).echartsOptionsOverrides).toEqual({
+    grid: { left: '10%' },
+    tooltip: { trigger: 'axis' },
+  });
+});
+
+test('Theme includes echartsOptionsOverridesByChartType from top-level config', () => {
+  const config = {
+    token: {
+      colorPrimary: '#ff0000',
+    },
+    echartsOptionsOverridesByChartType: {
+      echarts_timeseries_bar: {
+        series: { itemStyle: { borderRadius: [4, 4, 0, 0] } },
+      },
+      echarts_pie: {
+        legend: { orient: 'vertical', right: 10 },
+      },
+    },
+  };
+
+  const theme = Theme.fromConfig(config as AnyThemeConfig);
+
+  expect((theme.theme as any).echartsOptionsOverridesByChartType).toEqual({
+    echarts_timeseries_bar: {
+      series: { itemStyle: { borderRadius: [4, 4, 0, 0] } },
+    },
+    echarts_pie: {
+      legend: { orient: 'vertical', right: 10 },
+    },
+  });
+});
+
+test('Theme includes both echartsOptionsOverrides and echartsOptionsOverridesByChartType', () => {
+  const config = {
+    token: {
+      colorPrimary: '#ff0000',
+    },
+    echartsOptionsOverrides: {
+      grid: { left: '10%' },
+    },
+    echartsOptionsOverridesByChartType: {
+      echarts_bar: {
+        series: { itemStyle: { borderRadius: 4 } },
+      },
+    },
+  };
+
+  const theme = Theme.fromConfig(config as AnyThemeConfig);
+
+  expect((theme.theme as any).echartsOptionsOverrides).toEqual({
+    grid: { left: '10%' },
+  });
+  expect((theme.theme as any).echartsOptionsOverridesByChartType).toEqual({
+    echarts_bar: {
+      series: { itemStyle: { borderRadius: 4 } },
+    },
+  });
+});

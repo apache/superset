@@ -29,7 +29,6 @@ import {
 } from 'react';
 import { useSelector } from 'react-redux';
 
-import { mergeReplaceArrays } from '@superset-ui/core';
 import { styled, useTheme } from '@apache-superset/core/ui';
 import { use, init, EChartsType, registerLocale } from 'echarts/core';
 import {
@@ -66,6 +65,7 @@ import {
 import { LabelLayout } from 'echarts/features';
 import { EchartsHandler, EchartsProps, EchartsStylesProps } from '../types';
 import { DEFAULT_LOCALE } from '../constants';
+import { mergeEchartsThemeOverrides } from '../utils/themeOverrides';
 
 // Define this interface here to avoid creating a dependency back to superset-frontend,
 // TODO: to move the type to @superset-ui/core
@@ -244,7 +244,7 @@ function Echart(
         ? theme.echartsOptionsOverridesByChartType?.[vizType] || {}
         : {};
 
-      const themedEchartOptions = mergeReplaceArrays(
+      const themedEchartOptions = mergeEchartsThemeOverrides(
         baseTheme,
         echartOptions,
         globalOverrides,
