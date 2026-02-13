@@ -22,6 +22,7 @@ This tool creates a new dashboard with specified charts and layout configuration
 """
 
 import logging
+import uuid
 from typing import Any, Dict, List
 
 from fastmcp import Context
@@ -39,13 +40,24 @@ from superset.utils import json
 
 logger = logging.getLogger(__name__)
 
+# Match frontend defaults from superset-frontend/src/dashboard/util/constants.ts
+GRID_DEFAULT_CHART_WIDTH = 4
+GRID_COLUMN_COUNT = 12
+
+
+def _generate_id(prefix: str) -> str:
+    """
+    Generate a component ID matching the frontend's nanoid-style pattern.
+    """
+    return f"{prefix}-{uuid.uuid4().hex[:8]}"
+
 
 def _create_dashboard_layout(chart_objects: List[Any]) -> Dict[str, Any]:
     """
     Create a simple dashboard layout with charts arranged in a grid.
 
-    This creates a basic 2-column layout where charts are arranged
-    vertically in alternating columns.
+    This creates a ``ROW > COLUMN > CHART`` hierarchy for each row,
+    matching the component structure that the Superset frontend expects.
 
     Args:
         chart_objects: List of Chart ORM objects (not IDs)
@@ -55,23 +67,26 @@ def _create_dashboard_layout(chart_objects: List[Any]) -> Dict[str, Any]:
     # Grid configuration based on real Superset dashboard patterns
     # Use 2-chart rows with medium-sized charts (like existing dashboards)
     charts_per_row = 2
-    chart_width = 5  # Balanced width for good proportions
+    chart_width = GRID_DEFAULT_CHART_WIDTH
     chart_height = 50  # Good height for most chart types
 
-    # Create rows with charts
+    # Create rows with charts wrapped in columns
     row_ids = []
     for i in range(0, len(chart_objects), charts_per_row):
-        row_index = i // charts_per_row
-        row_id = f"ROW-{row_index}"
+        row_id = _generate_id("ROW")
         row_ids.append(row_id)
 
         # Get charts for this row (up to 2 charts like real dashboards)
         row_charts = chart_objects[i : i + charts_per_row]
-        chart_keys = []
+        column_keys = []
+
+        # Calculate column width: divide grid evenly among charts in this row
+        col_width = GRID_COLUMN_COUNT // len(row_charts)
 
         for chart in row_charts:
             chart_key = f"CHART-{chart.id}"
-            chart_keys.append(chart_key)
+            column_key = _generate_id("COLUMN")
+            column_keys.append(column_key)
 
             # Create chart component with standard dimensions
             layout[chart_key] = {
@@ -84,13 +99,25 @@ def _create_dashboard_layout(chart_objects: List[Any]) -> Dict[str, Any]:
                     "uuid": str(chart.uuid) if chart.uuid else f"chart-{chart.id}",
                     "width": chart_width,
                 },
-                "parents": ["ROOT_ID", "GRID_ID", row_id],
+                "parents": ["ROOT_ID", "GRID_ID", row_id, column_key],
                 "type": "CHART",
             }
 
-        # Create row containing the charts
+            # Create column wrapper for the chart (ROW > COLUMN > CHART)
+            layout[column_key] = {
+                "children": [chart_key],
+                "id": column_key,
+                "meta": {
+                    "background": "BACKGROUND_TRANSPARENT",
+                    "width": col_width,
+                },
+                "parents": ["ROOT_ID", "GRID_ID", row_id],
+                "type": "COLUMN",
+            }
+
+        # Create row containing the columns
         layout[row_id] = {
-            "children": chart_keys,
+            "children": column_keys,
             "id": row_id,
             "meta": {"background": "BACKGROUND_TRANSPARENT"},
             "parents": ["ROOT_ID", "GRID_ID"],
