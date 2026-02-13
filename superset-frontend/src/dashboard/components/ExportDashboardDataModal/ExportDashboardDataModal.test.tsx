@@ -394,7 +394,9 @@ test('User opens export modal on empty dashboard and cannot export', () => {
   );
 
   expect(screen.getByText('0 of 0 charts selected')).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: /Export 0 charts/ })).toBeDisabled();
+  expect(
+    screen.getByRole('button', { name: /Export 0 charts/ }),
+  ).toBeDisabled();
 });
 
 /**
