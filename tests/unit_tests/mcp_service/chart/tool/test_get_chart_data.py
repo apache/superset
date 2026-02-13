@@ -81,13 +81,14 @@ def _extract_metrics_and_groupby(
     """Mirror the fallback metric/groupby extraction logic from get_chart_data.py."""
     viz_type = form_data.get("viz_type", "")
 
+    groupby_columns: list[str]
     if viz_type == "bubble":
         metrics, groupby_columns = _extract_bubble(form_data)
     elif viz_type in _SINGULAR_METRIC_TYPES:
         metric = form_data.get("metric")
         metrics = [metric] if metric else []
         if viz_type in _SINGULAR_METRIC_NO_GROUPBY:
-            groupby_columns: list[str] = []
+            groupby_columns = []
         else:
             groupby_columns = list(form_data.get("groupby") or [])
             _collect_groupby_extras(form_data, groupby_columns)
