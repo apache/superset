@@ -12701,6 +12701,32 @@
             "description": "Whether to match channel names exactly."
           }
         }
+      },
+      "DashboardChartCustomizationsConfigUpdateSchema": {
+        "type": "object",
+        "properties": {
+          "deleted": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of deleted chart customization IDs."
+          },
+          "modified": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "List of modified chart customization configurations."
+          },
+          "reordered": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of chart customization IDs in new order."
+          }
+        }
       }
     },
     "securitySchemes": {
@@ -19095,6 +19121,17 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/DashboardChartCustomizationsConfigUpdateSchema"
+              },
+              "example": {
+                "deleted": [
+                  "string"
+                ],
+                "modified": [
+                  {}
+                ],
+                "reordered": [
+                  "string"
+                ]
               }
             }
           },
