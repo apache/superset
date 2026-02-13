@@ -46,51 +46,68 @@ export function getDefaultTooltip(refs: Refs) {
       rect: any,
       sizes: { contentSize: [number, number]; viewSize: [number, number] },
     ) => {
-      // algorithm partially based on this snippet:
+      // Algorithm partially based on this snippet:
       // https://github.com/apache/echarts/issues/5004#issuecomment-559668309
 
-      // The chart canvas position
       const divRect = refs.divRef?.current?.getBoundingClientRect();
-
-      // The mouse coordinates relative to the whole window
       const mouseX = canvasMousePos[0] + (divRect?.x || 0);
       const mouseY = canvasMousePos[1] + (divRect?.y || 0);
-
-      // Available viewport dimensions
       const viewportWidth = document.documentElement.clientWidth;
       const viewportHeight = document.documentElement.clientHeight;
-
-      // The width and height of the tooltip dom element
       const tooltipWidth = sizes.contentSize[0];
       const tooltipHeight = sizes.contentSize[1];
 
-      // Cap tooltip height to the smaller of 800px or 80vh
+      // Cap tooltip height to reduce blocking adjacent elements
       const maxAllowedHeight = Math.min(800, Math.floor(viewportHeight * 0.8));
+      const needsScrolling = tooltipHeight > maxAllowedHeight;
 
       if (tooltipDom) {
         tooltipDom.style.maxHeight = `${maxAllowedHeight}px`;
         tooltipDom.style.overflow = 'auto';
-        // ensure interactions within tooltip don't get swallowed
-        tooltipDom.style.pointerEvents = 'auto';
+        // Only enable pointer events when tooltip is scrollable
+        // This prevents blocking adjacent chart elements when scrolling isn't needed
+        tooltipDom.style.pointerEvents = needsScrolling ? 'auto' : 'none';
       }
 
-      // Use effective height for positioning after applying the cap
       const effectiveTooltipHeight = Math.min(tooltipHeight, maxAllowedHeight);
+      let xPos: number;
+      let yPos: number;
 
-      // Start by placing the tooltip top and right relative to the mouse position
-      let xPos = mouseX + TOOLTIP_POINTER_MARGIN;
-      let yPos = mouseY - TOOLTIP_POINTER_MARGIN - effectiveTooltipHeight;
+      // For scrollable tooltips, position further away horizontally to avoid blocking chart navigation
+      const horizontalMargin = needsScrolling
+        ? TOOLTIP_POINTER_MARGIN * 3
+        : TOOLTIP_POINTER_MARGIN;
 
-      // The tooltip is overflowing past the right edge of the window
-      if (xPos + tooltipWidth >= viewportWidth) {
-        // Attempt to place the tooltip to the left of the mouse position
-        xPos = mouseX - TOOLTIP_POINTER_MARGIN - tooltipWidth;
+      // Determine if cursor is in the right half of the chart to intelligently position tooltip
+      const chartWidth = divRect?.width || viewportWidth;
+      const cursorXInChart = canvasMousePos[0];
+      const isInRightHalfOfChart = cursorXInChart > chartWidth / 2;
 
-        // The tooltip is overflowing past the left edge of the window
-        if (xPos <= 0)
-          // Place the tooltip a fixed distance from the left edge of the window
+      // Position tooltip on the left when in right half, right when in left half
+      // This prevents blocking chart navigation
+      if (isInRightHalfOfChart) {
+        xPos = mouseX - horizontalMargin - tooltipWidth;
+
+        // If tooltip would go off left edge of viewport, push it back in
+        if (xPos <= 0) {
           xPos = TOOLTIP_OVERFLOW_MARGIN;
+        }
+      } else {
+        xPos = mouseX + horizontalMargin;
+
+        // If tooltip would go off right edge of viewport, position on left instead
+        if (xPos + tooltipWidth >= viewportWidth) {
+          xPos = mouseX - horizontalMargin - tooltipWidth;
+
+          // If still overflowing left edge, clamp to margin
+          if (xPos <= 0) {
+            xPos = TOOLTIP_OVERFLOW_MARGIN;
+          }
+        }
       }
+
+      // Position tooltip above cursor, or below if no space
+      yPos = mouseY - TOOLTIP_POINTER_MARGIN - effectiveTooltipHeight;
 
       // The tooltip is overflowing past the top edge of the window
       if (yPos <= 0) {
