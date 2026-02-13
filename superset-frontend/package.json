@@ -370,7 +370,7 @@
     "unzipper": "^0.12.3",
     "vm-browserify": "^1.1.2",
     "wait-on": "^9.0.3",
-    "webpack": "^5.105.0",
+    "webpack": "^5.105.2",
     "webpack-bundle-analyzer": "^5.2.0",
     "webpack-cli": "^6.0.1",
     "webpack-dev-server": "^5.2.3",
