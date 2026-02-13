@@ -57,7 +57,7 @@ class MssqlEngineSpec(BaseEngineSpec):
         "description": (
             "Microsoft SQL Server is a relational database management system."
         ),
-        "logo": "msql.png",
+        "logo": "mssql-server.png",
         "homepage_url": "https://www.microsoft.com/en-us/sql-server",
         "categories": [
             DatabaseCategory.TRADITIONAL_RDBMS,
