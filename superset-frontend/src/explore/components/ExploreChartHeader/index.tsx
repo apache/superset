@@ -152,7 +152,7 @@ export const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
   const [shouldForceCloseModal, setShouldForceCloseModal] = useState(false);
 
   // Undo/Redo state
-  const { undoLength, redoLength } = useSelector(state => ({
+  const { undoLength, redoLength } = useSelector((state: any) => ({
     undoLength: state.explore?.past?.length ?? 0,
     redoLength: state.explore?.future?.length ?? 0,
   }));

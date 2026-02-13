@@ -139,7 +139,7 @@ const ColumnSelectPopover = ({
 }: ColumnSelectPopoverProps) => {
   // const theme = useTheme(); // Unused variable
   const datasourceType = useSelector<ExplorePageState, string | undefined>(
-    state => state.explore.present.datasource.type,
+    state => state.explore.present.datasource?.type,
   );
   const [initialLabel] = useState(label);
   const [initialAdhocColumn, initialCalculatedColumn, initialSimpleColumn] =

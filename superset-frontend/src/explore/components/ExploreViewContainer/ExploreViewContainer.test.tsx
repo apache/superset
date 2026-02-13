@@ -531,15 +531,18 @@ test('automatic axis title margin adjustment sets X axis margin to 30 when title
       ...reduxState,
       explore: {
         ...reduxState.explore,
-        form_data: {
-          datasource: '1__table',
-          viz_type: VizType.Table,
-          metrics: [],
-        },
-        controls: {
-          ...reduxState.explore.controls,
-          x_axis_title: { value: '' },
-          x_axis_title_margin: { value: 0 },
+        present: {
+          ...reduxState.explore.present,
+          form_data: {
+            datasource: '1__table',
+            viz_type: VizType.Table,
+            metrics: [],
+          },
+          controls: {
+            ...reduxState.explore.present.controls,
+            x_axis_title: { value: '' },
+            x_axis_title_margin: { value: 0 },
+          },
         },
       },
     };
@@ -576,15 +579,18 @@ test('automatic axis title margin adjustment sets Y axis margin to 30 when title
       ...reduxState,
       explore: {
         ...reduxState.explore,
-        form_data: {
-          datasource: '1__table',
-          viz_type: VizType.Table,
-          metrics: [],
-        },
-        controls: {
-          ...reduxState.explore.controls,
-          y_axis_title: { value: '' },
-          y_axis_title_margin: { value: 0 },
+        present: {
+          ...reduxState.explore.present,
+          form_data: {
+            datasource: '1__table',
+            viz_type: VizType.Table,
+            metrics: [],
+          },
+          controls: {
+            ...reduxState.explore.present.controls,
+            y_axis_title: { value: '' },
+            y_axis_title_margin: { value: 0 },
+          },
         },
       },
     };
@@ -621,15 +627,18 @@ test('automatic axis title margin adjustment resets X axis margin to 0 when titl
       ...reduxState,
       explore: {
         ...reduxState.explore,
-        form_data: {
-          datasource: '1__table',
-          viz_type: VizType.Table,
-          metrics: [],
-        },
-        controls: {
-          ...reduxState.explore.controls,
-          x_axis_title: { value: 'X Axis Label' },
-          x_axis_title_margin: { value: 30 }, // or any non-zero value
+        present: {
+          ...reduxState.explore.present,
+          form_data: {
+            datasource: '1__table',
+            viz_type: VizType.Table,
+            metrics: [],
+          },
+          controls: {
+            ...reduxState.explore.present.controls,
+            x_axis_title: { value: 'X Axis Label' },
+            x_axis_title_margin: { value: 30 }, // or any non-zero value
+          },
         },
       },
     };
@@ -661,15 +670,18 @@ test('automatic axis title margin adjustment resets Y axis margin to 0 when titl
       ...reduxState,
       explore: {
         ...reduxState.explore,
-        form_data: {
-          datasource: '1__table',
-          viz_type: VizType.Table,
-          metrics: [],
-        },
-        controls: {
-          ...reduxState.explore.controls,
-          y_axis_title: { value: 'Y Axis Label' },
-          y_axis_title_margin: { value: 30 },
+        present: {
+          ...reduxState.explore.present,
+          form_data: {
+            datasource: '1__table',
+            viz_type: VizType.Table,
+            metrics: [],
+          },
+          controls: {
+            ...reduxState.explore.present.controls,
+            y_axis_title: { value: 'Y Axis Label' },
+            y_axis_title_margin: { value: 30 },
+          },
         },
       },
     };
@@ -701,15 +713,18 @@ test('automatic axis title margin adjustment does not change X axis margin when 
       ...reduxState,
       explore: {
         ...reduxState.explore,
-        form_data: {
-          datasource: '1__table',
-          viz_type: VizType.Table,
-          metrics: [],
-        },
-        controls: {
-          ...reduxState.explore.controls,
-          x_axis_title: { value: '' },
-          x_axis_title_margin: { value: 50 },
+        present: {
+          ...reduxState.explore.present,
+          form_data: {
+            datasource: '1__table',
+            viz_type: VizType.Table,
+            metrics: [],
+          },
+          controls: {
+            ...reduxState.explore.present.controls,
+            x_axis_title: { value: '' },
+            x_axis_title_margin: { value: 50 },
+          },
         },
       },
     };
@@ -752,15 +767,18 @@ test('automatic axis title margin adjustment changes X axis margin when title is
       ...reduxState,
       explore: {
         ...reduxState.explore,
-        form_data: {
-          datasource: '1__table',
-          viz_type: VizType.Table,
-          metrics: [],
-        },
-        controls: {
-          ...reduxState.explore.controls,
-          x_axis_title: { value: '' },
-          x_axis_title_margin: { value: 20 },
+        present: {
+          ...reduxState.explore.present,
+          form_data: {
+            datasource: '1__table',
+            viz_type: VizType.Table,
+            metrics: [],
+          },
+          controls: {
+            ...reduxState.explore.present.controls,
+            x_axis_title: { value: '' },
+            x_axis_title_margin: { value: 20 },
+          },
         },
       },
     };
@@ -800,15 +818,18 @@ test('automatic axis title margin adjustment does not change Y axis margin when 
       ...reduxState,
       explore: {
         ...reduxState.explore,
-        form_data: {
-          datasource: '1__table',
-          viz_type: VizType.Table,
-          metrics: [],
-        },
-        controls: {
-          ...reduxState.explore.controls,
-          y_axis_title: { value: '' },
-          y_axis_title_margin: { value: 50 },
+        present: {
+          ...reduxState.explore.present,
+          form_data: {
+            datasource: '1__table',
+            viz_type: VizType.Table,
+            metrics: [],
+          },
+          controls: {
+            ...reduxState.explore.present.controls,
+            y_axis_title: { value: '' },
+            y_axis_title_margin: { value: 50 },
+          },
         },
       },
     };
@@ -851,15 +872,18 @@ test('automatic axis title margin adjustment changes Y axis margin when title is
       ...reduxState,
       explore: {
         ...reduxState.explore,
-        form_data: {
-          datasource: '1__table',
-          viz_type: VizType.Table,
-          metrics: [],
-        },
-        controls: {
-          ...reduxState.explore.controls,
-          y_axis_title: { value: '' },
-          y_axis_title_margin: { value: 20 },
+        present: {
+          ...reduxState.explore.present,
+          form_data: {
+            datasource: '1__table',
+            viz_type: VizType.Table,
+            metrics: [],
+          },
+          controls: {
+            ...reduxState.explore.present.controls,
+            y_axis_title: { value: '' },
+            y_axis_title_margin: { value: 20 },
+          },
         },
       },
     };
@@ -899,17 +923,20 @@ test('automatic axis title margin adjustment handles both X and Y axis titles be
       ...reduxState,
       explore: {
         ...reduxState.explore,
-        form_data: {
-          datasource: '1__table',
-          viz_type: VizType.Table,
-          metrics: [],
-        },
-        controls: {
-          ...reduxState.explore.controls,
-          x_axis_title: { value: '' },
-          x_axis_title_margin: { value: 0 },
-          y_axis_title: { value: '' },
-          y_axis_title_margin: { value: 0 },
+        present: {
+          ...reduxState.explore.present,
+          form_data: {
+            datasource: '1__table',
+            viz_type: VizType.Table,
+            metrics: [],
+          },
+          controls: {
+            ...reduxState.explore.present.controls,
+            x_axis_title: { value: '' },
+            x_axis_title_margin: { value: 0 },
+            y_axis_title: { value: '' },
+            y_axis_title_margin: { value: 0 },
+          },
         },
       },
     };

@@ -25,8 +25,9 @@ import {
   redoExploreAction,
   clearExploreHistory,
 } from '../actions/exploreActions';
+import { UndoableExploreState } from '../types';
 
-const initialState = {
+const initialState: UndoableExploreState = {
   past: [],
   present: {
     form_data: {

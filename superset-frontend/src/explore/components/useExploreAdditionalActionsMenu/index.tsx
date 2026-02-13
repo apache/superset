@@ -164,21 +164,6 @@ export interface StreamingExportState {
   onDownload: () => void;
 }
 
-interface ExploreSlice {
-  slice?: Slice | null;
-  form_data?: Partial<QueryFormData>;
-}
-
-interface ExploreState {
-  charts?: Record<number, ChartState>;
-  explore?: ExploreSlice;
-  common?: {
-    conf?: {
-      CSV_STREAMING_ROW_THRESHOLD?: number;
-    };
-  };
-}
-
 export type UseExploreAdditionalActionsMenuReturn = [
   ReactElement,
   boolean,
@@ -212,10 +197,12 @@ export const useExploreAdditionalActionsMenu = (
     dashboardSearchTerm,
     300,
   );
-  const chart = useSelector<ExploreState, ChartState | undefined>(state =>
-    state.explore?.present ? state.charts?.[getChartKey(state.explore.present)] : undefined,
+  const chart = useSelector<any, ChartState | undefined>(state =>
+    (state.explore as any)?.present
+      ? state.charts?.[getChartKey((state.explore as any).present)]
+      : undefined,
   );
-  const streamingThreshold = useSelector<ExploreState, number>(
+  const streamingThreshold = useSelector<any, number>(
     state =>
       state.common?.conf?.CSV_STREAMING_ROW_THRESHOLD ||
       DEFAULT_CSV_STREAMING_ROW_THRESHOLD,

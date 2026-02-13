@@ -21,6 +21,7 @@ import { ControlStateMapping } from '@superset-ui/chart-controls';
 import {
   ChartState,
   ExplorePageInitialData,
+  ExplorePageInitialState,
   ExplorePageState,
 } from 'src/explore/types';
 import { getChartKey } from 'src/explore/exploreUtils';
@@ -220,5 +221,5 @@ export const hydrateExplore =
 
 export type HydrateExplore = {
   type: typeof HYDRATE_EXPLORE;
-  data: ExplorePageState;
+  data: ExplorePageInitialState;
 };

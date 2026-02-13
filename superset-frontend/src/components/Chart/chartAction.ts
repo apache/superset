@@ -386,8 +386,10 @@ export const dynamicPluginControlsReady =
     const state = getState();
     // getControlsState expects datasource to be defined, provide a default
     const exploreState = {
-      ...state.explore,
-      datasource: state.explore.datasource || { type: 'table' },
+      ...(state.explore as any).present,
+      datasource: (state.explore as any).present?.datasource || {
+        type: 'table',
+      },
     };
     const controlsState = getControlsState(
       exploreState,

@@ -81,6 +81,7 @@ import {
   Datasource,
   ExplorePageInitialData,
   ExplorePageState,
+  ExploreState,
   SaveActionType,
 } from 'src/explore/types';
 import { Slice } from 'src/types/Chart';
@@ -281,35 +282,11 @@ function isAggregatedChartType(vizType: string | undefined): boolean {
   return vizType ? AGGREGATED_CHART_TYPES.includes(vizType) : false;
 }
 
-interface ExploreRootState {
-  explore: {
-    controls: ControlStateMapping;
-    slice: Slice | null;
-    datasource: Datasource;
-    metadata?: ExplorePageInitialData['metadata'];
-    hiddenFormData?: Partial<QueryFormData>;
-    isDatasourceMetaLoading: boolean;
-    isStarred: boolean;
-    can_add: boolean;
-    can_download: boolean;
-    can_overwrite: boolean;
-    sliceName?: string;
-    triggerRender: boolean;
-    standalone: boolean;
-    force: boolean;
-    form_data?: QueryFormData;
-    saveAction?: SaveActionType | null;
-  };
-  charts: Record<number, ChartState>;
-  common: {
-    conf: {
-      SUPERSET_WEBSERVER_TIMEOUT: number;
-    };
-  };
+// Use ExplorePageState from types.ts, but extend it with additional fields needed for mapStateToProps
+interface ExploreRootState extends ExplorePageState {
   impressionId: string;
   dataMask: Record<number, { ownState?: JsonObject }>;
   reports: JsonObject;
-  user: User;
   saveModal: {
     isVisible: boolean;
   };
@@ -349,7 +326,7 @@ interface StateProps {
   ownState?: JsonObject;
   impressionId: string;
   user: User;
-  exploreState: ExplorePageState['explore'];
+  exploreState: ExploreState;
   reports: JsonObject;
   metadata?: ExplorePageInitialData['metadata'];
   saveAction?: SaveActionType | null;
@@ -1181,8 +1158,8 @@ function mapStateToProps(state: ExploreRootState) {
   return {
     isDatasourceMetaLoading: explore.isDatasourceMetaLoading,
     datasource,
-    datasource_type: datasource.type,
-    datasourceId: datasource.id,
+    datasource_type: datasource?.type,
+    datasourceId: datasource?.id,
     dashboardId,
     colorScheme,
     ownColorScheme,
@@ -1200,7 +1177,7 @@ function mapStateToProps(state: ExploreRootState) {
     sliceName: explore.sliceName ?? slice?.slice_name ?? null,
     triggerRender: explore.triggerRender,
     form_data: patchedFormData,
-    table_name: datasource.table_name,
+    table_name: datasource?.table_name,
     vizType: form_data.viz_type,
     standalone: !!explore.standalone,
     force: !!explore.force,
@@ -1209,9 +1186,8 @@ function mapStateToProps(state: ExploreRootState) {
     ownState: dataMask[slice_id]?.ownState,
     impressionId,
     user,
-    // ExploreRootState['explore'] is compatible with ExplorePageState['explore']
-    // but has additional optional fields; casting is safe here
-    exploreState: explore as unknown as ExplorePageState['explore'],
+    // explore is the .present value from the undoable reducer
+    exploreState: explore,
     reports,
     metadata,
     saveAction: explore.saveAction,

@@ -53,7 +53,9 @@ export function changeDatasource(newDatasource: Dataset) {
       },
     } = getState();
     dispatch(setDatasource(newDatasource));
-    dispatch(updateFormDataByDatasource(prevDatasource, newDatasource));
+    if (prevDatasource) {
+      dispatch(updateFormDataByDatasource(prevDatasource, newDatasource));
+    }
   };
 }
 

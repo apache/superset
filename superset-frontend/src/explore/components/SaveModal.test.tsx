@@ -203,9 +203,12 @@ test('renders a message when saving as', () => {
       ...initialState,
       explore: {
         ...initialState.explore,
-        slice: {
-          ...initialState.explore.slice,
-          is_managed_externally: true,
+        present: {
+          ...initialState.explore.present,
+          slice: {
+            ...initialState.explore.present.slice,
+            is_managed_externally: true,
+          },
         },
       },
     }),
@@ -232,9 +235,12 @@ test('renders a message when saving as with new dashboard', () => {
       ...initialState,
       explore: {
         ...initialState.explore,
-        slice: {
-          ...initialState.explore.slice,
-          is_managed_externally: true,
+        present: {
+          ...initialState.explore.present,
+          slice: {
+            ...initialState.explore.present.slice,
+            is_managed_externally: true,
+          },
         },
       },
     }),
