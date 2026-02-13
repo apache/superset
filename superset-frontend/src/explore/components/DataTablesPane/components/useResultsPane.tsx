@@ -165,7 +165,7 @@ export const useResultsPane = ({
         rowcount={result.rowcount}
         dataSize={dataSize}
         datasourceId={queryFormData.datasource}
-        isVisible={isVisible}
+        isVisible={isVisible ?? true}
         canDownload={canDownload}
         columnDisplayNames={columnDisplayNames}
       />
