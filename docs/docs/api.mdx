@@ -59,7 +59,7 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
 #### Core Resources
 
 <details>
-<summary><strong>Dashboards</strong> (26 endpoints) — Create, read, update, and delete dashboards.</summary>
+<summary><strong>Dashboards</strong> (28 endpoints) — Create, read, update, and delete dashboards.</summary>
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -68,23 +68,25 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
 | `POST` | [Create a new dashboard](./api/create-a-new-dashboard) | `/api/v1/dashboard/` |
 | `GET` | [Get metadata information about this API resource (dashboard--info)](./api/get-metadata-information-about-this-api-resource-dashboard-info) | `/api/v1/dashboard/_info` |
 | `GET` | [Get a dashboard detail information](./api/get-a-dashboard-detail-information) | `/api/v1/dashboard/{id_or_slug}` |
-| `GET` | [Get a dashboard's chart definitions.](./api/get-a-dashboards-chart-definitions) | `/api/v1/dashboard/{id_or_slug}/charts` |
+| `GET` | [Get a dashboard's chart definitions.](./api/get-a-dashboard-s-chart-definitions) | `/api/v1/dashboard/{id_or_slug}/charts` |
 | `POST` | [Create a copy of an existing dashboard](./api/create-a-copy-of-an-existing-dashboard) | `/api/v1/dashboard/{id_or_slug}/copy/` |
-| `GET` | [Get dashboard's datasets](./api/get-dashboards-datasets) | `/api/v1/dashboard/{id_or_slug}/datasets` |
-| `DELETE` | [Delete a dashboard's embedded configuration](./api/delete-a-dashboards-embedded-configuration) | `/api/v1/dashboard/{id_or_slug}/embedded` |
-| `GET` | [Get the dashboard's embedded configuration](./api/get-the-dashboards-embedded-configuration) | `/api/v1/dashboard/{id_or_slug}/embedded` |
-| `POST` | [Set a dashboard's embedded configuration](./api/set-a-dashboards-embedded-configuration) | `/api/v1/dashboard/{id_or_slug}/embedded` |
+| `GET` | [Get dashboard's datasets](./api/get-dashboard-s-datasets) | `/api/v1/dashboard/{id_or_slug}/datasets` |
+| `DELETE` | [Delete a dashboard's embedded configuration](./api/delete-a-dashboard-s-embedded-configuration) | `/api/v1/dashboard/{id_or_slug}/embedded` |
+| `GET` | [Get the dashboard's embedded configuration](./api/get-the-dashboard-s-embedded-configuration) | `/api/v1/dashboard/{id_or_slug}/embedded` |
+| `POST` | [Set a dashboard's embedded configuration](./api/set-a-dashboard-s-embedded-configuration) | `/api/v1/dashboard/{id_or_slug}/embedded` |
 | `PUT` | [Update dashboard by id_or_slug embedded](./api/update-dashboard-by-id-or-slug-embedded) | `/api/v1/dashboard/{id_or_slug}/embedded` |
-| `GET` | [Get dashboard's tabs](./api/get-dashboards-tabs) | `/api/v1/dashboard/{id_or_slug}/tabs` |
+| `GET` | [Get dashboard's tabs](./api/get-dashboard-s-tabs) | `/api/v1/dashboard/{id_or_slug}/tabs` |
 | `DELETE` | [Delete a dashboard](./api/delete-a-dashboard) | `/api/v1/dashboard/{pk}` |
 | `PUT` | [Update a dashboard](./api/update-a-dashboard) | `/api/v1/dashboard/{pk}` |
 | `POST` | [Compute and cache a screenshot (dashboard-pk-cache-dashboard-screenshot)](./api/compute-and-cache-a-screenshot-dashboard-pk-cache-dashboard-screenshot) | `/api/v1/dashboard/{pk}/cache_dashboard_screenshot/` |
+| `PUT` | [Update chart customizations configuration for a dashboard.](./api/update-chart-customizations-configuration-for-a-dashboard) | `/api/v1/dashboard/{pk}/chart_customizations` |
 | `PUT` | [Update colors configuration for a dashboard.](./api/update-colors-configuration-for-a-dashboard) | `/api/v1/dashboard/{pk}/colors` |
+| `GET` | [Export dashboard as example bundle](./api/export-dashboard-as-example-bundle) | `/api/v1/dashboard/{pk}/export_as_example/` |
 | `DELETE` | [Remove the dashboard from the user favorite list](./api/remove-the-dashboard-from-the-user-favorite-list) | `/api/v1/dashboard/{pk}/favorites/` |
 | `POST` | [Mark the dashboard as favorite for the current user](./api/mark-the-dashboard-as-favorite-for-the-current-user) | `/api/v1/dashboard/{pk}/favorites/` |
 | `PUT` | [Update native filters configuration for a dashboard.](./api/update-native-filters-configuration-for-a-dashboard) | `/api/v1/dashboard/{pk}/filters` |
 | `GET` | [Get a computed screenshot from cache (dashboard-pk-screenshot-digest)](./api/get-a-computed-screenshot-from-cache-dashboard-pk-screenshot-digest) | `/api/v1/dashboard/{pk}/screenshot/{digest}/` |
-| `GET` | [Get dashboard's thumbnail](./api/get-dashboards-thumbnail) | `/api/v1/dashboard/{pk}/thumbnail/{digest}/` |
+| `GET` | [Get dashboard's thumbnail](./api/get-dashboard-s-thumbnail) | `/api/v1/dashboard/{pk}/thumbnail/{digest}/` |
 | `GET` | [Download multiple dashboards as YAML files](./api/download-multiple-dashboards-as-yaml-files) | `/api/v1/dashboard/export/` |
 | `GET` | [Check favorited dashboards for current user](./api/check-favorited-dashboards-for-current-user) | `/api/v1/dashboard/favorite_status/` |
 | `POST` | [Import dashboard(s) with associated charts/datasets/databases](./api/import-dashboard-s-with-associated-charts-datasets-databases) | `/api/v1/dashboard/import/` |
@@ -101,8 +103,8 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
 | `GET` | [Get a list of charts](./api/get-a-list-of-charts) | `/api/v1/chart/` |
 | `POST` | [Create a new chart](./api/create-a-new-chart) | `/api/v1/chart/` |
 | `GET` | [Get metadata information about this API resource (chart--info)](./api/get-metadata-information-about-this-api-resource-chart-info) | `/api/v1/chart/_info` |
+| `GET` | [Get a chart detail information](./api/get-a-chart-detail-information) | `/api/v1/chart/{id_or_uuid}` |
 | `DELETE` | [Delete a chart](./api/delete-a-chart) | `/api/v1/chart/{pk}` |
-| `GET` | [Get a chart detail information](./api/get-a-chart-detail-information) | `/api/v1/chart/{pk}` |
 | `PUT` | [Update a chart](./api/update-a-chart) | `/api/v1/chart/{pk}` |
 | `GET` | [Compute and cache a screenshot (chart-pk-cache-screenshot)](./api/compute-and-cache-a-screenshot-chart-pk-cache-screenshot) | `/api/v1/chart/{pk}/cache_screenshot/` |
 | `GET` | [Return payload data response for a chart](./api/return-payload-data-response-for-a-chart) | `/api/v1/chart/{pk}/data/` |
@@ -121,7 +123,7 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
 </details>
 
 <details>
-<summary><strong>Datasets</strong> (18 endpoints) — Manage datasets (tables) used for building charts.</summary>
+<summary><strong>Datasets</strong> (19 endpoints) — Manage datasets (tables) used for building charts.</summary>
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -129,13 +131,14 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
 | `GET` | [Get a list of datasets](./api/get-a-list-of-datasets) | `/api/v1/dataset/` |
 | `POST` | [Create a new dataset](./api/create-a-new-dataset) | `/api/v1/dataset/` |
 | `GET` | [Get metadata information about this API resource (dataset--info)](./api/get-metadata-information-about-this-api-resource-dataset-info) | `/api/v1/dataset/_info` |
+| `GET` | [Get a dataset](./api/get-a-dataset) | `/api/v1/dataset/{id_or_uuid}` |
+| `GET` | [Get charts and dashboards count associated to a dataset](./api/get-charts-and-dashboards-count-associated-to-a-dataset) | `/api/v1/dataset/{id_or_uuid}/related_objects` |
 | `DELETE` | [Delete a dataset](./api/delete-a-dataset) | `/api/v1/dataset/{pk}` |
-| `GET` | [Get a dataset](./api/get-a-dataset) | `/api/v1/dataset/{pk}` |
 | `PUT` | [Update a dataset](./api/update-a-dataset) | `/api/v1/dataset/{pk}` |
 | `DELETE` | [Delete a dataset column](./api/delete-a-dataset-column) | `/api/v1/dataset/{pk}/column/{column_id}` |
+| `GET` | [Get dataset drill info](./api/get-dataset-drill-info) | `/api/v1/dataset/{pk}/drill_info/` |
 | `DELETE` | [Delete a dataset metric](./api/delete-a-dataset-metric) | `/api/v1/dataset/{pk}/metric/{metric_id}` |
 | `PUT` | [Refresh and update columns of a dataset](./api/refresh-and-update-columns-of-a-dataset) | `/api/v1/dataset/{pk}/refresh` |
-| `GET` | [Get charts and dashboards count associated to a dataset](./api/get-charts-and-dashboards-count-associated-to-a-dataset) | `/api/v1/dataset/{pk}/related_objects` |
 | `GET` | [Get distinct values from field data (dataset-distinct-column-name)](./api/get-distinct-values-from-field-data-dataset-distinct-column-name) | `/api/v1/dataset/distinct/{column_name}` |
 | `POST` | [Duplicate a dataset](./api/duplicate-a-dataset) | `/api/v1/dataset/duplicate` |
 | `GET` | [Download multiple datasets as YAML files](./api/download-multiple-datasets-as-yaml-files) | `/api/v1/dataset/export/` |
@@ -147,7 +150,7 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
 </details>
 
 <details>
-<summary><strong>Database</strong> (31 endpoints) — Manage database connections and metadata.</summary>
+<summary><strong>Database</strong> (30 endpoints) — Manage database connections and metadata.</summary>
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -165,7 +168,6 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
 | `GET` | [Get all schemas from a database](./api/get-all-schemas-from-a-database) | `/api/v1/database/{pk}/schemas/` |
 | `GET` | [Get database select star for table (database-pk-select-star-table-name)](./api/get-database-select-star-for-table-database-pk-select-star-table-name) | `/api/v1/database/{pk}/select_star/{table_name}/` |
 | `GET` | [Get database select star for table (database-pk-select-star-table-name-schema-name)](./api/get-database-select-star-for-table-database-pk-select-star-table-name-schema-name) | `/api/v1/database/{pk}/select_star/{table_name}/{schema_name}/` |
-| `DELETE` | [Delete a SSH tunnel](./api/delete-a-ssh-tunnel) | `/api/v1/database/{pk}/ssh_tunnel/` |
 | `POST` | [Re-sync all permissions for a database connection](./api/re-sync-all-permissions-for-a-database-connection) | `/api/v1/database/{pk}/sync_permissions/` |
 | `GET` | [Get table extra metadata (database-pk-table-extra-table-name-schema-name)](./api/get-table-extra-metadata-database-pk-table-extra-table-name-schema-name) | `/api/v1/database/{pk}/table_extra/{table_name}/{schema_name}/` |
 | `GET` | [Get table metadata](./api/get-table-metadata) | `/api/v1/database/{pk}/table_metadata/` |
@@ -177,7 +179,7 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
 | `GET` | [Get names of databases currently available](./api/get-names-of-databases-currently-available) | `/api/v1/database/available/` |
 | `GET` | [Download database(s) and associated dataset(s) as a zip file](./api/download-database-s-and-associated-dataset-s-as-a-zip-file) | `/api/v1/database/export/` |
 | `POST` | [Import database(s) with associated datasets](./api/import-database-s-with-associated-datasets) | `/api/v1/database/import/` |
-| `GET` | [Receive personal access tokens from OAuth2](./api/receive-personal-access-tokens-from-o-auth-2) | `/api/v1/database/oauth2/` |
+| `GET` | [Receive personal access tokens from OAuth2](./api/receive-personal-access-tokens-from-oauth2) | `/api/v1/database/oauth2/` |
 | `GET` | [Get related fields data (database-related-column-name)](./api/get-related-fields-data-database-related-column-name) | `/api/v1/database/related/{column_name}` |
 | `POST` | [Test a database connection](./api/test-a-database-connection) | `/api/v1/database/test_connection/` |
 | `POST` | [Upload a file and returns file metadata](./api/upload-a-file-and-returns-file-metadata) | `/api/v1/database/upload_metadata/` |
@@ -197,13 +199,14 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
 </details>
 
 <details>
-<summary><strong>SQL Lab</strong> (6 endpoints) — Execute SQL queries and manage SQL Lab sessions.</summary>
+<summary><strong>SQL Lab</strong> (7 endpoints) — Execute SQL queries and manage SQL Lab sessions.</summary>
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | [Get the bootstrap data for SqlLab page](./api/get-the-bootstrap-data-for-sql-lab-page) | `/api/v1/sqllab/` |
+| `GET` | [Get the bootstrap data for SqlLab page](./api/get-the-bootstrap-data-for-sqllab-page) | `/api/v1/sqllab/` |
 | `POST` | [Estimate the SQL query execution cost](./api/estimate-the-sql-query-execution-cost) | `/api/v1/sqllab/estimate/` |
 | `POST` | [Execute a SQL query](./api/execute-a-sql-query) | `/api/v1/sqllab/execute/` |
+| `POST` | [Export SQL query results to CSV with streaming](./api/export-sql-query-results-to-csv-with-streaming) | `/api/v1/sqllab/export_streaming/` |
 | `GET` | [Export the SQL query results to a CSV](./api/export-the-sql-query-results-to-a-csv) | `/api/v1/sqllab/export/{client_id}/` |
 | `POST` | [Format SQL code](./api/format-sql-code) | `/api/v1/sqllab/format_sql/` |
 | `GET` | [Get the result of a SQL query execution](./api/get-the-result-of-a-sql-query-execution) | `/api/v1/sqllab/results/` |
@@ -236,20 +239,21 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
 </details>
 
 <details>
-<summary><strong>Datasources</strong> (1 endpoints) — Query datasource metadata and column values.</summary>
+<summary><strong>Datasources</strong> (2 endpoints) — Query datasource metadata and column values.</summary>
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `GET` | [Get possible values for a datasource column](./api/get-possible-values-for-a-datasource-column) | `/api/v1/datasource/{datasource_type}/{datasource_id}/column/{column_name}/values/` |
+| `POST` | [Validate a SQL expression against a datasource](./api/validate-a-sql-expression-against-a-datasource) | `/api/v1/datasource/{datasource_type}/{datasource_id}/validate_expression/` |
 
 </details>
 
 <details>
-<summary><strong>Advanced Data Type</strong> (2 endpoints) — Endpoints for advanced data type operations and conversions.</summary>
+<summary><strong>Advanced Data Type</strong> (2 endpoints) — Advanced data type operations and conversions.</summary>
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | [Return an AdvancedDataTypeResponse](./api/return-an-advanced-data-type-response) | `/api/v1/advanced_data_type/convert` |
+| `GET` | [Return an AdvancedDataTypeResponse](./api/return-an-advanceddatatyperesponse) | `/api/v1/advanced_data_type/convert` |
 | `GET` | [Return a list of available advanced data types](./api/return-a-list-of-available-advanced-data-types) | `/api/v1/advanced_data_type/types` |
 
 </details>
@@ -320,32 +324,32 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
 #### Sharing & Embedding
 
 <details>
-<summary><strong>Dashboard Permanent Link</strong> (2 endpoints) — Create and retrieve permanent links to dashboard states.</summary>
+<summary><strong>Dashboard Permanent Link</strong> (2 endpoints) — Permanent links to dashboard states.</summary>
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | [Create a new dashboard's permanent link](./api/create-a-new-dashboards-permanent-link) | `/api/v1/dashboard/{pk}/permalink` |
-| `GET` | [Get dashboard's permanent link state](./api/get-dashboards-permanent-link-state) | `/api/v1/dashboard/permalink/{key}` |
+| `POST` | [Create a new dashboard's permanent link](./api/create-a-new-dashboard-s-permanent-link) | `/api/v1/dashboard/{pk}/permalink` |
+| `GET` | [Get dashboard's permanent link state](./api/get-dashboard-s-permanent-link-state) | `/api/v1/dashboard/permalink/{key}` |
 
 </details>
 
 <details>
-<summary><strong>Explore Permanent Link</strong> (2 endpoints) — Create and retrieve permanent links to chart explore states.</summary>
+<summary><strong>Explore Permanent Link</strong> (2 endpoints) — Permanent links to chart explore states.</summary>
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `POST` | [Create a new permanent link (explore-permalink)](./api/create-a-new-permanent-link-explore-permalink) | `/api/v1/explore/permalink` |
-| `GET` | [Get chart's permanent link state](./api/get-charts-permanent-link-state) | `/api/v1/explore/permalink/{key}` |
+| `GET` | [Get chart's permanent link state](./api/get-chart-s-permanent-link-state) | `/api/v1/explore/permalink/{key}` |
 
 </details>
 
 <details>
-<summary><strong>SQL Lab Permanent Link</strong> (2 endpoints) — Create and retrieve permanent links to SQL Lab states.</summary>
+<summary><strong>SQL Lab Permanent Link</strong> (2 endpoints) — Permanent links to SQL Lab states.</summary>
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `POST` | [Create a new permanent link (sqllab-permalink)](./api/create-a-new-permanent-link-sqllab-permalink) | `/api/v1/sqllab/permalink` |
-| `GET` | [Get permanent link state for SQLLab editor.](./api/get-permanent-link-state-for-sql-lab-editor) | `/api/v1/sqllab/permalink/{key}` |
+| `GET` | [Get permanent link state for SQLLab editor.](./api/get-permanent-link-state-for-sqllab-editor) | `/api/v1/sqllab/permalink/{key}` |
 
 </details>
 
@@ -363,10 +367,10 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | [Create a dashboard's filter state](./api/create-a-dashboards-filter-state) | `/api/v1/dashboard/{pk}/filter_state` |
-| `DELETE` | [Delete a dashboard's filter state value](./api/delete-a-dashboards-filter-state-value) | `/api/v1/dashboard/{pk}/filter_state/{key}` |
-| `GET` | [Get a dashboard's filter state value](./api/get-a-dashboards-filter-state-value) | `/api/v1/dashboard/{pk}/filter_state/{key}` |
-| `PUT` | [Update a dashboard's filter state value](./api/update-a-dashboards-filter-state-value) | `/api/v1/dashboard/{pk}/filter_state/{key}` |
+| `POST` | [Create a dashboard's filter state](./api/create-a-dashboard-s-filter-state) | `/api/v1/dashboard/{pk}/filter_state` |
+| `DELETE` | [Delete a dashboard's filter state value](./api/delete-a-dashboard-s-filter-state-value) | `/api/v1/dashboard/{pk}/filter_state/{key}` |
+| `GET` | [Get a dashboard's filter state value](./api/get-a-dashboard-s-filter-state-value) | `/api/v1/dashboard/{pk}/filter_state/{key}` |
+| `PUT` | [Update a dashboard's filter state value](./api/update-a-dashboard-s-filter-state-value) | `/api/v1/dashboard/{pk}/filter_state/{key}` |
 
 </details>
 
@@ -406,7 +410,7 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
 #### Security & Access Control
 
 <details>
-<summary><strong>Security Roles</strong> (10 endpoints) — Manage security roles and their permissions.</summary>
+<summary><strong>Security Roles</strong> (11 endpoints) — Manage security roles and their permissions.</summary>
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -416,6 +420,7 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
 | `DELETE` | [Delete security roles by pk](./api/delete-security-roles-by-pk) | `/api/v1/security/roles/{pk}` |
 | `GET` | [Get security roles by pk](./api/get-security-roles-by-pk) | `/api/v1/security/roles/{pk}` |
 | `PUT` | [Update security roles by pk](./api/update-security-roles-by-pk) | `/api/v1/security/roles/{pk}` |
+| `PUT` | [Update security roles by role_id groups](./api/update-security-roles-by-role-id-groups) | `/api/v1/security/roles/{role_id}/groups` |
 | `POST` | [Create security roles by role_id permissions](./api/create-security-roles-by-role-id-permissions) | `/api/v1/security/roles/{role_id}/permissions` |
 | `GET` | [Get security roles by role_id permissions](./api/get-security-roles-by-role-id-permissions) | `/api/v1/security/roles/{role_id}/permissions/` |
 | `PUT` | [Update security roles by role_id users](./api/update-security-roles-by-role-id-users) | `/api/v1/security/roles/{role_id}/users` |
@@ -463,7 +468,7 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
 </details>
 
 <details>
-<summary><strong>Security Permissions on Resources (View Menus)</strong> (6 endpoints) — Manage permission-resource mappings.</summary>
+<summary><strong>Security Permissions on Resources (View Menus)</strong> (6 endpoints) — Permission-resource mappings.</summary>
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -477,7 +482,7 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
 </details>
 
 <details>
-<summary><strong>Row Level Security</strong> (8 endpoints) — Manage row-level security rules for data access control.</summary>
+<summary><strong>Row Level Security</strong> (8 endpoints) — Manage row-level security rules for data access.</summary>
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -495,7 +500,7 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
 #### Import/Export & Administration
 
 <details>
-<summary><strong>Import/export</strong> (2 endpoints) — Import and export Superset assets (dashboards, charts, databases).</summary>
+<summary><strong>Import/export</strong> (2 endpoints) — Import and export Superset assets.</summary>
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -528,11 +533,12 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
 #### User & System
 
 <details>
-<summary><strong>Current User</strong> (2 endpoints) — Get information about the currently authenticated user.</summary>
+<summary><strong>Current User</strong> (3 endpoints) — Get information about the authenticated user.</summary>
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `GET` | [Get the user object](./api/get-the-user-object) | `/api/v1/me/` |
+| `PUT` | [Update the current user](./api/update-the-current-user) | `/api/v1/me/` |
 | `GET` | [Get the user roles](./api/get-the-user-roles) | `/api/v1/me/roles/` |
 
 </details>
@@ -579,6 +585,60 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `GET` | [Get api by version  openapi](./api/get-api-by-version-openapi) | `/api/{version}/_openapi` |
+
+</details>
+
+#### Other
+
+<details>
+<summary><strong>Security Groups</strong> (6 endpoints) — Endpoints related to Security Groups.</summary>
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | [Get security groups](./api/get-security-groups) | `/api/v1/security/groups/` |
+| `POST` | [Create security groups](./api/create-security-groups) | `/api/v1/security/groups/` |
+| `GET` | [Get security groups  info](./api/get-security-groups-info) | `/api/v1/security/groups/_info` |
+| `DELETE` | [Delete security groups by pk](./api/delete-security-groups-by-pk) | `/api/v1/security/groups/{pk}` |
+| `GET` | [Get security groups by pk](./api/get-security-groups-by-pk) | `/api/v1/security/groups/{pk}` |
+| `PUT` | [Update security groups by pk](./api/update-security-groups-by-pk) | `/api/v1/security/groups/{pk}` |
+
+</details>
+
+<details>
+<summary><strong>Themes</strong> (14 endpoints) — Manage UI themes for customizing Superset's appearance.</summary>
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `DELETE` | [Bulk delete themes](./api/bulk-delete-themes) | `/api/v1/theme/` |
+| `GET` | [Get a list of themes](./api/get-a-list-of-themes) | `/api/v1/theme/` |
+| `POST` | [Create a theme](./api/create-a-theme) | `/api/v1/theme/` |
+| `GET` | [Get metadata information about this API resource (theme--info)](./api/get-metadata-information-about-this-api-resource-theme-info) | `/api/v1/theme/_info` |
+| `DELETE` | [Delete a theme](./api/delete-a-theme) | `/api/v1/theme/{pk}` |
+| `GET` | [Get a theme](./api/get-a-theme) | `/api/v1/theme/{pk}` |
+| `PUT` | [Update a theme](./api/update-a-theme) | `/api/v1/theme/{pk}` |
+| `PUT` | [Set a theme as the system dark theme](./api/set-a-theme-as-the-system-dark-theme) | `/api/v1/theme/{pk}/set_system_dark` |
+| `PUT` | [Set a theme as the system default theme](./api/set-a-theme-as-the-system-default-theme) | `/api/v1/theme/{pk}/set_system_default` |
+| `GET` | [Download multiple themes as YAML files](./api/download-multiple-themes-as-yaml-files) | `/api/v1/theme/export/` |
+| `POST` | [Import themes from a ZIP file](./api/import-themes-from-a-zip-file) | `/api/v1/theme/import/` |
+| `GET` | [Get related fields data (theme-related-column-name)](./api/get-related-fields-data-theme-related-column-name) | `/api/v1/theme/related/{column_name}` |
+| `DELETE` | [Clear the system dark theme](./api/clear-the-system-dark-theme) | `/api/v1/theme/unset_system_dark` |
+| `DELETE` | [Clear the system default theme](./api/clear-the-system-default-theme) | `/api/v1/theme/unset_system_default` |
+
+</details>
+
+<details>
+<summary><strong>UserRegistrationsRestAPI</strong> (8 endpoints) — Endpoints related to UserRegistrationsRestAPI.</summary>
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | [Get security user registrations](./api/get-security-user-registrations) | `/api/v1/security/user_registrations/` |
+| `POST` | [Create security user registrations](./api/create-security-user-registrations) | `/api/v1/security/user_registrations/` |
+| `GET` | [Get security user registrations  info](./api/get-security-user-registrations-info) | `/api/v1/security/user_registrations/_info` |
+| `DELETE` | [Delete security user registrations by pk](./api/delete-security-user-registrations-by-pk) | `/api/v1/security/user_registrations/{pk}` |
+| `GET` | [Get security user registrations by pk](./api/get-security-user-registrations-by-pk) | `/api/v1/security/user_registrations/{pk}` |
+| `PUT` | [Update security user registrations by pk](./api/update-security-user-registrations-by-pk) | `/api/v1/security/user_registrations/{pk}` |
+| `GET` | [Get distinct values from field data (security-user-registrations-distinct-column-name)](./api/get-distinct-values-from-field-data-security-user-registrations-distinct-column-name) | `/api/v1/security/user_registrations/distinct/{column_name}` |
+| `GET` | [Get related fields data (security-user-registrations-related-column-name)](./api/get-related-fields-data-security-user-registrations-related-column-name) | `/api/v1/security/user_registrations/related/{column_name}` |
 
 </details>
 
