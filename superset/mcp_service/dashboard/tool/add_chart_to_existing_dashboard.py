@@ -198,8 +198,7 @@ def _ensure_layout_structure(
         }
 
     # Add row to the target parent container
-    parent = layout.get(parent_id)
-    if parent:
+    if parent := layout.get(parent_id):
         if "children" not in parent:
             parent["children"] = []
         parent["children"].append(row_key)
