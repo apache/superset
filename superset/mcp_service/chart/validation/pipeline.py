@@ -27,7 +27,10 @@ from superset.mcp_service.chart.schemas import (
     ChartConfig,
     GenerateChartRequest,
 )
-from superset.mcp_service.common.error_schemas import ChartGenerationError
+from superset.mcp_service.common.error_schemas import (
+    ChartGenerationError,
+    DatasetContext,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -168,9 +171,14 @@ class ValidationPipeline:
             if request is None:
                 return ValidationResult(is_valid=False, error=error)
 
-            # Layer 2: Dataset validation
+            # Fetch dataset context once and reuse across validation layers
+            dataset_context = ValidationPipeline._get_dataset_context(
+                request.dataset_id
+            )
+
+            # Layer 2: Dataset validation (reuses context)
             is_valid, error = ValidationPipeline._validate_dataset(
-                request.config, request.dataset_id
+                request.config, request.dataset_id, dataset_context
             )
             if not is_valid:
                 return ValidationResult(is_valid=False, request=request, error=error)
@@ -181,10 +189,10 @@ class ValidationPipeline:
             )
             # Runtime validation always returns True now, warnings are informational
 
-            # Layer 4: Column name normalization
-            # Normalize column names to match canonical dataset column names
-            # This fixes case sensitivity issues (e.g., 'order_date' vs 'OrderDate')
-            normalized_request = ValidationPipeline._normalize_column_names(request)
+            # Layer 4: Column name normalization (reuses context)
+            normalized_request = ValidationPipeline._normalize_column_names(
+                request, dataset_context
+            )
 
             return ValidationResult(
                 is_valid=True,
@@ -209,14 +217,31 @@ class ValidationPipeline:
             return ValidationResult(is_valid=False, error=error)
 
     @staticmethod
+    def _get_dataset_context(
+        dataset_id: int | str,
+    ) -> DatasetContext | None:
+        """Fetch dataset context once to reuse across validation layers."""
+        try:
+            from .dataset_validator import DatasetValidator
+
+            return DatasetValidator._get_dataset_context(dataset_id)
+        except ImportError:
+            logger.warning("Dataset validator not available, skipping context fetch")
+            return None
+
+    @staticmethod
     def _validate_dataset(
-        config: ChartConfig, dataset_id: int | str
+        config: ChartConfig,
+        dataset_id: int | str,
+        dataset_context: DatasetContext | None = None,
     ) -> Tuple[bool, ChartGenerationError | None]:
         """Validate configuration against dataset schema."""
         try:
             from .dataset_validator import DatasetValidator
 
-            return DatasetValidator.validate_against_dataset(config, dataset_id)
+            return DatasetValidator.validate_against_dataset(
+                config, dataset_id, dataset_context=dataset_context
+            )
         except ImportError:
             # Skip if dataset validator not available
             logger.warning(
@@ -256,7 +281,10 @@ class ValidationPipeline:
             return True, None
 
     @staticmethod
-    def _normalize_column_names(request: GenerateChartRequest) -> GenerateChartRequest:
+    def _normalize_column_names(
+        request: GenerateChartRequest,
+        dataset_context: DatasetContext | None = None,
+    ) -> GenerateChartRequest:
         """
         Normalize column names in the request to match canonical dataset names.
 
@@ -267,6 +295,8 @@ class ValidationPipeline:
 
         Args:
             request: The validated chart generation request
+            dataset_context: Pre-fetched dataset context to avoid duplicate
+                DB queries. If None, fetches from the database.
 
         Returns:
             A new request with normalized column names
@@ -275,7 +305,9 @@ class ValidationPipeline:
             from .dataset_validator import DatasetValidator
 
             normalized_config = DatasetValidator.normalize_column_names(
-                request.config, request.dataset_id
+                request.config,
+                request.dataset_id,
+                dataset_context=dataset_context,
             )
 
             # Create a new request with the normalized config

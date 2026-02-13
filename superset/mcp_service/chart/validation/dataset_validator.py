@@ -37,13 +37,25 @@ from superset.mcp_service.common.error_schemas import (
 
 logger = logging.getLogger(__name__)
 
+# Exceptions that can occur during column name normalization.
+# Shared by the validation pipeline and tool-level normalization calls.
+NORMALIZATION_EXCEPTIONS = (
+    ImportError,
+    AttributeError,
+    KeyError,
+    ValueError,
+    TypeError,
+)
+
 
 class DatasetValidator:
     """Validates chart configuration against dataset schema."""
 
     @staticmethod
     def validate_against_dataset(
-        config: TableChartConfig | XYChartConfig, dataset_id: int | str
+        config: TableChartConfig | XYChartConfig,
+        dataset_id: int | str,
+        dataset_context: DatasetContext | None = None,
     ) -> Tuple[bool, ChartGenerationError | None]:
         """
         Validate chart configuration against dataset schema.
@@ -51,12 +63,15 @@ class DatasetValidator:
         Args:
             config: Chart configuration to validate
             dataset_id: Dataset ID to validate against
+            dataset_context: Pre-fetched dataset context to avoid duplicate
+                DB queries. If None, fetches from the database.
 
         Returns:
             Tuple of (is_valid, error)
         """
-        # Get dataset context
-        dataset_context = DatasetValidator._get_dataset_context(dataset_id)
+        # Get dataset context (reuse if provided)
+        if dataset_context is None:
+            dataset_context = DatasetValidator._get_dataset_context(dataset_id)
         if not dataset_context:
             from superset.mcp_service.utils.error_builder import (
                 ChartErrorBuilder,
@@ -285,7 +300,9 @@ class DatasetValidator:
 
     @staticmethod
     def normalize_column_names(
-        config: TableChartConfig | XYChartConfig, dataset_id: int | str
+        config: TableChartConfig | XYChartConfig,
+        dataset_id: int | str,
+        dataset_context: DatasetContext | None = None,
     ) -> TableChartConfig | XYChartConfig:
         """
         Normalize column names in config to match the canonical dataset column names.
@@ -298,11 +315,14 @@ class DatasetValidator:
         Args:
             config: Chart configuration with column references
             dataset_id: Dataset ID to get canonical column names from
+            dataset_context: Pre-fetched dataset context to avoid duplicate
+                DB queries. If None, fetches from the database.
 
         Returns:
             A new config with normalized column names
         """
-        dataset_context = DatasetValidator._get_dataset_context(dataset_id)
+        if dataset_context is None:
+            dataset_context = DatasetValidator._get_dataset_context(dataset_id)
         if not dataset_context:
             return config
 
