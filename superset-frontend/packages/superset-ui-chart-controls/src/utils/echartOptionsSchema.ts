@@ -82,6 +82,7 @@ export const textStyleSchema = z.object({
   height: numberOrPercentSchema.optional(),
   textBorderColor: colorSchema.optional(),
   textBorderWidth: z.number().optional(),
+  textBorderType: lineTypeSchema.optional(),
   textShadowColor: colorSchema.optional(),
   textShadowBlur: z.number().optional(),
   textShadowOffsetX: z.number().optional(),

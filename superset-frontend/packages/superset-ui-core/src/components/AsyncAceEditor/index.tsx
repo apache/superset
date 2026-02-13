@@ -504,7 +504,7 @@ export const ConfigEditor = AsyncAceEditor([
 ]);
 
 export const JSEditor = AsyncAceEditor([
-  'mode/json',
   'mode/javascript',
+  'mode/json',
   'theme/github',
 ]);

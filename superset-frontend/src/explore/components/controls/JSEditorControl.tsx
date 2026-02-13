@@ -93,9 +93,11 @@ export default function JSEditorControl({
       </Container>
       {error && (
         <ErrorMessage>
-          {error.validationErrors.map((err, idx) => (
-            <div key={idx}>{err}</div>
-          ))}
+          {error.validationErrors.length > 0 ? (
+            error.validationErrors.map((err, idx) => <div key={idx}>{err}</div>)
+          ) : (
+            <div>{error.message}</div>
+          )}
         </ErrorMessage>
       )}
     </>
