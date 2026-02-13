@@ -179,7 +179,7 @@ def _convert_to_response(result: QueryResult) -> ExecuteSqlResponse:
             data_stmt = stmt
             break
 
-    if data_stmt is not None:
+    if data_stmt is not None and data_stmt.data is not None:
         # SELECT query - convert DataFrame
         df = data_stmt.data
         rows = df.to_dict(orient="records")

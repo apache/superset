@@ -554,8 +554,12 @@ class TestExecuteSql:
                     execution_time_ms=1.0,
                 ),
                 StatementResult(
-                    original_sql="WITH cte AS (SELECT id, amount FROM orders) SELECT * FROM cte",
-                    executed_sql="WITH cte AS (SELECT id, amount FROM orders) SELECT * FROM cte",
+                    original_sql=(
+                        "WITH cte AS (SELECT id, amount FROM orders) SELECT * FROM cte"
+                    ),
+                    executed_sql=(
+                        "WITH cte AS (SELECT id, amount FROM orders) SELECT * FROM cte"
+                    ),
                     data=pd.DataFrame(
                         [{"id": 1, "amount": 99.99}, {"id": 2, "amount": 150.00}]
                     ),
@@ -574,7 +578,11 @@ class TestExecuteSql:
 
         request = {
             "database_id": 1,
-            "sql": "SET search_path TO sales; WITH cte AS (SELECT id, amount FROM orders) SELECT * FROM cte",
+            "sql": (
+                "SET search_path TO sales;"
+                " WITH cte AS (SELECT id, amount FROM orders)"
+                " SELECT * FROM cte"
+            ),
             "limit": 100,
         }
 
