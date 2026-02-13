@@ -458,7 +458,7 @@ cd ../
 sed -i '' "s/version_string = .*/version_string = \"$SUPERSET_VERSION\"/" setup.py
 
 # build the python distribution
-python setup.py sdist
+python -m build
 ```
 
 Publish to PyPI
