@@ -180,7 +180,7 @@ def test_get_default_instructions_with_unavailable_features():
 
 
 def test_init_fastmcp_server_reads_unavailable_features_from_config():
-    """Test that init_fastmcp_server reads MCP_UNAVAILABLE_FEATURES from Flask config."""
+    """Test that init reads MCP_UNAVAILABLE_FEATURES from Flask config."""
     features = ["Action Log", "List Users"]
     mock_flask_app = MagicMock()
 
