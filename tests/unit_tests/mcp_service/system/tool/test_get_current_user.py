@@ -244,8 +244,8 @@ class TestGetInstanceInfoCurrentUserViaMCP:
         mock_run_tool.return_value = _make_instance_info()
 
         with patch("flask.g") as mock_g:
-            # Simulate no user on g
-            del mock_g.user
+            # Simulate no user on g so getattr(g, "user", None) returns None
+            mock_g.user = None
 
             async with Client(mcp_server) as client:
                 result = await client.call_tool("get_instance_info", {"request": {}})
