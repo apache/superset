@@ -114,6 +114,86 @@ const MENU_KEYS = {
 
 const VIZ_TYPES_PIVOTABLE = [VizType.PivotTable];
 
+const CHART_EXPORT_SELECTOR = '.panel-body .chart-container';
+
+function getExportScreenshotMenuItems({
+  chartSelector,
+  sliceName,
+  chartId,
+  theme,
+  setIsDropdownVisible,
+  dispatch,
+}: {
+  chartSelector: string;
+  sliceName: string;
+  chartId?: number;
+  theme: ReturnType<typeof useTheme>;
+  setIsDropdownVisible: (visible: boolean) => void;
+  dispatch: Dispatch;
+}) {
+  return [
+    {
+      type: 'submenu' as const,
+      key: 'export_all_png_submenu',
+      label: t('Export screenshot (png)'),
+      icon: <Icons.FileImageOutlined />,
+      children: [
+        {
+          key: MENU_KEYS.EXPORT_ALL_PNG_TRANSPARENT,
+          label: t('Transparent background'),
+          onClick: (e: { domEvent: React.MouseEvent | React.KeyboardEvent }) => {
+            downloadAsImage(chartSelector, sliceName, true, theme, {
+              format: 'png',
+              backgroundType: 'transparent',
+            })(e.domEvent);
+            setIsDropdownVisible(false);
+            dispatch(
+              logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_PNG, {
+                chartId,
+                chartName: sliceName,
+                backgroundType: 'transparent',
+              }),
+            );
+          },
+        },
+        {
+          key: MENU_KEYS.EXPORT_ALL_PNG_SOLID,
+          label: t('Solid background'),
+          onClick: (e: { domEvent: React.MouseEvent | React.KeyboardEvent }) => {
+            downloadAsImage(chartSelector, sliceName, true, theme, {
+              format: 'png',
+              backgroundType: 'solid',
+            })(e.domEvent);
+            setIsDropdownVisible(false);
+            dispatch(
+              logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_PNG, {
+                chartId,
+                chartName: sliceName,
+                backgroundType: 'solid',
+              }),
+            );
+          },
+        },
+      ],
+    },
+    {
+      key: MENU_KEYS.EXPORT_ALL_PDF,
+      label: t('Export as PDF'),
+      icon: <Icons.FileOutlined />,
+      onClick: (e: { domEvent: React.MouseEvent | React.KeyboardEvent }) => {
+        downloadAsPdf(chartSelector, sliceName, true)(e.domEvent);
+        setIsDropdownVisible(false);
+        dispatch(
+          logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_PDF, {
+            chartId,
+            chartName: sliceName,
+          }),
+        );
+      },
+    },
+  ];
+}
+
 export const MenuItemWithCheckboxContainer = styled.div`
   ${({ theme }) => css`
     display: flex;
@@ -735,75 +815,14 @@ export const useExploreAdditionalActionsMenu = (
           );
         },
       },
-      {
-        type: 'submenu',
-        key: 'export_all_png_submenu',
-        label: t('Export screenshot (png)'),
-        icon: <Icons.FileImageOutlined />,
-        children: [
-          {
-            key: MENU_KEYS.EXPORT_ALL_PNG_TRANSPARENT,
-            label: t('Transparent background'),
-            onClick: e => {
-              downloadAsImage(
-                '.panel-body .chart-container',
-                slice?.slice_name ?? t('New chart'),
-                true,
-                theme,
-                { format: 'png', backgroundType: 'transparent' },
-              )(e.domEvent);
-              setIsDropdownVisible(false);
-              dispatch(
-                logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_PNG, {
-                  chartId: slice?.slice_id,
-                  chartName: slice?.slice_name,
-                  backgroundType: 'transparent',
-                }),
-              );
-            },
-          },
-          {
-            key: MENU_KEYS.EXPORT_ALL_PNG_SOLID,
-            label: t('Solid background'),
-            onClick: e => {
-              downloadAsImage(
-                '.panel-body .chart-container',
-                slice?.slice_name ?? t('New chart'),
-                true,
-                theme,
-                { format: 'png', backgroundType: 'solid' },
-              )(e.domEvent);
-              setIsDropdownVisible(false);
-              dispatch(
-                logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_PNG, {
-                  chartId: slice?.slice_id,
-                  chartName: slice?.slice_name,
-                  backgroundType: 'solid',
-                }),
-              );
-            },
-          },
-        ],
-      },
-      {
-        key: MENU_KEYS.EXPORT_ALL_PDF,
-        label: t('Export as PDF'),
-        icon: <Icons.FileOutlined />,
-        onClick: e => {
-          downloadAsPdf(
-            '.panel-body .chart-container',
-            slice?.slice_name ?? t('New chart'),
-            true,
-          )(e.domEvent);
-          setIsDropdownVisible(false);
-          dispatch(
-            logEvent(LOG_ACTIONS_CHART_DOWNLOAD_AS_PDF, {
-              chartId: slice?.slice_id,
-              chartName: slice?.slice_name,
-            }),
-          );
-        },
-      },
+      ...getExportScreenshotMenuItems({
+        chartSelector: CHART_EXPORT_SELECTOR,
+        sliceName: slice?.slice_name ?? t('New chart'),
+        chartId: slice?.slice_id,
+        theme,
+        setIsDropdownVisible,
+        dispatch,
+      }),
       {
         key: MENU_KEYS.EXPORT_TO_XLSX,
         label: t('Export to Excel'),

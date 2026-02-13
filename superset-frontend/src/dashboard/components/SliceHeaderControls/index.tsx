@@ -313,17 +313,17 @@ const SliceHeaderControls = (
           menu.style.visibility = 'hidden';
         }
 
-        downloadAsPdf(
+        const pdfResult = downloadAsPdf(
           getScreenshotNodeSelector(props.slice.slice_id),
           props.slice.slice_name,
           true,
         )(domEvent);
 
-        setTimeout(() => {
+        Promise.resolve(pdfResult).then(() => {
           if (menu) {
             menu.style.visibility = 'visible';
           }
-        }, 100);
+        });
 
         props.logEvent?.(LOG_ACTIONS_CHART_DOWNLOAD_AS_PDF, {
           chartId: props.slice.slice_id,
@@ -607,13 +607,13 @@ const SliceHeaderControls = (
           : []),
         {
           key: MenuKeys.DownloadAsImage,
-          label: t('Download as image'),
+          label: t('Export screenshot (jpeg)'),
           icon: <Icons.FileImageOutlined css={dropdownIconsStyles} />,
         },
         {
           type: 'submenu',
           key: 'download_as_png_submenu',
-          label: t('Download as image (png)'),
+          label: t('Export screenshot (PNG)'),
           icon: <Icons.FileImageOutlined css={dropdownIconsStyles} />,
           children: [
             {
@@ -628,7 +628,7 @@ const SliceHeaderControls = (
         },
         {
           key: MenuKeys.DownloadAsPdf,
-          label: t('Download as PDF'),
+          label: t('Export as PDF'),
           icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
         },
       ],
