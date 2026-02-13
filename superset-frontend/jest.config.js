@@ -42,6 +42,9 @@ module.exports = {
     '<rootDir>/packages/.*/lib',
     '<rootDir>/plugins/.*/esm',
     '<rootDir>/plugins/.*/lib',
+    // Ignore build artifacts that contain duplicate package.json or mock files
+    '<rootDir>/storybook-static',
+    '<rootDir>/packages/.*/__mocks__',
   ],
   setupFilesAfterEnv: ['<rootDir>/spec/helpers/setup.ts'],
   snapshotSerializers: ['@emotion/jest/serializer'],
