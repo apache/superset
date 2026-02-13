@@ -270,10 +270,12 @@ class ChartFilter(ColumnOperator):
         "slice_name",
         "viz_type",
         "datasource_name",
+        "created_by_fk",
     ] = Field(
         ...,
         description="Column to filter on. Use get_schema(model_type='chart') for "
-        "available filter columns.",
+        "available filter columns. Use created_by_fk with the user ID from "
+        "get_instance_info's current_user to find charts created by a specific user.",
     )
     opr: ColumnOperatorEnum = Field(
         ...,
