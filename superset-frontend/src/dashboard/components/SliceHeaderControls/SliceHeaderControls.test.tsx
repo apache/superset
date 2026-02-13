@@ -611,3 +611,116 @@ test('Should pass formData to Share menu for embed code feature', () => {
   openMenu();
   expect(screen.getByText('Share')).toBeInTheDocument();
 });
+
+test('Should show single fetched query tooltip with timestamp', async () => {
+  const updatedDttm = Date.parse('2024-01-28T10:00:00.000Z');
+  const props = createProps();
+  props.isCached = [false];
+  props.cachedDttm = [''];
+  props.updatedDttm = updatedDttm;
+
+  renderWrapper(props);
+  openMenu();
+
+  const refreshButton = screen.getByText('Force refresh');
+  expect(refreshButton).toBeInTheDocument();
+
+  userEvent.hover(refreshButton);
+  expect(await screen.findByText(/Fetched/)).toBeInTheDocument();
+});
+
+test('Should show single cached query tooltip with timestamp', async () => {
+  const cachedDttm = '2024-01-28T10:00:00.000Z';
+  const props = createProps();
+  props.isCached = [true];
+  props.cachedDttm = [cachedDttm];
+  props.updatedDttm = null;
+
+  renderWrapper(props);
+  openMenu();
+
+  const refreshButton = screen.getByText('Force refresh');
+  expect(refreshButton).toBeInTheDocument();
+
+  userEvent.hover(refreshButton);
+  expect(await screen.findByText(/Cached/)).toBeInTheDocument();
+});
+
+test('Should show multiple per-query tooltips when all queries are fetched', async () => {
+  const cachedDttm1 = '';
+  const cachedDttm2 = '';
+  const updatedDttm = Date.parse('2024-01-28T10:10:00.000Z');
+  const props = createProps(VizType.Table);
+  props.isCached = [false, false];
+  props.cachedDttm = [cachedDttm1, cachedDttm2];
+  props.updatedDttm = updatedDttm;
+
+  renderWrapper(props);
+  openMenu();
+
+  const refreshButton = screen.getByText('Force refresh');
+  expect(refreshButton).toBeInTheDocument();
+
+  userEvent.hover(refreshButton);
+  expect(await screen.findByText(/Fetched/)).toBeInTheDocument();
+});
+
+test('Should show multiple per-query tooltips when all queries are cached', async() => {
+  const cachedDttm1 = '2025-01-28T10:00:00.000Z';
+  const cachedDttm2 = '2024-01-28T10:05:00.000Z';
+  const props = createProps(VizType.Table);
+  props.isCached = [true, true];
+  props.cachedDttm = [cachedDttm1, cachedDttm2];
+  props.updatedDttm = null;
+
+  renderWrapper(props);
+  openMenu();
+
+  const refreshButton = screen.getByText('Force refresh');
+  expect(refreshButton).toBeInTheDocument();
+
+  userEvent.hover(refreshButton);
+  expect(await screen.findByText(/Query 1: Cached/)).toBeInTheDocument();
+  expect(await screen.findByText(/Query 2: Cached/)).toBeInTheDocument();
+});
+
+
+test('Should deduplicate identical cache times in tooltip', async () => {
+  const sameCachedDttm = '2024-01-28T10:00:00.000Z';
+  const props = createProps(VizType.Table);
+  props.isCached = [true, true];
+  props.cachedDttm = [sameCachedDttm, sameCachedDttm];
+  props.updatedDttm = null;
+
+  renderWrapper(props);
+  openMenu();
+
+  const refreshButton = screen.getByText('Force refresh');
+  expect(refreshButton).toBeInTheDocument();
+
+  userEvent.hover(refreshButton);
+  expect(await screen.findByText(/Cached/)).toBeInTheDocument();
+});
+
+test('Should handle three or more queries with different cache states', async () => {
+  const cachedDttm1 = '2024-01-28T10:00:00.000Z';
+  const cachedDttm2 = '2024-01-28T10:05:00.000Z';
+  const cachedDttm3 = '';
+  const updatedDttm = Date.parse('2024-01-28T10:15:00.000Z');
+  const props = createProps(VizType.Table);
+  props.isCached = [true, false, true];
+  props.cachedDttm = [cachedDttm1, cachedDttm2, cachedDttm3];
+  props.updatedDttm = updatedDttm;
+
+  renderWrapper(props);
+  openMenu();
+
+  const refreshButton = screen.getByText('Force refresh');
+  expect(refreshButton).toBeInTheDocument();
+
+  userEvent.hover(refreshButton);
+
+  expect(await screen.findByText(/Query 1:/)).toBeInTheDocument();
+  expect(await screen.findByText(/Query 2:/)).toBeInTheDocument();
+  expect(await screen.findByText(/Query 3:/)).toBeInTheDocument();
+});
