@@ -472,66 +472,85 @@ export function transformIntervalAnnotation(
 ): SeriesOption[] {
   const series: SeriesOption[] = [];
   const annotations = extractRecordAnnotations(layer, annotationData);
+  if (annotations.length === 0) {
+    return series;
+  }
+
+  const { name, color, opacity, showLabel } = layer;
+  const isHorizontal = orientation === OrientationType.Horizontal;
+
+  const intervalsByStartTime = new Map<string, string[]>();
   annotations.forEach(annotation => {
-    const { name, color, opacity, showLabel } = layer;
-    const { descriptions, intervalEnd, time, title } = annotation;
+    const { descriptions, time = '', title } = annotation;
     const label = formatAnnotationLabel(name, title, descriptions);
-    const isHorizontal = orientation === OrientationType.Horizontal;
-    const intervalData: (
-      | MarkArea1DDataItemOption
-      | MarkArea2DDataItemOption
-    )[] = [
-      [
-        {
-          name: label,
-          ...(isHorizontal ? { yAxis: time } : { xAxis: time }),
-        },
-        isHorizontal ? { yAxis: intervalEnd } : { xAxis: intervalEnd },
-      ],
+    const existing = intervalsByStartTime.get(time);
+    if (existing) {
+      existing.push(label);
+    } else {
+      intervalsByStartTime.set(time, [label]);
+    }
+  });
+
+  const allIntervalData: (
+    | MarkArea1DDataItemOption
+    | MarkArea2DDataItemOption
+  )[] = annotations.map(annotation => {
+    const { intervalEnd, time = '' } = annotation;
+    const combinedLabel = (intervalsByStartTime.get(time) || []).join('\n');
+    return [
+      {
+        name: combinedLabel,
+        ...(isHorizontal ? { yAxis: time } : { xAxis: time }),
+      },
+      isHorizontal ? { yAxis: intervalEnd } : { xAxis: intervalEnd },
     ];
-    const intervalLabel: SeriesLabelOption = showLabel
-      ? {
-          show: true,
-          color: theme.colorTextLabel,
+  });
+
+  const intervalLabel: SeriesLabelOption = showLabel
+    ? {
+        show: true,
+        color: theme.colorTextLabel,
+        position: 'insideTop',
+        verticalAlign: 'top',
+        fontWeight: 'bold',
+        // @ts-expect-error
+        emphasis: {
           position: 'insideTop',
           verticalAlign: 'top',
+          backgroundColor: theme.colorPrimaryBgHover,
+        },
+      }
+    : {
+        show: false,
+        color: theme.colorTextLabel,
+        emphasis: {
           fontWeight: 'bold',
-          // @ts-expect-error
-          emphasis: {
-            position: 'insideTop',
-            verticalAlign: 'top',
-            backgroundColor: theme.colorPrimaryBgHover,
-          },
-        }
-      : {
-          show: false,
-          color: theme.colorTextLabel,
-          emphasis: {
-            fontWeight: 'bold',
-            show: true,
-            position: 'insideTop',
-            verticalAlign: 'top',
-            backgroundColor: theme.colorPrimaryBgHover,
-          },
-        };
-    series.push({
-      id: `Interval - ${label}`,
-      type: 'line',
-      animation: false,
-      markArea: {
-        silent: false,
-        itemStyle: {
-          color: color || colorScale(name, sliceId),
-          opacity: parseAnnotationOpacity(opacity || AnnotationOpacity.Medium),
-          emphasis: {
-            opacity: 0.8,
-          },
-        } as ItemStyleOption,
-        label: intervalLabel,
-        data: intervalData,
-      },
-    });
+          show: true,
+          position: 'insideTop',
+          verticalAlign: 'top',
+          backgroundColor: theme.colorPrimaryBgHover,
+        },
+      };
+
+  // Push a single series with all intervals in the markArea data
+  series.push({
+    id: `Interval - ${name}`,
+    type: 'line',
+    animation: false,
+    markArea: {
+      silent: false,
+      itemStyle: {
+        color: color || colorScale(name, sliceId),
+        opacity: parseAnnotationOpacity(opacity || AnnotationOpacity.Medium),
+        emphasis: {
+          opacity: 0.8,
+        },
+      } as ItemStyleOption,
+      label: intervalLabel,
+      data: allIntervalData,
+    },
   });
+
   return series;
 }
 
@@ -546,66 +565,82 @@ export function transformEventAnnotation(
 ): SeriesOption[] {
   const series: SeriesOption[] = [];
   const annotations = extractRecordAnnotations(layer, annotationData);
+  if (annotations.length === 0) {
+    return series;
+  }
+
+  const { name, color, opacity, style, width, showLabel } = layer;
+  const isHorizontal = orientation === OrientationType.Horizontal;
+
+  const eventsByTime = new Map<string, { time: string; labels: string[] }>();
   annotations.forEach(annotation => {
-    const { name, color, opacity, style, width, showLabel } = layer;
-    const { descriptions, time, title } = annotation;
+    const { descriptions, time = '', title } = annotation;
     const label = formatAnnotationLabel(name, title, descriptions);
-    const isHorizontal = orientation === OrientationType.Horizontal;
-    const eventData: MarkLine1DDataItemOption[] = [
-      {
-        name: label,
-        ...(isHorizontal ? { yAxis: time } : { xAxis: time }),
-      },
-    ];
+    const existing = eventsByTime.get(time);
 
-    const lineStyle: LineStyleOption & DefaultStatesMixin['emphasis'] = {
-      width,
-      type: style as ZRLineType,
-      color: color || colorScale(name, sliceId),
-      opacity: parseAnnotationOpacity(opacity),
-      emphasis: {
-        width: width ? width + 1 : width,
-        opacity: 1,
-      },
-    };
-
-    const eventLabel: SeriesLineLabelOption = showLabel
-      ? {
-          show: true,
-          color: theme.colorTextLabel,
-          position: 'insideEndTop',
-          fontWeight: 'bold',
-          formatter: (params: CallbackDataParams) => params.name,
-          // @ts-expect-error
-          emphasis: {
-            backgroundColor: theme.colorPrimaryBgHover,
-          },
-        }
-      : {
-          show: false,
-          color: theme.colorTextLabel,
-          position: 'insideEndTop',
-          emphasis: {
-            formatter: (params: CallbackDataParams) => params.name,
-            fontWeight: 'bold',
-            show: true,
-            backgroundColor: theme.colorPrimaryBgHover,
-          },
-        };
-
-    series.push({
-      id: `Event - ${label}`,
-      type: 'line',
-      animation: false,
-      markLine: {
-        silent: false,
-        symbol: 'none',
-        lineStyle,
-        label: eventLabel,
-        data: eventData,
-      },
-    });
+    if (existing) {
+      existing.labels.push(label);
+    } else {
+      eventsByTime.set(time, { time, labels: [label] });
+    }
   });
+
+  const allEventData: MarkLine1DDataItemOption[] = Array.from(
+    eventsByTime.values(),
+  ).map(({ time, labels }) => ({
+    name: labels.join('\n'),
+    ...(isHorizontal ? { yAxis: time } : { xAxis: time }),
+  }));
+
+  const lineStyle: LineStyleOption & DefaultStatesMixin['emphasis'] = {
+    width,
+    type: style as ZRLineType,
+    color: color || colorScale(name, sliceId),
+    opacity: parseAnnotationOpacity(opacity),
+    emphasis: {
+      width: width ? width + 1 : width,
+      opacity: 1,
+    },
+  };
+
+  const eventLabel: SeriesLineLabelOption = showLabel
+    ? {
+        show: true,
+        color: theme.colorTextLabel,
+        position: 'insideEndTop',
+        fontWeight: 'bold',
+        formatter: (params: CallbackDataParams) => params.name,
+        // @ts-expect-error
+        emphasis: {
+          backgroundColor: theme.colorPrimaryBgHover,
+        },
+      }
+    : {
+        show: false,
+        color: theme.colorTextLabel,
+        position: 'insideEndTop',
+        emphasis: {
+          formatter: (params: CallbackDataParams) => params.name,
+          fontWeight: 'bold',
+          show: true,
+          backgroundColor: theme.colorPrimaryBgHover,
+        },
+      };
+
+  // Push a single series with all events in the markLine data
+  series.push({
+    id: `Event - ${name}`,
+    type: 'line',
+    animation: false,
+    markLine: {
+      silent: false,
+      symbol: 'none',
+      lineStyle,
+      label: eventLabel,
+      data: allEventData,
+    },
+  });
+
   return series;
 }
 
