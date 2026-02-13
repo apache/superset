@@ -201,15 +201,15 @@ def test_instance_info_none_current_user_in_serialized_output():
 class TestGetInstanceInfoCurrentUserViaMCP:
     """Test get_instance_info tool returns current_user via MCP client."""
 
-    @patch(
-        "superset.mcp_service.system.tool.get_instance_info.InstanceInfoCore.run_tool"
-    )
     @pytest.mark.asyncio
-    async def test_get_instance_info_returns_current_user(
-        self, mock_run_tool, mcp_server
-    ):
+    async def test_get_instance_info_returns_current_user(self, mcp_server):
         """Test that get_instance_info populates current_user from g.user."""
-        mock_run_tool.return_value = _make_instance_info()
+        # Patch run_tool on the CLASS so all instances (including the
+        # module-level _instance_info_core) use the mock.  We avoid patching
+        # via dotted module path because __init__.py re-exports
+        # get_instance_info as a function, which shadows the submodule name
+        # and breaks mock resolution on Python 3.10.
+        from superset.mcp_service.mcp_core import InstanceInfoCore
 
         mock_g_user = Mock()
         mock_g_user.id = 5
@@ -218,70 +218,81 @@ class TestGetInstanceInfoCurrentUserViaMCP:
         mock_g_user.last_name = "Beaumont"
         mock_g_user.email = "sophie@preset.io"
 
-        with patch("flask.g") as mock_g:
+        with (
+            patch.object(
+                InstanceInfoCore,
+                "run_tool",
+                return_value=_make_instance_info(),
+            ),
+            patch("flask.g") as mock_g,
+        ):
             mock_g.user = mock_g_user
 
             async with Client(mcp_server) as client:
                 result = await client.call_tool("get_instance_info", {"request": {}})
 
-            data = json.loads(result.content[0].text)
-            assert "current_user" in data
-            cu = data["current_user"]
-            assert cu["id"] == 5
-            assert cu["username"] == "sophie"
-            assert cu["first_name"] == "Sophie"
-            assert cu["last_name"] == "Beaumont"
-            assert cu["email"] == "sophie@preset.io"
+        data = json.loads(result.content[0].text)
+        assert "current_user" in data
+        cu = data["current_user"]
+        assert cu["id"] == 5
+        assert cu["username"] == "sophie"
+        assert cu["first_name"] == "Sophie"
+        assert cu["last_name"] == "Beaumont"
+        assert cu["email"] == "sophie@preset.io"
 
-    @patch(
-        "superset.mcp_service.system.tool.get_instance_info.InstanceInfoCore.run_tool"
-    )
     @pytest.mark.asyncio
-    async def test_get_instance_info_no_user_returns_null(
-        self, mock_run_tool, mcp_server
-    ):
+    async def test_get_instance_info_no_user_returns_null(self, mcp_server):
         """Test that current_user is null when g.user is not set."""
-        mock_run_tool.return_value = _make_instance_info()
+        from superset.mcp_service.mcp_core import InstanceInfoCore
 
-        with patch("flask.g") as mock_g:
+        with (
+            patch.object(
+                InstanceInfoCore,
+                "run_tool",
+                return_value=_make_instance_info(),
+            ),
+            patch("flask.g") as mock_g,
+        ):
             # Simulate no user on g so getattr(g, "user", None) returns None
             mock_g.user = None
 
             async with Client(mcp_server) as client:
                 result = await client.call_tool("get_instance_info", {"request": {}})
 
-            data = json.loads(result.content[0].text)
-            assert data["current_user"] is None
+        data = json.loads(result.content[0].text)
+        assert data["current_user"] is None
 
-    @patch(
-        "superset.mcp_service.system.tool.get_instance_info.InstanceInfoCore.run_tool"
-    )
     @pytest.mark.asyncio
-    async def test_get_instance_info_user_missing_optional_attrs(
-        self, mock_run_tool, mcp_server
-    ):
+    async def test_get_instance_info_user_missing_optional_attrs(self, mcp_server):
         """Test current_user when g.user is missing optional attributes."""
-        mock_run_tool.return_value = _make_instance_info()
+        from superset.mcp_service.mcp_core import InstanceInfoCore
 
         # User object with only id and username (no first_name, etc.)
         mock_g_user = Mock(spec=["id", "username"])
         mock_g_user.id = 99
         mock_g_user.username = "bot"
 
-        with patch("flask.g") as mock_g:
+        with (
+            patch.object(
+                InstanceInfoCore,
+                "run_tool",
+                return_value=_make_instance_info(),
+            ),
+            patch("flask.g") as mock_g,
+        ):
             mock_g.user = mock_g_user
 
             async with Client(mcp_server) as client:
                 result = await client.call_tool("get_instance_info", {"request": {}})
 
-            data = json.loads(result.content[0].text)
-            cu = data["current_user"]
-            assert cu["id"] == 99
-            assert cu["username"] == "bot"
-            # Missing attrs should be None via getattr default
-            assert cu["first_name"] is None
-            assert cu["last_name"] is None
-            assert cu["email"] is None
+        data = json.loads(result.content[0].text)
+        cu = data["current_user"]
+        assert cu["id"] == 99
+        assert cu["username"] == "bot"
+        # Missing attrs should be None via getattr default
+        assert cu["first_name"] is None
+        assert cu["last_name"] is None
+        assert cu["email"] is None
 
 
 # ---------------------------------------------------------------------------
