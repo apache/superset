@@ -33,7 +33,7 @@ export function Label(props: LabelProps) {
     onClick,
     children,
     icon,
-    id,
+    id: _id,
     ...rest
   } = props;
 
