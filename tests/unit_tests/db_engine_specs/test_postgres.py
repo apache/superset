@@ -15,13 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Optional
 
 import pytest
 from pytest_mock import MockerFixture
 from sqlalchemy import column, types
-from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION, ENUM, JSON
+from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION, ENUM, INTERVAL, JSON
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.engine.url import make_url
 
@@ -83,6 +83,8 @@ def test_convert_dttm(
         ("TIME", types.Time, None, GenericDataType.TEMPORAL, True),
         # Boolean
         ("BOOLEAN", types.Boolean, None, GenericDataType.BOOLEAN, False),
+        # Interval (mapped to NUMERIC for chart rendering)
+        ("INTERVAL", INTERVAL, None, GenericDataType.NUMERIC, False),
     ],
 )
 def test_get_column_spec(
@@ -280,3 +282,41 @@ SELECT * \nFROM my_schema.my_table
  LIMIT :param_1
     """.strip()
     )
+
+
+def test_interval_type_mutator() -> None:
+    """
+    DB Eng Specs (postgres): Test INTERVAL type mutator
+
+    INTERVAL values are converted to milliseconds so users can apply
+    the built-in "DURATION" number format for human-readable display.
+    """
+    mutator = spec.column_type_mutators[INTERVAL]
+
+    # Test timedelta conversion (most common case from psycopg2)
+    # Result is in milliseconds for compatibility with DURATION formatter
+    td = timedelta(days=1, hours=2, minutes=30, seconds=45)
+    assert mutator(td) == 95445000.0  # Total ms: (1*86400 + 2*3600 + 30*60 + 45) * 1000
+
+    # Test zero duration
+    assert mutator(timedelta(0)) == 0.0
+
+    # Test negative interval
+    assert mutator(timedelta(days=-1)) == -86400000.0
+
+    # Test numeric values (assumed to be seconds) are converted to milliseconds
+    assert mutator(12345) == 12345000.0
+    assert mutator(123.45) == 123450.0
+
+    # Test None preserves NULL semantics (not converted to 0)
+    assert mutator(None) is None
+
+    # Test bool is not treated as numeric (bool is subclass of int in Python)
+    assert mutator(True) is None
+    assert mutator(False) is None
+
+    # Test unconvertible types return None to avoid mixed-type columns
+    assert mutator("1 day 02:30:45") is None
+    assert mutator("P1DT2H30M45S") is None
+    assert mutator([1, 2, 3]) is None
+    assert mutator({"days": 1}) is None

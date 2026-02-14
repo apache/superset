@@ -21,10 +21,11 @@ import logging
 import re
 from datetime import datetime
 from re import Pattern
-from typing import Any, Optional, TYPE_CHECKING
+from typing import Any, Callable, Optional, TYPE_CHECKING
 
 from flask_babel import gettext as __
-from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION, ENUM, JSON
+from sqlalchemy import types
+from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION, ENUM, INTERVAL, JSON
 from sqlalchemy.dialects.postgresql.base import PGInspector
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
@@ -489,7 +490,36 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
             ENUM(),
             GenericDataType.STRING,
         ),
+        (
+            re.compile(r"^interval", re.IGNORECASE),
+            INTERVAL(),
+            GenericDataType.NUMERIC,
+        ),
     )
+
+    @staticmethod
+    def _normalize_interval(v: Any) -> Any:
+        """Convert PostgreSQL INTERVAL values to milliseconds.
+
+        psycopg2 returns timedelta objects which we convert to milliseconds for
+        numeric operations in bar/pie charts. Using milliseconds allows users to
+        apply the built-in "DURATION" number format for human-readable display
+        (e.g., "1d 2h 30m 45s").
+
+        Returns None for values that cannot be converted to preserve NULL semantics
+        and avoid mixed-type columns.
+        """
+        if v is None:
+            return None
+        if hasattr(v, "total_seconds"):
+            return v.total_seconds() * 1000
+        if isinstance(v, (int, float)) and not isinstance(v, bool):
+            return float(v) * 1000
+        return None  # Can't convert to numeric — treat as missing
+
+    column_type_mutators: dict[types.TypeEngine, Callable[[Any], Any]] = {
+        INTERVAL: _normalize_interval.__func__,  # type: ignore[attr-defined]
+    }
 
     @classmethod
     def get_schema_from_engine_params(
