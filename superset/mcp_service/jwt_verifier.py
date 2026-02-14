@@ -267,7 +267,7 @@ class DetailedJWTVerifier(JWTVerifier):
                 claims=dict(claims),
             )
 
-        except Exception as e:
+        except (ValueError, JoseError, KeyError, AttributeError, TypeError) as e:
             reason = f"Token validation failed: {e}"
             _jwt_failure_reason.set(reason)
             logger.warning(reason)
