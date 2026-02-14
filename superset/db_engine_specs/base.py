@@ -54,7 +54,7 @@ from sqlalchemy.engine.interfaces import Compiled, Dialect
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.ext.compiler import compiles
-from sqlalchemy.sql import literal_column, quoted_name, text
+from sqlalchemy.sql import bindparam, literal_column, quoted_name, text
 from sqlalchemy.sql.expression import BinaryExpression, ColumnClause, Select, TextClause
 from sqlalchemy.types import TypeEngine
 
@@ -1494,6 +1494,139 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             return sqla_col <= value
         else:
             raise ValueError(f"Invalid comparison filter operator: {op}")
+
+    # DSPM: SO-82
+    @classmethod
+    def _get_bq_filter_contains(
+        cls, col_expr: str, value: list[Any]
+    ) -> BinaryExpression:
+        clauses = []
+        params = {}
+        for i, v in enumerate(value):
+            clause = (
+                f"EXISTS (SELECT 1 FROM UNNEST({col_expr}) AS x WHERE x = :val_{i})"  # nosec B608 # noqa: S608
+            )
+            clauses.append(clause)
+            params[f"val_{i}"] = v
+        sql = " AND ".join(clauses)
+        return text(sql).bindparams(*[bindparam(k, v) for k, v in params.items()])
+
+    # DSPM: SO-82
+    @classmethod
+    def _get_bq_filter_not_contains(
+        cls, col_expr: str, value: list[Any]
+    ) -> BinaryExpression:
+        clauses = []
+        params = {}
+        for i, v in enumerate(value):
+            clause = (
+                f"NOT EXISTS (SELECT 1 FROM UNNEST({col_expr}) AS x WHERE x = :val_{i})"  # nosec B608 # noqa: S608
+            )
+            clauses.append(clause)
+            params[f"val_{i}"] = v
+        sql = " AND ".join(clauses)
+        return text(sql).bindparams(*[bindparam(k, v) for k, v in params.items()])
+
+    # DSPM: SO-82
+    @classmethod
+    def _get_bq_filter_equals(cls, col_expr: str, value: list[Any]) -> BinaryExpression:
+        arr = value if isinstance(value, (list, tuple)) else [value]
+        length_clause = f"ARRAY_LENGTH({col_expr}) = {len(arr)}"
+        if not arr:
+            return text(length_clause)
+
+        element_clauses: list[str] = []
+        params: dict[str, Any] = {}
+        for i, v in enumerate(arr):
+            element_clauses.append(f"{col_expr}[OFFSET({i})] = :val_{i}")
+            params[f"val_{i}"] = v
+        sql = f"({length_clause} AND " + " AND ".join(element_clauses) + ")"
+        return text(sql).bindparams(*[bindparam(k, v) for k, v in params.items()])
+
+    # DSPM: SO-82
+    @classmethod
+    def _get_bq_filter_not_equals(
+        cls, col_expr: str, value: list[Any]
+    ) -> BinaryExpression:
+        arr = value if isinstance(value, (list, tuple)) else [value]
+        length_clause = f"ARRAY_LENGTH({col_expr}) != {len(arr)}"
+        if not arr:
+            return text(length_clause)
+
+        element_clauses: list[str] = []
+        params: dict[str, Any] = {}
+        for i, v in enumerate(arr):
+            element_clauses.append(f"{col_expr}[OFFSET({i})] != :val_{i}")
+            params[f"val_{i}"] = v
+        sql = f"({length_clause} OR " + " OR ".join(element_clauses) + ")"
+        return text(sql).bindparams(*[bindparam(k, v) for k, v in params.items()])
+
+    # DSPM: SO-82
+    @classmethod
+    def handle_array_filter_big_query(
+        cls, sqla_col: Any, op: utils.FilterOperator, value: list[Any]
+    ) -> BinaryExpression:
+        """
+        Handle array filter operations (CONTAINS, NOT_CONTAINS, EQUALS, NOT_EQUALS)
+        specifically for BigQuery, with SQL injection protection.
+        """
+        # Only allow safe column names: letters, numbers, underscores
+        col_key = (
+            getattr(sqla_col, "key", None)
+            or getattr(sqla_col, "name", None)
+            or str(sqla_col)
+        )
+        if not re.match(r"^[A-Za-z_][A-Za-z0-9_]*$", col_key):
+            raise ValueError(f"Unsafe column name: {col_key}")
+        col_expr = f"`{col_key}`"
+
+        handler_map = {
+            utils.FilterOperator.CONTAINS: cls._get_bq_filter_contains,
+            utils.FilterOperator.NOT_CONTAINS: cls._get_bq_filter_not_contains,
+            utils.FilterOperator.EQUALS: cls._get_bq_filter_equals,
+            utils.FilterOperator.NOT_EQUALS: cls._get_bq_filter_not_equals,
+        }
+
+        if op in handler_map:
+            return handler_map[op](col_expr, value)
+
+        raise Exception(f"Unsupported array filter operator: {op}")
+
+    # DSPM: SO-82
+    @classmethod
+    def handle_array_filter(
+        cls, sqla_col: Any, op: utils.FilterOperator, value: list[Any]
+    ) -> BinaryExpression:
+        """
+        Handle array filter operations (CONTAINS, NOT_CONTAINS, EQUALS, NOT_EQUALS).
+
+        BigQuery:
+            - CONTAINS uses 'value IN UNNEST(column)'
+            - NOT_CONTAINS uses 'NOT (value IN UNNEST(column))'
+            - EQUALS/NOT_EQUALS use array equality.
+        Fallback to previous logic for other engines.
+        """
+        from sqlalchemy import func
+
+        engine_name = cls.engine_name
+
+        val = (
+            value[0] if isinstance(value, (list, tuple)) and len(value) == 1 else value
+        )
+
+        if engine_name == "Google BigQuery":
+            return cls.handle_array_filter_big_query(sqla_col, op, value)
+
+        if op == utils.FilterOperator.CONTAINS:
+            return func.array_contains(sqla_col, val)
+        elif op == utils.FilterOperator.NOT_CONTAINS:
+            return ~func.array_contains(sqla_col, val)
+        elif op == utils.FilterOperator.EQUALS:
+            return sqla_col == value
+        elif op == utils.FilterOperator.NOT_EQUALS:
+            return sqla_col != value
+        else:
+            raise ValueError(f"Invalid array filter operator: {op}")
 
     @classmethod
     def handle_cursor(cls, cursor: Any, query: Query) -> None:

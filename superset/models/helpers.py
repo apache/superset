@@ -2129,6 +2129,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         ] = None,  # fix(hughhh): Optional[Type[BaseEngineSpec]]
         db_extra: Optional[dict[str, Any]] = None,
     ) -> Optional[FilterValues]:
+        # DSPM: SO-82
+        is_list_target = bool(is_list_target)
         if values is None:
             return None
 
@@ -3036,9 +3038,20 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     )
                 col_type = col_obj.type if col_obj else None
                 col_spec = db_engine_spec.get_column_spec(native_type=col_type)
+                # DSPM: SO-82
                 is_list_target = op in (
                     utils.FilterOperator.IN,
                     utils.FilterOperator.NOT_IN,
+                    utils.FilterOperator.CONTAINS,
+                    utils.FilterOperator.NOT_CONTAINS,
+                ) or (
+                    col_spec
+                    and col_spec.generic_type == GenericDataType.ARRAY
+                    and op
+                    in (
+                        utils.FilterOperator.EQUALS,
+                        utils.FilterOperator.NOT_EQUALS,
+                    )
                 )
 
                 col_advanced_data_type = col_obj.advanced_data_type if col_obj else ""
@@ -3052,7 +3065,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     operator=op,
                     target_generic_type=target_generic_type,
                     target_native_type=col_type,
-                    is_list_target=is_list_target,
+                    is_list_target=bool(is_list_target),
                     db_engine_spec=db_engine_spec,
                 )
 
@@ -3103,6 +3116,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         cond = sqla_col.in_(eq)
                     if op == utils.FilterOperator.NOT_IN:
                         cond = ~cond
+                    # DSPM: SO-82
+                    elif op in {
+                        utils.FilterOperator.CONTAINS,
+                        utils.FilterOperator.NOT_CONTAINS,
+                        utils.FilterOperator.EQUALS,
+                        utils.FilterOperator.NOT_EQUALS,
+                    }:
+                        eq_list = list(eq) if isinstance(eq, (list, tuple)) else [eq]
+                        cond = db_engine_spec.handle_array_filter(sqla_col, op, eq_list)
                     target_clause_list.append(cond)
                 elif op in {
                     utils.FilterOperator.IS_NULL,
