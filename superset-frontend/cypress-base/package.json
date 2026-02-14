@@ -16,7 +16,6 @@
     ]
   },
   "dependencies": {
-    "@applitools/eyes-cypress": "^3.44.9",
     "@cypress/code-coverage": "^3.10.4",
     "@superset-ui/core": "^2.1.0",
     "brace": "^0.11.1",

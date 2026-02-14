@@ -281,6 +281,9 @@ test('should handle markdown errors gracefully', async () => {
 
     await new Promise(resolve => setTimeout(resolve, 100));
   });
+
+  // Verify component still renders after error events
+  expect(screen.getByTestId('dashboard-markdown-editor')).toBeInTheDocument();
 });
 
 test('should resize editor when width changes', async () => {
@@ -307,6 +310,11 @@ test('should resize editor when width changes', async () => {
 
     await new Promise(resolve => setTimeout(resolve, 100));
   });
+
+  // Verify component still renders after resize
+  expect(
+    screen.getByTestId('dashboard-component-chart-holder'),
+  ).toBeInTheDocument();
 });
 
 test('should update content when undo/redo changes occur', async () => {

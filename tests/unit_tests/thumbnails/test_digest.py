@@ -407,6 +407,7 @@ def test_chart_digest(
         **(chart_overrides or {}),
     }
     chart = Slice(**kwargs)
+    chart.table = datasource
 
     user: User | None = None
     if has_current_user:
@@ -421,12 +422,6 @@ def test_chart_digest(
                 "THUMBNAIL_EXECUTORS": execute_as,
                 "THUMBNAIL_CHART_DIGEST_FUNC": func,
             },
-        ),
-        patch.object(
-            type(chart),
-            "datasource",
-            new_callable=PropertyMock,
-            return_value=datasource,
         ),
         patch.object(security_manager, "find_user", return_value=user),
         override_user(user),

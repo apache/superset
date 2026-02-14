@@ -54,6 +54,7 @@ class DatasetFilter(ColumnOperator):
     col: Literal[
         "table_name",
         "schema",
+        "database_name",
         "owner",
         "favorite",
     ] = Field(

@@ -101,6 +101,8 @@ const ColumnStyles = styled.div<{ editMode: boolean }>`
       &.droptarget-edge {
         position: absolute;
         z-index: ${EMPTY_CONTAINER_Z_INDEX};
+        width: 100%;
+        height: ${theme.sizeUnit * 4}px;
         &:first-child {
           inset-block-start: 0;
         }
@@ -110,6 +112,10 @@ const ColumnStyles = styled.div<{ editMode: boolean }>`
         z-index: ${EMPTY_CONTAINER_Z_INDEX};
         width: 100%;
         height: 100%;
+      }
+      &:not(:first-child):not(.droptarget-edge) {
+        width: 100%;
+        min-height: ${theme.sizeUnit * 4}px;
       }
     }
   `}
