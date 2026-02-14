@@ -18,6 +18,11 @@
  */
 import 'src/public-path';
 
+// IMPORTANT: initEmbedded MUST be imported before setupPlugins!
+// It initializes feature flags which some plugins check at module load time.
+// It also reads ?locale= URL param for initial locale.
+import { bootstrapData, locale } from './initEmbedded';
+
 import { lazy, Suspense } from 'react';
 import ReactDOM from 'react-dom';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
@@ -26,7 +31,7 @@ import { makeApi } from '@superset-ui/core';
 import { logging } from '@apache-superset/core';
 import { type SupersetThemeConfig, ThemeMode } from '@apache-superset/core/ui';
 import Switchboard from '@superset-ui/switchboard';
-import getBootstrapData, { applicationRoot } from 'src/utils/getBootstrapData';
+import { applicationRoot } from 'src/utils/getBootstrapData';
 import setupClient from 'src/setup/setupClient';
 import setupPlugins from 'src/setup/setupPlugins';
 import { useUiConfig } from 'src/components/UiConfigContext';
@@ -46,12 +51,12 @@ import { getDataMaskChangeTrigger } from './utils';
 import { LocaleController } from 'src/locale';
 
 // Create locale controller for embedded context
-// Initial locale comes from bootstrap data (set by server based on Accept-Language header)
+// Initial locale comes from URL param (?locale=) or bootstrap data
 const localeController = new LocaleController({
-  initialLocale: getBootstrapData().common?.locale || 'en',
-  // Skip initial fetch because preamble may have already loaded it,
-  // or we'll load it when setLocale is called
-  skipInitialFetch: true,
+  initialLocale: locale,
+  // Skip initial fetch only if locale is 'en' (no language pack needed)
+  // Otherwise fetch the language pack for proper translations
+  skipInitialFetch: locale === 'en',
 });
 
 /**
@@ -65,7 +70,6 @@ setupPlugins();
 setupCodeOverrides({ embedded: true });
 
 const debugMode = process.env.WEBPACK_MODE === 'development';
-const bootstrapData = getBootstrapData();
 
 function log(...info: unknown[]) {
   if (debugMode) logging.debug(`[superset]`, ...info);

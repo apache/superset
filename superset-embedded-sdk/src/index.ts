@@ -73,6 +73,8 @@ export type EmbedDashboardParams = {
   /** Callback to resolve permalink URLs. If provided, this will be called when generating permalinks
    * to allow the host app to customize the URL. If not provided, Superset's default URL is used. */
   resolvePermalinkUrl?: ResolvePermalinkUrlFn;
+  /** Initial locale for the dashboard (e.g., 'de', 'ru', 'fr'). If not provided, uses server default. */
+  initialLocale?: string;
 };
 
 export type Size = {
@@ -129,6 +131,7 @@ export async function embedDashboard({
   iframeAllowExtras = [],
   referrerPolicy,
   resolvePermalinkUrl,
+  initialLocale,
 }: EmbedDashboardParams): Promise<EmbeddedDashboard> {
   function log(...info: unknown[]) {
     if (debug) {
@@ -184,6 +187,7 @@ export async function embedDashboard({
         ...dashboardConfigUrlParams,
         ...filterConfigUrlParams,
         ...dashboardUiConfig?.urlParams,
+        ...(initialLocale && { locale: initialLocale }),
       };
       const urlParamsString = Object.keys(urlParams).length
         ? '?' + new URLSearchParams(urlParams).toString()

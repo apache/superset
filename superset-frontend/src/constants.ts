@@ -51,6 +51,10 @@ export const URL_PARAMS = {
     name: 'expand_filters',
     type: 'boolean',
   },
+  locale: {
+    name: 'locale',
+    type: 'string',
+  },
   formDataKey: {
     name: 'form_data_key',
     type: 'string',
