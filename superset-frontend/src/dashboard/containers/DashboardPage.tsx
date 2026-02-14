@@ -49,6 +49,10 @@ import {
 import DashboardContainer from 'src/dashboard/containers/Dashboard';
 import CrudThemeProvider from 'src/components/CrudThemeProvider';
 import type { DashboardChartStates } from 'src/dashboard/types/chartState';
+import {
+  initChartUpdateChannel,
+  closeChartUpdateChannel,
+} from 'src/dashboard/util/chartUpdateChannel';
 
 import { nanoid } from 'nanoid';
 import type { ActiveFilters } from '../types';
@@ -161,6 +165,14 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
       window.removeEventListener('beforeunload', handleTabClose);
     };
   }, [dashboardPageId]);
+
+  // Set up cross-tab chart update listener
+  useEffect(() => {
+    initChartUpdateChannel(dispatch);
+    return () => {
+      closeChartUpdateChannel();
+    };
+  }, [dispatch]);
 
   useEffect(() => {
     dispatch(setDatasetsStatus(status));

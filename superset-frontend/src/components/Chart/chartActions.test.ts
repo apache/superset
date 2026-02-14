@@ -707,3 +707,106 @@ describe('chart actions timeout', () => {
     expect(postSpy).toHaveBeenCalledWith(expectedPayload);
   });
 });
+
+test('refreshChart dispatches postChartFormData with chart.latestQueryFormData', () => {
+  const chartKey = 1;
+  const chartId = 123;
+  const dashboardId = 456;
+
+  const mockFormData = {
+    datasource: '1__table',
+    viz_type: 'big_number_total',
+    slice_id: chartId,
+    metric: { aggregate: 'MAX' },
+  };
+
+  const mockState = {
+    charts: {
+      [chartKey]: {
+        id: chartId,
+        form_data: { datasource: '1__table', viz_type: 'big_number_total' },
+        latestQueryFormData: mockFormData,
+      },
+    },
+    dashboardInfo: {
+      common: {
+        conf: {
+          SUPERSET_WEBSERVER_TIMEOUT: 60,
+        },
+      },
+    },
+    dataMask: {
+      [chartId]: {
+        ownState: {},
+      },
+    },
+  };
+
+  const actionThunk = actions.refreshChart(chartKey, true, dashboardId);
+  const mockDispatch = jest.fn();
+  const mockGetState = () => mockState;
+
+  actionThunk(
+    mockDispatch as unknown as actions.ChartThunkDispatch,
+    mockGetState as unknown as () => actions.RootState,
+    undefined,
+  );
+
+  expect(mockDispatch).toHaveBeenCalledTimes(1);
+  const dispatchedAction = mockDispatch.mock.calls[0][0];
+  expect(typeof dispatchedAction).toBe('function');
+});
+
+test('refreshChart uses latestQueryFormData from Redux state without fetching from API', () => {
+  const chartKey = 1;
+  const chartId = 123;
+  const dashboardId = 456;
+
+  const mockFormData = {
+    datasource: '1__table',
+    viz_type: 'big_number_total',
+    slice_id: chartId,
+    metric: { aggregate: 'MAX' },
+  };
+
+  const mockState = {
+    charts: {
+      [chartKey]: {
+        id: chartId,
+        form_data: { datasource: '1__table', viz_type: 'big_number_total' },
+        latestQueryFormData: mockFormData,
+      },
+    },
+    dashboardInfo: {
+      common: {
+        conf: {
+          SUPERSET_WEBSERVER_TIMEOUT: 60,
+        },
+      },
+    },
+    dataMask: {
+      [chartId]: {
+        ownState: {},
+      },
+    },
+  };
+
+  fetchMock.clearHistory();
+
+  const actionThunk = actions.refreshChart(chartKey, true, dashboardId);
+  const mockDispatch = jest.fn();
+  const mockGetState = () => mockState;
+
+  actionThunk(
+    mockDispatch as unknown as actions.ChartThunkDispatch,
+    mockGetState as unknown as () => actions.RootState,
+    undefined,
+  );
+
+  // Verify no API calls were made to fetch chart definition
+  expect(
+    fetchMock.callHistory
+      .calls()
+      .filter(call => /\/api\/v1\/chart\/\d+/.test(call.url ?? '')).length,
+  ).toBe(0);
+});

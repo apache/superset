@@ -163,6 +163,9 @@ export const hydrateDashboard =
       chartQueries[key] = {
         ...chart,
         id: key,
+        latestQueryFormData: applyDefaultFormData(
+          formData as Parameters<typeof applyDefaultFormData>[0],
+        ),
         form_data: applyDefaultFormData(
           formData as Parameters<typeof applyDefaultFormData>[0],
         ),

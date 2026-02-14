@@ -734,3 +734,138 @@ describe('getSlicePayload', () => {
     });
   });
 });
+
+// Helper function to set up broadcast channel listener
+const setupBroadcastListener = () => {
+  const receivedMessages: any[] = [];
+  const MockBroadcastChannel = global.BroadcastChannel as any;
+  const listener = new MockBroadcastChannel('superset_chart_updates');
+  listener.onmessage = (event: { data: any }) => {
+    receivedMessages.push(event.data);
+  };
+  return { receivedMessages, listener };
+};
+
+// Reusable slice object for cross-tab sync tests
+const testSlice = {
+  slice_id: sliceId,
+  slice_name: sliceName,
+  form_data: formData,
+  owners: [],
+  description: '',
+  description_markdown: '',
+  slice_url: '',
+  viz_type: vizType,
+  thumbnail_url: '',
+  changed_on: 0,
+  changed_on_humanized: '',
+  modified: '',
+  datasource_id: datasourceId,
+  datasource_type: datasourceType,
+  datasource_url: '',
+  datasource_name: '',
+  created_by: {
+    id: 0,
+  },
+};
+
+test('updateSlice broadcasts chart update for cross-tab sync', async () => {
+  const slice = testSlice;
+
+  fetchMock.put(`glob:*/api/v1/chart/${sliceId}`, {
+    json: { id: sliceId },
+  });
+
+  const dispatch = jest.fn() as unknown as Dispatch;
+  const getState = () => ({ explore: { form_data: formData } });
+  const { receivedMessages, listener } = setupBroadcastListener();
+
+  await updateSlice(slice, sliceName, dashboards)(dispatch, getState);
+
+  expect(receivedMessages.length).toBe(1);
+  expect(receivedMessages[0]).toEqual({
+    type: 'CHART_SAVED',
+    sliceId,
+    formData,
+  });
+
+  listener.close();
+});
+
+test('createSlice broadcasts chart update for cross-tab sync', async () => {
+  const newSliceId = 999;
+
+  fetchMock.post('glob:*/api/v1/chart/', {
+    slice_id: newSliceId,
+    owners: [],
+    form_data: formData,
+  });
+
+  const dispatch = jest.fn() as unknown as Dispatch;
+  const getState = () => ({ explore: { form_data: formData } });
+  const { receivedMessages, listener } = setupBroadcastListener();
+
+  await createSlice(sliceName, dashboards)(dispatch, getState);
+
+  expect(receivedMessages.length).toBe(1);
+  expect(receivedMessages[0]).toEqual({
+    type: 'CHART_SAVED',
+    sliceId: newSliceId,
+    formData,
+  });
+
+  listener.close();
+});
+
+test('updateSlice does not broadcast when formData is undefined', async () => {
+  fetchMock.put(`glob:*/api/v1/chart/${sliceId}`, {
+    json: { id: sliceId },
+  });
+
+  const dispatch = jest.fn() as unknown as Dispatch;
+  const getState = () => ({ explore: { form_data: undefined } });
+  const { receivedMessages, listener } = setupBroadcastListener();
+
+  await updateSlice(testSlice, sliceName, dashboards)(dispatch, getState);
+
+  expect(receivedMessages.length).toBe(0);
+
+  listener.close();
+});
+
+test('createSlice does not broadcast when formData is undefined', async () => {
+  const newSliceId = 999;
+
+  fetchMock.post('glob:*/api/v1/chart/', {
+    slice_id: newSliceId,
+    owners: [],
+    form_data: formData,
+  });
+
+  const dispatch = jest.fn() as unknown as Dispatch;
+  const getState = () => ({ explore: { form_data: undefined } });
+  const { receivedMessages, listener } = setupBroadcastListener();
+
+  await createSlice(sliceName, dashboards)(dispatch, getState);
+
+  expect(receivedMessages.length).toBe(0);
+
+  listener.close();
+});
+
+test('createSlice does not broadcast when response is missing slice_id', async () => {
+  fetchMock.post('glob:*/api/v1/chart/', {
+    owners: [],
+    form_data: formData,
+  });
+
+  const dispatch = jest.fn() as unknown as Dispatch;
+  const getState = () => ({ explore: { form_data: formData } });
+  const { receivedMessages, listener } = setupBroadcastListener();
+
+  await createSlice(sliceName, dashboards)(dispatch, getState);
+
+  expect(receivedMessages.length).toBe(0);
+
+  listener.close();
+});
