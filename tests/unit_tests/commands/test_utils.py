@@ -477,3 +477,34 @@ def test_update_tags_no_tags(mock_tag_dao, object_type):
     mock_tag_dao.create_custom_tagged_objects.assert_called_once_with(
         object_type, 1, new_tag_names
     )
+
+
+@pytest.mark.parametrize("object_type", OBJECT_TYPES)
+@patch("superset.commands.utils.TagDAO")
+def test_update_tags_filters_system_tags(mock_tag_dao, object_type):
+    """
+    Test that ``update_tags`` filters out system tags (type, owner, favorited_by)
+    from the new_tag_ids before creating custom tagged objects.
+
+    This prevents system tags from being treated as custom tags, which would
+    cause duplicate key violations when trying to create custom tags with the
+    same name as existing system tags.
+    """
+    # Current tags include custom tags
+    current_tags = [tag for tag in MOCK_TAGS if tag.type == TagType.custom]
+
+    # New tag IDs include both custom and system tags (simulating API payload)
+    system_tags = [tag for tag in MOCK_TAGS if tag.type != TagType.custom]
+    custom_tags = [tag for tag in MOCK_TAGS if tag.type == TagType.custom]
+    new_tag_ids = [tag.id for tag in system_tags + custom_tags]
+
+    # Mock returns both system and custom tags
+    mock_tag_dao.find_by_ids.return_value = system_tags + custom_tags
+
+    update_tags(object_type, 1, current_tags, new_tag_ids)
+
+    # Should only create custom tagged objects for custom tags
+    # System tags should be filtered out
+    mock_tag_dao.create_custom_tagged_objects.assert_called_once_with(
+        object_type, 1, [tag.name for tag in custom_tags]
+    )
