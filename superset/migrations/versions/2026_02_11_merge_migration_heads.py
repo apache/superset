@@ -14,10 +14,24 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from . import (  # noqa: F401
-    core,
-    dashboard_version,
-    dynamic_plugins,
-    sql_lab,
-    user_attributes,
-)
+"""Merge migration heads (tasks table + dashboard version history).
+
+Revision ID: f6a7b8c9d0e1
+Revises: 4b2a8c9d3e1f, e5f6a7b8c9d0
+Create Date: 2026-02-11
+
+"""
+
+# revision identifiers, used by Alembic.
+revision = "f6a7b8c9d0e1"
+down_revision = ("4b2a8c9d3e1f", "e5f6a7b8c9d0")
+branch_labels = None
+depends_on = None
+
+
+def upgrade():
+    pass
+
+
+def downgrade():
+    pass

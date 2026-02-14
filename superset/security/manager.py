@@ -1190,6 +1190,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self.add_permission_view_menu("can_view_query", "Dashboard")
         self.add_permission_view_menu("can_view_chart_as_table", "Dashboard")
         self.add_permission_view_menu("can_drill", "Dashboard")
+        self.add_permission_view_menu("can_get_versions", "Dashboard")
+        self.add_permission_view_menu("can_restore_version", "Dashboard")
+        self.add_permission_view_menu("can_update_version", "Dashboard")
         self.add_permission_view_menu("can_tag", "Chart")
         self.add_permission_view_menu("can_tag", "Dashboard")
 

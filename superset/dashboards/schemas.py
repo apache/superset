@@ -445,6 +445,13 @@ class DashboardPutSchema(BaseDashboardSchema):
         fields.Integer(metadata={"description": tags_description}, allow_none=True)
     )
     uuid = fields.UUID(allow_none=True)
+    version_description = fields.String(
+        allow_none=True,
+        validate=Length(0, 500),
+        metadata={
+            "description": "Optional note describing this save for version history"
+        },
+    )
 
 
 class DashboardNativeFiltersConfigUpdateSchema(BaseDashboardSchema):
@@ -519,6 +526,40 @@ class ImportV1DashboardSchema(Schema):
     tags = fields.List(fields.String(), allow_none=True)
     theme_uuid = fields.UUID(allow_none=True)
     theme_id = fields.Integer(allow_none=True)
+
+
+class DashboardVersionUpdateSchema(Schema):
+    """Schema for updating a dashboard version (description only)."""
+
+    description = fields.String(
+        allow_none=True,
+        validate=Length(0, 500),
+        metadata={
+            "description": "Optional description of what changed in this version"
+        },
+    )
+
+
+class DashboardVersionListItemSchema(Schema):
+    """Schema for a dashboard version list item (metadata only)."""
+
+    id = fields.Integer(metadata={"description": "Version id"})
+    version_number = fields.Integer(
+        metadata={"description": "Monotonic version number"}
+    )
+    description = fields.String(
+        allow_none=True,
+        metadata={
+            "description": "Optional note describing what changed in this version"
+        },
+    )
+    created_at = fields.DateTime(
+        metadata={"description": "When the version was created"}
+    )
+    created_by = fields.String(
+        allow_none=True,
+        metadata={"description": "Username of the user who created this version"},
+    )
 
 
 class EmbeddedDashboardConfigSchema(Schema):

@@ -15,8 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import importlib
+
 import pytest
 import sqlglot
+from sqlglot import exp
 
 from superset.sql.dialects.pinot import Pinot
 
@@ -879,3 +882,27 @@ def test_pinot_function_names_preserved(function_name: str, sample_args: str) ->
     assert function_name.upper() in generated.upper(), (
         f"Function {function_name} not preserved in output: {generated}"
     )
+
+
+def test_pinot_without_year_of_week() -> None:
+    """
+    Cover branch when sqlglot has no YearOfWeek (version-dependent).
+
+    When getattr(exp, "YearOfWeek", None) returns None, the YearOfWeek
+    transform is skipped. This test removes YearOfWeek temporarily to
+    exercise that path.
+    """
+    year_of_week = getattr(exp, "YearOfWeek", None)
+    if year_of_week is None:
+        pytest.skip("YearOfWeek not in this sqlglot version - branch already covered")
+
+    import superset.sql.dialects.pinot as pinot_module
+
+    delattr(exp, "YearOfWeek")
+    try:
+        importlib.reload(pinot_module)
+        # Verify Pinot still works when YearOfWeek is absent
+        pinot_module.Pinot().generator()
+    finally:
+        exp.YearOfWeek = year_of_week
+        importlib.reload(pinot_module)

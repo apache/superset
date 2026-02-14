@@ -32,6 +32,7 @@ import {
   canUserEditDashboard,
   canUserSaveAsDashboard,
 } from 'src/dashboard/util/permissionUtils';
+import type { Chart } from 'src/types/Chart';
 import type { Dashboard } from 'src/types/Dashboard';
 import {
   getCrossFiltersConfiguration,
@@ -71,16 +72,23 @@ import {
 export const HYDRATE_DASHBOARD = 'HYDRATE_DASHBOARD';
 type AppDispatch = ThunkDispatch<RootState, undefined, AnyAction>;
 
+/**
+ * Chart/slice data for hydration. Accepts both the legacy shapes
+ * (slice_id, slice_url, description_markeddown, modified) and the API
+ * Chart shape (id, url, description, changed_on).
+ */
 interface HydrateChartData {
-  slice_id: number;
-  slice_url: string;
+  slice_id?: number;
+  slice_url?: string;
   slice_name: string;
   form_data: JsonObject;
-  description: string;
-  description_markeddown: string;
-  owners: { id: number }[];
-  modified: string;
+  description?: string | null;
+  description_markeddown?: string;
+  owners?: { id: number }[];
+  modified?: string;
   changed_on: string;
+  url?: string;
+  id?: number;
 }
 
 interface HydrateDashboardData extends Dashboard {
@@ -92,7 +100,7 @@ interface HydrateDashboardData extends Dashboard {
 interface HydrateDashboardParams {
   history: History;
   dashboard: HydrateDashboardData;
-  charts: HydrateChartData[];
+  charts: (HydrateChartData | Chart)[];
   dataMask: DataMaskStateWithId;
   activeTabs: string[] | null;
   chartStates: DashboardChartStates | null;
@@ -116,7 +124,11 @@ export const hydrateDashboard =
 
     charts.forEach((chartItem: HydrateChartData) => {
       // eslint-disable-next-line no-param-reassign
-      chartItem.slice_id = chartItem.form_data.slice_id as number;
+      chartItem.slice_id =
+        (chartItem.form_data.slice_id as number | undefined) ??
+        chartItem.id ??
+        chartItem.slice_id ??
+        0;
     });
 
     // new dash: position_json could be {} or null
@@ -152,7 +164,7 @@ export const hydrateDashboard =
     const slicesFromExploreCount = new Map<number, number>();
 
     charts.forEach((slice: HydrateChartData) => {
-      const key = slice.slice_id;
+      const key = slice.slice_id ?? 0;
       const formData = {
         ...slice.form_data,
         url_params: {
@@ -170,15 +182,16 @@ export const hydrateDashboard =
 
       slices[key] = {
         slice_id: key,
-        slice_url: slice.slice_url,
+        slice_url: slice.slice_url ?? slice.url ?? '',
         slice_name: slice.slice_name,
         form_data: slice.form_data,
         viz_type: slice.form_data.viz_type,
         datasource: slice.form_data.datasource,
-        description: slice.description,
-        description_markeddown: slice.description_markeddown,
-        owners: slice.owners,
-        modified: slice.modified,
+        description: slice.description ?? '',
+        description_markeddown:
+          slice.description_markeddown ?? slice.description ?? '',
+        owners: slice.owners ?? [],
+        modified: slice.modified ?? slice.changed_on ?? '',
         changed_on: new Date(slice.changed_on).getTime(),
       };
 
@@ -203,14 +216,14 @@ export const hydrateDashboard =
         const chartHolder = newComponentFactory(
           CHART_TYPE,
           {
-            chartId: slice.slice_id,
+            chartId: key,
           },
           (newSlicesContainer!.parents || []).slice(),
         );
 
-        const count = (slicesFromExploreCount.get(slice.slice_id) ?? 0) + 1;
-        chartHolder.id = `${CHART_TYPE}-explore-${slice.slice_id}-${count}`;
-        slicesFromExploreCount.set(slice.slice_id, count);
+        const count = (slicesFromExploreCount.get(key) ?? 0) + 1;
+        chartHolder.id = `${CHART_TYPE}-explore-${key}-${count}`;
+        slicesFromExploreCount.set(key, count);
 
         layout[chartHolder.id] = chartHolder;
         newSlicesContainer!.children.push(chartHolder.id);
