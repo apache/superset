@@ -16,11 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { forwardRef, ReactNode } from 'react';
+import { forwardRef, useCallback, useState } from 'react';
 
 import { t } from '@apache-superset/core';
 import { styled } from '@apache-superset/core/ui';
 import { Icons } from '@superset-ui/core/components/Icons';
+import type { DragEndEvent } from '@dnd-kit/core';
+import {
+  DndContext,
+  PointerSensor,
+  useSensor,
+  closestCenter,
+} from '@dnd-kit/core';
+import {
+  verticalListSortingStrategy,
+  SortableContext,
+} from '@dnd-kit/sortable';
 import { FilterRemoval } from './types';
 import DraggableFilter from './DraggableFilter';
 
@@ -68,9 +79,14 @@ const StyledWarning = styled(Icons.ExclamationCircleOutlined)`
   }
 `;
 
-const Container = styled.div`
+const Container = styled.div<{ isDragging: boolean }>`
   height: 100%;
   overflow-y: auto;
+  ${({ isDragging }) =>
+    isDragging &&
+    `
+    overflow: hidden;
+  `}
 `;
 
 interface Props {
@@ -102,6 +118,39 @@ const FilterTitleContainer = forwardRef<HTMLDivElement, Props>(
     },
     ref,
   ) => {
+    const [isDragging, setIsDragging] = useState(false);
+
+    const sensor = useSensor(PointerSensor, {
+      activationConstraint: { distance: 10 },
+    });
+
+    const handleDragStart = useCallback(() => {
+      setIsDragging(true);
+    }, []);
+
+    const handleDragEnd = useCallback(
+      (event: DragEndEvent) => {
+        setIsDragging(false);
+        const { active, over } = event;
+
+        if (!over || active.id === over.id) {
+          return;
+        }
+
+        const activeIndex = filters.findIndex(filter => filter === active.id);
+        const overIndex = filters.findIndex(filter => filter === over.id);
+
+        if (activeIndex !== -1 && overIndex !== -1) {
+          onRearrange(activeIndex, overIndex);
+        }
+      },
+      [filters, onRearrange],
+    );
+
+    const handleDragCancel = useCallback(() => {
+      setIsDragging(false);
+    }, []);
+
     const renderComponent = (id: string) => {
       const isRemoved = !!removedFilters[id];
       const isErrored = erroredFilters.includes(id);
@@ -169,29 +218,40 @@ const FilterTitleContainer = forwardRef<HTMLDivElement, Props>(
       );
     };
 
-    const renderFilterGroups = () => {
-      const items: ReactNode[] = [];
-      filters.forEach((item, index) => {
-        items.push(
-          <DraggableFilter
-            key={index}
-            onRearrange={onRearrange}
-            index={index}
-            filterIds={[item]}
-          >
-            {renderComponent(item)}
-          </DraggableFilter>,
-        );
-      });
-      return items;
-    };
-
     return (
-      <Container data-test="filter-title-container" ref={ref}>
-        {renderFilterGroups()}
+      <Container
+        data-test="filter-title-container"
+        ref={ref}
+        isDragging={isDragging}
+      >
+        <DndContext
+          sensors={[sensor]}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+          onDragCancel={handleDragCancel}
+        >
+          <SortableContext
+            items={filters}
+            strategy={verticalListSortingStrategy}
+          >
+            {filters.map((item, index) => (
+              <DraggableFilter
+                key={item}
+                id={item}
+                index={index}
+                filterIds={[item]}
+              >
+                {renderComponent(item)}
+              </DraggableFilter>
+            ))}
+          </SortableContext>
+        </DndContext>
       </Container>
     );
   },
 );
+
+FilterTitleContainer.displayName = 'FilterTitleContainer';
 
 export default FilterTitleContainer;
