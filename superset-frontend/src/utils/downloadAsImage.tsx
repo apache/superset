@@ -25,7 +25,8 @@ import { SupersetTheme } from '@apache-superset/core/ui';
 import { addWarningToast } from 'src/components/MessageToasts/actions';
 
 const IMAGE_DOWNLOAD_QUALITY = 0.95;
-const TRANSPARENT_RGBA = 'transparent';
+const PNG_SCALE = 2; // Higher quality for PNG
+export type BackgroundType = 'transparent' | 'solid';
 
 /**
  * generate a consistent file stem from a description and date
@@ -117,7 +118,7 @@ const copyAllComputedStyles = (
 
     if (origNode.textContent?.trim()) {
       const { color } = computed;
-      if (!color || color === 'transparent' || color === TRANSPARENT_RGBA) {
+      if (!color || color === 'transparent') {
         (cloneNode as HTMLElement).style.color =
           theme?.colorTextBase || 'black';
       }
@@ -262,12 +263,22 @@ const createEnhancedClone = (
   return { clone, cleanup };
 };
 
+export type ImageFormat = 'jpeg' | 'png';
+
+export interface DownloadImageOptions {
+  format?: ImageFormat;
+  backgroundType?: BackgroundType;
+}
+
 export default function downloadAsImageOptimized(
   selector: string,
   description: string,
   isExactSelector = false,
   theme?: SupersetTheme,
+  options: DownloadImageOptions = {},
 ) {
+  const { format = 'jpeg', backgroundType = 'solid' } = options;
+
   return async (event: SyntheticEvent) => {
     const elementToPrint = isExactSelector
       ? document.querySelector(selector)
@@ -295,20 +306,40 @@ export default function downloadAsImageOptimized(
             !node.className.includes('header-controls')
           : true;
 
-      const dataUrl = await domToImage.toJpeg(clone, {
-        bgcolor: theme?.colorBgContainer,
+      const isPng = format === 'png';
+      const scale = isPng ? PNG_SCALE : 1;
+      const bgcolor =
+        isPng && backgroundType === 'transparent'
+          ? 'transparent'
+          : theme?.colorBgContainer;
+
+      const imageOptions = {
+        bgcolor,
         filter,
         quality: IMAGE_DOWNLOAD_QUALITY,
-        height: clone.scrollHeight,
-        width: clone.scrollWidth,
+        height: clone.scrollHeight * scale,
+        width: clone.scrollWidth * scale,
         cacheBust: true,
-      });
+        ...(isPng && {
+          style: {
+            transform: `scale(${PNG_SCALE})`,
+            transformOrigin: 'top left',
+            width: `${clone.scrollWidth}px`,
+            height: `${clone.scrollHeight}px`,
+          },
+        }),
+      };
+
+      const dataUrl = isPng
+        ? await domToImage.toPng(clone, imageOptions)
+        : await domToImage.toJpeg(clone, imageOptions);
 
       cleanup();
       cleanup = null;
 
+      const extension = isPng ? 'png' : 'jpg';
       const link = document.createElement('a');
-      link.download = `${generateFileStem(description)}.jpg`;
+      link.download = `${generateFileStem(description)}.${extension}`;
       link.href = dataUrl;
       link.click();
     } catch (error) {

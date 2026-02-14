@@ -21,9 +21,17 @@ import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import { FeatureFlag, VizType } from '@superset-ui/core';
 import mockState from 'spec/fixtures/mockState';
 import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
+import downloadAsImage from 'src/utils/downloadAsImage';
+import downloadAsPdf from 'src/utils/downloadAsPdf';
 import SliceHeaderControls, { SliceHeaderControlsProps } from '.';
 
 jest.mock('src/utils/cachedSupersetGet');
+jest.mock('src/utils/downloadAsImage', () =>
+  jest.fn(() => jest.fn().mockResolvedValue(undefined)),
+);
+jest.mock('src/utils/downloadAsPdf', () =>
+  jest.fn(() => jest.fn().mockResolvedValue(undefined)),
+);
 
 const mockCachedSupersetGet = cachedSupersetGet as jest.MockedFunction<
   typeof cachedSupersetGet
@@ -122,8 +130,17 @@ const openMenu = () => {
   userEvent.click(screen.getByRole('button', { name: 'More Options' }));
 };
 
+const mockDownloadAsImage = downloadAsImage as jest.MockedFunction<
+  typeof downloadAsImage
+>;
+const mockDownloadAsPdf = downloadAsPdf as jest.MockedFunction<
+  typeof downloadAsPdf
+>;
+
 beforeEach(() => {
   mockCachedSupersetGet.mockClear();
+  mockDownloadAsImage.mockClear();
+  mockDownloadAsPdf.mockClear();
   mockCachedSupersetGet.mockResolvedValue({
     response: {} as Response,
     json: {
@@ -610,4 +627,82 @@ test('Should pass formData to Share menu for embed code feature', () => {
   expect(container).toBeInTheDocument();
   openMenu();
   expect(screen.getByText('Share')).toBeInTheDocument();
+});
+
+test('Download submenu shows standardized export screenshot and PDF labels', async () => {
+  const props = createProps();
+  renderWrapper(props);
+  openMenu();
+  userEvent.hover(screen.getByText('Download'));
+  expect(await screen.findByText('Export screenshot (jpeg)')).toBeInTheDocument();
+  expect(screen.getByText('Export screenshot (PNG)')).toBeInTheDocument();
+  expect(screen.getByText('Export as PDF')).toBeInTheDocument();
+});
+
+test('Clicking "Export screenshot (jpeg)" calls downloadAsImage and logEvent', async () => {
+  const props = createProps();
+  renderWrapper(props);
+  openMenu();
+  userEvent.hover(screen.getByText('Download'));
+  userEvent.click(await screen.findByText('Export screenshot (jpeg)'));
+  expect(downloadAsImage).toHaveBeenCalledWith(
+    `.dashboard-chart-id-${SLICE_ID}`,
+    props.slice.slice_name,
+    true,
+    expect.anything(),
+  );
+  expect(props.logEvent).toHaveBeenCalledWith(
+    expect.anything(),
+    expect.objectContaining({ chartId: SLICE_ID }),
+  );
+});
+
+test('Export screenshot (PNG) submenu shows Transparent and Solid options', async () => {
+  const props = createProps();
+  renderWrapper(props);
+  openMenu();
+  userEvent.hover(screen.getByText('Download'));
+  userEvent.hover(await screen.findByText('Export screenshot (PNG)'));
+  expect(await screen.findByText('Transparent background')).toBeInTheDocument();
+  expect(screen.getByText('Solid background')).toBeInTheDocument();
+});
+
+test('Clicking "Transparent background" calls downloadAsImage with transparent option and logEvent', async () => {
+  const props = createProps();
+  renderWrapper(props);
+  openMenu();
+  userEvent.hover(screen.getByText('Download'));
+  userEvent.hover(await screen.findByText('Export screenshot (PNG)'));
+  userEvent.click(await screen.findByText('Transparent background'));
+  expect(downloadAsImage).toHaveBeenCalledWith(
+    `.dashboard-chart-id-${SLICE_ID}`,
+    props.slice.slice_name,
+    true,
+    expect.anything(),
+    { format: 'png', backgroundType: 'transparent' },
+  );
+  expect(props.logEvent).toHaveBeenCalledWith(
+    expect.anything(),
+    expect.objectContaining({
+      chartId: SLICE_ID,
+      backgroundType: 'transparent',
+    }),
+  );
+});
+
+test('Clicking "Export as PDF" calls downloadAsPdf and logEvent', async () => {
+  const props = createProps();
+  renderWrapper(props);
+  openMenu();
+  userEvent.hover(screen.getByText('Download'));
+  userEvent.click(await screen.findByText('Export as PDF'));
+  expect(downloadAsPdf).toHaveBeenCalledWith(
+    `.dashboard-chart-id-${SLICE_ID}`,
+    props.slice.slice_name,
+    true,
+  );
+  expect(props.logEvent).toHaveBeenCalledWith(
+    expect.anything(),
+    expect.objectContaining({ chartId: SLICE_ID }),
+  );
 });
