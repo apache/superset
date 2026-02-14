@@ -17,6 +17,7 @@
 import logging
 from collections.abc import Sequence
 from io import IOBase
+import io
 from typing import List, Union
 
 import backoff
@@ -98,9 +99,10 @@ class SlackV2Notification(SlackMixin, BaseNotification):  # pylint: disable=too-
             for channel in channels:
                 if len(files) > 0:
                     for file in files:
+                        file_obj = io.BytesIO(file)
                         client.files_upload_v2(
                             channel=channel,
-                            file=file,
+                            file=file_obj,
                             initial_comment=body,
                             title=title,
                             filename=file_name,
