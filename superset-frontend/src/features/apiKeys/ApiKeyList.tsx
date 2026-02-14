@@ -206,7 +206,7 @@ export function ApiKeyList() {
             `}
           >
             {t(
-              'API keys allow programmatic access to Superset without requiring OAuth/JWT authentication.',
+              'API keys allow scoped programmatic access to Superset.',
             )}
           </p>
           <p
