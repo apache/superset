@@ -33,11 +33,12 @@ import {
   Input,
   Loading,
   Divider,
+  Flex,
   TreeSelect,
 } from '@superset-ui/core/components';
 import { t, logging } from '@apache-superset/core';
 import { DatasourceType, isDefined, SupersetClient } from '@superset-ui/core';
-import { css, styled, Alert } from '@apache-superset/core/ui';
+import { css, styled, useTheme, Alert } from '@apache-superset/core/ui';
 import { Radio } from '@superset-ui/core/components/Radio';
 import { GRID_COLUMN_COUNT } from 'src/dashboard/util/constants';
 import { canUserEditDashboard } from 'src/dashboard/util/permissionUtils';
@@ -590,6 +591,7 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
 
   renderSaveChartModal = () => {
     const info = this.info();
+    const theme = useTheme();
     return (
       <Form data-test="save-modal-body" layout="vertical">
         <FormItem data-test="radio-group">
@@ -623,11 +625,21 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
           />
         </FormItem>
         {this.props.datasource?.type === 'query' && (
-          <FormItem label={t('Dataset Name')} required>
-            <InfoTooltip
-              tooltip={t('A reusable dataset will be saved with your chart.')}
-              placement="right"
-            />
+          <FormItem
+            label={
+              <Flex align="center" gap={theme.sizeUnit}>
+                {t('Dataset Name')}
+                <InfoTooltip
+                  data-test="info-tooltip-icon"
+                  tooltip={t(
+                    'A reusable dataset will be saved with your chart.',
+                  )}
+                  placement="right"
+                />
+              </Flex>
+            }
+            required
+          >
             <Input
               name="dataset_name"
               type="text"
