@@ -92,7 +92,7 @@ class Tag(CoreTag, AuditMixinNullable):
 
     __tablename__ = "tag"
     id = Column(Integer, primary_key=True)
-    name = Column(String(250), unique=True)
+    name = Column(String(250))
     type = Column(Enum(TagType))
     description = Column(Text)
 
@@ -103,6 +103,8 @@ class Tag(CoreTag, AuditMixinNullable):
     users_favorited = relationship(
         security_manager.user_model, secondary=user_favorite_tag_table
     )
+
+    __table_args__ = (UniqueConstraint("name", "type", name="uix_tag_name_type"),)
 
 
 class TaggedObject(Model, AuditMixinNullable):
