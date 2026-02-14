@@ -21,6 +21,7 @@ import {
   ReactNode,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -40,6 +41,8 @@ import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip'
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
 import RowCountLabel from 'src/components/RowCountLabel';
 import { Link } from 'react-router-dom';
+import { useAppliedFilterIndicators } from 'src/dashboard/hooks/useAppliedFilterIndicators';
+import { getFilterValueForDisplay } from 'src/dashboard/components/nativeFilters/utils';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -211,20 +214,81 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
     const showRowLimitWarning =
       shouldShowRowLimitWarning && sqlRowCount >= rowLimit && rowLimit > 0;
 
+    // Get applied filter indicators for this chart
+    const { appliedIndicators, appliedCrossFilterIndicators, filterCount } =
+      useAppliedFilterIndicators(slice.slice_id);
+
+    // Build the filter list for the tooltip
+    const filterListContent = useMemo(() => {
+      const allFilters = [
+        ...appliedCrossFilterIndicators,
+        ...appliedIndicators,
+      ];
+      if (allFilters.length === 0) return null;
+
+      return allFilters.map(indicator => {
+        const filterValue = getFilterValueForDisplay(indicator.value);
+        const columnLabel = indicator.customColumnLabel || indicator.column;
+        return `• ${indicator.name}${columnLabel ? ` (${columnLabel})` : ''}${filterValue ? `: ${filterValue}` : ''}`;
+      });
+    }, [appliedIndicators, appliedCrossFilterIndicators]);
+
     useEffect(() => {
       const headerElement = headerRef.current;
-      if (canExplore) {
-        setHeaderTooltip(getSliceHeaderTooltip(sliceName));
-      } else if (
+      const isTruncated =
         headerElement &&
         (headerElement.scrollWidth > headerElement.offsetWidth ||
-          headerElement.scrollHeight > headerElement.offsetHeight)
-      ) {
-        setHeaderTooltip(sliceName ?? null);
-      } else {
-        setHeaderTooltip(null);
+          headerElement.scrollHeight > headerElement.offsetHeight);
+
+      // Build the tooltip content
+      let tooltipContent: ReactNode = null;
+
+      if (canExplore) {
+        tooltipContent = getSliceHeaderTooltip(sliceName);
+      } else if (isTruncated) {
+        tooltipContent = sliceName ?? null;
       }
-    }, [sliceName, width, height, canExplore]);
+
+      // Add filter information to tooltip when title is truncated and filters are applied
+      if (isTruncated && filterCount > 0 && filterListContent) {
+        const filterInfo = (
+          <div>
+            {tooltipContent && <div>{tooltipContent}</div>}
+            <div
+              css={css`
+                margin-top: ${tooltipContent ? '8px' : '0'};
+                border-top: ${tooltipContent
+                  ? '1px solid rgba(255,255,255,0.2)'
+                  : 'none'};
+                padding-top: ${tooltipContent ? '8px' : '0'};
+              `}
+            >
+              <div
+                css={css`
+                  font-weight: 600;
+                  margin-bottom: 4px;
+                `}
+              >
+                {t('%s filter(s) applied to this chart', filterCount)}
+              </div>
+              <div
+                css={css`
+                  font-size: 12px;
+                  opacity: 0.9;
+                `}
+              >
+                {filterListContent.map((filter, index) => (
+                  <div key={index}>{filter}</div>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+        setHeaderTooltip(filterInfo);
+      } else {
+        setHeaderTooltip(tooltipContent);
+      }
+    }, [sliceName, width, height, canExplore, filterCount, filterListContent]);
 
     const exploreUrl = `/explore/?dashboard_page_id=${dashboardPageId}&slice_id=${slice.slice_id}`;
 
