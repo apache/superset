@@ -19,13 +19,29 @@
 Authentication and authorization hooks for MCP tools.
 
 This module provides:
-- User authentication from JWT or configured dev user
+- User authentication from JWT, API key, or configured dev user
 - RBAC permission checking aligned with Superset's REST API permissions
 - Dataset access validation
 - Session lifecycle management
 
 The RBAC enforcement mirrors Flask-AppBuilder's @protect() decorator,
 ensuring MCP tools respect the same permission model as the REST API.
+
+Supports multiple authentication methods:
+1. API Key authentication via FAB SecurityManager (configurable prefix)
+2. JWT token authentication (via FastMCP BearerAuthProvider)
+3. Development mode (MCP_DEV_USERNAME configuration)
+
+API Key Authentication:
+- Users create API keys via FAB's /api/v1/security/api_keys/ endpoints
+- Keys use configurable prefixes (FAB_API_KEY_PREFIXES, default: ["sst_"])
+- Keys are validated by FAB's SecurityManager.validate_api_key()
+- Keys inherit the user's roles and permissions via FAB's RBAC
+
+Configuration:
+- FAB_API_KEY_ENABLED: Enable API key auth (default: False)
+- FAB_API_KEY_PREFIXES: Key prefixes (default: ["sst_"])
+- MCP_DEV_USERNAME: Fallback username for development
 """
 
 import logging
@@ -177,8 +193,9 @@ def get_user_from_request() -> User:
     Get the current user for the MCP tool request.
 
     Priority order:
-    1. g.user if already set (by Preset workspace middleware)
-    2. MCP_DEV_USERNAME from configuration (for development/testing)
+    1. g.user if already set (by Preset workspace middleware or FastMCP auth)
+    2. API key from Authorization header (via FAB SecurityManager)
+    3. MCP_DEV_USERNAME from configuration (for development/testing)
 
     Returns:
         User object with roles and groups eagerly loaded
@@ -191,6 +208,20 @@ def get_user_from_request() -> User:
     # First check if user is already set by Preset workspace middleware
     if hasattr(g, "user") and g.user:
         return g.user
+
+    # Try API key authentication via FAB SecurityManager
+    api_key_enabled = current_app.config.get("FAB_API_KEY_ENABLED", False)
+    if api_key_enabled:
+        sm = current_app.appbuilder.sm
+        api_key_string = sm._extract_api_key_from_request()
+        if api_key_string is not None:
+            user = sm.validate_api_key(api_key_string)
+            if user:
+                return user
+            raise ValueError(
+                "Invalid or expired API key. "
+                "Create a new key at /api/v1/security/api_keys/."
+            )
 
     # Fall back to configured username for development/single-user deployments
     username = current_app.config.get("MCP_DEV_USERNAME")
@@ -212,8 +243,8 @@ def get_user_from_request() -> User:
         raise ValueError(
             "No authenticated user found. Tried:\n"
             + "\n".join(f"  - {d}" for d in details)
-            + "\n\nEither pass a valid JWT bearer token or configure "
-            "MCP_DEV_USERNAME for development."
+            + "\n\nEither pass a valid API key (Bearer sst_...), "
+            "JWT token, or configure MCP_DEV_USERNAME for development."
         )
 
     # Use helper function to load user with all required relationships
