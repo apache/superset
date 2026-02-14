@@ -27,6 +27,7 @@ from authlib.jose.errors import BadSignatureError, DecodeError
 from superset.mcp_service.jwt_verifier import (
     _json_auth_error_handler,
     _jwt_failure_reason,
+    _sanitize_header_value,
     DetailedBearerAuthBackend,
     DetailedJWTVerifier,
 )
@@ -557,3 +558,48 @@ async def test_issuer_mismatch_list_issuer():
     reason = _jwt_failure_reason.get()
     assert "Issuer mismatch" in reason
     assert "wrong-issuer" in reason
+
+
+def test_sanitize_header_value_removes_crlf():
+    """_sanitize_header_value should strip CR/LF to prevent header injection."""
+    malicious = 'evil\r\nX-Injected: value"quoted'
+    result = _sanitize_header_value(malicious)
+    assert "\r" not in result
+    assert "\n" not in result
+    assert '"' not in result
+    assert "evil" in result
+
+
+def test_json_auth_error_handler_sanitizes_header():
+    """Error handler should sanitize reason in WWW-Authenticate header."""
+    from starlette.authentication import AuthenticationError
+
+    mock_conn = MagicMock()
+    exc = AuthenticationError("Issuer mismatch: token has 'evil\r\nInject: bad\"'")
+
+    response = _json_auth_error_handler(mock_conn, exc)
+
+    # Body should have the raw reason
+    body = json.loads(response.body.decode())
+    assert "Issuer mismatch" in body["error_description"]
+
+    # Header should be sanitized
+    www_auth = response.headers.get("www-authenticate", "")
+    assert "\r" not in www_auth
+    assert "\n" not in www_auth
+
+
+def test_decode_token_header_padding_multiple_of_4():
+    """_decode_token_header should handle headers whose length is a multiple of 4."""
+    # eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9 is 36 chars (divisible by 4)
+    # This is the standard HS256/JWT header
+    header = {"alg": "HS256", "typ": "JWT"}
+    header_b64 = (
+        base64.urlsafe_b64encode(json.dumps(header).encode()).rstrip(b"=").decode()
+    )
+    token = f"{header_b64}.payload.signature"
+
+    result = DetailedJWTVerifier._decode_token_header(token)
+
+    assert result["alg"] == "HS256"
+    assert result["typ"] == "JWT"

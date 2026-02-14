@@ -56,19 +56,30 @@ _jwt_failure_reason: ContextVar[str | None] = ContextVar(
 )
 
 
+def _sanitize_header_value(value: str) -> str:
+    """Sanitize a string for safe use in HTTP header values.
+
+    Removes/replaces characters that could enable header injection
+    (CR, LF, quotes) from attacker-controlled JWT claims.
+    """
+    return value.replace("\r", " ").replace("\n", " ").replace('"', "'")
+
+
 def _json_auth_error_handler(
     conn: HTTPConnection, exc: AuthenticationError
 ) -> JSONResponse:
     """Return a JSON 401 response with the specific JWT failure reason."""
+    reason = str(exc)
+    safe_reason = _sanitize_header_value(reason)
     return JSONResponse(
         status_code=401,
         content={
             "error": "invalid_token",
-            "error_description": str(exc),
+            "error_description": reason,
         },
         headers={
             "WWW-Authenticate": f'Bearer error="invalid_token", '
-            f'error_description="{exc}"',
+            f'error_description="{safe_reason}"',
         },
     )
 
@@ -288,7 +299,7 @@ class DetailedJWTVerifier(JWTVerifier):
                 f"Token must have 3 parts (header.payload.signature), got {len(parts)}"
             )
         header_b64 = parts[0]
-        # Add padding
-        header_b64 += "=" * (4 - len(header_b64) % 4)
+        # Add padding only if needed
+        header_b64 += "=" * (-len(header_b64) % 4)
         header_bytes = base64.urlsafe_b64decode(header_b64)
         return json.loads(header_bytes)
