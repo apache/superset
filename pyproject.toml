@@ -82,7 +82,7 @@ dependencies = [
     "parsedatetime",
     "paramiko>=3.4.0",
     "pgsanity",
-    "Pillow>=11.0.0, <12",
+    "Pillow>=11.0.0, <13",
     "polyline>=2.0.0, <3.0",
     "pydantic>=2.8.0",
     "pyparsing>=3.0.6, <4",
