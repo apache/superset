@@ -36,6 +36,10 @@ import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import AnchorLink from 'src/dashboard/components/AnchorLink';
 import { Typography } from '@superset-ui/core/components/Typography';
 import {
+  useIsAutoRefreshing,
+  useIsRefreshInFlight,
+} from 'src/dashboard/contexts/AutoRefreshContext';
+import {
   DragDroppable,
   Droppable,
 } from 'src/dashboard/components/dnd/DragDroppable';
@@ -159,6 +163,8 @@ const Tab = (props: TabProps): ReactElement => {
     (state: RootState) => state.dashboardState.tabActivationTimes?.[props.id],
   );
   const dashboardInfo = useSelector((state: RootState) => state.dashboardInfo);
+  const isAutoRefreshing = useIsAutoRefreshing();
+  const isRefreshInFlight = useIsRefreshInFlight();
 
   // Track which refresh we've already handled to prevent duplicates
   const handledRefreshRef = useRef<string | null>(null);
@@ -179,9 +185,14 @@ const Tab = (props: TabProps): ReactElement => {
 
           const chartIds = getChartIdsFromComponent(props.id, dashboardLayout);
           if (chartIds.length > 0) {
-            // Use lazy load flag to avoid updating global refresh time
+            if (isAutoRefreshing || isRefreshInFlight) {
+              return;
+            }
+            // Use lazy load flags to avoid updating global refresh time and filters
             setTimeout(() => {
-              dispatch(onRefresh(chartIds, true, 0, dashboardInfo.id, true));
+              dispatch(
+                onRefresh(chartIds, true, 0, dashboardInfo.id, false, true),
+              );
             }, CHART_MOUNT_DELAY);
           }
         }
@@ -195,6 +206,8 @@ const Tab = (props: TabProps): ReactElement => {
     tabActivationTime,
     dashboardLayout,
     dashboardInfo.id,
+    isAutoRefreshing,
+    isRefreshInFlight,
     dispatch,
   ]);
 

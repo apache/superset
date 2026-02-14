@@ -110,6 +110,7 @@ export type TimeseriesChartTransformedProps =
     ContextMenuTransformedProps &
     CrossFilterTransformedProps & {
       legendData?: OptionName[];
+      isRefreshing?: boolean;
       xValueFormatter: TimeFormatter | StringConstructor;
       xAxis: {
         label: string;

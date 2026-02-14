@@ -22,7 +22,7 @@ import { RefreshFrequencySelect } from '../../RefreshFrequency/RefreshFrequencyS
 
 interface RefreshSectionProps {
   refreshFrequency: number;
-  onRefreshFrequencyChange: (value: any) => void;
+  onRefreshFrequencyChange: (value: number) => void;
 }
 
 const RefreshSection = ({

@@ -50,6 +50,7 @@ export default function EchartsMixedTimeseries({
   xAxis,
   refs,
   coltypeMapping,
+  isRefreshing,
 }: EchartsMixedTimeseriesChartTransformedProps) {
   const isFirstQuery = useCallback(
     (seriesIndex: number) => seriesIndex < seriesBreakdown,
@@ -215,6 +216,7 @@ export default function EchartsMixedTimeseries({
       eventHandlers={eventHandlers}
       selectedValues={selectedValues}
       vizType={formData.vizType}
+      isRefreshing={isRefreshing}
     />
   );
 }

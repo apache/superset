@@ -87,6 +87,8 @@ export interface ChartProps {
   isInView?: boolean;
   emitCrossFilters?: boolean;
   onChartStateChange?: (chartState: AgGridChartState) => void;
+  /** Whether to suppress the loading spinner (during auto-refresh) */
+  suppressLoadingSpinner?: boolean;
 }
 
 export type Actions = {
@@ -351,6 +353,8 @@ class Chart extends PureComponent<ChartProps, {}> {
     const databaseName = datasource?.database?.name as string | undefined;
 
     const isLoading = chartStatus === 'loading';
+    // Suppress spinner during auto-refresh to avoid visual flicker
+    const showSpinner = isLoading && !this.props.suppressLoadingSpinner;
 
     if (chartStatus === 'failed') {
       return queriesResponse?.map(item =>
@@ -407,7 +411,7 @@ class Chart extends PureComponent<ChartProps, {}> {
           height={height}
           width={width}
         >
-          {isLoading
+          {showSpinner
             ? this.renderSpinner(databaseName)
             : this.renderChartContainer()}
         </Styles>

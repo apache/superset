@@ -56,6 +56,8 @@ export interface EchartsProps {
   forceClear?: boolean;
   refs: Refs;
   vizType?: string;
+  /** Whether the chart is refreshing (disables animations during auto-refresh) */
+  isRefreshing?: boolean;
 }
 
 export interface EchartsHandler {
@@ -128,6 +130,7 @@ export interface BaseTransformedProps<F> {
   echartOptions: EChartsCoreOption;
   formData: F;
   height: number;
+  isRefreshing?: boolean;
   onContextMenu?: (
     clientX: number,
     clientY: number,

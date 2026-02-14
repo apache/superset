@@ -858,8 +858,8 @@ describe('legend sorting', () => {
     const transformed = transformProps(chartProps);
 
     expect((transformed.echartOptions.legend as any).data).toEqual([
-      'San Francisco',
       'Boston',
+      'San Francisco',
       'New York',
       'Milton',
     ]);

@@ -23,12 +23,15 @@ import {
   DashboardInfo as DashboardInfoType,
   Layout,
 } from 'src/dashboard/types';
-import type { ReportObject } from 'src/features/reports/types';
 import { ChartState } from 'src/explore/types';
+import { AlertObject } from 'src/features/alerts/types';
+import { ToastMeta } from 'src/components/MessageToasts/types';
+
+type ToastOptions = Partial<Omit<ToastMeta, 'id' | 'toastType' | 'text'>>;
 
 export interface HeaderDropdownProps {
-  addSuccessToast: (msg: string) => void;
-  addDangerToast: (msg: string) => void;
+  addSuccessToast: (msg: string, options?: ToastOptions) => void;
+  addDangerToast: (msg: string, options?: ToastOptions) => void;
   customCss?: string;
   colorNamespace?: string;
   colorScheme?: string;
@@ -59,13 +62,13 @@ export interface HeaderDropdownProps {
   refreshWarning?: string;
   directPathToChild?: string[];
   showReportModal: () => void;
-  setCurrentReportDeleting: Dispatch<SetStateAction<ReportObject | null>>;
+  setCurrentReportDeleting: Dispatch<SetStateAction<AlertObject | null>>;
 }
 
 export interface HeaderProps {
-  addSuccessToast: () => void;
-  addDangerToast: () => void;
-  addWarningToast: () => void;
+  addSuccessToast: (msg: string, options?: ToastOptions) => void;
+  addDangerToast: (msg: string, options?: ToastOptions) => void;
+  addWarningToast: (msg: string, options?: ToastOptions) => void;
   colorNamespace?: string;
   charts: ChartState | JsonObject;
   colorScheme?: string;
@@ -78,16 +81,16 @@ export interface HeaderProps {
   isStarred: boolean;
   isPublished: boolean;
   onChange: () => void;
-  onSave: () => void;
+  onSave: (...args: unknown[]) => unknown;
   fetchFaveStar: () => void;
   saveFaveStar: () => void;
   savePublished: (dashboardId: number, isPublished: boolean) => void;
-  updateDashboardTitle: () => void;
+  updateDashboardTitle: (nextTitle: string) => void;
   editMode: boolean;
   setEditMode: () => void;
   showBuilderPane: () => void;
   updateCss: () => void;
-  logEvent: () => void;
+  logEvent: (eventName: string, eventData: JsonObject) => void;
   hasUnsavedChanges: boolean;
   maxUndoHistoryExceeded: boolean;
   lastModifiedTime: number;

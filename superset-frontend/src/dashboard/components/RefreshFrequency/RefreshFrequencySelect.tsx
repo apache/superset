@@ -16,13 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState } from 'react';
+import { ChangeEvent, useEffect, useState } from 'react';
 import { t } from '@apache-superset/core';
 import { styled } from '@apache-superset/core/ui';
-import { Radio, Input } from '@superset-ui/core/components';
+import { Input } from '@superset-ui/core/components';
+import { Radio, RadioChangeEvent } from '@superset-ui/core/components/Radio';
 
-// Minimum safe refresh interval to prevent server overload
-export const MINIMUM_REFRESH_INTERVAL = 10;
+// Minimum custom refresh interval in seconds
+export const MINIMUM_REFRESH_INTERVAL = 1;
 
 const StyledRadioGroup = styled(Radio.Group)`
   padding-left: ${({ theme }) => theme.sizeUnit * 2}px;
@@ -33,7 +34,7 @@ const StyledRadioGroup = styled(Radio.Group)`
     margin-bottom: ${({ theme }) => theme.sizeUnit * 0.5}px;
 
     &:last-child {
-      margin-bottom: 0;
+      margin-bottom: ${({ theme }) => theme.sizeUnit}px;
     }
   }
 `;
@@ -64,10 +65,31 @@ export const REFRESH_FREQUENCY_OPTIONS = [
   { value: -1, label: t('Custom') },
 ];
 
+const isPresetValue = (frequency: number) =>
+  REFRESH_FREQUENCY_OPTIONS.some(
+    option => option.value === frequency && option.value !== -1,
+  );
+
+const getCustomValue = (frequency: number) =>
+  !isPresetValue(frequency) && frequency > 0 ? frequency.toString() : '';
+
+const normalizeRefreshLimitSeconds = (
+  refreshLimit?: number,
+): number | undefined => {
+  if (!refreshLimit || refreshLimit <= 0) {
+    return undefined;
+  }
+
+  if (refreshLimit >= 1000 && refreshLimit % 1000 === 0) {
+    return refreshLimit / 1000;
+  }
+
+  return refreshLimit;
+};
+
 interface RefreshFrequencySelectProps {
   value: number;
   onChange: (value: number) => void;
-  ariaLabel?: string;
 }
 
 /**
@@ -77,21 +99,22 @@ interface RefreshFrequencySelectProps {
 export const RefreshFrequencySelect = ({
   value,
   onChange,
-  ariaLabel = t('Refresh frequency'),
 }: RefreshFrequencySelectProps) => {
   // Separate radio selection state from value state
   const [radioSelection, setRadioSelection] = useState(() =>
-    REFRESH_FREQUENCY_OPTIONS.find(opt => opt.value === value) ? value : -1,
+    isPresetValue(value) ? value : -1,
   );
 
-  const [customValue, setCustomValue] = useState(() =>
-    REFRESH_FREQUENCY_OPTIONS.find(opt => opt.value === value)
-      ? ''
-      : value.toString(),
-  );
+  const [customValue, setCustomValue] = useState(() => getCustomValue(value));
 
-  const handleRadioChange = (e: any) => {
-    const selectedValue = parseInt(e.target.value, 10);
+  useEffect(() => {
+    const selection = isPresetValue(value) ? value : -1;
+    setRadioSelection(selection);
+    setCustomValue(selection === -1 ? getCustomValue(value) : '');
+  }, [value]);
+
+  const handleRadioChange = (event: RadioChangeEvent) => {
+    const selectedValue = Number(event.target.value);
     setRadioSelection(selectedValue);
 
     if (selectedValue === -1) {
@@ -106,8 +129,8 @@ export const RefreshFrequencySelect = ({
     }
   };
 
-  const handleCustomInputChange = (e: any) => {
-    const inputValue = e.target.value;
+  const handleCustomInputChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const inputValue = event.target.value;
     setCustomValue(inputValue);
 
     const numValue = parseInt(inputValue, 10);
@@ -151,9 +174,10 @@ export const validateRefreshFrequency = (
   refreshLimit?: number,
 ): string[] => {
   const errors = [];
-  if (refreshLimit && frequency > 0 && frequency < refreshLimit) {
+  const normalizedLimit = normalizeRefreshLimitSeconds(refreshLimit);
+  if (normalizedLimit && frequency > 0 && frequency < normalizedLimit) {
     errors.push(
-      t('Refresh frequency must be at least %s seconds', refreshLimit / 1000),
+      t('Refresh frequency must be at least %s seconds', normalizedLimit),
     );
   }
   return errors;
@@ -167,10 +191,11 @@ export const getRefreshWarningMessage = (
   refreshLimit?: number,
   refreshWarning?: string,
 ): string | null => {
+  const normalizedLimit = normalizeRefreshLimitSeconds(refreshLimit);
   if (
     frequency > 0 &&
-    refreshLimit &&
-    frequency < refreshLimit &&
+    normalizedLimit &&
+    frequency < normalizedLimit &&
     refreshWarning
   ) {
     return refreshWarning;

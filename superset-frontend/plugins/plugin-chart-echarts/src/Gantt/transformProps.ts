@@ -115,6 +115,7 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
     emitCrossFilters,
     datasource,
     legendState,
+    isRefreshing,
   } = chartProps;
 
   const {
@@ -453,5 +454,6 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
     refs,
     setControlValue,
     onLegendStateChanged,
+    isRefreshing,
   };
 }

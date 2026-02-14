@@ -48,6 +48,7 @@ export default function transformProps(
       currencyCodeColumn,
     },
     theme,
+    isRefreshing,
   } = chartProps;
   const {
     metricNameFontSize,
@@ -135,5 +136,6 @@ export default function transformProps(
     metricName: originalLabel,
     showMetricName,
     metricNameFontSize,
+    isRefreshing,
   };
 }

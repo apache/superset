@@ -23,8 +23,15 @@ import { EventHandlers } from '../types';
 export default function EchartsWaterfall(
   props: WaterfallChartTransformedProps,
 ) {
-  const { height, width, echartOptions, refs, onLegendStateChanged, formData } =
-    props;
+  const {
+    height,
+    width,
+    echartOptions,
+    refs,
+    onLegendStateChanged,
+    formData,
+    isRefreshing,
+  } = props;
 
   const eventHandlers: EventHandlers = {
     legendselectchanged: payload => {
@@ -46,6 +53,7 @@ export default function EchartsWaterfall(
       echartOptions={echartOptions}
       eventHandlers={eventHandlers}
       vizType={formData.vizType}
+      isRefreshing={isRefreshing}
     />
   );
 }

@@ -176,8 +176,15 @@ export default function transformProps(
   chartProps: HeatmapChartProps,
 ): HeatmapTransformedProps {
   const refs: Refs = {};
-  const { width, height, formData, queriesData, datasource, theme } =
-    chartProps;
+  const {
+    width,
+    height,
+    formData,
+    queriesData,
+    datasource,
+    theme,
+    isRefreshing,
+  } = chartProps;
   const {
     bottomMargin,
     xAxis,
@@ -440,5 +447,6 @@ export default function transformProps(
     width,
     height,
     formData,
+    isRefreshing,
   };
 }
