@@ -113,3 +113,20 @@ export const metricNameFontSizeWithVisibility: CustomControlItem = {
     resetOnHide: false,
   },
 };
+
+export const alignmentControl: CustomControlItem = {
+  name: 'alignment',
+  config: {
+    type: 'SelectControl',
+    label: t('Alignment'),
+    renderTrigger: true,
+    clearable: false,
+    default: 'center',
+    options: [
+      { label: t('Left'), value: 'left' },
+      { label: t('Center'), value: 'center' },
+      { label: t('Right'), value: 'right' },
+    ],
+    description: t('Text alignment for Big Number and subheader'),
+  },
+};
