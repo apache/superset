@@ -17,81 +17,86 @@
  * under the License.
  */
 import type { FC } from 'react';
-import { css, styled, useTheme } from '@apache-superset/core/ui';
-
-// eslint-disable-next-line no-restricted-imports
+import { css, styled } from '@apache-superset/core/ui';
 import { Tabs as AntdTabs, TabsProps as AntdTabsProps } from 'antd';
 import { Icons } from '@superset-ui/core/components/Icons';
 import type { SerializedStyles } from '@emotion/react';
 
 export interface TabsProps extends AntdTabsProps {
   allowOverflow?: boolean;
+  contentHeight?: string | number;
   fullHeight?: boolean;
   contentStyle?: SerializedStyles;
+  contentPadding?: SerializedStyles;
 }
 
 const StyledTabs = ({
   animated = false,
   allowOverflow = true,
+  contentHeight = '100%',
   fullHeight = false,
   tabBarStyle,
   contentStyle,
+  contentPadding,
   ...props
-}: TabsProps) => {
-  const theme = useTheme();
-  const defaultTabBarStyle = { paddingLeft: theme.sizeUnit * 4 };
-  const mergedStyle = { ...defaultTabBarStyle, ...tabBarStyle };
+}: TabsProps) => (
+  <AntdTabs
+    animated={animated}
+    {...props}
+    tabBarStyle={tabBarStyle}
+    css={theme => css`
+      overflow: ${allowOverflow ? 'visible' : 'hidden'};
+      ${fullHeight && 'height: 100%;'}
 
-  return (
-    <AntdTabs
-      animated={animated}
-      {...props}
-      tabBarStyle={mergedStyle}
-      css={theme => css`
-        overflow: ${allowOverflow ? 'visible' : 'hidden'};
+      .ant-tabs-content-holder {
+        overflow: ${allowOverflow ? 'visible' : 'auto'};
         ${fullHeight && 'height: 100%;'}
+        ${contentHeight &&
+        `height: ${typeof contentHeight === 'number' ? `${contentHeight}px` : contentHeight};`}
+        ${contentPadding}
+      }
+      .ant-tabs-content {
+        ${fullHeight && 'height: 100%;'}
+      }
+      .ant-tabs-tabpane {
+        ${fullHeight && 'height: 100%;'}
+        ${contentStyle}
+      }
+      .ant-tabs-nav {
+        margin: 0;
+      }
+      .ant-tabs-nav-wrap {
+        padding: 0 ${theme.sizeUnit * 4}px;
+      }
+      .ant-tabs-tab {
+        flex: 1 1 auto;
 
-        .ant-tabs-content-holder {
-          overflow: ${allowOverflow ? 'visible' : 'auto'};
-          ${fullHeight && 'height: 100%;'}
-        }
-        .ant-tabs-content {
-          ${fullHeight && 'height: 100%;'}
-        }
-        .ant-tabs-tabpane {
-          ${fullHeight && 'height: 100%;'}
-          ${contentStyle}
-        }
-        .ant-tabs-tab {
-          flex: 1 1 auto;
-
-          .short-link-trigger.btn {
-            padding: 0 ${theme.sizeUnit}px;
-            & > .fa.fa-link {
-              top: 0;
-            }
+        .short-link-trigger.btn {
+          padding: 0 ${theme.sizeUnit}px;
+          & > .fa.fa-link {
+            top: 0;
           }
         }
-        .ant-tabs-tab-btn {
-          display: flex;
-          flex: 1 1 auto;
-          align-items: center;
-          justify-content: center;
-          font-size: ${theme.fontSizeSM}px;
-          text-align: center;
-          user-select: none;
-          .required {
-            margin-left: ${theme.sizeUnit / 2}px;
-            color: ${theme.colorError};
-          }
-          &:focus-visible {
-            box-shadow: none;
-          }
+      }
+      .ant-tabs-tab-btn {
+        display: flex;
+        flex: 1 1 auto;
+        align-items: center;
+        justify-content: center;
+        font-size: ${theme.fontSizeSM}px;
+        text-align: center;
+        user-select: none;
+        .required {
+          margin-left: ${theme.sizeUnit / 2}px;
+          color: ${theme.colorError};
         }
-      `}
-    />
-  );
-};
+        &:focus-visible {
+          box-shadow: none;
+        }
+      }
+    `}
+  />
+);
 
 const StyledTabPane = styled(AntdTabs.TabPane)``;
 
