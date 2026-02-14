@@ -91,7 +91,13 @@ export interface EditorContribution {
 /**
  * Supported editor languages.
  */
-export type EditorLanguage = 'sql' | 'json' | 'yaml' | 'markdown' | 'css';
+export type EditorLanguage =
+  | 'sql'
+  | 'json'
+  | 'yaml'
+  | 'markdown'
+  | 'css'
+  | 'javascript';
 
 /**
  * Valid locations within SQL Lab.

@@ -113,6 +113,8 @@ import {
   getXAxisFormatter,
   getYAxisFormatter,
 } from '../utils/formatters';
+import { safeParseEChartOptions } from '@superset-ui/chart-controls';
+import { mergeCustomEChartOptions } from '../utils/mergeCustomEChartOptions';
 
 export default function transformProps(
   chartProps: EchartsTimeseriesChartProps,
@@ -122,7 +124,7 @@ export default function transformProps(
     height,
     filterState,
     legendState,
-    formData,
+    formData: { echartOptions: _echartOptions, ...formData },
     hooks,
     queriesData,
     datasource,
@@ -840,8 +842,24 @@ export default function transformProps(
   const onFocusedSeries = (seriesName: string | null) => {
     focusedSeries = seriesName;
   };
+
+  let customEchartOptions;
+  try {
+    // Parse custom EChart options safely using AST analysis
+    // This replaces the unsafe `new Function()` approach with a secure parser
+    // that only allows static data structures (no function callbacks)
+    customEchartOptions = safeParseEChartOptions(_echartOptions);
+    mergeCustomEChartOptions(echartOptions, customEchartOptions);
+  } catch (_) {
+    customEchartOptions = undefined;
+  }
+
+  const mergedEchartOptions = customEchartOptions
+    ? mergeCustomEChartOptions(echartOptions, customEchartOptions)
+    : echartOptions;
+
   return {
-    echartOptions,
+    echartOptions: mergedEchartOptions,
     emitCrossFilters,
     formData,
     groupby: groupBy,

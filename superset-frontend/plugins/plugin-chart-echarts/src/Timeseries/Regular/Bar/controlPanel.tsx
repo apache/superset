@@ -372,6 +372,7 @@ const config: ControlPanelConfig = {
         ...richTooltipSection,
         [<ControlSubSectionHeader>{t('Y Axis')}</ControlSubSectionHeader>],
         ...createAxisControl('y'),
+        ['echart_options'],
       ],
     },
   ],

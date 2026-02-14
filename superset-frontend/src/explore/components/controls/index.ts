@@ -59,6 +59,7 @@ import NumberControl from './NumberControl';
 import TimeRangeControl from './TimeRangeControl';
 import ColorBreakpointsControl from './ColorBreakpointsControl';
 import MatrixifyDimensionControl from './MatrixifyDimensionControl';
+import JSEditorControl from './JSEditorControl';
 
 const extensionsRegistry = getExtensionsRegistry();
 const DateFilterControlExtension = extensionsRegistry.get(
@@ -85,6 +86,7 @@ const controlMap = {
   FixedOrMetricControl,
   ColorBreakpointsControl,
   HiddenControl,
+  JSEditorControl,
   LayerConfigsControl,
   MapViewControl,
   SelectAsyncControl,
