@@ -1972,6 +1972,28 @@ EMAIL_REPORTS_SUBJECT_PREFIX = "[Report] "
 # The text for call-to-action link in Alerts & Reports emails
 EMAIL_REPORTS_CTA = "Explore in Superset"
 
+# ---------------------------------------------------
+# PDF Export Configuration for Reports
+# ---------------------------------------------------
+# Enable or disable headers and footers in PDF exports
+PDF_EXPORT_HEADERS_FOOTERS_ENABLED = True
+
+# Template for the header of the PDF.
+# Available placeholders: {report_name}, {page_number}, {total_pages}
+# Example: "Report: {report_name} - Page {page_number} of {total_pages}"
+PDF_EXPORT_HEADER_TEMPLATE = "Report: {report_name} - Page {page_number} of {total_pages}"
+
+# Template for the footer of the PDF.
+# Available placeholders: {generation_date}, {report_name}
+# Example: "Generated: {generation_date}"
+PDF_EXPORT_FOOTER_TEMPLATE = "Generated: {generation_date}"
+
+# Default page size for PDF exports (e.g., "A4", "Letter", "A3")
+PDF_EXPORT_PAGE_SIZE = "A4"
+
+# Default page orientation for PDF exports (e.g., "portrait", "landscape")
+PDF_EXPORT_ORIENTATION = "portrait"
+
 # Slack API token for the superset reports, either string or callable
 SLACK_API_TOKEN: Callable[[], str] | str | None = None
 SLACK_PROXY = None
