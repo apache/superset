@@ -20,7 +20,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { SupersetClient } from '@superset-ui/core';
 import { t } from '@apache-superset/core';
 import { css, useTheme } from '@apache-superset/core/ui';
-import { Button, Table, Modal, Tooltip } from '@superset-ui/core/components';
+import { Button, Table, Modal, Tag, Tooltip } from '@superset-ui/core/components';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { ApiKeyCreateModal } from './ApiKeyCreateModal';
 
@@ -98,36 +98,12 @@ export function ApiKeyList() {
 
   const getStatusBadge = (key: ApiKey) => {
     if (key.revoked_on) {
-      return (
-        <span
-          css={css`
-            color: ${theme.colorError};
-          `}
-        >
-          {t('Revoked')}
-        </span>
-      );
+      return <Tag color="error">{t('Revoked')}</Tag>;
     }
     if (key.expires_on && new Date(key.expires_on) < new Date()) {
-      return (
-        <span
-          css={css`
-            color: ${theme.colorWarning};
-          `}
-        >
-          {t('Expired')}
-        </span>
-      );
+      return <Tag color="warning">{t('Expired')}</Tag>;
     }
-    return (
-      <span
-        css={css`
-          color: ${theme.colorSuccess};
-        `}
-      >
-        {t('Active')}
-      </span>
-    );
+    return <Tag color="success">{t('Active')}</Tag>;
   };
 
   const columns = [

@@ -61,21 +61,26 @@ export function ApiKeyCreateModal({
     }
   };
 
-  const handleCopyKey = () => {
-    if (createdKey) {
-      navigator.clipboard.writeText(createdKey);
+  const handleCopyKey = async () => {
+    if (!createdKey) {
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(createdKey);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    } catch {
+      addDangerToast(t('Failed to copy API key to clipboard'));
     }
   };
 
   const handleClose = () => {
-    setCreatedKey(null);
-    setCopied(false);
-    onHide();
     if (createdKey) {
       onSuccess();
     }
+    setCreatedKey(null);
+    setCopied(false);
+    onHide();
   };
 
   if (createdKey) {
