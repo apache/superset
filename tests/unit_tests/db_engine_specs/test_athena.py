@@ -190,3 +190,113 @@ def test_get_schema_from_engine_params() -> None:
         )
         is None
     )
+
+
+def test_adjust_engine_params_with_schema_in_connect_args() -> None:
+    """
+    Test that schema is properly passed to connect_args for PyAthena metadata discovery.
+    """
+    from superset.db_engine_specs.athena import AthenaEngineSpec
+
+    url = make_url("awsathena+rest://athena.us-east-1.amazonaws.com:443/default")
+    connect_args: dict[str, str] = {}
+
+    # When schema is provided, it should be in both URI and connect_args
+    uri, updated_connect_args = AthenaEngineSpec.adjust_engine_params(
+        url,
+        connect_args,
+        schema="my_schema",
+    )
+
+    assert str(uri) == "awsathena+rest://athena.us-east-1.amazonaws.com:443/my_schema"
+    assert updated_connect_args["schema_name"] == "my_schema"
+
+
+def test_adjust_engine_params_with_catalog_and_schema() -> None:
+    """
+    Test that both catalog and schema are properly configured.
+    """
+    from superset.db_engine_specs.athena import AthenaEngineSpec
+
+    url = make_url("awsathena+rest://athena.us-east-1.amazonaws.com:443/default")
+    connect_args: dict[str, str] = {}
+
+    uri, updated_connect_args = AthenaEngineSpec.adjust_engine_params(
+        url,
+        connect_args,
+        catalog="my_catalog",
+        schema="my_schema",
+    )
+
+    assert (
+        str(uri)
+        == "awsathena+rest://athena.us-east-1.amazonaws.com:443/my_schema?catalog_name=my_catalog"
+    )
+    assert updated_connect_args["schema_name"] == "my_schema"
+
+
+def test_iam_role_authentication_uri() -> None:
+    """
+    Test that URIs without explicit credentials are valid for IAM role authentication.
+    """
+    from superset.db_engine_specs.athena import AthenaEngineSpec
+
+    # URI without credentials (for IAM role auth)
+    url = make_url(
+        "awsathena+rest://@athena.us-east-1.amazonaws.com:443/default?s3_staging_dir=s3%3A%2F%2Fmy-bucket"
+    )
+
+    # Should work without errors
+    uri, connect_args = AthenaEngineSpec.adjust_engine_params(url, {})
+
+    assert uri.username is None or uri.username == ""
+    assert uri.password is None or uri.password == ""
+    assert str(uri.database) == "default"
+
+
+def test_schema_override_from_ui() -> None:
+    """
+    Test that schema provided from UI properly overrides URI schema.
+    """
+    from superset.db_engine_specs.athena import AthenaEngineSpec
+
+    # Original URI with 'default' schema
+    url = make_url(
+        "awsathena+rest://key:secret@athena.us-east-1.amazonaws.com:443/default?s3_staging_dir=s3%3A%2F%2Fmy-bucket"
+    )
+    connect_args: dict[str, str] = {}
+
+    # UI provides different schema
+    uri, updated_connect_args = AthenaEngineSpec.adjust_engine_params(
+        url,
+        connect_args,
+        schema="production_schema",
+    )
+
+    # Should use UI schema, not URI schema
+    assert str(uri.database) == "production_schema"
+    assert updated_connect_args["schema_name"] == "production_schema"
+
+
+def test_catalog_parameter_in_query_string() -> None:
+    """
+    Test that catalog is properly added to query string.
+    """
+    from superset.db_engine_specs.athena import AthenaEngineSpec
+
+    url = make_url(
+        "awsathena+rest://athena.us-east-1.amazonaws.com:443/default?s3_staging_dir=s3%3A%2F%2Fmy-bucket"
+    )
+    connect_args: dict[str, str] = {}
+
+    uri, _ = AthenaEngineSpec.adjust_engine_params(
+        url,
+        connect_args,
+        catalog="my_data_catalog",
+    )
+
+    # Catalog should be in query parameters
+    assert "catalog_name=my_data_catalog" in str(uri)
+    # Original s3_staging_dir should be preserved
+    assert "s3_staging_dir" in str(uri)
+
