@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useState } from 'react';
-import { SupersetClient, t } from '@superset-ui/core';
+import { SupersetClient } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { css, useTheme, Alert } from '@apache-superset/core/ui';
 import {
   FormModal,
