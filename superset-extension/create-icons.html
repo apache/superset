@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Extension Icons</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #667eea;
+      margin-bottom: 20px;
+    }
+    .icon-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      margin: 30px 0;
+    }
+    .icon-container {
+      text-align: center;
+    }
+    canvas {
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      margin-bottom: 10px;
+    }
+    button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      margin: 5px;
+    }
+    button:hover {
+      opacity: 0.9;
+    }
+    .instructions {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 8px;
+      margin-top: 30px;
+    }
+    .instructions h3 {
+      margin-top: 0;
+      color: #495057;
+    }
+    .instructions ol {
+      line-height: 1.8;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎨 Superset Auto Login - Icon Generator</h1>
+    <p>Generate icons for the Chrome extension. Right-click each canvas and "Save image as..."</p>
+
+    <div class="icon-grid">
+      <div class="icon-container">
+        <h3>16x16</h3>
+        <canvas id="icon16" width="16" height="16"></canvas>
+        <br>
+        <button onclick="downloadIcon('icon16', 16)">Download</button>
+      </div>
+      <div class="icon-container">
+        <h3>48x48</h3>
+        <canvas id="icon48" width="48" height="48"></canvas>
+        <br>
+        <button onclick="downloadIcon('icon48', 48)">Download</button>
+      </div>
+      <div class="icon-container">
+        <h3>128x128</h3>
+        <canvas id="icon128" width="128" height="128"></canvas>
+        <br>
+        <button onclick="downloadIcon('icon128', 128)">Download</button>
+      </div>
+    </div>
+
+    <div style="text-align: center; margin: 30px 0;">
+      <button onclick="generateAllIcons()" style="font-size: 16px; padding: 15px 30px;">
+        🎨 Generate All Icons
+      </button>
+    </div>
+
+    <div class="instructions">
+      <h3>📝 Instructions</h3>
+      <ol>
+        <li>Click "Generate All Icons" button above</li>
+        <li>Click "Download" under each icon to save it</li>
+        <li>Save the files as:
+          <ul>
+            <li><code>icon16.png</code></li>
+            <li><code>icon48.png</code></li>
+            <li><code>icon128.png</code></li>
+          </ul>
+        </li>
+        <li>Place all three files in the <code>icons/</code> folder</li>
+        <li>Reload the extension in Chrome</li>
+      </ol>
+
+      <p><strong>Alternative:</strong> Right-click each canvas and select "Save image as..." to save manually.</p>
+    </div>
+  </div>
+
+  <script>
+    function drawIcon(canvasId, size) {
+      const canvas = document.getElementById(canvasId);
+      const ctx = canvas.getContext('2d');
+
+      // Clear canvas
+      ctx.clearRect(0, 0, size, size);
+
+      // Draw gradient background
+      const gradient = ctx.createLinearGradient(0, 0, size, size);
+      gradient.addColorStop(0, '#667eea');
+      gradient.addColorStop(1, '#764ba2');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, size, size);
+
+      // Draw lock icon
+      const centerX = size / 2;
+      const centerY = size / 2;
+      const lockSize = size * 0.6;
+
+      ctx.fillStyle = 'white';
+      ctx.strokeStyle = 'white';
+      ctx.lineWidth = size * 0.08;
+
+      // Lock body (rectangle)
+      const bodyWidth = lockSize * 0.6;
+      const bodyHeight = lockSize * 0.5;
+      const bodyX = centerX - bodyWidth / 2;
+      const bodyY = centerY + lockSize * 0.05;
+
+      ctx.fillRect(bodyX, bodyY, bodyWidth, bodyHeight);
+
+      // Lock shackle (arc)
+      const shackleRadius = lockSize * 0.25;
+      const shackleY = bodyY - shackleRadius * 0.5;
+
+      ctx.beginPath();
+      ctx.arc(centerX, shackleY, shackleRadius, Math.PI, 0, false);
+      ctx.stroke();
+
+      // Keyhole
+      if (size >= 48) {
+        ctx.fillStyle = '#667eea';
+        const keyholeSize = size * 0.08;
+        const keyholeX = centerX;
+        const keyholeY = centerY + lockSize * 0.15;
+
+        // Keyhole circle
+        ctx.beginPath();
+        ctx.arc(keyholeX, keyholeY, keyholeSize, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Keyhole slot
+        ctx.fillRect(
+          keyholeX - keyholeSize * 0.3,
+          keyholeY,
+          keyholeSize * 0.6,
+          keyholeSize * 1.5
+        );
+      }
+    }
+
+    function downloadIcon(canvasId, size) {
+      const canvas = document.getElementById(canvasId);
+      const link = document.createElement('a');
+      link.download = `icon${size}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }
+
+    function generateAllIcons() {
+      drawIcon('icon16', 16);
+      drawIcon('icon48', 48);
+      drawIcon('icon128', 128);
+    }
+
+    // Generate icons on page load
+    window.onload = generateAllIcons;
+  </script>
+</body>
+</html>

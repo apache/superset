@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Superset Auto Login</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1><img src="icons/icon.svg" alt="Superset" class="header-icon"> QuickSet</h1>
+      <p class="subtitle">Quick access to dashboard metadata and exports</p>
+    </div>
+
+    <div class="status" id="status" style="display: none;">
+      <span class="status-indicator" id="statusIndicator">●</span>
+      <span id="statusText">Not configured</span>
+    </div>
+
+    <form id="credentialsForm">
+      <div class="form-group">
+        <label for="supersetUrl">Superset URL</label>
+        <input
+          type="text"
+          id="supersetUrl"
+          placeholder="http://localhost:8088"
+          autocomplete="url"
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="username">Username</label>
+        <input
+          type="text"
+          id="username"
+          placeholder="user"
+          autocomplete="username"
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input
+          type="password"
+          id="password"
+          placeholder="Enter your password"
+          autocomplete="current-password"
+        >
+      </div>
+
+      <div class="form-group checkbox-group">
+        <label>
+          <input type="checkbox" id="rememberPassword" checked>
+          <span>Remember password</span>
+        </label>
+      </div>
+
+      <div class="button-group">
+        <button type="submit" class="btn btn-primary btn-large">
+          Login
+        </button>
+      </div>
+    </form>
+
+    <div class="actions" style="display: none;">
+      <button id="clearCredentials" class="btn btn-danger btn-small">
+        🗑️ Clear Saved Data
+      </button>
+    </div>
+
+    <div class="info" style="display: none;">
+      <h3>ℹ️ How it works</h3>
+      <ul>
+        <li>Enter your Superset credentials</li>
+        <li>Click "Login & View Dashboards"</li>
+        <li>Browse and export your dashboards</li>
+        <li>No need to open Superset web interface!</li>
+      </ul>
+    </div>
+
+    <div class="footer" style="display: none;">
+      <p>Version 1.0.0 | Made for Apache Superset</p>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

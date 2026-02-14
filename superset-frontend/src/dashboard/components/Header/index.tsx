@@ -805,38 +805,39 @@ const Header = (): ReactElement => {
     setCurrentReportDeleting(null);
   };
 
-  const [menu, isDropdownVisible, setIsDropdownVisible] = useHeaderActionsMenu({
-    addSuccessToast: boundActionCreators.addSuccessToast,
-    addDangerToast: boundActionCreators.addDangerToast,
-    dashboardInfo,
-    dashboardId: dashboardInfo.id,
-    dashboardTitle,
-    dataMask,
-    layout,
-    expandedSlices,
-    customCss,
-    colorNamespace,
-    colorScheme,
-    onSave: boundActionCreators.onSave,
-    forceRefreshAllCharts: forceRefresh,
-    refreshFrequency,
-    shouldPersistRefreshFrequency,
-    editMode,
-    hasUnsavedChanges,
-    userCanEdit,
-    userCanShare,
-    userCanSave: userCanSaveAs,
-    userCanCurate,
-    userCanExport,
-    isLoading,
-    showReportModal,
-    showPropertiesModal,
-    showRefreshModal,
-    setCurrentReportDeleting,
-    manageEmbedded: showEmbedModal,
-    lastModifiedTime: actualLastModifiedTime,
-    logEvent: boundActionCreators.logEvent,
-  });
+  const [menu, isDropdownVisible, setIsDropdownVisible, dataBrowsingModal] =
+    useHeaderActionsMenu({
+      addSuccessToast: boundActionCreators.addSuccessToast,
+      addDangerToast: boundActionCreators.addDangerToast,
+      dashboardInfo,
+      dashboardId: dashboardInfo.id,
+      dashboardTitle,
+      dataMask,
+      layout,
+      expandedSlices,
+      customCss,
+      colorNamespace,
+      colorScheme,
+      onSave: boundActionCreators.onSave,
+      forceRefreshAllCharts: forceRefresh,
+      refreshFrequency,
+      shouldPersistRefreshFrequency,
+      editMode,
+      hasUnsavedChanges,
+      userCanEdit,
+      userCanShare,
+      userCanSave: userCanSaveAs,
+      userCanCurate,
+      userCanExport,
+      isLoading,
+      showReportModal,
+      showPropertiesModal,
+      showRefreshModal,
+      setCurrentReportDeleting,
+      manageEmbedded: showEmbedModal,
+      lastModifiedTime: actualLastModifiedTime,
+      logEvent: boundActionCreators.logEvent,
+    });
   return (
     <div
       css={headerContainerStyle}
@@ -942,6 +943,7 @@ const Header = (): ReactElement => {
         onConfirmNavigation={handleConfirmNavigation}
         handleSave={handleSaveAndCloseModal}
       />
+      {dataBrowsingModal}
     </div>
   );
 };
