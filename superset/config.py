@@ -1627,6 +1627,12 @@ FAB_ADD_SECURITY_PERMISSION_VIEW = False
 FAB_ADD_SECURITY_VIEW_MENU_VIEW = False
 FAB_ADD_SECURITY_PERMISSION_VIEWS_VIEW = False
 
+# API Key Authentication via FAB SecurityManager
+# When enabled, users can create API keys for programmatic access
+# Keys are validated by FAB's @protect() decorator automatically
+FAB_API_KEY_ENABLED = True
+FAB_API_KEY_PREFIXES = ["sst_"]
+
 # The link to a page containing common errors and their resolutions
 # It will be appended at the bottom of sql_lab errors.
 TROUBLESHOOTING_LINK = ""

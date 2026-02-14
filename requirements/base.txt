@@ -120,7 +120,7 @@ flask==2.3.3
     #   flask-session
     #   flask-sqlalchemy
     #   flask-wtf
-flask-appbuilder==5.0.2
+flask-appbuilder @ git+https://github.com/aminghadersohi/Flask-AppBuilder@amin/ch99414/api-key-auth
     # via
     #   apache-superset (pyproject.toml)
     #   apache-superset-core
