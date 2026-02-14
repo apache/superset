@@ -17,7 +17,8 @@
  * under the License.
  */
 
-import exploreReducer, { ExploreState } from './exploreReducer';
+import exploreReducer from './exploreReducer';
+import { ExploreState } from 'src/explore/types';
 import { setStashFormData } from '../actions/exploreActions';
 import { QueryFormData } from '@superset-ui/core';
 

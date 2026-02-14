@@ -35,36 +35,7 @@ import {
 import * as actions from 'src/explore/actions/exploreActions';
 import { HYDRATE_EXPLORE, HydrateExplore } from '../actions/hydrateExplore';
 import { Slice } from 'src/types/Chart';
-import { SaveActionType } from 'src/explore/types';
-
-// Type definitions for explore state
-export interface ExploreState {
-  can_add?: boolean;
-  can_download?: boolean;
-  can_overwrite?: boolean;
-  isDatasourceMetaLoading?: boolean;
-  isDatasourcesLoading?: boolean;
-  isStarred?: boolean;
-  triggerRender?: boolean;
-  datasource?: Dataset;
-  controls: ControlStateMapping;
-  form_data: QueryFormData;
-  hiddenFormData?: Partial<QueryFormData>;
-  slice?: Slice | null;
-  sliceName?: string;
-  controlsTransferred?: string[];
-  standalone?: boolean;
-  force?: boolean;
-  common?: {
-    conf: {
-      DEFAULT_VIZ_TYPE?: string;
-    };
-  };
-  metadata?: {
-    owners?: string[] | null;
-  };
-  saveAction?: SaveActionType | null;
-}
+import { ExploreState, SaveActionType } from 'src/explore/types';
 
 // Action type definitions
 interface DynamicPluginControlsReadyAction {

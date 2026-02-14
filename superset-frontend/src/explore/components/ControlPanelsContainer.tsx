@@ -45,6 +45,7 @@ import {
 import { styled, css, SupersetTheme, useTheme } from '@apache-superset/core/ui';
 import {
   ControlPanelSectionConfig,
+  ControlPanelState,
   ControlState,
   CustomControlItem,
   Dataset,
@@ -68,7 +69,7 @@ import { useConfirmModal } from 'src/hooks/useConfirmModal';
 
 import { getSectionsToRender } from 'src/explore/controlUtils';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
-import { ChartState, ExplorePageState } from 'src/explore/types';
+import { ChartState, ExplorePageState, ExploreState } from 'src/explore/types';
 import { Icons } from '@superset-ui/core/components/Icons';
 import ControlRow from './ControlRow';
 import Control from './Control';
@@ -94,7 +95,7 @@ const MATRIXIFY_INCOMPATIBLE_CHARTS = new Set([
 ]);
 
 export type ControlPanelsContainerProps = {
-  exploreState: ExplorePageState['explore'];
+  exploreState: ExploreState; // This is the .present value from the undoable explore reducer
   // Only setControlValue is used from actions in this component
   actions: Pick<ExploreActions, 'setControlValue'>;
   datasource_type: DatasourceType;
@@ -308,7 +309,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   const controlsTransferred = useSelector<
     ExplorePageState,
     string[] | undefined
-  >(state => state.explore.controlsTransferred);
+  >(state => state.explore.present.controlsTransferred);
 
   const defaultTimeFilter = useSelector<ExplorePageState>(
     state => state.common?.conf?.DEFAULT_TIME_FILTER || NO_TIME_RANGE,
@@ -324,6 +325,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     if (
       x_axis &&
       x_axis !== previousXAxis &&
+      props.exploreState.datasource &&
       isTemporalColumn(x_axis, props.exploreState.datasource)
     ) {
       const noFilter = !adhoc_filters?.find(
@@ -438,7 +440,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     () =>
       getState(
         form_data.viz_type,
-        props.exploreState.datasource,
+        props.exploreState.datasource!,
         props.datasource_type,
       ),
     [props.exploreState.datasource, form_data.viz_type, props.datasource_type],
@@ -470,8 +472,8 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
 
     return Boolean(
       config.shouldMapStateToProps?.(
-        prevState || exploreState,
-        exploreState,
+        (prevState || exploreState) as ControlPanelState,
+        exploreState as ControlPanelState,
         controls[name],
         chart,
       ),
@@ -489,7 +491,11 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       ...restConfig,
       ...controls[name],
       ...(shouldRecalculateControlState({ name, config })
-        ? config?.mapStateToProps?.(exploreState, controls[name], chart)
+        ? config?.mapStateToProps?.(
+            exploreState as ControlPanelState,
+            controls[name],
+            chart,
+          )
         : // for other controls, `mapStateToProps` is already run in
           // controlUtils/getControlState.ts
           undefined),
@@ -515,12 +521,16 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
 
     const label =
       typeof baseLabel === 'function'
-        ? baseLabel(exploreState, controls[name], chart)
+        ? baseLabel(exploreState as ControlPanelState, controls[name], chart)
         : baseLabel;
 
     const description =
       typeof baseDescription === 'function'
-        ? baseDescription(exploreState, controls[name], chart)
+        ? baseDescription(
+            exploreState as ControlPanelState,
+            controls[name],
+            chart,
+          )
         : baseDescription;
 
     if (name.includes('adhoc_filters')) {

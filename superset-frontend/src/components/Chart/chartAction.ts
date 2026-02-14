@@ -54,7 +54,7 @@ import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import type { Dispatch, Action, AnyAction } from 'redux';
 import type { ThunkAction, ThunkDispatch } from 'redux-thunk';
 import type { History } from 'history';
-import type { ChartState } from 'src/explore/types';
+import type { ChartState, ExploreState } from 'src/explore/types';
 
 // Types for the Redux state
 export interface ChartsState {
@@ -85,11 +85,11 @@ export interface RootState {
   common: CommonState;
   dashboardInfo: DashboardInfoState;
   dataMask: DataMaskState;
+  // explore is wrapped with redux-undo, so it has past/present/future structure
   explore: {
-    form_data: QueryFormData;
-    datasource?: { type: string };
-    common?: { conf: { DEFAULT_VIZ_TYPE?: string } };
-    [key: string]: unknown;
+    past: ExploreState[];
+    present: ExploreState;
+    future: ExploreState[];
   };
 }
 
@@ -386,12 +386,14 @@ export const dynamicPluginControlsReady =
     const state = getState();
     // getControlsState expects datasource to be defined, provide a default
     const exploreState = {
-      ...state.explore,
-      datasource: state.explore.datasource || { type: 'table' },
-    };
+      ...state.explore.present,
+      datasource: state.explore.present?.datasource || {
+        type: 'table',
+      },
+    } as any;
     const controlsState = getControlsState(
       exploreState,
-      state.explore.form_data,
+      state.explore.present.form_data,
     ) as ControlStateMapping;
     const sliceIdControl = controlsState.slice_id as { value?: unknown };
     dispatch({

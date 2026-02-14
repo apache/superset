@@ -21,6 +21,7 @@ import { ControlStateMapping } from '@superset-ui/chart-controls';
 import {
   ChartState,
   ExplorePageInitialData,
+  ExplorePageInitialState,
   ExplorePageState,
 } from 'src/explore/types';
 import { getChartKey } from 'src/explore/exploreUtils';
@@ -160,7 +161,7 @@ export const hydrateExplore =
       controls: initialControls,
       form_data: initialFormData,
       slice: initialSlice,
-      controlsTransferred: explore.controlsTransferred,
+      controlsTransferred: explore.present.controlsTransferred,
       standalone: getUrlParam(URL_PARAMS.standalone),
       force: getUrlParam(URL_PARAMS.force),
       metadata,
@@ -220,5 +221,5 @@ export const hydrateExplore =
 
 export type HydrateExplore = {
   type: typeof HYDRATE_EXPLORE;
-  data: ExplorePageState;
+  data: ExplorePageInitialState;
 };

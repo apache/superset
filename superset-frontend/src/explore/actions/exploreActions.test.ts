@@ -18,9 +18,8 @@
  */
 import type { AnyAction } from 'redux';
 import { defaultState } from 'src/explore/store';
-import exploreReducer, {
-  ExploreState,
-} from 'src/explore/reducers/exploreReducer';
+import exploreReducer from 'src/explore/reducers/exploreReducer';
+import { ExploreState } from 'src/explore/types';
 import * as actions from 'src/explore/actions/exploreActions';
 
 const METRICS = [

@@ -90,7 +90,11 @@ test('change datasource action', () => {
   const dispatch = jest.fn();
   const getState = jest.fn(() => ({
     explore: {
-      datasource: CURRENT_DATASOURCE,
+      past: [],
+      present: {
+        datasource: CURRENT_DATASOURCE,
+      },
+      future: [],
     },
   }));
   // ignore getState type check - we dont need explore.datasource field for this test
@@ -112,7 +116,9 @@ test('saveDataset handles success', async () => {
   fetchMock.clearHistory().removeRoutes();
   fetchMock.post(saveDatasetEndpoint, saveDatasetResponse);
   const dispatch = jest.fn();
-  const getState = jest.fn(() => ({ explore: { datasource } }));
+  const getState = jest.fn(() => ({
+    explore: { past: [], present: { datasource }, future: [] },
+  }));
   const dataset = await saveDataset(SAVE_DATASET_POST_ARGS)(dispatch);
 
   expect(fetchMock.callHistory.calls(saveDatasetEndpoint)).toHaveLength(1);

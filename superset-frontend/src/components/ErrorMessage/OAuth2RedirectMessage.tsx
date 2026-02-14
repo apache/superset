@@ -92,7 +92,7 @@ export function OAuth2RedirectMessage({
 
   // state needed for triggering the chart in Explore
   const chartId = useSelector<ExplorePageState, number | undefined>(
-    state => state.explore?.slice?.slice_id,
+    state => state.explore?.present?.slice?.slice_id,
   );
 
   // state needed for refreshing dashboard

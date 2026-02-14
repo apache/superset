@@ -16,23 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render } from 'spec/helpers/testing-library';
-import { CurrencyControl } from './CurrencyControl';
+import { Reducer } from '@reduxjs/toolkit';
+import undoable, { includeAction, StateWithHistory } from 'redux-undo';
+import { UNDO_LIMIT } from 'src/dashboard/util/constants';
+import { SET_FIELD_VALUE, UPDATE_CHART_TITLE } from '../actions/exploreActions';
+import { ExploreState } from 'src/explore/types';
+import exploreReducer from './exploreReducer';
 
-test('CurrencyControl renders position and symbol selects', () => {
-  const { container } = render(
-    <CurrencyControl onChange={jest.fn()} value={{}} />,
-    {
-      useRedux: true,
-      initialState: {
-        common: { currencies: ['USD', 'EUR'] },
-        explore: { present: { datasource: {} }, future: [], past: [] },
-      },
-    },
-  );
+export type UndoableExploreState = StateWithHistory<ExploreState>;
 
-  expect(
-    container.querySelector('[data-test="currency-control-container"]'),
-  ).toBeInTheDocument();
-  expect(container.querySelectorAll('.ant-select')).toHaveLength(2);
-});
+const undoableReducer: Reducer<UndoableExploreState> = undoable(
+  exploreReducer,
+  {
+    // +1 because length of history seems max out at limit - 1
+    // +1 again so we can detect if we've exceeded the limit
+    limit: UNDO_LIMIT + 2,
+    filter: includeAction([SET_FIELD_VALUE, UPDATE_CHART_TITLE]),
+  },
+);
+
+export default undoableReducer;

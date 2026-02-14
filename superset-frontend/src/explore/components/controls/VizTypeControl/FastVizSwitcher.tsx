@@ -40,7 +40,7 @@ export const FastVizSwitcher = memo(
   ({ currentSelection, onChange }: FastVizSwitcherProps) => {
     const currentViz = useSelector<ExplorePageState, string | undefined>(
       state =>
-        state.charts?.[getChartKey(state.explore)]?.latestQueryFormData
+        state.charts?.[getChartKey(state.explore.present)]?.latestQueryFormData
           ?.viz_type,
     );
     const vizTiles = useMemo(() => {

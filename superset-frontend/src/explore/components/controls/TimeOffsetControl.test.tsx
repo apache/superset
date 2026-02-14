@@ -35,16 +35,20 @@ describe('TimeOffsetControls', () => {
   const setup = (initialState = {}) => {
     const store = mockStore({
       explore: {
-        form_data: {
-          adhoc_filters: [
-            {
-              operator: 'TEMPORAL_RANGE',
-              subject: 'date',
-              comparator: '2023-01-01 : 2023-12-31',
-            },
-          ],
-          start_date_offset: '2023-01-01',
-          ...initialState,
+        past: [],
+        present: {
+          form_data: {
+            adhoc_filters: [
+              {
+                operator: 'TEMPORAL_RANGE',
+                subject: 'date',
+                comparator: '2023-01-01 : 2023-12-31',
+              },
+            ],
+            start_date_offset: '2023-01-01',
+            ...initialState,
+          },
+          future: [],
         },
       },
     });
