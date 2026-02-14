@@ -107,9 +107,7 @@ describe('AgGridTableChart', () => {
     expect(headerTexts).toContain('name');
     expect(headerTexts).toContain('sum__num');
 
-    const dataRows = document.querySelectorAll(
-      '.ag-row:not(.ag-row-pinned)',
-    );
+    const dataRows = document.querySelectorAll('.ag-row:not(.ag-row-pinned)');
     expect(dataRows.length).toBe(3);
 
     expect(screen.getByText('Michael')).toBeInTheDocument();
@@ -224,9 +222,7 @@ describe('AgGridTableChart', () => {
       expect(grid).toBeInTheDocument();
     });
 
-    const pinnedRows = document.querySelectorAll(
-      '.ag-floating-bottom .ag-row',
-    );
+    const pinnedRows = document.querySelectorAll('.ag-floating-bottom .ag-row');
     expect(pinnedRows.length).toBeGreaterThan(0);
 
     const dataRows = document.querySelectorAll(
@@ -326,9 +322,7 @@ describe('AgGridTableChart', () => {
       expect(grid).toBeInTheDocument();
     });
 
-    const dataRows = document.querySelectorAll(
-      '.ag-row:not(.ag-row-pinned)',
-    );
+    const dataRows = document.querySelectorAll('.ag-row:not(.ag-row-pinned)');
     expect(dataRows.length).toBe(3);
 
     const headerCells = document.querySelectorAll('.ag-header-cell');
