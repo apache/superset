@@ -17,7 +17,7 @@
  * under the License.
  */
 import '@testing-library/jest-dom';
-import { render, waitFor } from '@superset-ui/core/spec';
+import { render, screen, waitFor } from '@superset-ui/core/spec';
 import { QueryMode, TimeGranularity, SMART_DATE_ID } from '@superset-ui/core';
 import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
 import AgGridTableChart from '../src/AgGridTableChart';
@@ -101,6 +101,20 @@ describe('AgGridTableChart', () => {
       const grid = document.querySelector('.ag-container');
       expect(grid).toBeInTheDocument();
     });
+
+    const headerCells = document.querySelectorAll('.ag-header-cell-text');
+    const headerTexts = Array.from(headerCells).map(el => el.textContent);
+    expect(headerTexts).toContain('name');
+    expect(headerTexts).toContain('sum__num');
+
+    const dataRows = document.querySelectorAll(
+      '.ag-row:not(.ag-row-pinned)',
+    );
+    expect(dataRows.length).toBe(3);
+
+    expect(screen.getByText('Michael')).toBeInTheDocument();
+    expect(screen.getByText('Joe')).toBeInTheDocument();
+    expect(screen.getByText('Maria')).toBeInTheDocument();
   });
 
   test('should render with server pagination', async () => {
@@ -134,6 +148,16 @@ describe('AgGridTableChart', () => {
       const grid = document.querySelector('.ag-container');
       expect(grid).toBeInTheDocument();
     });
+
+    expect(screen.getByText('Page Size:')).toBeInTheDocument();
+    expect(screen.getByText('Page')).toBeInTheDocument();
+
+    const paginationEl = screen.getByText('Page Size:').closest('div')!;
+    const paginationText = paginationEl.textContent;
+    expect(paginationText).toContain('1');
+    expect(paginationText).toContain('20');
+    expect(paginationText).toContain('100');
+    expect(paginationText).toContain('5');
   });
 
   test('should render with search enabled', async () => {
@@ -162,6 +186,14 @@ describe('AgGridTableChart', () => {
       const grid = document.querySelector('.ag-container');
       expect(grid).toBeInTheDocument();
     });
+
+    const searchContainer = document.querySelector('.search-container');
+    expect(searchContainer).toBeInTheDocument();
+
+    const searchInput = screen.getByPlaceholderText('Search');
+    expect(searchInput).toBeInTheDocument();
+    expect(searchInput).toHaveAttribute('type', 'text');
+    expect(searchInput).toHaveAttribute('id', 'filter-text-box');
   });
 
   test('should render with totals', async () => {
@@ -191,6 +223,16 @@ describe('AgGridTableChart', () => {
       const grid = document.querySelector('.ag-container');
       expect(grid).toBeInTheDocument();
     });
+
+    const pinnedRows = document.querySelectorAll(
+      '.ag-floating-bottom .ag-row',
+    );
+    expect(pinnedRows.length).toBeGreaterThan(0);
+
+    const dataRows = document.querySelectorAll(
+      '.ag-body-viewport .ag-row:not(.ag-row-pinned)',
+    );
+    expect(dataRows.length).toBe(3);
   });
 
   test('should handle empty data', async () => {
@@ -212,6 +254,14 @@ describe('AgGridTableChart', () => {
       const grid = document.querySelector('.ag-container');
       expect(grid).toBeInTheDocument();
     });
+
+    const dataRows = document.querySelectorAll(
+      '.ag-center-cols-container .ag-row',
+    );
+    expect(dataRows.length).toBe(0);
+
+    const headerCells = document.querySelectorAll('.ag-header-cell');
+    expect(headerCells.length).toBeGreaterThan(0);
   });
 
   test('should render with time comparison', async () => {
@@ -234,6 +284,17 @@ describe('AgGridTableChart', () => {
       const grid = document.querySelector('.ag-container');
       expect(grid).toBeInTheDocument();
     });
+
+    const comparisonDropdown = document.querySelector(
+      '.time-comparison-dropdown',
+    );
+    expect(comparisonDropdown).toBeInTheDocument();
+
+    const headerCells = document.querySelectorAll('.ag-header-cell-text');
+    const headerTexts = Array.from(headerCells).map(el => el.textContent);
+    expect(headerTexts).toContain('#');
+    expect(headerTexts).toContain('△');
+    expect(headerTexts).toContain('%');
   });
 
   test('should handle raw records mode', async () => {
@@ -245,6 +306,8 @@ describe('AgGridTableChart', () => {
       },
     };
     const props = transformProps(rawRecordsProps);
+
+    expect(props.isRawRecords).toBe(true);
 
     render(
       ProviderWrapper({
@@ -262,6 +325,14 @@ describe('AgGridTableChart', () => {
       const grid = document.querySelector('.ag-container');
       expect(grid).toBeInTheDocument();
     });
+
+    const dataRows = document.querySelectorAll(
+      '.ag-row:not(.ag-row-pinned)',
+    );
+    expect(dataRows.length).toBe(3);
+
+    const headerCells = document.querySelectorAll('.ag-header-cell');
+    expect(headerCells.length).toBeGreaterThan(0);
   });
 
   test('should correct invalid page number when currentPage >= totalPages', async () => {
