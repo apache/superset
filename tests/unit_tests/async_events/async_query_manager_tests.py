@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from flask import Flask
 from unittest import mock
 from unittest.mock import ANY, Mock
 
@@ -41,6 +42,12 @@ def async_query_manager():
     query_manager._jwt_secret = JWT_TOKEN_SECRET
     query_manager._jwt_cookie_name = JWT_TOKEN_COOKIE_NAME
     return query_manager
+
+def make_app(config: dict):
+    app = Flask(__name__)
+    app.secret_key = "test-secret"
+    app.config.update(config)
+    return app
 
 
 def set_current_as_guest_user():
@@ -166,3 +173,66 @@ def test_submit_explore_json_job_as_guest_user(
     )
 
     assert "guest_token" not in job_meta
+
+@mock.patch("superset.async_events.async_query_manager.get_cache_backend")
+def test_ws_transport_without_request_handlers_raises(mock_cache):
+    mock_cache.return_value = Mock()    
+    app = make_app(
+        {
+            "GLOBAL_ASYNC_QUERIES": True,
+            "GLOBAL_ASYNC_QUERIES_TRANSPORT": "ws",
+            "GLOBAL_ASYNC_QUERIES_REGISTER_REQUEST_HANDLERS": False,
+            "GLOBAL_ASYNC_QUERIES_JWT_SECRET": "x" * 32,
+            "GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME": "async-token",
+            "GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE": True,
+            "GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SAMESITE": "None",
+            "GLOBAL_ASYNC_QUERIES_JWT_COOKIE_DOMAIN": None,
+            "CACHE_CONFIG": {"CACHE_TYPE": "RedisCache"},
+            "DATA_CACHE_CONFIG": {"CACHE_TYPE": "RedisCache"},
+            "GLOBAL_ASYNC_QUERIES_REDIS_STREAM_PREFIX": "test-",
+            "GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT": 100,
+            "GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT_FIREHOSE": 100,
+        }
+    )
+
+    manager = AsyncQueryManager()
+
+    with raises(AsyncQueryTokenException):
+        manager.init_app(app)
+
+@mock.patch("superset.async_events.async_query_manager.get_cache_backend")
+@mock.patch("superset.async_events.async_query_manager.get_user_id")
+def test_async_jwt_cookie_is_set_when_configured(mock_get_user_id, mock_cache):
+    mock_cache.return_value = Mock()
+    mock_get_user_id.return_value = 1
+    app = make_app(
+        {
+            "GLOBAL_ASYNC_QUERIES": True,
+            "GLOBAL_ASYNC_QUERIES_TRANSPORT": "ws",
+            "GLOBAL_ASYNC_QUERIES_REGISTER_REQUEST_HANDLERS": True,
+            "GLOBAL_ASYNC_QUERIES_JWT_SECRET": "x" * 32,
+            "GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME": "async-token",
+            "GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE": False,
+            "GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SAMESITE": "Lax",
+            "GLOBAL_ASYNC_QUERIES_JWT_COOKIE_DOMAIN": None,
+            "CACHE_CONFIG": {"CACHE_TYPE": "RedisCache"},
+            "DATA_CACHE_CONFIG": {"CACHE_TYPE": "RedisCache"},
+            "GLOBAL_ASYNC_QUERIES_REDIS_STREAM_PREFIX": "test-",
+            "GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT": 100,
+            "GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT_FIREHOSE": 100,
+        }
+    )
+
+    manager = AsyncQueryManager()
+    manager.init_app(app)
+
+    @app.route("/")
+    def index():
+        return "ok"
+
+    with app.test_client() as client:
+        response = client.get("/")
+        cookie = response.headers.get("Set-Cookie")
+        assert cookie is not None
+        assert "async-token=" in cookie
+
