@@ -26,33 +26,17 @@ from sqlalchemy.orm.exc import NoResultFound
 from werkzeug.security import generate_password_hash
 
 from superset import is_feature_enabled
-from superset.commands.api_key.create import CreateApiKeyCommand
-from superset.commands.api_key.exceptions import (
-    ApiKeyCreateFailedError,
-    ApiKeyForbiddenError,
-    ApiKeyNotFoundError,
-    ApiKeyRequiredFieldValidationError,
-    ApiKeyRevokeFailedError,
-)
-from superset.commands.api_key.revoke import RevokeApiKeyCommand
-from superset.daos.api_key import ApiKeyDAO
 from superset.daos.user import UserDAO
 from superset.extensions import db, event_logger
 from superset.utils.slack import get_user_avatar, SlackClientError
 from superset.views.base_api import BaseSupersetApi, requires_json, statsd_metrics
 from superset.views.users.schemas import (
-    ApiKeyCreateResponseSchema,
-    ApiKeyPostSchema,
-    ApiKeyResponseSchema,
     CurrentUserPutSchema,
     UserResponseSchema,
 )
 from superset.views.utils import bootstrap_user_data
 
 user_response_schema = UserResponseSchema()
-api_key_response_schema = ApiKeyResponseSchema()
-api_key_create_response_schema = ApiKeyCreateResponseSchema()
-api_key_post_schema = ApiKeyPostSchema()
 
 
 class CurrentUserRestApi(BaseSupersetApi):
@@ -63,9 +47,6 @@ class CurrentUserRestApi(BaseSupersetApi):
     openapi_spec_component_schemas = (
         UserResponseSchema,
         CurrentUserPutSchema,
-        ApiKeyPostSchema,
-        ApiKeyResponseSchema,
-        ApiKeyCreateResponseSchema,
     )
 
     current_user_put_schema = CurrentUserPutSchema()
@@ -196,164 +177,6 @@ class CurrentUserRestApi(BaseSupersetApi):
             return self.response(200, result=user_response_schema.dump(g.user))
         except ValidationError as error:
             return self.response_400(message=error.messages)
-
-    @expose("/api_keys/", methods=("GET",))
-    @safe
-    def get_api_keys(self) -> Response:
-        """Get all API keys for the current user
-        ---
-        get:
-          summary: List API keys
-          description: >-
-            Gets all API keys owned by the current user.
-          responses:
-            200:
-              description: List of API keys
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      result:
-                        type: array
-                        items:
-                          $ref: '#/components/schemas/ApiKeyResponseSchema'
-            401:
-              $ref: '#/components/responses/401'
-        """
-        try:
-            if g.user is None or g.user.is_anonymous:
-                return self.response_401()
-        except NoAuthorizationError:
-            return self.response_401()
-
-        api_keys = ApiKeyDAO.find_by_user(g.user.id)
-        return self.response(
-            200, result=api_key_response_schema.dump(api_keys, many=True)
-        )
-
-    @expose("/api_keys/", methods=("POST",))
-    @safe
-    @statsd_metrics
-    @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post_api_key",
-        log_to_statsd=False,
-    )
-    @requires_json
-    def create_api_key(self) -> Response:
-        """Create a new API key
-        ---
-        post:
-          summary: Create API key
-          description: >-
-            Creates a new API key for the current user. The full API key is returned
-            only once in the response and cannot be retrieved later.
-          requestBody:
-            required: true
-            content:
-              application/json:
-                schema:
-                  $ref: '#/components/schemas/ApiKeyPostSchema'
-          responses:
-            200:
-              description: API key created successfully
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      result:
-                        $ref: '#/components/schemas/ApiKeyCreateResponseSchema'
-            400:
-              $ref: '#/components/responses/400'
-            401:
-              $ref: '#/components/responses/401'
-        """
-        try:
-            if g.user is None or g.user.is_anonymous:
-                return self.response_401()
-        except NoAuthorizationError:
-            return self.response_401()
-
-        try:
-            data = api_key_post_schema.load(request.json)
-        except ValidationError as error:
-            return self.response_400(message=error.messages)
-
-        try:
-            api_key, plaintext_key = CreateApiKeyCommand(data).run()
-            return self.response(
-                200,
-                result={
-                    "id": api_key.id,
-                    "name": api_key.name,
-                    "api_key": plaintext_key,
-                    "key_prefix": api_key.key_prefix,
-                    "workspace_name": api_key.workspace_name,
-                    "created_on": api_key.created_on.isoformat(),
-                },
-            )
-        except ApiKeyRequiredFieldValidationError as ex:
-            return self.response_400(message=str(ex))
-        except ApiKeyCreateFailedError as ex:
-            return self.response_500(message=str(ex))
-
-    @expose("/api_keys/<int:api_key_id>", methods=("DELETE",))
-    @safe
-    @statsd_metrics
-    @event_logger.log_this_with_context(
-        action=lambda self,
-        *args,
-        **kwargs: f"{self.__class__.__name__}.delete_api_key",
-        log_to_statsd=False,
-    )
-    def revoke_api_key(self, api_key_id: int) -> Response:
-        """Revoke an API key
-        ---
-        delete:
-          summary: Revoke API key
-          description: >-
-            Revokes an API key owned by the current user. Revoked keys cannot be used
-            for authentication.
-          parameters:
-            - in: path
-              name: api_key_id
-              required: true
-              description: The ID of the API key to revoke
-              schema:
-                type: integer
-          responses:
-            200:
-              description: API key revoked successfully
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      message:
-                        type: string
-            401:
-              $ref: '#/components/responses/401'
-            403:
-              $ref: '#/components/responses/403'
-            404:
-              $ref: '#/components/responses/404'
-        """
-        try:
-            if g.user is None or g.user.is_anonymous:
-                return self.response_401()
-        except NoAuthorizationError:
-            return self.response_401()
-
-        try:
-            RevokeApiKeyCommand(api_key_id).run()
-            return self.response(200, message="API key revoked successfully")
-        except ApiKeyNotFoundError:
-            return self.response_404()
-        except ApiKeyForbiddenError:
-            return self.response_403()
-        except ApiKeyRevokeFailedError as ex:
-            return self.response_500(message=str(ex))
 
 
 class UserRestApi(BaseSupersetApi):

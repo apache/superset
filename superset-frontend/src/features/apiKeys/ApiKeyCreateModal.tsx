@@ -35,7 +35,6 @@ interface ApiKeyCreateModalProps {
 
 interface FormValues {
   name: string;
-  workspace_name?: string;
 }
 
 export function ApiKeyCreateModal({
@@ -51,10 +50,10 @@ export function ApiKeyCreateModal({
   const handleFormSubmit = async (values: FormValues) => {
     try {
       const response = await SupersetClient.post({
-        endpoint: '/api/v1/me/api_keys/',
+        endpoint: '/api/v1/security/api_keys/',
         jsonPayload: values,
       });
-      setCreatedKey(response.json.result.api_key);
+      setCreatedKey(response.json.result.key);
       addSuccessToast(t('API key created successfully'));
     } catch (error) {
       addDangerToast(t('Failed to create API key'));
@@ -145,13 +144,6 @@ export function ApiKeyCreateModal({
           name="name"
           placeholder={t('e.g., CI/CD Pipeline, Analytics Script')}
         />
-      </FormItem>
-      <FormItem
-        name="workspace_name"
-        label={t('Workspace')}
-        help={t('Optional: Leave blank to use your default workspace')}
-      >
-        <Input name="workspace_name" placeholder={t('Workspace name')} />
       </FormItem>
     </FormModal>
   );

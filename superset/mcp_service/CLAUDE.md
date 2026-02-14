@@ -201,8 +201,8 @@ def list_dashboards(filters: List[DashboardFilter], page: int = 1) -> DashboardL
 ### 2. Always Use Authentication
 
 **Every tool must use `@mcp_auth_hook`** to ensure:
-- User authentication from JWT or configured admin user
-- Permission checking via JWT scopes
+- User authentication from API key (via FAB SecurityManager), JWT, or configured admin user
+- Permission checking via FAB RBAC
 - Audit logging of tool access
 
 ```python

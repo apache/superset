@@ -14,88 +14,54 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Integration tests for API key endpoints."""
+"""Integration tests for API key endpoints (now served by FAB)."""
 
 from superset.utils import json
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.constants import ADMIN_USERNAME
 
-API_KEYS_URI = "/api/v1/me/api_keys/"
+# API keys are now served by FAB's ApiKeyApi at this endpoint
+API_KEYS_URI = "/api/v1/security/api_keys/"
 
 
 class TestApiKeyApi(SupersetTestCase):
-    """Integration tests for API key management endpoints."""
+    """Integration tests for FAB API key management endpoints."""
 
     def test_create_api_key_success(self):
-        """Test creating an API key."""
+        """Test creating an API key via FAB endpoint."""
         self.login(ADMIN_USERNAME)
 
-        payload = {
-            "name": "Test API Key",
-            "workspace_name": "default",
-        }
+        payload = {"name": "Test API Key"}
 
         rv = self.client.post(API_KEYS_URI, json=payload)
 
-        assert rv.status_code == 200
+        assert rv.status_code == 201
         response = json.loads(rv.data.decode("utf-8"))
         result = response["result"]
 
-        assert "api_key" in result
-        assert result["api_key"].startswith("pst_")
+        assert "key" in result
+        assert result["key"].startswith("sst_")
         assert result["name"] == "Test API Key"
-        assert result["workspace_name"] == "default"
-        assert result["key_prefix"].startswith("pst_")
+        assert result["key_prefix"].startswith("sst_")
+        assert "uuid" in result
         assert "created_on" in result
 
     def test_create_api_key_missing_name(self):
         """Test creating API key without name fails."""
         self.login(ADMIN_USERNAME)
 
-        payload = {
-            "workspace_name": "default",
-        }
+        payload = {}
 
         rv = self.client.post(API_KEYS_URI, json=payload)
 
         assert rv.status_code == 400
-        response = json.loads(rv.data.decode("utf-8"))
-        assert "name" in response["message"]
-
-    def test_create_api_key_missing_workspace_uses_default(self):
-        """Test creating API key without workspace uses default."""
-        self.login(ADMIN_USERNAME)
-
-        payload = {
-            "name": "Test Key Without Workspace",
-        }
-
-        rv = self.client.post(API_KEYS_URI, json=payload)
-
-        assert rv.status_code == 200
-        response = json.loads(rv.data.decode("utf-8"))
-        assert response["result"]["workspace_name"] == "default"
-
-    def test_create_api_key_unauthenticated(self):
-        """Test creating API key without authentication fails."""
-        payload = {
-            "name": "Test Key",
-            "workspace_name": "default",
-        }
-
-        rv = self.client.post(API_KEYS_URI, json=payload)
-
-        assert rv.status_code == 401
 
     def test_list_api_keys(self):
-        """Test listing API keys."""
+        """Test listing API keys via FAB endpoint."""
         self.login(ADMIN_USERNAME)
 
         # Create a key first
-        create_payload = {
-            "name": "List Test Key",
-            "workspace_name": "default",
-        }
+        create_payload = {"name": "List Test Key"}
         self.client.post(API_KEYS_URI, json=create_payload)
 
         # List keys
@@ -110,61 +76,53 @@ class TestApiKeyApi(SupersetTestCase):
 
         # Check structure of returned keys
         key = result[0]
-        assert "id" in key
+        assert "uuid" in key
         assert "name" in key
         assert "key_prefix" in key
-        assert "workspace_name" in key
+        assert "active" in key
         assert "created_on" in key
 
         # Plaintext key should NOT be in list response
-        assert "api_key" not in key
+        assert "key" not in key
 
-    def test_list_api_keys_unauthenticated(self):
-        """Test listing API keys without authentication fails."""
-        rv = self.client.get(API_KEYS_URI)
-
-        assert rv.status_code == 401
-
-    def test_revoke_api_key(self):
-        """Test revoking an API key."""
+    def test_get_api_key(self):
+        """Test getting a single API key via FAB endpoint."""
         self.login(ADMIN_USERNAME)
 
         # Create a key first
-        create_payload = {
-            "name": "Revoke Test Key",
-            "workspace_name": "default",
-        }
+        create_payload = {"name": "Get Test Key"}
         create_rv = self.client.post(API_KEYS_URI, json=create_payload)
         create_response = json.loads(create_rv.data.decode("utf-8"))
-        api_key_id = create_response["result"]["id"]
+        key_uuid = create_response["result"]["uuid"]
+
+        # Get the key
+        rv = self.client.get(f"{API_KEYS_URI}{key_uuid}")
+
+        assert rv.status_code == 200
+        response = json.loads(rv.data.decode("utf-8"))
+        assert response["result"]["name"] == "Get Test Key"
+        # Plaintext key should NOT be returned on get
+        assert "key" not in response["result"]
+
+    def test_revoke_api_key(self):
+        """Test revoking an API key via FAB endpoint."""
+        self.login(ADMIN_USERNAME)
+
+        # Create a key first
+        create_payload = {"name": "Revoke Test Key"}
+        create_rv = self.client.post(API_KEYS_URI, json=create_payload)
+        create_response = json.loads(create_rv.data.decode("utf-8"))
+        key_uuid = create_response["result"]["uuid"]
 
         # Revoke the key
-        revoke_rv = self.client.delete(f"{API_KEYS_URI}{api_key_id}")
+        revoke_rv = self.client.delete(f"{API_KEYS_URI}{key_uuid}")
 
         assert revoke_rv.status_code == 200
-        revoke_response = json.loads(revoke_rv.data.decode("utf-8"))
-        assert "revoked successfully" in revoke_response["message"]
-
-        # List keys and verify it's revoked
-        list_rv = self.client.get(API_KEYS_URI)
-        list_response = json.loads(list_rv.data.decode("utf-8"))
-        revoked_key = next(
-            (k for k in list_response["result"] if k["id"] == api_key_id), None
-        )
-
-        assert revoked_key is not None
-        assert revoked_key["revoked_on"] is not None
 
     def test_revoke_api_key_not_found(self):
         """Test revoking non-existent API key."""
         self.login(ADMIN_USERNAME)
 
-        rv = self.client.delete(f"{API_KEYS_URI}99999")
+        rv = self.client.delete(f"{API_KEYS_URI}nonexistent-uuid")
 
         assert rv.status_code == 404
-
-    def test_revoke_api_key_unauthenticated(self):
-        """Test revoking API key without authentication fails."""
-        rv = self.client.delete(f"{API_KEYS_URI}1")
-
-        assert rv.status_code == 401

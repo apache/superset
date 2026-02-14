@@ -19,25 +19,26 @@
 Authentication hooks for MCP tools.
 
 Supports multiple authentication methods:
-1. API Key authentication (Bearer token with pst_ prefix)
+1. API Key authentication via FAB SecurityManager (configurable prefix)
 2. JWT token authentication (via FastMCP BearerAuthProvider)
 3. Development mode (MCP_DEV_USERNAME configuration)
 
 API Key Authentication:
-- Users create API keys via Superset UI (/profile -> API Keys)
-- Keys are prefixed with 'pst_' for identification
-- Keys are validated against bcrypt hashes stored in ab_api_key table
-- Keys inherit the user's roles and permissions
+- Users create API keys via FAB's /api/v1/security/api_keys/ endpoints
+- Keys use configurable prefixes (FAB_API_KEY_PREFIXES, default: ["sst_"])
+- Keys are validated by FAB's SecurityManager.validate_api_key()
+- Keys inherit the user's roles and permissions via FAB's RBAC
 
 Configuration:
-- MCP_API_KEY_AUTH_ENABLED: Enable API key authentication (default: True)
+- FAB_API_KEY_ENABLED: Enable API key authentication (default: False)
+- FAB_API_KEY_PREFIXES: List of recognized key prefixes (default: ["sst_"])
 - MCP_DEV_USERNAME: Fallback username for development (no auth required)
 """
 
 import logging
 from typing import Any, Callable, TYPE_CHECKING, TypeVar
 
-from flask import g, request
+from flask import g
 from flask_appbuilder.security.sqla.models import User
 
 if TYPE_CHECKING:
@@ -49,67 +50,13 @@ F = TypeVar("F", bound=Callable[..., Any])
 logger = logging.getLogger(__name__)
 
 
-def _authenticate_with_api_key(api_key: str) -> User | None:
-    """
-    Authenticate using an API key.
-
-    Args:
-        api_key: The plaintext API key (e.g., pst_abc123...)
-
-    Returns:
-        User object if authentication succeeds, None otherwise
-    """
-    from sqlalchemy.orm import joinedload
-
-    from superset.daos.api_key import ApiKeyDAO
-    from superset.extensions import db
-    from superset.models.api_keys import ApiKey
-    from superset.utils.api_key import validate_api_key
-
-    # Get all active (non-revoked, non-expired) API keys
-    # We need to check each one since we can't look up by plaintext key
-    active_keys = (
-        db.session.query(ApiKey)
-        .filter(ApiKey.revoked_on.is_(None))
-        .all()
-    )
-
-    for stored_key in active_keys:
-        # Check if key is expired
-        if not stored_key.is_active():
-            continue
-
-        # Validate the API key against the stored hash
-        if validate_api_key(api_key, stored_key.key_hash):
-            # Update last_used_on timestamp
-            ApiKeyDAO.update_last_used(stored_key)
-
-            # Get the user with eager loading
-            user = (
-                db.session.query(User)
-                .options(joinedload(User.roles), joinedload(User.groups))
-                .filter(User.id == stored_key.user_id)
-                .first()
-            )
-
-            if user:
-                logger.info(
-                    "API key authentication successful: key_id=%s, user=%s",
-                    stored_key.id,
-                    user.username,
-                )
-                return user
-
-    return None
-
-
 def get_user_from_request() -> User:
     """
     Get the current user for the MCP tool request.
 
     Priority order:
     1. g.user if already set (by Preset workspace middleware or FastMCP auth)
-    2. API key from Authorization header (if MCP_API_KEY_AUTH_ENABLED)
+    2. API key from Authorization header (via FAB SecurityManager)
     3. MCP_DEV_USERNAME from configuration (for development/testing)
 
     Returns:
@@ -122,34 +69,24 @@ def get_user_from_request() -> User:
     from sqlalchemy.orm import joinedload
 
     from superset.extensions import db
-    from superset.utils.api_key import extract_api_key_from_header
 
     # First check if user is already set by Preset workspace middleware
     if hasattr(g, "user") and g.user:
         return g.user
 
-    # Try API key authentication if enabled
-    api_key_auth_enabled = current_app.config.get("MCP_API_KEY_AUTH_ENABLED", True)
-    if api_key_auth_enabled:
-        # Try to get API key from Authorization header
-        auth_header = None
-        try:
-            auth_header = request.headers.get("Authorization")
-        except RuntimeError:
-            # No request context (e.g., running in stdio mode)
-            pass
-
-        if auth_header:
-            api_key = extract_api_key_from_header(auth_header)
-            if api_key and api_key.startswith("pst_"):
-                user = _authenticate_with_api_key(api_key)
-                if user:
-                    return user
-                else:
-                    raise ValueError(
-                        "Invalid or expired API key. "
-                        "Create a new key at Settings -> User Info -> API Keys."
-                    )
+    # Try API key authentication via FAB SecurityManager
+    api_key_enabled = current_app.config.get("FAB_API_KEY_ENABLED", False)
+    if api_key_enabled:
+        sm = current_app.appbuilder.sm
+        api_key_string = sm._extract_api_key_from_request()
+        if api_key_string is not None:
+            user = sm.validate_api_key(api_key_string)
+            if user:
+                return user
+            raise ValueError(
+                "Invalid or expired API key. "
+                "Create a new key at /api/v1/security/api_keys/."
+            )
 
     # Fall back to configured username for development/single-user deployments
     username = current_app.config.get("MCP_DEV_USERNAME")
@@ -157,7 +94,7 @@ def get_user_from_request() -> User:
     if not username:
         raise ValueError(
             "No authenticated user found. "
-            "Either pass a valid API key (Bearer pst_...), "
+            "Either pass a valid API key (Bearer sst_...), "
             "JWT token, or configure MCP_DEV_USERNAME for development."
         )
 

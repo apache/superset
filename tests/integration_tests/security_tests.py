@@ -1543,9 +1543,10 @@ class TestRolePermission(SupersetTestCase):
             ["CurrentUserRestApi", "get_me"],
             ["CurrentUserRestApi", "update_me"],
             ["CurrentUserRestApi", "get_my_roles"],
-            ["CurrentUserRestApi", "get_api_keys"],
-            ["CurrentUserRestApi", "create_api_key"],
-            ["CurrentUserRestApi", "revoke_api_key"],
+            ["ApiKeyApi", "list_api_keys"],
+            ["ApiKeyApi", "create_api_key"],
+            ["ApiKeyApi", "get_api_key"],
+            ["ApiKeyApi", "revoke_api_key"],
             ["UserRestApi", "avatar"],
             # TODO (embedded) remove Dashboard:embedded after uuids have been shipped
             ["Dashboard", "embedded"],

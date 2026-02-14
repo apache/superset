@@ -14,11 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""add api keys
+"""add FAB api key table
 
-Revision ID: e8f4a3b2c1d0
+Revision ID: f1a2b3c4d5e6
 Revises: x2s8ocx6rto6
-Create Date: 2025-11-18 12:00:00.000000
+Create Date: 2026-02-13 12:00:00.000000
 
 """
 
@@ -26,43 +26,44 @@ import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision = "e8f4a3b2c1d0"
+revision = "f1a2b3c4d5e6"
 down_revision = "x2s8ocx6rto6"
 
 
 def upgrade():
-    """Create ab_api_key table for API key authentication."""
+    """Create ab_api_key table for FAB API key authentication.
+
+    This table is managed by FAB's SecurityManager. For fresh installs,
+    FAB's create_all() handles table creation. This migration ensures
+    existing Superset installs get the table on upgrade.
+    """
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    if "ab_api_key" in inspector.get_table_names():
+        return
+
     op.create_table(
         "ab_api_key",
         sa.Column("id", sa.Integer(), nullable=False),
+        sa.Column("uuid", sa.String(length=36), nullable=False),
         sa.Column("name", sa.String(length=256), nullable=False),
-        sa.Column("key_hash", sa.String(length=128), nullable=False),
-        sa.Column("key_prefix", sa.String(length=8), nullable=False),
+        sa.Column("key_hash", sa.String(length=256), nullable=False),
+        sa.Column("key_prefix", sa.String(length=16), nullable=False),
         sa.Column("user_id", sa.Integer(), nullable=False),
-        sa.Column("workspace_name", sa.String(length=256), nullable=False),
-        sa.Column("created_on", sa.DateTime(), nullable=False),
-        sa.Column("created_by_fk", sa.Integer(), nullable=True),
+        sa.Column("scopes", sa.Text(), nullable=True),
+        sa.Column("active", sa.Boolean(), nullable=False, server_default="1"),
+        sa.Column("created_on", sa.DateTime(), nullable=True),
         sa.Column("expires_on", sa.DateTime(), nullable=True),
         sa.Column("revoked_on", sa.DateTime(), nullable=True),
-        sa.Column("revoked_by_fk", sa.Integer(), nullable=True),
         sa.Column("last_used_on", sa.DateTime(), nullable=True),
-        sa.ForeignKeyConstraint(["created_by_fk"], ["ab_user.id"]),
-        sa.ForeignKeyConstraint(["revoked_by_fk"], ["ab_user.id"]),
-        sa.ForeignKeyConstraint(["user_id"], ["ab_user.id"]),
+        sa.ForeignKeyConstraint(["user_id"], ["ab_user.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
+        sa.UniqueConstraint("uuid"),
     )
 
-    # Create indexes
     with op.batch_alter_table("ab_api_key") as batch_op:
-        batch_op.create_index("idx_api_key_hash", ["key_hash"], unique=True)
-        batch_op.create_index("idx_api_key_user", ["user_id"], unique=False)
-        batch_op.create_index("idx_api_key_workspace", ["workspace_name"], unique=False)
-        batch_op.create_index(
-            "idx_api_key_workspace_user", ["workspace_name", "user_id"], unique=False
-        )
-        batch_op.create_index(
-            "idx_api_key_active", ["revoked_on", "expires_on"], unique=False
-        )
+        batch_op.create_index("idx_api_key_prefix", ["key_prefix"])
+        batch_op.create_index("idx_api_key_user_id", ["user_id"])
 
 
 def downgrade():

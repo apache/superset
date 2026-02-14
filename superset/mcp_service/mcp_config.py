@@ -30,10 +30,10 @@ logger = logging.getLogger(__name__)
 SUPERSET_WEBSERVER_ADDRESS = "http://localhost:9001"
 
 # API Key Authentication Configuration
-# When enabled, users can authenticate using API keys created in the Superset UI
-# API keys use the format: Authorization: Bearer pst_<key>
-# Keys are validated against bcrypt hashes stored in ab_api_key table
-MCP_API_KEY_AUTH_ENABLED = True
+# API key authentication is handled by FAB SecurityManager.
+# Enable via FAB_API_KEY_ENABLED=True in superset_config.py (or config.py).
+# API keys use the format: Authorization: Bearer sst_<key>
+# Keys are validated by FAB's SecurityManager.validate_api_key()
 
 # WebDriver Configuration for screenshots
 WEBDRIVER_BASEURL = "http://localhost:9001/"

@@ -24,14 +24,15 @@ import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { ApiKeyCreateModal } from './ApiKeyCreateModal';
 
 export interface ApiKey {
-  id: number;
+  uuid: string;
   name: string;
   key_prefix: string;
-  workspace_name: string;
+  active: boolean;
   created_on: string;
   expires_on: string | null;
   revoked_on: string | null;
   last_used_on: string | null;
+  scopes: string | null;
 }
 
 export function ApiKeyList() {
@@ -45,7 +46,7 @@ export function ApiKeyList() {
     setLoading(true);
     try {
       const response = await SupersetClient.get({
-        endpoint: '/api/v1/me/api_keys/',
+        endpoint: '/api/v1/security/api_keys/',
       });
       setApiKeys(response.json.result || []);
     } catch (error) {
@@ -60,7 +61,7 @@ export function ApiKeyList() {
   }, [fetchApiKeys]);
 
   const handleRevokeKey = useCallback(
-    async (keyId: number) => {
+    async (keyUuid: string) => {
       Modal.confirm({
         title: t('Revoke API Key'),
         content: t(
@@ -72,7 +73,7 @@ export function ApiKeyList() {
         onOk: async () => {
           try {
             await SupersetClient.delete({
-              endpoint: `/api/v1/me/api_keys/${keyId}`,
+              endpoint: `/api/v1/security/api_keys/${keyUuid}`,
             });
             addSuccessToast(t('API key revoked successfully'));
             fetchApiKeys();
@@ -151,11 +152,6 @@ export function ApiKeyList() {
       ),
     },
     {
-      title: t('Workspace'),
-      dataIndex: 'workspace_name',
-      key: 'workspace_name',
-    },
-    {
       title: t('Created'),
       dataIndex: 'created_on',
       key: 'created_on',
@@ -182,7 +178,7 @@ export function ApiKeyList() {
               <Button
                 type="link"
                 danger
-                onClick={() => handleRevokeKey(record.id)}
+                onClick={() => handleRevokeKey(record.uuid)}
               >
                 {t('Revoke')}
               </Button>
@@ -229,7 +225,7 @@ export function ApiKeyList() {
         columns={columns}
         data={apiKeys}
         loading={loading}
-        rowKey="id"
+        rowKey="uuid"
         pagination={{ pageSize: 10 }}
       />
       {showCreateModal && (
