@@ -2570,3 +2570,8 @@ for env_var in ENV_VAR_KEYS:
     if env_var in os.environ:
         config_var = env_var.replace("SUPERSET__", "")
         globals()[config_var] = os.environ[env_var]
+
+
+ASYNC_TASK_MAX_RETRIES = 3
+ASYNC_TASK_RETRY_BACKOFF = True
+ASYNC_TASK_RETRY_BACKOFF_MAX = 60
