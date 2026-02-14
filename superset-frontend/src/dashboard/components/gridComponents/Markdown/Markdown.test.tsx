@@ -403,6 +403,27 @@ test('shouldFocusMarkdown returns false when clicking outside markdown container
   expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
 });
 
+test('should re-enter edit mode on a single click after clicking outside', async () => {
+  await setup({ editMode: true });
+
+  const markdownContainer = screen.getByTestId(
+    'dashboard-component-chart-holder',
+  );
+
+  // Click to enter edit mode
+  userEvent.click(markdownContainer);
+  expect(await screen.findByRole('textbox')).toBeInTheDocument();
+
+  // Click outside to exit edit mode
+  userEvent.click(document.body);
+  await new Promise(resolve => setTimeout(resolve, 50));
+  expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+
+  // Click back inside — editor should appear on a single click
+  userEvent.click(markdownContainer);
+  expect(await screen.findByRole('textbox')).toBeInTheDocument();
+});
+
 test('shouldFocusMarkdown keeps focus when clicking on menu items', async () => {
   await setup({ editMode: true });
 
