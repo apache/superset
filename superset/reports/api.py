@@ -15,7 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from datetime import datetime, timezone
 from typing import Any, Optional
+from uuid import uuid4
 
 from flask import request, Response
 from flask_appbuilder.api import expose, permission_name, protect, rison, safe
@@ -36,6 +38,7 @@ from superset.commands.report.exceptions import (
     ReportScheduleNotFoundError,
     ReportScheduleUpdateFailedError,
 )
+from superset.commands.report.execute import AsyncExecuteReportScheduleCommand
 from superset.commands.report.update import UpdateReportScheduleCommand
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.dashboards.filters import DashboardAccessFilter
@@ -76,6 +79,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         RouteMethod.RELATED,
         "bulk_delete",
         "slack_channels",  # not using RouteMethod since locally defined
+        "run_now",
     }
     class_permission_name = "ReportSchedule"
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
@@ -466,6 +470,44 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
                 exc_info=True,
             )
             return self.response_422(message=str(ex))
+
+    @expose("/<int:pk>/run_now", methods=("POST",))
+    @permission_name("post")
+    @protect()
+    @safe
+    @statsd_metrics
+    def run_now(self, pk: int) -> Response:
+        """
+        Run a report immediately, bypassing the schedule.
+        ---
+        post:
+          description: Run a report immediately
+          parameters:
+          - in: path
+            name: pk
+            schema:
+              type: integer
+            required: true
+            description: ReportSchedule primary key
+          responses:
+            200:
+              description: Report triggered
+            500:
+              description: Failed to run report
+        """
+        # Use a random UUID for the execution id
+        execution_id = str(uuid4())
+        # Use current time as scheduled_dttm
+        scheduled_dttm = datetime.now(timezone.utc)
+        try:
+            AsyncExecuteReportScheduleCommand(execution_id, pk, scheduled_dttm).run()
+            return self.response(200, message="Report execution started")
+        except (
+            ReportScheduleNotFoundError,
+            ReportScheduleInvalidError,
+            SupersetException,
+        ) as ex:
+            return self.response(500, message=f"Failed to run report: {ex}")
 
     @expose("/", methods=("DELETE",))
     @protect()
