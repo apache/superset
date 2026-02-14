@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useCallback, useEffect, useState } from 'react';
-import { t, SupersetClient } from '@superset-ui/core';
+import { SupersetClient } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { css, useTheme } from '@apache-superset/core/ui';
 import { Button, Table, Modal, Tooltip } from '@superset-ui/core/components';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
