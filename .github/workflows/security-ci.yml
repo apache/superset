@@ -1,0 +1,69 @@
+on:
+  push:
+    branches:
+      - "master"
+  pull_request:
+    branches:
+      - "*"
+  workflow_dispatch:
+    inputs:
+      logLevel:
+        description: "Log level"
+        required: true
+        default: "warning"
+
+jobs:
+  bandit-analysis:
+    name: Bandit Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Install dependencies
+        run: pip install bandit
+      - name: Run Bandit security scanner
+        run: |
+          bandit -r ./ --severity high
+  pip-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Create virtual environment for pip-audit
+        run: python3 -m venv audit-env
+      - name: Activate virtual environment for pip-audit
+        run: source audit-env/bin/activate
+      - name: Install  pip-audit and dependencies
+        run: |
+          sudo apt-get update
+          pip install --upgrade configobj
+          pip install --upgrade twisted
+          pip install --upgrade wheel
+          pip install --upgrade oauthlib
+          sudo apt-get install -y libsasl2-dev
+          pip install -r requirements/local.txt pip-audit
+      - name: Run pip-audit
+        run: pip-audit
+      - name: Deactivate virtual environment for pip-audit
+        run: deactivate
+  safety:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Create virtual environment for safety
+        run: python3 -m venv safety-env
+      - name: Activate virtual environment for safety
+        run: source safety-env/bin/activate
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          pip install --upgrade twisted
+          pip install --upgrade wheel
+          pip install --upgrade oauthlib
+          sudo apt-get install -y libsasl2-dev
+          pip install -r requirements/local.txt safety
+      - name: Run safety check
+        run: safety check --full-report
+      - name: Deactivate virtual environment for safety
+        run: deactivate
