@@ -117,8 +117,12 @@ def get_user_from_request() -> User:
         return g.user
 
     # Try API key authentication via FAB SecurityManager
+    # Only attempt when in a request context (not for MCP internal operations
+    # like tool discovery that run with only an application context)
+    from flask import has_request_context
+
     api_key_enabled = current_app.config.get("FAB_API_KEY_ENABLED", False)
-    if api_key_enabled:
+    if api_key_enabled and has_request_context():
         sm = current_app.appbuilder.sm
         api_key_string = sm._extract_api_key_from_request()
         if api_key_string is not None:
