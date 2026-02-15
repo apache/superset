@@ -178,27 +178,26 @@ function getCellColor(
   keys: string[],
   aggValue: string | number | null,
   cellColorFormatters: Record<string, CellColorFormatter[]> | undefined,
-) {
+): { backgroundColor: string | undefined } {
+  if (!cellColorFormatters) return { backgroundColor: undefined };
+
   let backgroundColor: string | undefined;
-  if (cellColorFormatters) {
-    Object.values(cellColorFormatters).forEach(cellColorFormatter => {
-      if (Array.isArray(cellColorFormatter)) {
-        keys.forEach((key: string) => {
-          if (backgroundColor) {
-            return;
+
+  for (const cellColorFormatter of Object.values(cellColorFormatters)) {
+    if (!Array.isArray(cellColorFormatter)) continue;
+
+    for (const key of keys) {
+      for (const formatter of cellColorFormatter) {
+        if (formatter.column === key) {
+          const result = formatter.getColorFromValue(aggValue);
+          if (result) {
+            backgroundColor = result;
           }
-          cellColorFormatter
-            .filter(formatter => formatter.column === key)
-            .forEach(formatter => {
-              const formatterResult = formatter.getColorFromValue(aggValue);
-              if (formatterResult) {
-                backgroundColor = formatterResult;
-              }
-            });
-        });
+        }
       }
-    });
+    }
   }
+
   return { backgroundColor };
 }
 
