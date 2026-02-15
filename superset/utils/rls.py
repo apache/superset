@@ -98,6 +98,10 @@ def get_predicates_for_table(
     if not dataset:
         return []
 
+    # Use internal method with include_guest_rls=False to prevent double RLS
+    # application in virtual datasets. Guest RLS will be applied to the outer
+    # query via get_sqla_row_level_filters() on the virtual dataset itself.
+    # See Issue #37359.
     return [
         str(
             predicate.compile(
@@ -105,7 +109,9 @@ def get_predicates_for_table(
                 compile_kwargs={"literal_binds": True},
             )
         )
-        for predicate in dataset.get_sqla_row_level_filters()
+        for predicate in dataset._get_sqla_row_level_filters_internal(
+            include_guest_rls=False
+        )
     ]
 
 
