@@ -78,23 +78,6 @@ const RefreshTooltip = styled.div`
 const getScreenshotNodeSelector = (chartId: string | number) =>
   `.dashboard-chart-id-${chartId}`;
 
-const VerticalDotsTrigger = () => {
-  const theme = useTheme();
-  return (
-    <Icons.EllipsisOutlined
-      css={css`
-        transform: rotate(90deg);
-        &:hover {
-          cursor: pointer;
-        }
-      `}
-      iconSize="xl"
-      iconColor={theme.colorTextLabel}
-      className="dot"
-    />
-  );
-};
-
 export interface SliceHeaderControlsProps {
   slice: {
     description: string;
@@ -590,7 +573,14 @@ const SliceHeaderControls = (
             padding-right: 0px;
           `}
         >
-          <VerticalDotsTrigger />
+          <Icons.EllipsisOutlined
+            css={css`
+              transform: rotate(90deg);
+            `}
+            iconSize="xl"
+            iconColor={theme.colorTextLabel}
+            className="dot"
+          />
         </Button>
       </NoAnimationDropdown>
       <DrillDetailModal
