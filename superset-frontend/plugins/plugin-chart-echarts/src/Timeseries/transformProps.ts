@@ -114,7 +114,7 @@ import {
   getYAxisFormatter,
 } from '../utils/formatters';
 
-function mapXAxisSortToSeriesType(
+export function mapXAxisSortToSeriesType(
   xAxisSort?: string,
 ): SortSeriesType | undefined {
   if (!xAxisSort) {
