@@ -55,132 +55,137 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
     height,
     draggable,
     hideFooter,
-  }) => css`
-    ${responsive &&
-    css`
-      max-width: ${maxWidth ?? '900px'};
-      padding-left: ${theme.sizeUnit * 3}px;
-      padding-right: ${theme.sizeUnit * 3}px;
-      padding-bottom: 0;
-      top: 0;
-    `}
+  }) => {
+    const closeButtonWidth = theme.sizeUnit * 14;
 
-    .ant-modal-content {
-      background-color: ${theme.colorBgContainer};
-      display: flex;
-      flex-direction: column;
-      max-height: calc(100vh - ${theme.sizeUnit * 8}px);
-      margin-bottom: ${theme.sizeUnit * 4}px;
-      margin-top: ${theme.sizeUnit * 4}px;
-      padding: 0;
-    }
+    return css`
+      ${responsive &&
+      css`
+        max-width: ${maxWidth ?? '900px'};
+        padding-left: ${theme.sizeUnit * 3}px;
+        padding-right: ${theme.sizeUnit * 3}px;
+        padding-bottom: 0;
+        top: 0;
+      `}
 
-    .ant-modal-header {
-      flex: 0 0 auto;
-      border-radius: ${theme.borderRadius}px ${theme.borderRadius}px 0 0;
-      padding: ${theme.sizeUnit * 4}px ${theme.sizeUnit * 4}px;
-
-      .ant-modal-title {
-        font-weight: ${theme.fontWeightStrong};
-      }
-
-      .ant-modal-title h4 {
+      .ant-modal-content {
+        background-color: ${theme.colorBgContainer};
         display: flex;
-        margin: 0;
-        align-items: center;
+        flex-direction: column;
+        max-height: calc(100vh - ${theme.sizeUnit * 8}px);
+        margin-bottom: ${theme.sizeUnit * 4}px;
+        margin-top: ${theme.sizeUnit * 4}px;
+        padding: 0;
       }
-    }
 
-    .ant-modal-close {
-      width: ${theme.sizeUnit * 14}px;
-      height: ${theme.sizeUnit * 14}px;
-      padding: ${theme.sizeUnit * 6}px ${theme.sizeUnit * 4}px
-        ${theme.sizeUnit * 4}px;
-      top: 0;
-      right: 0;
-      display: flex;
-      justify-content: center;
-    }
+      .ant-modal-header {
+        flex: 0 0 auto;
+        border-radius: ${theme.borderRadius}px ${theme.borderRadius}px 0 0;
+        padding: ${theme.sizeUnit * 4}px ${closeButtonWidth}px
+          ${theme.sizeUnit * 4}px ${theme.sizeUnit * 4}px;
 
-    .ant-modal-close:hover {
-      background: transparent;
-    }
+        .ant-modal-title {
+          font-weight: ${theme.fontWeightStrong};
+        }
 
-    .ant-modal-close-x {
-      display: flex;
-      align-items: center;
-      [data-test='close-modal-btn'] {
+        .ant-modal-title h4 {
+          display: flex;
+          margin: 0;
+          align-items: center;
+        }
+      }
+
+      .ant-modal-close {
+        width: ${closeButtonWidth}px;
+        height: ${theme.sizeUnit * 14}px;
+        padding: ${theme.sizeUnit * 6}px ${theme.sizeUnit * 4}px
+          ${theme.sizeUnit * 4}px;
+        top: 0;
+        right: 0;
+        display: flex;
         justify-content: center;
       }
-      .close {
-        flex: 1 1 auto;
-        margin-bottom: ${theme.sizeUnit}px;
-        color: ${theme.colorPrimaryText};
-        font-weight: ${theme.fontWeightLight};
-      }
-    }
 
-    .ant-modal-body {
-      flex: 0 1 auto;
-      padding: ${theme.sizeUnit * 4}px ${theme.sizeUnit * 6}px;
-
-      overflow: auto;
-      ${!resizable && height && `height: ${height};`}
-    }
-
-    .ant-modal-footer {
-      flex: 0 0 1;
-      border-top: ${theme.sizeUnit / 4}px solid ${theme.colorSplit};
-      padding: ${theme.sizeUnit * 4}px;
-      margin-top: 0;
-
-      .btn {
-        font-size: 12px;
+      .ant-modal-close:hover {
+        background: transparent;
       }
 
-      .btn + .btn {
-        margin-left: ${theme.sizeUnit * 2}px;
+      .ant-modal-close-x {
+        display: flex;
+        align-items: center;
+        [data-test='close-modal-btn'] {
+          justify-content: center;
+        }
+        .close {
+          flex: 1 1 auto;
+          margin-bottom: ${theme.sizeUnit}px;
+          color: ${theme.colorPrimaryText};
+          font-weight: ${theme.fontWeightLight};
+        }
       }
-    }
 
-    &.no-content-padding .ant-modal-body {
-      padding: 0;
-    }
+      .ant-modal-body {
+        flex: 0 1 auto;
+        padding: ${theme.sizeUnit * 4}px ${theme.sizeUnit * 6}px;
 
-    ${draggable &&
-    css`
-      .ant-modal-header {
+        overflow: auto;
+        ${!resizable && height && `height: ${height};`}
+      }
+
+      .ant-modal-footer {
+        flex: 0 0 1;
+        border-top: ${theme.sizeUnit / 4}px solid ${theme.colorSplit};
+        padding: ${theme.sizeUnit * 4}px;
+        margin-top: 0;
+
+        .btn {
+          font-size: 12px;
+        }
+
+        .btn + .btn {
+          margin-left: ${theme.sizeUnit * 2}px;
+        }
+      }
+
+      &.no-content-padding .ant-modal-body {
         padding: 0;
-
-        .draggable-trigger {
-          cursor: move;
-          padding: ${theme.sizeUnit * 4}px;
-          width: 100%;
-        }
       }
-    `}
 
-    ${resizable &&
-    css`
-      .resizable {
-        pointer-events: all;
+      ${draggable &&
+      css`
+        .ant-modal-header {
+          padding: 0;
 
-        .resizable-wrapper {
-          height: 100%;
-        }
-
-        .ant-modal-content {
-          height: 100%;
-
-          .ant-modal-body {
-            height: ${hideFooter
-              ? `calc(100% - ${MODAL_HEADER_HEIGHT}px)`
-              : `calc(100% - ${MODAL_HEADER_HEIGHT}px - ${MODAL_FOOTER_HEIGHT}px)`};
+          .draggable-trigger {
+            cursor: move;
+            padding: ${theme.sizeUnit * 4}px;
+            width: 100%;
           }
         }
-      }
-    `}
-  `}
+      `}
+
+      ${resizable &&
+      css`
+        .resizable {
+          pointer-events: all;
+
+          .resizable-wrapper {
+            height: 100%;
+          }
+
+          .ant-modal-content {
+            height: 100%;
+
+            .ant-modal-body {
+              height: ${hideFooter
+                ? `calc(100% - ${MODAL_HEADER_HEIGHT}px)`
+                : `calc(100% - ${MODAL_HEADER_HEIGHT}px - ${MODAL_FOOTER_HEIGHT}px)`};
+            }
+          }
+        }
+      `}
+    `;
+  }}
 `;
 
 const defaultResizableConfig = (hideFooter: boolean | undefined) => ({
