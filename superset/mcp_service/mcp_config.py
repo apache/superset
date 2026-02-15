@@ -182,21 +182,21 @@ def create_default_mcp_auth_factory(app: Flask) -> Optional[Any]:
         return None
 
     try:
-        from fastmcp.server.auth.providers.jwt import JWTVerifier
+        from superset.mcp_service.jwt_verifier import DetailedJWTVerifier
 
         # For HS256 (symmetric), use the secret as the public_key parameter
         if app.config.get("MCP_JWT_ALGORITHM") == "HS256" and secret:
-            auth_provider = JWTVerifier(
+            auth_provider = DetailedJWTVerifier(
                 public_key=secret,  # HS256 uses secret as key
                 issuer=app.config.get("MCP_JWT_ISSUER"),
                 audience=app.config.get("MCP_JWT_AUDIENCE"),
                 algorithm="HS256",
                 required_scopes=app.config.get("MCP_REQUIRED_SCOPES", []),
             )
-            logger.info("Created JWTVerifier with HS256 secret")
+            logger.info("Created DetailedJWTVerifier with HS256 secret")
         else:
             # For RS256 (asymmetric), use public key or JWKS
-            auth_provider = JWTVerifier(
+            auth_provider = DetailedJWTVerifier(
                 jwks_uri=jwks_uri,
                 public_key=public_key,
                 issuer=app.config.get("MCP_JWT_ISSUER"),
@@ -205,7 +205,7 @@ def create_default_mcp_auth_factory(app: Flask) -> Optional[Any]:
                 required_scopes=app.config.get("MCP_REQUIRED_SCOPES", []),
             )
             logger.info(
-                "Created JWTVerifier with jwks_uri=%s, public_key=%s",
+                "Created DetailedJWTVerifier with jwks_uri=%s, public_key=%s",
                 jwks_uri,
                 "***" if public_key else None,
             )
