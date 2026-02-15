@@ -31,6 +31,7 @@ export default class DeckglLayerVisibilityCustomizationPlugin extends ChartPlugi
       tags: [t('Deckgl'), t('Experimental')],
       thumbnail: '',
       enableNoResults: false,
+      datasourceCount: 0,
     });
 
     super({
