@@ -16,15 +16,23 @@
 # under the License.
 
 """
-Minimal authentication hooks for MCP tools.
-This is a placeholder implementation that provides basic user context.
+Authentication hooks for MCP tools.
 
-Future enhancements (to be added in separate PRs):
-- JWT token authentication and validation
-- User impersonation support
-- Permission checking with scopes
-- Comprehensive audit logging
-- Field-level permissions
+Supports multiple authentication methods:
+1. API Key authentication via FAB SecurityManager (configurable prefix)
+2. JWT token authentication (via FastMCP BearerAuthProvider)
+3. Development mode (MCP_DEV_USERNAME configuration)
+
+API Key Authentication:
+- Users create API keys via FAB's /api/v1/security/api_keys/ endpoints
+- Keys use configurable prefixes (FAB_API_KEY_PREFIXES, default: ["sst_"])
+- Keys are validated by FAB's SecurityManager.validate_api_key()
+- Keys inherit the user's roles and permissions via FAB's RBAC
+
+Configuration:
+- FAB_API_KEY_ENABLED: Enable API key auth (default: False)
+- FAB_API_KEY_PREFIXES: Key prefixes (default: ["sst_"])
+- MCP_DEV_USERNAME: Fallback username for development
 """
 
 import logging
@@ -92,8 +100,9 @@ def get_user_from_request() -> User:
     Get the current user for the MCP tool request.
 
     Priority order:
-    1. g.user if already set (by Preset workspace middleware)
-    2. MCP_DEV_USERNAME from configuration (for development/testing)
+    1. g.user if already set (by Preset workspace middleware or FastMCP auth)
+    2. API key from Authorization header (via FAB SecurityManager)
+    3. MCP_DEV_USERNAME from configuration (for development/testing)
 
     Returns:
         User object with roles and groups eagerly loaded
@@ -107,14 +116,32 @@ def get_user_from_request() -> User:
     if hasattr(g, "user") and g.user:
         return g.user
 
+    # Try API key authentication via FAB SecurityManager
+    # Only attempt when in a request context (not for MCP internal operations
+    # like tool discovery that run with only an application context)
+    from flask import has_request_context
+
+    api_key_enabled = current_app.config.get("FAB_API_KEY_ENABLED", False)
+    if api_key_enabled and has_request_context():
+        sm = current_app.appbuilder.sm
+        api_key_string = sm._extract_api_key_from_request()
+        if api_key_string is not None:
+            user = sm.validate_api_key(api_key_string)
+            if user:
+                return user
+            raise ValueError(
+                "Invalid or expired API key. "
+                "Create a new key at /api/v1/security/api_keys/."
+            )
+
     # Fall back to configured username for development/single-user deployments
     username = current_app.config.get("MCP_DEV_USERNAME")
 
     if not username:
         raise ValueError(
             "No authenticated user found. "
-            "Either pass a valid JWT bearer token or configure "
-            "MCP_DEV_USERNAME for development."
+            "Either pass a valid API key (Bearer sst_...), "
+            "JWT token, or configure MCP_DEV_USERNAME for development."
         )
 
     # Use helper function to load user with all required relationships
