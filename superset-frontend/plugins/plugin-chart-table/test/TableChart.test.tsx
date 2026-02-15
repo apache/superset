@@ -1514,6 +1514,47 @@ describe('plugin-chart-table', () => {
       });
     });
 
+    describe('column label localization', () => {
+      test('should display localized column labels when locale has translation', () => {
+        const props = transformProps(cloneDeep(testData.columnLocalization));
+
+        render(<TableChart {...props} sticky={false} />);
+
+        // Column with German translation should show localized label
+        expect(screen.getByText('Erscheinungsjahr')).toBeInTheDocument();
+
+        // Column without translation should show original label
+        expect(screen.getByText('Category')).toBeInTheDocument();
+
+        // Original label should NOT be visible for translated column
+        expect(screen.queryByText('Release Year')).not.toBeInTheDocument();
+      });
+
+      test('should display original column labels when locale has no translation', () => {
+        const testDataClone = cloneDeep(testData.columnLocalization);
+        testDataClone.locale = 'fr'; // French - no translations defined
+        const props = transformProps(testDataClone);
+
+        render(<TableChart {...props} sticky={false} />);
+
+        // Both columns should show original labels since French has no translations
+        expect(screen.getByText('Release Year')).toBeInTheDocument();
+        expect(screen.getByText('Category')).toBeInTheDocument();
+      });
+
+      test('should display original column labels when locale is undefined', () => {
+        const testDataClone = cloneDeep(testData.columnLocalization);
+        testDataClone.locale = undefined;
+        const props = transformProps(testDataClone);
+
+        render(<TableChart {...props} sticky={false} />);
+
+        // Both columns should show original labels
+        expect(screen.getByText('Release Year')).toBeInTheDocument();
+        expect(screen.getByText('Category')).toBeInTheDocument();
+      });
+    });
+
     test('recalculates totals when user filters data', async () => {
         const formDataWithTotals = {
           ...testData.basic.formData,

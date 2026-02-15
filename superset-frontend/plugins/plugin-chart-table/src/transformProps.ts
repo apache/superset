@@ -19,6 +19,7 @@
 import memoizeOne from 'memoize-one';
 import { t } from '@apache-superset/core';
 import {
+  buildLocalizedColumnLabelMap,
   buildLocalizedMetricLabelMap,
   ComparisonType,
   CurrencyFormatter,
@@ -214,6 +215,7 @@ const processColumns = memoizeOne(function processColumns(
       metrics: metrics_,
       percent_metrics: percentMetrics_,
       column_config: columnConfig = {},
+      groupby: groupby_,
     },
     rawDatasource,
     queriesData,
@@ -240,6 +242,12 @@ const processColumns = memoizeOne(function processColumns(
     locale,
   );
 
+  // Build map from original column labels to localized labels (for groupby/dimension columns)
+  const localizedColumnLabelMap = buildLocalizedColumnLabelMap(
+    groupby_,
+    locale,
+  );
+
   const columns: DataColumnMeta[] = (colnames || [])
     .filter(
       key =>
@@ -258,11 +266,11 @@ const processColumns = memoizeOne(function processColumns(
         isPercentMetric && verboseMap?.hasOwnProperty(key.replace('%', ''))
           ? `%${verboseMap[key.replace('%', '')]}`
           : verboseMap?.[key] || key;
-      // Apply localization if available for metrics
+      // Apply localization: metrics first, then columns, finally fall back to baseLabel
       const label =
         isMetric && localizedMetricLabelMap[key]
           ? localizedMetricLabelMap[key]
-          : baseLabel;
+          : localizedColumnLabelMap[key] ?? baseLabel;
       const isTime = dataType === GenericDataType.Temporal;
       const isNumber = dataType === GenericDataType.Numeric;
       const savedFormat = columnFormats?.[key];

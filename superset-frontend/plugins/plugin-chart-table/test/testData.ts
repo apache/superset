@@ -472,6 +472,68 @@ const nameAndBoolean: TableChartProps = {
 };
 
 /**
+ * Test data for adhoc column label localization.
+ * Contains adhoc columns (groupby) with translations to verify localized labels render.
+ */
+const columnLocalization: TableChartProps = {
+  ...new ChartProps(basicChartProps),
+  locale: 'de',
+  rawFormData: {
+    ...basicFormData,
+    query_mode: QueryMode.Aggregate,
+    groupby: [
+      {
+        expressionType: 'SQL',
+        sqlExpression: 'release_year',
+        label: 'Release Year',
+        hasCustomLabel: true,
+        translations: {
+          label: {
+            de: 'Erscheinungsjahr',
+            ru: 'Год выпуска',
+          },
+        },
+      },
+      {
+        expressionType: 'SQL',
+        sqlExpression: 'category',
+        label: 'Category',
+        hasCustomLabel: true,
+        // No translations for this column
+      },
+    ],
+    metrics: ['count'],
+  },
+  datasource: {
+    ...basicChartProps.datasource,
+    verboseMap: {},
+  },
+  queriesData: [
+    {
+      ...basicQueryResult,
+      colnames: ['Release Year', 'Category', 'count'],
+      coltypes: [
+        GenericDataType.Numeric,
+        GenericDataType.String,
+        GenericDataType.Numeric,
+      ],
+      data: [
+        {
+          'Release Year': 2020,
+          Category: 'Drama',
+          count: 100,
+        },
+        {
+          'Release Year': 2021,
+          Category: 'Comedy',
+          count: 150,
+        },
+      ],
+    },
+  ],
+};
+
+/**
  * Test data for metric label localization.
  * Contains adhoc metrics with translations to verify localized labels render.
  */
@@ -543,4 +605,5 @@ export default {
   bigint,
   nameAndBoolean,
   localization,
+  columnLocalization,
 };
