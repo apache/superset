@@ -19,6 +19,7 @@
 import memoizeOne from 'memoize-one';
 import { t } from '@apache-superset/core';
 import {
+  buildLocalizedMetricLabelMap,
   ComparisonType,
   CurrencyFormatter,
   Currency,
@@ -199,6 +200,7 @@ const processComparisonDataRecords = memoizeOne(
 
 const processColumns = memoizeOne(function processColumns(
   props: TableChartProps,
+  locale?: string,
 ) {
   const {
     datasource: {
@@ -232,6 +234,12 @@ const processColumns = memoizeOne(function processColumns(
   const percentMetricsSet = new Set(percentMetrics);
   const rawPercentMetricsSet = new Set(rawPercentMetrics);
 
+  // Build map from original metric labels to localized labels
+  const localizedMetricLabelMap = buildLocalizedMetricLabelMap(
+    metrics_,
+    locale,
+  );
+
   const columns: DataColumnMeta[] = (colnames || [])
     .filter(
       key =>
@@ -245,10 +253,16 @@ const processColumns = memoizeOne(function processColumns(
       // because users can also add things like `MAX(str_col)` as a metric.
       const isMetric = metricsSet.has(key) && isNumeric(key, records);
       const isPercentMetric = percentMetricsSet.has(key);
-      const label =
+      // Get base label from verboseMap or key
+      const baseLabel =
         isPercentMetric && verboseMap?.hasOwnProperty(key.replace('%', ''))
           ? `%${verboseMap[key.replace('%', '')]}`
           : verboseMap?.[key] || key;
+      // Apply localization if available for metrics
+      const label =
+        isMetric && localizedMetricLabelMap[key]
+          ? localizedMetricLabelMap[key]
+          : baseLabel;
       const isTime = dataType === GenericDataType.Temporal;
       const isNumber = dataType === GenericDataType.Numeric;
       const savedFormat = columnFormats?.[key];
@@ -505,6 +519,7 @@ const transformProps = (
     },
     emitCrossFilters,
     theme,
+    locale,
   } = chartProps;
 
   const formData = merge(
@@ -678,7 +693,7 @@ const transformProps = (
     ? ensureIsArray(timeOffsets)[0]
     : '';
 
-  const [metrics, percentMetrics, columns] = processColumns(chartProps);
+  const [metrics, percentMetrics, columns] = processColumns(chartProps, locale);
   let comparisonColumns: DataColumnMeta[] = [];
   if (isUsingTimeComparison) {
     comparisonColumns = processComparisonColumns(
