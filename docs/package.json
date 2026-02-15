@@ -48,6 +48,7 @@
     "@emotion/react": "^11.13.3",
     "@emotion/styled": "^11.14.1",
     "@fontsource/fira-code": "^5.2.7",
+    "@fontsource/ibm-plex-mono": "^5.2.7",
     "@fontsource/inter": "^5.2.8",
     "@mdx-js/react": "^3.1.1",
     "@saucelabs/theme-github-codeblock": "^0.3.0",
@@ -64,7 +65,7 @@
     "@storybook/theming": "^8.6.15",
     "@superset-ui/core": "^0.20.4",
     "@swc/core": "^1.15.11",
-    "antd": "^6.2.3",
+    "antd": "^6.3.0",
     "baseline-browser-mapping": "^2.9.19",
     "caniuse-lite": "^1.0.30001769",
     "docusaurus-plugin-openapi-docs": "^4.6.0",
@@ -94,7 +95,7 @@
     "@types/js-yaml": "^4.0.9",
     "@types/react": "^19.1.8",
     "@typescript-eslint/eslint-plugin": "^8.52.0",
-    "@typescript-eslint/parser": "^8.52.0",
+    "@typescript-eslint/parser": "^8.55.0",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",
@@ -102,8 +103,8 @@
     "globals": "^17.3.0",
     "prettier": "^3.8.1",
     "typescript": "~5.9.3",
-    "typescript-eslint": "^8.54.0",
-    "webpack": "^5.105.0"
+    "typescript-eslint": "^8.55.0",
+    "webpack": "^5.105.2"
   },
   "browserslist": {
     "production": [

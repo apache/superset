@@ -34,6 +34,7 @@ from superset.daos.exceptions import DAOCreateFailedError
 from superset.stats_logger import BaseStatsLogger
 from superset.tasks.locks import task_lock
 from superset.tasks.utils import get_active_dedup_key
+from superset.utils.core import get_user_id
 from superset.utils.decorators import on_error, transaction
 
 if TYPE_CHECKING:
@@ -87,7 +88,7 @@ class SubmitTaskCommand(BaseCommand):
         task_type = self._properties["task_type"]
         task_key = self._properties.get("task_key") or str(uuid.uuid4())
         scope = self._properties.get("scope", TaskScope.PRIVATE.value)
-        user_id = self._properties.get("user_id")
+        user_id = get_user_id()
 
         # Build dedup_key for lock
         dedup_key = get_active_dedup_key(

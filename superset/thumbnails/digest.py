@@ -128,6 +128,6 @@ def get_chart_digest(chart: Slice) -> str | None:
 
     unique_string = f"{chart.params or ''}.{executor}"
     unique_string = _adjust_string_for_executor(unique_string, executor_type, executor)
-    unique_string = _adjust_string_with_rls(unique_string, [chart.datasource], executor)
+    unique_string = _adjust_string_with_rls(unique_string, [chart.table], executor)
 
     return hash_from_str(unique_string)

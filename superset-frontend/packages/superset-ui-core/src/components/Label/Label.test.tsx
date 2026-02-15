@@ -34,6 +34,11 @@ test('works with an onClick handler', () => {
   expect(mockAction).toHaveBeenCalled();
 });
 
+test('renders with monospace prop', () => {
+  const { getByText } = render(<Label monospace>monospace text</Label>);
+  expect(getByText('monospace text')).toBeInTheDocument();
+});
+
 // test stories from the storybook!
 test('renders all the storybook gallery variants', () => {
   // @ts-expect-error: Suppress TypeScript error for LabelGallery usage

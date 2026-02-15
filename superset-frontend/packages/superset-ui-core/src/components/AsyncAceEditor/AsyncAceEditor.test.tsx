@@ -42,6 +42,21 @@ test('renders SQLEditor', async () => {
   });
 });
 
+test('SQLEditor uses fontFamilyCode from theme', async () => {
+  const ref = createRef<AceEditor>();
+  const { container } = render(<SQLEditor ref={ref as React.Ref<never>} />);
+
+  await waitFor(() => {
+    expect(container.querySelector(selector)).toBeInTheDocument();
+  });
+
+  const editorInstance = ref.current?.editor;
+  const fontFamily = editorInstance?.getOption('fontFamily');
+  // Verify font family is set (not undefined) and contains a monospace font
+  expect(fontFamily).toBeDefined();
+  expect(fontFamily).toMatch(/mono|courier|consolas/i);
+});
+
 test('renders FullSQLEditor', async () => {
   const { container } = render(<FullSQLEditor />);
 

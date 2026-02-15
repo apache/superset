@@ -15,6 +15,7 @@ updates:
       - dependency-name: "@storybook*"
         update-types: ["version-update:semver-major", "version-update:semver-minor"]
       - dependency-name: "eslint-plugin-storybook"
+      - dependency-name: "react-error-boundary"
       # remark-gfm v4+ requires react-markdown v9+, which needs React 18
       - dependency-name: "remark-gfm"
       - dependency-name: "react-markdown"
@@ -92,16 +93,6 @@ updates:
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/legacy-plugin-chart-calendar/"
-    schedule:
-      interval: "daily"
-    labels:
-      - npm
-      - dependabot
-    open-pull-requests-limit: 5
-    versioning-strategy: increase
-
-  - package-ecosystem: "npm"
-    directory: "/superset-frontend/plugins/legacy-plugin-chart-histogram/"
     schedule:
       interval: "daily"
     labels:
@@ -211,16 +202,6 @@ updates:
     versioning-strategy: increase
 
   - package-ecosystem: "npm"
-    directory: "/superset-frontend/plugins/legacy-plugin-chart-sankey/"
-    schedule:
-      interval: "daily"
-    labels:
-      - npm
-      - dependabot
-    open-pull-requests-limit: 5
-    versioning-strategy: increase
-
-  - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/legacy-preset-chart-nvd3/"
     schedule:
       interval: "daily"
@@ -241,27 +222,7 @@ updates:
     versioning-strategy: increase
 
   - package-ecosystem: "npm"
-    directory: "/superset-frontend/plugins/legacy-plugin-chart-event-flow/"
-    schedule:
-      interval: "daily"
-    labels:
-      - npm
-      - dependabot
-    open-pull-requests-limit: 5
-    versioning-strategy: increase
-
-  - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/legacy-plugin-chart-paired-t-test/"
-    schedule:
-      interval: "daily"
-    labels:
-      - npm
-      - dependabot
-    open-pull-requests-limit: 5
-    versioning-strategy: increase
-
-  - package-ecosystem: "npm"
-    directory: "/superset-frontend/plugins/legacy-plugin-chart-sankey-loop/"
     schedule:
       interval: "daily"
     labels:
@@ -281,7 +242,7 @@ updates:
     versioning-strategy: increase
 
   - package-ecosystem: "npm"
-    directory: "/superset-frontend/plugins/preset-chart-xy/"
+    directory: "/superset-frontend/plugins/plugin-chart-ag-grid-table/"
     schedule:
       interval: "daily"
     labels:
@@ -291,7 +252,7 @@ updates:
     versioning-strategy: increase
 
   - package-ecosystem: "npm"
-    directory: "/superset-frontend/plugins/legacy-plugin-chart-heatmap/"
+    directory: "/superset-frontend/plugins/plugin-chart-cartodiagram/"
     schedule:
       interval: "daily"
     labels:
@@ -302,16 +263,6 @@ updates:
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/legacy-plugin-chart-parallel-coordinates/"
-    schedule:
-      interval: "daily"
-    labels:
-      - npm
-      - dependabot
-    open-pull-requests-limit: 5
-    versioning-strategy: increase
-
-  - package-ecosystem: "npm"
-    directory: "/superset-frontend/plugins/legacy-plugin-chart-sunburst/"
     schedule:
       interval: "daily"
     labels:
@@ -356,27 +307,7 @@ updates:
       # not until React >= 18.0.0
       - dependency-name: "react-markdown"
       - dependency-name: "remark-gfm"
-    schedule:
-      interval: "daily"
-    labels:
-      - npm
-      - dependabot
-    open-pull-requests-limit: 5
-    versioning-strategy: increase
-
-  - package-ecosystem: "npm"
-    directory: "/superset-frontend/packages/superset-ui-demo/"
-    ignore:
-      # TODO: remove below entries until React >= 18.0.0
-      - dependency-name: "@storybook*"
-        update-types: ["version-update:semver-major", "version-update:semver-minor"]
-    groups:
-      storybook:
-        applies-to: version-updates
-        patterns:
-          - "@storybook*"
-        update-types:
-          - "patch"
+      - dependency-name: "react-error-boundary"
     schedule:
       interval: "daily"
     labels:

@@ -575,7 +575,10 @@ describe('sqlLabReducer', () => {
       expect(newState.queries.def).toBe(completedQuery);
     });
     test('should refresh queries when polling returns empty', () => {
+      const prevQueries = newState.queries;
       newState = sqlLabReducer(newState, actions.refreshQueries({}));
+      // Empty refresh should preserve existing queries
+      expect(newState.queries).toBe(prevQueries);
     });
     test('should set state to fetching when sync query succeeds without results', () => {
       const syncQuery = {
