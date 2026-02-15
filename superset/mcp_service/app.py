@@ -31,16 +31,35 @@ from fastmcp.server.middleware import Middleware
 logger = logging.getLogger(__name__)
 
 
-def get_default_instructions(branding: str = "Apache Superset") -> str:
+def get_default_instructions(
+    branding: str = "Apache Superset",
+    unavailable_features: list[str] | None = None,
+) -> str:
     """Get default instructions with configurable branding.
 
     Args:
         branding: Product name to use in instructions
             (e.g., "ACME Analytics", "Apache Superset")
+        unavailable_features: List of features not available in this deployment
+            that LLMs should not suggest to users.
 
     Returns:
         Formatted instructions string with branding applied
     """
+    unavailable_section = ""
+    if unavailable_features:
+        features_list = "\n".join(f"- {f}" for f in unavailable_features)
+        unavailable_section = f"""
+
+IMPORTANT - Unavailable Features:
+The following features are NOT available in this deployment. Do NOT suggest
+or reference them when helping users, even if they exist in other deployments:
+{features_list}
+
+If a user asks about functionality related to these features, let them know
+it is not available and suggest alternatives using the MCP tools listed above.
+"""
+
     return f"""
 You are connected to the {branding} MCP (Model Context Protocol) service.
 This service provides programmatic access to {branding} dashboards, charts, datasets,
@@ -140,7 +159,7 @@ Input format:
 - Tool request parameters accept structured objects (dicts/JSON)
 - When MCP_PARSE_REQUEST_ENABLED is True (default), string-serialized JSON is also
   accepted as input, which works around double-serialization bugs in some MCP clients
-
+{unavailable_section}
 If you are unsure which tool to use, start with get_instance_info
 or use the quickstart prompt for an interactive guide.
 """
@@ -380,11 +399,16 @@ def init_fastmcp_server(
     branding = app_name
     default_name = f"{app_name} MCP Server"
 
+    # Read unavailable features from Flask config
+    unavailable_features = flask_app.config.get("MCP_UNAVAILABLE_FEATURES", [])
+
     # Apply branding defaults if not explicitly provided
     if name is None:
         name = default_name
     if instructions is None:
-        instructions = get_default_instructions(branding)
+        instructions = get_default_instructions(
+            branding, unavailable_features=unavailable_features
+        )
 
     # Configure the global mcp instance with provided settings.
     # Tools are already registered on this instance via @tool decorator imports above.
