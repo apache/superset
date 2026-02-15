@@ -54,8 +54,8 @@ export const ModalTrigger = forwardRef(
   (props: ModalTriggerProps, ref: ModalTriggerRef | null) => {
     const [showModal, setShowModal] = useState(false);
     const {
-      beforeOpen = () => { },
-      onExit = () => { },
+      beforeOpen = () => {},
+      onExit = () => {},
       isButton = false,
       resizable = false,
       draggable = false,
