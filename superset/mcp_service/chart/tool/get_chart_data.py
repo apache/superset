@@ -165,21 +165,90 @@ async def get_chart_data(  # noqa: C901
                     or current_app.config["ROW_LIMIT"]
                 )
 
-                # Handle different chart types that have different form_data structures
-                # Some charts use "metric" (singular), not "metrics" (plural):
-                # - big_number, big_number_total
-                # - pop_kpi (BigNumberPeriodOverPeriod)
-                # These charts also don't have groupby columns
+                # Handle different chart types that have different form_data
+                # structures.  Chart types that exclusively use "metric"
+                # (singular) with no groupby:
+                #   big_number, big_number_total, pop_kpi
+                # Chart types that use "metric" (singular) but may have
+                # groupby-like fields (entity, series, columns):
+                #   world_map, treemap_v2, sunburst_v2, gauge_chart
+                # Bubble charts use x/y/size as separate metric fields.
                 viz_type = chart.viz_type or ""
-                if viz_type in ("big_number", "big_number_total", "pop_kpi"):
+
+                singular_metric_no_groupby = (
+                    "big_number",
+                    "big_number_total",
+                    "pop_kpi",
+                )
+                singular_metric_types = (
+                    *singular_metric_no_groupby,
+                    "world_map",
+                    "treemap_v2",
+                    "sunburst_v2",
+                    "gauge_chart",
+                )
+
+                if viz_type == "bubble":
+                    # Bubble charts store metrics in x, y, size fields
+                    bubble_metrics = []
+                    for field in ("x", "y", "size"):
+                        m = form_data.get(field)
+                        if m:
+                            bubble_metrics.append(m)
+                    metrics = bubble_metrics
+                    groupby_columns: list[str] = list(
+                        form_data.get("entity", None) and [form_data["entity"]] or []
+                    )
+                    series_field = form_data.get("series")
+                    if series_field and series_field not in groupby_columns:
+                        groupby_columns.append(series_field)
+                elif viz_type in singular_metric_types:
                     # These chart types use "metric" (singular)
                     metric = form_data.get("metric")
                     metrics = [metric] if metric else []
-                    groupby_columns: list[str] = []  # These charts don't group by
+                    if viz_type in singular_metric_no_groupby:
+                        groupby_columns = []
+                    else:
+                        # Some singular-metric charts use groupby, entity,
+                        # series, or columns for dimensional breakdown
+                        groupby_columns = list(form_data.get("groupby") or [])
+                        entity = form_data.get("entity")
+                        if entity and entity not in groupby_columns:
+                            groupby_columns.append(entity)
+                        series = form_data.get("series")
+                        if series and series not in groupby_columns:
+                            groupby_columns.append(series)
+                        form_columns = form_data.get("columns")
+                        if form_columns and isinstance(form_columns, list):
+                            for col in form_columns:
+                                if isinstance(col, str) and col not in groupby_columns:
+                                    groupby_columns.append(col)
                 else:
                     # Standard charts use "metrics" (plural) and "groupby"
                     metrics = form_data.get("metrics", [])
-                    groupby_columns = form_data.get("groupby") or []
+                    groupby_columns = list(form_data.get("groupby") or [])
+                    # Some chart types use "columns" instead of "groupby"
+                    if not groupby_columns:
+                        form_columns = form_data.get("columns")
+                        if form_columns and isinstance(form_columns, list):
+                            for col in form_columns:
+                                if isinstance(col, str):
+                                    groupby_columns.append(col)
+
+                # Fallback: if metrics is still empty, try singular "metric"
+                if not metrics:
+                    fallback_metric = form_data.get("metric")
+                    if fallback_metric:
+                        metrics = [fallback_metric]
+
+                # Fallback: try entity/series if groupby is still empty
+                if not groupby_columns:
+                    entity = form_data.get("entity")
+                    if entity:
+                        groupby_columns.append(entity)
+                    series = form_data.get("series")
+                    if series and series not in groupby_columns:
+                        groupby_columns.append(series)
 
                 # Build query columns list: include both x_axis and groupby
                 x_axis_config = form_data.get("x_axis")
@@ -191,6 +260,28 @@ async def get_chart_data(  # noqa: C901
                     col_name = x_axis_config.get("column_name")
                     if col_name and col_name not in query_columns:
                         query_columns.insert(0, col_name)
+
+                # Safety net: if we could not extract any metrics or
+                # columns, return a clear error instead of the cryptic
+                # "Empty query?" that comes from deeper in the stack.
+                if not metrics and not query_columns:
+                    await ctx.error(
+                        "Cannot construct fallback query for chart %s "
+                        "(viz_type=%s): no metrics, columns, or groupby "
+                        "could be extracted from form_data. "
+                        "Re-save the chart to populate query_context."
+                        % (chart.id, viz_type)
+                    )
+                    return ChartError(
+                        error=(
+                            f"Chart {chart.id} (type: {viz_type}) has no "
+                            f"saved query_context and its form_data does "
+                            f"not contain recognizable metrics or columns. "
+                            f"Please open this chart in Superset and "
+                            f"re-save it to generate a query_context."
+                        ),
+                        error_type="MissingQueryContext",
+                    )
 
                 query_context = factory.create(
                     datasource={
