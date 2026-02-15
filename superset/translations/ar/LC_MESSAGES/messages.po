@@ -10436,7 +10436,7 @@ msgstr "عنوان علامة التبويب"
 msgid "Subtitle Font Size"
 msgstr "حجم الفقاعة"
 
-msgid "Subtotal"
+msgid "Subvalue"
 msgstr "المجموع الفرعي"
 
 msgid "Success"

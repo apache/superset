@@ -10364,7 +10364,7 @@ msgstr "عنوان برگه"
 msgid "Subtitle Font Size"
 msgstr "اندازه حباب"
 
-msgid "Subtotal"
+msgid "Subvalue"
 msgstr "زیرمجموعه"
 
 msgid "Success"

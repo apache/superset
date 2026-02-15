@@ -11034,7 +11034,7 @@ msgstr "Tytuł zakładki"
 msgid "Subtitle Font Size"
 msgstr "Rozmiar bąbelków"
 
-msgid "Subtotal"
+msgid "Subvalue"
 msgstr "Suma częściowa"
 
 msgid "Success"

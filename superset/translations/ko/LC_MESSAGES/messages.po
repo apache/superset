@@ -10359,7 +10359,7 @@ msgstr "제목"
 msgid "Subtitle Font Size"
 msgstr ""
 
-msgid "Subtotal"
+msgid "Subvalue"
 msgstr ""
 
 msgid "Success"

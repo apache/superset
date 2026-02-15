@@ -10392,7 +10392,7 @@ msgstr "Naslov zavihka"
 msgid "Subtitle Font Size"
 msgstr "Velikost mehurčka"
 
-msgid "Subtotal"
+msgid "Subvalue"
 msgstr "Delna vsota"
 
 msgid "Success"
