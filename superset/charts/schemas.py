@@ -1530,6 +1530,10 @@ class ChartDataResponseResult(Schema):
     colnames = fields.List(
         fields.String(), metadata={"description": "A list of column names"}
     )
+    collabels = fields.List(
+        fields.String(),
+        metadata={"description": "A list of column labels, for display purposes"},
+    )
     coltypes = fields.List(
         fields.Integer(),
         metadata={"description": "A list of generic data types of each column"},

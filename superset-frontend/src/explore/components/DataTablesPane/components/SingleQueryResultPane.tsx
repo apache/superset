@@ -34,12 +34,12 @@ export const SingleQueryResultPane = ({
   data,
   colnames,
   coltypes,
+  collabels,
   rowcount,
   datasourceId,
   dataSize = 50,
   isVisible,
   canDownload,
-  columnDisplayNames,
   isPaginationSticky = true,
 }: SingleQueryResultPaneProp) => {
   const [filterText, setFilterText] = useState('');
@@ -48,13 +48,13 @@ export const SingleQueryResultPane = ({
   // while also only grabbing the first column's keys
   const columns = useTableColumns(
     colnames,
+    collabels,
     coltypes,
     data,
     datasourceId,
     isVisible,
     {}, // moreConfig
     true, // allowHTML
-    columnDisplayNames,
   );
   const filteredData = useFilteredTableData(filterText, data);
 
