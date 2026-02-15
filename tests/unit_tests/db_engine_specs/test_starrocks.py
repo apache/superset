@@ -34,6 +34,7 @@ from superset.db_engine_specs.starrocks import (
     TINYINT,
 )
 from superset.utils.core import GenericDataType
+from tests.unit_tests.conftest import with_feature_flags
 from tests.unit_tests.db_engine_specs.utils import assert_column_spec
 
 
@@ -224,8 +225,8 @@ def test_get_catalog_names(mocker: MockerFixture) -> None:
     # StarRocks returns rows with keys: ['Catalog', 'Type', 'Comment']
     mock_row_1 = mocker.MagicMock()
     mock_row_1.keys.return_value = ["Catalog", "Type", "Comment"]
-    mock_row_1.__getitem__ = (
-        lambda self, key: "default_catalog" if key == "Catalog" else None
+    mock_row_1.__getitem__ = lambda self, key: (
+        "default_catalog" if key == "Catalog" else None
     )
 
     mock_row_2 = mocker.MagicMock()
@@ -283,3 +284,25 @@ def test_adjust_engine_params_with_catalog(
         url, {}, catalog=catalog, schema=schema
     )
     assert returned_url.database == expected_database
+
+
+@with_feature_flags(IMPERSONATE_WITH_EMAIL_PREFIX=True)
+def test_get_prequeries_with_email_prefix(mocker: MockerFixture) -> None:
+    """Test that get_prequeries uses email prefix when IMPERSONATE_WITH_EMAIL_PREFIX"""
+    from superset.db_engine_specs.starrocks import StarRocksEngineSpec
+
+    user = mocker.MagicMock()
+    user.email = "alice@example.org"
+    mocker.patch(
+        "superset.db_engine_specs.starrocks.security_manager.find_user",
+        return_value=user,
+    )
+
+    database = mocker.MagicMock()
+    database.impersonate_user = True
+    database.url_object = make_url("starrocks://localhost:9030/")
+    database.get_effective_user.return_value = "alice@example.org"
+
+    assert StarRocksEngineSpec.get_prequeries(database) == [
+        'EXECUTE AS "alice" WITH NO REVERT;'
+    ]
