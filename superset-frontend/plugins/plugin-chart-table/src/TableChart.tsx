@@ -1431,8 +1431,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         pageSize={pageSize}
         serverPaginationData={serverPaginationData}
         pageSizeOptions={pageSizeOptions}
-        width={widthFromState}
-        height={heightFromState}
+        width={Math.max(0, widthFromState - theme.sizeUnit * 10)}
+        height={Math.max(0, heightFromState - theme.sizeUnit * 10)}
         serverPagination={serverPagination}
         onServerPaginationChange={handleServerPaginationChange}
         onColumnOrderChange={() => setColumnOrderToggle(!columnOrderToggle)}
