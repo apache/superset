@@ -64,8 +64,8 @@ describe('BigNumberWithTrendline buildQuery', () => {
     expect(queryContext.queries.length).toBe(1);
     expect(queryContext.queries[0].post_processing).toEqual([
       { operation: 'pivot' },
-      { operation: 'rolling' },
       { operation: 'resample' },
+      { operation: 'rolling' },
       { operation: 'flatten' },
     ]);
   });
@@ -79,8 +79,8 @@ describe('BigNumberWithTrendline buildQuery', () => {
     expect(queryContext.queries.length).toBe(1);
     expect(queryContext.queries[0].post_processing).toEqual([
       { operation: 'pivot' },
-      { operation: 'rolling' },
       { operation: 'resample' },
+      { operation: 'rolling' },
       { operation: 'flatten' },
     ]);
   });
