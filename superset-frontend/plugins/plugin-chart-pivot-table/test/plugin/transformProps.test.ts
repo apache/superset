@@ -285,4 +285,104 @@ describe('PivotTableChart transformProps', () => {
       });
     });
   });
+
+  describe('metric label localization', () => {
+    const adhocMetricWithTranslation = {
+      expressionType: 'SQL',
+      sqlExpression: 'COUNT(*)',
+      label: 'Total Count',
+      hasCustomLabel: true,
+      translations: {
+        label: {
+          de: 'Gesamtzahl',
+          ru: 'Общее количество',
+        },
+      },
+    };
+
+    const localizationFormData = {
+      ...formData,
+      metrics: [adhocMetricWithTranslation],
+    };
+
+    test('should include localized metric labels in verboseMap when locale has translation', () => {
+      const chartProps = new ChartProps<QueryFormData>({
+        formData: localizationFormData,
+        width: 800,
+        height: 600,
+        queriesData: [
+          {
+            data: [{ name: 'Test', 'Total Count': 100 }],
+            colnames: ['name', 'Total Count'],
+            coltypes: [1, 0],
+          },
+        ],
+        hooks: { setDataMask },
+        filterState: { selectedFilters: {} },
+        datasource: { verboseMap: {}, columnFormats: {} },
+        theme: supersetTheme,
+        locale: 'de',
+      });
+
+      const result = transformProps(chartProps);
+
+      // verboseMap should contain localized metric label
+      expect(result.verboseMap).toEqual(
+        expect.objectContaining({
+          'Total Count': 'Gesamtzahl',
+        }),
+      );
+    });
+
+    test('should not add to verboseMap when locale has no translation', () => {
+      const chartProps = new ChartProps<QueryFormData>({
+        formData: localizationFormData,
+        width: 800,
+        height: 600,
+        queriesData: [
+          {
+            data: [{ name: 'Test', 'Total Count': 100 }],
+            colnames: ['name', 'Total Count'],
+            coltypes: [1, 0],
+          },
+        ],
+        hooks: { setDataMask },
+        filterState: { selectedFilters: {} },
+        datasource: { verboseMap: {}, columnFormats: {} },
+        theme: supersetTheme,
+        locale: 'fr', // French - no translation provided
+      });
+
+      const result = transformProps(chartProps);
+
+      // verboseMap should be empty - no mapping needed since original label will be used
+      expect(result.verboseMap).toEqual({});
+    });
+
+    test('should use default label when no locale is provided', () => {
+      const chartProps = new ChartProps<QueryFormData>({
+        formData: localizationFormData,
+        width: 800,
+        height: 600,
+        queriesData: [
+          {
+            data: [{ name: 'Test', 'Total Count': 100 }],
+            colnames: ['name', 'Total Count'],
+            coltypes: [1, 0],
+          },
+        ],
+        hooks: { setDataMask },
+        filterState: { selectedFilters: {} },
+        datasource: { verboseMap: {}, columnFormats: {} },
+        theme: supersetTheme,
+        // No locale provided
+      });
+
+      const result = transformProps(chartProps);
+
+      // verboseMap should not be modified for metrics without locale
+      // (existing verboseMap behavior preserved)
+      expect(result.verboseMap).toEqual({});
+    });
+  });
 });
