@@ -1435,11 +1435,48 @@ describe('DatabaseModal', () => {
 
         expect(connectButton).toBeEnabled();
         userEvent.click(connectButton);
-        // Verify that validation was called at least once during the form interaction
+        // Verify that validation was called during the form interaction
+        // Note: With the optimized validation, redundant calls on the same db state are skipped
         await waitFor(() => {
           expect(
             fetchMock.callHistory.calls(VALIDATE_PARAMS_ENDPOINT).length,
-          ).toEqual(5);
+          ).toBeGreaterThan(0);
+        });
+      });
+
+      test('does not fire redundant validation on blur when db has not changed', async () => {
+        setup();
+
+        userEvent.click(
+          await screen.findByRole('button', {
+            name: /postgresql/i,
+          }),
+        );
+
+        expect(await screen.findByText(/step 2 of 3/i)).toBeInTheDocument();
+
+        const textboxes = await screen.findAllByRole('textbox');
+        const hostField = textboxes[0];
+
+        // Type a value and blur - should trigger validation
+        userEvent.type(hostField, 'localhost');
+        userEvent.tab();
+
+        await waitFor(() => {
+          expect(
+            fetchMock.callHistory.calls(VALIDATE_PARAMS_ENDPOINT).length,
+          ).toEqual(1);
+        });
+
+        // Blur again without changing the value - should NOT trigger another validation
+        userEvent.click(hostField);
+        userEvent.tab();
+
+        // Wait a tick to ensure no additional calls are made
+        await waitFor(() => {
+          expect(
+            fetchMock.callHistory.calls(VALIDATE_PARAMS_ENDPOINT).length,
+          ).toEqual(1);
         });
       });
     });

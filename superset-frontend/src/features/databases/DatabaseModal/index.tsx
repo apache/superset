@@ -614,6 +614,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     hasValidated,
     setHasValidated,
   ] = useDatabaseValidation();
+  const lastValidatedDbSnapshotRef = useRef<string | null>(null);
   const [hasConnectedDb, setHasConnectedDb] = useState<boolean>(false);
   const [showCTAbtns, setShowCTAbtns] = useState(false);
   const [dbName, setDbName] = useState('');
@@ -776,6 +777,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const handleClearValidationErrors = useCallback(() => {
     setValidationErrors(null);
     setHasValidated(false);
+    lastValidatedDbSnapshotRef.current = null;
     clearError();
   }, [setValidationErrors, setHasValidated, clearError]);
 
@@ -811,6 +813,15 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     },
     [onChange, handleClearValidationErrors],
   );
+
+  const getBlurValidation = useCallback(() => {
+    const currentDbSnapshot = JSON.stringify(db);
+    if (currentDbSnapshot === lastValidatedDbSnapshotRef.current) {
+      return Promise.resolve([]);
+    }
+    lastValidatedDbSnapshotRef.current = currentDbSnapshot;
+    return getValidation(db);
+  }, [db, getValidation]);
 
   const onClose = () => {
     setDB({ type: ActionType.Reset });
@@ -1740,7 +1751,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       }
       isValidating={isValidating}
       validationErrors={validationErrors}
-      getValidation={() => getValidation(db)}
+      getValidation={getBlurValidation}
     />
   );
 
@@ -1810,7 +1821,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         }}
         onParametersChange={handleParametersChange}
         onChange={handleTextChange}
-        getValidation={() => getValidation(db)}
+        getValidation={getBlurValidation}
         validationErrors={validationErrors}
         getPlaceholder={getPlaceholder}
         clearValidationErrors={handleClearValidationErrors}

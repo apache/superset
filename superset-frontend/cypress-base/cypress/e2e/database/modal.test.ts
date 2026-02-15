@@ -69,10 +69,8 @@ describe('Add database', () => {
     cy.get('input[name="database"]').type('testdb', { force: true });
     cy.get('input[name="password"]').type('testpass', { force: true });
 
-    cy.get('body').click(0, 0);
-
-    cy.wait('@validateParams', { timeout: 30000 });
-
+    // Typing in fields triggers blur on previous fields, which fires validation
+    // Wait for the Connect button to be enabled (happens after successful validation)
     cy.getBySel('btn-submit-connection').should('not.be.disabled');
     cy.getBySel('btn-submit-connection').click({ force: true });
 
@@ -90,23 +88,16 @@ describe('Add database', () => {
     cy.get('.preferred > :nth-child(1)').click();
 
     cy.get('input[name="host"]').type('localhost', { force: true });
-    cy.get('body').click(0, 0);
-    cy.wait('@validateParams', { timeout: 30000 });
-
     cy.get('input[name="port"]').type('5430', { force: true });
     cy.get('input[name="database"]').type('testdb', { force: true });
     cy.get('input[name="username"]').type('testusername', { force: true });
-
-    cy.wait('@validateParams', { timeout: 30000 });
-
     cy.get('input[name="password"]').type('testpass', { force: true });
-    cy.wait('@validateParams');
 
+    // Typing in fields triggers blur on previous fields, which fires validation
+    // Wait for the Connect button to be enabled (happens after successful validation)
     cy.getBySel('btn-submit-connection').should('not.be.disabled');
     cy.getBySel('btn-submit-connection').click({ force: true });
     cy.wait('@validateParams', { timeout: 30000 }).then(() => {
-      cy.get('body').click(0, 0);
-      cy.getBySel('btn-submit-connection').click({ force: true });
       cy.wait('@createDb', { timeout: 60000 }).then(() => {
         cy.contains(
           '.ant-form-item-explain-error',
