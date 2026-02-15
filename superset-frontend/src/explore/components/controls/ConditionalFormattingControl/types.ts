@@ -19,7 +19,11 @@
 
 import { ReactNode } from 'react';
 import { PopoverProps } from '@superset-ui/core/components/Popover';
-import { Comparator, ControlComponentProps } from '@superset-ui/chart-controls';
+import {
+  Comparator,
+  ControlComponentProps,
+  ObjectFormattingEnum,
+} from '@superset-ui/chart-controls';
 import { GenericDataType } from '@apache-superset/core/api/core';
 
 export type ConditionalFormattingConfig = {
@@ -32,31 +36,34 @@ export type ConditionalFormattingConfig = {
   toAllRow?: boolean;
   toTextColor?: boolean;
   useGradient?: boolean;
+  columnFormatting?: string;
+  objectFormatting?: ObjectFormattingEnum;
 };
 
 export type ConditionalFormattingControlProps = ControlComponentProps<
   ConditionalFormattingConfig[]
 > & {
-  columnOptions: { label: string; value: string; dataType: GenericDataType }[];
+  columnOptions: ColumnOption[];
   removeIrrelevantConditions: boolean;
   verboseMap: Record<string, string>;
   label: string;
   description: string;
   extraColorChoices?: { label: string; value: string }[];
-  conditionalFormattingFlag?: ConditionalFormattingFlag;
+  allColumns?: ColumnOption[];
 };
 
 export type FormattingPopoverProps = PopoverProps & {
-  columns: { label: string; value: string; dataType: GenericDataType }[];
+  columns: ColumnOption[];
   onChange: (value: ConditionalFormattingConfig) => void;
   config?: ConditionalFormattingConfig;
   title: string;
   children: ReactNode;
   extraColorChoices?: { label: string; value: string }[];
-  conditionalFormattingFlag?: ConditionalFormattingFlag;
+  allColumns?: ColumnOption[];
 };
 
-export type ConditionalFormattingFlag = {
-  toAllRowCheck?: boolean;
-  toColorTextCheck?: boolean;
-};
+export interface ColumnOption {
+  label: string;
+  value: string;
+  dataType: GenericDataType;
+}

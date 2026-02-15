@@ -311,6 +311,8 @@ export const getColorFormatters = memoizeOne(
             column: config?.column,
             toAllRow: config?.toAllRow,
             toTextColor: config?.toTextColor,
+            columnFormatting: config?.columnFormatting,
+            objectFormatting: config?.objectFormatting,
             getColorFromValue: getColorFunction(
               { ...config, colorScheme: resolvedColorScheme },
               data.map(row => row[config.column!] as number),
