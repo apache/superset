@@ -19,12 +19,17 @@ from typing import Any, Optional
 
 from flask_babel import gettext as __
 
+from superset import is_feature_enabled
 from superset.commands.base import BaseCommand
 from superset.commands.database.exceptions import (
     DatabaseOfflineError,
     DatabaseTestConnectionFailedError,
     InvalidEngineError,
     InvalidParametersError,
+)
+from superset.commands.database.ssh_tunnel.exceptions import (
+    SSHTunnelDatabasePortError,
+    SSHTunnelingNotEnabledError,
 )
 from superset.daos.database import DatabaseDAO
 from superset.databases.utils import make_url_safe
@@ -42,7 +47,7 @@ class ValidateDatabaseParametersCommand(BaseCommand):
         self._properties = properties.copy()
         self._model: Optional[Database] = None
 
-    def run(self) -> None:
+    def run(self) -> None:  # noqa: C901
         self.validate()
 
         engine = self._properties["engine"]
@@ -50,6 +55,8 @@ class ValidateDatabaseParametersCommand(BaseCommand):
 
         if engine in BYPASS_VALIDATION_ENGINES:
             # Skip engines that are only validated onCreate
+            # But still validate database_name uniqueness
+            self._validate_database_name()
             return
 
         engine_spec = get_engine_spec(engine, driver)
@@ -65,8 +72,17 @@ class ValidateDatabaseParametersCommand(BaseCommand):
                 ),
             )
 
-        # perform initial validation
+        # perform initial validation (host, port, database, username)
         errors = engine_spec.validate_parameters(self._properties)  # type: ignore
+
+        # Collect database_name errors along with parameter errors
+        if database_name_error := self._get_database_name_error():
+            errors.append(database_name_error)
+
+        # Collect SSH tunnel errors
+        ssh_tunnel_errors = self._get_ssh_tunnel_errors()
+        errors.extend(ssh_tunnel_errors)
+
         if errors:
             event_logger.log_with_context(action="validation_error", engine=engine)
             raise InvalidParametersError(errors)
@@ -138,6 +154,101 @@ class ValidateDatabaseParametersCommand(BaseCommand):
                 ),
             )
 
-    def validate(self) -> None:
+    def _load_model(self) -> None:
+        """Load the existing database model if updating."""
         if (database_id := self._properties.get("id")) is not None:
             self._model = DatabaseDAO.find_by_id(database_id)
+
+    def _get_database_name_error(self) -> Optional[SupersetError]:
+        """Check for duplicate database name and return error if found."""
+        database_id = self._properties.get("id")
+
+        if database_name := self._properties.get("database_name"):
+            is_unique = (
+                DatabaseDAO.validate_update_uniqueness(database_id, database_name)
+                if database_id is not None
+                else DatabaseDAO.validate_uniqueness(database_name)
+            )
+            if not is_unique:
+                return SupersetError(
+                    message=__("A database with the same name already exists."),
+                    error_type=SupersetErrorType.INVALID_PAYLOAD_SCHEMA_ERROR,
+                    level=ErrorLevel.ERROR,
+                    extra={"invalid": ["database_name"]},
+                )
+        return None
+
+    def _validate_database_name(self) -> None:
+        """Check for duplicate database name and raise if found."""
+        if error := self._get_database_name_error():
+            raise InvalidParametersError([error])
+
+    def validate(self) -> None:
+        """Load the model and validate SSH tunnel if enabled."""
+        self._load_model()
+        self._validate_ssh_tunnel()
+
+    def _validate_ssh_tunnel(self) -> None:
+        """Validate SSH tunnel configuration if enabled."""
+        ssh_tunnel = self._properties.get("ssh_tunnel")
+        if ssh_tunnel:
+            if not is_feature_enabled("SSH_TUNNELING"):
+                raise SSHTunnelingNotEnabledError()
+            # Check if port is provided (required for SSH tunneling)
+            parameters = self._properties.get("parameters", {})
+            if not parameters.get("port"):
+                raise SSHTunnelDatabasePortError()
+
+    def _get_ssh_tunnel_errors(self) -> list[SupersetError]:
+        """Validate SSH tunnel fields and return list of errors."""
+        errors: list[SupersetError] = []
+        ssh_tunnel = self._properties.get("ssh_tunnel") or {}
+        parameters = self._properties.get("parameters", {})
+
+        # Check if SSH is enabled via parameters.ssh flag
+        ssh_enabled = parameters.get("ssh", False)
+
+        # Only validate SSH tunnel if SSH is enabled or ssh_tunnel is provided
+        if not ssh_enabled and not ssh_tunnel:
+            return errors
+
+        # Required fields
+        required_fields = ["server_address", "server_port", "username"]
+        missing = [f for f in required_fields if not ssh_tunnel.get(f)]
+
+        if missing:
+            errors.append(
+                SupersetError(
+                    message=__("One or more parameters are missing: %(missing)s"),
+                    error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
+                    level=ErrorLevel.WARNING,
+                    extra={"missing": missing, "ssh_tunnel": True},
+                )
+            )
+
+        # Either password or private_key is required
+        has_password = bool(ssh_tunnel.get("password"))
+        has_private_key = bool(ssh_tunnel.get("private_key"))
+
+        if not has_password and not has_private_key:
+            errors.append(
+                SupersetError(
+                    message=__("Must provide credentials for the SSH Tunnel"),
+                    error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
+                    level=ErrorLevel.WARNING,
+                    extra={"missing": ["password"], "ssh_tunnel": True},
+                )
+            )
+
+        # If private_key is provided, private_key_password is required
+        if has_private_key and not ssh_tunnel.get("private_key_password"):
+            errors.append(
+                SupersetError(
+                    message=__("One or more parameters are missing: %(missing)s"),
+                    error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
+                    level=ErrorLevel.WARNING,
+                    extra={"missing": ["private_key_password"], "ssh_tunnel": True},
+                )
+            )
+
+        return errors

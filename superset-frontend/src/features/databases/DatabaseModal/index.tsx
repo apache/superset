@@ -614,6 +614,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     hasValidated,
     setHasValidated,
   ] = useDatabaseValidation();
+  const lastValidatedDbSnapshotRef = useRef<string | null>(null);
   const [hasConnectedDb, setHasConnectedDb] = useState<boolean>(false);
   const [showCTAbtns, setShowCTAbtns] = useState(false);
   const [dbName, setDbName] = useState('');
@@ -776,6 +777,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const handleClearValidationErrors = useCallback(() => {
     setValidationErrors(null);
     setHasValidated(false);
+    lastValidatedDbSnapshotRef.current = null;
     clearError();
   }, [setValidationErrors, setHasValidated, clearError]);
 
@@ -785,6 +787,16 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         type: target.type,
         name: target.name,
         checked: target.checked,
+        value: target.value,
+      });
+    },
+    [onChange],
+  );
+
+  const handleTextChange = useCallback(
+    ({ target }: { target: HTMLInputElement }) => {
+      onChange(ActionType.TextChange, {
+        name: target.name,
         value: target.value,
       });
     },
@@ -801,6 +813,15 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     },
     [onChange, handleClearValidationErrors],
   );
+
+  const getBlurValidation = useCallback(() => {
+    const currentDbSnapshot = JSON.stringify(db);
+    if (currentDbSnapshot === lastValidatedDbSnapshotRef.current) {
+      return Promise.resolve([]);
+    }
+    lastValidatedDbSnapshotRef.current = currentDbSnapshot;
+    return getValidation(db);
+  }, [db, getValidation]);
 
   const onClose = () => {
     setDB({ type: ActionType.Reset });
@@ -1721,7 +1742,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           name: target.name,
           value: target.value,
         });
-        handleClearValidationErrors();
       }}
       setSSHTunnelLoginMethod={(method: AuthType) =>
         setDB({
@@ -1729,6 +1749,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           payload: { login_method: method },
         })
       }
+      isValidating={isValidating}
+      validationErrors={validationErrors}
+      getValidation={getBlurValidation}
     />
   );
 
@@ -1797,13 +1820,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           });
         }}
         onParametersChange={handleParametersChange}
-        onChange={({ target }: { target: HTMLInputElement }) =>
-          handleChangeWithValidation(ActionType.TextChange, {
-            name: target.name,
-            value: target.value,
-          })
-        }
-        getValidation={() => getValidation(db)}
+        onChange={handleTextChange}
+        getValidation={getBlurValidation}
         validationErrors={validationErrors}
         getPlaceholder={getPlaceholder}
         clearValidationErrors={handleClearValidationErrors}
