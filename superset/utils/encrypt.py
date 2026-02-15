@@ -138,9 +138,7 @@ class SecretsMigrator:
     def _select_columns_from_table(
         conn: Connection, column_names: list[str], table_name: str
     ) -> Row:
-        return conn.execute(
-            f"SELECT id, {','.join(column_names)} FROM {table_name}"
-        )  # noqa: S608
+        return conn.execute(f"SELECT id, {','.join(column_names)} FROM {table_name}")  # noqa: S608
 
     def _re_encrypt_row(
         self,
