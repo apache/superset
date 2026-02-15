@@ -20,6 +20,7 @@ import {
   CategoricalColorNamespace,
   DataRecord,
   getColumnLabel,
+  getLocalizedMetricLabel,
   getMetricLabel,
   getNumberFormatter,
   getValueFormatter,
@@ -97,6 +98,7 @@ export default function transformProps(
     theme,
     emitCrossFilters,
     datasource,
+    locale,
   } = chartProps;
   const data: DataRecord[] = queriesData[0].data || [];
   const detectedCurrency = queriesData[0]?.detected_currency;
@@ -135,6 +137,7 @@ export default function transformProps(
   } = datasource;
   const refs: Refs = {};
   const metricLabel = getMetricLabel(metric);
+  const localizedMetricLabel = getLocalizedMetricLabel(metric, locale);
   const groupbyLabels = groupby.map(getColumnLabel);
   const keys = data.map(datum =>
     extractGroupbyLabel({ datum, groupby: groupbyLabels, coltypeMapping: {} }),
@@ -286,7 +289,7 @@ export default function transformProps(
         const enumName = EchartsFunnelLabelType[tooltipLabelType];
         const title = enumName.includes('Key') ? name : undefined;
         if (enumName.includes('Value') || enumName.includes('Percent')) {
-          row.push(metricLabel);
+          row.push(localizedMetricLabel);
         }
         if (enumName.includes('Value')) {
           row.push(formattedValue);

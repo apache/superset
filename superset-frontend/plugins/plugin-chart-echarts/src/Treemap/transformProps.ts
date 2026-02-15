@@ -19,6 +19,7 @@
 import {
   CategoricalColorNamespace,
   getColumnLabel,
+  getLocalizedMetricLabel,
   getMetricLabel,
   getNumberFormatter,
   getTimeFormatter,
@@ -118,6 +119,7 @@ export default function transformProps(
     inContextMenu,
     emitCrossFilters,
     datasource,
+    locale,
   } = chartProps;
   const { data = [], detected_currency: detectedCurrency } = queriesData[0];
   const {
@@ -169,6 +171,7 @@ export default function transformProps(
 
   const columnsLabelMap = new Map<string, string[]>();
   const metricLabel = getMetricLabel(metric);
+  const localizedMetricLabel = getLocalizedMetricLabel(metric, locale);
   const groupbyLabels = groupby.map(getColumnLabel);
   const treeData = treeBuilder(data, groupbyLabels, metricLabel);
   const labelProps = {
@@ -227,7 +230,7 @@ export default function transformProps(
 
   const transformedData: TreemapSeriesNodeItemOption[] = [
     {
-      name: metricLabel,
+      name: localizedMetricLabel,
       colorSaturation: COLOR_SATURATION,
       itemStyle: {
         borderColor: BORDER_COLOR,

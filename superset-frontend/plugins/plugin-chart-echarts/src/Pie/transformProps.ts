@@ -20,6 +20,7 @@ import { t } from '@apache-superset/core';
 import {
   CategoricalColorNamespace,
   getColumnLabel,
+  getLocalizedMetricLabel,
   getMetricLabel,
   getNumberFormatter,
   getTimeFormatter,
@@ -134,6 +135,7 @@ export default function transformProps(
     inContextMenu,
     emitCrossFilters,
     datasource,
+    locale,
   } = chartProps;
   const {
     columnFormats = {},
@@ -176,6 +178,7 @@ export default function transformProps(
   };
   const refs: Refs = {};
   const metricLabel = getMetricLabel(metric);
+  const localizedMetricLabel = getLocalizedMetricLabel(metric, locale);
   const contributionLabel = getContributionLabel(metricLabel);
   const groupbyLabels = groupby.map(getColumnLabel);
   const minShowLabelAngle = (showLabelsThreshold || 0) * 3.6;
@@ -438,7 +441,7 @@ export default function transformProps(
           return tooltipHtml(otherTooltipData, name);
         }
         return tooltipHtml(
-          [[metricLabel, formattedValue, formattedPercent]],
+          [[localizedMetricLabel, formattedValue, formattedPercent]],
           name,
         );
       },

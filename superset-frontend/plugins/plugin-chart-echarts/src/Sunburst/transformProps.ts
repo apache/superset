@@ -21,6 +21,7 @@ import {
   CategoricalColorNamespace,
   DataRecordValue,
   getColumnLabel,
+  getLocalizedMetricLabel,
   getMetricLabel,
   getNumberFormatter,
   getSequentialSchemeRegistry,
@@ -169,6 +170,7 @@ export default function transformProps(
     inContextMenu,
     emitCrossFilters,
     datasource,
+    locale,
   } = chartProps;
   const { data = [], detected_currency: detectedCurrency } = queriesData[0];
   const coltypeMapping = getColtypesMapping(queriesData[0]);
@@ -191,7 +193,6 @@ export default function transformProps(
   const {
     currencyFormats = {},
     columnFormats = {},
-    verboseMap = {},
     currencyCodeColumn,
   } = datasource;
   const refs: Refs = {};
@@ -242,8 +243,12 @@ export default function transformProps(
   const { setDataMask = () => {}, onContextMenu } = hooks;
   const columnsLabelMap = new Map<string, string[]>();
   const metricLabel = getMetricLabel(metric);
+  const localizedMetricLabel = getLocalizedMetricLabel(metric, locale);
   const secondaryMetricLabel = secondaryMetric
     ? getMetricLabel(secondaryMetric)
+    : undefined;
+  const localizedSecondaryMetricLabel = secondaryMetric
+    ? getLocalizedMetricLabel(secondaryMetric, locale)
     : undefined;
   const columnLabels = columns.map(getColumnLabel);
   const treeData = treeBuilder(
@@ -351,10 +356,8 @@ export default function transformProps(
           secondaryValueFormatter,
           colorByCategory,
           totalValue,
-          metricLabel: verboseMap[metricLabel] || metricLabel,
-          secondaryMetricLabel: secondaryMetricLabel
-            ? verboseMap[secondaryMetricLabel] || secondaryMetricLabel
-            : undefined,
+          metricLabel: localizedMetricLabel,
+          secondaryMetricLabel: localizedSecondaryMetricLabel,
         }),
     },
     series: [

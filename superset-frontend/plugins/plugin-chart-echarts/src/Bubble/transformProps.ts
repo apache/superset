@@ -21,6 +21,7 @@ import type { ScatterSeriesOption } from 'echarts/charts';
 import { extent } from 'd3-array';
 import {
   CategoricalColorNamespace,
+  getLocalizedMetricLabel,
   getNumberFormatter,
   AxisType,
   getMetricLabel,
@@ -95,8 +96,16 @@ export function formatTooltip(
 }
 
 export default function transformProps(chartProps: EchartsBubbleChartProps) {
-  const { height, width, hooks, queriesData, formData, inContextMenu, theme } =
-    chartProps;
+  const {
+    height,
+    width,
+    hooks,
+    queriesData,
+    formData,
+    inContextMenu,
+    theme,
+    locale,
+  } = chartProps;
 
   const { data = [] } = queriesData[0];
   const {
@@ -139,6 +148,9 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
   const xAxisLabel: string = getMetricLabel(x);
   const yAxisLabel: string = getMetricLabel(y);
   const sizeLabel: string = getMetricLabel(size);
+  const localizedXAxisLabel: string = getLocalizedMetricLabel(x, locale);
+  const localizedYAxisLabel: string = getLocalizedMetricLabel(y, locale);
+  const localizedSizeLabel: string = getLocalizedMetricLabel(size, locale);
 
   const refs: Refs = {};
 
@@ -242,9 +254,9 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
       formatter: (params: any): string =>
         formatTooltip(
           params,
-          xAxisLabel,
-          yAxisLabel,
-          sizeLabel,
+          localizedXAxisLabel,
+          localizedYAxisLabel,
+          localizedSizeLabel,
           xAxisFormatter,
           yAxisFormatter,
           tooltipSizeFormatter,

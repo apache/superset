@@ -21,6 +21,7 @@ import {
   CategoricalColorNamespace,
   CategoricalColorScale,
   DataRecord,
+  getLocalizedMetricLabel,
   getMetricLabel,
   getColumnLabel,
   getValueFormatter,
@@ -105,6 +106,7 @@ export default function transformProps(
     theme,
     emitCrossFilters,
     datasource,
+    locale,
   } = chartProps;
 
   const gaugeSeriesOptions = defaultGaugeSeriesOption(theme);
@@ -166,6 +168,10 @@ export default function transformProps(
     FONT_SIZE_MULTIPLIERS.detailOffsetFromTitle * fontSize;
   const columnsLabelMap = new Map<string, string[]>();
   const metricLabel = getMetricLabel(metric as QueryFormMetric);
+  const localizedMetricLabel = getLocalizedMetricLabel(
+    metric as QueryFormMetric,
+    locale,
+  );
 
   const transformedData: GaugeDataItemOption[] = data.map(
     (data_point, index) => {
@@ -310,7 +316,7 @@ export default function transformProps(
     ...getDefaultTooltip(refs),
     formatter: (params: CallbackDataParams) => {
       const { name, value } = params;
-      return tooltipHtml([[metricLabel, formatValue(value as number)]], name);
+      return tooltipHtml([[localizedMetricLabel, formatValue(value as number)]], name);
     },
   };
 

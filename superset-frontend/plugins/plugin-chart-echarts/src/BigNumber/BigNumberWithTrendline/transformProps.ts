@@ -19,6 +19,7 @@
 import { t } from '@apache-superset/core';
 import {
   extractTimegrain,
+  getLocalizedMetricLabel,
   getNumberFormatter,
   NumberFormats,
   getMetricLabel,
@@ -88,6 +89,7 @@ export default function transformProps(
       columnFormats = {},
       currencyCodeColumn,
     },
+    locale,
   } = chartProps;
   const {
     colorPicker,
@@ -136,6 +138,10 @@ export default function transformProps(
   const metricName = getMetricLabel(metric);
   const metrics = chartProps.datasource?.metrics || [];
   const originalLabel = getOriginalLabel(metric, metrics);
+  const localizedLabel = getLocalizedMetricLabel(metric, locale);
+  // Use localized label if translation exists, otherwise use original label
+  const displayLabel =
+    localizedLabel !== getMetricLabel(metric) ? localizedLabel : originalLabel;
   const showMetricName = chartProps.rawFormData?.show_metric_name ?? false;
   const compareLag = Number(compareLag_) || 0;
   let formattedSubheader = subheader;
@@ -388,7 +394,7 @@ export default function transformProps(
     headerFormatter: yAxisFormatter,
     formatTime,
     formData,
-    metricName: originalLabel,
+    metricName: displayLabel,
     showMetricName,
     metricNameFontSize,
     headerFontSize,

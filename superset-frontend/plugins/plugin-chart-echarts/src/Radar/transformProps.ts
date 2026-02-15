@@ -17,6 +17,7 @@
  * under the License.
  */
 import {
+  buildLocalizedMetricLabelMap,
   CategoricalColorNamespace,
   ensureIsInt,
   getColumnLabel,
@@ -97,6 +98,7 @@ export default function transformProps(
     theme,
     inContextMenu,
     emitCrossFilters,
+    locale,
   } = chartProps;
   const refs: Refs = {};
   const { data = [] } = queriesData[0];
@@ -138,6 +140,7 @@ export default function transformProps(
     Number(normalizedValue);
 
   const metricLabels = metrics.map(getMetricLabel);
+  const localizedMetricLabelMap = buildLocalizedMetricLabelMap(metrics, locale);
 
   const metricsWithCustomBounds = new Set(
     metricLabels.filter(metricLabel => {
@@ -282,10 +285,12 @@ export default function transformProps(
   });
 
   const indicator = metricLabels.map(metricLabel => {
+    const localizedLabel =
+      localizedMetricLabelMap[metricLabel] || metricLabel;
     const isMetricWithCustomBounds = metricsWithCustomBounds.has(metricLabel);
     if (!isMetricWithCustomBounds) {
       return {
-        name: metricLabel,
+        name: localizedLabel,
         max: 1,
         min: 0,
       };
@@ -308,7 +313,7 @@ export default function transformProps(
     }
 
     return {
-      name: metricLabel,
+      name: localizedLabel,
       max,
       min,
     };
