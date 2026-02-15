@@ -16,6 +16,8 @@
 # under the License.
 from typing import Any, Optional
 
+import pytest
+
 from sqlalchemy import String, TypeDecorator
 from sqlalchemy_utils import EncryptedType
 from sqlalchemy_utils.types.encrypted.encrypted_type import StringEncryptedType
@@ -154,12 +156,8 @@ class EncryptedFieldTest(SupersetTestCase):
 
         # Step 6: Verify KEY_A can no longer decrypt the new ciphertext
         self.app.config["SECRET_KEY"] = key_a
-        try:
-            bad_decrypt = field.process_result_value(encrypted_b, dialect)
-            # If decryption doesn't raise, value should be garbage
-            assert bad_decrypt != test_value
-        except (ValueError, Exception):
-            pass  # Expected: old key cannot decrypt new ciphertext
+        with pytest.raises(ValueError):
+            field.process_result_value(encrypted_b, dialect)
 
         # Restore original key
         self.app.config["SECRET_KEY"] = key_a
