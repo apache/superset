@@ -54,7 +54,7 @@ class SQLAlchemyUtilsAdapter(  # pylint: disable=too-few-public-methods
         **kwargs: Optional[dict[str, Any]],
     ) -> TypeDecorator:
         if app_config:
-            return EncryptedType(*args, app_config["SECRET_KEY"], **kwargs)
+            return EncryptedType(*args, lambda: app_config["SECRET_KEY"], **kwargs)
 
         raise Exception(  # pylint: disable=broad-exception-raised
             "Missing app_config kwarg"
@@ -138,7 +138,9 @@ class SecretsMigrator:
     def _select_columns_from_table(
         conn: Connection, column_names: list[str], table_name: str
     ) -> Row:
-        return conn.execute(f"SELECT id, {','.join(column_names)} FROM {table_name}")  # noqa: S608
+        return conn.execute(
+            f"SELECT id, {','.join(column_names)} FROM {table_name}"
+        )  # noqa: S608
 
     def _re_encrypt_row(
         self,
