@@ -23,8 +23,8 @@ from unittest.mock import MagicMock
 
 import numpy as np
 import pandas as pd
-import pytz
 import pytest
+import pytz
 
 from superset.utils import json
 from superset.utils.core import (
