@@ -142,15 +142,8 @@ class Slice(  # pylint: disable=too-many-public-methods
         return self.slice_name or str(self.id)
 
     @property
-    def cls_model(self) -> type[SqlaTable]:
-        # pylint: disable=import-outside-toplevel
-        from superset.daos.datasource import DatasourceDAO
-
-        return DatasourceDAO.sources[self.datasource_type]
-
-    @property
     def datasource(self) -> SqlaTable | None:
-        return self.get_datasource
+        return self.table
 
     def clone(self) -> Slice:
         return Slice(
@@ -162,15 +155,6 @@ class Slice(  # pylint: disable=too-many-public-methods
             params=self.params,
             description=self.description,
             cache_timeout=self.cache_timeout,
-        )
-
-    # pylint: disable=using-constant-test
-    @datasource.getter  # type: ignore
-    def get_datasource(self) -> SqlaTable | None:
-        return (
-            db.session.query(self.cls_model)
-            .filter_by(id=self.datasource_id)
-            .one_or_none()
         )
 
     @renders("datasource_name")
@@ -200,8 +184,6 @@ class Slice(  # pylint: disable=too-many-public-methods
     def datasource_edit_url(self) -> str | None:
         datasource = self.datasource
         return datasource.url if datasource else None
-
-    # pylint: enable=using-constant-test
 
     @property
     def viz(self) -> BaseViz | None:
@@ -377,7 +359,10 @@ def id_or_uuid_filter(id_or_uuid: str | int) -> BinaryExpression:
 
 
 def set_related_perm(_mapper: Mapper, _connection: Connection, target: Slice) -> None:
-    src_class = target.cls_model
+    # pylint: disable=import-outside-toplevel
+    from superset.daos.datasource import DatasourceDAO
+
+    src_class = DatasourceDAO.sources[target.datasource_type]
     if id_ := target.datasource_id:
         ds = db.session.query(src_class).filter_by(id=int(id_)).first()
         if ds:

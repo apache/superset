@@ -636,7 +636,6 @@ const config: Config = {
       copyright: `
           <div class="footer__ci-services">
             <span>CI powered by</span>
-            <a href="https://applitools.com/" target="_blank" rel="nofollow noopener noreferrer"><img src="/img/applitools.png" alt="Applitools" title="Applitools - Visual Testing" /></a>
             <a href="https://www.netlify.com/" target="_blank" rel="nofollow noopener noreferrer"><img src="/img/netlify.png" alt="Netlify" title="Netlify - Deploy Previews" /></a>
           </div>
           <p>Copyright © ${new Date().getFullYear()},

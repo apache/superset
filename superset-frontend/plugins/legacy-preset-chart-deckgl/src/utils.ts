@@ -84,7 +84,7 @@ export function getBreakPoints(
       delta === 0 ? 0 : Math.max(0, Math.ceil(Math.log10(1 / delta)));
 
     // Generate breakpoints
-    const breakPoints = new Array(numBuckets + 1).fill(0).map((_, i) => {
+    const breakPoints = Array.from({ length: numBuckets + 1 }, (_, i) => {
       const value = minValue + i * delta;
 
       // For the first breakpoint, floor to ensure minimum is included

@@ -531,6 +531,7 @@ const ResultSet = ({
           placement="left"
         >
           <Label
+            monospace
             css={css`
               line-height: ${theme.fontSizeLG}px;
             `}

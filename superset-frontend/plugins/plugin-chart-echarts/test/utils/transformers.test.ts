@@ -127,57 +127,102 @@ const mockIntervalAnnotationData: AnnotationData = {
 
 describe('transformIntervalAnnotation', () => {
   test('should transform data correctly', () => {
-    expect(
-      transformIntervalAnnotation(
-        mockIntervalAnnotationLayer,
-        mockData,
-        mockIntervalAnnotationData,
-        CategoricalColorNamespace.getScale(''),
-        supersetTheme,
-      )
-        .map(annotation => annotation.markArea)
-        .map(markArea => markArea.data),
-    ).toEqual([
+    const result = transformIntervalAnnotation(
+      mockIntervalAnnotationLayer,
+      mockData,
+      mockIntervalAnnotationData,
+      CategoricalColorNamespace.getScale(''),
+      supersetTheme,
+    );
+
+    // Should return a single series with all intervals
+    expect(result).toHaveLength(1);
+    expect(result[0].markArea.data).toEqual([
       [
-        [
-          { name: 'Interval annotation layer - Timeseries 1', xAxis: 10 },
-          { xAxis: 12 },
-        ],
+        { name: 'Interval annotation layer - Timeseries 1', xAxis: 10 },
+        { xAxis: 12 },
       ],
       [
-        [
-          { name: 'Interval annotation layer - Timeseries 2', xAxis: 13 },
-          { xAxis: 15 },
-        ],
+        { name: 'Interval annotation layer - Timeseries 2', xAxis: 13 },
+        { xAxis: 15 },
       ],
     ]);
   });
 
-  test('should use yAxis for horizontal chart data', () => {
-    expect(
-      transformIntervalAnnotation(
-        mockIntervalAnnotationLayer,
-        mockData,
-        mockIntervalAnnotationData,
-        CategoricalColorNamespace.getScale(''),
-        supersetTheme,
-        undefined,
-        OrientationType.Horizontal,
-      )
-        .map(annotation => annotation.markArea)
-        .map(markArea => markArea.data),
-    ).toEqual([
-      [
-        [
-          { name: 'Interval annotation layer - Timeseries 1', yAxis: 10 },
-          { yAxis: 12 },
+  test('should combine labels for intervals with the same start date', () => {
+    const duplicateStartDateData: AnnotationData = {
+      'Interval annotation layer': {
+        records: [
+          {
+            start_dttm: 10,
+            end_dttm: 12,
+            short_descr: 'Same start event 1',
+            long_descr: '',
+            json_metadata: '',
+          },
+          {
+            start_dttm: 10,
+            end_dttm: 15,
+            short_descr: 'Same start event 2',
+            long_descr: '',
+            json_metadata: '',
+          },
+          {
+            start_dttm: 10,
+            end_dttm: 18,
+            short_descr: 'Same start event 3',
+            long_descr: '',
+            json_metadata: '',
+          },
         ],
+      },
+    };
+
+    const result = transformIntervalAnnotation(
+      mockIntervalAnnotationLayer,
+      mockData,
+      duplicateStartDateData,
+      CategoricalColorNamespace.getScale(''),
+      supersetTheme,
+    );
+
+    // Should return a single series
+    expect(result).toHaveLength(1);
+
+    // The markArea data should contain all 3 intervals
+    expect(result[0].markArea.data).toHaveLength(3);
+
+    // All intervals with the same start time should have the combined label
+    const combinedLabel =
+      'Interval annotation layer - Same start event 1\nInterval annotation layer - Same start event 2\nInterval annotation layer - Same start event 3';
+    expect(result[0].markArea.data).toEqual([
+      [{ name: combinedLabel, xAxis: 10 }, { xAxis: 12 }],
+      [{ name: combinedLabel, xAxis: 10 }, { xAxis: 15 }],
+      [{ name: combinedLabel, xAxis: 10 }, { xAxis: 18 }],
+    ]);
+  });
+
+  test('should use yAxis for horizontal chart data', () => {
+    const result = transformIntervalAnnotation(
+      mockIntervalAnnotationLayer,
+      mockData,
+      mockIntervalAnnotationData,
+      CategoricalColorNamespace.getScale(''),
+      supersetTheme,
+      undefined,
+      OrientationType.Horizontal,
+    );
+
+    // Should return a single series with all intervals
+    expect(result).toHaveLength(1);
+    expect(result[0].markArea.data).toEqual([
+      [
+        { name: 'Interval annotation layer - Timeseries 1', yAxis: 10 },
+        { yAxis: 12 },
       ],
       [
-        [
-          { name: 'Interval annotation layer - Timeseries 2', yAxis: 13 },
-          { yAxis: 15 },
-        ],
+        { name: 'Interval annotation layer - Timeseries 2', yAxis: 13 },
+        { yAxis: 15 },
       ],
     ]);
   });
@@ -218,48 +263,96 @@ const mockEventAnnotationData: AnnotationData = {
 
 describe('transformEventAnnotation', () => {
   test('should transform data correctly', () => {
-    expect(
-      transformEventAnnotation(
-        mockEventAnnotationLayer,
-        mockData,
-        mockEventAnnotationData,
-        CategoricalColorNamespace.getScale(''),
-        supersetTheme,
-      )
-        .map(annotation => annotation.markLine)
-        .map(markLine => markLine.data),
-    ).toEqual([
-      [
-        {
-          name: 'Event annotation layer - Test annotation',
-          xAxis: 10,
-        },
-      ],
-      [{ name: 'Event annotation layer - Test annotation 2', xAxis: 13 }],
+    const result = transformEventAnnotation(
+      mockEventAnnotationLayer,
+      mockData,
+      mockEventAnnotationData,
+      CategoricalColorNamespace.getScale(''),
+      supersetTheme,
+    );
+
+    // Should return a single series with all events
+    expect(result).toHaveLength(1);
+    expect(result[0].markLine.data).toEqual([
+      {
+        name: 'Event annotation layer - Test annotation',
+        xAxis: 10,
+      },
+      { name: 'Event annotation layer - Test annotation 2', xAxis: 13 },
+    ]);
+  });
+
+  test('should combine labels for events with the same start date', () => {
+    const duplicateStartDateData: AnnotationData = {
+      'Event annotation layer': {
+        records: [
+          {
+            start_dttm: 10,
+            end_dttm: 12,
+            short_descr: 'Same date event 1',
+            long_descr: '',
+            json_metadata: '',
+          },
+          {
+            start_dttm: 10,
+            end_dttm: 15,
+            short_descr: 'Same date event 2',
+            long_descr: '',
+            json_metadata: '',
+          },
+          {
+            start_dttm: 10,
+            end_dttm: 18,
+            short_descr: 'Same date event 3',
+            long_descr: '',
+            json_metadata: '',
+          },
+        ],
+      },
+    };
+
+    const result = transformEventAnnotation(
+      mockEventAnnotationLayer,
+      mockData,
+      duplicateStartDateData,
+      CategoricalColorNamespace.getScale(''),
+      supersetTheme,
+    );
+
+    // Should return a single series
+    expect(result).toHaveLength(1);
+
+    // Events on the same date are grouped into a single entry with combined label
+    expect(result[0].markLine.data).toHaveLength(1);
+
+    // The combined label should include all event names
+    expect(result[0].markLine.data).toEqual([
+      {
+        name: 'Event annotation layer - Same date event 1\nEvent annotation layer - Same date event 2\nEvent annotation layer - Same date event 3',
+        xAxis: 10,
+      },
     ]);
   });
 
   test('should use yAxis for horizontal chart data', () => {
-    expect(
-      transformEventAnnotation(
-        mockEventAnnotationLayer,
-        mockData,
-        mockEventAnnotationData,
-        CategoricalColorNamespace.getScale(''),
-        supersetTheme,
-        undefined,
-        OrientationType.Horizontal,
-      )
-        .map(annotation => annotation.markLine)
-        .map(markLine => markLine.data),
-    ).toEqual([
-      [
-        {
-          name: 'Event annotation layer - Test annotation',
-          yAxis: 10,
-        },
-      ],
-      [{ name: 'Event annotation layer - Test annotation 2', yAxis: 13 }],
+    const result = transformEventAnnotation(
+      mockEventAnnotationLayer,
+      mockData,
+      mockEventAnnotationData,
+      CategoricalColorNamespace.getScale(''),
+      supersetTheme,
+      undefined,
+      OrientationType.Horizontal,
+    );
+
+    // Should return a single series with all events
+    expect(result).toHaveLength(1);
+    expect(result[0].markLine.data).toEqual([
+      {
+        name: 'Event annotation layer - Test annotation',
+        yAxis: 10,
+      },
+      { name: 'Event annotation layer - Test annotation 2', yAxis: 13 },
     ]);
   });
 });

@@ -142,8 +142,8 @@ const naturalSort: SortFunction = (as, bs) => {
   }
 
   // finally, "smart" string sorting per http://stackoverflow.com/a/4373421/112871
-  let a = String(as);
-  let b = String(bs);
+  const a = String(as);
+  const b = String(bs);
   if (a === b) {
     return 0;
   }

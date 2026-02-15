@@ -25,6 +25,7 @@ from urllib.parse import parse_qs, urlparse
 from fastmcp import Context
 from superset_core.mcp import tool
 
+from superset.extensions import event_logger
 from superset.mcp_service.auth import has_dataset_access
 from superset.mcp_service.chart.chart_utils import (
     analyze_chart_capabilities,
@@ -132,23 +133,24 @@ async def generate_chart(  # noqa: C901
         await ctx.debug(
             "Validating chart request: dataset_id=%s" % (request.dataset_id,)
         )
-        from superset.mcp_service.chart.validation import ValidationPipeline
+        with event_logger.log_context(action="mcp.generate_chart.validation"):
+            from superset.mcp_service.chart.validation import ValidationPipeline
 
-        validation_result = ValidationPipeline.validate_request_with_warnings(
-            request.model_dump()
-        )
+            validation_result = ValidationPipeline.validate_request_with_warnings(
+                request.model_dump()
+            )
 
-        if validation_result.is_valid and validation_result.request is not None:
-            # Use the validated request going forward
-            request = validation_result.request
+            if validation_result.is_valid and validation_result.request is not None:
+                # Use the validated request going forward
+                request = validation_result.request
 
-        # Capture runtime warnings (informational, not blocking)
-        if validation_result.warnings:
-            runtime_warnings = validation_result.warnings.get("warnings", [])
-            if runtime_warnings:
-                await ctx.info(
-                    "Runtime suggestions: %s" % ("; ".join(runtime_warnings[:3]),)
-                )
+            # Capture runtime warnings (informational, not blocking)
+            if validation_result.warnings:
+                runtime_warnings = validation_result.warnings.get("warnings", [])
+                if runtime_warnings:
+                    await ctx.info(
+                        "Runtime suggestions: %s" % ("; ".join(runtime_warnings[:3]),)
+                    )
 
         if not validation_result.is_valid:
             execution_time = int((time.time() - start_time) * 1000)
@@ -197,35 +199,38 @@ async def generate_chart(  # noqa: C901
             from superset.daos.dataset import DatasetDAO
 
             await ctx.debug("Looking up dataset: dataset_id=%s" % (request.dataset_id,))
-            dataset = None
-            if isinstance(request.dataset_id, int) or (
-                isinstance(request.dataset_id, str) and request.dataset_id.isdigit()
-            ):
-                dataset_id = (
-                    int(request.dataset_id)
-                    if isinstance(request.dataset_id, str)
-                    else request.dataset_id
-                )
-                dataset = DatasetDAO.find_by_id(dataset_id)
-                # SECURITY FIX: Also validate permissions for numeric ID access
-                if dataset and not has_dataset_access(dataset):
-                    logger.warning(
-                        "User %s attempted to access dataset %s without permission",
-                        ctx.user.username if hasattr(ctx, "user") else "unknown",
-                        dataset_id,
+            with event_logger.log_context(action="mcp.generate_chart.dataset_lookup"):
+                dataset = None
+                if isinstance(request.dataset_id, int) or (
+                    isinstance(request.dataset_id, str) and request.dataset_id.isdigit()
+                ):
+                    dataset_id = (
+                        int(request.dataset_id)
+                        if isinstance(request.dataset_id, str)
+                        else request.dataset_id
                     )
-                    dataset = None  # Treat as not found
-            else:
-                # SECURITY FIX: Try UUID lookup with permission validation
-                dataset = DatasetDAO.find_by_id(request.dataset_id, id_column="uuid")
-                # Validate permissions for UUID-based access
-                if dataset and not has_dataset_access(dataset):
-                    logger.warning(
-                        "User %s attempted access dataset %s via UUID",
-                        ctx.user.username if hasattr(ctx, "user") else "unknown",
-                        request.dataset_id,
+                    dataset = DatasetDAO.find_by_id(dataset_id)
+                    # SECURITY FIX: Also validate permissions for numeric ID access
+                    if dataset and not has_dataset_access(dataset):
+                        logger.warning(
+                            "User %s attempted to access dataset %s without permission",
+                            ctx.user.username if hasattr(ctx, "user") else "unknown",
+                            dataset_id,
+                        )
+                        dataset = None  # Treat as not found
+                else:
+                    # SECURITY FIX: Try UUID lookup with permission validation
+                    dataset = DatasetDAO.find_by_id(
+                        request.dataset_id, id_column="uuid"
                     )
-                    dataset = None  # Treat as not found
+                    # Validate permissions for UUID-based access
+                    if dataset and not has_dataset_access(dataset):
+                        logger.warning(
+                            "User %s attempted access dataset %s via UUID",
+                            ctx.user.username if hasattr(ctx, "user") else "unknown",
+                            request.dataset_id,
+                        )
+                        dataset = None  # Treat as not found
 
             if not dataset:
                 await ctx.error(
@@ -267,22 +272,25 @@ async def generate_chart(  # noqa: C901
                 )
 
             try:
-                command = CreateChartCommand(
-                    {
-                        "slice_name": chart_name,
-                        "viz_type": form_data["viz_type"],
-                        "datasource_id": dataset.id,
-                        "datasource_type": "table",
-                        "params": json.dumps(form_data),
-                    }
-                )
+                with event_logger.log_context(action="mcp.generate_chart.db_write"):
+                    command = CreateChartCommand(
+                        {
+                            "slice_name": chart_name,
+                            "viz_type": form_data["viz_type"],
+                            "datasource_id": dataset.id,
+                            "datasource_type": "table",
+                            "params": json.dumps(form_data),
+                        }
+                    )
 
-                chart = command.run()
-                chart_id = chart.id
+                    chart = command.run()
+                    chart_id = chart.id
 
-                # Ensure chart was created successfully before committing
-                if not chart or not chart.id:
-                    raise Exception("Chart creation failed - no chart ID returned")
+                    # Ensure chart was created successfully before committing
+                    if not chart or not chart.id:
+                        raise RuntimeError(
+                            "Chart creation failed - no chart ID returned"
+                        )
 
                 await ctx.info(
                     "Chart created successfully: chart_id=%s, chart_name=%s"
@@ -301,35 +309,39 @@ async def generate_chart(  # noqa: C901
 
             # Generate form_data_key for saved charts (needed for chatbot rendering)
             try:
-                from superset.commands.explore.form_data.parameters import (
-                    CommandParameters,
-                )
-                from superset.mcp_service.commands.create_form_data import (
-                    MCPCreateFormDataCommand,
-                )
-                from superset.utils.core import DatasourceType
+                with event_logger.log_context(
+                    action="mcp.generate_chart.form_data_cache"
+                ):
+                    from superset.commands.explore.form_data.parameters import (
+                        CommandParameters,
+                    )
+                    from superset.mcp_service.commands.create_form_data import (
+                        MCPCreateFormDataCommand,
+                    )
+                    from superset.utils.core import DatasourceType
 
-                # Add datasource to form_data for the cache
-                form_data_with_datasource = {
-                    **form_data,
-                    "datasource": f"{dataset.id}__table",
-                }
+                    # Add datasource to form_data for the cache
+                    form_data_with_datasource = {
+                        **form_data,
+                        "datasource": f"{dataset.id}__table",
+                    }
 
-                cmd_params = CommandParameters(
-                    datasource_type=DatasourceType.TABLE,
-                    datasource_id=dataset.id,
-                    chart_id=chart.id,
-                    tab_id=None,
-                    form_data=json.dumps(form_data_with_datasource),
-                )
-                form_data_key = MCPCreateFormDataCommand(cmd_params).run()
-                await ctx.debug(
-                    "Generated form_data_key for saved chart: form_data_key=%s"
-                    % (form_data_key,)
-                )
+                    cmd_params = CommandParameters(
+                        datasource_type=DatasourceType.TABLE,
+                        datasource_id=dataset.id,
+                        chart_id=chart.id,
+                        tab_id=None,
+                        form_data=json.dumps(form_data_with_datasource),
+                    )
+                    form_data_key = MCPCreateFormDataCommand(cmd_params).run()
+                    await ctx.debug(
+                        "Generated form_data_key for saved chart: "
+                        "form_data_key=%s" % (form_data_key,)
+                    )
             except Exception as fdk_error:
                 logger.warning(
-                    "Failed to generate form_data_key for saved chart: %s", fdk_error
+                    "Failed to generate form_data_key for saved chart: %s",
+                    fdk_error,
                 )
                 await ctx.warning(
                     "Failed to generate form_data_key: error=%s" % (str(fdk_error),)
@@ -383,60 +395,66 @@ async def generate_chart(  # noqa: C901
                 "Generating previews: formats=%s" % (str(request.preview_formats),)
             )
             try:
-                for format_type in request.preview_formats:
-                    await ctx.debug(
-                        "Processing preview format: format=%s" % (format_type,)
-                    )
-
-                    if chart_id:
-                        # For saved charts, use the existing preview generation
-                        from superset.mcp_service.chart.tool.get_chart_preview import (
-                            _get_chart_preview_internal,
-                            GetChartPreviewRequest,
+                with event_logger.log_context(action="mcp.generate_chart.preview"):
+                    for format_type in request.preview_formats:
+                        await ctx.debug(
+                            "Processing preview format: format=%s" % (format_type,)
                         )
 
-                        preview_request = GetChartPreviewRequest(
-                            identifier=str(chart_id), format=format_type
-                        )
-                        preview_result = await _get_chart_preview_internal(
-                            preview_request, ctx
-                        )
-
-                        if hasattr(preview_result, "content"):
-                            previews[format_type] = preview_result.content
-                    else:
-                        # For preview-only mode (save_chart=false)
-                        # Note: Screenshot-based URL previews are not supported.
-                        # Use the explore_url to view the chart interactively.
-                        if format_type in ["ascii", "table", "vega_lite"]:
-                            # Generate preview from form data without saved chart
-                            from superset.mcp_service.chart.preview_utils import (
-                                generate_preview_from_form_data,
+                        if chart_id:
+                            # For saved charts, use the existing preview
+                            from superset.mcp_service.chart.tool.get_chart_preview import (  # noqa: E501
+                                _get_chart_preview_internal,
+                                GetChartPreviewRequest,
                             )
 
-                            # Convert dataset_id to int only if it's numeric
-                            if (
-                                isinstance(request.dataset_id, str)
-                                and request.dataset_id.isdigit()
-                            ):
-                                dataset_id_for_preview = int(request.dataset_id)
-                            elif isinstance(request.dataset_id, int):
-                                dataset_id_for_preview = request.dataset_id
-                            else:
-                                # Skip preview generation for non-numeric dataset IDs
-                                logger.warning(
-                                    "Cannot generate preview for non-numeric "
+                            preview_request = GetChartPreviewRequest(
+                                identifier=str(chart_id), format=format_type
+                            )
+                            preview_result = await _get_chart_preview_internal(
+                                preview_request, ctx
+                            )
+
+                            if hasattr(preview_result, "content"):
+                                previews[format_type] = preview_result.content
+                        else:
+                            # For preview-only mode (save_chart=false)
+                            # Note: Screenshot-based URL previews are not
+                            # supported. Use explore_url to view interactively.
+                            if format_type in [
+                                "ascii",
+                                "table",
+                                "vega_lite",
+                            ]:
+                                # Generate preview from form data
+                                from superset.mcp_service.chart.preview_utils import (
+                                    generate_preview_from_form_data,
                                 )
-                                continue
 
-                            preview_result = generate_preview_from_form_data(
-                                form_data=form_data,
-                                dataset_id=dataset_id_for_preview,
-                                preview_format=format_type,
-                            )
+                                # Convert dataset_id to int only if numeric
+                                if (
+                                    isinstance(request.dataset_id, str)
+                                    and request.dataset_id.isdigit()
+                                ):
+                                    dataset_id_for_preview = int(request.dataset_id)
+                                elif isinstance(request.dataset_id, int):
+                                    dataset_id_for_preview = request.dataset_id
+                                else:
+                                    # Skip for non-numeric dataset IDs
+                                    logger.warning(
+                                        "Cannot generate preview for"
+                                        " non-numeric dataset IDs"
+                                    )
+                                    continue
 
-                            if not hasattr(preview_result, "error"):
-                                previews[format_type] = preview_result
+                                preview_result = generate_preview_from_form_data(
+                                    form_data=form_data,
+                                    dataset_id=dataset_id_for_preview,
+                                    preview_format=format_type,
+                                )
+
+                                if not hasattr(preview_result, "error"):
+                                    previews[format_type] = preview_result
 
             except Exception as e:
                 # Log warning but don't fail the entire request

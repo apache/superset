@@ -64,6 +64,8 @@ export const TextCellRenderer = (params: CellRendererProps) => {
       );
     }
     if (allowRenderHtml && isProbablyHTML(value)) {
+      // Safe: HTML is sanitized before rendering
+      // eslint-disable-next-line react/no-danger
       return <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(value) }} />;
     }
   }
