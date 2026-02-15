@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import type { ReactNode } from 'react';
 import Owner from 'src/types/Owner';
 import { NotificationFormats } from 'src/features/reports/types';
 
@@ -85,8 +86,9 @@ export type Recipient = {
 
 export type MetaObject = {
   id?: number;
-  label?: string;
+  label?: ReactNode;
   value?: number | string;
+  [key: string]: unknown;
 };
 
 export type DashboardState = {

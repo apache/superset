@@ -171,7 +171,7 @@ export const StyledLabel = styled.span`
 const DefaultValueContainer = styled.div`
   display: flex;
   flex-direction: row;
-  align-items: center;
+  align-items: flex-start;
 `;
 
 const StyledAsterisk = styled.span`
@@ -1676,6 +1676,8 @@ const FiltersConfigForm = (
                                             css={css`
                                               margin-left: ${theme.sizeUnit *
                                               2}px;
+                                              margin-top: ${theme.sizeUnit *
+                                              1.5}px;
                                             `}
                                             onClick={() => refreshHandler(true)}
                                           />

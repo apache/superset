@@ -506,6 +506,117 @@ test('getColorFunction IsNotNull', () => {
   expect(colorFunction(null)).toBeUndefined();
 });
 
+test('getColorFunction returns undefined for null values on numeric comparators', () => {
+  const operators = [
+    { operator: Comparator.LessThan, targetValue: 50 },
+    { operator: Comparator.LessOrEqual, targetValue: 50 },
+    { operator: Comparator.GreaterThan, targetValue: 50 },
+    { operator: Comparator.GreaterOrEqual, targetValue: 50 },
+    { operator: Comparator.Equal, targetValue: 50 },
+    { operator: Comparator.NotEqual, targetValue: 50 },
+  ];
+  operators.forEach(({ operator, targetValue }) => {
+    const colorFunction = getColorFunction(
+      {
+        operator,
+        targetValue,
+        colorScheme: '#FF0000',
+        column: 'count',
+      },
+      countValues,
+    );
+    expect(colorFunction(null)).toBeUndefined();
+    expect(colorFunction(undefined as unknown as null)).toBeUndefined();
+  });
+});
+
+test('getColorFunction returns undefined for null values on Between comparators', () => {
+  const operators = [
+    Comparator.Between,
+    Comparator.BetweenOrEqual,
+    Comparator.BetweenOrLeftEqual,
+    Comparator.BetweenOrRightEqual,
+  ];
+  operators.forEach(operator => {
+    const colorFunction = getColorFunction(
+      {
+        operator,
+        targetValueLeft: -10,
+        targetValueRight: 50,
+        colorScheme: '#FF0000',
+        column: 'count',
+      },
+      countValues,
+    );
+    expect(colorFunction(null)).toBeUndefined();
+    expect(colorFunction(undefined as unknown as null)).toBeUndefined();
+  });
+});
+
+test('getColorFunction returns undefined for null values on None operator', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.None,
+      colorScheme: '#FF0000',
+      column: 'count',
+    },
+    countValues,
+  );
+  expect(colorFunction(null)).toBeUndefined();
+  expect(colorFunction(undefined as unknown as null)).toBeUndefined();
+});
+
+test('getColorFunction returns undefined for null values on string comparators', () => {
+  const operators = [
+    Comparator.BeginsWith,
+    Comparator.EndsWith,
+    Comparator.Containing,
+    Comparator.NotContaining,
+  ];
+  operators.forEach(operator => {
+    const colorFunction = getColorFunction(
+      {
+        operator,
+        targetValue: 'test',
+        colorScheme: '#FF0000',
+        column: 'name',
+      },
+      strValues,
+    );
+    expect(colorFunction(null)).toBeUndefined();
+    expect(colorFunction(undefined as unknown as null)).toBeUndefined();
+  });
+});
+
+test('getColorFunction returns undefined for empty and whitespace string values', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.LessThan,
+      targetValue: 50,
+      colorScheme: '#FF0000',
+      column: 'count',
+    },
+    countValues,
+  );
+  expect(colorFunction('' as unknown as number)).toBeUndefined();
+  expect(colorFunction('  ' as unknown as number)).toBeUndefined();
+  expect(colorFunction('\t' as unknown as number)).toBeUndefined();
+});
+
+test('getColorFunction IsNull still matches null values', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.IsNull,
+      targetValue: '',
+      colorScheme: '#FF0000',
+      column: 'isMember',
+    },
+    boolValues,
+  );
+  expect(colorFunction(null)).toEqual('#FF0000FF');
+  expect(colorFunction(true)).toBeUndefined();
+});
+
 test('correct column config', () => {
   const columnConfig = [
     {

@@ -399,7 +399,7 @@ sqlalchemy==1.4.54
     #   marshmallow-sqlalchemy
     #   shillelagh
     #   sqlalchemy-utils
-sqlalchemy-utils==0.38.3
+sqlalchemy-utils==0.42.0
     # via
     #   apache-superset (pyproject.toml)
     #   apache-superset-core
