@@ -103,6 +103,7 @@ from superset.models.helpers import (
     SQLA_QUERY_KEYS,
 )
 from superset.models.slice import Slice
+from superset.models.sql_types.base import CurrencyType
 from superset.sql.parse import Table
 from superset.superset_typing import (
     AdhocColumn,
@@ -1093,7 +1094,7 @@ class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model
     metric_type = Column(String(32))
     description = Column(utils.MediumText())
     d3format = Column(String(128))
-    currency = Column(JSON, nullable=True)
+    currency = Column(CurrencyType, nullable=True)
     warning_text = Column(Text)
     table_id = Column(Integer, ForeignKey("tables.id", ondelete="CASCADE"))
     expression = Column(utils.MediumText(), nullable=False)
