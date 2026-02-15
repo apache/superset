@@ -1473,7 +1473,48 @@ describe('plugin-chart-table', () => {
         );
       });
 
-      test('recalculates totals when user filters data', async () => {
+      describe('metric label localization', () => {
+      test('should display localized metric labels when locale has translation', () => {
+        const props = transformProps(cloneDeep(testData.localization));
+
+        render(<TableChart {...props} sticky={false} />);
+
+        // Metric with German translation should show localized label
+        expect(screen.getByText('Gesamtzahl')).toBeInTheDocument();
+
+        // Metric without translation should show original label
+        expect(screen.getByText('Total Amount')).toBeInTheDocument();
+
+        // Original label should NOT be visible for translated metric
+        expect(screen.queryByText('Total Count')).not.toBeInTheDocument();
+      });
+
+      test('should display original labels when locale has no translation', () => {
+        const testDataClone = cloneDeep(testData.localization);
+        testDataClone.locale = 'fr'; // French - no translations defined
+        const props = transformProps(testDataClone);
+
+        render(<TableChart {...props} sticky={false} />);
+
+        // Both metrics should show original labels since French has no translations
+        expect(screen.getByText('Total Count')).toBeInTheDocument();
+        expect(screen.getByText('Total Amount')).toBeInTheDocument();
+      });
+
+      test('should display original labels when locale is undefined', () => {
+        const testDataClone = cloneDeep(testData.localization);
+        testDataClone.locale = undefined;
+        const props = transformProps(testDataClone);
+
+        render(<TableChart {...props} sticky={false} />);
+
+        // Both metrics should show original labels
+        expect(screen.getByText('Total Count')).toBeInTheDocument();
+        expect(screen.getByText('Total Amount')).toBeInTheDocument();
+      });
+    });
+
+    test('recalculates totals when user filters data', async () => {
         const formDataWithTotals = {
           ...testData.basic.formData,
           show_totals: true,

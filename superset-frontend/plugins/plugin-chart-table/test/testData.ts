@@ -471,6 +471,66 @@ const nameAndBoolean: TableChartProps = {
   ],
 };
 
+/**
+ * Test data for metric label localization.
+ * Contains adhoc metrics with translations to verify localized labels render.
+ */
+const localization: TableChartProps = {
+  ...new ChartProps(basicChartProps),
+  locale: 'de',
+  rawFormData: {
+    ...basicFormData,
+    metrics: [
+      {
+        expressionType: 'SQL',
+        sqlExpression: 'COUNT(*)',
+        label: 'Total Count',
+        hasCustomLabel: true,
+        translations: {
+          label: {
+            de: 'Gesamtzahl',
+            ru: 'Общее количество',
+          },
+        },
+      },
+      {
+        expressionType: 'SQL',
+        sqlExpression: 'SUM(amount)',
+        label: 'Total Amount',
+        hasCustomLabel: true,
+        // No translations for this metric
+      },
+    ],
+  },
+  datasource: {
+    ...basicChartProps.datasource,
+    verboseMap: {},
+  },
+  queriesData: [
+    {
+      ...basicQueryResult,
+      colnames: ['name', 'Total Count', 'Total Amount'],
+      coltypes: [
+        GenericDataType.String,
+        GenericDataType.Numeric,
+        GenericDataType.Numeric,
+      ],
+      data: [
+        {
+          name: 'Alice',
+          'Total Count': 100,
+          'Total Amount': 500,
+        },
+        {
+          name: 'Bob',
+          'Total Count': 200,
+          'Total Amount': 750,
+        },
+      ],
+    },
+  ],
+};
+
 export default {
   basic,
   advanced,
@@ -482,4 +542,5 @@ export default {
   raw,
   bigint,
   nameAndBoolean,
+  localization,
 };
