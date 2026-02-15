@@ -19,14 +19,20 @@
 import { ReactNode } from 'react';
 import { t } from '@apache-superset/core';
 import { JsonValue } from '@superset-ui/core';
-import { Radio } from '@superset-ui/core/components';
+import { Radio, Tooltip, TooltipPlacement } from '@superset-ui/core/components';
 import { ControlHeader } from '../../components/ControlHeader';
 
-// [value, label]
-export type RadioButtonOption = [
-  JsonValue,
-  Exclude<ReactNode, null | undefined | boolean>,
-];
+export interface RadioButtonOptionObject {
+  value: JsonValue;
+  label: Exclude<ReactNode, null | undefined | boolean>;
+  disabled?: boolean;
+  tooltip?: string;
+  tooltipPlacement?: TooltipPlacement;
+}
+
+export type RadioButtonOption =
+  | [JsonValue, Exclude<ReactNode, null | undefined | boolean>]
+  | RadioButtonOptionObject;
 
 export interface RadioButtonControlProps {
   label?: ReactNode;
@@ -34,7 +40,17 @@ export interface RadioButtonControlProps {
   options: RadioButtonOption[];
   hovered?: boolean;
   value?: JsonValue;
-  onChange: (opt: RadioButtonOption[0]) => void;
+  onChange: (opt: JsonValue) => void;
+}
+
+function normalizeOption(option: RadioButtonOption): RadioButtonOptionObject {
+  if (Array.isArray(option)) {
+    return {
+      value: option[0],
+      label: option[1],
+    };
+  }
+  return option;
 }
 
 export default function RadioButtonControl({
@@ -43,7 +59,9 @@ export default function RadioButtonControl({
   onChange,
   ...props
 }: RadioButtonControlProps) {
-  const currentValue = initialValue || options[0][0];
+  const normalizedOptions = options.map(normalizeOption);
+  const currentValue = initialValue || normalizedOptions[0].value;
+
   return (
     <div>
       <div
@@ -55,29 +73,52 @@ export default function RadioButtonControl({
           value={currentValue}
           onChange={e => onChange(e.target.value)}
         >
-          {options.map(([val, label]) => (
-            <Radio.Button
-              // role="tab"
-              key={JSON.stringify(val)}
-              value={val}
-              aria-label={typeof label === 'string' ? label : undefined}
-              id={`tab-${val}`}
-              type="button"
-              aria-selected={val === currentValue}
-              className={`btn btn-default ${
-                val === currentValue ? 'active' : ''
-              }`}
-              onClick={e => {
-                e.currentTarget?.focus();
-                onChange(val);
-              }}
-            >
-              {label}
-            </Radio.Button>
-          ))}
+          {normalizedOptions.map(
+            ({
+              value: val,
+              label,
+              disabled = false,
+              tooltip,
+              tooltipPlacement = 'top',
+            }) => {
+              const button = (
+                <Radio.Button
+                  key={JSON.stringify(val)}
+                  value={val}
+                  disabled={disabled}
+                  aria-label={typeof label === 'string' ? label : undefined}
+                  id={`tab-${val}`}
+                  type="button"
+                  aria-selected={val === currentValue}
+                  className={`btn btn-default ${
+                    val === currentValue ? 'active' : ''
+                  }`}
+                  onClick={e => {
+                    e.currentTarget?.focus();
+                    onChange(val);
+                  }}
+                >
+                  {label}
+                </Radio.Button>
+              );
+
+              if (tooltip) {
+                return (
+                  <Tooltip
+                    key={JSON.stringify(val)}
+                    title={tooltip}
+                    placement={tooltipPlacement}
+                  >
+                    {button}
+                  </Tooltip>
+                );
+              }
+
+              return button;
+            },
+          )}
         </Radio.Group>
       </div>
-      {/* accessibility begin */}
       <div
         aria-live="polite"
         style={{
@@ -90,10 +131,10 @@ export default function RadioButtonControl({
       >
         {t(
           '%s tab selected',
-          options.find(([val]) => val === currentValue)?.[1],
+          normalizedOptions.find(({ value: val }) => val === currentValue)
+            ?.label,
         )}
       </div>
-      {/* accessibility end */}
     </div>
   );
 }
