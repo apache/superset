@@ -83,12 +83,17 @@ const ColumnSelectPopoverTriggerInner = ({
   const [isTitleEditDisabled, setIsTitleEditDisabled] = useState(true);
   const [hasCustomLabel, setHasCustomLabel] = useState(false);
   const [showDatasetModal, setDatasetModal] = useState(false);
+  const [translations, setTranslations] = useState<
+    Record<string, Record<string, string>> | undefined
+  >(undefined);
 
   let initialPopoverLabel = defaultPopoverLabel;
+  let initialTranslations: Record<string, Record<string, string>> | undefined;
   if (editedColumn && isColumnMeta(editedColumn)) {
     initialPopoverLabel = editedColumn.verbose_name || editedColumn.column_name;
   } else if (editedColumn && isAdhocColumn(editedColumn)) {
     initialPopoverLabel = editedColumn.label || defaultPopoverLabel;
+    initialTranslations = editedColumn.translations;
   }
 
   const togglePopover = useCallback((visible: boolean) => {
@@ -118,10 +123,11 @@ const ColumnSelectPopoverTriggerInner = ({
 
   useEffect(() => {
     setPopoverLabel(initialPopoverLabel);
+    setTranslations(initialTranslations);
     if (!visible) {
       setHasCustomLabel(false);
     }
-  }, [initialPopoverLabel, visible]);
+  }, [initialPopoverLabel, initialTranslations, visible]);
 
   const overlayContent = useMemo(
     () => (
@@ -141,6 +147,7 @@ const ColumnSelectPopoverTriggerInner = ({
           metrics={metrics}
           selectedMetrics={selectedMetrics}
           datasource={datasource}
+          translations={translations}
         />
       </ExplorePopoverContent>
     ),
@@ -157,6 +164,7 @@ const ColumnSelectPopoverTriggerInner = ({
       metrics,
       selectedMetrics,
       datasource,
+      translations,
     ],
   );
 
@@ -178,6 +186,8 @@ const ColumnSelectPopoverTriggerInner = ({
         onChange={onLabelChange}
         isEditDisabled={isTitleEditDisabled}
         hasCustomLabel={hasCustomLabel}
+        translations={translations}
+        onTranslationsChange={setTranslations}
       />
     );
   }, [
@@ -186,6 +196,7 @@ const ColumnSelectPopoverTriggerInner = ({
     onLabelChange,
     popoverLabel,
     disabledTabs,
+    translations,
   ]);
 
   return (

@@ -104,6 +104,7 @@ export interface ColumnSelectPopoverProps {
   metrics?: Metric[];
   selectedMetrics?: QueryFormMetric[];
   datasource?: any;
+  translations?: Record<string, Record<string, string>>;
 }
 
 const getInitialColumnValues = (
@@ -136,6 +137,7 @@ const ColumnSelectPopover = ({
   metrics = [],
   selectedMetrics = [],
   datasource,
+  translations,
 }: ColumnSelectPopoverProps) => {
   // const theme = useTheme(); // Unused variable
   const datasourceType = useSelector<ExplorePageState, string | undefined>(
@@ -313,8 +315,13 @@ const ColumnSelectPopover = ({
   ]);
 
   const onSave = useCallback(() => {
-    if (adhocColumn && adhocColumn.label !== label) {
-      adhocColumn.label = label;
+    if (adhocColumn) {
+      if (adhocColumn.label !== label) {
+        adhocColumn.label = label;
+      }
+      if (translations) {
+        adhocColumn.translations = translations;
+      }
     }
     const selectedColumn =
       adhocColumn || selectedCalculatedColumn || selectedSimpleColumn;
@@ -332,6 +339,7 @@ const ColumnSelectPopover = ({
     selectedCalculatedColumn,
     selectedSimpleColumn,
     selectedMetric,
+    translations,
   ]);
 
   const onResetStateAndClose = useCallback(() => {

@@ -25,6 +25,10 @@ export { default as buildQueryObject } from './buildQueryObject';
 export { default as convertFilter } from './convertFilter';
 export { default as extractTimegrain } from './extractTimegrain';
 export { default as getColumnLabel } from './getColumnLabel';
+export {
+  getLocalizedColumnLabel,
+  buildLocalizedColumnLabelMap,
+} from './getColumnLabel';
 export { default as getMetricLabel } from './getMetricLabel';
 export {
   getLocalizedMetricLabel,
