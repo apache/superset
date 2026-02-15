@@ -578,6 +578,7 @@ export type ControlFormItemSpec<T extends ControlType = ControlType> = {
       creatable?: boolean;
       minWidth?: number | string;
       validators?: ControlFormValueValidator<string>[];
+      tokenSeparators?: string[];
     }
   : T extends 'RadioButtonControl'
     ? {

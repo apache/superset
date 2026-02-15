@@ -58,6 +58,8 @@ const d3NumberFormat: ControlFormItemSpec<'Select'> = {
   creatable: true,
   minWidth: '14em',
   debounceDelay: 500,
+  // default value tokenSeparators in superset-frontend/packages/superset-ui-core/src/components/Select/constants.ts
+  tokenSeparators: ['\r\n', '\n', '\t', ';'],
 };
 
 const d3TimeFormat: ControlFormItemSpec<'Select'> = {
