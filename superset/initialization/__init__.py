@@ -168,6 +168,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.datasource.api import DatasourceRestApi
         from superset.embedded.api import EmbeddedDashboardRestApi
         from superset.embedded.view import EmbeddedView
+        from superset.embedded_chart.api import EmbeddedChartRestApi
+        from superset.embedded_chart.view import EmbeddedChartView
         from superset.explore.api import ExploreRestApi
         from superset.explore.form_data.api import ExploreFormDataRestApi
         from superset.explore.permalink.api import ExplorePermalinkRestApi
@@ -201,6 +203,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.database.views import DatabaseView
         from superset.views.datasource.views import DatasetEditor, Datasource
         from superset.views.dynamic_plugins import DynamicPluginsView
+        from superset.views.embedded_charts import EmbeddedChartsView
         from superset.views.error_handling import set_app_error_handlers
         from superset.views.explore import ExplorePermalinkView, ExploreView
         from superset.views.groups import GroupsListView
@@ -257,6 +260,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(DatasetMetricRestApi)
         appbuilder.add_api(DatasourceRestApi)
         appbuilder.add_api(EmbeddedDashboardRestApi)
+        appbuilder.add_api(EmbeddedChartRestApi)
         appbuilder.add_api(ExploreRestApi)
         appbuilder.add_api(ExploreFormDataRestApi)
         appbuilder.add_api(ExplorePermalinkRestApi)
@@ -434,6 +438,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(Datasource)
         appbuilder.add_view_no_menu(DatasetEditor)
         appbuilder.add_view_no_menu(EmbeddedView)
+        appbuilder.add_view_no_menu(EmbeddedChartView)
         appbuilder.add_view_no_menu(ExploreView)
         appbuilder.add_view_no_menu(ExplorePermalinkView)
         appbuilder.add_view_no_menu(SavedQueryView)
@@ -534,6 +539,15 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="Security",
             category_label=_("Security"),
             icon="fa-lock",
+        )
+
+        appbuilder.add_view(
+            EmbeddedChartsView,
+            "Embedded Charts",
+            label=_("Embedded Charts"),
+            category="Security",
+            category_label=_("Security"),
+            icon="fa-code",
         )
 
     def init_core_dependencies(self) -> None:

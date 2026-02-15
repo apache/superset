@@ -1649,6 +1649,8 @@ class TestRolePermission(SupersetTestCase):
             # TODO (embedded) remove Dashboard:embedded after uuids have been shipped
             ["Dashboard", "embedded"],
             ["EmbeddedView", "embedded"],
+            ["EmbeddedChartRestApi", "get"],
+            ["EmbeddedChartView", "embedded_chart"],
             ["R", "index"],
             ["Superset", "log"],
             ["Superset", "theme"],

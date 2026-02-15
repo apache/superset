@@ -317,6 +317,7 @@ const config = {
     menu: addPreamble('src/views/menu.tsx'),
     spa: addPreamble('src/views/index.tsx'),
     embedded: addPreamble('src/embedded/index.tsx'),
+    embeddedChart: addPreamble('src/embeddedChart/index.tsx'),
     'service-worker': path.join(APP_DIR, 'src/service-worker.ts'),
   },
   cache: {

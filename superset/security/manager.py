@@ -421,6 +421,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         ("can_read", "AnnotationLayerRestApi"),
         # Chart permalinks (for shared chart links)
         ("can_read", "ExplorePermalinkRestApi"),
+        # User info for embedded views (needed by frontend during initialization)
+        ("can_read", "CurrentUserRestApi"),
     }
 
     # View menus that Public role should NOT have access to
@@ -2540,6 +2542,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 self.can_access_schema(datasource)
                 or self.can_access("datasource_access", datasource.perm or "")
                 or self.is_owner(datasource)
+                # Grant access for embedded charts via guest token with chart_permalink
+                or self.has_guest_chart_permalink_access(datasource)
                 or (
                     # Grant access to the datasource only if dashboard RBAC is enabled
                     # or the user is an embedded guest user with access to the dashboard
@@ -2799,7 +2803,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         from superset.commands.dashboard.embedded.exceptions import (
             EmbeddedDashboardNotFoundError,
         )
+        from superset.commands.explore.permalink.get import GetExplorePermalinkCommand
         from superset.daos.dashboard import EmbeddedDashboardDAO
+        from superset.embedded_chart.exceptions import (
+            EmbeddedChartPermalinkNotFoundError,
+        )
         from superset.models.dashboard import Dashboard
 
         for resource in resources:
@@ -2810,6 +2818,21 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     embedded = EmbeddedDashboardDAO.find_by_id(str(resource["id"]))
                     if not embedded:
                         raise EmbeddedDashboardNotFoundError()
+            elif resource["type"] == GuestTokenResourceType.CHART_PERMALINK.value:
+                # Validate that the chart permalink exists
+                permalink_key = str(resource["id"])
+                try:
+                    permalink_value = GetExplorePermalinkCommand(permalink_key).run()
+                    if not permalink_value:
+                        raise EmbeddedChartPermalinkNotFoundError()
+                except EmbeddedChartPermalinkNotFoundError:
+                    raise
+                except Exception as ex:
+                    # Convert any exception (including ChartAccessDeniedError,
+                    # ExplorePermalinkGetFailedError, etc.) to not-found for
+                    # security reasons - we don't want to leak info about
+                    # whether a chart/permalink exists if access is denied
+                    raise EmbeddedChartPermalinkNotFoundError() from ex
 
     def create_guest_access_token(
         self,
@@ -2926,6 +2949,66 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         for resource in dashboards:
             if str(resource["id"]) == str(dashboard.embedded[0].uuid):
                 return True
+        return False
+
+    def has_guest_chart_permalink_access(self, datasource: Any) -> bool:
+        """
+        Check if a guest user has access to a datasource via a chart permalink resource.
+
+        For embedded charts, the guest token contains chart_permalink resources.
+        This method validates that the requested datasource matches one of the
+        chart permalinks in the user's token by fetching each permalink and
+        checking if its datasource matches the requested one.
+        """
+        from superset.commands.explore.permalink.get import GetExplorePermalinkCommand
+
+        user = self.get_current_guest_user_if_guest()
+        if not user or not isinstance(user, GuestUser):
+            return False
+
+        # Get chart permalink resources from the guest token
+        permalink_resources = [
+            r
+            for r in user.resources
+            if r.get("type") == GuestTokenResourceType.CHART_PERMALINK.value
+        ]
+
+        if not permalink_resources:
+            return False
+
+        # Extract the datasource ID from the datasource object
+        # Datasource can be a SQLATableMetadata or other model with an 'id' attribute
+        requested_datasource_id = getattr(datasource, "id", None)
+        if requested_datasource_id is None:
+            return False
+
+        # Check each permalink to see if any grants access to this datasource
+        for resource in permalink_resources:
+            try:
+                permalink_key = str(resource.get("id"))
+                permalink_value = GetExplorePermalinkCommand(permalink_key).run()
+                if permalink_value:
+                    state = permalink_value.get("state", {})
+                    form_data = state.get("formData", {})
+                    # Datasource format is "{id}__table" or "{id}__query"
+                    datasource_str = form_data.get("datasource", "")
+                    if datasource_str:
+                        # Extract the ID from the datasource string
+                        datasource_id_str = datasource_str.split("__")[0]
+                        try:
+                            permalink_datasource_id = int(datasource_id_str)
+                            if permalink_datasource_id == requested_datasource_id:
+                                return True
+                        except (ValueError, IndexError):
+                            # Invalid datasource format, continue to next permalink
+                            continue
+            except Exception as ex:
+                # If we can't fetch or parse permalink for access check, skip it
+                logger.debug(
+                    "Failed to fetch or parse permalink for access check: %s", ex
+                )
+                continue
+
         return False
 
     def raise_for_ownership(self, resource: Model) -> None:

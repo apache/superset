@@ -61,6 +61,7 @@ import { useDatasetDrillInfo } from 'src/hooks/apiResources/datasets';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import { useCrossFiltersScopingModal } from '../nativeFilters/FilterBar/CrossFilters/ScopingModal/useCrossFiltersScopingModal';
 import { ViewResultsModalTrigger } from './ViewResultsModalTrigger';
+import EmbeddedChartModal from '../EmbeddedChartModal';
 
 const RefreshTooltip = styled.div`
   ${({ theme }) => css`
@@ -154,6 +155,7 @@ const SliceHeaderControls = (
   props: SliceHeaderControlsPropsWithRouter | SliceHeaderControlsProps,
 ) => {
   const [drillModalIsOpen, setDrillModalIsOpen] = useState(false);
+  const [embedModalIsOpen, setEmbedModalIsOpen] = useState(false);
   // setting openKeys undefined falls back to uncontrolled behaviour
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const [openScopingModal, scopingModal] = useCrossFiltersScopingModal(
@@ -290,6 +292,10 @@ const SliceHeaderControls = (
       }
       case MenuKeys.DrillToDetail: {
         setDrillModalIsOpen(!drillModalIsOpen);
+        break;
+      }
+      case MenuKeys.EmbedChart: {
+        setEmbedModalIsOpen(true);
         break;
       }
       case MenuKeys.ViewQuery: {
@@ -499,6 +505,15 @@ const SliceHeaderControls = (
     newMenuItems.push(shareMenuItems);
   }
 
+  // Add "Embed chart" option - available when user can share
+  if (supersetCanShare) {
+    newMenuItems.push({
+      key: MenuKeys.EmbedChart,
+      label: t('Embed chart'),
+      icon: <Icons.ExportOutlined css={dropdownIconsStyles} />,
+    });
+  }
+
   if (props.supersetCanCSV) {
     newMenuItems.push({
       type: 'submenu',
@@ -602,6 +617,13 @@ const SliceHeaderControls = (
         chartId={slice.slice_id}
         showModal={drillModalIsOpen}
         dataset={datasetWithVerboseMap}
+      />
+
+      <EmbeddedChartModal
+        chartId={slice.slice_id}
+        formData={props.formData}
+        show={embedModalIsOpen}
+        onHide={() => setEmbedModalIsOpen(false)}
       />
 
       {canEditCrossFilters && scopingModal}

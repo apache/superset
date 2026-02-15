@@ -26,11 +26,9 @@ import {
 } from 'react';
 import { LatestQueryFormData } from '@superset-ui/core';
 import { css, t } from '@apache-superset/core/ui';
+import { makeApi } from '@superset-ui/core';
 import { Input, Space, Typography } from '@superset-ui/core/components';
 import { CopyToClipboard } from 'src/components';
-import { URL_PARAMS } from 'src/constants';
-import { getChartPermalink } from 'src/utils/urlUtils';
-import { Icons } from '@superset-ui/core/components/Icons';
 
 export interface EmbedCodeContentProps {
   formData?: LatestQueryFormData;
@@ -43,7 +41,8 @@ const EmbedCodeContent: FC<EmbedCodeContentProps> = ({
 }) => {
   const [height, setHeight] = useState('400');
   const [width, setWidth] = useState('600');
-  const [url, setUrl] = useState('');
+  const [embedData, setEmbedData] = useState<Record<string, any> | null>(null);
+  const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
   const handleInputChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
@@ -56,43 +55,66 @@ const EmbedCodeContent: FC<EmbedCodeContentProps> = ({
     }
   }, []);
 
-  const updateUrl = useCallback(() => {
-    setUrl('');
-    if (!formData?.datasource) return;
-    getChartPermalink(formData as { datasource: string })
-      .then(result => {
-        if (result?.url) {
-          setUrl(result.url);
-          setErrorMessage('');
-        }
-      })
-      .catch(() => {
-        setErrorMessage(t('Error'));
-        addDangerToast?.(t('Sorry, something went wrong. Try again later.'));
+  const generateEmbedCode = useCallback(async () => {
+    if (!formData) return;
+
+    setLoading(true);
+    setErrorMessage('');
+
+    try {
+      const createEmbeddedChart = makeApi({
+        method: 'POST',
+        endpoint: '/api/v1/embedded_chart/',
       });
+
+      const response = await createEmbeddedChart({
+        form_data: formData,
+        allowed_domains: [],
+        ttl_minutes: 60,
+      });
+
+      setEmbedData(response);
+    } catch {
+      setErrorMessage(t('Error generating embed code'));
+      addDangerToast?.(t('Sorry, something went wrong. Try again later.'));
+    } finally {
+      setLoading(false);
+    }
   }, [addDangerToast, formData]);
 
   useEffect(() => {
-    updateUrl();
+    generateEmbedCode();
   }, []);
 
   const html = useMemo(() => {
-    if (!url) return '';
-    const srcLink = `${url}?${URL_PARAMS.standalone.name}=1&height=${height}`;
-    return (
-      '<iframe\n' +
-      `  width="${width}"\n` +
-      `  height="${height}"\n` +
-      '  seamless\n' +
-      '  frameBorder="0"\n' +
-      '  scrolling="no"\n' +
-      `  src="${srcLink}"\n` +
-      '>\n' +
-      '</iframe>'
-    );
-  }, [height, url, width]);
+    if (!embedData?.iframe_url || !embedData?.guest_token) return '';
 
-  const text = errorMessage || html || t('Generating link, please wait..');
+    const origin = new URL(embedData.iframe_url).origin;
+
+    return `<!-- Superset Embedded Chart -->
+<iframe
+  id="superset-chart"
+  src="${embedData.iframe_url}"
+  width="${width}"
+  height="${height}"
+  frameborder="0"
+  data-guest-token="${embedData.guest_token}"
+  sandbox="allow-scripts allow-same-origin allow-popups"
+></iframe>
+<script>
+  document.getElementById('superset-chart').onload = function() {
+    this.contentWindow.postMessage(
+      { type: '__embedded_comms__', guestToken: '${embedData.guest_token}' },
+      '${origin}'
+    );
+  };
+</script>`;
+  }, [height, width, embedData]);
+
+  const text = loading
+    ? t('Generating embed code...')
+    : errorMessage || html || t('No embed data available');
+
   return (
     <div id="embed-code-popover" data-test="embed-code-popover">
       <div
@@ -106,7 +128,7 @@ const EmbedCodeContent: FC<EmbedCodeContentProps> = ({
           text={html}
           copyNode={
             <span role="button" aria-label="Copy to clipboard">
-              <Icons.CopyOutlined />
+              📋
             </span>
           }
         />
@@ -115,7 +137,7 @@ const EmbedCodeContent: FC<EmbedCodeContentProps> = ({
           name="embedCode"
           disabled={!html}
           value={text}
-          rows={4}
+          rows={10}
           readOnly
           css={theme => css`
             resize: vertical;
@@ -124,6 +146,7 @@ const EmbedCodeContent: FC<EmbedCodeContentProps> = ({
             font-size: ${theme.fontSizeSM}px;
             border-radius: 4px;
             background-color: ${theme.colorBgElevated};
+            font-family: monospace;
           `}
         />
       </div>
@@ -155,6 +178,19 @@ const EmbedCodeContent: FC<EmbedCodeContentProps> = ({
           />
         </div>
       </Space>
+      {embedData?.expires_at && (
+        <Typography.Text
+          type="secondary"
+          css={theme => css`
+            display: block;
+            margin-top: ${theme.margin}px;
+            font-size: ${theme.fontSizeSM}px;
+          `}
+        >
+          {t('Token expires')}:{' '}
+          {new Date(embedData.expires_at).toLocaleString()}
+        </Typography.Text>
+      )}
     </div>
   );
 };

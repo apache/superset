@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import Dict, List
+from typing import Any, Dict, List
 
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
@@ -27,6 +27,7 @@ from superset.commands.chart.exceptions import ChartNotFoundError
 from superset.daos.base import BaseDAO
 from superset.extensions import db
 from superset.models.core import FavStar, FavStarClassName
+from superset.models.embedded_chart import EmbeddedChart
 from superset.models.slice import id_or_uuid_filter, Slice
 from superset.utils.core import get_user_id
 
@@ -99,3 +100,33 @@ class ChartDAO(BaseDAO[Slice]):
         )
         if fav:
             db.session.delete(fav)
+
+
+class EmbeddedChartDAO(BaseDAO[EmbeddedChart]):
+    # There isn't really a regular scenario where we would rather get Embedded by id
+    id_column_name = "uuid"
+
+    @staticmethod
+    def upsert(chart: Slice, allowed_domains: list[str]) -> EmbeddedChart:
+        """
+        Sets up a chart to be embeddable.
+        Upsert is used to preserve the embedded_chart uuid across updates.
+        """
+        embedded: EmbeddedChart = (
+            chart.embedded[0] if chart.embedded else EmbeddedChart()
+        )
+        embedded.allow_domain_list = ",".join(allowed_domains)
+        chart.embedded = [embedded]
+        return embedded
+
+    @classmethod
+    def create(
+        cls,
+        item: EmbeddedChartDAO | None = None,
+        attributes: dict[str, Any] | None = None,
+    ) -> Any:
+        """
+        Use EmbeddedChartDAO.upsert() instead.
+        At least, until we are ok with more than one embedded item per chart.
+        """
+        raise NotImplementedError("Use EmbeddedChartDAO.upsert() instead.")

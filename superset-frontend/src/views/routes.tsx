@@ -100,6 +100,13 @@ const ExecutionLogList = lazy(
     ),
 );
 
+const EmbeddedChartsList = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "EmbeddedChartsList" */ 'src/pages/EmbeddedChartsList'
+    ),
+);
+
 const Chart = lazy(
   () => import(/* webpackChunkName: "Chart" */ 'src/pages/Chart'),
 );
@@ -301,6 +308,10 @@ export const routes: Routes = [
   {
     path: '/rowlevelsecurity/list',
     Component: RowLevelSecurityList,
+  },
+  {
+    path: '/embeddedcharts/list/',
+    Component: EmbeddedChartsList,
   },
   {
     path: '/tasks/list/',
