@@ -139,3 +139,72 @@ def test_timegrain_expressions(in_duration: str, expected_result: str) -> None:
         col=col, pdf=None, time_grain=in_duration
     )
     assert str(actual_result) == expected_result
+
+
+def test_epoch_to_dttm() -> None:
+    """
+    Test that KQL engine spec returns correct epoch to datetime conversion template.
+    """
+    result = KustoKqlEngineSpec.epoch_to_dttm()
+    assert result == "unixtime_seconds_todatetime({col})"
+
+
+def test_epoch_ms_to_dttm() -> None:
+    """
+    Test that KQL engine spec returns correct epoch milliseconds to
+    datetime conversion template.
+    """
+    result = KustoKqlEngineSpec.epoch_ms_to_dttm()
+    assert result == "unixtime_milliseconds_todatetime({col})"
+
+
+def test_handle_null_filter() -> None:
+    """
+    Test that KQL engine spec uses isnull/isnotnull functions for null filters.
+    """
+    from superset.utils.core import FilterOperator
+
+    test_col = column("test_column")
+
+    # Test IS_NULL - should return isnull(col)
+    result_null = KustoKqlEngineSpec.handle_null_filter(
+        test_col, FilterOperator.IS_NULL
+    )
+    assert str(result_null) == "isnull(test_column)"
+
+    # Test IS_NOT_NULL - should return isnotnull(col)
+    result_not_null = KustoKqlEngineSpec.handle_null_filter(
+        test_col, FilterOperator.IS_NOT_NULL
+    )
+    assert str(result_not_null) == "isnotnull(test_column)"
+
+    # Test invalid operator - should raise ValueError
+    with pytest.raises(ValueError, match="Invalid null filter operator"):
+        KustoKqlEngineSpec.handle_null_filter(test_col, "INVALID_OPERATOR")
+
+
+@pytest.mark.parametrize(
+    ("raw_query", "expected_query"),
+    [
+        (
+            'database("superset").["FreeCodeCamp"] | extend ["age"] = ARRAY(["age"]) '
+            '| project ["age"] | take 100',
+            'database("superset").["FreeCodeCamp"] | extend ["age"] = ["age"] '
+            '| project ["age"] | take 100',
+        ),
+        (
+            'database("superset").["FreeCodeCamp"] | project ["age"] | take 100',
+            'database("superset").["FreeCodeCamp"] | project ["age"] | take 100',
+        ),
+    ],
+)
+def test_kql_execute_array_processing(raw_query: str, expected_query: str) -> None:
+    """Ensure `execute` replaces ARRAY wrappers and leaves other queries unchanged."""
+    from unittest.mock import Mock
+
+    mock_cursor = Mock()
+    mock_db = Mock()
+
+    KustoKqlEngineSpec.execute(mock_cursor, raw_query, mock_db)
+
+    mock_cursor.execute.assert_called_once_with(expected_query)
