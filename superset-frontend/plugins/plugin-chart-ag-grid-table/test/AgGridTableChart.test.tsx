@@ -81,277 +81,277 @@ test('transformProps handles null/undefined timestamp values correctly', () => {
 });
 
 test('AgGridTableChart renders basic data', async () => {
-    const props = transformProps(testData.basic);
-    render(
-      ProviderWrapper({
-        children: (
-          <AgGridTableChart
-            {...props}
-            setDataMask={mockSetDataMask}
-            slice_id={1}
-          />
-        ),
-      }),
-    );
+  const props = transformProps(testData.basic);
+  render(
+    ProviderWrapper({
+      children: (
+        <AgGridTableChart
+          {...props}
+          setDataMask={mockSetDataMask}
+          slice_id={1}
+        />
+      ),
+    }),
+  );
 
-    await waitFor(() => {
-      const grid = document.querySelector('.ag-container');
-      expect(grid).toBeInTheDocument();
-    });
-
-    const headerCells = document.querySelectorAll('.ag-header-cell-text');
-    const headerTexts = Array.from(headerCells).map(el => el.textContent);
-    expect(headerTexts).toContain('name');
-    expect(headerTexts).toContain('sum__num');
-
-    const dataRows = document.querySelectorAll('.ag-row:not(.ag-row-pinned)');
-    expect(dataRows.length).toBe(3);
-
-    expect(screen.getByText('Michael')).toBeInTheDocument();
-    expect(screen.getByText('Joe')).toBeInTheDocument();
-    expect(screen.getByText('Maria')).toBeInTheDocument();
+  await waitFor(() => {
+    const grid = document.querySelector('.ag-container');
+    expect(grid).toBeInTheDocument();
   });
+
+  const headerCells = document.querySelectorAll('.ag-header-cell-text');
+  const headerTexts = Array.from(headerCells).map(el => el.textContent);
+  expect(headerTexts).toContain('name');
+  expect(headerTexts).toContain('sum__num');
+
+  const dataRows = document.querySelectorAll('.ag-row:not(.ag-row-pinned)');
+  expect(dataRows.length).toBe(3);
+
+  expect(screen.getByText('Michael')).toBeInTheDocument();
+  expect(screen.getByText('Joe')).toBeInTheDocument();
+  expect(screen.getByText('Maria')).toBeInTheDocument();
+});
 
 test('AgGridTableChart renders with server pagination', async () => {
-    const props = transformProps({
-      ...testData.basic,
-      rawFormData: {
-        ...testData.basic.rawFormData,
-        server_pagination: true,
-      },
-    });
-    props.serverPagination = true;
-    props.rowCount = 100;
-    props.serverPaginationData = {
-      currentPage: 0,
-      pageSize: 20,
-    };
-
-    render(
-      ProviderWrapper({
-        children: (
-          <AgGridTableChart
-            {...props}
-            setDataMask={mockSetDataMask}
-            slice_id={1}
-          />
-        ),
-      }),
-    );
-
-    await waitFor(() => {
-      const grid = document.querySelector('.ag-container');
-      expect(grid).toBeInTheDocument();
-    });
-
-    expect(screen.getByText('Page Size:')).toBeInTheDocument();
-    expect(screen.getByText('Page')).toBeInTheDocument();
-
-    const paginationEl = screen.getByText('Page Size:').closest('div')!;
-    const paginationText = paginationEl.textContent;
-    expect(paginationText).toContain('1');
-    expect(paginationText).toContain('20');
-    expect(paginationText).toContain('100');
-    expect(paginationText).toContain('5');
+  const props = transformProps({
+    ...testData.basic,
+    rawFormData: {
+      ...testData.basic.rawFormData,
+      server_pagination: true,
+    },
   });
+  props.serverPagination = true;
+  props.rowCount = 100;
+  props.serverPaginationData = {
+    currentPage: 0,
+    pageSize: 20,
+  };
+
+  render(
+    ProviderWrapper({
+      children: (
+        <AgGridTableChart
+          {...props}
+          setDataMask={mockSetDataMask}
+          slice_id={1}
+        />
+      ),
+    }),
+  );
+
+  await waitFor(() => {
+    const grid = document.querySelector('.ag-container');
+    expect(grid).toBeInTheDocument();
+  });
+
+  expect(screen.getByText('Page Size:')).toBeInTheDocument();
+  expect(screen.getByText('Page')).toBeInTheDocument();
+
+  const paginationEl = screen.getByText('Page Size:').closest('div')!;
+  const paginationText = paginationEl.textContent;
+  expect(paginationText).toContain('1');
+  expect(paginationText).toContain('20');
+  expect(paginationText).toContain('100');
+  expect(paginationText).toContain('5');
+});
 
 test('AgGridTableChart renders with search enabled', async () => {
-    const props = transformProps({
-      ...testData.basic,
-      rawFormData: {
-        ...testData.basic.rawFormData,
-        include_search: true,
-      },
-    });
-    props.includeSearch = true;
-
-    render(
-      ProviderWrapper({
-        children: (
-          <AgGridTableChart
-            {...props}
-            setDataMask={mockSetDataMask}
-            slice_id={1}
-          />
-        ),
-      }),
-    );
-
-    await waitFor(() => {
-      const grid = document.querySelector('.ag-container');
-      expect(grid).toBeInTheDocument();
-    });
-
-    const searchContainer = document.querySelector('.search-container');
-    expect(searchContainer).toBeInTheDocument();
-
-    const searchInput = screen.getByPlaceholderText('Search');
-    expect(searchInput).toBeInTheDocument();
-    expect(searchInput).toHaveAttribute('type', 'text');
-    expect(searchInput).toHaveAttribute('id', 'filter-text-box');
+  const props = transformProps({
+    ...testData.basic,
+    rawFormData: {
+      ...testData.basic.rawFormData,
+      include_search: true,
+    },
   });
+  props.includeSearch = true;
+
+  render(
+    ProviderWrapper({
+      children: (
+        <AgGridTableChart
+          {...props}
+          setDataMask={mockSetDataMask}
+          slice_id={1}
+        />
+      ),
+    }),
+  );
+
+  await waitFor(() => {
+    const grid = document.querySelector('.ag-container');
+    expect(grid).toBeInTheDocument();
+  });
+
+  const searchContainer = document.querySelector('.search-container');
+  expect(searchContainer).toBeInTheDocument();
+
+  const searchInput = screen.getByPlaceholderText('Search');
+  expect(searchInput).toBeInTheDocument();
+  expect(searchInput).toHaveAttribute('type', 'text');
+  expect(searchInput).toHaveAttribute('id', 'filter-text-box');
+});
 
 test('AgGridTableChart renders with totals', async () => {
-    const props = transformProps({
-      ...testData.basic,
-      rawFormData: {
-        ...testData.basic.rawFormData,
-        show_totals: true,
-      },
-    });
-    props.showTotals = true;
-    props.totals = { sum__num: 1000 };
-
-    render(
-      ProviderWrapper({
-        children: (
-          <AgGridTableChart
-            {...props}
-            setDataMask={mockSetDataMask}
-            slice_id={1}
-          />
-        ),
-      }),
-    );
-
-    await waitFor(() => {
-      const grid = document.querySelector('.ag-container');
-      expect(grid).toBeInTheDocument();
-    });
-
-    const pinnedRows = document.querySelectorAll('.ag-floating-bottom .ag-row');
-    expect(pinnedRows.length).toBeGreaterThan(0);
-
-    const dataRows = document.querySelectorAll(
-      '.ag-body-viewport .ag-row:not(.ag-row-pinned)',
-    );
-    expect(dataRows.length).toBe(3);
+  const props = transformProps({
+    ...testData.basic,
+    rawFormData: {
+      ...testData.basic.rawFormData,
+      show_totals: true,
+    },
   });
+  props.showTotals = true;
+  props.totals = { sum__num: 1000 };
+
+  render(
+    ProviderWrapper({
+      children: (
+        <AgGridTableChart
+          {...props}
+          setDataMask={mockSetDataMask}
+          slice_id={1}
+        />
+      ),
+    }),
+  );
+
+  await waitFor(() => {
+    const grid = document.querySelector('.ag-container');
+    expect(grid).toBeInTheDocument();
+  });
+
+  const pinnedRows = document.querySelectorAll('.ag-floating-bottom .ag-row');
+  expect(pinnedRows.length).toBeGreaterThan(0);
+
+  const dataRows = document.querySelectorAll(
+    '.ag-body-viewport .ag-row:not(.ag-row-pinned)',
+  );
+  expect(dataRows.length).toBe(3);
+});
 
 test('AgGridTableChart handles empty data', async () => {
-    const props = transformProps(testData.empty);
+  const props = transformProps(testData.empty);
 
-    render(
-      ProviderWrapper({
-        children: (
-          <AgGridTableChart
-            {...props}
-            setDataMask={mockSetDataMask}
-            slice_id={1}
-          />
-        ),
-      }),
-    );
+  render(
+    ProviderWrapper({
+      children: (
+        <AgGridTableChart
+          {...props}
+          setDataMask={mockSetDataMask}
+          slice_id={1}
+        />
+      ),
+    }),
+  );
 
-    await waitFor(() => {
-      const grid = document.querySelector('.ag-container');
-      expect(grid).toBeInTheDocument();
-    });
-
-    const dataRows = document.querySelectorAll(
-      '.ag-center-cols-container .ag-row',
-    );
-    expect(dataRows.length).toBe(0);
-
-    const headerCells = document.querySelectorAll('.ag-header-cell');
-    expect(headerCells.length).toBeGreaterThan(0);
+  await waitFor(() => {
+    const grid = document.querySelector('.ag-container');
+    expect(grid).toBeInTheDocument();
   });
+
+  const dataRows = document.querySelectorAll(
+    '.ag-center-cols-container .ag-row',
+  );
+  expect(dataRows.length).toBe(0);
+
+  const headerCells = document.querySelectorAll('.ag-header-cell');
+  expect(headerCells.length).toBeGreaterThan(0);
+});
 
 test('AgGridTableChart renders with time comparison', async () => {
-    const props = transformProps(testData.comparison);
-    props.isUsingTimeComparison = true;
+  const props = transformProps(testData.comparison);
+  props.isUsingTimeComparison = true;
 
-    render(
-      ProviderWrapper({
-        children: (
-          <AgGridTableChart
-            {...props}
-            setDataMask={mockSetDataMask}
-            slice_id={1}
-          />
-        ),
-      }),
-    );
+  render(
+    ProviderWrapper({
+      children: (
+        <AgGridTableChart
+          {...props}
+          setDataMask={mockSetDataMask}
+          slice_id={1}
+        />
+      ),
+    }),
+  );
 
-    await waitFor(() => {
-      const grid = document.querySelector('.ag-container');
-      expect(grid).toBeInTheDocument();
-    });
-
-    const comparisonDropdown = document.querySelector(
-      '.time-comparison-dropdown',
-    );
-    expect(comparisonDropdown).toBeInTheDocument();
-
-    const headerCells = document.querySelectorAll('.ag-header-cell-text');
-    const headerTexts = Array.from(headerCells).map(el => el.textContent);
-    expect(headerTexts).toContain('#');
-    expect(headerTexts).toContain('△');
-    expect(headerTexts).toContain('%');
+  await waitFor(() => {
+    const grid = document.querySelector('.ag-container');
+    expect(grid).toBeInTheDocument();
   });
+
+  const comparisonDropdown = document.querySelector(
+    '.time-comparison-dropdown',
+  );
+  expect(comparisonDropdown).toBeInTheDocument();
+
+  const headerCells = document.querySelectorAll('.ag-header-cell-text');
+  const headerTexts = Array.from(headerCells).map(el => el.textContent);
+  expect(headerTexts).toContain('#');
+  expect(headerTexts).toContain('△');
+  expect(headerTexts).toContain('%');
+});
 
 test('AgGridTableChart handles raw records mode', async () => {
-    const rawRecordsProps = {
-      ...testData.basic,
-      rawFormData: {
-        ...testData.basic.rawFormData,
-        query_mode: QueryMode.Raw,
-      },
-    };
-    const props = transformProps(rawRecordsProps);
+  const rawRecordsProps = {
+    ...testData.basic,
+    rawFormData: {
+      ...testData.basic.rawFormData,
+      query_mode: QueryMode.Raw,
+    },
+  };
+  const props = transformProps(rawRecordsProps);
 
-    expect(props.isRawRecords).toBe(true);
+  expect(props.isRawRecords).toBe(true);
 
-    render(
-      ProviderWrapper({
-        children: (
-          <AgGridTableChart
-            {...props}
-            setDataMask={mockSetDataMask}
-            slice_id={1}
-          />
-        ),
-      }),
-    );
+  render(
+    ProviderWrapper({
+      children: (
+        <AgGridTableChart
+          {...props}
+          setDataMask={mockSetDataMask}
+          slice_id={1}
+        />
+      ),
+    }),
+  );
 
-    await waitFor(() => {
-      const grid = document.querySelector('.ag-container');
-      expect(grid).toBeInTheDocument();
-    });
-
-    const dataRows = document.querySelectorAll('.ag-row:not(.ag-row-pinned)');
-    expect(dataRows.length).toBe(3);
-
-    const headerCells = document.querySelectorAll('.ag-header-cell');
-    expect(headerCells.length).toBeGreaterThan(0);
+  await waitFor(() => {
+    const grid = document.querySelector('.ag-container');
+    expect(grid).toBeInTheDocument();
   });
 
-test('AgGridTableChart corrects invalid page number when currentPage >= totalPages', async () => {
-    const props = transformProps({
-      ...testData.basic,
-      rawFormData: {
-        ...testData.basic.rawFormData,
-        server_pagination: true,
-      },
-    });
-    props.serverPagination = true;
-    props.rowCount = 50;
-    props.serverPaginationData = {
-      currentPage: 5,
-      pageSize: 20,
-    };
+  const dataRows = document.querySelectorAll('.ag-row:not(.ag-row-pinned)');
+  expect(dataRows.length).toBe(3);
 
-    render(
-      ProviderWrapper({
-        children: (
-          <AgGridTableChart
-            {...props}
-            setDataMask={mockSetDataMask}
-            slice_id={1}
-          />
-        ),
-      }),
-    );
+  const headerCells = document.querySelectorAll('.ag-header-cell');
+  expect(headerCells.length).toBeGreaterThan(0);
+});
+
+test('AgGridTableChart corrects invalid page number when currentPage >= totalPages', async () => {
+  const props = transformProps({
+    ...testData.basic,
+    rawFormData: {
+      ...testData.basic.rawFormData,
+      server_pagination: true,
+    },
+  });
+  props.serverPagination = true;
+  props.rowCount = 50;
+  props.serverPaginationData = {
+    currentPage: 5,
+    pageSize: 20,
+  };
+
+  render(
+    ProviderWrapper({
+      children: (
+        <AgGridTableChart
+          {...props}
+          setDataMask={mockSetDataMask}
+          slice_id={1}
+        />
+      ),
+    }),
+  );
 
   await waitFor(() => {
     expect(mockSetDataMask).toHaveBeenCalled();
