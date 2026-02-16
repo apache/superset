@@ -117,7 +117,6 @@ class _RLSFilterRow(NamedTuple):
     clause: str
 
 
-# Cache key components for request-scoped RLS filter cache
 _RLSCacheKey = tuple[str, int | str]
 _RLSCache = dict[_RLSCacheKey, list[SqlaQuery]]
 
@@ -2713,7 +2712,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if not (hasattr(g, "user") and g.user is not None):
             return []
 
-        # Check request-scoped cache keyed by (username, table_id)
+        # Check request-scoped cache. Username is included in the key to stay
+        # safe if override_user() is called with different users in one request.
         cache: _RLSCache = getattr(g, "_rls_filter_cache", {})
         username = get_username()
         if username is not None:

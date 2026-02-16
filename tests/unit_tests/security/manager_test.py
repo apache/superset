@@ -1251,7 +1251,7 @@ def test_get_rls_filters_returns_cached_result(
     # First call populates the cache
     result1 = sm.get_rls_filters(table)
 
-    # Verify cache was populated keyed by username
+    # Verify cache was populated keyed by (username, table_id)
     assert ("admin", 42) in mock_g._rls_filter_cache
 
     # Replace session query with something that would fail if called
@@ -1367,8 +1367,8 @@ def test_get_rls_filters_cache_works_for_guest_user(
     app_context: None,
 ) -> None:
     """
-    Test that get_rls_filters() caches results for guest users who use
-    the same username-based cache key as regular users.
+    Test that get_rls_filters() caches results for guest users
+    using the same (username, table_id) cache key as regular users.
     """
     sm = SupersetSecurityManager(appbuilder)
 
@@ -1387,7 +1387,7 @@ def test_get_rls_filters_cache_works_for_guest_user(
     # First call runs the query
     result1 = sm.get_rls_filters(table)
 
-    # Verify cache was populated with username key
+    # Verify cache was populated with (username, table_id) key
     assert ("guest_user", 42) in mock_g._rls_filter_cache
 
     # Replace session query to detect if it's called again
@@ -1408,7 +1408,7 @@ def test_prefetch_rls_filters_works_for_guest_user(
 ) -> None:
     """
     Test that prefetch_rls_filters() works for guest users using the
-    same username-based cache key as regular users.
+    same (username, table_id) cache key as regular users.
     """
     sm = SupersetSecurityManager(appbuilder)
 
@@ -1430,6 +1430,6 @@ def test_prefetch_rls_filters_works_for_guest_user(
 
     sm.prefetch_rls_filters([10, 20])
 
-    # Cache should be populated with username key and empty lists
+    # Cache should be populated with (username, table_id) keys and empty lists
     assert mock_g._rls_filter_cache[("guest_user", 10)] == []
     assert mock_g._rls_filter_cache[("guest_user", 20)] == []
