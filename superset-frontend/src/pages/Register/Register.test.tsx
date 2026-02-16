@@ -17,18 +17,24 @@
  * under the License.
  */
 import { render, screen } from 'spec/helpers/testing-library';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route } from 'react-router-dom';
+import getBootstrapData from 'src/utils/getBootstrapData';
 import Register from './index';
 
 jest.mock('src/utils/getBootstrapData', () => ({
   __esModule: true,
-  default: () => ({
+  default: jest.fn(() => ({
     common: {
       conf: {
         RECAPTCHA_PUBLIC_KEY: '',
       },
     },
-  }),
+  })),
+}));
+
+const mockMakeUrl = jest.fn((path: string) => path);
+jest.mock('src/utils/pathUtils', () => ({
+  makeUrl: (...args: string[]) => mockMakeUrl(...args),
 }));
 
 jest.mock('react-google-recaptcha', () => ({
@@ -36,12 +42,37 @@ jest.mock('react-google-recaptcha', () => ({
   default: () => <div data-test="captcha-input" />,
 }));
 
+const mockGetBootstrapData = jest.mocked(getBootstrapData);
+
+beforeEach(() => {
+  mockGetBootstrapData.mockReturnValue({
+    common: {
+      conf: {
+        RECAPTCHA_PUBLIC_KEY: '',
+      },
+    },
+  } as ReturnType<typeof getBootstrapData>);
+  mockMakeUrl.mockClear();
+  mockMakeUrl.mockImplementation((path: string) => path);
+});
+
 const renderRegister = () =>
   render(
     <MemoryRouter>
       <Register />
     </MemoryRouter>,
   );
+
+const renderActivated = () =>
+  render(
+    <MemoryRouter initialEntries={['/register/activation/abc123']}>
+      <Route path="/register/activation/:activationHash">
+        <Register />
+      </Route>
+    </MemoryRouter>,
+  );
+
+// --- Registration form tests ---
 
 test('should render register form elements', () => {
   renderRegister();
@@ -79,4 +110,72 @@ test('should render input placeholders', () => {
   expect(screen.getByPlaceholderText('Email')).toBeInTheDocument();
   expect(screen.getByPlaceholderText('Password')).toBeInTheDocument();
   expect(screen.getByPlaceholderText('Confirm password')).toBeInTheDocument();
+});
+
+// --- Recaptcha tests ---
+
+test('should not render captcha when RECAPTCHA_PUBLIC_KEY is empty', () => {
+  renderRegister();
+  expect(screen.queryByTestId('captcha-input')).not.toBeInTheDocument();
+});
+
+test('should render captcha when RECAPTCHA_PUBLIC_KEY is set', () => {
+  mockGetBootstrapData.mockReturnValue({
+    common: {
+      conf: {
+        RECAPTCHA_PUBLIC_KEY: 'test-key-123',
+      },
+    },
+  } as ReturnType<typeof getBootstrapData>);
+  renderRegister();
+  expect(screen.getByTestId('captcha-input')).toBeInTheDocument();
+});
+
+// --- Activation success page tests ---
+
+test('should render activation success page when activationHash is present', () => {
+  renderActivated();
+  expect(screen.getByText('Registration successful')).toBeInTheDocument();
+  expect(
+    screen.getByText(
+      'Your account is activated. You can log in with your credentials.',
+    ),
+  ).toBeInTheDocument();
+  expect(screen.getByTestId('login-button')).toBeInTheDocument();
+});
+
+test('should not render registration form on activation page', () => {
+  renderActivated();
+  expect(screen.queryByTestId('username-input')).not.toBeInTheDocument();
+  expect(screen.queryByTestId('register-button')).not.toBeInTheDocument();
+});
+
+test('should call makeUrl for login link on activation page', () => {
+  renderActivated();
+  expect(mockMakeUrl).toHaveBeenCalledWith('/login/');
+});
+
+// --- makeUrl / SUPERSET_APP_ROOT tests ---
+
+test('should prefix login link with application root on activation page', () => {
+  mockMakeUrl.mockImplementation(
+    (path: string) => `/superset${path.startsWith('/') ? path : `/${path}`}`,
+  );
+  renderActivated();
+  expect(screen.getByTestId('login-button')).toHaveAttribute(
+    'href',
+    '/superset/login/',
+  );
+});
+
+test('should prefix login link with deep application root on activation page', () => {
+  mockMakeUrl.mockImplementation(
+    (path: string) =>
+      `/my-org/superset${path.startsWith('/') ? path : `/${path}`}`,
+  );
+  renderActivated();
+  expect(screen.getByTestId('login-button')).toHaveAttribute(
+    'href',
+    '/my-org/superset/login/',
+  );
 });

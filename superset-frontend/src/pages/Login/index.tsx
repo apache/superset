@@ -34,6 +34,7 @@ import { capitalize } from 'lodash/fp';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { useDispatch } from 'react-redux';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import { ensureAppRoot } from 'src/utils/pathUtils';
 
 type OAuthProvider = {
   name: string;
@@ -95,15 +96,19 @@ export default function Login() {
   }, []);
 
   const loginEndpoint = useMemo(
-    () => (nextUrl ? `/login/?next=${encodeURIComponent(nextUrl)}` : '/login/'),
+    () =>
+      ensureAppRoot(
+        nextUrl ? `/login/?next=${encodeURIComponent(nextUrl)}` : '/login/',
+      ),
     [nextUrl],
   );
 
   const buildProviderLoginUrl = (providerName: string) => {
     const base = `/login/${providerName}`;
-    return nextUrl
+    const url = nextUrl
       ? `${base}${base.includes('?') ? '&' : '?'}next=${encodeURIComponent(nextUrl)}`
       : base;
+    return ensureAppRoot(url);
   };
 
   const authType: AuthType = bootstrapData.common.conf.AUTH_TYPE;
@@ -256,7 +261,7 @@ export default function Login() {
                     <Button
                       block
                       type="default"
-                      href="/register/"
+                      href={ensureAppRoot('/register/')}
                       data-test="register-button"
                     >
                       {t('Register')}

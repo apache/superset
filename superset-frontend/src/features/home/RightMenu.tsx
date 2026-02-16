@@ -511,7 +511,7 @@ const RightMenu = ({
             key: 'logout',
             label: (
               <Typography.Link
-                href={ensureAppRoot(navbarRight.user_logout_url)}
+                href={navbarRight.user_logout_url}
               >
                 {t('Logout')}
               </Typography.Link>
