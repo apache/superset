@@ -114,6 +114,34 @@ const fetchWithData = () => {
   });
 };
 
+const fetchWithPaginatedData = () => {
+  setupDatasetEndpoint();
+  fetchMock.post(SAMPLES_ENDPOINT, {
+    result: {
+      total_count: 100,
+      data: [
+        {
+          year: 1996,
+          na_sales: 11.27,
+          eu_sales: 8.89,
+        },
+        {
+          year: 1989,
+          na_sales: 23.2,
+          eu_sales: 2.26,
+        },
+        {
+          year: 1999,
+          na_sales: 9,
+          eu_sales: 6.18,
+        },
+      ],
+      colnames: ['year', 'na_sales', 'eu_sales'],
+      coltypes: [0, 0, 0],
+    },
+  });
+};
+
 afterEach(() => {
   fetchMock.clearHistory().removeRoutes();
   supersetGetCache.clear();
@@ -187,6 +215,22 @@ test('should render the error', async () => {
     .mockRejectedValue(new Error('Something went wrong'));
   await waitForRender();
   expect(screen.getByText('Error: Something went wrong')).toBeInTheDocument();
+});
+
+test('should only allow page size of 50 in pagination', async () => {
+  fetchWithPaginatedData();
+  await waitForRender();
+  // The page size selector should only show 50 as an option
+  const pageSizeSelector = document.querySelector(
+    '.ant-pagination-options .ant-select-selection-item',
+  );
+  expect(pageSizeSelector).toBeTruthy();
+  expect(pageSizeSelector!.textContent).toContain('50');
+  // Ensure smaller page size options (5, 15, 25) are not available
+  expect(screen.queryByText('5 / page')).not.toBeInTheDocument();
+  expect(screen.queryByText('15 / page')).not.toBeInTheDocument();
+  expect(screen.queryByText('25 / page')).not.toBeInTheDocument();
+  expect(screen.queryByText('100 / page')).not.toBeInTheDocument();
 });
 
 test('should use verbose_map for column headers when available', async () => {
