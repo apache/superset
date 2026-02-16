@@ -112,18 +112,16 @@ test('filter container should scroll to bottom when adding items', async () => {
   const state = {
     dashboardInfo: {
       metadata: {
-        native_filter_configuration: new Array(35)
-          .fill(0)
-          .map((_, index) =>
-            buildNativeFilter(`NATIVE_FILTER-${index}`, `filter-${index}`, []),
-          ),
+        native_filter_configuration: Array.from({ length: 35 }, (_, index) =>
+          buildNativeFilter(`NATIVE_FILTER-${index}`, `filter-${index}`, []),
+        ),
       },
     },
     dashboardLayout,
   };
   const props = {
     ...defaultProps,
-    filters: new Array(35).fill(0).map((_, index) => `NATIVE_FILTER-${index}`),
+    filters: Array.from({ length: 35 }, (_, index) => `NATIVE_FILTER-${index}`),
   };
 
   defaultRender(state, props);

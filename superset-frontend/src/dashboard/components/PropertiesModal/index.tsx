@@ -38,6 +38,10 @@ import {
 } from '@superset-ui/core';
 
 import withToasts from 'src/components/MessageToasts/withToasts';
+import {
+  OWNER_TEXT_LABEL_PROP,
+  OWNER_EMAIL_PROP,
+} from 'src/features/owners/OwnerSelectLabel';
 import { fetchTags, OBJECT_TYPES } from 'src/features/tags/tags';
 import {
   applyColors,
@@ -79,6 +83,7 @@ type Owners = {
   full_name?: string;
   first_name?: string;
   last_name?: string;
+  email?: string;
 }[];
 type DashboardInfo = {
   id: number;
@@ -240,10 +245,16 @@ const PropertiesModal = ({
     }
   };
 
-  const handleOnChangeOwners = (owners: { value: number; label: string }[]) => {
-    const parsedOwners: Owners = ensureIsArray(owners).map(o => ({
+  const handleOnChangeOwners = (
+    owners: { value: number; label: string }[],
+    options: Record<string, unknown>[],
+  ) => {
+    const parsedOwners: Owners = ensureIsArray(owners).map((o, i) => ({
       id: o.value,
-      full_name: o.label,
+      full_name:
+        (options?.[i]?.[OWNER_TEXT_LABEL_PROP] as string) ||
+        (typeof o.label === 'string' ? o.label : ''),
+      email: (options?.[i]?.[OWNER_EMAIL_PROP] as string) || '',
     }));
     setOwners(parsedOwners);
   };

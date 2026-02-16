@@ -40,20 +40,20 @@ const roleEndpoint = 'glob:*/api/v1/security/roles/*';
 const permissionsEndpoint = 'glob:*/api/v1/security/permissions-resources/?*';
 const usersEndpoint = 'glob:*/api/v1/security/users/?*';
 
-const mockRoles = new Array(3).fill(undefined).map((_, i) => ({
+const mockRoles = Array.from({ length: 3 }, (_, i) => ({
   id: i,
   name: `role ${i}`,
   user_ids: [i, i + 1],
   permission_ids: [i, i + 1, i + 2],
 }));
 
-const mockPermissions = new Array(10).fill(undefined).map((_, i) => ({
+const mockPermissions = Array.from({ length: 10 }, (_, i) => ({
   id: i,
   permission: { name: `permission_${i}` },
   view_menu: { name: `view_menu_${i}` },
 }));
 
-const mockUsers = new Array(5).fill(undefined).map((_, i) => ({
+const mockUsers = Array.from({ length: 5 }, (_, i) => ({
   id: i,
   username: `user_${i}`,
   first_name: `User`,

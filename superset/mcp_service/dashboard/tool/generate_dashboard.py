@@ -27,6 +27,7 @@ from typing import Any, Dict, List
 from fastmcp import Context
 from superset_core.mcp import tool
 
+from superset.extensions import event_logger
 from superset.mcp_service.dashboard.schemas import (
     DashboardInfo,
     GenerateDashboardRequest,
@@ -137,57 +138,63 @@ def generate_dashboard(
         from superset.commands.dashboard.create import CreateDashboardCommand
         from superset.models.slice import Slice
 
-        chart_objects = (
-            db.session.query(Slice).filter(Slice.id.in_(request.chart_ids)).all()
-        )
-        found_chart_ids = [chart.id for chart in chart_objects]
-
-        # Check if all requested charts were found
-        missing_chart_ids = set(request.chart_ids) - set(found_chart_ids)
-        if missing_chart_ids:
-            return GenerateDashboardResponse(
-                dashboard=None,
-                dashboard_url=None,
-                error=f"Charts not found: {list(missing_chart_ids)}",
+        with event_logger.log_context(action="mcp.generate_dashboard.chart_validation"):
+            chart_objects = (
+                db.session.query(Slice).filter(Slice.id.in_(request.chart_ids)).all()
             )
+            found_chart_ids = [chart.id for chart in chart_objects]
+
+            # Check if all requested charts were found
+            missing_chart_ids = set(request.chart_ids) - set(found_chart_ids)
+            if missing_chart_ids:
+                return GenerateDashboardResponse(
+                    dashboard=None,
+                    dashboard_url=None,
+                    error=f"Charts not found: {list(missing_chart_ids)}",
+                )
 
         # Create dashboard layout with chart objects
-        layout = _create_dashboard_layout(chart_objects)
+        with event_logger.log_context(action="mcp.generate_dashboard.layout"):
+            layout = _create_dashboard_layout(chart_objects)
 
-        # Prepare dashboard data
-        dashboard_data = {
-            "dashboard_title": request.dashboard_title,
-            "slug": None,  # Let Superset auto-generate slug
-            "css": "",
-            "json_metadata": json.dumps(
-                {
-                    "filter_scopes": {},
-                    "expanded_slices": {},
-                    "refresh_frequency": 0,
-                    "timed_refresh_immune_slices": [],
-                    "color_scheme": None,
-                    "label_colors": {},
-                    "shared_label_colors": {},
-                    "color_scheme_domain": [],
-                    "cross_filters_enabled": False,
-                    "native_filter_configuration": [],
-                    "global_chart_configuration": {
-                        "scope": {"rootPath": ["ROOT_ID"], "excluded": []}
-                    },
-                    "chart_configuration": {},
-                }
-            ),
-            "position_json": json.dumps(layout),
-            "published": request.published,
-            "slices": chart_objects,  # Pass ORM objects, not IDs
-        }
+        # Prepare dashboard data and create dashboard
+        with event_logger.log_context(action="mcp.generate_dashboard.db_write"):
+            dashboard_data = {
+                "dashboard_title": request.dashboard_title,
+                "slug": None,  # Let Superset auto-generate slug
+                "css": "",
+                "json_metadata": json.dumps(
+                    {
+                        "filter_scopes": {},
+                        "expanded_slices": {},
+                        "refresh_frequency": 0,
+                        "timed_refresh_immune_slices": [],
+                        "color_scheme": None,
+                        "label_colors": {},
+                        "shared_label_colors": {},
+                        "color_scheme_domain": [],
+                        "cross_filters_enabled": False,
+                        "native_filter_configuration": [],
+                        "global_chart_configuration": {
+                            "scope": {
+                                "rootPath": ["ROOT_ID"],
+                                "excluded": [],
+                            }
+                        },
+                        "chart_configuration": {},
+                    }
+                ),
+                "position_json": json.dumps(layout),
+                "published": request.published,
+                "slices": chart_objects,  # Pass ORM objects, not IDs
+            }
 
-        if request.description:
-            dashboard_data["description"] = request.description
+            if request.description:
+                dashboard_data["description"] = request.description
 
-        # Create the dashboard using Superset's command pattern
-        command = CreateDashboardCommand(dashboard_data)
-        dashboard = command.run()
+            # Create the dashboard using Superset's command pattern
+            command = CreateDashboardCommand(dashboard_data)
+            dashboard = command.run()
 
         # Convert to our response format
         from superset.mcp_service.dashboard.schemas import (

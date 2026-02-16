@@ -33,8 +33,10 @@ import { useSelector } from 'react-redux';
 import {
   createErrorHandler,
   createFetchRelated,
+  createFetchOwners,
   handleChartDelete,
 } from 'src/views/CRUD/utils';
+import { OWNER_OPTION_FILTER_PROPS } from 'src/features/owners/OwnerSelectLabel';
 import {
   useChartEditModal,
   useFavoriteStatus,
@@ -676,9 +678,8 @@ function ChartList(props: ChartListProps) {
         input: 'select',
         operator: FilterOperator.RelationManyMany,
         unfilteredLabel: t('All'),
-        fetchSelects: createFetchRelated(
+        fetchSelects: createFetchOwners(
           'chart',
-          'owners',
           createErrorHandler(errMsg =>
             addDangerToast(
               t(
@@ -689,6 +690,7 @@ function ChartList(props: ChartListProps) {
           ),
           props.user,
         ),
+        optionFilterProps: OWNER_OPTION_FILTER_PROPS,
         paginate: true,
         dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },

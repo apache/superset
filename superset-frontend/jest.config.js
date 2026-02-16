@@ -53,7 +53,6 @@ module.exports = {
     'src/**/*.{js,jsx,ts,tsx}',
     '{packages,plugins}/**/src/**/*.{js,jsx,ts,tsx}',
     '!**/*.stories.*',
-    '!packages/superset-ui-demo/**/*',
   ],
   coverageDirectory: '<rootDir>/coverage/',
   coveragePathIgnorePatterns: [
