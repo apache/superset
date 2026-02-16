@@ -133,6 +133,7 @@ const ConfigModalSidebar: FC<ConfigModalSidebarProps> = ({
 
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
+      setIsDragging(false);
       const { active, over } = event;
 
       if (!over || active.id === over.id) {
