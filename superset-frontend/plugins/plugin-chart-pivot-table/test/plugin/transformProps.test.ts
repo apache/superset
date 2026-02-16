@@ -65,7 +65,7 @@ describe('PivotTableChart transformProps', () => {
     theme: supersetTheme,
   });
 
-  it('should transform chart props for viz', () => {
+  test('should transform chart props for viz', () => {
     expect(transformProps(chartProps)).toEqual({
       width: 800,
       height: 600,
@@ -98,7 +98,7 @@ describe('PivotTableChart transformProps', () => {
   });
 
   describe('Per-cell currency detection (AUTO mode passes through)', () => {
-    it('should pass AUTO mode through for per-cell detection (single currency data)', () => {
+    test('should pass AUTO mode through for per-cell detection (single currency data)', () => {
       const autoFormData = {
         ...formData,
         currencyFormat: { symbol: 'AUTO', symbolPosition: 'prefix' },
@@ -138,7 +138,7 @@ describe('PivotTableChart transformProps', () => {
       expect(result.currencyCodeColumn).toBe('currency');
     });
 
-    it('should pass AUTO mode through for per-cell detection (mixed currency data)', () => {
+    test('should pass AUTO mode through for per-cell detection (mixed currency data)', () => {
       const autoFormData = {
         ...formData,
         currencyFormat: { symbol: 'AUTO', symbolPosition: 'prefix' },
@@ -177,7 +177,7 @@ describe('PivotTableChart transformProps', () => {
       expect(result.currencyCodeColumn).toBe('currency');
     });
 
-    it('should pass AUTO mode through when no currency column is defined', () => {
+    test('should pass AUTO mode through when no currency column is defined', () => {
       const autoFormData = {
         ...formData,
         currencyFormat: { symbol: 'AUTO', symbolPosition: 'prefix' },
@@ -215,7 +215,7 @@ describe('PivotTableChart transformProps', () => {
       expect(result.currencyCodeColumn).toBeUndefined();
     });
 
-    it('should handle empty data gracefully in AUTO mode', () => {
+    test('should handle empty data gracefully in AUTO mode', () => {
       const autoFormData = {
         ...formData,
         currencyFormat: { symbol: 'AUTO', symbolPosition: 'prefix' },
@@ -249,7 +249,7 @@ describe('PivotTableChart transformProps', () => {
       expect(result.currencyCodeColumn).toBe('currency');
     });
 
-    it('should preserve static currency format when not using AUTO mode', () => {
+    test('should preserve static currency format when not using AUTO mode', () => {
       const staticFormData = {
         ...formData,
         currencyFormat: { symbol: 'EUR', symbolPosition: 'suffix' },

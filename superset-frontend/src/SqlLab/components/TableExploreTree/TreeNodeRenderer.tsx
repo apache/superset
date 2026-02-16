@@ -226,7 +226,7 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
           <IconButton
             icon={
               <Tooltip title={t('Pin to the result panel')}>
-                <Icons.FolderAddOutlined iconSize="xl" />
+                <Icons.PushpinOutlined iconSize="xl" />
               </Tooltip>
             }
             onClick={e => {

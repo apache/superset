@@ -23,6 +23,7 @@ import { GenericDataType } from '@apache-superset/core/api/core';
 import {
   Comparator,
   MultipleValueComparators,
+  ColorSchemeEnum,
 } from '@superset-ui/chart-controls';
 import {
   Select,
@@ -40,13 +41,6 @@ import {
   ConditionalFormattingConfig,
   ConditionalFormattingFlag,
 } from './types';
-
-// TODO: tangled redefinition that aligns with @superset-ui/plugin-chart-table
-// used to be imported but main app shouldn't depend on plugins...
-export enum ColorSchemeEnum {
-  'Green' = 'Green',
-  'Red' = 'Red',
-}
 
 const FullWidthInputNumber = styled(InputNumber)`
   width: 100%;

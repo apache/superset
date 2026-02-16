@@ -119,7 +119,7 @@ def test_refresh_oauth2_token_deletes_token_on_oauth2_exception(
     was revoked), the invalid token should be deleted and the exception re-raised.
     """
     db = mocker.patch("superset.utils.oauth2.db")
-    mocker.patch("superset.utils.oauth2.KeyValueDistributedLock")
+    mocker.patch("superset.utils.oauth2.DistributedLock")
 
     class OAuth2ExceptionError(Exception):
         pass
@@ -149,7 +149,7 @@ def test_refresh_oauth2_token_keeps_token_on_other_exception(
     exception re-raised.
     """
     db = mocker.patch("superset.utils.oauth2.db")
-    mocker.patch("superset.utils.oauth2.KeyValueDistributedLock")
+    mocker.patch("superset.utils.oauth2.DistributedLock")
 
     class OAuth2ExceptionError(Exception):
         pass
@@ -175,7 +175,7 @@ def test_refresh_oauth2_token_no_access_token_in_response(
     This can happen when the refresh token was revoked.
     """
     mocker.patch("superset.utils.oauth2.db")
-    mocker.patch("superset.utils.oauth2.KeyValueDistributedLock")
+    mocker.patch("superset.utils.oauth2.DistributedLock")
     db_engine_spec = mocker.MagicMock()
     db_engine_spec.get_oauth2_fresh_token.return_value = {
         "error": "invalid_grant",

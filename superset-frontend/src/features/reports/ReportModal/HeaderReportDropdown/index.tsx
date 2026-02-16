@@ -28,7 +28,6 @@ import {
 import { styled, css } from '@apache-superset/core/ui';
 import { MenuItem } from '@superset-ui/core/components/Menu';
 import { Checkbox } from '@superset-ui/core/components';
-import { AlertObject } from 'src/features/alerts/types';
 import { noOp } from 'src/utils/common';
 import { ChartState } from 'src/explore/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
@@ -36,6 +35,7 @@ import {
   fetchUISpecificReport,
   toggleActive,
 } from 'src/features/reports/ReportModal/actions';
+import { ReportObject } from 'src/features/reports/types';
 import { MenuItemWithCheckboxContainer } from 'src/explore/components/useExploreAdditionalActionsMenu/index';
 
 const extensionsRegistry = getExtensionsRegistry();
@@ -63,7 +63,7 @@ export interface HeaderReportProps {
   dashboardId?: number;
   chart?: ChartState;
   showReportModal: () => void;
-  setCurrentReportDeleting: (report: AlertObject | null) => void;
+  setCurrentReportDeleting: (report: ReportObject | null) => void;
 }
 
 export const useHeaderReportMenuItems = ({
@@ -79,7 +79,7 @@ export const useHeaderReportMenuItems = ({
     : CreationMethod.Charts;
 
   // Select the reports state and specific report with proper reactivity
-  const report = useSelector<any, AlertObject | null>(state => {
+  const report = useSelector<any, ReportObject | null>(state => {
     if (!resourceId) return null;
     // Select directly from the reports state to ensure reactivity
     const reportsState = state.reports || {};
@@ -116,7 +116,7 @@ export const useHeaderReportMenuItems = ({
 
   // Fetch report data when needed
   useEffect(() => {
-    if (shouldFetch) {
+    if (shouldFetch && resourceId) {
       dispatch(
         fetchUISpecificReport({
           userId: user.userId,
@@ -137,8 +137,8 @@ export const useHeaderReportMenuItems = ({
   const handleShowModal = () => showReportModal();
   const handleDeleteReport = () => setCurrentReportDeleting(report);
   const handleToggleActive = () => {
-    if (report?.id) {
-      dispatch(toggleActive(report, !report.active));
+    if (report?.id && report.active !== undefined) {
+      dispatch(toggleActive(report as unknown as ReportObject, !report.active));
     }
   };
 
@@ -146,7 +146,7 @@ export const useHeaderReportMenuItems = ({
   if (!report || !report.id) {
     return {
       key: 'email-report-setup',
-      type: 'submenu',
+      type: 'submenu' as const,
       label: t('Manage email report'),
       children: [
         {
@@ -168,7 +168,7 @@ export const useHeaderReportMenuItems = ({
   // If report exists, show management options
   return {
     key: 'email-report-manage',
-    type: 'submenu',
+    type: 'submenu' as const,
     label: t('Manage email report'),
     children: [
       {

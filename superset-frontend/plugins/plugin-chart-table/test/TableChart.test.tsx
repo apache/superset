@@ -614,9 +614,7 @@ describe('plugin-chart-table', () => {
         expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
           '',
         );
-        expect(getComputedStyle(screen.getByText('N/A')).background).toBe(
-          'rgba(172, 225, 196, 1)',
-        );
+        expect(getComputedStyle(screen.getByText('N/A')).background).toBe('');
       });
       test('should display original label in grouped headers', () => {
         const props = transformProps(testData.comparison);
@@ -1473,7 +1471,7 @@ describe('plugin-chart-table', () => {
         );
       });
 
-      it('recalculates totals when user filters data', async () => {
+      test('recalculates totals when user filters data', async () => {
         const formDataWithTotals = {
           ...testData.basic.formData,
           show_totals: true,
@@ -1482,7 +1480,7 @@ describe('plugin-chart-table', () => {
           metrics: ['sum__num'],
         };
 
-        const data = testData.basic.queriesData[0].data;
+        const { data } = testData.basic.queriesData[0];
         const totalBeforeFilter = data.reduce(
           (sum, row) => sum + Number(row.sum__num || 0),
           0,

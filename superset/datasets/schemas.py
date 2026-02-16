@@ -414,6 +414,7 @@ class DatasetColumnDrillInfoSchema(Schema):
 class UserSchema(Schema):
     first_name = fields.String()
     last_name = fields.String()
+    email = fields.String()
 
 
 class DatasetDrillInfoSchema(Schema):

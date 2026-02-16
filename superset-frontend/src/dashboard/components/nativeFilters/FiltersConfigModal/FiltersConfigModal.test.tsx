@@ -506,7 +506,7 @@ test('deletes a filter including dependencies', async () => {
   const filterTabs = within(filterContainer).getAllByRole('tab');
   const deleteIcon = filterTabs[1].querySelector('[data-icon="delete"]');
   fireEvent.click(deleteIcon!);
-  userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
+  await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
   await waitFor(() =>
     expect(onSave).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -628,6 +628,45 @@ test('rearranges three filters and deletes one of them', async () => {
       }),
     ),
   );
+});
+
+test('updates sidebar title when filter name changes', async () => {
+  const nativeFilterConfig = [
+    buildNativeFilter('NATIVE_FILTER-1', 'state', []),
+    buildNativeFilter('NATIVE_FILTER-2', 'country', []),
+  ];
+
+  const state = {
+    ...defaultState(),
+    dashboardInfo: {
+      metadata: {
+        native_filter_configuration: nativeFilterConfig,
+      },
+    },
+    dashboardLayout,
+  };
+
+  defaultRender(state, {
+    ...props,
+    createNewOnOpen: false,
+  });
+
+  const filterNameInput = screen.getByRole('textbox', {
+    name: FILTER_NAME_REGEX,
+  });
+
+  const filterContainer = screen.getByTestId('filter-title-container');
+  const tabsBeforeChange = within(filterContainer).getAllByRole('tab');
+
+  expect(tabsBeforeChange[0]).not.toHaveTextContent('New Filter Name');
+
+  await userEvent.clear(filterNameInput);
+  await userEvent.type(filterNameInput, 'New Filter Name');
+
+  await waitFor(() => {
+    const tabsAfterChange = within(filterContainer).getAllByRole('tab');
+    expect(tabsAfterChange[0]).toHaveTextContent('New Filter Name');
+  });
 });
 
 test('modifies the name of a filter', async () => {

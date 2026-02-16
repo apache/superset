@@ -58,20 +58,20 @@ jest.mock(
 );
 
 describe('CodeSyntaxHighlighter', () => {
-  it('renders code content', () => {
+  test('renders code content', () => {
     render(<CodeSyntaxHighlighter>SELECT * FROM users;</CodeSyntaxHighlighter>);
 
     expect(screen.getByText('SELECT * FROM users;')).toBeInTheDocument();
   });
 
-  it('renders with default SQL language', () => {
+  test('renders with default SQL language', () => {
     render(<CodeSyntaxHighlighter>SELECT * FROM users;</CodeSyntaxHighlighter>);
 
     // Should show content (the important thing is content is visible)
     expect(screen.getByText('SELECT * FROM users;')).toBeInTheDocument();
   });
 
-  it('renders with specified language', () => {
+  test('renders with specified language', () => {
     render(
       <CodeSyntaxHighlighter language="json">
         {`{ "key": "value" }`}
@@ -82,7 +82,7 @@ describe('CodeSyntaxHighlighter', () => {
     expect(screen.getByText('{ "key": "value" }')).toBeInTheDocument();
   });
 
-  it('supports all expected languages', () => {
+  test('supports all expected languages', () => {
     const languages = ['sql', 'json', 'htmlbars', 'markdown'] as const;
 
     languages.forEach(language => {
@@ -101,7 +101,7 @@ describe('CodeSyntaxHighlighter', () => {
     });
   });
 
-  it('renders fallback pre element initially', () => {
+  test('renders fallback pre element initially', () => {
     render(
       <CodeSyntaxHighlighter language="sql">
         SELECT COUNT(*) FROM table;
@@ -112,7 +112,7 @@ describe('CodeSyntaxHighlighter', () => {
     expect(screen.getByText('SELECT COUNT(*) FROM table;')).toBeInTheDocument();
   });
 
-  it('handles special characters', () => {
+  test('handles special characters', () => {
     const specialContent = "SELECT * FROM `users` WHERE name = 'O\\'Brien';";
 
     render(
@@ -124,7 +124,7 @@ describe('CodeSyntaxHighlighter', () => {
     expect(screen.getByText(specialContent)).toBeInTheDocument();
   });
 
-  it('accepts custom styles', () => {
+  test('accepts custom styles', () => {
     render(
       <CodeSyntaxHighlighter language="sql" customStyle={{ fontSize: '16px' }}>
         SELECT * FROM users;
@@ -134,7 +134,7 @@ describe('CodeSyntaxHighlighter', () => {
     expect(screen.getByText('SELECT * FROM users;')).toBeInTheDocument();
   });
 
-  it('accepts showLineNumbers prop', () => {
+  test('accepts showLineNumbers prop', () => {
     render(
       <CodeSyntaxHighlighter language="sql" showLineNumbers>
         SELECT * FROM users;
@@ -144,7 +144,7 @@ describe('CodeSyntaxHighlighter', () => {
     expect(screen.getByText('SELECT * FROM users;')).toBeInTheDocument();
   });
 
-  it('accepts wrapLines prop', () => {
+  test('accepts wrapLines prop', () => {
     render(
       <CodeSyntaxHighlighter language="sql" wrapLines={false}>
         SELECT * FROM users;

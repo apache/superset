@@ -24,6 +24,64 @@ assists people when migrating to a new version.
 
 ## Next
 
+### MCP Tool Observability
+
+MCP (Model Context Protocol) tools now include enhanced observability instrumentation for monitoring and debugging:
+
+**Two-layer instrumentation:**
+1. **Middleware layer** (`LoggingMiddleware`): Automatically logs all MCP tool calls with `duration_ms` and `success` status in the audit log (Action Log UI, logs table)
+2. **Sub-operation tracking**: All 19 MCP tools include granular `event_logger.log_context()` blocks for tracking individual operations like validation, database writes, and query execution
+
+**Action naming convention:**
+- Tool-level logs: `mcp_tool_call` (via middleware)
+- Sub-operation logs: `mcp.{tool_name}.{operation}` (e.g., `mcp.generate_chart.validation`, `mcp.execute_sql.query_execution`)
+
+**Querying MCP logs:**
+```sql
+-- Top slowest MCP operations
+SELECT action, COUNT(*) as calls, AVG(duration_ms) as avg_ms
+FROM logs
+WHERE action LIKE 'mcp.%'
+GROUP BY action
+ORDER BY avg_ms DESC
+LIMIT 20;
+
+-- MCP tool success rate
+SELECT
+    json_extract(curated_payload, '$.tool') as tool,
+    COUNT(*) as total_calls,
+    SUM(CASE WHEN json_extract(curated_payload, '$.success') = 'true' THEN 1 ELSE 0 END) as successful,
+    ROUND(100.0 * SUM(CASE WHEN json_extract(curated_payload, '$.success') = 'true' THEN 1 ELSE 0 END) / COUNT(*), 2) as success_rate
+FROM logs
+WHERE action = 'mcp_tool_call'
+GROUP BY tool
+ORDER BY total_calls DESC;
+```
+
+**Security note:** Sensitive parameters (passwords, API keys, tokens) are automatically redacted in logs as `[REDACTED]`.
+
+### Signal Cache Backend
+
+A new `SIGNAL_CACHE_CONFIG` configuration provides a unified Redis-based backend for real-time coordination features in Superset. This backend enables:
+
+- **Pub/sub messaging** for real-time event notifications between workers
+- **Atomic distributed locking** using Redis SET NX EX (more performant than database-backed locks)
+- **Event-based coordination** for background task management
+
+The signal cache is used by the Global Task Framework (GTF) for abort notifications and task completion signaling, and will eventually replace `GLOBAL_ASYNC_QUERIES_CACHE_BACKEND` as the standard signaling backend. Configuring this is recommended for Redis enabled production deployments.
+
+Example configuration in `superset_config.py`:
+```python
+SIGNAL_CACHE_CONFIG = {
+    "CACHE_TYPE": "RedisCache",
+    "CACHE_KEY_PREFIX": "signal_",
+    "CACHE_REDIS_URL": "redis://localhost:6379/1",
+    "CACHE_DEFAULT_TIMEOUT": 300,
+}
+```
+
+See `superset/config.py` for complete configuration options.
+
 ### WebSocket config for GAQ with Docker
 
 [35896](https://github.com/apache/superset/pull/35896) and [37624](https://github.com/apache/superset/pull/37624) updated documentation on how to run and configure Superset with Docker. Specifically for the WebSocket configuration, a new `docker/superset-websocket/config.example.json` was added to the repo, so that users could copy it to create a `docker/superset-websocket/config.json` file. The existing `docker/superset-websocket/config.json` was removed and git-ignored, so if you're using GAQ / WebSocket make sure to:

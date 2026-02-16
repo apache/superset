@@ -123,7 +123,7 @@ describe('BigNumberWithTrendline transformProps', () => {
   const baseHooks = { onContextMenu };
   const baseRawFormData = { dummy: 'raw' };
 
-  it('should return null bigNumber when no data is provided', () => {
+  test('should return null bigNumber when no data is provided', () => {
     const chartProps = {
       width: 400,
       height: 300,
@@ -142,7 +142,7 @@ describe('BigNumberWithTrendline transformProps', () => {
     expect(result.subtitle).toBe('subtitle message');
   });
 
-  it('should calculate subheader as percent change with suffix', () => {
+  test('should calculate subheader as percent change with suffix', () => {
     const chartProps = {
       width: 500,
       height: 400,
@@ -169,7 +169,7 @@ describe('BigNumberWithTrendline transformProps', () => {
     expect(result.subheader).toBe('10.0% WoW');
   });
 
-  it('should compute bigNumber from parseMetricValue', () => {
+  test('should compute bigNumber from parseMetricValue', () => {
     const chartProps = {
       width: 600,
       height: 450,
@@ -195,7 +195,7 @@ describe('BigNumberWithTrendline transformProps', () => {
     expect(result.bigNumber).toEqual(456);
   });
 
-  it('should use formatTime as headerFormatter for Temporal/String or forced', () => {
+  test('should use formatTime as headerFormatter for Temporal/String or forced', () => {
     const formData = { ...baseFormData, forceTimestampFormatting: true };
     const chartProps = {
       width: 600,
@@ -222,7 +222,7 @@ describe('BigNumberWithTrendline transformProps', () => {
     expect(result.headerFormatter(5)).toBe('5pm');
   });
 
-  it('should use numberFormatter when not Temporal/String and not forced', () => {
+  test('should use numberFormatter when not Temporal/String and not forced', () => {
     const formData = { ...baseFormData, forceTimestampFormatting: false };
     const chartProps = {
       width: 600,
@@ -247,7 +247,7 @@ describe('BigNumberWithTrendline transformProps', () => {
     expect(result.headerFormatter.format(500)).toBe('$500');
   });
 
-  it('should use last data point for comparison when big number comes from aggregated data', () => {
+  test('should use last data point for comparison when big number comes from aggregated data', () => {
     const chartProps = {
       width: 500,
       height: 400,

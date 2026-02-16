@@ -360,7 +360,7 @@ export default function transformProps(
         series.push(
           transformFormulaAnnotation(
             layer,
-            data1,
+            rebasedDataA as TimeseriesDataRecord[],
             xAxisLabel,
             xAxisType,
             colorScale,
@@ -759,7 +759,6 @@ export default function transformProps(
         legendState,
         chartPadding,
       ),
-      // @ts-ignore
       data: series
         .filter(
           entry =>

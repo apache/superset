@@ -28,7 +28,7 @@ describe('API v1 > getChartData()', () => {
 
   afterEach(() => fetchMock.clearHistory().removeRoutes());
 
-  it('returns a promise of ChartDataResponse', async () => {
+  test('returns a promise of ChartDataResponse', async () => {
     const response = {
       result: [
         {

@@ -787,7 +787,12 @@ const SqlEditor: FC<Props> = ({
 
   const onSaveQuery = async (query: QueryPayload, clientId: string) => {
     const savedQuery = await dispatch(saveQuery(query, clientId));
-    dispatch(addSavedQueryToTabState(queryEditor, savedQuery));
+    dispatch(
+      addSavedQueryToTabState(
+        queryEditor,
+        savedQuery as unknown as { remoteId: string },
+      ),
+    );
   };
 
   const renderEditorPrimaryAction = () => {

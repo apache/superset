@@ -52,8 +52,6 @@ module.exports = {
     ['@babel/plugin-transform-private-methods', { loose: true }],
     ['@babel/plugin-transform-nullish-coalescing-operator', { loose: true }],
     ['@babel/plugin-transform-runtime', { corejs: 3 }],
-    // only used in packages/superset-ui-core/src/chart/components/reactify.tsx
-    ['babel-plugin-typescript-to-proptypes', { loose: true }],
     [
       '@emotion/babel-plugin',
       {

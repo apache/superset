@@ -224,7 +224,7 @@ const DeckMulti = (props: DeckMultiProps) => {
 
   const createLayerFromData = useCallback(
     (subslice: JsonObject, json: JsonObject): Layer =>
-      // @ts-ignore TODO(hainenber): define proper type for `form_data.viz_type` and call signature for functions in layerGenerators.
+      // @ts-expect-error TODO(hainenber): define proper type for `form_data.viz_type` and call signature for functions in layerGenerators.
       layerGenerators[subslice.form_data.viz_type]({
         formData: subslice.form_data,
         payload: json,

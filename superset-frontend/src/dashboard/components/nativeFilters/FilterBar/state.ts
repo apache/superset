@@ -156,7 +156,7 @@ export const useInitialization = () => {
       }, 1000);
     }
 
-    // @ts-ignore
+    // @ts-expect-error
     if (numberOfLoadingCharts > 0 && filterTimeout !== undefined) {
       clearTimeout(filterTimeout);
     }

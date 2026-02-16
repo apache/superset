@@ -53,6 +53,7 @@ module.exports = {
         'extensions/deployment',
         'extensions/mcp',
         'extensions/security',
+        'extensions/tasks',
         'extensions/registry',
       ],
     },

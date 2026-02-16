@@ -137,7 +137,7 @@ describe('DeckMulti Autozoom Functionality', () => {
     });
   });
 
-  it('should NOT apply autozoom when autozoom is false', () => {
+  test('should NOT apply autozoom when autozoom is false', () => {
     const fitViewportSpy = jest.spyOn(fitViewportModule, 'default');
 
     const props = {
@@ -156,7 +156,7 @@ describe('DeckMulti Autozoom Functionality', () => {
     fitViewportSpy.mockRestore();
   });
 
-  it('should apply autozoom when autozoom is true', () => {
+  test('should apply autozoom when autozoom is true', () => {
     const fitViewportSpy = jest.spyOn(fitViewportModule, 'default');
     fitViewportSpy.mockReturnValue({
       longitude: -122.4,
@@ -191,7 +191,7 @@ describe('DeckMulti Autozoom Functionality', () => {
     fitViewportSpy.mockRestore();
   });
 
-  it('should use adjusted viewport when autozoom is enabled', async () => {
+  test('should use adjusted viewport when autozoom is enabled', async () => {
     const fitViewportSpy = jest.spyOn(fitViewportModule, 'default');
     const adjustedViewport = {
       longitude: -122.4,
@@ -224,7 +224,7 @@ describe('DeckMulti Autozoom Functionality', () => {
     fitViewportSpy.mockRestore();
   });
 
-  it('should set zoom to 0 when calculated zoom is negative', async () => {
+  test('should set zoom to 0 when calculated zoom is negative', async () => {
     const fitViewportSpy = jest.spyOn(fitViewportModule, 'default');
     fitViewportSpy.mockReturnValue({
       longitude: 0,
@@ -255,7 +255,7 @@ describe('DeckMulti Autozoom Functionality', () => {
     fitViewportSpy.mockRestore();
   });
 
-  it('should handle empty features gracefully when autozoom is enabled', () => {
+  test('should handle empty features gracefully when autozoom is enabled', () => {
     const fitViewportSpy = jest.spyOn(fitViewportModule, 'default');
 
     const props = {
@@ -292,7 +292,7 @@ describe('DeckMulti Autozoom Functionality', () => {
     fitViewportSpy.mockRestore();
   });
 
-  it('should collect points from all layer types when autozoom is enabled', () => {
+  test('should collect points from all layer types when autozoom is enabled', () => {
     const fitViewportSpy = jest.spyOn(fitViewportModule, 'default');
     fitViewportSpy.mockReturnValue({
       longitude: 0,
@@ -345,7 +345,7 @@ describe('DeckMulti Autozoom Functionality', () => {
     fitViewportSpy.mockRestore();
   });
 
-  it('should use original viewport when autozoom is disabled', async () => {
+  test('should use original viewport when autozoom is disabled', async () => {
     const fitViewportSpy = jest.spyOn(fitViewportModule, 'default');
 
     const originalViewport = { longitude: -100, latitude: 40, zoom: 5 };
@@ -378,7 +378,7 @@ describe('DeckMulti Autozoom Functionality', () => {
     fitViewportSpy.mockRestore();
   });
 
-  it('should apply autozoom when autozoom is undefined (backward compatibility)', () => {
+  test('should apply autozoom when autozoom is undefined (backward compatibility)', () => {
     const fitViewportSpy = jest.spyOn(fitViewportModule, 'default');
     fitViewportSpy.mockReturnValue({
       longitude: -122.4,
@@ -413,7 +413,7 @@ describe('DeckMulti Autozoom Functionality', () => {
     fitViewportSpy.mockRestore();
   });
 
-  it('should use adjusted viewport when autozoom is undefined', async () => {
+  test('should use adjusted viewport when autozoom is undefined', async () => {
     const fitViewportSpy = jest.spyOn(fitViewportModule, 'default');
     const adjustedViewport = {
       longitude: -122.4,
@@ -460,7 +460,7 @@ describe('DeckMulti Component Rendering', () => {
     });
   });
 
-  it('should render DeckGLContainer', async () => {
+  test('should render DeckGLContainer', async () => {
     renderWithProviders(<DeckMulti {...baseMockProps} />);
 
     await waitFor(() => {
@@ -468,7 +468,7 @@ describe('DeckMulti Component Rendering', () => {
     });
   });
 
-  it('should pass correct props to DeckGLContainer', async () => {
+  test('should pass correct props to DeckGLContainer', async () => {
     renderWithProviders(<DeckMulti {...baseMockProps} />);
 
     await waitFor(() => {
@@ -485,7 +485,7 @@ describe('DeckMulti Component Rendering', () => {
     });
   });
 
-  it('should include dashboardId in child slice requests when present', async () => {
+  test('should include dashboardId in child slice requests when present', async () => {
     const props = {
       ...baseMockProps,
       formData: {
@@ -502,7 +502,7 @@ describe('DeckMulti Component Rendering', () => {
     });
 
     // Check that all requests include the dashboardId
-    const calls = (SupersetClient.get as jest.Mock).mock.calls;
+    const { calls } = (SupersetClient.get as jest.Mock).mock;
     calls.forEach(call => {
       const url = call[0].endpoint;
       const urlParams = new URLSearchParams(url.split('?')[1]);
@@ -512,7 +512,7 @@ describe('DeckMulti Component Rendering', () => {
     });
   });
 
-  it('should not include dashboardId when not present', async () => {
+  test('should not include dashboardId when not present', async () => {
     const props = {
       ...baseMockProps,
       formData: {
@@ -529,7 +529,7 @@ describe('DeckMulti Component Rendering', () => {
     });
 
     // Check that requests don't include dashboardId
-    const calls = (SupersetClient.get as jest.Mock).mock.calls;
+    const { calls } = (SupersetClient.get as jest.Mock).mock;
     calls.forEach(call => {
       const url = call[0].endpoint;
       const formData = JSON.parse(
@@ -539,7 +539,7 @@ describe('DeckMulti Component Rendering', () => {
     });
   });
 
-  it('should preserve dashboardId through filter updates', async () => {
+  test('should preserve dashboardId through filter updates', async () => {
     const props = {
       ...baseMockProps,
       formData: {
@@ -557,7 +557,7 @@ describe('DeckMulti Component Rendering', () => {
     });
 
     // Verify dashboardId is preserved with filters
-    const calls = (SupersetClient.get as jest.Mock).mock.calls;
+    const { calls } = (SupersetClient.get as jest.Mock).mock;
     calls.forEach(call => {
       const url = call[0].endpoint;
       const formData = JSON.parse(
@@ -568,7 +568,7 @@ describe('DeckMulti Component Rendering', () => {
     });
   });
 
-  it('should handle viewport changes', async () => {
+  test('should handle viewport changes', async () => {
     const { rerender } = renderWithProviders(<DeckMulti {...baseMockProps} />);
 
     // Wait for initial render

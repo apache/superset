@@ -25,6 +25,7 @@ import logging
 from fastmcp import Context
 from superset_core.mcp import tool
 
+from superset.extensions import event_logger
 from superset.mcp_service.mcp_core import InstanceInfoCore
 from superset.mcp_service.system.schemas import (
     GetSupersetInstanceInfoRequest,
@@ -98,7 +99,8 @@ def get_instance_info(
         }
 
         # Run the configurable core
-        return _instance_info_core.run_tool()
+        with event_logger.log_context(action="mcp.get_instance_info.metrics"):
+            return _instance_info_core.run_tool()
 
     except Exception as e:
         error_msg = f"Unexpected error in instance info: {str(e)}"

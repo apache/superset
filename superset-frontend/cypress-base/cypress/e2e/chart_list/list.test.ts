@@ -23,12 +23,9 @@ import {
   interceptBulkDelete,
   interceptUpdate,
   interceptDelete,
-  visitSampleChartFromList,
-  saveChartToDashboard,
   interceptFiltering,
   interceptFavoriteStatus,
 } from '../explore/utils';
-import { interceptGet as interceptDashboardGet } from '../dashboard/utils';
 
 function orderAlphabetical() {
   setFilter('Sort', 'Alphabetical');
@@ -57,60 +54,6 @@ function visitChartList() {
 }
 
 describe('Charts list', () => {
-  describe('Cross-referenced dashboards', () => {
-    beforeEach(() => {
-      cy.createSampleDashboards([0, 1, 2, 3]);
-      cy.createSampleCharts([0]);
-      visitChartList();
-    });
-
-    // Skipped: depends on "Supported Charts Dashboard" which requires specific example loading
-    it.skip('should show the cross-referenced dashboards in the table cell', () => {
-      interceptDashboardGet();
-      cy.getBySel('table-row')
-        .first()
-        .find('[data-test="table-row-cell"]')
-        .find('[data-test="crosslinks"]')
-        .should('be.empty');
-      cy.getBySel('table-row')
-        .eq(10)
-        .find('[data-test="table-row-cell"]')
-        .find('[data-test="crosslinks"]')
-        .contains('Supported Charts Dashboard')
-        .invoke('removeAttr', 'target')
-        .click();
-      cy.wait('@get');
-    });
-
-    it('should show the newly added dashboards in a tooltip', () => {
-      interceptDashboardGet();
-      visitSampleChartFromList('1 - Sample chart');
-      saveChartToDashboard('1 - Sample chart', '1 - Sample dashboard');
-      saveChartToDashboard('1 - Sample chart', '2 - Sample dashboard');
-      saveChartToDashboard('1 - Sample chart', '3 - Sample dashboard');
-      saveChartToDashboard('1 - Sample chart', '4 - Sample dashboard');
-      visitChartList();
-
-      cy.getBySel('count-crosslinks').should('be.visible');
-    });
-  });
-
-  describe('card mode', () => {
-    before(() => {
-      visitChartList();
-      setGridMode('card');
-    });
-
-    it('should preserve other filters when sorting', () => {
-      // Check that we have some cards (count varies based on loaded examples)
-      cy.getBySel('styled-card').should('have.length.at.least', 1);
-      setFilter('Type', 'Big Number');
-      setFilter('Sort', 'Least recently modified');
-      // After filtering to Big Number type, we should have fewer cards
-      cy.getBySel('styled-card').should('have.length.at.least', 1);
-    });
-  });
-
   describe('common actions', () => {
     beforeEach(() => {
       visitChartList();

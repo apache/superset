@@ -68,7 +68,9 @@ jest.mock('src/features/databases/UploadDataModel', () => ({
       <div data-test="modal-type">{type}</div>
       <div data-test="modal-extensions">{allowedExtensions.join(',')}</div>
       <div data-test="modal-file">{fileListOverride?.[0]?.name ?? ''}</div>
-      <button onClick={onHide}>Close</button>
+      <button onClick={onHide} type="button">
+        Close
+      </button>
     </div>
   ),
 }));
