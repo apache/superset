@@ -70,12 +70,10 @@ export const CopyToClipboardButton = ({
       }
       wrapped={false}
       copyNode={
-        <span>
+        <span role="button" aria-label={t('Copy')}>
           <Icons.CopyOutlined
             iconColor={theme.colorIcon}
             iconSize="l"
-            aria-label={t('Copy')}
-            role="button"
             css={css`
               &.anticon > * {
                 line-height: 0;
