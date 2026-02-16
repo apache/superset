@@ -161,7 +161,7 @@ export default function Login() {
           <Flex justify="center" vertical gap="middle">
             <Typography.Text type="secondary">
 
-              {t('Enter your login and password xox4:')}
+              {t('Enter your login and password,please:')}
 
             </Typography.Text>
             <Form
