@@ -37,7 +37,7 @@ const setup = (overrides: Record<string, any> = {}) => {
     columnNames: [],
     ...overrides,
   };
-  return render(<TableControls {...props} />);
+  return render(<TableControls {...props} />, { useRedux: true });
 };
 test('should render', () => {
   const { container } = setup();
