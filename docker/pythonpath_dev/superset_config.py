@@ -194,3 +194,8 @@ TALISMAN_CONFIG = {
 }
 # Flask-Limiter devre dışı (development)
 RATELIMIT_ENABLED = False
+
+FEATURE_FLAGS = {
+    "DASHBOARD_NATIVE_FILTERS": True,
+    "ENABLE_TEMPLATE_PROCESSING": True,
+}
