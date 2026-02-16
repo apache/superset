@@ -46,7 +46,7 @@ const Calendar = ({ className, ...otherProps }: CalendarWrapperProps) => {
             line-height: 1;
             padding: ${theme.sizeUnit * 3}px;
             background: ${theme.colorBgElevated};
-            color: ${theme.colorTextLightSolid};
+            color: ${theme.colorTextBase};
             border-radius: 4px;
             pointer-events: none;
             z-index: 1000;
