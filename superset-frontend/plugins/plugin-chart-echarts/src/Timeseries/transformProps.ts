@@ -780,7 +780,7 @@ export default function transformProps(
           }
         }
         if (allowTotal && showTooltipTotal) {
-          const totalRow = ['Total', formatter.format(total)];
+          const totalRow = [t('Total'), formatter.format(total)];
           if (showPercentage) {
             totalRow.push(percentFormatter.format(1));
           }

@@ -18,6 +18,7 @@
  */
 /* eslint-disable camelcase */
 import { invert } from 'lodash';
+import { t } from '@apache-superset/core';
 import {
   AnnotationLayer,
   AxisType,
@@ -781,8 +782,8 @@ export default function transformProps(
         dataZoom: {
           yAxisIndex: false,
           title: {
-            zoom: 'zoom area',
-            back: 'restore zoom',
+            zoom: t('zoom area'),
+            back: t('restore zoom'),
           },
         },
       },

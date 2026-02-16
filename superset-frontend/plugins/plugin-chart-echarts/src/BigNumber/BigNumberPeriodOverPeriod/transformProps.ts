@@ -19,6 +19,7 @@
 // Type augmentation for dayjs plugins
 import 'dayjs/plugin/utc';
 import { Metric } from '@superset-ui/chart-controls';
+import { t } from '@apache-superset/core';
 import {
   ChartProps,
   getLocalizedMetricLabel,
@@ -179,11 +180,11 @@ export default function transformProps(chartProps: ChartProps) {
     detectedCurrency,
   );
 
-  const compTitles = {
-    r: 'Range' as string,
-    y: 'Year' as string,
-    m: 'Month' as string,
-    w: 'Week' as string,
+  const compTitles: Record<string, string> = {
+    r: t('Range'),
+    y: t('Year'),
+    m: t('Month'),
+    w: t('Week'),
   };
 
   const formatPercentChange = getNumberFormatter(percentDifferenceFormat);

@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@apache-superset/core';
 import {
   CategoricalColorNamespace,
   getColumnLabel,
@@ -224,16 +225,16 @@ export default function transformProps(
             ? `<p><strong>${sanitizeHtml(name)}</strong></p>`
             : '';
           const stats = [
-            `Max: ${numberFormatter(value[5])}`,
-            `3rd Quartile: ${numberFormatter(value[4])}`,
-            `Mean: ${numberFormatter(value[6])}`,
-            `Median: ${numberFormatter(value[3])}`,
-            `1st Quartile: ${numberFormatter(value[2])}`,
-            `Min: ${numberFormatter(value[1])}`,
-            `# Observations: ${value[7]}`,
+            `${t('Max')}: ${numberFormatter(value[5])}`,
+            `${t('3rd Quartile')}: ${numberFormatter(value[4])}`,
+            `${t('Mean')}: ${numberFormatter(value[6])}`,
+            `${t('Median')}: ${numberFormatter(value[3])}`,
+            `${t('1st Quartile')}: ${numberFormatter(value[2])}`,
+            `${t('Min')}: ${numberFormatter(value[1])}`,
+            `${t('# Observations')}: ${value[7]}`,
           ];
           if (value[8].length > 0) {
-            stats.push(`# Outliers: ${value[8].length}`);
+            stats.push(`${t('# Outliers')}: ${value[8].length}`);
           }
           return headline + stats.join('<br/>');
         },
