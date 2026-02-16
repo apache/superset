@@ -25,65 +25,62 @@ import transformProps from '../src/transformProps';
 import { ProviderWrapper } from '../../plugin-chart-table/test/testHelpers';
 import testData from '../../plugin-chart-table/test/testData';
 
+const mockSetDataMask = jest.fn();
+
 beforeAll(() => {
   setupAGGridModules();
 });
 
-describe('transformProps', () => {
-  test('should parse pageLength to pageSize', () => {
-    expect(transformProps(testData.basic).pageSize).toBe(20);
-    expect(
-      transformProps({
-        ...testData.basic,
-        rawFormData: { ...testData.basic.rawFormData, page_length: '20' },
-      }).pageSize,
-    ).toBe(20);
-    expect(
-      transformProps({
-        ...testData.basic,
-        rawFormData: { ...testData.basic.rawFormData, page_length: '' },
-      }).pageSize,
-    ).toBe(0);
-  });
-
-  test('should not apply time grain formatting in Raw Records mode', () => {
-    const rawRecordsProps = {
-      ...testData.basic,
-      rawFormData: {
-        ...testData.basic.rawFormData,
-        query_mode: QueryMode.Raw,
-        time_grain_sqla: TimeGranularity.MONTH,
-        table_timestamp_format: SMART_DATE_ID,
-      },
-    };
-
-    const transformedProps = transformProps(rawRecordsProps);
-    expect(transformedProps.isRawRecords).toBe(true);
-    expect(transformedProps.timeGrain).toBe(TimeGranularity.MONTH);
-  });
-
-  test('should handle null/undefined timestamp values correctly', () => {
-    const rawRecordsProps = {
-      ...testData.basic,
-      rawFormData: {
-        ...testData.basic.rawFormData,
-        query_mode: QueryMode.Raw,
-      },
-    };
-
-    const transformedProps = transformProps(rawRecordsProps);
-    expect(transformedProps.isRawRecords).toBe(true);
-  });
+beforeEach(() => {
+  jest.clearAllMocks();
 });
 
-describe('AgGridTableChart', () => {
-  const mockSetDataMask = jest.fn();
+test('transformProps parses pageLength to pageSize', () => {
+  expect(transformProps(testData.basic).pageSize).toBe(20);
+  expect(
+    transformProps({
+      ...testData.basic,
+      rawFormData: { ...testData.basic.rawFormData, page_length: '20' },
+    }).pageSize,
+  ).toBe(20);
+  expect(
+    transformProps({
+      ...testData.basic,
+      rawFormData: { ...testData.basic.rawFormData, page_length: '' },
+    }).pageSize,
+  ).toBe(0);
+});
 
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
+test('transformProps does not apply time grain formatting in Raw Records mode', () => {
+  const rawRecordsProps = {
+    ...testData.basic,
+    rawFormData: {
+      ...testData.basic.rawFormData,
+      query_mode: QueryMode.Raw,
+      time_grain_sqla: TimeGranularity.MONTH,
+      table_timestamp_format: SMART_DATE_ID,
+    },
+  };
 
-  test('should render basic data', async () => {
+  const transformedProps = transformProps(rawRecordsProps);
+  expect(transformedProps.isRawRecords).toBe(true);
+  expect(transformedProps.timeGrain).toBe(TimeGranularity.MONTH);
+});
+
+test('transformProps handles null/undefined timestamp values correctly', () => {
+  const rawRecordsProps = {
+    ...testData.basic,
+    rawFormData: {
+      ...testData.basic.rawFormData,
+      query_mode: QueryMode.Raw,
+    },
+  };
+
+  const transformedProps = transformProps(rawRecordsProps);
+  expect(transformedProps.isRawRecords).toBe(true);
+});
+
+test('AgGridTableChart renders basic data', async () => {
     const props = transformProps(testData.basic);
     render(
       ProviderWrapper({
@@ -115,7 +112,7 @@ describe('AgGridTableChart', () => {
     expect(screen.getByText('Maria')).toBeInTheDocument();
   });
 
-  test('should render with server pagination', async () => {
+test('AgGridTableChart renders with server pagination', async () => {
     const props = transformProps({
       ...testData.basic,
       rawFormData: {
@@ -158,7 +155,7 @@ describe('AgGridTableChart', () => {
     expect(paginationText).toContain('5');
   });
 
-  test('should render with search enabled', async () => {
+test('AgGridTableChart renders with search enabled', async () => {
     const props = transformProps({
       ...testData.basic,
       rawFormData: {
@@ -194,7 +191,7 @@ describe('AgGridTableChart', () => {
     expect(searchInput).toHaveAttribute('id', 'filter-text-box');
   });
 
-  test('should render with totals', async () => {
+test('AgGridTableChart renders with totals', async () => {
     const props = transformProps({
       ...testData.basic,
       rawFormData: {
@@ -231,7 +228,7 @@ describe('AgGridTableChart', () => {
     expect(dataRows.length).toBe(3);
   });
 
-  test('should handle empty data', async () => {
+test('AgGridTableChart handles empty data', async () => {
     const props = transformProps(testData.empty);
 
     render(
@@ -260,7 +257,7 @@ describe('AgGridTableChart', () => {
     expect(headerCells.length).toBeGreaterThan(0);
   });
 
-  test('should render with time comparison', async () => {
+test('AgGridTableChart renders with time comparison', async () => {
     const props = transformProps(testData.comparison);
     props.isUsingTimeComparison = true;
 
@@ -293,7 +290,7 @@ describe('AgGridTableChart', () => {
     expect(headerTexts).toContain('%');
   });
 
-  test('should handle raw records mode', async () => {
+test('AgGridTableChart handles raw records mode', async () => {
     const rawRecordsProps = {
       ...testData.basic,
       rawFormData: {
@@ -329,7 +326,7 @@ describe('AgGridTableChart', () => {
     expect(headerCells.length).toBeGreaterThan(0);
   });
 
-  test('should correct invalid page number when currentPage >= totalPages', async () => {
+test('AgGridTableChart corrects invalid page number when currentPage >= totalPages', async () => {
     const props = transformProps({
       ...testData.basic,
       rawFormData: {
@@ -356,8 +353,7 @@ describe('AgGridTableChart', () => {
       }),
     );
 
-    await waitFor(() => {
-      expect(mockSetDataMask).toHaveBeenCalled();
-    });
+  await waitFor(() => {
+    expect(mockSetDataMask).toHaveBeenCalled();
   });
 });
