@@ -151,9 +151,7 @@ export const ChartSelector = ({
           {t('%s of %s charts selected', selectedChartIds.size, charts.length)}
         </SelectionInfo>
         <Actions>
-          <ActionLink onClick={handleSelectAll}>
-            {t('Select all')}
-          </ActionLink>
+          <ActionLink onClick={handleSelectAll}>{t('Select all')}</ActionLink>
           <span>|</span>
           <ActionLink onClick={handleDeselectAll}>
             {t('Deselect all')}
@@ -174,9 +172,7 @@ export const ChartSelector = ({
               disabled={disabled}
             />
             <ChartName>{chart.name || t('Untitled Chart')}</ChartName>
-            {chart.vizType && (
-              <ChartMeta>{chart.vizType}</ChartMeta>
-            )}
+            {chart.vizType && <ChartMeta>{chart.vizType}</ChartMeta>}
           </ChartItem>
         ))}
       </ChartList>
