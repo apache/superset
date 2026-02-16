@@ -23,6 +23,7 @@ import {
   AnnotationLayer,
   AxisType,
   buildCustomFormatters,
+  buildLocalizedMetricLabelMap,
   CategoricalColorNamespace,
   CurrencyFormatter,
   ensureIsArray,
@@ -132,6 +133,7 @@ export default function transformProps(
     inContextMenu,
     emitCrossFilters,
     legendState,
+    locale,
   } = chartProps;
 
   let focusedSeries: string | null = null;
@@ -223,6 +225,11 @@ export default function transformProps(
     metrics = [],
     metricsB = [],
   }: EchartsMixedTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
+
+  const localizedMetricLabelMap = buildLocalizedMetricLabelMap(
+    [...metrics, ...metricsB],
+    locale,
+  );
 
   const refs: Refs = {};
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
@@ -737,7 +744,7 @@ export default function transformProps(
             );
             const row = formatForecastTooltipSeries({
               ...value,
-              seriesName: key,
+              seriesName: localizedMetricLabelMap[key] || key,
               formatter: primarySeries.has(key)
                 ? tooltipFormatter
                 : tooltipFormatterSecondary,
@@ -772,6 +779,7 @@ export default function transformProps(
           if (!legendSort) return 0;
           return legendSort === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
         }),
+      formatter: (name: string) => localizedMetricLabelMap[name] || name,
     },
     series: dedupSeries(reorderForecastSeries(series) as SeriesOption[]),
     toolbox: {

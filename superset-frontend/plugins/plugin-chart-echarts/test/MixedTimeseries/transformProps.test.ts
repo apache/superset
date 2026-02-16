@@ -307,6 +307,43 @@ test('legend margin: left orientation sets grid.left correctly', () => {
   expect((transformed.echartOptions.grid as any).left).toEqual(270);
 });
 
+test('should use localized metric labels in legend formatter', () => {
+  const adhocMetricA = {
+    expressionType: 'SIMPLE' as const,
+    column: { column_name: 'num' },
+    aggregate: 'SUM',
+    label: 'SUM(num)',
+    translations: { label: { de: 'Gesamtzahl' } },
+  };
+  const adhocMetricB = {
+    expressionType: 'SIMPLE' as const,
+    column: { column_name: 'price' },
+    aggregate: 'AVG',
+    label: 'AVG(price)',
+    translations: { label: { de: 'Durchschnittspreis' } },
+  };
+  const chartPropsConfigLocalized = {
+    ...chartPropsConfig,
+    formData: {
+      ...formData,
+      metrics: [adhocMetricA],
+      metricsB: [adhocMetricB],
+      groupby: [],
+      groupbyB: [],
+      showQueryIdentifiers: false,
+    },
+    locale: 'de',
+  };
+  const chartProps = new ChartProps(chartPropsConfigLocalized);
+  const transformed = transformProps(chartProps as EchartsMixedTimeseriesProps);
+
+  const legendFormatter = (transformed.echartOptions.legend as any).formatter;
+  expect(legendFormatter).toBeDefined();
+  expect(legendFormatter('SUM(num)')).toBe('Gesamtzahl');
+  expect(legendFormatter('AVG(price)')).toBe('Durchschnittspreis');
+  expect(legendFormatter('unrelated_series')).toBe('unrelated_series');
+});
+
 test('legend margin: right orientation sets grid.right correctly', () => {
   const chartPropsConfigWithoutIdentifiers = {
     ...chartPropsConfig,
