@@ -223,6 +223,10 @@ function queryCheckbox(name: RegExp) {
   return screen.queryByRole('checkbox', { name });
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 test('renders a value filter type', () => {
   defaultRender();
 
@@ -522,6 +526,132 @@ test('deletes a filter including dependencies', async () => {
       }),
     ),
   );
+}, 30000);
+
+const SORTABLE_ITEM_HEIGHT = 40;
+const SORTABLE_ITEM_WIDTH = 200;
+
+test('reorders filters via keyboard (Space, ArrowDown, Space)', async () => {
+  const nativeFilterConfig = [
+    buildNativeFilter('NATIVE_FILTER-1', 'state', []),
+    buildNativeFilter('NATIVE_FILTER-2', 'country', []),
+    buildNativeFilter('NATIVE_FILTER-3', 'product', []),
+  ];
+
+  const state = {
+    ...defaultState(),
+    dashboardInfo: {
+      metadata: {
+        native_filter_configuration: nativeFilterConfig,
+      },
+    },
+    dashboardLayout,
+  };
+
+  const onSave = jest.fn();
+
+  const originalOffsetHeight = Object.getOwnPropertyDescriptor(
+    HTMLElement.prototype,
+    'offsetHeight',
+  );
+  const originalOffsetWidth = Object.getOwnPropertyDescriptor(
+    HTMLElement.prototype,
+    'offsetWidth',
+  );
+
+  Object.defineProperty(HTMLElement.prototype, 'offsetHeight', {
+    configurable: true,
+    get() {
+      return SORTABLE_ITEM_HEIGHT;
+    },
+  });
+  Object.defineProperty(HTMLElement.prototype, 'offsetWidth', {
+    configurable: true,
+    get() {
+      return SORTABLE_ITEM_WIDTH;
+    },
+  });
+
+  try {
+    defaultRender(state, {
+      ...props,
+      createNewOnOpen: false,
+      onSave,
+    });
+
+    const filterContainer = screen.getByTestId('filter-title-container');
+    const sortableElements = filterContainer.querySelectorAll(
+      '[aria-roledescription="sortable"]',
+    );
+
+    sortableElements.forEach((el, index) => {
+      const sortableNode = el.parentElement;
+      if (sortableNode) {
+        jest.spyOn(sortableNode, 'getBoundingClientRect').mockImplementation(
+          () =>
+            ({
+              bottom: (index + 1) * SORTABLE_ITEM_HEIGHT,
+              height: SORTABLE_ITEM_HEIGHT,
+              left: 0,
+              right: SORTABLE_ITEM_WIDTH,
+              top: index * SORTABLE_ITEM_HEIGHT,
+              width: SORTABLE_ITEM_WIDTH,
+              x: 0,
+              y: index * SORTABLE_ITEM_HEIGHT,
+              toJSON: () => ({}),
+            }) as DOMRect,
+        );
+      }
+    });
+
+    const firstSortable = sortableElements[0] as HTMLElement;
+    firstSortable.focus();
+
+    fireEvent.keyDown(firstSortable, { code: 'Space' });
+    await sleep(1);
+    fireEvent.keyDown(document.activeElement ?? firstSortable, {
+      code: 'ArrowDown',
+    });
+    await sleep(1);
+    fireEvent.keyDown(document.activeElement ?? firstSortable, {
+      code: 'Space',
+    });
+
+    await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
+
+    await waitFor(
+      () =>
+        expect(onSave).toHaveBeenCalledWith(
+          expect.objectContaining({
+            filterChanges: expect.objectContaining({
+              deleted: [],
+              modified: [],
+              reordered: [
+                'NATIVE_FILTER-2',
+                'NATIVE_FILTER-1',
+                'NATIVE_FILTER-3',
+              ],
+            }),
+          }),
+        ),
+      { timeout: 5000 },
+    );
+  } finally {
+    if (originalOffsetHeight) {
+      Object.defineProperty(
+        HTMLElement.prototype,
+        'offsetHeight',
+        originalOffsetHeight,
+      );
+    }
+    if (originalOffsetWidth) {
+      Object.defineProperty(
+        HTMLElement.prototype,
+        'offsetWidth',
+        originalOffsetWidth,
+      );
+    }
+  }
 }, 30000);
 
 test('updates sidebar title when filter name changes', async () => {

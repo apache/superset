@@ -24,8 +24,10 @@ import { Collapse, Flex } from '@superset-ui/core/components';
 import type { DragEndEvent } from '@dnd-kit/core';
 import {
   DndContext,
+  KeyboardSensor,
   PointerSensor,
   useSensor,
+  useSensors,
   closestCenter,
 } from '@dnd-kit/core';
 import NewItemDropdown from '../NewItemDropdown';
@@ -123,9 +125,12 @@ const ConfigModalSidebar: FC<ConfigModalSidebarProps> = ({
 
   const [isDragging, setIsDragging] = useState(false);
 
-  const sensor = useSensor(PointerSensor, {
-    activationConstraint: { distance: 10 },
-  });
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 10 },
+    }),
+    useSensor(KeyboardSensor),
+  );
 
   const handleDragStart = useCallback(() => {
     setIsDragging(true);
@@ -251,7 +256,7 @@ const ConfigModalSidebar: FC<ConfigModalSidebarProps> = ({
 
   return (
     <DndContext
-      sensors={[sensor]}
+      sensors={sensors}
       collisionDetection={closestCenter}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
