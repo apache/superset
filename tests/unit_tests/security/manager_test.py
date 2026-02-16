@@ -18,6 +18,7 @@
 # pylint: disable=invalid-name, unused-argument, redefined-outer-name
 
 import json  # noqa: TID251
+from types import SimpleNamespace
 
 import pytest
 from flask_appbuilder.security.sqla.models import Role, User
@@ -1239,9 +1240,8 @@ def test_get_rls_filters_returns_cached_result(
     mock_user.id = 1
     mock_user.username = "admin"
     mock_user.roles = [mocker.MagicMock(id=1)]
-    mock_g = mocker.patch("superset.security.manager.g", user=mock_user)
-    # Prevent MagicMock from auto-creating _rls_filter_cache
-    del mock_g._rls_filter_cache
+    mock_g = SimpleNamespace(user=mock_user)
+    mocker.patch("superset.security.manager.g", new=mock_g)
     mocker.patch("superset.security.manager.get_username", return_value="admin")
     mocker.patch.object(sm, "get_user_roles", return_value=mock_user.roles)
 
@@ -1280,8 +1280,8 @@ def test_prefetch_rls_filters_populates_cache(
     mock_user.id = 1
     mock_user.username = "admin"
     mock_user.roles = [mocker.MagicMock(id=10)]
-    mock_g = mocker.patch("superset.security.manager.g", user=mock_user)
-    del mock_g._rls_filter_cache
+    mock_g = SimpleNamespace(user=mock_user)
+    mocker.patch("superset.security.manager.g", new=mock_g)
     mocker.patch("superset.security.manager.get_username", return_value="admin")
     mocker.patch.object(sm, "get_user_roles", return_value=mock_user.roles)
 
@@ -1324,12 +1324,13 @@ def test_prefetch_rls_filters_skips_cached_ids(
     mock_user.id = 1
     mock_user.username = "admin"
     mock_user.roles = [mocker.MagicMock(id=10)]
-    mock_g = mocker.patch("superset.security.manager.g", user=mock_user)
+    mock_g = SimpleNamespace(
+        user=mock_user,
+        _rls_filter_cache={("admin", 1): [(100, "group_a", "id > 0")]},
+    )
+    mocker.patch("superset.security.manager.g", new=mock_g)
     mocker.patch("superset.security.manager.get_username", return_value="admin")
     mocker.patch.object(sm, "get_user_roles", return_value=mock_user.roles)
-
-    # Pre-populate cache for table 1
-    mock_g._rls_filter_cache = {("admin", 1): [(100, "group_a", "id > 0")]}
 
     # If it queries the DB, this will fail
     mocker.patch.object(
@@ -1350,8 +1351,7 @@ def test_prefetch_rls_filters_no_user(
     Test that prefetch_rls_filters() returns early when no user is present.
     """
     sm = SupersetSecurityManager(appbuilder)
-    mock_g = mocker.patch("superset.security.manager.g")
-    del mock_g.user
+    mocker.patch("superset.security.manager.g", new=SimpleNamespace())
 
     # Should not attempt any DB queries
     mocker.patch.object(
@@ -1376,8 +1376,8 @@ def test_get_rls_filters_cache_works_for_guest_user(
     mock_guest.username = "guest_user"
     mock_guest.roles = [mocker.MagicMock(id=99)]
 
-    mock_g = mocker.patch("superset.security.manager.g", user=mock_guest)
-    del mock_g._rls_filter_cache
+    mock_g = SimpleNamespace(user=mock_guest)
+    mocker.patch("superset.security.manager.g", new=mock_g)
     mocker.patch("superset.security.manager.get_username", return_value="guest_user")
     mocker.patch.object(sm, "get_user_roles", return_value=mock_guest.roles)
 
@@ -1416,8 +1416,8 @@ def test_prefetch_rls_filters_works_for_guest_user(
     mock_guest.username = "guest_user"
     mock_guest.roles = [mocker.MagicMock(id=99)]
 
-    mock_g = mocker.patch("superset.security.manager.g", user=mock_guest)
-    del mock_g._rls_filter_cache
+    mock_g = SimpleNamespace(user=mock_guest)
+    mocker.patch("superset.security.manager.g", new=mock_g)
     mocker.patch("superset.security.manager.get_username", return_value="guest_user")
     mocker.patch.object(sm, "get_user_roles", return_value=mock_guest.roles)
 
