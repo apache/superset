@@ -38,7 +38,13 @@ import {
 } from '@superset-ui/core/components';
 import { t, logging } from '@apache-superset/core';
 import { DatasourceType, isDefined, SupersetClient } from '@superset-ui/core';
-import { css, styled, useTheme, Alert } from '@apache-superset/core/ui';
+import {
+  css,
+  styled,
+  withTheme,
+  Alert,
+  type SupersetTheme,
+} from '@apache-superset/core/ui';
 import { Radio } from '@superset-ui/core/components/Radio';
 import { GRID_COLUMN_COUNT } from 'src/dashboard/util/constants';
 import { canUserEditDashboard } from 'src/dashboard/util/permissionUtils';
@@ -68,6 +74,7 @@ interface SaveModalProps extends RouteComponentProps {
   dashboardId: '' | number | null;
   isVisible: boolean;
   dispatch: Dispatch;
+  theme: SupersetTheme;
 }
 
 type SaveModalState = {
@@ -591,7 +598,6 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
 
   renderSaveChartModal = () => {
     const info = this.info();
-    const theme = useTheme();
     return (
       <Form data-test="save-modal-body" layout="vertical">
         <FormItem data-test="radio-group">
@@ -627,7 +633,7 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
         {this.props.datasource?.type === 'query' && (
           <FormItem
             label={
-              <Flex align="center" gap={theme.sizeUnit}>
+              <Flex align="center" gap={this.props.theme.sizeUnit}>
                 {t('Dataset Name')}
                 <InfoTooltip
                   data-test="info-tooltip-icon"
@@ -816,7 +822,7 @@ function mapStateToProps({
   };
 }
 
-export default withRouter(connect(mapStateToProps)(SaveModal));
+export default withRouter(connect(mapStateToProps)(withTheme(SaveModal)));
 
 // User for testing purposes need to revisit once we convert this to functional component
 export { SaveModal as PureSaveModal };
