@@ -55,6 +55,7 @@ export const renderNormalizedTooltip = (
   metrics: string[],
   getDenormalizedValue: (seriesName: string, value: string) => number,
   metricsWithCustomBounds: Set<string>,
+  localizedMetricLabelMap: Record<string, string> = {},
 ): string => {
   const { color, name = '', value: values } = params;
   const seriesName = name || 'series0';
@@ -78,7 +79,7 @@ export const renderNormalizedTooltip = (
     .map(
       ({ metric, value }) => `
         <div style="display:flex;">
-          <div>${colorDot}${metric}:</div>
+          <div>${colorDot}${localizedMetricLabelMap[metric] || metric}:</div>
           <div style="font-weight:bold;margin-left:auto;">${value}</div>
         </div>
       `,

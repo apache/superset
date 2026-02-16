@@ -393,7 +393,7 @@ export default function transformProps(
           }
         }
         const title = `${formattedX} (${formattedY})`;
-        const row = [colnames[2], formattedValue];
+        const row = [localizedMetricLabel, formattedValue];
         if (showPercentage) {
           row.push(`${percentFormatter(percentage)} (${suffix})`);
         }

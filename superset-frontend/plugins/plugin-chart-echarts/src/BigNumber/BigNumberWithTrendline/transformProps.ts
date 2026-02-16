@@ -363,7 +363,7 @@ export default function transformProps(
             tooltipHtml(
               [
                 [
-                  metricName,
+                  displayLabel,
                   params[0].data[1] === null
                     ? t('N/A')
                     : yAxisFormatter.format(params[0].data[1]),

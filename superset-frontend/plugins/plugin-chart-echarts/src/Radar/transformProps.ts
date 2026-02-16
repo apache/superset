@@ -346,6 +346,7 @@ export default function transformProps(
       metricLabels,
       getDenormalizedSeriesValue,
       metricsWithCustomBounds,
+      localizedMetricLabelMap,
     );
 
   const echartOptions: EChartsCoreOption = {
