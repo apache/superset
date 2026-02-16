@@ -40,7 +40,7 @@ export type TableControlsProps = {
   canDownload: boolean;
   onDownloadCSV: () => void;
   onDownloadXLSX: () => void;
-  data?: Record<string, any>;
+  data?: Record<string, any>[];
   columnNames?: string[];
 };
 
