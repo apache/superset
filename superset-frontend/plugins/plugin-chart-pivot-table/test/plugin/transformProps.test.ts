@@ -288,7 +288,7 @@ describe('PivotTableChart transformProps', () => {
 
   describe('metric label localization', () => {
     const adhocMetricWithTranslation = {
-      expressionType: 'SQL',
+      expressionType: 'SQL' as const,
       sqlExpression: 'COUNT(*)',
       label: 'Total Count',
       hasCustomLabel: true,
@@ -383,6 +383,107 @@ describe('PivotTableChart transformProps', () => {
       // verboseMap should not be modified for metrics without locale
       // (existing verboseMap behavior preserved)
       expect(result.verboseMap).toEqual({});
+    });
+  });
+
+  describe('column label localization', () => {
+    const adhocColumnWithTranslation = {
+      expressionType: 'SQL' as const,
+      sqlExpression: 'type',
+      label: 'Content Type',
+      hasCustomLabel: true,
+      translations: {
+        label: {
+          de: 'Inhaltstyp',
+          ru: 'Тип контента',
+        },
+      },
+    };
+
+    const columnLocalizationFormData = {
+      ...formData,
+      groupbyRows: [adhocColumnWithTranslation],
+      groupbyColumns: ['category'],
+    };
+
+    test('should include localized column labels in verboseMap when locale has translation', () => {
+      const chartProps = new ChartProps<QueryFormData>({
+        formData: columnLocalizationFormData,
+        width: 800,
+        height: 600,
+        queriesData: [
+          {
+            data: [{ 'Content Type': 'Movie', category: 'A', metric1: 100 }],
+            colnames: ['Content Type', 'category', 'metric1'],
+            coltypes: [1, 1, 0],
+          },
+        ],
+        hooks: { setDataMask },
+        filterState: { selectedFilters: {} },
+        datasource: { verboseMap: {}, columnFormats: {} },
+        theme: supersetTheme,
+        locale: 'de',
+      });
+
+      const result = transformProps(chartProps);
+
+      // Note: This test will FAIL until column localization is implemented
+      // verboseMap should contain localized column label
+      expect(result.verboseMap).toEqual(
+        expect.objectContaining({
+          'Content Type': 'Inhaltstyp',
+        }),
+      );
+    });
+
+    test('should not add column to verboseMap when locale has no translation', () => {
+      const chartProps = new ChartProps<QueryFormData>({
+        formData: columnLocalizationFormData,
+        width: 800,
+        height: 600,
+        queriesData: [
+          {
+            data: [{ 'Content Type': 'Movie', category: 'A', metric1: 100 }],
+            colnames: ['Content Type', 'category', 'metric1'],
+            coltypes: [1, 1, 0],
+          },
+        ],
+        hooks: { setDataMask },
+        filterState: { selectedFilters: {} },
+        datasource: { verboseMap: {}, columnFormats: {} },
+        theme: supersetTheme,
+        locale: 'fr', // French - no translation provided
+      });
+
+      const result = transformProps(chartProps);
+
+      // verboseMap should not contain mapping for Content Type (no translation)
+      expect(result.verboseMap['Content Type']).toBeUndefined();
+    });
+
+    test('should use default column label when no locale is provided', () => {
+      const chartProps = new ChartProps<QueryFormData>({
+        formData: columnLocalizationFormData,
+        width: 800,
+        height: 600,
+        queriesData: [
+          {
+            data: [{ 'Content Type': 'Movie', category: 'A', metric1: 100 }],
+            colnames: ['Content Type', 'category', 'metric1'],
+            coltypes: [1, 1, 0],
+          },
+        ],
+        hooks: { setDataMask },
+        filterState: { selectedFilters: {} },
+        datasource: { verboseMap: {}, columnFormats: {} },
+        theme: supersetTheme,
+        // No locale provided
+      });
+
+      const result = transformProps(chartProps);
+
+      // verboseMap should not contain mapping for Content Type
+      expect(result.verboseMap['Content Type']).toBeUndefined();
     });
   });
 });

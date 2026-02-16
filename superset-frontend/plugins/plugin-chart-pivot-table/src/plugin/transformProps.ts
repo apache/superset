@@ -25,6 +25,7 @@ import {
   QueryFormData,
   SMART_DATE_ID,
   TimeFormats,
+  buildLocalizedColumnLabelMap,
   buildLocalizedMetricLabelMap,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/api/core';
@@ -160,11 +161,21 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     theme,
   );
 
-  // Build localized metric label map and merge with verboseMap
+  // Build localized label maps and merge with verboseMap
   const localizedMetricLabelMap = buildLocalizedMetricLabelMap(metrics, locale);
+  const localizedRowColumnLabelMap = buildLocalizedColumnLabelMap(
+    groupbyRows,
+    locale,
+  );
+  const localizedColColumnLabelMap = buildLocalizedColumnLabelMap(
+    groupbyColumns,
+    locale,
+  );
   const enhancedVerboseMap = {
     ...verboseMap,
     ...localizedMetricLabelMap,
+    ...localizedRowColumnLabelMap,
+    ...localizedColColumnLabelMap,
   };
 
   // AUTO symbol passed through - PivotTableChart handles per-cell currency detection
