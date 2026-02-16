@@ -569,6 +569,87 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         db.session.delete(dashboard)
         db.session.commit()
 
+    def test_get_dashboard_with_columns(self):
+        """
+        Dashboard API: Test get dashboard with column selection via q param
+        """
+        admin = self.get_user("admin")
+        dashboard = self.insert_dashboard(
+            "title", "slug1", [admin.id], created_by=admin
+        )
+        self.login(ADMIN_USERNAME)
+        params = prison.dumps({"columns": ["id", "dashboard_title"]})
+        uri = f"api/v1/dashboard/{dashboard.id}?q={params}"
+        rv = self.get_assert_metric(uri, "get")
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        result = data["result"]
+        assert result["id"] == dashboard.id
+        assert result["dashboard_title"] == "title"
+        assert "thumbnail_url" not in result
+        assert "slug" not in result
+        assert "owners" not in result
+        # rollback changes
+        db.session.delete(dashboard)
+        db.session.commit()
+
+    def test_get_dashboard_with_invalid_rison_q(self):
+        """
+        Dashboard API: Test get dashboard with malformed rison returns 400
+        """
+        admin = self.get_user("admin")
+        dashboard = self.insert_dashboard(
+            "title", "slug1", [admin.id], created_by=admin
+        )
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/dashboard/{dashboard.id}?q=(("
+        rv = self.get_assert_metric(uri, "get")
+        assert rv.status_code == 400
+        # rollback changes
+        db.session.delete(dashboard)
+        db.session.commit()
+
+    def test_get_dashboard_with_non_dict_q(self):
+        """
+        Dashboard API: Test get dashboard with non-dict rison returns full response
+        """
+        admin = self.get_user("admin")
+        dashboard = self.insert_dashboard(
+            "title", "slug1", [admin.id], created_by=admin
+        )
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/dashboard/{dashboard.id}?q=a_string"
+        rv = self.get_assert_metric(uri, "get")
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        # non-dict q is ignored, full response returned
+        assert "thumbnail_url" in data["result"]
+        # rollback changes
+        db.session.delete(dashboard)
+        db.session.commit()
+
+    def test_get_dashboard_with_columns_data_key_mapping(self):
+        """
+        Dashboard API: Test that data_key columns like changed_on_delta_humanized work
+        """
+        admin = self.get_user("admin")
+        dashboard = self.insert_dashboard(
+            "title", "slug1", [admin.id], created_by=admin
+        )
+        self.login(ADMIN_USERNAME)
+        params = prison.dumps({"columns": ["id", "changed_on_delta_humanized"]})
+        uri = f"api/v1/dashboard/{dashboard.id}?q={params}"
+        rv = self.get_assert_metric(uri, "get")
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        result = data["result"]
+        assert "id" in result
+        assert "changed_on_delta_humanized" in result
+        assert "dashboard_title" not in result
+        # rollback changes
+        db.session.delete(dashboard)
+        db.session.commit()
+
     @patch("superset.dashboards.schemas.security_manager.has_guest_access")
     @patch("superset.dashboards.schemas.security_manager.is_guest_user")
     def test_get_dashboard_as_guest(self, is_guest_user, has_guest_access):
@@ -3864,30 +3945,30 @@ class TestDashboardCustomTagsFiltering(SupersetTestCase):
             all_tags = dashboard.tags
             all_tag_names = [t.name for t in all_tags]
             assert "critical" in all_tag_names, "Should include custom tag"
-            assert any(t.name.startswith("owner:") for t in all_tags), (
-                "Should include owner tags"
-            )
-            assert any(t.name.startswith("type:") for t in all_tags), (
-                "Should include type tags"
-            )
+            assert any(
+                t.name.startswith("owner:") for t in all_tags
+            ), "Should include owner tags"
+            assert any(
+                t.name.startswith("type:") for t in all_tags
+            ), "Should include type tags"
 
             # 2. MODEL: dashboard.custom_tags returns ONLY custom tags
             custom_only = dashboard.custom_tags
             custom_tag_names = [t.name for t in custom_only]
             assert "critical" in custom_tag_names, "Should include custom tag"
-            assert not any(t.name.startswith("owner:") for t in custom_only), (
-                f"custom_tags should NOT include owner tags, got: {custom_tag_names}"
-            )
-            assert not any(t.name.startswith("type:") for t in custom_only), (
-                f"custom_tags should NOT include type tags, got: {custom_tag_names}"
-            )
+            assert not any(
+                t.name.startswith("owner:") for t in custom_only
+            ), f"custom_tags should NOT include owner tags, got: {custom_tag_names}"
+            assert not any(
+                t.name.startswith("type:") for t in custom_only
+            ), f"custom_tags should NOT include type tags, got: {custom_tag_names}"
             assert len(custom_only) < len(all_tags), "Should filter out implicit tags"
 
             # Verify all tags in custom_tags have type=custom
             for tag in custom_only:
-                assert tag.type == TagType.custom, (
-                    f"Tag {tag.name} has type {tag.type}, expected TagType.custom"
-                )
+                assert (
+                    tag.type == TagType.custom
+                ), f"Tag {tag.name} has type {tag.type}, expected TagType.custom"
 
             # 3. API: With config=True, API returns ONLY custom tags
             rv = self.client.get("api/v1/dashboard/")
@@ -3899,19 +3980,19 @@ class TestDashboardCustomTagsFiltering(SupersetTestCase):
             )
             assert test_dash is not None
             # API returns "tags" (get_list override renames custom_tags→tags)
-            assert "tags" in test_dash, (
-                f"Response should have tags, got: {test_dash.keys()}"
-            )
+            assert (
+                "tags" in test_dash
+            ), f"Response should have tags, got: {test_dash.keys()}"
 
             # API should return ONLY custom tags
             api_tag_names = [t["name"] for t in test_dash["tags"]]
             assert "critical" in api_tag_names, "API should include custom tag"
-            assert not any(t["name"].startswith("owner:") for t in test_dash["tags"]), (
-                f"API should NOT include owner tags, got: {api_tag_names}"
-            )
-            assert not any(t["name"].startswith("type:") for t in test_dash["tags"]), (
-                f"API should NOT include type tags, got: {api_tag_names}"
-            )
+            assert not any(
+                t["name"].startswith("owner:") for t in test_dash["tags"]
+            ), f"API should NOT include owner tags, got: {api_tag_names}"
+            assert not any(
+                t["name"].startswith("type:") for t in test_dash["tags"]
+            ), f"API should NOT include type tags, got: {api_tag_names}"
             assert len(test_dash["tags"]) == 1, (
                 f"API should return only 1 custom tag, "
                 f"got {len(test_dash['tags'])}: {api_tag_names}"
