@@ -392,7 +392,7 @@ test('should not show a close button on chart error banners', () => {
     },
   );
 
-  expect(queryByRole('button', { name: 'Close' })).not.toBeInTheDocument();
+  expect(queryByRole('button', { name: /close/i })).not.toBeInTheDocument();
 });
 
 test('should handle chart state when no converter exists', () => {

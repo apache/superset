@@ -92,7 +92,7 @@ describe('ChartErrorMessage', () => {
     render(<ChartErrorMessage {...defaultProps} />);
 
     expect(
-      screen.queryByRole('button', { name: 'Close' }),
+      screen.queryByRole('button', { name: /close/i }),
     ).not.toBeInTheDocument();
   });
 });
