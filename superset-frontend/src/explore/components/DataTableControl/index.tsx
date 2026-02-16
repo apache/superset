@@ -61,26 +61,32 @@ export const CopyToClipboardButton = ({
 }: {
   data?: TabularDataRow[];
   columns?: string[];
-}) => (
-  <CopyToClipboard
-    text={
-      data && columns ? prepareCopyToClipboardTabularData(data, columns) : ''
-    }
-    wrapped={false}
-    copyNode={
-      <Icons.CopyOutlined
-        iconSize="l"
-        aria-label={t('Copy')}
-        role="button"
-        css={css`
-          &.anticon > * {
-            line-height: 0;
-          }
-        `}
-      />
-    }
-  />
-);
+}) => {
+  const theme = useTheme();
+  return (
+    <CopyToClipboard
+      text={
+        data && columns ? prepareCopyToClipboardTabularData(data, columns) : ''
+      }
+      wrapped={false}
+      copyNode={
+        <span>
+          <Icons.CopyOutlined
+            iconColor={theme.colorIcon}
+            iconSize="l"
+            aria-label={t('Copy')}
+            role="button"
+            css={css`
+              &.anticon > * {
+                line-height: 0;
+              }
+            `}
+          />
+        </span>
+      }
+    />
+  );
+};
 
 export const FilterInput = ({
   onChangeHandler,

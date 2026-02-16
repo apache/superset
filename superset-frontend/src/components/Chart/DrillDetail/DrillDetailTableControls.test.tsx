@@ -21,6 +21,8 @@ import TableControls from './DrillDetailTableControls';
 
 const setFilters = jest.fn();
 const onReload = jest.fn();
+const onDownloadCSV = jest.fn();
+const onDownloadXLSX = jest.fn();
 const setup = (overrides: Record<string, any> = {}) => {
   const props = {
     filters: [],
@@ -28,6 +30,11 @@ const setup = (overrides: Record<string, any> = {}) => {
     onReload,
     loading: false,
     totalCount: 0,
+    canDownload: true,
+    onDownloadCSV,
+    onDownloadXLSX,
+    data: [],
+    columnNames: [],
     ...overrides,
   };
   return render(<TableControls {...props} />);

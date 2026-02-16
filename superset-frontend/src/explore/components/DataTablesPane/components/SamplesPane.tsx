@@ -18,7 +18,7 @@
  */
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { ensureIsArray } from '@superset-ui/core';
+import { ensureIsArray, SupersetClient } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
 import {
   TableView,
@@ -112,6 +112,50 @@ export const SamplesPane = ({
     [],
   );
 
+  const handleDownload = useCallback(
+    (format: 'csv' | 'xlsx') => {
+      const [id, type] = datasourceId.split('__');
+      SupersetClient.postForm(`/api/v1/datasource/${type}/${id}/samples`, {
+        form_data: JSON.stringify({ row_limit: rowcount }),
+        format,
+      });
+    },
+    [datasourceId, rowcount],
+  );
+
+  const handleDownloadCSV = useCallback(
+    () => handleDownload('csv'),
+    [handleDownload],
+  );
+
+  const handleDownloadXLSX = useCallback(
+    () => handleDownload('xlsx'),
+    [handleDownload],
+  );
+
+  const handleReload = useCallback(() => {
+    cache.delete(datasource);
+    setIsLoading(true);
+    getDatasourceSamples(datasource.type, datasource.id, true, {})
+      .then(response => {
+        setData(ensureIsArray(response.data));
+        setColnames(ensureIsArray(response.colnames));
+        setColtypes(ensureIsArray(response.coltypes));
+        setRowCount(response.rowcount);
+        setResponseError('');
+        cache.add(datasource);
+      })
+      .catch(error => {
+        setData([]);
+        setColnames([]);
+        setColtypes([]);
+        setResponseError(`${error.name}: ${error.message}`);
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  }, [datasource]);
+
   if (isLoading) {
     return <Loading />;
   }
@@ -128,6 +172,9 @@ export const SamplesPane = ({
           onInputChange={handleInputChange}
           isLoading={isLoading}
           canDownload={canDownload}
+          onDownloadCSV={handleDownloadCSV}
+          onDownloadXLSX={handleDownloadXLSX}
+          onReload={handleReload}
         />
         <Error>{responseError}</Error>
       </>
@@ -150,6 +197,9 @@ export const SamplesPane = ({
         onInputChange={handleInputChange}
         isLoading={isLoading}
         canDownload={canDownload}
+        onDownloadCSV={handleDownloadCSV}
+        onDownloadXLSX={handleDownloadXLSX}
+        onReload={handleReload}
       />
       <TableView
         columns={columns}
