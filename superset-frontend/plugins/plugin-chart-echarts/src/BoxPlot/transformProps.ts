@@ -18,6 +18,7 @@
  */
 import { t } from '@apache-superset/core';
 import {
+  buildLocalizedMetricLabelMap,
   CategoricalColorNamespace,
   getColumnLabel,
   getMetricLabel,
@@ -56,6 +57,7 @@ export default function transformProps(
     queriesData,
     inContextMenu,
     emitCrossFilters,
+    locale,
   } = chartProps;
   const { data = [] } = queriesData[0];
   const { setDataMask = () => {}, onContextMenu } = hooks;
@@ -80,6 +82,7 @@ export default function transformProps(
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const numberFormatter = getNumberFormatter(numberFormat);
   const metricLabels = metrics.map(getMetricLabel);
+  const localizedMetricLabelMap = buildLocalizedMetricLabelMap(metrics, locale);
   const groupbyLabels = groupby.map(getColumnLabel);
 
   const transformedData = data
@@ -91,10 +94,11 @@ export default function transformProps(
         timeFormatter: getTimeFormatter(dateFormat),
       });
       return metricLabels.map(metric => {
+        const localizedMetric = localizedMetricLabelMap[metric] || metric;
         const name =
           metricLabels.length === 1
             ? groupbyLabel
-            : `${groupbyLabel}, ${metric}`;
+            : `${groupbyLabel}, ${localizedMetric}`;
         const isFiltered =
           filterState.selectedValues &&
           !filterState.selectedValues.includes(name);
@@ -128,10 +132,11 @@ export default function transformProps(
           coltypeMapping,
           timeFormatter: getTimeFormatter(dateFormat),
         });
+        const localizedMetric = localizedMetricLabelMap[metric] || metric;
         const name =
           metricLabels.length === 1
             ? groupbyLabel
-            : `${groupbyLabel}, ${metric}`;
+            : `${groupbyLabel}, ${localizedMetric}`;
         // Outlier data is a nested array of numbers (uncommon, therefore no need to add to DataRecordValue)
         const outlierDatum = (datum[`${metric}__outliers`] || []) as number[];
         const isFiltered =
@@ -293,8 +298,8 @@ export default function transformProps(
       feature: {
         dataZoom: {
           title: {
-            zoom: 'zoom area',
-            back: 'restore zoom',
+            zoom: t('zoom area'),
+            back: t('restore zoom'),
           },
         },
       },

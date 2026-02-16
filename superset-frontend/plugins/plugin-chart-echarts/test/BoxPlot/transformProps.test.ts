@@ -71,6 +71,65 @@ describe('BoxPlot transformProps', () => {
     theme: supersetTheme,
   });
 
+  test('should use localized metric labels in category names', () => {
+    const adhocMetric = {
+      expressionType: 'SIMPLE' as const,
+      column: { column_name: 'averageprice' },
+      aggregate: 'AVG',
+      label: 'AVG(averageprice)',
+      translations: { label: { de: 'Durchschnittspreis' } },
+    };
+    const adhocMetric2 = {
+      expressionType: 'SIMPLE' as const,
+      column: { column_name: 'volume' },
+      aggregate: 'SUM',
+      label: 'SUM(volume)',
+      translations: { label: { de: 'Gesamtvolumen' } },
+    };
+    const localizedChartProps = new ChartProps({
+      formData: {
+        ...formData,
+        metrics: [adhocMetric, adhocMetric2],
+      },
+      width: 800,
+      height: 600,
+      queriesData: [
+        {
+          data: [
+            {
+              type: 'organic',
+              region: 'Charlotte',
+              'AVG(averageprice)__mean': 1.94,
+              'AVG(averageprice)__median': 1.9,
+              'AVG(averageprice)__max': 2.5,
+              'AVG(averageprice)__min': 1.47,
+              'AVG(averageprice)__q1': 1.73,
+              'AVG(averageprice)__q3': 2.1,
+              'AVG(averageprice)__count': 39,
+              'AVG(averageprice)__outliers': [],
+              'SUM(volume)__mean': 100,
+              'SUM(volume)__median': 90,
+              'SUM(volume)__max': 200,
+              'SUM(volume)__min': 50,
+              'SUM(volume)__q1': 70,
+              'SUM(volume)__q3': 130,
+              'SUM(volume)__count': 39,
+              'SUM(volume)__outliers': [],
+            },
+          ],
+        },
+      ],
+      theme: supersetTheme,
+      locale: 'de',
+    });
+    const transformed = transformProps(
+      localizedChartProps as EchartsBoxPlotChartProps,
+    );
+    const xAxisData = (transformed.echartOptions.xAxis as any).data;
+    expect(xAxisData).toContain('organic, Charlotte, Durchschnittspreis');
+    expect(xAxisData).toContain('organic, Charlotte, Gesamtvolumen');
+  });
+
   test('should transform chart props for viz', () => {
     expect(transformProps(chartProps as EchartsBoxPlotChartProps)).toEqual(
       expect.objectContaining({

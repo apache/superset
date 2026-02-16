@@ -18,6 +18,7 @@
  */
 import {
   CategoricalColorNamespace,
+  getLocalizedMetricLabel,
   getMetricLabel,
   DataRecord,
   DataRecordValue,
@@ -166,6 +167,7 @@ export default function transformProps(
     filterState,
     emitCrossFilters,
     theme,
+    locale,
   } = chartProps;
   const data: DataRecord[] = queriesData[0].data || [];
   const coltypeMapping = getColtypesMapping(queriesData[0]);
@@ -198,6 +200,7 @@ export default function transformProps(
 
   const refs: Refs = {};
   const metricLabel = getMetricLabel(metric);
+  const localizedMetricLabel = getLocalizedMetricLabel(metric, locale);
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const firstColor = colorFn.range()[0];
   const nodes: { [name: string]: number } = {};
@@ -349,7 +352,7 @@ export default function transformProps(
           getKeyByValue(nodes, Number(params.data.target)),
         );
         const title = `${source} > ${target}`;
-        return tooltipHtml([[metricLabel, `${params.value}`]], title);
+        return tooltipHtml([[localizedMetricLabel, `${params.value}`]], title);
       },
     },
     legend: {
