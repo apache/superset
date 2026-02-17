@@ -534,6 +534,68 @@ test('BigNumberWithTrendline AUTO mode should use neutral formatting for mixed c
   expect(formatted).not.toContain('€');
 });
 
+test('BigNumberWithTrendline should use localized subtitle when translations and locale are provided', () => {
+  const props = generateProps(
+    [{ __timestamp: 100, value: 1.2345 }],
+    {
+      subtitle: 'Revenue overview',
+      translations: {
+        subtitle: { de: 'Umsatzübersicht' },
+      },
+    },
+  );
+  const transformed = transformProps({ ...props, locale: 'de' });
+  expect(transformed.subtitle).toBe('Umsatzübersicht');
+});
+
+test('BigNumberWithTrendline should use original subtitle when no locale is provided', () => {
+  const props = generateProps(
+    [{ __timestamp: 100, value: 1.2345 }],
+    {
+      subtitle: 'Revenue overview',
+      translations: {
+        subtitle: { de: 'Umsatzübersicht' },
+      },
+    },
+  );
+  const transformed = transformProps(props);
+  expect(transformed.subtitle).toBe('Revenue overview');
+});
+
+test('BigNumberWithTrendline should fall back to base language for regional locale', () => {
+  const props = generateProps(
+    [{ __timestamp: 100, value: 1.2345 }],
+    {
+      subtitle: 'Revenue overview',
+      translations: {
+        subtitle: { de: 'Umsatzübersicht' },
+      },
+    },
+  );
+  const transformed = transformProps({ ...props, locale: 'de-AT' });
+  expect(transformed.subtitle).toBe('Umsatzübersicht');
+});
+
+test('BigNumberWithTrendline should use localized compareSuffix in subheader', () => {
+  const props = generateProps(
+    [
+      { __timestamp: 0, value: 100 },
+      { __timestamp: 100, value: 150 },
+    ],
+    {
+      compareLag: 1,
+      compareSuffix: 'WoW',
+      showTrendLine: true,
+      translations: {
+        compare_suffix: { de: 'WüW' },
+      },
+    },
+  );
+  const transformed = transformProps({ ...props, locale: 'de' });
+  expect(transformed.subheader).toContain('WüW');
+  expect(transformed.subheader).not.toContain('WoW');
+});
+
 test('BigNumberWithTrendline should preserve static currency format', () => {
   const props = generateProps(
     [

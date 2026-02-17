@@ -22,6 +22,7 @@ import { Metric } from '@superset-ui/chart-controls';
 import { t } from '@apache-superset/core';
 import {
   ChartProps,
+  getLocalizedFormDataValue,
   getLocalizedMetricLabel,
   getMetricLabel,
   getValueFormatter,
@@ -117,6 +118,9 @@ export default function transformProps(chartProps: ChartProps) {
   // Use localized label if translation exists, otherwise use original label
   const displayLabel =
     localizedLabel !== getMetricLabel(metric) ? localizedLabel : originalLabel;
+  const localizedSubtitle =
+    getLocalizedFormDataValue(formData.translations, 'subtitle', locale) ??
+    subtitle;
   const showMetricName = chartProps.rawFormData?.show_metric_name ?? false;
   const timeComparison = ensureIsArray(chartProps.rawFormData?.time_compare)[0];
   const startDateOffset = chartProps.rawFormData?.start_date_offset;
@@ -218,7 +222,7 @@ export default function transformProps(chartProps: ChartProps) {
     valueDifference,
     percentDifferenceFormattedString: percentDifference,
     boldText,
-    subtitle,
+    subtitle: localizedSubtitle,
     subtitleFontSize,
     showMetricName,
     metricNameFontSize: getMetricNameFontSize(metricNameFontSize),

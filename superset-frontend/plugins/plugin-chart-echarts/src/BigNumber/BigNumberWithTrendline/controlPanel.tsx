@@ -72,7 +72,7 @@ const config: ControlPanelConfig = {
           {
             name: 'compare_suffix',
             config: {
-              type: 'TextControl',
+              type: 'TranslatableTextControl',
               label: t('Comparison suffix'),
               description: t('Suffix to apply after the percentage display'),
             },

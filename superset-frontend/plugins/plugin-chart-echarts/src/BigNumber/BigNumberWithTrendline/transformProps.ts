@@ -19,6 +19,7 @@
 import { t } from '@apache-superset/core';
 import {
   extractTimegrain,
+  getLocalizedFormDataValue,
   getLocalizedMetricLabel,
   getNumberFormatter,
   NumberFormats,
@@ -143,6 +144,15 @@ export default function transformProps(
   const displayLabel =
     localizedLabel !== getMetricLabel(metric) ? localizedLabel : originalLabel;
   const showMetricName = chartProps.rawFormData?.show_metric_name ?? false;
+  const localizedSubtitle =
+    getLocalizedFormDataValue(formData.translations, 'subtitle', locale) ??
+    subtitle;
+  const localizedCompareSuffix =
+    getLocalizedFormDataValue(
+      formData.translations,
+      'compare_suffix',
+      locale,
+    ) ?? compareSuffix;
   const compareLag = Number(compareLag_) || 0;
   let formattedSubheader = subheader;
 
@@ -216,7 +226,7 @@ export default function transformProps(
           : 0;
         formattedSubheader = `${formatPercentChange(
           percentChange,
-        )} ${compareSuffix}`;
+        )} ${localizedCompareSuffix}`;
       }
     }
   }
@@ -399,7 +409,7 @@ export default function transformProps(
     metricNameFontSize,
     headerFontSize,
     subtitleFontSize,
-    subtitle,
+    subtitle: localizedSubtitle,
     subheaderFontSize,
     mainColor,
     showTimestamp,

@@ -87,7 +87,7 @@ export const metricNameFontSize = makeFontSizeControl(
 export const subtitleControl: CustomControlItem = {
   name: 'subtitle',
   config: {
-    type: 'TextControl',
+    type: 'TranslatableTextControl',
     label: t('Subtitle'),
     renderTrigger: true,
     description: t('Description text that shows up below your Big Number'),
