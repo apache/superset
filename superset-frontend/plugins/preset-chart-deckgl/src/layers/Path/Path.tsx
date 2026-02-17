@@ -116,7 +116,7 @@ export const getHighlightLayer: GetLayerType<PathLayer> = function ({
 
   const filteredData = data.filter(
     (d: JsonObject) =>
-      JSON.stringify(d.path).replaceAll(' ', '') === filterState?.value[0],
+      JSON.stringify(d.path).replaceAll(' ', '') === filterState?.value?.[0],
   );
 
   return new PathLayer({

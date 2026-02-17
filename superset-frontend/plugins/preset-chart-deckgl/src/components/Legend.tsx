@@ -113,8 +113,14 @@ const Legend = ({
         <a
           href="#"
           role="button"
-          onClick={() => toggleCategory(k)}
-          onDoubleClick={() => showSingleCategory(k)}
+          onClick={e => {
+            e.preventDefault();
+            toggleCategory(k);
+          }}
+          onDoubleClick={e => {
+            e.preventDefault();
+            showSingleCategory(k);
+          }}
         >
           <span style={style}>{icon}</span> {formatCategoryLabel(k)}
         </a>

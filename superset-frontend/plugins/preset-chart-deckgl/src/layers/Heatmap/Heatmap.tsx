@@ -54,7 +54,7 @@ function setTooltipContent(formData: QueryFormData) {
         <TooltipRow label="LAT: " value={lat?.toFixed(6)} />
         <TooltipRow
           label={`${metricLabel}: `}
-          value={`${o.object?.weight || o.object?.value || 'Aggregated Cell'}`}
+          value={`${(o.object?.weight ?? o.object?.value) ?? 'Aggregated Cell'}`}
         />
         {hasCustomTooltip && !hasObjectData && (
           <TooltipRow
@@ -188,7 +188,7 @@ export const getHighlightLayer: GetLayerType<HeatmapLayer> = ({
   );
 
   return new HeatmapLayer({
-    id: `heatmap-layer-${fd.slice_id}` as const,
+    id: `heatmap-highlight-layer-${fd.slice_id}` as const,
     data: dataInside,
     intensity,
     radiusPixels,
