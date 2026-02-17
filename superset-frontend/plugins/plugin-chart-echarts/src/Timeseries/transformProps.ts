@@ -24,6 +24,7 @@ import {
   AxisType,
   buildCustomFormatters,
   buildLocalizedMetricLabelMap,
+  getLocalizedAnnotationName,
   getLocalizedFormDataValue,
   CategoricalColorNamespace,
   CurrencyFormatter,
@@ -472,9 +473,17 @@ export default function transformProps(
     {},
   );
 
+  // Pre-resolve localized annotation names for display
+  const localizedAnnotationNames = new Set(
+    annotationLayers
+      .filter((layer: AnnotationLayer) => layer.show)
+      .map(layer => getLocalizedAnnotationName(layer, locale)),
+  );
+
   annotationLayers
     .filter((layer: AnnotationLayer) => layer.show)
     .forEach((layer: AnnotationLayer) => {
+      const localizedName = getLocalizedAnnotationName(layer, locale);
       if (isFormulaAnnotationLayer(layer))
         series.push(
           transformFormulaAnnotation(
@@ -485,6 +494,7 @@ export default function transformProps(
             colorScale,
             sliceId,
             orientation,
+            localizedName,
           ),
         );
       else if (isIntervalAnnotationLayer(layer)) {
@@ -497,6 +507,7 @@ export default function transformProps(
             theme,
             sliceId,
             orientation,
+            localizedName,
           ),
         );
       } else if (isEventAnnotationLayer(layer)) {
@@ -509,6 +520,7 @@ export default function transformProps(
             theme,
             sliceId,
             orientation,
+            localizedName,
           ),
         );
       } else if (isTimeseriesAnnotationLayer(layer)) {
@@ -521,6 +533,7 @@ export default function transformProps(
             colorScale,
             sliceId,
             orientation,
+            localizedName,
           ),
         );
       }
@@ -614,7 +627,7 @@ export default function transformProps(
         ForecastSeriesEnum.Observation,
     )
     .map(entry => entry.name || '')
-    .concat(extractAnnotationLabels(annotationLayers));
+    .concat(extractAnnotationLabels(annotationLayers, locale));
 
   let xAxis: any = {
     type: xAxisType,
@@ -715,10 +728,7 @@ export default function transformProps(
         );
         const filteredForecastValue = forecastValue.filter(
           (item: CallbackDataParams) =>
-            !annotationLayers.some(
-              (annotation: AnnotationLayer) =>
-                item.seriesName === annotation.name,
-            ),
+            !localizedAnnotationNames.has(item.seriesName as string),
         );
         const forecastValues: Record<string, ForecastValue> =
           extractForecastValuesFromTooltipParams(forecastValue, isHorizontal);
@@ -763,9 +773,7 @@ export default function transformProps(
               formatter,
             });
 
-            const annotationRow = annotationLayers.some(
-              item => item.name === key,
-            );
+            const annotationRow = localizedAnnotationNames.has(key);
 
             if (
               showPercentage &&

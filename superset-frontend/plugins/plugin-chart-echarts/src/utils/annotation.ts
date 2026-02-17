@@ -29,6 +29,7 @@ import {
   DataRecord,
   evalExpression,
   FormulaAnnotationLayer,
+  getLocalizedAnnotationName,
   isTableAnnotationLayer,
 } from '@superset-ui/core';
 import { EchartsTimeseriesChartProps } from '../types';
@@ -115,16 +116,19 @@ export function formatAnnotationLabel(
   return labels.join('\n\n');
 }
 
-export function extractAnnotationLabels(layers: AnnotationLayer[]): string[] {
+export function extractAnnotationLabels(
+  layers: AnnotationLayer[],
+  locale?: string,
+): string[] {
   const formulaAnnotationLabels = layers
     .filter(anno => anno.annotationType === AnnotationType.Formula && anno.show)
-    .map(anno => anno.name);
+    .map(anno => getLocalizedAnnotationName(anno, locale));
 
   const timeseriesAnnotationLabels = layers
     .filter(
       anno => anno.annotationType === AnnotationType.Timeseries && anno.show,
     )
-    .map(anno => anno.name);
+    .map(anno => getLocalizedAnnotationName(anno, locale));
 
   return formulaAnnotationLabels.concat(timeseriesAnnotationLabels);
 }

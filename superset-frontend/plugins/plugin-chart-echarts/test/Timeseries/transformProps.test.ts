@@ -1277,3 +1277,194 @@ test('should fall back to base language when regional locale has no match', () =
 
   expect(xAxis.name).toBe('Umsatz');
 });
+
+describe('annotation name localization', () => {
+  const formulaWithTranslations: FormulaAnnotationLayer = {
+    name: 'Revenue Target',
+    annotationType: AnnotationType.Formula,
+    value: 'x+1',
+    style: AnnotationStyle.Solid,
+    show: true,
+    showLabel: true,
+    translations: { name: { de: 'Umsatzziel', ru: 'Цель по доходу' } },
+  };
+
+  test('should use localized annotation name in legend and series when locale is provided', () => {
+    const chartProps = new ChartProps({
+      ...chartPropsConfig,
+      formData: {
+        ...formData,
+        annotationLayers: [formulaWithTranslations],
+      },
+      locale: 'de',
+    });
+    const transformed = transformProps(
+      chartProps as EchartsTimeseriesChartProps,
+    );
+    const legendData = (transformed.echartOptions.legend as any).data;
+    expect(legendData).toContain('Umsatzziel');
+    expect(legendData).not.toContain('Revenue Target');
+
+    const annotationSeries = (transformed.echartOptions.series as any[]).find(
+      s => s.id === 'Revenue Target',
+    );
+    expect(annotationSeries).toBeDefined();
+    expect(annotationSeries.name).toBe('Umsatzziel');
+  });
+
+  test('should use original annotation name when no locale is provided', () => {
+    const chartProps = new ChartProps({
+      ...chartPropsConfig,
+      formData: {
+        ...formData,
+        annotationLayers: [formulaWithTranslations],
+      },
+    });
+    const transformed = transformProps(
+      chartProps as EchartsTimeseriesChartProps,
+    );
+    const legendData = (transformed.echartOptions.legend as any).data;
+    expect(legendData).toContain('Revenue Target');
+
+    const annotationSeries = (transformed.echartOptions.series as any[]).find(
+      s => s.id === 'Revenue Target',
+    );
+    expect(annotationSeries).toBeDefined();
+    expect(annotationSeries.name).toBe('Revenue Target');
+  });
+
+  test('should keep original name as series.id for stable data keying', () => {
+    const chartProps = new ChartProps({
+      ...chartPropsConfig,
+      formData: {
+        ...formData,
+        annotationLayers: [formulaWithTranslations],
+      },
+      locale: 'ru',
+    });
+    const transformed = transformProps(
+      chartProps as EchartsTimeseriesChartProps,
+    );
+    const annotationSeries = (transformed.echartOptions.series as any[]).find(
+      s => s.id === 'Revenue Target',
+    );
+    expect(annotationSeries).toBeDefined();
+    expect(annotationSeries.name).toBe('Цель по доходу');
+  });
+
+  test('should fall back to base language for regional locale', () => {
+    const chartProps = new ChartProps({
+      ...chartPropsConfig,
+      formData: {
+        ...formData,
+        annotationLayers: [formulaWithTranslations],
+      },
+      locale: 'de-AT',
+    });
+    const transformed = transformProps(
+      chartProps as EchartsTimeseriesChartProps,
+    );
+    const legendData = (transformed.echartOptions.legend as any).data;
+    expect(legendData).toContain('Umsatzziel');
+  });
+
+  test('should use localized name in interval annotation display and original in id', () => {
+    const interval: IntervalAnnotationLayer = {
+      annotationType: AnnotationType.Interval,
+      name: 'Holiday Period',
+      show: true,
+      showLabel: true,
+      sourceType: AnnotationSourceType.Native,
+      style: AnnotationStyle.Solid,
+      value: 1,
+      translations: { name: { de: 'Ferienzeit' } },
+    };
+    const annotationData = {
+      'Holiday Period': {
+        records: [
+          {
+            start_dttm: 2000,
+            end_dttm: 3000,
+            short_descr: 'Christmas',
+            long_descr: '',
+          },
+        ],
+      },
+    };
+    const chartProps = new ChartProps({
+      ...chartPropsConfig,
+      formData: {
+        ...formData,
+        annotationLayers: [interval],
+      },
+      locale: 'de',
+      queriesData: [
+        {
+          ...queriesData[0],
+          annotation_data: annotationData,
+        },
+      ],
+    });
+    const transformed = transformProps(
+      chartProps as EchartsTimeseriesChartProps,
+    );
+    const intervalSeries = (transformed.echartOptions.series as any[]).find(
+      s => typeof s.id === 'string' && s.id.startsWith('Interval - '),
+    );
+    expect(intervalSeries).toBeDefined();
+    // ID uses original name for stability
+    expect(intervalSeries.id).toBe('Interval - Holiday Period - Christmas');
+    // Display label uses localized name
+    expect(intervalSeries.markArea.data[0][0].name).toBe(
+      'Ferienzeit - Christmas',
+    );
+  });
+
+  test('should use localized name in timeseries annotation series.name', () => {
+    const timeseries: TimeseriesAnnotationLayer = {
+      annotationType: AnnotationType.Timeseries,
+      name: 'Sales Trend',
+      show: true,
+      showLabel: true,
+      sourceType: AnnotationSourceType.Line,
+      style: AnnotationStyle.Solid,
+      titleColumn: '',
+      value: 3,
+      translations: { name: { de: 'Verkaufstrend' } },
+    };
+    const annotationData = {
+      'Sales Trend': {
+        records: [
+          { x: 10000, y: 11000 },
+          { x: 20000, y: 21000 },
+        ],
+      },
+    };
+    const chartProps = new ChartProps({
+      ...chartPropsConfig,
+      formData: {
+        ...formData,
+        annotationLayers: [timeseries],
+      },
+      locale: 'de',
+      queriesData: [
+        {
+          ...queriesData[0],
+          annotation_data: annotationData,
+        },
+      ],
+    });
+    const transformed = transformProps(
+      chartProps as EchartsTimeseriesChartProps,
+    );
+    const tsSeries = (transformed.echartOptions.series as any[]).find(
+      s => s.id === 'Sales Trend',
+    );
+    expect(tsSeries).toBeDefined();
+    expect(tsSeries.name).toBe('Verkaufstrend');
+
+    const legendData = (transformed.echartOptions.legend as any).data;
+    expect(legendData).toContain('Verkaufstrend');
+    expect(legendData).not.toContain('Sales Trend');
+  });
+});

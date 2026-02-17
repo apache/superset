@@ -56,6 +56,8 @@ type BaseAnnotationLayer = {
   show: boolean;
   showLabel: boolean;
   style: AnnotationStyle;
+  /** Per-field translations: {"name": {"de": "Umsatzziel"}} */
+  translations?: Record<string, Record<string, string>>;
   width?: number;
 };
 

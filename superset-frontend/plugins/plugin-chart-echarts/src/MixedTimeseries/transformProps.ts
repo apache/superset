@@ -24,6 +24,7 @@ import {
   AxisType,
   buildCustomFormatters,
   buildLocalizedMetricLabelMap,
+  getLocalizedAnnotationName,
   getLocalizedFormDataValue,
   CategoricalColorNamespace,
   CurrencyFormatter,
@@ -378,6 +379,7 @@ export default function transformProps(
   annotationLayers
     .filter((layer: AnnotationLayer) => layer.show)
     .forEach((layer: AnnotationLayer) => {
+      const localizedName = getLocalizedAnnotationName(layer, locale);
       if (isFormulaAnnotationLayer(layer))
         series.push(
           transformFormulaAnnotation(
@@ -387,6 +389,8 @@ export default function transformProps(
             xAxisType,
             colorScale,
             sliceId,
+            undefined,
+            localizedName,
           ),
         );
       else if (isIntervalAnnotationLayer(layer)) {
@@ -398,6 +402,8 @@ export default function transformProps(
             colorScale,
             theme,
             sliceId,
+            undefined,
+            localizedName,
           ),
         );
       } else if (isEventAnnotationLayer(layer)) {
@@ -409,6 +415,8 @@ export default function transformProps(
             colorScale,
             theme,
             sliceId,
+            undefined,
+            localizedName,
           ),
         );
       } else if (isTimeseriesAnnotationLayer(layer)) {
@@ -420,6 +428,8 @@ export default function transformProps(
             annotationData,
             colorScale,
             sliceId,
+            undefined,
+            localizedName,
           ),
         );
       }
@@ -788,7 +798,7 @@ export default function transformProps(
             ForecastSeriesEnum.Observation,
         )
         .map(entry => entry.id || entry.name || '')
-        .concat(extractAnnotationLabels(annotationLayers))
+        .concat(extractAnnotationLabels(annotationLayers, locale))
         .sort((a: string, b: string) => {
           if (!legendSort) return 0;
           return legendSort === 'asc' ? a.localeCompare(b) : b.localeCompare(a);

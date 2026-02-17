@@ -45,6 +45,8 @@ import TextControl from 'src/explore/components/controls/TextControl';
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
 import PopoverSection from '@superset-ui/core/components/PopoverSection';
 import ControlHeader from 'src/explore/components/ControlHeader';
+import type { Translations } from 'src/types/Localization';
+import TranslatableNameField from './TranslatableNameField';
 import {
   ANNOTATION_SOURCE_TYPES,
   ANNOTATION_TYPES,
@@ -96,6 +98,7 @@ interface AnnotationLayerProps {
   descriptionColumns?: string[];
   timeColumn?: string;
   intervalEndColumn?: string;
+  translations?: Translations;
   vizType?: string;
   error?: string;
   colorScheme?: string;
@@ -117,6 +120,7 @@ interface AnnotationLayerState {
   descriptionColumns: string[];
   timeColumn: string;
   intervalEndColumn: string;
+  translations: Translations;
   color: string;
   opacity: string;
   style: string;
@@ -181,6 +185,7 @@ class AnnotationLayer extends PureComponent<
     descriptionColumns: [],
     timeColumn: '',
     intervalEndColumn: '',
+    translations: {},
     addAnnotationLayer: () => {},
     removeAnnotationLayer: () => {},
     close: () => {},
@@ -206,6 +211,7 @@ class AnnotationLayer extends PureComponent<
       descriptionColumns,
       timeColumn,
       intervalEndColumn,
+      translations,
       vizType,
     } = props;
 
@@ -243,6 +249,7 @@ class AnnotationLayer extends PureComponent<
       descriptionColumns: descriptionColumns || [],
       timeColumn: timeColumn || '',
       intervalEndColumn: intervalEndColumn || '',
+      translations: translations || {},
       // display
       color: color || AUTOMATIC_COLOR,
       opacity: opacity || '',
@@ -618,6 +625,7 @@ class AnnotationLayer extends PureComponent<
         'descriptionColumns',
         'timeColumn',
         'intervalEndColumn',
+        'translations',
       ];
       const newAnnotation: Record<string, unknown> = {};
       annotationFields.forEach(field => {
@@ -1031,8 +1039,15 @@ class AnnotationLayer extends PureComponent<
   }
 
   render(): React.ReactNode {
-    const { isNew, name, annotationType, sourceType, show, showLabel } =
-      this.state;
+    const {
+      isNew,
+      name,
+      annotationType,
+      sourceType,
+      show,
+      showLabel,
+      translations,
+    } = this.state;
     const isValid = this.isValidForm();
     const metadata = this.props.vizType
       ? getChartMetadataRegistry().get(this.props.vizType)
@@ -1061,12 +1076,14 @@ class AnnotationLayer extends PureComponent<
               title={t('Layer configuration')}
               info={t('Configure the basics of your Annotation Layer.')}
             >
-              <TextControl
-                name="annotation-layer-name"
-                label={t('Name')}
-                placeholder=""
+              <TranslatableNameField
                 value={name}
                 onChange={v => this.setState({ name: v })}
+                translations={translations}
+                onTranslationsChange={newTranslations =>
+                  this.setState({ translations: newTranslations })
+                }
+                label={t('Name')}
                 validationErrors={!name ? [t('Mandatory')] : []}
               />
               <CheckboxControl

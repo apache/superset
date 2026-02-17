@@ -415,12 +415,14 @@ export function transformFormulaAnnotation(
   colorScale: CategoricalColorScale,
   sliceId?: number,
   orientation?: OrientationType,
+  localizedName?: string,
 ): SeriesOption {
   const { name, color, opacity, width, style } = layer;
+  const displayName = localizedName ?? name;
   const isHorizontal = orientation === OrientationType.Horizontal;
 
   return {
-    name,
+    name: displayName,
     id: name,
     itemStyle: {
       color: color || colorScale(name, sliceId),
@@ -447,13 +449,20 @@ export function transformIntervalAnnotation(
   theme: SupersetTheme,
   sliceId?: number,
   orientation?: OrientationType,
+  localizedName?: string,
 ): SeriesOption[] {
   const series: SeriesOption[] = [];
   const annotations = extractRecordAnnotations(layer, annotationData);
   annotations.forEach(annotation => {
     const { name, color, opacity, showLabel } = layer;
+    const displayName = localizedName ?? name;
     const { descriptions, intervalEnd, time, title } = annotation;
-    const label = formatAnnotationLabel(name, title, descriptions);
+    const stableLabel = formatAnnotationLabel(name, title, descriptions);
+    const displayLabel = formatAnnotationLabel(
+      displayName,
+      title,
+      descriptions,
+    );
     const isHorizontal = orientation === OrientationType.Horizontal;
     const intervalData: (
       | MarkArea1DDataItemOption
@@ -461,7 +470,7 @@ export function transformIntervalAnnotation(
     )[] = [
       [
         {
-          name: label,
+          name: displayLabel,
           ...(isHorizontal ? { yAxis: time } : { xAxis: time }),
         },
         isHorizontal ? { yAxis: intervalEnd } : { xAxis: intervalEnd },
@@ -493,7 +502,7 @@ export function transformIntervalAnnotation(
           },
         };
     series.push({
-      id: `Interval - ${label}`,
+      id: `Interval - ${stableLabel}`,
       type: 'line',
       animation: false,
       markArea: {
@@ -521,17 +530,24 @@ export function transformEventAnnotation(
   theme: SupersetTheme,
   sliceId?: number,
   orientation?: OrientationType,
+  localizedName?: string,
 ): SeriesOption[] {
   const series: SeriesOption[] = [];
   const annotations = extractRecordAnnotations(layer, annotationData);
   annotations.forEach(annotation => {
     const { name, color, opacity, style, width, showLabel } = layer;
+    const displayName = localizedName ?? name;
     const { descriptions, time, title } = annotation;
-    const label = formatAnnotationLabel(name, title, descriptions);
+    const stableLabel = formatAnnotationLabel(name, title, descriptions);
+    const displayLabel = formatAnnotationLabel(
+      displayName,
+      title,
+      descriptions,
+    );
     const isHorizontal = orientation === OrientationType.Horizontal;
     const eventData: MarkLine1DDataItemOption[] = [
       {
-        name: label,
+        name: displayLabel,
         ...(isHorizontal ? { yAxis: time } : { xAxis: time }),
       },
     ];
@@ -572,7 +588,7 @@ export function transformEventAnnotation(
         };
 
     series.push({
-      id: `Event - ${label}`,
+      id: `Event - ${stableLabel}`,
       type: 'line',
       animation: false,
       markLine: {
@@ -595,9 +611,11 @@ export function transformTimeseriesAnnotation(
   colorScale: CategoricalColorScale,
   sliceId?: number,
   orientation?: OrientationType,
+  localizedName?: string,
 ): SeriesOption[] {
   const series: SeriesOption[] = [];
   const { hideLine, name, opacity, showMarkers, style, width, color } = layer;
+  const displayName = localizedName ?? name;
   const result = annotationData[name];
   const isHorizontal = orientation === OrientationType.Horizontal;
   const { records } = result;
@@ -619,7 +637,7 @@ export function transformTimeseriesAnnotation(
     series.push({
       type: 'line',
       id: name,
-      name,
+      name: displayName,
       data,
       symbolSize: showMarkers ? markerSize : 0,
       itemStyle: computedStyle,
