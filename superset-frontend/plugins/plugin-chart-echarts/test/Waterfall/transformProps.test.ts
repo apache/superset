@@ -144,6 +144,172 @@ test('renaming series names, checking legend and X axis labels', () => {
   ]);
 });
 
+test('should use localized axis labels when translations and locale are provided', () => {
+  const chartProps = new ChartProps({
+    formData: {
+      ...formData,
+      xAxisLabel: 'Revenue',
+      yAxisLabel: 'Count',
+      translations: {
+        x_axis_label: { de: 'Umsatz' },
+        y_axis_label: { de: 'Anzahl' },
+      },
+    },
+    width: 800,
+    height: 600,
+    queriesData: [{ data }],
+    theme: supersetTheme,
+    locale: 'de',
+  });
+  const transformed = transformProps(
+    chartProps as unknown as EchartsWaterfallChartProps,
+  );
+  const xAxis = transformed.echartOptions.xAxis as { name?: string };
+  const yAxis = transformed.echartOptions.yAxis as { name?: string };
+  expect(xAxis.name).toBe('Umsatz');
+  expect(yAxis.name).toBe('Anzahl');
+});
+
+test('should use original axis labels when no locale is provided', () => {
+  const chartProps = new ChartProps({
+    formData: {
+      ...formData,
+      xAxisLabel: 'Revenue',
+      yAxisLabel: 'Count',
+      translations: {
+        x_axis_label: { de: 'Umsatz' },
+        y_axis_label: { de: 'Anzahl' },
+      },
+    },
+    width: 800,
+    height: 600,
+    queriesData: [{ data }],
+    theme: supersetTheme,
+  });
+  const transformed = transformProps(
+    chartProps as unknown as EchartsWaterfallChartProps,
+  );
+  const xAxis = transformed.echartOptions.xAxis as { name?: string };
+  const yAxis = transformed.echartOptions.yAxis as { name?: string };
+  expect(xAxis.name).toBe('Revenue');
+  expect(yAxis.name).toBe('Count');
+});
+
+test('should fall back to base language when regional locale has no match', () => {
+  const chartProps = new ChartProps({
+    formData: {
+      ...formData,
+      xAxisLabel: 'Revenue',
+      translations: {
+        x_axis_label: { de: 'Umsatz' },
+      },
+    },
+    width: 800,
+    height: 600,
+    queriesData: [{ data }],
+    theme: supersetTheme,
+    locale: 'de-AT',
+  });
+  const transformed = transformProps(
+    chartProps as unknown as EchartsWaterfallChartProps,
+  );
+  const xAxis = transformed.echartOptions.xAxis as { name?: string };
+  expect(xAxis.name).toBe('Umsatz');
+});
+
+test('should use localized series labels in legend and series names', () => {
+  const chartProps = new ChartProps({
+    formData: {
+      ...formData,
+      increaseLabel: 'Growth',
+      decreaseLabel: 'Decline',
+      totalLabel: 'Sum',
+      translations: {
+        increase_label: { de: 'Wachstum' },
+        decrease_label: { de: 'Rückgang' },
+        total_label: { de: 'Summe' },
+      },
+    },
+    width: 800,
+    height: 600,
+    queriesData: [{ data }],
+    theme: supersetTheme,
+    locale: 'de',
+  });
+  const transformed = transformProps(
+    chartProps as unknown as EchartsWaterfallChartProps,
+  );
+  expect((transformed.echartOptions.legend as any).data).toEqual([
+    'Wachstum',
+    'Rückgang',
+    'Summe',
+  ]);
+  expect(extractSeriesName(transformed)).toEqual([
+    'Assist',
+    'Wachstum',
+    'Rückgang',
+    'Summe',
+  ]);
+});
+
+test('should use localized total label on x-axis while keeping data sentinel intact', () => {
+  const chartProps = new ChartProps({
+    formData: {
+      ...formData,
+      totalLabel: 'Sum',
+      translations: {
+        total_label: { de: 'Summe' },
+      },
+    },
+    width: 800,
+    height: 600,
+    queriesData: [{ data }],
+    theme: supersetTheme,
+    locale: 'de',
+  });
+  const transformed = transformProps(
+    chartProps as unknown as EchartsWaterfallChartProps,
+  );
+  // xAxisData contains raw data values including the totalMark sentinel
+  const xAxisData = (transformed.echartOptions.xAxis as any).data;
+  // The last item is the total marker — raw value "Sum" in data
+  expect(xAxisData[xAxisData.length - 1]).toBe('Sum');
+});
+
+test('should use original series labels when no locale is provided', () => {
+  const chartProps = new ChartProps({
+    formData: {
+      ...formData,
+      increaseLabel: 'Growth',
+      decreaseLabel: 'Decline',
+      totalLabel: 'Sum',
+      translations: {
+        increase_label: { de: 'Wachstum' },
+        decrease_label: { de: 'Rückgang' },
+        total_label: { de: 'Summe' },
+      },
+    },
+    width: 800,
+    height: 600,
+    queriesData: [{ data }],
+    theme: supersetTheme,
+  });
+  const transformed = transformProps(
+    chartProps as unknown as EchartsWaterfallChartProps,
+  );
+  expect((transformed.echartOptions.legend as any).data).toEqual([
+    'Growth',
+    'Decline',
+    'Sum',
+  ]);
+  expect(extractSeriesName(transformed)).toEqual([
+    'Assist',
+    'Growth',
+    'Decline',
+    'Sum',
+  ]);
+});
+
 test('hide totals', () => {
   const chartProps = new ChartProps({
     formData: { ...formData, series: 'bar', showTotal: false },
