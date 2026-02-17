@@ -40,7 +40,8 @@ import {
   CompareChartPlugin,
   TimePivotChartPlugin,
 } from '@superset-ui/legacy-preset-chart-nvd3';
-import { DeckGLChartPreset } from '@superset-ui/legacy-preset-chart-deckgl';
+import { DeckGLChartPreset } from '@superset-ui/preset-chart-deckgl';
+import MapLibreChartPlugin from '@superset-ui/plugin-chart-maplibre';
 import { CartodiagramPlugin } from '@superset-ui/plugin-chart-cartodiagram';
 import {
   BigNumberChartPlugin,
@@ -132,6 +133,7 @@ export default class MainPreset extends Preset {
         }),
         new HorizonChartPlugin().configure({ key: VizType.Horizon }),
         new MapBoxChartPlugin().configure({ key: VizType.MapBox }),
+        new MapLibreChartPlugin().configure({ key: VizType.MapLibre }),
         new PairedTTestChartPlugin().configure({ key: VizType.PairedTTest }),
         new ParallelCoordinatesChartPlugin().configure({
           key: VizType.ParallelCoordinates,
