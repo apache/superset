@@ -24,7 +24,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import './MapLibre.css';
 
 const DEFAULT_MAP_STYLE =
-  'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
+  'https://tiles.openfreemap.org/styles/liberty';
 
 export const DEFAULT_MAX_ZOOM = 16;
 export const DEFAULT_POINT_RADIUS = 60;

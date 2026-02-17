@@ -188,21 +188,10 @@ const config: ControlPanelConfig = {
       ],
     },
     {
-      label: t('Visual Tweaks'),
+      label: t('Map'),
+      tabOverride: 'customize',
+      expanded: true,
       controlSetRows: [
-        [
-          {
-            name: 'render_while_dragging',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Live render'),
-              default: true,
-              description: t(
-                'Points and clusters will update as the viewport is being changed',
-              ),
-            },
-          },
-        ],
         [
           {
             name: 'mapbox_style',
@@ -213,6 +202,10 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               freeForm: true,
               choices: [
+                [
+                  'https://tiles.openfreemap.org/styles/liberty',
+                  t('Liberty (OpenFreeMap)'),
+                ],
                 [
                   'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
                   t('Light (Carto)'),
@@ -225,16 +218,32 @@ const config: ControlPanelConfig = {
                   'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json',
                   t('Streets (Carto)'),
                 ],
-                [
-                  'https://tiles.openfreemap.org/styles/liberty',
-                  t('Liberty (OpenFreeMap)'),
-                ],
               ],
               default:
-                'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+                'https://tiles.openfreemap.org/styles/liberty',
               description: t(
                 'Base layer map style. See MapLibre documentation: %s',
                 'https://maplibre.org/maplibre-style-spec/',
+              ),
+            },
+          },
+        ],
+      ],
+    },
+    {
+      label: t('Visual Tweaks'),
+      tabOverride: 'customize',
+      controlSetRows: [
+        [
+          {
+            name: 'render_while_dragging',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Live render'),
+              renderTrigger: true,
+              default: true,
+              description: t(
+                'Points and clusters will update as the viewport is being changed',
               ),
             },
           },
@@ -245,6 +254,7 @@ const config: ControlPanelConfig = {
             config: {
               type: 'TextControl',
               label: t('Opacity'),
+              renderTrigger: true,
               default: 1,
               isFloat: true,
               description: t(
@@ -259,6 +269,7 @@ const config: ControlPanelConfig = {
             config: {
               type: 'SelectControl',
               freeForm: true,
+              renderTrigger: true,
               label: t('RGB Color'),
               default: colorChoices[0][0],
               choices: colorChoices,
