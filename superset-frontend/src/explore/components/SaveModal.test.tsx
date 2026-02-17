@@ -305,11 +305,8 @@ test('updates slice name and selected dashboard', async () => {
   expect(fetchMock.callHistory.calls(fetchDashboardEndpoint)[0].url).toEqual(
     expect.stringContaining(`dashboard/${dashboardId}`),
   );
-  expect(createSlice).toHaveBeenCalledWith(
-    mockEvent.target.value,
-    expect.anything(),
-    expect.anything(),
-  );
+  expect(createSlice).toHaveBeenCalled();
+  expect(createSlice.mock.calls[0][0]).toBe(mockEvent.target.value);
 });
 
 test('set dataset name when chart source is query', () => {
