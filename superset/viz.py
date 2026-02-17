@@ -1521,6 +1521,14 @@ class MapboxViz(BaseViz):
         }
 
 
+class MapLibreViz(MapboxViz):
+    """Rich maps made with MapLibre"""
+
+    viz_type = "maplibre"
+    verbose_name = _("MapLibre")
+    credits = '<a href="https://maplibre.org/">MapLibre GL JS</a>'
+
+
 class DeckGLMultiLayer(BaseViz):
     """Pile on multiple DeckGL layers"""
 
