@@ -2126,13 +2126,7 @@ TALISMAN_CONFIG = {
         "worker-src": ["'self'", "blob:"],
         "connect-src": [
             "'self'",
-            "https://api.mapbox.com",
-            "https://events.mapbox.com",
-            "https://tile.openstreetmap.org",
-            "https://tile.osm.ch",
-            "https://*.basemaps.cartocdn.com",
-            "https://basemaps.cartocdn.com",
-            "https://tiles.openfreemap.org",
+            "https:",
         ],
         "object-src": "'none'",
         "style-src": [
@@ -2168,13 +2162,7 @@ TALISMAN_DEV_CONFIG = {
         "worker-src": ["'self'", "blob:"],
         "connect-src": [
             "'self'",
-            "https://api.mapbox.com",
-            "https://events.mapbox.com",
-            "https://tile.openstreetmap.org",
-            "https://tile.osm.ch",
-            "https://*.basemaps.cartocdn.com",
-            "https://basemaps.cartocdn.com",
-            "https://tiles.openfreemap.org",
+            "https:",
         ],
         "object-src": "'none'",
         "style-src": [
