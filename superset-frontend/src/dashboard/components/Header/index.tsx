@@ -70,6 +70,7 @@ import type { ReportObject } from 'src/features/reports/types';
 import { PageHeaderWithActions } from '@superset-ui/core/components/PageHeaderWithActions';
 import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import type { RootState, DashboardInfo } from 'src/dashboard/types';
+import type { Translations } from 'src/types/Localization';
 import DashboardEmbedModal from '../EmbeddedModal';
 import OverwriteConfirm from '../OverwriteConfirm';
 import {
@@ -188,6 +189,7 @@ interface PropertiesChanges {
   themeId?: number | null;
   css?: string;
   title?: string;
+  translations?: Translations;
 }
 
 const Header = (): ReactElement => {
@@ -473,6 +475,9 @@ const Header = (): ReactElement => {
           item.type === TagTypeEnum.Custom || !item.type,
       ) as { id: number }[],
       theme_id: dashboardInfo.theme ? dashboardInfo.theme.id : null,
+      ...(dashboardInfo.translations !== undefined && {
+        translations: dashboardInfo.translations,
+      }),
       metadata: {
         ...dashboardInfo?.metadata,
         color_namespace: currentColorNamespace,
@@ -518,6 +523,7 @@ const Header = (): ReactElement => {
     dashboardInfo.owners,
     dashboardInfo.roles,
     dashboardInfo.tags,
+    dashboardInfo.translations,
     dashboardTitle,
     layout,
     refreshFrequency,
@@ -589,6 +595,9 @@ const Header = (): ReactElement => {
         tags: updates.tags,
         theme_id: updates.themeId,
         css: updates.css,
+        ...(updates.translations !== undefined && {
+          translations: updates.translations,
+        }),
       });
       boundActionCreators.setUnsavedChanges(true);
 

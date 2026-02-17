@@ -207,6 +207,37 @@ describe('dashboardState actions', () => {
       });
     });
 
+    test('overwrite includes translations in PUT body when provided', async () => {
+      mockIsFeatureEnabled.mockReturnValue(false);
+      const { getState, dispatch } = setup();
+      const translations = { dashboard_title: { de: 'Test-Dashboard' } };
+      const thunk = saveDashboardRequest(
+        { ...newDashboardData, translations },
+        1,
+        SAVE_TYPE_OVERWRITE,
+      );
+      thunk(dispatch, getState);
+      await waitFor(() => expect(putStub).toHaveBeenCalled());
+      const putBody = JSON.parse(putStub.mock.calls[0][0].body);
+      expect(putBody.translations).toEqual(translations);
+      mockIsFeatureEnabled.mockReset();
+    });
+
+    test('overwrite omits translations from PUT body when not provided', async () => {
+      mockIsFeatureEnabled.mockReturnValue(false);
+      const { getState, dispatch } = setup();
+      const thunk = saveDashboardRequest(
+        newDashboardData,
+        1,
+        SAVE_TYPE_OVERWRITE,
+      );
+      thunk(dispatch, getState);
+      await waitFor(() => expect(putStub).toHaveBeenCalled());
+      const putBody = JSON.parse(putStub.mock.calls[0][0].body);
+      expect(putBody).not.toHaveProperty('translations');
+      mockIsFeatureEnabled.mockReset();
+    });
+
     test('should navigate to the new dashboard after Save As', async () => {
       const newDashboardId = 999;
       const { getState, dispatch } = setup({
