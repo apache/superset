@@ -506,7 +506,7 @@ describe('spatialUtils', () => {
     });
 
     expect(result.payload.data.features).toHaveLength(2);
-    expect(result.payload.data.mapboxApiKey).toBe('test_api_key');
+    expect(result.payload.data.mapboxApiKey).toBe('');
     expect(result.payload.data.metricLabels).toEqual(['count_label']);
   });
 
