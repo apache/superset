@@ -27,6 +27,7 @@ import {
 import { t } from '@apache-superset/core';
 import {
   AxisType,
+  buildLocalizedMetricLabelMap,
   CategoricalColorNamespace,
   DataRecord,
   DataRecordValue,
@@ -165,6 +166,10 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
   const yAxisLabel = getColumnLabel(yAxis);
   const dimensionLabel = dimension ? getColumnLabel(dimension) : undefined;
   const tooltipLabels = getTooltipLabels({ tooltipMetrics, tooltipColumns });
+  const localizedMetricLabelMap = buildLocalizedMetricLabelMap(
+    tooltipMetrics,
+    locale,
+  );
 
   const seriesMap = groupData(data, dimensionLabel);
 
@@ -375,8 +380,9 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
             const idx = dimensionNames.findIndex(v => v === label)!;
             const value = data[idx];
             const type = coltypes[idx];
+            const displayLabel = localizedMetricLabelMap[label] ?? label;
 
-            return [label, tooltipFormatterMap[type]?.(value) ?? value];
+            return [displayLabel, tooltipFormatterMap[type]?.(value) ?? value];
           }),
           dimensionLabel ? params.seriesName : undefined,
         ),

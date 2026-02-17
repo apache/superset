@@ -348,6 +348,118 @@ test('should fall back to base language when regional locale has no match', () =
   expect(xAxis.name).toBe('Zeit');
 });
 
+describe('tooltip metric label localization', () => {
+  const adhocMetric = {
+    expressionType: 'SQL' as const,
+    sqlExpression: 'SUM(revenue)',
+    label: 'Total Revenue',
+    translations: {
+      label: { de: 'Gesamtumsatz' },
+    },
+  };
+  const tooltipColnames = [
+    'startTime',
+    'endTime',
+    'Y Axis',
+    'Total Revenue',
+    'tooltip_column',
+    'series',
+  ];
+  const tooltipColtypes = [2, 2, 1, 0, 1, 1];
+  const tooltipData = [
+    {
+      startTime: Date.UTC(2025, 1, 1, 13, 0, 0),
+      endTime: Date.UTC(2025, 1, 1, 14, 0, 0),
+      'Y Axis': 'first',
+      'Total Revenue': 12345,
+      tooltip_column: 'tooltip value 1',
+      series: 'series value 1',
+    },
+    {
+      startTime: Date.UTC(2025, 1, 1, 18, 0, 0),
+      endTime: Date.UTC(2025, 1, 1, 20, 0, 0),
+      'Y Axis': 'second',
+      'Total Revenue': 67890,
+      tooltip_column: 'tooltip value 2',
+      series: 'series value 2',
+    },
+  ];
+  const tooltipMockParams = {
+    dimensionNames: [
+      'startTime',
+      'endTime',
+      'index',
+      'seriesCount',
+      ...tooltipColnames,
+    ],
+    value: [
+      tooltipData[0].startTime,
+      tooltipData[0].endTime,
+      0,
+      2,
+      tooltipData[0].startTime,
+      tooltipData[0].endTime,
+      'first',
+      12345,
+      'tooltip value 1',
+      'series value 1',
+    ],
+    seriesName: 'series value 1',
+  };
+
+  const createTooltipChartProps = (overrides: Record<string, unknown> = {}) =>
+    new ChartProps({
+      ...chartPropsConfig,
+      formData: {
+        ...formData,
+        tooltipMetrics: [adhocMetric],
+        ...overrides,
+      },
+      queriesData: [
+        {
+          data: tooltipData,
+          colnames: tooltipColnames,
+          coltypes: tooltipColtypes,
+        },
+      ],
+      ...(overrides.locale !== undefined ? { locale: overrides.locale } : {}),
+    });
+
+  const getTooltipHtml = (chartProps: ChartProps) => {
+    const transformed = transformProps(chartProps as EchartsGanttChartProps);
+    const tooltip = transformed.echartOptions.tooltip as {
+      formatter: (params: typeof tooltipMockParams) => string;
+    };
+    return tooltip.formatter(tooltipMockParams);
+  };
+
+  test('should use localized metric label when locale is provided', () => {
+    const props = createTooltipChartProps({ locale: 'de' });
+    const html = getTooltipHtml(props);
+    expect(html).toContain('Gesamtumsatz');
+    expect(html).not.toContain('Total Revenue');
+  });
+
+  test('should use original metric label when no locale is provided', () => {
+    const props = createTooltipChartProps();
+    const html = getTooltipHtml(props);
+    expect(html).toContain('Total Revenue');
+    expect(html).not.toContain('Gesamtumsatz');
+  });
+
+  test('should fall back to base language for regional locale', () => {
+    const props = createTooltipChartProps({ locale: 'de-AT' });
+    const html = getTooltipHtml(props);
+    expect(html).toContain('Gesamtumsatz');
+  });
+
+  test('should not localize column labels', () => {
+    const props = createTooltipChartProps({ locale: 'de' });
+    const html = getTooltipHtml(props);
+    expect(html).toContain('tooltip_column');
+  });
+});
+
 describe('legend sorting', () => {
   const createChartProps = (overrides = {}) =>
     new ChartProps({
