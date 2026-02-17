@@ -21,6 +21,7 @@ import type { ScatterSeriesOption } from 'echarts/charts';
 import { extent } from 'd3-array';
 import {
   CategoricalColorNamespace,
+  getLocalizedFormDataValue,
   getLocalizedMetricLabel,
   getNumberFormatter,
   AxisType,
@@ -140,6 +141,14 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     legendSort,
     sliceId,
   }: EchartsBubbleFormData = { ...DEFAULT_FORM_DATA, ...formData };
+
+  const localizedXAxisTitle =
+    getLocalizedFormDataValue(formData.translations, 'x_axis_label', locale) ??
+    bubbleXAxisTitle;
+  const localizedYAxisTitle =
+    getLocalizedFormDataValue(formData.translations, 'y_axis_label', locale) ??
+    bubbleYAxisTitle;
+
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
 
   const legends = new Set<string>();
@@ -213,7 +222,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
       nameRotate: xAxisLabelRotation,
       interval: xAxisLabelInterval,
       scale: true,
-      name: bubbleXAxisTitle,
+      name: localizedXAxisTitle,
       nameLocation: 'middle',
       nameTextStyle: {
         fontWeight: 'bolder',
@@ -231,7 +240,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
       },
       nameRotate: yAxisLabelRotation,
       scale: truncateYAxis,
-      name: bubbleYAxisTitle,
+      name: localizedYAxisTitle,
       nameLocation: 'middle',
       nameTextStyle: {
         fontWeight: 'bolder',

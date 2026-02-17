@@ -249,3 +249,89 @@ describe('legend sorting', () => {
     ]);
   });
 });
+
+test('should use localized axis titles when translations and locale are provided', () => {
+  const chartProps = new ChartProps({
+    ...chartConfig,
+    formData: {
+      ...defaultFormData,
+      xAxisLabel: 'Revenue',
+      yAxisLabel: 'Price',
+      translations: {
+        x_axis_label: { de: 'Umsatz' },
+        y_axis_label: { de: 'Preis' },
+      },
+    },
+    locale: 'de',
+  });
+
+  const transformed = transformProps(chartProps as EchartsBubbleChartProps);
+  const xAxis = transformed.echartOptions.xAxis as { name?: string };
+  const yAxis = transformed.echartOptions.yAxis as { name?: string };
+
+  expect(xAxis.name).toBe('Umsatz');
+  expect(yAxis.name).toBe('Preis');
+});
+
+test('should use original axis titles when no locale is provided', () => {
+  const chartProps = new ChartProps({
+    ...chartConfig,
+    formData: {
+      ...defaultFormData,
+      xAxisLabel: 'Revenue',
+      yAxisLabel: 'Price',
+      translations: {
+        x_axis_label: { de: 'Umsatz' },
+        y_axis_label: { de: 'Preis' },
+      },
+    },
+  });
+
+  const transformed = transformProps(chartProps as EchartsBubbleChartProps);
+  const xAxis = transformed.echartOptions.xAxis as { name?: string };
+  const yAxis = transformed.echartOptions.yAxis as { name?: string };
+
+  expect(xAxis.name).toBe('Revenue');
+  expect(yAxis.name).toBe('Price');
+});
+
+test('should fall back to original axis titles when locale has no matching translation', () => {
+  const chartProps = new ChartProps({
+    ...chartConfig,
+    formData: {
+      ...defaultFormData,
+      xAxisLabel: 'Revenue',
+      yAxisLabel: 'Price',
+      translations: {
+        x_axis_label: { de: 'Umsatz' },
+      },
+    },
+    locale: 'ja',
+  });
+
+  const transformed = transformProps(chartProps as EchartsBubbleChartProps);
+  const xAxis = transformed.echartOptions.xAxis as { name?: string };
+  const yAxis = transformed.echartOptions.yAxis as { name?: string };
+
+  expect(xAxis.name).toBe('Revenue');
+  expect(yAxis.name).toBe('Price');
+});
+
+test('should fall back to base language when regional locale has no match', () => {
+  const chartProps = new ChartProps({
+    ...chartConfig,
+    formData: {
+      ...defaultFormData,
+      xAxisLabel: 'Revenue',
+      translations: {
+        x_axis_label: { de: 'Umsatz' },
+      },
+    },
+    locale: 'de-AT',
+  });
+
+  const transformed = transformProps(chartProps as EchartsBubbleChartProps);
+  const xAxis = transformed.echartOptions.xAxis as { name?: string };
+
+  expect(xAxis.name).toBe('Umsatz');
+});
