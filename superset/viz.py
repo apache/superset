@@ -1528,6 +1528,23 @@ class MapLibreViz(MapboxViz):
     verbose_name = _("MapLibre")
     credits = '<a href="https://maplibre.org/">MapLibre GL JS</a>'
 
+    @deprecated(deprecated_in="3.0")
+    def query_obj(self) -> QueryObjectDict:
+        # Remap maplibre_label to mapbox_label for parent class
+        self.form_data["mapbox_label"] = self.form_data.get("maplibre_label")
+        return super().query_obj()
+
+    @deprecated(deprecated_in="3.0")
+    def get_data(self, df: pd.DataFrame) -> VizData:
+        # Remap field names for parent class
+        self.form_data["mapbox_label"] = self.form_data.get("maplibre_label")
+        self.form_data["mapbox_style"] = self.form_data.get("maplibre_style")
+        self.form_data["mapbox_color"] = self.form_data.get("maplibre_color")
+        data = super().get_data(df)
+        if data:
+            data.pop("mapboxApiKey", None)
+        return data
+
 
 class DeckGLMultiLayer(BaseViz):
     """Pile on multiple DeckGL layers"""

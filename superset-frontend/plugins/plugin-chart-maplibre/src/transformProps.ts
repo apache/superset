@@ -39,16 +39,16 @@ export default function transformProps(chartProps: ChartProps) {
   const {
     clusteringRadius,
     globalOpacity,
-    mapboxColor,
-    mapboxStyle,
+    maplibreColor,
+    maplibreStyle,
     pandasAggfunc,
     pointRadiusUnit,
     renderWhileDragging,
   } = formData;
 
-  // Validate mapbox color
+  // Validate color
   const rgb = /^rgb\((\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3})\)$/.exec(
-    mapboxColor,
+    maplibreColor,
   );
   if (rgb === null) {
     onError("Color field must be of form 'rgb(%d, %d, %d)'");
@@ -88,7 +88,7 @@ export default function transformProps(chartProps: ChartProps) {
     clusterer,
     globalOpacity,
     hasCustomMetric,
-    mapStyle: mapboxStyle,
+    mapStyle: maplibreStyle,
     onViewportChange({
       latitude,
       longitude,
