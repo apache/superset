@@ -78,7 +78,7 @@ Schema Discovery:
 - get_schema: Get schema metadata for chart/dataset/dashboard (columns, filters)
 
 System Information:
-- get_instance_info: Get instance-wide statistics and metadata
+- get_instance_info: Get instance-wide statistics, metadata, and current user identity
 - health_check: Simple health check tool (takes NO parameters, call without arguments)
 
 Available Resources:
@@ -88,6 +88,30 @@ Available Resources:
 Available Prompts:
 - quickstart: Interactive guide for getting started with the MCP service
 - create_chart_guided: Step-by-step chart creation wizard
+
+Recommended Workflows:
+
+To create a chart:
+1. list_datasets -> find a dataset
+2. get_dataset_info(id) -> examine columns and metrics
+3. generate_explore_link(dataset_id, config) -> preview interactively
+4. generate_chart(dataset_id, config, save_chart=True) -> save permanently
+
+To find your own charts/dashboards:
+1. get_instance_info -> get current_user.id
+2. list_charts(filters=[{{"col": "created_by_fk",
+   "opr": "eq", "value": current_user.id}}])
+3. Or: list_dashboards(filters=[{{"col": "created_by_fk",
+   "opr": "eq", "value": current_user.id}}])
+
+To explore data with SQL:
+1. get_instance_info -> find database_id
+2. execute_sql(database_id, sql) -> run query
+3. open_sql_lab_with_context(database_id) -> open SQL Lab UI
+
+generate_explore_link vs generate_chart:
+- Use generate_explore_link for exploration (no permanent chart created)
+- Use generate_chart with save_chart=True only when user wants to save permanently
 
 Common Chart Types (viz_type) and Behaviors:
 
@@ -122,6 +146,10 @@ Query Examples:
 - List time series charts:
   filters=[{{"col": "viz_type", "opr": "sw", "value": "echarts_timeseries"}}]
 - Search by name: search="sales"
+- My charts (use current_user.id from get_instance_info):
+  filters=[{{"col": "created_by_fk", "opr": "eq", "value": <user_id>}}]
+- My dashboards:
+  filters=[{{"col": "created_by_fk", "opr": "eq", "value": <user_id>}}]
 
 General usage tips:
 - All listing tools use 1-based pagination (first page is 1)
@@ -138,6 +166,9 @@ Input format:
 
 If you are unsure which tool to use, start with get_instance_info
 or use the quickstart prompt for an interactive guide.
+
+When you first connect, call get_instance_info to learn the user's identity.
+Greet them by their first name (from current_user) and offer to help.
 """
 
 
