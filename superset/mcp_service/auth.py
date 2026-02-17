@@ -221,7 +221,12 @@ def get_user_from_request() -> User:
         if api_key_string is not None:
             user = sm.validate_api_key(api_key_string)
             if user:
-                return user
+                # Reload user with all relationships eagerly loaded to avoid
+                # detached-instance errors during later permission checks.
+                user_with_rels = load_user_with_relationships(
+                    username=user.username,
+                )
+                return user_with_rels or user
             raise ValueError(
                 "Invalid or expired API key. "
                 "Create a new key at /api/v1/security/api_keys/."
