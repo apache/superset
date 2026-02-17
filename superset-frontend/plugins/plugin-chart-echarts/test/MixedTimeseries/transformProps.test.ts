@@ -359,3 +359,109 @@ test('legend margin: right orientation sets grid.right correctly', () => {
 
   expect((transformed.echartOptions.grid as any).right).toEqual(270);
 });
+
+test('should use localized axis titles when translations and locale are provided', () => {
+  const chartProps = new ChartProps({
+    ...chartPropsConfig,
+    formData: {
+      ...formData,
+      xAxisTitle: 'Revenue',
+      yAxisTitle: 'Count',
+      yAxisTitleSecondary: 'Rate',
+      translations: {
+        x_axis_title: { de: 'Umsatz' },
+        y_axis_title: { de: 'Anzahl' },
+        yAxisTitleSecondary: { de: 'Quote' },
+      },
+    },
+    locale: 'de',
+  });
+
+  const transformed = transformProps(chartProps as EchartsMixedTimeseriesProps);
+  const xAxis = transformed.echartOptions.xAxis as { name?: string };
+  const [yAxisPrimary, yAxisSecondary] = transformed.echartOptions.yAxis as {
+    name?: string;
+  }[];
+
+  expect(xAxis.name).toBe('Umsatz');
+  expect(yAxisPrimary.name).toBe('Anzahl');
+  expect(yAxisSecondary.name).toBe('Quote');
+});
+
+test('should use original axis titles when no locale is provided', () => {
+  const chartProps = new ChartProps({
+    ...chartPropsConfig,
+    formData: {
+      ...formData,
+      xAxisTitle: 'Revenue',
+      yAxisTitle: 'Count',
+      yAxisTitleSecondary: 'Rate',
+      translations: {
+        x_axis_title: { de: 'Umsatz' },
+        y_axis_title: { de: 'Anzahl' },
+        yAxisTitleSecondary: { de: 'Quote' },
+      },
+    },
+  });
+
+  const transformed = transformProps(chartProps as EchartsMixedTimeseriesProps);
+  const xAxis = transformed.echartOptions.xAxis as { name?: string };
+  const [yAxisPrimary, yAxisSecondary] = transformed.echartOptions.yAxis as {
+    name?: string;
+  }[];
+
+  expect(xAxis.name).toBe('Revenue');
+  expect(yAxisPrimary.name).toBe('Count');
+  expect(yAxisSecondary.name).toBe('Rate');
+});
+
+test('should fall back to original axis titles when locale has no matching translation', () => {
+  const chartProps = new ChartProps({
+    ...chartPropsConfig,
+    formData: {
+      ...formData,
+      xAxisTitle: 'Revenue',
+      yAxisTitle: 'Count',
+      yAxisTitleSecondary: 'Rate',
+      translations: {
+        x_axis_title: { de: 'Umsatz' },
+      },
+    },
+    locale: 'ja',
+  });
+
+  const transformed = transformProps(chartProps as EchartsMixedTimeseriesProps);
+  const xAxis = transformed.echartOptions.xAxis as { name?: string };
+  const [yAxisPrimary, yAxisSecondary] = transformed.echartOptions.yAxis as {
+    name?: string;
+  }[];
+
+  expect(xAxis.name).toBe('Revenue');
+  expect(yAxisPrimary.name).toBe('Count');
+  expect(yAxisSecondary.name).toBe('Rate');
+});
+
+test('should fall back to base language when regional locale has no match', () => {
+  const chartProps = new ChartProps({
+    ...chartPropsConfig,
+    formData: {
+      ...formData,
+      xAxisTitle: 'Revenue',
+      yAxisTitleSecondary: 'Rate',
+      translations: {
+        x_axis_title: { de: 'Umsatz' },
+        yAxisTitleSecondary: { de: 'Quote' },
+      },
+    },
+    locale: 'de-AT',
+  });
+
+  const transformed = transformProps(chartProps as EchartsMixedTimeseriesProps);
+  const xAxis = transformed.echartOptions.xAxis as { name?: string };
+  const [, yAxisSecondary] = transformed.echartOptions.yAxis as {
+    name?: string;
+  }[];
+
+  expect(xAxis.name).toBe('Umsatz');
+  expect(yAxisSecondary.name).toBe('Quote');
+});

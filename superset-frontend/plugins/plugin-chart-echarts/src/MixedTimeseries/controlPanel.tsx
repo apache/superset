@@ -485,7 +485,7 @@ const config: ControlPanelConfig = {
           {
             name: 'yAxisTitleSecondary',
             config: {
-              type: 'TextControl',
+              type: 'TranslatableTextControl',
               label: t('Secondary y-axis title'),
               renderTrigger: true,
               default: '',

@@ -24,6 +24,7 @@ import {
   AxisType,
   buildCustomFormatters,
   buildLocalizedMetricLabelMap,
+  getLocalizedFormDataValue,
   CategoricalColorNamespace,
   CurrencyFormatter,
   ensureIsArray,
@@ -230,6 +231,19 @@ export default function transformProps(
     [...metrics, ...metricsB],
     locale,
   );
+
+  const localizedXAxisTitle =
+    getLocalizedFormDataValue(formData.translations, 'x_axis_title', locale) ??
+    xAxisTitle;
+  const localizedYAxisTitle =
+    getLocalizedFormDataValue(formData.translations, 'y_axis_title', locale) ??
+    yAxisTitle;
+  const localizedYAxisTitleSecondary =
+    getLocalizedFormDataValue(
+      formData.translations,
+      'yAxisTitleSecondary',
+      locale,
+    ) ?? yAxisTitleSecondary;
 
   const refs: Refs = {};
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
@@ -585,10 +599,10 @@ export default function transformProps(
       : String;
 
   const addYAxisTitleOffset =
-    !!(yAxisTitle || yAxisTitleSecondary) &&
+    !!(localizedYAxisTitle || localizedYAxisTitleSecondary) &&
     convertInteger(yAxisTitleMargin) !== 0;
   const addXAxisTitleOffset =
-    !!xAxisTitle && convertInteger(xAxisTitleMargin) !== 0;
+    !!localizedXAxisTitle && convertInteger(xAxisTitleMargin) !== 0;
 
   const chartPadding = getPadding(
     showLegend,
@@ -613,7 +627,7 @@ export default function transformProps(
     },
     xAxis: {
       type: xAxisType,
-      name: xAxisTitle,
+      name: localizedXAxisTitle,
       nameGap: convertInteger(xAxisTitleMargin),
       nameLocation: 'middle',
       axisLabel: {
@@ -663,7 +677,7 @@ export default function transformProps(
           ),
         },
         scale: truncateYAxis,
-        name: yAxisTitle,
+        name: localizedYAxisTitle,
         nameGap: convertInteger(yAxisTitleMargin),
         nameLocation: yAxisTitlePosition === 'Left' ? 'middle' : 'end',
         alignTicks,
@@ -686,7 +700,7 @@ export default function transformProps(
           ),
         },
         scale: truncateYAxis,
-        name: yAxisTitleSecondary,
+        name: localizedYAxisTitleSecondary,
         alignTicks,
       },
     ],
