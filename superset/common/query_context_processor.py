@@ -98,6 +98,18 @@ class QueryContextProcessor:
             force_cached=force_cached,
         )
 
+        # If cache is loaded but missing applied_filter_columns and query has filters,
+        # treat as cache miss to ensure fresh query with proper applied_filter_columns
+        if (
+            query_obj
+            and cache_key
+            and cache.is_loaded
+            and not cache.applied_filter_columns
+            and query_obj.filter
+            and len(query_obj.filter) > 0
+        ):
+            cache.is_loaded = False
+
         if query_obj and cache_key and not cache.is_loaded:
             try:
                 if invalid_columns := [
@@ -181,6 +193,7 @@ class QueryContextProcessor:
         return {
             "cache_key": cache_key,
             "cached_dttm": cache.cache_dttm,
+            "queried_dttm": cache.queried_dttm,
             "cache_timeout": self.get_cache_timeout(),
             "df": cache.df,
             "applied_template_filters": cache.applied_template_filters,

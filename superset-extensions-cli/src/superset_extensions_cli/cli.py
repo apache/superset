@@ -363,11 +363,6 @@ def dev(ctx: click.Context) -> None:
     def backend_watcher() -> None:
         if backend_dir.exists():
             rebuild_backend(cwd)
-            dist_dir = cwd / "dist"
-            manifest_path = dist_dir / "manifest.json"
-            if manifest_path.exists():
-                manifest = json.loads(manifest_path.read_text())
-                write_manifest(cwd, manifest)
 
     # Build watch message based on existing directories
     watch_dirs = []

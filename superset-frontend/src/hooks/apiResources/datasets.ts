@@ -19,12 +19,12 @@
  */
 import {
   Column,
-  logging,
   Metric,
   ensureIsArray,
   getExtensionsRegistry,
   QueryFormData,
 } from '@superset-ui/core';
+import { logging } from '@apache-superset/core';
 import { useEffect, useState } from 'react';
 import { Dataset } from 'src/components/Chart/types';
 import {

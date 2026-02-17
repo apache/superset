@@ -17,7 +17,7 @@
  * under the License.
  */
 import { styled } from '@apache-superset/core/ui';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { Icons, Modal, Typography, Button } from '@superset-ui/core/components';
 import type { FC, ReactElement, ReactNode } from 'react';
 

@@ -224,7 +224,7 @@ class ReportSchedulePostSchema(Schema):
         validate=[Range(min=1, error=_("Value must be greater than 0"))],
     )
 
-    recipients = fields.List(fields.Nested(ReportRecipientSchema))
+    recipients = fields.List(fields.Nested(ReportRecipientSchema), required=False)
     report_format = fields.String(
         dump_default=ReportDataFormat.PNG,
         validate=validate.OneOf(choices=tuple(key.value for key in ReportDataFormat)),

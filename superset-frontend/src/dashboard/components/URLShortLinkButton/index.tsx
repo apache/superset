@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useState } from 'react';
-import { getClientErrorObject, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { getClientErrorObject } from '@superset-ui/core';
 import { useTheme } from '@apache-superset/core/ui';
 import {
   Button,
@@ -69,7 +70,7 @@ export default function URLShortLinkButton({
         chartStates &&
         Object.keys(chartStates).length > 0;
 
-      const url = await getDashboardPermalink({
+      const result = await getDashboardPermalink({
         dashboardId,
         dataMask,
         activeTabs,
@@ -77,7 +78,9 @@ export default function URLShortLinkButton({
         chartStates: includeChartState ? chartStates : undefined,
         includeChartState,
       });
-      setShortUrl(url);
+      if (result?.url) {
+        setShortUrl(result.url);
+      }
     } catch (error) {
       if (error) {
         addDangerToast(

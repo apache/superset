@@ -17,25 +17,52 @@
  * under the License.
  */
 import { useCallback, useEffect, useState } from 'react';
+import { t } from '@apache-superset/core';
 import {
-  t,
   SupersetClient,
   isFeatureEnabled,
   FeatureFlag,
 } from '@superset-ui/core';
 import { styled, Alert } from '@apache-superset/core/ui';
-import { CssEditor, Select } from '@superset-ui/core/components';
+import { Select, Switch } from '@superset-ui/core/components';
+import { EditorHost } from 'src/core/editors';
 import rison from 'rison';
 import ColorSchemeSelect from 'src/dashboard/components/ColorSchemeSelect';
 import { ModalFormField } from 'src/components/Modal';
 
-const StyledCssEditor = styled(CssEditor)`
+const StyledEditorHost = styled(EditorHost)`
   border-radius: ${({ theme }) => theme.borderRadius}px;
   border: 1px solid ${({ theme }) => theme.colorBorder};
 `;
 
 const StyledAlert = styled(Alert)`
   margin-bottom: ${({ theme }) => theme.sizeUnit * 4}px;
+`;
+
+const StyledSwitchContainer = styled.div`
+  ${({ theme }) => `
+    display: flex;
+    flex-direction: column;
+    margin-bottom: ${theme.sizeUnit * 4}px;
+
+    .switch-row {
+      display: flex;
+      align-items: center;
+      gap: ${theme.sizeUnit * 2}px;
+    }
+
+    .switch-label {
+      color: ${theme.colorText};
+      font-size: ${theme.fontSize}px;
+    }
+
+    .switch-helper {
+      display: block;
+      color: ${theme.colorTextTertiary};
+      font-size: ${theme.fontSizeSM}px;
+      margin-top: ${theme.sizeUnit}px;
+    }
+  `}
 `;
 
 interface Theme {
@@ -54,12 +81,14 @@ interface StylingSectionProps {
   colorScheme?: string;
   customCss: string;
   hasCustomLabelsColor: boolean;
+  showChartTimestamps: boolean;
   onThemeChange: (value: any) => void;
   onColorSchemeChange: (
     colorScheme: string,
     options?: { updateMetadata?: boolean },
   ) => void;
   onCustomCssChange: (css: string) => void;
+  onShowChartTimestampsChange: (value: boolean) => void;
   addDangerToast?: (message: string) => void;
 }
 
@@ -69,9 +98,11 @@ const StylingSection = ({
   colorScheme,
   customCss,
   hasCustomLabelsColor,
+  showChartTimestamps,
   onThemeChange,
   onColorSchemeChange,
   onCustomCssChange,
+  onShowChartTimestampsChange,
   addDangerToast,
 }: StylingSectionProps) => {
   const [cssTemplates, setCssTemplates] = useState<CssTemplate[]>([]);
@@ -167,6 +198,23 @@ const StylingSection = ({
           showWarning={hasCustomLabelsColor}
         />
       </ModalFormField>
+      <StyledSwitchContainer data-test="dashboard-show-timestamps-field">
+        <div className="switch-row">
+          <Switch
+            data-test="dashboard-show-timestamps-switch"
+            checked={showChartTimestamps}
+            onChange={onShowChartTimestampsChange}
+          />
+          <span className="switch-label">
+            {t('Show chart query timestamps')}
+          </span>
+        </div>
+        <span className="switch-helper">
+          {t(
+            'Display the last queried timestamp on charts in the dashboard view',
+          )}
+        </span>
+      </StyledSwitchContainer>
       {isFeatureEnabled(FeatureFlag.CssTemplates) &&
         cssTemplates.length > 0 && (
           <ModalFormField
@@ -207,14 +255,14 @@ const StylingSection = ({
         )}
         bottomSpacing={false}
       >
-        <StyledCssEditor
+        <StyledEditorHost
+          id="dashboard-css-editor"
           data-test="dashboard-css-editor"
           onChange={onCustomCssChange}
           value={customCss}
+          language="css"
           width="100%"
-          minLines={10}
-          maxLines={50}
-          editorProps={{ $blockScrolling: true }}
+          height="160px"
         />
       </ModalFormField>
     </>

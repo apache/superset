@@ -53,6 +53,12 @@ ParserElement.enable_packrat()
 
 logger = logging.getLogger(__name__)
 
+# Mapping of ordinal words to their numeric values for date expressions
+ORDINAL_MAP: dict[str, int] = {
+    "first": 1,
+    "1st": 1,
+}
+
 
 def parse_human_datetime(human_readable: str) -> datetime:
     """Returns ``datetime.datetime`` from human readable strings"""
@@ -226,6 +232,67 @@ def handle_end_of(base_expression: str, unit: str) -> str:
     if unit in valid_units:
         return f"LASTDAY({base_expression}, {unit})"
     raise ValueError(f"Invalid unit for 'end of': {unit}")
+
+
+def handle_nth_of(
+    ordinal: str,
+    subunit: str | None,
+    scope: str | None,
+    unit: str,
+    relative_start: str | None,
+) -> str:
+    """
+    Handles "first" time expressions like "first of the month" or
+    "first week of this year".
+
+    This handler returns either a single date expression or a range expression
+    depending on whether a subunit is provided.
+
+    Args:
+        ordinal: The ordinal word or number ("first", "1st")
+        subunit: The smaller time unit ("week", "day", "month") or None
+        scope: Time scope ("this", "last", "next", "prior") or None
+            (defaults to "this")
+        unit: The larger time unit ("month", "year", "quarter", "week")
+        relative_start: Optional user-provided base time
+
+    Returns:
+        - Single date expression if subunit is None (e.g., "first of the month")
+        - Range expression "since : until" if subunit is provided
+          (e.g., "first week of year")
+
+    Examples:
+        >>> handle_nth_of("first", None, "this", "month", None)
+        "DATETRUNC(DATETIME('today'), month)"
+
+        >>> handle_nth_of("first", "week", "this", "year", None)
+        "DATETRUNC(..., year) : DATEADD(DATETRUNC(..., year), 1, week)"
+    """
+    # Convert ordinal to number
+    n = ORDINAL_MAP.get(ordinal.lower(), int(ordinal) if ordinal.isdigit() else 1)
+
+    relative_base = get_relative_base(unit, relative_start)
+    effective_scope = scope.lower() if scope else "this"
+
+    # Get the start of the larger unit with scope applied
+    base_expr = handle_scope_and_unit(effective_scope, "", unit, relative_base)
+    start_of_unit = f"DATETRUNC({base_expr}, {unit.lower()})"
+
+    if subunit is None:
+        # "first of the month" -> single date (first day of the unit)
+        return start_of_unit
+    else:
+        # "first week of the year" -> range
+        # Start: beginning of unit + (n-1) subunits
+        if n == 1:
+            range_start = start_of_unit
+        else:
+            range_start = f"DATEADD({start_of_unit}, {n - 1}, {subunit.lower()})"
+
+        # End: start + 1 subunit
+        range_end = f"DATEADD({range_start}, 1, {subunit.lower()})"
+
+        return f"{range_start} : {range_end}"
 
 
 def handle_modifier_and_unit(
@@ -415,13 +482,31 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
     ):
         time_range = "DATETRUNC(DATEADD(DATETIME('today'), 0, YEAR), YEAR) : DATETRUNC(DATEADD(DATETIME('today'), 1, YEAR), YEAR)"  # noqa: E501
 
+    # Handle "first [subunit] of [scope] [unit]" patterns that produce a range
+    # e.g., "first week of this year" -> returns start of year to end of first week
+    # e.g., "first month of this quarter" -> returns start of first month to end
+    # Note: "day" is NOT included as a subunit here because "first day of X" should
+    # return a single date, not a range. Those are handled in time_range_lookup below.
+    if time_range and separator not in time_range:
+        nth_subunit_pattern = (
+            r"^(first|1st)\s{1,5}"
+            r"(week|month|quarter)\s{1,5}of\s{1,5}"
+            r"(?:(this|last|next|prior)\s{1,5})?"
+            r"(?:the\s{1,5})?"
+            r"(week|month|quarter|year)$"
+        )
+        match = re.search(nth_subunit_pattern, time_range, re.IGNORECASE)
+        if match:
+            ordinal, subunit, scope, unit = match.groups()
+            time_range = handle_nth_of(ordinal, subunit, scope, unit, relative_start)
+
     if time_range and separator in time_range:
         time_range_lookup = [
             (
-                r"^(start of|beginning of|end of)\s+"
-                r"(this|last|next|prior)\s+"
-                r"([0-9]+)?\s*"
-                r"(day|week|month|quarter|year)s?$",  # Matches phrases like "start of next month" # noqa: E501
+                r"^(start of|beginning of|end of)\s{1,5}"
+                r"(this|last|next|prior)\s{1,5}"
+                r"([0-9]+)?\s{0,5}"
+                r"(day|week|month|quarter|year)s?$",  # Matches phrases like "start of next month"  # noqa: E501
                 lambda modifier, scope, delta, unit: handle_modifier_and_unit(
                     modifier,
                     scope,
@@ -431,8 +516,30 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
                 ),
             ),
             (
-                r"^(this|last|next|prior)\s+"
-                r"([0-9]+)?\s*"
+                # Pattern for "first of [scope] [unit]" - single date
+                # e.g., "first of this month", "first of last year"
+                r"^(first|1st)\s{1,5}"
+                r"(?:day\s{1,5})?of\s{1,5}"
+                r"(this|last|next|prior)\s{1,5}"
+                r"(day|week|month|quarter|year)s?$",
+                lambda ordinal, scope, unit: handle_nth_of(
+                    ordinal, None, scope, unit, relative_start
+                ),
+            ),
+            (
+                # Pattern for "first of the [unit]" - single date with default scope
+                # e.g., "first of the month", "first day of the year"
+                r"^(first|1st)\s{1,5}"
+                r"(?:day\s{1,5})?of\s{1,5}"
+                r"(?:the\s{1,5})?"
+                r"(week|month|quarter|year)$",
+                lambda ordinal, unit: handle_nth_of(
+                    ordinal, None, None, unit, relative_start
+                ),
+            ),
+            (
+                r"^(this|last|next|prior)\s{1,5}"
+                r"([0-9]+)?\s{0,5}"
                 r"(second|minute|day|week|month|quarter|year)s?$",  # Matches "next 5 days" or "last 2 weeks" # noqa: E501
                 lambda scope, delta, unit: handle_scope_and_unit(
                     scope, delta, unit, get_relative_base(unit, relative_start)

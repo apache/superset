@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getExtensionsRegistry, SupersetClient, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { getExtensionsRegistry, SupersetClient } from '@superset-ui/core';
 import { styled, useTheme, css } from '@apache-superset/core/ui';
 import { FunctionComponent, useState, useMemo, useCallback, Key } from 'react';
 import { Link, useHistory } from 'react-router-dom';
@@ -24,8 +25,10 @@ import rison from 'rison';
 import {
   createFetchRelated,
   createFetchDistinct,
+  createFetchOwners,
   createErrorHandler,
 } from 'src/views/CRUD/utils';
+import { OWNER_OPTION_FILTER_PROPS } from 'src/features/owners/OwnerSelectLabel';
 import { ColumnObject } from 'src/features/datasets/types';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import {
@@ -578,9 +581,8 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         input: 'select',
         operator: FilterOperator.RelationManyMany,
         unfilteredLabel: 'All',
-        fetchSelects: createFetchRelated(
+        fetchSelects: createFetchOwners(
           'dataset',
-          'owners',
           createErrorHandler(errMsg =>
             t(
               'An error occurred while fetching dataset owner values: %s',
@@ -589,6 +591,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           ),
           user,
         ),
+        optionFilterProps: OWNER_OPTION_FILTER_PROPS,
         paginate: true,
         dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },

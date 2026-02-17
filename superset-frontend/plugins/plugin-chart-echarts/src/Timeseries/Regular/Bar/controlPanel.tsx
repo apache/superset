@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ensureIsArray, JsonArray, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { ensureIsArray, JsonArray } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   ControlPanelsContainerProps,
@@ -34,7 +35,7 @@ import {
   minorTicks,
   richTooltipSection,
   seriesOrderSection,
-  showValueSection,
+  showValueSectionWithoutStream,
   truncateXAxis,
   xAxisBounds,
   xAxisLabelRotation,
@@ -242,10 +243,12 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
         name: 'truncateYAxis',
         config: {
           type: 'CheckboxControl',
-          label: t('Truncate Axis'),
+          label: t('Truncate Y Axis'),
           default: truncateYAxis,
           renderTrigger: true,
-          description: t('It’s not recommended to truncate axis in Bar chart.'),
+          description: t(
+            'It’s not recommended to truncate Y axis in Bar chart.',
+          ),
           visibility: ({ controls }: ControlPanelsContainerProps) =>
             isXAxis ? isHorizontal(controls) : isVertical(controls),
           disableStash: true,
@@ -324,7 +327,7 @@ const config: ControlPanelConfig = {
         ...seriesOrderSection,
         ['color_scheme'],
         ['time_shift_color'],
-        ...showValueSection,
+        ...showValueSectionWithoutStream,
         [
           {
             name: 'stackDimension',
@@ -372,11 +375,18 @@ const config: ControlPanelConfig = {
       ],
     },
   ],
-  formDataOverrides: formData => ({
-    ...formData,
-    metrics: getStandardizedControls().popAllMetrics(),
-    groupby: getStandardizedControls().popAllColumns(),
-  }),
+  formDataOverrides: formData => {
+    // Reset stack to null if it's Stream when switching to Bar chart
+    const formDataWithStack = formData as Record<string, unknown>;
+    return {
+      ...formData,
+      metrics: getStandardizedControls().popAllMetrics(),
+      groupby: getStandardizedControls().popAllColumns(),
+      ...(formDataWithStack.stack === StackControlsValue.Stream && {
+        stack: null,
+      }),
+    };
+  },
 };
 
 export default config;

@@ -60,7 +60,6 @@ Superset embraces a testing pyramid approach:
 - **pytest**: Python testing framework with powerful fixtures and plugins
 - **SQLAlchemy Test Utilities**: Database testing and transaction management
 - **Flask Test Client**: API endpoint testing and request simulation
-- **Factory Boy**: Test data generation and model factories
 
 ## Best Practices
 
@@ -157,7 +156,6 @@ npm run test:coverage
 - **React Testing Library** - Component testing utilities
 - **Playwright** - End-to-end testing (replacing Cypress)
 - **Storybook** - Component development and testing
-- **MSW** - API mocking for testing
 
 ---
 

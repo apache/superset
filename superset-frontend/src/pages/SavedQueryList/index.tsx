@@ -17,11 +17,11 @@
  * under the License.
  */
 
+import { t } from '@apache-superset/core';
 import {
   FeatureFlag,
   isFeatureEnabled,
   SupersetClient,
-  t,
 } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';
 import { useCallback, useMemo, useState, MouseEvent } from 'react';

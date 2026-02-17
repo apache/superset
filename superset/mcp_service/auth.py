@@ -28,10 +28,11 @@ Future enhancements (to be added in separate PRs):
 """
 
 import logging
+from contextlib import AbstractContextManager
 from typing import Any, Callable, TYPE_CHECKING, TypeVar
 
 from flask import g
-from flask_appbuilder.security.sqla.models import User
+from flask_appbuilder.security.sqla.models import Group, User
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
@@ -40,6 +41,50 @@ if TYPE_CHECKING:
 F = TypeVar("F", bound=Callable[..., Any])
 
 logger = logging.getLogger(__name__)
+
+
+def load_user_with_relationships(
+    username: str | None = None, email: str | None = None
+) -> User | None:
+    """
+    Load a user with all relationships needed for permission checks.
+
+    This function eagerly loads User.roles, User.groups, and Group.roles
+    to prevent detached instance errors when the session is closed/rolled back.
+
+    IMPORTANT: Always use this function instead of security_manager.find_user()
+    when loading users for MCP tool execution. The find_user() method doesn't
+    eagerly load Group.roles, causing "detached instance" errors when permission
+    checks access group.roles after the session is rolled back.
+
+    Args:
+        username: The username to look up (optional if email provided)
+        email: The email to look up (optional if username provided)
+
+    Returns:
+        User object with relationships loaded, or None if not found
+
+    Raises:
+        ValueError: If neither username nor email is provided
+    """
+    if not username and not email:
+        raise ValueError("Either username or email must be provided")
+
+    from sqlalchemy.orm import joinedload
+
+    from superset.extensions import db
+
+    query = db.session.query(User).options(
+        joinedload(User.roles),
+        joinedload(User.groups).joinedload(Group.roles),
+    )
+
+    if username:
+        query = query.filter(User.username == username)
+    else:
+        query = query.filter(User.email == email)
+
+    return query.first()
 
 
 def get_user_from_request() -> User:
@@ -57,9 +102,6 @@ def get_user_from_request() -> User:
         ValueError: If user cannot be authenticated or found
     """
     from flask import current_app
-    from sqlalchemy.orm import joinedload
-
-    from superset.extensions import db
 
     # First check if user is already set by Preset workspace middleware
     if hasattr(g, "user") and g.user:
@@ -75,14 +117,8 @@ def get_user_from_request() -> User:
             "MCP_DEV_USERNAME for development."
         )
 
-    # Query user directly with eager loading to ensure fresh session-bound object
-    # Do NOT use security_manager.find_user() as it may return cached/detached user
-    user = (
-        db.session.query(User)
-        .options(joinedload(User.roles), joinedload(User.groups))
-        .filter(User.username == username)
-        .first()
-    )
+    # Use helper function to load user with all required relationships
+    user = load_user_with_relationships(username)
 
     if not user:
         raise ValueError(
@@ -126,14 +162,22 @@ def has_dataset_access(dataset: "SqlaTable") -> bool:
         return False  # Deny access on error
 
 
-def _setup_user_context() -> User:
+def _setup_user_context() -> User | None:
     """
     Set up user context for MCP tool execution.
 
     Returns:
-        User object with roles and groups loaded
+        User object with roles and groups loaded, or None if no Flask context
     """
-    user = get_user_from_request()
+    try:
+        user = get_user_from_request()
+    except RuntimeError as e:
+        # No Flask application context (e.g., prompts before middleware runs)
+        # This is expected for some FastMCP operations - return None gracefully
+        if "application context" in str(e):
+            logger.debug("No Flask app context available for user setup")
+            return None
+        raise
 
     # Validate user has necessary relationships loaded
     # (Force access to ensure they're loaded if lazy)
@@ -157,26 +201,12 @@ def _cleanup_session_on_error() -> None:
         logger.warning("Error cleaning up session after exception: %s", e)
 
 
-def _cleanup_session_finally() -> None:
-    """Clean up database session in finally block."""
-    from superset.extensions import db
-
-    # Rollback active session (no exception occurred)
-    # Do NOT call remove() on success to avoid detaching user
-    try:
-        if db.session.is_active:
-            # pylint: disable=consider-using-transaction
-            db.session.rollback()
-    except Exception as e:
-        logger.warning("Error in finally block: %s", e)
-
-
-def mcp_auth_hook(tool_func: F) -> F:
+def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
     """
     Authentication and authorization decorator for MCP tools.
 
-    This decorator assumes Flask application context and g.user
-    have already been set by WorkspaceContextMiddleware.
+    This decorator pushes Flask application context and sets up g.user
+    for MCP tool execution.
 
     Supports both sync and async tool functions.
 
@@ -184,9 +214,23 @@ def mcp_auth_hook(tool_func: F) -> F:
     TODO (future PR): Add JWT scope validation
     TODO (future PR): Add comprehensive audit logging
     """
+    import contextlib
     import functools
     import inspect
     import types
+
+    from flask import has_app_context
+
+    from superset.mcp_service.flask_singleton import get_flask_app
+
+    def _get_app_context_manager() -> AbstractContextManager[None]:
+        """Return app context manager only if not already in one."""
+        if has_app_context():
+            # Already in app context (e.g., in tests), use null context
+            return contextlib.nullcontext()
+        # Push new app context for standalone MCP server
+        app = get_flask_app()
+        return app.app_context()
 
     is_async = inspect.iscoroutinefunction(tool_func)
 
@@ -194,21 +238,29 @@ def mcp_auth_hook(tool_func: F) -> F:
 
         @functools.wraps(tool_func)
         async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
-            user = _setup_user_context()
+            with _get_app_context_manager():
+                user = _setup_user_context()
 
-            try:
-                logger.debug(
-                    "MCP tool call: user=%s, tool=%s",
-                    user.username,
-                    tool_func.__name__,
-                )
-                result = await tool_func(*args, **kwargs)
-                return result
-            except Exception:
-                _cleanup_session_on_error()
-                raise
-            finally:
-                _cleanup_session_finally()
+                # No Flask context - this is a FastMCP internal operation
+                # (e.g., tool discovery, prompt listing) that doesn't require auth
+                if user is None:
+                    logger.debug(
+                        "MCP internal call without Flask context: tool=%s",
+                        tool_func.__name__,
+                    )
+                    return await tool_func(*args, **kwargs)
+
+                try:
+                    logger.debug(
+                        "MCP tool call: user=%s, tool=%s",
+                        user.username,
+                        tool_func.__name__,
+                    )
+                    result = await tool_func(*args, **kwargs)
+                    return result
+                except Exception:
+                    _cleanup_session_on_error()
+                    raise
 
         wrapper = async_wrapper
 
@@ -216,21 +268,29 @@ def mcp_auth_hook(tool_func: F) -> F:
 
         @functools.wraps(tool_func)
         def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
-            user = _setup_user_context()
+            with _get_app_context_manager():
+                user = _setup_user_context()
 
-            try:
-                logger.debug(
-                    "MCP tool call: user=%s, tool=%s",
-                    user.username,
-                    tool_func.__name__,
-                )
-                result = tool_func(*args, **kwargs)
-                return result
-            except Exception:
-                _cleanup_session_on_error()
-                raise
-            finally:
-                _cleanup_session_finally()
+                # No Flask context - this is a FastMCP internal operation
+                # (e.g., tool discovery, prompt listing) that doesn't require auth
+                if user is None:
+                    logger.debug(
+                        "MCP internal call without Flask context: tool=%s",
+                        tool_func.__name__,
+                    )
+                    return tool_func(*args, **kwargs)
+
+                try:
+                    logger.debug(
+                        "MCP tool call: user=%s, tool=%s",
+                        user.username,
+                        tool_func.__name__,
+                    )
+                    result = tool_func(*args, **kwargs)
+                    return result
+                except Exception:
+                    _cleanup_session_on_error()
+                    raise
 
         wrapper = sync_wrapper
 

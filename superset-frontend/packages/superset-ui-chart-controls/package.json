@@ -27,7 +27,7 @@
     "@apache-superset/core": "*",
     "@react-icons/all-files": "^4.1.0",
     "@types/react": "*",
-    "lodash": "^4.17.21"
+    "lodash": "^4.17.23"
   },
   "peerDependencies": {
     "@ant-design/icons": "^5.2.6",

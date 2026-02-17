@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 
 export const PAGE_SIZE = 25;
 export const SORT_BY = [{ id: 'changed_on_delta_humanized', desc: true }];

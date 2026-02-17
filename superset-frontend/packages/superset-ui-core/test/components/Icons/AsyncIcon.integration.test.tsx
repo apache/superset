@@ -45,7 +45,7 @@ const mockTheme: SupersetTheme = {
 } as SupersetTheme;
 
 describe('AsyncIcon Integration Tests (Real Component)', () => {
-  it('should have data-test and aria-label attributes with real component', () => {
+  test('should have data-test and aria-label attributes with real component', () => {
     const { container } = render(
       <ThemeProvider theme={mockTheme}>
         <AsyncIcon customIcons fileName="slack" iconSize="l" />
@@ -61,7 +61,7 @@ describe('AsyncIcon Integration Tests (Real Component)', () => {
     expect(spanElement).toHaveAttribute('data-test', 'slack');
   });
 
-  it('should always have aria-label and data-test for testing', () => {
+  test('should always have aria-label and data-test for testing', () => {
     const { container } = render(
       <ThemeProvider theme={mockTheme}>
         <AsyncIcon customIcons fileName="slack" iconSize="l" />
@@ -81,7 +81,7 @@ describe('AsyncIcon Integration Tests (Real Component)', () => {
     expect(dataTest).toBe('slack');
   });
 
-  it('should set role to button when onClick is provided in real component', () => {
+  test('should set role to button when onClick is provided in real component', () => {
     const onClick = jest.fn();
     const { container } = render(
       <ThemeProvider theme={mockTheme}>
@@ -105,7 +105,7 @@ describe('AsyncIcon Integration Tests (Real Component)', () => {
     expect(onClick).toHaveBeenCalledTimes(1);
   });
 
-  it('should handle complex fileName patterns like BaseIcon', () => {
+  test('should handle complex fileName patterns like BaseIcon', () => {
     const { container } = render(
       <ThemeProvider theme={mockTheme}>
         <AsyncIcon customIcons fileName="slack_notification" iconSize="l" />

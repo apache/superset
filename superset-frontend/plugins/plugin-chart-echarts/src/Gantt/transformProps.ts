@@ -24,6 +24,7 @@ import {
   EChartsCoreOption,
   LineSeriesOption,
 } from 'echarts';
+import { t } from '@apache-superset/core';
 import {
   AxisType,
   CategoricalColorNamespace,
@@ -31,7 +32,6 @@ import {
   DataRecordValue,
   getColumnLabel,
   getNumberFormatter,
-  t,
   tooltipHtml,
 } from '@superset-ui/core';
 import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';

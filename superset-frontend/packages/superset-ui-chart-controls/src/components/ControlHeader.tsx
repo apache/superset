@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ReactNode } from 'react';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { css } from '@apache-superset/core/ui';
 import { InfoTooltip, Tooltip, Icons } from '@superset-ui/core/components';
 

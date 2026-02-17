@@ -19,7 +19,8 @@
 
 import { ReactNode, Key, useMemo } from 'react';
 
-import { t, useTruncation } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { useTruncation } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';
 import { Tooltip } from '@superset-ui/core/components';
 

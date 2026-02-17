@@ -64,5 +64,29 @@ InteractiveIconTooltip.argTypes = {
     defaultValue: 'top',
     control: { type: 'select' },
     options: PLACEMENTS,
+    description: 'Position of the tooltip relative to the icon.',
+  },
+  tooltip: {
+    control: { type: 'text' },
+    description: 'Text content to display in the tooltip.',
+  },
+};
+
+InteractiveIconTooltip.parameters = {
+  docs: {
+    description: {
+      story:
+        'A tooltip wrapper for icons. Pass an icon component as children and specify tooltip text.',
+    },
+    sampleChildren: [
+      { component: 'Icons.InfoCircleOutlined', props: { iconSize: 'l' } },
+    ],
+    liveExample: `function Demo() {
+  return (
+    <IconTooltip tooltip="Helpful information">
+      <Icons.InfoCircleOutlined iconSize="l" />
+    </IconTooltip>
+  );
+}`,
   },
 };

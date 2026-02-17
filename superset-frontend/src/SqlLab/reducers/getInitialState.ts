@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { nanoid } from 'nanoid';
 import type { BootstrapData } from 'src/types/bootstrapTypes';
 import type { InitialState } from 'src/hooks/apiResources/sqlLab';
@@ -254,7 +254,9 @@ export default function getInitialState({
       activeSouthPaneTab: 'Results',
       alerts: [],
       databases,
+      dbConnect: false,
       offline: false,
+      errorMessage: null,
       queries: Object.fromEntries(
         Object.entries(queries).map(([queryId, query]) => [
           queryId,

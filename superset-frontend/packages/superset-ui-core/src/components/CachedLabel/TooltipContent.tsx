@@ -18,7 +18,7 @@
  */
 
 import { FC } from 'react';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { extendedDayjs } from '../../utils/dates';
 
 interface Props {

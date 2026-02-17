@@ -19,7 +19,8 @@
 /* eslint-env browser */
 import cx from 'classnames';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { addAlpha, JsonObject, t, useElementOnScreen } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { addAlpha, JsonObject, useElementOnScreen } from '@superset-ui/core';
 import { css, styled, useTheme } from '@apache-superset/core/ui';
 import { useDispatch, useSelector } from 'react-redux';
 import { EmptyState, Loading } from '@superset-ui/core/components';
@@ -249,11 +250,6 @@ const DashboardContentWrapper = styled.div`
         z-index: ${EMPTY_CONTAINER_Z_INDEX};
         position: absolute;
         width: 100%;
-        pointer-events: none;
-
-        & > .drop-indicator {
-          pointer-events: auto;
-        }
       }
 
       & > .empty-droptarget:first-child:not(.empty-droptarget--full) {
@@ -532,7 +528,6 @@ const DashboardBuilder = () => {
             ]}
             editMode={editMode}
           >
-            {/* @ts-ignore */}
             <DashboardComponent
               id={topLevelTabs?.id}
               parentId={DASHBOARD_ROOT_ID}
@@ -627,7 +622,6 @@ const DashboardBuilder = () => {
         ref={headerRef}
         filterBarWidth={headerFilterBarWidth}
       >
-        {/* @ts-ignore */}
         <Droppable
           data-test="top-level-tabs"
           className={cx(!topLevelTabs && editMode && 'empty-droptarget')}

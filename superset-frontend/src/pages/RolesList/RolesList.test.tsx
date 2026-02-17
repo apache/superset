@@ -29,6 +29,7 @@ import {
 } from 'spec/helpers/testing-library';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
+import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import RolesList from './index';
 
 const mockStore = configureStore([thunk]);
@@ -39,20 +40,20 @@ const roleEndpoint = 'glob:*/api/v1/security/roles/*';
 const permissionsEndpoint = 'glob:*/api/v1/security/permissions-resources/?*';
 const usersEndpoint = 'glob:*/api/v1/security/users/?*';
 
-const mockRoles = new Array(3).fill(undefined).map((_, i) => ({
+const mockRoles = Array.from({ length: 3 }, (_, i) => ({
   id: i,
   name: `role ${i}`,
   user_ids: [i, i + 1],
   permission_ids: [i, i + 1, i + 2],
 }));
 
-const mockPermissions = new Array(10).fill(undefined).map((_, i) => ({
+const mockPermissions = Array.from({ length: 10 }, (_, i) => ({
   id: i,
   permission: { name: `permission_${i}` },
   view_menu: { name: `view_menu_${i}` },
 }));
 
-const mockUsers = new Array(5).fill(undefined).map((_, i) => ({
+const mockUsers = Array.from({ length: 5 }, (_, i) => ({
   id: i,
   username: `user_${i}`,
   first_name: `User`,
@@ -107,7 +108,7 @@ describe('RolesList', () => {
       const mockedProps = {};
       render(
         <MemoryRouter>
-          <QueryParamProvider>
+          <QueryParamProvider adapter={ReactRouter5Adapter}>
             <RolesList
               user={mockUser}
               addDangerToast={() => {}}
@@ -122,7 +123,7 @@ describe('RolesList', () => {
     return mounted;
   }
   beforeEach(() => {
-    fetchMock.resetHistory();
+    fetchMock.clearHistory();
   });
 
   test('renders', async () => {
@@ -133,7 +134,7 @@ describe('RolesList', () => {
   test('fetches roles on load', async () => {
     await renderAndWait();
     await waitFor(() => {
-      const calls = fetchMock.calls(rolesEndpoint);
+      const calls = fetchMock.callHistory.calls(rolesEndpoint);
       expect(calls.length).toBeGreaterThan(0);
     });
   });
@@ -141,7 +142,7 @@ describe('RolesList', () => {
   test('fetches permissions on load', async () => {
     await renderAndWait();
     await waitFor(() => {
-      const permissionCalls = fetchMock.calls(permissionsEndpoint);
+      const permissionCalls = fetchMock.callHistory.calls(permissionsEndpoint);
       expect(permissionCalls.length).toBeGreaterThan(0);
     });
   });

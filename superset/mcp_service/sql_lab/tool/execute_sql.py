@@ -33,6 +33,7 @@ from superset_core.mcp import tool
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetErrorException, SupersetSecurityException
+from superset.extensions import event_logger
 from superset.mcp_service.sql_lab.schemas import (
     ColumnInfo,
     ExecuteSqlRequest,
@@ -72,28 +73,29 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
         from superset.models.core import Database
 
         # 1. Get database and check access
-        database = db.session.query(Database).filter_by(id=request.database_id).first()
-        if not database:
-            raise SupersetErrorException(
-                SupersetError(
-                    message=f"Database with ID {request.database_id} not found",
-                    error_type=SupersetErrorType.DATABASE_NOT_FOUND_ERROR,
-                    level=ErrorLevel.ERROR,
-                )
+        with event_logger.log_context(action="mcp.execute_sql.db_validation"):
+            database = (
+                db.session.query(Database).filter_by(id=request.database_id).first()
             )
-
-        if not security_manager.can_access_database(database):
-            raise SupersetSecurityException(
-                SupersetError(
-                    message=f"Access denied to database {database.database_name}",
-                    error_type=SupersetErrorType.DATABASE_SECURITY_ACCESS_ERROR,
-                    level=ErrorLevel.ERROR,
+            if not database:
+                raise SupersetErrorException(
+                    SupersetError(
+                        message=f"Database with ID {request.database_id} not found",
+                        error_type=SupersetErrorType.DATABASE_NOT_FOUND_ERROR,
+                        level=ErrorLevel.ERROR,
+                    )
                 )
-            )
 
-        # 2. Build QueryOptions
-        # Caching is enabled by default to reduce database load.
-        # force_refresh bypasses cache when user explicitly requests fresh data.
+            if not security_manager.can_access_database(database):
+                raise SupersetSecurityException(
+                    SupersetError(
+                        message=(f"Access denied to database {database.database_name}"),
+                        error_type=SupersetErrorType.DATABASE_SECURITY_ACCESS_ERROR,
+                        level=ErrorLevel.ERROR,
+                    )
+                )
+
+        # 2. Build QueryOptions and execute query
         cache_opts = CacheOptions(force_refresh=True) if request.force_refresh else None
         options = QueryOptions(
             catalog=request.catalog,
@@ -106,10 +108,12 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
         )
 
         # 3. Execute query
-        result = database.execute(request.sql, options)
+        with event_logger.log_context(action="mcp.execute_sql.query_execution"):
+            result = database.execute(request.sql, options)
 
         # 4. Convert to MCP response format
-        response = _convert_to_response(result)
+        with event_logger.log_context(action="mcp.execute_sql.response_conversion"):
+            response = _convert_to_response(result)
 
         # Log successful execution
         if response.success:
@@ -160,22 +164,31 @@ def _convert_to_response(result: QueryResult) -> ExecuteSqlResponse:
         for stmt in result.statements
     ]
 
-    # Get first statement's data for backward compatibility
-    first_stmt = result.statements[0] if result.statements else None
+    # Find the last statement with data (SELECT results).
+    # For single statements this is the same as first.
+    # For multi-statement queries (e.g., SET ...; SELECT ...) this skips
+    # non-data statements and returns the actual query results.
     rows: list[dict[str, Any]] | None = None
     columns: list[ColumnInfo] | None = None
     row_count: int | None = None
     affected_rows: int | None = None
 
-    if first_stmt and first_stmt.data is not None:
+    data_stmt = None
+    for stmt in reversed(result.statements):
+        if stmt.data is not None:
+            data_stmt = stmt
+            break
+
+    if data_stmt is not None and data_stmt.data is not None:
         # SELECT query - convert DataFrame
-        df = first_stmt.data
+        df = data_stmt.data
         rows = df.to_dict(orient="records")
         columns = [ColumnInfo(name=col, type=str(df[col].dtype)) for col in df.columns]
         row_count = len(df)
-    elif first_stmt:
-        # DML query
-        affected_rows = first_stmt.row_count
+    elif result.statements:
+        # DML-only query
+        last_stmt = result.statements[-1]
+        affected_rows = last_stmt.row_count
 
     return ExecuteSqlResponse(
         success=True,

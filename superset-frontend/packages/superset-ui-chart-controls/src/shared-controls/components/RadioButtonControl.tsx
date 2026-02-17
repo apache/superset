@@ -17,7 +17,8 @@
  * under the License.
  */
 import { ReactNode } from 'react';
-import { JsonValue, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { JsonValue } from '@superset-ui/core';
 import { Radio } from '@superset-ui/core/components';
 import { ControlHeader } from '../../components/ControlHeader';
 

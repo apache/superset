@@ -23,11 +23,13 @@ import logging
 from typing import Any, Dict, List, TYPE_CHECKING
 
 from fastmcp import Context
+from flask import current_app
 from superset_core.mcp import tool
 
 if TYPE_CHECKING:
     from superset.models.slice import Slice
 
+from superset.extensions import event_logger
 from superset.mcp_service.chart.schemas import (
     ChartData,
     ChartError,
@@ -36,11 +38,13 @@ from superset.mcp_service.chart.schemas import (
     PerformanceMetadata,
 )
 from superset.mcp_service.utils.cache_utils import get_cache_status_from_result
+from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
 
 @tool(tags=["data"])
+@parse_request(GetChartDataRequest)
 async def get_chart_data(  # noqa: C901
     request: GetChartDataRequest, ctx: Context
 ) -> ChartData | ChartError:
@@ -52,6 +56,7 @@ async def get_chart_data(  # noqa: C901
     - Numeric ID or UUID lookup
     - Multiple formats: json, csv, excel
     - Cache control: use_cache, force_refresh, cache_timeout
+    - Optional row limit override (respects chart's configured limits)
 
     Returns underlying data in requested format with cache status.
     """
@@ -78,25 +83,27 @@ async def get_chart_data(  # noqa: C901
         from superset.utils import json as utils_json
 
         # Find the chart
-        chart = None
-        if isinstance(request.identifier, int) or (
-            isinstance(request.identifier, str) and request.identifier.isdigit()
-        ):
-            chart_id = (
-                int(request.identifier)
-                if isinstance(request.identifier, str)
-                else request.identifier
-            )
-            await ctx.debug(
-                "Performing ID-based chart lookup: chart_id=%s" % (chart_id,)
-            )
-            chart = ChartDAO.find_by_id(chart_id)
-        else:
-            await ctx.debug(
-                "Performing UUID-based chart lookup: uuid=%s" % (request.identifier,)
-            )
-            # Try UUID lookup using DAO flexible method
-            chart = ChartDAO.find_by_id(request.identifier, id_column="uuid")
+        with event_logger.log_context(action="mcp.get_chart_data.chart_lookup"):
+            chart = None
+            if isinstance(request.identifier, int) or (
+                isinstance(request.identifier, str) and request.identifier.isdigit()
+            ):
+                chart_id = (
+                    int(request.identifier)
+                    if isinstance(request.identifier, str)
+                    else request.identifier
+                )
+                await ctx.debug(
+                    "Performing ID-based chart lookup: chart_id=%s" % (chart_id,)
+                )
+                chart = ChartDAO.find_by_id(chart_id)
+            else:
+                await ctx.debug(
+                    "Performing UUID-based chart lookup: uuid=%s"
+                    % (request.identifier,)
+                )
+                # Try UUID lookup using DAO flexible method
+                chart = ChartDAO.find_by_id(request.identifier, id_column="uuid")
 
         if not chart:
             await ctx.error("Chart not found: identifier=%s" % (request.identifier,))
@@ -121,40 +128,190 @@ async def get_chart_data(  # noqa: C901
 
         try:
             await ctx.report_progress(2, 4, "Preparing data query")
-            # Get chart data using the existing API
+            from superset.charts.schemas import ChartDataQueryContextSchema
             from superset.commands.chart.data.get_data_command import ChartDataCommand
-            from superset.common.query_context_factory import QueryContextFactory
 
-            # Parse the form_data to get query context
-            form_data = utils_json.loads(chart.params) if chart.params else {}
-            await ctx.debug(
-                "Chart form data parsed: has_filters=%s, has_groupby=%s, has_metrics=%s"
-                % (
-                    bool(form_data.get("filters")),
-                    bool(form_data.get("groupby")),
-                    bool(form_data.get("metrics")),
+            # Use the chart's saved query_context - this is the key!
+            # The query_context contains all the information needed to reproduce
+            # the chart's data exactly as shown in the visualization
+            query_context_json = None
+            if chart.query_context:
+                try:
+                    query_context_json = utils_json.loads(chart.query_context)
+                    await ctx.debug(
+                        "Using chart's saved query_context for data retrieval"
+                    )
+                except (TypeError, ValueError) as e:
+                    await ctx.warning(
+                        "Failed to parse chart query_context: %s" % str(e)
+                    )
+
+            if query_context_json is None:
+                # Fallback: Chart has no saved query_context
+                # This can happen with older charts that haven't been re-saved
+                await ctx.warning(
+                    "Chart has no saved query_context. "
+                    "Data may not match the chart visualization exactly. "
+                    "Consider re-saving the chart to enable full data retrieval."
                 )
-            )
+                # Try to construct from form_data as a fallback
+                form_data = utils_json.loads(chart.params) if chart.params else {}
+                from superset.common.query_context_factory import QueryContextFactory
 
-            # Create a proper QueryContext using the factory with cache control
-            factory = QueryContextFactory()
-            query_context = factory.create(
-                datasource={"id": chart.datasource_id, "type": chart.datasource_type},
-                queries=[
-                    {
-                        "filters": form_data.get("filters", []),
-                        "columns": form_data.get("groupby", []),
-                        "metrics": form_data.get("metrics", []),
-                        "row_limit": request.limit or 100,
-                        "order_desc": True,
-                        # Apply cache control from request
-                        "cache_timeout": request.cache_timeout,
-                    }
-                ],
-                form_data=form_data,
-                # Use cache unless force_refresh is True
-                force=request.force_refresh,
-            )
+                factory = QueryContextFactory()
+                row_limit = (
+                    request.limit
+                    or form_data.get("row_limit")
+                    or current_app.config["ROW_LIMIT"]
+                )
+
+                # Handle different chart types that have different form_data
+                # structures.  Chart types that exclusively use "metric"
+                # (singular) with no groupby:
+                #   big_number, big_number_total, pop_kpi
+                # Chart types that use "metric" (singular) but may have
+                # groupby-like fields (entity, series, columns):
+                #   world_map, treemap_v2, sunburst_v2, gauge_chart
+                # Bubble charts use x/y/size as separate metric fields.
+                viz_type = chart.viz_type or ""
+
+                singular_metric_no_groupby = (
+                    "big_number",
+                    "big_number_total",
+                    "pop_kpi",
+                )
+                singular_metric_types = (
+                    *singular_metric_no_groupby,
+                    "world_map",
+                    "treemap_v2",
+                    "sunburst_v2",
+                    "gauge_chart",
+                )
+
+                if viz_type == "bubble":
+                    # Bubble charts store metrics in x, y, size fields
+                    bubble_metrics = []
+                    for field in ("x", "y", "size"):
+                        m = form_data.get(field)
+                        if m:
+                            bubble_metrics.append(m)
+                    metrics = bubble_metrics
+                    groupby_columns: list[str] = list(
+                        form_data.get("entity", None) and [form_data["entity"]] or []
+                    )
+                    series_field = form_data.get("series")
+                    if series_field and series_field not in groupby_columns:
+                        groupby_columns.append(series_field)
+                elif viz_type in singular_metric_types:
+                    # These chart types use "metric" (singular)
+                    metric = form_data.get("metric")
+                    metrics = [metric] if metric else []
+                    if viz_type in singular_metric_no_groupby:
+                        groupby_columns = []
+                    else:
+                        # Some singular-metric charts use groupby, entity,
+                        # series, or columns for dimensional breakdown
+                        groupby_columns = list(form_data.get("groupby") or [])
+                        entity = form_data.get("entity")
+                        if entity and entity not in groupby_columns:
+                            groupby_columns.append(entity)
+                        series = form_data.get("series")
+                        if series and series not in groupby_columns:
+                            groupby_columns.append(series)
+                        form_columns = form_data.get("columns")
+                        if form_columns and isinstance(form_columns, list):
+                            for col in form_columns:
+                                if isinstance(col, str) and col not in groupby_columns:
+                                    groupby_columns.append(col)
+                else:
+                    # Standard charts use "metrics" (plural) and "groupby"
+                    metrics = form_data.get("metrics", [])
+                    groupby_columns = list(form_data.get("groupby") or [])
+                    # Some chart types use "columns" instead of "groupby"
+                    if not groupby_columns:
+                        form_columns = form_data.get("columns")
+                        if form_columns and isinstance(form_columns, list):
+                            for col in form_columns:
+                                if isinstance(col, str):
+                                    groupby_columns.append(col)
+
+                # Fallback: if metrics is still empty, try singular "metric"
+                if not metrics:
+                    fallback_metric = form_data.get("metric")
+                    if fallback_metric:
+                        metrics = [fallback_metric]
+
+                # Fallback: try entity/series if groupby is still empty
+                if not groupby_columns:
+                    entity = form_data.get("entity")
+                    if entity:
+                        groupby_columns.append(entity)
+                    series = form_data.get("series")
+                    if series and series not in groupby_columns:
+                        groupby_columns.append(series)
+
+                # Build query columns list: include both x_axis and groupby
+                x_axis_config = form_data.get("x_axis")
+                query_columns = groupby_columns.copy()
+                if x_axis_config and isinstance(x_axis_config, str):
+                    if x_axis_config not in query_columns:
+                        query_columns.insert(0, x_axis_config)
+                elif x_axis_config and isinstance(x_axis_config, dict):
+                    col_name = x_axis_config.get("column_name")
+                    if col_name and col_name not in query_columns:
+                        query_columns.insert(0, col_name)
+
+                # Safety net: if we could not extract any metrics or
+                # columns, return a clear error instead of the cryptic
+                # "Empty query?" that comes from deeper in the stack.
+                if not metrics and not query_columns:
+                    await ctx.error(
+                        "Cannot construct fallback query for chart %s "
+                        "(viz_type=%s): no metrics, columns, or groupby "
+                        "could be extracted from form_data. "
+                        "Re-save the chart to populate query_context."
+                        % (chart.id, viz_type)
+                    )
+                    return ChartError(
+                        error=(
+                            f"Chart {chart.id} (type: {viz_type}) has no "
+                            f"saved query_context and its form_data does "
+                            f"not contain recognizable metrics or columns. "
+                            f"Please open this chart in Superset and "
+                            f"re-save it to generate a query_context."
+                        ),
+                        error_type="MissingQueryContext",
+                    )
+
+                query_context = factory.create(
+                    datasource={
+                        "id": chart.datasource_id,
+                        "type": chart.datasource_type,
+                    },
+                    queries=[
+                        {
+                            "filters": form_data.get("filters", []),
+                            "columns": query_columns,
+                            "metrics": metrics,
+                            "row_limit": row_limit,
+                            "order_desc": True,
+                        }
+                    ],
+                    form_data=form_data,
+                    force=request.force_refresh,
+                )
+            else:
+                # Apply request overrides to the saved query_context
+                query_context_json["force"] = request.force_refresh
+
+                # Apply row limit if specified (respects chart's configured limits)
+                if request.limit:
+                    for query in query_context_json.get("queries", []):
+                        query["row_limit"] = request.limit
+
+                # Create QueryContext from the saved context using the schema
+                # This is exactly how the API does it
+                query_context = ChartDataQueryContextSchema().load(query_context_json)
 
             await ctx.report_progress(3, 4, "Executing data query")
             await ctx.debug(
@@ -169,8 +326,9 @@ async def get_chart_data(  # noqa: C901
             )
 
             # Execute the query
-            command = ChartDataCommand(query_context)
-            result = command.run()
+            with event_logger.log_context(action="mcp.get_chart_data.query_execution"):
+                command = ChartDataCommand(query_context)
+                result = command.run()
 
             # Handle empty query results for certain chart types
             if not result or ("queries" not in result) or len(result["queries"]) == 0:
@@ -322,21 +480,27 @@ async def get_chart_data(  # noqa: C901
 
             # Handle different export formats
             if request.format == "csv":
-                return _export_data_as_csv(
-                    chart,
-                    data[: request.limit] if request.limit else data,
-                    raw_columns,
-                    cache_status,
-                    performance,
-                )
+                with event_logger.log_context(
+                    action="mcp.get_chart_data.format_conversion"
+                ):
+                    return _export_data_as_csv(
+                        chart,
+                        data[: request.limit] if request.limit else data,
+                        raw_columns,
+                        cache_status,
+                        performance,
+                    )
             elif request.format == "excel":
-                return _export_data_as_excel(
-                    chart,
-                    data[: request.limit] if request.limit else data,
-                    raw_columns,
-                    cache_status,
-                    performance,
-                )
+                with event_logger.log_context(
+                    action="mcp.get_chart_data.format_conversion"
+                ):
+                    return _export_data_as_excel(
+                        chart,
+                        data[: request.limit] if request.limit else data,
+                        raw_columns,
+                        cache_status,
+                        performance,
+                    )
 
             await ctx.report_progress(4, 4, "Building response")
 

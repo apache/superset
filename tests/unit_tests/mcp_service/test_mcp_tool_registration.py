@@ -15,37 +15,25 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""Test MCP tool registration through superset-core dependency injection."""
-
-import sys
-from unittest.mock import MagicMock, patch
-
-from superset.core.mcp.core_mcp_injection import initialize_core_mcp_dependencies
+"""Test MCP app imports and tool/prompt registration."""
 
 
-def test_initialize_core_mcp_dependencies_replaces_decorator():
-    """Test that initialize_core_mcp_dependencies replaces the abstract tool
-    decorator."""
-    # Mock the superset_core.mcp module
-    mock_mcp_module = MagicMock()
+def test_mcp_app_imports_successfully():
+    """Test that the MCP app can be imported without errors."""
+    from superset.mcp_service.app import mcp
 
-    with patch.dict(sys.modules, {"superset_core.mcp": mock_mcp_module}):
-        initialize_core_mcp_dependencies()
+    assert mcp is not None
+    assert hasattr(mcp, "_tool_manager")
 
-        # Verify the abstract decorator was replaced
-        assert hasattr(mock_mcp_module, "tool")
-        assert callable(mock_mcp_module.tool)
+    tools = mcp._tool_manager._tools
+    assert len(tools) > 0
+    assert "health_check" in tools
+    assert "list_charts" in tools
 
 
-def test_tool_import_works():
-    """Test that tool can be imported from superset_core.mcp after
-    initialization."""
-    # This test verifies the basic import works (dependency injection has happened)
-    from superset_core.mcp import tool
+def test_mcp_prompts_registered():
+    """Test that MCP prompts are registered."""
+    from superset.mcp_service.app import mcp
 
-    # Should be callable
-    assert callable(tool)
-
-    # Should return a decorator function
-    decorator = tool(name="test", description="test")
-    assert callable(decorator)
+    prompts = mcp._prompt_manager._prompts
+    assert len(prompts) > 0

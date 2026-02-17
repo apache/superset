@@ -153,6 +153,8 @@ export interface QueryObject
   series_columns?: QueryFormColumn[];
   series_limit?: number;
   series_limit_metric?: Maybe<QueryFormMetric>;
+
+  visible_deckgl_layers?: number[];
 }
 
 export interface QueryContext {
@@ -314,6 +316,7 @@ export type Query = {
   errorMessage: string | null;
   extra: {
     progress: string | null;
+    progress_text?: string;
     errors?: SupersetError[];
   };
   id: string;

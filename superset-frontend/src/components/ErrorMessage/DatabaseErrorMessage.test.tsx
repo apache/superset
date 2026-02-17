@@ -162,7 +162,7 @@ test('should NOT render see more button when show_issue_info is false', () => {
 });
 
 test('should render message when wrong value provided for custom_doc_urls', () => {
-  // @ts-ignore
+  // @ts-expect-error
   render(<DatabaseErrorMessage {...mockedPropsWithCustomErrorAndBadLinks} />, {
     useRedux: true,
   });

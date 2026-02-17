@@ -18,6 +18,7 @@
 # pylint: disable=invalid-name, unused-argument, redefined-outer-name
 
 import json  # noqa: TID251
+from types import SimpleNamespace
 
 import pytest
 from flask_appbuilder.security.sqla.models import Role, User
@@ -1186,3 +1187,249 @@ def test_get_catalogs_accessible_by_user_schema_access(
     catalogs = {"catalog1", "catalog2"}
 
     assert sm.get_catalogs_accessible_by_user(database, catalogs) == {"catalog2"}
+
+
+def test_get_rls_filters_uses_table_id_directly(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Test that get_rls_filters() uses table.id directly instead of table.data["id"].
+
+    Accessing table.data triggers the full data property chain including select_star,
+    which requires a live database engine connection. When the DB is unreachable, this
+    causes the entire dashboard GET endpoint to fail with a 500 error.
+
+    This test ensures we use the direct .id attribute and never access .data,
+    preventing regressions that would break dashboard loading when DBs are unavailable.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+
+    # Create a mock table where .data raises an exception if accessed
+    table = mocker.MagicMock()
+    table.id = 42
+    type(table).data = mocker.PropertyMock(
+        side_effect=Exception(
+            "table.data should not be accessed - use table.id directly"
+        )
+    )
+
+    # Mock user context
+    mock_user = mocker.MagicMock()
+    mock_user.roles = [mocker.MagicMock(id=1)]
+    mocker.patch("superset.security.manager.g", user=mock_user)
+    mocker.patch.object(sm, "get_user_roles", return_value=mock_user.roles)
+
+    # Call get_rls_filters - if it accesses table.data, the PropertyMock will raise
+    # If it uses table.id directly (correct behavior), it will complete successfully
+    result = sm.get_rls_filters(table)
+    assert isinstance(result, list)
+
+
+def test_get_rls_filters_returns_cached_result(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Test that get_rls_filters() returns cached results on subsequent calls
+    for the same user and table, avoiding redundant DB queries.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+
+    mock_user = mocker.MagicMock()
+    mock_user.id = 1
+    mock_user.username = "admin"
+    mock_user.roles = [mocker.MagicMock(id=1)]
+    mock_g = SimpleNamespace(user=mock_user)
+    mocker.patch("superset.security.manager.g", new=mock_g)
+    mocker.patch("superset.security.manager.get_username", return_value="admin")
+    mocker.patch.object(sm, "get_user_roles", return_value=mock_user.roles)
+
+    table = mocker.MagicMock()
+    table.id = 42
+
+    # First call populates the cache
+    result1 = sm.get_rls_filters(table)
+
+    # Verify cache was populated keyed by (username, table_id)
+    assert ("admin", 42) in mock_g._rls_filter_cache
+
+    # Replace session query with something that would fail if called
+    mocker.patch.object(
+        sm.session,
+        "query",
+        side_effect=AssertionError("DB should not be queried on cache hit"),
+    )
+
+    # Second call should return cached result without querying DB
+    result2 = sm.get_rls_filters(table)
+    assert result1 == result2
+
+
+def test_prefetch_rls_filters_populates_cache(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Test that prefetch_rls_filters() populates the cache for all provided
+    table_ids, including empty results for tables with no matching filters.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+
+    mock_user = mocker.MagicMock()
+    mock_user.id = 1
+    mock_user.username = "admin"
+    mock_user.roles = [mocker.MagicMock(id=10)]
+    mock_g = SimpleNamespace(user=mock_user)
+    mocker.patch("superset.security.manager.g", new=mock_g)
+    mocker.patch("superset.security.manager.get_username", return_value="admin")
+    mocker.patch.object(sm, "get_user_roles", return_value=mock_user.roles)
+
+    # Mock the batch query to return filters for table 1 but not table 2
+    mock_query = mocker.MagicMock()
+    mock_query.join.return_value = mock_query
+    mock_query.filter.return_value = mock_query
+    mock_query.all.return_value = [
+        (1, 100, "group_a", "id > 0"),  # table_id=1
+        (1, 101, None, "active = 1"),  # table_id=1
+    ]
+    mocker.patch.object(sm.session, "query", return_value=mock_query)
+
+    sm.prefetch_rls_filters([1, 2])
+
+    # Table 1 should have 2 filters with named attribute access
+    cached = mock_g._rls_filter_cache[("admin", 1)]
+    assert len(cached) == 2
+    assert cached[0].id == 100
+    assert cached[0].group_key == "group_a"
+    assert cached[0].clause == "id > 0"
+    assert cached[1].id == 101
+    assert cached[1].group_key is None
+    assert cached[1].clause == "active = 1"
+    # Table 2 should have empty list
+    assert mock_g._rls_filter_cache[("admin", 2)] == []
+
+
+def test_prefetch_rls_filters_skips_cached_ids(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Test that prefetch_rls_filters() skips table_ids already in cache
+    and returns early when all ids are cached.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+
+    mock_user = mocker.MagicMock()
+    mock_user.id = 1
+    mock_user.username = "admin"
+    mock_user.roles = [mocker.MagicMock(id=10)]
+    mock_g = SimpleNamespace(
+        user=mock_user,
+        _rls_filter_cache={("admin", 1): [(100, "group_a", "id > 0")]},
+    )
+    mocker.patch("superset.security.manager.g", new=mock_g)
+    mocker.patch("superset.security.manager.get_username", return_value="admin")
+    mocker.patch.object(sm, "get_user_roles", return_value=mock_user.roles)
+
+    # If it queries the DB, this will fail
+    mocker.patch.object(
+        sm.session,
+        "query",
+        side_effect=AssertionError("DB should not be queried for cached ids"),
+    )
+
+    # All ids already cached -> should return immediately
+    sm.prefetch_rls_filters([1])
+
+
+def test_prefetch_rls_filters_no_user(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Test that prefetch_rls_filters() returns early when no user is present.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch("superset.security.manager.g", new=SimpleNamespace())
+
+    # Should not attempt any DB queries
+    mocker.patch.object(
+        sm.session,
+        "query",
+        side_effect=AssertionError("DB should not be queried without a user"),
+    )
+    sm.prefetch_rls_filters([1, 2])
+
+
+def test_get_rls_filters_cache_works_for_guest_user(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Test that get_rls_filters() caches results for guest users
+    using the same (username, table_id) cache key as regular users.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+
+    mock_guest = mocker.MagicMock()
+    mock_guest.username = "guest_user"
+    mock_guest.roles = [mocker.MagicMock(id=99)]
+
+    mock_g = SimpleNamespace(user=mock_guest)
+    mocker.patch("superset.security.manager.g", new=mock_g)
+    mocker.patch("superset.security.manager.get_username", return_value="guest_user")
+    mocker.patch.object(sm, "get_user_roles", return_value=mock_guest.roles)
+
+    table = mocker.MagicMock()
+    table.id = 42
+
+    # First call runs the query
+    result1 = sm.get_rls_filters(table)
+
+    # Verify cache was populated with (username, table_id) key
+    assert ("guest_user", 42) in mock_g._rls_filter_cache
+
+    # Replace session query to detect if it's called again
+    mocker.patch.object(
+        sm.session,
+        "query",
+        side_effect=AssertionError("DB should not be queried on cache hit"),
+    )
+
+    # Second call should use cache
+    result2 = sm.get_rls_filters(table)
+    assert result1 == result2
+
+
+def test_prefetch_rls_filters_works_for_guest_user(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Test that prefetch_rls_filters() works for guest users using the
+    same (username, table_id) cache key as regular users.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+
+    mock_guest = mocker.MagicMock()
+    mock_guest.username = "guest_user"
+    mock_guest.roles = [mocker.MagicMock(id=99)]
+
+    mock_g = SimpleNamespace(user=mock_guest)
+    mocker.patch("superset.security.manager.g", new=mock_g)
+    mocker.patch("superset.security.manager.get_username", return_value="guest_user")
+    mocker.patch.object(sm, "get_user_roles", return_value=mock_guest.roles)
+
+    # Mock the batch query returning no filters
+    mock_query = mocker.MagicMock()
+    mock_query.join.return_value = mock_query
+    mock_query.filter.return_value = mock_query
+    mock_query.all.return_value = []
+    mocker.patch.object(sm.session, "query", return_value=mock_query)
+
+    sm.prefetch_rls_filters([10, 20])
+
+    # Cache should be populated with (username, table_id) keys and empty lists
+    assert mock_g._rls_filter_cache[("guest_user", 10)] == []
+    assert mock_g._rls_filter_cache[("guest_user", 20)] == []

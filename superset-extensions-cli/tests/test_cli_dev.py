@@ -216,23 +216,15 @@ def test_frontend_watcher_function_coverage(isolated_filesystem):
 
 @pytest.mark.unit
 def test_backend_watcher_function_coverage(isolated_filesystem):
-    """Test backend watcher function for coverage."""
-    # Create dist directory with manifest
-    dist_dir = isolated_filesystem / "dist"
-    dist_dir.mkdir()
-
-    manifest_data = {"name": "test", "version": "1.0.0"}
-    (dist_dir / "manifest.json").write_text(json.dumps(manifest_data))
+    """Test backend watcher function only rebuilds backend files."""
+    # Create backend directory
+    backend_dir = isolated_filesystem / "backend"
+    backend_dir.mkdir()
 
     with patch("superset_extensions_cli.cli.rebuild_backend") as mock_rebuild:
-        with patch("superset_extensions_cli.cli.write_manifest") as mock_write:
-            # Simulate backend watcher function
+        # Simulate backend watcher function - it only rebuilds backend
+        if backend_dir.exists():
             mock_rebuild(isolated_filesystem)
 
-            manifest_path = dist_dir / "manifest.json"
-            if manifest_path.exists():
-                manifest = json.loads(manifest_path.read_text())
-                mock_write(isolated_filesystem, manifest)
-
-            mock_rebuild.assert_called_once_with(isolated_filesystem)
-            mock_write.assert_called_once()
+        # Backend watcher should only call rebuild_backend
+        mock_rebuild.assert_called_once_with(isolated_filesystem)

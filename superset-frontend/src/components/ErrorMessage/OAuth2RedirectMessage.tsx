@@ -25,7 +25,8 @@ import { RootState } from 'src/dashboard/types';
 import { reRunQuery } from 'src/SqlLab/actions/sqlLab';
 import { triggerQuery } from 'src/components/Chart/chartAction';
 import { onRefresh } from 'src/dashboard/actions/dashboardState';
-import { QueryResponse, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { QueryResponse } from '@superset-ui/core';
 
 import type { ErrorMessageComponentProps } from './types';
 import { ErrorAlert } from './ErrorAlert';
@@ -123,7 +124,7 @@ export function OAuth2RedirectMessage({
         } else if (source === 'explore' && chartId) {
           dispatch(triggerQuery(true, chartId));
         } else if (source === 'dashboard') {
-          dispatch(onRefresh(chartList, true, 0, dashboardId));
+          dispatch(onRefresh(chartList.map(Number), true, 0, dashboardId));
         }
       }
     };
