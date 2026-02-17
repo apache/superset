@@ -84,13 +84,10 @@ export const DeckGLContainer = memo(
       }
     }, [prevViewport, props.viewport]);
 
-    const onMove = useCallback(
-      (evt: { viewState: JsonObject }) => {
-        setViewState(evt.viewState as Viewport);
-        setLastUpdate(Date.now());
-      },
-      [],
-    );
+    const onMove = useCallback((evt: { viewState: JsonObject }) => {
+      setViewState(evt.viewState as Viewport);
+      setLastUpdate(Date.now());
+    }, []);
 
     const layers = useCallback(() => {
       // Support for layer factory

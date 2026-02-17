@@ -41,9 +41,7 @@ import {
   TimePivotChartPlugin,
 } from '@superset-ui/legacy-preset-chart-nvd3';
 import { DeckGLChartPreset } from '@superset-ui/preset-chart-deckgl';
-import {
-  DeckGLChartPreset as LegacyDeckGLChartPreset,
-} from '@superset-ui/legacy-preset-chart-deckgl';
+import { DeckGLChartPreset as LegacyDeckGLChartPreset } from '@superset-ui/legacy-preset-chart-deckgl';
 import MapLibreChartPlugin from '@superset-ui/plugin-chart-maplibre';
 import { CartodiagramPlugin } from '@superset-ui/plugin-chart-cartodiagram';
 import {

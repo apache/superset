@@ -17,7 +17,12 @@
  * under the License.
  */
 import { t } from '@apache-superset/core';
-import { ChartMetadata, ChartPlugin, Behavior } from '@superset-ui/core';
+import {
+  ChartMetadata,
+  ChartPlugin,
+  ChartLabel,
+  Behavior,
+} from '@superset-ui/core';
 import thumbnail from './images/thumbnail.png';
 import thumbnailDark from './images/thumbnail-dark.png';
 import example from './images/example.png';
@@ -46,6 +51,7 @@ const metadata = new ChartMetadata({
     t('Density'),
   ],
   behaviors: [Behavior.InteractiveChart],
+  label: ChartLabel.Deprecated,
 });
 
 export default class ScatterChartPlugin extends ChartPlugin {

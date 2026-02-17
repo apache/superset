@@ -123,8 +123,7 @@ function drawText(
   }
 
   ctx.fillText(String(label), pixel[0], pixel[1]);
-  ctx.globalCompositeOperation =
-    compositeOperation as GlobalCompositeOperation;
+  ctx.globalCompositeOperation = compositeOperation as GlobalCompositeOperation;
   ctx.shadowBlur = 0;
   ctx.shadowColor = '';
 }
@@ -300,8 +299,7 @@ function ScatterPlotOverlay({
                       );
                       pointRadius =
                         MIN_POINT_RADIUS +
-                        normalizedValue *
-                          (MAX_POINT_RADIUS - MIN_POINT_RADIUS);
+                        normalizedValue * (MAX_POINT_RADIUS - MIN_POINT_RADIUS);
                     }
                     pointLabel = `${roundDecimal(radiusProperty, 2)}`;
                   } else if (

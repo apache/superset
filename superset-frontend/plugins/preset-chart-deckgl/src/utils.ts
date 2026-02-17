@@ -237,4 +237,3 @@ export function getColorBreakpointsBuckets(
 
   return buckets;
 }
-

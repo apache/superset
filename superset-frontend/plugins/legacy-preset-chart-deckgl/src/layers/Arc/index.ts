@@ -17,7 +17,12 @@
  * under the License.
  */
 import { t } from '@apache-superset/core';
-import { ChartMetadata, ChartPlugin, Behavior } from '@superset-ui/core';
+import {
+  ChartMetadata,
+  ChartPlugin,
+  ChartLabel,
+  Behavior,
+} from '@superset-ui/core';
 import thumbnail from './images/thumbnail.png';
 import thumbnailDark from './images/thumbnail-dark.png';
 import example from './images/example.png';
@@ -42,6 +47,7 @@ const metadata = new ChartMetadata({
   thumbnailDark,
   exampleGallery: [{ url: example, urlDark: exampleDark }],
   tags: [t('deckGL'), t('Geo'), t('3D'), t('Relational'), t('Web')],
+  label: ChartLabel.Deprecated,
 });
 
 export default class ArcChartPlugin extends ChartPlugin {

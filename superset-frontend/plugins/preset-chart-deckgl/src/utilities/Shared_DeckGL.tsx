@@ -61,10 +61,7 @@ export const DEFAULT_DECKGL_TILES = [
     'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json',
     'Streets (Carto)',
   ],
-  [
-    'https://tiles.openfreemap.org/styles/liberty',
-    'Liberty (OpenFreeMap)',
-  ],
+  ['https://tiles.openfreemap.org/styles/liberty', 'Liberty (OpenFreeMap)'],
 ];
 
 const getDeckGLTiles = () => {

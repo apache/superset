@@ -43,7 +43,9 @@ export default class DeckGLChartPreset extends Preset {
         new PathChartPlugin().configure({ key: 'deck_path_maplibre' }),
         new PolygonChartPlugin().configure({ key: 'deck_polygon_maplibre' }),
         new ScatterChartPlugin().configure({ key: 'deck_scatter_maplibre' }),
-        new ScreengridChartPlugin().configure({ key: 'deck_screengrid_maplibre' }),
+        new ScreengridChartPlugin().configure({
+          key: 'deck_screengrid_maplibre',
+        }),
         new ContourChartPlugin().configure({ key: 'deck_contour_maplibre' }),
       ],
     });

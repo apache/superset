@@ -23,8 +23,7 @@ import ScatterPlotOverlay from './components/ScatterPlotOverlay';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import './MapLibre.css';
 
-const DEFAULT_MAP_STYLE =
-  'https://tiles.openfreemap.org/styles/liberty';
+const DEFAULT_MAP_STYLE = 'https://tiles.openfreemap.org/styles/liberty';
 
 export const DEFAULT_MAX_ZOOM = 16;
 export const DEFAULT_POINT_RADIUS = 60;

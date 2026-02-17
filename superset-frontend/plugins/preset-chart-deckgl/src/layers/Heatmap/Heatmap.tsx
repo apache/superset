@@ -54,7 +54,7 @@ function setTooltipContent(formData: QueryFormData) {
         <TooltipRow label="LAT: " value={lat?.toFixed(6)} />
         <TooltipRow
           label={`${metricLabel}: `}
-          value={`${(o.object?.weight ?? o.object?.value) ?? 'Aggregated Cell'}`}
+          value={`${o.object?.weight ?? o.object?.value ?? 'Aggregated Cell'}`}
         />
         {hasCustomTooltip && !hasObjectData && (
           <TooltipRow

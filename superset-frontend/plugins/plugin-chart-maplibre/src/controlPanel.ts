@@ -219,8 +219,7 @@ const config: ControlPanelConfig = {
                   t('Streets (Carto)'),
                 ],
               ],
-              default:
-                'https://tiles.openfreemap.org/styles/liberty',
+              default: 'https://tiles.openfreemap.org/styles/liberty',
               description: t(
                 'Base layer map style. See MapLibre documentation: %s',
                 'https://maplibre.org/maplibre-style-spec/',

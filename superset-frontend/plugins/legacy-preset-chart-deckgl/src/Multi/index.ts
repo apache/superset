@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t } from '@apache-superset/core';
-import { ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import { ChartMetadata, ChartPlugin, ChartLabel } from '@superset-ui/core';
 import thumbnail from './images/thumbnail.png';
 import thumbnailDark from './images/thumbnail-dark.png';
 import example from './images/example.png';
@@ -35,6 +35,7 @@ const metadata = new ChartMetadata({
   thumbnailDark,
   useLegacyApi: true,
   tags: [t('deckGL'), t('Multi-Layers')],
+  label: ChartLabel.Deprecated,
 });
 
 export default class MultiChartPlugin extends ChartPlugin {
