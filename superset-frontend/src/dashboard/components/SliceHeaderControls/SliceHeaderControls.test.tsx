@@ -665,7 +665,7 @@ test('Should show multiple per-query tooltips when all queries are fetched', asy
   expect(await screen.findByText(/Fetched/)).toBeInTheDocument();
 });
 
-test('Should show multiple per-query tooltips when all queries are cached', async() => {
+test('Should show multiple per-query tooltips when all queries are cached', async () => {
   const cachedDttm1 = '2025-01-28T10:00:00.000Z';
   const cachedDttm2 = '2024-01-28T10:05:00.000Z';
   const props = createProps(VizType.Table);
@@ -683,7 +683,6 @@ test('Should show multiple per-query tooltips when all queries are cached', asyn
   expect(await screen.findByText(/Query 1: Cached/)).toBeInTheDocument();
   expect(await screen.findByText(/Query 2: Cached/)).toBeInTheDocument();
 });
-
 
 test('Should deduplicate identical cache times in tooltip', async () => {
   const sameCachedDttm = '2024-01-28T10:00:00.000Z';
