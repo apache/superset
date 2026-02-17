@@ -18,7 +18,7 @@
  */
 import { PureComponent, ReactNode } from 'react';
 import { nanoid } from 'nanoid';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { styled, css, SupersetTheme } from '@apache-superset/core/ui';
 import { Icons, Button, InfoTooltip } from '@superset-ui/core/components';
 import { FilterValue } from 'react-table';
@@ -115,7 +115,7 @@ export default class CRUDCollection extends PureComponent<
     }
   }
 
-  onCellChange(id: number, col: string, val: boolean) {
+  onCellChange(id: string | number, col: string, val: unknown) {
     this.setState(prevState => {
       const updatedCollection = {
         ...prevState.collection,

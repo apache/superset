@@ -16,12 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// Type augmentation for dayjs plugins
+import 'dayjs/plugin/utc';
 import {
   CustomSeriesOption,
   CustomSeriesRenderItem,
   EChartsCoreOption,
   LineSeriesOption,
 } from 'echarts';
+import { t } from '@apache-superset/core';
 import {
   AxisType,
   CategoricalColorNamespace,
@@ -29,7 +32,6 @@ import {
   DataRecordValue,
   getColumnLabel,
   getNumberFormatter,
-  t,
   tooltipHtml,
 } from '@superset-ui/core';
 import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';

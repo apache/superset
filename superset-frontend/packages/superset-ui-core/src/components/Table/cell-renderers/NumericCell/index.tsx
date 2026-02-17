@@ -17,7 +17,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { logging } from '@superset-ui/core';
+import { logging } from '@apache-superset/core';
 
 export interface NumericCellProps {
   /**

@@ -17,12 +17,12 @@
  * under the License.
  */
 import { useEffect, useMemo, useState } from 'react';
+import { t } from '@apache-superset/core';
 import {
   isFeatureEnabled,
   FeatureFlag,
   getExtensionsRegistry,
   JsonObject,
-  t,
 } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';
 import rison from 'rison';
@@ -135,7 +135,7 @@ const bootstrapData = getBootstrapData();
 
 export const LoadingCards = ({ cover }: LoadingProps) => (
   <CardContainer showThumbnails={cover} className="loading-cards">
-    {new Array(loadingCardCount).fill(undefined).map((_, index) => (
+    {Array.from({ length: loadingCardCount }, (_, index) => (
       <ListViewCard
         key={index}
         cover={cover ? false : <></>}

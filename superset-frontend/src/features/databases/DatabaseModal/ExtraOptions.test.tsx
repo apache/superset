@@ -23,7 +23,7 @@ import {
   screen,
   waitFor,
 } from 'spec/helpers/testing-library';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import * as ace from 'ace-builds';
 
 import ExtraOptions from './ExtraOptions';
@@ -219,5 +219,22 @@ describe('ExtraOptions Component', () => {
       />,
     );
     expect(sqlLabTab).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  test('all collapse panels should expand when clicking anywhere on the header', () => {
+    renderComponent();
+    const allPanelTabs = screen.getAllByRole('tab');
+    expect(allPanelTabs.length).toBeGreaterThanOrEqual(4); // At least 4 main panels
+
+    allPanelTabs.forEach(panelTab => {
+      // Initially should be collapsed
+      expect(panelTab).toHaveAttribute('aria-expanded', 'false');
+      // Click on the panel tab (entire header should be clickable)
+      fireEvent.click(panelTab);
+      expect(panelTab).toHaveAttribute('aria-expanded', 'true');
+      fireEvent.click(panelTab);
+      // Panel should collapse back
+      expect(panelTab).toHaveAttribute('aria-expanded', 'false');
+    });
   });
 });

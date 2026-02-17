@@ -46,12 +46,62 @@ to all databases by default, both **Alpha** and **Gamma** users need to be given
 
 ### Public
 
-To allow logged-out users to access some Superset features, you can use the `PUBLIC_ROLE_LIKE` config setting and assign it to another role whose permissions you want passed to this role.
+The **Public** role is the most restrictive built-in role, designed specifically for anonymous/unauthenticated
+users who need to view dashboards. It provides minimal read-only access for:
 
-For example, by setting `PUBLIC_ROLE_LIKE = "Gamma"` in your `superset_config.py` file, you grant
-public role the same set of permissions as for the **Gamma** role. This is useful if one
-wants to enable anonymous users to view dashboards. Explicit grant on specific datasets is
-still required, meaning that you need to edit the **Public** role and add the public data sources to the role manually.
+- Viewing dashboards and charts
+- Using interactive dashboard filters
+- Accessing dashboard and chart permalinks
+- Reading embedded dashboards
+- Viewing annotations on charts
+
+The Public role explicitly excludes:
+- Any write permissions on dashboards, charts, or datasets
+- SQL Lab access
+- Share functionality
+- User profile or admin features
+- Menu access to most Superset features
+
+Anonymous users are automatically assigned the Public role when `AUTH_ROLE_PUBLIC` is configured
+(a Flask-AppBuilder setting). The `PUBLIC_ROLE_LIKE` setting is **optional** and controls what
+permissions are synced to the Public role when you run `superset init`:
+
+```python
+# Optional: Sync sensible default permissions to the Public role
+PUBLIC_ROLE_LIKE = "Public"
+
+# Alternative: Copy permissions from Gamma for broader access
+# PUBLIC_ROLE_LIKE = "Gamma"
+```
+
+If you prefer to manually configure the Public role's permissions (or use `DASHBOARD_RBAC` to
+grant access at the dashboard level), you do not need to set `PUBLIC_ROLE_LIKE`.
+
+**Important notes:**
+
+- **Data access is still required:** The Public role only grants UI/API permissions. You must
+  also grant access to specific datasets necessary to view a dashboard. As with other roles,
+  this can be done in two ways:
+
+  - **Without `DASHBOARD_RBAC`:** Dashboards only appear in the list and are accessible if
+    the user has permission to at least one of their datasets. Grant dataset access by editing
+    the Public role in the Superset UI (Menu → Security → List Roles → Public) and adding the
+    relevant data sources. All published dashboards using those datasets become visible.
+
+  - **With `DASHBOARD_RBAC` enabled:** Anonymous users will only see dashboards where the
+    "Public" role has been explicitly added in the dashboard's properties. Dataset permissions
+    are not required—DASHBOARD_RBAC handles the cascading permissions check. This provides
+    fine-grained control over which dashboards are publicly visible.
+
+- **Role synchronization:** Built-in role permissions (Admin, Alpha, Gamma, sql_lab, and Public
+  when `PUBLIC_ROLE_LIKE = "Public"`) are synchronized when you run `superset init`. Any manual
+  permission edits to these roles may be overwritten during upgrades. To customize the Public
+  role permissions, you can either:
+  - Edit the Public role directly and avoid setting `PUBLIC_ROLE_LIKE` (permissions won't be
+    overwritten by `superset init`)
+  - Copy the Public role via "Copy Role" in the Superset web UI, save it under a different name
+    (e.g., "Public_Custom"), customize the permissions, then update **both** configs:
+    `PUBLIC_ROLE_LIKE = "Public_Custom"` and `AUTH_ROLE_PUBLIC = "Public_Custom"`
 
 ### Managing Data Source Access for Gamma Roles
 
@@ -63,6 +113,46 @@ tables in the **Permissions** dropdown. To select the data sources you want to a
 
 You can then confirm with users assigned to the **Gamma** role that they see the
 objects (dashboards and slices) associated with the tables you just extended them.
+
+### Dashboard Access Control
+
+Access to dashboards is managed via owners (users that have edit permissions to the dashboard).
+Non-owner user access can be managed in two ways. Note that dashboards must be published to be
+visible to other users.
+
+#### Dataset-Based Access (Default)
+
+By default, users can view published dashboards if they have access to at least one dataset
+used in that dashboard. Grant dataset access by adding the relevant data source permissions
+to a role (Menu → Security → List Roles).
+
+This is the simplest approach but provides all-or-nothing access based on dataset permissions—
+if a user has access to a dataset, they can see all published dashboards using that dataset.
+
+#### Dashboard-Level Access (DASHBOARD_RBAC)
+
+For fine-grained control over which dashboards specific roles can access, enable the
+`DASHBOARD_RBAC` feature flag:
+
+```python
+FEATURE_FLAGS = {
+    "DASHBOARD_RBAC": True,
+}
+```
+
+With this enabled, you can assign specific roles to each dashboard in its properties. Users
+will only see dashboards where their role is explicitly added.
+
+**Important considerations:**
+- Dashboard access **bypasses** dataset-level checks—granting a role access to a dashboard
+  implicitly grants read access to all charts and datasets in that dashboard
+- Dashboards without any assigned roles fall back to dataset-based access
+- The dashboard must still be published to be visible
+
+This feature is particularly useful for:
+- Making specific dashboards public while keeping others private
+- Granting access to dashboards without exposing the underlying datasets for other uses
+- Creating dashboard-specific access patterns that don't align with dataset ownership
 
 ### SQL Execution Security Considerations
 

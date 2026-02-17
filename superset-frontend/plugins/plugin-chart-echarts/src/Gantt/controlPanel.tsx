@@ -22,7 +22,7 @@ import {
   sections,
   sharedControls,
 } from '@superset-ui/chart-controls';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import {
   legendSection,

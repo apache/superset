@@ -190,7 +190,21 @@ export enum FilterPlugins {
   TimeGrain = 'filter_timegrain',
 }
 
+export enum ChartCustomizationPlugins {
+  DynamicGroupBy = 'chart_customization_dynamic_groupby',
+  TimeGrain = 'chart_customization_timegrain',
+  TimeColumn = 'chart_customization_timecolumn',
+  DeckglLayerVisibility = 'chart_customization_deckgl_layer_visibility',
+}
+
 export enum Actions {
   CREATE = 'create',
   UPDATE = 'update',
 }
+
+/**
+ * Default threshold for CSV streaming export.
+ * Exports with row counts >= this value will use streaming with progress tracking.
+ * Exports with row counts < this value will use traditional download.
+ */
+export const DEFAULT_CSV_STREAMING_ROW_THRESHOLD = 100000;

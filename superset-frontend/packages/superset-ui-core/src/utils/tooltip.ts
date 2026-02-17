@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '../translation';
+import { t } from '@apache-superset/core';
 import { sanitizeHtml } from './html';
 
 const TRUNCATION_STYLE = `

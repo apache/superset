@@ -23,7 +23,8 @@ import {
   Dataset,
   ColumnMeta,
 } from '@superset-ui/chart-controls';
-import { ensureIsArray, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { ensureIsArray } from '@superset-ui/core';
 import { getQueryMode, isRawMode } from './shared';
 
 const dndAllColumns: typeof sharedControls.groupby = {

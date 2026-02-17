@@ -123,6 +123,11 @@ ul.dropdown__menu svg {
   --ifm-code-padding-horizontal: 5px;
 }
 
+/* Database logo images in intro/README */
+.database-logo {
+  object-fit: contain;
+}
+
 [data-theme='dark'] {
   --ifm-color-primary: #25c2a0;
   --ifm-color-primary-dark: #21af90;
@@ -133,4 +138,319 @@ ul.dropdown__menu svg {
   --ifm-color-primary-lightest: #4fddbf;
   --ifm-font-base-color: #bbb5ac;
   --ifm-border-color: #797063;
+}
+
+/* Custom "resources" admonition for additional resources/links */
+.alert--resources {
+  --ifm-alert-background-color: #f8f9fa;
+  --ifm-alert-border-color: #6c757d;
+  --ifm-alert-foreground-color: #495057;
+  background-color: var(--ifm-alert-background-color);
+  border-left: 5px solid var(--ifm-alert-border-color);
+}
+
+.alert--resources .admonition-heading h5 {
+  color: var(--ifm-alert-foreground-color);
+}
+
+.alert--resources .admonition-icon svg {
+  fill: var(--ifm-alert-foreground-color);
+  stroke: var(--ifm-alert-foreground-color);
+}
+
+/* Resources admonition - dark mode */
+[data-theme='dark'] .alert--resources {
+  --ifm-alert-background-color: #2d3748;
+  --ifm-alert-border-color: #718096;
+  --ifm-alert-foreground-color: #e2e8f0;
+}
+
+/* Style links within resources admonition */
+.alert--resources a {
+  color: var(--ifm-link-color);
+  text-decoration: none;
+}
+
+.alert--resources a:hover {
+  text-decoration: underline;
+}
+
+[data-theme='dark'] .alert--resources a {
+  color: var(--ifm-color-primary-light);
+}
+
+/* Fix Ant Design Collapse arrow visibility in dark mode */
+[data-theme='dark'] .ant-collapse-expand-icon {
+  color: var(--ifm-font-base-color);
+}
+
+[data-theme='dark'] .ant-collapse-header {
+  color: var(--ifm-font-base-color);
+}
+
+/* Hide the non-functional "Send API Request" button and Response block in API docs */
+/* The interactive API testing doesn't work due to CORS restrictions */
+.openapi-explorer__request-btn {
+  display: none !important;
+}
+
+.openapi-explorer__response-container {
+  display: none !important;
+}
+
+/* API Method Badge Colors - Swagger-style color coding */
+/* These override Infima badge classes used by docusaurus-openapi-docs */
+
+/* GET - Blue (badge--primary) */
+.openapi__method-endpoint .badge--primary {
+  background-color: #61affe !important;
+  border-color: #61affe !important;
+}
+
+/* POST - Green (badge--success) */
+.openapi__method-endpoint .badge--success {
+  background-color: #49cc90 !important;
+  border-color: #49cc90 !important;
+}
+
+/* PUT - Info/Cyan -> Orange (badge--info) */
+.openapi__method-endpoint .badge--info {
+  background-color: #fca130 !important;
+  border-color: #fca130 !important;
+}
+
+/* PATCH - Warning/Yellow -> Teal (badge--warning) */
+.openapi__method-endpoint .badge--warning {
+  background-color: #50e3c2 !important;
+  border-color: #50e3c2 !important;
+  color: #1b1b1d !important;
+}
+
+/* DELETE - Red (badge--danger) */
+.openapi__method-endpoint .badge--danger {
+  background-color: #f93e3e !important;
+  border-color: #f93e3e !important;
+}
+
+/* Sidebar method badges - colored dots before endpoint names */
+/* The method classes (get, post, etc.) are on the <li> (menu__list-item),
+   so we target the <a> (menu__link) inside using descendant selector */
+.menu__list-item.api-method > .menu__link::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+.menu__list-item.get.api-method > .menu__link::before {
+  background-color: #61affe;
+}
+
+.menu__list-item.post.api-method > .menu__link::before {
+  background-color: #49cc90;
+}
+
+.menu__list-item.put.api-method > .menu__link::before {
+  background-color: #fca130;
+}
+
+.menu__list-item.patch.api-method > .menu__link::before {
+  background-color: #50e3c2;
+}
+
+.menu__list-item.delete.api-method > .menu__link::before {
+  background-color: #f93e3e;
+}
+
+/* ============================================
+   Component Example Isolation
+   Prevents Docusaurus/Infima styles from bleeding into Superset components
+   ============================================ */
+
+/* Reset link styles inside component examples */
+.storybook-example a {
+  color: inherit;
+  text-decoration: none;
+  font-weight: inherit;
+  line-height: inherit;
+  vertical-align: inherit;
+}
+
+.storybook-example a:hover {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Reset list styles */
+.storybook-example ul,
+.storybook-example ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Override Infima's .markdown li + li margin */
+.storybook-example li + li,
+.markdown .storybook-example li + li {
+  margin-top: 0;
+}
+
+/* Reset heading styles */
+.storybook-example h1,
+.storybook-example h2,
+.storybook-example h3,
+.storybook-example h4,
+.storybook-example h5,
+.storybook-example h6 {
+  margin: 0;
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+/* Reset paragraph margins */
+.storybook-example p {
+  margin: 0;
+}
+
+/* Reset table margins - Infima applies margin-bottom via --ifm-spacing-vertical */
+.storybook-example table {
+  margin: 0;
+  display: table;
+}
+
+/* Ensure Ant Design components render correctly */
+.storybook-example .ant-breadcrumb {
+  line-height: 1.5715;
+}
+
+.storybook-example .ant-breadcrumb a {
+  color: rgba(0, 0, 0, 0.45);
+}
+
+.storybook-example .ant-breadcrumb a:hover {
+  color: rgba(0, 0, 0, 0.85);
+}
+
+/* ============================================
+   Ant Design Popup/Portal Isolation
+   These components render outside .storybook-example via portals
+   ============================================ */
+
+/* DatePicker, TimePicker dropdown panels - reset Infima table styles
+   Using doubled selectors for higher specificity than Infima's defaults */
+.ant-picker-dropdown.ant-picker-dropdown table,
+.ant-picker-dropdown.ant-picker-dropdown thead,
+.ant-picker-dropdown.ant-picker-dropdown tbody,
+.ant-picker-dropdown.ant-picker-dropdown tr,
+.ant-picker-dropdown.ant-picker-dropdown th,
+.ant-picker-dropdown.ant-picker-dropdown td {
+  border: none;
+  background: none;
+  background-color: transparent;
+}
+
+.ant-picker-dropdown.ant-picker-dropdown table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+  display: table;
+}
+
+/* Override Infima's zebra striping with higher specificity */
+.ant-picker-dropdown.ant-picker-dropdown tr:nth-child(2n),
+.ant-picker-dropdown.ant-picker-dropdown tbody tr:nth-child(2n) {
+  background: none;
+  background-color: transparent;
+}
+
+.ant-picker-dropdown.ant-picker-dropdown th,
+.ant-picker-dropdown.ant-picker-dropdown td {
+  padding: 0;
+}
+
+/* Select, Dropdown, Popover portals */
+.ant-select-dropdown.ant-select-dropdown table,
+.ant-select-dropdown.ant-select-dropdown thead,
+.ant-select-dropdown.ant-select-dropdown tbody,
+.ant-select-dropdown.ant-select-dropdown tr,
+.ant-select-dropdown.ant-select-dropdown th,
+.ant-select-dropdown.ant-select-dropdown td,
+.ant-dropdown.ant-dropdown table,
+.ant-dropdown.ant-dropdown thead,
+.ant-dropdown.ant-dropdown tbody,
+.ant-dropdown.ant-dropdown tr,
+.ant-dropdown.ant-dropdown th,
+.ant-dropdown.ant-dropdown td,
+.ant-popover.ant-popover table,
+.ant-popover.ant-popover thead,
+.ant-popover.ant-popover tbody,
+.ant-popover.ant-popover tr,
+.ant-popover.ant-popover th,
+.ant-popover.ant-popover td {
+  border: none;
+  background: none;
+  background-color: transparent;
+}
+
+.ant-select-dropdown.ant-select-dropdown tr:nth-child(2n),
+.ant-dropdown.ant-dropdown tr:nth-child(2n),
+.ant-popover.ant-popover tr:nth-child(2n) {
+  background: none;
+  background-color: transparent;
+}
+
+/* Modal portals */
+.ant-modal.ant-modal table,
+.ant-modal.ant-modal thead,
+.ant-modal.ant-modal tbody,
+.ant-modal.ant-modal tr,
+.ant-modal.ant-modal th,
+.ant-modal.ant-modal td {
+  border: none;
+  background: none;
+  background-color: transparent;
+}
+
+.ant-modal.ant-modal tr:nth-child(2n) {
+  background: none;
+  background-color: transparent;
+}
+
+/* ============================================
+   Live Code Editor Height Limits
+   Prevents tall code blocks from dominating the page
+   ============================================ */
+
+/* Limit the code editor height and make it scrollable */
+/* Target multiple possible class names used by Docusaurus/react-live */
+.playgroundEditor,
+[class*="playgroundEditor"],
+.live-editor,
+[class*="liveEditor"] {
+  max-height: 350px !important;
+  overflow: auto !important;
+}
+
+/* The actual textarea/code area inside the editor */
+.playgroundEditor textarea,
+.playgroundEditor pre,
+[class*="playgroundEditor"] textarea,
+[class*="playgroundEditor"] pre {
+  max-height: 350px !important;
+  overflow: auto !important;
+}
+
+/* Also limit the preview area for consistency */
+.playgroundPreview,
+[class*="playgroundPreview"] {
+  max-height: 400px;
+  overflow: auto;
+}
+
+/* Hide sidebar items with sidebar_class_name: hidden in frontmatter */
+.menu__list-item.hidden {
+  display: none;
 }

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useEffect } from 'react';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { Radio } from '@superset-ui/core/components/Radio';
 import {
   CURRENT_RANGE_OPTIONS,

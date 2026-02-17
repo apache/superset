@@ -236,7 +236,7 @@ def test_build_manifest_creates_correct_manifest_structure(isolated_filesystem):
         "permissions": ["read_data"],
         "dependencies": ["some_dep"],
         "frontend": {
-            "contributions": {"commands": ["test_command"]},
+            "contributions": {"commands": [{"id": "test_command", "title": "Test"}]},
             "moduleFederation": {"exposes": ["./index"]},
         },
         "backend": {"entryPoints": ["test_extension.entrypoint"]},
@@ -247,23 +247,23 @@ def test_build_manifest_creates_correct_manifest_structure(isolated_filesystem):
     manifest = build_manifest(isolated_filesystem, "remoteEntry.abc123.js")
 
     # Verify manifest structure
-    manifest_dict = dict(manifest)
-    assert manifest_dict["id"] == "test_extension"
-    assert manifest_dict["name"] == "Test Extension"
-    assert manifest_dict["version"] == "1.0.0"
-    assert manifest_dict["permissions"] == ["read_data"]
-    assert manifest_dict["dependencies"] == ["some_dep"]
+    assert manifest.id == "test_extension"
+    assert manifest.name == "Test Extension"
+    assert manifest.version == "1.0.0"
+    assert manifest.permissions == ["read_data"]
+    assert manifest.dependencies == ["some_dep"]
 
     # Verify frontend section
-    assert "frontend" in manifest
-    frontend = manifest["frontend"]
-    assert frontend["contributions"] == {"commands": ["test_command"]}
-    assert frontend["moduleFederation"] == {"exposes": ["./index"]}
-    assert frontend["remoteEntry"] == "remoteEntry.abc123.js"
+    assert manifest.frontend is not None
+    assert manifest.frontend.contributions.commands == [
+        {"id": "test_command", "title": "Test"}
+    ]
+    assert manifest.frontend.moduleFederation.exposes == ["./index"]
+    assert manifest.frontend.remoteEntry == "remoteEntry.abc123.js"
 
     # Verify backend section
-    assert "backend" in manifest
-    assert manifest["backend"]["entryPoints"] == ["test_extension.entrypoint"]
+    assert manifest.backend is not None
+    assert manifest.backend.entryPoints == ["test_extension.entrypoint"]
 
 
 @pytest.mark.unit
@@ -280,14 +280,13 @@ def test_build_manifest_handles_minimal_extension(isolated_filesystem):
 
     manifest = build_manifest(isolated_filesystem, None)
 
-    manifest_dict = dict(manifest)
-    assert manifest_dict["id"] == "minimal_extension"
-    assert manifest_dict["name"] == "Minimal Extension"
-    assert manifest_dict["version"] == "0.1.0"
-    assert manifest_dict["permissions"] == []
-    assert manifest_dict["dependencies"] == []  # Default empty list
-    assert "frontend" not in manifest
-    assert "backend" not in manifest
+    assert manifest.id == "minimal_extension"
+    assert manifest.name == "Minimal Extension"
+    assert manifest.version == "0.1.0"
+    assert manifest.permissions == []
+    assert manifest.dependencies == []  # Default empty list
+    assert manifest.frontend is None
+    assert manifest.backend is None
 
 
 @pytest.mark.unit

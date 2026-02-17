@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { detectOS } from 'src/utils/common';
 
 export const getSliceHeaderTooltip = (sliceName: string | undefined) => {

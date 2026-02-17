@@ -17,34 +17,40 @@
  * under the License.
  */
 import { useCallback, useState, useEffect, forwardRef } from 'react';
-import { t, SupersetClient } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import type { editors } from '@apache-superset/core';
+import { SupersetClient } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';
-import {
-  SQLEditor,
-  Button,
-  Icons,
-  Tooltip,
-  Flex,
-} from '@superset-ui/core/components';
+import { Button, Icons, Tooltip, Flex } from '@superset-ui/core/components';
+import { EditorHost } from 'src/core/editors';
 import {
   ExpressionType,
   ValidationError,
   ValidationResponse,
 } from '../../types/SqlExpression';
 
+type EditorKeyword = editors.EditorKeyword;
+
 interface SQLEditorWithValidationProps {
-  // SQLEditor props - we'll accept any props that SQLEditor accepts
+  // Editor props
   value: string;
   onChange: (value: string) => void;
   // Validation-specific props
   showValidation?: boolean;
   expressionType?: ExpressionType;
-  datasourceId?: number;
+  datasourceId?: number | string;
   datasourceType?: string;
   clause?: string; // For filters: "WHERE" or "HAVING"
   onValidationComplete?: (isValid: boolean, errors?: ValidationError[]) => void;
-  // Any other props will be passed through to SQLEditor
-  [key: string]: any;
+  // Editor appearance props
+  height?: string;
+  width?: string;
+  /** Whether to show line numbers */
+  lineNumbers?: boolean;
+  /** Whether to enable word wrap */
+  wordWrap?: boolean;
+  /** Keywords for autocomplete */
+  keywords?: EditorKeyword[];
 }
 
 const StyledValidationMessage = styled.div<{
@@ -70,7 +76,10 @@ const StyledValidationMessage = styled.div<{
   }
 `;
 
-const SQLEditorWithValidation = forwardRef<any, SQLEditorWithValidationProps>(
+const SQLEditorWithValidation = forwardRef<
+  editors.EditorHandle,
+  SQLEditorWithValidationProps
+>(
   (
     {
       // Required props
@@ -83,8 +92,12 @@ const SQLEditorWithValidation = forwardRef<any, SQLEditorWithValidationProps>(
       datasourceType,
       clause,
       onValidationComplete,
-      // All other props will be passed through to SQLEditor
-      ...sqlEditorProps
+      // Editor appearance props
+      height,
+      width,
+      lineNumbers,
+      wordWrap,
+      keywords,
     },
     ref,
   ) => {
@@ -186,11 +199,17 @@ const SQLEditorWithValidation = forwardRef<any, SQLEditorWithValidationProps>(
 
     return (
       <Flex vertical gap="middle">
-        <SQLEditor
+        <EditorHost
           ref={ref}
+          id="sql-editor-with-validation"
           value={value}
           onChange={handleChange}
-          {...sqlEditorProps}
+          language="sql"
+          lineNumbers={lineNumbers}
+          wordWrap={wordWrap}
+          height={height}
+          width={width}
+          keywords={keywords}
         />
 
         {showValidation && (

@@ -26,6 +26,7 @@ from marshmallow import ValidationError
 from superset import db, security_manager
 from superset.commands.base import BaseCommand, UpdateMixin
 from superset.commands.dashboard.exceptions import (
+    DashboardChartCustomizationsUpdateFailedError,
     DashboardColorsConfigUpdateFailedError,
     DashboardForbiddenError,
     DashboardInvalidError,
@@ -200,6 +201,23 @@ class UpdateDashboardNativeFiltersCommand(UpdateDashboardCommand):
         assert self._model
 
         configuration = DashboardDAO.update_native_filters_config(
+            self._model, self._properties
+        )
+
+        return configuration
+
+
+class UpdateDashboardChartCustomizationsCommand(UpdateDashboardCommand):
+    @transaction(
+        on_error=partial(
+            on_error, reraise=DashboardChartCustomizationsUpdateFailedError
+        )
+    )
+    def run(self) -> Model:
+        super().validate()
+        assert self._model
+
+        configuration = DashboardDAO.update_chart_customizations_config(
             self._model, self._properties
         )
 

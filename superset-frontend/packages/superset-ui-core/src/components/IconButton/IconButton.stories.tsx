@@ -22,38 +22,6 @@ import { IconButton } from '.';
 export default {
   title: 'Components/IconButton',
   component: IconButton,
-  argTypes: {
-    altText: {
-      control: 'text',
-      description:
-        'The alt text for the button. If not provided, the button text is used as the alt text by default.',
-      table: {
-        type: { summary: 'string' },
-      },
-    },
-    buttonText: {
-      control: 'text',
-      description: 'The text inside the button',
-      table: {
-        type: { summary: 'string' },
-      },
-    },
-    icon: {
-      control: false,
-      description: 'Icon inside the button',
-      table: {
-        type: { summary: 'string' },
-        defaultValue: { summary: 'string' },
-      },
-    },
-    padded: {
-      control: 'boolean',
-      description: 'add padding between icon and button text',
-      table: {
-        type: { summary: 'boolean' },
-      },
-    },
-  },
   parameters: {
     docs: {
       description: {
@@ -69,6 +37,63 @@ export default {
 
 type Story = StoryObj<typeof IconButton>;
 
+export const InteractiveIconButton: Story = {
+  args: {
+    buttonText: 'IconButton',
+    altText: 'Icon button alt text',
+    padded: true,
+    icon: 'https://superset.apache.org/img/superset-logo-horiz.svg',
+  },
+  argTypes: {
+    altText: {
+      control: 'text',
+      description:
+        'The alt text for the button. If not provided, the button text is used as the alt text by default.',
+      table: {
+        type: { summary: 'string' },
+      },
+    },
+    buttonText: {
+      control: 'text',
+      description: 'The text inside the button.',
+      table: {
+        type: { summary: 'string' },
+      },
+    },
+    icon: {
+      control: 'text',
+      description: 'Icon inside the button (URL or path).',
+      table: {
+        type: { summary: 'string' },
+      },
+    },
+    padded: {
+      control: 'boolean',
+      description: 'Add padding between icon and button text.',
+      table: {
+        type: { summary: 'boolean' },
+      },
+    },
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: 'A button with an icon and text label.',
+      },
+      liveExample: `function Demo() {
+  return (
+    <IconButton
+      buttonText="Superset"
+      icon="https://superset.apache.org/img/superset-logo-horiz.svg"
+      padded
+      onClick={() => alert('Clicked!')}
+    />
+  );
+}`,
+    },
+  },
+};
+
 export const Default: Story = {
   args: {
     buttonText: 'Default IconButton',
@@ -78,6 +103,6 @@ export const Default: Story = {
 export const CustomIcon: Story = {
   args: {
     buttonText: 'Custom icon IconButton',
-    icon: '/images/sqlite.png',
+    icon: 'https://superset.apache.org/img/superset-logo-horiz.svg',
   },
 };

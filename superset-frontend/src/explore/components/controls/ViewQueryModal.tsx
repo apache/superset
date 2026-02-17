@@ -18,9 +18,9 @@
  */
 import { FC, Fragment, useEffect, useState } from 'react';
 
+import { t } from '@apache-superset/core';
 import {
   ensureIsArray,
-  t,
   getClientErrorObject,
   QueryFormData,
 } from '@superset-ui/core';
@@ -60,7 +60,7 @@ const ViewQueryModal: FC<Props> = ({ latestQueryFormData }) => {
       resultType,
     })
       .then(({ json }) => {
-        setResult(ensureIsArray(json.result));
+        setResult(ensureIsArray(json.result) as Result[]);
         setIsLoading(false);
         setError(null);
       })

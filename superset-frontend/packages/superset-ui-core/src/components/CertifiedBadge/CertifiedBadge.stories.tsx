@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { configure as configureTranslation } from '@superset-ui/core';
+import { configure as configureTranslation } from '@apache-superset/core';
 import { CertifiedBadge } from '.';
 import type { CertifiedBadgeProps } from './types';
 

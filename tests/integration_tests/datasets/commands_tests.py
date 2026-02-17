@@ -98,9 +98,11 @@ class TestExportDatasetsCommand(SupersetTestCase):
         assert metadata == {
             "cache_timeout": None,
             "catalog": None,
+            "currency_code_column": None,
             "columns": [
                 {
                     "column_name": "source",
+                    "datetime_format": None,
                     "description": None,
                     "expression": "",
                     "filterable": True,
@@ -115,6 +117,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
                 },
                 {
                     "column_name": "target",
+                    "datetime_format": None,
                     "description": None,
                     "expression": "",
                     "filterable": True,
@@ -129,6 +132,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
                 },
                 {
                     "column_name": "value",
+                    "datetime_format": None,
                     "description": None,
                     "expression": "",
                     "filterable": True,
@@ -226,6 +230,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
         assert list(metadata.keys()) == [
             "table_name",
             "main_dttm_col",
+            "currency_code_column",
             "description",
             "default_endpoint",
             "offset",
@@ -367,6 +372,7 @@ class TestImportDatasetsCommand(SupersetTestCase):
         )
         assert dataset.table_name == "imported_dataset"
         assert dataset.main_dttm_col is None
+        assert dataset.currency_code_column == "currency"
         assert dataset.description == "This is a dataset that was exported"
         assert dataset.default_endpoint == ""
         assert dataset.offset == 66

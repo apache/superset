@@ -18,7 +18,8 @@
  * under the License.
  */
 
-import { t, validateNonEmpty } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { validateNonEmpty } from '@superset-ui/core';
 import { SharedControlConfig } from '../types';
 import { dndAdhocMetricControl } from './dndControls';
 import { defineSavedMetrics } from '../utils';

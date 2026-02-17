@@ -17,7 +17,8 @@
  * under the License.
  */
 import { ReactNode } from 'react';
-import { Divider, Filter, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { Divider, Filter } from '@superset-ui/core';
 import { css, SupersetTheme } from '@apache-superset/core/ui';
 import { Collapse } from '@superset-ui/core/components';
 

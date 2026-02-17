@@ -80,7 +80,7 @@ case "${1}" in
     ;;
   app)
     echo "Starting web app (using development server)..."
-    flask run -p $PORT --reload --debugger --without-threads --host=0.0.0.0
+    flask run -p $PORT --reload --debugger --without-threads --host=0.0.0.0 --exclude-patterns "*/node_modules/*:*/.venv/*:*/build/*:*/__pycache__/*"
     ;;
   app-gunicorn)
     echo "Starting web app..."

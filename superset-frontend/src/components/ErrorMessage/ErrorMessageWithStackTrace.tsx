@@ -17,7 +17,8 @@
  * under the License.
  */
 import { ReactNode } from 'react';
-import { ErrorSource, t, SupersetError } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { ErrorSource, SupersetError } from '@superset-ui/core';
 import { Typography } from '@superset-ui/core/components';
 import { getErrorMessageComponentRegistry } from './getErrorMessageComponentRegistry';
 import { ErrorAlert } from './ErrorAlert';
@@ -54,7 +55,7 @@ export function ErrorMessageWithStackTrace({
   // Check if a custom error message component was registered for this message
   if (error) {
     const ErrorMessageComponent = getErrorMessageComponentRegistry().get(
-      // @ts-ignore: plan to modify this part so that all errors in Superset 6.0 are standardized as Superset API error types
+      // @ts-expect-error: plan to modify this part so that all errors in Superset 6.0 are standardized as Superset API error types
       error.errorType ?? error.error_type,
     );
     if (ErrorMessageComponent) {

@@ -1,6 +1,6 @@
 ---
-title: Backend Style Guidelines
-sidebar_position: 3
+title: Overview
+sidebar_position: 1
 ---
 
 <!--
@@ -26,22 +26,22 @@ under the License.
 
 This is a list of statements that describe how we do backend development in Superset. While they might not be 100% true for all files in the repo, they represent the gold standard we strive towards for backend quality and style.
 
-* We use a monolithic Python/Flask/Flask-AppBuilder backend, with small single-responsibility satellite services where necessary.
-* Files are generally organized by feature or object type. Within each domain, we can have api controllers, models, schemas, commands, and data access objects (dao).
-    * See: [Proposal for Improving Superset's Python Code Organization](https://github.com/apache/superset/issues/9077)
-* API controllers use Marshmallow Schemas to serialize/deserialize data.
-* Authentication and authorization are controlled by the [security manager](https://github.com/apache/superset/blob/master/superset/security/manager).
-* We use Pytest for unit and integration tests. These live in the `tests` directory.
-* We add tests for every new piece of functionality added to the backend.
-* We use pytest fixtures to share setup between tests.
-* We use sqlalchemy to access both Superset's application database, and users' analytics databases.
-* We make changes backwards compatible whenever possible.
-    * If a change cannot be made backwards compatible, it goes into a major release.
-    * See: [Proposal For Semantic Versioning](https://github.com/apache/superset/issues/12566)
-* We use Swagger for API documentation, with docs written inline on the API endpoint code.
-* We prefer thin ORM models, putting shared functionality in other utilities.
-* Several linters/checkers are used to maintain consistent code style and type safety: pylint, pypy, black, isort.
-* `__init__.py` files are kept empty to avoid implicit dependencies.
+- We use a monolithic Python/Flask/Flask-AppBuilder backend, with small single-responsibility satellite services where necessary.
+- Files are generally organized by feature or object type. Within each domain, we can have api controllers, models, schemas, commands, and data access objects (DAO).
+  - See: [Proposal for Improving Superset's Python Code Organization](https://github.com/apache/superset/issues/9077)
+- API controllers use Marshmallow Schemas to serialize/deserialize data.
+- Authentication and authorization are controlled by the [security manager](https://github.com/apache/superset/blob/master/superset/security/manager).
+- We use Pytest for unit and integration tests. These live in the `tests` directory.
+- We add tests for every new piece of functionality added to the backend.
+- We use pytest fixtures to share setup between tests.
+- We use SQLAlchemy to access both Superset's application database, and users' analytics databases.
+- We make changes backwards compatible whenever possible.
+  - If a change cannot be made backwards compatible, it goes into a major release.
+  - See: [Proposal For Semantic Versioning](https://github.com/apache/superset/issues/12566)
+- We use Swagger for API documentation, with docs written inline on the API endpoint code.
+- We prefer thin ORM models, putting shared functionality in other utilities.
+- Several linters/checkers are used to maintain consistent code style and type safety: pylint, mypy, black, isort.
+- `__init__.py` files are kept empty to avoid implicit dependencies.
 
 ## Code Organization
 

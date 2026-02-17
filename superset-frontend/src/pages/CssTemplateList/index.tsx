@@ -18,7 +18,8 @@
  */
 
 import { useMemo, useState } from 'react';
-import { t, SupersetClient } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { SupersetClient } from '@superset-ui/core';
 
 import rison from 'rison';
 import { useListViewResource } from 'src/views/CRUD/hooks';

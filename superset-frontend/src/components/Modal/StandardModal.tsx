@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ReactNode } from 'react';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { styled } from '@apache-superset/core/ui';
 import { Modal, Loading, Flex } from '@superset-ui/core/components';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';

@@ -202,7 +202,7 @@ test('serializeThemeConfig defaults to "default" for unknown algorithms', () => 
   const unknownAlgorithm = () => ({});
   const config: AntdThemeConfig = {
     token: { colorPrimary: '#ff0000' },
-    // @ts-ignore
+    // @ts-expect-error
     algorithm: unknownAlgorithm,
   };
 
@@ -237,7 +237,7 @@ test('serializeThemeConfig defaults each unknown algorithm in array to "default"
   const unknownAlgorithm = () => ({});
   const config: AntdThemeConfig = {
     token: { colorPrimary: '#ff0000' },
-    // @ts-ignore
+    // @ts-expect-error
     algorithm: [antdThemeImport.darkAlgorithm, unknownAlgorithm],
   };
 
@@ -257,10 +257,10 @@ test('serializeThemeConfig handles mixed known and unknown algorithms in array',
     token: { colorPrimary: '#ff0000' },
     algorithm: [
       antdThemeImport.darkAlgorithm,
-      // @ts-ignore
+      // @ts-expect-error
       unknownAlgorithm1,
       antdThemeImport.compactAlgorithm,
-      // @ts-ignore
+      // @ts-expect-error
       unknownAlgorithm2,
     ],
   };

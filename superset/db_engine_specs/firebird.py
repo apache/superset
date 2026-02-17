@@ -20,7 +20,7 @@ from typing import Any, Optional
 from sqlalchemy import types
 
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 from superset.sql.parse import LimitMethod
 
 
@@ -29,6 +29,26 @@ class FirebirdEngineSpec(BaseEngineSpec):
 
     engine = "firebird"
     engine_name = "Firebird"
+
+    metadata = {
+        "description": "Firebird is an open-source relational database.",
+        "logo": "firebird.png",
+        "homepage_url": "https://firebirdsql.org/",
+        "categories": [
+            DatabaseCategory.TRADITIONAL_RDBMS,
+            DatabaseCategory.OPEN_SOURCE,
+        ],
+        "pypi_packages": ["sqlalchemy-firebird"],
+        "version_requirements": "sqlalchemy-firebird>=0.7.0,<0.8",
+        "connection_string": "firebird+fdb://{username}:{password}@{host}:{port}//{path_to_db_file}",
+        "default_port": 3050,
+        "connection_examples": [
+            {
+                "description": "Local database",
+                "connection_string": "firebird+fdb://SYSDBA:masterkey@192.168.86.38:3050//Library/Frameworks/Firebird.framework/Versions/A/Resources/examples/empbuild/employee.fdb",
+            },
+        ],
+    }
 
     # Firebird uses FIRST to limit: `SELECT FIRST 10 * FROM table`
     limit_method = LimitMethod.FETCH_MANY

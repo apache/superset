@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient, logging, ClientConfig } from '@superset-ui/core';
+import { SupersetClient, ClientConfig } from '@superset-ui/core';
+import { logging } from '@apache-superset/core';
 import parseCookie from 'src/utils/parseCookie';
 import getBootstrapData from 'src/utils/getBootstrapData';
 

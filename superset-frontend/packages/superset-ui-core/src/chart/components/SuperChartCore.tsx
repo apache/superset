@@ -19,7 +19,7 @@
 
 /* eslint-disable react/jsx-sort-default-props */
 import { PureComponent } from 'react';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { createSelector } from 'reselect';
 import getChartComponentRegistry from '../registries/ChartComponentRegistrySingleton';
 import getChartTransformPropsRegistry from '../registries/ChartTransformPropsRegistrySingleton';

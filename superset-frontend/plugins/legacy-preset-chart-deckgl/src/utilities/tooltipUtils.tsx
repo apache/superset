@@ -17,7 +17,8 @@
  * under the License.
  */
 
-import { t, JsonObject, QueryFormData } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { JsonObject, QueryFormData } from '@superset-ui/core';
 import { useMemo, memo } from 'react';
 import { HandlebarsRenderer } from './HandlebarsRenderer';
 import TooltipRow from '../TooltipRow';

@@ -119,6 +119,7 @@ export interface SupersetSpecificTokens {
 
   // Brand-related
   brandIconMaxWidth: number;
+  brandAppName?: string;
   brandLogoAlt: string;
   brandLogoUrl: string;
   brandLogoMargin: string;
@@ -129,6 +130,28 @@ export interface SupersetSpecificTokens {
   brandSpinnerUrl?: string;
   brandSpinnerSvg?: string;
 
+  // Font loading
+  /**
+   * Array of font URLs to load for this theme.
+   * Supports multiple URLs for loading different font families or mixing providers.
+   * Each URL is injected as a CSS @import when the theme is applied.
+   *
+   * @example
+   * Multiple font families from Google Fonts
+   * fontUrls: [
+   *   "https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap",
+   *   "https://fonts.googleapis.com/css2?family=Fira+Code&display=swap"
+   * ]
+   *
+   * @example
+   * Mix Google Fonts and Adobe Fonts
+   * fontUrls: [
+   *   "https://fonts.googleapis.com/css2?family=Open+Sans&display=swap",
+   *   "https://use.typekit.net/abc123.css"
+   * ]
+   */
+  fontUrls?: string[];
+
   // ECharts-related
   /** Global ECharts configuration overrides applied to all chart types */
   echartsOptionsOverrides?: any;
@@ -137,6 +160,13 @@ export interface SupersetSpecificTokens {
   echartsOptionsOverridesByChartType?: {
     [chartType: string]: any;
   };
+
+  // Editor-related
+  /**
+   * Background color for code editor text selection.
+   * Defaults to colorPrimaryBgHover if not specified.
+   */
+  colorEditorSelection?: string;
 }
 
 /**

@@ -30,8 +30,17 @@ const bigText =
   'purus convallis placerat in at nunc. Nulla nec viverra augue.';
 
 export default {
-  title: 'Components/Alert',
+  title: 'Extension Components/Alert',
   component: Alert,
+  parameters: {
+    docs: {
+      description: {
+        component:
+          'Alert component for displaying important messages to users. ' +
+          'Wraps Ant Design Alert with sensible defaults and improved accessibility.',
+      },
+    },
+  },
 };
 
 export const AlertGallery = () => (

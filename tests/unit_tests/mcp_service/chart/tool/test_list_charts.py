@@ -65,13 +65,16 @@ class TestListChartsRequestSchema:
     """Test the ListChartsRequest schema validation."""
 
     def test_default_request(self):
-        """Test creating request with all defaults."""
+        """Test creating request with all defaults.
+
+        Note: select_columns defaults to empty list, which triggers
+        minimal default columns (id, slice_name, viz_type, uuid) in the tool.
+        """
         request = ListChartsRequest()
 
         assert request.filters == []
-        assert len(request.select_columns) > 0  # Has default columns
-        assert "id" in request.select_columns
-        assert "slice_name" in request.select_columns
+        # select_columns is empty by default - tool applies minimal defaults
+        assert request.select_columns == []
         assert request.search is None
         assert request.order_column is None
         assert request.order_direction == "asc"
@@ -170,3 +173,40 @@ class TestListChartsRequestSchema:
         assert "page_size" in data
         assert data["filters"][0]["col"] == "slice_name"
         assert data["select_columns"] == ["id", "slice_name"]
+
+
+class TestChartDefaultColumnFiltering:
+    """Test default column filtering behavior for charts."""
+
+    def test_minimal_default_columns_constant(self):
+        """Test that minimal default columns are properly defined."""
+        from superset.mcp_service.common.schema_discovery import CHART_DEFAULT_COLUMNS
+
+        # Required minimal columns must be present
+        required_columns = {"id", "slice_name", "viz_type", "uuid"}
+        assert required_columns.issubset(set(CHART_DEFAULT_COLUMNS))
+
+        # Heavy columns should NOT be in defaults
+        assert "form_data" not in CHART_DEFAULT_COLUMNS
+        assert "query_context" not in CHART_DEFAULT_COLUMNS
+        assert "description" not in CHART_DEFAULT_COLUMNS
+        assert "datasource_name" not in CHART_DEFAULT_COLUMNS
+
+    def test_empty_select_columns_default(self):
+        """Test that select_columns defaults to empty list which triggers
+        minimal defaults in tool."""
+        request = ListChartsRequest()
+        assert request.select_columns == []
+
+    def test_explicit_select_columns(self):
+        """Test that explicit select_columns can include non-default columns."""
+        request = ListChartsRequest(
+            select_columns=["id", "slice_name", "description", "form_data"]
+        )
+        # Verify exact columns are present - explicit request should match exactly
+        assert set(request.select_columns) == {
+            "id",
+            "slice_name",
+            "description",
+            "form_data",
+        }

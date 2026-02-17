@@ -1,6 +1,6 @@
 ---
 title: DAO Style Guidelines and Best Practices
-sidebar_position: 1
+sidebar_position: 2
 ---
 
 <!--
@@ -26,19 +26,29 @@ under the License.
 
 A Data Access Object (DAO) is a pattern that provides an abstract interface to the SQLAlchemy Object Relational Mapper (ORM). The DAOs are critical as they form the building block of the application which are wrapped by the associated commands and RESTful API endpoints.
 
-Currently there are numerous inconsistencies and violation of the DRY principal within the codebase as it relates to DAOs and ORMs—unnecessary commits, non-ACID transactions, etc.—which makes the code unnecessarily complex and convoluted. Addressing the underlying issues with the DAOs _should_ help simplify the downstream operations and improve the developer experience.
+There are numerous inconsistencies and violations of the DRY principal within the codebase as it relates to DAOs and ORMs—unnecessary commits, non-ACID transactions, etc.—which makes the code unnecessarily complex and convoluted. Addressing the underlying issues with the DAOs _should_ help simplify the downstream operations and improve the developer experience.
 
 To ensure consistency the following rules should be adhered to:
 
-1. All database operations (including testing) should be defined within a DAO, i.e., there should not be any explicit `db.session.add`, `db.session.merge`, etc. calls outside of a DAO.
+## Core Rules
 
-2. A DAO should use `create`, `update`, `delete`, `upsert` terms—typical database operations which ensure consistency with commands—rather than action based terms like `save`, `saveas`, `override`, etc.
+1. **All database operations (including testing) should be defined within a DAO**, i.e., there should not be any explicit `db.session.add`, `db.session.merge`, etc. calls outside of a DAO.
 
-3. Sessions should be managed via a [context manager](https://docs.sqlalchemy.org/en/20/orm/session_transaction.html#begin-once) which auto-commits on success and rolls back on failure, i.e., there should be no explicit `db.session.commit` or `db.session.rollback` calls within the DAO.
+2. **A DAO should use `create`, `update`, `delete`, `upsert` terms**—typical database operations which ensure consistency with commands—rather than action based terms like `save`, `saveas`, `override`, etc.
 
-4. There should be a single atomic transaction representing the entirety of the operation, i.e., when creating a dataset with associated columns and metrics either all the changes succeed when the transaction is committed, or all the changes are undone when the transaction is rolled back. SQLAlchemy supports [nested transactions](https://docs.sqlalchemy.org/en/20/orm/session_transaction.html#nested-transaction) via the `begin_nested` method which can be nested—inline with how DAOs are invoked.
+3. **Sessions should be managed via a [context manager](https://docs.sqlalchemy.org/en/20/orm/session_transaction.html#begin-once)** which auto-commits on success and rolls back on failure, i.e., there should be no explicit `db.session.commit` or `db.session.rollback` calls within the DAO.
 
-5. The database layer should adopt a "shift left" mentality i.e., uniqueness/foreign key constraints, relationships, cascades, etc. should all be defined in the database layer rather than being enforced in the application layer.
+4. **There should be a single atomic transaction representing the entirety of the operation**, i.e., when creating a dataset with associated columns and metrics either all the changes succeed when the transaction is committed, or all the changes are undone when the transaction is rolled back. SQLAlchemy supports [nested transactions](https://docs.sqlalchemy.org/en/20/orm/session_transaction.html#nested-transaction) via the `begin_nested` method which can be nested—inline with how DAOs are invoked.
+
+5. **The database layer should adopt a "shift left" mentality** i.e., uniqueness/foreign key constraints, relationships, cascades, etc. should all be defined in the database layer rather than being enforced in the application layer.
+
+6. **Exception-based validation**: Ask for forgiveness rather than permission. Try to perform the operation and rely on database constraints to verify that the model is acceptable, rather than pre-validating conditions.
+
+7. **Bulk operations**: Provide bulk `create`, `update`, and `delete` methods where applicable for performance optimization.
+
+8. **Sparse updates**: Updates should only modify explicitly defined attributes.
+
+9. **Test transactions**: Tests should leverage nested transactions which should be rolled back on teardown, rather than deleting objects.
 
 ## DAO Implementation Examples
 

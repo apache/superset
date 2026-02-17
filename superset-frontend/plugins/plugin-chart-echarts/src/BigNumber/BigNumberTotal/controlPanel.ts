@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SMART_DATE_ID, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { SMART_DATE_ID } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import {
   ControlPanelConfig,

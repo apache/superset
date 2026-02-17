@@ -27,7 +27,7 @@ import {
   saveDashboardRequest,
   setOverrideConfirm,
 } from 'src/dashboard/actions/dashboardState';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { styled } from '@apache-superset/core/ui';
 import { SAVE_TYPE_OVERWRITE_CONFIRMED } from 'src/dashboard/util/constants';
 

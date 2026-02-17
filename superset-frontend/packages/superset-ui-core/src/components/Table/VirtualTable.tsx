@@ -31,8 +31,9 @@ import { useTheme, styled } from '@apache-superset/core/ui';
 
 import { TableSize, ETableAction } from './index';
 
-export interface VirtualTableProps<RecordType>
-  extends AntTableProps<RecordType> {
+export interface VirtualTableProps<
+  RecordType,
+> extends AntTableProps<RecordType> {
   height?: number;
   allowHTML?: boolean;
 }

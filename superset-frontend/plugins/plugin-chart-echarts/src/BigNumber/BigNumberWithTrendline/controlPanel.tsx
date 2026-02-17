@@ -16,10 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SMART_DATE_ID, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { SMART_DATE_ID } from '@superset-ui/core';
 import {
   aggregationControl,
   ControlPanelConfig,
+  ControlPanelsContainerProps,
   ControlSubSectionHeader,
   D3_FORMAT_DOCS,
   D3_TIME_FORMAT_OPTIONS,
@@ -145,6 +147,64 @@ const config: ControlPanelConfig = {
         [subtitleFontSize],
         [showMetricNameControl],
         [metricNameFontSizeWithVisibility],
+        [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],
+        [
+          {
+            name: 'show_x_axis',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show X-axis'),
+              renderTrigger: true,
+              default: false,
+              description: t('Whether to display the X Axis'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'show_x_axis_min_max_labels',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show min/max axis labels'),
+              renderTrigger: true,
+              default: false,
+              description: t(
+                'When enabled, the axis will display labels for the minimum and maximum values of your data',
+              ),
+              visibility: ({ controls }: ControlPanelsContainerProps) =>
+                Boolean(controls?.show_x_axis?.value),
+            },
+          },
+        ],
+        [<ControlSubSectionHeader>{t('Y Axis')}</ControlSubSectionHeader>],
+        [
+          {
+            name: 'show_y_axis',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show Y-axis'),
+              renderTrigger: true,
+              default: false,
+              description: t('Whether to display the Y Axis'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'show_y_axis_min_max_labels',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show min/max axis labels'),
+              renderTrigger: true,
+              default: false,
+              description: t(
+                'When enabled, the axis will display labels for the minimum and maximum values of your data',
+              ),
+              visibility: ({ controls }: ControlPanelsContainerProps) =>
+                Boolean(controls?.show_y_axis?.value),
+            },
+          },
+        ],
         ['y_axis_format'],
         ['currency_format'],
         [

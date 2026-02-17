@@ -351,6 +351,7 @@ class BaseReportState:
         Get chart or dashboard screenshots
         :raises: ReportScheduleScreenshotFailedError
         """
+        start_time = datetime.utcnow()
 
         _, username = get_executor(
             executors=app.config["ALERT_REPORTS_EXECUTORS"],
@@ -397,10 +398,27 @@ class BaseReportState:
             for screenshot in screenshots:
                 if imge := screenshot.get_screenshot(user=user):
                     imges.append(imge)
+            elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
+            logger.info(
+                "Screenshot capture took %.2fs - execution_id: %s",
+                elapsed_seconds,
+                self._execution_id,
+            )
         except SoftTimeLimitExceeded as ex:
-            logger.warning("A timeout occurred while taking a screenshot.")
+            elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
+            logger.warning(
+                "Screenshot timeout after %.2fs - execution_id: %s",
+                elapsed_seconds,
+                self._execution_id,
+            )
             raise ReportScheduleScreenshotTimeout() from ex
         except Exception as ex:
+            elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
+            logger.error(
+                "Screenshot failed after %.2fs - execution_id: %s",
+                elapsed_seconds,
+                self._execution_id,
+            )
             raise ReportScheduleScreenshotFailedError(
                 f"Failed taking a screenshot {str(ex)}"
             ) from ex
@@ -419,6 +437,7 @@ class BaseReportState:
         return pdf
 
     def _get_csv_data(self) -> bytes:
+        start_time = datetime.utcnow()
         url = self._get_url(result_format=ChartDataResultFormat.CSV)
         _, username = get_executor(
             executors=app.config["ALERT_REPORTS_EXECUTORS"],
@@ -432,11 +451,30 @@ class BaseReportState:
             self._update_query_context()
 
         try:
-            logger.info("Getting chart from %s as user %s", url, user.username)
             csv_data = get_chart_csv_data(chart_url=url, auth_cookies=auth_cookies)
+            elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
+            logger.info(
+                "CSV data generation from %s as user %s took %.2fs - execution_id: %s",
+                url,
+                username,
+                elapsed_seconds,
+                self._execution_id,
+            )
         except SoftTimeLimitExceeded as ex:
+            elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
+            logger.warning(
+                "CSV generation timeout after %.2fs - execution_id: %s",
+                elapsed_seconds,
+                self._execution_id,
+            )
             raise ReportScheduleCsvTimeout() from ex
         except Exception as ex:
+            elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
+            logger.error(
+                "CSV generation failed after %.2fs - execution_id: %s",
+                elapsed_seconds,
+                self._execution_id,
+            )
             raise ReportScheduleCsvFailedError(
                 f"Failed generating csv {str(ex)}"
             ) from ex
@@ -448,6 +486,7 @@ class BaseReportState:
         """
         Return data as a Pandas dataframe, to embed in notifications as a table.
         """
+        start_time = datetime.utcnow()
 
         url = self._get_url(result_format=ChartDataResultFormat.JSON)
         _, username = get_executor(
@@ -462,11 +501,30 @@ class BaseReportState:
             self._update_query_context()
 
         try:
-            logger.info("Getting chart from %s as user %s", url, user.username)
             dataframe = get_chart_dataframe(url, auth_cookies)
+            elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
+            logger.info(
+                "DataFrame generation from %s as user %s took %.2fs - execution_id: %s",
+                url,
+                username,
+                elapsed_seconds,
+                self._execution_id,
+            )
         except SoftTimeLimitExceeded as ex:
+            elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
+            logger.warning(
+                "DataFrame generation timeout after %.2fs - execution_id: %s",
+                elapsed_seconds,
+                self._execution_id,
+            )
             raise ReportScheduleDataFrameTimeout() from ex
         except Exception as ex:
+            elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
+            logger.error(
+                "DataFrame generation failed after %.2fs - execution_id: %s",
+                elapsed_seconds,
+                self._execution_id,
+            )
             raise ReportScheduleDataFrameFailedError(
                 f"Failed generating dataframe {str(ex)}"
             ) from ex
@@ -764,8 +822,13 @@ class ReportNotTriggeredErrorState(BaseReportState):
         try:
             # If it's an alert check if the alert is triggered
             if self._report_schedule.type == ReportScheduleType.ALERT:
-                if not AlertCommand(self._report_schedule, self._execution_id).run():
-                    self.update_report_schedule_and_log(ReportState.NOOP)
+                triggered, message = AlertCommand(
+                    self._report_schedule, self._execution_id
+                ).run()
+                if not triggered:
+                    self.update_report_schedule_and_log(
+                        ReportState.NOOP, error_message=message
+                    )
                     return
             self.send()
             self.update_report_schedule_and_log(ReportState.SUCCESS)
@@ -839,12 +902,29 @@ class ReportWorkingState(BaseReportState):
 
     def next(self) -> None:
         if self.is_on_working_timeout():
+            last_working = ReportScheduleDAO.find_last_entered_working_log(
+                self._report_schedule
+            )
+            elapsed_seconds = (
+                (datetime.utcnow() - last_working.end_dttm).total_seconds()
+                if last_working
+                else None
+            )
+            logger.error(
+                "Working state timeout after %.2fs - execution_id: %s",
+                elapsed_seconds if elapsed_seconds else 0,
+                self._execution_id,
+            )
             exception_timeout = ReportScheduleWorkingTimeoutError()
             self.update_report_schedule_and_log(
                 ReportState.ERROR,
                 error_message=str(exception_timeout),
             )
             raise exception_timeout
+        logger.warning(
+            "Report still in working state, refusing to re-compute - execution_id: %s",
+            self._execution_id,
+        )
         exception_working = ReportSchedulePreviousWorkingError()
         self.update_report_schedule_and_log(
             ReportState.WORKING,
@@ -874,8 +954,13 @@ class ReportSuccessState(BaseReportState):
                 return
             self.update_report_schedule_and_log(ReportState.WORKING)
             try:
-                if not AlertCommand(self._report_schedule, self._execution_id).run():
-                    self.update_report_schedule_and_log(ReportState.NOOP)
+                triggered, message = AlertCommand(
+                    self._report_schedule, self._execution_id
+                ).run()
+                if not triggered:
+                    self.update_report_schedule_and_log(
+                        ReportState.NOOP, error_message=message
+                    )
                     return
             except Exception as ex:
                 self.send_error(
@@ -969,15 +1054,20 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
                 model=self._model,
             )
             user = security_manager.find_user(username)
+
+            start_time = datetime.utcnow()
             with override_user(user):
-                logger.info(
-                    "Running report schedule %s as user %s",
-                    self._execution_id,
-                    username,
-                )
                 ReportScheduleStateMachine(
                     self._execution_id, self._model, self._scheduled_dttm
                 ).run()
+
+            elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
+            logger.info(
+                "Report execution as user %s completed in %.2fs - execution_id: %s",
+                username,
+                elapsed_seconds,
+                self._execution_id,
+            )
         except CommandException:
             raise
         except Exception as ex:

@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, useTheme } from '@apache-superset/core/ui';
+import { styled, useTheme, type SupersetTheme } from '@apache-superset/core/ui';
 import { CustomCellRendererProps } from '@superset-ui/core/components/ThemedAgGridReact';
-import { BasicColorFormatterType, InputColumn } from '../types';
+import { BasicColorFormatterType, InputColumn, ValueRange } from '../types';
 import { useIsDark } from '../utils/useTableTheme';
 
 const StyledTotalCell = styled.div`
@@ -53,8 +53,6 @@ const Bar = styled.div<{
   z-index: 1;
 `;
 
-type ValueRange = [number, number];
-
 /**
  * Cell background width calculation for horizontal bar chart
  */
@@ -64,7 +62,7 @@ function cellWidth({
   alignPositiveNegative,
 }: {
   value: number;
-  valueRange: ValueRange;
+  valueRange: [number, number];
   alignPositiveNegative: boolean;
 }) {
   const [minValue, maxValue] = valueRange;
@@ -89,7 +87,7 @@ function cellOffset({
   alignPositiveNegative,
 }: {
   value: number;
-  valueRange: ValueRange;
+  valueRange: [number, number];
   alignPositiveNegative: boolean;
 }) {
   if (alignPositiveNegative) {
@@ -114,7 +112,7 @@ function cellBackground({
   value: number;
   colorPositiveNegative: boolean;
   isDarkTheme: boolean;
-  theme: any;
+  theme: SupersetTheme | null;
 }) {
   if (!colorPositiveNegative) {
     return 'transparent'; // Use transparent background when colorPositiveNegative is false
@@ -134,7 +132,7 @@ export const NumericCellRenderer = (
     basicColorFormatters: {
       [Key: string]: BasicColorFormatterType;
     }[];
-    valueRange: any;
+    valueRange: ValueRange;
     alignPositiveNegative: boolean;
     colorPositiveNegative: boolean;
   },

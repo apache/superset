@@ -17,13 +17,12 @@
  * under the License.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { t, logging } from '@apache-superset/core';
 import {
-  logging,
   Metric,
   QueryFormData,
   QueryFormMetric,
   SupersetClient,
-  t,
 } from '@superset-ui/core';
 import {
   ColumnMeta,
@@ -66,8 +65,9 @@ const DND_ACCEPTED_TYPES = [
 const isDictionaryForAdhocFilter = (value: OptionValueType) =>
   !(value instanceof AdhocFilter) && value?.expressionType;
 
-export interface DndFilterSelectProps
-  extends ControlComponentProps<OptionValueType[]> {
+export interface DndFilterSelectProps extends ControlComponentProps<
+  OptionValueType[]
+> {
   columns: ColumnMeta[];
   savedMetrics: Metric[];
   selectedMetrics: QueryFormMetric[];

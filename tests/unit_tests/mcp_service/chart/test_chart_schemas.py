@@ -36,21 +36,76 @@ class TestTableChartConfig:
         """Test that TableChartConfig rejects duplicate labels."""
         with pytest.raises(ValidationError, match="Duplicate column/metric labels"):
             TableChartConfig(
+                chart_type="table",
                 columns=[
                     ColumnRef(name="product_line", label="product_line"),
                     ColumnRef(name="sales", aggregate="SUM", label="product_line"),
-                ]
+                ],
             )
 
     def test_unique_labels_accepted(self) -> None:
         """Test that TableChartConfig accepts unique labels."""
         config = TableChartConfig(
+            chart_type="table",
             columns=[
                 ColumnRef(name="product_line", label="Product Line"),
                 ColumnRef(name="sales", aggregate="SUM", label="Total Sales"),
-            ]
+            ],
         )
         assert len(config.columns) == 2
+
+    def test_default_viz_type_is_table(self) -> None:
+        """Test that default viz_type is 'table'."""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="product")],
+        )
+        assert config.viz_type == "table"
+
+    def test_ag_grid_table_viz_type_accepted(self) -> None:
+        """Test that viz_type='ag-grid-table' is accepted for AG Grid table."""
+        config = TableChartConfig(
+            chart_type="table",
+            viz_type="ag-grid-table",
+            columns=[
+                ColumnRef(name="product_line"),
+                ColumnRef(name="sales", aggregate="SUM", label="Total Sales"),
+            ],
+        )
+        assert config.viz_type == "ag-grid-table"
+        assert len(config.columns) == 2
+
+    def test_ag_grid_table_with_all_options(self) -> None:
+        """Test AG Grid table with filters and sorting."""
+        from superset.mcp_service.chart.schemas import FilterConfig
+
+        config = TableChartConfig(
+            chart_type="table",
+            viz_type="ag-grid-table",
+            columns=[
+                ColumnRef(name="product_line"),
+                ColumnRef(name="quantity", aggregate="SUM", label="Total Quantity"),
+                ColumnRef(name="sales", aggregate="SUM", label="Total Sales"),
+            ],
+            filters=[FilterConfig(column="status", op="=", value="active")],
+            sort_by=["product_line"],
+        )
+        assert config.viz_type == "ag-grid-table"
+        assert len(config.columns) == 3
+        assert config.filters is not None
+        assert len(config.filters) == 1
+        assert config.sort_by == ["product_line"]
+
+    def test_invalid_viz_type_rejected(self) -> None:
+        """Test that invalid viz_type values are rejected."""
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError):
+            TableChartConfig(
+                chart_type="table",
+                viz_type="invalid-type",
+                columns=[ColumnRef(name="product")],
+            )
 
 
 class TestXYChartConfig:
@@ -59,6 +114,7 @@ class TestXYChartConfig:
     def test_different_labels_accepted(self) -> None:
         """Test that different labels for x and y are accepted."""
         config = XYChartConfig(
+            chart_type="xy",
             x=ColumnRef(name="product_line"),  # Label: "product_line"
             y=[
                 ColumnRef(
@@ -73,6 +129,7 @@ class TestXYChartConfig:
         """Test that explicit duplicate labels are rejected."""
         with pytest.raises(ValidationError, match="Duplicate column/metric labels"):
             XYChartConfig(
+                chart_type="xy",
                 x=ColumnRef(name="product_line"),
                 y=[ColumnRef(name="sales", label="product_line")],
             )
@@ -81,6 +138,7 @@ class TestXYChartConfig:
         """Test that duplicate y-axis labels are rejected."""
         with pytest.raises(ValidationError, match="Duplicate column/metric labels"):
             XYChartConfig(
+                chart_type="xy",
                 x=ColumnRef(name="date"),
                 y=[
                     ColumnRef(name="sales", aggregate="SUM"),
@@ -91,6 +149,7 @@ class TestXYChartConfig:
     def test_unique_labels_accepted(self) -> None:
         """Test that unique labels are accepted."""
         config = XYChartConfig(
+            chart_type="xy",
             x=ColumnRef(name="date", label="Order Date"),
             y=[
                 ColumnRef(name="sales", aggregate="SUM", label="Total Sales"),
@@ -103,6 +162,7 @@ class TestXYChartConfig:
         """Test that group_by conflicts with x are rejected."""
         with pytest.raises(ValidationError, match="Duplicate column/metric labels"):
             XYChartConfig(
+                chart_type="xy",
                 x=ColumnRef(name="region"),
                 y=[ColumnRef(name="sales", aggregate="SUM")],
                 group_by=ColumnRef(name="category", label="region"),
@@ -112,6 +172,7 @@ class TestXYChartConfig:
         """Test realistic chart configurations."""
         # This should work - COUNT(product_line) != product_line
         config = XYChartConfig(
+            chart_type="xy",
             x=ColumnRef(name="product_line"),
             y=[
                 ColumnRef(name="product_line", aggregate="COUNT"),
@@ -158,3 +219,39 @@ class TestXYChartConfig:
             kind="area",
         )
         assert config.kind == "area"
+
+    def test_unknown_fields_rejected(self) -> None:
+        """Test that unknown fields like 'series' are rejected."""
+        with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
+            XYChartConfig(
+                chart_type="xy",
+                x=ColumnRef(name="territory"),
+                y=[ColumnRef(name="sales", aggregate="SUM")],
+                kind="bar",
+                series=ColumnRef(name="year"),
+            )
+
+    def test_group_by_accepted(self) -> None:
+        """Test that group_by is the correct field for series grouping."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="territory"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            kind="bar",
+            group_by=ColumnRef(name="year"),
+        )
+        assert config.group_by is not None
+        assert config.group_by.name == "year"
+
+
+class TestTableChartConfigExtraFields:
+    """Test TableChartConfig rejects unknown fields."""
+
+    def test_unknown_fields_rejected(self) -> None:
+        """Test that unknown fields are rejected."""
+        with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
+            TableChartConfig(
+                chart_type="table",
+                columns=[ColumnRef(name="product")],
+                foo="bar",
+            )
