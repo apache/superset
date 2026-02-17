@@ -236,9 +236,15 @@ class TestGetSchemaToolViaClient:
             assert "dashboard_title" in info["sortable_columns"]
             assert "changed_on" in info["sortable_columns"]
 
+    @patch(
+        "superset.mcp_service.utils.schema_utils._is_parse_request_enabled",
+        return_value=True,
+    )
     @patch("superset.daos.chart.ChartDAO.get_filterable_columns_and_operators")
     @pytest.mark.asyncio
-    async def test_get_schema_with_json_string_request(self, mock_filters, mcp_server):
+    async def test_get_schema_with_json_string_request(
+        self, mock_filters, mock_parse_enabled, mcp_server
+    ):
         """Test get_schema accepts JSON string request (Claude Code compatibility)."""
         mock_filters.return_value = {"slice_name": ["eq"]}
 
