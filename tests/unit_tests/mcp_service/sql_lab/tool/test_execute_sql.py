@@ -248,10 +248,11 @@ class TestExecuteSql:
         )
         mock_security_manager.can_access_database.return_value = True
 
-        # Mock cursor for DML operation
+        # Mock cursor for DML operation - description is None per DB-API 2.0
         cursor = (  # fmt: skip
             mock_database.get_raw_connection.return_value.__enter__.return_value.cursor.return_value
         )
+        cursor.description = None  # DML statements have no result set
         cursor.rowcount = 3  # 3 rows affected
 
         request = {

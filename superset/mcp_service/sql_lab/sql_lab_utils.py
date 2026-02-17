@@ -192,8 +192,16 @@ def _execute_query(
             cursor = conn.cursor()
             cursor.execute(sql)
 
-            # Process results based on query type
-            if _is_select_query(sql):
+            # Use cursor.description to detect whether the last executed
+            # statement produced a result set, rather than checking if the
+            # SQL text starts with SELECT. This correctly handles
+            # multi-statement queries (e.g., SET ...; SELECT ...) where
+            # the first statement is not a SELECT but the last one is.
+            if cursor.description:
+                _process_select_results(cursor, results, limit)
+            elif _is_select_query(sql):
+                # Fallback: some drivers may not set description for
+                # empty result sets, so also check the SQL text
                 _process_select_results(cursor, results, limit)
             else:
                 _process_dml_results(cursor, conn, results)
