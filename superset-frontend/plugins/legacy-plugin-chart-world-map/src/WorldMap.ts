@@ -244,11 +244,13 @@ function WorldMap(element: HTMLElement, props: WorldMapProps): void {
         },
       ];
     }
-    onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
-      drillToDetail: drillToDetailFilters,
-      crossFilter: getCrossFilterDataMask(source),
-      drillBy: { filters: drillByFilters, groupbyFieldName: 'entity' },
-    });
+    if (onContextMenu) {
+      onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
+        drillToDetail: drillToDetailFilters,
+        crossFilter: getCrossFilterDataMask(source),
+        drillBy: { filters: drillByFilters, groupbyFieldName: 'entity' },
+      });
+    }
   };
 
   const map = new Datamap({
