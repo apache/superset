@@ -27,13 +27,14 @@ import {
 
 const columnsConfig = sharedControls.entity;
 
+// eslint-disable theme-colors/no-literal-colors — data visualization dot colors, not UI theme
 const colorChoices = [
-  ['rgb(0, 139, 139)', t('Dark Cyan')],
-  ['rgb(128, 0, 128)', t('Purple')],
-  ['rgb(255, 215, 0)', t('Gold')],
-  ['rgb(69, 69, 69)', t('Dim Gray')],
-  ['rgb(220, 20, 60)', t('Crimson')],
-  ['rgb(34, 139, 34)', t('Forest Green')],
+  ['#008b8b', t('Dark Cyan')],
+  ['#800080', t('Purple')],
+  ['#ffd700', t('Gold')],
+  ['#454545', t('Dim Gray')],
+  ['#dc143c', t('Crimson')],
+  ['#228b22', t('Forest Green')],
 ];
 
 const config: ControlPanelConfig = {

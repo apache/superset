@@ -46,12 +46,23 @@ export default function transformProps(chartProps: ChartProps) {
     renderWhileDragging,
   } = formData;
 
-  // Validate color
-  const rgb = /^rgb\((\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3})\)$/.exec(
+  // Validate color — supports hex (#rrggbb) and rgb(r, g, b) formats
+  let rgb: string[] | null = null;
+  const hexMatch = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(
     maplibreColor,
   );
+  if (hexMatch) {
+    rgb = [
+      maplibreColor,
+      String(parseInt(hexMatch[1], 16)),
+      String(parseInt(hexMatch[2], 16)),
+      String(parseInt(hexMatch[3], 16)),
+    ];
+  } else {
+    rgb = /^rgb\((\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3})\)$/.exec(maplibreColor);
+  }
   if (rgb === null) {
-    onError("Color field must be of form 'rgb(%d, %d, %d)'");
+    onError("Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'");
 
     return {};
   }
