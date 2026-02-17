@@ -1183,3 +1183,97 @@ test('should not apply axis bounds calculation when seriesType is not Bar for ho
   // Should not have explicit max set when seriesType is not Bar
   expect(xAxisRaw.max).toBeUndefined();
 });
+
+test('should use localized axis titles when translations and locale are provided', () => {
+  const chartProps = new ChartProps({
+    ...chartPropsConfig,
+    formData: {
+      ...formData,
+      xAxisTitle: 'Revenue',
+      yAxisTitle: 'Count',
+      translations: {
+        x_axis_title: { de: 'Umsatz' },
+        y_axis_title: { de: 'Anzahl' },
+      },
+    },
+    locale: 'de',
+  });
+
+  const transformed = transformProps(
+    chartProps as EchartsTimeseriesChartProps,
+  );
+  const xAxis = transformed.echartOptions.xAxis as { name?: string };
+  const yAxis = transformed.echartOptions.yAxis as { name?: string };
+
+  expect(xAxis.name).toBe('Umsatz');
+  expect(yAxis.name).toBe('Anzahl');
+});
+
+test('should use original axis titles when no locale is provided', () => {
+  const chartProps = new ChartProps({
+    ...chartPropsConfig,
+    formData: {
+      ...formData,
+      xAxisTitle: 'Revenue',
+      yAxisTitle: 'Count',
+      translations: {
+        x_axis_title: { de: 'Umsatz' },
+        y_axis_title: { de: 'Anzahl' },
+      },
+    },
+  });
+
+  const transformed = transformProps(
+    chartProps as EchartsTimeseriesChartProps,
+  );
+  const xAxis = transformed.echartOptions.xAxis as { name?: string };
+  const yAxis = transformed.echartOptions.yAxis as { name?: string };
+
+  expect(xAxis.name).toBe('Revenue');
+  expect(yAxis.name).toBe('Count');
+});
+
+test('should fall back to original axis titles when locale has no matching translation', () => {
+  const chartProps = new ChartProps({
+    ...chartPropsConfig,
+    formData: {
+      ...formData,
+      xAxisTitle: 'Revenue',
+      yAxisTitle: 'Count',
+      translations: {
+        x_axis_title: { de: 'Umsatz' },
+      },
+    },
+    locale: 'ja',
+  });
+
+  const transformed = transformProps(
+    chartProps as EchartsTimeseriesChartProps,
+  );
+  const xAxis = transformed.echartOptions.xAxis as { name?: string };
+  const yAxis = transformed.echartOptions.yAxis as { name?: string };
+
+  expect(xAxis.name).toBe('Revenue');
+  expect(yAxis.name).toBe('Count');
+});
+
+test('should fall back to base language when regional locale has no match', () => {
+  const chartProps = new ChartProps({
+    ...chartPropsConfig,
+    formData: {
+      ...formData,
+      xAxisTitle: 'Revenue',
+      translations: {
+        x_axis_title: { de: 'Umsatz' },
+      },
+    },
+    locale: 'de-AT',
+  });
+
+  const transformed = transformProps(
+    chartProps as EchartsTimeseriesChartProps,
+  );
+  const xAxis = transformed.echartOptions.xAxis as { name?: string };
+
+  expect(xAxis.name).toBe('Umsatz');
+});

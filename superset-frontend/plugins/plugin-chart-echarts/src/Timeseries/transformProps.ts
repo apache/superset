@@ -24,6 +24,7 @@ import {
   AxisType,
   buildCustomFormatters,
   buildLocalizedMetricLabelMap,
+  getLocalizedFormDataValue,
   CategoricalColorNamespace,
   CurrencyFormatter,
   ensureIsArray,
@@ -216,6 +217,13 @@ export default function transformProps(
     zoomable,
     stackDimension,
   }: EchartsTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
+
+  const localizedXAxisTitle =
+    getLocalizedFormDataValue(formData.translations, 'x_axis_title', locale) ??
+    xAxisTitle;
+  const localizedYAxisTitle =
+    getLocalizedFormDataValue(formData.translations, 'y_axis_title', locale) ??
+    yAxisTitle;
 
   const refs: Refs = {};
   const groupBy = ensureIsArray(groupby);
@@ -583,9 +591,9 @@ export default function transformProps(
   } = hooks;
 
   const addYAxisLabelOffset =
-    !!yAxisTitle && convertInteger(yAxisTitleMargin) !== 0;
+    !!localizedYAxisTitle && convertInteger(yAxisTitleMargin) !== 0;
   const addXAxisLabelOffset =
-    !!xAxisTitle && convertInteger(xAxisTitleMargin) !== 0;
+    !!localizedXAxisTitle && convertInteger(xAxisTitleMargin) !== 0;
   const padding = getPadding(
     showLegend,
     legendOrientation,
@@ -610,7 +618,7 @@ export default function transformProps(
 
   let xAxis: any = {
     type: xAxisType,
-    name: xAxisTitle,
+    name: localizedXAxisTitle,
     nameGap: convertInteger(xAxisTitleMargin),
     nameLocation: 'middle',
     axisLabel: {
@@ -662,7 +670,7 @@ export default function transformProps(
       ),
     },
     scale: truncateYAxis,
-    name: yAxisTitle,
+    name: localizedYAxisTitle,
     nameGap: convertInteger(yAxisTitleMargin),
     nameLocation: yAxisTitlePosition === 'Left' ? 'middle' : 'end',
   };

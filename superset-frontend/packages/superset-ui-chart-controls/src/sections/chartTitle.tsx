@@ -40,7 +40,7 @@ export const titleControls: ControlPanelSectionConfig = {
       {
         name: 'x_axis_title',
         config: {
-          type: 'TextControl',
+          type: 'TranslatableTextControl',
           label: t('X Axis Title'),
           renderTrigger: true,
           default: '',
@@ -66,7 +66,7 @@ export const titleControls: ControlPanelSectionConfig = {
       {
         name: 'y_axis_title',
         config: {
-          type: 'TextControl',
+          type: 'TranslatableTextControl',
           label: t('Y Axis Title'),
           renderTrigger: true,
           default: '',

@@ -64,7 +64,7 @@ function createAxisTitleControl(axis: 'x' | 'y'): ControlSetRow[] {
       {
         name: 'x_axis_title',
         config: {
-          type: 'TextControl',
+          type: 'TranslatableTextControl',
           label: t('Axis Title'),
           renderTrigger: true,
           default: '',
@@ -97,7 +97,7 @@ function createAxisTitleControl(axis: 'x' | 'y'): ControlSetRow[] {
       {
         name: 'y_axis_title',
         config: {
-          type: 'TextControl',
+          type: 'TranslatableTextControl',
           label: t('Axis Title'),
           renderTrigger: true,
           default: '',

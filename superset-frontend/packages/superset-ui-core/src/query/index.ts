@@ -34,6 +34,7 @@ export {
   getLocalizedMetricLabel,
   buildLocalizedMetricLabelMap,
 } from './getMetricLabel';
+export { default as getLocalizedFormDataValue } from './getLocalizedFormDataValue';
 export { default as DatasourceKey } from './DatasourceKey';
 export { default as normalizeOrderBy } from './normalizeOrderBy';
 export { normalizeTimeColumn } from './normalizeTimeColumn';
