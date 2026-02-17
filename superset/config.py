@@ -2121,6 +2121,7 @@ TALISMAN_CONFIG = {
             # "https://cdn.brandfolder.io", # Uncomment when SLACK_ENABLE_AVATARS is True  # noqa: E501
             "ows.terrestris.de",
             "https://cdn.document360.io",
+            "https://drive.google.com/",
         ],
         "worker-src": ["'self'", "blob:"],
         "connect-src": [
