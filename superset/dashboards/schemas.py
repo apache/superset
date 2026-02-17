@@ -23,6 +23,7 @@ from marshmallow.validate import Length, ValidationError
 
 from superset import is_feature_enabled, security_manager
 from superset.localization import (
+    TranslatableSchemaMixin,
     get_user_locale,
     localize_chart_names,
     sanitize_translations,
@@ -459,7 +460,7 @@ class BaseDashboardSchema(Schema):
         return data
 
 
-class DashboardPostSchema(BaseDashboardSchema):
+class DashboardPostSchema(TranslatableSchemaMixin, BaseDashboardSchema):
     dashboard_title = fields.String(
         metadata={"description": dashboard_title_description},
         allow_none=True,
@@ -495,7 +496,7 @@ class DashboardPostSchema(BaseDashboardSchema):
     uuid = fields.UUID(allow_none=True)
 
 
-class DashboardCopySchema(Schema):
+class DashboardCopySchema(TranslatableSchemaMixin, Schema):
     dashboard_title = fields.String(
         metadata={"description": dashboard_title_description},
         allow_none=True,
@@ -514,7 +515,7 @@ class DashboardCopySchema(Schema):
     )
 
 
-class DashboardPutSchema(BaseDashboardSchema):
+class DashboardPutSchema(TranslatableSchemaMixin, BaseDashboardSchema):
     dashboard_title = fields.String(
         metadata={"description": dashboard_title_description},
         allow_none=True,
@@ -560,50 +561,6 @@ class DashboardPutSchema(BaseDashboardSchema):
         fields.Integer(metadata={"description": tags_description}, allow_none=True)
     )
     uuid = fields.UUID(allow_none=True)
-    translations = fields.Dict(
-        metadata={"description": "Translations dict for content localization"},
-        allow_none=True,
-    )
-
-    @validates_schema
-    def validate_translations_data(
-        self, data: dict[str, Any], **kwargs: Any
-    ) -> None:
-        """
-        Validate translations field: feature flag and structure.
-
-        Checks:
-        1. Feature flag ENABLE_CONTENT_LOCALIZATION must be enabled
-        2. Structure must be valid: {field: {locale: value}}
-
-        Raises:
-            ValidationError: If feature disabled or structure invalid.
-        """
-        if "translations" not in data:
-            return
-
-        if not is_feature_enabled("ENABLE_CONTENT_LOCALIZATION"):
-            raise ValidationError(
-                "Content localization is not enabled. "
-                "Set ENABLE_CONTENT_LOCALIZATION=True to use translations.",
-                field_name="translations",
-            )
-
-        validate_translations(data["translations"])
-
-    @post_load
-    def sanitize_translations_xss(
-        self, data: dict[str, Any], **kwargs: Any
-    ) -> dict[str, Any]:
-        """
-        Strip HTML from translation values to prevent XSS.
-
-        Sanitization runs after validation. All HTML tags are removed,
-        storing plain text that React will escape when rendering.
-        """
-        if "translations" in data:
-            data["translations"] = sanitize_translations(data["translations"])
-        return data
 
 
 class DashboardNativeFiltersConfigUpdateSchema(BaseDashboardSchema):

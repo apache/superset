@@ -389,7 +389,7 @@ def test_dashboard_put_schema_validates_translations(app_context: None) -> None:
         "translations": {"field": {"INVALID": "value"}},  # invalid locale
     }
 
-    with patch("superset.dashboards.schemas.is_feature_enabled", return_value=True):
+    with patch("superset.localization.schema_mixin.is_feature_enabled", return_value=True):
         with pytest.raises(ValidationError, match="Invalid locale code"):
             schema.load(data)
 
@@ -409,7 +409,7 @@ def test_chart_put_schema_validates_translations(app_context: None) -> None:
         "translations": {"field": "not a dict"},  # invalid structure
     }
 
-    with patch("superset.charts.schemas.is_feature_enabled", return_value=True):
+    with patch("superset.localization.schema_mixin.is_feature_enabled", return_value=True):
         with pytest.raises(ValidationError, match="must be dict"):
             schema.load(data)
 
@@ -430,7 +430,7 @@ def test_dashboard_schema_valid_translations_passes(app_context: None) -> None:
         },
     }
 
-    with patch("superset.dashboards.schemas.is_feature_enabled", return_value=True):
+    with patch("superset.localization.schema_mixin.is_feature_enabled", return_value=True):
         result = schema.load(data)
 
     assert result["translations"] == {
@@ -454,7 +454,7 @@ def test_chart_schema_valid_translations_passes(app_context: None) -> None:
         },
     }
 
-    with patch("superset.charts.schemas.is_feature_enabled", return_value=True):
+    with patch("superset.localization.schema_mixin.is_feature_enabled", return_value=True):
         result = schema.load(data)
 
     assert result["translations"] == {
@@ -478,6 +478,6 @@ def test_validation_runs_before_sanitization(app_context: None) -> None:
         },
     }
 
-    with patch("superset.dashboards.schemas.is_feature_enabled", return_value=True):
+    with patch("superset.localization.schema_mixin.is_feature_enabled", return_value=True):
         with pytest.raises(ValidationError, match="Invalid locale code"):
             schema.load(data)

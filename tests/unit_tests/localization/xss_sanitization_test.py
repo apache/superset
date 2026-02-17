@@ -216,7 +216,7 @@ def test_dashboard_put_schema_sanitizes_translations(app_context: None) -> None:
         },
     }
 
-    with patch("superset.dashboards.schemas.is_feature_enabled", return_value=True):
+    with patch("superset.localization.schema_mixin.is_feature_enabled", return_value=True):
         result = schema.load(data)
 
     assert result["translations"] == {
@@ -245,7 +245,7 @@ def test_chart_put_schema_sanitizes_translations(app_context: None) -> None:
         },
     }
 
-    with patch("superset.charts.schemas.is_feature_enabled", return_value=True):
+    with patch("superset.localization.schema_mixin.is_feature_enabled", return_value=True):
         result = schema.load(data)
 
     assert result["translations"] == {
@@ -266,7 +266,7 @@ def test_schema_without_translations_unaffected(app_context: None) -> None:
     schema = DashboardPutSchema()
     data = {"dashboard_title": "Test Dashboard"}
 
-    with patch("superset.dashboards.schemas.is_feature_enabled", return_value=True):
+    with patch("superset.localization.schema_mixin.is_feature_enabled", return_value=True):
         result = schema.load(data)
 
     assert result["dashboard_title"] == "Test Dashboard"
@@ -286,7 +286,7 @@ def test_schema_with_null_translations_returns_none(app_context: None) -> None:
     schema = DashboardPutSchema()
     data = {"dashboard_title": "Test", "translations": None}
 
-    with patch("superset.dashboards.schemas.is_feature_enabled", return_value=True):
+    with patch("superset.localization.schema_mixin.is_feature_enabled", return_value=True):
         result = schema.load(data)
 
     assert result["translations"] is None

@@ -49,7 +49,7 @@ def test_dashboard_put_schema_accepts_translations_field(app_context: None) -> N
         "translations": {"dashboard_title": {"de": "Test-Dashboard"}},
     }
 
-    with patch("superset.dashboards.schemas.is_feature_enabled", return_value=True):
+    with patch("superset.localization.schema_mixin.is_feature_enabled", return_value=True):
         result = schema.load(data)
 
     assert "translations" in result
@@ -70,7 +70,7 @@ def test_dashboard_put_schema_accepts_null_translations(app_context: None) -> No
         "translations": None,
     }
 
-    with patch("superset.dashboards.schemas.is_feature_enabled", return_value=True):
+    with patch("superset.localization.schema_mixin.is_feature_enabled", return_value=True):
         result = schema.load(data)
 
     assert "translations" in result
@@ -91,7 +91,7 @@ def test_chart_put_schema_accepts_translations_field(app_context: None) -> None:
         "translations": {"slice_name": {"de": "Test-Diagramm"}},
     }
 
-    with patch("superset.charts.schemas.is_feature_enabled", return_value=True):
+    with patch("superset.localization.schema_mixin.is_feature_enabled", return_value=True):
         result = schema.load(data)
 
     assert "translations" in result
@@ -112,7 +112,7 @@ def test_chart_put_schema_accepts_null_translations(app_context: None) -> None:
         "translations": None,
     }
 
-    with patch("superset.charts.schemas.is_feature_enabled", return_value=True):
+    with patch("superset.localization.schema_mixin.is_feature_enabled", return_value=True):
         result = schema.load(data)
 
     assert "translations" in result
@@ -141,7 +141,7 @@ def test_dashboard_put_schema_rejects_translations_when_flag_off(
     }
 
     with patch(
-        "superset.dashboards.schemas.is_feature_enabled", return_value=False
+        "superset.localization.schema_mixin.is_feature_enabled", return_value=False
     ) as mock:
         mock.side_effect = lambda flag: flag != "ENABLE_CONTENT_LOCALIZATION"
         with pytest.raises(ValidationError, match=r"(?i)translations|localization"):
@@ -164,7 +164,7 @@ def test_dashboard_put_schema_accepts_translations_when_flag_on(
         "translations": {"dashboard_title": {"de": "Test-Dashboard"}},
     }
 
-    with patch("superset.dashboards.schemas.is_feature_enabled", return_value=True):
+    with patch("superset.localization.schema_mixin.is_feature_enabled", return_value=True):
         result = schema.load(data)
 
     assert "translations" in result
@@ -187,7 +187,7 @@ def test_chart_put_schema_rejects_translations_when_flag_off(
     }
 
     with patch(
-        "superset.charts.schemas.is_feature_enabled", return_value=False
+        "superset.localization.schema_mixin.is_feature_enabled", return_value=False
     ) as mock:
         mock.side_effect = lambda flag: flag != "ENABLE_CONTENT_LOCALIZATION"
         with pytest.raises(ValidationError, match=r"(?i)translations|localization"):
@@ -210,7 +210,7 @@ def test_chart_put_schema_accepts_translations_when_flag_on(
         "translations": {"slice_name": {"de": "Test-Diagramm"}},
     }
 
-    with patch("superset.charts.schemas.is_feature_enabled", return_value=True):
+    with patch("superset.localization.schema_mixin.is_feature_enabled", return_value=True):
         result = schema.load(data)
 
     assert "translations" in result
@@ -234,7 +234,7 @@ def test_dashboard_put_without_translations_works_regardless_of_flag(
     schema = DashboardPutSchema()
     data = {"dashboard_title": "Test Dashboard"}
 
-    with patch("superset.dashboards.schemas.is_feature_enabled", return_value=False):
+    with patch("superset.localization.schema_mixin.is_feature_enabled", return_value=False):
         result = schema.load(data)
 
     assert result["dashboard_title"] == "Test Dashboard"
@@ -254,7 +254,7 @@ def test_chart_put_without_translations_works_regardless_of_flag(
     schema = ChartPutSchema()
     data = {"slice_name": "Test Chart"}
 
-    with patch("superset.charts.schemas.is_feature_enabled", return_value=False):
+    with patch("superset.localization.schema_mixin.is_feature_enabled", return_value=False):
         result = schema.load(data)
 
     assert result["slice_name"] == "Test Chart"

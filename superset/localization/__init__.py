@@ -25,6 +25,7 @@ from superset.localization.sanitization import (
     sanitize_translation_value,
     sanitize_translations,
 )
+from superset.localization.schema_mixin import TranslatableSchemaMixin
 from superset.localization.slice_name_utils import (
     get_localized_chart_name,
     localize_chart_names,
@@ -42,5 +43,6 @@ __all__ = [
     "parse_accept_language",
     "sanitize_translation_value",
     "sanitize_translations",
+    "TranslatableSchemaMixin",
     "validate_translations",
 ]

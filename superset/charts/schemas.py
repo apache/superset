@@ -39,6 +39,7 @@ from superset import is_feature_enabled
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.db_engine_specs.base import builtin_time_grains
 from superset.localization import (
+    TranslatableSchemaMixin,
     get_user_locale,
     sanitize_translations,
     validate_translations,
@@ -226,7 +227,7 @@ class ChartEntityResponseSchema(Schema):
         return serialized
 
 
-class ChartPostSchema(Schema):
+class ChartPostSchema(TranslatableSchemaMixin, Schema):
     """
     Schema to add a new chart.
     """
@@ -288,7 +289,7 @@ class ChartPostSchema(Schema):
     uuid = fields.UUID(allow_none=True)
 
 
-class ChartPutSchema(Schema):
+class ChartPutSchema(TranslatableSchemaMixin, Schema):
     """
     Schema to update or patch a chart
     """
@@ -345,50 +346,6 @@ class ChartPutSchema(Schema):
     external_url = fields.String(allow_none=True)
     tags = fields.List(fields.Integer(metadata={"description": tags_description}))
     uuid = fields.UUID(allow_none=True)
-    translations = fields.Dict(
-        metadata={"description": "Translations dict for content localization"},
-        allow_none=True,
-    )
-
-    @validates_schema
-    def validate_translations_data(
-        self, data: dict[str, Any], **kwargs: Any
-    ) -> None:
-        """
-        Validate translations field: feature flag and structure.
-
-        Checks:
-        1. Feature flag ENABLE_CONTENT_LOCALIZATION must be enabled
-        2. Structure must be valid: {field: {locale: value}}
-
-        Raises:
-            ValidationError: If feature disabled or structure invalid.
-        """
-        if "translations" not in data:
-            return
-
-        if not is_feature_enabled("ENABLE_CONTENT_LOCALIZATION"):
-            raise ValidationError(
-                "Content localization is not enabled. "
-                "Set ENABLE_CONTENT_LOCALIZATION=True to use translations.",
-                field_name="translations",
-            )
-
-        validate_translations(data["translations"])
-
-    @post_load
-    def sanitize_translations_xss(
-        self, data: dict[str, Any], **kwargs: Any
-    ) -> dict[str, Any]:
-        """
-        Strip HTML from translation values to prevent XSS.
-
-        Sanitization runs after validation. All HTML tags are removed,
-        storing plain text that React will escape when rendering.
-        """
-        if "translations" in data:
-            data["translations"] = sanitize_translations(data["translations"])
-        return data
 
 
 class ChartGetDatasourceObjectDataResponseSchema(Schema):
