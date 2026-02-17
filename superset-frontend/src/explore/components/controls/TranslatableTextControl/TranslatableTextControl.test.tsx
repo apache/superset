@@ -61,6 +61,8 @@ const baseProps = {
   onChange: jest.fn(),
   actions: { setControlValue: mockSetControlValue },
   formData: {
+    datasource: '1__table',
+    viz_type: 'echarts_timeseries',
     x_axis_title: 'Revenue',
     translations: {
       x_axis_title: { de: 'Umsatz', fr: 'Revenu' },
@@ -153,6 +155,8 @@ test('shows placeholder with default value when editing translation', async () =
     <TranslatableTextControl
       {...baseProps}
       formData={{
+        datasource: '1__table',
+        viz_type: 'echarts_timeseries',
         x_axis_title: 'Revenue',
         translations: { x_axis_title: {} },
       }}

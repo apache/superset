@@ -59,6 +59,8 @@ jest.mock('@superset-ui/core', () => ({
   GenericDataType: { Temporal: 2, String: 1 },
   extractTimegrain: jest.fn(() => 'P1D'),
   getMetricLabel: jest.fn(metric => metric),
+  getLocalizedMetricLabel: jest.fn(metric => metric),
+  getLocalizedFormDataValue: jest.fn(() => undefined),
   getXAxisLabel: jest.fn(() => '__timestamp'),
   getValueFormatter: jest.fn(() => ({
     format: (v: number) => `$${v}`,

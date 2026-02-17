@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps } from '@superset-ui/core';
+import { ChartProps, SqlaFormData } from '@superset-ui/core';
 import { supersetTheme } from '@apache-superset/core/ui';
 import transformProps from '../../src/Tree/transformProps';
 import { EchartsTreeChartProps } from '../../src/Tree/types';
@@ -25,6 +25,7 @@ describe('EchartsTree transformProps', () => {
   const formData = {
     colorScheme: 'bnbColors',
     datasource: '3__table',
+    viz_type: 'tree_chart',
     granularity_sqla: 'ds',
     metric: 'count',
     id: 'id_column',
@@ -451,7 +452,7 @@ describe('EchartsTree transformProps', () => {
         ],
       },
     ];
-    const chartProps = new ChartProps({
+    const chartProps = new ChartProps<SqlaFormData>({
       ...chartPropsConfig,
       formData: {
         ...formData,

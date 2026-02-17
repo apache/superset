@@ -75,18 +75,18 @@ describe('BoxPlot transformProps', () => {
     const adhocMetric = {
       expressionType: 'SIMPLE' as const,
       column: { column_name: 'averageprice' },
-      aggregate: 'AVG',
+      aggregate: 'AVG' as const,
       label: 'AVG(averageprice)',
       translations: { label: { de: 'Durchschnittspreis' } },
     };
     const adhocMetric2 = {
       expressionType: 'SIMPLE' as const,
       column: { column_name: 'volume' },
-      aggregate: 'SUM',
+      aggregate: 'SUM' as const,
       label: 'SUM(volume)',
       translations: { label: { de: 'Gesamtvolumen' } },
     };
-    const localizedChartProps = new ChartProps({
+    const localizedChartProps = new ChartProps<SqlaFormData>({
       formData: {
         ...formData,
         metrics: [adhocMetric, adhocMetric2],
@@ -131,7 +131,7 @@ describe('BoxPlot transformProps', () => {
   });
 
   test('should use localized axis titles when translations and locale are provided', () => {
-    const localizedChartProps = new ChartProps({
+    const localizedChartProps = new ChartProps<SqlaFormData>({
       formData: {
         ...formData,
         xAxisTitle: 'Revenue',
@@ -157,7 +157,7 @@ describe('BoxPlot transformProps', () => {
   });
 
   test('should use original axis titles when no locale is provided', () => {
-    const localizedChartProps = new ChartProps({
+    const localizedChartProps = new ChartProps<SqlaFormData>({
       formData: {
         ...formData,
         xAxisTitle: 'Revenue',
@@ -182,7 +182,7 @@ describe('BoxPlot transformProps', () => {
   });
 
   test('should fall back to original axis titles when locale has no matching translation', () => {
-    const localizedChartProps = new ChartProps({
+    const localizedChartProps = new ChartProps<SqlaFormData>({
       formData: {
         ...formData,
         xAxisTitle: 'Revenue',
@@ -207,7 +207,7 @@ describe('BoxPlot transformProps', () => {
   });
 
   test('should fall back to base language when regional locale has no match', () => {
-    const localizedChartProps = new ChartProps({
+    const localizedChartProps = new ChartProps<SqlaFormData>({
       formData: {
         ...formData,
         xAxisTitle: 'Revenue',

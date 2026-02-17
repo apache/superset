@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, VizType } from '@superset-ui/core';
+import { ChartProps, SqlaFormData, VizType } from '@superset-ui/core';
 import { supersetTheme } from '@apache-superset/core/ui';
 import {
   LegendOrientation,
@@ -311,14 +311,14 @@ test('should use localized metric labels in legend formatter', () => {
   const adhocMetricA = {
     expressionType: 'SIMPLE' as const,
     column: { column_name: 'num' },
-    aggregate: 'SUM',
+    aggregate: 'SUM' as const,
     label: 'SUM(num)',
     translations: { label: { de: 'Gesamtzahl' } },
   };
   const adhocMetricB = {
     expressionType: 'SIMPLE' as const,
     column: { column_name: 'price' },
-    aggregate: 'AVG',
+    aggregate: 'AVG' as const,
     label: 'AVG(price)',
     translations: { label: { de: 'Durchschnittspreis' } },
   };
@@ -334,7 +334,7 @@ test('should use localized metric labels in legend formatter', () => {
     },
     locale: 'de',
   };
-  const chartProps = new ChartProps(chartPropsConfigLocalized);
+  const chartProps = new ChartProps<SqlaFormData>(chartPropsConfigLocalized);
   const transformed = transformProps(chartProps as EchartsMixedTimeseriesProps);
 
   const legendFormatter = (transformed.echartOptions.legend as any).formatter;
@@ -361,7 +361,7 @@ test('legend margin: right orientation sets grid.right correctly', () => {
 });
 
 test('should use localized axis titles when translations and locale are provided', () => {
-  const chartProps = new ChartProps({
+  const chartProps = new ChartProps<SqlaFormData>({
     ...chartPropsConfig,
     formData: {
       ...formData,
@@ -389,7 +389,7 @@ test('should use localized axis titles when translations and locale are provided
 });
 
 test('should use original axis titles when no locale is provided', () => {
-  const chartProps = new ChartProps({
+  const chartProps = new ChartProps<SqlaFormData>({
     ...chartPropsConfig,
     formData: {
       ...formData,
@@ -416,7 +416,7 @@ test('should use original axis titles when no locale is provided', () => {
 });
 
 test('should fall back to original axis titles when locale has no matching translation', () => {
-  const chartProps = new ChartProps({
+  const chartProps = new ChartProps<SqlaFormData>({
     ...chartPropsConfig,
     formData: {
       ...formData,
@@ -442,7 +442,7 @@ test('should fall back to original axis titles when locale has no matching trans
 });
 
 test('should fall back to base language when regional locale has no match', () => {
-  const chartProps = new ChartProps({
+  const chartProps = new ChartProps<SqlaFormData>({
     ...chartPropsConfig,
     formData: {
       ...formData,

@@ -29,6 +29,8 @@ jest.mock('@superset-ui/chart-controls', () => ({
 jest.mock('@superset-ui/core', () => ({
   GenericDataType: { Temporal: 2, String: 1 },
   getMetricLabel: jest.fn(metric => metric),
+  getLocalizedMetricLabel: jest.fn(metric => metric),
+  getLocalizedFormDataValue: jest.fn(() => undefined),
   extractTimegrain: jest.fn(() => 'P1D'),
   getValueFormatter: jest.fn(() => (v: any) => `$${v}`),
 }));

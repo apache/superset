@@ -195,7 +195,7 @@ const addToasts = (
   addedToDashboard?: {
     title: string;
     new?: boolean;
-  },
+  } | null,
 ) => {
   const toasts = [];
   if (isNewSlice) {

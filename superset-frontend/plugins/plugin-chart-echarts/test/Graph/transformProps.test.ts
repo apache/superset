@@ -361,7 +361,7 @@ test('should use localized metric label in tooltip', () => {
     label: 'COUNT(num)',
     translations: { label: { de: 'Anzahl' } },
   };
-  const chartProps = new ChartProps({
+  const chartProps = new ChartProps<SqlaFormData>({
     ...chartPropsConfig,
     formData: {
       ...formData,

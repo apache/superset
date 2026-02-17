@@ -105,7 +105,7 @@ describe('Sankey transformProps', () => {
       const result = transformProps(chartProps as SankeyChartProps);
 
       // Get the tooltip formatter
-      const tooltipFormatter = result.echartOptions.tooltip?.formatter;
+      const tooltipFormatter = (result.echartOptions.tooltip as { formatter?: Function })?.formatter;
       expect(tooltipFormatter).toBeDefined();
 
       // Call the formatter with mock params to verify it uses localized label
@@ -130,7 +130,7 @@ describe('Sankey transformProps', () => {
 
       const result = transformProps(chartProps as SankeyChartProps);
 
-      const tooltipFormatter = result.echartOptions.tooltip?.formatter;
+      const tooltipFormatter = (result.echartOptions.tooltip as { formatter?: Function })?.formatter;
       const mockParams = {
         name: 'A → B',
         value: 100,
@@ -151,7 +151,7 @@ describe('Sankey transformProps', () => {
 
       const result = transformProps(chartProps as SankeyChartProps);
 
-      const tooltipFormatter = result.echartOptions.tooltip?.formatter;
+      const tooltipFormatter = (result.echartOptions.tooltip as { formatter?: Function })?.formatter;
       const mockParams = {
         name: 'A → B',
         value: 100,

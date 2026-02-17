@@ -170,7 +170,7 @@ test('overwrite passes translations to updateSlice', async () => {
   mockedIsFeatureEnabled.mockImplementation(
     flag => flag === FeatureFlag.EnableContentLocalization,
   );
-  const mockUpdateSlice = jest.fn(() => Promise.resolve({ id: 1 }));
+  const mockUpdateSlice: jest.Mock = jest.fn(() => Promise.resolve({ id: 1 }));
   const myProps = {
     ...defaultProps,
     slice: { slice_id: 1, slice_name: 'Test Chart', owners: [1] },
@@ -216,7 +216,7 @@ test('save-as passes translations to createSlice', async () => {
   mockedIsFeatureEnabled.mockImplementation(
     flag => flag === FeatureFlag.EnableContentLocalization,
   );
-  const mockCreateSlice = jest.fn(() => Promise.resolve({ id: 2 }));
+  const mockCreateSlice: jest.Mock = jest.fn(() => Promise.resolve({ id: 2 }));
   const myProps = {
     ...defaultProps,
     slice: null,
@@ -259,7 +259,7 @@ test('save-as passes translations to createSlice', async () => {
 
 test('save without localization flag passes no translations', async () => {
   mockedIsFeatureEnabled.mockReturnValue(false);
-  const mockUpdateSlice = jest.fn(() => Promise.resolve({ id: 1 }));
+  const mockUpdateSlice: jest.Mock = jest.fn(() => Promise.resolve({ id: 1 }));
   const myProps = {
     ...defaultProps,
     slice: { slice_id: 1, slice_name: 'Test Chart', owners: [1] },

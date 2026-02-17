@@ -1185,7 +1185,7 @@ test('should not apply axis bounds calculation when seriesType is not Bar for ho
 });
 
 test('should use localized axis titles when translations and locale are provided', () => {
-  const chartProps = new ChartProps({
+  const chartProps = new ChartProps<SqlaFormData>({
     ...chartPropsConfig,
     formData: {
       ...formData,
@@ -1210,7 +1210,7 @@ test('should use localized axis titles when translations and locale are provided
 });
 
 test('should use original axis titles when no locale is provided', () => {
-  const chartProps = new ChartProps({
+  const chartProps = new ChartProps<SqlaFormData>({
     ...chartPropsConfig,
     formData: {
       ...formData,
@@ -1234,7 +1234,7 @@ test('should use original axis titles when no locale is provided', () => {
 });
 
 test('should fall back to original axis titles when locale has no matching translation', () => {
-  const chartProps = new ChartProps({
+  const chartProps = new ChartProps<SqlaFormData>({
     ...chartPropsConfig,
     formData: {
       ...formData,
@@ -1258,7 +1258,7 @@ test('should fall back to original axis titles when locale has no matching trans
 });
 
 test('should fall back to base language when regional locale has no match', () => {
-  const chartProps = new ChartProps({
+  const chartProps = new ChartProps<SqlaFormData>({
     ...chartPropsConfig,
     formData: {
       ...formData,

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { AxisType, ChartProps } from '@superset-ui/core';
+import { AxisType, ChartProps, SqlaFormData } from '@superset-ui/core';
 import { supersetTheme } from '@apache-superset/core/ui';
 import {
   LegendOrientation,
@@ -271,7 +271,7 @@ describe('Gantt transformProps', () => {
 });
 
 test('should use localized axis titles when translations and locale are provided', () => {
-  const chartProps = new ChartProps({
+  const chartProps = new ChartProps<SqlaFormData>({
     ...chartPropsConfig,
     formData: {
       ...formData,
@@ -292,7 +292,7 @@ test('should use localized axis titles when translations and locale are provided
 });
 
 test('should use original axis titles when no locale is provided', () => {
-  const chartProps = new ChartProps({
+  const chartProps = new ChartProps<SqlaFormData>({
     ...chartPropsConfig,
     formData: {
       ...formData,
@@ -312,7 +312,7 @@ test('should use original axis titles when no locale is provided', () => {
 });
 
 test('should fall back to original axis titles when locale has no matching translation', () => {
-  const chartProps = new ChartProps({
+  const chartProps = new ChartProps<SqlaFormData>({
     ...chartPropsConfig,
     formData: {
       ...formData,
@@ -332,7 +332,7 @@ test('should fall back to original axis titles when locale has no matching trans
 });
 
 test('should fall back to base language when regional locale has no match', () => {
-  const chartProps = new ChartProps({
+  const chartProps = new ChartProps<SqlaFormData>({
     ...chartPropsConfig,
     formData: {
       ...formData,
@@ -407,8 +407,9 @@ describe('tooltip metric label localization', () => {
     seriesName: 'series value 1',
   };
 
-  const createTooltipChartProps = (overrides: Record<string, unknown> = {}) =>
-    new ChartProps({
+  const createTooltipChartProps = (overrides: Record<string, unknown> = {}) => {
+    const locale = typeof overrides.locale === 'string' ? overrides.locale : undefined;
+    return new ChartProps<SqlaFormData>({
       ...chartPropsConfig,
       formData: {
         ...formData,
@@ -422,8 +423,9 @@ describe('tooltip metric label localization', () => {
           coltypes: tooltipColtypes,
         },
       ],
-      ...(overrides.locale !== undefined ? { locale: overrides.locale } : {}),
+      ...(locale ? { locale } : {}),
     });
+  };
 
   const getTooltipHtml = (chartProps: ChartProps) => {
     const transformed = transformProps(chartProps as EchartsGanttChartProps);
