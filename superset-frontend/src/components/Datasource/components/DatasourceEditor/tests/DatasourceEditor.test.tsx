@@ -42,14 +42,17 @@ jest.mock('@superset-ui/core', () => ({
 }));
 
 beforeEach(() => {
-  fetchMock.get(DATASOURCE_ENDPOINT, [], { overwriteRoutes: true });
+  jest.useRealTimers();
+  fetchMock.removeRoutes();
+  fetchMock.get(DATASOURCE_ENDPOINT, [], { name: DATASOURCE_ENDPOINT });
   setupDatasourceEditorMocks();
   jest.clearAllMocks();
 });
 
 afterEach(async () => {
+  jest.useRealTimers();
   await cleanupAsyncOperations();
-  fetchMock.restore();
+  fetchMock.clearHistory().removeRoutes();
   // Reset module mock since jest.fn() doesn't support mockRestore()
   jest.mocked(isFeatureEnabled).mockReset();
   // Restore console.error if it was spied on
@@ -75,24 +78,25 @@ test('can sync columns from source', async () => {
   });
 
   const columnsTab = screen.getByTestId('collection-tab-Columns');
-  await userEvent.click(columnsTab);
+  userEvent.click(columnsTab);
 
   const syncButton = screen.getByText(/sync columns from source/i);
   expect(syncButton).toBeInTheDocument();
 
   // Use a Promise to track when fetchMock is called
   const fetchPromise = new Promise<string>(resolve => {
+    fetchMock.removeRoute(DATASOURCE_ENDPOINT);
     fetchMock.get(
       DATASOURCE_ENDPOINT,
-      (url: string) => {
+      ({ url }) => {
         resolve(url);
         return [];
       },
-      { overwriteRoutes: true },
+      { name: DATASOURCE_ENDPOINT },
     );
   });
 
-  await userEvent.click(syncButton);
+  userEvent.click(syncButton);
 
   // Wait for the fetch to be called
   const url = await fetchPromise;
@@ -517,19 +521,15 @@ test('fetchUsageData rethrows AbortError without updating state', async () => {
   const { unmount } = await asyncRender(props);
 
   // Mock the API to reject with AbortError
-  fetchMock.get(
-    'glob:*/api/v1/chart/*',
-    () => {
-      const error = new Error('The operation was aborted');
-      error.name = 'AbortError';
-      throw error;
-    },
-    { overwriteRoutes: true },
-  );
+  fetchMock.get('glob:*/api/v1/chart/*', () => {
+    const error = new Error('The operation was aborted');
+    error.name = 'AbortError';
+    throw error;
+  });
 
   // Navigate to Usage tab to trigger fetchUsageData
   const usageTab = screen.getByRole('tab', { name: /usage/i });
-  await userEvent.click(usageTab);
+  userEvent.click(usageTab);
 
   // Unmount immediately
   unmount();
@@ -554,7 +554,6 @@ test('immediate unmount after mount does not cause unhandled rejection from init
   fetchMock.get(
     'glob:*/api/v1/chart/*',
     new Promise(() => {}), // Never resolves - will be aborted
-    { overwriteRoutes: true },
   );
 
   const props = createProps();

@@ -111,7 +111,7 @@ export default function PluginFilterTimeColumn(
           allowClear
           value={value}
           placeholder={placeholderText}
-          // @ts-ignore
+          // @ts-expect-error
           onChange={handleChange}
           onBlur={unsetFocusedFilter}
           onFocus={setFocusedFilter}

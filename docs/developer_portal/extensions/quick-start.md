@@ -94,12 +94,14 @@ The generated `extension.json` contains basic metadata. Update it to register yo
   "frontend": {
     "contributions": {
       "views": {
-        "sqllab.panels": [
-          {
-            "id": "hello_world.main",
-            "name": "Hello World"
-          }
-        ]
+        "sqllab": {
+          "panels": [
+            {
+              "id": "hello_world.main",
+              "name": "Hello World"
+            }
+          ]
+        }
       }
     },
     "moduleFederation": {

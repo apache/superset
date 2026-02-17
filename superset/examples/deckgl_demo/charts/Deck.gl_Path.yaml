@@ -35,6 +35,7 @@ params:
   line_column: path_json
   line_type: json
   line_width: 150
+  line_width_unit: meters
   mapbox_style: https://tile.openstreetmap.org/{z}/{x}/{y}.png
   reverse_long_lat: false
   row_limit: 5000

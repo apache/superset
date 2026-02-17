@@ -18,6 +18,7 @@
  */
 
 import { Page, Download } from '@playwright/test';
+import { Menu } from '../components/core';
 import { TIMEOUT } from '../utils/constants';
 
 /**
@@ -54,13 +55,42 @@ export class DashboardPage {
   }
 
   /**
-   * Wait for the dashboard to load
+   * Wait for the dashboard header to be visible.
    */
   async waitForLoad(options?: { timeout?: number }): Promise<void> {
     const timeout = options?.timeout ?? TIMEOUT.PAGE_LOAD;
     await this.page.waitForSelector(DashboardPage.SELECTORS.DASHBOARD_HEADER, {
       timeout,
     });
+  }
+
+  /**
+   * Wait for all charts on the dashboard to finish loading.
+   * Waits until no loading indicators are visible on the page.
+   */
+  async waitForChartsToLoad(options?: { timeout?: number }): Promise<void> {
+    const timeout = options?.timeout ?? TIMEOUT.API_RESPONSE;
+
+    // Use browser-context evaluation to check visibility directly.
+    // Loading indicators ([aria-label="Loading"]) may persist in the DOM as hidden
+    // elements after charts finish loading. This checks that none are currently visible,
+    // returning immediately when charts are already loaded (no timeout penalty).
+    await this.page.waitForFunction(
+      () => {
+        const loaders = document.querySelectorAll('[aria-label="Loading"]');
+        if (loaders.length === 0) return true;
+        return Array.from(loaders).every(el => {
+          const style = getComputedStyle(el);
+          return (
+            style.display === 'none' ||
+            style.visibility === 'hidden' ||
+            style.opacity === '0'
+          );
+        });
+      },
+      undefined,
+      { timeout },
+    );
   }
 
   /**
@@ -78,33 +108,21 @@ export class DashboardPage {
   }
 
   /**
-   * Hover over the Download submenu to open it (Ant Design submenus open on hover)
+   * Selects an option from the Download submenu.
+   * Opens the header actions menu, navigates to Download submenu,
+   * and clicks the specified option.
+   *
+   * @param optionText - The download option to select (e.g., "Export YAML")
    */
-  async openDownloadMenu(): Promise<void> {
-    // Find the Download menu item within the header actions menu and hover
-    const menu = this.page.locator(DashboardPage.SELECTORS.HEADER_ACTIONS_MENU);
-    await menu.getByText('Download', { exact: true }).hover();
-    // Wait for Export YAML to become visible (indicates submenu opened)
-    await this.page.getByText('Export YAML').waitFor({ state: 'visible' });
-  }
+  async selectDownloadOption(optionText: string): Promise<Download> {
+    await this.openHeaderActionsMenu();
 
-  /**
-   * Click "Export YAML" in the download menu
-   * Returns a Promise that resolves when download starts
-   */
-  async clickExportYaml(): Promise<Download> {
+    const menu = new Menu(
+      this.page,
+      DashboardPage.SELECTORS.HEADER_ACTIONS_MENU,
+    );
     const downloadPromise = this.page.waitForEvent('download');
-    await this.page.getByText('Export YAML').click();
-    return downloadPromise;
-  }
-
-  /**
-   * Click "Export as Example" in the download menu
-   * Returns a Promise that resolves when download starts
-   */
-  async clickExportAsExample(): Promise<Download> {
-    const downloadPromise = this.page.waitForEvent('download');
-    await this.page.getByText('Export as Example').click();
+    await menu.selectSubmenuItem('Download', optionText);
     return downloadPromise;
   }
 }

@@ -94,6 +94,7 @@ FRONTEND_CONF_KEYS = (
     "DASHBOARD_AUTO_REFRESH_MODE",
     "DASHBOARD_AUTO_REFRESH_INTERVALS",
     "DASHBOARD_VIRTUALIZATION",
+    "DASHBOARD_VIRTUALIZATION_DEFER_DATA",
     "SCHEDULED_QUERIES",
     "EXCEL_EXTENSIONS",
     "CSV_EXTENSIONS",
@@ -475,7 +476,12 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
         and bool(available_specs[GSheetsEngineSpec])
     )
 
-    language = locale.language if locale else "en"
+    if isinstance(locale, Locale):
+        language = locale.language
+    elif isinstance(locale, str):
+        language = locale
+    else:
+        language = app.config.get("BABEL_DEFAULT_LOCALE", "en")
     auth_type = app.config["AUTH_TYPE"]
     auth_user_registration = app.config["AUTH_USER_REGISTRATION"]
     frontend_config["AUTH_USER_REGISTRATION"] = auth_user_registration

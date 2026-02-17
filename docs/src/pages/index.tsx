@@ -28,7 +28,7 @@ import databaseData from '../data/databases.json';
 import BlurredSection from '../components/BlurredSection';
 import DataSet from '../../../RESOURCES/INTHEWILD.yaml';
 import type { DatabaseData } from '../components/databases/types';
-import '../styles/main.less';
+import '../styles/main.css';
 
 // Build database list from databases.json (databases with logos)
 // Deduplicate by logo filename to avoid showing the same logo twice
@@ -109,13 +109,10 @@ const StyledMain = styled('main')`
 
 const StyledTitleContainer = styled('div')`
   position: relative;
-  padding: 130px 20px 0;
-  margin-bottom: 160px;
+  padding: 130px 20px 20px;
+  margin-bottom: 0;
   background-image: url('/img/grid-background.jpg');
   background-size: cover;
-  ${mq[1]} {
-    margin-bottom: 100px;
-  }
   .info-container {
     position: relative;
     z-index: 4;
@@ -798,7 +795,7 @@ export default function Home(): JSX.Element {
           </StyledIntegrations>
         </BlurredSection>
         {/* Only show carousel when we have enough logos (>10) for a good display */}
-        {companiesWithLogos.length > 10 && (
+        {companiesWithLogos.length > 7 && (
           <BlurredSection>
             <div style={{ padding: '0 20px' }}>
               <SectionHeader

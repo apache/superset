@@ -60,8 +60,6 @@ const CodeBlock: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 );
 
 const { Title, Paragraph, Text } = Typography;
-const { Panel } = Collapse;
-const { TabPane } = Tabs;
 
 interface DatabasePageProps {
   database: DatabaseInfo;
@@ -112,21 +110,20 @@ const DatabasePage: React.FC<DatabasePageProps> = ({ database, name }) => {
 
     return (
       <Card title="Drivers" style={{ marginBottom: 16 }}>
-        <Tabs>
-          {docs.drivers.map((driver, idx) => (
-            <TabPane
-              tab={
-                <span>
-                  {driver.name}
-                  {driver.is_recommended && (
-                    <Tag color="green" style={{ marginLeft: 8 }}>
-                      Recommended
-                    </Tag>
-                  )}
-                </span>
-              }
-              key={idx}
-            >
+        <Tabs
+          items={docs.drivers.map((driver, idx) => ({
+            key: String(idx),
+            label: (
+              <span>
+                {driver.name}
+                {driver.is_recommended && (
+                  <Tag color="green" style={{ marginLeft: 8 }}>
+                    Recommended
+                  </Tag>
+                )}
+              </span>
+            ),
+            children: (
               <Space direction="vertical" style={{ width: '100%' }}>
                 {driver.pypi_package && (
                   <div>
@@ -145,9 +142,9 @@ const DatabasePage: React.FC<DatabasePageProps> = ({ database, name }) => {
                   </a>
                 )}
               </Space>
-            </TabPane>
-          ))}
-        </Tabs>
+            ),
+          }))}
+        />
       </Card>
     );
   };
@@ -165,46 +162,51 @@ const DatabasePage: React.FC<DatabasePageProps> = ({ database, name }) => {
         }
         style={{ marginBottom: 16 }}
       >
-        <Collapse accordion>
-          {docs.authentication_methods.map((auth, idx) => (
-            <Panel header={auth.name} key={idx}>
-              {auth.description && <Paragraph>{auth.description}</Paragraph>}
-              {auth.requirements && (
-                <Alert
-                  message="Requirements"
-                  description={auth.requirements}
-                  type="warning"
-                  showIcon
-                  style={{ marginBottom: 16 }}
-                />
-              )}
-              {auth.connection_string &&
-                renderConnectionString(
-                  auth.connection_string,
-                  'Connection String'
+        <Collapse
+          accordion
+          items={docs.authentication_methods.map((auth, idx) => ({
+            key: String(idx),
+            label: auth.name,
+            children: (
+              <>
+                {auth.description && <Paragraph>{auth.description}</Paragraph>}
+                {auth.requirements && (
+                  <Alert
+                    message="Requirements"
+                    description={auth.requirements}
+                    type="warning"
+                    showIcon
+                    style={{ marginBottom: 16 }}
+                  />
                 )}
-              {auth.secure_extra && (
-                <div>
-                  <Text strong>Secure Extra Configuration:</Text>
-                  <CodeBlock>
-                    {JSON.stringify(auth.secure_extra, null, 2)}
-                  </CodeBlock>
-                </div>
-              )}
-              {auth.engine_parameters && (
-                <div>
-                  <Text strong>Engine Parameters:</Text>
-                  <CodeBlock>
-                    {JSON.stringify(auth.engine_parameters, null, 2)}
-                  </CodeBlock>
-                </div>
-              )}
-              {auth.notes && (
-                <Alert message={auth.notes} type="info" showIcon />
-              )}
-            </Panel>
-          ))}
-        </Collapse>
+                {auth.connection_string &&
+                  renderConnectionString(
+                    auth.connection_string,
+                    'Connection String',
+                  )}
+                {auth.secure_extra && (
+                  <div>
+                    <Text strong>Secure Extra Configuration:</Text>
+                    <CodeBlock>
+                      {JSON.stringify(auth.secure_extra, null, 2)}
+                    </CodeBlock>
+                  </div>
+                )}
+                {auth.engine_parameters && (
+                  <div>
+                    <Text strong>Engine Parameters:</Text>
+                    <CodeBlock>
+                      {JSON.stringify(auth.engine_parameters, null, 2)}
+                    </CodeBlock>
+                  </div>
+                )}
+                {auth.notes && (
+                  <Alert message={auth.notes} type="info" showIcon />
+                )}
+              </>
+            ),
+          }))}
+        />
       </Card>
     );
   };
@@ -222,23 +224,27 @@ const DatabasePage: React.FC<DatabasePageProps> = ({ database, name }) => {
         }
         style={{ marginBottom: 16 }}
       >
-        <Collapse>
-          {docs.engine_parameters.map((param, idx) => (
-            <Panel header={param.name} key={idx}>
-              {param.description && <Paragraph>{param.description}</Paragraph>}
-              {param.json && (
-                <CodeBlock>
-                  {JSON.stringify(param.json, null, 2)}
-                </CodeBlock>
-              )}
-              {param.docs_url && (
-                <a href={param.docs_url} target="_blank" rel="noreferrer">
-                  <LinkOutlined /> Learn more
-                </a>
-              )}
-            </Panel>
-          ))}
-        </Collapse>
+        <Collapse
+          items={docs.engine_parameters.map((param, idx) => ({
+            key: String(idx),
+            label: param.name,
+            children: (
+              <>
+                {param.description && (
+                  <Paragraph>{param.description}</Paragraph>
+                )}
+                {param.json && (
+                  <CodeBlock>{JSON.stringify(param.json, null, 2)}</CodeBlock>
+                )}
+                {param.docs_url && (
+                  <a href={param.docs_url} target="_blank" rel="noreferrer">
+                    <LinkOutlined /> Learn more
+                  </a>
+                )}
+              </>
+            ),
+          }))}
+        />
       </Card>
     );
   };
@@ -247,75 +253,81 @@ const DatabasePage: React.FC<DatabasePageProps> = ({ database, name }) => {
   const renderCompatibleDatabases = () => {
     if (!docs?.compatible_databases?.length) return null;
 
-    // Create array of all panel keys to expand by default
-    const allPanelKeys = docs.compatible_databases.map((_, idx) => idx);
+    // Create array of all item keys to expand by default
+    const allItemKeys = docs.compatible_databases.map((_, idx) => String(idx));
 
     return (
       <Card title="Compatible Databases" style={{ marginBottom: 16 }}>
         <Paragraph>
           The following databases are compatible with the {name} driver:
         </Paragraph>
-        <Collapse defaultActiveKey={allPanelKeys}>
-          {docs.compatible_databases.map((compat, idx) => (
-            <Panel
-              header={
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  {compat.logo && (
-                    <img
-                      src={`/img/databases/${compat.logo}`}
-                      alt={compat.name}
-                      style={{
-                        width: 28,
-                        height: 28,
-                        objectFit: 'contain',
-                      }}
-                    />
-                  )}
-                  <span>{compat.name}</span>
-                </div>
-              }
-              key={idx}
-            >
-              {compat.description && (
-                <Paragraph>{compat.description}</Paragraph>
-              )}
-              {compat.connection_string &&
-                renderConnectionString(compat.connection_string)}
-              {compat.parameters && (
-                <div>
-                  <Text strong>Parameters:</Text>
-                  <Table
-                    dataSource={Object.entries(compat.parameters).map(
-                      ([key, value]) => ({
-                        key,
-                        parameter: key,
-                        description: value,
-                      })
-                    )}
-                    columns={[
-                      { title: 'Parameter', dataIndex: 'parameter', key: 'p' },
-                      {
-                        title: 'Description',
-                        dataIndex: 'description',
-                        key: 'd',
-                      },
-                    ]}
-                    pagination={false}
-                    size="small"
+        <Collapse
+          defaultActiveKey={allItemKeys}
+          items={docs.compatible_databases.map((compat, idx) => ({
+            key: String(idx),
+            label: (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                {compat.logo && (
+                  <img
+                    src={`/img/databases/${compat.logo}`}
+                    alt={compat.name}
+                    style={{
+                      width: 28,
+                      height: 28,
+                      objectFit: 'contain',
+                    }}
                   />
-                </div>
-              )}
-              {compat.notes && (
-                <Alert
-                  message={compat.notes}
-                  type="info"
-                  showIcon
-                  style={{ marginTop: 16 }}
-                />
-              )}
-            </Panel>
-          ))}
-        </Collapse>
+                )}
+                <span>{compat.name}</span>
+              </div>
+            ),
+            children: (
+              <>
+                {compat.description && (
+                  <Paragraph>{compat.description}</Paragraph>
+                )}
+                {compat.connection_string &&
+                  renderConnectionString(compat.connection_string)}
+                {compat.parameters && (
+                  <div>
+                    <Text strong>Parameters:</Text>
+                    <Table
+                      dataSource={Object.entries(compat.parameters).map(
+                        ([key, value]) => ({
+                          key,
+                          parameter: key,
+                          description: value,
+                        }),
+                      )}
+                      columns={[
+                        {
+                          title: 'Parameter',
+                          dataIndex: 'parameter',
+                          key: 'p',
+                        },
+                        {
+                          title: 'Description',
+                          dataIndex: 'description',
+                          key: 'd',
+                        },
+                      ]}
+                      pagination={false}
+                      size="small"
+                    />
+                  </div>
+                )}
+                {compat.notes && (
+                  <Alert
+                    message={compat.notes}
+                    type="info"
+                    showIcon
+                    style={{ marginTop: 16 }}
+                  />
+                )}
+              </>
+            ),
+          }))}
+        />
       </Card>
     );
   };
@@ -376,7 +388,7 @@ const DatabasePage: React.FC<DatabasePageProps> = ({ database, name }) => {
       'YEAR',
     ];
     const extendedGrains = Object.keys(database.time_grains).filter(
-      (g) => !commonGrains.includes(g)
+      g => !commonGrains.includes(g),
     );
 
     return (
@@ -384,12 +396,14 @@ const DatabasePage: React.FC<DatabasePageProps> = ({ database, name }) => {
         <div style={{ marginBottom: 16 }}>
           <Text strong>Common Time Grains:</Text>
           <div style={{ marginTop: 8 }}>
-            {commonGrains.map((grain) => (
+            {commonGrains.map(grain => (
               <TimeGrainBadge
                 key={grain}
                 grain={grain}
                 supported={Boolean(
-                  database.time_grains[grain as keyof typeof database.time_grains]
+                  database.time_grains[
+                    grain as keyof typeof database.time_grains
+                  ],
                 )}
               />
             ))}
@@ -399,12 +413,14 @@ const DatabasePage: React.FC<DatabasePageProps> = ({ database, name }) => {
           <div>
             <Text strong>Extended Time Grains:</Text>
             <div style={{ marginTop: 8 }}>
-              {extendedGrains.map((grain) => (
+              {extendedGrains.map(grain => (
                 <TimeGrainBadge
                   key={grain}
                   grain={grain}
                   supported={Boolean(
-                    database.time_grains[grain as keyof typeof database.time_grains]
+                    database.time_grains[
+                      grain as keyof typeof database.time_grains
+                    ],
                   )}
                 />
               ))}
@@ -471,81 +487,83 @@ const DatabasePage: React.FC<DatabasePageProps> = ({ database, name }) => {
           Common error messages you may encounter when connecting to or querying{' '}
           {name}, along with their causes and solutions.
         </Paragraph>
-        <Collapse accordion>
-          {sortedCategories.map((category) => (
-            <Panel
-              header={
-                <span>
-                  <Tag color={categoryColors[category] || 'default'}>
-                    {category}
-                  </Tag>
-                  {errorsByCategory[category].length} error
-                  {errorsByCategory[category].length !== 1 ? 's' : ''}
-                </span>
-              }
-              key={category}
-            >
-              {errorsByCategory[category].map((error, idx) => (
-                <div
-                  key={idx}
-                  style={{
-                    marginBottom:
-                      idx < errorsByCategory[category].length - 1 ? 16 : 0,
-                    paddingBottom:
-                      idx < errorsByCategory[category].length - 1 ? 16 : 0,
-                    borderBottom:
-                      idx < errorsByCategory[category].length - 1
-                        ? '1px solid var(--ifm-color-emphasis-200)'
-                        : 'none',
-                  }}
-                >
-                  <div style={{ marginBottom: 8 }}>
-                    <Text strong>{error.description || error.error_type}</Text>
-                  </div>
-                  <Alert
-                    message={error.message_template}
-                    type="error"
-                    style={{ marginBottom: 8 }}
-                  />
-                  {error.invalid_fields && error.invalid_fields.length > 0 && (
+        <Collapse
+          accordion
+          items={sortedCategories.map(category => ({
+            key: category,
+            label: (
+              <span>
+                <Tag color={categoryColors[category] || 'default'}>
+                  {category}
+                </Tag>
+                {errorsByCategory[category].length} error
+                {errorsByCategory[category].length !== 1 ? 's' : ''}
+              </span>
+            ),
+            children: (
+              <>
+                {errorsByCategory[category].map((error, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      marginBottom:
+                        idx < errorsByCategory[category].length - 1 ? 16 : 0,
+                      paddingBottom:
+                        idx < errorsByCategory[category].length - 1 ? 16 : 0,
+                      borderBottom:
+                        idx < errorsByCategory[category].length - 1
+                          ? '1px solid var(--ifm-color-emphasis-200)'
+                          : 'none',
+                    }}
+                  >
                     <div style={{ marginBottom: 8 }}>
-                      <Text type="secondary">Check these fields: </Text>
-                      {error.invalid_fields.map((field) => (
-                        <Tag key={field} color="warning">
-                          {field}
-                        </Tag>
-                      ))}
+                      <Text strong>
+                        {error.description || error.error_type}
+                      </Text>
                     </div>
-                  )}
-                  {error.issue_codes && error.issue_codes.length > 0 && (
-                    <div>
-                      <Text type="secondary">Related issue codes: </Text>
-                      {error.issue_codes.map((code) => (
-                        <Tag key={code}>
-                          <a
-                            href={`/docs/using-superset/issue-codes#issue-${code}`}
-                            style={{ color: 'inherit' }}
-                          >
-                            Issue {code}
-                          </a>
-                        </Tag>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </Panel>
-          ))}
-        </Collapse>
+                    <Alert
+                      message={error.message_template}
+                      type="error"
+                      style={{ marginBottom: 8 }}
+                    />
+                    {error.invalid_fields &&
+                      error.invalid_fields.length > 0 && (
+                        <div style={{ marginBottom: 8 }}>
+                          <Text type="secondary">Check these fields: </Text>
+                          {error.invalid_fields.map(field => (
+                            <Tag key={field} color="warning">
+                              {field}
+                            </Tag>
+                          ))}
+                        </div>
+                      )}
+                    {error.issue_codes && error.issue_codes.length > 0 && (
+                      <div>
+                        <Text type="secondary">Related issue codes: </Text>
+                        {error.issue_codes.map(code => (
+                          <Tag key={code}>
+                            <a
+                              href={`/docs/using-superset/issue-codes#issue-${code}`}
+                              style={{ color: 'inherit' }}
+                            >
+                              Issue {code}
+                            </a>
+                          </Tag>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </>
+            ),
+          }))}
+        />
       </Card>
     );
   };
 
   return (
-    <div
-      className="database-page"
-      id={name.toLowerCase().replace(/\s+/g, '-')}
-    >
+    <div className="database-page" id={name.toLowerCase().replace(/\s+/g, '-')}>
       <div style={{ marginBottom: 16 }}>
         {docs?.logo && (
           <img
@@ -558,7 +576,9 @@ const DatabasePage: React.FC<DatabasePageProps> = ({ database, name }) => {
             }}
           />
         )}
-        <Title level={1} style={{ margin: 0 }}>{name}</Title>
+        <Title level={1} style={{ margin: 0 }}>
+          {name}
+        </Title>
         {docs?.homepage_url && (
           <a
             href={docs.homepage_url}
@@ -606,7 +626,7 @@ const DatabasePage: React.FC<DatabasePageProps> = ({ database, name }) => {
           {docs.pypi_packages?.length > 0 && (
             <div style={{ marginBottom: 16 }}>
               <Text strong>Required packages: </Text>
-              {docs.pypi_packages.map((pkg) => (
+              {docs.pypi_packages.map(pkg => (
                 <Tag key={pkg} color="blue">
                   {pkg}
                 </Tag>
@@ -638,7 +658,7 @@ const DatabasePage: React.FC<DatabasePageProps> = ({ database, name }) => {
                   key,
                   parameter: key,
                   description: value,
-                })
+                }),
               )}
               columns={[
                 { title: 'Parameter', dataIndex: 'parameter', key: 'p' },
@@ -664,7 +684,7 @@ const DatabasePage: React.FC<DatabasePageProps> = ({ database, name }) => {
             <div key={idx}>
               {renderConnectionString(
                 example.connection_string,
-                example.description
+                example.description,
               )}
             </div>
           ))}
@@ -717,7 +737,11 @@ const DatabasePage: React.FC<DatabasePageProps> = ({ database, name }) => {
               </a>
             )}
             {docs.sqlalchemy_docs_url && (
-              <a href={docs.sqlalchemy_docs_url} target="_blank" rel="noreferrer">
+              <a
+                href={docs.sqlalchemy_docs_url}
+                target="_blank"
+                rel="noreferrer"
+              >
                 <LinkOutlined /> SQLAlchemy Dialect Documentation
               </a>
             )}

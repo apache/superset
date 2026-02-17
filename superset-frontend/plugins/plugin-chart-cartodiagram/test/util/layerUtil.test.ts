@@ -27,14 +27,14 @@ import {
 
 describe('layerUtil', () => {
   describe('createWmsLayer', () => {
-    it('exists', () => {
+    test('exists', () => {
       // function is trivial
       expect(createWmsLayer).toBeDefined();
     });
   });
 
   describe('createWfsLayer', () => {
-    it('properly applies style', async () => {
+    test('properly applies style', async () => {
       const colorToExpect = '#123456';
 
       const wfsLayerConf: WfsLayerConf = {
@@ -72,24 +72,24 @@ describe('layerUtil', () => {
       const wfsLayer = await createWfsLayer(wfsLayerConf);
 
       const style = wfsLayer!.getStyle();
-      // @ts-ignore
+      // @ts-expect-error
       expect(style!.length).toEqual(3);
 
-      // @ts-ignore upgrade `ol` package for better type of StyleLike type.
+      // @ts-expect-error upgrade `ol` package for better type of StyleLike type.
       const colorAtLayer = style![1].getImage().getFill().getColor();
       expect(colorToExpect).toEqual(colorAtLayer);
     });
   });
 
   describe('createXyzLayer', () => {
-    it('exists', () => {
+    test('exists', () => {
       // function is trivial
       expect(createXyzLayer).toBeDefined();
     });
   });
 
   describe('createLayer', () => {
-    it('exists', () => {
+    test('exists', () => {
       expect(createLayer).toBeDefined();
     });
   });

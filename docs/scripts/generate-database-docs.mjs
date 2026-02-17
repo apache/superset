@@ -30,8 +30,11 @@
 
 import { spawnSync } from 'child_process';
 import fs from 'fs';
+import { createRequire } from 'module';
 import path from 'path';
 import { fileURLToPath } from 'url';
+
+const require = createRequire(import.meta.url);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -41,6 +44,7 @@ const DATA_OUTPUT_DIR = path.join(DOCS_DIR, 'src/data');
 const DATA_OUTPUT_FILE = path.join(DATA_OUTPUT_DIR, 'databases.json');
 const MDX_OUTPUT_DIR = path.join(DOCS_DIR, 'docs/databases');
 const MDX_SUPPORTED_DIR = path.join(MDX_OUTPUT_DIR, 'supported');
+const IMAGES_DIR = path.join(DOCS_DIR, 'static/img/databases');
 
 /**
  * Try to run the full lib.py script with Flask context
@@ -608,29 +612,108 @@ const README_START_MARKER = '<!-- SUPPORTED_DATABASES_START -->';
 const README_END_MARKER = '<!-- SUPPORTED_DATABASES_END -->';
 
 /**
+ * Read image dimensions, with fallback SVG viewBox parsing for cases where
+ * image-size can't handle SVG width/height attributes (e.g., scientific notation).
+ */
+function getImageDimensions(imgPath) {
+  const sizeOf = require('image-size');
+  try {
+    const dims = sizeOf(imgPath);
+    // image-size may misparse SVG attributes (e.g. width="1e3" → 1).
+    // Fall back to viewBox parsing if a dimension looks wrong.
+    if (dims.type === 'svg' && (dims.width < 2 || dims.height < 2)) {
+      const content = fs.readFileSync(imgPath, 'utf-8');
+      const vbMatch = content.match(/viewBox=["']([^"']+)["']/);
+      if (vbMatch) {
+        const parts = vbMatch[1].trim().split(/[\s,]+/).map(Number);
+        if (parts.length >= 4 && parts[2] > 0 && parts[3] > 0) {
+          return { width: parts[2], height: parts[3] };
+        }
+      }
+    }
+    if (dims.width > 0 && dims.height > 0) {
+      return { width: dims.width, height: dims.height };
+    }
+  } catch { /* fall through */ }
+  return null;
+}
+
+/**
+ * Compute display dimensions that fit within a bounding box while preserving
+ * the image's aspect ratio. Enforces a minimum height so very wide logos
+ * remain legible.
+ */
+function fitToBoundingBox(imgWidth, imgHeight, maxWidth, maxHeight, minHeight) {
+  const ratio = imgWidth / imgHeight;
+  // Start at max height, compute width
+  let h = maxHeight;
+  let w = h * ratio;
+  // If too wide, cap width and reduce height
+  if (w > maxWidth) {
+    w = maxWidth;
+    h = w / ratio;
+  }
+  // If height fell below minimum, enforce minimum (allow width to exceed max)
+  if (h < minHeight) {
+    h = minHeight;
+    w = h * ratio;
+  }
+  return { width: Math.round(w), height: Math.round(h) };
+}
+
+/**
  * Generate the database logos HTML for README.md
- * Only includes databases that have logos defined
+ * Only includes databases that have logos and homepage URLs.
+ * Deduplicates by logo filename to match the docs homepage behavior.
+ * Reads actual image dimensions to preserve aspect ratios.
  */
 function generateReadmeLogos(databases) {
-  // Get databases with logos, sorted alphabetically
+  // Get databases with logos and homepage URLs, sorted alphabetically,
+  // deduplicated by logo filename (matches docs homepage logic in index.tsx)
+  const seenLogos = new Set();
   const dbsWithLogos = Object.entries(databases)
-    .filter(([, db]) => db.documentation?.logo)
-    .sort(([a], [b]) => a.localeCompare(b));
+    .filter(([, db]) => db.documentation?.logo && db.documentation?.homepage_url)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .filter(([, db]) => {
+      const logo = db.documentation.logo;
+      if (seenLogos.has(logo)) return false;
+      seenLogos.add(logo);
+      return true;
+    });
 
   if (dbsWithLogos.length === 0) {
     return '';
   }
 
-  // Generate HTML img tags
+  const MAX_WIDTH = 150;
+  const MAX_HEIGHT = 40;
+  const MIN_HEIGHT = 24;
+
+  const DOCS_BASE = 'https://superset.apache.org/docs/databases/supported';
+
+  // Generate linked logo tags with aspect-ratio-preserving dimensions
   const logoTags = dbsWithLogos.map(([name, db]) => {
     const logo = db.documentation.logo;
-    const alt = name.toLowerCase().replace(/\s+/g, '-');
-    // Use docs site URL for logos
-    return `  <img src="https://superset.apache.org/img/databases/${logo}" alt="${alt}" border="0" width="80" height="40" class="database-logo" />`;
+    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const imgPath = path.join(IMAGES_DIR, logo);
+
+    const dims = getImageDimensions(imgPath);
+    let sizeAttrs;
+    if (dims) {
+      const { width, height } = fitToBoundingBox(dims.width, dims.height, MAX_WIDTH, MAX_HEIGHT, MIN_HEIGHT);
+      sizeAttrs = `width="${width}" height="${height}"`;
+    } else {
+      console.warn(`  Could not read dimensions for ${logo}, using height-only fallback`);
+      sizeAttrs = `height="${MAX_HEIGHT}"`;
+    }
+
+    const img = `<img src="docs/static/img/databases/${logo}" alt="${name}" ${sizeAttrs} />`;
+    return `  <a href="${DOCS_BASE}/${slug}" title="${name}">${img}</a>`;
   });
 
+  // Use &nbsp; between logos for spacing (GitHub strips style/class attributes)
   return `<p align="center">
-${logoTags.join('\n')}
+${logoTags.join(' &nbsp;\n')}
 </p>`;
 }
 

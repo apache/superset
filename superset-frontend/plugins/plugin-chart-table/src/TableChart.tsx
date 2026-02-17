@@ -74,9 +74,8 @@ import {
   TableOutlined,
 } from '@ant-design/icons';
 import { isEmpty, debounce, isEqual } from 'lodash';
-import { ColorFormatters } from '@superset-ui/chart-controls';
+import { ColorFormatters, ColorSchemeEnum } from '@superset-ui/chart-controls';
 import {
-  ColorSchemeEnum,
   DataColumnMeta,
   SearchOption,
   SortByItem,
@@ -1061,17 +1060,19 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           };
           if (html) {
             if (truncateLongCells) {
-              // eslint-disable-next-line react/no-danger
               return (
                 <StyledCell {...cellProps}>
                   <div
                     className="dt-truncate-cell"
                     style={columnWidth ? { width: columnWidth } : undefined}
+                    // Safe: HTML is sanitized via formatColumnValue
+                    // eslint-disable-next-line react/no-danger
                     dangerouslySetInnerHTML={html}
                   />
                 </StyledCell>
               );
             }
+            // Safe: HTML is sanitized via formatColumnValue
             // eslint-disable-next-line react/no-danger
             return <StyledCell {...cellProps} dangerouslySetInnerHTML={html} />;
           }

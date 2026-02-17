@@ -450,7 +450,17 @@ function FiltersConfigModal({
     ? Icons.FullscreenExitOutlined
     : Icons.FullscreenOutlined;
 
-  const handleValuesChange = useMemo(
+  const [formValuesVersion, setFormValuesVersion] = useState(0);
+
+  const itemTitles = useMemo(() => {
+    const titles: Record<string, string> = {};
+    [...filterIds, ...chartCustomizationIds].forEach(id => {
+      titles[id] = modalSaveLogic.getItemTitle(id);
+    });
+    return titles;
+  }, [filterIds, chartCustomizationIds, modalSaveLogic, formValuesVersion]);
+
+  const debouncedErrorHandling = useMemo(
     () =>
       debounce(() => {
         setSaveAlertVisible(false);
@@ -458,6 +468,11 @@ function FiltersConfigModal({
       }, Constants.SLOW_DEBOUNCE),
     [modalSaveLogic],
   );
+
+  const handleValuesChange = useCallback(() => {
+    setFormValuesVersion(prev => prev + 1);
+    debouncedErrorHandling();
+  }, [debouncedErrorHandling]);
 
   const handleActiveFilterPanelChange = useCallback(
     (key: string | string[]) => setActiveFilterPanelKey(key),
@@ -557,6 +572,7 @@ function FiltersConfigModal({
                 customizationErroredItems={customizationState.erroredIds}
                 activeCollapseKeys={activeCollapseKeys}
                 getItemTitle={modalSaveLogic.getItemTitle}
+                itemTitles={itemTitles}
                 onAddFilter={filterOperations.addFilter}
                 onAddCustomization={
                   customizationOperations.addChartCustomization

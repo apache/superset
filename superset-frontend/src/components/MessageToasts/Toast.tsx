@@ -26,14 +26,24 @@ import { ToastType, ToastMeta } from './types';
 const ToastContainer = styled.div`
   ${({ theme }) => css`
     display: flex;
-    justify-content: space-between; // Changed from center to space-between
-    align-items: center;
+    align-items: flex-start;
+    gap: ${theme.sizeUnit * 2}px;
 
     // Content container for icon and text
     .toast__content {
       display: flex;
-      align-items: center;
-      flex: 1; // Take available space
+      align-items: flex-start;
+      gap: ${theme.sizeUnit * 2}px;
+
+      flex: 1;
+
+      max-height: 60vh;
+      overflow-y: auto;
+
+      padding-right: ${theme.sizeUnit * 2}px;
+
+      scrollbar-width: thin;
+      scrollbar-color: ${theme.colorTextLightSolid} ${theme.colorBgSpotlight};
     }
 
     .anticon {

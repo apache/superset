@@ -24,7 +24,7 @@ under the License.
 
 # SQL Lab Extension Points
 
-SQL Lab provides 5 extension points where extensions can contribute custom UI components. Each area serves a specific purpose and can be customized to add new functionality.
+SQL Lab provides 4 extension points where extensions can contribute custom UI components. Each area serves a specific purpose and supports different types of customizations. These areas will evolve over time as new features are added to SQL Lab.
 
 ## Layout Overview
 
@@ -41,42 +41,44 @@ SQL Lab provides 5 extension points where extensions can contribute custom UI co
 │          │                                         │             │
 │          │                                         │             │
 │          │                                         │             │
-├──────────┴─────────────────────────────────────────┴─────────────┤
-│                          Status Bar                              │
-└──────────────────────────────────────────────────────────────────┘
+└──────────┴─────────────────────────────────────────┴─────────────┘
 ```
 
-| Extension Point   | ID                    | Description                                                |
-| ----------------- | --------------------- | ---------------------------------------------------------- |
-| **Left Sidebar**  | `sqllab.leftSidebar`  | Navigation and browsing (database explorer, saved queries) |
-| **Editor**        | `sqllab.editor`       | SQL query editor workspace                                 |
-| **Right Sidebar** | `sqllab.rightSidebar` | Contextual tools (AI assistants, query analysis)           |
-| **Panels**        | `sqllab.panels`       | Results and related views (visualizations, data profiling) |
-| **Status Bar**    | `sqllab.statusBar`    | Connection status and query metrics                        |
+| Extension Point   | ID                    | Views | Menus | Description                                    |
+| ----------------- | --------------------- | ----- | ----- | ---------------------------------------------- |
+| **Left Sidebar**  | `sqllab.leftSidebar`  | —     | ✓     | Menu actions for the database explorer         |
+| **Editor**        | `sqllab.editor`       | ✓\*   | ✓     | Custom editors + toolbar actions               |
+| **Right Sidebar** | `sqllab.rightSidebar` | ✓     | —     | Custom panels (AI assistants, query analysis)  |
+| **Panels**        | `sqllab.panels`       | ✓     | ✓     | Custom tabs + toolbar actions (data profiling) |
 
-## Area Customizations
+\*Editor views are contributed via [Editor Contributions](./editors), not standard view contributions.
 
-Each extension point area supports three types of action customizations:
+## Customization Types
+
+### Views
+
+Extensions can add custom views (React components) to **Right Sidebar** and **Panels**. Views appear as new panels or tabs in their respective areas.
+
+### Menus
+
+Extensions can add toolbar actions to **Left Sidebar**, **Editor**, and **Panels**. Menu contributions support:
 
 ```
 ┌───────────────────────────────────────────────────────────────┐
-│  Area Title                         [Button] [Button]   [•••] │
+│  [Button] [Button]   [•••]                                    │
 ├───────────────────────────────────────────────────────────────┤
-│                                                               │
-│                                                               │
 │                          Area Content                         │
-│                                                               │
-│                  (right-click for context menu)               │
-│                                                               │
-│                                                               │
 └───────────────────────────────────────────────────────────────┘
 ```
 
-| Action Type           | Location          | Use Case                                              |
-| --------------------- | ----------------- | ----------------------------------------------------- |
-| **Primary Actions**   | Top-right buttons | Frequently used actions (e.g., run, refresh, add new) |
-| **Secondary Actions** | 3-dot menu (•••)  | Less common actions (e.g., export, settings)          |
-| **Context Actions**   | Right-click menu  | Context-sensitive actions on content                  |
+| Action Type           | Location         | Use Case                                              |
+| --------------------- | ---------------- | ----------------------------------------------------- |
+| **Primary Actions**   | Toolbar buttons  | Frequently used actions (e.g., run, refresh, add new) |
+| **Secondary Actions** | 3-dot menu (•••) | Less common actions (e.g., export, settings)          |
+
+### Custom Editors
+
+Extensions can replace the default SQL editor with custom implementations (Monaco, CodeMirror, etc.). See [Editor Contributions](./editors) for details.
 
 ## Examples
 
@@ -91,12 +93,14 @@ This example adds a "Data Profiler" panel to SQL Lab:
   "frontend": {
     "contributions": {
       "views": {
-        "sqllab.panels": [
-          {
-            "id": "data_profiler.main",
-            "name": "Data Profiler"
-          }
-        ]
+        "sqllab": {
+          "panels": [
+            {
+              "id": "data_profiler.main",
+              "name": "Data Profiler"
+            }
+          ]
+        }
       }
     }
   }
@@ -140,25 +144,27 @@ This example adds primary, secondary, and context actions to the editor:
         }
       ],
       "menus": {
-        "sqllab.editor": {
-          "primary": [
-            {
-              "view": "builtin.editor",
-              "command": "query_tools.format"
-            }
-          ],
-          "secondary": [
-            {
-              "view": "builtin.editor",
-              "command": "query_tools.explain"
-            }
-          ],
-          "context": [
-            {
-              "view": "builtin.editor",
-              "command": "query_tools.copy_as_cte"
-            }
-          ]
+        "sqllab": {
+          "editor": {
+            "primary": [
+              {
+                "view": "builtin.editor",
+                "command": "query_tools.format"
+              }
+            ],
+            "secondary": [
+              {
+                "view": "builtin.editor",
+                "command": "query_tools.explain"
+              }
+            ],
+            "context": [
+              {
+                "view": "builtin.editor",
+                "command": "query_tools.copy_as_cte"
+              }
+            ]
+          }
         }
       }
     }
@@ -171,32 +177,38 @@ import { commands, sqlLab } from '@apache-superset/core';
 
 export function activate(context) {
   // Register the commands declared in extension.json
-  const formatCommand = commands.registerCommand('query_tools.format', {
-    execute: () => {
+  const formatCommand = commands.registerCommand(
+    'query_tools.format',
+    async () => {
       const tab = sqlLab.getCurrentTab();
-      if (tab?.editor) {
+      if (tab) {
+        const editor = await tab.getEditor();
         // Format the SQL query
       }
     },
-  });
+  );
 
-  const explainCommand = commands.registerCommand('query_tools.explain', {
-    execute: () => {
+  const explainCommand = commands.registerCommand(
+    'query_tools.explain',
+    async () => {
       const tab = sqlLab.getCurrentTab();
-      if (tab?.editor) {
+      if (tab) {
+        const editor = await tab.getEditor();
         // Show query explanation
       }
     },
-  });
+  );
 
-  const copyAsCteCommand = commands.registerCommand('query_tools.copy_as_cte', {
-    execute: () => {
+  const copyAsCteCommand = commands.registerCommand(
+    'query_tools.copy_as_cte',
+    async () => {
       const tab = sqlLab.getCurrentTab();
-      if (tab?.editor) {
+      if (tab) {
+        const editor = await tab.getEditor();
         // Copy selected text as CTE
       }
     },
-  });
+  );
 
   context.subscriptions.push(formatCommand, explainCommand, copyAsCteCommand);
 }

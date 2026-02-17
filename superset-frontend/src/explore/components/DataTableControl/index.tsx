@@ -32,7 +32,10 @@ import {
   Radio,
 } from '@superset-ui/core/components';
 import { CopyToClipboard } from 'src/components';
-import { prepareCopyToClipboardTabularData } from 'src/utils/common';
+import {
+  prepareCopyToClipboardTabularData,
+  TabularDataRow,
+} from 'src/utils/common';
 import { getTimeColumns, setTimeColumns } from './utils';
 
 export const CellNull = styled('span')`
@@ -56,7 +59,7 @@ export const CopyToClipboardButton = ({
   data,
   columns,
 }: {
-  data?: Record<string, any>;
+  data?: TabularDataRow[];
   columns?: string[];
 }) => (
   <CopyToClipboard

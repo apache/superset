@@ -24,6 +24,7 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import { SupersetClient } from '@superset-ui/core';
+import rison from 'rison';
 import RoleListEditModal from './RoleListEditModal';
 import {
   updateRoleName,
@@ -207,5 +208,41 @@ describe('RoleListEditModal', () => {
     expect(screen.getByTitle('Last Name')).toBeInTheDocument();
     expect(screen.getByTitle('User Name')).toBeInTheDocument();
     expect(screen.getByTitle('Email')).toBeInTheDocument();
+  });
+
+  test('fetches users with correct role relationship filter', async () => {
+    const mockGet = SupersetClient.get as jest.Mock;
+    mockGet.mockResolvedValue({
+      json: {
+        count: 0,
+        result: [],
+      },
+    });
+
+    render(<RoleListEditModal {...mockProps} />);
+
+    await waitFor(() => {
+      expect(mockGet).toHaveBeenCalled();
+    });
+
+    // verify the endpoint and query parameters
+    const callArgs = mockGet.mock.calls[0][0];
+    expect(callArgs.endpoint).toContain('/api/v1/security/users/');
+
+    const urlMatch = callArgs.endpoint.match(/\?q=(.+)/);
+    expect(urlMatch).toBeTruthy();
+
+    const decodedQuery = rison.decode(urlMatch[1]);
+    expect(decodedQuery).toEqual({
+      page_size: 100,
+      page: 0,
+      filters: [
+        {
+          col: 'roles',
+          opr: 'rel_m_m',
+          value: mockRole.id,
+        },
+      ],
+    });
   });
 });
