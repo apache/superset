@@ -270,6 +270,84 @@ describe('Gantt transformProps', () => {
   });
 });
 
+test('should use localized axis titles when translations and locale are provided', () => {
+  const chartProps = new ChartProps({
+    ...chartPropsConfig,
+    formData: {
+      ...formData,
+      xAxisTitle: 'Time',
+      yAxisTitle: 'Category',
+      translations: {
+        x_axis_title: { de: 'Zeit' },
+        y_axis_title: { de: 'Kategorie' },
+      },
+    },
+    locale: 'de',
+  });
+  const transformed = transformProps(chartProps as EchartsGanttChartProps);
+  const xAxis = transformed.echartOptions.xAxis as { name?: string };
+  const yAxis = transformed.echartOptions.yAxis as { name?: string };
+  expect(xAxis.name).toBe('Zeit');
+  expect(yAxis.name).toBe('Kategorie');
+});
+
+test('should use original axis titles when no locale is provided', () => {
+  const chartProps = new ChartProps({
+    ...chartPropsConfig,
+    formData: {
+      ...formData,
+      xAxisTitle: 'Time',
+      yAxisTitle: 'Category',
+      translations: {
+        x_axis_title: { de: 'Zeit' },
+        y_axis_title: { de: 'Kategorie' },
+      },
+    },
+  });
+  const transformed = transformProps(chartProps as EchartsGanttChartProps);
+  const xAxis = transformed.echartOptions.xAxis as { name?: string };
+  const yAxis = transformed.echartOptions.yAxis as { name?: string };
+  expect(xAxis.name).toBe('Time');
+  expect(yAxis.name).toBe('Category');
+});
+
+test('should fall back to original axis titles when locale has no matching translation', () => {
+  const chartProps = new ChartProps({
+    ...chartPropsConfig,
+    formData: {
+      ...formData,
+      xAxisTitle: 'Time',
+      yAxisTitle: 'Category',
+      translations: {
+        x_axis_title: { de: 'Zeit' },
+      },
+    },
+    locale: 'ja',
+  });
+  const transformed = transformProps(chartProps as EchartsGanttChartProps);
+  const xAxis = transformed.echartOptions.xAxis as { name?: string };
+  const yAxis = transformed.echartOptions.yAxis as { name?: string };
+  expect(xAxis.name).toBe('Time');
+  expect(yAxis.name).toBe('Category');
+});
+
+test('should fall back to base language when regional locale has no match', () => {
+  const chartProps = new ChartProps({
+    ...chartPropsConfig,
+    formData: {
+      ...formData,
+      xAxisTitle: 'Time',
+      translations: {
+        x_axis_title: { de: 'Zeit' },
+      },
+    },
+    locale: 'de-AT',
+  });
+  const transformed = transformProps(chartProps as EchartsGanttChartProps);
+  const xAxis = transformed.echartOptions.xAxis as { name?: string };
+  expect(xAxis.name).toBe('Zeit');
+});
+
 describe('legend sorting', () => {
   const createChartProps = (overrides = {}) =>
     new ChartProps({

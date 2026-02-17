@@ -23,6 +23,7 @@ import type { CallbackDataParams } from 'echarts/types/src/util/types';
 import { isEmpty } from 'lodash';
 import {
   CategoricalColorNamespace,
+  getLocalizedFormDataValue,
   NumberFormats,
   getColumnLabel,
   getValueFormatter,
@@ -46,6 +47,7 @@ export default function transformProps(
     height,
     hooks,
     legendState = {},
+    locale,
     queriesData,
     theme,
     width,
@@ -64,6 +66,13 @@ export default function transformProps(
     yAxisTitle,
     yAxisFormat,
   } = formData;
+  const localizedXAxisTitle =
+    getLocalizedFormDataValue(formData.translations, 'x_axis_title', locale) ??
+    xAxisTitle;
+  const localizedYAxisTitle =
+    getLocalizedFormDataValue(formData.translations, 'y_axis_title', locale) ??
+    yAxisTitle;
+
   const { data } = queriesData[0];
   const colorFn = CategoricalColorNamespace.getScale(colorScheme);
 
@@ -162,14 +171,14 @@ export default function transformProps(
     },
     xAxis: {
       data: xAxisData,
-      name: xAxisTitle,
+      name: localizedXAxisTitle,
       nameGap: 35,
       type: 'category',
       nameLocation: 'middle',
     },
     yAxis: {
       ...defaultYAxis,
-      name: yAxisTitle,
+      name: localizedYAxisTitle,
       nameGap: normalize ? 55 : 40,
       type: 'value',
       nameLocation: 'middle',

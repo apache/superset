@@ -21,6 +21,7 @@ import {
   buildLocalizedMetricLabelMap,
   CategoricalColorNamespace,
   getColumnLabel,
+  getLocalizedFormDataValue,
   getMetricLabel,
   getNumberFormatter,
   getTimeFormatter,
@@ -78,6 +79,13 @@ export default function transformProps(
     sliceId,
     zoomable,
   } = formData as BoxPlotQueryFormData;
+  const localizedXAxisTitle =
+    getLocalizedFormDataValue(formData.translations, 'x_axis_title', locale) ??
+    xAxisTitle;
+  const localizedYAxisTitle =
+    getLocalizedFormDataValue(formData.translations, 'y_axis_title', locale) ??
+    yAxisTitle;
+
   const refs: Refs = {};
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const numberFormatter = getNumberFormatter(numberFormat);
@@ -249,9 +257,9 @@ export default function transformProps(
     ...outlierData,
   ];
   const addYAxisTitleOffset =
-    !!yAxisTitle && convertInteger(yAxisTitleMargin) !== 0;
+    !!localizedYAxisTitle && convertInteger(yAxisTitleMargin) !== 0;
   const addXAxisTitleOffset =
-    !!xAxisTitle && convertInteger(xAxisTitleMargin) !== 0;
+    !!localizedXAxisTitle && convertInteger(xAxisTitleMargin) !== 0;
   const chartPadding = getPadding(
     true,
     legendOrientation,
@@ -272,7 +280,7 @@ export default function transformProps(
       type: 'category',
       data: transformedData.map(row => row.name),
       axisLabel,
-      name: xAxisTitle,
+      name: localizedXAxisTitle,
       nameGap: convertInteger(xAxisTitleMargin),
       nameLocation: 'middle',
     },
@@ -280,7 +288,7 @@ export default function transformProps(
       ...defaultYAxis,
       type: 'value',
       axisLabel: { formatter: numberFormatter },
-      name: yAxisTitle,
+      name: localizedYAxisTitle,
       nameGap: convertInteger(yAxisTitleMargin),
       nameLocation: yAxisTitlePosition === 'Left' ? 'middle' : 'end',
     },

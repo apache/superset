@@ -130,6 +130,104 @@ describe('BoxPlot transformProps', () => {
     expect(xAxisData).toContain('organic, Charlotte, Gesamtvolumen');
   });
 
+  test('should use localized axis titles when translations and locale are provided', () => {
+    const localizedChartProps = new ChartProps({
+      formData: {
+        ...formData,
+        xAxisTitle: 'Revenue',
+        yAxisTitle: 'Price',
+        translations: {
+          x_axis_title: { de: 'Umsatz' },
+          y_axis_title: { de: 'Preis' },
+        },
+      },
+      width: 800,
+      height: 600,
+      queriesData: [{ data: [] }],
+      theme: supersetTheme,
+      locale: 'de',
+    });
+    const transformed = transformProps(
+      localizedChartProps as EchartsBoxPlotChartProps,
+    );
+    const xAxis = transformed.echartOptions.xAxis as { name?: string };
+    const yAxis = transformed.echartOptions.yAxis as { name?: string };
+    expect(xAxis.name).toBe('Umsatz');
+    expect(yAxis.name).toBe('Preis');
+  });
+
+  test('should use original axis titles when no locale is provided', () => {
+    const localizedChartProps = new ChartProps({
+      formData: {
+        ...formData,
+        xAxisTitle: 'Revenue',
+        yAxisTitle: 'Price',
+        translations: {
+          x_axis_title: { de: 'Umsatz' },
+          y_axis_title: { de: 'Preis' },
+        },
+      },
+      width: 800,
+      height: 600,
+      queriesData: [{ data: [] }],
+      theme: supersetTheme,
+    });
+    const transformed = transformProps(
+      localizedChartProps as EchartsBoxPlotChartProps,
+    );
+    const xAxis = transformed.echartOptions.xAxis as { name?: string };
+    const yAxis = transformed.echartOptions.yAxis as { name?: string };
+    expect(xAxis.name).toBe('Revenue');
+    expect(yAxis.name).toBe('Price');
+  });
+
+  test('should fall back to original axis titles when locale has no matching translation', () => {
+    const localizedChartProps = new ChartProps({
+      formData: {
+        ...formData,
+        xAxisTitle: 'Revenue',
+        yAxisTitle: 'Price',
+        translations: {
+          x_axis_title: { de: 'Umsatz' },
+        },
+      },
+      width: 800,
+      height: 600,
+      queriesData: [{ data: [] }],
+      theme: supersetTheme,
+      locale: 'ja',
+    });
+    const transformed = transformProps(
+      localizedChartProps as EchartsBoxPlotChartProps,
+    );
+    const xAxis = transformed.echartOptions.xAxis as { name?: string };
+    const yAxis = transformed.echartOptions.yAxis as { name?: string };
+    expect(xAxis.name).toBe('Revenue');
+    expect(yAxis.name).toBe('Price');
+  });
+
+  test('should fall back to base language when regional locale has no match', () => {
+    const localizedChartProps = new ChartProps({
+      formData: {
+        ...formData,
+        xAxisTitle: 'Revenue',
+        translations: {
+          x_axis_title: { de: 'Umsatz' },
+        },
+      },
+      width: 800,
+      height: 600,
+      queriesData: [{ data: [] }],
+      theme: supersetTheme,
+      locale: 'de-AT',
+    });
+    const transformed = transformProps(
+      localizedChartProps as EchartsBoxPlotChartProps,
+    );
+    const xAxis = transformed.echartOptions.xAxis as { name?: string };
+    expect(xAxis.name).toBe('Umsatz');
+  });
+
   test('should transform chart props for viz', () => {
     expect(transformProps(chartProps as EchartsBoxPlotChartProps)).toEqual(
       expect.objectContaining({

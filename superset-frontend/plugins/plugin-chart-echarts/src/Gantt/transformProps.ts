@@ -31,6 +31,7 @@ import {
   DataRecord,
   DataRecordValue,
   getColumnLabel,
+  getLocalizedFormDataValue,
   getNumberFormatter,
   tooltipHtml,
 } from '@superset-ui/core';
@@ -115,6 +116,7 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
     emitCrossFilters,
     datasource,
     legendState,
+    locale,
   } = chartProps;
 
   const {
@@ -145,6 +147,13 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
     ...DEFAULT_FORM_DATA,
     ...formData,
   };
+
+  const localizedXAxisTitle =
+    getLocalizedFormDataValue(formData.translations, 'x_axis_title', locale) ??
+    xAxisTitle;
+  const localizedYAxisTitle =
+    getLocalizedFormDataValue(formData.translations, 'y_axis_title', locale) ??
+    yAxisTitle;
 
   const { setControlValue, onLegendStateChanged } = hooks;
 
@@ -251,7 +260,7 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
     false,
     zoomable,
     legendMargin,
-    !!xAxisTitle,
+    !!localizedXAxisTitle,
     'Left',
     convertInteger(yAxisTitleMargin),
     convertInteger(xAxisTitleMargin),
@@ -412,7 +421,7 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
     },
     series,
     xAxis: {
-      name: xAxisTitle,
+      name: localizedXAxisTitle,
       nameLocation: 'middle',
       type: AxisType.Time,
       nameGap: convertInteger(xAxisTitleMargin),
@@ -424,7 +433,7 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
       max: bounds[1],
     },
     yAxis: {
-      name: yAxisTitle,
+      name: localizedYAxisTitle,
       nameGap: convertInteger(yAxisTitleMargin),
       nameLocation: 'middle',
       axisLabel: {
