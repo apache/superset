@@ -32,7 +32,7 @@ const metadata = new ChartMetadata({
   description: t(
     'Visualizes geographic areas from your data as polygons on a Mapbox rendered map. Polygons can be colored using a metric.',
   ),
-  name: t('deck.gl Polygon'),
+  name: t('deck.gl Polygon (Legacy Mapbox)'),
   thumbnail,
   thumbnailDark,
   exampleGallery: [{ url: example, urlDark: exampleDark }],

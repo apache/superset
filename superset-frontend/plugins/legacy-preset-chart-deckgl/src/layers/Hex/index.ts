@@ -33,7 +33,7 @@ const metadata = new ChartMetadata({
     'Overlays a hexagonal grid on a map, and aggregates data within the boundary of each cell.',
   ),
   exampleGallery: [{ url: example, urlDark: exampleDark }],
-  name: t('deck.gl 3D Hexagon'),
+  name: t('deck.gl 3D Hexagon (Legacy Mapbox)'),
   thumbnail,
   thumbnailDark,
   tags: [t('deckGL'), t('3D'), t('Geo'), t('Comparison')],

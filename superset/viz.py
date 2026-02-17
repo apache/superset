@@ -2512,6 +2512,51 @@ class DeckArc(BaseDeckGLViz):
         }
 
 
+# MapLibre deck.gl viz types (for preset-chart-deckgl with MapLibre rendering)
+class DeckScatterMaplibre(DeckScatterViz):
+    viz_type = "deck_scatter_maplibre"
+
+
+class DeckScreengridMaplibre(DeckScreengrid):
+    viz_type = "deck_screengrid_maplibre"
+
+
+class DeckGridMaplibre(DeckGrid):
+    viz_type = "deck_grid_maplibre"
+
+
+class DeckPathMaplibre(DeckPathViz):
+    viz_type = "deck_path_maplibre"
+
+
+class DeckPolygonMaplibre(DeckPolygon):
+    viz_type = "deck_polygon_maplibre"
+
+
+class DeckHexMaplibre(DeckHex):
+    viz_type = "deck_hex_maplibre"
+
+
+class DeckHeatmapMaplibre(DeckHeatmap):
+    viz_type = "deck_heatmap_maplibre"
+
+
+class DeckContourMaplibre(DeckContour):
+    viz_type = "deck_contour_maplibre"
+
+
+class DeckGeoJsonMaplibre(DeckGeoJson):
+    viz_type = "deck_geojson_maplibre"
+
+
+class DeckArcMaplibre(DeckArc):
+    viz_type = "deck_arc_maplibre"
+
+
+class DeckGLMultiLayerMaplibre(DeckGLMultiLayer):
+    viz_type = "deck_multi_maplibre"
+
+
 class EventFlowViz(BaseViz):
     """A visualization to explore patterns in event sequences"""
 

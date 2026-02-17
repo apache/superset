@@ -32,7 +32,7 @@ const metadata = new ChartMetadata({
   description: t(
     'Aggregates data within the boundary of grid cells and maps the aggregated values to a dynamic color scale',
   ),
-  name: t('deck.gl Screen Grid'),
+  name: t('deck.gl Screen Grid (Legacy Mapbox)'),
   thumbnail,
   thumbnailDark,
   exampleGallery: [{ url: example, urlDark: exampleDark }],

@@ -33,7 +33,7 @@ const metadata = new ChartMetadata({
     'Uses Gaussian Kernel Density Estimation to visualize spatial distribution of data',
   ),
   exampleGallery: [{ url: example, urlDark: exampleDark }],
-  name: t('deck.gl Heatmap'),
+  name: t('deck.gl Heatmap (Legacy Mapbox)'),
   thumbnail,
   thumbnailDark,
   tags: [t('deckGL'), t('Spatial'), t('Comparison')],

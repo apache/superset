@@ -32,7 +32,7 @@ const metadata = new ChartMetadata({
   description: t(
     'A map that takes rendering circles with a variable radius at latitude/longitude coordinates',
   ),
-  name: t('deck.gl Scatterplot'),
+  name: t('deck.gl Scatterplot (Legacy Mapbox)'),
   thumbnail,
   thumbnailDark,
   exampleGallery: [{ url: example, urlDark: exampleDark }],

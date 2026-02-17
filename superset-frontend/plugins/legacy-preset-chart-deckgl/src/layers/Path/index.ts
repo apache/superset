@@ -30,7 +30,7 @@ const metadata = new ChartMetadata({
   category: t('Map'),
   credits: ['https://uber.github.io/deck.gl'],
   description: t('Visualizes connected points, which form a path, on a map.'),
-  name: t('deck.gl Path'),
+  name: t('deck.gl Path (Legacy Mapbox)'),
   thumbnail,
   thumbnailDark,
   exampleGallery: [{ url: example, urlDark: exampleDark }],

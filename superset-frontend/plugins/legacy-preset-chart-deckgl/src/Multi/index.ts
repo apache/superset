@@ -30,7 +30,7 @@ const metadata = new ChartMetadata({
   credits: ['https://uber.github.io/deck.gl'],
   description: t('Compose multiple layers together to form complex visuals.'),
   exampleGallery: [{ url: example, urlDark: exampleDark }],
-  name: t('deck.gl Multiple Layers'),
+  name: t('deck.gl Multiple Layers (Legacy Mapbox)'),
   thumbnail,
   thumbnailDark,
   useLegacyApi: true,

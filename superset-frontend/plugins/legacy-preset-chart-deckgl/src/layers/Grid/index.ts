@@ -32,7 +32,7 @@ const metadata = new ChartMetadata({
   description: t(
     'Visualize geospatial data like 3D buildings, landscapes, or objects in grid view.',
   ),
-  name: t('deck.gl Grid'),
+  name: t('deck.gl Grid (Legacy Mapbox)'),
   thumbnail,
   thumbnailDark,
   exampleGallery: [{ url: example, urlDark: exampleDark }],
