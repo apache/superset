@@ -233,10 +233,10 @@ def test_connect_make_label_compatible(column_name: str, expected_result: str) -
     "extra,column_name,expected_result",
     [
         # Default behavior (mutate labels)
-        (None, "time", "time_07cc69"),
-        ({}, "time", "time_07cc69"),
+        (None, "time", "time_336074"),
+        ({}, "time", "time_336074"),
         # Explicitly enable
-        ({"mutate_label_name": True}, "time", "time_07cc69"),
+        ({"mutate_label_name": True}, "time", "time_336074"),
         # Disabled (no mutation)
         ({"mutate_label_name": False}, "time", "time"),
         ({"mutate_label_name": False}, "count", "count"),
