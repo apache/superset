@@ -387,3 +387,46 @@ test('does not handle mouse events when inContextMenu is true', () => {
   expect(fillChangeCalls.length).toBe(0);
   expect(fillStyleChangeCalls.length).toBe(0);
 });
+
+test('does not throw error when onContextMenu is undefined', () => {
+  const propsWithoutContextMenu = {
+    ...baseProps,
+    onContextMenu: undefined,
+  };
+
+  // Should not throw
+  expect(() => {
+    WorldMap(container, propsWithoutContextMenu as any);
+  }).not.toThrow();
+});
+
+test('calls onContextMenu when provided and right-click occurs', () => {
+  const mockOnContextMenu = jest.fn();
+  const propsWithContextMenu = {
+    ...baseProps,
+    onContextMenu: mockOnContextMenu,
+  };
+
+  let contextMenuHandler: ((source: any) => void) | undefined;
+
+  mockSvg.on.mockImplementation((event: string, handler: any) => {
+    if (event === 'contextmenu') {
+      contextMenuHandler = handler;
+    }
+    return mockSvg;
+  });
+
+  // Mock d3.event
+  (d3 as any).event = {
+    preventDefault: jest.fn(),
+    clientX: 100,
+    clientY: 200,
+  };
+
+  WorldMap(container, propsWithContextMenu);
+
+  expect(contextMenuHandler).toBeDefined();
+  contextMenuHandler!({ country: 'USA' });
+
+  expect(mockOnContextMenu).toHaveBeenCalledWith(100, 200, expect.any(Object));
+});
