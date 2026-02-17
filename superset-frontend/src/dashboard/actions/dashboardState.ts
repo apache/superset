@@ -725,6 +725,9 @@ export function saveDashboardRequest(
       css: cleanedData.css,
       duplicate_slices: cleanedData.duplicate_slices,
       json_metadata: JSON.stringify(cleanedData.metadata),
+      ...(cleanedData.translations !== undefined && {
+        translations: cleanedData.translations,
+      }),
     };
 
     return SupersetClient.post({

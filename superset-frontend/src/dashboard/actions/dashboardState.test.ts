@@ -238,6 +238,55 @@ describe('dashboardState actions', () => {
       mockIsFeatureEnabled.mockReset();
     });
 
+    test('copy includes translations in POST payload when provided', async () => {
+      mockIsFeatureEnabled.mockReturnValue(false);
+      const { getState, dispatch } = setup({
+        dashboardState: { hasUnsavedChanges: true },
+      });
+
+      postStub.mockRestore();
+      postStub = jest.spyOn(SupersetClient, 'post').mockResolvedValue({
+        json: { result: { ...mockDashboardData, id: 999 } },
+      } as any);
+
+      const translations = { dashboard_title: { de: 'Test-Dashboard' } };
+      const thunk = saveDashboardRequest(
+        { ...newDashboardData, translations },
+        1,
+        SAVE_TYPE_NEWDASHBOARD,
+      );
+      await thunk(dispatch, getState);
+
+      await waitFor(() => expect(postStub).toHaveBeenCalled());
+      const { jsonPayload } = postStub.mock.calls[0][0];
+      expect(jsonPayload.translations).toEqual(translations);
+      mockIsFeatureEnabled.mockReset();
+    });
+
+    test('copy omits translations from POST payload when not provided', async () => {
+      mockIsFeatureEnabled.mockReturnValue(false);
+      const { getState, dispatch } = setup({
+        dashboardState: { hasUnsavedChanges: true },
+      });
+
+      postStub.mockRestore();
+      postStub = jest.spyOn(SupersetClient, 'post').mockResolvedValue({
+        json: { result: { ...mockDashboardData, id: 999 } },
+      } as any);
+
+      const thunk = saveDashboardRequest(
+        newDashboardData,
+        1,
+        SAVE_TYPE_NEWDASHBOARD,
+      );
+      await thunk(dispatch, getState);
+
+      await waitFor(() => expect(postStub).toHaveBeenCalled());
+      const { jsonPayload } = postStub.mock.calls[0][0];
+      expect(jsonPayload).not.toHaveProperty('translations');
+      mockIsFeatureEnabled.mockReset();
+    });
+
     test('should navigate to the new dashboard after Save As', async () => {
       const newDashboardId = 999;
       const { getState, dispatch } = setup({

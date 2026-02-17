@@ -120,6 +120,9 @@ function SaveModal({
       last_modified_time: lastModifiedTime,
       owners: dashboardInfo.owners,
       roles: dashboardInfo.roles,
+      ...(dashboardInfo.translations !== undefined && {
+        translations: dashboardInfo.translations,
+      }),
       metadata: {
         ...dashboardInfo?.metadata,
         positions: layout,
