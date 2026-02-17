@@ -27,7 +27,6 @@ import {
 
 const columnsConfig = sharedControls.entity;
 
-// eslint-disable theme-colors/no-literal-colors — data visualization dot colors, not UI theme
 const colorChoices = [
   ['#008b8b', t('Dark Cyan')],
   ['#800080', t('Purple')],
