@@ -113,7 +113,6 @@ interface CountryMapProps {
   customColorScale: string | string[];
 }
 
-
 const maps: Record<string, GeoData> = {};
 
 function CountryMap(element: HTMLElement, props: CountryMapProps) {
@@ -195,7 +194,9 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
         .clamp(true)
         // Remove interpolation to avoid blending between steps - always return lower boundary
         .interpolate(function (a, b) {
-          return function(t) { return a; };
+          return function (t) {
+            return a;
+          };
         });
     }
   }
@@ -217,7 +218,6 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
       linearPaletteScale = null;
     }
   }
-
 
   const colorMap: Record<string, string> = {};
 

@@ -77,9 +77,9 @@ const config: ControlPanelConfig = {
               type: 'TextAreaControl',
               label: t('Custom Color Scale (by %)'),
               description: t(
-                'Custom JSON configuration that overrides the linear color scheme color codes and thresholds. ' + 
-                'Thresholds are defined in percentage, and color codes accept any valid CSS value. ' + 
-                'Config must be a valid JSON excerpt. ' + 
+                'Custom JSON configuration that overrides the linear color scheme color codes and thresholds. ' +
+                'Thresholds are defined in percentage, and color codes accept any valid CSS value. ' +
+                'Config must be a valid JSON excerpt. ' +
                 'Copy-paste and adapt following sample configuration to define your own thresholds and colors :\n' +
                   '[\n' +
                   '  { "percent": 0, "color": "white" },\n' +
