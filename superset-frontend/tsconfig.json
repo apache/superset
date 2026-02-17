@@ -97,7 +97,7 @@
     { "path": "./plugins/plugin-chart-handlebars" },
     { "path": "./plugins/plugin-chart-pivot-table" },
     { "path": "./plugins/plugin-chart-table" },
-    { "path": "./plugins/plugin-chart-word-cloud" }
+    { "path": "./plugins/plugin-chart-word-cloud" },
   ],
   "exclude": []
 }
