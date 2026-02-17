@@ -69,7 +69,8 @@ export function ActionsBar({ actions }: ActionsBarProps) {
         return (
           <ActionButton
             key={tooltip ? undefined : index}
-            icon={<IconComponent />}
+            icon={<IconComponent iconSize="l" />}
+            tooltip={tooltip}
             {...rest}
           />
         );

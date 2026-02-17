@@ -250,11 +250,6 @@ const DashboardContentWrapper = styled.div`
         z-index: ${EMPTY_CONTAINER_Z_INDEX};
         position: absolute;
         width: 100%;
-        pointer-events: none;
-
-        & > .drop-indicator {
-          pointer-events: auto;
-        }
       }
 
       & > .empty-droptarget:first-child:not(.empty-droptarget--full) {
@@ -533,7 +528,6 @@ const DashboardBuilder = () => {
             ]}
             editMode={editMode}
           >
-            {/* @ts-ignore */}
             <DashboardComponent
               id={topLevelTabs?.id}
               parentId={DASHBOARD_ROOT_ID}
@@ -628,7 +622,6 @@ const DashboardBuilder = () => {
         ref={headerRef}
         filterBarWidth={headerFilterBarWidth}
       >
-        {/* @ts-ignore */}
         <Droppable
           data-test="top-level-tabs"
           className={cx(!topLevelTabs && editMode && 'empty-droptarget')}

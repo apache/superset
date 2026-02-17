@@ -459,6 +459,7 @@ const SliceHeaderControls = (
               isRequest
               isVisible
               canDownload={!!props.supersetCanCSV}
+              columnDisplayNames={datasetWithVerboseMap?.verbose_map}
             />
           }
         />

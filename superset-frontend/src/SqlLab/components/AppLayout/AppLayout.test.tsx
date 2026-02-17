@@ -21,7 +21,6 @@ import { initialState } from 'src/SqlLab/fixtures';
 import useStoredSidebarWidth from 'src/components/ResizableSidebar/useStoredSidebarWidth';
 import type { contributions, core } from '@apache-superset/core';
 import ExtensionsManager from 'src/extensions/ExtensionsManager';
-import { ViewContribution } from 'src/SqlLab/contributions';
 import AppLayout from './index';
 
 jest.mock('src/components/ResizableSidebar/useStoredSidebarWidth');
@@ -156,7 +155,9 @@ test('renders right sidebar when RIGHT_SIDEBAR_VIEW_ID view is contributed', asy
       commands: [],
       menus: {},
       views: {
-        [ViewContribution.RightSidebar]: [createMockView(viewId)],
+        sqllab: {
+          rightSidebar: [createMockView(viewId)],
+        },
       },
     },
   });

@@ -23,6 +23,7 @@ import {
   memo,
   ChangeEvent,
   MouseEvent,
+  useMemo,
 } from 'react';
 
 import AutoSizer from 'react-virtualized-auto-sizer';
@@ -89,7 +90,7 @@ import ExploreCtasResultsButton from '../ExploreCtasResultsButton';
 import ExploreResultsButton from '../ExploreResultsButton';
 import HighlightedSql from '../HighlightedSql';
 import PanelToolbar from 'src/components/PanelToolbar';
-import { ViewContribution } from 'src/SqlLab/contributions';
+import { ViewLocations } from 'src/SqlLab/contributions';
 
 enum LimitingFactor {
   Query = 'QUERY',
@@ -154,6 +155,7 @@ const ResultSetButtons = styled.div`
 const GAP = 8;
 
 const extensionsRegistry = getExtensionsRegistry();
+const EMPTY: string[] = [];
 
 const ResultSet = ({
   cache = false,
@@ -215,6 +217,14 @@ const ResultSet = ({
   const [cachedData, setCachedData] = useState<Record<string, unknown>[]>([]);
   const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
   const [showStreamingModal, setShowStreamingModal] = useState(false);
+  const orderedColumnKeys = useMemo(
+    () => query.results?.columns?.map(col => col.column_name) ?? EMPTY,
+    [query.results?.columns],
+  );
+  const expandedColumns = useMemo(
+    () => query.results?.expanded_columns?.map(col => col.column_name) ?? EMPTY,
+    [query.results?.expanded_columns],
+  );
 
   const history = useHistory();
   const dispatch = useDispatch();
@@ -288,7 +298,7 @@ const ResultSet = ({
       const force = false;
       const includeAppRoot = openInNewWindow;
       const url = mountExploreUrl(
-        null,
+        'base',
         {
           [URL_PARAMS.formDataKey.name]: key,
         },
@@ -418,7 +428,10 @@ const ResultSet = ({
           )}
           {canExportData && (
             <CopyToClipboard
-              text={prepareCopyToClipboardTabularData(data, columns)}
+              text={prepareCopyToClipboardTabularData(
+                data,
+                columns.map(c => c.column_name),
+              )}
               wrapped={false}
               copyNode={
                 <Button
@@ -453,7 +466,7 @@ const ResultSet = ({
             datasource={datasource}
           />
           <PanelToolbar
-            viewId={ViewContribution.Results}
+            viewId={ViewLocations.sqllab.results}
             defaultPrimaryActions={defaultPrimaryActions}
           />
         </ResultSetButtons>
@@ -518,6 +531,7 @@ const ResultSet = ({
           placement="left"
         >
           <Label
+            monospace
             css={css`
               line-height: ${theme.fontSizeLG}px;
             `}
@@ -659,9 +673,6 @@ const ResultSet = ({
       ({ data } = results);
     }
     if (data && data.length > 0) {
-      const expandedColumns = results.expanded_columns
-        ? results.expanded_columns.map(col => col.column_name)
-        : [];
       const allowHTML = getItem(
         LocalStorageKeys.SqllabIsRenderHtmlEnabled,
         true,
@@ -670,7 +681,7 @@ const ResultSet = ({
       const tableProps = {
         data,
         queryId: query.id,
-        orderedColumnKeys: results.columns.map(col => col.column_name),
+        orderedColumnKeys,
         filterText: searchText,
         expandedColumns,
         allowHTML,

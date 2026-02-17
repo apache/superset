@@ -16,36 +16,35 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useMemo, useState } from 'react';
-import { shallowEqual, useDispatch, useSelector } from 'react-redux';
+import { useCallback, useState } from 'react';
+import { useDispatch } from 'react-redux';
 
-import { SqlLabRootState, Table } from 'src/SqlLab/types';
+import { resetState } from 'src/SqlLab/actions/sqlLab';
 import {
-  addTable,
-  removeTables,
-  collapseTable,
-  expandTable,
-  resetState,
-} from 'src/SqlLab/actions/sqlLab';
-import { Button, EmptyState, Icons } from '@superset-ui/core/components';
+  Button,
+  EmptyState,
+  Flex,
+  Icons,
+  Popover,
+  Typography,
+} from '@superset-ui/core/components';
 import { t } from '@apache-superset/core';
 import { styled, css } from '@apache-superset/core/ui';
-import { TableSelectorMultiple } from 'src/components/TableSelector';
-import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
-import { noop } from 'lodash';
-import TableElement from '../TableElement';
+import type { SchemaOption, CatalogOption } from 'src/hooks/apiResources';
+import { DatabaseSelector, type DatabaseObject } from 'src/components';
+
 import useDatabaseSelector from '../SqlEditorTopBar/useDatabaseSelector';
+import TableExploreTree from '../TableExploreTree';
 
 export interface SqlEditorLeftBarProps {
   queryEditorId: string;
 }
 
-const StyledScrollbarContainer = styled.div`
-  flex: 1 1 auto;
-  overflow: auto;
-`;
-
 const LeftBarStyles = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.sizeUnit * 2}px;
+
   ${({ theme }) => css`
     height: 100%;
     display: flex;
@@ -53,117 +52,153 @@ const LeftBarStyles = styled.div`
 
     .divider {
       border-bottom: 1px solid ${theme.colorSplit};
-      margin: ${theme.sizeUnit * 4}px 0;
+      margin: ${theme.sizeUnit * 1}px 0;
     }
   `}
 `;
 
+const StyledDivider = styled.div`
+  border-bottom: 1px solid ${({ theme }) => theme.colorSplit};
+  margin: 0 -${({ theme }) => theme.sizeUnit * 2.5}px 0;
+`;
+
 const SqlEditorLeftBar = ({ queryEditorId }: SqlEditorLeftBarProps) => {
-  const { db: userSelectedDb, ...dbSelectorProps } =
-    useDatabaseSelector(queryEditorId);
-  const allSelectedTables = useSelector<SqlLabRootState, Table[]>(
-    ({ sqlLab }) =>
-      sqlLab.tables.filter(table => table.queryEditorId === queryEditorId),
-    shallowEqual,
-  );
+  const dbSelectorProps = useDatabaseSelector(queryEditorId);
+  const { db, catalog, schema, onDbChange, onCatalogChange, onSchemaChange } =
+    dbSelectorProps;
+
   const dispatch = useDispatch();
-  const queryEditor = useQueryEditor(queryEditorId, [
-    'dbId',
-    'catalog',
-    'schema',
-    'tabViewId',
-  ]);
-  const [_emptyResultsWithSearch, setEmptyResultsWithSearch] = useState(false);
-  const { dbId, schema } = queryEditor;
-  const tables = useMemo(
-    () =>
-      allSelectedTables.filter(
-        table => table.dbId === dbId && table.schema === schema,
-      ),
-    [allSelectedTables, dbId, schema],
+  const shouldShowReset = window.location.search === '?reset=1';
+
+  // Modal state for Database/Catalog/Schema selector
+  const [selectorModalOpen, setSelectorModalOpen] = useState(false);
+  const [modalDb, setModalDb] = useState<DatabaseObject | undefined>(undefined);
+  const [modalCatalog, setModalCatalog] = useState<
+    CatalogOption | null | undefined
+  >(undefined);
+  const [modalSchema, setModalSchema] = useState<SchemaOption | undefined>(
+    undefined,
   );
 
-  noop(_emptyResultsWithSearch); // This is to avoid unused variable warning, can be removed if not needed
+  const openSelectorModal = useCallback(() => {
+    setModalDb(db ?? undefined);
+    setModalCatalog(
+      catalog ? { label: catalog, value: catalog, title: catalog } : undefined,
+    );
+    setModalSchema(
+      schema ? { label: schema, value: schema, title: schema } : undefined,
+    );
+    setSelectorModalOpen(true);
+  }, [db, catalog, schema]);
 
-  const onEmptyResults = useCallback((searchText?: string) => {
-    setEmptyResultsWithSearch(!!searchText);
+  const closeSelectorModal = useCallback(() => {
+    setSelectorModalOpen(false);
   }, []);
 
-  const selectedTableNames = useMemo(
-    () => tables?.map(table => table.name) || [],
-    [tables],
-  );
-
-  const onTablesChange = (
-    tableNames: string[],
-    catalogName: string | null,
-    schemaName: string,
-  ) => {
-    if (!schemaName) {
-      return;
+  const handleModalOk = useCallback(() => {
+    if (modalDb && modalDb.id !== db?.id) {
+      onDbChange?.(modalDb);
     }
-
-    const currentTables = [...tables];
-    const tablesToAdd = tableNames.filter(name => {
-      const index = currentTables.findIndex(table => table.name === name);
-      if (index >= 0) {
-        currentTables.splice(index, 1);
-        return false;
-      }
-
-      return true;
-    });
-
-    tablesToAdd.forEach(tableName => {
-      dispatch(addTable(queryEditor, tableName, catalogName, schemaName));
-    });
-
-    dispatch(removeTables(currentTables));
-  };
-
-  const onToggleTable = (updatedTables: string[]) => {
-    tables.forEach(table => {
-      if (!updatedTables.includes(table.id.toString()) && table.expanded) {
-        dispatch(collapseTable(table));
-      } else if (
-        updatedTables.includes(table.id.toString()) &&
-        !table.expanded
-      ) {
-        dispatch(expandTable(table));
-      }
-    });
-  };
-
-  const shouldShowReset = window.location.search === '?reset=1';
+    if (modalCatalog?.value !== catalog) {
+      onCatalogChange?.(modalCatalog?.value);
+    }
+    if (modalSchema?.value !== schema) {
+      onSchemaChange?.(modalSchema?.value ?? '');
+    }
+    setSelectorModalOpen(false);
+  }, [
+    modalDb,
+    modalCatalog,
+    modalSchema,
+    db,
+    catalog,
+    schema,
+    onDbChange,
+    onCatalogChange,
+    onSchemaChange,
+  ]);
 
   const handleResetState = useCallback(() => {
     dispatch(resetState());
   }, [dispatch]);
 
+  const popoverContent = (
+    <Flex
+      vertical
+      gap="middle"
+      data-test="DatabaseSelector"
+      css={css`
+        min-width: 500px;
+      `}
+    >
+      <Typography.Title level={5} style={{ margin: 0 }}>
+        {t('Select Database and Schema')}
+      </Typography.Title>
+      <DatabaseSelector
+        key={modalDb ? modalDb.id : 'no-db'}
+        db={modalDb}
+        emptyState={<EmptyState />}
+        getDbList={dbSelectorProps.getDbList}
+        handleError={dbSelectorProps.handleError}
+        onDbChange={setModalDb}
+        onCatalogChange={cat =>
+          setModalCatalog(
+            cat ? { label: cat, value: cat, title: cat } : undefined,
+          )
+        }
+        catalog={modalCatalog?.value}
+        onSchemaChange={sch =>
+          setModalSchema(
+            sch ? { label: sch, value: sch, title: sch } : undefined,
+          )
+        }
+        schema={modalSchema?.value}
+        sqlLabMode={false}
+      />
+      <Flex justify="flex-end" gap="small">
+        <Button
+          buttonStyle="tertiary"
+          onClick={e => {
+            e?.stopPropagation();
+            closeSelectorModal();
+          }}
+        >
+          {t('Cancel')}
+        </Button>
+        <Button
+          type="primary"
+          onClick={e => {
+            e?.stopPropagation();
+            handleModalOk();
+          }}
+        >
+          {t('Select')}
+        </Button>
+      </Flex>
+    </Flex>
+  );
+
   return (
     <LeftBarStyles data-test="sql-editor-left-bar">
-      <TableSelectorMultiple
-        {...dbSelectorProps}
-        onEmptyResults={onEmptyResults}
-        emptyState={<EmptyState />}
-        database={userSelectedDb}
-        onTableSelectChange={onTablesChange}
-        tableValue={selectedTableNames}
-        sqlLabMode
-      />
-      <div className="divider" />
-      <StyledScrollbarContainer>
-        {tables.map(table => (
-          <TableElement
-            table={table}
-            key={table.id}
-            activeKey={tables
-              .filter(({ expanded }) => expanded)
-              .map(({ id }) => id)}
-            onChange={onToggleTable}
-          />
-        ))}
-      </StyledScrollbarContainer>
+      <Popover
+        content={popoverContent}
+        open={selectorModalOpen}
+        onOpenChange={open => !open && closeSelectorModal()}
+        placement="bottomLeft"
+        trigger="click"
+      >
+        <DatabaseSelector
+          key={`db-selector-${db ? db.id : 'no-db'}:${catalog ?? 'no-catalog'}:${
+            schema ?? 'no-schema'
+          }`}
+          {...dbSelectorProps}
+          emptyState={<EmptyState />}
+          sqlLabMode
+          onOpenModal={openSelectorModal}
+        />
+      </Popover>
+      <StyledDivider />
+      <TableExploreTree queryEditorId={queryEditorId} />
       {shouldShowReset && (
         <Button
           buttonSize="small"

@@ -24,6 +24,7 @@ from unittest.mock import MagicMock
 import numpy as np
 import pandas as pd
 import pytest
+import pytz
 
 from superset.utils import json
 from superset.utils.core import (
@@ -54,7 +55,7 @@ def test_json_loads_exception():
 
 
 def test_json_loads_encoding():
-    unicode_data = b'{"a": "\u0073\u0074\u0072"}'
+    unicode_data = rb'{"a": "\u0073\u0074\u0072"}'
     data = json.loads(unicode_data)
     assert data["a"] == "str"
     utf16_data = b'\xff\xfe{\x00"\x00a\x00"\x00:\x00 \x00"\x00s\x00t\x00r\x00"\x00}\x00'
@@ -252,6 +253,11 @@ def test_json_int_dttm_ser():
     assert json.json_int_dttm_ser(datetime(1970, 1, 1)) == 0
     assert json.json_int_dttm_ser(date(1970, 1, 1)) == 0
     assert json.json_int_dttm_ser(dttm + timedelta(milliseconds=1)) == (ts + 1)
+
+    # Timezone-aware datetime should preserve the absolute instant.
+    # 2020-01-01 00:00:00+08:00 == 2019-12-31 16:00:00Z
+    dttm_tz = datetime(2020, 1, 1, tzinfo=pytz.FixedOffset(8 * 60))
+    assert json.json_int_dttm_ser(dttm_tz) == 1577808000000.0
     assert json.json_int_dttm_ser(np.int64(1)) == 1
 
     with pytest.raises(TypeError):

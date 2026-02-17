@@ -136,21 +136,16 @@ function updateDataMaskForFilterChanges(
   initialDataMask?: Filters,
   isCustomizationChanges?: boolean,
 ) {
-  const dataMask = initialDataMask || {};
-
-  Object.entries(dataMask).forEach(([key, value]) => {
-    mergedDataMask[key] = { ...value, ...value.defaultDataMask };
-  });
-
   filterChanges.deleted.forEach((filterId: string) => {
     delete mergedDataMask[filterId];
   });
 
   filterChanges.modified.forEach((filter: Filter) => {
     const existingFilter = draftDataMask[filter.id] as FilterWithExtaFromData;
+    const prevFilterDef = initialDataMask?.[filter.id] as Filter | undefined;
 
     // Check if targets are equal
-    const areTargetsEqual = isEqual(existingFilter?.targets, filter?.targets);
+    const areTargetsEqual = isEqual(prevFilterDef?.targets, filter?.targets);
 
     // Preserve state only if filter exists, has enableEmptyFilter=true and targets match
     const shouldPreserveState =
@@ -169,6 +164,17 @@ function updateDataMaskForFilterChanges(
         filterState: existingFilter.filterState,
       }),
     };
+  });
+
+  // Preserve state for native filters that were not modified or deleted
+  Object.entries(draftDataMask).forEach(([key, value]) => {
+    if (String(value?.id).startsWith(NATIVE_FILTER_PREFIX)) {
+      const wasDeleted = filterChanges.deleted.includes(key);
+      const wasModified = filterChanges.modified.some(f => f.id === key);
+      if (!wasDeleted && !wasModified) {
+        mergedDataMask[key] = value;
+      }
+    }
   });
 
   Object.values(draftDataMask).forEach(filter => {
