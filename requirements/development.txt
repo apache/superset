@@ -259,7 +259,7 @@ flask==2.3.3
     #   flask-sqlalchemy
     #   flask-testing
     #   flask-wtf
-flask-appbuilder @ git+https://github.com/aminghadersohi/Flask-AppBuilder@amin/ch99414/api-key-auth
+flask-appbuilder @ git+https://github.com/aminghadersohi/Flask-AppBuilder@84e017b69e7d4984893a09b2776f814e42b65b82
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
