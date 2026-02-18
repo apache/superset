@@ -930,9 +930,9 @@ export function redirectSQLLab(
             requestedQuery: payload,
           });
         } else {
-          SupersetClient.postForm(ensureAppRoot(redirectUrl), {
+          SupersetClient.postForm({ endpoint: redirectUrl, payload: {
             form_data: safeStringify(payload),
-          });
+          } });
         }
       })
       .catch(() =>

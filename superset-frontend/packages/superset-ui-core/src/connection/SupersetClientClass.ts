@@ -27,6 +27,7 @@ import {
   Headers,
   Host,
   Mode,
+  PostFormConfig,
   Protocol,
   RequestConfig,
   ParseMethod,
@@ -115,19 +116,18 @@ export default class SupersetClientClass {
     return this.fetchCSRFToken();
   }
 
-  async postForm(
-    endpoint: string,
-    payload: Record<string, any>,
-    target = '_blank',
-  ) {
-    if (endpoint) {
+  async postForm(postFormConfig: PostFormConfig) {
+    if (postFormConfig.endpoint || postFormConfig.url) {
       await this.ensureAuth();
       const hiddenForm = document.createElement('form');
-      hiddenForm.action = this.getUrl({ endpoint });
+      hiddenForm.action = this.getUrl({
+        endpoint: postFormConfig.endpoint,
+        url: postFormConfig.url,
+      });
       hiddenForm.method = 'POST';
-      hiddenForm.target = target;
+      hiddenForm.target = postFormConfig.target ?? '_blank';
       const payloadWithToken: Record<string, any> = {
-        ...payload,
+        ...postFormConfig.payload,
         csrf_token: this.csrfToken!,
       };
 

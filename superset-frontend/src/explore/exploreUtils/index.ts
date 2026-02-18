@@ -355,9 +355,13 @@ export const exportChart = async ({
       endpointType,
       allowDomainSharding: false,
     });
+    if (!url) {
+      console.warn('Failed to get explore url.');
+      return;
+    }
     payload = formData;
   } else {
-    url = ensureAppRoot('/api/v1/chart/data');
+    url = SupersetClient.getUrl({ endpoint: '/api/v1/chart/data' });
     payload = await buildV1ChartDataPayload({
       formData,
       force,
@@ -377,8 +381,11 @@ export const exportChart = async ({
     });
   } else {
     // Fallback to original behavior for non-streaming exports
-    SupersetClient.postForm(url as string, {
-      form_data: safeStringify(payload),
+    SupersetClient.postForm({
+      url,
+      payload: {
+        form_data: safeStringify(payload),
+      },
     });
   }
 };
@@ -393,8 +400,9 @@ export const exploreChart = (
     allowDomainSharding: false,
     requestParams,
   });
-  SupersetClient.postForm(url as string, {
-    form_data: safeStringify(formData),
+  SupersetClient.postForm({
+    url: url as string,
+    payload: { form_data: safeStringify(formData) },
   });
 };
 

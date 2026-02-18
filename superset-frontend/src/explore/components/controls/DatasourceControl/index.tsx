@@ -325,8 +325,11 @@ class DatasourceControl extends PureComponent<
             datasourceKey: `${datasource.id}__${datasource.type}`,
             sql: datasource.sql,
           };
-          SupersetClient.postForm('/sqllab/', {
-            form_data: safeStringify(payload),
+          SupersetClient.postForm({
+            endpoint: '/sqllab/',
+            payload: {
+              form_data: safeStringify(payload),
+            },
           });
         }
         break;

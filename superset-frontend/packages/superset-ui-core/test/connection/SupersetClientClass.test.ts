@@ -669,7 +669,7 @@ describe('SupersetClientClass', () => {
           authSpy = jest.spyOn(SupersetClientClass.prototype, 'ensureAuth');
           await client.init();
         }
-        await client.postForm(mockPostFormEndpoint, {});
+        await client.postForm({ endpoint: mockPostFormEndpoint, payload: {} });
 
         const hiddenForm = createElement.mock.results[0].value;
         const csrfTokenInput = createElement.mock.results[1].value;
@@ -696,7 +696,7 @@ describe('SupersetClientClass', () => {
       client = new SupersetClientClass({ protocol, host, guestToken });
       await client.init();
 
-      await client.postForm(mockPostFormUrl, {});
+      await client.postForm({ endpoint: mockPostFormUrl, payload: {} });
 
       const guestTokenInput = createElement.mock.results[2].value;
 
@@ -712,7 +712,10 @@ describe('SupersetClientClass', () => {
     });
 
     test('makes postForm request with payload', async () => {
-      await client.postForm(mockPostFormUrl, { form_data: postFormPayload });
+      await client.postForm({
+        url: mockPostFormUrl,
+        payload: { form_data: postFormPayload },
+      });
 
       const postFormPayloadInput = createElement.mock.results[1].value;
 
@@ -729,7 +732,7 @@ describe('SupersetClientClass', () => {
     });
 
     test('should do nothing when url is empty string', async () => {
-      const result = await client.postForm('', {});
+      const result = await client.postForm({ url: '', payload: {} });
       expect(result).toBeUndefined();
       expect(createElement.mock.calls).toHaveLength(0);
       expect(appendChild.mock.calls).toHaveLength(0);

@@ -30,6 +30,7 @@ import {
 } from '@superset-ui/core/components';
 import { useState } from 'react';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import { ensureAppRoot } from 'src/utils/pathUtils';
 import ReactCAPTCHA from 'react-google-recaptcha';
 import { useParams } from 'react-router-dom';
 
@@ -89,7 +90,11 @@ export default function Login() {
           title="Registration successful"
           subTitle="Your account is activated. You can log in with your credentials."
           extra={[
-            <Button type="default" href="/login/" data-test="login-button">
+            <Button
+              type="default"
+              href={ensureAppRoot('/login/')}
+              data-test="login-button"
+            >
               {t('Login')}
             </Button>,
           ]}
@@ -109,7 +114,11 @@ export default function Login() {
       conf_password: values.confirmPassword,
       'g-recaptcha-response': captchaResponse,
     };
-    SupersetClient.postForm('/register/form', payload, '').finally(() => {
+    SupersetClient.postForm({
+      endpoint: '/register/form',
+      payload,
+      target: '',
+    }).finally(() => {
       setLoading(false);
     });
   };

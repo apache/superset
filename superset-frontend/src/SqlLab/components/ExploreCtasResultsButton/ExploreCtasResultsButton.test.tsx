@@ -69,9 +69,12 @@ describe('ExploreCtasResultsButton', () => {
 
     await waitFor(() => {
       expect(postFormSpy).toHaveBeenCalledTimes(1);
-      expect(postFormSpy).toHaveBeenCalledWith('http://localhost/explore/', {
-        form_data:
-          '{"datasource":"1234__table","metrics":["count"],"groupby":[],"viz_type":"table","since":"100 years ago","all_columns":[],"row_limit":1000}',
+      expect(postFormSpy).toHaveBeenCalledWith({
+        url: 'http://localhost/explore/',
+        payload: {
+          form_data:
+            '{"datasource":"1234__table","metrics":["count"],"groupby":[],"viz_type":"table","since":"100 years ago","all_columns":[],"row_limit":1000}',
+        },
       });
     });
   });
