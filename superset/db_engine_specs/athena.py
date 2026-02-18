@@ -57,7 +57,7 @@ class AthenaEngineSpec(BaseEngineSpec):
         "connection_string": (
             "awsathena+rest://{aws_access_key_id}:{aws_secret_access_key}"
             "@athena.{region_name}.amazonaws.com/{schema_name}"
-            "?s3_staging_dir={s3_staging_dir}"
+            "?s3_staging_dir={s3_staging_dir}&catalog_name={catalog_name}"
         ),
         "drivers": [
             {
@@ -71,7 +71,9 @@ class AthenaEngineSpec(BaseEngineSpec):
                 "is_recommended": True,
                 "notes": (
                     "No Java required. URL-encode special characters "
-                    "(e.g., s3:// -> s3%3A//)."
+                    "(e.g., s3:// -> s3%3A//). "
+                    "For IAM role authentication, omit credentials: "
+                    "awsathena+rest://@athena.{region}.amazonaws.com/{schema}?s3_staging_dir={dir}"
                 ),
             },
             {
@@ -167,12 +169,18 @@ class AthenaEngineSpec(BaseEngineSpec):
         For AWS Athena the SQLAlchemy URI looks like this:
 
             awsathena+rest://athena.{region_name}.amazonaws.com:443/{schema_name}?catalog_name={catalog_name}&s3_staging_dir={s3_staging_dir}
+
+        When using IAM role authentication, credentials can be omitted from the URI:
+
+            awsathena+rest://@athena.{region_name}.amazonaws.com:443/{schema_name}?s3_staging_dir={s3_staging_dir}
         """
         if catalog:
             uri = uri.update_query_dict({"catalog_name": catalog})
 
         if schema:
             uri = uri.set(database=schema)
+            # PyAthena also needs schema_name in connect_args for proper metadata discovery
+            connect_args["schema_name"] = schema
 
         return uri, connect_args
 
