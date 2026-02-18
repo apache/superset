@@ -115,7 +115,7 @@ module.exports = {
   }),
 
   typescript: {
-    reactDocgen: 'react-docgen-typescript',
+    reactDocgen: getAbsolutePath('react-docgen-typescript'),
   },
 
   framework: {
