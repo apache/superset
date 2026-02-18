@@ -208,7 +208,7 @@ const SparklineCell = ({
               return null;
             }
 
-            const value = data[idx] ?? 0;
+            const value = data[idx];
             const timeValue = entries[idx]?.time;
 
             return (

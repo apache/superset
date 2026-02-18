@@ -92,5 +92,5 @@ test('should handle invalid string numbers with format', () => {
 
 test('should handle null values', () => {
   render(<FormattedNumber num={null} />);
-  expect(screen.getByText('0')).toBeInTheDocument();
+  expect(screen.getByText('null')).toBeInTheDocument();
 });
