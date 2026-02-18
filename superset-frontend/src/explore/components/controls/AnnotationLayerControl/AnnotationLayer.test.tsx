@@ -138,6 +138,23 @@ test('triggers addAnnotationLayer when apply button is clicked', async () => {
   expect(addAnnotationLayer).toHaveBeenCalled();
 });
 
+test('includes translations in applied annotation', async () => {
+  const addAnnotationLayer = jest.fn();
+  await waitForRender({
+    name: 'Test',
+    value: '2x',
+    translations: { name: { de: 'Test DE' } },
+    addAnnotationLayer,
+  });
+  userEvent.click(screen.getByRole('button', { name: 'Apply' }));
+  expect(addAnnotationLayer).toHaveBeenCalledWith(
+    expect.objectContaining({
+      name: 'Test',
+      translations: { name: { de: 'Test DE' } },
+    }),
+  );
+});
+
 test('triggers addAnnotationLayer and close when ok button is clicked', async () => {
   const addAnnotationLayer = jest.fn();
   const close = jest.fn();

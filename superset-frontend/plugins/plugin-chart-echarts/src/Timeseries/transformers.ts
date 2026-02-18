@@ -437,12 +437,14 @@ export function transformFormulaAnnotation(
   colorScale: CategoricalColorScale,
   sliceId?: number,
   orientation?: OrientationType,
+  localizedName?: string,
 ): SeriesOption {
   const { name, color, opacity, width, style } = layer;
+  const displayName = localizedName ?? name;
   const isHorizontal = orientation === OrientationType.Horizontal;
 
   return {
-    name,
+    name: displayName,
     id: name,
     itemStyle: {
       color: color || colorScale(name, sliceId),
@@ -469,6 +471,7 @@ export function transformIntervalAnnotation(
   theme: SupersetTheme,
   sliceId?: number,
   orientation?: OrientationType,
+  localizedName?: string,
 ): SeriesOption[] {
   const series: SeriesOption[] = [];
   const annotations = extractRecordAnnotations(layer, annotationData);
@@ -477,12 +480,13 @@ export function transformIntervalAnnotation(
   }
 
   const { name, color, opacity, showLabel } = layer;
+  const displayName = localizedName ?? name;
   const isHorizontal = orientation === OrientationType.Horizontal;
 
   const intervalsByStartTime = new Map<string, string[]>();
   annotations.forEach(annotation => {
     const { descriptions, time = '', title } = annotation;
-    const label = formatAnnotationLabel(name, title, descriptions);
+    const label = formatAnnotationLabel(displayName, title, descriptions);
     const existing = intervalsByStartTime.get(time);
     if (existing) {
       existing.push(label);
@@ -562,6 +566,7 @@ export function transformEventAnnotation(
   theme: SupersetTheme,
   sliceId?: number,
   orientation?: OrientationType,
+  localizedName?: string,
 ): SeriesOption[] {
   const series: SeriesOption[] = [];
   const annotations = extractRecordAnnotations(layer, annotationData);
@@ -570,12 +575,13 @@ export function transformEventAnnotation(
   }
 
   const { name, color, opacity, style, width, showLabel } = layer;
+  const displayName = localizedName ?? name;
   const isHorizontal = orientation === OrientationType.Horizontal;
 
   const eventsByTime = new Map<string, { time: string; labels: string[] }>();
   annotations.forEach(annotation => {
     const { descriptions, time = '', title } = annotation;
-    const label = formatAnnotationLabel(name, title, descriptions);
+    const label = formatAnnotationLabel(displayName, title, descriptions);
     const existing = eventsByTime.get(time);
 
     if (existing) {
@@ -652,9 +658,11 @@ export function transformTimeseriesAnnotation(
   colorScale: CategoricalColorScale,
   sliceId?: number,
   orientation?: OrientationType,
+  localizedName?: string,
 ): SeriesOption[] {
   const series: SeriesOption[] = [];
   const { hideLine, name, opacity, showMarkers, style, width, color } = layer;
+  const displayName = localizedName ?? name;
   const result = annotationData[name];
   const isHorizontal = orientation === OrientationType.Horizontal;
   const { records } = result;
@@ -676,7 +684,7 @@ export function transformTimeseriesAnnotation(
     series.push({
       type: 'line',
       id: name,
-      name,
+      name: displayName,
       data,
       symbolSize: showMarkers ? markerSize : 0,
       itemStyle: computedStyle,

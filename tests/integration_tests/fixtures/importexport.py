@@ -557,6 +557,14 @@ dataset_config: dict[str, Any] = {
 
 chart_config: dict[str, Any] = {
     "slice_name": "Deck Path",
+    "description": "Flight paths visualization",
+    "translations": {
+        "slice_name": {"de": "Deck-Pfad", "fr": "Chemin du pont"},
+        "description": {
+            "de": "Flugpfade Visualisierung",
+            "fr": "Visualisation des chemins",
+        },
+    },
     "viz_type": "deck_path",
     "params": {
         "color_picker": {"a": 1, "b": 135, "g": 122, "r": 0},
@@ -636,6 +644,9 @@ chart_config_with_mixed_annotations["params"]["annotation_layers"] = [
 dashboard_config: dict[str, Any] = {
     "dashboard_title": "Test dash",
     "description": None,
+    "translations": {
+        "dashboard_title": {"de": "Test-Dashboard", "fr": "Tableau de test"},
+    },
     "css": "",
     "slug": None,
     "uuid": "c4b28c4e-a1fe-4cf8-a5ac-d6f11d6fdd51",

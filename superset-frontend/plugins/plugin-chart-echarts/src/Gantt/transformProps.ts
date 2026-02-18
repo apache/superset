@@ -27,10 +27,12 @@ import {
 import { t } from '@apache-superset/core';
 import {
   AxisType,
+  buildLocalizedMetricLabelMap,
   CategoricalColorNamespace,
   DataRecord,
   DataRecordValue,
   getColumnLabel,
+  getLocalizedFormDataValue,
   getNumberFormatter,
   tooltipHtml,
 } from '@superset-ui/core';
@@ -115,6 +117,7 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
     emitCrossFilters,
     datasource,
     legendState,
+    locale,
   } = chartProps;
 
   const {
@@ -146,6 +149,13 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
     ...formData,
   };
 
+  const localizedXAxisTitle =
+    getLocalizedFormDataValue(formData.translations, 'x_axis_title', locale) ??
+    xAxisTitle;
+  const localizedYAxisTitle =
+    getLocalizedFormDataValue(formData.translations, 'y_axis_title', locale) ??
+    yAxisTitle;
+
   const { setControlValue, onLegendStateChanged } = hooks;
 
   const { data = [], colnames = [], coltypes = [] } = queriesData[0];
@@ -156,6 +166,10 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
   const yAxisLabel = getColumnLabel(yAxis);
   const dimensionLabel = dimension ? getColumnLabel(dimension) : undefined;
   const tooltipLabels = getTooltipLabels({ tooltipMetrics, tooltipColumns });
+  const localizedMetricLabelMap = buildLocalizedMetricLabelMap(
+    tooltipMetrics,
+    locale,
+  );
 
   const seriesMap = groupData(data, dimensionLabel);
 
@@ -251,7 +265,7 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
     false,
     zoomable,
     legendMargin,
-    !!xAxisTitle,
+    !!localizedXAxisTitle,
     'Left',
     convertInteger(yAxisTitleMargin),
     convertInteger(xAxisTitleMargin),
@@ -366,8 +380,9 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
             const idx = dimensionNames.findIndex(v => v === label)!;
             const value = data[idx];
             const type = coltypes[idx];
+            const displayLabel = localizedMetricLabelMap[label] ?? label;
 
-            return [label, tooltipFormatterMap[type]?.(value) ?? value];
+            return [displayLabel, tooltipFormatterMap[type]?.(value) ?? value];
           }),
           dimensionLabel ? params.seriesName : undefined,
         ),
@@ -412,7 +427,7 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
     },
     series,
     xAxis: {
-      name: xAxisTitle,
+      name: localizedXAxisTitle,
       nameLocation: 'middle',
       type: AxisType.Time,
       nameGap: convertInteger(xAxisTitleMargin),
@@ -424,7 +439,7 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
       max: bounds[1],
     },
     yAxis: {
-      name: yAxisTitle,
+      name: localizedYAxisTitle,
       nameGap: convertInteger(yAxisTitleMargin),
       nameLocation: 'middle',
       axisLabel: {

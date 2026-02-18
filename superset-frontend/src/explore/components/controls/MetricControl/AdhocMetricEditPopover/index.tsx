@@ -94,6 +94,7 @@ interface AdhocMetricEditPopoverProps {
   datasource?: DatasourceInfo;
   isNewMetric?: boolean;
   isLabelModified?: boolean;
+  hasTranslationChanges?: boolean;
 }
 
 interface AdhocMetricEditPopoverState {
@@ -359,6 +360,7 @@ export default class AdhocMetricEditPopover extends PureComponent<
       datasource,
       isNewMetric,
       isLabelModified,
+      hasTranslationChanges,
       ...popoverProps
     } = this.props;
     const { adhocMetric, savedMetric } = this.state;
@@ -407,6 +409,7 @@ export default class AdhocMetricEditPopover extends PureComponent<
     const stateIsValid = adhocMetric.isValid() || savedMetric?.metric_name;
     const hasUnsavedChanges =
       isLabelModified ||
+      hasTranslationChanges ||
       isNewMetric ||
       !adhocMetric.equals(propsAdhocMetric) ||
       (!(
@@ -426,12 +429,12 @@ export default class AdhocMetricEditPopover extends PureComponent<
       <Form
         layout="vertical"
         id="metrics-edit-popover"
-        data-test="metrics-edit-popover"
+        aria-label={t('Metrics edit popover')}
         {...popoverProps}
       >
         <Tabs
           id="adhoc-metric-edit-tabs"
-          data-test="adhoc-metric-edit-tabs"
+          aria-label={t('Adhoc metric edit tabs')}
           defaultActiveKey={this.defaultActiveTabKey}
           className="adhoc-metric-edit-tabs"
           style={{ height: this.state.height, width: this.state.width }}
@@ -548,7 +551,7 @@ export default class AdhocMetricEditPopover extends PureComponent<
               disabled: extra.disallow_adhoc_metrics,
               children: (
                 <SQLEditorWithValidation
-                  data-test="sql-editor"
+                  aria-label={t('SQL editor')}
                   ref={this.aceEditorRef}
                   keywords={keywords}
                   height={`${this.state.height - 120}px`}
@@ -574,7 +577,7 @@ export default class AdhocMetricEditPopover extends PureComponent<
             buttonSize="small"
             buttonStyle="secondary"
             onClick={this.onResetStateAndClose}
-            data-test="AdhocMetricEdit#cancel"
+            aria-label={t('Close metric editor')}
             cta
           >
             {t('Close')}
@@ -583,7 +586,7 @@ export default class AdhocMetricEditPopover extends PureComponent<
             disabled={!stateIsValid || !hasUnsavedChanges}
             buttonStyle="primary"
             buttonSize="small"
-            data-test="AdhocMetricEdit#save"
+            aria-label={t('Save metric')}
             onClick={this.onSave}
             cta
           >

@@ -17,6 +17,7 @@
  * under the License.
  */
 import {
+  getLocalizedMetricLabel,
   getMetricLabel,
   DataRecordValue,
   tooltipHtml,
@@ -56,7 +57,7 @@ export function formatTooltip({
 export default function transformProps(
   chartProps: EchartsTreeChartProps,
 ): TreeTransformedProps {
-  const { width, height, formData, queriesData, theme } = chartProps;
+  const { width, height, formData, queriesData, theme, locale } = chartProps;
   const refs: Refs = {};
   const data: TreeDataRecord[] = queriesData[0].data || [];
 
@@ -77,6 +78,7 @@ export default function transformProps(
     initialTreeDepth,
   }: EchartsTreeFormData = { ...DEFAULT_FORM_DATA, ...formData };
   const metricLabel = getMetricLabel(metric);
+  const localizedMetricLabel = getLocalizedMetricLabel(metric, locale);
 
   const nameColumn = name || id;
 
@@ -219,7 +221,7 @@ export default function transformProps(
       formatter: (params: any) =>
         formatTooltip({
           params,
-          metricLabel,
+          metricLabel: localizedMetricLabel,
         }),
     },
   };

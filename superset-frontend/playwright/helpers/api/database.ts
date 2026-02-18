@@ -115,6 +115,30 @@ export async function apiGetDatabase(
 }
 
 /**
+ * Creates a minimal SQLite database connection for testing.
+ * Uses in-memory SQLite — sufficient for virtual datasets with constant SQL.
+ * @returns Database ID, or null on failure.
+ */
+export async function createTestDatabase(
+  page: Page,
+  name: string,
+): Promise<number | null> {
+  const response = await apiPostDatabase(page, {
+    database_name: name,
+    engine: 'sqlite',
+    sqlalchemy_uri: 'sqlite://',
+  });
+
+  if (!response.ok()) {
+    console.warn(`Failed to create database: ${response.status()}`);
+    return null;
+  }
+
+  const body = await response.json();
+  return body.id ?? null;
+}
+
+/**
  * Get a database by its name
  * @param page - Playwright page instance (provides authentication context)
  * @param databaseName - The database_name to search for

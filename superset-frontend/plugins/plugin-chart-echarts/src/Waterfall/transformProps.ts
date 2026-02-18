@@ -20,6 +20,7 @@ import {
   CurrencyFormatter,
   DataRecord,
   ensureIsArray,
+  getLocalizedFormDataValue,
   getMetricLabel,
   getNumberFormatter,
   getTimeFormatter,
@@ -164,6 +165,7 @@ export default function transformProps(
     height,
     formData,
     legendState,
+    locale,
     queriesData,
     hooks,
     theme,
@@ -194,15 +196,40 @@ export default function transformProps(
     increaseLabel,
     decreaseLabel,
   } = formData;
+  const localizedXAxisLabel =
+    getLocalizedFormDataValue(formData.translations, 'x_axis_label', locale) ??
+    xAxisLabel;
+  const localizedYAxisLabel =
+    getLocalizedFormDataValue(formData.translations, 'y_axis_label', locale) ??
+    yAxisLabel;
+  const localizedIncreaseLabel =
+    getLocalizedFormDataValue(
+      formData.translations,
+      'increase_label',
+      locale,
+    ) ?? increaseLabel;
+  const localizedDecreaseLabel =
+    getLocalizedFormDataValue(
+      formData.translations,
+      'decrease_label',
+      locale,
+    ) ?? decreaseLabel;
+  const localizedTotalLabel =
+    getLocalizedFormDataValue(formData.translations, 'total_label', locale) ??
+    totalLabel;
+
   const defaultFormatter = currencyFormat?.symbol
     ? new CurrencyFormatter({ d3Format: yAxisFormat, currency: currencyFormat })
     : getNumberFormatter(yAxisFormat);
 
+  // Data sentinel: raw value used for tagging/identifying total rows in data
   const totalMark = totalLabel || TOTAL_MARK;
+  // Display value: localized label shown in legend, tooltip, and axis
+  const localizedTotalMark = localizedTotalLabel || TOTAL_MARK;
   const legendNames = {
-    INCREASE: increaseLabel || LEGEND.INCREASE,
-    DECREASE: decreaseLabel || LEGEND.DECREASE,
-    TOTAL: totalLabel || LEGEND.TOTAL,
+    INCREASE: localizedIncreaseLabel || LEGEND.INCREASE,
+    DECREASE: localizedDecreaseLabel || LEGEND.DECREASE,
+    TOTAL: localizedTotalMark,
   };
 
   const seriesformatter = (params: ICallbackDataParams) => {
@@ -340,7 +367,7 @@ export default function transformProps(
 
   const xAxisFormatter = (value: number | string, index: number) => {
     if (value === totalMark) {
-      return totalMark;
+      return localizedTotalMark;
     }
     if (coltypeMapping[xAxisColumns[index]] === GenericDataType.Temporal) {
       if (typeof value === 'string') {
@@ -445,7 +472,7 @@ export default function transformProps(
     xAxis: {
       data: xAxisData,
       type: 'category',
-      name: xAxisLabel,
+      name: localizedXAxisLabel,
       nameTextStyle: {
         padding: [theme.sizeUnit * 4, 0, 0, 0],
       },
@@ -459,7 +486,7 @@ export default function transformProps(
         padding: [0, 0, theme.sizeUnit * 5, 0],
       },
       nameLocation: 'middle',
-      name: yAxisLabel,
+      name: localizedYAxisLabel,
       axisLabel: { formatter: defaultFormatter },
     },
     tooltip: {
@@ -473,7 +500,7 @@ export default function transformProps(
           breakdownName,
           defaultFormatter,
           xAxisFormatter,
-          totalMark,
+          totalMark: localizedTotalMark,
         }),
     },
     series: barSeries,

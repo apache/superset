@@ -18,6 +18,11 @@
  */
 import 'src/public-path';
 
+// IMPORTANT: initEmbedded MUST be imported before setupPlugins!
+// It initializes feature flags which some plugins check at module load time.
+// It also reads ?locale= URL param for initial locale.
+import { bootstrapData, locale } from './initEmbedded';
+
 import { lazy, Suspense } from 'react';
 import ReactDOM from 'react-dom';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
@@ -26,7 +31,7 @@ import { makeApi } from '@superset-ui/core';
 import { logging } from '@apache-superset/core';
 import { type SupersetThemeConfig, ThemeMode } from '@apache-superset/core/ui';
 import Switchboard from '@superset-ui/switchboard';
-import getBootstrapData, { applicationRoot } from 'src/utils/getBootstrapData';
+import { applicationRoot } from 'src/utils/getBootstrapData';
 import setupClient from 'src/setup/setupClient';
 import setupPlugins from 'src/setup/setupPlugins';
 import { useUiConfig } from 'src/components/UiConfigContext';
@@ -43,12 +48,28 @@ import {
 } from './EmbeddedContextProviders';
 import { embeddedApi } from './api';
 import { getDataMaskChangeTrigger } from './utils';
+import { LocaleController } from 'src/locale';
+
+// Create locale controller for embedded context
+// Initial locale comes from URL param (?locale=) or bootstrap data
+const localeController = new LocaleController({
+  initialLocale: locale,
+  // Skip initial fetch only if locale is 'en' (no language pack needed)
+  // Otherwise fetch the language pack for proper translations
+  skipInitialFetch: locale === 'en',
+});
+
+/**
+ * Get the locale controller instance for use in EmbeddedContextProviders.
+ */
+export function getLocaleController(): LocaleController {
+  return localeController;
+}
 
 setupPlugins();
 setupCodeOverrides({ embedded: true });
 
 const debugMode = process.env.WEBPACK_MODE === 'development';
-const bootstrapData = getBootstrapData();
 
 function log(...info: unknown[]) {
   if (debugMode) logging.debug(`[superset]`, ...info);
@@ -303,20 +324,42 @@ window.addEventListener('message', function embeddedPageInitializer(event) {
       },
     );
 
+    Switchboard.defineMethod(
+      'setLocale',
+      async ({ locale }: { locale: string }) => {
+        log('Received setLocale request:', locale);
+
+        try {
+          await localeController.setLocale(locale);
+          return { success: true, message: `Locale set to ${locale}` };
+        } catch (error) {
+          logging.error('Failed to set locale:', error);
+          throw new Error(`Failed to set locale: ${error.message}`);
+        }
+      },
+    );
+
     Switchboard.start();
   }
 });
 
-// Clean up theme controller on page unload
+// Clean up controllers on page unload
 window.addEventListener('beforeunload', () => {
   try {
-    const controller = getThemeController();
-    if (controller) {
+    const themeCtrl = getThemeController();
+    if (themeCtrl) {
       log('Destroying theme controller');
-      controller.destroy();
+      themeCtrl.destroy();
     }
   } catch (error) {
     logging.warn('Failed to destroy theme controller:', error);
+  }
+
+  try {
+    log('Destroying locale controller');
+    localeController.destroy();
+  } catch (error) {
+    logging.warn('Failed to destroy locale controller:', error);
   }
 });
 

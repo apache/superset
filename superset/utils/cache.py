@@ -173,6 +173,7 @@ def etag_cache(  # noqa: C901
     max_age: int | float | None = None,
     raise_for_access: Callable[..., Any] | None = None,
     skip: Callable[..., bool] | None = None,
+    get_cache_key_extra: Callable[..., dict[str, Any]] | None = None,
 ) -> Callable[..., Any]:
     """
     A decorator for caching views and handling etag conditional requests.
@@ -184,6 +185,11 @@ def etag_cache(  # noqa: C901
     If a cache is set, the decorator will cache GET responses, bypassing the
     dataframe serialization. POST requests will still benefit from the
     dataframe cache for requests that produce the same SQL.
+
+    :param get_cache_key_extra: Optional callback ``(*args, **kwargs) -> dict``
+        returning extra key-value pairs to include in the cache key.
+        Use this when the response varies by request context not captured
+        by URL query params (e.g., user locale, permissions).
 
     """
 
@@ -215,6 +221,8 @@ def etag_cache(  # noqa: C901
                 key_args = list(args)
                 key_kwargs = kwargs.copy()
                 key_kwargs.update(request.args)
+                if get_cache_key_extra:
+                    key_kwargs.update(get_cache_key_extra(*args, **kwargs))
                 cache_key = wrapper.make_cache_key(  # type: ignore
                     f, *key_args, **key_kwargs
                 )

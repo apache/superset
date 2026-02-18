@@ -21,6 +21,8 @@ import type { ScatterSeriesOption } from 'echarts/charts';
 import { extent } from 'd3-array';
 import {
   CategoricalColorNamespace,
+  getLocalizedFormDataValue,
+  getLocalizedMetricLabel,
   getNumberFormatter,
   AxisType,
   getMetricLabel,
@@ -95,8 +97,16 @@ export function formatTooltip(
 }
 
 export default function transformProps(chartProps: EchartsBubbleChartProps) {
-  const { height, width, hooks, queriesData, formData, inContextMenu, theme } =
-    chartProps;
+  const {
+    height,
+    width,
+    hooks,
+    queriesData,
+    formData,
+    inContextMenu,
+    theme,
+    locale,
+  } = chartProps;
 
   const { data = [] } = queriesData[0];
   const {
@@ -131,6 +141,14 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     legendSort,
     sliceId,
   }: EchartsBubbleFormData = { ...DEFAULT_FORM_DATA, ...formData };
+
+  const localizedXAxisTitle =
+    getLocalizedFormDataValue(formData.translations, 'x_axis_label', locale) ??
+    bubbleXAxisTitle;
+  const localizedYAxisTitle =
+    getLocalizedFormDataValue(formData.translations, 'y_axis_label', locale) ??
+    bubbleYAxisTitle;
+
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
 
   const legends = new Set<string>();
@@ -139,6 +157,9 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
   const xAxisLabel: string = getMetricLabel(x);
   const yAxisLabel: string = getMetricLabel(y);
   const sizeLabel: string = getMetricLabel(size);
+  const localizedXAxisLabel: string = getLocalizedMetricLabel(x, locale);
+  const localizedYAxisLabel: string = getLocalizedMetricLabel(y, locale);
+  const localizedSizeLabel: string = getLocalizedMetricLabel(size, locale);
 
   const refs: Refs = {};
 
@@ -201,7 +222,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
       nameRotate: xAxisLabelRotation,
       interval: xAxisLabelInterval,
       scale: true,
-      name: bubbleXAxisTitle,
+      name: localizedXAxisTitle,
       nameLocation: 'middle',
       nameTextStyle: {
         fontWeight: 'bolder',
@@ -219,7 +240,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
       },
       nameRotate: yAxisLabelRotation,
       scale: truncateYAxis,
-      name: bubbleYAxisTitle,
+      name: localizedYAxisTitle,
       nameLocation: 'middle',
       nameTextStyle: {
         fontWeight: 'bolder',
@@ -242,9 +263,9 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
       formatter: (params: any): string =>
         formatTooltip(
           params,
-          xAxisLabel,
-          yAxisLabel,
-          sizeLabel,
+          localizedXAxisLabel,
+          localizedYAxisLabel,
+          localizedSizeLabel,
           xAxisFormatter,
           yAxisFormatter,
           tooltipSizeFormatter,

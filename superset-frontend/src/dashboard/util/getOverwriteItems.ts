@@ -21,26 +21,23 @@ import { OVERWRITE_INSPECT_FIELDS } from 'src/dashboard/constants';
 
 const JSON_KEYS = new Set(['json_metadata', 'position_json']);
 
-function extractValue(object: JsonObject, keyPath: string) {
+function extractValue(object: JsonObject, keyPath: string): unknown {
   return keyPath.split('.').reduce((obj: JsonObject, key: string) => {
     const value = obj?.[key];
     return JSON_KEYS.has(key) && value ? JSON.parse(value) : value;
   }, object);
 }
 
+function serializeValue(value: unknown): string {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'object') return JSON.stringify(value, null, 2);
+  return String(value);
+}
+
 export default function getOverwriteItems(prev: JsonObject, next: JsonObject) {
-  return OVERWRITE_INSPECT_FIELDS.map(keyPath => ({
-    keyPath,
-    ...(keyPath.split('.').find(key => JSON_KEYS.has(key))
-      ? {
-          oldValue:
-            JSON.stringify(extractValue(prev, keyPath), null, 2) || '{}',
-          newValue:
-            JSON.stringify(extractValue(next, keyPath), null, 2) || '{}',
-        }
-      : {
-          oldValue: extractValue(prev, keyPath) || '',
-          newValue: extractValue(next, keyPath) || '',
-        }),
-  })).filter(({ oldValue, newValue }) => oldValue !== newValue);
+  return OVERWRITE_INSPECT_FIELDS.map(keyPath => {
+    const oldValue = serializeValue(extractValue(prev, keyPath));
+    const newValue = serializeValue(extractValue(next, keyPath));
+    return { keyPath, oldValue, newValue };
+  }).filter(({ oldValue, newValue }) => oldValue !== newValue);
 }

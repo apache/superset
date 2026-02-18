@@ -36,7 +36,13 @@ import {
   TreeSelect,
 } from '@superset-ui/core/components';
 import { t, logging } from '@apache-superset/core';
-import { DatasourceType, isDefined, SupersetClient } from '@superset-ui/core';
+import {
+  DatasourceType,
+  FeatureFlag,
+  isDefined,
+  isFeatureEnabled,
+  SupersetClient,
+} from '@superset-ui/core';
 import { css, styled, Alert } from '@apache-superset/core/ui';
 import { Radio } from '@superset-ui/core/components/Radio';
 import { GRID_COLUMN_COUNT } from 'src/dashboard/util/constants';
@@ -49,8 +55,11 @@ import {
   updateChartState,
 } from 'src/dashboard/actions/dashboardState';
 import { Dashboard } from 'src/types/Dashboard';
+import type { Translations } from 'src/types/Localization';
+import { stripEmptyValues } from 'src/components/TranslationEditor';
 import { TabNode, TabTreeNode } from '../types';
 import { CHART_WIDTH, CHART_HEIGHT } from 'src/dashboard/constants';
+import TranslatableSliceNameField from './TranslatableSliceNameField';
 
 // Session storage key for recent dashboard
 const SK_DASHBOARD_ID = 'save_chart_recent_dashboard';
@@ -78,6 +87,7 @@ type SaveModalState = {
   dashboard?: { label: string; value: string | number };
   selectedTab?: { label: string; value: string | number };
   tabsData: TabTreeNode[];
+  translations: Translations;
 };
 
 export const StyledModal = styled(Modal)`
@@ -104,6 +114,7 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
       dashboard: undefined,
       tabsData: [],
       selectedTab: undefined,
+      translations: {},
     };
     this.onDashboardChange = this.onDashboardChange.bind(this);
     this.onSliceNameChange = this.onSliceNameChange.bind(this);
@@ -152,7 +163,29 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
         );
       }
     }
+
+    if (
+      isFeatureEnabled(FeatureFlag.EnableContentLocalization) &&
+      this.props.slice?.slice_id
+    ) {
+      try {
+        const response = await SupersetClient.get({
+          endpoint: `/api/v1/chart/${this.props.slice.slice_id}?include_translations=true`,
+        });
+        const chart = response.json.result;
+        this.setState({
+          newSliceName: chart.slice_name || this.state.newSliceName,
+          translations: chart.translations ?? {},
+        });
+      } catch (error) {
+        logging.warn(error);
+      }
+    }
   }
+
+  onTranslationsChange = (translations: Translations) => {
+    this.setState({ translations });
+  };
 
   handleDatasetNameChange = (e: FormEvent<HTMLInputElement>) => {
     // @ts-expect-error
@@ -272,6 +305,13 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
       this.props.actions.setFormData({ ...formData });
 
       //  Update or create slice
+      const localizationEnabled = isFeatureEnabled(
+        FeatureFlag.EnableContentLocalization,
+      );
+      const translations = localizationEnabled
+        ? stripEmptyValues(this.state.translations)
+        : undefined;
+
       let value: { id: number };
       if (this.state.action === 'overwrite') {
         value = await this.props.actions.updateSlice(
@@ -284,6 +324,7 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
                 new: this.isNewDashboard(),
               }
             : null,
+          translations,
         );
       } else {
         value = await this.props.actions.createSlice(
@@ -295,6 +336,7 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
                 new: this.isNewDashboard(),
               }
             : null,
+          translations,
         );
         if (dashboard && selectedTabId) {
           try {
@@ -613,12 +655,15 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
         </FormItem>
         <Divider />
         <FormItem label={t('Chart name')} required>
-          <Input
+          <TranslatableSliceNameField
             name="new_slice_name"
-            type="text"
-            placeholder="Name"
-            value={this.state.newSliceName}
+            value={this.state.newSliceName || ''}
             onChange={this.onSliceNameChange}
+            translations={this.state.translations}
+            onTranslationsChange={this.onTranslationsChange}
+            fieldName="slice_name"
+            fieldLabel={t('Chart name')}
+            placeholder="Name"
             data-test="new-chart-name"
           />
         </FormItem>

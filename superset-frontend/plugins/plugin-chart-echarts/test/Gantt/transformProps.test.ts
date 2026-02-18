@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { AxisType, ChartProps } from '@superset-ui/core';
+import { AxisType, ChartProps, SqlaFormData } from '@superset-ui/core';
 import { supersetTheme } from '@apache-superset/core/ui';
 import {
   LegendOrientation,
@@ -267,6 +267,198 @@ describe('Gantt transformProps', () => {
         symbol: ['none', 'none'],
       },
     });
+  });
+});
+
+test('should use localized axis titles when translations and locale are provided', () => {
+  const chartProps = new ChartProps<SqlaFormData>({
+    ...chartPropsConfig,
+    formData: {
+      ...formData,
+      xAxisTitle: 'Time',
+      yAxisTitle: 'Category',
+      translations: {
+        x_axis_title: { de: 'Zeit' },
+        y_axis_title: { de: 'Kategorie' },
+      },
+    },
+    locale: 'de',
+  });
+  const transformed = transformProps(chartProps as EchartsGanttChartProps);
+  const xAxis = transformed.echartOptions.xAxis as { name?: string };
+  const yAxis = transformed.echartOptions.yAxis as { name?: string };
+  expect(xAxis.name).toBe('Zeit');
+  expect(yAxis.name).toBe('Kategorie');
+});
+
+test('should use original axis titles when no locale is provided', () => {
+  const chartProps = new ChartProps<SqlaFormData>({
+    ...chartPropsConfig,
+    formData: {
+      ...formData,
+      xAxisTitle: 'Time',
+      yAxisTitle: 'Category',
+      translations: {
+        x_axis_title: { de: 'Zeit' },
+        y_axis_title: { de: 'Kategorie' },
+      },
+    },
+  });
+  const transformed = transformProps(chartProps as EchartsGanttChartProps);
+  const xAxis = transformed.echartOptions.xAxis as { name?: string };
+  const yAxis = transformed.echartOptions.yAxis as { name?: string };
+  expect(xAxis.name).toBe('Time');
+  expect(yAxis.name).toBe('Category');
+});
+
+test('should fall back to original axis titles when locale has no matching translation', () => {
+  const chartProps = new ChartProps<SqlaFormData>({
+    ...chartPropsConfig,
+    formData: {
+      ...formData,
+      xAxisTitle: 'Time',
+      yAxisTitle: 'Category',
+      translations: {
+        x_axis_title: { de: 'Zeit' },
+      },
+    },
+    locale: 'ja',
+  });
+  const transformed = transformProps(chartProps as EchartsGanttChartProps);
+  const xAxis = transformed.echartOptions.xAxis as { name?: string };
+  const yAxis = transformed.echartOptions.yAxis as { name?: string };
+  expect(xAxis.name).toBe('Time');
+  expect(yAxis.name).toBe('Category');
+});
+
+test('should fall back to base language when regional locale has no match', () => {
+  const chartProps = new ChartProps<SqlaFormData>({
+    ...chartPropsConfig,
+    formData: {
+      ...formData,
+      xAxisTitle: 'Time',
+      translations: {
+        x_axis_title: { de: 'Zeit' },
+      },
+    },
+    locale: 'de-AT',
+  });
+  const transformed = transformProps(chartProps as EchartsGanttChartProps);
+  const xAxis = transformed.echartOptions.xAxis as { name?: string };
+  expect(xAxis.name).toBe('Zeit');
+});
+
+describe('tooltip metric label localization', () => {
+  const adhocMetric = {
+    expressionType: 'SQL' as const,
+    sqlExpression: 'SUM(revenue)',
+    label: 'Total Revenue',
+    translations: {
+      label: { de: 'Gesamtumsatz' },
+    },
+  };
+  const tooltipColnames = [
+    'startTime',
+    'endTime',
+    'Y Axis',
+    'Total Revenue',
+    'tooltip_column',
+    'series',
+  ];
+  const tooltipColtypes = [2, 2, 1, 0, 1, 1];
+  const tooltipData = [
+    {
+      startTime: Date.UTC(2025, 1, 1, 13, 0, 0),
+      endTime: Date.UTC(2025, 1, 1, 14, 0, 0),
+      'Y Axis': 'first',
+      'Total Revenue': 12345,
+      tooltip_column: 'tooltip value 1',
+      series: 'series value 1',
+    },
+    {
+      startTime: Date.UTC(2025, 1, 1, 18, 0, 0),
+      endTime: Date.UTC(2025, 1, 1, 20, 0, 0),
+      'Y Axis': 'second',
+      'Total Revenue': 67890,
+      tooltip_column: 'tooltip value 2',
+      series: 'series value 2',
+    },
+  ];
+  const tooltipMockParams = {
+    dimensionNames: [
+      'startTime',
+      'endTime',
+      'index',
+      'seriesCount',
+      ...tooltipColnames,
+    ],
+    value: [
+      tooltipData[0].startTime,
+      tooltipData[0].endTime,
+      0,
+      2,
+      tooltipData[0].startTime,
+      tooltipData[0].endTime,
+      'first',
+      12345,
+      'tooltip value 1',
+      'series value 1',
+    ],
+    seriesName: 'series value 1',
+  };
+
+  const createTooltipChartProps = (overrides: Record<string, unknown> = {}) => {
+    const locale = typeof overrides.locale === 'string' ? overrides.locale : undefined;
+    return new ChartProps<SqlaFormData>({
+      ...chartPropsConfig,
+      formData: {
+        ...formData,
+        tooltipMetrics: [adhocMetric],
+        ...overrides,
+      },
+      queriesData: [
+        {
+          data: tooltipData,
+          colnames: tooltipColnames,
+          coltypes: tooltipColtypes,
+        },
+      ],
+      ...(locale ? { locale } : {}),
+    });
+  };
+
+  const getTooltipHtml = (chartProps: ChartProps) => {
+    const transformed = transformProps(chartProps as EchartsGanttChartProps);
+    const tooltip = transformed.echartOptions.tooltip as {
+      formatter: (params: typeof tooltipMockParams) => string;
+    };
+    return tooltip.formatter(tooltipMockParams);
+  };
+
+  test('should use localized metric label when locale is provided', () => {
+    const props = createTooltipChartProps({ locale: 'de' });
+    const html = getTooltipHtml(props);
+    expect(html).toContain('Gesamtumsatz');
+    expect(html).not.toContain('Total Revenue');
+  });
+
+  test('should use original metric label when no locale is provided', () => {
+    const props = createTooltipChartProps();
+    const html = getTooltipHtml(props);
+    expect(html).toContain('Total Revenue');
+    expect(html).not.toContain('Gesamtumsatz');
+  });
+
+  test('should fall back to base language for regional locale', () => {
+    const props = createTooltipChartProps({ locale: 'de-AT' });
+    const html = getTooltipHtml(props);
+    expect(html).toContain('Gesamtumsatz');
+  });
+
+  test('should not localize column labels', () => {
+    const props = createTooltipChartProps({ locale: 'de' });
+    const html = getTooltipHtml(props);
+    expect(html).toContain('tooltip_column');
   });
 });
 

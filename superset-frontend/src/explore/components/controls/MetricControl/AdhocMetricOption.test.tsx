@@ -72,8 +72,8 @@ test('renders an overlay trigger wrapper for the label', () => {
 test('overwrites the adhocMetric in state with onLabelChange', async () => {
   setup({});
   userEvent.click(screen.getByText('SUM(value)'));
-  userEvent.click(screen.getByTestId(/AdhocMetricEditTitle#trigger/i));
-  const labelInput = await screen.findByTestId(/AdhocMetricEditTitle#input/i);
+  userEvent.click(screen.getByRole('button', { name: /Click to edit metric label/i }));
+  const labelInput = await screen.findByRole('textbox', { name: /Edit metric label/i });
   userEvent.clear(labelInput);
   userEvent.type(labelInput, 'new label');
   expect(labelInput).toHaveValue('new label');
@@ -87,8 +87,8 @@ test('overwrites the adhocMetric in state with onLabelChange', async () => {
 test('returns to default labels when the custom label is cleared', async () => {
   setup({});
   userEvent.click(screen.getByText('SUM(value)'));
-  userEvent.click(screen.getByTestId(/AdhocMetricEditTitle#trigger/i));
-  const labelInput = await screen.findByTestId(/AdhocMetricEditTitle#input/i);
+  userEvent.click(screen.getByRole('button', { name: /Click to edit metric label/i }));
+  const labelInput = await screen.findByRole('textbox', { name: /Edit metric label/i });
   userEvent.clear(labelInput);
   userEvent.type(labelInput, 'new label');
   fireEvent.keyPress(labelInput, {
@@ -97,7 +97,7 @@ test('returns to default labels when the custom label is cleared', async () => {
   });
   expect(labelInput).not.toBeInTheDocument();
   expect(screen.getByText(/new label/i)).toBeInTheDocument();
-  userEvent.click(screen.getByTestId(/AdhocMetricEditTitle#trigger/i));
+  userEvent.click(screen.getByRole('button', { name: /Click to edit metric label/i }));
   expect(screen.getByPlaceholderText(/new label/i)).toBeInTheDocument();
   userEvent.clear(labelInput);
   fireEvent.keyPress(labelInput, {

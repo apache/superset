@@ -85,6 +85,7 @@ import {
   getFreshSharedLabels,
   getDynamicLabelsColors,
 } from '../../utils/colorScheme';
+import type { Translations } from 'src/types/Localization';
 import type { DashboardState, GetState, RootState, Slice } from '../types';
 
 // Dashboard dispatch type. The base ThunkDispatch handles dashboard-specific
@@ -419,6 +420,7 @@ interface DashboardSaveData extends JsonObject {
   positions?: JsonObject;
   duplicate_slices?: boolean;
   theme_id?: number | null;
+  translations?: Translations;
 }
 
 export function saveDashboardRequest(
@@ -644,6 +646,9 @@ export function saveDashboardRequest(
                 chart_configuration: chartConfiguration,
                 global_chart_configuration: globalChartConfiguration,
               }),
+              ...(cleanedData.translations !== undefined && {
+                translations: cleanedData.translations,
+              }),
             };
 
       const updateDashboard = (): Promise<JsonObject | void> =>
@@ -720,6 +725,9 @@ export function saveDashboardRequest(
       css: cleanedData.css,
       duplicate_slices: cleanedData.duplicate_slices,
       json_metadata: JSON.stringify(cleanedData.metadata),
+      ...(cleanedData.translations !== undefined && {
+        translations: cleanedData.translations,
+      }),
     };
 
     return SupersetClient.post({

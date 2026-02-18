@@ -34,6 +34,7 @@ import SliderControl from './SliderControl';
 import SpatialControl from './SpatialControl';
 import TextAreaControl from './TextAreaControl';
 import TextControl from './TextControl';
+import TranslatableTextControl from './TranslatableTextControl';
 import TimeSeriesColumnControl from './TimeSeriesColumnControl';
 import TimeOffsetControl from './TimeOffsetControl';
 import ViewportControl from './ViewportControl';
@@ -93,6 +94,7 @@ const controlMap = {
   SpatialControl,
   TextAreaControl,
   TextControl,
+  TranslatableTextControl,
   TimeSeriesColumnControl,
   ViewportControl,
   VizTypeControl,

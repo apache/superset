@@ -22,6 +22,8 @@ import {
   Metric,
 } from '@superset-ui/chart-controls';
 import {
+  getLocalizedFormDataValue,
+  getLocalizedMetricLabel,
   getMetricLabel,
   extractTimegrain,
   QueryFormData,
@@ -48,6 +50,7 @@ export default function transformProps(
       currencyCodeColumn,
     },
     theme,
+    locale,
   } = chartProps;
   const {
     metricNameFontSize,
@@ -72,9 +75,18 @@ export default function transformProps(
   const granularity = extractTimegrain(rawFormData as QueryFormData);
   const metrics = chartProps.datasource?.metrics || [];
   const originalLabel = getOriginalLabel(metric, metrics);
+  const localizedLabel = getLocalizedMetricLabel(metric, locale);
+  // Use localized label if translation exists, otherwise use original label
+  const displayLabel =
+    localizedLabel !== getMetricLabel(metric) ? localizedLabel : originalLabel;
   const metricName = getMetricLabel(metric);
   const showMetricName = chartProps.rawFormData?.show_metric_name ?? false;
-  const formattedSubtitle = subtitle?.trim() ? subtitle : subheader || '';
+  const localizedSubtitle =
+    getLocalizedFormDataValue(formData.translations, 'subtitle', locale) ??
+    subtitle;
+  const formattedSubtitle = localizedSubtitle?.trim()
+    ? localizedSubtitle
+    : subheader || '';
   const formattedSubtitleFontSize = subtitle?.trim()
     ? (subtitleFontSize ?? 1)
     : (subheaderFontSize ?? 1);
@@ -132,7 +144,7 @@ export default function transformProps(
     onContextMenu,
     refs,
     colorThresholdFormatters,
-    metricName: originalLabel,
+    metricName: displayLabel,
     showMetricName,
     metricNameFontSize,
   };

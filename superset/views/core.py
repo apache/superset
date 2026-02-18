@@ -73,6 +73,7 @@ from superset.exceptions import (
 )
 from superset.explore.permalink.exceptions import ExplorePermalinkGetFailedError
 from superset.extensions import async_query_manager, cache_manager
+from superset.localization.locale_utils import get_user_locale
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
@@ -126,6 +127,13 @@ PARAMETER_MISSING_ERR = __(
 )
 
 SqlResults = dict[str, Any]
+
+
+def _explore_json_locale_extra(*args: Any, **kwargs: Any) -> dict[str, Any]:
+    """Include locale in cache key when content localization varies responses."""
+    if is_feature_enabled("ENABLE_CONTENT_LOCALIZATION"):
+        return {"__locale": get_user_locale()}
+    return {}
 
 
 class Superset(BaseSupersetView):
@@ -264,7 +272,7 @@ class Superset(BaseSupersetView):
             "POST",
         ),
     )
-    @etag_cache()
+    @etag_cache(get_cache_key_extra=_explore_json_locale_extra)
     @check_resource_permissions(check_datasource_perms)
     @deprecated(eol_version="5.0.0")
     def explore_json(

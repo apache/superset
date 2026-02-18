@@ -19,8 +19,11 @@
 // Type augmentation for dayjs plugins
 import 'dayjs/plugin/utc';
 import { Metric } from '@superset-ui/chart-controls';
+import { t } from '@apache-superset/core';
 import {
   ChartProps,
+  getLocalizedFormDataValue,
+  getLocalizedMetricLabel,
   getMetricLabel,
   getValueFormatter,
   getNumberFormatter,
@@ -87,6 +90,7 @@ export default function transformProps(chartProps: ChartProps) {
       columnFormats = {},
       currencyCodeColumn,
     },
+    locale,
   } = chartProps;
   const {
     boldText,
@@ -110,6 +114,13 @@ export default function transformProps(chartProps: ChartProps) {
   const metricName = metric ? getMetricLabel(metric) : '';
   const metrics = chartProps.datasource?.metrics || [];
   const originalLabel = getOriginalLabel(metric, metrics);
+  const localizedLabel = getLocalizedMetricLabel(metric, locale);
+  // Use localized label if translation exists, otherwise use original label
+  const displayLabel =
+    localizedLabel !== getMetricLabel(metric) ? localizedLabel : originalLabel;
+  const localizedSubtitle =
+    getLocalizedFormDataValue(formData.translations, 'subtitle', locale) ??
+    subtitle;
   const showMetricName = chartProps.rawFormData?.show_metric_name ?? false;
   const timeComparison = ensureIsArray(chartProps.rawFormData?.time_compare)[0];
   const startDateOffset = chartProps.rawFormData?.start_date_offset;
@@ -173,11 +184,11 @@ export default function transformProps(chartProps: ChartProps) {
     detectedCurrency,
   );
 
-  const compTitles = {
-    r: 'Range' as string,
-    y: 'Year' as string,
-    m: 'Month' as string,
-    w: 'Week' as string,
+  const compTitles: Record<string, string> = {
+    r: t('Range'),
+    y: t('Year'),
+    m: t('Month'),
+    w: t('Week'),
   };
 
   const formatPercentChange = getNumberFormatter(percentDifferenceFormat);
@@ -205,13 +216,13 @@ export default function transformProps(chartProps: ChartProps) {
     width,
     height,
     data,
-    metricName: originalLabel,
+    metricName: displayLabel,
     bigNumber,
     prevNumber,
     valueDifference,
     percentDifferenceFormattedString: percentDifference,
     boldText,
-    subtitle,
+    subtitle: localizedSubtitle,
     subtitleFontSize,
     showMetricName,
     metricNameFontSize: getMetricNameFontSize(metricNameFontSize),

@@ -331,6 +331,7 @@ class DashboardDAO(BaseDAO[Dashboard]):
             dash.slices = original_dash.slices
 
         dash.params = original_dash.params
+        dash.translations = data.get("translations", original_dash.translations)
         cls.set_dash_metadata(dash, metadata, old_to_new_slice_ids)
         db.session.add(dash)
         return dash

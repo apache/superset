@@ -346,6 +346,46 @@ test('legend margin: left orientation sets grid.left correctly', () => {
   expect((transformed.echartOptions.grid as any).left).toEqual(270);
 });
 
+test('should use localized metric labels in legend formatter', () => {
+  const adhocMetricA = {
+    expressionType: 'SIMPLE' as const,
+    column: { column_name: 'num' },
+    aggregate: 'SUM' as const,
+    label: 'SUM(num)',
+    translations: { label: { de: 'Gesamtzahl' } },
+  };
+  const adhocMetricB = {
+    expressionType: 'SIMPLE' as const,
+    column: { column_name: 'price' },
+    aggregate: 'AVG' as const,
+    label: 'AVG(price)',
+    translations: { label: { de: 'Durchschnittspreis' } },
+  };
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: queriesData,
+    formData: {
+      ...formData,
+      metrics: [adhocMetricA],
+      metricsB: [adhocMetricB],
+      groupby: [],
+      groupbyB: [],
+      showQueryIdentifiers: false,
+    },
+    locale: 'de',
+  });
+  const transformed = transformProps(chartProps);
+
+  const legendFormatter = (transformed.echartOptions.legend as any).formatter;
+  expect(legendFormatter).toBeDefined();
+  expect(legendFormatter('SUM(num)')).toBe('Gesamtzahl');
+  expect(legendFormatter('AVG(price)')).toBe('Durchschnittspreis');
+  expect(legendFormatter('unrelated_series')).toBe('unrelated_series');
+});
+
 test('legend margin: right orientation sets grid.right correctly', () => {
   const chartProps = createEchartsTimeseriesTestChartProps<
     EchartsMixedTimeseriesFormData,
@@ -364,6 +404,128 @@ test('legend margin: right orientation sets grid.right correctly', () => {
   const transformed = transformProps(chartProps);
 
   expect((transformed.echartOptions.grid as any).right).toEqual(270);
+});
+
+test('should use localized axis titles when translations and locale are provided', () => {
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: queriesData,
+    formData: {
+      ...formData,
+      xAxisTitle: 'Revenue',
+      yAxisTitle: 'Count',
+      yAxisTitleSecondary: 'Rate',
+      translations: {
+        x_axis_title: { de: 'Umsatz' },
+        y_axis_title: { de: 'Anzahl' },
+        yAxisTitleSecondary: { de: 'Quote' },
+      },
+    },
+    locale: 'de',
+  });
+
+  const transformed = transformProps(chartProps);
+  const xAxis = transformed.echartOptions.xAxis as { name?: string };
+  const [yAxisPrimary, yAxisSecondary] = transformed.echartOptions.yAxis as {
+    name?: string;
+  }[];
+
+  expect(xAxis.name).toBe('Umsatz');
+  expect(yAxisPrimary.name).toBe('Anzahl');
+  expect(yAxisSecondary.name).toBe('Quote');
+});
+
+test('should use original axis titles when no locale is provided', () => {
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: queriesData,
+    formData: {
+      ...formData,
+      xAxisTitle: 'Revenue',
+      yAxisTitle: 'Count',
+      yAxisTitleSecondary: 'Rate',
+      translations: {
+        x_axis_title: { de: 'Umsatz' },
+        y_axis_title: { de: 'Anzahl' },
+        yAxisTitleSecondary: { de: 'Quote' },
+      },
+    },
+  });
+
+  const transformed = transformProps(chartProps);
+  const xAxis = transformed.echartOptions.xAxis as { name?: string };
+  const [yAxisPrimary, yAxisSecondary] = transformed.echartOptions.yAxis as {
+    name?: string;
+  }[];
+
+  expect(xAxis.name).toBe('Revenue');
+  expect(yAxisPrimary.name).toBe('Count');
+  expect(yAxisSecondary.name).toBe('Rate');
+});
+
+test('should fall back to original axis titles when locale has no matching translation', () => {
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: queriesData,
+    formData: {
+      ...formData,
+      xAxisTitle: 'Revenue',
+      yAxisTitle: 'Count',
+      yAxisTitleSecondary: 'Rate',
+      translations: {
+        x_axis_title: { de: 'Umsatz' },
+      },
+    },
+    locale: 'ja',
+  });
+
+  const transformed = transformProps(chartProps);
+  const xAxis = transformed.echartOptions.xAxis as { name?: string };
+  const [yAxisPrimary, yAxisSecondary] = transformed.echartOptions.yAxis as {
+    name?: string;
+  }[];
+
+  expect(xAxis.name).toBe('Revenue');
+  expect(yAxisPrimary.name).toBe('Count');
+  expect(yAxisSecondary.name).toBe('Rate');
+});
+
+test('should fall back to base language when regional locale has no match', () => {
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: queriesData,
+    formData: {
+      ...formData,
+      xAxisTitle: 'Revenue',
+      yAxisTitleSecondary: 'Rate',
+      translations: {
+        x_axis_title: { de: 'Umsatz' },
+        yAxisTitleSecondary: { de: 'Quote' },
+      },
+    },
+    locale: 'de-AT',
+  });
+
+  const transformed = transformProps(chartProps);
+  const xAxis = transformed.echartOptions.xAxis as { name?: string };
+  const [, yAxisSecondary] = transformed.echartOptions.yAxis as {
+    name?: string;
+  }[];
+
+  expect(xAxis.name).toBe('Umsatz');
+  expect(yAxisSecondary.name).toBe('Quote');
 });
 
 test('should add a formula annotation when X-axis column has dataset-level label', () => {

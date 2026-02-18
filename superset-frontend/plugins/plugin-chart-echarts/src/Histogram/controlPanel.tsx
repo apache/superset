@@ -119,7 +119,7 @@ const config: ControlPanelConfig = {
           {
             name: 'x_axis_title',
             config: {
-              type: 'TextControl',
+              type: 'TranslatableTextControl',
               label: t('X Axis Title'),
               renderTrigger: true,
               default: '',
@@ -144,7 +144,7 @@ const config: ControlPanelConfig = {
           {
             name: 'y_axis_title',
             config: {
-              type: 'TextControl',
+              type: 'TranslatableTextControl',
               label: t('Y Axis Title'),
               renderTrigger: true,
               default: '',

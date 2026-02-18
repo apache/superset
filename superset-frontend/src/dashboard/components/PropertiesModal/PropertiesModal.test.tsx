@@ -140,6 +140,13 @@ const dashboardInfo = {
   url: '/superset/dashboard/26/',
 };
 
+const dashboardTranslations = {
+  dashboard_title: {
+    de: 'COVID Impfstoff Dashboard',
+    fr: 'Tableau de bord vaccin COVID',
+  },
+};
+
 fetchMock.get('glob:*/api/v1/dashboard/26', {
   body: {
     result: { ...dashboardInfo, json_metadata: mockedJsonMetadata },
@@ -158,6 +165,19 @@ fetchMock.get('glob:*/api/v1/theme/*', {
         theme_name: 'Test Theme 2',
       },
     ],
+  },
+});
+
+fetchMock.get('glob:*/api/v1/localization/available_locales', {
+  body: {
+    result: {
+      locales: [
+        { code: 'en', name: 'English' },
+        { code: 'de', name: 'German' },
+        { code: 'fr', name: 'French' },
+      ],
+      default_locale: 'en',
+    },
   },
 });
 
@@ -725,4 +745,115 @@ describe('PropertiesModal', () => {
       { timeout: 1000 },
     );
   });
+});
+
+test('locale switcher hidden when content localization flag is off', async () => {
+  mockedIsFeatureEnabled.mockReturnValue(false);
+  const props = createProps();
+  const propsWithDashboardInfo = {
+    ...props,
+    dashboardInfo: {
+      ...dashboardInfo,
+      json_metadata: mockedJsonMetadata,
+    },
+  };
+  render(<PropertiesModal {...propsWithDashboardInfo} />, { useRedux: true });
+
+  await waitFor(() => {
+    expect(screen.getByText('General information')).toBeInTheDocument();
+  });
+
+  expect(
+    screen.queryByRole('button', { name: /Locale switcher for/i }),
+  ).not.toBeInTheDocument();
+});
+
+test('locale switcher visible when content localization flag is on', async () => {
+  mockedIsFeatureEnabled.mockImplementation(
+    flag => flag === FeatureFlag.EnableContentLocalization,
+  );
+  const props = createProps();
+  const propsWithDashboardInfo = {
+    ...props,
+    dashboardInfo: {
+      ...dashboardInfo,
+      json_metadata: mockedJsonMetadata,
+      translations: dashboardTranslations,
+    },
+  };
+  render(<PropertiesModal {...propsWithDashboardInfo} />, { useRedux: true });
+
+  await waitFor(() => {
+    expect(screen.getByText('General information')).toBeInTheDocument();
+  });
+
+  expect(
+    screen.getByRole('button', {
+      name: /Locale switcher for Dashboard Title/i,
+    }),
+  ).toBeInTheDocument();
+});
+
+test('clicking locale switcher opens dropdown with locales', async () => {
+  mockedIsFeatureEnabled.mockImplementation(
+    flag => flag === FeatureFlag.EnableContentLocalization,
+  );
+  const props = createProps();
+  const propsWithDashboardInfo = {
+    ...props,
+    dashboardInfo: {
+      ...dashboardInfo,
+      json_metadata: mockedJsonMetadata,
+      translations: dashboardTranslations,
+    },
+  };
+  render(<PropertiesModal {...propsWithDashboardInfo} />, { useRedux: true });
+
+  await waitFor(() => {
+    expect(screen.getByText('General information')).toBeInTheDocument();
+  });
+
+  await userEvent.click(
+    screen.getByRole('button', { name: /Locale switcher for Dashboard Title/i }),
+  );
+
+  await waitFor(() => {
+    expect(screen.getByText('English')).toBeInTheDocument();
+    expect(screen.getByText('German')).toBeInTheDocument();
+  });
+});
+
+test('save includes translations in PUT payload when localization enabled', async () => {
+  const put = jest.spyOn(SupersetCore.SupersetClient, 'put');
+  put.mockResolvedValue({ json: { result: {} } } as unknown as ReturnType<
+    typeof SupersetCore.SupersetClient.put
+  >);
+  mockedIsFeatureEnabled.mockImplementation(
+    flag => flag === FeatureFlag.EnableContentLocalization,
+  );
+  const props = createProps();
+  const propsWithDashboardInfo = {
+    ...props,
+    dashboardInfo: {
+      ...dashboardInfo,
+      json_metadata: mockedJsonMetadata,
+      translations: dashboardTranslations,
+    },
+  };
+  render(<PropertiesModal {...propsWithDashboardInfo} />, { useRedux: true });
+
+  await waitFor(() => {
+    expect(screen.getByText('General information')).toBeInTheDocument();
+  });
+
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+  await waitFor(() => {
+    expect(props.onSubmit).toHaveBeenCalledTimes(1);
+  });
+
+  const submitCall = props.onSubmit.mock.calls[0][0];
+  expect(submitCall.translations).toEqual(dashboardTranslations);
+
+  put.mockRestore();
 });

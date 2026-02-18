@@ -19,9 +19,9 @@
 
 import { Page, APIResponse } from '@playwright/test';
 import {
+  apiDelete,
   apiGet,
   apiPost,
-  apiDelete,
   apiPut,
   ApiRequestOptions,
 } from './requests';
@@ -31,37 +31,50 @@ export const ENDPOINTS = {
   CHART_EXPORT: 'api/v1/chart/export/',
 } as const;
 
-/**
- * TypeScript interface for chart creation API payload.
- * Only slice_name, datasource_id, datasource_type are required (ChartPostSchema).
- */
+/** Payload for POST /api/v1/chart/ */
 export interface ChartCreatePayload {
   slice_name: string;
   datasource_id: number;
   datasource_type: string;
   viz_type?: string;
+  owners?: number[];
+  dashboards?: number[];
   params?: string;
 }
 
-/**
- * POST request to create a chart
- * @param page - Playwright page instance (provides authentication context)
- * @param requestBody - Chart configuration object
- * @returns API response from chart creation
- */
-export async function apiPostChart(
-  page: Page,
-  requestBody: ChartCreatePayload,
-): Promise<APIResponse> {
-  return apiPost(page, ENDPOINTS.CHART, requestBody);
+/** Payload for PUT /api/v1/chart/{id} */
+export interface ChartUpdatePayload {
+  slice_name?: string;
+  owners?: number[];
+  dashboards?: number[];
+  translations?: Record<string, Record<string, string>>;
+  params?: string;
+}
+
+/** Chart data shape from API responses */
+export interface ChartResult {
+  id: number;
+  uuid: string;
+  slice_name: string;
+  viz_type?: string;
+  translations?: Record<string, Record<string, string>>;
+  available_locales?: string[];
 }
 
 /**
- * GET request to fetch a chart's details
- * @param page - Playwright page instance (provides authentication context)
- * @param chartId - ID of the chart to fetch
- * @param options - Optional request options
- * @returns API response with chart details
+ * POST /api/v1/chart/
+ * Creates a new chart.
+ */
+export async function apiPostChart(
+  page: Page,
+  payload: ChartCreatePayload,
+): Promise<APIResponse> {
+  return apiPost(page, ENDPOINTS.CHART, payload);
+}
+
+/**
+ * GET /api/v1/chart/{id}
+ * Fetches chart details.
  */
 export async function apiGetChart(
   page: Page,
@@ -72,11 +85,21 @@ export async function apiGetChart(
 }
 
 /**
- * DELETE request to remove a chart
- * @param page - Playwright page instance (provides authentication context)
- * @param chartId - ID of the chart to delete
- * @param options - Optional request options
- * @returns API response from chart deletion
+ * PUT /api/v1/chart/{id}
+ * Updates chart fields including translations.
+ */
+export async function apiPutChart(
+  page: Page,
+  chartId: number,
+  data: ChartUpdatePayload,
+  options?: ApiRequestOptions,
+): Promise<APIResponse> {
+  return apiPut(page, `${ENDPOINTS.CHART}${chartId}`, data, options);
+}
+
+/**
+ * DELETE /api/v1/chart/{id}
+ * Removes a chart.
  */
 export async function apiDeleteChart(
   page: Page,
@@ -87,18 +110,46 @@ export async function apiDeleteChart(
 }
 
 /**
- * PUT request to update a chart
- * @param page - Playwright page instance (provides authentication context)
- * @param chartId - ID of the chart to update
- * @param data - Partial chart payload (Marshmallow allows optional fields)
- * @param options - Optional request options
- * @returns API response from chart update
+ * Creates a minimal chart for testing.
+ * Requires a datasource (use createTestVirtualDataset first).
+ * Fetches UUID via GET after creation (not in POST response).
+ * @returns Chart ID and UUID, or null on failure.
  */
-export async function apiPutChart(
+export async function createTestChart(
   page: Page,
-  chartId: number,
-  data: Record<string, unknown>,
-  options?: ApiRequestOptions,
-): Promise<APIResponse> {
-  return apiPut(page, `${ENDPOINTS.CHART}${chartId}`, data, options);
+  sliceName: string,
+  datasourceId: number,
+): Promise<{ id: number; uuid: string } | null> {
+  const response = await apiPostChart(page, {
+    slice_name: sliceName,
+    datasource_id: datasourceId,
+    datasource_type: 'table',
+    viz_type: 'table',
+    owners: [],
+  });
+
+  if (!response.ok()) {
+    console.warn(`Failed to create chart: ${response.status()}`);
+    return null;
+  }
+
+  const body = await response.json();
+  const id = body.id ?? null;
+  if (!id) return null;
+
+  // Fetch uuid (auto-generated, not in POST response)
+  const getResponse = await apiGetChart(page, id);
+  if (!getResponse.ok()) {
+    console.warn(`Failed to fetch chart uuid: ${getResponse.status()}`);
+    return null;
+  }
+
+  const detail = await getResponse.json();
+  const uuid = detail.result?.uuid;
+  if (!uuid) {
+    console.warn('Chart uuid not found in GET response');
+    return null;
+  }
+
+  return { id, uuid };
 }

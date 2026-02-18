@@ -28,6 +28,7 @@ import {
 import { addSuccessToast } from 'src/components/MessageToasts/actions';
 import { isEmpty } from 'lodash';
 import { Slice } from 'src/dashboard/types';
+import type { Translations } from 'src/types/Localization';
 import { Operators } from '../constants';
 import { buildV1ChartDataPayload } from '../exploreUtils';
 
@@ -35,6 +36,7 @@ export interface PayloadSlice extends Slice {
   params: string;
   dashboards: number[];
   query_context: string;
+  translations?: Translations;
 }
 const ADHOC_FILTER_REGEX = /^adhoc_filters/;
 
@@ -89,6 +91,7 @@ export const getSlicePayload = async (
   dashboards: number[],
   owners: [],
   formDataFromSlice: QueryFormData = {} as QueryFormData,
+  translations?: Translations,
 ): Promise<Partial<PayloadSlice>> => {
   const adhocFilters: Partial<QueryFormData> = extractAdhocFiltersFromFormData(
     formDataWithNativeFilters,
@@ -179,6 +182,10 @@ export const getSlicePayload = async (
     query_context: JSON.stringify(queryContext),
   };
 
+  if (translations) {
+    payload.translations = translations;
+  }
+
   return payload;
 };
 
@@ -188,7 +195,7 @@ const addToasts = (
   addedToDashboard?: {
     title: string;
     new?: boolean;
-  },
+  } | null,
 ) => {
   const toasts = [];
   if (isNewSlice) {
@@ -234,7 +241,8 @@ export const updateSlice =
     addedToDashboard?: {
       title: string;
       new?: boolean;
-    },
+    } | null,
+    translations?: Translations,
   ) =>
   async (dispatch: Dispatch, getState: () => Partial<QueryFormData>) => {
     const { slice_id: sliceId, owners, form_data: formDataFromSlice } = slice;
@@ -248,6 +256,7 @@ export const updateSlice =
           dashboards,
           owners as [],
           formDataFromSlice,
+          translations,
         ),
       });
 
@@ -267,7 +276,8 @@ export const createSlice =
     addedToDashboard?: {
       title: string;
       new?: boolean;
-    },
+    } | null,
+    translations?: Translations,
   ) =>
   async (dispatch: Dispatch, getState: () => Partial<QueryFormData>) => {
     const formData = getState().explore?.form_data;
@@ -280,6 +290,7 @@ export const createSlice =
           dashboards,
           [],
           {} as QueryFormData,
+          translations,
         ),
       });
 

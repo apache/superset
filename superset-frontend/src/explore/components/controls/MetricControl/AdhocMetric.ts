@@ -43,6 +43,7 @@ interface AdhocMetricInput {
   hasCustomLabel?: boolean;
   label?: string;
   optionName?: string;
+  translations?: Record<string, Record<string, string>>;
   // Additional properties that may be passed in
   metric_name?: string;
   expression?: string;
@@ -123,6 +124,7 @@ export default class AdhocMetric {
   hasCustomLabel: boolean;
   label: string;
   optionName: string;
+  translations?: Record<string, Record<string, string>>;
 
   constructor(adhocMetric: AdhocMetricInput) {
     this.expressionType = adhocMetric.expressionType || EXPRESSION_TYPES.SIMPLE;
@@ -151,6 +153,10 @@ export default class AdhocMetric {
       `metric_${Math.random().toString(36).substring(2, 15)}_${Math.random()
         .toString(36)
         .substring(2, 15)}`;
+
+    if (adhocMetric.translations) {
+      this.translations = adhocMetric.translations;
+    }
   }
 
   getDefaultLabel(): string {

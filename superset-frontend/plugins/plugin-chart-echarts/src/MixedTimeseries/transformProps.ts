@@ -18,10 +18,14 @@
  */
 /* eslint-disable camelcase */
 import { invert } from 'lodash';
+import { t } from '@apache-superset/core';
 import {
   AnnotationLayer,
   AxisType,
   buildCustomFormatters,
+  buildLocalizedMetricLabelMap,
+  getLocalizedAnnotationName,
+  getLocalizedFormDataValue,
   CategoricalColorNamespace,
   CurrencyFormatter,
   ensureIsArray,
@@ -131,6 +135,7 @@ export default function transformProps(
     inContextMenu,
     emitCrossFilters,
     legendState,
+    locale,
   } = chartProps;
 
   let focusedSeries: string | null = null;
@@ -222,6 +227,24 @@ export default function transformProps(
     metrics = [],
     metricsB = [],
   }: EchartsMixedTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
+
+  const localizedMetricLabelMap = buildLocalizedMetricLabelMap(
+    [...metrics, ...metricsB],
+    locale,
+  );
+
+  const localizedXAxisTitle =
+    getLocalizedFormDataValue(formData.translations, 'x_axis_title', locale) ??
+    xAxisTitle;
+  const localizedYAxisTitle =
+    getLocalizedFormDataValue(formData.translations, 'y_axis_title', locale) ??
+    yAxisTitle;
+  const localizedYAxisTitleSecondary =
+    getLocalizedFormDataValue(
+      formData.translations,
+      'yAxisTitleSecondary',
+      locale,
+    ) ?? yAxisTitleSecondary;
 
   const refs: Refs = {};
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
@@ -356,6 +379,7 @@ export default function transformProps(
   annotationLayers
     .filter((layer: AnnotationLayer) => layer.show)
     .forEach((layer: AnnotationLayer) => {
+      const localizedName = getLocalizedAnnotationName(layer, locale);
       if (isFormulaAnnotationLayer(layer))
         series.push(
           transformFormulaAnnotation(
@@ -365,6 +389,8 @@ export default function transformProps(
             xAxisType,
             colorScale,
             sliceId,
+            undefined,
+            localizedName,
           ),
         );
       else if (isIntervalAnnotationLayer(layer)) {
@@ -376,6 +402,8 @@ export default function transformProps(
             colorScale,
             theme,
             sliceId,
+            undefined,
+            localizedName,
           ),
         );
       } else if (isEventAnnotationLayer(layer)) {
@@ -387,6 +415,8 @@ export default function transformProps(
             colorScale,
             theme,
             sliceId,
+            undefined,
+            localizedName,
           ),
         );
       } else if (isTimeseriesAnnotationLayer(layer)) {
@@ -398,6 +428,8 @@ export default function transformProps(
             annotationData,
             colorScale,
             sliceId,
+            undefined,
+            localizedName,
           ),
         );
       }
@@ -577,10 +609,10 @@ export default function transformProps(
       : String;
 
   const addYAxisTitleOffset =
-    !!(yAxisTitle || yAxisTitleSecondary) &&
+    !!(localizedYAxisTitle || localizedYAxisTitleSecondary) &&
     convertInteger(yAxisTitleMargin) !== 0;
   const addXAxisTitleOffset =
-    !!xAxisTitle && convertInteger(xAxisTitleMargin) !== 0;
+    !!localizedXAxisTitle && convertInteger(xAxisTitleMargin) !== 0;
 
   const chartPadding = getPadding(
     showLegend,
@@ -605,7 +637,7 @@ export default function transformProps(
     },
     xAxis: {
       type: xAxisType,
-      name: xAxisTitle,
+      name: localizedXAxisTitle,
       nameGap: convertInteger(xAxisTitleMargin),
       nameLocation: 'middle',
       axisLabel: {
@@ -655,7 +687,7 @@ export default function transformProps(
           ),
         },
         scale: truncateYAxis,
-        name: yAxisTitle,
+        name: localizedYAxisTitle,
         nameGap: convertInteger(yAxisTitleMargin),
         nameLocation: yAxisTitlePosition === 'Left' ? 'middle' : 'end',
         alignTicks,
@@ -678,7 +710,7 @@ export default function transformProps(
           ),
         },
         scale: truncateYAxis,
-        name: yAxisTitleSecondary,
+        name: localizedYAxisTitleSecondary,
         alignTicks,
       },
     ],
@@ -736,7 +768,7 @@ export default function transformProps(
             );
             const row = formatForecastTooltipSeries({
               ...value,
-              seriesName: key,
+              seriesName: localizedMetricLabelMap[key] || key,
               formatter: primarySeries.has(key)
                 ? tooltipFormatter
                 : tooltipFormatterSecondary,
@@ -766,11 +798,12 @@ export default function transformProps(
             ForecastSeriesEnum.Observation,
         )
         .map(entry => entry.id || entry.name || '')
-        .concat(extractAnnotationLabels(annotationLayers))
+        .concat(extractAnnotationLabels(annotationLayers, locale))
         .sort((a: string, b: string) => {
           if (!legendSort) return 0;
           return legendSort === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
         }),
+      formatter: (name: string) => localizedMetricLabelMap[name] || name,
     },
     series: dedupSeries(reorderForecastSeries(series) as SeriesOption[]),
     toolbox: {
@@ -781,8 +814,8 @@ export default function transformProps(
         dataZoom: {
           yAxisIndex: false,
           title: {
-            zoom: 'zoom area',
-            back: 'restore zoom',
+            zoom: t('zoom area'),
+            back: t('restore zoom'),
           },
         },
       },

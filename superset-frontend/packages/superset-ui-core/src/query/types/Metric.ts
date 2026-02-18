@@ -32,6 +32,8 @@ export interface AdhocMetricBase {
   hasCustomLabel?: boolean;
   label?: string;
   optionName?: string;
+  /** Per-label translations: {"label": {"de": "Gesamtumsatz"}} */
+  translations?: Record<string, Record<string, string>>;
 }
 
 export interface AdhocMetricSimple extends AdhocMetricBase {

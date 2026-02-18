@@ -17,6 +17,7 @@
  * under the License.
  */
 import { memo, useContext, useMemo, useState } from 'react';
+import { useSelector } from 'react-redux';
 import {
   createHtmlPortalNode,
   InPortal,
@@ -24,6 +25,7 @@ import {
 } from 'react-reverse-portal';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import { isChartCustomization } from '@superset-ui/core';
+import { getLocalizedValue } from 'src/components/TranslationEditor';
 import { checkIsMissingRequiredValue } from '../utils';
 import FilterValue from './FilterValue';
 import { FilterCard } from '../../FilterCard';
@@ -55,7 +57,23 @@ const FilterControl = ({
   const portalNode = useMemo(() => createHtmlPortalNode(), []);
   const [isFilterActive, setIsFilterActive] = useState(false);
 
-  const { name = '<undefined>' } = filter;
+  const userLocale = useSelector(
+    (state: { common: { locale: string } }) => state.common.locale,
+  );
+
+  // Get localized filter name for display
+  // Only native filters have translations, not chart customizations
+  const translations = 'translations' in filter ? filter.translations : undefined;
+  const name = useMemo(
+    () =>
+      getLocalizedValue(
+        translations,
+        'name',
+        userLocale,
+        filter.name ?? '<undefined>',
+      ),
+    [translations, filter.name, userLocale],
+  );
 
   const isFilterInScope = useIsFilterInScope();
   const isMissingRequiredValue =

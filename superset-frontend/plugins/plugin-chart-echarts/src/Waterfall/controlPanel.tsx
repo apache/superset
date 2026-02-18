@@ -86,7 +86,7 @@ const config: ControlPanelConfig = {
             name: 'increase_label',
             config: {
               label: t('Increase label'),
-              type: 'TextControl',
+              type: 'TranslatableTextControl',
               renderTrigger: true,
               description: t(
                 'Customize the label displayed for increasing values in the chart tooltips and legend.',
@@ -116,7 +116,7 @@ const config: ControlPanelConfig = {
             name: 'decrease_label',
             config: {
               label: t('Decrease label'),
-              type: 'TextControl',
+              type: 'TranslatableTextControl',
               renderTrigger: true,
               description: t(
                 'Customize the label displayed for decreasing values in the chart tooltips and legend.',
@@ -159,7 +159,7 @@ const config: ControlPanelConfig = {
             name: 'total_label',
             config: {
               label: t('Total label'),
-              type: 'TextControl',
+              type: 'TranslatableTextControl',
               renderTrigger: true,
               description: t(
                 'Customize the label displayed for total values in the chart tooltips, legend, and chart axis.',
@@ -177,7 +177,7 @@ const config: ControlPanelConfig = {
           {
             name: 'x_axis_label',
             config: {
-              type: 'TextControl',
+              type: 'TranslatableTextControl',
               label: t('X Axis Label'),
               renderTrigger: true,
               default: '',
@@ -224,7 +224,7 @@ const config: ControlPanelConfig = {
           {
             name: 'y_axis_label',
             config: {
-              type: 'TextControl',
+              type: 'TranslatableTextControl',
               label: t('Y Axis Label'),
               renderTrigger: true,
               default: '',

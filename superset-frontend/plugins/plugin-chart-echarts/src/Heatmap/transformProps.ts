@@ -17,6 +17,7 @@
  * under the License.
  */
 import {
+  getLocalizedMetricLabel,
   NumberFormats,
   QueryFormColumn,
   getColumnLabel,
@@ -176,7 +177,7 @@ export default function transformProps(
   chartProps: HeatmapChartProps,
 ): HeatmapTransformedProps {
   const refs: Refs = {};
-  const { width, height, formData, queriesData, datasource, theme } =
+  const { width, height, formData, queriesData, datasource, theme, locale } =
     chartProps;
   const {
     bottomMargin,
@@ -204,6 +205,7 @@ export default function transformProps(
     sortYAxis,
   } = formData;
   const metricLabel = getMetricLabel(metric);
+  const localizedMetricLabel = getLocalizedMetricLabel(metric, locale);
   const xAxisLabel = getColumnLabel(xAxis);
   // groupby is overridden to be a single value
   const yAxisLabel = getColumnLabel(groupby as unknown as QueryFormColumn);
@@ -291,7 +293,7 @@ export default function transformProps(
 
   const series: HeatmapSeriesOption[] = [
     {
-      name: metricLabel,
+      name: localizedMetricLabel,
       type: 'heatmap',
       data: data.flatMap(row => {
         const xValue = row[xAxisColumnName];
@@ -391,7 +393,7 @@ export default function transformProps(
           }
         }
         const title = `${formattedX} (${formattedY})`;
-        const row = [colnames[2], formattedValue];
+        const row = [localizedMetricLabel, formattedValue];
         if (showPercentage) {
           row.push(`${percentFormatter(percentage)} (${suffix})`);
         }

@@ -352,3 +352,42 @@ describe('legend sorting', () => {
     ]);
   });
 });
+
+test('should use localized metric label in tooltip', () => {
+  const adhocMetric = {
+    expressionType: 'SIMPLE' as const,
+    column: { column_name: 'num' },
+    aggregate: 'COUNT',
+    label: 'COUNT(num)',
+    translations: { label: { de: 'Anzahl' } },
+  };
+  const chartProps = new ChartProps<SqlaFormData>({
+    ...chartPropsConfig,
+    formData: {
+      ...formData,
+      metric: adhocMetric,
+    },
+    queriesData: [
+      {
+        colnames: ['source_column', 'target_column', 'COUNT(num)'],
+        data: [
+          {
+            source_column: 'A',
+            target_column: 'B',
+            'COUNT(num)': 10,
+          },
+        ],
+      },
+    ],
+    locale: 'de',
+  });
+  const transformed = transformProps(chartProps as EchartsGraphChartProps);
+
+  const tooltipFormatter = (transformed.echartOptions.tooltip as any).formatter;
+  const html = tooltipFormatter({
+    data: { source: '0', target: '1' },
+    value: 10,
+  });
+  expect(html).toContain('Anzahl');
+  expect(html).not.toContain('COUNT(num)');
+});

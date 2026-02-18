@@ -131,6 +131,7 @@ function transformFormInput(
     requiredFirst: formInputs.requiredFirst
       ? Object.values(formInputs.requiredFirst).find(rf => rf)
       : undefined,
+    translations: formInputs.translations,
   };
 }
 

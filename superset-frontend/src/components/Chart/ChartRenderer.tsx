@@ -42,6 +42,7 @@ import { EmptyState } from '@superset-ui/core/components';
 import { ChartSource } from 'src/types/ChartSource';
 import type { Datasource, ChartStatus } from 'src/explore/types';
 import type { Dispatch } from 'redux';
+import getBootstrapData from 'src/utils/getBootstrapData';
 import ChartContextMenu, {
   ChartContextMenuRef,
 } from './ChartContextMenu/ChartContextMenu';
@@ -548,6 +549,7 @@ class ChartRenderer extends Component<ChartRendererProps, ChartRendererState> {
             legendState={this.state.legendState}
             enableNoResults={bypassNoResult}
             legendIndex={this.state.legendIndex}
+            locale={getBootstrapData().common?.locale || 'en'}
             {...drillToDetailProps}
           />
         </div>

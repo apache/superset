@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps } from '@superset-ui/core';
+import { ChartProps, SqlaFormData } from '@superset-ui/core';
 import { supersetTheme } from '@apache-superset/core/ui';
 import transformProps from '../../src/Tree/transformProps';
 import { EchartsTreeChartProps } from '../../src/Tree/types';
@@ -25,6 +25,7 @@ describe('EchartsTree transformProps', () => {
   const formData = {
     colorScheme: 'bnbColors',
     datasource: '3__table',
+    viz_type: 'tree_chart',
     granularity_sqla: 'ds',
     metric: 'count',
     id: 'id_column',
@@ -422,5 +423,52 @@ describe('EchartsTree transformProps', () => {
         }),
       }),
     );
+  });
+
+  test('should use localized metric label in tooltip', () => {
+    const adhocMetric = {
+      expressionType: 'SIMPLE' as const,
+      column: { column_name: 'num' },
+      aggregate: 'COUNT',
+      label: 'COUNT(num)',
+      translations: { label: { de: 'Anzahl' } },
+    };
+    const queriesData = [
+      {
+        colnames: ['id_column', 'relation_column', 'name_column', 'COUNT(num)'],
+        data: [
+          {
+            id_column: '1',
+            relation_column: null,
+            name_column: 'root',
+            'COUNT(num)': 10,
+          },
+          {
+            id_column: '2',
+            relation_column: '1',
+            name_column: 'child',
+            'COUNT(num)': 5,
+          },
+        ],
+      },
+    ];
+    const chartProps = new ChartProps<SqlaFormData>({
+      ...chartPropsConfig,
+      formData: {
+        ...formData,
+        metric: adhocMetric,
+      },
+      queriesData,
+      locale: 'de',
+    });
+    const transformed = transformProps(chartProps as EchartsTreeChartProps);
+    const tooltipFormatter = (transformed.echartOptions.tooltip as any)
+      .formatter;
+    const html = tooltipFormatter({
+      value: 5,
+      treeAncestors: [{ name: 'root' }, { name: 'child' }],
+    });
+    expect(html).toContain('Anzahl');
+    expect(html).not.toContain('COUNT(num)');
   });
 });

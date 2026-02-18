@@ -73,6 +73,8 @@ export type EmbedDashboardParams = {
   /** Callback to resolve permalink URLs. If provided, this will be called when generating permalinks
    * to allow the host app to customize the URL. If not provided, Superset's default URL is used. */
   resolvePermalinkUrl?: ResolvePermalinkUrlFn;
+  /** Initial locale for the dashboard (e.g., 'de', 'ru', 'fr'). If not provided, uses server default. */
+  initialLocale?: string;
 };
 
 export type Size = {
@@ -110,6 +112,8 @@ export type EmbeddedDashboard = {
   getChartDataPayloads: (params?: { chartId?: number }) => Promise<Record<string, any>>;
   setThemeConfig: (themeConfig: Record<string, any>) => void;
   setThemeMode: (mode: ThemeMode) => void;
+  /** Switches the embedded dashboard to a different locale (e.g. 'de', 'fr'). Triggers page reload. */
+  setLocale: (locale: string) => void;
 };
 
 /**
@@ -127,6 +131,7 @@ export async function embedDashboard({
   iframeAllowExtras = [],
   referrerPolicy,
   resolvePermalinkUrl,
+  initialLocale,
 }: EmbedDashboardParams): Promise<EmbeddedDashboard> {
   function log(...info: unknown[]) {
     if (debug) {
@@ -182,6 +187,7 @@ export async function embedDashboard({
         ...dashboardConfigUrlParams,
         ...filterConfigUrlParams,
         ...dashboardUiConfig?.urlParams,
+        ...(initialLocale && { locale: initialLocale }),
       };
       const urlParamsString = Object.keys(urlParams).length
         ? '?' + new URLSearchParams(urlParams).toString()
@@ -319,6 +325,18 @@ export async function embedDashboard({
     }
   };
 
+  const setLocale = (locale: string): void => {
+    try {
+      ourPort.emit('setLocale', { locale });
+      log(`Locale set to: ${locale}`);
+    } catch (error) {
+      log(
+        'Error sending locale. Ensure the iframe side implements the "setLocale" method.',
+      );
+      throw error;
+    }
+  };
+
   return {
     getScrollSize,
     unmount,
@@ -330,5 +348,6 @@ export async function embedDashboard({
     getChartDataPayloads,
     setThemeConfig,
     setThemeMode,
+    setLocale,
   };
 }

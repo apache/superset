@@ -20,20 +20,37 @@ from __future__ import annotations
 import inspect
 from typing import Any, TYPE_CHECKING
 
-from flask import current_app
+from flask import current_app, has_request_context, request
 from flask_babel import gettext as _
-from marshmallow import EXCLUDE, fields, post_load, Schema, validate
+from marshmallow import (
+    EXCLUDE,
+    fields,
+    post_dump,
+    post_load,
+    Schema,
+    validate,
+    validates_schema,
+    ValidationError,
+)
 from marshmallow.validate import Length, Range
 from marshmallow_union import Union
 
+from superset import is_feature_enabled
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.db_engine_specs.base import builtin_time_grains
+from superset.localization import (
+    TranslatableSchemaMixin,
+    get_user_locale,
+    sanitize_translations,
+    validate_translations,
+)
 from superset.tags.models import TagType
 from superset.utils import pandas_postprocessing, schema as utils
 from superset.utils.core import (
     AnnotationType,
     DatasourceType,
     FilterOperator,
+    parse_boolean_string,
     PostProcessingBoxplotWhiskerType,
     PostProcessingContributionOrientation,
 )
@@ -165,7 +182,10 @@ openapi_spec_methods_override = {
 
 class ChartEntityResponseSchema(Schema):
     """
-    Schema for a chart object
+    Lightweight chart schema for /api/v1/dashboard/{id}/charts.
+
+    Localizes slice_name and description so that the frontend hydration
+    sync (hydrate.ts) preserves server-localized chart names.
     """
 
     id = fields.Integer(metadata={"description": id_description})
@@ -183,8 +203,31 @@ class ChartEntityResponseSchema(Schema):
         metadata={"description": certification_details_description}
     )
 
+    @post_dump(pass_original=True)
+    def post_dump(
+        self, serialized: dict[str, Any], obj: Any, **kwargs: Any
+    ) -> dict[str, Any]:
+        """Localize user-facing text fields when content localization is enabled."""
+        if not is_feature_enabled("ENABLE_CONTENT_LOCALIZATION"):
+            return serialized
+        if not hasattr(obj, "get_localized"):
+            return serialized
 
-class ChartPostSchema(Schema):
+        locale = get_user_locale()
+
+        if "slice_name" in serialized:
+            serialized["slice_name"] = obj.get_localized("slice_name", locale)
+        if "description" in serialized:
+            serialized["description"] = obj.get_localized("description", locale)
+
+        # NOTE: Metric labels in form_data are NOT localized here.
+        # Frontend handles display localization using adhocMetric.translations.
+        # This preserves the original labels for editing.
+
+        return serialized
+
+
+class ChartPostSchema(TranslatableSchemaMixin, Schema):
     """
     Schema to add a new chart.
     """
@@ -246,7 +289,7 @@ class ChartPostSchema(Schema):
     uuid = fields.UUID(allow_none=True)
 
 
-class ChartPutSchema(Schema):
+class ChartPutSchema(TranslatableSchemaMixin, Schema):
     """
     Schema to update or patch a chart
     """
@@ -408,6 +451,13 @@ class ChartDataAdhocMetricSchema(Schema):
             "description": "Optional time grain for temporal filters",
             "example": "PT1M",
         },
+    )
+    translations = fields.Dict(
+        metadata={
+            "description": "Per-label translations for content localization. "
+            'Structure: {"label": {"de": "Gesamtumsatz", "fr": "Revenu total"}}',
+        },
+        load_default=None,
     )
     isExtra = fields.Boolean(  # noqa: N815
         metadata={
@@ -1622,6 +1672,7 @@ class ImportV1ChartSchema(Schema):
     dataset_uuid = fields.UUID(required=True)
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
+    translations = fields.Dict(allow_none=True, load_default=None)
     tags = fields.List(fields.String(), allow_none=True)
 
 
@@ -1703,6 +1754,71 @@ class ChartGetResponseSchema(Schema):
     datasource_type = fields.String()
     datasource_url = fields.Function(lambda obj: obj.datasource_url())
     datasource_uuid = fields.UUID(attribute="table.uuid")
+    translations = fields.Dict(dump_only=True)
+    available_locales = fields.List(fields.String(), dump_only=True)
+
+    @post_dump(pass_original=True)
+    def post_dump(
+        self, serialized: dict[str, Any], obj: Any, **kwargs: Any
+    ) -> dict[str, Any]:
+        """Apply content localization to chart fields when feature is enabled."""
+        if is_feature_enabled("ENABLE_CONTENT_LOCALIZATION"):
+            self._apply_localization(serialized, obj)
+        return serialized
+
+    def _apply_localization(self, serialized: dict[str, Any], obj: Any) -> None:
+        """
+        Apply content localization to chart fields.
+
+        Supports two modes via ?include_translations query parameter:
+
+        Default mode (include_translations=false):
+            Returns localized field values for user's locale.
+            Excludes raw translations dict from response.
+
+        Editor mode (include_translations=true):
+            Returns original field values (not localized).
+            Includes full translations dict for TranslationEditor UI.
+
+        Both modes include available_locales.
+        """
+        if not hasattr(obj, "get_localized"):
+            return
+
+        include_translations = self._should_include_translations()
+
+        if include_translations:
+            # Editor mode: return original values + translations dict
+            if hasattr(obj, "translations") and obj.translations:
+                serialized["translations"] = obj.translations
+            else:
+                serialized["translations"] = {}
+
+            serialized["available_locales"] = obj.get_available_locales()
+        else:
+            # Default mode: localize fields, exclude translations
+            serialized.pop("translations", None)
+
+            locale = get_user_locale()
+
+            if "slice_name" in serialized:
+                serialized["slice_name"] = obj.get_localized("slice_name", locale)
+
+            if "description" in serialized:
+                serialized["description"] = obj.get_localized("description", locale)
+
+            serialized["available_locales"] = obj.get_available_locales()
+
+    def _should_include_translations(self) -> bool:
+        """
+        Check if raw translations dict should be included in response.
+
+        Returns True if ?include_translations=true query parameter present.
+        Returns False if outside request context or parameter absent/false.
+        """
+        if not has_request_context():
+            return False
+        return parse_boolean_string(request.args.get("include_translations"))
 
 
 CHART_SCHEMAS = (

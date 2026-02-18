@@ -406,3 +406,14 @@ test('Should filter columns by column_name and verbose_name in Simple tab', asyn
   expect(within(dropdown).queryByText('Order Amount')).not.toBeInTheDocument();
   expect(within(dropdown).queryByText('Product Title')).not.toBeInTheDocument();
 });
+
+test('Should enable Save when translations changed', () => {
+  const props = createProps();
+  render(
+    <AdhocMetricEditPopover
+      {...props}
+      hasTranslationChanges
+    />,
+  );
+  expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
+});

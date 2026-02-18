@@ -24,6 +24,7 @@ import {
   NumberFormats,
   getColumnLabel,
   getMetricLabel,
+  getLocalizedMetricLabel,
   getNumberFormatter,
   tooltipHtml,
 } from '@superset-ui/core';
@@ -39,12 +40,14 @@ export default function transformProps(
   chartProps: SankeyChartProps,
 ): SankeyTransformedProps {
   const refs: Refs = {};
-  const { formData, height, hooks, queriesData, width, theme } = chartProps;
+  const { formData, height, hooks, queriesData, width, theme, locale } =
+    chartProps;
   const { onLegendStateChanged } = hooks;
   const { colorScheme, metric, source, target, sliceId } = formData;
   const { data } = queriesData[0];
   const colorFn = CategoricalColorNamespace.getScale(colorScheme);
   const metricLabel = getMetricLabel(metric);
+  const localizedMetricLabel = getLocalizedMetricLabel(metric, locale);
   const valueFormatter = getNumberFormatter(NumberFormats.FLOAT_2_POINT);
   const percentFormatter = getPercentFormatter(NumberFormats.PERCENT_2_POINT);
 
@@ -101,7 +104,7 @@ export default function transformProps(
   const tooltipFormatter = (params: CallbackDataParams) => {
     const { name, data } = params;
     const value = params.value as number;
-    const rows = [[metricLabel, valueFormatter.format(value)]];
+    const rows = [[localizedMetricLabel, valueFormatter.format(value)]];
     const { source, target } = data as Link;
     if (source && target) {
       rows.push([

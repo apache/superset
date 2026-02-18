@@ -28,6 +28,7 @@ import {
   ChartCustomization,
 } from '@superset-ui/core';
 import { ReactNode } from 'react';
+import type { Translations } from 'src/types/Localization';
 
 export interface NativeFiltersFormItem {
   scope: NativeFilterScope;
@@ -53,6 +54,7 @@ export interface NativeFiltersFormItem {
   granularity_sqla?: string;
   type: typeof NativeFilterType.NativeFilter;
   description: string;
+  translations?: Translations;
 }
 export interface NativeFilterDivider {
   id: string;

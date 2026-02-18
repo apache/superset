@@ -733,4 +733,42 @@ describe('getSlicePayload', () => {
       isExtra: false,
     });
   });
+
+  test('includes translations in payload when provided', async () => {
+    const translations = {
+      slice_name: { de: 'Test-Diagramm', fr: 'Graphique de test' },
+    };
+    const result = await getSlicePayload(
+      sliceName,
+      formDataWithNativeFilters,
+      dashboards,
+      owners as [],
+      formDataFromSlice,
+      translations,
+    );
+    expect(result).toHaveProperty('translations', translations);
+  });
+
+  test('omits translations from payload when not provided', async () => {
+    const result = await getSlicePayload(
+      sliceName,
+      formDataWithNativeFilters,
+      dashboards,
+      owners as [],
+      formDataFromSlice,
+    );
+    expect(result).not.toHaveProperty('translations');
+  });
+
+  test('omits translations from payload when undefined', async () => {
+    const result = await getSlicePayload(
+      sliceName,
+      formDataWithNativeFilters,
+      dashboards,
+      owners as [],
+      formDataFromSlice,
+      undefined,
+    );
+    expect(result).not.toHaveProperty('translations');
+  });
 });

@@ -81,53 +81,116 @@ describe('extractForecastSeriesContext', () => {
 });
 
 describe('extractAnnotationLabels', () => {
+  const layers: AnnotationLayer[] = [
+    {
+      annotationType: AnnotationType.Formula,
+      name: 'My Formula',
+      show: true,
+      style: AnnotationStyle.Solid,
+      value: 'sin(x)',
+      showLabel: true,
+    },
+    {
+      annotationType: AnnotationType.Formula,
+      name: 'My Hidden Formula',
+      show: false,
+      style: AnnotationStyle.Solid,
+      value: 'sin(2x)',
+      showLabel: true,
+    },
+    {
+      annotationType: AnnotationType.Interval,
+      name: 'My Interval',
+      sourceType: AnnotationSourceType.Table,
+      show: true,
+      style: AnnotationStyle.Solid,
+      value: 1,
+      showLabel: true,
+    },
+    {
+      annotationType: AnnotationType.Timeseries,
+      name: 'My Line',
+      show: true,
+      style: AnnotationStyle.Dashed,
+      sourceType: AnnotationSourceType.Line,
+      value: 1,
+      showLabel: true,
+    },
+    {
+      annotationType: AnnotationType.Timeseries,
+      name: 'My Hidden Line',
+      show: false,
+      style: AnnotationStyle.Dashed,
+      sourceType: AnnotationSourceType.Line,
+      value: 1,
+      showLabel: true,
+    },
+  ];
+
   test('should extract all annotations that can be added to the legend', () => {
-    const layers: AnnotationLayer[] = [
+    expect(extractAnnotationLabels(layers)).toEqual(['My Formula', 'My Line']);
+  });
+
+  test('should return localized names when locale is provided', () => {
+    const layersWithTranslations: AnnotationLayer[] = [
       {
         annotationType: AnnotationType.Formula,
-        name: 'My Formula',
+        name: 'Revenue Target',
         show: true,
         style: AnnotationStyle.Solid,
-        value: 'sin(x)',
+        value: 'x*2',
         showLabel: true,
-      },
-      {
-        annotationType: AnnotationType.Formula,
-        name: 'My Hidden Formula',
-        show: false,
-        style: AnnotationStyle.Solid,
-        value: 'sin(2x)',
-        showLabel: true,
-      },
-      {
-        annotationType: AnnotationType.Interval,
-        name: 'My Interval',
-        sourceType: AnnotationSourceType.Table,
-        show: true,
-        style: AnnotationStyle.Solid,
-        value: 1,
-        showLabel: true,
+        translations: { name: { de: 'Umsatzziel' } },
       },
       {
         annotationType: AnnotationType.Timeseries,
-        name: 'My Line',
+        name: 'Sales Trend',
         show: true,
         style: AnnotationStyle.Dashed,
         sourceType: AnnotationSourceType.Line,
         value: 1,
         showLabel: true,
-      },
-      {
-        annotationType: AnnotationType.Timeseries,
-        name: 'My Hidden Line',
-        show: false,
-        style: AnnotationStyle.Dashed,
-        sourceType: AnnotationSourceType.Line,
-        value: 1,
-        showLabel: true,
+        translations: { name: { de: 'Verkaufstrend' } },
       },
     ];
-    expect(extractAnnotationLabels(layers)).toEqual(['My Formula', 'My Line']);
+    expect(extractAnnotationLabels(layersWithTranslations, 'de')).toEqual([
+      'Umsatzziel',
+      'Verkaufstrend',
+    ]);
+  });
+
+  test('should return original names when no locale is provided', () => {
+    const layersWithTranslations: AnnotationLayer[] = [
+      {
+        annotationType: AnnotationType.Formula,
+        name: 'Revenue Target',
+        show: true,
+        style: AnnotationStyle.Solid,
+        value: 'x*2',
+        showLabel: true,
+        translations: { name: { de: 'Umsatzziel' } },
+      },
+    ];
+    expect(extractAnnotationLabels(layersWithTranslations)).toEqual([
+      'Revenue Target',
+    ]);
+  });
+
+  test('should fall back to base language for regional locale', () => {
+    const layersWithTranslations: AnnotationLayer[] = [
+      {
+        annotationType: AnnotationType.Formula,
+        name: 'Revenue Target',
+        show: true,
+        style: AnnotationStyle.Solid,
+        value: 'x*2',
+        showLabel: true,
+        translations: { name: { de: 'Umsatzziel' } },
+      },
+    ];
+    expect(extractAnnotationLabels(layersWithTranslations, 'de-AT')).toEqual([
+      'Umsatzziel',
+    ]);
   });
 });
 

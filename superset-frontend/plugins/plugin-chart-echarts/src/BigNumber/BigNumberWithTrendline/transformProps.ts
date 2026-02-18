@@ -19,6 +19,8 @@
 import { t } from '@apache-superset/core';
 import {
   extractTimegrain,
+  getLocalizedFormDataValue,
+  getLocalizedMetricLabel,
   getNumberFormatter,
   NumberFormats,
   getMetricLabel,
@@ -88,6 +90,7 @@ export default function transformProps(
       columnFormats = {},
       currencyCodeColumn,
     },
+    locale,
   } = chartProps;
   const {
     colorPicker,
@@ -136,7 +139,20 @@ export default function transformProps(
   const metricName = getMetricLabel(metric);
   const metrics = chartProps.datasource?.metrics || [];
   const originalLabel = getOriginalLabel(metric, metrics);
+  const localizedLabel = getLocalizedMetricLabel(metric, locale);
+  // Use localized label if translation exists, otherwise use original label
+  const displayLabel =
+    localizedLabel !== getMetricLabel(metric) ? localizedLabel : originalLabel;
   const showMetricName = chartProps.rawFormData?.show_metric_name ?? false;
+  const localizedSubtitle =
+    getLocalizedFormDataValue(formData.translations, 'subtitle', locale) ??
+    subtitle;
+  const localizedCompareSuffix =
+    getLocalizedFormDataValue(
+      formData.translations,
+      'compare_suffix',
+      locale,
+    ) ?? compareSuffix;
   const compareLag = Number(compareLag_) || 0;
   let formattedSubheader = subheader;
 
@@ -210,7 +226,7 @@ export default function transformProps(
           : 0;
         formattedSubheader = `${formatPercentChange(
           percentChange,
-        )} ${compareSuffix}`;
+        )} ${localizedCompareSuffix}`;
       }
     }
   }
@@ -357,7 +373,7 @@ export default function transformProps(
             tooltipHtml(
               [
                 [
-                  metricName,
+                  displayLabel,
                   params[0].data[1] === null
                     ? t('N/A')
                     : yAxisFormatter.format(params[0].data[1]),
@@ -388,12 +404,12 @@ export default function transformProps(
     headerFormatter: yAxisFormatter,
     formatTime,
     formData,
-    metricName: originalLabel,
+    metricName: displayLabel,
     showMetricName,
     metricNameFontSize,
     headerFontSize,
     subtitleFontSize,
-    subtitle,
+    subtitle: localizedSubtitle,
     subheaderFontSize,
     mainColor,
     showTimestamp,
