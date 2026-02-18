@@ -54,7 +54,7 @@
     "@saucelabs/theme-github-codeblock": "^0.3.0",
     "@storybook/addon-docs": "^8.6.15",
     "@storybook/blocks": "^8.6.15",
-    "@storybook/channels": "^8.6.15",
+    "@storybook/channels": "^8.6.17",
     "@storybook/client-logger": "^8.6.15",
     "@storybook/components": "^8.6.15",
     "@storybook/core": "^8.6.17",
