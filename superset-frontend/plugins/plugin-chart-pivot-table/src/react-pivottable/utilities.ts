@@ -98,7 +98,9 @@ const numberFormat = function (optsIn?: NumberFormatOptions): Formatter {
  */
 function toAggregationNumber(value: unknown): number {
   if (value == null) return 0;
-  if (typeof value === 'number') return value;
+  if (typeof value === 'number') {
+    return Number.isNaN(value) ? 0 : value;
+  }
   if (typeof value === 'string') {
     const num = parseFloat(value.trim());
     return Number.isNaN(num) ? 0 : num;
