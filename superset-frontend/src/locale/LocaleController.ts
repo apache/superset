@@ -85,7 +85,7 @@ export class LocaleController {
 
     // If not skipping initial fetch and locale is not 'en', fetch language pack
     if (!skipInitialFetch && initialLocale !== 'en') {
-      this.initializeLocale(initialLocale);
+      this.pendingLocaleChange = this.initializeLocale(initialLocale);
     } else if (skipInitialFetch) {
       // Mark as initialized if we're skipping fetch (e.g., preamble already loaded it)
       this.isInitialized = true;

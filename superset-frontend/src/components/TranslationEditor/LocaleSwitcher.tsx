@@ -230,7 +230,7 @@ export default function LocaleSwitcher({
           if (e.key === 'Enter' || e.key === ' ') {
             e.stopPropagation();
             e.preventDefault();
-            setDropdownOpen(prev => !prev);
+            handleOpenChange(!dropdownOpen);
           }
         }}
         css={css`

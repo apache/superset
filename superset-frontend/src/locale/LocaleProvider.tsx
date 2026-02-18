@@ -118,9 +118,8 @@ export function LocaleProvider({
       setIsLoading(true);
       try {
         await controller.setLocale(newLocale);
-      } catch (error) {
+      } finally {
         setIsLoading(false);
-        throw error;
       }
     },
     [controller],

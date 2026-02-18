@@ -66,7 +66,7 @@ class TranslatableSchemaMixin:
         Raises:
             ValidationError: If feature disabled or structure invalid.
         """
-        if "translations" not in data:
+        if "translations" not in data or data["translations"] is None:
             return
 
         if not is_feature_enabled("ENABLE_CONTENT_LOCALIZATION"):

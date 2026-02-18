@@ -198,13 +198,10 @@ function TranslatableTextControlDefaultMode({
   controlHeaderProps: Record<string, unknown>;
 }) {
   const [localValue, setLocalValue] = useState(value);
-  const prevValueRef = useRef(value);
 
-  if (prevValueRef.current !== value) {
-    prevValueRef.current = value;
-  }
-  const displayValue =
-    prevValueRef.current !== value ? value : localValue;
+  useEffect(() => {
+    setLocalValue(value);
+  }, [value]);
 
   const debouncedOnChange = useMemo(
     () =>
@@ -230,7 +227,7 @@ function TranslatableTextControlDefaultMode({
         data-test="inline-name"
         placeholder={placeholder}
         onChange={handleChange}
-        value={displayValue}
+        value={localValue}
         disabled={disabled}
         suffix={suffix}
         aria-label={label}
