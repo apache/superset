@@ -3375,12 +3375,12 @@
   resolved "https://registry.npmjs.org/@storybook/core-events/-/core-events-8.6.15.tgz"
   integrity sha512-u45S9Ls3DrnWZDdEqc4aoRP/GE7KY+KUJnpoCzvTmcwmEHZQrf9p9Hygbjr+fq8Yi+K6swlaprv17re6wdBjHg==
 
-"@storybook/core@8.6.15", "@storybook/core@^8.6.15":
-  version "8.6.15"
-  resolved "https://registry.npmjs.org/@storybook/core/-/core-8.6.15.tgz"
-  integrity sha512-VFpKcphNurJpSC4fpUfKL3GTXVoL53oytghGR30QIw5jKWwaT50HVbTyb41BLOUuZjmMhUQA8weiQEew6RX0gw==
+"@storybook/core@8.6.16", "@storybook/core@^8.6.15":
+  version "8.6.16"
+  resolved "https://registry.yarnpkg.com/@storybook/core/-/core-8.6.16.tgz#ca94ae9a23bc1746e513ec94f989479527fdd2c6"
+  integrity sha512-FWxDEykds3DMIiT64dpZWa5sWhOzJR0Oz0FdjtokeEnCybru6NBeccKkliKbSMaTMcY/2WB58iZUZtAPKEd4Tw==
   dependencies:
-    "@storybook/theming" "8.6.15"
+    "@storybook/theming" "8.6.16"
     better-opn "^3.0.2"
     browser-assert "^1.2.1"
     esbuild "^0.18.0 || ^0.19.0 || ^0.20.0 || ^0.21.0 || ^0.22.0 || ^0.23.0 || ^0.24.0 || ^0.25.0"
@@ -3426,7 +3426,12 @@
   resolved "https://registry.npmjs.org/@storybook/react-dom-shim/-/react-dom-shim-8.6.15.tgz"
   integrity sha512-m2trBmmd4iom1qwrp1F109zjRDc0cPaHYhDQxZR4Qqdz8pYevYJTlipDbH/K4NVB6Rn687RT29OoOPfJh6vkFA==
 
-"@storybook/theming@8.6.15", "@storybook/theming@^8.6.15":
+"@storybook/theming@8.6.16":
+  version "8.6.16"
+  resolved "https://registry.yarnpkg.com/@storybook/theming/-/theming-8.6.16.tgz#8fe990f275ebad104b96dae960442512b0a83f52"
+  integrity sha512-xtd7C68LIAjh7n/CTBA6D9gZux1h4Kt086iPwlMk278aSab4VksQhsFOwWbY0WJlBNqqVnYwEu5AnDKgjPJpvg==
+
+"@storybook/theming@^8.6.15":
   version "8.6.15"
   resolved "https://registry.npmjs.org/@storybook/theming/-/theming-8.6.15.tgz"
   integrity sha512-dAbL0XOekyT6XsF49R6Etj3WxQ/LpdJDIswUUeHgVJ6/yd2opZOGbPxnwA3zlmAh1c0tvpPyhSDXxSG79u8e4Q==
@@ -13765,12 +13770,12 @@ stop-iteration-iterator@^1.1.0:
     es-errors "^1.3.0"
     internal-slot "^1.1.0"
 
-storybook@^8.6.15:
-  version "8.6.15"
-  resolved "https://registry.npmjs.org/storybook/-/storybook-8.6.15.tgz"
-  integrity sha512-Ob7DMlwWx8s7dMvcQ3xPc02TvUeralb+xX3oaPRk9wY9Hc6M1IBC/7cEoITkSmRS2v38DHubC+mtEKNc1u2gQg==
+storybook@^8.6.16:
+  version "8.6.16"
+  resolved "https://registry.yarnpkg.com/storybook/-/storybook-8.6.16.tgz#5b3608e64beba28d32d8513f0059d71ce277cc2f"
+  integrity sha512-2CBmp0Rdwaa6XJcuDB3w5uv9mW35/oz58Wx8OTlF6e8qLpQ7ioHbZjbckfE65a/36T9XkjoNFy1XbFsVJrQsiA==
   dependencies:
-    "@storybook/core" "8.6.15"
+    "@storybook/core" "8.6.16"
 
 string-convert@^0.2.0:
   version "0.2.1"
