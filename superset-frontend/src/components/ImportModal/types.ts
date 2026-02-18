@@ -38,4 +38,14 @@ export interface ImportModelsModalProps {
   setSSHTunnelPrivateKeyPasswordFields?: (
     sshTunnelPrivateKeyPasswordFields: string[],
   ) => void;
+  encryptedExtraFields?: {
+    fileName: string;
+    fields: { path: string; label: string }[];
+  }[];
+  setEncryptedExtraFields?: (
+    encryptedExtraFields: {
+      fileName: string;
+      fields: { path: string; label: string }[];
+    }[],
+  ) => void;
 }

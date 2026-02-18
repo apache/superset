@@ -34,6 +34,7 @@ import {
   getSSHPasswordsNeeded,
   getSSHPrivateKeysNeeded,
   getSSHPrivateKeyPasswordsNeeded,
+  getEncryptedExtraFieldsNeeded,
 } from 'src/views/CRUD/utils';
 import type {
   ListViewFetchDataConfig as FetchDataConfig,
@@ -439,6 +440,10 @@ interface ImportResourceState {
   sshPasswordNeeded: string[];
   sshPrivateKeyNeeded: string[];
   sshPrivateKeyPasswordNeeded: string[];
+  encryptedExtraFieldsNeeded: {
+    fileName: string;
+    fields: { path: string; label: string }[];
+  }[];
   failed: boolean;
 }
 
@@ -454,6 +459,7 @@ export function useImportResource(
     sshPasswordNeeded: [],
     sshPrivateKeyNeeded: [],
     sshPrivateKeyPasswordNeeded: [],
+    encryptedExtraFieldsNeeded: [],
     failed: false,
   });
 
@@ -468,6 +474,7 @@ export function useImportResource(
       sshTunnelPasswords: Record<string, string> = {},
       sshTunnelPrivateKey: Record<string, string> = {},
       sshTunnelPrivateKeyPasswords: Record<string, string> = {},
+      encryptedExtraSecrets: Record<string, Record<string, string>> = {},
       overwrite = false,
     ) => {
       // Set loading state
@@ -522,6 +529,18 @@ export function useImportResource(
           JSON.stringify(sshTunnelPrivateKeyPasswords),
         );
       }
+      /* The import bundle may contain masked_encrypted_extra; if required
+       * the secrets should be provided by the user during import.
+       */
+      if (
+        encryptedExtraSecrets &&
+        Object.keys(encryptedExtraSecrets).length > 0
+      ) {
+        formData.append(
+          'encrypted_extra_secrets',
+          JSON.stringify(encryptedExtraSecrets),
+        );
+      }
 
       return SupersetClient.post({
         endpoint: `/api/v1/${resourceName}/import/`,
@@ -535,6 +554,7 @@ export function useImportResource(
             sshPasswordNeeded: [],
             sshPrivateKeyNeeded: [],
             sshPrivateKeyPasswordNeeded: [],
+            encryptedExtraFieldsNeeded: [],
             failed: false,
           });
           return true;
@@ -571,6 +591,9 @@ export function useImportResource(
                 sshPasswordNeeded: getSSHPasswordsNeeded(error.errors),
                 sshPrivateKeyNeeded: getSSHPrivateKeysNeeded(error.errors),
                 sshPrivateKeyPasswordNeeded: getSSHPrivateKeyPasswordsNeeded(
+                  error.errors,
+                ),
+                encryptedExtraFieldsNeeded: getEncryptedExtraFieldsNeeded(
                   error.errors,
                 ),
                 alreadyExists: getAlreadyExists(error.errors),
