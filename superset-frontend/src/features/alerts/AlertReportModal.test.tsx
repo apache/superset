@@ -18,6 +18,7 @@
  */
 import fetchMock from 'fetch-mock';
 import {
+  act,
   render,
   screen,
   userEvent,
@@ -778,34 +779,40 @@ test('filter reappears in dropdown after clearing with X icon', async () => {
   const chartDataEndpoint = 'glob:*/api/v1/chart/data*';
 
   fetchMock.removeRoute(tabsEndpoint);
-  fetchMock.get(tabsEndpoint, {
-    result: {
-      all_tabs: { tab1: 'Tab 1' },
-      tab_tree: [{ title: 'Tab 1', value: 'tab1' }],
-      native_filters: {
-        all: [
-          {
-            id: 'NATIVE_FILTER-test1',
-            name: 'Test Filter 1',
-            filterType: 'filter_select',
-            targets: [{ column: { name: 'test_column_1' } }],
-            adhoc_filters: [],
-          },
-        ],
-        tab1: [
-          {
-            id: 'NATIVE_FILTER-test2',
-            name: 'Test Filter 2',
-            filterType: 'filter_select',
-            targets: [{ column: { name: 'test_column_2' } }],
-            adhoc_filters: [],
-          },
-        ],
+  fetchMock.get(
+    tabsEndpoint,
+    {
+      result: {
+        all_tabs: { tab1: 'Tab 1' },
+        tab_tree: [{ title: 'Tab 1', value: 'tab1' }],
+        native_filters: {
+          all: [
+            {
+              id: 'NATIVE_FILTER-test1',
+              name: 'Test Filter 1',
+              filterType: 'filter_select',
+              targets: [{ column: { name: 'test_column_1' } }],
+              adhoc_filters: [],
+            },
+          ],
+          tab1: [
+            {
+              id: 'NATIVE_FILTER-test2',
+              name: 'Test Filter 2',
+              filterType: 'filter_select',
+              targets: [{ column: { name: 'test_column_2' } }],
+              adhoc_filters: [],
+            },
+          ],
+        },
       },
     },
-  });
+    { name: 'clear-icon-tabs' },
+  );
 
-  fetchMock.post(chartDataEndpoint, { result: [{ data: [] }] });
+  fetchMock.post(chartDataEndpoint, { result: [{ data: [] }] }, {
+    name: 'clear-icon-chart-data',
+  });
 
   render(<AlertReportModal {...generateMockedProps(true, true)} />, {
     useRedux: true,
@@ -857,6 +864,15 @@ test('filter reappears in dropdown after clearing with X icon', async () => {
       within(virtualList as HTMLElement).getByText('Test Filter 1'),
     ).toBeInTheDocument();
   });
+
+  // Restore original tabs mock and remove chart data mock
+  fetchMock.removeRoute('clear-icon-tabs');
+  fetchMock.removeRoute('clear-icon-chart-data');
+  fetchMock.get(
+    tabsEndpoint,
+    { result: { all_tabs: {}, tab_tree: [] } },
+    { name: tabsEndpoint },
+  );
 });
 
 test('edit mode shows friendly filter names instead of raw IDs', async () => {
@@ -910,36 +926,13 @@ test('edit mode falls back to raw ID when filterName is missing', async () => {
 test('tabs metadata overwrites seeded filter options', async () => {
   const chartDataEndpoint = 'glob:*/api/v1/chart/data*';
 
-  // Clear all routes and re-establish the ones needed for this test
-  fetchMock.removeRoutes();
-  fetchMock.get(FETCH_REPORT_OVERWRITE_ENDPOINT, {
-    result: {
-      ...generateMockPayload(true),
-      id: 5,
-      type: 'Report',
-      extra: {
-        dashboard: {
-          nativeFilters: [
-            {
-              nativeFilterId: 'NATIVE_FILTER-abc123',
-              filterName: 'Country',
-              filterType: 'filter_select',
-              columnName: 'country',
-              columnLabel: 'Country',
-              filterValues: ['USA'],
-            },
-          ],
-        },
-      },
-    },
+  // Deferred promise to control when the tabs response resolves
+  let resolveTabsResponse!: (value: unknown) => void;
+  const deferredTabs = new Promise(resolve => {
+    resolveTabsResponse = resolve;
   });
-  fetchMock.get(ownersEndpoint, { result: [] });
-  fetchMock.get(databaseEndpoint, { result: [] });
-  fetchMock.get(dashboardEndpoint, { result: [] });
-  fetchMock.get(chartEndpoint, {
-    result: [{ text: 'table chart', value: 1 }],
-  });
-  fetchMock.get(tabsEndpoint, {
+
+  const tabsResult = {
     result: {
       all_tabs: { tab1: 'Tab 1' },
       tab_tree: [{ title: 'Tab 1', value: 'tab1' }],
@@ -956,8 +949,18 @@ test('tabs metadata overwrites seeded filter options', async () => {
         tab1: [],
       },
     },
+  };
+
+  // Replace only the tabs route with a deferred version
+  fetchMock.removeRoute(tabsEndpoint);
+  fetchMock.get(
+    tabsEndpoint,
+    () => deferredTabs.then(() => tabsResult),
+    { name: 'deferred-tabs' },
+  );
+  fetchMock.post(chartDataEndpoint, { result: [{ data: [] }] }, {
+    name: 'overwrite-chart-data',
   });
-  fetchMock.post(chartDataEndpoint, { result: [{ data: [] }] });
 
   const props = generateMockedProps(true, true);
   const editProps = {
@@ -971,18 +974,36 @@ test('tabs metadata overwrites seeded filter options', async () => {
 
   userEvent.click(screen.getByTestId('contents-panel'));
 
-  // Tabs metadata should overwrite the seeded "Country" with "Country (All Filters)"
+  // Seeded label from saved data appears before tabs respond
+  const filterSelect = screen.getByRole('combobox', {
+    name: /select filter/i,
+  });
+  const selectContainer = filterSelect.closest('.ant-select') as HTMLElement;
   await waitFor(() => {
-    const updatedItem = document.querySelector(
-      '.ant-select-selection-item[title="Country (All Filters)"]',
-    );
-    expect(updatedItem).toBeInTheDocument();
+    expect(within(selectContainer).getByTitle('Country')).toBeInTheDocument();
   });
 
-  // The original seeded label should no longer be displayed
+  // Resolve the deferred tabs response
+  await act(async () => {
+    resolveTabsResponse(undefined);
+  });
+
+  // Tabs metadata overwrites the seeded label
+  await waitFor(() => {
+    expect(
+      within(selectContainer).getByTitle('Country (All Filters)'),
+    ).toBeInTheDocument();
+  });
   expect(
-    document.querySelector(
-      '.ant-select-selection-item[title="Country"]',
-    ),
+    within(selectContainer).queryByTitle('Country'),
   ).not.toBeInTheDocument();
+
+  // Restore the tabs route and remove chart data mock
+  fetchMock.removeRoute('deferred-tabs');
+  fetchMock.removeRoute('overwrite-chart-data');
+  fetchMock.get(
+    tabsEndpoint,
+    { result: { all_tabs: {}, tab_tree: [] } },
+    { name: tabsEndpoint },
+  );
 });
