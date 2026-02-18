@@ -531,3 +531,144 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
             db.session.delete(target)  # noqa: F405
 
         db.session.commit()  # noqa: F405
+
+    def test_get_dashboards_api__admin_sees_dashboards_with_public_role(self):
+        """
+        Test that Admin users can see dashboards when Public role is assigned.
+        This verifies the fix for the regression where granting permissions to
+        Public role caused Admin users to lose access to dashboards.
+        """
+        # arrange: Create a published dashboard with Public role assigned
+        public_role = security_manager.get_public_role()  # noqa: F405
+        dashboard_with_public = create_dashboard_to_db(
+            dashboard_title="Dashboard with Public role",
+            published=True,
+            slices=[create_slice_to_db()],
+        )
+        dashboard_with_public.roles = [public_role]
+        db.session.commit()  # noqa: F405
+
+        self.login(ADMIN_USERNAME)
+
+        # act: Get dashboards via API
+        response = self.get_dashboards_api_response()
+
+        # assert: Admin should see the dashboard with Public role
+        dashboard_ids = [d["id"] for d in response.json["result"]]
+        assert dashboard_with_public.id in dashboard_ids, (
+            f"Admin should see dashboard {dashboard_with_public.id} "
+            "with Public role assigned"
+        )
+
+        # cleanup
+        db.session.delete(dashboard_with_public)  # noqa: F405
+        db.session.commit()  # noqa: F405
+
+    def test_get_dashboard_view__admin_can_access_dashboard_with_public_role(self):
+        """
+        Test that Admin users can access individual dashboards when Public role
+        is assigned. This ensures the fix works for both list and detail views.
+        """
+        # arrange
+        public_role = security_manager.get_public_role()  # noqa: F405
+        dashboard_with_public = create_dashboard_to_db(
+            dashboard_title="Dashboard with Public role",
+            published=True,
+            slices=[create_slice_to_db()],
+        )
+        dashboard_with_public.roles = [public_role]
+        db.session.commit()  # noqa: F405
+
+        self.login(ADMIN_USERNAME)
+
+        # act
+        response = self.get_dashboard_view_response(dashboard_with_public)
+
+        # assert
+        self.assert200(response)
+
+        # cleanup
+        db.session.delete(dashboard_with_public)  # noqa: F405
+        db.session.commit()  # noqa: F405
+
+    @pytest.mark.usefixtures("public_role_like_gamma")
+    def test_get_dashboards_api__public_user_sees_dashboards_with_public_role(self):
+        """
+        Test that Public users can see dashboards when Public role is assigned.
+        This ensures our fix doesn't break normal Public role access.
+        """
+        # arrange
+        public_role = security_manager.get_public_role()  # noqa: F405
+        dashboard_with_public = create_dashboard_to_db(
+            dashboard_title="Dashboard with Public role",
+            published=True,
+            slices=[create_slice_to_db()],
+        )
+        dashboard_with_public.roles = [public_role]
+        db.session.commit()  # noqa: F405
+
+        # act: Access as anonymous user (Public role)
+        response = self.get_dashboards_api_response()
+
+        # assert: Public user should see the dashboard
+        dashboard_ids = [d["id"] for d in response.json["result"]]
+        assert dashboard_with_public.id in dashboard_ids, (
+            f"Public user should see dashboard {dashboard_with_public.id} "
+            "with Public role assigned"
+        )
+
+        # cleanup
+        db.session.delete(dashboard_with_public)  # noqa: F405
+        db.session.commit()  # noqa: F405
+
+    def test_get_dashboards_api__non_public_role_access_not_affected(self):
+        """
+        Test that dashboards with non-Public roles still work correctly.
+        This ensures our fix doesn't break permission inheritance for other roles.
+        """
+        # arrange
+        username = random_str()  # noqa: F405
+        new_role = f"role_{random_str()}"  # noqa: F405
+        user = self.create_user_with_roles(
+            username, [new_role], should_create_roles=True
+        )
+        
+        # Create dashboard with the user's custom role (not Public)
+        role_obj = security_manager.find_role(new_role)  # noqa: F405
+        dashboard_with_custom_role = create_dashboard_to_db(
+            dashboard_title="Dashboard with custom role",
+            published=True,
+            slices=[create_slice_to_db()],
+        )
+        dashboard_with_custom_role.roles = [role_obj]
+        db.session.commit()  # noqa: F405
+
+        # Create dashboard without any roles (user shouldn't see this)
+        dashboard_without_role = create_dashboard_to_db(
+            dashboard_title="Dashboard without role",
+            published=True,
+            slices=[create_slice_to_db()],
+        )
+        db.session.commit()  # noqa: F405
+
+        self.login(username)
+
+        # act
+        response = self.get_dashboards_api_response()
+
+        # assert: User should see dashboard with their role but not others
+        dashboard_ids = [d["id"] for d in response.json["result"]]
+        assert dashboard_with_custom_role.id in dashboard_ids, (
+            f"User should see dashboard {dashboard_with_custom_role.id} "
+            "with their assigned role"
+        )
+        assert dashboard_without_role.id not in dashboard_ids, (
+            f"User should NOT see dashboard {dashboard_without_role.id} "
+            "without their role assigned"
+        )
+
+        # cleanup
+        db.session.delete(dashboard_with_custom_role)  # noqa: F405
+        db.session.delete(dashboard_without_role)  # noqa: F405
+        db.session.commit()  # noqa: F405
+
