@@ -56,7 +56,7 @@
     "@storybook/blocks": "^8.6.15",
     "@storybook/channels": "^8.6.15",
     "@storybook/client-logger": "^8.6.15",
-    "@storybook/components": "^8.6.15",
+    "@storybook/components": "^8.6.17",
     "@storybook/core": "^8.6.17",
     "@storybook/core-events": "^8.6.15",
     "@storybook/csf": "^0.1.13",
