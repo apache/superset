@@ -104,9 +104,52 @@ const generateMockPayload = (dashboard = true) => {
 // mocking resource endpoints
 const FETCH_DASHBOARD_ENDPOINT = 'glob:*/api/v1/report/1';
 const FETCH_CHART_ENDPOINT = 'glob:*/api/v1/report/2';
+const FETCH_REPORT_WITH_FILTERS_ENDPOINT = 'glob:*/api/v1/report/3';
+const FETCH_REPORT_NO_FILTER_NAME_ENDPOINT = 'glob:*/api/v1/report/4';
 
 fetchMock.get(FETCH_DASHBOARD_ENDPOINT, { result: generateMockPayload(true) });
 fetchMock.get(FETCH_CHART_ENDPOINT, { result: generateMockPayload(false) });
+fetchMock.get(FETCH_REPORT_WITH_FILTERS_ENDPOINT, {
+  result: {
+    ...generateMockPayload(true),
+    id: 3,
+    type: 'Report',
+    extra: {
+      dashboard: {
+        nativeFilters: [
+          {
+            nativeFilterId: 'NATIVE_FILTER-abc123',
+            filterName: 'Country',
+            filterType: 'filter_select',
+            columnName: 'country',
+            columnLabel: 'Country',
+            filterValues: ['USA'],
+          },
+        ],
+      },
+    },
+  },
+});
+fetchMock.get(FETCH_REPORT_NO_FILTER_NAME_ENDPOINT, {
+  result: {
+    ...generateMockPayload(true),
+    id: 4,
+    type: 'Report',
+    extra: {
+      dashboard: {
+        nativeFilters: [
+          {
+            nativeFilterId: 'NATIVE_FILTER-xyz789',
+            filterType: 'filter_select',
+            columnName: 'region',
+            columnLabel: 'Region',
+            filterValues: ['West'],
+          },
+        ],
+      },
+    },
+  },
+});
 
 // Related mocks
 const ownersEndpoint = 'glob:*/api/v1/alert/related/owners?*';
@@ -791,5 +834,53 @@ test('filter reappears in dropdown after clearing with X icon', async () => {
     expect(
       within(virtualList as HTMLElement).getByText('Test Filter 1'),
     ).toBeInTheDocument();
+  });
+});
+
+test('edit mode shows friendly filter names instead of raw IDs', async () => {
+  const props = generateMockedProps(true, true);
+  const editProps = {
+    ...props,
+    alert: { ...validAlert, id: 3 },
+  };
+
+  render(<AlertReportModal {...editProps} />, {
+    useRedux: true,
+  });
+
+  userEvent.click(screen.getByTestId('contents-panel'));
+
+  await waitFor(() => {
+    const selectionItem = document.querySelector(
+      '.ant-select-selection-item[title="Country"]',
+    );
+    expect(selectionItem).toBeInTheDocument();
+  });
+
+  expect(
+    document.querySelector(
+      '.ant-select-selection-item[title="NATIVE_FILTER-abc123"]',
+    ),
+  ).not.toBeInTheDocument();
+});
+
+test('edit mode falls back to raw ID when filterName is missing', async () => {
+  const props = generateMockedProps(true, true);
+  const editProps = {
+    ...props,
+    alert: { ...validAlert, id: 4 },
+  };
+
+  render(<AlertReportModal {...editProps} />, {
+    useRedux: true,
+  });
+
+  userEvent.click(screen.getByTestId('contents-panel'));
+
+  await waitFor(() => {
+    const selectionItem = document.querySelector(
+      '.ant-select-selection-item[title="NATIVE_FILTER-xyz789"]',
+    );
+    expect(selectionItem).toBeInTheDocument();
   });
 });
