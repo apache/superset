@@ -62,7 +62,7 @@
     "@storybook/csf": "^0.1.13",
     "@storybook/docs-tools": "^8.6.15",
     "@storybook/preview-api": "^8.6.15",
-    "@storybook/theming": "^8.6.15",
+    "@storybook/theming": "^8.6.17",
     "@superset-ui/core": "^0.20.4",
     "@swc/core": "^1.15.11",
     "antd": "^6.3.0",

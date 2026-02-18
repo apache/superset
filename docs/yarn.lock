@@ -3431,10 +3431,10 @@
   resolved "https://registry.yarnpkg.com/@storybook/theming/-/theming-8.6.16.tgz#8fe990f275ebad104b96dae960442512b0a83f52"
   integrity sha512-xtd7C68LIAjh7n/CTBA6D9gZux1h4Kt086iPwlMk278aSab4VksQhsFOwWbY0WJlBNqqVnYwEu5AnDKgjPJpvg==
 
-"@storybook/theming@^8.6.15":
-  version "8.6.15"
-  resolved "https://registry.npmjs.org/@storybook/theming/-/theming-8.6.15.tgz"
-  integrity sha512-dAbL0XOekyT6XsF49R6Etj3WxQ/LpdJDIswUUeHgVJ6/yd2opZOGbPxnwA3zlmAh1c0tvpPyhSDXxSG79u8e4Q==
+"@storybook/theming@^8.6.17":
+  version "8.6.17"
+  resolved "https://registry.yarnpkg.com/@storybook/theming/-/theming-8.6.17.tgz#0175bbc22cdc262d171168af67fce6a5e3d76a7f"
+  integrity sha512-IttFvRqozpuzN5MlQEWGOzUA2rZg86688Dyv1d+bjpYcFHtY1X4XyTCGwv1BPTaTsB959oM8R2yoNYWQkABbBA==
 
 "@superset-ui/core@^0.20.4":
   version "0.20.4"
