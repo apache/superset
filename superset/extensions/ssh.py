@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING
 
 import sshtunnel
 from flask import Flask
-from paramiko import RSAKey
+from paramiko import ECDSAKey, Ed25519Key, PKey, RSAKey
 
 from superset.commands.database.ssh_tunnel.exceptions import SSHTunnelDatabasePortError
 from superset.databases.utils import make_url_safe
@@ -29,6 +29,43 @@ from superset.utils.class_utils import load_class_from_name
 
 if TYPE_CHECKING:
     from superset.databases.ssh_tunnel.models import SSHTunnel
+
+logger = logging.getLogger(__name__)
+
+
+def _load_private_key(
+    private_key_str: str, private_key_password: str | None = None
+) -> PKey:
+    """
+    Load a private key from string, automatically detecting the key type.
+
+    Attempts to load the private key using all key types supported by Paramiko
+    (RSA, ECDSA, Ed25519) until one succeeds.
+
+    :param private_key_str: Private key content as string
+    :param private_key_password: Optional password for encrypted keys
+    :return: Loaded private key object
+    :raises ValueError: If the key cannot be loaded with any supported key type
+    """
+    # Try each key type in order of common usage
+    key_classes = (RSAKey, Ed25519Key, ECDSAKey)
+    errors = []
+
+    for key_class in key_classes:
+        try:
+            private_key_file = StringIO(private_key_str)
+            return key_class.from_private_key(private_key_file, private_key_password)
+        except Exception as e:
+            errors.append(f"{key_class.__name__}: {e!s}")
+            continue
+
+    # If all key types fail, raise an error with details
+    error_msg = (
+        "Failed to load private key with any supported key type. "
+        f"Attempted: {', '.join(cls.__name__ for cls in key_classes)}. "
+        f"Errors: {'; '.join(errors)}"
+    )
+    raise ValueError(error_msg)
 
 
 class SSHManager:
@@ -71,9 +108,8 @@ class SSHManager:
         if ssh_tunnel.password:
             params["ssh_password"] = ssh_tunnel.password
         elif ssh_tunnel.private_key:
-            private_key_file = StringIO(ssh_tunnel.private_key)
-            private_key = RSAKey.from_private_key(
-                private_key_file, ssh_tunnel.private_key_password
+            private_key = _load_private_key(
+                ssh_tunnel.private_key, ssh_tunnel.private_key_password
             )
             params["ssh_pkey"] = private_key
 
