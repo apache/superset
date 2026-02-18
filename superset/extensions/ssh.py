@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING
 
 import sshtunnel
 from flask import Flask
-from paramiko import RSAKey
+from paramiko import DSSKey, ECDSAKey, Ed25519Key, PKey, RSAKey, SSHException
 
 from superset.commands.database.ssh_tunnel.exceptions import SSHTunnelDatabasePortError
 from superset.databases.utils import make_url_safe
@@ -37,6 +37,41 @@ class SSHManager:
         self.local_bind_address = app.config["SSH_TUNNEL_LOCAL_BIND_ADDRESS"]
         sshtunnel.TUNNEL_TIMEOUT = app.config["SSH_TUNNEL_TIMEOUT_SEC"]
         sshtunnel.SSH_TIMEOUT = app.config["SSH_TUNNEL_PACKET_TIMEOUT_SEC"]
+
+    @staticmethod
+    def _load_private_key(key_str: str, password: str | None = None) -> PKey:
+        """
+        Load a private key from a string, automatically detecting the key type.
+
+        Paramiko supports multiple key types (RSA, Ed25519, ECDSA, DSS).
+        This method tries each type until one succeeds, enabling support for
+        modern key formats without hardcoding specific key types.
+
+        :param key_str: Private key content as a string
+        :param password: Optional passphrase for encrypted keys
+        :return: Loaded PKey instance
+        :raises SSHException: If the key cannot be loaded with any supported type
+        """
+        key_file = StringIO(key_str)
+        # Try key types in order of common usage
+        # RSA: Most common, legacy standard
+        # Ed25519: Modern, recommended by security best practices
+        # ECDSA: Modern elliptic curve
+        # DSS: Legacy DSA keys
+        key_classes = [RSAKey, Ed25519Key, ECDSAKey, DSSKey]
+
+        for key_class in key_classes:
+            try:
+                key_file.seek(0)  # Reset file pointer for each attempt
+                return key_class.from_private_key(key_file, password)
+            except SSHException:
+                continue  # Try next key type
+
+        # If all attempts fail, raise an error
+        raise SSHException(
+            "Unable to load private key. The key format is not recognized or is invalid. "
+            "Supported formats: RSA, Ed25519, ECDSA, DSS."
+        )
 
     def build_sqla_url(
         self, sqlalchemy_url: str, server: sshtunnel.SSHTunnelForwarder
@@ -71,9 +106,8 @@ class SSHManager:
         if ssh_tunnel.password:
             params["ssh_password"] = ssh_tunnel.password
         elif ssh_tunnel.private_key:
-            private_key_file = StringIO(ssh_tunnel.private_key)
-            private_key = RSAKey.from_private_key(
-                private_key_file, ssh_tunnel.private_key_password
+            private_key = self._load_private_key(
+                ssh_tunnel.private_key, ssh_tunnel.private_key_password
             )
             params["ssh_pkey"] = private_key
 
