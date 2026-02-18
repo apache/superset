@@ -657,6 +657,45 @@ test('rearranges three filters and deletes one of them', async () => {
   );
 });
 
+test('updates sidebar title when filter name changes', async () => {
+  const nativeFilterConfig = [
+    buildNativeFilter('NATIVE_FILTER-1', 'state', []),
+    buildNativeFilter('NATIVE_FILTER-2', 'country', []),
+  ];
+
+  const state = {
+    ...defaultState(),
+    dashboardInfo: {
+      metadata: {
+        native_filter_configuration: nativeFilterConfig,
+      },
+    },
+    dashboardLayout,
+  };
+
+  defaultRender(state, {
+    ...props,
+    createNewOnOpen: false,
+  });
+
+  const filterNameInput = screen.getByRole('textbox', {
+    name: FILTER_NAME_REGEX,
+  });
+
+  const filterContainer = screen.getByTestId('filter-title-container');
+  const tabsBeforeChange = within(filterContainer).getAllByRole('tab');
+
+  expect(tabsBeforeChange[0]).not.toHaveTextContent('New Filter Name');
+
+  await userEvent.clear(filterNameInput);
+  await userEvent.type(filterNameInput, 'New Filter Name');
+
+  await waitFor(() => {
+    const tabsAfterChange = within(filterContainer).getAllByRole('tab');
+    expect(tabsAfterChange[0]).toHaveTextContent('New Filter Name');
+  });
+});
+
 test('modifies the name of a filter', async () => {
   jest.useFakeTimers();
   try {
@@ -1055,8 +1094,9 @@ test('save includes updated translation after editing translation input', async 
       /Translation for DE/i,
     );
 
-    await userEvent.clear(translationInput);
-    await userEvent.type(translationInput, 'Neuer Name');
+    fireEvent.change(translationInput, {
+      target: { value: 'Neuer Name' },
+    });
 
     jest.runAllTimers();
 
@@ -1110,8 +1150,7 @@ test('translation edit is debounced like default name edit', async () => {
       /Translation for DE/i,
     );
 
-    await userEvent.clear(translationInput);
-    await userEvent.type(translationInput, 'X');
+    fireEvent.change(translationInput, { target: { value: 'X' } });
 
     // Before debounce fires, Save should NOT be enabled because
     // formChanged has not yet executed (same as default name input behavior)

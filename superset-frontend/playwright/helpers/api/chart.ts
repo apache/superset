@@ -19,15 +19,16 @@
 
 import { Page, APIResponse } from '@playwright/test';
 import {
+  apiDelete,
   apiGet,
   apiPost,
   apiPut,
-  apiDelete,
   ApiRequestOptions,
 } from './requests';
 
 export const ENDPOINTS = {
   CHART: 'api/v1/chart/',
+  CHART_EXPORT: 'api/v1/chart/export/',
 } as const;
 
 /** Payload for POST /api/v1/chart/ */

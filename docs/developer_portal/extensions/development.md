@@ -92,12 +92,14 @@ The `extension.json` file contains all metadata necessary for the host applicati
   "frontend": {
     "contributions": {
       "views": {
-        "sqllab.panels": [
-          {
-            "id": "dataset_references.main",
-            "name": "Dataset references"
-          }
-        ]
+        "sqllab": {
+          "panels": [
+            {
+              "id": "dataset_references.main",
+              "name": "Dataset references"
+            }
+          ]
+        }
       }
     },
     "moduleFederation": {

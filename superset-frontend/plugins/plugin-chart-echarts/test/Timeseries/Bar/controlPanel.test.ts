@@ -17,188 +17,204 @@
  * under the License.
  */
 import controlPanel from '../../../src/Timeseries/Regular/Bar/controlPanel';
+import {
+  StackControlOptionsWithoutStream,
+  StackControlsValue,
+} from '../../../src/constants';
 
-describe('Bar Chart Control Panel', () => {
-  describe('x_axis_time_format control', () => {
-    test('should include x_axis_time_format control in the panel', () => {
-      const config = controlPanel;
+const config = controlPanel;
 
-      // Look for x_axis_time_format control in all sections and rows
-      let foundTimeFormatControl = false;
-
-      for (const section of config.controlPanelSections) {
-        if (section && section.controlSetRows) {
-          for (const row of section.controlSetRows) {
-            for (const control of row) {
-              if (
-                typeof control === 'object' &&
-                control !== null &&
-                'name' in control &&
-                control.name === 'x_axis_time_format'
-              ) {
-                foundTimeFormatControl = true;
-                break;
-              }
-            }
-            if (foundTimeFormatControl) break;
+const getControl = (controlName: string) => {
+  for (const section of config.controlPanelSections) {
+    if (section && section.controlSetRows) {
+      for (const row of section.controlSetRows) {
+        for (const control of row) {
+          if (
+            typeof control === 'object' &&
+            control !== null &&
+            'name' in control &&
+            control.name === controlName
+          ) {
+            return control;
           }
-          if (foundTimeFormatControl) break;
         }
       }
+    }
+  }
 
-      expect(foundTimeFormatControl).toBe(true);
-    });
+  return null;
+};
 
-    test('should have correct default value for x_axis_time_format', () => {
-      const config = controlPanel;
+// Mock getStandardizedControls
+jest.mock('@superset-ui/chart-controls', () => {
+  const actual = jest.requireActual('@superset-ui/chart-controls');
+  return {
+    ...actual,
+    getStandardizedControls: jest.fn(() => ({
+      popAllMetrics: jest.fn(() => []),
+      popAllColumns: jest.fn(() => []),
+    })),
+  };
+});
 
-      // Find the x_axis_time_format control
-      let timeFormatControl: any = null;
+test('should include x_axis_time_format control in the panel', () => {
+  const timeFormatControl = getControl('x_axis_time_format');
+  expect(timeFormatControl).toBeDefined();
+});
 
-      for (const section of config.controlPanelSections) {
-        if (section && section.controlSetRows) {
-          for (const row of section.controlSetRows) {
-            for (const control of row) {
-              if (
-                typeof control === 'object' &&
-                control !== null &&
-                'name' in control &&
-                control.name === 'x_axis_time_format'
-              ) {
-                timeFormatControl = control;
-                break;
-              }
-            }
-            if (timeFormatControl) break;
-          }
-          if (timeFormatControl) break;
-        }
-      }
+test('should have correct default value for x_axis_time_format', () => {
+  const timeFormatControl: any = getControl('x_axis_time_format');
+  expect(timeFormatControl).toBeDefined();
+  expect(timeFormatControl.config).toBeDefined();
+  expect(timeFormatControl.config.default).toBe('smart_date');
+});
 
-      expect(timeFormatControl).toBeDefined();
-      expect(timeFormatControl.config).toBeDefined();
-      expect(timeFormatControl.config.default).toBe('smart_date');
-    });
+test('should have visibility function for x_axis_time_format', () => {
+  const timeFormatControl: any = getControl('x_axis_time_format');
+  expect(timeFormatControl).toBeDefined();
+  expect(timeFormatControl.config.visibility).toBeDefined();
+  expect(typeof timeFormatControl.config.visibility).toBe('function');
+});
 
-    test('should have visibility function for x_axis_time_format', () => {
-      const config = controlPanel;
-
-      // Find the x_axis_time_format control
-      let timeFormatControl: any = null;
-
-      for (const section of config.controlPanelSections) {
-        if (section && section.controlSetRows) {
-          for (const row of section.controlSetRows) {
-            for (const control of row) {
-              if (
-                typeof control === 'object' &&
-                control !== null &&
-                'name' in control &&
-                control.name === 'x_axis_time_format'
-              ) {
-                timeFormatControl = control;
-                break;
-              }
-            }
-            if (timeFormatControl) break;
-          }
-          if (timeFormatControl) break;
-        }
-      }
-
-      expect(timeFormatControl).toBeDefined();
-      expect(timeFormatControl.config.visibility).toBeDefined();
-      expect(typeof timeFormatControl.config.visibility).toBe('function');
-
-      // The visibility function exists - the exact logic is tested implicitly through UI behavior
-      // The important part is that the control has proper visibility configuration
-    });
-
-    test('should have proper control configuration', () => {
-      const config = controlPanel;
-
-      // Find the x_axis_time_format control
-      let timeFormatControl: any = null;
-
-      for (const section of config.controlPanelSections) {
-        if (section && section.controlSetRows) {
-          for (const row of section.controlSetRows) {
-            for (const control of row) {
-              if (
-                typeof control === 'object' &&
-                control !== null &&
-                'name' in control &&
-                control.name === 'x_axis_time_format'
-              ) {
-                timeFormatControl = control;
-                break;
-              }
-            }
-            if (timeFormatControl) break;
-          }
-          if (timeFormatControl) break;
-        }
-      }
-
-      expect(timeFormatControl).toBeDefined();
-      expect(timeFormatControl.config).toMatchObject({
-        default: 'smart_date',
-        disableStash: true,
-        resetOnHide: false,
-      });
-
-      // Should have a description that includes D3 time format docs
-      expect(timeFormatControl.config.description).toContain('D3');
-    });
+test('should have proper control configuration for x_axis_time_format', () => {
+  const timeFormatControl: any = getControl('x_axis_time_format');
+  expect(timeFormatControl).toBeDefined();
+  expect(timeFormatControl.config).toMatchObject({
+    default: 'smart_date',
+    disableStash: true,
+    resetOnHide: false,
   });
+  expect(timeFormatControl.config.description).toContain('D3');
+});
 
-  describe('Control panel structure for bar charts', () => {
-    test('should have Chart Orientation section', () => {
-      const config = controlPanel;
+test('should have Chart Orientation section', () => {
+  const orientationSection = config.controlPanelSections.find(
+    section => section && section.label === 'Chart Orientation',
+  );
+  expect(orientationSection).toBeDefined();
+  expect(orientationSection!.expanded).toBe(true);
+});
 
-      const orientationSection = config.controlPanelSections.find(
-        section => section && section.label === 'Chart Orientation',
-      );
+test('should have Chart Options section with X Axis controls', () => {
+  const chartOptionsSection = config.controlPanelSections.find(
+    section => section && section.label === 'Chart Options',
+  );
+  expect(chartOptionsSection).toBeDefined();
+  expect(chartOptionsSection!.expanded).toBe(true);
+  expect(chartOptionsSection!.controlSetRows).toBeDefined();
+  expect(chartOptionsSection!.controlSetRows!.length).toBeGreaterThan(0);
+});
 
-      expect(orientationSection).toBeDefined();
-      expect(orientationSection!.expanded).toBe(true);
-    });
+test('should have proper form data overrides', () => {
+  expect(config.formDataOverrides).toBeDefined();
+  expect(typeof config.formDataOverrides).toBe('function');
 
-    test('should have Chart Options section with X Axis controls', () => {
-      const config = controlPanel;
+  const mockFormData = {
+    datasource: '1__table',
+    viz_type: 'echarts_timeseries_bar',
+    metrics: ['test_metric'],
+    groupby: ['test_column'],
+    other_field: 'test',
+  };
 
-      const chartOptionsSection = config.controlPanelSections.find(
-        section => section && section.label === 'Chart Options',
-      );
+  const result = config.formDataOverrides!(mockFormData);
 
-      expect(chartOptionsSection).toBeDefined();
-      expect(chartOptionsSection!.expanded).toBe(true);
+  expect(result).toHaveProperty('metrics');
+  expect(result).toHaveProperty('groupby');
+  expect(result).toHaveProperty('other_field', 'test');
+});
 
-      // Should contain X Axis subsection header - this is sufficient proof
-      expect(chartOptionsSection!.controlSetRows).toBeDefined();
-      expect(chartOptionsSection!.controlSetRows!.length).toBeGreaterThan(0);
-    });
+test('should include stack control in the panel', () => {
+  const stackControl = getControl('stack');
+  expect(stackControl).toBeDefined();
+});
 
-    test('should have proper form data overrides', () => {
-      const config = controlPanel;
+test('should use StackControlOptionsWithoutStream for stack control', () => {
+  const stackControl: any = getControl('stack');
+  expect(stackControl).toBeDefined();
+  expect(stackControl.config).toBeDefined();
+  expect(stackControl.config.choices).toBe(StackControlOptionsWithoutStream);
+});
 
-      expect(config.formDataOverrides).toBeDefined();
-      expect(typeof config.formDataOverrides).toBe('function');
+test('should not include Stream option in stack control choices', () => {
+  const stackControl: any = getControl('stack');
+  expect(stackControl).toBeDefined();
+  const { choices } = stackControl.config;
+  const streamOption = choices.find(
+    (choice: any[]) => choice[0] === StackControlsValue.Stream,
+  );
+  expect(streamOption).toBeUndefined();
+});
 
-      // Test the form data override function
-      const mockFormData = {
-        datasource: '1__table',
-        viz_type: 'echarts_timeseries_bar',
-        metrics: ['test_metric'],
-        groupby: ['test_column'],
-        other_field: 'test',
-      };
+test('should include None and Stack options in stack control choices', () => {
+  const stackControl: any = getControl('stack');
+  expect(stackControl).toBeDefined();
+  const { choices } = stackControl.config;
+  const noneOption = choices.find((choice: any[]) => choice[0] === null);
+  const stackOption = choices.find(
+    (choice: any[]) => choice[0] === StackControlsValue.Stack,
+  );
+  expect(noneOption).toBeDefined();
+  expect(stackOption).toBeDefined();
+});
 
-      const result = config.formDataOverrides!(mockFormData);
+test('should have correct default value for stack control', () => {
+  const stackControl: any = getControl('stack');
+  expect(stackControl).toBeDefined();
+  expect(stackControl.config.default).toBe(null);
+});
 
-      expect(result).toHaveProperty('metrics');
-      expect(result).toHaveProperty('groupby');
-      expect(result).toHaveProperty('other_field', 'test');
-    });
-  });
+test('should reset stack to null when formData has Stream value', () => {
+  const mockFormData = {
+    datasource: '1__table',
+    viz_type: 'echarts_timeseries_bar',
+    metrics: ['test_metric'],
+    groupby: ['test_column'],
+    stack: StackControlsValue.Stream,
+  };
+
+  const result = config.formDataOverrides!(mockFormData);
+
+  expect(result.stack).toBe(null);
+});
+
+test('should preserve stack value when formData has Stack value', () => {
+  const mockFormData = {
+    datasource: '1__table',
+    viz_type: 'echarts_timeseries_bar',
+    metrics: ['test_metric'],
+    groupby: ['test_column'],
+    stack: StackControlsValue.Stack,
+  };
+
+  const result = config.formDataOverrides!(mockFormData);
+
+  expect(result.stack).toBe(StackControlsValue.Stack);
+});
+
+test('should preserve stack value when formData has null value', () => {
+  const mockFormData = {
+    datasource: '1__table',
+    viz_type: 'echarts_timeseries_bar',
+    metrics: ['test_metric'],
+    groupby: ['test_column'],
+    stack: null,
+  };
+
+  const result = config.formDataOverrides!(mockFormData);
+
+  expect(result.stack).toBe(null);
+});
+
+test('should preserve stack value when formData does not have stack property', () => {
+  const mockFormData = {
+    datasource: '1__table',
+    viz_type: 'echarts_timeseries_bar',
+    metrics: ['test_metric'],
+    groupby: ['test_column'],
+  };
+
+  const result = config.formDataOverrides!(mockFormData);
+
+  expect(result).not.toHaveProperty('stack');
 });

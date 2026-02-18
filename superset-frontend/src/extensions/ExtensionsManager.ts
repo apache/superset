@@ -22,7 +22,9 @@ import type { contributions, core } from '@apache-superset/core';
 import { ExtensionContext } from '../core/models';
 
 type MenuContribution = contributions.MenuContribution;
+type MenuContributions = contributions.MenuContributions;
 type ViewContribution = contributions.ViewContribution;
+type ViewContributions = contributions.ViewContributions;
 type CommandContribution = contributions.CommandContribution;
 type EditorContribution = contributions.EditorContribution;
 type Extension = core.Extension;
@@ -37,8 +39,8 @@ class ExtensionsManager {
   private extensionContributions: Map<
     string,
     {
-      menus?: Record<string, MenuContribution>;
-      views?: Record<string, ViewContribution[]>;
+      menus?: MenuContributions;
+      views?: ViewContributions;
       commands?: CommandContribution[];
       editors?: EditorContribution[];
     }
@@ -232,18 +234,24 @@ class ExtensionsManager {
 
   /**
    * Retrieves menu contributions for a specific key.
-   * @param key The key of the menu contributions.
+   * @param key The key of the menu contributions in format "scope.location" (e.g., "sqllab.editor").
    * @returns The menu contributions matching the key, or undefined if not found.
    */
   public getMenuContributions(key: string): MenuContribution | undefined {
+    const [scope, location] = key.split('.');
+    if (!scope || !location) {
+      return undefined;
+    }
     const merged: MenuContribution = {
       context: [],
       primary: [],
       secondary: [],
     };
     for (const ext of this.extensionContributions.values()) {
-      if (ext.menus && ext.menus[key]) {
-        const menu = ext.menus[key];
+      const scopeMenus = ext.menus?.[scope as keyof MenuContributions];
+      const menu =
+        scopeMenus?.[location as keyof NonNullable<typeof scopeMenus>];
+      if (menu) {
         if (menu.context) merged.context!.push(...menu.context);
         if (menu.primary) merged.primary!.push(...menu.primary);
         if (menu.secondary) merged.secondary!.push(...menu.secondary);
@@ -261,14 +269,21 @@ class ExtensionsManager {
 
   /**
    * Retrieves view contributions for a specific key.
-   * @param key The key of the view contributions.
+   * @param key The key of the view contributions in format "scope.location" (e.g., "sqllab.panels").
    * @returns An array of view contributions matching the key, or undefined if not found.
    */
   public getViewContributions(key: string): ViewContribution[] | undefined {
+    const [scope, location] = key.split('.');
+    if (!scope || !location) {
+      return undefined;
+    }
     let result: ViewContribution[] = [];
     for (const ext of this.extensionContributions.values()) {
-      if (ext.views && ext.views[key]) {
-        result = result.concat(ext.views[key]);
+      const scopeViews = ext.views?.[scope as keyof ViewContributions];
+      const views =
+        scopeViews?.[location as keyof NonNullable<typeof scopeViews>];
+      if (views) {
+        result = result.concat(views);
       }
     }
     return result.length > 0 ? result : undefined;

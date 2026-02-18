@@ -36,7 +36,6 @@ def test_submit_task_success(app_context, login_as, get_user) -> None:
             "task_type": "test-type",
             "task_key": "test-key",
             "task_name": "Test Task",
-            "user_id": admin.id,
         }
     )
 
@@ -49,6 +48,7 @@ def test_submit_task_success(app_context, login_as, get_user) -> None:
         assert result.task_name == "Test Task"
         assert result.status == TaskStatus.PENDING.value
         assert result.payload == "{}"
+        assert result.user_id == admin.id
 
         # Verify in database
         db.session.refresh(result)
@@ -70,7 +70,6 @@ def test_submit_task_with_all_fields(app_context, login_as, get_user) -> None:
             "task_type": "test-type",
             "task_key": "test-key-full",
             "task_name": "Test Task Full",
-            "user_id": admin.id,
             "payload": {"key": "value"},
             "properties": {"execution_mode": "async", "timeout": 300},
         }
@@ -117,10 +116,10 @@ def test_submit_task_joins_existing(app_context, login_as, get_user) -> None:
             "task_type": "test-type",
             "task_key": "shared-key",
             "task_name": "First Task",
-            "user_id": admin.id,
         }
     )
     task1 = command1.run()
+    assert task1.user_id == admin.id
 
     try:
         # Submit second task with same task_key and type
@@ -129,7 +128,6 @@ def test_submit_task_joins_existing(app_context, login_as, get_user) -> None:
                 "task_type": "test-type",
                 "task_key": "shared-key",
                 "task_name": "Second Task",
-                "user_id": admin.id,
             }
         )
 
@@ -152,7 +150,6 @@ def test_submit_task_without_task_key(app_context, login_as, get_user) -> None:
         data={
             "task_type": "test-type",
             "task_name": "Test Task No ID",
-            "user_id": admin.id,
         }
     )
 
@@ -164,6 +161,7 @@ def test_submit_task_without_task_key(app_context, login_as, get_user) -> None:
         assert result.task_name == "Test Task No ID"
         assert result.task_key is not None  # Command generated UUID
         assert result.uuid is not None
+        assert result.user_id == admin.id
     finally:
         # Cleanup
         db.session.delete(result)
@@ -182,7 +180,6 @@ def test_submit_task_run_with_info_returns_is_new_true(
             "task_type": "test-type",
             "task_key": "unique-key-is-new",
             "task_name": "Test Task",
-            "user_id": admin.id,
         }
     )
 
@@ -191,6 +188,7 @@ def test_submit_task_run_with_info_returns_is_new_true(
 
         assert is_new is True
         assert task.task_key == "unique-key-is-new"
+        assert task.user_id == admin.id
     finally:
         # Cleanup
         db.session.delete(task)
@@ -210,11 +208,11 @@ def test_submit_task_run_with_info_returns_is_new_false(
             "task_type": "test-type",
             "task_key": "shared-key-is-new",
             "task_name": "First Task",
-            "user_id": admin.id,
         }
     )
     task1, is_new1 = command1.run_with_info()
     assert is_new1 is True
+    assert task1.user_id == admin.id
 
     try:
         # Submit second task with same key
@@ -223,7 +221,6 @@ def test_submit_task_run_with_info_returns_is_new_false(
                 "task_type": "test-type",
                 "task_key": "shared-key-is-new",
                 "task_name": "Second Task",
-                "user_id": admin.id,
             }
         )
         task2, is_new2 = command2.run_with_info()

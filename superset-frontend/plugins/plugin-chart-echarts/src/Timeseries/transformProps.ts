@@ -42,6 +42,7 @@ import {
   isTimeseriesAnnotationLayer,
   resolveAutoCurrency,
   TimeseriesChartDataResponseResult,
+  TimeseriesDataRecord,
   NumberFormats,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/api/core';
@@ -488,7 +489,7 @@ export default function transformProps(
         series.push(
           transformFormulaAnnotation(
             layer,
-            data,
+            rebasedData as TimeseriesDataRecord[],
             xAxisLabel,
             xAxisType,
             colorScale,

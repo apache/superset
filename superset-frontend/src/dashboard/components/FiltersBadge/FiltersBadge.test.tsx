@@ -28,6 +28,7 @@ import { FiltersBadge } from 'src/dashboard/components/FiltersBadge';
 import {
   getMockStoreWithFilters,
   getMockStoreWithNativeFilters,
+  getMockStoreWithNativeFiltersButNoValues,
 } from 'spec/fixtures/mockStore';
 import { sliceId } from 'spec/fixtures/mockChartQueries';
 import { dashboardFilters } from 'spec/fixtures/mockDashboardFilters';
@@ -100,8 +101,7 @@ describe('for dashboard filters', () => {
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('for native filters', () => {
   test('does not show number when there are no active filters', () => {
-    const store = getMockStoreWithNativeFilters();
-    // start with basic dashboard state, dispatch an event to simulate query completion
+    const store = getMockStoreWithNativeFiltersButNoValues();
     store.dispatch({
       type: CHART_UPDATE_SUCCEEDED,
       key: sliceId,

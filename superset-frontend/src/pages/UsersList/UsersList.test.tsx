@@ -39,14 +39,14 @@ const rolesEndpoint = 'glob:*/security/roles/?*';
 const usersEndpoint = 'glob:*/security/users/?*';
 const groupsEndpoint = 'glob:*/security/groups/*';
 
-const mockRoles = new Array(3).fill(undefined).map((_, i) => ({
+const mockRoles = Array.from({ length: 3 }, (_, i) => ({
   id: i,
   name: `role ${i}`,
   user_ids: [i, i + 1],
   permission_ids: [i, i + 1, i + 2],
 }));
 
-const mockUsers = new Array(5).fill(undefined).map((_, i) => ({
+const mockUsers = Array.from({ length: 5 }, (_, i) => ({
   active: true,
   changed_by: { id: 1 },
   changed_on: new Date(2025, 2, 25, 11, 4, 32 + i).toISOString(),

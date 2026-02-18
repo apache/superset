@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FC, ReactNode } from 'react';
+import { FC, ReactNode, useCallback } from 'react';
 import { t } from '@apache-superset/core';
 import { NativeFilterType, ChartCustomizationType } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';
@@ -77,6 +77,7 @@ export interface ConfigModalSidebarProps {
     sourceType: 'filter' | 'customization',
     targetType: 'filter' | 'customization',
   ) => void;
+  itemTitles?: Record<string, string>;
 }
 
 const ConfigModalSidebar: FC<ConfigModalSidebarProps> = ({
@@ -99,7 +100,13 @@ const ConfigModalSidebar: FC<ConfigModalSidebarProps> = ({
   restoreItem,
   onCollapseChange,
   onCrossListDrop,
+  itemTitles,
 }) => {
+  const getTitle = useCallback(
+    (id: string) => itemTitles?.[id] ?? getItemTitle(id),
+    [itemTitles, getItemTitle],
+  );
+
   const handleFilterCrossListDrop = (
     sourceId: string,
     targetIndex: number,
@@ -150,7 +157,7 @@ const ConfigModalSidebar: FC<ConfigModalSidebarProps> = ({
             items={filterOrderedIds}
             removedItems={filterRemovedItems}
             erroredItems={filterErroredItems}
-            getItemTitle={getItemTitle}
+            getItemTitle={getTitle}
             onChange={onChange}
             onRearrange={onRearrange}
             onRemove={onRemove}
@@ -172,7 +179,7 @@ const ConfigModalSidebar: FC<ConfigModalSidebarProps> = ({
             items={customizationOrderedIds}
             removedItems={customizationRemovedItems}
             erroredItems={customizationErroredItems}
-            getItemTitle={getItemTitle}
+            getItemTitle={getTitle}
             onChange={onChange}
             onRearrange={onRearrange}
             onRemove={onRemove}

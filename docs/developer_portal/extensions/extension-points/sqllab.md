@@ -93,12 +93,14 @@ This example adds a "Data Profiler" panel to SQL Lab:
   "frontend": {
     "contributions": {
       "views": {
-        "sqllab.panels": [
-          {
-            "id": "data_profiler.main",
-            "name": "Data Profiler"
-          }
-        ]
+        "sqllab": {
+          "panels": [
+            {
+              "id": "data_profiler.main",
+              "name": "Data Profiler"
+            }
+          ]
+        }
       }
     }
   }
@@ -142,25 +144,27 @@ This example adds primary, secondary, and context actions to the editor:
         }
       ],
       "menus": {
-        "sqllab.editor": {
-          "primary": [
-            {
-              "view": "builtin.editor",
-              "command": "query_tools.format"
-            }
-          ],
-          "secondary": [
-            {
-              "view": "builtin.editor",
-              "command": "query_tools.explain"
-            }
-          ],
-          "context": [
-            {
-              "view": "builtin.editor",
-              "command": "query_tools.copy_as_cte"
-            }
-          ]
+        "sqllab": {
+          "editor": {
+            "primary": [
+              {
+                "view": "builtin.editor",
+                "command": "query_tools.format"
+              }
+            ],
+            "secondary": [
+              {
+                "view": "builtin.editor",
+                "command": "query_tools.explain"
+              }
+            ],
+            "context": [
+              {
+                "view": "builtin.editor",
+                "command": "query_tools.copy_as_cte"
+              }
+            ]
+          }
         }
       }
     }

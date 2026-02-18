@@ -25,7 +25,7 @@ const reportEndpoint = 'glob:*/api/v1/report/*';
 
 fetchMock.delete(executionLogsEndpoint, {});
 
-const mockAnnotations = new Array(3).fill(undefined).map((_, i) => ({
+const mockAnnotations = Array.from({ length: 3 }, (_, i) => ({
   end_dttm: new Date().toISOString,
   error_message: `report ${i} error message`,
   id: i,

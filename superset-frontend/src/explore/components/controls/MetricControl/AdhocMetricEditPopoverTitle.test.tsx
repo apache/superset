@@ -85,7 +85,7 @@ test('should render', async () => {
   const { container } = setup();
   expect(container).toBeInTheDocument();
 
-  expect(screen.queryByTestId('AdhocMetricTitle')).not.toBeInTheDocument();
+  expect(screen.queryByLabelText('Metric title')).not.toBeInTheDocument();
   expect(screen.getByText(titleProps.label)).toBeVisible();
 });
 
@@ -93,7 +93,7 @@ test('should render tooltip on hover', async () => {
   const { container } = setup();
 
   expect(screen.queryByText('Click to edit label')).not.toBeInTheDocument();
-  fireEvent.mouseOver(screen.getByTestId('AdhocMetricEditTitle#trigger'));
+  fireEvent.mouseOver(screen.getByRole('button', { name: /Click to edit metric label/i }));
 
   expect(await screen.findByText('Click to edit label')).toBeInTheDocument();
   expect(
@@ -101,7 +101,7 @@ test('should render tooltip on hover', async () => {
       .length,
   ).toBe(0);
 
-  fireEvent.mouseOut(screen.getByTestId('AdhocMetricEditTitle#trigger'));
+  fireEvent.mouseOut(screen.getByRole('button', { name: /Click to edit metric label/i }));
   await waitFor(() => {
     expect(
       container.parentElement?.getElementsByClassName('ant-tooltip-hidden')
@@ -114,10 +114,10 @@ test('render non-interactive span with title when edit is disabled', async () =>
   const { container } = setup({ isEditDisabled: true });
   expect(container).toBeInTheDocument();
 
-  expect(screen.queryByTestId('AdhocMetricTitle')).toBeInTheDocument();
+  expect(screen.queryByLabelText('Metric title')).toBeInTheDocument();
   expect(screen.getByText(titleProps.label)).toBeVisible();
   expect(
-    screen.queryByTestId('AdhocMetricEditTitle#trigger'),
+    screen.queryByRole('button', { name: /Click to edit metric label/i }),
   ).not.toBeInTheDocument();
 });
 
@@ -125,7 +125,7 @@ test('render default label if no title is provided', async () => {
   const { container } = setup({ title: undefined });
   expect(container).toBeInTheDocument();
 
-  expect(screen.queryByTestId('AdhocMetricTitle')).not.toBeInTheDocument();
+  expect(screen.queryByLabelText('Metric title')).not.toBeInTheDocument();
   expect(screen.getByText('My metric')).toBeVisible();
 });
 
@@ -135,40 +135,40 @@ test('start and end the title edit mode', async () => {
   expect(screen.getByRole('img', { name: 'edit' })).toBeInTheDocument();
   expect(screen.getByText(titleProps.label)).toBeVisible();
   expect(
-    screen.queryByTestId('AdhocMetricEditTitle#input'),
+    screen.queryByRole('textbox', { name: /edit metric label/i }),
   ).not.toBeInTheDocument();
 
   fireEvent.click(
     container.getElementsByClassName('AdhocMetricEditPopoverTitle')[0],
   );
 
-  expect(await screen.findByTestId('AdhocMetricEditTitle#input')).toBeVisible();
-  userEvent.type(screen.getByTestId('AdhocMetricEditTitle#input'), 'Test');
+  expect(await screen.findByRole('textbox', { name: /edit metric label/i })).toBeVisible();
+  userEvent.type(screen.getByRole('textbox', { name: /edit metric label/i }), 'Test');
 
   expect(onChange).toHaveBeenCalledTimes(4);
-  fireEvent.keyPress(screen.getByTestId('AdhocMetricEditTitle#input'), {
+  fireEvent.keyPress(screen.getByRole('textbox', { name: /edit metric label/i }), {
     key: 'Enter',
     charCode: 13,
   });
 
   expect(
-    screen.queryByTestId('AdhocMetricEditTitle#input'),
+    screen.queryByRole('textbox', { name: /edit metric label/i }),
   ).not.toBeInTheDocument();
 
   fireEvent.click(
     container.getElementsByClassName('AdhocMetricEditPopoverTitle')[0],
   );
 
-  expect(await screen.findByTestId('AdhocMetricEditTitle#input')).toBeVisible();
+  expect(await screen.findByRole('textbox', { name: /edit metric label/i })).toBeVisible();
   userEvent.type(
-    screen.getByTestId('AdhocMetricEditTitle#input'),
+    screen.getByRole('textbox', { name: /edit metric label/i }),
     'Second test',
   );
   expect(onChange).toHaveBeenCalled();
 
-  fireEvent.blur(screen.getByTestId('AdhocMetricEditTitle#input'));
+  fireEvent.blur(screen.getByRole('textbox', { name: /edit metric label/i }));
   expect(
-    screen.queryByTestId('AdhocMetricEditTitle#input'),
+    screen.queryByRole('textbox', { name: /edit metric label/i }),
   ).not.toBeInTheDocument();
 });
 
@@ -230,7 +230,7 @@ test('feature flag ON, edit mode: locale dropdown as input suffix', async () => 
     container.getElementsByClassName('AdhocMetricEditPopoverTitle')[0],
   );
 
-  await screen.findByTestId('AdhocMetricEditTitle#input');
+  await screen.findByRole('textbox', { name: /edit metric label/i });
 
   // In edit mode, LocaleSwitcher is an interactive dropdown (role="button")
   expect(
@@ -253,7 +253,7 @@ test('feature flag ON, select translation locale: input shows translation value'
   fireEvent.click(
     container.getElementsByClassName('AdhocMetricEditPopoverTitle')[0],
   );
-  await screen.findByTestId('AdhocMetricEditTitle#input');
+  await screen.findByRole('textbox', { name: /edit metric label/i });
 
   // Open locale dropdown
   await userEvent.click(
@@ -268,7 +268,7 @@ test('feature flag ON, select translation locale: input shows translation value'
 
   // Input now shows translation value
   await waitFor(() => {
-    const input = screen.getByTestId('AdhocMetricEditTitle#input');
+    const input = screen.getByRole('textbox', { name: /edit metric label/i });
     expect(input).toHaveValue('Umsatz');
   });
 });
@@ -288,7 +288,7 @@ test('feature flag ON, clicking locale dropdown does not exit edit mode', async 
   fireEvent.click(
     container.getElementsByClassName('AdhocMetricEditPopoverTitle')[0],
   );
-  await screen.findByTestId('AdhocMetricEditTitle#input');
+  await screen.findByRole('textbox', { name: /edit metric label/i });
 
   // Click locale dropdown
   await userEvent.click(
@@ -296,7 +296,7 @@ test('feature flag ON, clicking locale dropdown does not exit edit mode', async 
   );
 
   // Input must still be visible (edit mode not cancelled)
-  expect(screen.getByTestId('AdhocMetricEditTitle#input')).toBeInTheDocument();
+  expect(screen.getByRole('textbox', { name: /edit metric label/i })).toBeInTheDocument();
 });
 
 test('feature flag ON, typing in translation locale calls onTranslationsChange', async () => {
@@ -315,7 +315,7 @@ test('feature flag ON, typing in translation locale calls onTranslationsChange',
   fireEvent.click(
     container.getElementsByClassName('AdhocMetricEditPopoverTitle')[0],
   );
-  await screen.findByTestId('AdhocMetricEditTitle#input');
+  await screen.findByRole('textbox', { name: /edit metric label/i });
 
   // Switch to German locale
   await userEvent.click(
@@ -327,8 +327,8 @@ test('feature flag ON, typing in translation locale calls onTranslationsChange',
   await userEvent.click(screen.getByRole('menuitem', { name: /German/i }));
 
   // Type translation and blur to flush
-  const input = screen.getByTestId('AdhocMetricEditTitle#input');
-  await userEvent.type(input, 'Umsatz');
+  const input = screen.getByRole('textbox', { name: /edit metric label/i });
+  fireEvent.change(input, { target: { value: 'Umsatz' } });
   fireEvent.blur(input);
 
   expect(onTranslationsChange).toHaveBeenCalledWith(

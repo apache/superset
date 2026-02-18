@@ -32,7 +32,6 @@ from superset.tasks.context import TaskContext
 from superset.tasks.manager import TaskManager
 from superset.tasks.registry import TaskRegistry
 from superset.tasks.utils import generate_random_task_key
-from superset.utils.core import get_user_id
 
 if TYPE_CHECKING:
     from superset.models.tasks import Task
@@ -295,7 +294,6 @@ class TaskWrapper(Generic[P]):
                 "task_name": task_name,
                 "scope": scope.value,
                 "properties": properties,
-                "user_id": get_user_id(),
             }
         ).run_with_info()
 

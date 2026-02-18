@@ -1,6 +1,6 @@
 {
   "name": "@apache-superset/core",
-  "version": "0.0.1-rc10",
+  "version": "0.0.1-rc11",
   "description": "This package contains UI elements, APIs, and utility functions used by Superset.",
   "sideEffects": false,
   "main": "lib/index.js",
@@ -33,7 +33,7 @@
     "@emotion/cache": "^11.4.0",
     "@emotion/react": "^11.4.1",
     "@emotion/styled": "^11.14.1",
-    "@fontsource/fira-code": "^5.2.6",
+    "@fontsource/ibm-plex-mono": "^5.2.7",
     "@fontsource/inter": "^5.2.6",
     "nanoid": "^5.0.9",
     "react": "^17.0.2",

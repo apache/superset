@@ -579,7 +579,7 @@ const DatabaseIndex: React.FC<DatabaseIndexProps> = ({ data }) => {
         columns={columns}
         rowKey={(record) => record.isCompatible ? `${record.compatibleWith}-${record.name}` : record.name}
         pagination={{
-          pageSize: 20,
+          defaultPageSize: 20,
           showSizeChanger: true,
           showTotal: (total) => `${total} databases`,
         }}

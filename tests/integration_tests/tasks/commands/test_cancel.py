@@ -450,33 +450,45 @@ def test_cancel_already_aborting_is_idempotent(app_context, get_user) -> None:
         db.session.commit()
 
 
-def test_cancel_shared_task_not_subscribed_raises_error(app_context, get_user) -> None:
-    """Test non-subscriber cannot cancel shared task"""
+def test_cancel_shared_task_not_subscribed_raises_not_found(
+    app_context, get_user
+) -> None:
+    """Test non-subscriber cannot see or cancel shared task.
+
+    With subscription-only filtering, users who aren't subscribed to a
+    shared task can't see it at all, so canceling returns "not found"
+    rather than "permission denied".
+    """
     admin = get_user("admin")
     gamma = get_user("gamma")
+    unique_key = f"not_subscribed_test_{uuid4().hex[:8]}"
 
-    # Create a shared task with only admin as subscriber
-    task = TaskDAO.create_task(
-        task_type="test_type",
-        task_key="not_subscribed_test",
-        scope=TaskScope.SHARED,
-        user_id=admin.id,
-    )
-    task.created_by = admin
-    db.session.commit()
+    # Use test_request_context to ensure TaskFilter is applied
+    with app.test_request_context():
+        # Create a shared task with only admin as subscriber
+        with override_user(admin):
+            task = TaskDAO.create_task(
+                task_type="test_type",
+                task_key=unique_key,
+                scope=TaskScope.SHARED,
+                user_id=admin.id,
+            )
+            db.session.commit()
 
-    try:
-        # Try to cancel as gamma (not subscribed)
-        with override_user(gamma):
-            command = CancelTaskCommand(task_uuid=task.uuid)
+        try:
+            # Try to cancel as gamma (not subscribed) - they can't see the task
+            with override_user(gamma):
+                command = CancelTaskCommand(task_uuid=task.uuid)
 
-            with pytest.raises(TaskPermissionDeniedError):
-                command.run()
+                # TaskNotFoundError because gamma isn't subscribed and can't see
+                # the task
+                with pytest.raises(TaskNotFoundError):
+                    command.run()
 
-        # Verify task unchanged
-        db.session.refresh(task)
-        assert task.status == TaskStatus.PENDING.value
-    finally:
-        # Cleanup
-        db.session.delete(task)
-        db.session.commit()
+            # Verify task unchanged
+            db.session.refresh(task)
+            assert task.status == TaskStatus.PENDING.value
+        finally:
+            # Cleanup
+            db.session.delete(task)
+            db.session.commit()

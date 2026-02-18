@@ -48,6 +48,7 @@
     "@emotion/react": "^11.13.3",
     "@emotion/styled": "^11.14.1",
     "@fontsource/fira-code": "^5.2.7",
+    "@fontsource/ibm-plex-mono": "^5.2.7",
     "@fontsource/inter": "^5.2.8",
     "@mdx-js/react": "^3.1.1",
     "@saucelabs/theme-github-codeblock": "^0.3.0",
@@ -66,7 +67,7 @@
     "@swc/core": "^1.15.11",
     "antd": "^6.3.0",
     "baseline-browser-mapping": "^2.9.19",
-    "caniuse-lite": "^1.0.30001769",
+    "caniuse-lite": "^1.0.30001770",
     "docusaurus-plugin-openapi-docs": "^4.6.0",
     "docusaurus-theme-openapi-docs": "^4.6.0",
     "js-yaml": "^4.1.1",
@@ -82,7 +83,7 @@
     "remark-import-partial": "^0.0.2",
     "reselect": "^5.1.1",
     "storybook": "^8.6.15",
-    "swagger-ui-react": "^5.31.0",
+    "swagger-ui-react": "^5.31.1",
     "swc-loader": "^0.2.7",
     "tinycolor2": "^1.4.2",
     "unist-util-visit": "^5.1.0"
@@ -102,8 +103,8 @@
     "globals": "^17.3.0",
     "prettier": "^3.8.1",
     "typescript": "~5.9.3",
-    "typescript-eslint": "^8.55.0",
-    "webpack": "^5.105.0"
+    "typescript-eslint": "^8.56.0",
+    "webpack": "^5.105.2"
   },
   "browserslist": {
     "production": [

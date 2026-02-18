@@ -351,15 +351,17 @@ class ChartDataRestApi(ChartRestApi):
         """
         Execute command as an async query.
         """
-        # First, look for the chart query results in the cache.
-        with contextlib.suppress(ChartDataCacheLoadError):
-            result = command.run(force_cached=True)
-            if result is not None:
-                # Log is_cached if extra payload callback is provided.
-                # This indicates no async job was triggered - data was already cached
-                # and a synchronous response is being returned immediately.
-                self._log_is_cached(result, add_extra_log_payload)
-                return self._send_chart_response(result)
+        # First, look for the chart query results in the cache,
+        # but only if we're not forcing a refresh.
+        if not form_data.get("force"):
+            with contextlib.suppress(ChartDataCacheLoadError):
+                result = command.run(force_cached=True)
+                if result is not None:
+                    # Log is_cached if extra payload callback is provided.
+                    # This indicates no async job was triggered - data was already
+                    # cached and a synchronous response is being returned immediately.
+                    self._log_is_cached(result, add_extra_log_payload)
+                    return self._send_chart_response(result)
         # Otherwise, kick off a background job to run the chart query.
         # Clients will either poll or be notified of query completion,
         # at which point they will call the /data/<cache_key> endpoint
