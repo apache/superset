@@ -3370,10 +3370,10 @@
   resolved "https://registry.npmjs.org/@storybook/components/-/components-8.6.15.tgz"
   integrity sha512-+9GVKXPEW8Kl9zvNSTm9+VrJtx/puMZiO7gxCML63nK4aTWJXHQr4t9YUoGammSBM3AV1JglsKm6dBgJEeCoiA==
 
-"@storybook/core-events@^8.6.15":
-  version "8.6.15"
-  resolved "https://registry.npmjs.org/@storybook/core-events/-/core-events-8.6.15.tgz"
-  integrity sha512-u45S9Ls3DrnWZDdEqc4aoRP/GE7KY+KUJnpoCzvTmcwmEHZQrf9p9Hygbjr+fq8Yi+K6swlaprv17re6wdBjHg==
+"@storybook/core-events@^8.6.17":
+  version "8.6.17"
+  resolved "https://registry.yarnpkg.com/@storybook/core-events/-/core-events-8.6.17.tgz#e67d6308e61cd6d7be574c40c605eafe7bb04c74"
+  integrity sha512-HiKVE2sSbJF6PVFt2DfJtLef1Mc35cN+sf2f8Ay2ibHy2gY1t3/7W1PhYVGt7UpJNOnVZfsmcE3yqGNojct3mw==
 
 "@storybook/core@8.6.16":
   version "8.6.16"
