@@ -842,9 +842,13 @@ test('filter reappears in dropdown after clearing with X icon', async () => {
     { name: 'clear-icon-tabs' },
   );
 
-  fetchMock.post(chartDataEndpoint, { result: [{ data: [] }] }, {
-    name: 'clear-icon-chart-data',
-  });
+  fetchMock.post(
+    chartDataEndpoint,
+    { result: [{ data: [] }] },
+    {
+      name: 'clear-icon-chart-data',
+    },
+  );
 
   render(<AlertReportModal {...generateMockedProps(true, true)} />, {
     useRedux: true,
@@ -976,14 +980,16 @@ test('tabs metadata overwrites seeded filter options', async () => {
 
   // Replace only the tabs route with a deferred version
   fetchMock.removeRoute(tabsEndpoint);
-  fetchMock.get(
-    tabsEndpoint,
-    () => deferredTabs.then(() => tabsResult),
-    { name: 'deferred-tabs' },
-  );
-  fetchMock.post(chartDataEndpoint, { result: [{ data: [] }] }, {
-    name: 'overwrite-chart-data',
+  fetchMock.get(tabsEndpoint, () => deferredTabs.then(() => tabsResult), {
+    name: 'deferred-tabs',
   });
+  fetchMock.post(
+    chartDataEndpoint,
+    { result: [{ data: [] }] },
+    {
+      name: 'overwrite-chart-data',
+    },
+  );
 
   const props = generateMockedProps(true, true);
   const editProps = {
