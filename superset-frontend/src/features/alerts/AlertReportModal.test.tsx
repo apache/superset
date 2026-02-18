@@ -106,6 +106,7 @@ const FETCH_DASHBOARD_ENDPOINT = 'glob:*/api/v1/report/1';
 const FETCH_CHART_ENDPOINT = 'glob:*/api/v1/report/2';
 const FETCH_REPORT_WITH_FILTERS_ENDPOINT = 'glob:*/api/v1/report/3';
 const FETCH_REPORT_NO_FILTER_NAME_ENDPOINT = 'glob:*/api/v1/report/4';
+const FETCH_REPORT_OVERWRITE_ENDPOINT = 'glob:*/api/v1/report/5';
 
 fetchMock.get(FETCH_DASHBOARD_ENDPOINT, { result: generateMockPayload(true) });
 fetchMock.get(FETCH_CHART_ENDPOINT, { result: generateMockPayload(false) });
@@ -144,6 +145,27 @@ fetchMock.get(FETCH_REPORT_NO_FILTER_NAME_ENDPOINT, {
             columnName: 'region',
             columnLabel: 'Region',
             filterValues: ['West'],
+          },
+        ],
+      },
+    },
+  },
+});
+fetchMock.get(FETCH_REPORT_OVERWRITE_ENDPOINT, {
+  result: {
+    ...generateMockPayload(true),
+    id: 5,
+    type: 'Report',
+    extra: {
+      dashboard: {
+        nativeFilters: [
+          {
+            nativeFilterId: 'NATIVE_FILTER-abc123',
+            filterName: 'Country',
+            filterType: 'filter_select',
+            columnName: 'country',
+            columnLabel: 'Country',
+            filterValues: ['USA'],
           },
         ],
       },
@@ -883,4 +905,84 @@ test('edit mode falls back to raw ID when filterName is missing', async () => {
     );
     expect(selectionItem).toBeInTheDocument();
   });
+});
+
+test('tabs metadata overwrites seeded filter options', async () => {
+  const chartDataEndpoint = 'glob:*/api/v1/chart/data*';
+
+  // Clear all routes and re-establish the ones needed for this test
+  fetchMock.removeRoutes();
+  fetchMock.get(FETCH_REPORT_OVERWRITE_ENDPOINT, {
+    result: {
+      ...generateMockPayload(true),
+      id: 5,
+      type: 'Report',
+      extra: {
+        dashboard: {
+          nativeFilters: [
+            {
+              nativeFilterId: 'NATIVE_FILTER-abc123',
+              filterName: 'Country',
+              filterType: 'filter_select',
+              columnName: 'country',
+              columnLabel: 'Country',
+              filterValues: ['USA'],
+            },
+          ],
+        },
+      },
+    },
+  });
+  fetchMock.get(ownersEndpoint, { result: [] });
+  fetchMock.get(databaseEndpoint, { result: [] });
+  fetchMock.get(dashboardEndpoint, { result: [] });
+  fetchMock.get(chartEndpoint, {
+    result: [{ text: 'table chart', value: 1 }],
+  });
+  fetchMock.get(tabsEndpoint, {
+    result: {
+      all_tabs: { tab1: 'Tab 1' },
+      tab_tree: [{ title: 'Tab 1', value: 'tab1' }],
+      native_filters: {
+        all: [
+          {
+            id: 'NATIVE_FILTER-abc123',
+            name: 'Country (All Filters)',
+            filterType: 'filter_select',
+            targets: [{ column: { name: 'country' }, datasetId: 1 }],
+            adhoc_filters: [],
+          },
+        ],
+        tab1: [],
+      },
+    },
+  });
+  fetchMock.post(chartDataEndpoint, { result: [{ data: [] }] });
+
+  const props = generateMockedProps(true, true);
+  const editProps = {
+    ...props,
+    alert: { ...validAlert, id: 5 },
+  };
+
+  render(<AlertReportModal {...editProps} />, {
+    useRedux: true,
+  });
+
+  userEvent.click(screen.getByTestId('contents-panel'));
+
+  // Tabs metadata should overwrite the seeded "Country" with "Country (All Filters)"
+  await waitFor(() => {
+    const updatedItem = document.querySelector(
+      '.ant-select-selection-item[title="Country (All Filters)"]',
+    );
+    expect(updatedItem).toBeInTheDocument();
+  });
+
+  // The original seeded label should no longer be displayed
+  expect(
+    document.querySelector(
+      '.ant-select-selection-item[title="Country"]',
+    ),
+  ).not.toBeInTheDocument();
 });
