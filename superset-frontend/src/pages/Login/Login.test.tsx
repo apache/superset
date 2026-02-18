@@ -76,7 +76,7 @@ test('should render registration button with correct app root URL when authRegis
   expect(registerButton).toHaveAttribute('href', '/superset/register/');
 });
 
-test.each([['', '/superset']])(
+test.each([[''], ['/superset']])(
   'should render OAuth providers with app root %s',
   (app_root: string) => {
     mockGetBootstrapData.mockReturnValue({
@@ -108,7 +108,7 @@ test.each([['', '/superset']])(
   },
 );
 
-test.each([[1, 2]])(
+test.each([[1], [2]])(
   'should call SupersetClient.postForm with correct endpoint for AuthDB/AuthLDAP',
   async (authType: number) => {
     mockGetBootstrapData.mockReturnValue({

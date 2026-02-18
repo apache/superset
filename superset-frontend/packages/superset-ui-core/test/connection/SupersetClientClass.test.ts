@@ -696,7 +696,7 @@ describe('SupersetClientClass', () => {
       client = new SupersetClientClass({ protocol, host, guestToken });
       await client.init();
 
-      await client.postForm({ endpoint: mockPostFormUrl, payload: {} });
+      await client.postForm({ url: mockPostFormUrl, payload: {} });
 
       const guestTokenInput = createElement.mock.results[2].value;
 
