@@ -595,7 +595,9 @@ type TestData = {
   [key: string]: number | string | null;
 };
 
-const createMockAggregator = (data: TestData) => (key: string[], _context: never[]): unknown => {
+const createMockAggregator =
+  (data: TestData) =>
+  (key: string[], _context: never[]): unknown => {
     const keyStr = key.join('|');
     return data[keyStr] ?? null;
   };
@@ -753,21 +755,21 @@ test('should handle product categories with subcategories', () => {
     'Electronics|Phones|iPhone': 500,
     'Electronics|Phones|Samsung': 400,
     'Electronics|Laptops|MacBook': 1200,
-    'Clothing|Shirts|T-Shirt': 200,
-    'Clothing|Pants|Jeans': 150,
+    'Clothing|Shirts|T-Shirt': 1400,
+    'Clothing|Pants|Jeans': 1150,
   };
 
   groupingValueSort(keys, createMockAggregator(data), true, true);
 
-  expect(keys[0]).toEqual(['Clothing']);
-  expect(keys[1]).toEqual(['Clothing', 'Pants']);
-  expect(keys[2]).toEqual(['Clothing', 'Pants', 'Jeans']);
-  expect(keys[3]).toEqual(['Clothing', 'Shirts']);
-  expect(keys[4]).toEqual(['Clothing', 'Shirts', 'T-Shirt']);
-  expect(keys[5]).toEqual(['Electronics']);
-  expect(keys[6]).toEqual(['Electronics', 'Phones']);
-  expect(keys[7]).toEqual(['Electronics', 'Phones', 'Samsung']);
-  expect(keys[8]).toEqual(['Electronics', 'Phones', 'iPhone']);
-  expect(keys[9]).toEqual(['Electronics', 'Laptops']);
-  expect(keys[10]).toEqual(['Electronics', 'Laptops', 'MacBook']);
+  expect(keys[0]).toEqual(['Electronics']);
+  expect(keys[1]).toEqual(['Electronics', 'Phones']);
+  expect(keys[2]).toEqual(['Electronics', 'Phones', 'Samsung']);
+  expect(keys[3]).toEqual(['Electronics', 'Phones', 'iPhone']);
+  expect(keys[4]).toEqual(['Electronics', 'Laptops']);
+  expect(keys[5]).toEqual(['Electronics', 'Laptops', 'MacBook']);
+  expect(keys[6]).toEqual(['Clothing']);
+  expect(keys[7]).toEqual(['Clothing', 'Pants']);
+  expect(keys[8]).toEqual(['Clothing', 'Pants', 'Jeans']);
+  expect(keys[9]).toEqual(['Clothing', 'Shirts']);
+  expect(keys[10]).toEqual(['Clothing', 'Shirts', 'T-Shirt']);
 });

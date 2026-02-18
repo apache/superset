@@ -127,7 +127,7 @@ function buildGroupAggregates(
   for (const key of keys) {
     let current: GroupNode = root;
 
-    for (let i = 0; i < key.length - 1; i++) {
+    for (let i = 0; i < key.length - 1; i += 1) {
       const segment = key[i];
 
       if (!current[segment]) {
@@ -159,7 +159,7 @@ function createHierarchicalComparator(
     let current: GroupNode = groups;
     const maxDepth = Math.max(a.length, b.length) - 1;
 
-    for (let depth = 0; depth < maxDepth; depth++) {
+    for (let depth = 0; depth < maxDepth; depth += 1) {
       const aSeg = a[depth];
       const bSeg = b[depth];
 
