@@ -22,6 +22,8 @@ This module contains Pydantic models for serializing Superset instance metadata 
 system-level info.
 """
 
+from __future__ import annotations
+
 from datetime import datetime
 from typing import Dict, List
 
@@ -121,6 +123,11 @@ class InstanceInfo(BaseModel):
     )
     popular_content: PopularContent = Field(
         ..., description="Popular content information"
+    )
+    current_user: UserInfo | None = Field(
+        None,
+        description="The authenticated user making the request. "
+        "Use current_user.id with created_by_fk filter to find your own assets.",
     )
     timestamp: datetime = Field(..., description="Response timestamp")
 

@@ -62,18 +62,41 @@ const matrixifyControls: Record<string, SharedControlConfig<any>> = {};
 // Dynamically add axis-specific controls (rows and columns)
 (['columns', 'rows'] as const).forEach(axisParam => {
   const axis: 'rows' | 'columns' = axisParam;
+  const otherAxis: 'rows' | 'columns' = axis === 'rows' ? 'columns' : 'rows';
 
   matrixifyControls[`matrixify_mode_${axis}`] = {
     type: 'RadioButtonControl',
     label: t(`Metrics / Dimensions`),
-    default: 'metrics',
-    options: [
-      ['metrics', t('Metrics')],
-      ['dimensions', t('Dimension members')],
-    ],
+    default: axis === 'columns' ? 'metrics' : 'dimensions',
     renderTrigger: true,
     tabOverride: 'matrixify',
     visibility: ({ controls }) => isMatrixifyVisible(controls, axis),
+    mapStateToProps: ({ controls }) => {
+      const otherAxisControlName = `matrixify_mode_${otherAxis}`;
+
+      const otherAxisValue =
+        controls?.[otherAxisControlName]?.value ??
+        (otherAxis === 'columns' ? 'metrics' : 'dimensions');
+
+      const isMetricsDisabled = otherAxisValue === 'metrics';
+
+      return {
+        options: [
+          {
+            value: 'metrics',
+            label: t('Metrics'),
+            disabled: isMetricsDisabled,
+            tooltip: isMetricsDisabled
+              ? t(
+                  "Metrics can't be used for both rows and columns at the same time",
+                )
+              : undefined,
+          },
+          { value: 'dimensions', label: t('Dimension members') },
+        ],
+      };
+    },
+    rerender: [`matrixify_mode_${otherAxis}`, `matrixify_dimension_${axis}`],
   };
 
   matrixifyControls[`matrixify_${axis}`] = {

@@ -20,13 +20,13 @@
 import { convertKeysToCamelCase } from '@superset-ui/core';
 
 describe('convertKeysToCamelCase(object)', () => {
-  it('returns undefined for undefined input', () => {
+  test('returns undefined for undefined input', () => {
     expect(convertKeysToCamelCase(undefined)).toBeUndefined();
   });
-  it('returns null for null input', () => {
+  test('returns null for null input', () => {
     expect(convertKeysToCamelCase(null)).toBeNull();
   });
-  it('returns a new object that has all keys in camelCase', () => {
+  test('returns a new object that has all keys in camelCase', () => {
     const input = {
       is_happy: true,
       'is-angry': false,
@@ -38,7 +38,7 @@ describe('convertKeysToCamelCase(object)', () => {
       isHungry: false,
     });
   });
-  it('throws error if input is not a plain object', () => {
+  test('throws error if input is not a plain object', () => {
     expect(() => {
       convertKeysToCamelCase({});
     }).not.toThrow();

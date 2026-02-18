@@ -28,6 +28,7 @@ from datetime import datetime, timezone
 from fastmcp import Context
 from superset_core.mcp import tool
 
+from superset.extensions import event_logger
 from superset.mcp_service.dataset.schemas import (
     DatasetError,
     DatasetInfo,
@@ -83,16 +84,17 @@ async def get_dataset_info(
     try:
         from superset.daos.dataset import DatasetDAO
 
-        tool = ModelGetInfoCore(
-            dao_class=DatasetDAO,
-            output_schema=DatasetInfo,
-            error_schema=DatasetError,
-            serializer=serialize_dataset_object,
-            supports_slug=False,  # Datasets don't have slugs
-            logger=logger,
-        )
+        with event_logger.log_context(action="mcp.get_dataset_info.lookup"):
+            tool = ModelGetInfoCore(
+                dao_class=DatasetDAO,
+                output_schema=DatasetInfo,
+                error_schema=DatasetError,
+                serializer=serialize_dataset_object,
+                supports_slug=False,  # Datasets don't have slugs
+                logger=logger,
+            )
 
-        result = tool.run_tool(request.identifier)
+            result = tool.run_tool(request.identifier)
 
         if isinstance(result, DatasetInfo):
             await ctx.info(

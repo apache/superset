@@ -86,7 +86,7 @@ const selectDashboardChartIds = createSelector(
     new Set(
       Object.values(dashboardLayout)
         .filter(item => item.type === CHART_TYPE && item.meta?.chartId)
-        .map(item => item.meta.chartId),
+        .map(item => item.meta.chartId!),
     ),
 );
 

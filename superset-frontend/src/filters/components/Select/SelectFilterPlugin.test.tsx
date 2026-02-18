@@ -79,9 +79,9 @@ describe('SelectFilterPlugin', () => {
   const setDataMask = jest.fn();
   const getWrapper = (props = {}) =>
     render(
-      // @ts-ignore
+      // @ts-expect-error
       <SelectFilterPlugin
-        // @ts-ignore
+        // @ts-expect-error
         {...transformProps({
           ...selectMultipleProps,
           formData: { ...selectMultipleProps.formData, ...props },
@@ -297,9 +297,9 @@ describe('SelectFilterPlugin', () => {
   test('Select big int value', async () => {
     const bigValue = 1100924931345932234n;
     render(
-      // @ts-ignore
+      // @ts-expect-error
       <SelectFilterPlugin
-        // @ts-ignore
+        // @ts-expect-error
         {...transformProps({
           ...selectMultipleProps,
           formData: { ...selectMultipleProps.formData, groupby: 'bval' },
@@ -417,9 +417,9 @@ describe('SelectFilterPlugin', () => {
     };
 
     render(
-      // @ts-ignore
+      // @ts-expect-error
       <SelectFilterPlugin
-        // @ts-ignore
+        // @ts-expect-error
         {...transformProps(testProps)}
         setDataMask={jest.fn()}
         showOverflow={false}
@@ -491,9 +491,9 @@ describe('SelectFilterPlugin', () => {
     };
 
     render(
-      // @ts-ignore
+      // @ts-expect-error
       <SelectFilterPlugin
-        // @ts-ignore
+        // @ts-expect-error
         {...transformProps(testProps)}
         setDataMask={jest.fn()}
         showOverflow={false}
@@ -565,9 +565,9 @@ describe('SelectFilterPlugin', () => {
     };
 
     render(
-      // @ts-ignore
+      // @ts-expect-error
       <SelectFilterPlugin
-        // @ts-ignore
+        // @ts-expect-error
         {...transformProps(testProps)}
         setDataMask={jest.fn()}
         showOverflow={false}
@@ -639,9 +639,9 @@ describe('SelectFilterPlugin', () => {
     };
 
     render(
-      // @ts-ignore
+      // @ts-expect-error
       <SelectFilterPlugin
-        // @ts-ignore
+        // @ts-expect-error
         {...transformProps(testProps)}
         setDataMask={jest.fn()}
         showOverflow={false}
@@ -704,9 +704,9 @@ test('Select boolean FALSE value in single-select mode', async () => {
   };
 
   render(
-    // @ts-ignore
+    // @ts-expect-error
     <SelectFilterPlugin
-      // @ts-ignore
+      // @ts-expect-error
       {...transformProps(testProps)}
       setDataMask={setDataMaskMock}
       showOverflow={false}
@@ -781,9 +781,9 @@ test('Select boolean TRUE value in single-select mode', async () => {
   };
 
   render(
-    // @ts-ignore
+    // @ts-expect-error
     <SelectFilterPlugin
-      // @ts-ignore
+      // @ts-expect-error
       {...transformProps(testProps)}
       setDataMask={setDataMaskMock}
       showOverflow={false}
@@ -858,9 +858,9 @@ test('Select both boolean values in multi-select mode', async () => {
   };
 
   render(
-    // @ts-ignore
+    // @ts-expect-error
     <SelectFilterPlugin
-      // @ts-ignore
+      // @ts-expect-error
       {...transformProps(testProps)}
       setDataMask={setDataMaskMock}
       showOverflow={false}
@@ -935,9 +935,9 @@ test('Select boolean filter with null values', async () => {
   };
 
   render(
-    // @ts-ignore
+    // @ts-expect-error
     <SelectFilterPlugin
-      // @ts-ignore
+      // @ts-expect-error
       {...transformProps(testProps)}
       setDataMask={setDataMaskMock}
       showOverflow={false}
@@ -1013,9 +1013,9 @@ test('Clear boolean FALSE value', async () => {
   };
 
   render(
-    // @ts-ignore
+    // @ts-expect-error
     <SelectFilterPlugin
-      // @ts-ignore
+      // @ts-expect-error
       {...transformProps(testProps)}
       setDataMask={setDataMaskMock}
       showOverflow={false}
@@ -1084,9 +1084,9 @@ test('Clear boolean TRUE value', async () => {
   };
 
   render(
-    // @ts-ignore
+    // @ts-expect-error
     <SelectFilterPlugin
-      // @ts-ignore
+      // @ts-expect-error
       {...transformProps(testProps)}
       setDataMask={setDataMaskMock}
       showOverflow={false}
@@ -1129,5 +1129,123 @@ test('Clear boolean TRUE value', async () => {
         excludeFilterValues: true,
       },
     });
+  });
+});
+
+test('preserves dependent filter value restored from URL when it exists in data', async () => {
+  const setDataMaskMock = jest.fn();
+  const testProps = {
+    ...selectMultipleProps,
+    formData: {
+      ...selectMultipleProps.formData,
+      defaultToFirstItem: true,
+      multiSelect: false,
+      // Non-empty extraFormData indicates parent filter dependency
+      extraFormData: {
+        filters: [{ col: 'region', op: 'IN', val: ['North America'] }],
+      },
+    },
+    // 'girl' is NOT the first item but exists in data — simulates a
+    // value restored from URL/permalink for a dependent filter
+    filterState: { value: ['girl'] },
+  };
+
+  render(
+    // @ts-expect-error
+    <SelectFilterPlugin
+      // @ts-expect-error
+      {...transformProps(testProps)}
+      setDataMask={setDataMaskMock}
+      showOverflow={false}
+    />,
+    {
+      useRedux: true,
+      initialState: {
+        nativeFilters: {
+          filters: {
+            'test-filter': {
+              name: 'Test Filter',
+            },
+          },
+        },
+        dataMask: {
+          'test-filter': {
+            extraFormData: {},
+            filterState: {
+              value: ['girl'],
+            },
+          },
+        },
+      },
+    },
+  );
+
+  await waitFor(() => {
+    expect(setDataMaskMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        filterState: expect.objectContaining({
+          value: ['girl'],
+        }),
+      }),
+    );
+  });
+});
+
+test('resets dependent filter to first item when value does not exist in data', async () => {
+  const setDataMaskMock = jest.fn();
+  const testProps = {
+    ...selectMultipleProps,
+    formData: {
+      ...selectMultipleProps.formData,
+      defaultToFirstItem: true,
+      multiSelect: false,
+      extraFormData: {
+        filters: [{ col: 'region', op: 'IN', val: ['North America'] }],
+      },
+    },
+    // 'unknown' does NOT exist in data — simulates a stale value after
+    // parent filter changed to a different selection
+    filterState: { value: ['unknown'] },
+  };
+
+  render(
+    // @ts-expect-error
+    <SelectFilterPlugin
+      // @ts-expect-error
+      {...transformProps(testProps)}
+      setDataMask={setDataMaskMock}
+      showOverflow={false}
+    />,
+    {
+      useRedux: true,
+      initialState: {
+        nativeFilters: {
+          filters: {
+            'test-filter': {
+              name: 'Test Filter',
+            },
+          },
+        },
+        dataMask: {
+          'test-filter': {
+            extraFormData: {},
+            filterState: {
+              value: ['unknown'],
+            },
+          },
+        },
+      },
+    },
+  );
+
+  await waitFor(() => {
+    expect(setDataMaskMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        filterState: expect.objectContaining({
+          // Should reset to first item ('boy') since 'unknown' is not in data
+          value: ['boy'],
+        }),
+      }),
+    );
   });
 });

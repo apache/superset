@@ -502,7 +502,7 @@ test('Theme base theme integration works with real-world Superset base theme con
       colorSuccess: '#5ac189',
       colorInfo: '#66bcfe',
       fontFamily: "'Inter', Helvetica, Arial",
-      fontFamilyCode: "'Fira Code', 'Courier New', monospace",
+      fontFamilyCode: "'IBM Plex Mono', 'Courier New', monospace",
     },
   };
 

@@ -23,6 +23,8 @@ from urllib.parse import parse_qs, urlparse
 import pandas as pd
 import pytest
 from pytest_mock import MockerFixture
+from requests.exceptions import HTTPError
+from shillelagh.exceptions import UnauthenticatedError
 from sqlalchemy.engine.url import make_url
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -737,3 +739,253 @@ def test_update_params_from_encrypted_extra(mocker: MockerFixture) -> None:
 
     GSheetsEngineSpec.update_params_from_encrypted_extra(database, params)
     assert params == {"foo": "bar"}
+
+
+def test_needs_oauth2_with_credentials_error(mocker: MockerFixture) -> None:
+    """
+    Test that needs_oauth2 returns True for google-auth credentials error.
+
+    When a token is manually revoked on Google side, google-auth tries to
+    refresh credentials but fails with this message.
+    """
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    g = mocker.patch("superset.db_engine_specs.gsheets.g")
+    g.user = mocker.MagicMock()
+
+    ex = Exception("credentials do not contain the necessary fields")
+    assert GSheetsEngineSpec.needs_oauth2(ex) is True
+
+
+def test_needs_oauth2_with_other_error(mocker: MockerFixture) -> None:
+    """
+    Test that needs_oauth2 returns False for other errors.
+    """
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    g = mocker.patch("superset.db_engine_specs.gsheets.g")
+    g.user = mocker.MagicMock()
+
+    ex = Exception("Some other error")
+    assert GSheetsEngineSpec.needs_oauth2(ex) is False
+
+
+def test_get_oauth2_fresh_token_success(
+    mocker: MockerFixture,
+    oauth2_config: OAuth2ClientConfig,
+) -> None:
+    """
+    Test that get_oauth2_fresh_token returns token on success.
+    """
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    requests = mocker.patch("superset.db_engine_specs.base.requests")
+    requests.post().json.return_value = {
+        "access_token": "new-access-token",
+        "expires_in": 3600,
+    }
+
+    result = GSheetsEngineSpec.get_oauth2_fresh_token(oauth2_config, "refresh-token")
+    assert result == {
+        "access_token": "new-access-token",
+        "expires_in": 3600,
+    }
+
+
+def test_get_oauth2_fresh_token_invalid_grant(
+    mocker: MockerFixture,
+    oauth2_config: OAuth2ClientConfig,
+) -> None:
+    """
+    Test that get_oauth2_fresh_token raises UnauthenticatedError for invalid_grant.
+
+    When a token is revoked on Google side, the refresh request returns 400
+    with error=invalid_grant.
+    """
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    mock_response = mocker.MagicMock()
+    mock_response.status_code = 400
+    mock_response.json.return_value = {
+        "error": "invalid_grant",
+        "error_description": "Token has been expired or revoked.",
+    }
+    http_error = HTTPError()
+    http_error.response = mock_response
+
+    requests = mocker.patch("superset.db_engine_specs.base.requests")
+    requests.post().raise_for_status.side_effect = http_error
+
+    with pytest.raises(UnauthenticatedError):
+        GSheetsEngineSpec.get_oauth2_fresh_token(oauth2_config, "refresh-token")
+
+
+def test_get_oauth2_fresh_token_other_http_error(
+    mocker: MockerFixture,
+    oauth2_config: OAuth2ClientConfig,
+) -> None:
+    """
+    Test that get_oauth2_fresh_token re-raises non-invalid_grant HTTP errors.
+    """
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    mock_response = mocker.MagicMock()
+    mock_response.status_code = 500
+    mock_response.json.return_value = {"error": "server_error"}
+
+    http_error = HTTPError()
+    http_error.response = mock_response
+
+    requests = mocker.patch("superset.db_engine_specs.base.requests")
+    requests.post().raise_for_status.side_effect = http_error
+
+    with pytest.raises(HTTPError):
+        GSheetsEngineSpec.get_oauth2_fresh_token(oauth2_config, "refresh-token")
+
+
+def test_get_table_names_triggers_oauth2_dance(mocker: MockerFixture) -> None:
+    """
+    Test that get_table_names triggers OAuth2 dance when no token exists.
+    """
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    g = mocker.patch("superset.db_engine_specs.gsheets.g")
+    g.user.id = 1
+
+    get_oauth2_access_token = mocker.patch(
+        "superset.db_engine_specs.gsheets.get_oauth2_access_token",
+        return_value=None,
+    )
+
+    database = mocker.MagicMock()
+    database.id = 1
+    database.is_oauth2_enabled.return_value = True
+    database.get_oauth2_config.return_value = {"id": "client-id"}
+    database.db_engine_spec = GSheetsEngineSpec
+
+    inspector = mocker.MagicMock()
+
+    GSheetsEngineSpec.get_table_names(database, inspector, None)
+
+    database.start_oauth2_dance.assert_called_once()
+    get_oauth2_access_token.assert_called_once()
+
+
+def test_get_table_names_does_not_trigger_oauth2_when_token_exists(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that get_table_names does not trigger OAuth2 dance when token exists.
+    """
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    g = mocker.patch("superset.db_engine_specs.gsheets.g")
+    g.user.id = 1
+
+    get_oauth2_access_token = mocker.patch(
+        "superset.db_engine_specs.gsheets.get_oauth2_access_token",
+        return_value="valid-token",
+    )
+
+    mocker.patch(
+        "superset.db_engine_specs.shillelagh.ShillelaghEngineSpec.get_table_names",
+        return_value={"sheet1", "sheet2"},
+    )
+
+    database = mocker.MagicMock()
+    database.id = 1
+    database.is_oauth2_enabled.return_value = True
+    database.get_oauth2_config.return_value = {"id": "client-id"}
+    database.db_engine_spec = GSheetsEngineSpec
+
+    inspector = mocker.MagicMock()
+
+    result = GSheetsEngineSpec.get_table_names(database, inspector, None)
+
+    database.start_oauth2_dance.assert_not_called()
+    get_oauth2_access_token.assert_called_once()
+    assert result == {"sheet1", "sheet2"}
+
+
+def test_validate_parameters_skips_oauth2_connections_with_parameters(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that validate_parameters skips validation for OAuth2 connections.
+
+    When oauth2_client_info is present in parameters, the validation should
+    skip URL checks since the user will authenticate via OAuth2.
+    """
+    from superset.db_engine_specs.gsheets import (
+        GSheetsEngineSpec,
+        GSheetsPropertiesType,
+    )
+
+    g = mocker.patch("superset.db_engine_specs.gsheets.g")
+    g.user.email = "admin@example.org"
+
+    create_engine = mocker.patch("superset.db_engine_specs.gsheets.create_engine")
+    conn = create_engine.return_value.connect.return_value
+    results = conn.execute.return_value
+    results.fetchall.side_effect = ProgrammingError(
+        "The caller does not have permission"
+    )
+
+    properties: GSheetsPropertiesType = {
+        "parameters": {
+            "service_account_info": "",
+            "catalog": {},
+            "oauth2_client_info": {"id": "client-id", "secret": "client-secret"},
+        },
+        "catalog": {
+            "sheet1": "https://docs.google.com/spreadsheets/d/1/edit",
+        },
+    }
+    errors = GSheetsEngineSpec.validate_parameters(properties)
+
+    assert errors == []
+    conn.execute.assert_not_called()
+
+
+def test_validate_parameters_skips_oauth2_connections_with_masked_encrypted_extra(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test validate_parameters skips validation for OAuth2 via masked_encrypted_extra.
+
+    When oauth2_client_info is present in masked_encrypted_extra (used during
+    create/update), the validation should skip URL checks.
+    """
+    from superset.db_engine_specs.gsheets import (
+        GSheetsEngineSpec,
+        GSheetsPropertiesType,
+    )
+
+    g = mocker.patch("superset.db_engine_specs.gsheets.g")
+    g.user.email = "admin@example.org"
+
+    create_engine = mocker.patch("superset.db_engine_specs.gsheets.create_engine")
+    conn = create_engine.return_value.connect.return_value
+    results = conn.execute.return_value
+    results.fetchall.side_effect = ProgrammingError(
+        "The caller does not have permission"
+    )
+
+    properties: GSheetsPropertiesType = {
+        "parameters": {
+            "service_account_info": "",
+            "catalog": {},
+        },
+        "catalog": {
+            "sheet1": "https://docs.google.com/spreadsheets/d/1/edit",
+        },
+        "masked_encrypted_extra": json.dumps(
+            {
+                "oauth2_client_info": {"id": "client-id", "secret": "XXXXXXXXXX"},
+            }
+        ),
+    }
+    errors = GSheetsEngineSpec.validate_parameters(properties)
+
+    assert errors == []
+    conn.execute.assert_not_called()

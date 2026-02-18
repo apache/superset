@@ -18,17 +18,14 @@
  */
 import { PureComponent } from 'react';
 import cloudLayout from 'd3-cloud';
-import {
-  PlainObject,
-  createEncoderFactory,
-  DeriveEncoding,
-  Encoder,
-} from 'encodable';
+import { scaleLinear } from 'd3-scale';
 import { seed, CategoricalColorNamespace } from '@superset-ui/core';
 import { SupersetTheme, withTheme } from '@apache-superset/core/ui';
 import { isEqual } from 'lodash';
 
 const seedRandom = seed('superset-ui');
+
+export type PlainObject = Record<string, unknown>;
 
 // Polyfill Word type since it's not exported from 'd3-cloud'
 export type Word = {
@@ -49,15 +46,27 @@ export const ROTATION = {
 
 export type RotationType = keyof typeof ROTATION;
 
-export type WordCloudEncoding = DeriveEncoding<WordCloudEncodingConfig>;
-
-type WordCloudEncodingConfig = {
-  color: ['Color', string];
-  fontFamily: ['Category', string];
-  fontSize: ['Numeric', number];
-  fontWeight: ['Category', string | number];
-  text: ['Text', string];
-};
+/**
+ * Encoding configuration for mapping data fields to visual properties.
+ * Supports field-based mappings with optional scale configurations.
+ */
+export interface WordCloudEncoding {
+  color?: {
+    field?: string;
+    value?: string;
+    scale?: { scheme?: string };
+    type?: string;
+  };
+  fontFamily?: { field?: string; value?: string };
+  fontSize?: {
+    field?: string;
+    value?: number;
+    scale?: { range?: [number, number]; zero?: boolean };
+    type?: string;
+  };
+  fontWeight?: { field?: string; value?: string | number };
+  text?: { field?: string; value?: string };
+}
 
 export interface WordCloudVisualProps {
   encoding?: Partial<WordCloudEncoding>;
@@ -88,38 +97,118 @@ type FullWordCloudProps = WordCloudProps &
 const SCALE_FACTOR_STEP = 0.5;
 const MAX_SCALE_FACTOR = 3;
 const TOP_RESULTS_PERCENTAGE = 0.1;
+
+/**
+ * Simple encoder that maps data fields to visual properties.
+ * Replaces the encodable library with direct field access and d3 scales.
+ */
+class SimpleEncoder {
+  private encoding: WordCloudEncoding;
+
+  private defaults: {
+    color: string;
+    fontFamily: string;
+    fontSize: number;
+    fontWeight: string | number;
+    text: string;
+  };
+
+  private fontSizeScale: ((value: number) => number) | null = null;
+
+  constructor(
+    encoding: WordCloudEncoding,
+    defaults: {
+      color: string;
+      fontFamily: string;
+      fontSize: number;
+      fontWeight: string | number;
+      text: string;
+    },
+  ) {
+    this.encoding = encoding;
+    this.defaults = defaults;
+  }
+
+  /**
+   * Set domain from dataset to configure scales
+   */
+  setDomainFromDataset(data: PlainObject[]): void {
+    const fontSizeConfig = this.encoding.fontSize;
+    if (fontSizeConfig?.field && fontSizeConfig?.scale?.range) {
+      const values = data
+        .map(d => Number(d[fontSizeConfig.field!]) || 0)
+        .filter(v => !Number.isNaN(v));
+
+      if (values.length > 0) {
+        const min = fontSizeConfig.scale.zero ? 0 : Math.min(...values);
+        const max = Math.max(...values);
+        const [rangeMin, rangeMax] = fontSizeConfig.scale.range;
+
+        this.fontSizeScale = scaleLinear()
+          .domain([min, max])
+          .range([rangeMin, rangeMax]);
+      }
+    }
+  }
+
+  getText(d: PlainObject): string {
+    const config = this.encoding.text;
+    if (config?.field && d[config.field] !== undefined) {
+      return String(d[config.field]);
+    }
+    return config?.value ?? this.defaults.text;
+  }
+
+  getFontSize(d: PlainObject): number {
+    const config = this.encoding.fontSize;
+    if (config?.field && d[config.field] !== undefined) {
+      const value = Number(d[config.field]) || 0;
+      if (this.fontSizeScale) {
+        return this.fontSizeScale(value);
+      }
+      return value || this.defaults.fontSize;
+    }
+    return config?.value ?? this.defaults.fontSize;
+  }
+
+  getColor(d: PlainObject): string {
+    const config = this.encoding.color;
+    if (config?.field && d[config.field] !== undefined) {
+      return String(d[config.field]);
+    }
+    return config?.value ?? this.defaults.color;
+  }
+
+  getFontFamily(d: PlainObject): string {
+    const config = this.encoding.fontFamily;
+    if (config?.field && d[config.field] !== undefined) {
+      return String(d[config.field]);
+    }
+    return config?.value ?? this.defaults.fontFamily;
+  }
+
+  getFontWeight(d: PlainObject): string | number {
+    const config = this.encoding.fontWeight;
+    if (config?.field && d[config.field] !== undefined) {
+      return d[config.field] as string | number;
+    }
+    return config?.value ?? this.defaults.fontWeight;
+  }
+}
+
 class WordCloud extends PureComponent<FullWordCloudProps, WordCloudState> {
   static defaultProps = defaultProps;
 
   isComponentMounted = false;
 
-  wordCloudEncoderFactory = createEncoderFactory<WordCloudEncodingConfig>({
-    channelTypes: {
-      color: 'Color',
-      fontFamily: 'Category',
-      fontSize: 'Numeric',
-      fontWeight: 'Category',
-      text: 'Text',
-    },
-    defaultEncoding: {
-      color: { value: this.props.theme.colorTextLabel },
-      fontFamily: { value: this.props.theme.fontFamily },
-      fontSize: { value: 20 },
-      fontWeight: { value: 'bold' },
-      text: { value: '' },
-    },
-  });
-
-  createEncoder = (
-    encoding?: Partial<WordCloudEncoding>,
-  ): Encoder<WordCloudEncodingConfig> => {
-    const selector: (
-      e: Partial<WordCloudEncoding>,
-    ) => Encoder<WordCloudEncodingConfig> =
-      this.wordCloudEncoderFactory.createSelector();
-
-    return selector(encoding ?? {});
-  };
+  createEncoder = (encoding?: Partial<WordCloudEncoding>): SimpleEncoder =>
+    new SimpleEncoder(encoding ?? {}, {
+      color: this.props.theme.colorTextLabel,
+      fontFamily: this.props.theme.fontFamily,
+      fontSize: 20,
+      fontWeight: 'bold',
+      text: '',
+    });
 
   constructor(props: FullWordCloudProps) {
     super(props);
@@ -165,9 +254,7 @@ class WordCloud extends PureComponent<FullWordCloudProps, WordCloudState> {
     encoder.setDomainFromDataset(data);
 
     const sortedData = [...data].sort(
-      (a, b) =>
-        encoder.channels.fontSize.encodeDatum(b, 0) -
-        encoder.channels.fontSize.encodeDatum(a, 0),
+      (a, b) => encoder.getFontSize(b) - encoder.getFontSize(a),
     );
     const topResultsCount = Math.max(
       sortedData.length * TOP_RESULTS_PERCENTAGE,
@@ -177,15 +264,13 @@ class WordCloud extends PureComponent<FullWordCloudProps, WordCloudState> {
 
     this.generateCloud(encoder, 1, (words: Word[]) =>
       topResults.every((d: PlainObject) =>
-        words.find(
-          ({ text }) => encoder.channels.text.getValueFromDatum(d) === text,
-        ),
+        words.find(({ text }) => encoder.getText(d) === text),
       ),
     );
   }
 
   generateCloud(
-    encoder: Encoder<WordCloudEncodingConfig>,
+    encoder: SimpleEncoder,
     scaleFactor: number,
     isValid: (word: Word[]) => boolean,
   ) {
@@ -196,14 +281,10 @@ class WordCloud extends PureComponent<FullWordCloudProps, WordCloudState> {
       .words(data.map((d: Word) => ({ ...d })))
       .padding(5)
       .rotate(ROTATION[rotation] || ROTATION.flat)
-      .text((d: PlainObject) => encoder.channels.text.getValueFromDatum(d))
-      .font((d: PlainObject) =>
-        encoder.channels.fontFamily.encodeDatum(d, this.props.theme.fontFamily),
-      )
-      .fontWeight((d: PlainObject) =>
-        encoder.channels.fontWeight.encodeDatum(d, 'normal'),
-      )
-      .fontSize((d: PlainObject) => encoder.channels.fontSize.encodeDatum(d, 0))
+      .text((d: PlainObject) => encoder.getText(d))
+      .font((d: PlainObject) => encoder.getFontFamily(d))
+      .fontWeight((d: PlainObject) => encoder.getFontWeight(d))
+      .fontSize((d: PlainObject) => encoder.getFontSize(d))
       .on('end', (words: Word[]) => {
         if (isValid(words) || scaleFactor > MAX_SCALE_FACTOR) {
           this.setWords(words);
@@ -219,7 +300,6 @@ class WordCloud extends PureComponent<FullWordCloudProps, WordCloudState> {
     const { width, height, encoding, sliceId, colorScheme } = this.props;
 
     const encoder = this.createEncoder(encoding);
-    encoder.channels.color.setDomainFromDataset(words);
 
     const colorFn = CategoricalColorNamespace.getScale(colorScheme);
     const viewBoxWidth = width * scaleFactor;
@@ -238,10 +318,7 @@ class WordCloud extends PureComponent<FullWordCloudProps, WordCloudState> {
               fontSize={`${w.size}px`}
               fontWeight={w.weight}
               fontFamily={w.font}
-              fill={colorFn(
-                encoder.channels.color.getValueFromDatum(w) as string,
-                sliceId,
-              )}
+              fill={colorFn(encoder.getColor(w as PlainObject), sliceId)}
               textAnchor="middle"
               transform={`translate(${w.x}, ${w.y}) rotate(${w.rotate})`}
             >
