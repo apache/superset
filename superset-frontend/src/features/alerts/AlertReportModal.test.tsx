@@ -196,6 +196,38 @@ fetchMock.get(
   { name: tabsEndpoint },
 );
 
+// Restore the default tabs route and remove any test-specific overrides.
+// Called in afterEach so cleanup runs even when a test fails mid-way.
+const restoreDefaultTabsRoute = () => {
+  for (const name of [
+    'clear-icon-tabs',
+    'clear-icon-chart-data',
+    'deferred-tabs',
+    'overwrite-chart-data',
+  ]) {
+    try {
+      fetchMock.removeRoute(name);
+    } catch {
+      // route may not exist if the test that adds it didn't run
+    }
+  }
+  // Re-add the default empty tabs route if it was replaced
+  try {
+    fetchMock.removeRoute(tabsEndpoint);
+  } catch {
+    // already removed
+  }
+  fetchMock.get(
+    tabsEndpoint,
+    { result: { all_tabs: {}, tab_tree: [] } },
+    { name: tabsEndpoint },
+  );
+};
+
+afterEach(() => {
+  restoreDefaultTabsRoute();
+});
+
 // Create a valid alert with all required fields entered for validation check
 
 // @ts-expect-error will add id in factory function
@@ -864,15 +896,6 @@ test('filter reappears in dropdown after clearing with X icon', async () => {
       within(virtualList as HTMLElement).getByText('Test Filter 1'),
     ).toBeInTheDocument();
   });
-
-  // Restore original tabs mock and remove chart data mock
-  fetchMock.removeRoute('clear-icon-tabs');
-  fetchMock.removeRoute('clear-icon-chart-data');
-  fetchMock.get(
-    tabsEndpoint,
-    { result: { all_tabs: {}, tab_tree: [] } },
-    { name: tabsEndpoint },
-  );
 });
 
 test('edit mode shows friendly filter names instead of raw IDs', async () => {
@@ -997,13 +1020,4 @@ test('tabs metadata overwrites seeded filter options', async () => {
   expect(
     within(selectContainer).queryByTitle('Country'),
   ).not.toBeInTheDocument();
-
-  // Restore the tabs route and remove chart data mock
-  fetchMock.removeRoute('deferred-tabs');
-  fetchMock.removeRoute('overwrite-chart-data');
-  fetchMock.get(
-    tabsEndpoint,
-    { result: { all_tabs: {}, tab_tree: [] } },
-    { name: tabsEndpoint },
-  );
 });
