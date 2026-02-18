@@ -148,7 +148,7 @@ function buildGroupAggregates(
  */
 function createHierarchicalComparator(
   groups: GroupNode,
-  top: boolean,
+  top: boolean | undefined,
   asc: boolean,
   dataFunc: DataFunction,
 ): (a: string[], b: string[]) => number {
@@ -207,7 +207,7 @@ function createHierarchicalComparator(
 export function groupingValueSort(
   keys: string[][],
   dataFunc: DataFunction,
-  top: boolean,
+  top: boolean | undefined,
   asc: boolean,
 ): void {
   const groups = buildGroupAggregates(keys, dataFunc);
