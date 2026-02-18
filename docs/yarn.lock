@@ -3375,12 +3375,29 @@
   resolved "https://registry.npmjs.org/@storybook/core-events/-/core-events-8.6.15.tgz"
   integrity sha512-u45S9Ls3DrnWZDdEqc4aoRP/GE7KY+KUJnpoCzvTmcwmEHZQrf9p9Hygbjr+fq8Yi+K6swlaprv17re6wdBjHg==
 
-"@storybook/core@8.6.16", "@storybook/core@^8.6.15":
+"@storybook/core@8.6.16":
   version "8.6.16"
   resolved "https://registry.yarnpkg.com/@storybook/core/-/core-8.6.16.tgz#ca94ae9a23bc1746e513ec94f989479527fdd2c6"
   integrity sha512-FWxDEykds3DMIiT64dpZWa5sWhOzJR0Oz0FdjtokeEnCybru6NBeccKkliKbSMaTMcY/2WB58iZUZtAPKEd4Tw==
   dependencies:
     "@storybook/theming" "8.6.16"
+    better-opn "^3.0.2"
+    browser-assert "^1.2.1"
+    esbuild "^0.18.0 || ^0.19.0 || ^0.20.0 || ^0.21.0 || ^0.22.0 || ^0.23.0 || ^0.24.0 || ^0.25.0"
+    esbuild-register "^3.5.0"
+    jsdoc-type-pratt-parser "^4.0.0"
+    process "^0.11.10"
+    recast "^0.23.5"
+    semver "^7.6.2"
+    util "^0.12.5"
+    ws "^8.2.3"
+
+"@storybook/core@^8.6.17":
+  version "8.6.17"
+  resolved "https://registry.yarnpkg.com/@storybook/core/-/core-8.6.17.tgz#73af480521333e421413ffdda7a992b3c96b1afb"
+  integrity sha512-lndZDYIvUddWk54HmgYwE4h2B0JtWt8ztIRAzHRt6ReZZ9QQbmM5b85Qpa+ng4dyQEKc2JAtYD3Du7RRFcpHlw==
+  dependencies:
+    "@storybook/theming" "8.6.17"
     better-opn "^3.0.2"
     browser-assert "^1.2.1"
     esbuild "^0.18.0 || ^0.19.0 || ^0.20.0 || ^0.21.0 || ^0.22.0 || ^0.23.0 || ^0.24.0 || ^0.25.0"
@@ -3431,10 +3448,10 @@
   resolved "https://registry.yarnpkg.com/@storybook/theming/-/theming-8.6.16.tgz#8fe990f275ebad104b96dae960442512b0a83f52"
   integrity sha512-xtd7C68LIAjh7n/CTBA6D9gZux1h4Kt086iPwlMk278aSab4VksQhsFOwWbY0WJlBNqqVnYwEu5AnDKgjPJpvg==
 
-"@storybook/theming@^8.6.15":
-  version "8.6.15"
-  resolved "https://registry.npmjs.org/@storybook/theming/-/theming-8.6.15.tgz"
-  integrity sha512-dAbL0XOekyT6XsF49R6Etj3WxQ/LpdJDIswUUeHgVJ6/yd2opZOGbPxnwA3zlmAh1c0tvpPyhSDXxSG79u8e4Q==
+"@storybook/theming@8.6.17", "@storybook/theming@^8.6.15":
+  version "8.6.17"
+  resolved "https://registry.yarnpkg.com/@storybook/theming/-/theming-8.6.17.tgz#0175bbc22cdc262d171168af67fce6a5e3d76a7f"
+  integrity sha512-IttFvRqozpuzN5MlQEWGOzUA2rZg86688Dyv1d+bjpYcFHtY1X4XyTCGwv1BPTaTsB959oM8R2yoNYWQkABbBA==
 
 "@superset-ui/core@^0.20.4":
   version "0.20.4"
