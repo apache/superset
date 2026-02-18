@@ -3406,10 +3406,10 @@
   dependencies:
     type-fest "^2.19.0"
 
-"@storybook/docs-tools@^8.6.15":
-  version "8.6.15"
-  resolved "https://registry.npmjs.org/@storybook/docs-tools/-/docs-tools-8.6.15.tgz"
-  integrity sha512-EllnANy4D0oWt/AkrRjahFmqOaoGDkCo49NwvMhoRVhFeqZGF2fu7q6ajA8RRBhpU+7tqQbb3+wc+mPg7UBTLQ==
+"@storybook/docs-tools@^8.6.16":
+  version "8.6.16"
+  resolved "https://registry.yarnpkg.com/@storybook/docs-tools/-/docs-tools-8.6.16.tgz#648e212a8fb5e267f4d7073a3a60a4590a934123"
+  integrity sha512-ZMNKo8pK7QNb8PAR50O64Tp0dXhbYYg/cXTHeMvYmHWsW7iCl7j1dKW0YpWCDcKZGNIvqXcTMeDahikfom2ovQ==
 
 "@storybook/icons@^1.2.12":
   version "1.4.0"
