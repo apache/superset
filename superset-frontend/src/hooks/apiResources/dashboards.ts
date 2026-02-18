@@ -22,9 +22,14 @@ import { Chart } from 'src/types/Chart';
 import { Currency } from '@superset-ui/core';
 import { useApiV1Resource, useTransformedResource } from './apiResources';
 
-export const useDashboard = (idOrSlug: string | number) =>
+const dashboardEndpoint = (idOrSlug: string | number, refreshKey?: number) =>
+  refreshKey !== undefined && refreshKey > 0
+    ? `/api/v1/dashboard/${idOrSlug}?__refresh=${refreshKey}`
+    : `/api/v1/dashboard/${idOrSlug}`;
+
+export const useDashboard = (idOrSlug: string | number, refreshKey?: number) =>
   useTransformedResource(
-    useApiV1Resource<Dashboard>(`/api/v1/dashboard/${idOrSlug}`),
+    useApiV1Resource<Dashboard>(dashboardEndpoint(idOrSlug, refreshKey)),
     dashboard => ({
       ...dashboard,
       // TODO: load these at the API level
@@ -36,9 +41,18 @@ export const useDashboard = (idOrSlug: string | number) =>
     }),
   );
 
-// gets the chart definitions for a dashboard
-export const useDashboardCharts = (idOrSlug: string | number) =>
-  useApiV1Resource<Chart[]>(`/api/v1/dashboard/${idOrSlug}/charts`);
+const dashboardChartsEndpoint = (
+  idOrSlug: string | number,
+  refreshKey?: number,
+) =>
+  refreshKey !== undefined && refreshKey > 0
+    ? `/api/v1/dashboard/${idOrSlug}/charts?__refresh=${refreshKey}`
+    : `/api/v1/dashboard/${idOrSlug}/charts`;
+
+export const useDashboardCharts = (
+  idOrSlug: string | number,
+  refreshKey?: number,
+) => useApiV1Resource<Chart[]>(dashboardChartsEndpoint(idOrSlug, refreshKey));
 
 // gets the datasets for a dashboard
 // important: this endpoint only returns the fields in the dataset

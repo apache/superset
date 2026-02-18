@@ -99,7 +99,7 @@ def extract_feature_flags(config_path: Path) -> list[FeatureFlag]:
             current_comments.append(comment_text)
             continue
 
-        # Check for flag definition
+        # Check for flag definition (only boolean flags are extracted)
         flag_match = re.match(r'"([A-Z0-9_]+)":\s*(True|False),?', stripped)
         if flag_match:
             if current_comments:
@@ -111,6 +111,10 @@ def extract_feature_flags(config_path: Path) -> list[FeatureFlag]:
                     flags.append(flag)
 
             current_comments = []  # Always reset after a flag definition
+        elif stripped and not stripped.startswith("#"):
+            # Non-flag config line (e.g. "DASHBOARD_VERSION_RETENTION": 20)
+            # Reset comments so they don't bleed into the next flag
+            current_comments = []
 
     return flags
 

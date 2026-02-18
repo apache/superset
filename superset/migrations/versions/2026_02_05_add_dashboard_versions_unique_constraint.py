@@ -14,10 +14,27 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from . import (  # noqa: F401
-    core,
-    dashboard_version,
-    dynamic_plugins,
-    sql_lab,
-    user_attributes,
-)
+"""Add unique constraint on dashboard_versions (dashboard_id, version_number)."""
+
+from superset.migrations.shared.utils import create_index, drop_index
+
+revision = "d4e5f6a7b8c9"
+down_revision = "b2c3d4e5f6a7"
+branch_labels = None
+depends_on = None
+
+
+def upgrade() -> None:
+    create_index(
+        "dashboard_versions",
+        "uq_dashboard_versions_dashboard_id_version_number",
+        ["dashboard_id", "version_number"],
+        unique=True,
+    )
+
+
+def downgrade() -> None:
+    drop_index(
+        "dashboard_versions",
+        "uq_dashboard_versions_dashboard_id_version_number",
+    )

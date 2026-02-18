@@ -19,9 +19,10 @@ import textwrap
 from functools import partial
 from typing import Any, Optional
 
-from flask import current_app
+from flask import current_app, g
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
+from sqlalchemy.exc import IntegrityError
 
 from superset import db, security_manager
 from superset.commands.base import BaseCommand, UpdateMixin
@@ -37,6 +38,7 @@ from superset.commands.dashboard.exceptions import (
 )
 from superset.commands.utils import populate_roles, update_tags, validate_tags
 from superset.daos.dashboard import DashboardDAO
+from superset.daos.dashboard_version import DashboardVersionDAO
 from superset.daos.report import ReportScheduleDAO
 from superset.exceptions import SupersetSecurityException
 from superset.models.dashboard import Dashboard
@@ -71,6 +73,7 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
                 dashboard,
                 data=json.loads(self._properties.get("json_metadata", "{}")),
             )
+        self._snapshot_after_update(dashboard)
         return dashboard
 
     def validate(self) -> None:
@@ -120,6 +123,44 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
             exceptions.append(ex)
         if exceptions:
             raise DashboardInvalidError(exceptions=exceptions)
+
+    def _get_version_retention(self) -> int:
+        """Number of version snapshots to retain per dashboard (from config)."""
+        return int(
+            current_app.config.get("DASHBOARD_VERSION_RETENTION", 20),
+        )
+
+    def _snapshot_after_update(self, dashboard: Dashboard) -> None:
+        """
+        Create a version snapshot from the dashboard state after the update.
+        So "Version N" represents the dashboard as it is after the Nth save
+        (e.g. a save that removed a chart is stored without that chart).
+        """
+        if (
+            "position_json" not in self._properties
+            and "json_metadata" not in self._properties
+        ):
+            return
+        version_number = DashboardVersionDAO.get_next_version_number(dashboard.id)
+        try:
+            DashboardVersionDAO.create(
+                dashboard_id=dashboard.id,
+                version_number=version_number,
+                position_json=dashboard.position_json,
+                json_metadata=dashboard.json_metadata,
+                created_by_fk=g.user.id if g.user else None,
+                description=self._properties.get("version_description"),
+            )
+        except IntegrityError:
+            # Rare race: concurrent save created the same version_number.
+            # Unique constraint prevents duplicate; skip this snapshot.
+            logger.warning(
+                "Dashboard version snapshot skipped (race, dashboard_id=%s)",
+                dashboard.id,
+            )
+        DashboardVersionDAO.delete_older_than(
+            dashboard.id, keep_n=self._get_version_retention()
+        )
 
     def process_tab_diff(self) -> None:  # noqa: C901
         def find_deleted_tabs() -> list[str]:

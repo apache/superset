@@ -14,10 +14,26 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from . import (  # noqa: F401
-    core,
-    dashboard_version,
-    dynamic_plugins,
-    sql_lab,
-    user_attributes,
-)
+"""add description column to dashboard_versions."""
+
+import sqlalchemy as sa
+
+from superset.migrations.shared.utils import add_columns
+
+revision = "b2c3d4e5f6a7"
+down_revision = "a1b2c3d4e5f6"
+branch_labels = None
+depends_on = None
+
+
+def upgrade() -> None:
+    add_columns(
+        "dashboard_versions",
+        sa.Column("description", sa.String(length=500), nullable=True),
+    )
+
+
+def downgrade() -> None:
+    from superset.migrations.shared.utils import drop_columns
+
+    drop_columns("dashboard_versions", "description")
