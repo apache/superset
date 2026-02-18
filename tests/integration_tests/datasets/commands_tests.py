@@ -76,14 +76,18 @@ class TestExportDatasetsCommand(SupersetTestCase):
         command = ExportDatasetsCommand([example_dataset.id])
         contents = dict(command.run())
 
+        # Build expected filename with UUID suffix
+        uuid_suffix = str(example_dataset.uuid)[:8]
+        expected_filename = f"datasets/examples/energy_usage_{example_dataset.id}_{uuid_suffix}.yaml"
+
         assert list(contents.keys()) == [
             "metadata.yaml",
-            f"datasets/examples/energy_usage_{example_dataset.id}.yaml",
+            expected_filename,
             "databases/examples.yaml",
         ]
 
         metadata = yaml.safe_load(
-            contents[f"datasets/examples/energy_usage_{example_dataset.id}.yaml"]()
+            contents[expected_filename]()
         )
 
         # sort columns for deterministic comparison
@@ -224,8 +228,11 @@ class TestExportDatasetsCommand(SupersetTestCase):
         command = ExportDatasetsCommand([example_dataset.id])
         contents = dict(command.run())
 
+        uuid_suffix = str(example_dataset.uuid)[:8]
+        expected_filename = f"datasets/examples/energy_usage_{example_dataset.id}_{uuid_suffix}.yaml"
+
         metadata = yaml.safe_load(
-            contents[f"datasets/examples/energy_usage_{example_dataset.id}.yaml"]()
+            contents[expected_filename]()
         )
         assert list(metadata.keys()) == [
             "table_name",
@@ -268,10 +275,178 @@ class TestExportDatasetsCommand(SupersetTestCase):
         command = ExportDatasetsCommand([example_dataset.id], export_related=False)
         contents = dict(command.run())
 
+        uuid_suffix = str(example_dataset.uuid)[:8]
+        expected_filename = f"datasets/examples/energy_usage_{example_dataset.id}_{uuid_suffix}.yaml"
+
         assert list(contents.keys()) == [
             "metadata.yaml",
-            f"datasets/examples/energy_usage_{example_dataset.id}.yaml",
+            expected_filename,
         ]
+
+    @patch("superset.security.manager.g")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_export_dataset_uuid_in_filename(self, mock_g):
+        """
+        Test that dataset export includes UUID in filename for disambiguation.
+        """
+        mock_g.user = security_manager.find_user("admin")
+
+        example_db = get_example_database()
+        example_dataset = _get_table_from_list_by_name(
+            "energy_usage", example_db.tables
+        )
+        command = ExportDatasetsCommand([example_dataset.id])
+        contents = dict(command.run())
+
+        # Verify UUID is in the filename
+        dataset_files = [
+            key for key in contents.keys() if key.startswith("datasets/")
+        ]
+        assert len(dataset_files) == 1
+        dataset_file = dataset_files[0]
+
+        # Filename should contain UUID suffix (first 8 chars)
+        uuid_suffix = str(example_dataset.uuid)[:8]
+        assert uuid_suffix in dataset_file
+        assert dataset_file.endswith(f"_{uuid_suffix}.yaml")
+
+    @patch("superset.security.manager.g")
+    def test_export_datasets_with_same_name_different_uuid(self, mock_g):
+        """
+        Test that two datasets with the same table name but different UUIDs
+        export to different files without collision.
+        """
+        mock_g.user = security_manager.find_user("admin")
+        admin = security_manager.find_user("admin")
+
+        example_db = get_example_database()
+
+        # Create two datasets with the same table name
+        from uuid import uuid4
+
+        dataset1 = SqlaTable(
+            table_name="test_disambiguation",
+            schema=example_db.default_schema_name,
+            database=example_db,
+            owners=[admin],
+        )
+        dataset1.uuid = uuid4()
+        db.session.add(dataset1)
+        db.session.flush()
+
+        dataset2 = SqlaTable(
+            table_name="test_disambiguation",  # Same name
+            schema=example_db.default_schema_name,
+            database=example_db,
+            owners=[admin],
+        )
+        dataset2.uuid = uuid4()  # Different UUID
+        db.session.add(dataset2)
+        db.session.flush()
+
+        try:
+            # Export both datasets
+            command = ExportDatasetsCommand([dataset1.id, dataset2.id])
+            contents = dict(command.run())
+
+            dataset_files = [
+                key for key in contents.keys() if key.startswith("datasets/")
+            ]
+
+            # Should have 2 distinct files
+            assert len(dataset_files) == 2
+
+            # Verify both UUIDs are represented in filenames
+            uuid1_suffix = str(dataset1.uuid)[:8]
+            uuid2_suffix = str(dataset2.uuid)[:8]
+
+            filenames_str = " ".join(dataset_files)
+            assert uuid1_suffix in filenames_str
+            assert uuid2_suffix in filenames_str
+
+            # Files should have different names
+            assert dataset_files[0] != dataset_files[1]
+
+            # Verify each YAML contains the correct UUID in content
+            for file_key in dataset_files:
+                content = yaml.safe_load(contents[file_key]())
+                assert "uuid" in content
+                assert content["uuid"] in [str(dataset1.uuid), str(dataset2.uuid)]
+
+        finally:
+            db.session.delete(dataset1)
+            db.session.delete(dataset2)
+            db.session.commit()
+
+    @patch("superset.security.manager.g")
+    def test_export_import_dataset_uuid_resolution(self, mock_g):
+        """
+        Test that dataset import correctly resolves by UUID even with
+        filename disambiguation.
+        """
+        mock_g.user = security_manager.find_user("admin")
+        admin = security_manager.find_user("admin")
+
+        example_db = get_example_database()
+
+        # Create a dataset
+        from uuid import uuid4
+
+        original_uuid = uuid4()
+        dataset = SqlaTable(
+            table_name="test_uuid_resolution",
+            schema=example_db.default_schema_name,
+            database=example_db,
+            owners=[admin],
+        )
+        dataset.uuid = original_uuid
+        db.session.add(dataset)
+        db.session.flush()
+        original_id = dataset.id
+
+        try:
+            # Export the dataset
+            command = ExportDatasetsCommand([dataset.id])
+            contents = dict(command.run())
+
+            # Delete the dataset
+            db.session.delete(dataset)
+            db.session.commit()
+
+            # Verify dataset is gone
+            assert (
+                db.session.query(SqlaTable).filter_by(uuid=original_uuid).first()
+                is None
+            )
+
+            # Import it back
+            from superset.commands.dataset.importers.dispatcher import (
+                ImportDatasetsCommand,
+            )
+
+            ImportDatasetsCommand(contents).run()
+
+            # Verify dataset is restored with same UUID
+            restored_dataset = (
+                db.session.query(SqlaTable).filter_by(uuid=original_uuid).first()
+            )
+            assert restored_dataset is not None
+            assert str(restored_dataset.uuid) == str(original_uuid)
+            assert restored_dataset.table_name == "test_uuid_resolution"
+
+            # ID may be different but UUID should match
+            if restored_dataset.id != original_id:
+                # This is expected - UUID is the stable identifier
+                pass
+
+        finally:
+            # Cleanup
+            cleanup_dataset = (
+                db.session.query(SqlaTable).filter_by(uuid=original_uuid).first()
+            )
+            if cleanup_dataset:
+                db.session.delete(cleanup_dataset)
+                db.session.commit()
 
 
 class TestImportDatasetsCommand(SupersetTestCase):

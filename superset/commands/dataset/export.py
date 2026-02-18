@@ -45,8 +45,11 @@ class ExportDatasetsCommand(ExportModelsCommand):
         db_file_name = get_filename(
             model.database.database_name, model.database.id, skip_id=True
         )
+        # Include UUID in filename to ensure uniqueness across environments
+        # while maintaining readability with table name and numeric ID
         ds_file_name = get_filename(model.table_name, model.id)
-        return f"datasets/{db_file_name}/{ds_file_name}.yaml"
+        uuid_suffix = str(model.uuid)[:8]  # Use first 8 chars of UUID for brevity
+        return f"datasets/{db_file_name}/{ds_file_name}_{uuid_suffix}.yaml"
 
     @staticmethod
     def _file_content(model: SqlaTable) -> str:
