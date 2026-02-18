@@ -97,6 +97,6 @@ export function createYScaleConfig(
  */
 export function transformChartData(
   data: Array<number | null>,
-): Array<{ x: number; y: number }> {
-  return data.map((num, idx) => ({ x: idx, y: num ?? 0 }));
+): Array<{ x: number; y: number | null }> {
+  return data.map((num, idx) => ({ x: idx, y: num}));
 }
