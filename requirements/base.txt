@@ -120,7 +120,7 @@ flask==2.3.3
     #   flask-session
     #   flask-sqlalchemy
     #   flask-wtf
-flask-appbuilder @ git+https://github.com/aminghadersohi/Flask-AppBuilder@6182e2a72642d18b633e87a7681e8804f64becbc
+flask-appbuilder @ git+https://github.com/aminghadersohi/Flask-AppBuilder@aa9250ca1471a2726fc7208defc0b5e9bbfd1c1b
     # via
     #   apache-superset (pyproject.toml)
     #   apache-superset-core
