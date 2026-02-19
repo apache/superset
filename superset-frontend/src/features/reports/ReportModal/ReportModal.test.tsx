@@ -22,7 +22,9 @@ import {
   screen,
   userEvent,
   waitFor,
+  createStore,
 } from 'spec/helpers/testing-library';
+import reducerIndex from 'spec/helpers/reducerIndex';
 import { FeatureFlag, VizType, isFeatureEnabled } from '@superset-ui/core';
 import * as actions from 'src/features/reports/ReportModal/actions';
 import ReportModal from '.';
@@ -56,115 +58,231 @@ jest.mock('@superset-ui/core', () => ({
 }));
 
 const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('Email Report Modal', () => {
-  beforeEach(() => {
-    mockedIsFeatureEnabled.mockImplementation(
-      featureFlag => featureFlag === FeatureFlag.AlertReports,
-    );
-    render(<ReportModal {...defaultProps} />, { useRedux: true });
-  });
 
-  test('inputs respond correctly', () => {
-    // ----- Report name textbox
-    // Initial value
-    const reportNameTextbox = screen.getByTestId('report-name-test');
-    expect(reportNameTextbox).toHaveDisplayValue('Weekly Report');
-    // Type in the textbox and assert that it worked
-    userEvent.clear(reportNameTextbox);
-    userEvent.type(reportNameTextbox, 'Report name text test');
-    expect(reportNameTextbox).toHaveDisplayValue('Report name text test');
+beforeEach(() => {
+  mockedIsFeatureEnabled.mockImplementation(
+    featureFlag => featureFlag === FeatureFlag.AlertReports,
+  );
+});
 
-    // ----- Report description textbox
-    // Initial value
-    const reportDescriptionTextbox = screen.getByTestId(
-      'report-description-test',
-    );
-    expect(reportDescriptionTextbox).toHaveDisplayValue('');
-    // Type in the textbox and assert that it worked
-    userEvent.type(reportDescriptionTextbox, 'Report description text test');
-    expect(reportDescriptionTextbox).toHaveDisplayValue(
-      'Report description text test',
-    );
+test('inputs respond correctly', () => {
+  render(<ReportModal {...defaultProps} />, { useRedux: true });
+  // ----- Report name textbox
+  const reportNameTextbox = screen.getByTestId('report-name-test');
+  expect(reportNameTextbox).toHaveDisplayValue('Weekly Report');
+  userEvent.clear(reportNameTextbox);
+  userEvent.type(reportNameTextbox, 'Report name text test');
+  expect(reportNameTextbox).toHaveDisplayValue('Report name text test');
 
-    // ----- Crontab
-    const crontabInputs = screen.getAllByRole('combobox');
-    expect(crontabInputs).toHaveLength(5);
-  });
+  // ----- Report description textbox
+  const reportDescriptionTextbox = screen.getByTestId(
+    'report-description-test',
+  );
+  expect(reportDescriptionTextbox).toHaveDisplayValue('');
+  userEvent.type(reportDescriptionTextbox, 'Report description text test');
+  expect(reportDescriptionTextbox).toHaveDisplayValue(
+    'Report description text test',
+  );
 
-  test('does not allow user to create a report without a name', () => {
-    // Grab name textbox and add button
-    const reportNameTextbox = screen.getByTestId('report-name-test');
-    const addButton = screen.getByRole('button', { name: /add/i });
+  // ----- Crontab
+  const crontabInputs = screen.getAllByRole('combobox');
+  expect(crontabInputs).toHaveLength(5);
+});
 
-    // Add button should be enabled while name textbox has text
-    expect(reportNameTextbox).toHaveDisplayValue('Weekly Report');
-    expect(addButton).toBeEnabled();
+test('does not allow user to create a report without a name', () => {
+  render(<ReportModal {...defaultProps} />, { useRedux: true });
+  const reportNameTextbox = screen.getByTestId('report-name-test');
+  const addButton = screen.getByRole('button', { name: /add/i });
 
-    // Clear the text from the name textbox
-    userEvent.clear(reportNameTextbox);
+  expect(reportNameTextbox).toHaveDisplayValue('Weekly Report');
+  expect(addButton).toBeEnabled();
 
-    // Add button should now be disabled, blocking user from creation
-    expect(reportNameTextbox).toHaveDisplayValue('');
-    expect(addButton).toBeDisabled();
-  });
+  userEvent.clear(reportNameTextbox);
 
-  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-  describe('Email Report Modal', () => {
-    let dispatch: any;
+  expect(reportNameTextbox).toHaveDisplayValue('');
+  expect(addButton).toBeDisabled();
+});
 
-    beforeEach(async () => {
-      dispatch = jest.fn();
-    });
-
-    test('creates a new email report', async () => {
-      // ---------- Render/value setup ----------
-      const reportValues = {
-        id: 1,
-        result: {
-          active: true,
-          creation_method: 'dashboards',
-          crontab: '0 12 * * 1',
-          dashboard: 1,
-          name: 'Weekly Report',
-          owners: [1],
-          recipients: [
-            {
-              recipient_config_json: {
-                target: 'test@test.com',
-              },
-              type: 'Email',
-            },
-          ],
-          type: 'Report',
+test('creates a new email report', async () => {
+  render(<ReportModal {...defaultProps} />, { useRedux: true });
+  const dispatch = jest.fn();
+  const reportValues = {
+    id: 1,
+    result: {
+      active: true,
+      creation_method: 'dashboards',
+      crontab: '0 12 * * 1',
+      dashboard: 1,
+      name: 'Weekly Report',
+      owners: [1],
+      recipients: [
+        {
+          recipient_config_json: {
+            target: 'test@test.com',
+          },
+          type: 'Email',
         },
-      };
-      // This is needed to structure the reportValues to match the fetchMock return
-      const stringyReportValues = `{"id":1,"result":{"active":true,"creation_method":"dashboards","crontab":"0 12 * * 1","dashboard":${1},"name":"Weekly Report","owners":[${1}],"recipients":[{"recipient_config_json":{"target":"test@test.com"},"type":"Email"}],"type":"Report"}}`;
-      // Watch for report POST
-      fetchMock.post(REPORT_ENDPOINT, reportValues);
+      ],
+      type: 'Report',
+    },
+  };
+  const stringyReportValues = `{"id":1,"result":{"active":true,"creation_method":"dashboards","crontab":"0 12 * * 1","dashboard":${1},"name":"Weekly Report","owners":[${1}],"recipients":[{"recipient_config_json":{"target":"test@test.com"},"type":"Email"}],"type":"Report"}}`;
+  fetchMock.post(REPORT_ENDPOINT, reportValues);
 
-      // Click "Add" button to create a new email report
-      const addButton = screen.getByRole('button', { name: /add/i });
-      await waitFor(() => userEvent.click(addButton));
+  const addButton = screen.getByRole('button', { name: /add/i });
+  await waitFor(() => userEvent.click(addButton));
 
-      // Mock addReport from Redux
-      const makeRequest = () => {
-        const request = actions.addReport(reportValues);
-        return request(dispatch);
-      };
+  const makeRequest = () => {
+    const request = actions.addReport(reportValues);
+    return request(dispatch);
+  };
 
-      await makeRequest();
+  await makeRequest();
 
-      // 🐞 ----- There are 2 POST calls at this point ----- 🐞
+  expect(fetchMock.callHistory.lastCall()?.options?.body).toEqual(
+    stringyReportValues,
+  );
+  expect(dispatch).toHaveBeenCalledTimes(2);
+  const reportCalls = fetchMock.callHistory.calls(REPORT_ENDPOINT);
+  expect(reportCalls).toHaveLength(2);
+});
 
-      // addReport's mocked POST return should match the mocked values
-      expect(fetchMock.callHistory.lastCall()?.options?.body).toEqual(
-        stringyReportValues,
-      );
-      expect(dispatch).toHaveBeenCalledTimes(2);
-      const reportCalls = fetchMock.callHistory.calls(REPORT_ENDPOINT);
-      expect(reportCalls).toHaveLength(2);
-    });
+test('text-based chart hides screenshot width and shows message content', () => {
+  // Table is text-based: should show message content but hide custom width
+  const textChartProps = {
+    ...defaultProps,
+    dashboardId: undefined,
+    chart: { id: 1, sliceFormData: { viz_type: VizType.Table } },
+    chartName: 'My Table Chart',
+    creationMethod: 'charts' as const,
+  };
+  render(<ReportModal {...textChartProps} />, { useRedux: true });
+
+  // Message content section should be visible
+  expect(screen.getByText('Message content')).toBeInTheDocument();
+  expect(screen.getByText(/Text embedded in email/i)).toBeInTheDocument();
+
+  // Screenshot width should NOT be visible for text-based chart
+  expect(screen.queryByText('Screenshot width')).not.toBeInTheDocument();
+});
+
+test('non-text chart shows screenshot width and message content', () => {
+  const lineChartProps = {
+    ...defaultProps,
+    dashboardId: undefined,
+    chart: { id: 1, sliceFormData: { viz_type: VizType.Line } },
+    chartName: 'My Line Chart',
+    creationMethod: 'charts' as const,
+  };
+  render(<ReportModal {...lineChartProps} />, { useRedux: true });
+
+  // Both message content and screenshot width should be visible
+  expect(screen.getByText('Message content')).toBeInTheDocument();
+  expect(screen.getByText('Screenshot width')).toBeInTheDocument();
+});
+
+test('dashboard report hides message content section', () => {
+  const dashboardProps = {
+    ...defaultProps,
+    chart: undefined,
+    dashboardName: 'My Dashboard',
+  };
+  render(<ReportModal {...dashboardProps} />, { useRedux: true });
+
+  // Message content (radio group) should NOT be visible for dashboard
+  expect(screen.queryByText('Message content')).not.toBeInTheDocument();
+  // Screenshot width SHOULD be visible
+  expect(screen.getByText('Screenshot width')).toBeInTheDocument();
+});
+
+test('renders edit mode when report exists in store', () => {
+  const existingReport = {
+    id: 42,
+    name: 'Existing Dashboard Report',
+    description: 'An existing report',
+    crontab: '0 9 * * 1',
+    creation_method: 'dashboards',
+    report_format: 'PNG',
+    timezone: 'America/New_York',
+    active: true,
+    type: 'Report',
+    dashboard: 1,
+    owners: [1],
+    recipients: [
+      {
+        recipient_config_json: { target: 'test@test.com' },
+        type: 'Email',
+      },
+    ],
+  };
+  const store = createStore(
+    {
+      reports: {
+        dashboards: { 1: existingReport },
+      },
+    },
+    reducerIndex,
+  );
+
+  render(<ReportModal {...defaultProps} />, { useRedux: true, store });
+
+  // Edit mode title
+  expect(screen.getByText('Edit email report')).toBeInTheDocument();
+  // Report name populated from store
+  expect(screen.getByTestId('report-name-test')).toHaveDisplayValue(
+    'Existing Dashboard Report',
+  );
+  // Save button instead of Add
+  expect(screen.getByRole('button', { name: /save/i })).toBeInTheDocument();
+});
+
+test('edit mode dispatches editReport via PUT on save', async () => {
+  const existingReport = {
+    id: 42,
+    name: 'Existing Report',
+    description: '',
+    crontab: '0 12 * * 1',
+    creation_method: 'dashboards',
+    report_format: 'PNG',
+    timezone: 'America/New_York',
+    active: true,
+    type: 'Report',
+    dashboard: 1,
+    owners: [1],
+    recipients: [
+      {
+        recipient_config_json: { target: 'test@test.com' },
+        type: 'Email',
+      },
+    ],
+  };
+  const store = createStore(
+    {
+      reports: {
+        dashboards: { 1: existingReport },
+      },
+    },
+    reducerIndex,
+  );
+
+  fetchMock.put(
+    'glob:*/api/v1/report/42',
+    { id: 42, result: {} },
+    {
+      name: 'put-report-42',
+    },
+  );
+
+  render(<ReportModal {...defaultProps} />, { useRedux: true, store });
+
+  expect(screen.getByText('Edit email report')).toBeInTheDocument();
+  const saveButton = screen.getByRole('button', { name: /save/i });
+  await waitFor(() => userEvent.click(saveButton));
+
+  await waitFor(() => {
+    const calls = fetchMock.callHistory.calls('put-report-42');
+    expect(calls.length).toBeGreaterThan(0);
   });
+
+  fetchMock.removeRoute('put-report-42');
 });

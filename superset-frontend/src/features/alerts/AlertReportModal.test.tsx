@@ -24,7 +24,10 @@ import {
   userEvent,
   waitFor,
   within,
+  createStore,
+  fireEvent,
 } from 'spec/helpers/testing-library';
+import reducerIndex from 'spec/helpers/reducerIndex';
 import { buildErrorTooltipMessage } from './buildErrorTooltipMessage';
 import AlertReportModal, { AlertReportModalProps } from './AlertReportModal';
 import { AlertObject, NotificationMethodOption } from './types';
@@ -806,6 +809,376 @@ test('renders dashboard filter dropdowns', async () => {
   });
   expect(filterOptionDropdown).toBeInTheDocument();
 });
+
+// --------------- PHASE 2: Dashboard/Tab/Filter Interaction Tests ------------------
+
+const tabsWithFilters = {
+  result: {
+    all_tabs: { TAB_1: 'Tab 1', TAB_2: 'Tab 2' },
+    tab_tree: [
+      { title: 'Tab 1', value: 'TAB_1' },
+      { title: 'Tab 2', value: 'TAB_2' },
+    ],
+    native_filters: {
+      all: [
+        {
+          id: 'NATIVE_FILTER-F1',
+          name: 'Country Filter',
+          filterType: 'filter_select',
+          targets: [{ column: { name: 'country' } }],
+          adhoc_filters: [],
+        },
+        {
+          id: 'NATIVE_FILTER-F2',
+          name: 'City Filter',
+          filterType: 'filter_select',
+          targets: [{ column: { name: 'city' } }],
+          adhoc_filters: [],
+        },
+      ],
+      TAB_1: [
+        {
+          id: 'NATIVE_FILTER-F1',
+          name: 'Country Filter',
+          filterType: 'filter_select',
+          targets: [{ column: { name: 'country' } }],
+          adhoc_filters: [],
+        },
+      ],
+      TAB_2: [
+        {
+          id: 'NATIVE_FILTER-F2',
+          name: 'City Filter',
+          filterType: 'filter_select',
+          targets: [{ column: { name: 'city' } }],
+          adhoc_filters: [],
+        },
+      ],
+    },
+  },
+};
+
+const noTabsResponse = {
+  result: {
+    all_tabs: {},
+    tab_tree: [],
+    native_filters: {},
+  },
+};
+
+test('dashboard with no tabs disables tab selector', async () => {
+  fetchMock.removeRoute(tabsEndpoint);
+  fetchMock.get(tabsEndpoint, noTabsResponse, { name: tabsEndpoint });
+
+  render(<AlertReportModal {...generateMockedProps(true, true)} />, {
+    useRedux: true,
+  });
+
+  userEvent.click(screen.getByTestId('contents-panel'));
+  await screen.findByText(/test dashboard/i);
+
+  const tabSelector = document.querySelector('.ant-select-disabled');
+  expect(tabSelector).toBeInTheDocument();
+});
+
+test('dashboard switching resets tab and filter selections', async () => {
+  // Return dashboard options so user can switch
+  fetchMock.removeRoute(dashboardEndpoint);
+  fetchMock.get(dashboardEndpoint, {
+    result: [
+      { text: 'Test Dashboard', value: 1 },
+      { text: 'Other Dashboard', value: 99 },
+    ],
+    count: 2,
+  });
+
+  // Dashboard 1 has tabs and filters
+  fetchMock.removeRoute(tabsEndpoint);
+  fetchMock.get(tabsEndpoint, tabsWithFilters, { name: tabsEndpoint });
+
+  // Dashboard 99 has no tabs
+  const tabs99 = 'glob:*/api/v1/dashboard/99/tabs';
+  fetchMock.get(tabs99, noTabsResponse, { name: tabs99 });
+
+  render(<AlertReportModal {...generateMockedProps(true, true)} />, {
+    useRedux: true,
+  });
+
+  userEvent.click(screen.getByTestId('contents-panel'));
+  await screen.findByText(/test dashboard/i);
+
+  // Wait for tabs to load from dashboard 1
+  await waitFor(() => {
+    expect(screen.getAllByText(/select tab/i)).toHaveLength(1);
+  });
+
+  // Verify filters are available
+  await waitFor(() => {
+    expect(
+      screen.getByRole('combobox', { name: /select filter/i }),
+    ).toBeInTheDocument();
+  });
+
+  // Switch to "Other Dashboard"
+  const dashboardSelect = screen.getByRole('combobox', {
+    name: /dashboard/i,
+  });
+  userEvent.clear(dashboardSelect);
+  userEvent.type(dashboardSelect, 'Other Dashboard{enter}');
+
+  // After switching, tab selector should be disabled (reset to empty)
+  await waitFor(() => {
+    const disabledSelects = document.querySelectorAll('.ant-select-disabled');
+    expect(disabledSelects.length).toBeGreaterThan(0);
+  });
+
+  // Restore dashboard endpoint
+  fetchMock.removeRoute(dashboardEndpoint);
+  fetchMock.get(dashboardEndpoint, { result: [] });
+  fetchMock.removeRoute(tabs99);
+});
+
+test('dashboard tabs fetch failure shows error toast', async () => {
+  fetchMock.removeRoute(tabsEndpoint);
+  fetchMock.get(tabsEndpoint, 500, { name: tabsEndpoint });
+
+  const store = createStore({}, reducerIndex);
+
+  render(<AlertReportModal {...generateMockedProps(true, true)} />, {
+    useRedux: true,
+    store,
+  });
+
+  userEvent.click(screen.getByTestId('contents-panel'));
+  await screen.findByText(/test dashboard/i);
+
+  // Tab selector should remain disabled (no tabs loaded)
+  const tabSelector = document.querySelector('.ant-select-disabled');
+  expect(tabSelector).toBeInTheDocument();
+
+  // Verify the tabs request was attempted
+  const tabsCalls = fetchMock.callHistory.calls(tabsEndpoint);
+  expect(tabsCalls.length).toBeGreaterThan(0);
+
+  // Verify danger toast was dispatched for the fetch failure
+  await waitFor(() => {
+    const toasts = (store.getState() as any).messageToasts;
+    expect(toasts.length).toBeGreaterThan(0);
+    expect(
+      toasts.some((t: { text: string }) =>
+        t.text.includes('error retrieving dashboard tabs'),
+      ),
+    ).toBe(true);
+  });
+});
+
+test('switching content type to chart hides tab and filter sections', async () => {
+  fetchMock.removeRoute(tabsEndpoint);
+  fetchMock.get(tabsEndpoint, tabsWithFilters, { name: tabsEndpoint });
+
+  render(<AlertReportModal {...generateMockedProps(true, true)} />, {
+    useRedux: true,
+  });
+
+  userEvent.click(screen.getByTestId('contents-panel'));
+  await screen.findByText(/test dashboard/i);
+
+  // Tab selector and filter dropdowns should be visible for dashboard
+  expect(screen.getAllByText(/select tab/i)).toHaveLength(1);
+  expect(
+    screen.getByRole('combobox', { name: /select filter/i }),
+  ).toBeInTheDocument();
+
+  // Switch to chart
+  const contentTypeSelector = screen.getByRole('combobox', {
+    name: /select content type/i,
+  });
+  await comboboxSelect(contentTypeSelector, 'Chart', () =>
+    screen.getByRole('combobox', { name: /chart/i }),
+  );
+
+  // Tab and filter sections should be hidden
+  expect(screen.queryByText(/select tab/i)).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole('combobox', { name: /select filter/i }),
+  ).not.toBeInTheDocument();
+});
+
+test('adding and removing dashboard filter rows', async () => {
+  fetchMock.removeRoute(tabsEndpoint);
+  fetchMock.get(tabsEndpoint, tabsWithFilters, { name: tabsEndpoint });
+
+  render(<AlertReportModal {...generateMockedProps(true, true)} />, {
+    useRedux: true,
+  });
+
+  userEvent.click(screen.getByTestId('contents-panel'));
+  await screen.findByText(/test dashboard/i);
+
+  // Wait for filter options to load
+  await waitFor(() => {
+    expect(
+      screen.getByRole('combobox', { name: /select filter/i }),
+    ).toBeInTheDocument();
+  });
+
+  // Should start with 1 filter row
+  const initialFilterSelects = screen.getAllByRole('combobox', {
+    name: /select filter/i,
+  });
+  expect(initialFilterSelects).toHaveLength(1);
+
+  // Click "Apply another dashboard filter"
+  const addFilterButton = screen.getByText(/apply another dashboard filter/i);
+  userEvent.click(addFilterButton);
+
+  // Should now have 2 filter rows
+  await waitFor(() => {
+    expect(
+      screen.getAllByRole('combobox', { name: /select filter/i }),
+    ).toHaveLength(2);
+  });
+
+  // Remove the second filter row by clicking its delete icon
+  const deleteIcons = document.querySelectorAll('.filters-trashcan');
+  expect(deleteIcons.length).toBeGreaterThanOrEqual(2);
+  fireEvent.click(deleteIcons[deleteIcons.length - 1]);
+
+  // Should be back to 1 filter row
+  await waitFor(() => {
+    expect(
+      screen.getAllByRole('combobox', { name: /select filter/i }),
+    ).toHaveLength(1);
+  });
+});
+
+test('alert shows condition section, report does not', () => {
+  // Alert has 5 sections
+  const { unmount } = render(
+    <AlertReportModal {...generateMockedProps(false)} />,
+    { useRedux: true },
+  );
+  expect(screen.getAllByRole('tab')).toHaveLength(5);
+  expect(screen.getByTestId('alert-condition-panel')).toBeInTheDocument();
+  unmount();
+
+  // Report has 4 sections, no condition panel
+  render(<AlertReportModal {...generateMockedProps(true)} />, {
+    useRedux: true,
+  });
+  expect(screen.getAllByRole('tab')).toHaveLength(4);
+  expect(screen.queryByTestId('alert-condition-panel')).not.toBeInTheDocument();
+});
+
+test('submit includes conditionNotNull without threshold in alert payload', async () => {
+  // Mock payload returns id:1, so updateResource PUTs to /api/v1/report/1
+  fetchMock.put(
+    'glob:*/api/v1/report/1',
+    { id: 1, result: {} },
+    { name: 'put-condition' },
+  );
+
+  render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {
+    useRedux: true,
+  });
+
+  // Wait for resource to load and all validation to pass
+  await waitFor(() => {
+    expect(
+      screen.queryAllByRole('img', { name: /check-circle/i }),
+    ).toHaveLength(5);
+  });
+
+  // Open condition panel and select "not null"
+  userEvent.click(screen.getByTestId('alert-condition-panel'));
+  await screen.findByText(/smaller than/i);
+  const condition = screen.getByRole('combobox', { name: /condition/i });
+  await comboboxSelect(condition, 'not null', () =>
+    screen.getAllByText(/not null/i)[0],
+  );
+
+  expect(screen.getByRole('spinbutton')).toBeDisabled();
+
+  // Wait for Save to be enabled and click
+  await waitFor(() => {
+    expect(
+      screen.getByRole('button', { name: /save/i }),
+    ).toBeEnabled();
+  });
+  await waitFor(() =>
+    userEvent.click(screen.getByRole('button', { name: /save/i })),
+  );
+
+  // Verify the PUT payload
+  await waitFor(() => {
+    const calls = fetchMock.callHistory.calls('put-condition');
+    expect(calls.length).toBeGreaterThan(0);
+  });
+
+  const calls = fetchMock.callHistory.calls('put-condition');
+  const body = JSON.parse(calls[calls.length - 1].options.body as string);
+  expect(body.validator_type).toBe('not null');
+  expect(body.validator_config_json).toEqual({});
+
+  fetchMock.removeRoute('put-condition');
+});
+
+test('edit mode submit uses PUT and excludes read-only fields', async () => {
+  // Mock payload returns id:1, so updateResource PUTs to /api/v1/report/1
+  fetchMock.put(
+    'glob:*/api/v1/report/1',
+    { id: 1, result: {} },
+    { name: 'put-edit' },
+  );
+
+  render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {
+    useRedux: true,
+  });
+
+  // Wait for resource to load and all validation to pass
+  await waitFor(() => {
+    expect(
+      screen.queryAllByRole('img', { name: /check-circle/i }),
+    ).toHaveLength(5);
+  });
+
+  await waitFor(() => {
+    expect(
+      screen.getByRole('button', { name: /save/i }),
+    ).toBeEnabled();
+  });
+  await waitFor(() =>
+    userEvent.click(screen.getByRole('button', { name: /save/i })),
+  );
+
+  await waitFor(() => {
+    const calls = fetchMock.callHistory.calls('put-edit');
+    expect(calls.length).toBeGreaterThan(0);
+  });
+
+  const calls = fetchMock.callHistory.calls('put-edit');
+  const body = JSON.parse(calls[calls.length - 1].options.body as string);
+
+  // Edit mode strips these read-only fields
+  expect(body).not.toHaveProperty('id');
+  expect(body).not.toHaveProperty('created_by');
+  expect(body).not.toHaveProperty('last_eval_dttm');
+  expect(body).not.toHaveProperty('last_state');
+  expect(body).not.toHaveProperty('last_value');
+  expect(body).not.toHaveProperty('last_value_row_json');
+
+  // Core fields remain
+  expect(body.type).toBe('Alert');
+  expect(body.name).toBe('Test Alert');
+
+  // Recipients from the loaded resource should be in payload
+  expect(body.recipients).toBeDefined();
+  expect(body.recipients[0].type).toBe('Email');
+
+  fetchMock.removeRoute('put-edit');
+});
+
+// --------------- Existing filter reappear test ------------------
 
 test('filter reappears in dropdown after clearing with X icon', async () => {
   const chartDataEndpoint = 'glob:*/api/v1/chart/data*';

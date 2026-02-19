@@ -283,4 +283,32 @@ describe('AlertList', () => {
     expect(screen.getByTitle('Active')).toBeInTheDocument();
     expect(screen.getByTitle('Actions')).toBeInTheDocument();
   }, 15000);
+
+  test('toggle active rolls back on update failure', async () => {
+    // Override the PUT endpoint to return 500
+    fetchMock.removeRoute('alertEndpoint');
+    fetchMock.put(alertEndpoint, 500, {
+      name: 'alertEndpoint',
+    });
+
+    renderAlertList();
+    await screen.findByTestId('alerts-list-view');
+
+    const switches = await screen.findAllByRole('switch');
+    // All start as active (checked)
+    expect(switches[0]).toBeChecked();
+
+    // Toggle first switch off
+    fireEvent.click(switches[0]);
+
+    // After the failed PUT, the switch should revert to checked
+    await waitFor(() => {
+      const updatedSwitches = screen.getAllByRole('switch');
+      expect(updatedSwitches[0]).toBeChecked();
+    });
+
+    // Restore the PUT endpoint
+    fetchMock.removeRoute('alertEndpoint');
+    fetchMock.put(alertEndpoint, { ...mockalerts[0], active: false });
+  }, 15000);
 });
