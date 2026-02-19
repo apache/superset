@@ -934,6 +934,52 @@ async def test_invalid_filter_column_raises(mcp_server):
             )
 
 
+def test_database_name_filter_accepted():
+    """Test that database_name is accepted as a valid filter column.
+
+    Regression test for TypeError 'encoding without a string argument' when
+    filtering datasets by database_name.
+    """
+    request = ListDatasetsRequest(
+        filters=[{"col": "database_name", "opr": "ilike", "value": "%dynamo%"}],
+        select_columns=["id", "database_name", "table_name"],
+    )
+    assert len(request.filters) == 1
+    assert request.filters[0].col == "database_name"
+    assert request.filters[0].opr.value == "ilike"
+    assert request.filters[0].value == "%dynamo%"
+
+
+@patch("superset.daos.dataset.DatasetDAO.list")
+@pytest.mark.asyncio
+async def test_list_datasets_with_database_name_filter(mock_list, mcp_server):
+    """Test list_datasets with database_name filter via MCP client.
+
+    Regression test: previously database_name was not in the allowed filter
+    columns, causing a Pydantic ValidationError that downstream code could
+    not serialize properly (TypeError: encoding without a string argument).
+    """
+    dataset = create_mock_dataset(
+        dataset_id=5,
+        table_name="dynamo_table",
+        database_name="dynamodb",
+    )
+    mock_list.return_value = ([dataset], 1)
+    async with Client(mcp_server) as client:
+        request = ListDatasetsRequest(
+            filters=[{"col": "database_name", "opr": "ilike", "value": "%dynamo%"}],
+            select_columns=["id", "database_name", "table_name"],
+        )
+        result = await client.call_tool(
+            "list_datasets", {"request": request.model_dump()}
+        )
+        assert result.content is not None
+        data = json.loads(result.content[0].text)
+        assert data["datasets"] is not None
+        assert len(data["datasets"]) == 1
+        assert data["datasets"][0]["database_name"] == "dynamodb"
+
+
 @patch("superset.daos.dataset.DatasetDAO.find_by_id")
 @pytest.mark.asyncio
 async def test_get_dataset_info_includes_columns_and_metrics(mock_info, mcp_server):
@@ -1238,6 +1284,59 @@ class TestDatasetDefaultColumnFiltering:
             assert "columns" in data["columns_available"]
             assert "metrics" in data["columns_available"]
             assert "description" in data["columns_available"]
+
+    @patch("superset.daos.dataset.DatasetDAO.list")
+    @pytest.mark.asyncio
+    async def test_default_columns_filters_actual_response_data(
+        self, mock_list, mcp_server
+    ):
+        """Test that actual dataset items only contain default columns.
+
+        This verifies the fix for the bug where all 40+ columns were returned
+        with null values even when only default columns were requested.
+        See: https://github.com/apache/superset/pull/37213
+        """
+        dataset = create_mock_dataset()
+        mock_list.return_value = ([dataset], 1)
+
+        async with Client(mcp_server) as client:
+            # Empty select_columns = use default columns
+            request = ListDatasetsRequest(page=1, page_size=10, select_columns=[])
+            result = await client.call_tool(
+                "list_datasets", {"request": request.model_dump()}
+            )
+            data = json.loads(result.content[0].text)
+
+            # Get the actual dataset item
+            assert len(data["datasets"]) == 1
+            dataset_item = data["datasets"][0]
+
+            # Verify ONLY default columns are present in the response item
+            expected_keys = {"id", "table_name", "schema_name", "uuid"}
+            actual_keys = set(dataset_item.keys())
+
+            # The response should only contain the default columns, NOT all columns
+            # with null values (which was the bug)
+            assert actual_keys == expected_keys, (
+                f"Expected only default columns {expected_keys}, "
+                f"but got {actual_keys}. "
+                f"Extra columns: {actual_keys - expected_keys}"
+            )
+
+            # Verify non-default columns are NOT present (not even with null values)
+            non_default_columns = [
+                "description",
+                "database_name",
+                "changed_by",
+                "changed_on",
+                "columns",
+                "metrics",
+            ]
+            for col in non_default_columns:
+                assert col not in dataset_item, (
+                    f"Non-default column '{col}' should not be in response. "
+                    f"This indicates the column filtering is not working."
+                )
 
 
 class TestDatasetSortableColumns:

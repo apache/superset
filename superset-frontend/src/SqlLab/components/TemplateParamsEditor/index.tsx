@@ -22,15 +22,15 @@ import { styled } from '@apache-superset/core/ui';
 import { debounce } from 'lodash';
 import {
   Badge,
-  ConfigEditor,
   InfoTooltip,
   ModalTrigger,
   Tooltip,
   Constants,
 } from '@superset-ui/core/components';
+import { EditorHost } from 'src/core/editors';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 
-const StyledConfigEditor = styled(ConfigEditor)`
+const StyledEditorHost = styled(EditorHost)`
   &.ace_editor {
     border: 1px solid ${({ theme }) => theme.colorBorder};
   }
@@ -87,14 +87,12 @@ const TemplateParamsEditor = ({
         </a>{' '}
         {t('syntax.')}
       </StyledParagraph>
-      <StyledConfigEditor
-        mode={language}
-        minLines={25}
-        maxLines={50}
+      <StyledEditorHost
+        id={`template-params-${queryEditorId}`}
+        height="800px"
         onChange={debounce(onChange, Constants.FAST_DEBOUNCE)}
+        language={language === 'yaml' ? 'yaml' : 'json'}
         width="100%"
-        editorProps={{ $blockScrolling: true }}
-        enableLiveAutocompletion
         value={code}
       />
     </div>

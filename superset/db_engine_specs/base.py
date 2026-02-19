@@ -21,7 +21,7 @@ from __future__ import annotations
 import logging
 import re
 import warnings
-from datetime import datetime
+from datetime import datetime, timedelta
 from inspect import signature
 from re import Match, Pattern
 from typing import (
@@ -36,7 +36,7 @@ from typing import (
     Union,
 )
 from urllib.parse import urlencode, urljoin
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pandas as pd
 import requests
@@ -63,6 +63,7 @@ from superset.constants import QUERY_CANCEL_KEY, TimeGrain as TimeGrainConstants
 from superset.databases.utils import get_table_metadata, make_url_safe
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import OAuth2Error, OAuth2RedirectError
+from superset.key_value.types import JsonKeyValueCodec, KeyValueResource
 from superset.sql.parse import (
     BaseSQLStatement,
     LimitMethod,
@@ -83,7 +84,11 @@ from superset.utils.core import ColumnSpec, GenericDataType, QuerySource
 from superset.utils.hashing import hash_from_str
 from superset.utils.json import redact_sensitive, reveal_sensitive
 from superset.utils.network import is_hostname_valid, is_port_open
-from superset.utils.oauth2 import encode_oauth2_state
+from superset.utils.oauth2 import (
+    encode_oauth2_state,
+    generate_code_challenge,
+    generate_code_verifier,
+)
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import TableColumn
@@ -608,9 +613,37 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         tab sends a message to the original tab informing that authorization was
         successful (or not), and then closes. The original tab will automatically
         re-run the query after authorization.
+
+        PKCE (RFC 7636) is used to protect against authorization code interception
+        attacks. A code_verifier is generated and stored server-side in the KV store,
+        while the code_challenge (derived from the verifier) is sent to the
+        authorization server.
         """
+        # Prevent circular import.
+        from superset.daos.key_value import KeyValueDAO
+
         tab_id = str(uuid4())
-        default_redirect_uri = url_for("DatabaseRestApi.oauth2", _external=True)
+        default_redirect_uri = app.config.get(
+            "DATABASE_OAUTH2_REDIRECT_URI",
+            url_for("DatabaseRestApi.oauth2", _external=True),
+        )
+
+        # Generate PKCE code verifier (RFC 7636)
+        code_verifier = generate_code_verifier()
+
+        # Store the code_verifier server-side in the KV store, keyed by tab_id.
+        # This avoids exposing it in the URL/browser history via the JWT state.
+        KeyValueDAO.delete_expired_entries(KeyValueResource.PKCE_CODE_VERIFIER)
+        KeyValueDAO.create_entry(
+            resource=KeyValueResource.PKCE_CODE_VERIFIER,
+            value={"code_verifier": code_verifier},
+            codec=JsonKeyValueCodec(),
+            key=UUID(tab_id),
+            expires_on=datetime.now() + timedelta(minutes=5),
+        )
+        # We need to commit here because we're going to raise an exception, which will
+        # revert any non-commited changes.
+        db.session.commit()
 
         # The state is passed to the OAuth2 provider, and sent back to Superset after
         # the user authorizes the access. The redirect endpoint in Superset can then
@@ -638,7 +671,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         if oauth2_config is None:
             raise OAuth2Error("No configuration found for OAuth2")
 
-        oauth_url = cls.get_oauth2_authorization_uri(oauth2_config, state)
+        oauth_url = cls.get_oauth2_authorization_uri(
+            oauth2_config,
+            state,
+            code_verifier=code_verifier,
+        )
 
         raise OAuth2RedirectError(oauth_url, tab_id, default_redirect_uri)
 
@@ -682,21 +719,29 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         cls,
         config: OAuth2ClientConfig,
         state: OAuth2State,
+        code_verifier: str | None = None,
     ) -> str:
         """
         Return URI for initial OAuth2 request.
 
-        Uses standard OAuth 2.0 parameters only. Subclasses can override
-        to add provider-specific parameters (e.g., Google's prompt=consent).
+        Uses standard OAuth 2.0 parameters plus PKCE (RFC 7636) parameters.
+        Subclasses can override to add provider-specific parameters
+        (e.g., Google's prompt=consent).
         """
         uri = config["authorization_request_uri"]
-        params = {
+        params: dict[str, str] = {
             "scope": config["scope"],
             "response_type": "code",
             "state": encode_oauth2_state(state),
             "redirect_uri": config["redirect_uri"],
             "client_id": config["id"],
         }
+
+        # Add PKCE parameters (RFC 7636) if code_verifier is provided
+        if code_verifier:
+            params["code_challenge"] = generate_code_challenge(code_verifier)
+            params["code_challenge_method"] = "S256"
+
         return urljoin(uri, "?" + urlencode(params))
 
     @classmethod
@@ -704,19 +749,27 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         cls,
         config: OAuth2ClientConfig,
         code: str,
+        code_verifier: str | None = None,
     ) -> OAuth2TokenResponse:
         """
         Exchange authorization code for refresh/access tokens.
+
+        If code_verifier is provided (PKCE flow), it will be included in the
+        token request per RFC 7636.
         """
         timeout = app.config["DATABASE_OAUTH2_TIMEOUT"].total_seconds()
         uri = config["token_request_uri"]
-        req_body = {
+        req_body: dict[str, str] = {
             "code": code,
             "client_id": config["id"],
             "client_secret": config["secret"],
             "redirect_uri": config["redirect_uri"],
             "grant_type": "authorization_code",
         }
+        # Add PKCE code_verifier if present (RFC 7636)
+        if code_verifier:
+            req_body["code_verifier"] = code_verifier
+
         response = (
             requests.post(uri, data=req_body, timeout=timeout)
             if config["request_content_type"] == "data"
@@ -1296,6 +1349,26 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return None
 
     @classmethod
+    def normalize_table_name_for_upload(
+        cls,
+        table_name: str,
+        schema_name: str | None = None,
+    ) -> tuple[str, str | None]:
+        """
+        Normalize table and schema names for file upload.
+
+        Some databases (e.g., Redshift) fold unquoted identifiers to lowercase,
+        which can cause issues when the upload creates a table with one case
+        but metadata operations use a different case. Override this method
+        to normalize names according to database-specific rules.
+
+        :param table_name: The table name to normalize
+        :param schema_name: The schema name to normalize (optional)
+        :return: Tuple of (normalized_table_name, normalized_schema_name)
+        """
+        return table_name, schema_name
+
+    @classmethod
     def df_to_sql(
         cls,
         database: Database,
@@ -1793,7 +1866,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         cls,
         database: Database,
         table: Table,
-        engine: Engine,
+        dialect: Dialect,
         limit: int = 100,
         show_cols: bool = False,
         indent: bool = True,
@@ -1807,7 +1880,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         :param database: Database instance
         :param table: Table instance
-        :param engine: SqlAlchemy Engine instance
+        :param dialect: SqlAlchemy Dialect instance
         :param limit: limit to impose on query
         :param show_cols: Show columns in query; otherwise use "*"
         :param indent: Add indentation to query
@@ -1827,7 +1900,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         if show_cols:
             fields = cls._get_fields(cols)
 
-        full_table_name = cls.quote_table(table, engine.dialect)
+        full_table_name = cls.quote_table(table, dialect)
         qry = select(fields).select_from(text(full_table_name))
 
         qry = qry.limit(limit)

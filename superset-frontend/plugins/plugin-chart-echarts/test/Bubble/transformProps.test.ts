@@ -85,7 +85,7 @@ const chartConfig: ChartPropsConfig = {
 };
 
 describe('Bubble transformProps', () => {
-  it('Should transform props for viz', () => {
+  test('Should transform props for viz', () => {
     const chartProps = new ChartProps(chartConfig);
     expect(transformProps(chartProps as EchartsBubbleChartProps)).toEqual(
       expect.objectContaining({
@@ -114,7 +114,7 @@ describe('Bubble transformProps', () => {
     );
   });
 
-  it('Should transform props with undefined control values', () => {
+  test('Should transform props with undefined control values', () => {
     const formData: SqlaFormData = {
       ...defaultFormData,
       xAxisBounds: undefined,
@@ -157,7 +157,7 @@ describe('Bubble formatTooltip', () => {
   const dollerFormatter = getNumberFormatter('$,.2f');
   const percentFormatter = getNumberFormatter(',.1%');
 
-  it('Should generate correct bubble label content with dimension', () => {
+  test('Should generate correct bubble label content with dimension', () => {
     const params = {
       data: [10000, 20000, 3, 'bubble title', 'bubble dimension'],
     };
@@ -180,7 +180,7 @@ describe('Bubble formatTooltip', () => {
     expect(html).toContain('$20,000.00');
     expect(html).toContain('300.0%');
   });
-  it('Should generate correct bubble label content without dimension', () => {
+  test('Should generate correct bubble label content without dimension', () => {
     const params = {
       data: [10000, 25000, 3, 'bubble title', null],
     };
@@ -213,7 +213,7 @@ describe('legend sorting', () => {
         ...overrides,
       },
     });
-  it('preserves original data order when no sort specified', () => {
+  test('preserves original data order when no sort specified', () => {
     const props = createChartProps({ legendSort: null });
     const result = transformProps(props as EchartsBubbleChartProps);
 
@@ -225,7 +225,7 @@ describe('legend sorting', () => {
     ]);
   });
 
-  it('sorts alphabetically ascending when legendSort is "asc"', () => {
+  test('sorts alphabetically ascending when legendSort is "asc"', () => {
     const props = createChartProps({ legendSort: 'asc' });
     const result = transformProps(props as EchartsBubbleChartProps);
 
@@ -237,7 +237,7 @@ describe('legend sorting', () => {
     ]);
   });
 
-  it('sorts alphabetically descending when legendSort is "desc"', () => {
+  test('sorts alphabetically descending when legendSort is "desc"', () => {
     const props = createChartProps({ legendSort: 'desc' });
     const result = transformProps(props as EchartsBubbleChartProps);
 

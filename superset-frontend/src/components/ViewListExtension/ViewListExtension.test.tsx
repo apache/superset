@@ -36,7 +36,7 @@ function createMockView(
 
 function createMockExtension(
   options: Partial<core.Extension> & {
-    views?: Record<string, contributions.ViewContribution[]>;
+    views?: Record<string, Record<string, contributions.ViewContribution[]>>;
   } = {},
 ): core.Extension {
   const {
@@ -89,9 +89,8 @@ async function createActivatedExtension(
 
 const TEST_VIEW_ID = 'test.view';
 
-const renderWithExtensionsProvider = (ui: ReactElement) => {
-  return render(ui, { wrapper: ExtensionsProvider as any });
-};
+const renderWithExtensionsProvider = (ui: ReactElement) =>
+  render(ui, { wrapper: ExtensionsProvider as any });
 
 beforeEach(() => {
   (ExtensionsManager as any).instance = undefined;
@@ -114,7 +113,9 @@ test('renders placeholder for unregistered view provider', async () => {
 
   await createActivatedExtension(manager, {
     views: {
-      [TEST_VIEW_ID]: [createMockView('test-view-1')],
+      test: {
+        view: [createMockView('test-view-1')],
+      },
     },
   });
 
@@ -128,10 +129,9 @@ test('renders multiple view placeholders for multiple contributions', async () =
 
   await createActivatedExtension(manager, {
     views: {
-      [TEST_VIEW_ID]: [
-        createMockView('test-view-1'),
-        createMockView('test-view-2'),
-      ],
+      test: {
+        view: [createMockView('test-view-1'), createMockView('test-view-2')],
+      },
     },
   });
 
@@ -155,14 +155,18 @@ test('handles multiple extensions with views for same viewId', async () => {
   await createActivatedExtension(manager, {
     id: 'extension-1',
     views: {
-      [TEST_VIEW_ID]: [createMockView('ext1-view')],
+      test: {
+        view: [createMockView('ext1-view')],
+      },
     },
   });
 
   await createActivatedExtension(manager, {
     id: 'extension-2',
     views: {
-      [TEST_VIEW_ID]: [createMockView('ext2-view')],
+      test: {
+        view: [createMockView('ext2-view')],
+      },
     },
   });
 
@@ -179,8 +183,10 @@ test('renders views for different viewIds independently', async () => {
 
   await createActivatedExtension(manager, {
     views: {
-      [VIEW_ID_A]: [createMockView('view-a-component')],
-      [VIEW_ID_B]: [createMockView('view-b-component')],
+      view: {
+        a: [createMockView('view-a-component')],
+        b: [createMockView('view-b-component')],
+      },
     },
   });
 

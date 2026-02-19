@@ -322,6 +322,8 @@ class ImportV1DatasetSchema(Schema):
     schema = fields.String(allow_none=True)
     catalog = fields.String(allow_none=True)
     sql = fields.String(allow_none=True)
+    # Source database engine for SQL transpilation (virtual datasets only)
+    source_db_engine = fields.String(allow_none=True, load_default=None)
     params = fields.Dict(allow_none=True)
     template_params = fields.Dict(allow_none=True)
     filter_select_enabled = fields.Boolean()
@@ -412,6 +414,7 @@ class DatasetColumnDrillInfoSchema(Schema):
 class UserSchema(Schema):
     first_name = fields.String()
     last_name = fields.String()
+    email = fields.String()
 
 
 class DatasetDrillInfoSchema(Schema):

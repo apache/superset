@@ -111,9 +111,7 @@ const DynamicComponent: FC<DynamicComponentProps> = ({
 
   return (
     <Draggable
-      // @ts-ignore
       component={component}
-      // @ts-ignore
       parentComponent={parentComponent}
       orientation={parentComponent.type === ROW_TYPE ? 'column' : 'row'}
       index={index}

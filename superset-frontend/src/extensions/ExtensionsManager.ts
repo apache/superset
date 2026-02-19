@@ -21,19 +21,28 @@ import { logging } from '@apache-superset/core';
 import type { contributions, core } from '@apache-superset/core';
 import { ExtensionContext } from '../core/models';
 
+type MenuContribution = contributions.MenuContribution;
+type MenuContributions = contributions.MenuContributions;
+type ViewContribution = contributions.ViewContribution;
+type ViewContributions = contributions.ViewContributions;
+type CommandContribution = contributions.CommandContribution;
+type EditorContribution = contributions.EditorContribution;
+type Extension = core.Extension;
+
 class ExtensionsManager {
   private static instance: ExtensionsManager;
 
-  private extensionIndex: Map<string, core.Extension> = new Map();
+  private extensionIndex: Map<string, Extension> = new Map();
 
   private contextIndex: Map<string, ExtensionContext> = new Map();
 
   private extensionContributions: Map<
     string,
     {
-      menus?: Record<string, contributions.MenuContribution>;
-      views?: Record<string, contributions.ViewContribution[]>;
-      commands?: contributions.CommandContribution[];
+      menus?: MenuContributions;
+      views?: ViewContributions;
+      commands?: CommandContribution[];
+      editors?: EditorContribution[];
     }
   > = new Map();
 
@@ -61,7 +70,7 @@ class ExtensionsManager {
     const response = await SupersetClient.get({
       endpoint: '/api/v1/extensions/',
     });
-    const extensions: core.Extension[] = response.json.result;
+    const extensions: Extension[] = response.json.result;
     await Promise.all(
       extensions.map(async extension => {
         await this.initializeExtension(extension);
@@ -74,7 +83,7 @@ class ExtensionsManager {
    * If the extension has a remote entry, it will load the module.
    * @param extension The extension to initialize.
    */
-  public async initializeExtension(extension: core.Extension) {
+  public async initializeExtension(extension: Extension) {
     try {
       let loadedExtension = extension;
       if (extension.remoteEntry) {
@@ -94,7 +103,7 @@ class ExtensionsManager {
    * Enables an extension by its instance.
    * @param extension The extension to enable.
    */
-  private enableExtension(extension: core.Extension): void {
+  private enableExtension(extension: Extension): void {
     const { id } = extension;
     if (extension && typeof extension.activate === 'function') {
       // If already enabled, do nothing
@@ -114,7 +123,7 @@ class ExtensionsManager {
    * @param extension The extension to load.
    * @returns The loaded extension with activate and deactivate methods.
    */
-  private async loadModule(extension: core.Extension): Promise<core.Extension> {
+  private async loadModule(extension: Extension): Promise<Extension> {
     const { remoteEntry, id, exposedModules } = extension;
 
     // Load the remote entry script
@@ -149,11 +158,11 @@ class ExtensionsManager {
     });
 
     // Initialize Webpack module federation
-    // @ts-ignore
+    // @ts-expect-error
     await __webpack_init_sharing__('default');
     const container = (window as any)[id];
 
-    // @ts-ignore
+    // @ts-expect-error
     await container.init(__webpack_share_scopes__.default);
 
     const factory = await container.get(exposedModules[0]);
@@ -171,7 +180,7 @@ class ExtensionsManager {
    * @param context The context to pass to the activate method.
    */
   public activateExtension(
-    extension: core.Extension,
+    extension: Extension,
     context: ExtensionContext,
   ): void {
     if (extension.activate) {
@@ -213,31 +222,36 @@ class ExtensionsManager {
    * Indexes contributions from an extension for quick retrieval.
    * @param extension The extension to index.
    */
-  private indexContributions(extension: core.Extension): void {
+  private indexContributions(extension: Extension): void {
     const { contributions, id } = extension;
     this.extensionContributions.set(id, {
       menus: contributions.menus,
       views: contributions.views,
       commands: contributions.commands,
+      editors: contributions.editors,
     });
   }
 
   /**
    * Retrieves menu contributions for a specific key.
-   * @param key The key of the menu contributions.
+   * @param key The key of the menu contributions in format "scope.location" (e.g., "sqllab.editor").
    * @returns The menu contributions matching the key, or undefined if not found.
    */
-  public getMenuContributions(
-    key: string,
-  ): contributions.MenuContribution | undefined {
-    const merged: contributions.MenuContribution = {
+  public getMenuContributions(key: string): MenuContribution | undefined {
+    const [scope, location] = key.split('.');
+    if (!scope || !location) {
+      return undefined;
+    }
+    const merged: MenuContribution = {
       context: [],
       primary: [],
       secondary: [],
     };
     for (const ext of this.extensionContributions.values()) {
-      if (ext.menus && ext.menus[key]) {
-        const menu = ext.menus[key];
+      const scopeMenus = ext.menus?.[scope as keyof MenuContributions];
+      const menu =
+        scopeMenus?.[location as keyof NonNullable<typeof scopeMenus>];
+      if (menu) {
         if (menu.context) merged.context!.push(...menu.context);
         if (menu.primary) merged.primary!.push(...menu.primary);
         if (menu.secondary) merged.secondary!.push(...menu.secondary);
@@ -255,16 +269,21 @@ class ExtensionsManager {
 
   /**
    * Retrieves view contributions for a specific key.
-   * @param key The key of the view contributions.
+   * @param key The key of the view contributions in format "scope.location" (e.g., "sqllab.panels").
    * @returns An array of view contributions matching the key, or undefined if not found.
    */
-  public getViewContributions(
-    key: string,
-  ): contributions.ViewContribution[] | undefined {
-    let result: contributions.ViewContribution[] = [];
+  public getViewContributions(key: string): ViewContribution[] | undefined {
+    const [scope, location] = key.split('.');
+    if (!scope || !location) {
+      return undefined;
+    }
+    let result: ViewContribution[] = [];
     for (const ext of this.extensionContributions.values()) {
-      if (ext.views && ext.views[key]) {
-        result = result.concat(ext.views[key]);
+      const scopeViews = ext.views?.[scope as keyof ViewContributions];
+      const views =
+        scopeViews?.[location as keyof NonNullable<typeof scopeViews>];
+      if (views) {
+        result = result.concat(views);
       }
     }
     return result.length > 0 ? result : undefined;
@@ -274,8 +293,8 @@ class ExtensionsManager {
    * Retrieves all command contributions.
    * @returns An array of all command contributions.
    */
-  public getCommandContributions(): contributions.CommandContribution[] {
-    const result: contributions.CommandContribution[] = [];
+  public getCommandContributions(): CommandContribution[] {
+    const result: CommandContribution[] = [];
     for (const ext of this.extensionContributions.values()) {
       if (ext.commands) {
         result.push(...ext.commands);
@@ -289,9 +308,7 @@ class ExtensionsManager {
    * @param key The key of the command contribution.
    * @returns The command contribution matching the key, or undefined if not found.
    */
-  public getCommandContribution(
-    key: string,
-  ): contributions.CommandContribution | undefined {
+  public getCommandContribution(key: string): CommandContribution | undefined {
     for (const ext of this.extensionContributions.values()) {
       if (ext.commands) {
         const found = ext.commands.find(cmd => cmd.command === key);
@@ -305,7 +322,7 @@ class ExtensionsManager {
    * Retrieves all extensions.
    * @returns An array of all registered extensions.
    */
-  public getExtensions(): core.Extension[] {
+  public getExtensions(): Extension[] {
     return Array.from(this.extensionIndex.values());
   }
 
@@ -314,8 +331,22 @@ class ExtensionsManager {
    * @param id The id of the extension.
    * @returns The extension matching the id, or undefined if not found.
    */
-  public getExtension(id: string): core.Extension | undefined {
+  public getExtension(id: string): Extension | undefined {
     return this.extensionIndex.get(id);
+  }
+
+  /**
+   * Retrieves all editor contributions from all extensions.
+   * @returns An array of all editor contributions.
+   */
+  public getEditorContributions(): EditorContribution[] {
+    const result: EditorContribution[] = [];
+    for (const ext of this.extensionContributions.values()) {
+      if (ext.editors) {
+        result.push(...ext.editors);
+      }
+    }
+    return result;
   }
 }
 

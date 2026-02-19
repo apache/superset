@@ -68,9 +68,30 @@ def mock_webdriver_baseurl(app_context):
 
 
 def _mock_dataset(id: int = 1) -> Mock:
-    """Create a mock dataset object."""
+    """Create a mock dataset object with columns and db_engine_spec."""
+    from superset.utils.core import ColumnSpec, GenericDataType
+
+    # Create mock column that appears temporal
+    mock_column = Mock()
+    mock_column.column_name = "date"
+    mock_column.type = "TIMESTAMP"
+
+    # Create mock db_engine_spec
+    mock_db_engine_spec = Mock()
+    mock_column_spec = ColumnSpec(
+        sqla_type=Mock(), generic_type=GenericDataType.TEMPORAL, is_dttm=True
+    )
+    mock_db_engine_spec.get_column_spec.return_value = mock_column_spec
+
+    # Create mock database
+    mock_database = Mock()
+    mock_database.db_engine_spec = mock_db_engine_spec
+
+    # Create dataset with all required attributes
     dataset = Mock()
     dataset.id = id
+    dataset.columns = [mock_column]
+    dataset.database = mock_database
     return dataset
 
 

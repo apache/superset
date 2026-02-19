@@ -108,6 +108,18 @@ class QueryContextProcessor:
         )
         timing["cache_lookup_ms"] = round((time.perf_counter() - t) * 1000, 2)
 
+        # If cache is loaded but missing applied_filter_columns and query has filters,
+        # treat as cache miss to ensure fresh query with proper applied_filter_columns
+        if (
+            query_obj
+            and cache_key
+            and cache.is_loaded
+            and not cache.applied_filter_columns
+            and query_obj.filter
+            and len(query_obj.filter) > 0
+        ):
+            cache.is_loaded = False
+
         # Phase: db_execution (only on cache miss)
         if query_obj and cache_key and not cache.is_loaded:
             t = time.perf_counter()

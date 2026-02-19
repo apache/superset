@@ -95,7 +95,7 @@ export function MetricOption({
 
   return (
     <FlexRowContainer className="metric-option">
-      {showType && <ColumnTypeLabel type="expression" />}
+      {showType && <ColumnTypeLabel type="metric" />}
       {shouldShowTooltip ? (
         <Tooltip id="metric-name-tooltip" title={tooltipText}>
           {label}

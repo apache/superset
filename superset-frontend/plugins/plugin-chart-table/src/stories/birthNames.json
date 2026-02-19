@@ -1,0 +1,25 @@
+{
+  "width": 400,
+  "height": 400,
+  "formData": {
+    "datasource": "1__table",
+    "viz_type": "table",
+    "row_limit": 10,
+    "metrics": ["sum__num"],
+    "groupby": ["name"],
+    "order_desc": true
+  },
+  "queriesData": [
+    {
+      "data": [
+        { "name": "Michael", "sum__num": 2467063 },
+        { "name": "Christopher", "sum__num": 1725265 },
+        { "name": "David", "sum__num": 1570516 },
+        { "name": "James", "sum__num": 1506025 },
+        { "name": "John", "sum__num": 1426074 }
+      ],
+      "colnames": ["name", "sum__num"],
+      "coltypes": [1, 0]
+    }
+  ]
+}

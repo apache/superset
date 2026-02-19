@@ -21,7 +21,7 @@ beforeEach(() => {
   jest.resetAllMocks();
 });
 
-it('should pipe to `console` methods', () => {
+test('should pipe to `console` methods', () => {
   const { logging } = require('@apache-superset/core');
 
   jest.spyOn(logging, 'debug').mockImplementation();
@@ -49,7 +49,7 @@ it('should pipe to `console` methods', () => {
   expect(() => logging.trace()).toThrow('Trace:');
 });
 
-it('should use noop functions when console unavailable', () => {
+test('should use noop functions when console unavailable', () => {
   Object.assign(window, { console: undefined });
   const { logging } = require('@apache-superset/core');
 
