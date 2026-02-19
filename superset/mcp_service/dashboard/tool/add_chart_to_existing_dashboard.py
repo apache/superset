@@ -27,6 +27,7 @@ from typing import Any, Dict
 from fastmcp import Context
 from superset_core.mcp import tool
 
+from superset.extensions import event_logger
 from superset.mcp_service.dashboard.schemas import (
     AddChartToDashboardRequest,
     AddChartToDashboardResponse,
@@ -147,75 +148,79 @@ def add_chart_to_existing_dashboard(
         from superset.commands.dashboard.update import UpdateDashboardCommand
         from superset.daos.dashboard import DashboardDAO
 
-        # Validate dashboard exists
-        dashboard = DashboardDAO.find_by_id(request.dashboard_id)
-        if not dashboard:
-            return AddChartToDashboardResponse(
-                dashboard=None,
-                dashboard_url=None,
-                position=None,
-                error=f"Dashboard with ID {request.dashboard_id} not found",
+        # Validate dashboard and chart exist
+        with event_logger.log_context(action="mcp.add_chart_to_dashboard.validation"):
+            dashboard = DashboardDAO.find_by_id(request.dashboard_id)
+            if not dashboard:
+                return AddChartToDashboardResponse(
+                    dashboard=None,
+                    dashboard_url=None,
+                    position=None,
+                    error=(f"Dashboard with ID {request.dashboard_id} not found"),
+                )
+
+            # Get chart object for SQLAlchemy relationships and validation
+            from superset import db
+            from superset.models.slice import Slice
+
+            new_chart = db.session.get(Slice, request.chart_id)
+            if not new_chart:
+                return AddChartToDashboardResponse(
+                    dashboard=None,
+                    dashboard_url=None,
+                    position=None,
+                    error=f"Chart with ID {request.chart_id} not found",
+                )
+
+            # Check if chart is already in dashboard
+            current_chart_ids = [slice.id for slice in dashboard.slices]
+            if request.chart_id in current_chart_ids:
+                return AddChartToDashboardResponse(
+                    dashboard=None,
+                    dashboard_url=None,
+                    position=None,
+                    error=(
+                        f"Chart {request.chart_id} is already in dashboard "
+                        f"{request.dashboard_id}"
+                    ),
+                )
+
+        # Calculate layout position
+        with event_logger.log_context(action="mcp.add_chart_to_dashboard.layout"):
+            # Parse current layout
+            try:
+                current_layout = json.loads(dashboard.position_json or "{}")
+            except (json.JSONDecodeError, TypeError):
+                current_layout = {}
+
+            # Find position for new chart
+            row_index = _find_next_row_position(current_layout)
+
+            # Add chart and row to layout
+            chart_key, row_key = _add_chart_to_layout(
+                current_layout, new_chart, request.chart_id, row_index
             )
 
-        # Get chart object for SQLAlchemy relationships and validation
-        from superset import db
-        from superset.models.slice import Slice
-
-        new_chart = db.session.get(Slice, request.chart_id)
-        if not new_chart:
-            return AddChartToDashboardResponse(
-                dashboard=None,
-                dashboard_url=None,
-                position=None,
-                error=f"Chart with ID {request.chart_id} not found",
-            )
-
-        # Check if chart is already in dashboard
-        current_chart_ids = [slice.id for slice in dashboard.slices]
-        if request.chart_id in current_chart_ids:
-            return AddChartToDashboardResponse(
-                dashboard=None,
-                dashboard_url=None,
-                position=None,
-                error=(
-                    f"Chart {request.chart_id} is already in dashboard "
-                    f"{request.dashboard_id}"
-                ),
-            )
-
-        # Parse current layout
-        try:
-            current_layout = json.loads(dashboard.position_json or "{}")
-        except (json.JSONDecodeError, TypeError):
-            current_layout = {}
-
-        # Find position for new chart
-        row_index = _find_next_row_position(current_layout)
-
-        # Add chart and row to layout
-        chart_key, row_key = _add_chart_to_layout(
-            current_layout, new_chart, request.chart_id, row_index
-        )
-
-        # Ensure proper layout structure
-        _ensure_layout_structure(current_layout, row_key)
-
-        # Get chart objects for SQLAlchemy relationships
-        # Get existing chart objects
-        existing_chart_objects = dashboard.slices
-
-        # Combine existing and new chart objects (new_chart was retrieved above)
-        all_chart_objects = list(existing_chart_objects) + [new_chart]
-
-        # Prepare update data
-        update_data = {
-            "position_json": json.dumps(current_layout),
-            "slices": all_chart_objects,  # Pass ORM objects, not IDs
-        }
+            # Ensure proper layout structure
+            _ensure_layout_structure(current_layout, row_key)
 
         # Update the dashboard
-        command = UpdateDashboardCommand(request.dashboard_id, update_data)
-        updated_dashboard = command.run()
+        with event_logger.log_context(action="mcp.add_chart_to_dashboard.db_write"):
+            # Get existing chart objects
+            existing_chart_objects = dashboard.slices
+
+            # Combine existing and new chart objects
+            all_chart_objects = list(existing_chart_objects) + [new_chart]
+
+            # Prepare update data
+            update_data = {
+                "position_json": json.dumps(current_layout),
+                "slices": all_chart_objects,  # Pass ORM objects, not IDs
+            }
+
+            # Update the dashboard
+            command = UpdateDashboardCommand(request.dashboard_id, update_data)
+            updated_dashboard = command.run()
 
         # Convert to response format
         from superset.mcp_service.dashboard.schemas import (

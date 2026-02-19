@@ -31,7 +31,11 @@ from sqlalchemy.engine.url import URL
 from sqlalchemy.types import Date, DateTime, String
 
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec, BasicParametersMixin
+from superset.db_engine_specs.base import (
+    BaseEngineSpec,
+    BasicParametersMixin,
+    DatabaseCategory,
+)
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.models.sql_lab import Query
@@ -202,6 +206,7 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
 
 class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
     engine = "postgresql"
+    engine_name = "PostgreSQL"
     engine_aliases = {"postgres"}
 
     supports_dynamic_schema = True
@@ -212,11 +217,256 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
     sqlalchemy_uri_placeholder = (
         "postgresql://user:password@host:port/dbname[?key=value&key=value...]"
     )
+
+    metadata = {
+        "description": "PostgreSQL is an advanced open-source relational database.",
+        "logo": "postgresql.svg",
+        "homepage_url": "https://www.postgresql.org/",
+        "categories": [
+            DatabaseCategory.TRADITIONAL_RDBMS,
+            DatabaseCategory.OPEN_SOURCE,
+        ],
+        "pypi_packages": ["psycopg2"],
+        "connection_string": (
+            "postgresql://{username}:{password}@{host}:{port}/{database}"
+        ),
+        "default_port": 5432,
+        "parameters": {
+            "username": "Database username",
+            "password": "Database password",
+            "host": "For localhost: localhost or 127.0.0.1. For AWS: endpoint URL",
+            "port": "Default 5432",
+            "database": "Database name",
+        },
+        "notes": "The psycopg2 library comes bundled with Superset Docker images.",
+        "connection_examples": [
+            {
+                "description": "Basic connection",
+                "connection_string": (
+                    "postgresql://{username}:{password}@{host}:{port}/{database}"
+                ),
+            },
+            {
+                "description": "With SSL required",
+                "connection_string": (
+                    "postgresql://{username}:{password}@{host}:{port}/{database}"
+                    "?sslmode=require"
+                ),
+            },
+        ],
+        "docs_url": "https://www.postgresql.org/docs/",
+        "sqlalchemy_docs_url": (
+            "https://docs.sqlalchemy.org/en/13/dialects/postgresql.html"
+        ),
+        "compatible_databases": [
+            {
+                "name": "Hologres",
+                "description": (
+                    "Alibaba Cloud real-time interactive analytics service, "
+                    "fully compatible with PostgreSQL 11."
+                ),
+                "logo": "hologres.png",
+                "homepage_url": "https://www.alibabacloud.com/product/hologres",
+                "pypi_packages": ["psycopg2"],
+                "connection_string": (
+                    "postgresql+psycopg2://{username}:{password}"
+                    "@{host}:{port}/{database}"
+                ),
+                "parameters": {
+                    "username": "AccessKey ID of your Alibaba Cloud account",
+                    "password": "AccessKey secret of your Alibaba Cloud account",
+                    "host": "Public endpoint of the Hologres instance",
+                    "port": "Port number of the Hologres instance",
+                    "database": "Name of the Hologres database",
+                },
+                "categories": [DatabaseCategory.PROPRIETARY],
+            },
+            {
+                "name": "TimescaleDB",
+                "description": (
+                    "Open-source relational database for time-series and analytics, "
+                    "built on PostgreSQL."
+                ),
+                "logo": "timescale.png",
+                "homepage_url": "https://www.timescale.com/",
+                "pypi_packages": ["psycopg2"],
+                "connection_string": (
+                    "postgresql://{username}:{password}@{host}:{port}/{database}"
+                ),
+                "connection_examples": [
+                    {
+                        "description": "Timescale Cloud (SSL required)",
+                        "connection_string": (
+                            "postgresql://{username}:{password}"
+                            "@{host}:{port}/{database}?sslmode=require"
+                        ),
+                    },
+                ],
+                "notes": "psycopg2 comes bundled with Superset Docker images.",
+                "docs_url": "https://docs.timescale.com/",
+                "categories": [DatabaseCategory.OPEN_SOURCE],
+            },
+            {
+                "name": "YugabyteDB",
+                "description": ("Distributed SQL database built on top of PostgreSQL."),
+                "logo": "yugabyte.png",
+                "homepage_url": "https://www.yugabyte.com/",
+                "pypi_packages": ["psycopg2"],
+                "connection_string": (
+                    "postgresql://{username}:{password}@{host}:{port}/{database}"
+                ),
+                "notes": "psycopg2 comes bundled with Superset Docker images.",
+                "docs_url": "https://www.yugabyte.com/",
+                "categories": [DatabaseCategory.OPEN_SOURCE],
+            },
+            {
+                "name": "Supabase",
+                "description": (
+                    "Open-source Firebase alternative built on top of PostgreSQL, "
+                    "providing a full backend-as-a-service with a hosted Postgres "
+                    "database."
+                ),
+                "logo": "supabase.svg",
+                "homepage_url": "https://supabase.com/",
+                "pypi_packages": ["psycopg2"],
+                "connection_string": (
+                    "postgresql://{username}:{password}@{host}:{port}/{database}"
+                ),
+                "connection_examples": [
+                    {
+                        "description": "Supabase project (connection pooler)",
+                        "connection_string": (
+                            "postgresql://{username}.{project_ref}:{password}"
+                            "@aws-0-{region}.pooler.supabase.com:6543/{database}"
+                        ),
+                    },
+                ],
+                "parameters": {
+                    "username": "Database user (default: postgres)",
+                    "password": "Database password",
+                    "host": "Supabase project host (from project settings)",
+                    "port": "Default 5432 (direct) or 6543 (pooler)",
+                    "database": "Database name (default: postgres)",
+                    "project_ref": "Supabase project reference (from project settings)",
+                    "region": "Supabase project region (e.g., us-east-1)",
+                },
+                "notes": (
+                    "Find connection details in your Supabase project dashboard under "
+                    "Settings > Database. Use the connection pooler (port 6543) for "
+                    "better connection management."
+                ),
+                "docs_url": "https://supabase.com/docs/guides/database/connecting-to-postgres",
+                "categories": [
+                    DatabaseCategory.HOSTED_OPEN_SOURCE,
+                ],
+            },
+            {
+                "name": "Google AlloyDB",
+                "description": (
+                    "Google Cloud's PostgreSQL-compatible database service "
+                    "for demanding transactional and analytical workloads."
+                ),
+                "logo": "alloydb.png",
+                "homepage_url": "https://cloud.google.com/alloydb",
+                "pypi_packages": ["psycopg2"],
+                "connection_string": (
+                    "postgresql://{username}:{password}@{host}:{port}/{database}"
+                ),
+                "parameters": {
+                    "username": "Database user (default: postgres)",
+                    "password": "Database password",
+                    "host": "AlloyDB instance IP or Auth Proxy address",
+                    "port": "Default 5432",
+                    "database": "Database name",
+                },
+                "notes": (
+                    "For public IP connections, use the AlloyDB Auth Proxy for "
+                    "secure access. Private IP connections can connect directly."
+                ),
+                "docs_url": "https://cloud.google.com/alloydb/docs",
+                "categories": [
+                    DatabaseCategory.CLOUD_GCP,
+                    DatabaseCategory.HOSTED_OPEN_SOURCE,
+                ],
+            },
+            {
+                "name": "Neon",
+                "description": (
+                    "Serverless PostgreSQL with branching, scale-to-zero, "
+                    "and bottomless storage."
+                ),
+                "logo": "neon.png",
+                "homepage_url": "https://neon.tech/",
+                "pypi_packages": ["psycopg2"],
+                "connection_string": (
+                    "postgresql://{username}:{password}"
+                    "@{host}/{database}?sslmode=require"
+                ),
+                "parameters": {
+                    "username": "Neon role name",
+                    "password": "Neon role password",
+                    "host": (
+                        "Neon hostname (e.g., "
+                        "ep-cool-name-123456.us-east-2.aws.neon.tech)"
+                    ),
+                    "database": "Database name (default: neondb)",
+                },
+                "notes": (
+                    "SSL is required for all connections. Find connection "
+                    "details in the Neon console under Connection Details."
+                ),
+                "docs_url": "https://neon.tech/docs/connect/connect-from-any-app",
+                "categories": [
+                    DatabaseCategory.HOSTED_OPEN_SOURCE,
+                ],
+            },
+            {
+                "name": "Amazon Aurora PostgreSQL",
+                "description": (
+                    "Amazon Aurora PostgreSQL is a fully managed, "
+                    "PostgreSQL-compatible relational database with up to 5x "
+                    "the throughput of standard PostgreSQL."
+                ),
+                "logo": "aws-aurora.jpg",
+                "homepage_url": "https://aws.amazon.com/rds/aurora/",
+                "pypi_packages": ["sqlalchemy-aurora-data-api"],
+                "connection_string": (
+                    "postgresql+auroradataapi://{aws_access_id}:{aws_secret_access_key}@/"
+                    "{database_name}?aurora_cluster_arn={aurora_cluster_arn}&"
+                    "secret_arn={secret_arn}&region_name={region_name}"
+                ),
+                "parameters": {
+                    "aws_access_id": "AWS Access Key ID",
+                    "aws_secret_access_key": "AWS Secret Access Key",
+                    "database_name": "Database name",
+                    "aurora_cluster_arn": "Aurora cluster ARN",
+                    "secret_arn": "Secrets Manager ARN for credentials",
+                    "region_name": "AWS region (e.g., us-east-1)",
+                },
+                "notes": (
+                    "Uses the Data API for serverless access. "
+                    "Standard PostgreSQL connections also work with psycopg2."
+                ),
+                "categories": [
+                    DatabaseCategory.CLOUD_AWS,
+                    DatabaseCategory.HOSTED_OPEN_SOURCE,
+                ],
+            },
+        ],
+    }
     # https://www.postgresql.org/docs/9.1/libpq-ssl.html#LIBQ-SSL-CERTIFICATES
     encryption_parameters = {"sslmode": "require"}
 
     max_column_name_length = 63
     try_remove_schema_from_table_name = False  # pylint: disable=invalid-name
+
+    # Sensitive fields that should be masked in encrypted_extra.
+    # This follows the pattern used by other engine specs (bigquery, snowflake, etc.)
+    # that specify exact paths rather than using the base class's catch-all "$.*".
+    encrypted_extra_sensitive_fields = {
+        "$.aws_iam.external_id",
+        "$.aws_iam.role_arn",
+    }
 
     column_type_mappings = (
         (
@@ -319,6 +569,51 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
             uri = uri.set(database=catalog)
 
         return uri, connect_args
+
+    @staticmethod
+    def update_params_from_encrypted_extra(
+        database: Database,
+        params: dict[str, Any],
+    ) -> None:
+        """
+        Extract sensitive parameters from encrypted_extra.
+
+        Handles AWS IAM authentication if configured, then merges any
+        remaining encrypted_extra keys into params (standard behavior).
+        """
+        if not database.encrypted_extra:
+            return
+
+        try:
+            encrypted_extra = json.loads(database.encrypted_extra)
+        except json.JSONDecodeError as ex:
+            logger.error(ex, exc_info=True)
+            raise
+
+        # Handle AWS IAM auth: pop the key so it doesn't reach create_engine()
+        iam_config = encrypted_extra.pop("aws_iam", None)
+        if iam_config and iam_config.get("enabled"):
+            from superset.db_engine_specs.aws_iam import AWSIAMAuthMixin
+
+            # Preserve a stricter existing sslmode (e.g. verify-full) if present
+            connect_args = params.get("connect_args") or {}
+            previous_sslmode = connect_args.get("sslmode")
+
+            AWSIAMAuthMixin._apply_iam_authentication(
+                database,
+                params,
+                iam_config,
+                ssl_args={"sslmode": "require"},
+                default_port=5432,
+            )
+
+            # Restore stricter sslmode if it was previously configured
+            if previous_sslmode in ("verify-ca", "verify-full"):
+                params.setdefault("connect_args", {})["sslmode"] = previous_sslmode
+
+        # Standard behavior: merge remaining keys into params
+        if encrypted_extra:
+            params.update(encrypted_extra)
 
     @classmethod
     def get_default_catalog(cls, database: Database) -> str:

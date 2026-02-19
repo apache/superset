@@ -18,6 +18,8 @@
  */
 import { useState, useEffect } from 'react';
 import { styled, css, useTheme } from '@apache-superset/core/ui';
+import { ensureStaticPrefix } from 'src/utils/assetUrl';
+import { ensureAppRoot } from 'src/utils/pathUtils';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { MainNav, MenuItem } from '@superset-ui/core/components/Menu';
 import { Tooltip, Grid, Row, Col, Image } from '@superset-ui/core/components';
@@ -287,10 +289,10 @@ export function Menu({
     if (theme.brandLogoUrl) {
       link = (
         <StyledBrandWrapper margin={theme.brandLogoMargin}>
-          <StyledBrandLink href={theme.brandLogoHref}>
+          <StyledBrandLink href={ensureAppRoot(theme.brandLogoHref)}>
             <StyledImage
               preview={false}
-              src={theme.brandLogoUrl}
+              src={ensureStaticPrefix(theme.brandLogoUrl)}
               alt={theme.brandLogoAlt || 'Apache Superset'}
               height={theme.brandLogoHeight}
             />
@@ -303,17 +305,25 @@ export function Menu({
       // Kept as is for backwards compatibility with the old theme system / superset_config.py
       link = (
         <GenericLink className="navbar-brand" to={brand.path}>
-          <StyledImage preview={false} src={brand.icon} alt={brand.alt} />
+          <StyledImage
+            preview={false}
+            src={ensureStaticPrefix(brand.icon)}
+            alt={brand.alt}
+          />
         </GenericLink>
       );
     } else {
       link = (
         <Typography.Link
           className="navbar-brand"
-          href={brand.path}
+          href={ensureAppRoot(brand.path)}
           tabIndex={-1}
         >
-          <StyledImage preview={false} src={brand.icon} alt={brand.alt} />
+          <StyledImage
+            preview={false}
+            src={ensureStaticPrefix(brand.icon)}
+            alt={brand.alt}
+          />
         </Typography.Link>
       );
     }

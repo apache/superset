@@ -30,7 +30,7 @@ const defaultProps = {
   name: 'foo',
   label: 'bar',
 };
-const renderedCoordinate = '6° 51\' 8.50" | 31° 13\' 21.56"';
+const renderedCoordinate = '6° 51\' 08.5017" | 31° 13\' 21.5646"';
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ViewportControl', () => {

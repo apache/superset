@@ -104,7 +104,7 @@ function RoleListEditModal({
   permissions,
   groups,
 }: RoleListEditModalProps) {
-  const { id, name, permission_ids, user_ids, group_ids } = role;
+  const { id, name, permission_ids, group_ids } = role;
   const [activeTabKey, setActiveTabKey] = useState(roleTabs.edit.key);
   const { addDangerToast, addSuccessToast } = useToasts();
   const [roleUsers, setRoleUsers] = useState<UserObject[]>([]);
@@ -112,13 +112,7 @@ function RoleListEditModal({
   const formRef = useRef<FormInstance | null>(null);
 
   useEffect(() => {
-    if (!user_ids.length) {
-      setRoleUsers([]);
-      setLoadingRoleUsers(false);
-      return;
-    }
-
-    const filters = [{ col: 'id', opr: 'in', value: user_ids }];
+    const filters = [{ col: 'roles', opr: 'rel_m_m', value: id }];
 
     fetchPaginatedData({
       endpoint: `/api/v1/security/users/`,
@@ -137,7 +131,7 @@ function RoleListEditModal({
         email: user.email,
       }),
     });
-  }, [user_ids]);
+  }, [id]);
 
   useEffect(() => {
     if (!loadingRoleUsers && formRef.current && roleUsers.length >= 0) {

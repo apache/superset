@@ -69,7 +69,7 @@ jobs:
                     `❗ @${pull.user.login} Your base branch \`${currentBranch}\` has ` +
                     'also updated `superset/migrations`.\n' +
                     '\n' +
-                    '**Please consider rebasing your branch and [resolving potential db migration conflicts](https://github.com/apache/superset/blob/master/CONTRIBUTING.md#merging-db-migrations).**',
+                    '**Please consider rebasing your branch and [resolving potential db migration conflicts](https://superset.apache.org/docs/contributing/development#merging-db-migrations).**',
                 });
               }
             }

@@ -36,6 +36,7 @@ from superset.db_engine_specs.base import (
     BasicParametersMixin,
     BasicParametersType,
     BasicPropertiesType,
+    DatabaseCategory,
 )
 from superset.db_engine_specs.exceptions import SupersetDBAPIDatabaseError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -137,13 +138,17 @@ class ClickHouseBaseEngineSpec(BaseEngineSpec):
 
 
 class ClickHouseEngineSpec(ClickHouseBaseEngineSpec):
-    """Engine spec for clickhouse_sqlalchemy connector"""
+    """Engine spec for clickhouse_sqlalchemy connector (legacy)"""
 
     engine = "clickhouse"
-    engine_name = "ClickHouse"
+    engine_name = "ClickHouse (sqlalchemy)"  # Internal name for legacy connector
 
     _show_functions_column = "name"
     supports_file_upload = False
+
+    # Note: Primary metadata is in ClickHouseConnectEngineSpec which consolidates
+    # both drivers. This spec exists for backwards compatibility with existing
+    # connections using the clickhouse-sqlalchemy driver.
 
     @classmethod
     def get_dbapi_exception_mapping(cls) -> dict[type[Exception], type[Exception]]:
@@ -255,10 +260,10 @@ except ImportError:  # ClickHouse Connect not installed, do nothing
 
 
 class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
-    """Engine spec for clickhouse-connect connector"""
+    """Engine spec for clickhouse-connect connector (recommended)"""
 
     engine = "clickhousedb"
-    engine_name = "ClickHouse Connect (Superset)"
+    engine_name = "ClickHouse"
 
     default_driver = "connect"
     _function_names: list[str] = []
@@ -270,6 +275,111 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
     encryption_parameters = {"secure": "true"}
 
     supports_dynamic_schema = True
+
+    metadata = {
+        "description": (
+            "ClickHouse is an open-source column-oriented database for real-time "
+            "analytics using SQL. It's known for extremely fast query performance "
+            "on large datasets."
+        ),
+        "logo": "clickhouse.png",
+        "homepage_url": "https://clickhouse.com/",
+        "categories": [
+            DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.OPEN_SOURCE,
+        ],
+        "pypi_packages": ["clickhouse-connect>=0.6.8"],
+        "connection_string": "clickhousedb://{username}:{password}@{host}:{port}/{database}",
+        "default_port": 8123,
+        "drivers": [
+            {
+                "name": "clickhouse-connect (Recommended)",
+                "pypi_package": "clickhouse-connect>=0.6.8",
+                "connection_string": (
+                    "clickhousedb://{username}:{password}@{host}:{port}/{database}"
+                ),
+                "is_recommended": True,
+                "notes": (
+                    "Official ClickHouse Python driver with native protocol support."
+                ),
+            },
+            {
+                "name": "clickhouse-sqlalchemy (Legacy)",
+                "pypi_package": "clickhouse-sqlalchemy",
+                "connection_string": (
+                    "clickhouse://{username}:{password}@{host}:{port}/{database}"
+                ),
+                "is_recommended": False,
+                "notes": (
+                    "Older driver using HTTP interface. Use clickhouse-connect "
+                    "for new deployments."
+                ),
+            },
+        ],
+        "connection_examples": [
+            {
+                "description": "Altinity Cloud",
+                "connection_string": (
+                    "clickhousedb://demo:demo@github.demo.trial.altinity.cloud"
+                    "/default?secure=true"
+                ),
+            },
+            {
+                "description": "Local (no auth, no SSL)",
+                "connection_string": "clickhousedb://localhost/default",
+            },
+        ],
+        "install_instructions": (
+            'echo "clickhouse-connect>=0.6.8" >> ./docker/requirements-local.txt'
+        ),
+        "compatible_databases": [
+            {
+                "name": "ClickHouse Cloud",
+                "description": (
+                    "ClickHouse Cloud is the official fully-managed cloud service "
+                    "for ClickHouse. It provides automatic scaling, built-in "
+                    "backups, and enterprise security features."
+                ),
+                "logo": "clickhouse.png",
+                "homepage_url": "https://clickhouse.cloud/",
+                "categories": [
+                    DatabaseCategory.ANALYTICAL_DATABASES,
+                    DatabaseCategory.CLOUD_DATA_WAREHOUSES,
+                    DatabaseCategory.HOSTED_OPEN_SOURCE,
+                ],
+                "pypi_packages": ["clickhouse-connect>=0.6.8"],
+                "connection_string": (
+                    "clickhousedb://{username}:{password}@{host}:8443/{database}?secure=true"
+                ),
+                "parameters": {
+                    "username": "ClickHouse Cloud username",
+                    "password": "ClickHouse Cloud password",
+                    "host": "Your ClickHouse Cloud hostname",
+                    "database": "Database name (default)",
+                },
+                "docs_url": "https://clickhouse.com/docs/en/cloud",
+            },
+            {
+                "name": "Altinity.Cloud",
+                "description": (
+                    "Altinity.Cloud is a managed ClickHouse service providing "
+                    "Kubernetes-native deployments with enterprise support."
+                ),
+                "logo": "altinity.png",
+                "homepage_url": "https://altinity.cloud/",
+                "categories": [
+                    DatabaseCategory.ANALYTICAL_DATABASES,
+                    DatabaseCategory.CLOUD_DATA_WAREHOUSES,
+                    DatabaseCategory.HOSTED_OPEN_SOURCE,
+                ],
+                "pypi_packages": ["clickhouse-connect>=0.6.8"],
+                "connection_string": (
+                    "clickhousedb://{username}:{password}@{host}/{database}?secure=true"
+                ),
+                "docs_url": "https://docs.altinity.com/",
+            },
+        ],
+    }
 
     @classmethod
     def get_dbapi_exception_mapping(cls) -> dict[type[Exception], type[Exception]]:

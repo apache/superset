@@ -86,7 +86,7 @@ const selectDashboardChartIds = createSelector(
     new Set(
       Object.values(dashboardLayout)
         .filter(item => item.type === CHART_TYPE && item.meta?.chartId)
-        .map(item => item.meta.chartId),
+        .map(item => item.meta.chartId!),
     ),
 );
 
@@ -203,17 +203,19 @@ export function useIsFilterInScope() {
     (filter: FilterElement | Divider) => {
       if (filter.type === NativeFilterType.Divider) return true;
 
-      const isChartInScope =
-        Array.isArray(filter.chartsInScope) &&
-        filter.chartsInScope.length > 0 &&
-        filter.chartsInScope.some((chartId: number) => {
+      const hasChartsInScope =
+        Array.isArray(filter.chartsInScope) && filter.chartsInScope.length > 0;
+
+      let isChartInScope = false;
+      if (hasChartsInScope) {
+        isChartInScope = filter.chartsInScope!.some((chartId: number) => {
           const tabParents = selectChartTabParents(chartId);
+          // Note: every() returns true for empty arrays, so length check is unnecessary
           return (
-            !tabParents ||
-            tabParents.length === 0 ||
-            tabParents.every(tab => activeTabs.includes(tab))
+            !tabParents || tabParents.every(tab => activeTabs.includes(tab))
           );
         });
+      }
 
       if (isChartCustomization(filter)) {
         const isCustomizationInActiveTab = filter.tabsInScope?.some(tab =>
@@ -222,11 +224,13 @@ export function useIsFilterInScope() {
         return isChartInScope || isCustomizationInActiveTab;
       }
 
-      const isFilterInActiveTab = filter.scope?.rootPath?.some(tab =>
-        activeTabs.includes(tab),
-      );
+      if (hasChartsInScope) {
+        return isChartInScope;
+      }
 
-      return isChartInScope || isFilterInActiveTab;
+      return (
+        filter.scope?.rootPath?.some(tab => activeTabs.includes(tab)) ?? false
+      );
     },
     [selectChartTabParents, activeTabs],
   );
@@ -271,10 +275,9 @@ export function useIsCustomizationInScope() {
         customization.chartsInScope.length > 0 &&
         customization.chartsInScope.some((chartId: number) => {
           const tabParents = selectChartTabParents(chartId);
+          // Note: every() returns true for empty arrays, so length check is unnecessary
           return (
-            !tabParents ||
-            tabParents.length === 0 ||
-            tabParents.every(tab => activeTabs.includes(tab))
+            !tabParents || tabParents.every(tab => activeTabs.includes(tab))
           );
         });
 

@@ -67,18 +67,18 @@ test('CurrencyFormatter:hasValidCurrency', () => {
   expect(currencyFormatter.hasValidCurrency()).toBe(true);
 
   const currencyFormatterWithoutPosition = new CurrencyFormatter({
-    // @ts-ignore
+    // @ts-expect-error
     currency: { symbol: 'USD' },
   });
   expect(currencyFormatterWithoutPosition.hasValidCurrency()).toBe(true);
 
   const currencyFormatterWithoutSymbol = new CurrencyFormatter({
-    // @ts-ignore
+    // @ts-expect-error
     currency: { symbolPosition: 'prefix' },
   });
   expect(currencyFormatterWithoutSymbol.hasValidCurrency()).toBe(false);
 
-  // @ts-ignore
+  // @ts-expect-error
   const currencyFormatterWithoutCurrency = new CurrencyFormatter({});
   expect(currencyFormatterWithoutCurrency.hasValidCurrency()).toBe(false);
 });
@@ -129,12 +129,12 @@ test('CurrencyFormatter:format', () => {
   expect(currencyFormatterWithSuffix(VALUE)).toEqual('56.1M $');
 
   const currencyFormatterWithoutPosition = new CurrencyFormatter({
-    // @ts-ignore
+    // @ts-expect-error
     currency: { symbol: 'USD' },
   });
   expect(currencyFormatterWithoutPosition(VALUE)).toEqual('56.1M $');
 
-  // @ts-ignore
+  // @ts-expect-error
   const currencyFormatterWithoutCurrency = new CurrencyFormatter({});
   expect(currencyFormatterWithoutCurrency(VALUE)).toEqual('56.1M');
 

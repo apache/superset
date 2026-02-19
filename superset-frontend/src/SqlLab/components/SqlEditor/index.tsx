@@ -28,7 +28,7 @@ import {
   FC,
 } from 'react';
 
-import type AceEditor from 'react-ace';
+import type { editors } from '@apache-superset/core';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import AutoSizer from 'react-virtualized-auto-sizer';
@@ -111,7 +111,7 @@ import SaveQuery, { QueryPayload } from '../SaveQuery';
 import ScheduleQueryButton from '../ScheduleQueryButton';
 import EstimateQueryCostButton from '../EstimateQueryCostButton';
 import ShareSqlLabQuery from '../ShareSqlLabQuery';
-import AceEditorWrapper from '../AceEditorWrapper';
+import EditorWrapper from '../EditorWrapper';
 import RunQueryActionButton from '../RunQueryActionButton';
 import QueryLimitSelect from '../QueryLimitSelect';
 import KeyboardShortcutButton, {
@@ -429,73 +429,136 @@ const SqlEditor: FC<Props> = ({
   }, [dispatch, queryEditor.sql, startQuery, stopQuery, formatCurrentQuery]);
 
   const hotkeys = useMemo(() => {
-    // Get all hotkeys including ace editor hotkeys
+    // Get all hotkeys including editor hotkeys
     // Get the user's OS
     const userOS = detectOS();
+
+    type EditorHandle = editors.EditorHandle;
+
+    /**
+     * Find the position of a semicolon in the given direction from a starting position.
+     * Returns the position after the semicolon (for backwards) or at the semicolon (for forwards).
+     */
+    const findSemicolon = (
+      lines: string[],
+      fromLine: number,
+      fromColumn: number,
+      backwards: boolean,
+    ): { line: number; column: number } | null => {
+      if (backwards) {
+        // Search backwards: start from current position going up
+        for (let line = fromLine; line >= 0; line -= 1) {
+          const lineText = lines[line];
+          const searchEnd = line === fromLine ? fromColumn : lineText.length;
+          // Search from right to left within the line
+          const idx = lineText.lastIndexOf(';', searchEnd - 1);
+          if (idx !== -1) {
+            // Return position after the semicolon
+            return { line, column: idx + 1 };
+          }
+        }
+      } else {
+        // Search forwards: start from current position going down
+        for (let line = fromLine; line < lines.length; line += 1) {
+          const lineText = lines[line];
+          const searchStart = line === fromLine ? fromColumn + 1 : 0;
+          const idx = lineText.indexOf(';', searchStart);
+          if (idx !== -1) {
+            // Return position at the semicolon (end of statement)
+            return { line, column: idx + 1 };
+          }
+        }
+      }
+      return null;
+    };
+
     const base = [
       ...getHotkeyConfig(),
       {
         name: 'runQuery3',
         key: KeyboardShortcut.CtrlShiftEnter,
         descr: KEY_MAP[KeyboardShortcut.CtrlShiftEnter],
-        func: (editor: AceEditor['editor']) => {
-          if (!editor.getValue().trim()) {
+        func: (editor: EditorHandle) => {
+          const value = editor.getValue();
+          if (!value.trim()) {
             return;
           }
-          const session = editor.getSession();
+
+          const lines = value.split('\n');
           const cursorPosition = editor.getCursorPosition();
-          const totalLine = session.getLength();
-          const currentRow = editor.getFirstVisibleRow();
-          const semicolonEnd = editor.find(';', {
-            backwards: false,
-            skipCurrent: true,
-          });
-          let end;
-          if (semicolonEnd) {
-            ({ end } = semicolonEnd);
-          }
-          if (!end || end.row < cursorPosition.row) {
+          const totalLines = lines.length;
+
+          // Find the end of the statement (next semicolon or end of file)
+          const semicolonEnd = findSemicolon(
+            lines,
+            cursorPosition.line,
+            cursorPosition.column,
+            false,
+          );
+          let end: { line: number; column: number };
+          if (semicolonEnd && semicolonEnd.line >= cursorPosition.line) {
+            end = semicolonEnd;
+          } else {
+            // No semicolon found forward, use end of file
+            const lastLineIndex = totalLines - 1;
             end = {
-              row: totalLine + 1,
-              column: 0,
+              line: lastLineIndex,
+              column: lines[lastLineIndex]?.length ?? 0,
             };
           }
-          const semicolonStart = editor.find(';', {
-            backwards: true,
-            skipCurrent: true,
-          });
-          let start;
+
+          // Find the start of the statement (previous semicolon or start of file)
+          const semicolonStart = findSemicolon(
+            lines,
+            cursorPosition.line,
+            cursorPosition.column,
+            true,
+          );
+          let start: { line: number; column: number } | undefined;
           if (semicolonStart) {
-            start = semicolonStart.end;
+            start = semicolonStart;
           }
-          let currentLine = start?.row;
+
+          // Determine the starting line
+          let currentLine = start?.line;
           if (
-            !currentLine ||
-            currentLine > cursorPosition.row ||
-            (currentLine === cursorPosition.row &&
+            currentLine === undefined ||
+            currentLine > cursorPosition.line ||
+            (currentLine === cursorPosition.line &&
               (start?.column || 0) > cursorPosition.column)
           ) {
             currentLine = 0;
           }
+
+          // Skip empty lines to find actual content
           let content =
-            currentLine === start?.row
-              ? session.getLine(currentLine).slice(start.column).trim()
-              : session.getLine(currentLine).trim();
-          while (!content && currentLine < totalLine) {
+            currentLine === start?.line && start
+              ? lines[currentLine].slice(start.column).trim()
+              : (lines[currentLine]?.trim() ?? '');
+          while (!content && currentLine < totalLines - 1) {
             currentLine += 1;
-            content = session.getLine(currentLine).trim();
+            content = lines[currentLine]?.trim() ?? '';
           }
-          if (currentLine !== start?.row) {
-            start = { row: currentLine, column: 0 };
+
+          // Adjust start if we skipped lines
+          if (start === undefined || currentLine !== start.line) {
+            start = { line: currentLine, column: 0 };
           }
-          editor.selection.setSelectionRange({
-            start: start ?? { row: 0, column: 0 },
+
+          // Set selection and run query
+          editor.setSelection({
+            start: start ?? { line: 0, column: 0 },
             end,
           });
           startQuery();
-          editor.selection.clearSelection();
+
+          // Clear selection and restore cursor position
+          editor.setSelection({
+            start: cursorPosition,
+            end: cursorPosition,
+          });
           editor.moveCursorToPosition(cursorPosition);
-          editor.scrollToRow(currentRow);
+          editor.scrollToLine(cursorPosition.line);
         },
       },
     ];
@@ -504,8 +567,14 @@ const SqlEditor: FC<Props> = ({
         name: 'previousLine',
         key: KeyboardShortcut.CtrlP,
         descr: KEY_MAP[KeyboardShortcut.CtrlP],
-        func: editor => {
-          editor.navigateUp();
+        func: (editor: EditorHandle) => {
+          const pos = editor.getCursorPosition();
+          if (pos.line > 0) {
+            editor.moveCursorToPosition({
+              line: pos.line - 1,
+              column: pos.column,
+            });
+          }
         },
       });
     }
@@ -718,7 +787,12 @@ const SqlEditor: FC<Props> = ({
 
   const onSaveQuery = async (query: QueryPayload, clientId: string) => {
     const savedQuery = await dispatch(saveQuery(query, clientId));
-    dispatch(addSavedQueryToTabState(queryEditor, savedQuery));
+    dispatch(
+      addSavedQueryToTabState(
+        queryEditor,
+        savedQuery as unknown as { remoteId: string },
+      ),
+    );
   };
 
   const renderEditorPrimaryAction = () => {
@@ -760,23 +834,19 @@ const SqlEditor: FC<Props> = ({
           stopQuery={stopQuery}
           overlayCreateAsMenu={showMenu ? runMenuBtn : null}
         />
-        <span>
-          <QueryLimitSelect
-            queryEditorId={queryEditor.id}
-            maxRow={maxRow}
-            defaultQueryLimit={defaultQueryLimit}
-          />
-        </span>
+        <QueryLimitSelect
+          queryEditorId={queryEditor.id}
+          maxRow={maxRow}
+          defaultQueryLimit={defaultQueryLimit}
+        />
         <Divider type="vertical" />
         {isFeatureEnabled(FeatureFlag.EstimateQueryCost) &&
           database?.allows_cost_estimate && (
-            <span>
-              <EstimateQueryCostButton
-                getEstimate={getQueryCostEstimate}
-                queryEditorId={queryEditor.id}
-                tooltip={t('Estimate the cost before running a query')}
-              />
-            </span>
+            <EstimateQueryCostButton
+              getEstimate={getQueryCostEstimate}
+              queryEditorId={queryEditor.id}
+              tooltip={t('Estimate the cost before running a query')}
+            />
           )}
         <SaveQuery
           queryEditorId={queryEditor.id}
@@ -859,7 +929,7 @@ const SqlEditor: FC<Props> = ({
               `}
             >
               {' '}
-              {t(`You are edting a query from the virtual dataset `) +
+              {t(`You are editing a query from the virtual dataset `) +
                 queryEditor.name}
             </p>
             <p
@@ -907,7 +977,7 @@ const SqlEditor: FC<Props> = ({
             <AutoSizer disableWidth>
               {({ height }) =>
                 isActive && (
-                  <AceEditorWrapper
+                  <EditorWrapper
                     autocomplete={autocompleteEnabled}
                     onBlur={onSqlChanged}
                     onChange={onSqlChanged}

@@ -45,7 +45,7 @@ describe('metricColumnFilter', () => {
     }) as SqlaFormData;
 
   describe('shouldSkipMetricColumn', () => {
-    it('should skip unprefixed percent metric columns if prefixed version exists', () => {
+    test('should skip unprefixed percent metric columns if prefixed version exists', () => {
       const colnames = ['metric1', '%metric1'];
       const formData = createFormData([], ['metric1']);
 
@@ -58,7 +58,7 @@ describe('metricColumnFilter', () => {
       expect(result).toBe(true);
     });
 
-    it('should not skip if column is also a regular metric', () => {
+    test('should not skip if column is also a regular metric', () => {
       const colnames = ['metric1', '%metric1'];
       const formData = createFormData(['metric1'], ['metric1']);
 
@@ -71,7 +71,7 @@ describe('metricColumnFilter', () => {
       expect(result).toBe(false);
     });
 
-    it('should not skip if column starts with %', () => {
+    test('should not skip if column starts with %', () => {
       const colnames = ['%metric1'];
       const formData = createFormData(['metric1'], []);
 
@@ -84,7 +84,7 @@ describe('metricColumnFilter', () => {
       expect(result).toBe(false);
     });
 
-    it('should not skip if no prefixed version exists', () => {
+    test('should not skip if no prefixed version exists', () => {
       const colnames = ['metric1'];
       const formData = createFormData([], ['metric1']);
 
@@ -99,35 +99,35 @@ describe('metricColumnFilter', () => {
   });
 
   describe('isRegularMetric', () => {
-    it('should return true for regular metrics', () => {
+    test('should return true for regular metrics', () => {
       const formData = createFormData(['metric1', 'metric2'], []);
       expect(isRegularMetric('metric1', formData)).toBe(true);
       expect(isRegularMetric('metric2', formData)).toBe(true);
     });
 
-    it('should return false for non-metrics', () => {
+    test('should return false for non-metrics', () => {
       const formData = createFormData(['metric1'], []);
       expect(isRegularMetric('non_metric', formData)).toBe(false);
     });
 
-    it('should return false for percentage metrics', () => {
+    test('should return false for percentage metrics', () => {
       const formData = createFormData([], ['percent_metric1']);
       expect(isRegularMetric('percent_metric1', formData)).toBe(false);
     });
   });
 
   describe('isPercentMetric', () => {
-    it('should return true for percentage metrics', () => {
+    test('should return true for percentage metrics', () => {
       const formData = createFormData([], ['percent_metric1']);
       expect(isPercentMetric('%percent_metric1', formData)).toBe(true);
     });
 
-    it('should return false for non-percentage metrics', () => {
+    test('should return false for non-percentage metrics', () => {
       const formData = createFormData(['regular_metric'], []);
       expect(isPercentMetric('regular_metric', formData)).toBe(false);
     });
 
-    it('should return false for regular metrics', () => {
+    test('should return false for regular metrics', () => {
       const formData = createFormData(['metric1'], []);
       expect(isPercentMetric('metric1', formData)).toBe(false);
     });

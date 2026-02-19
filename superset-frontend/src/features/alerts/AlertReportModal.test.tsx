@@ -119,16 +119,20 @@ fetchMock.get(ownersEndpoint, { result: [] });
 fetchMock.get(databaseEndpoint, { result: [] });
 fetchMock.get(dashboardEndpoint, { result: [] });
 fetchMock.get(chartEndpoint, { result: [{ text: 'table chart', value: 1 }] });
-fetchMock.get(tabsEndpoint, {
-  result: {
-    all_tabs: {},
-    tab_tree: [],
+fetchMock.get(
+  tabsEndpoint,
+  {
+    result: {
+      all_tabs: {},
+      tab_tree: [],
+    },
   },
-});
+  { name: tabsEndpoint },
+);
 
 // Create a valid alert with all required fields entered for validation check
 
-// @ts-ignore will add id in factory function
+// @ts-expect-error will add id in factory function
 const validAlert: AlertObject = {
   active: false,
   changed_on_delta_humanized: 'now',
@@ -524,6 +528,30 @@ test('does not show screenshot width when csv is selected', async () => {
   expect(screen.queryByRole('spinbutton')).not.toBeInTheDocument();
 });
 
+test('shows screenshot width when PDF is selected', async () => {
+  render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {
+    useRedux: true,
+  });
+  userEvent.click(screen.getByTestId('contents-panel'));
+  await screen.findByText(/test chart/i);
+  const contentTypeSelector = screen.getByRole('combobox', {
+    name: /select content type/i,
+  });
+  await comboboxSelect(contentTypeSelector, 'Chart', () =>
+    screen.getByText(/select chart/i),
+  );
+  const reportFormatSelector = screen.getByRole('combobox', {
+    name: /select format/i,
+  });
+  await comboboxSelect(
+    reportFormatSelector,
+    'PDF',
+    () => screen.getAllByText(/Send as PDF/i)[0],
+  );
+  expect(screen.getByText(/screenshot width/i)).toBeInTheDocument();
+  expect(screen.getByRole('spinbutton')).toBeInTheDocument();
+});
+
 // Schedule Section
 test('opens Schedule Section on click', async () => {
   render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {
@@ -543,7 +571,8 @@ test('renders default Schedule fields', async () => {
   const scheduleType = screen.getByRole('combobox', {
     name: /schedule type/i,
   });
-  const timezone = screen.getByRole('combobox', {
+  // Wait for timezone selector to render after delay
+  const timezone = await screen.findByRole('combobox', {
     name: /timezone selector/i,
   });
   const logRetention = screen.getByRole('combobox', {
@@ -681,45 +710,37 @@ test('renders dashboard filter dropdowns', async () => {
 });
 
 test('filter reappears in dropdown after clearing with X icon', async () => {
-  const tabsWithFiltersEndpoint = 'glob:*/api/v1/dashboard/1/tabs';
   const chartDataEndpoint = 'glob:*/api/v1/chart/data*';
 
-  fetchMock.get(
-    tabsWithFiltersEndpoint,
-    {
-      result: {
-        all_tabs: { tab1: 'Tab 1' },
-        tab_tree: [{ title: 'Tab 1', value: 'tab1' }],
-        native_filters: {
-          all: [
-            {
-              id: 'NATIVE_FILTER-test1',
-              name: 'Test Filter 1',
-              filterType: 'filter_select',
-              targets: [{ column: { name: 'test_column_1' } }],
-              adhoc_filters: [],
-            },
-          ],
-          tab1: [
-            {
-              id: 'NATIVE_FILTER-test2',
-              name: 'Test Filter 2',
-              filterType: 'filter_select',
-              targets: [{ column: { name: 'test_column_2' } }],
-              adhoc_filters: [],
-            },
-          ],
-        },
+  fetchMock.removeRoute(tabsEndpoint);
+  fetchMock.get(tabsEndpoint, {
+    result: {
+      all_tabs: { tab1: 'Tab 1' },
+      tab_tree: [{ title: 'Tab 1', value: 'tab1' }],
+      native_filters: {
+        all: [
+          {
+            id: 'NATIVE_FILTER-test1',
+            name: 'Test Filter 1',
+            filterType: 'filter_select',
+            targets: [{ column: { name: 'test_column_1' } }],
+            adhoc_filters: [],
+          },
+        ],
+        tab1: [
+          {
+            id: 'NATIVE_FILTER-test2',
+            name: 'Test Filter 2',
+            filterType: 'filter_select',
+            targets: [{ column: { name: 'test_column_2' } }],
+            adhoc_filters: [],
+          },
+        ],
       },
     },
-    { overwriteRoutes: true },
-  );
+  });
 
-  fetchMock.post(
-    chartDataEndpoint,
-    { result: [{ data: [] }] },
-    { overwriteRoutes: true },
-  );
+  fetchMock.post(chartDataEndpoint, { result: [{ data: [] }] });
 
   render(<AlertReportModal {...generateMockedProps(true, true)} />, {
     useRedux: true,

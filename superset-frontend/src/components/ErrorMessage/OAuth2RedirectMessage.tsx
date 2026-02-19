@@ -124,7 +124,7 @@ export function OAuth2RedirectMessage({
         } else if (source === 'explore' && chartId) {
           dispatch(triggerQuery(true, chartId));
         } else if (source === 'dashboard') {
-          dispatch(onRefresh(chartList, true, 0, dashboardId));
+          dispatch(onRefresh(chartList.map(Number), true, 0, dashboardId));
         }
       }
     };
