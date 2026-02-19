@@ -575,37 +575,26 @@ def test_validate_folders_allows_default_folders(mocker: MockerFixture) -> None:
     Test that default system folders (Metrics/Columns) are allowed when using
     the well-known default folder UUIDs, so their position can be persisted.
     """
-    from uuid import UUID
-
-    metric_uuid = UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
-    column_uuid = UUID("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
-
-    valid_uuids = {metric_uuid, column_uuid}
-
     folders = cast(
         list[FolderSchema],
         [
             {
-                "uuid": str(DEFAULT_METRICS_FOLDER_UUID),
+                "uuid": DEFAULT_METRICS_FOLDER_UUID,
                 "type": "folder",
                 "name": "Metrics",
-                "children": [
-                    {"uuid": str(metric_uuid), "type": "metric"},
-                ],
+                "children": [],
             },
             {
-                "uuid": str(DEFAULT_COLUMNS_FOLDER_UUID),
+                "uuid": DEFAULT_COLUMNS_FOLDER_UUID,
                 "type": "folder",
                 "name": "Columns",
-                "children": [
-                    {"uuid": str(column_uuid), "type": "column"},
-                ],
+                "children": [],
             },
         ],
     )
 
     # Should not raise - default folders are allowed to use reserved names
-    validate_folders(folders=folders, valid_uuids=valid_uuids)
+    validate_folders(folders=folders, valid_uuids=set())
 
 
 @with_feature_flags(DATASET_FOLDERS=True)
