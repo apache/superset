@@ -80,7 +80,13 @@ export const filterItemsBySearch = (
 
   items.forEach(item => {
     const name = 'metric_name' in item ? item.metric_name : item.column_name;
-    if (name?.toLowerCase().includes(lowerSearch)) {
+    const { verbose_name: verboseName, expression } = item;
+
+    if (
+      name?.toLowerCase().includes(lowerSearch) ||
+      verboseName?.toLowerCase().includes(lowerSearch) ||
+      expression?.toLowerCase().includes(lowerSearch)
+    ) {
       matchingIds.add(item.uuid);
     }
   });
