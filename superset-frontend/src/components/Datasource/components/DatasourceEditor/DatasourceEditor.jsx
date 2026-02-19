@@ -82,9 +82,11 @@ import { fetchSyncedColumns, updateColumns } from '../../utils';
 import DatasetUsageTab from './components/DatasetUsageTab';
 import {
   DEFAULT_COLUMNS_FOLDER_UUID,
+  DEFAULT_FOLDERS_COUNT,
   DEFAULT_METRICS_FOLDER_UUID,
 } from '../../FoldersEditor/constants';
 import { validateFolders } from '../../FoldersEditor/folderValidation';
+import { countAllFolders } from '../../FoldersEditor/treeUtils';
 import FoldersEditor from '../../FoldersEditor';
 
 const extensionsRegistry = getExtensionsRegistry();
@@ -248,14 +250,17 @@ DATASOURCE_TYPES_ARR.forEach(o => {
   DATASOURCE_TYPES[o.key] = o;
 });
 
-function CollectionTabTitle({ title, collection }) {
+function CollectionTabTitle({ title, collection, count }) {
   return (
     <div
       css={{ display: 'flex', alignItems: 'center' }}
       data-test={`collection-tab-${title}`}
     >
       {title}{' '}
-      <StyledBadge count={collection ? collection.length : 0} showZero />
+      <StyledBadge
+        count={count ?? (collection ? collection.length : 0)}
+        showZero
+      />
     </div>
   );
 }
@@ -263,6 +268,7 @@ function CollectionTabTitle({ title, collection }) {
 CollectionTabTitle.propTypes = {
   title: PropTypes.string,
   collection: PropTypes.array,
+  count: PropTypes.number,
 };
 
 function ColumnCollectionTable({
@@ -655,6 +661,8 @@ class DatasourceEditor extends PureComponent {
         col => !!col.expression,
       ),
       folders: props.datasource.folders || [],
+      folderCount:
+        countAllFolders(props.datasource.folders || []) + DEFAULT_FOLDERS_COUNT,
       metadataLoading: false,
       activeTabKey: TABS_KEYS.SOURCE,
       datasourceType: props.datasource.sql
@@ -732,13 +740,14 @@ class DatasourceEditor extends PureComponent {
   }
 
   handleFoldersChange(folders) {
+    const folderCount = countAllFolders(folders);
     const userMadeFolders = folders.filter(
       f =>
         f.uuid !== DEFAULT_METRICS_FOLDER_UUID &&
         f.uuid !== DEFAULT_COLUMNS_FOLDER_UUID &&
         f.children.length > 0,
     );
-    this.setState({ folders: userMadeFolders }, () => {
+    this.setState({ folders: userMadeFolders, folderCount }, () => {
       this.onDatasourceChange({
         ...this.state.datasource,
         folders: userMadeFolders,
@@ -1987,7 +1996,7 @@ class DatasourceEditor extends PureComponent {
                     key: TABS_KEYS.FOLDERS,
                     label: (
                       <CollectionTabTitle
-                        collection={this.state.folders}
+                        count={this.state.folderCount}
                         title={t('Folders')}
                       />
                     ),
