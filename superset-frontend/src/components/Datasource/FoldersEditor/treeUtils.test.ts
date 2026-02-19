@@ -676,12 +676,8 @@ test('countAllFolders returns 0 for empty array', () => {
 
 test('countAllFolders counts flat folders', () => {
   const folders: DatasourceFolder[] = [
-    createFolderItem('f1', 'Metrics', [
-      createMetricItem('m1', 'Metric 1'),
-    ]),
-    createFolderItem('f2', 'Columns', [
-      createColumnItem('c1', 'Column 1'),
-    ]),
+    createFolderItem('f1', 'Metrics', [createMetricItem('m1', 'Metric 1')]),
+    createFolderItem('f2', 'Columns', [createColumnItem('c1', 'Column 1')]),
   ] as DatasourceFolder[];
 
   expect(countAllFolders(folders)).toBe(2);

@@ -914,8 +914,7 @@ class DatasourceEditor extends PureComponent<
       ),
       folders: props.datasource.folders || [],
       folderCount:
-        countAllFolders(props.datasource.folders || []) +
-        DEFAULT_FOLDERS_COUNT,
+        countAllFolders(props.datasource.folders || []) + DEFAULT_FOLDERS_COUNT,
       metadataLoading: false,
       activeTabKey: TABS_KEYS.SOURCE,
       datasourceType: props.datasource.sql
