@@ -60,6 +60,7 @@ import {
   Select,
   Switch,
   TreeSelect,
+  Button,
   type CheckboxChangeEvent,
 } from '@superset-ui/core/components';
 
@@ -377,14 +378,10 @@ export const StyledInputContainer = styled.div`
         display: 'flex';
         color: ${theme.colorIcon};
       }
-      .filters-add-container {
-        flex: '.25';
-        padding: '${theme.sizeUnit * 3} 0';
 
-        .filters-add-btn {
-          padding: ${theme.sizeUnit * 2}px;
-          color: ${theme.colorWhite};
-        }
+      .filters-add-btn {
+        padding: ${theme.sizeUnit * 2}px;
+        color: ${theme.colorTextBase};
       }
     }
   `}
@@ -2502,28 +2499,25 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                                   )}
                                 </div>
                               ))}
-                              <div className="filters-add-container">
-                                {filterNativeFilterOptions().length > 0 && (
-                                  // eslint-disable-next-line jsx-a11y/anchor-is-valid
-                                  <a
-                                    className="filters-add-btn"
-                                    role="button"
-                                    tabIndex={0}
-                                    onClick={() => {
+                              {filterNativeFilterOptions().length > 0 && (
+                                // eslint-disable-next-line jsx-a11y/anchor-is-valid
+                                <Button
+                                  className="filters-add-btn"
+                                  buttonStyle="link"
+                                  onClick={() => {
+                                    handleAddFilterField();
+                                    add();
+                                  }}
+                                  onKeyDown={e => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
                                       handleAddFilterField();
                                       add();
-                                    }}
-                                    onKeyDown={e => {
-                                      if (e.key === 'Enter' || e.key === ' ') {
-                                        handleAddFilterField();
-                                        add();
-                                      }
-                                    }}
-                                  >
-                                    + {t('Apply another dashboard filter')}
-                                  </a>
-                                )}
-                              </div>
+                                    }
+                                  }}
+                                >
+                                  + {t('Apply another dashboard filter')}
+                                </Button>
+                              )}
                             </div>
                           )}
                         </AntdForm.List>
