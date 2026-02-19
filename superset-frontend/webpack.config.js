@@ -34,7 +34,6 @@ const {
   WebpackManifestPlugin,
   getCompilerHooks,
 } = require('webpack-manifest-plugin');
-const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
 const parsedArgs = require('yargs').argv;
 const Visualizer = require('webpack-visualizer-plugin2');
@@ -224,22 +223,6 @@ if (!isDevMode) {
 // We skip ForkTsCheckerWebpackPlugin in production because:
 // - Story files import from @storybook-shared which causes rootDir errors
 // - The above commands already provide comprehensive type checking
-if (isDevMode) {
-  plugins.push(
-    new ForkTsCheckerWebpackPlugin({
-      async: true,
-      typescript: {
-        memoryLimit: TYPESCRIPT_MEMORY_LIMIT,
-        configOverwrite: {
-          compilerOptions: {
-            skipLibCheck: true,
-            incremental: true,
-          },
-        },
-      },
-    }),
-  );
-}
 
 // In dev mode, include theme.ts in preamble to avoid separate chunk HMR issues
 const PREAMBLE = isDevMode
