@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import logging
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
@@ -53,7 +52,9 @@ def processor_with_cache():
 @patch(
     "superset.common.query_context_processor.QueryCacheManager",
 )
-def test_timing_present_in_payload(mock_cache_cls, processor_with_cache, mock_query_obj):
+def test_timing_present_in_payload(
+    mock_cache_cls, processor_with_cache, mock_query_obj
+):
     """Timing dict is included in get_df_payload() result."""
     cache = MagicMock()
     cache.is_loaded = True
