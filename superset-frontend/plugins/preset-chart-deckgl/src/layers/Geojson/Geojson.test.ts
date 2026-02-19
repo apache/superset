@@ -148,7 +148,7 @@ test('getLayer preserves rendering for existing charts without new point radius 
   };
 
   const layer = getLayer({ formData: legacyFormData, ...baseLayerArgs });
-  const props = layer.props;
+  const { props } = layer;
 
   // Should match deck.gl defaults, NOT the new control panel defaults
   expect(props.getPointRadius).toBe(1); // deck.gl default, not 10
@@ -165,7 +165,7 @@ test('getLayer uses control panel defaults for new charts', () => {
   };
 
   const layer = getLayer({ formData: newChartFormData, ...baseLayerArgs });
-  const props = layer.props;
+  const { props } = layer;
 
   expect(props.getPointRadius).toBe(10);
   expect(props.pointRadiusUnits).toBe('pixels');
