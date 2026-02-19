@@ -265,7 +265,13 @@ describe('folderUtils', () => {
           uuid: DEFAULT_METRICS_FOLDER_UUID,
           type: FoldersEditorItemType.Folder as const,
           name: 'Metrics',
-          children: [{ uuid: 'metric-2', name: 'metric-2', type: FoldersEditorItemType.Metric }],
+          children: [
+            {
+              uuid: 'metric-2',
+              name: 'metric-2',
+              type: FoldersEditorItemType.Metric,
+            },
+          ],
         },
         customFolder,
         {
