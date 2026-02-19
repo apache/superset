@@ -26,8 +26,9 @@ assists people when migrating to a new version.
 
 ### Content Localization
 
-Superset now supports localization of user-created content (dashboard titles, chart names,
-filter labels). Translations are displayed automatically based on the viewer's UI language.
+Superset now supports localization of user-created content. Users can translate dashboard titles,
+chart names, descriptions, metric labels, axis titles, and more directly in the UI. Translated
+content is displayed automatically based on the viewer's UI language.
 
 #### Requirements
 
@@ -49,6 +50,29 @@ CONTENT_LOCALIZATION_MAX_TEXT_LENGTH = 10000
 CONTENT_LOCALIZATION_MAX_JSON_SIZE = 1048576  # 1 MB
 ```
 
+#### Translatable Content
+
+**Properties modals** (globe icon 🌐 next to text fields):
+- Dashboard title and description
+- Chart name and description
+- Native filter name
+
+**Inline editors** (globe icon 🌐 next to titles in edit mode):
+- Dashboard title
+- Chart title in Explore
+- Chart name override on dashboards
+- Tab names on dashboards
+
+**Chart controls in Explore** (globe icon 🌐 inside control inputs):
+- Adhoc metric labels (e.g., COUNT(*), SUM(amount))
+- Adhoc column labels (Custom SQL columns)
+- Axis titles (X Axis Title, Y Axis Title) on Timeseries, MixedTimeseries, Bubble, BoxPlot, Gantt, Histogram, Waterfall charts
+- BigNumber subtitle and compare suffix
+- Waterfall chart labels (increase, decrease, total)
+- Annotation layer names on Timeseries and MixedTimeseries charts
+
+**Chart visualizations** — translated metric labels are displayed automatically in 20 chart types: Table, Pivot Table, Pie, Funnel, Gauge, Radar, Treemap, Sunburst, Bubble, Heatmap, Graph, Tree, Sankey, BoxPlot, Gantt, BigNumber (Total, Trendline, PeriodOverPeriod), Timeseries, and MixedTimeseries. Column label translations are applied in Table and Pivot Table.
+
 #### API Changes
 
 - `GET /api/v1/dashboard/{id}` and `GET /api/v1/chart/{id}` return localized field values based on `Accept-Language` header
@@ -62,7 +86,8 @@ New `{{ current_user_locale() }}` macro for locale-aware SQL queries (requires `
 
 #### Embedded SDK
 
-New `setLocale(locale)` method on the `EmbeddedDashboard` object for dynamic locale switching.
+- `initialLocale` parameter in `embedDashboard()` for setting locale at initialization
+- `setLocale(locale)` method on the `EmbeddedDashboard` object for dynamic locale switching
 
 #### Export/Import
 

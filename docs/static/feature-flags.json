@@ -49,7 +49,7 @@
         "name": "ENABLE_CONTENT_LOCALIZATION",
         "default": false,
         "lifecycle": "development",
-        "description": "Enable localization of user-created content (dashboard titles, chart names, filter labels). When enabled, users can provide translations for content that will be displayed based on the viewer's UI language setting. Requires database migration for 'translations' column.",
+        "description": "Enable localization of user-created content (dashboard titles, chart names, descriptions, metric labels, axis titles, annotation names). When enabled, a globe icon appears next to translatable fields for switching languages and entering translations. Content is displayed in the viewer's UI language automatically. Requires database migration for 'translations' column.",
         "docs": "https://superset.apache.org/docs/configuration/content-localization"
       },
       {

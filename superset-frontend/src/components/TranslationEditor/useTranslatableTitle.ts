@@ -85,8 +85,7 @@ export default function useTranslatableTitle({
   const [activeLocale, setActiveLocale] = useState(DEFAULT_LOCALE_KEY);
 
   const isLocaleMode = activeLocale !== DEFAULT_LOCALE_KEY;
-  const showLocale =
-    localizationEnabled && allLocales.length > 0 && translations !== undefined;
+  const showLocale = localizationEnabled && allLocales.length > 0;
 
   const displayTitle = useMemo(() => {
     if (!isLocaleMode) return title;

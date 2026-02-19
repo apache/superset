@@ -7,9 +7,9 @@ version: 1
 
 # Content Localization
 
-Superset supports localization of user-created content: dashboard titles, chart names, filter labels,
-and descriptions. When a viewer's UI language changes, translated content is served automatically
-via the API.
+Superset supports localization of user-created content: dashboard titles, chart names, descriptions,
+metric labels, axis titles, annotation names, and more. When a viewer's UI language changes,
+translated content is displayed automatically.
 
 :::note
 Requires the `ENABLE_CONTENT_LOCALIZATION` [feature flag](/docs/configuration/feature-flags)
@@ -89,26 +89,31 @@ If a translation is missing for the resolved locale:
 
 ## Adding Translations
 
-### Dashboard Translations
+A globe icon (🌐) with a badge counter appears next to translatable fields in edit mode.
+The badge shows how many translations exist. Click the globe to open a language dropdown,
+select a language, and type the translation. Select **DEFAULT** to return to the base text.
+
+### Properties Modals
+
+#### Dashboard Title and Description
 
 1. Enter edit mode (**Edit dashboard** button) &rarr; open the **&hellip;** menu &rarr; **Edit properties**
-2. Click the globe icon (🌐) inside the Title field to open the locale dropdown
-3. Select a language, then type the translated title directly in the field
-4. Switch back to **DEFAULT** or another language as needed
-5. Click **Save**
+2. Click the globe icon (🌐) inside the Title or Description field
+3. Select a language, type the translation
+4. Click **Save**
 
-Translatable fields: `dashboard_title`
+Translatable fields: `dashboard_title`, `description`
 
-### Chart Translations
+#### Chart Name and Description
 
 1. Open **Edit Chart Properties** from the chart menu
 2. Click the globe icon (🌐) inside the Name or Description field
-3. Select a language from the dropdown and enter the translation
+3. Select a language and enter the translation
 4. Click **Save**
 
 Translatable fields: `slice_name`, `description`
 
-### Native Filter Translations
+#### Native Filter Name
 
 1. Open the filter bar &rarr; click the gear icon to configure filters
 2. Select a filter and click the globe icon (🌐) inside the filter name field
@@ -117,16 +122,88 @@ Translatable fields: `slice_name`, `description`
 
 Translatable field: `name`
 
-### Chart Name Override Translations
+### Inline Title Editors
 
-Dashboard-level chart name overrides support separate translations. The display priority chain:
+In edit mode, a globe icon appears next to inline title editors:
+
+- **Dashboard title** &mdash; the main title at the top of the dashboard
+- **Chart title in Explore** &mdash; the chart name above the visualization
+- **Chart name override on dashboards** &mdash; the per-dashboard override of a chart's name
+- **Tab names** &mdash; dashboard tab labels
+
+Click the globe, select a language, edit the title, and save. Translations are stored
+alongside the original content and applied automatically for viewers.
+
+The display priority chain for chart names on dashboards:
 
 1. Override translation for viewer's locale
 2. Override name (untranslated)
 3. Chart translation for viewer's locale
 4. Chart original name
 
-Override translations are stored in `json_metadata.slice_name_overrides`.
+### Chart Controls in Explore
+
+#### Adhoc Metric Labels
+
+Click a metric pill (e.g., `COUNT(*)`) to open the metric editor. The globe icon
+in the popover title lets you translate the metric's display label. Translated labels
+appear in chart tooltips, legends, axis labels, and table headers across 20 chart types.
+
+#### Adhoc Column Labels
+
+Click a Custom SQL column pill to open the column editor. When a custom label is set,
+the globe icon appears in the popover title for translation. Translated labels appear
+in Table and Pivot Table column headers.
+
+#### Axis Titles
+
+The **X Axis Title** and **Y Axis Title** fields (in the Customize tab) support translations.
+Click the globe icon inside the input field to switch languages.
+
+Supported charts: Timeseries (Line, Bar, Area, Scatter, Step), MixedTimeseries (including
+secondary Y axis), Bubble, BoxPlot, Gantt, Histogram, Waterfall.
+
+#### BigNumber Subtitle and Compare Suffix
+
+The **Subtitle** field on BigNumber charts (Total, Trendline, Period Over Period) and the
+**Compare Suffix** field on BigNumber With Trendline support translations via the globe icon.
+
+#### Waterfall Labels
+
+The **Increase Label**, **Decrease Label**, and **Total Label** fields on Waterfall charts
+support translations. These labels appear in the chart legend.
+
+#### Annotation Names
+
+Annotation layer names on Timeseries and MixedTimeseries charts support translations.
+Translated names appear in the chart legend and tooltips.
+
+### Chart Visualizations
+
+Translated metric labels are applied automatically in these chart types:
+
+| Chart | Where translated labels appear |
+|-------|-------------------------------|
+| Table | Metric and column headers |
+| Pivot Table | Metric values, row/column headers |
+| Pie | Tooltips |
+| Funnel | Tooltips |
+| Gauge | Center label, tooltips |
+| Radar | Axis indicator labels |
+| Treemap | Root node, tooltips |
+| Sunburst | Tooltips (primary and secondary metrics) |
+| Bubble | All 3 axes (X, Y, size) |
+| Heatmap | Series name, tooltips |
+| Graph | Edge weight |
+| Tree | Node metric |
+| Sankey | Flow value |
+| BoxPlot | Series, tooltips |
+| Gantt | Tooltips |
+| BigNumber Total | Main value |
+| BigNumber With Trendline | Main value |
+| BigNumber Period Over Period | Main value |
+| Timeseries | Tooltips, legend |
+| MixedTimeseries | Tooltips, legend |
 
 ## API
 
@@ -226,7 +303,7 @@ See [SQL Templating](/docs/configuration/sql-templating) for more Jinja macros.
 ## Embedded Dashboards
 
 The [Embedded SDK](https://www.npmjs.com/package/@superset-ui/embedded-sdk) supports
-dynamic locale switching via the `setLocale` method:
+locale configuration at initialization and dynamic switching at runtime:
 
 ```js
 import { embedDashboard } from "@superset-ui/embedded-sdk";
@@ -236,11 +313,12 @@ const dashboard = await embedDashboard({
   supersetDomain: "https://superset.example.com",
   mountPoint: document.getElementById("my-superset-container"),
   fetchGuestToken: () => fetchGuestTokenFromBackend(),
+  initialLocale: "de", // optional: set locale at load time
 });
 
-// Switch locale when host app language changes
+// Switch locale dynamically when host app language changes
 languageSelector.onChange = (locale) => {
-  dashboard.setLocale(locale); // triggers page reload inside iframe
+  dashboard.setLocale(locale);
 };
 ```
 

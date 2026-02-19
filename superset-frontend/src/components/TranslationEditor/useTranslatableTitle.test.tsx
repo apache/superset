@@ -177,10 +177,10 @@ test('localeSwitcher is not null when feature flag on and locales available', ()
   expect(result.current.showLocale).toBe(true);
 });
 
-test('localeSwitcher is null when translations prop is undefined', () => {
+test('localeSwitcher renders when translations prop is undefined', () => {
   const params = createParams({ translations: undefined });
   const { result } = renderHook(() => useTranslatableTitle(params));
 
-  expect(result.current.localeSwitcher).toBeNull();
-  expect(result.current.showLocale).toBe(false);
+  expect(result.current.localeSwitcher).not.toBeNull();
+  expect(result.current.showLocale).toBe(true);
 });
