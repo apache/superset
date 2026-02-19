@@ -261,8 +261,6 @@ function TreeItemComponent({
     <>
       {isFolder && (
         <DragHandle
-          {...attributes}
-          {...listeners}
           css={theme => css`
             margin-right: ${theme.marginSM}px;
           `}
@@ -347,9 +345,12 @@ function TreeItemComponent({
         {isFolder ? (
           <TreeFolderContainer
             {...restContainerProps}
+            {...attributes}
+            {...listeners}
             data-folder-id={id}
             data-drop-target={isDropTarget ? 'true' : undefined}
             isForbiddenDropTarget={isForbiddenDrop}
+            css={{ cursor: 'grab', '&:active': { cursor: 'grabbing' } }}
           >
             {containerContent}
           </TreeFolderContainer>
