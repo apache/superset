@@ -360,7 +360,7 @@ APP_NAME = "Superset"
 # or set THEME_DEFAULT["token"]["brandLogoUrl"] directly.
 APP_ICON = "/static/assets/images/superset-logo-horiz.png"
 
-# Specify where clicking the logo would take the user'
+# Specify where clicking the logo would take the user
 # Default value of None will take you to '/superset/welcome'
 # You can also specify a relative URL e.g. '/superset/welcome' or '/dashboards/list'
 # or you can specify a full URL e.g. 'https://foo.bar'
@@ -377,7 +377,8 @@ LOGO_TOOLTIP = ""
 # NOTE: This variable is deprecated and not used in the new theme system.
 LOGO_RIGHT_TEXT: Callable[[], str] | str = ""
 
-# APP_ICON_WIDTH is deprecated. Use THEME_DEFAULT["token"]["brandLogoHeight"] instead (default: "24px").
+# APP_ICON_WIDTH is deprecated. 
+# Use THEME_DEFAULT["token"]["brandLogoHeight"] instead (default: "24px").
 
 # Enables SWAGGER UI for superset openapi spec
 # ex: http://localhost:8080/swagger/v1
