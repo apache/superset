@@ -79,8 +79,7 @@ export const filterItemsBySearch = (
   const matchingIds = new Set<string>();
 
   items.forEach(item => {
-    const name =
-      'metric_name' in item ? item.metric_name : item.column_name;
+    const name = 'metric_name' in item ? item.metric_name : item.column_name;
     const { verbose_name: verboseName, expression } = item;
 
     if (
