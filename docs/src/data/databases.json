@@ -1,16 +1,16 @@
 {
-  "generated": "2026-01-31T10:47:01.730Z",
+  "generated": "2026-02-16T04:47:37.257Z",
   "statistics": {
-    "totalDatabases": 70,
-    "withDocumentation": 70,
-    "withConnectionString": 70,
+    "totalDatabases": 72,
+    "withDocumentation": 72,
+    "withConnectionString": 72,
     "withDrivers": 36,
     "withAuthMethods": 4,
-    "supportsJoins": 66,
-    "supportsSubqueries": 67,
+    "supportsJoins": 68,
+    "supportsSubqueries": 69,
     "supportsDynamicSchema": 15,
     "supportsCatalog": 9,
-    "averageScore": 32,
+    "averageScore": 31,
     "maxScore": 201,
     "byCategory": {
       "Other Databases": [
@@ -74,6 +74,7 @@
         "Apache Kylin",
         "Azure Synapse",
         "Ocient",
+        "Apache Phoenix",
         "Amazon Redshift",
         "RisingWave",
         "SingleStore",
@@ -151,12 +152,14 @@
         "Greenplum",
         "Apache Hive",
         "Apache Impala",
+        "Apache IoTDB",
         "Apache Kylin",
         "MariaDB",
         "MonetDB",
         "MySQL",
         "OceanBase",
         "Parseable",
+        "Apache Phoenix",
         "Apache Pinot",
         "PostgreSQL",
         "Presto",
@@ -187,6 +190,7 @@
       "Time Series Databases": [
         "CrateDB",
         "Apache Druid",
+        "Apache IoTDB",
         "Apache Pinot",
         "TDengine"
       ],
@@ -197,7 +201,9 @@
         "Apache Druid",
         "Apache Hive",
         "Apache Impala",
+        "Apache IoTDB",
         "Apache Kylin",
+        "Apache Phoenix",
         "Apache Pinot",
         "Apache Solr",
         "Apache Spark SQL"
@@ -2890,6 +2896,47 @@
       "query_cost_estimation": false,
       "sql_validation": false
     },
+    "Apache IoTDB": {
+      "engine": "apache_iotdb",
+      "engine_name": "Apache IoTDB",
+      "module": "iotdb",
+      "documentation": {
+        "description": "Apache IoTDB is a time series database designed for IoT data, with efficient storage and query capabilities for massive time series data.",
+        "logo": "apache-iotdb.svg",
+        "homepage_url": "https://iotdb.apache.org/",
+        "categories": [
+          "APACHE_PROJECTS",
+          "TIME_SERIES",
+          "OPEN_SOURCE"
+        ],
+        "pypi_packages": [
+          "apache-iotdb"
+        ],
+        "connection_string": "iotdb://{username}:{password}@{hostname}:{port}",
+        "default_port": 6667,
+        "parameters": {
+          "username": "Database username (default: root)",
+          "password": "Database password (default: root)",
+          "hostname": "IP address or hostname",
+          "port": "Default 6667"
+        },
+        "notes": "The IoTDB SQLAlchemy dialect was written to integrate with Apache Superset. IoTDB uses a hierarchical data model, which is reorganized into a relational model for SQL queries."
+      },
+      "time_grains": {},
+      "score": 0,
+      "max_score": 0,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
     "Azure Data Explorer": {
       "engine": "azure_data_explorer",
       "engine_name": "Azure Data Explorer",
@@ -4039,6 +4086,41 @@
       "query_cost_estimation": false,
       "sql_validation": false
     },
+    "Apache Phoenix": {
+      "engine": "apache_phoenix",
+      "engine_name": "Apache Phoenix",
+      "module": "phoenix",
+      "documentation": {
+        "description": "Apache Phoenix is a relational database layer over Apache HBase, providing low-latency SQL queries over HBase data.",
+        "logo": "apache-phoenix.png",
+        "homepage_url": "https://phoenix.apache.org/",
+        "categories": [
+          "APACHE_PROJECTS",
+          "ANALYTICAL_DATABASES",
+          "OPEN_SOURCE"
+        ],
+        "pypi_packages": [
+          "phoenixdb"
+        ],
+        "connection_string": "phoenix://{hostname}:{port}/",
+        "default_port": 8765,
+        "notes": "Phoenix provides a SQL interface to Apache HBase. The phoenixdb driver connects via the Phoenix Query Server and supports a subset of SQLAlchemy."
+      },
+      "time_grains": {},
+      "score": 0,
+      "max_score": 0,
+      "joins": true,
+      "subqueries": true,
+      "supports_dynamic_schema": false,
+      "supports_catalog": false,
+      "supports_dynamic_catalog": false,
+      "ssh_tunneling": false,
+      "query_cancelation": false,
+      "supports_file_upload": false,
+      "user_impersonation": false,
+      "query_cost_estimation": false,
+      "sql_validation": false
+    },
     "Apache Pinot": {
       "engine": "apache_pinot",
       "engine_name": "Apache Pinot",
@@ -4205,6 +4287,80 @@
             "docs_url": "https://www.yugabyte.com/",
             "categories": [
               "OPEN_SOURCE"
+            ]
+          },
+          {
+            "name": "Supabase",
+            "description": "Open-source Firebase alternative built on top of PostgreSQL, providing a full backend-as-a-service with a hosted Postgres database.",
+            "logo": "supabase.svg",
+            "homepage_url": "https://supabase.com/",
+            "pypi_packages": [
+              "psycopg2"
+            ],
+            "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}",
+            "connection_examples": [
+              {
+                "description": "Supabase project (connection pooler)",
+                "connection_string": "postgresql://{username}.{project_ref}:{password}@aws-0-{region}.pooler.supabase.com:6543/{database}"
+              }
+            ],
+            "parameters": {
+              "username": "Database user (default: postgres)",
+              "password": "Database password",
+              "host": "Supabase project host (from project settings)",
+              "port": "Default 5432 (direct) or 6543 (pooler)",
+              "database": "Database name (default: postgres)",
+              "project_ref": "Supabase project reference (from project settings)",
+              "region": "Supabase project region (e.g., us-east-1)"
+            },
+            "notes": "Find connection details in your Supabase project dashboard under Settings > Database. Use the connection pooler (port 6543) for better connection management.",
+            "docs_url": "https://supabase.com/docs/guides/database/connecting-to-postgres",
+            "categories": [
+              "HOSTED_OPEN_SOURCE"
+            ]
+          },
+          {
+            "name": "Google AlloyDB",
+            "description": "Google Cloud's PostgreSQL-compatible database service for demanding transactional and analytical workloads.",
+            "logo": "alloydb.png",
+            "homepage_url": "https://cloud.google.com/alloydb",
+            "pypi_packages": [
+              "psycopg2"
+            ],
+            "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}",
+            "parameters": {
+              "username": "Database user (default: postgres)",
+              "password": "Database password",
+              "host": "AlloyDB instance IP or Auth Proxy address",
+              "port": "Default 5432",
+              "database": "Database name"
+            },
+            "notes": "For public IP connections, use the AlloyDB Auth Proxy for secure access. Private IP connections can connect directly.",
+            "docs_url": "https://cloud.google.com/alloydb/docs",
+            "categories": [
+              "CLOUD_GCP",
+              "HOSTED_OPEN_SOURCE"
+            ]
+          },
+          {
+            "name": "Neon",
+            "description": "Serverless PostgreSQL with branching, scale-to-zero, and bottomless storage.",
+            "logo": "neon.png",
+            "homepage_url": "https://neon.tech/",
+            "pypi_packages": [
+              "psycopg2"
+            ],
+            "connection_string": "postgresql://{username}:{password}@{host}/{database}?sslmode=require",
+            "parameters": {
+              "username": "Neon role name",
+              "password": "Neon role password",
+              "host": "Neon hostname (e.g., ep-cool-name-123456.us-east-2.aws.neon.tech)",
+              "database": "Database name (default: neondb)"
+            },
+            "notes": "SSL is required for all connections. Find connection details in the Neon console under Connection Details.",
+            "docs_url": "https://neon.tech/docs/connect/connect-from-any-app",
+            "categories": [
+              "HOSTED_OPEN_SOURCE"
             ]
           },
           {

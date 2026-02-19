@@ -34,7 +34,8 @@
     "no-unused-vars": "off",
     "no-undef": "error",
     "no-prototype-builtins": "off",
-    "no-unsafe-optional-chaining": "off",
+    "no-unsafe-optional-chaining": "error",
+    "no-constant-binary-expression": "error",
     "no-import-assign": "off",
     "no-promise-executor-return": "off",
 
@@ -254,6 +255,7 @@
     // === Unicorn rules (bonus coverage) ===
     "unicorn/no-new-array": "error",
     "unicorn/no-invalid-remove-event-listener": "error",
+    "unicorn/no-useless-length-check": "error",
     "unicorn/filename-case": "off",
     "unicorn/prevent-abbreviations": "off",
     "unicorn/no-null": "off",

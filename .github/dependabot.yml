@@ -65,6 +65,22 @@ updates:
 
   - package-ecosystem: "npm"
     directory: "/docs/"
+    ignore:
+      # TODO: remove below entries until React >= 18.0.0 in superset-frontend
+      - dependency-name: "storybook"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "@storybook*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "eslint-plugin-storybook"
+      - dependency-name: "react-error-boundary"
+    groups:
+      storybook:
+        applies-to: version-updates
+        patterns:
+          - "@storybook*"
+          - "storybook"
+        update-types:
+          - "patch"
     schedule:
       interval: "daily"
     open-pull-requests-limit: 10

@@ -40,6 +40,7 @@ import {
   isRegularMetric,
   isPercentMetric,
   ConditionalFormattingConfig,
+  ObjectFormattingEnum,
   ColorSchemeEnum,
 } from '@superset-ui/chart-controls';
 import { t } from '@apache-superset/core';
@@ -781,12 +782,16 @@ const config: ControlPanelConfig = {
                         item.colorScheme &&
                         !['Green', 'Red'].includes(item.colorScheme)
                       ) {
-                        if (!item.toAllRow || !item.toTextColor) {
+                        if (item.columnFormatting === undefined) {
                           // eslint-disable-next-line no-param-reassign
                           array[index] = {
                             ...item,
-                            toAllRow: item.toAllRow ?? false,
-                            toTextColor: item.toTextColor ?? false,
+                            ...(item.toTextColor === true && {
+                              objectFormatting: ObjectFormattingEnum.TEXT_COLOR,
+                            }),
+                            ...(item.toAllRow === true && {
+                              columnFormatting: ObjectFormattingEnum.ENTIRE_ROW,
+                            }),
                           };
                         }
                       }
@@ -795,6 +800,23 @@ const config: ControlPanelConfig = {
                 }
                 const { colnames, coltypes } =
                   chart?.queriesResponse?.[0] ?? {};
+                const allColumns =
+                  Array.isArray(colnames) && Array.isArray(coltypes)
+                    ? [
+                        {
+                          value: ObjectFormattingEnum.ENTIRE_ROW,
+                          label: t('entire row'),
+                          dataType: GenericDataType.String,
+                        },
+                        ...colnames.map((colname: string, index: number) => ({
+                          value: colname,
+                          label: Array.isArray(verboseMap)
+                            ? colname
+                            : (verboseMap[colname] ?? colname),
+                          dataType: coltypes[index],
+                        })),
+                      ]
+                    : [];
                 const numericColumns =
                   Array.isArray(colnames) && Array.isArray(coltypes)
                     ? colnames.reduce((acc, colname, index) => {
@@ -826,10 +848,7 @@ const config: ControlPanelConfig = {
                   removeIrrelevantConditions: chartStatus === 'success',
                   columnOptions,
                   verboseMap,
-                  conditionalFormattingFlag: {
-                    toAllRowCheck: true,
-                    toColorTextCheck: true,
-                  },
+                  allColumns,
                   extraColorChoices,
                 };
               },

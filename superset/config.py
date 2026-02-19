@@ -945,6 +945,7 @@ THEME_DEFAULT: Theme = {
         "fontWeightNormal": "400",
         "fontWeightLight": "300",
         "fontWeightStrong": "500",
+        "fontWeightBold": "700",
         # Editor selection color (for SQL Lab text highlighting)
         "colorEditorSelection": "#fff5cf",
     },

@@ -210,10 +210,9 @@ export function useIsFilterInScope() {
       if (hasChartsInScope) {
         isChartInScope = filter.chartsInScope!.some((chartId: number) => {
           const tabParents = selectChartTabParents(chartId);
+          // Note: every() returns true for empty arrays, so length check is unnecessary
           return (
-            !tabParents ||
-            tabParents.length === 0 ||
-            tabParents.every(tab => activeTabs.includes(tab))
+            !tabParents || tabParents.every(tab => activeTabs.includes(tab))
           );
         });
       }
@@ -276,10 +275,9 @@ export function useIsCustomizationInScope() {
         customization.chartsInScope.length > 0 &&
         customization.chartsInScope.some((chartId: number) => {
           const tabParents = selectChartTabParents(chartId);
+          // Note: every() returns true for empty arrays, so length check is unnecessary
           return (
-            !tabParents ||
-            tabParents.length === 0 ||
-            tabParents.every(tab => activeTabs.includes(tab))
+            !tabParents || tabParents.every(tab => activeTabs.includes(tab))
           );
         });
 

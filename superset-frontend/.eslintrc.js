@@ -245,6 +245,16 @@ module.exports = {
     // Lodash
     'lodash/import-scope': [2, 'member'],
 
+    // React effect best practices
+    'react-you-might-not-need-an-effect/no-reset-all-state-on-prop-change':
+      'error',
+    'react-you-might-not-need-an-effect/no-chain-state-updates': 'error',
+    'react-you-might-not-need-an-effect/no-event-handler': 'error',
+    'react-you-might-not-need-an-effect/no-derived-state': 'error',
+
+    // Storybook
+    'storybook/prefer-pascal-case': 'error',
+
     // File progress
     'file-progress/activate': 1,
 
