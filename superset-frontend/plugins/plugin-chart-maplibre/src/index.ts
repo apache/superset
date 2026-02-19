@@ -44,7 +44,6 @@ const metadata = new ChartMetadata({
   ],
   thumbnail,
   thumbnailDark,
-  useLegacyApi: true,
 });
 
 export default class MapLibreChartPlugin extends ChartPlugin {
@@ -52,6 +51,7 @@ export default class MapLibreChartPlugin extends ChartPlugin {
     super({
       loadChart: () => import('./MapLibre'),
       loadTransformProps: () => import('./transformProps'),
+      loadBuildQuery: () => import('./buildQuery'),
       metadata,
       controlPanel,
     });

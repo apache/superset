@@ -22,7 +22,6 @@ import thumbnail from './images/thumbnail.png';
 import thumbnailDark from './images/thumbnail-dark.png';
 import example from './images/example.png';
 import exampleDark from './images/example-dark.png';
-import transformProps from '../../transformProps';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
@@ -35,7 +34,6 @@ const metadata = new ChartMetadata({
   name: t('deck.gl Geojson'),
   thumbnail,
   thumbnailDark,
-  useLegacyApi: true,
   tags: [t('deckGL'), t('2D')],
   behaviors: [Behavior.InteractiveChart],
 });
@@ -44,9 +42,10 @@ export default class GeojsonChartPlugin extends ChartPlugin {
   constructor() {
     super({
       loadChart: () => import('./Geojson'),
+      loadTransformProps: () => import('./transformProps'),
+      loadBuildQuery: () => import('./buildQuery'),
       controlPanel,
       metadata,
-      transformProps,
     });
   }
 }

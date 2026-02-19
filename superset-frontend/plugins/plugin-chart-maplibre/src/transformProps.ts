@@ -21,8 +21,17 @@ import Supercluster, {
 } from 'supercluster';
 import { ChartProps } from '@superset-ui/core';
 import { DEFAULT_POINT_RADIUS, DEFAULT_MAX_ZOOM } from './MapLibre';
+import roundDecimal from './utils/roundDecimal';
 
 const NOOP = () => {};
+
+// Geo precision to limit decimal places (matching legacy backend behavior)
+const GEO_PRECISION = 10;
+
+interface PointProperties {
+  metric: number | string | null;
+  radius: number | string | null;
+}
 
 interface ClusterProperties {
   metric: number;
@@ -32,19 +41,98 @@ interface ClusterProperties {
   max: number;
 }
 
+interface DataRecord {
+  [key: string]: string | number | null | undefined;
+}
+
+function buildGeoJSONFromRecords(
+  records: DataRecord[],
+  lonCol: string,
+  latCol: string,
+  labelCol: string | null,
+  pointRadiusCol: string | null,
+) {
+  const features: GeoJSON.Feature<GeoJSON.Point, PointProperties>[] = [];
+  let minLon = Infinity;
+  let maxLon = -Infinity;
+  let minLat = Infinity;
+  let maxLat = -Infinity;
+
+  for (const record of records) {
+    const lon = Number(record[lonCol]);
+    const lat = Number(record[latCol]);
+    if (Number.isNaN(lon) || Number.isNaN(lat)) {
+      continue;
+    }
+
+    const roundedLon = roundDecimal(lon, GEO_PRECISION);
+    const roundedLat = roundDecimal(lat, GEO_PRECISION);
+
+    minLon = Math.min(minLon, roundedLon);
+    maxLon = Math.max(maxLon, roundedLon);
+    minLat = Math.min(minLat, roundedLat);
+    maxLat = Math.max(maxLat, roundedLat);
+
+    const metric = labelCol != null ? (record[labelCol] ?? null) : null;
+    const radius =
+      pointRadiusCol != null ? (record[pointRadiusCol] ?? null) : null;
+
+    features.push({
+      type: 'Feature',
+      properties: { metric, radius },
+      geometry: {
+        type: 'Point',
+        coordinates: [roundedLon, roundedLat],
+      },
+    });
+  }
+
+  const bounds =
+    features.length > 0
+      ? [
+          [minLon, minLat],
+          [maxLon, maxLat],
+        ]
+      : undefined;
+
+  return {
+    geoJSON: { type: 'FeatureCollection' as const, features },
+    bounds,
+  };
+}
+
 export default function transformProps(chartProps: ChartProps) {
   const { width, height, formData, hooks, queriesData } = chartProps;
   const { onError = NOOP, setControlValue = NOOP } = hooks;
-  const { bounds, geoJSON, hasCustomMetric } = queriesData[0].data;
+
   const {
-    clusteringRadius,
-    globalOpacity,
-    maplibreColor,
-    maplibreStyle,
-    pandasAggfunc,
-    pointRadiusUnit,
-    renderWhileDragging,
+    all_columns_x: allColumnsX,
+    all_columns_y: allColumnsY,
+    clustering_radius: clusteringRadius,
+    global_opacity: globalOpacity,
+    maplibre_color: maplibreColor,
+    maplibre_label: maplibreLabel,
+    maplibre_style: maplibreStyle,
+    pandas_aggfunc: pandasAggfunc,
+    point_radius: pointRadius,
+    point_radius_unit: pointRadiusUnit,
+    render_while_dragging: renderWhileDragging,
   } = formData;
+
+  // Build GeoJSON from raw query records
+  const records: DataRecord[] = queriesData[0]?.data || [];
+  const hasCustomMetric = maplibreLabel != null && maplibreLabel.length > 0;
+  const labelCol = hasCustomMetric ? maplibreLabel[0] : null;
+  const pointRadiusCol =
+    pointRadius && pointRadius !== 'Auto' ? pointRadius : null;
+
+  const { geoJSON, bounds } = buildGeoJSONFromRecords(
+    records,
+    allColumnsX,
+    allColumnsY,
+    labelCol,
+    pointRadiusCol,
+  );
 
   // Validate color — supports hex (#rrggbb) and rgb(r, g, b) formats
   let rgb: string[] | null = null;
@@ -67,17 +155,17 @@ export default function transformProps(chartProps: ChartProps) {
     return {};
   }
 
-  const opts: SuperclusterOptions<ClusterProperties, ClusterProperties> = {
+  const opts: SuperclusterOptions<PointProperties, ClusterProperties> = {
     maxZoom: DEFAULT_MAX_ZOOM,
     radius: clusteringRadius,
   };
   if (hasCustomMetric) {
-    opts.map = (prop: ClusterProperties) => ({
-      metric: prop.metric,
-      sum: prop.metric,
-      squaredSum: prop.metric ** 2,
-      min: prop.metric,
-      max: prop.metric,
+    opts.map = (prop: PointProperties) => ({
+      metric: Number(prop.metric) || 0,
+      sum: Number(prop.metric) || 0,
+      squaredSum: (Number(prop.metric) || 0) ** 2,
+      min: Number(prop.metric) || 0,
+      max: Number(prop.metric) || 0,
     });
     opts.reduce = (accu: ClusterProperties, prop: ClusterProperties) => {
       /* eslint-disable no-param-reassign */
@@ -88,7 +176,7 @@ export default function transformProps(chartProps: ChartProps) {
       /* eslint-enable no-param-reassign */
     };
   }
-  const clusterer = new Supercluster(opts);
+  const clusterer = new Supercluster<PointProperties, ClusterProperties>(opts);
   clusterer.load(geoJSON.features);
 
   return {
