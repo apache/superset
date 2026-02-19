@@ -30,7 +30,6 @@ from werkzeug.utils import secure_filename
 from superset import is_feature_enabled, security_manager
 from superset.async_events.async_query_manager import AsyncQueryTokenException
 from superset.charts.api import ChartRestApi
-from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.charts.client_processing import apply_client_processing
 from superset.charts.data.query_context_cache_loader import QueryContextCacheLoader
 from superset.charts.schemas import ChartDataQueryContextSchema
@@ -47,6 +46,7 @@ from superset.commands.chart.exceptions import (
 )
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.connectors.sqla.models import BaseDatasource
+from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.daos.exceptions import DatasourceNotFound
 from superset.exceptions import QueryObjectValidationError
 from superset.extensions import event_logger
