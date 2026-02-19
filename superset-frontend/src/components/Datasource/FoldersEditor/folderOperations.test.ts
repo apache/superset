@@ -265,7 +265,7 @@ describe('folderUtils', () => {
           uuid: DEFAULT_METRICS_FOLDER_UUID,
           type: FoldersEditorItemType.Folder as const,
           name: 'Metrics',
-          children: [{ uuid: 'metric-2', type: FoldersEditorItemType.Metric }],
+          children: [{ uuid: 'metric-2', name: 'metric-2', type: FoldersEditorItemType.Metric }],
         },
         customFolder,
         {
@@ -273,8 +273,16 @@ describe('folderUtils', () => {
           type: FoldersEditorItemType.Folder as const,
           name: 'Columns',
           children: [
-            { uuid: 'column-1', type: FoldersEditorItemType.Column },
-            { uuid: 'column-2', type: FoldersEditorItemType.Column },
+            {
+              uuid: 'column-1',
+              name: 'column-1',
+              type: FoldersEditorItemType.Column,
+            },
+            {
+              uuid: 'column-2',
+              name: 'column-2',
+              type: FoldersEditorItemType.Column,
+            },
           ],
         },
       ];
@@ -296,13 +304,25 @@ describe('folderUtils', () => {
           uuid: DEFAULT_METRICS_FOLDER_UUID,
           type: FoldersEditorItemType.Folder as const,
           name: 'Metrics',
-          children: [{ uuid: 'metric-1', type: FoldersEditorItemType.Metric }],
+          children: [
+            {
+              uuid: 'metric-1',
+              name: 'metric-1',
+              type: FoldersEditorItemType.Metric,
+            },
+          ],
         },
         {
           uuid: DEFAULT_COLUMNS_FOLDER_UUID,
           type: FoldersEditorItemType.Folder as const,
           name: 'Columns',
-          children: [{ uuid: 'column-1', type: FoldersEditorItemType.Column }],
+          children: [
+            {
+              uuid: 'column-1',
+              name: 'column-1',
+              type: FoldersEditorItemType.Column,
+            },
+          ],
         },
       ];
       const result = ensureDefaultFolders(
