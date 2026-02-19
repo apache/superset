@@ -263,14 +263,14 @@ describe('folderUtils', () => {
       const savedFolders = [
         {
           uuid: DEFAULT_METRICS_FOLDER_UUID,
-          type: FoldersEditorItemType.Folder,
+          type: FoldersEditorItemType.Folder as const,
           name: 'Metrics',
           children: [{ uuid: 'metric-2', type: FoldersEditorItemType.Metric }],
         },
         customFolder,
         {
           uuid: DEFAULT_COLUMNS_FOLDER_UUID,
-          type: FoldersEditorItemType.Folder,
+          type: FoldersEditorItemType.Folder as const,
           name: 'Columns',
           children: [
             { uuid: 'column-1', type: FoldersEditorItemType.Column },
@@ -294,13 +294,13 @@ describe('folderUtils', () => {
       const savedFolders = [
         {
           uuid: DEFAULT_METRICS_FOLDER_UUID,
-          type: FoldersEditorItemType.Folder,
+          type: FoldersEditorItemType.Folder as const,
           name: 'Metrics',
           children: [{ uuid: 'metric-1', type: FoldersEditorItemType.Metric }],
         },
         {
           uuid: DEFAULT_COLUMNS_FOLDER_UUID,
-          type: FoldersEditorItemType.Folder,
+          type: FoldersEditorItemType.Folder as const,
           name: 'Columns',
           children: [{ uuid: 'column-1', type: FoldersEditorItemType.Column }],
         },
