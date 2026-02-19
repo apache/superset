@@ -30,7 +30,7 @@ jest.mock('@superset-ui/core', () => ({
     postForm: jest.fn(),
     get: jest.fn().mockResolvedValue({ json: {} }),
     post: jest.fn().mockResolvedValue({ json: {} }),
-    getUrl: jest.fn()
+    getUrl: jest.fn(),
   },
   getChartBuildQueryRegistry: jest.fn().mockReturnValue({
     get: jest.fn().mockReturnValue(() => () => ({})),
@@ -61,7 +61,9 @@ beforeEach(() => {
 // Tests for exportChart URL prefix handling in streaming export
 test('exportChart v1 API passes prefixed URL to onStartStreamingExport when app root is configured', async () => {
   // Uses SupersetClient.getUrl
-  SupersetClient.getUrl.mockImplementation(({endpoint}: {endpoint: string}) => `/superset${endpoint}`);
+  SupersetClient.getUrl.mockImplementation(
+    ({ endpoint }: { endpoint: string }) => `/superset${endpoint}`,
+  );
 
   const onStartStreamingExport = jest.fn();
 
@@ -79,7 +81,9 @@ test('exportChart v1 API passes prefixed URL to onStartStreamingExport when app 
 
 test('exportChart v1 API passes unprefixed URL when no app root is configured', async () => {
   // Uses SupersetClient.getUrl
-  SupersetClient.getUrl.mockImplementation(({endpoint}: {endpoint: string}) => `${endpoint}`);
+  SupersetClient.getUrl.mockImplementation(
+    ({ endpoint }: { endpoint: string }) => `${endpoint}`,
+  );
 
   const onStartStreamingExport = jest.fn();
 
@@ -95,7 +99,10 @@ test('exportChart v1 API passes unprefixed URL when no app root is configured', 
 });
 
 test('exportChart v1 API passes nested prefix for deeply nested deployments', async () => {
-  SupersetClient.getUrl.mockImplementation(({endpoint}: {endpoint: string}) => `/my-company/analytics/superset${endpoint}`);
+  SupersetClient.getUrl.mockImplementation(
+    ({ endpoint }: { endpoint: string }) =>
+      `/my-company/analytics/superset${endpoint}`,
+  );
 
   const onStartStreamingExport = jest.fn();
 
