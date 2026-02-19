@@ -1897,6 +1897,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       if (resource.extra?.dashboard?.nativeFilters) {
         const filters = resource.extra.dashboard.nativeFilters;
         setNativeFilterData(filters);
+        // Seed options from saved data so names display while dashboard metadata loads
+        const savedOptions = filters
+          .filter(f => f.nativeFilterId && f.filterName)
+          .map(f => ({ value: f.nativeFilterId!, label: f.filterName! }));
+        if (savedOptions.length > 0) {
+          setNativeFilterOptions(savedOptions);
+        }
       }
 
       // Add notification settings

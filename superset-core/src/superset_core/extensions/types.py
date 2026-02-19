@@ -88,6 +88,10 @@ class ContributionConfig(BaseModel):
         default_factory=dict,
         description="Menu contributions by scope and location",
     )
+    editors: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Editor contributions",
+    )
 
 
 class BaseExtension(BaseModel):

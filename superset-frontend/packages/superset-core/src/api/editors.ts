@@ -294,6 +294,10 @@ export interface EditorKeyword {
   meta?: string;
   /** Sorting priority; higher scores appear first in the completion list */
   score?: number;
+  /** Short supplementary text such as a type signature or the full value when truncated */
+  detail?: string;
+  /** Longer documentation content as an HTML string, shown in a documentation popup */
+  documentation?: string;
 }
 
 /**
