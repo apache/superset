@@ -217,10 +217,10 @@ if (!isDevMode) {
 }
 
 // TypeScript type checking configuration
-// SWC handles transpilation. In production, type checking is done by:
+// SWC handles transpilation. For Superset, type checking is done by:
 // 1. `npm run plugins:build` which generates .d.ts files
 // 2. `npm run type` which runs full TypeScript checking
-// We skip ForkTsCheckerWebpackPlugin in production because:
+// We skip ForkTsCheckerWebpackPlugin because:
 // - Story files import from @storybook-shared which causes rootDir errors
 // - The above commands already provide comprehensive type checking
 
