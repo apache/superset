@@ -332,14 +332,14 @@ export function useDragHandlers({
             isDefaultMetricsFolder &&
             draggedItem.type === FoldersEditorItemType.Column
           ) {
-            addWarningToast(t('This folder only accepts metrics'));
+            addWarningToast(t('This folder only supports metrics'));
             return;
           }
           if (
             isDefaultColumnsFolder &&
             draggedItem.type === FoldersEditorItemType.Metric
           ) {
-            addWarningToast(t('This folder only accepts columns'));
+            addWarningToast(t('This folder only supports columns'));
             return;
           }
         }
