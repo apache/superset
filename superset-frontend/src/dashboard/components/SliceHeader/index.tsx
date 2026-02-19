@@ -40,6 +40,8 @@ import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip'
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
 import RowCountLabel from 'src/components/RowCountLabel';
 import { Link } from 'react-router-dom';
+import type { Translations } from 'src/types/Localization';
+import useTranslatableTitle from 'src/components/TranslationEditor/useTranslatableTitle';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -56,6 +58,8 @@ type SliceHeaderProps = SliceHeaderControlsProps & {
   height: number;
   queriedDttm?: string | null;
   exportPivotExcel?: (arg0: string) => void;
+  translations?: Translations;
+  onTranslationsChange?: (translations: Translations) => void;
 };
 
 const annotationsLoading = t('Annotation layers are still loading.');
@@ -166,6 +170,8 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
       width,
       height,
       exportPivotExcel = () => ({}),
+      translations,
+      onTranslationsChange,
     },
     ref,
   ) => {
@@ -195,6 +201,19 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
     );
 
     const theme = useTheme();
+
+    const {
+      displayTitle,
+      handleSave: handleTranslatableSave,
+      localeSwitcher,
+    } = useTranslatableTitle({
+      title: sliceName,
+      translations,
+      fieldName: 'sliceNameOverride',
+      onSaveTitle: updateSliceName,
+      onTranslationsChange: onTranslationsChange ?? (() => {}),
+      fieldLabel: t('Chart Name'),
+    });
 
     const rowLimit = Number(formData.row_limit ?? 0);
 
@@ -252,18 +271,19 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
             <div>
               <EditableTitle
                 title={
-                  sliceName ||
+                  (editMode ? displayTitle : sliceName) ||
                   (editMode
                     ? '---' // this makes an empty title clickable
                     : '')
                 }
                 canEdit={editMode}
-                onSaveTitle={updateSliceName}
+                onSaveTitle={handleTranslatableSave}
                 showTooltip={false}
                 renderLink={
                   canExplore && exploreUrl ? renderExploreLink : undefined
                 }
               />
+              {editMode && localeSwitcher}
             </div>
           </Tooltip>
           {!!Object.values(annotationQuery).length && (

@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { createElement } from 'react';
 import * as redux from 'redux';
 import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import { screen, userEvent, within, waitFor } from '@superset-ui/core/spec';
@@ -26,9 +27,16 @@ import setupCodeOverrides from 'src/setup/setupCodeOverrides';
 import getOwnerName from 'src/utils/getOwnerName';
 import { render, createStore } from 'spec/helpers/testing-library';
 import reducerIndex from 'spec/helpers/reducerIndex';
+import type { UseTranslatableTitleResult } from 'src/components/TranslationEditor';
 import Header from '.';
 import { DASHBOARD_HEADER_ID } from '../../util/constants';
 import { UPDATE_COMPONENTS } from '../../actions/dashboardLayout';
+
+const mockUseTranslatableTitle = jest.fn<UseTranslatableTitleResult, [unknown]>();
+jest.mock('src/components/TranslationEditor', () => ({
+  ...jest.requireActual('src/components/TranslationEditor'),
+  useTranslatableTitle: (...args: [unknown]) => mockUseTranslatableTitle(...args),
+}));
 
 const initialState = {
   dashboardInfo: {
@@ -195,6 +203,17 @@ beforeAll(() => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+
+  mockUseTranslatableTitle.mockImplementation(({ onSaveTitle }) => ({
+    displayTitle: 'Dashboard Title',
+    handleSave: (value: string) => onSaveTitle(value),
+    activeLocale: 'default',
+    setActiveLocale: jest.fn(),
+    isLocaleMode: false,
+    localeSwitcher: null,
+    showLocale: false,
+    placeholder: '',
+  }));
 
   (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
     showModal: false,
@@ -841,4 +860,63 @@ test('should sync theme ref when navigating between dashboards', async () => {
   await waitFor(() => {
     expect(setUnsavedChanges).toHaveBeenCalledTimes(0);
   });
+});
+
+test('should not show LocaleSwitcher when feature flag is off', () => {
+  mockUseTranslatableTitle.mockImplementation(({ onSaveTitle }) => ({
+    displayTitle: 'Dashboard Title',
+    handleSave: (value: string) => onSaveTitle(value),
+    activeLocale: 'default',
+    setActiveLocale: jest.fn(),
+    isLocaleMode: false,
+    localeSwitcher: null,
+    showLocale: false,
+    placeholder: '',
+  }));
+  setup(editableState);
+  expect(
+    screen.queryByLabelText(/Locale switcher/),
+  ).not.toBeInTheDocument();
+});
+
+test('should not show LocaleSwitcher when not in edit mode', () => {
+  mockUseTranslatableTitle.mockReturnValue({
+    displayTitle: 'Dashboard Title',
+    handleSave: jest.fn(),
+    activeLocale: 'default',
+    setActiveLocale: jest.fn(),
+    isLocaleMode: false,
+    localeSwitcher: createElement(
+      'span',
+      { 'aria-label': 'Locale switcher for Dashboard Title: DEFAULT (0 translations)' },
+      'locale-switcher',
+    ),
+    showLocale: true,
+    placeholder: '',
+  });
+  setup();
+  expect(
+    screen.queryByLabelText(/Locale switcher/),
+  ).not.toBeInTheDocument();
+});
+
+test('should show LocaleSwitcher when feature flag is on and in edit mode', () => {
+  mockUseTranslatableTitle.mockReturnValue({
+    displayTitle: 'Dashboard Title',
+    handleSave: jest.fn(),
+    activeLocale: 'default',
+    setActiveLocale: jest.fn(),
+    isLocaleMode: false,
+    localeSwitcher: createElement(
+      'span',
+      { 'aria-label': 'Locale switcher for Dashboard Title: DEFAULT (0 translations)' },
+      'locale-switcher',
+    ),
+    showLocale: true,
+    placeholder: '',
+  });
+  setup(editableState);
+  expect(
+    screen.getByLabelText(/Locale switcher/),
+  ).toBeInTheDocument();
 });

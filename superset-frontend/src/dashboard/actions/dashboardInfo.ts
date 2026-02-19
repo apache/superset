@@ -27,6 +27,7 @@ import {
   GlobalChartCrossFilterConfig,
   RootState,
 } from 'src/dashboard/types';
+import type { Translations } from 'src/types/Localization';
 import { onSave } from './dashboardState';
 
 const createUpdateDashboardApi = (id: number) =>
@@ -40,6 +41,7 @@ const createUpdateDashboardApi = (id: number) =>
 
 export const DASHBOARD_INFO_UPDATED = 'DASHBOARD_INFO_UPDATED';
 export const DASHBOARD_INFO_FILTERS_CHANGED = 'DASHBOARD_INFO_FILTERS_CHANGED';
+export const SET_DASHBOARD_TRANSLATIONS = 'SET_DASHBOARD_TRANSLATIONS';
 
 // updates partially changed dashboard info
 export function dashboardInfoChanged(newInfo: Partial<DashboardInfo>) {
@@ -48,6 +50,10 @@ export function dashboardInfoChanged(newInfo: Partial<DashboardInfo>) {
 
 export function nativeFiltersConfigChanged(newInfo: Record<string, any>) {
   return { type: DASHBOARD_INFO_FILTERS_CHANGED, newInfo };
+}
+
+export function setDashboardTranslations(translations: Translations) {
+  return { type: SET_DASHBOARD_TRANSLATIONS, translations };
 }
 
 export const SAVE_CHART_CONFIG_BEGIN = 'SAVE_CHART_CONFIG_BEGIN';

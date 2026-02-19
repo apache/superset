@@ -28,6 +28,7 @@ import {
 } from 'src/components/MessageToasts/actions';
 import { Slice } from 'src/types/Chart';
 import { SaveActionType } from 'src/explore/types';
+import type { Translations } from 'src/types/Localization';
 
 export const UPDATE_FORM_DATA_BY_DATASOURCE = 'UPDATE_FORM_DATA_BY_DATASOURCE';
 export function updateFormDataByDatasource(
@@ -115,6 +116,11 @@ export function setFormData(formData: QueryFormData) {
 export const UPDATE_CHART_TITLE = 'UPDATE_CHART_TITLE';
 export function updateChartTitle(sliceName: string) {
   return { type: UPDATE_CHART_TITLE, sliceName };
+}
+
+export const UPDATE_CHART_TRANSLATIONS = 'UPDATE_CHART_TRANSLATIONS';
+export function updateChartTranslations(translations: Translations) {
+  return { type: UPDATE_CHART_TRANSLATIONS, translations };
 }
 
 export const SET_SAVE_ACTION = 'SET_SAVE_ACTION';

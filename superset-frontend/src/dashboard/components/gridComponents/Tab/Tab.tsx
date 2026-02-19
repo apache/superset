@@ -30,6 +30,9 @@ import { useDispatch, useSelector } from 'react-redux';
 import { t, styled } from '@apache-superset/core/ui';
 
 import { EditableTitle, EmptyState } from '@superset-ui/core/components';
+import type { Translations } from 'src/types/Localization';
+import { getLocalizedValue } from 'src/components/TranslationEditor';
+import useTranslatableTitle from 'src/components/TranslationEditor/useTranslatableTitle';
 import { setEditMode, onRefresh } from 'src/dashboard/actions/dashboardState';
 import getChartIdsFromComponent from 'src/dashboard/util/getChartIdsFromComponent';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
@@ -222,6 +225,41 @@ const Tab = (props: TabProps): ReactElement => {
     },
     [props.updateComponents, props.component],
   );
+
+  const handleUpdateTranslations = useCallback(
+    (translations: Translations) => {
+      const { updateComponents, component } = props;
+      updateComponents({
+        [component.id]: {
+          ...component,
+          meta: {
+            ...component.meta,
+            translations,
+          },
+        },
+      });
+    },
+    [props.updateComponents, props.component],
+  );
+
+  const userLocale: string = useSelector(
+    (state: { common: { locale: string } }) => state.common?.locale ?? 'en',
+  );
+
+  const {
+    displayTitle: tabDisplayTitle,
+    handleSave: handleTranslatableSave,
+    localeSwitcher: tabLocaleSwitcher,
+  } = useTranslatableTitle({
+    title: props.component.meta.text ?? '',
+    translations: props.component.meta.translations as
+      | Translations
+      | undefined,
+    fieldName: 'text',
+    onSaveTitle: handleChangeText,
+    onTranslationsChange: handleUpdateTranslations,
+    fieldLabel: t('Tab Name'),
+  });
 
   const handleDrop = useCallback(
     (dropResult: DropResult) => {
@@ -422,6 +460,14 @@ const Tab = (props: TabProps): ReactElement => {
         embeddedMode,
         onTabTitleEditingChange,
       } = props;
+      const displayedTitle = editMode
+        ? tabDisplayTitle
+        : getLocalizedValue(
+            component.meta.translations as Translations | undefined,
+            'text',
+            userLocale,
+            component.meta.text ?? '',
+          );
       return (
         <TabTitleContainer
           isHighlighted={isHighlighted}
@@ -429,15 +475,16 @@ const Tab = (props: TabProps): ReactElement => {
           ref={dragSourceRef}
         >
           <EditableTitle
-            title={component.meta.text}
+            title={displayedTitle}
             defaultTitle={component.meta.defaultText}
             placeholder={component.meta.placeholder}
             canEdit={editMode && isFocused}
-            onSaveTitle={handleChangeText}
+            onSaveTitle={handleTranslatableSave}
             showTooltip={false}
             editing={editMode && isFocused}
             onEditingChange={onTabTitleEditingChange}
           />
+          {editMode && isFocused && tabLocaleSwitcher}
           {!editMode && !embeddedMode && (
             <AnchorLink
               id={component.id}
@@ -463,7 +510,10 @@ const Tab = (props: TabProps): ReactElement => {
       props.isHighlighted,
       props.dashboardId,
       props.onTabTitleEditingChange,
-      handleChangeText,
+      handleTranslatableSave,
+      tabDisplayTitle,
+      tabLocaleSwitcher,
+      userLocale,
     ],
   );
 

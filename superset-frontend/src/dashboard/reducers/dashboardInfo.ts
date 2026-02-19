@@ -27,6 +27,7 @@ import {
   SET_FILTER_BAR_ORIENTATION,
   SET_CROSS_FILTERS_ENABLED,
   DASHBOARD_INFO_FILTERS_CHANGED,
+  SET_DASHBOARD_TRANSLATIONS,
 } from '../actions/dashboardInfo';
 import {
   SAVE_CHART_CUSTOMIZATION_COMPLETE,
@@ -43,6 +44,7 @@ import {
   FilterBarOrientation,
   FilterConfigItem,
 } from '../types';
+import type { Translations } from 'src/types/Localization';
 
 interface DashboardInfoAction {
   type: string;
@@ -56,6 +58,7 @@ interface DashboardInfoAction {
   isLoading?: boolean;
   data?: ColumnOption[];
   pendingCustomization?: ChartCustomization;
+  translations?: Translations;
   [key: string]: unknown;
 }
 
@@ -300,6 +303,11 @@ export default function dashboardInfoReducer(
         last_modified_time: Math.round(new Date().getTime() / 1000),
       };
     }
+    case SET_DASHBOARD_TRANSLATIONS:
+      return {
+        ...state,
+        translations: (action as DashboardInfoAction).translations,
+      };
     default:
       return state;
   }

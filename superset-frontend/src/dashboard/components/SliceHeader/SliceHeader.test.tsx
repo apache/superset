@@ -24,6 +24,20 @@ import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import SliceHeader from '.';
 
+jest.mock('src/components/TranslationEditor/useTranslatableTitle', () => ({
+  __esModule: true,
+  default: jest.fn(({ title, onSaveTitle }) => ({
+    displayTitle: title,
+    handleSave: onSaveTitle,
+    localeSwitcher: null,
+    showLocale: false,
+    activeLocale: 'default',
+    setActiveLocale: jest.fn(),
+    isLocaleMode: false,
+    placeholder: '',
+  })),
+}));
+
 jest.mock('src/dashboard/components/SliceHeaderControls', () => ({
   __esModule: true,
   default: (props: any) => (

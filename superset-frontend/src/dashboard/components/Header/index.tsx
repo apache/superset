@@ -71,6 +71,7 @@ import { PageHeaderWithActions } from '@superset-ui/core/components/PageHeaderWi
 import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import type { RootState, DashboardInfo } from 'src/dashboard/types';
 import type { Translations } from 'src/types/Localization';
+import { useTranslatableTitle } from 'src/components/TranslationEditor';
 import DashboardEmbedModal from '../EmbeddedModal';
 import OverwriteConfirm from '../OverwriteConfirm';
 import {
@@ -100,7 +101,10 @@ import {
   setUnsavedChanges,
 } from '../../actions/dashboardState';
 import { logEvent } from '../../../logger/actions';
-import { dashboardInfoChanged } from '../../actions/dashboardInfo';
+import {
+  dashboardInfoChanged,
+  setDashboardTranslations,
+} from '../../actions/dashboardInfo';
 import isDashboardLoading, {
   type ChartLoadTimestamps,
 } from '../../util/isDashboardLoading';
@@ -414,6 +418,29 @@ const Header = (): ReactElement => {
     [boundActionCreators, dashboardTitle],
   );
 
+  const handleTranslationsChange = useCallback(
+    (translations: Translations) => {
+      dispatch(setDashboardTranslations(translations));
+      boundActionCreators.setUnsavedChanges(true);
+    },
+    [dispatch, boundActionCreators],
+  );
+
+  const {
+    displayTitle,
+    handleSave: handleTranslatableSave,
+    localeSwitcher,
+    isLocaleMode,
+    placeholder: localePlaceholder,
+  } = useTranslatableTitle({
+    title: dashboardTitle ?? '',
+    translations: dashboardInfo.translations,
+    fieldName: 'dashboard_title',
+    onSaveTitle: handleChangeText,
+    onTranslationsChange: handleTranslationsChange,
+    fieldLabel: t('Dashboard Title'),
+  });
+
   const handleCtrlY = useCallback(() => {
     boundActionCreators.onRedo();
     setEmphasizeRedo(true);
@@ -629,14 +656,23 @@ const Header = (): ReactElement => {
 
   const editableTitleProps = useMemo(
     () => ({
-      title: dashboardTitle ?? '',
+      title: displayTitle,
       canEdit: userCanEdit && editMode,
-      onSave: handleChangeText,
-      placeholder: t('Add the name of the dashboard'),
+      onSave: handleTranslatableSave,
+      placeholder: isLocaleMode
+        ? localePlaceholder
+        : t('Add the name of the dashboard'),
       label: t('Dashboard title'),
       showTooltip: false,
     }),
-    [dashboardTitle, editMode, handleChangeText, userCanEdit],
+    [
+      displayTitle,
+      editMode,
+      handleTranslatableSave,
+      isLocaleMode,
+      localePlaceholder,
+      userCanEdit,
+    ],
   );
 
   const certifiedBadgeProps = useMemo(
@@ -665,6 +701,7 @@ const Header = (): ReactElement => {
 
   const titlePanelAdditionalItems = useMemo(
     () => [
+      editMode && localeSwitcher,
       !editMode && (
         <PublishedStatus
           dashboardId={dashboardInfo.id}
@@ -680,6 +717,7 @@ const Header = (): ReactElement => {
       boundActionCreators.savePublished,
       dashboardInfo.id,
       editMode,
+      localeSwitcher,
       metadataBar,
       isEmbedded,
       isPublished,

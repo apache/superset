@@ -20,6 +20,7 @@ import cx from 'classnames';
 import { useCallback, useEffect, useRef, useMemo, useState, memo } from 'react';
 import type { ChartCustomization, JsonObject } from '@superset-ui/core';
 import { styled, t } from '@apache-superset/core/ui';
+import type { Translations } from 'src/types/Localization';
 import { debounce } from 'lodash';
 import { bindActionCreators } from 'redux';
 import { useDispatch, useSelector } from 'react-redux';
@@ -86,6 +87,8 @@ interface ChartProps {
   extraControls?: JsonObject;
   isInView?: boolean;
   cacheBusterProp?: string | number;
+  translations?: Translations;
+  onTranslationsChange?: (translations: Translations) => void;
 }
 
 const RESIZE_TIMEOUT = 500;
@@ -665,6 +668,8 @@ const Chart = (props: ChartProps) => {
           props.updateSliceName(props.id, name)
         }
         sliceName={props.sliceName}
+        translations={props.translations}
+        onTranslationsChange={props.onTranslationsChange}
         supersetCanExplore={supersetCanExplore}
         supersetCanShare={supersetCanShare}
         supersetCanCSV={supersetCanCSV}

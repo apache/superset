@@ -19,6 +19,12 @@
 export { default as LocaleSwitcher } from './LocaleSwitcher';
 export type { LocaleSwitcherProps } from './LocaleSwitcher';
 export { default as TranslationTextAreaWrapper } from './TranslationTextAreaWrapper';
+export { default as useAvailableLocales } from './useAvailableLocales';
+export { default as useTranslatableTitle } from './useTranslatableTitle';
+export type {
+  UseTranslatableTitleParams,
+  UseTranslatableTitleResult,
+} from './useTranslatableTitle';
 export {
   DEFAULT_LOCALE_KEY,
   stripEmptyValues,

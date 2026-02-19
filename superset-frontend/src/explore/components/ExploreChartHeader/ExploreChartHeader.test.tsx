@@ -31,6 +31,7 @@ import * as downloadAsImage from 'src/utils/downloadAsImage';
 import * as exploreUtils from 'src/explore/exploreUtils';
 import { FeatureFlag, VizType } from '@superset-ui/core';
 import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
+import useTranslatableTitle from 'src/components/TranslationEditor/useTranslatableTitle';
 import ExploreHeader, { ExploreChartHeaderProps } from '.';
 import { getChartMetadataRegistry } from '@superset-ui/core';
 import fs from 'fs';
@@ -47,6 +48,23 @@ window.featureFlags = {
 jest.mock('src/hooks/useUnsavedChangesPrompt', () => ({
   useUnsavedChangesPrompt: jest.fn(),
 }));
+
+jest.mock('src/components/TranslationEditor/useTranslatableTitle');
+
+const mockUseTranslatableTitleDefault = () => {
+  (useTranslatableTitle as jest.Mock).mockImplementation(
+    ({ title, onSaveTitle }) => ({
+      displayTitle: title,
+      handleSave: onSaveTitle,
+      localeSwitcher: null,
+      activeLocale: 'default',
+      setActiveLocale: jest.fn(),
+      isLocaleMode: false,
+      showLocale: false,
+      placeholder: '',
+    }),
+  );
+};
 
 const mockExportCurrentViewBehavior = () => {
   const registry = getChartMetadataRegistry();
@@ -159,6 +177,8 @@ describe('ExploreChartHeader', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+
+    mockUseTranslatableTitleDefault();
 
     (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
       showModal: false,
@@ -579,6 +599,8 @@ describe('Additional actions tests', () => {
   jest.setTimeout(15000); // ✅ Applies to all tests in this suite
 
   beforeEach(() => {
+    mockUseTranslatableTitleDefault();
+
     (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
       showModal: false,
       setShowModal: jest.fn(),
@@ -1165,4 +1187,124 @@ describe('Additional actions tests', () => {
       getSpy.mockRestore();
     });
   });
+});
+
+test('does not render LocaleSwitcher when useTranslatableTitle returns null localeSwitcher', async () => {
+  mockUseTranslatableTitleDefault();
+
+  (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+    showModal: false,
+    setShowModal: jest.fn(),
+    handleConfirmNavigation: jest.fn(),
+    handleSaveAndCloseModal: jest.fn(),
+    triggerManualSave: jest.fn(),
+  });
+
+  const props = createProps();
+  render(<ExploreHeader {...props} />, { useRedux: true });
+
+  await screen.findByDisplayValue(props.sliceName ?? '');
+  expect(
+    screen.queryByLabelText(/Locale switcher/i),
+  ).not.toBeInTheDocument();
+});
+
+test('renders LocaleSwitcher when useTranslatableTitle provides one', async () => {
+  (useTranslatableTitle as jest.Mock).mockImplementation(
+    ({ title, onSaveTitle }) => ({
+      displayTitle: title,
+      handleSave: onSaveTitle,
+      localeSwitcher: (
+        <span data-test="locale-switcher" aria-label="Locale switcher for Chart Name: DEFAULT (1 translations)">
+          locale-switcher
+        </span>
+      ),
+      activeLocale: 'default',
+      setActiveLocale: jest.fn(),
+      isLocaleMode: false,
+      showLocale: true,
+      placeholder: '',
+    }),
+  );
+
+  (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+    showModal: false,
+    setShowModal: jest.fn(),
+    handleConfirmNavigation: jest.fn(),
+    handleSaveAndCloseModal: jest.fn(),
+    triggerManualSave: jest.fn(),
+  });
+
+  const props = createProps({
+    slice: {
+      ...createProps().slice,
+      translations: {
+        slice_name: { de: 'Altersverteilung' },
+      },
+    },
+  });
+  render(<ExploreHeader {...props} />, { useRedux: true });
+
+  expect(await screen.findByText('locale-switcher')).toBeInTheDocument();
+});
+
+test('displays translated title when in locale mode', async () => {
+  const translatedTitle = 'Altersverteilung der Befragten';
+
+  (useTranslatableTitle as jest.Mock).mockImplementation(() => ({
+    displayTitle: translatedTitle,
+    handleSave: jest.fn(),
+    localeSwitcher: (
+      <span data-test="locale-switcher">locale-switcher</span>
+    ),
+    activeLocale: 'de',
+    setActiveLocale: jest.fn(),
+    isLocaleMode: true,
+    showLocale: true,
+    placeholder: 'Translation for DE',
+  }));
+
+  (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+    showModal: false,
+    setShowModal: jest.fn(),
+    handleConfirmNavigation: jest.fn(),
+    handleSaveAndCloseModal: jest.fn(),
+    triggerManualSave: jest.fn(),
+  });
+
+  const props = createProps();
+  render(<ExploreHeader {...props} />, { useRedux: true });
+
+  expect(
+    await screen.findByDisplayValue(translatedTitle),
+  ).toBeInTheDocument();
+});
+
+test('passes correct params to useTranslatableTitle', () => {
+  mockUseTranslatableTitleDefault();
+
+  (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+    showModal: false,
+    setShowModal: jest.fn(),
+    handleConfirmNavigation: jest.fn(),
+    handleSaveAndCloseModal: jest.fn(),
+    triggerManualSave: jest.fn(),
+  });
+
+  const translations = { slice_name: { de: 'Altersverteilung' } };
+  const props = createProps({
+    slice: {
+      ...createProps().slice,
+      translations,
+    },
+  });
+  render(<ExploreHeader {...props} />, { useRedux: true });
+
+  expect(useTranslatableTitle).toHaveBeenCalledWith(
+    expect.objectContaining({
+      title: props.sliceName,
+      translations,
+      fieldName: 'slice_name',
+    }),
+  );
 });

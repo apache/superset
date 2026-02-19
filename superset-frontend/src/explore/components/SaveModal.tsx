@@ -114,7 +114,7 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
       dashboard: undefined,
       tabsData: [],
       selectedTab: undefined,
-      translations: {},
+      translations: props.slice?.translations ?? {},
     };
     this.onDashboardChange = this.onDashboardChange.bind(this);
     this.onSliceNameChange = this.onSliceNameChange.bind(this);
@@ -168,17 +168,24 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
       isFeatureEnabled(FeatureFlag.EnableContentLocalization) &&
       this.props.slice?.slice_id
     ) {
-      try {
-        const response = await SupersetClient.get({
-          endpoint: `/api/v1/chart/${this.props.slice.slice_id}?include_translations=true`,
-        });
-        const chart = response.json.result;
-        this.setState({
-          newSliceName: chart.slice_name || this.state.newSliceName,
-          translations: chart.translations ?? {},
-        });
-      } catch (error) {
-        logging.warn(error);
+      // Use translations from Redux state (includes inline header edits)
+      // if available; otherwise fetch from the API.
+      const hasReduxTranslations =
+        this.props.slice?.translations &&
+        Object.keys(this.props.slice.translations).length > 0;
+      if (!hasReduxTranslations) {
+        try {
+          const response = await SupersetClient.get({
+            endpoint: `/api/v1/chart/${this.props.slice.slice_id}?include_translations=true`,
+          });
+          const chart = response.json.result;
+          this.setState({
+            newSliceName: chart.slice_name || this.state.newSliceName,
+            translations: chart.translations ?? {},
+          });
+        } catch (error) {
+          logging.warn(error);
+        }
       }
     }
   }

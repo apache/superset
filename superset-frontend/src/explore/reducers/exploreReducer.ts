@@ -36,6 +36,7 @@ import * as actions from 'src/explore/actions/exploreActions';
 import { HYDRATE_EXPLORE, HydrateExplore } from '../actions/hydrateExplore';
 import { Slice } from 'src/types/Chart';
 import { SaveActionType } from 'src/explore/types';
+import type { Translations } from 'src/types/Localization';
 
 // Type definitions for explore state
 export interface ExploreState {
@@ -126,6 +127,11 @@ interface UpdateChartTitleAction {
   sliceName: string;
 }
 
+interface UpdateChartTranslationsAction {
+  type: typeof actions.UPDATE_CHART_TRANSLATIONS;
+  translations: Translations;
+}
+
 interface SetSaveActionAction {
   type: typeof actions.SET_SAVE_ACTION;
   saveAction: SaveActionType | null;
@@ -176,6 +182,7 @@ type ExploreAction =
   | SetExploreControlsAction
   | SetFormDataAction
   | UpdateChartTitleAction
+  | UpdateChartTranslationsAction
   | SetSaveActionAction
   | CreateNewSliceAction
   | SetStashFormDataAction
@@ -529,6 +536,15 @@ export default function exploreReducer(
       return {
         ...state,
         sliceName: typedAction.sliceName,
+      };
+    },
+    [actions.UPDATE_CHART_TRANSLATIONS]() {
+      const typedAction = action as UpdateChartTranslationsAction;
+      return {
+        ...state,
+        slice: state.slice
+          ? { ...state.slice, translations: typedAction.translations }
+          : state.slice,
       };
     },
     [actions.SET_SAVE_ACTION]() {

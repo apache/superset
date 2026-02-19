@@ -36,8 +36,13 @@ import { logging } from '@apache-superset/core';
 import { css, t, SupersetTheme } from '@apache-superset/core/ui';
 import { Icons } from '@superset-ui/core/components/Icons';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
-import { sliceUpdated } from 'src/explore/actions/exploreActions';
+import {
+  sliceUpdated,
+  updateChartTranslations,
+} from 'src/explore/actions/exploreActions';
 import { PageHeaderWithActions } from '@superset-ui/core/components/PageHeaderWithActions';
+import useTranslatableTitle from 'src/components/TranslationEditor/useTranslatableTitle';
+import type { Translations } from 'src/types/Localization';
 import { setSaveChartModalVisibility } from 'src/explore/actions/saveModalActions';
 import { applyColors, resetColors } from 'src/utils/colorScheme';
 import ReportModal from 'src/features/reports/ReportModal';
@@ -123,6 +128,28 @@ export const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
   const [currentReportDeleting, setCurrentReportDeleting] =
     useState<ReportObject | null>(null);
   const [shouldForceCloseModal, setShouldForceCloseModal] = useState(false);
+
+  const handleTranslationsChange = useCallback(
+    (translations: Translations) => {
+      dispatch(updateChartTranslations(translations));
+    },
+    [dispatch],
+  );
+
+  const {
+    displayTitle,
+    handleSave: handleTranslatableSave,
+    localeSwitcher,
+    isLocaleMode,
+    placeholder: localePlaceholder,
+  } = useTranslatableTitle({
+    title: sliceName ?? '',
+    translations: slice?.translations,
+    fieldName: 'slice_name',
+    onSaveTitle: actions.updateChartTitle,
+    onTranslationsChange: handleTranslationsChange,
+    fieldLabel: t('Chart Name'),
+  });
 
   const updateCategoricalNamespace = useCallback(async () => {
     const { dashboards } = metadata || {};
@@ -273,14 +300,16 @@ export const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
     <>
       <PageHeaderWithActions
         editableTitleProps={{
-          title: sliceName ?? '',
+          title: displayTitle,
           canEdit:
             !slice ||
             canOverwrite ||
             (user?.userId !== undefined &&
               (slice?.owners || []).includes(user.userId)),
-          onSave: actions.updateChartTitle,
-          placeholder: t('Add the name of the chart'),
+          onSave: handleTranslatableSave,
+          placeholder: isLocaleMode
+            ? localePlaceholder
+            : t('Add the name of the chart'),
           label: t('Chart title'),
         }}
         showTitlePanelItems={!!slice}
@@ -298,6 +327,7 @@ export const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
         }}
         titlePanelAdditionalItems={
           <div css={additionalItemsStyles}>
+            {localeSwitcher}
             {sliceFormData ? (
               <AlteredSliceTag
                 className="altered"

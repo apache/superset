@@ -273,6 +273,8 @@ export type LayoutItemMeta = {
   code?: string;
   /** Background style value for columns and rows */
   background?: string;
+  /** Per-field translations for content localization. */
+  translations?: Record<string, Record<string, string>>;
   /** Allow additional meta properties used by different component types */
   [key: string]: unknown;
 };

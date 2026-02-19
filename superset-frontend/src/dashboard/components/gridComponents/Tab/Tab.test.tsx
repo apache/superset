@@ -32,6 +32,20 @@ import type { FC } from 'react';
 import ActualTab from './Tab';
 import Markdown from '../Markdown';
 
+jest.mock('src/components/TranslationEditor/useTranslatableTitle', () => ({
+  __esModule: true,
+  default: jest.fn(({ title, onSaveTitle }) => ({
+    displayTitle: title,
+    handleSave: onSaveTitle,
+    localeSwitcher: null,
+    showLocale: false,
+    activeLocale: 'default',
+    setActiveLocale: jest.fn(),
+    isLocaleMode: false,
+    placeholder: '',
+  })),
+}));
+
 // Cast to loosely-typed component to avoid needing every required prop in test mocks
 const Tab = ActualTab as unknown as FC<Record<string, unknown>>;
 

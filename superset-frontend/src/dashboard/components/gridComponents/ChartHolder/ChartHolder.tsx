@@ -23,6 +23,8 @@ import cx from 'classnames';
 import { useSelector } from 'react-redux';
 import { css, useTheme } from '@apache-superset/core/ui';
 import { LayoutItem, RootState } from 'src/dashboard/types';
+import type { Translations } from 'src/types/Localization';
+import { getLocalizedValue } from 'src/components/TranslationEditor';
 import AnchorLink from 'src/dashboard/components/AnchorLink';
 import Chart from 'src/dashboard/components/gridComponents/Chart';
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
@@ -112,6 +114,9 @@ const ChartHolder = ({
   );
   const directPathLastUpdated = useSelector(
     (state: RootState) => state.dashboardState.directPathLastUpdated ?? 0,
+  );
+  const userLocale: string = useSelector(
+    (state: { common: { locale: string } }) => state.common?.locale ?? 'en',
   );
 
   const [extraControls, setExtraControls] = useState<Record<string, unknown>>(
@@ -227,6 +232,21 @@ const ChartHolder = ({
     [component, updateComponents],
   );
 
+  const handleUpdateTranslations = useCallback(
+    (translations: Translations) => {
+      updateComponents({
+        [component.id]: {
+          ...component,
+          meta: {
+            ...component.meta,
+            translations,
+          },
+        },
+      });
+    },
+    [component, updateComponents],
+  );
+
   const handleToggleFullSize = useCallback(() => {
     setFullSizeChartId(isFullSize ? null : (chartId ?? null));
   }, [chartId, isFullSize, setFullSizeChartId]);
@@ -290,11 +310,26 @@ const ChartHolder = ({
             width={chartWidth}
             height={chartHeight}
             sliceName={
-              component.meta.sliceNameOverride || component.meta.sliceName || ''
+              editMode
+                ? component.meta.sliceNameOverride ||
+                  component.meta.sliceName ||
+                  ''
+                : getLocalizedValue(
+                    component.meta.translations as Translations | undefined,
+                    'sliceNameOverride',
+                    userLocale,
+                    component.meta.sliceNameOverride ||
+                      component.meta.sliceName ||
+                      '',
+                  )
             }
             updateSliceName={(_sliceId: number, name: string) =>
               handleUpdateSliceName(name)
             }
+            translations={
+              component.meta.translations as Translations | undefined
+            }
+            onTranslationsChange={handleUpdateTranslations}
             isComponentVisible={isComponentVisible}
             handleToggleFullSize={handleToggleFullSize}
             isFullSize={isFullSize}
@@ -318,6 +353,7 @@ const ChartHolder = ({
       component.meta.chartId,
       component.meta.sliceNameOverride,
       component.meta.sliceName,
+      component.meta.translations,
       parentComponent.type,
       columnWidth,
       widthMultiple,
@@ -336,12 +372,14 @@ const ChartHolder = ({
       chartWidth,
       chartHeight,
       handleUpdateSliceName,
+      handleUpdateTranslations,
       isComponentVisible,
       handleToggleFullSize,
       handleExtraControl,
       extraControls,
       isInView,
       handleDeleteComponent,
+      userLocale,
     ],
   );
 
