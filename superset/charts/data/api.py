@@ -30,6 +30,7 @@ from werkzeug.utils import secure_filename
 from superset import is_feature_enabled, security_manager
 from superset.async_events.async_query_manager import AsyncQueryTokenException
 from superset.charts.api import ChartRestApi
+from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.charts.client_processing import apply_client_processing
 from superset.charts.data.query_context_cache_loader import QueryContextCacheLoader
 from superset.charts.schemas import ChartDataQueryContextSchema
@@ -171,11 +172,16 @@ class ChartDataRestApi(ChartRestApi):
             )
 
         # TODO: support CSV, SQL query and other non-JSON types
-        if (
+        # Don't use async queries when cache is disabled (cache_timeout=-1)
+        # as async queries depend on caching to retrieve results
+        cache_timeout = query_context.get_cache_timeout()
+        use_async = (
             is_feature_enabled("GLOBAL_ASYNC_QUERIES")
             and query_context.result_format == ChartDataResultFormat.JSON
             and query_context.result_type == ChartDataResultType.FULL
-        ):
+            and cache_timeout != CACHE_DISABLED_TIMEOUT
+        )
+        if use_async:
             return self._run_async(json_body, command, add_extra_log_payload)
 
         try:
@@ -265,11 +271,16 @@ class ChartDataRestApi(ChartRestApi):
             )
 
         # TODO: support CSV, SQL query and other non-JSON types
-        if (
+        # Don't use async queries when cache is disabled (cache_timeout=-1)
+        # as async queries depend on caching to retrieve results
+        cache_timeout = query_context.get_cache_timeout()
+        use_async = (
             is_feature_enabled("GLOBAL_ASYNC_QUERIES")
             and query_context.result_format == ChartDataResultFormat.JSON
             and query_context.result_type == ChartDataResultType.FULL
-        ):
+            and cache_timeout != CACHE_DISABLED_TIMEOUT
+        )
+        if use_async:
             return self._run_async(json_body, command, add_extra_log_payload)
 
         form_data = json_body.get("form_data")
