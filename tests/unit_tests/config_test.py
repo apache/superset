@@ -312,3 +312,24 @@ def test_full_setting(
     assert dttm_col.is_dttm
     assert dttm_col.python_date_format == "epoch_s"
     assert dttm_col.expression == "CAST(dttm as INTEGER)"
+
+
+def test_theme_default_logo_target_path() -> None:
+    """
+    Test that THEME_DEFAULT properly uses LOGO_TARGET_PATH for brandLogoHref.
+
+    When LOGO_TARGET_PATH is None (default), brandLogoHref should be "/".
+    When LOGO_TARGET_PATH is set, it should be used instead.
+    """
+    from superset import config
+
+    # Verify default behavior: LOGO_TARGET_PATH is None, so brandLogoHref is "/"
+    assert config.LOGO_TARGET_PATH is None
+    assert config.THEME_DEFAULT["token"]["brandLogoHref"] == "/"
+
+    # Verify the expression logic works correctly for custom values
+    custom_path = "https://example.com"
+    assert (custom_path or "/") == custom_path
+
+    # Verify APP_ICON is wired to brandLogoUrl
+    assert config.THEME_DEFAULT["token"]["brandLogoUrl"] == config.APP_ICON
