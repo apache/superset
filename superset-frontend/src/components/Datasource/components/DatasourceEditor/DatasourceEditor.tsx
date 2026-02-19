@@ -915,7 +915,9 @@ class DatasourceEditor extends PureComponent<
       folderCount: (() => {
         const savedFolders = props.datasource.folders || [];
         const savedCount = countAllFolders(savedFolders);
-        const hasDefaultsSaved = savedFolders.some(f => isDefaultFolder(f.uuid));
+        const hasDefaultsSaved = savedFolders.some(f =>
+          isDefaultFolder(f.uuid),
+        );
         return savedCount + (hasDefaultsSaved ? 0 : DEFAULT_FOLDERS_COUNT);
       })(),
       metadataLoading: false,
@@ -2424,7 +2426,10 @@ class DatasourceEditor extends PureComponent<
                         metrics={
                           sortedMetrics as unknown as import('@superset-ui/chart-controls').Metric[]
                         }
-                        columns={[...this.state.databaseColumns, ...this.state.calculatedColumns]}
+                        columns={[
+                          ...this.state.databaseColumns,
+                          ...this.state.calculatedColumns,
+                        ]}
                         onChange={this.handleFoldersChange}
                       />
                     ),
