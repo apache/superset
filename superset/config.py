@@ -793,8 +793,8 @@ THEME_DEFAULT: Theme = {
         "brandLogoMargin": "18px 0",
         "brandLogoHref": LOGO_TARGET_PATH or "/",
         "brandLogoHeight": "24px",
-        # Spinner
-        # "brandSpinnerUrl": "/static/assets/images/loading.gif",  # Set this to use a custom GIF/image loader
+        # Spinner - Set this to use a custom GIF/image loader
+        # "brandSpinnerUrl": "/static/assets/images/loading.gif", 
         "brandSpinnerUrl": None,
         "brandSpinnerSvg": None,
         # Default colors
