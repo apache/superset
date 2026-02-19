@@ -426,10 +426,10 @@ test('should add a formula annotation when X-axis column has dataset-level label
   });
   const result = transformProps(chartProps);
   const formulaSeries = (
-    result.echartOptions.series as SeriesOption[] | undefined
-  )?.find((s: SeriesOption) => s.name === 'My Formula');
+    result.echartOptions.series as SeriesOption[]
+  ).find((s: SeriesOption) => s.name === 'My Formula') as SeriesOption;
   expect(formulaSeries).toBeDefined();
-  expect(formulaSeries?.data).toBeDefined();
-  expect(Array.isArray(formulaSeries?.data)).toBe(true);
-  expect((formulaSeries?.data as unknown[]).length).toBeGreaterThan(0);
+  expect(formulaSeries.data).toBeDefined();
+  expect(Array.isArray(formulaSeries.data)).toBe(true);
+  expect((formulaSeries.data as unknown[]).length).toBeGreaterThan(0);
 });
