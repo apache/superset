@@ -19,7 +19,7 @@ import pytest
 from marshmallow import ValidationError
 from pytest_mock import MockerFixture
 
-from superset.reports.schemas import ReportSchedulePostSchema
+from superset.reports.schemas import ReportSchedulePostSchema, ReportSchedulePutSchema
 
 
 def test_report_post_schema_custom_width_validation(mocker: MockerFixture) -> None:
@@ -75,3 +75,100 @@ def test_report_post_schema_custom_width_validation(mocker: MockerFixture) -> No
     assert excinfo.value.messages == {
         "custom_width": ["Screenshot width must be between 100px and 200px"]
     }
+
+
+MINIMAL_POST_PAYLOAD = {
+    "type": "Report",
+    "name": "A report",
+    "crontab": "* * * * *",
+    "timezone": "America/Los_Angeles",
+}
+
+CUSTOM_WIDTH_CONFIG = {
+    "ALERT_REPORTS_MIN_CUSTOM_SCREENSHOT_WIDTH": 600,
+    "ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH": 2400,
+}
+
+
+@pytest.mark.parametrize(
+    "schema_class,payload_base",
+    [
+        (ReportSchedulePostSchema, MINIMAL_POST_PAYLOAD),
+        (ReportSchedulePutSchema, {}),
+    ],
+    ids=["post", "put"],
+)
+@pytest.mark.parametrize(
+    "width,should_pass",
+    [
+        (599, False),
+        (600, True),
+        (2400, True),
+        (2401, False),
+        (None, True),
+    ],
+)
+def test_custom_width_boundary_values(
+    mocker: MockerFixture,
+    schema_class: type,
+    payload_base: dict[str, object],
+    width: int | None,
+    should_pass: bool,
+) -> None:
+    mocker.patch("flask.current_app.config", CUSTOM_WIDTH_CONFIG)
+    schema = schema_class()
+    payload = {**payload_base, "custom_width": width}
+
+    if should_pass:
+        schema.load(payload)
+    else:
+        with pytest.raises(ValidationError) as exc:
+            schema.load(payload)
+        assert "custom_width" in exc.value.messages
+
+
+def test_working_timeout_validation(mocker: MockerFixture) -> None:
+    mocker.patch("flask.current_app.config", CUSTOM_WIDTH_CONFIG)
+    post_schema = ReportSchedulePostSchema()
+    put_schema = ReportSchedulePutSchema()
+
+    # POST: working_timeout=0 and -1 are invalid (min=1)
+    with pytest.raises(ValidationError) as exc:
+        post_schema.load({**MINIMAL_POST_PAYLOAD, "working_timeout": 0})
+    assert "working_timeout" in exc.value.messages
+
+    with pytest.raises(ValidationError) as exc:
+        post_schema.load({**MINIMAL_POST_PAYLOAD, "working_timeout": -1})
+    assert "working_timeout" in exc.value.messages
+
+    # POST: working_timeout=1 is valid
+    post_schema.load({**MINIMAL_POST_PAYLOAD, "working_timeout": 1})
+
+    # PUT: working_timeout=None is valid (allow_none=True)
+    put_schema.load({"working_timeout": None})
+
+
+def test_log_retention_post_vs_put_parity(mocker: MockerFixture) -> None:
+    mocker.patch("flask.current_app.config", CUSTOM_WIDTH_CONFIG)
+    post_schema = ReportSchedulePostSchema()
+    put_schema = ReportSchedulePutSchema()
+
+    # POST: log_retention=0 is invalid (min=1)
+    with pytest.raises(ValidationError) as exc:
+        post_schema.load({**MINIMAL_POST_PAYLOAD, "log_retention": 0})
+    assert "log_retention" in exc.value.messages
+
+    # POST: log_retention=1 is valid
+    post_schema.load({**MINIMAL_POST_PAYLOAD, "log_retention": 1})
+
+    # PUT: log_retention=0 is valid (min=0)
+    put_schema.load({"log_retention": 0})
+
+
+def test_report_type_disallows_database(mocker: MockerFixture) -> None:
+    mocker.patch("flask.current_app.config", CUSTOM_WIDTH_CONFIG)
+    schema = ReportSchedulePostSchema()
+
+    with pytest.raises(ValidationError) as exc:
+        schema.load({**MINIMAL_POST_PAYLOAD, "database": 1})
+    assert "database" in exc.value.messages

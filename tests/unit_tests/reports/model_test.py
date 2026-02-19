@@ -240,3 +240,176 @@ def test_report_generate_native_filter_no_column_name():
             "ownState": {},
         }
     }
+
+
+def test_report_generate_native_filter_select_null_column():
+    report_schedule = ReportSchedule()
+    result = report_schedule._generate_native_filter(
+        "F1", "filter_select", None, ["US"]
+    )
+    assert result["F1"]["extraFormData"]["filters"][0]["col"] == ""
+    assert result["F1"]["filterState"]["label"] == ""
+
+
+def test_generate_native_filter_time_normal():
+    report_schedule = ReportSchedule()
+    result = report_schedule._generate_native_filter(
+        "F2", "filter_time", "ignored", ["Last week"]
+    )
+    assert result == {
+        "F2": {
+            "id": "F2",
+            "extraFormData": {"time_range": "Last week"},
+            "filterState": {"value": "Last week"},
+            "ownState": {},
+        }
+    }
+
+
+def test_generate_native_filter_time_empty_values():
+    # Regression: locks crash behavior until upstream fix (see PROJECT.md)
+    report_schedule = ReportSchedule()
+    with pytest.raises(IndexError):
+        report_schedule._generate_native_filter("F2", "filter_time", "ignored", [])
+
+
+def test_generate_native_filter_timegrain_normal():
+    report_schedule = ReportSchedule()
+    result = report_schedule._generate_native_filter(
+        "F3", "filter_timegrain", "ignored", ["P1D"]
+    )
+    assert result == {
+        "F3": {
+            "id": "F3",
+            "extraFormData": {"time_grain_sqla": "P1D"},
+            "filterState": {"value": ["P1D"]},
+            "ownState": {},
+        }
+    }
+
+
+def test_generate_native_filter_timecolumn_normal():
+    """filter_timecolumn is the only branch missing 'id' in its output."""
+    report_schedule = ReportSchedule()
+    result = report_schedule._generate_native_filter(
+        "F4", "filter_timecolumn", "ignored", ["ds"]
+    )
+    assert result == {
+        "F4": {
+            "extraFormData": {"granularity_sqla": "ds"},
+            "filterState": {"value": ["ds"]},
+        }
+    }
+    assert "id" not in result["F4"]
+
+
+def test_generate_native_filter_range_normal():
+    report_schedule = ReportSchedule()
+    result = report_schedule._generate_native_filter(
+        "F5", "filter_range", "price", [10, 100]
+    )
+    assert result == {
+        "F5": {
+            "id": "F5",
+            "extraFormData": {
+                "filters": [
+                    {"col": "price", "op": ">=", "val": 10},
+                    {"col": "price", "op": "<=", "val": 100},
+                ]
+            },
+            "filterState": {
+                "value": [10, 100],
+                "label": "10 ≤ x ≤ 100",
+            },
+            "ownState": {},
+        }
+    }
+
+
+def test_generate_native_filter_range_min_only():
+    report_schedule = ReportSchedule()
+    result = report_schedule._generate_native_filter(
+        "F5", "filter_range", "price", [10]
+    )
+    assert result["F5"]["extraFormData"]["filters"] == [
+        {"col": "price", "op": ">=", "val": 10}
+    ]
+    assert result["F5"]["filterState"]["label"] == "x ≥ 10"
+    assert result["F5"]["filterState"]["value"] == [10, None]
+
+
+def test_generate_native_filter_range_max_only():
+    report_schedule = ReportSchedule()
+    result = report_schedule._generate_native_filter(
+        "F5", "filter_range", "price", [None, 100]
+    )
+    assert result["F5"]["extraFormData"]["filters"] == [
+        {"col": "price", "op": "<=", "val": 100}
+    ]
+    assert result["F5"]["filterState"]["label"] == "x ≤ 100"
+
+
+def test_generate_native_filter_range_empty_values():
+    report_schedule = ReportSchedule()
+    result = report_schedule._generate_native_filter("F5", "filter_range", "price", [])
+    assert result["F5"]["extraFormData"]["filters"] == []
+    assert result["F5"]["filterState"]["label"] == ""
+    assert result["F5"]["filterState"]["value"] == [None, None]
+
+
+def test_generate_native_filter_unknown_type():
+    report_schedule = ReportSchedule()
+    result = report_schedule._generate_native_filter("F6", "unknown_type", "col", ["x"])
+    assert result == {}
+
+
+def test_get_native_filters_params_null_native_filters():
+    report_schedule = ReportSchedule()
+    report_schedule.extra = {"dashboard": {"nativeFilters": None}}
+    assert report_schedule.get_native_filters_params() == "()"
+
+
+def test_get_native_filters_params_rison_quote_escaping():
+    report_schedule = ReportSchedule()
+    report_schedule.extra = {
+        "dashboard": {
+            "nativeFilters": [
+                {
+                    "nativeFilterId": "F1",
+                    "filterType": "filter_select",
+                    "columnName": "name",
+                    "filterValues": ["O'Brien"],
+                }
+            ]
+        }
+    }
+    result = report_schedule.get_native_filters_params()
+    assert "'" not in result
+    assert "%27" in result
+
+
+def test_get_native_filters_params_missing_filter_id_key():
+    # Regression: locks crash behavior until upstream fix (see PROJECT.md)
+    report_schedule = ReportSchedule()
+    report_schedule.extra = {
+        "dashboard": {
+            "nativeFilters": [
+                {
+                    "filterType": "filter_select",
+                    "columnName": "col",
+                    "filterValues": ["v"],
+                    # Missing "nativeFilterId" key
+                }
+            ]
+        }
+    }
+    with pytest.raises(KeyError, match="nativeFilterId"):
+        report_schedule.get_native_filters_params()
+
+
+def test_generate_native_filter_empty_filter_id():
+    """Empty native_filter_id triggers the ``or ""`` fallback branches."""
+    report_schedule = ReportSchedule()
+    result = report_schedule._generate_native_filter("", "filter_select", "col", ["x"])
+    assert "" in result
+    assert result[""]["id"] == ""
