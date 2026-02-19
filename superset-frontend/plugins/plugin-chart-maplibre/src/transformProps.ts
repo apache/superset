@@ -102,7 +102,7 @@ function buildGeoJSONFromRecords(
 }
 
 export default function transformProps(chartProps: ChartProps) {
-  const { width, height, formData, hooks, queriesData } = chartProps;
+  const { width, height, rawFormData: formData, hooks, queriesData } = chartProps;
   const { onError = NOOP, setControlValue = NOOP } = hooks;
 
   const {
