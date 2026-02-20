@@ -13681,6 +13681,12 @@ msgstr "Izbrati morate ime nove nadzorne plošče"
 msgid "You must run the query successfully first"
 msgstr "Najprej morate uspešno izvesti poizvedbo"
 
+#, python-format
+msgid ""
+"You need access to the following tables: %(tables)s, "
+"`all_database_access` or `all_datasource_access` permission"
+msgstr ""
+
 msgid "You need to configure HTML sanitization to use CSS"
 msgstr "Za uporabo CSS morate nastaviti sanitizacijo HTML"
 

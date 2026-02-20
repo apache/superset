@@ -12979,6 +12979,12 @@ msgstr "新しいダッシュボードの名前を選択する必要がありま
 msgid "You must run the query successfully first"
 msgstr "まずクエリを正常に実行する必要があります"
 
+#, python-format
+msgid ""
+"You need access to the following tables: %(tables)s, "
+"`all_database_access` or `all_datasource_access` permission"
+msgstr ""
+
 msgid "You need to configure HTML sanitization to use CSS"
 msgstr "CSSを使用するにはHTMLサニタイズを設定する必要があります"
 

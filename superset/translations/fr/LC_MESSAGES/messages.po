@@ -14961,6 +14961,14 @@ msgstr "Vous devez entrer un nom pour le nouveau tableau de Bord"
 msgid "You must run the query successfully first"
 msgstr "Vous devez d'abord exécuter la requête avec succès"
 
+#, python-format
+msgid ""
+"You need access to the following tables: %(tables)s, "
+"`all_database_access` or `all_datasource_access` permission"
+msgstr ""
+"Vous devez avoir accès aux tables suivantes: %(tables)s, ou à la "
+"permission `all_database_access` ou `all_datasource_access`"
+
 msgid "You need to configure HTML sanitization to use CSS"
 msgstr "Vous devez configurer la désinfection HTML pour utiliser CSS"
 

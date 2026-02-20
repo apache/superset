@@ -13838,6 +13838,12 @@ msgstr "Ви повинні вибрати ім’я для нової інфо�
 msgid "You must run the query successfully first"
 msgstr "Ви повинні спочатку успішно запустити запит"
 
+#, python-format
+msgid ""
+"You need access to the following tables: %(tables)s, "
+"`all_database_access` or `all_datasource_access` permission"
+msgstr ""
+
 msgid "You need to configure HTML sanitization to use CSS"
 msgstr "Вам потрібно налаштувати санітарію HTML для використання CSS"
 

@@ -13612,6 +13612,12 @@ msgstr "يجب عليك اختيار اسم للوحة التحكم الجديد
 msgid "You must run the query successfully first"
 msgstr "يجب تشغيل الاستعلام بنجاح أولاً"
 
+#, python-format
+msgid ""
+"You need access to the following tables: %(tables)s, "
+"`all_database_access` or `all_datasource_access` permission"
+msgstr ""
+
 msgid "You need to configure HTML sanitization to use CSS"
 msgstr "تحتاج إلى تكوين تعقيم HTML لاستخدام CSS"
 

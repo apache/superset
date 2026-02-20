@@ -13450,6 +13450,12 @@ msgstr "您必须为新的看板选择一个名称"
 msgid "You must run the query successfully first"
 msgstr "必须先成功运行查询"
 
+#, python-format
+msgid ""
+"You need access to the following tables: %(tables)s, "
+"`all_database_access` or `all_datasource_access` permission"
+msgstr ""
+
 msgid "You need to configure HTML sanitization to use CSS"
 msgstr "您需要配置HTML限制以使用CSS"
 

@@ -14003,6 +14003,12 @@ msgstr "Debes elegir un nombre para el nuevo Dashboard"
 msgid "You must run the query successfully first"
 msgstr "Primero debes ejecutar la consulta exitosamente"
 
+#, python-format
+msgid ""
+"You need access to the following tables: %(tables)s, "
+"`all_database_access` or `all_datasource_access` permission"
+msgstr ""
+
 msgid "You need to configure HTML sanitization to use CSS"
 msgstr ""
 

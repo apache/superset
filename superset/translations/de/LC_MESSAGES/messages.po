@@ -14054,6 +14054,12 @@ msgstr "Sie müssen einen Namen für das neue Dashboard auswählen"
 msgid "You must run the query successfully first"
 msgstr "Sie müssen die Abfrage zuerst erfolgreich ausführen"
 
+#, python-format
+msgid ""
+"You need access to the following tables: %(tables)s, "
+"`all_database_access` or `all_datasource_access` permission"
+msgstr ""
+
 msgid "You need to configure HTML sanitization to use CSS"
 msgstr ""
 "Sie müssen die HTML-Bereinigung (sanitization) aktivieren, um CSS "

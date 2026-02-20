@@ -13993,6 +13993,12 @@ msgstr "Você deve escolher um nome para o novo painel"
 msgid "You must run the query successfully first"
 msgstr "Primeiro, você deve executar a consulta com êxito"
 
+#, python-format
+msgid ""
+"You need access to the following tables: %(tables)s, "
+"`all_database_access` or `all_datasource_access` permission"
+msgstr ""
+
 msgid "You need to configure HTML sanitization to use CSS"
 msgstr "Você precisa configurar a sanitização de HTML para usar CSS"
 
