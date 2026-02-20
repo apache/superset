@@ -70,6 +70,31 @@ import {
   TIMESERIES_CONSTANTS,
 } from '../constants';
 
+function parseTimeShiftToMs(timeShift?: string | null): number {
+  if (!timeShift) return 0;
+
+  const match = timeShift
+    .trim()
+    .match(/^(-?\d+(?:\.\d+)?)\s*(second|minute|hour|day|week|month|year)s?$/i);
+
+  if (!match) return 0;
+
+  const value = Number(match[1]);
+  const unit = match[2].toLowerCase();
+
+  const MS: Record<string, number> = {
+    second: 1000,
+    minute: 60 * 1000,
+    hour: 60 * 60 * 1000,
+    day: 24 * 60 * 60 * 1000,
+    week: 7 * 24 * 60 * 60 * 1000,
+    month: 30 * 24 * 60 * 60 * 1000,
+    year: 365 * 24 * 60 * 60 * 1000,
+  };
+
+  return value * (MS[unit] ?? 0);
+}
+
 // based on weighted wiggle algorithm
 // source: https://ieeexplore.ieee.org/document/4658136
 export const getBaselineSeriesForStream = (
@@ -655,14 +680,27 @@ export function transformTimeseriesAnnotation(
 ): SeriesOption[] {
   const series: SeriesOption[] = [];
   const { hideLine, name, opacity, showMarkers, style, width, color } = layer;
+
+  const shiftMs = parseTimeShiftToMs((layer as any)?.overrides?.time_shift);
+
   const result = annotationData[name];
   const isHorizontal = orientation === OrientationType.Horizontal;
   const { records } = result;
   if (records) {
     const data = records.map(record => {
       const keys = Object.keys(record);
-      const x = keys.length > 0 ? record[keys[0]] : 0;
+
+      let x = keys.length > 0 ? record[keys[0]] : 0;
       const y = keys.length > 1 ? record[keys[1]] : 0;
+
+      if (shiftMs !== 0 && x != null) {
+        const xMs = typeof x === 'string' ? new Date(x).getTime() : Number(x);
+
+        if (!Number.isNaN(xMs)) {
+          x = xMs + shiftMs;
+        }
+      }
+
       return isHorizontal
         ? ([y, x] as [number, OptionName])
         : ([x, y] as [OptionName, number]);
