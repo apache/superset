@@ -501,6 +501,11 @@ class TestAddChartToExistingDashboard:
             assert column_data["type"] == "COLUMN"
             assert "CHART-15" in column_data["children"]
 
+            # Verify ROOT_ID is in parents chain even for empty layouts
+            chart_parents = layout["CHART-15"]["parents"]
+            assert "ROOT_ID" in chart_parents
+            assert "GRID_ID" in chart_parents
+
     @patch("superset.commands.dashboard.update.UpdateDashboardCommand")
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
     @patch("superset.db.session")
