@@ -478,6 +478,14 @@ function CollectionTabTitle({
   );
 }
 
+function FormContainer({ children }: FormContainerProps): JSX.Element {
+  return (
+    <Card padded style={{ backgroundColor: themeObject.theme.colorBgLayout }}>
+      {children}
+    </Card>
+  );
+}
+
 function ColumnCollectionTable({
   columns,
   datasource,
@@ -744,14 +752,6 @@ function StackedField({ label, formElement }: StackedFieldProps): JSX.Element {
       </div>
       <div>{formElement}</div>
     </div>
-  );
-}
-
-function FormContainer({ children }: FormContainerProps): JSX.Element {
-  return (
-    <Card padded style={{ backgroundColor: themeObject.theme.colorBgLayout }}>
-      {children}
-    </Card>
   );
 }
 
