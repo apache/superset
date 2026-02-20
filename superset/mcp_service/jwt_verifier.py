@@ -24,6 +24,7 @@ instead of the generic "invalid_token" response from the base JWTVerifier.
 import base64
 import logging
 import time
+from collections.abc import Callable
 from contextvars import ContextVar
 from typing import Any, cast
 
@@ -65,23 +66,50 @@ def _sanitize_header_value(value: str) -> str:
     return value.replace("\r", " ").replace("\n", " ").replace('"', "'")
 
 
-def _json_auth_error_handler(
-    conn: HTTPConnection, exc: AuthenticationError
-) -> JSONResponse:
-    """Return a JSON 401 response with the specific JWT failure reason."""
-    reason = str(exc)
-    safe_reason = _sanitize_header_value(reason)
-    return JSONResponse(
-        status_code=401,
-        content={
-            "error": "invalid_token",
-            "error_description": reason,
-        },
-        headers={
-            "WWW-Authenticate": f'Bearer error="invalid_token", '
-            f'error_description="{safe_reason}"',
-        },
-    )
+def _make_json_auth_error_handler(
+    debug_errors: bool = False,
+) -> Callable[[HTTPConnection, AuthenticationError], JSONResponse]:
+    """Create a JSON 401 error handler for authentication failures.
+
+    Args:
+        debug_errors: If True, include detailed JWT failure reasons in the
+            HTTP response body and WWW-Authenticate header. If False (default),
+            return only generic error information to avoid leaking server
+            configuration per RFC 6750 Section 3.1. Detailed reasons are
+            always logged server-side regardless of this setting.
+    """
+
+    def handler(conn: HTTPConnection, exc: AuthenticationError) -> JSONResponse:
+        reason = str(exc)
+
+        if debug_errors:
+            safe_reason = _sanitize_header_value(reason)
+            return JSONResponse(
+                status_code=401,
+                content={
+                    "error": "invalid_token",
+                    "error_description": reason,
+                },
+                headers={
+                    "WWW-Authenticate": f'Bearer error="invalid_token", '
+                    f'error_description="{safe_reason}"',
+                },
+            )
+
+        # Default: generic error response (no claim values or server config leaked)
+        logger.warning("JWT authentication failed: %s", reason)
+        return JSONResponse(
+            status_code=401,
+            content={
+                "error": "invalid_token",
+                "error_description": "Authentication failed",
+            },
+            headers={
+                "WWW-Authenticate": 'Bearer error="invalid_token"',
+            },
+        )
+
+    return handler
 
 
 class DetailedBearerAuthBackend(BearerAuthBackend):
@@ -125,7 +153,17 @@ class DetailedJWTVerifier(JWTVerifier):
     Overrides load_access_token() to perform step-by-step validation,
     storing the specific failure reason in a ContextVar that the
     custom BearerAuthBackend reads to return a descriptive 401 response.
+
+    Args:
+        debug_errors: When True, detailed JWT failure reasons are included
+            in HTTP responses. When False (default), only generic errors
+            are returned to clients. Detailed reasons are always logged
+            server-side regardless of this setting.
     """
+
+    def __init__(self, *args: Any, debug_errors: bool = False, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self.debug_errors = debug_errors
 
     async def load_access_token(self, token: str) -> AccessToken | None:  # noqa: C901
         """
@@ -285,7 +323,7 @@ class DetailedJWTVerifier(JWTVerifier):
             Middleware(
                 AuthenticationMiddleware,
                 backend=DetailedBearerAuthBackend(self),
-                on_error=_json_auth_error_handler,
+                on_error=_make_json_auth_error_handler(self.debug_errors),
             ),
             Middleware(AuthContextMiddleware),
         ]

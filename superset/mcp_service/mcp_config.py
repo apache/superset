@@ -40,6 +40,13 @@ MCP_SERVICE_PORT = 5008
 # MCP Debug mode - shows suppressed initialization output in stdio mode
 MCP_DEBUG = False
 
+# MCP JWT Debug Errors - controls verbosity of JWT error responses.
+# When False (default), JWT authentication failures return generic errors
+# to avoid leaking server configuration (per RFC 6750 Section 3.1).
+# When True, detailed failure reasons are included in HTTP responses.
+# Detailed reasons are always logged server-side regardless of this setting.
+MCP_JWT_DEBUG_ERRORS = False
+
 # Enable parse_request decorator for MCP tools.
 # When True (default), tool requests are automatically parsed from JSON strings
 # to Pydantic models, working around a Claude Code double-serialization bug
@@ -184,6 +191,8 @@ def create_default_mcp_auth_factory(app: Flask) -> Optional[Any]:
     try:
         from superset.mcp_service.jwt_verifier import DetailedJWTVerifier
 
+        debug_errors = app.config.get("MCP_JWT_DEBUG_ERRORS", False)
+
         # For HS256 (symmetric), use the secret as the public_key parameter
         if app.config.get("MCP_JWT_ALGORITHM") == "HS256" and secret:
             auth_provider = DetailedJWTVerifier(
@@ -192,6 +201,7 @@ def create_default_mcp_auth_factory(app: Flask) -> Optional[Any]:
                 audience=app.config.get("MCP_JWT_AUDIENCE"),
                 algorithm="HS256",
                 required_scopes=app.config.get("MCP_REQUIRED_SCOPES", []),
+                debug_errors=debug_errors,
             )
             logger.info("Created DetailedJWTVerifier with HS256 secret")
         else:
@@ -203,6 +213,7 @@ def create_default_mcp_auth_factory(app: Flask) -> Optional[Any]:
                 audience=app.config.get("MCP_JWT_AUDIENCE"),
                 algorithm=app.config.get("MCP_JWT_ALGORITHM", "RS256"),
                 required_scopes=app.config.get("MCP_REQUIRED_SCOPES", []),
+                debug_errors=debug_errors,
             )
             logger.info(
                 "Created DetailedJWTVerifier with jwks_uri=%s, public_key=%s",
