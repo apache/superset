@@ -21,14 +21,14 @@
 /* eslint-disable no-magic-numbers */
 import { SuperChart } from '@superset-ui/core';
 import { useTheme } from '@apache-superset/core/ui';
-import { PathChartPlugin } from '@superset-ui/legacy-preset-chart-deckgl';
+import { PathChartPlugin } from '@superset-ui/preset-chart-deckgl';
 import { withResizableChartDemo, dummyDatasource } from '@storybook-shared';
 import payload from './payload';
 
 new PathChartPlugin().configure({ key: 'deck_path' }).register();
 
 export default {
-  title: 'Legacy Chart Plugins/legacy-preset-chart-deckgl/PathChartPlugin',
+  title: 'Chart Plugins/preset-chart-deckgl/PathChartPlugin',
   decorators: [withResizableChartDemo],
   args: {
     lineWidth: 150,

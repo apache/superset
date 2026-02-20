@@ -20,14 +20,14 @@
 /* eslint-disable sort-keys */
 /* eslint-disable no-magic-numbers */
 import { SuperChart } from '@superset-ui/core';
-import { GridChartPlugin } from '@superset-ui/legacy-preset-chart-deckgl';
+import { GridChartPlugin } from '@superset-ui/preset-chart-deckgl';
 import { withResizableChartDemo, dummyDatasource } from '@storybook-shared';
 import payload from './payload';
 
 new GridChartPlugin().configure({ key: 'deck_grid' }).register();
 
 export default {
-  title: 'Legacy Chart Plugins/legacy-preset-chart-deckgl/GridChartPlugin',
+  title: 'Chart Plugins/preset-chart-deckgl/GridChartPlugin',
   decorators: [withResizableChartDemo],
   args: {
     gridSize: 120,

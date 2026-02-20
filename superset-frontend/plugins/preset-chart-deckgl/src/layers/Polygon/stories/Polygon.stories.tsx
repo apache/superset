@@ -20,7 +20,7 @@
 /* eslint-disable sort-keys */
 /* eslint-disable no-magic-numbers */
 import { SuperChart } from '@superset-ui/core';
-import { PolygonChartPlugin } from '@superset-ui/legacy-preset-chart-deckgl';
+import { PolygonChartPlugin } from '@superset-ui/preset-chart-deckgl';
 import { withResizableChartDemo, dummyDatasource } from '@storybook-shared';
 import payload from './payload';
 import geojsonPayload from './geojsonPayload';
@@ -28,7 +28,7 @@ import geojsonPayload from './geojsonPayload';
 new PolygonChartPlugin().configure({ key: 'deck_polygon' }).register();
 
 export default {
-  title: 'Legacy Chart Plugins/legacy-preset-chart-deckgl/PolygonChartPlugin',
+  title: 'Chart Plugins/preset-chart-deckgl/PolygonChartPlugin',
   decorators: [withResizableChartDemo],
   args: {
     filled: true,

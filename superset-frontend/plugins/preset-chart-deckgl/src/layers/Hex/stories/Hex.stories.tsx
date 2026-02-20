@@ -20,14 +20,14 @@
 /* eslint-disable sort-keys */
 /* eslint-disable no-magic-numbers */
 import { SuperChart } from '@superset-ui/core';
-import { HexChartPlugin } from '@superset-ui/legacy-preset-chart-deckgl';
+import { HexChartPlugin } from '@superset-ui/preset-chart-deckgl';
 import { withResizableChartDemo, dummyDatasource } from '@storybook-shared';
 import payload from './payload';
 
 new HexChartPlugin().configure({ key: 'deck_hex' }).register();
 
 export default {
-  title: 'Legacy Chart Plugins/legacy-preset-chart-deckgl/HexChartPlugin',
+  title: 'Chart Plugins/preset-chart-deckgl/HexChartPlugin',
   decorators: [withResizableChartDemo],
   args: {
     gridSize: 40,

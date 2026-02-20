@@ -20,7 +20,7 @@
 /* eslint-disable sort-keys */
 /* eslint-disable no-magic-numbers */
 import { SuperChart } from '@superset-ui/core';
-import { ArcChartPlugin } from '@superset-ui/legacy-preset-chart-deckgl';
+import { ArcChartPlugin } from '@superset-ui/preset-chart-deckgl';
 import { withResizableChartDemo } from '@storybook-shared';
 import payload from './payload';
 import { dummyDatasource } from '@storybook-shared';
@@ -28,7 +28,7 @@ import { dummyDatasource } from '@storybook-shared';
 new ArcChartPlugin().configure({ key: 'deck_arc' }).register();
 
 export default {
-  title: 'Legacy Chart Plugins/legacy-preset-chart-deckgl/ArcChartPlugin',
+  title: 'Chart Plugins/preset-chart-deckgl/ArcChartPlugin',
   decorators: [withResizableChartDemo],
   args: {
     strokeWidth: 1,

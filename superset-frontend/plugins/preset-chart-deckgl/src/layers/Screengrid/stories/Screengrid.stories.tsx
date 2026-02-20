@@ -20,7 +20,7 @@
 /* eslint-disable sort-keys */
 /* eslint-disable no-magic-numbers */
 import { SuperChart } from '@superset-ui/core';
-import { ScreengridChartPlugin } from '@superset-ui/legacy-preset-chart-deckgl';
+import { ScreengridChartPlugin } from '@superset-ui/preset-chart-deckgl';
 import { withResizableChartDemo, dummyDatasource } from '@storybook-shared';
 import payload from './payload';
 
@@ -28,7 +28,7 @@ new ScreengridChartPlugin().configure({ key: 'deck_screengrid' }).register();
 
 export default {
   title:
-    'Legacy Chart Plugins/legacy-preset-chart-deckgl/ScreengridChartPlugin',
+    'Chart Plugins/preset-chart-deckgl/ScreengridChartPlugin',
   decorators: [withResizableChartDemo],
   args: {
     gridSize: 20,

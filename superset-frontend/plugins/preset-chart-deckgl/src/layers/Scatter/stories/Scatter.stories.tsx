@@ -20,14 +20,14 @@
 /* eslint-disable sort-keys */
 /* eslint-disable no-magic-numbers */
 import { SuperChart } from '@superset-ui/core';
-import { ScatterChartPlugin } from '@superset-ui/legacy-preset-chart-deckgl';
+import { ScatterChartPlugin } from '@superset-ui/preset-chart-deckgl';
 import { withResizableChartDemo, dummyDatasource } from '@storybook-shared';
 import payload from './payload';
 
 new ScatterChartPlugin().configure({ key: 'deck_scatter' }).register();
 
 export default {
-  title: 'Legacy Chart Plugins/legacy-preset-chart-deckgl/ScatterChartPlugin',
+  title: 'Chart Plugins/preset-chart-deckgl/ScatterChartPlugin',
   decorators: [withResizableChartDemo],
   args: {
     minRadius: 2,
