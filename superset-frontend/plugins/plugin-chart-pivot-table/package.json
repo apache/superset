@@ -27,7 +27,7 @@
     "access": "public"
   },
   "peerDependencies": {
-    "@react-icons/all-files": "^4.1.0",
+    "react-icons": "5.4.0",
     "@apache-superset/core": "*",
     "@ant-design/icons": "^5.2.6",
     "@superset-ui/chart-controls": "*",

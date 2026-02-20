@@ -139,6 +139,9 @@ updates:
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/plugin-chart-pivot-table/"
+    ignore:
+      # TODO: remove below entries until React >= 19.0.0
+      - dependency-name: "react-icons"
     schedule:
       interval: "daily"
     labels:
@@ -189,6 +192,9 @@ updates:
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/plugin-chart-table/"
+    ignore:
+      # TODO: remove below entries until React >= 19.0.0
+      - dependency-name: "react-icons"
     schedule:
       interval: "daily"
     labels:
