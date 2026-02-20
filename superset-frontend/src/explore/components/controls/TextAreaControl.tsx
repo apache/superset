@@ -174,6 +174,22 @@ class TextAreaControl extends Component<TextAreaControlProps> {
           });
         });
       };
+      // Exclude props that shouldn't be passed to TextAreaEditor
+      // - theme: TextAreaEditor expects theme as a string, not the theme object from withTheme HOC
+      // - height: ReactAce expects string, we pass number (height is controlled via minLines/maxLines)
+      // - other control-specific props that ReactAce doesn't need
+      const {
+        theme,
+        height,
+        offerEditInModal,
+        aboveEditorSection,
+        resize,
+        textAreaStyles,
+        tooltipOptions,
+        hotkeys,
+        debounceDelay,
+        ...editorProps
+      } = this.props;
       const codeEditor = (
         <div>
           <TextAreaEditor
@@ -186,7 +202,7 @@ class TextAreaControl extends Component<TextAreaControlProps> {
             defaultValue={this.props.initialValue}
             readOnly={this.props.readOnly}
             key={this.props.name}
-            {...this.props}
+            {...editorProps}
             onChange={this.handleChange.bind(this)}
           />
         </div>
