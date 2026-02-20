@@ -347,7 +347,7 @@
     "lightningcss": "^1.31.1",
     "mini-css-extract-plugin": "^2.10.0",
     "open-cli": "^8.0.0",
-    "oxlint": "^1.48.0",
+    "oxlint": "^1.49.0",
     "po2json": "^0.4.5",
     "prettier": "3.8.1",
     "prettier-plugin-packagejson": "^3.0.0",
