@@ -29,9 +29,9 @@ from superset_core.mcp import tool
 
 from superset.extensions import event_logger
 from superset.mcp_service.dashboard.constants import (
+    generate_id,
     GRID_COLUMN_COUNT,
     GRID_DEFAULT_CHART_WIDTH,
-    generate_id,
 )
 from superset.mcp_service.dashboard.schemas import (
     DashboardInfo,

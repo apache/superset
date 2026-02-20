@@ -24,7 +24,6 @@ Values match frontend defaults from
 
 import uuid
 
-
 GRID_DEFAULT_CHART_WIDTH = 4
 GRID_COLUMN_COUNT = 12
 
