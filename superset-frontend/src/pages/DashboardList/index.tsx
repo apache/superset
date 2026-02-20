@@ -29,9 +29,11 @@ import { Link } from 'react-router-dom';
 import rison from 'rison';
 import {
   createFetchRelated,
+  createFetchOwners,
   createErrorHandler,
   handleDashboardDelete,
 } from 'src/views/CRUD/utils';
+import { OWNER_OPTION_FILTER_PROPS } from 'src/features/owners/OwnerSelectLabel';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import {
   CertifiedBadge,
@@ -582,9 +584,8 @@ function DashboardList(props: DashboardListProps) {
         input: 'select',
         operator: FilterOperator.RelationManyMany,
         unfilteredLabel: t('All'),
-        fetchSelects: createFetchRelated(
+        fetchSelects: createFetchOwners(
           'dashboard',
-          'owners',
           createErrorHandler(errMsg =>
             addDangerToast(
               t(
@@ -595,6 +596,7 @@ function DashboardList(props: DashboardListProps) {
           ),
           props.user,
         ),
+        optionFilterProps: OWNER_OPTION_FILTER_PROPS,
         paginate: true,
         dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },

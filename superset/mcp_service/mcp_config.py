@@ -33,17 +33,19 @@ SUPERSET_WEBSERVER_ADDRESS = "http://localhost:9001"
 WEBDRIVER_BASEURL = "http://localhost:9001/"
 WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
 
-# Feature flags for MCP
-MCP_FEATURE_FLAGS: Dict[str, Any] = {
-    "MCP_SERVICE": True,
-}
-
 # MCP Service Host/Port
 MCP_SERVICE_HOST = "localhost"
 MCP_SERVICE_PORT = 5008
 
 # MCP Debug mode - shows suppressed initialization output in stdio mode
 MCP_DEBUG = False
+
+# Enable parse_request decorator for MCP tools.
+# When True (default), tool requests are automatically parsed from JSON strings
+# to Pydantic models, working around a Claude Code double-serialization bug
+# (https://github.com/anthropics/claude-code/issues/5504).
+# Set to False to disable and let FastMCP handle request parsing natively.
+MCP_PARSE_REQUEST_ENABLED = True
 
 # Session configuration for local development
 MCP_SESSION_CONFIG = {
@@ -180,21 +182,21 @@ def create_default_mcp_auth_factory(app: Flask) -> Optional[Any]:
         return None
 
     try:
-        from fastmcp.server.auth.providers.bearer import BearerAuthProvider
+        from fastmcp.server.auth.providers.jwt import JWTVerifier
 
         # For HS256 (symmetric), use the secret as the public_key parameter
         if app.config.get("MCP_JWT_ALGORITHM") == "HS256" and secret:
-            auth_provider = BearerAuthProvider(
+            auth_provider = JWTVerifier(
                 public_key=secret,  # HS256 uses secret as key
                 issuer=app.config.get("MCP_JWT_ISSUER"),
                 audience=app.config.get("MCP_JWT_AUDIENCE"),
                 algorithm="HS256",
                 required_scopes=app.config.get("MCP_REQUIRED_SCOPES", []),
             )
-            logger.info("Created BearerAuthProvider with HS256 secret")
+            logger.info("Created JWTVerifier with HS256 secret")
         else:
             # For RS256 (asymmetric), use public key or JWKS
-            auth_provider = BearerAuthProvider(
+            auth_provider = JWTVerifier(
                 jwks_uri=jwks_uri,
                 public_key=public_key,
                 issuer=app.config.get("MCP_JWT_ISSUER"),
@@ -203,7 +205,7 @@ def create_default_mcp_auth_factory(app: Flask) -> Optional[Any]:
                 required_scopes=app.config.get("MCP_REQUIRED_SCOPES", []),
             )
             logger.info(
-                "Created BearerAuthProvider with jwks_uri=%s, public_key=%s",
+                "Created JWTVerifier with jwks_uri=%s, public_key=%s",
                 jwks_uri,
                 "***" if public_key else None,
             )

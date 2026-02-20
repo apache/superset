@@ -29,10 +29,10 @@ test('should render', () => {
   expect(container).toBeInTheDocument();
 });
 
-test('should render the "Actions" heading', () => {
+test('should render the "Filters and controls" heading', () => {
   const mockedProps = createProps();
   render(<Header {...mockedProps} />, { useRedux: true });
-  expect(screen.getByText('Actions')).toBeInTheDocument();
+  expect(screen.getByText('Filters and controls')).toBeInTheDocument();
 });
 
 test('should render the expand button', () => {

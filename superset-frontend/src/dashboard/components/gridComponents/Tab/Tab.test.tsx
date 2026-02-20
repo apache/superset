@@ -28,8 +28,12 @@ import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import { EditableTitle } from '@superset-ui/core/components';
 import { setEditMode, onRefresh } from 'src/dashboard/actions/dashboardState';
 
-import Tab from './Tab';
+import type { FC } from 'react';
+import ActualTab from './Tab';
 import Markdown from '../Markdown';
+
+// Cast to loosely-typed component to avoid needing every required prop in test mocks
+const Tab = ActualTab as unknown as FC<Record<string, unknown>>;
 
 jest.mock('src/dashboard/util/getChartIdsFromComponent', () =>
   jest.fn(() => []),
@@ -135,6 +139,9 @@ const createProps = () => ({
   handleComponentDrop: jest.fn(),
   updateComponents: jest.fn(),
   setDirectPathToChild: jest.fn(),
+  onResizeStart: jest.fn(),
+  onResize: jest.fn(),
+  onResizeStop: jest.fn(),
 });
 
 beforeEach(() => {
@@ -187,11 +194,15 @@ test('Drop on a tab', async () => {
       <Markdown
         id="MARKDOWN-1"
         parentId="GRID_ID"
-        parentComponent={{
-          id: 'GRID_ID',
-          type: 'GRID',
-          parents: ['ROOT_ID'],
-        }}
+        parentComponent={
+          {
+            id: 'GRID_ID',
+            type: 'GRID',
+            parents: ['ROOT_ID'],
+            children: [],
+            meta: {},
+          } as any
+        }
         depth={0}
         editMode
         index={1}
@@ -656,7 +667,7 @@ test('Should not cause infinite refresh loop with nested tabs - regression test'
 
   // REGRESSION TEST: Multiple re-renders should NOT trigger additional refreshes
   // This simulates the infinite loop scenario that was happening with nested tabs
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 5; i += 1) {
     rerender(<Tab {...props} isComponentVisible />);
     await new Promise(resolve => setTimeout(resolve, 20));
   }

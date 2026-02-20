@@ -788,7 +788,7 @@ pytest ./link_to_test.py
 
 ### Frontend Testing
 
-We use [Jest](https://jestjs.io/) and [Enzyme](https://airbnb.io/enzyme/) to test TypeScript/JavaScript. Tests can be run with:
+We use [Jest](https://jestjs.io/) and [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/) to test TypeScript. Tests can be run with:
 
 ```bash
 cd superset-frontend

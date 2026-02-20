@@ -23,6 +23,7 @@ import {
   getStandardizedControls,
   sharedControls,
   sections,
+  ColorSchemeEnum,
 } from '@superset-ui/chart-controls';
 import { noop } from 'lodash';
 import {
@@ -33,7 +34,6 @@ import {
   showMetricNameControl,
   metricNameFontSizeWithVisibility,
 } from '../sharedControls';
-import { ColorSchemeEnum } from './types';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [

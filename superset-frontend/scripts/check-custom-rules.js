@@ -243,7 +243,6 @@ function main() {
     /\/color\/colorSchemes\//,
     /\/cypress\//,
     /\/cypress-base\//,
-    /packages\/superset-ui-demo\//,
     /\/esm\//,
     /\/lib\//,
     /\/dist\//,
@@ -272,7 +271,6 @@ function main() {
         '**/color/colorSchemes/**', // Color scheme definitions legitimately contain colors
         '**/cypress/**',
         '**/cypress-base/**',
-        'packages/superset-ui-demo/**', // Demo package
         '**/esm/**', // Build artifacts
         '**/lib/**', // Build artifacts
         '**/dist/**', // Build artifacts

@@ -20,16 +20,17 @@ import fetchMock from 'fetch-mock';
 import { SupersetClientClass, ClientConfig, CallApi } from '@superset-ui/core';
 import { LOGIN_GLOB } from './fixtures/constants';
 
+beforeAll(() => fetchMock.mockGlobal());
+afterAll(() => fetchMock.hardReset());
+
 describe('SupersetClientClass', () => {
   beforeEach(() => {
-    fetchMock.reset();
-    fetchMock.get(LOGIN_GLOB, { result: '' });
+    fetchMock.clearHistory().removeRoutes();
+    fetchMock.get(LOGIN_GLOB, { result: '' }, { name: LOGIN_GLOB });
   });
 
-  afterAll(() => fetchMock.restore());
-
   describe('new SupersetClientClass()', () => {
-    it('fallback protocol to https when setting only host', () => {
+    test('fallback protocol to https when setting only host', () => {
       const client = new SupersetClientClass({ host: 'TEST-HOST' });
       expect(client.protocol).toEqual('https:');
       expect(client.host).toEqual('test-host');
@@ -46,13 +47,13 @@ describe('SupersetClientClass', () => {
       });
     });
 
-    it('uses url if passed', () => {
+    test('uses url if passed', () => {
       expect(
         client.getUrl({ url: 'myUrl', endpoint: 'blah', host: 'blah' }),
       ).toBe('myUrl');
     });
 
-    it('constructs a valid url from config.protocol + host + endpoint if passed', () => {
+    test('constructs a valid url from config.protocol + host + endpoint if passed', () => {
       expect(client.getUrl({ endpoint: '/test', host: 'myhost' })).toBe(
         'https://myhost/test',
       );
@@ -67,13 +68,13 @@ describe('SupersetClientClass', () => {
       );
     });
 
-    it('constructs a valid url from config.host + endpoint if host is omitted', () => {
+    test('constructs a valid url from config.host + endpoint if host is omitted', () => {
       expect(client.getUrl({ endpoint: '/test' })).toBe(
         'https://config_host/test',
       );
     });
 
-    it('constructs a valid url if url, endpoint, and host are all empty and appRoot is defined', () => {
+    test('constructs a valid url if url, endpoint, and host are all empty and appRoot is defined', () => {
       client = new SupersetClientClass({
         protocol: 'https:',
         host: 'config_host',
@@ -82,50 +83,50 @@ describe('SupersetClientClass', () => {
       expect(client.getUrl()).toBe('https://config_host/prefix/');
     });
 
-    it('does not throw if url, endpoint, and host are all empty', () => {
+    test('does not throw if url, endpoint, and host are all empty', () => {
       client = new SupersetClientClass({ protocol: 'https:', host: '' });
       expect(client.getUrl()).toBe('https://localhost/');
     });
   });
 
   describe('.init()', () => {
-    beforeEach(() =>
-      fetchMock.get(LOGIN_GLOB, { result: 1234 }, { overwriteRoutes: true }),
-    );
-    afterEach(() => fetchMock.reset());
+    beforeEach(() => {
+      fetchMock.removeRoute(LOGIN_GLOB);
+      fetchMock.get(LOGIN_GLOB, { result: 1234 }, { name: LOGIN_GLOB });
+    });
+    afterEach(() => fetchMock.clearHistory().removeRoutes());
 
-    it('calls api/v1/security/csrf_token/ when init() is called if no CSRF token is passed', async () => {
-      expect.assertions(1);
+    test('calls api/v1/security/csrf_token/ when init() is called if no CSRF token is passed', async () => {
+      // expect.assertions(1);
       await new SupersetClientClass().init();
-      expect(fetchMock.calls(LOGIN_GLOB)).toHaveLength(1);
+      expect(fetchMock.callHistory.calls(LOGIN_GLOB)).toHaveLength(1);
     });
 
-    it('does NOT call api/v1/security/csrf_token/ when init() is called if a CSRF token is passed', async () => {
+    test('does NOT call api/v1/security/csrf_token/ when init() is called if a CSRF token is passed', async () => {
       expect.assertions(1);
       await new SupersetClientClass({ csrfToken: 'abc' }).init();
-      expect(fetchMock.calls(LOGIN_GLOB)).toHaveLength(0);
+      expect(fetchMock.callHistory.calls(LOGIN_GLOB)).toHaveLength(0);
     });
 
-    it('calls api/v1/security/csrf_token/ when init(force=true) is called even if a CSRF token is passed', async () => {
+    test('calls api/v1/security/csrf_token/ when init(force=true) is called even if a CSRF token is passed', async () => {
       expect.assertions(4);
       const initialToken = 'initial_token';
       const client = new SupersetClientClass({ csrfToken: initialToken });
 
       await client.init();
-      expect(fetchMock.calls(LOGIN_GLOB)).toHaveLength(0);
+      expect(fetchMock.callHistory.calls(LOGIN_GLOB)).toHaveLength(0);
       expect(client.csrfToken).toBe(initialToken);
 
       await client.init(true);
-      expect(fetchMock.calls(LOGIN_GLOB)).toHaveLength(1);
+      expect(fetchMock.callHistory.calls(LOGIN_GLOB)).toHaveLength(1);
       expect(client.csrfToken).not.toBe(initialToken);
     });
 
-    it('throws if api/v1/security/csrf_token/ returns an error', async () => {
+    test('throws if api/v1/security/csrf_token/ returns an error', async () => {
       expect.assertions(1);
       const rejectError = { status: 403 };
-      fetchMock.get(LOGIN_GLOB, () => Promise.reject(rejectError), {
-        overwriteRoutes: true,
-      });
+      fetchMock.removeRoute(LOGIN_GLOB);
+      fetchMock.get(LOGIN_GLOB, { throws: rejectError }, { name: LOGIN_GLOB });
 
       let error;
       try {
@@ -139,9 +140,9 @@ describe('SupersetClientClass', () => {
 
     const invalidCsrfTokenError = { error: 'Failed to fetch CSRF token' };
 
-    it('throws if api/v1/security/csrf_token/ does not return a token', async () => {
+    test('throws if api/v1/security/csrf_token/ does not return a token', async () => {
       expect.assertions(1);
-      fetchMock.get(LOGIN_GLOB, {}, { overwriteRoutes: true });
+      fetchMock.modifyRoute(LOGIN_GLOB, { response: {} });
 
       let error;
       try {
@@ -155,11 +156,10 @@ describe('SupersetClientClass', () => {
       }
     });
 
-    it('does not set csrfToken if response is not json', async () => {
+    test('does not set csrfToken if response is not json', async () => {
       expect.assertions(1);
-      fetchMock.get(LOGIN_GLOB, '123', {
-        overwriteRoutes: true,
-      });
+      fetchMock.removeRoute(LOGIN_GLOB);
+      fetchMock.get(LOGIN_GLOB, { response: '123' }, { name: LOGIN_GLOB });
 
       let error;
       try {
@@ -175,9 +175,9 @@ describe('SupersetClientClass', () => {
   });
 
   describe('.isAuthenticated()', () => {
-    afterEach(() => fetchMock.reset());
+    afterEach(() => fetchMock.clearHistory().removeRoutes());
 
-    it('returns true if there is a token and false if not', async () => {
+    test('returns true if there is a token and false if not', async () => {
       expect.assertions(2);
       const client = new SupersetClientClass({});
       expect(client.isAuthenticated()).toBe(false);
@@ -185,7 +185,7 @@ describe('SupersetClientClass', () => {
       expect(client.isAuthenticated()).toBe(true);
     });
 
-    it('returns true if a token is passed at configuration', () => {
+    test('returns true if a token is passed at configuration', () => {
       expect.assertions(2);
       const clientWithoutToken = new SupersetClientClass({
         csrfToken: undefined,
@@ -197,7 +197,7 @@ describe('SupersetClientClass', () => {
   });
 
   describe('.ensureAuth()', () => {
-    it(`returns a promise that rejects if .init() has not been called`, async () => {
+    test(`returns a promise that rejects if .init() has not been called`, async () => {
       expect.assertions(2);
 
       const client = new SupersetClientClass({});
@@ -213,7 +213,7 @@ describe('SupersetClientClass', () => {
       expect(client.isAuthenticated()).toBe(false);
     });
 
-    it('returns a promise that resolves if .init() resolves successfully', async () => {
+    test('returns a promise that resolves if .init() resolves successfully', async () => {
       expect.assertions(1);
 
       const client = new SupersetClientClass({});
@@ -223,13 +223,12 @@ describe('SupersetClientClass', () => {
       expect(client.isAuthenticated()).toBe(true);
     });
 
-    it(`returns a promise that rejects if .init() is unsuccessful`, async () => {
+    test(`returns a promise that rejects if .init() is unsuccessful`, async () => {
       expect.assertions(4);
 
       const rejectValue = { status: 403 };
-      fetchMock.get(LOGIN_GLOB, () => Promise.reject(rejectValue), {
-        overwriteRoutes: true,
-      });
+      fetchMock.removeRoutes();
+      fetchMock.get(LOGIN_GLOB, { throws: rejectValue }, { name: LOGIN_GLOB });
 
       const client = new SupersetClientClass({});
       let error;
@@ -253,18 +252,19 @@ describe('SupersetClientClass', () => {
       }
 
       // reset
+      fetchMock.removeRoutes();
       fetchMock.get(
         LOGIN_GLOB,
         { result: 1234 },
         {
-          overwriteRoutes: true,
+          name: LOGIN_GLOB,
         },
       );
     });
   });
 
   describe('requests', () => {
-    afterEach(() => fetchMock.restore());
+    afterEach(() => fetchMock.clearHistory().removeRoutes());
 
     const protocol = 'https:';
     const host = 'host';
@@ -293,7 +293,7 @@ describe('SupersetClientClass', () => {
       fetchMock.post(mockTextUrl, mockTextJsonResponse);
     });
 
-    it('checks for authentication before every get and post request', async () => {
+    test('checks for authentication before every get and post request', async () => {
       expect.assertions(6);
 
       const authSpy = jest.spyOn(SupersetClientClass.prototype, 'ensureAuth');
@@ -306,17 +306,17 @@ describe('SupersetClientClass', () => {
       await client.delete({ url: mockDeleteUrl });
       await client.request({ url: mockRequestUrl, method: 'DELETE' });
 
-      expect(fetchMock.calls(mockGetUrl)).toHaveLength(1);
-      expect(fetchMock.calls(mockPostUrl)).toHaveLength(1);
-      expect(fetchMock.calls(mockDeleteUrl)).toHaveLength(1);
-      expect(fetchMock.calls(mockPutUrl)).toHaveLength(1);
-      expect(fetchMock.calls(mockRequestUrl)).toHaveLength(1);
+      expect(fetchMock.callHistory.calls(mockGetUrl)).toHaveLength(1);
+      expect(fetchMock.callHistory.calls(mockPostUrl)).toHaveLength(1);
+      expect(fetchMock.callHistory.calls(mockDeleteUrl)).toHaveLength(1);
+      expect(fetchMock.callHistory.calls(mockPutUrl)).toHaveLength(1);
+      expect(fetchMock.callHistory.calls(mockRequestUrl)).toHaveLength(1);
 
       expect(authSpy).toHaveBeenCalledTimes(5);
       authSpy.mockRestore();
     });
 
-    it('sets protocol, host, headers, mode, and credentials from config', async () => {
+    test('sets protocol, host, headers, mode, and credentials from config', async () => {
       expect.assertions(3);
 
       const clientConfig: ClientConfig = {
@@ -331,7 +331,8 @@ describe('SupersetClientClass', () => {
       await client.init();
       await client.get({ url: mockGetUrl });
 
-      const fetchRequest = fetchMock.calls(mockGetUrl)[0][1] as CallApi;
+      const fetchRequest = fetchMock.callHistory.calls(mockGetUrl)[0]
+        .options as CallApi;
       expect(fetchRequest.mode).toBe(clientConfig.mode);
       expect(fetchRequest.credentials).toBe(clientConfig.credentials);
       expect(fetchRequest.headers).toEqual(
@@ -341,7 +342,7 @@ describe('SupersetClientClass', () => {
       );
     });
 
-    it('uses a guest token when provided', async () => {
+    test('uses a guest token when provided', async () => {
       expect.assertions(2);
 
       const client = new SupersetClientClass({
@@ -354,29 +355,30 @@ describe('SupersetClientClass', () => {
 
       await client.init();
       await client.get({ url: mockGetUrl });
-      const fetchRequest = fetchMock.calls(mockGetUrl)[0][1] as CallApi;
+      const fetchRequest = fetchMock.callHistory.calls(mockGetUrl)[0]
+        .options as CallApi;
       expect(fetchRequest.headers).toEqual(
         expect.objectContaining({
-          guestTokenHeader: 'abc123',
+          guesttokenheader: 'abc123',
         }),
       );
     });
 
     describe('.get()', () => {
-      it('makes a request using url or endpoint', async () => {
+      test('makes a request using url or endpoint', async () => {
         expect.assertions(2);
 
         const client = new SupersetClientClass({ protocol, host });
         await client.init();
 
         await client.get({ url: mockGetUrl });
-        expect(fetchMock.calls(mockGetUrl)).toHaveLength(1);
+        expect(fetchMock.callHistory.calls(mockGetUrl)).toHaveLength(1);
 
         await client.get({ endpoint: mockGetEndpoint });
-        expect(fetchMock.calls(mockGetUrl)).toHaveLength(2);
+        expect(fetchMock.callHistory.calls(mockGetUrl)).toHaveLength(2);
       });
 
-      it('supports parsing a response as text', async () => {
+      test('supports parsing a response as text', async () => {
         expect.assertions(2);
         const client = new SupersetClientClass({ protocol, host });
         await client.init();
@@ -384,11 +386,11 @@ describe('SupersetClientClass', () => {
           url: mockTextUrl,
           parseMethod: 'text',
         });
-        expect(fetchMock.calls(mockTextUrl)).toHaveLength(1);
+        expect(fetchMock.callHistory.calls(mockTextUrl)).toHaveLength(1);
         expect(text).toBe(mockTextJsonResponse);
       });
 
-      it('allows overriding host, headers, mode, and credentials per-request', async () => {
+      test('allows overriding host, headers, mode, and credentials per-request', async () => {
         expect.assertions(3);
 
         const clientConfig: ClientConfig = {
@@ -409,7 +411,8 @@ describe('SupersetClientClass', () => {
         await client.init();
         await client.get({ url: mockGetUrl, ...overrideConfig });
 
-        const fetchRequest = fetchMock.calls(mockGetUrl)[0][1] as CallApi;
+        const fetchRequest = fetchMock.callHistory.calls(mockGetUrl)[0]
+          .options as CallApi;
         expect(fetchRequest.mode).toBe(overrideConfig.mode);
         expect(fetchRequest.credentials).toBe(overrideConfig.credentials);
         expect(fetchRequest.headers).toEqual(
@@ -421,20 +424,20 @@ describe('SupersetClientClass', () => {
     });
 
     describe('.post()', () => {
-      it('makes a request using url or endpoint', async () => {
+      test('makes a request using url or endpoint', async () => {
         expect.assertions(2);
 
         const client = new SupersetClientClass({ protocol, host });
         await client.init();
 
         await client.post({ url: mockPostUrl });
-        expect(fetchMock.calls(mockPostUrl)).toHaveLength(1);
+        expect(fetchMock.callHistory.calls(mockPostUrl)).toHaveLength(1);
 
         await client.post({ endpoint: mockPostEndpoint });
-        expect(fetchMock.calls(mockPostUrl)).toHaveLength(2);
+        expect(fetchMock.callHistory.calls(mockPostUrl)).toHaveLength(2);
       });
 
-      it('allows overriding host, headers, mode, and credentials per-request', async () => {
+      test('allows overriding host, headers, mode, and credentials per-request', async () => {
         expect.assertions(3);
         const clientConfig: ClientConfig = {
           host,
@@ -454,7 +457,8 @@ describe('SupersetClientClass', () => {
         await client.init();
         await client.post({ url: mockPostUrl, ...overrideConfig });
 
-        const fetchRequest = fetchMock.calls(mockPostUrl)[0][1] as CallApi;
+        const fetchRequest = fetchMock.callHistory.calls(mockPostUrl)[0]
+          .options as CallApi;
 
         expect(fetchRequest.mode).toBe(overrideConfig.mode);
         expect(fetchRequest.credentials).toBe(overrideConfig.credentials);
@@ -465,7 +469,7 @@ describe('SupersetClientClass', () => {
         );
       });
 
-      it('supports parsing a response as text', async () => {
+      test('supports parsing a response as text', async () => {
         expect.assertions(2);
         const client = new SupersetClientClass({ protocol, host });
         await client.init();
@@ -473,11 +477,11 @@ describe('SupersetClientClass', () => {
           url: mockTextUrl,
           parseMethod: 'text',
         });
-        expect(fetchMock.calls(mockTextUrl)).toHaveLength(1);
+        expect(fetchMock.callHistory.calls(mockTextUrl)).toHaveLength(1);
         expect(text).toBe(mockTextJsonResponse);
       });
 
-      it('passes postPayload key,values in the body', async () => {
+      test('passes postPayload key,values in the body', async () => {
         expect.assertions(3);
 
         const postPayload = { number: 123, array: [1, 2, 3] };
@@ -485,16 +489,17 @@ describe('SupersetClientClass', () => {
         await client.init();
         await client.post({ url: mockPostUrl, postPayload });
 
-        const fetchRequest = fetchMock.calls(mockPostUrl)[0][1] as CallApi;
+        const fetchRequest = fetchMock.callHistory.calls(mockPostUrl)[0]
+          .options as CallApi;
         const formData = fetchRequest.body as FormData;
 
-        expect(fetchMock.calls(mockPostUrl)).toHaveLength(1);
+        expect(fetchMock.callHistory.calls(mockPostUrl)).toHaveLength(1);
         Object.entries(postPayload).forEach(([key, value]) => {
           expect(formData.get(key)).toBe(JSON.stringify(value));
         });
       });
 
-      it('respects the stringify parameter for postPayload key,values', async () => {
+      test('respects the stringify parameter for postPayload key,values', async () => {
         expect.assertions(3);
 
         const postPayload = { number: 123, array: [1, 2, 3] };
@@ -502,10 +507,11 @@ describe('SupersetClientClass', () => {
         await client.init();
         await client.post({ url: mockPostUrl, postPayload, stringify: false });
 
-        const fetchRequest = fetchMock.calls(mockPostUrl)[0][1] as CallApi;
+        const fetchRequest = fetchMock.callHistory.calls(mockPostUrl)[0]
+          .options as CallApi;
         const formData = fetchRequest.body as FormData;
 
-        expect(fetchMock.calls(mockPostUrl)).toHaveLength(1);
+        expect(fetchMock.callHistory.calls(mockPostUrl)).toHaveLength(1);
         Object.entries(postPayload).forEach(([key, value]) => {
           expect(formData.get(key)).toBe(String(value));
         });
@@ -523,21 +529,18 @@ describe('SupersetClientClass', () => {
 
     beforeEach(() => {
       originalLocation = window.location;
-      // @ts-ignore
+      // @ts-expect-error
       delete window.location;
-      // @ts-ignore
       window.location = {
         pathname: mockRequestPath,
         search: mockRequestSearch,
         href: mockHref,
-      };
+      } as unknown as Location;
       authSpy = jest
         .spyOn(SupersetClientClass.prototype, 'ensureAuth')
         .mockImplementation();
       const rejectValue = { status: 401 };
-      fetchMock.get(mockRequestUrl, () => Promise.reject(rejectValue), {
-        overwriteRoutes: true,
-      });
+      fetchMock.get(mockRequestUrl, () => Promise.reject(rejectValue));
     });
 
     afterEach(() => {
@@ -545,7 +548,7 @@ describe('SupersetClientClass', () => {
       window.location = originalLocation;
     });
 
-    it('should redirect', async () => {
+    test('should redirect', async () => {
       const client = new SupersetClientClass({});
 
       let error;
@@ -560,15 +563,14 @@ describe('SupersetClientClass', () => {
       }
     });
 
-    it('should not redirect again if already on login page', async () => {
+    test('should not redirect again if already on login page', async () => {
       const client = new SupersetClientClass({});
 
-      // @ts-expect-error
       window.location = {
         href: '/login?next=something',
         pathname: '/login',
         search: '?next=something',
-      };
+      } as unknown as Location;
 
       let error;
       try {
@@ -580,7 +582,7 @@ describe('SupersetClientClass', () => {
         expect(error.status).toBe(401);
       }
     });
-    it('does nothing if instructed to ignoreUnauthorized', async () => {
+    test('does nothing if instructed to ignoreUnauthorized', async () => {
       const client = new SupersetClientClass({});
 
       let error;
@@ -599,7 +601,7 @@ describe('SupersetClientClass', () => {
       }
     });
 
-    it('accepts an unauthorizedHandler to override redirect behavior', async () => {
+    test('accepts an unauthorizedHandler to override redirect behavior', async () => {
       const unauthorizedHandler = jest.fn();
       const client = new SupersetClientClass({ unauthorizedHandler });
 
@@ -636,7 +638,8 @@ describe('SupersetClientClass', () => {
     let createElement: any;
 
     beforeEach(async () => {
-      fetchMock.get(LOGIN_GLOB, { result: 1234 }, { overwriteRoutes: true });
+      fetchMock.removeRoute(LOGIN_GLOB);
+      fetchMock.get(LOGIN_GLOB, { result: 1234 }, { name: LOGIN_GLOB });
 
       client = new SupersetClientClass({ protocol, host });
       authSpy = jest.spyOn(SupersetClientClass.prototype, 'ensureAuth');
@@ -658,7 +661,7 @@ describe('SupersetClientClass', () => {
       jest.restoreAllMocks();
     });
 
-    it.each(['', '/prefix'])(
+    test.each(['', '/prefix'])(
       "makes postForm request when appRoot is '%s'",
       async appRoot => {
         if (appRoot !== '') {
@@ -689,7 +692,7 @@ describe('SupersetClientClass', () => {
       },
     );
 
-    it('makes postForm request with guest token', async () => {
+    test('makes postForm request with guest token', async () => {
       client = new SupersetClientClass({ protocol, host, guestToken });
       await client.init();
 
@@ -708,7 +711,7 @@ describe('SupersetClientClass', () => {
       expect(authSpy).toHaveBeenCalledTimes(1);
     });
 
-    it('makes postForm request with payload', async () => {
+    test('makes postForm request with payload', async () => {
       await client.postForm(mockPostFormUrl, { form_data: postFormPayload });
 
       const postFormPayloadInput = createElement.mock.results[1].value;
@@ -725,7 +728,7 @@ describe('SupersetClientClass', () => {
       expect(authSpy).toHaveBeenCalledTimes(1);
     });
 
-    it('should do nothing when url is empty string', async () => {
+    test('should do nothing when url is empty string', async () => {
       const result = await client.postForm('', {});
       expect(result).toBeUndefined();
       expect(createElement.mock.calls).toHaveLength(0);

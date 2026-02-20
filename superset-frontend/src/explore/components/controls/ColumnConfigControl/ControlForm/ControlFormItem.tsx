@@ -114,7 +114,7 @@ export function ControlFormItem({
               hovered={hovered}
             />
           )}
-          {/* @ts-ignore */}
+          {/* @ts-expect-error - dynamic Control component has varying prop types */}
           <Control {...props} value={value} onChange={handleChange} />
         </>
       )}

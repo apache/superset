@@ -28,7 +28,7 @@ import { removeTables, setActiveSouthPaneTab } from 'src/SqlLab/actions/sqlLab';
 import { Flex, Label } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { SqlLabRootState } from 'src/SqlLab/types';
-import { ViewContribution } from 'src/SqlLab/contributions';
+import { ViewLocations } from 'src/SqlLab/contributions';
 import PanelToolbar from 'src/components/PanelToolbar';
 import { useExtensionsContext } from 'src/extensions/ExtensionsContext';
 import ExtensionsManager from 'src/extensions/ExtensionsManager';
@@ -106,7 +106,7 @@ const SouthPane = ({
   const dispatch = useDispatch();
   const contributions =
     ExtensionsManager.getInstance().getViewContributions(
-      ViewContribution.Panels,
+      ViewLocations.sqllab.panels,
     ) || [];
   const { getView } = useExtensionsContext();
   const { offline, tables } = useSelector(
@@ -242,7 +242,7 @@ const SouthPane = ({
                 padding: 8px;
               `}
             >
-              <PanelToolbar viewId={ViewContribution.Panels} />
+              <PanelToolbar viewId={ViewLocations.sqllab.panels} />
             </Flex>
           ),
         }}

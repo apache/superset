@@ -20,8 +20,9 @@
 import jwt
 import pytest
 
+from flask.ctx import AppContext
 from flask_wtf.csrf import generate_csrf
-from superset import db
+from superset import db, security_manager
 from superset.daos.dashboard import EmbeddedDashboardDAO
 from superset.models.dashboard import Dashboard
 from superset.utils.urls import get_url_host
@@ -33,6 +34,76 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
     load_birth_names_data,  # noqa: F401
 )
+
+
+@pytest.fixture
+def create_test_roles_with_users(app_context: AppContext):
+    """
+    Fixture that creates two test roles with specific users, permissions, and groups.
+    """
+    user1, user2, user3 = [
+        security_manager.add_user(
+            username=f"test_user_{i}",
+            first_name="Test",
+            last_name=f"User{i}",
+            email=f"test_user_{i}@test.com",
+            role=[],
+            password="password",  # noqa: S106
+        )
+        for i in range(3)
+    ]
+
+    test_group = security_manager.add_group(
+        name="test_group_1",
+        label="Test Group 1",
+        description="Test group for role testing",
+        roles=[],
+    )
+
+    pvm1 = security_manager.add_permission_view_menu("can_read", "Dashboard")
+    pvm2 = security_manager.add_permission_view_menu("can_write", "Dashboard")
+    pvm3 = security_manager.add_permission_view_menu("can_read", "Chart")
+
+    test_role_1 = security_manager.add_role("test_role_1", [pvm1, pvm2])
+    test_role_1.user.append(user1)
+    test_role_1.user.append(user2)
+    test_role_1.groups.append(test_group)
+
+    test_role_2 = security_manager.add_role("test_role_2", [pvm3])
+    test_role_2.user.append(user3)
+
+    db.session.commit()
+
+    test_data = {
+        "test_role_1": {
+            "role": test_role_1,
+            "user_ids": sorted([user1.id, user2.id]),
+            "permission_ids": sorted([pvm1.id, pvm2.id]),
+            "group_ids": [test_group.id],
+        },
+        "test_role_2": {
+            "role": test_role_2,
+            "user_ids": [user3.id],
+            "permission_ids": [pvm3.id],
+            "group_ids": [],
+        },
+    }
+
+    yield test_data
+
+    # Cleanup
+    db.session.delete(test_role_1)
+    db.session.delete(test_role_2)
+    db.session.delete(user1)
+    db.session.delete(user2)
+    db.session.delete(user3)
+    db.session.delete(test_group)
+    db.session.commit()
+
+
+@pytest.fixture
+def inject_test_roles_data(request, create_test_roles_with_users):
+    request.instance.test_roles_data = create_test_roles_with_users
 
 
 class TestSecurityCsrfApi(SupersetTestCase):
@@ -293,3 +364,41 @@ class TestSecurityRolesApi(SupersetTestCase):
         self.login(GAMMA_USERNAME)
         response = self.client.get(self.show_uri)
         self.assert403(response)
+
+    @pytest.mark.usefixtures("inject_test_roles_data")
+    def test_get_roles_with_specific_test_data(self):
+        """
+        Security API: Test roles endpoint with specific test data
+        """
+        self.login(ADMIN_USERNAME)
+        response = self.client.get(f"{self.show_uri}?q=(page_size:100)")
+        self.assert200(response)
+
+        data = json.loads(response.data.decode("utf-8"))
+
+        # Create a mapping of role names to API response
+        api_roles_by_name = {role["name"]: role for role in data["result"]}
+
+        # Verify test_role_1
+        assert "test_role_1" in api_roles_by_name, (
+            f"test_role_1 not found in API response. "
+            f"Available roles: {list(api_roles_by_name.keys())}"
+        )
+        role1_api = api_roles_by_name["test_role_1"]
+        role1_expected = self.test_roles_data["test_role_1"]
+
+        assert sorted(role1_api["user_ids"]) == role1_expected["user_ids"]
+        assert sorted(role1_api["permission_ids"]) == role1_expected["permission_ids"]
+        assert sorted(role1_api["group_ids"]) == role1_expected["group_ids"]
+
+        # Verify test_role_2
+        assert "test_role_2" in api_roles_by_name, (
+            f"test_role_2 not found in API response. "
+            f"Available roles: {list(api_roles_by_name.keys())}"
+        )
+        role2_api = api_roles_by_name["test_role_2"]
+        role2_expected = self.test_roles_data["test_role_2"]
+
+        assert sorted(role2_api["user_ids"]) == role2_expected["user_ids"]
+        assert sorted(role2_api["permission_ids"]) == role2_expected["permission_ids"]
+        assert role2_api["group_ids"] == role2_expected["group_ids"]

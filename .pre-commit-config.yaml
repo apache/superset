@@ -27,6 +27,7 @@ repos:
         args: [--check-untyped-defs]
         exclude: ^superset-extensions-cli/
         additional_dependencies: [
+            types-cachetools,
             types-simplejson,
             types-python-dateutil,
             types-requests,

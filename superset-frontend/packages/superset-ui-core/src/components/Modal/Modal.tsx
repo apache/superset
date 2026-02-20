@@ -280,7 +280,7 @@ const CustomModal = ({
   const shouldShowMask = !(resizable || draggable);
 
   const onDragStart = (_: DraggableEvent, uiData: DraggableData) => {
-    const { clientWidth, clientHeight } = window?.document?.documentElement;
+    const { clientWidth, clientHeight } = document.documentElement;
     const targetRect = draggableRef?.current?.getBoundingClientRect();
 
     if (targetRect) {
