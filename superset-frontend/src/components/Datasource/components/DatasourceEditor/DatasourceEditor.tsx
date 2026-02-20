@@ -61,6 +61,7 @@ import {
   Flex,
   FormLabel,
   Icons,
+  InfoTooltip,
   Input,
   Loading,
   Row,
@@ -274,6 +275,9 @@ interface DatasourceEditorState {
   datasourceType: string;
   usageCharts: ChartUsageData[];
   usageChartsCount: number;
+  metricSearchTerm: string;
+  columnSearchTerm: string;
+  calculatedColumnSearchTerm: string;
 }
 
 interface AbortControllers {

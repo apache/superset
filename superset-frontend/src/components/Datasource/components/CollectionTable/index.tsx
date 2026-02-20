@@ -436,14 +436,14 @@ export default class CRUDCollection extends PureComponent<
       : undefined;
 
     // Build controlled pagination config
-    const paginationConfig =
-      typeof pagination === 'object'
-        ? {
-          ...pagination,
-          current: this.state.currentPage,
-          pageSize: this.state.pageSize,
-        }
-        : pagination;
+    const paginationConfig: false | TablePaginationConfig | undefined =
+      pagination === false || pagination === undefined
+        ? pagination
+        : {
+            ...(typeof pagination === 'object' ? pagination : {}),
+            current: this.state.currentPage,
+            pageSize: this.state.pageSize,
+          };
 
     return (
       <>
