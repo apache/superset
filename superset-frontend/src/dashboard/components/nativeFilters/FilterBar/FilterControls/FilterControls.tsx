@@ -282,10 +282,14 @@ const FilterControls: FC<FilterControlsProps> = ({
           />
         );
       }
+      const filterWithDataMask = addDataMaskToCustomization(
+        item,
+        dataMaskSelected,
+      );
       return (
         <FilterControl
           key={item.id}
-          filter={addDataMaskToCustomization(item, dataMaskSelected)}
+          filter={filterWithDataMask}
           dataMaskSelected={dataMaskSelected}
           onFilterSelectionChange={(_, dataMask) =>
             handleChartCustomizationChange(item, dataMask)
