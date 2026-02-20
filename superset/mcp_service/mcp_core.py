@@ -240,7 +240,7 @@ class ModelGetInfoCore(BaseCore):
         serializer: Callable[[T], BaseModel],
         supports_slug: bool = False,
         logger: logging.Logger | None = None,
-        query_options: list | None = None,
+        query_options: list[Any] | None = None,
     ) -> None:
         super().__init__(logger)
         self.dao_class = dao_class

@@ -248,7 +248,7 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         column_name: str,
         value: str | int,
         skip_base_filter: bool = False,
-        query_options: list | None = None,
+        query_options: list[Any] | None = None,
     ) -> T | None:
         """
         Private method to find a model by any column value.
@@ -289,7 +289,7 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         model_id: str | int,
         skip_base_filter: bool = False,
         id_column: str | None = None,
-        query_options: list | None = None,
+        query_options: list[Any] | None = None,
     ) -> T | None:
         """
         Find a model by ID using specified or default ID column.
