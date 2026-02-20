@@ -90,6 +90,11 @@ import FoldersEditor from '../../FoldersEditor';
 const extensionsRegistry = getExtensionsRegistry();
 
 const DatasourceContainer = styled.div`
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+
   .change-warning {
     margin: 16px 10px 0;
     color: ${({ theme }) => theme.colorWarning};
@@ -118,9 +123,23 @@ const FlexRowContainer = styled.div`
 `;
 
 const StyledTableTabs = styled(Tabs)`
-  overflow: visible;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+
   .ant-tabs-content-holder {
-    overflow: visible;
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+  }
+
+  .ant-tabs-content {
+    height: 100%;
+  }
+
+  .ant-tabs-tabpane-active {
+    height: 100%;
   }
 `;
 

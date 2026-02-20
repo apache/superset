@@ -22,7 +22,7 @@ export const FoldersContainer = styled.div`
   display: flex;
   flex-direction: column;
   position: relative;
-  height: 70vh;
+  height: 100%;
   gap: ${({ theme }) => theme.paddingMD}px;
 `;
 
