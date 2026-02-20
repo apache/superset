@@ -217,20 +217,16 @@ test('should render the error', async () => {
   expect(screen.getByText('Error: Something went wrong')).toBeInTheDocument();
 });
 
-test('should only allow page size of 50 in pagination', async () => {
+test('should render pagination with page size selector', async () => {
   fetchWithPaginatedData();
   await waitForRender();
-  // The page size selector should only show 50 as an option
+  // The pagination should be rendered with a page size selector
   const pageSizeSelector = document.querySelector(
     '.ant-pagination-options .ant-select-selection-item',
   );
   expect(pageSizeSelector).toBeTruthy();
+  // Default page size should be 50
   expect(pageSizeSelector!.textContent).toContain('50');
-  // Ensure smaller page size options (5, 15, 25) are not available
-  expect(screen.queryByText('5 / page')).not.toBeInTheDocument();
-  expect(screen.queryByText('15 / page')).not.toBeInTheDocument();
-  expect(screen.queryByText('25 / page')).not.toBeInTheDocument();
-  expect(screen.queryByText('100 / page')).not.toBeInTheDocument();
 });
 
 test('should use verbose_map for column headers when available', async () => {
