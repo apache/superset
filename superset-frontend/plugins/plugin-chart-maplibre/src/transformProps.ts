@@ -18,7 +18,6 @@
  */
 import Supercluster, {
   type Options as SuperclusterOptions,
-  type PointFeature,
 } from 'supercluster';
 import { ChartProps } from '@superset-ui/core';
 import { DEFAULT_POINT_RADIUS, DEFAULT_MAX_ZOOM } from './MapLibre';
@@ -103,7 +102,13 @@ function buildGeoJSONFromRecords(
 }
 
 export default function transformProps(chartProps: ChartProps) {
-  const { width, height, rawFormData: formData, hooks, queriesData } = chartProps;
+  const {
+    width,
+    height,
+    rawFormData: formData,
+    hooks,
+    queriesData,
+  } = chartProps;
   const { onError = NOOP, setControlValue = NOOP } = hooks;
 
   const {
@@ -178,7 +183,8 @@ export default function transformProps(chartProps: ChartProps) {
     };
   }
   const clusterer = new Supercluster<PointProperties, ClusterProperties>(opts);
-  clusterer.load(geoJSON.features as PointFeature<PointProperties>[]);
+  // Disable strict typecheck on load since Supercluster typings have namespace issues with esModuleInterop
+  clusterer.load(geoJSON.features as any);
 
   return {
     width,
