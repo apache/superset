@@ -97,7 +97,7 @@ export type EchartsTimeseriesFormData = QueryFormData & {
   onlyTotal: boolean;
   showExtraControls: boolean;
   percentageThreshold: number;
-  showColorByXAxis?: boolean;
+  colorByPrimaryAxis?: boolean;
   orientation?: OrientationType;
 } & LegendFormData &
   TitleFormData;

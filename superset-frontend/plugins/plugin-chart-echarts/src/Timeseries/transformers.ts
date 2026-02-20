@@ -186,7 +186,7 @@ export function applyColorByXAxis(
   colorScale: CategoricalColorScale,
   sliceId: number | undefined,
   opacity: number,
-): TimeseriesDataRecord[] {
+): { value: [string | number, number]; itemStyle: { color: string; opacity: number; borderWidth: number } }[] {
   return (series.data as [string | number, number][]).map(value => {
     // Use x-axis value as color key so same values get same colors across charts
     const colorKey = String(value[0]);
@@ -235,7 +235,7 @@ export function transformSeries(
     timeShiftColor?: boolean;
     theme?: SupersetTheme;
     hasDimensions?: boolean;
-    showColorByXAxis?: boolean;
+    colorByPrimaryAxis?: boolean;
   },
 ): SeriesOption | undefined {
   const { name, data } = series;
@@ -266,7 +266,7 @@ export function transformSeries(
     timeCompare = [],
     timeShiftColor,
     theme,
-    showColorByXAxis = false,
+    colorByPrimaryAxis = false,
   } = opts;
   const contexts = seriesContexts[name || ''] || [];
   const hasForecast =
@@ -373,7 +373,7 @@ export function transformSeries(
   return {
     ...series,
     ...(Array.isArray(data)
-      ? showColorByXAxis
+      ? colorByPrimaryAxis
         ? { data: applyColorByXAxis(series, colorScale, sliceId, opacity) }
         : seriesType === 'bar' && !stack
           ? { data: optimizeBarLabelPlacement(series, isHorizontal) }
@@ -383,7 +383,7 @@ export function transformSeries(
     queryIndex,
     yAxisIndex,
     name: forecastSeries.name,
-    ...(showColorByXAxis ? {} : { itemStyle }),
+    ...(colorByPrimaryAxis ? {} : { itemStyle }),
     // @ts-ignore
     type: plotType,
     smooth: seriesType === 'smooth',

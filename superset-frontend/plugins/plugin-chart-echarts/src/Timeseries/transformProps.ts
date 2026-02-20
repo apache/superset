@@ -175,7 +175,7 @@ export default function transformProps(
     seriesType,
     showLegend,
     showValue,
-    showColorByXAxis,
+    colorByPrimaryAxis,
     sliceId,
     sortSeriesType,
     sortSeriesAscending,
@@ -422,7 +422,7 @@ export default function transformProps(
         timeShiftColor,
         theme,
         hasDimensions: (groupBy?.length ?? 0) > 0,
-        showColorByXAxis,
+        colorByPrimaryAxis,
       },
     );
     if (transformedSeries) {
@@ -440,8 +440,8 @@ export default function transformProps(
     }
   });
 
-  // Add x-axis color legend when showColorByXAxis is enabled
-  if (showColorByXAxis && groupBy.length === 0 && series.length > 0) {
+  // Add x-axis color legend when colorByPrimaryAxis is enabled
+  if (colorByPrimaryAxis && groupBy.length === 0 && series.length > 0) {
     // Hide original series from legend
     series.forEach(s => {
       s.legendHoverLink = false;
@@ -641,8 +641,8 @@ export default function transformProps(
     isHorizontal,
   );
 
-  const legendData = showColorByXAxis && groupBy.length === 0 && series.length > 0
-    ? // When showColorByXAxis is enabled, show only x-axis values
+  const legendData = colorByPrimaryAxis && groupBy.length === 0 && series.length > 0
+    ? // When colorByPrimaryAxis is enabled, show only x-axis values
     (() => {
       const firstSeries = series[0];
       if (firstSeries && Array.isArray(firstSeries.data)) {
@@ -861,8 +861,8 @@ export default function transformProps(
         padding,
       ),
       scrollDataIndex: legendIndex || 0,
-      data: showColorByXAxis && groupBy.length === 0
-        ? // When showColorByXAxis, configure legend items with roundRect icons
+      data: colorByPrimaryAxis && groupBy.length === 0
+        ? // When colorByPrimaryAxis, configure legend items with roundRect icons
         legendData.map(name => ({
           name,
           icon: 'roundRect',
@@ -872,8 +872,8 @@ export default function transformProps(
           if (!legendSort) return 0;
           return legendSort === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
         }),
-      // Disable legend selection and buttons when showColorByXAxis is enabled
-      ...(showColorByXAxis && groupBy.length === 0
+      // Disable legend selection and buttons when colorByPrimaryAxis is enabled
+      ...(colorByPrimaryAxis && groupBy.length === 0
         ? {
           selectedMode: false, // Disable clicking legend items
           selector: false, // Hide All/Invert buttons

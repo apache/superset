@@ -63,7 +63,7 @@ describe('Bar Chart X-axis Time Formatting', () => {
       });
 
       const transformedProps = transformProps(
-        chartProps as EchartsTimeseriesChartProps,
+        chartProps as unknown as EchartsTimeseriesChartProps,
       );
 
       // Check that the x-axis has a formatter applied
@@ -85,7 +85,7 @@ describe('Bar Chart X-axis Time Formatting', () => {
       });
 
       const transformedProps = transformProps(
-        chartProps as EchartsTimeseriesChartProps,
+        chartProps as unknown as EchartsTimeseriesChartProps,
       );
 
       // Should still have a formatter since DEFAULT_FORM_DATA includes xAxisTimeFormat
@@ -108,7 +108,7 @@ describe('Bar Chart X-axis Time Formatting', () => {
       });
 
       const transformedProps = transformProps(
-        chartProps as EchartsTimeseriesChartProps,
+        chartProps as unknown as EchartsTimeseriesChartProps,
       );
 
       // Verify the formatter function exists and is applied
@@ -144,7 +144,7 @@ describe('Bar Chart X-axis Time Formatting', () => {
         });
 
         const transformedProps = transformProps(
-          chartProps as EchartsTimeseriesChartProps,
+          chartProps as unknown as EchartsTimeseriesChartProps,
         );
 
         const xAxis = transformedProps.echartOptions.xAxis as any;
@@ -168,7 +168,7 @@ describe('Bar Chart X-axis Time Formatting', () => {
       });
 
       const transformedProps = transformProps(
-        chartProps as EchartsTimeseriesChartProps,
+        chartProps as unknown as EchartsTimeseriesChartProps,
       );
 
       // In vertical orientation, time should be on x-axis
@@ -190,7 +190,7 @@ describe('Bar Chart X-axis Time Formatting', () => {
       });
 
       const transformedProps = transformProps(
-        chartProps as EchartsTimeseriesChartProps,
+        chartProps as unknown as EchartsTimeseriesChartProps,
       );
 
       // In horizontal orientation, axes are swapped, so time should be on y-axis
@@ -215,7 +215,7 @@ describe('Bar Chart X-axis Time Formatting', () => {
       });
 
       const transformedProps = transformProps(
-        chartProps as EchartsTimeseriesChartProps,
+        chartProps as unknown as EchartsTimeseriesChartProps,
       );
 
       const xAxis = transformedProps.echartOptions.xAxis as any;
@@ -237,7 +237,7 @@ describe('Bar Chart X-axis Time Formatting', () => {
       });
 
       const transformedProps = transformProps(
-        chartProps as EchartsTimeseriesChartProps,
+        chartProps as unknown as EchartsTimeseriesChartProps,
       );
 
       const xAxis = transformedProps.echartOptions.xAxis as any;
@@ -258,7 +258,7 @@ describe('Bar Chart X-axis Time Formatting', () => {
       });
 
       const transformedProps = transformProps(
-        chartProps as EchartsTimeseriesChartProps,
+        chartProps as unknown as EchartsTimeseriesChartProps,
       );
 
       // Both axis and tooltip should have formatters
@@ -283,7 +283,7 @@ describe('Bar Chart X-axis Time Formatting', () => {
       });
 
       const transformedProps = transformProps(
-        chartProps as EchartsTimeseriesChartProps,
+        chartProps as unknown as EchartsTimeseriesChartProps,
       );
 
       // Verify formatter exists - this is the key fix, ensuring xAxisTimeFormat is used
@@ -368,7 +368,7 @@ describe('Bar Chart X-axis Time Formatting', () => {
     it('should apply color by x-axis when enabled with no dimensions', () => {
       const formData = {
         ...baseFormData,
-        showColorByXAxis: true,
+        colorByPrimaryAxis: true,
         groupby: [],
         x_axis: 'category',
         metric: 'value',
@@ -378,11 +378,10 @@ describe('Bar Chart X-axis Time Formatting', () => {
         ...baseChartPropsConfig,
         queriesData: categoricalData,
         formData,
-        rawFormData: formData,
       });
 
       const transformedProps = transformProps(
-        chartProps as EchartsTimeseriesChartProps,
+        chartProps as unknown as EchartsTimeseriesChartProps,
       );
 
       // Should have hidden legend series for each x-axis value
@@ -407,7 +406,7 @@ describe('Bar Chart X-axis Time Formatting', () => {
     it('should NOT apply color by x-axis when dimensions are present', () => {
       const formData = {
         ...baseFormData,
-        showColorByXAxis: true,
+        colorByPrimaryAxis: true,
         groupby: ['region'],
         x_axis: 'category',
         metric: 'value',
@@ -417,11 +416,11 @@ describe('Bar Chart X-axis Time Formatting', () => {
         ...baseChartPropsConfig,
         queriesData: categoricalData,
         formData,
-        rawFormData: formData,
+
       });
 
       const transformedProps = transformProps(
-        chartProps as EchartsTimeseriesChartProps,
+        chartProps as unknown as EchartsTimeseriesChartProps,
       );
 
       // Legend data should NOT contain x-axis values when dimensions exist
@@ -433,7 +432,7 @@ describe('Bar Chart X-axis Time Formatting', () => {
     it('should use x-axis values as color keys for consistent colors', () => {
       const formData = {
         ...baseFormData,
-        showColorByXAxis: true,
+        colorByPrimaryAxis: true,
         groupby: [],
         x_axis: 'category',
         metric: 'value',
@@ -443,11 +442,11 @@ describe('Bar Chart X-axis Time Formatting', () => {
         ...baseChartPropsConfig,
         queriesData: categoricalData,
         formData,
-        rawFormData: formData,
+
       });
 
       const transformedProps = transformProps(
-        chartProps as EchartsTimeseriesChartProps,
+        chartProps as unknown as EchartsTimeseriesChartProps,
       );
 
       const series = transformedProps.echartOptions.series as any[];
@@ -471,7 +470,7 @@ describe('Bar Chart X-axis Time Formatting', () => {
     it('should disable legend selection when color by x-axis is enabled', () => {
       const formData = {
         ...baseFormData,
-        showColorByXAxis: true,
+        colorByPrimaryAxis: true,
         groupby: [],
         x_axis: 'category',
         metric: 'value',
@@ -481,11 +480,11 @@ describe('Bar Chart X-axis Time Formatting', () => {
         ...baseChartPropsConfig,
         queriesData: categoricalData,
         formData,
-        rawFormData: formData,
+
       });
 
       const transformedProps = transformProps(
-        chartProps as EchartsTimeseriesChartProps,
+        chartProps as unknown as EchartsTimeseriesChartProps,
       );
 
       const legend = transformedProps.echartOptions.legend as any;
@@ -496,7 +495,7 @@ describe('Bar Chart X-axis Time Formatting', () => {
     it('should work without stacking enabled', () => {
       const formData = {
         ...baseFormData,
-        showColorByXAxis: true,
+        colorByPrimaryAxis: true,
         groupby: [],
         stack: null,
         x_axis: 'category',
@@ -507,11 +506,11 @@ describe('Bar Chart X-axis Time Formatting', () => {
         ...baseChartPropsConfig,
         queriesData: categoricalData,
         formData,
-        rawFormData: formData,
+
       });
 
       const transformedProps = transformProps(
-        chartProps as EchartsTimeseriesChartProps,
+        chartProps as unknown as EchartsTimeseriesChartProps,
       );
 
       // Should still create legend with x-axis values
@@ -520,10 +519,10 @@ describe('Bar Chart X-axis Time Formatting', () => {
       expect(legendData).toContain('A');
     });
 
-    it('should handle when showColorByXAxis is disabled', () => {
+    it('should handle when colorByPrimaryAxis is disabled', () => {
       const formData = {
         ...baseFormData,
-        showColorByXAxis: false,
+        colorByPrimaryAxis: false,
         groupby: [],
         x_axis: 'category',
         metric: 'value',
@@ -533,11 +532,11 @@ describe('Bar Chart X-axis Time Formatting', () => {
         ...baseChartPropsConfig,
         queriesData: categoricalData,
         formData,
-        rawFormData: formData,
+
       });
 
       const transformedProps = transformProps(
-        chartProps as EchartsTimeseriesChartProps,
+        chartProps as unknown as EchartsTimeseriesChartProps,
       );
 
       // Legend should not be disabled when feature is off

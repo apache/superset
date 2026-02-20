@@ -140,8 +140,8 @@ export const showValueControl: ControlSetItem = {
   },
 };
 
-export const showColorbyXAxisControl: ControlSetItem = {
-  name: 'show_color_by_x_axis',
+export const colorByPrimaryAxisControl: ControlSetItem = {
+  name: 'color_by_primary_axis',
   config: {
     type: 'CheckboxControl',
     label: t('Color By X-Axis'),
@@ -151,6 +151,16 @@ export const showColorbyXAxisControl: ControlSetItem = {
     visibility: ({ controls }: { controls: any }) =>
       (!controls?.stack?.value || controls?.stack?.value === null) &&
       (!controls?.groupby?.value || controls?.groupby?.value?.length === 0),
+    shouldMapStateToProps: () => true,
+    mapStateToProps: (state: any) => {
+      const isHorizontal = state?.controls?.orientation?.value === 'horizontal';
+      return {
+        label: isHorizontal ? t('Color By Y-Axis') : t('Color By X-Axis'),
+        description: isHorizontal
+          ? t('Color bars by y-axis')
+          : t('Color bars by x-axis'),
+      };
+    },
   },
 };
 
@@ -214,8 +224,8 @@ export const showValueSection: ControlSetRow[] = [
   [percentageThresholdControl],
 ];
 
-export const showColorByXAxisSection: ControlSetRow[] = [
-  [showColorbyXAxisControl],
+export const colorByPrimaryAxisSection: ControlSetRow[] = [
+  [colorByPrimaryAxisControl],
 ];
 
 export const showValueSectionWithoutStack: ControlSetRow[] = [
