@@ -20,6 +20,12 @@
 from unittest.mock import MagicMock, patch
 
 from superset.mcp_service.app import get_default_instructions, init_fastmcp_server
+from superset.mcp_service.mcp_config import (
+    MCP_ALL_KNOWN_FEATURES,
+    MCP_FEATURE_ACTION_LOG,
+    MCP_FEATURE_LIST_ROLES,
+    MCP_FEATURE_LIST_USERS,
+)
 
 
 def test_get_default_instructions_with_default_branding():
@@ -180,7 +186,7 @@ def test_get_default_instructions_with_unavailable_features():
 
 
 def test_init_fastmcp_server_reads_unavailable_features_from_config():
-    """Test that init reads MCP_UNAVAILABLE_FEATURES from Flask config."""
+    """Test init_fastmcp_server reads MCP_UNAVAILABLE_FEATURES from config."""
     features = ["Action Log", "List Users"]
     mock_flask_app = MagicMock()
 
@@ -204,3 +210,13 @@ def test_init_fastmcp_server_reads_unavailable_features_from_config():
             assert "Unavailable Features" in instructions
             assert "Action Log" in instructions
             assert "List Users" in instructions
+
+
+def test_get_default_instructions_with_feature_constants():
+    """Test that MCP_FEATURE_* constants work with get_default_instructions."""
+    instructions = get_default_instructions(unavailable_features=MCP_ALL_KNOWN_FEATURES)
+
+    assert "IMPORTANT - Unavailable Features" in instructions
+    assert MCP_FEATURE_ACTION_LOG in instructions
+    assert MCP_FEATURE_LIST_USERS in instructions
+    assert MCP_FEATURE_LIST_ROLES in instructions

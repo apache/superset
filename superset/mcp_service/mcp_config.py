@@ -75,9 +75,36 @@ MCP_FACTORY_CONFIG = {
     "config": None,  # No additional config
 }
 
+# ---------------------------------------------------------------------------
+# Known Superset UI features that may not exist in all deployments.
+# Use these constants when configuring MCP_UNAVAILABLE_FEATURES to ensure
+# consistent naming across deployments. Custom strings are also accepted.
+# ---------------------------------------------------------------------------
+MCP_FEATURE_ACTION_LOG = "Action Log (Settings > Security > Action Log)"
+MCP_FEATURE_LIST_USERS = "List Users page (Settings > List Users)"
+MCP_FEATURE_LIST_ROLES = "List Roles page (Settings > List Roles)"
+
+# Convenience list of all known Superset-only features for reference.
+MCP_ALL_KNOWN_FEATURES: list[str] = [
+    MCP_FEATURE_ACTION_LOG,
+    MCP_FEATURE_LIST_USERS,
+    MCP_FEATURE_LIST_ROLES,
+]
+
 # Features unavailable in this deployment that LLMs should not suggest.
 # Override in superset_config.py to list features not available in your deployment.
-# Example: ["Action Log (Settings > Security > Action Log)", "List Users page"]
+# You can use the constants above or pass custom strings.
+#
+# Example using constants:
+#   from superset.mcp_service.mcp_config import (
+#       MCP_FEATURE_ACTION_LOG, MCP_FEATURE_LIST_USERS, MCP_FEATURE_LIST_ROLES,
+#   )
+#   MCP_UNAVAILABLE_FEATURES = [
+#       MCP_FEATURE_ACTION_LOG, MCP_FEATURE_LIST_USERS, MCP_FEATURE_LIST_ROLES,
+#   ]
+#
+# Example using custom strings:
+#   MCP_UNAVAILABLE_FEATURES = ["Action Log", "Some Custom Feature"]
 MCP_UNAVAILABLE_FEATURES: list[str] = []
 
 # =============================================================================
