@@ -435,6 +435,65 @@ def test_chart_digest(
             assert get_chart_digest(chart=chart) == expected_result
 
 
+def test_dashboard_digest_deterministic_datasource_order(
+    app_context: None,
+) -> None:
+    """
+    Test that different datasource orderings produce the same digest.
+
+    dashboard.datasources returns a set, whose iteration order is
+    non-deterministic across Python processes (due to PYTHONHASHSEED).
+    The digest must sort datasources by ID to ensure stability.
+    """
+    from superset import security_manager
+    from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
+    from superset.thumbnails.digest import get_dashboard_digest
+
+    kwargs = {**_DEFAULT_DASHBOARD_KWARGS}
+    slices = [Slice(**slice_kwargs) for slice_kwargs in kwargs.pop("slices")]
+    dashboard = Dashboard(**kwargs, slices=slices)
+
+    def make_datasource(ds_id: int) -> MagicMock:
+        ds = MagicMock(spec=BaseDatasource)
+        ds.id = ds_id
+        ds.type = DatasourceType.TABLE
+        ds.is_rls_supported = True
+        ds.get_sqla_row_level_filters = MagicMock(return_value=[f"filter_ds_{ds_id}"])
+        return ds
+
+    ds_a = make_datasource(5)
+    ds_b = make_datasource(3)
+    ds_c = make_datasource(9)
+
+    user = User(id=1, username="1")
+
+    digests = []
+    for ordering in [[ds_a, ds_b, ds_c], [ds_c, ds_a, ds_b], [ds_b, ds_c, ds_a]]:
+        with (
+            patch.dict(
+                current_app.config,
+                {
+                    "THUMBNAIL_EXECUTORS": [ExecutorType.CURRENT_USER],
+                    "THUMBNAIL_DASHBOARD_DIGEST_FUNC": None,
+                },
+            ),
+            patch.object(
+                type(dashboard),
+                "datasources",
+                new_callable=PropertyMock,
+                return_value=ordering,
+            ),
+            patch.object(security_manager, "find_user", return_value=user),
+            patch.object(security_manager, "prefetch_rls_filters", return_value=None),
+            override_user(user),
+        ):
+            digests.append(get_dashboard_digest(dashboard=dashboard))
+
+    assert digests[0] == digests[1] == digests[2]
+    assert digests[0] is not None
+
+
 def test_dashboard_digest_prefetches_rls_filters(
     app_context: None,
 ) -> None:

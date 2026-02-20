@@ -79,7 +79,7 @@ def _adjust_string_with_rls(
             if table_ids:
                 security_manager.prefetch_rls_filters(table_ids)
 
-            for datasource in datasources:
+            for datasource in sorted(datasources, key=lambda d: d.id if d else -1):
                 if datasource and getattr(datasource, "is_rls_supported", False):
                     rls_filters = datasource.get_sqla_row_level_filters()
 
@@ -110,7 +110,7 @@ def get_dashboard_digest(dashboard: Dashboard) -> str | None:
         return func(dashboard, executor_type, executor)
 
     unique_string = (
-        f"{dashboard.id}\n{dashboard.charts}\n{dashboard.position_json}\n"
+        f"{dashboard.id}\n{sorted(dashboard.charts)}\n{dashboard.position_json}\n"
         f"{dashboard.css}\n{dashboard.json_metadata}"
     )
 
