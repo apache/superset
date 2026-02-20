@@ -50,6 +50,7 @@ import {
   pointerSensorOptions,
   measuringConfig,
   autoScrollConfig,
+  createCollisionDetection,
 } from './sensors';
 import { FoldersContainer, FoldersContent } from './styles';
 import { FoldersEditorProps } from './types';
@@ -143,6 +144,7 @@ export default function FoldersEditor({
   const {
     isDragging,
     activeId,
+    draggedFolderChildIds,
     dragOverlayWidth,
     flattenedItems,
     dragOverlayItems,
@@ -395,9 +397,22 @@ export default function FoldersEditor({
     return separators;
   }, [flattenedItems, lastChildIds]);
 
+  // Exclude dragged folder children from SortableContext so
+  // verticalListSortingStrategy doesn't try to compute transforms
+  // for items that are rendered as non-sortable hidden divs during drag
   const sortableItemIds = useMemo(
-    () => flattenedItems.map(({ uuid }) => uuid),
-    [flattenedItems],
+    () =>
+      draggedFolderChildIds.size > 0
+        ? flattenedItems
+            .filter(item => !draggedFolderChildIds.has(item.uuid))
+            .map(({ uuid }) => uuid)
+        : flattenedItems.map(({ uuid }) => uuid),
+    [flattenedItems, draggedFolderChildIds],
+  );
+
+  const collisionDetection = useMemo(
+    () => createCollisionDetection(activeId),
+    [activeId],
   );
 
   const selectedMetricsCount = useMemo(() => {
@@ -448,6 +463,7 @@ export default function FoldersEditor({
       <FoldersContent ref={contentRef}>
         <DndContext
           sensors={sensors}
+          collisionDetection={collisionDetection}
           measuring={measuringConfig}
           autoScroll={autoScrollConfig}
           onDragStart={handleDragStart}
@@ -479,6 +495,7 @@ export default function FoldersEditor({
                   columnsMap={columnsMap}
                   isDragging={isDragging}
                   activeId={activeId}
+                  draggedFolderChildIds={draggedFolderChildIds}
                   forbiddenDropFolderIds={forbiddenDropFolderIds}
                   currentDropTargetId={currentDropTargetId}
                   onToggleCollapse={handleToggleCollapse}
@@ -497,6 +514,7 @@ export default function FoldersEditor({
               selectedItemIds={selectedItemIds}
               metricsMap={metricsMap}
               columnsMap={columnsMap}
+              itemSeparatorInfo={itemSeparatorInfo}
             />
           </DragOverlay>
         </DndContext>

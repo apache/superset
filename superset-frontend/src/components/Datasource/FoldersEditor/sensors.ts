@@ -21,7 +21,68 @@ import {
   PointerSensorOptions,
   MeasuringConfiguration,
   MeasuringStrategy,
+  rectIntersection,
+  pointerWithin,
+  closestCenter,
+  CollisionDetection,
+  UniqueIdentifier,
 } from '@dnd-kit/core';
+
+/**
+ * Custom collision detection that deprioritizes the active (dragged) item.
+ *
+ * When dragging a folder block, the DragPlaceholder at the original position
+ * registers as a droppable. rectIntersection uses a translated RECT (not just
+ * the pointer) for collision checks, so its result can overlap with both the
+ * DragPlaceholder and a neighbouring item. When the DragPlaceholder wins by
+ * area, overId stays as the active item and the "same position" early-return
+ * in handleDragEnd prevents the reposition.
+ *
+ * This strategy falls back to pointerWithin when rectIntersection picks the
+ * active item, which uses the actual pointer position and reliably detects the
+ * item the user is hovering over. When the pointer lands in tiny gaps between
+ * droppable rects (inner element refs are slightly smaller than react-window
+ * slots), closestCenter is used as a final fallback to find the nearest item.
+ */
+export function createCollisionDetection(
+  activeId: UniqueIdentifier | null,
+): CollisionDetection {
+  if (!activeId) return rectIntersection;
+
+  return args => {
+    const collisions = rectIntersection(args);
+
+    // If the best match is NOT the active item, keep rectIntersection result
+    if (collisions.length === 0 || collisions[0]?.id !== activeId) {
+      return collisions;
+    }
+
+    // rectIntersection picked the active item — try pointerWithin for a
+    // more accurate result based on the actual pointer position
+    const pointerCollisions = pointerWithin(args);
+    const nonActivePointer = pointerCollisions.find(c => c.id !== activeId);
+    if (nonActivePointer) {
+      return [nonActivePointer, ...collisions];
+    }
+
+    // If pointerWithin found the active item (pointer IS over the
+    // DragPlaceholder), keep it — this allows horizontal drag for depth
+    // changes to work correctly.
+    if (pointerCollisions.length > 0) {
+      return collisions;
+    }
+
+    // Pointer is in a tiny gap between droppable rects — use closestCenter
+    // to find the nearest item instead of snapping back to original position
+    const centerCollisions = closestCenter(args);
+    const nonActiveCenter = centerCollisions.find(c => c.id !== activeId);
+    if (nonActiveCenter) {
+      return [nonActiveCenter, ...collisions];
+    }
+
+    return collisions;
+  };
+}
 
 export const pointerSensorOptions: PointerSensorOptions = {
   activationConstraint: {
