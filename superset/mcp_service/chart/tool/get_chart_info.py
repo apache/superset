@@ -22,6 +22,7 @@ MCP tool: get_chart_info
 import logging
 
 from fastmcp import Context
+from sqlalchemy.orm import subqueryload
 from superset_core.mcp import tool
 
 from superset.commands.exceptions import CommandException
@@ -93,12 +94,19 @@ async def get_chart_info(
     Returns chart details including name, type, and URL.
     """
     from superset.daos.chart import ChartDAO
+    from superset.models.slice import Slice
     from superset.utils import json as utils_json
 
     await ctx.info(
         "Retrieving chart information: identifier=%s, form_data_key=%s"
         % (request.identifier, request.form_data_key)
     )
+
+    # Eager load owners and tags to avoid N+1 queries during serialization
+    eager_options = [
+        subqueryload(Slice.owners),
+        subqueryload(Slice.tags),
+    ]
 
     with event_logger.log_context(action="mcp.get_chart_info.lookup"):
         tool = ModelGetInfoCore(
@@ -108,6 +116,7 @@ async def get_chart_info(
             serializer=serialize_chart_object,
             supports_slug=False,  # Charts don't have slugs
             logger=logger,
+            query_options=eager_options,
         )
 
         result = tool.run_tool(request.identifier)
