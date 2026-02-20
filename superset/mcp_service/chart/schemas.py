@@ -395,10 +395,32 @@ class FilterConfig(BaseModel):
     column: str = Field(
         ..., description="Column to filter on", min_length=1, max_length=255
     )
-    op: Literal["=", ">", "<", ">=", "<=", "!="] = Field(
-        ..., description="Filter operator"
+    op: Literal[
+        "=",
+        ">",
+        "<",
+        ">=",
+        "<=",
+        "!=",
+        "LIKE",
+        "ILIKE",
+        "NOT LIKE",
+        "IN",
+        "NOT IN",
+    ] = Field(
+        ...,
+        description=(
+            "Filter operator. Use LIKE/ILIKE for pattern matching with % wildcards "
+            "(e.g., '%mario%'). Use IN/NOT IN with a list of values."
+        ),
     )
-    value: str | int | float | bool = Field(..., description="Filter value")
+    value: str | int | float | bool | list[str | int | float | bool] = Field(
+        ...,
+        description=(
+            "Filter value. For IN/NOT IN operators, provide a list of values. "
+            "For LIKE/ILIKE, use % as wildcard (e.g., '%mario%')."
+        ),
+    )
 
     @field_validator("column")
     @classmethod
@@ -410,9 +432,28 @@ class FilterConfig(BaseModel):
 
     @field_validator("value")
     @classmethod
-    def sanitize_value(cls, v: str | int | float | bool) -> str | int | float | bool:
+    def sanitize_value(
+        cls, v: str | int | float | bool | list[str | int | float | bool]
+    ) -> str | int | float | bool | list[str | int | float | bool]:
         """Sanitize filter value to prevent XSS and SQL injection attacks."""
+        if isinstance(v, list):
+            return [sanitize_filter_value(item, max_length=1000) for item in v]
         return sanitize_filter_value(v, max_length=1000)
+
+    @model_validator(mode="after")
+    def validate_value_type_matches_operator(self) -> FilterConfig:
+        """Validate that value type matches the operator requirements."""
+        if self.op in ("IN", "NOT IN"):
+            if not isinstance(self.value, list):
+                raise ValueError(
+                    f"Operator '{self.op}' requires a list of values, "
+                    f"got {type(self.value).__name__}"
+                )
+        elif isinstance(self.value, list):
+            raise ValueError(
+                f"Operator '{self.op}' requires a single value, not a list"
+            )
+        return self
 
 
 # Actual chart types
