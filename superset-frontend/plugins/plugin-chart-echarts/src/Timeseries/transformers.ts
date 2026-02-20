@@ -181,7 +181,7 @@ export function optimizeBarLabelPlacement(
   return (series.data as TimeseriesDataRecord[]).map(transformValue);
 }
 
-export function applyColorByXAxis(
+export function applyColorByPrimaryAxis(
   series: SeriesOption,
   colorScale: CategoricalColorScale,
   sliceId: number | undefined,
@@ -374,7 +374,7 @@ export function transformSeries(
     ...series,
     ...(Array.isArray(data)
       ? colorByPrimaryAxis
-        ? { data: applyColorByXAxis(series, colorScale, sliceId, opacity) }
+        ? { data: applyColorByPrimaryAxis(series, colorScale, sliceId, opacity) }
         : seriesType === 'bar' && !stack
           ? { data: optimizeBarLabelPlacement(series, isHorizontal) }
           : null
