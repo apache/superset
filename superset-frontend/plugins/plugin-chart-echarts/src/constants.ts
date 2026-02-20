@@ -64,6 +64,16 @@ export const LABEL_POSITION: [LabelPositionEnum, string][] = [
   [LabelPositionEnum.InsideBottomRight, 'Inside bottom right'],
 ];
 
+// Radar charts use polar coordinates and only support a limited set of label positions
+// These are the positions that ECharts correctly renders for radar series data items
+export const RADAR_LABEL_POSITION: [LabelPositionEnum, string][] = [
+  [LabelPositionEnum.Top, 'Top'],
+  [LabelPositionEnum.Left, 'Left'],
+  [LabelPositionEnum.Right, 'Right'],
+  [LabelPositionEnum.Bottom, 'Bottom'],
+  [LabelPositionEnum.Inside, 'Inside'],
+];
+
 export enum OpacityEnum {
   Transparent = 0,
   SemiTransparent = 0.3,

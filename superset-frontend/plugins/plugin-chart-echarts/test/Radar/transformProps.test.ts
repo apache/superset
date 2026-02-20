@@ -24,6 +24,7 @@ import {
   EchartsRadarChartProps,
   EchartsRadarFormData,
 } from '../../src/Radar/types';
+import { LabelPositionEnum } from '../../src/types';
 
 interface RadarIndicator {
   name: string;
@@ -200,5 +201,96 @@ describe('legend sorting', () => {
       'Mark sales',
       'Arnold sales',
     ]);
+  });
+});
+
+describe('label position configuration', () => {
+  const createChartPropsWithLabelPosition = (position: LabelPositionEnum) =>
+    new ChartProps({
+      ...chartProps,
+      formData: {
+        ...formData,
+        groupby: ['name'],
+        metrics: ['SUM(eu_sales)'],
+        labelPosition: position,
+        showLabels: true,
+      },
+      queriesData: [
+        {
+          data: [
+            {
+              name: 'Test Series',
+              'SUM(eu_sales)': 2434.13,
+            },
+          ],
+        },
+      ],
+    });
+
+  it('should apply top label position to radar series data items', () => {
+    const props = createChartPropsWithLabelPosition(LabelPositionEnum.Top);
+    const result = transformProps(props as EchartsRadarChartProps);
+    const series = result.echartOptions.series as RadarSeriesOption[];
+
+    expect((series[0].data as any)[0].label.position).toBe('top');
+  });
+
+  it('should apply left label position to radar series data items', () => {
+    const props = createChartPropsWithLabelPosition(LabelPositionEnum.Left);
+    const result = transformProps(props as EchartsRadarChartProps);
+    const series = result.echartOptions.series as RadarSeriesOption[];
+
+    expect((series[0].data as any)[0].label.position).toBe('left');
+  });
+
+  it('should apply right label position to radar series data items', () => {
+    const props = createChartPropsWithLabelPosition(LabelPositionEnum.Right);
+    const result = transformProps(props as EchartsRadarChartProps);
+    const series = result.echartOptions.series as RadarSeriesOption[];
+
+    expect((series[0].data as any)[0].label.position).toBe('right');
+  });
+
+  it('should apply bottom label position to radar series data items', () => {
+    const props = createChartPropsWithLabelPosition(LabelPositionEnum.Bottom);
+    const result = transformProps(props as EchartsRadarChartProps);
+    const series = result.echartOptions.series as RadarSeriesOption[];
+
+    expect((series[0].data as any)[0].label.position).toBe('bottom');
+  });
+
+  it('should apply inside label position to radar series data items', () => {
+    const props = createChartPropsWithLabelPosition(LabelPositionEnum.Inside);
+    const result = transformProps(props as EchartsRadarChartProps);
+    const series = result.echartOptions.series as RadarSeriesOption[];
+
+    expect((series[0].data as any)[0].label.position).toBe('inside');
+  });
+
+  it('should hide labels when showLabels is false', () => {
+    const props = new ChartProps({
+      ...chartProps,
+      formData: {
+        ...formData,
+        groupby: ['name'],
+        metrics: ['SUM(eu_sales)'],
+        labelPosition: LabelPositionEnum.Top,
+        showLabels: false,
+      },
+      queriesData: [
+        {
+          data: [
+            {
+              name: 'Test Series',
+              'SUM(eu_sales)': 2434.13,
+            },
+          ],
+        },
+      ],
+    });
+    const result = transformProps(props as EchartsRadarChartProps);
+    const series = result.echartOptions.series as RadarSeriesOption[];
+
+    expect((series[0].data as any)[0].label.show).toBe(false);
   });
 });
