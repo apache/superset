@@ -26,12 +26,12 @@ import pytest
 from fastmcp import Client
 
 from superset.mcp_service.app import mcp
+from superset.mcp_service.dashboard.constants import generate_id
 from superset.mcp_service.dashboard.tool.add_chart_to_existing_dashboard import (
     _add_chart_to_layout,
     _ensure_layout_structure,
     _find_next_row_position,
     _find_tab_insert_target,
-    _generate_id,
 )
 from superset.utils import json
 
@@ -671,17 +671,17 @@ class TestLayoutHelpers:
 
     def test_generate_id_format(self):
         """Test that _generate_id produces correct format."""
-        row_id = _generate_id("ROW")
+        row_id = generate_id("ROW")
         assert row_id.startswith("ROW-")
         assert len(row_id) == 12
 
-        col_id = _generate_id("COLUMN")
+        col_id = generate_id("COLUMN")
         assert col_id.startswith("COLUMN-")
         assert len(col_id) == 15
 
     def test_generate_id_uniqueness(self):
         """Test that _generate_id produces unique IDs."""
-        ids = {_generate_id("ROW") for _ in range(100)}
+        ids = {generate_id("ROW") for _ in range(100)}
         assert len(ids) == 100
 
     def test_find_next_row_position_empty_layout(self):

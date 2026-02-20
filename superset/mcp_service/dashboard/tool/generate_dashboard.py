@@ -22,13 +22,17 @@ This tool creates a new dashboard with specified charts and layout configuration
 """
 
 import logging
-import uuid
 from typing import Any, Dict, List
 
 from fastmcp import Context
 from superset_core.mcp import tool
 
 from superset.extensions import event_logger
+from superset.mcp_service.dashboard.constants import (
+    GRID_COLUMN_COUNT,
+    GRID_DEFAULT_CHART_WIDTH,
+    generate_id,
+)
 from superset.mcp_service.dashboard.schemas import (
     DashboardInfo,
     GenerateDashboardRequest,
@@ -39,17 +43,6 @@ from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 
 logger = logging.getLogger(__name__)
-
-# Match frontend defaults from superset-frontend/src/dashboard/util/constants.ts
-GRID_DEFAULT_CHART_WIDTH = 4
-GRID_COLUMN_COUNT = 12
-
-
-def _generate_id(prefix: str) -> str:
-    """
-    Generate a component ID matching the frontend's nanoid-style pattern.
-    """
-    return f"{prefix}-{uuid.uuid4().hex[:8]}"
 
 
 def _create_dashboard_layout(chart_objects: List[Any]) -> Dict[str, Any]:
@@ -73,7 +66,7 @@ def _create_dashboard_layout(chart_objects: List[Any]) -> Dict[str, Any]:
     # Create rows with charts wrapped in columns
     row_ids = []
     for i in range(0, len(chart_objects), charts_per_row):
-        row_id = _generate_id("ROW")
+        row_id = generate_id("ROW")
         row_ids.append(row_id)
 
         # Get charts for this row (up to 2 charts like real dashboards)
@@ -85,7 +78,7 @@ def _create_dashboard_layout(chart_objects: List[Any]) -> Dict[str, Any]:
 
         for chart in row_charts:
             chart_key = f"CHART-{chart.id}"
-            column_key = _generate_id("COLUMN")
+            column_key = generate_id("COLUMN")
             column_keys.append(column_key)
 
             # Create chart component with standard dimensions

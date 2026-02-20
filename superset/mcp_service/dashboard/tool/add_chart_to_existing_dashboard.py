@@ -22,13 +22,17 @@ This tool adds a chart to an existing dashboard with automatic layout positionin
 """
 
 import logging
-import uuid
 from typing import Any, Dict
 
 from fastmcp import Context
 from superset_core.mcp import tool
 
 from superset.extensions import event_logger
+from superset.mcp_service.dashboard.constants import (
+    GRID_COLUMN_COUNT,
+    GRID_DEFAULT_CHART_WIDTH,
+    generate_id,
+)
 from superset.mcp_service.dashboard.schemas import (
     AddChartToDashboardRequest,
     AddChartToDashboardResponse,
@@ -39,20 +43,6 @@ from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 
 logger = logging.getLogger(__name__)
-
-# Match frontend defaults from superset-frontend/src/dashboard/util/constants.ts
-GRID_DEFAULT_CHART_WIDTH = 4
-GRID_COLUMN_COUNT = 12
-
-
-def _generate_id(prefix: str) -> str:
-    """
-    Generate a component ID matching the frontend's nanoid-style pattern.
-
-    Uses a UUID hex prefix to produce IDs like ``ROW-a1b2c3d4`` which are
-    compatible with the frontend's ``nanoid()``-based ID generation.
-    """
-    return f"{prefix}-{uuid.uuid4().hex[:8]}"
 
 
 def _find_next_row_position(layout: Dict[str, Any]) -> str:
@@ -66,10 +56,10 @@ def _find_next_row_position(layout: Dict[str, Any]) -> str:
     Returns:
         A new unique ROW ID string.
     """
-    row_key = _generate_id("ROW")
+    row_key = generate_id("ROW")
     # Ensure uniqueness (extremely unlikely collision, but safe)
     while row_key in layout:
-        row_key = _generate_id("ROW")
+        row_key = generate_id("ROW")
     return row_key
 
 
@@ -126,7 +116,7 @@ def _add_chart_to_layout(
         Tuple of ``(chart_key, column_key, row_key)``.
     """
     chart_key = f"CHART-{chart_id}"
-    column_key = _generate_id("COLUMN")
+    column_key = generate_id("COLUMN")
     chart_width = GRID_DEFAULT_CHART_WIDTH
     chart_height = 50  # Good height for most chart types
 
