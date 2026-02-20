@@ -121,8 +121,7 @@ def _add_chart_to_layout(
     chart_height = 50  # Good height for most chart types
 
     # Build the parents chain up to the parent container
-    parent_component = layout.get(parent_id)
-    if parent_component is not None:
+    if (parent_component := layout.get(parent_id)) is not None:
         parent_parents = parent_component.get("parents", [])
     elif parent_id == "GRID_ID":
         # Empty layout: GRID_ID will be created by _ensure_layout_structure
