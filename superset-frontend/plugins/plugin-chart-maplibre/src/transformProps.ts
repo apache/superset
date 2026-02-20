@@ -18,6 +18,7 @@
  */
 import Supercluster, {
   type Options as SuperclusterOptions,
+  type PointFeature,
 } from 'supercluster';
 import { ChartProps } from '@superset-ui/core';
 import { DEFAULT_POINT_RADIUS, DEFAULT_MAX_ZOOM } from './MapLibre';
@@ -177,7 +178,7 @@ export default function transformProps(chartProps: ChartProps) {
     };
   }
   const clusterer = new Supercluster<PointProperties, ClusterProperties>(opts);
-  clusterer.load(geoJSON.features);
+  clusterer.load(geoJSON.features as PointFeature<PointProperties>[]);
 
   return {
     width,
