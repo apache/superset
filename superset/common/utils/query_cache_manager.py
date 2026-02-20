@@ -134,7 +134,11 @@ class QueryCacheManager:
                 "queried_dttm": self.queried_dttm,
                 "dttm": self.queried_dttm,  # Backwards compatibility
             }
-            if self.is_loaded and key and self.status != QueryStatus.FAILED:
+            if (
+                self.is_loaded
+                and key
+                and self.status not in (QueryStatus.FAILED, QueryStatus.STOPPED)
+            ):
                 self.set(
                     key=key,
                     value=value,
@@ -166,8 +170,6 @@ class QueryCacheManager:
 
         if cache_value := _cache[region].get(key):
             logger.debug("Cache key: %s", key)
-            # Log cache hit for debugging
-            logger.debug("CACHE GET - Key: %s, Region: %s", key, region)
             current_app.config["STATS_LOGGER"].incr("loading_from_cache")
             try:
                 query_cache.df = cache_value["df"]

@@ -67,6 +67,7 @@ from superset.commands.database.exceptions import DatabaseInvalidError
 from superset.constants import LRU_CACHE_MAX_SIZE, PASSWORD_MASK
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import MetricType, TimeGrain
+from superset.exceptions import SupersetCancelQueryException
 from superset.extensions import (
     cache_manager,
     encrypted_field_factory,
@@ -668,12 +669,115 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             )
         return sql_
 
+    def _execute_with_cancel_capture(
+        self,
+        cursor: Any,
+        sql: str,
+        client_id: str,
+        catalog: str | None,
+        schema: str | None,
+        inflight_cache: Any,
+    ) -> None:
+        """
+        Execute SQL in a background thread while polling for the cancel query
+        ID to appear on the cursor.  Once the ID is captured it is stored in
+        ``inflight_cache`` so the ``/data/stop`` endpoint can cancel the query.
+
+        This is needed for engines like Trino where ``cursor.execute()``
+        blocks until the query completes and the query ID is only available
+        after the initial HTTP round-trip inside ``execute()``.
+
+        This follows the same pattern as
+        ``TrinoEngineSpec.execute_with_cursor()`` which also runs execute in a
+        background thread to capture the query ID for SQL Lab cancellation.
+        """
+        import threading
+        import time
+
+        execute_result: dict[str, Any] = {}
+        execute_event = threading.Event()
+
+        def _run(flask_app: Any) -> None:
+            try:
+                with flask_app.app_context():
+                    self.db_engine_spec.execute(cursor, sql, self)
+            except Exception as ex:  # pylint: disable=broad-except
+                execute_result["error"] = ex
+            finally:
+                execute_event.set()
+
+        thread = threading.Thread(
+            target=_run,
+            args=(app._get_current_object(),),  # pylint: disable=protected-access
+            daemon=True,
+        )
+        thread.start()
+
+        # Poll for the cancel query ID; same approach as
+        # TrinoEngineSpec.execute_with_cursor (trino.py:394).
+        time.sleep(0.1)
+        while not execute_event.is_set():
+            cancel_query_id = self.db_engine_spec.get_cancel_query_id(
+                cursor, None  # type: ignore[arg-type]
+            )
+            if cancel_query_id is not None:
+                inflight_cache.set(
+                    client_id,
+                    {
+                        "cancel_query_id": cancel_query_id,
+                        "database_id": self.id,
+                        "catalog": catalog,
+                        "schema": schema,
+                    },
+                )
+                break
+            time.sleep(0.1)
+
+        execute_event.wait()
+
+        if err := execute_result.get("error"):
+            # Trino raises TrinoUserError with ADMINISTRATIVELY_KILLED when a
+            # query is cancelled via cancel_query().  Convert it to a clean
+            # SupersetCancelQueryException so upper layers can handle it
+            # gracefully instead of logging a scary traceback.
+            if "ADMINISTRATIVELY_KILLED" in str(err):
+                raise SupersetCancelQueryException(
+                    "Query was cancelled"
+                ) from err
+            raise err
+
+    def _store_cancel_info(
+        self,
+        cursor: Any,
+        client_id: str,
+        catalog: str | None,
+        schema: str | None,
+        inflight_cache: Any,
+    ) -> bool:
+        """Capture cancel_query_id from cursor and store in inflight cache."""
+        cancel_query_id = self.db_engine_spec.get_cancel_query_id(
+            cursor, None  # type: ignore[arg-type]
+        )
+        if cancel_query_id is not None:
+            inflight_cache.set(
+                client_id,
+                {
+                    "cancel_query_id": cancel_query_id,
+                    "database_id": self.id,
+                    "catalog": catalog,
+                    "schema": schema,
+                },
+            )
+            return True
+        return False
+
     def _execute_sql_with_mutation_and_logging(
         self,
         sql: str,
         catalog: str | None = None,
         schema: str | None = None,
         fetch_last_result: bool = False,
+        client_id: str | None = None,
     ) -> tuple[Any, list[tuple[Any, ...]] | None, DbapiDescription | None]:
         """
         Internal method to execute SQL with mutation and logging.
@@ -682,6 +786,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         :param catalog: Optional catalog name
         :param schema: Optional schema name
         :param fetch_last_result: Whether to fetch results from last statement
+        :param client_id: Optional client-generated ID for server-side cancellation
         :return: Tuple of (cursor, rows, description) where rows and description
         are None if not fetching.
         """
@@ -692,34 +797,60 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
 
         log_query = app.config["QUERY_LOGGER"]
 
-        def _log_query(sql_: str) -> None:
-            if log_query:
-                log_query(
-                    engine_url,
-                    sql_,
-                    schema,
-                    __name__,
-                    security_manager,
-                )
+        inflight_cache = None
+        if client_id and not self.db_engine_spec.has_implicit_cancel():
+            inflight_cache = cache_manager.inflight_query_cache
 
         with self.get_raw_connection(catalog=catalog, schema=schema) as conn:
             cursor = conn.cursor()
             rows = None
             description = None
 
+            # Capture cancel_query_id before execute (Postgres, MySQL, etc.)
+            cancel_info_stored = False
+            if inflight_cache is not None:
+                assert client_id is not None
+                cancel_info_stored = self._store_cancel_info(
+                    cursor, client_id, catalog, schema, inflight_cache,
+                )
+
             for i, statement in enumerate(script.statements):
                 sql_ = self.mutate_sql_based_on_config(
                     statement.format(),
                     is_split=True,
                 )
-                _log_query(sql_)
+                if log_query:
+                    log_query(
+                        engine_url, sql_, schema, __name__, security_manager,
+                    )
 
-                with event_logger.log_context(
-                    action="execute_sql",
-                    database=self,
-                    object_ref=__name__,
-                ):
-                    self.db_engine_spec.execute(cursor, sql_, self)
+                # For engines where cancel_query_id is only available DURING
+                # execute (e.g. Trino), run execute in a thread and poll for
+                # the query_id to appear on the cursor.
+                need_threaded = (
+                    inflight_cache is not None and not cancel_info_stored
+                )
+
+                if need_threaded:
+                    assert client_id is not None
+                    self._execute_with_cancel_capture(
+                        cursor, sql_, client_id, catalog, schema,
+                        inflight_cache,
+                    )
+                else:
+                    try:
+                        with event_logger.log_context(
+                            action="execute_sql",
+                            database=self,
+                            object_ref=__name__,
+                        ):
+                            self.db_engine_spec.execute(cursor, sql_, self)
+                    except Exception as ex:
+                        if cancel_info_stored:
+                            raise SupersetCancelQueryException(
+                                "Query was cancelled"
+                            ) from ex
+                        raise
 
                 # Fetch results from last statement if requested
                 if fetch_last_result and i == len(script.statements) - 1:
@@ -729,6 +860,10 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                 else:
                     # Consume results without storing
                     cursor.fetchall()
+
+            # Cleanup: remove inflight state after successful completion
+            if inflight_cache is not None:
+                inflight_cache.delete(client_id)
 
             return cursor, rows, description
 
@@ -765,9 +900,10 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         catalog: str | None = None,
         schema: str | None = None,
         mutator: Callable[[pd.DataFrame], None] | None = None,
+        client_id: str | None = None,
     ) -> pd.DataFrame:
         cursor, rows, description = self._execute_sql_with_mutation_and_logging(
-            sql, catalog, schema, fetch_last_result=True
+            sql, catalog, schema, fetch_last_result=True, client_id=client_id
         )
 
         df = None

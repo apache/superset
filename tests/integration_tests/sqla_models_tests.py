@@ -1242,7 +1242,7 @@ def test_column_ordering_without_chart_flag(login_as_admin):
             }
         )
 
-        def mock_get_df(sql, catalog=None, schema=None, mutator=None):
+        def mock_get_df(sql, catalog=None, schema=None, mutator=None, client_id=None):
             """Mock get_df that calls the mutator function if provided."""
             df = mock_df.copy()
             if mutator:

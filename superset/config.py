@@ -1139,6 +1139,16 @@ EXPLORE_FORM_DATA_CACHE_CONFIG: CacheConfig = {
     "CODEC": JsonKeyValueCodec(),
 }
 
+# Cache for in-flight chart query cancel information.
+# Stores cancel_query_id so that running chart queries can be cancelled
+# server-side via POST /api/v1/chart/data/stop.
+INFLIGHT_QUERY_STATE_CACHE_CONFIG: CacheConfig = {
+    "CACHE_TYPE": "SupersetMetastoreCache",
+    "CACHE_DEFAULT_TIMEOUT": 300,
+    "CACHE_KEY_PREFIX": "inflight_query_",
+    "CODEC": JsonKeyValueCodec(),
+}
+
 # store cache keys by datasource UID (via CacheKey) for custom processing/invalidation
 STORE_CACHE_KEYS_IN_METADATA_DB = False
 

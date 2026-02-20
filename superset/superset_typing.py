@@ -190,6 +190,9 @@ class QueryObjectDict(TypedDict, total=False):
     rls: list[Any]
     changed_on: datetime | None
 
+    # Server-side query cancellation
+    client_id: str | None
+
     # Deprecated fields (still in use)
     groupby: list[Column]
     timeseries_limit: int

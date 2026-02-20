@@ -52,6 +52,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
         result_format: ChartDataResultFormat | None = None,
         force: bool = False,
         custom_cache_timeout: int | None = None,
+        client_id: str | None = None,
     ) -> QueryContext:
         datasource_model_instance = None
         if datasource:
@@ -100,6 +101,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             force=force,
             custom_cache_timeout=custom_cache_timeout,
             cache_values=cache_values,
+            client_id=client_id,
         )
 
     def _convert_to_model(self, datasource: DatasourceDict) -> Explorable:

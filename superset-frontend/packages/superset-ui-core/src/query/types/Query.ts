@@ -170,6 +170,8 @@ export interface QueryContext {
   result_format: string;
   queries: QueryObject[];
   form_data?: QueryFormData;
+  /** Client-generated ID for server-side query cancellation */
+  client_id?: string;
 }
 
 // Keep in sync with superset/errors.py

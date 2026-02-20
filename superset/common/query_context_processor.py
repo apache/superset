@@ -240,7 +240,10 @@ class QueryContextProcessor:
         which handles query execution, normalization, time offsets, and
         post-processing.
         """
-        return self._qc_datasource.get_query_result(query_object)
+        return self._qc_datasource.get_query_result(
+            query_object,
+            client_id=self._query_context.client_id,
+        )
 
     def get_data(
         self, df: pd.DataFrame, coltypes: list[GenericDataType]

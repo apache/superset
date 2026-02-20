@@ -36,6 +36,7 @@ import {
   JsonObject,
   MatrixifyFormData,
   DatasourceType,
+  SupersetClient,
 } from '@superset-ui/core';
 import {
   ControlStateMapping,
@@ -457,7 +458,10 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
   }, [props.actions, props.chart.id, props.timeout]);
 
   const onQuery = useCallback(() => {
-    props.actions.setForceQuery(false);
+    // Force a fresh query if the previous one was cancelled, so we never
+    // serve a stale empty result from cache.
+    const wasCancelled = props.chart.chartStatus === 'stopped';
+    props.actions.setForceQuery(wasCancelled);
 
     // Skip main query if Matrixify is enabled
     if (isMatrixifyEnabled(props.form_data as MatrixifyFormData)) {
@@ -480,6 +484,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
     addHistory,
     props.actions,
     props.chart.id,
+    props.chart.chartStatus,
     props.form_data,
   ]);
 
@@ -501,6 +506,25 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
   function onStop() {
     if (props.chart && props.chart.queryController) {
       props.chart.queryController.abort();
+    }
+    // Immediately mark the chart as stopped so the loading spinner disappears,
+    // regardless of whether the AbortError propagates through SupersetClient.
+    if (props.chart?.id != null) {
+      props.actions.chartUpdateStopped(props.chart.id);
+    }
+    const clientId = props.chart?.clientId;
+    if (clientId) {
+      SupersetClient.post({
+        endpoint: '/api/v1/chart/data/stop',
+        jsonPayload: { client_id: clientId },
+      })
+        .then(() => {
+          props.addSuccessToast?.(t('Query was cancelled'));
+        })
+        .catch(() => {
+          // 404 means the query already finished or was already cancelled.
+          // Stay silent — the chart is already marked as stopped above.
+        });
     }
   }
 

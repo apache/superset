@@ -72,7 +72,9 @@ class Explorable(Protocol):
     # Core Query Interface
     # =========================================================================
 
-    def get_query_result(self, query_object: QueryObject) -> QueryResult:
+    def get_query_result(
+        self, query_object: QueryObject, client_id: str | None = None
+    ) -> QueryResult:
         """
         Execute a query and return results.
 

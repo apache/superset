@@ -80,6 +80,7 @@ from superset.exceptions import (
     InvalidPostProcessingError,
     QueryClauseValidationException,
     QueryObjectValidationError,
+    SupersetCancelQueryException,
     SupersetErrorException,
     SupersetErrorsException,
     SupersetSecurityException,
@@ -1148,6 +1149,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         This method is the unified entry point for query execution across all
         datasource types (Query, SqlaTable, etc.).
         """
+        client_id = query_obj.pop("client_id", None)
         qry_start_dttm = datetime.now()
         query_str_ext = self.get_query_str_extended(query_obj)
         sql = query_str_ext.sql
@@ -1184,7 +1186,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 self.catalog,
                 self.schema,
                 mutator=assign_column_label,
+                client_id=client_id,
             )
+        except SupersetCancelQueryException:
+            df = pd.DataFrame()
+            status = QueryStatus.STOPPED
+            logger.info("Query on schema %s was cancelled by user", self.schema)
+            error_message = "Query was cancelled"
         except Exception as ex:  # pylint: disable=broad-except
             # Re-raise SupersetErrorException (includes OAuth2RedirectError)
             # to bubble up to API layer
@@ -1298,7 +1306,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         return df
 
-    def get_query_result(self, query_object: QueryObject) -> QueryResult:
+    def get_query_result(
+        self, query_object: QueryObject, client_id: str | None = None
+    ) -> QueryResult:
         """
         Execute query and return results with full processing pipeline.
 
@@ -1309,10 +1319,14 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         4. Post-processing operations
 
         :param query_object: The query configuration
+        :param client_id: Optional client-generated ID for server-side cancellation
         :return: QueryResult with processed dataframe
         """
         # Execute the base query
-        result = self.query(query_object.to_dict())
+        query_dict = query_object.to_dict()
+        if client_id:
+            query_dict["client_id"] = client_id
+        result = self.query(query_dict)
         query = result.query + ";\n\n" if result.query else ""
 
         # Process the dataframe if not empty

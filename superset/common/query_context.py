@@ -71,6 +71,7 @@ class QueryContext:
         force: bool = False,
         custom_cache_timeout: int | None = None,
         cache_values: dict[str, Any],
+        client_id: str | None = None,
     ) -> None:
         self.datasource = datasource
         self.slice_ = slice_
@@ -81,6 +82,7 @@ class QueryContext:
         self.force = force
         self.custom_cache_timeout = custom_cache_timeout
         self.cache_values = cache_values
+        self.client_id = client_id
         self._processor = QueryContextProcessor(self)
 
     def get_data(

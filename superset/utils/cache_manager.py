@@ -193,6 +193,7 @@ class CacheManager:
         self._thumbnail_cache = SupersetCache()
         self._filter_state_cache = SupersetCache()
         self._explore_form_data_cache = ExploreFormDataCache()
+        self._inflight_query_cache = SupersetCache()
         self._signal_cache: RedisCacheBackend | RedisSentinelCacheBackend | None = None
 
     @staticmethod
@@ -234,6 +235,11 @@ class CacheManager:
             self._explore_form_data_cache,
             "EXPLORE_FORM_DATA_CACHE_CONFIG",
             required=True,
+        )
+        self._init_cache(
+            app,
+            self._inflight_query_cache,
+            "INFLIGHT_QUERY_STATE_CACHE_CONFIG",
         )
         self._init_signal_cache(app)
 
@@ -279,6 +285,10 @@ class CacheManager:
     @property
     def explore_form_data_cache(self) -> Cache:
         return self._explore_form_data_cache
+
+    @property
+    def inflight_query_cache(self) -> Cache:
+        return self._inflight_query_cache
 
     @property
     def signal_cache(

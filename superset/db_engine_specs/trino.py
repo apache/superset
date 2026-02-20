@@ -411,6 +411,21 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
             raise err
 
     @classmethod
+    def get_cancel_query_id(cls, cursor: Any, query: Query) -> str | None:
+        """
+        Get Trino query ID for cancellation.
+
+        The query_id is available on the cursor after execute() is called.
+
+        :param cursor: Cursor instance in which the query will be executed
+        :param query: Query instance (unused for Trino)
+        :return: Trino queryId or None
+        """
+        if hasattr(cursor, "query_id") and cursor.query_id:
+            return str(cursor.query_id)
+        return None
+
+    @classmethod
     def prepare_cancel_query(cls, query: Query) -> None:
         if QUERY_CANCEL_KEY not in query.extra:
             query.set_extra_json_key(QUERY_EARLY_CANCEL_KEY, True)

@@ -27,7 +27,7 @@ from flask_babel import gettext as _
 from marshmallow import ValidationError
 from werkzeug.utils import secure_filename
 
-from superset import is_feature_enabled, security_manager
+from superset import db, is_feature_enabled, security_manager
 from superset.async_events.async_query_manager import AsyncQueryTokenException
 from superset.charts.api import ChartRestApi
 from superset.charts.client_processing import apply_client_processing
@@ -49,7 +49,8 @@ from superset.connectors.sqla.models import BaseDatasource
 from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.daos.exceptions import DatasourceNotFound
 from superset.exceptions import QueryObjectValidationError
-from superset.extensions import event_logger
+from superset.extensions import cache_manager, event_logger
+from superset.models.core import Database
 from superset.models.sql_lab import Query
 from superset.utils import json
 from superset.utils.core import (
@@ -68,7 +69,7 @@ logger = logging.getLogger(__name__)
 
 
 class ChartDataRestApi(ChartRestApi):
-    include_route_methods = {"get_data", "data", "data_from_cache"}
+    include_route_methods = {"get_data", "data", "data_from_cache", "stop"}
 
     @expose("/<int:pk>/data/", methods=("GET",))
     @protect()
@@ -352,6 +353,70 @@ class ChartDataRestApi(ChartRestApi):
             )
 
         return self._get_data_response(command, True)
+
+    @expose("/data/stop", methods=("POST",))
+    @protect()
+    @statsd_metrics
+    def stop(self) -> Response:
+        """Stop a running chart query by client_id.
+        ---
+        post:
+          summary: Stop a running chart query
+          description: >-
+            Cancels a running chart query on the database engine using a
+            client-generated ID that was sent with the original data request.
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    client_id:
+                      type: string
+          responses:
+            200:
+              description: Query cancelled
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        if not request.is_json or not request.json:
+            return self.response_400(message=_("Request is not JSON"))
+
+        client_id = request.json.get("client_id")
+        if not client_id:
+            return self.response_400(message=_("client_id is required"))
+
+        cancel_info = cache_manager.inflight_query_cache.get(client_id)
+        if not cancel_info:
+            return self.response_404()
+
+        database = db.session.query(Database).get(cancel_info["database_id"])
+        if not database:
+            return self.response_404()
+
+        if database.db_engine_spec.has_implicit_cancel():
+            cache_manager.inflight_query_cache.delete(client_id)
+            return self.response(200, message="Query cancelled (implicit)")
+
+        from contextlib import closing
+
+        with database.get_sqla_engine(
+            catalog=cancel_info.get("catalog"),
+            schema=cancel_info.get("schema"),
+        ) as engine:
+            with closing(engine.raw_connection()) as conn:
+                with closing(conn.cursor()) as cursor:
+                    database.db_engine_spec.cancel_query(
+                        cursor, None, cancel_info["cancel_query_id"]
+                    )
+
+        cache_manager.inflight_query_cache.delete(client_id)
+        return self.response(200, message="Query cancelled")
 
     def _run_async(
         self,
