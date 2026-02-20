@@ -304,7 +304,7 @@
     "babel-plugin-dynamic-import-node": "^2.3.3",
     "babel-plugin-jsx-remove-data-test-id": "^3.0.0",
     "babel-plugin-lodash": "^3.3.4",
-    "baseline-browser-mapping": "^2.9.19",
+    "baseline-browser-mapping": "^2.10.0",
     "cheerio": "1.2.0",
     "concurrently": "^9.2.1",
     "copy-webpack-plugin": "^13.0.1",
