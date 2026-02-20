@@ -34,7 +34,7 @@ export function getColumnKeywords(columns: ColumnMeta[]) {
     }) => ({
       name: verbose_name || column_name,
       value: column_name,
-      docHTML: getTooltipHTML({
+      documentation: getTooltipHTML({
         title: column_name,
         body: `type: ${type || 'unknown'}<br />${description ? `description: ${description}` : ''}`,
         footer: is_certified ? t('Certified by %s', certified_by) : undefined,

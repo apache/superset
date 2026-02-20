@@ -91,9 +91,11 @@ import { fetchSyncedColumns, updateColumns } from '../../utils';
 import DatasetUsageTab from './components/DatasetUsageTab';
 import {
   DEFAULT_COLUMNS_FOLDER_UUID,
+  DEFAULT_FOLDERS_COUNT,
   DEFAULT_METRICS_FOLDER_UUID,
 } from '../../FoldersEditor/constants';
 import { validateFolders } from '../../FoldersEditor/folderValidation';
+import { countAllFolders } from '../../FoldersEditor/treeUtils';
 import FoldersEditor from '../../FoldersEditor';
 import { DatasourceFolder } from 'src/explore/components/DatasourcePanel/types';
 
@@ -266,6 +268,7 @@ interface DatasourceEditorState {
   databaseColumns: Column[];
   calculatedColumns: Column[];
   folders: DatasourceFolder[];
+  folderCount: number;
   metadataLoading: boolean;
   activeTabKey: string;
   datasourceType: string;
@@ -284,6 +287,7 @@ interface AbortControllers {
 interface CollectionTabTitleProps {
   title: string;
   collection?: unknown[] | { length: number };
+  count?: number;
 }
 
 interface ColumnCollectionTableProps {
@@ -315,6 +319,11 @@ interface OwnersSelectorProps {
 }
 
 const DatasourceContainer = styled.div`
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+
   .change-warning {
     margin: 16px 10px 0;
     color: ${({ theme }) => theme.colorWarning};
@@ -343,9 +352,23 @@ const FlexRowContainer = styled.div`
 `;
 
 const StyledTableTabs = styled(Tabs)`
-  overflow: visible;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+
   .ant-tabs-content-holder {
-    overflow: visible;
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+  }
+
+  .ant-tabs-content {
+    height: 100%;
+  }
+
+  .ant-tabs-tabpane-active {
+    height: 100%;
   }
 `;
 
@@ -458,6 +481,7 @@ DATASOURCE_TYPES_ARR.forEach(o => {
 function CollectionTabTitle({
   title,
   collection,
+  count,
 }: CollectionTabTitleProps): JSX.Element {
   return (
     <div
@@ -465,7 +489,10 @@ function CollectionTabTitle({
       data-test={`collection-tab-${title}`}
     >
       {title}{' '}
-      <StyledBadge count={collection ? collection.length : 0} showZero />
+      <StyledBadge
+        count={count ?? (collection ? collection.length : 0)}
+        showZero
+      />
     </div>
   );
 }
@@ -905,6 +932,8 @@ class DatasourceEditor extends PureComponent<
         col => !!col.expression,
       ),
       folders: props.datasource.folders || [],
+      folderCount:
+        countAllFolders(props.datasource.folders || []) + DEFAULT_FOLDERS_COUNT,
       metadataLoading: false,
       activeTabKey: TABS_KEYS.SOURCE,
       datasourceType: props.datasource.sql
@@ -988,13 +1017,14 @@ class DatasourceEditor extends PureComponent<
   }
 
   handleFoldersChange(folders: DatasourceFolder[]) {
+    const folderCount = countAllFolders(folders);
     const userMadeFolders = folders.filter(
       f =>
         f.uuid !== DEFAULT_METRICS_FOLDER_UUID &&
         f.uuid !== DEFAULT_COLUMNS_FOLDER_UUID &&
         (f.children?.length ?? 0) > 0,
     );
-    this.setState({ folders: userMadeFolders }, () => {
+    this.setState({ folders: userMadeFolders, folderCount }, () => {
       this.onDatasourceChange({
         ...this.state.datasource,
         folders: userMadeFolders,
@@ -2405,7 +2435,7 @@ class DatasourceEditor extends PureComponent<
                     key: TABS_KEYS.FOLDERS,
                     label: (
                       <CollectionTabTitle
-                        collection={this.state.folders}
+                        count={this.state.folderCount}
                         title={t('Folders')}
                       />
                     ),

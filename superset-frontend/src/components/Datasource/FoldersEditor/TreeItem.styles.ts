@@ -83,6 +83,10 @@ export const TreeFolderContainer = styled(TreeItemContainer)<{
     margin-right: ${theme.marginMD}px;
     transition: background-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 
+    &:hover:not(:has(input)) [aria-label="move"] {
+      color: ${theme.colorText};
+    }
+
     /* Drop target styles - controlled via data attributes for performance */
     &[data-drop-target="true"] {
       background-color: ${theme.colorPrimaryBg};
@@ -116,15 +120,7 @@ export const DragHandle = styled.span`
     color: ${theme.colorTextTertiary};
     display: inline-flex;
     align-items: center;
-    cursor: grab;
-
-    &:hover {
-      color: ${theme.colorText};
-    }
-
-    &:active {
-      cursor: grabbing;
-    }
+    transition: color 0.15s ease-in-out;
   `}
 `;
 
@@ -158,6 +154,7 @@ export const FolderName = styled.span`
   ${({ theme }) => `
     margin-right: ${theme.marginMD}px;
     font-weight: ${theme.fontWeightStrong};
+    cursor: pointer;
   `}
 `;
 

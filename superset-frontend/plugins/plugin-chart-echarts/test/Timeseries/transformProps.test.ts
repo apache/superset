@@ -304,8 +304,8 @@ describe('EchartsTimeseries transformProps', () => {
     expect(formulaSeries).toBeDefined();
     expect(formulaSeries?.data).toBeDefined();
     expect(Array.isArray(formulaSeries?.data)).toBe(true);
-    expect((formulaSeries?.data as unknown[]).length).toBeGreaterThan(0);
-    const firstDataPoint = (formulaSeries?.data as [number, number][])[0];
+    expect((formulaSeries?.data as unknown[])?.length).toBeGreaterThan(0);
+    const firstDataPoint = (formulaSeries?.data as [number, number][])?.[0];
     expect(firstDataPoint).toBeDefined();
     expect(firstDataPoint[1]).toBe(firstDataPoint[0] * 2);
   });
@@ -384,7 +384,7 @@ describe('EchartsTimeseries transformProps', () => {
       result.echartOptions.series as SeriesOption[] | undefined
     )?.find((s: SeriesOption) => s.name === 'My Formula');
     expect(formulaSeries).toBeDefined();
-    const firstDataPoint = (formulaSeries?.data as [number, number][])[0];
+    const firstDataPoint = (formulaSeries?.data as [number, number][])?.[0];
     expect(firstDataPoint).toBeDefined();
     expect(firstDataPoint[0]).toBe(firstDataPoint[1] * 2);
   });

@@ -55,7 +55,7 @@ const { useQueryState: useTablesQueryState } = tableEndpoints.tables;
 
 const getHelperText = (value: string) =>
   value.length > 30 && {
-    docText: value,
+    detail: value,
   };
 
 const extensionsRegistry = getExtensionsRegistry();
