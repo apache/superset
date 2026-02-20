@@ -137,6 +137,7 @@
     "@superset-ui/legacy-preset-chart-nvd3": "file:./plugins/legacy-preset-chart-nvd3",
     "@superset-ui/plugin-chart-ag-grid-table": "file:./plugins/plugin-chart-ag-grid-table",
     "@superset-ui/plugin-chart-cartodiagram": "file:./plugins/plugin-chart-cartodiagram",
+    "plugin-chart-custom-gauge": "file:./plugins/plugin-chart-custom-gauge",
     "@superset-ui/plugin-chart-echarts": "file:./plugins/plugin-chart-echarts",
     "@superset-ui/plugin-chart-handlebars": "file:./plugins/plugin-chart-handlebars",
     "@superset-ui/plugin-chart-pivot-table": "file:./plugins/plugin-chart-pivot-table",
@@ -413,7 +414,8 @@
     "@luma.gl/engine": "~9.2.5",
     "@luma.gl/gltf": "~9.2.5",
     "@luma.gl/shadertools": "~9.2.5",
-    "@luma.gl/webgl": "~9.2.5"
+    "@luma.gl/webgl": "~9.2.5",
+    "geostyler-qgis-parser": "1.0.0"
   },
   "readme": "ERROR: No README data found!",
   "scarfSettings": {

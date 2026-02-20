@@ -70,6 +70,7 @@ import {
   EchartsHeatmapChartPlugin,
   EchartsGanttChartPlugin,
 } from '@superset-ui/plugin-chart-echarts';
+import CustomGaugeChartPlugin from 'plugin-chart-custom-gauge';
 import {
   SelectFilterPlugin,
   RangeFilterPlugin,
@@ -129,6 +130,7 @@ export default class MainPreset extends Preset {
         new EchartsTreemapChartPlugin().configure({ key: VizType.Treemap }),
         new EchartsGanttChartPlugin().configure({ key: VizType.Gantt }),
         new EchartsGaugeChartPlugin().configure({ key: VizType.Gauge }),
+        new CustomGaugeChartPlugin().configure({ key: 'custom_gauge' }),
         new EchartsGraphChartPlugin().configure({ key: VizType.Graph }),
         new EchartsRadarChartPlugin().configure({ key: VizType.Radar }),
         new EchartsMixedTimeseriesChartPlugin().configure({

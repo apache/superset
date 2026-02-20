@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { UnifiedListBarChartProps } from './types';
 import { Styles } from './styles';
 import { Row } from './components/Row';
