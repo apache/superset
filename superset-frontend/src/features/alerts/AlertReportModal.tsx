@@ -2500,19 +2500,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                                 </div>
                               ))}
                               {filterNativeFilterOptions().length > 0 && (
-                                // eslint-disable-next-line jsx-a11y/anchor-is-valid
                                 <Button
                                   className="filters-add-btn"
                                   buttonStyle="link"
                                   onClick={() => {
                                     handleAddFilterField();
                                     add();
-                                  }}
-                                  onKeyDown={e => {
-                                    if (e.key === 'Enter' || e.key === ' ') {
-                                      handleAddFilterField();
-                                      add();
-                                    }
                                   }}
                                 >
                                   + {t('Apply another dashboard filter')}
