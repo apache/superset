@@ -74,8 +74,7 @@ function DragOverlayContentInner({
           // it would be an orphaned boundary with nothing after it.
           const isLastVisible =
             index === visibleItems.length - 1 && remainingCount === 0;
-          const effectiveSeparator =
-            isLastVisible ? undefined : separatorType;
+          const effectiveSeparator = isLastVisible ? undefined : separatorType;
           return (
             <FolderBlockSlot
               key={item.uuid}

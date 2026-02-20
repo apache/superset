@@ -100,9 +100,7 @@ export function useDragHandlers({
   // the folder from moving to shallower levels.
   const projectionItems = useMemo(() => {
     if (draggedFolderChildIds.size === 0) return flattenedItems;
-    return flattenedItems.filter(
-      item => !draggedFolderChildIds.has(item.uuid),
-    );
+    return flattenedItems.filter(item => !draggedFolderChildIds.has(item.uuid));
   }, [flattenedItems, draggedFolderChildIds]);
 
   const projectionIndexMap = useMemo(() => {
@@ -282,7 +280,8 @@ export function useDragHandlers({
     const fallbackOverId = lastValidOverIdRef.current;
     resetDragState();
 
-    const effectiveOver = over ?? (fallbackOverId ? { id: fallbackOverId } : null);
+    const effectiveOver =
+      over ?? (fallbackOverId ? { id: fallbackOverId } : null);
     if (!effectiveOver || itemsBeingDragged.length === 0) {
       return;
     }
