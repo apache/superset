@@ -145,7 +145,7 @@ class TestPreviewXAxisInQueryContext:
 class TestGetChartPreview:
     """Tests for get_chart_preview MCP tool."""
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_get_chart_preview_request_structure(self):
         """Test that preview request structures are properly formed."""
         # Numeric ID request
@@ -172,7 +172,7 @@ class TestGetChartPreview:
         request4 = GetChartPreviewRequest(identifier=789)
         assert request4.format == "url"  # default
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_preview_format_types(self):
         """Test different preview format types."""
         formats = ["url", "ascii", "table"]
@@ -180,7 +180,7 @@ class TestGetChartPreview:
             request = GetChartPreviewRequest(identifier=1, format=fmt)
             assert request.format == fmt
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_url_preview_structure(self):
         """Test URLPreview response structure."""
         preview = URLPreview(
@@ -195,7 +195,7 @@ class TestGetChartPreview:
         assert preview.height == 600
         assert preview.supports_interaction is False
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_ascii_preview_structure(self):
         """Test ASCIIPreview response structure."""
         ascii_art = """
@@ -218,7 +218,7 @@ class TestGetChartPreview:
         assert preview.width == 25
         assert preview.height == 8
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_table_preview_structure(self):
         """Test TablePreview response structure."""
         table_content = """
@@ -240,7 +240,7 @@ class TestGetChartPreview:
         assert preview.row_count == 4
         assert preview.supports_sorting is True
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_chart_preview_response_structure(self):
         """Test the expected response structure for chart preview."""
         # Core fields that should always be present
@@ -258,7 +258,6 @@ class TestGetChartPreview:
         # Additional fields that may be present for backward compatibility
         _ = [
             "format",
-            "preview_url",
             "ascii_chart",
             "table_data",
             "width",
@@ -270,7 +269,7 @@ class TestGetChartPreview:
         # This is a structural test - actual integration tests would verify
         # the tool returns data matching this structure
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_preview_dimensions(self):
         """Test preview dimensions in response."""
         # Standard dimensions that may appear in preview responses
@@ -292,7 +291,7 @@ class TestGetChartPreview:
             assert url_preview.width == width
             assert url_preview.height == height
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_error_response_structures(self):
         """Test error response structures."""
         # Error responses typically follow this structure
@@ -313,7 +312,7 @@ class TestGetChartPreview:
         }
         assert preview_error["error_type"] == "preview_error"
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_accessibility_metadata(self):
         """Test accessibility metadata structure."""
         from superset.mcp_service.chart.schemas import AccessibilityMetadata
@@ -327,7 +326,7 @@ class TestGetChartPreview:
         assert "sales by region" in metadata.alt_text
         assert metadata.high_contrast_available is False
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_performance_metadata(self):
         """Test performance metadata structure."""
         from superset.mcp_service.chart.schemas import PerformanceMetadata
@@ -341,7 +340,7 @@ class TestGetChartPreview:
         assert metadata.cache_status == "hit"
         assert len(metadata.optimization_suggestions) == 1
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_chart_types_support(self):
         """Test that various chart types are supported."""
         chart_types = [
@@ -363,7 +362,7 @@ class TestGetChartPreview:
             # This would be tested in integration tests
             pass
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_ascii_art_variations(self):
         """Test ASCII art generation for different chart types."""
         # Line chart ASCII
