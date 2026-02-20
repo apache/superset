@@ -378,11 +378,6 @@ export const StyledInputContainer = styled.div`
         display: 'flex';
         color: ${theme.colorIcon};
       }
-
-      .filters-add-btn {
-        padding: ${theme.sizeUnit * 2}px;
-        color: ${theme.colorTextBase};
-      }
     }
   `}
 `;
@@ -2501,7 +2496,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                               ))}
                               {filterNativeFilterOptions().length > 0 && (
                                 <Button
-                                  className="filters-add-btn"
                                   buttonStyle="link"
                                   onClick={() => {
                                     handleAddFilterField();
