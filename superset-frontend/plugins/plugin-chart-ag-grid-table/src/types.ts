@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ColorFormatters } from '@superset-ui/chart-controls';
+import type {
+  BasicColorFormatterType,
+  ColorFormatters,
+  CustomFormatter,
+  DataColumnMeta,
+  TableColumnConfig,
+} from '@superset-ui/chart-controls';
 import {
   NumberFormatter,
   TimeFormatter,
@@ -24,19 +30,16 @@ import {
   QueryFormMetric,
   ChartProps,
   DataRecord,
-  DataRecordValue,
   DataRecordFilters,
   QueryMode,
   ChartDataResponseResult,
   QueryFormData,
   SetDataMaskHook,
   CurrencyFormatter,
-  Currency,
   JsonObject,
   Metric,
   AgGridChartState,
 } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
 import {
   ColDef,
   Column,
@@ -44,43 +47,16 @@ import {
   CustomCellRendererProps,
 } from '@superset-ui/core/components/ThemedAgGridReact';
 
-export type CustomFormatter = (value: DataRecordValue) => string;
-
-export type TableColumnConfig = {
-  d3NumberFormat?: string;
-  d3SmallNumberFormat?: string;
-  d3TimeFormat?: string;
-  columnWidth?: number;
-  horizontalAlign?: 'left' | 'right' | 'center';
-  showCellBars?: boolean;
-  alignPositiveNegative?: boolean;
-  colorPositiveNegative?: boolean;
-  truncateLongCells?: boolean;
-  currencyFormat?: Currency;
-  visible?: boolean;
-  customColumnName?: string;
-  displayTypeIcon?: boolean;
+// Re-export shared types used by internal plugin files that import from './types'
+// Types used locally in this file - re-export from local binding
+export type {
+  BasicColorFormatterType,
+  CustomFormatter,
+  DataColumnMeta,
+  TableColumnConfig,
 };
-
-export interface DataColumnMeta {
-  // `key` is what is called `label` in the input props
-  key: string;
-  // `label` is verbose column name used for rendering
-  label: string;
-  // `originalLabel` preserves the original label when time comparison transforms the labels
-  originalLabel?: string;
-  dataType: GenericDataType;
-  formatter?:
-    | TimeFormatter
-    | NumberFormatter
-    | CustomFormatter
-    | CurrencyFormatter;
-  isMetric?: boolean;
-  isPercentMetric?: boolean;
-  isNumeric?: boolean;
-  config?: TableColumnConfig;
-  isChildColumn?: boolean;
-}
+// Types only re-exported, not used locally - direct re-export
+export type { SearchOption, SortByItem } from '@superset-ui/chart-controls';
 
 export interface TableChartData {
   records: DataRecord[];
@@ -114,31 +90,6 @@ export interface TableChartProps extends ChartProps {
   };
   rawFormData: TableChartFormData;
   queriesData: ChartDataResponseResult[];
-}
-
-export type BasicColorFormatterType = {
-  backgroundColor: string;
-  arrowColor: string;
-  mainArrow: string;
-};
-
-export type SortByItem = {
-  id: string;
-  key: string;
-  desc?: boolean;
-};
-
-export type SearchOption = {
-  value: string;
-  label: string;
-};
-
-export interface ServerPaginationData {
-  pageSize?: number;
-  currentPage?: number;
-  sortBy?: SortByItem[];
-  searchText?: string;
-  searchColumn?: string;
 }
 
 export interface AgGridTableChartTransformedProps<
@@ -179,11 +130,6 @@ export interface AgGridTableChartTransformedProps<
   formData: TableChartFormData;
   onChartStateChange?: (chartState: JsonObject) => void;
   chartState?: AgGridChartState;
-}
-
-export enum ColorSchemeEnum {
-  'Green' = 'Green',
-  'Red' = 'Red',
 }
 
 export interface SortState {

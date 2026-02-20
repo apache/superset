@@ -19,6 +19,7 @@
 A native Superset database.
 """
 
+from superset.db_engine_specs.base import DatabaseCategory
 from superset.db_engine_specs.shillelagh import ShillelaghEngineSpec
 
 
@@ -37,3 +38,19 @@ class SupersetEngineSpec(ShillelaghEngineSpec):
     sqlalchemy_uri_placeholder = "superset://"
 
     supports_file_upload = False
+
+    metadata = {
+        "description": (
+            "Superset meta database is an experimental feature that enables "
+            "querying across multiple configured databases using a single connection."
+        ),
+        "logo": "superset.svg",
+        "homepage_url": "https://superset.apache.org/",
+        "categories": [DatabaseCategory.OTHER],
+        "pypi_packages": [],
+        "connection_string": "superset://",
+        "notes": (
+            "This is an internal Superset feature. Enable with ENABLE_SUPERSET_META_DB "
+            "feature flag. Allows cross-database queries using virtual tables."
+        ),
+    }

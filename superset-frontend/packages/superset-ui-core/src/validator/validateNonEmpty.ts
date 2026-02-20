@@ -19,7 +19,7 @@
 
 import { t } from '@apache-superset/core';
 
-export default function validateNonEmpty(v: unknown) {
+export default function validateNonEmpty(v: unknown): string | false {
   if (
     v === null ||
     typeof v === 'undefined' ||

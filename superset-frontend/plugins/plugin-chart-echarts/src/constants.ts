@@ -21,7 +21,6 @@ import { t } from '@apache-superset/core';
 import { JsonValue, TimeGranularity } from '@superset-ui/core';
 import { ReactNode } from 'react';
 import {
-  LabelPositionEnum,
   LegendFormData,
   LegendOrientation,
   LegendType,
@@ -46,6 +45,8 @@ export const TIMESERIES_CONSTANTS = {
   dataZoomEnd: 100,
   yAxisLabelTopOffset: 20,
   extraControlsOffset: 22,
+  // Min right padding (px) for horizontal bar charts to ensure value labels are fully visible
+  horizontalBarLabelRightPadding: 70,
 };
 
 export const LABEL_POSITION: [LabelPositionEnum, string][] = [
@@ -100,6 +101,14 @@ export const AreaChartStackControlOptions: [
   JsonValue,
   Exclude<ReactNode, null | undefined | boolean>,
 ][] = [...StackControlOptions, [StackControlsValue.Expand, t('Expand')]];
+
+export const StackControlOptionsWithoutStream: [
+  JsonValue,
+  Exclude<ReactNode, null | undefined | boolean>,
+][] = [
+  [null, t('None')],
+  [StackControlsValue.Stack, t('Stack')],
+];
 
 export const TIMEGRAIN_TO_TIMESTAMP = {
   [TimeGranularity.HOUR]: 3600 * 1000,

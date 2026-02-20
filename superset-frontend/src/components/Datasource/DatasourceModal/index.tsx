@@ -23,6 +23,8 @@ import {
   SupersetClient,
   getClientErrorObject,
   SupersetError,
+  isFeatureEnabled,
+  FeatureFlag,
 } from '@superset-ui/core';
 import { styled, useTheme, css, Alert } from '@apache-superset/core/ui';
 
@@ -119,6 +121,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         datasource.schema,
       description: datasource.description,
       main_dttm_col: datasource.main_dttm_col,
+      currency_code_column: datasource.currency_code_column ?? null,
       normalize_columns: datasource.normalize_columns,
       always_filter_main_dttm: datasource.always_filter_main_dttm,
       offset: datasource.offset,
@@ -172,6 +175,10 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         (o: Record<string, number>) => o.value || o.id,
       ),
     };
+    // Add folders if DATASET_FOLDERS feature is enabled
+    if (isFeatureEnabled(FeatureFlag.DatasetFolders) && datasource.folders) {
+      payload.folders = datasource.folders;
+    }
     // Handle catalog based on database's allow_multi_catalog setting
     // If multi-catalog is disabled, don't include catalog in payload
     // The backend will use the default catalog
@@ -355,7 +362,9 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
                 ? t(
                     "This dataset is managed externally, and can't be edited in Superset",
                   )
-                : ''
+                : errors.length > 0
+                  ? errors.join('\n')
+                  : ''
             }
           >
             {t('Save')}

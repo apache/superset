@@ -26,7 +26,11 @@ import {
   type FormInstance,
 } from '@superset-ui/core/components';
 import { t } from '@apache-superset/core';
-import { Filter, getChartControlPanelRegistry } from '@superset-ui/core';
+import {
+  Filter,
+  ChartCustomization,
+  getChartControlPanelRegistry,
+} from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';
 import {
   doesColumnMatchFilterType,
@@ -51,6 +55,7 @@ export interface ControlItemsProps {
   filterId: string;
   filterType: string;
   filterToEdit?: Filter;
+  customizationToEdit?: ChartCustomization;
   formFilter?: NativeFiltersFormItem;
   removed?: boolean;
 }
@@ -69,6 +74,7 @@ export default function getControlItemsMap({
   filterId,
   filterType,
   filterToEdit,
+  customizationToEdit,
   formFilter,
   removed,
 }: ControlItemsProps) {
@@ -92,8 +98,11 @@ export default function getControlItemsMap({
     .forEach(mainControlItem => {
       const initialValue =
         filterToEdit?.controlValues?.[mainControlItem.name] ??
+        customizationToEdit?.controlValues?.[mainControlItem.name] ??
         mainControlItem?.config?.default;
-      const initColumn = filterToEdit?.targets[0]?.column?.name;
+      const initColumn =
+        customizationToEdit?.targets?.[0]?.column?.name ??
+        filterToEdit?.targets?.[0]?.column?.name;
 
       const element = (
         <>
@@ -161,6 +170,7 @@ export default function getControlItemsMap({
     .forEach(controlItem => {
       const initialValue =
         filterToEdit?.controlValues?.[controlItem.name] ??
+        customizationToEdit?.controlValues?.[controlItem.name] ??
         controlItem?.config?.default;
       const element = (
         <>

@@ -83,7 +83,11 @@ export default function transformProps(
     hooks,
     inContextMenu,
     theme,
-    datasource: { currencyFormats = {}, columnFormats = {} },
+    datasource: {
+      currencyFormats = {},
+      columnFormats = {},
+      currencyCodeColumn,
+    },
   } = chartProps;
   const {
     colorPicker,
@@ -117,6 +121,7 @@ export default function transformProps(
     coltypes = [],
     from_dttm: fromDatetime,
     to_dttm: toDatetime,
+    detected_currency: detectedCurrency,
   } = queriesData[0];
 
   const aggregatedQueryData = queriesData.length > 1 ? queriesData[1] : null;
@@ -210,10 +215,13 @@ export default function transformProps(
     }
   }
 
-  if (data.length > 0) {
-    const reversedData = [...sortedData].reverse();
-    // @ts-ignore
-    trendLineData = showTrendLine ? reversedData : undefined;
+  if (data.length > 0 && showTrendLine) {
+    // Filter out entries with null timestamps and reverse for chronological order
+    // TimeSeriesDatum requires [number, number | null] - timestamp must be non-null
+    const validData = sortedData.filter(
+      (d): d is [number, number | null] => d[0] !== null,
+    );
+    trendLineData = [...validData].reverse();
   }
 
   let className = '';
@@ -259,6 +267,10 @@ export default function transformProps(
     columnFormats,
     metricEntry?.d3format || yAxisFormat,
     currencyFormat,
+    undefined,
+    data,
+    currencyCodeColumn,
+    detectedCurrency,
   );
   const xAxisFormatter = getXAxisFormatter(timeFormat);
   const yAxisFormatter =
@@ -370,7 +382,7 @@ export default function transformProps(
     width,
     height,
     bigNumber,
-    // @ts-ignore
+    // @ts-expect-error
     bigNumberFallback,
     className,
     headerFormatter: yAxisFormatter,

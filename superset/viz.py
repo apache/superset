@@ -514,6 +514,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         ] + rejected_time_columns
         if df is not None:
             payload["colnames"] = list(df.columns)
+
         return payload
 
     @deprecated(deprecated_in="3.0")

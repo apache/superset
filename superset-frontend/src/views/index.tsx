@@ -19,6 +19,20 @@
 import 'src/public-path';
 
 import ReactDOM from 'react-dom';
-import App from './App';
+import { logging } from '@apache-superset/core';
+import initPreamble from 'src/preamble';
 
-ReactDOM.render(<App />, document.getElementById('app'));
+const appMountPoint = document.getElementById('app');
+
+if (appMountPoint) {
+  (async () => {
+    try {
+      await initPreamble();
+    } finally {
+      const { default: App } = await import(/* webpackMode: "eager" */ './App');
+      ReactDOM.render(<App />, appMountPoint);
+    }
+  })().catch(err => {
+    logging.error('Unhandled error during app initialization', err);
+  });
+}

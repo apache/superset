@@ -136,10 +136,6 @@ categories:
       url: https://www.dropit.shop/
       contributors: ["@dropit-dev"]
 
-    - name: Fanatics
-      url: https://www.fanatics.com/
-      contributors: ["@coderfender"]
-
     - name: Fordeal
       url: https://www.fordeal.com
       contributors: ["@Renkai"]
@@ -291,8 +287,10 @@ categories:
       url: https://www.gfk.com/home
       contributors: ["@mherr"]
 
+    # Logo approved by @anmol-hpe on behalf of HPE
     - name: HPE
       url: https://www.hpe.com/in/en/home.html
+      logo: hpe.png
       contributors: ["@anmol-hpe"]
 
     - name: Hydrolix
@@ -413,6 +411,11 @@ categories:
       url: https://unvired.com
       contributors: ["@srinisubramanian"]
 
+    - name: UserGuiding
+      url: https://userguiding.com/
+      logo: userguiding.svg
+      contributors: ["@tzercin"]
+
     - name: Virtuoso QA
       url: https://www.virtuosoqa.com
 
@@ -426,6 +429,11 @@ categories:
     - name: WinWin Network马上赢
       url: https://brandct.cn/
       contributors: ["@wenbinye"]
+
+    - name: XNET
+      url: https://xnetmobile.com/
+      logo: xnet.png
+      contributors: ["@deuspt"]
 
     - name: Zeta
       url: https://www.zeta.tech/
@@ -617,6 +625,20 @@ categories:
     - name: Stockarea
       url: https://stockarea.io
 
+  Sports:
+    - name: Club 25 de Agosto (Femenino / Women's Team)
+      url: https://www.instagram.com/25deagosto.basketfemenino/
+      contributors: [ "@lion90" ]
+      logo: club25deagosto.svg
+
+    - name: Fanatics
+      url: https://www.fanatics.com/
+      contributors: [ "@coderfender" ]
+
+    - name: komoot
+      url: https://www.komoot.com/
+      contributors: [ "@christophlingg" ]
+
   Others:
     - name: 10Web
       url: https://10web.io/
@@ -651,10 +673,6 @@ categories:
     - name: Increff
       url: https://www.increff.com/
       contributors: ["@ishansinghania"]
-
-    - name: komoot
-      url: https://www.komoot.com/
-      contributors: ["@christophlingg"]
 
     - name: Let's Roam
       url: https://www.letsroam.com/

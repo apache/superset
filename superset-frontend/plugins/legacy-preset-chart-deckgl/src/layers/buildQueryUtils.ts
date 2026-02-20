@@ -92,10 +92,6 @@ export function addColumnsIfNotExists(
   return result;
 }
 
-export function processMetricsArray(metrics: (string | undefined)[]): string[] {
-  return metrics.filter((metric): metric is string => Boolean(metric));
-}
-
 export function extractTooltipColumns(tooltipContents?: unknown[]): string[] {
   if (!Array.isArray(tooltipContents) || !tooltipContents.length) {
     return [];

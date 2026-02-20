@@ -95,7 +95,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
         ex_str = ""
 
         url = make_url_safe(self._uri)
-        engine = url.get_backend_name()
+        engine_name = url.get_backend_name()
 
         serialized_encrypted_extra = self._properties.get(
             "masked_encrypted_extra",
@@ -136,7 +136,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
                     "test_connection_attempt",
                     ssh_tunnel_properties,
                 ),
-                engine=engine,
+                engine=engine_name,
             )
 
             with database.get_sqla_engine() as engine:
@@ -174,7 +174,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
                     "test_connection_success",
                     ssh_tunnel_properties,
                 ),
-                engine=engine,
+                engine=engine_name,
             )
 
         except (NoSuchModuleError, ModuleNotFoundError) as ex:
@@ -184,12 +184,12 @@ class TestConnectionDatabaseCommand(BaseCommand):
                     ssh_tunnel_properties,
                     ex,
                 ),
-                engine=engine,
+                engine=engine_name,
             )
             raise DatabaseTestConnectionDriverError(
                 message=_(
                     "Could not load database driver for: %(engine)s",
-                    engine=engine,
+                    engine=engine_name,
                 ),
             ) from ex
         except DBAPIError as ex:
@@ -199,7 +199,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
                     ssh_tunnel_properties,
                     ex,
                 ),
-                engine=engine,
+                engine=engine_name,
             )
 
             if not database:
@@ -218,7 +218,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
                     ssh_tunnel_properties,
                     ex,
                 ),
-                engine=engine,
+                engine=engine_name,
             )
             raise DatabaseSecurityUnsafeError(message=str(ex)) from ex
         except (SupersetTimeoutException, SSHTunnelingNotEnabledError) as ex:
@@ -228,7 +228,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
                     ssh_tunnel_properties,
                     ex,
                 ),
-                engine=engine,
+                engine=engine_name,
             )
             # bubble up the exception to return proper status code
             raise
@@ -246,7 +246,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
                     ssh_tunnel_properties,
                     ex,
                 ),
-                engine=engine,
+                engine=engine_name,
             )
             errors = database.db_engine_spec.extract_errors(ex, self._context)
             raise DatabaseTestConnectionUnexpectedError(errors) from ex

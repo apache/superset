@@ -653,7 +653,7 @@ export enum FeatureFlag {
 those specified under FEATURE_FLAGS in `superset_config.py`. For example, `DEFAULT_FEATURE_FLAGS = { 'FOO': True, 'BAR': False }` in `superset/config.py` and `FEATURE_FLAGS = { 'BAR': True, 'BAZ': True }` in `superset_config.py` will result
 in combined feature flags of `{ 'FOO': True, 'BAR': True, 'BAZ': True }`.
 
-The current status of the usability of each flag (stable vs testing, etc) can be found in `RESOURCES/FEATURE_FLAGS.md`.
+The current status of the usability of each flag (stable vs testing, etc) can be found in the [Feature Flags](/docs/configuration/feature-flags) documentation.
 
 ## Git Hooks
 
@@ -788,7 +788,7 @@ pytest ./link_to_test.py
 
 ### Frontend Testing
 
-We use [Jest](https://jestjs.io/) and [Enzyme](https://airbnb.io/enzyme/) to test TypeScript/JavaScript. Tests can be run with:
+We use [Jest](https://jestjs.io/) and [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/) to test TypeScript. Tests can be run with:
 
 ```bash
 cd superset-frontend

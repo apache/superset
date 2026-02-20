@@ -18,18 +18,22 @@
  */
 import { useMemo } from 'react';
 import { t } from '@apache-superset/core';
-import { getChartMetadataRegistry } from '@superset-ui/core';
+import {
+  getChartMetadataRegistry,
+  isChartCustomization,
+} from '@superset-ui/core';
 import { Row, RowLabel, RowValue } from './Styles';
 import { FilterCardRowProps } from './types';
 
 export const TypeRow = ({ filter }: FilterCardRowProps) => {
+  const isCustomization = isChartCustomization(filter);
   const metadata = useMemo(
     () => getChartMetadataRegistry().get(filter.filterType),
     [filter.filterType],
   );
   return (
     <Row>
-      <RowLabel>{t('Filter type')}</RowLabel>
+      <RowLabel>{isCustomization ? t('Type') : t('Filter type')}</RowLabel>
       <RowValue>{metadata?.name}</RowValue>
     </Row>
   );
