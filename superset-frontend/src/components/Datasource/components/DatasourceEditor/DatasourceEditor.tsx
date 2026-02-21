@@ -306,6 +306,8 @@ interface ColumnCollectionTableProps {
   className?: string;
   itemGenerator?: () => Partial<Column>;
   columnLabelTooltips?: Record<string, string>;
+  filterTerm?: string;
+  filterFields?: string[];
 }
 
 interface StackedFieldProps {
@@ -524,6 +526,8 @@ function ColumnCollectionTable({
     groupby: true,
   }),
   columnLabelTooltips,
+  filterTerm,
+  filterFields,
 }: ColumnCollectionTableProps): JSX.Element {
   return (
     <CollectionTable
@@ -556,6 +560,8 @@ function ColumnCollectionTable({
       itemGenerator={itemGenerator}
       collection={columns}
       columnLabelTooltips={columnLabelTooltips}
+      filterTerm={filterTerm}
+      filterFields={filterFields}
       stickyHeader
       expandFieldset={
         <FormContainer>
@@ -2121,17 +2127,6 @@ class DatasourceEditor extends PureComponent<
     const { datasource, metricSearchTerm } = this.state;
     const { metrics } = datasource;
     const sortedMetrics = metrics?.length ? this.sortMetrics(metrics) : [];
-    const filteredMetrics = metricSearchTerm
-      ? sortedMetrics.filter(
-          metric =>
-            metric.metric_name
-              ?.toLowerCase()
-              .includes(metricSearchTerm.toLowerCase()) ||
-            metric.verbose_name
-              ?.toLowerCase()
-              .includes(metricSearchTerm.toLowerCase()),
-        )
-      : sortedMetrics;
     return (
       <div>
         <Input.Search
@@ -2144,6 +2139,8 @@ class DatasourceEditor extends PureComponent<
         <CollectionTable
         tableColumns={['metric_name', 'verbose_name', 'expression']}
         sortColumns={['metric_name', 'verbose_name', 'expression']}
+        filterTerm={metricSearchTerm}
+        filterFields={['metric_name', 'verbose_name']}
         columnLabels={{
           metric_name: t('Metric Key'),
           verbose_name: t('Label'),
@@ -2236,7 +2233,7 @@ class DatasourceEditor extends PureComponent<
             </Fieldset>
           </FormContainer>
         }
-        collection={filteredMetrics}
+        collection={sortedMetrics}
         allowAddItem
         onChange={this.onDatasourcePropChange.bind(this, 'metrics')}
         itemGenerator={() => ({
@@ -2363,6 +2360,7 @@ class DatasourceEditor extends PureComponent<
               ),
               children: (
                 <StyledTableTabWrapper>
+                  {this.renderDefaultColumnSettings()}
                   <ColumnButtonWrapper>
                     <StyledButtonWrapper>
                       <Button
@@ -2388,17 +2386,9 @@ class DatasourceEditor extends PureComponent<
                   />
                   <ColumnCollectionTable
                     className="columns-table"
-                    columns={
-                      this.state.columnSearchTerm
-                        ? this.state.databaseColumns.filter(col =>
-                            col.column_name
-                              ?.toLowerCase()
-                              .includes(
-                                this.state.columnSearchTerm.toLowerCase(),
-                              ),
-                          )
-                        : this.state.databaseColumns
-                    }
+                    columns={this.state.databaseColumns}
+                    filterTerm={this.state.columnSearchTerm}
+                    filterFields={['column_name']}
                     datasource={datasource}
                     onColumnsChange={databaseColumns =>
                       this.setColumns({ databaseColumns })
@@ -2419,6 +2409,7 @@ class DatasourceEditor extends PureComponent<
               ),
               children: (
                 <StyledTableTabWrapper>
+                  {this.renderDefaultColumnSettings()}
                   <Input.Search
                     placeholder={t('Search calculated columns by name')}
                     value={this.state.calculatedColumnSearchTerm}
@@ -2431,17 +2422,9 @@ class DatasourceEditor extends PureComponent<
                     allowClear
                   />
                   <ColumnCollectionTable
-                    columns={
-                      this.state.calculatedColumnSearchTerm
-                        ? this.state.calculatedColumns.filter(col =>
-                            col.column_name
-                              ?.toLowerCase()
-                              .includes(
-                                this.state.calculatedColumnSearchTerm.toLowerCase(),
-                              ),
-                          )
-                        : this.state.calculatedColumns
-                    }
+                    columns={this.state.calculatedColumns}
+                    filterTerm={this.state.calculatedColumnSearchTerm}
+                    filterFields={['column_name']}
                     onColumnsChange={calculatedColumns =>
                       this.setColumns({ calculatedColumns })
                     }

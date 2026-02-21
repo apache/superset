@@ -416,7 +416,20 @@ export default class CRUDCollection extends PureComponent<
       emptyMessage = t('No items'),
       expandFieldset,
       pagination = false,
+      filterTerm,
+      filterFields,
     } = this.props;
+
+    const displayData =
+      filterTerm && filterFields?.length
+        ? this.state.collectionArray.filter(item =>
+            filterFields.some(field =>
+              String(item[field] ?? '')
+                .toLowerCase()
+                .includes(filterTerm.toLowerCase()),
+            ),
+          )
+        : this.state.collectionArray;
 
     const tableColumns = this.buildTableColumns();
     const expandedRowKeys = Object.keys(this.state.expandedColumns).filter(
@@ -435,14 +448,19 @@ export default class CRUDCollection extends PureComponent<
         }
       : undefined;
 
-    // Build controlled pagination config
+    // Build controlled pagination config, clamping currentPage to valid range
+    // when the collection shrinks (e.g. due to filtering/search)
+    const totalItems = this.state.collectionArray.length;
+    const pageSize = this.state.pageSize;
+    const maxPage = totalItems > 0 ? Math.ceil(totalItems / pageSize) : 1;
+    const currentPage = Math.min(this.state.currentPage, maxPage);
     const paginationConfig: false | TablePaginationConfig | undefined =
       pagination === false || pagination === undefined
         ? pagination
         : {
             ...(typeof pagination === 'object' ? pagination : {}),
-            current: this.state.currentPage,
-            pageSize: this.state.pageSize,
+            current: currentPage,
+            pageSize,
           };
 
     return (
@@ -468,7 +486,7 @@ export default class CRUDCollection extends PureComponent<
         <Table<CollectionItem>
           data-test="crud-table"
           columns={tableColumns}
-          data={this.state.collectionArray as CollectionItem[]}
+          data={displayData as CollectionItem[]}
           rowKey={(record: CollectionItem) => String(record.id)}
           sticky={stickyHeader}
           pagination={paginationConfig}

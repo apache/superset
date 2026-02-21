@@ -80,6 +80,8 @@ export interface CRUDCollectionProps {
   sortColumns: string[];
   stickyHeader?: boolean;
   pagination?: boolean | { pageSize?: number; showSizeChanger?: boolean; pageSizeOptions?: number[] };
+  filterTerm?: string;
+  filterFields?: string[];
 }
 
 export type Sort = number | string | boolean | any;

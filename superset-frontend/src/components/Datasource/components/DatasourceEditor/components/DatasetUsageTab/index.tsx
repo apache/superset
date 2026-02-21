@@ -337,14 +337,18 @@ const DatasetUsageTab = ({
         sticky
         columns={columns}
         data={filteredCharts}
-        pagination={{
-          current: currentPage,
-          total: searchTerm ? filteredCharts.length : totalCount,
-          pageSize: PAGE_SIZE,
-          onChange: handlePageChange,
-          showSizeChanger: false,
-          size: 'default',
-        }}
+        pagination={
+          searchTerm
+            ? false
+            : {
+                current: currentPage,
+                total: totalCount,
+                pageSize: PAGE_SIZE,
+                onChange: handlePageChange,
+                showSizeChanger: false,
+                size: 'default',
+              }
+        }
         loading={loading}
         size={TableSize.Middle}
         rowKey={(record: Chart) =>
