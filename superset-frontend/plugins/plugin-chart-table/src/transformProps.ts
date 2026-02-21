@@ -402,10 +402,10 @@ const processComparisonColumns = (
           ...col,
           originalLabel,
           label: t('Main'),
-          key: `${t('Main')} ${col.key}`,
-          config: getComparisonColConfig(t('Main'), col.key, columnConfig),
+          key: `Main ${col.key}`,
+          config: getComparisonColConfig('Main', col.key, columnConfig),
           formatter: getComparisonColFormatter(
-            t('Main'),
+            'Main',
             col,
             columnConfig,
             savedFormat,
