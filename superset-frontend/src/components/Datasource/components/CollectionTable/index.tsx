@@ -477,7 +477,6 @@ export default class CRUDCollection extends PureComponent<
           css={
             stickyHeader &&
             css`
-              height: 350px;
               overflow: auto;
             `
           }
