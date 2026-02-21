@@ -114,7 +114,7 @@ function UIFilters(
                 paginate={paginate}
                 selects={selects}
                 loading={loading ?? false}
-                popupStyle={popupStyle}
+                dropdownStyle={popupStyle}
               />
             );
           }
