@@ -160,27 +160,38 @@ export function toggleFaveStar(isStarred: boolean): ToggleFaveStarAction {
 }
 
 export function fetchFaveStar(id: number) {
-  return function fetchFaveStarThunk(dispatch: AppDispatch) {
+  return function fetchFaveStarThunk(dispatch: AppDispatch, getState: GetState) {
     return SupersetClient.get({
       endpoint: `/api/v1/dashboard/favorite_status/?q=${rison.encode([id])}`,
     })
       .then(({ json }: { json: JsonObject }) => {
-        dispatch(toggleFaveStar(!!(json?.result as JsonObject[])?.[0]?.value));
+        // Only update state if this is still the current dashboard
+        // This prevents stale responses from affecting the UI after navigation
+        const currentId = getState().dashboardInfo?.id;
+        if (currentId === id) {
+          dispatch(toggleFaveStar(!!(json?.result as JsonObject[])?.[0]?.value));
+        }
       })
-      .catch(() =>
-        dispatch(
-          addDangerToast(
-            t(
-              'There was an issue fetching the favorite status of this dashboard.',
+      .catch(() => {
+        // Only show error if this is still the current dashboard
+        // This prevents error toasts from appearing for dashboards the user
+        // has already navigated away from (e.g., deleted dashboards)
+        const currentId = getState().dashboardInfo?.id;
+        if (currentId === id) {
+          dispatch(
+            addDangerToast(
+              t(
+                'There was an issue fetching the favorite status of this dashboard.',
+              ),
             ),
-          ),
-        ),
-      );
+          );
+        }
+      });
   };
 }
 
 export function saveFaveStar(id: number, isStarred: boolean) {
-  return function saveFaveStarThunk(dispatch: AppDispatch) {
+  return function saveFaveStarThunk(dispatch: AppDispatch, getState: GetState) {
     const endpoint = `/api/v1/dashboard/${id}/favorites/`;
     const apiCall = isStarred
       ? SupersetClient.delete({
@@ -190,13 +201,21 @@ export function saveFaveStar(id: number, isStarred: boolean) {
 
     return apiCall
       .then(() => {
-        dispatch(toggleFaveStar(!isStarred));
+        // Only update state if this is still the current dashboard
+        const currentId = getState().dashboardInfo?.id;
+        if (currentId === id) {
+          dispatch(toggleFaveStar(!isStarred));
+        }
       })
-      .catch(() =>
-        dispatch(
-          addDangerToast(t('There was an issue favoriting this dashboard.')),
-        ),
-      );
+      .catch(() => {
+        // Only show error if this is still the current dashboard
+        const currentId = getState().dashboardInfo?.id;
+        if (currentId === id) {
+          dispatch(
+            addDangerToast(t('There was an issue favoriting this dashboard.')),
+          );
+        }
+      });
   };
 }
 
