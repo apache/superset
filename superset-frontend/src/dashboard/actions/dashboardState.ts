@@ -160,7 +160,10 @@ export function toggleFaveStar(isStarred: boolean): ToggleFaveStarAction {
 }
 
 export function fetchFaveStar(id: number) {
-  return function fetchFaveStarThunk(dispatch: AppDispatch, getState: GetState) {
+  return function fetchFaveStarThunk(
+    dispatch: AppDispatch,
+    getState: GetState,
+  ) {
     return SupersetClient.get({
       endpoint: `/api/v1/dashboard/favorite_status/?q=${rison.encode([id])}`,
     })
@@ -169,7 +172,9 @@ export function fetchFaveStar(id: number) {
         // This prevents stale responses from affecting the UI after navigation
         const currentId = getState().dashboardInfo?.id;
         if (currentId === id) {
-          dispatch(toggleFaveStar(!!(json?.result as JsonObject[])?.[0]?.value));
+          dispatch(
+            toggleFaveStar(!!(json?.result as JsonObject[])?.[0]?.value),
+          );
         }
       })
       .catch(() => {
