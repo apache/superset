@@ -40,6 +40,7 @@ import {
   resolveAutoCurrency,
   t,
   TimeseriesChartDataResponseResult,
+  TimeseriesDataRecord,
   NumberFormats,
 } from '@superset-ui/core';
 import {
@@ -462,7 +463,7 @@ export default function transformProps(
         series.push(
           transformFormulaAnnotation(
             layer,
-            data,
+            rebasedData as TimeseriesDataRecord[],
             xAxisLabel,
             xAxisType,
             colorScale,
