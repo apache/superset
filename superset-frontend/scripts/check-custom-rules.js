@@ -30,9 +30,9 @@ const parser = require('@babel/parser');
 const traverse = require('@babel/traverse').default;
 
 // ANSI color codes
-const RED = '\x1b[31m';
-const YELLOW = '\x1b[33m';
-const RESET = '\x1b[0m';
+const RED = '\x1B[31m';
+const YELLOW = '\x1B[33m';
+const RESET = '\x1B[0m';
 
 let errorCount = 0;
 let warningCount = 0;

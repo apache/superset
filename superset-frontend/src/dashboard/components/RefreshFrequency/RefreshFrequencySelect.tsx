@@ -81,11 +81,11 @@ export const RefreshFrequencySelect = ({
 }: RefreshFrequencySelectProps) => {
   // Separate radio selection state from value state
   const [radioSelection, setRadioSelection] = useState(() =>
-    REFRESH_FREQUENCY_OPTIONS.find(opt => opt.value === value) ? value : -1,
+    REFRESH_FREQUENCY_OPTIONS.some(opt => opt.value === value) ? value : -1,
   );
 
   const [customValue, setCustomValue] = useState(() =>
-    REFRESH_FREQUENCY_OPTIONS.find(opt => opt.value === value)
+    REFRESH_FREQUENCY_OPTIONS.some(opt => opt.value === value)
       ? ''
       : value.toString(),
   );

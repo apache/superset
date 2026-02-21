@@ -480,50 +480,45 @@ export const isAlreadyExists = (payload: any) =>
 
 export const getPasswordsNeeded = (errors: Record<string, any>[]) =>
   errors
-    .map(error =>
+    .flatMap(error =>
       Object.entries(error.extra)
         .filter(([, payload]) => isNeedsPassword(payload))
         .map(([fileName]) => fileName),
-    )
-    .flat();
+    );
 
 export const getSSHPasswordsNeeded = (errors: Record<string, any>[]) =>
   errors
-    .map(error =>
+    .flatMap(error =>
       Object.entries(error.extra)
         .filter(([, payload]) => isNeedsSSHPassword(payload))
         .map(([fileName]) => fileName),
-    )
-    .flat();
+    );
 
 export const getSSHPrivateKeysNeeded = (errors: Record<string, any>[]) =>
   errors
-    .map(error =>
+    .flatMap(error =>
       Object.entries(error.extra)
         .filter(([, payload]) => isNeedsSSHPrivateKey(payload))
         .map(([fileName]) => fileName),
-    )
-    .flat();
+    );
 
 export const getSSHPrivateKeyPasswordsNeeded = (
   errors: Record<string, any>[],
 ) =>
   errors
-    .map(error =>
+    .flatMap(error =>
       Object.entries(error.extra)
         .filter(([, payload]) => isNeedsSSHPrivateKeyPassword(payload))
         .map(([fileName]) => fileName),
-    )
-    .flat();
+    );
 
 export const getAlreadyExists = (errors: Record<string, any>[]) =>
   errors
-    .map(error =>
+    .flatMap(error =>
       Object.entries(error.extra)
         .filter(([, payload]) => isAlreadyExists(payload))
         .map(([fileName]) => fileName),
-    )
-    .flat();
+    );
 
 export const hasTerminalValidation = (errors: Record<string, any>[]) =>
   errors.some(error => {

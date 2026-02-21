@@ -87,7 +87,7 @@ Handlebars.registerHelper('dateFormat', function (context, block) {
 Handlebars.registerHelper('stringify', (obj: any, obj2: any) => {
   // calling without an argument
   if (obj2 === undefined)
-    throw Error('Please call with an object. Example: `stringify myObj`');
+    throw new Error('Please call with an object. Example: `stringify myObj`');
   return isPlainObject(obj) ? JSON.stringify(obj) : String(obj);
 });
 

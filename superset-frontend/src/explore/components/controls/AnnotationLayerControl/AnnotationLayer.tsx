@@ -921,7 +921,7 @@ class AnnotationLayer extends PureComponent<
     if (
       color &&
       color !== AUTOMATIC_COLOR &&
-      !colorScheme.find(x => x.toLowerCase() === color.toLowerCase())
+      !colorScheme.some(x => x.toLowerCase() === color.toLowerCase())
     ) {
       colorScheme.push(color);
     }

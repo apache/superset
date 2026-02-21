@@ -242,7 +242,7 @@ export default function getInitialState({
             }
           });
         }
-        lastUpdatedActiveTab = tabHistory.slice(tabHistory.length - 1)[0] || '';
+        lastUpdatedActiveTab = tabHistory.slice(-1)[0] || '';
       }
     }
   } catch (error) {
