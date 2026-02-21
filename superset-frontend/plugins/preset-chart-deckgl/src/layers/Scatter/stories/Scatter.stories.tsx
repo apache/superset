@@ -85,7 +85,7 @@ export const ScatterChartViz = ({
       row_limit: 5000,
       filter_nulls: true,
       adhoc_filters: [],
-      mapbox_style: 'https://liberty.openfreemap.org/style.json',
+      maplibre_style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
       viewport: {
         bearing: -4.952916738791771,
         latitude: 37.78926922909199,
