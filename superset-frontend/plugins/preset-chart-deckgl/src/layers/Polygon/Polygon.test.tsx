@@ -60,7 +60,7 @@ const mockProps = {
     legend_position: 'tr',
     legend_format: '.2f',
     autozoom: false,
-    mapbox_style: 'mapbox://styles/mapbox/light-v9',
+    maplibre_style: 'mapbox://styles/mapbox/light-v9',
     opacity: 80,
     filled: true,
     stroked: true,

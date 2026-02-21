@@ -401,7 +401,7 @@ const DeckMulti = (props: DeckMultiProps) => {
         ref={containerRef}
         viewport={viewport}
         layers={layers}
-        mapStyle={formData.mapbox_style}
+        mapStyle={formData.maplibre_style}
         setControlValue={setControlValue}
         onViewportChange={setViewport}
         height={height}

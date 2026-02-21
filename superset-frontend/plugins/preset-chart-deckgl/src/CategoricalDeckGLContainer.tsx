@@ -324,7 +324,7 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
         viewport={viewport}
         layers={getLayers()}
         setControlValue={props.setControlValue}
-        mapStyle={props.formData.mapbox_style}
+        mapStyle={props.formData.maplibre_style}
         width={props.width}
         height={props.height}
       />
