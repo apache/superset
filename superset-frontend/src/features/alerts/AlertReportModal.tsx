@@ -610,6 +610,20 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const [emailSubject, setEmailSubject] = useState<string>('');
   const [emailError, setEmailError] = useState(false);
 
+  const allowedNotificationMethodsCount = useMemo(
+    () =>
+      allowedNotificationMethods.reduce((accum: string[], setting: string) => {
+        if (
+          accum.some(nm => nm.includes('slack')) &&
+          setting.toLowerCase().includes('slack')
+        ) {
+          return accum;
+        }
+        return [...accum, setting.toLowerCase()];
+      }, []).length,
+    [allowedNotificationMethods],
+  );
+
   const onNotificationAdd = () => {
     setNotificationSettings([
       ...notificationSettings,
@@ -2012,20 +2026,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   useEffect(() => {
     enforceValidation();
   }, [validationStatus]);
-
-  const allowedNotificationMethodsCount = useMemo(
-    () =>
-      allowedNotificationMethods.reduce((accum: string[], setting: string) => {
-        if (
-          accum.some(nm => nm.includes('slack')) &&
-          setting.toLowerCase().includes('slack')
-        ) {
-          return accum;
-        }
-        return [...accum, setting.toLowerCase()];
-      }, []).length,
-    [allowedNotificationMethods],
-  );
 
   // Show/hide
   if (isHidden && show) {

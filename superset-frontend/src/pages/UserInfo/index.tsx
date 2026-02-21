@@ -94,10 +94,6 @@ export function UserInfo({ user }: { user: UserWithPermissionsAndRoles }) {
   const { addDangerToast } = useToasts();
   const [userDetails, setUserDetails] = useState(user);
 
-  useEffect(() => {
-    getUserDetails();
-  }, []);
-
   const getUserDetails = useCallback(() => {
     SupersetClient.get({ endpoint: '/api/v1/me/' })
       .then(({ json }) => {
@@ -112,6 +108,10 @@ export function UserInfo({ user }: { user: UserWithPermissionsAndRoles }) {
         addDangerToast('Failed to fetch user info:', error);
       });
   }, [userDetails]);
+
+  useEffect(() => {
+    getUserDetails();
+  }, []);
 
   const SubMenuButtons: SubMenuProps['buttons'] = [
     {

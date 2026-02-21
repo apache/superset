@@ -89,6 +89,18 @@ function getYAxisFormatter(
   return yAxis.axisLabel!.formatter!;
 }
 
+const queriesData: ChartDataResponseResult[] = [
+  createTestQueryData(
+    createTestData(
+      [
+        { 'San Francisco': 1, 'New York': 2 },
+        { 'San Francisco': 3, 'New York': 4 },
+      ],
+      { intervalMs: 300000000 },
+    ),
+  ),
+];
+
 /**
  * Creates a properly typed EchartsTimeseriesChartProps for testing.
  * Uses shared createEchartsTimeseriesTestChartProps with Timeseries defaults.
@@ -128,17 +140,7 @@ const formData: SqlaFormData = {
   groupby: ['foo', 'bar'],
   viz_type: 'my_viz',
 };
-const queriesData: ChartDataResponseResult[] = [
-  createTestQueryData(
-    createTestData(
-      [
-        { 'San Francisco': 1, 'New York': 2 },
-        { 'San Francisco': 3, 'New York': 4 },
-      ],
-      { intervalMs: 300000000 },
-    ),
-  ),
-];
+
 describe('EchartsTimeseries transformProps', () => {
   test('should transform chart props for viz', () => {
     const chartProps = createTestChartProps({});

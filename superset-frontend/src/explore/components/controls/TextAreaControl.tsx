@@ -141,21 +141,44 @@ class TextAreaControl extends Component<TextAreaControlProps> {
   }
 
   renderEditor(inModal = false) {
-    const minLines = inModal ? 40 : this.props.minLines || 12;
-    if (this.props.language) {
+    // Exclude props that shouldn't be passed to TextAreaEditor:
+    // - theme: TextAreaEditor expects theme as a string, not the theme object from withTheme HOC
+    // - height: ReactAce expects string, we pass number (height is controlled via minLines/maxLines)
+    // - other control-specific props and explicitly-set props to avoid duplicate/conflicting assignments
+    const {
+      theme,
+      height,
+      offerEditInModal,
+      aboveEditorSection,
+      resize,
+      textAreaStyles,
+      tooltipOptions,
+      hotkeys,
+      debounceDelay,
+      language,
+      initialValue,
+      readOnly,
+      name,
+      onChange,
+      minLines: minLinesProp,
+      maxLines: maxLinesProp,
+      ...editorProps
+    } = this.props;
+    const minLines = inModal ? 40 : minLinesProp || 12;
+    if (language) {
       const style: React.CSSProperties = {
-        border: this.props.theme?.colorBorder
-          ? `1px solid ${this.props.theme.colorBorder}`
+        border: theme?.colorBorder
+          ? `1px solid ${theme.colorBorder}`
           : undefined,
         minHeight: `${minLines}em`,
         width: 'auto',
-        ...this.props.textAreaStyles,
+        ...textAreaStyles,
       };
-      if (this.props.resize) {
-        style.resize = this.props.resize;
+      if (resize) {
+        style.resize = resize;
       }
-      if (this.props.readOnly) {
-        style.backgroundColor = this.props.theme?.colorBgMask;
+      if (readOnly) {
+        style.backgroundColor = theme?.colorBgMask;
       }
       const onEditorLoad = (editor: {
         commands: {
@@ -166,7 +189,7 @@ class TextAreaControl extends Component<TextAreaControlProps> {
           }) => void;
         };
       }) => {
-        this.props.hotkeys?.forEach(keyConfig => {
+        hotkeys?.forEach(keyConfig => {
           editor.commands.addCommand({
             name: keyConfig.name,
             bindKey: { win: keyConfig.key, mac: keyConfig.key },
@@ -177,23 +200,23 @@ class TextAreaControl extends Component<TextAreaControlProps> {
       const codeEditor = (
         <div>
           <TextAreaEditor
-            mode={this.props.language}
+            mode={language}
             style={style}
             minLines={minLines}
-            maxLines={inModal ? 1000 : this.props.maxLines}
+            maxLines={inModal ? 1000 : maxLinesProp}
             editorProps={{ $blockScrolling: true }}
             onLoad={onEditorLoad}
-            defaultValue={this.props.initialValue}
-            readOnly={this.props.readOnly}
-            key={this.props.name}
-            {...this.props}
+            defaultValue={initialValue}
+            readOnly={readOnly}
+            key={name}
+            {...editorProps}
             onChange={this.handleChange.bind(this)}
           />
         </div>
       );
 
-      if (this.props.tooltipOptions) {
-        return <Tooltip {...this.props.tooltipOptions}>{codeEditor}</Tooltip>;
+      if (tooltipOptions) {
+        return <Tooltip {...tooltipOptions}>{codeEditor}</Tooltip>;
       }
       return codeEditor;
     }

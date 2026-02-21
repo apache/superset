@@ -712,6 +712,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     ) ||
     {};
 
+  const handleClearValidationErrors = useCallback(() => {
+    setValidationErrors(null);
+    setHasValidated(false);
+    clearError();
+  }, [setValidationErrors, setHasValidated, clearError]);
+
   // Test Connection logic
   const testConnection = () => {
     handleClearValidationErrors();
@@ -772,12 +778,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     },
     [],
   );
-
-  const handleClearValidationErrors = useCallback(() => {
-    setValidationErrors(null);
-    setHasValidated(false);
-    clearError();
-  }, [setValidationErrors, setHasValidated, clearError]);
 
   const handleParametersChange = useCallback(
     ({ target }: { target: HTMLInputElement }) => {
