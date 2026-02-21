@@ -21,6 +21,53 @@ import { css, styled, SupersetTheme } from '@apache-superset/core/ui';
 
 const MODAL_BODY_HEIGHT = 180.5;
 
+export const StyledFileDropzone = styled.div`
+  ${({ theme }) => css`
+    .ant-upload-drag {
+      border-radius: ${theme.borderRadius}px;
+      border: 2px dashed ${theme.colorPrimaryBorder};
+      background: ${theme.colorPrimaryBg};
+      padding: ${theme.sizeUnit * 5}px ${theme.sizeUnit * 4}px;
+      transition:
+        border-color 0.2s ease,
+        background-color 0.2s ease;
+    }
+
+    .ant-upload-drag:hover {
+      border-color: ${theme.colorPrimary};
+      background: ${theme.colorPrimaryBgHover};
+    }
+
+    .ant-upload-drag-icon {
+      margin-bottom: ${theme.sizeUnit * 2}px;
+    }
+
+    .ant-upload-drag-icon .anticon {
+      font-size: ${theme.sizeUnit * 8}px;
+      color: ${theme.colorPrimary};
+    }
+
+    .ant-upload-text {
+      font-size: ${theme.fontSize}px;
+      color: ${theme.colorTextHeading};
+      margin-bottom: ${theme.sizeUnit}px;
+    }
+
+    .ant-upload-hint {
+      font-size: ${theme.fontSizeSM}px;
+      color: ${theme.colorTextDescription};
+    }
+
+    .ant-upload-drag .ant-upload-btn {
+      padding: 0;
+    }
+
+    .ant-upload-list {
+      margin-top: ${theme.sizeUnit * 2}px;
+    }
+  `}
+`;
+
 export const StyledFormItem = styled(FormItem)`
   ${({ theme }) => css`
     flex: 1;
