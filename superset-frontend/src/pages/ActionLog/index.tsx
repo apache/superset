@@ -166,11 +166,7 @@ function ActionLogList() {
 
           return (
             <Typography.Text
-              ellipsis={
-                fullName
-                  ? { tooltip: { title: username } }
-                  : true
-              }
+              ellipsis={fullName ? { tooltip: { title: username } } : true}
             >
               {displayName}
             </Typography.Text>
