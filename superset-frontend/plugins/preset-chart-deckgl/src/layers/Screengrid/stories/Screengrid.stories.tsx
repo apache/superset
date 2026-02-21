@@ -27,8 +27,7 @@ import payload from './payload';
 new ScreengridChartPlugin().configure({ key: 'deck_screengrid' }).register();
 
 export default {
-  title:
-    'Chart Plugins/preset-chart-deckgl/ScreengridChartPlugin',
+  title: 'Chart Plugins/preset-chart-deckgl/ScreengridChartPlugin',
   decorators: [withResizableChartDemo],
   args: {
     gridSize: 20,
