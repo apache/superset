@@ -79,7 +79,7 @@ export const HexChartViz = ({
       row_limit: 5000,
       filter_nulls: true,
       adhoc_filters: [],
-      mapbox_style: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+      mapbox_style: 'https://liberty.openfreemap.org/style.json',
       viewport: {
         bearing: -2.3984797349335167,
         latitude: 37.789795085160335,

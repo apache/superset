@@ -79,7 +79,7 @@ export const GridChartViz = ({
       row_limit: 5000,
       filter_nulls: true,
       adhoc_filters: [],
-      mapbox_style: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+      mapbox_style: 'https://liberty.openfreemap.org/style.json',
       viewport: {
         bearing: 155.80099696026355,
         latitude: 37.7942314882596,

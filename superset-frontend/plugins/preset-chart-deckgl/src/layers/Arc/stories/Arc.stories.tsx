@@ -90,7 +90,7 @@ export const ArcChartViz = ({
       row_limit: 5000,
       filter_nulls: true,
       adhoc_filters: [],
-      mapbox_style: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+      mapbox_style: 'https://liberty.openfreemap.org/style.json',
       viewport: {
         altitude: 1.5,
         bearing: 8.546256357301871,

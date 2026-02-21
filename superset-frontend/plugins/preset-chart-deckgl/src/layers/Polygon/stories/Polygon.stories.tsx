@@ -104,7 +104,7 @@ export const PolygonChartViz = ({
       row_limit: 10000,
       reverse_long_lat: false,
       filter_nulls: true,
-      mapbox_style: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+      mapbox_style: 'https://liberty.openfreemap.org/style.json',
       viewport: {
         altitude: 1.5,
         bearing: 37.89506450385642,
@@ -181,7 +181,7 @@ export const GeojsonPolygonViz = ({
       row_limit: 10000,
       reverse_long_lat: false,
       filter_nulls: true,
-      mapbox_style: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+      mapbox_style: 'https://liberty.openfreemap.org/style.json',
       viewport: {
         longitude: 6.85236157047845,
         latitude: 31.222656842808707,

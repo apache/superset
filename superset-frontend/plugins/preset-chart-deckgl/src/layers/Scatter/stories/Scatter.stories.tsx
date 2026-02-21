@@ -85,7 +85,7 @@ export const ScatterChartViz = ({
       row_limit: 5000,
       filter_nulls: true,
       adhoc_filters: [],
-      mapbox_style: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+      mapbox_style: 'https://liberty.openfreemap.org/style.json',
       viewport: {
         bearing: -4.952916738791771,
         latitude: 37.78926922909199,
