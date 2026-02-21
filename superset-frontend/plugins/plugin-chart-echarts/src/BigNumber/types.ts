@@ -54,7 +54,8 @@ export type BigNumberWithTrendlineFormData = BigNumberTotalFormData & {
   showYAxisMinMaxLabels?: boolean;
 };
 
-export interface BigNumberTotalChartDataResponseResult extends ChartDataResponseResult {
+export interface BigNumberTotalChartDataResponseResult
+  extends ChartDataResponseResult {
   data: BigNumberDatum[];
 }
 
@@ -77,33 +78,47 @@ export type BigNumberVizProps = {
   height: number;
   bigNumber?: DataRecordValue;
   bigNumberFallback?: TimeSeriesDatum;
+
   headerFormatter: ValueFormatter | TimeFormatter;
   formatTime?: TimeFormatter;
+
   metricName?: string;
   friendlyMetricName?: string;
+
   metricNameFontSize?: number;
   showMetricName?: boolean;
+
   headerFontSize: number;
   kickerFontSize?: number;
+
   subheader?: string;
   subtitle: string;
+
   subheaderFontSize: number;
   subtitleFontSize: number;
+
+  alignment?: 'left' | 'center' | 'right';  // ✅ NEW PROP
+
   showTimestamp?: boolean;
   showTrendLine?: boolean;
   startYAxisAtZero?: boolean;
   timeRangeFixed?: boolean;
+
   timestamp?: DataRecordValue;
   trendLineData?: TimeSeriesDatum[];
+
   mainColor?: string;
   echartOptions?: EChartsCoreOption;
+
   onContextMenu?: (
     clientX: number,
     clientY: number,
     filters?: ContextMenuFilters,
   ) => void;
+
   xValueFormatter?: TimeFormatter;
   formData?: BigNumberWithTrendlineFormData;
+
   refs: Refs;
   colorThresholdFormatters?: ColorFormatters;
 };
