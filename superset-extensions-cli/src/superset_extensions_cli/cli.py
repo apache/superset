@@ -495,16 +495,17 @@ def prompt_for_extension_name(
         extension_id = click.prompt("Extension ID", default=suggested_id, type=str)
 
     # Final validation loop - try to use generate_extension_names for consistent results
+    display_name_failed = False  # Track if display name validation failed
     while True:
         try:
-            # First try to generate from display name if possible
-            if display_name:
+            # First try to generate from display name if possible and it hasn't failed before
+            if display_name and not display_name_failed:
                 temp_names = generate_extension_names(display_name)
                 if temp_names["id"] == extension_id:
                     # Perfect match - use generated names
                     return temp_names
 
-            # If no match, validate manually and construct
+            # If no match or display name failed, validate manually and construct
             validate_extension_id(extension_id)
             validate_python_package_name(to_snake_case(extension_id))
             validate_npm_package_name(extension_id)
@@ -520,6 +521,9 @@ def prompt_for_extension_name(
 
         except ExtensionNameError as e:
             click.secho(f"❌ {e}", fg="red")
+            # If the error came from generate_extension_names, stop trying it
+            if "display_name" in str(e) or not display_name_failed:
+                display_name_failed = True
             extension_id = click.prompt("Extension ID", type=str)
 
 
