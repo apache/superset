@@ -114,8 +114,7 @@ export default function DrillDetailPane({
   );
 
   const ROW_LIMIT = useSelector(
-    (state: { common: { conf: JsonObject } }) =>
-      state.common.conf.ROW_LIMIT,
+    (state: { common: { conf: JsonObject } }) => state.common.conf.ROW_LIMIT,
   );
 
   const canDownload = useSelector((state: RootState) =>
@@ -257,7 +256,14 @@ export default function DrillDetailPane({
         );
       });
     },
-    [formData, filters, datasourceId, datasourceType, ROW_LIMIT, addDangerToast],
+    [
+      formData,
+      filters,
+      datasourceId,
+      datasourceType,
+      ROW_LIMIT,
+      addDangerToast,
+    ],
   );
 
   const handleDownloadCSV = useCallback(
