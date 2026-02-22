@@ -102,7 +102,7 @@ export const useResultsPane = ({
       ownState,
     })
       .then(({ json }) => {
-        setResultResp(ensureIsArray(json.result));
+        setResultResp(ensureIsArray(json.result) as QueryResultInterface[]);
         setResponseError('');
         cache.set(queryFormData, json.result);
       })

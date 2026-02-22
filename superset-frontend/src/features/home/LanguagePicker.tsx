@@ -58,7 +58,9 @@ export const useLanguageMenuItems = ({
 }: LanguagePickerProps): MenuItem =>
   useMemo(() => {
     // Fallback to first available language if current locale is not in languages
-    const currentLocale = languages[locale] ? locale : Object.keys(languages)[0];
+    const currentLocale = languages[locale]
+      ? locale
+      : Object.keys(languages)[0];
 
     const items: MenuItem[] = Object.keys(languages).map(langKey => ({
       key: langKey,
