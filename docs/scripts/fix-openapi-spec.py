@@ -129,7 +129,7 @@ def add_missing_schemas(spec: dict[str, Any]) -> tuple[dict[str, Any], list[str]
         }
         fixed.append("DashboardColorsConfigUpdateSchema")
 
-    # DashboardChartCustomizationsConfigUpdateSchema - based on superset/dashboards/schemas.py
+    # DashboardChartCustomizationsConfigUpdateSchema (dashboards/schemas.py)
     if "DashboardChartCustomizationsConfigUpdateSchema" not in schemas:
         schemas["DashboardChartCustomizationsConfigUpdateSchema"] = {
             "type": "object",
@@ -142,7 +142,7 @@ def add_missing_schemas(spec: dict[str, Any]) -> tuple[dict[str, Any], list[str]
                 "modified": {
                     "type": "array",
                     "items": {"type": "object"},
-                    "description": "List of modified chart customization configurations.",
+                    "description": "List of modified chart customizations.",
                 },
                 "reordered": {
                     "type": "array",
