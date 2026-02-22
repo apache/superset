@@ -589,6 +589,7 @@ function main() {
     /\/test\//,
     /\/tests\//,
     /\/storybook\//,
+    /^\.storybook\//, // .storybook directory at root
     /\.stories\./,
     /\/demo\//,
     /\/examples\//,
