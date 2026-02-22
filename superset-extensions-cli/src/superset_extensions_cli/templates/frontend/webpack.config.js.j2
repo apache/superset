@@ -39,7 +39,7 @@ module.exports = (env, argv) => {
     },
     plugins: [
       new ModuleFederationPlugin({
-        name: "{{ id }}",
+        name: "{{ mf_name }}",
         filename: "remoteEntry.[contenthash].js",
         exposes: {
           "./index": "./src/index.tsx",
