@@ -26,12 +26,7 @@ import {
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { ColumnMeta } from '@superset-ui/chart-controls';
-import {
-  fireEvent,
-  render,
-  screen,
-  within,
-} from 'spec/helpers/testing-library';
+import { fireEvent, render, screen } from 'spec/helpers/testing-library';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import { Operators } from 'src/explore/constants';
@@ -42,8 +37,6 @@ import {
 import { PLACEHOLDER_DATASOURCE } from 'src/dashboard/constants';
 import { ExpressionTypes } from '../FilterControl/types';
 import { Datasource } from '../../../types';
-import { DndItemType } from '../../DndItemType';
-import DatasourcePanelDragOption from '../../DatasourcePanel/DatasourcePanelDragOption';
 
 jest.mock('src/core/editors', () => ({
   EditorHost: ({ value }: { value: string }) => (
