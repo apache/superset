@@ -115,7 +115,7 @@ export default function getInitialState({
     };
   });
   const tabHistory = activeTab ? [activeTab.id.toString()] : [];
-  let lastUpdatedActiveTab = activeTab ? activeTab.id.toString() : '';
+  const lastUpdatedActiveTab = activeTab ? activeTab.id.toString() : '';
   let tables = {} as Record<string, Table>;
   let editorTabLastUpdatedAt = Date.now();
   if (activeTab) {
