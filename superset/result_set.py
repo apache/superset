@@ -113,6 +113,8 @@ class SupersetResultSet:
         deduped_cursor_desc: list[tuple[Any, ...]] = []
         numpy_dtype: list[tuple[str, ...]] = []
         stringified_arr: NDArray[Any]
+        # Track columns with nested/JSON data to preserve them as objects
+        self._nested_columns: dict[str, list[Any]] = {}
 
         if cursor_description:
             # get deduped list of column names
@@ -154,9 +156,11 @@ class SupersetResultSet:
         if pa_data:  # pylint: disable=too-many-nested-blocks
             for i, column in enumerate(column_names):
                 if pa.types.is_nested(pa_data[i].type):
-                    # TODO: revisit nested column serialization once nested types
-                    #  are added as a natively supported column type in Superset
-                    #  (superset.utils.core.GenericDataType).
+                    # Preserve nested/JSON data as Python objects for use in
+                    # templates like Handlebars. Store original values before
+                    # stringifying for PyArrow compatibility.
+                    # See: https://github.com/apache/superset/issues/25125
+                    self._nested_columns[column] = array[column].tolist()
                     stringified_arr = stringify_values(array[column])
                     pa_data[i] = pa.array(stringified_arr.tolist())
 
@@ -247,7 +251,13 @@ class SupersetResultSet:
         return None
 
     def to_pandas_df(self) -> pd.DataFrame:
-        return self.convert_table_to_df(self.table)
+        df = self.convert_table_to_df(self.table)
+        # Restore nested/JSON columns as Python objects instead of strings
+        # This allows JSON data to be used directly in templates like Handlebars
+        for column, values in self._nested_columns.items():
+            if column in df.columns:
+                df[column] = values
+        return df
 
     @property
     def pa_table(self) -> pa.Table:
