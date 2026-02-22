@@ -24,6 +24,7 @@ import {
   ensureIsArray,
   getChartMetadataRegistry,
   getClientErrorObject,
+  QueryData,
 } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
 import { EmptyState, Loading } from '@superset-ui/core/components';
@@ -45,6 +46,13 @@ const StyledDiv = styled.div`
 `;
 
 const cache = new WeakMap();
+
+// `queriesResponse` is the loose `QueryData`; only reuse it when every entry is
+// a full v1 result (colnames/coltypes/data arrays), else fall back to the API.
+const isV1QueryResult = (query: QueryData): query is ChartDataResponseResult =>
+  Array.isArray((query as ChartDataResponseResult).colnames) &&
+  Array.isArray((query as ChartDataResponseResult).coltypes) &&
+  Array.isArray((query as ChartDataResponseResult).data);
 
 export const useResultsPane = ({
   isRequest,
@@ -93,17 +101,23 @@ export const useResultsPane = ({
     if (errorMessage) return;
     if (!isRequest) return;
 
-    // Reuse chart data from Redux when available. The chart visualization
-    // query and the results query produce identical SQL on the backend,
-    // so there is no need for a separate network request.
-    if (queriesResponse?.length && 'colnames' in queriesResponse[0]) {
+    // The chart query and the results query produce identical SQL, so reuse the
+    // chart's data instead of a second request. The chart always ran with a
+    // row_limit >= effectiveRowLimit, so its first `effectiveRowLimit` rows
+    // match what a dedicated results query would return — slice locally to keep
+    // the row-limit dropdown working without a duplicate query.
+    if (queriesResponse?.length && queriesResponse.every(isV1QueryResult)) {
       const mapped = queriesResponse.map(q => {
         const result = q as ChartDataResponseResult;
+        const limitedData = ensureIsArray(result.data).slice(
+          0,
+          effectiveRowLimit,
+        );
         return {
           colnames: result.colnames,
           coltypes: result.coltypes,
-          data: result.data,
-          rowcount: result.rowcount,
+          data: limitedData,
+          rowcount: limitedData.length,
         };
       }) as unknown as QueryResultInterface[];
       setResultResp(mapped);
@@ -153,7 +167,7 @@ export const useResultsPane = ({
       .finally(() => {
         setIsLoading(false);
       });
-  }, [cappedFormData, isRequest, queriesResponse]);
+  }, [cappedFormData, isRequest, queriesResponse, effectiveRowLimit]);
 
   useEffect(() => {
     if (errorMessage) {
