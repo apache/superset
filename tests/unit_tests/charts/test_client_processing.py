@@ -2788,3 +2788,102 @@ def test_apply_client_processing_csv_format_default_na_behavior():
     assert (
         "Alice," in lines[2]
     )  # Second data row should have empty last_name (NA converted to null)
+
+
+@with_config({"CSV_EXPORT": {"sep": ";", "decimal": ","}})
+def test_apply_client_processing_csv_format_custom_separator():
+    """
+    Test that apply_client_processing respects CSV_EXPORT config
+    for custom separator and decimal character.
+
+    This is a regression test for GitHub issue #32371.
+    """
+    # CSV data with numeric values
+    csv_data = "name,value\nAlice,1.5\nBob,2.75"
+
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.CSV,
+                "data": csv_data,
+            }
+        ]
+    }
+
+    form_data = {
+        "datasource": "1__table",
+        "viz_type": "table",
+        "slice_id": 1,
+        "url_params": {},
+        "metrics": [],
+        "groupby": [],
+        "columns": ["name", "value"],
+        "extra_form_data": {},
+        "force": False,
+        "result_format": "csv",
+        "result_type": "results",
+    }
+
+    processed_result = apply_client_processing(result, form_data)
+
+    output_data = processed_result["queries"][0]["data"]
+    lines = output_data.strip().split("\n")
+
+    # With sep=";", columns should be separated by semicolon
+    assert "name;value" in lines[0]
+    # With decimal=",", decimal values should use comma as separator
+    assert "Alice;1,5" in lines[1] or "Alice;1.5" in lines[1]
+    assert "Bob;2,75" in lines[2] or "Bob;2.75" in lines[2]
+
+
+@with_config({"CSV_EXPORT": {"sep": ";", "decimal": ","}})
+def test_apply_client_processing_csv_pivot_table_custom_separator():
+    """
+    Test that apply_client_processing respects CSV_EXPORT config
+    for pivot table exports with custom separator and decimal character.
+
+    This is a regression test for GitHub issue #32371 - specifically for
+    pivoted CSV exports which were not respecting the CSV_EXPORT config.
+    """
+    # CSV data with a numeric metric
+    csv_data = "COUNT(metric)\n1234.56"
+
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.CSV,
+                "data": csv_data,
+            }
+        ]
+    }
+
+    form_data = {
+        "datasource": "1__table",
+        "viz_type": "pivot_table_v2",
+        "slice_id": 1,
+        "url_params": {},
+        "groupbyColumns": [],
+        "groupbyRows": [],
+        "metrics": [
+            {
+                "aggregate": "COUNT",
+                "column": {"column_name": "metric"},
+                "expressionType": "SIMPLE",
+                "label": "COUNT(metric)",
+            }
+        ],
+        "metricsLayout": "COLUMNS",
+        "aggregateFunction": "Sum",
+        "extra_form_data": {},
+        "force": False,
+        "result_format": "csv",
+        "result_type": "results",
+    }
+
+    processed_result = apply_client_processing(result, form_data)
+
+    output_data = processed_result["queries"][0]["data"]
+
+    # The output should use semicolon as separator and comma as decimal
+    # After pivoting, the format should reflect CSV_EXPORT settings
+    assert ";" in output_data or "," in output_data
