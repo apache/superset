@@ -15,9 +15,9 @@ This section contains documentation for system administrators and operators who 
 
 ## Related
 
-- **[Database Drivers](/docs/databases)** - See User Docs for database connection setup (admins may need to install drivers)
+- **[Database Drivers](/user-docs/databases)** - See User Docs for database connection setup (admins may need to install drivers)
 
 ## Looking for something else?
 
-- **[User Documentation](/docs/intro)** - Guides for analysts and business users
+- **[User Documentation](/user-docs/intro)** - Guides for analysts and business users
 - **[Developer Documentation](/developer-docs)** - Contributing, extensions, and development guides

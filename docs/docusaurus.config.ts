@@ -176,7 +176,7 @@ if (!versionsConfig.admin_docs.disabled) {
       },
       {
         label: 'Database Drivers',
-        href: '/docs/databases',
+        href: '/user-docs/databases',
       },
       {
         type: 'doc',
@@ -377,15 +377,15 @@ const config: Config = {
             from: '/installation.html',
           },
           {
-            to: '/docs/intro',
+            to: '/user-docs/intro',
             from: '/tutorials.html',
           },
           {
-            to: '/docs/using-superset/creating-your-first-dashboard',
+            to: '/user-docs/using-superset/creating-your-first-dashboard',
             from: '/admintutorial.html',
           },
           {
-            to: '/docs/using-superset/creating-your-first-dashboard',
+            to: '/user-docs/using-superset/creating-your-first-dashboard',
             from: '/usertutorial.html',
           },
           {
@@ -397,11 +397,11 @@ const config: Config = {
             from: '/sqllab.html',
           },
           {
-            to: '/docs/intro',
+            to: '/user-docs/intro',
             from: '/gallery.html',
           },
           {
-            to: '/docs/databases',
+            to: '/user-docs/databases',
             from: '/druid.html',
           },
           {
@@ -413,23 +413,23 @@ const config: Config = {
             from: '/visualization.html',
           },
           {
-            to: '/docs/faq',
+            to: '/user-docs/faq',
             from: '/videos.html',
           },
           {
-            to: '/docs/faq',
+            to: '/user-docs/faq',
             from: '/faq.html',
           },
           {
-            to: '/docs/using-superset/creating-your-first-dashboard',
+            to: '/user-docs/using-superset/creating-your-first-dashboard',
             from: '/tutorial.html',
           },
           {
-            to: '/docs/using-superset/creating-your-first-dashboard',
+            to: '/user-docs/using-superset/creating-your-first-dashboard',
             from: '/docs/creating-charts-dashboards/first-dashboard',
           },
           {
-            to: '/docs/api',
+            to: '/user-docs/api',
             from: '/docs/rest-api',
           },
           {
@@ -441,7 +441,7 @@ const config: Config = {
             from: '/docs/contributing/hooks-and-linting',
           },
           {
-            to: '/docs/intro',
+            to: '/user-docs/intro',
             from: '/docs/roadmap',
           },
           {
@@ -453,11 +453,11 @@ const config: Config = {
             from: '/docs/contributing/contribution-page',
           },
           {
-            to: '/docs/databases',
+            to: '/user-docs/databases',
             from: '/docs/databases/yugabyte/',
           },
           {
-            to: '/docs/faq',
+            to: '/user-docs/faq',
             from: '/docs/frequently-asked-questions',
           },
           // Redirects from old /docs/ paths to new /admin-docs/ paths
@@ -559,11 +559,11 @@ const config: Config = {
             from: '/docs/contributing/testing-locally/',
           },
           {
-            to: '/docs/using-superset/creating-your-first-dashboard',
+            to: '/user-docs/using-superset/creating-your-first-dashboard',
             from: '/docs/creating-charts-dashboards/creating-your-first-dashboard/',
           },
           {
-            to: '/docs/using-superset/creating-your-first-dashboard',
+            to: '/user-docs/using-superset/creating-your-first-dashboard',
             from: '/docs/creating-charts-dashboards/exploring-data/',
           },
           {
@@ -646,15 +646,21 @@ const config: Config = {
             from: '/docs/contributing/pkg-resources-migration',
           },
         ],
-        // Use createRedirects for pattern-based redirects from old developer_portal paths
+        // Use createRedirects for pattern-based redirects
         createRedirects(existingPath) {
+          const redirects = [];
+
           // Redirect all /developer_portal/* paths to /developer-docs/*
           if (existingPath.startsWith('/developer-docs/')) {
-            return [
-              existingPath.replace('/developer-docs/', '/developer_portal/'),
-            ];
+            redirects.push(existingPath.replace('/developer-docs/', '/developer_portal/'));
           }
-          return undefined;
+
+          // Redirect all /docs/* paths to /user-docs/* for user documentation
+          if (existingPath.startsWith('/user-docs/')) {
+            redirects.push(existingPath.replace('/user-docs/', '/docs/'));
+          }
+
+          return redirects.length > 0 ? redirects : undefined;
         },
       },
     ],
@@ -665,6 +671,7 @@ const config: Config = {
       '@docusaurus/preset-classic',
       {
         docs: {
+          routeBasePath: 'user-docs',
           sidebarPath: require.resolve('./sidebars.js'),
           editUrl: ({ versionDocsDirPath, docPath }) => {
             if (docPath === 'intro.md') {
@@ -707,22 +714,22 @@ const config: Config = {
             const items = await defaultCreateSitemapItems(rest);
             return items.map((item) => {
               // Boost priority for key pages
-              if (item.url.includes('/docs/intro')) {
+              if (item.url.includes('/user-docs/intro')) {
                 return { ...item, priority: 1.0, changefreq: 'daily' };
               }
-              if (item.url.includes('/docs/quickstart')) {
+              if (item.url.includes('/user-docs/quickstart')) {
                 return { ...item, priority: 0.9, changefreq: 'weekly' };
               }
               if (item.url.includes('/admin-docs/installation/')) {
                 return { ...item, priority: 0.8, changefreq: 'weekly' };
               }
-              if (item.url.includes('/docs/databases')) {
+              if (item.url.includes('/user-docs/databases')) {
                 return { ...item, priority: 0.8, changefreq: 'weekly' };
               }
               if (item.url.includes('/admin-docs/')) {
                 return { ...item, priority: 0.8, changefreq: 'weekly' };
               }
-              if (item.url.includes('/docs/faq')) {
+              if (item.url.includes('/user-docs/faq')) {
                 return { ...item, priority: 0.7, changefreq: 'monthly' };
               }
               if (item.url === 'https://superset.apache.org/') {
@@ -776,7 +783,7 @@ const config: Config = {
         // Users docs - mirrors sidebar structure
         {
           label: 'Users',
-          to: '/docs/intro',
+          to: '/user-docs/intro',
           position: 'left',
           items: [
             {
@@ -849,7 +856,7 @@ const config: Config = {
           ],
         },
         {
-          href: '/docs/intro',
+          href: '/user-docs/intro',
           position: 'right',
           className: 'default-button-theme get-started-button',
           label: 'Get Started',
@@ -876,7 +883,7 @@ const config: Config = {
           <img class="footer__divider" src="/img/community/line.png" alt="Divider" />
           <p>
             <small>
-              <a href="/docs/security/" target="_blank" rel="noreferrer">Security</a>&nbsp;|&nbsp;
+              <a href="/admin-docs/security/" target="_blank" rel="noreferrer">Security</a>&nbsp;|&nbsp;
               <a href="https://www.apache.org/foundation/sponsorship.html" target="_blank" rel="noreferrer">Donate</a>&nbsp;|&nbsp;
               <a href="https://www.apache.org/foundation/thanks.html" target="_blank" rel="noreferrer">Thanks</a>&nbsp;|&nbsp;
               <a href="https://apache.org/events/current-event" target="_blank" rel="noreferrer">Events</a>&nbsp;|&nbsp;
