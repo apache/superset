@@ -64,27 +64,55 @@ if (!versionsConfig.components.disabled) {
   ]);
 }
 
-// Add developer_portal plugin if not disabled
-if (!versionsConfig.developer_portal.disabled) {
+// Add admin_docs plugin if not disabled
+if (!versionsConfig.admin_docs.disabled) {
   dynamicPlugins.push([
     '@docusaurus/plugin-content-docs',
     {
-      id: 'developer_portal',
-      path: 'developer_portal',
-      routeBasePath: 'developer_portal',
-      sidebarPath: require.resolve('./sidebarTutorials.js'),
+      id: 'admin_docs',
+      path: 'admin_docs',
+      routeBasePath: 'admin-docs',
+      sidebarPath: require.resolve('./sidebarAdminDocs.js'),
       editUrl:
-        'https://github.com/apache/superset/edit/master/docs/developer_portal',
+        'https://github.com/apache/superset/edit/master/docs/admin_docs',
       remarkPlugins: [remarkImportPartial, remarkLocalizeBadges, remarkTechArticleSchema],
       admonitions: {
         keywords: ['note', 'tip', 'info', 'warning', 'danger', 'resources'],
         extendDefaults: true,
       },
       docItemComponent: '@theme/DocItem',
-      includeCurrentVersion: versionsConfig.developer_portal.includeCurrentVersion,
-      lastVersion: versionsConfig.developer_portal.lastVersion,
-      onlyIncludeVersions: versionsConfig.developer_portal.onlyIncludeVersions,
-      versions: versionsConfig.developer_portal.versions,
+      includeCurrentVersion: versionsConfig.admin_docs.includeCurrentVersion,
+      lastVersion: versionsConfig.admin_docs.lastVersion,
+      onlyIncludeVersions: versionsConfig.admin_docs.onlyIncludeVersions,
+      versions: versionsConfig.admin_docs.versions,
+      disableVersioning: false,
+      showLastUpdateAuthor: true,
+      showLastUpdateTime: true,
+    },
+  ]);
+}
+
+// Add developer_docs plugin if not disabled
+if (!versionsConfig.developer_docs.disabled) {
+  dynamicPlugins.push([
+    '@docusaurus/plugin-content-docs',
+    {
+      id: 'developer_docs',
+      path: 'developer_docs',
+      routeBasePath: 'developer-docs',
+      sidebarPath: require.resolve('./sidebarTutorials.js'),
+      editUrl:
+        'https://github.com/apache/superset/edit/master/docs/developer_docs',
+      remarkPlugins: [remarkImportPartial, remarkLocalizeBadges, remarkTechArticleSchema],
+      admonitions: {
+        keywords: ['note', 'tip', 'info', 'warning', 'danger', 'resources'],
+        extendDefaults: true,
+      },
+      docItemComponent: '@theme/DocItem',
+      includeCurrentVersion: versionsConfig.developer_docs.includeCurrentVersion,
+      lastVersion: versionsConfig.developer_docs.lastVersion,
+      onlyIncludeVersions: versionsConfig.developer_docs.onlyIncludeVersions,
+      versions: versionsConfig.developer_docs.versions,
       disableVersioning: false,
       showLastUpdateAuthor: true,
       showLastUpdateTime: true,
@@ -121,45 +149,81 @@ if (!versionsConfig.components.disabled) {
   });
 }
 
-// Add Developer Portal navbar item if not hidden from nav
-if (!versionsConfig.developer_portal.disabled && !versionsConfig.developer_portal.hideFromNav) {
+// Add Admin Docs navbar item if not disabled
+if (!versionsConfig.admin_docs.disabled) {
   dynamicNavbarItems.push({
-    label: 'Developer Portal',
+    label: 'Admins',
+    to: '/admin-docs/',
     position: 'left',
     items: [
       {
         type: 'doc',
-        docsPluginId: 'developer_portal',
+        docsPluginId: 'admin_docs',
         docId: 'index',
         label: 'Overview',
       },
       {
         type: 'doc',
-        docsPluginId: 'developer_portal',
+        docsPluginId: 'admin_docs',
+        docId: 'installation/installation-methods',
+        label: 'Installation',
+      },
+      {
+        type: 'doc',
+        docsPluginId: 'admin_docs',
+        docId: 'configuration/configuring-superset',
+        label: 'Configuration',
+      },
+      {
+        label: 'Database Drivers',
+        href: '/docs/databases',
+      },
+      {
+        type: 'doc',
+        docsPluginId: 'admin_docs',
+        docId: 'security/security',
+        label: 'Security',
+      },
+    ],
+  });
+}
+
+// Add Developer Docs navbar item if not hidden from nav
+if (!versionsConfig.developer_docs.disabled && !versionsConfig.developer_docs.hideFromNav) {
+  dynamicNavbarItems.push({
+    label: 'Developers',
+    to: '/developer-docs/',
+    position: 'left',
+    items: [
+      {
+        type: 'doc',
+        docsPluginId: 'developer_docs',
+        docId: 'index',
+        label: 'Overview',
+      },
+      {
+        type: 'doc',
+        docsPluginId: 'developer_docs',
         docId: 'contributing/overview',
         label: 'Contributing',
       },
       {
         type: 'doc',
-        docsPluginId: 'developer_portal',
+        docsPluginId: 'developer_docs',
         docId: 'extensions/overview',
         label: 'Extensions',
       },
       {
         type: 'doc',
-        docsPluginId: 'developer_portal',
+        docsPluginId: 'developer_docs',
         docId: 'testing/overview',
         label: 'Testing',
       },
       {
         type: 'doc',
-        docsPluginId: 'developer_portal',
+        docsPluginId: 'developer_docs',
         docId: 'components/index',
         label: 'UI Components',
-      },
-      {
-        label: 'API Reference',
-        href: '/docs/api',
       },
     ],
   });
@@ -307,8 +371,9 @@ const config: Config = {
       '@docusaurus/plugin-client-redirects',
       {
         redirects: [
+          // Legacy HTML page redirects
           {
-            to: '/docs/installation/docker-compose',
+            to: '/admin-docs/installation/docker-compose',
             from: '/installation.html',
           },
           {
@@ -324,11 +389,11 @@ const config: Config = {
             from: '/usertutorial.html',
           },
           {
-            to: '/docs/security/',
+            to: '/admin-docs/security/',
             from: '/security.html',
           },
           {
-            to: '/docs/configuration/sql-templating',
+            to: '/admin-docs/configuration/sql-templating',
             from: '/sqllab.html',
           },
           {
@@ -340,11 +405,11 @@ const config: Config = {
             from: '/druid.html',
           },
           {
-            to: '/docs/configuration/country-map-tools',
+            to: '/admin-docs/configuration/country-map-tools',
             from: '/misc.html',
           },
           {
-            to: '/docs/configuration/country-map-tools',
+            to: '/admin-docs/configuration/country-map-tools',
             from: '/visualization.html',
           },
           {
@@ -368,11 +433,11 @@ const config: Config = {
             from: '/docs/rest-api',
           },
           {
-            to: '/docs/configuration/alerts-reports',
+            to: '/admin-docs/configuration/alerts-reports',
             from: '/docs/installation/alerts-reports',
           },
           {
-            to: '/docs/contributing/development',
+            to: '/developer-docs/contributing/development-setup',
             from: '/docs/contributing/hooks-and-linting',
           },
           {
@@ -380,11 +445,11 @@ const config: Config = {
             from: '/docs/roadmap',
           },
           {
-            to: '/docs/contributing/',
+            to: '/developer-docs/contributing/overview',
             from: '/docs/contributing/contribution-guidelines',
           },
           {
-            to: '/docs/contributing/',
+            to: '/developer-docs/contributing/overview',
             from: '/docs/contributing/contribution-page',
           },
           {
@@ -395,12 +460,102 @@ const config: Config = {
             to: '/docs/faq',
             from: '/docs/frequently-asked-questions',
           },
+          // Redirects from old /docs/ paths to new /admin-docs/ paths
           {
-            to: '/docs/installation/kubernetes',
+            to: '/admin-docs/installation/installation-methods',
+            from: '/docs/installation/installation-methods',
+          },
+          {
+            to: '/admin-docs/installation/docker-compose',
+            from: '/docs/installation/docker-compose',
+          },
+          {
+            to: '/admin-docs/installation/docker-builds',
+            from: '/docs/installation/docker-builds',
+          },
+          {
+            to: '/admin-docs/installation/kubernetes',
+            from: '/docs/installation/kubernetes',
+          },
+          {
+            to: '/admin-docs/installation/pypi',
+            from: '/docs/installation/pypi',
+          },
+          {
+            to: '/admin-docs/installation/architecture',
+            from: '/docs/installation/architecture',
+          },
+          {
+            to: '/admin-docs/installation/upgrading-superset',
+            from: '/docs/installation/upgrading-superset',
+          },
+          {
+            to: '/admin-docs/configuration/configuring-superset',
+            from: '/docs/configuration/configuring-superset',
+          },
+          {
+            to: '/admin-docs/configuration/alerts-reports',
+            from: '/docs/configuration/alerts-reports',
+          },
+          {
+            to: '/admin-docs/configuration/async-queries-celery',
+            from: '/docs/configuration/async-queries-celery',
+          },
+          {
+            to: '/admin-docs/configuration/cache',
+            from: '/docs/configuration/cache',
+          },
+          {
+            to: '/admin-docs/configuration/event-logging',
+            from: '/docs/configuration/event-logging',
+          },
+          {
+            to: '/admin-docs/configuration/feature-flags',
+            from: '/docs/configuration/feature-flags',
+          },
+          {
+            to: '/admin-docs/configuration/sql-templating',
+            from: '/docs/configuration/sql-templating',
+          },
+          {
+            to: '/admin-docs/configuration/theming',
+            from: '/docs/configuration/theming',
+          },
+          {
+            to: '/admin-docs/security/',
+            from: '/docs/security',
+          },
+          {
+            to: '/admin-docs/security/',
+            from: '/docs/security/security',
+          },
+          // Redirects from old /docs/contributing/ to Developer Portal
+          {
+            to: '/developer-docs/contributing/overview',
+            from: '/docs/contributing',
+          },
+          {
+            to: '/developer-docs/contributing/overview',
+            from: '/docs/contributing/contributing',
+          },
+          {
+            to: '/developer-docs/contributing/development-setup',
+            from: '/docs/contributing/development',
+          },
+          {
+            to: '/developer-docs/contributing/guidelines',
+            from: '/docs/contributing/guidelines',
+          },
+          {
+            to: '/developer-docs/contributing/howtos',
+            from: '/docs/contributing/howtos',
+          },
+          {
+            to: '/admin-docs/installation/kubernetes',
             from: '/docs/installation/running-on-kubernetes/',
           },
           {
-            to: '/docs/contributing/howtos',
+            to: '/developer-docs/contributing/howtos',
             from: '/docs/contributing/testing-locally/',
           },
           {
@@ -412,42 +567,95 @@ const config: Config = {
             from: '/docs/creating-charts-dashboards/exploring-data/',
           },
           {
-            to: '/docs/installation/docker-compose',
+            to: '/admin-docs/installation/docker-compose',
             from: '/docs/installation/installing-superset-using-docker-compose/',
           },
           {
-            to: '/docs/contributing/howtos',
+            to: '/developer-docs/contributing/howtos',
             from: '/docs/contributing/creating-viz-plugins/',
           },
           {
-            to: '/docs/installation/kubernetes',
+            to: '/admin-docs/installation/kubernetes',
             from: '/docs/installation/',
           },
           {
-            to: '/docs/installation/pypi',
+            to: '/admin-docs/installation/pypi',
             from: '/docs/installation/installing-superset-from-pypi/',
           },
           {
-            to: '/docs/configuration/configuring-superset',
+            to: '/admin-docs/configuration/configuring-superset',
             from: '/docs/installation/configuring-superset/',
           },
           {
-            to: '/docs/configuration/cache',
+            to: '/admin-docs/configuration/cache',
             from: '/docs/installation/cache/',
           },
           {
-            to: '/docs/configuration/async-queries-celery',
+            to: '/admin-docs/configuration/async-queries-celery',
             from: '/docs/installation/async-queries-celery/',
           },
           {
-            to: '/docs/configuration/event-logging',
+            to: '/admin-docs/configuration/event-logging',
             from: '/docs/installation/event-logging/',
           },
           {
-            to: '/docs/contributing/howtos',
+            to: '/developer-docs/contributing/howtos',
             from: '/docs/contributing/translations/',
           },
+          // Additional configuration redirects
+          {
+            to: '/admin-docs/configuration/country-map-tools',
+            from: '/docs/configuration/country-map-tools',
+          },
+          {
+            to: '/admin-docs/configuration/importing-exporting-datasources',
+            from: '/docs/configuration/importing-exporting-datasources',
+          },
+          {
+            to: '/admin-docs/configuration/map-tiles',
+            from: '/docs/configuration/map-tiles',
+          },
+          {
+            to: '/admin-docs/configuration/networking-settings',
+            from: '/docs/configuration/networking-settings',
+          },
+          {
+            to: '/admin-docs/configuration/timezones',
+            from: '/docs/configuration/timezones',
+          },
+          // Additional security redirects
+          {
+            to: '/admin-docs/security/cves',
+            from: '/docs/security/cves',
+          },
+          {
+            to: '/admin-docs/security/securing_superset',
+            from: '/docs/security/securing_superset',
+          },
+          // Additional contributing redirects
+          {
+            to: '/developer-docs/contributing/resources',
+            from: '/docs/contributing/resources',
+          },
+          {
+            to: '/developer-docs/contributing/howtos',
+            from: '/docs/contributing/misc',
+          },
+          {
+            to: '/developer-docs/contributing/overview',
+            from: '/docs/contributing/pkg-resources-migration',
+          },
         ],
+        // Use createRedirects for pattern-based redirects from old developer_portal paths
+        createRedirects(existingPath) {
+          // Redirect all /developer_portal/* paths to /developer-docs/*
+          if (existingPath.startsWith('/developer-docs/')) {
+            return [
+              existingPath.replace('/developer-docs/', '/developer_portal/'),
+            ];
+          }
+          return undefined;
+        },
       },
     ],
   ],
@@ -505,10 +713,13 @@ const config: Config = {
               if (item.url.includes('/docs/quickstart')) {
                 return { ...item, priority: 0.9, changefreq: 'weekly' };
               }
-              if (item.url.includes('/docs/installation/')) {
+              if (item.url.includes('/admin-docs/installation/')) {
                 return { ...item, priority: 0.8, changefreq: 'weekly' };
               }
               if (item.url.includes('/docs/databases')) {
+                return { ...item, priority: 0.8, changefreq: 'weekly' };
+              }
+              if (item.url.includes('/admin-docs/')) {
                 return { ...item, priority: 0.8, changefreq: 'weekly' };
               }
               if (item.url.includes('/docs/faq')) {
@@ -562,30 +773,50 @@ const config: Config = {
         srcDark: '/img/superset-logo-horiz-dark.svg',
       },
       items: [
+        // Users docs - mirrors sidebar structure
         {
-          label: 'Documentation',
+          label: 'Users',
+          to: '/docs/intro',
           position: 'left',
           items: [
             {
               type: 'doc',
               docId: 'intro',
-              label: 'Getting Started',
+              label: 'Overview',
+            },
+            {
+              type: 'doc',
+              docId: 'quickstart',
+              label: 'Quickstart',
+            },
+            {
+              type: 'doc',
+              docId: 'using-superset/creating-your-first-dashboard',
+              label: 'Using Superset',
             },
             {
               type: 'doc',
               docId: 'databases/index',
-              label: 'Databases',
+              label: 'Connecting to Databases',
             },
             {
               type: 'doc',
               docId: 'faq',
               label: 'FAQ',
             },
+            {
+              type: 'doc',
+              docId: 'api',
+              label: 'API Reference',
+            },
           ],
         },
+        ...dynamicNavbarItems,
+        // Community section
         {
-          label: 'Community Resources',
+          label: 'Community',
           to: '/community',
+          position: 'left',
           items: [
             {
               label: 'Resources',
@@ -617,7 +848,6 @@ const config: Config = {
             },
           ],
         },
-        ...dynamicNavbarItems,
         {
           href: '/docs/intro',
           position: 'right',
