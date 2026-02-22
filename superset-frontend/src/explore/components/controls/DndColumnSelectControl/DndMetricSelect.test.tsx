@@ -20,15 +20,12 @@ import {
   fireEvent,
   render,
   screen,
-  within,
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
 import { DndMetricSelect } from 'src/explore/components/controls/DndColumnSelectControl/DndMetricSelect';
 import { AGGREGATES } from 'src/explore/constants';
 import { EXPRESSION_TYPES } from '../MetricControl/AdhocMetric';
-import DatasourcePanelDragOption from '../../DatasourcePanel/DatasourcePanelDragOption';
-import { DndItemType } from '../../DndItemType';
 
 const defaultProps = {
   savedMetrics: [

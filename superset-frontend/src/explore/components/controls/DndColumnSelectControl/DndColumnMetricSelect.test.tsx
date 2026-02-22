@@ -16,15 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  fireEvent,
-  render,
-  screen,
-  within,
-} from 'spec/helpers/testing-library';
+import { fireEvent, render, screen } from 'spec/helpers/testing-library';
 import { DndColumnMetricSelect } from 'src/explore/components/controls/DndColumnSelectControl/DndColumnMetricSelect';
-import DatasourcePanelDragOption from '../../DatasourcePanel/DatasourcePanelDragOption';
-import { DndItemType } from '../../DndItemType';
 
 const defaultProps = {
   name: 'test-control',

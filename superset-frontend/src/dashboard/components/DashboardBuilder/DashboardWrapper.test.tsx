@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { fireEvent, render } from 'spec/helpers/testing-library';
-import { OptionControlLabel } from 'src/explore/components/controls/OptionControls';
+import { render } from 'spec/helpers/testing-library';
 
 import DashboardWrapper from './DashboardWrapper';
 
