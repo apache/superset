@@ -80,6 +80,7 @@ def test_timing_present_in_payload(
             ) as mock_app:
                 mock_app.config = {
                     "STATS_LOGGER": MagicMock(),
+                    "CHART_DATA_INCLUDE_TIMING": True,
                     "CHART_DATA_SLOW_QUERY_THRESHOLD_MS": None,
                 }
                 result = processor_with_cache.get_df_payload(mock_query_obj)
@@ -91,6 +92,45 @@ def test_timing_present_in_payload(
     assert "result_processing_ms" in timing
     assert "total_ms" in timing
     assert "is_cached" in timing
+
+
+@patch(
+    "superset.common.query_context_processor.QueryCacheManager",
+)
+def test_timing_omitted_when_config_disabled(
+    mock_cache_cls, processor_with_cache, mock_query_obj
+):
+    """Timing dict is excluded from response when CHART_DATA_INCLUDE_TIMING is False."""
+    cache = MagicMock()
+    cache.is_loaded = True
+    cache.is_cached = True
+    cache.df = pd.DataFrame({"col1": [1]})
+    cache.cache_dttm = None
+    cache.queried_dttm = None
+    cache.applied_template_filters = []
+    cache.applied_filter_columns = []
+    cache.rejected_filter_columns = []
+    cache.annotation_data = {}
+    cache.error_message = None
+    cache.query = ""
+    cache.status = "success"
+    cache.stacktrace = None
+    cache.sql_rowcount = 1
+    mock_cache_cls.get.return_value = cache
+
+    with patch.object(processor_with_cache, "query_cache_key", return_value="key"):
+        with patch.object(processor_with_cache, "get_cache_timeout", return_value=300):
+            with patch(
+                "superset.common.query_context_processor.current_app"
+            ) as mock_app:
+                mock_app.config = {
+                    "STATS_LOGGER": MagicMock(),
+                    "CHART_DATA_INCLUDE_TIMING": False,
+                    "CHART_DATA_SLOW_QUERY_THRESHOLD_MS": None,
+                }
+                result = processor_with_cache.get_df_payload(mock_query_obj)
+
+    assert "timing" not in result
 
 
 @patch(
@@ -124,6 +164,7 @@ def test_timing_values_are_non_negative(
             ) as mock_app:
                 mock_app.config = {
                     "STATS_LOGGER": MagicMock(),
+                    "CHART_DATA_INCLUDE_TIMING": True,
                     "CHART_DATA_SLOW_QUERY_THRESHOLD_MS": None,
                 }
                 result = processor_with_cache.get_df_payload(mock_query_obj)
@@ -140,7 +181,7 @@ def test_timing_values_are_non_negative(
 def test_timing_no_db_execution_on_cache_hit(
     mock_cache_cls, processor_with_cache, mock_query_obj
 ):
-    """db_execution_ms is absent when the result is served from cache."""
+    """db_execution_ms is None when the result is served from cache."""
     cache = MagicMock()
     cache.is_loaded = True
     cache.is_cached = True
@@ -165,11 +206,12 @@ def test_timing_no_db_execution_on_cache_hit(
             ) as mock_app:
                 mock_app.config = {
                     "STATS_LOGGER": MagicMock(),
+                    "CHART_DATA_INCLUDE_TIMING": True,
                     "CHART_DATA_SLOW_QUERY_THRESHOLD_MS": None,
                 }
                 result = processor_with_cache.get_df_payload(mock_query_obj)
 
-    assert "db_execution_ms" not in result["timing"]
+    assert result["timing"]["db_execution_ms"] is None
     assert result["timing"]["is_cached"] is True
 
 
@@ -208,6 +250,7 @@ def test_timing_has_db_execution_on_cache_miss(
             ) as mock_app:
                 mock_app.config = {
                     "STATS_LOGGER": MagicMock(),
+                    "CHART_DATA_INCLUDE_TIMING": True,
                     "CHART_DATA_SLOW_QUERY_THRESHOLD_MS": None,
                 }
                 result = processor_with_cache.get_df_payload(mock_query_obj)
@@ -249,6 +292,7 @@ def test_slow_query_logging(
             ) as mock_app:
                 mock_app.config = {
                     "STATS_LOGGER": MagicMock(),
+                    "CHART_DATA_INCLUDE_TIMING": True,
                     "CHART_DATA_SLOW_QUERY_THRESHOLD_MS": 0,
                 }
                 processor_with_cache.get_df_payload(mock_query_obj)
