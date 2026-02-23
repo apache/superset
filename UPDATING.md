@@ -24,6 +24,42 @@ assists people when migrating to a new version.
 
 ## Next
 
+### MCP Tool Observability
+
+MCP (Model Context Protocol) tools now include enhanced observability instrumentation for monitoring and debugging:
+
+**Two-layer instrumentation:**
+1. **Middleware layer** (`LoggingMiddleware`): Automatically logs all MCP tool calls with `duration_ms` and `success` status in the audit log (Action Log UI, logs table)
+2. **Sub-operation tracking**: All 19 MCP tools include granular `event_logger.log_context()` blocks for tracking individual operations like validation, database writes, and query execution
+
+**Action naming convention:**
+- Tool-level logs: `mcp_tool_call` (via middleware)
+- Sub-operation logs: `mcp.{tool_name}.{operation}` (e.g., `mcp.generate_chart.validation`, `mcp.execute_sql.query_execution`)
+
+**Querying MCP logs:**
+```sql
+-- Top slowest MCP operations
+SELECT action, COUNT(*) as calls, AVG(duration_ms) as avg_ms
+FROM logs
+WHERE action LIKE 'mcp.%'
+GROUP BY action
+ORDER BY avg_ms DESC
+LIMIT 20;
+
+-- MCP tool success rate
+SELECT
+    json_extract(curated_payload, '$.tool') as tool,
+    COUNT(*) as total_calls,
+    SUM(CASE WHEN json_extract(curated_payload, '$.success') = 'true' THEN 1 ELSE 0 END) as successful,
+    ROUND(100.0 * SUM(CASE WHEN json_extract(curated_payload, '$.success') = 'true' THEN 1 ELSE 0 END) / COUNT(*), 2) as success_rate
+FROM logs
+WHERE action = 'mcp_tool_call'
+GROUP BY tool
+ORDER BY total_calls DESC;
+```
+
+**Security note:** Sensitive parameters (passwords, API keys, tokens) are automatically redacted in logs as `[REDACTED]`.
+
 ### Signal Cache Backend
 
 A new `SIGNAL_CACHE_CONFIG` configuration provides a unified Redis-based backend for real-time coordination features in Superset. This backend enables:

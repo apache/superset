@@ -124,6 +124,43 @@ describe('folderUtils', () => {
 
       expect(result.size).toBe(4);
     });
+
+    test('should match by verbose_name', () => {
+      const metrics: Metric[] = [
+        {
+          uuid: 'metric-v1',
+          metric_name: 'count',
+          verbose_name: 'COUNT(*)',
+          expression: 'COUNT(*)',
+        } as Metric,
+      ];
+      const result = filterItemsBySearch('COUNT', metrics);
+
+      expect(result.size).toBe(1);
+      expect(result.has('metric-v1')).toBe(true);
+    });
+
+    test('should match by expression', () => {
+      const result = filterItemsBySearch('COUNT(*)', mockMetrics);
+
+      expect(result.size).toBe(1);
+      expect(result.has('metric-1')).toBe(true);
+    });
+
+    test('should match special characters in search term', () => {
+      const metrics: Metric[] = [
+        {
+          uuid: 'metric-special',
+          metric_name: 'count',
+          verbose_name: 'COUNT(*)',
+          expression: 'COUNT(*)',
+        } as Metric,
+      ];
+      const result = filterItemsBySearch('(*)', metrics);
+
+      expect(result.size).toBe(1);
+      expect(result.has('metric-special')).toBe(true);
+    });
   });
 
   describe('isDefaultFolder', () => {

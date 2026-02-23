@@ -26,6 +26,7 @@ from typing import Any, Dict
 from fastmcp import Context
 from superset_core.mcp import tool
 
+from superset.extensions import event_logger
 from superset.mcp_service.chart.chart_utils import (
     analyze_chart_capabilities,
     analyze_chart_semantics,
@@ -65,23 +66,25 @@ def update_chart_preview(
     start_time = time.time()
 
     try:
-        # Map the new config to form_data format
-        # Pass dataset_id to enable column type checking for proper viz_type selection
-        new_form_data = map_config_to_form_data(
-            request.config, dataset_id=request.dataset_id
-        )
+        with event_logger.log_context(action="mcp.update_chart_preview.form_data"):
+            # Map the new config to form_data format
+            # Pass dataset_id to enable column type checking
+            new_form_data = map_config_to_form_data(
+                request.config, dataset_id=request.dataset_id
+            )
 
-        # Generate new explore link with updated form_data
-        explore_url = generate_explore_link(request.dataset_id, new_form_data)
+            # Generate new explore link with updated form_data
+            explore_url = generate_explore_link(request.dataset_id, new_form_data)
 
         # Extract new form_data_key from the explore URL
         new_form_data_key = None
         if "form_data_key=" in explore_url:
             new_form_data_key = explore_url.split("form_data_key=")[1].split("&")[0]
 
-        # Generate semantic analysis
-        capabilities = analyze_chart_capabilities(None, request.config)
-        semantics = analyze_chart_semantics(None, request.config)
+        with event_logger.log_context(action="mcp.update_chart_preview.metadata"):
+            # Generate semantic analysis
+            capabilities = analyze_chart_capabilities(None, request.config)
+            semantics = analyze_chart_semantics(None, request.config)
 
         # Create performance metadata
         execution_time = int((time.time() - start_time) * 1000)

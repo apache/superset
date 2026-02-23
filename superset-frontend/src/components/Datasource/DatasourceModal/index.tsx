@@ -45,23 +45,14 @@ const DatasourceEditor = AsyncEsmComponent(
 );
 
 const StyledDatasourceModal = styled(Modal)`
-  .modal-content {
+  && .ant-modal-content {
     height: 900px;
+  }
+
+  && .ant-modal-body {
+    flex: 1 1 auto;
     display: flex;
     flex-direction: column;
-    align-items: stretch;
-  }
-
-  .modal-header {
-    flex: 0 1 auto;
-  }
-  .modal-body {
-    flex: 1 1 auto;
-    overflow: auto;
-  }
-
-  .modal-footer {
-    flex: 0 1 auto;
   }
 
   .ant-tabs-top {

@@ -40,10 +40,10 @@ superset-extensions bundle: Packages the extension into a .supx file.
 superset-extensions dev: Automatically rebuilds the extension as files change.
 ```
 
-When creating a new extension with `superset-extensions init <extension-name>`, the CLI generates a standardized folder structure:
+When creating a new extension with `superset-extensions init`, the CLI generates a standardized folder structure:
 
 ```
-dataset_references/
+dataset-references/
 ├── extension.json
 ├── frontend/
 │   ├── src/
@@ -52,24 +52,32 @@ dataset_references/
 │   └── package.json
 ├── backend/
 │   ├── src/
-│        └── dataset_references/
+│   │    └── superset_extensions/
+│   │         └── dataset_references/
 │   ├── tests/
 │   ├── pyproject.toml
 │   └── requirements.txt
 ├── dist/
 │   ├── manifest.json
 │   ├── frontend
-│        └── dist/
-│             ├── remoteEntry.d7a9225d042e4ccb6354.js
-│             └── 900.038b20cdff6d49cfa8d9.js
+│   │    └── dist/
+│   │         ├── remoteEntry.d7a9225d042e4ccb6354.js
+│   │         └── 900.038b20cdff6d49cfa8d9.js
 │   └── backend
-│        └── dataset_references/
-│             ├── __init__.py
-│             ├── api.py
-│             └── entrypoint.py
-├── dataset_references-1.0.0.supx
+│        └── superset_extensions/
+│             └── dataset_references/
+│                  ├── __init__.py
+│                  ├── api.py
+│                  └── entrypoint.py
+├── dataset-references-1.0.0.supx
 └── README.md
 ```
+
+**Note**: The extension ID (`dataset-references`) serves as the basis for all technical names:
+- Directory name: `dataset-references` (kebab-case)
+- Backend Python package: `dataset_references` (snake_case)
+- Frontend package name: `dataset-references` (kebab-case)
+- Module Federation name: `datasetReferences` (camelCase)
 
 The `extension.json` file serves as the declared metadata for the extension, containing the extension's name, version, author, description, and a list of capabilities. This file is essential for the host application to understand how to load and manage the extension.
 
@@ -87,7 +95,8 @@ The `extension.json` file contains all metadata necessary for the host applicati
 
 ```json
 {
-  "name": "dataset_references",
+  "id": "dataset-references",
+  "name": "Dataset References",
   "version": "1.0.0",
   "frontend": {
     "contributions": {
@@ -95,20 +104,21 @@ The `extension.json` file contains all metadata necessary for the host applicati
         "sqllab": {
           "panels": [
             {
-              "id": "dataset_references.main",
-              "name": "Dataset references"
+              "id": "dataset-references.main",
+              "name": "Dataset References"
             }
           ]
         }
       }
     },
     "moduleFederation": {
-      "exposes": ["./index"]
+      "exposes": ["./index"],
+      "name": "datasetReferences"
     }
   },
   "backend": {
-    "entryPoints": ["dataset_references.entrypoint"],
-    "files": ["backend/src/dataset_references/**/*.py"]
+    "entryPoints": ["superset_extensions.dataset_references.entrypoint"],
+    "files": ["backend/src/superset_extensions/dataset_references/**/*.py"]
   }
 }
 ```

@@ -82,7 +82,7 @@ dependencies = [
     "parsedatetime",
     "paramiko>=3.4.0",
     "pgsanity",
-    "Pillow>=11.0.0, <12",
+    "Pillow>=11.0.0, <13",
     "polyline>=2.0.0, <3.0",
     "pydantic>=2.8.0",
     "pyparsing>=3.0.6, <4",
@@ -99,7 +99,7 @@ dependencies = [
     "simplejson>=3.15.0",
     "slack_sdk>=3.19.0, <4",
     "sqlalchemy>=1.4, <2",
-    "sqlalchemy-utils>=0.38.3, <0.39",
+    "sqlalchemy-utils>=0.38.0, <0.43", # expanding lowerbound to work with pydoris
     "sqlglot>=28.10.0, <29",
     # newer pandas needs 0.9+
     "tabulate>=0.9.0, <1.0",

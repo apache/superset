@@ -284,7 +284,7 @@ export default class SelectControl extends PureComponent<
       // safety check - the value is intended to be undefined but null was used
       if (
         currentValue === null &&
-        !this.state.options.find(o => o.value === null)
+        !this.state.options.some(o => o.value === null)
       ) {
         return undefined;
       }

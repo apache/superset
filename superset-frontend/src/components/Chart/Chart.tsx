@@ -170,6 +170,11 @@ const LoadingDiv = styled.div`
   transform: translate(-50%, -50%);
 `;
 
+const ErrorContainer = styled.div<{ height: number }>`
+  height: ${p => p.height}px;
+  overflow: auto;
+`;
+
 const MessageSpan = styled.span`
   display: block;
   text-align: center;
@@ -263,7 +268,10 @@ class Chart extends PureComponent<ChartProps, {}> {
     const message = chartAlert || queryResponse?.message;
 
     // if datasource is still loading, don't render JS errors
+    // but always show backend API errors (which have an errors array)
+    // so users can see real issues like auth failures
     if (
+      !error &&
       chartAlert !== undefined &&
       chartAlert !== NONEXISTENT_DATASET &&
       datasource === PLACEHOLDER_DATASOURCE &&
@@ -357,8 +365,12 @@ class Chart extends PureComponent<ChartProps, {}> {
     const showSpinner = isLoading && !this.props.suppressLoadingSpinner;
 
     if (chartStatus === 'failed') {
-      return queriesResponse?.map(item =>
-        this.renderErrorMessage(item as ChartErrorType),
+      return (
+        <ErrorContainer height={height}>
+          {queriesResponse?.map(item =>
+            this.renderErrorMessage(item as ChartErrorType),
+          )}
+        </ErrorContainer>
       );
     }
 

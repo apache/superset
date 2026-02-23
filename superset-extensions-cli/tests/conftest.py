@@ -58,25 +58,25 @@ def extension_params():
 @pytest.fixture
 def cli_input_both():
     """CLI input for creating extension with both frontend and backend."""
-    return "test_extension\nTest Extension\n0.1.0\nApache-2.0\ny\ny\n"
+    return "Test Extension\n\n0.1.0\nApache-2.0\ny\ny\n"
 
 
 @pytest.fixture
 def cli_input_frontend_only():
     """CLI input for creating extension with frontend only."""
-    return "test_extension\nTest Extension\n0.1.0\nApache-2.0\ny\nn\n"
+    return "Test Extension\n\n0.1.0\nApache-2.0\ny\nn\n"
 
 
 @pytest.fixture
 def cli_input_backend_only():
     """CLI input for creating extension with backend only."""
-    return "test_extension\nTest Extension\n0.1.0\nApache-2.0\nn\ny\n"
+    return "Test Extension\n\n0.1.0\nApache-2.0\nn\ny\n"
 
 
 @pytest.fixture
 def cli_input_neither():
     """CLI input for creating extension with neither frontend nor backend."""
-    return "test_extension\nTest Extension\n0.1.0\nApache-2.0\nn\nn\n"
+    return "Test Extension\n\n0.1.0\nApache-2.0\nn\nn\n"
 
 
 @pytest.fixture

@@ -61,6 +61,7 @@ import type { DashboardChartStates } from 'src/dashboard/types/chartState';
 import extractUrlParams from '../util/extractUrlParams';
 import updateComponentParentsList from '../util/updateComponentParentsList';
 import { AUTO_REFRESH_STATE_DEFAULTS } from '../types/autoRefresh';
+import { migrateChartCustomizationArray } from '../util/migrateChartCustomization';
 import {
   DashboardLayout,
   FilterBarOrientation,
@@ -292,8 +293,13 @@ export const hydrateDashboard =
       directPathToChild.push(directLinkComponentId);
     }
 
-    const chartCustomizations =
+    const rawChartCustomizations =
       (metadata?.chart_customization_config as JsonObject[]) || [];
+
+    const chartCustomizations = migrateChartCustomizationArray(
+      rawChartCustomizations,
+    );
+
     const filters =
       (metadata?.native_filter_configuration as JsonObject[]) || [];
     const combinedFilters = [...filters, ...chartCustomizations];

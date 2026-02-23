@@ -17,7 +17,7 @@
  * under the License.
  */
 import rison from 'rison';
-import { PureComponent, useCallback, ReactNode } from 'react';
+import { PureComponent, useCallback, type ReactNode } from 'react';
 import { connect, ConnectedProps } from 'react-redux';
 import type { JsonObject } from '@superset-ui/core';
 import type { SupersetTheme } from '@apache-superset/core/ui';
@@ -77,6 +77,12 @@ import {
 import Mousetrap from 'mousetrap';
 import { clearDatasetCache } from 'src/utils/cachedSupersetGet';
 import { makeUrl } from 'src/utils/pathUtils';
+import {
+  OwnerSelectLabel,
+  OWNER_TEXT_LABEL_PROP,
+  OWNER_EMAIL_PROP,
+  OWNER_OPTION_FILTER_PROPS,
+} from 'src/features/owners/OwnerSelectLabel';
 import { DatabaseSelector } from '../../../DatabaseSelector';
 import CollectionTable from '../CollectionTable';
 import Fieldset from '../Fieldset';
@@ -85,9 +91,11 @@ import { fetchSyncedColumns, updateColumns } from '../../utils';
 import DatasetUsageTab from './components/DatasetUsageTab';
 import {
   DEFAULT_COLUMNS_FOLDER_UUID,
+  DEFAULT_FOLDERS_COUNT,
   DEFAULT_METRICS_FOLDER_UUID,
 } from '../../FoldersEditor/constants';
 import { validateFolders } from '../../FoldersEditor/folderValidation';
+import { countAllFolders } from '../../FoldersEditor/treeUtils';
 import FoldersEditor from '../../FoldersEditor';
 import { DatasourceFolder } from 'src/explore/components/DatasourcePanel/types';
 
@@ -98,9 +106,11 @@ const extensionsRegistry = getExtensionsRegistry();
 interface Owner {
   id?: number;
   value?: number;
-  label?: string;
+  label?: ReactNode;
   first_name?: string;
   last_name?: string;
+  email?: string;
+  [key: string]: unknown;
 }
 
 interface Currency {
@@ -258,6 +268,7 @@ interface DatasourceEditorState {
   databaseColumns: Column[];
   calculatedColumns: Column[];
   folders: DatasourceFolder[];
+  folderCount: number;
   metadataLoading: boolean;
   activeTabKey: string;
   datasourceType: string;
@@ -276,6 +287,7 @@ interface AbortControllers {
 interface CollectionTabTitleProps {
   title: string;
   collection?: unknown[] | { length: number };
+  count?: number;
 }
 
 interface ColumnCollectionTableProps {
@@ -307,6 +319,11 @@ interface OwnersSelectorProps {
 }
 
 const DatasourceContainer = styled.div`
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+
   .change-warning {
     margin: 16px 10px 0;
     color: ${({ theme }) => theme.colorWarning};
@@ -335,9 +352,23 @@ const FlexRowContainer = styled.div`
 `;
 
 const StyledTableTabs = styled(Tabs)`
-  overflow: visible;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+
   .ant-tabs-content-holder {
-    overflow: visible;
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+  }
+
+  .ant-tabs-content {
+    height: 100%;
+  }
+
+  .ant-tabs-tabpane-active {
+    height: 100%;
   }
 `;
 
@@ -450,6 +481,7 @@ DATASOURCE_TYPES_ARR.forEach(o => {
 function CollectionTabTitle({
   title,
   collection,
+  count,
 }: CollectionTabTitleProps): JSX.Element {
   return (
     <div
@@ -457,8 +489,19 @@ function CollectionTabTitle({
       data-test={`collection-tab-${title}`}
     >
       {title}{' '}
-      <StyledBadge count={collection ? collection.length : 0} showZero />
+      <StyledBadge
+        count={count ?? (collection ? collection.length : 0)}
+        showZero
+      />
     </div>
+  );
+}
+
+function FormContainer({ children }: FormContainerProps): JSX.Element {
+  return (
+    <Card padded style={{ backgroundColor: themeObject.theme.colorBgLayout }}>
+      {children}
+    </Card>
   );
 }
 
@@ -731,14 +774,6 @@ function StackedField({ label, formElement }: StackedFieldProps): JSX.Element {
   );
 }
 
-function FormContainer({ children }: FormContainerProps): JSX.Element {
-  return (
-    <Card padded style={{ backgroundColor: themeObject.theme.colorBgLayout }}>
-      {children}
-    </Card>
-  );
-}
-
 function OwnersSelector({
   datasource,
   onChange,
@@ -757,7 +792,12 @@ function OwnersSelector({
           .filter(item => item.extra.active)
           .map(item => ({
             value: item.value as number,
-            label: item.text as string,
+            label: OwnerSelectLabel({
+              name: item.text as string,
+              email: item.extra?.email as string | undefined,
+            }),
+            [OWNER_TEXT_LABEL_PROP]: item.text as string,
+            [OWNER_EMAIL_PROP]: (item.extra?.email as string) ?? '',
           })),
         totalCount: response.json.count,
       }));
@@ -775,6 +815,7 @@ function OwnersSelector({
       onChange={value => onChange(value as Owner[])}
       header={<FormLabel>{t('Owners')}</FormLabel>}
       allowClear
+      optionFilterProps={OWNER_OPTION_FILTER_PROPS}
     />
   );
 }
@@ -847,10 +888,20 @@ class DatasourceEditor extends PureComponent<
     this.state = {
       datasource: {
         ...props.datasource,
-        owners: props.datasource.owners.map(owner => ({
-          value: owner.value || owner.id,
-          label: owner.label || `${owner.first_name} ${owner.last_name}`,
-        })),
+        owners: props.datasource.owners.map(owner => {
+          const ownerName =
+            owner.label || `${owner.first_name} ${owner.last_name}`;
+          return {
+            value: owner.value || owner.id,
+            label: OwnerSelectLabel({
+              name: typeof ownerName === 'string' ? ownerName : '',
+              email: owner.email,
+            }),
+            [OWNER_TEXT_LABEL_PROP]:
+              typeof ownerName === 'string' ? ownerName : '',
+            [OWNER_EMAIL_PROP]: owner.email ?? '',
+          };
+        }),
         metrics: props.datasource.metrics?.map(metric => {
           const {
             certified_by: certifiedByMetric,
@@ -881,6 +932,8 @@ class DatasourceEditor extends PureComponent<
         col => !!col.expression,
       ),
       folders: props.datasource.folders || [],
+      folderCount:
+        countAllFolders(props.datasource.folders || []) + DEFAULT_FOLDERS_COUNT,
       metadataLoading: false,
       activeTabKey: TABS_KEYS.SOURCE,
       datasourceType: props.datasource.sql
@@ -964,13 +1017,14 @@ class DatasourceEditor extends PureComponent<
   }
 
   handleFoldersChange(folders: DatasourceFolder[]) {
+    const folderCount = countAllFolders(folders);
     const userMadeFolders = folders.filter(
       f =>
         f.uuid !== DEFAULT_METRICS_FOLDER_UUID &&
         f.uuid !== DEFAULT_COLUMNS_FOLDER_UUID &&
         (f.children?.length ?? 0) > 0,
     );
-    this.setState({ folders: userMadeFolders }, () => {
+    this.setState({ folders: userMadeFolders, folderCount }, () => {
       this.onDatasourceChange({
         ...this.state.datasource,
         folders: userMadeFolders,
@@ -2381,7 +2435,7 @@ class DatasourceEditor extends PureComponent<
                     key: TABS_KEYS.FOLDERS,
                     label: (
                       <CollectionTabTitle
-                        collection={this.state.folders}
+                        count={this.state.folderCount}
                         title={t('Folders')}
                       />
                     ),

@@ -146,24 +146,23 @@ export function OAuth2RedirectMessage({
 
   const body = (
     <p>
-      This database uses OAuth2 for authentication. Please click the link above
-      to grant Apache Superset permission to access the data. Your personal
-      access token will be stored encrypted and used only for queries run by
-      you.
+      {t(
+        'This database uses OAuth2 for authentication. Please click the link above to grant Apache Superset permission to access the data. Your personal access token will be stored encrypted and used only for queries run by you.',
+      )}
     </p>
   );
   const subtitle = (
     <>
-      You need to{' '}
+      {t('You need to')}{' '}
       <a
         href={extra.url}
         onClick={handleOAuthClick}
         target="_blank"
         rel="noreferrer"
       >
-        provide authorization
+        {t('provide authorization')}
       </a>{' '}
-      in order to run this operation.
+      {t('in order to run this operation.')}
     </>
   );
 

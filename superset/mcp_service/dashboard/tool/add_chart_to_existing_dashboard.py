@@ -27,6 +27,12 @@ from typing import Any, Dict
 from fastmcp import Context
 from superset_core.mcp import tool
 
+from superset.extensions import event_logger
+from superset.mcp_service.dashboard.constants import (
+    generate_id,
+    GRID_COLUMN_COUNT,
+    GRID_DEFAULT_CHART_WIDTH,
+)
 from superset.mcp_service.dashboard.schemas import (
     AddChartToDashboardRequest,
     AddChartToDashboardResponse,
@@ -39,38 +45,95 @@ from superset.utils import json
 logger = logging.getLogger(__name__)
 
 
-def _find_next_row_position(layout: Dict[str, Any]) -> int:
+def _find_next_row_position(layout: Dict[str, Any]) -> str:
     """
-    Find the next available row position in the dashboard layout.
+    Generate a unique ROW ID for a new row in the dashboard layout.
+
+    Uses UUID-based IDs (e.g. ``ROW-a1b2c3d4``) instead of numeric indices
+    so that the IDs are compatible with real dashboard layouts that use
+    nanoid-style identifiers.
 
     Returns:
-        Row index for the new chart
+        A new unique ROW ID string.
     """
-    # Find existing rows
-    row_indices = []
-    for key in layout.keys():
-        if key.startswith("ROW-") and key[4:].isdigit():
-            row_indices.append(int(key[4:]))
+    row_key = generate_id("ROW")
+    # Ensure uniqueness (extremely unlikely collision, but safe)
+    while row_key in layout:
+        row_key = generate_id("ROW")
+    return row_key
 
-    # Return next available row index
-    return max(row_indices) + 1 if row_indices else 0
+
+def _find_tab_insert_target(layout: Dict[str, Any]) -> str | None:
+    """
+    Detect if the dashboard uses tabs and return the first tab's ID.
+
+    If ``GRID_ID`` has children that are ``TABS`` components, this walks
+    into the first ``TAB`` child so that new rows are placed inside the
+    active tab rather than directly under GRID_ID.
+
+    Returns:
+        The ID of the first TAB component, or ``None`` if the dashboard
+        does not use top-level tabs.
+    """
+    grid = layout.get("GRID_ID")
+    if not grid:
+        return None
+
+    for child_id in grid.get("children", []):
+        child = layout.get(child_id)
+        if child and child.get("type") == "TABS":
+            # Found a TABS component; use its first TAB child
+            tabs_children = child.get("children", [])
+            if tabs_children:
+                first_tab_id = tabs_children[0]
+                first_tab = layout.get(first_tab_id)
+                if first_tab and first_tab.get("type") == "TAB":
+                    return first_tab_id
+    return None
 
 
 def _add_chart_to_layout(
-    layout: Dict[str, Any], chart: Any, chart_id: int, row_index: int
-) -> tuple[str, str]:
+    layout: Dict[str, Any],
+    chart: Any,
+    chart_id: int,
+    row_key: str,
+    parent_id: str,
+) -> tuple[str, str, str]:
     """
-    Add chart and row components to the dashboard layout.
+    Add chart, column, and row components to the dashboard layout.
+
+    Creates the proper ``ROW > COLUMN > CHART`` hierarchy that the
+    frontend expects for rendering.
+
+    Args:
+        layout: The mutable layout dict to update.
+        chart: The chart ORM object.
+        chart_id: The chart's integer ID.
+        row_key: The pre-generated ROW component ID.
+        parent_id: The parent container ID (GRID_ID or a TAB ID).
 
     Returns:
-        Tuple of (chart_key, row_key)
+        Tuple of ``(chart_key, column_key, row_key)``.
     """
     chart_key = f"CHART-{chart_id}"
-    row_key = f"ROW-{row_index}"
-    chart_width = 5  # Balanced width for good proportions
+    column_key = generate_id("COLUMN")
+    chart_width = GRID_DEFAULT_CHART_WIDTH
     chart_height = 50  # Good height for most chart types
 
-    # Add chart to layout using proper Superset structure
+    # Build the parents chain up to the parent container
+    if (parent_component := layout.get(parent_id)) is not None:
+        parent_parents = parent_component.get("parents", [])
+    elif parent_id == "GRID_ID":
+        # Empty layout: GRID_ID will be created by _ensure_layout_structure
+        # with parents=["ROOT_ID"], so mirror that here.
+        parent_parents = ["ROOT_ID"]
+    else:
+        parent_parents = []
+    row_parents = list(parent_parents) + [parent_id]
+    column_parents = row_parents + [row_key]
+    chart_parents = column_parents + [column_key]
+
+    # Add chart component
     layout[chart_key] = {
         "children": [],
         "id": chart_key,
@@ -81,25 +144,45 @@ def _add_chart_to_layout(
             "uuid": str(chart.uuid) if chart.uuid else f"chart-{chart_id}",
             "width": chart_width,
         },
-        "parents": ["ROOT_ID", "GRID_ID", row_key],
+        "parents": chart_parents,
         "type": "CHART",
     }
 
-    # Create row for the chart
-    layout[row_key] = {
+    # Add column wrapper (ROW > COLUMN > CHART)
+    layout[column_key] = {
         "children": [chart_key],
+        "id": column_key,
+        "meta": {
+            "background": "BACKGROUND_TRANSPARENT",
+            "width": GRID_COLUMN_COUNT,
+        },
+        "parents": column_parents,
+        "type": "COLUMN",
+    }
+
+    # Create row containing the column
+    layout[row_key] = {
+        "children": [column_key],
         "id": row_key,
         "meta": {"background": "BACKGROUND_TRANSPARENT"},
-        "parents": ["ROOT_ID", "GRID_ID"],
+        "parents": row_parents,
         "type": "ROW",
     }
 
-    return chart_key, row_key
+    return chart_key, column_key, row_key
 
 
-def _ensure_layout_structure(layout: Dict[str, Any], row_key: str) -> None:
+def _ensure_layout_structure(
+    layout: Dict[str, Any], row_key: str, parent_id: str
+) -> None:
     """
-    Ensure the dashboard layout has proper GRID and ROOT structure.
+    Ensure the dashboard layout has proper GRID and ROOT structure,
+    and add the new row to the correct parent container.
+
+    Args:
+        layout: The mutable layout dict to update.
+        row_key: The ROW component ID to insert.
+        parent_id: The container to add the row to (GRID_ID or a TAB ID).
     """
     # Ensure GRID structure exists
     if "GRID_ID" not in layout:
@@ -110,10 +193,16 @@ def _ensure_layout_structure(layout: Dict[str, Any], row_key: str) -> None:
             "type": "GRID",
         }
 
-    # Add row to GRID
-    if "children" not in layout["GRID_ID"]:
-        layout["GRID_ID"]["children"] = []
-    layout["GRID_ID"]["children"].append(row_key)
+    # Add row to the target parent container
+    if parent := layout.get(parent_id):
+        if "children" not in parent:
+            parent["children"] = []
+        parent["children"].append(row_key)
+    else:
+        # Fallback: add to GRID_ID
+        if "children" not in layout["GRID_ID"]:
+            layout["GRID_ID"]["children"] = []
+        layout["GRID_ID"]["children"].append(row_key)
 
     # Update ROOT_ID if it exists, or create it
     if "ROOT_ID" in layout:
@@ -147,75 +236,83 @@ def add_chart_to_existing_dashboard(
         from superset.commands.dashboard.update import UpdateDashboardCommand
         from superset.daos.dashboard import DashboardDAO
 
-        # Validate dashboard exists
-        dashboard = DashboardDAO.find_by_id(request.dashboard_id)
-        if not dashboard:
-            return AddChartToDashboardResponse(
-                dashboard=None,
-                dashboard_url=None,
-                position=None,
-                error=f"Dashboard with ID {request.dashboard_id} not found",
+        # Validate dashboard and chart exist
+        with event_logger.log_context(action="mcp.add_chart_to_dashboard.validation"):
+            dashboard = DashboardDAO.find_by_id(request.dashboard_id)
+            if not dashboard:
+                return AddChartToDashboardResponse(
+                    dashboard=None,
+                    dashboard_url=None,
+                    position=None,
+                    error=(f"Dashboard with ID {request.dashboard_id} not found"),
+                )
+
+            # Get chart object for SQLAlchemy relationships and validation
+            from superset import db
+            from superset.models.slice import Slice
+
+            new_chart = db.session.get(Slice, request.chart_id)
+            if not new_chart:
+                return AddChartToDashboardResponse(
+                    dashboard=None,
+                    dashboard_url=None,
+                    position=None,
+                    error=f"Chart with ID {request.chart_id} not found",
+                )
+
+            # Check if chart is already in dashboard
+            current_chart_ids = [slice.id for slice in dashboard.slices]
+            if request.chart_id in current_chart_ids:
+                return AddChartToDashboardResponse(
+                    dashboard=None,
+                    dashboard_url=None,
+                    position=None,
+                    error=(
+                        f"Chart {request.chart_id} is already in dashboard "
+                        f"{request.dashboard_id}"
+                    ),
+                )
+
+        # Calculate layout position
+        with event_logger.log_context(action="mcp.add_chart_to_dashboard.layout"):
+            # Parse current layout
+            try:
+                current_layout = json.loads(dashboard.position_json or "{}")
+            except (json.JSONDecodeError, TypeError):
+                current_layout = {}
+
+            # Generate a unique ROW ID for the new row
+            row_key = _find_next_row_position(current_layout)
+
+            # Detect tabbed dashboards: if GRID has TABS, target the first tab
+            tab_target = _find_tab_insert_target(current_layout)
+            parent_id = tab_target if tab_target else "GRID_ID"
+
+            # Add chart, column, and row to layout
+            chart_key, column_key, row_key = _add_chart_to_layout(
+                current_layout, new_chart, request.chart_id, row_key, parent_id
             )
 
-        # Get chart object for SQLAlchemy relationships and validation
-        from superset import db
-        from superset.models.slice import Slice
-
-        new_chart = db.session.get(Slice, request.chart_id)
-        if not new_chart:
-            return AddChartToDashboardResponse(
-                dashboard=None,
-                dashboard_url=None,
-                position=None,
-                error=f"Chart with ID {request.chart_id} not found",
-            )
-
-        # Check if chart is already in dashboard
-        current_chart_ids = [slice.id for slice in dashboard.slices]
-        if request.chart_id in current_chart_ids:
-            return AddChartToDashboardResponse(
-                dashboard=None,
-                dashboard_url=None,
-                position=None,
-                error=(
-                    f"Chart {request.chart_id} is already in dashboard "
-                    f"{request.dashboard_id}"
-                ),
-            )
-
-        # Parse current layout
-        try:
-            current_layout = json.loads(dashboard.position_json or "{}")
-        except (json.JSONDecodeError, TypeError):
-            current_layout = {}
-
-        # Find position for new chart
-        row_index = _find_next_row_position(current_layout)
-
-        # Add chart and row to layout
-        chart_key, row_key = _add_chart_to_layout(
-            current_layout, new_chart, request.chart_id, row_index
-        )
-
-        # Ensure proper layout structure
-        _ensure_layout_structure(current_layout, row_key)
-
-        # Get chart objects for SQLAlchemy relationships
-        # Get existing chart objects
-        existing_chart_objects = dashboard.slices
-
-        # Combine existing and new chart objects (new_chart was retrieved above)
-        all_chart_objects = list(existing_chart_objects) + [new_chart]
-
-        # Prepare update data
-        update_data = {
-            "position_json": json.dumps(current_layout),
-            "slices": all_chart_objects,  # Pass ORM objects, not IDs
-        }
+            # Ensure proper layout structure
+            _ensure_layout_structure(current_layout, row_key, parent_id)
 
         # Update the dashboard
-        command = UpdateDashboardCommand(request.dashboard_id, update_data)
-        updated_dashboard = command.run()
+        with event_logger.log_context(action="mcp.add_chart_to_dashboard.db_write"):
+            # Get existing chart objects
+            existing_chart_objects = dashboard.slices
+
+            # Combine existing and new chart objects
+            all_chart_objects = list(existing_chart_objects) + [new_chart]
+
+            # Prepare update data
+            update_data = {
+                "position_json": json.dumps(current_layout),
+                "slices": all_chart_objects,  # Pass ORM objects, not IDs
+            }
+
+            # Update the dashboard
+            command = UpdateDashboardCommand(request.dashboard_id, update_data)
+            updated_dashboard = command.run()
 
         # Convert to response format
         from superset.mcp_service.dashboard.schemas import (
@@ -263,7 +360,7 @@ def add_chart_to_existing_dashboard(
         )
 
         # Return position info for compatibility
-        position_info = {"row": row_index, "chart_key": chart_key, "row_key": row_key}
+        position_info = {"row": row_key, "chart_key": chart_key, "row_key": row_key}
 
         return AddChartToDashboardResponse(
             dashboard=dashboard_info,

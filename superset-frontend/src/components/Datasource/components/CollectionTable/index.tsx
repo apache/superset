@@ -375,7 +375,7 @@ export default class CRUDCollection extends PureComponent<
             `}
           >
             <Icons.DeleteOutlined
-              aria-label="Delete item"
+              aria-label={t('Delete item')}
               className="pointer"
               data-test="crud-delete-icon"
               role="button"
