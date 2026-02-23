@@ -747,8 +747,9 @@ test('can search calculated columns by name', async () => {
   await userEvent.click(calculatedColumnsTab);
 
   // Wait for calculated columns to be displayed
+  // column_name is rendered as an input (TextControl) since editableColumnName=true
   await waitFor(() => {
-    expect(screen.getByText('is_california')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('is_california')).toBeInTheDocument();
   });
 
   // Find the search input
@@ -758,15 +759,15 @@ test('can search calculated columns by name', async () => {
   expect(searchInput).toBeInTheDocument();
 
   // Verify both columns are visible initially
-  expect(screen.getByText('upper_name')).toBeInTheDocument();
+  expect(screen.getByDisplayValue('upper_name')).toBeInTheDocument();
 
   // Search for a specific calculated column
   await userEvent.type(searchInput, 'california');
 
   // Verify filtered results
   await waitFor(() => {
-    expect(screen.getByText('is_california')).toBeInTheDocument();
-    expect(screen.queryByText('upper_name')).not.toBeInTheDocument();
+    expect(screen.getByDisplayValue('is_california')).toBeInTheDocument();
+    expect(screen.queryByDisplayValue('upper_name')).not.toBeInTheDocument();
   });
 
   // Clear search
@@ -774,8 +775,8 @@ test('can search calculated columns by name', async () => {
 
   // Verify all calculated columns are shown again
   await waitFor(() => {
-    expect(screen.getByText('is_california')).toBeInTheDocument();
-    expect(screen.getByText('upper_name')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('is_california')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('upper_name')).toBeInTheDocument();
   });
 });
 
@@ -803,8 +804,9 @@ test('calculated column search is case-insensitive', async () => {
   await userEvent.click(calculatedColumnsTab);
 
   // Wait for calculated column to be displayed
+  // column_name is rendered as an input (TextControl) since editableColumnName=true
   await waitFor(() => {
-    expect(screen.getByText('upper_name')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('upper_name')).toBeInTheDocument();
   });
 
   const searchInput = screen.getByPlaceholderText(
@@ -816,6 +818,6 @@ test('calculated column search is case-insensitive', async () => {
 
   // Verify results are still found
   await waitFor(() => {
-    expect(screen.getByText('upper_name')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('upper_name')).toBeInTheDocument();
   });
 });
