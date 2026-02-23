@@ -100,23 +100,19 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
                     )
                 )
 
+        # Determine effective database state (payload overrides model)
+        if "database" in self._properties:
+            has_database = self._properties["database"] is not None
+        else:
+            has_database = self._model.database_id is not None
+
         # Validate database is not allowed on Report type
-        if report_type == ReportScheduleType.REPORT:
-            if "database" in self._properties:
-                has_database = self._properties["database"] is not None
-            else:
-                has_database = self._model.database_id is not None
-            if has_database:
-                exceptions.append(ReportScheduleDatabaseNotAllowedValidationError())
+        if report_type == ReportScheduleType.REPORT and has_database:
+            exceptions.append(ReportScheduleDatabaseNotAllowedValidationError())
 
         # Validate Alert has a database
-        if report_type == ReportScheduleType.ALERT:
-            if "database" in self._properties:
-                has_database = self._properties["database"] is not None
-            else:
-                has_database = self._model.database_id is not None
-            if not has_database:
-                exceptions.append(ReportScheduleAlertRequiredDatabaseValidationError())
+        if report_type == ReportScheduleType.ALERT and not has_database:
+            exceptions.append(ReportScheduleAlertRequiredDatabaseValidationError())
 
         # Validate if DB exists (for alerts)
         if report_type == ReportScheduleType.ALERT and database_id is not None:

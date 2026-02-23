@@ -1655,6 +1655,38 @@ class TestReportSchedulesApi(SupersetTestCase):
         }
 
     @pytest.mark.usefixtures("create_report_schedules")
+    def test_update_report_schedule_nonexistent_database_returns_not_allowed(self):
+        """
+        ReportSchedule API: Test Report + nonexistent DB returns 'not allowed',
+        not 'does not exist' — type invariant takes precedence.
+        """
+        self.login(ADMIN_USERNAME)
+
+        report_schedule = (
+            db.session.query(ReportSchedule)
+            .filter(ReportSchedule.name == "name1")
+            .one_or_none()
+        )
+        uri = f"api/v1/report/{report_schedule.id}"
+
+        # Transition to Report type first
+        rv = self.put_assert_metric(
+            uri,
+            {"type": ReportScheduleType.REPORT, "database": None},
+            "put",
+        )
+        assert rv.status_code == 200
+
+        # Report + nonexistent DB → 422 "not allowed" (not "does not exist")
+        database_max_id = db.session.query(func.max(Database.id)).scalar()
+        rv = self.put_assert_metric(uri, {"database": database_max_id + 1}, "put")
+        assert rv.status_code == 422
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data == {
+            "message": {"database": "Database reference is not allowed on a report"}
+        }
+
+    @pytest.mark.usefixtures("create_report_schedules")
     def test_update_alert_schedule_database_allowed(self):
         """
         ReportSchedule API: Test update alert schedule accepts database
