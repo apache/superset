@@ -1222,12 +1222,29 @@ test('stale JSON array anchor is cleared without crash or toast', async () => {
       ),
     ).toBe(false);
 
-    // Verify anchor was cleared: the stale anchor value should not appear
-    // as a selected item anywhere (antd TreeSelect sets title={value} on
-    // selection items; absent title means updateAnchorState(undefined) ran)
+    // Verify anchor was cleared at the payload level: trigger save and
+    // inspect the PUT body to confirm extra.dashboard.anchor is undefined
+    const updateEndpoint = 'glob:*/api/v1/report/1';
+    fetchMock.put(updateEndpoint, { id: 1, result: {} }, { name: 'put-report-1' });
+
+    const saveButton = screen.getByRole('button', { name: /save/i });
+    expect(saveButton).not.toBeDisabled();
+    userEvent.click(saveButton);
+
     await waitFor(() => {
-      expect(screen.queryByTitle(staleAnchor)).not.toBeInTheDocument();
+      const putCalls = fetchMock.callHistory
+        .calls()
+        .filter(c => c.url.includes('/api/v1/report/') && c.options?.method === 'put');
+      expect(putCalls).toHaveLength(1);
     });
+
+    const putCall = fetchMock.callHistory
+      .calls()
+      .find(c => c.url.includes('/api/v1/report/') && c.options?.method === 'put');
+    const body = JSON.parse(putCall!.options?.body as string);
+    expect(body.extra.dashboard.anchor).toBeUndefined();
+
+    fetchMock.removeRoute('put-report-1');
   } finally {
     restoreAnchorMocks();
   }
