@@ -22,6 +22,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'spec/helpers/testing-library';
 import { DndMetricSelect } from 'src/explore/components/controls/DndColumnSelectControl/DndMetricSelect';
 import { AGGREGATES } from 'src/explore/constants';
