@@ -336,7 +336,8 @@ class TestReportSchedulesApi(SupersetTestCase):
         assert rv.status_code == 200
         assert "can_read" in data["permissions"]
         assert "can_write" in data["permissions"]
-        assert len(data["permissions"]) == 2
+        assert "can_run_now" in data["permissions"]
+        assert len(data["permissions"]) == 3
 
     @pytest.mark.usefixtures("create_report_schedules")
     def test_get_report_schedule_not_found(self):
@@ -2055,3 +2056,42 @@ class TestReportSchedulesApi(SupersetTestCase):
         )
 
         assert json.loads(report_schedule.extra_json) == extra_json
+
+    @pytest.mark.usefixtures("setup_sample_data")
+    @patch("superset.commands.report.execute.AsyncExecuteReportScheduleCommand.run")
+    def test_run_now_success(self, run_mock):
+        """
+        ReportSchedule API: Test running a report
+        immediately returns 200 and starts execution.
+        """
+        example_db = get_example_database()  # noqa: F841
+        chart = db.session.query(Slice).first()
+        admin_user = self.get_user("admin")
+        report = insert_report_schedule(
+            type=ReportScheduleType.REPORT,
+            name="test_run_now_success",
+            crontab="* * * * *",
+            sql="SELECT value from table",
+            description="Report working",
+            chart=chart,
+            database=example_db,
+            owners=[admin_user],
+            last_state=ReportState.WORKING,
+        )
+
+        self.login(ADMIN_USERNAME)
+        resp = self.client.post(f"/api/v1/report/{report.id}/run_now")
+        assert resp.status_code == 200
+        assert b"Report execution started" in resp.data
+        db.session.delete(report)
+        db.session.commit()
+
+    @pytest.mark.usefixtures("setup_sample_data")
+    def test_run_now_not_found(self):
+        """
+        ReportSchedule API: Test running a non-existent report returns 500 or 404.
+        """
+        get_example_database()  # noqa: F841
+        self.login(ADMIN_USERNAME)
+        resp = self.client.post("/api/v1/report/999999/run_now")
+        assert resp.status_code in (404, 500)
