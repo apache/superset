@@ -226,18 +226,19 @@ class TestSupersetResultSet(SupersetTestCase):
         assert results.columns[3]["type"] == "STRING"
         assert results.columns[3]["type_generic"] == GenericDataType.STRING
         df = results.to_pandas_df()
+        # JSON/JSONB data is preserved as objects instead of being stringified
         assert df_to_records(df) == [
             {
                 "id": 4,
-                "dict_arr": '[{"table_name": "unicode_test", "database_id": 1}]',
-                "num_arr": "[1, 2, 3]",
-                "map_col": "{'chart_name': 'scatter'}",
+                "dict_arr": [{"table_name": "unicode_test", "database_id": 1}],
+                "num_arr": [1, 2, 3],
+                "map_col": {"chart_name": "scatter"},
             },
             {
                 "id": 3,
-                "dict_arr": '[{"table_name": "birth_names", "database_id": 1}]',
-                "num_arr": "[4, 5, 6]",
-                "map_col": "{'chart_name': 'plot'}",
+                "dict_arr": [{"table_name": "birth_names", "database_id": 1}],
+                "num_arr": [4, 5, 6],
+                "map_col": {"chart_name": "plot"},
             },
         ]
 
@@ -267,9 +268,22 @@ class TestSupersetResultSet(SupersetTestCase):
         assert results.columns[0]["type"] == "STRING"
         assert results.columns[0]["type_generic"] == GenericDataType.STRING
         df = results.to_pandas_df()
+        # JSON/JSONB data is preserved as objects instead of being stringified
         assert df_to_records(df) == [
             {
-                "metadata": '["test", [["foo", 123456, [[["test"], 3432546, 7657658766], [["fake"], 656756765, 324324324324]]]], ["test2", 43, 765765765], null, null]'  # noqa: E501
+                "metadata": [
+                    "test",
+                    [
+                        [
+                            "foo",
+                            123456,
+                            [[["test"], 3432546, 7657658766], [["fake"], 656756765, 324324324324]],
+                        ]
+                    ],
+                    ["test2", 43, 765765765],
+                    None,
+                    None,
+                ]
             }
         ]
 
@@ -280,7 +294,8 @@ class TestSupersetResultSet(SupersetTestCase):
         assert results.columns[0]["type"] == "STRING"
         assert results.columns[0]["type_generic"] == GenericDataType.STRING
         df = results.to_pandas_df()
-        assert df_to_records(df) == [{"metadata": '[{"TestKey": [123456, "foo"]}]'}]
+        # JSON/JSONB data is preserved as objects instead of being stringified
+        assert df_to_records(df) == [{"metadata": [{"TestKey": [123456, "foo"]}]}]
 
     def test_empty_datetime(self):
         data = [(None,)]
