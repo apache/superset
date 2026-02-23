@@ -240,7 +240,7 @@ export const ZoomConfigControl: FC<ZoomConfigsControlProps> = ({
           max={3}
         />
         <Tag>
-          {t('Current Zoom:')} {value?.configs.zoom}
+          {t('Current Zoom')}: {value?.configs.zoom}
         </Tag>
       </Form>
       <ZoomConfigsChart

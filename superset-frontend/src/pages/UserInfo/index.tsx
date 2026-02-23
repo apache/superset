@@ -105,7 +105,7 @@ export function UserInfo({ user }: { user: UserWithPermissionsAndRoles }) {
         setUserDetails(transformedUser);
       })
       .catch(error => {
-        addDangerToast(t('Failed to fetch user info:'), error);
+        addDangerToast(`${t('Failed to fetch user info')}:`, error);
       });
   }, [userDetails]);
 

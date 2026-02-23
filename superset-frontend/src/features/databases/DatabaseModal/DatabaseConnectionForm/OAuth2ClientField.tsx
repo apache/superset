@@ -103,7 +103,7 @@ export const OAuth2ClientField = ({
               <FormItem label={LABELS.AUTH_URI}>
                 <Input
                   data-test="client-authorization-request-uri"
-                  placeholder={t('https://')}
+                  placeholder="https://"
                   value={oauth2ClientInfo.authorization_request_uri}
                   onChange={handleChange('authorization_request_uri')}
                 />
@@ -111,7 +111,7 @@ export const OAuth2ClientField = ({
               <FormItem label={LABELS.TOKEN_URI}>
                 <Input
                   data-test="client-token-request-uri"
-                  placeholder={t('https://')}
+                  placeholder="https://"
                   value={oauth2ClientInfo.token_request_uri}
                   onChange={handleChange('token_request_uri')}
                 />
