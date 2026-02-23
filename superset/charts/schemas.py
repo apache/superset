@@ -1466,7 +1466,7 @@ class ChartDataTimingSchema(Schema):
     db_execution_ms = fields.Float(
         metadata={
             "description": "Database query execution time in milliseconds. "
-            "Only present on cache miss."
+            "Null on cache hit."
         },
         allow_none=True,
         load_default=None,

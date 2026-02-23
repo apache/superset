@@ -207,6 +207,7 @@ class QueryContextProcessor:
         cache.df.columns = [unescape_separator(col) for col in cache.df.columns.values]
         timing["result_processing_ms"] = round((time.perf_counter() - t) * 1000, 2)
 
+        timing["db_execution_ms"] = timing.get("db_execution_ms")
         timing["total_ms"] = round((time.perf_counter() - t0) * 1000, 2)
         timing["is_cached"] = cache.is_cached
 
@@ -215,7 +216,7 @@ class QueryContextProcessor:
         if stats_logger and hasattr(stats_logger, "timing"):
             for phase, value in timing.items():
                 if isinstance(value, (int, float)) and not isinstance(value, bool):
-                    stats_logger.timing(f"chart_data.{phase}", value / 1000)
+                    stats_logger.timing(f"chart_data.{phase}", value)
 
         # Slow query logging
         threshold = current_app.config.get("CHART_DATA_SLOW_QUERY_THRESHOLD_MS")
@@ -252,7 +253,11 @@ class QueryContextProcessor:
             "from_dttm": query_obj.from_dttm,
             "to_dttm": query_obj.to_dttm,
             "label_map": label_map,
-            "timing": timing,
+            **(
+                {"timing": timing}
+                if current_app.config.get("CHART_DATA_INCLUDE_TIMING")
+                else {}
+            ),
         }
 
     def query_cache_key(self, query_obj: QueryObject, **kwargs: Any) -> str | None:

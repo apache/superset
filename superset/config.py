@@ -1107,6 +1107,11 @@ CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "NullCache"}
 DATA_CACHE_CONFIG: CacheConfig = {"CACHE_TYPE": "NullCache"}
 
 # Slow chart data query threshold in milliseconds.
+# Include per-phase timing breakdown in /api/v1/chart/data responses.
+# When False, timing data is still collected for stats_logger and slow-query
+# logging but omitted from the API response.
+CHART_DATA_INCLUDE_TIMING: bool = False
+
 # When set, queries exceeding this threshold are logged at WARNING level
 # with per-phase timing breakdown. Set to None to disable.
 CHART_DATA_SLOW_QUERY_THRESHOLD_MS: int | None = None
