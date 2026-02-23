@@ -30,6 +30,7 @@ from superset.sql.parse import (
     KQLTokenType,
     KustoKQLStatement,
     LimitMethod,
+    Partition,
     process_jinja_sql,
     remove_quotes,
     RLSMethod,
@@ -135,6 +136,36 @@ def test_table_qualify() -> None:
     assert qualified.table == table.table
     assert qualified.schema == table.schema
     assert qualified.catalog == table.catalog
+
+
+def test_partition() -> None:
+    """
+    Test the `Partition` class and its string conversion.
+    """
+    # Test partitioned table with partition columns
+    partition = Partition(is_partitioned_table=True, partition_column=["col1", "col2"])
+    assert partition.is_partitioned_table is True
+    assert partition.partition_column == ["col1", "col2"]
+    assert (
+        str(partition)
+        == "Partition(is_partitioned_table=True, partition_column=[col1, col2])"
+    )
+
+    # Test non-partitioned table
+    partition_none = Partition(is_partitioned_table=False, partition_column=None)
+    assert partition_none.is_partitioned_table is False
+    assert partition_none.partition_column is None
+    assert (
+        str(partition_none)
+        == "Partition(is_partitioned_table=False, partition_column=[None])"
+    )
+
+    # Test equality
+    partition1 = Partition(is_partitioned_table=True, partition_column=["col1"])
+    partition2 = Partition(is_partitioned_table=True, partition_column=["col1"])
+    partition3 = Partition(is_partitioned_table=True, partition_column=["col2"])
+    assert partition1 == partition2
+    assert partition1 != partition3
 
 
 def extract_tables_from_sql(sql: str, engine: str = "postgresql") -> set[Table]:
