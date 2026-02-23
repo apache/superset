@@ -21,15 +21,8 @@ import Echart from '../components/Echart';
 import { allEventHandlers } from '../utils/eventHandlers';
 
 export default function EchartsPie(props: PieChartTransformedProps) {
-  const {
-    height,
-    width,
-    echartOptions,
-    selectedValues,
-    refs,
-    formData,
-    isRefreshing,
-  } = props;
+  const { height, width, echartOptions, selectedValues, refs, formData } =
+    props;
 
   const eventHandlers = allEventHandlers(props);
 
@@ -42,7 +35,6 @@ export default function EchartsPie(props: PieChartTransformedProps) {
       eventHandlers={eventHandlers}
       selectedValues={selectedValues}
       vizType={formData.vizType}
-      isRefreshing={isRefreshing}
     />
   );
 }

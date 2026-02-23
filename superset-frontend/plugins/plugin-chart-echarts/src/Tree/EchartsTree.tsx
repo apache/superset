@@ -25,7 +25,6 @@ export default function EchartsTree({
   refs,
   width,
   formData,
-  isRefreshing,
 }: TreeTransformedProps) {
   return (
     <Echart
@@ -34,7 +33,6 @@ export default function EchartsTree({
       width={width}
       echartOptions={echartOptions}
       vizType={formData.vizType}
-      isRefreshing={isRefreshing}
     />
   );
 }

@@ -353,7 +353,6 @@ function BigNumberVis({
       onContextMenu,
       formData,
       xValueFormatter,
-      isRefreshing,
     } = props;
 
     // if can't find any non-null values, no point rendering the trendline
@@ -396,7 +395,6 @@ function BigNumberVis({
           echartOptions={echartOptions}
           eventHandlers={eventHandlers}
           vizType={formData?.vizType}
-          isRefreshing={isRefreshing}
         />
       )
     );

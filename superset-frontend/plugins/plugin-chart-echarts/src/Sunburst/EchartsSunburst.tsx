@@ -45,7 +45,6 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
     refs,
     emitCrossFilters,
     coltypeMapping,
-    isRefreshing,
   } = props;
   const { columns } = formData;
 
@@ -162,7 +161,6 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
       eventHandlers={eventHandlers}
       selectedValues={selectedValues}
       vizType={formData.vizType}
-      isRefreshing={isRefreshing}
     />
   );
 }

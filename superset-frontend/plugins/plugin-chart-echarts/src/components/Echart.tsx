@@ -70,8 +70,11 @@ import { DEFAULT_LOCALE } from '../constants';
 // Define this interface here to avoid creating a dependency back to superset-frontend,
 // TODO: to move the type to @superset-ui/core
 interface ExplorePageState {
-  common: {
-    locale: string;
+  common?: {
+    locale?: string;
+  };
+  dashboardState?: {
+    isRefreshing?: boolean;
   };
 }
 
@@ -132,7 +135,6 @@ function Echart(
     selectedValues = {},
     refs,
     vizType,
-    isRefreshing,
   }: EchartsProps,
   ref: Ref<EchartsHandler>,
 ) {
@@ -157,6 +159,9 @@ function Echart(
   const locale = useSelector(
     (state: ExplorePageState) => state?.common?.locale ?? DEFAULT_LOCALE,
   ).toUpperCase();
+  const isDashboardRefreshing = useSelector((state: ExplorePageState) =>
+    Boolean(state?.dashboardState?.isRefreshing),
+  );
 
   const handleSizeChange = useCallback(
     ({ width, height }: { width: number; height: number }) => {
@@ -246,7 +251,7 @@ function Echart(
         : {};
 
       // Disable animations during auto-refresh to reduce visual noise
-      const animationOverride = isRefreshing
+      const animationOverride = isDashboardRefreshing
         ? {
             animation: false,
             animationDuration: 0,
@@ -261,14 +266,17 @@ function Echart(
         animationOverride,
       );
 
-      const notMerge = !isRefreshing;
+      const notMerge = !isDashboardRefreshing;
+      if (!notMerge) {
+        chartRef.current?.dispatchAction({ type: 'hideTip' });
+      }
       chartRef.current?.setOption(themedEchartOptions, {
         notMerge,
         replaceMerge: notMerge ? undefined : ['series'],
-        lazyUpdate: isRefreshing,
+        lazyUpdate: isDashboardRefreshing,
       });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- isRefreshing intentionally excluded to prevent extra setOption calls
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- isDashboardRefreshing intentionally excluded to prevent extra setOption calls
   }, [didMount, echartOptions, eventHandlers, zrEventHandlers, theme, vizType]);
 
   useEffect(() => () => chartRef.current?.dispose(), []);

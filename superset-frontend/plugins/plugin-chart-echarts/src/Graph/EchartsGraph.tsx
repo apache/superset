@@ -52,7 +52,6 @@ export default function EchartsGraph({
   emitCrossFilters,
   refs,
   coltypeMapping,
-  isRefreshing,
 }: GraphChartTransformedProps) {
   const getCrossFilterDataMask = (node: DataRow | undefined) => {
     if (!node?.name || !node?.col) {
@@ -177,7 +176,6 @@ export default function EchartsGraph({
       echartOptions={echartOptions}
       eventHandlers={eventHandlers}
       vizType={formData.vizType}
-      isRefreshing={isRefreshing}
     />
   );
 }

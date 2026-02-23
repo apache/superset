@@ -18,7 +18,7 @@
  */
 
 import { type Dispatch, type SetStateAction } from 'react';
-import { DataMaskStateWithId, JsonObject } from '@superset-ui/core';
+import { JsonObject } from '@superset-ui/core';
 import {
   DashboardInfo as DashboardInfoType,
   Layout,
@@ -55,7 +55,6 @@ export interface HeaderDropdownProps {
   userCanCurate: boolean;
   userCanExport: boolean | undefined;
   manageEmbedded: () => void;
-  dataMask?: DataMaskStateWithId;
   lastModifiedTime: number;
   logEvent: (...args: unknown[]) => unknown;
   refreshLimit?: number;

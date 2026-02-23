@@ -21,15 +21,8 @@ import Echart from '../components/Echart';
 import { allEventHandlers } from '../utils/eventHandlers';
 
 export default function EchartsRadar(props: RadarChartTransformedProps) {
-  const {
-    height,
-    width,
-    echartOptions,
-    selectedValues,
-    refs,
-    formData,
-    isRefreshing,
-  } = props;
+  const { height, width, echartOptions, selectedValues, refs, formData } =
+    props;
   const eventHandlers = allEventHandlers(props);
 
   return (
@@ -41,7 +34,6 @@ export default function EchartsRadar(props: RadarChartTransformedProps) {
       eventHandlers={eventHandlers}
       selectedValues={selectedValues}
       vizType={formData.vizType}
-      isRefreshing={isRefreshing}
     />
   );
 }

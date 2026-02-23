@@ -35,7 +35,6 @@ export default function EchartsGantt(props: EchartsGanttChartTransformedProps) {
     formData,
     setControlValue,
     onLegendStateChanged,
-    isRefreshing,
   } = props;
   const extraControlRef = useRef<HTMLDivElement>(null);
   const [extraHeight, setExtraHeight] = useState(0);
@@ -85,7 +84,6 @@ export default function EchartsGantt(props: EchartsGanttChartTransformedProps) {
         selectedValues={selectedValues}
         eventHandlers={eventHandlers}
         vizType={formData.vizType}
-        isRefreshing={isRefreshing}
       />
     </>
   );
