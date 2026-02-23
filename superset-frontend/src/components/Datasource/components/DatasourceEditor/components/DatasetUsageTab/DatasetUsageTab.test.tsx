@@ -661,8 +661,8 @@ test('hides pagination when searching and restores it when cleared', async () =>
     expect(screen.getByText('Test Chart 2')).toBeInTheDocument();
   });
 
-  // Pagination is visible when not searching
-  expect(screen.getByRole('list', { name: 'Pagination' })).toBeInTheDocument();
+  // Pagination is visible when not searching (check for page number listitem)
+  expect(screen.getByTitle('1')).toBeInTheDocument();
 
   const searchInput = screen.getByPlaceholderText(
     'Search charts by name, owner, or dashboard',
@@ -677,9 +677,7 @@ test('hides pagination when searching and restores it when cleared', async () =>
   });
 
   // Pagination is hidden while searching
-  expect(
-    screen.queryByRole('list', { name: 'Pagination' }),
-  ).not.toBeInTheDocument();
+  expect(screen.queryByTitle('Next Page')).not.toBeInTheDocument();
 
   await userEvent.clear(searchInput);
 
@@ -690,5 +688,5 @@ test('hides pagination when searching and restores it when cleared', async () =>
   });
 
   // Pagination is restored
-  expect(screen.getByRole('list', { name: 'Pagination' })).toBeInTheDocument();
+  expect(screen.getByTitle('1')).toBeInTheDocument();
 });
