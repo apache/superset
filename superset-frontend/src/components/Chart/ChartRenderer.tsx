@@ -558,7 +558,10 @@ class ChartRenderer extends Component<ChartRendererProps, ChartRendererState> {
             legendState={this.state.legendState}
             enableNoResults={bypassNoResult}
             legendIndex={this.state.legendIndex}
-            isRefreshing={this.props.suppressLoadingSpinner}
+            isRefreshing={
+              Boolean(this.props.suppressLoadingSpinner) &&
+              chartStatus === 'loading'
+            }
             {...drillToDetailProps}
           />
         </div>

@@ -41,7 +41,11 @@ export function applyOrderBy(
   orderby: QueryFormOrderBy[],
   rowLimit: string | number | undefined | null,
 ): { orderby: QueryFormOrderBy[] } | Record<string, never> {
+  const parsedRowLimit =
+    typeof rowLimit === 'string' ? Number(rowLimit) : rowLimit;
   const shouldApply =
-    rowLimit !== undefined && rowLimit !== null && rowLimit !== 0;
+    rowLimit !== undefined &&
+    rowLimit !== null &&
+    (Number.isNaN(parsedRowLimit) || parsedRowLimit !== 0);
   return shouldApply && orderby.length > 0 ? { orderby } : {};
 }

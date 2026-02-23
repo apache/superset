@@ -395,6 +395,38 @@ test('renders chart during loading when suppressLoadingSpinner has valid data', 
   );
 });
 
+test('does not mark chart as refreshing when loading is not in progress', () => {
+  const props = {
+    ...requiredProps,
+    chartStatus: 'success' as const,
+    chartAlert: undefined,
+    suppressLoadingSpinner: true,
+    queriesResponse: [{ data: [{ value: 1 }] }],
+  };
+
+  const { getByTestId } = render(<ChartRenderer {...props} />);
+  expect(getByTestId('mock-super-chart')).toHaveAttribute(
+    'data-is-refreshing',
+    'false',
+  );
+});
+
+test('does not mark chart as refreshing when spinner suppression is disabled', () => {
+  const props = {
+    ...requiredProps,
+    chartStatus: 'success' as const,
+    chartAlert: undefined,
+    suppressLoadingSpinner: false,
+    queriesResponse: [{ data: [{ value: 1 }] }],
+  };
+
+  const { getByTestId } = render(<ChartRenderer {...props} />);
+  expect(getByTestId('mock-super-chart')).toHaveAttribute(
+    'data-is-refreshing',
+    'false',
+  );
+});
+
 test('does not render chart during loading when last data has errors', () => {
   const props = {
     ...requiredProps,

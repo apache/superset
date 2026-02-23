@@ -774,13 +774,13 @@ export function fetchCharts(
     return Promise.all(
       chartList.map(
         (chartKey: number, i: number) =>
-          new Promise<void>(resolve => {
+          new Promise<void>((resolve, reject) => {
             setTimeout(() => {
               Promise.resolve(
                 dispatch(refreshChart(chartKey, force, dashboardId)),
               )
                 .then(() => resolve())
-                .catch(() => resolve());
+                .catch(reject);
             }, delay * i);
           }),
       ),

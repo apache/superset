@@ -293,6 +293,38 @@ describe('dashboardState actions', () => {
     expect(refreshChart).toHaveBeenCalledTimes(chartIds.length);
   });
 
+  test('fetchCharts rejects for staggered refreshes when any chart refresh fails', async () => {
+    jest.useFakeTimers();
+    (refreshChart as jest.Mock).mockClear();
+    (refreshChart as jest.Mock).mockImplementation(
+      (chartKey: number) => () =>
+        chartKey === 2
+          ? Promise.reject(new Error('refresh failed'))
+          : Promise.resolve(),
+    );
+    const { getState } = setup({
+      dashboardInfo: {
+        metadata: { stagger_time: 1000, stagger_refresh: true },
+        common: { conf: { SUPERSET_WEBSERVER_TIMEOUT: 60 } },
+      },
+    });
+    const dispatch = (action: unknown): unknown => {
+      if (typeof action === 'function') {
+        return (action as Function)(dispatch, getState);
+      }
+      return action;
+    };
+    const chartIds = [1, 2, 3];
+    const promise = fetchCharts(chartIds, false, 1000, 10)(dispatch, getState);
+
+    jest.runAllTimers();
+    await expect(promise).rejects.toThrow('refresh failed');
+    jest.useRealTimers();
+    (refreshChart as jest.Mock).mockImplementation(
+      () => () => Promise.resolve(),
+    );
+  });
+
   test('onRefresh dispatches success and filters refresh by default', async () => {
     const { getState } = setup({
       dashboardInfo: {
