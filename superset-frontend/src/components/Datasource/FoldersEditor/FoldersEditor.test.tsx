@@ -511,7 +511,7 @@ test('auto-expands folders when searching for items inside them', async () => {
             name: 'Count',
           },
           {
-            uuid: 'metric2', 
+            uuid: 'metric2',
             type: FoldersEditorItemType.Metric,
             name: 'Sum Revenue',
           },
@@ -543,7 +543,9 @@ test('auto-expands folders when searching for items inside them', async () => {
   });
 
   // Search for "Count" - folder should auto-expand
-  const searchInput = screen.getByPlaceholderText('Search all metrics & columns');
+  const searchInput = screen.getByPlaceholderText(
+    'Search all metrics & columns',
+  );
   await userEvent.type(searchInput, 'Count');
 
   await waitFor(() => {
@@ -586,7 +588,9 @@ test('hides folders that do not contain matching items', async () => {
   renderEditor(<FoldersEditor {...testProps} />);
 
   // Search for "Count" - only Metrics folder should be visible
-  const searchInput = screen.getByPlaceholderText('Search all metrics & columns');
+  const searchInput = screen.getByPlaceholderText(
+    'Search all metrics & columns',
+  );
   await userEvent.type(searchInput, 'Count');
 
   await waitFor(() => {
@@ -636,7 +640,9 @@ test('shows all children when folder name matches search', async () => {
   renderEditor(<FoldersEditor {...testProps} />);
 
   // Search for "Metrics" - all children in Metrics folder should be visible
-  const searchInput = screen.getByPlaceholderText('Search all metrics & columns');
+  const searchInput = screen.getByPlaceholderText(
+    'Search all metrics & columns',
+  );
   await userEvent.type(searchInput, 'Metrics');
 
   await waitFor(() => {
@@ -691,7 +697,9 @@ test('restores previous collapsed state when search is cleared', async () => {
   });
 
   // Search for "Count" - folder auto-expands
-  const searchInput = screen.getByPlaceholderText('Search all metrics & columns');
+  const searchInput = screen.getByPlaceholderText(
+    'Search all metrics & columns',
+  );
   await userEvent.type(searchInput, 'Count');
 
   await waitFor(() => {
@@ -748,7 +756,9 @@ test('handles nested folders correctly during search', async () => {
   renderEditor(<FoldersEditor {...testProps} />);
 
   // Search for "Deep" - both parent and nested folder should expand
-  const searchInput = screen.getByPlaceholderText('Search all metrics & columns');
+  const searchInput = screen.getByPlaceholderText(
+    'Search all metrics & columns',
+  );
   await userEvent.type(searchInput, 'Deep');
 
   await waitFor(() => {
