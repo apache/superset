@@ -329,7 +329,12 @@ const DatasetUsageTab = ({
       <Input.Search
         placeholder={t('Search charts by name, owner, or dashboard')}
         value={searchTerm}
-        onChange={e => setSearchTerm(e.target.value)}
+        onChange={e => {
+          setSearchTerm(e.target.value);
+          if (!e.target.value) {
+            setCurrentPage(1);
+          }
+        }}
         style={{ marginBottom: 16, width: 400 }}
         allowClear
       />
