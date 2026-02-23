@@ -32,8 +32,7 @@ from superset.databases.utils import (
     get_indexes_metadata,
 )
 from superset.db_engine_specs.base import BaseEngineSpec, BasicParametersMixin
-from superset.sql.parse import Partition, SQLScript
-from superset.sql_parse import Table
+from superset.sql.parse import Partition, SQLScript, Table
 from superset.superset_typing import ResultSetColumnType
 
 if TYPE_CHECKING:
