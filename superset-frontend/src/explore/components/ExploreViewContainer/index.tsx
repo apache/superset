@@ -399,6 +399,14 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
     }
   }, [props.sliceName]);
 
+  // Cleanup BroadcastChannel on component unmount
+  useEffect(
+    () => () => {
+      saveModalActions.closeChartUpdateBroadcast();
+    },
+    [],
+  );
+
   // Restore original title on unmount
   useEffect(
     () => () => {

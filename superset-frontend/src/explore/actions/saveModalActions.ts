@@ -64,6 +64,39 @@ export function saveSliceSuccess(data: Partial<QueryFormData>) {
   return { type: SAVE_SLICE_SUCCESS, data };
 }
 
+// Broadcast chart updates to other tabs
+let chartUpdateChannel: BroadcastChannel | null = null;
+
+function getChartUpdateChannel(): BroadcastChannel | null {
+  if (typeof BroadcastChannel === 'undefined') {
+    return null;
+  }
+
+  if (!chartUpdateChannel) {
+    chartUpdateChannel = new BroadcastChannel('superset_chart_updates');
+  }
+
+  return chartUpdateChannel;
+}
+
+export function broadcastChartUpdate(sliceId: number, formData: QueryFormData) {
+  const channel = getChartUpdateChannel();
+  if (channel) {
+    channel.postMessage({
+      type: 'CHART_SAVED',
+      sliceId,
+      formData,
+    });
+  }
+}
+
+export function closeChartUpdateBroadcast() {
+  if (chartUpdateChannel) {
+    chartUpdateChannel.close();
+    chartUpdateChannel = null;
+  }
+}
+
 function extractAdhocFiltersFromFormData(
   formDataToHandle: QueryFormData,
 ): Partial<QueryFormData> {
@@ -253,6 +286,12 @@ export const updateSlice =
 
       dispatch(saveSliceSuccess(response.json));
       addToasts(false, sliceName, addedToDashboard).map(dispatch);
+
+      // Broadcast update to other tabs
+      if (formData) {
+        broadcastChartUpdate(sliceId, formData as QueryFormData);
+      }
+
       return response.json;
     } catch (error) {
       dispatch(saveSliceFailed());
@@ -285,6 +324,12 @@ export const createSlice =
 
       dispatch(saveSliceSuccess(response.json));
       addToasts(true, sliceName, addedToDashboard).map(dispatch);
+
+      // Broadcast update to other tabs
+      if (formData && response.json?.slice_id) {
+        broadcastChartUpdate(response.json.slice_id, formData as QueryFormData);
+      }
+
       return response.json;
     } catch (error) {
       dispatch(saveSliceFailed());

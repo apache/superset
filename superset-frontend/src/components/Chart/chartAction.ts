@@ -111,6 +111,7 @@ export const RENDER_TRIGGERED = 'RENDER_TRIGGERED' as const;
 export const UPDATE_QUERY_FORM_DATA = 'UPDATE_QUERY_FORM_DATA' as const;
 export const UPDATE_CHART_ID = 'UPDATE_CHART_ID' as const;
 export const ADD_CHART = 'ADD_CHART' as const;
+export const UPDATE_CHART_FORM_DATA = 'UPDATE_CHART_FORM_DATA' as const;
 
 // Action interfaces
 export interface ChartUpdateStartedAction {
@@ -152,6 +153,12 @@ export interface ChartRenderingSucceededAction {
 export interface RemoveChartAction {
   type: typeof REMOVE_CHART;
   key: string | number;
+}
+
+export interface UpdateChartFormDataAction {
+  type: typeof UPDATE_CHART_FORM_DATA;
+  formData: JsonObject;
+  chartId: string | number;
 }
 
 export interface AnnotationQuerySuccessAction {
@@ -354,6 +361,13 @@ export function chartRenderingSucceeded(
 
 export function removeChart(key: string | number): RemoveChartAction {
   return { type: REMOVE_CHART, key };
+}
+
+export function updateChartFormDataAction(
+  formData: JsonObject,
+  chartId: string | number,
+): UpdateChartFormDataAction {
+  return { type: UPDATE_CHART_FORM_DATA, formData, chartId };
 }
 
 export function annotationQuerySuccess(

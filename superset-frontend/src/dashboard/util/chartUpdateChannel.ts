@@ -16,33 +16,37 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Column, Metric } from '@superset-ui/core';
+import { Dispatch } from 'redux';
+import { updateChartFormDataAction } from 'src/components/Chart/chartAction';
 
-export enum DrillByType {
-  Chart,
-  Table,
+let channel: BroadcastChannel | null = null;
+
+export function initChartUpdateChannel(dispatch: Dispatch) {
+  if (typeof BroadcastChannel === 'undefined') {
+    // BroadcastChannel not supported in this browser
+    return null;
+  }
+
+  if (channel) {
+    // Already initialized
+    return channel;
+  }
+
+  channel = new BroadcastChannel('superset_chart_updates');
+
+  channel.onmessage = event => {
+    if (event.data.type === 'CHART_SAVED') {
+      const { sliceId, formData } = event.data;
+      dispatch(updateChartFormDataAction(formData, sliceId));
+    }
+  };
+
+  return channel;
 }
 
-export type Dataset = {
-  changed_by?: {
-    first_name: string;
-    last_name: string;
-  };
-  created_by?: {
-    first_name: string;
-    last_name: string;
-  };
-  changed_on_humanized?: string;
-  created_on_humanized?: string;
-  description?: string;
-  table_name?: string;
-  owners?: {
-    first_name: string;
-    last_name: string;
-  }[];
-  columns?: Column[];
-  drillable_columns?: Column[];
-  metrics?: Metric[];
-  verbose_map?: Record<string, string>;
-  currency_code_column?: string;
-};
+export function closeChartUpdateChannel() {
+  if (channel) {
+    channel.close();
+    channel = null;
+  }
+}
