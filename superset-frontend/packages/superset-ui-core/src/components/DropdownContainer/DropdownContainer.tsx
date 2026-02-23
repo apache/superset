@@ -53,6 +53,7 @@ export const DropdownContainer = forwardRef(
       dropdownTriggerTooltip = null,
       forceRender,
       style,
+      alwaysShowDropdownButton,
     }: DropdownContainerProps,
     outerRef: RefObject<DropdownRef>,
   ) => {
@@ -314,7 +315,7 @@ export const DropdownContainer = forwardRef(
         >
           {notOverflowedItems.map(item => item.element)}
         </div>
-        {popoverContent && (
+        {(popoverContent || alwaysShowDropdownButton) && (
           <>
             <Global
               styles={css`

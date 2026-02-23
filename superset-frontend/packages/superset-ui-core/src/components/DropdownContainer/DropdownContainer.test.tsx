@@ -158,6 +158,25 @@ test('accepts custom style props', () => {
   expect(container).toHaveStyle('padding: 10px');
 });
 
+test('shows dropdown button when alwaysShowDropdownButton is true even without overflow', () => {
+  render(
+    <DropdownContainer items={generateItems(3)} alwaysShowDropdownButton />,
+  );
+  expect(screen.getByTestId('dropdown-container-btn')).toBeInTheDocument();
+});
+
+test('does not show dropdown button when alwaysShowDropdownButton is false and not overflowing', () => {
+  render(
+    <DropdownContainer
+      items={generateItems(3)}
+      alwaysShowDropdownButton={false}
+    />,
+  );
+  expect(
+    screen.queryByTestId('dropdown-container-btn'),
+  ).not.toBeInTheDocument();
+});
+
 // Integration test that doesn't rely on specific overflow behavior
 test('component renders and functions without throwing errors', () => {
   const onOverflowingStateChange = jest.fn();

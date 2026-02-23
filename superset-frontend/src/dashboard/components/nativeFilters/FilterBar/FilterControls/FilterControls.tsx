@@ -641,6 +641,7 @@ const FilterControls: FC<FilterControlsProps> = ({
               : undefined
           }
           forceRender={hasRequiredFirst}
+          alwaysShowDropdownButton={items.length > 0}
           ref={popoverRef}
           onOverflowingStateChange={({ overflowed: nextOverflowedIds }) => {
             if (
