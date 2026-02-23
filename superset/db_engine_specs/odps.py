@@ -60,6 +60,8 @@ class OdpsBaseEngineSpec(BaseEngineSpec):
 
 
 class OdpsEngineSpec(BasicParametersMixin, OdpsBaseEngineSpec):
+    engine = "odps"
+    engine_name = "ODPS (MaxCompute)"
     default_driver = "odps"
 
     @classmethod
