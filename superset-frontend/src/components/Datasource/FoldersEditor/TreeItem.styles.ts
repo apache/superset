@@ -71,7 +71,7 @@ export const ItemSeparator = styled.div<{
 export const TreeFolderContainer = styled(TreeItemContainer)<{
   isForbiddenDropTarget?: boolean;
 }>`
-  ${({ theme, depth, isForbiddenDropTarget, isOverlay }) => `
+  ${({ theme, depth, isForbiddenDropTarget, isOverlay: _isOverlay }) => `
     margin-top: 0;
     margin-bottom: 0;
     padding-top: ${theme.paddingSM}px;

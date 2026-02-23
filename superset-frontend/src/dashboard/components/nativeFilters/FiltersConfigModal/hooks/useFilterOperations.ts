@@ -50,11 +50,7 @@ export interface FilterOperations {
   addFilter: (type: NativeFilterType) => void;
   handleRemoveFilter: (id: string) => void;
   restoreFilter: (id: string) => void;
-  handleRearrangeFilters: (
-    dragIndex: number,
-    targetIndex: number,
-    id: string,
-  ) => void;
+  handleRearrangeFilters: (dragIndex: number, targetIndex: number) => void;
   canBeUsedAsDependency: (filterId: string) => boolean;
   buildDependencyMap: () => Map<string, string[]>;
   getAvailableFilters: (
@@ -125,7 +121,7 @@ export function useFilterOperations({
   );
 
   const handleRearrangeFilters = useCallback(
-    (dragIndex: number, targetIndex: number, id: string) => {
+    (dragIndex: number, targetIndex: number) => {
       const newOrderedIds = [...filterState.orderedIds];
       const [removed] = newOrderedIds.splice(dragIndex, 1);
       newOrderedIds.splice(targetIndex, 0, removed);

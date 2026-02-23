@@ -134,7 +134,7 @@ class CollectionControl extends Component<CollectionControlProps> {
       >
         {currentValue.map((o: CollectionItem, i: number) => {
           // label relevant only for header, not here
-          const { label, theme, ...commonProps } = this.props;
+          const { label: _label, theme: _theme, ...commonProps } = this.props;
           return (
             <SortableListItem
               selectable={false}

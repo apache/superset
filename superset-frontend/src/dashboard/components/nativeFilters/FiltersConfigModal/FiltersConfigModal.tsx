@@ -321,12 +321,11 @@ function FiltersConfigModal({
     (dragIndex: number, targetIndex: number, id: string) => {
       const isFilter = isFilterId(id);
       if (isFilter) {
-        filterOperations.handleRearrangeFilters(dragIndex, targetIndex, id);
+        filterOperations.handleRearrangeFilters(dragIndex, targetIndex);
       } else {
         customizationOperations.handleRearrangeCustomizations(
           dragIndex,
           targetIndex,
-          id,
         );
       }
     },

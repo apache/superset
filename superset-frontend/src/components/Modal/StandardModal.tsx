@@ -32,12 +32,11 @@ interface StandardModalProps {
   saveDisabled?: boolean;
   saveLoading?: boolean;
   saveText?: string;
-  cancelText?: string;
   errorTooltip?: ReactNode;
   children: ReactNode;
   isEditMode?: boolean;
   centered?: boolean;
-  destroyOnClose?: boolean;
+  destroyOnHidden?: boolean;
   maskClosable?: boolean;
   wrapProps?: object;
   contentLoading?: boolean;
@@ -107,12 +106,11 @@ export function StandardModal({
   saveDisabled = false,
   saveLoading = false,
   saveText,
-  cancelText,
   errorTooltip,
   children,
   isEditMode = false,
   centered = true,
-  destroyOnClose = true,
+  destroyOnHidden = true,
   maskClosable = false,
   wrapProps,
   contentLoading = false,
@@ -129,6 +127,9 @@ export function StandardModal({
       primaryButtonName={primaryButtonName}
       show={show}
       width={`${width}px`}
+      centered={centered}
+      destroyOnHidden={destroyOnHidden}
+      maskClosable={maskClosable}
       wrapProps={wrapProps}
       title={
         icon ? (

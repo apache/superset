@@ -52,14 +52,14 @@ function BigNumberVis({
   kickerFontSize = PROPORTION.KICKER,
   metricNameFontSize = PROPORTION.METRIC_NAME,
   showMetricName = true,
-  mainColor = BRAND_COLOR,
+  mainColor: _mainColor = BRAND_COLOR,
   showTimestamp = false,
   showTrendLine = false,
-  startYAxisAtZero = true,
+  startYAxisAtZero: _startYAxisAtZero = true,
   subheader = '',
   subheaderFontSize = PROPORTION.SUBHEADER,
   subtitleFontSize = PROPORTION.SUBHEADER,
-  timeRangeFixed = false,
+  timeRangeFixed: _timeRangeFixed = false,
   ...props
 }: BigNumberVizProps) {
   const theme = useTheme();

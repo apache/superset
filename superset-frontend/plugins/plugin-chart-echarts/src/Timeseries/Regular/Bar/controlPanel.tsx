@@ -341,12 +341,12 @@ const config: ControlPanelConfig = {
                 'Stack in groups, where each group corresponds to a dimension',
               ),
               shouldMapStateToProps: (
-                prevState,
-                state,
-                controlState,
-                chartState,
+                _prevState,
+                _state,
+                _controlState,
+                _chartState,
               ) => true,
-              mapStateToProps: (state, controlState, chartState) => {
+              mapStateToProps: (state, _controlState, _chartState) => {
                 const value: JsonArray = ensureIsArray(
                   state.controls.groupby?.value,
                 ) as JsonArray;

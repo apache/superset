@@ -166,7 +166,7 @@ describe('loadTags', () => {
     const calls = fetchMock.callHistory.calls();
 
     // Verify all calls include the custom tag filter
-    calls.forEach(call => {
+    calls.forEach(() => {
       const { url } = calls[0];
       const urlObj = new URL(url);
       const queryParam = urlObj.searchParams.get('q');

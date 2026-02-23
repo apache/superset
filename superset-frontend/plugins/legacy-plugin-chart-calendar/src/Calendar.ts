@@ -111,7 +111,7 @@ function Calendar(element: HTMLElement, props: CalendarProps) {
     const colorScheme = getSequentialSchemeRegistry().get(linearColorScheme);
     const colorScale = colorScheme
       ? colorScheme.createLinearScale(extents)
-      : (v: number) => '#ccc'; // fallback if scheme not found
+      : (_v: number) => '#ccc'; // fallback if scheme not found
 
     const legend = d3Range(steps).map(i => extents[0] + step * i);
     const legendColors = legend.map(x => colorScale(x));

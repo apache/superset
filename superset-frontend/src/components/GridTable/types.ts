@@ -57,6 +57,4 @@ export interface TableProps<RecordType> {
   showRowNumber?: boolean;
 
   usePagination?: boolean;
-
-  striped?: boolean;
 }

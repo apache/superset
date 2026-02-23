@@ -106,7 +106,7 @@ const mockGroups = {
 const createMockPivotData = (rowData: Record<string, number>) =>
   ({
     rowKeys: Object.keys(rowData).map(key => key.split('.')),
-    getAggregator: (rowKey: string[], colName: string) => ({
+    getAggregator: (rowKey: string[], _colName: string) => ({
       value: () => rowData[rowKey.join('.')],
     }),
   }) as unknown as PivotData;

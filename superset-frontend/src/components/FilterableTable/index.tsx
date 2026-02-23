@@ -64,7 +64,6 @@ export const FilterableTable = ({
   filterText = '',
   expandedColumns = [],
   allowHTML = true,
-  striped,
 }: FilterableTableProps) => {
   const getCellContent = useCellContentParser({
     columnKeys: orderedColumnKeys,
@@ -128,7 +127,6 @@ export const FilterableTable = ({
         data={data}
         externalFilter={keywordFilter}
         showRowNumber
-        striped={striped}
         enableActions
         columnReorderable
       />

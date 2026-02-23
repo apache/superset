@@ -141,7 +141,7 @@ export default class WithPopoverMenu extends PureComponent<
     this.handleClick = this.handleClick.bind(this);
   }
 
-  componentDidUpdate(prevProps: WithPopoverMenuProps) {
+  componentDidUpdate(_prevProps: WithPopoverMenuProps) {
     if (this.props.editMode && this.props.isFocused && !this.state.isFocused) {
       document.addEventListener('click', this.handleClick);
       document.addEventListener('drag', this.handleClick);

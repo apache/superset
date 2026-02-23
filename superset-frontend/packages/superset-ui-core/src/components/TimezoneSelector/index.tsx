@@ -34,11 +34,8 @@ import 'dayjs/plugin/timezone';
 export type TimezoneSelectorProps = {
   onTimezoneChange: (value: string) => void;
   timezone?: string | null;
-  minWidth?: string;
   placeholder?: string;
 };
-
-const MIN_SELECT_WIDTH = '400px';
 
 function findMatchingTimezone(
   timezone: string | null | undefined,
@@ -66,7 +63,6 @@ function findMatchingTimezone(
 export default function TimezoneSelector({
   onTimezoneChange,
   timezone,
-  minWidth = MIN_SELECT_WIDTH,
   placeholder,
   ...rest
 }: TimezoneSelectorProps) {

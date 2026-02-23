@@ -35,7 +35,7 @@ describe('Divider', () => {
     index: 0,
     editMode: false,
     handleComponentDrop: jest.fn(),
-    deleteComponent: (id: string, parentId: string) => {},
+    deleteComponent: () => {},
   };
 
   const setup = (overrideProps: Partial<DividerProps> = {}) =>

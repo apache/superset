@@ -155,7 +155,7 @@ function AllEntities() {
         setObjects(objects);
         setLoading(false);
       },
-      (error: Response) => {
+      () => {
         addDangerToast('Error Fetching Tagged Objects');
         setLoading(false);
       },
@@ -169,7 +169,7 @@ function AllEntities() {
         setTag(tag);
         setLoading(false);
       },
-      (error: Response) => {
+      () => {
         addDangerToast(t('Error Fetching Tagged Objects'));
         setLoading(false);
       },

@@ -40,7 +40,7 @@ export default function createD3NumberFormatter(config: {
 
   try {
     formatFunc = formatLocale(locale ?? DEFAULT_D3_FORMAT).format(formatString);
-  } catch (error) {
+  } catch {
     formatFunc = value => `${value} (Invalid format: ${formatString})`;
     isInvalid = true;
   }

@@ -213,10 +213,10 @@ const config: ControlPanelConfig = {
                   }
                   return value.label;
                 });
-                const { colnames: _colnames, coltypes: _coltypes } =
+                const { colnames: queryColnames, coltypes: queryColtypes } =
                   chart?.queriesResponse?.[0] ?? {};
-                const colnames: string[] = _colnames || [];
-                const coltypes: GenericDataType[] = _coltypes || [];
+                const colnames: string[] = queryColnames || [];
+                const coltypes: GenericDataType[] = queryColtypes || [];
 
                 return {
                   queryResponse: chart?.queriesResponse?.[0] as

@@ -42,18 +42,14 @@ import {
 type SaveType = typeof SAVE_TYPE_OVERWRITE | typeof SAVE_TYPE_NEWDASHBOARD;
 
 type SaveModalProps = {
-  addSuccessToast: (arg: string) => void;
   addDangerToast: (arg: string) => void;
   dashboardId: number;
   dashboardTitle: string;
   dashboardInfo: Record<string, any>;
-  expandedSlices: Record<string, any>;
   layout: Record<string, any>;
   saveType: SaveType;
   triggerNode: JSX.Element;
   customCss: string;
-  colorNamespace?: string;
-  colorScheme?: string;
   onSave: (data: any, id: number | string, saveType: SaveType) => void;
   canOverwrite: boolean;
   shouldPersistRefreshFrequency: boolean;
@@ -65,18 +61,14 @@ type SaveModalProps = {
 
 function SaveModal({
   saveType: initialSaveType = SAVE_TYPE_OVERWRITE,
-  colorNamespace,
-  colorScheme,
   shouldPersistRefreshFrequency = false,
   dashboardTitle,
   onSave,
   triggerNode,
   canOverwrite,
-  addSuccessToast,
   addDangerToast,
   dashboardId,
   dashboardInfo,
-  expandedSlices,
   layout,
   customCss,
   refreshFrequency,

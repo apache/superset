@@ -71,7 +71,7 @@ export const useFilterConfigModal = ({
           );
         }
         closeFilterConfigModal();
-      } catch (error) {
+      } catch {
         // Error toast already shown in action, prevent modal close
       }
     },

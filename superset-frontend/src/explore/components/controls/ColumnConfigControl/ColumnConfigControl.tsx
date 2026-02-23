@@ -66,18 +66,19 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
   height,
   ...props
 }: ColumnConfigControlProps<T>) {
-  const { colnames: _colnames, coltypes: _coltypes } = columnsPropsObject || {};
+  const { colnames: queryColnames, coltypes: queryColtypes } =
+    columnsPropsObject || {};
   let colnames: string[] = [];
   let coltypes: GenericDataType[] = [];
   if (appliedColumnNames.length === 0) {
-    colnames = _colnames || [];
-    coltypes = _coltypes || [];
+    colnames = queryColnames || [];
+    coltypes = queryColtypes || [];
   } else {
     const appliedCol = new Set(appliedColumnNames);
-    _colnames?.forEach((col, idx) => {
+    queryColnames?.forEach((col, idx) => {
       if (appliedCol.has(col)) {
         colnames.push(col);
-        coltypes.push(_coltypes?.[idx] as GenericDataType);
+        coltypes.push(queryColtypes?.[idx] as GenericDataType);
       }
     });
   }

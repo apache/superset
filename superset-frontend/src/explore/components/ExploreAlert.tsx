@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { forwardRef, RefObject, MouseEvent } from 'react';
+import { MouseEvent } from 'react';
 import { Button } from '@superset-ui/core/components';
 import { ErrorAlert } from 'src/components';
 import { styled } from '@apache-superset/core/ui';
@@ -39,20 +39,17 @@ const ButtonContainer = styled.div`
   margin-top: ${({ theme }) => theme.sizeUnit * 4}px;
 `;
 
-export const ExploreAlert = forwardRef(
-  (
-    {
-      title,
-      bodyText,
-      primaryButtonAction,
-      secondaryButtonAction,
-      primaryButtonText,
-      secondaryButtonText,
-      type = 'info',
-      className = '',
-    }: ControlPanelAlertProps,
-    ref: RefObject<HTMLDivElement>,
-  ) => (
+export function ExploreAlert({
+  title,
+  bodyText,
+  primaryButtonAction,
+  secondaryButtonAction,
+  primaryButtonText,
+  secondaryButtonText,
+  type = 'info',
+  className = '',
+}: ControlPanelAlertProps) {
+  return (
     <ErrorAlert
       errorType={title}
       message={bodyText}
@@ -74,5 +71,5 @@ export const ExploreAlert = forwardRef(
         </ButtonContainer>
       )}
     </ErrorAlert>
-  ),
-);
+  );
+}

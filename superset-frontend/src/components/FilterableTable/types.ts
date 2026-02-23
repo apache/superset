@@ -28,7 +28,6 @@ export interface FilterableTableProps {
   overscanColumnCount?: number;
   overscanRowCount?: number;
   rowHeight?: number;
-  striped?: boolean;
   expandedColumns?: string[];
   allowHTML?: boolean;
 }

@@ -117,7 +117,7 @@ export default function extractQueryFields(
             if (typeof item === 'string') {
               try {
                 return JSON.parse(item);
-              } catch (error) {
+              } catch {
                 throw new Error(t('Found invalid orderby options'));
               }
             }

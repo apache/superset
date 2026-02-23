@@ -187,7 +187,7 @@ test('should pass through additional formData properties', () => {
 });
 
 test('should handle small cell dimensions', () => {
-  renderWithTheme(<MatrixifyGridCell {...defaultProps} rowHeight={80} />);
+  renderWithTheme(<MatrixifyGridCell {...defaultProps} />);
 
   const superChart = screen.getByText('SuperChart Mock');
   const cellContainer = superChart.parentElement?.parentElement;

@@ -268,7 +268,7 @@ const FilterControls: FC<FilterControlsProps> = ({
   );
 
   const customizationRenderer = useCallback(
-    (item: ChartCustomization | ChartCustomizationDivider, index: number) => {
+    (item: ChartCustomization | ChartCustomizationDivider, _index: number) => {
       if (isChartCustomizationDivider(item)) {
         return (
           <FilterDivider

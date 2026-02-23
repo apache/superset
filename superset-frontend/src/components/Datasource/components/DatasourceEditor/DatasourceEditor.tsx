@@ -292,14 +292,11 @@ interface CollectionTabTitleProps {
 
 interface ColumnCollectionTableProps {
   columns: Column[];
-  datasource: DatasourceObject;
   onColumnsChange: (columns: Column[]) => void;
-  onDatasourceChange: (datasource: DatasourceObject) => void;
   editableColumnName?: boolean;
   showExpression?: boolean;
   allowAddItem?: boolean;
   allowEditDataType?: boolean;
-  className?: string;
   itemGenerator?: () => Partial<Column>;
   columnLabelTooltips?: Record<string, string>;
 }
@@ -507,9 +504,7 @@ function FormContainer({ children }: FormContainerProps): JSX.Element {
 
 function ColumnCollectionTable({
   columns,
-  datasource,
   onColumnsChange,
-  onDatasourceChange,
   editableColumnName = false,
   showExpression = false,
   allowAddItem = false,
@@ -2350,13 +2345,10 @@ class DatasourceEditor extends PureComponent<
                     </StyledButtonWrapper>
                   </ColumnButtonWrapper>
                   <ColumnCollectionTable
-                    className="columns-table"
                     columns={this.state.databaseColumns}
-                    datasource={datasource}
                     onColumnsChange={databaseColumns =>
                       this.setColumns({ databaseColumns })
                     }
-                    onDatasourceChange={this.onDatasourceChange}
                   />
                   {this.state.metadataLoading && <Loading />}
                 </StyledTableTabWrapper>
@@ -2388,8 +2380,6 @@ class DatasourceEditor extends PureComponent<
                           'as the alias in the SQL query.',
                       ),
                     }}
-                    onDatasourceChange={this.onDatasourceChange}
-                    datasource={datasource}
                     editableColumnName
                     showExpression
                     allowAddItem

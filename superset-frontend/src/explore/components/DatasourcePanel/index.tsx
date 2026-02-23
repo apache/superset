@@ -133,12 +133,12 @@ export default function DataSourcePanel({
   width,
 }: Props) {
   const [dropzones] = useContext(DropzoneContext);
-  const { columns: _columns, metrics, folders: _folders } = datasource;
+  const { columns, metrics, folders: rawFolders } = datasource;
 
   const allowedColumns = useMemo(() => {
     const validators = Object.values(dropzones);
-    if (!Array.isArray(_columns)) return [];
-    return _columns.filter(column =>
+    if (!Array.isArray(columns)) return [];
+    return columns.filter(column =>
       validators.some(validator =>
         validator({
           value: column as DndItemValue,
@@ -146,7 +146,7 @@ export default function DataSourcePanel({
         }),
       ),
     );
-  }, [dropzones, _columns]);
+  }, [dropzones, columns]);
 
   const allowedMetrics = useMemo(() => {
     const validators = Object.values(dropzones);
@@ -229,11 +229,11 @@ export default function DataSourcePanel({
       transformDatasourceWithFolders(
         filteredMetrics,
         sortedColumns,
-        _folders,
+        rawFolders,
         allowedMetrics,
         allowedColumns,
       ),
-    [_folders, filteredMetrics, sortedColumns],
+    [rawFolders, filteredMetrics, sortedColumns],
   );
 
   const showInfoboxCheck = () => {

@@ -230,20 +230,16 @@ export const useHeaderActionsMenu = ({
         createModalMenuItem(
           MenuKeys.SaveModal,
           <SaveModal
-            addSuccessToast={addSuccessToast}
             addDangerToast={addDangerToast}
             dashboardId={dashboardId}
             dashboardTitle={dashboardTitle ?? ''}
             dashboardInfo={dashboardInfo}
             saveType={SAVE_TYPE_NEWDASHBOARD}
             layout={layout}
-            expandedSlices={expandedSlices ?? {}}
             refreshFrequency={refreshFrequency}
             shouldPersistRefreshFrequency={shouldPersistRefreshFrequency}
             lastModifiedTime={lastModifiedTime}
             customCss={customCss ?? ''}
-            colorNamespace={colorNamespace}
-            colorScheme={colorScheme}
             onSave={onSave}
             triggerNode={
               <div data-test="save-as-menu-item">{t('Save as')}</div>

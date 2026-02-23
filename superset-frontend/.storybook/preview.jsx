@@ -23,7 +23,7 @@ import thunk from 'redux-thunk';
 import { Provider } from 'react-redux';
 import reducerIndex from 'spec/helpers/reducerIndex';
 import { Global } from '@emotion/react';
-import { App, Layout, Space, Content } from 'antd';
+import { App, Layout } from 'antd';
 
 import 'src/theme.ts';
 import './storybook.css';

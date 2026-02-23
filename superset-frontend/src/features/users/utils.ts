@@ -22,7 +22,7 @@ import { SelectOption } from 'src/components/ListView';
 import { FormValues } from './types';
 
 export const createUser = async (values: FormValues) => {
-  const { confirmPassword, ...payload } = values;
+  const { confirmPassword: _confirmPassword, ...payload } = values;
   if (payload.active == null) {
     payload.active = false;
   }

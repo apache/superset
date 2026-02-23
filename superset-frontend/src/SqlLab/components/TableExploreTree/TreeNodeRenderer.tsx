@@ -86,7 +86,7 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
 }) => {
   const { data } = node;
   const parts = data.id.split(':');
-  const [identifier, _dbId, schema, tableName] = parts;
+  const [identifier, dbId, schema, tableName] = parts;
 
   // Use manually tracked open state for icon display
   // This prevents search auto-expansion from affecting the icon
@@ -205,7 +205,7 @@ const TreeNodeRenderer: React.FC<TreeNodeRendererProps> = ({
             onClick={e => {
               e.stopPropagation();
               fetchLazyTables({
-                dbId: _dbId,
+                dbId,
                 catalog,
                 schema,
                 forceRefresh: true,

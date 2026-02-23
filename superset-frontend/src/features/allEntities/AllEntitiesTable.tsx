@@ -59,7 +59,7 @@ interface AllEntitiesTableProps {
 }
 
 export default function AllEntitiesTable({
-  search = '',
+  search: _search = '',
   setShowTagModal,
   objects,
   canEditTag,

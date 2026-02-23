@@ -31,8 +31,8 @@ jest.mock('./MatrixifyGridGenerator', () => ({
 
 // Mock MatrixifyGridCell component
 jest.mock('./MatrixifyGridCell', () =>
-  // eslint-disable-next-line react/display-name, @typescript-eslint/no-unused-vars
-  ({ cell, rowHeight, datasource, hooks }: any) => (
+  // eslint-disable-next-line react/display-name
+  ({ cell }: any) => (
     <div data-testid={`grid-cell-${cell.id}`}>Cell: {cell.id}</div>
   ),
 );

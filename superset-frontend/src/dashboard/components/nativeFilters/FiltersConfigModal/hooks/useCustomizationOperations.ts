@@ -35,7 +35,6 @@ export interface CustomizationOperations {
   handleRearrangeCustomizations: (
     dragIndex: number,
     targetIndex: number,
-    id: string,
   ) => void;
 }
 
@@ -105,7 +104,7 @@ export function useCustomizationOperations({
   );
 
   const handleRearrangeCustomizations = useCallback(
-    (dragIndex: number, targetIndex: number, id: string) => {
+    (dragIndex: number, targetIndex: number) => {
       const newOrderedIds = [...customizationState.orderedIds];
       const [removed] = newOrderedIds.splice(dragIndex, 1);
       newOrderedIds.splice(targetIndex, 0, removed);

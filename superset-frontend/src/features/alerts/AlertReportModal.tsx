@@ -1151,7 +1151,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             );
           }
         })
-        .catch(e => {
+        .catch(() => {
           addDangerToast(t('There was an error retrieving dashboard tabs.'));
         });
     }
@@ -2603,7 +2603,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                       <TimezoneSelector
                         onTimezoneChange={onTimezoneChange}
                         timezone={currentAlert?.timezone}
-                        minWidth="100%"
                       />
                     ) : (
                       <Loading size="s" muted position="normal" />

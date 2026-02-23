@@ -543,7 +543,6 @@ const Tabs = (props: TabsProps): ReactElement => {
         tabBarPaddingLeft={tabBarPaddingLeft}
         onTabsReorder={handleTabsReorder}
         isEditingTabTitle={isEditingTabTitle}
-        onTabTitleEditingChange={handleTabTitleEditingChange}
       />
     ),
     [
@@ -559,7 +558,6 @@ const Tabs = (props: TabsProps): ReactElement => {
       tabBarPaddingLeft,
       handleTabsReorder,
       isEditingTabTitle,
-      handleTabTitleEditingChange,
     ],
   );
 

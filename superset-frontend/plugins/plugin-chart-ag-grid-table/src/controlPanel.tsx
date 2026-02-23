@@ -510,10 +510,10 @@ const config: ControlPanelConfig = {
               mapStateToProps(explore, _, chart) {
                 const timeComparisonValue =
                   explore?.controls?.time_compare?.value;
-                const { colnames: _colnames, coltypes: _coltypes } =
+                const { colnames: queryColnames, coltypes: queryColtypes } =
                   chart?.queriesResponse?.[0] ?? {};
-                let colnames: string[] = _colnames || [];
-                let coltypes: GenericDataType[] = _coltypes || [];
+                let colnames: string[] = queryColnames || [];
+                let coltypes: GenericDataType[] = queryColtypes || [];
                 const childColumnMap: Record<string, boolean> = {};
                 const timeComparisonColumnMap: Record<string, boolean> = {};
 
