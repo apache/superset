@@ -2137,173 +2137,173 @@ class DatasourceEditor extends PureComponent<
           allowClear
         />
         <CollectionTable
-        tableColumns={['metric_name', 'verbose_name', 'expression']}
-        sortColumns={['metric_name', 'verbose_name', 'expression']}
-        filterTerm={metricSearchTerm}
-        filterFields={['metric_name', 'verbose_name']}
-        columnLabels={{
-          metric_name: t('Metric Key'),
-          verbose_name: t('Label'),
-          expression: t('SQL expression'),
-        }}
-        columnLabelTooltips={{
-          metric_name: t(
-            'This field is used as a unique identifier to attach ' +
-              'the metric to charts. It is also used as the alias in the ' +
-              'SQL query.',
-          ),
-        }}
-        pagination={{
-          pageSize: 25,
-          showSizeChanger: true,
-          pageSizeOptions: [10, 25, 50, 100],
-        }}
-        expandFieldset={
-          <FormContainer>
-            <Fieldset compact>
-              <Field
-                fieldKey="description"
-                label={t('Description')}
-                control={
-                  <TextControl
-                    controlId="description"
-                    placeholder={t('Description')}
+          tableColumns={['metric_name', 'verbose_name', 'expression']}
+          sortColumns={['metric_name', 'verbose_name', 'expression']}
+          filterTerm={metricSearchTerm}
+          filterFields={['metric_name', 'verbose_name']}
+          columnLabels={{
+            metric_name: t('Metric Key'),
+            verbose_name: t('Label'),
+            expression: t('SQL expression'),
+          }}
+          columnLabelTooltips={{
+            metric_name: t(
+              'This field is used as a unique identifier to attach ' +
+                'the metric to charts. It is also used as the alias in the ' +
+                'SQL query.',
+            ),
+          }}
+          pagination={{
+            pageSize: 25,
+            showSizeChanger: true,
+            pageSizeOptions: [10, 25, 50, 100],
+          }}
+          expandFieldset={
+            <FormContainer>
+              <Fieldset compact>
+                <Field
+                  fieldKey="description"
+                  label={t('Description')}
+                  control={
+                    <TextControl
+                      controlId="description"
+                      placeholder={t('Description')}
+                    />
+                  }
+                />
+                <Field
+                  fieldKey="d3format"
+                  label={t('D3 format')}
+                  control={
+                    <TextControl controlId="d3format" placeholder="%y/%m/%d" />
+                  }
+                />
+                <Field
+                  fieldKey="currency"
+                  label={t('Metric currency')}
+                  control={
+                    <CurrencyControl
+                      onChange={() => {}}
+                      currencySelectOverrideProps={{
+                        placeholder: t('Select or type currency symbol'),
+                      }}
+                      symbolSelectAdditionalStyles={css`
+                        max-width: 30%;
+                      `}
+                    />
+                  }
+                />
+                <Field
+                  label={t('Certified by')}
+                  fieldKey="certified_by"
+                  description={t(
+                    'Person or group that has certified this metric',
+                  )}
+                  control={
+                    <TextControl
+                      controlId="certified_by"
+                      placeholder={t('Certified by')}
+                    />
+                  }
+                />
+                <Field
+                  label={t('Certification details')}
+                  fieldKey="certification_details"
+                  description={t('Details of the certification')}
+                  control={
+                    <TextControl
+                      controlId="certification_details"
+                      placeholder={t('Certification details')}
+                    />
+                  }
+                />
+                <Field
+                  label={t('Warning')}
+                  fieldKey="warning_markdown"
+                  description={t('Optional warning about use of this metric')}
+                  control={
+                    <TextAreaControl
+                      controlId="warning_markdown"
+                      language="markdown"
+                      offerEditInModal={false}
+                      resize="vertical"
+                    />
+                  }
+                />
+              </Fieldset>
+            </FormContainer>
+          }
+          collection={sortedMetrics}
+          allowAddItem
+          onChange={this.onDatasourcePropChange.bind(this, 'metrics')}
+          itemGenerator={() => ({
+            metric_name: t('<new metric>'),
+            verbose_name: '',
+            expression: '',
+          })}
+          itemCellProps={{
+            expression: () => ({
+              width: '240px',
+            }),
+          }}
+          itemRenderers={{
+            metric_name: (v, onChange, _, record) => (
+              <FlexRowContainer>
+                {record.is_certified && (
+                  <CertifiedBadge
+                    certifiedBy={record.certified_by}
+                    details={record.certification_details}
                   />
-                }
-              />
-              <Field
-                fieldKey="d3format"
-                label={t('D3 format')}
-                control={
-                  <TextControl controlId="d3format" placeholder="%y/%m/%d" />
-                }
-              />
-              <Field
-                fieldKey="currency"
-                label={t('Metric currency')}
-                control={
-                  <CurrencyControl
-                    onChange={() => {}}
-                    currencySelectOverrideProps={{
-                      placeholder: t('Select or type currency symbol'),
-                    }}
-                    symbolSelectAdditionalStyles={css`
-                      max-width: 30%;
-                    `}
-                  />
-                }
-              />
-              <Field
-                label={t('Certified by')}
-                fieldKey="certified_by"
-                description={t(
-                  'Person or group that has certified this metric',
                 )}
-                control={
-                  <TextControl
-                    controlId="certified_by"
-                    placeholder={t('Certified by')}
+                {record.warning_markdown && (
+                  <WarningIconWithTooltip
+                    warningMarkdown={record.warning_markdown}
                   />
-                }
-              />
-              <Field
-                label={t('Certification details')}
-                fieldKey="certification_details"
-                description={t('Details of the certification')}
-                control={
-                  <TextControl
-                    controlId="certification_details"
-                    placeholder={t('Certification details')}
-                  />
-                }
-              />
-              <Field
-                label={t('Warning')}
-                fieldKey="warning_markdown"
-                description={t('Optional warning about use of this metric')}
-                control={
-                  <TextAreaControl
-                    controlId="warning_markdown"
-                    language="markdown"
-                    offerEditInModal={false}
-                    resize="vertical"
-                  />
-                }
-              />
-            </Fieldset>
-          </FormContainer>
-        }
-        collection={sortedMetrics}
-        allowAddItem
-        onChange={this.onDatasourcePropChange.bind(this, 'metrics')}
-        itemGenerator={() => ({
-          metric_name: t('<new metric>'),
-          verbose_name: '',
-          expression: '',
-        })}
-        itemCellProps={{
-          expression: () => ({
-            width: '240px',
-          }),
-        }}
-        itemRenderers={{
-          metric_name: (v, onChange, _, record) => (
-            <FlexRowContainer>
-              {record.is_certified && (
-                <CertifiedBadge
-                  certifiedBy={record.certified_by}
-                  details={record.certification_details}
+                )}
+                <EditableTitle
+                  canEdit
+                  title={v as string}
+                  onSaveTitle={onChange}
+                  maxWidth={300}
                 />
-              )}
-              {record.warning_markdown && (
-                <WarningIconWithTooltip
-                  warningMarkdown={record.warning_markdown}
-                />
-              )}
-              <EditableTitle
+              </FlexRowContainer>
+            ),
+            verbose_name: (v, onChange) => (
+              <TextControl value={v as string} onChange={onChange} />
+            ),
+            expression: (v, onChange) => (
+              <TextAreaControl
                 canEdit
-                title={v as string}
-                onSaveTitle={onChange}
-                maxWidth={300}
+                initialValue={v as string}
+                onChange={onChange}
+                extraClasses={['datasource-sql-expression']}
+                language="sql"
+                offerEditInModal={false}
+                minLines={5}
+                textAreaStyles={{ minWidth: '200px', maxWidth: '450px' }}
+                resize="both"
               />
-            </FlexRowContainer>
-          ),
-          verbose_name: (v, onChange) => (
-            <TextControl value={v as string} onChange={onChange} />
-          ),
-          expression: (v, onChange) => (
-            <TextAreaControl
-              canEdit
-              initialValue={v as string}
-              onChange={onChange}
-              extraClasses={['datasource-sql-expression']}
-              language="sql"
-              offerEditInModal={false}
-              minLines={5}
-              textAreaStyles={{ minWidth: '200px', maxWidth: '450px' }}
-              resize="both"
-            />
-          ),
-          description: (v, onChange, label) => (
-            <StackedField
-              label={label}
-              formElement={
-                <TextControl value={v as string} onChange={onChange} />
-              }
-            />
-          ),
-          d3format: (v, onChange, label) => (
-            <StackedField
-              label={label}
-              formElement={
-                <TextControl value={v as string} onChange={onChange} />
-              }
-            />
-          ),
-        }}
-        allowDeletes
-        stickyHeader
-      />
+            ),
+            description: (v, onChange, label) => (
+              <StackedField
+                label={label}
+                formElement={
+                  <TextControl value={v as string} onChange={onChange} />
+                }
+              />
+            ),
+            d3format: (v, onChange, label) => (
+              <StackedField
+                label={label}
+                formElement={
+                  <TextControl value={v as string} onChange={onChange} />
+                }
+              />
+            ),
+          }}
+          allowDeletes
+          stickyHeader
+        />
       </div>
     );
   }

@@ -450,10 +450,10 @@ export default class CRUDCollection extends PureComponent<
 
     // Build controlled pagination config, clamping currentPage to valid range
     // when the collection shrinks (e.g. due to filtering/search)
+    const { pageSize, currentPage: statePage } = this.state;
     const totalItems = this.state.collectionArray.length;
-    const pageSize = this.state.pageSize;
     const maxPage = totalItems > 0 ? Math.ceil(totalItems / pageSize) : 1;
-    const currentPage = Math.min(this.state.currentPage, maxPage);
+    const currentPage = Math.min(statePage, maxPage);
     const paginationConfig: false | TablePaginationConfig | undefined =
       pagination === false || pagination === undefined
         ? pagination

@@ -79,7 +79,13 @@ export interface CRUDCollectionProps {
   tableLayout?: 'fixed' | 'auto';
   sortColumns: string[];
   stickyHeader?: boolean;
-  pagination?: boolean | { pageSize?: number; showSizeChanger?: boolean; pageSizeOptions?: number[] };
+  pagination?:
+    | boolean
+    | {
+        pageSize?: number;
+        showSizeChanger?: boolean;
+        pageSizeOptions?: number[];
+      };
   filterTerm?: string;
   filterFields?: string[];
 }
