@@ -18,7 +18,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock
+from unittest.mock import Mock
 
 import pytest
 from pytest_mock import MockerFixture
@@ -33,9 +33,9 @@ from superset.reports.models import ReportScheduleType
 def _make_model(
     mocker: MockerFixture,
     *,
-    model_type: str,
+    model_type: ReportScheduleType | str,
     database_id: int | None,
-) -> MagicMock:
+) -> Mock:
     model = mocker.Mock()
     model.type = model_type
     model.database_id = database_id
@@ -46,7 +46,7 @@ def _make_model(
     return model
 
 
-def _setup_mocks(mocker: MockerFixture, model: MagicMock) -> None:
+def _setup_mocks(mocker: MockerFixture, model: Mock) -> None:
     mocker.patch(
         "superset.commands.report.update.ReportScheduleDAO.find_by_id",
         return_value=model,
@@ -221,6 +221,26 @@ def test_report_to_alert_without_db_rejected(mocker: MockerFixture) -> None:
     messages = _get_validation_messages(exc_info)
     assert "database" in messages
     assert "required" in messages["database"].lower()
+
+
+def test_report_with_nonexistent_database_returns_not_allowed(
+    mocker: MockerFixture,
+) -> None:
+    """Report + nonexistent DB must return 'not allowed', not 'does not exist'."""
+    model = _make_model(mocker, model_type=ReportScheduleType.REPORT, database_id=None)
+    _setup_mocks(mocker, model)
+    mocker.patch(
+        "superset.commands.report.update.DatabaseDAO.find_by_id",
+        return_value=None,
+    )
+
+    cmd = UpdateReportScheduleCommand(model_id=1, data={"database": 99999})
+    with pytest.raises(ReportScheduleInvalidError) as exc_info:
+        cmd.validate()
+    messages = _get_validation_messages(exc_info)
+    assert "database" in messages
+    assert "not allowed" in messages["database"].lower()
+    assert "does not exist" not in messages["database"].lower()
 
 
 def test_report_to_alert_with_db_accepted(mocker: MockerFixture) -> None:
