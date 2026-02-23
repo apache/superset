@@ -84,7 +84,8 @@ def load_engine_specs() -> list[type[BaseEngineSpec]]:
         # Validate that the engine spec is a proper subclass of BaseEngineSpec
         if not is_engine_spec(engine_spec):
             logger.warning(
-                "Skipping invalid DB engine spec %s: not a valid BaseEngineSpec subclass",
+                "Skipping invalid DB engine spec %s: "
+                "not a valid BaseEngineSpec subclass",
                 ep.name,
             )
             continue

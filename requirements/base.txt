@@ -292,7 +292,9 @@ prison==0.2.1
 prompt-toolkit==3.0.51
     # via click-repl
 pyarrow==16.1.0
-    # via apache-superset (pyproject.toml)
+    # via
+    #   apache-superset (pyproject.toml)
+    #   pyodps
 pyasn1==0.6.2
     # via
     #   pyasn1-modules
@@ -319,6 +321,8 @@ pyjwt==2.10.1
     #   redis
 pynacl==1.6.2
     # via paramiko
+pyodps==0.12.2
+    # via -r requirements/base.in
 pyopenssl==25.3.0
     # via shillelagh
 pyparsing==3.2.3
@@ -355,6 +359,7 @@ referencing==0.36.2
     #   jsonschema-specifications
 requests==2.32.4
     # via
+    #   pyodps
     #   requests-cache
     #   shillelagh
 requests-cache==1.2.1
@@ -485,4 +490,3 @@ xlsxwriter==3.0.9
     #   pandas
 zstandard==0.23.0
     # via flask-compress
-pyodps==0.12.2
