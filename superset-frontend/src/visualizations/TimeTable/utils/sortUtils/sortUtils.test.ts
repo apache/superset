@@ -16,9 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+import { vi } from 'vitest';
 import { sortNumberWithMixedTypes } from './sortUtils';
 
-jest.mock('src/utils/sortNumericValues', () => ({
+vi.mock('src/utils/sortNumericValues', () => ({
   sortNumericValues: jest.fn((a, b, options) => {
     const numA = Number(a);
     const numB = Number(b);
