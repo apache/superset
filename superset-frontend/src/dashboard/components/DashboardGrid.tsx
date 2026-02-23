@@ -81,7 +81,7 @@ const GridContent = styled.div<{ editMode?: boolean }>`
       ${!editMode && `margin-bottom: ${theme.sizeUnit * 4}px`};
     }
 
-    .empty-droptarget {
+    & > .empty-droptarget {
       width: 100%;
       height: ${theme.sizeUnit * 4}px;
       display: flex;

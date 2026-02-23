@@ -242,6 +242,8 @@ const DashboardContentWrapper = styled.div`
     }
 
     & .dashboard-component-tabs-content {
+      position: relative;
+
       & > div:not(:last-child):not(.empty-droptarget) {
         margin-bottom: ${theme.sizeUnit * 4}px;
       }
