@@ -40,28 +40,37 @@ dayjs.updateLocale('en', {
   invalidDate: 'Invalid date',
 });
 
-// Extended Dayjs instance type with plugin methods
+// Extended Dayjs instance type with plugin methods.
+// When extending dayjs with a new plugin, add its instance methods here.
 export interface ExtendedDayjs extends Dayjs {
+  // Derived from dayjs/plugin/utc
   utc(keepLocalTime?: boolean): ExtendedDayjs;
   local(): ExtendedDayjs;
   isUTC(): boolean;
+  // Derived from dayjs/plugin/timezone
   tz(timezone?: string, keepLocalTime?: boolean): ExtendedDayjs;
+  // Derived from dayjs/plugin/relativeTime
   fromNow(withoutSuffix?: boolean): string;
   toNow(withoutSuffix?: boolean): string;
   from(compared: ConfigType, withoutSuffix?: boolean): string;
   to(compared: ConfigType, withoutSuffix?: boolean): string;
+  // Derived from dayjs/plugin/calendar
   calendar(referenceTime?: ConfigType, formats?: object): string;
 }
 
-// Type for dayjs factory with all plugins loaded
+// Type for dayjs factory with all plugins loaded.
+// When extending dayjs with a new plugin, add its static methods here.
 type DayjsWithPlugins = {
   (config?: ConfigType, format?: string, strict?: boolean): ExtendedDayjs;
+  // Derived from dayjs/plugin/utc
   utc(config?: ConfigType, format?: string, strict?: boolean): ExtendedDayjs;
+  // Derived from dayjs/plugin/timezone
   tz: {
     (input?: ConfigType, timezone?: string): ExtendedDayjs;
     guess(): string;
     setDefault(timezone?: string): void;
   };
+  // Derived from dayjs/plugin/updateLocale
   updateLocale(locale: string, config: object): object;
 } & Omit<typeof dayjs, 'utc' | 'tz'>;
 
