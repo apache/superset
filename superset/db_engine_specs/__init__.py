@@ -81,6 +81,13 @@ def load_engine_specs() -> list[type[BaseEngineSpec]]:
         except Exception:  # pylint: disable=broad-except
             logger.warning("Unable to load Superset DB engine spec: %s", ep.name)
             continue
+        # Validate that the engine spec is a proper subclass of BaseEngineSpec
+        if not is_engine_spec(engine_spec):
+            logger.warning(
+                "Skipping invalid DB engine spec %s: not a valid BaseEngineSpec subclass",
+                ep.name,
+            )
+            continue
         engine_specs.append(engine_spec)
 
     return engine_specs
