@@ -256,6 +256,30 @@ For debugging the Flask backend:
 
 2. Set breakpoints and press F5 to debug
 
+### Debugging Server App in Kubernetes Environment
+
+To debug Flask running in a POD inside a kubernetes cluster, you'll need to make sure the pod runs as root and is granted the `SYS_PTRACE` capability. These settings should not be used in production environments.
+
+```yaml
+  securityContext:
+    capabilities:
+      add: ["SYS_PTRACE"]
+```
+
+See [set capabilities for a container](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-capabilities-for-a-container) for more details.
+
+Once the pod is running as root and has the `SYS_PTRACE` capability it will be able to debug the Flask app.
+
+You can follow the same instructions as in `docker compose`. Enter the pod and install the required library and packages: gdb, netstat and debugpy.
+
+Often in a Kubernetes environment nodes are not addressable from outside the cluster. VSCode will thus be unable to remotely connect to port 5678 on a Kubernetes node. In order to do this you need to create a tunnel that port forwards 5678 to your local machine.
+
+```bash
+kubectl port-forward  pod/superset-<some random id> 5678:5678
+```
+
+You can now launch your VSCode debugger with the same config as above. VSCode will connect to 127.0.0.1:5678 which is forwarded by kubectl to your remote kubernetes POD.
+
 ### Storybook
 
 See the dedicated [Storybook documentation](../testing/storybook) for information on running Storybook locally and adding new stories.

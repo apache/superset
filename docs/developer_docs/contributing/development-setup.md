@@ -1012,7 +1012,7 @@ When contributing new React components to Superset, please try to add a Story al
 
 The topic of authoring new plugins, whether you'd like to contribute
 it back or not has been well documented in the
-[the documentation](https://superset.apache.org/docs/contributing/creating-viz-plugins), and in [this blog post](https://preset.io/blog/building-custom-viz-plugins-in-superset-v2).
+[the documentation](/developer-docs/contributing/howtos#creating-visualization-plugins), and in [this blog post](https://preset.io/blog/building-custom-viz-plugins-in-superset-v2).
 
 To contribute a plugin to Superset, your plugin must meet the following criteria:
 

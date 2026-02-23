@@ -42,6 +42,7 @@ const sidebars = {
         'contributing/howtos',
         'contributing/release-process',
         'contributing/resources',
+        'contributing/pkg-resources-migration',
         'guidelines/design-guidelines',
         {
           type: 'category',
@@ -91,6 +92,7 @@ const sidebars = {
           collapsed: true,
           items: [
             'extensions/extension-points/sqllab',
+            'extensions/extension-points/editors',
           ],
         },
         'extensions/development',
@@ -129,7 +131,7 @@ const sidebars = {
     {
       type: 'link',
       label: 'API Reference',
-      href: '/docs/api',
+      href: '/user-docs/api',
     },
   ],
 };

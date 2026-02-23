@@ -53,7 +53,7 @@ const sidebars = {
     {
       type: 'link',
       label: 'Database Drivers',
-      href: '/docs/databases',
+      href: '/user-docs/databases',
       description: 'See User Docs for database connection guides',
     },
     {

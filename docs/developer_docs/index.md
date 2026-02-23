@@ -29,14 +29,14 @@ Welcome to the Apache Superset Developer Portal - your comprehensive resource fo
 ## 🚀 Quick Start
 
 ### New Contributors
-- [Contributing Overview](/developer_portal/contributing/overview)
-- [Development Setup](/developer_portal/contributing/development-setup)
-- [Your First PR](/developer_portal/contributing/submitting-pr)
+- [Contributing Overview](/developer-docs/contributing/overview)
+- [Development Setup](/developer-docs/contributing/development-setup)
+- [Your First PR](/developer-docs/contributing/submitting-pr)
 
 ### Extension Development
-- [Extension Project Structure](/developer_portal/extensions/extension-project-structure)
-- [Extension Architecture](/developer_portal/extensions/architecture)
-- [Quick Start](/developer_portal/extensions/quick-start)
+- [Extension Development](/developer-docs/extensions/development)
+- [Extension Architecture](/developer-docs/extensions/architecture)
+- [Quick Start](/developer-docs/extensions/quick-start)
 
 ## 📚 Documentation Sections
 
@@ -83,7 +83,7 @@ Everything you need to contribute to the Apache Superset project. This section i
 ### External Documentation
 - **[User Documentation](https://superset.apache.org/docs/intro)** - Using Superset
 - **[API Documentation](https://superset.apache.org/docs/api)** - REST API reference
-- **[Configuration Guide](https://superset.apache.org/docs/configuration/configuring-superset)** - Setup and configuration
+- **[Configuration Guide](https://superset.apache.org/admin-docs/configuration/configuring-superset)** - Setup and configuration
 
 ### Important Files
 - **[CLAUDE.md](https://github.com/apache/superset/blob/master/CLAUDE.md)** - LLM development guide
@@ -96,17 +96,17 @@ Everything you need to contribute to the Apache Superset project. This section i
 <td width="50%">
 
 **I want to contribute code**
-1. [Set up development environment](/developer_portal/contributing/development-setup)
+1. [Set up development environment](/developer-docs/contributing/development-setup)
 2. [Find a good first issue](https://github.com/apache/superset/labels/good%20first%20issue)
-3. [Submit your first PR](/developer_portal/contributing/submitting-pr)
+3. [Submit your first PR](/developer-docs/contributing/submitting-pr)
 
 </td>
 <td width="50%">
 
 **I want to build an extension**
-1. [Start with Quick Start](/developer_portal/extensions/quick-start)
-2. [Learn extension structure](/developer_portal/extensions/extension-project-structure)
-3. [Explore architecture](/developer_portal/extensions/architecture)
+1. [Start with Quick Start](/developer-docs/extensions/quick-start)
+2. [Learn extension development](/developer-docs/extensions/development)
+3. [Explore architecture](/developer-docs/extensions/architecture)
 
 </td>
 </tr>
@@ -115,8 +115,8 @@ Everything you need to contribute to the Apache Superset project. This section i
 
 **I found a bug**
 1. [Search existing issues](https://github.com/apache/superset/issues)
-2. [Report the bug](/developer_portal/contributing/issue-reporting)
-3. [Submit a fix](/developer_portal/contributing/submitting-pr)
+2. [Report the bug](/developer-docs/contributing/issue-reporting)
+3. [Submit a fix](/developer-docs/contributing/submitting-pr)
 
 </td>
 <td>

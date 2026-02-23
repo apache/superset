@@ -110,7 +110,7 @@ flowchart TD
 
 ## Entity-Relationship Diagram
 
-For the full interactive Entity-Relationship Diagram, please visit the [main documentation](https://superset.apache.org/docs/contributing/resources).
+For the full interactive Entity-Relationship Diagram, please visit the [developer documentation](/developer-docs/contributing/resources).
 
 You can also [download the .svg](https://github.com/apache/superset/tree/master/docs/static/img/erd.svg) directly from GitHub.
 
@@ -119,7 +119,7 @@ You can also [download the .svg](https://github.com/apache/superset/tree/master/
 ### Official Documentation
 - [Apache Superset Documentation](https://superset.apache.org/docs/intro)
 - [API Documentation](https://superset.apache.org/docs/api)
-- [Configuration Guide](https://superset.apache.org/docs/installation/configuring-superset)
+- [Configuration Guide](https://superset.apache.org/admin-docs/configuration/configuring-superset)
 
 ### Community Resources
 - [Apache Superset Blog](https://preset.io/blog/)
