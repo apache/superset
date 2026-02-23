@@ -88,11 +88,9 @@ class ChartInfo(BaseModel):
     viz_type: str | None = Field(None, description="Visualization type")
     datasource_name: str | None = Field(None, description="Datasource name")
     datasource_type: str | None = Field(None, description="Datasource type")
-    url: str | None = Field(None, description="Chart URL")
+    url: str | None = Field(None, description="Chart explore page URL")
     description: str | None = Field(None, description="Chart description")
     cache_timeout: int | None = Field(None, description="Cache timeout")
-    form_data: Dict[str, Any] | None = Field(None, description="Chart form data")
-    query_context: Any | None = Field(None, description="Query context")
     changed_by: str | None = Field(None, description="Last modifier (username)")
     changed_by_name: str | None = Field(
         None, description="Last modifier (display name)"
@@ -231,8 +229,6 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
         url=chart_url,
         description=getattr(chart, "description", None),
         cache_timeout=getattr(chart, "cache_timeout", None),
-        form_data=getattr(chart, "form_data", None),
-        query_context=getattr(chart, "query_context", None),
         changed_by=getattr(chart, "changed_by_name", None)
         or (str(chart.changed_by) if getattr(chart, "changed_by", None) else None),
         changed_by_name=getattr(chart, "changed_by_name", None),
@@ -1039,9 +1035,8 @@ class ChartPreview(BaseModel):
 
     # Backward compatibility fields (populated based on content type)
     format: str | None = Field(
-        None, description="Format of the preview (url, ascii, table, base64)"
+        None, description="Format of the preview (ascii, table, vega_lite)"
     )
-    preview_url: str | None = Field(None, description="Image URL for 'url' format")
     ascii_chart: str | None = Field(
         None, description="ASCII art chart for 'ascii' format"
     )

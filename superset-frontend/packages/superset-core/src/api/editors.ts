@@ -497,25 +497,25 @@ export interface EditorProviderUnregisteredEvent {
  * Register an editor provider for specific languages.
  * When an extension registers an editor, it replaces the default for those languages.
  *
- * @param contribution The editor contribution metadata from extension.json
+ * The contribution metadata (name, languages, description) is read from the
+ * extension's manifest (extension.json), so only the contribution ID and
+ * component are needed at registration time.
+ *
+ * @param id The editor contribution ID declared in extension.json
  * @param component The React component implementing EditorProps
  * @returns A Disposable to unregister the provider
  *
  * @example
  * ```typescript
  * const disposable = registerEditorProvider(
- *   {
- *     id: 'acme.monaco-sql',
- *     name: 'Monaco SQL Editor',
- *     languages: ['sql'],
- *   },
+ *   'acme.monaco-sql',
  *   MonacoSQLEditor
  * );
  * context.disposables.push(disposable);
  * ```
  */
 export declare function registerEditorProvider(
-  contribution: EditorContribution,
+  id: string,
   component: EditorComponent,
 ): Disposable;
 

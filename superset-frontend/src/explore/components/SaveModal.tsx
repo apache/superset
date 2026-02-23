@@ -616,7 +616,7 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
           <Input
             name="new_slice_name"
             type="text"
-            placeholder="Name"
+            placeholder={t('Name')}
             value={this.state.newSliceName}
             onChange={this.onSliceNameChange}
             data-test="new-chart-name"
@@ -631,7 +631,7 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
             <Input
               name="dataset_name"
               type="text"
-              placeholder="Dataset Name"
+              placeholder={t('Dataset Name')}
               value={this.state.datasetName}
               onChange={this.handleDatasetNameChange}
               data-test="new-dataset-name"

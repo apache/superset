@@ -118,8 +118,9 @@ export const Header: React.FC<Params> = ({
   );
 
   const onSortChanged = useCallback(() => {
-    const hasMultiSort =
-      api.getAllDisplayedColumns().findIndex(c => c.getSortIndex()) !== -1;
+    const hasMultiSort = api
+      .getAllDisplayedColumns()
+      .some(c => c.getSortIndex());
     const updatedSortIndex = column.getSortIndex();
     sortOption.current = SORT_DIRECTION.indexOf(column.getSort() ?? null);
     setCurrentSort(column.getSort() ?? null);
