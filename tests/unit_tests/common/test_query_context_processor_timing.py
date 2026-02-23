@@ -298,5 +298,7 @@ def test_slow_query_logging(
                 processor_with_cache.get_df_payload(mock_query_obj)
 
     mock_logger.warning.assert_called_once()
-    call_args = mock_logger.warning.call_args[0][0]
-    assert "Slow chart query" in call_args
+    call_args = mock_logger.warning.call_args[0]
+    assert "Slow chart query" in call_args[0]
+    # On cache hit, db_execution should be "cached" not a number
+    assert "cached" in call_args

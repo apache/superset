@@ -221,14 +221,15 @@ class QueryContextProcessor:
         # Slow query logging
         threshold = current_app.config.get("CHART_DATA_SLOW_QUERY_THRESHOLD_MS")
         if threshold is not None and timing["total_ms"] > threshold:
+            db_exec = timing.get("db_execution_ms")
             logger.warning(
                 "Slow chart query: total=%.0fms validate=%.0fms "
-                "cache_lookup=%.0fms db_execution=%.0fms "
+                "cache_lookup=%.0fms db_execution=%s "
                 "result_processing=%.0fms is_cached=%s",
                 timing["total_ms"],
                 timing.get("validate_ms", 0),
                 timing.get("cache_lookup_ms", 0),
-                timing.get("db_execution_ms", 0),
+                f"{db_exec:.0f}ms" if db_exec is not None else "cached",
                 timing.get("result_processing_ms", 0),
                 timing.get("is_cached", False),
             )
