@@ -23,7 +23,8 @@ import cx from 'classnames';
 import TableCollection from '@superset-ui/core/components/TableCollection';
 import BulkTagModal from 'src/features/tags/BulkTagModal';
 import {
-  Button,
+  DropdownButton,
+  Menu,
   Tooltip,
   Checkbox,
   Icons,
@@ -276,7 +277,7 @@ export function ListView<T extends object = any>({
   initialSort = [],
   className = '',
   filters = [],
-  bulkActions = [],
+  bulkActions: initialBulkActions = [],
   bulkSelectEnabled = false,
   disableBulkSelect = () => {},
   renderBulkSelectCopy = selected => t('%s Selected', selected.length),
@@ -292,6 +293,9 @@ export function ListView<T extends object = any>({
   addSuccessToast,
   addDangerToast,
 }: ListViewProps<T>) {
+  const [isBulkActionLoading, setIsBulkActionLoading] = useState(false);
+  const bulkActions = [...initialBulkActions];
+
   const {
     getTableProps,
     getTableBodyProps,
@@ -309,7 +313,8 @@ export function ListView<T extends object = any>({
     query,
   } = useListViewState({
     bulkSelectColumnConfig,
-    bulkSelectMode: bulkSelectEnabled && Boolean(bulkActions.length),
+    bulkSelectMode:
+      bulkSelectEnabled && (Boolean(bulkActions.length) || enableBulkTag),
     columns,
     count,
     data,
@@ -357,6 +362,46 @@ export function ListView<T extends object = any>({
       gotoPage(0);
     }
   }, [gotoPage, loading, pageCount, pageIndex]);
+
+  const firstAction = bulkActions[0];
+  const dropdownActions = bulkActions.slice(1);
+
+  const handleMenuClick = (info: { key: string }) => {
+    if (info.key === 'tag') {
+      setShowBulkTagModal(true);
+      return;
+    }
+    const action = dropdownActions.find(a => a.key === info.key);
+    if (action) {
+      action.onSelect(selectedFlatRows.map((r: any) => r.original));
+    }
+  };
+
+  const handleBulkActionClick = async () => {
+    if (!firstAction) return;
+
+    setIsBulkActionLoading(true);
+    try {
+      await firstAction.onSelect(selectedFlatRows.map((r: any) => r.original));
+    } finally {
+      setIsBulkActionLoading(false);
+    }
+  };
+
+  const dropdownMenu = (
+    <Menu onClick={handleMenuClick}>
+      {dropdownActions.map(action => (
+        <Menu.Item key={action.key} data-test="bulk-select-action">
+          {action.name}
+        </Menu.Item>
+      ))}
+      {enableBulkTag && (
+        <Menu.Item key="tag" data-test="bulk-select-tag-btn">
+          {t('Add Tag')}
+        </Menu.Item>
+      )}
+    </Menu>
+  );
 
   return (
     <ListViewStyles>
@@ -419,33 +464,26 @@ export function ListView<T extends object = any>({
                       >
                         {t('Deselect all')}
                       </span>
-                      <div className="divider" />
-                      {bulkActions.map(action => (
-                        <Button
-                          data-test="bulk-select-action"
-                          key={action.key}
-                          buttonStyle={action.type}
-                          cta
-                          onClick={() =>
-                            action.onSelect(
-                              selectedFlatRows.map((r: any) => r.original),
-                            )
-                          }
-                        >
-                          {action.name}
-                        </Button>
-                      ))}
-                      {enableBulkTag && (
-                        <span
-                          data-test="bulk-select-tag-btn"
-                          role="button"
-                          style={{ cursor: 'pointer' }}
-                          tabIndex={0}
-                          className="tag-btn"
-                          onClick={() => setShowBulkTagModal(true)}
-                        >
-                          {t('Add Tag')}
-                        </span>
+                      {firstAction && (
+                        <>
+                          <div className="divider" />
+                          <DropdownButton
+                            popupRender={() =>
+                              dropdownActions.length > 0 ||
+                              enableBulkTag ? (
+                                dropdownMenu
+                              ) : (
+                                <></>
+                              )
+                            }
+                            onClick={handleBulkActionClick}
+                            loading={isBulkActionLoading}
+                            type="primary"
+                            data-test="bulk-select-action"
+                          >
+                            {firstAction.name}
+                          </DropdownButton>
+                        </>
                       )}
                     </>
                   )}

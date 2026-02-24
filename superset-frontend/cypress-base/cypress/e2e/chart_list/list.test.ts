@@ -23,9 +23,12 @@ import {
   interceptBulkDelete,
   interceptUpdate,
   interceptDelete,
+  visitSampleChartFromList,
+  saveChartToDashboard,
   interceptFiltering,
   interceptFavoriteStatus,
 } from '../explore/utils';
+import { interceptGet as interceptDashboardGet } from '../dashboard/utils';
 
 function orderAlphabetical() {
   setFilter('Sort', 'Alphabetical');
@@ -54,6 +57,57 @@ function visitChartList() {
 }
 
 describe('Charts list', () => {
+  describe('Cross-referenced dashboards', () => {
+    beforeEach(() => {
+      cy.createSampleDashboards([0, 1, 2, 3]);
+      cy.createSampleCharts([0]);
+      visitChartList();
+    });
+
+    it('should show the cross-referenced dashboards in the table cell', () => {
+      interceptDashboardGet();
+      cy.getBySel('table-row')
+        .first()
+        .find('[data-test="table-row-cell"]')
+        .find('[data-test="crosslinks"]')
+        .should('be.empty');
+      cy.getBySel('table-row')
+        .eq(10)
+        .find('[data-test="table-row-cell"]')
+        .find('[data-test="crosslinks"]')
+        .contains('Supported Charts Dashboard')
+        .invoke('removeAttr', 'target')
+        .click();
+      cy.wait('@get');
+    });
+
+    it('should show the newly added dashboards in a tooltip', () => {
+      interceptDashboardGet();
+      visitSampleChartFromList('1 - Sample chart');
+      saveChartToDashboard('1 - Sample chart', '1 - Sample dashboard');
+      saveChartToDashboard('1 - Sample chart', '2 - Sample dashboard');
+      saveChartToDashboard('1 - Sample chart', '3 - Sample dashboard');
+      saveChartToDashboard('1 - Sample chart', '4 - Sample dashboard');
+      visitChartList();
+
+      cy.getBySel('count-crosslinks').should('be.visible');
+    });
+  });
+
+  describe('card mode', () => {
+    before(() => {
+      visitChartList();
+      setGridMode('card');
+    });
+
+    it('should preserve other filters when sorting', () => {
+      cy.getBySel('styled-card').should('have.length', 25);
+      setFilter('Type', 'Big Number');
+      setFilter('Sort', 'Least recently modified');
+      cy.getBySel('styled-card').should('have.length', 3);
+    });
+  });
+
   describe('common actions', () => {
     beforeEach(() => {
       visitChartList();
@@ -72,7 +126,8 @@ describe('Charts list', () => {
       cy.getBySel('skeleton-card').should('not.exist');
       cy.getBySel('styled-card').contains('1 - Sample chart').click();
       cy.getBySel('styled-card').contains('2 - Sample chart').click();
-      cy.getBySel('bulk-select-action').contains('Delete').click();
+      cy.getBySel('bulk-select-action').trigger('mouseenter');
+      cy.contains('Delete').click();
       confirmDelete();
       cy.wait('@bulkDelete');
       cy.getBySel('styled-card')
@@ -89,7 +144,8 @@ describe('Charts list', () => {
       cy.getBySel('table-row').contains('4 - Sample chart').should('exist');
       cy.get('[data-test="table-row"] input[type="checkbox"]').eq(0).click();
       cy.get('[data-test="table-row"] input[type="checkbox"]').eq(1).click();
-      cy.getBySel('bulk-select-action').eq(0).contains('Delete').click();
+      cy.getBySel('bulk-select-action').trigger('mouseenter');
+      cy.contains('Delete').click();
       confirmDelete();
       cy.wait('@bulkDelete');
       cy.get('.loading').should('exist');
@@ -121,7 +177,7 @@ describe('Charts list', () => {
       interceptDelete();
       cy.getBySel('sort-header').contains('Name').click();
 
-      // Modal closes immediately without this
+      // Modal closes immediatly without this
       cy.wait(2000);
 
       cy.getBySel('table-row').eq(0).contains('3 - Sample chart');
@@ -152,20 +208,12 @@ describe('Charts list', () => {
 
       // edits in list-view
       setGridMode('list');
-      // Wait for list view to fully render after mode change
-      cy.get('.loading').should('not.exist');
-      cy.getBySel('table-row').should('be.visible');
-      // Target the specific row by chart title to avoid flakiness from row ordering
-      cy.getBySel('table-row')
-        .contains('1 - Sample chart | EDITED')
-        .parents('[data-test="table-row"]')
-        .find('[data-test="edit-alt"]')
-        .click();
+      cy.getBySel('edit-alt').eq(1).click();
       cy.getBySel('properties-modal-name-input').clear();
       cy.getBySel('properties-modal-name-input').type('1 - Sample chart');
       cy.get('button:contains("Save")').click();
       cy.wait('@update');
-      cy.getBySel('table-row').contains('1 - Sample chart').should('exist');
+      cy.getBySel('table-row').eq(1).contains('1 - Sample chart');
     });
   });
 });
