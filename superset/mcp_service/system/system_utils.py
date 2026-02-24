@@ -205,15 +205,13 @@ def calculate_feature_availability(
     time_metrics: Dict[str, Dict[str, int]],
     dao_classes: Dict[str, Any],
 ) -> FeatureAvailability:
-    """Detect available features dynamically from menus and feature flags.
+    """Detect available features dynamically from menus.
 
     Queries the FAB security manager for menu items accessible to the
-    current user and reads the runtime feature flag state.
+    current user.
     """
     accessible_menus: list[str] = []
-    enabled_flags: Dict[str, bool] = {}
 
-    # --- accessible menus via FAB security manager ---
     try:
         from superset import security_manager
 
@@ -222,15 +220,6 @@ def calculate_feature_availability(
     except Exception as exc:
         logger.debug("Could not retrieve accessible menus: %s", exc)
 
-    # --- feature flags ---
-    try:
-        from superset import get_feature_flags
-
-        enabled_flags = get_feature_flags()
-    except Exception as exc:
-        logger.debug("Could not retrieve feature flags: %s", exc)
-
     return FeatureAvailability(
         accessible_menus=accessible_menus,
-        enabled_feature_flags=enabled_flags,
     )

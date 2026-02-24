@@ -111,9 +111,8 @@ class PopularContent(BaseModel):
 class FeatureAvailability(BaseModel):
     """Dynamic feature availability for the current user and deployment.
 
-    Menus and feature flags are detected at request time from the security
-    manager and feature flag configuration, so they reflect the actual state
-    of the deployment and the permissions of the requesting user.
+    Menus are detected at request time from the security manager,
+    so they reflect the actual permissions of the requesting user.
     """
 
     accessible_menus: List[str] = Field(
@@ -122,10 +121,6 @@ class FeatureAvailability(BaseModel):
             "UI menu items accessible to the current user, "
             "derived from FAB role permissions"
         ),
-    )
-    enabled_feature_flags: Dict[str, bool] = Field(
-        default_factory=dict,
-        description="Feature flags and their current enabled/disabled state",
     )
 
 

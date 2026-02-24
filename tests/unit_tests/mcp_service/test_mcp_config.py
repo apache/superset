@@ -62,7 +62,6 @@ def test_get_default_instructions_mentions_feature_availability():
     assert "get_instance_info" in instructions
     assert "Feature Availability" in instructions
     assert "accessible menus" in instructions
-    assert "feature flags" in instructions
 
 
 def test_init_fastmcp_server_with_default_app_name():

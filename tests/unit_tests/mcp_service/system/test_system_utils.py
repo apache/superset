@@ -22,8 +22,8 @@ from unittest.mock import MagicMock, patch
 from superset.mcp_service.system.system_utils import calculate_feature_availability
 
 
-def test_calculate_feature_availability_returns_menus_and_flags():
-    """Test that accessible menus and feature flags are returned."""
+def test_calculate_feature_availability_returns_menus():
+    """Test that accessible menus are returned."""
     mock_sm = MagicMock()
     mock_sm.user_view_menu_names.return_value = {
         "SQL Lab",
@@ -31,32 +31,22 @@ def test_calculate_feature_availability_returns_menus_and_flags():
         "Charts",
     }
 
-    mock_flags = {"ALERT_REPORTS": True, "DASHBOARD_VIRTUALIZATION": False}
-
-    with (
-        patch("superset.security_manager", mock_sm),
-        patch("superset.get_feature_flags", return_value=mock_flags),
-    ):
+    with patch("superset.security_manager", mock_sm):
         result = calculate_feature_availability({}, {}, {})
 
     assert result.accessible_menus == ["Charts", "Dashboards", "SQL Lab"]
-    assert result.enabled_feature_flags == mock_flags
     mock_sm.user_view_menu_names.assert_called_once_with("menu_access")
 
 
 def test_calculate_feature_availability_empty_when_no_context():
-    """Test graceful fallback when security manager or flags are unavailable."""
+    """Test graceful fallback when security manager is unavailable."""
     broken_sm = MagicMock()
     broken_sm.user_view_menu_names.side_effect = RuntimeError("no ctx")
 
-    with (
-        patch("superset.security_manager", broken_sm),
-        patch("superset.get_feature_flags", side_effect=RuntimeError("no ctx")),
-    ):
+    with patch("superset.security_manager", broken_sm):
         result = calculate_feature_availability({}, {}, {})
 
     assert result.accessible_menus == []
-    assert result.enabled_feature_flags == {}
 
 
 def test_calculate_feature_availability_menus_sorted():
@@ -64,10 +54,7 @@ def test_calculate_feature_availability_menus_sorted():
     mock_sm = MagicMock()
     mock_sm.user_view_menu_names.return_value = {"Zzz", "Aaa", "Mmm"}
 
-    with (
-        patch("superset.security_manager", mock_sm),
-        patch("superset.get_feature_flags", return_value={}),
-    ):
+    with patch("superset.security_manager", mock_sm):
         result = calculate_feature_availability({}, {}, {})
 
     assert result.accessible_menus == ["Aaa", "Mmm", "Zzz"]

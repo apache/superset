@@ -153,8 +153,7 @@ Input format:
   accepted as input, which works around double-serialization bugs in some MCP clients
 
 Feature Availability:
-- Call get_instance_info to discover accessible menus and enabled feature flags
-  for the current user.
+- Call get_instance_info to discover accessible menus for the current user.
 - Do NOT assume features exist; always check get_instance_info first.
 
 If you are unsure which tool to use, start with get_instance_info
