@@ -31,9 +31,7 @@ from fastmcp.server.middleware import Middleware
 logger = logging.getLogger(__name__)
 
 
-def get_default_instructions(
-    branding: str = "Apache Superset",
-) -> str:
+def get_default_instructions(branding: str = "Apache Superset") -> str:
     """Get default instructions with configurable branding.
 
     Args:
