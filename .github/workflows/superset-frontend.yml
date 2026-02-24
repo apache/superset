@@ -99,6 +99,8 @@ jobs:
     needs: [sharded-jest-tests]
     if: needs.frontend-build.outputs.should-run == 'true'
     runs-on: ubuntu-24.04
+    permissions:
+      id-token: write
     steps:
       - name: Download Coverage Artifacts
         uses: actions/download-artifact@v7
@@ -116,7 +118,7 @@ jobs:
         uses: codecov/codecov-action@v5
         with:
           flags: javascript
-          token: ${{ secrets.CODECOV_TOKEN }}
+          use_oidc: true
           verbose: true
           files: merged-output/coverage-summary.json
           slug: apache/superset
