@@ -87,7 +87,7 @@ jobs:
           -v ${{ github.workspace }}/superset-frontend/coverage:/app/superset-frontend/coverage \
           --rm $TAG \
           bash -c \
-          "npm run test -- --coverage --shard=${{ matrix.shard }}/8 --coverageReporters=json-summary"
+          "npm run test -- --coverage --shard=${{ matrix.shard }}/8 --coverageReporters=json"
 
       - name: Upload Coverage Artifact
         uses: actions/upload-artifact@v6
@@ -108,8 +108,13 @@ jobs:
           pattern: coverage-artifacts-*
           path: coverage/
 
-      - name: Show Files
-        run: find coverage/
+      - name: Reorganize test result reports
+        run: |
+          find coverage/
+          for i in {1..8}; do
+            mv coverage/coverage-artifacts-${i}/coverage-final.json coverage/coverage-shard-${i}.json
+          done
+        shell: bash
 
       - name: Merge Code Coverage
         run: npx nyc merge coverage/ merged-output/coverage-summary.json
