@@ -1,0 +1,24 @@
+{
+    "name": "@superset-ui/plugin-chart-dashboard-utility-bar",
+    "version": "0.1.0",
+    "description": "Superset Chart - Dashboard Utility Bar",
+    "sideEffects": false,
+    "main": "lib/index.js",
+    "module": "esm/index.js",
+    "files": [
+        "esm",
+        "lib"
+    ],
+    "peerDependencies": {
+        "@superset-ui/chart-controls": "*",
+        "@apache-superset/core": "*",
+        "@superset-ui/core": "*",
+        "react": "^16.13.1 || ^17.0.0",
+        "react-dom": "^16.13.1 || ^17.0.0",
+        "@emotion/styled": "^11.0.0",
+        "@emotion/react": "^11.0.0"
+    },
+    "publishConfig": {
+        "access": "public"
+    }
+}

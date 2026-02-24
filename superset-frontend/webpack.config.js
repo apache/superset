@@ -465,6 +465,10 @@ const config = {
         APP_DIR,
         'plugins/plugin-chart-unified-list-bar/src',
       ),
+      '@superset-ui/plugin-chart-dashboard-utility-bar': path.resolve(
+        APP_DIR,
+        'plugins/plugin-chart-dashboard-utility-bar/src',
+      ),
     },
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.yml'],
     fallback: {

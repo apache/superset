@@ -66,4 +66,5 @@ export enum VizType {
   WorldMap = 'world_map',
   UnifiedListBar = 'unified_list_bar',
   UnifiedListArrow = 'unified_list_arrow',
+  DashboardUtilityBar = 'dashboard_utility_bar',
 }

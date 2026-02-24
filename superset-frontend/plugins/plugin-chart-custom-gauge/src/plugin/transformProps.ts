@@ -146,31 +146,31 @@ export default function transformProps(
         splitNumber,
         startAngle,
         endAngle,
-        showPointer,
         intervals,
         intervalColorIndices,
         valueFormatter,
         sliceId,
-        // V1 Features
-        color_mode,
-        single_color,
-        inner_radius,
-        arc_thickness,
-        segment_style,
-        needle_color,
-        needle_width,
-        needle_length,
-        needle_style,
-        show_center_val,
-        center_val_size,
-        center_val_weight,
-        center_val_color,
-        val_prefix,
-        val_suffix,
-        show_tick_labels,
-        tick_density,
-        animation_duration,
-    }: EchartsGaugeFormData = { ...DEFAULT_GAUGE_FORM_DATA, ...formData };
+        // V1 Features (Superset converts snake_case control names to camelCase in formData)
+        showPointer,
+        colorMode,
+        singleColor,
+        innerRadius,
+        arcThickness,
+        segmentStyle,
+        needleColor,
+        needleWidth,
+        needleLength,
+        needleStyle,
+        showCenterVal,
+        centerValSize,
+        centerValWeight,
+        centerValColor,
+        valPrefix,
+        valSuffix,
+        showTickLabels,
+        tickDensity,
+        animationDuration,
+    }: EchartsGaugeFormData = { ...DEFAULT_GAUGE_FORM_DATA, ...formData } as any;
     const refs: Refs = {};
     const data = (queriesData[0]?.data || []) as DataRecord[];
     const detectedCurrency = queriesData[0]?.detected_currency;
@@ -187,10 +187,10 @@ export default function transformProps(
         detectedCurrency,
     );
     const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
-    const axisLineWidth = arc_thickness || calculateAxisLineWidth(data, fontSize, overlap, 30);
+    const axisLineWidth = Number(arcThickness) || calculateAxisLineWidth(data, fontSize, overlap, 30);
     const groupbyLabels = groupby.map(getColumnLabel);
     const formatValue = (value: number) =>
-        (val_prefix || '') + valueFormatter.replace('{value}', numberFormatter(value)) + (val_suffix || '');
+        (valPrefix || '') + valueFormatter.replace('{value}', numberFormatter(value)) + (valSuffix || '');
     const axisTickLength = FONT_SIZE_MULTIPLIERS.axisTickLength * fontSize;
     const splitLineLength = FONT_SIZE_MULTIPLIERS.splitLineLength * fontSize;
     const titleOffsetFromTitle =
@@ -232,10 +232,10 @@ export default function transformProps(
                         detailOffsetFromTitle
                         }%`,
                     ],
-                    fontSize: center_val_size || (FONT_SIZE_MULTIPLIERS.detailFontSize * fontSize),
-                    fontWeight: center_val_weight || 'normal',
-                    color: center_val_color ? getRgba(center_val_color) : theme.colorText,
-                    show: show_center_val !== false,
+                    fontSize: centerValSize || (FONT_SIZE_MULTIPLIERS.detailFontSize * fontSize),
+                    fontWeight: centerValWeight || 'normal',
+                    color: centerValColor ? getRgba(centerValColor) : theme.colorText,
+                    show: showCenterVal !== false,
                 },
             };
 
@@ -280,8 +280,8 @@ export default function transformProps(
 
     // Tick Density Logic
     let finalSplitNumber = splitNumber;
-    if (tick_density === 'low') finalSplitNumber = 5;
-    if (tick_density === 'high') finalSplitNumber = 20;
+    if (tickDensity === 'low') finalSplitNumber = 5;
+    if (tickDensity === 'high') finalSplitNumber = 20;
 
     const axisLabels = range(min, max, (max - min) / finalSplitNumber);
     const axisLabelLength = Math.max(
@@ -294,8 +294,8 @@ export default function transformProps(
         colorFn,
         min,
         max,
-        color_mode,
-        single_color,
+        colorMode,
+        singleColor,
     );
     const splitLineDistance =
         axisLineWidth + splitLineLength + OFFSETS.ticksFromLine;
@@ -312,9 +312,9 @@ export default function transformProps(
         axisLineWidth + axisTickLength + OFFSETS.ticksFromLine;
 
     const progress = {
-        show: showProgress && color_mode === 'default', // Only show default progress if not handling colors manually
+        show: showProgress && colorMode === 'default', // Only show default progress if not handling colors manually
         overlap,
-        roundCap: roundCap || segment_style === 'rounded',
+        roundCap: roundCap || segmentStyle === 'rounded',
         width: axisLineWidth, // Align width with arc thickness
     };
     const splitLine = {
@@ -327,14 +327,14 @@ export default function transformProps(
         },
     };
     const axisLine = {
-        roundCap: roundCap || segment_style === 'rounded',
+        roundCap: roundCap || segmentStyle === 'rounded',
         lineStyle: {
             width: axisLineWidth,
             color: intervalBoundsAndColors.length ? intervalBoundsAndColors : gaugeSeriesOptions.axisLine?.lineStyle?.color,
         },
     };
     const axisLabel = {
-        show: show_tick_labels,
+        show: showTickLabels,
         distance: -axisLabelDistance,
         fontSize,
         formatter: numberFormatter,
@@ -349,7 +349,7 @@ export default function transformProps(
     const detail = {
         valueAnimation: animation,
         formatter: (value: number) => formatValue(value),
-        color: center_val_color ? getRgba(center_val_color) : gaugeSeriesOptions.detail?.color,
+        color: centerValColor ? getRgba(centerValColor) : gaugeSeriesOptions.detail?.color,
     };
     const tooltip = {
         ...getDefaultTooltip(refs),
@@ -361,29 +361,31 @@ export default function transformProps(
 
     let pointer;
     // Needle Customization
-    const pointerIcon = needle_style === 'triangle' ? 'triangle' : needle_style === 'rounded' ? 'path://M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z' : undefined;
+    const pointerIcon = needleStyle === 'triangle' ? 'triangle' : needleStyle === 'rounded' ? 'path://M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z' : undefined;
 
     pointer = {
-        show: showPointer,
+        show: showPointer !== false,
         showAbove: true,
-        icon: pointerIcon,
         itemStyle: {
-            color: needle_color ? getRgba(needle_color) : INTERVAL_GAUGE_SERIES_OPTION.pointer?.itemStyle?.color,
+            color: needleColor ? getRgba(needleColor) : INTERVAL_GAUGE_SERIES_OPTION.pointer?.itemStyle?.color,
         },
-        width: needle_width,
-        length: `${needle_length}%`,
-    };
+        width: Number(needleWidth) || 5,
+        length: `${Number(needleLength) || 60}%`,
+    } as any;
+    if (pointerIcon) {
+        pointer.icon = pointerIcon;
+    }
 
     const series: GaugeSeriesOption[] = [
         {
             type: 'gauge',
-            startAngle,
-            endAngle,
+            startAngle: Number(startAngle) || 225,
+            endAngle: Number(endAngle) || -45,
             min,
             max,
             progress,
             animation,
-            animationDuration: animation_duration,
+            animationDuration: Number(animationDuration) || 1000,
             axisLine: axisLine as GaugeSeriesOption['axisLine'],
             splitLine,
             splitNumber: finalSplitNumber,
@@ -392,7 +394,7 @@ export default function transformProps(
             pointer,
             detail,
             tooltip,
-            radius: `${inner_radius}%`, // Use percentage for radius usually? ECharts supports string % or number. Inner radius is actually 'radius' in ECharts gauge, 'innerRadius' is for donut. Gauge only has radius. The prompt said "Inner Radius %". Wait, Gauge doesn't have inner radius. The "Arc Thickness" effectively creates an inner radius.
+            radius: `${Number(innerRadius) || 75}%`,
             // ECharts Gauge 'radius' is the OUTER radius. The inner radius is determined by axisLine.lineStyle.width.
             // If user sets "Inner Radius", maybe they mean the size of the whole chart? Or the HOLE?
             // "Inner Radius (%)" usually implies the hole.
