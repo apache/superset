@@ -20,12 +20,6 @@
 from unittest.mock import MagicMock, patch
 
 from superset.mcp_service.app import get_default_instructions, init_fastmcp_server
-from superset.mcp_service.mcp_config import (
-    MCP_ALL_KNOWN_FEATURES,
-    MCP_FEATURE_ACTION_LOG,
-    MCP_FEATURE_LIST_ROLES,
-    MCP_FEATURE_LIST_USERS,
-)
 
 
 def test_get_default_instructions_with_default_branding():
@@ -59,6 +53,16 @@ def test_get_default_instructions_with_enterprise_branding():
     assert "list_dashboards" in instructions
     assert "list_charts" in instructions
     assert "execute_sql" in instructions
+
+
+def test_get_default_instructions_mentions_feature_availability():
+    """Test that instructions direct LLMs to get_instance_info for features."""
+    instructions = get_default_instructions()
+
+    assert "get_instance_info" in instructions
+    assert "Feature Availability" in instructions
+    assert "accessible menus" in instructions
+    assert "feature flags" in instructions
 
 
 def test_init_fastmcp_server_with_default_app_name():
@@ -156,67 +160,3 @@ def test_init_fastmcp_server_applies_middleware_to_global_instance():
 
             # Middleware should be added via add_middleware
             mock_mcp.add_middleware.assert_called_once_with(mock_mw)
-
-
-def test_get_default_instructions_without_unavailable_features():
-    """Test that no unavailable features section appears when list is empty."""
-    instructions = get_default_instructions()
-    assert "Unavailable Features" not in instructions
-
-    instructions_empty = get_default_instructions(unavailable_features=[])
-    assert "Unavailable Features" not in instructions_empty
-
-    instructions_none = get_default_instructions(unavailable_features=None)
-    assert "Unavailable Features" not in instructions_none
-
-
-def test_get_default_instructions_with_unavailable_features():
-    """Test that unavailable features section is included when list is non-empty."""
-    features = [
-        "Action Log (Settings > Security > Action Log)",
-        "List Users page (Settings > List Users)",
-    ]
-    instructions = get_default_instructions(unavailable_features=features)
-
-    assert "IMPORTANT - Unavailable Features" in instructions
-    assert "Action Log (Settings > Security > Action Log)" in instructions
-    assert "List Users page (Settings > List Users)" in instructions
-    assert "Do NOT suggest" in instructions
-    assert "suggest alternatives using the MCP tools" in instructions
-
-
-def test_init_fastmcp_server_reads_unavailable_features_from_config():
-    """Test init_fastmcp_server reads MCP_UNAVAILABLE_FEATURES from config."""
-    features = ["Action Log", "List Users"]
-    mock_flask_app = MagicMock()
-
-    def config_get(key, default=None):
-        if key == "APP_NAME":
-            return "Superset"
-        if key == "MCP_UNAVAILABLE_FEATURES":
-            return features
-        return default
-
-    mock_flask_app.config.get.side_effect = config_get
-
-    with patch.dict(
-        "sys.modules",
-        {"superset.mcp_service.flask_singleton": MagicMock(app=mock_flask_app)},
-    ):
-        with patch("superset.mcp_service.app.mcp") as mock_mcp:
-            init_fastmcp_server()
-
-            instructions = mock_mcp._mcp_server.instructions
-            assert "Unavailable Features" in instructions
-            assert "Action Log" in instructions
-            assert "List Users" in instructions
-
-
-def test_get_default_instructions_with_feature_constants():
-    """Test that MCP_FEATURE_* constants work with get_default_instructions."""
-    instructions = get_default_instructions(unavailable_features=MCP_ALL_KNOWN_FEATURES)
-
-    assert "IMPORTANT - Unavailable Features" in instructions
-    assert MCP_FEATURE_ACTION_LOG in instructions
-    assert MCP_FEATURE_LIST_USERS in instructions
-    assert MCP_FEATURE_LIST_ROLES in instructions
