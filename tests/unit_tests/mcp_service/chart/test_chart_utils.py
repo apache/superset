@@ -81,6 +81,17 @@ class TestMapFilterOperator:
         assert map_filter_operator("<=") == "<="
         assert map_filter_operator("!=") == "!="
 
+    def test_map_filter_operators_pattern_matching(self) -> None:
+        """Test mapping of pattern matching operators"""
+        assert map_filter_operator("LIKE") == "LIKE"
+        assert map_filter_operator("ILIKE") == "ILIKE"
+        assert map_filter_operator("NOT LIKE") == "NOT LIKE"
+
+    def test_map_filter_operators_set(self) -> None:
+        """Test mapping of set operators"""
+        assert map_filter_operator("IN") == "IN"
+        assert map_filter_operator("NOT IN") == "NOT IN"
+
     def test_map_filter_operator_unknown(self) -> None:
         """Test mapping of unknown operator returns original"""
         assert map_filter_operator("UNKNOWN") == "UNKNOWN"
@@ -144,6 +155,99 @@ class TestMapTableConfig:
         assert filter_obj["operator"] == "=="
         assert filter_obj["comparator"] == "active"
         assert filter_obj["expressionType"] == "SIMPLE"
+
+    def test_map_table_config_with_like_filter(self) -> None:
+        """Test table config mapping with LIKE filter for pattern matching"""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="name")],
+            filters=[FilterConfig(column="name", op="LIKE", value="%mario%")],
+        )
+
+        result = map_table_config(config)
+
+        assert "adhoc_filters" in result
+        assert len(result["adhoc_filters"]) == 1
+        filter_obj = result["adhoc_filters"][0]
+        assert filter_obj["subject"] == "name"
+        assert filter_obj["operator"] == "LIKE"
+        assert filter_obj["comparator"] == "%mario%"
+        assert filter_obj["expressionType"] == "SIMPLE"
+
+    def test_map_table_config_with_ilike_filter(self) -> None:
+        """Test table config mapping with ILIKE filter for case-insensitive matching"""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="name")],
+            filters=[FilterConfig(column="name", op="ILIKE", value="%mario%")],
+        )
+
+        result = map_table_config(config)
+
+        assert "adhoc_filters" in result
+        filter_obj = result["adhoc_filters"][0]
+        assert filter_obj["operator"] == "ILIKE"
+        assert filter_obj["comparator"] == "%mario%"
+
+    def test_map_table_config_with_in_filter(self) -> None:
+        """Test table config mapping with IN filter for list matching"""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="platform")],
+            filters=[
+                FilterConfig(
+                    column="platform", op="IN", value=["Wii", "PS3", "Xbox360"]
+                )
+            ],
+        )
+
+        result = map_table_config(config)
+
+        assert "adhoc_filters" in result
+        filter_obj = result["adhoc_filters"][0]
+        assert filter_obj["subject"] == "platform"
+        assert filter_obj["operator"] == "IN"
+        assert filter_obj["comparator"] == ["Wii", "PS3", "Xbox360"]
+
+    def test_map_table_config_with_not_in_filter(self) -> None:
+        """Test table config mapping with NOT IN filter"""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="status")],
+            filters=[
+                FilterConfig(
+                    column="status", op="NOT IN", value=["archived", "deleted"]
+                )
+            ],
+        )
+
+        result = map_table_config(config)
+
+        assert "adhoc_filters" in result
+        filter_obj = result["adhoc_filters"][0]
+        assert filter_obj["operator"] == "NOT IN"
+        assert filter_obj["comparator"] == ["archived", "deleted"]
+
+    def test_map_table_config_with_mixed_filters(self) -> None:
+        """Test table config mapping with mixed filter operators"""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="name"), ColumnRef(name="sales")],
+            filters=[
+                FilterConfig(column="platform", op="=", value="Wii"),
+                FilterConfig(column="name", op="ILIKE", value="%mario%"),
+                FilterConfig(column="genre", op="IN", value=["Sports", "Racing"]),
+            ],
+        )
+
+        result = map_table_config(config)
+
+        assert len(result["adhoc_filters"]) == 3
+        assert result["adhoc_filters"][0]["operator"] == "=="
+        assert result["adhoc_filters"][1]["operator"] == "ILIKE"
+        assert result["adhoc_filters"][1]["comparator"] == "%mario%"
+        assert result["adhoc_filters"][2]["operator"] == "IN"
+        assert result["adhoc_filters"][2]["comparator"] == ["Sports", "Racing"]
 
     def test_map_table_config_with_sort(self) -> None:
         """Test table config mapping with sort"""
@@ -878,3 +982,66 @@ class TestMapXYConfigWithNonTemporalColumn:
         # time_grain_sqla should be None, not P1M
         assert result["time_grain_sqla"] is None
         assert result["x_axis_sort_series_type"] == "name"
+
+
+class TestFilterConfigValidation:
+    """Test FilterConfig validation for new operators"""
+
+    def test_like_operator_with_wildcard(self) -> None:
+        """Test LIKE operator accepts string with % wildcards"""
+        f = FilterConfig(column="name", op="LIKE", value="%mario%")
+        assert f.op == "LIKE"
+        assert f.value == "%mario%"
+
+    def test_ilike_operator(self) -> None:
+        """Test ILIKE operator accepts string value"""
+        f = FilterConfig(column="name", op="ILIKE", value="%Mario%")
+        assert f.op == "ILIKE"
+        assert f.value == "%Mario%"
+
+    def test_not_like_operator(self) -> None:
+        """Test NOT LIKE operator accepts string value"""
+        f = FilterConfig(column="name", op="NOT LIKE", value="%test%")
+        assert f.op == "NOT LIKE"
+
+    def test_in_operator_with_list(self) -> None:
+        """Test IN operator accepts list of values"""
+        f = FilterConfig(column="platform", op="IN", value=["Wii", "PS3", "Xbox360"])
+        assert f.op == "IN"
+        assert f.value == ["Wii", "PS3", "Xbox360"]
+
+    def test_not_in_operator_with_list(self) -> None:
+        """Test NOT IN operator accepts list of values"""
+        f = FilterConfig(column="status", op="NOT IN", value=["archived", "deleted"])
+        assert f.op == "NOT IN"
+        assert f.value == ["archived", "deleted"]
+
+    def test_in_operator_rejects_scalar_value(self) -> None:
+        """Test IN operator rejects non-list value"""
+        with pytest.raises(ValueError, match="requires a list of values"):
+            FilterConfig(column="platform", op="IN", value="Wii")
+
+    def test_not_in_operator_rejects_scalar_value(self) -> None:
+        """Test NOT IN operator rejects non-list value"""
+        with pytest.raises(ValueError, match="requires a list of values"):
+            FilterConfig(column="status", op="NOT IN", value="active")
+
+    def test_equals_operator_rejects_list_value(self) -> None:
+        """Test = operator rejects list value"""
+        with pytest.raises(ValueError, match="requires a single value, not a list"):
+            FilterConfig(column="name", op="=", value=["a", "b"])
+
+    def test_like_operator_rejects_list_value(self) -> None:
+        """Test LIKE operator rejects list value"""
+        with pytest.raises(ValueError, match="requires a single value, not a list"):
+            FilterConfig(column="name", op="LIKE", value=["%a%", "%b%"])
+
+    def test_in_operator_with_numeric_list(self) -> None:
+        """Test IN operator with numeric values"""
+        f = FilterConfig(column="year", op="IN", value=[2020, 2021, 2022])
+        assert f.value == [2020, 2021, 2022]
+
+    def test_in_operator_with_empty_list(self) -> None:
+        """Test IN operator with empty list"""
+        f = FilterConfig(column="platform", op="IN", value=[])
+        assert f.value == []

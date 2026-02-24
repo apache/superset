@@ -317,7 +317,12 @@ const config = {
     menu: addPreamble('src/views/menu.tsx'),
     spa: addPreamble('src/views/index.tsx'),
     embedded: addPreamble('src/embedded/index.tsx'),
-    'service-worker': path.join(APP_DIR, 'src/service-worker.ts'),
+    // Skip service-worker build in dev mode to avoid overwriting the placeholder
+    ...(isDevMode
+      ? {}
+      : {
+          'service-worker': path.join(APP_DIR, 'src/service-worker.ts'),
+        }),
   },
   cache: {
     type: 'filesystem',
@@ -455,15 +460,6 @@ const config = {
       This prevents "Module not found" errors for moment locale files.
       */
       'moment/min/moment-with-locales': false,
-      // Storybook 8 expects React 18's createRoot API. Since this project uses React 17,
-      // we alias to the react-16 shim which provides the legacy ReactDOM.render API.
-      // Remove this alias when React is upgraded to v18+.
-      '@storybook/react-dom-shim': path.resolve(
-        path.join(
-          APP_DIR,
-          './node_modules/@storybook/react-dom-shim/dist/react-16',
-        ),
-      ),
     },
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.yml'],
     fallback: {

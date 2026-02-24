@@ -239,7 +239,9 @@ export const ZoomConfigControl: FC<ZoomConfigsControlProps> = ({
           min={0}
           max={3}
         />
-        <Tag>Current Zoom: {value?.configs.zoom}</Tag>
+        <Tag>
+          {t('Current Zoom')}: {value?.configs.zoom}
+        </Tag>
       </Form>
       <ZoomConfigsChart
         name="zoomlevels"

@@ -189,6 +189,8 @@ const toAceKeyword = (keyword: EditorKeyword): AceCompleterKeyword => ({
   value: keyword.value ?? keyword.name,
   score: keyword.score ?? 0,
   meta: keyword.meta ?? '',
+  docText: keyword.detail,
+  docHTML: keyword.documentation,
 });
 
 /**

@@ -30,6 +30,22 @@ import type {
   OnClickHandler,
 } from './types';
 
+const BUTTON_STYLE_MAP: Record<
+  ButtonStyle,
+  {
+    type?: ButtonType;
+    variant?: ButtonVariantType;
+    color?: ButtonColorType;
+  }
+> = {
+  primary: { type: 'primary', variant: 'solid', color: 'primary' },
+  secondary: { variant: 'filled', color: 'primary' },
+  tertiary: { variant: 'outlined', color: 'default' },
+  dashed: { type: 'dashed', variant: 'dashed', color: 'primary' },
+  danger: { variant: 'solid', color: 'danger' },
+  link: { type: 'link' },
+};
+
 export function Button(props: ButtonProps) {
   const {
     tooltip,
@@ -62,27 +78,11 @@ export function Button(props: ButtonProps) {
     padding = 4;
   }
 
-  let antdType: ButtonType = 'default';
-  let variant: ButtonVariantType = 'solid';
-  let color: ButtonColorType = 'primary';
-
-  if (!buttonStyle || buttonStyle === 'primary') {
-    variant = 'solid';
-    antdType = 'primary';
-  } else if (buttonStyle === 'secondary') {
-    variant = 'filled';
-    color = 'primary';
-  } else if (buttonStyle === 'tertiary') {
-    variant = 'outlined';
-    color = 'default';
-  } else if (buttonStyle === 'dashed') {
-    variant = 'dashed';
-    antdType = 'dashed';
-  } else if (buttonStyle === 'danger') {
-    color = 'danger';
-  } else if (buttonStyle === 'link') {
-    variant = 'link';
-  }
+  const {
+    type: antdType = 'default',
+    variant,
+    color,
+  } = BUTTON_STYLE_MAP[buttonStyle ?? 'primary'];
 
   const element = children as ReactElement;
 

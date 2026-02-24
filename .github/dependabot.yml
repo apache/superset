@@ -19,6 +19,8 @@ updates:
       # remark-gfm v4+ requires react-markdown v9+, which needs React 18
       - dependency-name: "remark-gfm"
       - dependency-name: "react-markdown"
+      # TODO: remove below entries until React >= 19.0.0
+      - dependency-name: "react-icons"
       # JSDOM v30 doesn't play well with Jest v30
       # Source: https://jestjs.io/blog#known-issues
       # GH thread: https://github.com/jsdom/jsdom/issues/3492
@@ -65,6 +67,22 @@ updates:
 
   - package-ecosystem: "npm"
     directory: "/docs/"
+    ignore:
+      # TODO: remove below entries until React >= 18.0.0 in superset-frontend
+      - dependency-name: "storybook"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "@storybook*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "eslint-plugin-storybook"
+      - dependency-name: "react-error-boundary"
+    groups:
+      storybook:
+        applies-to: version-updates
+        patterns:
+          - "@storybook*"
+          - "storybook"
+        update-types:
+          - "patch"
     schedule:
       interval: "daily"
     open-pull-requests-limit: 10
@@ -123,6 +141,9 @@ updates:
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/plugin-chart-pivot-table/"
+    ignore:
+      # TODO: remove below entries until React >= 19.0.0
+      - dependency-name: "react-icons"
     schedule:
       interval: "daily"
     labels:
@@ -173,6 +194,9 @@ updates:
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/plugin-chart-table/"
+    ignore:
+      # TODO: remove below entries until React >= 19.0.0
+      - dependency-name: "react-icons"
     schedule:
       interval: "daily"
     labels:

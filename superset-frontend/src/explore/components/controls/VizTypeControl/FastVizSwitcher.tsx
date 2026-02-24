@@ -18,6 +18,7 @@
  */
 import { memo, useMemo } from 'react';
 import { useSelector } from 'react-redux';
+import { t } from '@apache-superset/core';
 import { css, SupersetTheme } from '@apache-superset/core/ui';
 import { Flex, Icons } from '@superset-ui/core/components';
 import { getChartKey } from 'src/explore/exploreUtils';
@@ -55,7 +56,7 @@ export const FastVizSwitcher = memo(
         vizTiles.unshift({
           name: currentSelection,
           icon: CUSTOM_CHART_ICONS[currentSelection] || (
-            <Icons.MonitorOutlined {...antdIconProps} aria-label="monitor" />
+            <Icons.MonitorOutlined {...antdIconProps} aria-label={t('Chart')} />
           ),
         });
       }

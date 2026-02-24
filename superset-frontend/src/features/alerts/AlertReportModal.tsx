@@ -610,6 +610,20 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const [emailSubject, setEmailSubject] = useState<string>('');
   const [emailError, setEmailError] = useState(false);
 
+  const allowedNotificationMethodsCount = useMemo(
+    () =>
+      allowedNotificationMethods.reduce((accum: string[], setting: string) => {
+        if (
+          accum.some(nm => nm.includes('slack')) &&
+          setting.toLowerCase().includes('slack')
+        ) {
+          return accum;
+        }
+        return [...accum, setting.toLowerCase()];
+      }, []).length,
+    [allowedNotificationMethods],
+  );
+
   const onNotificationAdd = () => {
     setNotificationSettings([
       ...notificationSettings,
@@ -1897,6 +1911,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       if (resource.extra?.dashboard?.nativeFilters) {
         const filters = resource.extra.dashboard.nativeFilters;
         setNativeFilterData(filters);
+        // Seed options from saved data so names display while dashboard metadata loads
+        const savedOptions = filters
+          .filter(f => f.nativeFilterId && f.filterName)
+          .map(f => ({ value: f.nativeFilterId!, label: f.filterName! }));
+        if (savedOptions.length > 0) {
+          setNativeFilterOptions(savedOptions);
+        }
       }
 
       // Add notification settings
@@ -2005,20 +2026,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   useEffect(() => {
     enforceValidation();
   }, [validationStatus]);
-
-  const allowedNotificationMethodsCount = useMemo(
-    () =>
-      allowedNotificationMethods.reduce((accum: string[], setting: string) => {
-        if (
-          accum.some(nm => nm.includes('slack')) &&
-          setting.toLowerCase().includes('slack')
-        ) {
-          return accum;
-        }
-        return [...accum, setting.toLowerCase()];
-      }, []).length,
-    [allowedNotificationMethods],
-  );
 
   // Show/hide
   if (isHidden && show) {

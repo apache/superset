@@ -126,7 +126,7 @@ def test_get_data_xlsx(
     result = processor.get_data(df, coltypes)
     assert result == b"binary data"
     mock_apply_column_types.assert_called_once_with(df, coltypes)
-    mock_df_to_excel.assert_called_once_with(df)
+    mock_df_to_excel.assert_called_once_with(df, index=False)
 
 
 def test_get_data_json(processor, mock_query_context):
@@ -201,7 +201,7 @@ def test_get_data_empty_dataframe_xlsx(
     result = processor.get_data(df, coltypes)
     assert result == b"binary data empty"
     mock_apply_column_types.assert_called_once_with(df, coltypes)
-    mock_df_to_excel.assert_called_once_with(df)
+    mock_df_to_excel.assert_called_once_with(df, index=False)
 
 
 def test_get_data_nan_values_json(processor, mock_query_context):

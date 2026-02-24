@@ -28,8 +28,10 @@ import {
   removeChildrenOf,
   serializeForAPI,
   getProjection,
+  countAllFolders,
 } from './treeUtils';
 import { FoldersEditorItemType } from '../types';
+import { DatasourceFolder } from 'src/explore/components/DatasourcePanel/types';
 
 const createMetricItem = (uuid: string, name: string): TreeItem => ({
   uuid,
@@ -666,4 +668,61 @@ test('getProjection nests item under folder when dragging down with offset', () 
   // maxDepth from metric1 (non-folder) = metric1.depth = 1
   expect(projection!.depth).toBe(1);
   expect(projection!.parentId).toBe('folder1');
+});
+
+test('countAllFolders returns 0 for empty array', () => {
+  expect(countAllFolders([])).toBe(0);
+});
+
+test('countAllFolders counts flat folders', () => {
+  const folders: DatasourceFolder[] = [
+    createFolderItem('f1', 'Metrics', [createMetricItem('m1', 'Metric 1')]),
+    createFolderItem('f2', 'Columns', [createColumnItem('c1', 'Column 1')]),
+  ] as DatasourceFolder[];
+
+  expect(countAllFolders(folders)).toBe(2);
+});
+
+test('countAllFolders counts nested folders recursively', () => {
+  const folders: DatasourceFolder[] = [
+    createFolderItem('metrics', 'Metrics', [
+      createMetricItem('m1', 'Metric 1'),
+    ]),
+    createFolderItem('columns', 'Columns', [
+      createColumnItem('c1', 'Column 1'),
+    ]),
+    createFolderItem('custom', 'Custom Folder', [
+      createFolderItem('nested', 'Nested Folder', [
+        createMetricItem('m2', 'Metric 2'),
+      ]),
+    ]),
+  ] as DatasourceFolder[];
+
+  expect(countAllFolders(folders)).toBe(4);
+});
+
+test('countAllFolders counts deeply nested folders', () => {
+  const folders: DatasourceFolder[] = [
+    createFolderItem('level0', 'Level 0', [
+      createFolderItem('level1', 'Level 1', [
+        createFolderItem('level2', 'Level 2', [
+          createMetricItem('m1', 'Metric 1'),
+        ]),
+      ]),
+    ]),
+  ] as DatasourceFolder[];
+
+  expect(countAllFolders(folders)).toBe(3);
+});
+
+test('countAllFolders ignores non-folder children', () => {
+  const folders: DatasourceFolder[] = [
+    createFolderItem('f1', 'Folder', [
+      createMetricItem('m1', 'Metric 1'),
+      createColumnItem('c1', 'Column 1'),
+      createMetricItem('m2', 'Metric 2'),
+    ]),
+  ] as DatasourceFolder[];
+
+  expect(countAllFolders(folders)).toBe(1);
 });

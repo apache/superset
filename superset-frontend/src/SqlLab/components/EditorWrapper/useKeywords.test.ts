@@ -295,7 +295,7 @@ test('returns column keywords among selected tables', async () => {
   );
 });
 
-test('returns long keywords with docText', async () => {
+test('returns long keywords with detail', async () => {
   const expectLongKeywordDbId = 2;
   const longKeyword = 'veryveryveryveryverylongtablename';
   const dbFunctionNamesApiRoute = `glob:*/api/v1/database/${expectLongKeywordDbId}/function_names/`;
@@ -335,7 +335,7 @@ test('returns long keywords with docText', async () => {
       expect.objectContaining({
         name: longKeyword,
         value: longKeyword,
-        docText: longKeyword,
+        detail: longKeyword,
       }),
     ),
   );

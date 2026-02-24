@@ -116,6 +116,7 @@ export interface SupersetSpecificTokens {
   fontWeightNormal: string;
   fontWeightLight: string;
   fontWeightStrong: number;
+  fontWeightBold: string;
 
   // Brand-related
   brandIconMaxWidth: number;

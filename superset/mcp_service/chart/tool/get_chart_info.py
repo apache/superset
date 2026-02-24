@@ -45,8 +45,7 @@ async def get_chart_info(
     """Get chart metadata by ID or UUID.
 
     IMPORTANT FOR LLM CLIENTS:
-    - ALWAYS display the chart URL when returned
-    - URL field contains chart's screenshot URL for preview
+    - URL field links to the chart's explore page in Superset
     - Use numeric ID or UUID string (NOT chart name)
     - To find a chart ID, use the list_charts tool first
 
