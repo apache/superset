@@ -28,7 +28,7 @@ class RisingWaveDbEngineSpec(PostgresEngineSpec):
 
     metadata = {
         "description": "RisingWave is a distributed streaming database.",
-        "logo": "risingwave.png",
+        "logo": "risingwave.svg",
         "homepage_url": "https://risingwave.com/",
         "categories": [
             DatabaseCategory.ANALYTICAL_DATABASES,

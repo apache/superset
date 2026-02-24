@@ -163,10 +163,16 @@ class DashboardFilter(ColumnOperator):
         "dashboard_title",
         "published",
         "favorite",
+        "created_by_fk",
     ] = Field(
         ...,
-        description="Column to filter on. Use get_schema(model_type='dashboard') for "
-        "available filter columns.",
+        description=(
+            "Column to filter on. Use "
+            "get_schema(model_type='dashboard') for available "
+            "filter columns. Use created_by_fk with the user "
+            "ID from get_instance_info's current_user to find "
+            "dashboards created by a specific user."
+        ),
     )
     opr: ColumnOperatorEnum = Field(
         ...,
@@ -301,7 +307,6 @@ class DashboardInfo(BaseModel):
     changed_by: str | None = Field(None, description="Last modifier (username)")
     uuid: str | None = Field(None, description="Dashboard UUID (converted to string)")
     url: str | None = Field(None, description="Dashboard URL")
-    thumbnail_url: str | None = Field(None, description="Thumbnail URL")
     created_on_humanized: str | None = Field(
         None, description="Humanized creation time"
     )
@@ -446,7 +451,6 @@ def dashboard_serializer(dashboard: "Dashboard") -> DashboardInfo:
         else None,
         uuid=str(dashboard.uuid) if dashboard.uuid else None,
         url=dashboard.url,
-        thumbnail_url=dashboard.thumbnail_url,
         created_on_humanized=dashboard.created_on_humanized,
         changed_on_humanized=dashboard.changed_on_humanized,
         chart_count=len(dashboard.slices) if dashboard.slices else 0,
@@ -498,7 +502,6 @@ def serialize_dashboard_object(dashboard: Any) -> DashboardInfo:
         uuid=str(getattr(dashboard, "uuid", ""))
         if getattr(dashboard, "uuid", None)
         else None,
-        thumbnail_url=getattr(dashboard, "thumbnail_url", None),
         chart_count=len(getattr(dashboard, "slices", [])),
         owners=getattr(dashboard, "owners", []),
         tags=getattr(dashboard, "tags", []),

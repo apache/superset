@@ -72,6 +72,7 @@ function UIFilters(
             key,
             id,
             input,
+            optionFilterProps,
             paginate,
             selects,
             toolTipDescription,
@@ -109,6 +110,7 @@ function UIFilters(
 
                   updateFilterValue(index, option);
                 }}
+                optionFilterProps={optionFilterProps}
                 paginate={paginate}
                 selects={selects}
                 loading={loading ?? false}

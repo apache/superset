@@ -110,7 +110,7 @@ const PanelToolbar = ({
   const toolbarStyles = css`
     display: flex;
     align-items: center;
-    gap: ${theme.sizeUnit * 2}px;
+    gap: ${theme.sizeUnit}px;
 
     & .ant-divider {
       height: ${theme.sizeUnit * 6}px;

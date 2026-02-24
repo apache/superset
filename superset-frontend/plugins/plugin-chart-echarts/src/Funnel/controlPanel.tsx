@@ -28,7 +28,7 @@ import {
 } from '@superset-ui/chart-controls';
 import {
   DEFAULT_FORM_DATA,
-  EchartsFunnelLabelTypeType,
+  EchartsFunnelLabelType,
   PercentCalcType,
 } from './types';
 import { legendSection } from '../controls';
@@ -107,20 +107,20 @@ const config: ControlPanelConfig = {
               default: labelType,
               renderTrigger: true,
               choices: [
-                [EchartsFunnelLabelTypeType.Key, t('Category Name')],
-                [EchartsFunnelLabelTypeType.Value, t('Value')],
-                [EchartsFunnelLabelTypeType.Percent, t('Percentage')],
-                [EchartsFunnelLabelTypeType.KeyValue, t('Category and Value')],
+                [EchartsFunnelLabelType.Key, t('Category Name')],
+                [EchartsFunnelLabelType.Value, t('Value')],
+                [EchartsFunnelLabelType.Percent, t('Percentage')],
+                [EchartsFunnelLabelType.KeyValue, t('Category and Value')],
                 [
-                  EchartsFunnelLabelTypeType.KeyPercent,
+                  EchartsFunnelLabelType.KeyPercent,
                   t('Category and Percentage'),
                 ],
                 [
-                  EchartsFunnelLabelTypeType.KeyValuePercent,
+                  EchartsFunnelLabelType.KeyValuePercent,
                   t('Category, Value and Percentage'),
                 ],
                 [
-                  EchartsFunnelLabelTypeType.ValuePercent,
+                  EchartsFunnelLabelType.ValuePercent,
                   t('Value and Percentage'),
                 ],
               ],
@@ -137,16 +137,16 @@ const config: ControlPanelConfig = {
               default: defaultTooltipLabel,
               renderTrigger: true,
               choices: [
-                [EchartsFunnelLabelTypeType.Key, t('Category Name')],
-                [EchartsFunnelLabelTypeType.Value, t('Value')],
-                [EchartsFunnelLabelTypeType.Percent, t('Percentage')],
-                [EchartsFunnelLabelTypeType.KeyValue, t('Category and Value')],
+                [EchartsFunnelLabelType.Key, t('Category Name')],
+                [EchartsFunnelLabelType.Value, t('Value')],
+                [EchartsFunnelLabelType.Percent, t('Percentage')],
+                [EchartsFunnelLabelType.KeyValue, t('Category and Value')],
                 [
-                  EchartsFunnelLabelTypeType.KeyPercent,
+                  EchartsFunnelLabelType.KeyPercent,
                   t('Category and Percentage'),
                 ],
                 [
-                  EchartsFunnelLabelTypeType.KeyValuePercent,
+                  EchartsFunnelLabelType.KeyValuePercent,
                   t('Category, Value and Percentage'),
                 ],
               ],

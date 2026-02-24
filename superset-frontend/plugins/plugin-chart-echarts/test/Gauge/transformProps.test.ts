@@ -53,7 +53,7 @@ describe('Echarts Gauge transformProps', () => {
     roundCap: false,
   };
 
-  it('should transform chart props for no group by column', () => {
+  test('should transform chart props for no group by column', () => {
     const formData: SqlaFormData = { ...baseFormData, groupby: [] };
     const queriesData = [
       {
@@ -95,7 +95,7 @@ describe('Echarts Gauge transformProps', () => {
     expect(seriesData[0].detail.fontSize).toBe(16.8);
   });
 
-  it('should transform chart props for single group by column', () => {
+  test('should transform chart props for single group by column', () => {
     const formData: SqlaFormData = {
       ...baseFormData,
       groupby: ['year'],
@@ -154,7 +154,7 @@ describe('Echarts Gauge transformProps', () => {
     expect(seriesData[1].detail.fontSize).toBe(16.8);
   });
 
-  it('should transform chart props for multiple group by columns', () => {
+  test('should transform chart props for multiple group by columns', () => {
     const formData: SqlaFormData = {
       ...baseFormData,
       groupby: ['year', 'platform'],
@@ -215,7 +215,7 @@ describe('Echarts Gauge transformProps', () => {
     expect(seriesData[1].detail.fontSize).toBe(16.8);
   });
 
-  it('should transform chart props for intervals', () => {
+  test('should transform chart props for intervals', () => {
     const formData: SqlaFormData = {
       ...baseFormData,
       groupby: ['year', 'platform'],
@@ -305,7 +305,7 @@ describe('Min/Max calculation and axis labels', () => {
     groupby: [],
   };
 
-  it('should use provided minVal and maxVal when valid numbers', () => {
+  test('should use provided minVal and maxVal when valid numbers', () => {
     const formData: SqlaFormData = {
       ...baseFormData,
       minVal: 10,
@@ -333,7 +333,7 @@ describe('Min/Max calculation and axis labels', () => {
     expect(series.max).toBe(100);
   });
 
-  it('should calculate min/max from data when minVal is null', () => {
+  test('should calculate min/max from data when minVal is null', () => {
     const formData: SqlaFormData = {
       ...baseFormData,
       minVal: null,
@@ -361,7 +361,7 @@ describe('Min/Max calculation and axis labels', () => {
     expect(series.max).toBe(100);
   });
 
-  it('should calculate min/max from data when maxVal is null', () => {
+  test('should calculate min/max from data when maxVal is null', () => {
     const formData: SqlaFormData = {
       ...baseFormData,
       minVal: 0,
@@ -389,7 +389,7 @@ describe('Min/Max calculation and axis labels', () => {
     expect(series.max).toBe(160);
   });
 
-  it('should calculate min/max from data when both are null', () => {
+  test('should calculate min/max from data when both are null', () => {
     const formData: SqlaFormData = {
       ...baseFormData,
       minVal: null,
@@ -417,7 +417,7 @@ describe('Min/Max calculation and axis labels', () => {
     expect(series.max).toBe(90);
   });
 
-  it('should calculate min/max from data when minVal is empty string', () => {
+  test('should calculate min/max from data when minVal is empty string', () => {
     const formData: SqlaFormData = {
       ...baseFormData,
       minVal: '' as any,
@@ -445,7 +445,7 @@ describe('Min/Max calculation and axis labels', () => {
     expect(series.max).toBe(200);
   });
 
-  it('should calculate min/max from data when maxVal is invalid string', () => {
+  test('should calculate min/max from data when maxVal is invalid string', () => {
     const formData: SqlaFormData = {
       ...baseFormData,
       minVal: 0,
@@ -473,7 +473,7 @@ describe('Min/Max calculation and axis labels', () => {
     expect(series.max).toBe(150);
   });
 
-  it('should handle negative values in min/max calculation', () => {
+  test('should handle negative values in min/max calculation', () => {
     const formData: SqlaFormData = {
       ...baseFormData,
       minVal: null,
@@ -501,7 +501,7 @@ describe('Min/Max calculation and axis labels', () => {
     expect(series.max).toBe(80);
   });
 
-  it('should generate axis labels correctly based on min, max, and splitNumber', () => {
+  test('should generate axis labels correctly based on min, max, and splitNumber', () => {
     const formData: SqlaFormData = {
       ...baseFormData,
       minVal: 0,
@@ -533,7 +533,7 @@ describe('Min/Max calculation and axis labels', () => {
     expect(series.axisLabel.formatter).toBeDefined();
   });
 
-  it('should calculate axis label length correctly for different number formats', () => {
+  test('should calculate axis label length correctly for different number formats', () => {
     const formData: SqlaFormData = {
       ...baseFormData,
       minVal: 0,
@@ -564,7 +564,7 @@ describe('Min/Max calculation and axis labels', () => {
     expect(typeof series.axisLabel.formatter).toBe('function');
   });
 
-  it('should integrate interval bounds and colors with calculated min/max', () => {
+  test('should integrate interval bounds and colors with calculated min/max', () => {
     const formData: SqlaFormData = {
       ...baseFormData,
       minVal: null,
@@ -601,7 +601,7 @@ describe('Min/Max calculation and axis labels', () => {
     );
   });
 
-  it('should handle zero values in data correctly', () => {
+  test('should handle zero values in data correctly', () => {
     const formData: SqlaFormData = {
       ...baseFormData,
       minVal: null,
@@ -629,7 +629,7 @@ describe('Min/Max calculation and axis labels', () => {
     expect(series.max).toBe(0);
   });
 
-  it('should handle string minVal/maxVal that can be converted to numbers', () => {
+  test('should handle string minVal/maxVal that can be converted to numbers', () => {
     const formData: SqlaFormData = {
       ...baseFormData,
       minVal: '10' as any,
@@ -657,7 +657,7 @@ describe('Min/Max calculation and axis labels', () => {
     expect(series.max).toBe(200);
   });
 
-  it('should handle different splitNumber values', () => {
+  test('should handle different splitNumber values', () => {
     const formData: SqlaFormData = {
       ...baseFormData,
       minVal: 0,
@@ -687,7 +687,7 @@ describe('Min/Max calculation and axis labels', () => {
 });
 
 describe('getIntervalBoundsAndColors', () => {
-  it('should generate correct interval bounds and colors', () => {
+  test('should generate correct interval bounds and colors', () => {
     const colorFn = CategoricalColorNamespace.getScale(
       'supersetColors' as string,
     );

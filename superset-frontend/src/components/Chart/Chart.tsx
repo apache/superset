@@ -25,6 +25,7 @@ import {
   QueryFormData,
   SqlaFormData,
   ClientErrorObject,
+  DataRecordFilters,
   type JsonObject,
   type AgGridChartState,
 } from '@superset-ui/core';
@@ -51,13 +52,13 @@ export interface ChartProps {
   chartId: number;
   datasource?: Datasource;
   dashboardId?: number;
-  initialValues?: object;
+  initialValues?: DataRecordFilters;
   formData: QueryFormData;
   labelColors?: string;
   sharedLabelColors?: string;
   width: number;
   height: number;
-  setControlValue: Function;
+  setControlValue: (name: string, value: unknown) => void;
   timeout?: number;
   vizType: string;
   triggerRender?: boolean;
@@ -71,12 +72,17 @@ export interface ChartProps {
   triggerQuery?: boolean;
   chartIsStale?: boolean;
   errorMessage?: React.ReactNode;
-  addFilter?: (type: string) => void;
+  addFilter?: (
+    col: string,
+    vals: unknown[],
+    merge?: boolean,
+    refresh?: boolean,
+  ) => void;
   onQuery?: () => void;
   onFilterMenuOpen?: (chartId: number, column: string) => void;
   onFilterMenuClose?: (chartId: number, column: string) => void;
   ownState?: JsonObject;
-  postTransformProps?: Function;
+  postTransformProps?: (props: JsonObject) => JsonObject;
   datasetsStatus?: 'loading' | 'error' | 'complete';
   isInView?: boolean;
   emitCrossFilters?: boolean;
@@ -100,6 +106,7 @@ export type Actions = {
     chartId: number,
     arg2: string | null,
   ): Dispatch;
+  chartRenderingSucceeded(chartId: number): Dispatch;
   postChartFormData(
     formData: SqlaFormData,
     arg1: boolean,
@@ -161,6 +168,11 @@ const LoadingDiv = styled.div`
   transform: translate(-50%, -50%);
 `;
 
+const ErrorContainer = styled.div<{ height: number }>`
+  height: ${p => p.height}px;
+  overflow: auto;
+`;
+
 const MessageSpan = styled.span`
   display: block;
   text-align: center;
@@ -192,7 +204,21 @@ class Chart extends PureComponent<ChartProps, {}> {
     }
   }
 
+  shouldRenderChart() {
+    return (
+      this.props.isInView ||
+      !isFeatureEnabled(FeatureFlag.DashboardVirtualization) ||
+      isCurrentUserBot()
+    );
+  }
+
   runQuery() {
+    if (
+      isFeatureEnabled(FeatureFlag.DashboardVirtualizationDeferData) &&
+      !this.shouldRenderChart()
+    ) {
+      return;
+    }
     // Create chart with POST request
     this.props.actions.postChartFormData(
       this.props.formData,
@@ -240,7 +266,10 @@ class Chart extends PureComponent<ChartProps, {}> {
     const message = chartAlert || queryResponse?.message;
 
     // if datasource is still loading, don't render JS errors
+    // but always show backend API errors (which have an errors array)
+    // so users can see real issues like auth failures
     if (
+      !error &&
       chartAlert !== undefined &&
       chartAlert !== NONEXISTENT_DATASET &&
       datasource === PLACEHOLDER_DATASOURCE &&
@@ -295,12 +324,14 @@ class Chart extends PureComponent<ChartProps, {}> {
   renderChartContainer() {
     return (
       <div className="slice_container" data-test="slice-container">
-        {this.props.isInView ||
-        !isFeatureEnabled(FeatureFlag.DashboardVirtualization) ||
-        isCurrentUserBot() ? (
+        {this.shouldRenderChart() ? (
           <ChartRenderer
             {...this.props}
-            source={this.props.dashboardId ? 'dashboard' : 'explore'}
+            source={
+              this.props.dashboardId
+                ? ChartSource.Dashboard
+                : ChartSource.Explore
+            }
             data-test={this.props.vizType}
           />
         ) : (
@@ -330,8 +361,12 @@ class Chart extends PureComponent<ChartProps, {}> {
     const isLoading = chartStatus === 'loading';
 
     if (chartStatus === 'failed') {
-      return queriesResponse?.map(item =>
-        this.renderErrorMessage(item as ChartErrorType),
+      return (
+        <ErrorContainer height={height}>
+          {queriesResponse?.map(item =>
+            this.renderErrorMessage(item as ChartErrorType),
+          )}
+        </ErrorContainer>
       );
     }
 

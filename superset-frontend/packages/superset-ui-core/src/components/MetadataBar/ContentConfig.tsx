@@ -132,7 +132,7 @@ const config = (contentType: ContentType) => {
       };
 
     default:
-      throw Error(`Invalid type provided: ${type}`);
+      throw new Error(`Invalid type provided: ${type}`);
   }
 };
 

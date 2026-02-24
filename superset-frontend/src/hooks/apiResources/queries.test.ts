@@ -66,7 +66,7 @@ const fakeApiResult = {
 };
 
 afterEach(() => {
-  fetchMock.reset();
+  fetchMock.clearHistory().removeRoutes();
   act(() => {
     store.dispatch(api.util.resetApiState());
   });
@@ -86,7 +86,7 @@ test('returns api response mapping camelCase keys', async () => {
     },
   );
   await waitFor(() =>
-    expect(fetchMock.calls(editorQueryApiRoute).length).toBe(1),
+    expect(fetchMock.callHistory.calls(editorQueryApiRoute).length).toBe(1),
   );
   const expectedResult = {
     ...fakeApiResult,
@@ -94,7 +94,7 @@ test('returns api response mapping camelCase keys', async () => {
   };
 
   // Check if the URL contains the expected rison-encoded parameters
-  const actualUrl = fetchMock.calls(editorQueryApiRoute)[0][0];
+  const actualUrl = fetchMock.callHistory.calls(editorQueryApiRoute)[0].url;
   expect(actualUrl).toContain('/api/v1/query/?q=');
 
   // Extract and decode the query parameter
@@ -131,7 +131,7 @@ test('merges paginated results', async () => {
     }),
   });
   await waitFor(() =>
-    expect(fetchMock.calls(editorQueryApiRoute).length).toBe(1),
+    expect(fetchMock.callHistory.calls(editorQueryApiRoute).length).toBe(1),
   );
   const { result: paginatedResult } = renderHook(
     () => useEditorQueriesQuery({ editorId, pageIndex: 1 }),
@@ -143,11 +143,11 @@ test('merges paginated results', async () => {
     },
   );
   await waitFor(() =>
-    expect(fetchMock.calls(editorQueryApiRoute).length).toBe(2),
+    expect(fetchMock.callHistory.calls(editorQueryApiRoute).length).toBe(2),
   );
 
   // Check the second call has page=1
-  const secondUrl = fetchMock.calls(editorQueryApiRoute)[1][0];
+  const secondUrl = fetchMock.callHistory.calls(editorQueryApiRoute)[1].url;
   expect(secondUrl).toContain('/api/v1/query/?q=');
 
   // Extract and decode the query parameter

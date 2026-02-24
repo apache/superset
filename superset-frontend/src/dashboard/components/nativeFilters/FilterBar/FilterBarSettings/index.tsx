@@ -171,7 +171,7 @@ const FilterBarSettings = () => {
         key: ADD_EDIT_FILTERS_MENU_KEY,
         label: (
           <FilterConfigurationLink>
-            {t('Filters and customizations')}
+            {t('Add or edit filters and controls')}
           </FilterConfigurationLink>
         ),
       });
@@ -206,7 +206,7 @@ const FilterBarSettings = () => {
                   <Icons.CheckOutlined
                     iconColor={theme.colorPrimary}
                     iconSize="m"
-                    aria-label="check"
+                    aria-label={t('Selected')}
                   />
                 )}
               </Space>
@@ -224,7 +224,7 @@ const FilterBarSettings = () => {
                     css={css`
                       vertical-align: middle;
                     `}
-                    aria-label="check"
+                    aria-label={t('Selected')}
                   />
                 )}
               </Space>

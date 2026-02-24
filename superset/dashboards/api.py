@@ -22,6 +22,7 @@ from io import BytesIO
 from typing import Any, Callable, cast
 from zipfile import is_zipfile, ZipFile
 
+import prison
 from flask import current_app, g, redirect, request, Response, send_file, url_for
 from flask_appbuilder import permission_name
 from flask_appbuilder.api import expose, merge_response_func, protect, rison, safe
@@ -197,6 +198,7 @@ BASE_LIST_COLUMNS = [
     "owners.id",
     "owners.first_name",
     "owners.last_name",
+    "owners.email",
     "roles.id",
     "roles.name",
     "is_managed_externally",
@@ -466,6 +468,12 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
               type: string
             name: id_or_slug
             description: Either the id of the dashboard, or its slug
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/get_item_schema'
           responses:
             200:
               description: Dashboard
@@ -485,7 +493,26 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             404:
               $ref: '#/components/responses/404'
         """
-        result = self.dashboard_get_response_schema.dump(dash)
+        columns: list[str] | None = None
+        if q := request.args.get("q"):
+            try:
+                args = prison.loads(q)
+            except Exception:
+                return self.response_400(message="Invalid rison query parameter")
+            if isinstance(args, dict):
+                columns = args.get("columns")
+
+        if columns:
+            schema_fields = self.dashboard_get_response_schema.fields
+            key_to_name = {
+                field.data_key or name: name for name, field in schema_fields.items()
+            }
+            only = [key_to_name[c] for c in columns if c in key_to_name]
+            schema = DashboardGetResponseSchema(only=only)
+        else:
+            schema = self.dashboard_get_response_schema
+
+        result = schema.dump(dash)
         add_extra_log_payload(
             dashboard_id=dash.id, action=f"{self.__class__.__name__}.get"
         )

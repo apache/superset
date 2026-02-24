@@ -197,7 +197,12 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
 
   async saveOrOverwrite(gotodash: boolean) {
     this.setState({ isLoading: true });
-    this.props.dispatch(updateChartState(this.props.form_data?.table_state));
+    const tableState = this.props.form_data?.table_state;
+    const sliceId = this.props.slice?.slice_id;
+    const vizType = this.props.form_data?.viz_type;
+    if (sliceId && vizType && tableState) {
+      this.props.dispatch(updateChartState(sliceId, vizType, tableState));
+    }
 
     //  Create or retrieve dashboard
     type DashboardGetResponse = {
@@ -611,7 +616,7 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
           <Input
             name="new_slice_name"
             type="text"
-            placeholder="Name"
+            placeholder={t('Name')}
             value={this.state.newSliceName}
             onChange={this.onSliceNameChange}
             data-test="new-chart-name"
@@ -626,7 +631,7 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
             <Input
               name="dataset_name"
               type="text"
-              placeholder="Dataset Name"
+              placeholder={t('Dataset Name')}
               value={this.state.datasetName}
               onChange={this.handleDatasetNameChange}
               data-test="new-dataset-name"

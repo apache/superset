@@ -101,12 +101,28 @@ def _sanitize_validation_error(error: Exception) -> str:
     return error_str
 
 
+class ValidationResult:
+    """Result of validation pipeline including optional warnings."""
+
+    def __init__(
+        self,
+        is_valid: bool,
+        request: GenerateChartRequest | None = None,
+        error: ChartGenerationError | None = None,
+        warnings: Dict[str, Any] | None = None,
+    ):
+        self.is_valid = is_valid
+        self.request = request
+        self.error = error
+        self.warnings = warnings  # Runtime warnings (informational, not blocking)
+
+
 class ValidationPipeline:
     """
     Main validation orchestrator that runs validations in sequence:
     1. Schema validation (structure and types)
     2. Dataset validation (columns exist)
-    3. Runtime validation (performance, compatibility)
+    3. Runtime validation (performance, compatibility) - returns warnings, not errors
     """
 
     @staticmethod
@@ -121,6 +137,24 @@ class ValidationPipeline:
 
         Returns:
             Tuple of (is_valid, parsed_request, error)
+
+        Note: Use validate_request_with_warnings() to also get runtime warnings.
+        """
+        result = ValidationPipeline.validate_request_with_warnings(request_data)
+        return result.is_valid, result.request, result.error
+
+    @staticmethod
+    def validate_request_with_warnings(
+        request_data: Dict[str, Any],
+    ) -> ValidationResult:
+        """
+        Validate a chart generation request and return warnings as metadata.
+
+        Args:
+            request_data: Raw request data dictionary
+
+        Returns:
+            ValidationResult with is_valid, request, error, and optional warnings
         """
         try:
             # Layer 1: Schema validation
@@ -128,27 +162,28 @@ class ValidationPipeline:
 
             is_valid, request, error = SchemaValidator.validate_request(request_data)
             if not is_valid:
-                return False, None, error
+                return ValidationResult(is_valid=False, error=error)
 
             # Ensure request is not None
             if request is None:
-                return False, None, error
+                return ValidationResult(is_valid=False, error=error)
 
             # Layer 2: Dataset validation
             is_valid, error = ValidationPipeline._validate_dataset(
                 request.config, request.dataset_id
             )
             if not is_valid:
-                return False, request, error
+                return ValidationResult(is_valid=False, request=request, error=error)
 
-            # Layer 3: Runtime validation
-            is_valid, error = ValidationPipeline._validate_runtime(
+            # Layer 3: Runtime validation - returns warnings as metadata, not errors
+            _is_valid, warnings_metadata = ValidationPipeline._validate_runtime(
                 request.config, request.dataset_id
             )
-            if not is_valid:
-                return False, request, error
+            # Runtime validation always returns True now, warnings are informational
 
-            return True, request, None
+            return ValidationResult(
+                is_valid=True, request=request, warnings=warnings_metadata
+            )
 
         except Exception as e:
             logger.exception("Validation pipeline error")
@@ -164,7 +199,7 @@ class ValidationPipeline:
                 template_vars={"reason": sanitized_reason},
                 error_code="VALIDATION_PIPELINE_ERROR",
             )
-            return False, None, error
+            return ValidationResult(is_valid=False, error=error)
 
     @staticmethod
     def _validate_dataset(
@@ -189,8 +224,15 @@ class ValidationPipeline:
     @staticmethod
     def _validate_runtime(
         config: ChartConfig, dataset_id: int | str
-    ) -> Tuple[bool, ChartGenerationError | None]:
-        """Validate runtime issues (performance, compatibility)."""
+    ) -> Tuple[bool, Dict[str, Any] | None]:
+        """
+        Validate runtime issues (performance, compatibility).
+
+        Returns:
+            Tuple of (is_valid, warnings_metadata)
+            - is_valid: Always True (runtime warnings don't block generation)
+            - warnings_metadata: Dict with warnings/suggestions, or None
+        """
         try:
             from .runtime import RuntimeValidator
 

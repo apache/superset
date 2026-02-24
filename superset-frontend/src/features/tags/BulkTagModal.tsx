@@ -128,11 +128,11 @@ const BulkTagModal: FC<BulkTagModalProps> = ({
         <FormLabel>{t('tags')}</FormLabel>
         <AsyncSelect
           ariaLabel="tags"
-          // @ts-ignore
+          // @ts-expect-error
           value={tags}
           options={loadTags}
           onHide={onHide}
-          // @ts-ignore
+          // @ts-expect-error
           onChange={tags => setTags(tags)}
           placeholder={t('Select Tags')}
           mode="multiple"

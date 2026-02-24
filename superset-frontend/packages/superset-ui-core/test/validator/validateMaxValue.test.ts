@@ -20,13 +20,13 @@
 import { validateMaxValue } from '@superset-ui/core';
 import './setup';
 
-test('validateInteger returns the warning message if invalid', () => {
+test('validateMaxValue returns the warning message if invalid', () => {
   expect(validateMaxValue(10.1, 10)).toBeTruthy();
   expect(validateMaxValue(1, 0)).toBeTruthy();
   expect(validateMaxValue('2', 1)).toBeTruthy();
 });
 
-test('validateInteger returns false if the input is valid', () => {
+test('validateMaxValue returns false if the input is valid', () => {
   expect(validateMaxValue(0, 1)).toBeFalsy();
   expect(validateMaxValue(10, 10)).toBeFalsy();
   expect(validateMaxValue(undefined, 1)).toBeFalsy();

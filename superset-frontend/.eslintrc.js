@@ -16,6 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+// Register TypeScript require hook so ESLint can load .ts plugin files
+require('tsx/cjs');
+
 const packageConfig = require('./package.json');
 
 const importCoreModules = [];
@@ -135,7 +139,9 @@ module.exports = {
     'icons',
     'i18n-strings',
     'react-prefer-function-component',
+    'react-you-might-not-need-an-effect',
     'prettier',
+    'react-you-might-not-need-an-effect',
   ],
   rules: {
     // === Essential Superset customizations ===
@@ -146,7 +152,7 @@ module.exports = {
     // Custom Superset rules
     'theme-colors/no-literal-colors': 'error',
     'icons/no-fa-icons-usage': 'error',
-    'i18n-strings/no-template-vars': ['error', true],
+    'i18n-strings/no-template-vars': 'error',
 
     // Core ESLint overrides for Superset
     'no-console': 'warn',
@@ -193,7 +199,7 @@ module.exports = {
           '**/jest.setup.js',
           '**/webpack.config.js',
           '**/webpack.config.*.js',
-          '**/.eslintrc.js',
+          '**/.eslintrc*.js',
         ],
         optionalDependencies: false,
       },
@@ -235,11 +241,31 @@ module.exports = {
     'jsx-a11y/mouse-events-have-key-events': 0,
     'jsx-a11y/no-static-element-interactions': 0,
 
+    // React effect best practices
+    'react-you-might-not-need-an-effect/no-empty-effect': 'error',
+    'react-you-might-not-need-an-effect/no-pass-live-state-to-parent': 'error',
+    'react-you-might-not-need-an-effect/no-initialize-state': 'error',
+
     // Lodash
     'lodash/import-scope': [2, 'member'],
 
+    // React effect best practices
+    'react-you-might-not-need-an-effect/no-reset-all-state-on-prop-change':
+      'error',
+    'react-you-might-not-need-an-effect/no-chain-state-updates': 'error',
+    'react-you-might-not-need-an-effect/no-event-handler': 'error',
+    'react-you-might-not-need-an-effect/no-derived-state': 'error',
+
+    // Storybook
+    'storybook/prefer-pascal-case': 'error',
+
     // File progress
     'file-progress/activate': 1,
+
+    // React effect rules
+    'react-you-might-not-need-an-effect/no-adjust-state-on-prop-change':
+      'error',
+    'react-you-might-not-need-an-effect/no-pass-data-to-parent': 'error',
 
     // Restricted imports
     'no-restricted-imports': [
@@ -273,6 +299,52 @@ module.exports = {
     ],
   },
   overrides: [
+    // Ban JavaScript files in src/ - all new code must be TypeScript
+    {
+      files: ['src/**/*.js', 'src/**/*.jsx'],
+      rules: {
+        'no-restricted-syntax': [
+          'error',
+          {
+            selector: 'Program',
+            message:
+              'JavaScript files are not allowed in src/. Please use TypeScript (.ts/.tsx) instead.',
+          },
+        ],
+      },
+    },
+    // Ban JavaScript files in plugins/ - all plugin source code must be TypeScript
+    {
+      files: ['plugins/**/src/**/*.js', 'plugins/**/src/**/*.jsx'],
+      rules: {
+        'no-restricted-syntax': [
+          'error',
+          {
+            selector: 'Program',
+            message:
+              'JavaScript files are not allowed in plugins/. Please use TypeScript (.ts/.tsx) instead.',
+          },
+        ],
+      },
+    },
+    // Ban JavaScript files in packages/ - with exceptions for config files and generators
+    {
+      files: ['packages/**/src/**/*.js', 'packages/**/src/**/*.jsx'],
+      excludedFiles: [
+        'packages/generator-superset/**/*', // Yeoman generator templates run via Node
+        'packages/**/__mocks__/**/*', // Test mocks
+      ],
+      rules: {
+        'no-restricted-syntax': [
+          'error',
+          {
+            selector: 'Program',
+            message:
+              'JavaScript files are not allowed in packages/. Please use TypeScript (.ts/.tsx) instead.',
+          },
+        ],
+      },
+    },
     {
       files: ['*.ts', '*.tsx'],
       parser: '@typescript-eslint/parser',
@@ -303,7 +375,7 @@ module.exports = {
         ],
         '@typescript-eslint/no-empty-function': 0,
         '@typescript-eslint/no-explicit-any': 0,
-        '@typescript-eslint/no-use-before-define': 1,
+        '@typescript-eslint/no-use-before-define': 'error',
         '@typescript-eslint/no-non-null-assertion': 0,
         '@typescript-eslint/explicit-function-return-type': 0,
         '@typescript-eslint/explicit-module-boundary-types': 0,
@@ -399,27 +471,13 @@ module.exports = {
         '**/spec/**/*',
       ],
       excludedFiles: 'cypress-base/cypress/**/*',
-      plugins: ['jest', 'jest-dom', 'no-only-tests', 'testing-library'],
-      env: {
-        'jest/globals': true,
-      },
-      settings: {
-        jest: {
-          version: 'detect',
-        },
-      },
-      extends: [
-        'plugin:jest/recommended',
-        'plugin:jest-dom/recommended',
-        'plugin:testing-library/react',
-      ],
+      plugins: ['jest-dom', 'no-only-tests', 'testing-library'],
+      extends: ['plugin:jest-dom/recommended', 'plugin:testing-library/react'],
       rules: {
         'import/no-extraneous-dependencies': [
           'error',
           { devDependencies: true },
         ],
-        'jest/consistent-test-it': 'error',
-        'no-only-tests/no-only-tests': 'error',
         'prefer-promise-reject-errors': 0,
         'max-classes-per-file': 0,
 

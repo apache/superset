@@ -37,6 +37,11 @@ from pydantic import BaseModel, Field  # noqa: I001
 class ModuleFederationConfig(BaseModel):
     """Configuration for Webpack Module Federation."""
 
+    name: str | None = Field(
+        default=None,
+        description="Module Federation container name "
+        "(must be valid JavaScript identifier)",
+    )
     exposes: list[str] = Field(
         default_factory=list,
         description="Modules exposed by this extension",
@@ -56,19 +61,41 @@ class ModuleFederationConfig(BaseModel):
 
 
 class ContributionConfig(BaseModel):
-    """Configuration for frontend UI contributions."""
+    """Configuration for frontend UI contributions.
+
+    Views and menus use a nested structure: type -> scope -> location -> contributions.
+
+    Example:
+        {
+            "views": {
+                "sqllab": {
+                    "panels": [{"id": "my-ext.panel", "name": "My Panel"}],
+                    "leftSidebar": [{"id": "my-ext.sidebar", "name": "Sidebar"}]
+                }
+            },
+            "menus": {
+                "sqllab": {
+                    "editor": {"primary": [...], "secondary": [...]}
+                }
+            }
+        }
+    """
 
     commands: list[dict[str, Any]] = Field(
         default_factory=list,
         description="Command contributions",
     )
-    views: dict[str, list[dict[str, Any]]] = Field(
+    views: dict[str, dict[str, list[dict[str, Any]]]] = Field(
         default_factory=dict,
-        description="View contributions by location",
+        description="View contributions by scope and location",
     )
-    menus: dict[str, Any] = Field(
+    menus: dict[str, dict[str, Any]] = Field(
         default_factory=dict,
-        description="Menu contributions",
+        description="Menu contributions by scope and location",
+    )
+    editors: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Editor contributions",
     )
 
 

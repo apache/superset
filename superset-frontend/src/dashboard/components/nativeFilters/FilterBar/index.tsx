@@ -420,7 +420,14 @@ const FilterBar: FC<FiltersBarProps> = ({
     // Clear all native filters, not just those in scope
     const updates: Record<string, DataMaskWithId> = {};
     nativeFilterValues.forEach(filter => {
-      const { id } = filter;
+      const { id, filterType } = filter;
+      // Range filters use [null, null] as the cleared value; others use undefined
+      const clearedValue =
+        filterType === 'filter_range' ? [null, null] : undefined;
+      const clearedDataMask = {
+        filterState: { value: clearedValue },
+        extraFormData: {},
+      };
       if (dataMaskSelected[id]) {
         updates[id] = {
           ...dataMaskSelected[id],
@@ -430,6 +437,13 @@ const FilterBar: FC<FiltersBarProps> = ({
           },
           extraFormData: {},
         };
+        dispatch(updateDataMask(id, clearedDataMask));
+        setDataMaskSelected(draft => {
+          if (draft[id].filterState?.value !== undefined) {
+            draft[id].filterState!.value = clearedValue;
+          }
+          draft[id].extraFormData = {};
+        });
         newClearAllTriggers[id] = true;
       }
     });
