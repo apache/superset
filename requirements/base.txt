@@ -335,6 +335,8 @@ rsa==4.9
     # via google-auth
 selenium==4.27.1
     # via apache-superset (pyproject.toml)
+setuptools==80.9.0
+    # via -r requirements/base.in
 shillelagh==1.2.18
     # via apache-superset (pyproject.toml)
 shortid==0.1.2

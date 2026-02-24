@@ -23,3 +23,9 @@ numexpr>=2.9.0
 # 5.0.0 has a sensitive deprecation used in other libs
 # -> https://github.com/aio-libs/async-timeout/blob/master/CHANGES.rst#500-2024-10-31
 async_timeout>=4.0.0,<5.0.0
+
+# Pin setuptools <81 until all dependencies migrate from pkg_resources to importlib.metadata
+# pkg_resources is deprecated and will be removed in setuptools 81+ (around 2025-11-30)
+# Known affected packages: Preset's 'clients' package
+# See docs/docs/contributing/pkg-resources-migration.md for details
+setuptools<81
