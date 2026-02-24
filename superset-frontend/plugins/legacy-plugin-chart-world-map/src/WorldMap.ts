@@ -257,7 +257,7 @@ function WorldMap(element: HTMLElement, props: WorldMapProps): void {
     element,
     width,
     height,
-    data: processedData,
+    data: mapData,
     fills: {
       defaultFill: theme.colorBorder,
     },
@@ -270,6 +270,7 @@ function WorldMap(element: HTMLElement, props: WorldMapProps): void {
       highlightFillColor: color,
       highlightBorderWidth: 1,
       popupTemplate: (geo, d) =>
+        d &&
         `<div class="hoverinfo"><strong>${d.name}</strong><br>${formatter(
           d.m1,
         )}</div>`,
@@ -300,7 +301,8 @@ function WorldMap(element: HTMLElement, props: WorldMapProps): void {
         .selectAll('.datamaps-subunit')
         .on('contextmenu', handleContextMenu)
         .on('click', handleClick)
-        .on('mouseover', function onMouseOver() {
+        // Use namespaced events to avoid overriding Datamaps' default tooltip handlers
+        .on('mouseover.fillPreserve', function onMouseOver() {
           if (inContextMenu) {
             return;
           }
@@ -313,7 +315,7 @@ function WorldMap(element: HTMLElement, props: WorldMapProps): void {
           // Store original fill color for restoration
           element.attr('data-original-fill', originalFill);
         })
-        .on('mouseout', function onMouseOut() {
+        .on('mouseout.fillPreserve', function onMouseOut() {
           if (inContextMenu) {
             return;
           }
