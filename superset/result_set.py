@@ -149,6 +149,17 @@ class SupersetResultSet:
                 TypeError,  # this is super hackey,
                 # https://issues.apache.org/jira/browse/ARROW-7855
             ):
+                # Check if original data has nested types (lists/dicts)
+                # before stringifying, since stringification removes
+                # the nested structure that the second loop relies on
+                # to detect via pa.types.is_nested().
+                original_values = array[column].tolist()
+                if any(
+                    isinstance(v, (list, dict))
+                    for v in original_values
+                    if v is not None
+                ):
+                    self._nested_columns[column] = original_values
                 # attempt serialization of values as strings
                 stringified_arr = stringify_values(array[column])
                 pa_data.append(pa.array(stringified_arr.tolist()))
