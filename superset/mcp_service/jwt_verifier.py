@@ -17,14 +17,13 @@
 """
 Detailed JWT verification for the MCP service.
 
-Provides step-by-step JWT validation with specific error messages
-instead of the generic "invalid_token" response from the base JWTVerifier.
+Provides step-by-step JWT validation with detailed server-side logging.
+HTTP responses always return generic errors per RFC 6750 Section 3.1.
 """
 
 import base64
 import logging
 import time
-from collections.abc import Callable
 from contextvars import ContextVar
 from typing import Any, cast
 
@@ -57,59 +56,33 @@ _jwt_failure_reason: ContextVar[str | None] = ContextVar(
 )
 
 
-def _sanitize_header_value(value: str) -> str:
-    """Sanitize a string for safe use in HTTP header values.
+def _json_auth_error_handler(
+    conn: HTTPConnection, exc: AuthenticationError
+) -> JSONResponse:
+    """JSON 401 error handler for authentication failures.
 
-    Removes/replaces characters that could enable header injection
-    (CR, LF, quotes) from attacker-controlled JWT claims.
+    Per RFC 6750 Section 3.1, error responses MUST NOT leak server
+    configuration or token claim values. Only generic error codes are
+    returned to clients. Detailed failure reasons are logged server-side
+    only for debugging.
+
+    References:
+        - RFC 6750 Section 3.1: https://datatracker.ietf.org/doc/html/rfc6750#section-3.1
+        - CVE-2022-29266, CVE-2019-7644: verbose JWT errors led to exploits
     """
-    return value.replace("\r", " ").replace("\n", " ").replace('"', "'")
+    # Log detailed reason server-side only
+    logger.warning("JWT authentication failed: %s", exc)
 
-
-def _make_json_auth_error_handler(
-    debug_errors: bool = False,
-) -> Callable[[HTTPConnection, AuthenticationError], JSONResponse]:
-    """Create a JSON 401 error handler for authentication failures.
-
-    Args:
-        debug_errors: If True, include detailed JWT failure reasons in the
-            HTTP response body and WWW-Authenticate header. If False (default),
-            return only generic error information to avoid leaking server
-            configuration per RFC 6750 Section 3.1. Detailed reasons are
-            always logged server-side regardless of this setting.
-    """
-
-    def handler(conn: HTTPConnection, exc: AuthenticationError) -> JSONResponse:
-        reason = str(exc)
-
-        if debug_errors:
-            safe_reason = _sanitize_header_value(reason)
-            return JSONResponse(
-                status_code=401,
-                content={
-                    "error": "invalid_token",
-                    "error_description": reason,
-                },
-                headers={
-                    "WWW-Authenticate": f'Bearer error="invalid_token", '
-                    f'error_description="{safe_reason}"',
-                },
-            )
-
-        # Default: generic error response (no claim values or server config leaked)
-        logger.warning("JWT authentication failed: %s", reason)
-        return JSONResponse(
-            status_code=401,
-            content={
-                "error": "invalid_token",
-                "error_description": "Authentication failed",
-            },
-            headers={
-                "WWW-Authenticate": 'Bearer error="invalid_token"',
-            },
-        )
-
-    return handler
+    return JSONResponse(
+        status_code=401,
+        content={
+            "error": "invalid_token",
+            "error_description": "Authentication failed",
+        },
+        headers={
+            "WWW-Authenticate": 'Bearer error="invalid_token"',
+        },
+    )
 
 
 class DetailedBearerAuthBackend(BearerAuthBackend):
@@ -147,23 +120,16 @@ class DetailedBearerAuthBackend(BearerAuthBackend):
 
 class DetailedJWTVerifier(JWTVerifier):
     """
-    JWT verifier that provides specific error messages for each
-    validation failure instead of generic "invalid_token".
+    JWT verifier that logs specific error messages server-side for each
+    validation failure, aiding debugging without leaking details to clients.
 
     Overrides load_access_token() to perform step-by-step validation,
-    storing the specific failure reason in a ContextVar that the
-    custom BearerAuthBackend reads to return a descriptive 401 response.
+    storing the specific failure reason in a ContextVar for server-side
+    logging. HTTP responses always return generic errors per RFC 6750.
 
-    Args:
-        debug_errors: When True, detailed JWT failure reasons are included
-            in HTTP responses. When False (default), only generic errors
-            are returned to clients. Detailed reasons are always logged
-            server-side regardless of this setting.
+    Use this instead of the default JWTVerifier when you need detailed
+    server-side JWT debug logging (controlled by MCP_JWT_DEBUG_ERRORS config).
     """
-
-    def __init__(self, *args: Any, debug_errors: bool = False, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
-        self.debug_errors = debug_errors
 
     async def load_access_token(self, token: str) -> AccessToken | None:  # noqa: C901
         """
@@ -296,7 +262,6 @@ class DetailedJWTVerifier(JWTVerifier):
                     return None
 
             # All validations passed
-            logger.info("JWT validated for client '%s'", client_id)
             return AccessToken(
                 token=token,
                 client_id=str(client_id),
@@ -313,17 +278,17 @@ class DetailedJWTVerifier(JWTVerifier):
 
     def get_middleware(self) -> list[Any]:
         """
-        Get middleware with detailed error reporting.
+        Get middleware with detailed server-side error logging.
 
         Uses DetailedBearerAuthBackend which raises AuthenticationError
-        with specific reasons, and a JSON error handler that returns
-        structured 401 responses.
+        with specific reasons for server-side logging. The error handler
+        always returns generic 401 responses per RFC 6750.
         """
         return [
             Middleware(
                 AuthenticationMiddleware,
                 backend=DetailedBearerAuthBackend(self),
-                on_error=_make_json_auth_error_handler(self.debug_errors),
+                on_error=_json_auth_error_handler,
             ),
             Middleware(AuthContextMiddleware),
         ]

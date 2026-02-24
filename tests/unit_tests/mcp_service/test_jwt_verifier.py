@@ -25,9 +25,8 @@ import pytest
 from authlib.jose.errors import BadSignatureError, DecodeError
 
 from superset.mcp_service.jwt_verifier import (
+    _json_auth_error_handler,
     _jwt_failure_reason,
-    _make_json_auth_error_handler,
-    _sanitize_header_value,
     DetailedBearerAuthBackend,
     DetailedJWTVerifier,
 )
@@ -391,7 +390,7 @@ def test_decode_token_header_too_few_parts():
 
 
 def test_get_middleware_returns_custom_components(hs256_verifier):
-    """get_middleware should use DetailedBearerAuthBackend and custom error handler."""
+    """get_middleware should use DetailedBearerAuthBackend and generic error handler."""
     middleware_list = hs256_verifier.get_middleware()
 
     assert len(middleware_list) == 2
@@ -402,8 +401,8 @@ def test_get_middleware_returns_custom_components(hs256_verifier):
         auth_middleware.kwargs["backend"].__class__.__name__
         == "DetailedBearerAuthBackend"
     )
-    # on_error should be a closure produced by _make_json_auth_error_handler
-    assert callable(auth_middleware.kwargs["on_error"])
+    # on_error should be the RFC 6750-compliant generic handler
+    assert auth_middleware.kwargs["on_error"] is _json_auth_error_handler
 
 
 class _FakeHeaders(dict[str, str]):
@@ -477,49 +476,44 @@ async def test_detailed_bearer_backend_no_bearer_token():
     assert result is None
 
 
-def test_json_auth_error_handler_debug_mode():
-    """With debug_errors=True, handler should return detailed error info."""
+def test_error_handler_never_leaks_jwt_details():
+    """Error handler MUST return generic error per RFC 6750 Section 3.1.
+
+    No JWT claim values, server config, or validation details should
+    ever appear in the HTTP response - regardless of the failure type.
+    References: CVE-2022-29266, CVE-2019-7644.
+    """
     from starlette.authentication import AuthenticationError
 
-    handler = _make_json_auth_error_handler(debug_errors=True)
     mock_conn = MagicMock()
-    exc = AuthenticationError("Token expired for client 'user1'")
 
-    response = handler(mock_conn, exc)
+    # Simulate various failure reasons that contain sensitive claim values
+    sensitive_reasons = [
+        "Algorithm mismatch: token uses 'RS256', expected 'HS256'",
+        "Issuer mismatch: token has 'https://evil.com', expected 'https://good.com'",
+        "Audience mismatch: token has 'wrong-aud', expected 'my-api'",
+        "Token expired for client 'admin-service'",
+        "Missing required scopes: {'admin'}. Token has: {'read'}",
+    ]
 
-    assert response.status_code == 401
-    body = json.loads(response.body.decode())
-    assert body["error"] == "invalid_token"
-    assert "Token expired" in body["error_description"]
-    assert "user1" in body["error_description"]
+    for reason in sensitive_reasons:
+        exc = AuthenticationError(reason)
+        response = _json_auth_error_handler(mock_conn, exc)
 
-    www_auth = response.headers.get("www-authenticate", "")
-    assert "Token expired" in www_auth
+        assert response.status_code == 401
 
+        body = json.loads(response.body.decode())
+        # Body must only have generic message
+        assert body["error"] == "invalid_token", f"Wrong error code for: {reason}"
+        assert body["error_description"] == "Authentication failed", (
+            f"Detailed reason leaked for: {reason}"
+        )
 
-def test_json_auth_error_handler_default_mode():
-    """With debug_errors=False (default), handler should return generic error."""
-    from starlette.authentication import AuthenticationError
-
-    handler = _make_json_auth_error_handler(debug_errors=False)
-    mock_conn = MagicMock()
-    exc = AuthenticationError("Issuer mismatch: token has 'evil', expected 'good'")
-
-    response = handler(mock_conn, exc)
-
-    assert response.status_code == 401
-    body = json.loads(response.body.decode())
-    assert body["error"] == "invalid_token"
-    assert body["error_description"] == "Authentication failed"
-    # No claim values should leak
-    assert "evil" not in body["error_description"]
-    assert "good" not in body["error_description"]
-    assert "Issuer" not in body["error_description"]
-
-    www_auth = response.headers.get("www-authenticate", "")
-    assert www_auth == 'Bearer error="invalid_token"'
-    assert "evil" not in www_auth
-    assert "good" not in www_auth
+        # WWW-Authenticate must not contain any claim values
+        www_auth = response.headers.get("www-authenticate", "")
+        assert www_auth == 'Bearer error="invalid_token"', (
+            f"Detailed reason leaked in header for: {reason}"
+        )
 
 
 @pytest.mark.asyncio
@@ -591,36 +585,6 @@ async def test_issuer_mismatch_list_issuer():
     assert "wrong-issuer" in reason
 
 
-def test_sanitize_header_value_removes_crlf():
-    """_sanitize_header_value should strip CR/LF to prevent header injection."""
-    malicious = 'evil\r\nX-Injected: value"quoted'
-    result = _sanitize_header_value(malicious)
-    assert "\r" not in result
-    assert "\n" not in result
-    assert '"' not in result
-    assert "evil" in result
-
-
-def test_json_auth_error_handler_sanitizes_header():
-    """Error handler should sanitize reason in WWW-Authenticate header (debug mode)."""
-    from starlette.authentication import AuthenticationError
-
-    handler = _make_json_auth_error_handler(debug_errors=True)
-    mock_conn = MagicMock()
-    exc = AuthenticationError("Issuer mismatch: token has 'evil\r\nInject: bad\"'")
-
-    response = handler(mock_conn, exc)
-
-    # Body should have the raw reason
-    body = json.loads(response.body.decode())
-    assert "Issuer mismatch" in body["error_description"]
-
-    # Header should be sanitized
-    www_auth = response.headers.get("www-authenticate", "")
-    assert "\r" not in www_auth
-    assert "\n" not in www_auth
-
-
 def test_decode_token_header_padding_multiple_of_4():
     """_decode_token_header should handle headers whose length is a multiple of 4."""
     # eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9 is 36 chars (divisible by 4)
@@ -635,55 +599,3 @@ def test_decode_token_header_padding_multiple_of_4():
 
     assert result["alg"] == "HS256"
     assert result["typ"] == "JWT"
-
-
-def test_verifier_debug_errors_default():
-    """DetailedJWTVerifier should default debug_errors to False."""
-    verifier = DetailedJWTVerifier(
-        public_key="test-secret",
-        algorithm="HS256",
-    )
-    assert verifier.debug_errors is False
-
-
-def test_verifier_debug_errors_enabled():
-    """DetailedJWTVerifier should accept debug_errors=True."""
-    verifier = DetailedJWTVerifier(
-        public_key="test-secret",
-        algorithm="HS256",
-        debug_errors=True,
-    )
-    assert verifier.debug_errors is True
-
-
-def test_default_handler_no_claim_leak():
-    """With debug_errors=False, no JWT claim values should leak into the response."""
-    from starlette.authentication import AuthenticationError
-
-    handler = _make_json_auth_error_handler(debug_errors=False)
-    mock_conn = MagicMock()
-
-    # Simulate various failure reasons that contain sensitive claim values
-    sensitive_reasons = [
-        "Algorithm mismatch: token uses 'RS256', expected 'HS256'",
-        "Issuer mismatch: token has 'https://evil.com', expected 'https://good.com'",
-        "Audience mismatch: token has 'wrong-aud', expected 'my-api'",
-        "Token expired for client 'admin-service'",
-        "Missing required scopes: {'admin'}. Token has: {'read'}",
-    ]
-
-    for reason in sensitive_reasons:
-        exc = AuthenticationError(reason)
-        response = handler(mock_conn, exc)
-
-        body = json.loads(response.body.decode())
-        # Body should only have generic message
-        assert body["error_description"] == "Authentication failed", (
-            f"Detailed reason leaked for: {reason}"
-        )
-
-        # WWW-Authenticate should not contain any claim values
-        www_auth = response.headers.get("www-authenticate", "")
-        assert www_auth == 'Bearer error="invalid_token"', (
-            f"Detailed reason leaked in header for: {reason}"
-        )
