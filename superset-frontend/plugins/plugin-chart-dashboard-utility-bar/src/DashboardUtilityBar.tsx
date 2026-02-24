@@ -75,6 +75,12 @@ export default function DashboardUtilityBar(props: DashboardUtilityBarProps) {
         autoHideSeconds,
         backgroundColor,
         textColor,
+        titleFontSize,
+        dateFontSize,
+        clockFontSize,
+        weatherIconSize,
+        temperatureFontSize,
+        showTemperature,
     } = customize;
 
     // ─── Auto-hide state ──────────────────────────────────────────────
@@ -155,7 +161,7 @@ export default function DashboardUtilityBar(props: DashboardUtilityBarProps) {
     if (showTitle && titleValue) {
         leftElements.push(
             <TitleBlock key="title-block">
-                <TitleText>{titleValue}</TitleText>
+                <TitleText style={{ fontSize: titleFontSize }}>{titleValue}</TitleText>
                 {showSubtitle && subtitleValue && (
                     <SubtitleText>{subtitleValue}</SubtitleText>
                 )}
@@ -210,11 +216,17 @@ export default function DashboardUtilityBar(props: DashboardUtilityBarProps) {
 
     const rightBlock = hasRightBlock ? (
         <RightInfoBlock key="right-info">
-            {showWeather && <WeatherWidget />}
+            {showWeather && (
+                <WeatherWidget
+                    iconSize={weatherIconSize}
+                    showTemperature={showTemperature}
+                    temperatureFontSize={temperatureFontSize}
+                />
+            )}
             {(showDate || showClock) && (
                 <DateTimeBlock>
-                    {showDate && <DateDisplay>{dateString}</DateDisplay>}
-                    {showClock && <LiveClock />}
+                    {showDate && <DateDisplay style={{ fontSize: dateFontSize }}>{dateString}</DateDisplay>}
+                    {showClock && <LiveClock fontSize={clockFontSize} />}
                 </DateTimeBlock>
             )}
         </RightInfoBlock>

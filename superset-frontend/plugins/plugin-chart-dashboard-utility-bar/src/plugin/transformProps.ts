@@ -90,6 +90,12 @@ export default function transformProps(
         autoHideSeconds = 0,
         backgroundColor,
         textColor,
+        titleFontSize = 15,
+        dateFontSize = 11,
+        clockFontSize = 16,
+        weatherIconSize = 18,
+        temperatureFontSize = 13,
+        showTemperature = true,
     } = formData;
 
     // Safely extract data — handle undefined / empty queriesData
@@ -131,6 +137,13 @@ export default function transformProps(
 
         backgroundColor: rgbaToString(backgroundColor, 'rgba(30, 30, 30, 0.95)'),
         textColor: rgbaToString(textColor, 'rgba(255, 255, 255, 1)'),
+
+        titleFontSize: Number(titleFontSize) || 15,
+        dateFontSize: Number(dateFontSize) || 11,
+        clockFontSize: Number(clockFontSize) || 16,
+        weatherIconSize: Number(weatherIconSize) || 18,
+        temperatureFontSize: Number(temperatureFontSize) || 13,
+        showTemperature,
     };
 
     return { width, height, data, customize };

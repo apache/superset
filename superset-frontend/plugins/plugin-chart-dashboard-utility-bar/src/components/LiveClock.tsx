@@ -17,7 +17,10 @@
  * under the License.
  */
 import React, { useState, useEffect, useRef } from 'react';
-import { ClockDisplay } from '../styles';
+
+interface LiveClockProps {
+    fontSize?: number;
+}
 
 /**
  * Self-contained live clock component.
@@ -26,8 +29,9 @@ import { ClockDisplay } from '../styles';
  * - Updates every 1000ms via `setInterval`.
  * - Properly clears the interval on unmount.
  * - Each instance has its own independent interval (safe for multiple instances).
+ * - Font size is configurable via prop.
  */
-const LiveClock: React.FC = () => {
+const LiveClock: React.FC<LiveClockProps> = ({ fontSize = 16 }) => {
     const [time, setTime] = useState(() => new Date());
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -49,7 +53,19 @@ const LiveClock: React.FC = () => {
         second: '2-digit',
     });
 
-    return <ClockDisplay>{formatted}</ClockDisplay>;
+    return (
+        <span
+            style={{
+                fontSize,
+                fontWeight: 600,
+                fontVariantNumeric: 'tabular-nums',
+                flexShrink: 0,
+                lineHeight: 1.2,
+            }}
+        >
+            {formatted}
+        </span>
+    );
 };
 
 export default LiveClock;

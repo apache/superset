@@ -353,6 +353,83 @@ const config: ControlPanelConfig = {
                         },
                     },
                 ],
+                [
+                    {
+                        name: 'title_font_size',
+                        config: {
+                            type: 'TextControl',
+                            label: t('Title Font Size'),
+                            description: t('Font size in pixels for the title text'),
+                            default: 15,
+                            renderTrigger: true,
+                            isInt: true,
+                        },
+                    },
+                ],
+                [
+                    {
+                        name: 'date_font_size',
+                        config: {
+                            type: 'TextControl',
+                            label: t('Date Font Size'),
+                            description: t('Font size in pixels for the date display'),
+                            default: 11,
+                            renderTrigger: true,
+                            isInt: true,
+                        },
+                    },
+                ],
+                [
+                    {
+                        name: 'clock_font_size',
+                        config: {
+                            type: 'TextControl',
+                            label: t('Clock Font Size'),
+                            description: t('Font size in pixels for the live clock'),
+                            default: 16,
+                            renderTrigger: true,
+                            isInt: true,
+                        },
+                    },
+                ],
+                [
+                    {
+                        name: 'weather_icon_size',
+                        config: {
+                            type: 'TextControl',
+                            label: t('Weather Icon Size'),
+                            description: t('Font size in pixels for the weather emoji icon'),
+                            default: 18,
+                            renderTrigger: true,
+                            isInt: true,
+                        },
+                    },
+                ],
+                [
+                    {
+                        name: 'show_temperature',
+                        config: {
+                            type: 'CheckboxControl',
+                            label: t('Show Temperature'),
+                            description: t('Display the temperature value next to the weather icon'),
+                            default: true,
+                            renderTrigger: true,
+                        },
+                    },
+                ],
+                [
+                    {
+                        name: 'temperature_font_size',
+                        config: {
+                            type: 'TextControl',
+                            label: t('Temperature Font Size'),
+                            description: t('Font size in pixels for the temperature text'),
+                            default: 13,
+                            renderTrigger: true,
+                            isInt: true,
+                        },
+                    },
+                ],
             ],
         },
     ],

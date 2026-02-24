@@ -36,6 +36,12 @@ const getWeatherIcon = (code: number): string => {
     return '🌩️';
 };
 
+interface WeatherWidgetProps {
+    iconSize?: number;
+    showTemperature?: boolean;
+    temperatureFontSize?: number;
+}
+
 /**
  * Self-contained weather widget using the Open-Meteo API (no API key required).
  *
@@ -44,8 +50,13 @@ const getWeatherIcon = (code: number): string => {
  * - Refreshes every 10 minutes.
  * - Properly cleans up interval on unmount.
  * - Shows a loading state while fetching; degrades gracefully on error.
+ * - Icon size, temperature visibility, and temperature font size are configurable.
  */
-const WeatherWidget: React.FC = () => {
+const WeatherWidget: React.FC<WeatherWidgetProps> = ({
+    iconSize = 18,
+    showTemperature = true,
+    temperatureFontSize = 13,
+}) => {
     const [weather, setWeather] = useState<WeatherData | null>(null);
     const [error, setError] = useState(false);
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -108,11 +119,11 @@ const WeatherWidget: React.FC = () => {
     }, []);
 
     if (error) {
-        return <span style={{ fontSize: 18, opacity: 0.6 }}>🌤️</span>;
+        return <span style={{ fontSize: iconSize, opacity: 0.6 }}>🌤️</span>;
     }
 
     if (!weather) {
-        return <span style={{ fontSize: 18, opacity: 0.5 }}>⏳</span>;
+        return <span style={{ fontSize: iconSize, opacity: 0.5 }}>⏳</span>;
     }
 
     return (
@@ -121,14 +132,15 @@ const WeatherWidget: React.FC = () => {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 4,
-                fontSize: 18,
                 flexShrink: 0,
             }}
         >
-            <span>{getWeatherIcon(weather.weatherCode)}</span>
-            <span style={{ fontSize: 13, fontWeight: 500 }}>
-                {weather.temperature}°C
-            </span>
+            <span style={{ fontSize: iconSize }}>{getWeatherIcon(weather.weatherCode)}</span>
+            {showTemperature && (
+                <span style={{ fontSize: temperatureFontSize, fontWeight: 500 }}>
+                    {weather.temperature}°C
+                </span>
+            )}
         </span>
     );
 };

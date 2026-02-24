@@ -406,10 +406,10 @@ eval("{/**\r\n * Licensed to the Apache Software Foundation (ASF) under one\r\n 
 /******/ 		});
 /******/ 		var installedModules = {};
 /******/ 		var moduleToHandlerMapping = {
-/******/ 			"webpack/sharing/consume/default/react-dom/react-dom": () => (loadSingletonVersion("default", "react-dom", true, [1,17,0,2], () => (() => (__webpack_require__(/*! react-dom */ "./node_modules/react-dom/index.js"))))),
-/******/ 			"webpack/sharing/consume/default/react/react": () => (loadSingletonVersion("default", "react", true, [1,17,0,2], () => (() => (__webpack_require__(/*! react */ "./node_modules/react/index.js")))))
+/******/ 			"webpack/sharing/consume/default/react/react": () => (loadSingletonVersion("default", "react", true, [1,17,0,2], () => (() => (__webpack_require__(/*! react */ "./node_modules/react/index.js"))))),
+/******/ 			"webpack/sharing/consume/default/react-dom/react-dom": () => (loadSingletonVersion("default", "react-dom", true, [1,17,0,2], () => (() => (__webpack_require__(/*! react-dom */ "./node_modules/react-dom/index.js")))))
 /******/ 		};
-/******/ 		var initialConsumes = ["webpack/sharing/consume/default/react-dom/react-dom","webpack/sharing/consume/default/react/react"];
+/******/ 		var initialConsumes = ["webpack/sharing/consume/default/react/react","webpack/sharing/consume/default/react-dom/react-dom"];
 /******/ 		initialConsumes.forEach((id) => {
 /******/ 			__webpack_require__.m[id] = (module) => {
 /******/ 				// Handle case when module is used sync

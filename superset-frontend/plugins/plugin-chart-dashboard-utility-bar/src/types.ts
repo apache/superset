@@ -66,6 +66,14 @@ export interface DashboardUtilityBarCustomizeProps {
     // Styling
     backgroundColor: string;
     textColor: string;
+
+    // Font sizes
+    titleFontSize: number;
+    dateFontSize: number;
+    clockFontSize: number;
+    weatherIconSize: number;
+    temperatureFontSize: number;
+    showTemperature: boolean;
 }
 
 // ─── Composite Component Props ───────────────────────────────────────────────
