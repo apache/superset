@@ -38,12 +38,14 @@ def test_extension_config_minimal():
     """Test ExtensionConfig with minimal required fields."""
     config = ExtensionConfig.model_validate(
         {
-            "id": "my-extension",
-            "name": "My Extension",
+            "publisher": "my-org",
+            "name": "my-extension",
+            "displayName": "My Extension",
         }
     )
-    assert config.id == "my-extension"
-    assert config.name == "My Extension"
+    assert config.publisher == "my-org"
+    assert config.name == "my-extension"
+    assert config.displayName == "My Extension"
     assert config.version == "0.0.0"
     assert config.dependencies == []
     assert config.permissions == []
@@ -55,8 +57,9 @@ def test_extension_config_full():
     """Test ExtensionConfig with all fields populated."""
     config = ExtensionConfig.model_validate(
         {
-            "id": "query_insights",
-            "name": "Query Insights",
+            "publisher": "acme-corp",
+            "name": "query-insights",
+            "displayName": "Query Insights",
             "version": "1.0.0",
             "license": "Apache-2.0",
             "description": "A query insights extension",
@@ -83,8 +86,9 @@ def test_extension_config_full():
             },
         }
     )
-    assert config.id == "query_insights"
-    assert config.name == "Query Insights"
+    assert config.publisher == "acme-corp"
+    assert config.name == "query-insights"
+    assert config.displayName == "Query Insights"
     assert config.version == "1.0.0"
     assert config.license == "Apache-2.0"
     assert config.description == "A query insights extension"
@@ -97,32 +101,50 @@ def test_extension_config_full():
     assert config.backend.files == ["backend/src/query_insights/**/*.py"]
 
 
-def test_extension_config_missing_id():
-    """Test ExtensionConfig raises error when id is missing."""
+def test_extension_config_missing_publisher():
+    """Test ExtensionConfig raises error when publisher is missing."""
     with pytest.raises(ValidationError) as exc_info:
-        ExtensionConfig.model_validate({"name": "My Extension"})
-    assert "id" in str(exc_info.value)
+        ExtensionConfig.model_validate(
+            {"name": "my-extension", "displayName": "My Extension"}
+        )
+    assert "publisher" in str(exc_info.value)
 
 
 def test_extension_config_missing_name():
     """Test ExtensionConfig raises error when name is missing."""
     with pytest.raises(ValidationError) as exc_info:
-        ExtensionConfig.model_validate({"id": "my-extension"})
+        ExtensionConfig.model_validate(
+            {"publisher": "my-org", "displayName": "My Extension"}
+        )
     assert "name" in str(exc_info.value)
 
 
-def test_extension_config_empty_id():
-    """Test ExtensionConfig raises error when id is empty."""
+def test_extension_config_missing_display_name():
+    """Test ExtensionConfig raises error when displayName is missing."""
     with pytest.raises(ValidationError) as exc_info:
-        ExtensionConfig.model_validate({"id": "", "name": "My Extension"})
-    assert "id" in str(exc_info.value)
+        ExtensionConfig.model_validate({"publisher": "my-org", "name": "my-extension"})
+    assert "displayName" in str(exc_info.value)
+
+
+def test_extension_config_empty_publisher():
+    """Test ExtensionConfig raises error when publisher is empty."""
+    with pytest.raises(ValidationError) as exc_info:
+        ExtensionConfig.model_validate(
+            {"publisher": "", "name": "my-extension", "displayName": "My Extension"}
+        )
+    assert "publisher" in str(exc_info.value)
 
 
 def test_extension_config_invalid_version():
     """Test ExtensionConfig raises error for invalid version format."""
     with pytest.raises(ValidationError) as exc_info:
         ExtensionConfig.model_validate(
-            {"id": "my-extension", "name": "My Extension", "version": "invalid"}
+            {
+                "publisher": "my-org",
+                "name": "my-extension",
+                "displayName": "My Extension",
+                "version": "invalid",
+            }
         )
     assert "version" in str(exc_info.value)
 
@@ -131,7 +153,12 @@ def test_extension_config_valid_versions():
     """Test ExtensionConfig accepts valid semantic versions (major.minor.patch only)."""
     for version in ["1.0.0", "0.1.0", "10.20.30"]:
         config = ExtensionConfig.model_validate(
-            {"id": "my-extension", "name": "My Extension", "version": version}
+            {
+                "publisher": "my-org",
+                "name": "my-extension",
+                "displayName": "My Extension",
+                "version": version,
+            }
         )
         assert config.version == version
 
@@ -140,7 +167,12 @@ def test_extension_config_prerelease_version_rejected():
     """Test ExtensionConfig rejects prerelease versions."""
     with pytest.raises(ValidationError) as exc_info:
         ExtensionConfig.model_validate(
-            {"id": "my-extension", "name": "My Extension", "version": "1.0.0-beta"}
+            {
+                "publisher": "my-org",
+                "name": "my-extension",
+                "displayName": "My Extension",
+                "version": "1.0.0-beta",
+            }
         )
     assert "version" in str(exc_info.value)
 
@@ -154,12 +186,16 @@ def test_manifest_minimal():
     """Test Manifest with minimal required fields."""
     manifest = Manifest.model_validate(
         {
-            "id": "my-extension",
-            "name": "My Extension",
+            "id": "my-org.my-extension",
+            "publisher": "my-org",
+            "name": "my-extension",
+            "displayName": "My Extension",
         }
     )
-    assert manifest.id == "my-extension"
-    assert manifest.name == "My Extension"
+    assert manifest.id == "my-org.my-extension"
+    assert manifest.publisher == "my-org"
+    assert manifest.name == "my-extension"
+    assert manifest.displayName == "My Extension"
     assert manifest.frontend is None
     assert manifest.backend is None
 
@@ -168,8 +204,10 @@ def test_manifest_with_frontend():
     """Test Manifest with frontend section requires remoteEntry."""
     manifest = Manifest.model_validate(
         {
-            "id": "my-extension",
-            "name": "My Extension",
+            "id": "my-org.my-extension",
+            "publisher": "my-org",
+            "name": "my-extension",
+            "displayName": "My Extension",
             "frontend": {
                 "remoteEntry": "remoteEntry.abc123.js",
                 "contributions": {},
@@ -187,8 +225,10 @@ def test_manifest_frontend_missing_remote_entry():
     with pytest.raises(ValidationError) as exc_info:
         Manifest.model_validate(
             {
-                "id": "my-extension",
-                "name": "My Extension",
+                "id": "my-org.my-extension",
+                "publisher": "my-org",
+                "name": "my-extension",
+                "displayName": "My Extension",
                 "frontend": {"contributions": {}, "moduleFederation": {}},
             }
         )
@@ -199,8 +239,10 @@ def test_manifest_with_backend():
     """Test Manifest with backend section."""
     manifest = Manifest.model_validate(
         {
-            "id": "my-extension",
-            "name": "My Extension",
+            "id": "my-org.my-extension",
+            "publisher": "my-org",
+            "name": "my-extension",
+            "displayName": "My Extension",
             "backend": {"entryPoints": ["my_extension.entrypoint"]},
         }
     )
@@ -212,8 +254,10 @@ def test_manifest_backend_no_files_field():
     """Test ManifestBackend does not have files field (only in ExtensionConfig)."""
     manifest = Manifest.model_validate(
         {
-            "id": "my-extension",
-            "name": "My Extension",
+            "id": "my-org.my-extension",
+            "publisher": "my-org",
+            "name": "my-extension",
+            "displayName": "My Extension",
             "backend": {"entryPoints": ["my_extension.entrypoint"]},
         }
     )
