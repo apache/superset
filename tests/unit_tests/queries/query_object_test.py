@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import copy
 from unittest.mock import call, patch
 
 from flask_appbuilder.security.sqla.models import User
@@ -386,3 +387,127 @@ def test_cache_key_cache_impersonation_on_with_different_user_and_db_impersonati
         ],
         any_order=True,
     )
+
+
+def test_cache_key_normalization_metrics_crlf():
+    """Verify CRLF vs LF parity in Metrics"""
+    metric_crlf = {
+        "expressionType": "SQL",
+        "sqlExpression": "SELECT *\r\nFROM table\r\nWHERE x = 1",
+    }
+    metric_lf = {
+        "expressionType": "SQL",
+        "sqlExpression": "SELECT *\nFROM table\nWHERE x = 1",
+    }
+
+    qo_crlf = QueryObject(metrics=[metric_crlf])
+    qo_lf = QueryObject(metrics=[metric_lf])
+
+    assert qo_crlf.cache_key() == qo_lf.cache_key()
+
+
+def test_cache_key_normalization_columns_crlf():
+    """Verify CRLF vs LF parity in Columns"""
+    column_crlf = {
+        "expressionType": "SQL",
+        "sqlExpression": "CASE WHEN x THEN 1\r\nELSE 0 END",
+    }
+    column_lf = {
+        "expressionType": "SQL",
+        "sqlExpression": "CASE WHEN x THEN 1\nELSE 0 END",
+    }
+
+    qo_crlf = QueryObject(columns=[column_crlf])
+    qo_lf = QueryObject(columns=[column_lf])
+
+    assert qo_crlf.cache_key() == qo_lf.cache_key()
+
+
+def test_cache_key_normalization_whitespace():
+    """Verify whitespace stripping in SQL expressions"""
+    metric_space = {"expressionType": "SQL", "sqlExpression": "  SELECT * FROM table  "}
+    metric_no_space = {"expressionType": "SQL", "sqlExpression": "SELECT * FROM table"}
+
+    qo_space = QueryObject(metrics=[metric_space])
+    qo_no_space = QueryObject(metrics=[metric_no_space])
+
+    assert qo_space.cache_key() == qo_no_space.cache_key()
+
+
+def test_cache_key_normalization_orderby_defensive():
+    """Verify defensive normalization of OrderBy structures"""
+    metric_sql = {"expressionType": "SQL", "sqlExpression": "col\r\n"}
+    # Standard orderby structure: [(metric_dict, ascend_bool)]
+    qo1 = QueryObject(orderby=[(metric_sql, True)])
+
+    metric_sql_clean = {"expressionType": "SQL", "sqlExpression": "col"}
+    qo2 = QueryObject(orderby=[(metric_sql_clean, True)])
+
+    assert qo1.cache_key() == qo2.cache_key()
+
+
+def test_cache_key_no_side_effects():
+    """Verify that cache_key generation does not mutate the original object"""
+    metric_sql = {"expressionType": "SQL", "sqlExpression": "SELECT *\r\nFROM table "}
+    qo = QueryObject(metrics=[metric_sql])
+    original_dict = copy.deepcopy(qo.to_dict())
+
+    # Generate cache key multiple times
+    key1 = qo.cache_key()
+    key2 = qo.cache_key()
+
+    assert key1 == key2
+    # Ensure original object is not mutated
+    assert qo.to_dict() == original_dict
+    assert qo.metrics[0]["sqlExpression"] == "SELECT *\r\nFROM table "
+
+
+def test_cache_key_non_sql_metrics_unchanged():
+    """Verify that non-SQL metrics are handled without modification"""
+    metrics = ["count", {"expressionType": "SIMPLE", "column": {"column_name": "x"}}]
+    qo = QueryObject(metrics=metrics)
+    # Should not crash and should work normally
+    key = qo.cache_key()
+    assert key is not None
+
+
+def test_cache_key_mixed_metrics():
+    """Verify that mixed metrics (names and ad-hoc SQL) are handled correctly"""
+    metric_sql = {"expressionType": "SQL", "sqlExpression": "SELECT 1\r\n"}
+    metric_name = "count"
+    qo = QueryObject(metrics=[metric_sql, metric_name])
+
+    # Normalization should happen for the SQL one
+    key1 = qo.cache_key()
+
+    metric_sql_clean = {"expressionType": "SQL", "sqlExpression": "SELECT 1"}
+    qo_clean = QueryObject(metrics=[metric_sql_clean, metric_name])
+    key2 = qo_clean.cache_key()
+
+    assert key1 == key2
+
+
+def test_cache_key_normalization_mixed_newlines():
+    """Verify that expressions with mixed \\r\\n and \\n are unified"""
+    metric_mixed = {
+        "expressionType": "SQL",
+        "sqlExpression": "SELECT 1\r\nFROM t\nWHERE 1=1\r\n",
+    }
+    metric_clean = {
+        "expressionType": "SQL",
+        "sqlExpression": "SELECT 1\nFROM t\nWHERE 1=1",
+    }
+
+    qo_mixed = QueryObject(metrics=[metric_mixed])
+    qo_clean = QueryObject(metrics=[metric_clean])
+
+    assert qo_mixed.cache_key() == qo_clean.cache_key()
+
+
+def test_cache_key_orderby_malformed_defensive():
+    """Verify that malformed OrderBy structures do not cause crashes"""
+    qo = QueryObject(
+        orderby=[None, ("not_a_dict", True), ({"no_expression_type": "x"}, False)]
+    )
+    key = qo.cache_key()
+    assert key is not None
