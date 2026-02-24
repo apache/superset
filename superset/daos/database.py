@@ -21,7 +21,6 @@ import re
 from typing import Any
 from urllib.parse import unquote
 
-from odps import ODPS
 from sqlalchemy.orm import joinedload
 
 from superset import is_feature_enabled
@@ -258,6 +257,13 @@ class DatabaseDAO(BaseDAO[Database]):
         """
         if not database:
             raise ValueError("Database not found")
+        if database.backend != "odps":
+            return False, []
+        try:
+            from odps import ODPS
+        except ImportError:
+            logger.warning("pyodps is not installed, cannot check ODPS partition info")
+            return False, []
         uri = database.sqlalchemy_uri
         access_key = database.password
         pattern = re.compile(

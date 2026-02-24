@@ -48,6 +48,3 @@ openapi-schema-validator>=0.6.3
 # Known affected packages: Preset's 'clients' package
 # See docs/docs/contributing/pkg-resources-migration.md for details
 setuptools<81
-
-# ODPS (MaxCompute) data source support
-pyodps>=0.12.2

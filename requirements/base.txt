@@ -292,9 +292,7 @@ prison==0.2.1
 prompt-toolkit==3.0.51
     # via click-repl
 pyarrow==16.1.0
-    # via
-    #   apache-superset (pyproject.toml)
-    #   pyodps
+    # via apache-superset (pyproject.toml)
 pyasn1==0.6.2
     # via
     #   pyasn1-modules
@@ -359,7 +357,6 @@ referencing==0.36.2
     #   jsonschema-specifications
 requests==2.32.4
     # via
-    #   pyodps
     #   requests-cache
     #   shillelagh
 requests-cache==1.2.1

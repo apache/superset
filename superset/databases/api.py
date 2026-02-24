@@ -111,7 +111,6 @@ from superset.databases.schemas import (
 )
 from superset.databases.utils import get_table_metadata
 from superset.db_engine_specs import get_available_engine_specs
-from superset.db_engine_specs.odps import OdpsEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     DatabaseNotFoundException,
@@ -1092,6 +1091,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             raise TableNotFoundException("No such table") from ex
         partition = Partition(is_partitioned_table, partition_fields)
         if is_partitioned_table:
+            from superset.db_engine_specs.odps import OdpsEngineSpec
+
             payload = OdpsEngineSpec.get_table_metadata(database, table, partition)
         else:
             payload = database.db_engine_spec.get_table_metadata(database, table)
