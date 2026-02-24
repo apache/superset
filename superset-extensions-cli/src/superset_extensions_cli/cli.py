@@ -42,15 +42,13 @@ from superset_extensions_cli.exceptions import ExtensionNameError
 from superset_extensions_cli.types import ExtensionNames
 from superset_extensions_cli.utils import (
     generate_extension_names,
-    kebab_to_camel_case,
     kebab_to_snake_case,
     read_json,
     read_toml,
-    to_kebab_case,
-    to_snake_case,
-    validate_extension_id,
-    validate_npm_package_name,
-    validate_python_package_name,
+    suggest_technical_name,
+    validate_display_name,
+    validate_publisher,
+    validate_technical_name,
 )
 
 REMOTE_ENTRY_REGEX = re.compile(r"^remoteEntry\..+\.js$")
@@ -150,6 +148,9 @@ def build_manifest(cwd: Path, remote_entry: str | None) -> Manifest:
 
     extension = ExtensionConfig.model_validate(extension_data)
 
+    # Generate composite ID from publisher and name
+    composite_id = f"{extension.publisher}.{extension.name}"
+
     frontend: ManifestFrontend | None = None
     if extension.frontend and remote_entry:
         frontend = ManifestFrontend(
@@ -163,8 +164,10 @@ def build_manifest(cwd: Path, remote_entry: str | None) -> Manifest:
         backend = ManifestBackend(entryPoints=extension.backend.entryPoints)
 
     return Manifest(
-        id=extension.id,
+        id=composite_id,
+        publisher=extension.publisher,
         name=extension.name,
+        displayName=extension.displayName,
         version=extension.version,
         permissions=extension.permissions,
         dependencies=extension.dependencies,
@@ -416,126 +419,110 @@ def dev(ctx: click.Context) -> None:
         click.secho("❌ No directories to watch. Exiting.", fg="red")
 
 
-def prompt_for_extension_name(
-    display_name_opt: str | None, id_opt: str | None
+def prompt_for_extension_info(
+    display_name_opt: str | None,
+    publisher_opt: str | None,
+    technical_name_opt: str | None,
 ) -> ExtensionNames:
     """
-    Prompt for extension name with graceful validation and re-prompting.
+    Prompt for extension info with graceful validation and re-prompting.
 
     Args:
         display_name_opt: Display name provided via CLI option (if any)
-        id_opt: Extension ID provided via CLI option (if any)
+        publisher_opt: Publisher provided via CLI option (if any)
+        technical_name_opt: Technical name provided via CLI option (if any)
 
     Returns:
         ExtensionNames: Validated extension name variants
     """
 
-    # Case 1: Both provided via CLI - validate they work together
-    if display_name_opt and id_opt:
-        try:
-            # Generate all names from display name for consistency
-            temp_names = generate_extension_names(display_name_opt)
-            # Check if the provided ID matches what we'd generate
-            if temp_names["id"] == id_opt:
-                return temp_names
-            else:
-                # If IDs don't match, use the provided ID but validate it
-                validate_extension_id(id_opt)
-                validate_python_package_name(to_snake_case(id_opt))
-                validate_npm_package_name(id_opt)
-                # Create names with the provided ID (derive technical names from ID)
-                return ExtensionNames(
-                    name=display_name_opt,
-                    id=id_opt,
-                    mf_name=kebab_to_camel_case(id_opt),
-                    backend_name=kebab_to_snake_case(id_opt),
-                    backend_package=f"superset_extensions.{kebab_to_snake_case(id_opt)}",
-                    backend_entry=f"superset_extensions.{kebab_to_snake_case(id_opt)}.entrypoint",
-                )
-        except ExtensionNameError as e:
-            click.secho(f"❌ {e}", fg="red")
-            sys.exit(1)
-
-    # Case 2: Only display name provided - suggest ID
-    if display_name_opt and not id_opt:
+    # Step 1: Get display name
+    if display_name_opt:
         display_name = display_name_opt
         try:
-            suggested_names = generate_extension_names(display_name)
-            suggested_id = suggested_names["id"]
-        except ExtensionNameError:
-            suggested_id = to_kebab_case(display_name)
-
-        extension_id = click.prompt("Extension ID", default=suggested_id, type=str)
-
-    # Case 3: Only ID provided - ask for display name
-    elif id_opt and not display_name_opt:
-        extension_id = id_opt
-        # Validate the provided ID first
-        try:
-            validate_extension_id(id_opt)
+            display_name = validate_display_name(display_name)
         except ExtensionNameError as e:
             click.secho(f"❌ {e}", fg="red")
             sys.exit(1)
-
-        # Suggest display name from kebab ID
-        suggested_display = " ".join(word.capitalize() for word in id_opt.split("-"))
-        display_name = click.prompt(
-            "Extension name", default=suggested_display, type=str
-        )
-
-    # Case 4: Neither provided - ask for both
     else:
-        display_name = click.prompt("Extension name (e.g. Hello World)", type=str)
+        while True:
+            display_name = click.prompt("Extension display name", type=str)
+            try:
+                display_name = validate_display_name(display_name)
+                break
+            except ExtensionNameError as e:
+                click.secho(f"❌ {e}", fg="red")
+
+    # Step 2: Get technical name (with suggestion from display name)
+    if technical_name_opt:
+        technical_name = technical_name_opt
         try:
-            suggested_names = generate_extension_names(display_name)
-            suggested_id = suggested_names["id"]
-        except ExtensionNameError:
-            suggested_id = to_kebab_case(display_name)
-
-        extension_id = click.prompt("Extension ID", default=suggested_id, type=str)
-
-    # Final validation loop - try to use generate_extension_names for consistent results
-    display_name_failed = False  # Track if display name validation failed
-    while True:
-        try:
-            # First try to generate from display name if possible and it hasn't failed before
-            if display_name and not display_name_failed:
-                temp_names = generate_extension_names(display_name)
-                if temp_names["id"] == extension_id:
-                    # Perfect match - use generated names
-                    return temp_names
-
-            # If no match or display name failed, validate manually and construct
-            validate_extension_id(extension_id)
-            validate_python_package_name(to_snake_case(extension_id))
-            validate_npm_package_name(extension_id)
-
-            return ExtensionNames(
-                name=display_name,
-                id=extension_id,
-                mf_name=kebab_to_camel_case(extension_id),
-                backend_name=kebab_to_snake_case(extension_id),
-                backend_package=f"superset_extensions.{kebab_to_snake_case(extension_id)}",
-                backend_entry=f"superset_extensions.{kebab_to_snake_case(extension_id)}.entrypoint",
-            )
-
+            validate_technical_name(technical_name)
         except ExtensionNameError as e:
             click.secho(f"❌ {e}", fg="red")
-            # If the error came from generate_extension_names, stop trying it
-            if "display_name" in str(e) or not display_name_failed:
-                display_name_failed = True
-            extension_id = click.prompt("Extension ID", type=str)
+            sys.exit(1)
+    else:
+        # Suggest technical name from display name
+        try:
+            suggested_technical = suggest_technical_name(display_name)
+        except ExtensionNameError:
+            suggested_technical = "extension"
+
+        while True:
+            technical_name = click.prompt(
+                f"Extension name ({suggested_technical})",
+                default=suggested_technical,
+                type=str,
+            )
+            try:
+                validate_technical_name(technical_name)
+                break
+            except ExtensionNameError as e:
+                click.secho(f"❌ {e}", fg="red")
+
+    # Step 3: Get publisher
+    if publisher_opt:
+        publisher = publisher_opt
+        try:
+            validate_publisher(publisher)
+        except ExtensionNameError as e:
+            click.secho(f"❌ {e}", fg="red")
+            sys.exit(1)
+    else:
+        while True:
+            publisher = click.prompt("Publisher (e.g., my-org)", type=str)
+            try:
+                validate_publisher(publisher)
+                break
+            except ExtensionNameError as e:
+                click.secho(f"❌ {e}", fg="red")
+
+    # Generate all name variants
+    try:
+        return generate_extension_names(display_name, publisher, technical_name)
+    except ExtensionNameError as e:
+        click.secho(f"❌ {e}", fg="red")
+        sys.exit(1)
 
 
 @app.command()
 @click.option(
-    "--id",
-    "id_opt",
+    "--publisher",
+    "publisher_opt",
     default=None,
-    help="Extension ID (kebab-case, e.g. hello-world)",
+    help="Publisher namespace (kebab-case, e.g. my-org)",
 )
 @click.option(
-    "--name", "name_opt", default=None, help="Extension display name (e.g. Hello World)"
+    "--name",
+    "name_opt",
+    default=None,
+    help="Technical extension name (kebab-case, e.g. dashboard-widgets)",
+)
+@click.option(
+    "--display-name",
+    "display_name_opt",
+    default=None,
+    help="Extension display name (e.g. Dashboard Widgets)",
 )
 @click.option(
     "--version", "version_opt", default=None, help="Initial version (default: 0.1.0)"
@@ -550,15 +537,16 @@ def prompt_for_extension_name(
     "--backend/--no-backend", "backend_opt", default=None, help="Include backend"
 )
 def init(
-    id_opt: str | None,
+    publisher_opt: str | None,
     name_opt: str | None,
+    display_name_opt: str | None,
     version_opt: str | None,
     license_opt: str | None,
     frontend_opt: bool | None,
     backend_opt: bool | None,
 ) -> None:
     # Get extension names with graceful validation
-    names = prompt_for_extension_name(name_opt, id_opt)
+    names = prompt_for_extension_info(display_name_opt, publisher_opt, name_opt)
 
     version = version_opt or click.prompt("Initial version", default="0.1.0")
     license_ = license_opt or click.prompt("License", default="Apache-2.0")
@@ -618,7 +606,7 @@ def init(
         (frontend_src_dir / "index.tsx").write_text(index_tsx)
         click.secho("✅ Created frontend folder structure", fg="green")
 
-    # Initialize backend files with superset_extensions namespace
+    # Initialize backend files with superset_extensions.publisher.name structure
     if include_backend:
         backend_dir = target_dir / "backend"
         backend_dir.mkdir()
@@ -629,8 +617,14 @@ def init(
         namespace_dir = backend_src_dir / "superset_extensions"
         namespace_dir.mkdir()
 
-        # Create extension package directory
-        extension_package_dir = namespace_dir / names["backend_name"]
+        # Create publisher directory (e.g., superset_extensions/my_org)
+        publisher_snake = kebab_to_snake_case(names["publisher"])
+        publisher_dir = namespace_dir / publisher_snake
+        publisher_dir.mkdir()
+
+        # Create extension package directory (e.g., superset_extensions/my_org/dashboard_widgets)
+        name_snake = kebab_to_snake_case(names["name"])
+        extension_package_dir = publisher_dir / name_snake
         extension_package_dir.mkdir()
 
         # backend files
@@ -639,6 +633,7 @@ def init(
 
         # Namespace package __init__.py (empty for namespace)
         (namespace_dir / "__init__.py").write_text("")
+        (publisher_dir / "__init__.py").write_text("")
 
         # Extension package files
         init_py = env.get_template("backend/src/package/__init__.py.j2").render(ctx)
@@ -651,7 +646,7 @@ def init(
         click.secho("✅ Created backend folder structure", fg="green")
 
     click.secho(
-        f"🎉 Extension {names['name']} (ID: {names['id']}) initialized at {target_dir}",
+        f"🎉 Extension {names['display_name']} (ID: {names['id']}) initialized at {target_dir}",
         fg="cyan",
     )
 

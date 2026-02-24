@@ -51,36 +51,39 @@ Use the CLI to scaffold a new extension project. Extensions can include frontend
 superset-extensions init
 ```
 
-The CLI will prompt you for information:
+The CLI will prompt you for information using a three-step publisher workflow:
 
 ```
-Extension name (e.g. Hello World): Hello World
-Extension ID [hello-world]: hello-world
+Extension display name: Hello World
+Extension name (hello-world): hello-world
+Publisher (e.g., my-org): my-org
 Initial version [0.1.0]: 0.1.0
 License [Apache-2.0]: Apache-2.0
 Include frontend? [Y/n]: Y
 Include backend? [Y/n]: Y
 ```
 
-**Important**: The extension ID must be **globally unique** across all Superset extensions and serves as the basis for all technical identifiers:
-- **Frontend package name**: `hello-world` (same as ID, used in package.json)
-- **Webpack Module Federation name**: `helloWorld` (camelCase from ID)
-- **Backend package name**: `hello_world` (snake_case from ID, used in project.toml)
-- **Python namespace**: `superset_extensions.hello_world`
+**Publisher Namespaces**: Extensions use organizational namespaces similar to VS Code extensions, providing collision-safe naming across organizations:
+- **NPM package**: `@my-org/hello-world` (scoped package for frontend distribution)
+- **Module Federation name**: `myOrg_helloWorld` (collision-safe JavaScript identifier)
+- **Backend package**: `my_org-hello_world` (collision-safe Python distribution name)
+- **Python namespace**: `superset_extensions.my_org.hello_world`
 
-This ensures consistent naming across all technical components, even when the display name differs significantly from the ID. Since all technical names derive from the extension ID, choosing a unique ID automatically ensures all generated names are also unique, preventing conflicts between extensions.
+This approach ensures that extensions from different organizations cannot conflict, even if they use the same technical name (e.g., both `acme.dashboard-widgets` and `corp.dashboard-widgets` can coexist).
 
 This creates a complete project structure:
 
 ```
-hello-world/
+my-org.hello-world/
 ├── extension.json           # Extension metadata and configuration
 ├── backend/                 # Backend Python code
 │   ├── src/
 │   │   └── superset_extensions/
-│   │       └── hello_world/
+│   │       └── my_org/
 │   │           ├── __init__.py
-│   │           └── entrypoint.py  # Backend registration
+│   │           └── hello_world/
+│   │               ├── __init__.py
+│   │               └── entrypoint.py  # Backend registration
 │   └── pyproject.toml
 └── frontend/                # Frontend TypeScript/React code
     ├── src/
@@ -96,8 +99,9 @@ The generated `extension.json` contains basic metadata. Update it to register yo
 
 ```json
 {
-  "id": "hello-world",
-  "name": "Hello World",
+  "publisher": "my-org",
+  "name": "hello-world",
+  "displayName": "Hello World",
   "version": "0.1.0",
   "license": "Apache-2.0",
   "frontend": {
@@ -106,7 +110,7 @@ The generated `extension.json` contains basic metadata. Update it to register yo
         "sqllab": {
           "panels": [
             {
-              "id": "hello-world.main",
+              "id": "my-org.hello-world.main",
               "name": "Hello World"
             }
           ]
@@ -115,29 +119,32 @@ The generated `extension.json` contains basic metadata. Update it to register yo
     },
     "moduleFederation": {
       "exposes": ["./index"],
-      "name": "helloWorld"
+      "name": "myOrg_helloWorld"
     }
   },
   "backend": {
-    "entryPoints": ["superset_extensions.hello_world.entrypoint"],
-    "files": ["backend/src/superset_extensions/hello_world/**/*.py"]
+    "entryPoints": ["superset_extensions.my_org.hello_world.entrypoint"],
+    "files": ["backend/src/superset_extensions/my_org/hello_world/**/*.py"]
   },
   "permissions": ["can_read"]
 }
 ```
 
-**Note**: The `moduleFederation.name` is automatically derived from the extension ID (`hello-world` → `helloWorld`), and backend entry points use the full Python namespace (`superset_extensions.hello_world`).
+**Note**: The `moduleFederation.name` uses collision-safe naming (`myOrg_helloWorld`), and backend entry points use the full nested Python namespace (`superset_extensions.my_org.hello_world`).
 
 **Key fields:**
 
+- `publisher`: Organizational namespace for the extension
+- `name`: Technical identifier (kebab-case)
+- `displayName`: Human-readable name shown to users
 - `frontend.contributions.views.sqllab.panels`: Registers your panel in SQL Lab
 - `backend.entryPoints`: Python modules to load eagerly when extension starts
 
 ## Step 4: Create Backend API
 
-The CLI generated a basic `backend/src/superset_extensions/hello_world/entrypoint.py`. We'll create an API endpoint.
+The CLI generated a basic `backend/src/superset_extensions/my_org/hello_world/entrypoint.py`. We'll create an API endpoint.
 
-**Create `backend/src/superset_extensions/hello_world/api.py`**
+**Create `backend/src/superset_extensions/my_org/hello_world/api.py`**
 
 ```python
 from flask import Response
@@ -186,10 +193,10 @@ class HelloWorldAPI(RestApi):
 - Extends `RestApi` from `superset_core.api.types.rest_api`
 - Uses Flask-AppBuilder decorators (`@expose`, `@protect`, `@safe`)
 - Returns responses using `self.response(status_code, result=data)`
-- The endpoint will be accessible at `/extensions/hello-world/message`
+- The endpoint will be accessible at `/extensions/my-org/hello-world/message`
 - OpenAPI docstrings are crucial - Flask-AppBuilder uses them to automatically generate interactive API documentation at `/swagger/v1`, allowing developers to explore endpoints, understand schemas, and test the API directly from the browser
 
-**Update `backend/src/superset_extensions/hello_world/entrypoint.py`**
+**Update `backend/src/superset_extensions/my_org/hello_world/entrypoint.py`**
 
 Replace the generated print statement with API registration:
 
@@ -213,7 +220,7 @@ The `@apache-superset/core` package must be listed in both `peerDependencies` (t
 
 ```json
 {
-  "name": "hello-world",
+  "name": "@my-org/hello-world",
   "version": "0.1.0",
   "private": true,
   "license": "Apache-2.0",
@@ -264,7 +271,7 @@ module.exports = (env, argv) => {
       chunkFilename: "[name].[contenthash].js",
       clean: true,
       path: path.resolve(__dirname, "dist"),
-      publicPath: `/api/v1/extensions/${packageConfig.name}/`,
+      publicPath: `/api/v1/extensions/my-org/hello-world/`,
     },
     resolve: {
       extensions: [".ts", ".tsx", ".js", ".jsx"],
@@ -285,7 +292,7 @@ module.exports = (env, argv) => {
     },
     plugins: [
       new ModuleFederationPlugin({
-        name: packageConfig.name,
+        name: "myOrg_helloWorld",
         filename: "remoteEntry.[contenthash].js",
         exposes: {
           "./index": "./src/index.tsx",
@@ -342,7 +349,7 @@ const HelloWorldPanel: React.FC = () => {
     const fetchMessage = async () => {
       try {
         const csrfToken = await authentication.getCSRFToken();
-        const response = await fetch('/extensions/hello-world/message', {
+        const response = await fetch('/extensions/my-org/hello-world/message', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -415,7 +422,7 @@ import HelloWorldPanel from './HelloWorldPanel';
 
 export const activate = (context: core.ExtensionContext) => {
   context.disposables.push(
-    core.registerViewProvider('hello-world.main', () => <HelloWorldPanel />),
+    core.registerViewProvider('my-org.hello-world.main', () => <HelloWorldPanel />),
   );
 };
 
@@ -425,9 +432,9 @@ export const deactivate = () => {};
 **Key patterns:**
 
 - `activate` function is called when the extension loads
-- `core.registerViewProvider` registers the component with ID `hello-world.main` (matching `extension.json`)
+- `core.registerViewProvider` registers the component with ID `my-org.hello-world.main` (matching `extension.json`)
 - `authentication.getCSRFToken()` retrieves the CSRF token for API calls
-- Fetch calls to `/extensions/{extension_id}/{endpoint}` reach your backend API
+- Fetch calls to `/extensions/{publisher}/{name}/{endpoint}` reach your backend API
 - `context.disposables.push()` ensures proper cleanup
 
 ## Step 6: Install Dependencies
@@ -456,7 +463,7 @@ This command automatically:
   - `manifest.json` - Build metadata and asset references
   - `frontend/dist/` - Built frontend assets (remoteEntry.js, chunks)
   - `backend/` - Python source files
-- Packages everything into `hello-world-0.1.0.supx` - a zip archive with the specific structure required by Superset
+- Packages everything into `my-org.hello-world-0.1.0.supx` - a zip archive with the specific structure required by Superset
 
 ## Step 8: Deploy to Superset
 
@@ -481,7 +488,7 @@ EXTENSIONS_PATH = "/path/to/extensions/folder"
 Copy your `.supx` file to the configured extensions path:
 
 ```bash
-cp hello-world-0.1.0.supx /path/to/extensions/folder/
+cp my-org.hello-world-0.1.0.supx /path/to/extensions/folder/
 ```
 
 **Restart Superset**
@@ -512,7 +519,7 @@ Here's what happens when your extension loads:
 4. **Module Federation**: Webpack loads your extension code and resolves `@apache-superset/core` to `window.superset`
 5. **Activation**: `activate()` is called, registering your view provider
 6. **Rendering**: When the user opens your panel, React renders `<HelloWorldPanel />`
-7. **API call**: Component fetches data from `/extensions/hello-world/message`
+7. **API call**: Component fetches data from `/extensions/my-org/hello-world/message`
 8. **Backend response**: Your Flask API returns the hello world message
 9. **Display**: Component shows the message to the user
 

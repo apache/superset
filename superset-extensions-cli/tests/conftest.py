@@ -46,8 +46,9 @@ def isolated_filesystem(tmp_path):
 def extension_params():
     """Default parameters for extension creation."""
     return {
-        "id": "test_extension",
-        "name": "Test Extension",
+        "publisher": "test-org",
+        "name": "test-extension",
+        "displayName": "Test Extension",
         "version": "0.1.0",
         "license": "Apache-2.0",
         "include_frontend": True,
@@ -58,25 +59,25 @@ def extension_params():
 @pytest.fixture
 def cli_input_both():
     """CLI input for creating extension with both frontend and backend."""
-    return "Test Extension\n\n0.1.0\nApache-2.0\ny\ny\n"
+    return "Test Extension\n\ntest-org\n0.1.0\nApache-2.0\ny\ny\n"
 
 
 @pytest.fixture
 def cli_input_frontend_only():
     """CLI input for creating extension with frontend only."""
-    return "Test Extension\n\n0.1.0\nApache-2.0\ny\nn\n"
+    return "Test Extension\n\ntest-org\n0.1.0\nApache-2.0\ny\nn\n"
 
 
 @pytest.fixture
 def cli_input_backend_only():
     """CLI input for creating extension with backend only."""
-    return "Test Extension\n\n0.1.0\nApache-2.0\nn\ny\n"
+    return "Test Extension\n\ntest-org\n0.1.0\nApache-2.0\nn\ny\n"
 
 
 @pytest.fixture
 def cli_input_neither():
     """CLI input for creating extension with neither frontend nor backend."""
-    return "Test Extension\n\n0.1.0\nApache-2.0\nn\nn\n"
+    return "Test Extension\n\ntest-org\n0.1.0\nApache-2.0\nn\nn\n"
 
 
 @pytest.fixture
@@ -86,10 +87,11 @@ def extension_setup_for_dev():
     def _setup(base_path: Path) -> None:
         import json
 
-        # Create extension.json
+        # Create extension.json with new structure
         extension_json = {
-            "id": "test_extension",
-            "name": "Test Extension",
+            "publisher": "test-org",
+            "name": "test-extension",
+            "displayName": "Test Extension",
             "version": "1.0.0",
             "permissions": [],
         }
@@ -113,10 +115,12 @@ def extension_setup_for_bundling():
         dist_dir = base_path / "dist"
         dist_dir.mkdir(parents=True)
 
-        # Create manifest.json
+        # Create manifest.json with composite ID
         manifest = {
-            "id": "test_extension",
-            "name": "Test Extension",
+            "id": "test-org.test-extension",
+            "publisher": "test-org",
+            "name": "test-extension",
+            "displayName": "Test Extension",
             "version": "1.0.0",
             "permissions": [],
         }
@@ -128,8 +132,15 @@ def extension_setup_for_bundling():
         (frontend_dir / "remoteEntry.abc123.js").write_text("// remote entry")
         (frontend_dir / "main.js").write_text("// main js")
 
-        # Create some backend files
-        backend_dir = dist_dir / "backend" / "src" / "test_extension"
+        # Create some backend files - updated path structure
+        backend_dir = (
+            dist_dir
+            / "backend"
+            / "src"
+            / "superset_extensions"
+            / "test_org"
+            / "test_extension"
+        )
         backend_dir.mkdir(parents=True)
         (backend_dir / "__init__.py").write_text("# init")
 

@@ -42,12 +42,15 @@ def jinja_env(templates_dir):
 def template_context():
     """Default template context for testing."""
     return {
-        "name": "Test Extension",
-        "id": "test-extension",
-        "mf_name": "testExtension",
-        "backend_name": "test_extension",
-        "backend_package": "superset_extensions.test_extension",
-        "backend_entry": "superset_extensions.test_extension.entrypoint",
+        "publisher": "test-org",
+        "name": "test-extension",
+        "display_name": "Test Extension",
+        "id": "test-org.test-extension",
+        "npm_name": "@test-org/test-extension",
+        "mf_name": "testOrg_testExtension",
+        "backend_package": "test_org-test_extension",
+        "backend_path": "superset_extensions.test_org.test_extension",
+        "backend_entry": "superset_extensions.test_org.test_extension.entrypoint",
         "version": "0.1.0",
         "license": "Apache-2.0",
         "include_frontend": True,
@@ -68,8 +71,9 @@ def test_extension_json_template_renders_with_both_frontend_and_backend(
     parsed = json.loads(rendered)
 
     # Verify basic fields
-    assert parsed["id"] == "test-extension"
-    assert parsed["name"] == "Test Extension"
+    assert parsed["publisher"] == "test-org"
+    assert parsed["name"] == "test-extension"
+    assert parsed["displayName"] == "Test Extension"
     assert parsed["version"] == "0.1.0"
     assert parsed["license"] == "Apache-2.0"
     assert parsed["permissions"] == []
@@ -79,18 +83,25 @@ def test_extension_json_template_renders_with_both_frontend_and_backend(
     frontend = parsed["frontend"]
     assert "contributions" in frontend
     assert "moduleFederation" in frontend
-    assert frontend["contributions"] == {"commands": [], "views": {}, "menus": {}}
+    assert frontend["contributions"] == {
+        "commands": [],
+        "views": {},
+        "menus": {},
+        "editors": [],
+    }
     assert frontend["moduleFederation"] == {
         "exposes": ["./index"],
-        "name": "testExtension",
+        "name": "testOrg_testExtension",
     }
 
     # Verify backend section exists
     assert "backend" in parsed
     backend = parsed["backend"]
-    assert backend["entryPoints"] == ["superset_extensions.test_extension.entrypoint"]
+    assert backend["entryPoints"] == [
+        "superset_extensions.test_org.test_extension.entrypoint"
+    ]
     assert backend["files"] == [
-        "backend/src/superset_extensions/test_extension/**/*.py"
+        "backend/src/superset_extensions/test_org/test_extension/**/*.py"
     ]
 
 
@@ -136,7 +147,7 @@ def test_frontend_package_json_template_renders_correctly(jinja_env, template_co
     parsed = json.loads(rendered)
 
     # Verify basic package info
-    assert parsed["name"] == "test-extension"
+    assert parsed["name"] == "@test-org/test-extension"
     assert parsed["version"] == "0.1.0"
     assert parsed["license"] == "Apache-2.0"
     assert parsed["private"] is True
@@ -170,7 +181,7 @@ def test_backend_pyproject_toml_template_renders_correctly(jinja_env, template_c
     rendered = template.render(template_context)
 
     # Basic content verification (without full TOML parsing)
-    assert "test_extension" in rendered
+    assert "test_org-test_extension" in rendered
     assert "0.1.0" in rendered
     assert "Apache-2.0" in rendered
 
@@ -178,34 +189,36 @@ def test_backend_pyproject_toml_template_renders_correctly(jinja_env, template_c
 # Template Rendering with Different Parameters Tests
 @pytest.mark.unit
 @pytest.mark.parametrize(
-    "extension_id,name,backend_name",
+    "publisher,technical_name,display_name",
     [
-        ("simple-extension", "Simple Extension", "simple_extension"),
-        ("my-extension-123", "My Extension 123", "my_extension_123"),
-        (
-            "complex-extension-name-123",
-            "Complex Extension Name 123",
-            "complex_extension_name_123",
-        ),
-        ("ext", "Ext", "ext"),
+        ("test-org", "simple-extension", "Simple Extension"),
+        ("acme", "my-extension-123", "My Extension 123"),
+        ("company", "complex-extension-name-123", "Complex Extension Name 123"),
+        ("pub", "ext", "Ext"),
     ],
 )
 def test_template_rendering_with_different_ids(
-    jinja_env, extension_id, name, backend_name
+    jinja_env, publisher, technical_name, display_name
 ):
-    """Test templates render correctly with various extension ids/names."""
-    # Generate camelCase name for webpack from extension ID (new ID-based approach)
-    from superset_extensions_cli.utils import kebab_to_camel_case
+    """Test templates render correctly with various publisher/name combinations."""
+    from superset_extensions_cli.utils import (
+        get_module_federation_name,
+        kebab_to_snake_case,
+    )
 
-    mf_name = kebab_to_camel_case(extension_id)
+    publisher_snake = kebab_to_snake_case(publisher)
+    name_snake = kebab_to_snake_case(technical_name)
 
     context = {
-        "id": extension_id,
-        "name": name,
-        "mf_name": mf_name,
-        "backend_name": backend_name,
-        "backend_package": f"superset_extensions.{backend_name}",
-        "backend_entry": f"superset_extensions.{backend_name}.entrypoint",
+        "publisher": publisher,
+        "name": technical_name,
+        "display_name": display_name,
+        "id": f"{publisher}.{technical_name}",
+        "npm_name": f"@{publisher}/{technical_name}",
+        "mf_name": get_module_federation_name(publisher, technical_name),
+        "backend_package": f"{publisher_snake}-{name_snake}",
+        "backend_path": f"superset_extensions.{publisher_snake}.{name_snake}",
+        "backend_entry": f"superset_extensions.{publisher_snake}.{name_snake}.entrypoint",
         "version": "1.0.0",
         "license": "MIT",
         "include_frontend": True,
@@ -217,13 +230,14 @@ def test_template_rendering_with_different_ids(
     rendered = template.render(context)
     parsed = json.loads(rendered)
 
-    assert parsed["id"] == extension_id
-    assert parsed["name"] == name
+    assert parsed["publisher"] == publisher
+    assert parsed["name"] == technical_name
+    assert parsed["displayName"] == display_name
     assert parsed["backend"]["entryPoints"] == [
-        f"superset_extensions.{backend_name}.entrypoint"
+        f"superset_extensions.{publisher_snake}.{name_snake}.entrypoint"
     ]
     assert parsed["backend"]["files"] == [
-        f"backend/src/superset_extensions/{backend_name}/**/*.py"
+        f"backend/src/superset_extensions/{publisher_snake}/{name_snake}/**/*.py"
     ]
 
     # Test package.json template
@@ -231,13 +245,13 @@ def test_template_rendering_with_different_ids(
     rendered = template.render(context)
     parsed = json.loads(rendered)
 
-    assert parsed["name"] == extension_id
+    assert parsed["name"] == f"@{publisher}/{technical_name}"
 
     # Test pyproject.toml template
     template = jinja_env.get_template("backend/pyproject.toml.j2")
     rendered = template.render(context)
 
-    assert f"superset_extensions.{backend_name}" in rendered
+    assert f"{publisher_snake}-{name_snake}" in rendered
 
 
 @pytest.mark.unit
@@ -245,9 +259,12 @@ def test_template_rendering_with_different_ids(
 def test_template_rendering_with_different_versions(jinja_env, version):
     """Test templates render correctly with various version formats."""
     context = {
-        "id": "test_ext",
-        "name": "Test Extension",
-        "mf_name": "testExtension",
+        "publisher": "test-pub",
+        "name": "test-ext",
+        "display_name": "Test Extension",
+        "id": "test-pub.test-ext",
+        "npm_name": "@test-pub/test-ext",
+        "mf_name": "testPub_testExt",
         "version": version,
         "license": "Apache-2.0",
         "include_frontend": True,
@@ -275,12 +292,15 @@ def test_template_rendering_with_different_versions(jinja_env, version):
 def test_template_rendering_with_different_licenses(jinja_env, license_type):
     """Test templates render correctly with various license types."""
     context = {
-        "id": "test_ext",
-        "name": "Test Extension",
-        "mf_name": "testExtension",
-        "backend_name": "test_ext",
-        "backend_package": "superset_extensions.test_ext",
-        "backend_entry": "superset_extensions.test_ext.entrypoint",
+        "publisher": "test-pub",
+        "name": "test-ext",
+        "display_name": "Test Extension",
+        "id": "test-pub.test-ext",
+        "npm_name": "@test-pub/test-ext",
+        "mf_name": "testPub_testExt",
+        "backend_package": "test_pub-test_ext",
+        "backend_path": "superset_extensions.test_pub.test_ext",
+        "backend_entry": "superset_extensions.test_pub.test_ext.entrypoint",
         "version": "1.0.0",
         "license": license_type,
         "include_frontend": True,
@@ -345,12 +365,15 @@ def test_template_context_edge_cases(jinja_env):
     """Test template rendering with edge case contexts."""
     # Test with minimal context
     minimal_context = {
-        "id": "minimal",
-        "name": "Minimal",
-        "mf_name": "minimal",
-        "backend_name": "minimal",
-        "backend_package": "superset_extensions.minimal",
-        "backend_entry": "superset_extensions.minimal.entrypoint",
+        "publisher": "min",
+        "name": "minimal",
+        "display_name": "Minimal",
+        "id": "min.minimal",
+        "npm_name": "@min/minimal",
+        "mf_name": "min_minimal",
+        "backend_package": "min-minimal",
+        "backend_path": "superset_extensions.min.minimal",
+        "backend_entry": "superset_extensions.min.minimal.entrypoint",
         "version": "1.0.0",
         "license": "MIT",
         "include_frontend": False,
@@ -362,7 +385,8 @@ def test_template_context_edge_cases(jinja_env):
     parsed = json.loads(rendered)
 
     # Should still be valid JSON with basic fields
-    assert parsed["id"] == "minimal"
-    assert parsed["name"] == "Minimal"
+    assert parsed["publisher"] == "min"
+    assert parsed["name"] == "minimal"
+    assert parsed["displayName"] == "Minimal"
     assert "frontend" not in parsed
     assert "backend" not in parsed
