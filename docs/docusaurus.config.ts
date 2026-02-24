@@ -176,7 +176,7 @@ if (!versionsConfig.admin_docs.disabled) {
       },
       {
         label: 'Database Drivers',
-        href: '/user-docs/databases',
+        href: '/user-docs/databases/',
       },
       {
         type: 'doc',
@@ -401,7 +401,7 @@ const config: Config = {
             from: '/gallery.html',
           },
           {
-            to: '/user-docs/databases',
+            to: '/user-docs/databases/',
             from: '/druid.html',
           },
           {
@@ -453,7 +453,7 @@ const config: Config = {
             from: '/docs/contributing/contribution-page',
           },
           {
-            to: '/user-docs/databases',
+            to: '/user-docs/databases/',
             from: '/docs/databases/yugabyte/',
           },
           {

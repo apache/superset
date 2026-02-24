@@ -34,7 +34,7 @@ This section contains documentation for system administrators and operators who 
 
 ## Related
 
-- **[Database Drivers](/user-docs/databases)** - See User Docs for database connection setup (admins may need to install drivers)
+- **[Database Drivers](/user-docs/databases/)** - See User Docs for database connection setup (admins may need to install drivers)
 
 ## Looking for something else?
 
