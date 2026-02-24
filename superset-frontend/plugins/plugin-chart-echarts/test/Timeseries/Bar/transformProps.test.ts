@@ -542,5 +542,96 @@ describe('Bar Chart X-axis Time Formatting', () => {
       const legend = transformedProps.echartOptions.legend as any;
       expect(legend.selectedMode).not.toBe(false);
     });
+
+    test('should use category axis (Y) as color key for horizontal bar charts', () => {
+      const formData = {
+        ...baseFormData,
+        colorByPrimaryAxis: true,
+        groupby: [],
+        orientation: 'horizontal',
+        x_axis: 'category',
+        metric: 'value',
+      };
+
+      const chartProps = new ChartProps({
+        ...baseChartPropsConfig,
+        queriesData: categoricalData,
+        formData,
+      });
+
+      const transformedProps = transformProps(
+        chartProps as unknown as EchartsTimeseriesChartProps,
+      );
+
+      // Legend should contain category values (A, B, C), not numeric values
+      const legendData = transformedProps.legendData as string[];
+      expect(legendData).toContain('A');
+      expect(legendData).toContain('B');
+      expect(legendData).toContain('C');
+    });
+
+    test('should deduplicate legend entries when x-axis has repeated values', () => {
+      const repeatedData = [
+        {
+          data: [
+            { category: 'A', value: 100 },
+            { category: 'A', value: 200 },
+            { category: 'B', value: 150 },
+          ],
+          colnames: ['category', 'value'],
+          coltypes: ['STRING', 'BIGINT'],
+        },
+      ];
+
+      const formData = {
+        ...baseFormData,
+        colorByPrimaryAxis: true,
+        groupby: [],
+        x_axis: 'category',
+        metric: 'value',
+      };
+
+      const chartProps = new ChartProps({
+        ...baseChartPropsConfig,
+        queriesData: repeatedData,
+        formData,
+      });
+
+      const transformedProps = transformProps(
+        chartProps as unknown as EchartsTimeseriesChartProps,
+      );
+
+      const legendData = transformedProps.legendData as string[];
+      // 'A' should appear only once despite being in the data twice
+      expect(legendData.filter(v => v === 'A').length).toBe(1);
+      expect(legendData).toContain('B');
+    });
+
+    test('should create exactly one hidden legend series per unique category', () => {
+      const formData = {
+        ...baseFormData,
+        colorByPrimaryAxis: true,
+        groupby: [],
+        x_axis: 'category',
+        metric: 'value',
+      };
+
+      const chartProps = new ChartProps({
+        ...baseChartPropsConfig,
+        queriesData: categoricalData,
+        formData,
+      });
+
+      const transformedProps = transformProps(
+        chartProps as unknown as EchartsTimeseriesChartProps,
+      );
+
+      const series = transformedProps.echartOptions.series as any[];
+      const hiddenSeries = series.filter(
+        s => s.type === 'line' && Array.isArray(s.data) && s.data.length === 0,
+      );
+      // One hidden series per unique category (A, B, C)
+      expect(hiddenSeries.length).toBe(3);
+    });
   });
 });
