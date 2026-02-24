@@ -228,17 +228,20 @@ def get_extensions() -> dict[str, LoadedExtension]:
 
     # Load extensions from LOCAL_EXTENSIONS configuration (filesystem paths)
     for path in current_app.config["LOCAL_EXTENSIONS"]:
-        files = get_bundle_files_from_path(path)
-        # Use absolute filesystem path to dist directory for tracebacks
-        abs_dist_path = str((Path(path) / "dist").resolve())
-        extension = get_loaded_extension(files, source_base_path=abs_dist_path)
-        extension_id = extension.manifest.id
-        extensions[extension_id] = extension
-        logger.info(
-            "Loading extension %s (ID: %s) from local filesystem",
-            extension.name,
-            extension_id,
-        )
+        try:
+            files = get_bundle_files_from_path(path)
+            # Use absolute filesystem path to dist directory for tracebacks
+            abs_dist_path = str((Path(path) / "dist").resolve())
+            extension = get_loaded_extension(files, source_base_path=abs_dist_path)
+            extension_id = extension.manifest.id
+            extensions[extension_id] = extension
+            logger.info(
+                "Loading extension %s (ID: %s) from local filesystem",
+                extension.name,
+                extension_id,
+            )
+        except Exception as e:  # pylint: disable=broad-except
+            logger.error("Failed to load extension from %s: %s", path, e)
 
     # Load extensions from discovery path (.supx files)
     if extensions_path := current_app.config.get("EXTENSIONS_PATH"):
