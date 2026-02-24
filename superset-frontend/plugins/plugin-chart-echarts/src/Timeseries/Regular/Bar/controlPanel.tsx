@@ -40,7 +40,8 @@ import {
   xAxisBounds,
   xAxisLabelRotation,
   xAxisLabelInterval,
-  forceMaxInterval, colorByPrimaryAxisSection,
+  forceMaxInterval,
+  colorByPrimaryAxisSection,
 } from '../../../controls';
 
 import { OrientationType } from '../../types';

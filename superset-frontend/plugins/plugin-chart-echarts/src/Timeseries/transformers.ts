@@ -186,10 +186,14 @@ export function applyColorByPrimaryAxis(
   colorScale: CategoricalColorScale,
   sliceId: number | undefined,
   opacity: number,
-): { value: [string | number, number]; itemStyle: { color: string; opacity: number; borderWidth: number } }[] {
+  isHorizontal = false,
+): {
+  value: [string | number, number];
+  itemStyle: { color: string; opacity: number; borderWidth: number };
+}[] {
   return (series.data as [string | number, number][]).map(value => {
-    // Use x-axis value as color key so same values get same colors across charts
-    const colorKey = String(value[0]);
+    // For horizontal charts the primary axis is index 1 (category), not index 0 (numeric)
+    const colorKey = String(isHorizontal ? value[1] : value[0]);
 
     return {
       value,
@@ -374,7 +378,15 @@ export function transformSeries(
     ...series,
     ...(Array.isArray(data)
       ? colorByPrimaryAxis
-        ? { data: applyColorByPrimaryAxis(series, colorScale, sliceId, opacity) }
+        ? {
+            data: applyColorByPrimaryAxis(
+              series,
+              colorScale,
+              sliceId,
+              opacity,
+              isHorizontal,
+            ),
+          }
         : seriesType === 'bar' && !stack
           ? { data: optimizeBarLabelPlacement(series, isHorizontal) }
           : null

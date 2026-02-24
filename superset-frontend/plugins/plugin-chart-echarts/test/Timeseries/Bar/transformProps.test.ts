@@ -365,7 +365,7 @@ describe('Bar Chart X-axis Time Formatting', () => {
       },
     ];
 
-    it('should apply color by x-axis when enabled with no dimensions', () => {
+    test('should apply color by x-axis when enabled with no dimensions', () => {
       const formData = {
         ...baseFormData,
         colorByPrimaryAxis: true,
@@ -403,7 +403,7 @@ describe('Bar Chart X-axis Time Formatting', () => {
       }
     });
 
-    it('should NOT apply color by x-axis when dimensions are present', () => {
+    test('should NOT apply color by x-axis when dimensions are present', () => {
       const formData = {
         ...baseFormData,
         colorByPrimaryAxis: true,
@@ -416,7 +416,6 @@ describe('Bar Chart X-axis Time Formatting', () => {
         ...baseChartPropsConfig,
         queriesData: categoricalData,
         formData,
-
       });
 
       const transformedProps = transformProps(
@@ -429,7 +428,7 @@ describe('Bar Chart X-axis Time Formatting', () => {
       expect(legendData.length).toBeLessThan(10);
     });
 
-    it('should use x-axis values as color keys for consistent colors', () => {
+    test('should use x-axis values as color keys for consistent colors', () => {
       const formData = {
         ...baseFormData,
         colorByPrimaryAxis: true,
@@ -442,7 +441,6 @@ describe('Bar Chart X-axis Time Formatting', () => {
         ...baseChartPropsConfig,
         queriesData: categoricalData,
         formData,
-
       });
 
       const transformedProps = transformProps(
@@ -460,14 +458,18 @@ describe('Bar Chart X-axis Time Formatting', () => {
       // Check that data points have individual itemStyle with colors
       if (dataSeries && Array.isArray(dataSeries.data)) {
         const dataPoint = dataSeries.data[0];
-        if (dataPoint && typeof dataPoint === 'object' && 'itemStyle' in dataPoint) {
+        if (
+          dataPoint &&
+          typeof dataPoint === 'object' &&
+          'itemStyle' in dataPoint
+        ) {
           expect(dataPoint.itemStyle).toBeDefined();
           expect(dataPoint.itemStyle.color).toBeDefined();
         }
       }
     });
 
-    it('should disable legend selection when color by x-axis is enabled', () => {
+    test('should disable legend selection when color by x-axis is enabled', () => {
       const formData = {
         ...baseFormData,
         colorByPrimaryAxis: true,
@@ -480,7 +482,6 @@ describe('Bar Chart X-axis Time Formatting', () => {
         ...baseChartPropsConfig,
         queriesData: categoricalData,
         formData,
-
       });
 
       const transformedProps = transformProps(
@@ -492,7 +493,7 @@ describe('Bar Chart X-axis Time Formatting', () => {
       expect(legend.selector).toBe(false);
     });
 
-    it('should work without stacking enabled', () => {
+    test('should work without stacking enabled', () => {
       const formData = {
         ...baseFormData,
         colorByPrimaryAxis: true,
@@ -506,7 +507,6 @@ describe('Bar Chart X-axis Time Formatting', () => {
         ...baseChartPropsConfig,
         queriesData: categoricalData,
         formData,
-
       });
 
       const transformedProps = transformProps(
@@ -519,7 +519,7 @@ describe('Bar Chart X-axis Time Formatting', () => {
       expect(legendData).toContain('A');
     });
 
-    it('should handle when colorByPrimaryAxis is disabled', () => {
+    test('should handle when colorByPrimaryAxis is disabled', () => {
       const formData = {
         ...baseFormData,
         colorByPrimaryAxis: false,
@@ -532,7 +532,6 @@ describe('Bar Chart X-axis Time Formatting', () => {
         ...baseChartPropsConfig,
         queriesData: categoricalData,
         formData,
-
       });
 
       const transformedProps = transformProps(

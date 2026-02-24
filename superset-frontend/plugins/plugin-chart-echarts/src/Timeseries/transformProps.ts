@@ -452,14 +452,16 @@ export default function transformProps(
     if (firstSeries && Array.isArray(firstSeries.data)) {
       const xAxisValues: (string | number)[] = [];
 
-      // Extract x-axis values
+      // Extract primary axis values (category axis)
+      // For horizontal charts the category is at index 1, for vertical at index 0
+      const primaryAxisIndex = isHorizontal ? 1 : 0;
       (firstSeries.data as any[]).forEach(point => {
         let xValue;
         if (point && typeof point === 'object' && 'value' in point) {
           const val = point.value;
-          xValue = Array.isArray(val) ? val[0] : val;
+          xValue = Array.isArray(val) ? val[primaryAxisIndex] : val;
         } else if (Array.isArray(point)) {
-          xValue = point[0];
+          xValue = point[primaryAxisIndex];
         } else {
           xValue = point;
         }
@@ -467,10 +469,14 @@ export default function transformProps(
       });
 
       // Create hidden series for legend (using 'line' type to not affect bar width)
-      xAxisValues.forEach(xValue => {
-        const colorKey = String(xValue);
+      // Deduplicate x-axis values to avoid duplicate legend entries and unnecessary series
+      const uniqueXAxisValues = Array.from(
+        new Set(xAxisValues.map(v => String(v))),
+      );
+      uniqueXAxisValues.forEach(xValue => {
+        const colorKey = xValue;
         series.push({
-          name: String(xValue),
+          name: xValue,
           type: 'line', // Use line type to not affect bar positioning
           data: [], // Empty - doesn't render
           itemStyle: {
@@ -641,34 +647,43 @@ export default function transformProps(
     isHorizontal,
   );
 
-  const legendData = colorByPrimaryAxis && groupBy.length === 0 && series.length > 0
-    ? // When colorByPrimaryAxis is enabled, show only x-axis values
-    (() => {
-      const firstSeries = series[0];
-      if (firstSeries && Array.isArray(firstSeries.data)) {
-        return (firstSeries.data as any[]).map(point => {
-          if (point && typeof point === 'object' && 'value' in point) {
-            const val = point.value;
-            return String(Array.isArray(val) ? val[0] : val);
-          } else if (Array.isArray(point)) {
-            return String(point[0]);
-          } else {
-            return String(point);
+  const legendData =
+    colorByPrimaryAxis && groupBy.length === 0 && series.length > 0
+      ? // When colorByPrimaryAxis is enabled, show only primary axis values (deduped + filtered)
+        (() => {
+          const firstSeries = series[0];
+          // For horizontal charts the category is at index 1, for vertical at index 0
+          const primaryAxisIndex = isHorizontal ? 1 : 0;
+          if (firstSeries && Array.isArray(firstSeries.data)) {
+            const names = (firstSeries.data as any[])
+              .map(point => {
+                if (point && typeof point === 'object' && 'value' in point) {
+                  const val = point.value;
+                  return String(
+                    Array.isArray(val) ? val[primaryAxisIndex] : val,
+                  );
+                }
+                if (Array.isArray(point)) {
+                  return String(point[primaryAxisIndex]);
+                }
+                return String(point);
+              })
+              .filter(
+                name => name !== '' && name !== 'undefined' && name !== 'null',
+              );
+            return Array.from(new Set(names));
           }
-        });
-      }
-      return [];
-    })()
-    : // Otherwise show original series names
-    rawSeries
-      .filter(
-        entry =>
-          extractForecastSeriesContext(entry.name || '').type ===
-          ForecastSeriesEnum.Observation,
-      )
-      .map(entry => entry.name || '')
-      .concat(extractAnnotationLabels(annotationLayers));
-
+          return [];
+        })()
+      : // Otherwise show original series names
+        rawSeries
+          .filter(
+            entry =>
+              extractForecastSeriesContext(entry.name || '').type ===
+              ForecastSeriesEnum.Observation,
+          )
+          .map(entry => entry.name || '')
+          .concat(extractAnnotationLabels(annotationLayers));
 
   let xAxis: any = {
     type: xAxisType,
@@ -861,23 +876,26 @@ export default function transformProps(
         padding,
       ),
       scrollDataIndex: legendIndex || 0,
-      data: colorByPrimaryAxis && groupBy.length === 0
-        ? // When colorByPrimaryAxis, configure legend items with roundRect icons
-        legendData.map(name => ({
-          name,
-          icon: 'roundRect',
-        }))
-        : // Otherwise use normal legend data
-        legendData.sort((a: string, b: string) => {
-          if (!legendSort) return 0;
-          return legendSort === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
-        }),
+      data:
+        colorByPrimaryAxis && groupBy.length === 0
+          ? // When colorByPrimaryAxis, configure legend items with roundRect icons
+            legendData.map(name => ({
+              name,
+              icon: 'roundRect',
+            }))
+          : // Otherwise use normal legend data
+            legendData.sort((a: string, b: string) => {
+              if (!legendSort) return 0;
+              return legendSort === 'asc'
+                ? a.localeCompare(b)
+                : b.localeCompare(a);
+            }),
       // Disable legend selection and buttons when colorByPrimaryAxis is enabled
       ...(colorByPrimaryAxis && groupBy.length === 0
         ? {
-          selectedMode: false, // Disable clicking legend items
-          selector: false, // Hide All/Invert buttons
-        }
+            selectedMode: false, // Disable clicking legend items
+            selector: false, // Hide All/Invert buttons
+          }
         : {}),
     },
     series: dedupSeries(reorderForecastSeries(series) as SeriesOption[]),
