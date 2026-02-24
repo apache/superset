@@ -102,6 +102,13 @@ jobs:
     permissions:
       id-token: write
     steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
       - name: Download Coverage Artifacts
         uses: actions/download-artifact@v7
         with:
