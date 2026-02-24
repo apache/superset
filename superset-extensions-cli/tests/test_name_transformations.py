@@ -26,7 +26,6 @@ from superset_extensions_cli.utils import (
     name_to_kebab_case,
     suggest_technical_name,
     validate_display_name,
-    validate_extension_id,
     validate_npm_package_name,
     validate_publisher,
     validate_python_package_name,
@@ -98,25 +97,24 @@ def test_kebab_to_snake_case(kebab_name, expected):
 
 
 @pytest.mark.parametrize(
-    "valid_display",
+    "valid_display,expected_normalized",
     [
-        "Hello World",
-        "Data Explorer",
-        "My Extension",
-        "Simple",
-        "   Extra   Spaces   ",  # Gets normalized
-        "Dashboard Widgets",
-        "Chart Builder Pro",
-        "API Client v2.0",
-        "Tool_123",  # Underscores allowed
-        "My-Extension",  # Hyphens allowed
+        ("Hello World", "Hello World"),
+        ("Data Explorer", "Data Explorer"),
+        ("My Extension", "My Extension"),
+        ("Simple", "Simple"),
+        ("   Extra   Spaces   ", "Extra Spaces"),  # Gets normalized
+        ("Dashboard Widgets", "Dashboard Widgets"),
+        ("Chart Builder Pro", "Chart Builder Pro"),
+        ("API Client v2.0", "API Client v2.0"),
+        ("Tool_123", "Tool_123"),  # Underscores allowed
+        ("My-Extension", "My-Extension"),  # Hyphens allowed
     ],
 )
-def test_validate_display_name_valid(valid_display):
-    """Test valid display names."""
+def test_validate_display_name_valid(valid_display, expected_normalized):
+    """Test valid display names return correctly normalized output."""
     result = validate_display_name(valid_display)
-    assert result  # Should return normalized name
-    assert "  " not in result  # No double spaces
+    assert result == expected_normalized
 
 
 @pytest.mark.parametrize(
@@ -133,43 +131,6 @@ def test_validate_display_name_invalid(invalid_display, error_match):
     """Test invalid display names."""
     with pytest.raises(ExtensionNameError, match=error_match):
         validate_display_name(invalid_display)
-
-
-# Extension ID validation tests
-
-
-@pytest.mark.parametrize(
-    "valid_id",
-    [
-        "hello-world",
-        "data-explorer",
-        "myext",
-        "chart123",
-        "my-tool-v2",
-        "a",  # Single character
-        "extension-with-many-parts",
-    ],
-)
-def test_validate_extension_id_valid(valid_id):
-    """Test valid extension IDs."""
-    # Should not raise exceptions
-    validate_extension_id(valid_id)
-
-
-@pytest.mark.parametrize(
-    "invalid_id,error_match",
-    [
-        ("", "cannot be empty"),
-        ("Hello-World", "Use lowercase"),
-        ("-hello", "cannot start with hyphens"),
-        ("hello-", "cannot end with hyphens"),
-        ("hello--world", "consecutive hyphens"),
-    ],
-)
-def test_validate_extension_id_invalid(invalid_id, error_match):
-    """Test invalid extension IDs."""
-    with pytest.raises(ExtensionNameError, match=error_match):
-        validate_extension_id(invalid_id)
 
 
 # Python package name validation tests

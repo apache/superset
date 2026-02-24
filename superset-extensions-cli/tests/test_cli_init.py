@@ -132,9 +132,9 @@ def test_init_creates_extension_with_neither_frontend_nor_backend(
 
 
 @pytest.mark.cli
-def test_init_accepts_any_display_name(cli_runner, isolated_filesystem):
-    """Test that init accepts any display name and generates proper ID."""
-    cli_input = "My Awesome Extension!\n\ntest-org\n0.1.0\nApache-2.0\ny\ny\n"
+def test_init_accepts_valid_display_name(cli_runner, isolated_filesystem):
+    """Test that init accepts valid display names and generates proper ID."""
+    cli_input = "My Awesome Extension\n\ntest-org\n0.1.0\nApache-2.0\ny\ny\n"
     result = cli_runner.invoke(app, ["init"], input=cli_input)
 
     assert result.exit_code == 0, f"Should accept display name: {result.output}"

@@ -94,8 +94,10 @@ class InMemoryFinder(importlib.abc.MetaPathFinder):
         for ns_name in namespace_packages:
             # Create a virtual __init__.py path for the namespace package
             if is_virtual_path:
-                ns_path = f"{source_base_path}/backend/src/"
-                f"{ns_name.replace('.', '/')}/__init__.py"
+                ns_path = (
+                    f"{source_base_path}/backend/src/"
+                    f"{ns_name.replace('.', '/')}/__init__.py"
+                )
             else:
                 ns_path = str(
                     Path(source_base_path)

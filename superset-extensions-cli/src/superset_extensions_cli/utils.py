@@ -87,9 +87,6 @@ NPM_RESERVED = {
     "bower_components",
 }
 
-# Extension name pattern: lowercase, start with letter or number, alphanumeric + hyphens
-EXTENSION_NAME_PATTERN = re.compile(r"^[a-z0-9][a-z0-9]*(?:-[a-z0-9]+)*$")
-
 # Compiled patterns for publisher/name validation
 PUBLISHER_REGEX = re.compile(PUBLISHER_PATTERN)
 TECHNICAL_NAME_REGEX = re.compile(TECHNICAL_NAME_PATTERN)
@@ -176,73 +173,6 @@ def name_to_kebab_case(name: str) -> str:
     return _normalized_to_kebab(normalized)
 
 
-# Legacy functions for backward compatibility
-def to_kebab_case(name: str) -> str:
-    """Convert display name to kebab-case. For new code, use name_to_kebab_case."""
-    return name_to_kebab_case(name)
-
-
-def to_snake_case(kebab_name: str) -> str:
-    """Convert kebab-case to snake_case. For new code, use kebab_to_snake_case."""
-    return kebab_to_snake_case(kebab_name)
-
-
-def validate_extension_id(extension_id: str) -> None:
-    """
-    Validate extension ID format (kebab-case).
-
-    Raises:
-        ExtensionNameError: If ID is invalid
-    """
-    if not extension_id:
-        raise ExtensionNameError("Extension ID cannot be empty")
-
-    # Check for leading/trailing hyphens first
-    if extension_id.startswith("-"):
-        raise ExtensionNameError("Extension ID cannot start with hyphens")
-
-    if extension_id.endswith("-"):
-        raise ExtensionNameError("Extension ID cannot end with hyphens")
-
-    # Check for consecutive hyphens
-    if "--" in extension_id:
-        raise ExtensionNameError("Extension ID cannot have consecutive hyphens")
-
-    # Check overall pattern
-    if not EXTENSION_NAME_PATTERN.match(extension_id):
-        raise ExtensionNameError(
-            "Use lowercase letters, numbers, and hyphens only (e.g. hello-world)"
-        )
-
-
-def validate_extension_name(name: str) -> str:
-    """
-    Validate and normalize extension name (human-readable).
-
-    Args:
-        extension_name: Raw extension name input
-
-    Returns:
-        Cleaned extension name
-
-    Raises:
-        ExtensionNameError: If extension name is invalid
-    """
-    if not name or not name.strip():
-        raise ExtensionNameError("Extension name cannot be empty")
-
-    # Normalize whitespace: strip and collapse multiple spaces
-    normalized = " ".join(name.strip().split())
-
-    # Check for only whitespace/special chars after normalization
-    if not any(c.isalnum() for c in normalized):
-        raise ExtensionNameError(
-            "Extension name must contain at least one letter or number"
-        )
-
-    return normalized
-
-
 def validate_python_package_name(name: str) -> None:
     """
     Validate Python package name (snake_case format).
@@ -294,17 +224,6 @@ def validate_publisher(publisher: str) -> None:
             "Publisher must start with a letter and contain only lowercase letters, numbers, and hyphens (e.g., 'my-org')"
         )
 
-    # Check for leading/trailing hyphens
-    if publisher.startswith("-"):
-        raise ExtensionNameError("Publisher cannot start with hyphens")
-
-    if publisher.endswith("-"):
-        raise ExtensionNameError("Publisher cannot end with hyphens")
-
-    # Check for consecutive hyphens
-    if "--" in publisher:
-        raise ExtensionNameError("Publisher cannot have consecutive hyphens")
-
 
 def validate_technical_name(name: str) -> None:
     """
@@ -323,17 +242,6 @@ def validate_technical_name(name: str) -> None:
         raise ExtensionNameError(
             "Extension name must start with a letter and contain only lowercase letters, numbers, and hyphens (e.g., 'dashboard-widgets')"
         )
-
-    # Check for leading/trailing hyphens
-    if name.startswith("-"):
-        raise ExtensionNameError("Extension name cannot start with hyphens")
-
-    if name.endswith("-"):
-        raise ExtensionNameError("Extension name cannot end with hyphens")
-
-    # Check for consecutive hyphens
-    if "--" in name:
-        raise ExtensionNameError("Extension name cannot have consecutive hyphens")
 
 
 def validate_display_name(display_name: str) -> str:
