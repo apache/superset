@@ -169,7 +169,6 @@ export default function transformProps(
     inContextMenu,
     emitCrossFilters,
     datasource,
-    isRefreshing,
   } = chartProps;
   const { data = [], detected_currency: detectedCurrency } = queriesData[0];
   const coltypeMapping = getColtypesMapping(queriesData[0]);
@@ -409,6 +408,5 @@ export default function transformProps(
     onContextMenu,
     refs,
     coltypeMapping,
-    isRefreshing,
   };
 }

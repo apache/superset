@@ -95,16 +95,8 @@ export function formatTooltip(
 }
 
 export default function transformProps(chartProps: EchartsBubbleChartProps) {
-  const {
-    height,
-    width,
-    hooks,
-    queriesData,
-    formData,
-    inContextMenu,
-    theme,
-    isRefreshing,
-  } = chartProps;
+  const { height, width, hooks, queriesData, formData, inContextMenu, theme } =
+    chartProps;
 
   const { data = [] } = queriesData[0];
   const {
@@ -271,6 +263,5 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     onContextMenu,
     setDataMask,
     formData,
-    isRefreshing,
   };
 }

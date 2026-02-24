@@ -97,7 +97,6 @@ export default function transformProps(
     theme,
     emitCrossFilters,
     datasource,
-    isRefreshing,
   } = chartProps;
   const data: DataRecord[] = queriesData[0].data || [];
   const detectedCurrency = queriesData[0]?.detected_currency;
@@ -321,6 +320,5 @@ export default function transformProps(
     onContextMenu,
     refs,
     coltypeMapping,
-    isRefreshing,
   };
 }

@@ -131,7 +131,6 @@ export default function transformProps(
     inContextMenu,
     emitCrossFilters,
     legendState,
-    isRefreshing,
   } = chartProps;
 
   let focusedSeries: string | null = null;
@@ -826,6 +825,5 @@ export default function transformProps(
     },
     refs,
     coltypeMapping,
-    isRefreshing,
   };
 }

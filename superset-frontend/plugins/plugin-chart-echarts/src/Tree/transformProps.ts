@@ -236,6 +236,5 @@ export default function transformProps(
     height,
     echartOptions,
     refs,
-    isRefreshing,
   };
 }

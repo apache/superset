@@ -594,9 +594,9 @@ test('should refresh the charts', async () => {
   expect(onRefresh).toHaveBeenCalledTimes(1);
 });
 
-test('auto-refresh uses fetchCharts and toggles refresh state', async () => {
+test('auto-refresh uses onRefresh with skipped filters and toggles refresh state', async () => {
   jest.useFakeTimers();
-  fetchCharts.mockResolvedValue(undefined);
+  onRefresh.mockResolvedValue(undefined);
 
   const originalRequestAnimationFrame = window.requestAnimationFrame;
   window.requestAnimationFrame = callback => {
@@ -619,10 +619,10 @@ test('auto-refresh uses fetchCharts and toggles refresh state', async () => {
 
     jest.advanceTimersByTime(10000);
     await waitFor(() =>
-      expect(fetchCharts).toHaveBeenCalledWith([1, 2], true, 2000, 1),
+      expect(onRefresh).toHaveBeenCalledWith([1, 2], true, 2000, 1, true),
     );
 
-    expect(onRefresh).not.toHaveBeenCalled();
+    expect(fetchCharts).not.toHaveBeenCalled();
     expect(startAutoRefresh).toHaveBeenCalled();
     expect(setStatus).toHaveBeenCalledWith(AutoRefreshStatus.Fetching);
     expect(setRefreshInFlight).toHaveBeenCalledWith(true);

@@ -87,7 +87,6 @@ export default function transformProps(chartProps: ChartProps) {
       columnFormats = {},
       currencyCodeColumn,
     },
-    isRefreshing,
   } = chartProps;
   const {
     boldText,
@@ -228,6 +227,5 @@ export default function transformProps(chartProps: ChartProps) {
     shift: timeComparison,
     dashboardTimeRange: formData?.extraFormData?.time_range,
     columnConfig,
-    isRefreshing,
   };
 }

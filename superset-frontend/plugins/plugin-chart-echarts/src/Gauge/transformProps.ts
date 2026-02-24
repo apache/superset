@@ -105,7 +105,6 @@ export default function transformProps(
     theme,
     emitCrossFilters,
     datasource,
-    isRefreshing,
   } = chartProps;
 
   const gaugeSeriesOptions = defaultGaugeSeriesOption(theme);
@@ -380,6 +379,5 @@ export default function transformProps(
     onContextMenu,
     refs,
     coltypeMapping,
-    isRefreshing,
   };
 }

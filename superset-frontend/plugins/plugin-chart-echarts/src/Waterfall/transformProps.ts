@@ -168,7 +168,6 @@ export default function transformProps(
     hooks,
     theme,
     inContextMenu,
-    isRefreshing,
   } = chartProps;
   const refs: Refs = {};
   const { data = [] } = queriesData[0];
@@ -489,6 +488,5 @@ export default function transformProps(
     setDataMask,
     onContextMenu,
     onLegendStateChanged,
-    isRefreshing,
   };
 }

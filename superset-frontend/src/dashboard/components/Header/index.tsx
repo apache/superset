@@ -347,7 +347,6 @@ const Header = (): JSX.Element => {
     timedRefreshImmuneSlices,
     autoRefreshMode,
     isLoading,
-    fetchCharts: boundActionCreators.fetchCharts,
     onRefresh: boundActionCreators.onRefresh,
     setRefreshFrequency: boundActionCreators.setRefreshFrequency,
     logEvent: boundActionCreators.logEvent,

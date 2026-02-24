@@ -46,18 +46,12 @@ type HeaderAutoRefreshProps = {
   timedRefreshImmuneSlices: number[];
   autoRefreshMode?: string;
   isLoading: boolean;
-  fetchCharts: (
-    chartIds: number[],
-    force: boolean,
-    timeout: number,
-    dashboardId: number,
-  ) => unknown;
   onRefresh: (
     chartIds: number[],
     force: boolean,
     timeout: number,
     dashboardId: number,
-    updateLastRefreshTime?: boolean,
+    skipFiltersRefresh?: boolean,
   ) => unknown;
   setRefreshFrequency: (refreshFrequency: number, editMode?: boolean) => void;
   logEvent: (
@@ -80,7 +74,6 @@ export const useHeaderAutoRefresh = ({
   timedRefreshImmuneSlices,
   autoRefreshMode,
   isLoading,
-  fetchCharts,
   onRefresh,
   setRefreshFrequency,
   logEvent,
@@ -160,7 +153,7 @@ export const useHeaderAutoRefresh = ({
         );
       } else {
         innerPromise = Promise.resolve(
-          fetchCharts(chartsToRefresh, force, interval * 0.2, dashboardId),
+          onRefresh(chartsToRefresh, force, interval * 0.2, dashboardId, true),
         );
       }
 
@@ -230,7 +223,6 @@ export const useHeaderAutoRefresh = ({
     [
       dashboardId,
       endAutoRefresh,
-      fetchCharts,
       logEvent,
       onRefresh,
       recordError,
