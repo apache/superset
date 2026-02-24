@@ -37,7 +37,7 @@ from superset_extensions_cli.utils import (
 
 
 @pytest.mark.parametrize(
-    "display_name,expected",
+    ("display_name", "expected"),
     [
         ("Hello World", "hello-world"),
         ("Data Explorer", "data-explorer"),
@@ -60,7 +60,7 @@ def test_name_to_kebab_case(display_name, expected):
 
 
 @pytest.mark.parametrize(
-    "kebab_name,expected",
+    ("kebab_name", "expected"),
     [
         ("hello-world", "helloWorld"),
         ("data-explorer", "dataExplorer"),
@@ -77,7 +77,7 @@ def test_kebab_to_camel_case(kebab_name, expected):
 
 
 @pytest.mark.parametrize(
-    "kebab_name,expected",
+    ("kebab_name", "expected"),
     [
         ("hello-world", "hello_world"),
         ("data-explorer", "data_explorer"),
@@ -97,7 +97,7 @@ def test_kebab_to_snake_case(kebab_name, expected):
 
 
 @pytest.mark.parametrize(
-    "valid_display,expected_normalized",
+    ("valid_display", "expected_normalized"),
     [
         ("Hello World", "Hello World"),
         ("Data Explorer", "Data Explorer"),
@@ -118,7 +118,7 @@ def test_validate_display_name_valid(valid_display, expected_normalized):
 
 
 @pytest.mark.parametrize(
-    "invalid_display,error_match",
+    ("invalid_display", "error_match"),
     [
         ("", "cannot be empty"),
         ("   ", "cannot be empty"),
@@ -137,13 +137,13 @@ def test_validate_display_name_invalid(invalid_display, error_match):
 
 
 @pytest.mark.parametrize(
-    "valid_package",
+    ("valid_package",),
     [
-        "hello_world",
-        "data_explorer",
-        "myext",
-        "test123",
-        "package_with_many_parts",
+        ("hello_world",),
+        ("data_explorer",),
+        ("myext",),
+        ("test123",),
+        ("package_with_many_parts",),
     ],
 )
 def test_validate_python_package_name_valid(valid_package):
@@ -153,26 +153,26 @@ def test_validate_python_package_name_valid(valid_package):
 
 
 @pytest.mark.parametrize(
-    "keyword",
+    ("keyword",),
     [
-        "class",
-        "import",
-        "def",
-        "return",
-        "if",
-        "else",
-        "for",
-        "while",
-        "try",
-        "except",
-        "finally",
-        "with",
-        "as",
-        "lambda",
-        "yield",
-        "False",
-        "None",
-        "True",
+        ("class",),
+        ("import",),
+        ("def",),
+        ("return",),
+        ("if",),
+        ("else",),
+        ("for",),
+        ("while",),
+        ("try",),
+        ("except",),
+        ("finally",),
+        ("with",),
+        ("as",),
+        ("lambda",),
+        ("yield",),
+        ("False",),
+        ("None",),
+        ("True",),
     ],
 )
 def test_validate_python_package_name_keywords(keyword):
@@ -184,9 +184,9 @@ def test_validate_python_package_name_keywords(keyword):
 
 
 @pytest.mark.parametrize(
-    "invalid_package",
+    ("invalid_package",),
     [
-        "hello-world",  # Hyphens not allowed in Python identifiers
+        ("hello-world",),  # Hyphens not allowed in Python identifiers
     ],
 )
 def test_validate_python_package_name_invalid(invalid_package):
@@ -199,12 +199,12 @@ def test_validate_python_package_name_invalid(invalid_package):
 
 
 @pytest.mark.parametrize(
-    "valid_npm",
+    ("valid_npm",),
     [
-        "hello-world",
-        "data-explorer",
-        "myext",
-        "package-with-many-parts",
+        ("hello-world",),
+        ("data-explorer",),
+        ("myext",),
+        ("package-with-many-parts",),
     ],
 )
 def test_validate_npm_package_name_valid(valid_npm):
@@ -214,8 +214,15 @@ def test_validate_npm_package_name_valid(valid_npm):
 
 
 @pytest.mark.parametrize(
-    "reserved_name",
-    ["node_modules", "npm", "yarn", "package.json", "localhost", "favicon.ico"],
+    ("reserved_name",),
+    [
+        ("node_modules",),
+        ("npm",),
+        ("yarn",),
+        ("package.json",),
+        ("localhost",),
+        ("favicon.ico",),
+    ],
 )
 def test_validate_npm_package_name_reserved(reserved_name):
     """Test that npm reserved names are rejected."""
@@ -227,14 +234,14 @@ def test_validate_npm_package_name_reserved(reserved_name):
 
 
 @pytest.mark.parametrize(
-    "valid_publisher",
+    ("valid_publisher",),
     [
-        "my-org",
-        "acme",
-        "apache-superset",
-        "test123",
-        "a",  # Single character
-        "publisher-with-many-parts",
+        ("my-org",),
+        ("acme",),
+        ("apache-superset",),
+        ("test123",),
+        ("a",),  # Single character
+        ("publisher-with-many-parts",),
     ],
 )
 def test_validate_publisher_valid(valid_publisher):
@@ -244,7 +251,7 @@ def test_validate_publisher_valid(valid_publisher):
 
 
 @pytest.mark.parametrize(
-    "invalid_publisher,error_match",
+    ("invalid_publisher", "error_match"),
     [
         ("", "cannot be empty"),
         ("My-Org", "must start with a letter and contain only lowercase letters"),
@@ -263,13 +270,13 @@ def test_validate_publisher_invalid(invalid_publisher, error_match):
 
 
 @pytest.mark.parametrize(
-    "valid_name",
+    ("valid_name",),
     [
-        "dashboard-widgets",
-        "chart-builder",
-        "simple",
-        "api-client-v2",
-        "tool123",
+        ("dashboard-widgets",),
+        ("chart-builder",),
+        ("simple",),
+        ("api-client-v2",),
+        ("tool123",),
     ],
 )
 def test_validate_technical_name_valid(valid_name):
@@ -279,7 +286,7 @@ def test_validate_technical_name_valid(valid_name):
 
 
 @pytest.mark.parametrize(
-    "invalid_name,error_match",
+    ("invalid_name", "error_match"),
     [
         ("", "cannot be empty"),
         (
@@ -301,7 +308,7 @@ def test_validate_technical_name_invalid(invalid_name, error_match):
 
 
 @pytest.mark.parametrize(
-    "display_name,expected_technical",
+    ("display_name", "expected_technical"),
     [
         ("Dashboard Widgets", "dashboard-widgets"),
         ("Chart Builder Pro!", "chart-builder-pro"),
@@ -317,7 +324,7 @@ def test_suggest_technical_name(display_name, expected_technical):
 
 
 @pytest.mark.parametrize(
-    "publisher,name,expected_mf",
+    ("publisher", "name", "expected_mf"),
     [
         ("my-org", "dashboard-widgets", "myOrg_dashboardWidgets"),
         ("acme", "chart-builder", "acme_chartBuilder"),
@@ -334,7 +341,7 @@ def test_get_module_federation_name(publisher, name, expected_mf):
 
 
 @pytest.mark.parametrize(
-    "display_name,expected_kebab,expected_snake,expected_camel",
+    ("display_name", "expected_kebab", "expected_snake", "expected_camel"),
     [
         ("Hello World", "hello-world", "hello_world", "helloWorld"),
         ("Data Explorer", "data-explorer", "data_explorer", "dataExplorer"),
@@ -380,12 +387,12 @@ def test_generate_extension_names_complete_flow(
 
 
 @pytest.mark.parametrize(
-    "invalid_display",
+    ("invalid_display",),
     [
-        "Class Helper",  # Would create 'class_helper' - reserved keyword
-        "Import Tool",  # Would create 'import_tool' - reserved keyword
-        "@#$%",  # All special chars - becomes empty
-        "123 Tool",  # Starts with number after kebab conversion
+        ("Class Helper",),  # Would create 'class_helper' - reserved keyword
+        ("Import Tool",),  # Would create 'import_tool' - reserved keyword
+        ("@#$%",),  # All special chars - becomes empty
+        ("123 Tool",),  # Starts with number after kebab conversion
     ],
 )
 def test_generate_extension_names_invalid(invalid_display):
@@ -423,12 +430,12 @@ def test_generate_extension_names_case_preservation():
 
 
 @pytest.mark.parametrize(
-    "edge_case",
+    ("edge_case",),
     [
-        "",  # Empty string
-        "   ",  # Only spaces
-        "---",  # Only hyphens
-        "___",  # Only underscores
+        ("",),  # Empty string
+        ("   ",),  # Only spaces
+        ("---",),  # Only hyphens
+        ("___",),  # Only underscores
     ],
 )
 def test_empty_or_invalid_inputs(edge_case):
