@@ -388,7 +388,9 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
     [originalTitle, theme?.brandAppName, theme?.brandLogoAlt],
   );
 
-  // Clear undo/redo history on initial mount to prevent HYDRATE_EXPLORE from being undoable
+  // Clear undo/redo history on mount to start clean.
+  // We use useComponentDidMount instead of redux-undo's clearHistoryType
+  // to avoid race conditions during HYDRATE_EXPLORE initialization.
   useComponentDidMount(() => {
     props.actions.clearExploreHistory();
   });
