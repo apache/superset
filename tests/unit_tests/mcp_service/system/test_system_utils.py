@@ -33,19 +33,14 @@ def test_calculate_feature_availability_returns_menus_and_flags():
 
     mock_flags = {"ALERT_REPORTS": True, "DASHBOARD_VIRTUALIZATION": False}
 
-    mock_app = MagicMock()
-    mock_app.config.get.return_value = ["Custom Portal"]
-
     with (
         patch("superset.security_manager", mock_sm),
         patch("superset.get_feature_flags", return_value=mock_flags),
-        patch("flask.current_app", mock_app),
     ):
         result = calculate_feature_availability({}, {}, {})
 
     assert result.accessible_menus == ["Charts", "Dashboards", "SQL Lab"]
     assert result.enabled_feature_flags == mock_flags
-    assert result.custom_unavailable_features == ["Custom Portal"]
     mock_sm.user_view_menu_names.assert_called_once_with("menu_access")
 
 
@@ -54,36 +49,25 @@ def test_calculate_feature_availability_empty_when_no_context():
     broken_sm = MagicMock()
     broken_sm.user_view_menu_names.side_effect = RuntimeError("no ctx")
 
-    broken_app = MagicMock()
-    broken_app.config.get.side_effect = RuntimeError("no ctx")
-
     with (
         patch("superset.security_manager", broken_sm),
         patch("superset.get_feature_flags", side_effect=RuntimeError("no ctx")),
-        patch("flask.current_app", broken_app),
     ):
         result = calculate_feature_availability({}, {}, {})
 
     assert result.accessible_menus == []
     assert result.enabled_feature_flags == {}
-    assert result.custom_unavailable_features == []
 
 
-def test_calculate_feature_availability_no_custom_unavailable():
-    """Test when MCP_UNAVAILABLE_FEATURES is not configured."""
+def test_calculate_feature_availability_menus_sorted():
+    """Test that accessible menus are returned in sorted order."""
     mock_sm = MagicMock()
-    mock_sm.user_view_menu_names.return_value = {"Dashboards"}
-
-    mock_app = MagicMock()
-    mock_app.config.get.return_value = []
+    mock_sm.user_view_menu_names.return_value = {"Zzz", "Aaa", "Mmm"}
 
     with (
         patch("superset.security_manager", mock_sm),
-        patch("superset.get_feature_flags", return_value={"SOME_FLAG": True}),
-        patch("flask.current_app", mock_app),
+        patch("superset.get_feature_flags", return_value={}),
     ):
         result = calculate_feature_availability({}, {}, {})
 
-    assert result.accessible_menus == ["Dashboards"]
-    assert result.enabled_feature_flags == {"SOME_FLAG": True}
-    assert result.custom_unavailable_features == []
+    assert result.accessible_menus == ["Aaa", "Mmm", "Zzz"]

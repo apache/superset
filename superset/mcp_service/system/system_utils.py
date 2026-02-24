@@ -205,15 +205,13 @@ def calculate_feature_availability(
     time_metrics: Dict[str, Dict[str, int]],
     dao_classes: Dict[str, Any],
 ) -> FeatureAvailability:
-    """Detect available features dynamically from menus, flags, and config.
+    """Detect available features dynamically from menus and feature flags.
 
     Queries the FAB security manager for menu items accessible to the
-    current user, reads the runtime feature flag state, and includes any
-    custom ``MCP_UNAVAILABLE_FEATURES`` strings from the deployment config.
+    current user and reads the runtime feature flag state.
     """
     accessible_menus: list[str] = []
     enabled_flags: Dict[str, bool] = {}
-    custom_unavailable: list[str] = []
 
     # --- accessible menus via FAB security manager ---
     try:
@@ -232,16 +230,7 @@ def calculate_feature_availability(
     except Exception as exc:
         logger.debug("Could not retrieve feature flags: %s", exc)
 
-    # --- custom deployment-level unavailable features ---
-    try:
-        from flask import current_app
-
-        custom_unavailable = current_app.config.get("MCP_UNAVAILABLE_FEATURES", [])
-    except Exception as exc:
-        logger.debug("Could not read MCP_UNAVAILABLE_FEATURES: %s", exc)
-
     return FeatureAvailability(
         accessible_menus=accessible_menus,
         enabled_feature_flags=enabled_flags,
-        custom_unavailable_features=custom_unavailable,
     )

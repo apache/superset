@@ -75,15 +75,6 @@ MCP_FACTORY_CONFIG = {
     "config": None,  # No additional config
 }
 
-# Escape hatch for deployment-specific features that cannot be detected
-# dynamically via menu access or feature flags. Override in superset_config.py.
-# The get_instance_info tool dynamically reports accessible menus and enabled
-# feature flags at request time; use this only for custom notes.
-#
-# Example:
-#   MCP_UNAVAILABLE_FEATURES = ["Custom SSO Portal", "Legacy Export"]
-MCP_UNAVAILABLE_FEATURES: list[str] = []
-
 # =============================================================================
 # MCP Storage and Caching Configuration
 # =============================================================================

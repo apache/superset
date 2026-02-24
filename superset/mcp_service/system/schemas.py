@@ -127,13 +127,6 @@ class FeatureAvailability(BaseModel):
         default_factory=dict,
         description="Feature flags and their current enabled/disabled state",
     )
-    custom_unavailable_features: List[str] = Field(
-        default_factory=list,
-        description=(
-            "Deployment-specific features that are unavailable, "
-            "configured via MCP_UNAVAILABLE_FEATURES"
-        ),
-    )
 
 
 class InstanceInfo(BaseModel):
