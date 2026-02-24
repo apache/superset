@@ -28,7 +28,11 @@ import {
   SORT_SERIES_CHOICES,
   sharedControls,
 } from '@superset-ui/chart-controls';
-import { DEFAULT_LEGEND_FORM_DATA, StackControlOptions } from './constants';
+import {
+  DEFAULT_LEGEND_FORM_DATA,
+  StackControlOptions,
+  StackControlOptionsWithoutStream,
+} from './constants';
 import { DEFAULT_FORM_DATA } from './Timeseries/constants';
 import { defaultXAxis } from './defaults';
 
@@ -148,6 +152,14 @@ export const stackControl: ControlSetItem = {
   },
 };
 
+export const stackControlWithoutStream: ControlSetItem = {
+  ...stackControl,
+  config: {
+    ...stackControl.config,
+    choices: StackControlOptionsWithoutStream,
+  },
+};
+
 export const onlyTotalControl: ControlSetItem = {
   name: 'only_total',
   config: {
@@ -191,6 +203,13 @@ export const showValueSection: ControlSetRow[] = [
 export const showValueSectionWithoutStack: ControlSetRow[] = [
   [showValueControl],
   [onlyTotalControl],
+];
+
+export const showValueSectionWithoutStream: ControlSetRow[] = [
+  [showValueControl],
+  [stackControlWithoutStream],
+  [onlyTotalControl],
+  [percentageThresholdControl],
 ];
 
 const richTooltipControl: ControlSetItem = {

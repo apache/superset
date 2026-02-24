@@ -29,6 +29,7 @@ from typing import Callable, Literal
 from fastmcp import Context
 from superset_core.mcp import tool
 
+from superset.extensions import event_logger
 from superset.mcp_service.common.schema_discovery import (
     CHART_DEFAULT_COLUMNS,
     CHART_SEARCH_COLUMNS,
@@ -154,8 +155,9 @@ async def get_schema(request: GetSchemaRequest, ctx: Context) -> GetSchemaRespon
         )
 
     # Create core instance and run (columns extracted dynamically)
-    core = factory()
-    schema_info = core.run_tool()
+    with event_logger.log_context(action="mcp.get_schema.discovery"):
+        core = factory()
+        schema_info = core.run_tool()
 
     await ctx.debug(
         f"Schema for {request.model_type}: "

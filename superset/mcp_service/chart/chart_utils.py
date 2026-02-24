@@ -458,6 +458,11 @@ def map_filter_operator(op: str) -> str:
         ">=": ">=",
         "<=": "<=",
         "!=": "!=",
+        "LIKE": "LIKE",
+        "ILIKE": "ILIKE",
+        "NOT LIKE": "NOT LIKE",
+        "IN": "IN",
+        "NOT IN": "NOT IN",
     }
     return operator_map.get(op, op)
 

@@ -39,13 +39,9 @@ jobs:
           # pkg:npm/store2@2.14.2
           #   adding an exception for an ambigious license on store2, which has been resolved in
           #   the latest version. It's MIT: https://github.com/nbubna/store/blob/master/LICENSE-MIT
-          # pkg:npm/applitools/*
-          #   adding exception for all applitools modules (eyes-cypress and its dependencies),
-          #   which has an explicit OSS license approved by ASF
-          #   license: https://applitools.com/legal/open-source-terms-of-use/
           # pkg:npm/node-forge@1.3.1
           #   selecting BSD-3-Clause licensing terms for node-forge to ensure compatibility with Apache
-          allow-dependencies-licenses: pkg:npm/store2@2.14.2, pkg:npm/applitools/core, pkg:npm/applitools/core-base, pkg:npm/applitools/css-tree, pkg:npm/applitools/ec-client, pkg:npm/applitools/eg-socks5-proxy-server, pkg:npm/applitools/eyes, pkg:npm/applitools/eyes-cypress, pkg:npm/applitools/nml-client, pkg:npm/applitools/tunnel-client, pkg:npm/applitools/utils, pkg:npm/node-forge@1.3.1, pkg:npm/rgbcolor, pkg:npm/jszip@3.10.1
+          allow-dependencies-licenses: pkg:npm/store2@2.14.2, pkg:npm/node-forge@1.3.1, pkg:npm/rgbcolor, pkg:npm/jszip@3.10.1
 
   python-dependency-liccheck:
     # NOTE: Configuration for liccheck lives in our pyproject.yml.

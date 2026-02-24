@@ -1,6 +1,14 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["import", "react", "jest", "jsx-a11y", "typescript", "unicorn"],
+  "plugins": [
+    "import",
+    "react",
+    "jest",
+    "jsx-a11y",
+    "typescript",
+    "unicorn",
+    "oxc"
+  ],
   "env": {
     "browser": true,
     "node": true,
@@ -28,12 +36,14 @@
     // === Core ESLint rules ===
     // Error prevention
     "no-console": "warn",
-    "no-alert": "warn",
+    "no-alert": "error",
+    "constructor-super": "error",
     "no-debugger": "error",
     "no-unused-vars": "off",
     "no-undef": "error",
     "no-prototype-builtins": "off",
-    "no-unsafe-optional-chaining": "off",
+    "no-unsafe-optional-chaining": "error",
+    "no-constant-binary-expression": "error",
     "no-import-assign": "off",
     "no-promise-executor-return": "off",
 
@@ -71,6 +81,12 @@
       "as-needed",
       { "requireReturnForObjectLiteral": false }
     ],
+    "no-useless-constructor": "error",
+    "no-else-return": "error",
+    "no-array-constructor": "error",
+    "no-new-wrappers": "error",
+    "no-regex-spaces": "error",
+    "no-object-constructor": "error",
 
     // === Import plugin rules ===
     "import/no-unresolved": "error",
@@ -135,7 +151,7 @@
     "react/jsx-no-bind": "off",
     "react/jsx-props-no-spreading": "off",
     "react/jsx-boolean-value": ["error", "never", { "always": [] }],
-    "react/jsx-no-duplicate-props": ["error", { "ignoreCase": true }],
+    "react/jsx-no-duplicate-props": "error",
     "react/jsx-no-undef": "error",
     "react/jsx-pascal-case": ["error", { "allowAllCaps": true, "ignore": [] }],
     "react/jsx-uses-vars": "error",
@@ -148,7 +164,8 @@
     ],
     "react/no-array-index-key": "off",
     "react/no-children-prop": "error",
-    "react/no-danger": "warn",
+    "react/no-danger": "error",
+    "react/forbid-foreign-prop-types": "error",
     "react/no-danger-with-children": "error",
     "react/no-deprecated": "error",
     "react/no-did-update-set-state": "error",
@@ -231,7 +248,7 @@
     "@typescript-eslint/ban-types": "off",
     "@typescript-eslint/no-empty-function": "off",
     "@typescript-eslint/no-explicit-any": "off",
-    "@typescript-eslint/no-use-before-define": "warn",
+    "@typescript-eslint/no-use-before-define": "error",
     "@typescript-eslint/no-non-null-assertion": "off",
     "@typescript-eslint/explicit-function-return-type": "off",
     "@typescript-eslint/explicit-module-boundary-types": "off",
@@ -250,6 +267,18 @@
     ],
 
     // === Unicorn rules (bonus coverage) ===
+    "unicorn/no-new-array": "error",
+    "unicorn/no-invalid-remove-event-listener": "error",
+    "unicorn/no-useless-length-check": "error",
+    "unicorn/no-length-as-slice-end": "error",
+    "unicorn/no-useless-spread": "error",
+    "unicorn/no-thenable": "error",
+    "unicorn/escape-case": "error",
+    "unicorn/prefer-array-flat-map": "error",
+    "unicorn/prefer-array-some": "error",
+    "unicorn/throw-new-error": "error",
+    "unicorn/prefer-negative-index": "error",
+    "unicorn/prefer-math-trunc": "error",
     "unicorn/filename-case": "off",
     "unicorn/prevent-abbreviations": "off",
     "unicorn/no-null": "off",
@@ -262,7 +291,19 @@
     // === Jest rules ===
     "jest/consistent-test-it": ["error", { "fn": "test" }],
     "jest/no-focused-tests": "error",
-    "jest/no-disabled-tests": "error"
+    "jest/no-disabled-tests": "error",
+    "jest/expect-expect": [
+      "error",
+      {
+        "assertFunctionNames": [
+          "expect",
+          "expect*",
+          "runTimezoneTest",
+          "compareURI",
+          "test*WithInitialValues"
+        ]
+      }
+    ]
   },
   "ignorePatterns": [
     "packages/generator-superset/**/*",

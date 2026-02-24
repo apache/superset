@@ -172,13 +172,9 @@ import { editors } from '@apache-superset/core';
 import MonacoSQLEditor from './MonacoSQLEditor';
 
 export function activate(context) {
-  // Register the Monaco editor for SQL
+  // Register the Monaco editor for SQL using the contribution ID from extension.json
   const disposable = editors.registerEditorProvider(
-    {
-      id: 'monaco-sql-editor.sql',
-      name: 'Monaco SQL Editor',
-      languages: ['sql'],
-    },
+    'monaco-sql-editor.sql',
     MonacoSQLEditor,
   );
 

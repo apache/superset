@@ -191,7 +191,9 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
 
     # when editing the database, mask this field in `encrypted_extra`
     # pylint: disable=invalid-name
-    encrypted_extra_sensitive_fields = {"$.credentials_info.private_key"}
+    encrypted_extra_sensitive_fields = {
+        "$.credentials_info.private_key": "Service Account Private Key",
+    }
 
     """
     https://www.python.org/dev/peps/pep-0249/#arraysize

@@ -17,6 +17,7 @@
  * under the License.
  */
 import '@testing-library/jest-dom';
+import { ObjectFormattingEnum } from '@superset-ui/chart-controls';
 import {
   render,
   screen,
@@ -25,6 +26,12 @@ import {
   within,
 } from '@superset-ui/core/spec';
 import { cloneDeep } from 'lodash';
+import {
+  QueryMode,
+  TimeGranularity,
+  SMART_DATE_ID,
+  getTimeFormatterForGranularity,
+} from '@superset-ui/core';
 import TableChart, { sanitizeHeaderId } from '../src/TableChart';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import transformProps from '../src/transformProps';
@@ -376,6 +383,52 @@ describe('plugin-chart-table', () => {
       expect(percentMetric2?.originalLabel).toBe('metric_2');
     });
 
+    test('should not apply time grain formatting in Raw Records mode', () => {
+      const rawRecordsProps = {
+        ...testData.basic,
+        rawFormData: {
+          ...testData.basic.rawFormData,
+          query_mode: QueryMode.Raw,
+          time_grain_sqla: TimeGranularity.MONTH,
+          table_timestamp_format: SMART_DATE_ID,
+        },
+      };
+
+      const transformedProps = transformProps(rawRecordsProps);
+      const timestampColumn = transformedProps.columns.find(
+        col => col.key === '__timestamp',
+      );
+
+      expect(timestampColumn).toBeDefined();
+      const testValue = new Date('2023-01-15T10:30:45');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const formatted = (timestampColumn?.formatter as any)?.(testValue);
+      const granularityFormatted = getTimeFormatterForGranularity(
+        TimeGranularity.MONTH,
+      )(testValue as number | Date | null);
+      expect(formatted).not.toBe(granularityFormatted);
+      expect(typeof formatted).toBe('string');
+      expect(formatted).toContain('2023');
+    });
+
+    test('should handle null/undefined timestamp values correctly', () => {
+      const rawRecordsProps = {
+        ...testData.basic,
+        rawFormData: {
+          ...testData.basic.rawFormData,
+          query_mode: QueryMode.Raw,
+        },
+      };
+
+      const transformedProps = transformProps(rawRecordsProps);
+      expect(transformedProps.isRawRecords).toBe(true);
+
+      const timestampColumn = transformedProps.columns.find(
+        col => col.key === '__timestamp',
+      );
+      expect(timestampColumn).toBeDefined();
+    });
+
     describe('TableChart', () => {
       test('render basic data', () => {
         render(
@@ -385,7 +438,8 @@ describe('plugin-chart-table', () => {
         const firstDataRow = screen.getAllByRole('rowgroup')[1];
         const cells = firstDataRow.querySelectorAll('td');
         expect(cells).toHaveLength(12);
-        expect(cells[0]).toHaveTextContent('2020-01-01 12:34:56');
+        // Date is rendered as ISO string format
+        expect(cells[0]).toHaveTextContent('2020-01-01T12:34:56');
         expect(cells[1]).toHaveTextContent('Michael');
         // number is not in `metrics` list, so it should output raw value
         // (in real world Superset, this would mean the column is used in GROUP BY)
@@ -614,9 +668,7 @@ describe('plugin-chart-table', () => {
         expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
           '',
         );
-        expect(getComputedStyle(screen.getByText('N/A')).background).toBe(
-          'rgba(172, 225, 196, 1)',
-        );
+        expect(getComputedStyle(screen.getByText('N/A')).background).toBe('');
       });
       test('should display original label in grouped headers', () => {
         const props = transformProps(testData.comparison);
@@ -1252,7 +1304,7 @@ describe('plugin-chart-table', () => {
                         column: 'sum__num',
                         operator: '>',
                         targetValue: 2467,
-                        toAllRow: true,
+                        columnFormatting: ObjectFormattingEnum.ENTIRE_ROW,
                       },
                     ],
                   },
@@ -1288,7 +1340,7 @@ describe('plugin-chart-table', () => {
                         column: 'sum__num',
                         operator: '>',
                         targetValue: 2467,
-                        toTextColor: true,
+                        objectFormatting: ObjectFormattingEnum.TEXT_COLOR,
                       },
                     ],
                   },
@@ -1321,8 +1373,8 @@ describe('plugin-chart-table', () => {
                         column: 'sum__num',
                         operator: '>',
                         targetValue: 2467,
-                        toAllRow: true,
-                        toTextColor: true,
+                        columnFormatting: ObjectFormattingEnum.ENTIRE_ROW,
+                        objectFormatting: ObjectFormattingEnum.TEXT_COLOR,
                       },
                     ],
                   },
@@ -1423,7 +1475,6 @@ describe('plugin-chart-table', () => {
                         column: 'sum__num',
                         operator: '>',
                         targetValue: 2467,
-                        // useGradient is undefined
                       },
                     ],
                   },

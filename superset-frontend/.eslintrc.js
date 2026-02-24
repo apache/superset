@@ -16,6 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+// Register TypeScript require hook so ESLint can load .ts plugin files
+require('tsx/cjs');
+
 const packageConfig = require('./package.json');
 
 const importCoreModules = [];
@@ -135,7 +139,9 @@ module.exports = {
     'icons',
     'i18n-strings',
     'react-prefer-function-component',
+    'react-you-might-not-need-an-effect',
     'prettier',
+    'react-you-might-not-need-an-effect',
   ],
   rules: {
     // === Essential Superset customizations ===
@@ -146,7 +152,7 @@ module.exports = {
     // Custom Superset rules
     'theme-colors/no-literal-colors': 'error',
     'icons/no-fa-icons-usage': 'error',
-    'i18n-strings/no-template-vars': ['error', true],
+    'i18n-strings/no-template-vars': 'error',
 
     // Core ESLint overrides for Superset
     'no-console': 'warn',
@@ -193,7 +199,7 @@ module.exports = {
           '**/jest.setup.js',
           '**/webpack.config.js',
           '**/webpack.config.*.js',
-          '**/.eslintrc.js',
+          '**/.eslintrc*.js',
         ],
         optionalDependencies: false,
       },
@@ -235,11 +241,31 @@ module.exports = {
     'jsx-a11y/mouse-events-have-key-events': 0,
     'jsx-a11y/no-static-element-interactions': 0,
 
+    // React effect best practices
+    'react-you-might-not-need-an-effect/no-empty-effect': 'error',
+    'react-you-might-not-need-an-effect/no-pass-live-state-to-parent': 'error',
+    'react-you-might-not-need-an-effect/no-initialize-state': 'error',
+
     // Lodash
     'lodash/import-scope': [2, 'member'],
 
+    // React effect best practices
+    'react-you-might-not-need-an-effect/no-reset-all-state-on-prop-change':
+      'error',
+    'react-you-might-not-need-an-effect/no-chain-state-updates': 'error',
+    'react-you-might-not-need-an-effect/no-event-handler': 'error',
+    'react-you-might-not-need-an-effect/no-derived-state': 'error',
+
+    // Storybook
+    'storybook/prefer-pascal-case': 'error',
+
     // File progress
     'file-progress/activate': 1,
+
+    // React effect rules
+    'react-you-might-not-need-an-effect/no-adjust-state-on-prop-change':
+      'error',
+    'react-you-might-not-need-an-effect/no-pass-data-to-parent': 'error',
 
     // Restricted imports
     'no-restricted-imports': [
@@ -306,7 +332,6 @@ module.exports = {
       files: ['packages/**/src/**/*.js', 'packages/**/src/**/*.jsx'],
       excludedFiles: [
         'packages/generator-superset/**/*', // Yeoman generator templates run via Node
-        'packages/superset-ui-demo/.storybook/**/*', // Storybook config files
         'packages/**/__mocks__/**/*', // Test mocks
       ],
       rules: {
@@ -350,7 +375,7 @@ module.exports = {
         ],
         '@typescript-eslint/no-empty-function': 0,
         '@typescript-eslint/no-explicit-any': 0,
-        '@typescript-eslint/no-use-before-define': 1,
+        '@typescript-eslint/no-use-before-define': 'error',
         '@typescript-eslint/no-non-null-assertion': 0,
         '@typescript-eslint/explicit-function-return-type': 0,
         '@typescript-eslint/explicit-module-boundary-types': 0,

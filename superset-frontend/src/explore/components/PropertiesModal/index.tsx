@@ -37,6 +37,12 @@ import {
 import Chart, { Slice } from 'src/types/Chart';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { type TagType } from 'src/components';
+import {
+  OwnerSelectLabel,
+  OWNER_TEXT_LABEL_PROP,
+  OWNER_EMAIL_PROP,
+  OWNER_OPTION_FILTER_PROPS,
+} from 'src/features/owners/OwnerSelectLabel';
 import { TagTypeEnum } from 'src/components/Tag/TagType';
 import { loadTags } from 'src/components/Tag/utils';
 import {
@@ -153,6 +159,7 @@ function PropertiesModal({
           'owners.id',
           'owners.first_name',
           'owners.last_name',
+          'owners.email',
           'tags.id',
           'tags.name',
           'tags.type',
@@ -164,10 +171,25 @@ function PropertiesModal({
         });
         const chart = response.json.result;
         setSelectedOwners(
-          chart?.owners?.map((owner: any) => ({
-            value: owner.id,
-            label: `${owner.first_name} ${owner.last_name}`,
-          })),
+          chart?.owners?.map(
+            (owner: {
+              id: number;
+              first_name: string;
+              last_name: string;
+              email?: string;
+            }) => {
+              const ownerName = `${owner.first_name} ${owner.last_name}`;
+              return {
+                value: owner.id,
+                label: OwnerSelectLabel({
+                  name: ownerName,
+                  email: owner.email,
+                }),
+                [OWNER_TEXT_LABEL_PROP]: ownerName,
+                [OWNER_EMAIL_PROP]: owner.email ?? '',
+              };
+            },
+          ),
         );
         if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
           const customTags = chart.tags?.filter(
@@ -196,10 +218,21 @@ function PropertiesModal({
         }).then(response => ({
           data: response.json.result
             .filter((item: { extra: { active: boolean } }) => item.extra.active)
-            .map((item: { value: number; text: string }) => ({
-              value: item.value,
-              label: item.text,
-            })),
+            .map(
+              (item: {
+                value: number;
+                text: string;
+                extra: { email?: string };
+              }) => ({
+                value: item.value,
+                label: OwnerSelectLabel({
+                  name: item.text,
+                  email: item.extra?.email,
+                }),
+                [OWNER_TEXT_LABEL_PROP]: item.text,
+                [OWNER_EMAIL_PROP]: item.extra?.email ?? '',
+              }),
+            ),
           totalCount: response.json.count,
         }));
       },
@@ -372,6 +405,7 @@ function PropertiesModal({
                     options={loadOptions}
                     disabled={!selectedOwners}
                     allowClear
+                    optionFilterProps={OWNER_OPTION_FILTER_PROPS}
                   />
                 </ModalFormField>
                 {isFeatureEnabled(FeatureFlag.TaggingSystem) && (
@@ -422,7 +456,7 @@ function PropertiesModal({
                 bottomSpacing={false}
               >
                 <Input
-                  aria-label="Cache timeout"
+                  aria-label={t('Cache timeout')}
                   value={cacheTimeout}
                   onChange={(event: ChangeEvent<HTMLInputElement>) =>
                     setCacheTimeout(event.target.value ?? '')

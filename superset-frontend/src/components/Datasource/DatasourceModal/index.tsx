@@ -45,23 +45,16 @@ const DatasourceEditor = AsyncEsmComponent(
 );
 
 const StyledDatasourceModal = styled(Modal)`
-  .modal-content {
-    height: 900px;
+  && .ant-modal-content {
+    max-height: none;
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+
+  && .ant-modal-body {
+    flex: 1 1 auto;
     display: flex;
     flex-direction: column;
-    align-items: stretch;
-  }
-
-  .modal-header {
-    flex: 0 1 auto;
-  }
-  .modal-body {
-    flex: 1 1 auto;
-    overflow: auto;
-  }
-
-  .modal-footer {
-    flex: 0 1 auto;
   }
 
   .ant-tabs-top {
@@ -372,6 +365,9 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         </>
       }
       responsive
+      resizable
+      resizableConfig={{ defaultSize: { width: 'auto', height: '900px' } }}
+      draggable
     >
       <DatasourceEditor
         showLoadingForImport
