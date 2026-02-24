@@ -125,6 +125,7 @@ jobs:
           flags: javascript
           use_oidc: true
           verbose: true
+          disable_search: true
           files: merged-output/coverage-summary.json
           slug: apache/superset
 
