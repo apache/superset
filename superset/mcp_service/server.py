@@ -128,8 +128,7 @@ def _create_auth_provider(flask_app: Any) -> Any | None:
     when MCP_AUTH_ENABLED is True.
     """
     auth_provider = None
-    auth_factory = flask_app.config.get("MCP_AUTH_FACTORY")
-    if auth_factory:
+    if auth_factory := flask_app.config.get("MCP_AUTH_FACTORY"):
         try:
             auth_provider = auth_factory(flask_app)
             logging.info(
