@@ -305,22 +305,22 @@ async def generate_chart(  # noqa: C901
                 )
 
                 # Post-creation validation: verify the chart's dataset is accessible
-                validation_result = validate_chart_dataset(chart, check_access=True)
-                if not validation_result.is_valid:
+                dataset_check = validate_chart_dataset(chart, check_access=True)
+                if not dataset_check.is_valid:
                     # Dataset validation failed - warn but don't fail the operation
                     await ctx.warning(
                         "Chart created but dataset validation failed: %s"
-                        % (validation_result.error,)
+                        % (dataset_check.error,)
                     )
                     logger.warning(
                         "Chart %s created but dataset validation failed: %s",
                         chart.id,
-                        validation_result.error,
+                        dataset_check.error,
                     )
-                    if validation_result.error:
-                        response_warnings.append(validation_result.error)
+                    if dataset_check.error:
+                        response_warnings.append(dataset_check.error)
                 # Add any validation warnings (e.g., virtual dataset warnings)
-                response_warnings.extend(validation_result.warnings)
+                response_warnings.extend(dataset_check.warnings)
 
             except CommandException as e:
                 logger.error("Chart creation failed: %s", e)
