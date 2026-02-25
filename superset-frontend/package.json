@@ -298,7 +298,7 @@
     "@types/tinycolor2": "^1.4.3",
     "@types/unzipper": "^0.10.11",
     "@typescript-eslint/eslint-plugin": "^7.18.0",
-    "@typescript-eslint/parser": "^7.18.0",
+    "@typescript-eslint/parser": "^8.56.1",
     "babel-jest": "^30.0.2",
     "babel-loader": "^10.0.0",
     "babel-plugin-dynamic-import-node": "^2.3.3",
