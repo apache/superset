@@ -250,7 +250,9 @@ export default function FoldersEditor({
         // Range selection when shift is held and we have a previous selection
         if (shiftKey && selected && lastSelectedId) {
           const selectableItems = flattenedItems.filter(
-            item => item.type !== FoldersEditorItemType.Folder,
+            item =>
+              item.type !== FoldersEditorItemType.Folder &&
+              visibleItemIds.has(item.uuid),
           );
 
           const currentIndex = selectableItems.findIndex(
@@ -277,7 +279,7 @@ export default function FoldersEditor({
         return newSet;
       });
     },
-    [flattenedItems],
+    [flattenedItems, visibleItemIds],
   );
 
   const handleStartEdit = useCallback((folderId: string) => {
