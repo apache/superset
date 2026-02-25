@@ -297,7 +297,7 @@
     "@types/rison": "0.1.0",
     "@types/tinycolor2": "^1.4.3",
     "@types/unzipper": "^0.10.11",
-    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/eslint-plugin": "^8.56.1",
     "@typescript-eslint/parser": "^7.18.0",
     "babel-jest": "^30.0.2",
     "babel-loader": "^10.0.0",
