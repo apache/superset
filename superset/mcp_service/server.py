@@ -172,7 +172,8 @@ def run_server(
                     type(auth_provider).__name__ if auth_provider else "None",
                 )
             except Exception as e:
-                logging.error("Failed to create auth provider: %s", e)
+                logging.error("Failed to create auth provider from MCP_AUTH_FACTORY")
+                logging.debug("Auth provider factory error details: %s", e)
         elif flask_app.config.get("MCP_AUTH_ENABLED", False):
             # Fall back to default auth factory when auth is enabled
             # but no custom factory is provided
@@ -187,7 +188,8 @@ def run_server(
                     type(auth_provider).__name__ if auth_provider else "None",
                 )
             except Exception as e:
-                logging.error("Failed to create default auth provider: %s", e)
+                logging.error("Failed to create auth provider from default factory")
+                logging.debug("Default auth provider error details: %s", e)
 
         # Build middleware list
         middleware_list = []

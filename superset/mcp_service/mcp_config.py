@@ -42,8 +42,10 @@ MCP_DEBUG = False
 
 # MCP JWT Debug Errors - controls server-side JWT debug logging.
 # When False (default), uses the default JWTVerifier with minimal logging.
-# When True, uses DetailedJWTVerifier which logs specific failure reasons
-# server-side (e.g., algorithm mismatch, issuer mismatch, expired token).
+# When True, uses DetailedJWTVerifier with tiered logging:
+#   - WARNING level: generic failure categories only (e.g. "Issuer mismatch")
+#   - DEBUG level: detailed claim values for troubleshooting
+#   - Secrets (e.g. HS256 keys) are NEVER logged at any level
 # HTTP responses ALWAYS return generic errors regardless of this setting,
 # per RFC 6750 Section 3.1. This flag NEVER affects client-facing output.
 MCP_JWT_DEBUG_ERRORS = False
@@ -223,7 +225,8 @@ def create_default_mcp_auth_factory(app: Flask) -> Optional[Any]:
 
         return auth_provider
     except Exception as e:
-        logger.error("Failed to create MCP auth provider: %s", e)
+        logger.error("Failed to create MCP auth provider")
+        logger.debug("MCP auth provider error details: %s", e)
         return None
 
 

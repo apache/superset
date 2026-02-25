@@ -18,6 +18,7 @@
 """Tests for DetailedJWTVerifier and related middleware."""
 
 import base64
+import logging
 import time
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -74,10 +75,10 @@ async def test_algorithm_mismatch(hs256_verifier):
 
     assert result is None
     reason = _jwt_failure_reason.get()
-    assert reason is not None
-    assert "Algorithm mismatch" in reason
-    assert "RS256" in reason
-    assert "HS256" in reason
+    assert reason == "Algorithm mismatch"
+    # Claim values must not leak into the contextvar reason
+    assert "RS256" not in reason
+    assert "HS256" not in reason
 
 
 @pytest.mark.asyncio
@@ -88,8 +89,7 @@ async def test_malformed_token_header(hs256_verifier):
 
     assert result is None
     reason = _jwt_failure_reason.get()
-    assert reason is not None
-    assert "Malformed token header" in reason
+    assert reason == "Malformed token header"
 
 
 @pytest.mark.asyncio
@@ -114,8 +114,7 @@ async def test_signature_verification_failed(hs256_verifier):
 
     assert result is None
     reason = _jwt_failure_reason.get()
-    assert reason is not None
-    assert "Signature verification failed" in reason
+    assert reason == "Signature verification failed"
 
 
 @pytest.mark.asyncio
@@ -143,9 +142,9 @@ async def test_expired_token(hs256_verifier):
 
     assert result is None
     reason = _jwt_failure_reason.get()
-    assert reason is not None
-    assert "Token expired" in reason
-    assert "user1" in reason
+    assert reason == "Token expired"
+    # Claim values must not leak into the contextvar reason
+    assert "user1" not in reason
 
 
 @pytest.mark.asyncio
@@ -172,10 +171,10 @@ async def test_issuer_mismatch(hs256_verifier):
 
     assert result is None
     reason = _jwt_failure_reason.get()
-    assert reason is not None
-    assert "Issuer mismatch" in reason
-    assert "wrong-issuer" in reason
-    assert "test-issuer" in reason
+    assert reason == "Issuer mismatch"
+    # Claim values must not leak into the contextvar reason
+    assert "wrong-issuer" not in reason
+    assert "test-issuer" not in reason
 
 
 @pytest.mark.asyncio
@@ -202,10 +201,10 @@ async def test_audience_mismatch(hs256_verifier):
 
     assert result is None
     reason = _jwt_failure_reason.get()
-    assert reason is not None
-    assert "Audience mismatch" in reason
-    assert "wrong-audience" in reason
-    assert "test-audience" in reason
+    assert reason == "Audience mismatch"
+    # Claim values must not leak into the contextvar reason
+    assert "wrong-audience" not in reason
+    assert "test-audience" not in reason
 
 
 @pytest.mark.asyncio
@@ -236,9 +235,9 @@ async def test_missing_required_scopes(hs256_verifier):
 
     assert result is None
     reason = _jwt_failure_reason.get()
-    assert reason is not None
-    assert "Missing required scopes" in reason
-    assert "admin" in reason
+    assert reason == "Missing required scopes"
+    # Claim values must not leak into the contextvar reason
+    assert "admin" not in reason
 
 
 @pytest.mark.asyncio
@@ -313,8 +312,7 @@ async def test_decode_error(hs256_verifier):
 
     assert result is None
     reason = _jwt_failure_reason.get()
-    assert reason is not None
-    assert "Token decode failed" in reason
+    assert reason == "Token decode failed"
 
 
 @pytest.mark.asyncio
@@ -334,9 +332,9 @@ async def test_verification_key_failure(hs256_verifier):
 
     assert result is None
     reason = _jwt_failure_reason.get()
-    assert reason is not None
-    assert "Failed to get verification key" in reason
-    assert "JWKS endpoint unreachable" in reason
+    assert reason == "Failed to get verification key"
+    # Exception details must not leak into the contextvar reason
+    assert "JWKS endpoint unreachable" not in reason
 
 
 @pytest.mark.asyncio
@@ -429,8 +427,8 @@ async def test_detailed_bearer_backend_raises_on_failure():
     mock_conn = MagicMock()
     mock_conn.headers = _FakeHeaders({"authorization": "Bearer some-token"})
 
-    # Set failure reason
-    _jwt_failure_reason.set("Token expired for client 'user1'")
+    # Set failure reason (generic, no claim values)
+    _jwt_failure_reason.set("Token expired")
 
     with pytest.raises(AuthenticationError, match="Token expired"):
         await backend.authenticate(mock_conn)
@@ -547,7 +545,7 @@ async def test_audience_mismatch_list_audience():
 
     assert result is None
     reason = _jwt_failure_reason.get()
-    assert "Audience mismatch" in reason
+    assert reason == "Audience mismatch"
 
 
 @pytest.mark.asyncio
@@ -581,8 +579,9 @@ async def test_issuer_mismatch_list_issuer():
 
     assert result is None
     reason = _jwt_failure_reason.get()
-    assert "Issuer mismatch" in reason
-    assert "wrong-issuer" in reason
+    assert reason == "Issuer mismatch"
+    # Claim values must not leak into the contextvar reason
+    assert "wrong-issuer" not in reason
 
 
 def test_decode_token_header_padding_multiple_of_4():
@@ -599,3 +598,70 @@ def test_decode_token_header_padding_multiple_of_4():
 
     assert result["alg"] == "HS256"
     assert result["typ"] == "JWT"
+
+
+@pytest.mark.asyncio
+async def test_warning_logs_never_contain_claim_values(hs256_verifier, caplog):
+    """WARNING logs must contain only generic categories; details go to DEBUG."""
+    token = _make_token(
+        {"alg": "HS256", "typ": "JWT"},
+        {
+            "sub": "user1",
+            "iss": "wrong-issuer",
+            "aud": "test-audience",
+            "exp": int(time.time()) + 3600,
+        },
+    )
+    claims = {
+        "sub": "user1",
+        "iss": "wrong-issuer",
+        "aud": "test-audience",
+        "exp": int(time.time()) + 3600,
+    }
+
+    with caplog.at_level(logging.DEBUG, logger="superset.mcp_service.jwt_verifier"):
+        with patch.object(hs256_verifier.jwt, "decode", return_value=claims):
+            await hs256_verifier.load_access_token(token)
+
+    # WARNING logs must not contain claim values
+    warning_messages = [
+        r.message for r in caplog.records if r.levelno >= logging.WARNING
+    ]
+    for msg in warning_messages:
+        assert "wrong-issuer" not in msg
+        assert "test-issuer" not in msg
+
+    # DEBUG logs should contain the detailed values
+    debug_messages = [r.message for r in caplog.records if r.levelno == logging.DEBUG]
+    assert any("wrong-issuer" in msg for msg in debug_messages)
+
+
+@pytest.mark.asyncio
+async def test_hs256_secret_never_logged(hs256_verifier, caplog):
+    """The HS256 secret key must never appear in any log at any level."""
+    secret_key = "test-secret-key-for-hs256-tokens"
+
+    token = _make_token(
+        {"alg": "HS256", "typ": "JWT"},
+        {
+            "sub": "user1",
+            "iss": "wrong-issuer",
+            "aud": "test-audience",
+            "exp": int(time.time()) + 3600,
+        },
+    )
+    claims = {
+        "sub": "user1",
+        "iss": "wrong-issuer",
+        "aud": "test-audience",
+        "exp": int(time.time()) + 3600,
+    }
+
+    with caplog.at_level(logging.DEBUG, logger="superset.mcp_service.jwt_verifier"):
+        with patch.object(hs256_verifier.jwt, "decode", return_value=claims):
+            await hs256_verifier.load_access_token(token)
+
+    # The secret key must never appear at ANY log level
+    all_messages = [r.message for r in caplog.records]
+    for msg in all_messages:
+        assert secret_key not in msg, f"HS256 secret leaked in log: {msg}"

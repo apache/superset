@@ -17,7 +17,11 @@
 """
 Detailed JWT verification for the MCP service.
 
-Provides step-by-step JWT validation with detailed server-side logging.
+Provides step-by-step JWT validation with tiered server-side logging:
+- WARNING level: generic failure categories only (e.g. "Issuer mismatch")
+- DEBUG level: detailed claim values and config for troubleshooting
+- Secrets (e.g. HS256 keys) are NEVER logged at any level
+
 HTTP responses always return generic errors per RFC 6750 Section 3.1.
 """
 
@@ -120,15 +124,17 @@ class DetailedBearerAuthBackend(BearerAuthBackend):
 
 class DetailedJWTVerifier(JWTVerifier):
     """
-    JWT verifier that logs specific error messages server-side for each
-    validation failure, aiding debugging without leaking details to clients.
+    JWT verifier with tiered server-side logging for each validation step.
 
-    Overrides load_access_token() to perform step-by-step validation,
-    storing the specific failure reason in a ContextVar for server-side
-    logging. HTTP responses always return generic errors per RFC 6750.
+    Logging tiers:
+    - WARNING: generic failure categories only (via _jwt_failure_reason ContextVar
+      and the error handler). No claim values, no server config.
+    - DEBUG: detailed values (issuer, audience, client_id, scopes, exceptions)
+      for operator troubleshooting.
+    - Secrets (e.g. HS256 signing keys) are NEVER logged at any level.
 
-    Use this instead of the default JWTVerifier when you need detailed
-    server-side JWT debug logging (controlled by MCP_JWT_DEBUG_ERRORS config).
+    HTTP responses always return generic errors per RFC 6750 Section 3.1.
+    Controlled by MCP_JWT_DEBUG_ERRORS config flag.
     """
 
     async def load_access_token(self, token: str) -> AccessToken | None:  # noqa: C901
@@ -146,28 +152,29 @@ class DetailedJWTVerifier(JWTVerifier):
             try:
                 header = self._decode_token_header(token)
             except (ValueError, DecodeError) as e:
-                reason = f"Malformed token header: {e}"
+                reason = "Malformed token header"
                 _jwt_failure_reason.set(reason)
-                logger.warning(reason)
+                logger.debug("Malformed token header: %s", e)
                 return None
 
             token_alg = header.get("alg")
             if self.algorithm and token_alg != self.algorithm:
-                reason = (
-                    f"Algorithm mismatch: token uses '{token_alg}', "
-                    f"expected '{self.algorithm}'"
-                )
+                reason = "Algorithm mismatch"
                 _jwt_failure_reason.set(reason)
-                logger.warning(reason)
+                logger.debug(
+                    "Algorithm mismatch: token uses '%s', expected '%s'",
+                    token_alg,
+                    self.algorithm,
+                )
                 return None
 
             # Step 2: Get verification key (static or JWKS)
             try:
                 verification_key = await self._get_verification_key(token)
             except ValueError as e:
-                reason = f"Failed to get verification key: {e}"
+                reason = "Failed to get verification key"
                 _jwt_failure_reason.set(reason)
-                logger.warning(reason)
+                logger.debug("Failed to get verification key: %s", e)
                 return None
 
             # Step 3: Decode and verify signature
@@ -176,17 +183,15 @@ class DetailedJWTVerifier(JWTVerifier):
             except BadSignatureError:
                 reason = "Signature verification failed"
                 _jwt_failure_reason.set(reason)
-                logger.warning(reason)
                 return None
             except ExpiredTokenError:
                 reason = "Token has expired (detected during decode)"
                 _jwt_failure_reason.set(reason)
-                logger.warning(reason)
                 return None
             except JoseError as e:
-                reason = f"Token decode failed: {e}"
+                reason = "Token decode failed"
                 _jwt_failure_reason.set(reason)
-                logger.warning(reason)
+                logger.debug("Token decode failed: %s", e)
                 return None
 
             # Extract client ID for logging
@@ -200,9 +205,9 @@ class DetailedJWTVerifier(JWTVerifier):
             # Step 4: Check expiration
             exp = claims.get("exp")
             if exp and exp < time.time():
-                reason = f"Token expired for client '{client_id}'"
+                reason = "Token expired"
                 _jwt_failure_reason.set(reason)
-                logger.warning(reason)
+                logger.debug("Token expired for client '%s'", client_id)
                 return None
 
             # Step 5: Validate issuer
@@ -214,11 +219,13 @@ class DetailedJWTVerifier(JWTVerifier):
                     issuer_valid = iss == self.issuer
 
                 if not issuer_valid:
-                    reason = (
-                        f"Issuer mismatch: token has '{iss}', expected '{self.issuer}'"
-                    )
+                    reason = "Issuer mismatch"
                     _jwt_failure_reason.set(reason)
-                    logger.warning(reason)
+                    logger.debug(
+                        "Issuer mismatch: token has '%s', expected '%s'",
+                        iss,
+                        self.issuer,
+                    )
                     return None
 
             # Step 6: Validate audience
@@ -239,12 +246,13 @@ class DetailedJWTVerifier(JWTVerifier):
                         audience_valid = aud == self.audience
 
                 if not audience_valid:
-                    reason = (
-                        f"Audience mismatch: token has '{aud}', "
-                        f"expected '{self.audience}'"
-                    )
+                    reason = "Audience mismatch"
                     _jwt_failure_reason.set(reason)
-                    logger.warning(reason)
+                    logger.debug(
+                        "Audience mismatch: token has '%s', expected '%s'",
+                        aud,
+                        self.audience,
+                    )
                     return None
 
             # Step 7: Check required scopes
@@ -254,11 +262,13 @@ class DetailedJWTVerifier(JWTVerifier):
                 required = set(self.required_scopes)
                 if not required.issubset(token_scopes):
                     missing = required - token_scopes
-                    reason = (
-                        f"Missing required scopes: {missing}. Token has: {token_scopes}"
-                    )
+                    reason = "Missing required scopes"
                     _jwt_failure_reason.set(reason)
-                    logger.warning(reason)
+                    logger.debug(
+                        "Missing required scopes: %s. Token has: %s",
+                        missing,
+                        token_scopes,
+                    )
                     return None
 
             # All validations passed
@@ -271,9 +281,9 @@ class DetailedJWTVerifier(JWTVerifier):
             )
 
         except (ValueError, JoseError, KeyError, AttributeError, TypeError) as e:
-            reason = f"Token validation failed: {e}"
+            reason = "Token validation failed"
             _jwt_failure_reason.set(reason)
-            logger.warning(reason)
+            logger.debug("Token validation failed: %s", e)
             return None
 
     def get_middleware(self) -> list[Any]:
