@@ -639,7 +639,8 @@ async def test_warning_logs_never_contain_claim_values(hs256_verifier, caplog):
 @pytest.mark.asyncio
 async def test_hs256_secret_never_logged(hs256_verifier, caplog):
     """The HS256 secret key must never appear in any log at any level."""
-    secret_key = "test-secret-key-for-hs256-tokens"
+    # This matches the public_key value from the hs256_verifier fixture
+    hs256_signing_value = "test-secret-key-for-hs256-tokens"
 
     token = _make_token(
         {"alg": "HS256", "typ": "JWT"},
@@ -661,7 +662,7 @@ async def test_hs256_secret_never_logged(hs256_verifier, caplog):
         with patch.object(hs256_verifier.jwt, "decode", return_value=claims):
             await hs256_verifier.load_access_token(token)
 
-    # The secret key must never appear at ANY log level
+    # The signing value must never appear at ANY log level
     all_messages = [r.message for r in caplog.records]
     for msg in all_messages:
-        assert secret_key not in msg, f"HS256 secret leaked in log: {msg}"
+        assert hs256_signing_value not in msg, f"HS256 secret leaked in log: {msg}"
