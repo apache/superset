@@ -1,4 +1,3 @@
-/* eslint-env node */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -18,15 +17,5 @@
  * under the License.
  */
 
-module.exports = {
-  presets: [
-    [
-      require.resolve('@docusaurus/core/lib/babel/preset'),
-      {
-        runtime: 'automatic',
-        importSource: '@emotion/react',
-      },
-    ],
-  ],
-  plugins: ['@emotion/babel-plugin'],
-};
+export { default as ComponentIndex } from './ComponentIndex';
+export * from './types';

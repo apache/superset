@@ -58,7 +58,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT_DIR = path.resolve(__dirname, '../..');
 const DOCS_DIR = path.resolve(__dirname, '..');
-const OUTPUT_DIR = path.join(DOCS_DIR, 'developer_portal/components');
+const OUTPUT_DIR = path.join(DOCS_DIR, 'developer_docs/components');
+const JSON_OUTPUT_PATH = path.join(DOCS_DIR, 'static/data/components.json');
+const TYPES_OUTPUT_DIR = path.join(DOCS_DIR, 'src/types/apache-superset-core');
+const TYPES_OUTPUT_PATH = path.join(TYPES_OUTPUT_DIR, 'index.d.ts');
 const FRONTEND_DIR = path.join(ROOT_DIR, 'superset-frontend');
 
 // Source configurations with import paths and categories
@@ -146,6 +149,16 @@ const SOURCES = [
     enabled: false, // Requires specific setup
     skipComponents: new Set([]),
   },
+  {
+    name: 'Extension Components',
+    path: 'packages/superset-core/src',
+    importPrefix: '@apache-superset/core/ui',
+    docImportPrefix: '@apache-superset/core/ui',
+    category: 'extension',
+    enabled: true,
+    extensionCompatible: true,
+    skipComponents: new Set([]),
+  },
 ];
 
 // Category mapping from story title prefixes to output directories
@@ -156,7 +169,7 @@ const CATEGORY_MAP = {
   'Legacy Chart Plugins/': 'legacy-charts',
   'Core Packages/': 'core-packages',
   'Others/': 'utilities',
-  'Extension Components/': 'extension', // Skip - handled by other script
+  'Extension Components/': 'extension',
   'Superset App/': 'app',
 };
 
@@ -334,6 +347,7 @@ function parseStoryFile(filePath, sourceConfig) {
     sourceConfig,
     resolvedImportPath,
     isDefaultExport,
+    extensionCompatible: Boolean(sourceConfig.extensionCompatible),
   };
 }
 
@@ -1141,6 +1155,7 @@ Help improve it by [editing the story file](https://github.com/apache/superset/e
 const CATEGORY_LABELS = {
   ui: { title: 'Core Components', sidebarLabel: 'Core Components', description: 'Buttons, inputs, modals, selects, and other fundamental UI elements.' },
   'design-system': { title: 'Layout Components', sidebarLabel: 'Layout Components', description: 'Grid, Layout, Table, Flex, Space, and container components for page structure.' },
+  extension: { title: 'Extension Components', sidebarLabel: 'Extension Components', description: 'Components available to extension developers via @apache-superset/core/ui.' },
 };
 
 /**
@@ -1194,20 +1209,7 @@ ${componentList}
 /**
  * Generate main overview page
  */
-function generateOverviewIndex(categories) {
-  const categoryList = Object.entries(categories)
-    .filter(([, components]) => components.length > 0)
-    .map(([cat, components]) => {
-      const labels = CATEGORY_LABELS[cat] || {
-        title: cat.charAt(0).toUpperCase() + cat.slice(1).replace(/-/g, ' '),
-      };
-      const desc = labels.description ? ` ${labels.description}` : '';
-      return `### [${labels.title}](./${cat}/)\n${components.length} components —${desc}\n`;
-    })
-    .join('\n');
-
-  const totalComponents = Object.values(categories).reduce((sum, c) => sum + c.length, 0);
-
+function generateOverviewIndex() {
   return `---
 title: UI Components Overview
 sidebar_label: Overview
@@ -1233,7 +1235,16 @@ sidebar_position: 0
     under the License.
 -->
 
-# Superset Design System
+import { ComponentIndex } from '@site/src/components/ui-components';
+import componentData from '@site/static/data/components.json';
+
+# UI Components
+
+<ComponentIndex data={componentData} />
+
+---
+
+## Design System
 
 A design system is a complete set of standards intended to manage design at scale using reusable components and patterns.
 
@@ -1244,14 +1255,6 @@ The Superset Design System uses [Atomic Design](https://bradfrost.com/blog/post/
 | **Superset Design** | Foundations | Components | Patterns | Templates | Features |
 
 <img src="/img/atomic-design.png" alt="Atoms = Foundations, Molecules = Components, Organisms = Patterns, Templates = Templates, Pages / Screens = Features" style={{maxWidth: '100%'}} />
-
----
-
-## Component Library
-
-Interactive documentation for Superset's UI component library. **${totalComponents} components** documented across ${Object.keys(categories).filter(k => categories[k].length > 0).length} categories.
-
-${categoryList}
 
 ## Usage
 
@@ -1333,6 +1336,128 @@ ${sections}
 }
 
 /**
+ * Build metadata for a component (for JSON output)
+ */
+function buildComponentMetadata(component, storyContent) {
+  const { componentName, description, category, sourceConfig, resolvedImportPath, extensionCompatible } = component;
+  const { args, controls, gallery, liveExample } = extractArgsAndControls(storyContent, componentName);
+  const labels = CATEGORY_LABELS[category] || {
+    title: category.charAt(0).toUpperCase() + category.slice(1).replace(/-/g, ' '),
+  };
+
+  return {
+    name: componentName,
+    category,
+    categoryLabel: labels.title || category,
+    description: description || '',
+    importPath: resolvedImportPath || sourceConfig.importPrefix,
+    package: sourceConfig.docImportPrefix,
+    extensionCompatible: Boolean(extensionCompatible),
+    propsCount: Object.keys(args).length,
+    controlsCount: controls.length,
+    hasGallery: Boolean(gallery && gallery.sizes && gallery.styles),
+    hasLiveExample: Boolean(liveExample),
+    docPath: `developer-docs/components/${category}/${componentName.toLowerCase()}`,
+    storyFile: component.relativePath,
+  };
+}
+
+/**
+ * Extract type and component export declarations from a component source file.
+ * Used to generate .d.ts type declarations for extension-compatible components.
+ */
+function extractComponentTypes(componentPath) {
+  if (!fs.existsSync(componentPath)) return null;
+  const content = fs.readFileSync(componentPath, 'utf-8');
+
+  const types = [];
+  for (const match of content.matchAll(/export\s+type\s+(\w+)\s*=\s*([^;]+);/g)) {
+    types.push({ name: match[1], definition: match[2].trim() });
+  }
+
+  const components = [];
+  for (const match of content.matchAll(/export\s+const\s+(\w+)\s*[=:]/g)) {
+    components.push(match[1]);
+  }
+
+  return { types, components };
+}
+
+/**
+ * Generate TypeScript type declarations for extension-compatible components.
+ * Produces a .d.ts file that downstream consumers can reference.
+ */
+function generateExtensionTypeDeclarations(extensionComponents) {
+  const imports = new Set();
+  const typeDeclarations = [];
+  const componentDeclarations = [];
+
+  for (const comp of extensionComponents) {
+    const componentDir = path.dirname(comp.filePath);
+    const componentFile = path.join(componentDir, 'index.tsx');
+    const extracted = extractComponentTypes(componentFile);
+    if (!extracted) continue;
+
+    for (const type of extracted.types) {
+      if (type.definition.includes('AntdAlertProps') || type.definition.includes('AlertProps')) {
+        imports.add("import type { AlertProps as AntdAlertProps } from 'antd/es/alert';");
+      }
+      if (type.definition.includes('PropsWithChildren') || type.definition.includes('FC')) {
+        imports.add("import type { PropsWithChildren, FC } from 'react';");
+      }
+      typeDeclarations.push(`export type ${type.name} = ${type.definition};`);
+    }
+
+    for (const name of extracted.components) {
+      const propsType = `${name}Props`;
+      const hasPropsType = extracted.types.some(t => t.name === propsType);
+      componentDeclarations.push(
+        hasPropsType
+          ? `export const ${name}: FC<${propsType}>;`
+          : `export const ${name}: FC<Record<string, unknown>>;`
+      );
+    }
+  }
+
+  // Always import FC when we have component declarations that reference it
+  if (componentDeclarations.length > 0) {
+    imports.add("import type { PropsWithChildren, FC } from 'react';");
+  }
+
+  return `/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+/**
+ * Type declarations for @apache-superset/core/ui
+ *
+ * AUTO-GENERATED by scripts/generate-superset-components.mjs
+ * Do not edit manually - regenerate by running: yarn generate:superset-components
+ */
+${Array.from(imports).join('\n')}
+
+${typeDeclarations.join('\n')}
+
+${componentDeclarations.join('\n')}
+`;
+}
+
+/**
  * Main function
  */
 async function main() {
@@ -1396,8 +1521,53 @@ async function main() {
     console.log(`  ✓ ${category}/index`);
   }
 
+  // Build JSON metadata for all components
+  console.log('\nBuilding component metadata JSON...');
+  const componentMetadata = [];
+  for (const component of components) {
+    const storyContent = fs.readFileSync(component.filePath, 'utf-8');
+    componentMetadata.push(buildComponentMetadata(component, storyContent));
+  }
+
+  // Build statistics
+  const byCategory = {};
+  for (const comp of componentMetadata) {
+    if (!byCategory[comp.category]) byCategory[comp.category] = 0;
+    byCategory[comp.category]++;
+  }
+  const jsonData = {
+    generated: new Date().toISOString(),
+    statistics: {
+      totalComponents: componentMetadata.length,
+      byCategory,
+      extensionCompatible: componentMetadata.filter(c => c.extensionCompatible).length,
+      withGallery: componentMetadata.filter(c => c.hasGallery).length,
+      withLiveExample: componentMetadata.filter(c => c.hasLiveExample).length,
+    },
+    components: componentMetadata,
+  };
+
+  // Ensure data directory exists and write JSON
+  const jsonDir = path.dirname(JSON_OUTPUT_PATH);
+  if (!fs.existsSync(jsonDir)) {
+    fs.mkdirSync(jsonDir, { recursive: true });
+  }
+  fs.writeFileSync(JSON_OUTPUT_PATH, JSON.stringify(jsonData, null, 2));
+  console.log(`  ✓ components.json (${componentMetadata.length} components)`);
+
+  // Generate type declarations for extension-compatible components
+  const extensionComponents = components.filter(c => c.extensionCompatible);
+  if (extensionComponents.length > 0) {
+    if (!fs.existsSync(TYPES_OUTPUT_DIR)) {
+      fs.mkdirSync(TYPES_OUTPUT_DIR, { recursive: true });
+    }
+    const typesContent = generateExtensionTypeDeclarations(extensionComponents);
+    fs.writeFileSync(TYPES_OUTPUT_PATH, typesContent);
+    console.log(`  ✓ extension types (${extensionComponents.length} components)`);
+  }
+
   // Generate main overview
-  const overviewContent = generateOverviewIndex(categories);
+  const overviewContent = generateOverviewIndex();
   const overviewPath = path.join(OUTPUT_DIR, 'index.mdx');
   fs.writeFileSync(overviewPath, overviewContent);
   console.log(`  ✓ index (overview)`);

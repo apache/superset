@@ -227,7 +227,30 @@ if (!versionsConfig.developer_docs.disabled && !versionsConfig.developer_docs.hi
   });
 }
 
+// Netlify build containers have ~8GB RAM. Rspack and SSG worker threads use
+// native memory outside Node's heap, pushing total usage over the limit.
+// Fall back to webpack on Netlify while keeping SWC/Lightning CSS speedups.
+const isMemoryConstrained = process.env.NETLIFY === 'true';
+
 const config: Config = {
+  future: {
+    v4: {
+      removeLegacyPostBuildHeadAttribute: true,
+      // Disabled: CSS cascade layers change specificity and cause antd
+      // styles (from Storybook component pages) to override theme styles
+      useCssCascadeLayers: false,
+    },
+    experimental_faster: {
+      swcJsLoader: true,
+      swcJsMinimizer: true,
+      swcHtmlMinimizer: true,
+      lightningCssMinimizer: true,
+      rspackBundler: !isMemoryConstrained,
+      mdxCrossCompilerCache: true,
+      rspackPersistentCache: !isMemoryConstrained,
+      ssgWorkerThreads: false,
+    },
+  },
   title: 'Superset',
   tagline:
     'Apache Superset is a modern data exploration and visualization platform',

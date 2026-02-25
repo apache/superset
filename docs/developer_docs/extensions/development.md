@@ -299,7 +299,7 @@ InteractiveMyComponent.argTypes = {
 
 When the docs site is built (`yarn start` or `yarn build` in the `docs/` directory):
 
-1. The `generate-extension-components` script scans all stories in `superset-core`
+1. The `generate-superset-components` script scans all stories (including `superset-core`)
 2. For each story, it generates an MDX page with:
    - Component description
    - **Live interactive example** with controls extracted from `argTypes`
