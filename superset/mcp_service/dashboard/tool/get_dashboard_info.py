@@ -26,6 +26,7 @@ import logging
 from datetime import datetime, timezone
 
 from fastmcp import Context
+from sqlalchemy.orm import subqueryload
 
 from superset.dashboards.permalink.exceptions import DashboardPermalinkGetFailedError
 from superset.dashboards.permalink.types import DashboardPermalinkValue
@@ -100,6 +101,19 @@ async def get_dashboard_info(
 
     try:
         from superset.daos.dashboard import DashboardDAO
+        from superset.models.dashboard import Dashboard
+        from superset.models.slice import Slice
+
+        # Eager load slices (charts), owners, tags, and roles to avoid N+1
+        # queries. Also eager load owners/tags on each slice since the
+        # dashboard serializer calls serialize_chart_object for every chart.
+        eager_options = [
+            subqueryload(Dashboard.slices).subqueryload(Slice.owners),
+            subqueryload(Dashboard.slices).subqueryload(Slice.tags),
+            subqueryload(Dashboard.owners),
+            subqueryload(Dashboard.tags),
+            subqueryload(Dashboard.roles),
+        ]
 
         with event_logger.log_context(action="mcp.get_dashboard_info.lookup"):
             tool = ModelGetInfoCore(
@@ -109,6 +123,7 @@ async def get_dashboard_info(
                 serializer=dashboard_serializer,
                 supports_slug=True,  # Dashboards support slugs
                 logger=logger,
+                query_options=eager_options,
             )
 
             result = tool.run_tool(request.identifier)
