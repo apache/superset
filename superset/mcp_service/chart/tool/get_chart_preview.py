@@ -179,7 +179,14 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
                 height=self.request.ascii_height or 20,
             )
 
-        except (CommandException, SupersetException, ValueError, KeyError) as e:
+        except (
+            CommandException,
+            SupersetException,
+            ValueError,
+            KeyError,
+            AttributeError,
+            TypeError,
+        ) as e:
             logger.error("ASCII preview generation failed: %s", e)
             return ChartError(
                 error=f"Failed to generate ASCII preview: {str(e)}",
@@ -240,7 +247,14 @@ class TablePreviewStrategy(PreviewFormatStrategy):
                 row_count=len(data),
             )
 
-        except (CommandException, SupersetException, ValueError, KeyError) as e:
+        except (
+            CommandException,
+            SupersetException,
+            ValueError,
+            KeyError,
+            AttributeError,
+            TypeError,
+        ) as e:
             logger.error("Table preview generation failed: %s", e)
             return ChartError(
                 error=f"Failed to generate table preview: {str(e)}",
@@ -348,7 +362,14 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
                 supports_streaming=False,
             )
 
-        except (CommandException, SupersetException, ValueError, KeyError) as e:
+        except (
+            CommandException,
+            SupersetException,
+            ValueError,
+            KeyError,
+            AttributeError,
+            TypeError,
+        ) as e:
             logger.exception(
                 "Error generating Vega-Lite preview for chart %s", self.chart.id
             )
@@ -2017,7 +2038,14 @@ async def _get_chart_preview_internal(  # noqa: C901
 
         return result
 
-    except (CommandException, SupersetException, ValueError, KeyError) as e:
+    except (
+        CommandException,
+        SupersetException,
+        ValueError,
+        KeyError,
+        AttributeError,
+        TypeError,
+    ) as e:
         await ctx.error(
             "Chart preview generation failed: identifier=%s, format=%s, error=%s, "
             "error_type=%s"
@@ -2082,7 +2110,14 @@ async def get_chart_preview(
             )
 
         return result
-    except (CommandException, SupersetException, ValueError, KeyError) as e:
+    except (
+        CommandException,
+        SupersetException,
+        ValueError,
+        KeyError,
+        AttributeError,
+        TypeError,
+    ) as e:
         await ctx.error(
             "Chart preview generation failed: identifier=%s, error=%s, error_type=%s"
             % (

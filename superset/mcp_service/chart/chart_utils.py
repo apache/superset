@@ -44,7 +44,7 @@ class DatasetValidationResult:
     """Result of dataset accessibility validation."""
 
     is_valid: bool
-    dataset_id: int | None
+    dataset_id: int | str | None
     dataset_name: str | None
     warnings: list[str]
     error: str | None = None
@@ -67,6 +67,8 @@ def validate_chart_dataset(
     Returns:
         DatasetValidationResult with validation status and any warnings
     """
+    from sqlalchemy.exc import SQLAlchemyError
+
     from superset.daos.dataset import DatasetDAO
     from superset.mcp_service.auth import has_dataset_access
 
@@ -133,8 +135,8 @@ def validate_chart_dataset(
             error=None,
         )
 
-    except (AttributeError, ValueError, RuntimeError) as e:
-        logger.warning("Error validating chart dataset %s: %s", datasource_id, e)
+    except (AttributeError, ValueError, RuntimeError, SQLAlchemyError) as e:
+        logger.exception("Error validating chart dataset %s: %s", datasource_id, e)
         return DatasetValidationResult(
             is_valid=False,
             dataset_id=datasource_id,
@@ -151,6 +153,7 @@ def generate_explore_link(dataset_id: int | str, form_data: Dict[str, Any]) -> s
     from superset.commands.exceptions import CommandException
     from superset.commands.explore.form_data.parameters import CommandParameters
     from superset.daos.dataset import DatasetDAO
+    from superset.exceptions import SupersetException
     from superset.mcp_service.commands.create_form_data import (
         MCPCreateFormDataCommand,
     )
@@ -201,7 +204,15 @@ def generate_explore_link(dataset_id: int | str, form_data: Dict[str, Any]) -> s
         # Return URL with just the form_data_key
         return f"{base_url}/explore/?form_data_key={form_data_key}"
 
-    except (CommandException, SQLAlchemyError, ValueError, AttributeError) as e:
+    except (
+        CommandException,
+        SupersetException,
+        SQLAlchemyError,
+        KeyError,
+        ValueError,
+        AttributeError,
+        TypeError,
+    ) as e:
         # Fallback to basic explore URL with numeric ID if available
         logger.debug("Explore link generation fallback due to: %s", e)
         if numeric_dataset_id is not None:
