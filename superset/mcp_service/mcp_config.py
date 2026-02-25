@@ -224,9 +224,10 @@ def create_default_mcp_auth_factory(app: Flask) -> Optional[Any]:
             auth_provider = JWTVerifier(**common_kwargs)
 
         return auth_provider
-    except Exception as e:
+    except Exception:
+        # Do not log the exception — it may contain the HS256 secret
+        # from common_kwargs["public_key"]
         logger.error("Failed to create MCP auth provider")
-        logger.debug("MCP auth provider error details: %s", e)
         return None
 
 

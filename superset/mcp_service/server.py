@@ -135,9 +135,9 @@ def _create_auth_provider(flask_app: Any) -> Any | None:
                 "Auth provider created from MCP_AUTH_FACTORY: %s",
                 type(auth_provider).__name__ if auth_provider else "None",
             )
-        except Exception as e:
+        except Exception:
+            # Do not log the exception — it may contain secrets
             logging.error("Failed to create auth provider from MCP_AUTH_FACTORY")
-            logging.debug("Auth provider factory error details: %s", e)
     elif flask_app.config.get("MCP_AUTH_ENABLED", False):
         from superset.mcp_service.mcp_config import (
             create_default_mcp_auth_factory,
@@ -149,9 +149,9 @@ def _create_auth_provider(flask_app: Any) -> Any | None:
                 "Auth provider created from default factory: %s",
                 type(auth_provider).__name__ if auth_provider else "None",
             )
-        except Exception as e:
+        except Exception:
+            # Do not log the exception — it may contain secrets
             logging.error("Failed to create auth provider from default factory")
-            logging.debug("Default auth provider error details: %s", e)
     return auth_provider
 
 
