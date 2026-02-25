@@ -22,6 +22,11 @@ from typing import Any, Dict, Optional
 
 from flask import Flask
 
+from superset.mcp_service.constants import (
+    DEFAULT_TOKEN_LIMIT,
+    DEFAULT_WARN_THRESHOLD_PCT,
+)
+
 logger = logging.getLogger(__name__)
 
 # MCP Service Configuration
@@ -164,6 +169,50 @@ MCP_CACHE_CONFIG: Dict[str, Any] = {
         "generate_dashboard",
         "generate_chart",
         "update_chart",
+    ],
+}
+
+# =============================================================================
+# MCP Response Size Guard Configuration
+# =============================================================================
+#
+# Overview:
+# ---------
+# The Response Size Guard prevents oversized responses from overwhelming LLM
+# clients (e.g., Claude Desktop). When a tool response exceeds the token limit,
+# it returns a helpful error with suggestions for reducing the response size.
+#
+# How it works:
+# -------------
+# 1. After a tool executes, the middleware estimates the response's token count
+# 2. If the response exceeds the configured limit, it blocks the response
+# 3. Instead, it returns an error message with smart suggestions:
+#    - Reduce page_size/limit
+#    - Use select_columns to exclude large fields
+#    - Add filters to narrow results
+#    - Tool-specific recommendations
+#
+# Configuration:
+# --------------
+# - enabled: Toggle the guard on/off (default: True)
+# - token_limit: Maximum estimated tokens per response (default: 25,000)
+# - excluded_tools: Tools to skip checking (e.g., streaming tools)
+# - warn_threshold_pct: Log warnings above this % of limit (default: 80%)
+#
+# Token Estimation:
+# -----------------
+# Uses character-based heuristic (~3.5 chars per token for JSON).
+# This is intentionally conservative to avoid underestimating.
+# =============================================================================
+MCP_RESPONSE_SIZE_CONFIG: Dict[str, Any] = {
+    "enabled": True,  # Enabled by default to protect LLM clients
+    "token_limit": DEFAULT_TOKEN_LIMIT,
+    "warn_threshold_pct": DEFAULT_WARN_THRESHOLD_PCT,
+    "excluded_tools": [  # Tools to skip size checking
+        "health_check",  # Always small
+        "get_chart_preview",  # Returns URLs, not data
+        "generate_explore_link",  # Returns URLs
+        "open_sql_lab_with_context",  # Returns URLs
     ],
 }
 
