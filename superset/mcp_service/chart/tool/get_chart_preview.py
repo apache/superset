@@ -2115,14 +2115,7 @@ async def get_chart_preview(
             )
 
         return result
-    except (
-        CommandException,
-        SupersetException,
-        ValueError,
-        KeyError,
-        AttributeError,
-        TypeError,
-    ) as e:
+    except Exception as e:
         await ctx.error(
             "Chart preview generation failed: identifier=%s, error=%s, error_type=%s"
             % (
