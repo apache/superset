@@ -330,3 +330,22 @@ export function serializeForAPI(items: TreeItem[]): DatasourceFolder[] {
     })
     .filter((folder): folder is DatasourceFolder => folder !== null);
 }
+
+/**
+ * Recursively counts all folders in a DatasourceFolder array,
+ * including nested sub-folders within children.
+ */
+export function countAllFolders(folders: DatasourceFolder[]): number {
+  let count = 0;
+  for (const folder of folders) {
+    count += 1;
+    if (folder.children) {
+      for (const child of folder.children) {
+        if ('children' in child) {
+          count += countAllFolders([child as DatasourceFolder]);
+        }
+      }
+    }
+  }
+  return count;
+}

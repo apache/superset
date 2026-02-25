@@ -451,19 +451,19 @@ function SavedQueryList({
           const handleDelete = () => setQueryCurrentlyDeleting(original);
 
           const actions = [
-            {
-              label: 'preview-action',
-              tooltip: t('Query preview'),
-              placement: 'bottom',
-              icon: 'Binoculars',
-              onClick: handlePreview,
-            },
             canEdit && {
               label: 'edit-action',
               tooltip: t('Edit query'),
               placement: 'bottom',
               icon: 'EditOutlined',
               onClick: handleEdit,
+            },
+            {
+              label: 'preview-action',
+              tooltip: t('Query preview'),
+              placement: 'bottom',
+              icon: 'Binoculars',
+              onClick: handlePreview,
             },
             {
               label: 'copy-action',

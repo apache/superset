@@ -334,7 +334,7 @@ class ReportSchedulePutSchema(Schema):
         metadata={"description": creation_method_description},
     )
     dashboard = fields.Integer(required=False, allow_none=True)
-    database = fields.Integer(required=False)
+    database = fields.Integer(required=False, allow_none=True)
     owners = fields.List(
         fields.Integer(metadata={"description": owners_description}), required=False
     )

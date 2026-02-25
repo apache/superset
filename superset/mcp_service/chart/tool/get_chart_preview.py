@@ -1978,12 +1978,7 @@ async def _get_chart_preview_internal(  # noqa: C901
         )
 
         # Add format-specific fields for backward compatibility
-        if isinstance(content, URLPreview):
-            result.format = "url"
-            result.preview_url = content.preview_url
-            result.width = content.width
-            result.height = content.height
-        elif isinstance(content, ASCIIPreview):
+        if isinstance(content, ASCIIPreview):
             result.format = "ascii"
             result.ascii_chart = content.ascii_content
             result.width = content.width

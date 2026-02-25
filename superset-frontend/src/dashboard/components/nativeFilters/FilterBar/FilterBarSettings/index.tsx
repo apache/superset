@@ -206,7 +206,7 @@ const FilterBarSettings = () => {
                   <Icons.CheckOutlined
                     iconColor={theme.colorPrimary}
                     iconSize="m"
-                    aria-label="check"
+                    aria-label={t('Selected')}
                   />
                 )}
               </Space>
@@ -224,7 +224,7 @@ const FilterBarSettings = () => {
                     css={css`
                       vertical-align: middle;
                     `}
-                    aria-label="check"
+                    aria-label={t('Selected')}
                   />
                 )}
               </Space>

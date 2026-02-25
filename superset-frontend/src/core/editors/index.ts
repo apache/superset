@@ -26,12 +26,12 @@
 
 import type { contributions } from '@apache-superset/core';
 import { editors as editorsApi } from '@apache-superset/core';
+import ExtensionsManager from 'src/extensions/ExtensionsManager';
 import { Disposable } from '../models';
 import EditorProviders from './EditorProviders';
 
 type EditorLanguage = contributions.EditorLanguage;
 type EditorProvider = editorsApi.EditorProvider;
-type EditorContribution = editorsApi.EditorContribution;
 type EditorComponent = editorsApi.EditorComponent;
 type EditorProviderRegisteredEvent = editorsApi.EditorProviderRegisteredEvent;
 type EditorProviderUnregisteredEvent =
@@ -39,18 +39,30 @@ type EditorProviderUnregisteredEvent =
 
 /**
  * Register an editor provider for specific languages.
- * When an extension registers an editor, it replaces the default for those languages.
+ * The contribution metadata is resolved from the extension manifest by ID.
  *
- * @param contribution The editor contribution metadata from extension.json
+ * @param id The editor contribution ID declared in extension.json
  * @param component The React component implementing EditorProps
  * @returns A Disposable to unregister the provider
  */
 export const registerEditorProvider = (
-  contribution: EditorContribution,
+  id: string,
   component: EditorComponent,
 ): Disposable => {
-  const manager = EditorProviders.getInstance();
-  return manager.registerProvider(contribution, component);
+  const manager = ExtensionsManager.getInstance();
+  const contribution = manager.getEditorContributions().find(c => c.id === id);
+
+  if (!contribution) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `No editor contribution found in extension.json for id "${id}". ` +
+        'Ensure the editor is declared in the contributions.editors array.',
+    );
+    return new Disposable(() => {});
+  }
+
+  const providers = EditorProviders.getInstance();
+  return providers.registerProvider(contribution, component);
 };
 
 /**

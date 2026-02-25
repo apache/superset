@@ -431,5 +431,5 @@ test('should add a formula annotation when X-axis column has dataset-level label
   expect(formulaSeries).toBeDefined();
   expect(formulaSeries?.data).toBeDefined();
   expect(Array.isArray(formulaSeries?.data)).toBe(true);
-  expect((formulaSeries?.data as unknown[]).length).toBeGreaterThan(0);
+  expect((formulaSeries?.data as unknown[])?.length).toBeGreaterThan(0);
 });

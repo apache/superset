@@ -51,16 +51,6 @@ interface ColumnSelectPopoverTriggerProps {
   selectedMetrics?: QueryFormMetric[];
 }
 
-const ColumnSelectPopoverTriggerWrapper = (
-  props: ColumnSelectPopoverTriggerProps,
-) => {
-  const datasource = useSelector(
-    (state: any) => state?.explore?.datasource || null,
-  );
-
-  return <ColumnSelectPopoverTriggerInner {...props} datasource={datasource} />;
-};
-
 interface ColumnSelectPopoverTriggerInnerProps extends ColumnSelectPopoverTriggerProps {
   datasource?: any;
 }
@@ -215,6 +205,16 @@ const ColumnSelectPopoverTriggerInner = ({
       </ControlPopover>
     </>
   );
+};
+
+const ColumnSelectPopoverTriggerWrapper = (
+  props: ColumnSelectPopoverTriggerProps,
+) => {
+  const datasource = useSelector(
+    (state: any) => state?.explore?.datasource || null,
+  );
+
+  return <ColumnSelectPopoverTriggerInner {...props} datasource={datasource} />;
 };
 
 export default ColumnSelectPopoverTriggerWrapper;

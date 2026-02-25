@@ -6,6 +6,9 @@ on:
       - master
       - "[0-9].[0-9]*"
 
+permissions:
+  contents: read
+
 jobs:
   config:
     runs-on: ubuntu-24.04

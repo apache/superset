@@ -88,11 +88,9 @@ class ChartInfo(BaseModel):
     viz_type: str | None = Field(None, description="Visualization type")
     datasource_name: str | None = Field(None, description="Datasource name")
     datasource_type: str | None = Field(None, description="Datasource type")
-    url: str | None = Field(None, description="Chart URL")
+    url: str | None = Field(None, description="Chart explore page URL")
     description: str | None = Field(None, description="Chart description")
     cache_timeout: int | None = Field(None, description="Cache timeout")
-    form_data: Dict[str, Any] | None = Field(None, description="Chart form data")
-    query_context: Any | None = Field(None, description="Query context")
     changed_by: str | None = Field(None, description="Last modifier (username)")
     changed_by_name: str | None = Field(
         None, description="Last modifier (display name)"
@@ -231,8 +229,6 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
         url=chart_url,
         description=getattr(chart, "description", None),
         cache_timeout=getattr(chart, "cache_timeout", None),
-        form_data=getattr(chart, "form_data", None),
-        query_context=getattr(chart, "query_context", None),
         changed_by=getattr(chart, "changed_by_name", None)
         or (str(chart.changed_by) if getattr(chart, "changed_by", None) else None),
         changed_by_name=getattr(chart, "changed_by_name", None),
@@ -395,10 +391,32 @@ class FilterConfig(BaseModel):
     column: str = Field(
         ..., description="Column to filter on", min_length=1, max_length=255
     )
-    op: Literal["=", ">", "<", ">=", "<=", "!="] = Field(
-        ..., description="Filter operator"
+    op: Literal[
+        "=",
+        ">",
+        "<",
+        ">=",
+        "<=",
+        "!=",
+        "LIKE",
+        "ILIKE",
+        "NOT LIKE",
+        "IN",
+        "NOT IN",
+    ] = Field(
+        ...,
+        description=(
+            "Filter operator. Use LIKE/ILIKE for pattern matching with % wildcards "
+            "(e.g., '%mario%'). Use IN/NOT IN with a list of values."
+        ),
     )
-    value: str | int | float | bool = Field(..., description="Filter value")
+    value: str | int | float | bool | list[str | int | float | bool] = Field(
+        ...,
+        description=(
+            "Filter value. For IN/NOT IN operators, provide a list of values. "
+            "For LIKE/ILIKE, use % as wildcard (e.g., '%mario%')."
+        ),
+    )
 
     @field_validator("column")
     @classmethod
@@ -410,9 +428,28 @@ class FilterConfig(BaseModel):
 
     @field_validator("value")
     @classmethod
-    def sanitize_value(cls, v: str | int | float | bool) -> str | int | float | bool:
+    def sanitize_value(
+        cls, v: str | int | float | bool | list[str | int | float | bool]
+    ) -> str | int | float | bool | list[str | int | float | bool]:
         """Sanitize filter value to prevent XSS and SQL injection attacks."""
+        if isinstance(v, list):
+            return [sanitize_filter_value(item, max_length=1000) for item in v]
         return sanitize_filter_value(v, max_length=1000)
+
+    @model_validator(mode="after")
+    def validate_value_type_matches_operator(self) -> FilterConfig:
+        """Validate that value type matches the operator requirements."""
+        if self.op in ("IN", "NOT IN"):
+            if not isinstance(self.value, list):
+                raise ValueError(
+                    f"Operator '{self.op}' requires a list of values, "
+                    f"got {type(self.value).__name__}"
+                )
+        elif isinstance(self.value, list):
+            raise ValueError(
+                f"Operator '{self.op}' requires a single value, not a list"
+            )
+        return self
 
 
 # Actual chart types
@@ -998,9 +1035,8 @@ class ChartPreview(BaseModel):
 
     # Backward compatibility fields (populated based on content type)
     format: str | None = Field(
-        None, description="Format of the preview (url, ascii, table, base64)"
+        None, description="Format of the preview (ascii, table, vega_lite)"
     )
-    preview_url: str | None = Field(None, description="Image URL for 'url' format")
     ascii_chart: str | None = Field(
         None, description="ASCII art chart for 'ascii' format"
     )

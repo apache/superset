@@ -40,7 +40,7 @@ const ColumnsPreview: FC<ColumnsPreviewProps> = ({
 
   return (
     <StyledDivContainer>
-      <Typography.Text type="secondary">Columns:</Typography.Text>
+      <Typography.Text type="secondary">{t('Columns')}:</Typography.Text>
       {columns.length === 0 ? (
         <p className="help-block">{t('Upload file to preview columns')}</p>
       ) : (

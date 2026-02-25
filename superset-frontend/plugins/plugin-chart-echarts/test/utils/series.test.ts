@@ -53,7 +53,7 @@ import { NULL_STRING } from '../../src/constants';
 
 const expectedThemeProps = {
   selector: ['all', 'inverse'],
-  selected: undefined,
+  selected: {},
   selectorLabel: {
     fontFamily: theme.fontFamily,
     fontSize: theme.fontSizeSM,

@@ -160,7 +160,9 @@ class ExtensionsManager {
     // Initialize Webpack module federation
     // @ts-expect-error
     await __webpack_init_sharing__('default');
-    const container = (window as any)[id];
+    // Use moduleFederationName (camelCase) for webpack container access, fallback to id for compatibility
+    const containerName = (extension as any).moduleFederationName || id;
+    const container = (window as any)[containerName];
 
     // @ts-expect-error
     await container.init(__webpack_share_scopes__.default);

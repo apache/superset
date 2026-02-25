@@ -43,16 +43,17 @@ def test_init_creates_extension_with_both_frontend_and_backend(
 
     assert result.exit_code == 0, f"Command failed with output: {result.output}"
     assert (
-        "🎉 Extension Test Extension (ID: test_extension) initialized" in result.output
+        "🎉 Extension Test Extension (ID: test-org.test-extension) initialized"
+        in result.output
     )
 
     # Verify directory structure
-    extension_path = isolated_filesystem / "test_extension"
+    extension_path = isolated_filesystem / "test-org.test-extension"
     assert_directory_exists(extension_path, "main extension directory")
 
     expected_structure = create_test_extension_structure(
         isolated_filesystem,
-        "test_extension",
+        "test-org.test-extension",
         include_frontend=True,
         include_backend=True,
     )
@@ -73,7 +74,7 @@ def test_init_creates_extension_with_frontend_only(
 
     assert result.exit_code == 0, f"Command failed with output: {result.output}"
 
-    extension_path = isolated_filesystem / "test_extension"
+    extension_path = isolated_filesystem / "test-org.test-extension"
     assert_directory_exists(extension_path)
 
     # Should have frontend directory and package.json
@@ -96,7 +97,7 @@ def test_init_creates_extension_with_backend_only(
 
     assert result.exit_code == 0, f"Command failed with output: {result.output}"
 
-    extension_path = isolated_filesystem / "test_extension"
+    extension_path = isolated_filesystem / "test-org.test-extension"
     assert_directory_exists(extension_path)
 
     # Should have backend directory and pyproject.toml
@@ -119,7 +120,7 @@ def test_init_creates_extension_with_neither_frontend_nor_backend(
 
     assert result.exit_code == 0, f"Command failed with output: {result.output}"
 
-    extension_path = isolated_filesystem / "test_extension"
+    extension_path = isolated_filesystem / "test-org.test-extension"
     assert_directory_exists(extension_path)
 
     # Should only have extension.json
@@ -131,53 +132,53 @@ def test_init_creates_extension_with_neither_frontend_nor_backend(
 
 
 @pytest.mark.cli
+def test_init_accepts_valid_display_name(cli_runner, isolated_filesystem):
+    """Test that init accepts valid display names and generates proper ID."""
+    cli_input = "My Awesome Extension\n\ntest-org\n0.1.0\nApache-2.0\ny\ny\n"
+    result = cli_runner.invoke(app, ["init"], input=cli_input)
+
+    assert result.exit_code == 0, f"Should accept display name: {result.output}"
+    assert Path("test-org.my-awesome-extension").exists(), (
+        "Directory for generated composite ID should be created"
+    )
+
+
+@pytest.mark.cli
+def test_init_accepts_mixed_alphanumeric_name(cli_runner, isolated_filesystem):
+    """Test that init accepts mixed alphanumeric display names."""
+    cli_input = "Tool 123\n\ntest-org\n0.1.0\nApache-2.0\ny\ny\n"
+    result = cli_runner.invoke(app, ["init"], input=cli_input)
+
+    assert result.exit_code == 0, (
+        f"Mixed alphanumeric display name should be valid: {result.output}"
+    )
+    assert Path("test-org.tool-123").exists(), (
+        "Directory for 'test-org.tool-123' should be created"
+    )
+
+
+@pytest.mark.cli
 @pytest.mark.parametrize(
-    "invalid_name,expected_error",
+    "display_name,expected_id",
     [
-        ("test-extension", "must be alphanumeric"),
-        ("test extension", "must be alphanumeric"),
-        ("test.extension", "must be alphanumeric"),
-        ("test@extension", "must be alphanumeric"),
-        ("", "must be alphanumeric"),
+        ("Test Extension", "test-org.test-extension"),
+        ("My Tool v2", "test-org.my-tool-v2"),
+        ("Dashboard Helper", "test-org.dashboard-helper"),
+        ("Chart Builder Pro", "test-org.chart-builder-pro"),
     ],
 )
-def test_init_validates_extension_name(
-    cli_runner, isolated_filesystem, invalid_name, expected_error
-):
-    """Test that init validates extension names according to regex pattern."""
-    cli_input = f"{invalid_name}\n0.1.0\nApache-2.0\ny\ny\n"
-    result = cli_runner.invoke(app, ["init"], input=cli_input)
-
-    assert result.exit_code == 1, (
-        f"Expected command to fail for invalid name '{invalid_name}'"
-    )
-    assert expected_error in result.output
-
-
-@pytest.mark.cli
-def test_init_accepts_numeric_extension_name(cli_runner, isolated_filesystem):
-    """Test that init accepts numeric extension ids like '123'."""
-    cli_input = "123\n123\n0.1.0\nApache-2.0\ny\ny\n"
-    result = cli_runner.invoke(app, ["init"], input=cli_input)
-
-    assert result.exit_code == 0, f"Numeric id '123' should be valid: {result.output}"
-    assert Path("123").exists(), "Directory for '123' should be created"
-
-
-@pytest.mark.cli
-@pytest.mark.parametrize(
-    "valid_id", ["test123", "TestExtension", "test_extension_123", "MyExt_1"]
-)
-def test_init_with_valid_alphanumeric_names(cli_runner, valid_id):
-    """Test that init accepts various valid alphanumeric names."""
+def test_init_with_various_display_names(cli_runner, display_name, expected_id):
+    """Test that init accepts various display names and generates proper IDs."""
     with cli_runner.isolated_filesystem():
-        cli_input = f"{valid_id}\nTest Extension\n0.1.0\nApache-2.0\ny\ny\n"
+        cli_input = f"{display_name}\n\ntest-org\n0.1.0\nApache-2.0\ny\ny\n"
         result = cli_runner.invoke(app, ["init"], input=cli_input)
 
         assert result.exit_code == 0, (
-            f"Valid name '{valid_id}' was rejected: {result.output}"
+            f"Valid display name '{display_name}' was rejected: {result.output}"
         )
-        assert Path(valid_id).exists(), f"Directory for '{valid_id}' was not created"
+        assert Path(expected_id).exists(), (
+            f"Directory for '{expected_id}' was not created"
+        )
 
 
 @pytest.mark.cli
@@ -186,7 +187,7 @@ def test_init_fails_when_directory_already_exists(
 ):
     """Test that init fails gracefully when target directory already exists."""
     # Create the directory first
-    existing_dir = isolated_filesystem / "test_extension"
+    existing_dir = isolated_filesystem / "test-org.test-extension"
     existing_dir.mkdir()
 
     result = cli_runner.invoke(app, ["init"], input=cli_input_both)
@@ -203,15 +204,16 @@ def test_extension_json_content_is_correct(
     result = cli_runner.invoke(app, ["init"], input=cli_input_both)
     assert result.exit_code == 0
 
-    extension_path = isolated_filesystem / "test_extension"
+    extension_path = isolated_filesystem / "test-org.test-extension"
     extension_json_path = extension_path / "extension.json"
 
     # Verify the JSON structure and values
     assert_json_content(
         extension_json_path,
         {
-            "id": "test_extension",
-            "name": "Test Extension",
+            "publisher": "test-org",
+            "name": "test-extension",
+            "displayName": "Test Extension",
             "version": "0.1.0",
             "license": "Apache-2.0",
             "permissions": [],
@@ -226,16 +228,28 @@ def test_extension_json_content_is_correct(
     frontend = content["frontend"]
     assert "contributions" in frontend
     assert "moduleFederation" in frontend
-    assert frontend["contributions"] == {"commands": [], "views": {}, "menus": {}}
-    assert frontend["moduleFederation"] == {"exposes": ["./index"]}
+    assert frontend["contributions"] == {
+        "commands": [],
+        "views": {},
+        "menus": {},
+        "editors": [],
+    }
+    assert frontend["moduleFederation"] == {
+        "exposes": ["./index"],
+        "name": "testOrg_testExtension",
+    }
 
     # Verify backend section exists and has correct structure
     assert "backend" in content
     backend = content["backend"]
     assert "entryPoints" in backend
     assert "files" in backend
-    assert backend["entryPoints"] == ["test_extension.entrypoint"]
-    assert backend["files"] == ["backend/src/test_extension/**/*.py"]
+    assert backend["entryPoints"] == [
+        "superset_extensions.test_org.test_extension.entrypoint"
+    ]
+    assert backend["files"] == [
+        "backend/src/superset_extensions/test_org/test_extension/**/*.py"
+    ]
 
 
 @pytest.mark.cli
@@ -246,14 +260,14 @@ def test_frontend_package_json_content_is_correct(
     result = cli_runner.invoke(app, ["init"], input=cli_input_both)
     assert result.exit_code == 0
 
-    extension_path = isolated_filesystem / "test_extension"
+    extension_path = isolated_filesystem / "test-org.test-extension"
     package_json_path = extension_path / "frontend" / "package.json"
 
     # Verify the package.json structure and values
     assert_json_content(
         package_json_path,
         {
-            "name": "test_extension",
+            "name": "@test-org/test-extension",
             "version": "0.1.0",
             "license": "Apache-2.0",
         },
@@ -275,14 +289,16 @@ def test_backend_pyproject_toml_is_created(
     result = cli_runner.invoke(app, ["init"], input=cli_input_both)
     assert result.exit_code == 0
 
-    extension_path = isolated_filesystem / "test_extension"
+    extension_path = isolated_filesystem / "test-org.test-extension"
     pyproject_path = extension_path / "backend" / "pyproject.toml"
 
     assert_file_exists(pyproject_path, "backend pyproject.toml")
 
     # Basic content verification (without parsing TOML for now)
     content = pyproject_path.read_text()
-    assert "test_extension" in content
+    assert (
+        "test_org-test_extension" in content
+    )  # Package name uses collision-safe naming
     assert "0.1.0" in content
     assert "Apache-2.0" in content
 
@@ -300,7 +316,9 @@ def test_init_command_output_messages(cli_runner, isolated_filesystem, cli_input
     assert "Created .gitignore" in output
     assert "Created frontend folder structure" in output
     assert "Created backend folder structure" in output
-    assert "Extension Test Extension (ID: test_extension) initialized" in output
+    assert (
+        "Extension Test Extension (ID: test-org.test-extension) initialized" in output
+    )
 
 
 @pytest.mark.cli
@@ -309,7 +327,7 @@ def test_gitignore_content_is_correct(cli_runner, isolated_filesystem, cli_input
     result = cli_runner.invoke(app, ["init"], input=cli_input_both)
     assert result.exit_code == 0
 
-    extension_path = isolated_filesystem / "test_extension"
+    extension_path = isolated_filesystem / "test-org.test-extension"
     gitignore_path = extension_path / ".gitignore"
 
     assert_file_exists(gitignore_path, ".gitignore")
@@ -329,19 +347,20 @@ def test_gitignore_content_is_correct(cli_runner, isolated_filesystem, cli_input
 @pytest.mark.cli
 def test_init_with_custom_version_and_license(cli_runner, isolated_filesystem):
     """Test init with custom version and license parameters."""
-    cli_input = "my_extension\nMy Extension\n2.1.0\nMIT\ny\nn\n"
+    cli_input = "My Extension\n\ntest-org\n2.1.0\nMIT\ny\nn\n"
     result = cli_runner.invoke(app, ["init"], input=cli_input)
 
     assert result.exit_code == 0
 
-    extension_path = isolated_filesystem / "my_extension"
+    extension_path = isolated_filesystem / "test-org.my-extension"
     extension_json_path = extension_path / "extension.json"
 
     assert_json_content(
         extension_json_path,
         {
-            "id": "my_extension",
-            "name": "My Extension",
+            "publisher": "test-org",
+            "name": "my-extension",
+            "displayName": "My Extension",
             "version": "2.1.0",
             "license": "MIT",
         },
@@ -353,17 +372,17 @@ def test_init_with_custom_version_and_license(cli_runner, isolated_filesystem):
 def test_full_init_workflow_integration(cli_runner, isolated_filesystem):
     """Integration test for the complete init workflow."""
     # Test the complete flow with realistic user input
-    cli_input = "awesome_charts\nAwesome Charts\n1.0.0\nApache-2.0\ny\ny\n"
+    cli_input = "Awesome Charts\n\nawesome-org\n1.0.0\nApache-2.0\ny\ny\n"
     result = cli_runner.invoke(app, ["init"], input=cli_input)
 
     # Verify success
     assert result.exit_code == 0
 
     # Verify complete directory structure
-    extension_path = isolated_filesystem / "awesome_charts"
+    extension_path = isolated_filesystem / "awesome-org.awesome-charts"
     expected_structure = create_test_extension_structure(
         isolated_filesystem,
-        "awesome_charts",
+        "awesome-org.awesome-charts",
         include_frontend=True,
         include_backend=True,
     )
@@ -374,16 +393,19 @@ def test_full_init_workflow_integration(cli_runner, isolated_filesystem):
 
     # Verify all generated files have correct content
     extension_json = load_json_file(extension_path / "extension.json")
-    assert extension_json["id"] == "awesome_charts"
-    assert extension_json["name"] == "Awesome Charts"
+    assert extension_json["publisher"] == "awesome-org"
+    assert extension_json["name"] == "awesome-charts"
+    assert extension_json["displayName"] == "Awesome Charts"
     assert extension_json["version"] == "1.0.0"
     assert extension_json["license"] == "Apache-2.0"
 
     package_json = load_json_file(extension_path / "frontend" / "package.json")
-    assert package_json["name"] == "awesome_charts"
+    assert package_json["name"] == "@awesome-org/awesome-charts"
 
     pyproject_content = (extension_path / "backend" / "pyproject.toml").read_text()
-    assert "awesome_charts" in pyproject_content
+    assert (
+        "awesome_org-awesome_charts" in pyproject_content
+    )  # Package name uses collision-safe naming
 
 
 # Non-interactive mode tests
@@ -394,9 +416,11 @@ def test_init_non_interactive_with_all_options(cli_runner, isolated_filesystem):
         app,
         [
             "init",
-            "--id",
-            "my_ext",
+            "--publisher",
+            "my-org",
             "--name",
+            "my-ext",
+            "--display-name",
             "My Extension",
             "--version",
             "1.0.0",
@@ -408,16 +432,17 @@ def test_init_non_interactive_with_all_options(cli_runner, isolated_filesystem):
     )
 
     assert result.exit_code == 0, f"Command failed with output: {result.output}"
-    assert "🎉 Extension My Extension (ID: my_ext) initialized" in result.output
+    assert "🎉 Extension My Extension (ID: my-org.my-ext) initialized" in result.output
 
-    extension_path = isolated_filesystem / "my_ext"
+    extension_path = isolated_filesystem / "my-org.my-ext"
     assert_directory_exists(extension_path)
     assert_directory_exists(extension_path / "frontend")
     assert_directory_exists(extension_path / "backend")
 
     extension_json = load_json_file(extension_path / "extension.json")
-    assert extension_json["id"] == "my_ext"
-    assert extension_json["name"] == "My Extension"
+    assert extension_json["publisher"] == "my-org"
+    assert extension_json["name"] == "my-ext"
+    assert extension_json["displayName"] == "My Extension"
     assert extension_json["version"] == "1.0.0"
     assert extension_json["license"] == "MIT"
 
@@ -429,9 +454,11 @@ def test_init_frontend_only_with_cli_options(cli_runner, isolated_filesystem):
         app,
         [
             "init",
-            "--id",
-            "frontend_ext",
+            "--publisher",
+            "frontend-org",
             "--name",
+            "frontend-ext",
+            "--display-name",
             "Frontend Extension",
             "--version",
             "1.0.0",
@@ -444,7 +471,7 @@ def test_init_frontend_only_with_cli_options(cli_runner, isolated_filesystem):
 
     assert result.exit_code == 0, f"Command failed with output: {result.output}"
 
-    extension_path = isolated_filesystem / "frontend_ext"
+    extension_path = isolated_filesystem / "frontend-org.frontend-ext"
     assert_directory_exists(extension_path / "frontend")
     assert not (extension_path / "backend").exists()
 
@@ -456,9 +483,11 @@ def test_init_backend_only_with_cli_options(cli_runner, isolated_filesystem):
         app,
         [
             "init",
-            "--id",
-            "backend_ext",
+            "--publisher",
+            "backend-org",
             "--name",
+            "backend-ext",
+            "--display-name",
             "Backend Extension",
             "--version",
             "1.0.0",
@@ -471,7 +500,7 @@ def test_init_backend_only_with_cli_options(cli_runner, isolated_filesystem):
 
     assert result.exit_code == 0, f"Command failed with output: {result.output}"
 
-    extension_path = isolated_filesystem / "backend_ext"
+    extension_path = isolated_filesystem / "backend-org.backend-ext"
     assert not (extension_path / "frontend").exists()
     assert_directory_exists(extension_path / "backend")
 
@@ -479,14 +508,16 @@ def test_init_backend_only_with_cli_options(cli_runner, isolated_filesystem):
 @pytest.mark.cli
 def test_init_prompts_for_missing_options(cli_runner, isolated_filesystem):
     """Test that init prompts for options not provided via CLI and uses defaults."""
-    # Provide id and name via CLI, but version/license will be prompted (accept defaults)
+    # Provide publisher, name, and display-name via CLI, but version/license will be prompted (accept defaults)
     result = cli_runner.invoke(
         app,
         [
             "init",
-            "--id",
-            "default_ext",
+            "--publisher",
+            "default-org",
             "--name",
+            "default-ext",
+            "--display-name",
             "Default Extension",
             "--frontend",
             "--backend",
@@ -496,22 +527,24 @@ def test_init_prompts_for_missing_options(cli_runner, isolated_filesystem):
 
     assert result.exit_code == 0, f"Command failed with output: {result.output}"
 
-    extension_path = isolated_filesystem / "default_ext"
+    extension_path = isolated_filesystem / "default-org.default-ext"
     extension_json = load_json_file(extension_path / "extension.json")
     assert extension_json["version"] == "0.1.0"
     assert extension_json["license"] == "Apache-2.0"
 
 
 @pytest.mark.cli
-def test_init_non_interactive_validates_id(cli_runner, isolated_filesystem):
-    """Test that non-interactive mode validates extension ID."""
+def test_init_non_interactive_validates_technical_name(cli_runner, isolated_filesystem):
+    """Test that non-interactive mode validates technical name."""
     result = cli_runner.invoke(
         app,
         [
             "init",
-            "--id",
-            "invalid-id",
+            "--publisher",
+            "test-org",
             "--name",
+            "invalid_name",
+            "--display-name",
             "Invalid Extension",
             "--frontend",
             "--backend",
@@ -519,4 +552,4 @@ def test_init_non_interactive_validates_id(cli_runner, isolated_filesystem):
     )
 
     assert result.exit_code == 1
-    assert "must be alphanumeric" in result.output
+    assert "must start with a letter" in result.output.lower()
