@@ -64,7 +64,7 @@
     "@storybook/preview-api": "^8.6.17",
     "@storybook/theming": "^8.6.15",
     "@superset-ui/core": "^0.20.4",
-    "@swc/core": "^1.15.11",
+    "@swc/core": "^1.15.13",
     "antd": "^6.3.1",
     "baseline-browser-mapping": "^2.10.0",
     "caniuse-lite": "^1.0.30001770",
