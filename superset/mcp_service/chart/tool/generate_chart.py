@@ -529,10 +529,9 @@ async def generate_chart(  # noqa: C901
             else {},
             "performance": performance.model_dump() if performance else None,
             "accessibility": accessibility.model_dump() if accessibility else None,
-            # Runtime warnings (informational suggestions, not errors)
-            "warnings": runtime_warnings,
+            # Combined runtime and response warnings
+            "warnings": runtime_warnings + response_warnings,
             "success": True,
-            "warnings": response_warnings,
             "schema_version": "2.0",
             "api_version": "v1",
         }

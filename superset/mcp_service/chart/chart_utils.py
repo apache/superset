@@ -26,7 +26,6 @@ import logging
 from dataclasses import dataclass
 from typing import Any, Dict
 
-from superset.commands.exceptions import CommandException
 from superset.mcp_service.chart.schemas import (
     ChartCapabilities,
     ChartSemantics,
