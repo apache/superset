@@ -55,6 +55,8 @@ logger = logging.getLogger(__name__)
 # Set by DetailedJWTVerifier.load_access_token() on failure,
 # read by DetailedBearerAuthBackend.authenticate() to raise
 # an AuthenticationError with the specific reason.
+# SECURITY: Must ALWAYS contain generic failure categories only.
+# Claim values and secrets must NEVER be stored here.
 _jwt_failure_reason: ContextVar[str | None] = ContextVar(
     "_jwt_failure_reason", default=None
 )

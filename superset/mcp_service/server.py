@@ -35,6 +35,8 @@ from superset.mcp_service.mcp_config import (
 )
 from superset.mcp_service.storage import _create_redis_store
 
+logger = logging.getLogger(__name__)
+
 
 def configure_logging(debug: bool = False) -> None:
     """Configure logging for the MCP service."""
@@ -131,13 +133,13 @@ def _create_auth_provider(flask_app: Any) -> Any | None:
     if auth_factory := flask_app.config.get("MCP_AUTH_FACTORY"):
         try:
             auth_provider = auth_factory(flask_app)
-            logging.info(
+            logger.info(
                 "Auth provider created from MCP_AUTH_FACTORY: %s",
                 type(auth_provider).__name__ if auth_provider else "None",
             )
         except Exception:
             # Do not log the exception — it may contain secrets
-            logging.error("Failed to create auth provider from MCP_AUTH_FACTORY")
+            logger.error("Failed to create auth provider from MCP_AUTH_FACTORY")
     elif flask_app.config.get("MCP_AUTH_ENABLED", False):
         from superset.mcp_service.mcp_config import (
             create_default_mcp_auth_factory,
@@ -145,13 +147,13 @@ def _create_auth_provider(flask_app: Any) -> Any | None:
 
         try:
             auth_provider = create_default_mcp_auth_factory(flask_app)
-            logging.info(
+            logger.info(
                 "Auth provider created from default factory: %s",
                 type(auth_provider).__name__ if auth_provider else "None",
             )
         except Exception:
             # Do not log the exception — it may contain secrets
-            logging.error("Failed to create auth provider from default factory")
+            logger.error("Failed to create auth provider from default factory")
     return auth_provider
 
 

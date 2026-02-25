@@ -23,7 +23,7 @@ import time
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from authlib.jose.errors import BadSignatureError, DecodeError
+from authlib.jose.errors import BadSignatureError, DecodeError, ExpiredTokenError
 
 from superset.mcp_service.jwt_verifier import (
     _json_auth_error_handler,
@@ -666,3 +666,61 @@ async def test_hs256_secret_never_logged(hs256_verifier, caplog):
     all_messages = [r.message for r in caplog.records]
     for msg in all_messages:
         assert hs256_signing_value not in msg, f"HS256 secret leaked in log: {msg}"
+
+
+@pytest.mark.asyncio
+async def test_expired_token_during_decode(hs256_verifier):
+    """ExpiredTokenError raised by jwt.decode should set generic reason."""
+    token = _make_token(
+        {"alg": "HS256", "typ": "JWT"},
+        {
+            "sub": "user1",
+            "iss": "test-issuer",
+            "aud": "test-audience",
+            "exp": int(time.time()) - 3600,
+        },
+    )
+
+    with patch.object(
+        hs256_verifier.jwt,
+        "decode",
+        side_effect=ExpiredTokenError(),
+    ):
+        result = await hs256_verifier.load_access_token(token)
+
+    assert result is None
+    reason = _jwt_failure_reason.get()
+    assert reason == "Token has expired (detected during decode)"
+
+
+@pytest.mark.asyncio
+async def test_catch_all_exception_sets_generic_reason(hs256_verifier):
+    """Catch-all handler should set generic reason without exception details."""
+    token = _make_token(
+        {"alg": "HS256", "typ": "JWT"},
+        {
+            "sub": "user1",
+            "iss": "test-issuer",
+            "aud": "test-audience",
+            "exp": int(time.time()) + 3600,
+        },
+    )
+    claims = {
+        "sub": "user1",
+        "iss": "test-issuer",
+        "aud": "test-audience",
+        "exp": int(time.time()) + 3600,
+    }
+
+    with patch.object(hs256_verifier.jwt, "decode", return_value=claims):
+        with patch.object(
+            hs256_verifier,
+            "_extract_scopes",
+            side_effect=TypeError("unexpected type in scopes"),
+        ):
+            result = await hs256_verifier.load_access_token(token)
+
+    assert result is None
+    reason = _jwt_failure_reason.get()
+    assert reason == "Token validation failed"
+    assert "unexpected type" not in reason
