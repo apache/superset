@@ -30,6 +30,9 @@ updates:
       # See https://github.com/apache/superset/pull/37384#issuecomment-3793991389
       # TODO: remove the plugin once Lodash usage has been migrated to a more readily tree-shakeable alternative
       - dependency-name: "@swc/plugin-transform-imports"
+      # `just-handlerbars-helpers` library in plugin-chart-handlebars requires `currencyformatter`` to be < 2
+      - dependency-name: "currencyformatter.js"
+        update-types: ["version-update:semver-major"]
     groups:
       storybook:
         applies-to: version-updates
@@ -298,6 +301,10 @@ updates:
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/plugin-chart-handlebars/"
+    ignore:
+      # `just-handlerbars-helpers` library in plugin-chart-handlebars requires `currencyformatter`` to be < 2
+      - dependency-name: "currencyformatter.js"
+        update-types: ["version-update:semver-major"]
     schedule:
       interval: "daily"
     labels:
