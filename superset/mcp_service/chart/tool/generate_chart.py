@@ -26,7 +26,6 @@ from fastmcp import Context
 from superset_core.mcp import tool
 
 from superset.commands.exceptions import CommandException
-from superset.exceptions import SupersetException
 from superset.extensions import event_logger
 from superset.mcp_service.auth import has_dataset_access
 from superset.mcp_service.chart.chart_utils import (
@@ -545,7 +544,7 @@ async def generate_chart(  # noqa: C901
         )
         return GenerateChartResponse.model_validate(result)
 
-    except (CommandException, SupersetException, ValueError, KeyError) as e:
+    except Exception as e:
         await ctx.error(
             "Chart generation failed: error=%s, execution_time_ms=%s"
             % (

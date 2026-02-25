@@ -691,7 +691,7 @@ async def get_chart_data(  # noqa: C901
                 error_type="DataError",
             )
 
-    except (CommandException, SupersetException, ValueError, KeyError) as e:
+    except Exception as e:
         await ctx.error(
             "Chart data retrieval failed: identifier=%s, error=%s, error_type=%s"
             % (
