@@ -83,6 +83,23 @@ export interface ChartDataResponseResult {
    * or null if multiple currencies are present.
    */
   detected_currency?: string | null;
+  /**
+   * Query lifecycle timing breakdown in milliseconds.
+   */
+  timing?: {
+    /** Query object validation time */
+    validate_ms: number;
+    /** Cache lookup time */
+    cache_lookup_ms: number;
+    /** Database execution time (null when served from cache) */
+    db_execution_ms: number | null;
+    /** Result processing and serialization time */
+    result_processing_ms: number;
+    /** Total request time */
+    total_ms: number;
+    /** Whether the result was served from cache */
+    is_cached: boolean;
+  };
 }
 
 export interface TimeseriesChartDataResponseResult extends ChartDataResponseResult {
