@@ -385,7 +385,7 @@ const config: Config = {
             from: '/installation.html',
           },
           {
-            to: '/user-docs/intro',
+            to: '/user-docs/',
             from: '/tutorials.html',
           },
           {
@@ -405,7 +405,7 @@ const config: Config = {
             from: '/sqllab.html',
           },
           {
-            to: '/user-docs/intro',
+            to: '/user-docs/',
             from: '/gallery.html',
           },
           {
@@ -449,8 +449,12 @@ const config: Config = {
             from: '/docs/contributing/hooks-and-linting',
           },
           {
-            to: '/user-docs/intro',
+            to: '/user-docs/',
             from: '/docs/roadmap',
+          },
+          {
+            to: '/user-docs/',
+            from: '/user-docs/intro',
           },
           {
             to: '/developer-docs/contributing/overview',
@@ -732,7 +736,7 @@ const config: Config = {
             const items = await defaultCreateSitemapItems(rest);
             return items.map((item) => {
               // Boost priority for key pages
-              if (item.url.includes('/user-docs/intro')) {
+              if (item.url.endsWith('/user-docs/')) {
                 return { ...item, priority: 1.0, changefreq: 'daily' };
               }
               if (item.url.includes('/user-docs/quickstart')) {
@@ -801,13 +805,13 @@ const config: Config = {
         // Users docs - mirrors sidebar structure
         {
           label: 'Users',
-          to: '/user-docs/intro',
+          to: '/user-docs/',
           position: 'left',
           activeBaseRegex: '^/user-docs/',
           items: [
             {
               type: 'doc',
-              docId: 'intro',
+              docId: 'index',
               label: 'Overview',
             },
             {
@@ -871,7 +875,7 @@ const config: Config = {
           ],
         },
         {
-          href: '/user-docs/intro',
+          href: '/user-docs/',
           position: 'right',
           className: 'default-button-theme get-started-button',
           label: 'Get Started',

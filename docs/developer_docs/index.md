@@ -26,7 +26,7 @@ under the License.
 
 Welcome to the Apache Superset Developer Portal - your comprehensive resource for contributing to and extending Apache Superset.
 
-## 🚀 Quick Start
+## Quick Start
 
 ### New Contributors
 - [Contributing Overview](/developer-docs/contributing/overview)
@@ -38,7 +38,7 @@ Welcome to the Apache Superset Developer Portal - your comprehensive resource fo
 - [Extension Architecture](/developer-docs/extensions/architecture)
 - [Quick Start](/developer-docs/extensions/quick-start)
 
-## 📚 Documentation Sections
+## Documentation Sections
 
 ### Extensions
 Learn how to build powerful extensions that enhance Superset's capabilities. This section covers the extension architecture, development patterns, and deployment strategies. You'll find comprehensive guides on creating frontend contributions, managing extension lifecycles, and understanding security implications.
@@ -49,7 +49,7 @@ Comprehensive testing strategies for Superset development. This section covers f
 ### Contributing to Superset
 Everything you need to contribute to the Apache Superset project. This section includes community guidelines, development environment setup, pull request processes, code review workflows, issue reporting guidelines, and Apache release procedures. You'll also find style guidelines for both frontend and backend development.
 
-## 🛠️ Development Resources
+## Development Resources
 
 ### Prerequisites
 - **Python**: 3.9, 3.10, or 3.11
@@ -66,7 +66,7 @@ Everything you need to contribute to the Apache Superset project. This section i
 - **Testing**: Jest, Pytest, Playwright
 - **CI/CD**: GitHub Actions, pre-commit
 
-## 🤝 Community
+## Community
 
 ### Get Help
 - **[Slack](https://apache-superset.slack.com)** - Join #development, #troubleshooting, or #beginners
@@ -78,7 +78,7 @@ Everything you need to contribute to the Apache Superset project. This section i
 - **[Help Wanted](https://github.com/apache/superset/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22)** - Issues needing help
 - **[Roadmap](https://github.com/orgs/apache/projects/180)** - See what's planned
 
-## 📖 Additional Resources
+## Additional Resources
 
 ### External Documentation
 - **[User Documentation](https://superset.apache.org/docs/intro)** - Using Superset
@@ -89,7 +89,7 @@ Everything you need to contribute to the Apache Superset project. This section i
 - **[CLAUDE.md](https://github.com/apache/superset/blob/master/CLAUDE.md)** - LLM development guide
 - **[UPDATING.md](https://github.com/apache/superset/blob/master/UPDATING.md)** - Breaking changes log
 
-## 🎯 Where to Start?
+## Where to Start?
 
 <table>
 <tr>
@@ -132,4 +132,4 @@ Everything you need to contribute to the Apache Superset project. This section i
 
 ---
 
-Welcome to the Apache Superset community! We're excited to have you contribute. 🎉
+Welcome to the Apache Superset community! We're excited to have you contribute.

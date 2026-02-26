@@ -109,8 +109,7 @@ const docSections = [
     description:
       'For analysts and business users. Learn to explore data, build charts, create dashboards, and connect to databases.',
     cta: 'Browse User Docs',
-    href: '/user-docs/intro',
-    icon: '📊',
+    href: '/user-docs/',
     accent: '#20a7c9',
   },
   {
@@ -119,7 +118,6 @@ const docSections = [
       'For teams installing and operating Superset. Covers installation, configuration, security, and database drivers.',
     cta: 'Browse Admin Docs',
     href: '/admin-docs/',
-    icon: '⚙️',
     accent: '#457f8d',
   },
   {
@@ -128,7 +126,6 @@ const docSections = [
       'For contributors and engineers building on Superset. Covers the REST API, extensions, and contributing workflows.',
     cta: 'Browse Developer Docs',
     href: '/developer-docs/',
-    icon: '🛠️',
     accent: '#2d6a4f',
   },
   {
@@ -137,7 +134,6 @@ const docSections = [
       'Join the Superset community. Find resources on Slack, GitHub, the mailing list, and upcoming meetups.',
     cta: 'Join the Community',
     href: '/community',
-    icon: '🤝',
     accent: '#6d4c7e',
   },
 ];
@@ -332,6 +328,12 @@ interface StyledDocSectionCardProps {
   accent: string;
 }
 
+const StyledDocSectionsHeader = styled('div')`
+  & > div {
+    max-width: 960px;
+  }
+`;
+
 const StyledDocSectionsGrid = styled('div')`
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -366,11 +368,6 @@ const StyledDocSectionCard = styled(Link)<StyledDocSectionCardProps>`
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
     text-decoration: none;
     color: var(--ifm-font-base-color);
-  }
-  .card-icon {
-    font-size: 32px;
-    line-height: 1;
-    margin-bottom: 14px;
   }
   .card-title {
     font-size: 20px;
@@ -736,17 +733,16 @@ export default function Home(): JSX.Element {
           </StyledScreenshotContainer>
         </StyledTitleContainer>
         <BlurredSection>
-          <SectionHeader
-            level="h2"
-            title="Find your documentation"
-            subtitle="Whether you're exploring data, managing a deployment, building an integration, or joining the community — we have docs for you."
-          />
+          <StyledDocSectionsHeader>
+            <SectionHeader
+              level="h2"
+              title="Find your documentation"
+              subtitle="Whether you're exploring data, managing a deployment, building an integration, or joining the community — here's where to get started."
+            />
+          </StyledDocSectionsHeader>
           <StyledDocSectionsGrid>
-            {docSections.map(({ title, description, cta, href, icon, accent }) => (
+            {docSections.map(({ title, description, cta, href, accent }) => (
               <StyledDocSectionCard key={title} to={href} accent={accent}>
-                <span className="card-icon" aria-hidden="true">
-                  {icon}
-                </span>
                 <h3 className="card-title">{title}</h3>
                 <p className="card-description">{description}</p>
                 <span className="card-cta">{cta} →</span>

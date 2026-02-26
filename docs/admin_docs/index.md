@@ -38,5 +38,5 @@ This section contains documentation for system administrators and operators who 
 
 ## Looking for something else?
 
-- **[User Documentation](/user-docs/intro)** - Guides for analysts and business users
+- **[User Documentation](/user-docs/)** - Guides for analysts and business users
 - **[Developer Documentation](/developer-docs)** - Contributing, extensions, and development guides
