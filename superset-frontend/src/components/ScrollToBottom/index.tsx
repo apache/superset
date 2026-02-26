@@ -71,7 +71,7 @@ const ScrollToBottom = () => {
         const { scrollHeight, scrollTop, clientHeight } = document.documentElement;
         // Show button if we are NOT at the bottom
         const isAtBottom = scrollHeight - scrollTop - clientHeight < SCROLL_THRESHOLD;
-        setIsVisible(!isAtBottom && scrollTop > SCROLL_THRESHOLD);
+        setIsVisible(!isAtBottom);
     }, []);
 
     useEffect(() => {
