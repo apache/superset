@@ -263,6 +263,7 @@ export const useColDefs = ({
       const isTextColumn =
         dataType === GenericDataType.String ||
         dataType === GenericDataType.Temporal;
+      const isBooleanColumn = dataType === GenericDataType.Boolean;
 
       const valueRange =
         !hasBasicColorFormatters &&
@@ -325,18 +326,22 @@ export const useColDefs = ({
             'last',
           ],
         }),
-        cellRenderer: (p: CellRendererProps) =>
-          isTextColumn ? TextCellRenderer(p) : NumericCellRenderer(p),
-        cellRendererParams: {
-          allowRenderHtml: true,
-          columns,
-          hasBasicColorFormatters,
-          col,
-          basicColorFormatters,
-          valueRange,
-          alignPositiveNegative: alignPN || alignPositiveNegative,
-          colorPositiveNegative,
-        },
+        // Boolean columns use AG Grid's built-in agCheckboxCellRenderer
+        // via cellDataType: 'boolean', so skip custom cellRenderer for them
+        ...(!isBooleanColumn && {
+          cellRenderer: (p: CellRendererProps) =>
+            isTextColumn ? TextCellRenderer(p) : NumericCellRenderer(p),
+          cellRendererParams: {
+            allowRenderHtml: true,
+            columns,
+            hasBasicColorFormatters,
+            col,
+            basicColorFormatters,
+            valueRange,
+            alignPositiveNegative: alignPN || alignPositiveNegative,
+            colorPositiveNegative,
+          },
+        }),
         context: {
           isMetric,
           isPercentMetric,
