@@ -17,11 +17,17 @@
  * under the License.
  */
 
-import { memo } from 'react';
-import { t } from '@apache-superset/core';
-import { Button, Input } from '@superset-ui/core/components';
+import { memo, useMemo } from 'react';
+import { t, tn } from '@apache-superset/core';
+import { Button, Input, Tooltip } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
-import { FoldersToolbar, FoldersSearch, FoldersActions } from '../styles';
+import {
+  FoldersToolbar,
+  FoldersSearch,
+  FoldersActions,
+  FoldersActionsRow,
+  SelectionCount,
+} from '../styles';
 
 interface FoldersToolbarComponentProps {
   onSearch: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -29,6 +35,10 @@ interface FoldersToolbarComponentProps {
   onSelectAll: () => void;
   onResetToDefault: () => void;
   allVisibleSelected: boolean;
+  selectedColumnsCount: number;
+  selectedMetricsCount: number;
+  totalColumnsCount: number;
+  totalMetricsCount: number;
 }
 
 function FoldersToolbarComponentInner({
@@ -37,7 +47,56 @@ function FoldersToolbarComponentInner({
   onSelectAll,
   onResetToDefault,
   allVisibleSelected,
+  selectedColumnsCount,
+  selectedMetricsCount,
+  totalColumnsCount,
+  totalMetricsCount,
 }: FoldersToolbarComponentProps) {
+  const selectedCount = selectedColumnsCount + selectedMetricsCount;
+  const totalCount = totalColumnsCount + totalMetricsCount;
+
+  const tooltipTitle = useMemo(() => {
+    if (selectedCount > 0) {
+      return (
+        <>
+          {tn(
+            '%s out of %s column',
+            '%s out of %s columns',
+            totalColumnsCount,
+            selectedColumnsCount,
+            totalColumnsCount,
+          )}
+          <br />
+          {tn(
+            '%s out of %s metric',
+            '%s out of %s metrics',
+            totalMetricsCount,
+            selectedMetricsCount,
+            totalMetricsCount,
+          )}
+        </>
+      );
+    }
+    return (
+      <>
+        {tn('%s column', '%s columns', totalColumnsCount, totalColumnsCount)}
+        <br />
+        {tn('%s metric', '%s metrics', totalMetricsCount, totalMetricsCount)}
+      </>
+    );
+  }, [
+    selectedCount,
+    selectedColumnsCount,
+    selectedMetricsCount,
+    totalColumnsCount,
+    totalMetricsCount,
+  ]);
+
+  const counterText =
+    selectedCount > 0
+      ? t('%s out of %s selected', selectedCount, totalCount)
+      : tn('%s item', '%s items', totalCount, totalCount);
+
   return (
     <FoldersToolbar>
       <FoldersSearch>
@@ -48,29 +107,34 @@ function FoldersToolbarComponentInner({
           prefix={<Icons.SearchOutlined />}
         />
       </FoldersSearch>
-      <FoldersActions>
-        <Button
-          buttonStyle="link"
-          onClick={onAddFolder}
-          icon={<Icons.PlusOutlined />}
-        >
-          {t('Add folder')}
-        </Button>
-        <Button
-          buttonStyle="link"
-          onClick={onSelectAll}
-          icon={<Icons.CheckOutlined />}
-        >
-          {allVisibleSelected ? t('Deselect all') : t('Select all')}
-        </Button>
-        <Button
-          buttonStyle="link"
-          onClick={onResetToDefault}
-          icon={<Icons.HistoryOutlined />}
-        >
-          {t('Reset all folders to default')}
-        </Button>
-      </FoldersActions>
+      <FoldersActionsRow>
+        <FoldersActions>
+          <Button
+            buttonStyle="link"
+            onClick={onAddFolder}
+            icon={<Icons.PlusOutlined />}
+          >
+            {t('Add folder')}
+          </Button>
+          <Button
+            buttonStyle="link"
+            onClick={onSelectAll}
+            icon={<Icons.CheckOutlined />}
+          >
+            {allVisibleSelected ? t('Deselect all') : t('Select all')}
+          </Button>
+          <Button
+            buttonStyle="link"
+            onClick={onResetToDefault}
+            icon={<Icons.HistoryOutlined />}
+          >
+            {t('Reset all folders to default')}
+          </Button>
+        </FoldersActions>
+        <Tooltip title={tooltipTitle}>
+          <SelectionCount>{counterText}</SelectionCount>
+        </Tooltip>
+      </FoldersActionsRow>
     </FoldersToolbar>
   );
 }
