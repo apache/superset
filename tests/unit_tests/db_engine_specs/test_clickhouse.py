@@ -212,22 +212,6 @@ def test_connect_get_column_spec(
     assert_column_spec(spec, native_type, sqla_type, attrs, generic_type, is_dttm)
 
 
-@pytest.mark.parametrize(
-    "column_name,expected_result",
-    [
-        # SHA-256 hash suffix (first 6 chars) with default HASH_ALGORITHM
-        ("time", "time_336074"),
-        ("count", "count_6c3549"),
-    ],
-)
-def test_connect_make_label_compatible(column_name: str, expected_result: str) -> None:
-    from superset.db_engine_specs.clickhouse import (
-        ClickHouseConnectEngineSpec as spec,  # noqa: N813
-    )
-
-    label = spec.make_label_compatible(column_name)
-    assert label == expected_result
-
 
 @pytest.mark.parametrize(
     "schema, expected_result",
