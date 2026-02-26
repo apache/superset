@@ -158,32 +158,28 @@ if (!versionsConfig.admin_docs.disabled) {
     activeBaseRegex: '^/admin-docs/',
     items: [
       {
-        type: 'doc',
-        docsPluginId: 'admin_docs',
-        docId: 'index',
         label: 'Overview',
+        to: '/admin-docs/',
+        activeBaseRegex: '^/admin-docs/$',
       },
       {
-        type: 'doc',
-        docsPluginId: 'admin_docs',
-        docId: 'installation/installation-methods',
         label: 'Installation',
+        to: '/admin-docs/installation/installation-methods',
+        activeBaseRegex: '^/admin-docs/installation/',
       },
       {
-        type: 'doc',
-        docsPluginId: 'admin_docs',
-        docId: 'configuration/configuring-superset',
         label: 'Configuration',
+        to: '/admin-docs/configuration/configuring-superset',
+        activeBaseRegex: '^/admin-docs/configuration/',
       },
       {
         label: 'Database Drivers',
         href: '/user-docs/databases/',
       },
       {
-        type: 'doc',
-        docsPluginId: 'admin_docs',
-        docId: 'security/security',
         label: 'Security',
+        to: '/admin-docs/security/security',
+        activeBaseRegex: '^/admin-docs/security/',
       },
     ],
   });
@@ -198,40 +194,34 @@ if (!versionsConfig.developer_docs.disabled && !versionsConfig.developer_docs.hi
     activeBaseRegex: '^/developer-docs/',
     items: [
       {
-        type: 'doc',
-        docsPluginId: 'developer_docs',
-        docId: 'index',
         label: 'Overview',
+        to: '/developer-docs/',
+        activeBaseRegex: '^/developer-docs/$',
       },
       {
-        type: 'doc',
-        docsPluginId: 'developer_docs',
-        docId: 'contributing/overview',
         label: 'Contributing',
+        to: '/developer-docs/contributing/overview',
+        activeBaseRegex: '^/developer-docs/contributing/',
       },
       {
-        type: 'doc',
-        docsPluginId: 'developer_docs',
-        docId: 'extensions/overview',
         label: 'Extensions',
+        to: '/developer-docs/extensions/overview',
+        activeBaseRegex: '^/developer-docs/extensions/',
       },
       {
-        type: 'doc',
-        docsPluginId: 'developer_docs',
-        docId: 'testing/overview',
         label: 'Testing',
+        to: '/developer-docs/testing/overview',
+        activeBaseRegex: '^/developer-docs/testing/',
       },
       {
-        type: 'doc',
-        docsPluginId: 'developer_docs',
-        docId: 'components/index',
         label: 'UI Components',
+        to: '/developer-docs/components/',
+        activeBaseRegex: '^/developer-docs/components/',
       },
       {
-        type: 'doc',
-        docsPluginId: 'developer_docs',
-        docId: 'api',
         label: 'API Reference',
+        to: '/developer-docs/api',
+        activeBaseRegex: '^/developer-docs/api',
       },
     ],
   });
@@ -810,29 +800,27 @@ const config: Config = {
           activeBaseRegex: '^/user-docs/',
           items: [
             {
-              type: 'doc',
-              docId: 'index',
               label: 'Overview',
+              to: '/user-docs/',
+              activeBaseRegex: '^/user-docs/$',
             },
             {
-              type: 'doc',
-              docId: 'quickstart',
               label: 'Quickstart',
+              to: '/user-docs/quickstart',
             },
             {
-              type: 'doc',
-              docId: 'using-superset/creating-your-first-dashboard',
               label: 'Using Superset',
+              to: '/user-docs/using-superset/creating-your-first-dashboard',
+              activeBaseRegex: '^/user-docs/using-superset/',
             },
             {
-              type: 'doc',
-              docId: 'databases/index',
               label: 'Connecting to Databases',
+              to: '/user-docs/databases/',
+              activeBaseRegex: '^/user-docs/databases/',
             },
             {
-              type: 'doc',
-              docId: 'faq',
               label: 'FAQ',
+              to: '/user-docs/faq',
             },
           ],
         },
@@ -846,7 +834,8 @@ const config: Config = {
           items: [
             {
               label: 'Resources',
-              href: '/community',
+              to: '/community',
+              activeBaseRegex: '^/community$',
             },
             {
               label: 'GitHub',
