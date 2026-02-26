@@ -962,7 +962,7 @@ class GenerateChartRequest(QueryCacheControl):
         description="Whether to generate a preview image",
     )
     preview_formats: List[Literal["url", "ascii", "vega_lite", "table"]] = Field(
-        default_factory=lambda: ["url"],
+        default_factory=lambda: ["ascii", "table"],
         description="List of preview formats to generate",
     )
 
@@ -1014,7 +1014,7 @@ class UpdateChartRequest(QueryCacheControl):
         description="Whether to generate a preview after updating",
     )
     preview_formats: List[Literal["url", "ascii", "vega_lite", "table"]] = Field(
-        default_factory=lambda: ["url"],
+        default_factory=lambda: ["ascii", "table"],
         description="List of preview formats to generate",
     )
 
@@ -1034,7 +1034,7 @@ class UpdateChartPreviewRequest(FormDataCacheControl):
         description="Whether to generate a preview after updating",
     )
     preview_formats: List[Literal["url", "ascii", "vega_lite", "table"]] = Field(
-        default_factory=lambda: ["url"],
+        default_factory=lambda: ["ascii", "table"],
         description="List of preview formats to generate",
     )
 
@@ -1198,11 +1198,12 @@ class GetChartPreviewRequest(QueryCacheControl):
         return self
 
     format: Literal["url", "ascii", "table", "vega_lite"] = Field(
-        default="url",
+        default="ascii",
         description=(
-            "Preview format: 'url' for image URL, 'ascii' for text art, "
+            "Preview format: 'ascii' for text art (default), "
             "'table' for data table, "
-            "'vega_lite' for interactive JSON specification"
+            "'vega_lite' for interactive JSON specification, "
+            "'url' for image URL (requires screenshot service)"
         ),
     )
     width: int | None = Field(

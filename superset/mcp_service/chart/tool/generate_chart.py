@@ -39,6 +39,7 @@ from superset.mcp_service.chart.chart_utils import (
 )
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
+    ChartError,
     GenerateChartRequest,
     GenerateChartResponse,
     PerformanceMetadata,
@@ -257,7 +258,7 @@ async def generate_chart(  # noqa: C901
         chart_id = None
         explore_url = None
         form_data_key = None
-        response_warnings: list[str] = []
+        response_warnings: list[str] = form_data.pop("_mcp_warnings", [])
 
         # Save chart by default (unless save_chart=False)
         if request.save_chart:
@@ -674,7 +675,12 @@ async def generate_chart(  # noqa: C901
                                     preview_format=format_type,
                                 )
 
-                                if not hasattr(preview_result, "error"):
+                                if isinstance(preview_result, ChartError):
+                                    await ctx.warning(
+                                        "Preview '%s' failed: %s"
+                                        % (format_type, preview_result.error)
+                                    )
+                                else:
                                     previews[format_type] = preview_result
 
             except (CommandException, ValueError, KeyError) as e:

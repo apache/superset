@@ -19,11 +19,13 @@
 
 from typing import Any
 
-from pydantic import AliasChoices, BaseModel, Field, field_validator
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator
 
 
 class ExecuteSqlRequest(BaseModel):
     """Request schema for executing SQL queries."""
+
+    model_config = ConfigDict(populate_by_name=True)
 
     database_id: int = Field(
         ..., description="Database connection ID to execute query against"
@@ -36,9 +38,13 @@ class ExecuteSqlRequest(BaseModel):
         None, description="Schema to use for query execution", alias="schema"
     )
     catalog: str | None = Field(None, description="Catalog name for query execution")
-    limit: int = Field(
-        default=1000,
-        description="Maximum number of rows to return",
+    limit: int | None = Field(
+        default=None,
+        description=(
+            "Maximum number of rows to return. "
+            "If not specified, respects the LIMIT in your SQL query. "
+            "If specified, overrides any SQL LIMIT clause."
+        ),
         ge=1,
         le=10000,
     )
@@ -118,6 +124,8 @@ class ExecuteSqlResponse(BaseModel):
 class OpenSqlLabRequest(BaseModel):
     """Request schema for opening SQL Lab with context."""
 
+    model_config = ConfigDict(populate_by_name=True)
+
     database_connection_id: int = Field(
         ...,
         description="Database connection ID to use in SQL Lab",
@@ -139,6 +147,8 @@ class OpenSqlLabRequest(BaseModel):
 
 class SqlLabResponse(BaseModel):
     """Response schema for SQL Lab URL generation."""
+
+    model_config = ConfigDict(populate_by_name=True)
 
     url: str = Field(..., description="URL to open SQL Lab with context")
     database_id: int = Field(..., description="Database ID used")

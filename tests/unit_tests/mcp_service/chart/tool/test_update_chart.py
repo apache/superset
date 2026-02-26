@@ -104,7 +104,7 @@ class TestUpdateChart:
         # Default preview generation
         request1 = UpdateChartRequest(identifier=123, config=config)
         assert request1.generate_preview is True
-        assert request1.preview_formats == ["url"]
+        assert request1.preview_formats == ["ascii", "table"]
 
         # Custom preview formats
         request2 = UpdateChartRequest(

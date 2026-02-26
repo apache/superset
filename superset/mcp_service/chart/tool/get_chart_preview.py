@@ -2143,7 +2143,10 @@ async def _get_chart_preview_internal(  # noqa: C901
         elif isinstance(content, TablePreview):
             result.format = "table"
             result.table_data = content.table_data
-        # Base64 preview support removed
+        elif isinstance(content, VegaLitePreview):
+            result.format = "vega_lite"
+        elif isinstance(content, URLPreview):
+            result.format = "url"
 
         return result
 
