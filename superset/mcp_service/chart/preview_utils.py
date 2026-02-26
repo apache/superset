@@ -187,7 +187,7 @@ def _format_value(val: Any, width: int) -> str:
 
         if math.isnan(val):
             val_str = "N/A"
-        elif math.isfinite(val) and val == int(val):
+        elif math.isfinite(val) and val.is_integer():
             # Integer-like float (e.g. 1988.0) — format without decimals
             val_str = str(int(val))
         elif abs(val) >= 1000000:
