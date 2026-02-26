@@ -45,6 +45,16 @@ MCP_SERVICE_PORT = 5008
 # MCP Debug mode - shows suppressed initialization output in stdio mode
 MCP_DEBUG = False
 
+# MCP JWT Debug Errors - controls server-side JWT debug logging.
+# When False (default), uses the default JWTVerifier with minimal logging.
+# When True, uses DetailedJWTVerifier with tiered logging:
+#   - WARNING level: generic failure categories only (e.g. "Issuer mismatch")
+#   - DEBUG level: detailed claim values for troubleshooting
+#   - Secrets (e.g. HS256 keys) are NEVER logged at any level
+# HTTP responses ALWAYS return generic errors regardless of this setting,
+# per RFC 6750 Section 3.1. This flag NEVER affects client-facing output.
+MCP_JWT_DEBUG_ERRORS = False
+
 # Enable parse_request decorator for MCP tools.
 # When True (default), tool requests are automatically parsed from JSON strings
 # to Pydantic models, working around a Claude Code double-serialization bug
@@ -231,47 +241,47 @@ def create_default_mcp_auth_factory(app: Flask) -> Optional[Any]:
         return None
 
     try:
-        from fastmcp.server.auth.providers.jwt import JWTVerifier
+        debug_errors = app.config.get("MCP_JWT_DEBUG_ERRORS", False)
+
+        common_kwargs: dict[str, Any] = {
+            "issuer": app.config.get("MCP_JWT_ISSUER"),
+            "audience": app.config.get("MCP_JWT_AUDIENCE"),
+            "required_scopes": app.config.get("MCP_REQUIRED_SCOPES", []),
+        }
 
         # For HS256 (symmetric), use the secret as the public_key parameter
         if app.config.get("MCP_JWT_ALGORITHM") == "HS256" and secret:
-            auth_provider = JWTVerifier(
-                public_key=secret,  # HS256 uses secret as key
-                issuer=app.config.get("MCP_JWT_ISSUER"),
-                audience=app.config.get("MCP_JWT_AUDIENCE"),
-                algorithm="HS256",
-                required_scopes=app.config.get("MCP_REQUIRED_SCOPES", []),
-            )
-            logger.info("Created JWTVerifier with HS256 secret")
+            common_kwargs["public_key"] = secret
+            common_kwargs["algorithm"] = "HS256"
         else:
             # For RS256 (asymmetric), use public key or JWKS
-            auth_provider = JWTVerifier(
-                jwks_uri=jwks_uri,
-                public_key=public_key,
-                issuer=app.config.get("MCP_JWT_ISSUER"),
-                audience=app.config.get("MCP_JWT_AUDIENCE"),
-                algorithm=app.config.get("MCP_JWT_ALGORITHM", "RS256"),
-                required_scopes=app.config.get("MCP_REQUIRED_SCOPES", []),
-            )
-            logger.info(
-                "Created JWTVerifier with jwks_uri=%s, public_key=%s",
-                jwks_uri,
-                "***" if public_key else None,
-            )
+            common_kwargs["jwks_uri"] = jwks_uri
+            common_kwargs["public_key"] = public_key
+            common_kwargs["algorithm"] = app.config.get("MCP_JWT_ALGORITHM", "RS256")
+
+        if debug_errors:
+            # DetailedJWTVerifier: detailed server-side logging of JWT
+            # validation failures. HTTP responses are always generic per
+            # RFC 6750 Section 3.1.
+            from superset.mcp_service.jwt_verifier import DetailedJWTVerifier
+
+            auth_provider = DetailedJWTVerifier(**common_kwargs)
+        else:
+            # Default JWTVerifier: minimal logging, generic error responses.
+            from fastmcp.server.auth.providers.jwt import JWTVerifier
+
+            auth_provider = JWTVerifier(**common_kwargs)
 
         return auth_provider
-    except Exception as e:
-        logger.error("Failed to create MCP auth provider: %s", e)
+    except Exception:
+        # Do not log the exception — it may contain the HS256 secret
+        # from common_kwargs["public_key"]
+        logger.error("Failed to create MCP auth provider")
         return None
 
 
 def default_user_resolver(app: Any, access_token: Any) -> Optional[str]:
     """Extract username from JWT token claims."""
-    logger.info(
-        "Resolving user from token: type=%s, token=%s",
-        type(access_token),
-        access_token,
-    )
     if hasattr(access_token, "subject"):
         return access_token.subject
     if hasattr(access_token, "client_id"):
