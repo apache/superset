@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-02-06 23:58-0800\n"
+"POT-Creation-Date: 2026-02-25 10:47+0100\n"
 "PO-Revision-Date: 2025-06-26 15:34+0200\n"
 "Last-Translator: \n"
 "Language: fr\n"
@@ -326,6 +326,18 @@ msgid "%s column(s)"
 msgstr "%s colonne(s)"
 
 #, fuzzy, python-format
+msgid "%s day ago"
+msgid_plural "%s days ago"
+msgstr[0] "Il y a 1 jour"
+msgstr[1] ""
+
+#, fuzzy, python-format
+msgid "%s hr ago"
+msgid_plural "%s hr ago"
+msgstr[0] "%s rangée"
+msgstr[1] "%s rangées"
+
+#, fuzzy, python-format
 msgid "%s item(s)"
 msgstr "Aucun filtre"
 
@@ -336,6 +348,12 @@ msgid ""
 msgstr ""
 "%s objets n'ont pas pu être taggés parce que vous n'avez pas les "
 "permissions sur tout les objets sélectionnés."
+
+#, fuzzy, python-format
+msgid "%s min ago"
+msgid_plural "%s min ago"
+msgstr[0] "Il y a 1 mois"
+msgstr[1] ""
 
 #, python-format
 msgid "%s operator(s)"
@@ -361,15 +379,33 @@ msgid_plural "%s records..."
 msgstr[0] "%s Erreur"
 msgstr[1] ""
 
+#, fuzzy, python-format
+msgid "%s record..."
+msgid_plural "%s records..."
+msgstr[0] "%s Erreur"
+msgstr[1] ""
+
 #, python-format
 msgid "%s row"
 msgid_plural "%s rows"
 msgstr[0] "%s rangée"
 msgstr[1] "%s rangées"
 
+#, fuzzy, python-format
+msgid "%s s ago"
+msgid_plural "%s s ago"
+msgstr[0] "Il y a 30 jours"
+msgstr[1] ""
+
 #, python-format
 msgid "%s saved metric(s)"
 msgstr "%s mesure(s) sauvegardée(s)"
+
+#, fuzzy, python-format
+msgid "%s second"
+msgid_plural "%s seconds"
+msgstr[0] "5 secondes"
+msgstr[1] ""
 
 #, fuzzy, python-format
 msgid "%s tab selected"
@@ -867,6 +903,14 @@ msgstr "AQE"
 
 msgid "AUG"
 msgstr "AUG"
+
+#, fuzzy
+msgid "Aborted"
+msgstr "Commencé"
+
+#, fuzzy
+msgid "Aborting"
+msgstr "Exécution"
 
 msgid "About"
 msgstr "À propos"
@@ -1589,6 +1633,10 @@ msgstr ""
 "Une erreur s'est produite lors de l'extraction des valeurs des "
 "propriétaires de graphiques : %s"
 
+#, fuzzy, python-format
+msgid "An error occurred while fetching created by values: %s"
+msgstr "Une erreur s'est produite lors de l'extraction des valeurs du schéma : %s"
+
 #, python-format
 msgid "An error occurred while fetching dashboard owner values: %s"
 msgstr ""
@@ -1951,6 +1999,12 @@ msgstr ""
 "assurer que la requête source respecte les périodes minimales définies "
 "dans la fenêtre glissante."
 
+msgid ""
+"Applies only when \"Cell bars\" formatting is selected: the background of"
+" the histogram columns is displayed if the \"Show cell bars\" flag is "
+"enabled."
+msgstr ""
+
 msgid "Apply"
 msgstr "Appliquer"
 
@@ -2058,9 +2112,6 @@ msgstr "Voulez-vous vraiment supprimer les requêtes sélectionnées?"
 msgid "Are you sure you want to overwrite this dataset?"
 msgstr "Voulez-vous vraiment remplacer cet ensemble de données?"
 
-msgid "Are you sure you want to proceed?"
-msgstr "Voulez-vous vraiment continuer?"
-
 msgid ""
 "Are you sure you want to remove the system dark theme? The application "
 "will fall back to the configuration file dark theme."
@@ -2161,6 +2212,18 @@ msgstr "Auto"
 
 msgid "Auto Zoom"
 msgstr "Zoom automatique"
+
+#, python-format
+msgid "Auto refresh paused (set to %s seconds)"
+msgstr ""
+
+#, python-format
+msgid "Auto refresh paused - tab inactive (set to %s seconds)"
+msgstr ""
+
+#, fuzzy, python-format
+msgid "Auto refresh set to %s seconds"
+msgstr "La fréquence de rafraîchissement doit être d'au moins %s secondes"
 
 #, fuzzy
 msgid "Auto-detect"
@@ -2707,8 +2770,15 @@ msgstr "Peut selectionner plusieurs valeurs"
 msgid "Cancel"
 msgstr "Annuler"
 
+#, fuzzy
+msgid "Cancel Task"
+msgstr "Annuler"
+
 msgid "Cancel query on window unload event"
 msgstr "Annuler la requête lors de l'événement de déchargement de la fenêtre"
+
+msgid "Cancellation not available due to missing abort handler"
+msgstr ""
 
 msgid "Cannot access the query"
 msgstr "Impossible d'accéder à la requête"
@@ -2916,6 +2986,10 @@ msgstr "Modifier cette source de données est interdit"
 
 msgid "Changing this report is forbidden"
 msgstr "Modifier ce rapport est interdit"
+
+#, fuzzy
+msgid "Changing this task is forbidden"
+msgstr "Modifier cet ensemble de données est interdit"
 
 #, fuzzy
 msgid "Character to interpret as decimal point"
@@ -3868,6 +3942,10 @@ msgstr "Contrôles libellés "
 msgid "Copied to clipboard!"
 msgstr "Copié vers le presse-papier!"
 
+#, fuzzy
+msgid "Copied!"
+msgstr "SQL copié!"
+
 msgid "Copy"
 msgstr "Copier"
 
@@ -4064,6 +4142,10 @@ msgstr "Créé par"
 msgid "Created by me"
 msgstr "Créé par moi"
 
+#, fuzzy, python-format
+msgid "Created by: %s"
+msgstr "Créé par"
+
 msgid "Created on"
 msgstr "Créé le"
 
@@ -4125,6 +4207,10 @@ msgstr "Symbole de la devise"
 
 #, fuzzy
 msgid "Current"
+msgstr "nombre"
+
+#, fuzzy
+msgid "Current Zoom"
 msgstr "nombre"
 
 #, fuzzy
@@ -4404,6 +4490,10 @@ msgstr ""
 msgid "Dashboard title"
 msgstr "Titre du tableau de bord"
 
+#, fuzzy, python-format
+msgid "Dashboard updated %s"
+msgstr "Dernière mise à jour %s"
+
 #, fuzzy
 msgid "Dashboard usage"
 msgstr "Utilisation du tableau de bord"
@@ -4536,6 +4626,10 @@ msgstr "Mots de passe de la base de données"
 
 msgid "Database port"
 msgstr "Port de la base de données"
+
+#, fuzzy
+msgid "Database reference is not allowed on a report"
+msgstr "Schémas autorisés pour le chargement de CSV"
 
 #, fuzzy
 msgid "Database schema is not allowed for csv uploads."
@@ -4925,6 +5019,12 @@ msgid ""
 msgstr ""
 "Définit si le pas doit apparaître au début, au milieu ou à la fin entre "
 "deux points de données"
+
+#, python-format
+msgid "Delayed (missed %s refresh)"
+msgid_plural "Delayed (missed %s refreshes)"
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "Delete"
 msgstr "Supprimer"
@@ -5466,6 +5566,10 @@ msgid ""
 " - items will appear in the same order in tooltips. Click the button to "
 "manually select columns and metrics."
 msgstr ""
+
+#, fuzzy
+msgid "Drag to reorder"
+msgstr "Registres bruts"
 
 msgid "Draw a marker on data points. Only applicable for line types."
 msgstr ""
@@ -6516,15 +6620,16 @@ msgstr "Échec lors de la récupération des résultats"
 msgid "Failed to apply theme: Invalid JSON"
 msgstr "Échec de l'application du thème : JSON invalide"
 
+#, fuzzy
+msgid "Failed to copy stack trace to clipboard"
+msgstr "Copier vers le presse-papier"
+
 msgid "Failed to create report"
 msgstr "Échec de la création du rapport"
 
 #, python-format
 msgid "Failed to execute %(query)s"
 msgstr "Échec de l’exécution de %(query)s"
-
-msgid "Failed to fetch user info:"
-msgstr ""
 
 msgid "Failed to generate chart edit URL"
 msgstr "Échec de la génération de l'URL de modification du graphique"
@@ -6618,6 +6723,10 @@ msgid "Favorite"
 msgstr "Favori"
 
 #, fuzzy
+msgid "Feature Not Enabled"
+msgstr "La tunnellisation SSH n'est pas activée"
+
+#, fuzzy
 msgid "Featured"
 msgstr "Crée"
 
@@ -6637,6 +6746,10 @@ msgstr "Récupération de %s"
 #, fuzzy
 msgid "Fetching"
 msgstr "Récupération"
+
+#, fuzzy
+msgid "Fetching data..."
+msgstr "récupération"
 
 #, fuzzy, python-format
 msgid "Field cannot be decoded by JSON. %(json_error)s"
@@ -6914,6 +7027,9 @@ msgstr "Force"
 msgid "Force Time Grain as Max Interval"
 msgstr ""
 
+msgid "Force abort (stops task for all subscribers)"
+msgstr ""
+
 msgid ""
 "Force all tables and views to be created in this schema when clicking "
 "CTAS or CVAS in SQL Lab."
@@ -7008,6 +7124,14 @@ msgstr "Valeur formatée"
 
 #, fuzzy
 msgid "Formatting"
+msgstr "Formatage"
+
+#, fuzzy
+msgid "Formatting column"
+msgstr "Formatage"
+
+#, fuzzy
+msgid "Formatting object"
 msgstr "Formatage"
 
 #, fuzzy
@@ -7171,6 +7295,10 @@ msgstr "Grille"
 
 #, fuzzy
 msgid "Grid Size"
+msgstr "Taille de la grille"
+
+#, fuzzy
+msgid "Grid view"
 msgstr "Taille de la grille"
 
 #, fuzzy
@@ -7494,6 +7622,10 @@ msgid "In"
 msgstr "dans"
 
 #, fuzzy
+msgid "In Progress"
+msgstr "Progrès"
+
+#, fuzzy
 msgid "In Range"
 msgstr "Rangée de temps"
 
@@ -7671,6 +7803,10 @@ msgstr ""
 
 msgid "Invalid JSON"
 msgstr "JSON invalide"
+
+#, fuzzy
+msgid "Invalid JSON configuration"
+msgstr "Configuration lat/long non valide."
 
 #, fuzzy
 msgid "Invalid JSON metadata"
@@ -8106,6 +8242,10 @@ msgstr "trimestre dernier"
 msgid "Last run"
 msgstr "Dernière exécution"
 
+#, fuzzy, python-format
+msgid "Last updated %s ago"
+msgstr "Dernière mise à jour %s"
+
 #, fuzzy
 msgid "Last week"
 msgstr "semaine dernière"
@@ -8375,6 +8515,10 @@ msgstr "Liste des valeurs à marquer avec des triangles"
 msgid "List updated"
 msgstr "Liste mise à jour"
 
+#, fuzzy
+msgid "List view"
+msgstr "Liste des utilisateurs"
+
 msgid "Live render"
 msgstr "Rendu en direct"
 
@@ -8387,6 +8531,10 @@ msgstr "Données mises en cache chargées"
 
 msgid "Loaded from cache"
 msgstr "Chargées depuis le cache"
+
+#, fuzzy
+msgid "Loading"
+msgstr "Chargement..."
 
 #, fuzzy
 msgid "Loading deck.gl layers..."
@@ -8817,6 +8965,9 @@ msgstr "Mesures"
 msgid "Metrics / Dimensions"
 msgstr "Est une Dimension"
 
+msgid "Metrics can't be used for both rows and columns at the same time"
+msgstr ""
+
 msgid "Metrics folder can only contain metric items"
 msgstr ""
 
@@ -8976,6 +9127,10 @@ msgstr "Plus de filtres"
 
 msgid "MotherDuck token"
 msgstr "Jeton MotherDuck"
+
+#, fuzzy
+msgid "Move"
+msgstr "Supprimer"
 
 msgid "Move only"
 msgstr "Déplacer seulement"
@@ -9352,6 +9507,10 @@ msgstr ""
 #, fuzzy
 msgid "No table columns"
 msgstr "Pas de colonnes de tableau"
+
+#, fuzzy, python-format
+msgid "No tasks yet"
+msgstr "Pas encore de %s"
 
 #, fuzzy
 msgid "No temporal columns found"
@@ -10067,6 +10226,17 @@ msgstr "Mettez votre code ici"
 msgid "Pattern"
 msgstr "Modèle"
 
+msgid "Pause auto refresh if tab is inactive"
+msgstr ""
+
+#, fuzzy
+msgid "Pause auto-refresh"
+msgstr "Définir l'intervalle de rafraîchissement automatique"
+
+#, fuzzy
+msgid "Pending"
+msgstr "en attente"
+
 #, fuzzy
 msgid "Per user caching"
 msgstr "Pourcentage de variation"
@@ -10536,6 +10706,10 @@ msgstr "Limites de l’axe des ordonnées primaires"
 msgid "Primary y-axis format"
 msgstr "Format de l’axe primaire des ordonnées"
 
+#, fuzzy
+msgid "Private"
+msgstr "Clé privée"
+
 msgid "Private Channels (Bot in channel)"
 msgstr "Canaux privés (Bot présent dans le canal)"
 
@@ -10806,6 +10980,10 @@ msgstr "Récupérer les résultats"
 msgid "Refresh dashboard"
 msgstr "Actualiser le tableau de bord"
 
+#, fuzzy
+msgid "Refresh delayed"
+msgstr "Actualiser le tableau de bord"
+
 msgid "Refresh frequency"
 msgstr "Fréquence d’actualisation"
 
@@ -10906,6 +11084,14 @@ msgstr "Supprimer le thème par défaut du système"
 #, fuzzy
 msgid "Remove cross-filter"
 msgstr "Supprimer le filtre croisé"
+
+#, fuzzy
+msgid "Remove customization"
+msgstr "Type de visualisation"
+
+#, fuzzy
+msgid "Remove filter"
+msgstr "Supprimer l’élément"
 
 msgid "Remove item"
 msgstr "Supprimer l’élément"
@@ -11146,6 +11332,10 @@ msgid "Results backend needed for asynchronous queries is not configured."
 msgstr ""
 "Le programme dorsal des résultats pour les requêtes asynchrones n'est pas"
 " configuré."
+
+#, fuzzy
+msgid "Resume auto-refresh"
+msgstr "Définir l'intervalle de rafraîchissement automatique"
 
 #, fuzzy
 msgid "Retry"
@@ -11704,11 +11894,27 @@ msgstr "Rechercher les mesures et les colonnes"
 msgid "Search box"
 msgstr "Boîte de echerche"
 
+#, fuzzy
+msgid "Search by"
+msgstr "Boîte de echerche"
+
 msgid "Search by query text"
 msgstr "Recherche par texte d'interrogation"
 
 #, fuzzy
+msgid "Search calculated columns by name"
+msgstr "Colonnes calculées"
+
+#, fuzzy
+msgid "Search charts by name, owner, or dashboard"
+msgstr "Il n'y a pas de graphiques ajouté dans ce tableau de bord"
+
+#, fuzzy
 msgid "Search columns"
+msgstr "Recherche de colonnes"
+
+#, fuzzy
+msgid "Search columns by name"
 msgstr "Recherche de colonnes"
 
 #, fuzzy
@@ -11718,6 +11924,10 @@ msgstr "Recherche de colonnes"
 #, fuzzy
 msgid "Search in filters"
 msgstr "Recherche dans les filtres"
+
+#, fuzzy
+msgid "Search metrics by key or label"
+msgstr "Rechercher les mesures et les colonnes"
 
 #, fuzzy
 msgid "Search owners"
@@ -11952,6 +12162,10 @@ msgstr "Sélectionner un schéma de couleurs"
 msgid "Select column"
 msgstr "Sélectionner une colonne"
 
+#, fuzzy
+msgid "Select column name"
+msgstr "Sélectionner une colonne"
+
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
 "columns."
@@ -12059,6 +12273,10 @@ msgstr ""
 #, fuzzy
 msgid "Select layers to hide"
 msgstr "Sélectionner des graphiques"
+
+#, fuzzy
+msgid "Select object name"
+msgstr "Sélectionner un objet"
 
 msgid ""
 "Select one or many metrics to display, that will be displayed in the "
@@ -12216,6 +12434,10 @@ msgstr ""
 "Sélectionnez les valeurs dans le ou les champ(s) en surbrillance dans le "
 "panneau de commande. Exécutez ensuite la requête en cliquant sur le "
 "bouton %s."
+
+#, fuzzy
+msgid "Selected"
+msgstr "0 sélectionné"
 
 #, fuzzy
 msgid "Selecting a database is required"
@@ -12389,6 +12611,10 @@ msgstr "Partager le graphique par courriel"
 msgid "Share permalink by email"
 msgstr "Partager le lien par courriel"
 
+#, fuzzy
+msgid "Shared"
+msgstr "Partager"
+
 msgid "Shared query"
 msgstr "Requête partagée"
 
@@ -12469,6 +12695,10 @@ msgstr "Afficher les noms de mesure"
 #, fuzzy
 msgid "Show Range Filter"
 msgstr "Afficher le filtre d’intervalle"
+
+#, fuzzy
+msgid "Show SQL"
+msgstr "Afficher les journaux"
 
 #, fuzzy
 msgid "Show Timestamp"
@@ -13191,6 +13421,10 @@ msgid "Submit"
 msgstr "Soumettre"
 
 #, fuzzy
+msgid "Subscribers"
+msgstr "série"
+
+#, fuzzy
 msgid "Subtitle"
 msgstr "Titre de l’onglet"
 
@@ -13489,6 +13723,42 @@ msgid "Target value"
 msgstr "Valeur cible"
 
 #, fuzzy
+msgid "Task"
+msgstr "tags"
+
+#, fuzzy, python-format
+msgid "Task cancelled: %s"
+msgstr "Rapport échoué"
+
+#, fuzzy
+msgid "Task could not be aborted."
+msgstr "Le jeu de données n'a pas pu être mis à jour."
+
+#, fuzzy
+msgid "Task could not be created."
+msgstr "La balise n'a pas pu être créée."
+
+#, fuzzy
+msgid "Task could not be updated."
+msgstr "Le jeu de données n'a pas pu être mis à jour."
+
+msgid ""
+"Task is not abortable. The task is in progress but has not registered an "
+"abort handler."
+msgstr ""
+
+#, fuzzy
+msgid "Task parameters are invalid."
+msgstr "Les paramètres de balise sont invalides."
+
+#, fuzzy
+msgid "Tasks"
+msgstr "tags"
+
+msgid "Tasks will appear here as background operations are executed."
+msgstr ""
+
+#, fuzzy
 msgid "Template"
 msgstr "css_template"
 
@@ -13576,6 +13846,18 @@ msgstr ""
 "La couche GeoJsonLayer reçoit des données au format GeoJSON et les "
 "restitue sous forme de polygones, de lignes et de points interactifs "
 "(cercles, icônes et/ou textes)."
+
+msgid ""
+"The Global Task Framework is not enabled. Please contact your "
+"administrator to enable the GLOBAL_TASK_FRAMEWORK feature flag."
+msgstr ""
+
+msgid ""
+"The Global Task Framework is not enabled. Set GLOBAL_TASK_FRAMEWORK=True "
+"in your feature flags to use @task. See "
+"https://superset.apache.org/docs/configuration/async-queries-celery for "
+"configuration details."
+msgstr ""
 
 msgid ""
 "The Sankey chart visually tracks the movement and transformation of "
@@ -14622,6 +14904,12 @@ msgstr ""
 "Espace insuffisant pour ce composant. Diminuez sa largeur ou augmentez la"
 " largeur de destination."
 
+#, python-format
+msgid ""
+"There was a problem refreshing your dashboard. We'll try again in %s, as "
+"scheduled."
+msgstr ""
+
 #, fuzzy
 msgid "There was an error creating the group. Please, try again."
 msgstr "Une erreur s'est produite lors de la récupération des schémas"
@@ -14708,6 +14996,10 @@ msgstr ""
 
 msgid "There was an error with your request"
 msgstr "Il y avait une erreur avec vore requête"
+
+#, fuzzy, python-format
+msgid "There was an issue cancelling the task: %s"
+msgstr "Il y a eu un problème lors de la suppression de %s : %s"
 
 #, fuzzy, python-format
 msgid "There was an issue deleting %s"
@@ -14966,14 +15258,6 @@ msgstr ""
 "Cela contrôle si le champ de fragment de temps de la vue actuelle doit "
 "être transmis au graphique contenant les données d'annotation."
 
-#, python-format
-msgid ""
-"This dashboard is currently auto refreshing; the next auto refresh will "
-"be in %s."
-msgstr ""
-"Ce tableau de bord est en train de se rafraîchir automatiquement; le "
-"prochain rafraîchissement sera dans %s."
-
 msgid "This dashboard is managed externally, and can't be edited in Superset"
 msgstr ""
 "Ce tableau de bord est géré à l’externe et ne peut pas être modifié dans "
@@ -15035,6 +15319,13 @@ msgstr ""
 "Cette table de base de données ne contient aucune donnée. Veuillez "
 "sélectionner un autre tableau."
 
+msgid ""
+"This database uses OAuth2 for authentication. Please click the link above"
+" to grant Apache Superset permission to access the data. Your personal "
+"access token will be stored encrypted and used only for queries run by "
+"you."
+msgstr ""
+
 msgid "This dataset is managed externally, and can't be edited in Superset"
 msgstr ""
 "Cet ensemble de données est géré à l'externe et ne peut pas être modifié "
@@ -15077,10 +15368,10 @@ msgstr "Ce filtre pourrait être incompatible avec l’ensemble de données actu
 msgid "This folder is currently empty"
 msgstr ""
 
-msgid "This folder only accepts columns"
+msgid "This folder only supports columns"
 msgstr ""
 
-msgid "This folder only accepts metrics"
+msgid "This folder only supports metrics"
 msgstr ""
 
 msgid "This functionality is disabled in your environment for security reasons."
@@ -15240,6 +15531,10 @@ msgid_plural "This may be triggered by:"
 msgstr[0] "Cela a été déclenché par :"
 msgstr[1] "Ceci peut être déclenché par :"
 
+#, python-format
+msgid "This will abort (stop) the task for all %s subscriber(s)."
+msgstr ""
+
 msgid ""
 "This will be applied to the whole table. Arrows (↑ and ↓) will be added "
 "to main columns for increase and decrease. Basic conditional formatting "
@@ -15249,6 +15544,9 @@ msgstr ""
 "ajoutées aux colonnes principales pour indiquer les augmentations et les "
 "diminutions. La mise en forme conditionnelle de base peut être remplacée "
 "par la mise en forme conditionnelle ci-dessous."
+
+msgid "This will cancel the task."
+msgstr ""
 
 msgid "This will remove your current embed configuration."
 msgstr "Cela supprimera votre configuration d’intégration actuelle."
@@ -15460,8 +15758,18 @@ msgid "Time-series Table"
 msgstr "Tableau des séries temporelles"
 
 #, fuzzy
+msgid "Timed Out"
+msgstr "Format de temps"
+
+#, fuzzy
 msgid "Timeline"
 msgstr "Fuseau horaire"
+
+#, python-format
+msgid ""
+"Timeout configured (%s seconds) but no abort handler defined. Task will "
+"continue running past the timeout."
+msgstr ""
 
 msgid "Timeout error"
 msgstr "Erreur de dépassement de délai"
@@ -15507,18 +15815,11 @@ msgstr ""
 "Pour activer le tri sur plusieurs colonnes, maintenez la touche ⇧ Shift "
 "enfoncée tout en cliquant sur l'en-tête de colonne."
 
-msgid "To entire row"
-msgstr ""
-
 msgid "To filter on a metric, use Custom SQL tab."
 msgstr "Pour filtrer sur une mesure, utiliser l'onglet Custom SQL."
 
 msgid "To get a readable URL for your dashboard"
 msgstr "Pour obtenir une URL lisible pour votre tableau de bord"
-
-#, fuzzy
-msgid "To text color"
-msgstr "Couleur cible"
 
 msgid "Token Request URI"
 msgstr ""
@@ -15910,6 +16211,9 @@ msgstr "Erreur inconnue"
 msgid "Unknown input format"
 msgstr "Format d'entrée inconnu"
 
+msgid "Unknown tokens will be highlighted as warnings."
+msgstr ""
+
 #, fuzzy
 msgid "Unknown type"
 msgstr "Type inconnu"
@@ -15970,6 +16274,10 @@ msgstr "Certifié"
 
 msgid "Update"
 msgstr "Mettre à jour"
+
+#, fuzzy
+msgid "Update auto-refresh"
+msgstr "Définir l'intervalle de rafraîchissement automatique"
 
 #, fuzzy
 msgid "Update chart"
@@ -16524,6 +16832,9 @@ msgstr "WMS"
 
 msgid "WMS"
 msgstr "WMS"
+
+msgid "Waiting for first refresh"
+msgstr ""
 
 #, python-format
 msgid "Waiting on %s"
@@ -17158,6 +17469,10 @@ msgstr "Année %s"
 msgid "Yes"
 msgstr "Oui"
 
+#, fuzzy
+msgid "Yes, Cancel"
+msgstr "Oui, annuler"
+
 msgid "Yes, cancel"
 msgstr "Oui, annuler"
 
@@ -17312,6 +17627,10 @@ msgid "You do not have permission to edit this dashboard"
 msgstr "Vous n'avez pas les permission pour modifier ce tableau de bord"
 
 #, fuzzy
+msgid "You do not have permission to perform this operation"
+msgstr "Vous n'avez pas les permission pour modifier ce graphique"
+
+#, fuzzy
 msgid "You do not have permission to read tags"
 msgstr "Vous n'avez pas les permission pour modifier ce graphique"
 
@@ -17365,6 +17684,10 @@ msgstr "Vous n'avez pas les droits de créer un tableau de bord"
 msgid "You don't have the rights to download as csv"
 msgstr "Vous n'avez pas les droits de télécharger au format csv"
 
+#, fuzzy, python-format
+msgid "You have been removed from task: %s"
+msgstr "Vous avez supprimé ce filtre."
+
 msgid "You have removed this filter."
 msgstr "Vous avez supprimé ce filtre."
 
@@ -17399,6 +17722,15 @@ msgstr "Vous devez entrer un nom pour le nouveau tableau de Bord"
 msgid "You must run the query successfully first"
 msgstr "Vous devez d'abord exécuter la requête avec succès"
 
+#, python-format
+msgid ""
+"You need access to the following tables: %(tables)s, "
+"`all_database_access` or `all_datasource_access` permission"
+msgstr ""
+
+msgid "You need to"
+msgstr ""
+
 msgid "You need to configure HTML sanitization to use CSS"
 msgstr "Vous devez configurer la désinfection HTML pour utiliser CSS"
 
@@ -17410,6 +17742,12 @@ msgstr ""
 "Vous avez mis à jour les valeurs dans le panneau de commande, mais le "
 "graphique n’a pas été mis à jour automatiquement. Exécutez la requête en "
 "cliquant sur le bouton « Mettre à jour le graphique » ou"
+
+#, python-format
+msgid ""
+"You'll be removed from this task. It will continue running for %s other "
+"subscriber(s)."
+msgstr ""
 
 msgid ""
 "You've changed datasets. Any controls with data (columns, metrics) that "
@@ -17569,6 +17907,10 @@ msgstr "« row_offset » doit être plus grand ou égal à 0"
 msgid "`width` must be greater or equal to 0"
 msgstr "« width » doit être plus grand ou égal à 0"
 
+#, fuzzy
+msgid "a few seconds"
+msgstr "5 secondes"
+
 msgid "aggregate"
 msgstr "agrégat"
 
@@ -17607,6 +17949,10 @@ msgid "auto"
 msgstr "auto"
 
 msgid "background"
+msgstr "contexte"
+
+#, fuzzy
+msgid "background color"
 msgstr "contexte"
 
 #, fuzzy
@@ -17652,6 +17998,10 @@ msgstr "ne peut pas être vide"
 #, fuzzy
 msgid "cardinal"
 msgstr "cardinal"
+
+#, fuzzy
+msgid "cell bar"
+msgstr "Afficher les barres de cellules"
 
 #, fuzzy
 msgid "change"
@@ -17874,6 +18224,10 @@ msgstr "sujet d'email"
 msgid "ends with"
 msgstr "Largeur de la capture d'écran"
 
+#, fuzzy
+msgid "entire row"
+msgstr "Rangée vide"
+
 msgid "entries"
 msgstr "entrées"
 
@@ -17951,11 +18305,11 @@ msgstr "ici"
 msgid "hour"
 msgstr "heure"
 
-msgid "https://"
-msgstr ""
-
 msgid "in"
 msgstr "dans"
+
+msgid "in order to run this operation."
+msgstr ""
 
 msgid "invalid email"
 msgstr "email invalide"
@@ -18202,6 +18556,10 @@ msgid "previous calendar year"
 msgstr "année calendaire précédente"
 
 #, fuzzy
+msgid "provide authorization"
+msgstr "Autorisation requise"
+
+#, fuzzy
 msgid "quarter"
 msgstr "trimestre"
 
@@ -18324,8 +18682,16 @@ msgstr "balise"
 msgid "tags"
 msgstr "tags"
 
+#, fuzzy
+msgid "task"
+msgstr "tags"
+
 msgid "temporal type icon"
 msgstr "icône de type temporel"
+
+#, fuzzy
+msgid "text color"
+msgstr "Couleur cible"
 
 msgid "textarea"
 msgstr "textarea"

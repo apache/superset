@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-02-06 23:58-0800\n"
+"POT-Creation-Date: 2026-02-25 10:47+0100\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -267,6 +267,18 @@ msgid "%s column(s)"
 msgstr ""
 
 #, python-format
+msgid "%s day ago"
+msgid_plural "%s days ago"
+msgstr[0] ""
+msgstr[1] ""
+
+#, fuzzy, python-format
+msgid "%s hr ago"
+msgid_plural "%s hr ago"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
 msgid "%s item(s)"
 msgstr ""
 
@@ -275,6 +287,12 @@ msgid ""
 "%s items could not be tagged because you don’t have edit permissions to "
 "all selected objects."
 msgstr ""
+
+#, python-format
+msgid "%s min ago"
+msgid_plural "%s min ago"
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid "%s operator(s)"
@@ -301,14 +319,32 @@ msgstr[0] ""
 msgstr[1] ""
 
 #, fuzzy, python-format
+msgid "%s record..."
+msgid_plural "%s records..."
+msgstr[0] ""
+msgstr[1] ""
+
+#, fuzzy, python-format
 msgid "%s row"
 msgid_plural "%s rows"
 msgstr[0] ""
 msgstr[1] ""
 
 #, python-format
+msgid "%s s ago"
+msgid_plural "%s s ago"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
 msgid "%s saved metric(s)"
 msgstr ""
+
+#, fuzzy, python-format
+msgid "%s second"
+msgid_plural "%s seconds"
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid "%s tab selected"
@@ -748,6 +784,12 @@ msgid "AQE"
 msgstr ""
 
 msgid "AUG"
+msgstr ""
+
+msgid "Aborted"
+msgstr ""
+
+msgid "Aborting"
 msgstr ""
 
 msgid "About"
@@ -1368,6 +1410,10 @@ msgid "An error occurred while fetching chart owners values: %s"
 msgstr ""
 
 #, python-format
+msgid "An error occurred while fetching created by values: %s"
+msgstr ""
+
+#, python-format
 msgid "An error occurred while fetching dashboard owner values: %s"
 msgstr ""
 
@@ -1663,6 +1709,12 @@ msgid ""
 "source query satisfies the minimum periods defined in the rolling window."
 msgstr ""
 
+msgid ""
+"Applies only when \"Cell bars\" formatting is selected: the background of"
+" the histogram columns is displayed if the \"Show cell bars\" flag is "
+"enabled."
+msgstr ""
+
 msgid "Apply"
 msgstr ""
 
@@ -1754,9 +1806,6 @@ msgstr ""
 msgid "Are you sure you want to overwrite this dataset?"
 msgstr ""
 
-msgid "Are you sure you want to proceed?"
-msgstr ""
-
 msgid ""
 "Are you sure you want to remove the system dark theme? The application "
 "will fall back to the configuration file dark theme."
@@ -1831,6 +1880,18 @@ msgid "Auto"
 msgstr ""
 
 msgid "Auto Zoom"
+msgstr ""
+
+#, python-format
+msgid "Auto refresh paused (set to %s seconds)"
+msgstr ""
+
+#, python-format
+msgid "Auto refresh paused - tab inactive (set to %s seconds)"
+msgstr ""
+
+#, python-format
+msgid "Auto refresh set to %s seconds"
 msgstr ""
 
 msgid "Auto-detect"
@@ -2278,7 +2339,13 @@ msgstr ""
 msgid "Cancel"
 msgstr ""
 
+msgid "Cancel Task"
+msgstr ""
+
 msgid "Cancel query on window unload event"
+msgstr ""
+
+msgid "Cancellation not available due to missing abort handler"
 msgstr ""
 
 msgid "Cannot access the query"
@@ -2454,6 +2521,9 @@ msgid "Changing this datasource is forbidden"
 msgstr ""
 
 msgid "Changing this report is forbidden"
+msgstr ""
+
+msgid "Changing this task is forbidden"
 msgstr ""
 
 msgid "Character to interpret as decimal point"
@@ -3252,6 +3322,9 @@ msgstr ""
 msgid "Copied to clipboard!"
 msgstr ""
 
+msgid "Copied!"
+msgstr ""
+
 msgid "Copy"
 msgstr ""
 
@@ -3424,6 +3497,10 @@ msgstr ""
 msgid "Created by me"
 msgstr ""
 
+#, python-format
+msgid "Created by: %s"
+msgstr ""
+
 msgid "Created on"
 msgstr ""
 
@@ -3473,6 +3550,9 @@ msgid "Currency symbol"
 msgstr ""
 
 msgid "Current"
+msgstr ""
+
+msgid "Current Zoom"
 msgstr ""
 
 msgid "Current day"
@@ -3709,6 +3789,10 @@ msgstr ""
 msgid "Dashboard title"
 msgstr ""
 
+#, python-format
+msgid "Dashboard updated %s"
+msgstr ""
+
 msgid "Dashboard usage"
 msgstr ""
 
@@ -3829,6 +3913,9 @@ msgid "Database passwords"
 msgstr ""
 
 msgid "Database port"
+msgstr ""
+
+msgid "Database reference is not allowed on a report"
 msgstr ""
 
 msgid "Database schema is not allowed for csv uploads."
@@ -4147,6 +4234,12 @@ msgid ""
 "Defines whether the step should appear at the beginning, middle or end "
 "between two data points"
 msgstr ""
+
+#, python-format
+msgid "Delayed (missed %s refresh)"
+msgid_plural "Delayed (missed %s refreshes)"
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "Delete"
 msgstr ""
@@ -4612,6 +4705,9 @@ msgid ""
 "Drag columns and metrics here to customize tooltip content. Order matters"
 " - items will appear in the same order in tooltips. Click the button to "
 "manually select columns and metrics."
+msgstr ""
+
+msgid "Drag to reorder"
 msgstr ""
 
 msgid "Draw a marker on data points. Only applicable for line types."
@@ -5522,14 +5618,14 @@ msgstr ""
 msgid "Failed to apply theme: Invalid JSON"
 msgstr ""
 
+msgid "Failed to copy stack trace to clipboard"
+msgstr ""
+
 msgid "Failed to create report"
 msgstr ""
 
 #, python-format
 msgid "Failed to execute %(query)s"
-msgstr ""
-
-msgid "Failed to fetch user info:"
 msgstr ""
 
 msgid "Failed to generate chart edit URL"
@@ -5613,6 +5709,9 @@ msgstr ""
 msgid "Favorite"
 msgstr ""
 
+msgid "Feature Not Enabled"
+msgstr ""
+
 msgid "Featured"
 msgstr ""
 
@@ -5630,6 +5729,9 @@ msgid "Fetched %s"
 msgstr ""
 
 msgid "Fetching"
+msgstr ""
+
+msgid "Fetching data..."
 msgstr ""
 
 #, python-format
@@ -5851,6 +5953,9 @@ msgstr ""
 msgid "Force Time Grain as Max Interval"
 msgstr ""
 
+msgid "Force abort (stops task for all subscribers)"
+msgstr ""
+
 msgid ""
 "Force all tables and views to be created in this schema when clicking "
 "CTAS or CVAS in SQL Lab."
@@ -5924,6 +6029,12 @@ msgid "Formatted value"
 msgstr ""
 
 msgid "Formatting"
+msgstr ""
+
+msgid "Formatting column"
+msgstr ""
+
+msgid "Formatting object"
 msgstr ""
 
 msgid "Formula"
@@ -6058,6 +6169,9 @@ msgid "Grid"
 msgstr ""
 
 msgid "Grid Size"
+msgstr ""
+
+msgid "Grid view"
 msgstr ""
 
 msgid "Group"
@@ -6328,6 +6442,9 @@ msgstr ""
 msgid "In"
 msgstr ""
 
+msgid "In Progress"
+msgstr ""
+
 msgid "In Range"
 msgstr ""
 
@@ -6470,6 +6587,9 @@ msgid ""
 msgstr ""
 
 msgid "Invalid JSON"
+msgstr ""
+
+msgid "Invalid JSON configuration"
 msgstr ""
 
 msgid "Invalid JSON metadata"
@@ -6841,6 +6961,10 @@ msgstr ""
 msgid "Last run"
 msgstr ""
 
+#, python-format
+msgid "Last updated %s ago"
+msgstr ""
+
 msgid "Last week"
 msgstr ""
 
@@ -7059,6 +7183,9 @@ msgstr ""
 msgid "List updated"
 msgstr ""
 
+msgid "List view"
+msgstr ""
+
 msgid "Live render"
 msgstr ""
 
@@ -7069,6 +7196,9 @@ msgid "Loaded data cached"
 msgstr ""
 
 msgid "Loaded from cache"
+msgstr ""
+
+msgid "Loading"
 msgstr ""
 
 msgid "Loading deck.gl layers..."
@@ -7453,6 +7583,9 @@ msgstr ""
 msgid "Metrics / Dimensions"
 msgstr ""
 
+msgid "Metrics can't be used for both rows and columns at the same time"
+msgstr ""
+
 msgid "Metrics folder can only contain metric items"
 msgstr ""
 
@@ -7594,6 +7727,9 @@ msgid "More filters"
 msgstr ""
 
 msgid "MotherDuck token"
+msgstr ""
+
+msgid "Move"
 msgstr ""
 
 msgid "Move only"
@@ -7913,6 +8049,9 @@ msgid "No such column found. To filter on a metric, try the Custom SQL tab."
 msgstr ""
 
 msgid "No table columns"
+msgstr ""
+
+msgid "No tasks yet"
 msgstr ""
 
 msgid "No temporal columns found"
@@ -8497,6 +8636,15 @@ msgstr ""
 msgid "Pattern"
 msgstr ""
 
+msgid "Pause auto refresh if tab is inactive"
+msgstr ""
+
+msgid "Pause auto-refresh"
+msgstr ""
+
+msgid "Pending"
+msgstr ""
+
 msgid "Per user caching"
 msgstr ""
 
@@ -8888,6 +9036,9 @@ msgstr ""
 msgid "Primary y-axis format"
 msgstr ""
 
+msgid "Private"
+msgstr ""
+
 msgid "Private Channels (Bot in channel)"
 msgstr ""
 
@@ -9123,6 +9274,9 @@ msgstr ""
 msgid "Refresh dashboard"
 msgstr ""
 
+msgid "Refresh delayed"
+msgstr ""
+
 msgid "Refresh frequency"
 msgstr ""
 
@@ -9204,6 +9358,12 @@ msgid "Remove System Default Theme"
 msgstr ""
 
 msgid "Remove cross-filter"
+msgstr ""
+
+msgid "Remove customization"
+msgstr ""
+
+msgid "Remove filter"
 msgstr ""
 
 msgid "Remove item"
@@ -9406,6 +9566,9 @@ msgid "Results backend is not configured."
 msgstr ""
 
 msgid "Results backend needed for asynchronous queries is not configured."
+msgstr ""
+
+msgid "Resume auto-refresh"
 msgstr ""
 
 msgid "Retry"
@@ -9885,16 +10048,31 @@ msgstr ""
 msgid "Search box"
 msgstr ""
 
+msgid "Search by"
+msgstr ""
+
 msgid "Search by query text"
 msgstr ""
 
+msgid "Search calculated columns by name"
+msgstr ""
+
+msgid "Search charts by name, owner, or dashboard"
+msgstr ""
+
 msgid "Search columns"
+msgstr ""
+
+msgid "Search columns by name"
 msgstr ""
 
 msgid "Search columns..."
 msgstr ""
 
 msgid "Search in filters"
+msgstr ""
+
+msgid "Search metrics by key or label"
 msgstr ""
 
 #, fuzzy, python-format
@@ -10092,6 +10270,9 @@ msgstr ""
 msgid "Select column"
 msgstr ""
 
+msgid "Select column name"
+msgstr ""
+
 msgid ""
 "Select columns that will be displayed in the table. You can multiselect "
 "columns."
@@ -10174,6 +10355,9 @@ msgid ""
 msgstr ""
 
 msgid "Select layers to hide"
+msgstr ""
+
+msgid "Select object name"
 msgstr ""
 
 msgid ""
@@ -10290,6 +10474,9 @@ msgstr ""
 msgid ""
 "Select values in highlighted field(s) in the control panel. Then run the "
 "query by clicking on the %s button."
+msgstr ""
+
+msgid "Selected"
 msgstr ""
 
 msgid "Selecting a database is required"
@@ -10436,6 +10623,9 @@ msgstr ""
 msgid "Share permalink by email"
 msgstr ""
 
+msgid "Shared"
+msgstr ""
+
 msgid "Shared query"
 msgstr ""
 
@@ -10501,6 +10691,9 @@ msgid "Show Metric Names"
 msgstr ""
 
 msgid "Show Range Filter"
+msgstr ""
+
+msgid "Show SQL"
 msgstr ""
 
 msgid "Show Timestamp"
@@ -11092,6 +11285,9 @@ msgstr ""
 msgid "Submit"
 msgstr ""
 
+msgid "Subscribers"
+msgstr ""
+
 msgid "Subtitle"
 msgstr ""
 
@@ -11349,6 +11545,36 @@ msgstr ""
 msgid "Target value"
 msgstr ""
 
+msgid "Task"
+msgstr ""
+
+#, python-format
+msgid "Task cancelled: %s"
+msgstr ""
+
+msgid "Task could not be aborted."
+msgstr ""
+
+msgid "Task could not be created."
+msgstr ""
+
+msgid "Task could not be updated."
+msgstr ""
+
+msgid ""
+"Task is not abortable. The task is in progress but has not registered an "
+"abort handler."
+msgstr ""
+
+msgid "Task parameters are invalid."
+msgstr ""
+
+msgid "Tasks"
+msgstr ""
+
+msgid "Tasks will appear here as background operations are executed."
+msgstr ""
+
 msgid "Template"
 msgstr ""
 
@@ -11416,6 +11642,18 @@ msgstr ""
 msgid ""
 "The GeoJsonLayer takes in GeoJSON formatted data and renders it as "
 "interactive polygons, lines and points (circles, icons and/or texts)."
+msgstr ""
+
+msgid ""
+"The Global Task Framework is not enabled. Please contact your "
+"administrator to enable the GLOBAL_TASK_FRAMEWORK feature flag."
+msgstr ""
+
+msgid ""
+"The Global Task Framework is not enabled. Set GLOBAL_TASK_FRAMEWORK=True "
+"in your feature flags to use @task. See "
+"https://superset.apache.org/docs/configuration/async-queries-celery for "
+"configuration details."
 msgstr ""
 
 msgid ""
@@ -12199,6 +12437,12 @@ msgid ""
 "or increasing the destination width."
 msgstr ""
 
+#, python-format
+msgid ""
+"There was a problem refreshing your dashboard. We'll try again in %s, as "
+"scheduled."
+msgstr ""
+
 msgid "There was an error creating the group. Please, try again."
 msgstr ""
 
@@ -12259,6 +12503,10 @@ msgid "There was an error while fetching users"
 msgstr ""
 
 msgid "There was an error with your request"
+msgstr ""
+
+#, python-format
+msgid "There was an issue cancelling the task: %s"
 msgstr ""
 
 #, python-format
@@ -12456,12 +12704,6 @@ msgid ""
 "annotation data."
 msgstr ""
 
-#, python-format
-msgid ""
-"This dashboard is currently auto refreshing; the next auto refresh will "
-"be in %s."
-msgstr ""
-
 msgid "This dashboard is managed externally, and can't be edited in Superset"
 msgstr ""
 
@@ -12506,6 +12748,13 @@ msgid ""
 "table."
 msgstr ""
 
+msgid ""
+"This database uses OAuth2 for authentication. Please click the link above"
+" to grant Apache Superset permission to access the data. Your personal "
+"access token will be stored encrypted and used only for queries run by "
+"you."
+msgstr ""
+
 msgid "This dataset is managed externally, and can't be edited in Superset"
 msgstr ""
 
@@ -12539,10 +12788,10 @@ msgstr ""
 msgid "This folder is currently empty"
 msgstr ""
 
-msgid "This folder only accepts columns"
+msgid "This folder only supports columns"
 msgstr ""
 
-msgid "This folder only accepts metrics"
+msgid "This folder only supports metrics"
 msgstr ""
 
 msgid "This functionality is disabled in your environment for security reasons."
@@ -12669,10 +12918,17 @@ msgid_plural "This may be triggered by:"
 msgstr[0] ""
 msgstr[1] ""
 
+#, python-format
+msgid "This will abort (stop) the task for all %s subscriber(s)."
+msgstr ""
+
 msgid ""
 "This will be applied to the whole table. Arrows (↑ and ↓) will be added "
 "to main columns for increase and decrease. Basic conditional formatting "
 "can be overwritten by conditional formatting below."
+msgstr ""
+
+msgid "This will cancel the task."
 msgstr ""
 
 msgid "This will remove your current embed configuration."
@@ -12851,7 +13107,16 @@ msgstr ""
 msgid "Time-series Table"
 msgstr ""
 
+msgid "Timed Out"
+msgstr ""
+
 msgid "Timeline"
+msgstr ""
+
+#, python-format
+msgid ""
+"Timeout configured (%s seconds) but no abort handler defined. Task will "
+"continue running past the timeout."
 msgstr ""
 
 msgid "Timeout error"
@@ -12893,16 +13158,10 @@ msgid ""
 "clicking the column header."
 msgstr ""
 
-msgid "To entire row"
-msgstr ""
-
 msgid "To filter on a metric, use Custom SQL tab."
 msgstr ""
 
 msgid "To get a readable URL for your dashboard"
-msgstr ""
-
-msgid "To text color"
 msgstr ""
 
 msgid "Token Request URI"
@@ -13233,6 +13492,9 @@ msgstr ""
 msgid "Unknown input format"
 msgstr ""
 
+msgid "Unknown tokens will be highlighted as warnings."
+msgstr ""
+
 msgid "Unknown type"
 msgstr ""
 
@@ -13286,6 +13548,9 @@ msgid "Unverified"
 msgstr ""
 
 msgid "Update"
+msgstr ""
+
+msgid "Update auto-refresh"
 msgstr ""
 
 msgid "Update chart"
@@ -13719,6 +13984,9 @@ msgid "WFS"
 msgstr ""
 
 msgid "WMS"
+msgstr ""
+
+msgid "Waiting for first refresh"
 msgstr ""
 
 #, python-format
@@ -14245,6 +14513,9 @@ msgstr ""
 msgid "Yes"
 msgstr ""
 
+msgid "Yes, Cancel"
+msgstr ""
+
 msgid "Yes, cancel"
 msgstr ""
 
@@ -14356,6 +14627,9 @@ msgstr ""
 msgid "You do not have permission to edit this dashboard"
 msgstr ""
 
+msgid "You do not have permission to perform this operation"
+msgstr ""
+
 msgid "You do not have permission to read tags"
 msgstr ""
 
@@ -14402,6 +14676,10 @@ msgstr ""
 msgid "You don't have the rights to download as csv"
 msgstr ""
 
+#, python-format
+msgid "You have been removed from task: %s"
+msgstr ""
+
 msgid "You have removed this filter."
 msgstr ""
 
@@ -14429,6 +14707,15 @@ msgstr ""
 msgid "You must run the query successfully first"
 msgstr ""
 
+#, python-format
+msgid ""
+"You need access to the following tables: %(tables)s, "
+"`all_database_access` or `all_datasource_access` permission"
+msgstr ""
+
+msgid "You need to"
+msgstr ""
+
 msgid "You need to configure HTML sanitization to use CSS"
 msgstr ""
 
@@ -14436,6 +14723,12 @@ msgid ""
 "You updated the values in the control panel, but the chart was not "
 "updated automatically. Run the query by clicking on the \"Update chart\" "
 "button or"
+msgstr ""
+
+#, python-format
+msgid ""
+"You'll be removed from this task. It will continue running for %s other "
+"subscriber(s)."
 msgstr ""
 
 msgid ""
@@ -14573,6 +14866,9 @@ msgstr ""
 msgid "`width` must be greater or equal to 0"
 msgstr ""
 
+msgid "a few seconds"
+msgstr ""
+
 msgid "aggregate"
 msgstr ""
 
@@ -14612,6 +14908,9 @@ msgstr ""
 msgid "background"
 msgstr ""
 
+msgid "background color"
+msgstr ""
+
 msgid "basis"
 msgstr ""
 
@@ -14649,6 +14948,9 @@ msgid "cannot be empty"
 msgstr ""
 
 msgid "cardinal"
+msgstr ""
+
+msgid "cell bar"
 msgstr ""
 
 msgid "change"
@@ -14854,6 +15156,9 @@ msgstr ""
 msgid "ends with"
 msgstr ""
 
+msgid "entire row"
+msgstr ""
+
 msgid "entries"
 msgstr ""
 
@@ -14923,10 +15228,10 @@ msgstr ""
 msgid "hour"
 msgstr ""
 
-msgid "https://"
+msgid "in"
 msgstr ""
 
-msgid "in"
+msgid "in order to run this operation."
 msgstr ""
 
 msgid "invalid email"
@@ -15132,6 +15437,9 @@ msgstr ""
 msgid "previous calendar year"
 msgstr ""
 
+msgid "provide authorization"
+msgstr ""
+
 msgid "quarter"
 msgstr ""
 
@@ -15234,7 +15542,13 @@ msgstr ""
 msgid "tags"
 msgstr ""
 
+msgid "task"
+msgstr ""
+
 msgid "temporal type icon"
+msgstr ""
+
+msgid "text color"
 msgstr ""
 
 msgid "textarea"

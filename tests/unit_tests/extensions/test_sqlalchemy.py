@@ -320,10 +320,11 @@ def test_security_manager(
     conn = engine.connect()
     with pytest.raises(SupersetSecurityException) as excinfo:
         conn.execute('SELECT * FROM "database1.table1"')
-    assert str(excinfo.value) == (
+    message = (
         "You need access to the following tables: `table1`,\n            "
         "`all_database_access` or `all_datasource_access` permission"
     )
+    assert str(excinfo.value) == message
 
 
 @with_feature_flags(ENABLE_SUPERSET_META_DB=True)

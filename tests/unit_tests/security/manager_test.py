@@ -399,11 +399,11 @@ def test_raise_for_access_query_default_schema(
             table=None,
             viz=None,
         )
-    assert (
-        str(excinfo.value)
-        == """You need access to the following tables: `public.ab_user`,
-            `all_database_access` or `all_datasource_access` permission"""
+    message = (
+        "You need access to the following tables: `public.ab_user`, "
+        "`all_database_access` or `all_datasource_access` permission"
     )
+    assert str(excinfo.value) == message
 
 
 def test_raise_for_access_jinja_sql(mocker: MockerFixture, app_context: None) -> None:
@@ -1103,20 +1103,20 @@ def test_raise_for_access_catalog(
     mocker.patch.object(sm, "can_access", return_value=False)
     with pytest.raises(SupersetSecurityException) as excinfo:
         sm.raise_for_access(query=query)
-    assert (
-        str(excinfo.value)
-        == """You need access to the following tables: `db1.public.ab_user`,
-            `all_database_access` or `all_datasource_access` permission"""
+    message = (
+        "You need access to the following tables: `db1.public.ab_user`, "
+        "`all_database_access` or `all_datasource_access` permission"
     )
+    assert str(excinfo.value) == message
 
     query.sql = "SELECT * FROM db2.public.ab_user"
     with pytest.raises(SupersetSecurityException) as excinfo:
         sm.raise_for_access(query=query)
-    assert (
-        str(excinfo.value)
-        == """You need access to the following tables: `db2.public.ab_user`,
-            `all_database_access` or `all_datasource_access` permission"""
+    message = (
+        "You need access to the following tables: `db2.public.ab_user`, "
+        "`all_database_access` or `all_datasource_access` permission"
     )
+    assert str(excinfo.value) == message
 
 
 def test_get_datasources_accessible_by_user_schema_access(
