@@ -26,9 +26,7 @@ import type { Modifier } from '@dnd-kit/core';
  * will-change:transform, filter, perspective, or contain:paint establishes
  * a new containing block for fixed-position descendants.
  */
-function findContainingBlockAncestor(
-  element: HTMLElement,
-): HTMLElement | null {
+function findContainingBlockAncestor(element: HTMLElement): HTMLElement | null {
   let ancestor = element.parentElement;
   while (ancestor && ancestor !== document.documentElement) {
     const style = window.getComputedStyle(ancestor);
