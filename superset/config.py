@@ -714,6 +714,11 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # @lifecycle: stable
     # @category: runtime_config
     "DATAPANEL_CLOSED_BY_DEFAULT": False,
+    # Hide the logout button in embedded contexts (e.g., when using SSO in iframes)
+    # @lifecycle: stable
+    # @category: runtime_config
+    # @docs: https://superset.apache.org/docs/configuration/networking-settings#hiding-the-logout-button-in-embedded-contexts
+    "DISABLE_EMBEDDED_SUPERSET_LOGOUT": False,
     # Enable drill-by functionality in charts
     # @lifecycle: stable
     # @category: runtime_config

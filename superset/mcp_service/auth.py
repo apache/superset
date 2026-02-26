@@ -111,9 +111,23 @@ def get_user_from_request() -> User:
     username = current_app.config.get("MCP_DEV_USERNAME")
 
     if not username:
+        auth_enabled = current_app.config.get("MCP_AUTH_ENABLED", False)
+        jwt_configured = bool(
+            current_app.config.get("MCP_JWKS_URI")
+            or current_app.config.get("MCP_JWT_PUBLIC_KEY")
+            or current_app.config.get("MCP_JWT_SECRET")
+        )
+        details = []
+        details.append(
+            f"g.user was not set by JWT middleware "
+            f"(MCP_AUTH_ENABLED={auth_enabled}, "
+            f"JWT keys configured={jwt_configured})"
+        )
+        details.append("MCP_DEV_USERNAME is not configured")
         raise ValueError(
-            "No authenticated user found. "
-            "Either pass a valid JWT bearer token or configure "
+            "No authenticated user found. Tried:\n"
+            + "\n".join(f"  - {d}" for d in details)
+            + "\n\nEither pass a valid JWT bearer token or configure "
             "MCP_DEV_USERNAME for development."
         )
 

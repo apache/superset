@@ -248,6 +248,7 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         column_name: str,
         value: str | int,
         skip_base_filter: bool = False,
+        query_options: list[Any] | None = None,
     ) -> T | None:
         """
         Private method to find a model by any column value.
@@ -256,12 +257,17 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
             column_name: Name of the column to search by
             value: Value to search for
             skip_base_filter: Whether to skip base filtering
+            query_options: SQLAlchemy query options (e.g., joinedload,
+                subqueryload) to apply to the query for eager loading
 
         Returns:
             Model instance or None if not found
         """
         query = db.session.query(cls.model_cls)
         query = cls._apply_base_filter(query, skip_base_filter)
+
+        if query_options:
+            query = query.options(*query_options)
 
         if not hasattr(cls.model_cls, column_name):
             return None
@@ -283,6 +289,7 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         model_id: str | int,
         skip_base_filter: bool = False,
         id_column: str | None = None,
+        query_options: list[Any] | None = None,
     ) -> T | None:
         """
         Find a model by ID using specified or default ID column.
@@ -291,12 +298,14 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
             model_id: ID value to search for
             skip_base_filter: Whether to skip base filtering
             id_column: Column name to use (defaults to cls.id_column_name)
+            query_options: SQLAlchemy query options (e.g., joinedload,
+                subqueryload) to apply to the query for eager loading
 
         Returns:
             Model instance or None if not found
         """
         column = id_column or cls.id_column_name
-        return cls._find_by_column(column, model_id, skip_base_filter)
+        return cls._find_by_column(column, model_id, skip_base_filter, query_options)
 
     @classmethod
     def find_by_ids(
