@@ -15,9 +15,8 @@ fail-fast behavior ensures operators are immediately aware of infrastructure iss
 
 Superset uses [Flask-Caching](https://flask-caching.readthedocs.io/) for caching purposes.
 Flask-Caching supports various caching backends, including Redis (recommended), Memcached,
-SimpleCache (in-memory), or the local filesystem.
-[Custom cache backends](https://flask-caching.readthedocs.io/en/latest/#custom-cache-backends)
-are also supported.
+SimpleCache (in-memory), MinIO/S3, or the local filesystem.
+[Custom cache backends](https://flask-caching.readthedocs.io/en/latest/#custom-cache-backends) are also supported.
 
 Caching can be configured by providing dictionaries in
 `superset_config.py` that comply with [the Flask-Caching config specifications](https://flask-caching.readthedocs.io/en/latest/#configuring-flask-caching).
@@ -47,6 +46,7 @@ In order to use dedicated cache stores, additional python libraries must be inst
 - For Redis: we recommend the [redis](https://pypi.python.org/pypi/redis) Python package
 - Memcached: we recommend using [pylibmc](https://pypi.org/project/pylibmc/) client library as
   `python-memcached` does not handle storing binary data correctly.
+- MinIO (S3): we recommend using the [minio-flask-cache](https://github.com/greggailly/minio-flask-cache) package
 
 These libraries can be installed using pip.
 
