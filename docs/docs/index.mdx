@@ -2,6 +2,9 @@
 hide_title: true
 sidebar_position: 1
 ---
+
+import DatabaseLogoWall from '@site/src/components/databases/DatabaseLogoWall';
+
 <!--
 Licensed to the Apache Software Foundation (ASF) under one
 or more contributor license agreements.  See the NOTICE file
@@ -109,7 +112,16 @@ Superset can query data from any SQL-speaking datastore or data engine (Presto, 
 
 Here are some of the major database solutions that are supported:
 
-<!-- SUPPORTED_DATABASES_START -->
+<DatabaseLogoWall />
+
+<!--
+SUPPORTED_DATABASES block removed — logos are now rendered dynamically
+by the DatabaseLogoWall component above, using databases.json as the
+single source of truth. The README.md retains its own static copy
+(maintained by generate-database-docs.mjs --update-readme).
+-->
+
+<!--
 <p align="center">
   <a href="/user-docs/databases/supported/amazon-athena" title="Amazon Athena"><img src="/img/databases/amazon-athena.jpg" alt="Amazon Athena" width="76" height="40" /></a> &nbsp;
   <a href="/user-docs/databases/supported/amazon-dynamodb" title="Amazon DynamoDB"><img src="/img/databases/aws.png" alt="Amazon DynamoDB" width="40" height="40" /></a> &nbsp;
@@ -173,7 +185,7 @@ Here are some of the major database solutions that are supported:
   <a href="/user-docs/databases/supported/ydb" title="YDB"><img src="/img/databases/ydb.svg" alt="YDB" width="110" height="40" /></a> &nbsp;
   <a href="/user-docs/databases/supported/yugabytedb" title="YugabyteDB"><img src="/img/databases/yugabyte.png" alt="YugabyteDB" width="150" height="26" /></a>
 </p>
-<!-- SUPPORTED_DATABASES_END -->
+SUPPORTED_DATABASES_END -->
 
 **A more comprehensive list of supported databases** along with the configuration instructions can be found [here](/user-docs/databases/).
 
