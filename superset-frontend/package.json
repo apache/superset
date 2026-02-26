@@ -182,7 +182,7 @@
     "json-bigint": "^1.0.0",
     "json-stringify-pretty-compact": "^2.0.0",
     "lodash": "^4.17.23",
-    "mapbox-gl": "^3.18.1",
+    "mapbox-gl": "^3.19.0",
     "markdown-to-jsx": "^9.7.6",
     "match-sorter": "^6.3.4",
     "memoize-one": "^5.2.1",
