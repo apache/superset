@@ -55,6 +55,7 @@ import { FoldersContainer, FoldersContent } from './styles';
 import { FoldersEditorProps } from './types';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { useDragHandlers } from './hooks/useDragHandlers';
+import { useContainingBlockModifier } from './hooks/useContainingBlockModifier';
 import { useItemHeights } from './hooks/useItemHeights';
 import { useHeightCache } from './hooks/useHeightCache';
 import {
@@ -89,6 +90,8 @@ export default function FoldersEditor({
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   const sensors = useSensors(useSensor(PointerSensor, pointerSensorOptions));
+  const contentRef = useRef<HTMLDivElement>(null);
+  const dragOverlayModifiers = useContainingBlockModifier(contentRef);
 
   const fullFlattenedItems = useMemo(() => flattenTree(items), [items]);
 
@@ -408,7 +411,7 @@ export default function FoldersEditor({
         onResetToDefault={handleResetToDefault}
         allVisibleSelected={allVisibleSelected}
       />
-      <FoldersContent>
+      <FoldersContent ref={contentRef}>
         <DndContext
           sensors={sensors}
           measuring={measuringConfig}
@@ -453,7 +456,7 @@ export default function FoldersEditor({
             </AutoSizer>
           </SortableContext>
 
-          <DragOverlay>
+          <DragOverlay modifiers={dragOverlayModifiers}>
             <DragOverlayContent
               dragOverlayItems={dragOverlayItems}
               dragOverlayWidth={dragOverlayWidth}
