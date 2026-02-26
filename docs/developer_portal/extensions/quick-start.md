@@ -417,25 +417,48 @@ Replace the generated code with the extension entry point:
 
 ```tsx
 import React from 'react';
-import { core } from '@apache-superset/core';
+import { defineView } from '@apache-superset/core';
 import HelloWorldPanel from './HelloWorldPanel';
 
-export const activate = (context: core.ExtensionContext) => {
-  context.disposables.push(
-    core.registerViewProvider('my-org.hello-world.main', () => <HelloWorldPanel />),
-  );
-};
+// Define the view - automatically registered when extension loads
+export const helloWorldView = defineView({
+  id: 'main',
+  title: 'Hello World',
+  location: 'sqllab.panels',
+  component: () => <HelloWorldPanel />,
+});
+```
 
-export const deactivate = () => {};
+That's it! For most extensions, this is all you need.
+
+**Optional lifecycle callbacks:**
+
+If you need to run code when your contribution activates or deactivates, add optional callbacks:
+
+```tsx
+export const helloWorldView = defineView({
+  id: 'main',
+  title: 'Hello World',
+  location: 'sqllab.panels',
+  component: () => <HelloWorldPanel />,
+  onActivate: () => {
+    // Optional: runs when panel is registered
+    console.log('Hello World panel activated');
+  },
+  onDeactivate: () => {
+    // Optional: runs when panel is unregistered
+    console.log('Hello World panel deactivated');
+  },
+});
 ```
 
 **Key patterns:**
 
-- `activate` function is called when the extension loads
-- `core.registerViewProvider` registers the component with ID `my-org.hello-world.main` (matching `extension.json`)
+- `defineView()` automatically handles discovery, registration, and cleanup
+- `onActivate` and `onDeactivate` are completely optional
 - `authentication.getCSRFToken()` retrieves the CSRF token for API calls
-- Fetch calls to `/extensions/{publisher}/{name}/{endpoint}` reach your backend API
-- `context.disposables.push()` ensures proper cleanup
+- Fetch calls to `/extensions/{extension_id}/{endpoint}` reach your backend API
+- Everything happens automatically - no manual setup required
 
 ## Step 6: Install Dependencies
 

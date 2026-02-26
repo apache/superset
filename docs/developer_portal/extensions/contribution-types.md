@@ -24,132 +24,180 @@ under the License.
 
 # Contribution Types
 
-To facilitate the development of extensions, we define a set of well-defined contribution types that extensions can implement. These contribution types serve as the building blocks for extensions, allowing them to interact with the host application and provide new functionality.
+Extensions provide functionality through **contributions** - well-defined extension points that integrate with the host application.
 
-## Frontend
+## Why Contributions?
 
-Frontend contribution types allow extensions to extend Superset's user interface with new views, commands, and menu items.
+The contribution system provides several key benefits:
+
+- **Transparency**: Administrators can review exactly what functionality an extension provides before installation. The `manifest.json` documents all REST APIs, MCP tools, views, and other contributions in a single, readable location.
+
+- **Security**: Only contributions explicitly declared in the manifest are registered during startup. Extensions cannot expose functionality they haven't declared, preventing hidden or undocumented code from executing.
+
+- **Discoverability**: The manifest serves as a contract between extensions and the host application, making it easy to understand what an extension does without reading its source code.
+
+## How Contributions Work
+
+Contributions are automatically discovered from source code at build time. Simply use the `@extension_api`, `@tool`, `@prompt` decorators in Python or `define*()` functions in TypeScript - the build system finds them and generates a `manifest.json` with all discovered contributions.
+
+No manual configuration needed!
+
+## Backend Contributions
+
+### REST API Endpoints
+
+Register REST APIs under `/api/v1/extensions/`:
+
+```python
+from superset_core.api import RestApi, extension_api
+from flask_appbuilder import expose
+
+@extension_api(id="my_api", name="My Extension API")
+class MyExtensionAPI(RestApi):
+    @expose("/endpoint", methods=["GET"])
+    def get_data(self):
+        return self.response(200, result={"message": "Hello"})
+```
+
+### MCP Tools
+
+Register MCP tools for AI agents:
+
+```python
+from superset_core.mcp import tool
+
+@tool(tags=["database"])
+def query_database(sql: str, database_id: int) -> dict:
+    """Execute a SQL query against a database."""
+    return execute_query(sql, database_id)
+```
+
+### MCP Prompts
+
+Register MCP prompts:
+
+```python
+from superset_core.mcp import prompt
+
+@prompt(tags={"analysis"})
+async def analyze_data(ctx, dataset: str) -> str:
+    """Generate analysis for a dataset."""
+    return f"Analyze the {dataset} dataset..."
+```
+
+See [MCP Integration](./mcp) for more details.
+
+## Frontend Contributions
 
 ### Views
 
-Extensions can add new views or panels to the host application, such as custom SQL Lab panels, dashboards, or other UI components. Each view is registered with a unique ID and can be activated or deactivated as needed. Contribution areas are uniquely identified (e.g., `sqllab.panels` for SQL Lab panels), enabling seamless integration into specific parts of the application.
+Add panels or views to the UI using `defineView()`:
 
-```json
-"frontend": {
-  "contributions": {
-    "views": {
-      "sqllab": {
-        "panels": [
-          {
-            "id": "my_extension.main",
-            "name": "My Panel Name"
-          }
-        ]
-      }
-    }
-  }
-}
+```tsx
+import React from 'react';
+import { defineView } from '@apache-superset/core';
+import MyPanel from './MyPanel';
+
+export const myView = defineView({
+  id: 'main',
+  title: 'My Panel',
+  location: 'sqllab.panels', // or dashboard.tabs, explore.panels, etc.
+  component: () => <MyPanel />,
+});
 ```
 
 ### Commands
 
-Extensions can define custom commands that can be executed within the host application, such as context-aware actions or menu options. Each command can specify properties like a unique command identifier, an icon, a title, and a description. These commands can be invoked by users through menus, keyboard shortcuts, or other UI elements, enabling extensions to add rich, interactive functionality to Superset.
+Define executable commands using `defineCommand()`:
 
-```json
-"frontend": {
-  "contributions": {
-    "commands": [
-      {
-        "command": "my_extension.copy_query",
-        "icon": "CopyOutlined",
-        "title": "Copy Query",
-        "description": "Copy the current query to clipboard"
-      }
-    ]
-  }
-}
+```tsx
+import { defineCommand } from '@apache-superset/core';
+
+export const copyQuery = defineCommand({
+  id: 'copy_query',
+  title: 'Copy Query',
+  icon: 'CopyOutlined',
+  execute: async () => {
+    // Copy the current query
+    navigator.clipboard.writeText(getCurrentQuery());
+  },
+});
 ```
 
 ### Menus
 
-Extensions can contribute new menu items or context menus to the host application, providing users with additional actions and options. Each menu item can specify properties such as the target view, the command to execute, its placement (primary, secondary, or context), and conditions for when it should be displayed. Menu contribution areas are uniquely identified (e.g., `sqllab.editor` for the SQL Lab editor), allowing extensions to seamlessly integrate their functionality into specific menus and workflows within Superset.
+Add items to menus using `defineMenu()`:
+
+```tsx
+import { defineMenu } from '@apache-superset/core';
+
+export const contextMenu = defineMenu({
+  id: 'clear_editor',
+  title: 'Clear Editor',
+  location: 'sqllab.editor.context',
+  action: () => {
+    clearEditor();
+  },
+});
+```
+
+### Editors
+
+Replace the default text editor using `defineEditor()`:
+
+```tsx
+import React from 'react';
+import { defineEditor } from '@apache-superset/core';
+import MonacoEditor from './MonacoEditor';
+
+export const monacoSqlEditor = defineEditor({
+  id: 'monaco_sql',
+  name: 'Monaco SQL Editor',
+  mimeTypes: ['text/x-sql'],
+  component: MonacoEditor,
+});
+```
+
+All contributions are automatically discovered at build time and registered at runtime - no manual configuration needed!
+
+## Configuration
+
+### extension.json
+
+Specify which files to scan for contributions:
 
 ```json
-"frontend": {
-  "contributions": {
-    "menus": {
-      "sqllab": {
-        "editor": {
-          "primary": [
-            {
-              "view": "builtin.editor",
-              "command": "my_extension.copy_query"
-            }
-          ],
-          "secondary": [
-            {
-              "view": "builtin.editor",
-              "command": "my_extension.prettify"
-            }
-          ],
-          "context": [
-            {
-              "view": "builtin.editor",
-              "command": "my_extension.clear"
-            }
-          ]
-        }
-      }
+{
+  "id": "my_extension",
+  "name": "My Extension",
+  "version": "1.0.0",
+  "backend": {
+    "entryPoints": ["my_extension.entrypoint"],
+    "files": ["backend/src/**/*.py"]
+  },
+  "frontend": {
+    "moduleFederation": {
+      "exposes": ["./index"]
     }
   }
 }
 ```
 
-### Editors
+### Manual Contributions (Advanced)
 
-Extensions can replace Superset's default text editors with custom implementations. This enables enhanced editing experiences using alternative editor frameworks like Monaco, CodeMirror, or custom solutions. When an extension registers an editor for a language, it replaces the default Ace editor in all locations that use that language (SQL Lab, Dashboard Properties, CSS editors, etc.).
+Override auto-discovery by specifying contributions directly:
 
 ```json
-"frontend": {
-  "contributions": {
-    "editors": [
-      {
-        "id": "my_extension.monaco_sql",
-        "name": "Monaco SQL Editor",
-        "languages": ["sql"],
-        "description": "Monaco-based SQL editor with IntelliSense"
-      }
-    ]
+{
+  "backend": {
+    "contributions": {
+      "mcpTools": [
+        { "id": "query_db", "name": "query_db", "module": "my_ext.tools.query_db" }
+      ],
+      "restApis": [
+        { "id": "my_api", "name": "My API", "module": "my_ext.api.MyAPI", "basePath": "/my_api" }
+      ]
+    }
   }
 }
 ```
-
-See [Editors Extension Point](./extension-points/editors) for implementation details.
-
-## Backend
-
-Backend contribution types allow extensions to extend Superset's server-side capabilities with new API endpoints, MCP tools, and MCP prompts.
-
-### REST API Endpoints
-
-Extensions can register custom REST API endpoints under the `/api/v1/extensions/` namespace. This dedicated namespace prevents conflicts with built-in endpoints and provides a clear separation between core and extension functionality.
-
-```json
-"backend": {
-  "entryPoints": ["my_extension.entrypoint"],
-  "files": ["backend/src/my_extension/**/*.py"]
-}
-```
-
-The entry point module registers the API with Superset:
-
-```python
-from superset_core.api.rest_api import add_extension_api
-from .api import MyExtensionAPI
-
-add_extension_api(MyExtensionAPI)
-```
-
-### MCP Tools and Prompts
-
-Extensions can contribute Model Context Protocol (MCP) tools and prompts that AI agents can discover and use. See [MCP Integration](./mcp) for detailed documentation.

@@ -137,24 +137,112 @@ def inject_task_implementations() -> None:
 
 def inject_rest_api_implementations() -> None:
     """
-    Replace abstract REST API functions in superset_core.api.rest_api with concrete
+    Replace abstract REST API decorators in superset_core.api.rest_api with concrete
     implementations from Superset.
+
+    The decorators:
+    1. Store metadata on classes for build-time discovery
+    2. In host mode: Register immediately with Flask-AppBuilder
+    3. In extension mode: Defer registration (ExtensionManager validates manifest)
+    4. In build mode: Store metadata only
     """
+    import logging
+    from typing import Callable, TypeVar
+
     import superset_core.api.rest_api as core_rest_api_module
+    from superset_core.api.rest_api import RestApiMetadata
+    from superset_core.extensions.context import get_context
 
     from superset.extensions import appbuilder
 
-    def add_api(api: "type[RestApi]") -> None:
-        view = appbuilder.add_api(api)
-        appbuilder._add_permission(view, True)
+    logger = logging.getLogger(__name__)
+    T = TypeVar("T", bound=type)
 
-    def add_extension_api(api: "type[RestApi]") -> None:
-        api.route_base = "/extensions/" + (api.resource_name or "")
-        view = appbuilder.add_api(api)
+    def _register_api_with_appbuilder(
+        api_cls: type["RestApi"],
+        route_base: str | None = None,
+    ) -> None:
+        """Register an API class with Flask-AppBuilder."""
+        if route_base:
+            api_cls.route_base = route_base
+        view = appbuilder.add_api(api_cls)
         appbuilder._add_permission(view, True)
+        logger.info("Registered REST API: %s", api_cls.__name__)
 
-    core_rest_api_module.add_api = add_api
-    core_rest_api_module.add_extension_api = add_extension_api
+    def create_api_decorator(cls: T) -> T:
+        """
+        Decorator to register a REST API with the host application.
+
+        In host mode: Registers immediately with Flask-AppBuilder.
+        In extension mode: Defers registration (should not be used for extensions).
+        In build mode: No-op (host APIs are not discovered).
+        """
+        ctx = get_context()
+
+        # Build mode: no-op for host APIs
+        if ctx.is_build_mode:
+            return cls
+
+        # Host mode: register immediately
+        if ctx.is_host_mode:
+            _register_api_with_appbuilder(cls)
+            return cls
+
+        # Extension mode: host @api decorator should not be used
+        logger.warning(
+            "Host @api decorator used in extension context. "
+            "Use @extension_api instead for extensions."
+        )
+        return cls
+
+    def create_extension_api_decorator(
+        id: str,  # noqa: A002
+        name: str,
+        description: str | None = None,
+        base_path: str | None = None,
+    ) -> Callable[[T], T]:
+        """
+        Decorator to mark a class as an extension REST API.
+
+        This decorator:
+        1. Stores RestApiMetadata on the class for build-time discovery
+        2. In host mode: Registers immediately under /extensions/{id}/
+        3. In extension mode: Defers registration (ExtensionManager validates manifest)
+        4. In build mode: Stores metadata only
+        """
+
+        def decorator(cls: T) -> T:
+            # Build metadata
+            metadata = RestApiMetadata(
+                id=id,
+                name=name,
+                description=description or cls.__doc__,
+                base_path=base_path or f"/{id}",
+                module=f"{cls.__module__}.{cls.__name__}",
+            )
+            cls.__rest_api_metadata__ = metadata  # type: ignore[attr-defined]
+
+            ctx = get_context()
+
+            # Build mode: metadata only, no registration
+            if ctx.is_build_mode:
+                return cls
+
+            # Extension mode: defer registration to ExtensionManager
+            if ctx.is_extension_mode:
+                ctx.add_pending_contribution(cls, metadata, "restApi")
+                return cls
+
+            # Host mode: register immediately (for testing/development)
+            route_base = f"/extensions{metadata.base_path}"
+            _register_api_with_appbuilder(cls, route_base)
+            return cls
+
+        return decorator
+
+    # Replace the abstract decorators with concrete implementations
+    core_rest_api_module.api = create_api_decorator
+    core_rest_api_module.extension_api = create_extension_api_decorator
 
 
 def inject_model_session_implementation() -> None:

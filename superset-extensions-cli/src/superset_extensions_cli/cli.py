@@ -15,6 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import importlib.util
+import inspect
 import json  # noqa: TID251
 import re
 import shutil
@@ -28,11 +30,18 @@ from typing import Any, Callable
 import click
 import semver
 from jinja2 import Environment, FileSystemLoader
-from superset_core.extensions.types import (
+from superset_core.extensions import (
+    BackendContributions,
     ExtensionConfig,
+    FrontendContributions,
     Manifest,
     ManifestBackend,
     ManifestFrontend,
+    McpPromptContribution,
+    McpToolContribution,
+    RegistrationMode,
+    RestApiContribution,
+    get_context,
 )
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
@@ -53,6 +62,135 @@ from superset_extensions_cli.utils import (
 
 REMOTE_ENTRY_REGEX = re.compile(r"^remoteEntry\..+\.js$")
 FRONTEND_DIST_REGEX = re.compile(r"/frontend/dist")
+
+
+def discover_backend_contributions(
+    cwd: Path, files_patterns: list[str]
+) -> BackendContributions:
+    """
+    Discover backend contributions by importing modules and inspecting decorated objects.
+
+    Sets context to BUILD mode so decorators only store metadata, no registration.
+    """
+    contributions = BackendContributions()
+
+    # Set build mode so decorators don't try to register
+    ctx = get_context()
+    ctx.set_mode(RegistrationMode.BUILD)
+
+    try:
+        # Collect all Python files matching patterns
+        py_files: list[Path] = []
+        for pattern in files_patterns:
+            py_files.extend(cwd.glob(pattern))
+
+        # Filter to only process Python files
+        python_files = [f for f in py_files if f.is_file() and f.suffix == ".py"]
+
+        for py_file in python_files:
+            try:
+                # Import module dynamically
+                module = _import_module_from_path(py_file)
+                if module is None:
+                    continue
+
+                # Inspect all members for decorated objects
+                for name, obj in inspect.getmembers(module):
+                    if name.startswith("_"):
+                        continue
+
+                    # Check for @tool metadata
+                    if hasattr(obj, "__tool_metadata__"):
+                        meta = obj.__tool_metadata__
+                        contributions.mcp_tools.append(
+                            McpToolContribution(
+                                id=meta.id,
+                                name=meta.name,
+                                description=meta.description,
+                                module=meta.module,
+                                tags=list(meta.tags),
+                                protect=meta.protect,
+                            )
+                        )
+
+                    # Check for @prompt metadata
+                    if hasattr(obj, "__prompt_metadata__"):
+                        meta = obj.__prompt_metadata__
+                        contributions.mcp_prompts.append(
+                            McpPromptContribution(
+                                id=meta.id,
+                                name=meta.name,
+                                title=meta.title,
+                                description=meta.description,
+                                module=meta.module,
+                                tags=list(meta.tags),
+                                protect=meta.protect,
+                            )
+                        )
+
+                    # Check for @extension_api metadata
+                    if hasattr(obj, "__rest_api_metadata__"):
+                        meta = obj.__rest_api_metadata__
+                        contributions.rest_apis.append(
+                            RestApiContribution(
+                                id=meta.id,
+                                name=meta.name,
+                                description=meta.description,
+                                module=meta.module,
+                                basePath=meta.base_path,
+                                resourceName=meta.resource_name,
+                                openapiSpecTag=meta.openapi_spec_tag,
+                                classPermissionName=meta.class_permission_name,
+                            )
+                        )
+
+            except Exception as e:
+                click.secho(f"⚠️  Failed to analyze {py_file}: {e}", fg="yellow")
+
+    finally:
+        # Reset to host mode
+        ctx.set_mode(RegistrationMode.HOST)
+
+    return contributions
+
+
+def discover_frontend_contributions(cwd: Path) -> FrontendContributions:
+    """
+    Discover frontend contributions from webpack plugin output.
+
+    The webpack plugin outputs a contributions.json file during build.
+    """
+    contributions_file = cwd / "frontend" / "dist" / "contributions.json"
+
+    if not contributions_file.exists():
+        # No frontend contributions found - this is normal for extensions without frontend
+        return FrontendContributions()
+
+    try:
+        contributions_data = json.loads(contributions_file.read_text())
+        return FrontendContributions.model_validate(contributions_data)
+    except Exception as e:
+        click.secho(f"⚠️  Failed to parse frontend contributions: {e}", fg="yellow")
+        return FrontendContributions()
+
+
+def _import_module_from_path(py_file: Path) -> Any:
+    """Import a Python module from a file path."""
+    module_name = py_file.stem
+    spec = importlib.util.spec_from_file_location(module_name, py_file)
+    if spec is None or spec.loader is None:
+        return None
+
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+
+    try:
+        spec.loader.exec_module(module)
+        return module
+    except Exception:
+        # Clean up on failure
+        sys.modules.pop(module_name, None)
+        raise
 
 
 def validate_npm() -> None:
@@ -148,20 +286,53 @@ def build_manifest(cwd: Path, remote_entry: str | None) -> Manifest:
 
     extension = ExtensionConfig.model_validate(extension_data)
 
-    # Generate composite ID from publisher and name
-    composite_id = f"{extension.publisher}.{extension.name}"
-
+    # Build frontend manifest with auto-discovery
     frontend: ManifestFrontend | None = None
     if extension.frontend and remote_entry:
+        click.secho("🔍 Auto-discovering frontend contributions...", fg="cyan")
+        frontend_contributions = discover_frontend_contributions(cwd)
+
+        # Count contributions for feedback
+        command_count = len(frontend_contributions.commands)
+        view_count = sum(len(views) for views in frontend_contributions.views.values())
+        menu_count = len(frontend_contributions.menus)
+        editor_count = len(frontend_contributions.editors)
+
+        total_count = command_count + view_count + menu_count + editor_count
+        if total_count > 0:
+            click.secho(
+                f"   Found: {command_count} commands, {view_count} views, {menu_count} menus, {editor_count} editors",
+                fg="green",
+            )
+        else:
+            click.secho("   No frontend contributions found", fg="yellow")
+
         frontend = ManifestFrontend(
-            contributions=extension.frontend.contributions,
+            contributions=frontend_contributions,
             moduleFederation=extension.frontend.moduleFederation,
             remoteEntry=remote_entry,
         )
 
+    # Build backend manifest with auto-discovered contributions
     backend: ManifestBackend | None = None
-    if extension.backend and extension.backend.entryPoints:
-        backend = ManifestBackend(entryPoints=extension.backend.entryPoints)
+    if extension.backend:
+        click.secho("🔍 Auto-discovering backend contributions...", fg="cyan")
+        backend_contributions = discover_backend_contributions(
+            cwd, extension.backend.files
+        )
+
+        tool_count = len(backend_contributions.mcp_tools)
+        prompt_count = len(backend_contributions.mcp_prompts)
+        api_count = len(backend_contributions.rest_apis)
+        click.secho(
+            f"   Found: {tool_count} tools, {prompt_count} prompts, {api_count} APIs",
+            fg="green",
+        )
+
+        backend = ManifestBackend(
+            entryPoints=extension.backend.entryPoints,
+            contributions=backend_contributions,
+        )
 
     return Manifest(
         id=composite_id,

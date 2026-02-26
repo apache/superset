@@ -61,23 +61,15 @@ def extension_with_build_structure():
 
         if include_frontend:
             extension_json["frontend"] = {
-                "contributions": {
-                    "commands": [],
-                    "views": {},
-                    "menus": {},
-                    "editors": [],
-                },
-                "moduleFederation": {
-                    "exposes": ["./index"],
-                    "name": "testOrg_testExtension",
-                },
+                "moduleFederation": {"exposes": ["./index"]},
             }
 
         if include_backend:
             extension_json["backend"] = {
                 "entryPoints": [
                     "superset_extensions.test_org.test_extension.entrypoint"
-                ]
+                ],
+                "files": ["backend/src/**/*.py"],
             }
 
         (base_path / "extension.json").write_text(json.dumps(extension_json))
@@ -250,19 +242,11 @@ def test_build_manifest_creates_correct_manifest_structure(isolated_filesystem):
         "permissions": ["read_data"],
         "dependencies": ["some_dep"],
         "frontend": {
-            "contributions": {
-                "commands": [{"id": "test_command", "title": "Test"}],
-                "views": {},
-                "menus": {},
-                "editors": [],
-            },
-            "moduleFederation": {
-                "exposes": ["./index"],
-                "name": "testOrg_testExtension",
-            },
+            "moduleFederation": {"exposes": ["./index"]},
         },
         "backend": {
-            "entryPoints": ["superset_extensions.test_org.test_extension.entrypoint"]
+            "entryPoints": ["superset_extensions.test_org.test_extension.entrypoint"],
+            "files": ["backend/src/**/*.py"],
         },
     }
     extension_json = isolated_filesystem / "extension.json"
@@ -279,15 +263,15 @@ def test_build_manifest_creates_correct_manifest_structure(isolated_filesystem):
     assert manifest.permissions == ["read_data"]
     assert manifest.dependencies == ["some_dep"]
 
-    # Verify frontend section
+    # Verify frontend section (auto-discovery, currently empty)
     assert manifest.frontend is not None
-    assert manifest.frontend.contributions.commands == [
-        {"id": "test_command", "title": "Test"}
-    ]
+    assert (
+        manifest.frontend.contributions.commands == []
+    )  # Auto-discovered (empty for now)
     assert manifest.frontend.moduleFederation.exposes == ["./index"]
     assert manifest.frontend.remoteEntry == "remoteEntry.abc123.js"
 
-    # Verify backend section
+    # Verify backend section (auto-discovery)
     assert manifest.backend is not None
     assert manifest.backend.entryPoints == [
         "superset_extensions.test_org.test_extension.entrypoint"

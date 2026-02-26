@@ -17,5 +17,6 @@
  * under the License.
  */
 export * from './api';
+export * from './extensions';
 export * from './ui';
 export * from './utils';

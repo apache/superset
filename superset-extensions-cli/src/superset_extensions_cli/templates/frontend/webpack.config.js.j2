@@ -1,5 +1,6 @@
 const path = require("path");
 const { ModuleFederationPlugin } = require("webpack").container;
+const SupersetExtensionPlugin = require("@apache-superset/webpack-extension-plugin");
 const packageConfig = require("./package");
 
 module.exports = (env, argv) => {
@@ -61,6 +62,12 @@ module.exports = (env, argv) => {
             import: false,
           },
         },
+      }),
+      // Auto-discover and validate frontend contributions
+      new SupersetExtensionPlugin({
+        outputPath: "contributions.json",
+        include: ["src/**/*.{ts,tsx,js,jsx}"],
+        exclude: ["**/*.test.*", "**/node_modules/**"],
       }),
     ],
   };

@@ -31,7 +31,7 @@ import { SqlLabRootState } from 'src/SqlLab/types';
 import { ViewLocations } from 'src/SqlLab/contributions';
 import PanelToolbar from 'src/components/PanelToolbar';
 import { useExtensionsContext } from 'src/extensions/ExtensionsContext';
-import ExtensionsManager from 'src/extensions/ExtensionsManager';
+import ExtensionLoader from 'src/extensions/ExtensionLoader';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import useLogAction from 'src/logger/useLogAction';
 import { LOG_ACTIONS_SQLLAB_SWITCH_SOUTH_PANE_TAB } from 'src/logger/LogUtils';
@@ -105,9 +105,7 @@ const SouthPane = ({
   const theme = useTheme();
   const dispatch = useDispatch();
   const contributions =
-    ExtensionsManager.getInstance().getViewContributions(
-      ViewLocations.sqllab.panels,
-    ) || [];
+    ExtensionLoader.getInstance().getViewContributions('sqllab.panels') || [];
   const { getView } = useExtensionsContext();
   const { offline, tables } = useSelector(
     ({ sqlLab: { offline, tables } }: SqlLabRootState) => ({

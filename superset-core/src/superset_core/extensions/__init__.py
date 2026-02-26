@@ -14,3 +14,51 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
+"""Extension framework types and context."""
+
+from superset_core.extensions.context import (
+    ContributionType,
+    get_context,
+    PendingContribution,
+    RegistrationContext,
+    RegistrationMode,
+)
+from superset_core.extensions.types import (
+    BackendContributions,
+    ExtensionConfig,
+    ExtensionConfigBackend,
+    ExtensionConfigFrontend,
+    FrontendContributions,
+    Manifest,
+    ManifestBackend,
+    ManifestFrontend,
+    McpPromptContribution,
+    McpToolContribution,
+    ModuleFederationConfig,
+    RestApiContribution,
+)
+
+__all__ = [
+    # Context
+    "ContributionType",
+    "get_context",
+    "PendingContribution",
+    "RegistrationContext",
+    "RegistrationMode",
+    # Types - Config
+    "ExtensionConfig",
+    "ExtensionConfigBackend",
+    "ExtensionConfigFrontend",
+    # Types - Manifest
+    "Manifest",
+    "ManifestBackend",
+    "ManifestFrontend",
+    # Types - Contributions
+    "BackendContributions",
+    "FrontendContributions",
+    "McpToolContribution",
+    "McpPromptContribution",
+    "RestApiContribution",
+    "ModuleFederationConfig",
+]

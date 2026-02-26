@@ -1,13 +1,32 @@
 import React from "react";
-import { core } from "@apache-superset/core";
+import { defineCommand, defineView } from "@apache-superset/core";
 
-export const activate = (context: core.ExtensionContext) => {
-  context.disposables.push(
-    core.registerViewProvider("{{ id }}.example", () => <p>{{ name }}</p>)
-  );
-  console.log("{{ name }} extension activated");
-};
+// Example command
+export const exampleCommand = defineCommand({
+  id: "example",
+  title: "Example Command",
+  icon: "ExperimentOutlined",
+  execute: async () => {
+    console.log("{{ name }} command executed!");
+  },
+  onActivate: () => {
+    console.log("Example command activated");
+  },
+  onDeactivate: () => {
+    console.log("Example command deactivated");
+  },
+});
 
-export const deactivate = () => {
-  console.log("{{ name }} extension deactivated");
-};
+// Example view
+export const exampleView = defineView({
+  id: "example",
+  title: "{{ name }} View",
+  location: "explore.panels", // or dashboard.tabs, sqllab.panels, etc.
+  component: () => <div>Welcome to {{ name }}!</div>,
+  onActivate: () => {
+    console.log("Example view activated");
+  },
+  onDeactivate: () => {
+    console.log("Example view deactivated");
+  },
+});

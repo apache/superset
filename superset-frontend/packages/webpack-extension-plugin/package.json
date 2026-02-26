@@ -1,0 +1,45 @@
+{
+  "name": "@apache-superset/webpack-extension-plugin",
+  "version": "0.0.1",
+  "description": "Webpack plugin for processing and validating Superset extension contributions",
+  "keywords": [
+    "superset",
+    "webpack",
+    "plugin",
+    "extensions"
+  ],
+  "homepage": "https://github.com/apache/superset/tree/master/superset-frontend/packages/webpack-extension-plugin#readme",
+  "bugs": {
+    "url": "https://github.com/apache/superset/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/apache/superset.git",
+    "directory": "superset-frontend/packages/webpack-contribution-plugin"
+  },
+  "license": "Apache-2.0",
+  "author": "Superset",
+  "sideEffects": false,
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "files": [
+    "lib"
+  ],
+  "scripts": {
+    "clean": "rm -rf lib tsconfig.tsbuildinfo",
+    "build": "npm run clean && npx tsc --build",
+    "type": "npx tsc --noEmit"
+  },
+  "dependencies": {
+    "typescript": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.1.0"
+  },
+  "peerDependencies": {
+    "webpack": "^5.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

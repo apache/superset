@@ -31,7 +31,7 @@ import {
 import { useSelector } from 'react-redux';
 import { RootState } from 'src/views/store';
 import { useExtensionsContext } from './ExtensionsContext';
-import ExtensionsManager from './ExtensionsManager';
+import ExtensionLoader from './ExtensionLoader';
 
 declare global {
   interface Window {
@@ -77,7 +77,7 @@ const ExtensionsStartup = () => {
     // Initialize extensions
     if (isFeatureEnabled(FeatureFlag.EnableExtensions)) {
       try {
-        ExtensionsManager.getInstance().initializeExtensions();
+        ExtensionLoader.getInstance().initializeExtensions();
         supersetCore.logging.info('Extensions initialized successfully.');
       } catch (error) {
         supersetCore.logging.error('Error setting up extensions:', error);
