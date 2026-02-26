@@ -81,9 +81,8 @@ import Field from '../Field';
 import { fetchSyncedColumns, updateColumns } from '../../utils';
 import DatasetUsageTab from './components/DatasetUsageTab';
 import {
-  DEFAULT_COLUMNS_FOLDER_UUID,
   DEFAULT_FOLDERS_COUNT,
-  DEFAULT_METRICS_FOLDER_UUID,
+  isDefaultFolder,
 } from '../../FoldersEditor/constants';
 import { validateFolders } from '../../FoldersEditor/folderValidation';
 import { countAllFolders } from '../../FoldersEditor/treeUtils';
@@ -661,8 +660,14 @@ class DatasourceEditor extends PureComponent {
         col => !!col.expression,
       ),
       folders: props.datasource.folders || [],
-      folderCount:
-        countAllFolders(props.datasource.folders || []) + DEFAULT_FOLDERS_COUNT,
+      folderCount: (() => {
+        const savedFolders = props.datasource.folders || [];
+        const savedCount = countAllFolders(savedFolders);
+        const hasDefaultsSaved = savedFolders.some(f =>
+          isDefaultFolder(f.uuid),
+        );
+        return savedCount + (hasDefaultsSaved ? 0 : DEFAULT_FOLDERS_COUNT);
+      })(),
       metadataLoading: false,
       activeTabKey: TABS_KEYS.SOURCE,
       datasourceType: props.datasource.sql
@@ -741,16 +746,10 @@ class DatasourceEditor extends PureComponent {
 
   handleFoldersChange(folders) {
     const folderCount = countAllFolders(folders);
-    const userMadeFolders = folders.filter(
-      f =>
-        f.uuid !== DEFAULT_METRICS_FOLDER_UUID &&
-        f.uuid !== DEFAULT_COLUMNS_FOLDER_UUID &&
-        f.children.length > 0,
-    );
-    this.setState({ folders: userMadeFolders, folderCount }, () => {
+    this.setState({ folders, folderCount }, () => {
       this.onDatasourceChange({
         ...this.state.datasource,
-        folders: userMadeFolders,
+        folders,
       });
     });
   }
@@ -2004,7 +2003,10 @@ class DatasourceEditor extends PureComponent {
                       <FoldersEditor
                         folders={this.state.folders}
                         metrics={sortedMetrics}
-                        columns={this.state.databaseColumns}
+                        columns={[
+                          ...this.state.databaseColumns,
+                          ...this.state.calculatedColumns,
+                        ]}
                         onChange={this.handleFoldersChange}
                       />
                     ),
