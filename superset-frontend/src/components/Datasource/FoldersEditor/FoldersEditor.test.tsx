@@ -112,6 +112,11 @@ const mockFolders: DatasourceFolder[] = [
     name: 'Metrics',
     children: [
       { type: FoldersEditorItemType.Metric, uuid: 'metric1', name: 'Count' },
+      {
+        type: FoldersEditorItemType.Metric,
+        uuid: 'metric2',
+        name: 'Sum Revenue',
+      },
     ],
   },
   {
@@ -120,6 +125,7 @@ const mockFolders: DatasourceFolder[] = [
     name: 'Columns',
     children: [
       { type: FoldersEditorItemType.Column, uuid: 'col1', name: 'ID' },
+      { type: FoldersEditorItemType.Column, uuid: 'col2', name: 'name' },
     ],
   },
 ];
