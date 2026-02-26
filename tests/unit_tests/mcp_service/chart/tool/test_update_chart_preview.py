@@ -121,7 +121,7 @@ class TestUpdateChartPreview:
             form_data_key="abc123", dataset_id=1, config=config
         )
         assert request1.generate_preview is True
-        assert request1.preview_formats == ["ascii", "table"]
+        assert request1.preview_formats == ["url"]
 
         # Custom preview formats
         request2 = UpdateChartPreviewRequest(

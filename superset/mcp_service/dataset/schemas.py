@@ -56,6 +56,7 @@ class DatasetFilter(ColumnOperator):
         "table_name",
         "schema",
         "database_name",
+        "owner",
     ] = Field(
         ...,
         description="Column to filter on. Use get_schema(model_type='dataset') for "

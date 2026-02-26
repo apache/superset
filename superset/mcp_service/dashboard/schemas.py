@@ -153,6 +153,8 @@ class DashboardFilter(ColumnOperator):
         "dashboard_title",
         "published",
         "created_by_fk",
+        "owner",
+        "favorite",
     ] = Field(
         ...,
         description=(

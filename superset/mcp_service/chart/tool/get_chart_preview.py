@@ -89,19 +89,15 @@ class PreviewFormatStrategy:
 
 
 class URLPreviewStrategy(PreviewFormatStrategy):
-    """Generate URL-based image preview."""
+    """Generate URL-based preview with explore link."""
 
     def generate(self) -> URLPreview | ChartError:
-        # Screenshot-based URL previews are not supported.
-        # Users should use the explore_url to view the chart interactively,
-        # or use other preview formats like 'ascii', 'table', or 'vega_lite'.
-        return ChartError(
-            error=(
-                "URL-based screenshot previews are not supported. "
-                "Use the explore_url to view the chart interactively, "
-                "or try formats: 'ascii', 'table', or 'vega_lite'."
-            ),
-            error_type="UnsupportedFormat",
+        chart = self.chart
+        explore_url = f"{get_superset_base_url()}/explore/?slice_id={chart.id}"
+        return URLPreview(
+            preview_url=explore_url,
+            width=self.request.width or 800,
+            height=self.request.height or 600,
         )
 
 

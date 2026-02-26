@@ -170,7 +170,7 @@ class TestGetChartPreview:
 
         # Default format
         request4 = GetChartPreviewRequest(identifier=789)
-        assert request4.format == "ascii"  # default
+        assert request4.format == "url"  # default
 
     @pytest.mark.asyncio
     async def test_preview_format_types(self):
