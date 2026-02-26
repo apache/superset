@@ -109,6 +109,24 @@ class ChartInfo(BaseModel):
     uuid: str | None = Field(None, description="Chart UUID")
     tags: List[TagInfo] = Field(default_factory=list, description="Chart tags")
     owners: List[UserInfo] = Field(default_factory=list, description="Chart owners")
+
+    # Fields for unsaved state support
+    form_data_key: str | None = Field(
+        None,
+        description=(
+            "Cache key used to retrieve unsaved form_data. When present, indicates "
+            "the form_data came from cache (unsaved edits) rather than the saved chart."
+        ),
+    )
+    is_unsaved_state: bool = Field(
+        default=False,
+        description=(
+            "True if the form_data came from cache (unsaved edits) rather than the "
+            "saved chart configuration. When true, the data reflects what the user "
+            "sees in the Explore view, not the saved version."
+        ),
+    )
+
     model_config = ConfigDict(from_attributes=True, ser_json_timedelta="iso8601")
 
     @model_serializer(mode="wrap", when_used="json")
@@ -200,12 +218,26 @@ class VersionedResponse(BaseModel):
 
 
 class GetChartInfoRequest(BaseModel):
-    """Request schema for get_chart_info with support for ID or UUID."""
+    """Request schema for get_chart_info with support for ID or UUID.
+
+    When form_data_key is provided, the tool will retrieve the unsaved chart state
+    from cache, allowing you to explain what the user actually sees (not the saved
+    version). This is useful when a user edits a chart in Explore but hasn't saved yet.
+    """
 
     identifier: Annotated[
         int | str,
         Field(description="Chart identifier - can be numeric ID or UUID string"),
     ]
+    form_data_key: str | None = Field(
+        default=None,
+        description=(
+            "Optional cache key for retrieving unsaved chart state. When a user "
+            "edits a chart in Explore but hasn't saved, the current state is stored "
+            "with this key. If provided, the tool returns the current unsaved "
+            "configuration instead of the saved version."
+        ),
+    )
 
 
 def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
@@ -788,9 +820,24 @@ class UpdateChartPreviewRequest(FormDataCacheControl):
 
 
 class GetChartDataRequest(QueryCacheControl):
-    """Request for chart data with cache control."""
+    """Request for chart data with cache control.
+
+    When form_data_key is provided, the tool will use the unsaved chart configuration
+    from cache to query data, allowing you to get data for what the user actually sees
+    (not the saved version). This is useful when a user edits a chart in Explore but
+    hasn't saved yet.
+    """
 
     identifier: int | str = Field(description="Chart identifier (ID, UUID)")
+    form_data_key: str | None = Field(
+        default=None,
+        description=(
+            "Optional cache key for retrieving unsaved chart state. When a user "
+            "edits a chart in Explore but hasn't saved, the current state is stored "
+            "with this key. If provided, the tool uses this configuration to query "
+            "data instead of the saved chart configuration."
+        ),
+    )
     limit: int | None = Field(
         default=None,
         description=(
@@ -866,9 +913,24 @@ class ChartData(BaseModel):
 
 
 class GetChartPreviewRequest(QueryCacheControl):
-    """Request for chart preview with cache control."""
+    """Request for chart preview with cache control.
+
+    When form_data_key is provided, the tool will render a preview using the unsaved
+    chart configuration from cache, allowing you to preview what the user actually sees
+    (not the saved version). This is useful when a user edits a chart in Explore but
+    hasn't saved yet.
+    """
 
     identifier: int | str = Field(description="Chart identifier (ID, UUID)")
+    form_data_key: str | None = Field(
+        default=None,
+        description=(
+            "Optional cache key for retrieving unsaved chart state. When a user "
+            "edits a chart in Explore but hasn't saved, the current state is stored "
+            "with this key. If provided, the tool renders a preview using this "
+            "configuration instead of the saved chart configuration."
+        ),
+    )
     format: Literal["url", "ascii", "table", "vega_lite"] = Field(
         default="url",
         description=(

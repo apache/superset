@@ -52,20 +52,33 @@ def extension_with_build_structure():
 
         # Create extension.json
         extension_json = {
-            "id": "test_extension",
-            "name": "Test Extension",
+            "publisher": "test-org",
+            "name": "test-extension",
+            "displayName": "Test Extension",
             "version": "1.0.0",
             "permissions": [],
         }
 
         if include_frontend:
             extension_json["frontend"] = {
-                "contributions": {"commands": []},
-                "moduleFederation": {"exposes": ["./index"]},
+                "contributions": {
+                    "commands": [],
+                    "views": {},
+                    "menus": {},
+                    "editors": [],
+                },
+                "moduleFederation": {
+                    "exposes": ["./index"],
+                    "name": "testOrg_testExtension",
+                },
             }
 
         if include_backend:
-            extension_json["backend"] = {"entryPoints": ["test_extension.entrypoint"]}
+            extension_json["backend"] = {
+                "entryPoints": [
+                    "superset_extensions.test_org.test_extension.entrypoint"
+                ]
+            }
 
         (base_path / "extension.json").write_text(json.dumps(extension_json))
 
@@ -230,16 +243,27 @@ def test_build_manifest_creates_correct_manifest_structure(isolated_filesystem):
     """Test build_manifest creates correct manifest from extension.json."""
     # Create extension.json
     extension_data = {
-        "id": "test_extension",
-        "name": "Test Extension",
+        "publisher": "test-org",
+        "name": "test-extension",
+        "displayName": "Test Extension",
         "version": "1.0.0",
         "permissions": ["read_data"],
         "dependencies": ["some_dep"],
         "frontend": {
-            "contributions": {"commands": [{"id": "test_command", "title": "Test"}]},
-            "moduleFederation": {"exposes": ["./index"]},
+            "contributions": {
+                "commands": [{"id": "test_command", "title": "Test"}],
+                "views": {},
+                "menus": {},
+                "editors": [],
+            },
+            "moduleFederation": {
+                "exposes": ["./index"],
+                "name": "testOrg_testExtension",
+            },
         },
-        "backend": {"entryPoints": ["test_extension.entrypoint"]},
+        "backend": {
+            "entryPoints": ["superset_extensions.test_org.test_extension.entrypoint"]
+        },
     }
     extension_json = isolated_filesystem / "extension.json"
     extension_json.write_text(json.dumps(extension_data))
@@ -247,8 +271,10 @@ def test_build_manifest_creates_correct_manifest_structure(isolated_filesystem):
     manifest = build_manifest(isolated_filesystem, "remoteEntry.abc123.js")
 
     # Verify manifest structure
-    assert manifest.id == "test_extension"
-    assert manifest.name == "Test Extension"
+    assert manifest.id == "test-org.test-extension"  # Composite ID
+    assert manifest.publisher == "test-org"
+    assert manifest.name == "test-extension"
+    assert manifest.displayName == "Test Extension"
     assert manifest.version == "1.0.0"
     assert manifest.permissions == ["read_data"]
     assert manifest.dependencies == ["some_dep"]
@@ -263,15 +289,18 @@ def test_build_manifest_creates_correct_manifest_structure(isolated_filesystem):
 
     # Verify backend section
     assert manifest.backend is not None
-    assert manifest.backend.entryPoints == ["test_extension.entrypoint"]
+    assert manifest.backend.entryPoints == [
+        "superset_extensions.test_org.test_extension.entrypoint"
+    ]
 
 
 @pytest.mark.unit
 def test_build_manifest_handles_minimal_extension(isolated_filesystem):
     """Test build_manifest with minimal extension.json (no frontend/backend)."""
     extension_data = {
-        "id": "minimal_extension",
-        "name": "Minimal Extension",
+        "publisher": "minimal-org",
+        "name": "minimal-extension",
+        "displayName": "Minimal Extension",
         "version": "0.1.0",
         "permissions": [],
     }
@@ -280,8 +309,10 @@ def test_build_manifest_handles_minimal_extension(isolated_filesystem):
 
     manifest = build_manifest(isolated_filesystem, None)
 
-    assert manifest.id == "minimal_extension"
-    assert manifest.name == "Minimal Extension"
+    assert manifest.id == "minimal-org.minimal-extension"  # Composite ID
+    assert manifest.publisher == "minimal-org"
+    assert manifest.name == "minimal-extension"
+    assert manifest.displayName == "Minimal Extension"
     assert manifest.version == "0.1.0"
     assert manifest.permissions == []
     assert manifest.dependencies == []  # Default empty list
@@ -393,8 +424,9 @@ def test_rebuild_backend_calls_copy_and_shows_message(isolated_filesystem):
 
     # Create extension.json
     extension_json = {
-        "id": "test",
-        "name": "Test Extension",
+        "publisher": "test-org",
+        "name": "test-extension",
+        "displayName": "Test Extension",
         "version": "1.0.0",
         "permissions": [],
     }
@@ -420,8 +452,9 @@ def test_copy_backend_files_skips_non_files(isolated_filesystem):
 
     # Create extension.json with backend file patterns
     extension_data = {
-        "id": "test_ext",
-        "name": "Test Extension",
+        "publisher": "test-org",
+        "name": "test-ext",
+        "displayName": "Test Extension",
         "version": "1.0.0",
         "permissions": [],
         "backend": {
@@ -457,8 +490,9 @@ def test_copy_backend_files_copies_matched_files(isolated_filesystem):
 
     # Create extension.json with backend file patterns
     extension_data = {
-        "id": "test_ext",
-        "name": "Test Extension",
+        "publisher": "test-org",
+        "name": "test-ext",
+        "displayName": "Test Extension",
         "version": "1.0.0",
         "permissions": [],
         "backend": {"files": ["backend/src/test_ext/**/*.py"]},
@@ -480,8 +514,9 @@ def test_copy_backend_files_copies_matched_files(isolated_filesystem):
 def test_copy_backend_files_handles_no_backend_config(isolated_filesystem):
     """Test copy_backend_files handles extension.json without backend config."""
     extension_data = {
-        "id": "frontend_only",
-        "name": "Frontend Only Extension",
+        "publisher": "frontend-org",
+        "name": "frontend-only",
+        "displayName": "Frontend Only Extension",
         "version": "1.0.0",
         "permissions": [],
     }

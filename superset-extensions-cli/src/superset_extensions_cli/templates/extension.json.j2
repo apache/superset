@@ -1,6 +1,7 @@
 {
-  "id": "{{ id }}",
+  "publisher": "{{ publisher }}",
   "name": "{{ name }}",
+  "displayName": "{{ display_name }}",
   "version": "{{ version }}",
   "license": "{{ license }}",
   {% if include_frontend -%}
@@ -8,7 +9,8 @@
     "contributions": {
       "commands": [],
       "views": {},
-      "menus": {}
+      "menus": {},
+      "editors": []
     },
     "moduleFederation": {
       "name": "{{ mf_name }}",
@@ -19,7 +21,7 @@
   {% if include_backend -%}
   "backend": {
     "entryPoints": ["{{ backend_entry }}"],
-    "files": ["backend/src/superset_extensions/{{ backend_name }}/**/*.py"]
+    "files": ["backend/src/{{ backend_path|replace('.', '/') }}/**/*.py"]
   },
   {% endif -%}
   "permissions": []

@@ -21,20 +21,29 @@ from typing import TypedDict
 class ExtensionNames(TypedDict):
     """Type definition for extension name variants following platform conventions."""
 
-    # Extension name (e.g., "Hello World")
+    # Publisher namespace (e.g., "my-org")
+    publisher: str
+
+    # Technical extension name (e.g., "dashboard-widgets")
     name: str
 
-    # Extension ID - kebab-case primary identifier and npm package name (e.g., "hello-world")
+    # Human-readable display name (e.g., "Dashboard Widgets")
+    display_name: str
+
+    # Composite extension ID - publisher.name (e.g., "my-org.dashboard-widgets")
     id: str
 
-    # Module Federation library - camelCase JS identifier (e.g., "helloWorld")
+    # NPM package name - @publisher/name (e.g., "@my-org/dashboard-widgets")
+    npm_name: str
+
+    # Module Federation library - publisherCamel_nameCamel (e.g., "myOrg_dashboardWidgets")
     mf_name: str
 
-    # Backend package name - snake_case (e.g., "hello_world")
-    backend_name: str
-
-    # Full backend package (e.g., "superset_extensions.hello_world")
+    # Backend package name with hyphens for distribution (e.g., "my_org-dashboard_widgets")
     backend_package: str
 
-    # Backend entry point (e.g., "superset_extensions.hello_world.entrypoint")
+    # Full backend import path (e.g., "superset_extensions.my_org.dashboard_widgets")
+    backend_path: str
+
+    # Backend entry point (e.g., "superset_extensions.my_org.dashboard_widgets.entrypoint")
     backend_entry: str

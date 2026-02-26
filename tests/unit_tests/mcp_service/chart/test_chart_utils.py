@@ -18,7 +18,7 @@
 """Tests for chart utilities module"""
 
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -32,6 +32,7 @@ from superset.mcp_service.chart.chart_utils import (
     map_filter_operator,
     map_table_config,
     map_xy_config,
+    validate_chart_dataset,
 )
 from superset.mcp_service.chart.schemas import (
     AxisConfig,
@@ -1045,3 +1046,101 @@ class TestFilterConfigValidation:
         """Test IN operator with empty list"""
         f = FilterConfig(column="platform", op="IN", value=[])
         assert f.value == []
+
+
+class TestValidateChartDataset:
+    """Test validate_chart_dataset function"""
+
+    @patch("superset.mcp_service.auth.has_dataset_access")
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    def test_validate_chart_dataset_no_datasource_id(
+        self, mock_find: MagicMock, mock_access: MagicMock
+    ) -> None:
+        """Chart with no datasource_id returns invalid result."""
+        chart = MagicMock(spec=[])  # no datasource_id attribute
+        result = validate_chart_dataset(chart)
+        assert not result.is_valid
+        assert result.dataset_id is None
+        assert "no dataset reference" in (result.error or "").lower()
+        mock_find.assert_not_called()
+
+    @patch("superset.mcp_service.auth.has_dataset_access")
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=None)
+    def test_validate_chart_dataset_deleted_dataset(
+        self, mock_find: MagicMock, mock_access: MagicMock
+    ) -> None:
+        """Chart whose dataset was deleted returns invalid result."""
+        chart = MagicMock()
+        chart.datasource_id = 42
+        result = validate_chart_dataset(chart)
+        assert not result.is_valid
+        assert result.dataset_id == 42
+        assert "deleted" in (result.error or "").lower()
+
+    @patch("superset.mcp_service.auth.has_dataset_access", return_value=True)
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    def test_validate_chart_dataset_valid(
+        self, mock_find: MagicMock, mock_access: MagicMock
+    ) -> None:
+        """Valid chart with accessible dataset returns valid result."""
+        dataset = MagicMock()
+        dataset.table_name = "my_table"
+        dataset.sql = None
+        mock_find.return_value = dataset
+        chart = MagicMock()
+        chart.datasource_id = 7
+        result = validate_chart_dataset(chart)
+        assert result.is_valid
+        assert result.dataset_id == 7
+        assert result.dataset_name == "my_table"
+        assert result.warnings == []
+
+    @patch("superset.mcp_service.auth.has_dataset_access", return_value=True)
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    def test_validate_chart_dataset_virtual_warns(
+        self, mock_find: MagicMock, mock_access: MagicMock
+    ) -> None:
+        """Virtual dataset emits a warning."""
+        dataset = MagicMock()
+        dataset.table_name = "virt_ds"
+        dataset.sql = "SELECT 1"
+        mock_find.return_value = dataset
+        chart = MagicMock()
+        chart.datasource_id = 10
+        result = validate_chart_dataset(chart)
+        assert result.is_valid
+        assert len(result.warnings) == 1
+        assert "virtual" in result.warnings[0].lower()
+
+    @patch("superset.mcp_service.auth.has_dataset_access")
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    def test_validate_chart_dataset_sqlalchemy_error(
+        self, mock_find: MagicMock, mock_access: MagicMock
+    ) -> None:
+        """SQLAlchemy errors are caught and produce an invalid result."""
+        from sqlalchemy.exc import SQLAlchemyError
+
+        mock_find.side_effect = SQLAlchemyError("connection lost")
+        chart = MagicMock()
+        chart.datasource_id = 99
+        result = validate_chart_dataset(chart)
+        assert not result.is_valid
+        assert result.dataset_id == 99
+        assert "error" in (result.error or "").lower()
+
+    @patch(
+        "superset.mcp_service.chart.chart_utils.get_superset_base_url",
+        return_value="http://localhost:8088",
+    )
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    def test_generate_explore_link_sqlalchemy_error(
+        self,
+        mock_find: MagicMock,
+        mock_base_url: MagicMock,
+    ) -> None:
+        """SQLAlchemy errors in generate_explore_link fall back to basic URL."""
+        from sqlalchemy.exc import SQLAlchemyError
+
+        mock_find.side_effect = SQLAlchemyError("db gone")
+        url = generate_explore_link(5, {"viz_type": "table"})
+        assert "datasource_id=5" in url

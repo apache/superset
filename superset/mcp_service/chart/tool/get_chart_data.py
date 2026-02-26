@@ -20,6 +20,7 @@ MCP tool: get_chart_data
 """
 
 import logging
+import time
 from typing import Any, Dict, List, TYPE_CHECKING
 
 from fastmcp import Context
@@ -29,7 +30,11 @@ from superset_core.mcp import tool
 if TYPE_CHECKING:
     from superset.models.slice import Slice
 
+from superset.commands.exceptions import CommandException
+from superset.commands.explore.form_data.parameters import CommandParameters
+from superset.exceptions import SupersetException
 from superset.extensions import event_logger
+from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 from superset.mcp_service.chart.schemas import (
     ChartData,
     ChartError,
@@ -41,6 +46,21 @@ from superset.mcp_service.utils.cache_utils import get_cache_status_from_result
 from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
+
+
+def _get_cached_form_data(form_data_key: str) -> str | None:
+    """Retrieve form_data from cache using form_data_key.
+
+    Returns the JSON string of form_data if found, None otherwise.
+    """
+    from superset.commands.explore.form_data.get import GetFormDataCommand
+
+    try:
+        cmd_params = CommandParameters(key=form_data_key)
+        return GetFormDataCommand(cmd_params).run()
+    except (KeyError, ValueError, CommandException) as e:
+        logger.warning("Failed to retrieve form_data from cache: %s", e)
+        return None
 
 
 @tool(tags=["data"])
@@ -57,15 +77,22 @@ async def get_chart_data(  # noqa: C901
     - Multiple formats: json, csv, excel
     - Cache control: use_cache, force_refresh, cache_timeout
     - Optional row limit override (respects chart's configured limits)
+    - form_data_key: retrieves data using unsaved chart configuration from Explore
+
+    When form_data_key is provided, the tool uses the cached (unsaved) chart
+    configuration to query data, allowing you to get data for what the user
+    actually sees in the Explore view (not the saved version).
 
     Returns underlying data in requested format with cache status.
     """
     await ctx.info(
-        "Starting chart data retrieval: identifier=%s, format=%s, limit=%s"
+        "Starting chart data retrieval: identifier=%s, format=%s, limit=%s, "
+        "form_data_key=%s"
         % (
             request.identifier,
             request.format,
             request.limit,
+            request.form_data_key,
         )
     )
     await ctx.debug(
@@ -122,20 +149,127 @@ async def get_chart_data(  # noqa: C901
         )
         logger.info("Getting data for chart %s: %s", chart.id, chart.slice_name)
 
-        import time
+        # Validate the chart's dataset is accessible before retrieving data
+        validation_result = validate_chart_dataset(chart, check_access=True)
+        if not validation_result.is_valid:
+            await ctx.warning(
+                "Chart found but dataset is not accessible: %s"
+                % (validation_result.error,)
+            )
+            return ChartError(
+                error=validation_result.error
+                or "Chart's dataset is not accessible. Dataset may have been deleted.",
+                error_type="DatasetNotAccessible",
+            )
+        # Log any warnings (e.g., virtual dataset warnings)
+        for warning in validation_result.warnings:
+            await ctx.warning("Dataset warning: %s" % (warning,))
 
         start_time = time.time()
+
+        # Track whether we're using unsaved state
+        using_unsaved_state = False
+        cached_form_data_dict = None
 
         try:
             await ctx.report_progress(2, 4, "Preparing data query")
             from superset.charts.schemas import ChartDataQueryContextSchema
             from superset.commands.chart.data.get_data_command import ChartDataCommand
 
+            # Check if form_data_key is provided - use cached form_data instead
+            if request.form_data_key:
+                await ctx.info(
+                    "Retrieving unsaved chart state from cache: form_data_key=%s"
+                    % (request.form_data_key,)
+                )
+                if cached_form_data := _get_cached_form_data(request.form_data_key):
+                    try:
+                        parsed_form_data = utils_json.loads(cached_form_data)
+                        # Only use if it's actually a dict (not null, list, etc.)
+                        if isinstance(parsed_form_data, dict):
+                            cached_form_data_dict = parsed_form_data
+                            using_unsaved_state = True
+                            await ctx.info(
+                                "Using cached form_data from form_data_key "
+                                "for data query"
+                            )
+                        else:
+                            await ctx.warning(
+                                "Cached form_data is not a JSON object. "
+                                "Falling back to saved chart configuration."
+                            )
+                    except (TypeError, ValueError) as e:
+                        await ctx.warning(
+                            "Failed to parse cached form_data: %s. "
+                            "Falling back to saved chart configuration." % str(e)
+                        )
+                else:
+                    await ctx.warning(
+                        "form_data_key provided but no cached data found. "
+                        "The cache may have expired. Using saved chart configuration."
+                    )
+
             # Use the chart's saved query_context - this is the key!
             # The query_context contains all the information needed to reproduce
             # the chart's data exactly as shown in the visualization
             query_context_json = None
-            if chart.query_context:
+
+            # If using cached form_data, we need to build query_context from it
+            if using_unsaved_state and cached_form_data_dict is not None:
+                # Build query context from cached form_data (unsaved state)
+                from superset.common.query_context_factory import QueryContextFactory
+
+                factory = QueryContextFactory()
+                row_limit = (
+                    request.limit
+                    or cached_form_data_dict.get("row_limit")
+                    or current_app.config["ROW_LIMIT"]
+                )
+
+                # Get datasource info from cached form_data or fall back to chart
+                datasource_id = cached_form_data_dict.get(
+                    "datasource_id", chart.datasource_id
+                )
+                datasource_type = cached_form_data_dict.get(
+                    "datasource_type", chart.datasource_type
+                )
+
+                # Handle different chart types that have different form_data
+                # structures. Some charts use "metric" (singular), not "metrics"
+                # (plural): big_number, big_number_total, pop_kpi.
+                # These charts also don't have groupby columns.
+                cached_viz_type = cached_form_data_dict.get(
+                    "viz_type", chart.viz_type or ""
+                )
+                if cached_viz_type in ("big_number", "big_number_total", "pop_kpi"):
+                    metric = cached_form_data_dict.get("metric")
+                    cached_metrics = [metric] if metric else []
+                    cached_groupby: list[str] = []
+                else:
+                    cached_metrics = cached_form_data_dict.get("metrics", [])
+                    cached_groupby = cached_form_data_dict.get("groupby", [])
+
+                query_context = factory.create(
+                    datasource={
+                        "id": datasource_id,
+                        "type": datasource_type,
+                    },
+                    queries=[
+                        {
+                            "filters": cached_form_data_dict.get("filters", []),
+                            "columns": cached_groupby,
+                            "metrics": cached_metrics,
+                            "row_limit": row_limit,
+                            "order_desc": cached_form_data_dict.get("order_desc", True),
+                        }
+                    ],
+                    form_data=cached_form_data_dict,
+                    force=request.force_refresh,
+                )
+                await ctx.debug(
+                    "Built query_context from cached form_data (unsaved state)"
+                )
+            elif chart.query_context:
                 try:
                     query_context_json = utils_json.loads(chart.query_context)
                     await ctx.debug(
@@ -146,7 +280,7 @@ async def get_chart_data(  # noqa: C901
                         "Failed to parse chart query_context: %s" % str(e)
                     )
 
-            if query_context_json is None:
+            if query_context_json is None and not using_unsaved_state:
                 # Fallback: Chart has no saved query_context
                 # This can happen with older charts that haven't been re-saved
                 await ctx.warning(
@@ -300,7 +434,7 @@ async def get_chart_data(  # noqa: C901
                     form_data=form_data,
                     force=request.force_refresh,
                 )
-            else:
+            elif query_context_json is not None:
                 # Apply request overrides to the saved query_context
                 query_context_json["force"] = request.force_refresh
 
@@ -542,7 +676,7 @@ async def get_chart_data(  # noqa: C901
                 cache_status=cache_status,
             )
 
-        except Exception as data_error:
+        except (CommandException, SupersetException, ValueError) as data_error:
             await ctx.error(
                 "Data retrieval failed: chart_id=%s, error=%s, error_type=%s"
                 % (
