@@ -111,8 +111,16 @@ const FETCH_REPORT_WITH_FILTERS_ENDPOINT = 'glob:*/api/v1/report/3';
 const FETCH_REPORT_NO_FILTER_NAME_ENDPOINT = 'glob:*/api/v1/report/4';
 const FETCH_REPORT_OVERWRITE_ENDPOINT = 'glob:*/api/v1/report/5';
 
-fetchMock.get(FETCH_DASHBOARD_ENDPOINT, { result: generateMockPayload(true) }, { name: FETCH_DASHBOARD_ENDPOINT });
-fetchMock.get(FETCH_CHART_ENDPOINT, { result: generateMockPayload(false) }, { name: FETCH_CHART_ENDPOINT });
+fetchMock.get(
+  FETCH_DASHBOARD_ENDPOINT,
+  { result: generateMockPayload(true) },
+  { name: FETCH_DASHBOARD_ENDPOINT },
+);
+fetchMock.get(
+  FETCH_CHART_ENDPOINT,
+  { result: generateMockPayload(false) },
+  { name: FETCH_CHART_ENDPOINT },
+);
 fetchMock.get(FETCH_REPORT_WITH_FILTERS_ENDPOINT, {
   result: {
     ...generateMockPayload(true),
@@ -1132,9 +1140,8 @@ test('stale JSON array anchor is cleared without crash or toast', async () => {
       );
     const body = JSON.parse(putCall!.options?.body as string);
     expect(body.extra.dashboard.anchor).toBeUndefined();
-
-    fetchMock.removeRoute('put-report-1');
   } finally {
+    fetchMock.removeRoute('put-report-1');
     restoreAnchorMocks();
   }
 });
