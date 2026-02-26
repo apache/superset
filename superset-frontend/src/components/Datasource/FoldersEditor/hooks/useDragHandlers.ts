@@ -326,6 +326,8 @@ export function useDragHandlers({
     let hasNonFolderItems = false;
     let hasDraggedFolder = promotedFolderIds.size > 0;
     let hasDraggedDefaultFolder = false;
+    let hasDraggedColumn = false;
+    let hasDraggedMetric = false;
     for (const item of draggedItems) {
       if (item.type === FoldersEditorItemType.Folder) {
         hasDraggedFolder = true;
@@ -334,11 +336,24 @@ export function useDragHandlers({
         }
       } else {
         hasNonFolderItems = true;
+        if (item.type === FoldersEditorItemType.Column) {
+          hasDraggedColumn = true;
+        }
+        if (item.type === FoldersEditorItemType.Metric) {
+          hasDraggedMetric = true;
+        }
       }
     }
 
     if (hasNonFolderItems) {
       if (!projectedPosition || !projectedPosition.parentId) {
+        if (hasDraggedColumn && hasDraggedMetric) {
+          addWarningToast(t('Columns and metrics should be inside folders'));
+        } else if (hasDraggedColumn) {
+          addWarningToast(t('Columns should be inside folders'));
+        } else {
+          addWarningToast(t('Metrics should be inside folders'));
+        }
         return;
       }
     }
