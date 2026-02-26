@@ -93,6 +93,13 @@ const ScrollToBottom = () => {
                 onClick={scrollToBottom}
                 role="button"
                 aria-label={t('Scroll to bottom')}
+                tabIndex={0}
+                onKeyDown={event => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        scrollToBottom();
+                    }
+                }}
             >
                 <Icons.DownOutlined />
             </StyledScrollButton>
