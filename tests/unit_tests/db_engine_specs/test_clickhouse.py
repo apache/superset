@@ -212,7 +212,6 @@ def test_connect_get_column_spec(
     assert_column_spec(spec, native_type, sqla_type, attrs, generic_type, is_dttm)
 
 
-
 @pytest.mark.parametrize(
     "schema, expected_result",
     [
