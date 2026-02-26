@@ -38,7 +38,7 @@ const databases = Object.entries(typedData.databases)
     docPath: `/user-docs/databases/supported/${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`,
   }));
 
-export default function DatabaseLogoWall(): JSX.Element {
+export default function DatabaseLogoWall(): React.JSX.Element {
   return (
     <div
       style={{
