@@ -44,7 +44,7 @@ import {
  * droppable rects (inner element refs are slightly smaller than react-window
  * slots), closestCenter is used as a final fallback to find the nearest item.
  */
-export function createCollisionDetection(
+export function getCollisionDetection(
   activeId: UniqueIdentifier | null,
 ): CollisionDetection {
   if (!activeId) return rectIntersection;

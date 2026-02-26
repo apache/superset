@@ -50,7 +50,7 @@ import {
   pointerSensorOptions,
   measuringConfig,
   autoScrollConfig,
-  createCollisionDetection,
+  getCollisionDetection,
 } from './sensors';
 import { FoldersContainer, FoldersContent } from './styles';
 import { FoldersEditorProps } from './types';
@@ -411,7 +411,7 @@ export default function FoldersEditor({
   );
 
   const collisionDetection = useMemo(
-    () => createCollisionDetection(activeId),
+    () => getCollisionDetection(activeId),
     [activeId],
   );
 
