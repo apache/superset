@@ -33,7 +33,7 @@ docs/databases/
 
 # Generated API documentation (regenerated at build time from openapi.json)
 # Source of truth is static/resources/openapi.json
-docs/api/
+developer_docs/api/
 
 # Generated component documentation MDX files (regenerated at build time)
 # Source of truth is Storybook stories in superset-frontend/packages/superset-ui-core/src/components/

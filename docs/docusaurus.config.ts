@@ -108,7 +108,7 @@ if (!versionsConfig.developer_docs.disabled) {
         keywords: ['note', 'tip', 'info', 'warning', 'danger', 'resources'],
         extendDefaults: true,
       },
-      docItemComponent: '@theme/DocItem',
+      docItemComponent: '@theme/ApiItem', // Required for OpenAPI docs
       includeCurrentVersion: versionsConfig.developer_docs.includeCurrentVersion,
       lastVersion: versionsConfig.developer_docs.lastVersion,
       onlyIncludeVersions: versionsConfig.developer_docs.onlyIncludeVersions,
@@ -155,6 +155,7 @@ if (!versionsConfig.admin_docs.disabled) {
     label: 'Admins',
     to: '/admin-docs/',
     position: 'left',
+    activeBaseRegex: '^/admin-docs/',
     items: [
       {
         type: 'doc',
@@ -194,6 +195,7 @@ if (!versionsConfig.developer_docs.disabled && !versionsConfig.developer_docs.hi
     label: 'Developers',
     to: '/developer-docs/',
     position: 'left',
+    activeBaseRegex: '^/developer-docs/',
     items: [
       {
         type: 'doc',
@@ -224,6 +226,12 @@ if (!versionsConfig.developer_docs.disabled && !versionsConfig.developer_docs.hi
         docsPluginId: 'developer_docs',
         docId: 'components/index',
         label: 'UI Components',
+      },
+      {
+        type: 'doc',
+        docsPluginId: 'developer_docs',
+        docId: 'api',
+        label: 'API Reference',
       },
     ],
   });
@@ -335,11 +343,11 @@ const config: Config = {
       'docusaurus-plugin-openapi-docs',
       {
         id: 'api',
-        docsPluginId: 'classic',
+        docsPluginId: 'developer_docs',
         config: {
           superset: {
             specPath: 'static/resources/openapi.json',
-            outputDir: 'docs/api',
+            outputDir: 'developer_docs/api',
             sidebarOptions: {
               groupPathsBy: 'tag',
               categoryLinkSource: 'tag',
@@ -429,7 +437,7 @@ const config: Config = {
             from: '/docs/creating-charts-dashboards/first-dashboard',
           },
           {
-            to: '/user-docs/api',
+            to: '/developer-docs/api',
             from: '/docs/rest-api',
           },
           {
@@ -459,6 +467,11 @@ const config: Config = {
           {
             to: '/user-docs/faq',
             from: '/docs/frequently-asked-questions',
+          },
+          // Redirect old user-docs/api to developer-docs/api
+          {
+            to: '/developer-docs/api',
+            from: '/user-docs/api',
           },
           // Redirects from old /docs/ paths to new /admin-docs/ paths
           {
@@ -660,6 +673,11 @@ const config: Config = {
             redirects.push(existingPath.replace('/user-docs/', '/docs/'));
           }
 
+          // Redirect /docs/api/* to /developer-docs/api/* (API moved to developer docs)
+          if (existingPath.startsWith('/developer-docs/api')) {
+            redirects.push(existingPath.replace('/developer-docs/', '/docs/'));
+          }
+
           return redirects.length > 0 ? redirects : undefined;
         },
       },
@@ -691,7 +709,7 @@ const config: Config = {
           disableVersioning: false,
           showLastUpdateAuthor: true,
           showLastUpdateTime: true,
-          docItemComponent: '@theme/ApiItem', // Required for OpenAPI docs
+          docItemComponent: '@theme/DocItem',
         },
         blog: {
           showReadingTime: true,
@@ -785,6 +803,7 @@ const config: Config = {
           label: 'Users',
           to: '/user-docs/intro',
           position: 'left',
+          activeBaseRegex: '^/user-docs/',
           items: [
             {
               type: 'doc',
@@ -811,11 +830,6 @@ const config: Config = {
               docId: 'faq',
               label: 'FAQ',
             },
-            {
-              type: 'doc',
-              docId: 'api',
-              label: 'API Reference',
-            },
           ],
         },
         ...dynamicNavbarItems,
@@ -824,6 +838,7 @@ const config: Config = {
           label: 'Community',
           to: '/community',
           position: 'left',
+          activeBaseRegex: '^/community',
           items: [
             {
               label: 'Resources',

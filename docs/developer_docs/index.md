@@ -82,7 +82,7 @@ Everything you need to contribute to the Apache Superset project. This section i
 
 ### External Documentation
 - **[User Documentation](https://superset.apache.org/docs/intro)** - Using Superset
-- **[API Documentation](https://superset.apache.org/docs/api)** - REST API reference
+- **[API Documentation](/developer-docs/api)** - REST API reference
 - **[Configuration Guide](https://superset.apache.org/admin-docs/configuration/configuring-superset)** - Setup and configuration
 
 ### Important Files

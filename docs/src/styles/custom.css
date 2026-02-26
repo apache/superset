@@ -66,10 +66,11 @@ ul.dropdown__menu svg {
   text-decoration: none !important;
 }
 
-/* Remove the blue box styling for doc links in dropdowns */
+/* Style active doc links in dropdowns with primary color instead of blue box */
 .navbar__item.dropdown .dropdown__link--active {
   background-color: transparent !important;
-  color: #1c1e21 !important;
+  color: var(--ifm-color-primary) !important;
+  font-weight: 600;
 }
 
 .navbar__item.dropdown .dropdown__link--active:hover {
