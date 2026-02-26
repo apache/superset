@@ -631,7 +631,7 @@ class WebDriverSelenium(WebDriverProxy):
                             (By.CLASS_NAME, "grid-container")
                         )
                     )
-                except:
+                except Exception:
                     logger.exception(
                         "Selenium timed out waiting for dashboard to draw at url %s",
                         url,
