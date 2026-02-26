@@ -26,7 +26,6 @@ import {
 } from 'spec/helpers/testing-library';
 import reducerIndex from 'spec/helpers/reducerIndex';
 import { FeatureFlag, VizType, isFeatureEnabled } from '@superset-ui/core';
-import * as actions from 'src/features/reports/ReportModal/actions';
 import ReportModal from '.';
 
 const REPORT_ENDPOINT = 'glob:*/api/v1/report*';
@@ -103,48 +102,34 @@ test('does not allow user to create a report without a name', () => {
   expect(addButton).toBeDisabled();
 });
 
-test('creates a new email report', async () => {
+test('creates a new email report via modal Add button', async () => {
+  fetchMock.post(
+    REPORT_ENDPOINT,
+    { id: 1, result: {} },
+    { name: 'post-report' },
+  );
+
   render(<ReportModal {...defaultProps} />, { useRedux: true });
-  const dispatch = jest.fn();
-  const reportValues = {
-    id: 1,
-    result: {
-      active: true,
-      creation_method: 'dashboards',
-      crontab: '0 12 * * 1',
-      dashboard: 1,
-      name: 'Weekly Report',
-      owners: [1],
-      recipients: [
-        {
-          recipient_config_json: {
-            target: 'test@test.com',
-          },
-          type: 'Email',
-        },
-      ],
-      type: 'Report',
-    },
-  };
-  const stringyReportValues = `{"id":1,"result":{"active":true,"creation_method":"dashboards","crontab":"0 12 * * 1","dashboard":${1},"name":"Weekly Report","owners":[${1}],"recipients":[{"recipient_config_json":{"target":"test@test.com"},"type":"Email"}],"type":"Report"}}`;
-  fetchMock.post(REPORT_ENDPOINT, reportValues);
 
   const addButton = screen.getByRole('button', { name: /add/i });
   await waitFor(() => userEvent.click(addButton));
 
-  const makeRequest = () => {
-    const request = actions.addReport(reportValues);
-    return request(dispatch);
-  };
+  // Verify exactly one POST from the modal submit path
+  await waitFor(() => {
+    const postCalls = fetchMock.callHistory.calls('post-report');
+    expect(postCalls).toHaveLength(1);
+  });
 
-  await makeRequest();
+  const postCalls = fetchMock.callHistory.calls('post-report');
+  const body = JSON.parse(postCalls[0].options.body as string);
+  expect(body.name).toBe('Weekly Report');
+  expect(body.type).toBe('Report');
+  expect(body.creation_method).toBe('dashboards');
+  expect(body.crontab).toBeDefined();
+  expect(body.recipients).toBeDefined();
+  expect(body.recipients[0].type).toBe('Email');
 
-  expect(fetchMock.callHistory.lastCall()?.options?.body).toEqual(
-    stringyReportValues,
-  );
-  expect(dispatch).toHaveBeenCalledTimes(2);
-  const reportCalls = fetchMock.callHistory.calls(REPORT_ENDPOINT);
-  expect(reportCalls).toHaveLength(2);
+  fetchMock.removeRoute('post-report');
 });
 
 test('text-based chart hides screenshot width and shows message content', () => {
@@ -285,4 +270,35 @@ test('edit mode dispatches editReport via PUT on save', async () => {
   });
 
   fetchMock.removeRoute('put-report-42');
+});
+
+test('submit failure dispatches danger toast and keeps modal open', async () => {
+  fetchMock.post(REPORT_ENDPOINT, 500, { name: 'post-fail' });
+  const onHide = jest.fn();
+
+  const store = createStore({}, reducerIndex);
+  render(<ReportModal {...defaultProps} onHide={onHide} />, {
+    useRedux: true,
+    store,
+  });
+
+  const addButton = screen.getByRole('button', { name: /add/i });
+  await waitFor(() => userEvent.click(addButton));
+
+  // The addReport action catches 500 errors, dispatches a danger toast, and re-throws
+  await waitFor(() => {
+    const toasts = (store.getState() as any).messageToasts;
+    expect(toasts.length).toBeGreaterThan(0);
+    expect(
+      toasts.some((t: { text: string }) =>
+        t.text.includes('Failed to create report'),
+      ),
+    ).toBe(true);
+  });
+
+  // Modal stays open — onHide should NOT have been called
+  expect(onHide).not.toHaveBeenCalled();
+  expect(screen.getByText('Schedule a new email report')).toBeInTheDocument();
+
+  fetchMock.removeRoute('post-fail');
 });

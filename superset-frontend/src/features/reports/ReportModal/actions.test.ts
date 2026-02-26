@@ -51,11 +51,13 @@ test('addReport dispatches ADD_REPORT and success toast on success', async () =>
   expect(toastAction.payload.toastType).toBe('SUCCESS_TOAST');
 });
 
-test('addReport dispatches danger toast on failure', async () => {
+test('addReport dispatches danger toast on failure and rejects', async () => {
   fetchMock.post(REPORT_POST_ENDPOINT, 500);
   const dispatch = jest.fn();
 
-  await addReport({ name: 'Bad Report' })(dispatch);
+  await expect(
+    addReport({ name: 'Bad Report' })(dispatch),
+  ).rejects.toBeDefined();
 
   const types = dispatch.mock.calls.map(([action]: any) => action.type);
   expect(types).not.toContain(ADD_REPORT);
@@ -82,11 +84,13 @@ test('editReport dispatches EDIT_REPORT and success toast on success', async () 
   expect(toastAction.payload.toastType).toBe('SUCCESS_TOAST');
 });
 
-test('editReport dispatches danger toast on failure', async () => {
+test('editReport dispatches danger toast on failure and rejects', async () => {
   fetchMock.put(REPORT_ENDPOINT, 500);
   const dispatch = jest.fn();
 
-  await editReport(5, { name: 'Bad Update' })(dispatch);
+  await expect(
+    editReport(5, { name: 'Bad Update' })(dispatch),
+  ).rejects.toBeDefined();
 
   const types = dispatch.mock.calls.map(([action]: any) => action.type);
   expect(types).not.toContain(EDIT_REPORT);

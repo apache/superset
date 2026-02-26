@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useState } from 'react';
 import {
   render,
   screen,
@@ -64,26 +65,61 @@ test('switches to CRON input mode and shows text input', async () => {
   });
 });
 
+// Controlled wrapper: the component is fully controlled (value from props),
+// so blur/enter tests need a parent that updates value on onChange.
+function ControlledScheduler({
+  initialValue,
+  onChangeSpy,
+}: {
+  initialValue: string;
+  onChangeSpy: jest.Mock;
+}) {
+  const [value, setValue] = useState(initialValue);
+  return (
+    <AlertReportCronScheduler
+      value={value}
+      onChange={(v: string) => {
+        setValue(v);
+        onChangeSpy(v);
+      }}
+    />
+  );
+}
+
 test('calls onChange on blur in CRON input mode', async () => {
-  render(<AlertReportCronScheduler {...defaultProps} />);
+  const onChangeSpy = jest.fn();
+  render(
+    <ControlledScheduler initialValue="0 12 * * 1" onChangeSpy={onChangeSpy} />,
+  );
 
   await switchToCronInputMode();
 
   const input = await screen.findByPlaceholderText('CRON expression');
   fireEvent.change(input, { target: { value: '*/5 * * * *' } });
+
+  // Clear spy so we only assert the blur-specific call
+  onChangeSpy.mockClear();
   fireEvent.blur(input);
 
-  expect(defaultProps.onChange).toHaveBeenCalledWith('*/5 * * * *');
+  expect(onChangeSpy).toHaveBeenCalledTimes(1);
+  expect(onChangeSpy).toHaveBeenCalledWith('*/5 * * * *');
 });
 
 test('calls onChange on Enter key press in CRON input mode', async () => {
-  render(<AlertReportCronScheduler {...defaultProps} />);
+  const onChangeSpy = jest.fn();
+  render(
+    <ControlledScheduler initialValue="0 12 * * 1" onChangeSpy={onChangeSpy} />,
+  );
 
   await switchToCronInputMode();
 
   const input = await screen.findByPlaceholderText('CRON expression');
   fireEvent.change(input, { target: { value: '0 9 * * 1-5' } });
+
+  // Clear spy so we only assert the Enter-specific call
+  onChangeSpy.mockClear();
   fireEvent.keyDown(input, { key: 'Enter', code: 'Enter' });
 
-  expect(defaultProps.onChange).toHaveBeenCalledWith('0 9 * * 1-5');
+  expect(onChangeSpy).toHaveBeenCalledTimes(1);
+  expect(onChangeSpy).toHaveBeenCalledWith('0 9 * * 1-5');
 });

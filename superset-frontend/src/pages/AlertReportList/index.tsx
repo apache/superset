@@ -242,9 +242,13 @@ function AlertList({
           }),
         );
 
-        updateResource(update_id, { active: checked }, false, false)
-          .then()
-          .catch(() => setResourceCollection(original));
+        updateResource(update_id, { active: checked }, false, false).then(
+          response => {
+            if (!response) {
+              setResourceCollection(original);
+            }
+          },
+        );
       }
     },
     [alerts, setResourceCollection, updateResource],
