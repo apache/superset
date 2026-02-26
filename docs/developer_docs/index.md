@@ -22,9 +22,9 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-# Apache Superset Developer Portal
+# Developer Docs
 
-Welcome to the Apache Superset Developer Portal - your comprehensive resource for contributing to and extending Apache Superset.
+Welcome to the Apache Superset Developer Docs - your comprehensive resource for contributing to and extending Apache Superset.
 
 ## Quick Start
 

@@ -105,83 +105,83 @@ Superset provides:
 
 ## Supported Databases
 
-Superset can query data from any SQL-speaking datastore or data engine (Presto, Trino, Athena, [and more](https://superset.apache.org/docs/databases)) that has a Python DB-API driver and a SQLAlchemy dialect.
+Superset can query data from any SQL-speaking datastore or data engine (Presto, Trino, Athena, [and more](/user-docs/databases/)) that has a Python DB-API driver and a SQLAlchemy dialect.
 
 Here are some of the major database solutions that are supported:
 
 <!-- SUPPORTED_DATABASES_START -->
 <p align="center">
-  <a href="https://superset.apache.org/docs/databases/supported/amazon-athena" title="Amazon Athena"><img src="docs/static/img/databases/amazon-athena.jpg" alt="Amazon Athena" width="76" height="40" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/amazon-dynamodb" title="Amazon DynamoDB"><img src="docs/static/img/databases/aws.png" alt="Amazon DynamoDB" width="40" height="40" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/amazon-redshift" title="Amazon Redshift"><img src="docs/static/img/databases/redshift.png" alt="Amazon Redshift" width="100" height="40" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/apache-doris" title="Apache Doris"><img src="docs/static/img/databases/doris.png" alt="Apache Doris" width="103" height="40" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/apache-drill" title="Apache Drill"><img src="docs/static/img/databases/apache-drill.png" alt="Apache Drill" width="81" height="40" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/apache-druid" title="Apache Druid"><img src="docs/static/img/databases/druid.png" alt="Apache Druid" width="117" height="40" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/apache-hive" title="Apache Hive"><img src="docs/static/img/databases/apache-hive.svg" alt="Apache Hive" width="44" height="40" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/apache-impala" title="Apache Impala"><img src="docs/static/img/databases/apache-impala.png" alt="Apache Impala" width="21" height="40" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/apache-kylin" title="Apache Kylin"><img src="docs/static/img/databases/apache-kylin.png" alt="Apache Kylin" width="44" height="40" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/apache-pinot" title="Apache Pinot"><img src="docs/static/img/databases/apache-pinot.svg" alt="Apache Pinot" width="76" height="40" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/apache-solr" title="Apache Solr"><img src="docs/static/img/databases/apache-solr.png" alt="Apache Solr" width="79" height="40" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/apache-spark-sql" title="Apache Spark SQL"><img src="docs/static/img/databases/apache-spark.png" alt="Apache Spark SQL" width="75" height="40" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/ascend" title="Ascend"><img src="docs/static/img/databases/ascend.webp" alt="Ascend" width="117" height="40" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/aurora-mysql-data-api" title="Aurora MySQL (Data API)"><img src="docs/static/img/databases/mysql.png" alt="Aurora MySQL (Data API)" width="77" height="40" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/aurora-postgresql-data-api" title="Aurora PostgreSQL (Data API)"><img src="docs/static/img/databases/postgresql.svg" alt="Aurora PostgreSQL (Data API)" width="76" height="40" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/azure-data-explorer" title="Azure Data Explorer"><img src="docs/static/img/databases/kusto.png" alt="Azure Data Explorer" width="40" height="40" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/azure-synapse" title="Azure Synapse"><img src="docs/static/img/databases/azure.svg" alt="Azure Synapse" width="40" height="40" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/clickhouse" title="ClickHouse"><img src="docs/static/img/databases/clickhouse.png" alt="ClickHouse" width="150" height="37" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/cloudflare-d1" title="Cloudflare D1"><img src="docs/static/img/databases/cloudflare.png" alt="Cloudflare D1" width="40" height="40" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/cockroachdb" title="CockroachDB"><img src="docs/static/img/databases/cockroachdb.png" alt="CockroachDB" width="150" height="24" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/couchbase" title="Couchbase"><img src="docs/static/img/databases/couchbase.svg" alt="Couchbase" width="150" height="35" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/cratedb" title="CrateDB"><img src="docs/static/img/databases/cratedb.svg" alt="CrateDB" width="180" height="24" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/databend" title="Databend"><img src="docs/static/img/databases/databend.png" alt="Databend" width="100" height="40" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/databricks" title="Databricks"><img src="docs/static/img/databases/databricks.png" alt="Databricks" width="152" height="24" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/denodo" title="Denodo"><img src="docs/static/img/databases/denodo.png" alt="Denodo" width="138" height="40" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/dremio" title="Dremio"><img src="docs/static/img/databases/dremio.png" alt="Dremio" width="126" height="40" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/duckdb" title="DuckDB"><img src="docs/static/img/databases/duckdb.png" alt="DuckDB" width="52" height="40" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/elasticsearch" title="Elasticsearch"><img src="docs/static/img/databases/elasticsearch.png" alt="Elasticsearch" width="40" height="40" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/exasol" title="Exasol"><img src="docs/static/img/databases/exasol.png" alt="Exasol" width="72" height="40" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/firebird" title="Firebird"><img src="docs/static/img/databases/firebird.png" alt="Firebird" width="100" height="40" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/firebolt" title="Firebolt"><img src="docs/static/img/databases/firebolt.png" alt="Firebolt" width="100" height="40" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/google-bigquery" title="Google BigQuery"><img src="docs/static/img/databases/google-big-query.svg" alt="Google BigQuery" width="76" height="40" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/google-sheets" title="Google Sheets"><img src="docs/static/img/databases/google-sheets.svg" alt="Google Sheets" width="76" height="40" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/greenplum" title="Greenplum"><img src="docs/static/img/databases/greenplum.png" alt="Greenplum" width="124" height="40" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/hologres" title="Hologres"><img src="docs/static/img/databases/hologres.png" alt="Hologres" width="44" height="40" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/ibm-db2" title="IBM Db2"><img src="docs/static/img/databases/ibm-db2.svg" alt="IBM Db2" width="91" height="40" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/ibm-netezza-performance-server" title="IBM Netezza Performance Server"><img src="docs/static/img/databases/netezza.png" alt="IBM Netezza Performance Server" width="40" height="40" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/mariadb" title="MariaDB"><img src="docs/static/img/databases/mariadb.png" alt="MariaDB" width="150" height="37" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/microsoft-sql-server" title="Microsoft SQL Server"><img src="docs/static/img/databases/msql.png" alt="Microsoft SQL Server" width="50" height="40" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/monetdb" title="MonetDB"><img src="docs/static/img/databases/monet-db.png" alt="MonetDB" width="100" height="40" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/mongodb" title="MongoDB"><img src="docs/static/img/databases/mongodb.png" alt="MongoDB" width="150" height="38" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/motherduck" title="MotherDuck"><img src="docs/static/img/databases/motherduck.png" alt="MotherDuck" width="40" height="40" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/oceanbase" title="OceanBase"><img src="docs/static/img/databases/oceanbase.svg" alt="OceanBase" width="175" height="24" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/oracle" title="Oracle"><img src="docs/static/img/databases/oraclelogo.png" alt="Oracle" width="111" height="40" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/presto" title="Presto"><img src="docs/static/img/databases/presto-og.png" alt="Presto" width="127" height="40" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/risingwave" title="RisingWave"><img src="docs/static/img/databases/risingwave.svg" alt="RisingWave" width="147" height="40" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/sap-hana" title="SAP HANA"><img src="docs/static/img/databases/sap-hana.png" alt="SAP HANA" width="137" height="40" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/sap-sybase" title="SAP Sybase"><img src="docs/static/img/databases/sybase.png" alt="SAP Sybase" width="100" height="40" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/shillelagh" title="Shillelagh"><img src="docs/static/img/databases/shillelagh.png" alt="Shillelagh" width="40" height="40" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/singlestore" title="SingleStore"><img src="docs/static/img/databases/singlestore.png" alt="SingleStore" width="150" height="31" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/snowflake" title="Snowflake"><img src="docs/static/img/databases/snowflake.svg" alt="Snowflake" width="76" height="40" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/sqlite" title="SQLite"><img src="docs/static/img/databases/sqlite.png" alt="SQLite" width="84" height="40" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/starrocks" title="StarRocks"><img src="docs/static/img/databases/starrocks.png" alt="StarRocks" width="149" height="40" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/superset-meta-database" title="Superset meta database"><img src="docs/static/img/databases/superset.svg" alt="Superset meta database" width="150" height="39" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/tdengine" title="TDengine"><img src="docs/static/img/databases/tdengine.png" alt="TDengine" width="140" height="40" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/teradata" title="Teradata"><img src="docs/static/img/databases/teradata.png" alt="Teradata" width="124" height="40" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/timescaledb" title="TimescaleDB"><img src="docs/static/img/databases/timescale.png" alt="TimescaleDB" width="150" height="36" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/trino" title="Trino"><img src="docs/static/img/databases/trino.png" alt="Trino" width="89" height="40" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/vertica" title="Vertica"><img src="docs/static/img/databases/vertica.png" alt="Vertica" width="128" height="40" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/ydb" title="YDB"><img src="docs/static/img/databases/ydb.svg" alt="YDB" width="110" height="40" /></a> &nbsp;
-  <a href="https://superset.apache.org/docs/databases/supported/yugabytedb" title="YugabyteDB"><img src="docs/static/img/databases/yugabyte.png" alt="YugabyteDB" width="150" height="26" /></a>
+  <a href="/user-docs/databases/supported/amazon-athena" title="Amazon Athena"><img src="/img/databases/amazon-athena.jpg" alt="Amazon Athena" width="76" height="40" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/amazon-dynamodb" title="Amazon DynamoDB"><img src="/img/databases/aws.png" alt="Amazon DynamoDB" width="40" height="40" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/amazon-redshift" title="Amazon Redshift"><img src="/img/databases/redshift.png" alt="Amazon Redshift" width="100" height="40" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/apache-doris" title="Apache Doris"><img src="/img/databases/doris.png" alt="Apache Doris" width="103" height="40" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/apache-drill" title="Apache Drill"><img src="/img/databases/apache-drill.png" alt="Apache Drill" width="81" height="40" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/apache-druid" title="Apache Druid"><img src="/img/databases/druid.png" alt="Apache Druid" width="117" height="40" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/apache-hive" title="Apache Hive"><img src="/img/databases/apache-hive.svg" alt="Apache Hive" width="44" height="40" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/apache-impala" title="Apache Impala"><img src="/img/databases/apache-impala.png" alt="Apache Impala" width="21" height="40" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/apache-kylin" title="Apache Kylin"><img src="/img/databases/apache-kylin.png" alt="Apache Kylin" width="44" height="40" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/apache-pinot" title="Apache Pinot"><img src="/img/databases/apache-pinot.svg" alt="Apache Pinot" width="76" height="40" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/apache-solr" title="Apache Solr"><img src="/img/databases/apache-solr.png" alt="Apache Solr" width="79" height="40" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/apache-spark-sql" title="Apache Spark SQL"><img src="/img/databases/apache-spark.png" alt="Apache Spark SQL" width="75" height="40" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/ascend" title="Ascend"><img src="/img/databases/ascend.webp" alt="Ascend" width="117" height="40" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/aurora-mysql-data-api" title="Aurora MySQL (Data API)"><img src="/img/databases/mysql.png" alt="Aurora MySQL (Data API)" width="77" height="40" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/aurora-postgresql-data-api" title="Aurora PostgreSQL (Data API)"><img src="/img/databases/postgresql.svg" alt="Aurora PostgreSQL (Data API)" width="76" height="40" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/azure-data-explorer" title="Azure Data Explorer"><img src="/img/databases/kusto.png" alt="Azure Data Explorer" width="40" height="40" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/azure-synapse" title="Azure Synapse"><img src="/img/databases/azure.svg" alt="Azure Synapse" width="40" height="40" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/clickhouse" title="ClickHouse"><img src="/img/databases/clickhouse.png" alt="ClickHouse" width="150" height="37" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/cloudflare-d1" title="Cloudflare D1"><img src="/img/databases/cloudflare.png" alt="Cloudflare D1" width="40" height="40" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/cockroachdb" title="CockroachDB"><img src="/img/databases/cockroachdb.png" alt="CockroachDB" width="150" height="24" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/couchbase" title="Couchbase"><img src="/img/databases/couchbase.svg" alt="Couchbase" width="150" height="35" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/cratedb" title="CrateDB"><img src="/img/databases/cratedb.svg" alt="CrateDB" width="180" height="24" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/databend" title="Databend"><img src="/img/databases/databend.png" alt="Databend" width="100" height="40" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/databricks" title="Databricks"><img src="/img/databases/databricks.png" alt="Databricks" width="152" height="24" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/denodo" title="Denodo"><img src="/img/databases/denodo.png" alt="Denodo" width="138" height="40" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/dremio" title="Dremio"><img src="/img/databases/dremio.png" alt="Dremio" width="126" height="40" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/duckdb" title="DuckDB"><img src="/img/databases/duckdb.png" alt="DuckDB" width="52" height="40" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/elasticsearch" title="Elasticsearch"><img src="/img/databases/elasticsearch.png" alt="Elasticsearch" width="40" height="40" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/exasol" title="Exasol"><img src="/img/databases/exasol.png" alt="Exasol" width="72" height="40" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/firebird" title="Firebird"><img src="/img/databases/firebird.png" alt="Firebird" width="100" height="40" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/firebolt" title="Firebolt"><img src="/img/databases/firebolt.png" alt="Firebolt" width="100" height="40" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/google-bigquery" title="Google BigQuery"><img src="/img/databases/google-big-query.svg" alt="Google BigQuery" width="76" height="40" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/google-sheets" title="Google Sheets"><img src="/img/databases/google-sheets.svg" alt="Google Sheets" width="76" height="40" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/greenplum" title="Greenplum"><img src="/img/databases/greenplum.png" alt="Greenplum" width="124" height="40" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/hologres" title="Hologres"><img src="/img/databases/hologres.png" alt="Hologres" width="44" height="40" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/ibm-db2" title="IBM Db2"><img src="/img/databases/ibm-db2.svg" alt="IBM Db2" width="91" height="40" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/ibm-netezza-performance-server" title="IBM Netezza Performance Server"><img src="/img/databases/netezza.png" alt="IBM Netezza Performance Server" width="40" height="40" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/mariadb" title="MariaDB"><img src="/img/databases/mariadb.png" alt="MariaDB" width="150" height="37" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/microsoft-sql-server" title="Microsoft SQL Server"><img src="/img/databases/msql.png" alt="Microsoft SQL Server" width="50" height="40" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/monetdb" title="MonetDB"><img src="/img/databases/monet-db.png" alt="MonetDB" width="100" height="40" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/mongodb" title="MongoDB"><img src="/img/databases/mongodb.png" alt="MongoDB" width="150" height="38" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/motherduck" title="MotherDuck"><img src="/img/databases/motherduck.png" alt="MotherDuck" width="40" height="40" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/oceanbase" title="OceanBase"><img src="/img/databases/oceanbase.svg" alt="OceanBase" width="175" height="24" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/oracle" title="Oracle"><img src="/img/databases/oraclelogo.png" alt="Oracle" width="111" height="40" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/presto" title="Presto"><img src="/img/databases/presto-og.png" alt="Presto" width="127" height="40" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/risingwave" title="RisingWave"><img src="/img/databases/risingwave.svg" alt="RisingWave" width="147" height="40" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/sap-hana" title="SAP HANA"><img src="/img/databases/sap-hana.png" alt="SAP HANA" width="137" height="40" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/sap-sybase" title="SAP Sybase"><img src="/img/databases/sybase.png" alt="SAP Sybase" width="100" height="40" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/shillelagh" title="Shillelagh"><img src="/img/databases/shillelagh.png" alt="Shillelagh" width="40" height="40" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/singlestore" title="SingleStore"><img src="/img/databases/singlestore.png" alt="SingleStore" width="150" height="31" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/snowflake" title="Snowflake"><img src="/img/databases/snowflake.svg" alt="Snowflake" width="76" height="40" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/sqlite" title="SQLite"><img src="/img/databases/sqlite.png" alt="SQLite" width="84" height="40" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/starrocks" title="StarRocks"><img src="/img/databases/starrocks.png" alt="StarRocks" width="149" height="40" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/superset-meta-database" title="Superset meta database"><img src="/img/databases/superset.svg" alt="Superset meta database" width="150" height="39" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/tdengine" title="TDengine"><img src="/img/databases/tdengine.png" alt="TDengine" width="140" height="40" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/teradata" title="Teradata"><img src="/img/databases/teradata.png" alt="Teradata" width="124" height="40" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/timescaledb" title="TimescaleDB"><img src="/img/databases/timescale.png" alt="TimescaleDB" width="150" height="36" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/trino" title="Trino"><img src="/img/databases/trino.png" alt="Trino" width="89" height="40" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/vertica" title="Vertica"><img src="/img/databases/vertica.png" alt="Vertica" width="128" height="40" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/ydb" title="YDB"><img src="/img/databases/ydb.svg" alt="YDB" width="110" height="40" /></a> &nbsp;
+  <a href="/user-docs/databases/supported/yugabytedb" title="YugabyteDB"><img src="/img/databases/yugabyte.png" alt="YugabyteDB" width="150" height="26" /></a>
 </p>
 <!-- SUPPORTED_DATABASES_END -->
 
-**A more comprehensive list of supported databases** along with the configuration instructions can be found [here](https://superset.apache.org/docs/databases).
+**A more comprehensive list of supported databases** along with the configuration instructions can be found [here](/user-docs/databases/).
 
-Want to add support for your datastore or data engine? Read more [here](https://superset.apache.org/docs/frequently-asked-questions#does-superset-work-with-insert-database-engine-here) about the technical requirements.
+Want to add support for your datastore or data engine? Read more [here](/user-docs/faq#does-superset-work-with-insert-database-engine-here) about the technical requirements.
 
 ## Installation and Configuration
 
-Try out Superset's [quickstart](https://superset.apache.org/docs/quickstart/) guide or learn about [the options for production deployments](https://superset.apache.org/docs/installation/architecture/).
+Try out Superset's [quickstart](/user-docs/quickstart) guide or learn about [the options for production deployments](/admin-docs/installation/installation-methods).
 
 ## Get Involved
 
@@ -195,14 +195,14 @@ Try out Superset's [quickstart](https://superset.apache.org/docs/quickstart/) gu
 ## Contributor Guide
 
 Interested in contributing? Check out our
-[Developer Portal](https://superset.apache.org/developer-docs/)
+[Developer Docs](https://superset.apache.org/developer-docs/)
 to find resources around contributing along with a detailed guide on
 how to set up a development environment.
 
 ## Resources
 
 - [Superset "In the Wild"](https://superset.apache.org/inTheWild) - see who's using Superset, and [add your organization](https://github.com/apache/superset/edit/master/RESOURCES/INTHEWILD.yaml) to the list!
-- [Feature Flags](https://superset.apache.org/docs/configuration/feature-flags) - the status of Superset's Feature Flags.
+- [Feature Flags](/admin-docs/configuration/feature-flags) - the status of Superset's Feature Flags.
 - [Standard Roles](https://github.com/apache/superset/blob/master/RESOURCES/STANDARD_ROLES.md) - How RBAC permissions map to roles.
 - [Superset Wiki](https://github.com/apache/superset/wiki) - Tons of additional community resources: best practices, community content and other information.
 - [Superset SIPs](https://github.com/orgs/apache/projects/170) - The status of Superset's SIPs (Superset Improvement Proposals) for both consensus and implementation status.
@@ -213,10 +213,10 @@ Understanding the Superset Points of View
 - [Understanding the Superset Semantic Layer](https://preset.io/blog/understanding-superset-semantic-layer/)
 
 - Getting Started with Superset
-  - [Superset in 2 Minutes using Docker Compose](https://superset.apache.org/docs/installation/docker-compose#installing-superset-locally-using-docker-compose)
-  - [Installing Database Drivers](https://superset.apache.org/docs/configuration/databases#installing-database-drivers)
+  - [Superset in 2 Minutes using Docker Compose](/admin-docs/installation/docker-compose#installing-superset-locally-using-docker-compose)
+  - [Installing Database Drivers](/admin-docs/configuration/configuring-superset#installing-database-drivers)
   - [Building New Database Connectors](https://preset.io/blog/building-database-connector/)
-  - [Create Your First Dashboard](https://superset.apache.org/docs/using-superset/creating-your-first-dashboard/)
+  - [Create Your First Dashboard](/user-docs/using-superset/creating-your-first-dashboard)
   - [Comprehensive Tutorial for Contributing Code to Apache Superset
     ](https://preset.io/blog/tutorial-contributing-code-to-apache-superset/)
 - [Resources to master Superset by Preset](https://preset.io/resources/)
@@ -240,7 +240,7 @@ Understanding the Superset Points of View
   - [Managing and Deploying Custom Viz Plugins](https://medium.com/nmc-techblog/apache-superset-manage-custom-viz-plugins-in-production-9fde1a708e55)
   - [Why Apache Superset is Betting on Apache ECharts](https://preset.io/blog/2021-4-1-why-echarts/)
 
-- [Superset API](https://superset.apache.org/docs/rest-api)
+- [Superset API](/developer-docs/api)
 
 ## Repo Activity
 

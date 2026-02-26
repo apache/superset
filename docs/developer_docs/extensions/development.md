@@ -248,7 +248,7 @@ superset-extensions dev
 
 ## Contributing Extension-Compatible Components
 
-Components in `@apache-superset/core` are automatically documented in the Developer Portal. Simply add a component to the package and it will appear in the extension documentation.
+Components in `@apache-superset/core` are automatically documented in the Developer Docs. Simply add a component to the package and it will appear in the extension documentation.
 
 ### Requirements
 
@@ -307,7 +307,7 @@ When the docs site is built (`yarn start` or `yarn build` in the `docs/` directo
    - Props table from story `args`
    - Usage code snippet
    - Links to source files
-3. Pages appear automatically in **Developer Portal → Extensions → Components**
+3. Pages appear automatically in **Developer Docs → Extensions → Components**
 
 ### Best Practices
 
