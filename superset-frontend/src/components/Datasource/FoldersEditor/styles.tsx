@@ -54,6 +54,20 @@ export const FoldersActions = styled.div`
   `}
 `;
 
+export const FoldersActionsRow = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.paddingXS}px;
+`;
+
+export const SelectionCount = styled.div`
+  ${({ theme }) => `
+    align-self: flex-end;
+    font-size: ${theme.fontSizeSM}px;
+    color: ${theme.colorTextSecondary};
+  `}
+`;
+
 export const FoldersContent = styled.div`
   flex: 1;
   min-height: 0;

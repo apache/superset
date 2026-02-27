@@ -55,6 +55,7 @@ import {
 } from 'src/dashboard/actions/dashboardState';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { StandardModal, useModalValidation } from 'src/components/Modal';
+import { validateRefreshFrequency } from '../RefreshFrequency';
 import {
   BasicInfoSection,
   AccessSection,
@@ -515,7 +516,7 @@ const PropertiesModal = ({
 
   // Section handlers for extracted components
   const handleThemeChange = (value: any) => setSelectedThemeId(value || null);
-  const handleRefreshFrequencyChange = (value: any) =>
+  const handleRefreshFrequencyChange = (value: number) =>
     setRefreshFrequency(value);
 
   // Helper function for styling section
@@ -555,23 +556,10 @@ const PropertiesModal = ({
         key: 'refresh',
         name: t('Refresh settings'),
         validator: () => {
-          const errors = [];
           const refreshLimit =
             dashboardInfo?.common?.conf
               ?.SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT;
-          if (
-            refreshLimit &&
-            refreshFrequency > 0 &&
-            refreshFrequency < refreshLimit
-          ) {
-            errors.push(
-              t(
-                'Refresh frequency must be at least %s seconds',
-                refreshLimit / 1000,
-              ),
-            );
-          }
-          return errors;
+          return validateRefreshFrequency(refreshFrequency, refreshLimit);
         },
       },
       {

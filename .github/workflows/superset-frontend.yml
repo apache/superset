@@ -87,7 +87,7 @@ jobs:
           -v ${{ github.workspace }}/superset-frontend/coverage:/app/superset-frontend/coverage \
           --rm $TAG \
           bash -c \
-          "npm run test -- --coverage --shard=${{ matrix.shard }}/8 --coverageReporters=json-summary"
+          "npm run test -- --coverage --shard=${{ matrix.shard }}/8 --coverageReporters=json"
 
       - name: Upload Coverage Artifact
         uses: actions/upload-artifact@v6
@@ -99,15 +99,29 @@ jobs:
     needs: [sharded-jest-tests]
     if: needs.frontend-build.outputs.should-run == 'true'
     runs-on: ubuntu-24.04
+    permissions:
+      id-token: write
     steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
       - name: Download Coverage Artifacts
         uses: actions/download-artifact@v7
         with:
           pattern: coverage-artifacts-*
           path: coverage/
 
-      - name: Show Files
-        run: find coverage/
+      - name: Reorganize test result reports
+        run: |
+          find coverage/
+          for i in {1..8}; do
+            mv coverage/coverage-artifacts-${i}/coverage-final.json coverage/coverage-shard-${i}.json
+          done
+        shell: bash
 
       - name: Merge Code Coverage
         run: npx nyc merge coverage/ merged-output/coverage-summary.json
@@ -116,8 +130,9 @@ jobs:
         uses: codecov/codecov-action@v5
         with:
           flags: javascript
-          token: ${{ secrets.CODECOV_TOKEN }}
+          use_oidc: true
           verbose: true
+          disable_search: true
           files: merged-output/coverage-summary.json
           slug: apache/superset
 

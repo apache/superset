@@ -84,12 +84,21 @@ export default class CRUDCollection extends PureComponent<
     const { collection, collectionArray } = createKeyedCollection(
       props.collection,
     );
+
+    // Get initial page size from pagination prop
+    const initialPageSize =
+      typeof props.pagination === 'object' && props.pagination?.pageSize
+        ? props.pagination.pageSize
+        : 10;
+
     this.state = {
       expandedColumns: {},
       collection,
       collectionArray,
       sortColumn: '',
       sort: 0,
+      currentPage: 1,
+      pageSize: initialPageSize,
     };
     this.onAddItem = this.onAddItem.bind(this);
     this.renderExpandableSection = this.renderExpandableSection.bind(this);
@@ -238,10 +247,19 @@ export default class CRUDCollection extends PureComponent<
   }
 
   handleTableChange(
-    _pagination: TablePaginationConfig,
+    pagination: TablePaginationConfig,
     _filters: Record<string, FilterValue | null>,
     sorter: SorterResult<CollectionItem> | SorterResult<CollectionItem>[],
   ) {
+    // Handle pagination changes
+    if (pagination.current !== undefined && pagination.pageSize !== undefined) {
+      this.setState({
+        currentPage: pagination.current,
+        pageSize: pagination.pageSize,
+      });
+    }
+
+    // Handle sorting changes
     const columnSorter = Array.isArray(sorter) ? sorter[0] : sorter;
     let newSortColumn = '';
     let newSortOrder = 0;
@@ -397,7 +415,21 @@ export default class CRUDCollection extends PureComponent<
       stickyHeader,
       emptyMessage = t('No items'),
       expandFieldset,
+      pagination = false,
+      filterTerm,
+      filterFields,
     } = this.props;
+
+    const displayData =
+      filterTerm && filterFields?.length
+        ? this.state.collectionArray.filter(item =>
+            filterFields.some(field =>
+              String(item[field] ?? '')
+                .toLowerCase()
+                .includes(filterTerm.toLowerCase()),
+            ),
+          )
+        : this.state.collectionArray;
 
     const tableColumns = this.buildTableColumns();
     const expandedRowKeys = Object.keys(this.state.expandedColumns).filter(
@@ -415,6 +447,22 @@ export default class CRUDCollection extends PureComponent<
           },
         }
       : undefined;
+
+    // Build controlled pagination config, clamping currentPage to valid range
+    // based on displayData (filtered) length, not the full collection
+    const { pageSize, currentPage: statePage } = this.state;
+    const totalItems = displayData.length;
+    const maxPage = totalItems > 0 ? Math.ceil(totalItems / pageSize) : 1;
+    const currentPage = Math.min(statePage, maxPage);
+    const paginationConfig: false | TablePaginationConfig | undefined =
+      pagination === false || pagination === undefined
+        ? pagination
+        : {
+            ...(typeof pagination === 'object' ? pagination : {}),
+            current: currentPage,
+            pageSize,
+            total: totalItems,
+          };
 
     return (
       <>
@@ -439,16 +487,15 @@ export default class CRUDCollection extends PureComponent<
         <Table<CollectionItem>
           data-test="crud-table"
           columns={tableColumns}
-          data={this.state.collectionArray as CollectionItem[]}
+          data={displayData as CollectionItem[]}
           rowKey={(record: CollectionItem) => String(record.id)}
           sticky={stickyHeader}
-          pagination={false}
+          pagination={paginationConfig}
           onChange={this.handleTableChange}
           locale={{ emptyText: emptyMessage }}
           css={
             stickyHeader &&
             css`
-              height: 350px;
               overflow: auto;
             `
           }

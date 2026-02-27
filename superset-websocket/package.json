@@ -30,12 +30,12 @@
     "@types/eslint__js": "^8.42.3",
     "@types/jest": "^29.5.14",
     "@types/jsonwebtoken": "^9.0.10",
-    "@types/lodash": "^4.17.23",
-    "@types/node": "^25.2.3",
+    "@types/lodash": "^4.17.24",
+    "@types/node": "^25.3.1",
     "@types/ws": "^8.18.1",
     "@typescript-eslint/eslint-plugin": "^8.55.0",
     "@typescript-eslint/parser": "^8.55.0",
-    "eslint": "^9.39.2",
+    "eslint": "^10.0.2",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-lodash": "^8.0.0",
     "globals": "^17.3.0",
@@ -45,7 +45,7 @@
     "ts-node": "^10.9.2",
     "tscw-config": "^1.1.2",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.56.0"
+    "typescript-eslint": "^8.56.1"
   },
   "engines": {
     "node": "^22.22.0",

@@ -270,7 +270,13 @@ class ListDashboardsRequest(MetadataCacheControl):
 
 
 class GetDashboardInfoRequest(MetadataCacheControl):
-    """Request schema for get_dashboard_info with support for ID, UUID, or slug."""
+    """Request schema for get_dashboard_info with support for ID, UUID, or slug.
+
+    When permalink_key is provided, the tool will retrieve the dashboard's filter
+    state from the permalink, allowing you to see what filters the user has applied
+    (not just the default filter state). This is useful when a user applies filters
+    in a dashboard but the URL contains a permalink_key.
+    """
 
     identifier: Annotated[
         int | str,
@@ -278,6 +284,15 @@ class GetDashboardInfoRequest(MetadataCacheControl):
             description="Dashboard identifier - can be numeric ID, UUID string, or slug"
         ),
     ]
+    permalink_key: str | None = Field(
+        default=None,
+        description=(
+            "Optional permalink key for retrieving dashboard filter state. When a "
+            "user applies filters in a dashboard, the state can be persisted in a "
+            "permalink. If provided, the tool returns the filter configuration "
+            "from that permalink."
+        ),
+    )
 
 
 class DashboardInfo(BaseModel):
@@ -320,6 +335,32 @@ class DashboardInfo(BaseModel):
     charts: List[ChartInfo] = Field(
         default_factory=list, description="Dashboard charts"
     )
+
+    # Fields for permalink/filter state support
+    permalink_key: str | None = Field(
+        None,
+        description=(
+            "Permalink key used to retrieve filter state. When present, indicates "
+            "the filter_state came from a permalink rather than the default dashboard."
+        ),
+    )
+    filter_state: Dict[str, Any] | None = Field(
+        None,
+        description=(
+            "Filter state from permalink. Contains dataMask (native filter values), "
+            "activeTabs, anchor, and urlParams. When present, represents the actual "
+            "filters the user has applied to the dashboard."
+        ),
+    )
+    is_permalink_state: bool = Field(
+        default=False,
+        description=(
+            "True if the filter_state came from a permalink rather than the default "
+            "dashboard configuration. When true, the filter_state reflects what the "
+            "user sees in the dashboard, not the default filter state."
+        ),
+    )
+
     model_config = ConfigDict(from_attributes=True, ser_json_timedelta="iso8601")
 
     @model_serializer(mode="wrap", when_used="json")
