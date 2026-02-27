@@ -326,22 +326,25 @@ export const useColDefs = ({
             'last',
           ],
         }),
-        // Boolean columns use AG Grid's built-in agCheckboxCellRenderer
-        // via cellDataType: 'boolean', so skip custom cellRenderer for them
-        ...(!isBooleanColumn && {
-          cellRenderer: (p: CellRendererProps) =>
-            isTextColumn ? TextCellRenderer(p) : NumericCellRenderer(p),
-          cellRendererParams: {
-            allowRenderHtml: true,
-            columns,
-            hasBasicColorFormatters,
-            col,
-            basicColorFormatters,
-            valueRange,
-            alignPositiveNegative: alignPN || alignPositiveNegative,
-            colorPositiveNegative,
-          },
-        }),
+        ...(isBooleanColumn
+          ? {
+              cellRenderer: 'agCheckboxCellRenderer',
+              cellRendererParams: { disabled: true },
+            }
+          : {
+              cellRenderer: (p: CellRendererProps) =>
+                isTextColumn ? TextCellRenderer(p) : NumericCellRenderer(p),
+              cellRendererParams: {
+                allowRenderHtml: true,
+                columns,
+                hasBasicColorFormatters,
+                col,
+                basicColorFormatters,
+                valueRange,
+                alignPositiveNegative: alignPN || alignPositiveNegative,
+                colorPositiveNegative,
+              },
+            }),
         context: {
           isMetric,
           isPercentMetric,
