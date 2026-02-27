@@ -55,6 +55,7 @@ import { FoldersContainer, FoldersContent } from './styles';
 import { FoldersEditorProps } from './types';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { useDragHandlers } from './hooks/useDragHandlers';
+import { useContainingBlockModifier } from './hooks/useContainingBlockModifier';
 import { useItemHeights } from './hooks/useItemHeights';
 import { useHeightCache } from './hooks/useHeightCache';
 import {
@@ -89,6 +90,8 @@ export default function FoldersEditor({
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   const sensors = useSensors(useSensor(PointerSensor, pointerSensorOptions));
+  const contentRef = useRef<HTMLDivElement>(null);
+  const dragOverlayModifiers = useContainingBlockModifier(contentRef);
 
   const fullFlattenedItems = useMemo(() => flattenTree(items), [items]);
 
@@ -202,8 +205,28 @@ export default function FoldersEditor({
       setSelectedItemIds(new Set());
     } else {
       setSelectedItemIds(itemsToSelect);
+      // Expand ancestor folders of selected items
+      const parentMap = new Map<string, string | null>();
+      for (const item of fullFlattenedItems) {
+        parentMap.set(item.uuid, item.parentId);
+      }
+      const foldersToExpand = new Set<string>();
+      for (const id of itemsToSelect) {
+        let parentId = parentMap.get(id) ?? null;
+        while (parentId) {
+          foldersToExpand.add(parentId);
+          parentId = parentMap.get(parentId) ?? null;
+        }
+      }
+      setCollapsedIds(prev => {
+        const newSet = new Set(prev);
+        for (const folderId of foldersToExpand) {
+          newSet.delete(folderId);
+        }
+        return newSet;
+      });
     }
-  }, [visibleItemIds, fullItemsByUuid, allVisibleSelected]);
+  }, [visibleItemIds, fullItemsByUuid, fullFlattenedItems, allVisibleSelected]);
 
   const handleResetToDefault = () => {
     setShowResetConfirm(true);
@@ -377,6 +400,16 @@ export default function FoldersEditor({
     [flattenedItems],
   );
 
+  const selectedMetricsCount = useMemo(() => {
+    let count = 0;
+    for (const id of selectedItemIds) {
+      if (metricsMap.has(id)) {
+        count += 1;
+      }
+    }
+    return count;
+  }, [selectedItemIds, metricsMap]);
+
   const folderChildCounts = useMemo(() => {
     const counts = new Map<string, number>();
     // Initialize all folders with 0
@@ -407,8 +440,12 @@ export default function FoldersEditor({
         onSelectAll={handleSelectAll}
         onResetToDefault={handleResetToDefault}
         allVisibleSelected={allVisibleSelected}
+        selectedMetricsCount={selectedMetricsCount}
+        selectedColumnsCount={selectedItemIds.size - selectedMetricsCount}
+        totalMetricsCount={metrics.length}
+        totalColumnsCount={columns.length}
       />
-      <FoldersContent>
+      <FoldersContent ref={contentRef}>
         <DndContext
           sensors={sensors}
           measuring={measuringConfig}
@@ -453,7 +490,7 @@ export default function FoldersEditor({
             </AutoSizer>
           </SortableContext>
 
-          <DragOverlay>
+          <DragOverlay modifiers={dragOverlayModifiers}>
             <DragOverlayContent
               dragOverlayItems={dragOverlayItems}
               dragOverlayWidth={dragOverlayWidth}
