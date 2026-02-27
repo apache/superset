@@ -30,7 +30,8 @@ import {
   ReactElement,
 } from 'react';
 
-import { ensureIsArray, t, usePrevious } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { ensureIsArray, usePrevious } from '@superset-ui/core';
 import { Constants } from '@superset-ui/core/components';
 import {
   LabeledValue as AntdLabeledValue,
@@ -521,7 +522,7 @@ const Select = forwardRef(
               handleDeselectAll();
             }}
           >
-            {t('Deselect all')} {`(${bulkSelectCounts.deselectable})`}
+            {t('Clear')} {`(${bulkSelectCounts.deselectable})`}
           </Button>
         </StyledBulkActionsContainer>
       ),
@@ -746,7 +747,7 @@ const Select = forwardRef(
           onBlur={handleOnBlur}
           onDeselect={handleOnDeselect}
           onOpenChange={handleOnDropdownVisibleChange}
-          // @ts-ignore
+          // @ts-expect-error
           onPaste={onPaste}
           onPopupScroll={undefined}
           onSearch={shouldShowSearch ? handleOnSearch : undefined}
@@ -775,6 +776,7 @@ const Select = forwardRef(
           options={visibleOptions}
           optionRender={option => <Space>{option.label || option.value}</Space>}
           oneLine={oneLine}
+          popupMatchSelectWidth={selectAllEnabled ? 168 : true}
           css={props.css}
           {...props}
           showSearch={shouldShowSearch}

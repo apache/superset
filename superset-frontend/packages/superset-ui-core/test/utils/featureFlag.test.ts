@@ -16,13 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import * as uiCore from '@superset-ui/core';
+import {
+  FeatureFlag,
+  initFeatureFlags,
+  isFeatureEnabled,
+} from '@superset-ui/core';
+import * as uiCore from '@apache-superset/core';
 
 test('initializes feature flags', () => {
   Object.defineProperty(window, 'featureFlags', {
     value: undefined,
   });
-  uiCore.initFeatureFlags();
+  initFeatureFlags();
   expect(window.featureFlags).toEqual({});
 });
 
@@ -33,7 +38,7 @@ test('initializes feature flags with predefined values', () => {
   const featureFlags = {
     DRILL_BY: false,
   };
-  uiCore.initFeatureFlags(featureFlags);
+  initFeatureFlags(featureFlags);
   expect(window.featureFlags).toEqual(featureFlags);
 });
 
@@ -42,7 +47,7 @@ test('does nothing if feature flags are already initialized', () => {
   Object.defineProperty(window, 'featureFlags', {
     value: featureFlags,
   });
-  uiCore.initFeatureFlags({ DRILL_BY: true });
+  initFeatureFlags({ DRILL_BY: true });
   expect(window.featureFlags).toEqual(featureFlags);
 });
 
@@ -51,7 +56,7 @@ test('returns false and raises console error if feature flags have not been init
   Object.defineProperty(window, 'featureFlags', {
     value: undefined,
   });
-  expect(uiCore.isFeatureEnabled(uiCore.FeatureFlag.DrillBy)).toEqual(false);
+  expect(isFeatureEnabled(FeatureFlag.DrillBy)).toEqual(false);
   expect(uiCore.logging.error).toHaveBeenCalled();
   expect(logging).toHaveBeenCalledWith('Failed to query feature flag DRILL_BY');
 });
@@ -60,7 +65,7 @@ test('returns false for unset feature flag', () => {
   Object.defineProperty(window, 'featureFlags', {
     value: {},
   });
-  expect(uiCore.isFeatureEnabled(uiCore.FeatureFlag.DrillBy)).toEqual(false);
+  expect(isFeatureEnabled(FeatureFlag.DrillBy)).toEqual(false);
 });
 
 test('returns true for set feature flag', () => {
@@ -69,5 +74,5 @@ test('returns true for set feature flag', () => {
       DRILL_BY: true,
     },
   });
-  expect(uiCore.isFeatureEnabled(uiCore.FeatureFlag.DrillBy)).toEqual(true);
+  expect(isFeatureEnabled(FeatureFlag.DrillBy)).toEqual(true);
 });

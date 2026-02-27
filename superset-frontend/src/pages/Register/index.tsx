@@ -17,7 +17,8 @@
  * under the License.
  */
 
-import { SupersetClient, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { SupersetClient } from '@superset-ui/core';
 import { styled, css } from '@apache-superset/core/ui';
 import {
   Button,
@@ -85,8 +86,10 @@ export default function Login() {
       >
         <Result
           status="success"
-          title="Registration successful"
-          subTitle="Your account is activated. You can log in with your credentials."
+          title={t('Registration successful')}
+          subTitle={t(
+            'Your account is activated. You can log in with your credentials.',
+          )}
           extra={[
             <Button type="default" href="/login/" data-test="login-button">
               {t('Login')}
@@ -219,7 +222,7 @@ export default function Login() {
             />
           </Form.Item>
           {authRecaptchaPublicKey && (
-            <Form.Item label="Captcha">
+            <Form.Item label={t('Captcha')}>
               <ReactCAPTCHA
                 sitekey={authRecaptchaPublicKey}
                 onChange={value => {

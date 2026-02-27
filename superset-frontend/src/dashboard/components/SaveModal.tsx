@@ -27,7 +27,7 @@ import {
   Divider,
   Flex,
 } from '@superset-ui/core/components';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { useTheme } from '@apache-superset/core/ui';
 
 import {

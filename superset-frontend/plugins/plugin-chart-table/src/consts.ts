@@ -17,7 +17,7 @@
  * under the License.
  */
 import { formatSelectOptions } from '@superset-ui/chart-controls';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 
 export const PAGE_SIZE_OPTIONS = formatSelectOptions<number>([
   [0, t('All')],

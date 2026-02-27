@@ -17,6 +17,7 @@
  * under the License.
  */
 import { Icons } from '@superset-ui/core/components';
+import { t } from '@apache-superset/core';
 import { useTheme } from '@apache-superset/core/ui';
 
 interface IssueCodeProps {
@@ -33,7 +34,7 @@ export function IssueCode({ code, message }: IssueCodeProps) {
         href={`https://superset.apache.org/docs/using-superset/issue-codes#issue-${code}`}
         rel="noopener noreferrer"
         target="_blank"
-        aria-label="Superset docs link"
+        aria-label={t('Superset docs link')}
       >
         <Icons.Full iconSize="m" iconColor={theme.colorPrimary} />
       </a>

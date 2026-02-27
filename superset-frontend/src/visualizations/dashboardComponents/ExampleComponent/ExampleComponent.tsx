@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DashboardComponentMetadata, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { DashboardComponentMetadata } from '@superset-ui/core';
 
 // TODO: POC only component can be removed after PR approved
 const ExampleComponent = ({

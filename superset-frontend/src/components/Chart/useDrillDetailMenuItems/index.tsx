@@ -25,6 +25,7 @@ import {
   useMemo,
 } from 'react';
 import { isEmpty } from 'lodash';
+import { t } from '@apache-superset/core';
 import {
   Behavior,
   BinaryQueryObjectFilterClause,
@@ -32,7 +33,6 @@ import {
   getChartMetadataRegistry,
   QueryFormData,
   removeHTMLTags,
-  t,
 } from '@superset-ui/core';
 import { css, styled } from '@apache-superset/core/ui';
 import { useSelector } from 'react-redux';

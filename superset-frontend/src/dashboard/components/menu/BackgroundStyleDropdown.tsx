@@ -18,7 +18,7 @@
  */
 import { PureComponent } from 'react';
 import cx from 'classnames';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { css, styled } from '@apache-superset/core/ui';
 
 import backgroundStyleOptions from 'src/dashboard/util/backgroundStyleOptions';

@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@apache-superset/core';
 import {
   DataRecord,
   DataRecordValue,
   getTimeFormatterForGranularity,
-  t,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import { useCallback, useEffect, useState, useMemo } from 'react';
@@ -42,6 +42,7 @@ import TimeComparisonVisibility from './AgGridTable/components/TimeComparisonVis
 import { useColDefs } from './utils/useColDefs';
 import { getCrossFilterDataMask } from './utils/getCrossFilterDataMask';
 import { StyledChartContainer } from './styles';
+import type { FilterState } from './utils/filterStateManager';
 
 const getGridHeight = (height: number, includeSearch: boolean | undefined) => {
   let calculatedGridHeight = height;
@@ -88,6 +89,15 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
   const [searchOptions, setSearchOptions] = useState<SearchOption[]>([]);
 
+  // Extract metric column names for SQL conversion
+  const metricColumns = useMemo(
+    () =>
+      columns
+        .filter(col => col.isMetric || col.isPercentMetric)
+        .map(col => col.key),
+    [columns],
+  );
+
   useEffect(() => {
     const options = columns
       .filter(col => col?.dataType === GenericDataType.String)
@@ -100,6 +110,29 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       setSearchOptions(options || []);
     }
   }, [columns]);
+
+  useEffect(() => {
+    if (!serverPagination || !serverPaginationData || !rowCount) return;
+
+    const currentPage = serverPaginationData.currentPage ?? 0;
+    const currentPageSize = serverPaginationData.pageSize ?? serverPageLength;
+    const totalPages = Math.ceil(rowCount / currentPageSize);
+
+    if (currentPage >= totalPages && totalPages > 0) {
+      const validPage = Math.max(0, totalPages - 1);
+      const modifiedOwnState = {
+        ...serverPaginationData,
+        currentPage: validPage,
+      };
+      updateTableOwnState(setDataMask, modifiedOwnState);
+    }
+  }, [
+    rowCount,
+    serverPagination,
+    serverPaginationData,
+    serverPageLength,
+    setDataMask,
+  ]);
 
   const comparisonColumns = [
     { key: 'all', label: t('Display all') },
@@ -119,6 +152,52 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       }
     },
     [onChartStateChange],
+  );
+
+  const handleFilterChanged = useCallback(
+    (completeFilterState: FilterState) => {
+      if (!serverPagination) return;
+      // Sync chartState immediately with the new filter model to prevent stale state
+      // This ensures chartState and ownState are in sync
+      if (onChartStateChange && chartState) {
+        const filterModel =
+          completeFilterState.originalFilterModel &&
+          Object.keys(completeFilterState.originalFilterModel).length > 0
+            ? completeFilterState.originalFilterModel
+            : undefined;
+        const updatedChartState = {
+          ...chartState,
+          filterModel,
+          timestamp: Date.now(),
+        };
+        onChartStateChange(updatedChartState);
+      }
+
+      // Prepare modified own state for server pagination
+      const modifiedOwnState = {
+        ...serverPaginationData,
+        agGridFilterModel:
+          completeFilterState.originalFilterModel &&
+          Object.keys(completeFilterState.originalFilterModel).length > 0
+            ? completeFilterState.originalFilterModel
+            : undefined,
+        agGridSimpleFilters: completeFilterState.simpleFilters,
+        agGridComplexWhere: completeFilterState.complexWhere,
+        agGridHavingClause: completeFilterState.havingClause,
+        lastFilteredColumn: completeFilterState.lastFilteredColumn,
+        lastFilteredInputPosition: completeFilterState.inputPosition,
+        currentPage: 0, // Reset to first page when filtering
+      };
+
+      updateTableOwnState(setDataMask, modifiedOwnState);
+    },
+    [
+      setDataMask,
+      serverPagination,
+      serverPaginationData,
+      onChartStateChange,
+      chartState,
+    ],
   );
 
   const filteredColumns = useMemo(() => {
@@ -172,8 +251,13 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   );
 
   const timestampFormatter = useCallback(
-    value => getTimeFormatterForGranularity(timeGrain)(value),
-    [timeGrain],
+    (value: DataRecordValue) =>
+      isRawRecords
+        ? String(value ?? '')
+        : getTimeFormatterForGranularity(timeGrain)(
+            value as number | Date | null | undefined,
+          ),
+    [timeGrain, isRawRecords],
   );
 
   const toggleFilter = useCallback(
@@ -197,7 +281,14 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         setDataMask(getCrossFilterDataMask(crossFilterProps).dataMask);
       }
     },
-    [emitCrossFilters, setDataMask, filters, timeGrain],
+    [
+      emitCrossFilters,
+      setDataMask,
+      filters,
+      timeGrain,
+      isActiveFilterValue,
+      timestampFormatter,
+    ],
   );
 
   const handleServerPaginationChange = useCallback(
@@ -206,6 +297,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         ...serverPaginationData,
         currentPage: pageNumber,
         pageSize,
+        lastFilteredColumn: undefined,
+        lastFilteredInputPosition: undefined,
       };
       updateTableOwnState(setDataMask, modifiedOwnState);
     },
@@ -218,6 +311,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         ...serverPaginationData,
         currentPage: 0,
         pageSize,
+        lastFilteredColumn: undefined,
+        lastFilteredInputPosition: undefined,
       };
       updateTableOwnState(setDataMask, modifiedOwnState);
     },
@@ -230,6 +325,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         ...serverPaginationData,
         searchColumn: searchCol,
         searchText: '',
+        lastFilteredColumn: undefined,
+        lastFilteredInputPosition: undefined,
       };
       updateTableOwnState(setDataMask, modifiedOwnState);
     }
@@ -243,6 +340,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           serverPaginationData?.searchColumn || searchOptions[0]?.value,
         searchText,
         currentPage: 0, // Reset to first page when searching
+        lastFilteredColumn: undefined,
+        lastFilteredInputPosition: undefined,
       };
       updateTableOwnState(setDataMask, modifiedOwnState);
     },
@@ -255,6 +354,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       const modifiedOwnState = {
         ...serverPaginationData,
         sortBy,
+        lastFilteredColumn: undefined,
+        lastFilteredInputPosition: undefined,
       };
       updateTableOwnState(setDataMask, modifiedOwnState);
     },
@@ -288,6 +389,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         onSearchColChange={handleChangeSearchCol}
         onSearchChange={handleSearch}
         onSortChange={handleSortByChange}
+        onFilterChanged={handleFilterChanged}
+        metricColumns={metricColumns}
         id={slice_id}
         handleCrossFilter={toggleFilter}
         percentMetrics={percentMetrics}

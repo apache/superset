@@ -17,7 +17,8 @@
  * under the License.
  */
 import { Link } from 'react-router-dom';
-import { isFeatureEnabled, FeatureFlag, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import { CardStyles } from 'src/views/CRUD/utils';
 import {
   Button,

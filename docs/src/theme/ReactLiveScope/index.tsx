@@ -18,36 +18,49 @@
  */
 
 import React from 'react';
-import { Button, Card, Input, Space, Tag, Tooltip } from 'antd';
 
-// Import extension components from @apache-superset/core/ui
-// This matches the established pattern used throughout the Superset codebase
-// Resolved via webpack alias to superset-frontend/packages/superset-core/src/ui/components
-import { Alert } from '@apache-superset/core/ui';
+// Browser-only check for SSR safety
+const isBrowser = typeof window !== 'undefined';
 
 /**
  * ReactLiveScope provides the scope for live code blocks.
  * Any component added here will be available in ```tsx live blocks.
  *
- * To add more components:
- * 1. Import the component from @apache-superset/core above
- * 2. Add it to the scope object below
+ * Components are conditionally loaded only in the browser to avoid
+ * SSG issues with Emotion CSS-in-JS jsx runtime.
+ *
+ * Components are available by name, e.g.:
+ *   <Button>Click me</Button>
+ *   <Avatar size="large" />
+ *   <Badge count={5} />
  */
-const ReactLiveScope = {
+
+// Base scope with React (always available)
+const ReactLiveScope: Record<string, unknown> = {
   // React core
   React,
   ...React,
-
-  // Extension components from @apache-superset/core
-  Alert,
-
-  // Common Ant Design components (for demos)
-  Button,
-  Card,
-  Input,
-  Space,
-  Tag,
-  Tooltip,
 };
+
+// Only load Superset components in browser context
+// This prevents SSG errors from Emotion CSS-in-JS
+if (isBrowser) {
+  try {
+    // Dynamic require for browser-only execution
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const SupersetComponents = require('@superset/components');
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { Alert } = require('@apache-superset/core/ui');
+
+    console.log('[ReactLiveScope] SupersetComponents keys:', Object.keys(SupersetComponents || {}).slice(0, 10));
+    console.log('[ReactLiveScope] Has Button?', 'Button' in (SupersetComponents || {}));
+
+    Object.assign(ReactLiveScope, SupersetComponents, { Alert });
+
+    console.log('[ReactLiveScope] Final scope keys:', Object.keys(ReactLiveScope).slice(0, 20));
+  } catch (e) {
+    console.error('[ReactLiveScope] Failed to load Superset components:', e);
+  }
+}
 
 export default ReactLiveScope;

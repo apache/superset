@@ -18,22 +18,38 @@
  */
 import { FunctionComponent, useState, useEffect, ChangeEvent } from 'react';
 
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { styled } from '@apache-superset/core/ui';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import {
-  Input,
-  JsonEditor,
-  Modal,
-  RangePicker,
-} from '@superset-ui/core/components';
+import { Input, Modal, RangePicker } from '@superset-ui/core/components';
 import { useJsonValidation } from '@superset-ui/core/components/AsyncAceEditor';
-
+import type { editors } from '@apache-superset/core';
+import { EditorHost } from 'src/core/editors';
 import { OnlyKeyWithType } from 'src/utils/types';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import { AnnotationObject } from './types';
+
+type EditorAnnotation = editors.EditorAnnotation;
+
+/**
+ * Convert Ace annotation format to EditorAnnotation format.
+ */
+const toEditorAnnotations = (
+  aceAnnotations: Array<{
+    type: string;
+    row: number;
+    column: number;
+    text: string;
+  }>,
+): EditorAnnotation[] =>
+  aceAnnotations.map(ann => ({
+    severity: ann.type as EditorAnnotation['severity'],
+    line: ann.row,
+    column: ann.column,
+    message: ann.text,
+  }));
 
 interface AnnotationModalProps {
   addDangerToast: (msg: string) => void;
@@ -50,7 +66,7 @@ const StyledAnnotationTitle = styled.div`
     ${({ theme }) => theme.sizeUnit * 4}px auto;
 `;
 
-const StyledJsonEditor = styled(JsonEditor)`
+const StyledEditorHost = styled(EditorHost)`
   /* Border is already applied by AceEditor itself */
 `;
 
@@ -329,16 +345,18 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
       </AnnotationContainer>
       <AnnotationContainer>
         <div className="control-label">{t('JSON metadata')}</div>
-        <StyledJsonEditor
+        <StyledEditorHost
+          id="annotation-json-metadata"
           onChange={onJsonChange}
           value={
             currentAnnotation?.json_metadata
               ? currentAnnotation.json_metadata
               : ''
           }
+          language="json"
           width="100%"
           height="120px"
-          annotations={jsonAnnotations}
+          annotations={toEditorAnnotations(jsonAnnotations)}
         />
       </AnnotationContainer>
     </Modal>

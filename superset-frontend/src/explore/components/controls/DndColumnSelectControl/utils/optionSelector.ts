@@ -17,12 +17,12 @@
  * under the License.
  */
 import { ColumnMeta, isColumnMeta } from '@superset-ui/chart-controls';
+import { t } from '@apache-superset/core';
 import {
   AdhocColumn,
   ensureIsArray,
   QueryFormColumn,
   isPhysicalColumn,
-  t,
 } from '@superset-ui/core';
 
 const getColumnNameOrAdhocColumn = (

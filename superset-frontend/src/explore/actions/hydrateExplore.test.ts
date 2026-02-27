@@ -31,7 +31,7 @@ test('creates hydrate action from initial data', () => {
     explore: {},
   }));
   // ignore type check - we dont need exact explore state for this test
-  // @ts-ignore
+  // @ts-expect-error
   hydrateExplore(exploreInitialData)(dispatch, getState);
   expect(dispatch).toHaveBeenCalledWith(
     expect.objectContaining({
@@ -104,7 +104,7 @@ test('creates hydrate action with existing state', () => {
     explore: { controlsTransferred: ['all_columns'] },
   }));
   // ignore type check - we dont need exact explore state for this test
-  // @ts-ignore
+  // @ts-expect-error
   hydrateExplore(exploreInitialData)(dispatch, getState);
   expect(dispatch).toHaveBeenCalledWith(
     expect.objectContaining({
@@ -181,7 +181,7 @@ test('uses configured default time range if not set', () => {
     },
     explore: {},
   }));
-  // @ts-ignore
+  // @ts-expect-error
   hydrateExplore({ form_data: {}, slice: {}, dataset: {} })(dispatch, getState);
   expect(dispatch).toHaveBeenCalledWith(
     expect.objectContaining({
@@ -199,7 +199,7 @@ test('uses configured default time range if not set', () => {
     slice: {},
     dataset: {},
   };
-  // @ts-ignore
+  // @ts-expect-error
   hydrateExplore(withTimeRangeSet)(dispatch, getState);
   expect(dispatch).toHaveBeenCalledWith(
     expect.objectContaining({
@@ -239,10 +239,10 @@ test('extracts currency formats from metrics in dataset', () => {
     ],
   };
 
-  // @ts-ignore
+  // @ts-expect-error
   hydrateExplore({ ...exploreInitialData, dataset: datasetWithMetrics })(
     dispatch,
-    // @ts-ignore
+    // @ts-expect-error
     getState,
   );
 

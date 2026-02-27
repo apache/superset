@@ -18,7 +18,7 @@
  */
 import { ReactNode } from 'react';
 import { ClassNames } from '@emotion/react';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { styled, useTheme } from '@apache-superset/core/ui';
 import { Flex, Tooltip } from '@superset-ui/core/components';
 

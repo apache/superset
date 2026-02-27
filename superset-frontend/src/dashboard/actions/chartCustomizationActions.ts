@@ -18,77 +18,59 @@
  */
 import { AnyAction } from 'redux';
 import { ThunkAction, ThunkDispatch } from 'redux-thunk';
-import { makeApi, t, getClientErrorObject, DataMask } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import {
+  makeApi,
+  getClientErrorObject,
+  ChartCustomization,
+  ChartCustomizationDivider,
+  ColumnOption,
+  Filter,
+  Filters,
+} from '@superset-ui/core';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { DashboardInfo, RootState } from 'src/dashboard/types';
 import {
-  ChartCustomizationItem,
-  FilterOption,
-  ColumnOption,
-} from 'src/dashboard/components/nativeFilters/ChartCustomization/types';
-import { triggerQuery } from 'src/components/Chart/chartAction';
-import { removeDataMask, updateDataMask } from 'src/dataMask/actions';
-import { onSave } from './dashboardState';
+  removeDataMask,
+  setDataMaskForFilterChangesComplete,
+} from 'src/dataMask/actions';
+import { dashboardInfoChanged } from './dashboardInfo';
+import {
+  SET_NATIVE_FILTERS_CONFIG_COMPLETE,
+  SET_IN_SCOPE_STATUS_OF_FILTERS,
+} from './nativeFilters';
+import { SaveFilterChangesType } from '../components/nativeFilters/FiltersConfigModal/types';
 
-const createUpdateDashboardApi = (id: number) =>
+const createUpdateChartCustomizationsApi = (id: number) =>
   makeApi<
-    Partial<DashboardInfo>,
-    { result: Partial<DashboardInfo>; last_modified_time: number }
+    {
+      modified: (
+        | (ChartCustomization & { cascadeParentIds: string[] })
+        | ChartCustomizationDivider
+      )[];
+      deleted: string[];
+      reordered?: string[];
+    },
+    { result: (ChartCustomization | ChartCustomizationDivider)[] }
   >({
     method: 'PUT',
-    endpoint: `/api/v1/dashboard/${id}`,
+    endpoint: `/api/v1/dashboard/${id}/chart_customizations`,
   });
-
-export interface ChartCustomizationSavePayload {
-  id: string;
-  title?: string;
-  description?: string;
-  removed?: boolean;
-  chartId?: number;
-  customization: {
-    name: string;
-    dataset:
-      | string
-      | number
-      | {
-          value: string | number;
-          label?: string;
-          table_name?: string;
-          schema?: string;
-        }
-      | null;
-    datasetInfo?: {
-      label: string;
-      value: number;
-      table_name: string;
-    };
-    column: string | string[] | null;
-    description?: string;
-    sortFilter?: boolean;
-    sortAscending?: boolean;
-    sortMetric?: string;
-    hasDefaultValue?: boolean;
-    defaultValue?: string;
-    isRequired?: boolean;
-    selectFirst?: boolean;
-    defaultDataMask?: DataMask;
-    defaultValueQueriesData?: ColumnOption[] | null;
-    aggregation?: string;
-    canSelectMultiple?: boolean;
-  };
-}
 
 export const SAVE_CHART_CUSTOMIZATION_COMPLETE =
   'SAVE_CHART_CUSTOMIZATION_COMPLETE';
 
 export function setChartCustomization(
-  chartCustomization: ChartCustomizationItem[],
+  chartCustomization: ChartCustomization[],
 ) {
   return { type: SAVE_CHART_CUSTOMIZATION_COMPLETE, chartCustomization };
 }
 
 export function saveChartCustomization(
-  chartCustomizationItems: ChartCustomizationSavePayload[],
+  modifiedCustomizations: (ChartCustomization | ChartCustomizationDivider)[],
+  deletedIds: string[],
+  reorderedIds: string[] = [],
+  resetDataMask: boolean = false,
 ): ThunkAction<
   Promise<{ result: Partial<DashboardInfo>; last_modified_time: number }>,
   RootState,
@@ -99,119 +81,97 @@ export function saveChartCustomization(
     dispatch: ThunkDispatch<RootState, null, AnyAction>,
     getState: () => RootState,
   ) {
-    const { id, metadata, json_metadata } = getState().dashboardInfo;
+    const { id, metadata } = getState().dashboardInfo;
 
-    const currentState = getState();
-    const currentChartCustomizationItems =
-      currentState.dashboardInfo.metadata?.chart_customization_config || [];
-
-    const existingItemsMap = new Map(
-      currentChartCustomizationItems.map(item => [item.id, item]),
-    );
-
-    const updatedItemsMap = new Map(existingItemsMap);
-
-    chartCustomizationItems.forEach(newItem => {
-      if (newItem.removed) {
-        updatedItemsMap.delete(newItem.id);
-      } else {
-        const chartCustomizationItem: ChartCustomizationItem = {
-          id: newItem.id,
-          title: newItem.title,
-          removed: newItem.removed,
-          chartId: newItem.chartId,
-          customization: newItem.customization,
-        };
-        updatedItemsMap.set(newItem.id, chartCustomizationItem);
+    const modifiedItems = modifiedCustomizations.map(item => {
+      if ('cascadeParentIds' in item) {
+        return {
+          ...item,
+          cascadeParentIds: item.cascadeParentIds || [],
+        } as ChartCustomization & { cascadeParentIds: string[] };
       }
+      return item as ChartCustomizationDivider;
     });
 
-    const simpleItems = Array.from(updatedItemsMap.values());
-
-    dispatch(setChartCustomization(simpleItems));
-
-    const removedItems = currentChartCustomizationItems.filter(
-      existingItem => !updatedItemsMap.has(existingItem.id),
-    );
-
-    removedItems.forEach(removedItem => {
-      const customizationFilterId = `chart_customization_${removedItem.id}`;
-      dispatch(removeDataMask(customizationFilterId));
+    deletedIds.forEach((customizationId: string) => {
+      dispatch(removeDataMask(customizationId));
     });
 
-    simpleItems.forEach(item => {
-      const customizationFilterId = `chart_customization_${item.id}`;
-
-      if (item.customization?.column) {
-        const existingDataMask = getState().dataMask[customizationFilterId];
-
-        const existingFilterState = existingDataMask?.filterState;
-
-        dispatch(removeDataMask(customizationFilterId));
-
-        const dataMask = {
-          extraFormData: {},
-          filterState: {
-            value:
-              existingFilterState?.value ||
-              item.customization?.defaultDataMask?.filterState?.value ||
-              [],
-          },
-          ownState: {
-            column: item.customization.column,
-          },
-        };
-
-        dispatch(updateDataMask(customizationFilterId, dataMask));
-      } else {
-        dispatch(removeDataMask(customizationFilterId));
-      }
-    });
-
-    const updateDashboard = createUpdateDashboardApi(id);
+    const updateChartCustomizations = createUpdateChartCustomizationsApi(id);
 
     try {
-      let parsedMetadata: any = {};
-      try {
-        parsedMetadata = json_metadata ? JSON.parse(json_metadata) : metadata;
-      } catch (e) {
-        console.error('Error parsing json_metadata:', e);
-        parsedMetadata = metadata || {};
-      }
-
-      const updatedMetadata = {
-        ...parsedMetadata,
-        native_filter_configuration: (
-          parsedMetadata.native_filter_configuration || []
-        ).filter(
-          (item: any) =>
-            !(
-              item.type === 'CHART_CUSTOMIZATION' &&
-              item.id === 'chart_customization_groupby'
-            ),
-        ),
-        chart_customization_config: simpleItems,
-      };
-
-      const response = await updateDashboard({
-        json_metadata: JSON.stringify(updatedMetadata),
+      const response = await updateChartCustomizations({
+        modified: modifiedItems,
+        deleted: deletedIds,
+        reordered: reorderedIds,
       });
 
-      const lastModifiedTime = response.last_modified_time;
+      const currentMetadata = getState().dashboardInfo.metadata;
+      const currentConfig = currentMetadata?.chart_customization_config || [];
 
-      if (lastModifiedTime) {
-        dispatch(onSave(lastModifiedTime));
+      const mergedResult = response.result.map(
+        (item: ChartCustomization | ChartCustomizationDivider) => {
+          const existing = currentConfig.find(
+            (c: ChartCustomization | ChartCustomizationDivider) =>
+              c.id === item.id,
+          );
+          if (!existing) {
+            return item;
+          }
+          return {
+            ...item,
+            chartsInScope:
+              (item as ChartCustomization).chartsInScope ??
+              (existing as ChartCustomization).chartsInScope,
+            tabsInScope:
+              (item as ChartCustomization).tabsInScope ??
+              (existing as ChartCustomization).tabsInScope,
+            scope:
+              (item as ChartCustomization).scope ??
+              (existing as ChartCustomization).scope,
+          };
+        },
+      );
+
+      dispatch({
+        type: SET_NATIVE_FILTERS_CONFIG_COMPLETE,
+        filterChanges: mergedResult,
+      });
+
+      dispatch(
+        dashboardInfoChanged({
+          metadata: {
+            ...currentMetadata,
+            chart_customization_config: mergedResult,
+          },
+        }),
+      );
+
+      if (resetDataMask) {
+        const oldConfig = metadata?.chart_customization_config || [];
+        const oldCustomizationsById = oldConfig.reduce<
+          Record<string, ChartCustomization | ChartCustomizationDivider>
+        >((acc, customization) => {
+          acc[customization.id] = customization;
+          return acc;
+        }, {});
+
+        const customizationFilterChanges: SaveFilterChangesType = {
+          modified: modifiedCustomizations as unknown as Filter[],
+          deleted: deletedIds,
+          reordered: reorderedIds,
+        };
+
+        dispatch(
+          setDataMaskForFilterChangesComplete(
+            customizationFilterChanges,
+            oldCustomizationsById as unknown as Filters,
+            true,
+          ),
+        );
       }
 
-      const { dashboardState } = getState();
-      const chartIds = dashboardState.sliceIds || [];
-      if (chartIds.length > 0) {
-        chartIds.forEach(chartId => {
-          dispatch(triggerQuery(true, chartId));
-        });
-      }
-
-      return response;
+      return { result: {}, last_modified_time: Date.now() };
     } catch (errorObject) {
       const { error } = await getClientErrorObject(errorObject);
       dispatch(
@@ -219,45 +179,6 @@ export function saveChartCustomization(
       );
       throw errorObject;
     }
-  };
-}
-
-export const INITIALIZE_CHART_CUSTOMIZATION = 'INITIALIZE_CHART_CUSTOMIZATION';
-export interface InitializeChartCustomization {
-  type: typeof INITIALIZE_CHART_CUSTOMIZATION;
-  chartCustomizationItems: ChartCustomizationItem[];
-}
-
-export function initializeChartCustomization(
-  chartCustomizationItems: ChartCustomizationItem[],
-): ThunkAction<void, RootState, null, AnyAction> {
-  return (dispatch: ThunkDispatch<RootState, null, AnyAction>) => {
-    dispatch({
-      type: INITIALIZE_CHART_CUSTOMIZATION,
-      chartCustomizationItems,
-    });
-
-    chartCustomizationItems.forEach(item => {
-      const customizationFilterId = `chart_customization_${item.id}`;
-
-      if (item.customization?.column) {
-        dispatch(removeDataMask(customizationFilterId));
-
-        const dataMask = {
-          extraFormData: {},
-          filterState: {
-            value:
-              item.customization?.defaultDataMask?.filterState?.value || [],
-          },
-          ownState: {
-            column: item.customization.column,
-          },
-        };
-        dispatch(updateDataMask(customizationFilterId, dataMask));
-      } else {
-        dispatch(removeDataMask(customizationFilterId));
-      }
-    });
   };
 }
 
@@ -284,12 +205,12 @@ export const SET_CHART_CUSTOMIZATION_DATA = 'SET_CHART_CUSTOMIZATION_DATA';
 export interface SetChartCustomizationData {
   type: typeof SET_CHART_CUSTOMIZATION_DATA;
   itemId: string;
-  data: FilterOption[];
+  data: ColumnOption[];
 }
 
 export function setChartCustomizationData(
   itemId: string,
-  data: FilterOption[],
+  data: ColumnOption[],
 ): SetChartCustomizationData {
   return {
     type: SET_CHART_CUSTOMIZATION_DATA,
@@ -316,7 +237,7 @@ export function loadChartCustomizationData(
       return;
     }
 
-    dispatch(setChartCustomizationDataLoading(itemId, false));
+    dispatch(setChartCustomizationDataLoading(itemId, true));
   };
 }
 
@@ -324,11 +245,11 @@ export const SET_PENDING_CHART_CUSTOMIZATION =
   'SET_PENDING_CHART_CUSTOMIZATION';
 export interface SetPendingChartCustomization {
   type: typeof SET_PENDING_CHART_CUSTOMIZATION;
-  pendingCustomization: ChartCustomizationSavePayload;
+  pendingCustomization: ChartCustomization;
 }
 
 export function setPendingChartCustomization(
-  pendingCustomization: ChartCustomizationSavePayload,
+  pendingCustomization: ChartCustomization,
 ): SetPendingChartCustomization {
   return {
     type: SET_PENDING_CHART_CUSTOMIZATION,
@@ -379,9 +300,75 @@ export function clearAllChartCustomizationsFromMetadata() {
   return clearAllChartCustomizations();
 }
 
+export function setInScopeStatusOfCustomizations(
+  customizationScopes: {
+    customizationId: string;
+    chartsInScope: number[];
+    tabsInScope: string[];
+  }[],
+): ThunkAction<void, RootState, null, AnyAction> {
+  return (
+    dispatch: ThunkDispatch<RootState, null, AnyAction>,
+    getState: () => RootState,
+  ) => {
+    const { filters } = getState().nativeFilters;
+
+    const scopeConfig = customizationScopes
+      .map(({ customizationId, chartsInScope, tabsInScope }) => {
+        const existing = filters[customizationId];
+        if (!existing) return null;
+        return {
+          ...existing,
+          chartsInScope,
+          tabsInScope,
+        };
+      })
+      .filter(Boolean);
+
+    if (scopeConfig.length > 0) {
+      dispatch({
+        type: SET_IN_SCOPE_STATUS_OF_FILTERS,
+        filterConfig: scopeConfig,
+      });
+    }
+
+    const { metadata } = getState().dashboardInfo;
+    const customizationConfig = metadata?.chart_customization_config || [];
+
+    const scopeMap = new Map(
+      customizationScopes.map(
+        ({ customizationId, chartsInScope, tabsInScope }) => [
+          customizationId,
+          { chartsInScope, tabsInScope },
+        ],
+      ),
+    );
+
+    const updatedConfig = customizationConfig.map(customization => {
+      const scope = scopeMap.get(customization.id);
+      if (!scope) {
+        return customization;
+      }
+      return {
+        ...customization,
+        chartsInScope: scope.chartsInScope,
+        tabsInScope: scope.tabsInScope,
+      };
+    });
+
+    dispatch(
+      dashboardInfoChanged({
+        metadata: {
+          ...metadata,
+          chart_customization_config: updatedConfig,
+        },
+      }),
+    );
+  };
+}
+
 export type AnyChartCustomizationAction =
   | ReturnType<typeof setChartCustomization>
-  | InitializeChartCustomization
   | SetChartCustomizationDataLoading
   | SetChartCustomizationData
   | SetPendingChartCustomization

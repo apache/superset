@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { init as echartsInit } from 'echarts';
 import { createRef, FC, useEffect } from 'react';
 import { ZoomConfigsChartProps } from './types';

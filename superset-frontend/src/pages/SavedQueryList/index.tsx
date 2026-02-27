@@ -17,11 +17,11 @@
  * under the License.
  */
 
+import { t } from '@apache-superset/core';
 import {
   FeatureFlag,
   isFeatureEnabled,
   SupersetClient,
-  t,
 } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';
 import { useCallback, useMemo, useState, MouseEvent } from 'react';
@@ -451,19 +451,19 @@ function SavedQueryList({
           const handleDelete = () => setQueryCurrentlyDeleting(original);
 
           const actions = [
-            {
-              label: 'preview-action',
-              tooltip: t('Query preview'),
-              placement: 'bottom',
-              icon: 'Binoculars',
-              onClick: handlePreview,
-            },
             canEdit && {
               label: 'edit-action',
               tooltip: t('Edit query'),
               placement: 'bottom',
               icon: 'EditOutlined',
               onClick: handleEdit,
+            },
+            {
+              label: 'preview-action',
+              tooltip: t('Query preview'),
+              placement: 'bottom',
+              icon: 'Binoculars',
+              onClick: handlePreview,
             },
             {
               label: 'copy-action',

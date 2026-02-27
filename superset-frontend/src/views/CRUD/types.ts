@@ -46,7 +46,7 @@ export interface DashboardTableProps {
   user?: User;
   mine: Array<Dashboard>;
   showThumbnails?: boolean;
-  otherTabData: Array<Dashboard>;
+  otherTabData?: Array<Dashboard>;
   otherTabFilters: Filter[];
   otherTabTitle: string;
 }

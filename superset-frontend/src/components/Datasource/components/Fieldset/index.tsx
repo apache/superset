@@ -22,10 +22,10 @@ import { css } from '@apache-superset/core/ui';
 import { recurseReactClone } from '../../utils';
 import Field from '../Field';
 
-interface FieldsetProps {
+export interface FieldsetProps {
   children: ReactNode;
-  onChange: (updatedItem: Record<string, any>) => void;
-  item: Record<string, any>;
+  onChange?: (updatedItem: Record<string, any>) => void;
+  item?: Record<string, any>;
   title?: ReactNode;
   compact?: boolean;
 }
@@ -35,13 +35,13 @@ type fieldKeyType = string | number;
 export default function Fieldset({
   children,
   onChange,
-  item,
+  item = {},
   title = null,
   compact = false,
 }: FieldsetProps) {
   const handleChange = useCallback(
     (fieldKey: fieldKeyType, val: any) => {
-      onChange({
+      onChange?.({
         ...item,
         [fieldKey]: val,
       });
@@ -51,7 +51,7 @@ export default function Fieldset({
 
   const propExtender = (field: { props: { fieldKey: fieldKeyType } }) => ({
     onChange: handleChange,
-    value: item[field.props.fieldKey],
+    value: item?.[field.props.fieldKey],
     compact,
   });
 

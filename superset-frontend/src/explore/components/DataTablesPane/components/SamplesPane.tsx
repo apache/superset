@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { ensureIsArray, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { ensureIsArray } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';
 import {
   TableView,

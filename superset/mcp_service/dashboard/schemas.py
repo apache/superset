@@ -151,10 +151,6 @@ def serialize_role_object(role: Any) -> RoleInfo | None:
     )
 
 
-# TODO (Phase 3+): Add DashboardAvailableFilters for
-# get_dashboard_available_filters tool
-
-
 class DashboardFilter(ColumnOperator):
     """
     Filter object for dashboard listing.
@@ -167,15 +163,21 @@ class DashboardFilter(ColumnOperator):
         "dashboard_title",
         "published",
         "favorite",
+        "created_by_fk",
     ] = Field(
         ...,
-        description="Column to filter on. See get_dashboard_available_filters for "
-        "allowed values.",
+        description=(
+            "Column to filter on. Use "
+            "get_schema(model_type='dashboard') for available "
+            "filter columns. Use created_by_fk with the user "
+            "ID from get_instance_info's current_user to find "
+            "dashboards created by a specific user."
+        ),
     )
     opr: ColumnOperatorEnum = Field(
         ...,
-        description="Operator to use. See get_dashboard_available_filters for "
-        "allowed values.",
+        description="Operator to use. Use get_schema(model_type='dashboard') for "
+        "available operators.",
     )
     value: str | int | float | bool | List[str | int | float | bool] = Field(
         ..., description="Value to filter by (type depends on col and opr)"
@@ -197,15 +199,7 @@ class ListDashboardsRequest(MetadataCacheControl):
     select_columns: Annotated[
         List[str],
         Field(
-            default_factory=lambda: [
-                "id",
-                "dashboard_title",
-                "slug",
-                "published",
-                "changed_on",
-                "created_on",
-                "uuid",
-            ],
+            default_factory=list,
             description="List of columns to select. Defaults to common columns "
             "if not specified.",
         ),
@@ -276,7 +270,13 @@ class ListDashboardsRequest(MetadataCacheControl):
 
 
 class GetDashboardInfoRequest(MetadataCacheControl):
-    """Request schema for get_dashboard_info with support for ID, UUID, or slug."""
+    """Request schema for get_dashboard_info with support for ID, UUID, or slug.
+
+    When permalink_key is provided, the tool will retrieve the dashboard's filter
+    state from the permalink, allowing you to see what filters the user has applied
+    (not just the default filter state). This is useful when a user applies filters
+    in a dashboard but the URL contains a permalink_key.
+    """
 
     identifier: Annotated[
         int | str,
@@ -284,6 +284,15 @@ class GetDashboardInfoRequest(MetadataCacheControl):
             description="Dashboard identifier - can be numeric ID, UUID string, or slug"
         ),
     ]
+    permalink_key: str | None = Field(
+        default=None,
+        description=(
+            "Optional permalink key for retrieving dashboard filter state. When a "
+            "user applies filters in a dashboard, the state can be persisted in a "
+            "permalink. If provided, the tool returns the filter configuration "
+            "from that permalink."
+        ),
+    )
 
 
 class DashboardInfo(BaseModel):
@@ -313,7 +322,6 @@ class DashboardInfo(BaseModel):
     changed_by: str | None = Field(None, description="Last modifier (username)")
     uuid: str | None = Field(None, description="Dashboard UUID (converted to string)")
     url: str | None = Field(None, description="Dashboard URL")
-    thumbnail_url: str | None = Field(None, description="Thumbnail URL")
     created_on_humanized: str | None = Field(
         None, description="Humanized creation time"
     )
@@ -327,6 +335,32 @@ class DashboardInfo(BaseModel):
     charts: List[ChartInfo] = Field(
         default_factory=list, description="Dashboard charts"
     )
+
+    # Fields for permalink/filter state support
+    permalink_key: str | None = Field(
+        None,
+        description=(
+            "Permalink key used to retrieve filter state. When present, indicates "
+            "the filter_state came from a permalink rather than the default dashboard."
+        ),
+    )
+    filter_state: Dict[str, Any] | None = Field(
+        None,
+        description=(
+            "Filter state from permalink. Contains dataMask (native filter values), "
+            "activeTabs, anchor, and urlParams. When present, represents the actual "
+            "filters the user has applied to the dashboard."
+        ),
+    )
+    is_permalink_state: bool = Field(
+        default=False,
+        description=(
+            "True if the filter_state came from a permalink rather than the default "
+            "dashboard configuration. When true, the filter_state reflects what the "
+            "user sees in the dashboard, not the default filter state."
+        ),
+    )
+
     model_config = ConfigDict(from_attributes=True, ser_json_timedelta="iso8601")
 
     @model_serializer(mode="wrap", when_used="json")
@@ -359,8 +393,22 @@ class DashboardList(BaseModel):
     total_pages: int
     has_previous: bool
     has_next: bool
-    columns_requested: List[str] | None = None
-    columns_loaded: List[str] | None = None
+    columns_requested: List[str] = Field(
+        default_factory=list,
+        description="Requested columns for the response",
+    )
+    columns_loaded: List[str] = Field(
+        default_factory=list,
+        description="Columns that were actually loaded for each dashboard",
+    )
+    columns_available: List[str] = Field(
+        default_factory=list,
+        description="All columns available for selection via select_columns parameter",
+    )
+    sortable_columns: List[str] = Field(
+        default_factory=list,
+        description="Columns that can be used with order_column parameter",
+    )
     filters_applied: List[DashboardFilter] = Field(
         default_factory=list,
         description="List of advanced filter dicts applied to the query.",
@@ -420,22 +468,6 @@ class GenerateDashboardResponse(BaseModel):
     error: str | None = Field(None, description="Error message, if creation failed")
 
 
-# TODO (Phase 3+): Add GetDashboardAvailableFiltersRequest for
-# get_dashboard_available_filters tool
-class DashboardAvailableFilters(BaseModel):
-    column_operators: Dict[str, Any] = Field(
-        ..., description="Available filter operators and metadata for each column"
-    )
-
-
-class GetDashboardAvailableFiltersRequest(BaseModel):
-    """
-    Request schema for get_dashboard_available_filters tool.
-    """
-
-    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
-
-
 def dashboard_serializer(dashboard: "Dashboard") -> DashboardInfo:
     return DashboardInfo(
         id=dashboard.id,
@@ -460,7 +492,6 @@ def dashboard_serializer(dashboard: "Dashboard") -> DashboardInfo:
         else None,
         uuid=str(dashboard.uuid) if dashboard.uuid else None,
         url=dashboard.url,
-        thumbnail_url=dashboard.thumbnail_url,
         created_on_humanized=dashboard.created_on_humanized,
         changed_on_humanized=dashboard.changed_on_humanized,
         chart_count=len(dashboard.slices) if dashboard.slices else 0,
@@ -512,7 +543,6 @@ def serialize_dashboard_object(dashboard: Any) -> DashboardInfo:
         uuid=str(getattr(dashboard, "uuid", ""))
         if getattr(dashboard, "uuid", None)
         else None,
-        thumbnail_url=getattr(dashboard, "thumbnail_url", None),
         chart_count=len(getattr(dashboard, "slices", [])),
         owners=getattr(dashboard, "owners", []),
         tags=getattr(dashboard, "tags", []),

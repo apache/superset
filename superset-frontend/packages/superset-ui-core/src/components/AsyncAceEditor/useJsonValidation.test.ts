@@ -20,24 +20,24 @@ import { renderHook } from '@testing-library/react-hooks';
 import { useJsonValidation } from './useJsonValidation';
 
 describe('useJsonValidation', () => {
-  it('returns empty array for valid JSON', () => {
+  test('returns empty array for valid JSON', () => {
     const { result } = renderHook(() => useJsonValidation('{"key": "value"}'));
     expect(result.current).toEqual([]);
   });
 
-  it('returns empty array when disabled', () => {
+  test('returns empty array when disabled', () => {
     const { result } = renderHook(() =>
       useJsonValidation('invalid json', { enabled: false }),
     );
     expect(result.current).toEqual([]);
   });
 
-  it('returns empty array for empty input', () => {
+  test('returns empty array for empty input', () => {
     const { result } = renderHook(() => useJsonValidation(''));
     expect(result.current).toEqual([]);
   });
 
-  it('extracts line and column from error message with parentheses', () => {
+  test('extracts line and column from error message with parentheses', () => {
     // Since we can't control the exact error message from JSON.parse,
     // let's test with a mock that demonstrates the pattern matching
     const mockError = {
@@ -52,7 +52,7 @@ describe('useJsonValidation', () => {
     expect(match![2]).toBe('2');
   });
 
-  it('returns error on first line when no line/column info in message', () => {
+  test('returns error on first line when no line/column info in message', () => {
     const invalidJson = '{invalid}';
     const { result } = renderHook(() => useJsonValidation(invalidJson));
 
@@ -65,7 +65,7 @@ describe('useJsonValidation', () => {
     });
   });
 
-  it('uses custom error prefix', () => {
+  test('uses custom error prefix', () => {
     const { result } = renderHook(() =>
       useJsonValidation('{invalid}', { errorPrefix: 'Custom error' }),
     );

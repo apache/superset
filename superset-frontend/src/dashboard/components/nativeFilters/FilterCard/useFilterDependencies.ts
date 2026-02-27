@@ -21,6 +21,7 @@ import { useSelector } from 'react-redux';
 import { useMemo } from 'react';
 import { createSelector } from '@reduxjs/toolkit';
 import { RootState } from 'src/dashboard/types';
+import { FilterElement } from '../FilterBar/FilterControls/types';
 
 const EMPTY_ARRAY: Filter[] = [];
 
@@ -37,8 +38,8 @@ const makeSelectFilterDependencies = (filterDependencyIds: string[]) =>
     },
   );
 
-export const useFilterDependencies = (filter: Filter) => {
-  const filterDependencyIds = ensureIsArray(filter.cascadeParentIds);
+export const useFilterDependencies = (filter: FilterElement) => {
+  const filterDependencyIds = ensureIsArray(filter.cascadeParentIds ?? []);
 
   const selectFilterDependencies = useMemo(
     () => makeSelectFilterDependencies(filterDependencyIds),

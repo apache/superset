@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 
 const CREATE_CHART_TEXT = t('Create chart');
 const UPDATE_CHART_TEXT = t('Update chart');

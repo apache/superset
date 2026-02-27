@@ -22,7 +22,7 @@ import {
   Select,
   AsyncSelect,
 } from '@superset-ui/core/components';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { FC } from 'react';
 import { GroupObject } from 'src/pages/GroupsList';
 import { FormattedPermission } from './types';

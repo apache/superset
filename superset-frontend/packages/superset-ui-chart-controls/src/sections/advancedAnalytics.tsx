@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, RollingType, ComparisonType } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { RollingType, ComparisonType } from '@superset-ui/core';
 
 import { ControlSubSectionHeader } from '../components/ControlSubSectionHeader';
 import { ControlPanelSectionConfig } from '../types';

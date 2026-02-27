@@ -27,6 +27,14 @@ import { DropdownContainer } from '.';
 export default {
   title: 'Design System/Components/DropdownContainer',
   component: DropdownContainer,
+  parameters: {
+    docs: {
+      description: {
+        component:
+          'DropdownContainer arranges items horizontally and moves overflowing items into a dropdown popover. Resize the container to see the overflow behavior.',
+      },
+    },
+  },
 };
 
 const ITEMS_COUNT = 6;
@@ -107,4 +115,135 @@ export const Component = (props: DropdownContainerProps) => {
       </span>
     </div>
   );
+};
+
+// Interactive story for docs generation
+export const InteractiveDropdownContainer = (args: DropdownContainerProps) => {
+  const simpleItems = Array.from({ length: 6 }, (_, i) => ({
+    id: `item-${i}`,
+    element: (
+      <div
+        style={{
+          minWidth: 120,
+          padding: '4px 12px',
+          background: '#e6f4ff',
+          border: '1px solid #91caff',
+          borderRadius: 4,
+        }}
+      >
+        Filter {i + 1}
+      </div>
+    ),
+  }));
+  return (
+    <div
+      style={{
+        width: 500,
+        resize: 'horizontal',
+        overflow: 'auto',
+        border: '1px solid #e8e8e8',
+        padding: 16,
+      }}
+    >
+      <DropdownContainer {...args} items={simpleItems} />
+    </div>
+  );
+};
+
+InteractiveDropdownContainer.args = {};
+
+InteractiveDropdownContainer.argTypes = {};
+
+InteractiveDropdownContainer.parameters = {
+  docs: {
+    staticProps: {
+      style: { maxWidth: 360 },
+      items: [
+        {
+          id: 'item-0',
+          element: {
+            component: 'Tag',
+            props: { children: 'Region', color: 'blue' },
+          },
+        },
+        {
+          id: 'item-1',
+          element: {
+            component: 'Tag',
+            props: { children: 'Category', color: 'blue' },
+          },
+        },
+        {
+          id: 'item-2',
+          element: {
+            component: 'Tag',
+            props: { children: 'Date Range', color: 'blue' },
+          },
+        },
+        {
+          id: 'item-3',
+          element: {
+            component: 'Tag',
+            props: { children: 'Status', color: 'blue' },
+          },
+        },
+        {
+          id: 'item-4',
+          element: {
+            component: 'Tag',
+            props: { children: 'Owner', color: 'blue' },
+          },
+        },
+        {
+          id: 'item-5',
+          element: {
+            component: 'Tag',
+            props: { children: 'Priority', color: 'blue' },
+          },
+        },
+      ],
+    },
+    liveExample: `function Demo() {
+  const items = Array.from({ length: 6 }, (_, i) => ({
+    id: 'item-' + i,
+    element: React.createElement('div', {
+      style: {
+        minWidth: 120,
+        padding: '4px 12px',
+        background: '#e6f4ff',
+        border: '1px solid #91caff',
+        borderRadius: 4,
+      },
+    }, 'Filter ' + (i + 1)),
+  }));
+  return (
+    <div style={{ width: 400, resize: 'horizontal', overflow: 'auto', border: '1px solid #e8e8e8', padding: 16 }}>
+      <DropdownContainer items={items} />
+      <div style={{ marginTop: 8, color: '#999', fontSize: 12 }}>
+        Drag the right edge to resize and see items overflow into a dropdown
+      </div>
+    </div>
+  );
+}`,
+    examples: [
+      {
+        title: 'With Select Filters',
+        code: `function SelectFilters() {
+  const items = ['Region', 'Category', 'Date Range', 'Status', 'Owner'].map(
+    (label, i) => ({
+      id: 'filter-' + i,
+      element: React.createElement('div', {
+        style: { minWidth: 150, padding: '4px 12px', background: '#f5f5f5', border: '1px solid #d9d9d9', borderRadius: 4 },
+      }, label + ': All'),
+    })
+  );
+  return (
+    <div style={{ width: 500, resize: 'horizontal', overflow: 'auto', border: '1px solid #e8e8e8', padding: 16 }}>
+      <DropdownContainer items={items} />
+    </div>
+  );
+}`,
+      },
+    ],
+  },
 };
