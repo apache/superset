@@ -227,30 +227,35 @@ if (!versionsConfig.developer_docs.disabled && !versionsConfig.developer_docs.hi
   });
 }
 
-// CI runners (GitHub Actions, Netlify) typically have ~8GB RAM. Rspack uses
-// native memory outside Node's heap, pushing total usage over the limit.
-// Fall back to webpack on CI while keeping SWC/Lightning CSS speedups.
-const isMemoryConstrained = process.env.CI === 'true';
+// Docusaurus Faster: Rspack bundler, SWC transpilation, and other build
+// optimizations. Only enabled for local development — CI runners (GitHub
+// Actions, Netlify) have ~8GB RAM and these features push memory usage over
+// the limit. See https://docusaurus.io/blog/releases/3.6#docusaurus-faster
+const isCI = process.env.CI === 'true';
 
 const config: Config = {
-  future: {
-    v4: {
-      removeLegacyPostBuildHeadAttribute: true,
-      // Disabled: CSS cascade layers change specificity and cause antd
-      // styles (from Storybook component pages) to override theme styles
-      useCssCascadeLayers: false,
+  ...(!isCI && {
+    future: {
+      v4: {
+        removeLegacyPostBuildHeadAttribute: true,
+        // Disabled: CSS cascade layers change specificity and cause antd
+        // styles (from Storybook component pages) to override theme styles
+        useCssCascadeLayers: false,
+      },
+      experimental_faster: {
+        swcJsLoader: true,
+        swcJsMinimizer: true,
+        swcHtmlMinimizer: true,
+        lightningCssMinimizer: true,
+        rspackBundler: true,
+        mdxCrossCompilerCache: true,
+        rspackPersistentCache: true,
+        // SSG worker threads spawn parallel Node processes, each consuming
+        // significant memory. Disabled to keep total usage reasonable.
+        ssgWorkerThreads: false,
+      },
     },
-    experimental_faster: {
-      swcJsLoader: true,
-      swcJsMinimizer: true,
-      swcHtmlMinimizer: true,
-      lightningCssMinimizer: true,
-      rspackBundler: !isMemoryConstrained,
-      mdxCrossCompilerCache: true,
-      rspackPersistentCache: !isMemoryConstrained,
-      ssgWorkerThreads: false,
-    },
-  },
+  }),
   title: 'Superset',
   tagline:
     'Apache Superset is a modern data exploration and visualization platform',
