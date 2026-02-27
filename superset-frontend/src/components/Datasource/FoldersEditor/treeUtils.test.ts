@@ -746,9 +746,7 @@ test('filterFoldersByValidUuids removes items with invalid UUIDs', () => {
 
 test('filterFoldersByValidUuids preserves folders even when empty', () => {
   const folders: DatasourceFolder[] = [
-    createFolderItem('f1', 'Metrics', [
-      createMetricItem('m1', 'Metric 1'),
-    ]),
+    createFolderItem('f1', 'Metrics', [createMetricItem('m1', 'Metric 1')]),
   ] as DatasourceFolder[];
 
   const validUuids = new Set<string>();
@@ -802,9 +800,7 @@ test('filterFoldersByValidUuids keeps all items when all UUIDs are valid', () =>
 test('filterFoldersByValidUuids returns same reference when nothing changed', () => {
   const folders: DatasourceFolder[] = [
     createFolderItem('f1', 'Root', [
-      createFolderItem('f2', 'Nested', [
-        createMetricItem('m1', 'Metric 1'),
-      ]),
+      createFolderItem('f2', 'Nested', [createMetricItem('m1', 'Metric 1')]),
       createColumnItem('c1', 'Column 1'),
     ]),
   ] as DatasourceFolder[];
