@@ -159,6 +159,19 @@ export function useDragHandlers({
     [childrenByParentId],
   );
 
+  const warnItemsOutsideFolders = useCallback(
+    (hasDraggedColumn: boolean, hasDraggedMetric: boolean) => {
+      if (hasDraggedColumn && hasDraggedMetric) {
+        addWarningToast(t('Columns and metrics should be inside folders'));
+      } else if (hasDraggedColumn) {
+        addWarningToast(t('Columns should be inside folders'));
+      } else if (hasDraggedMetric) {
+        addWarningToast(t('Metrics should be inside folders'));
+      }
+    },
+    [addWarningToast],
+  );
+
   const resetDragState = useCallback(() => {
     setActiveId(null);
     setOverId(null);
@@ -274,14 +287,26 @@ export function useDragHandlers({
     const fallbackOverId = lastValidOverIdRef.current;
     resetDragState();
 
-    // Folder drags only: hidden children create dead zones where over is null.
-    // Regular drags with null over just cancel.
-    const effectiveOver =
-      over ??
-      (folderChildIds.size > 0 && fallbackOverId
-        ? { id: fallbackOverId }
-        : null);
-    if (!effectiveOver || itemsBeingDragged.length === 0) {
+    if (itemsBeingDragged.length === 0) {
+      return;
+    }
+
+    const effectiveOver = over ?? (fallbackOverId ? { id: fallbackOverId } : null);
+
+    if (!effectiveOver) {
+      let hasDraggedColumn = false;
+      let hasDraggedMetric = false;
+      for (const id of itemsBeingDragged) {
+        const item = fullItemsByUuid.get(id);
+        if (item) {
+          if (item.type === FoldersEditorItemType.Column) {
+            hasDraggedColumn = true;
+          } else if (item.type === FoldersEditorItemType.Metric) {
+            hasDraggedMetric = true;
+          }
+        }
+      }
+      warnItemsOutsideFolders(hasDraggedColumn, hasDraggedMetric);
       return;
     }
 
@@ -396,13 +421,7 @@ export function useDragHandlers({
 
     if (hasNonFolderItems) {
       if (!projectedPosition || !projectedPosition.parentId) {
-        if (hasDraggedColumn && hasDraggedMetric) {
-          addWarningToast(t('Columns and metrics should be inside folders'));
-        } else if (hasDraggedColumn) {
-          addWarningToast(t('Columns should be inside folders'));
-        } else {
-          addWarningToast(t('Metrics should be inside folders'));
-        }
+        warnItemsOutsideFolders(hasDraggedColumn, hasDraggedMetric);
         return;
       }
     }
