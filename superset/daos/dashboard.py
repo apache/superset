@@ -85,7 +85,9 @@ class DashboardDAO(BaseDAO[Dashboard]):
                 subq = select(dashboard_user.c.dashboard_id).where(
                     operator_enum.apply(dashboard_user.c.user_id, c.value)
                 )
-                query = query.filter(Dashboard.id.in_(subq))
+                query = query.filter(
+                    Dashboard.id.in_(subq)  # type: ignore[attr-defined,unused-ignore]
+                )
             elif c.col == "favorite":
                 user_id = get_user_id()
                 fav_subq = select(FavStar.obj_id).where(
@@ -93,9 +95,13 @@ class DashboardDAO(BaseDAO[Dashboard]):
                     FavStar.user_id == user_id,
                 )
                 if c.value is True or c.value == 1:
-                    query = query.filter(Dashboard.id.in_(fav_subq))
+                    query = query.filter(
+                        Dashboard.id.in_(fav_subq)  # type: ignore[attr-defined,unused-ignore]
+                    )
                 else:
-                    query = query.filter(~Dashboard.id.in_(fav_subq))
+                    query = query.filter(
+                        ~Dashboard.id.in_(fav_subq)  # type: ignore[attr-defined,unused-ignore]
+                    )
             else:
                 remaining_operators.append(c)
 

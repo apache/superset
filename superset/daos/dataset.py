@@ -85,7 +85,9 @@ class DatasetDAO(BaseDAO[SqlaTable]):
                 subq = select(sqlatable_user.c.table_id).where(
                     operator_enum.apply(sqlatable_user.c.user_id, c.value)
                 )
-                query = query.filter(SqlaTable.id.in_(subq))
+                query = query.filter(
+                    SqlaTable.id.in_(subq)  # type: ignore[attr-defined,unused-ignore]
+                )
             else:
                 remaining_operators.append(c)
 
