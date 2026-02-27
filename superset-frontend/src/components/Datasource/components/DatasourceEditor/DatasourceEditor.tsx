@@ -95,7 +95,10 @@ import {
   isDefaultFolder,
 } from '../../FoldersEditor/constants';
 import { validateFolders } from '../../FoldersEditor/folderValidation';
-import { countAllFolders } from '../../FoldersEditor/treeUtils';
+import {
+  countAllFolders,
+  filterFoldersByValidUuids,
+} from '../../FoldersEditor/treeUtils';
 import FoldersEditor from '../../FoldersEditor';
 import { DatasourceFolder } from 'src/explore/components/DatasourcePanel/types';
 
@@ -135,6 +138,7 @@ interface Metric {
 
 interface Column {
   id?: number;
+  uuid?: string;
   column_name: string;
   verbose_name?: string;
   description?: string;
@@ -992,11 +996,26 @@ class DatasourceEditor extends PureComponent<
     const sql =
       datasourceType === DATASOURCE_TYPES.physical.key ? '' : datasource.sql;
 
+    const columns = [
+      ...this.state.databaseColumns,
+      ...this.state.calculatedColumns,
+    ];
+
+    // Remove deleted column/metric references from folders
+    const validUuids = new Set<string>();
+    for (const col of columns) {
+      if (col.uuid) validUuids.add(col.uuid);
+    }
+    for (const metric of datasource.metrics ?? []) {
+      if (metric.uuid) validUuids.add(metric.uuid);
+    }
+    const folders = filterFoldersByValidUuids(this.state.folders, validUuids);
+
     const newDatasource = {
       ...this.state.datasource,
       sql,
-      columns: [...this.state.databaseColumns, ...this.state.calculatedColumns],
-      folders: this.state.folders,
+      columns,
+      folders,
     };
 
     this.props.onChange?.(newDatasource, this.state.errors);
