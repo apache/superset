@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-const packageConfig = require('./package');
+
+// Register TypeScript require hook so ESLint can load .ts plugin files
+require('tsx/cjs');
+
+// eslint-disable-next-line import/extensions
+const packageConfig = require('./package.json');
 
 const importCoreModules = [];
 Object.entries(packageConfig.dependencies).forEach(([pkg]) => {
@@ -130,6 +135,160 @@ module.exports = {
   // TODO(hainenber): merge it to below `rules` section.
   rules: {
     '@typescript-eslint/prefer-optional-chain': 'error',
+
+    // === Essential Superset customizations ===
+
+    // Prettier integration
+    'prettier/prettier': 'error',
+
+    // Custom Superset rules
+    'theme-colors/no-literal-colors': 'error',
+    'icons/no-fa-icons-usage': 'error',
+    'i18n-strings/no-template-vars': 'error',
+
+    // Core ESLint overrides for Superset
+    'no-console': 'warn',
+    'no-unused-vars': 'off', // TypeScript handles this
+    camelcase: [
+      'error',
+      {
+        allow: ['^UNSAFE_', '__REDUX_DEVTOOLS_EXTENSION_COMPOSE__'],
+        properties: 'never',
+      },
+    ],
+    'prefer-destructuring': ['error', { object: true, array: false }],
+    'no-prototype-builtins': 0,
+    curly: 'off',
+
+    // Import plugin overrides
+    'import/extensions': [
+      'error',
+      'ignorePackages',
+      {
+        js: 'never',
+        jsx: 'never',
+        ts: 'never',
+        tsx: 'never',
+      },
+    ],
+    'import/no-cycle': 0,
+    'import/prefer-default-export': 0,
+    'import/no-named-as-default-member': 0,
+    'import/no-extraneous-dependencies': [
+      'error',
+      {
+        devDependencies: [
+          'test/**',
+          'tests/**',
+          'spec/**',
+          '**/__tests__/**',
+          '**/__mocks__/**',
+          '*.test.{js,jsx,ts,tsx}',
+          '*.spec.{js,jsx,ts,tsx}',
+          '**/*.test.{js,jsx,ts,tsx}',
+          '**/*.spec.{js,jsx,ts,tsx}',
+          '**/jest.config.js',
+          '**/jest.setup.js',
+          '**/webpack.config.js',
+          '**/webpack.config.*.js',
+          '**/.eslintrc*.js',
+        ],
+        optionalDependencies: false,
+      },
+    ],
+
+    // React plugin overrides
+    'react/prop-types': 0,
+    'react/require-default-props': 0,
+    'react/forbid-prop-types': 0,
+    'react/forbid-component-props': 1,
+    'react/jsx-filename-extension': [1, { extensions: ['.jsx', '.tsx'] }],
+    'react/jsx-fragments': 1,
+    'react/jsx-no-bind': 0,
+    'react/jsx-props-no-spreading': 0,
+    'react/no-array-index-key': 0,
+    'react/no-string-refs': 0,
+    'react/no-unescaped-entities': 0,
+    'react/no-unused-prop-types': 0,
+    'react/destructuring-assignment': 0,
+    'react/sort-comp': 0,
+    'react/static-property-placement': 0,
+    'react-prefer-function-component/react-prefer-function-component': 1,
+    'react/react-in-jsx-scope': 0,
+    'react/no-unknown-property': 0,
+    'react/no-void-elements': 0,
+    'react/function-component-definition': [
+      0,
+      {
+        namedComponents: 'arrow-function',
+      },
+    ],
+    'react/no-unstable-nested-components': 0,
+    'react/jsx-no-useless-fragment': 0,
+    'react/no-unused-class-component-methods': 0,
+
+    // JSX-a11y overrides
+    'jsx-a11y/anchor-is-valid': 1,
+    'jsx-a11y/click-events-have-key-events': 0,
+    'jsx-a11y/mouse-events-have-key-events': 0,
+    'jsx-a11y/no-static-element-interactions': 0,
+
+    // React effect best practices
+    'react-you-might-not-need-an-effect/no-empty-effect': 'error',
+    'react-you-might-not-need-an-effect/no-pass-live-state-to-parent': 'error',
+    'react-you-might-not-need-an-effect/no-initialize-state': 'error',
+
+    // Lodash
+    'lodash/import-scope': [2, 'member'],
+
+    // React effect best practices
+    'react-you-might-not-need-an-effect/no-reset-all-state-on-prop-change':
+      'error',
+    'react-you-might-not-need-an-effect/no-chain-state-updates': 'error',
+    'react-you-might-not-need-an-effect/no-event-handler': 'error',
+    'react-you-might-not-need-an-effect/no-derived-state': 'error',
+
+    // Storybook
+    'storybook/prefer-pascal-case': 'error',
+
+    // File progress
+    'file-progress/activate': 1,
+
+    // React effect rules
+    'react-you-might-not-need-an-effect/no-adjust-state-on-prop-change':
+      'error',
+    'react-you-might-not-need-an-effect/no-pass-data-to-parent': 'error',
+
+    // Restricted imports
+    'no-restricted-imports': [
+      'error',
+      {
+        paths: Object.values(restrictedImportsRules).filter(Boolean),
+        patterns: ['antd/*'],
+      },
+    ],
+
+    // Temporarily disabled for migration
+    'no-unsafe-optional-chaining': 0,
+    'no-import-assign': 0,
+    'import/no-relative-packages': 0,
+    'no-promise-executor-return': 0,
+    'import/no-import-module-exports': 0,
+
+    // Restrict certain syntax patterns
+    'no-restricted-syntax': [
+      'error',
+      {
+        selector:
+          "ImportDeclaration[source.value='react'] :matches(ImportDefaultSpecifier, ImportNamespaceSpecifier)",
+        message:
+          'Default React import is not required due to automatic JSX runtime in React 16.4',
+      },
+      {
+        selector: 'ImportNamespaceSpecifier[parent.source.value!=/^(\\.|src)/]',
+        message: 'Wildcard imports are not allowed',
+      },
+    ],
   },
   overrides: [
     {
