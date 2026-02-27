@@ -24,13 +24,16 @@ interface LastQueriedLabelProps {
   datasetId?: number;
 }
 
-const LastQueriedLabel: FC<LastQueriedLabelProps> = ({ datasetId, queriedDttm }) => {
+const LastQueriedLabel: FC<LastQueriedLabelProps> = ({
+  datasetId,
+  queriedDttm,
+}) => {
   const theme = useTheme();
   const [dataAsOf, setDataAsOf] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!datasetId) return;
+    if (!datasetId) return undefined;
 
     let cancelled = false;
     setLoading(true);
