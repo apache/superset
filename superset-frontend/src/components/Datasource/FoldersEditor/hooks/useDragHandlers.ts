@@ -69,9 +69,6 @@ export function useDragHandlers({
   const [draggedFolderChildIds, setDraggedFolderChildIds] = useState<
     Set<string>
   >(new Set());
-  // Last non-null overId — fallback target when dropping in dead zones
-  const lastValidOverIdRef = useRef<UniqueIdentifier | null>(null);
-
   // Store the flattened items at drag start to keep them stable during drag
   // This prevents react-window from re-rendering due to flattenedItems reference changes
   const dragStartFlattenedItemsRef = useRef<FlattenedTreeItem[] | null>(null);
@@ -176,7 +173,6 @@ export function useDragHandlers({
     setActiveId(null);
     setOverId(null);
     offsetLeftRef.current = 0;
-    lastValidOverIdRef.current = null;
     setCurrentDropTargetId(null);
     setDraggedItemIds(new Set());
     setDraggedFolderChildIds(new Set());
@@ -251,9 +247,6 @@ export function useDragHandlers({
   const handleDragOver = useCallback(
     ({ over }: DragOverEvent) => {
       setOverId(over?.id ?? null);
-      if (over) {
-        lastValidOverIdRef.current = over.id;
-      }
 
       if (activeId && over) {
         if (typeof over.id === 'string' && over.id.endsWith('-empty')) {
@@ -283,17 +276,13 @@ export function useDragHandlers({
     const itemsBeingDragged = Array.from(draggedItemIds);
     const folderChildIds = draggedFolderChildIds;
     const finalOffsetLeft = offsetLeftRef.current;
-    // Capture fallback overId before reset (for dead-zone drops)
-    const fallbackOverId = lastValidOverIdRef.current;
     resetDragState();
 
     if (itemsBeingDragged.length === 0) {
       return;
     }
 
-    const effectiveOver = over ?? (fallbackOverId ? { id: fallbackOverId } : null);
-
-    if (!effectiveOver) {
+    if (!over) {
       let hasDraggedColumn = false;
       let hasDraggedMetric = false;
       for (const id of itemsBeingDragged) {
@@ -310,7 +299,7 @@ export function useDragHandlers({
       return;
     }
 
-    let targetOverId = effectiveOver.id;
+    let targetOverId = over.id;
     let isEmptyDrop = false;
     if (typeof targetOverId === 'string' && targetOverId.endsWith('-empty')) {
       targetOverId = targetOverId.replace('-empty', '');
