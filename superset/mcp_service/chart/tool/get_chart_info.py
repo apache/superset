@@ -26,6 +26,7 @@ from fastmcp import Context
 from superset.extensions import event_logger
 from superset.mcp_service.app import mcp
 from superset.mcp_service.auth import mcp_auth_hook
+from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 from superset.mcp_service.chart.schemas import (
     ChartError,
     ChartInfo,
@@ -90,6 +91,25 @@ async def get_chart_info(
             "Chart information retrieved successfully: chart_name=%s"
             % (result.slice_name,)
         )
+
+        # Validate the chart's dataset is accessible
+        if result.id:
+            chart = ChartDAO.find_by_id(result.id)
+            if chart:
+                validation_result = validate_chart_dataset(chart, check_access=True)
+                if not validation_result.is_valid:
+                    await ctx.warning(
+                        "Chart found but dataset is not accessible: %s"
+                        % (validation_result.error,)
+                    )
+                    return ChartError(
+                        error=validation_result.error
+                        or "Chart's dataset is not accessible",
+                        error_type="DatasetNotAccessible",
+                    )
+                # Log any warnings (e.g., virtual dataset warnings)
+                for warning in validation_result.warnings:
+                    await ctx.warning("Dataset warning: %s" % (warning,))
     else:
         await ctx.warning("Chart retrieval failed: error=%s" % (str(result),))
 
