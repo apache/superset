@@ -24,6 +24,7 @@ import { ErrorAlert } from './ErrorAlert';
 export function DatasetNotFoundErrorMessage({
   error,
   subtitle,
+  closable,
 }: ErrorMessageComponentProps) {
   const { level, message } = error;
   return (
@@ -32,6 +33,7 @@ export function DatasetNotFoundErrorMessage({
       message={subtitle}
       description={message}
       type={level}
+      closable={closable}
     />
   );
 }

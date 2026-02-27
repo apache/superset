@@ -297,3 +297,28 @@ test('should re-render when cacheBusterProp changes', () => {
   rerender(<Chart {...props} isComponentVisible cacheBusterProp="v2" />);
   expect(getByTestId('chart-container')).toBeInTheDocument();
 });
+
+test('should not show a close button on chart error banners', () => {
+  const { queryByRole } = setup(
+    {},
+    {
+      ...defaultState,
+      charts: {
+        ...defaultState.charts,
+        [queryId]: {
+          ...defaultState.charts[queryId],
+          chartStatus: 'failed',
+          chartAlert: 'Something went wrong',
+          queriesResponse: [
+            {
+              message: 'Something went wrong',
+              errors: [],
+            },
+          ],
+        },
+      },
+    },
+  );
+
+  expect(queryByRole('button', { name: /close/i })).not.toBeInTheDocument();
+});

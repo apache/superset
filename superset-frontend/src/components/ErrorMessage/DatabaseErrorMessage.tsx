@@ -38,6 +38,7 @@ interface DatabaseErrorExtra {
 export function DatabaseErrorMessage({
   error,
   source,
+  closable,
 }: ErrorMessageComponentProps<DatabaseErrorExtra | null>) {
   const { extra, level, message } = error;
 
@@ -100,6 +101,7 @@ export function DatabaseErrorMessage({
       description={alertDescription}
       type={level}
       descriptionDetails={body}
+      closable={closable}
     />
   );
 }

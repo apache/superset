@@ -35,6 +35,7 @@ interface TimeoutErrorExtra {
 export function TimeoutErrorMessage({
   error,
   source,
+  closable,
 }: ErrorMessageComponentProps<TimeoutErrorExtra>) {
   const { extra, level } = error;
 
@@ -94,6 +95,7 @@ export function TimeoutErrorMessage({
       message={subtitle}
       type={level}
       descriptionDetails={body}
+      closable={closable}
     />
   );
 }
