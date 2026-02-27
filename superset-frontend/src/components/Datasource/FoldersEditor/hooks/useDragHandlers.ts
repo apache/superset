@@ -280,8 +280,14 @@ export function useDragHandlers({
     const fallbackOverId = lastValidOverIdRef.current;
     resetDragState();
 
+    // Fallback only for folder drags — their hidden children create dead zones
+    // where `over` is null. Regular drags with null `over` should just cancel.
+    // Minimal object: only `id` is needed by projection/insertion logic.
     const effectiveOver =
-      over ?? (fallbackOverId ? { id: fallbackOverId } : null);
+      over ??
+      (folderChildIds.size > 0 && fallbackOverId
+        ? { id: fallbackOverId }
+        : null);
     if (!effectiveOver || itemsBeingDragged.length === 0) {
       return;
     }

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { styled, css } from '@apache-superset/core/ui';
-import { ITEM_BASE_HEIGHT } from './constants';
+import { calculateItemHeights } from './hooks/useItemHeights';
 
 export const FoldersContainer = styled.div`
   display: flex;
@@ -106,14 +106,13 @@ export const FolderBlockSlot = styled.div<{
   separatorType?: 'visible' | 'transparent';
 }>`
   ${({ theme, variant, separatorType }) => {
+    const heights = calculateItemHeights(theme);
     let minHeight =
-      variant === 'folder'
-        ? ITEM_BASE_HEIGHT + theme.paddingSM + theme.marginXS
-        : ITEM_BASE_HEIGHT;
+      variant === 'folder' ? heights.folderHeader : heights.regularItem;
     if (separatorType === 'visible') {
-      minHeight += 1 + theme.marginSM * 2;
+      minHeight += heights.separatorVisible;
     } else if (separatorType === 'transparent') {
-      minHeight += 1 + theme.marginXS * 2;
+      minHeight += heights.separatorTransparent;
     }
     return `
       min-height: ${minHeight}px;

@@ -50,7 +50,7 @@ export interface ItemHeights {
  * The spacing is built into the height calculation, NOT the CSS margins,
  * to avoid double-spacing issues with absolute positioning.
  */
-function calculateItemHeights(theme: SupersetTheme): ItemHeights {
+export function calculateItemHeights(theme: SupersetTheme): ItemHeights {
   // Regular item height - just the row height, minimal spacing
   // The OptionControlContainer sets the actual content height
   const regularItem = ITEM_BASE_HEIGHT;
