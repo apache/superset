@@ -227,10 +227,10 @@ if (!versionsConfig.developer_docs.disabled && !versionsConfig.developer_docs.hi
   });
 }
 
-// Netlify build containers have ~8GB RAM. Rspack and SSG worker threads use
+// CI runners (GitHub Actions, Netlify) typically have ~8GB RAM. Rspack uses
 // native memory outside Node's heap, pushing total usage over the limit.
-// Fall back to webpack on Netlify while keeping SWC/Lightning CSS speedups.
-const isMemoryConstrained = process.env.NETLIFY === 'true';
+// Fall back to webpack on CI while keeping SWC/Lightning CSS speedups.
+const isMemoryConstrained = process.env.CI === 'true';
 
 const config: Config = {
   future: {
