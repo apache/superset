@@ -69,8 +69,7 @@ export function useDragHandlers({
   const [draggedFolderChildIds, setDraggedFolderChildIds] = useState<
     Set<string>
   >(new Set());
-  // Track last valid (non-null) overId so drops in dead zones
-  // (invisible folder children area) can use the last known target
+  // Last non-null overId — fallback target when dropping in dead zones
   const lastValidOverIdRef = useRef<UniqueIdentifier | null>(null);
 
   // Store the flattened items at drag start to keep them stable during drag
@@ -94,10 +93,7 @@ export function useDragHandlers({
     [activeId, computedFlattenedItems],
   );
 
-  // Filtered items for projection: excludes children of the dragged folder.
-  // getProjection uses nextItem to calculate minDepth; if nextItem is a child
-  // of the dragged folder, it forces an incorrect minimum depth and prevents
-  // the folder from moving to shallower levels.
+  // Exclude dragged folder children — they'd skew getProjection's minDepth calc
   const projectionItems = useMemo(() => {
     if (draggedFolderChildIds.size === 0) return flattenedItems;
     return flattenedItems.filter(item => !draggedFolderChildIds.has(item.uuid));
@@ -195,8 +191,7 @@ export function useDragHandlers({
       setDraggedItemIds(new Set([active.id as string]));
     }
 
-    // When dragging a folder, collect all visible descendant IDs
-    // so they can be hidden from the list and shown in the drag overlay
+    // Collect descendant IDs for hiding from list / showing in overlay
     const activeIndex = snapshot.findIndex(
       item => item.uuid === (active.id as string),
     );
@@ -275,14 +270,12 @@ export function useDragHandlers({
     const itemsBeingDragged = Array.from(draggedItemIds);
     const folderChildIds = draggedFolderChildIds;
     const finalOffsetLeft = offsetLeftRef.current;
-    // Capture last valid overId before reset - used when dropping in dead zones
-    // (invisible folder children area) where over is null
+    // Capture fallback overId before reset (for dead-zone drops)
     const fallbackOverId = lastValidOverIdRef.current;
     resetDragState();
 
-    // Fallback only for folder drags — their hidden children create dead zones
-    // where `over` is null. Regular drags with null `over` should just cancel.
-    // Minimal object: only `id` is needed by projection/insertion logic.
+    // Folder drags only: hidden children create dead zones where over is null.
+    // Regular drags with null over just cancel.
     const effectiveOver =
       over ??
       (folderChildIds.size > 0 && fallbackOverId
@@ -736,7 +729,7 @@ export function useDragHandlers({
 
     const activeItem = fullItemsByUuid.get(activeId as string);
 
-    // For folder drag: include folder + all visible descendants as a block
+    // Folder drag: include folder + visible descendants
     if (
       activeItem?.type === FoldersEditorItemType.Folder &&
       draggedFolderChildIds.size > 0
@@ -748,7 +741,7 @@ export function useDragHandlers({
       );
     }
 
-    // For multi-select or single item drag: use existing stacked behavior
+    // Multi-select / single item: stacked overlay
     const draggedItems = fullFlattenedItems.filter((item: FlattenedTreeItem) =>
       draggedItemIds.has(item.uuid),
     );

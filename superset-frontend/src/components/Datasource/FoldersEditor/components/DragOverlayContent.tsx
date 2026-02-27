@@ -58,7 +58,7 @@ function DragOverlayContentInner({
   const firstItem = dragOverlayItems[0];
   const isFolderDrag = firstItem.type === FoldersEditorItemType.Folder;
 
-  // Folder drag: render the full folder block (header + children)
+  // Folder drag: folder header + children
   if (isFolderDrag && dragOverlayItems.length > 1) {
     const maxVisible = 1 + MAX_FOLDER_OVERLAY_CHILDREN; // folder header + children
     const visibleItems = dragOverlayItems.slice(0, maxVisible);
@@ -70,8 +70,7 @@ function DragOverlayContentInner({
         {visibleItems.map((item, index) => {
           const isItemFolder = item.type === FoldersEditorItemType.Folder;
           const separatorType = itemSeparatorInfo.get(item.uuid);
-          // Don't show separator on the very last visible overlay item -
-          // it would be an orphaned boundary with nothing after it.
+          // No separator on the very last visible item
           const isLastVisible =
             index === visibleItems.length - 1 && remainingCount === 0;
           const effectiveSeparator = isLastVisible ? undefined : separatorType;

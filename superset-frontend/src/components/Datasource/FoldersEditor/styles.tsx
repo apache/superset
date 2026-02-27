@@ -97,10 +97,7 @@ export const DragOverlayFolderBlock = styled.div<{ width?: number }>`
   `}
 `;
 
-// Wraps each item in the folder block overlay to match the slot heights
-// that react-window allocates in the normal list. Content aligns to top
-// (via align-items: stretch) so the bottom gap acts as inter-item spacing,
-// matching how react-window's absolute-positioned slots behave.
+// Matches react-window slot heights so the overlay lines up with the list.
 export const FolderBlockSlot = styled.div<{
   variant: 'folder' | 'item';
   separatorType?: 'visible' | 'transparent';

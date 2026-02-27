@@ -397,9 +397,7 @@ export default function FoldersEditor({
     return separators;
   }, [flattenedItems, lastChildIds]);
 
-  // Exclude dragged folder children from SortableContext so
-  // verticalListSortingStrategy doesn't try to compute transforms
-  // for items that are rendered as non-sortable hidden divs during drag
+  // Exclude dragged folder children so SortableContext skips hidden items
   const sortableItemIds = useMemo(
     () =>
       draggedFolderChildIds.size > 0

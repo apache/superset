@@ -29,20 +29,11 @@ import {
 } from '@dnd-kit/core';
 
 /**
- * Custom collision detection that deprioritizes the active (dragged) item.
+ * Collision detection that deprioritizes the active (dragged) item.
  *
- * When dragging a folder block, the DragPlaceholder at the original position
- * registers as a droppable. rectIntersection uses a translated RECT (not just
- * the pointer) for collision checks, so its result can overlap with both the
- * DragPlaceholder and a neighbouring item. When the DragPlaceholder wins by
- * area, overId stays as the active item and the "same position" early-return
- * in handleDragEnd prevents the reposition.
- *
- * This strategy falls back to pointerWithin when rectIntersection picks the
- * active item, which uses the actual pointer position and reliably detects the
- * item the user is hovering over. When the pointer lands in tiny gaps between
- * droppable rects (inner element refs are slightly smaller than react-window
- * slots), closestCenter is used as a final fallback to find the nearest item.
+ * rectIntersection can match the DragPlaceholder at the original position,
+ * preventing repositioning. Falls back through pointerWithin (actual pointer
+ * position) then closestCenter (gaps between droppable rects).
  */
 export function getCollisionDetection(
   activeId: UniqueIdentifier | null,
@@ -52,28 +43,24 @@ export function getCollisionDetection(
   return args => {
     const collisions = rectIntersection(args);
 
-    // If the best match is NOT the active item, keep rectIntersection result
+    // Best match isn't the active item — use as-is
     if (collisions.length === 0 || collisions[0]?.id !== activeId) {
       return collisions;
     }
 
-    // rectIntersection picked the active item — try pointerWithin for a
-    // more accurate result based on the actual pointer position
+    // rectIntersection picked the active item — try pointer position instead
     const pointerCollisions = pointerWithin(args);
     const nonActivePointer = pointerCollisions.find(c => c.id !== activeId);
     if (nonActivePointer) {
       return [nonActivePointer, ...collisions];
     }
 
-    // If pointerWithin found the active item (pointer IS over the
-    // DragPlaceholder), keep it — this allows horizontal drag for depth
-    // changes to work correctly.
+    // Pointer is over the DragPlaceholder — keep it for horizontal depth changes
     if (pointerCollisions.length > 0) {
       return collisions;
     }
 
-    // Pointer is in a tiny gap between droppable rects — use closestCenter
-    // to find the nearest item instead of snapping back to original position
+    // Gap between droppable rects — fall back to closestCenter
     const centerCollisions = closestCenter(args);
     const nonActiveCenter = centerCollisions.find(c => c.id !== activeId);
     if (nonActiveCenter) {
@@ -90,19 +77,15 @@ export const pointerSensorOptions: PointerSensorOptions = {
   },
 };
 
-// Use BeforeDragging strategy to measure items once at drag start rather than continuously.
-// This is critical for virtualized lists where items get unmounted during scroll.
-// MeasuringStrategy.Always causes issues because dnd-kit loses track of items
-// that are unmounted by react-window during auto-scroll.
+// Measure once at drag start — MeasuringStrategy.Always breaks with virtualization
+// because react-window unmounts items during scroll.
 export const measuringConfig: MeasuringConfiguration = {
   droppable: {
     strategy: MeasuringStrategy.BeforeDragging,
   },
 };
 
-// Disable auto-scroll because it conflicts with virtualization.
-// When auto-scroll moves the viewport, react-window unmounts items that scroll out of view,
-// which causes dnd-kit to lose track of the dragged item and reset the drag operation.
+// Disabled — auto-scroll + react-window unmounting causes dnd-kit to lose the drag.
 export const autoScrollConfig = {
   enabled: false,
 };

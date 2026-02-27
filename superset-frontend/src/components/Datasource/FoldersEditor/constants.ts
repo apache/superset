@@ -36,7 +36,7 @@ export const DEFAULT_FOLDERS_COUNT = 2;
 export const DRAG_INDENTATION_WIDTH = 64;
 export const MAX_DEPTH = 3;
 
-// Base row height for tree items (columns/metrics and folder headers)
+// Base row height for tree items
 export const ITEM_BASE_HEIGHT = 32;
 
 // Type definitions

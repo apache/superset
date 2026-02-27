@@ -187,9 +187,8 @@ function VirtualizedTreeItemComponent({
     );
   }
 
-  // Descendants of the dragged folder are hidden and NOT registered as droppable.
-  // handleDragEnd falls back to lastValidOverIdRef when the pointer is in this
-  // dead zone at drop time.
+  // Hidden descendants of the dragged folder — not droppable.
+  // handleDragEnd uses lastValidOverIdRef when dropping in this dead zone.
   if (draggedFolderChildIds.has(item.uuid)) {
     return <div style={{ ...style, visibility: 'hidden' }} />;
   }
