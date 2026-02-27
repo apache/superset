@@ -18,6 +18,7 @@
  */
 import fetchMock from 'fetch-mock';
 import {
+  act,
   render,
   screen,
   userEvent,
@@ -105,9 +106,74 @@ const generateMockPayload = (dashboard = true) => {
 // mocking resource endpoints
 const FETCH_DASHBOARD_ENDPOINT = 'glob:*/api/v1/report/1';
 const FETCH_CHART_ENDPOINT = 'glob:*/api/v1/report/2';
+const FETCH_REPORT_WITH_FILTERS_ENDPOINT = 'glob:*/api/v1/report/3';
+const FETCH_REPORT_NO_FILTER_NAME_ENDPOINT = 'glob:*/api/v1/report/4';
+const FETCH_REPORT_OVERWRITE_ENDPOINT = 'glob:*/api/v1/report/5';
 
 fetchMock.get(FETCH_DASHBOARD_ENDPOINT, { result: generateMockPayload(true) });
 fetchMock.get(FETCH_CHART_ENDPOINT, { result: generateMockPayload(false) });
+fetchMock.get(FETCH_REPORT_WITH_FILTERS_ENDPOINT, {
+  result: {
+    ...generateMockPayload(true),
+    id: 3,
+    type: 'Report',
+    extra: {
+      dashboard: {
+        nativeFilters: [
+          {
+            nativeFilterId: 'NATIVE_FILTER-abc123',
+            filterName: 'Country',
+            filterType: 'filter_select',
+            columnName: 'country',
+            columnLabel: 'Country',
+            filterValues: ['USA'],
+          },
+        ],
+      },
+    },
+  },
+});
+fetchMock.get(FETCH_REPORT_NO_FILTER_NAME_ENDPOINT, {
+  result: {
+    ...generateMockPayload(true),
+    id: 4,
+    type: 'Report',
+    extra: {
+      dashboard: {
+        nativeFilters: [
+          {
+            nativeFilterId: 'NATIVE_FILTER-xyz789',
+            filterType: 'filter_select',
+            columnName: 'region',
+            columnLabel: 'Region',
+            filterValues: ['West'],
+          },
+        ],
+      },
+    },
+  },
+});
+fetchMock.get(FETCH_REPORT_OVERWRITE_ENDPOINT, {
+  result: {
+    ...generateMockPayload(true),
+    id: 5,
+    type: 'Report',
+    extra: {
+      dashboard: {
+        nativeFilters: [
+          {
+            nativeFilterId: 'NATIVE_FILTER-abc123',
+            filterName: 'Country',
+            filterType: 'filter_select',
+            columnName: 'country',
+            columnLabel: 'Country',
+            filterValues: ['USA'],
+          },
+        ],
+      },
+    },
+  },
+});
 
 // Related mocks
 const ownersEndpoint = 'glob:*/api/v1/alert/related/owners?*';
@@ -125,6 +191,32 @@ fetchMock.get(tabsEndpoint, {
     all_tabs: {},
     tab_tree: [],
   },
+});
+
+// Restore the default tabs route and remove any test-specific overrides.
+// Called in afterEach so cleanup runs even when a test fails mid-way.
+// In fetch-mock v11, overwriteRoutes doesn't reliably deduplicate when
+// routes are re-registered, so we manually filter out stale tabs routes
+// and any test-specific POST routes before re-adding the default.
+const restoreDefaultTabsRoute = () => {
+  fetchMock.resetHistory();
+  // Remove all tabs routes and test-specific chart-data POST routes.
+  // fetch-mock v11 exposes routes at runtime but doesn't type them.
+  const fm = fetchMock as any;
+  fm.routes = fm.routes.filter(
+    (route: { url?: string; name?: string }) =>
+      !route.url?.toString().includes('/tabs') &&
+      !route.url?.toString().includes('/chart/data') &&
+      !route.name?.includes('tabs') &&
+      !route.name?.includes('chart-data'),
+  );
+  fetchMock.get(tabsEndpoint, {
+    result: { all_tabs: {}, tab_tree: [] },
+  });
+};
+
+afterEach(() => {
+  restoreDefaultTabsRoute();
 });
 
 // Create a valid alert with all required fields entered for validation check
@@ -685,11 +777,10 @@ test('renders dashboard filter dropdowns', async () => {
 });
 
 test('filter reappears in dropdown after clearing with X icon', async () => {
-  const tabsWithFiltersEndpoint = 'glob:*/api/v1/dashboard/1/tabs';
   const chartDataEndpoint = 'glob:*/api/v1/chart/data*';
 
   fetchMock.get(
-    tabsWithFiltersEndpoint,
+    tabsEndpoint,
     {
       result: {
         all_tabs: { tab1: 'Tab 1' },
@@ -719,11 +810,7 @@ test('filter reappears in dropdown after clearing with X icon', async () => {
     { overwriteRoutes: true },
   );
 
-  fetchMock.post(
-    chartDataEndpoint,
-    { result: [{ data: [] }] },
-    { overwriteRoutes: true },
-  );
+  fetchMock.post(chartDataEndpoint, { result: [{ data: [] }] });
 
   render(<AlertReportModal {...generateMockedProps(true, true)} />, {
     useRedux: true,
@@ -732,10 +819,12 @@ test('filter reappears in dropdown after clearing with X icon', async () => {
   userEvent.click(screen.getByTestId('contents-panel'));
   await screen.findByText(/test dashboard/i);
 
-  const filterDropdown = screen.getByRole('combobox', {
-    name: /select filter/i,
+  // Wait for the filter select to become enabled (tabs endpoint must resolve first)
+  const filterDropdown = await waitFor(() => {
+    const el = screen.getByRole('combobox', { name: /select filter/i });
+    expect(el).toBeEnabled();
+    return el;
   });
-  expect(filterDropdown).toBeInTheDocument();
 
   userEvent.click(filterDropdown);
 
@@ -775,4 +864,124 @@ test('filter reappears in dropdown after clearing with X icon', async () => {
       within(virtualList as HTMLElement).getByText('Test Filter 1'),
     ).toBeInTheDocument();
   });
+});
+
+test('edit mode shows friendly filter names instead of raw IDs', async () => {
+  const props = generateMockedProps(true, true);
+  const editProps = {
+    ...props,
+    alert: { ...validAlert, id: 3 },
+  };
+
+  render(<AlertReportModal {...editProps} />, {
+    useRedux: true,
+  });
+
+  userEvent.click(screen.getByTestId('contents-panel'));
+
+  await waitFor(() => {
+    const selectionItem = document.querySelector(
+      '.ant-select-selection-item[title="Country"]',
+    );
+    expect(selectionItem).toBeInTheDocument();
+  });
+
+  expect(
+    document.querySelector(
+      '.ant-select-selection-item[title="NATIVE_FILTER-abc123"]',
+    ),
+  ).not.toBeInTheDocument();
+});
+
+test('edit mode falls back to raw ID when filterName is missing', async () => {
+  const props = generateMockedProps(true, true);
+  const editProps = {
+    ...props,
+    alert: { ...validAlert, id: 4 },
+  };
+
+  render(<AlertReportModal {...editProps} />, {
+    useRedux: true,
+  });
+
+  userEvent.click(screen.getByTestId('contents-panel'));
+
+  await waitFor(() => {
+    const selectionItem = document.querySelector(
+      '.ant-select-selection-item[title="NATIVE_FILTER-xyz789"]',
+    );
+    expect(selectionItem).toBeInTheDocument();
+  });
+});
+
+test('tabs metadata overwrites seeded filter options', async () => {
+  const chartDataEndpoint = 'glob:*/api/v1/chart/data*';
+
+  // Deferred promise to control when the tabs response resolves
+  let resolveTabsResponse!: (value: unknown) => void;
+  const deferredTabs = new Promise(resolve => {
+    resolveTabsResponse = resolve;
+  });
+
+  const tabsResult = {
+    result: {
+      all_tabs: { tab1: 'Tab 1' },
+      tab_tree: [{ title: 'Tab 1', value: 'tab1' }],
+      native_filters: {
+        all: [
+          {
+            id: 'NATIVE_FILTER-abc123',
+            name: 'Country (All Filters)',
+            filterType: 'filter_select',
+            targets: [{ column: { name: 'country' }, datasetId: 1 }],
+            adhoc_filters: [],
+          },
+        ],
+        tab1: [],
+      },
+    },
+  };
+
+  // Replace only the tabs route with a deferred version
+  fetchMock.get(tabsEndpoint, () => deferredTabs.then(() => tabsResult), {
+    overwriteRoutes: true,
+  });
+  fetchMock.post(chartDataEndpoint, { result: [{ data: [] }] });
+
+  const props = generateMockedProps(true, true);
+  const editProps = {
+    ...props,
+    alert: { ...validAlert, id: 5 },
+  };
+
+  render(<AlertReportModal {...editProps} />, {
+    useRedux: true,
+  });
+
+  userEvent.click(screen.getByTestId('contents-panel'));
+
+  // Seeded label from saved data appears before tabs respond
+  const filterSelect = screen.getByRole('combobox', {
+    name: /select filter/i,
+  });
+  const selectContainer = filterSelect.closest('.ant-select') as HTMLElement;
+  await waitFor(() => {
+    expect(within(selectContainer).getByTitle('Country')).toBeInTheDocument();
+  });
+
+  // Resolve the deferred tabs response and flush all pending fetch handlers
+  await act(async () => {
+    resolveTabsResponse(undefined);
+    await fetchMock.flush(true);
+  });
+
+  // Tabs metadata overwrites the seeded label
+  await waitFor(() => {
+    expect(
+      within(selectContainer).getByTitle('Country (All Filters)'),
+    ).toBeInTheDocument();
+  });
+  expect(
+    within(selectContainer).queryByTitle('Country'),
+  ).not.toBeInTheDocument();
 });
