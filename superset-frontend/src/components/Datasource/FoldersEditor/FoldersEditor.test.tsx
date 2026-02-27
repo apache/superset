@@ -112,6 +112,11 @@ const mockFolders: DatasourceFolder[] = [
     name: 'Metrics',
     children: [
       { type: FoldersEditorItemType.Metric, uuid: 'metric1', name: 'Count' },
+      {
+        type: FoldersEditorItemType.Metric,
+        uuid: 'metric2',
+        name: 'Sum Revenue',
+      },
     ],
   },
   {
@@ -120,6 +125,7 @@ const mockFolders: DatasourceFolder[] = [
     name: 'Columns',
     children: [
       { type: FoldersEditorItemType.Column, uuid: 'col1', name: 'ID' },
+      { type: FoldersEditorItemType.Column, uuid: 'col2', name: 'name' },
     ],
   },
 ];
@@ -197,6 +203,31 @@ test('selects all items when Select all is clicked', async () => {
     nonButtonCheckboxes.forEach(checkbox => {
       expect(checkbox).toBeChecked();
     });
+  });
+});
+
+test('shows item count and updates to selection count', async () => {
+  renderEditor(<FoldersEditor {...defaultProps} />);
+
+  // With nothing selected, counter shows total items (2 metrics + 2 columns = 4)
+  expect(screen.getByText('4 items')).toBeInTheDocument();
+
+  // Click "Select all"
+  const selectAllButton = screen.getByText('Select all');
+  fireEvent.click(selectAllButton);
+
+  // Counter should show total selected out of total items
+  await waitFor(() => {
+    expect(screen.getByText('4 out of 4 selected')).toBeInTheDocument();
+  });
+
+  // Deselect all
+  const deselectAllButton = screen.getByText('Deselect all');
+  fireEvent.click(deselectAllButton);
+
+  // Counter should revert to item count
+  await waitFor(() => {
+    expect(screen.getByText('4 items')).toBeInTheDocument();
   });
 });
 
@@ -494,6 +525,39 @@ test('drag functionality integrates properly with selection state', () => {
   // Verify checkboxes are present and functional
   const checkboxes = screen.getAllByRole('checkbox');
   expect(checkboxes.length).toBeGreaterThan(0);
+});
+
+test('select all expands collapsed folders', async () => {
+  renderEditor(<FoldersEditor {...defaultProps} />);
+
+  // Folder should be expanded by default, so Count should be visible
+  expect(screen.getByText('Count')).toBeInTheDocument();
+
+  // Collapse the Metrics folder
+  const downIcons = screen.getAllByRole('img', { name: 'down' });
+  fireEvent.click(downIcons[0]);
+
+  await waitFor(() => {
+    expect(screen.queryByText('Count')).not.toBeInTheDocument();
+  });
+
+  // Click "Select all"
+  const selectAllButton = screen.getByText('Select all');
+  fireEvent.click(selectAllButton);
+
+  // The collapsed folder should be expanded and items should be visible
+  await waitFor(() => {
+    expect(screen.getByText('Count')).toBeInTheDocument();
+  });
+
+  // All checkboxes should be checked
+  const checkboxes = screen.getAllByRole('checkbox');
+  const nonButtonCheckboxes = checkboxes.filter(
+    checkbox => !checkbox.closest('button'),
+  );
+  nonButtonCheckboxes.forEach(checkbox => {
+    expect(checkbox).toBeChecked();
+  });
 });
 
 test('nested folders with items remain visible after drag is cancelled', async () => {

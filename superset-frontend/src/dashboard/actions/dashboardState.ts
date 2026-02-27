@@ -412,9 +412,9 @@ interface DashboardSaveData extends JsonObject {
   css?: string;
   dashboard_title?: string;
   owners?: { id: number }[] | number[];
-  roles?: { id: number }[] | number[];
+  roles?: JsonObject[];
   slug?: string | null;
-  tags?: { id: number }[] | number[];
+  tags?: JsonObject[];
   metadata?: JsonObject;
   positions?: JsonObject;
   duplicate_slices?: boolean;
@@ -740,13 +740,14 @@ export function fetchCharts(
   force = false,
   interval = 0,
   dashboardId?: number,
-): (dispatch: AppDispatch, getState: GetState) => void {
+): (dispatch: AppDispatch, getState: GetState) => Promise<void> {
   return (dispatch: AppDispatch, getState: GetState) => {
     if (!interval) {
-      chartList.forEach(chartKey =>
-        dispatch(refreshChart(chartKey, force, dashboardId)),
-      );
-      return;
+      return Promise.all(
+        chartList.map(chartKey =>
+          Promise.resolve(dispatch(refreshChart(chartKey, force, dashboardId))),
+        ),
+      ).then(() => undefined);
     }
 
     const { metadata } = getState().dashboardInfo;
@@ -770,12 +771,20 @@ export function fetchCharts(
       staggerRefresh && chartList.length > 1
         ? refreshTime / (chartList.length - 1)
         : 0;
-    chartList.forEach((chartKey: number, i: number) => {
-      setTimeout(
-        () => dispatch(refreshChart(chartKey, force, dashboardId)),
-        delay * i,
-      );
-    });
+    return Promise.all(
+      chartList.map(
+        (chartKey: number, i: number) =>
+          new Promise<void>((resolve, reject) => {
+            setTimeout(() => {
+              Promise.resolve(
+                dispatch(refreshChart(chartKey, force, dashboardId)),
+              )
+                .then(() => resolve())
+                .catch(reject);
+            }, delay * i);
+          }),
+      ),
+    ).then(() => undefined);
   };
 }
 
@@ -786,10 +795,7 @@ const refreshCharts = (
   dashboardId: number | undefined,
   dispatch: AppDispatch,
 ): Promise<void> =>
-  new Promise(resolve => {
-    dispatch(fetchCharts(chartList, force, interval, dashboardId));
-    resolve();
-  });
+  dispatch(fetchCharts(chartList, force, interval, dashboardId));
 
 export const ON_FILTERS_REFRESH = 'ON_FILTERS_REFRESH';
 
@@ -828,8 +834,9 @@ export function onRefresh(
   force = false,
   interval = 0,
   dashboardId?: number,
+  skipFiltersRefresh = false,
   isLazyLoad = false,
-): (dispatch: AppDispatch) => void {
+): (dispatch: AppDispatch) => Promise<void> {
   return (dispatch: AppDispatch) => {
     // Only dispatch ON_REFRESH for dashboard-level refreshes
     // Skip it for lazy-loaded tabs to prevent infinite loops
@@ -837,14 +844,18 @@ export function onRefresh(
       dispatch({ type: ON_REFRESH });
     }
 
-    refreshCharts(chartList, force, interval, dashboardId, dispatch).then(
-      () => {
-        dispatch(onRefreshSuccess());
-        if (!isLazyLoad) {
-          dispatch(onFiltersRefresh());
-        }
-      },
-    );
+    return refreshCharts(
+      chartList,
+      force,
+      interval,
+      dashboardId,
+      dispatch,
+    ).then(() => {
+      dispatch(onRefreshSuccess());
+      if (!skipFiltersRefresh && !isLazyLoad) {
+        dispatch(onFiltersRefresh());
+      }
+    });
   };
 }
 

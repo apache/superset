@@ -18,7 +18,7 @@
 """Tests for chart utilities module"""
 
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -32,6 +32,7 @@ from superset.mcp_service.chart.chart_utils import (
     map_filter_operator,
     map_table_config,
     map_xy_config,
+    validate_chart_dataset,
 )
 from superset.mcp_service.chart.schemas import (
     AxisConfig,
@@ -80,6 +81,17 @@ class TestMapFilterOperator:
         assert map_filter_operator(">=") == ">="
         assert map_filter_operator("<=") == "<="
         assert map_filter_operator("!=") == "!="
+
+    def test_map_filter_operators_pattern_matching(self) -> None:
+        """Test mapping of pattern matching operators"""
+        assert map_filter_operator("LIKE") == "LIKE"
+        assert map_filter_operator("ILIKE") == "ILIKE"
+        assert map_filter_operator("NOT LIKE") == "NOT LIKE"
+
+    def test_map_filter_operators_set(self) -> None:
+        """Test mapping of set operators"""
+        assert map_filter_operator("IN") == "IN"
+        assert map_filter_operator("NOT IN") == "NOT IN"
 
     def test_map_filter_operator_unknown(self) -> None:
         """Test mapping of unknown operator returns original"""
@@ -144,6 +156,99 @@ class TestMapTableConfig:
         assert filter_obj["operator"] == "=="
         assert filter_obj["comparator"] == "active"
         assert filter_obj["expressionType"] == "SIMPLE"
+
+    def test_map_table_config_with_like_filter(self) -> None:
+        """Test table config mapping with LIKE filter for pattern matching"""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="name")],
+            filters=[FilterConfig(column="name", op="LIKE", value="%mario%")],
+        )
+
+        result = map_table_config(config)
+
+        assert "adhoc_filters" in result
+        assert len(result["adhoc_filters"]) == 1
+        filter_obj = result["adhoc_filters"][0]
+        assert filter_obj["subject"] == "name"
+        assert filter_obj["operator"] == "LIKE"
+        assert filter_obj["comparator"] == "%mario%"
+        assert filter_obj["expressionType"] == "SIMPLE"
+
+    def test_map_table_config_with_ilike_filter(self) -> None:
+        """Test table config mapping with ILIKE filter for case-insensitive matching"""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="name")],
+            filters=[FilterConfig(column="name", op="ILIKE", value="%mario%")],
+        )
+
+        result = map_table_config(config)
+
+        assert "adhoc_filters" in result
+        filter_obj = result["adhoc_filters"][0]
+        assert filter_obj["operator"] == "ILIKE"
+        assert filter_obj["comparator"] == "%mario%"
+
+    def test_map_table_config_with_in_filter(self) -> None:
+        """Test table config mapping with IN filter for list matching"""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="platform")],
+            filters=[
+                FilterConfig(
+                    column="platform", op="IN", value=["Wii", "PS3", "Xbox360"]
+                )
+            ],
+        )
+
+        result = map_table_config(config)
+
+        assert "adhoc_filters" in result
+        filter_obj = result["adhoc_filters"][0]
+        assert filter_obj["subject"] == "platform"
+        assert filter_obj["operator"] == "IN"
+        assert filter_obj["comparator"] == ["Wii", "PS3", "Xbox360"]
+
+    def test_map_table_config_with_not_in_filter(self) -> None:
+        """Test table config mapping with NOT IN filter"""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="status")],
+            filters=[
+                FilterConfig(
+                    column="status", op="NOT IN", value=["archived", "deleted"]
+                )
+            ],
+        )
+
+        result = map_table_config(config)
+
+        assert "adhoc_filters" in result
+        filter_obj = result["adhoc_filters"][0]
+        assert filter_obj["operator"] == "NOT IN"
+        assert filter_obj["comparator"] == ["archived", "deleted"]
+
+    def test_map_table_config_with_mixed_filters(self) -> None:
+        """Test table config mapping with mixed filter operators"""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="name"), ColumnRef(name="sales")],
+            filters=[
+                FilterConfig(column="platform", op="=", value="Wii"),
+                FilterConfig(column="name", op="ILIKE", value="%mario%"),
+                FilterConfig(column="genre", op="IN", value=["Sports", "Racing"]),
+            ],
+        )
+
+        result = map_table_config(config)
+
+        assert len(result["adhoc_filters"]) == 3
+        assert result["adhoc_filters"][0]["operator"] == "=="
+        assert result["adhoc_filters"][1]["operator"] == "ILIKE"
+        assert result["adhoc_filters"][1]["comparator"] == "%mario%"
+        assert result["adhoc_filters"][2]["operator"] == "IN"
+        assert result["adhoc_filters"][2]["comparator"] == ["Sports", "Racing"]
 
     def test_map_table_config_with_sort(self) -> None:
         """Test table config mapping with sort"""
@@ -878,3 +983,164 @@ class TestMapXYConfigWithNonTemporalColumn:
         # time_grain_sqla should be None, not P1M
         assert result["time_grain_sqla"] is None
         assert result["x_axis_sort_series_type"] == "name"
+
+
+class TestFilterConfigValidation:
+    """Test FilterConfig validation for new operators"""
+
+    def test_like_operator_with_wildcard(self) -> None:
+        """Test LIKE operator accepts string with % wildcards"""
+        f = FilterConfig(column="name", op="LIKE", value="%mario%")
+        assert f.op == "LIKE"
+        assert f.value == "%mario%"
+
+    def test_ilike_operator(self) -> None:
+        """Test ILIKE operator accepts string value"""
+        f = FilterConfig(column="name", op="ILIKE", value="%Mario%")
+        assert f.op == "ILIKE"
+        assert f.value == "%Mario%"
+
+    def test_not_like_operator(self) -> None:
+        """Test NOT LIKE operator accepts string value"""
+        f = FilterConfig(column="name", op="NOT LIKE", value="%test%")
+        assert f.op == "NOT LIKE"
+
+    def test_in_operator_with_list(self) -> None:
+        """Test IN operator accepts list of values"""
+        f = FilterConfig(column="platform", op="IN", value=["Wii", "PS3", "Xbox360"])
+        assert f.op == "IN"
+        assert f.value == ["Wii", "PS3", "Xbox360"]
+
+    def test_not_in_operator_with_list(self) -> None:
+        """Test NOT IN operator accepts list of values"""
+        f = FilterConfig(column="status", op="NOT IN", value=["archived", "deleted"])
+        assert f.op == "NOT IN"
+        assert f.value == ["archived", "deleted"]
+
+    def test_in_operator_rejects_scalar_value(self) -> None:
+        """Test IN operator rejects non-list value"""
+        with pytest.raises(ValueError, match="requires a list of values"):
+            FilterConfig(column="platform", op="IN", value="Wii")
+
+    def test_not_in_operator_rejects_scalar_value(self) -> None:
+        """Test NOT IN operator rejects non-list value"""
+        with pytest.raises(ValueError, match="requires a list of values"):
+            FilterConfig(column="status", op="NOT IN", value="active")
+
+    def test_equals_operator_rejects_list_value(self) -> None:
+        """Test = operator rejects list value"""
+        with pytest.raises(ValueError, match="requires a single value, not a list"):
+            FilterConfig(column="name", op="=", value=["a", "b"])
+
+    def test_like_operator_rejects_list_value(self) -> None:
+        """Test LIKE operator rejects list value"""
+        with pytest.raises(ValueError, match="requires a single value, not a list"):
+            FilterConfig(column="name", op="LIKE", value=["%a%", "%b%"])
+
+    def test_in_operator_with_numeric_list(self) -> None:
+        """Test IN operator with numeric values"""
+        f = FilterConfig(column="year", op="IN", value=[2020, 2021, 2022])
+        assert f.value == [2020, 2021, 2022]
+
+    def test_in_operator_with_empty_list(self) -> None:
+        """Test IN operator with empty list"""
+        f = FilterConfig(column="platform", op="IN", value=[])
+        assert f.value == []
+
+
+class TestValidateChartDataset:
+    """Test validate_chart_dataset function"""
+
+    @patch("superset.mcp_service.auth.has_dataset_access")
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    def test_validate_chart_dataset_no_datasource_id(
+        self, mock_find: MagicMock, mock_access: MagicMock
+    ) -> None:
+        """Chart with no datasource_id returns invalid result."""
+        chart = MagicMock(spec=[])  # no datasource_id attribute
+        result = validate_chart_dataset(chart)
+        assert not result.is_valid
+        assert result.dataset_id is None
+        assert "no dataset reference" in (result.error or "").lower()
+        mock_find.assert_not_called()
+
+    @patch("superset.mcp_service.auth.has_dataset_access")
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=None)
+    def test_validate_chart_dataset_deleted_dataset(
+        self, mock_find: MagicMock, mock_access: MagicMock
+    ) -> None:
+        """Chart whose dataset was deleted returns invalid result."""
+        chart = MagicMock()
+        chart.datasource_id = 42
+        result = validate_chart_dataset(chart)
+        assert not result.is_valid
+        assert result.dataset_id == 42
+        assert "deleted" in (result.error or "").lower()
+
+    @patch("superset.mcp_service.auth.has_dataset_access", return_value=True)
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    def test_validate_chart_dataset_valid(
+        self, mock_find: MagicMock, mock_access: MagicMock
+    ) -> None:
+        """Valid chart with accessible dataset returns valid result."""
+        dataset = MagicMock()
+        dataset.table_name = "my_table"
+        dataset.sql = None
+        mock_find.return_value = dataset
+        chart = MagicMock()
+        chart.datasource_id = 7
+        result = validate_chart_dataset(chart)
+        assert result.is_valid
+        assert result.dataset_id == 7
+        assert result.dataset_name == "my_table"
+        assert result.warnings == []
+
+    @patch("superset.mcp_service.auth.has_dataset_access", return_value=True)
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    def test_validate_chart_dataset_virtual_warns(
+        self, mock_find: MagicMock, mock_access: MagicMock
+    ) -> None:
+        """Virtual dataset emits a warning."""
+        dataset = MagicMock()
+        dataset.table_name = "virt_ds"
+        dataset.sql = "SELECT 1"
+        mock_find.return_value = dataset
+        chart = MagicMock()
+        chart.datasource_id = 10
+        result = validate_chart_dataset(chart)
+        assert result.is_valid
+        assert len(result.warnings) == 1
+        assert "virtual" in result.warnings[0].lower()
+
+    @patch("superset.mcp_service.auth.has_dataset_access")
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    def test_validate_chart_dataset_sqlalchemy_error(
+        self, mock_find: MagicMock, mock_access: MagicMock
+    ) -> None:
+        """SQLAlchemy errors are caught and produce an invalid result."""
+        from sqlalchemy.exc import SQLAlchemyError
+
+        mock_find.side_effect = SQLAlchemyError("connection lost")
+        chart = MagicMock()
+        chart.datasource_id = 99
+        result = validate_chart_dataset(chart)
+        assert not result.is_valid
+        assert result.dataset_id == 99
+        assert "error" in (result.error or "").lower()
+
+    @patch(
+        "superset.mcp_service.chart.chart_utils.get_superset_base_url",
+        return_value="http://localhost:8088",
+    )
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    def test_generate_explore_link_sqlalchemy_error(
+        self,
+        mock_find: MagicMock,
+        mock_base_url: MagicMock,
+    ) -> None:
+        """SQLAlchemy errors in generate_explore_link fall back to basic URL."""
+        from sqlalchemy.exc import SQLAlchemyError
+
+        mock_find.side_effect = SQLAlchemyError("db gone")
+        url = generate_explore_link(5, {"viz_type": "table"})
+        assert "datasource_id=5" in url

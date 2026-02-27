@@ -108,6 +108,22 @@ class PopularContent(BaseModel):
     top_creators: List[str] = Field(..., description="Most active creators")
 
 
+class FeatureAvailability(BaseModel):
+    """Dynamic feature availability for the current user and deployment.
+
+    Menus are detected at request time from the security manager,
+    so they reflect the actual permissions of the requesting user.
+    """
+
+    accessible_menus: List[str] = Field(
+        default_factory=list,
+        description=(
+            "UI menu items accessible to the current user, "
+            "derived from FAB role permissions"
+        ),
+    )
+
+
 class InstanceInfo(BaseModel):
     instance_summary: InstanceSummary = Field(
         ..., description="Instance summary information"
@@ -128,6 +144,12 @@ class InstanceInfo(BaseModel):
         None,
         description="The authenticated user making the request. "
         "Use current_user.id with created_by_fk filter to find your own assets.",
+    )
+    feature_availability: FeatureAvailability = Field(
+        ...,
+        description=(
+            "Dynamic feature availability for the current user and deployment"
+        ),
     )
     timestamp: datetime = Field(..., description="Response timestamp")
 

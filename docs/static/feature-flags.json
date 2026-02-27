@@ -262,6 +262,14 @@
         "category": "runtime_config"
       },
       {
+        "name": "DISABLE_EMBEDDED_SUPERSET_LOGOUT",
+        "default": false,
+        "lifecycle": "stable",
+        "description": "Hide the logout button in embedded contexts (e.g., when using SSO in iframes)",
+        "docs": "https://superset.apache.org/docs/configuration/networking-settings#hiding-the-logout-button-in-embedded-contexts",
+        "category": "runtime_config"
+      },
+      {
         "name": "DRILL_BY",
         "default": true,
         "lifecycle": "stable",

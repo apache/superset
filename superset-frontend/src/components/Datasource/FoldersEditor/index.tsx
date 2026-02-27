@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { debounce } from 'lodash';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import {
@@ -32,6 +32,7 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
+import { DatasourceFolder } from 'src/explore/components/DatasourcePanel/types';
 import { FoldersEditorItemType } from '../types';
 import { TreeItem as TreeItemType } from './constants';
 import {
@@ -39,6 +40,7 @@ import {
   buildTree,
   removeChildrenOf,
   serializeForAPI,
+  filterFoldersByValidUuids,
 } from './treeUtils';
 import {
   createFolder,
@@ -50,11 +52,13 @@ import {
   pointerSensorOptions,
   measuringConfig,
   autoScrollConfig,
+  getCollisionDetection,
 } from './sensors';
 import { FoldersContainer, FoldersContent } from './styles';
 import { FoldersEditorProps } from './types';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { useDragHandlers } from './hooks/useDragHandlers';
+import { useContainingBlockModifier } from './hooks/useContainingBlockModifier';
 import { useItemHeights } from './hooks/useItemHeights';
 import { useHeightCache } from './hooks/useHeightCache';
 import {
@@ -79,6 +83,21 @@ export default function FoldersEditor({
     return ensured;
   });
 
+  // Sync folders when columns/metrics are removed externally
+  useEffect(() => {
+    const validUuids = new Set<string>();
+    columns.forEach(c => {
+      if (c.uuid) validUuids.add(c.uuid);
+    });
+    metrics.forEach(m => {
+      if (m.uuid) validUuids.add(m.uuid);
+    });
+
+    setItems(prevItems =>
+      filterFoldersByValidUuids(prevItems as DatasourceFolder[], validUuids),
+    );
+  }, [columns, metrics]);
+
   const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(
     new Set(),
   );
@@ -89,6 +108,8 @@ export default function FoldersEditor({
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   const sensors = useSensors(useSensor(PointerSensor, pointerSensorOptions));
+  const contentRef = useRef<HTMLDivElement>(null);
+  const dragOverlayModifiers = useContainingBlockModifier(contentRef);
 
   const fullFlattenedItems = useMemo(() => flattenTree(items), [items]);
 
@@ -140,6 +161,7 @@ export default function FoldersEditor({
   const {
     isDragging,
     activeId,
+    draggedFolderChildIds,
     dragOverlayWidth,
     flattenedItems,
     dragOverlayItems,
@@ -202,8 +224,28 @@ export default function FoldersEditor({
       setSelectedItemIds(new Set());
     } else {
       setSelectedItemIds(itemsToSelect);
+      // Expand ancestor folders of selected items
+      const parentMap = new Map<string, string | null>();
+      for (const item of fullFlattenedItems) {
+        parentMap.set(item.uuid, item.parentId);
+      }
+      const foldersToExpand = new Set<string>();
+      for (const id of itemsToSelect) {
+        let parentId = parentMap.get(id) ?? null;
+        while (parentId) {
+          foldersToExpand.add(parentId);
+          parentId = parentMap.get(parentId) ?? null;
+        }
+      }
+      setCollapsedIds(prev => {
+        const newSet = new Set(prev);
+        for (const folderId of foldersToExpand) {
+          newSet.delete(folderId);
+        }
+        return newSet;
+      });
     }
-  }, [visibleItemIds, fullItemsByUuid, allVisibleSelected]);
+  }, [visibleItemIds, fullItemsByUuid, fullFlattenedItems, allVisibleSelected]);
 
   const handleResetToDefault = () => {
     setShowResetConfirm(true);
@@ -250,7 +292,9 @@ export default function FoldersEditor({
         // Range selection when shift is held and we have a previous selection
         if (shiftKey && selected && lastSelectedId) {
           const selectableItems = flattenedItems.filter(
-            item => item.type !== FoldersEditorItemType.Folder,
+            item =>
+              item.type !== FoldersEditorItemType.Folder &&
+              visibleItemIds.has(item.uuid),
           );
 
           const currentIndex = selectableItems.findIndex(
@@ -277,7 +321,7 @@ export default function FoldersEditor({
         return newSet;
       });
     },
-    [flattenedItems],
+    [flattenedItems, visibleItemIds],
   );
 
   const handleStartEdit = useCallback((folderId: string) => {
@@ -370,10 +414,31 @@ export default function FoldersEditor({
     return separators;
   }, [flattenedItems, lastChildIds]);
 
+  // Exclude dragged folder children so SortableContext skips hidden items
   const sortableItemIds = useMemo(
-    () => flattenedItems.map(({ uuid }) => uuid),
-    [flattenedItems],
+    () =>
+      draggedFolderChildIds.size > 0
+        ? flattenedItems
+            .filter(item => !draggedFolderChildIds.has(item.uuid))
+            .map(({ uuid }) => uuid)
+        : flattenedItems.map(({ uuid }) => uuid),
+    [flattenedItems, draggedFolderChildIds],
   );
+
+  const collisionDetection = useMemo(
+    () => getCollisionDetection(activeId),
+    [activeId],
+  );
+
+  const selectedMetricsCount = useMemo(() => {
+    let count = 0;
+    for (const id of selectedItemIds) {
+      if (metricsMap.has(id)) {
+        count += 1;
+      }
+    }
+    return count;
+  }, [selectedItemIds, metricsMap]);
 
   const folderChildCounts = useMemo(() => {
     const counts = new Map<string, number>();
@@ -405,10 +470,15 @@ export default function FoldersEditor({
         onSelectAll={handleSelectAll}
         onResetToDefault={handleResetToDefault}
         allVisibleSelected={allVisibleSelected}
+        selectedMetricsCount={selectedMetricsCount}
+        selectedColumnsCount={selectedItemIds.size - selectedMetricsCount}
+        totalMetricsCount={metrics.length}
+        totalColumnsCount={columns.length}
       />
-      <FoldersContent>
+      <FoldersContent ref={contentRef}>
         <DndContext
           sensors={sensors}
+          collisionDetection={collisionDetection}
           measuring={measuringConfig}
           autoScroll={autoScrollConfig}
           onDragStart={handleDragStart}
@@ -440,6 +510,7 @@ export default function FoldersEditor({
                   columnsMap={columnsMap}
                   isDragging={isDragging}
                   activeId={activeId}
+                  draggedFolderChildIds={draggedFolderChildIds}
                   forbiddenDropFolderIds={forbiddenDropFolderIds}
                   currentDropTargetId={currentDropTargetId}
                   onToggleCollapse={handleToggleCollapse}
@@ -451,13 +522,14 @@ export default function FoldersEditor({
             </AutoSizer>
           </SortableContext>
 
-          <DragOverlay>
+          <DragOverlay modifiers={dragOverlayModifiers}>
             <DragOverlayContent
               dragOverlayItems={dragOverlayItems}
               dragOverlayWidth={dragOverlayWidth}
               selectedItemIds={selectedItemIds}
               metricsMap={metricsMap}
               columnsMap={columnsMap}
+              itemSeparatorInfo={itemSeparatorInfo}
             />
           </DragOverlay>
         </DndContext>

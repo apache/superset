@@ -31,7 +31,7 @@
   "dependencies": {
     "@types/d3-scale": "^4.0.9",
     "d3-cloud": "^1.2.8",
-    "d3-scale": "^3.0.1"
+    "d3-scale": "^4.0.2"
   },
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",

@@ -114,13 +114,14 @@ const TABS_KEYS = {
 
 const engineSpecificAlertMapping = {
   [Engines.GSheet]: {
-    message: 'Why do I need to create a database?',
-    description:
+    message: t('Why do I need to create a database?'),
+    description: t(
       'To begin using your Google Sheets, you need to create a database first. ' +
-      'Databases are used as a way to identify ' +
-      'your data so that it can be queried and visualized. This ' +
-      'database will hold all of your individual Google Sheets ' +
-      'you choose to connect here.',
+        'Databases are used as a way to identify ' +
+        'your data so that it can be queried and visualized. This ' +
+        'database will hold all of your individual Google Sheets ' +
+        'you choose to connect here.',
+    ),
   },
 };
 
@@ -712,6 +713,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     ) ||
     {};
 
+  const handleClearValidationErrors = useCallback(() => {
+    setValidationErrors(null);
+    setHasValidated(false);
+    clearError();
+  }, [setValidationErrors, setHasValidated, clearError]);
+
   // Test Connection logic
   const testConnection = () => {
     handleClearValidationErrors();
@@ -772,12 +779,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     },
     [],
   );
-
-  const handleClearValidationErrors = useCallback(() => {
-    setValidationErrors(null);
-    setHasValidated(false);
-    clearError();
-  }, [setValidationErrors, setHasValidated, clearError]);
 
   const handleParametersChange = useCallback(
     ({ target }: { target: HTMLInputElement }) => {
