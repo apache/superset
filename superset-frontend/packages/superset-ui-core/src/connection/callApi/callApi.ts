@@ -44,8 +44,10 @@ function getFullUrl(partialUrl: string, params: CallApi['searchParams']) {
     const url = new URL(partialUrl, window.location.href);
     const search =
       params instanceof URLSearchParams ? params : new URLSearchParams(params);
-    // will completely override any existing search params
-    url.search = search.toString();
+    const searchString = search.toString();
+    if (searchString) {
+      url.search = searchString;
+    }
     return url.href;
   }
   return partialUrl;

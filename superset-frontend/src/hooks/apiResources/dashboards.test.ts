@@ -18,7 +18,28 @@
  */
 import { renderHook } from '@testing-library/react-hooks';
 import fetchMock from 'fetch-mock';
-import { useDashboardDatasets } from './dashboards';
+import { useDashboard, useDashboardDatasets } from './dashboards';
+
+test('useDashboard excludes thumbnail_url from request', async () => {
+  fetchMock.get('glob:*/api/v1/dashboard/5?q=*', {
+    result: {
+      id: 5,
+      dashboard_title: 'Test',
+      json_metadata: '{}',
+      position_json: '{}',
+      owners: [],
+    },
+  });
+
+  const { waitForNextUpdate } = renderHook(() => useDashboard(5));
+  await waitForNextUpdate();
+
+  const calledUrl = fetchMock.lastUrl() ?? '';
+  expect(calledUrl).toContain('?q=');
+  expect(calledUrl).not.toContain('thumbnail_url');
+
+  fetchMock.restore();
+});
 
 describe('useDashboardDatasets', () => {
   const mockDatasets = [

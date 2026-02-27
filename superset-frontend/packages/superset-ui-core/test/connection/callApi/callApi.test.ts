@@ -584,6 +584,21 @@ describe('callApi()', () => {
     expect(fetchMock.lastUrl()).toEqual(`http://localhost/get-search?abc=1`);
   });
 
+  it('should preserve existing query params when searchParams is empty', async () => {
+    window.location.href = 'http://localhost';
+    fetchMock.get(`glob:*/get-search*`, { yes: 'ok' });
+    const response = await callApi({
+      url: '/get-search?q=existing',
+      searchParams: {},
+      method: 'GET',
+    });
+    const result = await response.json();
+    expect(result).toEqual({ yes: 'ok' });
+    expect(fetchMock.lastUrl()).toEqual(
+      `http://localhost/get-search?q=existing`,
+    );
+  });
+
   it('should accept URLSearchParams', async () => {
     expect.assertions(2);
     window.location.href = 'http://localhost';
