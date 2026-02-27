@@ -64,6 +64,7 @@ import {
 } from './styles';
 import {
   DEFAULT_SORT_COMPARATOR,
+  DROPDOWN_ALIGN_BOTTOM,
   EMPTY_OPTIONS,
   MAX_TAG_COUNT,
   TOKEN_SEPARATORS,
@@ -778,6 +779,7 @@ const Select = forwardRef(
           oneLine={oneLine}
           popupMatchSelectWidth={selectAllEnabled ? 168 : true}
           css={props.css}
+          dropdownAlign={DROPDOWN_ALIGN_BOTTOM}
           {...props}
           showSearch={shouldShowSearch}
           ref={ref}
