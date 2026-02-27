@@ -93,6 +93,11 @@ class URLPreviewStrategy(PreviewFormatStrategy):
 
     def generate(self) -> URLPreview | ChartError:
         chart = self.chart
+        if not chart.id:
+            return ChartError(
+                error="URL preview not available for transient charts without an ID",
+                error_type="UnsupportedFormat",
+            )
         explore_url = f"{get_superset_base_url()}/explore/?slice_id={chart.id}"
         return URLPreview(
             preview_url=explore_url,
