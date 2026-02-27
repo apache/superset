@@ -655,6 +655,10 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # sts:AssumeRole permissions to prevent unauthorized access.
     # @lifecycle: testing
     "AWS_DATABASE_IAM_AUTH": False,
+    # Hide the logout button in embedded contexts (e.g., when using SSO
+    # in iframes). Only takes effect when both this flag is enabled AND
+    # the app is running in an iframe.
+    "DISABLE_EMBEDDED_SUPERSET_LOGOUT": False,
     # Force garbage collection after every request
     "FORCE_GARBAGE_COLLECTION_AFTER_EVERY_REQUEST": False,
 }
