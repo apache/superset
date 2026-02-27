@@ -16,27 +16,52 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FC } from 'react';
-import { t, css, useTheme } from '@superset-ui/core';
-import { extendedDayjs } from 'src/utils/dates';
+import { FC, useEffect, useState } from 'react';
+import { t, css, useTheme, SupersetClient } from '@superset-ui/core';
 
 interface LastQueriedLabelProps {
-  queriedDttm: string | null;
+  queriedDttm?: string | null;
+  datasetId?: number;
 }
 
-const LastQueriedLabel: FC<LastQueriedLabelProps> = ({ queriedDttm }) => {
+const LastQueriedLabel: FC<LastQueriedLabelProps> = ({ datasetId, queriedDttm }) => {
   const theme = useTheme();
+  const [dataAsOf, setDataAsOf] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  if (!queriedDttm) {
+  useEffect(() => {
+    if (!datasetId) return;
+
+    let cancelled = false;
+    setLoading(true);
+
+    SupersetClient.get({
+      endpoint: `/api/v1/dataset/${datasetId}/data_as_of`,
+    })
+      .then(({ json }) => {
+        if (!cancelled) {
+          setDataAsOf(json?.result?.data_as_of ?? null);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setDataAsOf(null);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [datasetId, queriedDttm]);
+
+  if (loading || !dataAsOf) {
     return null;
   }
-
-  const parsedDate = extendedDayjs.utc(queriedDttm);
-  if (!parsedDate.isValid()) {
-    return null;
-  }
-
-  const formattedTime = parsedDate.local().format('L LTS');
 
   return (
     <div
@@ -46,9 +71,9 @@ const LastQueriedLabel: FC<LastQueriedLabelProps> = ({ queriedDttm }) => {
         padding: ${theme.gridUnit / 2}px ${theme.gridUnit}px;
         text-align: right;
       `}
-      data-test="last-queried-label"
+      data-test="data-as-of-label"
     >
-      {t('Last queried at')}: {formattedTime}
+      {t('Data as of')}: {dataAsOf}
     </div>
   );
 };
