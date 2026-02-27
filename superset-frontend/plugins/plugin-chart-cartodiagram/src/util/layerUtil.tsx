@@ -133,7 +133,6 @@ export const createWfsLayer = async (wfsLayerConf: WfsLayerConf) => {
 
   return new VectorLayer({
     source: wfsSource,
-    // @ts-ignore
     style: writeStyleResult?.output,
   });
 };

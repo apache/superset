@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import {
   Button,
   type OnClickHandler,
@@ -38,16 +38,16 @@ const ExploreResultsButton = ({
   return (
     <Button
       buttonSize="small"
-      buttonStyle="secondary"
-      icon={<Icons.LineChartOutlined />}
+      variant="text"
+      color="primary"
+      icon={<Icons.LineChartOutlined iconSize="m" />}
       onClick={onClick}
       disabled={!allowsSubquery}
       role="button"
-      tooltip={t('Explore the result set in the data exploration view')}
+      tooltip={t('Create chart')}
+      aria-label={t('Create chart')}
       data-test="explore-results-button"
-    >
-      {t('Create chart')}
-    </Button>
+    />
   );
 };
 

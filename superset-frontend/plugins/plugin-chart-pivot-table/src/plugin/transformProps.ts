@@ -79,11 +79,21 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     rawFormData,
     hooks: { setDataMask = () => {}, onContextMenu },
     filterState,
-    datasource: { verboseMap = {}, columnFormats = {}, currencyFormats = {} },
+    datasource: {
+      verboseMap = {},
+      columnFormats = {},
+      currencyFormats = {},
+      currencyCodeColumn,
+    },
     emitCrossFilters,
     theme,
   } = chartProps;
-  const { data, colnames, coltypes } = queriesData[0];
+  const {
+    data,
+    colnames,
+    coltypes,
+    detected_currency: detectedCurrency,
+  } = queriesData[0];
   const {
     groupbyRows,
     groupbyColumns,
@@ -148,6 +158,8 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     theme,
   );
 
+  // AUTO symbol passed through - PivotTableChart handles per-cell currency detection
+
   return {
     width,
     height,
@@ -169,6 +181,8 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     rowSubTotals,
     valueFormat,
     currencyFormat,
+    currencyCodeColumn,
+    detectedCurrency,
     emitCrossFilters,
     setDataMask,
     selectedFilters,

@@ -18,7 +18,7 @@
  */
 import { useEffect, useRef, useMemo } from 'react';
 import { Select } from '@superset-ui/core/components';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { css, styled, useTheme } from '@apache-superset/core/ui';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import { getColumnKeywords } from 'src/explore/controlUtils/getColumnKeywords';
@@ -53,7 +53,7 @@ export default function AdhocFilterEditPopoverSqlTabContent({
   const theme = useTheme();
 
   useEffect(() => {
-    // @ts-ignore
+    // @ts-expect-error - AceEditor ref type doesn't expose editor.resize()
     aceEditorRef?.current?.editor.resize();
   }, [adhocFilter]);
 
@@ -126,18 +126,13 @@ export default function AdhocFilterEditPopoverSqlTabContent({
       >
         <SQLEditorWithValidation
           ref={aceEditorRef}
-          keywords={keywords.map((k: any) =>
-            typeof k === 'string' ? k : k.value || k.name || k,
-          )}
+          keywords={keywords}
           height={`${height - 130}px`}
           onChange={onSqlExpressionChange}
           width="100%"
-          showGutter={false}
+          lineNumbers={false}
           value={adhocFilter.sqlExpression || adhocFilter.translateToSql()}
-          editorProps={{ $blockScrolling: true }}
-          enableLiveAutocompletion
-          className="filter-sql-editor"
-          wrapEnabled
+          wordWrap
           showValidation
           expressionType={
             adhocFilter.clause === 'HAVING'

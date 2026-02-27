@@ -122,7 +122,7 @@ describe('DeckGLPolygon bucket generation logic', () => {
   const renderWithTheme = (component: React.ReactElement) =>
     render(<ThemeProvider theme={supersetTheme}>{component}</ThemeProvider>);
 
-  it('should use getBuckets for linear_palette color scheme', () => {
+  test('should use getBuckets for linear_palette color scheme', () => {
     const propsWithLinearPalette = {
       ...mockProps,
       formData: {
@@ -138,7 +138,7 @@ describe('DeckGLPolygon bucket generation logic', () => {
     expect(mockGetColorBreakpointsBuckets).not.toHaveBeenCalled();
   });
 
-  it('should use getBuckets for fixed_color color scheme', () => {
+  test('should use getBuckets for fixed_color color scheme', () => {
     const propsWithFixedColor = {
       ...mockProps,
       formData: {
@@ -154,7 +154,7 @@ describe('DeckGLPolygon bucket generation logic', () => {
     expect(mockGetColorBreakpointsBuckets).not.toHaveBeenCalled();
   });
 
-  it('should use getColorBreakpointsBuckets for color_breakpoints scheme', () => {
+  test('should use getColorBreakpointsBuckets for color_breakpoints scheme', () => {
     const propsWithBreakpoints = {
       ...mockProps,
       formData: {
@@ -187,7 +187,7 @@ describe('DeckGLPolygon bucket generation logic', () => {
     expect(mockGetBuckets).not.toHaveBeenCalled();
   });
 
-  it('should use getBuckets when color_scheme_type is undefined (backward compatibility)', () => {
+  test('should use getBuckets when color_scheme_type is undefined (backward compatibility)', () => {
     const propsWithUndefinedScheme = {
       ...mockProps,
       formData: {
@@ -203,7 +203,7 @@ describe('DeckGLPolygon bucket generation logic', () => {
     expect(mockGetColorBreakpointsBuckets).not.toHaveBeenCalled();
   });
 
-  it('should use getBuckets for unsupported color schemes (categorical_palette)', () => {
+  test('should use getBuckets for unsupported color schemes (categorical_palette)', () => {
     const propsWithUnsupportedScheme = {
       ...mockProps,
       formData: {
@@ -230,7 +230,7 @@ describe('DeckGLPolygon Error Handling and Edge Cases', () => {
   const renderWithTheme = (component: React.ReactElement) =>
     render(<ThemeProvider theme={supersetTheme}>{component}</ThemeProvider>);
 
-  it('handles empty features data gracefully', () => {
+  test('handles empty features data gracefully', () => {
     const propsWithEmptyData = {
       ...mockProps,
       payload: {
@@ -249,7 +249,7 @@ describe('DeckGLPolygon Error Handling and Edge Cases', () => {
     expect(mockGetColorBreakpointsBuckets).not.toHaveBeenCalled();
   });
 
-  it('handles missing color_breakpoints for color_breakpoints scheme', () => {
+  test('handles missing color_breakpoints for color_breakpoints scheme', () => {
     const propsWithMissingBreakpoints = {
       ...mockProps,
       formData: {
@@ -266,7 +266,7 @@ describe('DeckGLPolygon Error Handling and Edge Cases', () => {
     expect(mockGetBuckets).not.toHaveBeenCalled();
   });
 
-  it('handles null legend_position correctly', () => {
+  test('handles null legend_position correctly', () => {
     const propsWithNullLegendPosition = {
       ...mockProps,
       formData: {
@@ -294,7 +294,7 @@ describe('DeckGLPolygon Legend Integration', () => {
   const renderWithTheme = (component: React.ReactElement) =>
     render(<ThemeProvider theme={supersetTheme}>{component}</ThemeProvider>);
 
-  it('renders legend with non-empty categories when metric and linear_palette are defined', () => {
+  test('renders legend with non-empty categories when metric and linear_palette are defined', () => {
     const { container } = renderWithTheme(<DeckGLPolygon {...mockProps} />);
 
     // Verify the component renders and calls the correct bucket function
@@ -309,7 +309,7 @@ describe('DeckGLPolygon Legend Integration', () => {
     expect(Object.keys(categoriesData)).toHaveLength(2);
   });
 
-  it('does not render legend when metric is null', () => {
+  test('does not render legend when metric is null', () => {
     const propsWithoutMetric = {
       ...mockProps,
       formData: {
@@ -326,7 +326,7 @@ describe('DeckGLPolygon Legend Integration', () => {
 });
 
 describe('getPoints utility', () => {
-  it('extracts points from polygon data', () => {
+  test('extracts points from polygon data', () => {
     const data = [
       {
         polygon: [

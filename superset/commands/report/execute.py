@@ -822,8 +822,13 @@ class ReportNotTriggeredErrorState(BaseReportState):
         try:
             # If it's an alert check if the alert is triggered
             if self._report_schedule.type == ReportScheduleType.ALERT:
-                if not AlertCommand(self._report_schedule, self._execution_id).run():
-                    self.update_report_schedule_and_log(ReportState.NOOP)
+                triggered, message = AlertCommand(
+                    self._report_schedule, self._execution_id
+                ).run()
+                if not triggered:
+                    self.update_report_schedule_and_log(
+                        ReportState.NOOP, error_message=message
+                    )
                     return
             self.send()
             self.update_report_schedule_and_log(ReportState.SUCCESS)
@@ -949,8 +954,13 @@ class ReportSuccessState(BaseReportState):
                 return
             self.update_report_schedule_and_log(ReportState.WORKING)
             try:
-                if not AlertCommand(self._report_schedule, self._execution_id).run():
-                    self.update_report_schedule_and_log(ReportState.NOOP)
+                triggered, message = AlertCommand(
+                    self._report_schedule, self._execution_id
+                ).run()
+                if not triggered:
+                    self.update_report_schedule_and_log(
+                        ReportState.NOOP, error_message=message
+                    )
                     return
             except Exception as ex:
                 self.send_error(

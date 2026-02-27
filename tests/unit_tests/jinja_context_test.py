@@ -1639,3 +1639,57 @@ def test_jinja2_server_error_handling(mocker: MockerFixture) -> None:
         assert "Internal Jinja2 template error" in str(exception)
         assert "MemoryError" in str(exception)
         assert "Out of memory" in str(exception)
+
+
+def test_undefined_template_function_exception(mocker: MockerFixture) -> None:
+    """Test UndefinedTemplateFunctionException for undefined function identifiers."""
+    from superset.jinja_context import (
+        BaseTemplateProcessor,
+        UndefinedTemplateFunctionException,
+    )
+
+    database = mocker.MagicMock()
+    database.db_engine_spec = mocker.MagicMock()
+
+    processor = BaseTemplateProcessor(database=database)
+
+    template = "SELECT {{ undefined_function() }}"
+    with pytest.raises(UndefinedTemplateFunctionException) as exc_info:
+        processor.process_template(template)
+
+    exception = exc_info.value
+    assert isinstance(exception, UndefinedTemplateFunctionException)
+    assert "undefined" in str(exception).lower()
+
+
+def test_undefined_template_function_exception_with_namespace(
+    mocker: MockerFixture,
+) -> None:
+    """Test namespaced undefined functions raise UndefinedError (not converted)."""
+    from jinja2.exceptions import UndefinedError
+
+    from superset.jinja_context import BaseTemplateProcessor
+
+    database = mocker.MagicMock()
+    database.db_engine_spec = mocker.MagicMock()
+
+    processor = BaseTemplateProcessor(database=database)
+    template = "SELECT {{ namespace.undefined_function() }}"
+    with pytest.raises(UndefinedError):
+        processor.process_template(template)
+
+
+def test_undefined_template_variable_not_function(mocker: MockerFixture) -> None:
+    """Test undefined variables with method calls raise UndefinedError."""
+    from jinja2.exceptions import UndefinedError
+
+    from superset.jinja_context import BaseTemplateProcessor
+
+    database = mocker.MagicMock()
+    database.db_engine_spec = mocker.MagicMock()
+
+    processor = BaseTemplateProcessor(database=database)
+
+    template = "SELECT {{ undefined_variable.some_method() }}"
+    with pytest.raises(UndefinedError):
+        processor.process_template(template)

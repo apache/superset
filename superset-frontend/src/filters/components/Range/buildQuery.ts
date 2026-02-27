@@ -36,7 +36,7 @@ import { GenericDataType } from '@apache-superset/core/api/core';
 export default function buildQuery(formData: QueryFormData) {
   const { groupby } = formData;
   const [column = ''] = groupby || [];
-  // @ts-ignore (need update interface Column )
+  // @ts-expect-error (need update interface Column )
   return buildQueryContext(formData, baseQueryObject => [
     {
       ...baseQueryObject,

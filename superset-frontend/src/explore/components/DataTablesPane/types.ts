@@ -49,6 +49,8 @@ export interface ResultsPaneProps {
   // reload OriginalFormattedTimeColumns from localStorage when isVisible is true
   isVisible: boolean;
   canDownload: boolean;
+  // Optional map of column/metric name -> verbose label
+  columnDisplayNames?: Record<string, string>;
 }
 
 export interface SamplesPaneProps {
@@ -88,4 +90,7 @@ export interface SingleQueryResultPaneProp extends QueryResultInterface {
   // reload OriginalFormattedTimeColumns from localStorage when isVisible is true
   isVisible: boolean;
   canDownload: boolean;
+  // Optional map of column/metric name -> verbose label
+  columnDisplayNames?: Record<string, string>;
+  isPaginationSticky?: boolean;
 }

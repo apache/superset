@@ -21,7 +21,7 @@ import { GenericDataType } from '@apache-superset/core/api/core';
 import { columnChoices } from '../../src';
 
 describe('columnChoices()', () => {
-  it('should convert columns to choices when source is a Dataset', () => {
+  test('should convert columns to choices when source is a Dataset', () => {
     expect(
       columnChoices({
         id: 1,
@@ -60,11 +60,11 @@ describe('columnChoices()', () => {
     ]);
   });
 
-  it('should return empty array when no columns', () => {
+  test('should return empty array when no columns', () => {
     expect(columnChoices(undefined)).toEqual([]);
   });
 
-  it('should convert columns to choices when source is a Query', () => {
+  test('should convert columns to choices when source is a Query', () => {
     expect(columnChoices(testQueryResponse)).toEqual([
       ['Column 1', 'Column 1'],
       ['Column 2', 'Column 2'],
@@ -72,12 +72,12 @@ describe('columnChoices()', () => {
     ]);
   });
 
-  it('should return choices of a specific type', () => {
+  test('should return choices of a specific type', () => {
     expect(columnChoices(testQueryResponse, GenericDataType.Temporal)).toEqual([
       ['Column 2', 'Column 2'],
     ]);
   });
-  it('should use name when verbose_name key exists but is not defined', () => {
+  test('should use name when verbose_name key exists but is not defined', () => {
     expect(
       columnChoices({
         id: 1,

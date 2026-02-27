@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useDispatch } from 'react-redux';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import { Dropdown, Button } from '@superset-ui/core/components';
 import { Menu } from '@superset-ui/core/components/Menu';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -32,6 +32,19 @@ export interface QueryLimitSelectProps {
 
 export function convertToNumWithSpaces(num: number) {
   return num.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1 ');
+}
+
+export function convertToShortNum(num: number) {
+  if (num < 1000) {
+    return num;
+  }
+  if (num < 1_000_000) {
+    return `${num / 1000}K`;
+  }
+  if (num < 1_000_000_000) {
+    return `${num / 1000_000}M`;
+  }
+  return num;
 }
 
 function renderQueryLimit(
@@ -74,12 +87,15 @@ const QueryLimitSelect = ({
       popupRender={() => renderQueryLimit(maxRow, setQueryLimit)}
       trigger={['click']}
     >
-      <Button size="small" showMarginRight={false} buttonStyle="link">
-        <span>{t('LIMIT')}:</span>
-        <span className="limitDropdown">
-          {convertToNumWithSpaces(queryLimit)}
-        </span>
-        <Icons.CaretDownOutlined iconSize="m" />
+      <Button
+        size="small"
+        color="primary"
+        variant="text"
+        showMarginRight={false}
+      >
+        <span>{t('Limit')}</span>
+        <span className="limitDropdown">{convertToShortNum(queryLimit)}</span>
+        <Icons.DownOutlined iconSize="m" />
       </Button>
     </Dropdown>
   );

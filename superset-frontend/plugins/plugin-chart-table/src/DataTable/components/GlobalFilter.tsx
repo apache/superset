@@ -25,8 +25,8 @@ import {
   Ref,
 } from 'react';
 import { Row, FilterValue } from 'react-table';
+import { t } from '@apache-superset/core';
 import { Input, type InputRef, Space } from '@superset-ui/core/components';
-import { t } from '@superset-ui/core';
 import useAsyncState from '../utils/useAsyncState';
 
 export interface SearchInputProps {
@@ -64,7 +64,6 @@ function DefaultSearchInput({
       <Input
         size="small"
         ref={inputRef}
-        placeholder={`${count} records...`}
         value={value}
         onChange={onChange}
         onBlur={onBlur}

@@ -28,7 +28,8 @@ import {
   Input,
   Modal,
 } from '@superset-ui/core/components';
-import { t, SupersetClient } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { SupersetClient } from '@superset-ui/core';
 import { styled, useTheme } from '@apache-superset/core/ui';
 import { Tag } from 'src/views/CRUD/types';
 import { fetchObjectsByTagIds } from 'src/features/tags/tags';
@@ -325,7 +326,7 @@ const TagModal: FC<TagModalProps> = ({
           ariaLabel={t('Select dashboards')}
           mode="multiple"
           name="dashboards"
-          // @ts-ignore
+          // @ts-expect-error
           value={dashboardsToTag}
           options={loadDashboards}
           onChange={value =>
@@ -339,7 +340,7 @@ const TagModal: FC<TagModalProps> = ({
           ariaLabel={t('Select charts')}
           mode="multiple"
           name="charts"
-          // @ts-ignore
+          // @ts-expect-error
           value={chartsToTag}
           options={loadCharts}
           onChange={value => handleOptionChange(TaggableResources.Chart, value)}
@@ -351,7 +352,7 @@ const TagModal: FC<TagModalProps> = ({
           ariaLabel={t('Select saved queries')}
           mode="multiple"
           name="savedQueries"
-          // @ts-ignore
+          // @ts-expect-error
           value={savedQueriesToTag}
           options={loadQueries}
           onChange={value =>

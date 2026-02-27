@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { tn } from '@superset-ui/core';
+import { tn } from '@apache-superset/core';
 import { updateColumns } from '.';
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks

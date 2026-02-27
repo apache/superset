@@ -21,10 +21,10 @@ import datetime
 import logging
 import platform
 
-from fastmcp import Context
 from flask import current_app
 from superset_core.mcp import tool
 
+from superset.extensions import event_logger
 from superset.mcp_service.system.schemas import HealthCheckResponse
 from superset.utils.version import get_version_metadata
 
@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 
 @tool(tags=["core"])
-async def health_check(ctx: Context) -> HealthCheckResponse:
+async def health_check() -> HealthCheckResponse:
     """
     Simple health check tool for testing the MCP service.
 
@@ -65,9 +65,10 @@ async def health_check(ctx: Context) -> HealthCheckResponse:
     service_name = f"{app_name} MCP Service"
 
     try:
-        # Get version from Superset version metadata
-        version_metadata = get_version_metadata()
-        version = version_metadata.get("version_string", "unknown")
+        with event_logger.log_context(action="mcp.health_check.status"):
+            # Get version from Superset version metadata
+            version_metadata = get_version_metadata()
+            version = version_metadata.get("version_string", "unknown")
 
         response = HealthCheckResponse(
             status="healthy",

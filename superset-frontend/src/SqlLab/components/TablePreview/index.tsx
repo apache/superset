@@ -19,7 +19,8 @@
 import { type FC, useCallback, useMemo, useRef, useState } from 'react';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { nanoid } from 'nanoid';
-import { ClientErrorObject, getExtensionsRegistry, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import { ClientErrorObject, getExtensionsRegistry } from '@superset-ui/core';
 import { css, styled, Alert, useTheme } from '@apache-superset/core/ui';
 import {
   SafeMarkdown,
@@ -287,11 +288,11 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
         {schema && <Breadcrumb.Item>{schema}</Breadcrumb.Item>}
         <Breadcrumb.Item> </Breadcrumb.Item>
       </Breadcrumb>
-      <div style={{ display: 'none' }}>
+      <div style={{ display: 'none' }} aria-hidden="true">
         <CopyToClipboard
           copyNode={
             <button type="button" ref={copyStatementActionRef}>
-              invisible button
+              {t('Copy')}
             </button>
           }
           text={tableData.selectStar}
@@ -304,7 +305,7 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
             title={t('CREATE VIEW statement')}
             triggerNode={
               <button type="button" ref={showViewStatementActionRef}>
-                invisible button
+                {t('Show SQL')}
               </button>
             }
           />

@@ -24,9 +24,9 @@ import {
   isFeatureEnabled,
   FeatureFlag,
   getChartMetadataRegistry,
-  logging,
   makeApi,
 } from '@superset-ui/core';
+import { logging } from '@apache-superset/core';
 import { omitBy } from 'lodash';
 import type { Plugin, PluginAction, PluginContextType } from './types';
 

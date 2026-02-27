@@ -103,7 +103,8 @@ const TitleRight = styled.span`
 `;
 const CoverFooter = styled.div`
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
+  row-gap: ${({ theme }) => theme.sizeUnit}px;
   position: relative;
   top: -${({ theme }) => theme.sizeUnit * 9}px;
   padding: 0 8px;
@@ -111,6 +112,7 @@ const CoverFooter = styled.div`
 
 const CoverFooterLeft = styled.div`
   flex: 1;
+  min-width: 0;
   overflow: hidden;
 `;
 

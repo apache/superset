@@ -49,7 +49,7 @@ describe('BigNumberWithTrendline buildQuery', () => {
     aggregation: null,
   };
 
-  it('creates raw metric query when aggregation is "raw"', () => {
+  test('creates raw metric query when aggregation is "raw"', () => {
     const queryContext = buildQuery({ ...baseFormData, aggregation: 'raw' });
     const bigNumberQuery = queryContext.queries[1];
 
@@ -58,7 +58,7 @@ describe('BigNumberWithTrendline buildQuery', () => {
     expect(bigNumberQuery.columns).toEqual([]);
   });
 
-  it('returns single query for aggregation methods that can be computed client-side', () => {
+  test('returns single query for aggregation methods that can be computed client-side', () => {
     const queryContext = buildQuery({ ...baseFormData, aggregation: 'sum' });
 
     expect(queryContext.queries.length).toBe(1);
@@ -70,7 +70,7 @@ describe('BigNumberWithTrendline buildQuery', () => {
     ]);
   });
 
-  it('returns single query for LAST_VALUE aggregation', () => {
+  test('returns single query for LAST_VALUE aggregation', () => {
     const queryContext = buildQuery({
       ...baseFormData,
       aggregation: 'LAST_VALUE',
@@ -85,7 +85,7 @@ describe('BigNumberWithTrendline buildQuery', () => {
     ]);
   });
 
-  it('returns two queries only for raw aggregation', () => {
+  test('returns two queries only for raw aggregation', () => {
     const queryContext = buildQuery({ ...baseFormData, aggregation: 'raw' });
     expect(queryContext.queries.length).toBe(2);
 

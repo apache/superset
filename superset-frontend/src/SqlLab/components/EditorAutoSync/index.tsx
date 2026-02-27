@@ -20,7 +20,7 @@
 import { useRef, useEffect, FC, useMemo } from 'react';
 
 import { useDispatch, useSelector } from 'react-redux';
-import { logging } from '@superset-ui/core';
+import { logging } from '@apache-superset/core';
 import {
   SqlLabRootState,
   QueryEditor,

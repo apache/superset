@@ -18,11 +18,11 @@
  */
 import { useMemo, ReactNode } from 'react';
 
+import { t } from '@apache-superset/core';
 import {
   ColorScheme,
   ColorSchemeGroup,
   SequentialScheme,
-  t,
   getLabelsColorMap,
   CategoricalColorNamespace,
 } from '@superset-ui/core';

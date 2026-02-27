@@ -19,6 +19,11 @@
 import { useCallback } from 'react';
 import { SupersetClient } from '@superset-ui/core';
 import rison from 'rison';
+import {
+  OwnerSelectLabel,
+  OWNER_TEXT_LABEL_PROP,
+  OWNER_EMAIL_PROP,
+} from 'src/features/owners/OwnerSelectLabel';
 
 /**
  * Hook for loading dashboard access options (owners and roles)
@@ -38,10 +43,29 @@ export const useAccessOptions = () => {
           .filter((item: { extra: { active: boolean } }) =>
             item.extra.active !== undefined ? item.extra.active : true,
           )
-          .map((item: { value: number; text: string }) => ({
-            value: item.value,
-            label: item.text,
-          })),
+          .map(
+            (item: {
+              value: number;
+              text: string;
+              extra: { email?: string };
+            }) => {
+              if (accessType === 'owners') {
+                return {
+                  value: item.value,
+                  label: OwnerSelectLabel({
+                    name: item.text,
+                    email: item.extra?.email,
+                  }),
+                  [OWNER_TEXT_LABEL_PROP]: item.text,
+                  [OWNER_EMAIL_PROP]: item.extra?.email ?? '',
+                };
+              }
+              return {
+                value: item.value,
+                label: item.text,
+              };
+            },
+          ),
         totalCount: response.json.count,
       }));
     },

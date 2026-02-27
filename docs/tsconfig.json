@@ -8,6 +8,8 @@
     "strict": false,
     "jsx": "react-jsx",
     "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
     "types": ["@docusaurus/module-type-aliases"],
     "paths": {
       "@superset-ui/core": ["../superset-frontend/packages/superset-ui-core/src"],

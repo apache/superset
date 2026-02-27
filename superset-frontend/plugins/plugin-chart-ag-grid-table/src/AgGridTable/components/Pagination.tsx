@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint-disable theme-colors/no-literal-colors */
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
 import {
   VerticalLeftOutlined,
   VerticalRightOutlined,

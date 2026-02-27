@@ -22,11 +22,11 @@ import {
   FeatureFlag,
   makeApi,
   SupersetClient,
-  logging,
   getClientErrorObject,
   parseErrorJson,
   SupersetError,
 } from '@superset-ui/core';
+import { logging } from '@apache-superset/core';
 import getBootstrapData from 'src/utils/getBootstrapData';
 
 type AsyncEvent = {

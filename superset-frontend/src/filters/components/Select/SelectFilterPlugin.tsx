@@ -18,6 +18,7 @@
  */
 /* eslint-disable no-param-reassign */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { t } from '@apache-superset/core';
 import {
   AppSection,
   DataMask,
@@ -26,9 +27,8 @@ import {
   getColumnLabel,
   JsonObject,
   finestTemporalGrainFormatter,
-  t,
-  tn,
 } from '@superset-ui/core';
+import { tn } from '@apache-superset/core';
 import { styled } from '@apache-superset/core/ui';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import { debounce, isUndefined } from 'lodash';
@@ -151,7 +151,6 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   const [col] = groupby;
   const [initialColtypeMap] = useState(coltypeMap);
   const [search, setSearch] = useState('');
-  const isChangedByUser = useRef(false);
   const prevDataRef = useRef(data);
   const [dataMask, dispatchDataMask] = useImmerReducer(reducer, {
     extraFormData: {},
@@ -273,8 +272,6 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       } else {
         updateDataMask(values);
       }
-
-      isChangedByUser.current = true;
     },
     [updateDataMask, formData.nativeFilterId, clearAllTrigger],
   );
@@ -400,14 +397,12 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
 
     // If data actually changed (e.g., due to parent filter), reset flag
     if (hasDataChanged) {
-      isChangedByUser.current = false;
       prevDataRef.current = data;
     }
   }, [data, col]);
 
   useEffect(() => {
     if (
-      isChangedByUser.current &&
       filterState.value?.every((value?: any) =>
         data.some(row => row[col] === value),
       )
@@ -514,7 +509,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
             allowClear
             allowNewOptions={!searchAllOptions && creatable !== false}
             allowSelectAll={!searchAllOptions}
-            value={filterState.value || []}
+            value={multiSelect ? filterState.value || [] : filterState.value}
             disabled={isDisabled}
             getPopupContainer={
               showOverflow
@@ -531,7 +526,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
             onFocus={setFocusedFilter}
             onMouseEnter={setHoveredFilter}
             onMouseLeave={unsetHoveredFilter}
-            // @ts-ignore
+            // @ts-expect-error
             onChange={handleChange}
             ref={inputRef}
             loading={isRefreshing}

@@ -17,11 +17,11 @@
  * under the License.
  */
 
+import { t } from '@apache-superset/core';
 import {
   ClientErrorObject,
   getClientErrorObject,
   SupersetClient,
-  t,
 } from '@superset-ui/core';
 import type { TagType } from 'src/types/TagType';
 

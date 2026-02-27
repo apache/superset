@@ -114,7 +114,7 @@ export function AsyncAceEditor(
     defaultMode,
     defaultTheme,
     defaultTabSize = 2,
-    fontFamily = 'Menlo, Consolas, Courier New, Ubuntu Mono, source-code-pro, Lucida Console, monospace',
+    fontFamily,
     placeholder,
   }: AsyncAceEditorOptions = {},
 ) {
@@ -171,6 +171,7 @@ export function AsyncAceEditor(
         ref,
       ) {
         const token = useTheme();
+        const editorFontFamily = fontFamily || token.fontFamilyCode;
         const langTools = acequire('ace/ext/language_tools');
 
         const setCompleters = useCallback(
@@ -273,10 +274,8 @@ export function AsyncAceEditor(
               key="ace-tooltip-global"
               styles={css`
                 .ace_editor {
-                  border: 1px solid ${token.colorBorder} !important;
                   background-color: ${token.colorBgContainer} !important;
                 }
-
                 /* Basic editor styles with dark mode support */
                 .ace_editor.ace-github,
                 .ace_editor.ace-tm {
@@ -294,7 +293,8 @@ export function AsyncAceEditor(
                 }
                 /* Adjust selection color */
                 .ace_editor .ace_selection {
-                  background-color: ${token.colorPrimaryBgHover} !important;
+                  background-color: ${token.colorEditorSelection ??
+                  token.colorPrimaryBgHover} !important;
                 }
 
                 /* Improve active line highlighting */
@@ -437,7 +437,7 @@ export function AsyncAceEditor(
               theme={theme}
               tabSize={tabSize}
               defaultValue={defaultValue}
-              setOptions={{ fontFamily }}
+              setOptions={{ fontFamily: editorFontFamily }}
               {...props}
             />
           </>

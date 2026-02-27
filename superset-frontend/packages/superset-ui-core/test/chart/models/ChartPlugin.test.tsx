@@ -52,7 +52,7 @@ describe('ChartPlugin', () => {
 
   const controlPanel = { abc: 1 };
 
-  it('exists', () => {
+  test('exists', () => {
     expect(ChartPlugin).toBeDefined();
   });
 
@@ -63,7 +63,7 @@ describe('ChartPlugin', () => {
       viz_type: VizType.Table,
     };
 
-    it('creates a new plugin', () => {
+    test('creates a new plugin', () => {
       const plugin = new ChartPlugin({
         metadata,
         Chart: FakeChart,
@@ -71,14 +71,14 @@ describe('ChartPlugin', () => {
       expect(plugin).toBeInstanceOf(ChartPlugin);
     });
     describe('buildQuery', () => {
-      it('defaults to undefined', () => {
+      test('defaults to undefined', () => {
         const plugin = new ChartPlugin({
           metadata,
           Chart: FakeChart,
         });
         expect(plugin.loadBuildQuery).toBeUndefined();
       });
-      it('uses loadBuildQuery field if specified', () => {
+      test('uses loadBuildQuery field if specified', () => {
         expect.assertions(2);
         const plugin = new ChartPlugin({
           metadata,
@@ -91,7 +91,7 @@ describe('ChartPlugin', () => {
         expect(fn(FORM_DATA).queries[0]).toEqual({ granularity: 'day' });
         expect(fn(FORM_DATA).force).toEqual(false);
       });
-      it('uses buildQuery field if specified', () => {
+      test('uses buildQuery field if specified', () => {
         expect.assertions(1);
         const plugin = new ChartPlugin({
           metadata,
@@ -105,7 +105,7 @@ describe('ChartPlugin', () => {
       });
     });
     describe('Chart', () => {
-      it('uses loadChart if specified', () => {
+      test('uses loadChart if specified', () => {
         const loadChart = () => FakeChart;
         const plugin = new ChartPlugin({
           metadata,
@@ -114,14 +114,14 @@ describe('ChartPlugin', () => {
         // the loader is sanitized, so assert on the value
         expect(plugin.loadChart()).toBe(loadChart());
       });
-      it('uses Chart field if specified', () => {
+      test('uses Chart field if specified', () => {
         const plugin = new ChartPlugin({
           metadata,
           Chart: FakeChart,
         });
         expect(plugin.loadChart()).toEqual(FakeChart);
       });
-      it('throws an error if none of Chart or loadChart is specified', () => {
+      test('throws an error if none of Chart or loadChart is specified', () => {
         expect(() => new ChartPlugin({ metadata })).toThrow(Error);
       });
     });
@@ -133,7 +133,7 @@ describe('ChartPlugin', () => {
         queriesData: [{}],
         theme: supersetTheme,
       });
-      it('defaults to identity function', () => {
+      test('defaults to identity function', () => {
         const plugin = new ChartPlugin({
           metadata,
           Chart: FakeChart,
@@ -141,7 +141,7 @@ describe('ChartPlugin', () => {
         const fn = plugin.loadTransformProps() as TransformProps;
         expect(fn(PROPS)).toBe(PROPS);
       });
-      it('uses loadTransformProps field if specified', () => {
+      test('uses loadTransformProps field if specified', () => {
         const plugin = new ChartPlugin({
           metadata,
           Chart: FakeChart,
@@ -150,7 +150,7 @@ describe('ChartPlugin', () => {
         const fn = plugin.loadTransformProps() as TransformProps;
         expect(fn(PROPS)).toEqual({ field2: 2 });
       });
-      it('uses transformProps field if specified', () => {
+      test('uses transformProps field if specified', () => {
         const plugin = new ChartPlugin({
           metadata,
           Chart: FakeChart,
@@ -161,7 +161,7 @@ describe('ChartPlugin', () => {
       });
     });
     describe('controlPanel', () => {
-      it('takes controlPanel from input', () => {
+      test('takes controlPanel from input', () => {
         const plugin = new ChartPlugin({
           metadata,
           Chart: FakeChart,
@@ -169,7 +169,7 @@ describe('ChartPlugin', () => {
         });
         expect(plugin.controlPanel).toBe(controlPanel);
       });
-      it('defaults to empty object', () => {
+      test('defaults to empty object', () => {
         const plugin = new ChartPlugin({
           metadata,
           Chart: FakeChart,
@@ -191,13 +191,13 @@ describe('ChartPlugin', () => {
       });
     });
 
-    it('throws an error if key is not provided', () => {
+    test('throws an error if key is not provided', () => {
       expect(() => plugin.register()).toThrow(Error);
       expect(() => plugin.configure({ key: 'ab' }).register()).not.toThrow(
         Error,
       );
     });
-    it('add the plugin to the registries', () => {
+    test('add the plugin to the registries', () => {
       plugin.configure({ key: 'cd' }).register();
       expect(getChartMetadataRegistry().get('cd')).toBe(metadata);
       expect(getChartComponentRegistry().get('cd')).toBe(FakeChart);
@@ -205,7 +205,7 @@ describe('ChartPlugin', () => {
       expect(getChartBuildQueryRegistry().get('cd')).toBe(buildQuery);
       expect(getChartControlPanelRegistry().get('cd')).toBe(controlPanel);
     });
-    it('does not register buildQuery when it is not specified in the ChartPlugin', () => {
+    test('does not register buildQuery when it is not specified in the ChartPlugin', () => {
       new ChartPlugin({
         metadata,
         Chart: FakeChart,
@@ -214,7 +214,7 @@ describe('ChartPlugin', () => {
         .register();
       expect(getChartBuildQueryRegistry().has('ef')).toEqual(false);
     });
-    it('returns itself', () => {
+    test('returns itself', () => {
       expect(plugin.configure({ key: 'gh' }).register()).toBe(plugin);
     });
   });
@@ -231,13 +231,13 @@ describe('ChartPlugin', () => {
       });
     });
 
-    it('throws an error if key is not provided', () => {
+    test('throws an error if key is not provided', () => {
       expect(() => plugin.unregister()).toThrow(Error);
       expect(() => plugin.configure({ key: 'abc' }).unregister()).not.toThrow(
         Error,
       );
     });
-    it('removes the chart from the registries', () => {
+    test('removes the chart from the registries', () => {
       plugin.configure({ key: 'def' }).register();
       expect(getChartMetadataRegistry().get('def')).toBe(metadata);
       expect(getChartComponentRegistry().get('def')).toBe(FakeChart);
@@ -251,7 +251,7 @@ describe('ChartPlugin', () => {
       expect(getChartBuildQueryRegistry().has('def')).toBeFalsy();
       expect(getChartControlPanelRegistry().has('def')).toBeFalsy();
     });
-    it('returns itself', () => {
+    test('returns itself', () => {
       expect(plugin.configure({ key: 'xyz' }).unregister()).toBe(plugin);
     });
   });
