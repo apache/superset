@@ -366,7 +366,7 @@ const SliceHeaderControls = (
         data-test="refresh-chart-menu-item"
       >
         <Tooltip
-          title={queriedLabel ? `${t('Last queried at')}: ${queriedLabel}` : ''}
+          title={queriedLabel ? `${t('Data as of')}: ${queriedLabel}` : ''}
           overlayStyle={{ maxWidth: 'none' }}
         >
           <div>

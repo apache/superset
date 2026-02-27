@@ -699,12 +699,12 @@ const PropertiesModal = ({
                   onChange={setShowChartTimestamps}
                 />
                 <span className="switch-label">
-                  {t('Show chart query timestamps')}
+                  {t('Show chart data as of timestamps')}
                 </span>
               </div>
               <span className="switch-helper">
                 {t(
-                  'Display the last queried timestamp on charts in the dashboard view',
+                  'Display data as of timestamp on charts in the dashboard view',
                 )}
               </span>
             </StyledSwitchContainer>

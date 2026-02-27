@@ -553,7 +553,7 @@ const Chart = props => {
       </ChartWrapper>
 
       {!isLoading && showChartTimestamps && queriedDttm != null && (
-        <LastQueriedLabel queriedDttm={queriedDttm} />
+        <LastQueriedLabel datasetId={datasource.id} queriedDttm={queriedDttm} />
       )}
     </SliceContainer>
   );

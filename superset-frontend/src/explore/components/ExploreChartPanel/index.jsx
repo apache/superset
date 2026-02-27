@@ -382,6 +382,7 @@ const ExploreChartPanel = ({
             `}
           >
             <LastQueriedLabel
+              datasetId={datasource?.id}
               queriedDttm={chart.queriesResponse?.[0]?.queried_dttm ?? null}
             />
           </div>
