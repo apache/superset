@@ -191,30 +191,33 @@ function WorldMap(element, props) {
         },
       ];
     }
-    onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
-      drillToDetail: drillToDetailFilters,
-      crossFilter: getCrossFilterDataMask(source),
-      drillBy: { filters: drillByFilters, groupbyFieldName: 'entity' },
-    });
+    if (onContextMenu) {
+      onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
+        drillToDetail: drillToDetailFilters,
+        crossFilter: getCrossFilterDataMask(source),
+        drillBy: { filters: drillByFilters, groupbyFieldName: 'entity' },
+      });
+    }
   };
 
   const map = new Datamap({
     element,
     width,
     height,
-    data: processedData,
+    data: mapData,
     fills: {
       defaultFill: theme.colorBorder,
     },
     geographyConfig: {
       popupOnHover: !inContextMenu,
-      highlightOnHover: !inContextMenu,
+      highlightOnHover: false,
       borderWidth: 1,
       borderColor: theme.colorSplit,
       highlightBorderColor: theme.colorIcon,
       highlightFillColor: color,
       highlightBorderWidth: 1,
       popupTemplate: (geo, d) =>
+        d &&
         `<div class="hoverinfo"><strong>${d.name}</strong><br>${formatter(
           d.m1,
         )}</div>`,
@@ -245,29 +248,34 @@ function WorldMap(element, props) {
         .selectAll('.datamaps-subunit')
         .on('contextmenu', handleContextMenu)
         .on('click', handleClick)
-        .on('mouseover', function onMouseOver() {
+        // Use namespaced events to avoid overriding Datamaps' default tooltip handlers
+        .on('mouseover.fillPreserve', function onMouseOver() {
           if (inContextMenu) {
             return;
           }
-          const element = d3.select(this);
-          const classes = element.attr('class') || '';
+          const el = d3.select(this);
+          const classes = el.attr('class') || '';
           const countryId = classes.split(' ')[1];
           const countryData = mapData[countryId];
           const originalFill =
             (countryData && countryData.fillColor) || theme.colorBorder;
-          // Store original fill color for restoration
-          element.attr('data-original-fill', originalFill);
+          el.attr('data-original-fill', originalFill);
+          // Apply highlight (replaces Datamaps' built-in, without moveToFront)
+          el.style('fill', color);
+          el.style('stroke', theme.colorIcon);
+          el.style('stroke-width', '1');
         })
-        .on('mouseout', function onMouseOut() {
+        .on('mouseout.fillPreserve', function onMouseOut() {
           if (inContextMenu) {
             return;
           }
-          const element = d3.select(this);
-          const originalFill = element.attr('data-original-fill');
-          // Restore the original fill color (data-based or default no-data color)
+          const el = d3.select(this);
+          const originalFill = el.attr('data-original-fill');
           if (originalFill) {
-            element.style('fill', originalFill);
-            element.attr('data-original-fill', null);
+            el.style('fill', originalFill);
+            el.attr('data-original-fill', null);
+            el.style('stroke', theme.colorSplit);
+            el.style('stroke-width', '1');
           }
         });
     },

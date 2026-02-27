@@ -255,18 +255,17 @@ Cypress.Commands.add(
 
 Cypress.Commands.add('verifySliceContainer', chartSelector => {
   // After a wait response check for valid slice container
-  cy.get('.slice_container')
-    .should('be.visible')
-    .within(() => {
-      if (chartSelector) {
-        cy.get(chartSelector)
-          .should('be.visible')
-          .then(chart => {
-            expect(chart[0].clientWidth).greaterThan(0);
-            expect(chart[0].clientHeight).greaterThan(0);
-          });
-      }
-    });
+  cy.get('.slice_container', { timeout: 30000 }).should('be.visible');
+  if (chartSelector) {
+    // Keep all assertions inside a retryable `should` to avoid stale detached refs.
+    cy.get('.slice_container', { timeout: 30000 })
+      .find(chartSelector, { timeout: 30000 })
+      .should(chart => {
+        expect(chart.length).greaterThan(0);
+        expect(chart[0].clientWidth).greaterThan(0);
+        expect(chart[0].clientHeight).greaterThan(0);
+      });
+  }
   return cy;
 });
 

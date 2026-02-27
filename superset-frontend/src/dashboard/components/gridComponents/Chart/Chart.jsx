@@ -463,6 +463,8 @@ const Chart = props => {
         actualRowCount = queriesResponse[1].data[0].rowcount;
       } else if (queriesResponse?.[0]?.sql_rowcount != null) {
         actualRowCount = queriesResponse[0].sql_rowcount;
+      } else if (queriesResponse?.[0]?.rowcount != null) {
+        actualRowCount = queriesResponse[0].rowcount;
       } else {
         actualRowCount = exportFormData?.row_limit;
       }
