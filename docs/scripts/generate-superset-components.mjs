@@ -1371,8 +1371,27 @@ function extractComponentTypes(componentPath) {
   const content = fs.readFileSync(componentPath, 'utf-8');
 
   const types = [];
-  for (const match of content.matchAll(/export\s+type\s+(\w+)\s*=\s*([^;]+);/g)) {
-    types.push({ name: match[1], definition: match[2].trim() });
+  // Match "export type Name = <definition>;" handling nested braces
+  // so object types like { a: string; b: number } are captured fully.
+  const typeRegex = /export\s+type\s+(\w+)\s*=\s*/g;
+  let typeMatch;
+  while ((typeMatch = typeRegex.exec(content)) !== null) {
+    const start = typeMatch.index + typeMatch[0].length;
+    let depth = 0;
+    let end = start;
+    for (let i = start; i < content.length; i++) {
+      const ch = content[i];
+      if (ch === '{' || ch === '<' || ch === '(') depth++;
+      else if (ch === '}' || ch === '>' || ch === ')') depth--;
+      else if (ch === ';' && depth === 0) {
+        end = i;
+        break;
+      }
+    }
+    const definition = content.slice(start, end).trim();
+    if (definition) {
+      types.push({ name: typeMatch[1], definition });
+    }
   }
 
   const components = [];
