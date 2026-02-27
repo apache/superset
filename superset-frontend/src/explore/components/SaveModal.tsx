@@ -34,6 +34,7 @@ import {
   Input,
   Loading,
   Divider,
+  Flex,
   TreeSelect,
 } from '@superset-ui/core/components';
 import {
@@ -44,6 +45,8 @@ import {
   styled,
   SupersetClient,
   t,
+  withTheme,
+  type SupersetTheme,
 } from '@superset-ui/core';
 import { Radio } from '@superset-ui/core/components/Radio';
 import { GRID_COLUMN_COUNT } from 'src/dashboard/util/constants';
@@ -78,6 +81,7 @@ interface SaveModalProps extends RouteComponentProps {
   dashboardId: '' | number | null;
   isVisible: boolean;
   dispatch: Dispatch;
+  theme: SupersetTheme;
 }
 
 type SaveModalState = {
@@ -631,11 +635,21 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
           />
         </FormItem>
         {this.props.datasource?.type === 'query' && (
-          <FormItem label={t('Dataset Name')} required>
-            <InfoTooltip
-              tooltip={t('A reusable dataset will be saved with your chart.')}
-              placement="right"
-            />
+          <FormItem
+            label={
+              <Flex align="center" gap={this.props.theme.sizeUnit}>
+                {t('Dataset Name')}
+                <InfoTooltip
+                  data-test="info-tooltip-icon"
+                  tooltip={t(
+                    'A reusable dataset will be saved with your chart.',
+                  )}
+                  placement="right"
+                />
+              </Flex>
+            }
+            required
+          >
             <Input
               name="dataset_name"
               type="text"
@@ -812,7 +826,7 @@ function mapStateToProps({
   };
 }
 
-export default withRouter(connect(mapStateToProps)(SaveModal));
+export default withRouter(connect(mapStateToProps)(withTheme(SaveModal)));
 
 // User for testing purposes need to revisit once we convert this to functional component
 export { SaveModal as PureSaveModal };
