@@ -38,7 +38,10 @@ import { UrlParamEntries } from 'src/utils/urlUtils';
 
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import Owner from 'src/types/Owner';
+import Role from 'src/types/Role';
+import { TagType } from 'src/components/Tag/TagType';
 import { ChartState } from '../explore/types';
+import { AutoRefreshStatus } from './types/autoRefresh';
 
 export type { Dashboard } from 'src/types/Dashboard';
 
@@ -128,6 +131,28 @@ export type DashboardState = {
     data: JsonObject;
   };
   chartStates?: Record<string, any>;
+  autoRefreshStatus?: AutoRefreshStatus;
+  autoRefreshPaused?: boolean;
+  autoRefreshPausedByTab?: boolean;
+  lastSuccessfulRefresh?: number | null;
+  lastAutoRefreshTime?: number | null;
+  lastRefreshError?: string | null;
+  refreshErrorCount?: number;
+  autoRefreshFetchStartTime?: number | null;
+  autoRefreshPauseOnInactiveTab?: boolean;
+  labelsColorMapMustSync?: boolean;
+  sharedLabelsColorsMustSync?: boolean;
+  maxUndoHistoryExceeded?: boolean;
+  updatedColorScheme?: boolean;
+  inactiveTabs?: string[];
+  datasetsStatus?: string;
+  expandedSlices?: Record<number, boolean>;
+  refreshFrequency: number;
+  shouldPersistRefreshFrequency?: boolean;
+  colorNamespace?: string;
+  isStarred?: boolean;
+  lastRefreshTime?: number;
+  tabActivationTimes?: Record<string, number>;
 };
 export type DashboardInfo = {
   id: number;
@@ -169,6 +194,16 @@ export type DashboardInfo = {
   } | null;
   theme_id?: number | null;
   css?: string;
+  slug?: string;
+  last_modified_time: number;
+  certified_by?: string;
+  certification_details?: string;
+  roles?: Role[];
+  tags?: TagType[];
+  is_managed_externally?: boolean;
+  dash_share_perm?: boolean;
+  dash_save_perm?: boolean;
+  dash_export_perm?: boolean;
 };
 
 export type ChartsState = { [key: string]: Chart };

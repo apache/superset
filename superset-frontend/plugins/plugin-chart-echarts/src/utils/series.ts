@@ -171,8 +171,8 @@ export function sortAndFilterSeries(
 
   return orderBy(
     sortedValues,
-    ['value'],
-    [sortSeriesAscending ? 'asc' : 'desc'],
+    ['value', 'name'],
+    [sortSeriesAscending ? 'asc' : 'desc', 'asc'],
   ).map(({ name }) => name);
 }
 
@@ -452,7 +452,7 @@ export function getLegendProps(
       : 'vertical',
     show,
     type: effectiveType,
-    selected: legendState,
+    selected: legendState ?? {},
     selector: ['all', 'inverse'],
     selectorLabel: {
       fontFamily: theme.fontFamily,

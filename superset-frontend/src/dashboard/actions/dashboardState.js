@@ -550,10 +550,11 @@ export function fetchCharts(
 ) {
   return (dispatch, getState) => {
     if (!interval) {
-      chartList.forEach(chartKey =>
-        dispatch(refreshChart(chartKey, force, dashboardId)),
-      );
-      return;
+      return Promise.all(
+        chartList.map(chartKey =>
+          Promise.resolve(dispatch(refreshChart(chartKey, force, dashboardId))),
+        ),
+      ).then(() => undefined);
     }
 
     const { metadata: meta } = getState().dashboardInfo;
@@ -564,23 +565,29 @@ export function fetchCharts(
           ? true
           : meta.stagger_refresh === 'true';
     }
-    const delay = meta.stagger_refresh
-      ? refreshTime / (chartList.length - 1)
-      : 0;
-    chartList.forEach((chartKey, i) => {
-      setTimeout(
-        () => dispatch(refreshChart(chartKey, force, dashboardId)),
-        delay * i,
-      );
-    });
+    const delay =
+      meta.stagger_refresh && chartList.length > 1
+        ? refreshTime / (chartList.length - 1)
+        : 0;
+    return Promise.all(
+      chartList.map(
+        (chartKey, i) =>
+          new Promise((resolve, reject) => {
+            setTimeout(() => {
+              Promise.resolve(
+                dispatch(refreshChart(chartKey, force, dashboardId)),
+              )
+                .then(() => resolve())
+                .catch(reject);
+            }, delay * i);
+          }),
+      ),
+    ).then(() => undefined);
   };
 }
 
 const refreshCharts = (chartList, force, interval, dashboardId, dispatch) =>
-  new Promise(resolve => {
-    dispatch(fetchCharts(chartList, force, interval, dashboardId));
-    resolve();
-  });
+  dispatch(fetchCharts(chartList, force, interval, dashboardId));
 
 export const ON_FILTERS_REFRESH = 'ON_FILTERS_REFRESH';
 export function onFiltersRefresh() {
@@ -603,6 +610,7 @@ export function onRefresh(
   force = false,
   interval = 0,
   dashboardId,
+  skipFiltersRefresh = false,
   isLazyLoad = false,
 ) {
   return dispatch => {
@@ -612,14 +620,18 @@ export function onRefresh(
       dispatch({ type: ON_REFRESH });
     }
 
-    refreshCharts(chartList, force, interval, dashboardId, dispatch).then(
-      () => {
-        dispatch(onRefreshSuccess());
-        if (!isLazyLoad) {
-          dispatch(onFiltersRefresh());
-        }
-      },
-    );
+    return refreshCharts(
+      chartList,
+      force,
+      interval,
+      dashboardId,
+      dispatch,
+    ).then(() => {
+      dispatch(onRefreshSuccess());
+      if (!skipFiltersRefresh && !isLazyLoad) {
+        dispatch(onFiltersRefresh());
+      }
+    });
   };
 }
 

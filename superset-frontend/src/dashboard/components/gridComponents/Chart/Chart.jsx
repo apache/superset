@@ -42,6 +42,7 @@ import { postFormData } from 'src/explore/exploreUtils/formData';
 import { URL_PARAMS, DEFAULT_CSV_STREAMING_ROW_THRESHOLD } from 'src/constants';
 import { enforceSharedLabelsColorsArray } from 'src/utils/colorScheme';
 import exportPivotExcel from 'src/utils/downloadAsPivotExcel';
+import { useIsAutoRefreshing } from 'src/dashboard/contexts/AutoRefreshContext';
 import {
   convertChartStateToOwnState,
   hasChartStateConverter,
@@ -178,6 +179,7 @@ const Chart = props => {
       PLACEHOLDER_DATASOURCE,
   );
   const dashboardInfo = useSelector(state => state.dashboardInfo);
+  const suppressLoadingSpinner = useIsAutoRefreshing();
 
   const isCached = useMemo(
     // eslint-disable-next-line camelcase
@@ -638,7 +640,7 @@ const Chart = props => {
         className={cx('dashboard-chart')}
         aria-label={slice.description}
       >
-        {isLoading && (
+        {isLoading && !suppressLoadingSpinner && (
           <ChartOverlay
             style={{
               width,
@@ -674,6 +676,7 @@ const Chart = props => {
           isInView={props.isInView}
           emitCrossFilters={emitCrossFilters}
           onChartStateChange={handleChartStateChange}
+          suppressLoadingSpinner={suppressLoadingSpinner}
         />
       </ChartWrapper>
 

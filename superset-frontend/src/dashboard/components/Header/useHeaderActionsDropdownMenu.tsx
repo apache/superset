@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import type { Dispatch, ReactElement, SetStateAction } from 'react';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { useHistory } from 'react-router-dom';
@@ -64,7 +65,11 @@ export const useHeaderActionsMenu = ({
   dashboardTitle,
   logEvent,
   setCurrentReportDeleting,
-}: HeaderDropdownProps) => {
+}: HeaderDropdownProps): [
+  ReactElement,
+  boolean,
+  Dispatch<SetStateAction<boolean>>,
+] => {
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const history = useHistory();
   const directPathToChild = useSelector(
@@ -116,6 +121,7 @@ export const useHeaderActionsMenu = ({
       showPropertiesModal,
       showRefreshModal,
       manageEmbedded,
+      history,
     ],
   );
 
@@ -194,7 +200,10 @@ export const useHeaderActionsMenu = ({
       // Auto-refresh settings (session-only in view mode)
       menuItems.push({
         key: MenuKeys.AutorefreshModal,
-        label: t('Set auto-refresh'),
+        label:
+          refreshFrequency > 0
+            ? t('Update auto-refresh')
+            : t('Set auto-refresh'),
         disabled: isLoading,
       });
     }
@@ -237,7 +246,7 @@ export const useHeaderActionsMenu = ({
             refreshFrequency={refreshFrequency}
             shouldPersistRefreshFrequency={shouldPersistRefreshFrequency}
             lastModifiedTime={lastModifiedTime}
-            customCss={customCss}
+            customCss={customCss ?? ''}
             colorNamespace={colorNamespace}
             colorScheme={colorScheme}
             onSave={onSave}

@@ -51,6 +51,7 @@ import { getUrlParam } from 'src/utils/urlUtils';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import extractUrlParams from '../util/extractUrlParams';
 import updateComponentParentsList from '../util/updateComponentParentsList';
+import { AUTO_REFRESH_STATE_DEFAULTS } from '../types/autoRefresh';
 import { migrateChartCustomizationArray } from '../util/migrateChartCustomization';
 import { FilterBarOrientation } from '../types';
 
@@ -295,6 +296,7 @@ export const hydrateDashboard =
         dashboardFilters,
         nativeFilters,
         dashboardState: {
+          ...AUTO_REFRESH_STATE_DEFAULTS,
           preselectNativeFilters: getUrlParam(URL_PARAMS.nativeFilters),
           sliceIds: Array.from(sliceIds),
           directPathToChild,

@@ -17,9 +17,14 @@
  * under the License.
  */
 
+import { type Dispatch, type SetStateAction } from 'react';
+import { JsonObject } from '@superset-ui/core';
 import { Layout } from 'src/dashboard/types';
 import { ChartState } from 'src/explore/types';
 import { AlertObject } from 'src/features/alerts/types';
+import { ToastMeta } from 'src/components/MessageToasts/types';
+
+type ToastOptions = Partial<Omit<ToastMeta, 'id' | 'toastType' | 'text'>>;
 
 interface DashboardInfo {
   id: number;
@@ -35,9 +40,9 @@ interface DashboardInfo {
 }
 
 export interface HeaderDropdownProps {
-  addSuccessToast: (msg: string) => void;
-  addDangerToast: () => void;
-  customCss: string;
+  addSuccessToast: (msg: string, options?: ToastOptions) => void;
+  addDangerToast: (msg: string, options?: ToastOptions) => void;
+  customCss?: string;
   colorNamespace?: string;
   colorScheme?: string;
   dashboardId: number;
@@ -59,20 +64,19 @@ export interface HeaderDropdownProps {
   userCanShare: boolean;
   userCanCurate: boolean;
   manageEmbedded: () => void;
-  dataMask?: any;
   lastModifiedTime: number;
   logEvent: () => void;
   refreshLimit?: number;
   refreshWarning?: string;
   directPathToChild?: string[];
   showReportModal: () => void;
-  setCurrentReportDeleting: (alert: AlertObject | null) => void;
+  setCurrentReportDeleting: Dispatch<SetStateAction<AlertObject | null>>;
 }
 
 export interface HeaderProps {
-  addSuccessToast: () => void;
-  addDangerToast: () => void;
-  addWarningToast: () => void;
+  addSuccessToast: (msg: string, options?: ToastOptions) => void;
+  addDangerToast: (msg: string, options?: ToastOptions) => void;
+  addWarningToast: (msg: string, options?: ToastOptions) => void;
   colorNamespace?: string;
   charts: ChartState | {};
   colorScheme?: string;
@@ -85,16 +89,16 @@ export interface HeaderProps {
   isStarred: boolean;
   isPublished: boolean;
   onChange: () => void;
-  onSave: () => void;
+  onSave: (...args: unknown[]) => unknown;
   fetchFaveStar: () => void;
   saveFaveStar: () => void;
   savePublished: (dashboardId: number, isPublished: boolean) => void;
-  updateDashboardTitle: () => void;
+  updateDashboardTitle: (nextTitle: string) => void;
   editMode: boolean;
   setEditMode: () => void;
   showBuilderPane: () => void;
   updateCss: () => void;
-  logEvent: () => void;
+  logEvent: (eventName: string, eventData: JsonObject) => void;
   hasUnsavedChanges: boolean;
   maxUndoHistoryExceeded: boolean;
   lastModifiedTime: number;

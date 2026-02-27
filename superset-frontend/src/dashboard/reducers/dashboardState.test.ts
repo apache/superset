@@ -50,6 +50,7 @@ const createMockDashboardState = (
   sliceIds: [],
   directPathLastUpdated: 0,
   nativeFiltersBarOpen: false,
+  refreshFrequency: 0,
   ...overrides,
 });
 
