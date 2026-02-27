@@ -20,7 +20,7 @@ under the License.
 This is the public documentation site for Superset, built using
 [Docusaurus 3](https://docusaurus.io/). See the
 [Developer Docs](https://superset.apache.org/developer-docs/contributing/development-setup#documentation)
-for documentation on contributing to documentation.
+for guidance on contributing to the documentation.
 
 ## Version Management
 
