@@ -143,8 +143,26 @@ export class ThemeController {
     // Setup change callback
     if (onChange) this.onChangeCallbacks.add(onChange);
 
-    // Apply initial theme and persist mode
-    this.applyTheme(initialTheme);
+    // Apply initial theme with recovery for corrupted stored themes
+    try {
+      this.applyTheme(initialTheme);
+    } catch (error) {
+      // Corrupted dev override or CRUD theme in storage - clear and retry with defaults
+      console.warn(
+        'Failed to apply stored theme, clearing invalid overrides:',
+        error,
+      );
+      this.devThemeOverride = null;
+      this.crudThemeId = null;
+      this.storage.removeItem(STORAGE_KEYS.DEV_THEME_OVERRIDE);
+      this.storage.removeItem(STORAGE_KEYS.CRUD_THEME_ID);
+      this.storage.removeItem(STORAGE_KEYS.APPLIED_THEME_ID);
+
+      // Retry with clean default theme
+      this.currentMode = ThemeMode.DEFAULT;
+      const safeTheme = this.defaultTheme || {};
+      this.applyTheme(safeTheme);
+    }
     this.persistMode();
   }
 
@@ -229,14 +247,8 @@ export class ThemeController {
         return this.dashboardThemes.get(themeId)!;
       }
 
-      // Fetch theme config from API using SupersetClient for proper auth
-      const getTheme = makeApi<void, { result: { json_data: string } }>({
-        method: 'GET',
-        endpoint: `/api/v1/theme/${themeId}`,
-      });
-
-      const { result } = await getTheme();
-      const themeConfig = JSON.parse(result.json_data);
+      // Use the enhanced fetchCrudTheme method which includes validation if feature flag is enabled
+      const themeConfig = await this.fetchCrudTheme(themeId);
 
       if (themeConfig) {
         // Controller creates and owns the dashboard theme
@@ -329,7 +341,6 @@ export class ThemeController {
 
     const theme: AnyThemeConfig | null = this.getThemeForMode(mode);
     if (!theme) {
-      console.warn(`Theme for mode ${mode} not found, falling back to default`);
       this.fallbackToDefaultMode();
       return;
     }
@@ -535,7 +546,7 @@ export class ThemeController {
    * Updates the theme.
    * @param theme - The new theme to apply
    */
-  private updateTheme(theme?: AnyThemeConfig): void {
+  private async updateTheme(theme?: AnyThemeConfig): Promise<void> {
     try {
       // If no config provided, use current mode to get theme
       if (!theme) {
@@ -551,18 +562,41 @@ export class ThemeController {
       this.persistMode();
       this.notifyListeners();
     } catch (error) {
-      console.error('Failed to update theme:', error);
-      this.fallbackToDefaultMode();
+      // Clear potentially corrupted overrides before fallback
+      // This mirrors the constructor's recovery logic to prevent
+      // repeated failures from a malformed devThemeOverride or crudThemeId
+      this.devThemeOverride = null;
+      this.crudThemeId = null;
+      this.storage.removeItem(STORAGE_KEYS.DEV_THEME_OVERRIDE);
+      this.storage.removeItem(STORAGE_KEYS.CRUD_THEME_ID);
+      this.storage.removeItem(STORAGE_KEYS.APPLIED_THEME_ID);
+
+      await this.fallbackToDefaultMode();
     }
   }
 
   /**
-   * Fallback to default mode with error recovery.
+   * Fallback to default mode with runtime error recovery.
+   * Tries to fetch a fresh system default theme from the API.
    */
-  private fallbackToDefaultMode(): void {
+  private async fallbackToDefaultMode(): Promise<void> {
     this.currentMode = ThemeMode.DEFAULT;
 
-    // Get the default theme which will have the correct algorithm
+    // Try to fetch fresh system default theme from server
+    const freshSystemTheme = await this.fetchSystemDefaultTheme();
+
+    if (freshSystemTheme) {
+      try {
+        await this.applyThemeWithRecovery(freshSystemTheme);
+        this.persistMode();
+        this.notifyListeners();
+        return;
+      } catch (error) {
+        // Fresh theme also failed, continue to final fallback
+      }
+    }
+
+    // Final fallback: use cached default theme or built-in theme
     const defaultTheme: AnyThemeConfig =
       this.getThemeForMode(ThemeMode.DEFAULT) || this.defaultTheme || {};
 
@@ -796,8 +830,23 @@ export class ThemeController {
       this.loadFonts(fontUrls);
     } catch (error) {
       console.error('Failed to apply theme:', error);
-      this.fallbackToDefaultMode();
+      // Re-throw the error so updateTheme can handle fallback logic
+      throw error;
     }
+  }
+
+  private async applyThemeWithRecovery(theme: AnyThemeConfig): Promise<void> {
+    // Note: This method re-throws errors to the caller instead of calling
+    // fallbackToDefaultMode directly, to avoid infinite recursion since
+    // fallbackToDefaultMode calls this method. The caller's try/catch
+    // handles the fallback flow.
+    const normalizedConfig = normalizeThemeConfig(theme);
+    this.globalTheme.setConfig(normalizedConfig);
+
+    // Load custom fonts if specified, mirroring applyTheme() behavior
+    const fontUrls = (normalizedConfig?.token as Record<string, unknown>)
+      ?.fontUrls as string[] | undefined;
+    this.loadFonts(fontUrls);
   }
 
   /**
@@ -896,14 +945,17 @@ export class ThemeController {
   /**
    * Fetches a theme configuration from the CRUD API.
    * @param themeId - The ID of the theme to fetch
-   * @returns The theme configuration or null if not found
+   * @returns The theme configuration or null if fetch fails
    */
   private async fetchCrudTheme(
     themeId: string,
   ): Promise<AnyThemeConfig | null> {
     try {
       // Use SupersetClient for proper authentication handling
-      const getTheme = makeApi<void, { result: { json_data: string } }>({
+      const getTheme = makeApi<
+        void,
+        { result: { json_data: string; theme_name?: string } }
+      >({
         method: 'GET',
         endpoint: `/api/v1/theme/${themeId}`,
       });
@@ -911,10 +963,65 @@ export class ThemeController {
       const { result } = await getTheme();
       const themeConfig = JSON.parse(result.json_data);
 
+      if (!themeConfig || typeof themeConfig !== 'object') {
+        console.error(`Invalid theme configuration for theme ${themeId}`);
+        return null;
+      }
+
+      // Return theme as-is
+      // Invalid tokens will be handled by Ant Design at runtime
+      // Runtime errors will be caught by applyThemeWithRecovery()
       return themeConfig;
     } catch (error) {
       console.error('Failed to fetch CRUD theme:', error);
       return null;
     }
+  }
+
+  /**
+   * Fetches a fresh system default theme from the API for runtime recovery.
+   * Tries multiple fallback strategies to find a valid theme.
+   *
+   * Note: Uses raw fetch() instead of SupersetClient because ThemeController
+   * initializes early in the app lifecycle, before SupersetClient is fully
+   * configured. This avoids boot-time circular dependencies.
+   *
+   * @returns The system default theme configuration or null if not found
+   */
+  private async fetchSystemDefaultTheme(): Promise<AnyThemeConfig | null> {
+    try {
+      // Try to fetch theme marked as system default (is_system_default=true)
+      const defaultResponse = await fetch(
+        '/api/v1/theme/?q=(filters:!((col:is_system_default,opr:eq,value:!t)))',
+      );
+      if (defaultResponse.ok) {
+        const data = await defaultResponse.json();
+        if (data.result?.length > 0) {
+          const themeConfig = JSON.parse(data.result[0].json_data);
+          if (themeConfig && typeof themeConfig === 'object') {
+            return themeConfig;
+          }
+        }
+      }
+
+      // Fallback: Try to fetch system theme named 'THEME_DEFAULT'
+      const fallbackResponse = await fetch(
+        '/api/v1/theme/?q=(filters:!((col:theme_name,opr:eq,value:THEME_DEFAULT),(col:is_system,opr:eq,value:!t)))',
+      );
+      if (fallbackResponse.ok) {
+        const fallbackData = await fallbackResponse.json();
+        if (fallbackData.result?.length > 0) {
+          const themeConfig = JSON.parse(fallbackData.result[0].json_data);
+          if (themeConfig && typeof themeConfig === 'object') {
+            return themeConfig;
+          }
+        }
+      }
+    } catch (error) {
+      // Log for debugging but don't fail - fallback to cached theme will be used
+      console.warn('Failed to fetch system default theme:', error);
+    }
+
+    return null;
   }
 }
