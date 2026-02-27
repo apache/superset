@@ -41,7 +41,7 @@ function SearchSelectDropdown({
       css={(theme: SupersetTheme) => css`
         width: ${theme.sizeUnit * 30}px;
       `}
-      value={value || (searchOptions?.[0]?.value ?? '')}
+      value={value ?? searchOptions?.[0]?.value}
       options={searchOptions}
       size="small"
       onChange={onChange}
