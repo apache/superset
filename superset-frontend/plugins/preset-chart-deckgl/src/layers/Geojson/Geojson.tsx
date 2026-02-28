@@ -123,6 +123,8 @@ function setTooltipContent(o: JsonObject) {
 }
 
 const getFillColor = (feature: JsonObject, filterStateValue: unknown[]) => {
+  const baseColor = feature?.properties?.fillColor;
+
   if (filterStateValue) {
     if (
       JSON.stringify(feature.geometry.coordinates) ===
@@ -131,11 +133,14 @@ const getFillColor = (feature: JsonObject, filterStateValue: unknown[]) => {
       return HIGHLIGHT_COLOR_ARRAY;
     }
 
-    const fillColor = feature?.properties?.fillColor;
-    fillColor[3] = 125;
-    return fillColor;
+    if (Array.isArray(baseColor) && baseColor.length >= 4) {
+      return [baseColor[0], baseColor[1], baseColor[2], 125];
+    }
+
+    return baseColor ?? HIGHLIGHT_COLOR_ARRAY;
   }
-  return feature?.properties?.fillColor;
+
+  return baseColor;
 };
 const getLineColor = (feature: JsonObject) => feature?.properties?.strokeColor;
 
