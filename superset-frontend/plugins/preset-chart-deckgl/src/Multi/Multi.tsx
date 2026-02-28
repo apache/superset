@@ -375,7 +375,7 @@ const DeckMulti = (props: DeckMultiProps) => {
     );
 
     if (deckSlicesChanged || visibilityFilterChanged) {
-      loadLayers(formData, payload, undefined);
+      loadLayers(formData, payload, visibleDeckLayersFromRedux);
     }
   }, [
     loadLayers,
