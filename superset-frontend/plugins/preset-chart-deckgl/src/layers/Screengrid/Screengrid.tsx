@@ -73,7 +73,10 @@ function defaultTooltipGenerator(o: JsonObject, formData: QueryFormData) {
         label={`${metricLabel}: `}
         value={`${o.object?.cellWeight}`}
       />
-      <TooltipRow label={`${t('Points')}: `} value={`${pointCount} ${t('records')}`} />
+      <TooltipRow
+        label={`${t('Points')}: `}
+        value={`${pointCount} ${t('records')}`}
+      />
       {points.length > 0 && points.length <= 3 && (
         <div style={{ marginTop: 8, fontSize: '12px' }}>
           <strong>{t('Records')}:</strong>
