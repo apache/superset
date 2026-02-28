@@ -181,7 +181,6 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
             color: hexToRGB(colorFn(d.cat_color, fd.slice_id)),
           }));
         }
-        }
         case COLOR_SCHEME_TYPES.color_breakpoints: {
           const defaultBreakpointColor = fd.default_breakpoint_color
             ? [
