@@ -154,7 +154,7 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
 
       switch (selectedColorScheme) {
         case COLOR_SCHEME_TYPES.fixed_color: {
-          color = fd.color_picker || { r: 0, g: 0, b: 0, a: 100 };
+          color = fd.color_picker || { r: 0, g: 0, b: 0, a: 1 };
           const colorArray = [color.r, color.g, color.b, color.a * 255];
 
           return data.map(d => ({ ...d, color: colorArray }));
@@ -165,7 +165,7 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
               r: 0,
               g: 0,
               b: 0,
-              a: 100,
+              a: 1,
             };
             const colorArray = [
               fallbackColor.r,
@@ -180,6 +180,7 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
             ...d,
             color: hexToRGB(colorFn(d.cat_color, fd.slice_id)),
           }));
+        }
         }
         case COLOR_SCHEME_TYPES.color_breakpoints: {
           const defaultBreakpointColor = fd.default_breakpoint_color
