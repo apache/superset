@@ -220,11 +220,12 @@ RequestHeader set X-Forwarded-Proto "https"
 *Please be advised that this feature is in BETA.*
 
 Superset supports running the application under a non-root path. The root path
-prefix can be specified in one of two ways:
+prefix can be specified in one of three ways:
 
-- Setting the `SUPERSET_APP_ROOT` environment variable to the desired prefix.
 - Customizing the [Flask entrypoint](https://github.com/apache/superset/blob/master/superset/app.py#L29)
-  by passing the `superset_app_root` variable.
+  by passing the `superset_app_root` variable; or
+- Setting the `SUPERSET_APP_ROOT` environment variable to the desired prefix; or
+- Setting the `APPLICATION_ROOT` config in your `superset_config.py` file.
 
 Note, the prefix should start with a `/`.
 
