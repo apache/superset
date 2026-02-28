@@ -50,8 +50,8 @@ function setTooltipContent(formData: QueryFormData) {
           label={`${t('Longitude and Latitude')}: `}
           value={`${lon?.toFixed(6)}, ${lat?.toFixed(6)}`}
         />
-        <TooltipRow label="LON: " value={lon?.toFixed(6)} />
-        <TooltipRow label="LAT: " value={lat?.toFixed(6)} />
+        <TooltipRow label={`${t('LON')}: `} value={lon?.toFixed(6)} />
+        <TooltipRow label={`${t('LAT')}: `} value={lat?.toFixed(6)} />
         <TooltipRow
           label={`${metricLabel}: `}
           value={`${o.object?.weight ?? o.object?.value ?? 'Aggregated Cell'}`}

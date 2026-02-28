@@ -73,10 +73,10 @@ function defaultTooltipGenerator(o: JsonObject, formData: QueryFormData) {
         label={`${metricLabel}: `}
         value={`${o.object?.cellWeight}`}
       />
-      <TooltipRow label="Points: " value={`${pointCount} records`} />
+      <TooltipRow label={`${t('Points')}: `} value={`${pointCount} ${t('records')}`} />
       {points.length > 0 && points.length <= 3 && (
         <div style={{ marginTop: 8, fontSize: '12px' }}>
-          <strong>Records:</strong>
+          <strong>{t('Records')}:</strong>
           {points.slice(0, 3).map((point: JsonObject, index: number) => (
             <div key={index} style={{ marginTop: 4, paddingLeft: '8px' }}>
               {Object.entries(point).map(([key, value]) =>
@@ -95,7 +95,7 @@ function defaultTooltipGenerator(o: JsonObject, formData: QueryFormData) {
       )}
       {points.length > 3 && (
         <MoreRecordsIndicator>
-          ... and {points.length - 3} more records
+          {t('... and %s more records', points.length - 3)}
         </MoreRecordsIndicator>
       )}
     </div>
