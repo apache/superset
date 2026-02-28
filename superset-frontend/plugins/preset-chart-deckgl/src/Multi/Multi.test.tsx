@@ -29,7 +29,7 @@ import * as fitViewportModule from '../utils/fitViewport';
 jest.mock('../DeckGLContainer', () => ({
   DeckGLContainerStyledWrapper: ({ viewport, layers }: any) => (
     <div
-      data-testid="deckgl-container"
+      data-test="deckgl-container"
       data-viewport={JSON.stringify(viewport)}
       data-layers-count={layers?.length || 0}
     >
