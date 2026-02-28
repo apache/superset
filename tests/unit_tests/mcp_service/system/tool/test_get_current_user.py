@@ -60,6 +60,7 @@ def _make_instance_info(**kwargs):
     from superset.mcp_service.system.schemas import (
         DashboardBreakdown,
         DatabaseBreakdown,
+        FeatureAvailability,
         InstanceSummary,
         PopularContent,
         RecentActivity,
@@ -93,6 +94,7 @@ def _make_instance_info(**kwargs):
         ),
         "database_breakdown": DatabaseBreakdown(by_type={}),
         "popular_content": PopularContent(top_tags=[], top_creators=[]),
+        "feature_availability": FeatureAvailability(),
         "timestamp": datetime.now(timezone.utc),
     }
     defaults.update(kwargs)

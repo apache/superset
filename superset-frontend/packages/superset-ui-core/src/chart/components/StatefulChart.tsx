@@ -19,6 +19,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { ParentSize } from '@visx/responsive';
+import { t } from '@apache-superset/core';
 import {
   QueryFormData,
   QueryData,
@@ -440,7 +441,7 @@ export default function StatefulChart(props: StatefulChartProps) {
           textAlign: 'center',
         }}
       >
-        Error: {error.message}
+        {t('Error')}: {error.message}
       </div>
     );
 

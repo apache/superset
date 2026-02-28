@@ -41,6 +41,7 @@ import {
   useTableMetadataQuery,
 } from 'src/hooks/apiResources';
 import { runTablePreviewQuery } from 'src/SqlLab/actions/sqlLab';
+import { PREVIEW_QUERY_LIMIT } from 'src/SqlLab/constants';
 import { ActionButton } from '@superset-ui/core/components/ActionButton';
 import ResultSet from '../ResultSet';
 import ShowSQL from '../ShowSQL';
@@ -63,7 +64,6 @@ const TABS_KEYS = {
   SAMPLE: 'sample',
 };
 const TAB_HEADER_HEIGHT = 80;
-const PREVIEW_QUERY_LIMIT = 100;
 
 const Title = styled.div`
   ${({ theme }) => css`
@@ -288,11 +288,11 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
         {schema && <Breadcrumb.Item>{schema}</Breadcrumb.Item>}
         <Breadcrumb.Item> </Breadcrumb.Item>
       </Breadcrumb>
-      <div style={{ display: 'none' }}>
+      <div style={{ display: 'none' }} aria-hidden="true">
         <CopyToClipboard
           copyNode={
             <button type="button" ref={copyStatementActionRef}>
-              invisible button
+              {t('Copy')}
             </button>
           }
           text={tableData.selectStar}
@@ -305,7 +305,7 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
             title={t('CREATE VIEW statement')}
             triggerNode={
               <button type="button" ref={showViewStatementActionRef}>
-                invisible button
+                {t('Show SQL')}
               </button>
             }
           />

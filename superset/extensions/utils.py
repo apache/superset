@@ -80,6 +80,36 @@ class InMemoryFinder(importlib.abc.MetaPathFinder):
 
             self.modules[mod_name] = (content, is_package, full_path)
 
+        # Create namespace packages for all parent modules
+        # This ensures 'superset_extensions' namespace package exists
+        namespace_packages: set[str] = set()
+        for mod_name in list(self.modules.keys()):
+            parts = mod_name.split(".")
+            for i in range(1, len(parts)):
+                namespace_name = ".".join(parts[:i])
+                if namespace_name not in self.modules:
+                    namespace_packages.add(namespace_name)
+
+        # Add namespace packages
+        for ns_name in namespace_packages:
+            # Create a virtual __init__.py path for the namespace package
+            if is_virtual_path:
+                ns_path = (
+                    f"{source_base_path}/backend/src/"
+                    f"{ns_name.replace('.', '/')}/__init__.py"
+                )
+            else:
+                ns_path = str(
+                    Path(source_base_path)
+                    / "backend"
+                    / "src"
+                    / ns_name.replace(".", "/")
+                    / "__init__.py"
+                )
+
+            # Namespace packages have empty content
+            self.modules[ns_name] = (b"", True, ns_path)
+
     def _get_module_name(self, file_path: str) -> Tuple[str, bool]:
         parts = list(Path(file_path).parts)
         is_package = parts[-1] == "__init__.py"
@@ -212,11 +242,15 @@ def build_extension_data(extension: LoadedExtension) -> dict[str, Any]:
     if manifest.frontend:
         frontend = manifest.frontend
         module_federation = frontend.moduleFederation
-        remote_entry_url = f"/api/v1/extensions/{manifest.id}/{frontend.remoteEntry}"
+        remote_entry_url = (
+            f"/api/v1/extensions/{manifest.publisher}/"
+            f"{manifest.name}/{frontend.remoteEntry}"
+        )
         extension_data.update(
             {
                 "remoteEntry": remote_entry_url,
                 "exposedModules": module_federation.exposes,
+                "moduleFederationName": module_federation.name,
                 "contributions": frontend.contributions.model_dump(),
             }
         )
@@ -228,17 +262,20 @@ def get_extensions() -> dict[str, LoadedExtension]:
 
     # Load extensions from LOCAL_EXTENSIONS configuration (filesystem paths)
     for path in current_app.config["LOCAL_EXTENSIONS"]:
-        files = get_bundle_files_from_path(path)
-        # Use absolute filesystem path to dist directory for tracebacks
-        abs_dist_path = str((Path(path) / "dist").resolve())
-        extension = get_loaded_extension(files, source_base_path=abs_dist_path)
-        extension_id = extension.manifest.id
-        extensions[extension_id] = extension
-        logger.info(
-            "Loading extension %s (ID: %s) from local filesystem",
-            extension.name,
-            extension_id,
-        )
+        try:
+            files = get_bundle_files_from_path(path)
+            # Use absolute filesystem path to dist directory for tracebacks
+            abs_dist_path = str((Path(path) / "dist").resolve())
+            extension = get_loaded_extension(files, source_base_path=abs_dist_path)
+            extension_id = extension.manifest.id
+            extensions[extension_id] = extension
+            logger.info(
+                "Loading extension %s (ID: %s) from local filesystem",
+                extension.name,
+                extension_id,
+            )
+        except Exception as e:  # pylint: disable=broad-except
+            logger.error("Failed to load extension from %s: %s", path, e)
 
     # Load extensions from discovery path (.supx files)
     if extensions_path := current_app.config.get("EXTENSIONS_PATH"):

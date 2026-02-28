@@ -21,9 +21,9 @@ import { Component, ReactNode, MouseEvent } from 'react';
 import { safeHtmlSpan } from '@superset-ui/core';
 import { t } from '@apache-superset/core/ui';
 import PropTypes from 'prop-types';
-import { FaSort } from '@react-icons/all-files/fa/FaSort';
-import { FaSortDown as FaSortDesc } from '@react-icons/all-files/fa/FaSortDown';
-import { FaSortUp as FaSortAsc } from '@react-icons/all-files/fa/FaSortUp';
+import { FaSort } from 'react-icons/fa';
+import { FaSortDown as FaSortDesc } from 'react-icons/fa';
+import { FaSortUp as FaSortAsc } from 'react-icons/fa';
 import { PivotData, flatKey } from './utilities';
 import { Styles } from './Styles';
 

@@ -384,89 +384,87 @@ const processComparisonColumns = (
   props: TableChartProps,
   comparisonSuffix: string,
 ) =>
-  columns
-    .map(col => {
-      const {
-        datasource: { columnFormats, currencyFormats },
-        rawFormData: { column_config: columnConfig = {} },
-      } = props;
-      const savedFormat = columnFormats?.[col.key];
-      const savedCurrency = currencyFormats?.[col.key];
-      const originalLabel = col.label;
-      if (
-        (col.isMetric || col.isPercentMetric) &&
-        !col.key.includes(comparisonSuffix) &&
-        col.isNumeric
-      ) {
-        return [
-          {
-            ...col,
-            originalLabel,
-            label: t('Main'),
-            key: `${t('Main')} ${col.key}`,
-            config: getComparisonColConfig(t('Main'), col.key, columnConfig),
-            formatter: getComparisonColFormatter(
-              t('Main'),
-              col,
-              columnConfig,
-              savedFormat,
-              savedCurrency,
-            ),
-          },
-          {
-            ...col,
-            originalLabel,
-            label: `#`,
-            key: `# ${col.key}`,
-            config: getComparisonColConfig(`#`, col.key, columnConfig),
-            formatter: getComparisonColFormatter(
-              `#`,
-              col,
-              columnConfig,
-              savedFormat,
-              savedCurrency,
-            ),
-          },
-          {
-            ...col,
-            originalLabel,
-            label: `△`,
-            key: `△ ${col.key}`,
-            config: getComparisonColConfig(`△`, col.key, columnConfig),
-            formatter: getComparisonColFormatter(
-              `△`,
-              col,
-              columnConfig,
-              savedFormat,
-              savedCurrency,
-            ),
-          },
-          {
-            ...col,
-            originalLabel,
-            label: `%`,
-            key: `% ${col.key}`,
-            config: getComparisonColConfig(`%`, col.key, columnConfig),
-            formatter: getComparisonColFormatter(
-              `%`,
-              col,
-              columnConfig,
-              savedFormat,
-              savedCurrency,
-            ),
-          },
-        ];
-      }
-      if (
-        !col.isMetric &&
-        !col.isPercentMetric &&
-        !col.key.includes(comparisonSuffix)
-      ) {
-        return [col];
-      }
-      return [];
-    })
-    .flat();
+  columns.flatMap(col => {
+    const {
+      datasource: { columnFormats, currencyFormats },
+      rawFormData: { column_config: columnConfig = {} },
+    } = props;
+    const savedFormat = columnFormats?.[col.key];
+    const savedCurrency = currencyFormats?.[col.key];
+    const originalLabel = col.label;
+    if (
+      (col.isMetric || col.isPercentMetric) &&
+      !col.key.includes(comparisonSuffix) &&
+      col.isNumeric
+    ) {
+      return [
+        {
+          ...col,
+          originalLabel,
+          label: t('Main'),
+          key: `Main ${col.key}`,
+          config: getComparisonColConfig('Main', col.key, columnConfig),
+          formatter: getComparisonColFormatter(
+            'Main',
+            col,
+            columnConfig,
+            savedFormat,
+            savedCurrency,
+          ),
+        },
+        {
+          ...col,
+          originalLabel,
+          label: `#`,
+          key: `# ${col.key}`,
+          config: getComparisonColConfig(`#`, col.key, columnConfig),
+          formatter: getComparisonColFormatter(
+            `#`,
+            col,
+            columnConfig,
+            savedFormat,
+            savedCurrency,
+          ),
+        },
+        {
+          ...col,
+          originalLabel,
+          label: `△`,
+          key: `△ ${col.key}`,
+          config: getComparisonColConfig(`△`, col.key, columnConfig),
+          formatter: getComparisonColFormatter(
+            `△`,
+            col,
+            columnConfig,
+            savedFormat,
+            savedCurrency,
+          ),
+        },
+        {
+          ...col,
+          originalLabel,
+          label: `%`,
+          key: `% ${col.key}`,
+          config: getComparisonColConfig(`%`, col.key, columnConfig),
+          formatter: getComparisonColFormatter(
+            `%`,
+            col,
+            columnConfig,
+            savedFormat,
+            savedCurrency,
+          ),
+        },
+      ];
+    }
+    if (
+      !col.isMetric &&
+      !col.isPercentMetric &&
+      !col.key.includes(comparisonSuffix)
+    ) {
+      return [col];
+    }
+    return [];
+  });
 
 /**
  * Automatically set page size based on number of cells.

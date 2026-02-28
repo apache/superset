@@ -25,7 +25,6 @@
   ],
   "dependencies": {
     "@apache-superset/core": "*",
-    "@react-icons/all-files": "^4.1.0",
     "@types/react": "*",
     "lodash": "^4.17.23"
   },

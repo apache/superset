@@ -443,14 +443,12 @@ const order_by_cols: SharedControlConfig<'SelectControl'> = {
   default: [],
   shouldMapStateToProps: () => true,
   mapStateToProps: ({ datasource }) => ({
-    choices: (datasource?.columns || [])
-      .map(col =>
-        [true, false].map(asc => [
-          JSON.stringify([col.column_name, asc]),
-          `${getColumnLabel(col.column_name)} [${asc ? 'asc' : 'desc'}]`,
-        ]),
-      )
-      .flat(),
+    choices: (datasource?.columns || []).flatMap(col =>
+      [true, false].map(asc => [
+        JSON.stringify([col.column_name, asc]),
+        `${getColumnLabel(col.column_name)} [${asc ? 'asc' : 'desc'}]`,
+      ]),
+    ),
   }),
   resetOnHide: false,
 };

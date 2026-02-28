@@ -205,7 +205,11 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
     const sqlRowCount =
       countFromSecondQuery != null
         ? countFromSecondQuery
-        : Number(firstQueryResponse?.sql_rowcount ?? 0);
+        : Number(
+            firstQueryResponse?.sql_rowcount ??
+              firstQueryResponse?.rowcount ??
+              0,
+          );
 
     const canExplore = !editMode && supersetCanExplore;
     const showRowLimitWarning =
