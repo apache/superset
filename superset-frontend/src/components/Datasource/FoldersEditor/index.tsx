@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { debounce } from 'lodash';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import {
@@ -33,6 +33,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
+import { DatasourceFolder } from 'src/explore/components/DatasourcePanel/types';
 import { FoldersEditorItemType } from '../types';
 import { TreeItem as TreeItemType } from './constants';
 import {
@@ -40,6 +41,7 @@ import {
   buildTree,
   removeChildrenOf,
   serializeForAPI,
+  filterFoldersByValidUuids,
 } from './treeUtils';
 import {
   createFolder,
@@ -79,6 +81,21 @@ export default function FoldersEditor({
     const ensured = ensureDefaultFolders(initialFolders, metrics, columns);
     return ensured;
   });
+
+  // Sync folders when columns/metrics are removed externally
+  useEffect(() => {
+    const validUuids = new Set<string>();
+    columns.forEach(c => {
+      if (c.uuid) validUuids.add(c.uuid);
+    });
+    metrics.forEach(m => {
+      if (m.uuid) validUuids.add(m.uuid);
+    });
+
+    setItems(prevItems =>
+      filterFoldersByValidUuids(prevItems as DatasourceFolder[], validUuids),
+    );
+  }, [columns, metrics]);
 
   const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(
     new Set(),

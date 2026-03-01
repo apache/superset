@@ -85,7 +85,10 @@ import {
   isDefaultFolder,
 } from '../../FoldersEditor/constants';
 import { validateFolders } from '../../FoldersEditor/folderValidation';
-import { countAllFolders } from '../../FoldersEditor/treeUtils';
+import {
+  countAllFolders,
+  filterFoldersByValidUuids,
+} from '../../FoldersEditor/treeUtils';
 import FoldersEditor from '../../FoldersEditor';
 
 const extensionsRegistry = getExtensionsRegistry();
@@ -706,11 +709,26 @@ class DatasourceEditor extends PureComponent {
     const sql =
       datasourceType === DATASOURCE_TYPES.physical.key ? '' : datasource.sql;
 
+    const columns = [
+      ...this.state.databaseColumns,
+      ...this.state.calculatedColumns,
+    ];
+
+    // Remove deleted column/metric references from folders
+    const validUuids = new Set();
+    columns.forEach(col => {
+      if (col.uuid) validUuids.add(col.uuid);
+    });
+    (datasource.metrics ?? []).forEach(metric => {
+      if (metric.uuid) validUuids.add(metric.uuid);
+    });
+    const folders = filterFoldersByValidUuids(this.state.folders, validUuids);
+
     const newDatasource = {
       ...this.state.datasource,
       sql,
-      columns: [...this.state.databaseColumns, ...this.state.calculatedColumns],
-      folders: this.state.folders,
+      columns,
+      folders,
     };
 
     this.props.onChange(newDatasource, this.state.errors);
