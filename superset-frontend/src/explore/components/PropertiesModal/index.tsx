@@ -456,7 +456,7 @@ function PropertiesModal({
                 bottomSpacing={false}
               >
                 <Input
-                  aria-label="Cache timeout"
+                  aria-label={t('Cache timeout')}
                   value={cacheTimeout}
                   onChange={(event: ChangeEvent<HTMLInputElement>) =>
                     setCacheTimeout(event.target.value ?? '')

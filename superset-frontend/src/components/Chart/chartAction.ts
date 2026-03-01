@@ -129,6 +129,7 @@ export interface ChartUpdateSucceededAction {
 export interface ChartUpdateStoppedAction {
   type: typeof CHART_UPDATE_STOPPED;
   key: string | number;
+  queryController?: AbortController;
 }
 
 export interface ChartUpdateFailedAction {
@@ -327,8 +328,9 @@ export function chartUpdateSucceeded(
 
 export function chartUpdateStopped(
   key: string | number,
+  queryController?: AbortController,
 ): ChartUpdateStoppedAction {
-  return { type: CHART_UPDATE_STOPPED, key };
+  return { type: CHART_UPDATE_STOPPED, key, queryController };
 }
 
 export function chartUpdateFailed(
@@ -819,7 +821,9 @@ export function exploreJSON(
             response?.name === 'AbortError' || response?.statusText === 'abort';
           if (isAbort) {
             // Abort is expected: filters changed, chart unmounted, etc.
-            return dispatch(chartUpdateStopped(key as string | number));
+            return dispatch(
+              chartUpdateStopped(key as string | number, controller),
+            );
           }
 
           if (isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) {
@@ -945,9 +949,15 @@ export function refreshChart(
   chartKey: string | number,
   force: boolean,
   dashboardId?: number,
-): ChartThunkAction {
-  return (dispatch: ChartThunkDispatch, getState: () => RootState): void => {
+): ChartThunkAction<Promise<void>> {
+  return (
+    dispatch: ChartThunkDispatch,
+    getState: () => RootState,
+  ): Promise<void> => {
     const chart = (getState().charts || {})[chartKey];
+    if (!chart) {
+      return Promise.resolve();
+    }
     const timeout =
       getState().dashboardInfo.common.conf.SUPERSET_WEBSERVER_TIMEOUT;
 
@@ -955,9 +965,9 @@ export function refreshChart(
       !chart.latestQueryFormData ||
       Object.keys(chart.latestQueryFormData).length === 0
     ) {
-      return;
+      return Promise.resolve();
     }
-    dispatch(
+    return dispatch(
       postChartFormData(
         chart.latestQueryFormData,
         force,
@@ -966,7 +976,7 @@ export function refreshChart(
         dashboardId,
         getState().dataMask[chart.id]?.ownState,
       ),
-    );
+    ) as unknown as Promise<void>;
   };
 }
 

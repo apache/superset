@@ -54,8 +54,8 @@ def test_collect_connection_info_malformed_uri():
             except Exception:  # noqa: S110
                 pass
 
-            output = capture.get()
-            assert "<invalid database URI>" in output
+        output = capture.get()
+        assert "<invalid database URI>" in output
 
 
 def test_collect_connection_info_database_invalid_error():

@@ -17,6 +17,7 @@
  * under the License.
  */
 import { styled, css, SupersetTheme, useTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core';
 import cx from 'classnames';
 import { Interweave } from 'interweave';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -152,7 +153,7 @@ export default function Toast({ toast, onCloseToast }: ToastPresenterProps) {
         role="button"
         tabIndex={0}
         onClick={handleClosePress}
-        aria-label="Close"
+        aria-label={t('Close')}
         data-test="close-button"
       />
     </ToastContainer>

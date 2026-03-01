@@ -714,6 +714,11 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # @lifecycle: stable
     # @category: runtime_config
     "DATAPANEL_CLOSED_BY_DEFAULT": False,
+    # Hide the logout button in embedded contexts (e.g., when using SSO in iframes)
+    # @lifecycle: stable
+    # @category: runtime_config
+    # @docs: https://superset.apache.org/docs/configuration/networking-settings#hiding-the-logout-button-in-embedded-contexts
+    "DISABLE_EMBEDDED_SUPERSET_LOGOUT": False,
     # Enable drill-by functionality in charts
     # @lifecycle: stable
     # @category: runtime_config
@@ -945,6 +950,7 @@ THEME_DEFAULT: Theme = {
         "fontWeightNormal": "400",
         "fontWeightLight": "300",
         "fontWeightStrong": "500",
+        "fontWeightBold": "700",
         # Editor selection color (for SQL Lab text highlighting)
         "colorEditorSelection": "#fff5cf",
     },
@@ -2444,6 +2450,12 @@ EXTRA_DYNAMIC_QUERY_FILTERS: ExtraDynamicQueryFilters = {}
 # connection via the UI (without downtime).
 CATALOGS_SIMPLIFIED_MIGRATION: bool = False
 
+# Configure JWT subsystem to not enforce that the sub claim is a string
+# Set this variable to avoid breaking `/api/security` endpoints
+# TODO: remove this variable once pyjwt resolved the issue.
+# https://github.com/jpadilla/pyjwt/issues/1017
+# https://github.com/dpgaspar/Flask-AppBuilder/issues/2287
+JWT_VERIFY_SUB: bool = False
 
 # When updating a DB connection or manually triggering a perm sync, the command
 # happens in sync mode. If you have a celery worker configured, it's recommended

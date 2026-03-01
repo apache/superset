@@ -164,22 +164,31 @@ def _convert_to_response(result: QueryResult) -> ExecuteSqlResponse:
         for stmt in result.statements
     ]
 
-    # Get first statement's data for backward compatibility
-    first_stmt = result.statements[0] if result.statements else None
+    # Find the last statement with data (SELECT results).
+    # For single statements this is the same as first.
+    # For multi-statement queries (e.g., SET ...; SELECT ...) this skips
+    # non-data statements and returns the actual query results.
     rows: list[dict[str, Any]] | None = None
     columns: list[ColumnInfo] | None = None
     row_count: int | None = None
     affected_rows: int | None = None
 
-    if first_stmt and first_stmt.data is not None:
+    data_stmt = None
+    for stmt in reversed(result.statements):
+        if stmt.data is not None:
+            data_stmt = stmt
+            break
+
+    if data_stmt is not None and data_stmt.data is not None:
         # SELECT query - convert DataFrame
-        df = first_stmt.data
+        df = data_stmt.data
         rows = df.to_dict(orient="records")
         columns = [ColumnInfo(name=col, type=str(df[col].dtype)) for col in df.columns]
         row_count = len(df)
-    elif first_stmt:
-        # DML query
-        affected_rows = first_stmt.row_count
+    elif result.statements:
+        # DML-only query
+        last_stmt = result.statements[-1]
+        affected_rows = last_stmt.row_count
 
     return ExecuteSqlResponse(
         success=True,

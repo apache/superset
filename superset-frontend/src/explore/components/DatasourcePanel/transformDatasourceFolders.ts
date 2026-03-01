@@ -20,6 +20,10 @@ import { t } from '@apache-superset/core';
 import { Metric } from '@superset-ui/core';
 import { FoldersEditorItemType } from 'src/components/Datasource/types';
 import {
+  DEFAULT_METRICS_FOLDER_UUID,
+  DEFAULT_COLUMNS_FOLDER_UUID,
+} from 'src/components/Datasource/FoldersEditor/constants';
+import {
   ColumnItem,
   DatasourceFolder,
   DatasourcePanelColumn,
@@ -98,10 +102,36 @@ const transformToFolderStructure = (
     return folder;
   };
 
+  const addUnassignedToFolder = (
+    folders: Folder[],
+    items: (MetricItem | ColumnItem)[],
+    folderId: string,
+    folderName: string,
+    allItemsCount: number,
+    inFoldersCount: number,
+  ) => {
+    if (items.length === 0) return;
+    const existing = folders.find(f => f.id === folderId);
+    if (existing) {
+      existing.items.push(...items);
+      existing.totalItems += items.length;
+      existing.showingItems += items.length;
+    } else {
+      folders.push({
+        id: folderId,
+        name: folderName,
+        isCollapsed: false,
+        items,
+        totalItems: allItemsCount - inFoldersCount,
+        showingItems: items.length,
+      });
+    }
+  };
+
   if (!folderConfig) {
     return [
       {
-        id: 'metrics-default',
+        id: DEFAULT_METRICS_FOLDER_UUID,
         name: t('Metrics'),
         isCollapsed: false,
         items: metricsToDisplay,
@@ -109,7 +139,7 @@ const transformToFolderStructure = (
         showingItems: metricsToDisplay.length,
       },
       {
-        id: 'columns-default',
+        id: DEFAULT_COLUMNS_FOLDER_UUID,
         name: t('Columns'),
         isCollapsed: false,
         items: columnsToDisplay,
@@ -128,27 +158,22 @@ const transformToFolderStructure = (
     columnsMap.has(column.uuid),
   );
 
-  if (unassignedMetrics.length > 0) {
-    folders.push({
-      id: 'metrics-default',
-      name: t('Metrics'),
-      isCollapsed: false,
-      items: unassignedMetrics,
-      totalItems: allMetrics.length - metricsInFolders,
-      showingItems: unassignedMetrics.length,
-    });
-  }
-
-  if (unassignedColumns.length > 0) {
-    folders.push({
-      id: 'columns-default',
-      name: t('Columns'),
-      isCollapsed: false,
-      items: unassignedColumns,
-      totalItems: allColumns.length - columnsInFolders,
-      showingItems: unassignedColumns.length,
-    });
-  }
+  addUnassignedToFolder(
+    folders,
+    unassignedMetrics,
+    DEFAULT_METRICS_FOLDER_UUID,
+    t('Metrics'),
+    allMetrics.length,
+    metricsInFolders,
+  );
+  addUnassignedToFolder(
+    folders,
+    unassignedColumns,
+    DEFAULT_COLUMNS_FOLDER_UUID,
+    t('Columns'),
+    allColumns.length,
+    columnsInFolders,
+  );
 
   return folders;
 };

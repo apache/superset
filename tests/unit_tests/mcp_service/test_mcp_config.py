@@ -55,6 +55,15 @@ def test_get_default_instructions_with_enterprise_branding():
     assert "execute_sql" in instructions
 
 
+def test_get_default_instructions_mentions_feature_availability():
+    """Test that instructions direct LLMs to get_instance_info for features."""
+    instructions = get_default_instructions()
+
+    assert "get_instance_info" in instructions
+    assert "Feature Availability" in instructions
+    assert "accessible menus" in instructions
+
+
 def test_init_fastmcp_server_with_default_app_name():
     """Test that default APP_NAME produces Superset branding."""
     # Mock Flask app config with default APP_NAME

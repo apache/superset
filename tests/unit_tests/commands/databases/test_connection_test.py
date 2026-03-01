@@ -104,7 +104,11 @@ def test_command_with_masking(mocker: MockerFixture) -> None:
     # Mock ping to raise a Timeout exception
     mocker.patch(
         "superset.commands.database.test_connection.ping",
-        side_effect=SupersetTimeoutException("Timeout"),
+        side_effect=SupersetTimeoutException(
+            error_type=SupersetErrorType.CONNECTION_DATABASE_TIMEOUT,
+            message="Timeout",
+            level=ErrorLevel.ERROR,
+        ),
     )
 
     DatabaseDAO = mocker.patch(  # noqa: N806
@@ -135,13 +139,24 @@ def test_command_with_masking_database_invalid_error(mocker: MockerFixture) -> N
     # Mock ping to raise a Timeout exception
     mocker.patch(
         "superset.commands.database.test_connection.ping",
-        side_effect=SupersetTimeoutException("Timeout"),
+        side_effect=SupersetTimeoutException(
+            error_type=SupersetErrorType.CONNECTION_DATABASE_TIMEOUT,
+            message="Timeout",
+            level=ErrorLevel.ERROR,
+        ),
     )
 
-    # Mock make_url_safe to raise DatabaseInvalidError
+    # Mock make_url_safe to return valid URLs for __init__ and early run() block
+    # and then raise DatabaseInvalidError (for the masking logic at the end of run())
+    from superset.databases.utils import make_url_safe as real_make_url_safe
+
     mocker.patch(
         "superset.commands.database.test_connection.make_url_safe",
-        side_effect=DatabaseInvalidError(),
+        side_effect=[
+            real_make_url_safe("postgresql://valid-uri"),
+            real_make_url_safe("postgresql://valid-uri"),
+            DatabaseInvalidError(),
+        ],
     )
 
     DatabaseDAO = mocker.patch(  # noqa: N806

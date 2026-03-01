@@ -48,6 +48,15 @@ export function getFontSize(theme: SupersetTheme, size?: FontSizeKey): string {
 }
 
 /**
+ * Check if the current theme is dark mode based on background color
+ * @param theme - Theme tokens from useTheme()
+ * @returns true if theme is dark, false if light
+ */
+export function isThemeDark(theme: SupersetTheme): boolean {
+  return tinycolor(theme.colorBgContainer).isDark();
+}
+
+/**
  * Get color variants for a given color type from theme tokens
  * @param theme - Theme tokens from useTheme()
  * @param color - Color type (e.g., 'primary', 'error', 'success')
@@ -109,15 +118,6 @@ export function getColorVariants(
     ] as string,
     bg: theme[`color${firstLetterCapped}Bg` as keyof SupersetTheme] as string,
   };
-}
-
-/**
- * Check if the current theme is dark mode based on background color
- * @param theme - Theme tokens from useTheme()
- * @returns true if theme is dark, false if light
- */
-export function isThemeDark(theme: SupersetTheme): boolean {
-  return tinycolor(theme.colorBgContainer).isDark();
 }
 
 /**

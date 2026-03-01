@@ -104,7 +104,7 @@ jobs:
       # Scan for vulnerabilities in built container image after pushes to mainline branch.
       - name: Run Trivy container image vulnerabity scan
         if: github.event_name == 'push' && github.ref == 'refs/heads/master' && (steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker) && matrix.build_preset == 'lean'
-        uses: aquasecurity/trivy-action@c1824fd6edce30d7ab345a9989de00bbd46ef284 # v0.34.0
+        uses: aquasecurity/trivy-action@e368e328979b113139d6f9068e03accaed98a518 # v0.34.1
         with:
           image-ref: ${{ env.IMAGE_TAG }}
           format: 'sarif'

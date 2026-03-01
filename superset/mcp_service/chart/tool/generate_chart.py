@@ -25,6 +25,7 @@ from urllib.parse import parse_qs, urlparse
 from fastmcp import Context
 from superset_core.mcp import tool
 
+from superset.commands.exceptions import CommandException
 from superset.extensions import event_logger
 from superset.mcp_service.auth import has_dataset_access
 from superset.mcp_service.chart.chart_utils import (
@@ -32,6 +33,7 @@ from superset.mcp_service.chart.chart_utils import (
     analyze_chart_semantics,
     generate_chart_name,
     map_config_to_form_data,
+    validate_chart_dataset,
 )
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
@@ -185,6 +187,7 @@ async def generate_chart(  # noqa: C901
         chart_id = None
         explore_url = None
         form_data_key = None
+        response_warnings: list[str] = []
 
         # Save chart by default (unless save_chart=False)
         if request.save_chart:
@@ -300,7 +303,25 @@ async def generate_chart(  # noqa: C901
                     )
                 )
 
-            except Exception as e:
+                # Post-creation validation: verify the chart's dataset is accessible
+                dataset_check = validate_chart_dataset(chart, check_access=True)
+                if not dataset_check.is_valid:
+                    # Dataset validation failed - warn but don't fail the operation
+                    await ctx.warning(
+                        "Chart created but dataset validation failed: %s"
+                        % (dataset_check.error,)
+                    )
+                    logger.warning(
+                        "Chart %s created but dataset validation failed: %s",
+                        chart.id,
+                        dataset_check.error,
+                    )
+                    if dataset_check.error:
+                        response_warnings.append(dataset_check.error)
+                # Add any validation warnings (e.g., virtual dataset warnings)
+                response_warnings.extend(dataset_check.warnings)
+
+            except CommandException as e:
                 logger.error("Chart creation failed: %s", e)
                 await ctx.error("Chart creation failed: error=%s" % (str(e),))
                 raise
@@ -338,7 +359,7 @@ async def generate_chart(  # noqa: C901
                         "Generated form_data_key for saved chart: "
                         "form_data_key=%s" % (form_data_key,)
                     )
-            except Exception as fdk_error:
+            except CommandException as fdk_error:
                 logger.warning(
                     "Failed to generate form_data_key for saved chart: %s",
                     fdk_error,
@@ -456,7 +477,7 @@ async def generate_chart(  # noqa: C901
                                 if not hasattr(preview_result, "error"):
                                     previews[format_type] = preview_result
 
-            except Exception as e:
+            except (CommandException, ValueError, KeyError) as e:
                 # Log warning but don't fail the entire request
                 await ctx.warning("Preview generation failed: error=%s" % (str(e),))
                 logger.warning("Preview generation failed: %s", e)
@@ -507,8 +528,8 @@ async def generate_chart(  # noqa: C901
             else {},
             "performance": performance.model_dump() if performance else None,
             "accessibility": accessibility.model_dump() if accessibility else None,
-            # Runtime warnings (informational suggestions, not errors)
-            "warnings": runtime_warnings,
+            # Combined runtime and response warnings
+            "warnings": runtime_warnings + response_warnings,
             "success": True,
             "schema_version": "2.0",
             "api_version": "v1",
@@ -540,7 +561,7 @@ async def generate_chart(  # noqa: C901
         try:
             if hasattr(request, "config") and hasattr(request.config, "chart_type"):
                 chart_type = request.config.chart_type
-        except Exception as extract_error:
+        except AttributeError as extract_error:
             # Ignore errors when extracting chart type for error context
             logger.debug("Could not extract chart type: %s", extract_error)
 

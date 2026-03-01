@@ -1,6 +1,14 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["import", "react", "jest", "jsx-a11y", "typescript", "unicorn"],
+  "plugins": [
+    "import",
+    "react",
+    "jest",
+    "jsx-a11y",
+    "typescript",
+    "unicorn",
+    "oxc"
+  ],
   "env": {
     "browser": true,
     "node": true,
@@ -34,7 +42,8 @@
     "no-unused-vars": "off",
     "no-undef": "error",
     "no-prototype-builtins": "off",
-    "no-unsafe-optional-chaining": "off",
+    "no-unsafe-optional-chaining": "error",
+    "no-constant-binary-expression": "error",
     "no-import-assign": "off",
     "no-promise-executor-return": "off",
 
@@ -72,6 +81,12 @@
       "as-needed",
       { "requireReturnForObjectLiteral": false }
     ],
+    "no-useless-constructor": "error",
+    "no-else-return": "error",
+    "no-array-constructor": "error",
+    "no-new-wrappers": "error",
+    "no-regex-spaces": "error",
+    "no-object-constructor": "error",
 
     // === Import plugin rules ===
     "import/no-unresolved": "error",
@@ -254,6 +269,16 @@
     // === Unicorn rules (bonus coverage) ===
     "unicorn/no-new-array": "error",
     "unicorn/no-invalid-remove-event-listener": "error",
+    "unicorn/no-useless-length-check": "error",
+    "unicorn/no-length-as-slice-end": "error",
+    "unicorn/no-useless-spread": "error",
+    "unicorn/no-thenable": "error",
+    "unicorn/escape-case": "error",
+    "unicorn/prefer-array-flat-map": "error",
+    "unicorn/prefer-array-some": "error",
+    "unicorn/throw-new-error": "error",
+    "unicorn/prefer-negative-index": "error",
+    "unicorn/prefer-math-trunc": "error",
     "unicorn/filename-case": "off",
     "unicorn/prevent-abbreviations": "off",
     "unicorn/no-null": "off",

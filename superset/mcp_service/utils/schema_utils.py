@@ -446,10 +446,8 @@ def parse_request(
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         import types
 
-        parse_enabled = _is_parse_request_enabled()
-
         def _maybe_parse(request: Any) -> Any:
-            if parse_enabled:
+            if _is_parse_request_enabled():
                 return parse_json_or_model(request, request_class, "request")
             return request
 
@@ -501,7 +499,7 @@ def parse_request(
         # Copy docstring from original function (not wrapper, which has no docstring)
         new_wrapper.__doc__ = func.__doc__
 
-        request_annotation = str | request_class if parse_enabled else request_class
+        request_annotation = str | request_class
         _apply_signature_for_fastmcp(new_wrapper, func, request_annotation)
 
         return new_wrapper

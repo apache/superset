@@ -30,10 +30,12 @@ from superset.mcp_service.mcp_core import InstanceInfoCore
 from superset.mcp_service.system.schemas import (
     GetSupersetInstanceInfoRequest,
     InstanceInfo,
+    UserInfo,
 )
 from superset.mcp_service.system.system_utils import (
     calculate_dashboard_breakdown,
     calculate_database_breakdown,
+    calculate_feature_availability,
     calculate_instance_summary,
     calculate_popular_content,
     calculate_recent_activity,
@@ -60,6 +62,7 @@ _instance_info_core = InstanceInfoCore(
         "dashboard_breakdown": calculate_dashboard_breakdown,
         "database_breakdown": calculate_database_breakdown,
         "popular_content": calculate_popular_content,
+        "feature_availability": calculate_feature_availability,
     },
     time_windows={
         "recent": 7,
@@ -81,6 +84,8 @@ def get_instance_info(
     """
     try:
         # Import DAOs at runtime to avoid circular imports
+        from flask import g
+
         from superset.daos.chart import ChartDAO
         from superset.daos.dashboard import DashboardDAO
         from superset.daos.database import DatabaseDAO
@@ -100,7 +105,20 @@ def get_instance_info(
 
         # Run the configurable core
         with event_logger.log_context(action="mcp.get_instance_info.metrics"):
-            return _instance_info_core.run_tool()
+            result = _instance_info_core.run_tool()
+
+        # Attach the authenticated user's identity to the response
+        user = getattr(g, "user", None)
+        if user is not None:
+            result.current_user = UserInfo(
+                id=getattr(user, "id", None),
+                username=getattr(user, "username", None),
+                first_name=getattr(user, "first_name", None),
+                last_name=getattr(user, "last_name", None),
+                email=getattr(user, "email", None),
+            )
+
+        return result
 
     except Exception as e:
         error_msg = f"Unexpected error in instance info: {str(e)}"

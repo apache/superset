@@ -21,9 +21,9 @@ import { Component, ReactNode, MouseEvent } from 'react';
 import { safeHtmlSpan } from '@superset-ui/core';
 import { t } from '@apache-superset/core/ui';
 import PropTypes from 'prop-types';
-import { FaSort } from '@react-icons/all-files/fa/FaSort';
-import { FaSortDown as FaSortDesc } from '@react-icons/all-files/fa/FaSortDown';
-import { FaSortUp as FaSortAsc } from '@react-icons/all-files/fa/FaSortUp';
+import { FaSort } from 'react-icons/fa';
+import { FaSortDown as FaSortDesc } from 'react-icons/fa';
+import { FaSortUp as FaSortAsc } from 'react-icons/fa';
 import { PivotData, flatKey } from './utilities';
 import { Styles } from './Styles';
 
@@ -172,6 +172,33 @@ function displayHeaderCell(
   ) : (
     labelContent
   );
+}
+
+function getCellColor(
+  keys: string[],
+  aggValue: string | number | null,
+  cellColorFormatters: Record<string, CellColorFormatter[]> | undefined,
+): { backgroundColor: string | undefined } {
+  if (!cellColorFormatters) return { backgroundColor: undefined };
+
+  let backgroundColor: string | undefined;
+
+  for (const cellColorFormatter of Object.values(cellColorFormatters)) {
+    if (!Array.isArray(cellColorFormatter)) continue;
+
+    for (const key of keys) {
+      for (const formatter of cellColorFormatter) {
+        if (formatter.column === key) {
+          const result = formatter.getColorFromValue(aggValue);
+          if (result) {
+            backgroundColor = result;
+          }
+        }
+      }
+    }
+  }
+
+  return { backgroundColor };
 }
 
 interface HierarchicalNode {
@@ -717,6 +744,7 @@ export class TableRenderer extends Component<
       highlightHeaderCellsOnHover,
       omittedHighlightHeaderGroups = [],
       highlightedHeaderCells,
+      cellColorFormatters,
       dateFormatters,
     } = this.props.tableOptions;
 
@@ -816,10 +844,17 @@ export class TableRenderer extends Component<
         };
         const headerCellFormattedValue =
           dateFormatters?.[attrName]?.(colKey[attrIdx]) ?? colKey[attrIdx];
+        const { backgroundColor } = getCellColor(
+          [attrName],
+          headerCellFormattedValue,
+          cellColorFormatters,
+        );
+        const style = { backgroundColor };
         attrValueCells.push(
           <th
             className={colLabelClass}
             key={`colKey-${flatColKey}`}
+            style={style}
             colSpan={colSpan}
             rowSpan={rowSpan}
             role="columnheader button"
@@ -1044,10 +1079,18 @@ export class TableRenderer extends Component<
 
         const headerCellFormattedValue =
           dateFormatters?.[rowAttrs[i]]?.(r) ?? r;
+
+        const { backgroundColor } = getCellColor(
+          [rowAttrs[i]],
+          headerCellFormattedValue,
+          cellColorFormatters,
+        );
+        const style = { backgroundColor };
         return (
           <th
             key={`rowKeyLabel-${i}`}
             className={valueCellClassName}
+            style={style}
             rowSpan={rowSpan}
             colSpan={colSpan}
             role="columnheader button"
@@ -1108,26 +1151,12 @@ export class TableRenderer extends Component<
       const aggValue = agg.value();
 
       const keys = [...rowKey, ...colKey];
-      let backgroundColor: string | undefined;
-      if (cellColorFormatters) {
-        Object.values(cellColorFormatters).forEach(cellColorFormatter => {
-          if (Array.isArray(cellColorFormatter)) {
-            keys.forEach(key => {
-              if (backgroundColor) {
-                return;
-              }
-              cellColorFormatter
-                .filter(formatter => formatter.column === key)
-                .forEach(formatter => {
-                  const formatterResult = formatter.getColorFromValue(aggValue);
-                  if (formatterResult) {
-                    backgroundColor = formatterResult;
-                  }
-                });
-            });
-          }
-        });
-      }
+
+      const { backgroundColor } = getCellColor(
+        keys,
+        aggValue,
+        cellColorFormatters,
+      );
 
       const style = agg.isSubtotal
         ? { fontWeight: 'bold' }
