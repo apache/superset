@@ -92,7 +92,7 @@ export function mapColumns<T extends object>(
     const { isSorted, isSortedDesc } = getSortingInfo(headerGroups, column.id);
     return {
       title: column.Header,
-      dataIndex: column.id.includes('.') ? column.id.split('.') : column.id,
+      dataIndex: column.id?.includes('.') ? column.id.split('.') : column.id,
       hidden: column.hidden,
       key: column.id,
       width: column.size ? COLUMN_SIZE_MAP[column.size] : undefined,
