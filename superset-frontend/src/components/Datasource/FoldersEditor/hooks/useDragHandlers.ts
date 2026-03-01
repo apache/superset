@@ -66,6 +66,11 @@ export function useDragHandlers({
     null,
   );
   const [draggedItemIds, setDraggedItemIds] = useState<Set<string>>(new Set());
+  const [draggedFolderChildIds, setDraggedFolderChildIds] = useState<
+    Set<string>
+  >(new Set());
+  // Last non-null overId — fallback target when dropping in dead zones
+  const lastValidOverIdRef = useRef<UniqueIdentifier | null>(null);
 
   // Store the flattened items at drag start to keep them stable during drag
   // This prevents react-window from re-rendering due to flattenedItems reference changes
@@ -88,13 +93,19 @@ export function useDragHandlers({
     [activeId, computedFlattenedItems],
   );
 
-  const flattenedItemsIndexMap = useMemo(() => {
+  // Exclude dragged folder children — they'd skew getProjection's minDepth calc
+  const projectionItems = useMemo(() => {
+    if (draggedFolderChildIds.size === 0) return flattenedItems;
+    return flattenedItems.filter(item => !draggedFolderChildIds.has(item.uuid));
+  }, [flattenedItems, draggedFolderChildIds]);
+
+  const projectionIndexMap = useMemo(() => {
     const map = new Map<string, number>();
-    flattenedItems.forEach((item, index) => {
+    projectionItems.forEach((item, index) => {
       map.set(item.uuid, index);
     });
     return map;
-  }, [flattenedItems]);
+  }, [projectionItems]);
 
   // Shared lookup maps for O(1) access - used by handleDragEnd and forbiddenDropFolderIds
   const fullItemsByUuid = useMemo(() => {
@@ -152,8 +163,10 @@ export function useDragHandlers({
     setActiveId(null);
     setOverId(null);
     offsetLeftRef.current = 0;
+    lastValidOverIdRef.current = null;
     setCurrentDropTargetId(null);
     setDraggedItemIds(new Set());
+    setDraggedFolderChildIds(new Set());
     setDragOverlayWidth(null);
     // Clear the stable snapshot so next render uses fresh computed items
     dragStartFlattenedItemsRef.current = null;
@@ -162,7 +175,8 @@ export function useDragHandlers({
   const handleDragStart = ({ active }: DragStartEvent) => {
     // Capture the current flattened items BEFORE setting activeId
     // This ensures the list stays stable during the entire drag operation
-    dragStartFlattenedItemsRef.current = computeFlattenedItems(null);
+    const snapshot = computeFlattenedItems(null);
+    dragStartFlattenedItemsRef.current = snapshot;
 
     setActiveId(active.id);
 
@@ -175,6 +189,23 @@ export function useDragHandlers({
       setDraggedItemIds(new Set(selectedItemIds));
     } else {
       setDraggedItemIds(new Set([active.id as string]));
+    }
+
+    // Collect descendant IDs for hiding from list / showing in overlay
+    const activeIndex = snapshot.findIndex(
+      item => item.uuid === (active.id as string),
+    );
+    const activeItem = snapshot[activeIndex];
+    if (activeItem?.type === FoldersEditorItemType.Folder) {
+      const descendantIds = new Set<string>();
+      for (let i = activeIndex + 1; i < snapshot.length; i += 1) {
+        if (snapshot[i].depth > activeItem.depth) {
+          descendantIds.add(snapshot[i].uuid);
+        } else {
+          break;
+        }
+      }
+      setDraggedFolderChildIds(descendantIds);
     }
   };
 
@@ -190,23 +221,26 @@ export function useDragHandlers({
         }
 
         const projection = getProjection(
-          flattenedItems,
+          projectionItems,
           activeId,
           overId,
           delta.x,
           DRAG_INDENTATION_WIDTH,
-          flattenedItemsIndexMap,
+          projectionIndexMap,
         );
         const newParentId = projection?.parentId ?? null;
         setCurrentDropTargetId(newParentId);
       }
     },
-    [activeId, overId, flattenedItems, flattenedItemsIndexMap],
+    [activeId, overId, projectionItems, projectionIndexMap],
   );
 
   const handleDragOver = useCallback(
     ({ over }: DragOverEvent) => {
       setOverId(over?.id ?? null);
+      if (over) {
+        lastValidOverIdRef.current = over.id;
+      }
 
       if (activeId && over) {
         if (typeof over.id === 'string' && over.id.endsWith('-empty')) {
@@ -216,12 +250,12 @@ export function useDragHandlers({
         }
 
         const projection = getProjection(
-          flattenedItems,
+          projectionItems,
           activeId,
           over.id,
           offsetLeftRef.current,
           DRAG_INDENTATION_WIDTH,
-          flattenedItemsIndexMap,
+          projectionIndexMap,
         );
         const newParentId = projection?.parentId ?? null;
         setCurrentDropTargetId(newParentId);
@@ -229,27 +263,42 @@ export function useDragHandlers({
         setCurrentDropTargetId(null);
       }
     },
-    [activeId, flattenedItems, flattenedItemsIndexMap],
+    [activeId, projectionItems, projectionIndexMap],
   );
 
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
     const itemsBeingDragged = Array.from(draggedItemIds);
+    const folderChildIds = draggedFolderChildIds;
     const finalOffsetLeft = offsetLeftRef.current;
+    // Capture fallback overId before reset (for dead-zone drops)
+    const fallbackOverId = lastValidOverIdRef.current;
     resetDragState();
 
-    if (!over || itemsBeingDragged.length === 0) {
+    // Folder drags only: hidden children create dead zones where over is null.
+    // Regular drags with null over just cancel.
+    const effectiveOver =
+      over ??
+      (folderChildIds.size > 0 && fallbackOverId
+        ? { id: fallbackOverId }
+        : null);
+    if (!effectiveOver || itemsBeingDragged.length === 0) {
       return;
     }
 
-    let targetOverId = over.id;
+    let targetOverId = effectiveOver.id;
     let isEmptyDrop = false;
-    if (typeof over.id === 'string' && over.id.endsWith('-empty')) {
-      targetOverId = over.id.replace('-empty', '');
+    if (typeof targetOverId === 'string' && targetOverId.endsWith('-empty')) {
+      targetOverId = targetOverId.replace('-empty', '');
       isEmptyDrop = true;
 
       if (itemsBeingDragged.includes(targetOverId as string)) {
         return;
       }
+    }
+
+    // Dropping onto a descendant of the dragged folder is a no-op
+    if (folderChildIds.has(targetOverId as string)) {
+      return;
     }
 
     const activeIndex = fullItemsIndexMap.get(active.id as string) ?? -1;
@@ -266,12 +315,12 @@ export function useDragHandlers({
     );
 
     let projectedPosition = getProjection(
-      flattenedItems,
+      projectionItems,
       active.id,
       targetOverId,
       finalOffsetLeft,
       DRAG_INDENTATION_WIDTH,
-      flattenedItemsIndexMap,
+      projectionIndexMap,
     );
 
     if (isEmptyDrop) {
@@ -636,8 +685,6 @@ export function useDragHandlers({
               } else {
                 insertionIndex = overItemInRemaining;
               }
-            } else if (projectedPosition.depth > overItem.depth) {
-              insertionIndex = overItemInRemaining + 1;
             } else {
               insertionIndex = overItemInRemaining + 1;
             }
@@ -680,12 +727,34 @@ export function useDragHandlers({
   const dragOverlayItems = useMemo(() => {
     if (!activeId || draggedItemIds.size === 0) return [];
 
+    const activeItem = fullItemsByUuid.get(activeId as string);
+
+    // Folder drag: include folder + visible descendants
+    if (
+      activeItem?.type === FoldersEditorItemType.Folder &&
+      draggedFolderChildIds.size > 0
+    ) {
+      const activeIdStr = activeId as string;
+      return flattenedItems.filter(
+        (item: FlattenedTreeItem) =>
+          item.uuid === activeIdStr || draggedFolderChildIds.has(item.uuid),
+      );
+    }
+
+    // Multi-select / single item: stacked overlay
     const draggedItems = fullFlattenedItems.filter((item: FlattenedTreeItem) =>
       draggedItemIds.has(item.uuid),
     );
 
     return draggedItems.slice(0, 3);
-  }, [activeId, draggedItemIds, fullFlattenedItems]);
+  }, [
+    activeId,
+    draggedItemIds,
+    draggedFolderChildIds,
+    flattenedItems,
+    fullFlattenedItems,
+    fullItemsByUuid,
+  ]);
 
   const forbiddenDropFolderIds = useMemo(() => {
     const forbidden = new Set<string>();
@@ -788,6 +857,7 @@ export function useDragHandlers({
     isDragging: activeId !== null,
     activeId,
     draggedItemIds,
+    draggedFolderChildIds,
     dragOverlayWidth,
     flattenedItems,
     dragOverlayItems,
