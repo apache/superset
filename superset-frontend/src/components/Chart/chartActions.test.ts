@@ -41,6 +41,7 @@ import * as dataMaskActions from 'src/dataMask/actions';
 import configureMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { initialState } from 'src/SqlLab/fixtures';
+import { Mock, vi } from 'vitest';
 
 interface MockState {
   charts: {
@@ -76,29 +77,27 @@ const mockGetState = (): MockState => ({
   },
 });
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
-  getChartMetadataRegistry: jest.fn(),
-  getChartBuildQueryRegistry: jest.fn(),
+vi.mock('@superset-ui/core', async importActual => ({
+  ...(await importActual()),
+  getChartMetadataRegistry: vi.fn(),
+  getChartBuildQueryRegistry: vi.fn(),
 }));
 
-const mockedGetChartMetadataRegistry =
-  getChartMetadataRegistry as jest.MockedFunction<
-    typeof getChartMetadataRegistry
-  >;
-const mockedGetChartBuildQueryRegistry =
-  getChartBuildQueryRegistry as jest.MockedFunction<
-    typeof getChartBuildQueryRegistry
-  >;
+const mockedGetChartMetadataRegistry = getChartMetadataRegistry as Mock<
+  typeof getChartMetadataRegistry
+>;
+const mockedGetChartBuildQueryRegistry = getChartBuildQueryRegistry as Mock<
+  typeof getChartBuildQueryRegistry
+>;
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('chart actions', () => {
   const MOCK_URL = '/mockURL';
-  let dispatch: jest.Mock;
-  let getExploreUrlStub: jest.SpyInstance;
-  let getChartDataUriStub: jest.SpyInstance;
-  let buildV1ChartDataPayloadStub: jest.SpyInstance;
-  let waitForAsyncDataStub: jest.SpyInstance;
+  let dispatch: Mock;
+  let getExploreUrlStub: Mock;
+  let getChartDataUriStub: Mock;
+  let buildV1ChartDataPayloadStub: Mock;
+  let waitForAsyncDataStub: Mock;
   let fakeMetadata: { useLegacyApi?: boolean; viz_type?: string };
 
   beforeAll(() => {
@@ -116,16 +115,16 @@ describe('chart actions', () => {
   afterEach(() => fetchMock.clearHistory().removeRoutes());
 
   beforeEach(() => {
-    dispatch = jest.fn();
-    getExploreUrlStub = jest
+    dispatch = vi.fn();
+    getExploreUrlStub = vi
       .spyOn(exploreUtils, 'getExploreUrl')
       .mockImplementation(() => MOCK_URL);
-    getChartDataUriStub = jest
+    getChartDataUriStub = vi
       .spyOn(exploreUtils, 'getChartDataUri')
       .mockImplementation(({ qs }: { qs?: Record<string, unknown> }) =>
         URI(MOCK_URL).query(qs || {}),
       );
-    buildV1ChartDataPayloadStub = jest
+    buildV1ChartDataPayloadStub = vi
       .spyOn(exploreUtils, 'buildV1ChartDataPayload')
       .mockResolvedValue({
         some_param: 'fake query!',
@@ -151,13 +150,13 @@ describe('chart actions', () => {
           }),
         }) as unknown as ReturnType<typeof getChartBuildQueryRegistry>,
     );
-    waitForAsyncDataStub = jest
+    waitForAsyncDataStub = vi
       .spyOn(asyncEvent, 'waitForAsyncData')
       .mockImplementation((data: unknown) => Promise.resolve(data));
   });
 
   test('should defer abort of previous controller to avoid Redux state mutation', async () => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     const chartKey = 'defer_abort_test';
     const formData: Partial<QueryFormData> = {
       slice_id: 123,
@@ -165,7 +164,7 @@ describe('chart actions', () => {
       viz_type: 'table',
     };
     const oldController = new AbortController();
-    const abortSpy = jest.spyOn(oldController, 'abort');
+    const abortSpy = vi.spyOn(oldController, 'abort');
     const state: MockState = {
       charts: {
         [chartKey]: {
@@ -178,23 +177,23 @@ describe('chart actions', () => {
         },
       },
     };
-    const getState = jest.fn(() => state);
-    const dispatchMock = jest.fn();
-    const getChartDataRequestSpy = jest
+    const getState = vi.fn(() => state);
+    const dispatchMock = vi.fn();
+    const getChartDataRequestSpy = vi
       .spyOn(actions, 'getChartDataRequest')
       .mockResolvedValue({
         response: { status: 200 } as Response,
         json: { result: [] },
       });
-    const handleChartDataResponseSpy = jest
+    const handleChartDataResponseSpy = vi
       .spyOn(actions, 'handleChartDataResponse')
       .mockResolvedValue([]);
-    const updateDataMaskSpy = jest
+    const updateDataMaskSpy = vi
       .spyOn(dataMaskActions, 'updateDataMask')
       .mockReturnValue({ type: 'UPDATE_DATA_MASK' } as ReturnType<
         typeof dataMaskActions.updateDataMask
       >);
-    const getQuerySettingsStub = jest
+    const getQuerySettingsStub = vi
       .spyOn(exploreUtils, 'getQuerySettings')
       .mockReturnValue([false, () => {}] as unknown as ReturnType<
         typeof exploreUtils.getQuerySettings
@@ -216,7 +215,7 @@ describe('chart actions', () => {
       expect(abortSpy).not.toHaveBeenCalled();
       expect(oldController.signal.aborted).toBe(false);
 
-      jest.runOnlyPendingTimers();
+      vi.runOnlyPendingTimers();
 
       expect(abortSpy).toHaveBeenCalledTimes(1);
       expect(oldController.signal.aborted).toBe(true);
@@ -228,7 +227,7 @@ describe('chart actions', () => {
       updateDataMaskSpy.mockRestore();
       getQuerySettingsStub.mockRestore();
       abortSpy.mockRestore();
-      jest.useRealTimers();
+      vi.useRealTimers();
     }
   });
 
@@ -283,7 +282,7 @@ describe('chart actions', () => {
       fetchMock.post(mockBigIntUrl, `{ "value": ${expectedBigNumber} }`, {
         name: mockBigIntUrl,
       });
-      getChartDataUriStub = jest
+      getChartDataUriStub = vi
         .spyOn(exploreUtils, 'getChartDataUri')
         .mockImplementation(() => URI(mockBigIntUrl));
 
@@ -541,7 +540,7 @@ describe('chart actions', () => {
       fetchMock.post(mockBigIntUrl, `{ "value": ${expectedBigNumber} }`, {
         name: mockBigIntUrl,
       });
-      getExploreUrlStub = jest
+      getExploreUrlStub = vi
         .spyOn(exploreUtils, 'getExploreUrl')
         .mockImplementation(() => mockBigIntUrl);
 
@@ -559,9 +558,9 @@ describe('chart actions', () => {
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('runAnnotationQuery', () => {
-    const mockDispatch = jest.fn();
+    const mockDispatch = vi.fn();
     beforeEach(() => {
-      jest.clearAllMocks();
+      vi.clearAllMocks();
     });
 
     test('should dispatch annotationQueryStarted and annotationQuerySuccess on successful query', async () => {
@@ -588,14 +587,14 @@ describe('chart actions', () => {
       } as AnnotationLayer;
       const key = undefined;
 
-      const postSpy = jest.spyOn(SupersetClient, 'post');
+      const postSpy = vi.spyOn(SupersetClient, 'post');
       postSpy.mockImplementation(
         () =>
           Promise.resolve({ json: { result: [] } }) as unknown as ReturnType<
             typeof SupersetClient.post
           >,
       );
-      const buildV1ChartDataPayloadSpy = jest.spyOn(
+      const buildV1ChartDataPayloadSpy = vi.spyOn(
         exploreUtils,
         'buildV1ChartDataPayload',
       );
@@ -624,11 +623,11 @@ describe('chart actions', () => {
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('chart actions timeout', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   test('should use the timeout from arguments when given', async () => {
-    const postSpy = jest.spyOn(SupersetClient, 'post');
+    const postSpy = vi.spyOn(SupersetClient, 'post');
     postSpy.mockImplementation(
       () =>
         Promise.resolve({ json: { result: [] } }) as unknown as ReturnType<
@@ -666,7 +665,7 @@ describe('chart actions timeout', () => {
   });
 
   test('should use the timeout from common.conf when not passed as an argument', async () => {
-    const postSpy = jest.spyOn(SupersetClient, 'post');
+    const postSpy = vi.spyOn(SupersetClient, 'post');
     postSpy.mockImplementation(
       () =>
         Promise.resolve({ json: { result: [] } }) as unknown as ReturnType<

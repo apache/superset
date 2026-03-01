@@ -24,7 +24,7 @@ import {
   computeGeoJsonIconOptionsFromFormData,
 } from './Geojson';
 
-jest.mock('@deck.gl/react', () => ({
+vi.mock('@deck.gl/react', () => ({
   __esModule: true,
   default: () => null,
 }));

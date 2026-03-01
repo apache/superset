@@ -43,7 +43,7 @@ module.exports = {
     '<rootDir>/plugins/.*/esm',
     '<rootDir>/plugins/.*/lib',
   ],
-  setupFilesAfterEnv: ['<rootDir>/spec/helpers/setup.ts'],
+  setupFilesAfterEnv: ['<rootDir>/spec/helpers/setup.jest.ts'],
   snapshotSerializers: ['@emotion/jest/serializer'],
   testEnvironmentOptions: {
     globalsCleanup: true,

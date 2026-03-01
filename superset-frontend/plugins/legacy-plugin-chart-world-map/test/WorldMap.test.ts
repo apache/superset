@@ -21,6 +21,7 @@ import d3 from 'd3';
 import { getNumberFormatter, ValueFormatter } from '@superset-ui/core';
 import WorldMap from '../src/WorldMap';
 import { ColorBy } from '../src/utils';
+import { afterEach, beforeEach, expect, test, vi, type Mock } from 'vitest';
 
 interface WorldMapDataEntry {
   country: string;
@@ -61,24 +62,24 @@ interface WorldMapProps {
 type MouseEventHandler = (this: HTMLElement) => void;
 
 interface MockD3Selection {
-  attr: jest.Mock;
-  style: jest.Mock;
-  classed: jest.Mock;
-  selectAll: jest.Mock;
+  attr: Mock;
+  style: Mock;
+  classed: Mock;
+  selectAll: Mock;
 }
 
 // Mock Datamap
-const mockBubbles = jest.fn();
-const mockUpdateChoropleth = jest.fn();
+const mockBubbles = vi.fn();
+const mockUpdateChoropleth = vi.fn();
 const mockSvg = {
-  selectAll: jest.fn().mockReturnThis(),
-  on: jest.fn().mockReturnThis(),
-  attr: jest.fn().mockReturnThis(),
-  style: jest.fn().mockReturnThis(),
+  selectAll: vi.fn().mockReturnThis(),
+  on: vi.fn().mockReturnThis(),
+  attr: vi.fn().mockReturnThis(),
+  style: vi.fn().mockReturnThis(),
 };
 
-jest.mock('datamaps/dist/datamaps.all.min', () =>
-  jest.fn().mockImplementation(config => {
+vi.mock('datamaps/dist/datamaps.all.min', () => ({
+  default: vi.fn().mockImplementation(function (config) {
     // Call the done callback immediately to simulate Datamap initialization
     if (config.done) {
       config.done({
@@ -91,7 +92,7 @@ jest.mock('datamaps/dist/datamaps.all.min', () =>
       svg: mockSvg,
     };
   }),
-);
+}));
 
 let container: HTMLElement;
 const formatter = getNumberFormatter();
@@ -134,8 +135,8 @@ const baseProps: WorldMapProps = {
   },
   countryFieldtype: 'code',
   entity: 'country',
-  onContextMenu: jest.fn(),
-  setDataMask: jest.fn(),
+  onContextMenu: vi.fn(),
+  setDataMask: vi.fn(),
   inContextMenu: false,
   filterState: { selectedValues: [] },
   emitCrossFilters: false,
@@ -143,7 +144,7 @@ const baseProps: WorldMapProps = {
 };
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
   container = document.createElement('div');
   document.body.appendChild(container);
 });
@@ -177,7 +178,7 @@ test('stores original fill color on mouseover', () => {
 
   // Mock d3.select to return the mock element
   const mockD3Selection: MockD3Selection = {
-    attr: jest.fn((attrName: string, value?: string) => {
+    attr: vi.fn((attrName: string, value?: string) => {
       if (value !== undefined) {
         mockElement.setAttribute(attrName, value);
       } else {
@@ -185,7 +186,7 @@ test('stores original fill color on mouseover', () => {
       }
       return mockD3Selection;
     }),
-    style: jest.fn((styleName: string, value?: string) => {
+    style: vi.fn((styleName: string, value?: string) => {
       if (value !== undefined) {
         mockElement.style[styleName as any] = value;
       } else {
@@ -193,11 +194,11 @@ test('stores original fill color on mouseover', () => {
       }
       return mockD3Selection;
     }),
-    classed: jest.fn().mockReturnThis(),
-    selectAll: jest.fn().mockReturnValue({ remove: jest.fn() }),
+    classed: vi.fn().mockReturnThis(),
+    selectAll: vi.fn().mockReturnValue({ remove: vi.fn() }),
   };
 
-  jest.spyOn(d3 as any, 'select').mockReturnValue(mockD3Selection as any);
+  vi.spyOn(d3 as any, 'select').mockReturnValue(mockD3Selection as any);
 
   // Capture the mouseover handler
   mockSvg.on.mockImplementation((event: string, handler: MouseEventHandler) => {
@@ -231,7 +232,7 @@ test('restores original fill color on mouseout for country with data', () => {
   let mouseoutHandler: MouseEventHandler | null = null;
 
   const mockD3Selection: MockD3Selection = {
-    attr: jest.fn((attrName: string, value?: string | null) => {
+    attr: vi.fn((attrName: string, value?: string | null) => {
       if (value !== undefined) {
         if (value === null) {
           mockElement.removeAttribute(attrName);
@@ -242,17 +243,17 @@ test('restores original fill color on mouseout for country with data', () => {
       }
       return mockElement.getAttribute(attrName);
     }),
-    style: jest.fn((styleName: string, value?: string) => {
+    style: vi.fn((styleName: string, value?: string) => {
       if (value !== undefined) {
         mockElement.style[styleName as any] = value;
       }
       return mockElement.style[styleName as any] || mockD3Selection;
     }),
-    classed: jest.fn().mockReturnThis(),
-    selectAll: jest.fn().mockReturnValue({ remove: jest.fn() }),
+    classed: vi.fn().mockReturnThis(),
+    selectAll: vi.fn().mockReturnValue({ remove: vi.fn() }),
   };
 
-  jest.spyOn(d3 as any, 'select').mockReturnValue(mockD3Selection as any);
+  vi.spyOn(d3 as any, 'select').mockReturnValue(mockD3Selection as any);
 
   // Capture the mouseout handler
   mockSvg.on.mockImplementation((event: string, handler: MouseEventHandler) => {
@@ -287,7 +288,7 @@ test('restores default fill color on mouseout for country with no data', () => {
   let mouseoutHandler: MouseEventHandler | null = null;
 
   const mockD3Selection: MockD3Selection = {
-    attr: jest.fn((attrName: string, value?: string | null) => {
+    attr: vi.fn((attrName: string, value?: string | null) => {
       if (value !== undefined) {
         if (value === null) {
           mockElement.removeAttribute(attrName);
@@ -298,17 +299,17 @@ test('restores default fill color on mouseout for country with no data', () => {
       }
       return mockElement.getAttribute(attrName);
     }),
-    style: jest.fn((styleName: string, value?: string) => {
+    style: vi.fn((styleName: string, value?: string) => {
       if (value !== undefined) {
         mockElement.style[styleName as any] = value;
       }
       return mockElement.style[styleName as any] || mockD3Selection;
     }),
-    classed: jest.fn().mockReturnThis(),
-    selectAll: jest.fn().mockReturnValue({ remove: jest.fn() }),
+    classed: vi.fn().mockReturnThis(),
+    selectAll: vi.fn().mockReturnValue({ remove: vi.fn() }),
   };
 
-  jest.spyOn(d3 as any, 'select').mockReturnValue(mockD3Selection as any);
+  vi.spyOn(d3 as any, 'select').mockReturnValue(mockD3Selection as any);
 
   mockSvg.on.mockImplementation((event: string, handler: MouseEventHandler) => {
     if (event === 'mouseout') {
@@ -344,13 +345,13 @@ test('does not handle mouse events when inContextMenu is true', () => {
   let mouseoutHandler: MouseEventHandler | null = null;
 
   const mockD3Selection: MockD3Selection = {
-    attr: jest.fn(() => mockD3Selection),
-    style: jest.fn(() => mockD3Selection),
-    classed: jest.fn().mockReturnThis(),
-    selectAll: jest.fn().mockReturnValue({ remove: jest.fn() }),
+    attr: vi.fn(() => mockD3Selection),
+    style: vi.fn(() => mockD3Selection),
+    classed: vi.fn().mockReturnThis(),
+    selectAll: vi.fn().mockReturnValue({ remove: vi.fn() }),
   };
 
-  jest.spyOn(d3 as any, 'select').mockReturnValue(mockD3Selection as any);
+  vi.spyOn(d3 as any, 'select').mockReturnValue(mockD3Selection as any);
 
   mockSvg.on.mockImplementation((event: string, handler: MouseEventHandler) => {
     if (event === 'mouseover') {

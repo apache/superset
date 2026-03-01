@@ -16,13 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import './shim';
+import './shim.jest';
 // eslint-disable-next-line no-restricted-syntax -- whole React import is required for mocking React module in tests.
 import React from 'react';
 // eslint-disable-next-line no-restricted-imports
 import { configure as configureTestingLibrary } from '@testing-library/react';
-// import { matchers } from '@emotion/jest';
-import { vi } from 'vitest';
+import { matchers } from '@emotion/jest';
 
 configureTestingLibrary({
   testIdAttribute: 'data-test',
@@ -34,15 +33,8 @@ document.body.innerHTML = '<div id="app" data-bootstrap=""></div>';
 // Allow JSX tests to have React import readily available
 global.React = React;
 
-// @ts-ignore
-global.setInterval = global.jsdom.window.setInterval;
-// @ts-ignore
-global.TextEncoder = global.jsdom.window.TextEncoder;
-// @ts-ignore
-global.TextDecoder = global.jsdom.window.TextDecoder;
-
 // Mock ace-builds globally for tests
-vi.mock('ace-builds/src-min-noconflict/mode-handlebars', () => ({}));
-vi.mock('ace-builds/src-min-noconflict/mode-css', () => ({}));
-vi.mock('ace-builds/src-noconflict/theme-github', () => ({}));
-vi.mock('ace-builds/src-noconflict/theme-monokai', () => ({}));
+jest.mock('ace-builds/src-min-noconflict/mode-handlebars', () => ({}));
+jest.mock('ace-builds/src-min-noconflict/mode-css', () => ({}));
+jest.mock('ace-builds/src-noconflict/theme-github', () => ({}));
+jest.mock('ace-builds/src-noconflict/theme-monokai', () => ({}));

@@ -40,12 +40,12 @@ describe('callApiAndParseWithTimeout()', () => {
 
   afterEach(() => {
     fetchMock.removeRoutes().clearHistory();
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   describe('callApi', () => {
     test('calls callApi()', () => {
-      const callApiSpy = jest.spyOn(callApi, 'default');
+      const callApiSpy = vi.spyOn(callApi, 'default');
       callApiAndParseWithTimeout({ url: mockGetUrl, method: 'GET' });
 
       expect(callApiSpy).toHaveBeenCalledTimes(1);
@@ -55,7 +55,7 @@ describe('callApiAndParseWithTimeout()', () => {
 
   describe('parseResponse', () => {
     test('calls parseResponse()', async () => {
-      const parseSpy = jest.spyOn(parseResponse, 'default');
+      const parseSpy = vi.spyOn(parseResponse, 'default');
 
       await callApiAndParseWithTimeout({
         url: mockGetUrl,
@@ -69,7 +69,7 @@ describe('callApiAndParseWithTimeout()', () => {
 
   describe('timeout', () => {
     test('does not create a rejection timer if no timeout passed', () => {
-      const rejectionSpy = jest.spyOn(rejectAfterTimeout, 'default');
+      const rejectionSpy = vi.spyOn(rejectAfterTimeout, 'default');
       callApiAndParseWithTimeout({ url: mockGetUrl, method: 'GET' });
 
       expect(rejectionSpy).toHaveBeenCalledTimes(0);
@@ -77,8 +77,8 @@ describe('callApiAndParseWithTimeout()', () => {
     });
 
     test('creates a rejection timer if a timeout passed', () => {
-      jest.useFakeTimers(); // prevents the timeout from rejecting + failing test
-      const rejectionSpy = jest.spyOn(rejectAfterTimeout, 'default');
+      vi.useFakeTimers(); // prevents the timeout from rejecting + failing test
+      const rejectionSpy = vi.spyOn(rejectAfterTimeout, 'default');
       callApiAndParseWithTimeout({
         url: mockGetUrl,
         method: 'GET',
@@ -91,7 +91,7 @@ describe('callApiAndParseWithTimeout()', () => {
 
     test('rejects if the request exceeds the timeout', async () => {
       expect.assertions(2);
-      jest.useFakeTimers();
+      vi.useFakeTimers();
 
       const mockTimeoutUrl = '/mock/timeout/url';
       const unresolvingPromise = new Promise(() => {});
@@ -104,7 +104,7 @@ describe('callApiAndParseWithTimeout()', () => {
           method: 'GET',
           timeout: 1,
         });
-        jest.advanceTimersByTime(2);
+        vi.advanceTimersByTime(2);
         await promise;
       } catch (err) {
         error = err;

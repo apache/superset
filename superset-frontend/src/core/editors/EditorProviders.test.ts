@@ -42,7 +42,7 @@ function createMockEditorContribution(
  * Creates a mock editor component for testing.
  */
 function createMockEditorComponent(): EditorComponent {
-  return jest.fn(() => null) as unknown as EditorComponent;
+  return vi.fn(() => null) as unknown as EditorComponent;
 }
 
 beforeEach(() => {
@@ -166,7 +166,7 @@ test('supports multiple languages per provider', () => {
 
 test('warns when registering duplicate provider id', () => {
   const manager = EditorProviders.getInstance();
-  const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
+  const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation();
 
   const contribution = createMockEditorContribution({
     id: 'duplicate-editor',
@@ -195,7 +195,7 @@ test('warns when registering duplicate provider id', () => {
 
 test('fires onDidRegister event when provider is registered', () => {
   const manager = EditorProviders.getInstance();
-  const listener = jest.fn();
+  const listener = vi.fn();
 
   manager.onDidRegister(listener);
 
@@ -215,7 +215,7 @@ test('fires onDidRegister event when provider is registered', () => {
 
 test('fires onDidUnregister event when provider is unregistered', () => {
   const manager = EditorProviders.getInstance();
-  const listener = jest.fn();
+  const listener = vi.fn();
 
   manager.onDidUnregister(listener);
 
@@ -235,7 +235,7 @@ test('fires onDidUnregister event when provider is unregistered', () => {
 
 test('event listeners can be disposed', () => {
   const manager = EditorProviders.getInstance();
-  const listener = jest.fn();
+  const listener = vi.fn();
 
   const listenerDisposable = manager.onDidRegister(listener);
 
@@ -261,12 +261,12 @@ test('event listeners can be disposed', () => {
 
 test('handles errors in event listeners gracefully', () => {
   const manager = EditorProviders.getInstance();
-  const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+  const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation();
 
-  const errorListener = jest.fn(() => {
+  const errorListener = vi.fn(() => {
     throw new Error('Listener error');
   });
-  const successListener = jest.fn();
+  const successListener = vi.fn();
 
   manager.onDidRegister(errorListener);
   manager.onDidRegister(successListener);

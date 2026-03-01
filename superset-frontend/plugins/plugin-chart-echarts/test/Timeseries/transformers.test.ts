@@ -35,7 +35,7 @@ import transformProps from '../../src/Timeseries/transformProps';
 import * as seriesUtils from '../../src/utils/series';
 
 // Mock the colorScale function to return different colors based on key
-const mockColorScale = jest.fn((key: string) => {
+const mockColorScale = vi.fn((key: string) => {
   if (key === 'test-key') return '#1f77b4'; // blue
   if (key === 'series-key') return '#ff7f0e'; // orange
   return '#2ca02c'; // green for any other key
@@ -289,9 +289,9 @@ test('should configure time axis labels to show max label for last month visibil
   );
 });
 
-function setupGetChartPaddingMock(): jest.SpyInstance {
+function setupGetChartPaddingMock(): vi.SpyInstance {
   // Mock getChartPadding to return the padding object as-is for easier testing
-  const getChartPaddingSpy = jest.spyOn(seriesUtils, 'getChartPadding');
+  const getChartPaddingSpy = vi.spyOn(seriesUtils, 'getChartPadding');
   getChartPaddingSpy.mockImplementation(
     (
       show: boolean,

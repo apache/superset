@@ -19,6 +19,7 @@
 import fetchMock from 'fetch-mock';
 import { act, renderHook } from '@testing-library/react-hooks';
 import { COMMON_ERR_MESSAGES } from '@superset-ui/core';
+import { vi } from 'vitest';
 import {
   createWrapper,
   defaultStore as store,
@@ -44,8 +45,8 @@ const expectTemplateParams = '{"a": 1, "v": "str"}';
 const expectValidatorEngine = 'defined_validator';
 const queryValidationApiRoute = `glob:*/api/v1/database/${expectDbId}/validate_sql/`;
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
+vi.mock(import('@superset-ui/core'), async importOriginal => ({
+  ...(await importOriginal()),
   t: (str: string) => str,
 }));
 

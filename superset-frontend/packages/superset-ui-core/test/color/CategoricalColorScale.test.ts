@@ -64,11 +64,11 @@ describe('CategoricalColorScale', () => {
 
   describe('.getColor(value, sliceId)', () => {
     let scale: CategoricalColorScale;
-    let addSliceSpy: jest.SpyInstance<
+    let addSliceSpy: vi.SpyInstance<
       void,
       [label: string, color: string, sliceId: number, colorScheme?: string]
     >;
-    let getNextAvailableColorSpy: jest.SpyInstance<
+    let getNextAvailableColorSpy: vi.SpyInstance<
       string,
       [currentLabel: string, currentColor: string]
     >;
@@ -76,14 +76,14 @@ describe('CategoricalColorScale', () => {
     beforeEach(() => {
       scale = new CategoricalColorScale(['blue', 'red', 'green']);
       // Spy on the addSlice method of labelsColorMapInstance
-      addSliceSpy = jest.spyOn(scale.labelsColorMapInstance, 'addSlice');
+      addSliceSpy = vi.spyOn(scale.labelsColorMapInstance, 'addSlice');
       getNextAvailableColorSpy = jest
         .spyOn(scale, 'getNextAvailableColor')
         .mockImplementation(color => color);
     });
 
     afterEach(() => {
-      jest.restoreAllMocks();
+      vi.restoreAllMocks();
     });
 
     test('uses labelsColorMapInstance color map when source is Dashboard, otherwise uses chartLabelsColorMap', () => {
@@ -406,7 +406,7 @@ describe('CategoricalColorScale', () => {
       const scale = new CategoricalColorScale(['blue', 'red', 'green']);
 
       // Mock or override getColorUsageCount to return 0 for "blue"
-      jest.spyOn(scale, 'getColorUsageCount').mockImplementation(color => {
+      vi.spyOn(scale, 'getColorUsageCount').mockImplementation(color => {
         if (color === 'blue') return 0; // Explicitly return 0 for "blue"
         return 1; // Return 1 for other colors
       });

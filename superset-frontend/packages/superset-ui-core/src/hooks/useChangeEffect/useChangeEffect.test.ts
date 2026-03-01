@@ -20,7 +20,7 @@ import { renderHook } from '@testing-library/react-hooks';
 import { useChangeEffect } from './useChangeEffect';
 
 test('call callback the first time with undefined and value', () => {
-  const callback = jest.fn();
+  const callback = vi.fn();
   renderHook(props => useChangeEffect(props.value, props.callback), {
     initialProps: { value: 'value', callback },
   });
@@ -29,7 +29,7 @@ test('call callback the first time with undefined and value', () => {
 });
 
 test('do not call callback 2 times if the value do not change', () => {
-  const callback = jest.fn();
+  const callback = vi.fn();
   const hook = renderHook(
     props => useChangeEffect(props.value, props.callback),
     {
@@ -41,7 +41,7 @@ test('do not call callback 2 times if the value do not change', () => {
 });
 
 test('call callback whenever the value changes', () => {
-  const callback = jest.fn();
+  const callback = vi.fn();
   const hook = renderHook(
     props => useChangeEffect(props.value, props.callback),
     {

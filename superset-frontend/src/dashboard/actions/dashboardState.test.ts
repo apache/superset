@@ -18,6 +18,7 @@
  */
 import { SupersetClient, isFeatureEnabled } from '@superset-ui/core';
 import { waitFor } from 'spec/helpers/testing-library';
+import { vi, Mock } from 'vitest';
 
 import {
   SAVE_DASHBOARD_STARTED,
@@ -39,18 +40,18 @@ import { emptyFilters } from 'spec/fixtures/mockDashboardFilters';
 import mockDashboardData from 'spec/fixtures/mockDashboardData';
 import { navigateTo } from 'src/utils/navigationUtils';
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
-  isFeatureEnabled: jest.fn(),
+vi.mock('@superset-ui/core', async importActual => ({
+  ...(await importActual()),
+  isFeatureEnabled: vi.fn(),
 }));
 
-jest.mock('src/utils/navigationUtils', () => ({
-  navigateTo: jest.fn(),
-  navigateWithState: jest.fn(),
+vi.mock('src/utils/navigationUtils', () => ({
+  navigateTo: vi.fn(),
+  navigateWithState: vi.fn(),
 }));
 
-const mockIsFeatureEnabled = isFeatureEnabled as jest.Mock;
-const mockNavigateTo = navigateTo as jest.Mock;
+const mockIsFeatureEnabled = isFeatureEnabled as Mock;
+const mockNavigateTo = navigateTo as Mock;
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('dashboardState actions', () => {
@@ -75,16 +76,16 @@ describe('dashboardState actions', () => {
   };
   const newDashboardData = mockDashboardData;
 
-  let postStub: jest.SpyInstance;
-  let getStub: jest.SpyInstance;
-  let putStub: jest.SpyInstance;
+  let postStub: Mock;
+  let getStub: Mock;
+  let putStub: Mock;
   const updatedCss = '.updated_css_value {\n  color: black;\n}';
 
   beforeEach(() => {
-    postStub = jest
+    postStub = vi
       .spyOn(SupersetClient, 'post')
       .mockResolvedValue('the value you want to return' as any);
-    getStub = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+    getStub = vi.spyOn(SupersetClient, 'get').mockResolvedValue({
       json: {
         result: {
           ...mockDashboardData,
@@ -92,7 +93,7 @@ describe('dashboardState actions', () => {
         },
       },
     } as any);
-    putStub = jest.spyOn(SupersetClient, 'put').mockResolvedValue({
+    putStub = vi.spyOn(SupersetClient, 'put').mockResolvedValue({
       json: {
         result: mockDashboardData,
       },
@@ -106,8 +107,8 @@ describe('dashboardState actions', () => {
 
   function setup(stateOverrides: Record<string, unknown> = {}) {
     const state = { ...mockState, ...stateOverrides };
-    const getState = jest.fn(() => state) as unknown as () => any;
-    const dispatch = jest.fn();
+    const getState = vi.fn(() => state) as unknown as () => any;
+    const dispatch = vi.fn();
     return { getState, dispatch, state };
   }
 
@@ -214,7 +215,7 @@ describe('dashboardState actions', () => {
       });
 
       postStub.mockRestore();
-      postStub = jest.spyOn(SupersetClient, 'post').mockResolvedValue({
+      postStub = vi.spyOn(SupersetClient, 'post').mockResolvedValue({
         json: {
           result: {
             ...mockDashboardData,

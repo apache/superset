@@ -387,10 +387,10 @@ describe('Registry', () => {
 
   describe('listeners', () => {
     let registry = new Registry();
-    let listener = jest.fn();
+    let listener = vi.fn();
     beforeEach(() => {
       registry = new Registry();
-      listener = jest.fn();
+      listener = vi.fn();
       registry.addListener(listener);
     });
 
@@ -447,10 +447,10 @@ describe('Registry', () => {
       });
 
       test('keeps working', () => {
-        const errorListener = jest.fn().mockImplementation(() => {
+        const errorListener = vi.fn().mockImplementation(() => {
           throw new Error('test error');
         });
-        const lastListener = jest.fn();
+        const lastListener = vi.fn();
 
         registry.addListener(errorListener);
         registry.addListener(lastListener);

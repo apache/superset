@@ -23,9 +23,9 @@ import {
 import { ExtensionsContextType } from './ExtensionsContext';
 
 const mockExtensionsContext: ExtensionsContextType = {
-  getView: jest.fn(),
-  registerViewProvider: jest.fn(),
-  unregisterViewProvider: jest.fn(),
+  getView: vi.fn(),
+  registerViewProvider: vi.fn(),
+  unregisterViewProvider: vi.fn(),
 };
 
 test('sets and gets extensions context value', () => {
@@ -54,15 +54,15 @@ test('throws error when getting context value before setting it', () => {
 
 test('overwrites previous context value when setting new one', () => {
   const firstContext: ExtensionsContextType = {
-    getView: jest.fn().mockReturnValue('first-view'),
-    registerViewProvider: jest.fn(),
-    unregisterViewProvider: jest.fn(),
+    getView: vi.fn().mockReturnValue('first-view'),
+    registerViewProvider: vi.fn(),
+    unregisterViewProvider: vi.fn(),
   };
 
   const secondContext: ExtensionsContextType = {
-    getView: jest.fn().mockReturnValue('second-view'),
-    registerViewProvider: jest.fn(),
-    unregisterViewProvider: jest.fn(),
+    getView: vi.fn().mockReturnValue('second-view'),
+    registerViewProvider: vi.fn(),
+    unregisterViewProvider: vi.fn(),
   };
 
   setExtensionsContextValue(firstContext);

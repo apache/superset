@@ -22,15 +22,15 @@ import controlPanel from './controlPanel';
 
 const { __mockShiftMetric } = ChartControls as any;
 
-jest.mock('@superset-ui/core', () => ({
+vi.mock('@superset-ui/core', () => ({
   GenericDataType: { Numeric: 'numeric' },
   SMART_DATE_ID: 'SMART_DATE_ID',
   t: (str: string) => str,
 }));
 
-jest.mock('@superset-ui/chart-controls', () => {
+vi.mock('@superset-ui/chart-controls', () => {
   // Define the mock function inside the factory
-  const mockShiftMetric = jest.fn(() => 'shiftedMetric');
+  const mockShiftMetric = vi.fn(() => 'shiftedMetric');
   return {
     ControlPanelConfig: {},
     D3_FORMAT_DOCS: 'Format docs',

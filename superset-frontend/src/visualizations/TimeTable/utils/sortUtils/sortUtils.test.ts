@@ -21,7 +21,7 @@ import { vi } from 'vitest';
 import { sortNumberWithMixedTypes } from './sortUtils';
 
 vi.mock('src/utils/sortNumericValues', () => ({
-  sortNumericValues: jest.fn((a, b, options) => {
+  sortNumericValues: vi.fn((a, b, options) => {
     const numA = Number(a);
     const numB = Number(b);
 

@@ -18,26 +18,27 @@
  */
 import { renderHook } from '@testing-library/react-hooks';
 import { useBeforeUnload } from './index';
+import { Mock } from 'vitest';
 
 function createMockEvent() {
   return {
-    preventDefault: jest.fn(),
+    preventDefault: vi.fn(),
     returnValue: undefined as string | undefined,
   } as unknown as BeforeUnloadEvent;
 }
 
-let addEventListenerSpy: jest.SpyInstance;
-let removeEventListenerSpy: jest.SpyInstance;
+let addEventListenerSpy: Mock;
+let removeEventListenerSpy: Mock;
 let getMockHandler: () => (e: BeforeUnloadEvent) => void;
 let handlers: Array<(e: BeforeUnloadEvent) => void>;
 
 beforeEach(() => {
-  jest.clearAllMocks();
-  jest.restoreAllMocks();
+  vi.clearAllMocks();
+  vi.restoreAllMocks();
 
   handlers = [];
 
-  addEventListenerSpy = jest
+  addEventListenerSpy = vi
     .spyOn(window, 'addEventListener')
     .mockImplementation((type, handler) => {
       if (type === 'beforeunload') {
@@ -45,7 +46,7 @@ beforeEach(() => {
       }
     });
 
-  removeEventListenerSpy = jest.spyOn(window, 'removeEventListener');
+  removeEventListenerSpy = vi.spyOn(window, 'removeEventListener');
 
   getMockHandler = () => handlers[handlers.length - 1];
 });
@@ -118,7 +119,7 @@ test('should update handler when shouldWarn changes', () => {
   initialHandler(event);
   expect(event.preventDefault).not.toHaveBeenCalled();
 
-  (event.preventDefault as jest.Mock).mockClear();
+  (event.preventDefault as Mock).mockClear();
   event.returnValue = undefined;
 
   const initialAddCalls = addEventListenerSpy.mock.calls.length;

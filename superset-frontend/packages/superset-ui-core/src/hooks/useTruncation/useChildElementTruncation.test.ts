@@ -19,9 +19,10 @@
 import { renderHook } from '@testing-library/react-hooks';
 import { RefObject } from 'react';
 import useChildElementTruncation from './useChildElementTruncation';
+import { Mock } from 'vitest';
 
-let observeMock: jest.Mock;
-let disconnectMock: jest.Mock;
+let observeMock: Mock;
+let disconnectMock: Mock;
 let originalResizeObserver: typeof ResizeObserver;
 
 const genElements = (
@@ -79,12 +80,14 @@ beforeAll(() => {
   originalResizeObserver = window.ResizeObserver;
 
   // Mock ResizeObserver
-  observeMock = jest.fn();
-  disconnectMock = jest.fn();
-  window.ResizeObserver = jest.fn(() => ({
-    observe: observeMock,
-    disconnect: disconnectMock,
-  })) as unknown as typeof ResizeObserver;
+  observeMock = vi.fn();
+  disconnectMock = vi.fn();
+  window.ResizeObserver = vi.fn(function () {
+    return {
+      observe: observeMock,
+      disconnect: disconnectMock,
+    };
+  } as unknown as typeof window.ResizeObserver);
 });
 
 afterAll(() => {

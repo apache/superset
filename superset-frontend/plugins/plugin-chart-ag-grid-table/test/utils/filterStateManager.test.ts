@@ -62,8 +62,8 @@ describe('filterStateManager', () => {
       };
 
       const mockApi = {
-        getFilterModel: jest.fn(() => filterModel),
-        getColumnFilterInstance: jest.fn(() => Promise.resolve(null)),
+        getFilterModel: vi.fn(() => filterModel),
+        getColumnFilterInstance: vi.fn(() => Promise.resolve(null)),
       };
 
       const gridRef = {
@@ -97,8 +97,8 @@ describe('filterStateManager', () => {
       };
 
       const mockApi = {
-        getFilterModel: jest.fn(() => filterModel),
-        getColumnFilterInstance: jest.fn(() => Promise.resolve(null)),
+        getFilterModel: vi.fn(() => filterModel),
+        getColumnFilterInstance: vi.fn(() => Promise.resolve(null)),
       };
 
       const gridRef = {
@@ -130,8 +130,8 @@ describe('filterStateManager', () => {
       };
 
       const mockApi = {
-        getFilterModel: jest.fn(() => filterModel),
-        getColumnFilterInstance: jest.fn(() =>
+        getFilterModel: vi.fn(() => filterModel),
+        getColumnFilterInstance: vi.fn(() =>
           Promise.resolve(mockFilterInstance),
         ),
       };
@@ -174,8 +174,8 @@ describe('filterStateManager', () => {
       };
 
       const mockApi = {
-        getFilterModel: jest.fn(() => filterModel),
-        getColumnFilterInstance: jest.fn(() =>
+        getFilterModel: vi.fn(() => filterModel),
+        getColumnFilterInstance: vi.fn(() =>
           Promise.resolve(mockFilterInstance),
         ),
       };
@@ -209,8 +209,8 @@ describe('filterStateManager', () => {
       };
 
       const mockApi = {
-        getFilterModel: jest.fn(() => filterModel),
-        getColumnFilterInstance: jest.fn(() =>
+        getFilterModel: vi.fn(() => filterModel),
+        getColumnFilterInstance: vi.fn(() =>
           Promise.resolve(mockFilterInstance),
         ),
       };
@@ -260,8 +260,8 @@ describe('filterStateManager', () => {
       };
 
       const mockApi = {
-        getFilterModel: jest.fn(() => filterModel),
-        getColumnFilterInstance: jest.fn((colId: string) => {
+        getFilterModel: vi.fn(() => filterModel),
+        getColumnFilterInstance: vi.fn((colId: string) => {
           if (colId === 'name') return Promise.resolve(mockFilterInstanceName);
           if (colId === 'age') return Promise.resolve(mockFilterInstanceAge);
           if (colId === 'status')
@@ -298,8 +298,8 @@ describe('filterStateManager', () => {
       };
 
       const mockApi = {
-        getFilterModel: jest.fn(() => filterModel),
-        getColumnFilterInstance: jest.fn(() =>
+        getFilterModel: vi.fn(() => filterModel),
+        getColumnFilterInstance: vi.fn(() =>
           Promise.resolve(mockFilterInstance),
         ),
       };
@@ -318,8 +318,8 @@ describe('filterStateManager', () => {
       const filterModel = {};
 
       const mockApi = {
-        getFilterModel: jest.fn(() => filterModel),
-        getColumnFilterInstance: jest.fn(() => Promise.resolve(null)),
+        getFilterModel: vi.fn(() => filterModel),
+        getColumnFilterInstance: vi.fn(() => Promise.resolve(null)),
       };
 
       const gridRef = {
@@ -350,8 +350,8 @@ describe('filterStateManager', () => {
       };
 
       const mockApi = {
-        getFilterModel: jest.fn(() => filterModel),
-        getColumnFilterInstance: jest.fn(() => Promise.resolve(null)),
+        getFilterModel: vi.fn(() => filterModel),
+        getColumnFilterInstance: vi.fn(() => Promise.resolve(null)),
       };
 
       const gridRef = {
@@ -372,8 +372,8 @@ describe('filterStateManager', () => {
       };
 
       const mockApi = {
-        getFilterModel: jest.fn(() => filterModel),
-        getColumnFilterInstance: jest.fn(() => Promise.resolve(null)),
+        getFilterModel: vi.fn(() => filterModel),
+        getColumnFilterInstance: vi.fn(() => Promise.resolve(null)),
       };
 
       const gridRef = {
@@ -403,8 +403,8 @@ describe('filterStateManager', () => {
 
       let callCount = 0;
       const mockApi = {
-        getFilterModel: jest.fn(() => filterModel),
-        getColumnFilterInstance: jest.fn((colId: string) => {
+        getFilterModel: vi.fn(() => filterModel),
+        getColumnFilterInstance: vi.fn((colId: string) => {
           callCount += 1;
           // Return match on col2
           if (colId === 'col2') {
@@ -443,8 +443,8 @@ describe('filterStateManager', () => {
       };
 
       const mockApi = {
-        getFilterModel: jest.fn(() => filterModel),
-        getColumnFilterInstance: jest.fn(() => Promise.resolve(null)),
+        getFilterModel: vi.fn(() => filterModel),
+        getColumnFilterInstance: vi.fn(() => Promise.resolve(null)),
       };
 
       const gridRef = {
@@ -463,8 +463,8 @@ describe('filterStateManager', () => {
       };
 
       const mockApi = {
-        getFilterModel: jest.fn(() => originalFilterModel),
-        getColumnFilterInstance: jest.fn(() => Promise.resolve(null)),
+        getFilterModel: vi.fn(() => originalFilterModel),
+        getColumnFilterInstance: vi.fn(() => Promise.resolve(null)),
       };
 
       const gridRef = {
@@ -501,8 +501,8 @@ describe('filterStateManager', () => {
       };
 
       const mockApi = {
-        getFilterModel: jest.fn(() => filterModel),
-        getColumnFilterInstance: jest.fn(() =>
+        getFilterModel: vi.fn(() => filterModel),
+        getColumnFilterInstance: vi.fn(() =>
           Promise.resolve(mockFilterInstance),
         ),
       };
@@ -548,8 +548,8 @@ describe('filterStateManager', () => {
       };
 
       const mockApi = {
-        getFilterModel: jest.fn(() => filterModel),
-        getColumnFilterInstance: jest.fn(() =>
+        getFilterModel: vi.fn(() => filterModel),
+        getColumnFilterInstance: vi.fn(() =>
           Promise.resolve(mockFilterInstance),
         ),
       };
@@ -590,8 +590,8 @@ describe('filterStateManager', () => {
       };
 
       const mockApi = {
-        getFilterModel: jest.fn(() => filterModel),
-        getColumnFilterInstance: jest.fn(() =>
+        getFilterModel: vi.fn(() => filterModel),
+        getColumnFilterInstance: vi.fn(() =>
           Promise.resolve(mockFilterInstance),
         ),
       };
@@ -633,8 +633,8 @@ describe('filterStateManager', () => {
       };
 
       const mockApi = {
-        getFilterModel: jest.fn(() => filterModel),
-        getColumnFilterInstance: jest.fn(() =>
+        getFilterModel: vi.fn(() => filterModel),
+        getColumnFilterInstance: vi.fn(() =>
           Promise.resolve(mockFilterInstance),
         ),
       };

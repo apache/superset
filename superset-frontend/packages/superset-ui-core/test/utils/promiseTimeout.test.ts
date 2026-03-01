@@ -21,15 +21,15 @@ import { promiseTimeout } from '@superset-ui/core';
 
 describe('promiseTimeout(func, delay)', () => {
   beforeEach(() => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
   });
   afterEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   test('resolves after delay', async () => {
     const promise = promiseTimeout(() => 'abcd', 10);
-    jest.advanceTimersByTime(10);
+    vi.advanceTimersByTime(10);
     const result = await promise;
     expect(result).toEqual('abcd');
     expect(result).toHaveLength(4);
@@ -40,7 +40,7 @@ describe('promiseTimeout(func, delay)', () => {
       promiseTimeout(() => 'abc', 10),
       promiseTimeout(() => 'def', 20),
     ]);
-    jest.advanceTimersByTime(10);
+    vi.advanceTimersByTime(10);
     const result = await promise;
     expect(result).toEqual('abc');
   });

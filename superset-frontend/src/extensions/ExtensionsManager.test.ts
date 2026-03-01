@@ -71,8 +71,8 @@ function createMockExtension(
       menus,
       views,
     },
-    activate: includeMockFunctions ? jest.fn() : undefined!,
-    deactivate: includeMockFunctions ? jest.fn() : undefined!,
+    activate: includeMockFunctions ? vi.fn() : undefined!,
+    deactivate: includeMockFunctions ? vi.fn() : undefined!,
   };
 
   return extension;
@@ -404,7 +404,7 @@ test('deactivateExtension successfully deactivates an enabled extension', async 
 
 test('deactivateExtension disposes of context disposables', async () => {
   const manager = ExtensionsManager.getInstance();
-  const mockDisposable = { dispose: jest.fn() };
+  const mockDisposable = { dispose: vi.fn() };
 
   await createActivatedExtension(
     manager,
@@ -462,7 +462,7 @@ test('deactivateExtension handles errors during deactivation gracefully', async 
   const mockExtension = await createActivatedExtension(manager);
 
   // Override the deactivate function to throw an error
-  mockExtension.deactivate = jest.fn(() => {
+  mockExtension.deactivate = vi.fn(() => {
     throw new Error('Deactivation error');
   });
 
@@ -476,7 +476,7 @@ test('deactivateExtension handles errors during deactivation gracefully', async 
 test('deactivateExtension handles errors during dispose gracefully', async () => {
   const manager = ExtensionsManager.getInstance();
   const mockDisposable = {
-    dispose: jest.fn(() => {
+    dispose: vi.fn(() => {
       throw new Error('Dispose error');
     }),
   };

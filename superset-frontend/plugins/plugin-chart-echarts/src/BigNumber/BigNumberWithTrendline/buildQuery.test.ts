@@ -19,15 +19,15 @@
 import { QueryFormData } from '@superset-ui/core';
 import buildQuery from './buildQuery';
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
-  getXAxisColumn: jest.fn(() => 'order_date'),
-  isXAxisSet: jest.fn(() => true),
+vi.mock('@superset-ui/core', async (importActual) => ({
+  ...(await importActual()),
+  getXAxisColumn: vi.fn(() => 'order_date'),
+  isXAxisSet: vi.fn(() => true),
 }));
 
-jest.mock('@superset-ui/chart-controls', () => ({
-  pivotOperator: jest.fn(() => ({ operation: 'pivot' })),
-  aggregationOperator: jest.fn(formData => {
+vi.mock('@superset-ui/chart-controls', () => ({
+  pivotOperator: vi.fn(() => ({ operation: 'pivot' })),
+  aggregationOperator: vi.fn(formData => {
     if (formData.aggregation === 'LAST_VALUE' || !formData.aggregation) {
       return undefined;
     }
@@ -36,9 +36,9 @@ jest.mock('@superset-ui/chart-controls', () => ({
       options: { operator: formData.aggregation },
     };
   }),
-  flattenOperator: jest.fn(() => ({ operation: 'flatten' })),
-  resampleOperator: jest.fn(() => ({ operation: 'resample' })),
-  rollingWindowOperator: jest.fn(() => ({ operation: 'rolling' })),
+  flattenOperator: vi.fn(() => ({ operation: 'flatten' })),
+  resampleOperator: vi.fn(() => ({ operation: 'resample' })),
+  rollingWindowOperator: vi.fn(() => ({ operation: 'rolling' })),
 }));
 
 describe('BigNumberWithTrendline buildQuery', () => {

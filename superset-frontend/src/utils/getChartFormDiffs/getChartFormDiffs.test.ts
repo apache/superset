@@ -19,7 +19,7 @@
 import { JsonObject } from '@superset-ui/core';
 import { alterForComparison, getChartFormDiffs, isEqualish } from '.';
 
-jest.mock('../sanitizeFormData', () => ({
+vi.mock('../sanitizeFormData', () => ({
   sanitizeFormData: (fd: JsonObject): JsonObject => ({
     ...fd,
     _sanitized: true,

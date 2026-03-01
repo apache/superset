@@ -93,8 +93,8 @@ const sliceResponsePayload: Partial<PayloadSlice> = {
 
 const sampleError = new Error('sampleError');
 
-jest.mock('../exploreUtils', () => ({
-  buildV1ChartDataPayload: jest.fn(() => queryContext),
+vi.mock('../exploreUtils', () => ({
+  buildV1ChartDataPayload: vi.fn(() => queryContext),
 }));
 
 beforeEach(() => fetchMock.clearHistory().removeRoutes());
@@ -107,7 +107,7 @@ test('updateSlice handles success', async () => {
   fetchMock.put(updateSliceEndpoint, sliceResponsePayload, {
     name: updateSliceEndpoint,
   });
-  const dispatchSpy = jest.fn();
+  const dispatchSpy = vi.fn();
   const dispatch = (action: any) => {
     dispatchSpy(action);
   };
@@ -156,7 +156,7 @@ test('updateSlice handles failure', async () => {
     { name: updateSliceEndpoint },
   );
 
-  const dispatchSpy = jest.fn();
+  const dispatchSpy = vi.fn();
   const dispatch = (action: any) => {
     dispatchSpy(action);
   };
@@ -208,7 +208,7 @@ test('createSlice handles success', async () => {
   fetchMock.post(createSliceEndpoint, sliceResponsePayload, {
     name: createSliceEndpoint,
   });
-  const dispatchSpy = jest.fn();
+  const dispatchSpy = vi.fn();
   const dispatch = (action: any) => dispatchSpy(action);
   const getState = () => mockExploreState;
   const slice: Partial<PayloadSlice> = await createSlice(sliceName, [])(
@@ -230,7 +230,7 @@ test('createSlice handles success', async () => {
 test('createSlice handles failure', async () => {
   fetchMock.post(createSliceEndpoint, { throws: sampleError });
 
-  const dispatchSpy = jest.fn();
+  const dispatchSpy = vi.fn();
   const dispatch = (action: any) => dispatchSpy(action);
   const getState = () => mockExploreState;
 
@@ -261,7 +261,7 @@ test('createDashboard handles success', async () => {
   fetchMock.post(createDashboardEndpoint, dashboardResponsePayload, {
     name: createDashboardEndpoint,
   });
-  const dispatch = jest.fn();
+  const dispatch = vi.fn();
   const dashboard = await createDashboard(dashboardName)(
     dispatch as Dispatch<any>,
   );
@@ -276,7 +276,7 @@ test('createDashboard handles failure', async () => {
     { throws: sampleError },
     { name: createDashboardEndpoint },
   );
-  const dispatch = jest.fn();
+  const dispatch = vi.fn();
   let caughtError;
   try {
     await createDashboard(dashboardName)(dispatch as Dispatch<any>);
@@ -294,7 +294,7 @@ test('updateSlice with add to new dashboard handles success', async () => {
   fetchMock.put(updateSliceEndpoint, sliceResponsePayload, {
     name: updateSliceEndpoint,
   });
-  const dispatchSpy = jest.fn();
+  const dispatchSpy = vi.fn();
   const dispatch = (action: any) => dispatchSpy(action);
   const getState = () => mockExploreState;
 
@@ -354,7 +354,7 @@ test('updateSlice with add to existing dashboard handles success', async () => {
   fetchMock.put(updateSliceEndpoint, sliceResponsePayload, {
     name: updateSliceEndpoint,
   });
-  const dispatchSpy = jest.fn();
+  const dispatchSpy = vi.fn();
   const dispatch = (action: any) => dispatchSpy(action);
   const getState = () => mockExploreState;
   const slice = await updateSlice(
@@ -424,7 +424,7 @@ test('getSliceDashboards with slice handles success', async () => {
   fetchMock.get(getSliceDashboardsEndpoint, dashboardSlicesResponsePayload, {
     name: getSliceDashboardsEndpoint,
   });
-  const dispatchSpy = jest.fn();
+  const dispatchSpy = vi.fn();
   const dispatch = (action: any) => dispatchSpy(action);
   const sliceDashboards = await getSliceDashboards({
     slice_id: 10,
@@ -449,7 +449,7 @@ test('getSliceDashboards with slice handles failure', async () => {
     { throws: sampleError },
     { name: getSliceDashboardsEndpoint },
   );
-  const dispatch = jest.fn();
+  const dispatch = vi.fn();
   let caughtError;
   try {
     await getSliceDashboards({

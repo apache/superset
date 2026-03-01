@@ -65,7 +65,7 @@ const fakeApiResult = {
   ],
 };
 
-afterEach(() => {
+beforeEach(() => {
   fetchMock.clearHistory().removeRoutes();
   act(() => {
     store.dispatch(api.util.resetApiState());

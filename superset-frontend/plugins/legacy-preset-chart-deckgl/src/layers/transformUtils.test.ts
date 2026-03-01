@@ -20,13 +20,13 @@
 import { getMetricLabel } from '@superset-ui/core';
 import { getMetricLabelFromFormData, parseMetricValue } from './transformUtils';
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
-  getMetricLabel: jest.fn((metric: string) => metric),
+vi.mock('@superset-ui/core', async importActual => ({
+  ...(await importActual()),
+  getMetricLabel: vi.fn((metric: string) => metric),
 }));
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 test('getMetricLabelFromFormData should return undefined for undefined input', () => {

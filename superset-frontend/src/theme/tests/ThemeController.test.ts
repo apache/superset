@@ -31,22 +31,21 @@ import type {
 } from 'src/types/bootstrapTypes';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { LocalStorageAdapter, ThemeController } from '../ThemeController';
+import { Mock } from 'vitest';
 
-jest.mock('../../utils/getBootstrapData');
-const mockGetBootstrapData = getBootstrapData as jest.MockedFunction<
-  typeof getBootstrapData
->;
+vi.mock('../../utils/getBootstrapData');
+const mockGetBootstrapData = getBootstrapData as Mock<typeof getBootstrapData>;
 
 const mockLocalStorage = {
-  getItem: jest.fn(),
-  setItem: jest.fn(),
-  removeItem: jest.fn(),
-  clear: jest.fn(),
+  getItem: vi.fn(),
+  setItem: vi.fn(),
+  removeItem: vi.fn(),
+  clear: vi.fn(),
 };
 
-const mockMatchMedia = jest.fn();
-const mockThemeFromConfig = jest.fn();
-const mockSetConfig = jest.fn();
+const mockMatchMedia = vi.fn();
+const mockThemeFromConfig = vi.fn();
+const mockSetConfig = vi.fn();
 
 // Mock data constants
 const DEFAULT_THEME: AnyThemeConfig = {
@@ -112,11 +111,11 @@ const createController = (
   });
 
 // Shared console spies
-const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
-const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 
   // Setup DOM environment
   Object.defineProperty(window, 'localStorage', {
@@ -131,8 +130,8 @@ beforeEach(() => {
 
   mockMatchMedia.mockReturnValue({
     matches: false,
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
   });
 
   mockSetConfig.mockImplementation(() => {});
@@ -288,7 +287,7 @@ test('ThemeController handles only default theme', () => {
 
   const controller = createController();
 
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 
   expect(() => controller.setThemeMode(ThemeMode.DARK)).toThrow(
     'Theme mode changes are not allowed when only one theme is available',
@@ -324,7 +323,7 @@ test('ThemeController handles only dark theme', () => {
 
   expect(controller.canSetMode()).toBe(true);
 
-  jest.clearAllMocks();
+  vi.clearAllMocks();
   controller.setThemeMode(ThemeMode.DARK);
   expect(mockSetConfig).toHaveBeenCalledTimes(1);
 });
@@ -410,7 +409,7 @@ test('ThemeController updates theme when allowed', () => {
 test('ThemeController changes theme mode when allowed', () => {
   const controller = createController();
 
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 
   controller.setThemeMode(ThemeMode.DARK);
 
@@ -443,7 +442,7 @@ test('ThemeController handles missing theme gracefully', () => {
 test('ThemeController does not change mode if already set', () => {
   const controller = createController();
 
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 
   controller.setThemeMode(ThemeMode.SYSTEM);
 
@@ -471,8 +470,8 @@ test('ThemeController resets to default theme', () => {
 test('ThemeController listens to system theme changes', () => {
   const mockMediaQuery = {
     matches: false,
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
   };
   mockMatchMedia.mockReturnValue(mockMediaQuery);
 
@@ -488,8 +487,8 @@ test('ThemeController listens to system theme changes', () => {
 test('ThemeController updates theme when system preference changes and mode is SYSTEM', () => {
   const mockMediaQuery = {
     matches: false,
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
   };
   mockMatchMedia.mockReturnValue(mockMediaQuery);
 
@@ -507,8 +506,8 @@ test('ThemeController updates theme when system preference changes and mode is S
 test('ThemeController does not update theme when mode is not SYSTEM', () => {
   const mockMediaQuery = {
     matches: false,
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
   };
   mockMatchMedia.mockReturnValue(mockMediaQuery);
 
@@ -535,8 +534,8 @@ test('ThemeController switches to dark theme when system is dark and mode is SYS
 
   const mockMediaQueryDark = {
     matches: true,
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
   };
   mockMatchMedia.mockReturnValue(mockMediaQueryDark);
 
@@ -556,7 +555,7 @@ test('ThemeController switches to dark theme when system is dark and mode is SYS
 test('ThemeController saves theme mode to localStorage', () => {
   const controller = createController();
 
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 
   controller.setThemeMode(ThemeMode.DARK);
 
@@ -603,7 +602,7 @@ test('ThemeController handles theme with token structure', () => {
     },
   };
 
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 
   controller.setTheme(customTheme);
 
@@ -622,7 +621,7 @@ test('ThemeController handles theme with token structure', () => {
 test('ThemeController preserves algorithm property from dark theme', () => {
   const controller = createController();
 
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 
   controller.setThemeMode(ThemeMode.DARK);
 
@@ -641,7 +640,7 @@ test('ThemeController preserves algorithm property from dark theme', () => {
 test('ThemeController handles theme without algorithm property', () => {
   const controller = createController();
 
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 
   controller.setThemeMode(ThemeMode.DEFAULT);
 
@@ -702,7 +701,7 @@ test('ThemeController handles valid algorithm combinations', () => {
     ] as ThemeAlgorithm[],
   };
 
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 
   controller.setTheme(themeWithAlgorithm);
 
@@ -739,7 +738,7 @@ test('ThemeController handles invalid algorithm combinations', () => {
     algorithm: ['invalid', 'combination'] as any as ThemeAlgorithm[],
   };
 
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 
   controller.setTheme(themeWithInvalidAlgorithm);
 
@@ -753,7 +752,7 @@ test('ThemeController handles invalid algorithm combinations', () => {
 
 // Change Callbacks tests
 test('ThemeController calls callback on theme change', () => {
-  const callback = jest.fn();
+  const callback = vi.fn();
   const controller = createController({ onChange: callback });
 
   controller.setThemeMode(ThemeMode.DARK);
@@ -763,10 +762,10 @@ test('ThemeController calls callback on theme change', () => {
 });
 
 test('ThemeController registers additional callbacks', () => {
-  const callback = jest.fn();
+  const callback = vi.fn();
   const controller = createController({ onChange: callback });
 
-  const additionalCallback = jest.fn();
+  const additionalCallback = vi.fn();
   controller.onChange(additionalCallback);
 
   controller.setThemeMode(ThemeMode.DARK);
@@ -776,10 +775,10 @@ test('ThemeController registers additional callbacks', () => {
 });
 
 test('ThemeController unsubscribes callbacks', () => {
-  const callback = jest.fn();
+  const callback = vi.fn();
   const controller = createController({ onChange: callback });
 
-  const additionalCallback = jest.fn();
+  const additionalCallback = vi.fn();
   const unsubscribe = controller.onChange(additionalCallback);
 
   unsubscribe();
@@ -789,10 +788,10 @@ test('ThemeController unsubscribes callbacks', () => {
 });
 
 test('ThemeController handles callback errors', () => {
-  const callback = jest.fn();
+  const callback = vi.fn();
   const controller = createController({ onChange: callback });
 
-  const errorCallback = jest.fn().mockImplementation(() => {
+  const errorCallback = vi.fn().mockImplementation(() => {
     throw new Error('Callback error');
   });
 
@@ -815,7 +814,7 @@ test('ThemeController handles theme application errors', () => {
     throw new Error('Theme application error');
   });
 
-  const fallbackSpy = jest.spyOn(controller as any, 'fallbackToDefaultMode');
+  const fallbackSpy = vi.spyOn(controller as any, 'fallbackToDefaultMode');
   fallbackSpy.mockImplementation(() => {
     (controller as any).customizations = DEFAULT_THEME;
     (controller as any).currentMode = ThemeMode.DEFAULT;
@@ -892,7 +891,7 @@ test('recovery flow: fetchSystemDefaultTheme returns theme → applies fetched t
   try {
     // Mock fetch to return a system default theme from API
     const systemTheme = { token: { colorPrimary: '#recovery-theme' } };
-    const mockFetch = jest.fn().mockResolvedValueOnce({
+    const mockFetch = vi.fn().mockResolvedValueOnce({
       ok: true,
       json: async () => ({
         result: [{ json_data: JSON.stringify(systemTheme) }],
@@ -938,7 +937,7 @@ test('recovery flow: both API fetches fail → falls back to cached default them
 
   try {
     // Mock fetch to fail for both API endpoints
-    const mockFetch = jest.fn().mockRejectedValue(new Error('Network error'));
+    const mockFetch = vi.fn().mockRejectedValue(new Error('Network error'));
     global.fetch = mockFetch;
 
     // Track setConfig calls
@@ -980,7 +979,7 @@ test('recovery flow: fetched theme fails to apply → falls back to cached defau
   try {
     // Mock fetch to return a theme
     const systemTheme = { token: { colorPrimary: '#bad-theme' } };
-    const mockFetch = jest.fn().mockResolvedValueOnce({
+    const mockFetch = vi.fn().mockResolvedValueOnce({
       ok: true,
       json: async () => ({
         result: [{ json_data: JSON.stringify(systemTheme) }],
@@ -1033,8 +1032,8 @@ test('recovery flow: fetched theme fails to apply → falls back to cached defau
 test('ThemeController cleans up listeners on destroy', () => {
   const mockMediaQueryInstance = {
     matches: false,
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
   };
   mockMatchMedia.mockReturnValue(mockMediaQueryInstance);
 
@@ -1060,7 +1059,7 @@ test('setThemeConfig sets complete theme configuration', () => {
 
   const controller = createController({ defaultTheme: { token: {} } });
 
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 
   const themeConfig = {
     theme_default: DEFAULT_THEME,
@@ -1092,7 +1091,7 @@ test('setThemeConfig handles theme_default only', () => {
 
   const controller = createController({ defaultTheme: { token: {} } });
 
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 
   const themeConfig = {
     theme_default: DEFAULT_THEME,
@@ -1122,7 +1121,7 @@ test('setThemeConfig handles theme_default and theme_dark without settings', () 
 
   const controller = createController({ defaultTheme: { token: {} } });
 
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 
   const themeConfig = {
     theme_default: DEFAULT_THEME,
@@ -1138,7 +1137,7 @@ test('setThemeConfig handles theme_default and theme_dark without settings', () 
     }),
   );
 
-  jest.clearAllMocks();
+  vi.clearAllMocks();
   controller.setThemeMode(ThemeMode.DARK);
 
   expect(mockSetConfig).toHaveBeenCalledTimes(1);
@@ -1160,7 +1159,7 @@ test('setThemeConfig applies appropriate theme after configuration', () => {
 
   const controller = createController({ defaultTheme: { token: {} } });
 
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 
   const themeConfig = {
     theme_default: {
@@ -1222,7 +1221,7 @@ test('setThemeConfig preserves existing theme mode when possible', () => {
   controller.setThemeMode(ThemeMode.DARK);
   const initialMode = controller.getCurrentMode();
 
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 
   const themeConfig = {
     theme_default: DEFAULT_THEME,
@@ -1244,7 +1243,7 @@ test('setThemeConfig triggers onChange callbacks', () => {
 
   const controller = createController({ defaultTheme: { token: {} } });
 
-  const changeCallback = jest.fn();
+  const changeCallback = vi.fn();
   controller.onChange(changeCallback);
 
   const themeConfig = {
@@ -1330,7 +1329,7 @@ test('setThemeMode clears dev override and crud theme from storage', () => {
   });
   Reflect.set(controller, 'crudThemeId', '123');
 
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 
   controller.setThemeMode(ThemeMode.DARK);
 
@@ -1357,7 +1356,7 @@ test('setThemeMode can be called with same mode when overrides exist', () => {
     themeObject: mockThemeObject,
   });
 
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 
   Reflect.set(controller, 'devThemeOverride', {
     token: { colorPrimary: '#ff0000' },
@@ -1390,7 +1389,7 @@ test('setThemeMode with no override and same mode does not trigger update', () =
 
   controller.setThemeMode(ThemeMode.DEFAULT);
 
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 
   controller.setThemeMode(ThemeMode.DEFAULT);
 
@@ -1453,7 +1452,7 @@ test('clearLocalOverrides removes dev override, crud theme, and applied theme ID
     themeObject: mockThemeObject,
   });
 
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 
   controller.clearLocalOverrides();
 
@@ -1503,7 +1502,7 @@ test('setAppliedThemeId stores theme ID in storage', () => {
     themeObject: mockThemeObject,
   });
 
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 
   controller.setAppliedThemeId(123);
 
@@ -1519,7 +1518,7 @@ test('setAppliedThemeId removes theme ID when null is passed', () => {
     themeObject: mockThemeObject,
   });
 
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 
   controller.setAppliedThemeId(null);
 

@@ -17,8 +17,8 @@
  * under the License.
  */
 import { AriaAttributes } from 'react';
-// import 'core-js/stable';
-// import 'regenerator-runtime/runtime';
+import 'core-js/stable';
+import 'regenerator-runtime/runtime';
 import jQuery from 'jquery';
 // https://jestjs.io/docs/jest-object#jestmockmodulename-factory-options
 // in order to mock modules in test case, so avoid absolute import module
@@ -29,8 +29,7 @@ import { IntersectionObserver } from './IntersectionObserver';
 import { ResizeObserver } from './ResizeObserver';
 import setupSupersetClient from './setupSupersetClient';
 import CacheStorage from './CacheStorage';
-// import { TextEncoder, TextDecoder } from 'util';
-import { vi } from 'vitest';
+import { TextEncoder, TextDecoder } from 'util';
 
 const exposedProperties = ['window', 'navigator', 'document'];
 
@@ -66,15 +65,15 @@ g.caches = new CacheStorage();
 
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
-  value: vi.fn().mockImplementation(query => ({
+  value: jest.fn().mockImplementation(query => ({
     matches: false,
     media: query,
     onchange: null,
-    addListener: vi.fn(), // Deprecated
-    removeListener: vi.fn(), // Deprecated
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
+    addListener: jest.fn(), // Deprecated
+    removeListener: jest.fn(), // Deprecated
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+    dispatchEvent: jest.fn(),
   })),
 });
 
@@ -86,20 +85,20 @@ setupSupersetClient();
 // The useTabId hook depends on BroadcastChannel. Jest has a memory leak problem when
 // dealing with native modules. See https://chanind.github.io/javascript/2019/10/12/jest-tests-memory-leak.html
 // and https://github.com/facebook/jest/issues/6814 for more information.
-vi.mock('src/hooks/useTabId', () => ({
+jest.mock('src/hooks/useTabId', () => ({
   useTabId: () => 1,
 }));
 
 // Check https://github.com/remarkjs/react-markdown/issues/635
-vi.mock('react-markdown', () => ({
+jest.mock('react-markdown', () => ({
   default: (props: any) => <>{props.children}</>,
 }));
-vi.mock('rehype-sanitize', () => ({ default: () => vi.fn() }));
-vi.mock('rehype-raw', () => ({ default: () => vi.fn() }));
+jest.mock('rehype-sanitize', () => ({ default: () => jest.fn() }));
+jest.mock('rehype-raw', () => ({ default: () => jest.fn() }));
 
 // Mocks the Icon component due to its async nature
 // Tests should override this when needed
-vi.mock('@superset-ui/core/components/Icons/AsyncIcon', () => ({
+jest.mock('@superset-ui/core/components/Icons/AsyncIcon', () => ({
   default: ({
     fileName,
     role,

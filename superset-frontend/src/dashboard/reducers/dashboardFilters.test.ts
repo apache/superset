@@ -32,6 +32,7 @@ import {
   column,
 } from 'spec/fixtures/mockSliceEntities';
 import { filterComponent } from 'spec/fixtures/mockDashboardLayout';
+import { vi } from 'vitest';
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('dashboardFilters reducer', () => {
@@ -129,8 +130,9 @@ describe('dashboardFilters reducer', () => {
       [`${filterId}_region`]: regionScope,
       [`${filterId}_gender`]: genderScope,
     };
-    (activeDashboardFilters as Record<string, unknown>).buildActiveFilters =
-      jest.fn();
+    vi.spyOn(activeDashboardFilters, 'buildActiveFilters').mockImplementation(
+      vi.fn(),
+    );
     expect(
       dashboardFiltersReducer(
         dashboardFilters as unknown as Parameters<

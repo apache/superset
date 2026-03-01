@@ -27,16 +27,16 @@ import { Theme } from '../Theme';
 import { ThemeAlgorithm } from '../types';
 
 // Mock emotion's cache to avoid actual DOM operations
-jest.mock('@emotion/cache', () => ({
+vi.mock('@emotion/cache', () => ({
   __esModule: true,
-  default: jest.fn().mockReturnValue({}),
+  default: vi.fn().mockReturnValue({}),
 }));
 
 let lightTheme: Theme;
 let darkTheme: Theme;
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 
   // Create actual theme instances for testing
   lightTheme = Theme.fromConfig({

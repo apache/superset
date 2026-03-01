@@ -52,7 +52,7 @@ test('does nothing if feature flags are already initialized', () => {
 });
 
 test('returns false and raises console error if feature flags have not been initialized', () => {
-  const logging = jest.spyOn(uiCore.logging, 'error');
+  const logging = vi.spyOn(uiCore.logging, 'error');
   Object.defineProperty(window, 'featureFlags', {
     value: undefined,
   });

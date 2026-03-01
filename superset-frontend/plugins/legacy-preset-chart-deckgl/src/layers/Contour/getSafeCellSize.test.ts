@@ -54,7 +54,7 @@ describe('getSafeCellSize', () => {
   });
 
   test('calls onAutoAdjust when scaling happens', () => {
-    const spy = jest.fn();
+    const spy = vi.fn();
 
     getSafeCellSize({
       cellSize: 1,

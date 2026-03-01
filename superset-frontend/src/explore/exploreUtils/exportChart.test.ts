@@ -18,29 +18,31 @@
  */
 import { exportChart } from '.';
 
+const { ensureAppRootMock, getChartMetadataRegistryMock } = vi.hoisted(() => ({
+  ensureAppRootMock: vi.fn((path: string) => path),
+  getChartMetadataRegistryMock: vi.fn().mockReturnValue({
+    get: vi.fn().mockReturnValue(() => () => ({})),
+  }),
+}));
+
 // Mock pathUtils to control app root prefix
-jest.mock('src/utils/pathUtils', () => ({
-  ensureAppRoot: jest.fn((path: string) => path),
+vi.mock('src/utils/pathUtils', () => ({
+  ensureAppRoot: ensureAppRootMock,
 }));
 
 // Mock SupersetClient
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
+vi.mock('@superset-ui/core', async importActual => ({
+  ...(await importActual()),
   SupersetClient: {
-    postForm: jest.fn(),
-    get: jest.fn().mockResolvedValue({ json: {} }),
-    post: jest.fn().mockResolvedValue({ json: {} }),
+    postForm: vi.fn(),
+    get: vi.fn().mockResolvedValue({ json: {} }),
+    post: vi.fn().mockResolvedValue({ json: {} }),
   },
-  getChartBuildQueryRegistry: jest.fn().mockReturnValue({
-    get: jest.fn().mockReturnValue(() => () => ({})),
+  getChartBuildQueryRegistry: vi.fn().mockReturnValue({
+    get: vi.fn().mockReturnValue(() => () => ({})),
   }),
-  getChartMetadataRegistry: jest.fn().mockReturnValue({
-    get: jest.fn().mockReturnValue({ parseMethod: 'json' }),
-  }),
+  getChartMetadataRegistry: getChartMetadataRegistryMock,
 }));
-
-const { ensureAppRoot } = jest.requireMock('src/utils/pathUtils');
-const { getChartMetadataRegistry } = jest.requireMock('@superset-ui/core');
 
 // Minimal formData that won't trigger legacy API (useLegacyApi = false)
 const baseFormData = {
@@ -49,21 +51,21 @@ const baseFormData = {
 };
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
   // Default: no prefix
-  ensureAppRoot.mockImplementation((path: string) => path);
+  ensureAppRootMock.mockImplementation((path: string) => path);
   // Default: v1 API (not legacy)
-  getChartMetadataRegistry.mockReturnValue({
-    get: jest.fn().mockReturnValue({ parseMethod: 'json' }),
+  getChartMetadataRegistryMock.mockReturnValue({
+    get: vi.fn().mockReturnValue({ parseMethod: 'json' }),
   });
 });
 
 // Tests for exportChart URL prefix handling in streaming export
 test('exportChart v1 API passes prefixed URL to onStartStreamingExport when app root is configured', async () => {
   const appRoot = '/superset';
-  ensureAppRoot.mockImplementation((path: string) => `${appRoot}${path}`);
+  ensureAppRootMock.mockImplementation((path: string) => `${appRoot}${path}`);
 
-  const onStartStreamingExport = jest.fn();
+  const onStartStreamingExport = vi.fn();
 
   await exportChart({
     formData: baseFormData,
@@ -78,9 +80,9 @@ test('exportChart v1 API passes prefixed URL to onStartStreamingExport when app 
 });
 
 test('exportChart v1 API passes unprefixed URL when no app root is configured', async () => {
-  ensureAppRoot.mockImplementation((path: string) => path);
+  ensureAppRootMock.mockImplementation((path: string) => path);
 
-  const onStartStreamingExport = jest.fn();
+  const onStartStreamingExport = vi.fn();
 
   await exportChart({
     formData: baseFormData,
@@ -95,9 +97,9 @@ test('exportChart v1 API passes unprefixed URL when no app root is configured', 
 
 test('exportChart v1 API passes nested prefix for deeply nested deployments', async () => {
   const appRoot = '/my-company/analytics/superset';
-  ensureAppRoot.mockImplementation((path: string) => `${appRoot}${path}`);
+  ensureAppRootMock.mockImplementation((path: string) => `${appRoot}${path}`);
 
-  const onStartStreamingExport = jest.fn();
+  const onStartStreamingExport = vi.fn();
 
   await exportChart({
     formData: baseFormData,
@@ -112,7 +114,7 @@ test('exportChart v1 API passes nested prefix for deeply nested deployments', as
 });
 
 test('exportChart passes csv exportType for CSV exports', async () => {
-  const onStartStreamingExport = jest.fn();
+  const onStartStreamingExport = vi.fn();
 
   await exportChart({
     formData: baseFormData,
@@ -128,7 +130,7 @@ test('exportChart passes csv exportType for CSV exports', async () => {
 });
 
 test('exportChart passes xlsx exportType for Excel exports', async () => {
-  const onStartStreamingExport = jest.fn();
+  const onStartStreamingExport = vi.fn();
 
   await exportChart({
     formData: baseFormData,
@@ -146,14 +148,14 @@ test('exportChart passes xlsx exportType for Excel exports', async () => {
 test('exportChart legacy API (useLegacyApi=true) passes prefixed URL with app root configured', async () => {
   // Legacy API uses getExploreUrl() -> getURIDirectory() -> ensureAppRoot()
   const appRoot = '/superset';
-  ensureAppRoot.mockImplementation((path: string) => `${appRoot}${path}`);
+  ensureAppRootMock.mockImplementation((path: string) => `${appRoot}${path}`);
 
   // Configure mock to return useLegacyApi: true
-  getChartMetadataRegistry.mockReturnValue({
-    get: jest.fn().mockReturnValue({ useLegacyApi: true, parseMethod: 'json' }),
+  getChartMetadataRegistryMock.mockReturnValue({
+    get: vi.fn().mockReturnValue({ useLegacyApi: true, parseMethod: 'json' }),
   });
 
-  const onStartStreamingExport = jest.fn();
+  const onStartStreamingExport = vi.fn();
   const legacyFormData = {
     datasource: '1__table',
     viz_type: 'legacy_viz',

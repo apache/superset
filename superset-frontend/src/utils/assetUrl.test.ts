@@ -19,10 +19,7 @@
 import * as getBootstrapData from 'src/utils/getBootstrapData';
 import { assetUrl, ensureStaticPrefix } from './assetUrl';
 
-const staticAssetsPrefixMock = jest.spyOn(
-  getBootstrapData,
-  'staticAssetsPrefix',
-);
+const staticAssetsPrefixMock = vi.spyOn(getBootstrapData, 'staticAssetsPrefix');
 const resourcePath = '/endpoint/img.png';
 const absoluteResourcePath = `https://cdn.domain.com/static${resourcePath}`;
 

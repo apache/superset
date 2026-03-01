@@ -19,8 +19,10 @@
 
 import path from 'path';
 import { defineConfig } from 'vitest/config';
+import tsconfigPaths from 'vite-tsconfig-paths';
 
 export default defineConfig({
+  plugins: [tsconfigPaths()],
   test: {
     globals: true,
     env: {
@@ -29,6 +31,12 @@ export default defineConfig({
       WEBPACK_MODE: 'test',
     },
     environment: 'jsdom',
+    environmentOptions: {
+      jsdom: {
+        url: 'http://localhost',
+      },
+    },
+    setupFiles: [path.resolve(__dirname, './spec/helpers/setup.ts')],
     include: ['./(spec|src|plugins|packages|tools)/**/*.test.ts'],
     exclude: [
       './packages/generator-superset',
@@ -39,7 +47,7 @@ export default defineConfig({
     ],
     reporters: ['default'],
     coverage: {
-      enabled: true,
+      enabled: false,
       clean: true,
       reportsDirectory: './coverage',
       reporter: ['lcov', 'json-summary', 'html', 'text'],
@@ -56,26 +64,49 @@ export default defineConfig({
         'dist/',
       ],
     },
-  },
-  resolve: {
-    alias: {
-      '\.(css|less|geojson)$': path.resolve(
-        __dirname,
-        './spec/__mocks__/mockExportObject.js',
-      ),
-      '\.(gif|ttf|eot|png|jpg)$': path.resolve(
-        __dirname,
-        './spec/__mocks__/mockExportString.js',
-      ),
-      '\.svg$': path.resolve(__dirname, './spec/__mocks__/svgrMock.tsx'),
-      src: path.resolve(__dirname, './src'),
+    alias: [
+      // {
+      //   find: new RegExp('\.(less|geojson)$'),
+      //   replacement: path.resolve(
+      //     __dirname,
+      //     './spec/__mocks__/mockExportObject.js',
+      //   ),
+      // },
+      // {
+      //   find: new RegExp('\.(gif|ttf|eot|png|jpg)$'),
+      //   replacement: path.resolve(
+      //     __dirname,
+      //     './spec/__mocks__/mockExportString.js',
+      //   ),
+      // },
+      {
+        find: new RegExp('^src/(.*)$'),
+        replacement: path.resolve(__dirname, './src/$1'),
+      },
       // Mapping plugins of superset-ui to source code
-      '@superset-ui': path.resolve(__dirname, './node_modules/@superset-ui'),
+      {
+        find: new RegExp('^@superset-ui/([^/]+)/(.*)$'),
+        replacement: path.resolve(
+          __dirname,
+          './node_modules/@superset-ui/$1/src/$2',
+        ),
+      },
+      {
+        find: new RegExp('^@superset-ui/([^/]+)$'),
+        replacement: path.resolve(
+          __dirname,
+          './node_modules/@superset-ui/$1/src',
+        ),
+      },
       // Mapping @apache-superset/core to local package
-      '@apache-superset/core': path.resolve(
-        __dirname,
-        './node_modules/superset-core',
-      ),
-    },
+      {
+        find: new RegExp('^@apache-superset/core$'),
+        replacement: path.resolve(__dirname, './packages/superset-core/src'),
+      },
+      {
+        find: new RegExp('^@apache-superset/core/(.*)$'),
+        replacement: path.resolve(__dirname, './packages/superset-core/src/$1'),
+      },
+    ],
   },
 });

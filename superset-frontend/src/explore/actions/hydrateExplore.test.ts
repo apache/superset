@@ -22,8 +22,8 @@ import { hydrateExplore, HYDRATE_EXPLORE } from './hydrateExplore';
 import { exploreInitialData } from '../fixtures';
 
 test('creates hydrate action from initial data', () => {
-  const dispatch = jest.fn();
-  const getState = jest.fn(() => ({
+  const dispatch = vi.fn();
+  const getState = vi.fn(() => ({
     user: {},
     charts: {},
     datasources: {},
@@ -95,8 +95,8 @@ test('creates hydrate action from initial data', () => {
 });
 
 test('creates hydrate action with existing state', () => {
-  const dispatch = jest.fn();
-  const getState = jest.fn(() => ({
+  const dispatch = vi.fn();
+  const getState = vi.fn(() => ({
     user: {},
     charts: {},
     datasources: {},
@@ -169,8 +169,8 @@ test('creates hydrate action with existing state', () => {
 });
 
 test('uses configured default time range if not set', () => {
-  const dispatch = jest.fn();
-  const getState = jest.fn(() => ({
+  const dispatch = vi.fn();
+  const getState = vi.fn(() => ({
     user: {},
     charts: {},
     datasources: {},
@@ -215,8 +215,8 @@ test('uses configured default time range if not set', () => {
 });
 
 test('extracts currency formats from metrics in dataset', () => {
-  const dispatch = jest.fn();
-  const getState = jest.fn(() => ({
+  const dispatch = vi.fn();
+  const getState = vi.fn(() => ({
     user: {},
     charts: {},
     datasources: {},

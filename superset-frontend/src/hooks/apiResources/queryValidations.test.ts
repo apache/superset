@@ -92,6 +92,7 @@ test('returns api response mapping json result', async () => {
 });
 
 test('returns cached data without api request', async () => {
+  fetchMock.clearHistory();
   const queryValidationApiRoute = `glob:*/api/v1/database/${expectDbId}/validate_sql/`;
   fetchMock.post(queryValidationApiRoute, fakeApiResult);
   const { result, waitFor, rerender } = renderHook(

@@ -24,6 +24,7 @@ import { initialState, defaultQueryEditor } from 'src/SqlLab/fixtures';
 import * as localStorageHelpers from 'src/utils/localStorageHelpers';
 
 import useDatabaseSelector from './useDatabaseSelector';
+import { vi } from 'vitest';
 
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
@@ -48,13 +49,13 @@ const createInitialState = (overrides = {}) => ({
 });
 
 beforeEach(() => {
-  jest.spyOn(localStorageHelpers, 'getItem').mockReturnValue(null);
-  jest.spyOn(localStorageHelpers, 'setItem').mockImplementation(() => {});
+  vi.spyOn(localStorageHelpers, 'getItem').mockReturnValue(null);
+  vi.spyOn(localStorageHelpers, 'setItem').mockImplementation(() => {});
 });
 
 afterEach(() => {
-  jest.clearAllMocks();
-  jest.restoreAllMocks();
+  vi.clearAllMocks();
+  vi.restoreAllMocks();
 });
 
 test('returns initial values from query editor', () => {
@@ -242,7 +243,7 @@ test('reads database from localStorage when URL has db param', () => {
     backend: 'sqlite',
   };
 
-  jest.spyOn(localStorageHelpers, 'getItem').mockReturnValue(localStorageDb);
+  vi.spyOn(localStorageHelpers, 'getItem').mockReturnValue(localStorageDb);
 
   const originalLocation = window.location;
   Object.defineProperty(window, 'location', {

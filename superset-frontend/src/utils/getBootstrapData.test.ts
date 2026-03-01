@@ -33,7 +33,7 @@ describe('getBootstrapData and helpers', () => {
       document.body.innerHTML = '';
 
       // Reset module to clear cachedBootstrapData
-      jest.resetModules();
+      vi.resetModules();
       const { default: getBootstrapData } = await import('./getBootstrapData');
       const bootstrapData = getBootstrapData();
       expect(bootstrapData).toEqual(DEFAULT_BOOTSTRAP_DATA);
@@ -50,7 +50,7 @@ describe('getBootstrapData and helpers', () => {
       document.body.innerHTML = `<div id="app" data-bootstrap='${JSON.stringify(customData)}'></div>`;
 
       // Reset modules and re-import the module so that cachedBootstrapData is clear.
-      jest.resetModules();
+      vi.resetModules();
       const { default: getBootstrapData } = await import('./getBootstrapData');
       const bootstrapData = getBootstrapData();
       expect(bootstrapData).toEqual(customData);
@@ -70,7 +70,7 @@ describe('getBootstrapData and helpers', () => {
       document.body.innerHTML = `<div id="app" data-bootstrap='${JSON.stringify(customData)}'></div>`;
 
       // Reset modules and re-import the module so that cachedBootstrapData is clear.
-      jest.resetModules();
+      vi.resetModules();
       const {
         default: getBootstrapData,
         applicationRoot,
@@ -90,7 +90,7 @@ describe('getBootstrapData and helpers', () => {
       document.body.innerHTML = '';
 
       // Reset module to clear cachedBootstrapData and re-run computed values.
-      jest.resetModules();
+      vi.resetModules();
       const {
         default: getBootstrapData,
         applicationRoot,
@@ -120,7 +120,7 @@ describe('getBootstrapData and helpers', () => {
       document.body.innerHTML = `<div id="app" data-bootstrap='${JSON.stringify(customData)}'></div>`;
 
       // Reset modules and re-import the module so that cachedBootstrapData is clear.
-      jest.resetModules();
+      vi.resetModules();
       const {
         default: getBootstrapData,
         applicationRoot,

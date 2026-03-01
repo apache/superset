@@ -16,41 +16,38 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { TextEncoder, TextDecoder } from 'util';
 import { renderHook, act } from '@testing-library/react-hooks';
 import { waitFor } from '@testing-library/react';
 import { useStreamingExport } from './useStreamingExport';
 import { ExportStatus } from './StreamingExportModal';
 
-// Polyfill TextEncoder/TextDecoder for Jest environment
-global.TextEncoder = TextEncoder;
-global.TextDecoder = TextDecoder as typeof global.TextDecoder;
-
 // Mock SupersetClient
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
+vi.mock('@superset-ui/core', async importActual => ({
+  ...(await importActual()),
   SupersetClient: {
-    getCSRFToken: jest.fn(() => Promise.resolve('mock-csrf-token')),
+    getCSRFToken: vi.fn(() => Promise.resolve('mock-csrf-token')),
   },
 }));
 
+const { applicationRoot, makeUrl } = vi.hoisted(() => ({ applicationRoot: vi.fn(), makeUrl: vi.fn((path: string) => path) }));
+
 // Mock pathUtils and getBootstrapData for URL prefix guard tests
-jest.mock('src/utils/pathUtils', () => ({
-  makeUrl: jest.fn((path: string) => path),
+vi.mock('src/utils/pathUtils', () => ({
+  makeUrl: makeUrl,
 }));
 
-jest.mock('src/utils/getBootstrapData', () => ({
-  applicationRoot: jest.fn(() => ''),
+vi.mock('src/utils/getBootstrapData', () => ({
+  applicationRoot: applicationRoot,
 }));
 
-global.URL.createObjectURL = jest.fn(() => 'blob:mock-url');
-global.URL.revokeObjectURL = jest.fn();
+global.URL.createObjectURL = vi.fn(() => 'blob:mock-url');
+global.URL.revokeObjectURL = vi.fn();
 
-global.fetch = jest.fn();
+global.fetch = vi.fn();
 
 beforeEach(() => {
-  jest.clearAllMocks();
-  global.fetch = jest.fn();
+  vi.clearAllMocks();
+  global.fetch = vi.fn();
 });
 
 test('useStreamingExport initializes with default progress state', () => {
@@ -104,14 +101,14 @@ test('useStreamingExport resetExport resets progress to initial state', () => {
 });
 
 test('useStreamingExport accepts onComplete callback option', () => {
-  const onComplete = jest.fn();
+  const onComplete = vi.fn();
   const { result } = renderHook(() => useStreamingExport({ onComplete }));
 
   expect(result.current).toBeDefined();
 });
 
 test('useStreamingExport accepts onError callback option', () => {
-  const onError = jest.fn();
+  const onError = vi.fn();
   const { result } = renderHook(() => useStreamingExport({ onError }));
 
   expect(result.current).toBeDefined();
@@ -130,7 +127,7 @@ test('useStreamingExport progress includes all required fields', () => {
 });
 
 test('useStreamingExport cleans up on unmount', () => {
-  const revokeObjectURL = jest.fn();
+  const revokeObjectURL = vi.fn();
   global.URL.revokeObjectURL = revokeObjectURL;
 
   const { unmount } = renderHook(() => useStreamingExport());
@@ -145,14 +142,14 @@ test('retryExport reuses the same URL from the original startExport call', async
   // This test ensures that retryExport uses the exact same URL that was passed to startExport,
   // which is important for subdirectory deployments where the URL is already prefixed.
   const originalUrl = '/superset/api/v1/sqllab/export_streaming/';
-  const mockFetch = jest.fn().mockResolvedValue({
+  const mockFetch = vi.fn().mockResolvedValue({
     ok: true,
     headers: new Headers({
       'Content-Disposition': 'attachment; filename="export.csv"',
     }),
     body: {
       getReader: () => ({
-        read: jest.fn().mockResolvedValue({ done: true, value: undefined }),
+        read: vi.fn().mockResolvedValue({ done: true, value: undefined }),
       }),
     },
   });
@@ -197,10 +194,10 @@ test('retryExport reuses the same URL from the original startExport call', async
 
 test('sets ERROR status and calls onError when fetch rejects', async () => {
   const errorMessage = 'Network error';
-  const mockFetch = jest.fn().mockRejectedValue(new Error(errorMessage));
+  const mockFetch = vi.fn().mockRejectedValue(new Error(errorMessage));
   global.fetch = mockFetch;
 
-  const onError = jest.fn();
+  const onError = vi.fn();
   const { result } = renderHook(() => useStreamingExport({ onError }));
 
   act(() => {
@@ -222,19 +219,15 @@ test('sets ERROR status and calls onError when fetch rejects', async () => {
   expect(onError).toHaveBeenCalledWith(errorMessage);
 });
 
-// URL prefix guard tests - prevent regression of missing app root prefix
-const { applicationRoot } = jest.requireMock('src/utils/getBootstrapData');
-const { makeUrl } = jest.requireMock('src/utils/pathUtils');
-
 const createPrefixTestMockFetch = () =>
-  jest.fn().mockResolvedValue({
+  vi.fn().mockResolvedValue({
     ok: true,
     headers: new Headers({
       'Content-Disposition': 'attachment; filename="export.csv"',
     }),
     body: {
       getReader: () => ({
-        read: jest.fn().mockResolvedValue({ done: true, value: undefined }),
+        read: vi.fn().mockResolvedValue({ done: true, value: undefined }),
       }),
     },
   });
@@ -530,14 +523,14 @@ test('sets ERROR status and calls onError when stream contains __STREAM_ERROR__ 
   );
 
   let readCount = 0;
-  const mockFetch = jest.fn().mockResolvedValue({
+  const mockFetch = vi.fn().mockResolvedValue({
     ok: true,
     headers: new Headers({
       'Content-Disposition': 'attachment; filename="export.csv"',
     }),
     body: {
       getReader: () => ({
-        read: jest.fn().mockImplementation(() => {
+        read: vi.fn().mockImplementation(() => {
           readCount += 1;
           if (readCount === 1) {
             return Promise.resolve({ done: false, value: errorChunk });
@@ -549,7 +542,7 @@ test('sets ERROR status and calls onError when stream contains __STREAM_ERROR__ 
   });
   global.fetch = mockFetch;
 
-  const onError = jest.fn();
+  const onError = vi.fn();
   const { result } = renderHook(() => useStreamingExport({ onError }));
 
   act(() => {
@@ -574,14 +567,14 @@ test('completes CSV export successfully with correct status and downloadUrl', as
   const csvData = new TextEncoder().encode('id,name\n1,Alice\n2,Bob\n');
 
   let readCount = 0;
-  const mockFetch = jest.fn().mockResolvedValue({
+  const mockFetch = vi.fn().mockResolvedValue({
     ok: true,
     headers: new Headers({
       'Content-Disposition': 'attachment; filename="results.csv"',
     }),
     body: {
       getReader: () => ({
-        read: jest.fn().mockImplementation(() => {
+        read: vi.fn().mockImplementation(() => {
           readCount += 1;
           if (readCount === 1) {
             return Promise.resolve({ done: false, value: csvData });
@@ -593,7 +586,7 @@ test('completes CSV export successfully with correct status and downloadUrl', as
   });
   global.fetch = mockFetch;
 
-  const onComplete = jest.fn();
+  const onComplete = vi.fn();
   const { result } = renderHook(() => useStreamingExport({ onComplete }));
 
   act(() => {
@@ -619,14 +612,14 @@ test('completes XLSX export successfully with correct filename', async () => {
   const xlsxData = new Uint8Array([0x50, 0x4b, 0x03, 0x04]); // XLSX magic bytes
 
   let readCount = 0;
-  const mockFetch = jest.fn().mockResolvedValue({
+  const mockFetch = vi.fn().mockResolvedValue({
     ok: true,
     headers: new Headers({
       'Content-Disposition': 'attachment; filename="report.xlsx"',
     }),
     body: {
       getReader: () => ({
-        read: jest.fn().mockImplementation(() => {
+        read: vi.fn().mockImplementation(() => {
           readCount += 1;
           if (readCount === 1) {
             return Promise.resolve({ done: false, value: xlsxData });
@@ -638,7 +631,7 @@ test('completes XLSX export successfully with correct filename', async () => {
   });
   global.fetch = mockFetch;
 
-  const onComplete = jest.fn();
+  const onComplete = vi.fn();
   const { result } = renderHook(() => useStreamingExport({ onComplete }));
 
   act(() => {
@@ -659,7 +652,7 @@ test('completes XLSX export successfully with correct filename', async () => {
 
 test('sets ERROR status when response is not ok (4xx/5xx)', async () => {
   applicationRoot.mockReturnValue('');
-  const mockFetch = jest.fn().mockResolvedValue({
+  const mockFetch = vi.fn().mockResolvedValue({
     ok: false,
     status: 500,
     statusText: 'Internal Server Error',
@@ -667,7 +660,7 @@ test('sets ERROR status when response is not ok (4xx/5xx)', async () => {
   });
   global.fetch = mockFetch;
 
-  const onError = jest.fn();
+  const onError = vi.fn();
   const { result } = renderHook(() => useStreamingExport({ onError }));
 
   act(() => {
@@ -692,14 +685,14 @@ test('sets ERROR status when response is not ok (4xx/5xx)', async () => {
 
 test('sets ERROR status when response body is missing', async () => {
   applicationRoot.mockReturnValue('');
-  const mockFetch = jest.fn().mockResolvedValue({
+  const mockFetch = vi.fn().mockResolvedValue({
     ok: true,
     headers: new Headers({}),
     body: null,
   });
   global.fetch = mockFetch;
 
-  const onError = jest.fn();
+  const onError = vi.fn();
   const { result } = renderHook(() => useStreamingExport({ onError }));
 
   act(() => {
@@ -727,7 +720,7 @@ test('cancelExport sets CANCELLED status and aborts the request', async () => {
   let abortSignal: AbortSignal | undefined;
 
   // Create a reader that will hang until aborted
-  const mockFetch = jest.fn().mockImplementation((_url, options) => {
+  const mockFetch = vi.fn().mockImplementation((_url, options) => {
     abortSignal = options?.signal;
     return Promise.resolve({
       ok: true,
@@ -736,7 +729,7 @@ test('cancelExport sets CANCELLED status and aborts the request', async () => {
       }),
       body: {
         getReader: () => ({
-          read: jest.fn().mockImplementation(
+          read: vi.fn().mockImplementation(
             () =>
               new Promise((resolve, reject) => {
                 // Simulate slow stream that can be aborted
@@ -788,14 +781,14 @@ test('parses filename from Content-Disposition header with quotes', async () => 
   const csvData = new TextEncoder().encode('data\n');
 
   let readCount = 0;
-  const mockFetch = jest.fn().mockResolvedValue({
+  const mockFetch = vi.fn().mockResolvedValue({
     ok: true,
     headers: new Headers({
       'Content-Disposition': 'attachment; filename="my export file.csv"',
     }),
     body: {
       getReader: () => ({
-        read: jest.fn().mockImplementation(() => {
+        read: vi.fn().mockImplementation(() => {
           readCount += 1;
           if (readCount === 1) {
             return Promise.resolve({ done: false, value: csvData });
@@ -829,12 +822,12 @@ test('uses default filename when Content-Disposition header is missing', async (
   const csvData = new TextEncoder().encode('data\n');
 
   let readCount = 0;
-  const mockFetch = jest.fn().mockResolvedValue({
+  const mockFetch = vi.fn().mockResolvedValue({
     ok: true,
     headers: new Headers({}),
     body: {
       getReader: () => ({
-        read: jest.fn().mockImplementation(() => {
+        read: vi.fn().mockImplementation(() => {
           readCount += 1;
           if (readCount === 1) {
             return Promise.resolve({ done: false, value: csvData });
@@ -869,14 +862,14 @@ test('updates progress with rowsProcessed and totalSize during streaming', async
   const chunk2 = new TextEncoder().encode('2,Bob\n3,Charlie\n');
 
   let readCount = 0;
-  const mockFetch = jest.fn().mockResolvedValue({
+  const mockFetch = vi.fn().mockResolvedValue({
     ok: true,
     headers: new Headers({
       'Content-Disposition': 'attachment; filename="export.csv"',
     }),
     body: {
       getReader: () => ({
-        read: jest.fn().mockImplementation(() => {
+        read: vi.fn().mockImplementation(() => {
           readCount += 1;
           if (readCount === 1) {
             return Promise.resolve({ done: false, value: chunk1 });
@@ -917,14 +910,14 @@ test('prevents double startExport calls while export is in progress', async () =
 
   // Create a slow reader that takes time to complete
   let readCount = 0;
-  const mockFetch = jest.fn().mockResolvedValue({
+  const mockFetch = vi.fn().mockResolvedValue({
     ok: true,
     headers: new Headers({
       'Content-Disposition': 'attachment; filename="export.csv"',
     }),
     body: {
       getReader: () => ({
-        read: jest.fn().mockImplementation(
+        read: vi.fn().mockImplementation(
           () =>
             new Promise(resolve => {
               readCount += 1;
@@ -977,7 +970,7 @@ test('prevents double startExport calls while export is in progress', async () =
 
 test('retryExport does nothing when no prior export exists', async () => {
   applicationRoot.mockReturnValue('');
-  const mockFetch = jest.fn();
+  const mockFetch = vi.fn();
   global.fetch = mockFetch;
 
   const { result } = renderHook(() => useStreamingExport());
@@ -1001,14 +994,14 @@ test('state resets correctly after successful export and resetExport call', asyn
   const csvData = new TextEncoder().encode('data\n');
 
   let readCount = 0;
-  const mockFetch = jest.fn().mockResolvedValue({
+  const mockFetch = vi.fn().mockResolvedValue({
     ok: true,
     headers: new Headers({
       'Content-Disposition': 'attachment; filename="export.csv"',
     }),
     body: {
       getReader: () => ({
-        read: jest.fn().mockImplementation(() => {
+        read: vi.fn().mockImplementation(() => {
           readCount += 1;
           if (readCount === 1) {
             return Promise.resolve({ done: false, value: csvData });
@@ -1053,7 +1046,7 @@ test('state resets correctly after successful export and resetExport call', asyn
 
 test('state resets correctly after failed export and resetExport call', async () => {
   applicationRoot.mockReturnValue('');
-  const mockFetch = jest.fn().mockRejectedValue(new Error('Network error'));
+  const mockFetch = vi.fn().mockRejectedValue(new Error('Network error'));
   global.fetch = mockFetch;
 
   const { result } = renderHook(() => useStreamingExport());

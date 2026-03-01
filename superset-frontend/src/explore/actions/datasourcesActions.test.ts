@@ -26,12 +26,12 @@ import {
 import datasourcesReducer from '../reducers/datasourcesReducer';
 import { updateFormDataByDatasource } from './exploreActions';
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
-  getClientErrorObject: jest.fn(),
+vi.mock('@superset-ui/core', async importActual => ({
+  ...(await importActual()),
+  getClientErrorObject: vi.fn(),
 }));
 
-const mockedGetClientErrorObject = getClientErrorObject as jest.Mock;
+const mockedGetClientErrorObject = getClientErrorObject as vi.Mock;
 
 const CURRENT_DATASOURCE = {
   id: 1,
@@ -87,8 +87,8 @@ test('sets new datasource', () => {
 });
 
 test('change datasource action', () => {
-  const dispatch = jest.fn();
-  const getState = jest.fn(() => ({
+  const dispatch = vi.fn();
+  const getState = vi.fn(() => ({
     explore: {
       datasource: CURRENT_DATASOURCE,
     },
@@ -111,8 +111,8 @@ test('saveDataset handles success', async () => {
   };
   fetchMock.clearHistory().removeRoutes();
   fetchMock.post(saveDatasetEndpoint, saveDatasetResponse);
-  const dispatch = jest.fn();
-  const getState = jest.fn(() => ({ explore: { datasource } }));
+  const dispatch = vi.fn();
+  const getState = vi.fn(() => ({ explore: { datasource } }));
   const dataset = await saveDataset(SAVE_DATASET_POST_ARGS)(dispatch);
 
   expect(fetchMock.callHistory.calls(saveDatasetEndpoint)).toHaveLength(1);
@@ -131,7 +131,7 @@ test('updateSlice with add to existing dashboard handles failure', async () => {
     Promise.resolve(sampleError),
   );
   fetchMock.post(saveDatasetEndpoint, { throws: sampleError });
-  const dispatch = jest.fn();
+  const dispatch = vi.fn();
 
   let caughtError;
   try {
