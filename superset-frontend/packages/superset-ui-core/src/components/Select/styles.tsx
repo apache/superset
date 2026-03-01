@@ -143,5 +143,8 @@ export const StyledBulkActionsContainer = styled(Flex)`
     padding: ${theme.sizeUnit}px;
     border-top: 1px solid ${theme.colorSplit};
     gap: ${theme.sizeUnit * 2}px;
+    & .superset-button {
+      font-family: inherit;
+    }
   `}
 `;
