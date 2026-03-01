@@ -74,14 +74,14 @@ superset/
 
 ## Code Standards
 
-### TypeScript Frontend
+### TypeScript fron-tend
 - **Avoid `any` types** - Use proper TypeScript, reuse existing types
 - **Functional components** with hooks
 - **@superset-ui/core** for UI components (not direct antd)
 - **Jest** for testing (NO Enzyme)
 - **Redux** for global state where it exists, hooks for local
 
-### Python Backend  
+### Python back-end  
 - **Type hints required** for all new code
 - **MyPy compliant** - run `pre-commit run mypy`
 - **SQLAlchemy models** with proper typing
