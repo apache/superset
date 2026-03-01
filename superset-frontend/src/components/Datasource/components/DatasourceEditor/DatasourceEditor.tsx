@@ -459,8 +459,7 @@ function CollectionTabTitle({
       css={{ display: 'flex', alignItems: 'center' }}
       data-test={`collection-tab-${title}`}
     >
-      {title}{' '}
-      <StyledBadge count={displayCount} showZero />
+      {title} <StyledBadge count={displayCount} showZero />
     </div>
   );
 }
@@ -998,38 +997,37 @@ function DatasourceEditor({
       const sql =
         datasourceType === DATASOURCE_TYPES.physical.key ? '' : datasource.sql;
 
-    const columns = [
-      ...databaseColumns,
-      ...calculatedColumns,
-    ];
+      const columns = [...databaseColumns, ...calculatedColumns];
 
-    // Remove deleted column/metric references from folders
-    const validUuids = new Set<string>();
-    for (const col of columns) {
-      if (col.uuid) validUuids.add(col.uuid);
-    }
-    for (const metric of datasource.metrics ?? []) {
-      if (metric.uuid) validUuids.add(metric.uuid);
-    }
-    const filteredFolders = filterFoldersByValidUuids(folders, validUuids);
+      // Remove deleted column/metric references from folders
+      const validUuids = new Set<string>();
+      for (const col of columns) {
+        if (col.uuid) validUuids.add(col.uuid);
+      }
+      for (const metric of datasource.metrics ?? []) {
+        if (metric.uuid) validUuids.add(metric.uuid);
+      }
+      const filteredFolders = filterFoldersByValidUuids(folders, validUuids);
 
-    const newDatasource = {
-      ...datasource,
-      sql,
-      columns,
-      folders: filteredFolders,
-    };
+      const newDatasource = {
+        ...datasource,
+        sql,
+        columns,
+        folders: filteredFolders,
+      };
 
-    onChange(newDatasource, validationErrors);
-  }, [
-    datasource,
-    datasourceType,
-    databaseColumns,
-    calculatedColumns,
-    folders,
-    errors,
-    onChange,
-  ]);
+      onChange(newDatasource, validationErrors);
+    },
+    [
+      datasource,
+      datasourceType,
+      databaseColumns,
+      calculatedColumns,
+      folders,
+      errors,
+      onChange,
+    ],
+  );
 
   const validateAndChange = useCallback(() => {
     validate(onChangeInternal);
@@ -2428,10 +2426,7 @@ function DatasourceEditor({
             {
               key: TABS_KEYS.FOLDERS,
               label: (
-                <CollectionTabTitle
-                  count={folderCount}
-                  title={t('Folders')}
-                />
+                <CollectionTabTitle count={folderCount} title={t('Folders')} />
               ),
               children: (
                 <FoldersEditor
