@@ -158,3 +158,66 @@ test('makeUrl should handle URLs with anchors', async () => {
     '/superset/dashboard/123#anchor',
   );
 });
+
+// Sets up bootstrap data and returns a fresh pathUtils module instance.
+// Passing appRoot='' (default) simulates no subdirectory deployment.
+async function loadPathUtils(appRoot = '') {
+  const bootstrapData = { common: { application_root: appRoot } };
+  document.body.innerHTML = `<div id="app" data-bootstrap='${JSON.stringify(bootstrapData)}'></div>`;
+  jest.resetModules();
+  await import('./getBootstrapData');
+  return import('./pathUtils');
+}
+
+test('ensureAppRoot should preserve absolute and protocol-relative URLs unchanged with default root', async () => {
+  const { ensureAppRoot } = await loadPathUtils();
+
+  expect(ensureAppRoot('https://external.example.com')).toBe(
+    'https://external.example.com',
+  );
+  expect(ensureAppRoot('http://external.example.com')).toBe(
+    'http://external.example.com',
+  );
+  expect(ensureAppRoot('//external.example.com')).toBe(
+    '//external.example.com',
+  );
+});
+
+test('ensureAppRoot should preserve absolute URLs unchanged with custom subdirectory', async () => {
+  const { ensureAppRoot } = await loadPathUtils('/superset/');
+
+  expect(ensureAppRoot('https://external.example.com')).toBe(
+    'https://external.example.com',
+  );
+  expect(ensureAppRoot('http://external.example.com')).toBe(
+    'http://external.example.com',
+  );
+  // Non-http absolute schemes: implementation must not rely on http/https check alone
+  expect(ensureAppRoot('ftp://files.example.com/data')).toBe(
+    'ftp://files.example.com/data',
+  );
+  expect(ensureAppRoot('mailto:user@example.com')).toBe(
+    'mailto:user@example.com',
+  );
+});
+
+test('ensureAppRoot should preserve protocol-relative URLs unchanged', async () => {
+  const { ensureAppRoot } = await loadPathUtils('/superset/');
+
+  expect(ensureAppRoot('//external.example.com')).toBe(
+    '//external.example.com',
+  );
+});
+
+test('makeUrl should preserve absolute and protocol-relative URLs unchanged', async () => {
+  const { makeUrl } = await loadPathUtils('/superset/');
+
+  expect(makeUrl('https://external.example.com')).toBe(
+    'https://external.example.com',
+  );
+  expect(makeUrl('//external.example.com')).toBe('//external.example.com');
+  // Non-http absolute scheme parity with ensureAppRoot
+  expect(makeUrl('ftp://files.example.com/data')).toBe(
+    'ftp://files.example.com/data',
+  );
+});
