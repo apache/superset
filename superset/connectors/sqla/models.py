@@ -101,6 +101,7 @@ from superset.models.helpers import (
     ImportExportMixin,
     QueryResult,
     SQLA_QUERY_KEYS,
+    
 )
 from superset.models.slice import Slice
 from superset.models.sql_types.base import CurrencyType
@@ -755,9 +756,7 @@ class BaseDatasource(
         filter_groups: dict[Union[int, str], list[TextClause]] = defaultdict(list)
         try:
             for filter_ in security_manager.get_rls_filters(self):
-                clause = self.text(
-                    f"({template_processor.process_template(filter_.clause)})"
-                )
+                clause = self.text(f"({template_processor.process_template(filter_.clause)})")
                 if filter_.group_key:
                     filter_groups[filter_.group_key].append(clause)
                 else:

@@ -44,6 +44,7 @@ import numpy as np
 import pandas as pd
 import pytz
 import sqlalchemy as sa
+import sqlglot.expressions as exp
 import yaml
 from flask import current_app as app, g
 from flask_appbuilder import Model
@@ -216,6 +217,30 @@ def validate_adhoc_subquery(
         apply_rls(database, catalog, default_schema, parsed_statement)
 
     return parsed_statement.format()
+
+def validate_rls_clause(
+    sql: str,
+    engine: str,
+) -> None:
+    """
+    Ensure the RLS clause is a valid SQL fragment.
+    This is a lighter validation than validate_adhoc_subquery as it
+    is intended for administrator-defined security rules.
+
+    :param sql: RLS clause expression
+    :raise SupersetParseError if sql is syntactically invalid
+    """
+    from superset.sql.parse import SQLStatement
+    # We just need to ensure it parses correctly as a predicate/expression
+    parsed_statement = SQLStatement(sql, engine)
+    if parsed_statement.has_subquery():
+        raise SupersetSecurityException(
+            SupersetError(
+                error_type=SupersetErrorType.ADHOC_SUBQUERY_NOT_ALLOWED_ERROR,
+                message=_("Custom SQL fields cannot contain sub-queries."),
+                level=ErrorLevel.ERROR,
+            )
+        )
 
 
 def json_to_dict(json_str: str) -> dict[Any, Any]:
