@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import { t } from '@apache-superset/core';
 import { css, SupersetTheme } from '@apache-superset/core/ui';
 import { useRef, useState } from 'react';
 import { Tooltip } from '@superset-ui/core/components';
@@ -55,6 +56,7 @@ export default function ColorSchemeLabel(props: ColorSchemeLabelProps) {
       <span
         data-test="color"
         key={`${id}-${i}`}
+        aria-hidden="true"
         css={(theme: { sizeUnit: number }) => css`
           padding-left: ${theme.sizeUnit / 2}px;
           :before {
@@ -94,6 +96,8 @@ export default function ColorSchemeLabel(props: ColorSchemeLabelProps) {
           justify-content: flex-start;
         `}
         data-test={id}
+        aria-label={t('Color scheme: %s', label)}
+        role="option"
       >
         <span
           className="color-scheme-label"

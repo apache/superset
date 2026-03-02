@@ -75,3 +75,49 @@ test('sr-only span is visually hidden via CSS clip', () => {
   // The span should have clip-based hiding styles applied via emotion/css
   expect(srSpan).toHaveTextContent('Alert triggered, notification sent');
 });
+
+test('renders distinct icon for Success state (check-circle)', () => {
+  const { container } = render(
+    <AlertStatusIcon state={AlertState.Success} isReportEnabled={false} />,
+  );
+  // CheckCircleOutlined renders with aria-label="check-circle"
+  expect(
+    container.querySelector('[aria-label="check-circle"]'),
+  ).toBeInTheDocument();
+});
+
+test('renders distinct icon for Error state (close-circle)', () => {
+  const { container } = render(
+    <AlertStatusIcon state={AlertState.Error} isReportEnabled={false} />,
+  );
+  expect(
+    container.querySelector('[aria-label="close-circle"]'),
+  ).toBeInTheDocument();
+});
+
+test('renders distinct icon for Working state (loading)', () => {
+  const { container } = render(
+    <AlertStatusIcon state={AlertState.Working} isReportEnabled={false} />,
+  );
+  expect(
+    container.querySelector('[aria-label="loading"]'),
+  ).toBeInTheDocument();
+});
+
+test('renders distinct icon for Noop state (clock-circle)', () => {
+  const { container } = render(
+    <AlertStatusIcon state={AlertState.Noop} isReportEnabled={false} />,
+  );
+  expect(
+    container.querySelector('[aria-label="clock-circle"]'),
+  ).toBeInTheDocument();
+});
+
+test('renders distinct icon for Grace state (exclamation-circle)', () => {
+  const { container } = render(
+    <AlertStatusIcon state={AlertState.Grace} isReportEnabled={false} />,
+  );
+  expect(
+    container.querySelector('[aria-label="exclamation-circle"]'),
+  ).toBeInTheDocument();
+});
