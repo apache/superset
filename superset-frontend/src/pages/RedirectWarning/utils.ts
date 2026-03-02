@@ -63,7 +63,9 @@ export function getTargetUrl(): string {
 function getTrustedUrls(): string[] {
   try {
     const stored = localStorage.getItem(TRUSTED_URLS_KEY);
-    return stored ? JSON.parse(stored) : [];
+    if (!stored) return [];
+    const parsed: unknown = JSON.parse(stored);
+    return Array.isArray(parsed) ? (parsed as string[]) : [];
   } catch {
     return [];
   }

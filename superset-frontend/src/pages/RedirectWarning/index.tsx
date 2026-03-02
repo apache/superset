@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { t } from '@superset-ui/core';
 import { css, styled, useTheme } from '@apache-superset/core/ui';
 import {
@@ -101,15 +101,12 @@ export default function RedirectWarning() {
 
   const targetUrl = useMemo(() => getTargetUrl(), []);
 
-  // If already trusted, redirect immediately
-  const alreadyTrusted = useMemo(
-    () => Boolean(targetUrl && isUrlTrusted(targetUrl)),
-    [targetUrl],
-  );
-
-  if (alreadyTrusted && targetUrl) {
-    window.location.href = targetUrl;
-  }
+  // Redirect immediately if the URL is already trusted
+  useEffect(() => {
+    if (targetUrl && isAllowedScheme(targetUrl) && isUrlTrusted(targetUrl)) {
+      window.location.href = targetUrl;
+    }
+  }, [targetUrl]);
 
   const handleContinue = useCallback(() => {
     if (!targetUrl || !isAllowedScheme(targetUrl)) return;

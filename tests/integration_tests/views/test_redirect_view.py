@@ -15,45 +15,55 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import pytest
-
+from tests.conftest import with_config
 from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.conftest import with_feature_flags
+
+REDIRECT_CONFIG = {
+    "WEBDRIVER_BASEURL": "http://localhost:8088",
+    "WEBDRIVER_BASEURL_USER_FRIENDLY": "http://localhost:8088",
+}
 
 
 class TestRedirectView(SupersetTestCase):
     """Integration tests for the /redirect/ endpoint."""
 
-    @pytest.fixture(autouse=True)
-    def _enable_feature(self):
-        self.app.config["FEATURE_FLAGS"] = {
-            **self.app.config.get("FEATURE_FLAGS", {}),
-            "ALERT_REPORTS": True,
-        }
-        self.app.config["WEBDRIVER_BASEURL"] = "http://localhost:8088"
-        self.app.config["WEBDRIVER_BASEURL_USER_FRIENDLY"] = "http://localhost:8088"
-        return
-
+    @with_feature_flags(ALERT_REPORTS=True)
+    @with_config(REDIRECT_CONFIG)
     def test_missing_url_returns_400(self):
         resp = self.client.get("/redirect/")
-        assert resp.status_code == 400
+        self.assertEqual(resp.status_code, 400)
 
+    @with_feature_flags(ALERT_REPORTS=True)
+    @with_config(REDIRECT_CONFIG)
     def test_dangerous_scheme_returns_400(self):
         resp = self.client.get("/redirect/?url=javascript:alert(1)")
-        assert resp.status_code == 400
+        self.assertEqual(resp.status_code, 400)
 
+    @with_feature_flags(ALERT_REPORTS=True)
+    @with_config(REDIRECT_CONFIG)
     def test_internal_url_redirects(self):
         resp = self.client.get(
             "/redirect/?url=http://localhost:8088/dashboard/1",
             follow_redirects=False,
         )
-        assert resp.status_code == 302
-        assert resp.headers["Location"] == "http://localhost:8088/dashboard/1"
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(
+            resp.headers["Location"],
+            "http://localhost:8088/dashboard/1",
+        )
 
+    @with_feature_flags(ALERT_REPORTS=True)
+    @with_config(REDIRECT_CONFIG)
     def test_external_url_renders_page(self):
-        resp = self.client.get("/redirect/?url=https://external.com/page")
-        assert resp.status_code == 200
+        resp = self.client.get(
+            "/redirect/?url=https://external.com/page",
+        )
+        self.assertEqual(resp.status_code, 200)
 
+    @with_feature_flags(ALERT_REPORTS=False)
     def test_feature_flag_disabled_returns_404(self):
-        self.app.config["FEATURE_FLAGS"]["ALERT_REPORTS"] = False
-        resp = self.client.get("/redirect/?url=https://external.com")
-        assert resp.status_code == 404
+        resp = self.client.get(
+            "/redirect/?url=https://external.com",
+        )
+        self.assertEqual(resp.status_code, 404)
