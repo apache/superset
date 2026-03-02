@@ -36,16 +36,18 @@ export function ensureAppRoot(path: string): string {
 }
 
 /**
- * Creates a URL with the proper application root prefix for subdirectory deployments.
- * Use this when constructing URLs for navigation, API calls, or file downloads.
+ * Creates a URL suitable for navigation, API calls, or file downloads. Relative
+ * paths are prefixed with the application root for subdirectory deployments.
+ * Absolute URLs (e.g. https://...) and protocol-relative URLs (e.g. //example.com)
+ * are returned unchanged.
  *
- * @param path - The path to convert to a full URL (e.g., '/sqllab', '/api/v1/chart/123')
- * @returns The path prefixed with the application root (e.g., '/superset/sqllab')
+ * @param path - The path or URL to resolve (e.g., '/sqllab', 'https://example.com')
+ * @returns The resolved URL (e.g., '/superset/sqllab' or 'https://example.com')
  *
  * @example
  * // In a subdirectory deployment at /superset
- * makeUrl('/sqllab?new=true') // returns '/superset/sqllab?new=true'
- * makeUrl('/api/v1/chart/export/123/') // returns '/superset/api/v1/chart/export/123/'
+ * makeUrl('/sqllab?new=true')          // returns '/superset/sqllab?new=true'
+ * makeUrl('https://external.example.com') // returns 'https://external.example.com'
  */
 export function makeUrl(path: string): string {
   return ensureAppRoot(path);

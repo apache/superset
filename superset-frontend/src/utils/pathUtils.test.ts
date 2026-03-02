@@ -221,3 +221,12 @@ test('makeUrl should preserve absolute and protocol-relative URLs unchanged', as
     'ftp://files.example.com/data',
   );
 });
+
+test('ensureAppRoot should treat any URI scheme as absolute (passthrough)', async () => {
+  // The RFC 3986 scheme regex matches any `word:` prefix, including custom schemes.
+  // Passthrough is the safe behavior — prepending the app root would produce a
+  // broken path like /superset/foo:bar, which is never what a caller would want.
+  const { ensureAppRoot } = await loadPathUtils('/superset/');
+
+  expect(ensureAppRoot('foo:bar')).toBe('foo:bar');
+});
