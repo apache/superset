@@ -52,62 +52,57 @@ export default function AlertStatusIcon({
 }) {
   const theme = useTheme();
   const lastStateConfig = {
-    icon: Icons.CheckOutlined,
+    icon: Icons.CheckCircleOutlined,
     label: '',
     status: '',
   };
   switch (state) {
     case AlertState.Success:
-      lastStateConfig.icon = Icons.CheckOutlined;
+      lastStateConfig.icon = Icons.CheckCircleOutlined;
       lastStateConfig.label = isReportEnabled
         ? t('Report sent')
         : t('Alert triggered, notification sent');
       lastStateConfig.status = AlertState.Success;
       break;
     case AlertState.Working:
-      lastStateConfig.icon = Icons.Running;
+      lastStateConfig.icon = Icons.LoadingOutlined;
       lastStateConfig.label = isReportEnabled
         ? t('Report sending')
         : t('Alert running');
       lastStateConfig.status = AlertState.Working;
       break;
     case AlertState.Error:
-      lastStateConfig.icon = Icons.CloseOutlined;
+      lastStateConfig.icon = Icons.CloseCircleOutlined;
       lastStateConfig.label = isReportEnabled
         ? t('Report failed')
         : t('Alert failed');
       lastStateConfig.status = AlertState.Error;
       break;
     case AlertState.Noop:
-      lastStateConfig.icon = Icons.CheckOutlined;
+      lastStateConfig.icon = Icons.ClockCircleOutlined;
       lastStateConfig.label = t('Nothing triggered');
       lastStateConfig.status = AlertState.Noop;
       break;
     case AlertState.Grace:
-      lastStateConfig.icon = Icons.WarningOutlined;
+      lastStateConfig.icon = Icons.ExclamationCircleOutlined;
       lastStateConfig.label = t('Alert Triggered, In Grace Period');
       lastStateConfig.status = AlertState.Grace;
       break;
     default:
-      lastStateConfig.icon = Icons.CheckOutlined;
+      lastStateConfig.icon = Icons.ClockCircleOutlined;
       lastStateConfig.label = t('Nothing triggered');
       lastStateConfig.status = AlertState.Noop;
   }
   const Icon = lastStateConfig.icon;
-  const isRunningIcon = state === AlertState.Working;
+  const isWorkingState = state === AlertState.Working;
   return (
     <Tooltip title={lastStateConfig.label} placement="bottomLeft">
       <span
-        css={
-          isRunningIcon
-            ? css`
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                transform: scale(1.8);
-              `
-            : undefined
-        }
+        css={css`
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+        `}
       >
         <Icon
           iconSize="m"
@@ -116,6 +111,8 @@ export default function AlertStatusIcon({
             isReportEnabled,
             theme,
           )}
+          spin={isWorkingState}
+          aria-hidden="true"
         />
       </span>
     </Tooltip>

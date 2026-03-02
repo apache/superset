@@ -44,7 +44,11 @@ export const ErrorAlert: FunctionComponent<IProps> = ({
     css={(theme: SupersetTheme) => antdWarningAlertStyles(theme)}
     type="error"
     showIcon
-    message={errorMessage}
+    message={
+      <>
+        <strong>{t('Error:')}</strong> {errorMessage}
+      </>
+    }
     description={
       showDbInstallInstructions ? (
         <>
