@@ -393,6 +393,7 @@ configOverrides:
         # Override the logout method to also log out from the OIDC provider
         @expose('/logout/', methods=['GET', 'POST'])
         def logout(self):
+            super().logout()
             session.clear()
             return redirect(
                 f'{OIDC_ISSUER}/protocol/openid-connect/logout?post_logout_redirect_uri={request.url_root.strip("/")}&client_id={CLIENT_ID}'
