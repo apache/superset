@@ -611,7 +611,9 @@ class WebDriverSelenium(WebDriverProxy):
                     EC.presence_of_element_located((By.CLASS_NAME, element_name))
                 )
             except TimeoutException:
-                logger.exception("Selenium timed out requesting url %s", url)
+                logger.warning(
+                    "Selenium timed out requesting url %s", url, exc_info=True
+                )
                 raise
 
             try:
@@ -631,10 +633,11 @@ class WebDriverSelenium(WebDriverProxy):
                             (By.CLASS_NAME, "grid-container")
                         )
                     )
-                except:
-                    logger.exception(
+                except Exception:
+                    logger.warning(
                         "Selenium timed out waiting for dashboard to draw at url %s",
                         url,
+                        exc_info=True,
                     )
                     raise
 
@@ -647,8 +650,10 @@ class WebDriverSelenium(WebDriverProxy):
                     EC.presence_of_all_elements_located((By.CLASS_NAME, "loading"))
                 )
             except TimeoutException:
-                logger.exception(
-                    "Selenium timed out waiting for charts to load at url %s", url
+                logger.warning(
+                    "Selenium timed out waiting for charts to load at url %s",
+                    url,
+                    exc_info=True,
                 )
                 raise
 
@@ -672,22 +677,25 @@ class WebDriverSelenium(WebDriverProxy):
                     )
 
             img = element.screenshot_as_png
-        except Exception as ex:
-            logger.warning("exception in webdriver", exc_info=ex)
-            raise
         except TimeoutException:
-            # raise again for the finally block, but handled above
+            # Already logged at WARNING in the inner handlers above
             raise
         except StaleElementReferenceException:
-            logger.exception(
+            logger.warning(
                 "Selenium got a stale element while requesting url %s",
                 url,
+                exc_info=True,
             )
             raise
         except WebDriverException:
-            logger.exception(
-                "Encountered an unexpected error when requesting url %s", url
+            logger.warning(
+                "Encountered an unexpected error when requesting url %s",
+                url,
+                exc_info=True,
             )
+            raise
+        except Exception as ex:
+            logger.warning("exception in webdriver", exc_info=ex)
             raise
         finally:
             self.destroy(driver, app.config["SCREENSHOT_SELENIUM_RETRIES"])
