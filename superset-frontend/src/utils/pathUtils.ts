@@ -21,9 +21,17 @@ import { applicationRoot } from 'src/utils/getBootstrapData';
 /**
  * Takes a string path to a resource and prefixes it with the application root that is
  * defined in the application configuration. The application path is sanitized.
- * @param path A string path to a resource
+ *
+ * Absolute URLs (e.g. https://..., ftp://..., mailto:...) and protocol-relative
+ * URLs (e.g. //example.com) are returned unchanged — only relative paths receive
+ * the application root prefix.
+ *
+ * @param path A string path or URL to a resource
  */
 export function ensureAppRoot(path: string): string {
+  if (/^[a-zA-Z][a-zA-Z0-9+\-.]*:/.test(path) || path.startsWith('//')) {
+    return path;
+  }
   return `${applicationRoot()}${path.startsWith('/') ? path : `/${path}`}`;
 }
 
