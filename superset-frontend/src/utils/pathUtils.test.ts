@@ -165,6 +165,7 @@ const HTTP_URL = 'http://external.example.com';
 const PROTOCOL_RELATIVE_URL = '//external.example.com';
 const FTP_URL = 'ftp://files.example.com/data';
 const MAILTO_URL = 'mailto:user@example.com';
+const TEL_URL = 'tel:+1234567890';
 
 // Sets up bootstrap data and returns a fresh pathUtils module instance.
 // Passing appRoot='' (default) simulates no subdirectory deployment.
@@ -189,9 +190,10 @@ test('ensureAppRoot should preserve absolute URLs unchanged with custom subdirec
 
   expect(ensureAppRoot(HTTPS_URL)).toBe(HTTPS_URL);
   expect(ensureAppRoot(HTTP_URL)).toBe(HTTP_URL);
-  // Non-http absolute schemes: implementation must not rely on http/https check alone
+  // Non-http absolute schemes: all safe schemes must pass through
   expect(ensureAppRoot(FTP_URL)).toBe(FTP_URL);
   expect(ensureAppRoot(MAILTO_URL)).toBe(MAILTO_URL);
+  expect(ensureAppRoot(TEL_URL)).toBe(TEL_URL);
 });
 
 test('ensureAppRoot should preserve protocol-relative URLs unchanged', async () => {
@@ -209,11 +211,21 @@ test('makeUrl should preserve absolute and protocol-relative URLs unchanged', as
   expect(makeUrl(FTP_URL)).toBe(FTP_URL);
 });
 
-test('ensureAppRoot should treat any URI scheme as absolute (passthrough)', async () => {
-  // The RFC 3986 scheme regex matches any `word:` prefix, including custom schemes.
-  // Passthrough is the safe behavior — prepending the app root would produce a
-  // broken path like /superset/foo:bar, which is never what a caller would want.
+test('ensureAppRoot should block javascript: and data: schemes (XSS prevention)', async () => {
   const { ensureAppRoot } = await loadPathUtils('/superset/');
 
-  expect(ensureAppRoot('foo:bar')).toBe('foo:bar');
+  // Dangerous schemes must NOT pass through — they get prefixed to neutralise them.
+  // Build the literals via concatenation so the linter's no-script-url rule
+  // does not flag this intentional test input.
+  const jsUrl = `${'javascript'}:alert(1)`;
+  const dataUrl = `${'data'}:text/html,<h1>xss</h1>`;
+  expect(ensureAppRoot(jsUrl)).toBe(`/superset/${jsUrl}`);
+  expect(ensureAppRoot(dataUrl)).toBe(`/superset/${dataUrl}`);
+});
+
+test('ensureAppRoot should prefix unknown schemes instead of passing through', async () => {
+  const { ensureAppRoot } = await loadPathUtils('/superset/');
+
+  // Unknown / custom schemes are treated as relative paths
+  expect(ensureAppRoot('foo:bar')).toBe('/superset/foo:bar');
 });
