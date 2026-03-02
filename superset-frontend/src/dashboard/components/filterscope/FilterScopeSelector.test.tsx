@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { cleanup, render, screen, userEvent } from 'spec/helpers/testing-library';
+import {
+  cleanup,
+  render,
+  screen,
+  userEvent,
+} from 'spec/helpers/testing-library';
 import FilterScopeSelector from './FilterScopeSelector';
 import type { DashboardLayout } from 'src/dashboard/types';
 
@@ -186,10 +191,9 @@ test('renders Close and Save buttons when filters exist', () => {
 });
 
 test('renders only Close button and a warning when no filters exist', () => {
-  render(
-    <FilterScopeSelector {...defaultProps} dashboardFilters={{}} />,
-    { useRedux: true },
-  );
+  render(<FilterScopeSelector {...defaultProps} dashboardFilters={{}} />, {
+    useRedux: true,
+  });
 
   expect(
     screen.getByText('There are no filters in this dashboard.'),
@@ -201,10 +205,9 @@ test('renders only Close button and a warning when no filters exist', () => {
 });
 
 test('does not render FilterFieldTree or FilterScopeTree when no filters exist', () => {
-  render(
-    <FilterScopeSelector {...defaultProps} dashboardFilters={{}} />,
-    { useRedux: true },
-  );
+  render(<FilterScopeSelector {...defaultProps} dashboardFilters={{}} />, {
+    useRedux: true,
+  });
 
   expect(screen.queryByTestId('filter-field-tree')).not.toBeInTheDocument();
   expect(screen.queryByTestId('filter-scope-tree')).not.toBeInTheDocument();
