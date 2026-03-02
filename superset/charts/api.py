@@ -18,7 +18,7 @@
 import logging
 from datetime import datetime
 from io import BytesIO
-from typing import Any, cast, Optional
+from typing import Any, Callable, cast, Optional
 from zipfile import is_zipfile, ZipFile
 
 from flask import redirect, request, Response, send_file, url_for
@@ -319,9 +319,13 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
         log_to_statsd=False,
+        allow_extra_payload=True,
     )
     @requires_json
-    def post(self) -> Response:
+    def post(
+        self,
+        add_extra_log_payload: Callable[..., None] = lambda **kwargs: None,
+    ) -> Response:
         """Create a new chart.
         ---
         post:
@@ -363,6 +367,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response_400(message=error.messages)
         try:
             new_model = CreateChartCommand(item).run()
+            add_extra_log_payload(slice_id=new_model.id)
             return self.response(201, id=new_model.id, result=item)
         except DashboardsForbiddenError as ex:
             return self.response(ex.status, message=ex.message)
@@ -384,9 +389,14 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
         log_to_statsd=False,
+        allow_extra_payload=True,
     )
     @requires_json
-    def put(self, pk: int) -> Response:
+    def put(
+        self,
+        pk: int,
+        add_extra_log_payload: Callable[..., None] = lambda **kwargs: None,
+    ) -> Response:
         """Update a chart.
         ---
         put:
@@ -435,6 +445,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response_400(message=error.messages)
         try:
             changed_model = UpdateChartCommand(pk, item).run()
+            add_extra_log_payload(slice_id=changed_model.id)
             response = self.response(200, id=changed_model.id, result=item)
         except ChartNotFoundError:
             response = self.response_404()
@@ -462,8 +473,13 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete",
         log_to_statsd=False,
+        allow_extra_payload=True,
     )
-    def delete(self, pk: int) -> Response:
+    def delete(
+        self,
+        pk: int,
+        add_extra_log_payload: Callable[..., None] = lambda **kwargs: None,
+    ) -> Response:
         """Delete a chart.
         ---
         delete:
@@ -495,6 +511,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
+            # Capture slice_id before deletion (row gone after DeleteCommand.run())
+            add_extra_log_payload(slice_id=pk)
             DeleteChartCommand([pk]).run()
             return self.response(200, message="OK")
         except ChartNotFoundError:
@@ -518,8 +536,13 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.bulk_delete",
         log_to_statsd=False,
+        allow_extra_payload=True,
     )
-    def bulk_delete(self, **kwargs: Any) -> Response:
+    def bulk_delete(
+        self,
+        add_extra_log_payload: Callable[..., None] = lambda **kwargs: None,
+        **kwargs: Any,
+    ) -> Response:
         """Bulk delete charts.
         ---
         delete:
@@ -554,6 +577,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
         """
         item_ids = kwargs["rison"]
         try:
+            # Store IDs in the json payload column for audit traceability
+            add_extra_log_payload(slice_ids=item_ids)
             DeleteChartCommand(item_ids).run()
             return self.response(
                 200,
