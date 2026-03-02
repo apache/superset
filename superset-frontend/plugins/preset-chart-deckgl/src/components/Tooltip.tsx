@@ -19,7 +19,7 @@
 
 import { safeHtmlSpan } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
-import { ReactNode } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 
 export type TooltipProps = {
   tooltip:
@@ -43,7 +43,7 @@ const StyledDiv = styled.div<{
     top: ${top}px;
     left: ${left}px;
     z-index: 9;
-    pointer-events: none;
+    pointer-events: auto;
     ${
       variant === 'default'
         ? `
@@ -66,7 +66,25 @@ const StyledDiv = styled.div<{
 
 export default function Tooltip(props: TooltipProps) {
   const { tooltip, variant = 'default' } = props;
-  if (typeof tooltip === 'undefined' || tooltip === null) {
+  const [dismissed, setDismissed] = useState(false);
+
+  // Reset dismissed state when tooltip content changes (new hover target)
+  useEffect(() => {
+    setDismissed(false);
+  }, [tooltip?.x, tooltip?.y]);
+
+  // Dismiss on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setDismissed(true);
+    };
+    if (tooltip && !dismissed) {
+      document.addEventListener('keydown', handleKeyDown);
+    }
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [tooltip, dismissed]);
+
+  if (typeof tooltip === 'undefined' || tooltip === null || dismissed) {
     return null;
   }
 

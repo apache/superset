@@ -69,15 +69,21 @@ const CustomPopover: React.FC<Props> = ({
       }
     };
 
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+
     if (isOpen) {
       updatePosition();
       document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleKeyDown);
       window.addEventListener('scroll', updatePosition);
       window.addEventListener('resize', updatePosition);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('scroll', updatePosition);
       window.removeEventListener('resize', updatePosition);
     };
