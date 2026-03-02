@@ -48,7 +48,7 @@ import {
   SunburstChart,
   CustomChart,
 } from 'echarts/charts';
-import { CanvasRenderer } from 'echarts/renderers';
+import { SVGRenderer } from 'echarts/renderers';
 import {
   TooltipComponent,
   TitleComponent,
@@ -85,7 +85,7 @@ const Styles = styled.div<EchartsStylesProps>`
 
 // eslint-disable-next-line react-hooks/rules-of-hooks -- This is ECharts' use function, not a React hook
 use([
-  CanvasRenderer,
+  SVGRenderer,
   BarChart,
   BoxplotChart,
   CustomChart,
