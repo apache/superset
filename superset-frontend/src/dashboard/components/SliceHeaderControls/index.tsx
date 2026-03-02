@@ -67,7 +67,7 @@ const RefreshTooltip = styled.div`
     height: auto;
     margin: ${theme.sizeUnit}px 0;
     color: ${theme.colorTextLabel};
-    line-height: 21px;
+    line-height: 1.5;
     display: flex;
     flex-direction: column;
     align-items: flex-start;
@@ -558,7 +558,8 @@ const SliceHeaderControls = (
     <>
       {isFullSize && (
         <Icons.FullscreenExitOutlined
-          style={{ fontSize: 22 }}
+          style={{ fontSize: theme.fontSizeXL }}
+          aria-label={t('Exit fullscreen')}
           onClick={() => {
             props.handleToggleFullSize();
           }}

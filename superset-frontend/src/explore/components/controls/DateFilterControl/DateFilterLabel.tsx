@@ -79,15 +79,15 @@ const ContentStyleWrapper = styled.div`
 
     .control-label {
       font-size: ${theme.fontSizeSM}px;
-      line-height: 16px;
+      line-height: 1.2;
       margin: 8px 0;
     }
 
     .section-title {
       font-style: normal;
       font-weight: ${theme.fontWeightStrong};
-      font-size: 15px;
-      line-height: 24px;
+      font-size: ${theme.fontSize}px;
+      line-height: 1.5;
       margin-bottom: 8px;
     }
 

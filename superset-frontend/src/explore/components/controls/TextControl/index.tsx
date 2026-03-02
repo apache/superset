@@ -117,6 +117,15 @@ export default class TextControl<
           disabled={this.props.disabled}
           aria-label={this.props.label}
         />
+        {hasErrors && (
+          <span
+            id={errorId}
+            role="alert"
+            style={{ color: 'red', fontSize: 'inherit', display: 'block', marginTop: '4px' }}
+          >
+            {this.props.validationErrors!.join('. ')}
+          </span>
+        )}
       </div>
     );
   }
