@@ -65,7 +65,7 @@ const ControlContainer = styled.div<{
   &:focus > div {
     border-color: ${({ theme }) => theme.colorPrimary};
     box-shadow: ${({ theme }) => `0 0 0 2px ${theme.colorPrimary}`};
-    outline: 0;
+    outline: 2px solid transparent; /* WCAG 2.4.7: transparent outline prevents double-ring; box-shadow provides visible focus */
   }
 `;
 

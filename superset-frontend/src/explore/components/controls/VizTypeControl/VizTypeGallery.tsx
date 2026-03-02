@@ -174,8 +174,9 @@ const SelectorLabel = styled.button`
     position: relative;
     color: ${theme.colorText};
 
-    &:focus {
-      outline: initial;
+    &:focus-visible {
+      outline: 2px solid transparent; /* WCAG 2.4.7: transparent outline prevents double-ring with box-shadow */
+      box-shadow: 0 0 0 2px ${theme.colorPrimary};
     }
 
     &.selected {
@@ -270,7 +271,12 @@ const thumbnailContainerCss = (theme: SupersetTheme) => css`
   cursor: pointer;
   width: ${theme.sizeUnit * THUMBNAIL_GRID_UNITS}px;
   position: relative;
-  outline: none; /* Remove focus outline to show only selected state */
+  outline: 2px solid transparent; /* WCAG 2.4.7: transparent outline prevents double-ring with box-shadow */
+
+  &:focus-visible {
+    box-shadow: 0 0 0 2px ${theme.colorPrimary};
+    border-radius: ${theme.borderRadius}px;
+  }
 
   img {
     min-width: ${theme.sizeUnit * THUMBNAIL_GRID_UNITS}px;
