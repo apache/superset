@@ -8,7 +8,7 @@
     "_init": "cat src/intro_header.txt ../README.md > docs/intro.md",
     "start": "yarn run _init && yarn run generate:all && NODE_OPTIONS='--max-old-space-size=8192' NODE_ENV=development docusaurus start",
     "start:quick": "yarn run _init && NODE_OPTIONS='--max-old-space-size=8192' NODE_ENV=development docusaurus start",
-    "stop": "pkill -f 'docusaurus start' || pkill -f 'docusaurus serve' || echo 'No docusaurus server running'",
+    "stop": "pkill -9 -f 'docusaurus start' || pkill -9 -f 'docusaurus serve' || echo 'No docusaurus server running'",
     "build": "yarn run _init && yarn run generate:all && NODE_OPTIONS='--max-old-space-size=8192' DEBUG=docusaurus:* docusaurus build",
     "generate:api-docs": "python3 scripts/fix-openapi-spec.py && docusaurus gen-api-docs superset && node scripts/convert-api-sidebar.mjs && node scripts/generate-api-index.mjs && node scripts/generate-api-tag-pages.mjs",
     "clean:api-docs": "docusaurus clean-api-docs superset",
@@ -64,10 +64,10 @@
     "@storybook/preview-api": "^8.6.17",
     "@storybook/theming": "^8.6.15",
     "@superset-ui/core": "^0.20.4",
-    "@swc/core": "^1.15.11",
+    "@swc/core": "^1.15.17",
     "antd": "^6.3.1",
     "baseline-browser-mapping": "^2.10.0",
-    "caniuse-lite": "^1.0.30001770",
+    "caniuse-lite": "^1.0.30001774",
     "docusaurus-plugin-openapi-docs": "^4.6.0",
     "docusaurus-theme-openapi-docs": "^4.6.0",
     "js-yaml": "^4.1.1",
@@ -104,7 +104,7 @@
     "prettier": "^3.8.1",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.56.1",
-    "webpack": "^5.105.2"
+    "webpack": "^5.105.3"
   },
   "browserslist": {
     "production": [

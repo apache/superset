@@ -93,9 +93,22 @@ async def generate_explore_link(
     try:
         await ctx.report_progress(1, 3, "Converting configuration to form data")
         with event_logger.log_context(action="mcp.generate_explore_link.form_data"):
+            # Normalize column names to match canonical dataset column names
+            # This fixes case sensitivity issues (e.g., 'order_date' vs 'OrderDate')
+            try:
+                from superset.mcp_service.chart.validation.dataset_validator import (
+                    DatasetValidator,
+                )
+
+                normalized_config = DatasetValidator.normalize_column_names(
+                    request.config, request.dataset_id
+                )
+            except (ImportError, AttributeError, KeyError, ValueError, TypeError):
+                normalized_config = request.config
+
             # Map config to form_data using shared utilities
             form_data = map_config_to_form_data(
-                request.config, dataset_id=request.dataset_id
+                normalized_config, dataset_id=request.dataset_id
             )
 
         # Add datasource to form_data for consistency with generate_chart

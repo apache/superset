@@ -1,0 +1,147 @@
+---
+title: EmptyState
+sidebar_label: EmptyState
+---
+
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+-->
+
+import { StoryWithControls, ComponentGallery } from '../../../src/components/StorybookWrapper';
+
+# EmptyState
+
+The EmptyState component from Superset's UI library.
+
+## All Variants
+
+<ComponentGallery
+  component="EmptyState"
+  sizes={["medium"]}
+  styles={["chart.svg","document.svg","empty-charts.svg","empty-dashboard.svg","empty-dataset.svg","empty-query.svg","empty-table.svg","empty.svg","empty_sql_chart.svg","filter-results.svg","filter.svg","star-circle.svg","union.svg","vector.svg"]}
+  sizeProp="size"
+  styleProp="image"
+/>
+
+## Live Example
+
+<StoryWithControls
+  component="EmptyState"
+  props={{
+  size: "medium",
+  title: "No Data Available",
+  description: "There is no data to display at this time.",
+  image: "empty.svg",
+  buttonText: ""
+}}
+  controls={[
+  {
+    name: "size",
+    label: "Size",
+    type: "select",
+    options: [
+      "small",
+      "medium",
+      "large"
+    ],
+    description: "Size of the empty state component."
+  },
+  {
+    name: "title",
+    label: "Title",
+    type: "text",
+    description: "Main title text."
+  },
+  {
+    name: "description",
+    label: "Description",
+    type: "text",
+    description: "Description text below the title."
+  },
+  {
+    name: "image",
+    label: "Image",
+    type: "select",
+    options: [
+      "chart.svg",
+      "document.svg",
+      "empty-charts.svg",
+      "empty-dashboard.svg",
+      "empty-dataset.svg",
+      "empty-query.svg",
+      "empty-table.svg",
+      "empty.svg",
+      "empty_sql_chart.svg",
+      "filter-results.svg",
+      "filter.svg",
+      "star-circle.svg",
+      "union.svg",
+      "vector.svg"
+    ],
+    description: "Predefined image to display."
+  },
+  {
+    name: "buttonText",
+    label: "Button Text",
+    type: "text",
+    description: "Text for optional action button."
+  }
+]}
+/>
+
+## Try It
+
+Edit the code below to experiment with the component:
+
+```tsx live
+function Demo() {
+  return (
+    <EmptyState
+      size="medium"
+      title="No Results Found"
+      description="Try adjusting your filters or search terms."
+      image="filter.svg"
+      buttonText="Clear Filters"
+      buttonAction={() => alert('Filters cleared!')}
+    />
+  );
+}
+```
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `size` | `string` | `"medium"` | Size of the empty state component. |
+| `title` | `string` | `"No Data Available"` | Main title text. |
+| `description` | `string` | `"There is no data to display at this time."` | Description text below the title. |
+| `image` | `string` | `"empty.svg"` | Predefined image to display. |
+| `buttonText` | `string` | `""` | Text for optional action button. |
+
+## Import
+
+```tsx
+import { EmptyState } from '@superset/components';
+```
+
+---
+
+:::tip[Improve this page]
+This documentation is auto-generated from the component's Storybook story.
+Help improve it by [editing the story file](https://github.com/apache/superset/edit/master/superset-frontend/packages/superset-ui-core/src/components/EmptyState/EmptyState.stories.tsx).
+:::

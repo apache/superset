@@ -548,7 +548,7 @@ Superset to a database is to **install the proper database driver(s)** in your e
 You'll need to install the required packages for the database you want to use as your metadata database
 as well as the packages needed to connect to the databases you want to access through Superset.
 For information about setting up Superset's metadata database, please refer to
-installation documentations ([Docker Compose](/docs/installation/docker-compose), [Kubernetes](/docs/installation/kubernetes))
+installation documentations ([Docker Compose](/admin-docs/installation/docker-compose), [Kubernetes](/admin-docs/installation/kubernetes))
 :::
 
 ## Supported Databases

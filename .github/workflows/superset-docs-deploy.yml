@@ -68,7 +68,7 @@ jobs:
           yarn install --check-cache
       - name: Download database diagnostics (if triggered by integration tests)
         if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'
-        uses: dawidd6/action-download-artifact@v15
+        uses: dawidd6/action-download-artifact@v16
         continue-on-error: true
         with:
           workflow: superset-python-integrationtest.yml
@@ -77,7 +77,7 @@ jobs:
           path: docs/src/data/
       - name: Try to download latest diagnostics (for push/dispatch triggers)
         if: github.event_name != 'workflow_run'
-        uses: dawidd6/action-download-artifact@v15
+        uses: dawidd6/action-download-artifact@v16
         continue-on-error: true
         with:
           workflow: superset-python-integrationtest.yml

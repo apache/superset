@@ -35,8 +35,8 @@ const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const SPEC_PATH = path.join(__dirname, '..', 'static', 'resources', 'openapi.json');
-const SIDEBAR_PATH = path.join(__dirname, '..', 'docs', 'api', 'sidebar.js');
-const OUTPUT_PATH = path.join(__dirname, '..', 'docs', 'api.mdx');
+const SIDEBAR_PATH = path.join(__dirname, '..', 'developer_docs', 'api', 'sidebar.js');
+const OUTPUT_PATH = path.join(__dirname, '..', 'developer_docs', 'api.mdx');
 
 // Category groupings for better organization
 const CATEGORY_GROUPS = {
