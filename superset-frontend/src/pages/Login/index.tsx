@@ -96,15 +96,19 @@ export default function Login() {
   }, []);
 
   const loginEndpoint = useMemo(
-    () => (nextUrl ? `/login/?next=${encodeURIComponent(nextUrl)}` : '/login/'),
+    () =>
+      ensureAppRoot(
+        nextUrl ? `/login/?next=${encodeURIComponent(nextUrl)}` : '/login/',
+      ),
     [nextUrl],
   );
 
   const buildProviderLoginUrl = (providerName: string) => {
-    const base = `/login/${encodeURIComponent(providerName)}`;
-    return ensureAppRoot(
-      nextUrl ? `${base}?next=${encodeURIComponent(nextUrl)}` : base,
-    );
+    const base = `/login/${providerName}`;
+    const url = nextUrl
+      ? `${base}${base.includes('?') ? '&' : '?'}next=${encodeURIComponent(nextUrl)}`
+      : base;
+    return ensureAppRoot(url);
   };
 
   const authType: AuthType = bootstrapData.common.conf.AUTH_TYPE;
