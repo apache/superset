@@ -81,7 +81,7 @@ const StyledEditableTabs = styled(EditableTabs)`
 `;
 
 const StyledTab = styled.span`
-  line-height: 24px;
+  line-height: 1.5;
 `;
 
 const TabTitle = styled.span`

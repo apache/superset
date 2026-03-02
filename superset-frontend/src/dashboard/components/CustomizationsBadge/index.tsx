@@ -83,7 +83,7 @@ const StyledTag = styled(Tag)`
       vertical-align: middle;
       color: ${theme.colorTextSecondary};
       margin-right: ${theme.sizeUnit * 0.5}px;
-      font-size: 12px;
+      font-size: ${theme.fontSizeSM}px;
       &:hover {
         color: ${theme.colorText};
       }

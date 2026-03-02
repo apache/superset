@@ -98,7 +98,7 @@ export default function NumberControl({
         <span
           id={errorId}
           role="alert"
-          style={{ color: 'red', fontSize: '12px', display: 'block', marginTop: '4px' }}
+          style={{ color: 'red', fontSize: 'inherit', display: 'block', marginTop: '4px' }}
         >
           {rest.validationErrors!.join('. ')}
         </span>

@@ -49,7 +49,7 @@ const StyledHeader = styled.div<{ backgroundColor?: string }>`
     text-align: left;
     font-size: 18px;
     display: inline-block;
-    line-height: ${({ theme }) => theme.sizeUnit * 9}px;
+    line-height: 1.5;
   }
   .nav-right {
     display: flex;
@@ -86,7 +86,7 @@ const StyledHeader = styled.div<{ backgroundColor?: string }>`
 
   .menu > .ant-menu {
     padding-left: ${({ theme }) => theme.sizeUnit * 5}px;
-    line-height: ${({ theme }) => theme.sizeUnit * 5}px;
+    line-height: 1.5;
 
     .ant-menu-item {
       border-radius: ${({ theme }) => theme.borderRadius}px;
