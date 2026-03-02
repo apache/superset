@@ -1530,13 +1530,11 @@ class MapLibreViz(MapboxViz):
 
     @deprecated(deprecated_in="3.0")
     def query_obj(self) -> QueryObjectDict:
-        # Remap maplibre_label to mapbox_label for parent class
         self.form_data["mapbox_label"] = self.form_data.get("maplibre_label")
         return super().query_obj()
 
     @deprecated(deprecated_in="3.0")
     def get_data(self, df: pd.DataFrame) -> VizData:
-        # Remap field names for parent class
         self.form_data["mapbox_label"] = self.form_data.get("maplibre_label")
         self.form_data["mapbox_style"] = self.form_data.get("maplibre_style")
         self.form_data["mapbox_color"] = self.form_data.get("maplibre_color")
@@ -2512,7 +2510,6 @@ class DeckArc(BaseDeckGLViz):
         }
 
 
-# MapLibre deck.gl viz types (for preset-chart-deckgl with MapLibre rendering)
 class DeckScatterMaplibre(DeckScatterViz):
     viz_type = "deck_scatter_maplibre"
 
