@@ -92,7 +92,7 @@ function UserInfoModal({
       <FormItem
         name="password"
         label={t('Password')}
-        rules={[{ required: true, message: t('Password is required') }]}
+        rules={[{ required: true, message: t('New password is required (minimum 8 characters)') }]}
       >
         <Input.Password
           name="password"

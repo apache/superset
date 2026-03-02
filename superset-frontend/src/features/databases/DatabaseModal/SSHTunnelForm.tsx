@@ -97,7 +97,7 @@ const SSHTunnelForm = ({
             />
             {fieldError('server_address', db?.ssh_tunnel?.server_address) && (
               <span id="server-address-error" role="alert" style={{ color: 'red', fontSize: 'inherit' }}>
-                {t('SSH Host is required')}
+                {t('SSH Host is required (e.g., 192.168.1.1 or hostname.example.com)')}
               </span>
             )}
           </StyledDiv>
@@ -128,7 +128,7 @@ const SSHTunnelForm = ({
             />
             {fieldError('server_port', db?.ssh_tunnel?.server_port) && (
               <span id="server-port-error" role="alert" style={{ color: 'red', fontSize: 'inherit' }}>
-                {t('SSH Port is required')}
+                {t('SSH Port is required (default: 22)')}
               </span>
             )}
           </StyledDiv>
@@ -160,7 +160,7 @@ const SSHTunnelForm = ({
             />
             {fieldError('username', db?.ssh_tunnel?.username) && (
               <span id="ssh-username-error" role="alert" style={{ color: 'red', fontSize: 'inherit' }}>
-                {t('Username is required')}
+                {t('SSH Username is required')}
               </span>
             )}
           </StyledDiv>

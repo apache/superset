@@ -214,7 +214,7 @@ export default function Login() {
                 label={<StyledLabel>{t('Username:')}</StyledLabel>}
                 name="username"
                 rules={[
-                  { required: true, message: t('Please enter your username') },
+                  { required: true, message: t('Please enter your username. It is case-sensitive.') },
                 ]}
               >
                 <Input
@@ -228,7 +228,7 @@ export default function Login() {
                 label={<StyledLabel>{t('Password:')}</StyledLabel>}
                 name="password"
                 rules={[
-                  { required: true, message: t('Please enter your password') },
+                  { required: true, message: t('Please enter your password. Minimum 8 characters.') },
                 ]}
               >
                 <Input.Password

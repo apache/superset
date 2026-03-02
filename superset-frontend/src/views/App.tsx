@@ -49,6 +49,13 @@ setupAGGridModules();
 
 const bootstrapData = getBootstrapData();
 
+// WCAG 3.1.2: Set the HTML lang attribute based on the current locale
+// so screen readers announce the correct language for the page content.
+// Converts locale formats like "pt_BR" or "de-DE" to BCP-47 primary tag ("pt", "de").
+const locale =
+  bootstrapData.common?.locale || window.navigator.language || 'en';
+document.documentElement.lang = String(locale).split(/[_-]/)[0];
+
 let lastLocationPathname: string;
 
 const boundActions = bindActionCreators({ logEvent }, store.dispatch);
