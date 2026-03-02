@@ -753,6 +753,7 @@ const Header = (): JSX.Element => {
                 className="action-button"
                 css={editButtonStyle}
                 aria-label={t('Edit dashboard')}
+                aria-pressed={editMode}
               >
                 {t('Edit dashboard')}
               </Button>

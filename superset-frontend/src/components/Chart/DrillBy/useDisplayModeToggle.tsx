@@ -47,6 +47,7 @@ export const useDisplayModeToggle = () => {
           ]}
           optionType="button"
           buttonStyle="outline"
+          aria-label={t('Display mode')}
         />
       </div>
     ),
