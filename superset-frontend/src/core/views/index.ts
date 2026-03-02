@@ -24,9 +24,10 @@
  * Extensions register views as side effects at import time.
  */
 
-import { ReactElement } from 'react';
+import React, { ReactElement } from 'react';
 import type { views as viewsApi } from '@apache-superset/core';
-import { getExtensionsContextValue } from 'src/extensions/ExtensionsContextUtils';
+import { ErrorBoundary } from 'src/components/ErrorBoundary';
+import ExtensionPlaceholder from 'src/extensions/ExtensionPlaceholder';
 import { Disposable } from '../models';
 
 type View = viewsApi.View;
@@ -51,18 +52,18 @@ const registerView: typeof viewsApi.registerView = (
   ids.add(id);
   locationIndex.set(location, ids);
 
-  const ctx = getExtensionsContextValue();
-  ctx.registerViewProvider(id, provider);
-
   return new Disposable(() => {
     viewRegistry.delete(id);
     locationIndex.get(location)?.delete(id);
-    try {
-      getExtensionsContextValue().unregisterViewProvider(id);
-    } catch {
-      // Context may already be torn down
-    }
   });
+};
+
+export const resolveView = (id: string): ReactElement => {
+  const provider = viewRegistry.get(id)?.provider;
+  if (!provider) {
+    return React.createElement(ExtensionPlaceholder, { id });
+  }
+  return React.createElement(ErrorBoundary, null, provider());
 };
 
 const getViews: typeof viewsApi.getViews = (

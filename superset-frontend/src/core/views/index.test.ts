@@ -17,33 +17,16 @@
  * under the License.
  */
 import React from 'react';
-import * as ExtensionsContextUtils from 'src/extensions/ExtensionsContextUtils';
-import { views } from './index';
-
-const mockRegisterViewProvider = jest.fn();
-const mockUnregisterViewProvider = jest.fn();
-
-jest
-  .spyOn(ExtensionsContextUtils, 'getExtensionsContextValue')
-  .mockReturnValue({
-    registerViewProvider: mockRegisterViewProvider,
-    unregisterViewProvider: mockUnregisterViewProvider,
-    getView: jest.fn(),
-  });
+import { views, resolveView } from './index';
 
 const disposables: Array<{ dispose: () => void }> = [];
-
-beforeEach(() => {
-  mockRegisterViewProvider.mockClear();
-  mockUnregisterViewProvider.mockClear();
-});
 
 afterEach(() => {
   disposables.forEach(d => d.dispose());
   disposables.length = 0;
 });
 
-test('register stores view metadata and calls registerViewProvider', () => {
+test('register stores view metadata and makes it resolvable', () => {
   const provider = () => React.createElement('div', null, 'Test');
   disposables.push(
     views.registerView(
@@ -53,14 +36,18 @@ test('register stores view metadata and calls registerViewProvider', () => {
     ),
   );
 
-  expect(mockRegisterViewProvider).toHaveBeenCalledWith('test.view', provider);
   expect(views.getViews('sqllab.panels')).toEqual([
     { id: 'test.view', name: 'Test View' },
   ]);
+  expect(resolveView('test.view')).toBeTruthy();
 });
 
 test('getContributions returns undefined for unknown location', () => {
   expect(views.getViews('nonexistent')).toBeUndefined();
+});
+
+test('resolveView returns a placeholder element for unknown id', () => {
+  expect(resolveView('nonexistent.view')).toBeTruthy();
 });
 
 test('multiple views at the same location are returned together', () => {
@@ -122,5 +109,4 @@ test('dispose removes the view registration', () => {
   disposable.dispose();
 
   expect(views.getViews('sqllab.panels')).toBeUndefined();
-  expect(mockUnregisterViewProvider).toHaveBeenCalledWith('test.view');
 });

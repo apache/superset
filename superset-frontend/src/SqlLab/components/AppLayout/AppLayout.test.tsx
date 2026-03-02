@@ -20,7 +20,6 @@ import React from 'react';
 import { render, userEvent, waitFor } from 'spec/helpers/testing-library';
 import { initialState } from 'src/SqlLab/fixtures';
 import useStoredSidebarWidth from 'src/components/ResizableSidebar/useStoredSidebarWidth';
-import * as ExtensionsContextUtils from 'src/extensions/ExtensionsContextUtils';
 import { views } from 'src/core';
 import { ViewLocations } from 'src/SqlLab/contributions';
 import AppLayout from './index';
@@ -54,17 +53,6 @@ jest.mock('@superset-ui/core/components/Grid', () => ({
   ...jest.requireActual('@superset-ui/core/components/Grid'),
   useBreakpoint: jest.fn().mockReturnValue(true),
 }));
-
-const mockRegisterViewProvider = jest.fn();
-const mockUnregisterViewProvider = jest.fn();
-
-jest
-  .spyOn(ExtensionsContextUtils, 'getExtensionsContextValue')
-  .mockReturnValue({
-    registerViewProvider: mockRegisterViewProvider,
-    unregisterViewProvider: mockUnregisterViewProvider,
-    getView: jest.fn(),
-  });
 
 const defaultProps = {
   children: <div>Child</div>,

@@ -32,7 +32,6 @@ import {
 } from 'src/core';
 import { useSelector } from 'react-redux';
 import { RootState } from 'src/views/store';
-import { useExtensionsContext } from './ExtensionsContext';
 import ExtensionsLoader from './ExtensionsLoader';
 
 declare global {
@@ -53,10 +52,6 @@ declare global {
 const ExtensionsStartup: React.FC<{ children?: React.ReactNode }> = ({
   children,
 }) => {
-  // Initialize the extensions context before initializing extensions
-  // This is a prerequisite for the ExtensionsManager to work correctly
-  useExtensionsContext();
-
   const [initialized, setInitialized] = useState(false);
 
   const userId = useSelector<RootState, number | undefined>(

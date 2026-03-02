@@ -30,8 +30,8 @@ import { Icons } from '@superset-ui/core/components/Icons';
 import { SqlLabRootState } from 'src/SqlLab/types';
 import { ViewLocations } from 'src/SqlLab/contributions';
 import PanelToolbar from 'src/components/PanelToolbar';
-import { useExtensionsContext } from 'src/extensions/ExtensionsContext';
 import { views } from 'src/core';
+import { resolveView } from 'src/core/views';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import useLogAction from 'src/logger/useLogAction';
 import { LOG_ACTIONS_SQLLAB_SWITCH_SOUTH_PANE_TAB } from 'src/logger/LogUtils';
@@ -105,7 +105,6 @@ const SouthPane = ({
   const theme = useTheme();
   const dispatch = useDispatch();
   const viewItems = views.getViews(ViewLocations.sqllab.panels) || [];
-  const { getView } = useExtensionsContext();
   const { offline, tables } = useSelector(
     ({ sqlLab: { offline, tables } }: SqlLabRootState) => ({
       offline,
@@ -221,7 +220,7 @@ const SouthPane = ({
           `}
         >
           <PanelToolbar viewId={view.id} />
-          {getView(view.id)}
+          {resolveView(view.id)}
         </div>
       ),
       forceRender: true,
