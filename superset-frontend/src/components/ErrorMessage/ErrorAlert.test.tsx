@@ -131,3 +131,64 @@ test('ErrorAlert renders an exclamation-circle icon for error type in compact mo
     container.querySelector('[aria-label="exclamation-circle"]'),
   ).toBeInTheDocument();
 });
+
+// WCAG 3.3.1 - Error Identification accessibility tests
+test('ErrorAlert has role="alert" for screen reader announcement', () => {
+  render(
+    <ErrorAlert
+      errorType="Error"
+      message="Something went wrong"
+      type="error"
+    />,
+  );
+  expect(screen.getByRole('alert')).toBeInTheDocument();
+});
+
+test('ErrorAlert has aria-atomic="true" so the entire message is read as a unit', () => {
+  render(
+    <ErrorAlert
+      errorType="Error"
+      message="Something went wrong"
+      type="error"
+    />,
+  );
+  expect(screen.getByRole('alert')).toHaveAttribute('aria-atomic', 'true');
+});
+
+test('ErrorAlert alert region contains the error type text', () => {
+  render(
+    <ErrorAlert
+      errorType="Error"
+      message="Something went wrong"
+      type="error"
+    />,
+  );
+  const alertElement = screen.getByRole('alert');
+  expect(alertElement).toHaveTextContent('Error');
+  expect(alertElement).toHaveTextContent('Something went wrong');
+});
+
+test('ErrorAlert uses assertive aria-live for error type', () => {
+  render(
+    <ErrorAlert
+      errorType="Error"
+      message="Critical failure"
+      type="error"
+    />,
+  );
+  expect(screen.getByRole('alert')).toHaveAttribute(
+    'aria-live',
+    'assertive',
+  );
+});
+
+test('ErrorAlert uses polite aria-live for warning type', () => {
+  render(
+    <ErrorAlert
+      errorType="Warning"
+      message="Be careful"
+      type="warning"
+    />,
+  );
+  expect(screen.getByRole('alert')).toHaveAttribute('aria-live', 'polite');
+});
