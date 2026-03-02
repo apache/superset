@@ -44,7 +44,8 @@ const StyledSkipLink = styled.a`
   &:focus,
   &:focus-visible {
     top: 0 !important;
-    outline: 3px solid ${({ theme }) => theme.colorPrimaryBorderHover};
+    /* WCAG 1.4.11: Focus outline needs 3:1 — use colorPrimary (~4.68:1 on white) */
+    outline: 3px solid ${({ theme }) => theme.colorPrimary};
     outline-offset: 2px;
   }
 
