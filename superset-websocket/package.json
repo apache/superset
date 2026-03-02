@@ -19,7 +19,7 @@
   "dependencies": {
     "cookie": "^1.1.1",
     "hot-shots": "^14.1.1",
-    "ioredis": "^5.9.3",
+    "ioredis": "^5.10.0",
     "jsonwebtoken": "^9.0.3",
     "lodash": "^4.17.23",
     "winston": "^3.19.0",
