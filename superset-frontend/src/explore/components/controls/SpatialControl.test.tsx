@@ -22,7 +22,15 @@ import SpatialControl from 'src/explore/components/controls/SpatialControl';
 
 jest.mock('src/explore/components/controls/SelectControl', () => ({
   __esModule: true,
-  default: ({ name, value, ariaLabel }: { name: string; value: string; ariaLabel: string }) => (
+  default: ({
+    name,
+    value,
+    ariaLabel,
+  }: {
+    name: string;
+    value: string;
+    ariaLabel: string;
+  }) => (
     <div data-test={`select-${name}`} aria-label={ariaLabel}>
       {value}
     </div>
