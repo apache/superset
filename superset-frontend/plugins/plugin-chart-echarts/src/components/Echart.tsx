@@ -260,12 +260,26 @@ function Echart(
           }
         : {};
 
+      // WCAG: Enable ECharts built-in aria module for screen-reader descriptions
+      const ariaOptions = {
+        aria: {
+          enabled: true,
+          decal: { show: false }, // visual patterns handled separately by color
+          label: {
+            enabled: true,
+            description:
+              (echartOptions as any).title?.text || 'Chart data',
+          },
+        },
+      };
+
       const themedEchartOptions = mergeReplaceArrays(
         baseTheme,
         echartOptions,
         globalOverrides,
         chartOverrides,
         animationOverride,
+        ariaOptions,
       );
 
       const notMerge = !isDashboardRefreshing;
@@ -305,7 +319,18 @@ function Echart(
     handleSizeChange({ width, height });
   }, [width, height, handleSizeChange]);
 
-  return <Styles ref={divRef} height={height} width={width} />;
+  const chartLabel =
+    (echartOptions as any).title?.text || 'Data visualization';
+
+  return (
+    <Styles
+      ref={divRef}
+      height={height}
+      width={width}
+      role="img"
+      aria-label={chartLabel}
+    />
+  );
 }
 
 export default forwardRef(Echart);
