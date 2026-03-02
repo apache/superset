@@ -79,6 +79,7 @@ const SSHTunnelForm = ({
             <Input
               name="server_address"
               type="text"
+              autoComplete="off"
               placeholder={t('e.g. 127.0.0.1')}
               value={db?.ssh_tunnel?.server_address || ''}
               onChange={onSSHTunnelParametersChange}
@@ -110,6 +111,7 @@ const SSHTunnelForm = ({
               name="server_port"
               placeholder={t('22')}
               type="number"
+              autoComplete="off"
               value={db?.ssh_tunnel?.server_port}
               onChange={onSSHTunnelParametersChange}
               onBlur={() => markBlurred('server_port')}
@@ -141,6 +143,7 @@ const SSHTunnelForm = ({
             <Input
               name="username"
               type="text"
+              autoComplete="off"
               placeholder={t('e.g. Analytics')}
               value={db?.ssh_tunnel?.username || ''}
               onChange={onSSHTunnelParametersChange}
@@ -202,6 +205,7 @@ const SSHTunnelForm = ({
               </FormLabel>
               <StyledInputPassword
                 name="password"
+                autoComplete="off"
                 placeholder={t('e.g. ********')}
                 value={db?.ssh_tunnel?.password || ''}
                 onChange={onSSHTunnelParametersChange}
@@ -233,6 +237,7 @@ const SSHTunnelForm = ({
                 </FormLabel>
                 <Input.TextArea
                   name="private_key"
+                  autoComplete="off"
                   placeholder={t('Paste Private Key here')}
                   value={db?.ssh_tunnel?.private_key || ''}
                   onChange={onSSHTunnelParametersChange}
@@ -250,6 +255,7 @@ const SSHTunnelForm = ({
                 </FormLabel>
                 <StyledInputPassword
                   name="private_key_password"
+                  autoComplete="off"
                   placeholder={t('e.g. ********')}
                   value={db?.ssh_tunnel?.private_key_password || ''}
                   onChange={onSSHTunnelParametersChange}
