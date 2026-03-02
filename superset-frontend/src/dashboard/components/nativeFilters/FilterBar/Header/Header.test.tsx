@@ -53,3 +53,21 @@ test('should toggle', () => {
   userEvent.click(expandBtn);
   expect(mockedProps.toggleFiltersBar).toHaveBeenCalled();
 });
+
+test('collapse button should have aria-expanded attribute', () => {
+  const mockedProps = createProps();
+  render(<Header {...mockedProps} />, { useRedux: true });
+  const collapseBtn = screen.getByRole('button', {
+    name: 'vertical-align',
+  });
+  expect(collapseBtn).toHaveAttribute('aria-expanded', 'true');
+});
+
+test('collapse button should have aria-label for accessibility', () => {
+  const mockedProps = createProps();
+  render(<Header {...mockedProps} />, { useRedux: true });
+  const collapseBtn = screen.getByRole('button', {
+    name: 'vertical-align',
+  });
+  expect(collapseBtn).toHaveAttribute('aria-label', 'Collapse filters');
+});

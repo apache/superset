@@ -574,6 +574,18 @@ test('should toggle the edit mode', () => {
   expect(logEvent).toHaveBeenCalled();
 });
 
+test('edit dashboard button should have aria-pressed attribute', () => {
+  const canEditState = {
+    dashboardInfo: {
+      ...initialState.dashboardInfo,
+      dash_edit_perm: true,
+    },
+  };
+  setup(canEditState);
+  const editButton = screen.getByTestId('edit-dashboard-button');
+  expect(editButton).toHaveAttribute('aria-pressed', 'false');
+});
+
 test('should render the dropdown icon', () => {
   setup();
   expect(screen.getByRole('img', { name: 'ellipsis' })).toBeInTheDocument();
@@ -665,6 +677,37 @@ test('resume clears tab pause flag', () => {
 
   expect(setPaused).toHaveBeenCalledWith(false);
   expect(setPausedByTab).toHaveBeenCalledWith(false);
+});
+
+test('auto-refresh toggle should have aria-pressed reflecting paused state', () => {
+  useRealTimeDashboardMock.mockReturnValue({
+    isRealTimeDashboard: true,
+    isPaused: true,
+    isPausedByTab: false,
+    effectiveStatus: AutoRefreshStatus.Paused,
+    lastSuccessfulRefresh: null,
+    lastAutoRefreshTime: null,
+    refreshErrorCount: 0,
+    refreshFrequency: 10,
+    setStatus,
+    setPaused,
+    setPausedByTab,
+    recordSuccess,
+    recordError,
+    setFetchStartTime,
+    autoRefreshPauseOnInactiveTab: false,
+    setPauseOnInactiveTab: jest.fn(),
+  });
+
+  setup({
+    dashboardState: {
+      ...initialState.dashboardState,
+      refreshFrequency: 10,
+    },
+  });
+
+  const toggleButton = screen.getByTestId('auto-refresh-toggle');
+  expect(toggleButton).toHaveAttribute('aria-pressed', 'true');
 });
 
 test('should render an extension component if one is supplied', () => {

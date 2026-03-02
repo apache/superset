@@ -124,6 +124,7 @@ export const AutoRefreshIndicator: FC<AutoRefreshIndicatorProps> = ({
           css={iconButtonStyles}
           onClick={onTogglePause}
           aria-label={tooltipTitle}
+          aria-pressed={isPaused}
           data-test="auto-refresh-toggle"
         >
           {isPaused ? (
