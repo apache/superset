@@ -227,11 +227,13 @@ function Echart(
             label: { color: antdTheme.colorText },
           },
         } as any;
+        // WCAG 1.4.11: Non-text contrast — axis/grid lines need 3:1 against chart background
+        // colorSplit (~#f0f0f0) only has ~1.04:1 on white — replaced with colorTextTertiary (~3.5:1)
         if (options?.xAxis) {
           echartsTheme.xAxis = {
-            axisLine: { lineStyle: { color: antdTheme.colorSplit } },
+            axisLine: { lineStyle: { color: antdTheme.colorTextTertiary } },
             axisLabel: { color: antdTheme.colorTextSecondary },
-            splitLine: { lineStyle: { color: antdTheme.colorSplit } },
+            splitLine: { lineStyle: { color: antdTheme.colorTextTertiary } },
             minorSplitLine: {
               lineStyle: { color: antdTheme.colorBorderSecondary },
             },
@@ -239,9 +241,9 @@ function Echart(
         }
         if (options?.yAxis) {
           echartsTheme.yAxis = {
-            axisLine: { lineStyle: { color: antdTheme.colorSplit } },
+            axisLine: { lineStyle: { color: antdTheme.colorTextTertiary } },
             axisLabel: { color: antdTheme.colorTextSecondary },
-            splitLine: { lineStyle: { color: antdTheme.colorSplit } },
+            splitLine: { lineStyle: { color: antdTheme.colorTextTertiary } },
             minorSplitLine: {
               lineStyle: { color: antdTheme.colorBorderSecondary },
             },

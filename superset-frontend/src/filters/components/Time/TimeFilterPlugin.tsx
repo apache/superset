@@ -60,9 +60,11 @@ const ControlContainer = styled.div<{
     width: 100%;
   }
 
+  /* WCAG 1.4.11: Focus indicator needs 3:1 contrast — controlOutline is too light (low alpha).
+     Use colorPrimary for both border and shadow to ensure 3:1+ contrast. */
   &:focus > div {
     border-color: ${({ theme }) => theme.colorPrimary};
-    box-shadow: ${({ theme }) => `0 0 0 2px ${theme.controlOutline}`};
+    box-shadow: ${({ theme }) => `0 0 0 2px ${theme.colorPrimary}`};
     outline: 0;
   }
 `;
