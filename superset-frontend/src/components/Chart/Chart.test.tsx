@@ -71,6 +71,38 @@ test('shows backend error instead of loading spinner when datasource is still a 
   ).toBeInTheDocument();
 });
 
+test('chart container has role="img" and aria-label with vizType when no slice_name', () => {
+  render(
+    <Chart
+      {...baseProps}
+      chartStatus="success"
+      queriesResponse={[{ data: [{ value: 1 }] }]}
+    />,
+  );
+
+  const container = screen.getByRole('img');
+  expect(container).toBeInTheDocument();
+  expect(container).toHaveAttribute('aria-label', 'table chart');
+});
+
+test('chart container aria-label includes slice_name when provided', () => {
+  render(
+    <Chart
+      {...baseProps}
+      formData={{ datasource: '1__table', viz_type: 'pie', slice_name: 'Revenue by Region' } as any}
+      vizType="pie"
+      chartStatus="success"
+      queriesResponse={[{ data: [{ value: 1 }] }]}
+    />,
+  );
+
+  const container = screen.getByRole('img');
+  expect(container).toHaveAttribute(
+    'aria-label',
+    'Revenue by Region \u2014 pie chart',
+  );
+});
+
 test('shows loading spinner for client-side errors without errors array when datasource is still a placeholder', () => {
   render(
     <Chart

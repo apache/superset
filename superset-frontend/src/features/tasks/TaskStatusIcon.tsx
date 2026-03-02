@@ -18,7 +18,7 @@
  */
 
 import React from 'react';
-import { useTheme, SupersetTheme, t } from '@apache-superset/core/ui';
+import { useTheme, SupersetTheme, t, css } from '@apache-superset/core/ui';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Tooltip } from '@superset-ui/core/components';
 import { TaskStatus } from './types';
@@ -138,7 +138,23 @@ export default function TaskStatusIcon({
           iconSize="l"
           iconColor={getStatusColor(status, theme)}
           spin={shouldSpin}
+          aria-hidden="true"
         />
+        <span
+          css={css`
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+          `}
+        >
+          {label}
+        </span>
       </span>
     </Tooltip>
   );
