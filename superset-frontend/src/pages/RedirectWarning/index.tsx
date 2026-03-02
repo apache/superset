@@ -28,12 +28,7 @@ import {
   Typography,
 } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
-import {
-  getTargetUrl,
-  isUrlTrusted,
-  trustUrl,
-  isAllowedScheme,
-} from './utils';
+import { getTargetUrl, isUrlTrusted, trustUrl, isAllowedScheme } from './utils';
 
 const PageContainer = styled(Flex)`
   ${({ theme }) => css`

@@ -32,13 +32,13 @@ class TestRedirectView(SupersetTestCase):
     @with_config(REDIRECT_CONFIG)
     def test_missing_url_returns_400(self):
         resp = self.client.get("/redirect/")
-        self.assertEqual(resp.status_code, 400)
+        assert resp.status_code == 400
 
     @with_feature_flags(ALERT_REPORTS=True)
     @with_config(REDIRECT_CONFIG)
     def test_dangerous_scheme_returns_400(self):
         resp = self.client.get("/redirect/?url=javascript:alert(1)")
-        self.assertEqual(resp.status_code, 400)
+        assert resp.status_code == 400
 
     @with_feature_flags(ALERT_REPORTS=True)
     @with_config(REDIRECT_CONFIG)
@@ -47,11 +47,8 @@ class TestRedirectView(SupersetTestCase):
             "/redirect/?url=http://localhost:8088/dashboard/1",
             follow_redirects=False,
         )
-        self.assertEqual(resp.status_code, 302)
-        self.assertEqual(
-            resp.headers["Location"],
-            "http://localhost:8088/dashboard/1",
-        )
+        assert resp.status_code == 302
+        assert resp.headers["Location"] == "http://localhost:8088/dashboard/1"
 
     @with_feature_flags(ALERT_REPORTS=True)
     @with_config(REDIRECT_CONFIG)
@@ -59,11 +56,11 @@ class TestRedirectView(SupersetTestCase):
         resp = self.client.get(
             "/redirect/?url=https://external.com/page",
         )
-        self.assertEqual(resp.status_code, 200)
+        assert resp.status_code == 200
 
     @with_feature_flags(ALERT_REPORTS=False)
     def test_feature_flag_disabled_returns_404(self):
         resp = self.client.get(
             "/redirect/?url=https://external.com",
         )
-        self.assertEqual(resp.status_code, 404)
+        assert resp.status_code == 404
