@@ -757,7 +757,7 @@ THEME_DEFAULT: Theme = {"algorithm": "default"}
 
 # Dark theme configuration
 # Applied when user selects dark mode
-THEME_DARK: Theme = {"algorithm": "dark"}
+THEME_DARK = None
 
 # Theme behavior and user preference settings
 # To force a single theme on all users, set THEME_DARK = None
