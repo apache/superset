@@ -24,6 +24,7 @@ via the React ``RedirectWarning`` page.
 """
 
 import logging
+from urllib.parse import urlparse
 
 from flask import abort, redirect, request
 from flask_appbuilder import expose
@@ -36,7 +37,7 @@ from superset.views.base import BaseSupersetView
 logger = logging.getLogger(__name__)
 
 DANGEROUS_SCHEMES: frozenset[str] = frozenset(
-    ("javascript:", "data:", "vbscript:", "file:")
+    ("javascript", "data", "vbscript", "file")
 )
 
 
@@ -61,8 +62,9 @@ class RedirectView(BaseSupersetView):
         if not target_url:
             abort(400, description="Missing URL parameter")
 
-        # Block dangerous schemes (check the decoded value)
-        if target_url.lower().startswith(tuple(DANGEROUS_SCHEMES)):
+        # Block dangerous schemes using urlparse for robust detection
+        parsed = urlparse(target_url)
+        if parsed.scheme.lower() in DANGEROUS_SCHEMES:
             logger.warning("Blocked dangerous URL scheme: %s", target_url[:80])
             abort(400, description="Invalid URL scheme")
 
