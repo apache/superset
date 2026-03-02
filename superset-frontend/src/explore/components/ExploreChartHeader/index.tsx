@@ -33,7 +33,7 @@ import {
   MatrixifyFormData,
 } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
-import { css, SupersetTheme } from '@apache-superset/core/theme';
+import { css, styled, SupersetTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import { Icons } from '@superset-ui/core/components/Icons';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
@@ -83,6 +83,18 @@ export interface ExploreChartHeaderProps {
   metadata?: ExplorePageInitialData['metadata'];
   isSaveModalVisible?: boolean;
 }
+
+const SrOnlyH1 = styled.h1`
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+`;
 
 const saveButtonStyles = (theme: SupersetTheme) => css`
   color: ${theme.colorPrimaryText};
@@ -272,6 +284,7 @@ export const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
 
   return (
     <>
+      <SrOnlyH1>{sliceName || t('Explore chart')}</SrOnlyH1>
       <PageHeaderWithActions
         editableTitleProps={{
           title: sliceName ?? '',
