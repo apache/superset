@@ -37,7 +37,7 @@ from superset.commands.dashboard.permalink.create import CreateDashboardPermalin
 from superset.exceptions import LockAlreadyHeldException
 from superset.daos.dashboard import DashboardDAO
 from superset.models.dashboard import Dashboard
-from superset.models.core import FavStar, FavStarClassName
+from superset.models.core import FavStar, FavStarClassName, Log
 from superset.reports.models import ReportSchedule, ReportScheduleType
 from superset.models.slice import Slice
 from superset.subjects.models import Subject
@@ -1650,6 +1650,16 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         model = db.session.query(Dashboard).get(dashboard_id)
         assert model is None
 
+        # Verify audit log
+        log = (
+            db.session.query(Log)
+            .filter_by(action="DashboardRestApi.delete", dashboard_id=dashboard_id)
+            .order_by(Log.dttm.desc())
+            .first()
+        )
+        assert log is not None
+        assert log.dashboard_id == dashboard_id
+
     def test_delete_bulk_dashboards(self):
         """
         Dashboard API: Test delete bulk
@@ -2421,6 +2431,16 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert saved_metadata["stagger_time"] == 500
         assert saved_metadata["timed_refresh_immune_slices"] == [1, 2]
         assert saved_metadata["async_mode"] == "force_off"
+
+        # Verify audit log
+        log = (
+            db.session.query(Log)
+            .filter_by(action="DashboardRestApi.put", dashboard_id=dashboard_id)
+            .order_by(Log.dttm.desc())
+            .first()
+        )
+        assert log is not None
+        assert log.dashboard_id == dashboard_id
 
         db.session.delete(model)
         db.session.commit()

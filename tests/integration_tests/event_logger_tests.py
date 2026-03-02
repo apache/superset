@@ -449,9 +449,7 @@ class TestMutationEndpointAuditIds(unittest.TestCase):
     def test_dashboard_delete_logs_dashboard_id(self, mock_log):
         """DashboardRestApi.delete must populate dashboard_id in log."""
         logger = DBEventLogger()
-        endpoint = self._make_wrapped(
-            logger, "DashboardRestApi.delete", "dashboard_id"
-        )
+        endpoint = self._make_wrapped(logger, "DashboardRestApi.delete", "dashboard_id")
 
         with app.test_request_context("/api/v1/dashboard/42"):
             endpoint()  # pylint: disable=no-value-for-parameter
@@ -463,9 +461,7 @@ class TestMutationEndpointAuditIds(unittest.TestCase):
     def test_dashboard_post_logs_dashboard_id(self, mock_log):
         """DashboardRestApi.post must populate dashboard_id in log after creation."""
         logger = DBEventLogger()
-        endpoint = self._make_wrapped(
-            logger, "DashboardRestApi.post", "dashboard_id"
-        )
+        endpoint = self._make_wrapped(logger, "DashboardRestApi.post", "dashboard_id")
 
         with app.test_request_context("/api/v1/dashboard/"):
             endpoint()  # pylint: disable=no-value-for-parameter
