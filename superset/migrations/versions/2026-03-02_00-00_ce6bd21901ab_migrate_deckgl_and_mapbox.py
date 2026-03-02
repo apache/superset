@@ -24,6 +24,7 @@ Create Date: 2026-03-02 00:00:00.000000
 
 import copy
 import logging
+import re
 from typing import Any
 
 from alembic import op
@@ -47,6 +48,16 @@ down_revision = "4b2a8c9d3e1f"
 
 class PassThroughMigrateViz(MigrateViz):
     has_x_axis_control = False
+
+    def _pre_action(self) -> None:
+        style = self.data.get("mapbox_style")
+        if isinstance(style, str):
+            if re.match(r"^mapbox://styles/mapbox/dark-v\d+$", style):
+                self.data["mapbox_style"] = "https://tiles.openfreemap.org/styles/dark"
+            elif re.match(r"^mapbox://styles/mapbox/streets-v\d+$", style):
+                self.data["mapbox_style"] = (
+                    "https://tiles.openfreemap.org/styles/liberty"
+                )
 
     @classmethod
     def upgrade_slice(cls, slc: Slice) -> None:
