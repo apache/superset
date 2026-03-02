@@ -28,7 +28,7 @@ import {
 } from '@superset-ui/core/components';
 import ProgressBar from '@superset-ui/core/components/ProgressBar';
 import { t } from '@apache-superset/core';
-import { QueryResponse, QueryState } from '@superset-ui/core';
+import { QueryResponse } from '@superset-ui/core';
 import { useTheme } from '@apache-superset/core/ui';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 
@@ -48,10 +48,11 @@ import ResultSet from '../ResultSet';
 import HighlightedSql from '../HighlightedSql';
 import { StaticPosition, StyledTooltip, ModalResultSetWrapper } from './styles';
 
-interface QueryTableQuery extends Omit<
-  QueryResponse,
-  'state' | 'sql' | 'progress' | 'results' | 'duration' | 'started'
-> {
+interface QueryTableQuery
+  extends Omit<
+    QueryResponse,
+    'state' | 'sql' | 'progress' | 'results' | 'duration' | 'started'
+  > {
   state?: Record<string, any>;
   sql?: Record<string, any>;
   progress?: Record<string, any>;
@@ -397,24 +398,12 @@ const QueryTable = ({
         modalBody={
           selectedQuery ? (
             <ModalResultSetWrapper>
-              {(() => {
-                const height =
-                  reduxQueries[selectedQuery.id]?.state ===
-                    QueryState.Success &&
-                  reduxQueries[selectedQuery.id]?.results
-                    ? Math.floor(window.innerHeight * 0.5)
-                    : undefined;
-                return (
-                  <ResultSet
-                    showSql
-                    queryId={selectedQuery.id}
-                    displayLimit={displayLimit}
-                    defaultQueryLimit={1000}
-                    useFixedHeight
-                    height={height}
-                  />
-                );
-              })()}
+              <ResultSet
+                showSql
+                queryId={selectedQuery.id}
+                displayLimit={displayLimit}
+                defaultQueryLimit={1000}
+              />
             </ModalResultSetWrapper>
           ) : null
         }
