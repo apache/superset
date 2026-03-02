@@ -1110,7 +1110,7 @@ class DelimitedListField(fields.List):
 
 class BaseUploadFilePostSchemaMixin(Schema):
     @validates("file")
-    def validate_file_extension(self, file: FileStorage) -> None:
+    def validate_file_extension(self, file: FileStorage, **kwargs: Any) -> None:
         allowed_extensions = current_app.config["ALLOWED_EXTENSIONS"]
         file_suffix = Path(file.filename).suffix
         if not file_suffix:
