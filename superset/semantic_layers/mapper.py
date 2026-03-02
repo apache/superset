@@ -29,6 +29,7 @@ from time import time
 from typing import Any, cast, Sequence, TypeGuard
 
 import numpy as np
+import pyarrow as pa
 from superset_core.semantic_layers.semantic_view import SemanticViewFeature
 from superset_core.semantic_layers.types import (
     AdhocExpression,
@@ -133,20 +134,16 @@ def get_results(query_object: QueryObject) -> QueryResult:
         group_limit=main_query.group_limit,
     )
 
-    main_df = main_result.results
+    main_df = main_result.results.to_pandas()
 
     # Collect all requests (SQL queries, HTTP requests, etc.) for troubleshooting
     all_requests = list(main_result.requests)
 
     # If no time offsets, return the main result as-is
     if not query_object.time_offsets or len(queries) <= 1:
-        semantic_result = SemanticResult(
-            requests=all_requests,
-            results=main_df,
-        )
         duration = timedelta(seconds=time() - start_time)
         return map_semantic_result_to_query_result(
-            semantic_result,
+            main_result,
             query_object,
             duration,
         )
@@ -179,7 +176,7 @@ def get_results(query_object: QueryObject) -> QueryResult:
         # Add this query's requests to the collection
         all_requests.extend(result.requests)
 
-        offset_df = result.results
+        offset_df = result.results.to_pandas()
 
         # Handle empty results - add NaN columns directly instead of merging
         # This avoids dtype mismatch issues with empty DataFrames
@@ -218,7 +215,10 @@ def get_results(query_object: QueryObject) -> QueryResult:
                 main_df = main_df.drop(columns=duplicate_cols)
 
     # Convert final result to QueryResult
-    semantic_result = SemanticResult(requests=all_requests, results=main_df)
+    semantic_result = SemanticResult(
+        requests=all_requests,
+        results=pa.Table.from_pandas(main_df),
+    )
     duration = timedelta(seconds=time() - start_time)
     return map_semantic_result_to_query_result(
         semantic_result,
@@ -250,7 +250,7 @@ def map_semantic_result_to_query_result(
 
     return QueryResult(
         # Core data
-        df=semantic_result.results,
+        df=semantic_result.results.to_pandas(),
         query=query_str,
         duration=duration,
         # Template filters - not applicable to semantic layers
