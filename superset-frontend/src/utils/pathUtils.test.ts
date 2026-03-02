@@ -159,6 +159,13 @@ test('makeUrl should handle URLs with anchors', async () => {
   );
 });
 
+// Representative URLs used across the absolute-URL passthrough tests below.
+const HTTPS_URL = 'https://external.example.com';
+const HTTP_URL = 'http://external.example.com';
+const PROTOCOL_RELATIVE_URL = '//external.example.com';
+const FTP_URL = 'ftp://files.example.com/data';
+const MAILTO_URL = 'mailto:user@example.com';
+
 // Sets up bootstrap data and returns a fresh pathUtils module instance.
 // Passing appRoot='' (default) simulates no subdirectory deployment.
 async function loadPathUtils(appRoot = '') {
@@ -172,54 +179,34 @@ async function loadPathUtils(appRoot = '') {
 test('ensureAppRoot should preserve absolute and protocol-relative URLs unchanged with default root', async () => {
   const { ensureAppRoot } = await loadPathUtils();
 
-  expect(ensureAppRoot('https://external.example.com')).toBe(
-    'https://external.example.com',
-  );
-  expect(ensureAppRoot('http://external.example.com')).toBe(
-    'http://external.example.com',
-  );
-  expect(ensureAppRoot('//external.example.com')).toBe(
-    '//external.example.com',
-  );
+  expect(ensureAppRoot(HTTPS_URL)).toBe(HTTPS_URL);
+  expect(ensureAppRoot(HTTP_URL)).toBe(HTTP_URL);
+  expect(ensureAppRoot(PROTOCOL_RELATIVE_URL)).toBe(PROTOCOL_RELATIVE_URL);
 });
 
 test('ensureAppRoot should preserve absolute URLs unchanged with custom subdirectory', async () => {
   const { ensureAppRoot } = await loadPathUtils('/superset/');
 
-  expect(ensureAppRoot('https://external.example.com')).toBe(
-    'https://external.example.com',
-  );
-  expect(ensureAppRoot('http://external.example.com')).toBe(
-    'http://external.example.com',
-  );
+  expect(ensureAppRoot(HTTPS_URL)).toBe(HTTPS_URL);
+  expect(ensureAppRoot(HTTP_URL)).toBe(HTTP_URL);
   // Non-http absolute schemes: implementation must not rely on http/https check alone
-  expect(ensureAppRoot('ftp://files.example.com/data')).toBe(
-    'ftp://files.example.com/data',
-  );
-  expect(ensureAppRoot('mailto:user@example.com')).toBe(
-    'mailto:user@example.com',
-  );
+  expect(ensureAppRoot(FTP_URL)).toBe(FTP_URL);
+  expect(ensureAppRoot(MAILTO_URL)).toBe(MAILTO_URL);
 });
 
 test('ensureAppRoot should preserve protocol-relative URLs unchanged', async () => {
   const { ensureAppRoot } = await loadPathUtils('/superset/');
 
-  expect(ensureAppRoot('//external.example.com')).toBe(
-    '//external.example.com',
-  );
+  expect(ensureAppRoot(PROTOCOL_RELATIVE_URL)).toBe(PROTOCOL_RELATIVE_URL);
 });
 
 test('makeUrl should preserve absolute and protocol-relative URLs unchanged', async () => {
   const { makeUrl } = await loadPathUtils('/superset/');
 
-  expect(makeUrl('https://external.example.com')).toBe(
-    'https://external.example.com',
-  );
-  expect(makeUrl('//external.example.com')).toBe('//external.example.com');
+  expect(makeUrl(HTTPS_URL)).toBe(HTTPS_URL);
+  expect(makeUrl(PROTOCOL_RELATIVE_URL)).toBe(PROTOCOL_RELATIVE_URL);
   // Non-http absolute scheme parity with ensureAppRoot
-  expect(makeUrl('ftp://files.example.com/data')).toBe(
-    'ftp://files.example.com/data',
-  );
+  expect(makeUrl(FTP_URL)).toBe(FTP_URL);
 });
 
 test('ensureAppRoot should treat any URI scheme as absolute (passthrough)', async () => {
