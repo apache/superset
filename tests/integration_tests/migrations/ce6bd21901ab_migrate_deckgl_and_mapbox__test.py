@@ -16,6 +16,8 @@
 # under the License.
 from importlib import import_module
 
+import pytest
+
 from superset.utils import json
 
 migrate_deckgl_and_mapbox = import_module(
@@ -29,6 +31,7 @@ DECKGL_MAPPINGS = migrate_deckgl_and_mapbox.DECKGL_MAPPINGS
 _get_migrate_class = migrate_deckgl_and_mapbox._get_migrate_class
 
 
+@pytest.mark.usefixtures("app_context")
 def test_upgrade_mapbox():
     slc = Slice(
         slice_name="Test Mapbox",
@@ -74,6 +77,7 @@ def test_upgrade_mapbox():
     )
 
 
+@pytest.mark.usefixtures("app_context")
 def test_upgrade_deckgl():
     for source_viz, target_viz in DECKGL_MAPPINGS.items():
         slc = Slice(
