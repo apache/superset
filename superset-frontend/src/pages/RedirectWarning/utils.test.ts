@@ -34,6 +34,7 @@ test('isAllowedScheme accepts https URLs', () => {
 });
 
 test('isAllowedScheme blocks javascript: URLs', () => {
+  // oxlint-disable-next-line no-script-url -- testing that dangerous schemes are blocked
   expect(isAllowedScheme('javascript:alert(1)')).toBe(false);
 });
 
