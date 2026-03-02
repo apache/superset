@@ -76,6 +76,18 @@ interface LoadingProps {
 
 const DEFAULT_TAB_ARR = ['dashboards', 'charts'];
 
+const SrOnlyH1 = styled.h1`
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+`;
+
 const WelcomeContainer = styled.div`
   background: ${({ theme }) => theme.colorBgLayout};
   .ant-row.menu {
@@ -350,6 +362,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
         <SubMenu {...menuData} />
       )}
       <WelcomeContainer>
+        <SrOnlyH1>{t('Home')}</SrOnlyH1>
         {WelcomeMessageExtension && <WelcomeMessageExtension />}
         {WelcomeTopExtension && <WelcomeTopExtension />}
         {WelcomeMainExtension && <WelcomeMainExtension />}

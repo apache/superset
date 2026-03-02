@@ -251,6 +251,13 @@ describe('FilterBar', () => {
     expect(toggleFiltersBar).toHaveBeenCalledWith(true);
   });
 
+  test('collapsed filter bar should have aria-expanded=false', () => {
+    renderWrapper();
+    const collapsedBar = screen.getByTestId(getTestId('collapsable'));
+    expect(collapsedBar).toHaveAttribute('aria-expanded', 'false');
+    expect(collapsedBar).toHaveAttribute('aria-label', 'Expand filters');
+  });
+
   test('no edit filter button by disabled permissions', () => {
     renderWrapper(openedBarProps, {
       ...stateWithoutNativeFilters,

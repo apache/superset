@@ -2108,6 +2108,14 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   <ModalFormField
                     label={isReport ? t('Report name') : t('Alert name')}
                     required
+                    error={
+                      validationStatus[Sections.General].hasErrors &&
+                      !currentAlert?.name?.length
+                        ? isReport
+                          ? t('Report name is required')
+                          : t('Alert name is required')
+                        : undefined
+                    }
                   >
                     <Input
                       name="name"
@@ -2120,7 +2128,16 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                       onChange={onInputChange}
                     />
                   </ModalFormField>
-                  <ModalFormField label={t('Owners')} required>
+                  <ModalFormField
+                    label={t('Owners')}
+                    required
+                    error={
+                      validationStatus[Sections.General].hasErrors &&
+                      !currentAlert?.owners?.length
+                        ? t('At least one owner is required')
+                        : undefined
+                    }
+                  >
                     <AsyncSelect
                       ariaLabel={t('Owners')}
                       allowClear

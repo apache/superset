@@ -90,12 +90,20 @@ const ChartHeaderStyles = styled.div`
       & > span.ant-tooltip-open {
         display: inline;
       }
+
+      /* WCAG 1.3.1: Style the semantic heading to match the original design */
+      & h2 {
+        font-size: inherit;
+        font-weight: inherit;
+        margin: 0;
+        line-height: inherit;
+      }
     }
 
     & > .header-controls {
       display: flex;
       align-items: center;
-      height: 24px;
+      min-height: 24px;
     }
 
     .dropdown.btn-group {
@@ -251,10 +259,12 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
     return (
       <ChartHeaderStyles data-test="slice-header" ref={ref}>
         <div className="header-title" ref={headerRef}>
-          <Tooltip title={headerTooltip}>
-            {/* this div ensures the hover event triggers correctly and prevents flickering */}
-            <div>
-              <EditableTitle
+          {/* WCAG 1.3.1: Semantic heading for chart titles */}
+          <h2>
+            <Tooltip title={headerTooltip}>
+              {/* this div ensures the hover event triggers correctly and prevents flickering */}
+              <div>
+                <EditableTitle
                 title={
                   sliceName ||
                   (editMode
@@ -270,6 +280,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
               />
             </div>
           </Tooltip>
+          </h2>
           {!!Object.values(annotationQuery).length && (
             <Tooltip
               id="annotations-loading-tooltip"

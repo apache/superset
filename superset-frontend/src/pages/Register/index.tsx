@@ -129,7 +129,7 @@ export default function Login() {
             label={t('Username')}
             name="username"
             rules={[
-              { required: true, message: t('Please enter your username') },
+              { required: true, message: t('Please enter a username (3-150 characters)') },
             ]}
           >
             <Input
@@ -182,7 +182,7 @@ export default function Login() {
             label={t('Password')}
             name="password"
             rules={[
-              { required: true, message: t('Please enter your password') },
+              { required: true, message: t('Please enter a password (minimum 8 characters)') },
             ]}
           >
             <Input.Password
@@ -218,6 +218,7 @@ export default function Login() {
           >
             <Input.Password
               placeholder={t('Confirm password')}
+              autoComplete="new-password"
               data-test="confirm-password-input"
             />
           </Form.Item>

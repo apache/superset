@@ -55,6 +55,7 @@ export interface TableViewProps {
   small?: boolean;
   columnsForWrapText?: string[];
   size?: TableSize;
+  'aria-label'?: string;
 }
 
 const EmptyWrapper = styled.div`
@@ -250,8 +251,10 @@ const RawTableView = ({
     }
   }, [initialState.sortBy, onServerPagination, serverPagination, sortBy]);
 
+  const ariaLabel = props['aria-label'] ?? 'Data table';
+
   return (
-    <TableViewStyles {...props} ref={tableRef}>
+    <TableViewStyles {...props} ref={tableRef} role="region" aria-label={ariaLabel}>
       <TableCollection
         getTableProps={getTableProps}
         getTableBodyProps={getTableBodyProps}

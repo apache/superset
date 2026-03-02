@@ -176,6 +176,18 @@ const actionButtonsStyle = (theme: SupersetTheme) => css`
   }
 `;
 
+const SrOnlyH1 = styled.h1`
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+`;
+
 const StyledUndoRedoButton = styled(Button)`
   // TODO: check if we need this
   padding: 0;
@@ -679,6 +691,7 @@ const Header = (): JSX.Element => {
                       onClick={
                         undoLength > 0 ? boundActionCreators.onUndo : undefined
                       }
+                      aria-label={t('Undo the action')}
                     >
                       <Icons.Undo
                         css={[
@@ -688,6 +701,7 @@ const Header = (): JSX.Element => {
                         ]}
                         data-test="undo-action"
                         iconSize="xl"
+                        aria-hidden="true"
                       />
                     </StyledUndoRedoButton>
                   </Tooltip>
@@ -701,6 +715,7 @@ const Header = (): JSX.Element => {
                       onClick={
                         redoLength > 0 ? boundActionCreators.onRedo : undefined
                       }
+                      aria-label={t('Redo the action')}
                     >
                       <Icons.Redo
                         css={[
@@ -710,6 +725,7 @@ const Header = (): JSX.Element => {
                         ]}
                         data-test="redo-action"
                         iconSize="xl"
+                        aria-hidden="true"
                       />
                     </StyledUndoRedoButton>
                   </Tooltip>
@@ -733,7 +749,7 @@ const Header = (): JSX.Element => {
                   data-test="header-save-button"
                   aria-label={t('Save')}
                 >
-                  <Icons.SaveOutlined iconSize="m" />
+                  <Icons.SaveOutlined iconSize="m" aria-hidden="true" />
                   {t('Save')}
                 </Button>
               </div>
@@ -753,6 +769,7 @@ const Header = (): JSX.Element => {
                 className="action-button"
                 css={editButtonStyle}
                 aria-label={t('Edit dashboard')}
+                aria-pressed={editMode}
               >
                 {t('Edit dashboard')}
               </Button>
@@ -823,6 +840,7 @@ const Header = (): JSX.Element => {
       data-test-id={dashboardInfo.id}
       className="dashboard-header-container"
     >
+      <SrOnlyH1>{dashboardTitle || t('Dashboard')}</SrOnlyH1>
       <PageHeaderWithActions
         editableTitleProps={editableTitleProps}
         certificatiedBadgeProps={certifiedBadgeProps}

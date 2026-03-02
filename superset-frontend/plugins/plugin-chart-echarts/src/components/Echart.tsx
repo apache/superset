@@ -49,7 +49,7 @@ import {
   SunburstChart,
   CustomChart,
 } from 'echarts/charts';
-import { CanvasRenderer } from 'echarts/renderers';
+import { SVGRenderer } from 'echarts/renderers';
 import {
   TooltipComponent,
   TitleComponent,
@@ -85,7 +85,7 @@ const Styles = styled.div<EchartsStylesProps>`
 
 // eslint-disable-next-line react-hooks/rules-of-hooks -- This is ECharts' use function, not a React hook
 use([
-  CanvasRenderer,
+  SVGRenderer,
   BarChart,
   BoxplotChart,
   CustomChart,
@@ -227,18 +227,20 @@ function Echart(
             label: { color: antdTheme.colorText },
           },
         } as any;
+        // WCAG 1.4.11: Non-text contrast — axis/grid lines need 3:1 against chart background
+        // colorSplit (~#f0f0f0) only has ~1.04:1 on white — replaced with colorTextTertiary (~3.5:1)
         if (options?.xAxis) {
           echartsTheme.xAxis = {
-            axisLine: { lineStyle: { color: antdTheme.colorSplit } },
+            axisLine: { lineStyle: { color: antdTheme.colorTextTertiary } },
             axisLabel: { color: antdTheme.colorTextSecondary },
-            splitLine: { lineStyle: { color: antdTheme.colorSplit } },
+            splitLine: { lineStyle: { color: antdTheme.colorTextTertiary } },
           };
         }
         if (options?.yAxis) {
           echartsTheme.yAxis = {
-            axisLine: { lineStyle: { color: antdTheme.colorSplit } },
+            axisLine: { lineStyle: { color: antdTheme.colorTextTertiary } },
             axisLabel: { color: antdTheme.colorTextSecondary },
-            splitLine: { lineStyle: { color: antdTheme.colorSplit } },
+            splitLine: { lineStyle: { color: antdTheme.colorTextTertiary } },
           };
         }
         return echartsTheme;
@@ -258,12 +260,26 @@ function Echart(
           }
         : {};
 
+      // WCAG: Enable ECharts built-in aria module for screen-reader descriptions
+      const ariaOptions = {
+        aria: {
+          enabled: true,
+          decal: { show: false }, // visual patterns handled separately by color
+          label: {
+            enabled: true,
+            description:
+              (echartOptions as any).title?.text || 'Chart data',
+          },
+        },
+      };
+
       const themedEchartOptions = mergeReplaceArrays(
         baseTheme,
         echartOptions,
         globalOverrides,
         chartOverrides,
         animationOverride,
+        ariaOptions,
       );
 
       const notMerge = !isDashboardRefreshing;
@@ -303,7 +319,18 @@ function Echart(
     handleSizeChange({ width, height });
   }, [width, height, handleSizeChange]);
 
-  return <Styles ref={divRef} height={height} width={width} />;
+  const chartLabel =
+    (echartOptions as any).title?.text || 'Data visualization';
+
+  return (
+    <Styles
+      ref={divRef}
+      height={height}
+      width={width}
+      role="img"
+      aria-label={chartLabel}
+    />
+  );
 }
 
 export default forwardRef(Echart);

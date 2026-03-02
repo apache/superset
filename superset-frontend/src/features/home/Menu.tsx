@@ -56,6 +56,12 @@ const StyledHeader = styled.header`
     .caret {
       display: none;
     }
+
+    /* WCAG 1.4.10 Reflow: prevent horizontal overflow at narrow viewports */
+    @media (max-width: 768px) {
+      padding: 0 ${theme.sizeUnit * 2}px;
+      overflow-x: hidden;
+    }
   `}
 `;
 
@@ -74,13 +80,18 @@ const StyledBrandText = styled.div`
     justify-content: center;
 
     span {
-      max-width: ${theme.sizeUnit * 58}px;
+      max-width: 100%;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
 
     @media (max-width: 1127px) {
+      display: none;
+    }
+
+    /* WCAG 1.4.10 Reflow: allow wrapping at narrow viewports */
+    @media (max-width: 768px) {
       display: none;
     }
   `}
@@ -141,6 +152,19 @@ const StyledMainNav = styled(MainNav)`
     .ant-menu-submenu-selected.ant-menu-submenu-horizontal::after {
       transform: scale(1);
     }
+
+    /* WCAG 1.4.10 Reflow: allow menu items to wrap at narrow viewports */
+    @media (max-width: 768px) {
+      flex-wrap: wrap;
+
+      .ant-menu-submenu.ant-menu-submenu-horizontal {
+        .ant-menu-submenu-title {
+          padding: 0 ${theme.sizeUnit * 2}px;
+          min-height: 44px;
+          min-width: 44px;
+        }
+      }
+    }
   `}
 `;
 
@@ -175,7 +199,14 @@ const StyledRow = styled(Row)`
 const StyledCol = styled(Col)`
   ${({ theme }) => css`
     display: flex;
+    flex-wrap: wrap;
     gap: ${theme.sizeUnit * 4}px;
+
+    /* WCAG 1.4.10 Reflow: allow stacking at narrow viewports */
+    @media (max-width: 768px) {
+      gap: ${theme.sizeUnit * 2}px;
+      max-width: 100%;
+    }
   `}
 `;
 
@@ -331,7 +362,7 @@ export function Menu({
     return <>{link}</>;
   };
   return (
-    <StyledHeader className="top" id="main-menu" role="navigation">
+    <StyledHeader className="top" id="main-menu" role="navigation" aria-label="Main navigation">
       <StyledRow>
         <StyledCol md={16} xs={24}>
           <Tooltip

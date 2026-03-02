@@ -49,7 +49,7 @@ const StyledHeader = styled.div<{ backgroundColor?: string }>`
     text-align: left;
     font-size: 18px;
     display: inline-block;
-    line-height: ${({ theme }) => theme.sizeUnit * 9}px;
+    line-height: 1.5;
   }
   .nav-right {
     display: flex;
@@ -86,7 +86,7 @@ const StyledHeader = styled.div<{ backgroundColor?: string }>`
 
   .menu > .ant-menu {
     padding-left: ${({ theme }) => theme.sizeUnit * 5}px;
-    line-height: ${({ theme }) => theme.sizeUnit * 5}px;
+    line-height: 1.5;
 
     .ant-menu-item {
       border-radius: ${({ theme }) => theme.borderRadius}px;
@@ -110,6 +110,24 @@ const StyledHeader = styled.div<{ backgroundColor?: string }>`
     .nav-right {
       position: relative;
       margin-left: ${({ theme }) => theme.sizeUnit * 2}px;
+    }
+  }
+
+  /* WCAG 1.4.10 Reflow: wrap menu and buttons at narrow viewports */
+  @media (max-width: 480px) {
+    .menu {
+      flex-wrap: wrap;
+    }
+
+    .nav-right,
+    .nav-right-collapse {
+      position: relative;
+      right: auto;
+      float: none;
+      flex-wrap: wrap;
+      width: 100%;
+      justify-content: flex-start;
+      gap: ${({ theme }) => theme.sizeUnit}px;
     }
   }
 `;
@@ -205,7 +223,7 @@ const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
 
   return (
     <StyledHeader backgroundColor={props.backgroundColor}>
-      <Row className="menu" role="navigation">
+      <Row className="menu" role="navigation" aria-label="Page navigation">
         {props.name && <div className="header">{props.name}</div>}
         <Menu
           mode={showMenu}

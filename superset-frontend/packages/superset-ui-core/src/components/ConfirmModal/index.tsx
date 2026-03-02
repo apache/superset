@@ -58,11 +58,12 @@ export const ConfirmModal: FC<ConfirmModalProps> = ({
     onHide={onHide}
     show={show}
     width="600px"
+    aria-labelledby="confirm-modal-title"
     title={
-      <>
+      <span id="confirm-modal-title">
         <IconWrapper>{icon}</IconWrapper>
         {title}
-      </>
+      </span>
     }
     footer={
       <>

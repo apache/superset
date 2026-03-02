@@ -62,6 +62,11 @@ const SSHTunnelForm = ({
   setSSHTunnelLoginMethod: (method: AuthType) => void;
 }) => {
   const [usePassword, setUsePassword] = useState<AuthType>(AuthType.Password);
+  const [blurred, setBlurred] = useState<Record<string, boolean>>({});
+  const markBlurred = (field: string) =>
+    setBlurred(prev => ({ ...prev, [field]: true }));
+  const fieldError = (field: string, value: string | number | undefined) =>
+    blurred[field] && !value;
 
   return (
     <Form>
@@ -74,11 +79,27 @@ const SSHTunnelForm = ({
             <Input
               name="server_address"
               type="text"
+              autoComplete="off"
               placeholder={t('e.g. 127.0.0.1')}
               value={db?.ssh_tunnel?.server_address || ''}
               onChange={onSSHTunnelParametersChange}
+              onBlur={() => markBlurred('server_address')}
+              aria-invalid={
+                fieldError('server_address', db?.ssh_tunnel?.server_address) ||
+                undefined
+              }
+              aria-describedby={
+                fieldError('server_address', db?.ssh_tunnel?.server_address)
+                  ? 'server-address-error'
+                  : undefined
+              }
               data-test="ssh-tunnel-server_address-input"
             />
+            {fieldError('server_address', db?.ssh_tunnel?.server_address) && (
+              <span id="server-address-error" role="alert" style={{ color: 'red', fontSize: 'inherit' }}>
+                {t('SSH Host is required (e.g., 192.168.1.1 or hostname.example.com)')}
+              </span>
+            )}
           </StyledDiv>
         </Col>
         <Col xs={24} md={12}>
@@ -90,10 +111,26 @@ const SSHTunnelForm = ({
               name="server_port"
               placeholder={t('22')}
               type="number"
+              autoComplete="off"
               value={db?.ssh_tunnel?.server_port}
               onChange={onSSHTunnelParametersChange}
+              onBlur={() => markBlurred('server_port')}
+              aria-invalid={
+                fieldError('server_port', db?.ssh_tunnel?.server_port) ||
+                undefined
+              }
+              aria-describedby={
+                fieldError('server_port', db?.ssh_tunnel?.server_port)
+                  ? 'server-port-error'
+                  : undefined
+              }
               data-test="ssh-tunnel-server_port-input"
             />
+            {fieldError('server_port', db?.ssh_tunnel?.server_port) && (
+              <span id="server-port-error" role="alert" style={{ color: 'red', fontSize: 'inherit' }}>
+                {t('SSH Port is required (default: 22)')}
+              </span>
+            )}
           </StyledDiv>
         </Col>
       </StyledRow>
@@ -106,11 +143,26 @@ const SSHTunnelForm = ({
             <Input
               name="username"
               type="text"
+              autoComplete="off"
               placeholder={t('e.g. Analytics')}
               value={db?.ssh_tunnel?.username || ''}
               onChange={onSSHTunnelParametersChange}
+              onBlur={() => markBlurred('username')}
+              aria-invalid={
+                fieldError('username', db?.ssh_tunnel?.username) || undefined
+              }
+              aria-describedby={
+                fieldError('username', db?.ssh_tunnel?.username)
+                  ? 'ssh-username-error'
+                  : undefined
+              }
               data-test="ssh-tunnel-username-input"
             />
+            {fieldError('username', db?.ssh_tunnel?.username) && (
+              <span id="ssh-username-error" role="alert" style={{ color: 'red', fontSize: 'inherit' }}>
+                {t('SSH Username is required')}
+              </span>
+            )}
           </StyledDiv>
         </Col>
       </StyledRow>
@@ -153,6 +205,7 @@ const SSHTunnelForm = ({
               </FormLabel>
               <StyledInputPassword
                 name="password"
+                autoComplete="off"
                 placeholder={t('e.g. ********')}
                 value={db?.ssh_tunnel?.password || ''}
                 onChange={onSSHTunnelParametersChange}
@@ -184,6 +237,7 @@ const SSHTunnelForm = ({
                 </FormLabel>
                 <Input.TextArea
                   name="private_key"
+                  autoComplete="off"
                   placeholder={t('Paste Private Key here')}
                   value={db?.ssh_tunnel?.private_key || ''}
                   onChange={onSSHTunnelParametersChange}
@@ -201,6 +255,7 @@ const SSHTunnelForm = ({
                 </FormLabel>
                 <StyledInputPassword
                   name="private_key_password"
+                  autoComplete="off"
                   placeholder={t('e.g. ********')}
                   value={db?.ssh_tunnel?.private_key_password || ''}
                   onChange={onSSHTunnelParametersChange}

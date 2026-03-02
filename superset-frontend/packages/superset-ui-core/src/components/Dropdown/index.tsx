@@ -90,7 +90,12 @@ export const MenuDotsDropdown = ({
   ...rest
 }: MenuDotsDropdownProps) => (
   <AntdDropdown popupRender={() => overlay} {...rest}>
-    <MenuDotsWrapper data-test="dropdown-trigger">
+    <MenuDotsWrapper
+      data-test="dropdown-trigger"
+      role="button"
+      tabIndex={0}
+      aria-label="More actions"
+    >
       {RenderIcon(iconOrientation)}
     </MenuDotsWrapper>
   </AntdDropdown>

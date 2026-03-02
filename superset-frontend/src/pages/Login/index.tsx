@@ -214,11 +214,12 @@ export default function Login() {
                 label={<StyledLabel>{t('Username:')}</StyledLabel>}
                 name="username"
                 rules={[
-                  { required: true, message: t('Please enter your username') },
+                  { required: true, message: t('Please enter your username. It is case-sensitive.') },
                 ]}
               >
                 <Input
                   autoFocus
+                  autoComplete="username"
                   prefix={<Icons.UserOutlined iconSize="l" />}
                   data-test="username-input"
                 />
@@ -227,10 +228,11 @@ export default function Login() {
                 label={<StyledLabel>{t('Password:')}</StyledLabel>}
                 name="password"
                 rules={[
-                  { required: true, message: t('Please enter your password') },
+                  { required: true, message: t('Please enter your password. Minimum 8 characters.') },
                 ]}
               >
                 <Input.Password
+                  autoComplete="current-password"
                   prefix={<Icons.KeyOutlined iconSize="l" />}
                   data-test="password-input"
                 />

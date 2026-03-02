@@ -231,7 +231,7 @@ const SparklineCell = ({
                   <div
                     css={() => ({
                       color: theme.colorTextSecondary,
-                      fontSize: '12px',
+                      fontSize: `${theme.fontSizeSM}px`,
                     })}
                   >
                     {formatTime(

@@ -56,3 +56,19 @@ test('should render the colors', () => {
   const allColors = screen.getAllByTestId('color');
   expect(allColors).toHaveLength(12);
 });
+
+test('should render aria-label with scheme name on the swatch container', () => {
+  setup();
+  const option = screen.getByRole('option', {
+    name: 'Color scheme: Superset Colors',
+  });
+  expect(option).toBeInTheDocument();
+});
+
+test('color swatches should be aria-hidden', () => {
+  setup();
+  const allColors = screen.getAllByTestId('color');
+  allColors.forEach(color => {
+    expect(color).toHaveAttribute('aria-hidden', 'true');
+  });
+});
