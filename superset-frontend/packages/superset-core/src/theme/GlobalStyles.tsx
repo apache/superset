@@ -109,6 +109,14 @@ export const GlobalStyles = () => {
           display: flex;
           margin-top: ${theme.marginXS}px;
         }
+
+        /* WCAG 2.4.7: Focus Visible — ensure all interactive elements have a visible
+           keyboard focus indicator. Uses :focus-visible to avoid showing on mouse clicks.
+           Individual components can override with their own focus styles. */
+        *:focus-visible {
+          outline: 2px solid ${theme.colorPrimary};
+          outline-offset: 2px;
+        }
       `}
     />
   );

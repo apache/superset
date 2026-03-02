@@ -211,8 +211,9 @@ const ScopeSelector = styled.div`
           text-decoration: underline;
         }
 
-        &:focus {
-          outline: none;
+        &:focus-visible {
+          outline: 2px solid transparent; /* WCAG 2.4.7: transparent outline prevents double-ring */
+          box-shadow: 0 0 0 2px ${theme.colorPrimary};
         }
       }
 
@@ -360,7 +361,7 @@ const ScopeSelector = styled.div`
         border: 1px solid ${theme.colorBorder};
         padding: ${theme.sizeUnit}px ${theme.sizeUnit * 2}px;
         font-size: ${theme.fontSize}px;
-        outline: none;
+        outline: 2px solid transparent; /* WCAG 2.4.7: transparent outline prevents double-ring; border change on focus provides visible indicator */
 
         &:focus {
           border: 1px solid ${theme.colorPrimary};

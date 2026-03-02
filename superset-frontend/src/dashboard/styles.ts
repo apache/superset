@@ -96,7 +96,7 @@ export const focusStyle = (theme: SupersetTheme) => css`
     &:focus-visible {
       box-shadow: 0 0 0 2px ${theme.colorPrimaryText};
       border-radius: ${theme.borderRadius}px;
-      outline: none;
+      outline: 2px solid transparent; /* WCAG 2.4.7: transparent outline prevents double-ring; box-shadow provides visible focus */
       text-decoration: none;
     }
     &:not(
