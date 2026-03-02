@@ -39,7 +39,7 @@ Superset's core should remain minimal, with many features delegated to extension
 
 ### 2. Explicit Contribution Points
 
-All extension points are clearly defined and documented. Extension authors know exactly where and how they can interact with the host system. Each extension declares its capabilities in a metadata file, enabling the host to:
+All extension points are clearly defined and documented. Extension authors know exactly where and how they can interact with the host system. Backend contributions are declared in `extension.json`. Frontend contributions are registered directly in code at module load time, giving the host clear visibility into what each extension provides:
 - Manage the extension lifecycle
 - Provide a consistent user experience
 - Validate extension compatibility
@@ -122,7 +122,6 @@ The Superset host application serves as the runtime environment for extensions:
 
 The extensions table contains:
 - Extension name, version, and author
-- Contributed features and exposed modules
 - Metadata and configuration
 - Built frontend and/or backend code
 
@@ -173,7 +172,7 @@ new ModuleFederationPlugin({
 
 This configuration does several important things:
 
-**`exposes`** - Declares which modules are available to the host application. The extension makes `./index` available as its entry point.
+**`exposes`** - Declares which modules are available to the host application. Superset always loads extensions by requesting the `./index` module from the remote container — this is a fixed convention, not a configurable value. Extensions must expose exactly `'./index': './src/index.tsx'` and place all API registrations (views, commands, menus, editors, event listeners) in that file. The module is executed as a side effect when the extension loads, so any call to `views.registerView`, `commands.registerCommand`, etc. made at the top level of `index.tsx` will run automatically.
 
 **`externals` and `externalsType`** - Tell Webpack that when the extension imports `@apache-superset/core`, it should use `window.superset` at runtime instead of bundling its own copy. This ensures extensions use the host's implementation of shared packages.
 

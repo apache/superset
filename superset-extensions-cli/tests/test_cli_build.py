@@ -59,20 +59,6 @@ def extension_with_build_structure():
             "permissions": [],
         }
 
-        if include_frontend:
-            extension_json["frontend"] = {
-                "contributions": {
-                    "commands": [],
-                    "views": {},
-                    "menus": {},
-                    "editors": [],
-                },
-                "moduleFederation": {
-                    "exposes": ["./index"],
-                    "name": "testOrg_testExtension",
-                },
-            }
-
         if include_backend:
             extension_json["backend"] = {
                 "entryPoints": [
@@ -249,18 +235,6 @@ def test_build_manifest_creates_correct_manifest_structure(isolated_filesystem):
         "version": "1.0.0",
         "permissions": ["read_data"],
         "dependencies": ["some_dep"],
-        "frontend": {
-            "contributions": {
-                "commands": [{"id": "test_command", "title": "Test"}],
-                "views": {},
-                "menus": {},
-                "editors": [],
-            },
-            "moduleFederation": {
-                "exposes": ["./index"],
-                "name": "testOrg_testExtension",
-            },
-        },
         "backend": {
             "entryPoints": ["superset_extensions.test_org.test_extension.entrypoint"]
         },
@@ -281,11 +255,8 @@ def test_build_manifest_creates_correct_manifest_structure(isolated_filesystem):
 
     # Verify frontend section
     assert manifest.frontend is not None
-    assert manifest.frontend.contributions.commands == [
-        {"id": "test_command", "title": "Test"}
-    ]
-    assert manifest.frontend.moduleFederation.exposes == ["./index"]
     assert manifest.frontend.remoteEntry == "remoteEntry.abc123.js"
+    assert manifest.frontend.moduleFederationName == "testOrg_testExtension"
 
     # Verify backend section
     assert manifest.backend is not None

@@ -20,13 +20,10 @@
 import pytest
 from pydantic import ValidationError
 from superset_core.extensions.types import (
-    ContributionConfig,
     ExtensionConfig,
     ExtensionConfigBackend,
-    ExtensionConfigFrontend,
     Manifest,
     ManifestBackend,
-    ModuleFederationConfig,
 )
 
 # =============================================================================
@@ -49,7 +46,6 @@ def test_extension_config_minimal():
     assert config.version == "0.0.0"
     assert config.dependencies == []
     assert config.permissions == []
-    assert config.frontend is None
     assert config.backend is None
 
 
@@ -65,21 +61,6 @@ def test_extension_config_full():
             "description": "A query insights extension",
             "dependencies": ["other-extension"],
             "permissions": ["can_read", "can_view"],
-            "frontend": {
-                "contributions": {
-                    "views": {
-                        "sqllab": {
-                            "panels": [
-                                {
-                                    "id": "query_insights.main",
-                                    "name": "Query Insights",
-                                }
-                            ]
-                        }
-                    }
-                },
-                "moduleFederation": {"exposes": ["./index"]},
-            },
             "backend": {
                 "entryPoints": ["query_insights.entrypoint"],
                 "files": ["backend/src/query_insights/**/*.py"],
@@ -94,8 +75,6 @@ def test_extension_config_full():
     assert config.description == "A query insights extension"
     assert config.dependencies == ["other-extension"]
     assert config.permissions == ["can_read", "can_view"]
-    assert config.frontend is not None
-    assert config.frontend.moduleFederation.exposes == ["./index"]
     assert config.backend is not None
     assert config.backend.entryPoints == ["query_insights.entrypoint"]
     assert config.backend.files == ["backend/src/query_insights/**/*.py"]
@@ -201,7 +180,7 @@ def test_manifest_minimal():
 
 
 def test_manifest_with_frontend():
-    """Test Manifest with frontend section requires remoteEntry."""
+    """Test Manifest frontend section requires remoteEntry and moduleFederationName."""
     manifest = Manifest.model_validate(
         {
             "id": "my-org.my-extension",
@@ -210,14 +189,13 @@ def test_manifest_with_frontend():
             "displayName": "My Extension",
             "frontend": {
                 "remoteEntry": "remoteEntry.abc123.js",
-                "contributions": {},
-                "moduleFederation": {"exposes": ["./index"]},
+                "moduleFederationName": "myOrg_myExtension",
             },
         }
     )
     assert manifest.frontend is not None
     assert manifest.frontend.remoteEntry == "remoteEntry.abc123.js"
-    assert manifest.frontend.moduleFederation.exposes == ["./index"]
+    assert manifest.frontend.moduleFederationName == "myOrg_myExtension"
 
 
 def test_manifest_frontend_missing_remote_entry():
@@ -229,7 +207,7 @@ def test_manifest_frontend_missing_remote_entry():
                 "publisher": "my-org",
                 "name": "my-extension",
                 "displayName": "My Extension",
-                "frontend": {"contributions": {}, "moduleFederation": {}},
+                "frontend": {"moduleFederationName": "myOrg_myExtension"},
             }
         )
     assert "remoteEntry" in str(exc_info.value)
@@ -263,35 +241,6 @@ def test_manifest_backend_no_files_field():
     )
     # ManifestBackend should not have a 'files' field
     assert not hasattr(manifest.backend, "files")
-
-
-# =============================================================================
-# Shared component tests
-# =============================================================================
-
-
-def test_module_federation_config_defaults():
-    """Test ModuleFederationConfig has correct defaults."""
-    config = ModuleFederationConfig.model_validate({})
-    assert config.exposes == []
-    assert config.filename == "remoteEntry.js"
-    assert config.shared == {}
-    assert config.remotes == {}
-
-
-def test_contribution_config_defaults():
-    """Test ContributionConfig has correct defaults."""
-    config = ContributionConfig.model_validate({})
-    assert config.commands == []
-    assert config.views == {}
-    assert config.menus == {}
-
-
-def test_extension_config_frontend_defaults():
-    """Test ExtensionConfigFrontend has correct defaults."""
-    frontend = ExtensionConfigFrontend.model_validate({})
-    assert frontend.contributions.commands == []
-    assert frontend.moduleFederation.exposes == []
 
 
 def test_extension_config_backend_defaults():

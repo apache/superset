@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import ExtensionsManager from 'src/extensions/ExtensionsManager';
+import { ensureIsArray } from '@superset-ui/core';
+import { views } from 'src/core';
 import { useExtensionsContext } from 'src/extensions/ExtensionsContext';
 
 export interface ViewListExtensionProps {
@@ -24,21 +25,14 @@ export interface ViewListExtensionProps {
 }
 
 const ViewListExtension = ({ viewId }: ViewListExtensionProps) => {
-  const maybeContributions =
-    ExtensionsManager.getInstance().getViewContributions(viewId);
-  const contributions = Array.isArray(maybeContributions)
-    ? maybeContributions
-    : [];
+  const viewItems = ensureIsArray(views.getViews(viewId));
   const { getView } = useExtensionsContext();
 
   return (
     <>
-      {contributions
-        .filter(
-          contribution =>
-            contribution && typeof contribution.id !== 'undefined',
-        )
-        .map(contribution => getView(contribution.id))}
+      {viewItems
+        .filter(view => view && typeof view.id !== 'undefined')
+        .map(view => getView(view.id))}
     </>
   );
 };

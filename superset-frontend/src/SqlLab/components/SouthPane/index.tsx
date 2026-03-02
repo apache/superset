@@ -31,7 +31,7 @@ import { SqlLabRootState } from 'src/SqlLab/types';
 import { ViewLocations } from 'src/SqlLab/contributions';
 import PanelToolbar from 'src/components/PanelToolbar';
 import { useExtensionsContext } from 'src/extensions/ExtensionsContext';
-import ExtensionsManager from 'src/extensions/ExtensionsManager';
+import { views } from 'src/core';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import useLogAction from 'src/logger/useLogAction';
 import { LOG_ACTIONS_SQLLAB_SWITCH_SOUTH_PANE_TAB } from 'src/logger/LogUtils';
@@ -104,10 +104,7 @@ const SouthPane = ({
   const editorId = tabViewId ?? id;
   const theme = useTheme();
   const dispatch = useDispatch();
-  const contributions =
-    ExtensionsManager.getInstance().getViewContributions(
-      ViewLocations.sqllab.panels,
-    ) || [];
+  const viewItems = views.getViews(ViewLocations.sqllab.panels) || [];
   const { getView } = useExtensionsContext();
   const { offline, tables } = useSelector(
     ({ sqlLab: { offline, tables } }: SqlLabRootState) => ({
@@ -212,9 +209,9 @@ const SouthPane = ({
         />
       ),
     })),
-    ...contributions.map(contribution => ({
-      key: contribution.id,
-      label: contribution.name,
+    ...viewItems.map(view => ({
+      key: view.id,
+      label: view.name,
       children: (
         <div
           css={css`
@@ -223,8 +220,8 @@ const SouthPane = ({
             }
           `}
         >
-          <PanelToolbar viewId={contribution.id} />
-          {getView(contribution.id)}
+          <PanelToolbar viewId={view.id} />
+          {getView(view.id)}
         </div>
       ),
       forceRender: true,

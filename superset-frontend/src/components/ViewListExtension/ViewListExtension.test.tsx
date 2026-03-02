@@ -16,88 +16,34 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactElement } from 'react';
+import React, { ReactElement } from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
-import type { contributions, core } from '@apache-superset/core';
-import ExtensionsManager from 'src/extensions/ExtensionsManager';
+import * as ExtensionsContextUtils from 'src/extensions/ExtensionsContextUtils';
+import { views } from 'src/core';
 import { ExtensionsProvider } from 'src/extensions/ExtensionsContext';
 import ViewListExtension from '.';
 
-function createMockView(
-  id: string,
-  overrides: Partial<contributions.ViewContribution> = {},
-): contributions.ViewContribution {
-  return {
-    id,
-    name: `${id} View`,
-    ...overrides,
-  };
-}
+const mockRegisterViewProvider = jest.fn();
+const mockUnregisterViewProvider = jest.fn();
 
-function createMockExtension(
-  options: Partial<core.Extension> & {
-    views?: Record<string, Record<string, contributions.ViewContribution[]>>;
-  } = {},
-): core.Extension {
-  const {
-    id = 'test-extension',
-    name = 'Test Extension',
-    views = {},
-  } = options;
-
-  return {
-    id,
-    name,
-    description: 'A test extension',
-    version: '1.0.0',
-    dependencies: [],
-    remoteEntry: '',
-    exposedModules: [],
-    extensionDependencies: [],
-    contributions: {
-      commands: [],
-      menus: {},
-      views,
-    },
-    activate: jest.fn(),
-    deactivate: jest.fn(),
-  };
-}
-
-function setupActivatedExtension(
-  manager: ExtensionsManager,
-  extension: core.Extension,
-) {
-  const context = { disposables: [] };
-  (manager as any).contextIndex.set(extension.id, context);
-  (manager as any).extensionContributions.set(extension.id, {
-    commands: extension.contributions.commands,
-    menus: extension.contributions.menus,
-    views: extension.contributions.views,
+jest
+  .spyOn(ExtensionsContextUtils, 'getExtensionsContextValue')
+  .mockReturnValue({
+    registerViewProvider: mockRegisterViewProvider,
+    unregisterViewProvider: mockUnregisterViewProvider,
+    getView: jest.fn(),
   });
-}
-
-async function createActivatedExtension(
-  manager: ExtensionsManager,
-  extensionOptions: Parameters<typeof createMockExtension>[0] = {},
-): Promise<core.Extension> {
-  const mockExtension = createMockExtension(extensionOptions);
-  await manager.initializeExtension(mockExtension);
-  setupActivatedExtension(manager, mockExtension);
-  return mockExtension;
-}
 
 const TEST_VIEW_ID = 'test.view';
+
+const dummyProvider = () => React.createElement('div', null, 'placeholder');
 
 const renderWithExtensionsProvider = (ui: ReactElement) =>
   render(ui, { wrapper: ExtensionsProvider as any });
 
 beforeEach(() => {
-  (ExtensionsManager as any).instance = undefined;
-});
-
-afterEach(() => {
-  (ExtensionsManager as any).instance = undefined;
+  mockRegisterViewProvider.mockClear();
+  mockUnregisterViewProvider.mockClear();
 });
 
 test('renders nothing when no view contributions exist', () => {
@@ -108,32 +54,29 @@ test('renders nothing when no view contributions exist', () => {
   expect(container.firstChild?.childNodes.length ?? 0).toBe(0);
 });
 
-test('renders placeholder for unregistered view provider', async () => {
-  const manager = ExtensionsManager.getInstance();
-
-  await createActivatedExtension(manager, {
-    views: {
-      test: {
-        view: [createMockView('test-view-1')],
-      },
-    },
-  });
+test('renders placeholder for unregistered view provider', () => {
+  views.registerView(
+    { id: 'test-view-1', name: 'test-view-1 View' },
+    TEST_VIEW_ID,
+    dummyProvider,
+  );
 
   renderWithExtensionsProvider(<ViewListExtension viewId={TEST_VIEW_ID} />);
 
   expect(screen.getByText(/test-view-1/)).toBeInTheDocument();
 });
 
-test('renders multiple view placeholders for multiple contributions', async () => {
-  const manager = ExtensionsManager.getInstance();
-
-  await createActivatedExtension(manager, {
-    views: {
-      test: {
-        view: [createMockView('test-view-1'), createMockView('test-view-2')],
-      },
-    },
-  });
+test('renders multiple view placeholders for multiple contributions', () => {
+  views.registerView(
+    { id: 'test-view-1', name: 'test-view-1 View' },
+    TEST_VIEW_ID,
+    dummyProvider,
+  );
+  views.registerView(
+    { id: 'test-view-2', name: 'test-view-2 View' },
+    TEST_VIEW_ID,
+    dummyProvider,
+  );
 
   renderWithExtensionsProvider(<ViewListExtension viewId={TEST_VIEW_ID} />);
 
@@ -149,26 +92,17 @@ test('renders nothing for viewId with no matching contributions', () => {
   expect(container.firstChild?.childNodes.length ?? 0).toBe(0);
 });
 
-test('handles multiple extensions with views for same viewId', async () => {
-  const manager = ExtensionsManager.getInstance();
-
-  await createActivatedExtension(manager, {
-    id: 'extension-1',
-    views: {
-      test: {
-        view: [createMockView('ext1-view')],
-      },
-    },
-  });
-
-  await createActivatedExtension(manager, {
-    id: 'extension-2',
-    views: {
-      test: {
-        view: [createMockView('ext2-view')],
-      },
-    },
-  });
+test('handles multiple views registered at the same location', () => {
+  views.registerView(
+    { id: 'ext1-view', name: 'ext1-view View' },
+    TEST_VIEW_ID,
+    dummyProvider,
+  );
+  views.registerView(
+    { id: 'ext2-view', name: 'ext2-view View' },
+    TEST_VIEW_ID,
+    dummyProvider,
+  );
 
   renderWithExtensionsProvider(<ViewListExtension viewId={TEST_VIEW_ID} />);
 
@@ -176,19 +110,20 @@ test('handles multiple extensions with views for same viewId', async () => {
   expect(screen.getByText(/ext2-view/)).toBeInTheDocument();
 });
 
-test('renders views for different viewIds independently', async () => {
-  const manager = ExtensionsManager.getInstance();
+test('renders views for different viewIds independently', () => {
   const VIEW_ID_A = 'view.a';
   const VIEW_ID_B = 'view.b';
 
-  await createActivatedExtension(manager, {
-    views: {
-      view: {
-        a: [createMockView('view-a-component')],
-        b: [createMockView('view-b-component')],
-      },
-    },
-  });
+  views.registerView(
+    { id: 'view-a-component', name: 'view-a-component View' },
+    VIEW_ID_A,
+    dummyProvider,
+  );
+  views.registerView(
+    { id: 'view-b-component', name: 'view-b-component View' },
+    VIEW_ID_B,
+    dummyProvider,
+  );
 
   const { rerender } = renderWithExtensionsProvider(
     <ViewListExtension viewId={VIEW_ID_A} />,
