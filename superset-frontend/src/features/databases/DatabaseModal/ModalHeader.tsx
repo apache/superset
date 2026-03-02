@@ -38,7 +38,7 @@ export const DOCUMENTATION_LINK = supersetTextDocs
 const irregularDocumentationLinks = {
   postgresql: 'https://superset.apache.org',
   mssql:
-    'https://superset.apache.org/docs/databases/supported/microsoft-sql-server',
+    'https://superset.apache.org/user-docs/databases/supported/microsoft-sql-server',
   gsheets: 'https://superset.apache.org/user-docs/databases/supported/google-sheets',
 };
 
