@@ -42,6 +42,7 @@ def test_can_access_databases(mocker: MockerFixture) -> None:
                 "[my_db].[examples].[information_schema]",
                 "[my_db].[other].[secret]",
                 "[third_db].[schema]",
+                "[my_app_doe.john].[public]",
             },
         ],
     )
@@ -49,7 +50,11 @@ def test_can_access_databases(mocker: MockerFixture) -> None:
     assert can_access_databases("datasource_access") == {"my_db", "my_other_db"}
     assert can_access_databases("database_access") == {"my_db", "my_other_db"}
     assert can_access_databases("catalog_access") == {"my_db"}
-    assert can_access_databases("schema_access") == {"my_db", "third_db"}
+    assert can_access_databases("schema_access") == {
+        "my_db",
+        "third_db",
+        "my_app_doe.john",
+    }
 
 
 def test_database_filter_full_db_access(mocker: MockerFixture) -> None:

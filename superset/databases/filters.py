@@ -33,7 +33,7 @@ def can_access_databases(view_menu_name: str) -> set[str]:
     Return names of databases available in `view_menu_name`.
     """
     return {
-        vm.split(".")[0][1:-1]
+        vm[1 : vm.index("]")]
         for vm in security_manager.user_view_menu_names(view_menu_name)
     }
 
