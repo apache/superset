@@ -210,7 +210,7 @@ export function UserInfo({ user }: { user: UserWithPermissionsAndRoles }) {
             </Descriptions>
           </Collapse.Panel>
           <Collapse.Panel
-            header={<DescriptionTitle>API Keys</DescriptionTitle>}
+            header={<DescriptionTitle>{t('API Keys')}</DescriptionTitle>}
             key="apiKeys"
           >
             <ApiKeyList />
