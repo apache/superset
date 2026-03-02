@@ -17,7 +17,6 @@
  * under the License.
  */
 import React, { Component } from 'react';
-import PropTypes from 'prop-types';
 import { IconTooltip, List } from '@superset-ui/core/components';
 import { nanoid } from 'nanoid';
 import { t } from '@apache-superset/core';
@@ -58,21 +57,6 @@ interface CollectionControlProps {
   theme: SupersetTheme;
 }
 
-const propTypes = {
-  name: PropTypes.string.isRequired,
-  label: PropTypes.string,
-  description: PropTypes.string,
-  placeholder: PropTypes.string,
-  addTooltip: PropTypes.string,
-  itemGenerator: PropTypes.func,
-  keyAccessor: PropTypes.func,
-  onChange: PropTypes.func,
-  value: PropTypes.oneOfType([PropTypes.array]),
-  isFloat: PropTypes.bool,
-  isInt: PropTypes.bool,
-  controlName: PropTypes.string.isRequired,
-};
-
 const defaultProps: Partial<CollectionControlProps> = {
   label: null,
   description: null,
@@ -88,15 +72,13 @@ const SortableList = SortableContainer(List);
 const SortableDragger = SortableHandle(() => (
   <Icons.MenuOutlined
     role="img"
-    aria-label="drag"
+    aria-label={t('Drag to reorder')}
     className="text-primary"
     style={{ cursor: 'ns-resize' }}
   />
 ));
 
 class CollectionControl extends Component<CollectionControlProps> {
-  static propTypes = propTypes;
-
   static defaultProps = defaultProps;
 
   constructor(props: CollectionControlProps) {

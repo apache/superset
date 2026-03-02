@@ -22,6 +22,8 @@ This module contains shared logic for chart configuration mapping and explore li
 generation that can be used by both generate_chart and generate_explore_link tools.
 """
 
+import logging
+from dataclasses import dataclass
 from typing import Any, Dict
 
 from superset.mcp_service.chart.schemas import (
@@ -34,24 +36,134 @@ from superset.mcp_service.chart.schemas import (
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 
+logger = logging.getLogger(__name__)
+
+
+@dataclass
+class DatasetValidationResult:
+    """Result of dataset accessibility validation."""
+
+    is_valid: bool
+    dataset_id: int | str | None
+    dataset_name: str | None
+    warnings: list[str]
+    error: str | None = None
+
+
+def validate_chart_dataset(
+    chart: Any,
+    check_access: bool = True,
+) -> DatasetValidationResult:
+    """
+    Validate that a chart's dataset exists and is accessible.
+
+    This shared utility should be called by MCP tools after creating or retrieving
+    charts to detect issues like missing or deleted datasets early.
+
+    Args:
+        chart: A chart-like object with datasource_id, datasource_type attributes
+        check_access: Whether to also check user permissions (default True)
+
+    Returns:
+        DatasetValidationResult with validation status and any warnings
+    """
+    from sqlalchemy.exc import SQLAlchemyError
+
+    from superset.daos.dataset import DatasetDAO
+    from superset.mcp_service.auth import has_dataset_access
+
+    warnings: list[str] = []
+    datasource_id = getattr(chart, "datasource_id", None)
+
+    # Check if chart has a datasource reference
+    if datasource_id is None:
+        return DatasetValidationResult(
+            is_valid=False,
+            dataset_id=None,
+            dataset_name=None,
+            warnings=[],
+            error="Chart has no dataset reference (datasource_id is None)",
+        )
+
+    # Try to look up the dataset
+    try:
+        dataset = DatasetDAO.find_by_id(datasource_id)
+
+        if dataset is None:
+            return DatasetValidationResult(
+                is_valid=False,
+                dataset_id=datasource_id,
+                dataset_name=None,
+                warnings=[],
+                error=(
+                    f"Dataset (ID: {datasource_id}) has been deleted or does not "
+                    f"exist. The chart will not render correctly. "
+                    f"Consider updating the chart to use a different dataset."
+                ),
+            )
+
+        dataset_name = getattr(dataset, "table_name", None) or getattr(
+            dataset, "name", None
+        )
+
+        # Check if it's a virtual dataset (SQL Lab query)
+        is_virtual = bool(getattr(dataset, "sql", None))
+        if is_virtual:
+            warnings.append(
+                f"This chart uses a virtual dataset (SQL-based). "
+                f"If the dataset '{dataset_name}' is deleted, this chart will break."
+            )
+
+        # Check access permissions if requested
+        if check_access and not has_dataset_access(dataset):
+            return DatasetValidationResult(
+                is_valid=False,
+                dataset_id=datasource_id,
+                dataset_name=dataset_name,
+                warnings=warnings,
+                error=(
+                    f"Access denied to dataset '{dataset_name}' (ID: {datasource_id}). "
+                    f"You do not have permission to view this dataset."
+                ),
+            )
+
+        return DatasetValidationResult(
+            is_valid=True,
+            dataset_id=datasource_id,
+            dataset_name=dataset_name,
+            warnings=warnings,
+            error=None,
+        )
+
+    except (AttributeError, ValueError, RuntimeError, SQLAlchemyError) as e:
+        logger.exception("Error validating chart dataset %s: %s", datasource_id, e)
+        return DatasetValidationResult(
+            is_valid=False,
+            dataset_id=datasource_id,
+            dataset_name=None,
+            warnings=[],
+            error=f"Error validating dataset (ID: {datasource_id}): {str(e)}",
+        )
+
 
 def generate_explore_link(dataset_id: int | str, form_data: Dict[str, Any]) -> str:
     """Generate an explore link for the given dataset and form data."""
+    from sqlalchemy.exc import SQLAlchemyError
+
+    from superset.commands.exceptions import CommandException
+    from superset.commands.explore.form_data.parameters import CommandParameters
+    from superset.daos.dataset import DatasetDAO
+    from superset.exceptions import SupersetException
+    from superset.mcp_service.commands.create_form_data import (
+        MCPCreateFormDataCommand,
+    )
+    from superset.utils.core import DatasourceType
+
     base_url = get_superset_base_url()
     numeric_dataset_id = None
+    dataset = None
 
     try:
-        from superset.commands.explore.form_data.parameters import CommandParameters
-
-        # Find the dataset to get its numeric ID
-        from superset.daos.dataset import DatasetDAO
-        from superset.mcp_service.commands.create_form_data import (
-            MCPCreateFormDataCommand,
-        )
-        from superset.utils.core import DatasourceType
-
-        dataset = None
-
         if isinstance(dataset_id, int) or (
             isinstance(dataset_id, str) and dataset_id.isdigit()
         ):
@@ -92,27 +204,111 @@ def generate_explore_link(dataset_id: int | str, form_data: Dict[str, Any]) -> s
         # Return URL with just the form_data_key
         return f"{base_url}/explore/?form_data_key={form_data_key}"
 
-    except Exception:
+    except (
+        CommandException,
+        SupersetException,
+        SQLAlchemyError,
+        KeyError,
+        ValueError,
+        AttributeError,
+        TypeError,
+    ) as e:
         # Fallback to basic explore URL with numeric ID if available
+        logger.debug("Explore link generation fallback due to: %s", e)
         if numeric_dataset_id is not None:
             return (
                 f"{base_url}/explore/?datasource_type=table"
                 f"&datasource_id={numeric_dataset_id}"
             )
+        return f"{base_url}/explore/?datasource_type=table&datasource_id={dataset_id}"
+
+
+def is_column_truly_temporal(column_name: str, dataset_id: int | str | None) -> bool:
+    """
+    Check if a column is truly temporal based on its SQL data type.
+
+    This is important because Superset may mark columns as is_dttm=True based on
+    column name heuristics (e.g., "year", "month"), but if the actual SQL type is
+    BIGINT or INTEGER, DATE_TRUNC will fail.
+
+    Uses the database engine spec's column type mapping to determine the actual
+    GenericDataType, bypassing the is_dttm flag which may be set incorrectly.
+
+    Args:
+        column_name: Name of the column to check
+        dataset_id: Dataset ID to look up column metadata
+
+    Returns:
+        True if the column has a real temporal SQL type, False otherwise
+    """
+    from superset.daos.dataset import DatasetDAO
+    from superset.utils.core import GenericDataType
+
+    if not dataset_id:
+        return True  # Default to temporal if we can't check (backward compatible)
+
+    try:
+        # Find dataset
+        if isinstance(dataset_id, int) or (
+            isinstance(dataset_id, str) and dataset_id.isdigit()
+        ):
+            dataset = DatasetDAO.find_by_id(int(dataset_id))
         else:
-            return (
-                f"{base_url}/explore/?datasource_type=table&datasource_id={dataset_id}"
-            )
+            dataset = DatasetDAO.find_by_id(dataset_id, id_column="uuid")
+
+        if not dataset:
+            return True  # Default to temporal if dataset not found
+
+        # Find the column and check its actual type using db_engine_spec
+        column_lower = column_name.lower()
+        for col in dataset.columns:
+            if col.column_name.lower() == column_lower:
+                col_type = col.type
+                if not col_type:
+                    # No type info, trust is_dttm flag
+                    return getattr(col, "is_dttm", False)
+
+                # Use the db_engine_spec to get the actual GenericDataType
+                # This bypasses the is_dttm flag and checks the real SQL type
+                db_engine_spec = dataset.database.db_engine_spec
+                column_spec = db_engine_spec.get_column_spec(col_type)
+
+                if column_spec:
+                    is_temporal = column_spec.generic_type == GenericDataType.TEMPORAL
+                    if not is_temporal:
+                        logger.debug(
+                            "Column '%s' has type '%s' (generic: %s), "
+                            "treating as non-temporal",
+                            column_name,
+                            col_type,
+                            column_spec.generic_type,
+                        )
+                    return is_temporal
+
+                # If no column_spec, trust is_dttm flag
+                return getattr(col, "is_dttm", False)
+
+        return True  # Default if column not found
+
+    except (ValueError, AttributeError) as e:
+        logger.warning(
+            "Error checking column type for '%s' in dataset %s: %s",
+            column_name,
+            dataset_id,
+            e,
+        )
+        return True  # Default to temporal on error (backward compatible)
 
 
 def map_config_to_form_data(
     config: TableChartConfig | XYChartConfig,
+    dataset_id: int | str | None = None,
 ) -> Dict[str, Any]:
     """Map chart config to Superset form_data."""
     if isinstance(config, TableChartConfig):
         return map_table_config(config)
     elif isinstance(config, XYChartConfig):
-        return map_xy_config(config)
+        return map_xy_config(config, dataset_id=dataset_id)
     else:
         raise ValueError(f"Unsupported config type: {type(config)}")
 
@@ -139,8 +335,9 @@ def map_table_config(config: TableChartConfig) -> Dict[str, Any]:
     if not raw_columns and not aggregated_metrics:
         raise ValueError("Table chart configuration resulted in no displayable columns")
 
+    # Use the viz_type from config (defaults to "table", can be "ag-grid-table")
     form_data: Dict[str, Any] = {
-        "viz_type": "table",
+        "viz_type": config.viz_type,
     }
 
     # Handle raw columns (no aggregation)
@@ -258,19 +455,55 @@ def add_legend_config(form_data: Dict[str, Any], config: XYChartConfig) -> None:
             form_data["legend_orientation"] = config.legend.position
 
 
-def map_xy_config(config: XYChartConfig) -> Dict[str, Any]:
+def configure_temporal_handling(
+    form_data: Dict[str, Any],
+    x_is_temporal: bool,
+    time_grain: str | None,
+) -> None:
+    """Configure form_data based on whether x-axis column is temporal.
+
+    For temporal columns, enables standard time series handling.
+    For non-temporal columns (e.g., BIGINT year), disables DATE_TRUNC
+    by setting categorical sorting options.
+    """
+    if x_is_temporal:
+        if time_grain:
+            form_data["time_grain_sqla"] = time_grain
+    else:
+        # Non-temporal column - disable temporal handling to prevent DATE_TRUNC
+        form_data["x_axis_sort_series_type"] = "name"
+        form_data["x_axis_sort_series_ascending"] = True
+        form_data["time_grain_sqla"] = None
+        form_data["granularity_sqla"] = None
+
+
+def map_xy_config(
+    config: XYChartConfig, dataset_id: int | str | None = None
+) -> Dict[str, Any]:
     """Map XY chart config to form_data with defensive validation."""
     # Early validation to prevent empty charts
     if not config.y:
         raise ValueError("XY chart must have at least one Y-axis metric")
 
-    # Map chart kind to viz_type
+    # Check if x-axis column is truly temporal (based on actual SQL type)
+    x_is_temporal = is_column_truly_temporal(config.x.name, dataset_id)
+
+    # Map chart kind to viz_type - always use the same viz types
+    # The temporal vs non-temporal handling is done via form_data configuration
     viz_type_map = {
         "line": "echarts_timeseries_line",
         "bar": "echarts_timeseries_bar",
         "area": "echarts_area",
         "scatter": "echarts_timeseries_scatter",
     }
+
+    if not x_is_temporal:
+        logger.info(
+            "X-axis column '%s' is not temporal (dataset_id=%s), "
+            "configuring as categorical dimension",
+            config.x.name,
+            dataset_id,
+        )
 
     # Convert Y columns to metrics with validation
     metrics = []
@@ -285,9 +518,12 @@ def map_xy_config(config: XYChartConfig) -> Dict[str, Any]:
 
     form_data: Dict[str, Any] = {
         "viz_type": viz_type_map.get(config.kind, "echarts_timeseries_line"),
-        "x_axis": config.x.name,
         "metrics": metrics,
+        "x_axis": config.x.name,
     }
+
+    # Configure temporal handling based on whether column is truly temporal
+    configure_temporal_handling(form_data, x_is_temporal, config.time_grain)
 
     # CRITICAL FIX: For time series charts, handle groupby carefully to avoid duplicates
     # The x_axis field already tells Superset which column to use for time grouping
@@ -320,6 +556,10 @@ def map_xy_config(config: XYChartConfig) -> Dict[str, Any]:
             if filter_config is not None
         ]
 
+    # Add stacking configuration
+    if getattr(config, "stacked", False):
+        form_data["stack"] = "Stack"
+
     # Add configurations
     add_axis_config(form_data, config)
     add_legend_config(form_data, config)
@@ -336,6 +576,11 @@ def map_filter_operator(op: str) -> str:
         ">=": ">=",
         "<=": "<=",
         "!=": "!=",
+        "LIKE": "LIKE",
+        "ILIKE": "ILIKE",
+        "NOT LIKE": "NOT LIKE",
+        "IN": "IN",
+        "NOT IN": "NOT IN",
     }
     return operator_map.get(op, op)
 
@@ -370,7 +615,8 @@ def analyze_chart_capabilities(chart: Any | None, config: Any) -> ChartCapabilit
             }
             viz_type = viz_type_map.get(kind, "echarts_timeseries_line")
         elif chart_type == "table":
-            viz_type = "table"
+            # Use the viz_type from config if available (table or ag-grid-table)
+            viz_type = getattr(config, "viz_type", "table")
         else:
             viz_type = "unknown"
 
@@ -382,10 +628,11 @@ def analyze_chart_capabilities(chart: Any | None, config: Any) -> ChartCapabilit
         "echarts_timeseries_scatter",
         "deck_scatter",
         "deck_hex",
+        "ag-grid-table",  # AG Grid tables are interactive
     ]
 
     supports_interaction = viz_type in interactive_types
-    supports_drill_down = viz_type in ["table", "pivot_table_v2"]
+    supports_drill_down = viz_type in ["table", "pivot_table_v2", "ag-grid-table"]
     supports_real_time = viz_type in [
         "echarts_timeseries_line",
         "echarts_timeseries_bar",
@@ -433,7 +680,8 @@ def analyze_chart_semantics(chart: Any | None, config: Any) -> ChartSemantics:
             }
             viz_type = viz_type_map.get(kind, "echarts_timeseries_line")
         elif chart_type == "table":
-            viz_type = "table"
+            # Use the viz_type from config if available (table or ag-grid-table)
+            viz_type = getattr(config, "viz_type", "table")
         else:
             viz_type = "unknown"
 
@@ -442,6 +690,10 @@ def analyze_chart_semantics(chart: Any | None, config: Any) -> ChartSemantics:
         "echarts_timeseries_line": "Shows trends and changes over time",
         "echarts_timeseries_bar": "Compares values across categories or time periods",
         "table": "Displays detailed data in tabular format",
+        "ag-grid-table": (
+            "Interactive table with advanced features like column resizing, "
+            "sorting, filtering, and server-side pagination"
+        ),
         "pie": "Shows proportional relationships within a dataset",
         "echarts_area": "Emphasizes cumulative totals and part-to-whole relationships",
     }

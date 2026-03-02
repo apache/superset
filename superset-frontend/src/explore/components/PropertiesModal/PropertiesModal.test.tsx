@@ -135,7 +135,7 @@ fetchMock.put('glob:*/api/v1/chart/318', {
 });
 
 afterAll(() => {
-  fetchMock.resetBehavior();
+  fetchMock.clearHistory().removeRoutes();
 });
 
 const renderModal = (props: PropertiesModalProps) =>

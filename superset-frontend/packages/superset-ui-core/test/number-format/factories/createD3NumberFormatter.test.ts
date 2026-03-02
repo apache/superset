@@ -20,23 +20,23 @@
 import { createD3NumberFormatter } from '@superset-ui/core';
 
 describe('createD3NumberFormatter(config)', () => {
-  it('requires config.formatString', () => {
-    // @ts-ignore -- intentionally pass invalid input
+  test('requires config.formatString', () => {
+    // @ts-expect-error -- intentionally pass invalid input
     expect(() => createD3NumberFormatter({})).toThrow();
   });
   describe('config.formatString', () => {
-    it('creates a NumberFormatter with the formatString as id', () => {
+    test('creates a NumberFormatter with the formatString as id', () => {
       const formatter = createD3NumberFormatter({ formatString: '.2f' });
       expect(formatter.id).toEqual('.2f');
     });
     describe('if it is valid d3 formatString', () => {
-      it('uses d3.format(config.formatString) as format function', () => {
+      test('uses d3.format(config.formatString) as format function', () => {
         const formatter = createD3NumberFormatter({ formatString: '.2f' });
         expect(formatter.format(100)).toEqual('100.00');
       });
     });
     describe('if it is invalid d3 formatString', () => {
-      it('The format function displays error message', () => {
+      test('The format function displays error message', () => {
         const formatter = createD3NumberFormatter({
           formatString: 'i-am-groot',
         });
@@ -44,7 +44,7 @@ describe('createD3NumberFormatter(config)', () => {
           '12345.67 (Invalid format: i-am-groot)',
         );
       });
-      it('also set formatter.isInvalid to true', () => {
+      test('also set formatter.isInvalid to true', () => {
         const formatter = createD3NumberFormatter({
           formatString: 'i-am-groot',
         });
@@ -53,7 +53,7 @@ describe('createD3NumberFormatter(config)', () => {
     });
   });
   describe('config.label', () => {
-    it('set label if specified', () => {
+    test('set label if specified', () => {
       const formatter = createD3NumberFormatter({
         formatString: '.2f',
         label: 'float formatter',
@@ -62,7 +62,7 @@ describe('createD3NumberFormatter(config)', () => {
     });
   });
   describe('config.description', () => {
-    it('set description if specified', () => {
+    test('set description if specified', () => {
       const formatter = createD3NumberFormatter({
         description: 'lorem ipsum',
         formatString: '.2f',
@@ -71,7 +71,7 @@ describe('createD3NumberFormatter(config)', () => {
     });
   });
   describe('config.locale', () => {
-    it('supports locale customization such as currency', () => {
+    test('supports locale customization such as currency', () => {
       const formatter = createD3NumberFormatter({
         description: 'lorem ipsum',
         formatString: '$.2f',
@@ -83,6 +83,20 @@ describe('createD3NumberFormatter(config)', () => {
         },
       });
       expect(formatter(200)).toEqual('€200.00');
+    });
+  });
+  describe('negative numbers', () => {
+    test('uses ASCII hyphen-minus (U+002D) for negative numbers, not Unicode minus (U+2212)', () => {
+      const formatter = createD3NumberFormatter({ formatString: ',d' });
+      const result = formatter(-1234);
+      // Verify the result contains ASCII hyphen-minus (char code 45), not Unicode minus (char code 8722)
+      // This is important for backward compatibility after d3-format v3 upgrade
+      expect(result).toEqual('-1,234');
+      expect(result.charCodeAt(0)).toEqual(45); // ASCII hyphen-minus
+    });
+    test('formats negative decimals correctly', () => {
+      const formatter = createD3NumberFormatter({ formatString: ',.2f' });
+      expect(formatter(-1234.5)).toEqual('-1,234.50');
     });
   });
 });

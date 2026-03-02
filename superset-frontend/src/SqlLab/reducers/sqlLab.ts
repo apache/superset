@@ -760,6 +760,13 @@ export default function sqlLabReducer(
                   : currentState,
             };
             if (
+              newQueries[id].state === QueryState.Success &&
+              newQueries[id].runAsync === false &&
+              !newQueries[id].results
+            ) {
+              newQueries[id].state = QueryState.Fetching;
+            }
+            if (
               shallowEqual(
                 omit(newQueries[id], ['extra']),
                 omit(state.queries[id], ['extra']),

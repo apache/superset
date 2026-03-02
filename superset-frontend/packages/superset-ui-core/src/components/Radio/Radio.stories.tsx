@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import type { StoryObj } from '@storybook/react';
 import { css } from '@apache-superset/core/ui';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Space } from '../Space';
@@ -25,20 +26,32 @@ export default {
   title: 'Components/Radio',
   component: Radio,
   tags: ['autodocs'],
+  parameters: {
+    docs: {
+      description: {
+        component:
+          'Radio button component for selecting one option from a set. Supports standalone radio buttons, radio buttons styled as buttons, and grouped radio buttons with layout configuration.',
+      },
+    },
+  },
 };
 
 const RadioArgsType = {
   value: {
     control: 'text',
-    description: 'The value of the radio button.',
+    description: 'The value associated with this radio button.',
   },
   disabled: {
     control: 'boolean',
-    description: 'Whether the radio button is disabled or not.',
+    description: 'Whether the radio button is disabled.',
   },
   checked: {
     control: 'boolean',
-    description: 'The checked state of the radio button.',
+    description: 'Whether the radio button is checked (controlled mode).',
+  },
+  children: {
+    control: 'text',
+    description: 'Label text displayed next to the radio button.',
   },
 };
 
@@ -76,14 +89,66 @@ const radioGroupWrapperArgsType = {
   },
 };
 
-export const RadioStory = {
+export const RadioStory: StoryObj<typeof Radio> = {
   args: {
     value: 'radio1',
     disabled: false,
     checked: false,
     children: 'Radio',
   },
-  argTypes: RadioArgsType,
+  argTypes: {
+    value: {
+      control: 'text',
+      description: 'The value associated with this radio button.',
+    },
+    disabled: {
+      control: 'boolean',
+      description: 'Whether the radio button is disabled.',
+    },
+    checked: {
+      control: 'boolean',
+      description: 'Whether the radio button is checked (controlled mode).',
+    },
+    children: {
+      control: 'text',
+      description: 'Label text displayed next to the radio button.',
+    },
+  },
+};
+
+RadioStory.parameters = {
+  docs: {
+    examples: [
+      {
+        title: 'Radio Button Variants',
+        code: `function RadioButtonDemo() {
+  const [value, setValue] = React.useState('line');
+  return (
+    <Radio.Group value={value} onChange={e => setValue(e.target.value)}>
+      <Radio.Button value="line">Line Chart</Radio.Button>
+      <Radio.Button value="bar">Bar Chart</Radio.Button>
+      <Radio.Button value="pie">Pie Chart</Radio.Button>
+    </Radio.Group>
+  );
+}`,
+      },
+      {
+        title: 'Vertical Radio Group',
+        code: `function VerticalDemo() {
+  const [value, setValue] = React.useState('option1');
+  return (
+    <Radio.Group value={value} onChange={e => setValue(e.target.value)}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <Radio value="option1">First option</Radio>
+        <Radio value="option2">Second option</Radio>
+        <Radio value="option3">Third option</Radio>
+      </div>
+    </Radio.Group>
+  );
+}`,
+      },
+    ],
+  },
 };
 
 export const RadioButtonStory = (args: RadioProps) => (

@@ -207,11 +207,12 @@ function ReportModal({
 
     setCurrentReport({ isSubmitting: true, error: undefined });
     try {
-      if (isEditMode) {
+      if (isEditMode && currentReport.id) {
         await dispatch(
           editReport(currentReport.id, newReportValues as ReportObject),
         );
       } else {
+        // Create new report (either not in edit mode, or edit mode without valid ID)
         await dispatch(addReport(newReportValues as ReportObject));
       }
       onHide();

@@ -42,7 +42,7 @@ describe('Bubble buildQuery', () => {
     },
   };
 
-  it('Should build query without dimension', () => {
+  test('Should build query without dimension', () => {
     const queryContext = buildQuery(formData);
     const [query] = queryContext.queries;
     expect(query.columns).toEqual(['customer_name']);
@@ -66,7 +66,7 @@ describe('Bubble buildQuery', () => {
       },
     ]);
   });
-  it('Should build query with dimension', () => {
+  test('Should build query with dimension', () => {
     const queryContext = buildQuery({ ...formData, series: 'state' });
     const [query] = queryContext.queries;
     expect(query.columns).toEqual(['customer_name', 'state']);

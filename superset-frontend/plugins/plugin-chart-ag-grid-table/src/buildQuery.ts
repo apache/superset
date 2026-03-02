@@ -120,6 +120,12 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       }
     }
 
+    // Dashboard filter override - allows dashboard-level time shifts to OVERRIDE
+    // chart-level time shift settings (from PRs #33947 and #34014)
+    if (extra_form_data?.time_compare) {
+      timeOffsets = [extra_form_data.time_compare];
+    }
+
     let temporalColumnAdded = false;
     let temporalColumn = null;
 
@@ -600,7 +606,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         {
           ...queryObject,
           time_offsets: [],
-          row_limit: Number(formData?.row_limit) ?? 0,
+          row_limit: Number(formData?.row_limit ?? 0),
           row_offset: 0,
           post_processing: [],
           is_rowcount: true,

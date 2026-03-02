@@ -34,6 +34,7 @@ interface SupersetParseErrorExtra {
 export function InvalidSQLErrorMessage({
   error,
   subtitle,
+  closable,
 }: ErrorMessageComponentProps<SupersetParseErrorExtra>) {
   const { extra, level, message } = error;
 
@@ -58,6 +59,7 @@ export function InvalidSQLErrorMessage({
       message={subtitle}
       type={level}
       description={body}
+      closable={closable}
     />
   );
 }

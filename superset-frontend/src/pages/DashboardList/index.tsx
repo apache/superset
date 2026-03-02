@@ -29,9 +29,11 @@ import { Link } from 'react-router-dom';
 import rison from 'rison';
 import {
   createFetchRelated,
+  createFetchOwners,
   createErrorHandler,
   handleDashboardDelete,
 } from 'src/views/CRUD/utils';
+import { OWNER_OPTION_FILTER_PROPS } from 'src/features/owners/OwnerSelectLabel';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import {
   CertifiedBadge,
@@ -222,9 +224,9 @@ function DashboardList(props: DashboardListProps) {
 
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
 
-  function openDashboardEditModal(dashboard: Dashboard) {
+  const openDashboardEditModal = useCallback((dashboard: Dashboard) => {
     setDashboardToEdit(dashboard);
-  }
+  }, []);
 
   function handleDashboardEdit(edits: Dashboard) {
     return SupersetClient.get({
@@ -235,29 +237,29 @@ function DashboardList(props: DashboardListProps) {
           dashboards.map(dashboard => {
             if (dashboard.id === json?.result?.id) {
               const {
-                changed_by_name,
-                changed_by,
-                dashboard_title = '',
+                changed_by_name: changedByName,
+                changed_by: changedBy,
+                dashboard_title: dashboardTitle = '',
                 slug = '',
-                json_metadata = '',
-                changed_on_delta_humanized,
+                json_metadata: jsonMetadata = '',
+                changed_on_delta_humanized: changedOnDeltaHumanized,
                 url = '',
-                certified_by = '',
-                certification_details = '',
+                certified_by: certifiedBy = '',
+                certification_details: certificationDetails = '',
                 owners,
                 tags,
               } = json.result;
               return {
                 ...dashboard,
-                changed_by_name,
-                changed_by,
-                dashboard_title,
+                changed_by_name: changedByName,
+                changed_by: changedBy,
+                dashboard_title: dashboardTitle,
                 slug,
-                json_metadata,
-                changed_on_delta_humanized,
+                json_metadata: jsonMetadata,
+                changed_on_delta_humanized: changedOnDeltaHumanized,
                 url,
-                certified_by,
-                certification_details,
+                certified_by: certifiedBy,
+                certification_details: certificationDetails,
                 owners,
                 tags,
               };
@@ -274,18 +276,23 @@ function DashboardList(props: DashboardListProps) {
     );
   }
 
-  const handleBulkDashboardExport = async (dashboardsToExport: Dashboard[]) => {
-    const ids = dashboardsToExport.map(({ id }) => id);
-    setPreparingExport(true);
-    try {
-      await handleResourceExport('dashboard', ids, () => {
+  const handleBulkDashboardExport = useCallback(
+    async (dashboardsToExport: Dashboard[]) => {
+      const ids = dashboardsToExport.map(({ id }) => id);
+      setPreparingExport(true);
+      try {
+        await handleResourceExport('dashboard', ids, () => {
+          setPreparingExport(false);
+        });
+      } catch (error) {
         setPreparingExport(false);
-      });
-    } catch (error) {
-      setPreparingExport(false);
-      addDangerToast(t('There was an issue exporting the selected dashboards'));
-    }
-  };
+        addDangerToast(
+          t('There was an issue exporting the selected dashboards'),
+        );
+      }
+    },
+    [addDangerToast],
+  );
 
   function handleBulkDashboardDelete(dashboardsToDelete: Dashboard[]) {
     return SupersetClient.delete({
@@ -433,6 +440,38 @@ function DashboardList(props: DashboardListProps) {
 
           return (
             <Actions className="actions">
+              {canEdit && (
+                <Tooltip
+                  id="edit-action-tooltip"
+                  title={t('Edit')}
+                  placement="bottom"
+                >
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    className="action-button"
+                    onClick={handleEdit}
+                  >
+                    <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
+                  </span>
+                </Tooltip>
+              )}
+              {canExport && (
+                <Tooltip
+                  id="export-action-tooltip"
+                  title={t('Export')}
+                  placement="bottom"
+                >
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    className="action-button"
+                    onClick={handleExport}
+                  >
+                    <Icons.UploadOutlined iconSize="l" />
+                  </span>
+                </Tooltip>
+              )}
               {canDelete && (
                 <ConfirmStatusChange
                   title={t('Please confirm')}
@@ -465,38 +504,6 @@ function DashboardList(props: DashboardListProps) {
                   )}
                 </ConfirmStatusChange>
               )}
-              {canExport && (
-                <Tooltip
-                  id="export-action-tooltip"
-                  title={t('Export')}
-                  placement="bottom"
-                >
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
-                    onClick={handleExport}
-                  >
-                    <Icons.UploadOutlined iconSize="l" />
-                  </span>
-                </Tooltip>
-              )}
-              {canEdit && (
-                <Tooltip
-                  id="edit-action-tooltip"
-                  title={t('Edit')}
-                  placement="bottom"
-                >
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
-                    onClick={handleEdit}
-                  >
-                    <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
-                  </span>
-                </Tooltip>
-              )}
             </Actions>
           );
         },
@@ -521,6 +528,8 @@ function DashboardList(props: DashboardListProps) {
       refreshData,
       addSuccessToast,
       addDangerToast,
+      handleBulkDashboardExport,
+      openDashboardEditModal,
     ],
   );
 
@@ -542,7 +551,7 @@ function DashboardList(props: DashboardListProps) {
   );
 
   const filters: ListViewFilters = useMemo(() => {
-    const filters_list = [
+    const filtersList = [
       {
         Header: t('Name'),
         key: 'search',
@@ -582,9 +591,8 @@ function DashboardList(props: DashboardListProps) {
         input: 'select',
         operator: FilterOperator.RelationManyMany,
         unfilteredLabel: t('All'),
-        fetchSelects: createFetchRelated(
+        fetchSelects: createFetchOwners(
           'dashboard',
-          'owners',
           createErrorHandler(errMsg =>
             addDangerToast(
               t(
@@ -593,8 +601,9 @@ function DashboardList(props: DashboardListProps) {
               ),
             ),
           ),
-          props.user,
+          user,
         ),
+        optionFilterProps: OWNER_OPTION_FILTER_PROPS,
         paginate: true,
         dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
@@ -634,8 +643,8 @@ function DashboardList(props: DashboardListProps) {
         dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
     ] as ListViewFilters;
-    return filters_list;
-  }, [addDangerToast, favoritesFilter, props.user]);
+    return filtersList;
+  }, [addDangerToast, canReadTag, favoritesFilter, user]);
 
   const sortTypes = [
     {
@@ -686,6 +695,8 @@ function DashboardList(props: DashboardListProps) {
       user?.userId,
       saveFavoriteStatus,
       userKey,
+      handleBulkDashboardExport,
+      openDashboardEditModal,
     ],
   );
 

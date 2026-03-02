@@ -21,12 +21,17 @@ import { act, render, screen, userEvent } from 'spec/helpers/testing-library';
 import { stateWithoutNativeFilters } from 'spec/fixtures/mockStore';
 import { testWithId } from 'src/utils/testUtils';
 import { Preset, makeApi } from '@superset-ui/core';
-import { TimeFilterPlugin, SelectFilterPlugin } from 'src/filters/components';
+import {
+  TimeFilterPlugin,
+  SelectFilterPlugin,
+  RangeFilterPlugin,
+} from 'src/filters/components';
 import fetchMock from 'fetch-mock';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import { FILTER_BAR_TEST_ID } from './utils';
 import FilterBar from '.';
 import { FILTERS_CONFIG_MODAL_TEST_ID } from '../FiltersConfigModal/FiltersConfigModal';
+import * as dataMaskActions from 'src/dataMask/actions';
 
 jest.useFakeTimers();
 
@@ -44,6 +49,7 @@ class MainPreset extends Preset {
       plugins: [
         new TimeFilterPlugin().configure({ key: 'filter_time' }),
         new SelectFilterPlugin().configure({ key: 'filter_select' }),
+        new RangeFilterPlugin().configure({ key: 'filter_range' }),
       ],
     });
   }
@@ -79,7 +85,7 @@ const addFilterFlow = async () => {
   // open filter config modals
   userEvent.click(screen.getByTestId(getTestId('collapsable')));
   userEvent.click(screen.getByLabelText('setting'));
-  userEvent.click(screen.getByText('Filters and customizations'));
+  userEvent.click(screen.getByText('Add or edit filters and controls'));
   // select filter
   userEvent.click(screen.getByText('Value'));
   userEvent.click(screen.getByText('Time range'));
@@ -127,17 +133,28 @@ describe('FilterBar', () => {
     };
   });
 
+  const getTimeRangeNoFilterMockUrl =
+    'glob:*/api/v1/time_range/?q=%27No%20filter%27';
+  const getTimeRangeLastDayMockUrl =
+    'glob:*/api/v1/time_range/?q=%27Last%20day%27';
+  const getTimeRangeLastWeekMockUrl =
+    'glob:*/api/v1/time_range/?q=%27Last%20week%27';
+
   beforeEach(() => {
     jest.clearAllMocks();
+
+    fetchMock.removeRoute(getTimeRangeNoFilterMockUrl);
     fetchMock.get(
-      'glob:*/api/v1/time_range/?q=%27No%20filter%27',
+      getTimeRangeNoFilterMockUrl,
       {
         result: { since: '', until: '', timeRange: 'No filter' },
       },
-      { overwriteRoutes: true },
+      { name: getTimeRangeNoFilterMockUrl },
     );
+
+    fetchMock.removeRoute(getTimeRangeLastDayMockUrl);
     fetchMock.get(
-      'glob:*/api/v1/time_range/?q=%27Last%20day%27',
+      getTimeRangeLastDayMockUrl,
       {
         result: {
           since: '2021-04-13T00:00:00',
@@ -145,10 +162,12 @@ describe('FilterBar', () => {
           timeRange: 'Last day',
         },
       },
-      { overwriteRoutes: true },
+      { name: getTimeRangeLastDayMockUrl },
     );
+
+    fetchMock.removeRoute(getTimeRangeLastWeekMockUrl);
     fetchMock.get(
-      'glob:*/api/v1/time_range/?q=%27Last%20week%27',
+      getTimeRangeLastWeekMockUrl,
       {
         result: {
           since: '2021-04-07T00:00:00',
@@ -156,7 +175,7 @@ describe('FilterBar', () => {
           timeRange: 'Last week',
         },
       },
-      { overwriteRoutes: true },
+      { name: getTimeRangeLastWeekMockUrl },
     );
 
     mockedMakeApi.mockReturnValue(mockApi);
@@ -186,9 +205,9 @@ describe('FilterBar', () => {
     expect(container).toBeInTheDocument();
   });
 
-  test('should render the "Actions" heading', () => {
+  test('should render the "Filters and controls" heading', () => {
     renderWrapper();
-    expect(screen.getByText('Actions')).toBeInTheDocument();
+    expect(screen.getByText('Filters and controls')).toBeInTheDocument();
   });
 
   test('should render the "Clear all" option', () => {
@@ -358,5 +377,295 @@ describe('FilterBar', () => {
 
     const { container } = renderWrapper(openedBarProps, stateWithFilter);
     expect(container).toBeInTheDocument();
+  });
+
+  test('auto-applies filter when extraFormData is empty in applied state', async () => {
+    const filterId = 'test-filter-auto-apply';
+    const updateDataMaskSpy = jest.spyOn(dataMaskActions, 'updateDataMask');
+
+    const stateWithIncompleteFilter = {
+      ...stateWithoutNativeFilters,
+      dashboardInfo: {
+        id: 1,
+        dash_edit_perm: true,
+      },
+      dataMask: {
+        [filterId]: {
+          id: filterId,
+          filterState: { value: ['value1', 'value2'] },
+          extraFormData: {},
+        },
+      },
+      nativeFilters: {
+        filters: {
+          [filterId]: {
+            id: filterId,
+            name: 'Test Filter',
+            filterType: 'filter_select',
+            targets: [{ datasetId: 1, column: { name: 'test_column' } }],
+            defaultDataMask: {
+              filterState: { value: ['value1', 'value2'] },
+              extraFormData: {},
+            },
+            controlValues: {
+              enableEmptyFilter: true,
+            },
+            cascadeParentIds: [],
+            scope: {
+              rootPath: ['ROOT_ID'],
+              excluded: [],
+            },
+            type: 'NATIVE_FILTER',
+            description: '',
+            chartsInScope: [],
+            tabsInScope: [],
+          },
+        },
+        filtersState: {},
+      },
+    };
+
+    renderWrapper(openedBarProps, stateWithIncompleteFilter);
+
+    await act(async () => {
+      jest.advanceTimersByTime(200);
+    });
+
+    expect(screen.getByTestId(getTestId('filter-icon'))).toBeInTheDocument();
+
+    updateDataMaskSpy.mockRestore();
+  });
+
+  test('renders correctly when filter has complete extraFormData', async () => {
+    const filterId = 'test-filter-complete';
+    const stateWithCompleteFilter = {
+      ...stateWithoutNativeFilters,
+      dashboardInfo: {
+        id: 1,
+        dash_edit_perm: true,
+      },
+      dataMask: {
+        [filterId]: {
+          id: filterId,
+          filterState: { value: ['value1'] },
+          extraFormData: {
+            filters: [{ col: 'test_column', op: 'IN', val: ['value1'] }],
+          },
+        },
+      },
+      nativeFilters: {
+        filters: {
+          [filterId]: {
+            id: filterId,
+            name: 'Test Filter',
+            filterType: 'filter_select',
+            targets: [{ datasetId: 1, column: { name: 'test_column' } }],
+            defaultDataMask: {
+              filterState: { value: ['value1'] },
+              extraFormData: {
+                filters: [{ col: 'test_column', op: 'IN', val: ['value1'] }],
+              },
+            },
+            controlValues: {
+              enableEmptyFilter: true,
+            },
+            cascadeParentIds: [],
+            scope: {
+              rootPath: ['ROOT_ID'],
+              excluded: [],
+            },
+            type: 'NATIVE_FILTER',
+            description: '',
+            chartsInScope: [],
+            tabsInScope: [],
+          },
+        },
+        filtersState: {},
+      },
+    };
+
+    renderWrapper(openedBarProps, stateWithCompleteFilter);
+
+    await act(async () => {
+      jest.advanceTimersByTime(100);
+    });
+
+    expect(screen.getByTestId(getTestId('filter-icon'))).toBeInTheDocument();
+  });
+
+  test('handleClearAll dispatches updateDataMask with value null for filter_select', async () => {
+    const filterId = 'NATIVE_FILTER-clear-select';
+    const updateDataMaskSpy = jest.spyOn(dataMaskActions, 'updateDataMask');
+    const selectFilterConfig = {
+      id: filterId,
+      name: 'Region',
+      filterType: 'filter_select',
+      targets: [{ datasetId: 7, column: { name: 'region' } }],
+      defaultDataMask: { filterState: { value: null }, extraFormData: {} },
+      cascadeParentIds: [],
+      scope: { rootPath: ['ROOT_ID'], excluded: [] },
+      type: 'NATIVE_FILTER',
+      description: '',
+      chartsInScope: [18],
+      tabsInScope: [],
+    };
+    const stateWithSelect = {
+      ...stateWithoutNativeFilters,
+      dashboardInfo: {
+        id: 1,
+        dash_edit_perm: true,
+        filterBarOrientation: FilterBarOrientation.Vertical,
+        metadata: {
+          native_filter_configuration: [selectFilterConfig],
+          chart_configuration: {},
+        },
+      },
+      dataMask: {
+        [filterId]: {
+          id: filterId,
+          filterState: { value: ['East'] },
+          extraFormData: {},
+        },
+      },
+    };
+
+    renderWrapper(openedBarProps, stateWithSelect);
+    await act(async () => {
+      jest.advanceTimersByTime(300);
+    });
+
+    const clearBtn = screen.getByTestId(getTestId('clear-button'));
+    expect(clearBtn).not.toBeDisabled();
+    await act(async () => {
+      userEvent.click(clearBtn);
+    });
+
+    expect(updateDataMaskSpy).toHaveBeenCalledWith(filterId, {
+      filterState: { value: undefined },
+      extraFormData: {},
+    });
+    updateDataMaskSpy.mockRestore();
+  });
+
+  test('handleClearAll dispatches updateDataMask with value [null, null] for filter_range', async () => {
+    fetchMock.post('glob:*/api/v1/chart/data', {
+      result: [{ data: [{ min: 0, max: 100 }] }],
+    });
+    const filterId = 'NATIVE_FILTER-clear-range';
+    const updateDataMaskSpy = jest.spyOn(dataMaskActions, 'updateDataMask');
+    const rangeFilterConfig = {
+      id: filterId,
+      name: 'Age',
+      filterType: 'filter_range',
+      targets: [{ datasetId: 7, column: { name: 'age' } }],
+      defaultDataMask: { filterState: { value: null }, extraFormData: {} },
+      cascadeParentIds: [],
+      scope: { rootPath: ['ROOT_ID'], excluded: [] },
+      type: 'NATIVE_FILTER',
+      description: '',
+      chartsInScope: [18],
+      tabsInScope: [],
+    };
+    const stateWithRange = {
+      ...stateWithoutNativeFilters,
+      dashboardInfo: {
+        id: 1,
+        dash_edit_perm: true,
+        filterBarOrientation: FilterBarOrientation.Vertical,
+        metadata: {
+          native_filter_configuration: [rangeFilterConfig],
+          chart_configuration: {},
+        },
+      },
+      dataMask: {
+        [filterId]: {
+          id: filterId,
+          filterState: { value: [10, 50] },
+          extraFormData: {},
+        },
+      },
+    };
+
+    renderWrapper(openedBarProps, stateWithRange);
+    await act(async () => {
+      jest.advanceTimersByTime(300);
+    });
+
+    const clearBtn = screen.getByTestId(getTestId('clear-button'));
+    expect(clearBtn).not.toBeDisabled();
+    await act(async () => {
+      userEvent.click(clearBtn);
+    });
+
+    expect(updateDataMaskSpy).toHaveBeenCalledWith(filterId, {
+      filterState: { value: [null, null] },
+      extraFormData: {},
+    });
+    updateDataMaskSpy.mockRestore();
+  });
+
+  test('handleClearAll only dispatches for filters present in dataMask', async () => {
+    const idInMask = 'NATIVE_FILTER-has-value';
+    const idNotInMask = 'NATIVE_FILTER-no-value';
+    const updateDataMaskSpy = jest.spyOn(dataMaskActions, 'updateDataMask');
+    const baseFilter = {
+      targets: [{ datasetId: 7, column: { name: 'x' } }],
+      defaultDataMask: { filterState: { value: null }, extraFormData: {} },
+      cascadeParentIds: [],
+      scope: { rootPath: ['ROOT_ID'], excluded: [] },
+      type: 'NATIVE_FILTER',
+      description: '',
+      chartsInScope: [18],
+      tabsInScope: [],
+    };
+    const stateWithTwoFiltersOneInMask = {
+      ...stateWithoutNativeFilters,
+      dashboardInfo: {
+        id: 1,
+        dash_edit_perm: true,
+        filterBarOrientation: FilterBarOrientation.Vertical,
+        metadata: {
+          native_filter_configuration: [
+            {
+              ...baseFilter,
+              id: idInMask,
+              name: 'A',
+              filterType: 'filter_select',
+            },
+            {
+              ...baseFilter,
+              id: idNotInMask,
+              name: 'B',
+              filterType: 'filter_select',
+            },
+          ],
+          chart_configuration: {},
+        },
+      },
+      dataMask: {
+        [idInMask]: {
+          id: idInMask,
+          filterState: { value: ['v'] },
+          extraFormData: {},
+        },
+      },
+    };
+
+    renderWrapper(openedBarProps, stateWithTwoFiltersOneInMask);
+    await act(async () => {
+      jest.advanceTimersByTime(300);
+    });
+
+    const clearBtn = screen.getByTestId(getTestId('clear-button'));
+    await act(async () => {
+      userEvent.click(clearBtn);
+    });
+
+    expect(updateDataMaskSpy).toHaveBeenCalledTimes(1);
+    expect(updateDataMaskSpy).toHaveBeenCalledWith(idInMask, {
+      filterState: { value: undefined },
+      extraFormData: {},
+    });
+    updateDataMaskSpy.mockRestore();
   });
 });

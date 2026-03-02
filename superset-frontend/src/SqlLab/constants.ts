@@ -68,6 +68,7 @@ export const TIME_OPTIONS = [
 // SqlEditor layout constants
 export const SQL_EDITOR_GUTTER_HEIGHT = 5;
 export const SQL_EDITOR_LEFTBAR_WIDTH = 400;
+export const SQL_EDITOR_LEFTBAR_COLLAPSED_WIDTH = 56;
 export const SQL_EDITOR_RIGHTBAR_WIDTH = 400;
 export const SQL_EDITOR_STATUSBAR_HEIGHT = 30;
 export const INITIAL_NORTH_PERCENT = 30;
@@ -85,6 +86,8 @@ export const LOCALSTORAGE_MAX_USAGE_KB = 5 * 1024; // 5M
 export const LOCALSTORAGE_MAX_QUERY_RESULTS_KB = 1 * 1024; // 1M
 export const LOCALSTORAGE_WARNING_THRESHOLD = 0.9;
 export const LOCALSTORAGE_WARNING_MESSAGE_THROTTLE_MS = 8000; // danger type toast duration
+
+export const PREVIEW_QUERY_LIMIT = 100;
 
 // autocomplete score weights
 export const SQL_KEYWORD_AUTOCOMPLETE_SCORE = 100;

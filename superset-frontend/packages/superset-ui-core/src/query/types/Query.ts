@@ -316,6 +316,7 @@ export type Query = {
   errorMessage: string | null;
   extra: {
     progress: string | null;
+    progress_text?: string;
     errors?: SupersetError[];
   };
   id: string;

@@ -423,6 +423,9 @@ const ChartContextMenu = (
         trigger={['click']}
         onOpenChange={value => {
           setVisible(value);
+          if (!value) {
+            onClose();
+          }
         }}
         open={visible}
       >
