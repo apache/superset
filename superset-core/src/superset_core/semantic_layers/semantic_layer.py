@@ -17,23 +17,23 @@
 
 from __future__ import annotations
 
-from typing import Any, Protocol, runtime_checkable, TypeVar
+from abc import ABC, abstractmethod
+from typing import Any, Generic, TypeVar
 
 from pydantic import BaseModel
 from superset_core.semantic_layers.semantic_view import SemanticView
 
-ConfigT = TypeVar("ConfigT", bound=BaseModel, contravariant=True)
+ConfigT = TypeVar("ConfigT", bound=BaseModel)
 SemanticViewT = TypeVar("SemanticViewT", bound="SemanticView")
 
 
-# TODO (betodealmeida): convert to ABC
-@runtime_checkable
-class SemanticLayer(Protocol[ConfigT, SemanticViewT]):
+class SemanticLayer(ABC, Generic[ConfigT, SemanticViewT]):
     """
-    A protocol for semantic layers.
+    Abstract base class for semantic layers.
     """
 
     @classmethod
+    @abstractmethod
     def from_configuration(
         cls,
         configuration: dict[str, Any],
@@ -43,6 +43,7 @@ class SemanticLayer(Protocol[ConfigT, SemanticViewT]):
         """
 
     @classmethod
+    @abstractmethod
     def get_configuration_schema(
         cls,
         configuration: ConfigT | None = None,
@@ -67,6 +68,7 @@ class SemanticLayer(Protocol[ConfigT, SemanticViewT]):
         """
 
     @classmethod
+    @abstractmethod
     def get_runtime_schema(
         cls,
         configuration: ConfigT,
@@ -93,6 +95,7 @@ class SemanticLayer(Protocol[ConfigT, SemanticViewT]):
         configuration.
         """
 
+    @abstractmethod
     def get_semantic_views(
         self,
         runtime_configuration: dict[str, Any],
@@ -104,6 +107,7 @@ class SemanticLayer(Protocol[ConfigT, SemanticViewT]):
         schema, used to restrict the semantic views returned.
         """
 
+    @abstractmethod
     def get_semantic_view(
         self,
         name: str,
