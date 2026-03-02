@@ -39,7 +39,7 @@ const irregularDocumentationLinks = {
   postgresql: 'https://superset.apache.org',
   mssql:
     'https://superset.apache.org/docs/databases/supported/microsoft-sql-server',
-  gsheets: 'https://superset.apache.org/docs/databases/supported/google-sheets',
+  gsheets: 'https://superset.apache.org/user-docs/databases/supported/google-sheets',
 };
 
 const documentationLink = (engine: string | undefined) => {
