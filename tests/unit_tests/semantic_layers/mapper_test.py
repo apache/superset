@@ -19,6 +19,7 @@ from datetime import datetime
 from unittest.mock import MagicMock
 
 import pandas as pd
+import pyarrow as pa
 import pytest
 from pytest_mock import MockerFixture
 from superset_core.semantic_layers.semantic_view import SemanticViewFeature
@@ -1229,7 +1230,7 @@ def test_get_results_without_time_offsets(
                 definition="SELECT category, SUM(amount) FROM orders GROUP BY category",
             )
         ],
-        results=main_df,
+        results=pa.Table.from_pandas(main_df),
     )
 
     mock_datasource.implementation.get_dataframe = mocker.Mock(return_value=mock_result)
@@ -1289,7 +1290,7 @@ def test_get_results_with_single_time_offset(
                 ),
             )
         ],
-        results=main_df.copy(),
+        results=pa.Table.from_pandas(main_df.copy()),
     )
 
     mock_offset_result = SemanticResult(
@@ -1302,7 +1303,7 @@ def test_get_results_with_single_time_offset(
                 ),
             )
         ],
-        results=offset_df.copy(),
+        results=pa.Table.from_pandas(offset_df.copy()),
     )
 
     mock_datasource.implementation.get_dataframe = mocker.Mock(
@@ -1371,17 +1372,17 @@ def test_get_results_with_multiple_time_offsets(
     # Mock results
     mock_main_result = SemanticResult(
         requests=[SemanticRequest(type="SQL", definition="MAIN QUERY")],
-        results=main_df.copy(),
+        results=pa.Table.from_pandas(main_df.copy()),
     )
 
     mock_offset_1w_result = SemanticResult(
         requests=[SemanticRequest(type="SQL", definition="OFFSET 1W QUERY")],
-        results=offset_1w_df.copy(),
+        results=pa.Table.from_pandas(offset_1w_df.copy()),
     )
 
     mock_offset_1m_result = SemanticResult(
         requests=[SemanticRequest(type="SQL", definition="OFFSET 1M QUERY")],
-        results=offset_1m_df.copy(),
+        results=pa.Table.from_pandas(offset_1m_df.copy()),
     )
 
     mock_datasource.implementation.get_dataframe = mocker.Mock(
@@ -1442,12 +1443,12 @@ def test_get_results_with_empty_offset_result(
     # Mock results
     mock_main_result = SemanticResult(
         requests=[SemanticRequest(type="SQL", definition="MAIN QUERY")],
-        results=main_df.copy(),
+        results=pa.Table.from_pandas(main_df.copy()),
     )
 
     mock_offset_result = SemanticResult(
         requests=[SemanticRequest(type="SQL", definition="OFFSET QUERY")],
-        results=offset_df,
+        results=pa.Table.from_pandas(offset_df),
     )
 
     mock_datasource.implementation.get_dataframe = mocker.Mock(
@@ -1504,12 +1505,12 @@ def test_get_results_with_partial_offset_match(
     # Mock results
     mock_main_result = SemanticResult(
         requests=[SemanticRequest(type="SQL", definition="MAIN QUERY")],
-        results=main_df.copy(),
+        results=pa.Table.from_pandas(main_df.copy()),
     )
 
     mock_offset_result = SemanticResult(
         requests=[SemanticRequest(type="SQL", definition="OFFSET QUERY")],
-        results=offset_df.copy(),
+        results=pa.Table.from_pandas(offset_df.copy()),
     )
 
     mock_datasource.implementation.get_dataframe = mocker.Mock(
@@ -1569,12 +1570,12 @@ def test_get_results_with_multiple_dimensions(
     # Mock results
     mock_main_result = SemanticResult(
         requests=[SemanticRequest(type="SQL", definition="MAIN QUERY")],
-        results=main_df.copy(),
+        results=pa.Table.from_pandas(main_df.copy()),
     )
 
     mock_offset_result = SemanticResult(
         requests=[SemanticRequest(type="SQL", definition="OFFSET QUERY")],
-        results=offset_df.copy(),
+        results=pa.Table.from_pandas(offset_df.copy()),
     )
 
     mock_datasource.implementation.get_dataframe = mocker.Mock(
@@ -1648,12 +1649,12 @@ def test_get_results_with_duplicate_columns(
 
     mock_main_result = SemanticResult(
         requests=[SemanticRequest(type="SQL", definition="MAIN")],
-        results=main_df.copy(),
+        results=pa.Table.from_pandas(main_df.copy()),
     )
 
     mock_offset_result = SemanticResult(
         requests=[SemanticRequest(type="SQL", definition="OFFSET")],
-        results=offset_df.copy(),
+        results=pa.Table.from_pandas(offset_df.copy()),
     )
 
     mock_datasource.implementation.get_dataframe = mocker.Mock(
@@ -1692,7 +1693,7 @@ def test_get_results_empty_requests(
 
     mock_result = SemanticResult(
         requests=[],  # Empty requests
-        results=main_df,
+        results=pa.Table.from_pandas(main_df),
     )
 
     mock_datasource.implementation.get_dataframe = mocker.Mock(return_value=mock_result)
@@ -2328,7 +2329,7 @@ def test_get_results_with_is_rowcount(
 
     mock_result = SemanticResult(
         requests=[SemanticRequest(type="SQL", definition="SELECT COUNT(*)")],
-        results=main_df,
+        results=pa.Table.from_pandas(main_df),
     )
 
     mock_datasource.implementation.get_row_count = mocker.Mock(return_value=mock_result)

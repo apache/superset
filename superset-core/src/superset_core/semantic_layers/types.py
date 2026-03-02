@@ -23,7 +23,7 @@ from datetime import date, datetime, time, timedelta
 from functools import total_ordering
 from typing import Type as TypeOf
 
-from pandas import DataFrame
+import pyarrow as pa
 
 __all__ = [
     "BINARY",
@@ -309,8 +309,7 @@ class SemanticResult:
     """
 
     requests: list[SemanticRequest]
-    # TODO (betodealmeida): convert to PyArrow Table
-    results: DataFrame
+    results: pa.Table
 
 
 @dataclass(frozen=True)

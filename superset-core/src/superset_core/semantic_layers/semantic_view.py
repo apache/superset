@@ -18,7 +18,7 @@
 from __future__ import annotations
 
 import enum
-from typing import Protocol, runtime_checkable
+from abc import ABC, abstractmethod
 
 from superset_core.semantic_layers.types import (
     Dimension,
@@ -41,30 +41,32 @@ class SemanticViewFeature(enum.Enum):
     GROUP_OTHERS = "GROUP_OTHERS"
 
 
-# TODO (betodealmeida): convert to ABC
-@runtime_checkable
-class SemanticView(Protocol):
+class SemanticView(ABC):
     """
-    A protocol for semantic views.
+    Abstract base class for semantic views.
     """
 
     features: frozenset[SemanticViewFeature]
 
+    @abstractmethod
     def uid(self) -> str:
         """
         Returns a unique identifier for the semantic view.
         """
 
+    @abstractmethod
     def get_dimensions(self) -> set[Dimension]:
         """
         Get the dimensions defined in the semantic view.
         """
 
+    @abstractmethod
     def get_metrics(self) -> set[Metric]:
         """
         Get the metrics defined in the semantic view.
         """
 
+    @abstractmethod
     def get_values(
         self,
         dimension: Dimension,
@@ -74,6 +76,7 @@ class SemanticView(Protocol):
         Return distinct values for a dimension.
         """
 
+    @abstractmethod
     def get_dataframe(
         self,
         metrics: list[Metric],
@@ -86,9 +89,10 @@ class SemanticView(Protocol):
         group_limit: GroupLimit | None = None,
     ) -> SemanticResult:
         """
-        Execute a semantic query and return the results as a DataFrame.
+        Execute a semantic query and return the results.
         """
 
+    @abstractmethod
     def get_row_count(
         self,
         metrics: list[Metric],
