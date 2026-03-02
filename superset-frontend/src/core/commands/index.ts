@@ -69,6 +69,7 @@ const getCommand: typeof commandsApi.getCommand = (
 
 export const resetContributions = (): void => {
   commandsMap.clear();
+  commandRegistry.clear();
 };
 
 export const commands: typeof commandsApi = {

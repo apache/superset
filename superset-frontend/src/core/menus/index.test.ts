@@ -41,7 +41,7 @@ test('register stores a menu item', () => {
   ]);
 });
 
-test('getContributions returns undefined for unknown location', () => {
+test('getMenu returns undefined for unknown location', () => {
   expect(menus.getMenu('nonexistent')).toBeUndefined();
 });
 
