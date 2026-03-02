@@ -81,6 +81,16 @@ const StyledTabsContainer = styled.div<{ isDragging?: boolean }>`
       display: none !important;
     }
   `}
+
+  /* Sticky tabs on mobile */
+  @media (max-width: 767px) {
+    .ant-tabs-nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background-color: ${({ theme }) => theme.colorBgContainer};
+    }
+  }
 `;
 
 export interface TabItem {

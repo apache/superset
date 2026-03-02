@@ -110,6 +110,29 @@ const StyledDiv = styled.div`
     i.warning {
       color: ${theme.colorWarning};
     }
+
+    /* Mobile: consumption-only mode */
+    @media (max-width: 767px) {
+      /* Hide chart kebab menu (SliceHeaderControls) */
+      [data-test='slice-header'] .header-controls [id$='-controls'] {
+        display: none;
+      }
+
+      /* Disable chart title links - make them plain text */
+      [data-test='slice-header'] .header-title a {
+        pointer-events: none;
+        text-decoration: none !important;
+      }
+
+      /* Show full chart title without truncation - no tooltip needed */
+      [data-test='slice-header'] .header-title {
+        -webkit-line-clamp: unset;
+        display: block;
+        white-space: normal;
+        overflow: visible;
+        text-overflow: unset;
+      }
+    }
   `}
 `;
 

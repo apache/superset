@@ -24,6 +24,18 @@ import { getExtensionsRegistry } from '@superset-ui/core';
 import { Menu } from './Menu';
 import * as getBootstrapData from 'src/utils/getBootstrapData';
 
+// Mock useBreakpoint to return desktop breakpoints (prevents mobile menu rendering)
+// Note: We mock 'antd' directly rather than '@superset-ui/core/components' because
+// mocking the latter causes circular dependency issues with ActionButton during
+// jest.requireActual evaluation. Since Grid is re-exported from antd, this works.
+jest.mock('antd', () => ({
+  ...jest.requireActual('antd'),
+  Grid: {
+    ...jest.requireActual('antd').Grid,
+    useBreakpoint: () => ({ xs: true, sm: true, md: true, lg: true, xl: true }),
+  },
+}));
+
 const dropdownItems = [
   {
     label: 'Data',

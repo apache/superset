@@ -28,6 +28,7 @@ import { css } from '@apache-superset/core/ui';
 import { Layout, Loading } from '@superset-ui/core/components';
 import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
 import { ErrorBoundary } from 'src/components';
+import MobileRouteGuard from 'src/components/MobileRouteGuard';
 import Menu from 'src/features/home/Menu';
 import getBootstrapData, { applicationRoot } from 'src/utils/getBootstrapData';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
@@ -84,22 +85,24 @@ const App = () => (
         {routes.map(({ path, Component, props = {}, Fallback = Loading }) => (
           <Route path={path} key={path}>
             <Suspense fallback={<Fallback />}>
-              <Layout>
-                <Layout.Content
-                  css={css`
-                    display: flex;
-                    flex-direction: column;
-                  `}
-                >
-                  <ErrorBoundary
+              <MobileRouteGuard>
+                <Layout>
+                  <Layout.Content
                     css={css`
-                      margin: 16px;
+                      display: flex;
+                      flex-direction: column;
                     `}
                   >
-                    <Component user={bootstrapData.user} {...props} />
-                  </ErrorBoundary>
-                </Layout.Content>
-              </Layout>
+                    <ErrorBoundary
+                      css={css`
+                        margin: 16px;
+                      `}
+                    >
+                      <Component user={bootstrapData.user} {...props} />
+                    </ErrorBoundary>
+                  </Layout.Content>
+                </Layout>
+              </MobileRouteGuard>
             </Suspense>
           </Route>
         ))}
