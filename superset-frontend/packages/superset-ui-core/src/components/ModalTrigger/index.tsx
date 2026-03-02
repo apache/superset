@@ -102,7 +102,19 @@ export const ModalTrigger = forwardRef(
           </Button>
         )}
         {!isButton && (
-          <div data-test="span-modal-trigger" onClick={open} role="button">
+          <div
+            data-test="span-modal-trigger"
+            onClick={open}
+            role="button"
+            tabIndex={0}
+            aria-label={modalTitle ? `Open ${modalTitle}` : 'Open dialog'}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                open(e as unknown as MouseEvent);
+              }
+            }}
+          >
             {triggerNode}
           </div>
         )}
