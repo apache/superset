@@ -39,4 +39,6 @@ export * as contributions from './contributions';
 export * as core from './core';
 export * as editors from './editors';
 export * as extensions from './extensions';
+export * as menus from './menus';
 export * as sqlLab from './sqlLab';
+export * as views from './views';

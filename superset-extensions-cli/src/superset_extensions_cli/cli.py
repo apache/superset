@@ -42,6 +42,7 @@ from superset_extensions_cli.exceptions import ExtensionNameError
 from superset_extensions_cli.types import ExtensionNames
 from superset_extensions_cli.utils import (
     generate_extension_names,
+    get_module_federation_name,
     kebab_to_snake_case,
     read_json,
     read_toml,
@@ -152,11 +153,12 @@ def build_manifest(cwd: Path, remote_entry: str | None) -> Manifest:
     composite_id = f"{extension.publisher}.{extension.name}"
 
     frontend: ManifestFrontend | None = None
-    if extension.frontend and remote_entry:
+    if remote_entry:
         frontend = ManifestFrontend(
-            contributions=extension.frontend.contributions,
-            moduleFederation=extension.frontend.moduleFederation,
             remoteEntry=remote_entry,
+            moduleFederationName=get_module_federation_name(
+                extension.publisher, extension.name
+            ),
         )
 
     backend: ManifestBackend | None = None

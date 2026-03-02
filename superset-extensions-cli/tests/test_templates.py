@@ -78,21 +78,8 @@ def test_extension_json_template_renders_with_both_frontend_and_backend(
     assert parsed["license"] == "Apache-2.0"
     assert parsed["permissions"] == []
 
-    # Verify frontend section exists
-    assert "frontend" in parsed
-    frontend = parsed["frontend"]
-    assert "contributions" in frontend
-    assert "moduleFederation" in frontend
-    assert frontend["contributions"] == {
-        "commands": [],
-        "views": {},
-        "menus": {},
-        "editors": [],
-    }
-    assert frontend["moduleFederation"] == {
-        "exposes": ["./index"],
-        "name": "testOrg_testExtension",
-    }
+    # Verify frontend section is not present (contributions are code-first)
+    assert "frontend" not in parsed
 
     # Verify backend section exists
     assert "backend" in parsed
@@ -109,7 +96,7 @@ def test_extension_json_template_renders_with_both_frontend_and_backend(
 @pytest.mark.parametrize(
     "include_frontend,include_backend,expected_sections",
     [
-        (True, False, ["frontend"]),
+        (True, False, []),
         (False, True, ["backend"]),
         (False, False, []),
     ],
