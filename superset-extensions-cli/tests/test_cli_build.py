@@ -283,9 +283,16 @@ def test_init_frontend_deps_exits_on_npm_ci_failure(
 
 # Build Manifest Tests
 @pytest.mark.unit
-def test_build_manifest_creates_correct_manifest_structure(isolated_filesystem):
+def test_build_manifest_creates_correct_manifest_structure(
+    isolated_filesystem, extension_with_build_structure
+):
     """Test build_manifest creates correct manifest from extension.json."""
-    # Create extension.json
+    # Create extension structure with both frontend and backend
+    extension_with_build_structure(
+        isolated_filesystem, include_frontend=True, include_backend=True
+    )
+
+    # Update extension.json with additional fields
     extension_data = {
         "publisher": "test-org",
         "name": "test-extension",
@@ -313,7 +320,12 @@ def test_build_manifest_creates_correct_manifest_structure(isolated_filesystem):
     assert manifest.frontend.remoteEntry == "remoteEntry.abc123.js"
     assert manifest.frontend.moduleFederationName == "testOrg_testExtension"
 
-    assert manifest.backend is None
+    # Verify backend section and conventional entrypoint
+    assert manifest.backend is not None
+    assert (
+        manifest.backend.entrypoint
+        == "superset_extensions.test_org.test_extension.entrypoint"
+    )
 
 
 @pytest.mark.unit

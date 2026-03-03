@@ -164,7 +164,11 @@ def build_manifest(cwd: Path, remote_entry: str | None) -> Manifest:
     backend: ManifestBackend | None = None
     backend_dir = cwd / "backend"
     if backend_dir.exists():
-        backend = ManifestBackend()
+        # Generate conventional entry point
+        publisher_snake = kebab_to_snake_case(extension.publisher)
+        name_snake = kebab_to_snake_case(extension.name)
+        entrypoint = f"superset_extensions.{publisher_snake}.{name_snake}.entrypoint"
+        backend = ManifestBackend(entrypoint=entrypoint)
 
     return Manifest(
         id=composite_id,

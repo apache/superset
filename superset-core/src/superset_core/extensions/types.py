@@ -127,7 +127,7 @@ class ManifestFrontend(BaseModel):
 class ManifestBackend(BaseModel):
     """Backend section in manifest.json."""
 
-    pass
+    entrypoint: str
 
 
 class Manifest(BaseExtension):
