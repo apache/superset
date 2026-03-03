@@ -62,7 +62,6 @@ def test_extension_config_full():
             "dependencies": ["other-extension"],
             "permissions": ["can_read", "can_view"],
             "backend": {
-                "entryPoints": ["query_insights.entrypoint"],
                 "files": ["backend/src/query_insights/**/*.py"],
             },
         }
@@ -76,7 +75,6 @@ def test_extension_config_full():
     assert config.dependencies == ["other-extension"]
     assert config.permissions == ["can_read", "can_view"]
     assert config.backend is not None
-    assert config.backend.entryPoints == ["query_insights.entrypoint"]
     assert config.backend.files == ["backend/src/query_insights/**/*.py"]
 
 
@@ -221,11 +219,16 @@ def test_manifest_with_backend():
             "publisher": "my-org",
             "name": "my-extension",
             "displayName": "My Extension",
-            "backend": {"entryPoints": ["my_extension.entrypoint"]},
+            "backend": {
+                "entrypoint": "superset_extensions.my_org.my_extension.entrypoint"
+            },
         }
     )
     assert manifest.backend is not None
-    assert manifest.backend.entryPoints == ["my_extension.entrypoint"]
+    assert (
+        manifest.backend.entrypoint
+        == "superset_extensions.my_org.my_extension.entrypoint"
+    )
 
 
 def test_manifest_backend_no_files_field():
@@ -236,7 +239,9 @@ def test_manifest_backend_no_files_field():
             "publisher": "my-org",
             "name": "my-extension",
             "displayName": "My Extension",
-            "backend": {"entryPoints": ["my_extension.entrypoint"]},
+            "backend": {
+                "entrypoint": "superset_extensions.my_org.my_extension.entrypoint"
+            },
         }
     )
     # ManifestBackend should not have a 'files' field
@@ -246,11 +251,20 @@ def test_manifest_backend_no_files_field():
 def test_extension_config_backend_defaults():
     """Test ExtensionConfigBackend has correct defaults."""
     backend = ExtensionConfigBackend.model_validate({})
-    assert backend.entryPoints == []
     assert backend.files == []
 
 
-def test_manifest_backend_defaults():
-    """Test ManifestBackend has correct defaults."""
-    backend = ManifestBackend.model_validate({})
-    assert backend.entryPoints == []
+def test_manifest_backend_required_entrypoint():
+    """Test ManifestBackend requires entrypoint field."""
+    # Test positive case - entrypoint provided
+    backend = ManifestBackend.model_validate(
+        {"entrypoint": "superset_extensions.test_org.test_extension.entrypoint"}
+    )
+    assert (
+        backend.entrypoint == "superset_extensions.test_org.test_extension.entrypoint"
+    )
+
+    # Test negative case - entrypoint missing should raise ValidationError
+    with pytest.raises(ValidationError) as exc_info:
+        ManifestBackend.model_validate({})
+    assert "entrypoint" in str(exc_info.value)

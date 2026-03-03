@@ -587,13 +587,12 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
             backend = extension.manifest.backend
 
-            if backend and (entrypoints := backend.entryPoints):
-                for entrypoint in entrypoints:
-                    try:
-                        eager_import(entrypoint)
-                    except Exception as ex:  # pylint: disable=broad-except  # noqa: S110
-                        # Surface exceptions during initialization of extensions
-                        print(ex)
+            if backend and backend.entrypoint:
+                try:
+                    eager_import(backend.entrypoint)
+                except Exception as ex:  # pylint: disable=broad-except  # noqa: S110
+                    # Surface exceptions during initialization of extensions
+                    print(ex)
 
     def init_app_in_ctx(self) -> None:
         """
