@@ -1013,7 +1013,7 @@
       "documentation": {
         "description": "CrateDB is a distributed SQL database for machine data and IoT workloads.",
         "logo": "cratedb.svg",
-        "homepage_url": "https://crate.io/",
+        "homepage_url": "https://cratedb.com/",
         "categories": [
           "TIME_SERIES",
           "OPEN_SOURCE"
