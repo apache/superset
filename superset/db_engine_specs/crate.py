@@ -49,7 +49,7 @@ class CrateEngineSpec(BaseEngineSpec):
         "drivers": [
             {
                 "name": "crate",
-                "pypi_package": "crate[sqlalchemy]",
+                "pypi_package": "sqlalchemy-cratedb",
                 "connection_string": "crate://{host}:{port}",
                 "is_recommended": True,
             },
