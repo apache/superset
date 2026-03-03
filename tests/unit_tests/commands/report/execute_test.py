@@ -284,6 +284,10 @@ def test_get_dashboard_urls_with_multiple_tabs(
             "urlParams": None,
         }
     }
+    mock_report_schedule.get_native_filters_params.return_value = (  # type: ignore
+        "()",
+        [],
+    )
 
     class_instance: BaseReportState = BaseReportState(
         mock_report_schedule, "January 1, 2021", "execution_id_example"
@@ -327,6 +331,10 @@ def test_get_dashboard_urls_with_exporting_dashboard_only(
             "urlParams": None,
         }
     }
+    mock_report_schedule.get_native_filters_params.return_value = (  # type: ignore
+        "()",
+        [],
+    )
     mock_run.return_value = "url1"
 
     class_instance: BaseReportState = BaseReportState(
