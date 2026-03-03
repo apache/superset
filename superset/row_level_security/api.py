@@ -31,7 +31,10 @@ from superset.commands.exceptions import (
 )
 from superset.commands.security.create import CreateRLSRuleCommand
 from superset.commands.security.delete import DeleteRLSRuleCommand
-from superset.commands.security.exceptions import RLSRuleInvalidError, RLSRuleNotFoundError
+from superset.commands.security.exceptions import (
+    RLSRuleInvalidError,
+    RLSRuleNotFoundError,
+)
 from superset.commands.security.update import UpdateRLSRuleCommand
 from superset.connectors.sqla.models import RowLevelSecurityFilter
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
