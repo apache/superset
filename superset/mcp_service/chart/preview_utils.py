@@ -23,6 +23,7 @@ from form data without requiring a saved chart object.
 """
 
 import logging
+import math
 from typing import Any, Dict, List
 
 from superset.commands.chart.data.get_data_command import ChartDataCommand
@@ -183,8 +184,6 @@ def _calculate_column_widths(
 def _format_value(val: Any, width: int) -> str:
     """Format a value based on its type."""
     if isinstance(val, float):
-        import math
-
         if math.isnan(val):
             val_str = "N/A"
         elif math.isfinite(val) and val.is_integer():
@@ -195,7 +194,7 @@ def _format_value(val: Any, width: int) -> str:
         elif abs(val) >= 1000:
             val_str = f"{val:,.2f}"  # Thousands separator
         else:
-            val_str = f"{val:.2f}"
+            val_str = f"{val:g}"
     elif isinstance(val, int):
         val_str = str(val)
     elif val is None:

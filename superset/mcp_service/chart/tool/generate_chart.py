@@ -637,7 +637,12 @@ async def generate_chart(  # noqa: C901
                                 preview_request, ctx
                             )
 
-                            if hasattr(preview_result, "content"):
+                            if isinstance(preview_result, ChartError):
+                                await ctx.warning(
+                                    "Preview '%s' failed: %s"
+                                    % (format_type, preview_result.error)
+                                )
+                            elif hasattr(preview_result, "content"):
                                 previews[format_type] = preview_result.content
                         else:
                             # For preview-only mode (save_chart=false)
