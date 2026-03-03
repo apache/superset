@@ -46,6 +46,8 @@ export const BaseModalWrapper = styled(StyledModal)<BaseModalWrapperProps>`
   .ant-modal-body {
     overflow: hidden;
     padding: 0;
+    flex: 1 1 auto;
+    min-height: 0;
   }
 
   .ant-collapse {
