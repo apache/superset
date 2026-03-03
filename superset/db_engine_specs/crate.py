@@ -37,7 +37,7 @@ class CrateEngineSpec(BaseEngineSpec):
             "CrateDB is a distributed SQL database for machine data and IoT workloads."
         ),
         "logo": "cratedb.svg",
-        "homepage_url": "https://crate.io/",
+        "homepage_url": "https://cratedb.com/",
         "categories": [DatabaseCategory.TIME_SERIES, DatabaseCategory.OPEN_SOURCE],
         "pypi_packages": ["crate", "sqlalchemy-cratedb"],
         "connection_string": "crate://{host}:{port}",
