@@ -18,7 +18,7 @@
  */
 
 import { mergeCustomEChartOptions } from './mergeCustomEChartOptions';
-import type { CustomEChartOptions } from './eChartOptionsTypes';
+import type { CustomEChartOptions } from './eChartOptionsSchema';
 
 test('mergeCustomEChartOptions returns base options when custom is undefined', () => {
   const base = { title: { text: 'Base Title' } };
