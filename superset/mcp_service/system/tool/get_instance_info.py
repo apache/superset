@@ -110,11 +110,16 @@ def get_instance_info(
         # Attach the authenticated user's identity to the response
         user = getattr(g, "user", None)
         if user is not None:
-            user_roles = [
-                role.name
-                for role in getattr(user, "roles", [])
-                if hasattr(role, "name")
-            ]
+            raw_roles = getattr(user, "roles", None)
+            user_roles = []
+            if raw_roles is not None:
+                try:
+                    user_roles = [
+                        role.name for role in raw_roles if hasattr(role, "name")
+                    ]
+                except TypeError:
+                    logger.debug("Could not iterate user.roles: %s", type(raw_roles))
+                    user_roles = []
             result.current_user = UserInfo(
                 id=getattr(user, "id", None),
                 username=getattr(user, "username", None),
