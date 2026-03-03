@@ -66,7 +66,9 @@ const StyledTabs = ({
         margin: 0;
       }
       .ant-tabs-nav-wrap {
-        padding: 0 ${theme.sizeUnit * 4}px;
+        ${!(tabBarStyle && 'paddingLeft' in tabBarStyle)
+          ? `padding: 0 ${theme.sizeUnit * 4}px;`
+          : ''}
       }
       .ant-tabs-tab {
         flex: 1 1 auto;

@@ -372,6 +372,17 @@ const FilterBar: FC<FiltersBarProps> = ({
           }
         });
 
+        // Remove stale entries that no longer exist in dataMaskApplied
+        Object.keys(updated).forEach(filterId => {
+          if (
+            !isChartCustomization(filterId) &&
+            !(filterId in dataMaskApplied)
+          ) {
+            delete updated[filterId];
+            hasChanges = true;
+          }
+        });
+
         return hasChanges ? updated : prev;
       });
     }
