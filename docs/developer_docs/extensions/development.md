@@ -91,7 +91,7 @@ The `README.md` file provides documentation and instructions for using the exten
 
 ## Extension Metadata
 
-The `extension.json` file contains the metadata necessary for the host application to identify and load the extension. Backend contributions (entry points and files) are declared here. Frontend contributions are registered directly in code from `frontend/src/index.tsx`.
+The `extension.json` file contains the metadata necessary for the host application to identify and load the extension. Extensions follow a **convention-over-configuration** approach where entry points and build configuration are determined by standardized file locations rather than explicit declarations.
 
 ```json
 {
@@ -100,15 +100,36 @@ The `extension.json` file contains the metadata necessary for the host applicati
   "displayName": "Dataset References",
   "version": "1.0.0",
   "license": "Apache-2.0",
-  "backend": {
-    "entryPoints": ["superset_extensions.dataset_references.entrypoint"],
-    "files": ["backend/src/superset_extensions/dataset_references/**/*.py"]
-  },
   "permissions": []
 }
 ```
 
-The `backend` section specifies Python entry points to load eagerly when the extension starts, and glob patterns for source files to include in the bundle.
+### Convention-Based Entry Points
+
+Extensions use standardized entry point locations:
+
+- **Backend**: `backend/src/superset_extensions/{publisher}/{name}/entrypoint.py`
+- **Frontend**: `frontend/src/index.tsx`
+
+### Build Configuration
+
+Backend build configuration is specified in `backend/pyproject.toml`:
+
+```toml
+[project]
+name = "my_org-dataset_references"
+version = "1.0.0"
+license = "Apache-2.0"
+
+[tool.apache_superset_extensions.build]
+# Files to include in the extension build/bundle
+include = [
+    "src/superset_extensions/my_org/dataset_references/**/*.py",
+]
+exclude = []
+```
+
+The `include` patterns specify which files to bundle, while `exclude` patterns can filter out unwanted files (e.g., test files, cache directories).
 
 ## Interacting with the Host
 

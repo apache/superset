@@ -226,17 +226,8 @@ def test_extension_json_content_is_correct(
     # Verify frontend section is not present (contributions are code-first)
     assert "frontend" not in content
 
-    # Verify backend section exists and has correct structure
-    assert "backend" in content
-    backend = content["backend"]
-    assert "entryPoints" in backend
-    assert "files" in backend
-    assert backend["entryPoints"] == [
-        "superset_extensions.test_org.test_extension.entrypoint"
-    ]
-    assert backend["files"] == [
-        "backend/src/superset_extensions/test_org/test_extension/**/*.py"
-    ]
+    # Verify no backend section in extension.json (moved to pyproject.toml)
+    assert "backend" not in content
 
 
 @pytest.mark.cli
