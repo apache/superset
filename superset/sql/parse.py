@@ -887,7 +887,19 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             # don't catch the root Select/Union etc.
             if node == self._parsed:
                 continue
-            if isinstance(node, (exp.Select, exp.Union, exp.Except, exp.Intersect)):
+            if isinstance(
+                node,
+                (
+                    exp.Select,
+                    exp.Union,
+                    exp.Except,
+                    exp.Intersect,
+                    exp.Update,
+                    exp.Delete,
+                    exp.Insert,
+                    exp.Merge,
+                ),
+            ):
                 return True
 
         return False

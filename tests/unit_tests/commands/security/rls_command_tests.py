@@ -95,6 +95,16 @@ def test_validate_rls_clause_scenarios():
             "1=1 OR 'a'=(SELECT 'a')",
             "id IN (SELECT id FROM accounts WHERE user_id = 1)",
             "SELECT * FROM (SELECT 1) AS t",  # Subquery in FROM
+            "WITH cte AS (UPDATE users SET name = 'x' RETURNING 1) "
+            "SELECT * FROM cte",  # CTE with UPDATE
+            "WITH cte AS (DELETE FROM users RETURNING 1) "
+            "SELECT * FROM cte",  # CTE with DELETE
+            "WITH cte AS (INSERT INTO users (id) VALUES (1) RETURNING 1) "
+            "SELECT * FROM cte",  # CTE with INSERT
+            (
+                "MERGE INTO t1 USING (SELECT * FROM t2) AS s ON t1.id = s.id "
+                "WHEN MATCHED THEN UPDATE SET name = s.name"
+            ),
         ]
         for clause in malicious:
             with pytest.raises(SupersetSecurityException):

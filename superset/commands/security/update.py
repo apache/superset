@@ -26,6 +26,7 @@ from superset import db
 from superset.commands.base import BaseCommand
 from superset.commands.exceptions import DatasourceNotFoundValidationError
 from superset.commands.security.exceptions import (
+    RLSRuleInvalidError,
     RLSRuleNotFoundError,
     RLSRuleUpdateFailedError,
 )
@@ -58,6 +59,7 @@ class UpdateRLSRuleCommand(BaseCommand):
 
         from superset.connectors.sqla.models import RowLevelSecurityFilter
 
+        exceptions: list[ValidationError] = []
         self._model = RLSDAO.find_by_id(int(self._model_id))
         if not self._model:
             raise RLSRuleNotFoundError()
@@ -69,7 +71,9 @@ class UpdateRLSRuleCommand(BaseCommand):
                 .one_or_none()
             )
             if model_with_name and model_with_name.id != int(self._model_id):
-                raise ValidationError(_("Name must be unique"), field_name="name")
+                exceptions.append(
+                    ValidationError(_("Name must be unique"), field_name="name")
+                )
 
         roles = populate_roles(self._roles)
 
@@ -81,6 +85,9 @@ class UpdateRLSRuleCommand(BaseCommand):
                 raise DatasourceNotFoundValidationError()
         else:
             tables = self._model.tables
+
+        if exceptions:
+            raise RLSRuleInvalidError(exceptions=exceptions)
 
         self._properties["roles"] = roles
         if clause := self._properties.get("clause"):

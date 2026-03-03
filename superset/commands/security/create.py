@@ -27,6 +27,7 @@ from superset.commands.base import BaseCommand
 from superset.commands.exceptions import DatasourceNotFoundValidationError
 from superset.commands.security.exceptions import (
     RLSRuleCreateFailedError,
+    RLSRuleInvalidError,
 )
 from superset.commands.utils import populate_roles
 from superset.connectors.sqla.models import SqlaTable
@@ -54,19 +55,25 @@ class CreateRLSRuleCommand(BaseCommand):
 
         from superset.connectors.sqla.models import RowLevelSecurityFilter
 
+        exceptions: list[ValidationError] = []
         if name := self._properties.get("name"):
             if (
                 db.session.query(RowLevelSecurityFilter)
                 .filter_by(name=name)
                 .one_or_none()
             ):
-                raise ValidationError(_("Name must be unique"), field_name="name")
+                exceptions.append(
+                    ValidationError(_("Name must be unique"), field_name="name")
+                )
 
         roles = populate_roles(self._roles)
         tables: list[SqlaTable] = DatasetDAO.find_by_ids(self._tables)
 
         if len(tables) != len(self._tables):
             raise DatasourceNotFoundValidationError()
+
+        if exceptions:
+            raise RLSRuleInvalidError(exceptions=exceptions)
 
         self._properties["roles"] = roles
         if clause := self._properties.get("clause"):
