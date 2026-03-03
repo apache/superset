@@ -405,7 +405,15 @@ class ChartDataRestApi(ChartRestApi):
 
         if result_format in ChartDataResultFormat.table_like():
             # Verify user has permission to export file
-            if not security_manager.can_access("can_csv", "Superset"):
+            if is_feature_enabled("GRANULAR_EXPORT_CONTROLS"):
+                has_export_perm = security_manager.can_access(
+                    "can_export_data", "Superset"
+                )
+            else:
+                has_export_perm = security_manager.can_access(
+                    "can_csv", "Superset"
+                )
+            if not has_export_perm:
                 return self.response_403()
 
             if not result["queries"]:
