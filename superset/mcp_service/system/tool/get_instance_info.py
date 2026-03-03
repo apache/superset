@@ -110,12 +110,18 @@ def get_instance_info(
         # Attach the authenticated user's identity to the response
         user = getattr(g, "user", None)
         if user is not None:
+            user_roles = [
+                role.name
+                for role in getattr(user, "roles", [])
+                if hasattr(role, "name")
+            ]
             result.current_user = UserInfo(
                 id=getattr(user, "id", None),
                 username=getattr(user, "username", None),
                 first_name=getattr(user, "first_name", None),
                 last_name=getattr(user, "last_name", None),
                 email=getattr(user, "email", None),
+                roles=user_roles,
             )
 
         return result
