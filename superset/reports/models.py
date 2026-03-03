@@ -222,8 +222,8 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
                     **self._generate_native_filter(
                         native_filter_id,
                         filter_type,
-                        native_filter.get("columnName", ""),
-                        native_filter.get("filterValues", []),
+                        native_filter.get("columnName") or "",
+                        native_filter.get("filterValues") or [],
                     ),
                 }
         # hack(hughhh): workaround for escaping prison not handling quotes right

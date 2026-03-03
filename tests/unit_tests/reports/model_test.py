@@ -137,6 +137,31 @@ def test_get_native_filters_params_missing_filter_values():
     assert warnings == []
 
 
+def test_get_native_filters_params_explicit_none_values():
+    """
+    Test the ``get_native_filters_params`` method with explicit None values.
+    Should handle gracefully by coercing None to empty string/list.
+    """
+    report_schedule = ReportSchedule()
+    report_schedule.extra = {
+        "dashboard": {
+            "nativeFilters": [
+                {
+                    "nativeFilterId": "filter_id",
+                    "columnName": None,  # Explicit None
+                    "filterType": "filter_select",
+                    "filterValues": None,  # Explicit None
+                }
+            ]
+        }
+    }
+
+    # Should not raise TypeError, should handle gracefully
+    result, warnings = report_schedule.get_native_filters_params()
+    assert "filter_id" in result
+    assert warnings == []
+
+
 def test_get_native_filters_params_missing_required_fields():
     """
     Test the ``get_native_filters_params`` method with missing required fields.
