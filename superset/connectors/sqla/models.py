@@ -101,7 +101,6 @@ from superset.models.helpers import (
     ImportExportMixin,
     QueryResult,
     SQLA_QUERY_KEYS,
-    
 )
 from superset.models.slice import Slice
 from superset.models.sql_types.base import CurrencyType
@@ -756,7 +755,19 @@ class BaseDatasource(
         filter_groups: dict[Union[int, str], list[TextClause]] = defaultdict(list)
         try:
             for filter_ in security_manager.get_rls_filters(self):
-                clause = self.text(f"({template_processor.process_template(filter_.clause)})")
+                # Process template to get the actual clause to be used
+                clause_text = template_processor.process_template(filter_.clause)
+                # Validate the RLS clause to prevent subquery injection (SEC-116)
+                # We use _process_select_expression for validation but discard its
+                # formatted output to preserve original case/formatting in the query.
+                self._process_select_expression(
+                    expression=filter_.clause,
+                    database_id=self.database_id,
+                    engine=self.database.backend,
+                    schema=self.schema,
+                    template_processor=template_processor,
+                )
+                clause = self.text(f"({clause_text})")
                 if filter_.group_key:
                     filter_groups[filter_.group_key].append(clause)
                 else:
@@ -764,9 +775,16 @@ class BaseDatasource(
 
             if is_feature_enabled("EMBEDDED_SUPERSET"):
                 for rule in security_manager.get_guest_rls_filters(self):
-                    clause = self.text(
-                        f"({template_processor.process_template(rule['clause'])})"
+                    # Also validate guest RLS filters
+                    clause_text = template_processor.process_template(rule["clause"])
+                    self._process_select_expression(
+                        expression=rule["clause"],
+                        database_id=self.database_id,
+                        engine=self.database.backend,
+                        schema=self.schema,
+                        template_processor=template_processor,
                     )
+                    clause = self.text(f"({clause_text})")
                     all_filters.append(clause)
 
             grouped_filters = [or_(*clauses) for clauses in filter_groups.values()]

@@ -22,10 +22,10 @@ from typing import Any, Optional
 
 from marshmallow import ValidationError
 
+from superset import db
 from superset.commands.base import BaseCommand
 from superset.commands.exceptions import DatasourceNotFoundValidationError
 from superset.commands.security.exceptions import (
-    RLSRuleInvalidError,
     RLSRuleNotFoundError,
     RLSRuleUpdateFailedError,
 )
@@ -33,7 +33,6 @@ from superset.commands.utils import populate_roles
 from superset.connectors.sqla.models import RowLevelSecurityFilter, SqlaTable
 from superset.daos.dataset import DatasetDAO
 from superset.daos.security import RLSDAO
-from superset.exceptions import SupersetParseError, SupersetSecurityException
 from superset.models.helpers import validate_rls_clause
 from superset.utils.decorators import on_error, transaction
 
@@ -55,11 +54,22 @@ class UpdateRLSRuleCommand(BaseCommand):
         return RLSDAO.update(self._model, self._properties)
 
     def validate(self) -> None:
-        exceptions: list[ValidationError] = []
+        from flask_babel import lazy_gettext as _
+
+        from superset.connectors.sqla.models import RowLevelSecurityFilter
 
         self._model = RLSDAO.find_by_id(int(self._model_id))
         if not self._model:
             raise RLSRuleNotFoundError()
+
+        if name := self._properties.get("name"):
+            model_with_name = (
+                db.session.query(RowLevelSecurityFilter)
+                .filter_by(name=name)
+                .one_or_none()
+            )
+            if model_with_name and model_with_name.id != int(self._model_id):
+                raise ValidationError(_("Name must be unique"), field_name="name")
 
         roles = populate_roles(self._roles)
 
@@ -68,27 +78,18 @@ class UpdateRLSRuleCommand(BaseCommand):
         if "tables" in self._properties:
             tables: list[SqlaTable] = DatasetDAO.find_by_ids(self._tables)
             if len(tables) != len(self._tables):
-                exceptions.append(DatasourceNotFoundValidationError())
+                raise DatasourceNotFoundValidationError()
         else:
             tables = self._model.tables
 
         self._properties["roles"] = roles
         if clause := self._properties.get("clause"):
             if not tables:
-                try:
-                    validate_rls_clause(clause, engine="base")
-                except (SupersetSecurityException, SupersetParseError) as ex:
-                    exceptions.append(ValidationError(ex.message))
+                validate_rls_clause(clause, engine="base")
             for table in tables:
-                try:
-                    validate_rls_clause(
-                        clause,
-                        engine=table.database.db_engine_spec.engine,
-                    )
-                except (SupersetSecurityException, SupersetParseError) as ex:
-                    exceptions.append(ValidationError(ex.message))
-
-        if exceptions:
-            raise RLSRuleInvalidError(exceptions=exceptions)
+                validate_rls_clause(
+                    clause,
+                    engine=table.database.db_engine_spec.engine,
+                )
 
         self._properties["tables"] = tables

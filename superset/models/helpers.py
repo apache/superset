@@ -44,7 +44,6 @@ import numpy as np
 import pandas as pd
 import pytz
 import sqlalchemy as sa
-import sqlglot.expressions as exp
 import yaml
 from flask import current_app as app, g
 from flask_appbuilder import Model
@@ -88,7 +87,6 @@ from superset.exceptions import (
 )
 from superset.extensions import feature_flag_manager
 from superset.jinja_context import BaseTemplateProcessor
-from superset.sql.parse import sanitize_clause, SQLScript, SQLStatement
 from superset.superset_typing import (
     AdhocMetric,
     Column as ColumnTyping,
@@ -192,6 +190,8 @@ def validate_adhoc_subquery(
     default_schema: str,
     engine: str,
 ) -> str:
+    from superset.sql.parse import SQLStatement
+
     """
     Check if adhoc SQL contains sub-queries or nested sub-queries with table.
 
@@ -218,6 +218,7 @@ def validate_adhoc_subquery(
 
     return parsed_statement.format()
 
+
 def validate_rls_clause(
     sql: str,
     engine: str,
@@ -231,6 +232,7 @@ def validate_rls_clause(
     :raise SupersetParseError if sql is syntactically invalid
     """
     from superset.sql.parse import SQLStatement
+
     # We just need to ensure it parses correctly as a predicate/expression
     parsed_statement = SQLStatement(sql, engine)
     if parsed_statement.has_subquery():
@@ -952,6 +954,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 schema,
                 engine,
             )
+            from superset.sql.parse import sanitize_clause
+
             try:
                 expression = sanitize_clause(expression, engine)
             except QueryClauseValidationException as ex:
@@ -2037,6 +2041,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     )
                 ) from ex
 
+        from superset.sql.parse import SQLScript
+
         script = SQLScript(sql, engine=self.db_engine_spec.engine)
         if len(script.statements) > 1:
             raise QueryObjectValidationError(
@@ -2062,6 +2068,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         prevent RLS bypass.
         """
         from_sql = self.get_rendered_sql(template_processor) + "\n"
+        from superset.sql.parse import SQLScript
+
         parsed_script = SQLScript(from_sql, engine=self.db_engine_spec.engine)
         if parsed_script.has_mutation():
             raise QueryObjectValidationError(
