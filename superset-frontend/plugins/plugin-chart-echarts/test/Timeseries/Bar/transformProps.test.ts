@@ -21,10 +21,7 @@ import { supersetTheme } from '@apache-superset/core/ui';
 import { EchartsTimeseriesChartProps } from '../../../src/types';
 import transformProps from '../../../src/Timeseries/transformProps';
 import { DEFAULT_FORM_DATA } from '../../../src/Timeseries/constants';
-import {
-  EchartsTimeseriesFormData,
-  EchartsTimeseriesSeriesType,
-} from '../../../src/Timeseries/types';
+import { EchartsTimeseriesSeriesType } from '../../../src/Timeseries/types';
 
 describe('Bar Chart X-axis Time Formatting', () => {
   const baseFormData: SqlaFormData = {
@@ -380,11 +377,11 @@ describe('Bar Chart X-axis Time Formatting', () => {
       const chartProps = new ChartProps({
         ...baseChartPropsConfig,
         queriesData: categoricalData,
-        formData: formData as EchartsTimeseriesFormData,
+        formData,
       });
 
       const transformedProps = transformProps(
-        chartProps as EchartsTimeseriesChartProps,
+        chartProps as unknown as EchartsTimeseriesChartProps,
       );
 
       // Should have hidden legend series for each x-axis value
@@ -418,11 +415,11 @@ describe('Bar Chart X-axis Time Formatting', () => {
       const chartProps = new ChartProps({
         ...baseChartPropsConfig,
         queriesData: categoricalData,
-        formData: formData as EchartsTimeseriesFormData,
+        formData,
       });
 
       const transformedProps = transformProps(
-        chartProps as EchartsTimeseriesChartProps,
+        chartProps as unknown as EchartsTimeseriesChartProps,
       );
 
       // Legend data should NOT contain x-axis values when dimensions exist
@@ -443,11 +440,11 @@ describe('Bar Chart X-axis Time Formatting', () => {
       const chartProps = new ChartProps({
         ...baseChartPropsConfig,
         queriesData: categoricalData,
-        formData: formData as EchartsTimeseriesFormData,
+        formData,
       });
 
       const transformedProps = transformProps(
-        chartProps as EchartsTimeseriesChartProps,
+        chartProps as unknown as EchartsTimeseriesChartProps,
       );
 
       const series = transformedProps.echartOptions.series as any[];
@@ -484,11 +481,11 @@ describe('Bar Chart X-axis Time Formatting', () => {
       const chartProps = new ChartProps({
         ...baseChartPropsConfig,
         queriesData: categoricalData,
-        formData: formData as EchartsTimeseriesFormData,
+        formData,
       });
 
       const transformedProps = transformProps(
-        chartProps as EchartsTimeseriesChartProps,
+        chartProps as unknown as EchartsTimeseriesChartProps,
       );
 
       const legend = transformedProps.echartOptions.legend as any;
@@ -509,11 +506,11 @@ describe('Bar Chart X-axis Time Formatting', () => {
       const chartProps = new ChartProps({
         ...baseChartPropsConfig,
         queriesData: categoricalData,
-        formData: formData as EchartsTimeseriesFormData,
+        formData,
       });
 
       const transformedProps = transformProps(
-        chartProps as EchartsTimeseriesChartProps,
+        chartProps as unknown as EchartsTimeseriesChartProps,
       );
 
       // Should still create legend with x-axis values
@@ -534,11 +531,11 @@ describe('Bar Chart X-axis Time Formatting', () => {
       const chartProps = new ChartProps({
         ...baseChartPropsConfig,
         queriesData: categoricalData,
-        formData: formData as EchartsTimeseriesFormData,
+        formData,
       });
 
       const transformedProps = transformProps(
-        chartProps as EchartsTimeseriesChartProps,
+        chartProps as unknown as EchartsTimeseriesChartProps,
       );
 
       // Legend should not be disabled when feature is off
@@ -559,11 +556,11 @@ describe('Bar Chart X-axis Time Formatting', () => {
       const chartProps = new ChartProps({
         ...baseChartPropsConfig,
         queriesData: categoricalData,
-        formData: formData as EchartsTimeseriesFormData,
+        formData,
       });
 
       const transformedProps = transformProps(
-        chartProps as EchartsTimeseriesChartProps,
+        chartProps as unknown as EchartsTimeseriesChartProps,
       );
 
       // Legend should contain category values (A, B, C), not numeric values
@@ -597,11 +594,11 @@ describe('Bar Chart X-axis Time Formatting', () => {
       const chartProps = new ChartProps({
         ...baseChartPropsConfig,
         queriesData: repeatedData,
-        formData: formData as EchartsTimeseriesFormData,
+        formData,
       });
 
       const transformedProps = transformProps(
-        chartProps as EchartsTimeseriesChartProps,
+        chartProps as unknown as EchartsTimeseriesChartProps,
       );
 
       const legendData = transformedProps.legendData as string[];
@@ -622,11 +619,11 @@ describe('Bar Chart X-axis Time Formatting', () => {
       const chartProps = new ChartProps({
         ...baseChartPropsConfig,
         queriesData: categoricalData,
-        formData: formData as EchartsTimeseriesFormData,
+        formData,
       });
 
       const transformedProps = transformProps(
-        chartProps as EchartsTimeseriesChartProps,
+        chartProps as unknown as EchartsTimeseriesChartProps,
       );
 
       const series = transformedProps.echartOptions.series as any[];
