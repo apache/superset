@@ -18,7 +18,7 @@
  */
 
 import type { EChartsCoreOption } from 'echarts/core';
-import type { CustomEChartOptions } from './echartOptionsTypes';
+import type { CustomEChartOptions } from './eChartOptionsTypes';
 
 type PlainObject = Record<string, unknown>;
 

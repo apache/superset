@@ -35,7 +35,7 @@ import {
   axisPointerSchema,
   textStyleSchema,
   type CustomEChartOptions,
-} from './echartOptionsSchema';
+} from './eChartOptionsSchema';
 
 // =============================================================================
 // Custom Error Class

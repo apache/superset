@@ -21,7 +21,7 @@ import {
   parseEChartOptions,
   safeParseEChartOptions,
   EChartOptionsParseError,
-} from './safeEchartOptionsParser';
+} from './safeEChartOptionsParser';
 
 test('parseEChartOptions returns undefined for empty input', () => {
   expect(parseEChartOptions(undefined)).toEqual({

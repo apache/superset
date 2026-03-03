@@ -22,11 +22,11 @@ import ControlHeader, {
   ControlHeaderProps,
 } from 'src/explore/components/ControlHeader';
 import { styled } from '@apache-superset/core';
+import { ControlComponentProps } from '@superset-ui/chart-controls';
 import {
-  ControlComponentProps,
   safeParseEChartOptions,
   EChartOptionsParseError,
-} from '@superset-ui/chart-controls';
+} from '@superset-ui/plugin-chart-echarts';
 import { EditorHost } from 'src/core/editors';
 import { useDebounceValue } from 'src/hooks/useDebounceValue';
 

@@ -455,7 +455,7 @@ const order_by_cols: SharedControlConfig<'SelectControl'> = {
 
 const echart_options: SharedControlConfig<'JSEditorControl'> = {
   type: 'JSEditorControl',
-  label: t('Echarts Options (JS object literals)'),
+  label: t('ECharts Options (JS object literals)'),
   description: t(
     'A JavaScript object that adheres to the ECharts options specification, ' +
       'overriding other control options with higher precedence. ' +
