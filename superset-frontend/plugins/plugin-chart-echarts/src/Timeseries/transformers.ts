@@ -198,6 +198,8 @@ export function transformSeries(
     stackIdSuffix?: string;
     yAxisIndex?: number;
     showValue?: boolean;
+    rotateValue?: number;
+    distanceValue?: number;
     onlyTotal?: boolean;
     legendState?: LegendState;
     formatter?: ValueFormatter;
@@ -230,6 +232,8 @@ export function transformSeries(
     stackIdSuffix,
     yAxisIndex = 0,
     showValue,
+    rotateValue,
+    distanceValue = 0,
     onlyTotal,
     formatter,
     legendState,
@@ -425,6 +429,9 @@ export function transformSeries(
         }
         return '';
       },
+      verticalAlign: 'middle',
+      rotate: showValue ? rotateValue : undefined,
+      distance: showValue ? distanceValue : undefined,
     },
   };
 }

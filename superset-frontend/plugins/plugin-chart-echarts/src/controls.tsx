@@ -140,6 +140,40 @@ export const showValueControl: ControlSetItem = {
   },
 };
 
+export const rotateValueControl: ControlSetItem = {
+  name: 'rotate_value',
+  config: {
+    type: 'SelectControl',
+    label: t('Rotate Value Label'),
+    default: 0,
+    freeForm: true,
+    clearable: false,
+    choices: [
+      [0, '0°'],
+      [45, '45°'],
+      [90, '90°'],
+    ],
+    renderTrigger: true,
+    description: t('Rotate the value labels visible on the chart'),
+    visibility: ({ controls }: ControlPanelsContainerProps) =>
+      Boolean(controls?.show_value?.value),
+  },
+};
+
+export const distanceValueControl: ControlSetItem = {
+  name: 'distance_value',
+  config: {
+    type: 'TextControl',
+    label: t('Value Label Distance'),
+    placeholder: t('Value Label Distance'),
+    default: 0,
+    renderTrigger: true,
+    description: t('Set value label distance from point of rendering'),
+    visibility: ({ controls }: ControlPanelsContainerProps) =>
+      Boolean(controls?.show_value?.value),
+  },
+};
+
 export const stackControl: ControlSetItem = {
   name: 'stack',
   config: {
@@ -195,6 +229,8 @@ export const percentageThresholdControl: ControlSetItem = {
 
 export const showValueSection: ControlSetRow[] = [
   [showValueControl],
+  [distanceValueControl],
+  [rotateValueControl],
   [stackControl],
   [onlyTotalControl],
   [percentageThresholdControl],
@@ -202,6 +238,8 @@ export const showValueSection: ControlSetRow[] = [
 
 export const showValueSectionWithoutStack: ControlSetRow[] = [
   [showValueControl],
+  [distanceValueControl],
+  [rotateValueControl],
   [onlyTotalControl],
 ];
 
