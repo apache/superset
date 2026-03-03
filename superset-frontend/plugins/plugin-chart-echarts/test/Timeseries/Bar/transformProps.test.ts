@@ -21,7 +21,10 @@ import { supersetTheme } from '@apache-superset/core/ui';
 import { EchartsTimeseriesChartProps } from '../../../src/types';
 import transformProps from '../../../src/Timeseries/transformProps';
 import { DEFAULT_FORM_DATA } from '../../../src/Timeseries/constants';
-import { EchartsTimeseriesSeriesType } from '../../../src/Timeseries/types';
+import {
+  EchartsTimeseriesFormData,
+  EchartsTimeseriesSeriesType,
+} from '../../../src/Timeseries/types';
 
 describe('Bar Chart X-axis Time Formatting', () => {
   const baseFormData: SqlaFormData = {
@@ -377,7 +380,7 @@ describe('Bar Chart X-axis Time Formatting', () => {
       const chartProps = new ChartProps({
         ...baseChartPropsConfig,
         queriesData: categoricalData,
-        formData,
+        formData: formData as EchartsTimeseriesFormData,
       });
 
       const transformedProps = transformProps(
@@ -415,7 +418,7 @@ describe('Bar Chart X-axis Time Formatting', () => {
       const chartProps = new ChartProps({
         ...baseChartPropsConfig,
         queriesData: categoricalData,
-        formData,
+        formData: formData as EchartsTimeseriesFormData,
       });
 
       const transformedProps = transformProps(
@@ -440,7 +443,7 @@ describe('Bar Chart X-axis Time Formatting', () => {
       const chartProps = new ChartProps({
         ...baseChartPropsConfig,
         queriesData: categoricalData,
-        formData,
+        formData: formData as EchartsTimeseriesFormData,
       });
 
       const transformedProps = transformProps(
@@ -481,7 +484,7 @@ describe('Bar Chart X-axis Time Formatting', () => {
       const chartProps = new ChartProps({
         ...baseChartPropsConfig,
         queriesData: categoricalData,
-        formData,
+        formData: formData as EchartsTimeseriesFormData,
       });
 
       const transformedProps = transformProps(
@@ -506,7 +509,7 @@ describe('Bar Chart X-axis Time Formatting', () => {
       const chartProps = new ChartProps({
         ...baseChartPropsConfig,
         queriesData: categoricalData,
-        formData,
+        formData: formData as EchartsTimeseriesFormData,
       });
 
       const transformedProps = transformProps(
@@ -531,7 +534,7 @@ describe('Bar Chart X-axis Time Formatting', () => {
       const chartProps = new ChartProps({
         ...baseChartPropsConfig,
         queriesData: categoricalData,
-        formData,
+        formData: formData as EchartsTimeseriesFormData,
       });
 
       const transformedProps = transformProps(
@@ -556,7 +559,7 @@ describe('Bar Chart X-axis Time Formatting', () => {
       const chartProps = new ChartProps({
         ...baseChartPropsConfig,
         queriesData: categoricalData,
-        formData,
+        formData: formData as EchartsTimeseriesFormData,
       });
 
       const transformedProps = transformProps(
@@ -594,7 +597,7 @@ describe('Bar Chart X-axis Time Formatting', () => {
       const chartProps = new ChartProps({
         ...baseChartPropsConfig,
         queriesData: repeatedData,
-        formData,
+        formData: formData as EchartsTimeseriesFormData,
       });
 
       const transformedProps = transformProps(
@@ -619,7 +622,7 @@ describe('Bar Chart X-axis Time Formatting', () => {
       const chartProps = new ChartProps({
         ...baseChartPropsConfig,
         queriesData: categoricalData,
-        formData,
+        formData: formData as EchartsTimeseriesFormData,
       });
 
       const transformedProps = transformProps(
