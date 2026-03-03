@@ -213,7 +213,11 @@ def test_api_bulk_delete_coverage(app):
                 res = bulk_delete_func(api, rison=[1, 2])
                 assert res.status_code == 200
 
-            # Not found
+        # Not found
+        with patch(
+            "superset.row_level_security.api.DeleteRLSRuleCommand"
+        ) as mock_command:
+            # Patch the run method of the instance returned by the class call
             mock_command.return_value.run.side_effect = RLSRuleNotFoundError()
             res = bulk_delete_func(api, rison=[1, 2])
             assert res.status_code == 404
