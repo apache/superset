@@ -92,7 +92,12 @@ class ImportAssetsCommand(BaseCommand):
 
     # pylint: disable=too-many-locals
     @staticmethod
-    def _import(configs: dict[str, Any], sparse: bool = False) -> None:  # noqa: C901
+    def _import(  # noqa: C901
+        configs: dict[str, Any],
+        sparse: bool = False,
+        contents: dict[str, str] | None = None,
+    ) -> None:
+        contents = {} if contents is None else contents
         # import databases first
         database_ids: dict[str, int] = {}
         dataset_info: dict[str, dict[str, Any]] = {}
@@ -146,7 +151,7 @@ class ImportAssetsCommand(BaseCommand):
                     if target_tag_names := config.get("tags"):
                         import_tag(
                             target_tag_names,
-                            {},
+                            contents,
                             chart.id,
                             "chart",
                             db.session,
@@ -175,7 +180,7 @@ class ImportAssetsCommand(BaseCommand):
                     if target_tag_names := config.get("tags"):
                         import_tag(
                             target_tag_names,
-                            {},
+                            contents,
                             dashboard.id,
                             "dashboard",
                             db.session,
@@ -205,7 +210,7 @@ class ImportAssetsCommand(BaseCommand):
     )
     def run(self) -> None:
         self.validate()
-        self._import(self._configs, self.sparse)
+        self._import(self._configs, self.sparse, self.contents)
 
     def validate(self) -> None:
         exceptions: list[ValidationError] = []
