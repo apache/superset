@@ -66,7 +66,9 @@ export function useDragHandlers({
     null,
   );
   const [draggedItemIds, setDraggedItemIds] = useState<Set<string>>(new Set());
-
+  const [draggedFolderChildIds, setDraggedFolderChildIds] = useState<
+    Set<string>
+  >(new Set());
   // Store the flattened items at drag start to keep them stable during drag
   // This prevents react-window from re-rendering due to flattenedItems reference changes
   const dragStartFlattenedItemsRef = useRef<FlattenedTreeItem[] | null>(null);
@@ -88,13 +90,19 @@ export function useDragHandlers({
     [activeId, computedFlattenedItems],
   );
 
-  const flattenedItemsIndexMap = useMemo(() => {
+  // Exclude dragged folder children — they'd skew getProjection's minDepth calc
+  const projectionItems = useMemo(() => {
+    if (draggedFolderChildIds.size === 0) return flattenedItems;
+    return flattenedItems.filter(item => !draggedFolderChildIds.has(item.uuid));
+  }, [flattenedItems, draggedFolderChildIds]);
+
+  const projectionIndexMap = useMemo(() => {
     const map = new Map<string, number>();
-    flattenedItems.forEach((item, index) => {
+    projectionItems.forEach((item, index) => {
       map.set(item.uuid, index);
     });
     return map;
-  }, [flattenedItems]);
+  }, [projectionItems]);
 
   // Shared lookup maps for O(1) access - used by handleDragEnd and forbiddenDropFolderIds
   const fullItemsByUuid = useMemo(() => {
@@ -148,12 +156,26 @@ export function useDragHandlers({
     [childrenByParentId],
   );
 
+  const warnItemsOutsideFolders = useCallback(
+    (hasDraggedColumn: boolean, hasDraggedMetric: boolean) => {
+      if (hasDraggedColumn && hasDraggedMetric) {
+        addWarningToast(t('Columns and metrics should be inside folders'));
+      } else if (hasDraggedColumn) {
+        addWarningToast(t('Columns should be inside folders'));
+      } else if (hasDraggedMetric) {
+        addWarningToast(t('Metrics should be inside folders'));
+      }
+    },
+    [addWarningToast],
+  );
+
   const resetDragState = useCallback(() => {
     setActiveId(null);
     setOverId(null);
     offsetLeftRef.current = 0;
     setCurrentDropTargetId(null);
     setDraggedItemIds(new Set());
+    setDraggedFolderChildIds(new Set());
     setDragOverlayWidth(null);
     // Clear the stable snapshot so next render uses fresh computed items
     dragStartFlattenedItemsRef.current = null;
@@ -162,7 +184,8 @@ export function useDragHandlers({
   const handleDragStart = ({ active }: DragStartEvent) => {
     // Capture the current flattened items BEFORE setting activeId
     // This ensures the list stays stable during the entire drag operation
-    dragStartFlattenedItemsRef.current = computeFlattenedItems(null);
+    const snapshot = computeFlattenedItems(null);
+    dragStartFlattenedItemsRef.current = snapshot;
 
     setActiveId(active.id);
 
@@ -175,6 +198,23 @@ export function useDragHandlers({
       setDraggedItemIds(new Set(selectedItemIds));
     } else {
       setDraggedItemIds(new Set([active.id as string]));
+    }
+
+    // Collect descendant IDs for hiding from list / showing in overlay
+    const activeIndex = snapshot.findIndex(
+      item => item.uuid === (active.id as string),
+    );
+    const activeItem = snapshot[activeIndex];
+    if (activeItem?.type === FoldersEditorItemType.Folder) {
+      const descendantIds = new Set<string>();
+      for (let i = activeIndex + 1; i < snapshot.length; i += 1) {
+        if (snapshot[i].depth > activeItem.depth) {
+          descendantIds.add(snapshot[i].uuid);
+        } else {
+          break;
+        }
+      }
+      setDraggedFolderChildIds(descendantIds);
     }
   };
 
@@ -190,18 +230,18 @@ export function useDragHandlers({
         }
 
         const projection = getProjection(
-          flattenedItems,
+          projectionItems,
           activeId,
           overId,
           delta.x,
           DRAG_INDENTATION_WIDTH,
-          flattenedItemsIndexMap,
+          projectionIndexMap,
         );
         const newParentId = projection?.parentId ?? null;
         setCurrentDropTargetId(newParentId);
       }
     },
-    [activeId, overId, flattenedItems, flattenedItemsIndexMap],
+    [activeId, overId, projectionItems, projectionIndexMap],
   );
 
   const handleDragOver = useCallback(
@@ -216,12 +256,12 @@ export function useDragHandlers({
         }
 
         const projection = getProjection(
-          flattenedItems,
+          projectionItems,
           activeId,
           over.id,
           offsetLeftRef.current,
           DRAG_INDENTATION_WIDTH,
-          flattenedItemsIndexMap,
+          projectionIndexMap,
         );
         const newParentId = projection?.parentId ?? null;
         setCurrentDropTargetId(newParentId);
@@ -229,27 +269,50 @@ export function useDragHandlers({
         setCurrentDropTargetId(null);
       }
     },
-    [activeId, flattenedItems, flattenedItemsIndexMap],
+    [activeId, projectionItems, projectionIndexMap],
   );
 
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
     const itemsBeingDragged = Array.from(draggedItemIds);
+    const folderChildIds = draggedFolderChildIds;
     const finalOffsetLeft = offsetLeftRef.current;
     resetDragState();
 
-    if (!over || itemsBeingDragged.length === 0) {
+    if (itemsBeingDragged.length === 0) {
+      return;
+    }
+
+    if (!over) {
+      let hasDraggedColumn = false;
+      let hasDraggedMetric = false;
+      for (const id of itemsBeingDragged) {
+        const item = fullItemsByUuid.get(id);
+        if (item) {
+          if (item.type === FoldersEditorItemType.Column) {
+            hasDraggedColumn = true;
+          } else if (item.type === FoldersEditorItemType.Metric) {
+            hasDraggedMetric = true;
+          }
+        }
+      }
+      warnItemsOutsideFolders(hasDraggedColumn, hasDraggedMetric);
       return;
     }
 
     let targetOverId = over.id;
     let isEmptyDrop = false;
-    if (typeof over.id === 'string' && over.id.endsWith('-empty')) {
-      targetOverId = over.id.replace('-empty', '');
+    if (typeof targetOverId === 'string' && targetOverId.endsWith('-empty')) {
+      targetOverId = targetOverId.replace('-empty', '');
       isEmptyDrop = true;
 
       if (itemsBeingDragged.includes(targetOverId as string)) {
         return;
       }
+    }
+
+    // Dropping onto a descendant of the dragged folder is a no-op
+    if (folderChildIds.has(targetOverId as string)) {
+      return;
     }
 
     const activeIndex = fullItemsIndexMap.get(active.id as string) ?? -1;
@@ -266,12 +329,12 @@ export function useDragHandlers({
     );
 
     let projectedPosition = getProjection(
-      flattenedItems,
+      projectionItems,
       active.id,
       targetOverId,
       finalOffsetLeft,
       DRAG_INDENTATION_WIDTH,
-      flattenedItemsIndexMap,
+      projectionIndexMap,
     );
 
     if (isEmptyDrop) {
@@ -293,10 +356,41 @@ export function useDragHandlers({
       }
     }
 
-    // Single pass to gather info about dragged items
+    // Auto-include non-default folders when ALL their children are being
+    // dragged. This preserves nested folder hierarchy during "Select All"
+    // + drag operations. Process bottom-up (deepest first) so child folder
+    // promotions propagate up to parent folders.
+    const promotedFolderIds = new Set<string>();
+    const nonDefaultFolders = fullFlattenedItems.filter(
+      (item: FlattenedTreeItem) =>
+        item.type === FoldersEditorItemType.Folder &&
+        !isDefaultFolder(item.uuid) &&
+        !itemsBeingDraggedSet.has(item.uuid),
+    );
+    nonDefaultFolders.sort(
+      (a: FlattenedTreeItem, b: FlattenedTreeItem) => b.depth - a.depth,
+    );
+    for (const folder of nonDefaultFolders) {
+      const children = childrenByParentId.get(folder.uuid);
+      if (
+        children &&
+        children.length > 0 &&
+        children.every(
+          (child: FlattenedTreeItem) =>
+            itemsBeingDraggedSet.has(child.uuid) ||
+            promotedFolderIds.has(child.uuid),
+        )
+      ) {
+        promotedFolderIds.add(folder.uuid);
+      }
+    }
+
+    // Single pass to gather info about dragged items (including promoted folders)
     let hasNonFolderItems = false;
-    let hasDraggedFolder = false;
+    let hasDraggedFolder = promotedFolderIds.size > 0;
     let hasDraggedDefaultFolder = false;
+    let hasDraggedColumn = false;
+    let hasDraggedMetric = false;
     for (const item of draggedItems) {
       if (item.type === FoldersEditorItemType.Folder) {
         hasDraggedFolder = true;
@@ -305,11 +399,18 @@ export function useDragHandlers({
         }
       } else {
         hasNonFolderItems = true;
+        if (item.type === FoldersEditorItemType.Column) {
+          hasDraggedColumn = true;
+        }
+        if (item.type === FoldersEditorItemType.Metric) {
+          hasDraggedMetric = true;
+        }
       }
     }
 
     if (hasNonFolderItems) {
       if (!projectedPosition || !projectedPosition.parentId) {
+        warnItemsOutsideFolders(hasDraggedColumn, hasDraggedMetric);
         return;
       }
     }
@@ -318,6 +419,11 @@ export function useDragHandlers({
       const targetFolder = fullItemsByUuid.get(projectedPosition.parentId);
 
       if (targetFolder && isDefaultFolder(targetFolder.uuid)) {
+        if (promotedFolderIds.size > 0) {
+          addWarningToast(t('Cannot nest folders in default folders'));
+          return;
+        }
+
         const isDefaultMetricsFolder =
           targetFolder.uuid === DEFAULT_METRICS_FOLDER_UUID;
         const isDefaultColumnsFolder =
@@ -351,7 +457,7 @@ export function useDragHandlers({
       return;
     }
 
-    // Check max depth for folders
+    // Check max depth for folders (including promoted folders)
     if (hasDraggedFolder && projectedPosition) {
       for (const draggedItem of draggedItems) {
         if (draggedItem.type === FoldersEditorItemType.Folder) {
@@ -371,6 +477,22 @@ export function useDragHandlers({
           }
         }
       }
+      for (const folderId of promotedFolderIds) {
+        const folder = fullItemsByUuid.get(folderId);
+        if (folder) {
+          const maxFolderDescendantDepth = getMaxFolderDescendantDepth(
+            folderId,
+            folder.depth,
+          );
+          const descendantDepthOffset = maxFolderDescendantDepth - folder.depth;
+          const newMaxDescendantDepth =
+            projectedPosition.depth + descendantDepthOffset;
+          if (newMaxDescendantDepth >= MAX_DEPTH) {
+            addWarningToast(t('Maximum folder nesting depth reached'));
+            return;
+          }
+        }
+      }
     }
 
     let newItems = fullFlattenedItems;
@@ -383,8 +505,69 @@ export function useDragHandlers({
         { depth: number; parentId: string | null | undefined }
       >();
 
+      // Compute the depth change for topmost promoted folders.
+      // They become siblings of the dragged items in the target folder,
+      // so they move to projectedPosition.depth regardless of their
+      // original depth.
+      const topmostPromotedFolders: FlattenedTreeItem[] = [];
+      for (const folderId of promotedFolderIds) {
+        const folder = fullItemsByUuid.get(folderId);
+        if (!folder) continue;
+        const isTopmost =
+          !folder.parentId || !promotedFolderIds.has(folder.parentId);
+        if (isTopmost) {
+          topmostPromotedFolders.push(folder);
+        }
+      }
+
+      // For each topmost promoted folder, compute its depth change
+      // and apply it to the folder and all its descendants
+      const promotedDepthChange = new Map<string, number>();
+      for (const folder of topmostPromotedFolders) {
+        const folderDepthChange = projectedPosition.depth - folder.depth;
+        promotedDepthChange.set(folder.uuid, folderDepthChange);
+        itemsToUpdate.set(folder.uuid, {
+          depth: projectedPosition.depth,
+          parentId: projectedPosition.parentId,
+        });
+      }
+
+      // For nested promoted folders (not topmost), keep their original
+      // parentId and apply the topmost ancestor's depth change
+      for (const folderId of promotedFolderIds) {
+        if (itemsToUpdate.has(folderId)) continue;
+        const folder = fullItemsByUuid.get(folderId);
+        if (!folder) continue;
+        // Find the topmost promoted ancestor's depth change
+        let ancestor = folder;
+        while (
+          ancestor.parentId &&
+          promotedFolderIds.has(ancestor.parentId) &&
+          !promotedDepthChange.has(ancestor.parentId)
+        ) {
+          ancestor = fullItemsByUuid.get(ancestor.parentId)!;
+        }
+        const ancestorChange = ancestor.parentId
+          ? (promotedDepthChange.get(ancestor.parentId) ?? depthChange)
+          : depthChange;
+        promotedDepthChange.set(folderId, ancestorChange);
+        itemsToUpdate.set(folderId, {
+          depth: folder.depth + ancestorChange,
+          parentId: undefined,
+        });
+      }
+
       draggedItems.forEach((item: FlattenedTreeItem) => {
-        if (item.uuid === active.id) {
+        // Items whose parent folder was promoted should keep their
+        // original parentId and use the promoted folder's depth change
+        if (item.parentId && promotedFolderIds.has(item.parentId)) {
+          const folderChange =
+            promotedDepthChange.get(item.parentId) ?? depthChange;
+          itemsToUpdate.set(item.uuid, {
+            depth: item.depth + folderChange,
+            parentId: undefined,
+          });
+        } else if (item.uuid === active.id) {
           itemsToUpdate.set(item.uuid, {
             depth: projectedPosition.depth,
             parentId: projectedPosition.parentId,
@@ -416,11 +599,17 @@ export function useDragHandlers({
         }
       };
 
+      // Collect descendants for explicitly dragged folders
       draggedItems.forEach((item: FlattenedTreeItem) => {
         if (item.type === FoldersEditorItemType.Folder) {
           collectDescendants(item.uuid, depthChange);
         }
       });
+      // Collect descendants for promoted folders using their specific depth change
+      for (const folderId of promotedFolderIds) {
+        const folderChange = promotedDepthChange.get(folderId) ?? depthChange;
+        collectDescendants(folderId, folderChange);
+      }
 
       newItems = fullFlattenedItems.map((item: FlattenedTreeItem) => {
         const update = itemsToUpdate.get(item.uuid);
@@ -457,6 +646,14 @@ export function useDragHandlers({
         collectDescendantIds(item.uuid);
       }
     });
+
+    // Include promoted folders and their descendants in the move set
+    if (projectedPosition) {
+      for (const folderId of promotedFolderIds) {
+        itemsToMoveIds.add(folderId);
+        collectDescendantIds(folderId);
+      }
+    }
 
     // Indices are already in ascending order since we iterate fullFlattenedItems sequentially
     const itemsToMoveIndices: number[] = [];
@@ -496,8 +693,6 @@ export function useDragHandlers({
               } else {
                 insertionIndex = overItemInRemaining;
               }
-            } else if (projectedPosition.depth > overItem.depth) {
-              insertionIndex = overItemInRemaining + 1;
             } else {
               insertionIndex = overItemInRemaining + 1;
             }
@@ -540,12 +735,34 @@ export function useDragHandlers({
   const dragOverlayItems = useMemo(() => {
     if (!activeId || draggedItemIds.size === 0) return [];
 
+    const activeItem = fullItemsByUuid.get(activeId as string);
+
+    // Folder drag: include folder + visible descendants
+    if (
+      activeItem?.type === FoldersEditorItemType.Folder &&
+      draggedFolderChildIds.size > 0
+    ) {
+      const activeIdStr = activeId as string;
+      return flattenedItems.filter(
+        (item: FlattenedTreeItem) =>
+          item.uuid === activeIdStr || draggedFolderChildIds.has(item.uuid),
+      );
+    }
+
+    // Multi-select / single item: stacked overlay
     const draggedItems = fullFlattenedItems.filter((item: FlattenedTreeItem) =>
       draggedItemIds.has(item.uuid),
     );
 
     return draggedItems.slice(0, 3);
-  }, [activeId, draggedItemIds, fullFlattenedItems]);
+  }, [
+    activeId,
+    draggedItemIds,
+    draggedFolderChildIds,
+    flattenedItems,
+    fullFlattenedItems,
+    fullItemsByUuid,
+  ]);
 
   const forbiddenDropFolderIds = useMemo(() => {
     const forbidden = new Set<string>();
@@ -648,6 +865,7 @@ export function useDragHandlers({
     isDragging: activeId !== null,
     activeId,
     draggedItemIds,
+    draggedFolderChildIds,
     dragOverlayWidth,
     flattenedItems,
     dragOverlayItems,

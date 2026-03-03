@@ -438,7 +438,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
                 sql = cls.select_star(
                     database,
                     table,
-                    engine,
+                    engine.dialect,
                     indent=False,
                     show_cols=False,
                     latest_partition=True,

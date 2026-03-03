@@ -19,14 +19,12 @@
 import { render, screen } from 'spec/helpers/testing-library';
 import StatusBar from 'src/SqlLab/components/StatusBar';
 
-jest.mock('src/extensions/ExtensionsManager', () => {
-  const getInstance = jest.fn().mockReturnValue({
-    getViewContributions: jest
-      .fn()
-      .mockReturnValue([{ id: 'test-status-bar' }]),
-  });
-  return { getInstance };
-});
+jest.mock('src/core/views', () => ({
+  views: {
+    getViews: jest.fn().mockReturnValue([{ id: 'test-status-bar' }]),
+    registerView: jest.fn(),
+  },
+}));
 
 jest.mock('src/components/ViewListExtension', () => ({
   __esModule: true,

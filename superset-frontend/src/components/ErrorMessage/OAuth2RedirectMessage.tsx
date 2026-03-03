@@ -63,6 +63,7 @@ interface OAuth2RedirectExtra {
 export function OAuth2RedirectMessage({
   error,
   source,
+  closable,
 }: ErrorMessageComponentProps<OAuth2RedirectExtra>) {
   const oAuthTab = useRef<Window | null>(null);
   const { extra, level } = error;
@@ -172,6 +173,7 @@ export function OAuth2RedirectMessage({
       message={subtitle}
       type={level}
       description={body}
+      closable={closable}
     />
   );
 }

@@ -19,7 +19,7 @@
 import { styled } from '@apache-superset/core';
 import { Flex } from '@superset-ui/core/components';
 import ViewListExtension from 'src/components/ViewListExtension';
-import ExtensionsManager from 'src/extensions/ExtensionsManager';
+import { views } from 'src/core';
 import { SQL_EDITOR_STATUSBAR_HEIGHT } from 'src/SqlLab/constants';
 import { ViewLocations } from 'src/SqlLab/contributions';
 
@@ -38,14 +38,11 @@ const Container = styled(Flex)`
 `;
 
 const StatusBar = () => {
-  const statusBarContributions =
-    ExtensionsManager.getInstance().getViewContributions(
-      ViewLocations.sqllab.statusBar,
-    ) || [];
+  const statusBarViews = views.getViews(ViewLocations.sqllab.statusBar) || [];
 
   return (
     <>
-      {statusBarContributions.length > 0 && (
+      {statusBarViews.length > 0 && (
         <Container align="center" justify="space-between">
           <ViewListExtension viewId={ViewLocations.sqllab.statusBar} />
         </Container>

@@ -147,7 +147,7 @@
       "warn",
       { "extensions": [".jsx", ".tsx"] }
     ],
-    "react/jsx-fragments": ["warn", "syntax"],
+    "react/jsx-fragments": "error",
     "react/jsx-no-bind": "off",
     "react/jsx-props-no-spreading": "off",
     "react/jsx-boolean-value": ["error", "never", { "always": [] }],
@@ -212,7 +212,7 @@
     // === JSX-a11y rules ===
     "jsx-a11y/alt-text": "error",
     "jsx-a11y/anchor-has-content": "error",
-    "jsx-a11y/anchor-is-valid": "warn",
+    "jsx-a11y/anchor-is-valid": "error",
     "jsx-a11y/aria-activedescendant-has-tabindex": "error",
     "jsx-a11y/aria-props": "error",
     "jsx-a11y/aria-proptypes": "error",
