@@ -190,8 +190,17 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
     def crontab_humanized(self) -> str:
         return get_description(self.crontab)
 
-    def get_native_filters_params(self) -> str:
+    def get_native_filters_params(self) -> tuple[str, list[str]]:
+        """
+        Generate native filter params for dashboard URL.
+
+        Returns:
+            A tuple of (rison_encoded_params, list_of_warning_messages).
+            Warnings are returned so they can be surfaced to users in the
+            execution log.
+        """
         params: dict[str, Any] = {}
+        warnings: list[str] = []
         dashboard = self.extra.get("dashboard")
         if dashboard and dashboard.get("nativeFilters"):
             native_filters = dashboard.get("nativeFilters") or []
@@ -200,10 +209,12 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
                 filter_type = native_filter.get("filterType")
 
                 if native_filter_id is None or filter_type is None:
-                    logger.warning(
-                        "Skipping malformed native filter missing required fields: %s",
-                        native_filter,
+                    warning_msg = (
+                        f"Skipping malformed native filter missing required "
+                        f"fields: {native_filter}"
                     )
+                    warnings.append(warning_msg)
+                    logger.warning(warning_msg)
                     continue
 
                 params = {
@@ -218,7 +229,7 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
         # hack(hughhh): workaround for escaping prison not handling quotes right
         rison = prison.dumps(params)
         rison = rison.replace("'", "%27")
-        return rison
+        return rison, warnings
 
     def _generate_native_filter(
         self,
