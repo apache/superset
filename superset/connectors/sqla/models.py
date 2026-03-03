@@ -108,6 +108,8 @@ from superset.sql.parse import Table
 from superset.superset_typing import (
     AdhocColumn,
     AdhocMetric,
+    DatasetColumnData,
+    DatasetMetricData,
     ExplorableData,
     Metric,
     QueryObjectDict,
@@ -465,8 +467,8 @@ class BaseDatasource(
             # sqla-specific
             "sql": self.sql,
             # one to many
-            "columns": [o.data for o in self.columns],
-            "metrics": [o.data for o in self.metrics],
+            "columns": [cast(DatasetColumnData, o.data) for o in self.columns],
+            "metrics": [cast(DatasetMetricData, o.data) for o in self.metrics],
             "folders": self.folders,
             # TODO deprecate, move logic to JS
             "order_by_choices": self.order_by_choices,
