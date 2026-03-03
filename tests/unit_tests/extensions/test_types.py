@@ -256,9 +256,15 @@ def test_extension_config_backend_defaults():
 
 def test_manifest_backend_required_entrypoint():
     """Test ManifestBackend requires entrypoint field."""
+    # Test positive case - entrypoint provided
     backend = ManifestBackend.model_validate(
         {"entrypoint": "superset_extensions.test_org.test_extension.entrypoint"}
     )
     assert (
         backend.entrypoint == "superset_extensions.test_org.test_extension.entrypoint"
     )
+
+    # Test negative case - entrypoint missing should raise ValidationError
+    with pytest.raises(ValidationError) as exc_info:
+        ManifestBackend.model_validate({})
+    assert "entrypoint" in str(exc_info.value)

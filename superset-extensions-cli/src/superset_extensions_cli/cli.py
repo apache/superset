@@ -237,9 +237,7 @@ def copy_backend_files(cwd: Path) -> None:
 
     # Process include patterns
     for pattern in include_patterns:
-        for f in (backend_dir / pattern.split("/", 1)[0]).glob(
-            "/".join(pattern.split("/")[1:])
-        ):
+        for f in backend_dir.glob(pattern):
             if not f.is_file():
                 continue
 

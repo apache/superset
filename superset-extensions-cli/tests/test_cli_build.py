@@ -602,6 +602,94 @@ exclude = []
     )
 
 
+@pytest.mark.unit
+def test_copy_backend_files_handles_various_glob_patterns(isolated_filesystem):
+    """Test copy_backend_files correctly handles different glob pattern formats."""
+    # Create backend structure with files in different locations
+    backend_dir = isolated_filesystem / "backend"
+    backend_src = backend_dir / "src" / "superset_extensions" / "test_org" / "test_ext"
+    backend_src.mkdir(parents=True)
+
+    # Create files that should match different pattern types
+    (backend_src / "__init__.py").write_text("# init")
+    (backend_src / "main.py").write_text("# main")
+    (backend_dir / "config.py").write_text("# config")  # Root level file
+
+    # Create subdirectory with files
+    subdir = backend_src / "utils"
+    subdir.mkdir()
+    (subdir / "helper.py").write_text("# helper")
+
+    # Create pyproject.toml with various glob patterns that would fail with old logic
+    pyproject_content = """[project]
+name = "test_org-test_ext"
+version = "1.0.0"
+license = "Apache-2.0"
+
+[tool.apache_superset_extensions.build]
+include = [
+    "config.py",                                           # No '/' - would break old logic
+    "**/*.py",                                             # Starts with '**' - would break old logic
+    "src/superset_extensions/test_org/test_ext/main.py",   # Specific file
+]
+exclude = []
+"""
+    (backend_dir / "pyproject.toml").write_text(pyproject_content)
+
+    # Create extension.json
+    extension_data = {
+        "publisher": "test-org",
+        "name": "test-ext",
+        "displayName": "Test Extension",
+        "version": "1.0.0",
+        "permissions": [],
+    }
+    (isolated_filesystem / "extension.json").write_text(json.dumps(extension_data))
+
+    # Create dist directory
+    clean_dist(isolated_filesystem)
+
+    copy_backend_files(isolated_filesystem)
+
+    # Verify files were copied according to patterns
+    dist_dir = isolated_filesystem / "dist"
+
+    # config.py (pattern: "config.py")
+    assert_file_exists(dist_dir / "backend" / "config.py")
+
+    # All .py files should be included (pattern: "**/*.py")
+    assert_file_exists(
+        dist_dir
+        / "backend"
+        / "src"
+        / "superset_extensions"
+        / "test_org"
+        / "test_ext"
+        / "__init__.py"
+    )
+    assert_file_exists(
+        dist_dir
+        / "backend"
+        / "src"
+        / "superset_extensions"
+        / "test_org"
+        / "test_ext"
+        / "utils"
+        / "helper.py"
+    )
+
+    # Specific file (pattern: "src/superset_extensions/test_org/test_ext/main.py")
+    assert_file_exists(
+        dist_dir
+        / "backend"
+        / "src"
+        / "superset_extensions"
+        / "test_org"
+        / "test_ext"
+        / "main.py"
+    )
+
+
 # Removed obsolete tests:
 # - test_copy_backend_files_handles_no_backend_config: This scenario can't happen since copy_backend_files is only called when backend exists
 # - test_copy_backend_files_exits_when_extension_json_missing: Validation catches this before copy_backend_files is called
