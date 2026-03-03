@@ -35,6 +35,11 @@
     {% endblock %}
 
     <style>
+      {% if entry == 'embedded' %}
+      html, body {
+        background: transparent !important;
+      }
+      {% else %}
       body {
         background: #fff;
         color: #000;
@@ -46,6 +51,7 @@
           color: #fff;
         }
       }
+      {% endif %}
     </style>
 
     {% block head_css %}
