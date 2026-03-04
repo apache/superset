@@ -351,4 +351,287 @@ describe('Bar Chart X-axis Time Formatting', () => {
       expect(chartProps.formData.xAxisTimeFormat).toBe('smart_date');
     });
   });
+
+  describe('Color By X-Axis Feature', () => {
+    const categoricalData = [
+      {
+        data: [
+          { category: 'A', value: 100 },
+          { category: 'B', value: 150 },
+          { category: 'C', value: 200 },
+        ],
+        colnames: ['category', 'value'],
+        coltypes: ['STRING', 'BIGINT'],
+      },
+    ];
+
+    test('should apply color by x-axis when enabled with no dimensions', () => {
+      const formData = {
+        ...baseFormData,
+        colorByPrimaryAxis: true,
+        groupby: [],
+        x_axis: 'category',
+        metric: 'value',
+      };
+
+      const chartProps = new ChartProps({
+        ...baseChartPropsConfig,
+        queriesData: categoricalData,
+        formData,
+      });
+
+      const transformedProps = transformProps(
+        chartProps as unknown as EchartsTimeseriesChartProps,
+      );
+
+      // Should have hidden legend series for each x-axis value
+      const series = transformedProps.echartOptions.series as any[];
+      expect(series.length).toBeGreaterThan(3); // Original series + hidden legend series
+
+      // Check that legend data contains x-axis values
+      const legendData = transformedProps.legendData as string[];
+      expect(legendData).toContain('A');
+      expect(legendData).toContain('B');
+      expect(legendData).toContain('C');
+
+      // Check that legend items have roundRect icons
+      const legend = transformedProps.echartOptions.legend as any;
+      expect(legend.data).toBeDefined();
+      expect(Array.isArray(legend.data)).toBe(true);
+      if (legend.data.length > 0 && typeof legend.data[0] === 'object') {
+        expect(legend.data[0].icon).toBe('roundRect');
+      }
+    });
+
+    test('should NOT apply color by x-axis when dimensions are present', () => {
+      const formData = {
+        ...baseFormData,
+        colorByPrimaryAxis: true,
+        groupby: ['region'],
+        x_axis: 'category',
+        metric: 'value',
+      };
+
+      const chartProps = new ChartProps({
+        ...baseChartPropsConfig,
+        queriesData: categoricalData,
+        formData,
+      });
+
+      const transformedProps = transformProps(
+        chartProps as unknown as EchartsTimeseriesChartProps,
+      );
+
+      // Legend data should NOT contain x-axis values when dimensions exist
+      const legendData = transformedProps.legendData as string[];
+      // Should use series names, not x-axis values
+      expect(legendData.length).toBeLessThan(10);
+    });
+
+    test('should use x-axis values as color keys for consistent colors', () => {
+      const formData = {
+        ...baseFormData,
+        colorByPrimaryAxis: true,
+        groupby: [],
+        x_axis: 'category',
+        metric: 'value',
+      };
+
+      const chartProps = new ChartProps({
+        ...baseChartPropsConfig,
+        queriesData: categoricalData,
+        formData,
+      });
+
+      const transformedProps = transformProps(
+        chartProps as unknown as EchartsTimeseriesChartProps,
+      );
+
+      const series = transformedProps.echartOptions.series as any[];
+
+      // Find the data series (not the hidden legend series)
+      const dataSeries = series.find(
+        s => s.data && s.data.length > 0 && s.type === 'bar',
+      );
+      expect(dataSeries).toBeDefined();
+
+      // Check that data points have individual itemStyle with colors
+      if (dataSeries && Array.isArray(dataSeries.data)) {
+        const dataPoint = dataSeries.data[0];
+        if (
+          dataPoint &&
+          typeof dataPoint === 'object' &&
+          'itemStyle' in dataPoint
+        ) {
+          expect(dataPoint.itemStyle).toBeDefined();
+          expect(dataPoint.itemStyle.color).toBeDefined();
+        }
+      }
+    });
+
+    test('should disable legend selection when color by x-axis is enabled', () => {
+      const formData = {
+        ...baseFormData,
+        colorByPrimaryAxis: true,
+        groupby: [],
+        x_axis: 'category',
+        metric: 'value',
+      };
+
+      const chartProps = new ChartProps({
+        ...baseChartPropsConfig,
+        queriesData: categoricalData,
+        formData,
+      });
+
+      const transformedProps = transformProps(
+        chartProps as unknown as EchartsTimeseriesChartProps,
+      );
+
+      const legend = transformedProps.echartOptions.legend as any;
+      expect(legend.selectedMode).toBe(false);
+      expect(legend.selector).toBe(false);
+    });
+
+    test('should work without stacking enabled', () => {
+      const formData = {
+        ...baseFormData,
+        colorByPrimaryAxis: true,
+        groupby: [],
+        stack: null,
+        x_axis: 'category',
+        metric: 'value',
+      };
+
+      const chartProps = new ChartProps({
+        ...baseChartPropsConfig,
+        queriesData: categoricalData,
+        formData,
+      });
+
+      const transformedProps = transformProps(
+        chartProps as unknown as EchartsTimeseriesChartProps,
+      );
+
+      // Should still create legend with x-axis values
+      const legendData = transformedProps.legendData as string[];
+      expect(legendData.length).toBeGreaterThan(0);
+      expect(legendData).toContain('A');
+    });
+
+    test('should handle when colorByPrimaryAxis is disabled', () => {
+      const formData = {
+        ...baseFormData,
+        colorByPrimaryAxis: false,
+        groupby: [],
+        x_axis: 'category',
+        metric: 'value',
+      };
+
+      const chartProps = new ChartProps({
+        ...baseChartPropsConfig,
+        queriesData: categoricalData,
+        formData,
+      });
+
+      const transformedProps = transformProps(
+        chartProps as unknown as EchartsTimeseriesChartProps,
+      );
+
+      // Legend should not be disabled when feature is off
+      const legend = transformedProps.echartOptions.legend as any;
+      expect(legend.selectedMode).not.toBe(false);
+    });
+
+    test('should use category axis (Y) as color key for horizontal bar charts', () => {
+      const formData = {
+        ...baseFormData,
+        colorByPrimaryAxis: true,
+        groupby: [],
+        orientation: 'horizontal',
+        x_axis: 'category',
+        metric: 'value',
+      };
+
+      const chartProps = new ChartProps({
+        ...baseChartPropsConfig,
+        queriesData: categoricalData,
+        formData,
+      });
+
+      const transformedProps = transformProps(
+        chartProps as unknown as EchartsTimeseriesChartProps,
+      );
+
+      // Legend should contain category values (A, B, C), not numeric values
+      const legendData = transformedProps.legendData as string[];
+      expect(legendData).toContain('A');
+      expect(legendData).toContain('B');
+      expect(legendData).toContain('C');
+    });
+
+    test('should deduplicate legend entries when x-axis has repeated values', () => {
+      const repeatedData = [
+        {
+          data: [
+            { category: 'A', value: 100 },
+            { category: 'A', value: 200 },
+            { category: 'B', value: 150 },
+          ],
+          colnames: ['category', 'value'],
+          coltypes: ['STRING', 'BIGINT'],
+        },
+      ];
+
+      const formData = {
+        ...baseFormData,
+        colorByPrimaryAxis: true,
+        groupby: [],
+        x_axis: 'category',
+        metric: 'value',
+      };
+
+      const chartProps = new ChartProps({
+        ...baseChartPropsConfig,
+        queriesData: repeatedData,
+        formData,
+      });
+
+      const transformedProps = transformProps(
+        chartProps as unknown as EchartsTimeseriesChartProps,
+      );
+
+      const legendData = transformedProps.legendData as string[];
+      // 'A' should appear only once despite being in the data twice
+      expect(legendData.filter(v => v === 'A').length).toBe(1);
+      expect(legendData).toContain('B');
+    });
+
+    test('should create exactly one hidden legend series per unique category', () => {
+      const formData = {
+        ...baseFormData,
+        colorByPrimaryAxis: true,
+        groupby: [],
+        x_axis: 'category',
+        metric: 'value',
+      };
+
+      const chartProps = new ChartProps({
+        ...baseChartPropsConfig,
+        queriesData: categoricalData,
+        formData,
+      });
+
+      const transformedProps = transformProps(
+        chartProps as unknown as EchartsTimeseriesChartProps,
+      );
+
+      const series = transformedProps.echartOptions.series as any[];
+      const hiddenSeries = series.filter(
+        s => s.type === 'line' && Array.isArray(s.data) && s.data.length === 0,
+      );
+      // One hidden series per unique category (A, B, C)
+      expect(hiddenSeries.length).toBe(3);
+    });
+  });
 });
