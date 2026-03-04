@@ -139,3 +139,56 @@ class SqlLabResponse(BaseModel):
     schema_name: str | None = Field(None, description="Schema selected", alias="schema")
     title: str | None = Field(None, description="Query title")
     error: str | None = Field(None, description="Error message if failed")
+
+
+class SaveSqlQueryRequest(BaseModel):
+    """Request schema for saving a SQL query."""
+
+    database_id: int = Field(
+        ..., description="Database connection ID for this saved query"
+    )
+    sql: str = Field(
+        ...,
+        description="SQL query to save",
+    )
+    label: str = Field(
+        ...,
+        description="Name/label for the saved query",
+        min_length=1,
+        max_length=256,
+    )
+    description: str | None = Field(
+        None, description="Description of what this query does"
+    )
+    schema_name: str | None = Field(
+        None,
+        description="Default schema for this query",
+        alias="schema",
+        max_length=128,
+    )
+    catalog: str | None = Field(
+        None, description="Default catalog for this query", max_length=256
+    )
+    template_parameters: str | None = Field(
+        None,
+        description="Jinja2 template parameters as JSON string",
+    )
+
+    @field_validator("sql")
+    @classmethod
+    def sql_not_empty(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("SQL query cannot be empty")
+        return v.strip()
+
+
+class SaveSqlQueryResponse(BaseModel):
+    """Response schema for saved query creation."""
+
+    id: int = Field(..., description="Saved query ID")
+    label: str = Field(..., description="Saved query label/name")
+    sql_lab_url: str = Field(..., description="URL to open the saved query in SQL Lab")
+    database_name: str | None = Field(
+        None, description="Name of the associated database"
+    )
+    error: str | None = Field(None, description="Error message if save failed")
