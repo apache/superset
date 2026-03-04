@@ -17,7 +17,12 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import { ensureIsArray, QueryFormData, JsonValue } from '@superset-ui/core';
+import {
+  ensureIsArray,
+  QueryFormData,
+  JsonValue,
+  JsonObject,
+} from '@superset-ui/core';
 import {
   ControlState,
   ControlStateMapping,
@@ -64,6 +69,7 @@ export interface ExploreState {
     owners?: string[] | null;
   };
   saveAction?: SaveActionType | null;
+  chartStates?: Record<number, JsonObject>;
 }
 
 // Action type definitions
@@ -163,6 +169,13 @@ interface SetForceQueryAction {
   force: boolean;
 }
 
+interface UpdateExploreChartStateAction {
+  type: typeof actions.UPDATE_EXPLORE_CHART_STATE;
+  chartId: number;
+  chartState: Record<string, unknown>;
+  lastModified: number;
+}
+
 type ExploreAction =
   | DynamicPluginControlsReadyAction
   | ToggleFaveStarAction
@@ -181,6 +194,7 @@ type ExploreAction =
   | SetStashFormDataAction
   | SliceUpdatedAction
   | SetForceQueryAction
+  | UpdateExploreChartStateAction
   | HydrateExplore;
 
 // Extended control state for dynamic form controls - uses Record for flexibility
@@ -619,10 +633,25 @@ export default function exploreReducer(
         force: typedAction.force,
       };
     },
+    [actions.UPDATE_EXPLORE_CHART_STATE]() {
+      const typedAction = action as UpdateExploreChartStateAction;
+      return {
+        ...state,
+        chartStates: {
+          ...state.chartStates,
+          [typedAction.chartId]: {
+            chartId: typedAction.chartId,
+            state: typedAction.chartState,
+            lastModified: typedAction.lastModified,
+          },
+        },
+      };
+    },
     [HYDRATE_EXPLORE]() {
       const typedAction = action as HydrateExplore;
+      const exploreData = typedAction.data.explore;
       return {
-        ...typedAction.data.explore,
+        ...exploreData,
       } as ExploreState;
     },
   };
