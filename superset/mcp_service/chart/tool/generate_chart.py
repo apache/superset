@@ -520,7 +520,7 @@ async def generate_chart(  # noqa: C901
                 from superset.daos.dataset import DatasetDAO
 
                 ds = DatasetDAO.find_by_id(request.dataset_id, id_column="uuid")
-                if ds:
+                if ds and has_dataset_access(ds):
                     numeric_dataset_id = ds.id
 
             if numeric_dataset_id is not None:
