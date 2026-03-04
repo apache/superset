@@ -2493,7 +2493,7 @@ TASK_PROGRESS_UPDATE_THROTTLE_INTERVAL = 2  # seconds
 # Set CACHE_TYPE to 'RedisCache' for standard Redis or 'RedisSentinelCache' for
 # Sentinel.
 #
-# These features require Redis-specific primitives unavailable in generic cache backends:
+# These features require Redis primitives unavailable in generic cache backends:
 # - Pub/Sub: Real-time message broadcasting between workers
 # - SET NX EX: Atomic lock acquisition with automatic expiration
 # - Streams: Persistent ordered event logs (future)
