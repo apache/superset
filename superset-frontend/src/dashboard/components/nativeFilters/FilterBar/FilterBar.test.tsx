@@ -438,13 +438,8 @@ test('FilterBar does not crash when filter has value but empty extraFormData', a
   expect(screen.getByTestId(getTestId('filter-icon'))).toBeInTheDocument();
   expect(screen.getByText('Filters and controls')).toBeInTheDocument();
 
-  // Auto-apply dispatches updateDataMask when the filter plugin initializes
-  expect(updateDataMaskSpy).not.toHaveBeenCalledWith(
-    filterId,
-    expect.objectContaining({
-      filterState: expect.objectContaining({ value: undefined }),
-    }),
-  );
+  // The filter value should not be cleared during initialization
+  expect(updateDataMaskSpy).not.toHaveBeenCalled();
 
   updateDataMaskSpy.mockRestore();
 });
