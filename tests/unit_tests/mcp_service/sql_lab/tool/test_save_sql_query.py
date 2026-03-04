@@ -138,9 +138,17 @@ def _force_passthrough_decorators():
     mock_api = MagicMock()
     mock_api.mcp = mock_mcp
 
+    # Clear any cached superset_core modules first so Python doesn't
+    # use the real installed package instead of our mocks.
+    for key in list(sys.modules.keys()):
+        if key.startswith("superset_core"):
+            del sys.modules[key]
+
+    # Mock all possible import paths for superset_core
     sys.modules["superset_core"] = MagicMock()
     sys.modules["superset_core.api"] = mock_api
     sys.modules["superset_core.api.mcp"] = mock_mcp
+    sys.modules["superset_core.mcp"] = mock_mcp
     sys.modules.setdefault("superset_core.api.types", MagicMock())
 
 
@@ -265,6 +273,9 @@ class TestSaveSqlQueryToolLogic:
             mock_db_session.session.query.return_value.filter_by.return_value.first.return_value
         ) = None
 
+        mock_g = MagicMock()
+        mock_g.user = Mock(id=1)
+
         mock_event_logger = MagicMock()
         mock_event_logger.log_context.return_value.__enter__ = Mock()
         mock_event_logger.log_context.return_value.__exit__ = Mock(return_value=False)
@@ -275,6 +286,7 @@ class TestSaveSqlQueryToolLogic:
                 return_value=mock_ctx,
             ),
             patch("superset.db", mock_db_session),
+            patch("flask.g", mock_g),
             patch.object(mod, "event_logger", mock_event_logger),
         ):
             from superset.exceptions import SupersetErrorException
@@ -305,6 +317,9 @@ class TestSaveSqlQueryToolLogic:
         mock_sm = MagicMock()
         mock_sm.can_access_database.return_value = False
 
+        mock_g = MagicMock()
+        mock_g.user = Mock(id=1)
+
         mock_event_logger = MagicMock()
         mock_event_logger.log_context.return_value.__enter__ = Mock()
         mock_event_logger.log_context.return_value.__exit__ = Mock(return_value=False)
@@ -316,6 +331,7 @@ class TestSaveSqlQueryToolLogic:
             ),
             patch("superset.db", mock_db_session),
             patch("superset.security_manager", mock_sm),
+            patch("flask.g", mock_g),
             patch.object(mod, "event_logger", mock_event_logger),
         ):
             from superset.exceptions import SupersetSecurityException
