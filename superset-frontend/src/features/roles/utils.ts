@@ -18,6 +18,9 @@
  */
 
 import { SupersetClient } from '@superset-ui/core';
+import { t } from '@apache-superset/core';
+import rison from 'rison';
+import { SelectOption } from './types';
 
 export const createRole = async (name: string) =>
   SupersetClient.post({
@@ -51,3 +54,127 @@ export const updateRoleName = async (roleId: number, name: string) =>
     endpoint: `/api/v1/security/roles/${roleId}`,
     jsonPayload: { name },
   });
+
+export const formatPermissionLabel = (
+  permissionName: string,
+  viewMenuName: string,
+) => `${permissionName.replace(/_/g, ' ')} ${viewMenuName.replace(/_/g, ' ')}`;
+
+type PermissionResult = {
+  id: number;
+  permission: { name: string };
+  view_menu: { name: string };
+};
+
+const mapPermissionResults = (results: PermissionResult[]) =>
+  results.map(item => ({
+    value: item.id,
+    label: formatPermissionLabel(item.permission.name, item.view_menu.name),
+  }));
+
+const MAX_PERMISSION_SEARCH_SIZE = 5000;
+const permissionSearchCache = new Map<string, SelectOption[]>();
+
+export const clearPermissionSearchCache = () => {
+  permissionSearchCache.clear();
+};
+
+const fetchPermissionPageRaw = async (
+  queryParams: Record<string, unknown>,
+) => {
+  const response = await SupersetClient.get({
+    endpoint: `/api/v1/security/permissions-resources/?q=${rison.encode(queryParams)}`,
+  });
+  return {
+    data: mapPermissionResults(response.json?.result || []),
+    totalCount: response.json?.count ?? 0,
+  };
+};
+
+export const fetchPermissionOptions = async (
+  filterValue: string,
+  page: number,
+  pageSize: number,
+  addDangerToast: (msg: string) => void,
+) => {
+  if (!filterValue) {
+    permissionSearchCache.clear();
+    try {
+      return await fetchPermissionPageRaw({ page, page_size: pageSize });
+    } catch {
+      addDangerToast(t('There was an error while fetching permissions'));
+      return { data: [], totalCount: 0 };
+    }
+  }
+
+  try {
+    let cached = permissionSearchCache.get(filterValue);
+    if (!cached) {
+      const searchQuery = { page: 0, page_size: MAX_PERMISSION_SEARCH_SIZE };
+      const [byViewMenu, byPermission] = await Promise.all([
+        fetchPermissionPageRaw({
+          ...searchQuery,
+          filters: [
+            { col: 'view_menu.name', opr: 'ct', value: filterValue },
+          ],
+        }),
+        fetchPermissionPageRaw({
+          ...searchQuery,
+          filters: [
+            { col: 'permission.name', opr: 'ct', value: filterValue },
+          ],
+        }),
+      ]);
+
+      const seen = new Set<number>();
+      cached = [...byViewMenu.data, ...byPermission.data].filter(item => {
+        if (seen.has(item.value)) return false;
+        seen.add(item.value);
+        return true;
+      });
+      permissionSearchCache.set(filterValue, cached);
+    }
+
+    const start = page * pageSize;
+    return {
+      data: cached.slice(start, start + pageSize),
+      totalCount: cached.length,
+    };
+  } catch {
+    addDangerToast(t('There was an error while fetching permissions'));
+    return { data: [], totalCount: 0 };
+  }
+};
+
+export const fetchGroupOptions = async (
+  filterValue: string,
+  page: number,
+  pageSize: number,
+  addDangerToast: (msg: string) => void,
+) => {
+  const query = rison.encode({
+    page,
+    page_size: pageSize,
+    ...(filterValue
+      ? { filters: [{ col: 'name', opr: 'ct', value: filterValue }] }
+      : {}),
+  });
+
+  try {
+    const response = await SupersetClient.get({
+      endpoint: `/api/v1/security/groups/?q=${query}`,
+    });
+
+    const results = response.json?.result || [];
+    return {
+      data: results.map((group: { id: number; name: string }) => ({
+        value: group.id,
+        label: group.name,
+      })),
+      totalCount: response.json?.count ?? 0,
+    };
+  } catch {
+    addDangerToast(t('There was an error while fetching groups'));
+    return { data: [], totalCount: 0 };
+  }
+};

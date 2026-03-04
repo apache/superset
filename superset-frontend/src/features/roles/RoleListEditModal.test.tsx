@@ -28,6 +28,7 @@ import rison from 'rison';
 import RoleListEditModal from './RoleListEditModal';
 import {
   updateRoleName,
+  updateRoleGroups,
   updateRolePermissions,
   updateRoleUsers,
 } from './utils';
@@ -39,6 +40,7 @@ const mockToasts = {
 
 jest.mock('./utils');
 const mockUpdateRoleName = jest.mocked(updateRoleName);
+const mockUpdateRoleGroups = jest.mocked(updateRoleGroups);
 const mockUpdateRolePermissions = jest.mocked(updateRolePermissions);
 const mockUpdateRoleUsers = jest.mocked(updateRoleUsers);
 
@@ -69,47 +71,11 @@ describe('RoleListEditModal', () => {
     group_ids: [1, 2],
   };
 
-  const mockPermissions = [
-    { id: 10, label: 'Permission A', value: 'perm_a' },
-    { id: 20, label: 'Permission B', value: 'perm_b' },
-  ];
-
-  const mockUsers = [
-    {
-      id: 5,
-      firstName: 'John',
-      lastName: 'Doe',
-      username: 'johndoe',
-      email: 'john@example.com',
-      isActive: true,
-      roles: [
-        {
-          id: 1,
-          name: 'Admin',
-        },
-      ],
-    },
-  ];
-
-  const mockGroups = [
-    {
-      id: 1,
-      name: 'Group A',
-      label: 'Group A',
-      description: 'Description A',
-      roles: [],
-      users: [],
-    },
-  ];
-
   const mockProps = {
     role: mockRole,
     show: true,
     onHide: jest.fn(),
     onSave: jest.fn(),
-    permissions: mockPermissions,
-    users: mockUsers,
-    groups: mockGroups,
   };
 
   test('renders modal with correct title and fields', () => {
@@ -142,7 +108,11 @@ describe('RoleListEditModal', () => {
     expect(screen.getByTestId('form-modal-save-button')).toBeEnabled();
   });
 
-  test('calls update functions when save button is clicked', async () => {
+  test('submit maps {value,label} form values to numeric ID arrays', async () => {
+    // initialValues sets permissions/groups as {value, label} objects
+    // (e.g. [{value: 10, label: "10"}, {value: 20, label: "20"}]).
+    // The submit handler must convert these to plain number arrays
+    // before calling the update APIs.
     (SupersetClient.get as jest.Mock).mockImplementation(({ endpoint }) => {
       if (endpoint?.includes('/api/v1/security/users/')) {
         return Promise.resolve({
@@ -186,14 +156,24 @@ describe('RoleListEditModal', () => {
         mockRole.id,
         'Updated Role',
       );
-      expect(mockUpdateRolePermissions).toHaveBeenCalledWith(
-        mockRole.id,
-        mockRole.permission_ids,
+
+      // Verify APIs receive plain number[], not {value, label}[]
+      const permissionArg = mockUpdateRolePermissions.mock.calls[0][1];
+      expect(permissionArg).toEqual([10, 20]);
+      expect(permissionArg.every((id: unknown) => typeof id === 'number')).toBe(
+        true,
       );
-      expect(mockUpdateRoleUsers).toHaveBeenCalledWith(
-        mockRole.id,
-        mockRole.user_ids,
+
+      const userArg = mockUpdateRoleUsers.mock.calls[0][1];
+      expect(userArg).toEqual([5, 7]);
+      expect(userArg.every((id: unknown) => typeof id === 'number')).toBe(true);
+
+      const groupArg = mockUpdateRoleGroups.mock.calls[0][1];
+      expect(groupArg).toEqual([1, 2]);
+      expect(groupArg.every((id: unknown) => typeof id === 'number')).toBe(
+        true,
       );
+
       expect(mockProps.onSave).toHaveBeenCalled();
     });
   });
@@ -225,11 +205,15 @@ describe('RoleListEditModal', () => {
       expect(mockGet).toHaveBeenCalled();
     });
 
-    // verify the endpoint and query parameters
-    const callArgs = mockGet.mock.calls[0][0];
-    expect(callArgs.endpoint).toContain('/api/v1/security/users/');
+    const usersCall = mockGet.mock.calls.find(([call]) =>
+      call.endpoint.includes('/api/v1/security/users/'),
+    )?.[0];
+    expect(usersCall).toBeTruthy();
+    if (!usersCall) {
+      throw new Error('Expected users call to be defined');
+    }
 
-    const urlMatch = callArgs.endpoint.match(/\?q=(.+)/);
+    const urlMatch = usersCall.endpoint.match(/\?q=(.+)/);
     expect(urlMatch).toBeTruthy();
 
     const decodedQuery = rison.decode(urlMatch[1]);
@@ -241,6 +225,109 @@ describe('RoleListEditModal', () => {
           col: 'roles',
           opr: 'rel_m_m',
           value: mockRole.id,
+        },
+      ],
+    });
+  });
+
+  test('preserves missing IDs as numeric fallbacks on partial hydration', async () => {
+    const mockGet = SupersetClient.get as jest.Mock;
+    mockGet.mockImplementation(({ endpoint }) => {
+      if (endpoint?.includes('/api/v1/security/permissions-resources/')) {
+        // Only return permission id=10, not id=20
+        return Promise.resolve({
+          json: {
+            count: 1,
+            result: [
+              {
+                id: 10,
+                permission: { name: 'can_read' },
+                view_menu: { name: 'Dashboard' },
+              },
+            ],
+          },
+        });
+      }
+      if (endpoint?.includes('/api/v1/security/groups/')) {
+        // Only return group id=1, not id=2
+        return Promise.resolve({
+          json: {
+            count: 1,
+            result: [{ id: 1, name: 'Engineering' }],
+          },
+        });
+      }
+      return Promise.resolve({ json: { count: 0, result: [] } });
+    });
+
+    render(<RoleListEditModal {...mockProps} />);
+
+    await waitFor(() => {
+      expect(mockToasts.addDangerToast).toHaveBeenCalledWith(
+        'Some permissions could not be resolved and are shown as IDs.',
+      );
+      expect(mockToasts.addDangerToast).toHaveBeenCalledWith(
+        'Some groups could not be resolved and are shown as IDs.',
+      );
+    });
+  });
+
+  test('fetches permissions and groups by id for hydration', async () => {
+    const mockGet = SupersetClient.get as jest.Mock;
+    mockGet.mockResolvedValue({
+      json: {
+        count: 0,
+        result: [],
+      },
+    });
+
+    render(<RoleListEditModal {...mockProps} />);
+
+    await waitFor(() => {
+      expect(mockGet).toHaveBeenCalled();
+    });
+
+    const permissionCall = mockGet.mock.calls.find(([call]) =>
+      call.endpoint.includes('/api/v1/security/permissions-resources/'),
+    )?.[0];
+    const groupsCall = mockGet.mock.calls.find(([call]) =>
+      call.endpoint.includes('/api/v1/security/groups/'),
+    )?.[0];
+
+    expect(permissionCall).toBeTruthy();
+    expect(groupsCall).toBeTruthy();
+    if (!permissionCall || !groupsCall) {
+      throw new Error('Expected hydration calls to be defined');
+    }
+
+    const permissionQuery = permissionCall.endpoint.match(/\?q=(.+)/);
+    const groupsQuery = groupsCall.endpoint.match(/\?q=(.+)/);
+    expect(permissionQuery).toBeTruthy();
+    expect(groupsQuery).toBeTruthy();
+    if (!permissionQuery || !groupsQuery) {
+      throw new Error('Expected query params to be present');
+    }
+
+    expect(rison.decode(permissionQuery[1])).toEqual({
+      page_size: 100,
+      page: 0,
+      filters: [
+        {
+          col: 'id',
+          opr: 'in',
+          value: mockRole.permission_ids,
+        },
+      ],
+    });
+
+    expect(rison.decode(groupsQuery[1])).toEqual({
+      page_size: 100,
+      page: 0,
+      filters: [
+        {
+          col: 'id',
+          opr: 'in',
+          value: mockRole.group_ids,
         },
       ],
     });

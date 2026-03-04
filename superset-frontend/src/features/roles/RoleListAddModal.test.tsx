@@ -24,7 +24,7 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import RoleListAddModal from './RoleListAddModal';
-import { createRole } from './utils';
+import { createRole, updateRolePermissions } from './utils';
 
 const mockToasts = {
   addDangerToast: jest.fn(),
@@ -33,6 +33,7 @@ const mockToasts = {
 
 jest.mock('./utils');
 const mockCreateRole = jest.mocked(createRole);
+const mockUpdateRolePermissions = jest.mocked(updateRolePermissions);
 
 jest.mock('src/components/MessageToasts/withToasts', () => ({
   __esModule: true,
@@ -46,11 +47,14 @@ describe('RoleListAddModal', () => {
     show: true,
     onHide: jest.fn(),
     onSave: jest.fn(),
-    permissions: [
-      { id: 1, label: 'Permission 1', value: 'Permission_1' },
-      { id: 2, label: 'Permission 2', value: 'Permission_2' },
-    ],
   };
+
+  beforeEach(() => {
+    mockCreateRole.mockResolvedValue({
+      json: { id: 1 },
+      response: {} as Response,
+    } as Awaited<ReturnType<typeof createRole>>);
+  });
 
   test('renders modal with form fields', () => {
     render(<RoleListAddModal {...mockProps} />);
@@ -91,5 +95,8 @@ describe('RoleListAddModal', () => {
     await waitFor(() => {
       expect(mockCreateRole).toHaveBeenCalledWith('New Role');
     });
+
+    // No permissions selected → updateRolePermissions should not be called
+    expect(mockUpdateRolePermissions).not.toHaveBeenCalled();
   });
 });
