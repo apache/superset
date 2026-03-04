@@ -444,3 +444,23 @@ def test_sqla_table_get_rls_filters_validation(mock_sm, mock_table):
         ):
             with pytest.raises(SupersetSecurityException):
                 mock_table.get_sqla_row_level_filters()
+
+@patch("superset.commands.security.update.RLSDAO")
+def test_update_rls_command_existing_tables_validation(mock_rls_dao):
+    mock_model = MagicMock()
+    mock_table = MagicMock()
+    mock_table.database.db_engine_spec.engine = "postgresql"
+    mock_model.tables = [mock_table]
+    mock_rls_dao.find_by_id.return_value = mock_model
+
+    # No tables in properties, should use existing model tables
+    command = UpdateRLSRuleCommand(1, {"clause": "id IN (SELECT 1)"})
+    with pytest.raises(RLSRuleInvalidError):
+        command.validate()
+
+@patch("superset.commands.security.delete.RLSDAO")
+def test_delete_command_not_found(mock_rls_dao):
+    mock_rls_dao.find_by_ids.return_value = []
+    command = DeleteRLSRuleCommand([1])
+    with pytest.raises(RLSRuleNotFoundError):
+        get_unwrapped_func(command.run)(command)
