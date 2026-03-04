@@ -173,6 +173,15 @@ def test_create_command_validate_error_paths(mock_populate, mock_dataset_dao):
         command.validate()
 
 
+@patch("superset.commands.security.create.DatasetDAO")
+def test_create_rls_command_baseline_validation(mock_dataset_dao):
+    mock_dataset_dao.find_by_ids.return_value = []
+    # Malicious clause with no tables (triggers baseline validation)
+    command = CreateRLSRuleCommand({"clause": "id IN (SELECT 1)", "tables": []})
+    with pytest.raises(RLSRuleInvalidError):
+        command.validate()
+
+
 @patch("superset.commands.security.update.db.session.query")
 @patch("superset.commands.security.update.RLSDAO")
 @patch("superset.commands.security.update.DatasetDAO")
