@@ -680,7 +680,10 @@ def map_big_number_config(config: BigNumberChartConfig) -> Dict[str, Any]:
 
     # Trendline-specific fields
     if viz_type == "big_number":
+        # Big Number with trendline uses x_axis for the temporal column
+        # (same as XY charts). Also set granularity_sqla for legacy compat.
         form_data["x_axis"] = config.temporal_column
+        form_data["granularity_sqla"] = config.temporal_column
         form_data["start_y_axis_at_zero"] = config.start_y_axis_at_zero
 
         if config.time_grain:
