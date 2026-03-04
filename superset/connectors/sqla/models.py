@@ -95,6 +95,7 @@ from superset.jinja_context import (
 from superset.models.annotations import Annotation
 from superset.models.core import Database
 from superset.models.helpers import (
+    validate_rls_clause,
     AuditMixinNullable,
     CertificationMixin,
     ExploreMixin,
@@ -760,12 +761,9 @@ class BaseDatasource(
                 # Validate the RLS clause to prevent subquery injection (SEC-116)
                 # We use _process_select_expression for validation but discard its
                 # formatted output to preserve original case/formatting in the query.
-                self._process_select_expression(
-                    expression=filter_.clause,
-                    database_id=self.database_id,
+                validate_rls_clause(
+                    clause_text,
                     engine=self.database.backend,
-                    schema=self.schema,
-                    template_processor=template_processor,
                 )
                 clause = self.text(f"({clause_text})")
                 if filter_.group_key:
@@ -777,12 +775,9 @@ class BaseDatasource(
                 for rule in security_manager.get_guest_rls_filters(self):
                     # Also validate guest RLS filters
                     clause_text = template_processor.process_template(rule["clause"])
-                    self._process_select_expression(
-                        expression=rule["clause"],
-                        database_id=self.database_id,
+                    validate_rls_clause(
+                        clause_text,
                         engine=self.database.backend,
-                        schema=self.schema,
-                        template_processor=template_processor,
                     )
                     clause = self.text(f"({clause_text})")
                     all_filters.append(clause)
@@ -1397,7 +1392,6 @@ class SqlaTable(
             self.database,
             self.table_name,
             catalog=self.catalog,
-            schema=self.schema,
         )
 
     @property
@@ -1587,12 +1581,9 @@ class SqlaTable(
 
             if not processed:
                 try:
-                    expression = self._process_select_expression(
+                    expression = validate_rls_clause(
                         expression=expression,
-                        database_id=self.database_id,
                         engine=self.database.backend,
-                        schema=self.schema,
-                        template_processor=template_processor,
                     )
                 except SupersetSecurityException as ex:
                     raise QueryObjectValidationError(ex.message) from ex
@@ -1649,12 +1640,9 @@ class SqlaTable(
                         sql_expression
                     )
 
-                expression = self._process_select_expression(
+                expression = validate_rls_clause(
                     expression=expression_to_process,
-                    database_id=self.database_id,
                     engine=self.database.backend,
-                    schema=self.schema,
-                    template_processor=template_processor,
                 )
             except SupersetSecurityException as ex:
                 raise QueryObjectValidationError(ex.message) from ex
@@ -1668,7 +1656,6 @@ class SqlaTable(
                     sql = self.database.compile_sqla_query(
                         qry,
                         catalog=self.catalog,
-                        schema=self.schema,
                     )
                     col_desc = get_columns_description(
                         self.database,

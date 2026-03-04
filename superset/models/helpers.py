@@ -208,7 +208,7 @@ def validate_adhoc_subquery(
             raise SupersetSecurityException(
                 SupersetError(
                     error_type=SupersetErrorType.ADHOC_SUBQUERY_NOT_ALLOWED_ERROR,
-                    message=_("Custom SQL fields cannot contain sub-queries."),
+                    message=_("Row level security filters cannot contain sub-queries."),
                     level=ErrorLevel.ERROR,
                 )
             )
@@ -239,7 +239,7 @@ def validate_rls_clause(
         raise SupersetSecurityException(
             SupersetError(
                 error_type=SupersetErrorType.ADHOC_SUBQUERY_NOT_ALLOWED_ERROR,
-                message=_("Custom SQL fields cannot contain sub-queries."),
+                message=_("Row level security filters cannot contain sub-queries."),
                 level=ErrorLevel.ERROR,
             )
         )
