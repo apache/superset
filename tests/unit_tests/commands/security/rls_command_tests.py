@@ -39,7 +39,7 @@ from superset.commands.security.exceptions import (
 from superset.commands.security.update import UpdateRLSRuleCommand
 from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import SupersetSecurityException
-from superset.models.helpers import validate_rls_clause
+from superset.models.helpers import validate_adhoc_subquery, validate_rls_clause
 from superset.row_level_security.api import RLSRestApi
 
 
@@ -129,6 +129,15 @@ def test_validate_rls_clause_scenarios():
         ]
         for clause in safe:
             validate_rls_clause(clause, "postgresql")
+
+
+def test_validate_adhoc_subquery_coverage():
+    # Hit the local import line in helpers.py
+    with patch("superset.models.helpers._", side_effect=lambda x: x):
+        res = validate_adhoc_subquery(
+            "id = 1", MagicMock(), None, "public", "postgresql"
+        )
+        assert "id = 1" in res
 
 
 # --- Command Tests ---
