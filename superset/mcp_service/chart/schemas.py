@@ -590,6 +590,88 @@ class MixedTimeseriesChartConfig(BaseModel):
     filters: List[FilterConfig] | None = None
 
 
+class HandlebarsChartConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    chart_type: Literal["handlebars"] = Field(
+        ...,
+        description=(
+            "Chart type discriminator - MUST be 'handlebars' for custom HTML "
+            "template charts. Handlebars charts render query results using "
+            "Handlebars templates, enabling fully custom layouts like KPI cards, "
+            "leaderboards, and formatted reports."
+        ),
+    )
+    handlebars_template: str = Field(
+        ...,
+        description=(
+            "Handlebars HTML template string. Data is available as {{data}} array. "
+            "Built-in helpers: {{dateFormat val format='YYYY-MM-DD'}}, "
+            "{{formatNumber val}}, {{stringify obj}}. "
+            "Example: '<ul>{{#each data}}<li>{{this.name}}: {{this.value}}</li>"
+            "{{/each}}</ul>'"
+        ),
+        min_length=1,
+        max_length=50000,
+    )
+    query_mode: Literal["aggregate", "raw"] = Field(
+        "aggregate",
+        description=(
+            "Query mode: 'aggregate' groups data with metrics, "
+            "'raw' returns individual rows"
+        ),
+    )
+    columns: list[ColumnRef] | None = Field(
+        None,
+        description=(
+            "Columns to display in raw mode (query_mode='raw'). "
+            "Each column specifies a column name to include in the query results."
+        ),
+    )
+    groupby: list[ColumnRef] | None = Field(
+        None,
+        description=(
+            "Columns to group by in aggregate mode (query_mode='aggregate'). "
+            "These become the dimensions for aggregation."
+        ),
+    )
+    metrics: list[ColumnRef] | None = Field(
+        None,
+        description=(
+            "Metrics to aggregate in aggregate mode. "
+            "Each must have an aggregate function (e.g., SUM, COUNT)."
+        ),
+    )
+    filters: list[FilterConfig] | None = Field(None, description="Filters to apply")
+    row_limit: int = Field(
+        1000,
+        description="Maximum number of rows",
+        ge=1,
+        le=50000,
+    )
+    order_desc: bool = Field(True, description="Sort in descending order")
+    style_template: str | None = Field(
+        None,
+        description="Optional CSS styles to apply to the rendered template",
+        max_length=10000,
+    )
+
+    @model_validator(mode="after")
+    def validate_query_fields(self) -> "HandlebarsChartConfig":
+        """Validate that the right fields are provided for the query mode."""
+        if self.query_mode == "raw" and not self.columns:
+            raise ValueError(
+                "Handlebars chart in 'raw' query mode requires 'columns' field. "
+                "Specify which columns to include in the query results."
+            )
+        if self.query_mode == "aggregate" and not self.metrics:
+            raise ValueError(
+                "Handlebars chart in 'aggregate' query mode requires 'metrics' field. "
+                "Specify at least one metric with an aggregate function."
+            )
+        return self
+
+
 class TableChartConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -706,12 +788,13 @@ ChartConfig = Annotated[
     | TableChartConfig
     | PieChartConfig
     | PivotTableChartConfig
-    | MixedTimeseriesChartConfig,
+    | MixedTimeseriesChartConfig
+    | HandlebarsChartConfig,
     Field(
         discriminator="chart_type",
         description=(
             "Chart configuration - specify chart_type as 'xy', 'table', "
-            "'pie', 'pivot_table', or 'mixed_timeseries'"
+            "'pie', 'pivot_table', 'mixed_timeseries', or 'handlebars'"
         ),
     ),
 ]
