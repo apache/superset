@@ -868,7 +868,12 @@ def _xy_chart_context(config: XYChartConfig) -> str | None:
     """Build context (time grain / filters) for an XY chart name."""
     parts: list[str] = []
     if config.time_grain:
-        grain_str = _GRAIN_MAP.get(str(config.time_grain), str(config.time_grain))
+        grain_val = (
+            config.time_grain.value
+            if hasattr(config.time_grain, "value")
+            else str(config.time_grain)
+        )
+        grain_str = _GRAIN_MAP.get(grain_val, grain_val)
         parts.append(grain_str)
     filter_ctx = _summarize_filters(config.filters)
     if filter_ctx:
