@@ -121,12 +121,15 @@ export function AsyncAceEditor(
   return AsyncEsmComponent(async () => {
     const reactAcePromise = import('react-ace');
     const aceBuildsConfigPromise = import('ace-builds');
-    const cssWorkerUrlPromise =
-      import('ace-builds/src-min-noconflict/worker-css');
-    const javascriptWorkerUrlPromise =
-      import('ace-builds/src-min-noconflict/worker-javascript');
-    const htmlWorkerUrlPromise =
-      import('ace-builds/src-min-noconflict/worker-html');
+    const cssWorkerUrlPromise = import(
+      'ace-builds/src-min-noconflict/worker-css'
+    );
+    const javascriptWorkerUrlPromise = import(
+      'ace-builds/src-min-noconflict/worker-javascript'
+    );
+    const htmlWorkerUrlPromise = import(
+      'ace-builds/src-min-noconflict/worker-html'
+    );
     const acequirePromise = import('ace-builds/src-min-noconflict/ace');
 
     const [
