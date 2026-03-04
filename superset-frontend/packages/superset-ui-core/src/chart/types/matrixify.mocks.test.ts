@@ -16,12 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-declare module 'react-syntax-highlighter/dist/cjs/light' {
-  import SyntaxHighlighter from 'react-syntax-highlighter';
-  export default SyntaxHighlighter;
-}
 
-declare module 'react-syntax-highlighter/dist/cjs/styles/hljs/github' {
-  const style: any;
-  export default style;
-}
+import { isMatrixifyEnabled, MatrixifyGridRenderer } from './matrixify.mocks';
+
+test('isMatrixifyEnabled mock returns false by default', () => {
+  expect(isMatrixifyEnabled()).toBe(false);
+});
+
+test('MatrixifyGridRenderer mock returns null by default', () => {
+  expect(MatrixifyGridRenderer()).toBeNull();
+});

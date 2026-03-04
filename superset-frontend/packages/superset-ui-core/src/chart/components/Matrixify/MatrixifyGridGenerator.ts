@@ -276,10 +276,10 @@ export function generateMatrixifyGrid(
 
       const cellFormData = generateCellFormData(
         formData,
-        rowCount > 0 ? config.rows : null,
-        colCount > 0 ? config.columns : null,
-        rowCount > 0 ? row : null,
-        colCount > 0 ? col : null,
+        config.rows,
+        config.columns,
+        row,
+        col,
       );
 
       // Generate title using template if provided
