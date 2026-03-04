@@ -45,6 +45,10 @@ MCP_SERVICE_PORT = 5008
 # MCP Debug mode - shows suppressed initialization output in stdio mode
 MCP_DEBUG = False
 
+# MCP RBAC - when True, tools with class_permission_name are checked
+# against the FAB security_manager before execution.
+MCP_RBAC_ENABLED = True
+
 # MCP JWT Debug Errors - controls server-side JWT debug logging.
 # When False (default), uses the default JWTVerifier with minimal logging.
 # When True, uses DetailedJWTVerifier with tiered logging:

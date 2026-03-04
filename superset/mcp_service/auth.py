@@ -77,6 +77,9 @@ def check_tool_permission(func: Callable[..., Any]) -> bool:
     Reads permission metadata stored on the function by the @tool decorator
     and uses Superset's security_manager to verify access.
 
+    Controlled by the ``MCP_RBAC_ENABLED`` config flag (default True).
+    Set to False in superset_config.py to disable RBAC checking.
+
     Args:
         func: The tool function with optional permission attributes.
 
@@ -84,6 +87,11 @@ def check_tool_permission(func: Callable[..., Any]) -> bool:
         True if user has permission or no permission is required.
     """
     try:
+        from flask import current_app
+
+        if not current_app.config.get("MCP_RBAC_ENABLED", True):
+            return True
+
         from superset import security_manager
 
         if not hasattr(g, "user") or not g.user:

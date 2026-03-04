@@ -23,12 +23,24 @@ import pytest
 from flask import g
 
 from superset.mcp_service.auth import (
-    check_tool_permission,
     CLASS_PERMISSION_ATTR,
     MCPPermissionDeniedError,
     METHOD_PERMISSION_ATTR,
     PERMISSION_PREFIX,
+    check_tool_permission,
 )
+
+
+@pytest.fixture(autouse=True)
+def enable_mcp_rbac(app):
+    """Re-enable RBAC for dedicated RBAC tests.
+
+    The shared conftest disables RBAC for integration tests. This fixture
+    overrides that so we can test the actual permission checking logic.
+    """
+    app.config["MCP_RBAC_ENABLED"] = True
+    yield
+    app.config.pop("MCP_RBAC_ENABLED", None)
 
 
 class _ToolFunc:
@@ -139,6 +151,18 @@ def test_check_tool_permission_default_method_is_read(app_context):
         check_tool_permission(func)
 
     mock_appbuilder.sm.can_access.assert_called_once_with("can_read", "Dataset")
+
+
+def test_check_tool_permission_disabled_via_config(app_context, app):
+    """When MCP_RBAC_ENABLED is False, permission checks are skipped."""
+    g.user = MagicMock(username="viewer")
+    func = _make_tool_func(class_perm="Chart", method_perm="read")
+
+    app.config["MCP_RBAC_ENABLED"] = False
+    try:
+        assert check_tool_permission(func) is True
+    finally:
+        app.config["MCP_RBAC_ENABLED"] = True
 
 
 # -- Permission constants --
