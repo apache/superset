@@ -510,15 +510,23 @@ async def generate_chart(  # noqa: C901
                     form_data_key = form_data_key_list[0]
 
             # Compile check for preview-only mode
+            # Validate dataset existence and user access before running queries
             await ctx.report_progress(3, 5, "Running compile check (test query)")
             numeric_dataset_id: int | None = None
-            if isinstance(request.dataset_id, int):
-                numeric_dataset_id = request.dataset_id
-            elif isinstance(request.dataset_id, str) and request.dataset_id.isdigit():
-                numeric_dataset_id = int(request.dataset_id)
-            else:
-                from superset.daos.dataset import DatasetDAO
+            from superset.daos.dataset import DatasetDAO
 
+            if isinstance(request.dataset_id, int) or (
+                isinstance(request.dataset_id, str) and request.dataset_id.isdigit()
+            ):
+                candidate_id = (
+                    int(request.dataset_id)
+                    if isinstance(request.dataset_id, str)
+                    else request.dataset_id
+                )
+                ds = DatasetDAO.find_by_id(candidate_id)
+                if ds and has_dataset_access(ds):
+                    numeric_dataset_id = ds.id
+            else:
                 ds = DatasetDAO.find_by_id(request.dataset_id, id_column="uuid")
                 if ds and has_dataset_access(ds):
                     numeric_dataset_id = ds.id
