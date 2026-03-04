@@ -113,8 +113,10 @@ const Styles = styled.div<{ showSplite: boolean }>`
   }
 
   .gutter {
-    border-top: 1px solid ${({ theme }) => theme.colorSplit};
-    border-bottom: 1px solid ${({ theme }) => theme.colorSplit};
+    border-top: 1px solid
+      color-mix(in srgb, ${({ theme }) => theme.colorSplit}, black 15%);
+    border-bottom: 1px solid
+      color-mix(in srgb, ${({ theme }) => theme.colorSplit}, black 15%);
     width: ${({ theme }) => theme.sizeUnit * 9}px;
     margin: ${({ theme }) => theme.sizeUnit * GUTTER_SIZE_FACTOR}px auto;
   }
