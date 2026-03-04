@@ -124,13 +124,46 @@ Extensions can register custom REST API endpoints under the `/api/v1/extensions/
 }
 ```
 
-The entry point module registers the API with Superset:
+The entry point module imports the API class to register it with Superset:
 
 ```python
-from superset_core.api.rest_api import add_extension_api
-from .api import MyExtensionAPI
+from superset_core.api.rest_api import RestApi, extension_api
+from flask_appbuilder.api import expose, protect
 
-add_extension_api(MyExtensionAPI)
+@extension_api(
+    id="my_extension_api",
+    name="My Extension API",
+    description="Custom API endpoints for my extension"
+)
+class MyExtensionAPI(RestApi):
+    @expose("/hello", methods=("GET",))
+    @protect()
+    def hello(self) -> Response:
+        return self.response(200, result={"message": "Hello from extension!"})
+
+# Import the class in entrypoint.py to register it
+from .api import MyExtensionAPI
+```
+
+**Note**: The `@extension_api` decorator automatically generates API paths based on your extension's identity. For an extension with publisher `my-org` and name `dataset-tools`, the endpoint above would be accessible at:
+```
+/extensions/my-org/dataset-tools/hello
+```
+
+You can also specify a `resource_name` parameter to add an additional path segment:
+
+```python
+@extension_api(
+    id="analytics_api",
+    name="Analytics API",
+    resource_name="analytics"  # Adds /analytics to the path
+)
+class AnalyticsAPI(RestApi):
+    @expose("/insights", methods=("GET",))
+    def insights(self):
+        # This endpoint will be available at:
+        # /extensions/my-org/dataset-tools/analytics/insights
+        return self.response(200, result={"insights": []})
 ```
 
 ### MCP Tools and Prompts

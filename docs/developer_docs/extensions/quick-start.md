@@ -129,11 +129,15 @@ The CLI generated a basic `backend/src/superset_extensions/my_org/hello_world/en
 ```python
 from flask import Response
 from flask_appbuilder.api import expose, protect, safe
-from superset_core.api.rest_api import RestApi
+from superset_core.api.rest_api import RestApi, extension_api
 
 
+@extension_api(
+    id="hello_world_api",
+    name="Hello World API",
+    description="API endpoints for the Hello World extension"
+)
 class HelloWorldAPI(RestApi):
-    resource_name = "hello_world"
     openapi_spec_tag = "Hello World"
     class_permission_name = "hello_world"
 
@@ -170,7 +174,8 @@ class HelloWorldAPI(RestApi):
 
 **Key points:**
 
-- Extends `RestApi` from `superset_core.api.types.rest_api`
+- Uses `@extension_api` decorator to register the API automatically
+- Extends `RestApi` from `superset_core.api.rest_api`
 - Uses Flask-AppBuilder decorators (`@expose`, `@protect`, `@safe`)
 - Returns responses using `self.response(status_code, result=data)`
 - The endpoint will be accessible at `/extensions/my-org/hello-world/message`
@@ -178,17 +183,16 @@ class HelloWorldAPI(RestApi):
 
 **Update `backend/src/superset_extensions/my_org/hello_world/entrypoint.py`**
 
-Replace the generated print statement with API registration:
+Replace the generated print statement with API import to trigger registration:
 
 ```python
-from superset_core.api import rest_api
-
+# Importing the API class triggers the @extension_api decorator registration
 from .api import HelloWorldAPI
 
-rest_api.add_extension_api(HelloWorldAPI)
+print("Hello World extension loaded successfully!")
 ```
 
-This registers your API with Superset when the extension loads.
+The `@extension_api` decorator automatically registers your API with Superset when the class is imported.
 
 ## Step 5: Create Frontend Component
 
@@ -328,16 +332,16 @@ const HelloWorldPanel: React.FC = () => {
   const [error, setError] = useState<string>('');
 
   useEffect(() => {
-    const fetchMessage = async () => {
-      try {
-        const csrfToken = await authentication.getCSRFToken();
-        const response = await fetch('/extensions/my-org/hello-world/message', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrfToken!,
-          },
-        });
+      const fetchMessage = async () => {
+          try {
+              const csrfToken = await authentication.getCSRFToken();
+              const response = await fetch('/extensions/my-org/hello-world/message', {
+                  method: 'GET',
+                  headers: {
+                      'Content-Type': 'application/json',
+                      'X-CSRFToken': csrfToken!,
+                  },
+              });
 
         if (!response.ok) {
           throw new Error(`Server returned ${response.status}`);
@@ -493,7 +497,7 @@ Superset will extract and validate the extension metadata, load the assets, regi
 Here's what happens when your extension loads:
 
 1. **Superset starts**: Reads `extension.json` and loads the backend entrypoint
-2. **Backend registration**: `entrypoint.py` registers your API via `rest_api.add_extension_api()`
+2. **Backend registration**: `entrypoint.py` imports your API class, triggering the `@extension_api` decorator to register it automatically
 3. **Frontend loads**: When SQL Lab opens, Superset fetches the remote entry file
 4. **Module Federation**: Webpack loads your extension module and resolves `@apache-superset/core` to `window.superset`
 5. **Registration**: The module executes at load time, calling `views.registerView` to register your panel
