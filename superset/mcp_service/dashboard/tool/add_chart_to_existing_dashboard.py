@@ -63,6 +63,22 @@ def _find_next_row_position(layout: Dict[str, Any]) -> str:
     return row_key
 
 
+def _match_tab_in_children(
+    layout: Dict[str, Any],
+    tabs_children: list[str],
+    target_tab: str,
+) -> str | None:
+    """Search tabs_children for a tab matching target_tab by ID or name."""
+    for tab_id in tabs_children:
+        tab = layout.get(tab_id)
+        if not tab or tab.get("type") != "TAB":
+            continue
+        tab_text = (tab.get("meta") or {}).get("text", "")
+        if target_tab in (tab_id, tab_text):
+            return tab_id
+    return None
+
+
 def _find_tab_insert_target(
     layout: Dict[str, Any], target_tab: str | None = None
 ) -> str | None:
@@ -83,29 +99,29 @@ def _find_tab_insert_target(
     if not grid:
         return None
 
+    first_tab_fallback: str | None = None
+
     for child_id in grid.get("children", []):
         child = layout.get(child_id)
-        if child and child.get("type") == "TABS":
-            tabs_children = child.get("children", [])
-            if not tabs_children:
-                continue
+        if not child or child.get("type") != "TABS":
+            continue
+        tabs_children = child.get("children", [])
+        if not tabs_children:
+            continue
 
-            # When a target_tab is specified, try to resolve it by name or ID
-            if target_tab:
-                for tab_id in tabs_children:
-                    tab = layout.get(tab_id)
-                    if not tab or tab.get("type") != "TAB":
-                        continue
-                    tab_text = (tab.get("meta") or {}).get("text", "")
-                    if target_tab in (tab_id, tab_text):
-                        return tab_id
+        if target_tab:
+            matched = _match_tab_in_children(layout, tabs_children, target_tab)
+            if matched:
+                return matched
 
-            # Fallback: return the first TAB child
+        # Remember the first TAB as fallback but keep searching
+        if first_tab_fallback is None:
             first_tab_id = tabs_children[0]
             first_tab = layout.get(first_tab_id)
             if first_tab and first_tab.get("type") == "TAB":
-                return first_tab_id
-    return None
+                first_tab_fallback = first_tab_id
+
+    return first_tab_fallback
 
 
 def _add_chart_to_layout(
