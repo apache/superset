@@ -28,7 +28,7 @@ const store = mockStore({});
 
 const mockedProps = {
   addDangerToast: () => {},
-  onDatasourceSave: jest.fn(),
+  onDatasourceSave: vi.fn(),
   onChange: () => {},
   onHide: () => {},
   show: true,

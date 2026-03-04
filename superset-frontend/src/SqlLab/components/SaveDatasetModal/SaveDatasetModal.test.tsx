@@ -44,26 +44,26 @@ fetchMock.get('glob:*/api/v1/dataset/?*', {
   dataset_count: 3,
 });
 
-jest.useFakeTimers();
+vi.useFakeTimers();
 
 // Mock the user
-const useSelectorMock = jest.spyOn(reactRedux, 'useSelector');
+const useSelectorMock = vi.spyOn(reactRedux, 'useSelector');
 beforeEach(() => {
   useSelectorMock.mockClear();
   cleanup();
 });
 
 // Mock the createDatasource action
-const useDispatchMock = jest.spyOn(reactRedux, 'useDispatch');
-jest.mock('src/SqlLab/actions/sqlLab', () => ({
-  createDatasource: jest.fn(),
+const useDispatchMock = vi.spyOn(reactRedux, 'useDispatch');
+vi.mock('src/SqlLab/actions/sqlLab', () => ({
+  createDatasource: vi.fn(),
 }));
-jest.mock('src/explore/exploreUtils/formData', () => ({
-  postFormData: jest.fn(),
+vi.mock('src/explore/exploreUtils/formData', () => ({
+  postFormData: vi.fn(),
 }));
-jest.mock('src/utils/cachedSupersetGet', () => ({
-  ...jest.requireActual('src/utils/cachedSupersetGet'),
-  clearDatasetCache: jest.fn(),
+vi.mock('src/utils/cachedSupersetGet', () => ({
+  ...vi.requireActual('src/utils/cachedSupersetGet'),
+  clearDatasetCache: vi.fn(),
 }));
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
@@ -202,7 +202,7 @@ describe('SaveDatasetModal', () => {
   });
 
   test('sends the schema when creating the dataset', async () => {
-    const dummyDispatch = jest.fn().mockResolvedValue({});
+    const dummyDispatch = vi.fn().mockResolvedValue({});
     useDispatchMock.mockReturnValue(dummyDispatch);
     useSelectorMock.mockReturnValue({ ...user });
 
@@ -227,7 +227,7 @@ describe('SaveDatasetModal', () => {
   });
 
   test('sends the catalog when creating the dataset', async () => {
-    const dummyDispatch = jest.fn().mockResolvedValue({});
+    const dummyDispatch = vi.fn().mockResolvedValue({});
     useDispatchMock.mockReturnValue(dummyDispatch);
     useSelectorMock.mockReturnValue({ ...user });
 
@@ -342,16 +342,16 @@ describe('SaveDatasetModal', () => {
   });
 
   test('clears dataset cache when creating new dataset', async () => {
-    const clearDatasetCache = jest.spyOn(
+    const clearDatasetCache = vi.spyOn(
       require('src/utils/cachedSupersetGet'),
       'clearDatasetCache',
     );
-    const postFormData = jest.spyOn(
+    const postFormData = vi.spyOn(
       require('src/explore/exploreUtils/formData'),
       'postFormData',
     );
 
-    const dummyDispatch = jest.fn().mockResolvedValue({ id: 123 });
+    const dummyDispatch = vi.fn().mockResolvedValue({ id: 123 });
     useDispatchMock.mockReturnValue(dummyDispatch);
     useSelectorMock.mockReturnValue({ ...user });
     postFormData.mockResolvedValue('chart_key_123');

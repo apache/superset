@@ -26,21 +26,21 @@ import { SupersetClient, isFeatureEnabled } from '@superset-ui/core';
 import StylingSection from './StylingSection';
 
 // Mock SupersetClient
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
+vi.mock('@superset-ui/core', () => ({
+  ...(await importActual()),
   SupersetClient: {
-    get: jest.fn(),
+    get: vi.fn(),
   },
-  isFeatureEnabled: jest.fn(),
+  isFeatureEnabled: vi.fn(),
 }));
 
-const mockSupersetClient = SupersetClient as jest.Mocked<typeof SupersetClient>;
-const mockIsFeatureEnabled = isFeatureEnabled as jest.MockedFunction<
+const mockSupersetClient = SupersetClient as vi.Mocked<typeof SupersetClient>;
+const mockIsFeatureEnabled = isFeatureEnabled as vi.MockedFunction<
   typeof isFeatureEnabled
 >;
 
 // Mock ColorSchemeSelect component
-jest.mock('src/dashboard/components/ColorSchemeSelect', () => ({
+vi.mock('src/dashboard/components/ColorSchemeSelect', () => ({
   __esModule: true,
   default: ({ value, onChange, ...props }: any) => (
     <div data-test={props['data-test'] || 'color-scheme-select'}>
@@ -71,15 +71,15 @@ const defaultProps = {
   customCss: '',
   hasCustomLabelsColor: false,
   showChartTimestamps: false,
-  onThemeChange: jest.fn(),
-  onColorSchemeChange: jest.fn(),
-  onCustomCssChange: jest.fn(),
-  onShowChartTimestampsChange: jest.fn(),
-  addDangerToast: jest.fn(),
+  onThemeChange: vi.fn(),
+  onColorSchemeChange: vi.fn(),
+  onCustomCssChange: vi.fn(),
+  onShowChartTimestampsChange: vi.fn(),
+  addDangerToast: vi.fn(),
 };
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
   // Reset mocks
   mockIsFeatureEnabled.mockReturnValue(false);
   mockSupersetClient.get.mockResolvedValue({
@@ -117,7 +117,7 @@ test('renders custom CSS editor', () => {
 });
 
 test('calls onThemeChange when theme is selected', async () => {
-  const onThemeChange = jest.fn();
+  const onThemeChange = vi.fn();
   render(<StylingSection {...defaultProps} onThemeChange={onThemeChange} />);
 
   // This would require mocking the Select component properly for full interaction testing
@@ -125,7 +125,7 @@ test('calls onThemeChange when theme is selected', async () => {
 });
 
 test('calls onColorSchemeChange when color scheme changes', async () => {
-  const onColorSchemeChange = jest.fn();
+  const onColorSchemeChange = vi.fn();
   render(
     <StylingSection
       {...defaultProps}
@@ -184,7 +184,7 @@ test('chart timestamps switch reflects showChartTimestamps prop', () => {
 });
 
 test('calls onShowChartTimestampsChange when switch is toggled', async () => {
-  const onShowChartTimestampsChange = jest.fn();
+  const onShowChartTimestampsChange = vi.fn();
   render(
     <StylingSection
       {...defaultProps}
@@ -241,7 +241,7 @@ describe('CSS Template functionality', () => {
 
   test('shows error toast when template fetch fails', async () => {
     mockIsFeatureEnabled.mockImplementation(flag => flag === 'CSS_TEMPLATES');
-    const addDangerToast = jest.fn();
+    const addDangerToast = vi.fn();
     mockSupersetClient.get.mockRejectedValueOnce(new Error('API Error'));
 
     render(

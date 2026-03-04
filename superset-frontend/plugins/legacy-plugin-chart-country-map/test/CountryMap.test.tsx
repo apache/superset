@@ -25,7 +25,7 @@ import ReactCountryMap from '../src/ReactCountryMap';
 // d3 v3 APIs have loose types; cast to allow jest mock operations
 const d3Any = d3 as any;
 
-jest.spyOn(d3Any, 'json');
+vi.spyOn(d3Any, 'json');
 
 type Projection = ((...args: unknown[]) => void) & {
   scale: () => Projection;
@@ -34,23 +34,23 @@ type Projection = ((...args: unknown[]) => void) & {
 };
 
 type PathFn = (() => string) & {
-  projection: jest.Mock;
-  bounds: jest.Mock<[[number, number], [number, number]]>;
-  centroid: jest.Mock<[number, number]>;
+  projection: vi.Mock;
+  bounds: vi.Mock<[[number, number], [number, number]]>;
+  centroid: vi.Mock<[number, number]>;
 };
 
-const mockPath: PathFn = jest.fn(() => 'M10 10 L20 20') as unknown as PathFn;
-mockPath.projection = jest.fn();
-mockPath.bounds = jest.fn(() => [
+const mockPath: PathFn = vi.fn(() => 'M10 10 L20 20') as unknown as PathFn;
+mockPath.projection = vi.fn();
+mockPath.bounds = vi.fn(() => [
   [0, 0],
   [100, 100],
 ]);
-mockPath.centroid = jest.fn(() => [50, 50]);
+mockPath.centroid = vi.fn(() => [50, 50]);
 
-jest.spyOn(d3Any.geo, 'path').mockImplementation(() => mockPath);
+vi.spyOn(d3Any.geo, 'path').mockImplementation(() => mockPath);
 
 // Mock d3.geo.mercator
-jest.spyOn(d3Any.geo, 'mercator').mockImplementation(() => {
+vi.spyOn(d3Any.geo, 'mercator').mockImplementation(() => {
   const proj = (() => {}) as Projection;
   proj.scale = () => proj;
   proj.center = () => proj;
@@ -59,7 +59,7 @@ jest.spyOn(d3Any.geo, 'mercator').mockImplementation(() => {
 });
 
 // Mock d3.mouse
-jest.spyOn(d3Any, 'mouse').mockReturnValue([100, 50]);
+vi.spyOn(d3Any, 'mouse').mockReturnValue([100, 50]);
 
 const mockMapData = {
   type: 'FeatureCollection',
@@ -76,7 +76,7 @@ type D3JsonCallback = (error: Error | null, data: unknown) => void;
 
 describe('CountryMap (legacy d3)', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   test('renders a map after d3.json loads data', async () => {

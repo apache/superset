@@ -37,7 +37,7 @@ test('should render the config link text', () => {
 });
 
 test('should render the modal on click', () => {
-  const showModal = jest.fn();
+  const showModal = vi.fn();
   render(
     <FilterConfigurationLink onClick={showModal}>
       Config link

@@ -19,9 +19,9 @@
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import TimeSeriesColumnControl from '.';
 
-jest.mock('lodash/debounce', () => (fn: Function & { cancel: Function }) => {
+vi.mock('lodash/debounce', () => (fn: Function & { cancel: Function }) => {
   // eslint-disable-next-line no-param-reassign
-  fn.cancel = jest.fn();
+  fn.cancel = vi.fn();
   return fn;
 });
 
@@ -77,7 +77,7 @@ test('renders period average', () => {
 });
 
 test('triggers onChange when type changes', () => {
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   render(<TimeSeriesColumnControl onChange={onChange} />);
   userEvent.click(screen.getByRole('img', { name: 'edit' }));
   userEvent.click(screen.getByText('Select ...'));
@@ -91,7 +91,7 @@ test('triggers onChange when type changes', () => {
 
 test('triggers onChange when time lag changes', () => {
   const timeLag = '1';
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   render(<TimeSeriesColumnControl colType="time" onChange={onChange} />);
   userEvent.click(screen.getByRole('img', { name: 'edit' }));
   const timeLagInput = screen.getByPlaceholderText('Time Lag');
@@ -104,7 +104,7 @@ test('triggers onChange when time lag changes', () => {
 
 test('time lag allows negative values', () => {
   const timeLag = '-1';
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   render(<TimeSeriesColumnControl colType="time" onChange={onChange} />);
   userEvent.click(screen.getByRole('img', { name: 'edit' }));
   const timeLagInput = screen.getByPlaceholderText('Time Lag');
@@ -118,7 +118,7 @@ test('time lag allows negative values', () => {
 test('triggers onChange when color bounds changes', () => {
   const min = 1;
   const max = 5;
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   render(<TimeSeriesColumnControl colType="time" onChange={onChange} />);
   userEvent.click(screen.getByRole('img', { name: 'edit' }));
   const minInput = screen.getByPlaceholderText('Min');
@@ -133,7 +133,7 @@ test('triggers onChange when color bounds changes', () => {
 });
 
 test('triggers onChange when time type changes', () => {
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   render(<TimeSeriesColumnControl colType="time" onChange={onChange} />);
   userEvent.click(screen.getByRole('img', { name: 'edit' }));
   userEvent.click(screen.getByText('Select ...'));
@@ -147,7 +147,7 @@ test('triggers onChange when time type changes', () => {
 
 test('triggers onChange when number format changes', () => {
   const numberFormatString = 'Test format';
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   render(<TimeSeriesColumnControl colType="time" onChange={onChange} />);
   userEvent.click(screen.getByRole('img', { name: 'edit' }));
   userEvent.type(
@@ -163,7 +163,7 @@ test('triggers onChange when number format changes', () => {
 
 test('triggers onChange when width changes', () => {
   const width = '10';
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   render(<TimeSeriesColumnControl colType="spark" onChange={onChange} />);
   userEvent.click(screen.getByRole('img', { name: 'edit' }));
   userEvent.type(screen.getByPlaceholderText('Width'), width);
@@ -174,7 +174,7 @@ test('triggers onChange when width changes', () => {
 
 test('triggers onChange when height changes', () => {
   const height = '10';
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   render(<TimeSeriesColumnControl colType="spark" onChange={onChange} />);
   userEvent.click(screen.getByRole('img', { name: 'edit' }));
   userEvent.type(screen.getByPlaceholderText('Height'), height);
@@ -185,7 +185,7 @@ test('triggers onChange when height changes', () => {
 
 test('triggers onChange when time ratio changes', () => {
   const timeRatio = '10';
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   render(<TimeSeriesColumnControl colType="spark" onChange={onChange} />);
   userEvent.click(screen.getByRole('img', { name: 'edit' }));
   userEvent.type(screen.getByPlaceholderText('Time Ratio'), timeRatio);
@@ -195,7 +195,7 @@ test('triggers onChange when time ratio changes', () => {
 });
 
 test('triggers onChange when show Y-axis changes', () => {
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   render(<TimeSeriesColumnControl colType="spark" onChange={onChange} />);
   userEvent.click(screen.getByRole('img', { name: 'edit' }));
   userEvent.click(screen.getByRole('checkbox'));
@@ -209,7 +209,7 @@ test('triggers onChange when show Y-axis changes', () => {
 test('triggers onChange when Y-axis bounds changes', () => {
   const min = 1;
   const max = 5;
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   render(<TimeSeriesColumnControl colType="spark" onChange={onChange} />);
   userEvent.click(screen.getByRole('img', { name: 'edit' }));
   const minInput = screen.getByPlaceholderText('Min');
@@ -226,7 +226,7 @@ test('triggers onChange when Y-axis bounds changes', () => {
 
 test('triggers onChange when date format changes', () => {
   const dateFormat = 'yy/MM/dd';
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   render(<TimeSeriesColumnControl colType="spark" onChange={onChange} />);
   userEvent.click(screen.getByRole('img', { name: 'edit' }));
   userEvent.type(screen.getByPlaceholderText('Date format string'), dateFormat);

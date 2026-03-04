@@ -19,7 +19,7 @@
 import { render, screen } from 'spec/helpers/testing-library';
 import Login from './index';
 
-jest.mock('src/utils/getBootstrapData', () => ({
+vi.mock('src/utils/getBootstrapData', () => ({
   __esModule: true,
   default: () => ({
     common: {

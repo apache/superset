@@ -22,7 +22,7 @@ import SaveDatasetActionButton from 'src/SqlLab/components/SaveDatasetActionButt
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('SaveDatasetActionButton', () => {
   test('renders a split save button', async () => {
-    const onSaveAsExplore = jest.fn();
+    const onSaveAsExplore = vi.fn();
     render(
       <SaveDatasetActionButton
         setShowSave={() => true}

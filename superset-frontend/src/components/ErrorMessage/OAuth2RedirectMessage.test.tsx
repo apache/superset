@@ -42,32 +42,32 @@ const mockStore = createStore(() => ({
 }));
 
 // Mock actions
-jest.mock('src/SqlLab/actions/sqlLab', () => ({
-  reRunQuery: jest.fn(),
+vi.mock('src/SqlLab/actions/sqlLab', () => ({
+  reRunQuery: vi.fn(),
 }));
 
-jest.mock('src/components/Chart/chartAction', () => ({
-  triggerQuery: jest.fn(),
+vi.mock('src/components/Chart/chartAction', () => ({
+  triggerQuery: vi.fn(),
 }));
 
-jest.mock('src/dashboard/actions/dashboardState', () => ({
-  onRefresh: jest.fn(),
+vi.mock('src/dashboard/actions/dashboardState', () => ({
+  onRefresh: vi.fn(),
 }));
 
 // Mock useDispatch
-const mockDispatch = jest.fn();
-jest.spyOn(reduxHooks, 'useDispatch').mockReturnValue(mockDispatch);
+const mockDispatch = vi.fn();
+vi.spyOn(reduxHooks, 'useDispatch').mockReturnValue(mockDispatch);
 
 // Mock global window functions
-const mockOpen = jest.spyOn(window, 'open').mockImplementation(() => null);
-const mockAddEventListener = jest.spyOn(window, 'addEventListener');
-const mockRemoveEventListener = jest.spyOn(window, 'removeEventListener');
+const mockOpen = vi.spyOn(window, 'open').mockImplementation(() => null);
+const mockAddEventListener = vi.spyOn(window, 'addEventListener');
+const mockRemoveEventListener = vi.spyOn(window, 'removeEventListener');
 
 // Mock window.postMessage
 const originalPostMessage = window.postMessage;
 
 beforeEach(() => {
-  window.postMessage = jest.fn();
+  window.postMessage = vi.fn();
 });
 
 afterEach(() => {

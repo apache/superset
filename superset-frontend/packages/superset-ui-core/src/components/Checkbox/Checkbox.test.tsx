@@ -23,7 +23,7 @@ import type { CheckboxProps } from './types';
 const mockedProps: CheckboxProps = {
   checked: false,
   id: 'checkbox-id',
-  onChange: jest.fn(),
+  onChange: vi.fn(),
   disabled: false,
   title: 'Checkbox title',
   indeterminate: false,
@@ -35,7 +35,7 @@ describe('Checkbox Component', () => {
     waitFor(() => render(<Checkbox {...props} />));
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('Rendering', () => {
@@ -93,7 +93,7 @@ describe('Checkbox Component', () => {
     });
 
     test('should not call the onChange handler when disabled and clicked', async () => {
-      const mockOnChange = jest.fn();
+      const mockOnChange = vi.fn();
       const disabledProps = {
         ...mockedProps,
         disabled: true,
@@ -109,7 +109,7 @@ describe('Checkbox Component', () => {
     });
 
     test('calls onChange handler successfully', async () => {
-      const mockAction = jest.fn();
+      const mockAction = vi.fn();
       render(<Checkbox checked={false} onChange={mockAction} />);
       const checkboxInput = screen.getByRole('checkbox');
       await userEvent.click(checkboxInput);

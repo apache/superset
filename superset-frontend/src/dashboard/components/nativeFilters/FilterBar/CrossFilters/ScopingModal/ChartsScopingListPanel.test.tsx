@@ -29,9 +29,9 @@ import {
 } from './ChartsScopingListPanel';
 
 const DEFAULT_PROPS: ChartsScopingListPanelProps = {
-  addNewCustomScope: jest.fn(),
-  removeCustomScope: jest.fn(),
-  setCurrentChartId: jest.fn(),
+  addNewCustomScope: vi.fn(),
+  removeCustomScope: vi.fn(),
+  setCurrentChartId: vi.fn(),
   activeChartId: undefined,
   chartConfigs: {
     1: {

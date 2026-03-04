@@ -27,14 +27,14 @@ import RoleListAddModal from './RoleListAddModal';
 import { createRole } from './utils';
 
 const mockToasts = {
-  addDangerToast: jest.fn(),
-  addSuccessToast: jest.fn(),
+  addDangerToast: vi.fn(),
+  addSuccessToast: vi.fn(),
 };
 
-jest.mock('./utils');
-const mockCreateRole = jest.mocked(createRole);
+vi.mock('./utils');
+const mockCreateRole = vi.mocked(createRole);
 
-jest.mock('src/components/MessageToasts/withToasts', () => ({
+vi.mock('src/components/MessageToasts/withToasts', () => ({
   __esModule: true,
   default: (Component: any) => Component,
   useToasts: () => mockToasts,
@@ -44,8 +44,8 @@ jest.mock('src/components/MessageToasts/withToasts', () => ({
 describe('RoleListAddModal', () => {
   const mockProps = {
     show: true,
-    onHide: jest.fn(),
-    onSave: jest.fn(),
+    onHide: vi.fn(),
+    onSave: vi.fn(),
     permissions: [
       { id: 1, label: 'Permission 1', value: 'Permission_1' },
       { id: 2, label: 'Permission 2', value: 'Permission_2' },

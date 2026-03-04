@@ -23,24 +23,24 @@ import {
   MetricOptionProps,
 } from '../../src/components/MetricOption';
 
-jest.mock('@superset-ui/core/components/InfoTooltip', () => ({
+vi.mock('@superset-ui/core/components/InfoTooltip', () => ({
   InfoTooltip: () => <div data-test="mock-tooltip" />,
 }));
 
-jest.mock(
+vi.mock(
   '@superset-ui/chart-controls/components/ColumnTypeLabel/ColumnTypeLabel',
   () => ({
     ColumnTypeLabel: () => <div data-test="mock-column-type-label" />,
   }),
 );
-jest.mock(
+vi.mock(
   '@superset-ui/core/components/Tooltip',
   () =>
     ({ children }: { children: React.ReactNode }) => (
       <div data-test="mock-tooltip">{children}</div>
     ),
 );
-jest.mock('@superset-ui/chart-controls/components/SQLPopover', () => ({
+vi.mock('@superset-ui/chart-controls/components/SQLPopover', () => ({
   SQLPopover: () => <div data-test="mock-sql-popover" />,
 }));
 

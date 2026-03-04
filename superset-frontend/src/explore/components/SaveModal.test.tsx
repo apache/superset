@@ -37,8 +37,8 @@ import { GRID_COLUMN_COUNT } from 'src/dashboard/util/constants';
 // Cast PureSaveModal to `any` to allow instantiation with partial props in tests
 const TestSaveModal = PureSaveModal as any;
 
-jest.mock('@superset-ui/core/components/Select', () => ({
-  ...jest.requireActual('@superset-ui/core/components/Select/AsyncSelect'),
+vi.mock('@superset-ui/core/components/Select', () => ({
+  ...vi.requireActual('@superset-ui/core/components/Select/AsyncSelect'),
   AsyncSelect: ({ onChange }: { onChange: (val: any) => void }) => (
     <input
       data-test="mock-async-select"
@@ -47,7 +47,7 @@ jest.mock('@superset-ui/core/components/Select', () => ({
   ),
 }));
 
-jest.mock('@superset-ui/core/components/TreeSelect', () => ({
+vi.mock('@superset-ui/core/components/TreeSelect', () => ({
   TreeSelect: ({
     onChange,
     disabled,
@@ -88,11 +88,11 @@ const initialState = {
 const initialStore = mockStore(initialState);
 
 const defaultProps = {
-  addDangerToast: jest.fn(),
+  addDangerToast: vi.fn(),
   onHide: () => ({}),
   actions: bindActionCreators(saveModalActions as any, (arg: any) => {
     if (typeof arg === 'function') {
-      return arg(jest.fn);
+      return arg(vi.fn);
     }
     return arg;
   }),
@@ -267,11 +267,11 @@ test('disables overwrite option for non-owner', () => {
 
 test('updates slice name and selected dashboard', async () => {
   const dashboardId = mockEvent.value;
-  const saveDataset = jest.fn().mockResolvedValue(undefined);
-  const createDashboard = jest.fn().mockResolvedValue({ id: dashboardId });
-  const saveSliceFailed = jest.fn();
-  const setFormData = jest.fn();
-  const createSlice = jest.fn().mockResolvedValue({ id: 1 });
+  const saveDataset = vi.fn().mockResolvedValue(undefined);
+  const createDashboard = vi.fn().mockResolvedValue({ id: dashboardId });
+  const saveSliceFailed = vi.fn();
+  const setFormData = vi.fn();
+  const createSlice = vi.fn().mockResolvedValue({ id: 1 });
 
   const { getByRole, getByTestId } = setup(
     {
@@ -322,15 +322,15 @@ test('make sure slice_id in the URLSearchParams before the redirect', () => {
     ...defaultProps,
     slice: { slice_id: 1, slice_name: 'title', owners: [1] },
     actions: {
-      setFormData: jest.fn(),
-      updateSlice: jest.fn(() => Promise.resolve({ id: 1 })),
-      getSliceDashboards: jest.fn(),
+      setFormData: vi.fn(),
+      updateSlice: vi.fn(() => Promise.resolve({ id: 1 })),
+      getSliceDashboards: vi.fn(),
     },
     user: { userId: 1 },
     history: {
-      replace: jest.fn(),
+      replace: vi.fn(),
     },
-    dispatch: jest.fn(),
+    dispatch: vi.fn(),
   };
 
   const saveModal = new TestSaveModal(myProps);
@@ -346,15 +346,15 @@ test('removes form_data_key from URL parameters after save', () => {
     ...defaultProps,
     slice: { slice_id: 1, slice_name: 'title', owners: [1] },
     actions: {
-      setFormData: jest.fn(),
-      updateSlice: jest.fn(() => Promise.resolve({ id: 1 })),
-      getSliceDashboards: jest.fn(),
+      setFormData: vi.fn(),
+      updateSlice: vi.fn(() => Promise.resolve({ id: 1 })),
+      getSliceDashboards: vi.fn(),
     },
     user: { userId: 1 },
     history: {
-      replace: jest.fn(),
+      replace: vi.fn(),
     },
-    dispatch: jest.fn(),
+    dispatch: vi.fn(),
   };
 
   const saveModal = new TestSaveModal(myProps);
@@ -373,7 +373,7 @@ test('removes form_data_key from URL parameters after save', () => {
 
 test('dispatches removeChartState when saving and going to dashboard', async () => {
   // Spy on the removeChartState action creator
-  const removeChartStateSpy = jest.spyOn(
+  const removeChartStateSpy = vi.spyOn(
     dashboardStateActions,
     'removeChartState',
   );
@@ -389,14 +389,14 @@ test('dispatches removeChartState when saving and going to dashboard', async () 
     },
   });
 
-  const mockDispatch = jest.fn();
+  const mockDispatch = vi.fn();
   const mockHistory = {
-    push: jest.fn(),
-    replace: jest.fn(),
+    push: vi.fn(),
+    replace: vi.fn(),
   };
   const chartId = 42;
-  const mockUpdateSlice = jest.fn(() => Promise.resolve({ id: chartId }));
-  const mockSetFormData = jest.fn();
+  const mockUpdateSlice = vi.fn(() => Promise.resolve({ id: chartId }));
+  const mockSetFormData = vi.fn();
 
   const myProps = {
     ...defaultProps,
@@ -404,8 +404,8 @@ test('dispatches removeChartState when saving and going to dashboard', async () 
     actions: {
       setFormData: mockSetFormData,
       updateSlice: mockUpdateSlice,
-      getSliceDashboards: jest.fn(() => Promise.resolve([])),
-      saveSliceFailed: jest.fn(),
+      getSliceDashboards: vi.fn(() => Promise.resolve([])),
+      saveSliceFailed: vi.fn(),
     },
     user: { userId: 1 },
     history: mockHistory,
@@ -424,7 +424,7 @@ test('dispatches removeChartState when saving and going to dashboard', async () 
   };
 
   // Mock onHide to prevent errors
-  saveModal.onHide = jest.fn();
+  saveModal.onHide = vi.fn();
 
   // Trigger save and go to dashboard (gotodash = true)
   await saveModal.saveOrOverwrite(true);
@@ -652,17 +652,17 @@ test('addChartToDashboardTab successfully adds chart to existing row with space'
   const originalGet = SupersetClient.get;
   const originalPut = SupersetClient.put;
 
-  SupersetClient.get = jest.fn().mockResolvedValueOnce({
+  SupersetClient.get = vi.fn().mockResolvedValueOnce({
     json: { result: mockDashboard },
   });
 
-  SupersetClient.put = jest.fn().mockResolvedValueOnce({
+  SupersetClient.put = vi.fn().mockResolvedValueOnce({
     json: { result: mockDashboard },
   });
 
   const component = new TestSaveModal(defaultProps);
 
-  const mockNanoid = jest.spyOn(require('nanoid'), 'nanoid');
+  const mockNanoid = vi.spyOn(require('nanoid'), 'nanoid');
   mockNanoid.mockReturnValue('test-id');
 
   try {
@@ -739,12 +739,12 @@ test('addChartToDashboardTab creates new row when no existing row has space', as
   const originalGet = SupersetClient.get;
   const originalPut = SupersetClient.put;
 
-  SupersetClient.get = jest.fn().mockResolvedValueOnce({
+  SupersetClient.get = vi.fn().mockResolvedValueOnce({
     json: { result: mockDashboard },
   });
 
   let putRequestBody: any = null;
-  SupersetClient.put = jest.fn().mockImplementationOnce((request: any) => {
+  SupersetClient.put = vi.fn().mockImplementationOnce((request: any) => {
     putRequestBody = request;
     return Promise.resolve({
       json: { result: mockDashboard },
@@ -754,7 +754,7 @@ test('addChartToDashboardTab creates new row when no existing row has space', as
   const component = new TestSaveModal(defaultProps);
 
   const mockRowId = 'test-row-id';
-  const mockNanoid = jest.spyOn(require('nanoid'), 'nanoid');
+  const mockNanoid = vi.spyOn(require('nanoid'), 'nanoid');
   mockNanoid.mockReturnValueOnce(mockRowId);
 
   try {
@@ -800,17 +800,17 @@ test('addChartToDashboardTab handles empty position_json', async () => {
   const originalGet = SupersetClient.get;
   const originalPut = SupersetClient.put;
 
-  SupersetClient.get = jest.fn().mockResolvedValueOnce({
+  SupersetClient.get = vi.fn().mockResolvedValueOnce({
     json: { result: mockDashboard },
   });
 
-  SupersetClient.put = jest.fn().mockResolvedValueOnce({
+  SupersetClient.put = vi.fn().mockResolvedValueOnce({
     json: { result: mockDashboard },
   });
 
   const component = new TestSaveModal(defaultProps);
 
-  const mockNanoid = jest.spyOn(require('nanoid'), 'nanoid');
+  const mockNanoid = vi.spyOn(require('nanoid'), 'nanoid');
   mockNanoid.mockReturnValue('test-id');
 
   try {

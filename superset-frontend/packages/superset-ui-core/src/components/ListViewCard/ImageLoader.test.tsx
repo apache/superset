@@ -21,7 +21,7 @@ import fetchMock from 'fetch-mock';
 import { render, screen } from '@superset-ui/core/spec';
 import { ImageLoader, type BackgroundPosition } from './ImageLoader';
 
-global.URL.createObjectURL = jest.fn(() => '/local_url');
+global.URL.createObjectURL = vi.fn(() => '/local_url');
 const blob = new Blob([], { type: 'image/png' });
 
 beforeAll(() => {

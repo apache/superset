@@ -21,13 +21,13 @@ import { Theme } from './Theme';
 import { AnyThemeConfig, ThemeAlgorithm } from './types';
 
 // Mock emotion's cache to avoid actual DOM operations
-jest.mock('@emotion/cache', () => ({
+vi.mock('@emotion/cache', () => ({
   __esModule: true,
-  default: jest.fn().mockReturnValue({}),
+  default: vi.fn().mockReturnValue({}),
 }));
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 test('Theme.json serializes the theme configuration to a JSON string', () => {

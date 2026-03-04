@@ -225,7 +225,7 @@ test('On failed request, restore previous selection', async () => {
     () => new Response('', { status: 400, statusText: 'Bad Request' }),
   );
 
-  const dangerToastSpy = jest.spyOn(mockedMessageActions, 'addDangerToast');
+  const dangerToastSpy = vi.spyOn(mockedMessageActions, 'addDangerToast');
 
   await setup();
   const SettingsIcon = screen.getByRole('img', { name: /setting/i });

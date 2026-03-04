@@ -45,7 +45,7 @@ import { Datasource } from '../../../types';
 import { DndItemType } from '../../DndItemType';
 import DatasourcePanelDragOption from '../../DatasourcePanel/DatasourcePanelDragOption';
 
-jest.mock('src/core/editors', () => ({
+vi.mock('src/core/editors', () => ({
   EditorHost: ({ value }: { value: string }) => (
     <div data-test="react-ace">{value}</div>
   ),
@@ -59,8 +59,8 @@ const defaultProps: Omit<DndFilterSelectProps, 'datasource'> = {
   formData: null,
   savedMetrics: [],
   selectedMetrics: [],
-  onChange: jest.fn(),
-  actions: { setControlValue: jest.fn() },
+  onChange: vi.fn(),
+  actions: { setControlValue: vi.fn() },
 };
 
 const baseFormData = {
@@ -97,7 +97,7 @@ function setup({
 }
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 test('renders with default props', async () => {
@@ -265,7 +265,7 @@ test('calls onChange when close is clicked and canDelete is true', () => {
     comparator: 'val',
     operator: Operators.Equals,
   });
-  const canDelete = jest.fn();
+  const canDelete = vi.fn();
   canDelete.mockReturnValue(true);
   render(setup({ value: [value1, value2], additionalProps: { canDelete } }), {
     useDnd: true,
@@ -287,7 +287,7 @@ test('onChange is not called when close is clicked and canDelete is false', () =
     comparator: 'val',
     operator: Operators.Equals,
   });
-  const canDelete = jest.fn();
+  const canDelete = vi.fn();
   canDelete.mockReturnValue(false);
   render(setup({ value: [value1, value2], additionalProps: { canDelete } }), {
     useDnd: true,
@@ -309,7 +309,7 @@ test('onChange is not called when close is clicked and canDelete is string, warn
     comparator: 'val',
     operator: Operators.Equals,
   });
-  const canDelete = jest.fn();
+  const canDelete = vi.fn();
   canDelete.mockReturnValue('Test warning');
   render(setup({ value: [value1, value2], additionalProps: { canDelete } }), {
     useDnd: true,

@@ -26,7 +26,7 @@ import { initialState } from 'src/SqlLab/fixtures';
 import useFilterFocusHighlightStyles from './useFilterFocusHighlightStyles';
 import { getRelatedCharts } from './getRelatedCharts';
 
-jest.mock('./getRelatedCharts');
+vi.mock('./getRelatedCharts');
 
 const TestComponent = ({ chartId }: { chartId: number }) => {
   const styles = useFilterFocusHighlightStyles(chartId);
@@ -42,7 +42,7 @@ describe('useFilterFocusHighlightStyles', () => {
       { ...mockState, ...(initialState as any), ...customState },
       compose(applyMiddleware(thunk)),
     );
-  const mockGetRelatedCharts = getRelatedCharts as jest.Mock;
+  const mockGetRelatedCharts = getRelatedCharts as vi.Mock;
 
   const renderWrapper = (chartId: number, store = createMockStore()) =>
     render(<TestComponent chartId={chartId} />, {

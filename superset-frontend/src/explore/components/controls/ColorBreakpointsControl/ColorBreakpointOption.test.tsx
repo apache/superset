@@ -38,9 +38,9 @@ const createProps = (): ColorBreakpointOptionProps => ({
   breakpoint: mockBreakpoint,
   colorBreakpoints: mockBreakpoints,
   index: 0,
-  saveColorBreakpoint: jest.fn(),
-  onClose: jest.fn(),
-  onShift: jest.fn(),
+  saveColorBreakpoint: vi.fn(),
+  onClose: vi.fn(),
+  onShift: vi.fn(),
 });
 
 const renderComponent = (props: Partial<ColorBreakpointOptionProps> = {}) =>
@@ -51,7 +51,7 @@ const renderComponent = (props: Partial<ColorBreakpointOptionProps> = {}) =>
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ColorBreakpointOption', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   test('should render', async () => {
@@ -77,7 +77,7 @@ describe('ColorBreakpointOption', () => {
   });
 
   test('should call onClose when remove button is clicked', async () => {
-    const onClose = jest.fn();
+    const onClose = vi.fn();
     renderComponent({ onClose });
 
     const removeBtn = await screen.findByTestId('remove-control-button');

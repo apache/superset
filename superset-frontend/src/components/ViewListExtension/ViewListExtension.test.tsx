@@ -59,8 +59,8 @@ function createMockExtension(
       menus: {},
       views,
     },
-    activate: jest.fn(),
-    deactivate: jest.fn(),
+    activate: vi.fn(),
+    deactivate: vi.fn(),
   };
 }
 

@@ -30,12 +30,12 @@ import DatasourceModal from '.';
 
 const mockedProps = {
   datasource: mockDatasource['7__table'],
-  addSuccessToast: jest.fn(),
-  addDangerToast: jest.fn(),
-  onChange: jest.fn(),
-  onHide: jest.fn(),
+  addSuccessToast: vi.fn(),
+  addDangerToast: vi.fn(),
+  onChange: vi.fn(),
+  onHide: vi.fn(),
   show: true,
-  onDatasourceSave: jest.fn(),
+  onDatasourceSave: vi.fn(),
 };
 
 beforeEach(() => {
@@ -47,12 +47,12 @@ beforeEach(() => {
 
 afterEach(() => {
   fetchMock.clearHistory().removeRoutes();
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 test('DatasourceModal - should use Modal.useModal hook instead of Modal.confirm directly', () => {
-  const useModalSpy = jest.spyOn(Modal, 'useModal');
-  const confirmSpy = jest.spyOn(Modal, 'confirm');
+  const useModalSpy = vi.spyOn(Modal, 'useModal');
+  const confirmSpy = vi.spyOn(Modal, 'confirm');
 
   render(<DatasourceModal {...mockedProps} />, { store });
 
@@ -89,7 +89,7 @@ test('DatasourceModal - should handle sync columns state without imperative moda
 
 test('DatasourceModal - should not store modal instance in state', () => {
   // Mock console.warn to catch any warnings about refs or imperatives
-  const consoleWarn = jest.spyOn(console, 'warn').mockImplementation();
+  const consoleWarn = vi.spyOn(console, 'warn').mockImplementation();
 
   render(<DatasourceModal {...mockedProps} />, { store });
 

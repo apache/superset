@@ -72,7 +72,7 @@ fetchMock.get(dashboardsEndpoint, {
   ],
 });
 
-const mockSetActiveChild = jest.fn();
+const mockSetActiveChild = vi.fn();
 
 const activityProps = {
   activeChild: TableTab.Created,

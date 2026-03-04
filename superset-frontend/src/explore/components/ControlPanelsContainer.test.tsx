@@ -38,12 +38,12 @@ import {
   ControlPanelsContainerProps,
 } from 'src/explore/components/ControlPanelsContainer';
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
-  isFeatureEnabled: jest.fn(),
+vi.mock('@superset-ui/core', () => ({
+  ...(await importActual()),
+  isFeatureEnabled: vi.fn(),
 }));
 
-const mockIsFeatureEnabled = isFeatureEnabled as jest.Mock;
+const mockIsFeatureEnabled = isFeatureEnabled as vi.Mock;
 
 const FormDataMock = () => {
   const formData = useSelector(
@@ -99,14 +99,14 @@ describe('ControlPanelsContainer', () => {
 
   beforeEach(() => {
     getChartControlPanelRegistry().registerValue('table', defaultTableConfig);
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     // Default: feature disabled
     mockIsFeatureEnabled.mockReturnValue(false);
   });
 
   afterEach(() => {
     getChartControlPanelRegistry().remove('table');
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   afterAll(() => {

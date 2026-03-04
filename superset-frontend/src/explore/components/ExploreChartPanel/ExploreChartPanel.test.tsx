@@ -73,7 +73,7 @@ const createProps = (overrides = {}) => ({
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ChartContainer', () => {
-  jest.setTimeout(10000);
+  vi.setConfig({ testTimeout: 10000 });
 
   test('renders when vizType is line', () => {
     const props = createProps();
@@ -135,9 +135,9 @@ describe('ChartContainer', () => {
   });
 
   test('should render cached button and call expected actions', async () => {
-    const setForceQuery = jest.fn();
-    const postChartFormData = jest.fn();
-    const updateQueryFormData = jest.fn();
+    const setForceQuery = vi.fn();
+    const postChartFormData = vi.fn();
+    const updateQueryFormData = vi.fn();
     const props = createProps({
       actions: {
         setForceQuery,

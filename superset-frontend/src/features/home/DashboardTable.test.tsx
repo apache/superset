@@ -32,17 +32,17 @@ import handleResourceExport from 'src/utils/export';
 import DashboardTable from './DashboardTable';
 
 // Mock the export module
-jest.mock('src/utils/export', () => ({
+vi.mock('src/utils/export', () => ({
   __esModule: true,
-  default: jest.fn(),
+  default: vi.fn(),
 }));
 
-const mockExport = handleResourceExport as jest.MockedFunction<
+const mockExport = handleResourceExport as vi.MockedFunction<
   typeof handleResourceExport
 >;
 
-jest.mock('src/views/CRUD/utils', () => ({
-  ...jest.requireActual('src/views/CRUD/utils'),
+vi.mock('src/views/CRUD/utils', () => ({
+  ...vi.requireActual('src/views/CRUD/utils'),
   handleDashboardDelete: jest
     .fn()
     .mockImplementation((dashboard, refreshData) => {
@@ -52,9 +52,9 @@ jest.mock('src/views/CRUD/utils', () => ({
 }));
 
 // Mock the CRUD hooks
-jest.mock('src/views/CRUD/hooks', () => ({
-  ...jest.requireActual('src/views/CRUD/hooks'),
-  useListViewResource: jest.fn().mockReturnValue({
+vi.mock('src/views/CRUD/hooks', () => ({
+  ...vi.requireActual('src/views/CRUD/hooks'),
+  useListViewResource: vi.fn().mockReturnValue({
     state: {
       loading: false,
       resourceCollection: [],
@@ -62,13 +62,13 @@ jest.mock('src/views/CRUD/hooks', () => ({
       bulkSelectEnabled: false,
       lastFetched: undefined,
     },
-    setResourceCollection: jest.fn(),
-    hasPerm: jest.fn().mockReturnValue(true),
-    refreshData: jest.fn(),
-    fetchData: jest.fn(),
-    toggleBulkSelect: jest.fn(),
+    setResourceCollection: vi.fn(),
+    hasPerm: vi.fn().mockReturnValue(true),
+    refreshData: vi.fn(),
+    fetchData: vi.fn(),
+    toggleBulkSelect: vi.fn(),
   }),
-  useFavoriteStatus: jest.fn().mockReturnValue([jest.fn(), {}]),
+  useFavoriteStatus: vi.fn().mockReturnValue([vi.fn(), {}]),
 }));
 
 const mockDashboards = [
@@ -96,8 +96,8 @@ const mockUser = {
 
 const defaultProps = {
   user: mockUser,
-  addDangerToast: jest.fn(),
-  addSuccessToast: jest.fn(),
+  addDangerToast: vi.fn(),
+  addSuccessToast: vi.fn(),
   mine: [],
   showThumbnails: true,
   otherTabData: [],
@@ -118,7 +118,7 @@ const store = configureStore({
 });
 
 beforeEach(() => {
-  jest.spyOn(SupersetClient, 'get').mockImplementation(() =>
+  vi.spyOn(SupersetClient, 'get').mockImplementation(() =>
     Promise.resolve({
       json: {
         result: mockDashboards[0],
@@ -138,7 +138,7 @@ beforeEach(() => {
   );
 
   // Mock loading state for first render
-  jest.spyOn(hooks, 'useListViewResource').mockImplementationOnce(() => ({
+  vi.spyOn(hooks, 'useListViewResource').mockImplementationOnce(() => ({
     state: {
       loading: true,
       resourceCollection: [],
@@ -146,11 +146,11 @@ beforeEach(() => {
       bulkSelectEnabled: false,
       lastFetched: undefined,
     },
-    setResourceCollection: jest.fn(),
-    hasPerm: jest.fn().mockReturnValue(true),
-    refreshData: jest.fn(),
-    fetchData: jest.fn(),
-    toggleBulkSelect: jest.fn(),
+    setResourceCollection: vi.fn(),
+    hasPerm: vi.fn().mockReturnValue(true),
+    refreshData: vi.fn(),
+    fetchData: vi.fn(),
+    toggleBulkSelect: vi.fn(),
   }));
 });
 
@@ -178,7 +178,7 @@ test('renders empty state when no dashboards', async () => {
 });
 
 test('renders dashboard cards when data is loaded', async () => {
-  jest.spyOn(hooks, 'useListViewResource').mockImplementation(() => ({
+  vi.spyOn(hooks, 'useListViewResource').mockImplementation(() => ({
     state: {
       loading: false,
       resourceCollection: mockDashboards,
@@ -186,11 +186,11 @@ test('renders dashboard cards when data is loaded', async () => {
       bulkSelectEnabled: false,
       lastFetched: new Date().toISOString(),
     },
-    setResourceCollection: jest.fn(),
-    hasPerm: jest.fn().mockReturnValue(true),
-    refreshData: jest.fn(),
-    fetchData: jest.fn(),
-    toggleBulkSelect: jest.fn(),
+    setResourceCollection: vi.fn(),
+    hasPerm: vi.fn().mockReturnValue(true),
+    refreshData: vi.fn(),
+    fetchData: vi.fn(),
+    toggleBulkSelect: vi.fn(),
   }));
 
   render(
@@ -228,7 +228,7 @@ test('switches to Mine tab correctly', async () => {
 });
 
 test('handles create dashboard button click', async () => {
-  const assignMock = jest.fn();
+  const assignMock = vi.fn();
   Object.defineProperty(window, 'location', {
     value: { assign: assignMock },
     writable: true,
@@ -282,7 +282,7 @@ test('handles bulk dashboard export with correct ID and shows spinner', async ()
     mine: mockDashboards,
   };
 
-  jest.spyOn(hooks, 'useListViewResource').mockImplementation(() => ({
+  vi.spyOn(hooks, 'useListViewResource').mockImplementation(() => ({
     state: {
       loading: false,
       resourceCollection: mockDashboards,
@@ -290,11 +290,11 @@ test('handles bulk dashboard export with correct ID and shows spinner', async ()
       bulkSelectEnabled: false,
       lastFetched: new Date().toISOString(),
     },
-    setResourceCollection: jest.fn(),
-    hasPerm: jest.fn().mockReturnValue(true),
-    refreshData: jest.fn(),
-    fetchData: jest.fn(),
-    toggleBulkSelect: jest.fn(),
+    setResourceCollection: vi.fn(),
+    hasPerm: vi.fn().mockReturnValue(true),
+    refreshData: vi.fn(),
+    fetchData: vi.fn(),
+    toggleBulkSelect: vi.fn(),
   }));
 
   render(
@@ -344,8 +344,8 @@ test('handles dashboard deletion confirmation', async () => {
     mine: mockDashboards,
   };
 
-  const refreshDataMock = jest.fn();
-  jest.spyOn(hooks, 'useListViewResource').mockImplementation(() => ({
+  const refreshDataMock = vi.fn();
+  vi.spyOn(hooks, 'useListViewResource').mockImplementation(() => ({
     state: {
       loading: false,
       resourceCollection: mockDashboards,
@@ -353,11 +353,11 @@ test('handles dashboard deletion confirmation', async () => {
       bulkSelectEnabled: false,
       lastFetched: new Date().toISOString(),
     },
-    setResourceCollection: jest.fn(),
-    hasPerm: jest.fn().mockReturnValue(true),
+    setResourceCollection: vi.fn(),
+    hasPerm: vi.fn().mockReturnValue(true),
     refreshData: refreshDataMock,
-    fetchData: jest.fn(),
-    toggleBulkSelect: jest.fn(),
+    fetchData: vi.fn(),
+    toggleBulkSelect: vi.fn(),
   }));
 
   render(
@@ -408,10 +408,10 @@ test('passes correct parameters to handleDashboardDelete for Other tab', async (
     require('src/views/CRUD/utils').handleDashboardDelete;
   mockHandleDashboardDelete.mockClear();
 
-  const refreshDataMock = jest.fn();
-  const fetchDataMock = jest.fn().mockName('getData');
+  const refreshDataMock = vi.fn();
+  const fetchDataMock = vi.fn().mockName('getData');
 
-  jest.spyOn(hooks, 'useListViewResource').mockImplementation(() => ({
+  vi.spyOn(hooks, 'useListViewResource').mockImplementation(() => ({
     state: {
       loading: false,
       resourceCollection: mockDashboards,
@@ -419,11 +419,11 @@ test('passes correct parameters to handleDashboardDelete for Other tab', async (
       bulkSelectEnabled: false,
       lastFetched: new Date().toISOString(),
     },
-    setResourceCollection: jest.fn(),
-    hasPerm: jest.fn().mockReturnValue(true),
+    setResourceCollection: vi.fn(),
+    hasPerm: vi.fn().mockReturnValue(true),
     refreshData: refreshDataMock,
     fetchData: fetchDataMock,
-    toggleBulkSelect: jest.fn(),
+    toggleBulkSelect: vi.fn(),
   }));
 
   const props = {

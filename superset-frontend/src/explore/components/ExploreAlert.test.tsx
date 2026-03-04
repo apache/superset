@@ -58,7 +58,7 @@ test('renders error type alert', () => {
 });
 
 test('renders primary button when text and action provided', () => {
-  const primaryAction = jest.fn();
+  const primaryAction = vi.fn();
 
   render(
     <ExploreAlert
@@ -74,7 +74,7 @@ test('renders primary button when text and action provided', () => {
 });
 
 test('calls primary button action when clicked', async () => {
-  const primaryAction = jest.fn();
+  const primaryAction = vi.fn();
 
   render(
     <ExploreAlert
@@ -91,8 +91,8 @@ test('calls primary button action when clicked', async () => {
 });
 
 test('renders both primary and secondary buttons when provided', () => {
-  const primaryAction = jest.fn();
-  const secondaryAction = jest.fn();
+  const primaryAction = vi.fn();
+  const secondaryAction = vi.fn();
 
   render(
     <ExploreAlert
@@ -111,8 +111,8 @@ test('renders both primary and secondary buttons when provided', () => {
 });
 
 test('calls secondary button action when clicked', async () => {
-  const primaryAction = jest.fn();
-  const secondaryAction = jest.fn();
+  const primaryAction = vi.fn();
+  const secondaryAction = vi.fn();
 
   render(
     <ExploreAlert
@@ -145,7 +145,7 @@ test('does not render buttons when only text is provided without action', () => 
 });
 
 test('does not render buttons when only action is provided without text', () => {
-  const primaryAction = jest.fn();
+  const primaryAction = vi.fn();
 
   render(
     <ExploreAlert
@@ -160,7 +160,7 @@ test('does not render buttons when only action is provided without text', () => 
 });
 
 test('does not render secondary button when secondary action is missing', () => {
-  const primaryAction = jest.fn();
+  const primaryAction = vi.fn();
 
   render(
     <ExploreAlert
@@ -178,8 +178,8 @@ test('does not render secondary button when secondary action is missing', () => 
 });
 
 test('does not render secondary button when secondary text is missing', () => {
-  const primaryAction = jest.fn();
-  const secondaryAction = jest.fn();
+  const primaryAction = vi.fn();
+  const secondaryAction = vi.fn();
 
   render(
     <ExploreAlert

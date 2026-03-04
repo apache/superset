@@ -21,7 +21,7 @@ import type { editors } from '@apache-superset/core';
 import EditorHost from './EditorHost';
 
 // Mock the AceEditorProvider to avoid loading the full Ace editor in tests
-jest.mock('./AceEditorProvider', () => ({
+vi.mock('./AceEditorProvider', () => ({
   __esModule: true,
   default: ({ id, value, language }: EditorProps) => (
     <div data-test="ace-editor-provider">
@@ -33,14 +33,14 @@ jest.mock('./AceEditorProvider', () => ({
 }));
 
 // Mock the EditorProviders - return undefined (no extension provider)
-jest.mock('./EditorProviders', () => ({
+vi.mock('./EditorProviders', () => ({
   __esModule: true,
   default: {
     getInstance: () => ({
-      getProvider: jest.fn().mockReturnValue(undefined),
-      hasProvider: jest.fn().mockReturnValue(false),
-      onDidRegister: jest.fn().mockReturnValue({ dispose: jest.fn() }),
-      onDidUnregister: jest.fn().mockReturnValue({ dispose: jest.fn() }),
+      getProvider: vi.fn().mockReturnValue(undefined),
+      hasProvider: vi.fn().mockReturnValue(false),
+      onDidRegister: vi.fn().mockReturnValue({ dispose: vi.fn() }),
+      onDidUnregister: vi.fn().mockReturnValue({ dispose: vi.fn() }),
     }),
   },
 }));
@@ -54,7 +54,7 @@ type EditorProps = editors.EditorProps;
 const defaultProps: EditorProps = {
   id: 'test-editor',
   value: 'SELECT * FROM table',
-  onChange: jest.fn(),
+  onChange: vi.fn(),
   language: 'sql',
 };
 

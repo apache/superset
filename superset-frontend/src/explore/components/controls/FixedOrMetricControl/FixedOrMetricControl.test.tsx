@@ -19,7 +19,7 @@
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import FixedOrMetricControl from '.';
 
-jest.mock(
+vi.mock(
   '@superset-ui/core/components/Icons/AsyncIcon',
   () =>
     ({ fileName }: { fileName: string }) => (
@@ -82,7 +82,7 @@ test('renders with metric type', () => {
 });
 
 test('triggers onChange', () => {
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   render(
     <FixedOrMetricControl
       {...createProps()}

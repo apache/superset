@@ -27,12 +27,12 @@ import {
 import RightMenu from './RightMenu';
 import { GlobalMenuDataOptions, RightMenuProps } from './types';
 
-jest.mock('react-redux', () => ({
-  ...jest.requireActual('react-redux'),
-  useSelector: jest.fn(),
+vi.mock('react-redux', () => ({
+  ...vi.requireActual('react-redux'),
+  useSelector: vi.fn(),
 }));
 
-jest.mock('src/features/databases/DatabaseModal', () => {
+vi.mock('src/features/databases/DatabaseModal', () => {
   const DatabaseModal = () => <span />;
   DatabaseModal.displayName = 'DatabaseModal';
   return DatabaseModal;
@@ -152,7 +152,7 @@ const mockNonExamplesDB = Array.from({ length: 2 })
     },
   }));
 
-const useSelectorMock = jest.spyOn(reactRedux, 'useSelector');
+const useSelectorMock = vi.spyOn(reactRedux, 'useSelector');
 
 const getDatabaseWithFileFiterMockUrl =
   'glob:*api/v1/database/?q=(filters:!((col:allow_file_upload,opr:upload_is_enabled,value:!t)))';

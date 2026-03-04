@@ -34,7 +34,7 @@ describe('Divider', () => {
     parentComponent: newComponentFactory(DASHBOARD_GRID_TYPE),
     index: 0,
     editMode: false,
-    handleComponentDrop: jest.fn(),
+    handleComponentDrop: vi.fn(),
     deleteComponent: (id: string, parentId: string) => {},
   };
 
@@ -69,7 +69,7 @@ describe('Divider', () => {
   });
 
   test('should call deleteComponent when deleted', () => {
-    const deleteComponent = jest.fn();
+    const deleteComponent = vi.fn();
     setup({ editMode: true, deleteComponent });
     userEvent.click(screen.getByRole('button'));
     expect(deleteComponent).toHaveBeenCalledTimes(1);

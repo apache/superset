@@ -34,20 +34,20 @@ import {
   API_ENDPOINTS,
 } from './DatasetList.testHelpers';
 
-jest.mock('src/utils/export');
+vi.mock('src/utils/export');
 
 // Mock withToasts HOC to be a passthrough so we can spy on toast calls
-jest.mock('src/components/MessageToasts/withToasts', () => ({
+vi.mock('src/components/MessageToasts/withToasts', () => ({
   __esModule: true,
   default: <P extends object>(Component: ComponentType<P>) => Component,
 }));
 
 // Increase default timeout for tests that involve multiple async operations
-jest.setTimeout(15000);
+vi.setConfig({ testTimeout: 15000 });
 
 beforeEach(() => {
   setupMocks();
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 afterEach(async () => {
@@ -57,14 +57,14 @@ afterEach(async () => {
   });
 
   // Restore real timers in case a test threw early
-  jest.useRealTimers();
+  vi.useRealTimers();
 
   // Reset browser history state to prevent query params leaking between tests
   window.history.replaceState({}, '', '/');
 
   fetchMock.clearHistory();
   fetchMock.removeRoutes();
-  jest.restoreAllMocks();
+  vi.restoreAllMocks();
 });
 
 test('typing in search updates the input value correctly', async () => {
@@ -134,7 +134,7 @@ test('typing in search triggers debounced API call with search filter', async ()
 });
 
 test('500 error triggers danger toast with error message', async () => {
-  const addDangerToast = jest.fn();
+  const addDangerToast = vi.fn();
 
   fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
   fetchMock.get(API_ENDPOINTS.DATASETS, {
@@ -145,7 +145,7 @@ test('500 error triggers danger toast with error message', async () => {
   // Pass toast spy directly via props to bypass withToasts HOC
   renderDatasetList(mockAdminUser, {
     addDangerToast,
-    addSuccessToast: jest.fn(),
+    addSuccessToast: vi.fn(),
   });
 
   // Verify component renders despite error
@@ -171,7 +171,7 @@ test('500 error triggers danger toast with error message', async () => {
 });
 
 test('network timeout triggers danger toast', async () => {
-  const addDangerToast = jest.fn();
+  const addDangerToast = vi.fn();
 
   fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
   fetchMock.get(API_ENDPOINTS.DATASETS, {
@@ -181,7 +181,7 @@ test('network timeout triggers danger toast', async () => {
   // Pass toast spy directly via props to bypass withToasts HOC
   renderDatasetList(mockAdminUser, {
     addDangerToast,
-    addSuccessToast: jest.fn(),
+    addSuccessToast: vi.fn(),
   });
 
   // Verify component renders despite error
@@ -299,10 +299,10 @@ test('clicking duplicate opens modal and submits duplicate request', async () =>
     table_name: 'Copy of Dataset',
   });
 
-  const addSuccessToast = jest.fn();
+  const addSuccessToast = vi.fn();
 
   renderDatasetList(mockAdminUser, {
-    addDangerToast: jest.fn(),
+    addDangerToast: vi.fn(),
     addSuccessToast,
   });
 

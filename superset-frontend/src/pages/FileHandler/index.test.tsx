@@ -21,9 +21,9 @@ import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import { MemoryRouter, Route } from 'react-router-dom';
 import FileHandler from './index';
 
-const mockAddDangerToast = jest.fn();
-const mockAddSuccessToast = jest.fn();
-const mockHistoryPush = jest.fn();
+const mockAddDangerToast = vi.fn();
+const mockAddSuccessToast = vi.fn();
+const mockHistoryPush = vi.fn();
 
 type ToastInjectedProps = {
   addDangerToast: (msg: string) => void;
@@ -31,7 +31,7 @@ type ToastInjectedProps = {
 };
 
 // Mock the withToasts HOC
-jest.mock('src/components/MessageToasts/withToasts', () => ({
+vi.mock('src/components/MessageToasts/withToasts', () => ({
   __esModule: true,
   default: (Component: ComponentType<ToastInjectedProps>) =>
     function MockedWithToasts(props: Record<string, unknown>) {
@@ -54,7 +54,7 @@ interface UploadDataModalProps {
 }
 
 // Mock the UploadDataModal
-jest.mock('src/features/databases/UploadDataModel', () => ({
+vi.mock('src/features/databases/UploadDataModel', () => ({
   __esModule: true,
   default: ({
     show,
@@ -76,8 +76,8 @@ jest.mock('src/features/databases/UploadDataModel', () => ({
 }));
 
 // Mock react-router-dom's useHistory
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
+vi.mock('react-router-dom', () => ({
+  ...vi.requireActual('react-router-dom'),
   useHistory: () => ({
     push: mockHistoryPush,
   }),
@@ -132,7 +132,7 @@ const setupLaunchQueue = (fileHandle: MockFileHandle | null = null) => {
 };
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
   delete (window as any).launchQueue;
 });
 

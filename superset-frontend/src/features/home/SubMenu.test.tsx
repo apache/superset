@@ -108,7 +108,7 @@ test('should render dropdownlinks', async () => {
 });
 
 test('should render the buttons', async () => {
-  const mockFunc = jest.fn();
+  const mockFunc = vi.fn();
   const buttons = [
     {
       name: 'test_button',

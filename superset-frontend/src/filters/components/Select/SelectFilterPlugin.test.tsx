@@ -27,7 +27,7 @@ import { NULL_STRING } from 'src/utils/common';
 import SelectFilterPlugin from './SelectFilterPlugin';
 import transformProps from './transformProps';
 
-jest.useFakeTimers();
+vi.useFakeTimers();
 
 const selectMultipleProps = {
   formData: {
@@ -76,7 +76,7 @@ const selectMultipleProps = {
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('SelectFilterPlugin', () => {
-  const setDataMask = jest.fn();
+  const setDataMask = vi.fn();
   const getWrapper = (props = {}) =>
     render(
       // @ts-expect-error
@@ -122,7 +122,7 @@ describe('SelectFilterPlugin', () => {
     );
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   test('Add multiple values with first render', async () => {
@@ -306,7 +306,7 @@ describe('SelectFilterPlugin', () => {
         })}
         coltypeMap={{ bval: 1 }}
         data={[{ bval: bigValue }]}
-        setDataMask={jest.fn()}
+        setDataMask={vi.fn()}
         showOverflow={false}
       />,
       {
@@ -421,7 +421,7 @@ describe('SelectFilterPlugin', () => {
       <SelectFilterPlugin
         // @ts-expect-error
         {...transformProps(testProps)}
-        setDataMask={jest.fn()}
+        setDataMask={vi.fn()}
         showOverflow={false}
       />,
       {
@@ -495,7 +495,7 @@ describe('SelectFilterPlugin', () => {
       <SelectFilterPlugin
         // @ts-expect-error
         {...transformProps(testProps)}
-        setDataMask={jest.fn()}
+        setDataMask={vi.fn()}
         showOverflow={false}
       />,
       {
@@ -569,7 +569,7 @@ describe('SelectFilterPlugin', () => {
       <SelectFilterPlugin
         // @ts-expect-error
         {...transformProps(testProps)}
-        setDataMask={jest.fn()}
+        setDataMask={vi.fn()}
         showOverflow={false}
       />,
       {
@@ -643,7 +643,7 @@ describe('SelectFilterPlugin', () => {
       <SelectFilterPlugin
         // @ts-expect-error
         {...transformProps(testProps)}
-        setDataMask={jest.fn()}
+        setDataMask={vi.fn()}
         showOverflow={false}
       />,
       {
@@ -683,8 +683,8 @@ describe('SelectFilterPlugin', () => {
 });
 
 test('Select boolean FALSE value in single-select mode', async () => {
-  jest.useRealTimers();
-  const setDataMaskMock = jest.fn();
+  vi.useRealTimers();
+  const setDataMaskMock = vi.fn();
   const testProps = {
     ...selectMultipleProps,
     formData: {
@@ -760,8 +760,8 @@ test('Select boolean FALSE value in single-select mode', async () => {
 });
 
 test('Select boolean TRUE value in single-select mode', async () => {
-  jest.useRealTimers();
-  const setDataMaskMock = jest.fn();
+  vi.useRealTimers();
+  const setDataMaskMock = vi.fn();
   const testProps = {
     ...selectMultipleProps,
     formData: {
@@ -837,8 +837,8 @@ test('Select boolean TRUE value in single-select mode', async () => {
 });
 
 test('Select both boolean values in multi-select mode', async () => {
-  jest.useRealTimers();
-  const setDataMaskMock = jest.fn();
+  vi.useRealTimers();
+  const setDataMaskMock = vi.fn();
   const testProps = {
     ...selectMultipleProps,
     formData: {
@@ -914,8 +914,8 @@ test('Select both boolean values in multi-select mode', async () => {
 });
 
 test('Select boolean filter with null values', async () => {
-  jest.useRealTimers();
-  const setDataMaskMock = jest.fn();
+  vi.useRealTimers();
+  const setDataMaskMock = vi.fn();
   const testProps = {
     ...selectMultipleProps,
     formData: {
@@ -991,8 +991,8 @@ test('Select boolean filter with null values', async () => {
 });
 
 test('Clear boolean FALSE value', async () => {
-  jest.useRealTimers();
-  const setDataMaskMock = jest.fn();
+  vi.useRealTimers();
+  const setDataMaskMock = vi.fn();
   const testProps = {
     ...selectMultipleProps,
     formData: {
@@ -1062,8 +1062,8 @@ test('Clear boolean FALSE value', async () => {
 });
 
 test('Clear boolean TRUE value', async () => {
-  jest.useRealTimers();
-  const setDataMaskMock = jest.fn();
+  vi.useRealTimers();
+  const setDataMaskMock = vi.fn();
   const testProps = {
     ...selectMultipleProps,
     formData: {
@@ -1133,7 +1133,7 @@ test('Clear boolean TRUE value', async () => {
 });
 
 test('preserves dependent filter value restored from URL when it exists in data', async () => {
-  const setDataMaskMock = jest.fn();
+  const setDataMaskMock = vi.fn();
   const testProps = {
     ...selectMultipleProps,
     formData: {
@@ -1192,7 +1192,7 @@ test('preserves dependent filter value restored from URL when it exists in data'
 });
 
 test('resets dependent filter to first item when value does not exist in data', async () => {
-  const setDataMaskMock = jest.fn();
+  const setDataMaskMock = vi.fn();
   const testProps = {
     ...selectMultipleProps,
     formData: {

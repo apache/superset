@@ -36,10 +36,10 @@ import QueryLimitSelect, {
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
 
-jest.mock('@superset-ui/core/components/Select/Select', () => () => (
+vi.mock('@superset-ui/core/components/Select/Select', () => () => (
   <div data-test="mock-deprecated-select-select" />
 ));
-jest.mock('@superset-ui/core/components/Select/AsyncSelect', () => () => (
+vi.mock('@superset-ui/core/components/Select/AsyncSelect', () => () => (
   <div data-test="mock-deprecated-async-select" />
 ));
 

@@ -49,7 +49,7 @@ test('renders a tooltip when hovered', async () => {
 });
 
 test('calls onSelect when clicked', async () => {
-  const onSelect = jest.fn();
+  const onSelect = vi.fn();
   render(
     <PopoverSection title="Title" onSelect={onSelect}>
       <div role="form" />

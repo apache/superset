@@ -70,8 +70,8 @@ beforeEach(() => {
     columns: tableHook.columns,
     loading: false,
     highlightRowId: 1,
-    getTableProps: jest.fn(),
-    getTableBodyProps: jest.fn(),
+    getTableProps: vi.fn(),
+    getTableBodyProps: vi.fn(),
     sticky: false,
   };
 });
@@ -116,7 +116,7 @@ test('Pagination controls should be rendered when pageSize is provided', () => {
     pageSize: 2,
     totalCount: 3,
     pageIndex: 0,
-    onPageChange: jest.fn(),
+    onPageChange: vi.fn(),
   };
   render(<TableCollection {...paginationProps} />);
 
@@ -124,7 +124,7 @@ test('Pagination controls should be rendered when pageSize is provided', () => {
 });
 
 test('Pagination should call onPageChange when page is changed', async () => {
-  const onPageChange = jest.fn();
+  const onPageChange = vi.fn();
   const paginationProps = {
     ...defaultProps,
     pageSize: 2,
@@ -147,7 +147,7 @@ test('Pagination should call onPageChange when page is changed', async () => {
 });
 
 test('Pagination callback should be stable across re-renders', () => {
-  const onPageChange = jest.fn();
+  const onPageChange = vi.fn();
   const paginationProps = {
     ...defaultProps,
     pageSize: 2,
@@ -171,7 +171,7 @@ test('Should display correct page info when showRowCount is true', () => {
     pageSize: 2,
     totalCount: 3,
     pageIndex: 0,
-    onPageChange: jest.fn(),
+    onPageChange: vi.fn(),
     showRowCount: true,
   };
   render(<TableCollection {...paginationProps} />);
@@ -186,7 +186,7 @@ test('Should not display page info when showRowCount is false', () => {
     pageSize: 2,
     totalCount: 3,
     pageIndex: 0,
-    onPageChange: jest.fn(),
+    onPageChange: vi.fn(),
     showRowCount: false,
   };
   render(<TableCollection {...paginationProps} />);
@@ -196,8 +196,8 @@ test('Should not display page info when showRowCount is false', () => {
 });
 
 test('Bulk selection should work with pagination', () => {
-  const toggleRowSelected = jest.fn();
-  const toggleAllRowsSelected = jest.fn();
+  const toggleRowSelected = vi.fn();
+  const toggleAllRowsSelected = vi.fn();
   const selectionProps = {
     ...defaultProps,
     bulkSelectEnabled: true,
@@ -207,7 +207,7 @@ test('Bulk selection should work with pagination', () => {
     pageSize: 2,
     totalCount: 3,
     pageIndex: 0,
-    onPageChange: jest.fn(),
+    onPageChange: vi.fn(),
   };
   render(<TableCollection {...selectionProps} />);
 
@@ -217,7 +217,7 @@ test('Bulk selection should work with pagination', () => {
 });
 
 test('should call setSortBy when clicking sortable column header', () => {
-  const setSortBy = jest.fn();
+  const setSortBy = vi.fn();
   const sortingProps = {
     ...defaultProps,
     setSortBy,

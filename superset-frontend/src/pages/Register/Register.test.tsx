@@ -20,7 +20,7 @@ import { render, screen } from 'spec/helpers/testing-library';
 import { MemoryRouter } from 'react-router-dom';
 import Register from './index';
 
-jest.mock('src/utils/getBootstrapData', () => ({
+vi.mock('src/utils/getBootstrapData', () => ({
   __esModule: true,
   default: () => ({
     common: {
@@ -31,7 +31,7 @@ jest.mock('src/utils/getBootstrapData', () => ({
   }),
 }));
 
-jest.mock('react-google-recaptcha', () => ({
+vi.mock('react-google-recaptcha', () => ({
   __esModule: true,
   default: () => <div data-test="captcha-input" />,
 }));

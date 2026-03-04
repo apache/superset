@@ -36,7 +36,7 @@ const defaultProps: {
   name: string;
   label: string;
   valueKey: string;
-  onChange: jest.Mock;
+  onChange: vi.Mock;
 } = {
   choices: [
     ['1 year ago', '1 year ago'],
@@ -46,15 +46,15 @@ const defaultProps: {
   name: 'row_limit',
   label: 'Row Limit',
   valueKey: 'value',
-  onChange: jest.fn(),
+  onChange: vi.fn(),
 };
 
 beforeEach(() => {
-  jest.useFakeTimers();
+  vi.useFakeTimers();
 });
 
 afterEach(() => {
-  jest.useRealTimers();
+  vi.useRealTimers();
 });
 
 const options = [
@@ -125,7 +125,7 @@ describe('SelectControl', () => {
       // Expect a new option to be selectable.
       userEvent.click(selectorInput);
       userEvent.type(selectorInput, 'a new option');
-      act(() => jest.runAllTimers());
+      act(() => vi.runAllTimers());
       expect(within(selectorWrapper).getByRole('option')).toHaveTextContent(
         'a new option',
       );
@@ -146,7 +146,7 @@ describe('SelectControl', () => {
       // Expect no new option to be selectable.
       userEvent.click(selectorInput);
       userEvent.type(selectorInput, 'a new option');
-      act(() => jest.advanceTimersByTime(300));
+      act(() => vi.advanceTimersByTime(300));
 
       expect(
         container.querySelector('[role="option"]'),
@@ -456,7 +456,7 @@ describe('SelectControl', () => {
         [1, 'One'],
         [2, 'Two'],
       ];
-      const explicitComparator = jest.fn((a, b) =>
+      const explicitComparator = vi.fn((a, b) =>
         a.label.localeCompare(b.label),
       );
 

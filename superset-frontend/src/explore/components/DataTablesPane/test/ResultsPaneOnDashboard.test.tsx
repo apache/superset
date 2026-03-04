@@ -87,11 +87,11 @@ describe('ResultsPaneOnDashboard', () => {
     },
   );
 
-  const setForceQuery = jest.fn();
+  const setForceQuery = vi.fn();
 
   afterAll(() => {
     fetchMock.clearHistory().removeRoutes();
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   test('render', async () => {

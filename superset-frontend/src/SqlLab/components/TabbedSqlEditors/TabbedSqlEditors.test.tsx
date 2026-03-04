@@ -30,7 +30,7 @@ import { Store } from 'redux';
 import { RootState } from 'src/views/store';
 import { QueryEditor } from 'src/SqlLab/types';
 
-jest.mock('src/SqlLab/components/SqlEditor', () =>
+vi.mock('src/SqlLab/components/SqlEditor', () =>
   // eslint-disable-next-line react/display-name
   ({ queryEditor }: { queryEditor: QueryEditor }) => (
     <div data-test="mock-sql-editor">{queryEditor.id}</div>

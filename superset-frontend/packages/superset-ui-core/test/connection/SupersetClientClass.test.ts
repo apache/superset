@@ -536,7 +536,7 @@ describe('SupersetClientClass', () => {
         search: mockRequestSearch,
         href: mockHref,
       } as unknown as Location;
-      authSpy = jest
+      authSpy = vi
         .spyOn(SupersetClientClass.prototype, 'ensureAuth')
         .mockImplementation();
       const rejectValue = { status: 401 };

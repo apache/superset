@@ -44,25 +44,25 @@ const Dashboard = DashboardComponent as unknown as React.FC<
 >;
 
 // mock data
-jest.mock('src/dashboard/util/getRelatedCharts');
+vi.mock('src/dashboard/util/getRelatedCharts');
 
-const mockGetRelatedCharts = getRelatedCharts as jest.Mock;
+const mockGetRelatedCharts = getRelatedCharts as vi.Mock;
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('Dashboard', () => {
-  const mockAddSlice = jest.fn();
-  const mockRemoveSlice = jest.fn();
-  const mockTriggerQuery = jest.fn();
-  const mockLogEvent = jest.fn();
-  const mockClearDataMask = jest.fn();
-  const mockClearAllChartStates = jest.fn();
+  const mockAddSlice = vi.fn();
+  const mockRemoveSlice = vi.fn();
+  const mockTriggerQuery = vi.fn();
+  const mockLogEvent = vi.fn();
+  const mockClearDataMask = vi.fn();
+  const mockClearAllChartStates = vi.fn();
 
   const mockPluginContext: PluginContextType = {
     loading: false,
     dynamicPlugins: {},
     keys: [],
     mountedPluginMetadata: {},
-    fetchAll: jest.fn(),
+    fetchAll: vi.fn(),
   };
 
   const props = {
@@ -73,7 +73,7 @@ describe('Dashboard', () => {
       logEvent: mockLogEvent,
       clearDataMaskState: mockClearDataMask,
       clearAllChartStates: mockClearAllChartStates,
-      setDatasources: jest.fn(),
+      setDatasources: vi.fn(),
     },
     dashboardState,
     dashboardInfo,
@@ -110,7 +110,7 @@ describe('Dashboard', () => {
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   test('should render the children component', () => {

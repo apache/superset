@@ -23,10 +23,10 @@ import { getMockStoreWithNativeFilters } from 'spec/fixtures/mockStore';
 import chartQueries, { sliceId } from 'spec/fixtures/mockChartQueries';
 import DrillDetailModal from './DrillDetailModal';
 
-jest.mock('./DrillDetailPane', () => () => null);
-const mockHistoryPush = jest.fn();
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
+vi.mock('./DrillDetailPane', () => () => null);
+const mockHistoryPush = vi.fn();
+vi.mock('react-router-dom', () => ({
+  ...vi.requireActual('react-router-dom'),
   useHistory: () => ({
     push: mockHistoryPush,
   }),

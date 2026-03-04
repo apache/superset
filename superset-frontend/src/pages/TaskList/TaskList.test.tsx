@@ -33,7 +33,7 @@ import TaskList from 'src/pages/TaskList';
 window.featureFlags = { GLOBAL_TASK_FRAMEWORK: true };
 
 // Mock getBootstrapData before importing components that use it
-jest.mock('src/utils/getBootstrapData', () => ({
+vi.mock('src/utils/getBootstrapData', () => ({
   __esModule: true,
   default: () => ({
     user: {

@@ -33,7 +33,7 @@ const createProps = () => ({
       'CHART-eirDduqb1A',
     ],
   } as Indicator,
-  onClick: jest.fn(),
+  onClick: vi.fn(),
 });
 
 test('Should render', () => {

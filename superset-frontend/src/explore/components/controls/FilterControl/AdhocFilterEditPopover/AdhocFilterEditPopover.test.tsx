@@ -64,9 +64,9 @@ const options = [
 
 const defaultProps = {
   adhocFilter: simpleAdhocFilter,
-  onChange: jest.fn(),
-  onClose: jest.fn(),
-  onResize: jest.fn(),
+  onChange: vi.fn(),
+  onClose: vi.fn(),
+  onResize: vi.fn(),
   options,
   datasource: {},
 };
@@ -122,7 +122,7 @@ describe('AdhocFilterEditPopover', () => {
 
   /* oxlint-disable-next-line jest/no-disabled-tests */
   test.skip('updates the filter when changes are made', async () => {
-    const onChange = jest.fn();
+    const onChange = vi.fn();
     renderPopover({
       onChange,
       adhocFilter: sqlAdhocFilter,
@@ -181,7 +181,7 @@ describe('AdhocFilterEditPopover', () => {
   });
 
   test('initiates resize when resize handle is dragged', async () => {
-    const onResize = jest.fn();
+    const onResize = vi.fn();
     renderPopover({ onResize });
 
     const resizeHandle = screen.getByLabelText(/resize/i);
@@ -193,7 +193,7 @@ describe('AdhocFilterEditPopover', () => {
   });
 
   test('closes popover when close button is clicked', async () => {
-    const onClose = jest.fn();
+    const onClose = vi.fn();
     renderPopover({ onClose });
 
     // Use more specific selector to avoid ambiguity

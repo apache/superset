@@ -134,7 +134,7 @@ describe('exploreUtils', () => {
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('domain sharding', () => {
-    let stub: jest.ReplaceProperty<typeof hostNamesConfig.availableDomains>;
+    let stub: vi.ReplaceProperty<typeof hostNamesConfig.availableDomains>;
     const availableDomains = [
       'http://localhost/',
       'domain1.com',
@@ -142,7 +142,7 @@ describe('exploreUtils', () => {
       'domain3.com',
     ];
     beforeEach(() => {
-      stub = jest.replaceProperty(
+      stub = vi.replaceProperty(
         hostNamesConfig,
         'availableDomains',
         availableDomains,
@@ -302,8 +302,8 @@ describe('exploreUtils', () => {
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('.exploreChart()', () => {
     test('postForm', () => {
-      const postFormSpy = jest.spyOn(SupersetClient, 'postForm');
-      postFormSpy.mockImplementation(jest.fn());
+      const postFormSpy = vi.spyOn(SupersetClient, 'postForm');
+      postFormSpy.mockImplementation(vi.fn());
 
       exploreChart({ ...formData, viz_type: 'my_custom_viz' });
       expect(postFormSpy).toHaveBeenCalledTimes(1);

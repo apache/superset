@@ -22,10 +22,10 @@ import { updateColumns } from '.';
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('updateColumns', () => {
-  let addSuccessToast: jest.Mock;
+  let addSuccessToast: vi.Mock;
 
   beforeEach(() => {
-    addSuccessToast = jest.fn();
+    addSuccessToast = vi.fn();
   });
 
   test('adds new columns when prevCols is empty', () => {

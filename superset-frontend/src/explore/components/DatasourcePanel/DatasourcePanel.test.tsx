@@ -42,7 +42,7 @@ import {
 } from '../controls/DndColumnSelectControl';
 import { FoldersEditorItemType } from 'src/components/Datasource/types';
 
-jest.mock(
+vi.mock(
   'react-virtualized-auto-sizer',
   () =>
     ({ children }: { children: (params: { height: number }) => ReactChild }) =>
@@ -128,7 +128,7 @@ const props: DatasourcePanelProps = {
     },
   },
   actions: {
-    setControlValue: jest.fn(),
+    setControlValue: vi.fn(),
   },
   width: 300,
 };
@@ -148,7 +148,7 @@ const propsWithFolders = {
 const metricProps = {
   savedMetrics: [],
   columns: [],
-  onChange: jest.fn(),
+  onChange: vi.fn(),
 };
 
 const search = (value: string, input: HTMLElement) => {
@@ -172,7 +172,7 @@ test('should display items in controls', async () => {
 });
 
 test('should render the metrics', async () => {
-  jest.setTimeout(10000);
+  vi.setConfig({ testTimeout: 10000 });
   render(
     <ExploreContainer>
       <DatasourcePanel {...props} />
@@ -201,7 +201,7 @@ test('should render the columns', async () => {
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DatasourcePanel', () => {
   beforeAll(() => {
-    jest.setTimeout(30000);
+    vi.setConfig({ testTimeout: 30000 });
   });
 
   afterEach(async () => {
@@ -317,19 +317,19 @@ test('should render only droppable metrics and columns', async () => {
   const column1FilterProps = {
     type: 'DndColumnSelect' as const,
     name: 'Filter',
-    onChange: jest.fn(),
+    onChange: vi.fn(),
     options: [{ column_name: columns[1].column_name }],
-    actions: { setControlValue: jest.fn() },
+    actions: { setControlValue: vi.fn() },
   };
   const column2FilterProps = {
     type: 'DndColumnSelect' as const,
     name: 'Filter',
-    onChange: jest.fn(),
+    onChange: vi.fn(),
     options: [
       { column_name: columns[1].column_name },
       { column_name: columns[2].column_name },
     ],
-    actions: { setControlValue: jest.fn() },
+    actions: { setControlValue: vi.fn() },
   };
   const { getByTestId, unmount } = render(
     <ExploreContainer>

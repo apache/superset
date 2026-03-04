@@ -31,18 +31,18 @@ import {
   setupMocks,
 } from './ChartList.testHelpers';
 
-jest.setTimeout(30000);
+vi.setConfig({ testTimeout: 30000 });
 
 // Mock the feature flag
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
-  isFeatureEnabled: jest.fn(),
+vi.mock('@superset-ui/core', () => ({
+  ...(await importActual()),
+  isFeatureEnabled: vi.fn(),
 }));
 
 // Mock the export utility
-jest.mock('src/utils/export', () => ({
+vi.mock('src/utils/export', () => ({
   __esModule: true,
-  default: jest.fn(),
+  default: vi.fn(),
 }));
 
 const mockUser = {
@@ -66,7 +66,7 @@ describe('ChartList Card View Tests', () => {
 
     // Enable card view as default
     (
-      isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
+      isFeatureEnabled as vi.MockedFunction<typeof isFeatureEnabled>
     ).mockImplementation(
       (feature: string) => feature === 'LISTVIEWS_DEFAULT_CARD_VIEW',
     );
@@ -119,7 +119,7 @@ describe('ChartList Card View Tests', () => {
   test('renders ChartList in card view with thumbnails enabled', async () => {
     // Enable thumbnails feature flag
     (
-      isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
+      isFeatureEnabled as vi.MockedFunction<typeof isFeatureEnabled>
     ).mockImplementation(
       (feature: string) =>
         feature === 'LISTVIEWS_DEFAULT_CARD_VIEW' || feature === 'THUMBNAILS',
@@ -413,7 +413,7 @@ describe('ChartList Card View Tests', () => {
   test('can bulk add tags to selected charts', async () => {
     // Enable tagging system for this test
     (
-      isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
+      isFeatureEnabled as vi.MockedFunction<typeof isFeatureEnabled>
     ).mockImplementation(
       (feature: string) =>
         feature === 'LISTVIEWS_DEFAULT_CARD_VIEW' ||

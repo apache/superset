@@ -34,7 +34,7 @@ import { sliceId } from 'spec/fixtures/mockChartQueries';
 import { dashboardFilters } from 'spec/fixtures/mockDashboardFilters';
 import { dashboardWithFilter } from 'spec/fixtures/mockDashboardLayout';
 
-jest.mock(
+vi.mock(
   'src/dashboard/components/FiltersBadge/DetailsPanel',
   () =>
     ({ children }: { children: ReactNode }) => (

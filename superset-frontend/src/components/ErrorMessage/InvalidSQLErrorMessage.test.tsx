@@ -57,7 +57,7 @@ const renderComponent = (overrides = {}) =>
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('InvalidSQLErrorMessage', () => {
   beforeAll(() => {
-    jest.setTimeout(30000);
+    vi.setConfig({ testTimeout: 30000 });
   });
 
   afterEach(async () => {

@@ -38,7 +38,7 @@ interface TestProps {
     type?: string;
     [key: string]: unknown;
   }>;
-  onChange: jest.Mock;
+  onChange: vi.Mock;
   sections: string[];
   operators: string[];
   [key: string]: unknown;
@@ -58,7 +58,7 @@ const createProps = (): TestProps => ({
     { column_name: 'column1', type: 'STRING' },
     { column_name: 'column2', type: 'NUMBER' },
   ],
-  onChange: jest.fn(),
+  onChange: vi.fn(),
   sections: ['WHERE', 'HAVING'],
   operators: ['==', '>', '<'],
 });
@@ -103,7 +103,7 @@ describe('AdhocFilterControl', () => {
       comparator: 'test',
       clause: Clauses.Where,
     });
-    const onChange = jest.fn();
+    const onChange = vi.fn();
 
     renderComponent({ value: [existingFilter], onChange });
 

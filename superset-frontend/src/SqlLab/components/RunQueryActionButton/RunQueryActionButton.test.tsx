@@ -29,10 +29,10 @@ import RunQueryActionButton, {
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
 
-jest.mock('@superset-ui/core/components/Select/Select', () => () => (
+vi.mock('@superset-ui/core/components/Select/Select', () => () => (
   <div data-test="mock-deprecated-select-select" />
 ));
-jest.mock('@superset-ui/core/components/Select/AsyncSelect', () => () => (
+vi.mock('@superset-ui/core/components/Select/AsyncSelect', () => () => (
   <div data-test="mock-deprecated-async-select" />
 ));
 
@@ -134,7 +134,7 @@ test('enable default button for unrelated unsaved changes', () => {
 });
 
 test('dispatch runQuery on click', async () => {
-  const runQuery = jest.fn();
+  const runQuery = vi.fn();
   const { getByRole } = setup({ runQuery }, mockStore(initialState));
   const button = getByRole('button');
   expect(runQuery).toHaveBeenCalledTimes(0);
@@ -143,7 +143,7 @@ test('dispatch runQuery on click', async () => {
 });
 
 test('dispatch stopQuery on click while running state', async () => {
-  const stopQuery = jest.fn();
+  const stopQuery = vi.fn();
   const { getByRole } = setup(
     { queryState: 'running', stopQuery },
     mockStore(initialState),

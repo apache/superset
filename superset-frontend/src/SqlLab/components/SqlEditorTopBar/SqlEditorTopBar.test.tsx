@@ -22,7 +22,7 @@ import SqlEditorTopBar, {
   SqlEditorTopBarProps,
 } from 'src/SqlLab/components/SqlEditorTopBar';
 
-jest.mock('src/components/PanelToolbar', () => ({
+vi.mock('src/components/PanelToolbar', () => ({
   __esModule: true,
   default: ({
     viewId,

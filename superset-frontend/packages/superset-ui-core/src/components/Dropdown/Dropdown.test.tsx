@@ -41,7 +41,7 @@ describe('NoAnimationDropdown', () => {
   });
 
   test('calls onBlur when it loses focus', () => {
-    const onBlur = jest.fn();
+    const onBlur = vi.fn();
     render(
       <NoAnimationDropdown {...props} onBlur={onBlur}>
         <button type="button">Test Button</button>
@@ -52,7 +52,7 @@ describe('NoAnimationDropdown', () => {
   });
 
   test('calls onKeyDown when a key is pressed', () => {
-    const onKeyDown = jest.fn();
+    const onKeyDown = vi.fn();
     render(
       <NoAnimationDropdown {...props} onKeyDown={onKeyDown}>
         <button type="button">Test Button</button>

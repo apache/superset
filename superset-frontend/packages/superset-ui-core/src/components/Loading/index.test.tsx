@@ -22,19 +22,19 @@ import * as themeModule from '@apache-superset/core/ui/theme';
 import { Loading } from '.';
 
 // Mock the loading SVG import since it's a file stub in tests
-jest.mock('../assets', () => ({
+vi.mock('../assets', () => ({
   Loading: () => <svg data-test="default-loading-svg" />,
 }));
 
-const mockUseTheme = jest.fn();
+const mockUseTheme = vi.fn();
 
 beforeEach(() => {
   mockUseTheme.mockReset();
-  jest.spyOn(themeModule, 'useTheme').mockImplementation(mockUseTheme);
+  vi.spyOn(themeModule, 'useTheme').mockImplementation(mockUseTheme);
 });
 
 afterEach(() => {
-  jest.restoreAllMocks();
+  vi.restoreAllMocks();
 });
 
 test('uses default spinner when no theme spinner configured', () => {

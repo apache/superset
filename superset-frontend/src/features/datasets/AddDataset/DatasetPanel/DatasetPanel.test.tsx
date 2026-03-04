@@ -34,7 +34,7 @@ import {
   ERROR_DESCRIPTION,
 } from './MessageContent';
 
-jest.mock(
+vi.mock(
   '@superset-ui/core/components/Icons/AsyncIcon',
   () =>
     ({ fileName }: { fileName: string }) => (

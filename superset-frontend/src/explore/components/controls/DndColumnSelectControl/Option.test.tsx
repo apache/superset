@@ -27,7 +27,7 @@ import Option from 'src/explore/components/controls/DndColumnSelectControl/Optio
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('Option', () => {
   beforeAll(() => {
-    jest.setTimeout(30000);
+    vi.setConfig({ testTimeout: 30000 });
   });
 
   afterEach(async () => {
@@ -37,7 +37,7 @@ describe('Option', () => {
 
   test('renders with default props', async () => {
     const { container, unmount } = render(
-      <Option index={1} clickClose={jest.fn()}>
+      <Option index={1} clickClose={vi.fn()}>
         Option
       </Option>,
     );
@@ -53,7 +53,7 @@ describe('Option', () => {
 
   test('renders with caret', async () => {
     const { unmount } = render(
-      <Option index={1} clickClose={jest.fn()} withCaret>
+      <Option index={1} clickClose={vi.fn()} withCaret>
         Option
       </Option>,
     );
@@ -68,7 +68,7 @@ describe('Option', () => {
 
   test('renders with extra triangle', async () => {
     const { unmount } = render(
-      <Option index={1} clickClose={jest.fn()} isExtra>
+      <Option index={1} clickClose={vi.fn()} isExtra>
         Option
       </Option>,
     );
@@ -79,7 +79,7 @@ describe('Option', () => {
   });
 
   test('triggers onClose', async () => {
-    const clickClose = jest.fn();
+    const clickClose = vi.fn();
     const { unmount } = render(
       <Option index={1} clickClose={clickClose}>
         Option

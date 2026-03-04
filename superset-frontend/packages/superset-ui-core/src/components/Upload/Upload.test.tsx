@@ -21,7 +21,7 @@ import { Button, Upload } from '..';
 
 describe('Upload Component', () => {
   test('renders upload button and triggers file upload', async () => {
-    const handleChange = jest.fn();
+    const handleChange = vi.fn();
 
     render(
       <Upload onChange={handleChange}>

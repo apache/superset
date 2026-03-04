@@ -20,9 +20,22 @@
 import path from 'path';
 import { defineConfig } from 'vitest/config';
 import tsconfigPaths from 'vite-tsconfig-paths';
+import react from '@vitejs/plugin-react';
+import svgr from 'vite-plugin-svgr';
 
 export default defineConfig({
-  plugins: [tsconfigPaths()],
+  plugins: [
+    tsconfigPaths(),
+    react(),
+    svgr({
+      svgrOptions: {
+        ref: true,
+        svgo: false,
+        titleProp: true,
+      },
+      include: '**/*.svg',
+    }),
+  ],
   test: {
     globals: true,
     env: {
@@ -37,7 +50,7 @@ export default defineConfig({
       },
     },
     setupFiles: [path.resolve(__dirname, './spec/helpers/setup.ts')],
-    include: ['./(spec|src|plugins|packages|tools)/**/*.test.ts'],
+    include: ['./(spec|src|plugins|packages|tools)/**/*.test.ts?(x)'],
     exclude: [
       './packages/generator-superset',
       './packages/**/esm',
@@ -46,6 +59,7 @@ export default defineConfig({
       './plugins/**/lib',
     ],
     reporters: ['default'],
+    maxWorkers: '80%',
     coverage: {
       enabled: false,
       clean: true,
@@ -66,7 +80,7 @@ export default defineConfig({
     },
     alias: [
       // {
-      //   find: new RegExp('\.(less|geojson)$'),
+      //   find: new RegExp('\.(css|less|geojson)$'),
       //   replacement: path.resolve(
       //     __dirname,
       //     './spec/__mocks__/mockExportObject.js',

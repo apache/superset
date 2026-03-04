@@ -30,7 +30,7 @@ import { mockStore } from 'spec/fixtures/mockStore';
 import { dashboardLayout as mockLayout } from 'spec/fixtures/mockDashboardLayout';
 import MarkdownConnected from './Markdown';
 
-jest.mock('src/core/editors', () => ({
+vi.mock('src/core/editors', () => ({
   EditorHost: ({
     value,
     onChange,
@@ -59,14 +59,14 @@ interface MarkdownProps {
   editMode: boolean;
   availableColumnCount: number;
   columnWidth: number;
-  onResizeStart: jest.Mock;
-  onResize: jest.Mock;
-  onResizeStop: jest.Mock;
-  handleComponentDrop: jest.Mock;
-  updateComponents: jest.Mock;
-  deleteComponent: jest.Mock;
-  logEvent: jest.Mock;
-  addDangerToast: jest.Mock;
+  onResizeStart: vi.Mock;
+  onResize: vi.Mock;
+  onResizeStop: vi.Mock;
+  handleComponentDrop: vi.Mock;
+  updateComponents: vi.Mock;
+  deleteComponent: vi.Mock;
+  logEvent: vi.Mock;
+  addDangerToast: vi.Mock;
   undoLength?: number;
   redoLength?: number;
 }
@@ -81,19 +81,19 @@ const defaultProps: MarkdownProps = {
   editMode: false,
   availableColumnCount: 12,
   columnWidth: 50,
-  onResizeStart: jest.fn(),
-  onResize: jest.fn(),
-  onResizeStop: jest.fn(),
-  handleComponentDrop: jest.fn(),
-  updateComponents: jest.fn(),
-  deleteComponent: jest.fn(),
-  logEvent: jest.fn(),
-  addDangerToast: jest.fn(),
+  onResizeStart: vi.fn(),
+  onResize: vi.fn(),
+  onResizeStop: vi.fn(),
+  handleComponentDrop: vi.fn(),
+  updateComponents: vi.fn(),
+  deleteComponent: vi.fn(),
+  logEvent: vi.fn(),
+  addDangerToast: vi.fn(),
 };
 
 beforeAll(() => {
   const originalError = console.error;
-  jest.spyOn(console, 'error').mockImplementation((msg: unknown) => {
+  vi.spyOn(console, 'error').mockImplementation((msg: unknown) => {
     if (
       typeof msg === 'string' &&
       !msg.includes('[antd:') &&
@@ -107,11 +107,11 @@ beforeAll(() => {
 });
 
 afterAll(() => {
-  jest.restoreAllMocks();
+  vi.restoreAllMocks();
 });
 
 afterEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 const setup = async (
@@ -181,7 +181,7 @@ test('should switch between edit and preview modes', async () => {
 });
 
 test('should call updateComponents when switching from edit to preview with changes', async () => {
-  const updateComponents = jest.fn();
+  const updateComponents = vi.fn();
   const mockCode = 'new markdown!';
 
   await setup({
@@ -260,7 +260,7 @@ test('should show placeholder text when markdown is empty', async () => {
 });
 
 test('should handle markdown errors gracefully', async () => {
-  const addDangerToast = jest.fn();
+  const addDangerToast = vi.fn();
   await setup({
     addDangerToast,
     component: {

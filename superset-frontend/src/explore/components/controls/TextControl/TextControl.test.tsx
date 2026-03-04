@@ -64,7 +64,7 @@ test('should render as disabled', () => {
 test('should focus', () => {
   const focusProps = {
     ...mockedProps,
-    onFocus: jest.fn(),
+    onFocus: vi.fn(),
   };
   render(<TextControl {...focusProps} />);
   const input = screen.getByPlaceholderText('Placeholder');
@@ -77,7 +77,7 @@ test('should return errors when not a float', async () => {
     ...mockedProps,
     isFloat: true,
     value: null,
-    onChange: jest.fn(),
+    onChange: vi.fn(),
   };
   render(<TextControl {...changeProps} />);
   const input = screen.getByPlaceholderText('Placeholder');
@@ -93,7 +93,7 @@ test('should return errors when not an int', async () => {
     ...mockedProps,
     isInt: true,
     value: null,
-    onChange: jest.fn(),
+    onChange: vi.fn(),
   };
   render(<TextControl {...changeProps} />);
   const input = screen.getByPlaceholderText('Placeholder');

@@ -85,7 +85,7 @@ const mockChartsResponse = {
 };
 
 const setupTest = (props = {}) => {
-  const mockOnFetchCharts = jest.fn(() =>
+  const mockOnFetchCharts = vi.fn(() =>
     Promise.resolve({
       charts: mockChartsResponse.result,
       count: mockChartsResponse.count,
@@ -98,7 +98,7 @@ const setupTest = (props = {}) => {
     charts: mockChartsResponse.result,
     totalCount: mockChartsResponse.count,
     onFetchCharts: mockOnFetchCharts,
-    addDangerToast: jest.fn(),
+    addDangerToast: vi.fn(),
     ...props,
   };
 
@@ -120,9 +120,9 @@ beforeAll(() => {
 
 beforeEach(() => {
   fetchMock.clearHistory().removeRoutes();
-  jest.clearAllMocks();
+  vi.clearAllMocks();
   // Mock scrollTo for all tests
-  Element.prototype.scrollTo = jest.fn();
+  Element.prototype.scrollTo = vi.fn();
 });
 
 afterEach(() => {
@@ -130,8 +130,8 @@ afterEach(() => {
   // Restore original scrollTo implementation after each test
   Element.prototype.scrollTo = originalScrollTo;
   // Restore console.error if it was spied on
-  if (jest.isMockFunction(console.error)) {
-    (console.error as jest.Mock).mockRestore();
+  if (vi.isMockFunction(console.error)) {
+    (console.error as vi.Mock).mockRestore();
   }
 });
 
@@ -262,7 +262,7 @@ test('shows loading state during pagination fetch', async () => {
     resolvePromise = resolve;
   });
 
-  const mockOnFetchCharts = jest.fn(() => delayedPromise);
+  const mockOnFetchCharts = vi.fn(() => delayedPromise);
 
   // Start with multiple pages
   setupTest({
@@ -297,7 +297,7 @@ test('shows loading state during pagination fetch', async () => {
 });
 
 test('calls onFetchCharts with correct pagination parameters', async () => {
-  const mockOnFetchCharts = jest.fn(() =>
+  const mockOnFetchCharts = vi.fn(() =>
     Promise.resolve({
       charts: mockChartsResponse.result,
       count: 100,
@@ -325,10 +325,10 @@ test('calls onFetchCharts with correct pagination parameters', async () => {
 });
 
 test('shows error toast when fetch fails', async () => {
-  const mockOnFetchCharts = jest.fn(() =>
+  const mockOnFetchCharts = vi.fn(() =>
     Promise.reject(new Error('Network error')),
   );
-  const mockAddDangerToast = jest.fn();
+  const mockAddDangerToast = vi.fn();
 
   setupTest({
     onFetchCharts: mockOnFetchCharts,
@@ -354,7 +354,7 @@ test('handles slow network without race condition', async () => {
     resolvePromise = resolve;
   });
 
-  const mockOnFetchCharts = jest.fn(() => slowPromise);
+  const mockOnFetchCharts = vi.fn(() => slowPromise);
 
   setupTest({
     onFetchCharts: mockOnFetchCharts,
@@ -388,14 +388,14 @@ test('handles slow network without race condition', async () => {
 
 test('scrolls to top after data loads, not before', async () => {
   // Use the global scrollTo mock
-  const scrollToMock = Element.prototype.scrollTo as jest.Mock;
+  const scrollToMock = Element.prototype.scrollTo as vi.Mock;
 
   let resolvePromise: (value: any) => void;
   const delayedPromise = new Promise(resolve => {
     resolvePromise = resolve;
   });
 
-  const mockOnFetchCharts = jest.fn(() => delayedPromise);
+  const mockOnFetchCharts = vi.fn(() => delayedPromise);
 
   setupTest({
     onFetchCharts: mockOnFetchCharts,
@@ -437,9 +437,9 @@ test('scrolls to top after data loads, not before', async () => {
 
 test('does not scroll on initial mount, only on page change', async () => {
   // Use the global scrollTo mock
-  const scrollToMock = Element.prototype.scrollTo as jest.Mock;
+  const scrollToMock = Element.prototype.scrollTo as vi.Mock;
 
-  const mockOnFetchCharts = jest.fn(() =>
+  const mockOnFetchCharts = vi.fn(() =>
     Promise.resolve({
       charts: mockChartsResponse.result,
       count: 2,
@@ -459,14 +459,14 @@ test('does not scroll on initial mount, only on page change', async () => {
 });
 
 test('cleans up animation frame on unmount during loading', async () => {
-  const cancelAnimationFrameSpy = jest.spyOn(window, 'cancelAnimationFrame');
+  const cancelAnimationFrameSpy = vi.spyOn(window, 'cancelAnimationFrame');
 
   let resolvePromise: (value: any) => void;
   const delayedPromise = new Promise(resolve => {
     resolvePromise = resolve;
   });
 
-  const mockOnFetchCharts = jest.fn(() => delayedPromise);
+  const mockOnFetchCharts = vi.fn(() => delayedPromise);
 
   const { unmount } = setupTest({
     onFetchCharts: mockOnFetchCharts,
@@ -504,14 +504,14 @@ test('cleans up animation frame on unmount during loading', async () => {
 });
 
 test('handles AbortError without setState after unmount', async () => {
-  const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+  const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation();
 
   let rejectPromise: (reason?: any) => void;
   const abortedPromise = new Promise((_, reject) => {
     rejectPromise = reject;
   });
 
-  const mockOnFetchCharts = jest.fn(() => abortedPromise);
+  const mockOnFetchCharts = vi.fn(() => abortedPromise);
 
   const { unmount } = setupTest({
     onFetchCharts: mockOnFetchCharts,

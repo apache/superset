@@ -32,7 +32,7 @@ import { fallbackExploreInitialData } from 'src/explore/fixtures';
 import type { ColumnObject } from 'src/features/datasets/types';
 import DatasourceControl from '.';
 
-const SupersetClientGet = jest.spyOn(SupersetClient, 'get');
+const SupersetClientGet = vi.spyOn(SupersetClient, 'get');
 
 let originalLocation: Location;
 
@@ -43,7 +43,7 @@ beforeEach(() => {
 afterEach(() => {
   window.location = originalLocation;
   fetchMock.clearHistory().removeRoutes();
-  jest.clearAllMocks(); // Clears mock history but keeps spy in place
+  vi.clearAllMocks(); // Clears mock history but keeps spy in place
 });
 
 interface TestDatasource {
@@ -105,8 +105,8 @@ const createProps = (
     validationErrors: [],
     name: 'datasource',
     actions: {
-      changeDatasource: jest.fn(),
-      setControlValue: jest.fn(),
+      changeDatasource: vi.fn(),
+      setControlValue: vi.fn(),
     },
     isEditable: true,
     user: {
@@ -120,8 +120,8 @@ const createProps = (
       userId: 1,
       username: 'admin',
     },
-    onChange: jest.fn(),
-    onDatasourceSave: jest.fn(),
+    onChange: vi.fn(),
+    onDatasourceSave: vi.fn(),
     ...overrides,
   }) as unknown as DatasourceControlComponentProps;
 
@@ -744,7 +744,7 @@ test('should verify real DatasourceControl callback fires on save', async () => 
   // This test verifies that the REAL DatasourceControl component calls onDatasourceSave
   // This is simpler than the full metric creation flow but tests the key integration
 
-  const mockOnDatasourceSave = jest.fn();
+  const mockOnDatasourceSave = vi.fn();
   const props = createProps({
     datasource: mockDatasource,
     onDatasourceSave: mockOnDatasourceSave,

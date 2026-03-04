@@ -153,7 +153,7 @@ test('displays a header', async () => {
 });
 
 test('adds a new option if the value is not in the options, when options are empty', async () => {
-  const loadOptions = jest.fn(async () => ({ data: [], totalCount: 0 }));
+  const loadOptions = vi.fn(async () => ({ data: [], totalCount: 0 }));
   render(
     <AsyncSelect {...defaultProps} options={loadOptions} value={OPTIONS[0]} />,
   );
@@ -167,7 +167,7 @@ test('adds a new option if the value is not in the options, when options are emp
 });
 
 test('adds a new option if the value is not in the options, when options have values', async () => {
-  const loadOptions = jest.fn(async () => ({
+  const loadOptions = vi.fn(async () => ({
     data: [OPTIONS[1]],
     totalCount: 1,
   }));
@@ -185,7 +185,7 @@ test('adds a new option if the value is not in the options, when options have va
 });
 
 test('does not add a new option if the value is already in the options', async () => {
-  const loadOptions = jest.fn(async () => ({
+  const loadOptions = vi.fn(async () => ({
     data: [OPTIONS[0]],
     totalCount: 1,
   }));
@@ -206,7 +206,7 @@ test('inverts the selection', async () => {
 });
 
 test('sort the options by label if no sort comparator is provided', async () => {
-  const loadUnsortedOptions = jest.fn(async () => ({
+  const loadUnsortedOptions = vi.fn(async () => ({
     data: [...OPTIONS].sort(() => Math.random()),
     totalCount: 2,
   }));
@@ -324,7 +324,7 @@ test('ignores case when searching', async () => {
 });
 
 test('same case should be ranked to the top', async () => {
-  const loadOptions = jest.fn(async () => ({
+  const loadOptions = vi.fn(async () => ({
     data: [
       { value: 'Cac' },
       { value: 'abac' },
@@ -399,7 +399,7 @@ test('removes duplicated values', async () => {
 });
 
 test('renders a custom label', async () => {
-  const loadOptions = jest.fn(async () => ({
+  const loadOptions = vi.fn(async () => ({
     data: [
       { value: 'John', label: <h1>John</h1> },
       { value: 'Liam', label: <h1>Liam</h1> },
@@ -415,7 +415,7 @@ test('renders a custom label', async () => {
 });
 
 test('searches for a word with a custom label', async () => {
-  const loadOptions = jest.fn(async () => ({
+  const loadOptions = vi.fn(async () => ({
     data: [
       { value: 'John', label: <h1>John</h1> },
       { value: 'Liam', label: <h1>Liam</h1> },
@@ -441,7 +441,7 @@ test('removes a new option if the user does not select it', async () => {
 });
 
 test('clear all the values', async () => {
-  const onClear = jest.fn();
+  const onClear = vi.fn();
   render(
     <AsyncSelect
       {...defaultProps}
@@ -466,7 +466,7 @@ test('does not add a new option if allowNewOptions is false', async () => {
 });
 
 test('adds the null option when selected in single mode', async () => {
-  const loadOptions = jest.fn(async () => ({
+  const loadOptions = vi.fn(async () => ({
     data: [OPTIONS[0], NULL_OPTION],
     totalCount: 2,
   }));
@@ -478,7 +478,7 @@ test('adds the null option when selected in single mode', async () => {
 });
 
 test('adds the null option when selected in multiple mode', async () => {
-  const loadOptions = jest.fn(async () => ({
+  const loadOptions = vi.fn(async () => ({
     data: [OPTIONS[0], NULL_OPTION],
     totalCount: 2,
   }));
@@ -541,7 +541,7 @@ test('multiple selections in multiple mode', async () => {
 });
 
 test('changes the selected item in single mode', async () => {
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   render(<AsyncSelect {...defaultProps} onChange={onChange} />);
   await open();
   const [firstOption, secondOption] = OPTIONS;
@@ -674,7 +674,7 @@ test('searches for matches in both loaded and unloaded pages', async () => {
 });
 
 test('searches for an item in a page not loaded', async () => {
-  const mock = jest.fn(loadOptions);
+  const mock = vi.fn(loadOptions);
   render(<AsyncSelect {...defaultProps} options={mock} />);
   const search = 'Sandro';
   await open();
@@ -686,20 +686,20 @@ test('searches for an item in a page not loaded', async () => {
 });
 
 test('does not fetches data when rendering', async () => {
-  const loadOptions = jest.fn(async () => ({ data: [], totalCount: 0 }));
+  const loadOptions = vi.fn(async () => ({ data: [], totalCount: 0 }));
   render(<AsyncSelect {...defaultProps} options={loadOptions} />);
   expect(loadOptions).not.toHaveBeenCalled();
 });
 
 test('fetches data when opening', async () => {
-  const loadOptions = jest.fn(async () => ({ data: [], totalCount: 0 }));
+  const loadOptions = vi.fn(async () => ({ data: [], totalCount: 0 }));
   render(<AsyncSelect {...defaultProps} options={loadOptions} />);
   await open();
   expect(loadOptions).toHaveBeenCalled();
 });
 
 test('fetches data only after a search input is entered if fetchOnlyOnSearch is true', async () => {
-  const loadOptions = jest.fn(async () => ({ data: [], totalCount: 0 }));
+  const loadOptions = vi.fn(async () => ({ data: [], totalCount: 0 }));
   render(
     <AsyncSelect {...defaultProps} options={loadOptions} fetchOnlyOnSearch />,
   );
@@ -720,7 +720,7 @@ test('displays an error message when an exception is thrown while fetching', asy
 });
 
 test('does not fire a new request for the same search input', async () => {
-  const loadOptions = jest.fn(async () => ({ data: [], totalCount: 0 }));
+  const loadOptions = vi.fn(async () => ({ data: [], totalCount: 0 }));
   render(
     <AsyncSelect {...defaultProps} options={loadOptions} fetchOnlyOnSearch />,
   );
@@ -731,7 +731,7 @@ test('does not fire a new request for the same search input', async () => {
 });
 
 test('does not fire a new request if all values have been fetched', async () => {
-  const mock = jest.fn(loadOptions);
+  const mock = vi.fn(loadOptions);
   const search = 'George';
   const pageSize = OPTIONS.length;
   render(<AsyncSelect {...defaultProps} options={mock} pageSize={pageSize} />);
@@ -743,7 +743,7 @@ test('does not fire a new request if all values have been fetched', async () => 
 });
 
 test('fires a new request if all values have not been fetched', async () => {
-  const mock = jest.fn(loadOptions);
+  const mock = vi.fn(loadOptions);
   const pageSize = OPTIONS.length / 2;
   render(<AsyncSelect {...defaultProps} options={mock} pageSize={pageSize} />);
   await open();
@@ -774,7 +774,7 @@ test('renders a helper text when one is provided', async () => {
 });
 
 test('finds an element with a numeric value and does not duplicate the options', async () => {
-  const options = jest.fn(async () => ({
+  const options = vi.fn(async () => ({
     data: [
       { label: 'a', value: 11 },
       { label: 'b', value: 12 },
@@ -837,7 +837,7 @@ test('Renders only an overflow tag if dropdown is open in oneLine mode', async (
 });
 
 test('does not fire onChange when searching but no selection', async () => {
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   render(
     <div role="main">
       <AsyncSelect
@@ -856,7 +856,7 @@ test('does not fire onChange when searching but no selection', async () => {
 });
 
 test('fires onChange when clearing the selection in single mode', async () => {
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   render(
     <AsyncSelect
       {...defaultProps}
@@ -870,7 +870,7 @@ test('fires onChange when clearing the selection in single mode', async () => {
 });
 
 test('fires onChange when clearing the selection in multiple mode', async () => {
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   render(
     <AsyncSelect
       {...defaultProps}
@@ -884,7 +884,7 @@ test('fires onChange when clearing the selection in multiple mode', async () => 
 });
 
 test('fires onChange when pasting a selection', async () => {
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   render(<AsyncSelect {...defaultProps} onChange={onChange} />);
   await open();
   const input = getElementByClassName('.ant-select-selection-search-input');
@@ -916,7 +916,7 @@ test('does not duplicate options when using numeric values', async () => {
 });
 
 test('pasting an existing option does not duplicate it', async () => {
-  const options = jest.fn(async () => ({
+  const options = vi.fn(async () => ({
     data: [OPTIONS[0]],
     totalCount: 1,
   }));
@@ -933,7 +933,7 @@ test('pasting an existing option does not duplicate it', async () => {
 });
 
 test('pasting an existing option does not duplicate it in multiple mode', async () => {
-  const options = jest.fn(async () => ({
+  const options = vi.fn(async () => ({
     data: [
       { label: 'John', value: 1 },
       { label: 'Liam', value: 2 },
@@ -983,7 +983,7 @@ test('pasting an non-existent option should not add it if allowNewOptions is fal
 });
 
 test('onChange is called with the value property when pasting an option that was not loaded yet', async () => {
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   render(<AsyncSelect {...defaultProps} onChange={onChange} />);
   await open();
   const input = getElementByClassName('.ant-select-selection-search-input');
@@ -1003,7 +1003,7 @@ test('onChange is called with the value property when pasting an option that was
 });
 
 test('does not fire onChange if the same value is selected in single mode', async () => {
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   render(<AsyncSelect {...defaultProps} onChange={onChange} />);
   const optionText = 'Emma';
   await open();

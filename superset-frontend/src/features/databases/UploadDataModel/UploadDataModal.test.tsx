@@ -87,7 +87,7 @@ const setupMocks = () => {
 };
 
 // Set timeout for all tests in this file to 60 seconds
-jest.setTimeout(60000);
+vi.setConfig({ testTimeout: 60000 });
 
 beforeEach(() => {
   setupMocks();

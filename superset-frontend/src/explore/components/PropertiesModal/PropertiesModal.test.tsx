@@ -27,9 +27,9 @@ import fetchMock from 'fetch-mock';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import PropertiesModal, { PropertiesModalProps } from '.';
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
-  isFeatureEnabled: jest.fn(),
+vi.mock('@superset-ui/core', () => ({
+  ...(await importActual()),
+  isFeatureEnabled: vi.fn(),
 }));
 
 const createProps = () =>
@@ -44,10 +44,10 @@ const createProps = () =>
       is_managed_externally: false,
     },
     show: true,
-    onHide: jest.fn(),
-    onSave: jest.fn(),
-    addSuccessToast: jest.fn(),
-    addDangerToast: jest.fn(),
+    onHide: vi.fn(),
+    onSave: vi.fn(),
+    addSuccessToast: vi.fn(),
+    addDangerToast: vi.fn(),
   }) as PropertiesModalProps;
 
 fetchMock.get('glob:*/api/v1/chart/318*', {
@@ -450,7 +450,7 @@ test('"Certification details" should not be empty when saved', async () => {
 });
 
 test('Should display only custom tags when tagging system is enabled', async () => {
-  const mockIsFeatureEnabled = isFeatureEnabled as jest.MockedFunction<
+  const mockIsFeatureEnabled = isFeatureEnabled as vi.MockedFunction<
     typeof isFeatureEnabled
   >;
   mockIsFeatureEnabled.mockImplementation(

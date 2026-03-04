@@ -42,7 +42,7 @@ const A_WEEK_AGO = 'a week ago';
 const TWO_DAYS_AGO = '2 days ago';
 
 const runWithBarCollapsed = async (func: Function) => {
-  const spy = jest.spyOn(resizeDetector, 'useResizeDetector');
+  const spy = vi.spyOn(resizeDetector, 'useResizeDetector');
   let width: number;
   spy.mockImplementation(props => {
     if (props?.onResize && !width) {
@@ -101,7 +101,7 @@ test('renders an array of items', () => {
 });
 
 test('throws errors when out of min/max restrictions', () => {
-  const spy = jest.spyOn(console, 'error');
+  const spy = vi.spyOn(console, 'error');
   spy.mockImplementation(() => {});
   expect(() =>
     render(<MetadataBar items={ITEMS.slice(0, MIN_NUMBER_ITEMS - 1)} />),
@@ -148,7 +148,7 @@ test('renders a tooltip when one is provided even if not collapsed', async () =>
 });
 
 test('renders underlined text and emits event when clickable', async () => {
-  const onClick = jest.fn();
+  const onClick = vi.fn();
   const items = [{ ...ITEMS[0], onClick }, ITEMS[1]];
   render(<MetadataBar items={items} />);
   const element = screen.getByText(DASHBOARD_TITLE);
@@ -160,7 +160,7 @@ test('renders underlined text and emits event when clickable', async () => {
 
 test('renders clickable items with blue icons when the bar is collapsed', async () => {
   await runWithBarCollapsed(async () => {
-    const onClick = jest.fn();
+    const onClick = vi.fn();
     const items = [{ ...ITEMS[0], onClick }, ITEMS[1]];
     render(<MetadataBar items={items} />);
     const images = screen.getAllByRole('img');
@@ -266,7 +266,7 @@ test('correctly renders the tags tooltip', async () => {
 });
 
 test('renders StyledItem with role="button" when onClick is defined', () => {
-  const onClick = jest.fn();
+  const onClick = vi.fn();
   const items = [
     { ...ITEMS[0], onClick },
     { ...ITEMS[1], onClick },

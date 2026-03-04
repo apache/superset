@@ -43,9 +43,9 @@ import { MultiChartPlugin } from '../../../../../plugins/legacy-preset-chart-dec
 import VizTypeControl, { VIZ_TYPE_CONTROL_TEST_ID } from './index';
 
 // Mock scrollIntoView to avoid errors in test environment
-jest.mock('scroll-into-view-if-needed', () => jest.fn());
+vi.mock('scroll-into-view-if-needed', () => vi.fn());
 
-jest.useFakeTimers();
+vi.useFakeTimers();
 
 class MainPreset extends Preset {
   constructor() {
@@ -97,7 +97,7 @@ describe('VizTypeControl', () => {
     name: '',
     value: '',
     labelType: 'primary',
-    onChange: jest.fn(),
+    onChange: vi.fn(),
     isModalOpenInit: true,
   };
 
@@ -116,7 +116,7 @@ describe('VizTypeControl', () => {
 
   afterEach(() => {
     cleanup();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   test('Fast viz switcher tiles render', async () => {
@@ -292,7 +292,7 @@ describe('VizTypeControl', () => {
 
   test('Search input is focused when modal opens', async () => {
     // Mock the focus method to track if it was called
-    const focusSpy = jest.fn();
+    const focusSpy = vi.fn();
     const originalFocus = HTMLInputElement.prototype.focus;
     HTMLInputElement.prototype.focus = focusSpy;
 

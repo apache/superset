@@ -43,10 +43,10 @@ const createProps = (): DatabaseSelectorProps => ({
   catalog: null,
   schema: 'public',
   sqlLabMode: false,
-  getDbList: jest.fn(),
-  handleError: jest.fn(),
-  onDbChange: jest.fn(),
-  onSchemaChange: jest.fn(),
+  getDbList: vi.fn(),
+  handleError: vi.fn(),
+  onDbChange: vi.fn(),
+  onSchemaChange: vi.fn(),
 });
 
 const fakeDatabaseApiResult = {

@@ -27,7 +27,7 @@ import {
 } from 'spec/helpers/testing-library';
 import AddSliceCard from './AddSliceCard';
 
-jest.mock('src/components/DynamicPlugins', () => ({
+vi.mock('src/components/DynamicPlugins', () => ({
   usePluginContext: () => ({
     mountedPluginMetadata: { table: { name: 'Table' } },
   }),
@@ -69,7 +69,7 @@ test('render thumbnail if feature flag is set', async () => {
 test('does not render the tooltip with anchors', async () => {
   const mock = jest
     .spyOn(global.React, 'useState')
-    .mockImplementation(() => [true, jest.fn()]);
+    .mockImplementation(() => [true, vi.fn()]);
   render(
     <AddSliceCard
       {...mockedProps}

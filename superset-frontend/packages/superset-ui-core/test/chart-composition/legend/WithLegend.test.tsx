@@ -21,15 +21,15 @@ import { triggerResizeObserver } from 'resize-observer-polyfill';
 import { promiseTimeout, WithLegend } from '@superset-ui/core';
 import { render } from '@testing-library/react';
 
-let renderChart = jest.fn();
-let renderLegend = jest.fn();
+let renderChart = vi.fn();
+let renderLegend = vi.fn();
 
 // TODO: rewrite to rtl
 /* oxlint-disable-next-line jest/no-disabled-tests */
 describe.skip('WithLegend', () => {
   beforeEach(() => {
-    renderChart = jest.fn(() => <div className="chart" />);
-    renderLegend = jest.fn(() => <div className="legend" />);
+    renderChart = vi.fn(() => <div className="chart" />);
+    renderLegend = vi.fn(() => <div className="legend" />);
   });
 
   test('sets className', () => {

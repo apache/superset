@@ -66,7 +66,7 @@ beforeEach(() => {
   fetchMock.get(sqlLabInitialStateApiRoute, fakeApiResult);
 });
 
-jest.mock('src/SqlLab/components/App', () => () => (
+vi.mock('src/SqlLab/components/App', () => () => (
   <div data-test="mock-sqllab-app" />
 ));
 

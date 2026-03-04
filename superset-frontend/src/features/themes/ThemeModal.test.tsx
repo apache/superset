@@ -25,22 +25,22 @@ import { ThemeObject } from './types';
 import { validateTheme } from 'src/theme/utils/themeStructureValidation';
 
 const mockThemeContext = {
-  setTemporaryTheme: jest.fn(),
-  clearLocalOverrides: jest.fn(),
-  hasDevOverride: jest.fn(() => false),
+  setTemporaryTheme: vi.fn(),
+  clearLocalOverrides: vi.fn(),
+  hasDevOverride: vi.fn(() => false),
 };
 
-jest.mock('src/theme/ThemeProvider', () => ({
+vi.mock('src/theme/ThemeProvider', () => ({
   useThemeContext: () => mockThemeContext,
 }));
 
-jest.mock('src/dashboard/util/permissionUtils', () => ({
-  isUserAdmin: jest.fn(() => true),
+vi.mock('src/dashboard/util/permissionUtils', () => ({
+  isUserAdmin: vi.fn(() => true),
 }));
 
 // Mock JsonEditor to avoid direct DOM manipulation in tests
-jest.mock('@superset-ui/core/components/AsyncAceEditor', () => ({
-  ...jest.requireActual('@superset-ui/core/components/AsyncAceEditor'),
+vi.mock('@superset-ui/core/components/AsyncAceEditor', () => ({
+  ...vi.requireActual('@superset-ui/core/components/AsyncAceEditor'),
   JsonEditor: ({
     onChange,
     value,
@@ -108,7 +108,7 @@ beforeEach(() => {
 
 afterEach(() => {
   fetchMock.clearHistory().removeRoutes();
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 // Helper to add valid JSON data to the theme
@@ -139,10 +139,10 @@ const addJsonWithUnknownToken = async () => {
 test('renders modal with add theme dialog when show is true', () => {
   render(
     <ThemeModal
-      addDangerToast={jest.fn()}
-      addSuccessToast={jest.fn()}
-      onThemeAdd={jest.fn()}
-      onHide={jest.fn()}
+      addDangerToast={vi.fn()}
+      addSuccessToast={vi.fn()}
+      onThemeAdd={vi.fn()}
+      onHide={vi.fn()}
       show
       canDevelop={false}
     />,
@@ -156,10 +156,10 @@ test('renders modal with add theme dialog when show is true', () => {
 test('does not render modal when show is false', () => {
   render(
     <ThemeModal
-      addDangerToast={jest.fn()}
-      addSuccessToast={jest.fn()}
-      onThemeAdd={jest.fn()}
-      onHide={jest.fn()}
+      addDangerToast={vi.fn()}
+      addSuccessToast={vi.fn()}
+      onThemeAdd={vi.fn()}
+      onHide={vi.fn()}
       show={false}
       canDevelop={false}
     />,
@@ -172,10 +172,10 @@ test('does not render modal when show is false', () => {
 test('renders edit mode title when theme is provided', async () => {
   render(
     <ThemeModal
-      addDangerToast={jest.fn()}
-      addSuccessToast={jest.fn()}
-      onThemeAdd={jest.fn()}
-      onHide={jest.fn()}
+      addDangerToast={vi.fn()}
+      addSuccessToast={vi.fn()}
+      onThemeAdd={vi.fn()}
+      onHide={vi.fn()}
       show
       canDevelop={false}
       theme={mockTheme}
@@ -191,10 +191,10 @@ test('renders edit mode title when theme is provided', async () => {
 test('renders view mode title for system themes', async () => {
   render(
     <ThemeModal
-      addDangerToast={jest.fn()}
-      addSuccessToast={jest.fn()}
-      onThemeAdd={jest.fn()}
-      onHide={jest.fn()}
+      addDangerToast={vi.fn()}
+      addSuccessToast={vi.fn()}
+      onThemeAdd={vi.fn()}
+      onHide={vi.fn()}
       show
       canDevelop={false}
       theme={mockSystemTheme}
@@ -212,10 +212,10 @@ test('renders view mode title for system themes', async () => {
 test('renders theme name input field', () => {
   render(
     <ThemeModal
-      addDangerToast={jest.fn()}
-      addSuccessToast={jest.fn()}
-      onThemeAdd={jest.fn()}
-      onHide={jest.fn()}
+      addDangerToast={vi.fn()}
+      addSuccessToast={vi.fn()}
+      onThemeAdd={vi.fn()}
+      onHide={vi.fn()}
       show
       canDevelop={false}
     />,
@@ -228,10 +228,10 @@ test('renders theme name input field', () => {
 test('renders JSON configuration field', () => {
   render(
     <ThemeModal
-      addDangerToast={jest.fn()}
-      addSuccessToast={jest.fn()}
-      onThemeAdd={jest.fn()}
-      onHide={jest.fn()}
+      addDangerToast={vi.fn()}
+      addSuccessToast={vi.fn()}
+      onThemeAdd={vi.fn()}
+      onHide={vi.fn()}
       show
       canDevelop={false}
     />,
@@ -244,10 +244,10 @@ test('renders JSON configuration field', () => {
 test('disables inputs for read-only system themes', async () => {
   render(
     <ThemeModal
-      addDangerToast={jest.fn()}
-      addSuccessToast={jest.fn()}
-      onThemeAdd={jest.fn()}
-      onHide={jest.fn()}
+      addDangerToast={vi.fn()}
+      addSuccessToast={vi.fn()}
+      onThemeAdd={vi.fn()}
+      onHide={vi.fn()}
       show
       canDevelop={false}
       theme={mockSystemTheme}
@@ -263,10 +263,10 @@ test('disables inputs for read-only system themes', async () => {
 test('shows Apply button when canDevelop is true and theme exists', async () => {
   render(
     <ThemeModal
-      addDangerToast={jest.fn()}
-      addSuccessToast={jest.fn()}
-      onThemeAdd={jest.fn()}
-      onHide={jest.fn()}
+      addDangerToast={vi.fn()}
+      addSuccessToast={vi.fn()}
+      onThemeAdd={vi.fn()}
+      onHide={vi.fn()}
       show
       canDevelop
       theme={mockTheme}
@@ -282,10 +282,10 @@ test('shows Apply button when canDevelop is true and theme exists', async () => 
 test('does not show Apply button when canDevelop is false', () => {
   render(
     <ThemeModal
-      addDangerToast={jest.fn()}
-      addSuccessToast={jest.fn()}
-      onThemeAdd={jest.fn()}
-      onHide={jest.fn()}
+      addDangerToast={vi.fn()}
+      addSuccessToast={vi.fn()}
+      onThemeAdd={vi.fn()}
+      onHide={vi.fn()}
       show
       canDevelop={false}
     />,
@@ -300,10 +300,10 @@ test('does not show Apply button when canDevelop is false', () => {
 test('disables save button when theme name is empty', () => {
   render(
     <ThemeModal
-      addDangerToast={jest.fn()}
-      addSuccessToast={jest.fn()}
-      onThemeAdd={jest.fn()}
-      onHide={jest.fn()}
+      addDangerToast={vi.fn()}
+      addSuccessToast={vi.fn()}
+      onThemeAdd={vi.fn()}
+      onHide={vi.fn()}
       show
       canDevelop={false}
     />,
@@ -318,10 +318,10 @@ test('disables save button when theme name is empty', () => {
 test('enables save button when theme name is entered', async () => {
   render(
     <ThemeModal
-      addDangerToast={jest.fn()}
-      addSuccessToast={jest.fn()}
-      onThemeAdd={jest.fn()}
-      onHide={jest.fn()}
+      addDangerToast={vi.fn()}
+      addSuccessToast={vi.fn()}
+      onThemeAdd={vi.fn()}
+      onHide={vi.fn()}
       show
       canDevelop={false}
     />,
@@ -345,10 +345,10 @@ test('enables save button when theme name is entered', async () => {
 test('validates JSON format and enables save button', async () => {
   render(
     <ThemeModal
-      addDangerToast={jest.fn()}
-      addSuccessToast={jest.fn()}
-      onThemeAdd={jest.fn()}
-      onHide={jest.fn()}
+      addDangerToast={vi.fn()}
+      addSuccessToast={vi.fn()}
+      onThemeAdd={vi.fn()}
+      onHide={vi.fn()}
       show
       canDevelop={false}
     />,
@@ -381,10 +381,10 @@ test('warnings do not block save - unknown tokens allow save with warnings', asy
 
   render(
     <ThemeModal
-      addDangerToast={jest.fn()}
-      addSuccessToast={jest.fn()}
-      onThemeAdd={jest.fn()}
-      onHide={jest.fn()}
+      addDangerToast={vi.fn()}
+      addSuccessToast={vi.fn()}
+      onThemeAdd={vi.fn()}
+      onHide={vi.fn()}
       show
       canDevelop={false}
     />,
@@ -408,10 +408,10 @@ test('warnings do not block save - unknown tokens allow save with warnings', asy
 test('shows unsaved changes alert when closing modal with modifications', async () => {
   render(
     <ThemeModal
-      addDangerToast={jest.fn()}
-      addSuccessToast={jest.fn()}
-      onThemeAdd={jest.fn()}
-      onHide={jest.fn()}
+      addDangerToast={vi.fn()}
+      addSuccessToast={vi.fn()}
+      onThemeAdd={vi.fn()}
+      onHide={vi.fn()}
       show
       canDevelop={false}
     />,
@@ -438,12 +438,12 @@ test('shows unsaved changes alert when closing modal with modifications', async 
 });
 
 test('does not show unsaved changes alert when closing without modifications', async () => {
-  const onHide = jest.fn();
+  const onHide = vi.fn();
   render(
     <ThemeModal
-      addDangerToast={jest.fn()}
-      addSuccessToast={jest.fn()}
-      onThemeAdd={jest.fn()}
+      addDangerToast={vi.fn()}
+      addSuccessToast={vi.fn()}
+      onThemeAdd={vi.fn()}
       onHide={onHide}
       show
       canDevelop={false}
@@ -463,10 +463,10 @@ test('does not show unsaved changes alert when closing without modifications', a
 test('allows user to keep editing after triggering cancel alert', async () => {
   render(
     <ThemeModal
-      addDangerToast={jest.fn()}
-      addSuccessToast={jest.fn()}
-      onThemeAdd={jest.fn()}
-      onHide={jest.fn()}
+      addDangerToast={vi.fn()}
+      addSuccessToast={vi.fn()}
+      onThemeAdd={vi.fn()}
+      onHide={vi.fn()}
       show
       canDevelop={false}
     />,
@@ -497,12 +497,12 @@ test('allows user to keep editing after triggering cancel alert', async () => {
 });
 
 test('saves changes when clicking Save button in unsaved changes alert', async () => {
-  const onHide = jest.fn();
-  const onThemeAdd = jest.fn();
+  const onHide = vi.fn();
+  const onThemeAdd = vi.fn();
   render(
     <ThemeModal
-      addDangerToast={jest.fn()}
-      addSuccessToast={jest.fn()}
+      addDangerToast={vi.fn()}
+      addSuccessToast={vi.fn()}
       onThemeAdd={onThemeAdd}
       onHide={onHide}
       show
@@ -556,12 +556,12 @@ test('saves changes when clicking Save button in unsaved changes alert', async (
 }, 30000);
 
 test('discards changes when clicking Discard button in unsaved changes alert', async () => {
-  const onHide = jest.fn();
+  const onHide = vi.fn();
   render(
     <ThemeModal
-      addDangerToast={jest.fn()}
-      addSuccessToast={jest.fn()}
-      onThemeAdd={jest.fn()}
+      addDangerToast={vi.fn()}
+      addSuccessToast={vi.fn()}
+      onThemeAdd={vi.fn()}
       onHide={onHide}
       show
       canDevelop={false}
@@ -588,12 +588,12 @@ test('discards changes when clicking Discard button in unsaved changes alert', a
 });
 
 test('creates new theme when saving', async () => {
-  const onHide = jest.fn();
-  const onThemeAdd = jest.fn();
+  const onHide = vi.fn();
+  const onThemeAdd = vi.fn();
   render(
     <ThemeModal
-      addDangerToast={jest.fn()}
-      addSuccessToast={jest.fn()}
+      addDangerToast={vi.fn()}
+      addSuccessToast={vi.fn()}
       onThemeAdd={onThemeAdd}
       onHide={onHide}
       show
@@ -624,12 +624,12 @@ test('creates new theme when saving', async () => {
 });
 
 test('updates existing theme when saving', async () => {
-  const onHide = jest.fn();
-  const onThemeAdd = jest.fn();
+  const onHide = vi.fn();
+  const onThemeAdd = vi.fn();
   render(
     <ThemeModal
-      addDangerToast={jest.fn()}
-      addSuccessToast={jest.fn()}
+      addDangerToast={vi.fn()}
+      addSuccessToast={vi.fn()}
       onThemeAdd={onThemeAdd}
       onHide={onHide}
       show
@@ -656,10 +656,10 @@ test('handles API errors gracefully', async () => {
 
   render(
     <ThemeModal
-      addDangerToast={jest.fn()}
-      addSuccessToast={jest.fn()}
-      onThemeAdd={jest.fn()}
-      onHide={jest.fn()}
+      addDangerToast={vi.fn()}
+      addSuccessToast={vi.fn()}
+      onThemeAdd={vi.fn()}
+      onHide={vi.fn()}
       show
       canDevelop={false}
     />,
@@ -689,13 +689,13 @@ test('handles API errors gracefully', async () => {
 });
 
 test('applies theme locally when clicking Apply button', async () => {
-  const onThemeApply = jest.fn();
+  const onThemeApply = vi.fn();
   render(
     <ThemeModal
-      addDangerToast={jest.fn()}
-      addSuccessToast={jest.fn()}
-      onThemeAdd={jest.fn()}
-      onHide={jest.fn()}
+      addDangerToast={vi.fn()}
+      addSuccessToast={vi.fn()}
+      onThemeAdd={vi.fn()}
+      onHide={vi.fn()}
       show
       canDevelop
       theme={mockTheme}
@@ -720,10 +720,10 @@ test('disables Apply button when JSON configuration is invalid', async () => {
 
   render(
     <ThemeModal
-      addDangerToast={jest.fn()}
-      addSuccessToast={jest.fn()}
-      onThemeAdd={jest.fn()}
-      onHide={jest.fn()}
+      addDangerToast={vi.fn()}
+      addSuccessToast={vi.fn()}
+      onThemeAdd={vi.fn()}
+      onHide={vi.fn()}
       show
       canDevelop
       theme={mockTheme}

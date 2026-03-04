@@ -22,14 +22,14 @@ import { DatabaseObject, ConfigurationMethod } from '../../types';
 import { EncryptedField, encryptedCredentialsMap } from './EncryptedField';
 
 // Mock the useToasts hook
-jest.mock('src/components/MessageToasts/withToasts', () => ({
+vi.mock('src/components/MessageToasts/withToasts', () => ({
   __esModule: true,
   default: (Component: any) => Component,
   useToasts: () => ({
-    addDangerToast: jest.fn(),
-    addSuccessToast: jest.fn(),
-    addInfoToast: jest.fn(),
-    addWarningToast: jest.fn(),
+    addDangerToast: vi.fn(),
+    addSuccessToast: vi.fn(),
+    addInfoToast: vi.fn(),
+    addWarningToast: vi.fn(),
   }),
 }));
 
@@ -51,15 +51,15 @@ describe('EncryptedField', () => {
   });
 
   const createMockChangeMethods = () => ({
-    onEncryptedExtraInputChange: jest.fn(),
-    onParametersChange: jest.fn(),
-    onChange: jest.fn(),
-    onQueryChange: jest.fn(),
-    onParametersUploadFileChange: jest.fn(),
-    onAddTableCatalog: jest.fn(),
-    onRemoveTableCatalog: jest.fn(),
-    onExtraInputChange: jest.fn(),
-    onSSHTunnelParametersChange: jest.fn(),
+    onEncryptedExtraInputChange: vi.fn(),
+    onParametersChange: vi.fn(),
+    onChange: vi.fn(),
+    onQueryChange: vi.fn(),
+    onParametersUploadFileChange: vi.fn(),
+    onAddTableCatalog: vi.fn(),
+    onRemoveTableCatalog: vi.fn(),
+    onExtraInputChange: vi.fn(),
+    onSSHTunnelParametersChange: vi.fn(),
   });
 
   // Helper function to assert onParametersChange calls
@@ -82,12 +82,12 @@ describe('EncryptedField', () => {
 
   const defaultProps = {
     required: false,
-    onParametersChange: jest.fn(),
-    onParametersUploadFileChange: jest.fn(),
+    onParametersChange: vi.fn(),
+    onParametersUploadFileChange: vi.fn(),
     changeMethods: createMockChangeMethods(),
     validationErrors: null,
-    getValidation: jest.fn(),
-    clearValidationErrors: jest.fn(),
+    getValidation: vi.fn(),
+    clearValidationErrors: vi.fn(),
     field: 'test',
     isValidating: false,
     isEditMode: false,
@@ -99,7 +99,7 @@ describe('EncryptedField', () => {
   const supportedEngines = Object.entries(encryptedCredentialsMap);
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks

@@ -238,11 +238,8 @@ const notanonProps = {
   },
 };
 
-const useSelectorMock = jest.spyOn(reactRedux, 'useSelector');
-const staticAssetsPrefixMock = jest.spyOn(
-  getBootstrapData,
-  'staticAssetsPrefix',
-);
+const useSelectorMock = vi.spyOn(reactRedux, 'useSelector');
+const staticAssetsPrefixMock = vi.spyOn(getBootstrapData, 'staticAssetsPrefix');
 
 fetchMock.get(
   'glob:*api/v1/database/?q=(filters:!((col:allow_file_upload,opr:upload_is_enabled,value:!t)))',

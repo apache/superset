@@ -26,20 +26,20 @@ import { COLOR_SCHEME_TYPES } from '../../utilities/utils';
 import * as utils from '../../utils';
 
 // Mock the utils functions
-const mockGetBuckets = jest.spyOn(utils, 'getBuckets');
-const mockGetColorBreakpointsBuckets = jest.spyOn(
+const mockGetBuckets = vi.spyOn(utils, 'getBuckets');
+const mockGetColorBreakpointsBuckets = vi.spyOn(
   utils,
   'getColorBreakpointsBuckets',
 );
 
 // Mock DeckGL container and Legend
-jest.mock('../../DeckGLContainer', () => ({
+vi.mock('../../DeckGLContainer', () => ({
   DeckGLContainerStyledWrapper: ({ children }: any) => (
     <div data-testid="deckgl-container">{children}</div>
   ),
 }));
 
-jest.mock('../../components/Legend', () => ({ categories, position }: any) => (
+vi.mock('../../components/Legend', () => ({ categories, position }: any) => (
   <div
     data-testid="legend"
     data-categories={JSON.stringify(categories)}
@@ -98,20 +98,20 @@ const mockProps = {
     },
     form_data: {},
   },
-  setControlValue: jest.fn(),
+  setControlValue: vi.fn(),
   viewport: { longitude: 0, latitude: 0, zoom: 1 },
-  onAddFilter: jest.fn(),
+  onAddFilter: vi.fn(),
   width: 800,
   height: 600,
-  onContextMenu: jest.fn(),
-  setDataMask: jest.fn(),
+  onContextMenu: vi.fn(),
+  setDataMask: vi.fn(),
   filterState: undefined,
   emitCrossFilters: false,
 };
 
 describe('DeckGLPolygon bucket generation logic', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     mockGetBuckets.mockReturnValue({
       '100000 - 150000': { color: [0, 100, 200], enabled: true },
       '150000 - 200000': { color: [50, 150, 250], enabled: true },
@@ -222,7 +222,7 @@ describe('DeckGLPolygon bucket generation logic', () => {
 
 describe('DeckGLPolygon Error Handling and Edge Cases', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     mockGetBuckets.mockReturnValue({});
     mockGetColorBreakpointsBuckets.mockReturnValue({});
   });
@@ -284,7 +284,7 @@ describe('DeckGLPolygon Error Handling and Edge Cases', () => {
 
 describe('DeckGLPolygon Legend Integration', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     mockGetBuckets.mockReturnValue({
       '100000 - 150000': { color: [0, 100, 200], enabled: true },
       '150000 - 200000': { color: [50, 150, 250], enabled: true },

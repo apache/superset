@@ -44,13 +44,13 @@ window.featureFlags = {
   [FeatureFlag.EmbeddableCharts]: true,
 };
 
-jest.mock('src/hooks/useUnsavedChangesPrompt', () => ({
-  useUnsavedChangesPrompt: jest.fn(),
+vi.mock('src/hooks/useUnsavedChangesPrompt', () => ({
+  useUnsavedChangesPrompt: vi.fn(),
 }));
 
 const mockExportCurrentViewBehavior = () => {
   const registry = getChartMetadataRegistry();
-  return jest.spyOn(registry, 'get').mockReturnValue({
+  return vi.spyOn(registry, 'get').mockReturnValue({
     behaviors: ['EXPORT_CURRENT_VIEW'],
   } as any);
 };
@@ -126,11 +126,11 @@ const createProps = (additionalProps = {}) =>
     },
     sliceName: 'Age distribution of respondents',
     actions: {
-      postChartFormData: jest.fn(),
-      updateChartTitle: jest.fn(),
-      fetchFaveStar: jest.fn(),
-      saveFaveStar: jest.fn(),
-      redirectSQLLab: jest.fn(),
+      postChartFormData: vi.fn(),
+      updateChartTitle: vi.fn(),
+      fetchFaveStar: vi.fn(),
+      saveFaveStar: vi.fn(),
+      redirectSQLLab: vi.fn(),
     },
     user: {
       userId: 1,
@@ -155,17 +155,17 @@ fetchMock.post(
 );
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ExploreChartHeader', () => {
-  jest.setTimeout(15000); // ✅ Applies to all tests in this suite
+  vi.setConfig({ testTimeout: 15000 }); // ✅ Applies to all tests in this suite
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
-    (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+    (useUnsavedChangesPrompt as vi.Mock).mockReturnValue({
       showModal: false,
-      setShowModal: jest.fn(),
-      handleConfirmNavigation: jest.fn(),
-      handleSaveAndCloseModal: jest.fn(),
-      triggerManualSave: jest.fn(),
+      setShowModal: vi.fn(),
+      handleConfirmNavigation: vi.fn(),
+      handleSaveAndCloseModal: vi.fn(),
+      triggerManualSave: vi.fn(),
     });
   });
 
@@ -392,23 +392,23 @@ describe('ExploreChartHeader', () => {
   });
 
   test('Save chart', async () => {
-    const setSaveChartModalVisibilitySpy = jest.spyOn(
+    const setSaveChartModalVisibilitySpy = vi.spyOn(
       saveModalActions,
       'setSaveChartModalVisibility',
     );
 
     const setSaveChartModalVisibilityMock =
-      setSaveChartModalVisibilitySpy as jest.Mock;
+      setSaveChartModalVisibilitySpy as vi.Mock;
 
-    const triggerManualSave = jest.fn(() => {
+    const triggerManualSave = vi.fn(() => {
       setSaveChartModalVisibilityMock(true);
     });
 
-    (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+    (useUnsavedChangesPrompt as vi.Mock).mockReturnValue({
       showModal: false,
-      setShowModal: jest.fn(),
-      handleConfirmNavigation: jest.fn(),
-      handleSaveAndCloseModal: jest.fn(),
+      setShowModal: vi.fn(),
+      handleConfirmNavigation: vi.fn(),
+      handleSaveAndCloseModal: vi.fn(),
       triggerManualSave,
     });
 
@@ -428,13 +428,13 @@ describe('ExploreChartHeader', () => {
   });
 
   test('Save disabled', async () => {
-    const triggerManualSave = jest.fn();
+    const triggerManualSave = vi.fn();
 
-    (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+    (useUnsavedChangesPrompt as vi.Mock).mockReturnValue({
       showModal: false,
-      setShowModal: jest.fn(),
-      handleConfirmNavigation: jest.fn(),
-      handleSaveAndCloseModal: jest.fn(),
+      setShowModal: vi.fn(),
+      handleConfirmNavigation: vi.fn(),
+      handleSaveAndCloseModal: vi.fn(),
       triggerManualSave,
     });
 
@@ -455,12 +455,12 @@ describe('ExploreChartHeader', () => {
   test('should render UnsavedChangesModal when showModal is true', async () => {
     const props = createProps();
 
-    (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+    (useUnsavedChangesPrompt as vi.Mock).mockReturnValue({
       showModal: true,
-      setShowModal: jest.fn(),
-      handleConfirmNavigation: jest.fn(),
-      handleSaveAndCloseModal: jest.fn(),
-      triggerManualSave: jest.fn(),
+      setShowModal: vi.fn(),
+      handleConfirmNavigation: vi.fn(),
+      handleSaveAndCloseModal: vi.fn(),
+      triggerManualSave: vi.fn(),
     });
 
     render(<ExploreHeader {...props} />, { useRedux: true });
@@ -475,14 +475,14 @@ describe('ExploreChartHeader', () => {
   });
 
   test('should call handleSaveAndCloseModal when clicking Save in UnsavedChangesModal', async () => {
-    const handleSaveAndCloseModal = jest.fn();
+    const handleSaveAndCloseModal = vi.fn();
 
-    (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+    (useUnsavedChangesPrompt as vi.Mock).mockReturnValue({
       showModal: true,
-      setShowModal: jest.fn(),
-      handleConfirmNavigation: jest.fn(),
+      setShowModal: vi.fn(),
+      handleConfirmNavigation: vi.fn(),
       handleSaveAndCloseModal,
-      triggerManualSave: jest.fn(),
+      triggerManualSave: vi.fn(),
     });
 
     const props = createProps();
@@ -499,14 +499,14 @@ describe('ExploreChartHeader', () => {
   });
 
   test('should call handleConfirmNavigation when clicking Discard in UnsavedChangesModal', async () => {
-    const handleConfirmNavigation = jest.fn();
+    const handleConfirmNavigation = vi.fn();
 
-    (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+    (useUnsavedChangesPrompt as vi.Mock).mockReturnValue({
       showModal: true,
-      setShowModal: jest.fn(),
+      setShowModal: vi.fn(),
       handleConfirmNavigation,
-      handleSaveAndCloseModal: jest.fn(),
-      triggerManualSave: jest.fn(),
+      handleSaveAndCloseModal: vi.fn(),
+      triggerManualSave: vi.fn(),
     });
 
     const props = createProps();
@@ -523,14 +523,14 @@ describe('ExploreChartHeader', () => {
   });
 
   test('should call setShowModal(false) when clicking close button in UnsavedChangesModal', async () => {
-    const setShowModal = jest.fn();
+    const setShowModal = vi.fn();
 
-    (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+    (useUnsavedChangesPrompt as vi.Mock).mockReturnValue({
       showModal: true,
       setShowModal,
-      handleConfirmNavigation: jest.fn(),
-      handleSaveAndCloseModal: jest.fn(),
-      triggerManualSave: jest.fn(),
+      handleConfirmNavigation: vi.fn(),
+      handleSaveAndCloseModal: vi.fn(),
+      triggerManualSave: vi.fn(),
     });
 
     const props = createProps();
@@ -576,15 +576,15 @@ describe('ExploreChartHeader', () => {
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('Additional actions tests', () => {
-  jest.setTimeout(15000); // ✅ Applies to all tests in this suite
+  vi.setConfig({ testTimeout: 15000 }); // ✅ Applies to all tests in this suite
 
   beforeEach(() => {
-    (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+    (useUnsavedChangesPrompt as vi.Mock).mockReturnValue({
       showModal: false,
-      setShowModal: jest.fn(),
-      handleConfirmNavigation: jest.fn(),
-      handleSaveAndCloseModal: jest.fn(),
-      triggerManualSave: jest.fn(),
+      setShowModal: vi.fn(),
+      handleConfirmNavigation: vi.fn(),
+      handleSaveAndCloseModal: vi.fn(),
+      triggerManualSave: vi.fn(),
     });
   });
 
@@ -643,7 +643,7 @@ describe('Additional actions tests', () => {
 
     // Force-enable EXPORT_CURRENT_VIEW for this viz in this test
     const registry = getChartMetadataRegistry();
-    const getSpy = jest.spyOn(registry, 'get').mockReturnValue({
+    const getSpy = vi.spyOn(registry, 'get').mockReturnValue({
       behaviors: ['EXPORT_CURRENT_VIEW'],
     } as any);
 
@@ -707,7 +707,7 @@ describe('Additional actions tests', () => {
 
   test('Should call getChartDataRequest when click on "View query"', async () => {
     const props = createProps();
-    const getChartDataRequest = jest.spyOn(chartAction, 'getChartDataRequest');
+    const getChartDataRequest = vi.spyOn(chartAction, 'getChartDataRequest');
     render(<ExploreHeader {...props} />, {
       useRedux: true,
     });
@@ -739,19 +739,19 @@ describe('Additional actions tests', () => {
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Export All Data', () => {
-    let spyDownloadAsImage: jest.SpyInstance;
-    let spyExportChart: jest.SpyInstance;
+    let spyDownloadAsImage: vi.SpyInstance;
+    let spyExportChart: vi.SpyInstance;
 
     beforeEach(() => {
-      spyDownloadAsImage = jest.spyOn(downloadAsImage, 'default');
-      spyExportChart = jest.spyOn(exploreUtils, 'exportChart');
+      spyDownloadAsImage = vi.spyOn(downloadAsImage, 'default');
+      spyExportChart = vi.spyOn(exploreUtils, 'exportChart');
 
-      (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+      (useUnsavedChangesPrompt as vi.Mock).mockReturnValue({
         showModal: false,
-        setShowModal: jest.fn(),
-        handleConfirmNavigation: jest.fn(),
-        handleSaveAndCloseModal: jest.fn(),
-        triggerManualSave: jest.fn(),
+        setShowModal: vi.fn(),
+        handleConfirmNavigation: vi.fn(),
+        handleSaveAndCloseModal: vi.fn(),
+        triggerManualSave: vi.fn(),
       });
     });
 
@@ -906,11 +906,11 @@ describe('Additional actions tests', () => {
   });
 
   describe('Current View', () => {
-    let spyDownloadAsImage: jest.SpyInstance;
-    let spyExportChart: jest.SpyInstance;
+    let spyDownloadAsImage: vi.SpyInstance;
+    let spyExportChart: vi.SpyInstance;
 
     let originalURL: typeof URL;
-    let anchorClickSpy: jest.SpyInstance;
+    let anchorClickSpy: vi.SpyInstance;
 
     beforeAll(() => {
       originalURL = global.URL;
@@ -918,8 +918,8 @@ describe('Additional actions tests', () => {
       // Replace global.URL with a version that has the blob helpers
       const mockedURL = {
         ...originalURL,
-        createObjectURL: jest.fn(() => 'blob:mock-url'),
-        revokeObjectURL: jest.fn(),
+        createObjectURL: vi.fn(() => 'blob:mock-url'),
+        revokeObjectURL: vi.fn(),
       } as unknown as typeof URL;
 
       Object.defineProperty(global, 'URL', {
@@ -943,15 +943,15 @@ describe('Additional actions tests', () => {
     });
 
     beforeEach(() => {
-      spyDownloadAsImage = jest.spyOn(downloadAsImage, 'default');
-      spyExportChart = jest.spyOn(exploreUtils, 'exportChart');
+      spyDownloadAsImage = vi.spyOn(downloadAsImage, 'default');
+      spyExportChart = vi.spyOn(exploreUtils, 'exportChart');
 
-      (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+      (useUnsavedChangesPrompt as vi.Mock).mockReturnValue({
         showModal: false,
-        setShowModal: jest.fn(),
-        handleConfirmNavigation: jest.fn(),
-        handleSaveAndCloseModal: jest.fn(),
-        triggerManualSave: jest.fn(),
+        setShowModal: vi.fn(),
+        handleConfirmNavigation: vi.fn(),
+        handleSaveAndCloseModal: vi.fn(),
+        triggerManualSave: vi.fn(),
       });
     });
 

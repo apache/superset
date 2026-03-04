@@ -20,7 +20,7 @@ import { render } from 'spec/helpers/testing-library';
 import { CurrentCalendarFrame } from '../components/CurrentCalendarFrame';
 import { CurrentWeek } from '../types';
 
-const mockOnChange = jest.fn();
+const mockOnChange = vi.fn();
 
 test('calls onChange(CurrentWeek) when value is invalid', () => {
   render(<CurrentCalendarFrame onChange={mockOnChange} value="InvalidValue" />);

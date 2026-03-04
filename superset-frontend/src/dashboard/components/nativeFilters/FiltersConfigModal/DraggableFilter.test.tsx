@@ -29,7 +29,7 @@ const renderWithDnd = (component: React.ReactElement) =>
   render(<DndProvider backend={HTML5Backend}>{component}</DndProvider>);
 
 test('identifies divider items correctly', () => {
-  const onRearrange = jest.fn();
+  const onRearrange = vi.fn();
   const filterIds = ['NATIVE_FILTER_DIVIDER-abc123'];
 
   const { container } = renderWithDnd(
@@ -47,7 +47,7 @@ test('identifies divider items correctly', () => {
 });
 
 test('identifies non-divider items correctly', () => {
-  const onRearrange = jest.fn();
+  const onRearrange = vi.fn();
   const filterIds = ['NATIVE_FILTER-abc123'];
 
   const { container } = renderWithDnd(
@@ -65,8 +65,8 @@ test('identifies non-divider items correctly', () => {
 });
 
 test('calls onCrossListDrop when divider is dropped cross-list from filter to customization', () => {
-  const onRearrange = jest.fn();
-  const onCrossListDrop = jest.fn();
+  const onRearrange = vi.fn();
+  const onCrossListDrop = vi.fn();
   const filterIds = ['NATIVE_FILTER_DIVIDER-abc123'];
 
   renderWithDnd(
@@ -85,8 +85,8 @@ test('calls onCrossListDrop when divider is dropped cross-list from filter to cu
 });
 
 test('calls onCrossListDrop when divider is dropped cross-list from customization to filter', () => {
-  const onRearrange = jest.fn();
-  const onCrossListDrop = jest.fn();
+  const onRearrange = vi.fn();
+  const onCrossListDrop = vi.fn();
   const filterIds = ['CHART_CUSTOMIZATION_DIVIDER-xyz789'];
 
   renderWithDnd(
@@ -105,7 +105,7 @@ test('calls onCrossListDrop when divider is dropped cross-list from customizatio
 });
 
 test('calls onRearrange for same-list drops', () => {
-  const onRearrange = jest.fn();
+  const onRearrange = vi.fn();
   const filterIds = ['NATIVE_FILTER-abc123'];
 
   renderWithDnd(
@@ -123,8 +123,8 @@ test('calls onRearrange for same-list drops', () => {
 });
 
 test('does not call onCrossListDrop when non-divider is dropped cross-list', () => {
-  const onRearrange = jest.fn();
-  const onCrossListDrop = jest.fn();
+  const onRearrange = vi.fn();
+  const onCrossListDrop = vi.fn();
   const filterIds = ['NATIVE_FILTER-abc123'];
 
   renderWithDnd(
@@ -143,7 +143,7 @@ test('does not call onCrossListDrop when non-divider is dropped cross-list', () 
 });
 
 test('renders children correctly', () => {
-  const onRearrange = jest.fn();
+  const onRearrange = vi.fn();
   const filterIds = ['NATIVE_FILTER-abc123'];
 
   const { getByText } = renderWithDnd(
@@ -161,7 +161,7 @@ test('renders children correctly', () => {
 });
 
 test('accepts both FILTER_TYPE and CUSTOMIZATION_TYPE drops', () => {
-  const onRearrange = jest.fn();
+  const onRearrange = vi.fn();
   const filterIds = ['NATIVE_FILTER-abc123'];
 
   const { container } = renderWithDnd(
@@ -179,7 +179,7 @@ test('accepts both FILTER_TYPE and CUSTOMIZATION_TYPE drops', () => {
 });
 
 test('uses FILTER_TYPE as default dragType', () => {
-  const onRearrange = jest.fn();
+  const onRearrange = vi.fn();
   const filterIds = ['NATIVE_FILTER-abc123'];
 
   const { container } = renderWithDnd(
@@ -192,8 +192,8 @@ test('uses FILTER_TYPE as default dragType', () => {
 });
 
 test('detects cross-list drop correctly', () => {
-  const onRearrange = jest.fn();
-  const onCrossListDrop = jest.fn();
+  const onRearrange = vi.fn();
+  const onCrossListDrop = vi.fn();
   const filterIds = ['NATIVE_FILTER_DIVIDER-abc123'];
 
   const { container } = renderWithDnd(
@@ -212,7 +212,7 @@ test('detects cross-list drop correctly', () => {
 });
 
 test('identifies chart customization divider with underscore prefix', () => {
-  const onRearrange = jest.fn();
+  const onRearrange = vi.fn();
   const filterIds = ['CHART_CUSTOMIZATION_DIVIDER-abc123'];
 
   const { container } = renderWithDnd(

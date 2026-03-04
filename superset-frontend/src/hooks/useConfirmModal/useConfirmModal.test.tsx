@@ -36,7 +36,7 @@ test('showConfirm creates modal with config', () => {
   result.current.showConfirm({
     title: 'Test Title',
     body: 'Test Body',
-    onConfirm: jest.fn(),
+    onConfirm: vi.fn(),
   });
 
   expect(result.current.ConfirmModal).not.toBeNull();
@@ -48,7 +48,7 @@ test('renders modal when showConfirm is called', () => {
   result.current.showConfirm({
     title: 'Delete Item',
     body: 'Are you sure you want to delete this item?',
-    onConfirm: jest.fn(),
+    onConfirm: vi.fn(),
   });
 
   renderWithTheme(<>{result.current.ConfirmModal}</>);
@@ -60,7 +60,7 @@ test('renders modal when showConfirm is called', () => {
 });
 
 test('calls onConfirm when confirm button is clicked', async () => {
-  const onConfirm = jest.fn();
+  const onConfirm = vi.fn();
   const { result } = renderHook(() => useConfirmModal());
 
   result.current.showConfirm({
@@ -79,7 +79,7 @@ test('calls onConfirm when confirm button is clicked', async () => {
 });
 
 test('handles async onConfirm', async () => {
-  const onConfirm = jest.fn().mockResolvedValue(undefined);
+  const onConfirm = vi.fn().mockResolvedValue(undefined);
   const { result } = renderHook(() => useConfirmModal());
 
   result.current.showConfirm({
@@ -103,7 +103,7 @@ test('closes modal on cancel', async () => {
   result.current.showConfirm({
     title: 'Test',
     body: 'Test',
-    onConfirm: jest.fn(),
+    onConfirm: vi.fn(),
   });
 
   expect(result.current.ConfirmModal).not.toBeNull();
@@ -123,7 +123,7 @@ test('supports custom button text', () => {
   result.current.showConfirm({
     title: 'Delete',
     body: 'Remove this?',
-    onConfirm: jest.fn(),
+    onConfirm: vi.fn(),
     confirmText: 'Remove',
     cancelText: 'Keep',
   });
@@ -140,7 +140,7 @@ test('supports danger button style', () => {
   result.current.showConfirm({
     title: 'Delete',
     body: 'This is dangerous',
-    onConfirm: jest.fn(),
+    onConfirm: vi.fn(),
     confirmButtonStyle: 'danger',
   });
 
@@ -151,8 +151,8 @@ test('supports danger button style', () => {
 });
 
 test('handles errors in onConfirm gracefully', async () => {
-  const consoleError = jest.spyOn(console, 'error').mockImplementation();
-  const onConfirm = jest.fn().mockRejectedValue(new Error('Test error'));
+  const consoleError = vi.spyOn(console, 'error').mockImplementation();
+  const onConfirm = vi.fn().mockRejectedValue(new Error('Test error'));
   const { result } = renderHook(() => useConfirmModal());
 
   result.current.showConfirm({
@@ -174,7 +174,7 @@ test('handles errors in onConfirm gracefully', async () => {
 });
 
 test('closes modal after successful confirm', async () => {
-  const onConfirm = jest.fn().mockResolvedValue(undefined);
+  const onConfirm = vi.fn().mockResolvedValue(undefined);
   const { result } = renderHook(() => useConfirmModal());
 
   result.current.showConfirm({

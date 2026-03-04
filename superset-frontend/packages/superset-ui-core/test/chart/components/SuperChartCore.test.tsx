@@ -41,7 +41,7 @@ describe('SuperChartCore', () => {
   let restoreConsole: RestoreConsole;
 
   beforeAll(() => {
-    jest.setTimeout(30000);
+    vi.setConfig({ testTimeout: 30000 });
     plugins.forEach(p => {
       p.unregister().register();
     });

@@ -24,11 +24,11 @@ import type { ConfirmStatusChangeProps } from './types';
 const mockedProps: Omit<ConfirmStatusChangeProps, 'children'> = {
   title: 'please confirm',
   description: 'are you sure?',
-  onConfirm: jest.fn(),
+  onConfirm: vi.fn(),
 };
 
 test('renders children with showConfirm function', () => {
-  const childrenSpy = jest.fn().mockReturnValue(<div>test content</div>);
+  const childrenSpy = vi.fn().mockReturnValue(<div>test content</div>);
 
   render(
     <ConfirmStatusChange {...mockedProps}>{childrenSpy}</ConfirmStatusChange>,
@@ -73,8 +73,8 @@ test('stores and passes arguments to onConfirm callback', async () => {
 
 test('calls preventDefault on event-like arguments', () => {
   const mockEvent = {
-    preventDefault: jest.fn(),
-    stopPropagation: jest.fn(),
+    preventDefault: vi.fn(),
+    stopPropagation: vi.fn(),
   };
 
   const { getByTestId } = render(
@@ -93,7 +93,7 @@ test('calls preventDefault on event-like arguments', () => {
 
 test('skips event handling on non-event arguments', () => {
   const regularArg = { someData: 'value' };
-  const mockFunc = jest.fn();
+  const mockFunc = vi.fn();
 
   const { getByTestId } = render(
     <ConfirmStatusChange {...mockedProps}>
@@ -134,8 +134,8 @@ test('ignores null and undefined arguments', () => {
 });
 
 test('handles partial event objects gracefully', () => {
-  const partialEvent1 = { preventDefault: jest.fn() }; // Only preventDefault
-  const partialEvent2 = { stopPropagation: jest.fn() }; // Only stopPropagation
+  const partialEvent1 = { preventDefault: vi.fn() }; // Only preventDefault
+  const partialEvent2 = { stopPropagation: vi.fn() }; // Only stopPropagation
 
   const { getByTestId } = render(
     <ConfirmStatusChange {...mockedProps}>

@@ -24,12 +24,12 @@ import ExtensionsStartup from './ExtensionsStartup';
 import ExtensionsManager from './ExtensionsManager';
 
 // Mock the isFeatureEnabled function
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
-  isFeatureEnabled: jest.fn(),
+vi.mock('@superset-ui/core', () => ({
+  ...(await importActual()),
+  isFeatureEnabled: vi.fn(),
 }));
 
-const mockIsFeatureEnabled = isFeatureEnabled as jest.MockedFunction<
+const mockIsFeatureEnabled = isFeatureEnabled as vi.MockedFunction<
   typeof isFeatureEnabled
 >;
 
@@ -161,7 +161,7 @@ test('only initializes once even with multiple renders', async () => {
   const originalInitialize = manager.initializeExtensions;
   let initializeCallCount = 0;
 
-  manager.initializeExtensions = jest.fn().mockImplementation(() => {
+  manager.initializeExtensions = vi.fn().mockImplementation(() => {
     initializeCallCount += 1;
     return Promise.resolve();
   });
@@ -196,7 +196,7 @@ test('initializes ExtensionsManager and logs success when EnableExtensions featu
     (flag: FeatureFlag) => flag === FeatureFlag.EnableExtensions,
   );
 
-  const infoSpy = jest.spyOn(logging, 'info').mockImplementation();
+  const infoSpy = vi.spyOn(logging, 'info').mockImplementation();
 
   // Mock the initializeExtensions method to succeed
   const originalInitialize = ExtensionsManager.prototype.initializeExtensions;
@@ -261,7 +261,7 @@ test('logs error when ExtensionsManager initialization fails', async () => {
   // Ensure feature flag is enabled
   mockIsFeatureEnabled.mockReturnValue(true);
 
-  const errorSpy = jest.spyOn(logging, 'error').mockImplementation();
+  const errorSpy = vi.spyOn(logging, 'error').mockImplementation();
 
   // Mock the initializeExtensions method to throw an error
   const originalInitialize = ExtensionsManager.prototype.initializeExtensions;

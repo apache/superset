@@ -138,7 +138,7 @@ const INITIAL_STATE = {
 };
 
 const DEFAULT_PROPS: ScopingModalProps = {
-  closeModal: jest.fn(),
+  closeModal: vi.fn(),
   initialChartId: undefined,
   isVisible: true,
 };

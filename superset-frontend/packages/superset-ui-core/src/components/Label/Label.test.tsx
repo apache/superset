@@ -28,7 +28,7 @@ test('renders the base component (no onClick)', () => {
 });
 
 test('works with an onClick handler', () => {
-  const mockAction = jest.fn();
+  const mockAction = vi.fn();
   const { getByText } = render(<Label onClick={mockAction}>test</Label>);
   fireEvent.click(getByText('test'));
   expect(mockAction).toHaveBeenCalled();

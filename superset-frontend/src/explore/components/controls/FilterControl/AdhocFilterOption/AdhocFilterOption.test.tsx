@@ -42,15 +42,15 @@ const options = [
 
 const mockedProps = {
   adhocFilter: simpleAdhocFilter,
-  onFilterEdit: jest.fn(),
-  onRemoveFilter: jest.fn(),
+  onFilterEdit: vi.fn(),
+  onRemoveFilter: vi.fn(),
   options,
   sections: [],
   operators: [],
   datasource: {},
   partitionColumn: '',
-  onMoveLabel: jest.fn(),
-  onDropLabel: jest.fn(),
+  onMoveLabel: vi.fn(),
+  onDropLabel: vi.fn(),
   index: 1,
 };
 

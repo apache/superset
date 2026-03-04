@@ -29,13 +29,13 @@ const ITEMS = generateItems(10);
 
 beforeEach(() => {
   // Reset any mocks
-  jest.restoreAllMocks();
+  vi.restoreAllMocks();
 
   // Mock ResizeObserver globally
-  global.ResizeObserver = jest.fn().mockImplementation(() => ({
-    observe: jest.fn(),
-    unobserve: jest.fn(),
-    disconnect: jest.fn(),
+  global.ResizeObserver = vi.fn().mockImplementation(() => ({
+    observe: vi.fn(),
+    unobserve: vi.fn(),
+    disconnect: vi.fn(),
   }));
 });
 
@@ -100,7 +100,7 @@ test('renders component with dropdown style prop without error', () => {
 });
 
 test('renders component with onOverflowingStateChange prop without error', () => {
-  const onOverflowingStateChange = jest.fn();
+  const onOverflowingStateChange = vi.fn();
   render(
     <DropdownContainer
       items={generateItems(5)}
@@ -160,7 +160,7 @@ test('accepts custom style props', () => {
 
 // Integration test that doesn't rely on specific overflow behavior
 test('component renders and functions without throwing errors', () => {
-  const onOverflowingStateChange = jest.fn();
+  const onOverflowingStateChange = vi.fn();
 
   expect(() => {
     render(

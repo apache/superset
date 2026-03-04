@@ -34,14 +34,14 @@ const setup = (
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ExploreResultsButton', () => {
   test('renders', async () => {
-    setup(jest.fn(), {
+    setup(vi.fn(), {
       database: { allows_subquery: true },
     });
     expect(screen.getByRole('button', { name: /Create chart/i })).toBeEnabled();
   });
 
   test('renders disabled if subquery not allowed', async () => {
-    setup(jest.fn());
+    setup(vi.fn());
     expect(
       screen.getByRole('button', { name: /Create chart/i }),
     ).toBeDisabled();

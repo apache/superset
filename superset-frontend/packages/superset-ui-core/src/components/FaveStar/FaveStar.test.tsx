@@ -20,14 +20,14 @@
 import { render, screen, userEvent } from '@superset-ui/core/spec';
 import { FaveStar } from '.';
 
-jest.mock('@superset-ui/core/components/Tooltip', () => ({
+vi.mock('@superset-ui/core/components/Tooltip', () => ({
   Tooltip: (props: any) => <div data-test="tooltip" {...props} />,
 }));
 
 test('render right content', async () => {
   const props = {
     itemId: 3,
-    saveFaveStar: jest.fn(),
+    saveFaveStar: vi.fn(),
   };
 
   const { rerender, findByRole } = render(<FaveStar {...props} isStarred />);
@@ -52,7 +52,7 @@ test('render content on tooltip', async () => {
   const props = {
     itemId: 3,
     showTooltip: true,
-    saveFaveStar: jest.fn(),
+    saveFaveStar: vi.fn(),
   };
 
   render(<FaveStar {...props} />);
@@ -72,8 +72,8 @@ test('render content on tooltip', async () => {
 test('Call fetchFaveStar on first render and on itemId change', async () => {
   const props = {
     itemId: 3,
-    fetchFaveStar: jest.fn(),
-    saveFaveStar: jest.fn(),
+    fetchFaveStar: vi.fn(),
+    saveFaveStar: vi.fn(),
     isStarred: false,
     showTooltip: false,
   };

@@ -23,8 +23,8 @@ import type { contributions, core } from '@apache-superset/core';
 import ExtensionsManager from 'src/extensions/ExtensionsManager';
 import AppLayout from './index';
 
-jest.mock('src/components/ResizableSidebar/useStoredSidebarWidth');
-jest.mock('src/components/Splitter', () => {
+vi.mock('src/components/ResizableSidebar/useStoredSidebarWidth');
+vi.mock('src/components/Splitter', () => {
   const Splitter = ({
     onResizeEnd,
     children,
@@ -48,9 +48,9 @@ jest.mock('src/components/Splitter', () => {
   );
   return { Splitter };
 });
-jest.mock('@superset-ui/core/components/Grid', () => ({
-  ...jest.requireActual('@superset-ui/core/components/Grid'),
-  useBreakpoint: jest.fn().mockReturnValue(true),
+vi.mock('@superset-ui/core/components/Grid', () => ({
+  ...vi.requireActual('@superset-ui/core/components/Grid'),
+  useBreakpoint: vi.fn().mockReturnValue(true),
 }));
 
 const defaultProps = {
@@ -99,8 +99,8 @@ async function createActivatedExtension(
       menus: {},
       views: {},
     },
-    activate: jest.fn(),
-    deactivate: jest.fn(),
+    activate: vi.fn(),
+    deactivate: vi.fn(),
     ...extensionOptions,
   };
 
@@ -111,8 +111,8 @@ async function createActivatedExtension(
 }
 
 beforeEach(() => {
-  jest.clearAllMocks();
-  (useStoredSidebarWidth as jest.Mock).mockReturnValue([250, jest.fn()]);
+  vi.clearAllMocks();
+  (useStoredSidebarWidth as vi.Mock).mockReturnValue([250, vi.fn()]);
   (ExtensionsManager as any).instance = undefined;
 });
 
@@ -133,8 +133,8 @@ test('renders children', () => {
 });
 
 test('calls setWidth on sidebar resize when not hidden', async () => {
-  const setWidth = jest.fn();
-  (useStoredSidebarWidth as jest.Mock).mockReturnValue([250, setWidth]);
+  const setWidth = vi.fn();
+  (useStoredSidebarWidth as vi.Mock).mockReturnValue([250, setWidth]);
   const { getByRole } = render(<AppLayout {...defaultProps} />, {
     useRedux: true,
     initialState,

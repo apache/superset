@@ -34,7 +34,7 @@ const titleProps = {
 };
 
 const setup = (props: Partial<AdhocMetricEditPopoverTitleProps> = {}) => {
-  const onChange = jest.fn();
+  const onChange = vi.fn();
 
   const { container } = render(
     <AdhocMetricEditPopoverTitle

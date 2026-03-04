@@ -20,7 +20,7 @@
 import { render, screen } from 'spec/helpers/testing-library';
 import BuilderComponentPane from '.';
 
-jest.mock('src/dashboard/containers/SliceAdder', () => () => (
+vi.mock('src/dashboard/containers/SliceAdder', () => () => (
   <div data-test="mock-slice-adder" />
 ));
 

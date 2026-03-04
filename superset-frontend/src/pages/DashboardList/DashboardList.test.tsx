@@ -45,9 +45,9 @@ const dashboardFavoriteStatusEndpoint =
 const dashboardsEndpoint = 'glob:*/api/v1/dashboard/?*';
 const dashboardEndpoint = 'glob:*/api/v1/dashboard/*';
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
-  isFeatureEnabled: jest.fn(),
+vi.mock('@superset-ui/core', () => ({
+  ...(await importActual()),
+  isFeatureEnabled: vi.fn(),
 }));
 
 const mockDashboards = Array.from({ length: 3 }, (_, i) => ({
@@ -88,7 +88,7 @@ fetchMock.get(dashboardEndpoint, {
   result: mockDashboards[0],
 });
 
-global.URL.createObjectURL = jest.fn();
+global.URL.createObjectURL = vi.fn();
 fetchMock.get('/thumbnail', { body: new Blob(), sendAsJson: false });
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
@@ -104,14 +104,14 @@ describe('DashboardList', () => {
     );
 
   beforeEach(() => {
-    (isFeatureEnabled as jest.Mock).mockImplementation(
+    (isFeatureEnabled as vi.Mock).mockImplementation(
       (feature: string) => feature === 'LISTVIEWS_DEFAULT_CARD_VIEW',
     );
     fetchMock.clearHistory();
   });
 
   afterEach(() => {
-    (isFeatureEnabled as jest.Mock).mockRestore();
+    (isFeatureEnabled as vi.Mock).mockRestore();
   });
 
   test('renders', async () => {

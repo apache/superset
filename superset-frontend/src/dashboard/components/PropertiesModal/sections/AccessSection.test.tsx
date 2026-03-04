@@ -21,38 +21,38 @@ import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import AccessSection from './AccessSection';
 
 // Mock feature flags
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
-  isFeatureEnabled: jest.fn(),
+vi.mock('@superset-ui/core', () => ({
+  ...(await importActual()),
+  isFeatureEnabled: vi.fn(),
 }));
 
 // Mock the hooks
-jest.mock('../hooks/useAccessOptions', () => ({
+vi.mock('../hooks/useAccessOptions', () => ({
   useAccessOptions: () => ({
-    loadAccessOptions: jest.fn(),
+    loadAccessOptions: vi.fn(),
   }),
 }));
 
 // Mock tags utils
-jest.mock('src/components/Tag/utils', () => ({
-  loadTags: jest.fn(),
+vi.mock('src/components/Tag/utils', () => ({
+  loadTags: vi.fn(),
 }));
 
-const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
+const mockedIsFeatureEnabled = isFeatureEnabled as vi.Mock;
 
 const defaultProps = {
   isLoading: false,
   owners: [{ id: 1, full_name: 'John Doe' }],
   roles: [{ id: 1, name: 'Admin' }],
   tags: [{ id: 1, name: 'Important' }],
-  onChangeOwners: jest.fn(),
-  onChangeRoles: jest.fn(),
-  onChangeTags: jest.fn(),
-  onClearTags: jest.fn(),
+  onChangeOwners: vi.fn(),
+  onChangeRoles: vi.fn(),
+  onChangeTags: vi.fn(),
+  onClearTags: vi.fn(),
 };
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 test('always renders owners field', () => {

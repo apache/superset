@@ -20,7 +20,7 @@ import { render, screen } from 'spec/helpers/testing-library';
 import { ListViewFilterOperator } from '../types';
 import UIFilters from './index';
 
-const mockUpdateFilterValue = jest.fn();
+const mockUpdateFilterValue = vi.fn();
 
 beforeEach(() => {
   mockUpdateFilterValue.mockClear();

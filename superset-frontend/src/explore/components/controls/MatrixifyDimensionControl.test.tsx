@@ -26,10 +26,10 @@ import MatrixifyDimensionControl, {
 import { fetchTopNValues } from './MatrixifyControl/utils/fetchTopNValues';
 
 // Mock SupersetClient
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
+vi.mock('@superset-ui/core', () => ({
+  ...(await importActual()),
   SupersetClient: {
-    get: jest.fn(),
+    get: vi.fn(),
   },
   t: (str: string, ...args: any[]) => {
     if (args.length > 0 && str.includes('%s')) {
@@ -41,13 +41,13 @@ jest.mock('@superset-ui/core', () => ({
 }));
 
 // Mock fetchTopNValues utility
-jest.mock('./MatrixifyControl/utils/fetchTopNValues', () => ({
-  fetchTopNValues: jest.fn(),
-  extractDimensionValues: jest.fn(values => values.map((v: any) => v.value)),
+vi.mock('./MatrixifyControl/utils/fetchTopNValues', () => ({
+  fetchTopNValues: vi.fn(),
+  extractDimensionValues: vi.fn(values => values.map((v: any) => v.value)),
 }));
 
 // Mock ControlHeader
-jest.mock('src/explore/components/ControlHeader', () => ({
+vi.mock('src/explore/components/ControlHeader', () => ({
   __esModule: true,
   default: ({ label, description }: any) => (
     <div data-testid="control-header">
@@ -70,11 +70,11 @@ const mockDatasource = {
 
 const defaultProps = {
   datasource: mockDatasource,
-  onChange: jest.fn(),
+  onChange: vi.fn(),
 };
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 test('should render dimension selector with default label', () => {
@@ -114,7 +114,7 @@ test('should display dimension options from datasource columns', async () => {
 });
 
 test('should call onChange when dimension is selected', async () => {
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   render(<MatrixifyDimensionControl {...defaultProps} onChange={onChange} />);
 
   const select = screen.getByRole('combobox', { name: 'Select dimension' });
@@ -151,7 +151,7 @@ test('should show value selector in members mode when dimension is selected', ()
     values: [],
   };
 
-  (SupersetClient.get as jest.Mock).mockResolvedValue({
+  (SupersetClient.get as vi.Mock).mockResolvedValue({
     json: { result: ['USA', 'Canada'] },
   });
 
@@ -174,7 +174,7 @@ test('should load dimension values from API in members mode', async () => {
     values: [],
   };
 
-  (SupersetClient.get as jest.Mock).mockResolvedValue({
+  (SupersetClient.get as vi.Mock).mockResolvedValue({
     json: { result: ['USA', 'Canada', 'Mexico'] },
   });
 
@@ -200,7 +200,7 @@ test('should handle API errors gracefully in members mode', async () => {
     values: [],
   };
 
-  (SupersetClient.get as jest.Mock).mockRejectedValue(new Error('API Error'));
+  (SupersetClient.get as vi.Mock).mockRejectedValue(new Error('API Error'));
 
   render(
     <MatrixifyDimensionControl
@@ -235,10 +235,10 @@ test('should not show value selector in topn mode', () => {
 });
 
 test('should fetch TopN values when all params are provided', async () => {
-  const mockFetchTopNValues = fetchTopNValues as jest.MockedFunction<
+  const mockFetchTopNValues = fetchTopNValues as vi.MockedFunction<
     typeof fetchTopNValues
   >;
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   const value: MatrixifyDimensionControlValue = {
     dimension: 'country',
     values: [],
@@ -275,7 +275,7 @@ test('should fetch TopN values when all params are provided', async () => {
 });
 
 test('should display error when TopN fetch fails', async () => {
-  const mockFetchTopNValues = fetchTopNValues as jest.MockedFunction<
+  const mockFetchTopNValues = fetchTopNValues as vi.MockedFunction<
     typeof fetchTopNValues
   >;
   const value: MatrixifyDimensionControlValue = {
@@ -301,7 +301,7 @@ test('should display error when TopN fetch fails', async () => {
 });
 
 test('should convert string topNValue to number', async () => {
-  const mockFetchTopNValues = fetchTopNValues as jest.MockedFunction<
+  const mockFetchTopNValues = fetchTopNValues as vi.MockedFunction<
     typeof fetchTopNValues
   >;
   const value: MatrixifyDimensionControlValue = {
@@ -398,7 +398,7 @@ test('should handle datasources without columns', () => {
 });
 
 test('should clear values when switching from topn to members mode', async () => {
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   const value: MatrixifyDimensionControlValue = {
     dimension: 'country',
     values: ['USA', 'Canada'],
@@ -433,13 +433,13 @@ test('should clear values when switching from topn to members mode', async () =>
 
 test('should preserve dimension values when rerendering with same mode', async () => {
   // Regression test for bug where values disappear on save
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   const value: MatrixifyDimensionControlValue = {
     dimension: 'country',
     values: ['USA', 'Australia'],
   };
 
-  (SupersetClient.get as jest.Mock).mockResolvedValue({
+  (SupersetClient.get as vi.Mock).mockResolvedValue({
     json: { result: ['USA', 'Canada', 'Australia', 'Mexico'] },
   });
 
@@ -477,13 +477,13 @@ test('should preserve dimension values when rerendering with same mode', async (
 
 test('should not clear values on initial render with members mode', async () => {
   // Regression test: ensure values are not cleared on initial mount
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   const value: MatrixifyDimensionControlValue = {
     dimension: 'country',
     values: ['USA', 'Australia'],
   };
 
-  (SupersetClient.get as jest.Mock).mockResolvedValue({
+  (SupersetClient.get as vi.Mock).mockResolvedValue({
     json: { result: ['USA', 'Canada', 'Australia', 'Mexico'] },
   });
 
@@ -511,13 +511,13 @@ test('should not clear values on initial render with members mode', async () => 
 
 test('should preserve values when other props change but mode stays the same', async () => {
   // Regression test for save scenario where form_data updates trigger rerenders
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   const value: MatrixifyDimensionControlValue = {
     dimension: 'country',
     values: ['USA', 'Australia'],
   };
 
-  (SupersetClient.get as jest.Mock).mockResolvedValue({
+  (SupersetClient.get as vi.Mock).mockResolvedValue({
     json: { result: ['USA', 'Canada', 'Australia', 'Mexico'] },
   });
 

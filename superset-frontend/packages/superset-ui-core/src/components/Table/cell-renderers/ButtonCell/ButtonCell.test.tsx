@@ -21,7 +21,7 @@ import ButtonCell from './index';
 import { exampleRow } from '../fixtures';
 
 test('renders with default props', async () => {
-  const clickHandler = jest.fn();
+  const clickHandler = vi.fn();
   const BUTTON_LABEL = 'Button Label';
 
   render(

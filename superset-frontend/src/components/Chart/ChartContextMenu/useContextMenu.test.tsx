@@ -26,9 +26,9 @@ import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
 import { useContextMenu } from './useContextMenu';
 import { ContextMenuItem } from './ChartContextMenu';
 
-jest.mock('src/utils/cachedSupersetGet');
+vi.mock('src/utils/cachedSupersetGet');
 
-const mockCachedSupersetGet = cachedSupersetGet as jest.MockedFunction<
+const mockCachedSupersetGet = cachedSupersetGet as vi.MockedFunction<
   typeof cachedSupersetGet
 >;
 const CONTEXT_MENU_TEST_ID = 'chart-context-menu';

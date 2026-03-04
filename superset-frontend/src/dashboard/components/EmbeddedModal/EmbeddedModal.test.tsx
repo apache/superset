@@ -34,25 +34,23 @@ const defaultResponse = {
   result: { uuid: 'uuid', dashboard_id: '1', allowed_domains: ['example.com'] },
 };
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual<any>('@superset-ui/core'),
-  makeApi: jest.fn(),
+vi.mock('@superset-ui/core', () => ({
+  ...vi.requireActual<any>('@superset-ui/core'),
+  makeApi: vi.fn(),
 }));
 
-const mockOnHide = jest.fn();
+const mockOnHide = vi.fn();
 const defaultProps = {
   dashboardId: '1',
   show: true,
   onHide: mockOnHide,
 };
 const resetMockApi = () => {
-  (makeApi as any).mockReturnValue(
-    jest.fn().mockResolvedValue(defaultResponse),
-  );
+  (makeApi as any).mockReturnValue(vi.fn().mockResolvedValue(defaultResponse));
 };
 const setMockApiNotFound = () => {
   const notFound = new SupersetApiError({ message: 'Not found', status: 404 });
-  (makeApi as any).mockReturnValue(jest.fn().mockRejectedValue(notFound));
+  (makeApi as any).mockReturnValue(vi.fn().mockRejectedValue(notFound));
 };
 
 const setup = () => {
@@ -60,7 +58,7 @@ const setup = () => {
 };
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
   resetMockApi();
   getExtensionsRegistry().set('embedded.modal', undefined);
 });

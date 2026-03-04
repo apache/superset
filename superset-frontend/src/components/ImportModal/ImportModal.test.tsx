@@ -44,7 +44,7 @@ const requiredProps = {
 
 afterEach(() => {
   fetchMock.clearHistory();
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 const setup = (overrides: Partial<ImportModelsModalProps> = {}) =>

@@ -34,7 +34,7 @@ afterEach(async () => {
   await new Promise(resolve => setTimeout(resolve, 0));
 });
 
-jest.mock('src/core/editors', () => ({
+vi.mock('src/core/editors', () => ({
   EditorHost: ({
     value,
     onChange,
@@ -53,7 +53,7 @@ const adhocFilter = new AdhocFilter({
 });
 
 test('calls onChange when the SQL clause changes', async () => {
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   render(
     <AdhocFilterEditPopoverSqlTabContent
       adhocFilter={adhocFilter}
@@ -70,7 +70,7 @@ test('calls onChange when the SQL clause changes', async () => {
 });
 
 test('calls onChange when the SQL expression changes', async () => {
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   const input = 'value < 20';
   render(
     <AdhocFilterEditPopoverSqlTabContent

@@ -25,13 +25,13 @@ import ChartDataProvider, {
 import { bigNumberFormData } from '../fixtures/formData';
 
 // Keep existing mock setup
-const defaultMockLoadFormData = jest.fn(({ formData }: { formData: unknown }) =>
+const defaultMockLoadFormData = vi.fn(({ formData }: { formData: unknown }) =>
   Promise.resolve(formData),
 );
 
 type MockLoadFormData =
   | typeof defaultMockLoadFormData
-  | jest.Mock<Promise<unknown>, unknown[]>;
+  | vi.Mock<Promise<unknown>, unknown[]>;
 
 let mockLoadFormData: MockLoadFormData = defaultMockLoadFormData;
 
@@ -43,19 +43,19 @@ function createArrayPromise<T>(input: T) {
   return Promise.resolve([input]);
 }
 
-const mockLoadDatasource = jest.fn<Promise<unknown>, unknown[]>(createPromise);
-const mockLoadQueryData = jest.fn<Promise<unknown>, unknown[]>(
+const mockLoadDatasource = vi.fn<Promise<unknown>, unknown[]>(createPromise);
+const mockLoadQueryData = vi.fn<Promise<unknown>, unknown[]>(
   createArrayPromise,
 );
 
-const actual = jest.requireActual('../../../src/chart/clients/ChartClient');
-jest.spyOn(actual, 'default').mockImplementation(() => ({
+const actual = vi.requireActual('../../../src/chart/clients/ChartClient');
+vi.spyOn(actual, 'default').mockImplementation(() => ({
   loadDatasource: mockLoadDatasource,
   loadFormData: mockLoadFormData,
   loadQueryData: mockLoadQueryData,
 }));
 
-const ChartClientMock = ChartClient as jest.Mock<ChartClient>;
+const ChartClientMock = ChartClient as vi.Mock<ChartClient>;
 
 describe('ChartDataProvider', () => {
   beforeEach(() => {
@@ -277,7 +277,7 @@ describe('ChartDataProvider', () => {
 
   describe('callbacks', () => {
     test('calls onLoaded when loaded', async () => {
-      const onLoaded = jest.fn();
+      const onLoaded = vi.fn();
       mockLoadFormData.mockResolvedValue(props.formData);
       mockLoadQueryData.mockResolvedValue([props.formData]);
       mockLoadDatasource.mockResolvedValue(props.formData.datasource);
@@ -297,7 +297,7 @@ describe('ChartDataProvider', () => {
     });
 
     test('calls onError upon request error', async () => {
-      const onError = jest.fn();
+      const onError = vi.fn();
       mockLoadFormData.mockRejectedValue(new Error('error'));
 
       setup({ onError });
@@ -311,7 +311,7 @@ describe('ChartDataProvider', () => {
     });
 
     test('calls onError upon JS error', async () => {
-      const onError = jest.fn();
+      const onError = vi.fn();
       mockLoadFormData.mockImplementation(() => {
         throw new Error('non-async error');
       });

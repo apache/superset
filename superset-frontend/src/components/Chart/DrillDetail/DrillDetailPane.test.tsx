@@ -190,7 +190,7 @@ test('should render the error', async () => {
 });
 
 test('should use verbose_map for column headers when available', async () => {
-  jest.restoreAllMocks();
+  vi.restoreAllMocks();
 
   const datasetWithVerboseMap = {
     ...MOCKED_DATASET,

@@ -139,35 +139,35 @@ async function openActionsDropdown() {
   expect(await screen.findByTestId('header-actions-menu')).toBeInTheDocument();
 }
 
-const addSuccessToast = jest.fn();
-const addDangerToast = jest.fn();
-const addWarningToast = jest.fn();
-const onUndo = jest.fn();
-const onRedo = jest.fn();
-const setEditMode = jest.fn();
-const setUnsavedChanges = jest.fn();
-const fetchFaveStar = jest.fn();
-const saveFaveStar = jest.fn();
-const savePublished = jest.fn();
-const fetchCharts = jest.fn();
-const updateDashboardTitle = jest.fn();
-const updateCss = jest.fn();
-const onChange = jest.fn();
-const onSave = jest.fn();
-const setMaxUndoHistoryExceeded = jest.fn();
-const maxUndoHistoryToast = jest.fn();
-const logEvent = jest.fn();
-const setRefreshFrequency = jest.fn();
-const onRefresh = jest.fn();
-const dashboardInfoChanged = jest.fn();
-const dashboardTitleChanged = jest.fn();
+const addSuccessToast = vi.fn();
+const addDangerToast = vi.fn();
+const addWarningToast = vi.fn();
+const onUndo = vi.fn();
+const onRedo = vi.fn();
+const setEditMode = vi.fn();
+const setUnsavedChanges = vi.fn();
+const fetchFaveStar = vi.fn();
+const saveFaveStar = vi.fn();
+const savePublished = vi.fn();
+const fetchCharts = vi.fn();
+const updateDashboardTitle = vi.fn();
+const updateCss = vi.fn();
+const onChange = vi.fn();
+const onSave = vi.fn();
+const setMaxUndoHistoryExceeded = vi.fn();
+const maxUndoHistoryToast = vi.fn();
+const logEvent = vi.fn();
+const setRefreshFrequency = vi.fn();
+const onRefresh = vi.fn();
+const dashboardInfoChanged = vi.fn();
+const dashboardTitleChanged = vi.fn();
 
-jest.mock('src/hooks/useUnsavedChangesPrompt', () => ({
-  useUnsavedChangesPrompt: jest.fn(),
+vi.mock('src/hooks/useUnsavedChangesPrompt', () => ({
+  useUnsavedChangesPrompt: vi.fn(),
 }));
 
 beforeAll(() => {
-  jest.spyOn(redux, 'bindActionCreators').mockImplementation(() => ({
+  vi.spyOn(redux, 'bindActionCreators').mockImplementation(() => ({
     addSuccessToast,
     addDangerToast,
     addWarningToast,
@@ -194,13 +194,13 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 
-  (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+  (useUnsavedChangesPrompt as vi.Mock).mockReturnValue({
     showModal: false,
-    setShowModal: jest.fn(),
-    handleConfirmNavigation: jest.fn(),
-    handleSaveAndCloseModal: jest.fn(),
+    setShowModal: vi.fn(),
+    handleConfirmNavigation: vi.fn(),
+    handleSaveAndCloseModal: vi.fn(),
   });
 
   window.history.pushState({}, 'Test page', '/dashboard?standalone=1');
@@ -625,11 +625,11 @@ test('should render MetadataBar when not in edit mode and not embedded', () => {
 });
 
 test('should show UnsavedChangesModal when there are unsaved changes and user tries to navigate', async () => {
-  (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+  (useUnsavedChangesPrompt as vi.Mock).mockReturnValue({
     showModal: true,
-    setShowModal: jest.fn(),
-    handleConfirmNavigation: jest.fn(),
-    handleSaveAndCloseModal: jest.fn(),
+    setShowModal: vi.fn(),
+    handleConfirmNavigation: vi.fn(),
+    handleSaveAndCloseModal: vi.fn(),
   });
 
   setup({ ...editableState });
@@ -647,12 +647,12 @@ test('should show UnsavedChangesModal when there are unsaved changes and user tr
 });
 
 test('should call handleSaveAndCloseModal when Save is clicked in UnsavedChangesModal', async () => {
-  const handleSaveAndCloseModal = jest.fn();
+  const handleSaveAndCloseModal = vi.fn();
 
-  (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+  (useUnsavedChangesPrompt as vi.Mock).mockReturnValue({
     showModal: true,
-    setShowModal: jest.fn(),
-    handleConfirmNavigation: jest.fn(),
+    setShowModal: vi.fn(),
+    handleConfirmNavigation: vi.fn(),
     handleSaveAndCloseModal,
   });
 
@@ -669,13 +669,13 @@ test('should call handleSaveAndCloseModal when Save is clicked in UnsavedChanges
 });
 
 test('should call handleConfirmNavigation when user confirms navigation in UnsavedChangesModal', async () => {
-  const handleConfirmNavigation = jest.fn();
+  const handleConfirmNavigation = vi.fn();
 
-  (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+  (useUnsavedChangesPrompt as vi.Mock).mockReturnValue({
     showModal: true,
-    setShowModal: jest.fn(),
+    setShowModal: vi.fn(),
     handleConfirmNavigation,
-    handleSaveAndCloseModal: jest.fn(),
+    handleSaveAndCloseModal: vi.fn(),
   });
 
   setup({ ...editableState });
@@ -691,13 +691,13 @@ test('should call handleConfirmNavigation when user confirms navigation in Unsav
 });
 
 test('should call setShowUnsavedChangesModal(false) on cancel', async () => {
-  const setShowModal = jest.fn();
+  const setShowModal = vi.fn();
 
-  (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+  (useUnsavedChangesPrompt as vi.Mock).mockReturnValue({
     showModal: true,
     setShowModal,
-    handleConfirmNavigation: jest.fn(),
-    handleSaveAndCloseModal: jest.fn(),
+    handleConfirmNavigation: vi.fn(),
+    handleSaveAndCloseModal: vi.fn(),
   });
 
   setup({ ...editableState });
@@ -713,9 +713,9 @@ test('should call setShowUnsavedChangesModal(false) on cancel', async () => {
 });
 
 test('should clear history and unsaved changes when entering edit mode', () => {
-  const clearDashboardHistory = jest.fn();
+  const clearDashboardHistory = vi.fn();
 
-  jest.spyOn(redux, 'bindActionCreators').mockImplementation(() => ({
+  vi.spyOn(redux, 'bindActionCreators').mockImplementation(() => ({
     addSuccessToast,
     addDangerToast,
     addWarningToast,

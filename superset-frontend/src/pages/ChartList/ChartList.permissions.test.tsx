@@ -28,11 +28,11 @@ import ChartList from 'src/pages/ChartList';
 import { API_ENDPOINTS, mockCharts, setupMocks } from './ChartList.testHelpers';
 
 // Increase default timeout for all tests
-jest.setTimeout(30000);
+vi.setConfig({ testTimeout: 30000 });
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
-  isFeatureEnabled: jest.fn(),
+vi.mock('@superset-ui/core', () => ({
+  ...(await importActual()),
+  isFeatureEnabled: vi.fn(),
 }));
 
 // Permission configurations
@@ -132,7 +132,7 @@ const renderWithPermissions = async (
   featureFlags: { tagging?: boolean; cardView?: boolean } = {},
 ) => {
   (
-    isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
+    isFeatureEnabled as vi.MockedFunction<typeof isFeatureEnabled>
   ).mockImplementation((feature: string) => {
     if (feature === 'TAGGING_SYSTEM') return featureFlags.tagging === true;
     if (feature === 'LISTVIEWS_DEFAULT_CARD_VIEW')
@@ -167,7 +167,7 @@ describe('ChartList - Permission-based UI Tests', () => {
   beforeEach(() => {
     fetchMock.clearHistory().removeRoutes();
     (
-      isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
+      isFeatureEnabled as vi.MockedFunction<typeof isFeatureEnabled>
     ).mockReset();
   });
 

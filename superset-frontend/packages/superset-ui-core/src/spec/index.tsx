@@ -19,7 +19,7 @@
 import userEvent from '@testing-library/user-event';
 import { ReactElement } from 'react';
 import { render, RenderOptions } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { themeObject } from '@apache-superset/core/ui';
 
 // Define the wrapper component outside

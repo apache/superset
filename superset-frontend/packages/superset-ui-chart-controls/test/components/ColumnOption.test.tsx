@@ -21,10 +21,10 @@ import { render } from '@superset-ui/core/spec';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import { ColumnOption, ColumnOptionProps } from '../../src';
 
-jest.mock('@superset-ui/chart-controls/components/SQLPopover', () => ({
+vi.mock('@superset-ui/chart-controls/components/SQLPopover', () => ({
   SQLPopover: () => <div data-test="mock-sql-popover" />,
 }));
-jest.mock(
+vi.mock(
   '@superset-ui/chart-controls/components/ColumnTypeLabel/ColumnTypeLabel',
   () => ({
     ColumnTypeLabel: ({ type }: { type: string }) => (
@@ -33,7 +33,7 @@ jest.mock(
   }),
 );
 
-jest.mock('@superset-ui/core/components/InfoTooltip', () => ({
+vi.mock('@superset-ui/core/components/InfoTooltip', () => ({
   InfoTooltip: () => <div data-test="mock-tooltip" />,
 }));
 

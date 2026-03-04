@@ -35,7 +35,7 @@ import { useDrillDetailMenuItems, DrillDetailMenuItemsProps } from './index';
 
 /* eslint jest/expect-expect: ["warn", { "assertFunctionNames": ["expect*"] }] */
 
-jest.mock(
+vi.mock(
   '../DrillDetail/DrillDetailPane',
   () =>
     ({

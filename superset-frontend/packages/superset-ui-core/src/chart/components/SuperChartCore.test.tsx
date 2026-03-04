@@ -55,9 +55,9 @@ beforeEach(() => {
 });
 
 test('should return the result from cache unless transformProps has changed', async () => {
-  const pre = jest.fn(x => x);
-  const transform = jest.fn(x => x);
-  const post = jest.fn(x => x);
+  const pre = vi.fn(x => x);
+  const transform = vi.fn(x => x);
+  const post = vi.fn(x => x);
   expect(getChartComponentRegistry().get(props.chartType)).toBe(FakeChart);
 
   expect(pre).toHaveBeenCalledTimes(0);
@@ -74,7 +74,7 @@ test('should return the result from cache unless transformProps has changed', as
   expect(transform).toHaveBeenCalledTimes(1);
   expect(post).toHaveBeenCalledTimes(1);
 
-  const updatedPost = jest.fn(x => x);
+  const updatedPost = vi.fn(x => x);
 
   rerender(
     <SuperChartCore

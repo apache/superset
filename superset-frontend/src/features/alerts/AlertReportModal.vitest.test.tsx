@@ -29,12 +29,12 @@ import { buildErrorTooltipMessage } from './buildErrorTooltipMessage';
 import AlertReportModal, { AlertReportModalProps } from './AlertReportModal';
 import { AlertObject, NotificationMethodOption } from './types';
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
+vi.mock('@superset-ui/core', async importActual => ({
+  ...(await importActual()),
   isFeatureEnabled: () => true,
 }));
 
-jest.mock('src/features/databases/state.ts', () => ({
+vi.mock('src/features/databases/state.ts', () => ({
   useCommonConf: () => ({
     ALERT_REPORTS_NOTIFICATION_METHODS: ['Email', 'Slack', 'SlackV2'],
   }),
@@ -277,8 +277,8 @@ const validAlert: AlertObject = {
   } as any,
 };
 
-jest.mock('./buildErrorTooltipMessage', () => ({
-  buildErrorTooltipMessage: jest.fn(),
+vi.mock('./buildErrorTooltipMessage', () => ({
+  buildErrorTooltipMessage: vi.fn(),
 }));
 
 const generateMockedProps = (
@@ -297,8 +297,8 @@ const generateMockedProps = (
   return {
     addDangerToast: () => {},
     addSuccessToast: () => {},
-    onAdd: jest.fn(() => []),
-    onHide: jest.fn(),
+    onAdd: vi.fn(() => []),
+    onHide: vi.fn(),
     alert: useValidAlert ? alert : null,
     show: true,
     isReport,
@@ -468,7 +468,7 @@ test('renders all fields in General Section', () => {
 
 // Alert Condition Section
 /* A Note on textbox total numbers:
-  Because the General Info panel is open by default, the Name and Description textboxes register as being in the document on all tests, thus the total number of textboxes in each subsequent panel's tests will always be n+2. This is most significant in the Alert Condition panel tests because the nature of the SQL field as a TextAreaControl component may only be queried by role */
+  Because the General Info panel is open by default, the Name and Description textboxes register as being in the document on all tests, thus the total number of textboxes in each subsequent panel's tests will always be n+2. This is most significant in the Alert Condition panel tests because the nature of the SQL field as a TextAreaContol component may only be queried by role */
 test('opens Alert Condition Section on click', async () => {
   render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {
     useRedux: true,
@@ -479,21 +479,17 @@ test('opens Alert Condition Section on click', async () => {
   ).queryByText(/alert condition/i);
   expect(alertConditionHeader).toBeInTheDocument();
 });
-
 test('renders all Alert Condition fields', async () => {
   render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {
     useRedux: true,
   });
   userEvent.click(screen.getByTestId('alert-condition-panel'));
   const database = screen.getByRole('combobox', { name: /database/i });
-  const sql = await screen.findAllByRole('textbox');
-  screen.debug();
-  // screen.debug(sql)
+  const sql = screen.getByRole('textbox');
+  expect(sql).toBeInTheDocument();
   const condition = screen.getByRole('combobox', { name: /condition/i });
   const threshold = screen.getByRole('spinbutton');
   expect(database).toBeInTheDocument();
-  expect(sql).toBeInTheDocument();
-  // expect(sql.length > 0).toBeTruthy();
   expect(condition).toBeInTheDocument();
   expect(threshold).toBeInTheDocument();
 });

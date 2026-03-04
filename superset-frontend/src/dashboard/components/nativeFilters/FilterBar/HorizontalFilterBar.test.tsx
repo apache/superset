@@ -28,8 +28,8 @@ const defaultProps = {
   filterValues: [],
   chartCustomizationValues: [],
   isInitialized: true,
-  onSelectionChange: jest.fn(),
-  onPendingCustomizationDataMaskChange: jest.fn(),
+  onSelectionChange: vi.fn(),
+  onPendingCustomizationDataMaskChange: vi.fn(),
 };
 
 const renderWrapper = (overrideProps?: Record<string, any>) =>

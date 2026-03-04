@@ -104,7 +104,7 @@ describe('DataTablesPane', () => {
         ],
       },
     );
-    const copyToClipboardSpy = jest.spyOn(copyUtils, 'default');
+    const copyToClipboardSpy = vi.spyOn(copyUtils, 'default');
     const props = createDataTablesPaneProps(456);
     render(<DataTablesPane {...props} />, {
       useRedux: true,

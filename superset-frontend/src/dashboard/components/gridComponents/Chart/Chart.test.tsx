@@ -101,16 +101,16 @@ function setup(
   });
 }
 
-const refreshChart = jest.fn();
-const logEvent = jest.fn();
-const changeFilter = jest.fn();
-const addSuccessToast = jest.fn();
-const addDangerToast = jest.fn();
-const toggleExpandSlice = jest.fn();
-const setFocusedFilterField = jest.fn();
-const unsetFocusedFilterField = jest.fn();
+const refreshChart = vi.fn();
+const logEvent = vi.fn();
+const changeFilter = vi.fn();
+const addSuccessToast = vi.fn();
+const addDangerToast = vi.fn();
+const toggleExpandSlice = vi.fn();
+const setFocusedFilterField = vi.fn();
+const unsetFocusedFilterField = vi.fn();
 beforeAll(() => {
-  jest.spyOn(redux, 'bindActionCreators').mockImplementation(() => ({
+  vi.spyOn(redux, 'bindActionCreators').mockImplementation(() => ({
     refreshChart,
     logEvent,
     changeFilter,
@@ -123,7 +123,7 @@ beforeAll(() => {
 });
 
 afterEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 test('should render a SliceHeader', () => {
@@ -159,7 +159,7 @@ test('should call refreshChart when SliceHeader calls forceRefresh', () => {
 
 /* oxlint-disable-next-line jest/no-disabled-tests */
 test.skip('should call changeFilter when ChartContainer calls changeFilter', () => {
-  const mockChangeFilter = jest.fn();
+  const mockChangeFilter = vi.fn();
   const wrapper = setup({ changeFilter: mockChangeFilter }) as any;
   wrapper.instance().changeFilter();
   expect((mockChangeFilter as any).callCount).toBe(1);
@@ -374,7 +374,7 @@ test('should handle chart state when no converter exists', () => {
   jest
     .spyOn(chartStateConverter, 'hasChartStateConverter')
     .mockReturnValue(false);
-  jest.spyOn(chartStateConverter, 'convertChartStateToOwnState');
+  vi.spyOn(chartStateConverter, 'convertChartStateToOwnState');
 
   const { getByTestId } = setup(
     {},

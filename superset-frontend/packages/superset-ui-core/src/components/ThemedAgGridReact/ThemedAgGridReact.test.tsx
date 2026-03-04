@@ -24,14 +24,14 @@ import * as uiModule from '@apache-superset/core/ui';
 import { ThemedAgGridReact } from './index';
 
 // Mock useThemeMode hook
-jest.mock('@apache-superset/core/ui', () => ({
-  ...jest.requireActual('@apache-superset/core/ui'),
-  useThemeMode: jest.fn(() => false), // Default to light mode
+vi.mock('@apache-superset/core/ui', () => ({
+  ...vi.requireActual('@apache-superset/core/ui'),
+  useThemeMode: vi.fn(() => false), // Default to light mode
 }));
 
 // Mock ag-grid-react to avoid complex setup
-jest.mock('ag-grid-react', () => ({
-  AgGridReact: jest.fn(({ theme, ...props }) => (
+vi.mock('ag-grid-react', () => ({
+  AgGridReact: vi.fn(({ theme, ...props }) => (
     <div
       data-test="ag-grid-react"
       data-theme={JSON.stringify(theme)}
@@ -43,16 +43,16 @@ jest.mock('ag-grid-react', () => ({
 }));
 
 // Mock ag-grid-community
-jest.mock('ag-grid-community', () => ({
+vi.mock('ag-grid-community', () => ({
   themeQuartz: {
-    withPart: jest.fn().mockReturnThis(),
-    withParams: jest.fn(params => ({ ...params, _type: 'theme' })),
+    withPart: vi.fn().mockReturnThis(),
+    withParams: vi.fn(params => ({ ...params, _type: 'theme' })),
   },
   colorSchemeDark: { _type: 'dark' },
   colorSchemeLight: { _type: 'light' },
   AllCommunityModule: {},
   ClientSideRowModelModule: {},
-  ModuleRegistry: { registerModules: jest.fn() },
+  ModuleRegistry: { registerModules: vi.fn() },
 }));
 
 const mockRowData = [
@@ -66,9 +66,9 @@ const mockColumnDefs = [
 ];
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
   // Reset to light mode by default
-  (uiModule.useThemeMode as jest.Mock).mockReturnValue(false);
+  (uiModule.useThemeMode as vi.Mock).mockReturnValue(false);
 });
 
 test('renders the AgGridReact component', () => {
@@ -101,7 +101,7 @@ test('applies light theme when background is light', () => {
 
 test('applies dark theme when background is dark', () => {
   // Mock dark mode
-  (uiModule.useThemeMode as jest.Mock).mockReturnValue(true);
+  (uiModule.useThemeMode as vi.Mock).mockReturnValue(true);
 
   const darkTheme = {
     ...supersetTheme,
@@ -144,8 +144,8 @@ test('forwards ref to AgGridReact', () => {
 });
 
 test('passes all props through to AgGridReact', () => {
-  const onGridReady = jest.fn();
-  const onCellClicked = jest.fn();
+  const onGridReady = vi.fn();
+  const onCellClicked = vi.fn();
 
   render(
     <ThemedAgGridReact

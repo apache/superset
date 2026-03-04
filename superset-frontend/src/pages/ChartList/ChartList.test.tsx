@@ -31,13 +31,13 @@ import {
   setupMocks,
 } from './ChartList.testHelpers';
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
-  isFeatureEnabled: jest.fn(),
+vi.mock('@superset-ui/core', () => ({
+  ...(await importActual()),
+  isFeatureEnabled: vi.fn(),
 }));
 
 // Increase default timeout for all tests
-jest.setTimeout(30000);
+vi.setConfig({ testTimeout: 30000 });
 
 const mockUser = {
   userId: 1,
@@ -76,7 +76,7 @@ describe('ChartList', () => {
     fetchMock.clearHistory();
     // Reset feature flag mock
     (
-      isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
+      isFeatureEnabled as vi.MockedFunction<typeof isFeatureEnabled>
     ).mockReset();
   });
 
@@ -249,7 +249,7 @@ describe('ChartList - Global Filter Interactions', () => {
     fetchMock.clearHistory();
     // Reset feature flag mock
     (
-      isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
+      isFeatureEnabled as vi.MockedFunction<typeof isFeatureEnabled>
     ).mockReset();
   });
 
@@ -284,7 +284,7 @@ describe('ChartList - Global Filter Interactions', () => {
   test('renders Tags filter when TAGGING_SYSTEM is enabled', async () => {
     // Mock feature flag to enable tags
     (
-      isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
+      isFeatureEnabled as vi.MockedFunction<typeof isFeatureEnabled>
     ).mockImplementation(
       (feature: string) =>
         feature === 'TAGGING_SYSTEM' ||
@@ -313,7 +313,7 @@ describe('ChartList - Global Filter Interactions', () => {
 
   test('does not render Tags filter when TAGGING_SYSTEM is disabled', async () => {
     (
-      isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
+      isFeatureEnabled as vi.MockedFunction<typeof isFeatureEnabled>
     ).mockImplementation(
       (feature: string) =>
         feature !== 'LISTVIEWS_DEFAULT_CARD_VIEW' &&

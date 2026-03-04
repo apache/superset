@@ -307,7 +307,7 @@ test('cleans up event listeners on unmount', async () => {
   if (!editorInstance) return;
 
   // Spy on the commands.off method
-  const offSpy = jest.spyOn(editorInstance.commands, 'off');
+  const offSpy = vi.spyOn(editorInstance.commands, 'off');
 
   // Unmount the component
   unmount();
@@ -339,7 +339,7 @@ test('does not move autocomplete popup if target container is document.body', as
   // Mock the closest method to return null (simulating no #ace-editor parent)
   const originalClosest = editorInstance.container?.closest;
   if (editorInstance.container) {
-    editorInstance.container.closest = jest.fn(() => null);
+    editorInstance.container.closest = vi.fn(() => null);
   }
 
   // Mock parentElement to be document.body

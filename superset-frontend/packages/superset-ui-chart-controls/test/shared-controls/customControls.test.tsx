@@ -22,14 +22,14 @@ import { xAxisForceCategoricalControl } from '../../src/shared-controls/customCo
 import { checkColumnType } from '../../src/utils/checkColumnType';
 import type { ControlState } from '@superset-ui/chart-controls';
 
-jest.mock('../../src/utils/checkColumnType');
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
-  getColumnLabel: jest.fn((col: any) => col),
+vi.mock('../../src/utils/checkColumnType');
+vi.mock('@superset-ui/core', () => ({
+  ...(await importActual()),
+  getColumnLabel: vi.fn((col: any) => col),
 }));
 
 test('xAxisForceCategoricalControl should not treat temporal columns as categorical when x_axis_sort exists', () => {
-  const mockCheckColumnType = jest.mocked(checkColumnType);
+  const mockCheckColumnType = vi.mocked(checkColumnType);
 
   mockCheckColumnType.mockReturnValue(false); // temporal column (not numeric)
 

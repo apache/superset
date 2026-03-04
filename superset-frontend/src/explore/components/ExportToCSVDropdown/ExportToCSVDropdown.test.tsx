@@ -19,8 +19,8 @@
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import { ExportToCSVDropdown } from './index';
 
-const exportCSVOriginal = jest.fn();
-const exportCSVPivoted = jest.fn();
+const exportCSVOriginal = vi.fn();
+const exportCSVPivoted = vi.fn();
 
 const setup = () =>
   render(

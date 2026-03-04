@@ -31,7 +31,7 @@ import {
 } from 'src/explore/components/controls/DndColumnSelectControl/DndColumnSelect';
 
 // Mock SQLEditorWithValidation to enable Custom SQL testing in JSDOM
-jest.mock('src/components/SQLEditorWithValidation', () => ({
+vi.mock('src/components/SQLEditorWithValidation', () => ({
   __esModule: true,
   default: ({
     value,
@@ -54,9 +54,9 @@ const mockStore = configureMockStore(middlewares);
 const defaultProps: DndColumnSelectProps = {
   type: 'DndColumnSelect',
   name: 'Filter',
-  onChange: jest.fn(),
+  onChange: vi.fn(),
   options: [{ column_name: 'Column A' }],
-  actions: { setControlValue: jest.fn() },
+  actions: { setControlValue: vi.fn() },
 };
 
 test('renders with default props', async () => {
@@ -143,7 +143,7 @@ test('warn selected custom metric when metric gets removed from dataset', async 
 });
 
 test('should allow selecting columns via click interface', async () => {
-  const mockOnChange = jest.fn();
+  const mockOnChange = vi.fn();
   const props = {
     ...defaultProps,
     onChange: mockOnChange,
@@ -243,7 +243,7 @@ test('should handle multiple column selections for groupby', async () => {
 });
 
 test('should support adhoc column creation workflow', async () => {
-  const mockOnChange = jest.fn();
+  const mockOnChange = vi.fn();
   const props = {
     ...defaultProps,
     onChange: mockOnChange,
@@ -284,8 +284,8 @@ test('should verify onChange callback integration (core regression protection)',
   // This test provides the essential regression protection from the original Cypress test:
   // ensuring onChange callbacks are properly wired without requiring complex Redux setup
 
-  const mockOnChange = jest.fn();
-  const mockSetControlValue = jest.fn();
+  const mockOnChange = vi.fn();
+  const mockSetControlValue = vi.fn();
   const props = {
     ...defaultProps,
     name: 'groupby',
@@ -324,7 +324,7 @@ test('should verify onChange callback integration (core regression protection)',
 });
 
 test('should render column selection interface elements', async () => {
-  const mockOnChange = jest.fn();
+  const mockOnChange = vi.fn();
   const props = {
     ...defaultProps,
     name: 'groupby',
@@ -349,8 +349,8 @@ test('should complete full column selection workflow like original Cypress test'
   // This test replicates the exact Cypress workflow with real component interaction:
   // 1. Click drop area → 2. Wait for modal → 3. Select column → 4. Click Save → 5. Verify onChange
 
-  const mockOnChange = jest.fn();
-  const mockSetControlValue = jest.fn();
+  const mockOnChange = vi.fn();
+  const mockSetControlValue = vi.fn();
   const props = {
     ...defaultProps,
     name: 'groupby',
@@ -426,8 +426,8 @@ test('should complete full column selection workflow like original Cypress test'
 
 test('should create adhoc column via Custom SQL tab workflow', async () => {
   // Tests Custom SQL adhoc column creation workflow
-  const mockOnChange = jest.fn();
-  const mockSetControlValue = jest.fn();
+  const mockOnChange = vi.fn();
+  const mockSetControlValue = vi.fn();
   const props = {
     ...defaultProps,
     name: 'groupby',

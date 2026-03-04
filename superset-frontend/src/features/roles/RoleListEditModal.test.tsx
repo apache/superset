@@ -33,27 +33,27 @@ import {
 } from './utils';
 
 const mockToasts = {
-  addDangerToast: jest.fn(),
-  addSuccessToast: jest.fn(),
+  addDangerToast: vi.fn(),
+  addSuccessToast: vi.fn(),
 };
 
-jest.mock('./utils');
-const mockUpdateRoleName = jest.mocked(updateRoleName);
-const mockUpdateRolePermissions = jest.mocked(updateRolePermissions);
-const mockUpdateRoleUsers = jest.mocked(updateRoleUsers);
+vi.mock('./utils');
+const mockUpdateRoleName = vi.mocked(updateRoleName);
+const mockUpdateRolePermissions = vi.mocked(updateRolePermissions);
+const mockUpdateRoleUsers = vi.mocked(updateRoleUsers);
 
-jest.mock('src/components/MessageToasts/withToasts', () => ({
+vi.mock('src/components/MessageToasts/withToasts', () => ({
   __esModule: true,
   default: (Component: any) => Component,
   useToasts: () => mockToasts,
 }));
 
-jest.mock('@superset-ui/core', () => {
-  const original = jest.requireActual('@superset-ui/core');
+vi.mock('@superset-ui/core', () => {
+  const original = vi.requireActual('@superset-ui/core');
   return {
     ...original,
     SupersetClient: {
-      get: jest.fn(),
+      get: vi.fn(),
     },
     t: (str: string) => str,
   };
@@ -105,8 +105,8 @@ describe('RoleListEditModal', () => {
   const mockProps = {
     role: mockRole,
     show: true,
-    onHide: jest.fn(),
-    onSave: jest.fn(),
+    onHide: vi.fn(),
+    onSave: vi.fn(),
     permissions: mockPermissions,
     users: mockUsers,
     groups: mockGroups,
@@ -143,7 +143,7 @@ describe('RoleListEditModal', () => {
   });
 
   test('calls update functions when save button is clicked', async () => {
-    (SupersetClient.get as jest.Mock).mockImplementation(({ endpoint }) => {
+    (SupersetClient.get as vi.Mock).mockImplementation(({ endpoint }) => {
       if (endpoint?.includes('/api/v1/security/users/')) {
         return Promise.resolve({
           json: {
@@ -211,7 +211,7 @@ describe('RoleListEditModal', () => {
   });
 
   test('fetches users with correct role relationship filter', async () => {
-    const mockGet = SupersetClient.get as jest.Mock;
+    const mockGet = SupersetClient.get as vi.Mock;
     mockGet.mockResolvedValue({
       json: {
         count: 0,

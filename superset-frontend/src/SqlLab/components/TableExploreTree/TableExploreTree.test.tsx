@@ -24,7 +24,7 @@ import { initialState, defaultQueryEditor } from 'src/SqlLab/fixtures';
 
 import TableExploreTree from '.';
 
-jest.mock(
+vi.mock(
   'react-virtualized-auto-sizer',
   () =>
     ({ children }: { children: (params: { height: number }) => ReactChild }) =>
@@ -72,7 +72,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
   fetchMock.clearHistory();
 });
 

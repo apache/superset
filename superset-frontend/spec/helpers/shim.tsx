@@ -17,8 +17,8 @@
  * under the License.
  */
 import { AriaAttributes } from 'react';
-// import 'core-js/stable';
-// import 'regenerator-runtime/runtime';
+import 'core-js/stable';
+import 'regenerator-runtime/runtime';
 import jQuery from 'jquery';
 // https://jestjs.io/docs/jest-object#jestmockmodulename-factory-options
 // in order to mock modules in test case, so avoid absolute import module
@@ -144,4 +144,4 @@ vi.mock('@superset-ui/core/components/Icons/AsyncIcon', () => ({
   ),
 }));
 
-// process.env.WEBPACK_MODE = 'test';
+process.env.WEBPACK_MODE = 'test';

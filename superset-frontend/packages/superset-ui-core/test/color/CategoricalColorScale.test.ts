@@ -77,7 +77,7 @@ describe('CategoricalColorScale', () => {
       scale = new CategoricalColorScale(['blue', 'red', 'green']);
       // Spy on the addSlice method of labelsColorMapInstance
       addSliceSpy = vi.spyOn(scale.labelsColorMapInstance, 'addSlice');
-      getNextAvailableColorSpy = jest
+      getNextAvailableColorSpy = vi
         .spyOn(scale, 'getNextAvailableColor')
         .mockImplementation(color => color);
     });

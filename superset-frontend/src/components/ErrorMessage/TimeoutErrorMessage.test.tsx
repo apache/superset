@@ -21,7 +21,7 @@ import { ErrorSource, ErrorTypeEnum, ErrorLevel } from '@superset-ui/core';
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import { TimeoutErrorMessage } from './TimeoutErrorMessage';
 
-jest.mock(
+vi.mock(
   '@superset-ui/core/components/Icons/AsyncIcon',
   () =>
     ({ fileName }: { fileName: string }) => (

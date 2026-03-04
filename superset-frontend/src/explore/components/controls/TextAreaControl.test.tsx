@@ -28,7 +28,7 @@ import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 const defaultProps = {
   name: 'x_axis_label',
   label: 'X Axis Label',
-  onChange: jest.fn(),
+  onChange: vi.fn(),
 };
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks

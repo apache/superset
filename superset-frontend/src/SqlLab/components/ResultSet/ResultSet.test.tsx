@@ -42,15 +42,15 @@ import {
   failedQueryWithFrontendTimeoutErrors,
 } from 'src/SqlLab/fixtures';
 
-jest.mock('src/components/ErrorMessage', () => ({
+vi.mock('src/components/ErrorMessage', () => ({
   ErrorMessageWithStackTrace: () => <div data-test="error-message">Error</div>,
 }));
 
 // Mock useStreamingExport to capture startExport calls
-const mockStartExport = jest.fn();
-const mockResetExport = jest.fn();
-const mockCancelExport = jest.fn();
-jest.mock('src/components/StreamingExportModal/useStreamingExport', () => ({
+const mockStartExport = vi.fn();
+const mockResetExport = vi.fn();
+const mockCancelExport = vi.fn();
+vi.mock('src/components/StreamingExportModal/useStreamingExport', () => ({
   useStreamingExport: () => ({
     startExport: mockStartExport,
     resetExport: mockResetExport,
@@ -59,13 +59,13 @@ jest.mock('src/components/StreamingExportModal/useStreamingExport', () => ({
   }),
 }));
 
-jest.mock(
+vi.mock(
   'react-virtualized-auto-sizer',
   () =>
     ({ children }: { children: (params: { height: number }) => ReactChild }) =>
       children({ height: 500 }),
 );
-const applicationRootMock = jest.spyOn(getBootstrapData, 'applicationRoot');
+const applicationRootMock = vi.spyOn(getBootstrapData, 'applicationRoot');
 
 const mockedProps = {
   cache: true,

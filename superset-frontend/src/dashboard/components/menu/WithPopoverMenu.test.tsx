@@ -83,7 +83,7 @@ test('should use the passed shouldFocus func to determine if it should focus', a
 });
 
 test('should allow event propagation to enable multiple components to work independently', async () => {
-  const onChangeFocus = jest.fn();
+  const onChangeFocus = vi.fn();
 
   const { container } = setup({
     editMode: true,
@@ -99,8 +99,8 @@ test('should allow event propagation to enable multiple components to work indep
 });
 
 test('should unfocus when another component is clicked', async () => {
-  const onChangeFocusA = jest.fn();
-  const onChangeFocusB = jest.fn();
+  const onChangeFocusA = vi.fn();
+  const onChangeFocusB = vi.fn();
 
   const componentA = render(
     <WithPopoverMenu

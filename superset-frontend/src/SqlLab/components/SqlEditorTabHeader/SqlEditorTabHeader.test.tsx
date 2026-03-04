@@ -40,10 +40,10 @@ import {
 } from 'src/SqlLab/actions/sqlLab';
 import SqlEditorTabHeader from 'src/SqlLab/components/SqlEditorTabHeader';
 
-jest.mock('@superset-ui/core/components/Select/Select', () => () => (
+vi.mock('@superset-ui/core/components/Select/Select', () => () => (
   <div data-test="mock-deprecated-select-select" />
 ));
-jest.mock('@superset-ui/core/components/Select/AsyncSelect', () => () => (
+vi.mock('@superset-ui/core/components/Select/AsyncSelect', () => () => (
   <div data-test="mock-async-select" />
 ));
 

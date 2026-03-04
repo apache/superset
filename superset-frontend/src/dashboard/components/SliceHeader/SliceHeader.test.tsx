@@ -24,7 +24,7 @@ import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import SliceHeader from '.';
 
-jest.mock('src/dashboard/components/SliceHeaderControls', () => ({
+vi.mock('src/dashboard/components/SliceHeaderControls', () => ({
   __esModule: true,
   default: (props: any) => (
     <div
@@ -95,19 +95,19 @@ jest.mock('src/dashboard/components/SliceHeaderControls', () => ({
   ),
 }));
 
-jest.mock('src/dashboard/components/FiltersBadge', () => ({
+vi.mock('src/dashboard/components/FiltersBadge', () => ({
   __esModule: true,
   default: (props: any) => (
     <div data-test="FiltersBadge" data-chart-id={props.chartId} />
   ),
 }));
 
-jest.mock('src/dashboard/util/isEmbedded', () => ({
-  isEmbedded: jest.fn().mockReturnValue(false),
+vi.mock('src/dashboard/util/isEmbedded', () => ({
+  isEmbedded: vi.fn().mockReturnValue(false),
 }));
 
-jest.mock('src/components/UiConfigContext', () => ({
-  useUiConfig: jest.fn().mockReturnValue({
+vi.mock('src/components/UiConfigContext', () => ({
+  useUiConfig: vi.fn().mockReturnValue({
     hideTitle: false,
     hideTab: false,
     hideNav: false,
@@ -179,15 +179,15 @@ const createProps = (overrides: any = {}) => ({
   dashboardId: 26,
   isFullSize: false,
   chartStatus: 'rendered',
-  addSuccessToast: jest.fn(),
-  addDangerToast: jest.fn(),
-  handleToggleFullSize: jest.fn(),
-  updateSliceName: jest.fn(),
-  toggleExpandSlice: jest.fn(),
-  forceRefresh: jest.fn(),
-  logExploreChart: jest.fn(),
-  logEvent: jest.fn(),
-  exportCSV: jest.fn(),
+  addSuccessToast: vi.fn(),
+  addDangerToast: vi.fn(),
+  handleToggleFullSize: vi.fn(),
+  updateSliceName: vi.fn(),
+  toggleExpandSlice: vi.fn(),
+  forceRefresh: vi.fn(),
+  logExploreChart: vi.fn(),
+  logEvent: vi.fn(),
+  exportCSV: vi.fn(),
   formData: { slice_id: 1, datasource: '58__table' },
   width: 100,
   height: 100,
@@ -301,7 +301,7 @@ test('Should render click to edit prompt and run onExploreChart on click', async
 });
 
 test('Display cmd button in tooltip if running on MacOS', async () => {
-  jest.spyOn(window.navigator, 'appVersion', 'get').mockReturnValue('Mac');
+  vi.spyOn(window.navigator, 'appVersion', 'get').mockReturnValue('Mac');
   const props = createProps();
   render(<SliceHeader {...props} />, {
     useRedux: true,
@@ -566,9 +566,7 @@ test('Should render RowCountLabel when row limit is hit, and hide it otherwise',
     },
   };
 
-  const mockUseUiConfig = useUiConfig as jest.MockedFunction<
-    typeof useUiConfig
-  >;
+  const mockUseUiConfig = useUiConfig as vi.MockedFunction<typeof useUiConfig>;
   mockUseUiConfig.mockReturnValue({
     hideTitle: false,
     hideTab: false,
@@ -599,10 +597,8 @@ test('Should render RowCountLabel when row limit is hit, and hide it otherwise',
 });
 
 test('Should hide warning in embedded by default for non-table charts', () => {
-  const mockIsEmbedded = isEmbedded as jest.MockedFunction<typeof isEmbedded>;
-  const mockUseUiConfig = useUiConfig as jest.MockedFunction<
-    typeof useUiConfig
-  >;
+  const mockIsEmbedded = isEmbedded as vi.MockedFunction<typeof isEmbedded>;
+  const mockUseUiConfig = useUiConfig as vi.MockedFunction<typeof useUiConfig>;
 
   mockIsEmbedded.mockReturnValue(true);
   mockUseUiConfig.mockReturnValue({
@@ -647,9 +643,7 @@ test('Should hide warning in embedded by default for non-table charts', () => {
 });
 
 test('Should show row count badge for table chart without server pagination', () => {
-  const mockUseUiConfig = useUiConfig as jest.MockedFunction<
-    typeof useUiConfig
-  >;
+  const mockUseUiConfig = useUiConfig as vi.MockedFunction<typeof useUiConfig>;
   mockUseUiConfig.mockReturnValue({
     hideTitle: false,
     hideTab: false,
@@ -740,9 +734,7 @@ test('Should show row count warning for table chart with server pagination when 
     },
   };
 
-  const mockUseUiConfig = useUiConfig as jest.MockedFunction<
-    typeof useUiConfig
-  >;
+  const mockUseUiConfig = useUiConfig as vi.MockedFunction<typeof useUiConfig>;
   mockUseUiConfig.mockReturnValue({
     hideTitle: false,
     hideTab: false,
@@ -801,9 +793,7 @@ test('Should NOT show row count warning for table chart with server pagination w
     },
   };
 
-  const mockUseUiConfig = useUiConfig as jest.MockedFunction<
-    typeof useUiConfig
-  >;
+  const mockUseUiConfig = useUiConfig as vi.MockedFunction<typeof useUiConfig>;
   mockUseUiConfig.mockReturnValue({
     hideTitle: false,
     hideTab: false,

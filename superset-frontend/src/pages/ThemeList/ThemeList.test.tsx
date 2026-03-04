@@ -28,7 +28,7 @@ import { useThemeContext } from 'src/theme/ThemeProvider';
 import ThemesList from './index';
 
 // Mock the getBootstrapData function
-jest.mock('src/utils/getBootstrapData', () => ({
+vi.mock('src/utils/getBootstrapData', () => ({
   __esModule: true,
   default: () => ({
     common: {
@@ -47,25 +47,25 @@ jest.mock('src/utils/getBootstrapData', () => ({
 }));
 
 // Mock theme API functions
-jest.mock('src/features/themes/api', () => ({
-  setSystemDefaultTheme: jest.fn(() => Promise.resolve()),
-  setSystemDarkTheme: jest.fn(() => Promise.resolve()),
-  unsetSystemDefaultTheme: jest.fn(() => Promise.resolve()),
-  unsetSystemDarkTheme: jest.fn(() => Promise.resolve()),
+vi.mock('src/features/themes/api', () => ({
+  setSystemDefaultTheme: vi.fn(() => Promise.resolve()),
+  setSystemDarkTheme: vi.fn(() => Promise.resolve()),
+  unsetSystemDefaultTheme: vi.fn(() => Promise.resolve()),
+  unsetSystemDarkTheme: vi.fn(() => Promise.resolve()),
 }));
 
 // Mock the CRUD hooks
-jest.mock('src/views/CRUD/hooks', () => ({
-  ...jest.requireActual('src/views/CRUD/hooks'),
-  useListViewResource: jest.fn(),
+vi.mock('src/views/CRUD/hooks', () => ({
+  ...vi.requireActual('src/views/CRUD/hooks'),
+  useListViewResource: vi.fn(),
 }));
 
 // Mock the useThemeContext hook
-const mockSetTemporaryTheme = jest.fn();
-const mockGetAppliedThemeId = jest.fn();
-jest.mock('src/theme/ThemeProvider', () => ({
-  ...jest.requireActual('src/theme/ThemeProvider'),
-  useThemeContext: jest.fn(),
+const mockSetTemporaryTheme = vi.fn();
+const mockGetAppliedThemeId = vi.fn();
+vi.mock('src/theme/ThemeProvider', () => ({
+  ...vi.requireActual('src/theme/ThemeProvider'),
+  useThemeContext: vi.fn(),
 }));
 
 const mockThemes = [
@@ -123,31 +123,31 @@ const themesInfoEndpoint = 'glob:*/api/v1/theme/_info*';
 const themesEndpoint = 'glob:*/api/v1/theme/?*';
 const themeEndpoint = 'glob:*/api/v1/theme/*';
 
-const mockRefreshData = jest.fn();
+const mockRefreshData = vi.fn();
 
 beforeEach(() => {
   // Mock the useListViewResource hook
-  (hooks.useListViewResource as jest.Mock).mockReturnValue({
+  (hooks.useListViewResource as vi.Mock).mockReturnValue({
     state: {
       loading: false,
       resourceCollection: mockThemes,
       resourceCount: 3,
       bulkSelectEnabled: false,
     },
-    setResourceCollection: jest.fn(),
-    hasPerm: jest.fn().mockReturnValue(true),
+    setResourceCollection: vi.fn(),
+    hasPerm: vi.fn().mockReturnValue(true),
     refreshData: mockRefreshData,
-    fetchData: jest.fn(),
-    toggleBulkSelect: jest.fn(),
+    fetchData: vi.fn(),
+    toggleBulkSelect: vi.fn(),
   });
 
   // Mock useThemeContext
   mockGetAppliedThemeId.mockReturnValue(null);
-  (useThemeContext as jest.Mock).mockReturnValue({
-    getCurrentCrudThemeId: jest.fn().mockReturnValue('1'),
+  (useThemeContext as vi.Mock).mockReturnValue({
+    getCurrentCrudThemeId: vi.fn().mockReturnValue('1'),
     appliedTheme: { theme_name: 'Light Theme', id: 1 },
     setTemporaryTheme: mockSetTemporaryTheme,
-    hasDevOverride: jest.fn().mockReturnValue(false),
+    hasDevOverride: vi.fn().mockReturnValue(false),
     getAppliedThemeId: mockGetAppliedThemeId,
   });
 
@@ -165,15 +165,15 @@ beforeEach(() => {
 
 afterEach(() => {
   fetchMock.clearHistory().removeRoutes();
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 test('renders themes list with all theme names', async () => {
   render(
     <ThemesList
       user={mockUser}
-      addDangerToast={jest.fn()}
-      addSuccessToast={jest.fn()}
+      addDangerToast={vi.fn()}
+      addSuccessToast={vi.fn()}
     />,
     {
       useRedux: true,
@@ -194,8 +194,8 @@ test('shows system tag for system themes', async () => {
   render(
     <ThemesList
       user={mockUser}
-      addDangerToast={jest.fn()}
-      addSuccessToast={jest.fn()}
+      addDangerToast={vi.fn()}
+      addSuccessToast={vi.fn()}
     />,
     {
       useRedux: true,
@@ -214,8 +214,8 @@ test('shows default tag for system default theme', async () => {
   render(
     <ThemesList
       user={mockUser}
-      addDangerToast={jest.fn()}
-      addSuccessToast={jest.fn()}
+      addDangerToast={vi.fn()}
+      addSuccessToast={vi.fn()}
     />,
     {
       useRedux: true,
@@ -234,8 +234,8 @@ test('shows dark tag for system dark theme', async () => {
   render(
     <ThemesList
       user={mockUser}
-      addDangerToast={jest.fn()}
-      addSuccessToast={jest.fn()}
+      addDangerToast={vi.fn()}
+      addSuccessToast={vi.fn()}
     />,
     {
       useRedux: true,
@@ -254,8 +254,8 @@ test('shows apply action button for all themes', async () => {
   render(
     <ThemesList
       user={mockUser}
-      addDangerToast={jest.fn()}
-      addSuccessToast={jest.fn()}
+      addDangerToast={vi.fn()}
+      addSuccessToast={vi.fn()}
     />,
     {
       useRedux: true,
@@ -275,8 +275,8 @@ test('shows delete button only for non-system themes', async () => {
   render(
     <ThemesList
       user={mockUser}
-      addDangerToast={jest.fn()}
-      addSuccessToast={jest.fn()}
+      addDangerToast={vi.fn()}
+      addSuccessToast={vi.fn()}
     />,
     {
       useRedux: true,
@@ -297,8 +297,8 @@ test('shows set default action for non-default themes', async () => {
   render(
     <ThemesList
       user={mockUser}
-      addDangerToast={jest.fn()}
-      addSuccessToast={jest.fn()}
+      addDangerToast={vi.fn()}
+      addSuccessToast={vi.fn()}
     />,
     {
       useRedux: true,
@@ -319,8 +319,8 @@ test('shows unset default action for system default theme', async () => {
   render(
     <ThemesList
       user={mockUser}
-      addDangerToast={jest.fn()}
-      addSuccessToast={jest.fn()}
+      addDangerToast={vi.fn()}
+      addSuccessToast={vi.fn()}
     />,
     {
       useRedux: true,
@@ -342,8 +342,8 @@ test('shows set dark action for non-dark themes', async () => {
   render(
     <ThemesList
       user={mockUser}
-      addDangerToast={jest.fn()}
-      addSuccessToast={jest.fn()}
+      addDangerToast={vi.fn()}
+      addSuccessToast={vi.fn()}
     />,
     {
       useRedux: true,
@@ -364,8 +364,8 @@ test('shows unset dark action for system dark theme', async () => {
   render(
     <ThemesList
       user={mockUser}
-      addDangerToast={jest.fn()}
-      addSuccessToast={jest.fn()}
+      addDangerToast={vi.fn()}
+      addSuccessToast={vi.fn()}
     />,
     {
       useRedux: true,
@@ -385,8 +385,8 @@ test('shows export action for all themes when user has permission', async () => 
   render(
     <ThemesList
       user={mockUser}
-      addDangerToast={jest.fn()}
-      addSuccessToast={jest.fn()}
+      addDangerToast={vi.fn()}
+      addSuccessToast={vi.fn()}
     />,
     {
       useRedux: true,
@@ -406,8 +406,8 @@ test('shows edit action for all themes when user has permission', async () => {
   render(
     <ThemesList
       user={mockUser}
-      addDangerToast={jest.fn()}
-      addSuccessToast={jest.fn()}
+      addDangerToast={vi.fn()}
+      addSuccessToast={vi.fn()}
     />,
     {
       useRedux: true,
@@ -427,8 +427,8 @@ test('shows bulk select button when user has permissions', async () => {
   render(
     <ThemesList
       user={mockUser}
-      addDangerToast={jest.fn()}
-      addSuccessToast={jest.fn()}
+      addDangerToast={vi.fn()}
+      addSuccessToast={vi.fn()}
     />,
     {
       useRedux: true,
@@ -447,8 +447,8 @@ test('shows create theme button when user has permissions', async () => {
   render(
     <ThemesList
       user={mockUser}
-      addDangerToast={jest.fn()}
-      addSuccessToast={jest.fn()}
+      addDangerToast={vi.fn()}
+      addSuccessToast={vi.fn()}
     />,
     {
       useRedux: true,
@@ -468,8 +468,8 @@ test('clicking apply button calls setTemporaryTheme with parsed theme data and I
   render(
     <ThemesList
       user={mockUser}
-      addDangerToast={jest.fn()}
-      addSuccessToast={jest.fn()}
+      addDangerToast={vi.fn()}
+      addSuccessToast={vi.fn()}
     />,
     {
       useRedux: true,
@@ -500,8 +500,8 @@ test('applying a local theme calls setTemporaryTheme with theme ID', async () =>
   render(
     <ThemesList
       user={mockUser}
-      addDangerToast={jest.fn()}
-      addSuccessToast={jest.fn()}
+      addDangerToast={vi.fn()}
+      addSuccessToast={vi.fn()}
     />,
     {
       useRedux: true,
@@ -530,19 +530,19 @@ test('component loads successfully with applied theme ID set', async () => {
   // This test verifies that having a stored theme ID doesn't break the component
   // Mock hasDevOverride to return true since we have a dev override set
   mockGetAppliedThemeId.mockReturnValue(1);
-  (useThemeContext as jest.Mock).mockReturnValue({
-    getCurrentCrudThemeId: jest.fn().mockReturnValue('1'),
+  (useThemeContext as vi.Mock).mockReturnValue({
+    getCurrentCrudThemeId: vi.fn().mockReturnValue('1'),
     appliedTheme: { theme_name: 'Light Theme', id: 1 },
     setTemporaryTheme: mockSetTemporaryTheme,
-    hasDevOverride: jest.fn().mockReturnValue(true),
+    hasDevOverride: vi.fn().mockReturnValue(true),
     getAppliedThemeId: mockGetAppliedThemeId,
   });
 
   render(
     <ThemesList
       user={mockUser}
-      addDangerToast={jest.fn()}
-      addSuccessToast={jest.fn()}
+      addDangerToast={vi.fn()}
+      addSuccessToast={vi.fn()}
     />,
     {
       useRedux: true,
@@ -562,19 +562,19 @@ test('component loads successfully with applied theme ID set', async () => {
 test('component loads successfully and preserves applied theme state', async () => {
   // Mock hasDevOverride to return true and getAppliedThemeId to return a theme
   mockGetAppliedThemeId.mockReturnValue(1);
-  (useThemeContext as jest.Mock).mockReturnValue({
-    getCurrentCrudThemeId: jest.fn().mockReturnValue('1'),
+  (useThemeContext as vi.Mock).mockReturnValue({
+    getCurrentCrudThemeId: vi.fn().mockReturnValue('1'),
     appliedTheme: { theme_name: 'Light Theme', id: 1 },
     setTemporaryTheme: mockSetTemporaryTheme,
-    hasDevOverride: jest.fn().mockReturnValue(true),
+    hasDevOverride: vi.fn().mockReturnValue(true),
     getAppliedThemeId: mockGetAppliedThemeId,
   });
 
   render(
     <ThemesList
       user={mockUser}
-      addDangerToast={jest.fn()}
-      addSuccessToast={jest.fn()}
+      addDangerToast={vi.fn()}
+      addSuccessToast={vi.fn()}
     />,
     {
       useRedux: true,

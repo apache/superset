@@ -29,7 +29,7 @@ describe('createLoadableRenderer', () => {
   function TestComponent() {
     return <div className="test-component">test</div>;
   }
-  let loadChartSuccess = jest.fn(() => Promise.resolve(TestComponent));
+  let loadChartSuccess = vi.fn(() => Promise.resolve(TestComponent));
   let render: (loaded: { Chart: ComponentType }) => JSX.Element;
   let loading: () => JSX.Element;
   let LoadableRenderer: LoadableRendererType<{}>;
@@ -37,13 +37,13 @@ describe('createLoadableRenderer', () => {
 
   beforeEach(() => {
     restoreConsole = mockConsole();
-    loadChartSuccess = jest.fn(() => Promise.resolve(TestComponent));
-    render = jest.fn(loaded => {
+    loadChartSuccess = vi.fn(() => Promise.resolve(TestComponent));
+    render = vi.fn(loaded => {
       const { Chart } = loaded;
 
       return <Chart />;
     });
-    loading = jest.fn(() => <div>Loading</div>);
+    loading = vi.fn(() => <div>Loading</div>);
 
     LoadableRenderer = createLoadableRenderer({
       loader: {
@@ -66,8 +66,8 @@ describe('createLoadableRenderer', () => {
     });
 
     test('calls onRenderSuccess when succeeds', async () => {
-      const onRenderSuccess = jest.fn();
-      const onRenderFailure = jest.fn();
+      const onRenderSuccess = vi.fn();
+      const onRenderFailure = vi.fn();
       renderTestComponent(
         <LoadableRenderer
           onRenderSuccess={onRenderSuccess}
@@ -75,7 +75,7 @@ describe('createLoadableRenderer', () => {
         />,
       );
       expect(loadChartSuccess).toHaveBeenCalled();
-      jest.useRealTimers();
+      vi.useRealTimers();
       await new Promise(resolve => setTimeout(resolve, 10));
       expect(render).toHaveBeenCalledTimes(1);
       expect(onRenderSuccess).toHaveBeenCalledTimes(1);
@@ -84,7 +84,7 @@ describe('createLoadableRenderer', () => {
 
     test('calls onRenderFailure when fails', () =>
       new Promise(done => {
-        const loadChartFailure = jest.fn(() =>
+        const loadChartFailure = vi.fn(() =>
           Promise.reject(new Error('Invalid chart')),
         );
         const FailedRenderer = createLoadableRenderer({
@@ -94,8 +94,8 @@ describe('createLoadableRenderer', () => {
           loading,
           render,
         });
-        const onRenderSuccess = jest.fn();
-        const onRenderFailure = jest.fn();
+        const onRenderSuccess = vi.fn();
+        const onRenderFailure = vi.fn();
         renderTestComponent(
           <FailedRenderer
             onRenderSuccess={onRenderSuccess}
@@ -113,7 +113,7 @@ describe('createLoadableRenderer', () => {
 
     test('onRenderFailure is optional', () =>
       new Promise(done => {
-        const loadChartFailure = jest.fn(() =>
+        const loadChartFailure = vi.fn(() =>
           Promise.reject(new Error('Invalid chart')),
         );
         const FailedRenderer = createLoadableRenderer({

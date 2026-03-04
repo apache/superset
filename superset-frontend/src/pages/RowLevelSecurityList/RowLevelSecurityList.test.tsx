@@ -97,7 +97,7 @@ fetchMock.get(
   { permissions: ['can_read', 'can_write'] },
   { name: ruleInfoEndpoint },
 );
-global.URL.createObjectURL = jest.fn();
+global.URL.createObjectURL = vi.fn();
 
 const mockUser = {
   userId: 1,

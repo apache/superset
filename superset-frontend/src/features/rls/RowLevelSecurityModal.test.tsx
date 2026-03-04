@@ -134,7 +134,7 @@ fetchMock.get(getRelatedTablesEndpoint, mockGetTablesResult);
 fetchMock.post(postRuleEndpoint, {}, { name: postRuleEndpoint });
 fetchMock.put(putRuleEndpoint, {});
 
-global.URL.createObjectURL = jest.fn();
+global.URL.createObjectURL = vi.fn();
 
 const NOOP = () => {};
 
@@ -235,7 +235,7 @@ describe('Rule modal', () => {
   });
 
   test('Does not allow to create rule without name, tables and clause', async () => {
-    jest.setTimeout(10000);
+    vi.setConfig({ testTimeout: 10000 });
     await renderAndWait(addNewRuleDefaultProps);
 
     const addButton = screen.getByRole('button', { name: /add/i });

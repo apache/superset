@@ -39,19 +39,19 @@ const mockProps: TabsRendererProps = {
   editMode: false,
   renderHoverMenu: true,
   tabsDragSourceRef: undefined,
-  handleDeleteComponent: jest.fn(),
+  handleDeleteComponent: vi.fn(),
   tabsComponent: { id: 'test-tabs-id' },
   activeKey: 'tab-1',
   tabIds: ['tab-1', 'tab-2'],
-  handleClickTab: jest.fn(),
-  handleEdit: jest.fn(),
+  handleClickTab: vi.fn(),
+  handleEdit: vi.fn(),
   tabBarPaddingLeft: 16,
 };
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('TabsRenderer', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   test('renders tabs container with correct test attributes', () => {
@@ -83,7 +83,7 @@ describe('TabsRenderer', () => {
   });
 
   test('calls handleClickTab when tab is clicked', () => {
-    const handleClickTabMock = jest.fn();
+    const handleClickTabMock = vi.fn();
     const propsWithTab2Active = {
       ...mockProps,
       activeKey: 'tab-2',
@@ -181,7 +181,7 @@ describe('TabsRenderer', () => {
   });
 
   test('calls onEdit when edit action is triggered', () => {
-    const handleEditMock = jest.fn();
+    const handleEditMock = vi.fn();
     const editableProps = {
       ...mockProps,
       editMode: true,

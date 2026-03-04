@@ -27,16 +27,16 @@ import {
 } from 'spec/helpers/testing-library';
 import FilterConfigPane from './FilterConfigurePane';
 
-const scrollMock = jest.fn();
+const scrollMock = vi.fn();
 Element.prototype.scroll = scrollMock;
 
 const defaultProps = {
   getFilterTitle: (id: string) => id,
-  onChange: jest.fn(),
-  onAdd: jest.fn(),
-  onRemove: jest.fn(),
-  onRearrange: jest.fn(),
-  restoreFilter: jest.fn(),
+  onChange: vi.fn(),
+  onAdd: vi.fn(),
+  onRemove: vi.fn(),
+  onRearrange: vi.fn(),
+  restoreFilter: vi.fn(),
   currentFilterId: 'NATIVE_FILTER-1',
   filters: ['NATIVE_FILTER-1', 'NATIVE_FILTER-2', 'NATIVE_FILTER-3'],
   removedFilters: {},

@@ -21,7 +21,7 @@ import { CurrencyControl } from './CurrencyControl';
 
 test('CurrencyControl renders position and symbol selects', () => {
   const { container } = render(
-    <CurrencyControl onChange={jest.fn()} value={{}} />,
+    <CurrencyControl onChange={vi.fn()} value={{}} />,
     {
       useRedux: true,
       initialState: {
@@ -38,7 +38,7 @@ test('CurrencyControl renders position and symbol selects', () => {
 });
 
 test('CurrencyControl handles string currency value', async () => {
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   const { container } = render(
     <CurrencyControl
       onChange={onChange}

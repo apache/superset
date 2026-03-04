@@ -108,7 +108,7 @@ describe('Tabs', () => {
     });
 
     test('should handle tab change events', () => {
-      const onChangeMock = jest.fn();
+      const onChangeMock = vi.fn();
       const { getByText } = render(
         <Tabs items={defaultItems} onChange={onChangeMock} />,
       );
@@ -119,7 +119,7 @@ describe('Tabs', () => {
     });
 
     test('should pass through additional props to Antd Tabs', () => {
-      const onTabClickMock = jest.fn();
+      const onTabClickMock = vi.fn();
       const { getByText } = render(
         <Tabs
           items={defaultItems}
@@ -146,7 +146,7 @@ describe('Tabs', () => {
     });
 
     test('should handle onEdit callback for add/remove actions', () => {
-      const onEditMock = jest.fn();
+      const onEditMock = vi.fn();
       const itemsWithRemove = defaultItems.map(item => ({
         ...item,
         closable: true,

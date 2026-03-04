@@ -38,7 +38,7 @@ const createProps = (props = {}) => ({
     backend: 'sqlite',
   },
   schema: 'test_schema',
-  handleError: jest.fn(),
+  handleError: vi.fn(),
   ...props,
 });
 
@@ -65,7 +65,7 @@ const getSelectItemContainer = (select: HTMLElement) =>
 
 // Add cleanup and increase timeout
 beforeAll(() => {
-  jest.setTimeout(30000);
+  vi.setConfig({ testTimeout: 30000 });
 });
 
 beforeEach(() => {
@@ -155,7 +155,7 @@ test('table select retain value if not in SQL Lab mode', async () => {
   fetchMock.get(schemaApiRoute, { result: ['test_schema'] });
   fetchMock.get(tablesApiRoute, getTableMockFunction());
 
-  const callback = jest.fn();
+  const callback = vi.fn();
   const props = createProps({
     onTableSelectChange: callback,
     sqlLabMode: false,
@@ -228,7 +228,7 @@ test('table multi select retain all the values selected', async () => {
   fetchMock.get(schemaApiRoute, { result: ['test_schema'] });
   fetchMock.get(tablesApiRoute, getTableMockFunction());
 
-  const callback = jest.fn();
+  const callback = vi.fn();
   const props = createProps({
     onTableSelectChange: callback,
   });

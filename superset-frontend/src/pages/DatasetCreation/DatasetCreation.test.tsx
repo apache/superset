@@ -19,9 +19,9 @@
 import { render, screen } from 'spec/helpers/testing-library';
 import AddDataset from 'src/pages/DatasetCreation';
 
-const mockHistoryPush = jest.fn();
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
+const mockHistoryPush = vi.fn();
+vi.mock('react-router-dom', () => ({
+  ...vi.requireActual('react-router-dom'),
   useHistory: () => ({
     push: mockHistoryPush,
   }),

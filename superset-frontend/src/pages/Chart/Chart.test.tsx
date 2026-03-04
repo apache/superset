@@ -34,13 +34,13 @@ import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import { getParsedExploreURLParams } from 'src/explore/exploreUtils/getParsedExploreURLParams';
 import ChartPage from '.';
 
-jest.mock('src/hooks/useUnsavedChangesPrompt', () => ({
-  useUnsavedChangesPrompt: jest.fn(),
+vi.mock('src/hooks/useUnsavedChangesPrompt', () => ({
+  useUnsavedChangesPrompt: vi.fn(),
 }));
-jest.mock('re-resizable', () => ({
+vi.mock('re-resizable', () => ({
   Resizable: () => <div data-test="mock-re-resizable" />,
 }));
-jest.mock(
+vi.mock(
   'src/explore/components/ExploreChartPanel',
   () =>
     ({ exploreState }: { exploreState: JsonObject }) => (
@@ -49,21 +49,21 @@ jest.mock(
       </div>
     ),
 );
-jest.mock('src/dashboard/util/charts/getFormDataWithExtraFilters');
-jest.mock('src/explore/exploreUtils/getParsedExploreURLParams', () => ({
-  getParsedExploreURLParams: jest.fn(),
+vi.mock('src/dashboard/util/charts/getFormDataWithExtraFilters');
+vi.mock('src/explore/exploreUtils/getParsedExploreURLParams', () => ({
+  getParsedExploreURLParams: vi.fn(),
 }));
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ChartPage', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
-    (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+    (useUnsavedChangesPrompt as vi.Mock).mockReturnValue({
       showModal: false,
-      setShowModal: jest.fn(),
-      handleConfirmNavigation: jest.fn(),
-      handleSaveAndCloseModal: jest.fn(),
+      setShowModal: vi.fn(),
+      handleConfirmNavigation: vi.fn(),
+      handleSaveAndCloseModal: vi.fn(),
     });
   });
 
@@ -98,7 +98,7 @@ describe('ChartPage', () => {
     const chartApiRoute = `glob:*/api/v1/chart/*`;
     const exploreApiRoute = 'glob:*/api/v1/explore/*';
     const expectedDatasourceName = 'failed datasource name';
-    (getParsedExploreURLParams as jest.Mock).mockReturnValue(
+    (getParsedExploreURLParams as vi.Mock).mockReturnValue(
       new Map([['datasource_id', 1]]),
     );
     fetchMock.get(exploreApiRoute, () => {
@@ -141,7 +141,7 @@ describe('ChartPage', () => {
   test('fetches the chart api when explore metadata is prohibited and access from the chart link', async () => {
     const expectedChartId = 7;
     const expectedChartName = 'Unauthorized dataset owned chart name';
-    (getParsedExploreURLParams as jest.Mock).mockReturnValue(
+    (getParsedExploreURLParams as vi.Mock).mockReturnValue(
       new Map([['slice_id', expectedChartId]]),
     );
     const chartApiRoute = `glob:*/api/v1/chart/${expectedChartId}`;
@@ -201,12 +201,12 @@ describe('ChartPage', () => {
 
     afterEach(() => {
       localStorage.clear();
-      (getFormDataWithExtraFilters as jest.Mock).mockClear();
+      (getFormDataWithExtraFilters as vi.Mock).mockClear();
     });
 
     test('overrides the form_data with dashboardContextFormData', async () => {
       const dashboardFormData = getDashboardFormData();
-      (getFormDataWithExtraFilters as jest.Mock).mockReturnValue(
+      (getFormDataWithExtraFilters as vi.Mock).mockReturnValue(
         dashboardFormData,
       );
       const exploreApiRoute = 'glob:*/api/v1/explore/*';
@@ -241,7 +241,7 @@ describe('ChartPage', () => {
         viz_type: VizType.Table,
         show_cell_bars: true,
       };
-      (getFormDataWithExtraFilters as jest.Mock).mockReturnValue(
+      (getFormDataWithExtraFilters as vi.Mock).mockReturnValue(
         dashboardFormData,
       );
       const exploreApiRoute = 'glob:*/api/v1/explore/*';

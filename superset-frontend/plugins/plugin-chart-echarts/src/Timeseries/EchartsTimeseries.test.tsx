@@ -38,10 +38,10 @@ import {
   type TimeseriesChartTransformedProps,
 } from './types';
 
-const mockEchart = jest.fn();
+const mockEchart = vi.fn();
 
-jest.mock('../components/Echart', () => {
-  const { forwardRef } = jest.requireActual<typeof import('react')>('react');
+vi.mock('../components/Echart', () => {
+  const { forwardRef } = vi.requireActual<typeof import('react')>('react');
   const MockEchart = forwardRef<EchartsHandler | null, EchartsProps>(
     (props, _ref) => {
       mockEchart(props);
@@ -55,7 +55,7 @@ jest.mock('../components/Echart', () => {
   };
 });
 
-jest.mock('../components/ExtraControls', () => ({
+vi.mock('../components/ExtraControls', () => ({
   ExtraControls: ({ children }: { children?: ReactNode }) => (
     <div data-testid="extra-controls">{children}</div>
   ),
@@ -182,16 +182,16 @@ const defaultProps: TimeseriesChartTransformedProps = {
   formData: defaultFormData,
   height: 400,
   width: 800,
-  onContextMenu: jest.fn(),
-  setDataMask: jest.fn(),
-  onLegendStateChanged: jest.fn(),
+  onContextMenu: vi.fn(),
+  setDataMask: vi.fn(),
+  onLegendStateChanged: vi.fn(),
   refs: {},
   emitCrossFilters: false,
   coltypeMapping: {},
-  onLegendScroll: jest.fn(),
+  onLegendScroll: vi.fn(),
   groupby: [],
   labelMap: {},
-  setControlValue: jest.fn(),
+  setControlValue: vi.fn(),
   selectedValues: {},
   legendData: [],
   xValueFormatter: String,
@@ -199,7 +199,7 @@ const defaultProps: TimeseriesChartTransformedProps = {
     label: 'x',
     type: AxisType.Time,
   },
-  onFocusedSeries: jest.fn(),
+  onFocusedSeries: vi.fn(),
 };
 
 function getLatestHeight() {
@@ -210,8 +210,8 @@ function getLatestHeight() {
 }
 
 test('observes extra control height changes when ResizeObserver is available', async () => {
-  const disconnectSpy = jest.fn();
-  const observeSpy = jest.fn();
+  const disconnectSpy = vi.fn();
+  const observeSpy = vi.fn();
 
   class MockResizeObserver implements ResizeObserver {
     private static latestInstance: MockResizeObserver | null = null;
@@ -273,8 +273,8 @@ test('falls back to window resize listener when ResizeObserver is unavailable', 
   (globalThis as { ResizeObserver?: typeof ResizeObserver }).ResizeObserver =
     undefined;
 
-  const addEventListenerSpy = jest.spyOn(window, 'addEventListener');
-  const removeEventListenerSpy = jest.spyOn(window, 'removeEventListener');
+  const addEventListenerSpy = vi.spyOn(window, 'addEventListener');
+  const removeEventListenerSpy = vi.spyOn(window, 'removeEventListener');
 
   mockOffsetHeight = 30;
 
@@ -309,7 +309,7 @@ test('falls back to window resize listener when ResizeObserver is unavailable', 
 
 // Test for issue #25334: Bar chart cross-filter without dimensions
 test('emits cross-filter on X-axis value when no dimensions and categorical X-axis', async () => {
-  const setDataMaskMock = jest.fn();
+  const setDataMaskMock = vi.fn();
 
   const propsWithCategoricalXAxis: TimeseriesChartTransformedProps = {
     ...defaultProps,
@@ -362,7 +362,7 @@ test('emits cross-filter on X-axis value when no dimensions and categorical X-ax
 });
 
 test('does not emit cross-filter when no dimensions and time-based X-axis', async () => {
-  const setDataMaskMock = jest.fn();
+  const setDataMaskMock = vi.fn();
 
   const propsWithTimeXAxis: TimeseriesChartTransformedProps = {
     ...defaultProps,

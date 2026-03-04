@@ -25,7 +25,7 @@ import { SupersetTheme, ThemeProvider } from '@apache-superset/core/ui';
 import AsyncIcon from '../../../src/components/Icons/AsyncIcon';
 
 // Mock only the SVG import to prevent dynamic import issues
-jest.mock(
+vi.mock(
   '!!@svgr/webpack!../../../src/assets/images/icons/slack.svg',
   () => {
     const MockSlackSVG = (props: any) => (
@@ -82,7 +82,7 @@ describe('AsyncIcon Integration Tests (Real Component)', () => {
   });
 
   test('should set role to button when onClick is provided in real component', () => {
-    const onClick = jest.fn();
+    const onClick = vi.fn();
     const { container } = render(
       <ThemeProvider theme={mockTheme}>
         <AsyncIcon

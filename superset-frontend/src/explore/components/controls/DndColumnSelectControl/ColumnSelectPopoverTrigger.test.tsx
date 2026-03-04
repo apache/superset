@@ -60,17 +60,17 @@ const secondAdhocColumn: AdhocColumn = {
 
 const defaultProps = {
   columns: defaultColumns,
-  onColumnEdit: jest.fn(),
+  onColumnEdit: vi.fn(),
   children: <button type="button">Trigger</button>,
 };
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 test('should handle creating two columns with proper label reset', async () => {
   const store = createStore();
-  const onColumnEditMock = jest.fn();
+  const onColumnEditMock = vi.fn();
 
   const { rerender } = render(
     <Provider store={store}>

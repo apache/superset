@@ -58,7 +58,7 @@ test('renders with icon child', async () => {
 });
 
 test('fires an event when visibility is changed', async () => {
-  const onOpenChange = jest.fn();
+  const onOpenChange = vi.fn();
   render(
     <Popover
       content="Content sample"

@@ -43,12 +43,12 @@ const TestComponent: globalThis.React.FC<PopoverProps> = props => (
 );
 
 const setupTest = (props: Partial<PopoverProps> = createProps()) => {
-  const setStateMock = jest.fn();
+  const setStateMock = vi.fn();
   jest
     .spyOn(global.React, 'useState')
     .mockImplementation(((state: any) => [
       state,
-      state === 'right' ? setStateMock : jest.fn(),
+      state === 'right' ? setStateMock : vi.fn(),
     ]) as any);
 
   const { container, rerender } = render(<TestComponent {...props} />);
@@ -62,7 +62,7 @@ const setupTest = (props: Partial<PopoverProps> = createProps()) => {
 };
 
 afterEach(() => {
-  jest.restoreAllMocks();
+  vi.restoreAllMocks();
 });
 
 test('Should render', () => {

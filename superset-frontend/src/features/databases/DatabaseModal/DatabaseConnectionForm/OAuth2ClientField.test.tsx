@@ -24,25 +24,25 @@ import { OAuth2ClientField } from './OAuth2ClientField';
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('OAuth2ClientField', () => {
   const mockChangeMethods = {
-    onEncryptedExtraInputChange: jest.fn(),
-    onParametersChange: jest.fn(),
-    onChange: jest.fn(),
-    onQueryChange: jest.fn(),
-    onParametersUploadFileChange: jest.fn(),
-    onAddTableCatalog: jest.fn(),
-    onRemoveTableCatalog: jest.fn(),
-    onExtraInputChange: jest.fn(),
-    onSSHTunnelParametersChange: jest.fn(),
+    onEncryptedExtraInputChange: vi.fn(),
+    onParametersChange: vi.fn(),
+    onChange: vi.fn(),
+    onQueryChange: vi.fn(),
+    onParametersUploadFileChange: vi.fn(),
+    onAddTableCatalog: vi.fn(),
+    onRemoveTableCatalog: vi.fn(),
+    onExtraInputChange: vi.fn(),
+    onSSHTunnelParametersChange: vi.fn(),
   };
 
   const defaultProps = {
     required: false,
-    onParametersChange: jest.fn(),
-    onParametersUploadFileChange: jest.fn(),
+    onParametersChange: vi.fn(),
+    onParametersUploadFileChange: vi.fn(),
     changeMethods: mockChangeMethods,
     validationErrors: null,
-    getValidation: jest.fn(),
-    clearValidationErrors: jest.fn(),
+    getValidation: vi.fn(),
+    clearValidationErrors: vi.fn(),
     field: 'test',
     isValidating: false,
     db: {
@@ -68,7 +68,7 @@ describe('OAuth2ClientField', () => {
   };
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   test('does not show input fields until the collapse trigger is clicked', () => {

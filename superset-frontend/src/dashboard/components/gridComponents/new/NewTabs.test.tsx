@@ -30,7 +30,7 @@ afterEach(async () => {
   await new Promise(resolve => setTimeout(resolve, 0));
 });
 
-jest.mock(
+vi.mock(
   'src/dashboard/components/gridComponents/new/DraggableNewComponent',
   () =>
     ({ type, id }: { type: string; id: string }) => (

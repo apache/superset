@@ -28,13 +28,13 @@ import getChartBuildQueryRegistry from '../registries/ChartBuildQueryRegistrySin
 configure({ testIdAttribute: 'data-test' });
 
 // Mock the registries
-jest.mock('../registries/ChartControlPanelRegistrySingleton');
-jest.mock('../registries/ChartMetadataRegistrySingleton');
-jest.mock('../registries/ChartBuildQueryRegistrySingleton');
-jest.mock('../clients/ChartClient');
+vi.mock('../registries/ChartControlPanelRegistrySingleton');
+vi.mock('../registries/ChartMetadataRegistrySingleton');
+vi.mock('../registries/ChartBuildQueryRegistrySingleton');
+vi.mock('../clients/ChartClient');
 
 // Mock SuperChart component
-jest.mock('./SuperChart', () => ({
+vi.mock('./SuperChart', () => ({
   __esModule: true,
   // eslint-disable-next-line react/display-name
   default: ({ formData }: any) => (
@@ -43,18 +43,18 @@ jest.mock('./SuperChart', () => ({
 }));
 
 // Mock Loading component
-jest.mock('../../components/Loading', () => ({
+vi.mock('../../components/Loading', () => ({
   // eslint-disable-next-line react/display-name
   Loading: () => <div data-test="loading">Loading...</div>,
 }));
 
 const mockChartClient = {
   client: {
-    post: jest.fn().mockResolvedValue({
+    post: vi.fn().mockResolvedValue({
       json: [{ data: 'test data' }],
     }),
   },
-  loadFormData: jest.fn(),
+  loadFormData: vi.fn(),
 };
 
 const mockFormData = {
@@ -64,21 +64,21 @@ const mockFormData = {
 };
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 
   // Setup default registry mocks
   (getChartMetadataRegistry as any).mockReturnValue({
-    get: jest.fn().mockReturnValue({
+    get: vi.fn().mockReturnValue({
       useLegacyApi: false,
     }),
   });
 
   (getChartBuildQueryRegistry as any).mockReturnValue({
-    get: jest.fn().mockResolvedValue(null),
+    get: vi.fn().mockResolvedValue(null),
   });
 
   (getChartControlPanelRegistry as any).mockReturnValue({
-    get: jest.fn().mockReturnValue(null),
+    get: vi.fn().mockReturnValue(null),
   });
 
   // Mock ChartClient constructor
@@ -114,7 +114,7 @@ test('should refetch data when non-renderTrigger control changes', async () => {
   };
 
   (getChartControlPanelRegistry as any).mockReturnValue({
-    get: jest.fn().mockReturnValue(controlPanelConfig),
+    get: vi.fn().mockReturnValue(controlPanelConfig),
   });
 
   const { rerender } = render(
@@ -166,7 +166,7 @@ test('should NOT refetch data when only renderTrigger controls change', async ()
   };
 
   (getChartControlPanelRegistry as any).mockReturnValue({
-    get: jest.fn().mockReturnValue(controlPanelConfig),
+    get: vi.fn().mockReturnValue(controlPanelConfig),
   });
 
   const { rerender, getByTestId } = render(
@@ -202,7 +202,7 @@ test('should NOT refetch data when only renderTrigger controls change', async ()
 test('should refetch when control panel config is not available', async () => {
   // No control panel config available
   (getChartControlPanelRegistry as any).mockReturnValue({
-    get: jest.fn().mockReturnValue(null),
+    get: vi.fn().mockReturnValue(null),
   });
 
   const { rerender } = render(
@@ -246,7 +246,7 @@ test('should refetch when viz_type changes', async () => {
   };
 
   (getChartControlPanelRegistry as any).mockReturnValue({
-    get: jest.fn().mockReturnValue(controlPanelConfig),
+    get: vi.fn().mockReturnValue(controlPanelConfig),
   });
 
   const { rerender } = render(
@@ -300,7 +300,7 @@ test('should handle mixed renderTrigger and non-renderTrigger changes', async ()
   };
 
   (getChartControlPanelRegistry as any).mockReturnValue({
-    get: jest.fn().mockReturnValue(controlPanelConfig),
+    get: vi.fn().mockReturnValue(controlPanelConfig),
   });
 
   const { rerender } = render(
@@ -353,7 +353,7 @@ test('should handle controls with complex structure', async () => {
   };
 
   (getChartControlPanelRegistry as any).mockReturnValue({
-    get: jest.fn().mockReturnValue(controlPanelConfig),
+    get: vi.fn().mockReturnValue(controlPanelConfig),
   });
 
   const { rerender, getByTestId } = render(
@@ -405,7 +405,7 @@ test('should not refetch when formData has not changed', async () => {
 test('should handle errors gracefully when accessing registry', async () => {
   // Mock registry to throw an error
   (getChartControlPanelRegistry as any).mockReturnValue({
-    get: jest.fn().mockImplementation(() => {
+    get: vi.fn().mockImplementation(() => {
       throw new Error('Registry error');
     }),
   });
@@ -493,7 +493,7 @@ test('should NOT refetch data when string-based renderTrigger control (zoomable)
   };
 
   (getChartControlPanelRegistry as any).mockReturnValue({
-    get: jest.fn().mockReturnValue(controlPanelConfig),
+    get: vi.fn().mockReturnValue(controlPanelConfig),
   });
 
   const formDataWithZoom = {
@@ -543,7 +543,7 @@ test('should NOT refetch data when other string-based renderTrigger controls cha
   };
 
   (getChartControlPanelRegistry as any).mockReturnValue({
-    get: jest.fn().mockReturnValue(controlPanelConfig),
+    get: vi.fn().mockReturnValue(controlPanelConfig),
   });
 
   const { rerender, getByTestId } = render(
@@ -586,7 +586,7 @@ test('should refetch when string control is NOT in RENDER_TRIGGER_SHARED_CONTROL
   };
 
   (getChartControlPanelRegistry as any).mockReturnValue({
-    get: jest.fn().mockReturnValue(controlPanelConfig),
+    get: vi.fn().mockReturnValue(controlPanelConfig),
   });
 
   const { rerender } = render(
@@ -632,7 +632,7 @@ test('should handle mixed string and object controls correctly', async () => {
   };
 
   (getChartControlPanelRegistry as any).mockReturnValue({
-    get: jest.fn().mockReturnValue(controlPanelConfig),
+    get: vi.fn().mockReturnValue(controlPanelConfig),
   });
 
   const formDataWithControls = {
@@ -688,7 +688,7 @@ test('should refetch when mixing renderTrigger string control with non-renderTri
   };
 
   (getChartControlPanelRegistry as any).mockReturnValue({
-    get: jest.fn().mockReturnValue(controlPanelConfig),
+    get: vi.fn().mockReturnValue(controlPanelConfig),
   });
 
   const formDataWithZoom = {
@@ -729,7 +729,7 @@ test('should display error message when HTTP request fails with Response object'
   });
   mockChartClient.client.post.mockRejectedValue(mockResponse);
 
-  const onError = jest.fn();
+  const onError = vi.fn();
   const { findByText } = render(
     <StatefulChart
       formData={mockFormData}

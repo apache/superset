@@ -20,7 +20,7 @@ import { fireEvent, render } from 'spec/helpers/testing-library';
 import { JsonModal } from '.';
 import { convertBigIntStrToNumber } from './utils';
 
-jest.mock('react-json-tree', () => ({
+vi.mock('react-json-tree', () => ({
   JSONTree: () => <div data-test="mock-json-tree" />,
 }));
 

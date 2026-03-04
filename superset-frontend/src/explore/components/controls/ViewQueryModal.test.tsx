@@ -29,7 +29,7 @@ const mockFormData = {
 const chartDataEndpoint = 'glob:*/api/v1/chart/data*';
 
 afterEach(() => {
-  jest.resetAllMocks();
+  vi.resetAllMocks();
   fetchMock.clearHistory().removeRoutes();
 });
 

@@ -34,17 +34,17 @@ type EditorProps = editors.EditorProps;
 const mockEventHandlers: Record<string, (() => void) | undefined> = {};
 
 const mockEditor = {
-  focus: jest.fn(),
-  getCursorPosition: jest.fn(() => ({ row: 1, column: 5 })),
-  getSelection: jest.fn(() => ({
+  focus: vi.fn(),
+  getCursorPosition: vi.fn(() => ({ row: 1, column: 5 })),
+  getSelection: vi.fn(() => ({
     getRange: () => ({
       start: { row: 0, column: 0 },
       end: { row: 0, column: 10 },
     }),
   })),
-  commands: { addCommand: jest.fn() },
+  commands: { addCommand: vi.fn() },
   selection: {
-    on: jest.fn((event: string, handler: () => void) => {
+    on: vi.fn((event: string, handler: () => void) => {
       mockEventHandlers[event] = handler;
     }),
   },
@@ -52,9 +52,9 @@ const mockEditor = {
 
 let mockOnLoadCallback: ((editor: typeof mockEditor) => void) | undefined;
 
-jest.mock('@superset-ui/core/components', () => ({
+vi.mock('@superset-ui/core/components', () => ({
   __esModule: true,
-  FullSQLEditor: jest.fn((props: { onLoad?: () => void }) => {
+  FullSQLEditor: vi.fn((props: { onLoad?: () => void }) => {
     mockOnLoadCallback = props.onLoad;
     return <div data-test="sql-editor" />;
   }),
@@ -69,7 +69,7 @@ const render = (ui: ReactElement) =>
 
 afterEach(() => {
   cleanup();
-  jest.clearAllMocks();
+  vi.clearAllMocks();
   mockOnLoadCallback = undefined;
   Object.keys(mockEventHandlers).forEach(key => delete mockEventHandlers[key]);
 });
@@ -77,7 +77,7 @@ afterEach(() => {
 const defaultProps: EditorProps = {
   id: 'test-editor',
   value: 'SELECT * FROM table',
-  onChange: jest.fn(),
+  onChange: vi.fn(),
   language: 'sql',
 };
 
@@ -90,8 +90,8 @@ const renderEditor = (props: Partial<EditorProps> = {}) => {
 };
 
 test('onSelectionChange uses latest callback after prop change', async () => {
-  const firstCallback = jest.fn();
-  const secondCallback = jest.fn();
+  const firstCallback = vi.fn();
+  const secondCallback = vi.fn();
 
   const CallbackSwitcher = () => {
     const [useSecond, setUseSecond] = useState(false);
@@ -129,8 +129,8 @@ test('onSelectionChange uses latest callback after prop change', async () => {
 });
 
 test('onCursorPositionChange uses latest callback after prop change', async () => {
-  const firstCallback = jest.fn();
-  const secondCallback = jest.fn();
+  const firstCallback = vi.fn();
+  const secondCallback = vi.fn();
 
   const CallbackSwitcher = () => {
     const [useSecond, setUseSecond] = useState(false);
@@ -168,7 +168,7 @@ test('onCursorPositionChange uses latest callback after prop change', async () =
 });
 
 test('cursor position callback receives correct position format', async () => {
-  const onCursorPositionChange = jest.fn();
+  const onCursorPositionChange = vi.fn();
   renderEditor({ onCursorPositionChange });
 
   await waitFor(() => expect(mockEventHandlers.changeCursor).toBeDefined());
@@ -178,7 +178,7 @@ test('cursor position callback receives correct position format', async () => {
 });
 
 test('selection callback receives correct range format', async () => {
-  const onSelectionChange = jest.fn();
+  const onSelectionChange = vi.fn();
   renderEditor({ onSelectionChange });
 
   await waitFor(() => expect(mockEventHandlers.changeSelection).toBeDefined());

@@ -40,7 +40,7 @@ test('should render toastText within the div', () => {
 });
 
 test('should call onCloseToast upon toast dismissal', async () => {
-  const onCloseToast = jest.fn();
+  const onCloseToast = vi.fn();
   const { getByTestId } = setup({ onCloseToast });
   fireEvent.click(getByTestId('close-button'));
   await waitFor(() => expect(onCloseToast).toHaveBeenCalledTimes(1));

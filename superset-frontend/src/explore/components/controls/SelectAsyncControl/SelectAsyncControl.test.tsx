@@ -22,7 +22,7 @@ import SelectAsyncControl from '.';
 
 const datasetsOwnersEndpoint = 'glob:*/api/v1/dataset/related/owners*';
 
-jest.mock('@superset-ui/core/components/Select/Select', () => ({
+vi.mock('@superset-ui/core/components/Select/Select', () => ({
   __esModule: true,
   default: (props: any) => (
     <div
@@ -42,7 +42,7 @@ jest.mock('@superset-ui/core/components/Select/Select', () => ({
       </button>
     </div>
   ),
-  propertyComparator: jest.fn(),
+  propertyComparator: vi.fn(),
 }));
 
 fetchMock.get(datasetsOwnersEndpoint, {
@@ -55,12 +55,12 @@ const createProps = () => ({
   dataEndpoint: datasetsOwnersEndpoint,
   multi: true,
   placeholder: 'Select ...',
-  onChange: jest.fn(),
-  mutator: jest.fn(),
+  onChange: vi.fn(),
+  mutator: vi.fn(),
 });
 
 beforeEach(() => {
-  jest.resetAllMocks();
+  vi.resetAllMocks();
 });
 
 test('Should render', async () => {

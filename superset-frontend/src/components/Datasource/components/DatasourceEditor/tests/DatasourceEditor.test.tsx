@@ -36,28 +36,28 @@ import {
   createDeferredPromise,
 } from './DatasourceEditor.test.utils';
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
-  isFeatureEnabled: jest.fn(),
+vi.mock('@superset-ui/core', () => ({
+  ...(await importActual()),
+  isFeatureEnabled: vi.fn(),
 }));
 
 beforeEach(() => {
-  jest.useRealTimers();
+  vi.useRealTimers();
   fetchMock.removeRoutes();
   fetchMock.get(DATASOURCE_ENDPOINT, [], { name: DATASOURCE_ENDPOINT });
   setupDatasourceEditorMocks();
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 afterEach(async () => {
-  jest.useRealTimers();
+  vi.useRealTimers();
   await cleanupAsyncOperations();
   fetchMock.clearHistory().removeRoutes();
-  // Reset module mock since jest.fn() doesn't support mockRestore()
-  jest.mocked(isFeatureEnabled).mockReset();
+  // Reset module mock since vi.fn() doesn't support mockRestore()
+  vi.mocked(isFeatureEnabled).mockReset();
   // Restore console.error if it was spied on
-  if (jest.isMockFunction(console.error)) {
-    (console.error as jest.Mock).mockRestore();
+  if (vi.isMockFunction(console.error)) {
+    (console.error as vi.Mock).mockRestore();
   }
 });
 
@@ -108,7 +108,7 @@ test('can modify columns', async () => {
   const baseProps = createProps();
   const limitedProps = {
     ...baseProps,
-    onChange: jest.fn(),
+    onChange: vi.fn(),
     datasource: {
       ...baseProps.datasource,
       table_name: 'Vehicle Sales +',
@@ -155,7 +155,7 @@ test('can delete columns', async () => {
   const baseProps = createProps();
   const limitedProps = {
     ...baseProps,
-    onChange: jest.fn(),
+    onChange: vi.fn(),
     datasource: {
       ...baseProps.datasource,
       table_name: 'Vehicle Sales +',
@@ -265,7 +265,7 @@ test('renders isSqla fields', async () => {
 });
 
 test('Source Tab: edit mode', async () => {
-  (isFeatureEnabled as jest.Mock).mockImplementation(() => false);
+  (isFeatureEnabled as vi.Mock).mockImplementation(() => false);
 
   const testProps = createProps();
   await asyncRender({
@@ -288,7 +288,7 @@ test('Source Tab: edit mode', async () => {
 });
 
 test('Source Tab: readOnly mode', async () => {
-  (isFeatureEnabled as jest.Mock).mockImplementation(() => false);
+  (isFeatureEnabled as vi.Mock).mockImplementation(() => false);
 
   const testProps = createProps();
   await asyncRender({
@@ -311,7 +311,7 @@ test('Source Tab: readOnly mode', async () => {
 });
 
 test('calls onChange with empty SQL when switching to physical dataset', async () => {
-  (isFeatureEnabled as jest.Mock).mockImplementation(() => false);
+  (isFeatureEnabled as vi.Mock).mockImplementation(() => false);
 
   const testProps = createProps();
 
@@ -440,7 +440,7 @@ test('default datetime dropdown shows only temporal columns', async () => {
 
 test('aborts pending requests on unmount without errors', async () => {
   // Spy on console.error to catch React warnings
-  const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+  const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation();
 
   const props = createProps();
 
@@ -476,7 +476,7 @@ test('aborts pending requests on unmount without errors', async () => {
 
 test('resets loading state when request aborted', async () => {
   // Spy on console.error to catch React warnings
-  const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+  const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation();
 
   const props = createProps();
   const { unmount } = await asyncRender(props);
@@ -515,7 +515,7 @@ test('allows simultaneous different async operations', async () => {
 });
 
 test('fetchUsageData rethrows AbortError without updating state', async () => {
-  const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+  const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation();
 
   const props = createProps();
   const { unmount } = await asyncRender(props);
@@ -548,7 +548,7 @@ test('fetchUsageData rethrows AbortError without updating state', async () => {
 });
 
 test('immediate unmount after mount does not cause unhandled rejection from initial fetchUsageData', async () => {
-  const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+  const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation();
 
   // Mock chart API to delay long enough for unmount to happen first
   fetchMock.get(

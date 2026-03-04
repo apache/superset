@@ -21,7 +21,7 @@ import { render } from '@testing-library/react';
 import ScatterPlotGlowOverlay from '../src/ScatterPlotGlowOverlay';
 
 // Mock react-map-gl's CanvasOverlay
-jest.mock('react-map-gl', () => ({
+vi.mock('react-map-gl', () => ({
   CanvasOverlay: ({ redraw }: { redraw: Function }) => {
     // Store the redraw function so tests can call it
     (global as any).mockRedraw = redraw;
@@ -30,22 +30,22 @@ jest.mock('react-map-gl', () => ({
 }));
 
 // Mock utility functions
-jest.mock('../src/utils/luminanceFromRGB', () => ({
+vi.mock('../src/utils/luminanceFromRGB', () => ({
   __esModule: true,
-  default: jest.fn(() => 150), // Return a value above the dark threshold
+  default: vi.fn(() => 150), // Return a value above the dark threshold
 }));
 
 // Test helpers
 const createMockCanvas = () => {
   const ctx: any = {
-    clearRect: jest.fn(),
-    beginPath: jest.fn(),
-    arc: jest.fn(),
-    fill: jest.fn(),
-    fillText: jest.fn(),
-    measureText: jest.fn(() => ({ width: 10 })),
-    createRadialGradient: jest.fn(() => ({
-      addColorStop: jest.fn(),
+    clearRect: vi.fn(),
+    beginPath: vi.fn(),
+    arc: vi.fn(),
+    fill: vi.fn(),
+    fillText: vi.fn(),
+    measureText: vi.fn(() => ({ width: 10 })),
+    createRadialGradient: vi.fn(() => ({
+      addColorStop: vi.fn(),
     })),
     globalCompositeOperation: '',
     fillStyle: '',

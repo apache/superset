@@ -66,8 +66,8 @@ const Wrapper = ({
   onDuplicate,
 }: {
   dataset: VirtualDatasetFixture | null;
-  onHide: jest.Mock;
-  onDuplicate: jest.Mock;
+  onHide: vi.Mock;
+  onDuplicate: vi.Mock;
 }) => (
   <ThemeProvider theme={supersetTheme}>
     <DuplicateDatasetModal
@@ -80,16 +80,16 @@ const Wrapper = ({
 
 const renderModal = (
   dataset: VirtualDatasetFixture | null,
-  onHide: jest.Mock,
-  onDuplicate: jest.Mock,
+  onHide: vi.Mock,
+  onDuplicate: vi.Mock,
 ) =>
   render(
     <Wrapper dataset={dataset} onHide={onHide} onDuplicate={onDuplicate} />,
   );
 
 test('modal opens when dataset is provided', async () => {
-  const onHide = jest.fn();
-  const onDuplicate = jest.fn();
+  const onHide = vi.fn();
+  const onDuplicate = vi.fn();
 
   renderModal(mockDataset, onHide, onDuplicate);
 
@@ -106,8 +106,8 @@ test('modal opens when dataset is provided', async () => {
 });
 
 test('modal does not open when dataset is null', () => {
-  const onHide = jest.fn();
-  const onDuplicate = jest.fn();
+  const onHide = vi.fn();
+  const onDuplicate = vi.fn();
 
   renderModal(null, onHide, onDuplicate);
 
@@ -116,8 +116,8 @@ test('modal does not open when dataset is null', () => {
 });
 
 test('duplicate button disabled after clearing input', async () => {
-  const onHide = jest.fn();
-  const onDuplicate = jest.fn();
+  const onHide = vi.fn();
+  const onDuplicate = vi.fn();
 
   renderModal(mockDataset, onHide, onDuplicate);
 
@@ -135,8 +135,8 @@ test('duplicate button disabled after clearing input', async () => {
 });
 
 test('duplicate button enabled when name is entered', async () => {
-  const onHide = jest.fn();
-  const onDuplicate = jest.fn();
+  const onHide = vi.fn();
+  const onDuplicate = vi.fn();
 
   renderModal(mockDataset, onHide, onDuplicate);
 
@@ -153,8 +153,8 @@ test('duplicate button enabled when name is entered', async () => {
 });
 
 test('clicking Duplicate calls onDuplicate with new name', async () => {
-  const onHide = jest.fn();
-  const onDuplicate = jest.fn();
+  const onHide = vi.fn();
+  const onDuplicate = vi.fn();
 
   renderModal(mockDataset, onHide, onDuplicate);
 
@@ -176,8 +176,8 @@ test('clicking Duplicate calls onDuplicate with new name', async () => {
 });
 
 test('pressing Enter key triggers duplicate action', async () => {
-  const onHide = jest.fn();
-  const onDuplicate = jest.fn();
+  const onHide = vi.fn();
+  const onDuplicate = vi.fn();
 
   renderModal(mockDataset, onHide, onDuplicate);
 
@@ -194,8 +194,8 @@ test('pressing Enter key triggers duplicate action', async () => {
 });
 
 test('modal closes when onHide is called', async () => {
-  const onHide = jest.fn();
-  const onDuplicate = jest.fn();
+  const onHide = vi.fn();
+  const onDuplicate = vi.fn();
 
   const { rerender } = renderModal(mockDataset, onHide, onDuplicate);
 
@@ -213,8 +213,8 @@ test('modal closes when onHide is called', async () => {
 });
 
 test('cancel button clears input and closes modal', async () => {
-  const onHide = jest.fn();
-  const onDuplicate = jest.fn();
+  const onHide = vi.fn();
+  const onDuplicate = vi.fn();
 
   const { rerender } = renderModal(mockDataset, onHide, onDuplicate);
 
@@ -252,8 +252,8 @@ test('cancel button clears input and closes modal', async () => {
 });
 
 test('input field clears when new dataset is provided', async () => {
-  const onHide = jest.fn();
-  const onDuplicate = jest.fn();
+  const onHide = vi.fn();
+  const onDuplicate = vi.fn();
 
   const { rerender } = renderModal(mockDataset, onHide, onDuplicate);
 

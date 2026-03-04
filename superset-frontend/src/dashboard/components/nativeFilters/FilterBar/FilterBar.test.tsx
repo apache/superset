@@ -33,14 +33,14 @@ import FilterBar from '.';
 import { FILTERS_CONFIG_MODAL_TEST_ID } from '../FiltersConfigModal/FiltersConfigModal';
 import * as dataMaskActions from 'src/dataMask/actions';
 
-jest.useFakeTimers();
+vi.useFakeTimers();
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
-  makeApi: jest.fn(),
+vi.mock('@superset-ui/core', () => ({
+  ...(await importActual()),
+  makeApi: vi.fn(),
 }));
 
-const mockedMakeApi = makeApi as jest.Mock;
+const mockedMakeApi = makeApi as vi.Mock;
 
 class MainPreset extends Preset {
   constructor() {
@@ -98,7 +98,7 @@ const addFilterFlow = async () => {
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('FilterBar', () => {
   new MainPreset().register();
-  const toggleFiltersBar = jest.fn();
+  const toggleFiltersBar = vi.fn();
   const closedBarProps = {
     filtersOpen: false,
     toggleFiltersBar,
@@ -108,7 +108,7 @@ describe('FilterBar', () => {
     toggleFiltersBar,
   };
 
-  const mockApi = jest.fn(async data => {
+  const mockApi = vi.fn(async data => {
     if (!data?.modified?.length) {
       return {
         id: 1234,
@@ -141,7 +141,7 @@ describe('FilterBar', () => {
     'glob:*/api/v1/time_range/?q=%27Last%20week%27';
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     fetchMock.removeRoute(getTimeRangeNoFilterMockUrl);
     fetchMock.get(
@@ -311,7 +311,7 @@ describe('FilterBar', () => {
     renderWrapper(openedBarProps, stateWithDivider);
 
     await act(async () => {
-      jest.advanceTimersByTime(1000); // 1s
+      vi.advanceTimersByTime(1000); // 1s
     });
 
     const title = await screen.findByText('Select time range');
@@ -381,7 +381,7 @@ describe('FilterBar', () => {
 
   test('auto-applies filter when extraFormData is empty in applied state', async () => {
     const filterId = 'test-filter-auto-apply';
-    const updateDataMaskSpy = jest.spyOn(dataMaskActions, 'updateDataMask');
+    const updateDataMaskSpy = vi.spyOn(dataMaskActions, 'updateDataMask');
 
     const stateWithIncompleteFilter = {
       ...stateWithoutNativeFilters,
@@ -428,7 +428,7 @@ describe('FilterBar', () => {
     renderWrapper(openedBarProps, stateWithIncompleteFilter);
 
     await act(async () => {
-      jest.advanceTimersByTime(200);
+      vi.advanceTimersByTime(200);
     });
 
     expect(screen.getByTestId(getTestId('filter-icon'))).toBeInTheDocument();
@@ -487,7 +487,7 @@ describe('FilterBar', () => {
     renderWrapper(openedBarProps, stateWithCompleteFilter);
 
     await act(async () => {
-      jest.advanceTimersByTime(100);
+      vi.advanceTimersByTime(100);
     });
 
     expect(screen.getByTestId(getTestId('filter-icon'))).toBeInTheDocument();
@@ -495,7 +495,7 @@ describe('FilterBar', () => {
 
   test('handleClearAll dispatches updateDataMask with value null for filter_select', async () => {
     const filterId = 'NATIVE_FILTER-clear-select';
-    const updateDataMaskSpy = jest.spyOn(dataMaskActions, 'updateDataMask');
+    const updateDataMaskSpy = vi.spyOn(dataMaskActions, 'updateDataMask');
     const selectFilterConfig = {
       id: filterId,
       name: 'Region',
@@ -531,7 +531,7 @@ describe('FilterBar', () => {
 
     renderWrapper(openedBarProps, stateWithSelect);
     await act(async () => {
-      jest.advanceTimersByTime(300);
+      vi.advanceTimersByTime(300);
     });
 
     const clearBtn = screen.getByTestId(getTestId('clear-button'));
@@ -552,7 +552,7 @@ describe('FilterBar', () => {
       result: [{ data: [{ min: 0, max: 100 }] }],
     });
     const filterId = 'NATIVE_FILTER-clear-range';
-    const updateDataMaskSpy = jest.spyOn(dataMaskActions, 'updateDataMask');
+    const updateDataMaskSpy = vi.spyOn(dataMaskActions, 'updateDataMask');
     const rangeFilterConfig = {
       id: filterId,
       name: 'Age',
@@ -588,7 +588,7 @@ describe('FilterBar', () => {
 
     renderWrapper(openedBarProps, stateWithRange);
     await act(async () => {
-      jest.advanceTimersByTime(300);
+      vi.advanceTimersByTime(300);
     });
 
     const clearBtn = screen.getByTestId(getTestId('clear-button'));
@@ -607,7 +607,7 @@ describe('FilterBar', () => {
   test('handleClearAll only dispatches for filters present in dataMask', async () => {
     const idInMask = 'NATIVE_FILTER-has-value';
     const idNotInMask = 'NATIVE_FILTER-no-value';
-    const updateDataMaskSpy = jest.spyOn(dataMaskActions, 'updateDataMask');
+    const updateDataMaskSpy = vi.spyOn(dataMaskActions, 'updateDataMask');
     const baseFilter = {
       targets: [{ datasetId: 7, column: { name: 'x' } }],
       defaultDataMask: { filterState: { value: null }, extraFormData: {} },
@@ -653,7 +653,7 @@ describe('FilterBar', () => {
 
     renderWrapper(openedBarProps, stateWithTwoFiltersOneInMask);
     await act(async () => {
-      jest.advanceTimersByTime(300);
+      vi.advanceTimersByTime(300);
     });
 
     const clearBtn = screen.getByTestId(getTestId('clear-button'));

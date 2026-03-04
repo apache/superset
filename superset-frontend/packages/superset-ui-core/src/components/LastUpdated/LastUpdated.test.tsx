@@ -28,7 +28,7 @@ test('renders the base component (no refresh)', () => {
 });
 
 test('renders a refresh action', () => {
-  const mockAction = jest.fn();
+  const mockAction = vi.fn();
   render(<LastUpdated updatedAt={updatedAt} update={mockAction} />);
 
   const button = screen.getByRole('button');

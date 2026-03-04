@@ -229,7 +229,7 @@ test('should render the right wrap content text by columnsForWrapText', () => {
 });
 
 test('should handle server-side pagination', async () => {
-  const onServerPagination = jest.fn();
+  const onServerPagination = vi.fn();
   const serverPaginationProps = {
     ...mockedProps,
     serverPagination: true,
@@ -251,7 +251,7 @@ test('should handle server-side pagination', async () => {
 });
 
 test('should handle server-side sorting', async () => {
-  const onServerPagination = jest.fn();
+  const onServerPagination = vi.fn();
   const serverPaginationProps = {
     ...mockedProps,
     serverPagination: true,
@@ -271,7 +271,7 @@ test('should handle server-side sorting', async () => {
 });
 
 test('pagination callbacks should be stable across re-renders', () => {
-  const onServerPagination = jest.fn();
+  const onServerPagination = vi.fn();
   const serverPaginationProps = {
     ...mockedProps,
     serverPagination: true,
@@ -290,9 +290,7 @@ test('pagination callbacks should be stable across re-renders', () => {
 });
 
 test('should scroll to top when scrollTopOnPagination is true', async () => {
-  const scrollToSpy = jest
-    .spyOn(window, 'scrollTo')
-    .mockImplementation(() => {});
+  const scrollToSpy = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
 
   const scrollProps = {
     ...mockedProps,
@@ -313,9 +311,7 @@ test('should scroll to top when scrollTopOnPagination is true', async () => {
 });
 
 test('should NOT scroll to top when scrollTopOnPagination is false', async () => {
-  const scrollToSpy = jest
-    .spyOn(window, 'scrollTo')
-    .mockImplementation(() => {});
+  const scrollToSpy = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
 
   const scrollProps = {
     ...mockedProps,

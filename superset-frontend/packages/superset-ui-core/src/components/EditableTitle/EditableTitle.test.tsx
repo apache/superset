@@ -27,7 +27,7 @@ const mockEvent = {
 const mockProps = {
   title: 'my title',
   canEdit: true,
-  onSaveTitle: jest.fn(),
+  onSaveTitle: vi.fn(),
 };
 
 test('should render title', () => {
@@ -40,7 +40,7 @@ test('should render title', () => {
 
 test('should not render an input if it is not editable', () => {
   const { queryByTestId } = render(
-    <EditableTitle title="my title" onSaveTitle={jest.fn()} />,
+    <EditableTitle title="my title" onSaveTitle={vi.fn()} />,
   );
   expect(
     queryByTestId('textarea-editable-title-input'),
@@ -75,7 +75,7 @@ describe('should handle blur', () => {
   };
 
   test('should trigger callback', () => {
-    const callback = jest.fn();
+    const callback = vi.fn();
     const { getByTestId } = setup({ onSaveTitle: callback });
     fireEvent.change(getByTestId('textarea-editable-title-input'), mockEvent);
     fireEvent.blur(getByTestId('textarea-editable-title-input'));
@@ -84,7 +84,7 @@ describe('should handle blur', () => {
   });
 
   test('should not trigger callback', () => {
-    const callback = jest.fn();
+    const callback = vi.fn();
     const { getByTestId } = setup({ onSaveTitle: callback });
     fireEvent.blur(getByTestId('textarea-editable-title-input'));
     // no change
@@ -92,7 +92,7 @@ describe('should handle blur', () => {
   });
 
   test('should not save empty title', () => {
-    const callback = jest.fn();
+    const callback = vi.fn();
     const { getByTestId } = setup({ onSaveTitle: callback });
     const textarea = getByTestId('textarea-editable-title-input');
     fireEvent.blur(textarea);

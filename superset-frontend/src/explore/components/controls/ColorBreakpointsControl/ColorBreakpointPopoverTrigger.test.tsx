@@ -40,7 +40,7 @@ const mockBreakpoints: ColorBreakpointType[] = [mockBreakpoint];
 
 const createProps = (): ColorBreakpointsPopoverTriggerProps => ({
   value: mockBreakpoint,
-  saveColorBreakpoint: jest.fn(),
+  saveColorBreakpoint: vi.fn(),
   colorBreakpoints: mockBreakpoints,
 });
 
@@ -56,7 +56,7 @@ const renderComponent = (
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ColorBreakpointPopoverTrigger', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   test('should render', () => {
@@ -84,7 +84,7 @@ describe('ColorBreakpointPopoverTrigger', () => {
     const controlledProps = {
       isControlled: true,
       visible: true,
-      toggleVisibility: jest.fn(),
+      toggleVisibility: vi.fn(),
     };
 
     renderComponent(controlledProps);
@@ -96,7 +96,7 @@ describe('ColorBreakpointPopoverTrigger', () => {
     const controlledProps = {
       isControlled: true,
       visible: false,
-      toggleVisibility: jest.fn(),
+      toggleVisibility: vi.fn(),
     };
 
     renderComponent(controlledProps);
@@ -104,7 +104,7 @@ describe('ColorBreakpointPopoverTrigger', () => {
   });
 
   test('should call toggleVisibility when controlled and popover state changes', async () => {
-    const toggleVisibility = jest.fn();
+    const toggleVisibility = vi.fn();
     const controlledProps = {
       isControlled: true,
       visible: false,
@@ -185,7 +185,7 @@ describe('ColorBreakpointPopoverTrigger', () => {
   });
 
   test('should maintain controlled state when toggleVisibility is provided', async () => {
-    const toggleVisibility = jest.fn();
+    const toggleVisibility = vi.fn();
     const controlledProps = {
       isControlled: true,
       visible: true,

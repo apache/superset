@@ -34,10 +34,10 @@ import {
 import { NotificationMethod, mapSlackValues } from './NotificationMethod';
 import { NotificationMethodOption, NotificationSetting } from '../types';
 
-const mockOnUpdate = jest.fn();
-const mockOnRemove = jest.fn();
-const mockOnInputChange = jest.fn();
-const mockSetErrorSubject = jest.fn();
+const mockOnUpdate = vi.fn();
+const mockOnRemove = vi.fn();
+const mockOnInputChange = vi.fn();
+const mockSetErrorSubject = vi.fn();
 
 const mockSetting: NotificationSetting = {
   method: NotificationMethodOption.Email,
@@ -65,7 +65,7 @@ const mockSettingSlackV2: NotificationSetting = {
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('NotificationMethod', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     cleanup();
   });
 
@@ -217,12 +217,12 @@ describe('NotificationMethod', () => {
         ],
       },
       index: 0,
-      onUpdate: jest.fn(),
-      onRemove: jest.fn(),
-      onInputChange: jest.fn(),
+      onUpdate: vi.fn(),
+      onRemove: vi.fn(),
+      onInputChange: vi.fn(),
       email_subject: 'Test Subject',
       defaultSubject: 'Default Subject',
-      setErrorSubject: jest.fn(),
+      setErrorSubject: vi.fn(),
     };
 
     const { getByTestId } = render(<NotificationMethod {...defaultProps} />);
@@ -244,12 +244,12 @@ describe('NotificationMethod', () => {
         ],
       },
       index: 0,
-      onUpdate: jest.fn(),
-      onRemove: jest.fn(),
-      onInputChange: jest.fn(),
+      onUpdate: vi.fn(),
+      onRemove: vi.fn(),
+      onInputChange: vi.fn(),
       email_subject: 'Test Subject',
       defaultSubject: 'Default Subject',
-      setErrorSubject: jest.fn(),
+      setErrorSubject: vi.fn(),
     };
 
     const { getByTestId } = render(<NotificationMethod {...defaultProps} />);
@@ -271,12 +271,12 @@ describe('NotificationMethod', () => {
         ],
       },
       index: 0,
-      onUpdate: jest.fn(),
-      onRemove: jest.fn(),
-      onInputChange: jest.fn(),
+      onUpdate: vi.fn(),
+      onRemove: vi.fn(),
+      onInputChange: vi.fn(),
       email_subject: 'Test Subject',
       defaultSubject: 'Default Subject',
-      setErrorSubject: jest.fn(),
+      setErrorSubject: vi.fn(),
     };
 
     const { queryByTestId } = render(<NotificationMethod {...defaultProps} />);
@@ -299,12 +299,12 @@ describe('NotificationMethod', () => {
         ],
       },
       index: 0,
-      onUpdate: jest.fn(),
-      onRemove: jest.fn(),
-      onInputChange: jest.fn(),
+      onUpdate: vi.fn(),
+      onRemove: vi.fn(),
+      onInputChange: vi.fn(),
       email_subject: 'Test Subject',
       defaultSubject: 'Default Subject',
-      setErrorSubject: jest.fn(),
+      setErrorSubject: vi.fn(),
     };
 
     const { queryByTestId } = render(<NotificationMethod {...defaultProps} />);
@@ -321,7 +321,7 @@ describe('NotificationMethod', () => {
     window.featureFlags = { [FeatureFlag.AlertReportSlackV2]: false };
 
     // Mock the SupersetClient.get to simulate an error
-    jest.spyOn(SupersetClient, 'get').mockImplementation(() => {
+    vi.spyOn(SupersetClient, 'get').mockImplementation(() => {
       throw new Error('Error fetching Slack channels');
     });
 
@@ -357,7 +357,7 @@ describe('NotificationMethod', () => {
     window.featureFlags = { [FeatureFlag.AlertReportSlackV2]: false };
 
     // Mock the SupersetClient.get to simulate an error
-    jest.spyOn(SupersetClient, 'get').mockImplementation(() => {
+    vi.spyOn(SupersetClient, 'get').mockImplementation(() => {
       throw new Error('Error fetching Slack channels');
     });
 
@@ -431,7 +431,7 @@ describe('NotificationMethod', () => {
     window.featureFlags = { [FeatureFlag.AlertReportSlackV2]: true };
 
     // Mock the SupersetClient.get to simulate an error
-    jest.spyOn(SupersetClient, 'get').mockImplementation(() => {
+    vi.spyOn(SupersetClient, 'get').mockImplementation(() => {
       throw new Error('Error fetching Slack channels');
     });
 
@@ -465,7 +465,7 @@ describe('NotificationMethod', () => {
     window.featureFlags = { [FeatureFlag.AlertReportSlackV2]: true };
 
     // Mock the SupersetClient.get to simulate an error
-    jest.spyOn(SupersetClient, 'get').mockImplementation(() => {
+    vi.spyOn(SupersetClient, 'get').mockImplementation(() => {
       throw new Error('Error fetching Slack channels');
     });
 
@@ -494,7 +494,7 @@ describe('NotificationMethod', () => {
 
   test('shows the textarea when ff is true, slackChannels fail and slack is selected', async () => {
     window.featureFlags = { [FeatureFlag.AlertReportSlackV2]: true };
-    jest.spyOn(SupersetClient, 'get').mockImplementation(() => {
+    vi.spyOn(SupersetClient, 'get').mockImplementation(() => {
       throw new Error('Error fetching Slack channels');
     });
 

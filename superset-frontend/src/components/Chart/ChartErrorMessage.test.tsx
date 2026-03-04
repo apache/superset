@@ -27,11 +27,11 @@ import { getErrorMessageComponentRegistry } from 'src/components/ErrorMessage';
 import { ChartErrorMessage } from './ChartErrorMessage';
 
 // Mock the useChartOwnerNames hook
-jest.mock('src/hooks/apiResources', () => ({
-  useChartOwnerNames: jest.fn(),
+vi.mock('src/hooks/apiResources', () => ({
+  useChartOwnerNames: vi.fn(),
 }));
 
-const mockUseChartOwnerNames = useChartOwnerNames as jest.MockedFunction<
+const mockUseChartOwnerNames = useChartOwnerNames as vi.MockedFunction<
   typeof useChartOwnerNames
 >;
 

@@ -25,19 +25,19 @@ import MatrixifyGridRenderer from './MatrixifyGridRenderer';
 import { generateMatrixifyGrid } from './MatrixifyGridGenerator';
 
 // Mock the MatrixifyGridGenerator
-jest.mock('./MatrixifyGridGenerator', () => ({
-  generateMatrixifyGrid: jest.fn(),
+vi.mock('./MatrixifyGridGenerator', () => ({
+  generateMatrixifyGrid: vi.fn(),
 }));
 
 // Mock MatrixifyGridCell component
-jest.mock('./MatrixifyGridCell', () =>
+vi.mock('./MatrixifyGridCell', () =>
   // eslint-disable-next-line react/display-name, @typescript-eslint/no-unused-vars
   ({ cell, rowHeight, datasource, hooks }: any) => (
     <div data-testid={`grid-cell-${cell.id}`}>Cell: {cell.id}</div>
   ),
 );
 
-const mockGenerateMatrixifyGrid = generateMatrixifyGrid as jest.MockedFunction<
+const mockGenerateMatrixifyGrid = generateMatrixifyGrid as vi.MockedFunction<
   typeof generateMatrixifyGrid
 >;
 
@@ -45,7 +45,7 @@ const renderWithTheme = (component: React.ReactElement) =>
   render(<ThemeProvider theme={supersetTheme}>{component}</ThemeProvider>);
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 test('should create single group when fitting columns dynamically', () => {

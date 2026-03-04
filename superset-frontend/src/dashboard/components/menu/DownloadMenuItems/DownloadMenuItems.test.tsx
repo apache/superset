@@ -27,10 +27,10 @@ import { Menu, MenuItem } from '@superset-ui/core/components/Menu';
 import { SupersetClient } from '@superset-ui/core';
 import { useDownloadMenuItems } from '.';
 
-const mockAddSuccessToast = jest.fn();
-const mockAddDangerToast = jest.fn();
+const mockAddSuccessToast = vi.fn();
+const mockAddDangerToast = vi.fn();
 
-jest.mock('src/components/MessageToasts/withToasts', () => ({
+vi.mock('src/components/MessageToasts/withToasts', () => ({
   __esModule: true,
   default: (Component: React.ComponentType) => Component,
   useToasts: () => ({
@@ -39,20 +39,20 @@ jest.mock('src/components/MessageToasts/withToasts', () => ({
   }),
 }));
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
+vi.mock('@superset-ui/core', () => ({
+  ...(await importActual()),
   SupersetClient: {
-    get: jest.fn(),
+    get: vi.fn(),
   },
 }));
 
-const mockSupersetClient = SupersetClient as jest.Mocked<typeof SupersetClient>;
+const mockSupersetClient = SupersetClient as vi.Mocked<typeof SupersetClient>;
 
 const createProps = () => ({
   pdfMenuItemTitle: 'Export to PDF',
   imageMenuItemTitle: 'Download as Image',
   dashboardTitle: 'Test Dashboard',
-  logEvent: jest.fn(),
+  logEvent: vi.fn(),
   dashboardId: 123,
   title: 'Download',
   submenuKey: 'download',
@@ -69,7 +69,7 @@ const originalCreateObjectURL = window.URL.createObjectURL;
 const originalRevokeObjectURL = window.URL.revokeObjectURL;
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 afterEach(() => {
@@ -94,7 +94,7 @@ test('Should render all menu items', () => {
 test('Export as Example calls SupersetClient.get with correct endpoint', async () => {
   const mockBlob = new Blob(['test'], { type: 'application/zip' });
   const mockResponse: Pick<Response, 'blob' | 'headers'> = {
-    blob: jest.fn().mockResolvedValue(mockBlob),
+    blob: vi.fn().mockResolvedValue(mockBlob),
     headers: new Headers({
       'Content-Disposition': 'attachment; filename="dashboard_123_example.zip"',
     }),
@@ -102,8 +102,8 @@ test('Export as Example calls SupersetClient.get with correct endpoint', async (
   mockSupersetClient.get.mockResolvedValue(mockResponse as unknown as Response);
 
   // Mock URL.createObjectURL / revokeObjectURL since jsdom doesn't support them
-  const createObjectURL = jest.fn(() => 'blob:http://localhost/fake');
-  const revokeObjectURL = jest.fn();
+  const createObjectURL = vi.fn(() => 'blob:http://localhost/fake');
+  const revokeObjectURL = vi.fn();
   window.URL.createObjectURL = createObjectURL;
   window.URL.revokeObjectURL = revokeObjectURL;
 

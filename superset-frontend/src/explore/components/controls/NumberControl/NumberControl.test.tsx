@@ -34,7 +34,7 @@ test('render', () => {
 test('type number and blur triggers onChange', async () => {
   const props = {
     ...mockedProps,
-    onChange: jest.fn(),
+    onChange: vi.fn(),
   };
   render(<NumberControl {...props} />);
   const input = screen.getByRole('spinbutton');
@@ -46,7 +46,7 @@ test('type number and blur triggers onChange', async () => {
 test('type value exceeding max and blur', async () => {
   const props = {
     ...mockedProps,
-    onChange: jest.fn(),
+    onChange: vi.fn(),
   };
   render(<NumberControl {...props} />);
   const input = screen.getByRole('spinbutton');
@@ -59,7 +59,7 @@ test('type NaN keeps original value', async () => {
   const props = {
     ...mockedProps,
     value: 5,
-    onChange: jest.fn(),
+    onChange: vi.fn(),
   };
   render(<NumberControl {...props} />);
   const input = screen.getByRole('spinbutton');
@@ -73,7 +73,7 @@ test('can clear field completely', async () => {
   const props = {
     ...mockedProps,
     value: 10,
-    onChange: jest.fn(),
+    onChange: vi.fn(),
   };
   render(<NumberControl {...props} />);
   const input = screen.getByRole('spinbutton');
@@ -86,7 +86,7 @@ test('updates local value when prop changes', () => {
   const props = {
     ...mockedProps,
     value: 5,
-    onChange: jest.fn(),
+    onChange: vi.fn(),
   };
   const { rerender } = render(<NumberControl {...props} />);
   const input = screen.getByRole('spinbutton');

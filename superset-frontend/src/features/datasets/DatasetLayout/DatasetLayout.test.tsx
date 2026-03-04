@@ -25,9 +25,9 @@ import DatasetPanelComponent from 'src/features/datasets/AddDataset/DatasetPanel
 import RightPanel from 'src/features/datasets/AddDataset/RightPanel';
 import Footer from 'src/features/datasets/AddDataset/Footer';
 
-const mockHistoryPush = jest.fn();
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
+const mockHistoryPush = vi.fn();
+vi.mock('react-router-dom', () => ({
+  ...vi.requireActual('react-router-dom'),
   useHistory: () => ({
     push: mockHistoryPush,
   }),
@@ -42,7 +42,7 @@ describe('DatasetLayout', () => {
     expect(layoutWrapper).toHaveTextContent('');
   });
 
-  const mockSetDataset = jest.fn();
+  const mockSetDataset = vi.fn();
 
   const waitForRender = () =>
     waitFor(() => render(<Header setDataset={mockSetDataset} />));

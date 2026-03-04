@@ -20,12 +20,12 @@ import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import SSHTunnelSwitch from './SSHTunnelSwitch';
 import { DatabaseForm, DatabaseObject } from '../types';
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
-  isFeatureEnabled: jest.fn().mockReturnValue(true),
+vi.mock('@superset-ui/core', () => ({
+  ...(await importActual()),
+  isFeatureEnabled: vi.fn().mockReturnValue(true),
 }));
 
-jest.mock('@superset-ui/core/components/Switch', () => ({
+vi.mock('@superset-ui/core/components/Switch', () => ({
   Switch: ({
     checked,
     onChange,
@@ -45,7 +45,7 @@ jest.mock('@superset-ui/core/components/Switch', () => ({
 }));
 
 const mockChangeMethods = {
-  onParametersChange: jest.fn(),
+  onParametersChange: vi.fn(),
 };
 
 const mockDbModel = {
@@ -62,14 +62,14 @@ const defaultDb = {
 } as DatabaseObject;
 
 afterEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 test('Renders SSH Tunnel switch enabled by default and toggles its state', () => {
   render(
     <SSHTunnelSwitch
       changeMethods={mockChangeMethods}
-      clearValidationErrors={jest.fn}
+      clearValidationErrors={vi.fn}
       db={defaultDb}
       dbModel={mockDbModel}
     />,
@@ -87,7 +87,7 @@ test('Does not render if SSH Tunnel is disabled', () => {
   render(
     <SSHTunnelSwitch
       changeMethods={mockChangeMethods}
-      clearValidationErrors={jest.fn}
+      clearValidationErrors={vi.fn}
       db={defaultDb}
       dbModel={{
         ...mockDbModel,
@@ -110,7 +110,7 @@ test('Checks the switch based on db.parameters.ssh', () => {
   render(
     <SSHTunnelSwitch
       changeMethods={mockChangeMethods}
-      clearValidationErrors={jest.fn}
+      clearValidationErrors={vi.fn}
       db={dbWithSSHTunnelEnabled}
       dbModel={mockDbModel}
     />,
@@ -127,7 +127,7 @@ test('Calls onParametersChange with true if SSH Tunnel info exists', () => {
   render(
     <SSHTunnelSwitch
       changeMethods={mockChangeMethods}
-      clearValidationErrors={jest.fn}
+      clearValidationErrors={vi.fn}
       db={dbWithSSHTunnelInfo}
       dbModel={mockDbModel}
     />,
@@ -142,7 +142,7 @@ test('Displays tooltip text on hover over the InfoTooltip', async () => {
   render(
     <SSHTunnelSwitch
       changeMethods={mockChangeMethods}
-      clearValidationErrors={jest.fn}
+      clearValidationErrors={vi.fn}
       db={defaultDb}
       dbModel={mockDbModel}
     />,

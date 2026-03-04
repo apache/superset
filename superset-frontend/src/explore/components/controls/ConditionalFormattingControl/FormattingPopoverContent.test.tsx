@@ -26,7 +26,7 @@ import { Comparator, ColorSchemeEnum } from '@superset-ui/chart-controls';
 import { GenericDataType } from '@apache-superset/core/api/core';
 import { FormattingPopoverContent } from './FormattingPopoverContent';
 
-const mockOnChange = jest.fn();
+const mockOnChange = vi.fn();
 
 const columns = [
   { label: 'Column 1', value: 'column1', dataType: GenericDataType.Numeric },

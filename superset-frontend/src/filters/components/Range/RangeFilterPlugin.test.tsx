@@ -86,7 +86,7 @@ const rangeProps = {
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('RangeFilterPlugin', () => {
-  const setDataMask = jest.fn();
+  const setDataMask = vi.fn();
   const getWrapper = (props: any = {}) =>
     render(
       <RangeFilterPlugin
@@ -100,7 +100,7 @@ describe('RangeFilterPlugin', () => {
     );
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   test('should render two numerical inputs and a slider by default', () => {

@@ -23,7 +23,7 @@ import NewRow from 'src/dashboard/components/gridComponents/new/NewRow';
 import { NEW_ROW_ID } from 'src/dashboard/util/constants';
 import { ROW_TYPE } from 'src/dashboard/util/componentTypes';
 
-jest.mock(
+vi.mock(
   'src/dashboard/components/gridComponents/new/DraggableNewComponent',
   () =>
     ({ type, id }: { type: string; id: string }) => (

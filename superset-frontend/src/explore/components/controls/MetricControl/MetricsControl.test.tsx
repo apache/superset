@@ -56,7 +56,7 @@ const defaultProps = {
 };
 
 function setup(overrides: Record<string, unknown> = {}) {
-  const onChange = jest.fn();
+  const onChange = vi.fn();
   const props = {
     onChange,
     ...defaultProps,
@@ -145,7 +145,7 @@ test('does not remove custom SQL metric if savedMetrics changes', async () => {
   const { rerender } = render(
     <MetricsControl
       name="metrics"
-      onChange={jest.fn()}
+      onChange={vi.fn()}
       multi
       value={[
         {
@@ -175,7 +175,7 @@ test('does not remove custom SQL metric if savedMetrics changes', async () => {
   rerender(
     <MetricsControl
       name="metrics"
-      onChange={jest.fn()}
+      onChange={vi.fn()}
       multi
       value={[
         {

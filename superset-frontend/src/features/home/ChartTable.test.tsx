@@ -29,12 +29,12 @@ import handleResourceExport from 'src/utils/export';
 import ChartTable from './ChartTable';
 
 // Mock the export module
-jest.mock('src/utils/export', () => ({
+vi.mock('src/utils/export', () => ({
   __esModule: true,
-  default: jest.fn(),
+  default: vi.fn(),
 }));
 
-const mockExport = handleResourceExport as jest.MockedFunction<
+const mockExport = handleResourceExport as vi.MockedFunction<
   typeof handleResourceExport
 >;
 
@@ -66,8 +66,8 @@ fetchMock.get(chartFavoriteStatusEndpoint, {
 });
 
 const mockedProps = {
-  addDangerToast: jest.fn(),
-  addSuccessToast: jest.fn(),
+  addDangerToast: vi.fn(),
+  addSuccessToast: vi.fn(),
   user: {
     userId: '2',
   },

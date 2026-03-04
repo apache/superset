@@ -23,9 +23,9 @@ import { useHeaderReportMenuItems, HeaderReportProps } from './index';
 
 const createProps = () => ({
   dashboardId: 1,
-  setShowReportSubMenu: jest.fn,
-  showReportModal: jest.fn,
-  setCurrentReportDeleting: jest.fn,
+  setShowReportSubMenu: vi.fn,
+  showReportModal: vi.fn,
+  setCurrentReportDeleting: vi.fn,
 });
 
 const stateWithOnlyUser = {
@@ -124,12 +124,12 @@ function setup(props: HeaderReportProps, initialState = {}) {
   render(<MenuWrapper {...props} />, { useRedux: true, initialState });
 }
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
-  isFeatureEnabled: jest.fn(),
+vi.mock('@superset-ui/core', () => ({
+  ...(await importActual()),
+  isFeatureEnabled: vi.fn(),
 }));
 
-const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
+const mockedIsFeatureEnabled = isFeatureEnabled as vi.Mock;
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('Header Report Dropdown', () => {
@@ -163,7 +163,7 @@ describe('Header Report Dropdown', () => {
 
   test('opens an edit modal', async () => {
     const mockedProps = createProps();
-    mockedProps.showReportModal = jest.fn();
+    mockedProps.showReportModal = vi.fn();
     act(() => {
       setup(mockedProps, stateWithUserAndReport);
     });
@@ -174,7 +174,7 @@ describe('Header Report Dropdown', () => {
 
   test('opens a delete modal', async () => {
     const mockedProps = createProps();
-    mockedProps.setCurrentReportDeleting = jest.fn();
+    mockedProps.setCurrentReportDeleting = vi.fn();
     act(() => {
       setup(mockedProps, stateWithUserAndReport);
     });

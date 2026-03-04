@@ -20,7 +20,7 @@ import '@testing-library/jest-dom';
 import { fireEvent, render } from '@superset-ui/core/spec';
 import { InfoTooltip, InfoTooltipProps } from '@superset-ui/core/components';
 
-jest.mock('@superset-ui/core/components/Tooltip', () => ({
+vi.mock('@superset-ui/core/components/Tooltip', () => ({
   Tooltip: ({ children }: { children: React.ReactNode }) => (
     <div data-test="mock-tooltip">{children}</div>
   ),
@@ -40,7 +40,7 @@ test('renders a tooltip', () => {
 });
 
 test('responds to keydown events', () => {
-  const clickHandler = jest.fn();
+  const clickHandler = vi.fn();
   const { getByRole } = setup({
     label: 'test',
     tooltip: 'this is a test',

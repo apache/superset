@@ -193,8 +193,8 @@ const baseFilter: Filter = {
   description: '',
 };
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
+vi.mock('@superset-ui/core', () => ({
+  ...(await importActual()),
   getChartMetadataRegistry: () => ({
     get: (type: string) => {
       if (type === 'filter_select') {
@@ -218,7 +218,7 @@ const getTextInHTMLTags =
     return nodeHasText && childrenDontHaveText;
   };
 
-const hidePopover = jest.fn();
+const hidePopover = vi.fn();
 
 const renderContent = (filter = baseFilter, initialState = baseInitialState) =>
   render(<FilterCardContent filter={filter} hidePopover={hidePopover} />, {
@@ -285,8 +285,8 @@ test('filter card with dependency', () => {
 });
 
 test('focus filter on filter card dependency click', () => {
-  const useDispatchMock = jest.spyOn(reactRedux, 'useDispatch');
-  const dummyDispatch = jest.fn();
+  const useDispatchMock = vi.spyOn(reactRedux, 'useDispatch');
+  const dummyDispatch = vi.fn();
   useDispatchMock.mockReturnValue(dummyDispatch);
 
   const filter = {
