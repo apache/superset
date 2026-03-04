@@ -560,9 +560,24 @@ def serialize_dashboard_object(dashboard: Any) -> DashboardInfo:
         if getattr(dashboard, "uuid", None)
         else None,
         chart_count=len(getattr(dashboard, "slices", [])),
-        owners=getattr(dashboard, "owners", []),
-        tags=getattr(dashboard, "tags", []),
-        roles=getattr(dashboard, "roles", []),
+        owners=[
+            UserInfo.model_validate(owner, from_attributes=True)
+            for owner in getattr(dashboard, "owners", [])
+        ]
+        if getattr(dashboard, "owners", None)
+        else [],
+        tags=[
+            TagInfo.model_validate(tag, from_attributes=True)
+            for tag in getattr(dashboard, "tags", [])
+        ]
+        if getattr(dashboard, "tags", None)
+        else [],
+        roles=[
+            RoleInfo.model_validate(role, from_attributes=True)
+            for role in getattr(dashboard, "roles", [])
+        ]
+        if getattr(dashboard, "roles", None)
+        else [],
         charts=[
             serialize_chart_object(chart) for chart in getattr(dashboard, "slices", [])
         ]
