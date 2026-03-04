@@ -19,7 +19,7 @@
 Chart prompts for visualization guidance
 """
 
-from superset_core.mcp import prompt
+from superset_core.api.mcp import prompt
 
 
 @prompt("create_chart_guided")

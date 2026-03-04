@@ -27,7 +27,7 @@ from datetime import datetime, timezone
 
 from fastmcp import Context
 from sqlalchemy.orm import joinedload, subqueryload
-from superset_core.mcp import tool
+from superset_core.api.mcp import tool
 
 from superset.extensions import event_logger
 from superset.mcp_service.dataset.schemas import (

@@ -27,7 +27,7 @@ from datetime import datetime, timezone
 
 from fastmcp import Context
 from sqlalchemy.orm import subqueryload
-from superset_core.mcp import tool
+from superset_core.api.mcp import tool
 
 from superset.dashboards.permalink.exceptions import DashboardPermalinkGetFailedError
 from superset.dashboards.permalink.types import DashboardPermalinkValue

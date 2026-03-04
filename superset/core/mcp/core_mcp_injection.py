@@ -207,14 +207,14 @@ def create_prompt_decorator(
 def initialize_core_mcp_dependencies() -> None:
     """
     Initialize MCP dependency injection by replacing abstract functions
-    in superset_core.mcp with concrete implementations.
+    in superset_core.api.mcp with concrete implementations.
     """
     try:
-        import superset_core.mcp
+        import superset_core.api.mcp
 
         # Replace the abstract decorators with concrete implementations
-        superset_core.mcp.tool = create_tool_decorator
-        superset_core.mcp.prompt = create_prompt_decorator
+        superset_core.api.mcp.tool = create_tool_decorator
+        superset_core.api.mcp.prompt = create_prompt_decorator
 
         logger.info("MCP dependency injection initialized successfully")
 
