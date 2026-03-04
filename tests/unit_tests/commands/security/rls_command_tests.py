@@ -464,3 +464,24 @@ def test_delete_command_not_found(mock_rls_dao):
     command = DeleteRLSRuleCommand([1])
     with pytest.raises(RLSRuleNotFoundError):
         get_unwrapped_func(command.run)(command)
+
+@patch("superset.connectors.sqla.models.security_manager")
+@patch("superset.connectors.sqla.models.is_feature_enabled")
+def test_sqla_table_get_guest_rls_filters_validation(mock_feature, mock_sm, mock_table):
+    mock_feature.return_value = True
+    mock_rule = {"clause": "id IN (SELECT 1)"}
+    mock_sm.get_guest_rls_filters.return_value = [mock_rule]
+    mock_sm.get_rls_filters.return_value = []
+
+    mock_table.database.backend = "postgresql"
+    mock_table.database_id = 1
+    mock_table.get_sqla_row_level_filters = (
+        SqlaTable.get_sqla_row_level_filters.__get__(mock_table, SqlaTable)
+    )
+
+    with patch.object(mock_table, "get_template_processor") as mock_tp:
+        mock_tp_inst = mock_tp.return_value
+        mock_tp_inst.process_template.side_effect = lambda x: x
+
+        with pytest.raises(SupersetSecurityException):
+            mock_table.get_sqla_row_level_filters()
