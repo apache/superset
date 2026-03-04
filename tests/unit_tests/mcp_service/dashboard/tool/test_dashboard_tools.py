@@ -624,6 +624,7 @@ class TestDashboardSortableColumns:
             "published",
             "changed_on",
             "created_on",
+            "popularity_score",
         ]
         # Ensure no computed properties are included
         assert "changed_on_delta_humanized" not in SORTABLE_DASHBOARD_COLUMNS
