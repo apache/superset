@@ -43,7 +43,7 @@ jest.mock('@math.gl/web-mercator', () => ({
 
 jest.mock('../src/ScatterPlotGlowOverlay', () => {
   const MockOverlay = (props: Record<string, unknown>) => (
-    <div data-test="scatter-overlay" data-opacity={props.globalOpacity} />
+    <div data-testid="scatter-overlay" data-opacity={props.globalOpacity} />
   );
   return { __esModule: true, default: MockOverlay };
 });
