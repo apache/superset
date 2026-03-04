@@ -17,6 +17,7 @@
  * under the License.
  */
 import { styled, css } from '@apache-superset/core/ui';
+import { calculateItemHeights } from './hooks/useItemHeights';
 
 export const FoldersContainer = styled.div`
   display: flex;
@@ -54,6 +55,20 @@ export const FoldersActions = styled.div`
   `}
 `;
 
+export const FoldersActionsRow = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.paddingXS}px;
+`;
+
+export const SelectionCount = styled.div`
+  ${({ theme }) => `
+    align-self: flex-end;
+    font-size: ${theme.fontSizeSM}px;
+    color: ${theme.colorTextSecondary};
+  `}
+`;
+
 export const FoldersContent = styled.div`
   flex: 1;
   min-height: 0;
@@ -67,6 +82,55 @@ export const DragOverlayStack = styled.div<{ width?: number }>`
   position: relative;
   width: ${({ width }) => (width ? `${width}px` : '100%')};
   will-change: transform;
+`;
+
+export const DragOverlayFolderBlock = styled.div<{ width?: number }>`
+  ${({ theme, width }) => `
+    width: ${width ? `${width}px` : '100%'};
+    will-change: transform;
+    background: ${theme.colorBgContainer};
+    border-radius: ${theme.borderRadius}px;
+    box-shadow: ${theme.boxShadowSecondary};
+    pointer-events: none;
+    overflow: hidden;
+    opacity: 0.95;
+  `}
+`;
+
+// Matches react-window slot heights so the overlay lines up with the list.
+export const FolderBlockSlot = styled.div<{
+  variant: 'folder' | 'item';
+  separatorType?: 'visible' | 'transparent';
+}>`
+  ${({ theme, variant, separatorType }) => {
+    const heights = calculateItemHeights(theme);
+    let minHeight =
+      variant === 'folder' ? heights.folderHeader : heights.regularItem;
+    if (separatorType === 'visible') {
+      minHeight += heights.separatorVisible;
+    } else if (separatorType === 'transparent') {
+      minHeight += heights.separatorTransparent;
+    }
+    return `
+      min-height: ${minHeight}px;
+      display: flex;
+      align-items: stretch;
+
+      > * {
+        flex: 1;
+        min-width: 0;
+      }
+    `;
+  }}
+`;
+
+export const MoreItemsIndicator = styled.div`
+  ${({ theme }) => `
+    padding: ${theme.paddingXS}px ${theme.paddingMD}px;
+    color: ${theme.colorTextSecondary};
+    font-size: ${theme.fontSizeSM}px;
+    text-align: center;
+  `}
 `;
 
 export const DragOverlayItem = styled.div<{

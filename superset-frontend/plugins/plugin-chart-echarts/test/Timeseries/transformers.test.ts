@@ -246,6 +246,37 @@ describe('optimizeBarLabelPlacement', () => {
   });
 });
 
+function buildTimeseriesChartProps(
+  overrides: Record<string, unknown> = {},
+): EchartsTimeseriesChartProps {
+  return new ChartProps({
+    formData: {
+      colorScheme: 'bnbColors',
+      datasource: '3__table',
+      granularity_sqla: 'ds',
+      metric: 'sum__num',
+      viz_type: 'my_viz',
+      ...overrides,
+    },
+    width: 800,
+    height: 600,
+    queriesData: [
+      {
+        data: [
+          { sum__num: 100, __timestamp: new Date('2026-01-01').getTime() },
+          { sum__num: 200, __timestamp: new Date('2026-04-01').getTime() },
+          { sum__num: 300, __timestamp: new Date('2026-07-01').getTime() },
+          { sum__num: 400, __timestamp: new Date('2026-10-01').getTime() },
+          { sum__num: 500, __timestamp: new Date('2026-12-01').getTime() },
+        ],
+        colnames: ['sum__num', '__timestamp'],
+        coltypes: [GenericDataType.Numeric, GenericDataType.Temporal],
+      },
+    ],
+    theme: supersetTheme,
+  }) as unknown as EchartsTimeseriesChartProps;
+}
+
 test('should configure time axis labels to show max label for last month visibility', () => {
   const formData = {
     colorScheme: 'bnbColors',
@@ -287,6 +318,71 @@ test('should configure time axis labels to show max label for last month visibil
       }),
     }),
   );
+});
+
+test('x-axis dates do not overlap and last label stays visible at 0° rotation', () => {
+  const result = transformProps(buildTimeseriesChartProps());
+  const { axisLabel } = result.echartOptions.xAxis as Record<string, any>;
+
+  expect(axisLabel.hideOverlap).toBe(true);
+  // showMaxLabel forces the last data point label to render even
+  // when hideOverlap is active, preventing the #37181 regression.
+  expect(axisLabel.showMaxLabel).toBe(true);
+  expect(axisLabel.alignMaxLabel).toBe('right');
+});
+
+test('last x-axis date is visible and not cut off when rotated -45°', () => {
+  const lastDataPointTimestamp = new Date('2026-12-01').getTime();
+  const result = transformProps(
+    buildTimeseriesChartProps({
+      xAxisLabelRotation: -45,
+      x_axis_time_format: '%d-%m-%Y %H:%M:%S',
+    }),
+  );
+  const { xAxis, grid } = result.echartOptions as Record<string, any>;
+  const { axisLabel } = xAxis;
+
+  // The formatter renders the last data point's date as a full string
+  const lastDateLabel = axisLabel.formatter(lastDataPointTimestamp);
+  expect(lastDateLabel).toMatch(/01-12-2026/);
+  expect(lastDateLabel).not.toBe('');
+
+  // Labels are not aggressively hidden so the last date stays visible
+  expect(axisLabel.hideOverlap).toBe(false);
+  expect(axisLabel.rotate).toBe(-45);
+  // No phantom label at a position that doesn't correspond to any bar
+  expect(axisLabel.showMaxLabel).toBeUndefined();
+  // Enough right padding so the last rotated label is not clipped
+  expect(grid.right).toBeGreaterThan(TIMESERIES_CONSTANTS.gridOffsetRight);
+});
+
+test('last x-axis date is visible and not cut off when rotated 45°', () => {
+  const lastDataPointTimestamp = new Date('2026-12-01').getTime();
+  const result = transformProps(
+    buildTimeseriesChartProps({
+      xAxisLabelRotation: 45,
+      x_axis_time_format: '%d-%m-%Y %H:%M:%S',
+    }),
+  );
+  const { xAxis, grid } = result.echartOptions as Record<string, any>;
+
+  const lastDateLabel = xAxis.axisLabel.formatter(lastDataPointTimestamp);
+  expect(lastDateLabel).toMatch(/01-12-2026/);
+  expect(lastDateLabel).not.toBe('');
+
+  expect(xAxis.axisLabel.hideOverlap).toBe(false);
+  expect(xAxis.axisLabel.rotate).toBe(45);
+  expect(grid.right).toBeGreaterThan(TIMESERIES_CONSTANTS.gridOffsetRight);
+});
+
+test('no phantom date label appears at the axis boundary', () => {
+  const result = transformProps(
+    buildTimeseriesChartProps({ xAxisLabelRotation: -45 }),
+  );
+  const { axisLabel } = result.echartOptions.xAxis as Record<string, any>;
+
+  expect(axisLabel.showMaxLabel).toBeUndefined();
+  expect(axisLabel.showMinLabel).toBeUndefined();
 });
 
 function setupGetChartPaddingMock(): jest.SpyInstance {

@@ -24,33 +24,33 @@
  * and resolution functions declared in the API types.
  */
 
-import type { contributions } from '@apache-superset/core';
 import { editors as editorsApi } from '@apache-superset/core';
 import { Disposable } from '../models';
 import EditorProviders from './EditorProviders';
 
-type EditorLanguage = contributions.EditorLanguage;
+type EditorLanguage = editorsApi.EditorLanguage;
+type Editor = editorsApi.Editor;
 type EditorProvider = editorsApi.EditorProvider;
-type EditorContribution = editorsApi.EditorContribution;
 type EditorComponent = editorsApi.EditorComponent;
 type EditorProviderRegisteredEvent = editorsApi.EditorProviderRegisteredEvent;
 type EditorProviderUnregisteredEvent =
   editorsApi.EditorProviderUnregisteredEvent;
 
 /**
- * Register an editor provider for specific languages.
- * When an extension registers an editor, it replaces the default for those languages.
+ * Register an editor provider as a module-level side effect.
+ * Takes the editor descriptor directly rather than looking it up
+ * from a manifest by ID.
  *
- * @param contribution The editor contribution metadata from extension.json
- * @param component The React component implementing EditorProps
- * @returns A Disposable to unregister the provider
+ * @param editor The editor descriptor.
+ * @param component The React component implementing the editor.
+ * @returns A Disposable to unregister the provider.
  */
-export const registerEditorProvider = (
-  contribution: EditorContribution,
+export const registerEditor = (
+  editor: Editor,
   component: EditorComponent,
 ): Disposable => {
-  const manager = EditorProviders.getInstance();
-  return manager.registerProvider(contribution, component);
+  const providers = EditorProviders.getInstance();
+  return providers.registerProvider(editor, component);
 };
 
 /**
@@ -114,7 +114,7 @@ export const onDidUnregisterEditorProvider = (
  * Editors API object for use in the extension system.
  */
 export const editors: typeof editorsApi = {
-  registerEditorProvider,
+  registerEditor,
   getEditorProvider,
   hasEditorProvider,
   getAllEditorProviders,

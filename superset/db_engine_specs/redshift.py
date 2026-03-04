@@ -206,8 +206,8 @@ class RedshiftEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
     # This follows the pattern used by other engine specs (bigquery, snowflake, etc.)
     # that specify exact paths rather than using the base class's catch-all "$.*".
     encrypted_extra_sensitive_fields = {
-        "$.aws_iam.external_id",
-        "$.aws_iam.role_arn",
+        "$.aws_iam.external_id": "AWS IAM External ID",
+        "$.aws_iam.role_arn": "AWS IAM Role ARN",
     }
 
     @staticmethod

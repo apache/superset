@@ -2414,7 +2414,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     self.dttm_sql_literal(end_dttm, time_col)
                 )
             )
-        return and_(*l)
+        return and_(True, *l)
 
     def values_for_column(  # pylint: disable=too-many-locals
         self,
