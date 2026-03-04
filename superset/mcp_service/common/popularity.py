@@ -263,7 +263,7 @@ def compute_dataset_popularity(
     # Datasets use CertificationMixin where certification is in the extra JSON
     datasets = (
         db.session.query(SqlaTable.id, SqlaTable.extra, SqlaTable.changed_on)
-        .filter(SqlaTable.id.in_(dataset_ids))  # type: ignore[union-attr]
+        .filter(SqlaTable.id.in_(dataset_ids))
         .all()
     )
     for ds in datasets:

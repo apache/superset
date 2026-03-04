@@ -84,9 +84,7 @@ def _needs_popularity(request: ListChartsRequest) -> bool:
     return False
 
 
-def _attach_popularity_scores(
-    charts: list[ChartInfo], scores: dict[int, float]
-) -> None:
+def _attach_popularity_scores(charts: list[Any], scores: dict[int, float]) -> None:
     """Attach popularity scores to serialized chart objects in-place."""
     for chart in charts:
         if chart.id is not None and chart.id in scores:

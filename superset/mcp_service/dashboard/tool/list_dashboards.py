@@ -77,9 +77,7 @@ DASHBOARD_SEARCH_COLUMNS = [
 ]
 
 
-def _attach_popularity_scores(
-    dashboards: list[DashboardInfo], scores: dict[int, float]
-) -> None:
+def _attach_popularity_scores(dashboards: list[Any], scores: dict[int, float]) -> None:
     """Attach popularity scores to serialized dashboard objects in-place."""
     for dash in dashboards:
         if dash.id is not None and dash.id in scores:

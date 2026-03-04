@@ -76,9 +76,7 @@ SORTABLE_DATASET_COLUMNS = [
 DATASET_SEARCH_COLUMNS = ["schema", "sql", "table_name", "uuid"]
 
 
-def _attach_popularity_scores(
-    datasets: list[DatasetInfo], scores: dict[int, float]
-) -> None:
+def _attach_popularity_scores(datasets: list[Any], scores: dict[int, float]) -> None:
     """Attach popularity scores to serialized dataset objects in-place."""
     for ds in datasets:
         if ds.id is not None and ds.id in scores:
