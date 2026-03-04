@@ -46,7 +46,11 @@ afterEach(() => {
 test('constructor initializes with correct defaults', () => {
   const table = createMockTable();
   const setDerivedColumns = jest.fn();
-  const utils = new InteractiveTableUtils(table, mockColumns, setDerivedColumns);
+  const utils = new InteractiveTableUtils(
+    table,
+    mockColumns,
+    setDerivedColumns,
+  );
 
   expect(utils.tableRef).toBe(table);
   expect(utils.isDragging).toBe(false);
@@ -58,11 +62,7 @@ test('constructor initializes with correct defaults', () => {
 
 test('setTableRef updates tableRef', () => {
   const table = createMockTable();
-  const utils = new InteractiveTableUtils(
-    table,
-    mockColumns,
-    jest.fn(),
-  );
+  const utils = new InteractiveTableUtils(table, mockColumns, jest.fn());
   const newTable = createMockTable();
   utils.setTableRef(newTable);
   expect(utils.tableRef).toBe(newTable);
@@ -120,7 +120,10 @@ test('handleMouseDown sets mouseDown and oldX when within resize range', () => {
   const table = createMockTable();
   const utils = new InteractiveTableUtils(table, mockColumns, jest.fn());
   const target = document.createElement('th') as any;
-  Object.defineProperty(target, 'offsetWidth', { value: 100, configurable: true });
+  Object.defineProperty(target, 'offsetWidth', {
+    value: 100,
+    configurable: true,
+  });
 
   const event = {
     currentTarget: target,
@@ -142,7 +145,10 @@ test('handleMouseDown sets draggable when outside resize range and reorderable',
   utils.reorderable = true;
 
   const target = document.createElement('th') as any;
-  Object.defineProperty(target, 'offsetWidth', { value: 100, configurable: true });
+  Object.defineProperty(target, 'offsetWidth', {
+    value: 100,
+    configurable: true,
+  });
 
   const event = {
     currentTarget: target,
@@ -248,7 +254,11 @@ test('handleColumnDragStart sets isDragging and calls setData', () => {
 test('handleDragDrop reorders columns when valid drag data exists', () => {
   const table = createMockTable(2);
   const setDerivedColumns = jest.fn();
-  const utils = new InteractiveTableUtils(table, mockColumns, setDerivedColumns);
+  const utils = new InteractiveTableUtils(
+    table,
+    mockColumns,
+    setDerivedColumns,
+  );
 
   const row = table.rows[0];
   // Set columnRef to first column (drag source)
@@ -271,7 +281,11 @@ test('handleDragDrop reorders columns when valid drag data exists', () => {
 test('handleDragDrop does nothing when no drag data', () => {
   const table = createMockTable(2);
   const setDerivedColumns = jest.fn();
-  const utils = new InteractiveTableUtils(table, mockColumns, setDerivedColumns);
+  const utils = new InteractiveTableUtils(
+    table,
+    mockColumns,
+    setDerivedColumns,
+  );
 
   const row = table.rows[0];
   const event = {
@@ -292,7 +306,10 @@ test('handleMouseMove updates cursor to col-resize when within resize range', ()
   utils.resizable = true;
 
   const target = document.createElement('th') as any;
-  Object.defineProperty(target, 'offsetWidth', { value: 100, configurable: true });
+  Object.defineProperty(target, 'offsetWidth', {
+    value: 100,
+    configurable: true,
+  });
   target.style = { cursor: '' };
 
   const event = {
@@ -312,7 +329,10 @@ test('handleMouseMove sets default cursor when outside resize range', () => {
   utils.resizable = true;
 
   const target = document.createElement('th') as any;
-  Object.defineProperty(target, 'offsetWidth', { value: 100, configurable: true });
+  Object.defineProperty(target, 'offsetWidth', {
+    value: 100,
+    configurable: true,
+  });
   target.style = { cursor: '' };
 
   const event = {
@@ -329,7 +349,11 @@ test('handleMouseMove sets default cursor when outside resize range', () => {
 test('handleMouseMove resizes column when mouseDown and within bounds', () => {
   const table = createMockTable(2);
   const setDerivedColumns = jest.fn();
-  const utils = new InteractiveTableUtils(table, mockColumns, setDerivedColumns);
+  const utils = new InteractiveTableUtils(
+    table,
+    mockColumns,
+    setDerivedColumns,
+  );
   utils.resizable = true;
 
   const row = table.rows[0];
@@ -340,7 +364,10 @@ test('handleMouseMove resizes column when mouseDown and within bounds', () => {
   utils.columnRef = col;
 
   const target = document.createElement('th') as any;
-  Object.defineProperty(target, 'offsetWidth', { value: 100, configurable: true });
+  Object.defineProperty(target, 'offsetWidth', {
+    value: 100,
+    configurable: true,
+  });
   target.style = { cursor: '' };
 
   const event = {
@@ -358,7 +385,11 @@ test('handleMouseMove resizes column when mouseDown and within bounds', () => {
 test('handleMouseMove skips resize when not resizable', () => {
   const table = createMockTable(2);
   const setDerivedColumns = jest.fn();
-  const utils = new InteractiveTableUtils(table, mockColumns, setDerivedColumns);
+  const utils = new InteractiveTableUtils(
+    table,
+    mockColumns,
+    setDerivedColumns,
+  );
   utils.resizable = false;
 
   const target = document.createElement('th') as any;
@@ -376,7 +407,11 @@ test('handleMouseMove skips resize when not resizable', () => {
 test('handleMouseMove handles negative diff by keeping original width', () => {
   const table = createMockTable(2);
   const setDerivedColumns = jest.fn();
-  const utils = new InteractiveTableUtils(table, mockColumns, setDerivedColumns);
+  const utils = new InteractiveTableUtils(
+    table,
+    mockColumns,
+    setDerivedColumns,
+  );
   utils.resizable = true;
 
   const row = table.rows[0];
@@ -387,7 +422,10 @@ test('handleMouseMove handles negative diff by keeping original width', () => {
   utils.columnRef = col;
 
   const target = document.createElement('th') as any;
-  Object.defineProperty(target, 'offsetWidth', { value: 50, configurable: true });
+  Object.defineProperty(target, 'offsetWidth', {
+    value: 50,
+    configurable: true,
+  });
   target.style = { cursor: '' };
 
   const event = {
@@ -438,7 +476,10 @@ test('handleMouseDown does nothing to draggable when outside resize range and no
   utils.reorderable = false;
 
   const target = document.createElement('th') as any;
-  Object.defineProperty(target, 'offsetWidth', { value: 100, configurable: true });
+  Object.defineProperty(target, 'offsetWidth', {
+    value: 100,
+    configurable: true,
+  });
 
   const event = {
     currentTarget: target,
@@ -454,7 +495,11 @@ test('handleMouseDown does nothing to draggable when outside resize range and no
 test('handleMouseMove skips column update when getColumnIndex returns NaN (line 162 false)', () => {
   const table = createMockTable(2);
   const setDerivedColumns = jest.fn();
-  const utils = new InteractiveTableUtils(table, mockColumns, setDerivedColumns);
+  const utils = new InteractiveTableUtils(
+    table,
+    mockColumns,
+    setDerivedColumns,
+  );
   utils.resizable = true;
 
   const row = table.rows[0];
@@ -467,7 +512,10 @@ test('handleMouseMove skips column update when getColumnIndex returns NaN (line 
   jest.spyOn(utils, 'getColumnIndex').mockReturnValueOnce(NaN);
 
   const target = document.createElement('th') as any;
-  Object.defineProperty(target, 'offsetWidth', { value: 100, configurable: true });
+  Object.defineProperty(target, 'offsetWidth', {
+    value: 100,
+    configurable: true,
+  });
   target.style = { cursor: '' };
 
   const event = {
