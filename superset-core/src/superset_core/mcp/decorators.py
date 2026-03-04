@@ -104,7 +104,9 @@ def tool(
             '''List charts the user can access'''
             return []
 
-        @tool(tags=["mutate"], class_permission_name="Chart")  # RBAC: can_write on Chart
+        @tool(  # RBAC: can_write on Chart
+            tags=["mutate"], class_permission_name="Chart",
+        )
         def create_chart(name: str) -> dict:
             '''Create a new chart'''
             return {"name": name}

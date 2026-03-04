@@ -23,11 +23,11 @@ import pytest
 from flask import g
 
 from superset.mcp_service.auth import (
+    check_tool_permission,
     CLASS_PERMISSION_ATTR,
     MCPPermissionDeniedError,
     METHOD_PERMISSION_ATTR,
     PERMISSION_PREFIX,
-    check_tool_permission,
 )
 
 
@@ -184,7 +184,7 @@ def test_method_permission_attr():
 
 
 def test_permission_attrs_read_tag():
-    """core/discovery/data tags with class_permission_name → method_permission = 'read'."""
+    """Tags with class_permission_name set method_permission to read."""
     func = _make_tool_func(class_perm="Chart", method_perm="read")
     assert getattr(func, CLASS_PERMISSION_ATTR) == "Chart"
     assert getattr(func, METHOD_PERMISSION_ATTR) == "read"
