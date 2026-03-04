@@ -66,3 +66,11 @@ class SemanticLayerUpdateFailedError(UpdateFailedError):
 
 class SemanticLayerDeleteFailedError(DeleteFailedError):
     message = _("Semantic layer could not be deleted.")
+
+
+class SemanticViewCreateFailedError(CreateFailedError):
+    message = _("Semantic view could not be created.")
+
+
+class SemanticViewDeleteFailedError(DeleteFailedError):
+    message = _("Semantic view could not be deleted.")

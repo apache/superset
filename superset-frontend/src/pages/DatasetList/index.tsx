@@ -37,9 +37,11 @@ import { OWNER_OPTION_FILTER_PROPS } from 'src/features/owners/OwnerSelectLabel'
 import { ColumnObject } from 'src/features/datasets/types';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import {
+  Button,
   ConfirmStatusChange,
   CertifiedBadge,
   DeleteModal,
+  Dropdown,
   Tooltip,
   InfoTooltip,
   DatasetTypeLabel,
@@ -75,6 +77,7 @@ import {
 import DuplicateDatasetModal from 'src/features/datasets/DuplicateDatasetModal';
 import type DatasetType from 'src/types/Dataset';
 import SemanticViewEditModal from 'src/features/semanticViews/SemanticViewEditModal';
+import AddSemanticViewModal from 'src/features/semanticViews/AddSemanticViewModal';
 import { useSelector } from 'react-redux';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
@@ -265,6 +268,8 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     null,
   );
 
+  const [showAddSemanticViewModal, setShowAddSemanticViewModal] =
+    useState(false);
   const [importingDataset, showImportModal] = useState<boolean>(false);
   const [passwordFields, setPasswordFields] = useState<string[]>([]);
   const [preparingExport, setPreparingExport] = useState<boolean>(false);
@@ -527,25 +532,43 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         Cell: ({ row: { original } }: any) => {
           const isSemanticView = original.source_type === 'semantic_layer';
 
-          // Semantic view: only show edit button
+          // Semantic view: show edit and delete buttons
           if (isSemanticView) {
-            if (!canEdit) return null;
+            if (!canEdit && !canDelete) return null;
             return (
               <Actions className="actions">
-                <Tooltip
-                  id="edit-action-tooltip"
-                  title={t('Edit')}
-                  placement="bottom"
-                >
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
-                    onClick={() => setSvCurrentlyEditing(original)}
+                {canDelete && (
+                  <Tooltip
+                    id="delete-action-tooltip"
+                    title={t('Delete')}
+                    placement="bottom"
                   >
-                    <Icons.EditOutlined iconSize="l" />
-                  </span>
-                </Tooltip>
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      className="action-button"
+                      onClick={() => handleSemanticViewDelete(original)}
+                    >
+                      <Icons.DeleteOutlined iconSize="l" />
+                    </span>
+                  </Tooltip>
+                )}
+                {canEdit && (
+                  <Tooltip
+                    id="edit-action-tooltip"
+                    title={t('Edit')}
+                    placement="bottom"
+                  >
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      className="action-button"
+                      onClick={() => setSvCurrentlyEditing(original)}
+                    >
+                      <Icons.EditOutlined iconSize="l" />
+                    </span>
+                  </Tooltip>
+                )}
               </Actions>
             );
           }
@@ -852,14 +875,58 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   }
 
   if (canCreate) {
-    buttonArr.push({
-      icon: <Icons.PlusOutlined iconSize="m" />,
-      name: t('Dataset'),
-      onClick: () => {
-        history.push('/dataset/add/');
-      },
-      buttonStyle: 'primary',
-    });
+    if (isFeatureEnabled(FeatureFlag.SemanticLayers)) {
+      buttonArr.push({
+        name: t('New'),
+        buttonStyle: 'primary',
+        component: (
+          <Dropdown
+            css={css`
+              margin-left: ${theme.sizeUnit * 2}px;
+            `}
+            menu={{
+              items: [
+                {
+                  key: 'dataset',
+                  label: t('Dataset'),
+                  onClick: () => history.push('/dataset/add/'),
+                },
+                {
+                  key: 'semantic-view',
+                  label: t('Semantic View'),
+                  onClick: () => setShowAddSemanticViewModal(true),
+                },
+              ],
+            }}
+            trigger={['click']}
+          >
+            <Button
+              data-test="btn-create-new"
+              buttonStyle="primary"
+              icon={<Icons.PlusOutlined iconSize="m" />}
+            >
+              {t('New')}
+              <Icons.DownOutlined
+                iconSize="s"
+                css={css`
+                  margin-left: ${theme.sizeUnit * 1.5}px;
+                  margin-right: -${theme.sizeUnit * 2}px;
+                `}
+              />
+            </Button>
+          </Dropdown>
+        ),
+      });
+    } else {
+      buttonArr.push({
+        icon: <Icons.PlusOutlined iconSize="m" />,
+        name: t('Dataset'),
+        onClick: () => {
+          history.push('/dataset/add/');
+        },
+        buttonStyle: 'primary',
+      });
+    }
   }
 
   menuData.buttons = buttonArr;
@@ -893,15 +960,56 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     );
   };
 
-  const handleBulkDatasetDelete = (datasetsToDelete: Dataset[]) => {
+  const handleSemanticViewDelete = ({ id, table_name: tableName }: Dataset) => {
     SupersetClient.delete({
-      endpoint: `/api/v1/dataset/?q=${rison.encode(
-        datasetsToDelete.map(({ id }) => id),
-      )}`,
+      endpoint: `/api/v1/semantic_view/${id}`,
     }).then(
-      ({ json = {} }) => {
+      () => {
         refreshData();
-        addSuccessToast(json.message);
+        addSuccessToast(t('Deleted: %s', tableName));
+      },
+      createErrorHandler(errMsg =>
+        addDangerToast(
+          t('There was an issue deleting %s: %s', tableName, errMsg),
+        ),
+      ),
+    );
+  };
+
+  const handleBulkDatasetDelete = (datasetsToDelete: Dataset[]) => {
+    const datasets = datasetsToDelete.filter(
+      d => d.source_type !== 'semantic_layer',
+    );
+    const semanticViews = datasetsToDelete.filter(
+      d => d.source_type === 'semantic_layer',
+    );
+
+    const promises: Promise<unknown>[] = [];
+
+    if (datasets.length) {
+      promises.push(
+        SupersetClient.delete({
+          endpoint: `/api/v1/dataset/?q=${rison.encode(
+            datasets.map(({ id }) => id),
+          )}`,
+        }),
+      );
+    }
+
+    if (semanticViews.length) {
+      promises.push(
+        ...semanticViews.map(sv =>
+          SupersetClient.delete({
+            endpoint: `/api/v1/semantic_view/${sv.id}`,
+          }),
+        ),
+      );
+    }
+
+    Promise.all(promises).then(
+      () => {
+        refreshData();
+        addSuccessToast(t('Deleted %s item(s)', datasetsToDelete.length));
       },
       createErrorHandler(errMsg =>
         addDangerToast(
@@ -1072,6 +1180,13 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         addDangerToast={addDangerToast}
         addSuccessToast={addSuccessToast}
         semanticView={svCurrentlyEditing}
+      />
+      <AddSemanticViewModal
+        show={showAddSemanticViewModal}
+        onHide={() => setShowAddSemanticViewModal(false)}
+        onSuccess={refreshData}
+        addDangerToast={addDangerToast}
+        addSuccessToast={addSuccessToast}
       />
       <ConfirmStatusChange
         title={t('Please confirm')}
