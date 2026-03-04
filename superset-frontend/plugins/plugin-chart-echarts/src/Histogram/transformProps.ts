@@ -170,6 +170,7 @@ export default function transformProps(
     },
     yAxis: {
       ...defaultYAxis,
+      ...(yAxisLogScale ? { min: 1 } : {}),
       name: yAxisTitle,
       nameGap: normalize ? 55 : 40,
       type: yAxisLogScale ? 'log' : 'value',
