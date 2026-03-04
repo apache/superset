@@ -113,7 +113,7 @@ import {
   getXAxisFormatter,
   getYAxisFormatter,
 } from '../utils/formatters';
-import { safeParseEChartOptions } from '@superset-ui/chart-controls';
+import { safeParseEChartOptions } from '../utils/safeEChartOptionsParser';
 import { mergeCustomEChartOptions } from '../utils/mergeCustomEChartOptions';
 
 export default function transformProps(

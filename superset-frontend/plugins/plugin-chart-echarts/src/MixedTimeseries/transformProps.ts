@@ -43,10 +43,7 @@ import {
   ValueFormatter,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/api/core';
-import {
-  getOriginalSeries,
-  safeParseEChartOptions,
-} from '@superset-ui/chart-controls';
+import { getOriginalSeries } from '@superset-ui/chart-controls';
 import type { EChartsCoreOption } from 'echarts/core';
 import type { SeriesOption } from 'echarts';
 import {
@@ -61,6 +58,7 @@ import {
   Refs,
 } from '../types';
 import { parseAxisBound } from '../utils/controls';
+import { safeParseEChartOptions } from '../utils/safeEChartOptionsParser';
 import {
   dedupSeries,
   extractDataTotalValues,
