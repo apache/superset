@@ -851,6 +851,103 @@ class HandlebarsChartConfig(UnknownFieldCheckMixin):
         return self
 
 
+class BigNumberChartConfig(UnknownFieldCheckMixin):
+    model_config = ConfigDict(extra="ignore")
+
+    chart_type: Literal["big_number"] = Field(
+        ...,
+        description=(
+            "Chart type discriminator - MUST be 'big_number'. "
+            "Creates Big Number charts that display a single prominent "
+            "metric value. Set show_trendline=True with a temporal_column "
+            "for a number with trendline, or leave show_trendline=False "
+            "for a standalone number."
+        ),
+    )
+    metric: ColumnRef = Field(
+        ...,
+        description=(
+            "The metric to display as a big number. "
+            "Must include an aggregate function (e.g., SUM, COUNT)."
+        ),
+    )
+    temporal_column: str | None = Field(
+        None,
+        description=(
+            "Temporal column for the trendline x-axis. "
+            "Required when show_trendline is True."
+        ),
+        max_length=255,
+    )
+    time_grain: TimeGrain | None = Field(
+        None,
+        description=(
+            "Time granularity for trendline data. "
+            "Common values: PT1H (hour), P1D (day), P1W (week), "
+            "P1M (month), P1Y (year)."
+        ),
+    )
+    show_trendline: bool = Field(
+        False,
+        description=(
+            "Show a trendline below the big number. "
+            "Requires 'temporal_column' to be set."
+        ),
+    )
+    subheader: str | None = Field(
+        None,
+        description="Subtitle text displayed below the big number",
+        max_length=500,
+    )
+    y_axis_format: str | None = Field(
+        None,
+        description=(
+            "Number format string for the metric value "
+            "(e.g., '$,.2f' for currency, ',.0f' for integers, "
+            "'.2%' for percentages)"
+        ),
+        max_length=50,
+    )
+    start_y_axis_at_zero: bool = Field(
+        True,
+        description="Anchor trendline y-axis at zero",
+    )
+    compare_lag: int | None = Field(
+        None,
+        description=(
+            "Number of time periods to compare against. "
+            "Displays a percentage change vs the prior period."
+        ),
+        ge=1,
+    )
+    filters: list[FilterConfig] | None = Field(
+        None,
+        description="Filters to apply",
+    )
+
+    @model_validator(mode="after")
+    def validate_trendline_fields(self) -> "BigNumberChartConfig":
+        """Validate trendline requires temporal column."""
+        if self.show_trendline and not self.temporal_column:
+            raise ValueError(
+                "Big Number chart with show_trendline=True requires "
+                "'temporal_column'. Specify a date/time column for "
+                "the trendline x-axis."
+            )
+        return self
+
+    @model_validator(mode="after")
+    def validate_metric_aggregate(self) -> "BigNumberChartConfig":
+        """Ensure metric has an aggregate function."""
+        if not self.metric.aggregate:
+            raise ValueError(
+                "Big Number metric must have an aggregate function "
+                "(e.g., SUM, COUNT, AVG). Add 'aggregate' to the "
+                "metric specification."
+            )
+        return self
+
+
 class TableChartConfig(UnknownFieldCheckMixin):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
@@ -1015,12 +1112,14 @@ ChartConfig = Annotated[
     | PieChartConfig
     | PivotTableChartConfig
     | MixedTimeseriesChartConfig
-    | HandlebarsChartConfig,
+    | HandlebarsChartConfig
+    | BigNumberChartConfig,
     Field(
         discriminator="chart_type",
         description=(
             "Chart configuration - specify chart_type as 'xy', 'table', "
-            "'pie', 'pivot_table', 'mixed_timeseries', or 'handlebars'"
+            "'pie', 'pivot_table', 'mixed_timeseries', 'handlebars', "
+            "or 'big_number'"
         ),
     ),
 ]

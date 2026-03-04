@@ -27,6 +27,7 @@ from dataclasses import dataclass
 from typing import Any, Dict
 
 from superset.mcp_service.chart.schemas import (
+    BigNumberChartConfig,
     ChartCapabilities,
     ChartSemantics,
     ColumnRef,
@@ -311,7 +312,8 @@ def map_config_to_form_data(
     | PieChartConfig
     | PivotTableChartConfig
     | MixedTimeseriesChartConfig
-    | HandlebarsChartConfig,
+    | HandlebarsChartConfig
+    | BigNumberChartConfig,
     dataset_id: int | str | None = None,
 ) -> Dict[str, Any]:
     """Map chart config to Superset form_data."""
@@ -327,6 +329,8 @@ def map_config_to_form_data(
         return map_mixed_timeseries_config(config, dataset_id=dataset_id)
     elif isinstance(config, HandlebarsChartConfig):
         return map_handlebars_config(config)
+    elif isinstance(config, BigNumberChartConfig):
+        return map_big_number_config(config)
     else:
         raise ValueError(f"Unsupported config type: {type(config)}")
 
@@ -644,6 +648,46 @@ def map_pie_config(config: PieChartConfig) -> Dict[str, Any]:
         "innerRadius": config.inner_radius,
         "date_format": "smart_date",
     }
+
+    time_range = getattr(config, "time_range", None)
+    if time_range:
+        form_data["time_range"] = time_range
+
+    _add_adhoc_filters(form_data, config.filters)
+
+    return form_data
+
+
+def map_big_number_config(config: BigNumberChartConfig) -> Dict[str, Any]:
+    """Map big number chart config to Superset form_data."""
+    # Determine viz_type: big_number (with trendline) or big_number_total
+    if config.show_trendline and config.temporal_column:
+        viz_type = "big_number"
+    else:
+        viz_type = "big_number_total"
+
+    metric = create_metric_object(config.metric)
+    form_data: Dict[str, Any] = {
+        "viz_type": viz_type,
+        "metric": metric,
+    }
+
+    if config.subheader:
+        form_data["subheader"] = config.subheader
+
+    if config.y_axis_format:
+        form_data["y_axis_format"] = config.y_axis_format
+
+    # Trendline-specific fields
+    if viz_type == "big_number":
+        form_data["x_axis"] = config.temporal_column
+        form_data["start_y_axis_at_zero"] = config.start_y_axis_at_zero
+
+        if config.time_grain:
+            form_data["time_grain_sqla"] = config.time_grain
+
+        if config.compare_lag is not None:
+            form_data["compare_lag"] = config.compare_lag
 
     _add_adhoc_filters(form_data, config.filters)
 
@@ -973,6 +1017,14 @@ def _handlebars_chart_what(config: HandlebarsChartConfig) -> str:
         metrics = ", ".join(col.name for col in config.metrics[:3])
         return f"Handlebars ({metrics})"
     return "Handlebars Chart"
+def _big_number_chart_what(config: BigNumberChartConfig) -> str:
+    """Build the 'what' portion for a big number chart name."""
+    metric_label = (
+        config.metric.label or f"{config.metric.aggregate}({config.metric.name})"
+    )
+    if config.show_trendline:
+        return f"Big Number \u2013 {metric_label} (with trendline)"
+    return f"Big Number \u2013 {metric_label}"
 
 
 def generate_chart_name(
@@ -981,7 +1033,8 @@ def generate_chart_name(
     | PieChartConfig
     | PivotTableChartConfig
     | MixedTimeseriesChartConfig
-    | HandlebarsChartConfig,
+    | HandlebarsChartConfig
+    | BigNumberChartConfig,
     dataset_name: str | None = None,
 ) -> str:
     """Generate a descriptive chart name following a standard format.
@@ -1015,6 +1068,9 @@ def generate_chart_name(
     elif isinstance(config, HandlebarsChartConfig):
         what = _handlebars_chart_what(config)
         context = _summarize_filters(getattr(config, "filters", None))
+    elif isinstance(config, BigNumberChartConfig):
+        what = _big_number_chart_what(config)
+        context = _summarize_filters(getattr(config, "filters", None))
     else:
         return "Chart"
 
@@ -1046,6 +1102,12 @@ def _resolve_viz_type(config: Any) -> str:
         return "mixed_timeseries"
     elif chart_type == "handlebars":
         return "handlebars"
+    elif chart_type == "big_number":
+        show_trendline = getattr(config, "show_trendline", False)
+        temporal_column = getattr(config, "temporal_column", None)
+        return (
+            "big_number" if show_trendline and temporal_column else "big_number_total"
+        )
     return "unknown"
 
 
@@ -1128,6 +1190,13 @@ def analyze_chart_semantics(chart: Any | None, config: Any) -> ChartSemantics:
         "handlebars": (
             "Renders data using a custom Handlebars HTML template for "
             "fully flexible layouts like KPI cards, leaderboards, and reports"
+        ),
+        "big_number": (
+            "Displays a key metric with a trendline showing "
+            "how the value changes over time"
+        ),
+        "big_number_total": (
+            "Highlights a single key metric value as a prominent number"
         ),
     }
 
