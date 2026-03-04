@@ -499,6 +499,8 @@ const Chart = (props: ChartProps) => {
       } else if ((queriesResponse?.[0] as JsonObject)?.sql_rowcount != null) {
         actualRowCount = (queriesResponse![0] as JsonObject)
           .sql_rowcount as number;
+      } else if ((queriesResponse?.[0] as JsonObject)?.rowcount != null) {
+        actualRowCount = (queriesResponse![0] as JsonObject).rowcount as number;
       } else {
         actualRowCount = (exportFormData as JsonObject)?.row_limit as
           | number

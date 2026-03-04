@@ -23,6 +23,7 @@ import {
   FOLDER_INDENTATION_WIDTH,
   ITEM_INDENTATION_WIDTH,
 } from '../TreeItem.styles';
+import { ITEM_BASE_HEIGHT } from '../constants';
 
 export interface ItemHeights {
   /** Height of a regular item (metric/column) including margins */
@@ -49,13 +50,13 @@ export interface ItemHeights {
  * The spacing is built into the height calculation, NOT the CSS margins,
  * to avoid double-spacing issues with absolute positioning.
  */
-function calculateItemHeights(theme: SupersetTheme): ItemHeights {
+export function calculateItemHeights(theme: SupersetTheme): ItemHeights {
   // Regular item height - just the row height, minimal spacing
   // The OptionControlContainer sets the actual content height
-  const regularItem = 32;
+  const regularItem = ITEM_BASE_HEIGHT;
 
   // Folder header - base height + vertical padding (for taller highlight) + bottom spacing
-  const folderHeader = 32 + theme.paddingSM + theme.marginXS;
+  const folderHeader = ITEM_BASE_HEIGHT + theme.paddingSM + theme.marginXS;
 
   // Separator visible: 1px line + vertical margins (marginSM above and below)
   const separatorVisible = 1 + theme.marginSM * 2;

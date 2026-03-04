@@ -560,6 +560,278 @@ test('select all expands collapsed folders', async () => {
   });
 });
 
+test('auto-expands folders when searching for items inside them', async () => {
+  const testProps = {
+    ...defaultProps,
+    folders: [
+      {
+        type: FoldersEditorItemType.Folder as const,
+        uuid: DEFAULT_METRICS_FOLDER_UUID,
+        name: 'Metrics',
+        children: [
+          {
+            uuid: 'metric1',
+            type: FoldersEditorItemType.Metric,
+            name: 'Count',
+          },
+          {
+            uuid: 'metric2',
+            type: FoldersEditorItemType.Metric,
+            name: 'Sum Revenue',
+          },
+        ],
+      },
+      {
+        type: FoldersEditorItemType.Folder as const,
+        uuid: DEFAULT_COLUMNS_FOLDER_UUID,
+        name: 'Columns',
+        children: [
+          {
+            uuid: 'col1',
+            type: FoldersEditorItemType.Column,
+            name: 'id',
+          },
+        ],
+      },
+    ],
+  };
+
+  renderEditor(<FoldersEditor {...testProps} />);
+
+  // Collapse the Metrics folder first
+  const metricsIcon = screen.getAllByRole('img', { name: 'down' })[0];
+  fireEvent.click(metricsIcon);
+
+  await waitFor(() => {
+    expect(screen.queryByText('Count')).not.toBeInTheDocument();
+  });
+
+  // Search for "Count" - folder should auto-expand
+  const searchInput = screen.getByPlaceholderText(
+    'Search all metrics & columns',
+  );
+  await userEvent.type(searchInput, 'Count');
+
+  await waitFor(() => {
+    expect(screen.getByText('Count')).toBeInTheDocument();
+    expect(screen.getByText('Metrics')).toBeInTheDocument();
+  });
+});
+
+test('hides folders that do not contain matching items', async () => {
+  const testProps = {
+    ...defaultProps,
+    folders: [
+      {
+        type: FoldersEditorItemType.Folder as const,
+        uuid: DEFAULT_METRICS_FOLDER_UUID,
+        name: 'Metrics',
+        children: [
+          {
+            uuid: 'metric1',
+            type: FoldersEditorItemType.Metric,
+            name: 'Count',
+          },
+        ],
+      },
+      {
+        type: FoldersEditorItemType.Folder as const,
+        uuid: DEFAULT_COLUMNS_FOLDER_UUID,
+        name: 'Columns',
+        children: [
+          {
+            uuid: 'col1',
+            type: FoldersEditorItemType.Column,
+            name: 'id',
+          },
+        ],
+      },
+    ],
+  };
+
+  renderEditor(<FoldersEditor {...testProps} />);
+
+  // Search for "Count" - only Metrics folder should be visible
+  const searchInput = screen.getByPlaceholderText(
+    'Search all metrics & columns',
+  );
+  await userEvent.type(searchInput, 'Count');
+
+  await waitFor(() => {
+    expect(screen.getByText('Count')).toBeInTheDocument();
+    expect(screen.getByText('Metrics')).toBeInTheDocument();
+    // Columns folder should be hidden since it has no matching items
+    expect(screen.queryByText('Columns')).not.toBeInTheDocument();
+  });
+});
+
+test('shows all children when folder name matches search', async () => {
+  const testProps = {
+    ...defaultProps,
+    folders: [
+      {
+        type: FoldersEditorItemType.Folder as const,
+        uuid: DEFAULT_METRICS_FOLDER_UUID,
+        name: 'Metrics',
+        children: [
+          {
+            uuid: 'metric1',
+            type: FoldersEditorItemType.Metric,
+            name: 'Count',
+          },
+          {
+            uuid: 'metric2',
+            type: FoldersEditorItemType.Metric,
+            name: 'Sum Revenue',
+          },
+        ],
+      },
+      {
+        type: FoldersEditorItemType.Folder as const,
+        uuid: DEFAULT_COLUMNS_FOLDER_UUID,
+        name: 'Columns',
+        children: [
+          {
+            uuid: 'col1',
+            type: FoldersEditorItemType.Column,
+            name: 'id',
+          },
+        ],
+      },
+    ],
+  };
+
+  renderEditor(<FoldersEditor {...testProps} />);
+
+  // Search for "Metrics" - all children in Metrics folder should be visible
+  const searchInput = screen.getByPlaceholderText(
+    'Search all metrics & columns',
+  );
+  await userEvent.type(searchInput, 'Metrics');
+
+  await waitFor(() => {
+    expect(screen.getByText('Metrics')).toBeInTheDocument();
+    // All children should be visible even if they don't match
+    expect(screen.getByText('Count')).toBeInTheDocument();
+    expect(screen.getByText('Sum Revenue')).toBeInTheDocument();
+    // Columns folder should be hidden
+    expect(screen.queryByText('Columns')).not.toBeInTheDocument();
+  });
+});
+
+test('restores previous collapsed state when search is cleared', async () => {
+  const testProps = {
+    ...defaultProps,
+    folders: [
+      {
+        type: FoldersEditorItemType.Folder as const,
+        uuid: DEFAULT_METRICS_FOLDER_UUID,
+        name: 'Metrics',
+        children: [
+          {
+            uuid: 'metric1',
+            type: FoldersEditorItemType.Metric,
+            name: 'Count',
+          },
+        ],
+      },
+      {
+        type: FoldersEditorItemType.Folder as const,
+        uuid: DEFAULT_COLUMNS_FOLDER_UUID,
+        name: 'Columns',
+        children: [
+          {
+            uuid: 'col1',
+            type: FoldersEditorItemType.Column,
+            name: 'id',
+          },
+        ],
+      },
+    ],
+  };
+
+  renderEditor(<FoldersEditor {...testProps} />);
+
+  // Collapse Metrics folder
+  const metricsIcon = screen.getAllByRole('img', { name: 'down' })[0];
+  fireEvent.click(metricsIcon);
+
+  await waitFor(() => {
+    expect(screen.queryByText('Count')).not.toBeInTheDocument();
+  });
+
+  // Search for "Count" - folder auto-expands
+  const searchInput = screen.getByPlaceholderText(
+    'Search all metrics & columns',
+  );
+  await userEvent.type(searchInput, 'Count');
+
+  await waitFor(() => {
+    expect(screen.getByText('Count')).toBeInTheDocument();
+  });
+
+  // Clear search - folder should be collapsed again
+  await userEvent.clear(searchInput);
+
+  await waitFor(() => {
+    // Both folders should be visible
+    expect(screen.getByText('Metrics')).toBeInTheDocument();
+    expect(screen.getByText('Columns')).toBeInTheDocument();
+    // But Metrics folder should be collapsed again as it was before search
+    expect(screen.queryByText('Count')).not.toBeInTheDocument();
+    // Columns folder should still show its content (was expanded before search)
+    expect(screen.getByText('id')).toBeInTheDocument();
+  });
+});
+
+test('handles nested folders correctly during search', async () => {
+  const testProps = {
+    ...defaultProps,
+    folders: [
+      {
+        type: FoldersEditorItemType.Folder as const,
+        uuid: 'parent',
+        name: 'Parent',
+        children: [
+          {
+            type: FoldersEditorItemType.Folder as const,
+            uuid: 'nested',
+            name: 'Nested Folder',
+            children: [
+              {
+                uuid: 'metric1',
+                type: FoldersEditorItemType.Metric,
+                name: 'Deep Metric',
+              },
+            ],
+          } as DatasourceFolder,
+        ],
+      },
+    ],
+    metrics: [
+      {
+        uuid: 'metric1',
+        metric_name: 'Deep Metric',
+        expression: 'COUNT(*)',
+      },
+    ],
+  };
+
+  renderEditor(<FoldersEditor {...testProps} />);
+
+  // Search for "Deep" - both parent and nested folder should expand
+  const searchInput = screen.getByPlaceholderText(
+    'Search all metrics & columns',
+  );
+  await userEvent.type(searchInput, 'Deep');
+
+  await waitFor(() => {
+    expect(screen.getByText('Parent')).toBeInTheDocument();
+    expect(screen.getByText('Nested Folder')).toBeInTheDocument();
+    expect(screen.getByText('Deep Metric')).toBeInTheDocument();
+  });
+});
+
 test('nested folders with items remain visible after drag is cancelled', async () => {
   const onChange = jest.fn();
   const nestedFolders: DatasourceFolder[] = [

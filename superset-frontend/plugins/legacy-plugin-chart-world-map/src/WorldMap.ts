@@ -244,18 +244,20 @@ function WorldMap(element: HTMLElement, props: WorldMapProps): void {
         },
       ];
     }
-    onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
-      drillToDetail: drillToDetailFilters,
-      crossFilter: getCrossFilterDataMask(source),
-      drillBy: { filters: drillByFilters, groupbyFieldName: 'entity' },
-    });
+    if (onContextMenu) {
+      onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
+        drillToDetail: drillToDetailFilters,
+        crossFilter: getCrossFilterDataMask(source),
+        drillBy: { filters: drillByFilters, groupbyFieldName: 'entity' },
+      });
+    }
   };
 
   const map = new Datamap({
     element,
     width,
     height,
-    data: processedData,
+    data: mapData,
     fills: {
       defaultFill: theme.colorBorder,
     },
@@ -268,6 +270,7 @@ function WorldMap(element: HTMLElement, props: WorldMapProps): void {
       highlightFillColor: color,
       highlightBorderWidth: 1,
       popupTemplate: (geo, d) =>
+        d &&
         `<div class="hoverinfo"><strong>${d.name}</strong><br>${formatter(
           d.m1,
         )}</div>`,
@@ -297,7 +300,33 @@ function WorldMap(element: HTMLElement, props: WorldMapProps): void {
       datamap.svg
         .selectAll('.datamaps-subunit')
         .on('contextmenu', handleContextMenu)
-        .on('click', handleClick);
+        .on('click', handleClick)
+        // Use namespaced events to avoid overriding Datamaps' default tooltip handlers
+        .on('mouseover.fillPreserve', function onMouseOver() {
+          if (inContextMenu) {
+            return;
+          }
+          const element = d3.select(this);
+          const classes = element.attr('class') || '';
+          const countryId = classes.split(' ')[1];
+          const countryData = mapData[countryId];
+          const originalFill =
+            (countryData && countryData.fillColor) || theme.colorBorder;
+          // Store original fill color for restoration
+          element.attr('data-original-fill', originalFill);
+        })
+        .on('mouseout.fillPreserve', function onMouseOut() {
+          if (inContextMenu) {
+            return;
+          }
+          const element = d3.select(this);
+          const originalFill = element.attr('data-original-fill');
+          // Restore the original fill color (data-based or default no-data color)
+          if (originalFill) {
+            element.style('fill', originalFill);
+            element.attr('data-original-fill', null);
+          }
+        });
     },
   });
 

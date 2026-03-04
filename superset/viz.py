@@ -2817,15 +2817,19 @@ class PartitionViz(NVD3TimeSeriesViz):
         return self.nest_values(levels)
 
 
+def _get_subclasses(cls: type[BaseViz]) -> set[type[BaseViz]]:
+    return set(cls.__subclasses__()).union(
+        [sc for c in cls.__subclasses__() for sc in _get_subclasses(c)]
+    )
+
+
 @deprecated(deprecated_in="3.0")
 def get_subclasses(cls: type[BaseViz]) -> set[type[BaseViz]]:
-    return set(cls.__subclasses__()).union(
-        [sc for c in cls.__subclasses__() for sc in get_subclasses(c)]
-    )
+    return _get_subclasses(cls)
 
 
 viz_types = {
     o.viz_type: o
-    for o in get_subclasses(BaseViz)
+    for o in _get_subclasses(BaseViz)
     if o.viz_type not in current_app.config["VIZ_TYPE_DENYLIST"]
 }
