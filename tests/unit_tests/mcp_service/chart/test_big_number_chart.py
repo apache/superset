@@ -18,6 +18,7 @@
 """Tests for Big Number chart type support in MCP service."""
 
 import pytest
+from pydantic import ValidationError
 
 from superset.mcp_service.chart.chart_utils import (
     _resolve_viz_type,
@@ -61,7 +62,7 @@ class TestBigNumberChartConfig:
         assert config.temporal_column == "ds"
 
     def test_trendline_without_temporal_column_fails(self) -> None:
-        with pytest.raises(ValueError, match="requires 'temporal_column'"):
+        with pytest.raises(ValidationError, match="requires 'temporal_column'"):
             BigNumberChartConfig(
                 chart_type="big_number",
                 metric=ColumnRef(name="revenue", aggregate="SUM"),
@@ -69,7 +70,7 @@ class TestBigNumberChartConfig:
             )
 
     def test_metric_without_aggregate_fails(self) -> None:
-        with pytest.raises(ValueError, match="must have an aggregate function"):
+        with pytest.raises(ValidationError, match="must have an aggregate function"):
             BigNumberChartConfig(
                 chart_type="big_number",
                 metric=ColumnRef(name="revenue"),
@@ -102,7 +103,7 @@ class TestBigNumberChartConfig:
         assert config.compare_lag == 1
 
     def test_compare_lag_zero_fails(self) -> None:
-        with pytest.raises(ValueError, match="greater than or equal"):
+        with pytest.raises(ValidationError, match="greater than or equal"):
             BigNumberChartConfig(
                 chart_type="big_number",
                 metric=ColumnRef(name="revenue", aggregate="SUM"),
@@ -121,7 +122,7 @@ class TestBigNumberChartConfig:
         assert len(config.filters) == 1
 
     def test_extra_fields_forbidden(self) -> None:
-        with pytest.raises(ValueError, match="Extra inputs"):
+        with pytest.raises(ValidationError, match="Extra inputs"):
             BigNumberChartConfig(
                 chart_type="big_number",
                 metric=ColumnRef(name="revenue", aggregate="SUM"),
@@ -169,6 +170,7 @@ class TestMapBigNumberConfig:
         form_data = map_big_number_config(config)
         assert form_data["viz_type"] == "big_number"
         assert form_data["x_axis"] == "order_date"
+        assert form_data["granularity_sqla"] == "order_date"
         assert form_data["start_y_axis_at_zero"] is True
 
     def test_with_time_grain(self) -> None:
@@ -231,6 +233,7 @@ class TestMapBigNumberConfig:
         )
         form_data = map_big_number_config(config)
         assert "x_axis" not in form_data
+        assert "granularity_sqla" not in form_data
         assert "time_grain_sqla" not in form_data
         assert "start_y_axis_at_zero" not in form_data
 
