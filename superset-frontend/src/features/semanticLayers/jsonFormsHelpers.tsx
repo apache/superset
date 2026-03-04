@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useEffect } from 'react';
-import { t } from '@apache-superset/core/translation';
+import { t } from '@apache-superset/core';
 import { Spin } from 'antd';
 import { withJsonFormsControlProps } from '@jsonforms/react';
 import type {
@@ -72,75 +72,9 @@ function ConstControl({ data, handleChange, path, schema }: ControlProps) {
 }
 const ConstRenderer = withJsonFormsControlProps(ConstControl);
 const constEntry = {
-  tester: rankWith(
-    10,
-    schemaMatches(
-      s =>
-        s !== undefined &&
-        'const' in s &&
-        !(s as Record<string, unknown>).readOnly,
-    ),
-  ),
+  tester: rankWith(10, schemaMatches(s => s !== undefined && 'const' in s)),
   renderer: ConstRenderer,
 };
-
-/**
- * Renderer for read-only fields (e.g. a fixed database that the admin locked).
- * Renders a disabled input showing the current value. Also ensures the default
- * value is injected into form data (like ConstControl does for hidden fields).
- */
-function ReadOnlyControl({
-  data,
-  handleChange,
-  path,
-  schema,
-  ...rest
-}: ControlProps) {
-  const defaultValue =
-    (schema as Record<string, unknown>).const ??
-    (schema as Record<string, unknown>).default;
-  useEffect(() => {
-    if (defaultValue !== undefined && data !== defaultValue) {
-      handleChange(path, defaultValue);
-    }
-  }, [defaultValue, data, handleChange, path]);
-
-  return TextControl({
-    ...rest,
-    data,
-    handleChange,
-    path,
-    schema,
-    enabled: false,
-  });
-}
-const ReadOnlyRenderer = withJsonFormsControlProps(ReadOnlyControl);
-const readOnlyEntry = {
-  tester: rankWith(
-    11,
-    schemaMatches(
-      s => s !== undefined && (s as Record<string, unknown>).readOnly === true,
-    ),
-  ),
-  renderer: ReadOnlyRenderer,
-};
-
-/**
- * Checks whether all dependency values are filled (non-empty).
- * Handles nested objects (like auth) by checking they have at least one key.
- */
-export function areDependenciesSatisfied(
-  dependencies: string[],
-  data: Record<string, unknown>,
-): boolean {
-  return dependencies.every(dep => {
-    const value = data[dep];
-    if (value === null || value === undefined || value === '') return false;
-    if (typeof value === 'object' && Object.keys(value).length === 0)
-      return false;
-    return true;
-  });
-}
 
 /**
  * Renderer for fields marked `x-dynamic` in the JSON Schema.
@@ -153,10 +87,7 @@ function DynamicFieldControl(props: ControlProps) {
   const refreshing =
     refreshingSchema &&
     Array.isArray(deps) &&
-    areDependenciesSatisfied(
-      deps as string[],
-      (cfgData as Record<string, unknown>) ?? {},
-    );
+    areDependenciesSatisfied(deps as string[], (cfgData as Record<string, unknown>) ?? {});
 
   if (!refreshing) {
     return TextControl(props);
@@ -190,7 +121,6 @@ export const renderers = [
   ...rendererRegistryEntries,
   passwordEntry,
   constEntry,
-  readOnlyEntry,
   dynamicFieldEntry,
 ];
 
@@ -216,20 +146,22 @@ export function sanitizeSchema(schema: JsonSchema): JsonSchema {
       properties[key] = prop as JsonSchema;
     }
   }
-  return { ...schema, properties } as JsonSchema;
+  return { ...schema, properties };
 }
 
 /**
  * Builds a JSON Forms UI schema from a JSON Schema, using the first
  * `examples` entry as placeholder text for each string property.
  */
-export function buildUiSchema(schema: JsonSchema): UISchemaElement | undefined {
+export function buildUiSchema(
+  schema: JsonSchema,
+): UISchemaElement | undefined {
   if (!schema.properties) return undefined;
 
   // Use explicit property order from backend if available,
   // otherwise fall back to the JSON object key order
   const propertyOrder: string[] =
-    ((schema as Record<string, unknown>)['x-propertyOrder'] as string[]) ??
+    (schema as Record<string, unknown>)['x-propertyOrder'] as string[] ??
     Object.keys(schema.properties);
 
   const elements = propertyOrder
@@ -278,10 +210,29 @@ export function getDynamicDependencies(
       'x-dependsOn' in prop &&
       Array.isArray((prop as Record<string, unknown>)['x-dependsOn'])
     ) {
-      deps[key] = (prop as Record<string, unknown>)['x-dependsOn'] as string[];
+      deps[key] = (prop as Record<string, unknown>)[
+        'x-dependsOn'
+      ] as string[];
     }
   }
   return deps;
+}
+
+/**
+ * Checks whether all dependency values are filled (non-empty).
+ * Handles nested objects (like auth) by checking they have at least one key.
+ */
+export function areDependenciesSatisfied(
+  dependencies: string[],
+  data: Record<string, unknown>,
+): boolean {
+  return dependencies.every(dep => {
+    const value = data[dep];
+    if (value === null || value === undefined || value === '') return false;
+    if (typeof value === 'object' && Object.keys(value).length === 0)
+      return false;
+    return true;
+  });
 }
 
 /**
