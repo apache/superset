@@ -193,7 +193,9 @@ class CacheManager:
         self._thumbnail_cache = SupersetCache()
         self._filter_state_cache = SupersetCache()
         self._explore_form_data_cache = ExploreFormDataCache()
-        self._distributed_coordination: RedisCacheBackend | RedisSentinelCacheBackend | None = None
+        self._distributed_coordination: (
+            RedisCacheBackend | RedisSentinelCacheBackend | None
+        ) = None
 
     @staticmethod
     def _init_cache(
@@ -252,7 +254,9 @@ class CacheManager:
         if cache_type == "RedisCache":
             self._distributed_coordination = RedisCacheBackend.from_config(config)
         elif cache_type == "RedisSentinelCache":
-            self._distributed_coordination = RedisSentinelCacheBackend.from_config(config)
+            self._distributed_coordination = RedisSentinelCacheBackend.from_config(
+                config
+            )
         else:
             logger.warning(
                 "Unsupported CACHE_TYPE for DISTRIBUTED_COORDINATION_CONFIG: %s. "
