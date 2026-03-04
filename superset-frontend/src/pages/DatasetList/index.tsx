@@ -270,9 +270,6 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     null,
   );
 
-  const [svCurrentlyDeleting, setSvCurrentlyDeleting] =
-    useState<Dataset | null>(null);
-
   const [showAddSemanticViewModal, setShowAddSemanticViewModal] =
     useState(false);
   const [importingDataset, showImportModal] = useState<boolean>(false);
@@ -409,29 +406,6 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     },
     [addDangerToast, setPreparingExport],
   );
-
-  const handleSemanticViewDelete = (sv: Dataset) => {
-    setSvCurrentlyDeleting(sv);
-  };
-
-  const handleSemanticViewDeleteConfirm = () => {
-    if (!svCurrentlyDeleting) return;
-    const { id, table_name: tableName } = svCurrentlyDeleting;
-    SupersetClient.delete({
-      endpoint: `/api/v1/semantic_view/${id}`,
-    }).then(
-      () => {
-        setSvCurrentlyDeleting(null);
-        refreshData();
-        addSuccessToast(t('Deleted: %s', tableName));
-      },
-      createErrorHandler(errMsg =>
-        addDangerToast(
-          t('There was an issue deleting %s: %s', tableName, errMsg),
-        ),
-      ),
-    );
-  };
 
   const columns = useMemo(
     () => [
@@ -1015,6 +989,22 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     );
   };
 
+  const handleSemanticViewDelete = ({ id, table_name: tableName }: Dataset) => {
+    SupersetClient.delete({
+      endpoint: `/api/v1/semantic_view/${id}`,
+    }).then(
+      () => {
+        refreshData();
+        addSuccessToast(t('Deleted: %s', tableName));
+      },
+      createErrorHandler(errMsg =>
+        addDangerToast(
+          t('There was an issue deleting %s: %s', tableName, errMsg),
+        ),
+      ),
+    );
+  };
+
   const handleBulkDatasetDelete = (datasetsToDelete: Dataset[]) => {
     const datasets = datasetsToDelete.filter(
       d => d.source_type !== 'semantic_layer',
@@ -1037,26 +1027,25 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
     if (semanticViews.length) {
       promises.push(
-        SupersetClient.delete({
-          endpoint: `/api/v1/semantic_view/?q=${rison.encode(
-            semanticViews.map(({ id }) => id),
-          )}`,
-        }),
+        ...semanticViews.map(sv =>
+          SupersetClient.delete({
+            endpoint: `/api/v1/semantic_view/${sv.id}`,
+          }),
+        ),
       );
     }
 
-    Promise.allSettled(promises).then(results => {
-      const failures = results.filter(r => r.status === 'rejected');
-      // Always refresh so the list reflects whatever actually got deleted.
-      refreshData();
-      if (failures.length === 0) {
+    Promise.all(promises).then(
+      () => {
+        refreshData();
         addSuccessToast(t('Deleted %s item(s)', datasetsToDelete.length));
-      } else {
+      },
+      createErrorHandler(errMsg =>
         addDangerToast(
-          t('There was an issue deleting the selected items'),
-        );
-      }
-    });
+          t('There was an issue deleting the selected datasets: %s', errMsg),
+        ),
+      ),
+    );
   };
 
   const handleDatasetDuplicate = (newDatasetName: string) => {
@@ -1198,18 +1187,6 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           onHide={closeDatasetDeleteModal}
           open
           title={t('Delete Dataset?')}
-        />
-      )}
-      {svCurrentlyDeleting && (
-        <DeleteModal
-          description={t(
-            'Are you sure you want to delete %s?',
-            svCurrentlyDeleting.table_name,
-          )}
-          onConfirm={handleSemanticViewDeleteConfirm}
-          onHide={() => setSvCurrentlyDeleting(null)}
-          open
-          title={t('Delete Semantic View?')}
         />
       )}
       {datasetCurrentlyEditing && (

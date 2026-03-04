@@ -17,10 +17,10 @@
  * under the License.
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { t } from '@apache-superset/core/translation';
-import { styled } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core';
+import { styled } from '@apache-superset/core/ui';
 import { SupersetClient } from '@superset-ui/core';
-import { Spin } from 'antd';
+import { Checkbox, Spin } from 'antd';
 import { Select } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { JsonForms } from '@jsonforms/react';
@@ -31,6 +31,7 @@ import {
   StandardModal,
   ModalFormField,
   MODAL_STANDARD_WIDTH,
+  MODAL_MEDIUM_WIDTH,
 } from 'src/components/Modal';
 import {
   renderers,
@@ -41,6 +42,8 @@ import {
   serializeDependencyValues,
   SCHEMA_REFRESH_DEBOUNCE_MS,
 } from 'src/features/semanticLayers/jsonFormsHelpers';
+
+type Step = 'layer' | 'configure' | 'select';
 
 interface SemanticLayerOption {
   uuid: string;
@@ -56,57 +59,33 @@ const ModalContent = styled.div`
   padding: ${({ theme }) => theme.sizeUnit * 4}px;
 `;
 
+const BackLink = styled.button`
+  background: none;
+  border: none;
+  color: ${({ theme }) => theme.colorPrimary};
+  cursor: pointer;
+  padding: 0;
+  font-size: ${({ theme }) => theme.fontSize[1]}px;
+  margin-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
+  display: inline-flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.sizeUnit}px;
+
+  &:hover {
+    text-decoration: underline;
+  }
+`;
+
+const ViewList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.sizeUnit}px;
+`;
+
 const LoadingContainer = styled.div`
   display: flex;
   justify-content: center;
-  padding: ${({ theme }) => theme.sizeUnit * 4}px;
-`;
-
-const SectionLabel = styled.div`
-  color: ${({ theme }) => theme.colorText};
-  font-size: ${({ theme }) => theme.fontSize}px;
-  margin-top: ${({ theme }) => theme.sizeUnit}px;
-  margin-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
-`;
-
-const VerticalFormFields = styled.div`
-  margin-bottom: ${({ theme }) => theme.sizeUnit * 4}px;
-
-  /* The antd renderer's VerticalLayout creates its own <Form> —
-     force flex-column so gap controls spacing between fields */
-  && form {
-    display: flex;
-    flex-direction: column;
-    gap: ${({ theme }) => theme.sizeUnit * 4}px;
-  }
-
-  /* Reset antd default margins so gap controls all spacing */
-  && .ant-form-item {
-    margin-bottom: 0;
-  }
-
-  /* Override ant-form-item-horizontal: stack label above control */
-  && .ant-form-item-row {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  && .ant-form-item-label {
-    text-align: left;
-    max-width: 100%;
-    flex: none;
-    padding-bottom: ${({ theme }) => theme.sizeUnit}px;
-  }
-
-  && .ant-form-item-control {
-    max-width: 100%;
-    flex: auto;
-  }
-
-  && .ant-form-item-label > label {
-    color: ${({ theme }) => theme.colorText};
-    font-size: ${({ theme }) => theme.fontSize}px;
-  }
+  padding: ${({ theme }) => theme.sizeUnit * 6}px;
 `;
 
 interface AddSemanticViewModalProps {
@@ -124,43 +103,59 @@ export default function AddSemanticViewModal({
   addDangerToast,
   addSuccessToast,
 }: AddSemanticViewModalProps) {
-  // --- Layer ---
+  const [step, setStep] = useState<Step>('layer');
   const [layers, setLayers] = useState<SemanticLayerOption[]>([]);
   const [selectedLayerUuid, setSelectedLayerUuid] = useState<string | null>(
     null,
   );
-  const [loadingLayers, setLoadingLayers] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  // --- Runtime config ---
+  // Step 2: Configure (runtime schema)
   const [runtimeSchema, setRuntimeSchema] = useState<JsonSchema | null>(null);
   const [runtimeUiSchema, setRuntimeUiSchema] = useState<
     UISchemaElement | undefined
-  >();
+  >(undefined);
   const [runtimeData, setRuntimeData] = useState<Record<string, unknown>>({});
-  const [loadingRuntime, setLoadingRuntime] = useState(false);
   const [refreshingSchema, setRefreshingSchema] = useState(false);
+  const [hasRuntimeErrors, setHasRuntimeErrors] = useState(false);
   const errorsRef = useRef<ErrorObject[]>([]);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastDepSnapshotRef = useRef<string>('');
   const dynamicDepsRef = useRef<Record<string, string[]>>({});
-  const lastDepSnapshotRef = useRef('');
-  const schemaTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // --- Views ---
+  // Step 3: Select views
   const [availableViews, setAvailableViews] = useState<AvailableView[]>([]);
-  const [selectedViewNames, setSelectedViewNames] = useState<string[]>([]);
+  const [selectedViews, setSelectedViews] = useState<Set<string>>(new Set());
   const [loadingViews, setLoadingViews] = useState(false);
-  const viewsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastViewsKeyRef = useRef('');
 
-  // --- Misc ---
-  const [saving, setSaving] = useState(false);
-  const fetchGenRef = useRef(0);
-
-  // =========================================================================
-  // Fetch helpers
-  // =========================================================================
+  // Reset state when modal closes
+  useEffect(() => {
+    if (show) {
+      fetchLayers();
+    } else {
+      setStep('layer');
+      setLayers([]);
+      setSelectedLayerUuid(null);
+      setLoading(false);
+      setSaving(false);
+      setRuntimeSchema(null);
+      setRuntimeUiSchema(undefined);
+      setRuntimeData({});
+      setRefreshingSchema(false);
+      setHasRuntimeErrors(false);
+      errorsRef.current = [];
+      lastDepSnapshotRef.current = '';
+      dynamicDepsRef.current = {};
+      setAvailableViews([]);
+      setSelectedViews(new Set());
+      setLoadingViews(false);
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    }
+  }, [show]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchLayers = async () => {
-    setLoadingLayers(true);
+    setLoading(true);
     try {
       const { json } = await SupersetClient.get({
         endpoint: '/api/v1/semantic_layer/',
@@ -174,31 +169,9 @@ export default function AddSemanticViewModal({
     } catch {
       addDangerToast(t('An error occurred while fetching semantic layers'));
     } finally {
-      setLoadingLayers(false);
+      setLoading(false);
     }
   };
-
-  const fetchViews = useCallback(
-    async (uuid: string, rData: Record<string, unknown>, gen: number) => {
-      setLoadingViews(true);
-      setAvailableViews([]);
-      setSelectedViewNames([]);
-      try {
-        const { json } = await SupersetClient.post({
-          endpoint: `/api/v1/semantic_layer/${uuid}/views`,
-          jsonPayload: { runtime_data: rData },
-        });
-        if (gen !== fetchGenRef.current) return;
-        setAvailableViews(json.result ?? []);
-      } catch {
-        if (gen !== fetchGenRef.current) return;
-        addDangerToast(t('An error occurred while fetching available views'));
-      } finally {
-        if (gen === fetchGenRef.current) setLoadingViews(false);
-      }
-    },
-    [addDangerToast],
-  );
 
   const applyRuntimeSchema = useCallback((rawSchema: JsonSchema) => {
     const schema = sanitizeSchema(rawSchema);
@@ -207,73 +180,94 @@ export default function AddSemanticViewModal({
     dynamicDepsRef.current = getDynamicDependencies(rawSchema);
   }, []);
 
-  const scheduleFetchViews = useCallback(
-    (uuid: string, data: Record<string, unknown>) => {
-      const key = JSON.stringify(data);
-      if (key === lastViewsKeyRef.current) return;
-      lastViewsKeyRef.current = key;
-      if (viewsTimerRef.current) clearTimeout(viewsTimerRef.current);
-      viewsTimerRef.current = setTimeout(() => {
-        fetchViews(uuid, data, fetchGenRef.current);
-      }, SCHEMA_REFRESH_DEBOUNCE_MS);
-    },
-    [fetchViews],
-  );
-
-  // =========================================================================
-  // Layer change — fetch runtime schema, clear downstream state
-  // =========================================================================
-
-  const handleLayerChange = useCallback(
-    async (uuid: string) => {
-      fetchGenRef.current += 1;
-      const gen = fetchGenRef.current;
-
-      setSelectedLayerUuid(uuid);
-      if (schemaTimerRef.current) clearTimeout(schemaTimerRef.current);
-      if (viewsTimerRef.current) clearTimeout(viewsTimerRef.current);
-      setRuntimeSchema(null);
-      setRuntimeUiSchema(undefined);
-      setRuntimeData({});
-      errorsRef.current = [];
-      dynamicDepsRef.current = {};
-      lastDepSnapshotRef.current = '';
-      setAvailableViews([]);
-      setSelectedViewNames([]);
-      lastViewsKeyRef.current = '';
-
-      setLoadingRuntime(true);
+  const fetchRuntimeSchema = useCallback(
+    async (uuid: string, currentRuntimeData?: Record<string, unknown>) => {
+      const isInitialFetch = !currentRuntimeData;
+      if (isInitialFetch) setLoading(true);
+      else setRefreshingSchema(true);
       try {
         const { json } = await SupersetClient.post({
           endpoint: `/api/v1/semantic_layer/${uuid}/schema/runtime`,
-          jsonPayload: {},
+          jsonPayload: currentRuntimeData
+            ? { runtime_data: currentRuntimeData }
+            : {},
         });
-        if (gen !== fetchGenRef.current) return;
         const schema = json.result;
         if (
-          !schema?.properties ||
-          Object.keys(schema.properties).length === 0
+          isInitialFetch &&
+          (!schema ||
+            !schema.properties ||
+            Object.keys(schema.properties).length === 0)
         ) {
-          // No runtime config needed — fetch views right away
-          fetchViews(uuid, {}, gen);
+          // No runtime config needed — skip to step 3
+          fetchViews(uuid, {});
+        } else if (isInitialFetch) {
+          applyRuntimeSchema(schema);
+          setStep('configure');
         } else {
           applyRuntimeSchema(schema);
         }
       } catch {
-        if (gen !== fetchGenRef.current) return;
-        addDangerToast(
-          t('An error occurred while fetching the runtime schema'),
-        );
+        if (isInitialFetch) {
+          addDangerToast(
+            t('An error occurred while fetching the runtime schema'),
+          );
+        }
       } finally {
-        if (gen === fetchGenRef.current) setLoadingRuntime(false);
+        if (isInitialFetch) setLoading(false);
+        else setRefreshingSchema(false);
       }
     },
-    [applyRuntimeSchema, fetchViews, addDangerToast],
+    [addDangerToast, applyRuntimeSchema], // eslint-disable-line react-hooks/exhaustive-deps
   );
 
-  // =========================================================================
-  // Runtime form change — refresh dynamic fields or auto-fetch views
-  // =========================================================================
+  const fetchViews = useCallback(
+    async (uuid: string, rData: Record<string, unknown>) => {
+      setLoadingViews(true);
+      setStep('select');
+      try {
+        const { json } = await SupersetClient.post({
+          endpoint: `/api/v1/semantic_layer/${uuid}/views`,
+          jsonPayload: { runtime_data: rData },
+        });
+        const views: AvailableView[] = json.result ?? [];
+        setAvailableViews(views);
+        // Pre-select views that are already added (disabled anyway)
+        setSelectedViews(
+          new Set(views.filter(v => v.already_added).map(v => v.name)),
+        );
+      } catch {
+        addDangerToast(t('An error occurred while fetching available views'));
+      } finally {
+        setLoadingViews(false);
+      }
+    },
+    [addDangerToast],
+  );
+
+  const maybeRefreshRuntimeSchema = useCallback(
+    (data: Record<string, unknown>) => {
+      if (!selectedLayerUuid) return;
+
+      const dynamicDeps = dynamicDepsRef.current;
+      if (Object.keys(dynamicDeps).length === 0) return;
+
+      const hasSatisfiedDeps = Object.values(dynamicDeps).some(deps =>
+        areDependenciesSatisfied(deps, data),
+      );
+      if (!hasSatisfiedDeps) return;
+
+      const snapshot = serializeDependencyValues(dynamicDeps, data);
+      if (snapshot === lastDepSnapshotRef.current) return;
+      lastDepSnapshotRef.current = snapshot;
+
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = setTimeout(() => {
+        fetchRuntimeSchema(selectedLayerUuid, data);
+      }, SCHEMA_REFRESH_DEBOUNCE_MS);
+    },
+    [selectedLayerUuid, fetchRuntimeSchema],
+  );
 
   const handleRuntimeFormChange = useCallback(
     ({
@@ -285,116 +279,34 @@ export default function AddSemanticViewModal({
     }) => {
       setRuntimeData(data);
       errorsRef.current = errors ?? [];
-
-      if (!selectedLayerUuid) return;
-      const gen = fetchGenRef.current;
-
-      // Dynamic deps changed → refresh schema (e.g. database → schema)
-      const dynamicDeps = dynamicDepsRef.current;
-      if (Object.keys(dynamicDeps).length > 0) {
-        const hasSatisfiedDeps = Object.values(dynamicDeps).some(deps =>
-          areDependenciesSatisfied(deps, data),
-        );
-        if (hasSatisfiedDeps) {
-          const snapshot = serializeDependencyValues(dynamicDeps, data);
-          if (snapshot !== lastDepSnapshotRef.current) {
-            lastDepSnapshotRef.current = snapshot;
-            // Config is changing — clear views
-            setAvailableViews([]);
-            setSelectedViewNames([]);
-            lastViewsKeyRef.current = '';
-            if (schemaTimerRef.current) clearTimeout(schemaTimerRef.current);
-            const uuid = selectedLayerUuid;
-            schemaTimerRef.current = setTimeout(async () => {
-              setRefreshingSchema(true);
-              try {
-                const { json } = await SupersetClient.post({
-                  endpoint: `/api/v1/semantic_layer/${uuid}/schema/runtime`,
-                  jsonPayload: { runtime_data: data },
-                });
-                if (gen !== fetchGenRef.current) return;
-                applyRuntimeSchema(json.result);
-              } catch {
-                // Silent fail on refresh — form still works
-              } finally {
-                if (gen === fetchGenRef.current) setRefreshingSchema(false);
-              }
-            }, SCHEMA_REFRESH_DEBOUNCE_MS);
-            return;
-          }
-        }
-      }
-
-      // No schema refresh needed — fetch views if form is valid
-      if (errorsRef.current.length === 0) {
-        scheduleFetchViews(selectedLayerUuid, data);
-      }
+      setHasRuntimeErrors(errorsRef.current.length > 0);
+      maybeRefreshRuntimeSchema(data);
     },
-    [selectedLayerUuid, applyRuntimeSchema, scheduleFetchViews],
+    [maybeRefreshRuntimeSchema],
   );
 
-  // After a schema refresh settles, JSON Forms re-validates and fires
-  // onChange → handleRuntimeFormChange handles view fetching. As a fallback
-  // (in case onChange doesn't fire), try once refreshingSchema flips false.
-  const prevRefreshingRef = useRef(false);
-  useEffect(() => {
-    if (prevRefreshingRef.current && !refreshingSchema && selectedLayerUuid) {
-      const timer = setTimeout(() => {
-        if (errorsRef.current.length === 0) {
-          scheduleFetchViews(selectedLayerUuid, runtimeData);
-        }
-      }, 100);
-      prevRefreshingRef.current = false;
-      return () => clearTimeout(timer);
-    }
-    prevRefreshingRef.current = refreshingSchema;
-    return undefined;
-  }, [refreshingSchema, selectedLayerUuid, runtimeData, scheduleFetchViews]);
-
-  // =========================================================================
-  // Modal open / close
-  // =========================================================================
-
-  useEffect(() => {
-    if (show) {
-      fetchLayers();
-    } else {
-      fetchGenRef.current += 1;
-      if (schemaTimerRef.current) clearTimeout(schemaTimerRef.current);
-      if (viewsTimerRef.current) clearTimeout(viewsTimerRef.current);
-      setLayers([]);
-      setSelectedLayerUuid(null);
-      setLoadingLayers(false);
-      setRuntimeSchema(null);
-      setRuntimeUiSchema(undefined);
-      setRuntimeData({});
-      setLoadingRuntime(false);
-      setRefreshingSchema(false);
-      errorsRef.current = [];
-      dynamicDepsRef.current = {};
-      lastDepSnapshotRef.current = '';
-      setAvailableViews([]);
-      setSelectedViewNames([]);
-      setLoadingViews(false);
-      setSaving(false);
-      lastViewsKeyRef.current = '';
-    }
-  }, [show]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // =========================================================================
-  // Save
-  // =========================================================================
+  const handleToggleView = (viewName: string, checked: boolean) => {
+    setSelectedViews(prev => {
+      const next = new Set(prev);
+      if (checked) {
+        next.add(viewName);
+      } else {
+        next.delete(viewName);
+      }
+      return next;
+    });
+  };
 
   const newViewCount = availableViews.filter(
-    v => selectedViewNames.includes(v.name) && !v.already_added,
+    v => selectedViews.has(v.name) && !v.already_added,
   ).length;
 
-  const handleSave = async () => {
-    if (!selectedLayerUuid || newViewCount === 0) return;
+  const handleAddViews = async () => {
+    if (!selectedLayerUuid) return;
     setSaving(true);
     try {
       const viewsToCreate = availableViews
-        .filter(v => selectedViewNames.includes(v.name) && !v.already_added)
+        .filter(v => selectedViews.has(v.name) && !v.already_added)
         .map(v => ({
           name: v.name,
           semantic_layer_uuid: selectedLayerUuid,
@@ -416,97 +328,148 @@ export default function AddSemanticViewModal({
     }
   };
 
-  // =========================================================================
-  // Render
-  // =========================================================================
+  const handleSave = () => {
+    if (step === 'layer' && selectedLayerUuid) {
+      fetchRuntimeSchema(selectedLayerUuid);
+    } else if (step === 'configure' && selectedLayerUuid) {
+      fetchViews(selectedLayerUuid, runtimeData);
+    } else if (step === 'select') {
+      handleAddViews();
+    }
+  };
 
-  const hasRuntimeFields =
-    runtimeSchema?.properties &&
-    Object.keys(runtimeSchema.properties).length > 0;
+  const handleBack = () => {
+    if (step === 'configure') {
+      setStep('layer');
+      setRuntimeSchema(null);
+      setRuntimeUiSchema(undefined);
+      setRuntimeData({});
+      setHasRuntimeErrors(false);
+      errorsRef.current = [];
+      lastDepSnapshotRef.current = '';
+      dynamicDepsRef.current = {};
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    } else if (step === 'select') {
+      // Go back to configure if we had a runtime schema, otherwise to layer
+      if (runtimeSchema) {
+        setStep('configure');
+      } else {
+        setStep('layer');
+      }
+      setAvailableViews([]);
+      setSelectedViews(new Set());
+    }
+  };
 
-  const viewsDisabled =
-    loadingViews || (!loadingViews && availableViews.length === 0);
+  const title =
+    step === 'layer'
+      ? t('Add Semantic View')
+      : step === 'configure'
+        ? t('Configure')
+        : t('Select Views');
+
+  const saveText =
+    step === 'select' ? t('Add %s view(s)', newViewCount) : t('Next');
+
+  const saveDisabled =
+    step === 'layer'
+      ? !selectedLayerUuid
+      : step === 'configure'
+        ? hasRuntimeErrors
+        : step === 'select'
+          ? newViewCount === 0 || saving
+          : false;
+
+  const modalWidth =
+    step === 'configure' ? MODAL_MEDIUM_WIDTH : MODAL_STANDARD_WIDTH;
 
   return (
     <StandardModal
       show={show}
       onHide={onHide}
       onSave={handleSave}
-      title={t('Add Semantic View')}
+      title={title}
       icon={<Icons.PlusOutlined />}
-      width={MODAL_STANDARD_WIDTH}
-      saveDisabled={newViewCount === 0 || saving}
-      saveText={newViewCount > 0 ? t('Add %s view(s)', newViewCount) : t('Add')}
+      width={modalWidth}
+      saveDisabled={saveDisabled}
+      saveText={saveText}
       saveLoading={saving}
+      contentLoading={loading}
     >
-      <ModalContent>
-        {/* Semantic Layer */}
-        <ModalFormField label={t('Semantic Layer')}>
-          <Select
-            ariaLabel={t('Semantic layer')}
-            placeholder={t('Select a semantic layer')}
-            loading={loadingLayers}
-            value={selectedLayerUuid}
-            onChange={value => handleLayerChange(value as string)}
-            options={layers.map(l => ({
-              value: l.uuid,
-              label: l.name,
-            }))}
-            getPopupContainer={() => document.body}
-          />
-        </ModalFormField>
-
-        {/* Loading runtime schema */}
-        {loadingRuntime && (
-          <LoadingContainer>
-            <Spin size="small" />
-          </LoadingContainer>
-        )}
-
-        {/* Source location (runtime config fields) */}
-        {hasRuntimeFields && !loadingRuntime && (
-          <>
-            <SectionLabel>{t('Source location')}</SectionLabel>
-            <VerticalFormFields>
-              <JsonForms
-                schema={runtimeSchema!}
-                uischema={runtimeUiSchema}
-                data={runtimeData}
-                renderers={renderers}
-                cells={cellRegistryEntries}
-                config={{ refreshingSchema, formData: runtimeData }}
-                validationMode="ValidateAndHide"
-                onChange={handleRuntimeFormChange}
-              />
-            </VerticalFormFields>
-          </>
-        )}
-
-        {/* Semantic Views — always visible once a layer is selected */}
-        {selectedLayerUuid && !loadingRuntime && (
-          <ModalFormField label={t('Semantic Views')}>
+      {step === 'layer' && (
+        <ModalContent>
+          <ModalFormField label={t('Semantic Layer')}>
             <Select
-              ariaLabel={t('Semantic views')}
-              placeholder={t('Select semantic views')}
-              mode="multiple"
-              loading={loadingViews}
-              disabled={viewsDisabled}
-              value={selectedViewNames}
-              onChange={values => setSelectedViewNames(values as string[])}
-              options={availableViews
-                .sort((a, b) => a.name.localeCompare(b.name))
-                .map(v => ({
-                  value: v.name,
-                  label: v.already_added
-                    ? `${v.name} (${t('already added')})`
-                    : v.name,
-                  disabled: v.already_added,
-                }))}
+              ariaLabel={t('Semantic layer')}
+              placeholder={t('Select a semantic layer')}
+              value={selectedLayerUuid}
+              onChange={value => setSelectedLayerUuid(value as string)}
+              options={layers.map(l => ({
+                value: l.uuid,
+                label: l.name,
+              }))}
               getPopupContainer={() => document.body}
+              dropdownAlign={{
+                points: ['tl', 'bl'],
+                offset: [0, 4],
+                overflow: { adjustX: 0, adjustY: 1 },
+              }}
             />
           </ModalFormField>
-        )}
-      </ModalContent>
+        </ModalContent>
+      )}
+
+      {step === 'configure' && (
+        <ModalContent>
+          <BackLink type="button" onClick={handleBack}>
+            <Icons.CaretLeftOutlined iconSize="s" />
+            {t('Back')}
+          </BackLink>
+          {runtimeSchema && (
+            <JsonForms
+              schema={runtimeSchema}
+              uischema={runtimeUiSchema}
+              data={runtimeData}
+              renderers={renderers}
+              cells={cellRegistryEntries}
+              config={{ refreshingSchema, formData: runtimeData }}
+              validationMode="ValidateAndHide"
+              onChange={handleRuntimeFormChange}
+            />
+          )}
+        </ModalContent>
+      )}
+
+      {step === 'select' && (
+        <ModalContent>
+          <BackLink type="button" onClick={handleBack}>
+            <Icons.CaretLeftOutlined iconSize="s" />
+            {t('Back')}
+          </BackLink>
+          {loadingViews ? (
+            <LoadingContainer>
+              <Spin />
+            </LoadingContainer>
+          ) : (
+            <ViewList>
+              {availableViews.map(view => (
+                <Checkbox
+                  key={view.name}
+                  checked={selectedViews.has(view.name)}
+                  disabled={view.already_added}
+                  onChange={e => handleToggleView(view.name, e.target.checked)}
+                >
+                  {view.name}
+                  {view.already_added && <span> ({t('Already added')})</span>}
+                </Checkbox>
+              ))}
+              {availableViews.length === 0 && !loadingViews && (
+                <span>{t('No views available')}</span>
+              )}
+            </ViewList>
+          )}
+        </ModalContent>
+      )}
     </StandardModal>
   );
 }
