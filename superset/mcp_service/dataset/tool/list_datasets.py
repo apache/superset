@@ -23,6 +23,7 @@ advanced filtering with clear, unambiguous request schema and metadata cache con
 """
 
 import logging
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
 from fastmcp import Context
@@ -66,7 +67,19 @@ SORTABLE_DATASET_COLUMNS = [
     "schema",
     "changed_on",
     "created_on",
+    "popularity_score",
 ]
+
+DATASET_SEARCH_COLUMNS = ["schema", "sql", "table_name", "uuid"]
+
+
+def _attach_popularity_scores(
+    datasets: list[DatasetInfo], scores: dict[int, float]
+) -> None:
+    """Attach popularity scores to serialized dataset objects in-place."""
+    for ds in datasets:
+        if ds.id is not None and ds.id in scores:
+            ds.popularity_score = scores[ds.id]
 
 
 @tool(
@@ -85,7 +98,7 @@ async def list_datasets(request: ListDatasetsRequest, ctx: Context) -> DatasetLi
     time.
 
     Sortable columns for order_column: id, table_name, schema, changed_on,
-    created_on
+    created_on, popularity_score
     """
     await ctx.info(
         "Listing datasets: page=%s, page_size=%s, search=%s"
@@ -131,31 +144,49 @@ async def list_datasets(request: ListDatasetsRequest, ctx: Context) -> DatasetLi
             """Serialize dataset (filtering via model_serializer)."""
             return serialize_dataset_object(obj)
 
-        # Create tool with standard serialization
-        tool = ModelListCore(
-            dao_class=DatasetDAO,
-            output_schema=DatasetInfo,
-            item_serializer=_serialize_dataset,
-            filter_type=DatasetFilter,
-            default_columns=DEFAULT_DATASET_COLUMNS,
-            search_columns=["schema", "sql", "table_name", "uuid"],
-            list_field_name="datasets",
-            output_list_schema=DatasetList,
-            all_columns=all_columns,
-            sortable_columns=DATASET_SORTABLE_COLUMNS,
-            logger=logger,
-        )
-
-        with event_logger.log_context(action="mcp.list_datasets.query"):
-            result = tool.run_tool(
-                filters=request.filters,
-                search=request.search,
-                select_columns=request.select_columns,
-                order_column=request.order_column,
-                order_direction=request.order_direction,
-                page=max(request.page - 1, 0),
-                page_size=request.page_size,
+        # Two-pass approach when sorting by popularity_score
+        if request.order_column == "popularity_score":
+            with event_logger.log_context(action="mcp.list_datasets.popularity_sort"):
+                result = _list_datasets_by_popularity(
+                    request, DatasetDAO, _serialize_dataset, all_columns, ctx
+                )
+        else:
+            # Create tool with standard serialization
+            list_core = ModelListCore(
+                dao_class=DatasetDAO,
+                output_schema=DatasetInfo,
+                item_serializer=_serialize_dataset,
+                filter_type=DatasetFilter,
+                default_columns=DEFAULT_DATASET_COLUMNS,
+                search_columns=DATASET_SEARCH_COLUMNS,
+                list_field_name="datasets",
+                output_list_schema=DatasetList,
+                all_columns=all_columns,
+                sortable_columns=DATASET_SORTABLE_COLUMNS,
+                logger=logger,
             )
+
+            with event_logger.log_context(action="mcp.list_datasets.query"):
+                result = list_core.run_tool(
+                    filters=request.filters,
+                    search=request.search,
+                    select_columns=request.select_columns,
+                    order_column=request.order_column,
+                    order_direction=request.order_direction,
+                    page=max(request.page - 1, 0),
+                    page_size=request.page_size,
+                )
+
+            # Attach popularity scores if requested in select_columns
+            if request.select_columns and "popularity_score" in request.select_columns:
+                from superset.mcp_service.common.popularity import (
+                    compute_dataset_popularity,
+                )
+
+                ds_ids = [d.id for d in result.datasets if d.id is not None]
+                if ds_ids:
+                    scores = compute_dataset_popularity(ds_ids)
+                    _attach_popularity_scores(result.datasets, scores)
 
         await ctx.info(
             "Datasets listed successfully: count=%s, total_count=%s, total_pages=%s"
@@ -167,8 +198,6 @@ async def list_datasets(request: ListDatasetsRequest, ctx: Context) -> DatasetLi
         )
 
         # Apply field filtering via serialization context
-        # Always use columns_requested (either explicit select_columns or defaults)
-        # This triggers DatasetInfo._filter_fields_by_context for each dataset
         columns_to_filter = result.columns_requested
         await ctx.debug(
             "Applying field filtering via serialization context: columns=%s"
@@ -191,3 +220,84 @@ async def list_datasets(request: ListDatasetsRequest, ctx: Context) -> DatasetLi
             )
         )
         raise
+
+
+def _list_datasets_by_popularity(
+    request: ListDatasetsRequest,
+    dao_class: type,
+    serializer: callable,
+    all_columns: list[str],
+    ctx: Context,
+) -> DatasetList:
+    """Two-pass listing: sort all matching datasets by popularity score."""
+    from superset.mcp_service.common.popularity import (
+        compute_dataset_popularity,
+        get_popularity_sorted_ids,
+    )
+    from superset.mcp_service.common.schema_discovery import DATASET_SORTABLE_COLUMNS
+    from superset.mcp_service.system.schemas import PaginationInfo
+
+    sorted_ids, scores, total_count = get_popularity_sorted_ids(
+        compute_fn=compute_dataset_popularity,
+        dao_class=dao_class,
+        filters=request.filters,
+        search=request.search,
+        search_columns=DATASET_SEARCH_COLUMNS,
+        order_direction=request.order_direction,
+    )
+
+    # Apply pagination to sorted IDs
+    page = max(request.page - 1, 0)
+    page_size = request.page_size
+    start = page * page_size
+    end = start + page_size
+    page_ids = sorted_ids[start:end]
+
+    # Fetch full models for page IDs
+    if page_ids:
+        items = dao_class.find_by_ids(page_ids)
+        id_to_item = {item.id: item for item in items}
+        ordered_items = [id_to_item[pid] for pid in page_ids if pid in id_to_item]
+    else:
+        ordered_items = []
+
+    # Serialize
+    select_columns = request.select_columns or DEFAULT_DATASET_COLUMNS
+    if "popularity_score" not in select_columns:
+        select_columns = list(select_columns) + ["popularity_score"]
+
+    ds_objs = []
+    for item in ordered_items:
+        obj = serializer(item, select_columns)
+        if obj is not None:
+            ds_objs.append(obj)
+
+    _attach_popularity_scores(ds_objs, scores)
+
+    total_pages = (total_count + page_size - 1) // page_size if page_size > 0 else 0
+    pagination_info = PaginationInfo(
+        page=page,
+        page_size=page_size,
+        total_count=total_count,
+        total_pages=total_pages,
+        has_next=page < total_pages - 1,
+        has_previous=page > 0,
+    )
+
+    return DatasetList(
+        datasets=ds_objs,
+        count=len(ds_objs),
+        total_count=total_count,
+        page=page,
+        page_size=page_size,
+        total_pages=total_pages,
+        has_previous=page > 0,
+        has_next=page < total_pages - 1,
+        columns_requested=select_columns,
+        columns_loaded=select_columns,
+        columns_available=all_columns,
+        sortable_columns=DATASET_SORTABLE_COLUMNS,
+        filters_applied=request.filters if isinstance(request.filters, list) else [],
+        pagination=pagination_info,
+        timestamp=datetime.now(timezone.utc),
+    )

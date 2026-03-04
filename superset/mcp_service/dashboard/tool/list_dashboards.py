@@ -23,6 +23,7 @@ advanced filtering with clear, unambiguous request schema and metadata cache con
 """
 
 import logging
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
 from fastmcp import Context
@@ -63,7 +64,23 @@ SORTABLE_DASHBOARD_COLUMNS = [
     "published",
     "changed_on",
     "created_on",
+    "popularity_score",
 ]
+
+DASHBOARD_SEARCH_COLUMNS = [
+    "dashboard_title",
+    "slug",
+    "uuid",
+]
+
+
+def _attach_popularity_scores(
+    dashboards: list[DashboardInfo], scores: dict[int, float]
+) -> None:
+    """Attach popularity scores to serialized dashboard objects in-place."""
+    for dash in dashboards:
+        if dash.id is not None and dash.id in scores:
+            dash.popularity_score = scores[dash.id]
 
 
 @tool(
@@ -83,7 +100,7 @@ async def list_dashboards(
     request additional fields.
 
     Sortable columns for order_column: id, dashboard_title, slug, published,
-    changed_on, created_on
+    changed_on, created_on, popularity_score
     """
     await ctx.info(
         "Listing dashboards: page=%s, page_size=%s, search=%s"
@@ -118,34 +135,49 @@ async def list_dashboards(
         """Serialize dashboard object (field filtering handled by model_serializer)."""
         return serialize_dashboard_object(obj)
 
-    tool = ModelListCore(
-        dao_class=DashboardDAO,
-        output_schema=DashboardInfo,
-        item_serializer=_serialize_dashboard,
-        filter_type=DashboardFilter,
-        default_columns=DEFAULT_DASHBOARD_COLUMNS,
-        search_columns=[
-            "dashboard_title",
-            "slug",
-            "uuid",
-        ],
-        list_field_name="dashboards",
-        output_list_schema=DashboardList,
-        all_columns=all_columns,
-        sortable_columns=DASHBOARD_SORTABLE_COLUMNS,
-        logger=logger,
-    )
-
-    with event_logger.log_context(action="mcp.list_dashboards.query"):
-        result = tool.run_tool(
-            filters=request.filters,
-            search=request.search,
-            select_columns=request.select_columns,
-            order_column=request.order_column,
-            order_direction=request.order_direction,
-            page=max(request.page - 1, 0),
-            page_size=request.page_size,
+    # Two-pass approach when sorting by popularity_score
+    if request.order_column == "popularity_score":
+        with event_logger.log_context(action="mcp.list_dashboards.popularity_sort"):
+            result = _list_dashboards_by_popularity(
+                request, DashboardDAO, _serialize_dashboard, all_columns, ctx
+            )
+    else:
+        list_core = ModelListCore(
+            dao_class=DashboardDAO,
+            output_schema=DashboardInfo,
+            item_serializer=_serialize_dashboard,
+            filter_type=DashboardFilter,
+            default_columns=DEFAULT_DASHBOARD_COLUMNS,
+            search_columns=DASHBOARD_SEARCH_COLUMNS,
+            list_field_name="dashboards",
+            output_list_schema=DashboardList,
+            all_columns=all_columns,
+            sortable_columns=DASHBOARD_SORTABLE_COLUMNS,
+            logger=logger,
         )
+
+        with event_logger.log_context(action="mcp.list_dashboards.query"):
+            result = list_core.run_tool(
+                filters=request.filters,
+                search=request.search,
+                select_columns=request.select_columns,
+                order_column=request.order_column,
+                order_direction=request.order_direction,
+                page=max(request.page - 1, 0),
+                page_size=request.page_size,
+            )
+
+        # Attach popularity scores if requested in select_columns
+        if request.select_columns and "popularity_score" in request.select_columns:
+            from superset.mcp_service.common.popularity import (
+                compute_dashboard_popularity,
+            )
+
+            dash_ids = [d.id for d in result.dashboards if d.id is not None]
+            if dash_ids:
+                scores = compute_dashboard_popularity(dash_ids)
+                _attach_popularity_scores(result.dashboards, scores)
+
     count = len(result.dashboards) if hasattr(result, "dashboards") else 0
     total_pages = getattr(result, "total_pages", None)
     await ctx.info(
@@ -154,8 +186,6 @@ async def list_dashboards(
     )
 
     # Apply field filtering via serialization context
-    # Always use columns_requested (either explicit select_columns or defaults)
-    # This triggers DashboardInfo._filter_fields_by_context for each dashboard
     columns_to_filter = result.columns_requested
     await ctx.debug(
         "Applying field filtering via serialization context: columns=%s"
@@ -165,3 +195,86 @@ async def list_dashboards(
         return result.model_dump(
             mode="json", context={"select_columns": columns_to_filter}
         )
+
+
+def _list_dashboards_by_popularity(
+    request: ListDashboardsRequest,
+    dao_class: type,
+    serializer: callable,
+    all_columns: list[str],
+    ctx: Context,
+) -> DashboardList:
+    """Two-pass listing: sort all matching dashboards by popularity score."""
+    from superset.mcp_service.common.popularity import (
+        compute_dashboard_popularity,
+        get_popularity_sorted_ids,
+    )
+    from superset.mcp_service.common.schema_discovery import (
+        DASHBOARD_SORTABLE_COLUMNS,
+    )
+    from superset.mcp_service.system.schemas import PaginationInfo
+
+    sorted_ids, scores, total_count = get_popularity_sorted_ids(
+        compute_fn=compute_dashboard_popularity,
+        dao_class=dao_class,
+        filters=request.filters,
+        search=request.search,
+        search_columns=DASHBOARD_SEARCH_COLUMNS,
+        order_direction=request.order_direction,
+    )
+
+    # Apply pagination to sorted IDs
+    page = max(request.page - 1, 0)
+    page_size = request.page_size
+    start = page * page_size
+    end = start + page_size
+    page_ids = sorted_ids[start:end]
+
+    # Fetch full models for page IDs
+    if page_ids:
+        items = dao_class.find_by_ids(page_ids)
+        id_to_item = {item.id: item for item in items}
+        ordered_items = [id_to_item[pid] for pid in page_ids if pid in id_to_item]
+    else:
+        ordered_items = []
+
+    # Serialize
+    select_columns = request.select_columns or DEFAULT_DASHBOARD_COLUMNS
+    if "popularity_score" not in select_columns:
+        select_columns = list(select_columns) + ["popularity_score"]
+
+    dash_objs = []
+    for item in ordered_items:
+        obj = serializer(item, select_columns)
+        if obj is not None:
+            dash_objs.append(obj)
+
+    _attach_popularity_scores(dash_objs, scores)
+
+    total_pages = (total_count + page_size - 1) // page_size if page_size > 0 else 0
+    pagination_info = PaginationInfo(
+        page=page,
+        page_size=page_size,
+        total_count=total_count,
+        total_pages=total_pages,
+        has_next=page < total_pages - 1,
+        has_previous=page > 0,
+    )
+
+    return DashboardList(
+        dashboards=dash_objs,
+        count=len(dash_objs),
+        total_count=total_count,
+        page=page,
+        page_size=page_size,
+        total_pages=total_pages,
+        has_previous=page > 0,
+        has_next=page < total_pages - 1,
+        columns_requested=select_columns,
+        columns_loaded=select_columns,
+        columns_available=all_columns,
+        sortable_columns=DASHBOARD_SORTABLE_COLUMNS,
+        filters_applied=request.filters if isinstance(request.filters, list) else [],
+        pagination=pagination_info,
+        timestamp=datetime.now(timezone.utc),
+    )

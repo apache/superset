@@ -151,6 +151,12 @@ class DatasetInfo(BaseModel):
     is_favorite: bool | None = Field(
         None, description="Whether this dataset is favorited by the current user"
     )
+    popularity_score: float | None = Field(
+        None,
+        description="Popularity score based on chart usage, certification, "
+        "and recency. Request via select_columns=['popularity_score'] or sort "
+        "via order_column='popularity_score'.",
+    )
     model_config = ConfigDict(
         from_attributes=True,
         ser_json_timedelta="iso8601",

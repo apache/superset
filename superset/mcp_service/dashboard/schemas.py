@@ -386,6 +386,13 @@ class DashboardInfo(BaseModel):
         ),
     )
 
+    popularity_score: float | None = Field(
+        None,
+        description="Popularity score based on views, favorites, chart count, "
+        "and recency. Request via select_columns=['popularity_score'] or sort "
+        "via order_column='popularity_score'.",
+    )
+
     # Fields for permalink/filter state support
     permalink_key: str | None = Field(
         None,

@@ -126,6 +126,13 @@ class ChartInfo(BaseModel):
     tags: List[TagInfo] = Field(default_factory=list, description="Chart tags")
     owners: List[UserInfo] = Field(default_factory=list, description="Chart owners")
 
+    popularity_score: float | None = Field(
+        None,
+        description="Popularity score based on views, favorites, dashboard usage, "
+        "and recency. Request via select_columns=['popularity_score'] or sort "
+        "via order_column='popularity_score'.",
+    )
+
     # Fields for unsaved state support
     form_data: Dict[str, Any] | None = Field(
         None,
