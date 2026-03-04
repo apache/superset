@@ -140,7 +140,7 @@ class ExecuteSqlResponse(BaseModel):
         None,
         description=(
             "Warning when multiple data-bearing statements were executed. "
-            "The top-level rows/columns contain only the last statement's results. "
+            "The top-level rows/columns contain only the last data-bearing statement's results. "
             "Check each entry in the statements array for per-statement data."
         ),
     )
