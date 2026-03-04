@@ -72,16 +72,16 @@ const mapPermissionResults = (results: PermissionResult[]) =>
     label: formatPermissionLabel(item.permission.name, item.view_menu.name),
   }));
 
-const MAX_PERMISSION_SEARCH_SIZE = 5000;
+const PAGE_SIZE = 1000;
+const CONCURRENCY_LIMIT = 3;
+const MAX_CACHE_ENTRIES = 20;
 const permissionSearchCache = new Map<string, SelectOption[]>();
 
 export const clearPermissionSearchCache = () => {
   permissionSearchCache.clear();
 };
 
-const fetchPermissionPageRaw = async (
-  queryParams: Record<string, unknown>,
-) => {
+const fetchPermissionPageRaw = async (queryParams: Record<string, unknown>) => {
   const response = await SupersetClient.get({
     endpoint: `/api/v1/security/permissions-resources/?q=${rison.encode(queryParams)}`,
   });
@@ -89,6 +89,45 @@ const fetchPermissionPageRaw = async (
     data: mapPermissionResults(response.json?.result || []),
     totalCount: response.json?.count ?? 0,
   };
+};
+
+const fetchAllPermissionPages = async (
+  filters: Record<string, unknown>[],
+): Promise<SelectOption[]> => {
+  const page0 = await fetchPermissionPageRaw({
+    page: 0,
+    page_size: PAGE_SIZE,
+    filters,
+  });
+  if (page0.data.length === 0 || page0.data.length >= page0.totalCount) {
+    return page0.data;
+  }
+
+  // Use actual returned size — backend may cap below PAGE_SIZE
+  const actualPageSize = page0.data.length;
+  const totalPages = Math.ceil(page0.totalCount / actualPageSize);
+  const allResults = [...page0.data];
+
+  // Fetch remaining pages in batches of CONCURRENCY_LIMIT
+  for (let batch = 1; batch < totalPages; batch += CONCURRENCY_LIMIT) {
+    const batchEnd = Math.min(batch + CONCURRENCY_LIMIT, totalPages);
+    const batchResults = await Promise.all(
+      Array.from({ length: batchEnd - batch }, (_, i) =>
+        fetchPermissionPageRaw({
+          page: batch + i,
+          page_size: PAGE_SIZE,
+          filters,
+        }),
+      ),
+    );
+    for (const r of batchResults) {
+      allResults.push(...r.data);
+      if (r.data.length === 0) return allResults;
+    }
+    if (allResults.length >= page0.totalCount) break;
+  }
+
+  return allResults;
 };
 
 export const fetchPermissionOptions = async (
@@ -108,31 +147,31 @@ export const fetchPermissionOptions = async (
   }
 
   try {
-    let cached = permissionSearchCache.get(filterValue);
+    const cacheKey = filterValue;
+    let cached = permissionSearchCache.get(cacheKey);
     if (!cached) {
-      const searchQuery = { page: 0, page_size: MAX_PERMISSION_SEARCH_SIZE };
       const [byViewMenu, byPermission] = await Promise.all([
-        fetchPermissionPageRaw({
-          ...searchQuery,
-          filters: [
-            { col: 'view_menu.name', opr: 'ct', value: filterValue },
-          ],
-        }),
-        fetchPermissionPageRaw({
-          ...searchQuery,
-          filters: [
-            { col: 'permission.name', opr: 'ct', value: filterValue },
-          ],
-        }),
+        fetchAllPermissionPages([
+          { col: 'view_menu.name', opr: 'ct', value: filterValue },
+        ]),
+        fetchAllPermissionPages([
+          { col: 'permission.name', opr: 'ct', value: filterValue },
+        ]),
       ]);
 
       const seen = new Set<number>();
-      cached = [...byViewMenu.data, ...byPermission.data].filter(item => {
+      cached = [...byViewMenu, ...byPermission].filter(item => {
         if (seen.has(item.value)) return false;
         seen.add(item.value);
         return true;
       });
-      permissionSearchCache.set(filterValue, cached);
+      if (permissionSearchCache.size >= MAX_CACHE_ENTRIES) {
+        const oldestKey = permissionSearchCache.keys().next().value;
+        if (oldestKey !== undefined) {
+          permissionSearchCache.delete(oldestKey);
+        }
+      }
+      permissionSearchCache.set(cacheKey, cached);
     }
 
     const start = page * pageSize;

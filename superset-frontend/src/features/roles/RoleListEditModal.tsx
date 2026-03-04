@@ -120,6 +120,8 @@ function RoleListEditModal({
   const [loadingRolePermissions, setLoadingRolePermissions] = useState(true);
   const [loadingRoleGroups, setLoadingRoleGroups] = useState(true);
   const formRef = useRef<FormInstance | null>(null);
+  const permissionFetchSucceeded = useRef(false);
+  const groupFetchSucceeded = useRef(false);
 
   useEffect(() => {
     const filters = [{ col: 'roles', opr: 'rel_m_m', value: id }];
@@ -151,12 +153,16 @@ function RoleListEditModal({
     }
 
     setLoadingRolePermissions(true);
+    permissionFetchSucceeded.current = false;
     const filters = [{ col: 'id', opr: 'in', value: stablePermissionIds }];
 
     fetchPaginatedData({
       endpoint: `/api/v1/security/permissions-resources/`,
       pageSize: 100,
-      setData: setRolePermissions,
+      setData: (data: SelectOption[]) => {
+        permissionFetchSucceeded.current = true;
+        setRolePermissions(data);
+      },
       filters,
       setLoadingState: (loading: boolean) => setLoadingRolePermissions(loading),
       loadingKey: 'rolePermissions',
@@ -184,12 +190,16 @@ function RoleListEditModal({
     }
 
     setLoadingRoleGroups(true);
+    groupFetchSucceeded.current = false;
     const filters = [{ col: 'id', opr: 'in', value: stableGroupIds }];
 
     fetchPaginatedData({
       endpoint: `/api/v1/security/groups/`,
       pageSize: 100,
-      setData: setRoleGroups,
+      setData: (data: SelectOption[]) => {
+        groupFetchSucceeded.current = true;
+        setRoleGroups(data);
+      },
       filters,
       setLoadingState: (loading: boolean) => setLoadingRoleGroups(loading),
       loadingKey: 'roleGroups',
@@ -219,7 +229,7 @@ function RoleListEditModal({
     if (
       !loadingRolePermissions &&
       formRef.current &&
-      rolePermissions.length > 0
+      stablePermissionIds.length > 0
     ) {
       const fetchedIds = new Set(rolePermissions.map(p => p.value));
       const missingIds = stablePermissionIds.filter(id => !fetchedIds.has(id));
@@ -227,7 +237,7 @@ function RoleListEditModal({
         ...rolePermissions,
         ...missingIds.map(id => ({ value: id, label: String(id) })),
       ];
-      if (missingIds.length > 0) {
+      if (missingIds.length > 0 && permissionFetchSucceeded.current) {
         addDangerToast(
           t('Some permissions could not be resolved and are shown as IDs.'),
         );
@@ -239,14 +249,14 @@ function RoleListEditModal({
   }, [loadingRolePermissions, rolePermissions, stablePermissionIds, addDangerToast]);
 
   useEffect(() => {
-    if (!loadingRoleGroups && formRef.current && roleGroups.length > 0) {
+    if (!loadingRoleGroups && formRef.current && stableGroupIds.length > 0) {
       const fetchedIds = new Set(roleGroups.map(g => g.value));
       const missingIds = stableGroupIds.filter(id => !fetchedIds.has(id));
       const allGroups = [
         ...roleGroups,
         ...missingIds.map(id => ({ value: id, label: String(id) })),
       ];
-      if (missingIds.length > 0) {
+      if (missingIds.length > 0 && groupFetchSucceeded.current) {
         addDangerToast(
           t('Some groups could not be resolved and are shown as IDs.'),
         );

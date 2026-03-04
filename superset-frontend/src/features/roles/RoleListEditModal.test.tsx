@@ -272,6 +272,59 @@ describe('RoleListEditModal', () => {
     });
   });
 
+  test('does not fire fallback toast when hydration fetch fails', async () => {
+    mockToasts.addDangerToast.mockClear();
+    const mockGet = SupersetClient.get as jest.Mock;
+    mockGet.mockImplementation(({ endpoint }) => {
+      if (endpoint?.includes('/api/v1/security/permissions-resources/')) {
+        return Promise.reject(new Error('network error'));
+      }
+      if (endpoint?.includes('/api/v1/security/groups/')) {
+        return Promise.reject(new Error('network error'));
+      }
+      return Promise.resolve({ json: { count: 0, result: [] } });
+    });
+
+    render(<RoleListEditModal {...mockProps} />);
+
+    await waitFor(() => {
+      // fetchPaginatedData fires the error toasts
+      expect(mockToasts.addDangerToast).toHaveBeenCalledWith(
+        'There was an error loading permissions.',
+      );
+      expect(mockToasts.addDangerToast).toHaveBeenCalledWith(
+        'There was an error loading groups.',
+      );
+    });
+
+    // The fallback "shown as IDs" toasts should NOT have fired
+    expect(mockToasts.addDangerToast).not.toHaveBeenCalledWith(
+      'Some permissions could not be resolved and are shown as IDs.',
+    );
+    expect(mockToasts.addDangerToast).not.toHaveBeenCalledWith(
+      'Some groups could not be resolved and are shown as IDs.',
+    );
+  });
+
+  test('fires warning toast when hydration returns zero rows but IDs were expected', async () => {
+    const mockGet = SupersetClient.get as jest.Mock;
+    mockGet.mockImplementation(({ endpoint }) =>
+      Promise.resolve({ json: { count: 0, result: [] } }),
+    );
+
+    render(<RoleListEditModal {...mockProps} />);
+
+    await waitFor(() => {
+      // Both warnings should fire because IDs were expected but none resolved
+      expect(mockToasts.addDangerToast).toHaveBeenCalledWith(
+        'Some permissions could not be resolved and are shown as IDs.',
+      );
+      expect(mockToasts.addDangerToast).toHaveBeenCalledWith(
+        'Some groups could not be resolved and are shown as IDs.',
+      );
+    });
+  });
+
   test('fetches permissions and groups by id for hydration', async () => {
     const mockGet = SupersetClient.get as jest.Mock;
     mockGet.mockResolvedValue({

@@ -58,12 +58,12 @@ test('fetchPermissionOptions fetches all results on page 0 with large page_size'
 
   expect(queries).toContainEqual({
     page: 0,
-    page_size: 5000,
+    page_size: 1000,
     filters: [{ col: 'view_menu.name', opr: 'ct', value: 'dataset' }],
   });
   expect(queries).toContainEqual({
     page: 0,
-    page_size: 5000,
+    page_size: 1000,
     filters: [{ col: 'permission.name', opr: 'ct', value: 'dataset' }],
   });
 
@@ -268,4 +268,153 @@ test('fetchGroupOptions returns empty options on error', async () => {
     'There was an error while fetching groups',
   );
   expect(result).toEqual({ data: [], totalCount: 0 });
+});
+
+test('fetchPermissionOptions fetches multiple pages when results exceed PAGE_SIZE', async () => {
+  const PAGE_SIZE = 1000;
+  const totalCount = 1500;
+  const page0Items = Array.from({ length: PAGE_SIZE }, (_, i) => ({
+    id: i + 1,
+    permission: { name: `perm_${i}` },
+    view_menu: { name: `view_${i}` },
+  }));
+  const page1Items = Array.from({ length: totalCount - PAGE_SIZE }, (_, i) => ({
+    id: PAGE_SIZE + i + 1,
+    permission: { name: `perm_${PAGE_SIZE + i}` },
+    view_menu: { name: `view_${PAGE_SIZE + i}` },
+  }));
+
+  getMock.mockImplementation(({ endpoint }: { endpoint: string }) => {
+    const query = rison.decode(endpoint.split('?q=')[1]) as Record<
+      string,
+      unknown
+    >;
+    if (query.page === 0) {
+      return Promise.resolve({
+        json: { count: totalCount, result: page0Items },
+      } as any);
+    }
+    if (query.page === 1) {
+      return Promise.resolve({
+        json: { count: totalCount, result: page1Items },
+      } as any);
+    }
+    return Promise.resolve({ json: { count: 0, result: [] } } as any);
+  });
+
+  const addDangerToast = jest.fn();
+  const result = await fetchPermissionOptions('multi', 0, 50, addDangerToast);
+
+  // Two search branches (view_menu + permission), each needing 2 pages = 4 calls
+  expect(getMock).toHaveBeenCalledTimes(4);
+  // Deduplicated: both branches return identical ids, so total is 1500
+  expect(result.totalCount).toBe(totalCount);
+});
+
+test('fetchPermissionOptions handles backend capping page_size below requested', async () => {
+  const BACKEND_CAP = 500;
+  const totalCount = 1200;
+  const makeItems = (start: number, count: number) =>
+    Array.from({ length: count }, (_, i) => ({
+      id: start + i + 1,
+      permission: { name: `perm_${start + i}` },
+      view_menu: { name: `view_${start + i}` },
+    }));
+
+  getMock.mockImplementation(({ endpoint }: { endpoint: string }) => {
+    const query = rison.decode(endpoint.split('?q=')[1]) as Record<
+      string,
+      unknown
+    >;
+    const page = query.page as number;
+    let items: ReturnType<typeof makeItems>;
+    if (page === 0) {
+      items = makeItems(0, BACKEND_CAP);
+    } else if (page === 1) {
+      items = makeItems(BACKEND_CAP, BACKEND_CAP);
+    } else {
+      items = makeItems(BACKEND_CAP * 2, totalCount - BACKEND_CAP * 2);
+    }
+    return Promise.resolve({
+      json: { count: totalCount, result: items },
+    } as any);
+  });
+
+  const addDangerToast = jest.fn();
+  const result = await fetchPermissionOptions('cap', 0, 50, addDangerToast);
+
+  // Two search branches, each needing 3 pages (500+500+200) = 6 calls
+  expect(getMock).toHaveBeenCalledTimes(6);
+  // Both branches return identical ids, so deduplicated total is 1200
+  expect(result.totalCount).toBe(totalCount);
+  expect(result.data).toHaveLength(50); // first page of client-side pagination
+});
+
+test('fetchPermissionOptions treats different-case queries as distinct cache keys', async () => {
+  getMock.mockResolvedValue({
+    json: {
+      count: 1,
+      result: [
+        {
+          id: 10,
+          permission: { name: 'can_access' },
+          view_menu: { name: 'dataset_one' },
+        },
+      ],
+    },
+  } as any);
+  const addDangerToast = jest.fn();
+
+  await fetchPermissionOptions('Dataset', 0, 50, addDangerToast);
+  expect(getMock).toHaveBeenCalledTimes(2);
+
+  // Same letters, different case should be a cache miss (separate key)
+  const result = await fetchPermissionOptions('dataset', 0, 50, addDangerToast);
+  expect(getMock).toHaveBeenCalledTimes(4);
+  expect(result).toEqual({
+    data: [{ value: 10, label: 'can access dataset one' }],
+    totalCount: 1,
+  });
+});
+
+test('fetchPermissionOptions evicts oldest cache entry when MAX_CACHE_ENTRIES is reached', async () => {
+  getMock.mockImplementation(({ endpoint }: { endpoint: string }) => {
+    const query = rison.decode(endpoint.split('?q=')[1]) as Record<string, any>;
+    const searchVal = query.filters?.[0]?.value || 'unknown';
+    return Promise.resolve({
+      json: {
+        count: 1,
+        result: [
+          {
+            id: Number(searchVal.replace('term', '')),
+            permission: { name: searchVal },
+            view_menu: { name: 'view' },
+          },
+        ],
+      },
+    } as any);
+  });
+
+  const addDangerToast = jest.fn();
+
+  // Fill cache with 20 entries (MAX_CACHE_ENTRIES)
+  for (let i = 0; i < 20; i += 1) {
+    await fetchPermissionOptions(`term${i}`, 0, 50, addDangerToast);
+  }
+
+  getMock.mockClear();
+
+  // Adding the 21st entry should evict the oldest (term0)
+  await fetchPermissionOptions('term20', 0, 50, addDangerToast);
+
+  // term0 should have been evicted — re-fetching it should trigger API calls
+  getMock.mockClear();
+  await fetchPermissionOptions('term0', 0, 50, addDangerToast);
+  expect(getMock).toHaveBeenCalled();
+
+  // term2 should still be cached — no API calls
+  // (term1 was evicted when term0 was re-added as the 21st entry)
+  getMock.mockClear();
+  await fetchPermissionOptions('term2', 0, 50, addDangerToast);
+  expect(getMock).not.toHaveBeenCalled();
 });
