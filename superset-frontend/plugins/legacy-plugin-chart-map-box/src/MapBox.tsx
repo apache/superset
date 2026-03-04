@@ -103,6 +103,12 @@ class MapBox extends Component<MapBoxProps, MapBoxState> {
       ({ latitude, longitude, zoom } = mercator);
     }
 
+    // Override with explicit viewport props when provided (e.g., saved chart controls)
+    const { viewportLongitude, viewportLatitude, viewportZoom } = this.props;
+    if (viewportLongitude !== undefined) longitude = viewportLongitude;
+    if (viewportLatitude !== undefined) latitude = viewportLatitude;
+    if (viewportZoom !== undefined) zoom = viewportZoom;
+
     this.state = {
       viewport: {
         longitude,
@@ -139,9 +145,10 @@ class MapBox extends Component<MapBoxProps, MapBoxState> {
     if (longitudeChanged || latitudeChanged || zoomChanged) {
       this.setState({
         viewport: {
-          longitude: longitudeChanged ? viewportLongitude : viewport.longitude,
-          latitude: latitudeChanged ? viewportLatitude : viewport.latitude,
-          zoom: zoomChanged ? viewportZoom : viewport.zoom,
+          ...viewport,
+          longitude: longitudeChanged ? viewportLongitude! : viewport.longitude,
+          latitude: latitudeChanged ? viewportLatitude! : viewport.latitude,
+          zoom: zoomChanged ? viewportZoom! : viewport.zoom,
         },
       });
     }

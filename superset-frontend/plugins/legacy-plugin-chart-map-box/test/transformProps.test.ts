@@ -114,3 +114,20 @@ test('provides onViewportChange callback that updates control values', () => {
   expect(setControlValue).toHaveBeenCalledWith('viewport_latitude', 51.5);
   expect(setControlValue).toHaveBeenCalledWith('viewport_zoom', 10);
 });
+
+test('calls onError and returns empty object for invalid color', () => {
+  const onError = jest.fn();
+  const chartProps = new ChartProps({
+    formData: { ...baseFormData, mapboxColor: 'invalid-color' },
+    width: 800,
+    height: 600,
+    queriesData: baseQueriesData,
+    hooks: { onError },
+    theme: supersetTheme,
+  });
+  const result = transformProps(chartProps);
+  expect(onError).toHaveBeenCalledWith(
+    "Color field must be of form 'rgb(%d, %d, %d)'",
+  );
+  expect(result).toEqual({});
+});

@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import { type ReactNode } from 'react';
 import { render } from '@testing-library/react';
 import MapBox from '../src/MapBox';
 
@@ -26,7 +27,7 @@ let lastMapGLProps: Record<string, unknown> = {};
 jest.mock('react-map-gl', () => {
   const MockMapGL = (props: Record<string, unknown>) => {
     lastMapGLProps = props;
-    return <div data-testid="map-gl">{props.children as React.ReactNode}</div>;
+    return <div data-test="map-gl">{props.children as ReactNode}</div>;
   };
   return { __esModule: true, default: MockMapGL };
 });
@@ -137,4 +138,35 @@ test('passes globalOpacity to ScatterPlotGlowOverlay', () => {
   );
   const overlay = getByTestId('scatter-overlay');
   expect(overlay.dataset.opacity).toBe('0.5');
+});
+
+test('initializes viewport from props when provided', () => {
+  render(
+    <MapBox
+      {...defaultProps}
+      viewportLongitude={-122.4}
+      viewportLatitude={37.8}
+      viewportZoom={5}
+    />,
+  );
+  expect(lastMapGLProps.longitude).toBe(-122.4);
+  expect(lastMapGLProps.latitude).toBe(37.8);
+  expect(lastMapGLProps.zoom).toBe(5);
+});
+
+test('handles undefined bounds gracefully', () => {
+  render(<MapBox {...defaultProps} bounds={undefined} />);
+  expect(lastMapGLProps.longitude).toBe(0);
+  expect(lastMapGLProps.latitude).toBe(0);
+  expect(lastMapGLProps.zoom).toBe(1);
+});
+
+test('applies partial viewport props on update', () => {
+  const { rerender } = render(<MapBox {...defaultProps} />);
+
+  rerender(<MapBox {...defaultProps} viewportLongitude={-122.4} />);
+
+  expect(lastMapGLProps.longitude).toBe(-122.4);
+  expect(lastMapGLProps.latitude).toBe(40.75);
+  expect(lastMapGLProps.zoom).toBe(10);
 });
