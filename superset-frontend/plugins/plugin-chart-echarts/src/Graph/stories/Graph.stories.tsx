@@ -18,6 +18,7 @@
  */
 
 import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/ui';
 import {
   EchartsGraphChartPlugin,
   GraphTransformProps,
@@ -114,6 +115,7 @@ export const Graph = ({
   showSymbolThreshold: number;
 }) => (
   <SuperChart
+    theme={supersetTheme}
     chartType="echarts-graph"
     width={width}
     height={height}

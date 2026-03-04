@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Component, ChangeEvent } from 'react';
+import { useState, useCallback, useRef, useEffect, ChangeEvent } from 'react';
 import { legacyValidateNumber, legacyValidateInteger } from '@superset-ui/core';
 import { debounce } from 'lodash';
 import ControlHeader from 'src/explore/components/ControlHeader';
@@ -31,8 +31,8 @@ export interface TextControlProps<T extends InputValueType = InputValueType> {
   disabled?: boolean;
   isFloat?: boolean;
   isInt?: boolean;
-  onChange?: (value: T, errors: any) => void;
-  onFocus?: () => {};
+  onChange?: (value: T, errors: string[]) => void;
+  onFocus?: () => void;
   placeholder?: string;
   value?: T | null;
   controlId?: string;
@@ -42,82 +42,111 @@ export interface TextControlProps<T extends InputValueType = InputValueType> {
   showHeader?: boolean;
 }
 
-export interface TextControlState {
-  value: string;
-}
-
 const safeStringify = (value?: InputValueType | null) =>
   value == null ? '' : String(value);
 
-export default class TextControl<
-  T extends InputValueType = InputValueType,
-> extends Component<TextControlProps<T>, TextControlState> {
-  initialValue?: TextControlProps['value'];
+function TextControl<T extends InputValueType = InputValueType>({
+  name,
+  label,
+  description,
+  disabled,
+  isFloat,
+  isInt,
+  onChange,
+  onFocus,
+  placeholder,
+  value,
+  controlId,
+  renderTrigger,
+  validationErrors,
+  hovered,
+  showHeader,
+}: TextControlProps<T>) {
+  const [localValue, setLocalValue] = useState<string>(safeStringify(value));
+  const prevValueRef = useRef<T | null | undefined>(value);
 
-  constructor(props: TextControlProps<T>) {
-    super(props);
-    this.initialValue = props.value;
-    this.state = {
-      value: safeStringify(this.initialValue),
-    };
+  const handleChange = useCallback(
+    (inputValue: string) => {
+      let parsedValue: InputValueType = inputValue;
+      const errors: string[] = [];
+
+      if (inputValue !== '' && isFloat) {
+        const error = legacyValidateNumber(inputValue);
+        if (error) {
+          errors.push(error);
+        } else {
+          parsedValue = inputValue.match(/.*([.0])$/g)
+            ? inputValue
+            : parseFloat(inputValue);
+        }
+      }
+
+      if (inputValue !== '' && isInt) {
+        const error = legacyValidateInteger(inputValue);
+        if (error) {
+          errors.push(error);
+        } else {
+          parsedValue = parseInt(inputValue, 10);
+        }
+      }
+
+      onChange?.(parsedValue as T, errors);
+    },
+    [isFloat, isInt, onChange],
+  );
+
+  const debouncedOnChangeRef = useRef(
+    debounce((inputValue: string, changeFn: (val: string) => void) => {
+      changeFn(inputValue);
+    }, Constants.FAST_DEBOUNCE),
+  );
+
+  useEffect(
+    () => () => {
+      debouncedOnChangeRef.current.cancel();
+    },
+    [],
+  );
+
+  const onChangeWrapper = useCallback(
+    (event: ChangeEvent<HTMLInputElement>) => {
+      const { value: newValue } = event.target;
+      setLocalValue(newValue);
+      debouncedOnChangeRef.current(newValue, handleChange);
+    },
+    [handleChange],
+  );
+
+  // Sync local value when prop value changes externally
+  let displayValue = localValue;
+  if (safeStringify(prevValueRef.current) !== safeStringify(value)) {
+    prevValueRef.current = value;
+    displayValue = safeStringify(value);
   }
 
-  onChange = (inputValue: string) => {
-    let parsedValue: InputValueType = inputValue;
-    // Validation & casting
-    const errors = [];
-    if (inputValue !== '' && this.props.isFloat) {
-      const error = legacyValidateNumber(inputValue);
-      if (error) {
-        errors.push(error);
-      } else {
-        parsedValue = inputValue.match(/.*([.0])$/g)
-          ? inputValue
-          : parseFloat(inputValue);
-      }
-    }
-    if (inputValue !== '' && this.props.isInt) {
-      const error = legacyValidateInteger(inputValue);
-      if (error) {
-        errors.push(error);
-      } else {
-        parsedValue = parseInt(inputValue, 10);
-      }
-    }
-    this.props.onChange?.(parsedValue as T, errors);
-  };
-
-  debouncedOnChange = debounce((inputValue: string) => {
-    this.onChange(inputValue);
-  }, Constants.FAST_DEBOUNCE);
-
-  onChangeWrapper = (event: ChangeEvent<HTMLInputElement>) => {
-    const { value } = event.target;
-    this.setState({ value }, () => {
-      this.debouncedOnChange(value);
-    });
-  };
-
-  render() {
-    let { value } = this.state;
-    if (this.initialValue !== this.props.value) {
-      this.initialValue = this.props.value;
-      value = safeStringify(this.props.value);
-    }
-    return (
-      <div>
-        <ControlHeader {...this.props} />
-        <Input
-          type="text"
-          data-test="inline-name"
-          placeholder={this.props.placeholder}
-          onChange={this.onChangeWrapper}
-          onFocus={this.props.onFocus}
-          value={value}
-          disabled={this.props.disabled}
-          aria-label={this.props.label}
-        />
-      </div>
-    );
-  }
+  // Note: controlId and showHeader props are not used by ControlHeader
+  return (
+    <div>
+      <ControlHeader
+        name={name}
+        label={label}
+        description={description}
+        renderTrigger={renderTrigger}
+        validationErrors={validationErrors}
+        hovered={hovered}
+      />
+      <Input
+        type="text"
+        data-test="inline-name"
+        placeholder={placeholder}
+        onChange={onChangeWrapper}
+        onFocus={onFocus}
+        value={displayValue}
+        disabled={disabled}
+        aria-label={label}
+      />
+    </div>
+  );
 }
+
+export default TextControl;

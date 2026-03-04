@@ -387,7 +387,9 @@ test('renders chart during loading when suppressLoadingSpinner has valid data', 
     queriesResponse: [{ data: [{ value: 1 }] }],
   };
 
-  const { getByTestId } = render(<ChartRenderer {...props} />);
+  const { getByTestId } = render(
+    <ChartRenderer {...(props as ChartRendererProps)} />,
+  );
   expect(getByTestId('mock-super-chart')).toBeInTheDocument();
   expect(getByTestId('mock-super-chart')).toHaveAttribute(
     'data-is-refreshing',
@@ -404,7 +406,9 @@ test('does not mark chart as refreshing when loading is not in progress', () => 
     queriesResponse: [{ data: [{ value: 1 }] }],
   };
 
-  const { getByTestId } = render(<ChartRenderer {...props} />);
+  const { getByTestId } = render(
+    <ChartRenderer {...(props as ChartRendererProps)} />,
+  );
   expect(getByTestId('mock-super-chart')).toHaveAttribute(
     'data-is-refreshing',
     'false',
@@ -420,7 +424,9 @@ test('does not mark chart as refreshing when spinner suppression is disabled', (
     queriesResponse: [{ data: [{ value: 1 }] }],
   };
 
-  const { getByTestId } = render(<ChartRenderer {...props} />);
+  const { getByTestId } = render(
+    <ChartRenderer {...(props as ChartRendererProps)} />,
+  );
   expect(getByTestId('mock-super-chart')).toHaveAttribute(
     'data-is-refreshing',
     'false',
@@ -436,6 +442,8 @@ test('does not render chart during loading when last data has errors', () => {
     queriesResponse: [{ error: 'bad' }],
   };
 
-  const { queryByTestId } = render(<ChartRenderer {...props} />);
+  const { queryByTestId } = render(
+    <ChartRenderer {...(props as ChartRendererProps)} />,
+  );
   expect(queryByTestId('mock-super-chart')).not.toBeInTheDocument();
 });

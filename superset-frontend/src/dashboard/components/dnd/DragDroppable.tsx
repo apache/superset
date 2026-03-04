@@ -113,15 +113,22 @@ const DragDroppableStyles = styled.div`
     }
   `};
 `;
+
+/**
+ * Note: This component remains a class component because it is tightly integrated
+ * with react-dnd's class-based HOC system (DragSource/DropTarget). The HOCs
+ * access component instance properties directly (mounted, ref, props, setState)
+ * in the hover/drop callbacks defined in dragDroppableConfig.ts.
+ *
+ * Converting to a function component would require migrating to react-dnd's
+ * hooks API (useDrag/useDrop), which would be a more extensive refactor.
+ */
 // export unwrapped component for testing
+// eslint-disable-next-line react-prefer-function-component/react-prefer-function-component -- react-dnd class-based HOC requires class component instance properties
 export class UnwrappedDragDroppable extends PureComponent<
   DragDroppableAllProps,
   DragDroppableState
 > {
-  mounted: boolean;
-
-  ref: HTMLDivElement | null;
-
   static defaultProps = {
     className: null,
     style: null,
@@ -142,6 +149,10 @@ export class UnwrappedDragDroppable extends PureComponent<
     dragSourceRef() {},
     dragPreviewRef() {},
   };
+
+  mounted: boolean;
+
+  ref: HTMLDivElement | null;
 
   constructor(props: DragDroppableAllProps) {
     super(props);
@@ -274,7 +285,6 @@ export class UnwrappedDragDroppable extends PureComponent<
 
 // react-dnd's DragSource/DropTarget HOC types don't play well with
 // class components using spread config tuples, so we use type assertions here
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const DragDroppableAsAny =
   UnwrappedDragDroppable as unknown as ReactComponentType<
     Record<string, unknown>

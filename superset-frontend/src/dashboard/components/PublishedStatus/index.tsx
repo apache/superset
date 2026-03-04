@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Component } from 'react';
+import { useCallback } from 'react';
 import { t } from '@apache-superset/core';
 import { Tooltip, PublishedLabel } from '@superset-ui/core/components';
 import { HeaderProps, HeaderDropdownProps } from '../Header/types';
@@ -43,70 +43,64 @@ const publishedTooltip = t(
   'This dashboard is published. Click to make it a draft.',
 );
 
-export default class PublishedStatus extends Component<DashboardPublishedStatusType> {
-  constructor(props: DashboardPublishedStatusType) {
-    super(props);
-    this.togglePublished = this.togglePublished.bind(this);
-  }
+export default function PublishedStatus({
+  dashboardId,
+  userCanEdit,
+  userCanSave,
+  isPublished,
+  savePublished,
+}: DashboardPublishedStatusType) {
+  const togglePublished = useCallback(() => {
+    savePublished(dashboardId, !isPublished);
+  }, [dashboardId, isPublished, savePublished]);
 
-  togglePublished() {
-    this.props.savePublished(this.props.dashboardId, !this.props.isPublished);
-  }
-
-  render() {
-    const { isPublished, userCanEdit, userCanSave } = this.props;
-
-    // Show everybody the draft badge
-    if (!isPublished) {
-      // if they can edit the dash, make the badge a button
-      if (userCanEdit && userCanSave) {
-        return (
-          <Tooltip
-            id="unpublished-dashboard-tooltip"
-            placement="bottom"
-            title={draftButtonTooltip}
-          >
-            <div>
-              <PublishedLabel
-                isPublished={isPublished}
-                onClick={this.togglePublished}
-              />
-            </div>
-          </Tooltip>
-        );
-      }
+  // Show everybody the draft badge
+  if (!isPublished) {
+    // if they can edit the dash, make the badge a button
+    if (userCanEdit && userCanSave) {
       return (
         <Tooltip
           id="unpublished-dashboard-tooltip"
           placement="bottom"
-          title={draftDivTooltip}
-        >
-          <div>
-            <PublishedLabel isPublished={isPublished} />
-          </div>
-        </Tooltip>
-      );
-    }
-
-    // Show the published badge for the owner of the dashboard to toggle
-    if (userCanEdit && userCanSave) {
-      return (
-        <Tooltip
-          id="published-dashboard-tooltip"
-          placement="bottom"
-          title={publishedTooltip}
+          title={draftButtonTooltip}
         >
           <div>
             <PublishedLabel
               isPublished={isPublished}
-              onClick={this.togglePublished}
+              onClick={togglePublished}
             />
           </div>
         </Tooltip>
       );
     }
-
-    // Don't show anything if one doesn't own the dashboard and it is published
-    return null;
+    return (
+      <Tooltip
+        id="unpublished-dashboard-tooltip"
+        placement="bottom"
+        title={draftDivTooltip}
+      >
+        <div>
+          <PublishedLabel isPublished={isPublished} />
+        </div>
+      </Tooltip>
+    );
   }
+
+  // Show the published badge for the owner of the dashboard to toggle
+  if (userCanEdit && userCanSave) {
+    return (
+      <Tooltip
+        id="published-dashboard-tooltip"
+        placement="bottom"
+        title={publishedTooltip}
+      >
+        <div>
+          <PublishedLabel isPublished={isPublished} onClick={togglePublished} />
+        </div>
+      </Tooltip>
+    );
+  }
+
+  // Don't show anything if one doesn't own the dashboard and it is published
+  return null;
 }

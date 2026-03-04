@@ -23,7 +23,8 @@ import {
   SuperChart,
   ContextMenuFilters,
 } from '@superset-ui/core';
-import { css } from '@apache-superset/core/ui';
+import { css, SupersetTheme } from '@apache-superset/core/ui';
+import { useTheme } from '@emotion/react';
 import { Dataset } from '../types';
 
 interface DrillByChartProps {
@@ -45,6 +46,7 @@ export default function DrillByChart({
   onContextMenu,
   inContextMenu,
 }: DrillByChartProps) {
+  const theme = useTheme() as SupersetTheme;
   const hooks = useMemo(() => ({ onContextMenu }), [onContextMenu]);
 
   return (
@@ -67,6 +69,7 @@ export default function DrillByChart({
         inContextMenu={inContextMenu}
         height="100%"
         width="100%"
+        theme={theme}
       />
     </div>
   );

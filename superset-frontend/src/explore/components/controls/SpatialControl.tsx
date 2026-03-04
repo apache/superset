@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Component, type ReactNode } from 'react';
+import { useState, useCallback, useEffect, type ReactNode } from 'react';
 import {
   Row,
   Col,
@@ -53,212 +53,219 @@ interface SpatialControlProps {
   value?: SpatialValue;
   animation?: boolean;
   choices?: [string, string][];
+  // ControlHeader props that may be passed through
+  name?: string;
+  label?: React.ReactNode;
+  description?: React.ReactNode;
 }
 
-interface SpatialControlState {
-  type: SpatialType;
-  delimiter: string;
-  latCol: string | undefined;
-  lonCol: string | undefined;
-  lonlatCol: string | undefined;
-  reverseCheckbox: boolean;
-  geohashCol: string | undefined;
-  value: SpatialValue | null;
-  errors: string[];
-}
+export default function SpatialControl({
+  onChange = () => {},
+  value: propValue,
+  choices = [],
+  name,
+  label,
+  description,
+}: SpatialControlProps): JSX.Element {
+  const v = propValue || ({} as SpatialValue);
+  const defaultCol = choices.length > 0 ? choices[0][0] : undefined;
 
-export default class SpatialControl extends Component<
-  SpatialControlProps,
-  SpatialControlState
-> {
-  static defaultProps = {
-    onChange: () => {},
-    animation: true,
-    choices: [],
-  };
+  const [type, setTypeState] = useState<SpatialType>(
+    v.type || spatialTypes.latlong,
+  );
+  const [delimiter, setDelimiter] = useState(v.delimiter || ',');
+  const [latCol, setLatCol] = useState<string | undefined>(
+    v.latCol || defaultCol,
+  );
+  const [lonCol, setLonCol] = useState<string | undefined>(
+    v.lonCol || defaultCol,
+  );
+  const [lonlatCol, setLonlatCol] = useState<string | undefined>(
+    v.lonlatCol || defaultCol,
+  );
+  const [reverseCheckbox, setReverseCheckbox] = useState(
+    v.reverseCheckbox || false,
+  );
+  const [geohashCol, setGeohashCol] = useState<string | undefined>(
+    v.geohashCol || defaultCol,
+  );
 
-  constructor(props: SpatialControlProps) {
-    super(props);
-    const v = props.value || ({} as SpatialValue);
-    let defaultCol: string | undefined;
-    if (props.choices && props.choices.length > 0) {
-      defaultCol = props.choices[0][0];
-    }
-    this.state = {
-      type: v.type || spatialTypes.latlong,
-      delimiter: v.delimiter || ',',
-      latCol: v.latCol || defaultCol,
-      lonCol: v.lonCol || defaultCol,
-      lonlatCol: v.lonlatCol || defaultCol,
-      reverseCheckbox: v.reverseCheckbox || false,
-      geohashCol: v.geohashCol || defaultCol,
-      value: null,
-      errors: [],
-    };
-  }
-
-  componentDidMount(): void {
-    this.onChange();
-  }
-
-  onChange = (): void => {
-    const { type } = this.state;
-    const value: SpatialValue = { type };
+  const computeValueAndErrors = useCallback((): {
+    value: SpatialValue;
+    errors: string[];
+  } => {
+    const computedValue: SpatialValue = { type };
     const errors: string[] = [];
     const errMsg = t('Invalid lat/long configuration.');
+
     if (type === spatialTypes.latlong) {
-      value.latCol = this.state.latCol;
-      value.lonCol = this.state.lonCol;
-      if (!value.lonCol || !value.latCol) {
+      computedValue.latCol = latCol;
+      computedValue.lonCol = lonCol;
+      if (!lonCol || !latCol) {
         errors.push(errMsg);
       }
     } else if (type === spatialTypes.delimited) {
-      value.lonlatCol = this.state.lonlatCol;
-      value.delimiter = this.state.delimiter;
-      value.reverseCheckbox = this.state.reverseCheckbox;
-      if (!value.lonlatCol || !value.delimiter) {
+      computedValue.lonlatCol = lonlatCol;
+      computedValue.delimiter = delimiter;
+      computedValue.reverseCheckbox = reverseCheckbox;
+      if (!lonlatCol || !delimiter) {
         errors.push(errMsg);
       }
     } else if (type === spatialTypes.geohash) {
-      value.geohashCol = this.state.geohashCol;
-      value.reverseCheckbox = this.state.reverseCheckbox;
-      if (!value.geohashCol) {
+      computedValue.geohashCol = geohashCol;
+      computedValue.reverseCheckbox = reverseCheckbox;
+      if (!geohashCol) {
         errors.push(errMsg);
       }
     }
-    this.setState({ value, errors });
-    this.props.onChange?.(value, errors);
-  };
 
-  setType = (type: SpatialType): void => {
-    this.setState({ type }, this.onChange);
-  };
+    return { value: computedValue, errors };
+  }, [type, latCol, lonCol, lonlatCol, delimiter, reverseCheckbox, geohashCol]);
 
-  toggleCheckbox = (): void => {
-    this.setState(
-      prevState => ({ reverseCheckbox: !prevState.reverseCheckbox }),
-      this.onChange,
-    );
-  };
+  useEffect(() => {
+    const { value: computedValue, errors } = computeValueAndErrors();
+    onChange(computedValue, errors);
+  }, [computeValueAndErrors, onChange]);
 
-  renderLabelContent(): string | null {
-    if (this.state.errors.length > 0) {
+  const setType = useCallback((newType: SpatialType): void => {
+    setTypeState(newType);
+  }, []);
+
+  const toggleCheckbox = useCallback((): void => {
+    setReverseCheckbox(prev => !prev);
+  }, []);
+
+  const { errors } = computeValueAndErrors();
+
+  const renderLabelContent = (): string | null => {
+    if (errors.length > 0) {
       return 'N/A';
     }
-    if (this.state.type === spatialTypes.latlong) {
-      return `${this.state.lonCol} | ${this.state.latCol}`;
+    if (type === spatialTypes.latlong) {
+      return `${lonCol} | ${latCol}`;
     }
-    if (this.state.type === spatialTypes.delimited) {
-      return `${this.state.lonlatCol}`;
+    if (type === spatialTypes.delimited) {
+      return `${lonlatCol}`;
     }
-    if (this.state.type === spatialTypes.geohash) {
-      return `${this.state.geohashCol}`;
+    if (type === spatialTypes.geohash) {
+      return `${geohashCol}`;
     }
     return null;
-  }
+  };
 
-  renderSelect(name: keyof SpatialControlState, type: SpatialType): ReactNode {
+  const renderSelect = (
+    name: 'latCol' | 'lonCol' | 'lonlatCol' | 'geohashCol' | 'delimiter',
+    selectType: SpatialType,
+  ): ReactNode => {
+    const stateMap: Record<string, string | undefined> = {
+      latCol,
+      lonCol,
+      lonlatCol,
+      geohashCol,
+      delimiter,
+    };
+    const setterMap: Record<
+      string,
+      React.Dispatch<React.SetStateAction<string | undefined>>
+    > = {
+      latCol: setLatCol,
+      lonCol: setLonCol,
+      lonlatCol: setLonlatCol,
+      geohashCol: setGeohashCol,
+      delimiter: setDelimiter as React.Dispatch<
+        React.SetStateAction<string | undefined>
+      >,
+    };
+
     return (
       <SelectControl
         ariaLabel={name}
         name={name}
-        choices={this.props.choices}
-        value={this.state[name] as string}
+        choices={choices}
+        value={stateMap[name]}
         clearable={false}
         onFocus={() => {
-          this.setType(type);
+          setType(selectType);
         }}
-        onChange={(value: string) => {
-          this.setState(
-            { [name]: value } as unknown as SpatialControlState,
-            this.onChange,
-          );
+        onChange={(selectValue: string) => {
+          setterMap[name](selectValue);
         }}
       />
     );
-  }
+  };
 
-  renderReverseCheckbox(): ReactNode {
-    return (
-      <span>
-        {t('Reverse lat/long ')}
-        <Checkbox
-          checked={this.state.reverseCheckbox}
-          onChange={this.toggleCheckbox}
-        />
-      </span>
-    );
-  }
+  const renderReverseCheckbox = (): ReactNode => (
+    <span>
+      {t('Reverse lat/long ')}
+      <Checkbox checked={reverseCheckbox} onChange={toggleCheckbox} />
+    </span>
+  );
 
-  renderPopoverContent(): ReactNode {
-    return (
-      <div style={{ width: '300px' }}>
-        <PopoverSection
-          title={t('Longitude & Latitude columns')}
-          isSelected={this.state.type === spatialTypes.latlong}
-          onSelect={() => this.setType(spatialTypes.latlong)}
-        >
-          <Row gutter={16}>
-            <Col xs={24} md={12}>
-              {t('Longitude')}
-              {this.renderSelect('lonCol', spatialTypes.latlong)}
-            </Col>
-            <Col xs={24} md={12}>
-              {t('Latitude')}
-              {this.renderSelect('latCol', spatialTypes.latlong)}
-            </Col>
-          </Row>
-        </PopoverSection>
-        <PopoverSection
-          title={t('Delimited long & lat single column')}
-          info={t(
-            'Multiple formats accepted, look the geopy.points ' +
-              'Python library for more details',
-          )}
-          isSelected={this.state.type === spatialTypes.delimited}
-          onSelect={() => this.setType(spatialTypes.delimited)}
-        >
-          <Row gutter={16}>
-            <Col xs={24} md={12}>
-              {t('Column')}
-              {this.renderSelect('lonlatCol', spatialTypes.delimited)}
-            </Col>
-            <Col xs={24} md={12}>
-              {this.renderReverseCheckbox()}
-            </Col>
-          </Row>
-        </PopoverSection>
-        <PopoverSection
-          title={t('Geohash')}
-          isSelected={this.state.type === spatialTypes.geohash}
-          onSelect={() => this.setType(spatialTypes.geohash)}
-        >
-          <Row gutter={16}>
-            <Col xs={24} md={12}>
-              {t('Column')}
-              {this.renderSelect('geohashCol', spatialTypes.geohash)}
-            </Col>
-            <Col xs={24} md={12}>
-              {this.renderReverseCheckbox()}
-            </Col>
-          </Row>
-        </PopoverSection>
-      </div>
-    );
-  }
+  const renderPopoverContent = (): ReactNode => (
+    <div style={{ width: '300px' }}>
+      <PopoverSection
+        title={t('Longitude & Latitude columns')}
+        isSelected={type === spatialTypes.latlong}
+        onSelect={() => setType(spatialTypes.latlong)}
+      >
+        <Row gutter={16}>
+          <Col xs={24} md={12}>
+            {t('Longitude')}
+            {renderSelect('lonCol', spatialTypes.latlong)}
+          </Col>
+          <Col xs={24} md={12}>
+            {t('Latitude')}
+            {renderSelect('latCol', spatialTypes.latlong)}
+          </Col>
+        </Row>
+      </PopoverSection>
+      <PopoverSection
+        title={t('Delimited long & lat single column')}
+        info={t(
+          'Multiple formats accepted, look the geopy.points ' +
+            'Python library for more details',
+        )}
+        isSelected={type === spatialTypes.delimited}
+        onSelect={() => setType(spatialTypes.delimited)}
+      >
+        <Row gutter={16}>
+          <Col xs={24} md={12}>
+            {t('Column')}
+            {renderSelect('lonlatCol', spatialTypes.delimited)}
+          </Col>
+          <Col xs={24} md={12}>
+            {renderReverseCheckbox()}
+          </Col>
+        </Row>
+      </PopoverSection>
+      <PopoverSection
+        title={t('Geohash')}
+        isSelected={type === spatialTypes.geohash}
+        onSelect={() => setType(spatialTypes.geohash)}
+      >
+        <Row gutter={16}>
+          <Col xs={24} md={12}>
+            {t('Column')}
+            {renderSelect('geohashCol', spatialTypes.geohash)}
+          </Col>
+          <Col xs={24} md={12}>
+            {renderReverseCheckbox()}
+          </Col>
+        </Row>
+      </PopoverSection>
+    </div>
+  );
 
-  render(): ReactNode {
-    return (
-      <div>
-        <ControlHeader {...this.props} />
-        <Popover
-          content={this.renderPopoverContent()}
-          placement="topLeft"
-          trigger="click"
-        >
-          <Label className="pointer">{this.renderLabelContent()}</Label>
-        </Popover>
-      </div>
-    );
-  }
+  return (
+    <div>
+      <ControlHeader name={name} label={label} description={description} />
+      <Popover
+        content={renderPopoverContent()}
+        placement="topLeft"
+        trigger="click"
+      >
+        <Label className="pointer">{renderLabelContent()}</Label>
+      </Popover>
+    </div>
+  );
 }

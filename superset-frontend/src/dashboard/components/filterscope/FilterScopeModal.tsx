@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { createRef, PureComponent } from 'react';
+import { useRef, useCallback } from 'react';
 import { styled } from '@apache-superset/core/ui';
 import {
   ModalTrigger,
@@ -33,39 +33,29 @@ const FilterScopeModalBody = styled.div(({ theme: { sizeUnit } }) => ({
   paddingBottom: sizeUnit * 3,
 }));
 
-export default class FilterScopeModal extends PureComponent<
-  FilterScopeModalProps,
-  {}
-> {
-  modal: ModalTriggerRef;
+export default function FilterScopeModal({
+  triggerNode,
+}: FilterScopeModalProps) {
+  const modalRef = useRef<ModalTriggerRef['current']>(null);
 
-  constructor(props: FilterScopeModalProps) {
-    super(props);
+  const handleCloseModal = useCallback((): void => {
+    modalRef.current?.close?.();
+  }, []);
 
-    this.modal = createRef() as ModalTriggerRef;
-    this.handleCloseModal = this.handleCloseModal.bind(this);
-  }
+  const filterScopeProps = {
+    onCloseModal: handleCloseModal,
+  };
 
-  handleCloseModal(): void {
-    this?.modal?.current?.close?.();
-  }
-
-  render() {
-    const filterScopeProps = {
-      onCloseModal: this.handleCloseModal,
-    };
-
-    return (
-      <ModalTrigger
-        ref={this.modal}
-        triggerNode={this.props.triggerNode}
-        modalBody={
-          <FilterScopeModalBody>
-            <FilterScope {...filterScopeProps} />
-          </FilterScopeModalBody>
-        }
-        width="80%"
-      />
-    );
-  }
+  return (
+    <ModalTrigger
+      ref={modalRef}
+      triggerNode={triggerNode}
+      modalBody={
+        <FilterScopeModalBody>
+          <FilterScope {...filterScopeProps} />
+        </FilterScopeModalBody>
+      }
+      width="80%"
+    />
+  );
 }

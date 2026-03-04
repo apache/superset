@@ -16,15 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { PureComponent, ReactNode } from 'react';
+import { ReactNode, useState, useEffect, useCallback, useMemo } from 'react';
 import rison from 'rison';
 import { t } from '@apache-superset/core';
 import { isDefined, JsonResponse, SupersetClient } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
-import { withTheme, Theme } from '@emotion/react';
+import { styled, useTheme } from '@apache-superset/core/ui';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { FilterPlugins, URL_PARAMS } from 'src/constants';
-import { Link, withRouter, RouteComponentProps } from 'react-router-dom';
+import { Link, useHistory } from 'react-router-dom';
 import {
   AsyncSelect,
   Button,
@@ -45,19 +44,10 @@ import {
 } from 'src/features/datasets/DatasetSelectLabel';
 import { Icons } from '@superset-ui/core/components/Icons';
 
-export interface ChartCreationProps extends RouteComponentProps {
+export interface ChartCreationProps {
   user: UserWithPermissionsAndRoles;
   addSuccessToast: (arg: string) => void;
-  theme: Theme;
 }
-
-export type ChartCreationState = {
-  datasource?: { label: string | ReactNode; value: string };
-  datasetName?: string | string[] | null;
-  vizType: string | null;
-  canCreateDataset: boolean;
-  loading: boolean;
-};
 
 const ESTIMATED_NAV_HEIGHT = 56;
 const ELEMENTS_EXCEPT_VIZ_GALLERY = ESTIMATED_NAV_HEIGHT + 250;
@@ -173,217 +163,214 @@ const StyledStepDescription = styled.div`
   `}
 `;
 
-export class ChartCreation extends PureComponent<
-  ChartCreationProps,
-  ChartCreationState
-> {
-  constructor(props: ChartCreationProps) {
-    super(props);
-    const hasDatasetParam = new URLSearchParams(window.location.search).has(
-      'dataset',
-    );
-    this.state = {
-      vizType: null,
-      canCreateDataset: findPermission(
-        'can_write',
-        'Dataset',
-        props.user.roles,
-      ),
-      loading: hasDatasetParam,
-    };
+export const ChartCreation = ({
+  user,
+  addSuccessToast,
+}: ChartCreationProps) => {
+  const theme = useTheme();
+  const history = useHistory();
 
-    this.changeDatasource = this.changeDatasource.bind(this);
-    this.changeVizType = this.changeVizType.bind(this);
-    this.gotoSlice = this.gotoSlice.bind(this);
-    this.loadDatasources = this.loadDatasources.bind(this);
-    this.onVizTypeDoubleClick = this.onVizTypeDoubleClick.bind(this);
-  }
+  const canCreateDataset = useMemo(
+    () => findPermission('can_write', 'Dataset', user.roles),
+    [user.roles],
+  );
 
-  componentDidMount() {
-    const params = new URLSearchParams(window.location.search).get('dataset');
-    if (params) {
-      this.loadDatasources(params, 0, 1, true)
-        .then(r => {
-          const datasource = r.data[0];
-          this.setState({ datasource, loading: false });
-        })
-        .catch(() => {
-          this.setState({ loading: false });
-        });
-      this.props.addSuccessToast(t('The dataset has been saved'));
-    }
-  }
+  const hasDatasetParam = useMemo(
+    () => new URLSearchParams(window.location.search).has('dataset'),
+    [],
+  );
 
-  exploreUrl() {
+  const [datasource, setDatasource] = useState<
+    { label: string | ReactNode; value: string } | undefined
+  >(undefined);
+  const [vizType, setVizType] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(hasDatasetParam);
+
+  const exploreUrl = useCallback(() => {
     const dashboardId = getUrlParam(URL_PARAMS.dashboardId);
-    let url = `/explore/?viz_type=${this.state.vizType}&datasource=${this.state.datasource?.value}`;
+    let url = `/explore/?viz_type=${vizType}&datasource=${datasource?.value}`;
     if (isDefined(dashboardId)) {
       url += `&dashboard_id=${dashboardId}`;
     }
     return url;
-  }
+  }, [vizType, datasource?.value]);
 
-  gotoSlice() {
-    this.props.history.push(this.exploreUrl());
-  }
+  const gotoSlice = useCallback(() => {
+    history.push(exploreUrl());
+  }, [history, exploreUrl]);
 
-  changeDatasource(datasource: { label: string | ReactNode; value: string }) {
-    this.setState({ datasource });
-  }
+  const changeDatasource = useCallback(
+    (newDatasource: { label: string | ReactNode; value: string }) => {
+      setDatasource(newDatasource);
+    },
+    [],
+  );
 
-  changeVizType(vizType: string | null) {
-    this.setState({ vizType });
-  }
+  const changeVizType = useCallback((newVizType: string | null) => {
+    setVizType(newVizType);
+  }, []);
 
-  isBtnDisabled() {
-    return !(this.state.datasource?.value && this.state.vizType);
-  }
+  const isBtnDisabled = useCallback(
+    () => !(datasource?.value && vizType),
+    [datasource?.value, vizType],
+  );
 
-  onVizTypeDoubleClick() {
-    if (!this.isBtnDisabled()) {
-      this.gotoSlice();
+  const onVizTypeDoubleClick = useCallback(() => {
+    if (!isBtnDisabled()) {
+      gotoSlice();
     }
-  }
+  }, [isBtnDisabled, gotoSlice]);
 
-  loadDatasources(
-    search: string,
-    page: number,
-    pageSize: number,
-    exactMatch = false,
-  ) {
-    const query = rison.encode({
-      columns: [
-        'id',
-        'table_name',
-        'datasource_type',
-        'database.database_name',
-        'schema',
-      ],
-      filters: [
-        { col: 'table_name', opr: exactMatch ? 'eq' : 'ct', value: search },
-      ],
-      page,
-      page_size: pageSize,
-      order_column: 'table_name',
-      order_direction: 'asc',
-    });
-    return SupersetClient.get({
-      endpoint: `/api/v1/dataset/?q=${query}`,
-    }).then((response: JsonResponse) => {
-      const list: {
-        id: number;
-        label: string | ReactNode;
-        value: string;
-        table_name: string;
-      }[] = response.json.result.map((item: Dataset) => ({
-        id: item.id,
-        value: `${item.id}__${item.datasource_type}`,
-        label: DatasetSelectLabel(item),
-        table_name: item.table_name,
-      }));
-      return {
-        data: list,
-        totalCount: response.json.count,
-      };
-    });
-  }
+  const loadDatasources = useCallback(
+    (search: string, page: number, pageSize: number, exactMatch = false) => {
+      const query = rison.encode({
+        columns: [
+          'id',
+          'table_name',
+          'datasource_type',
+          'database.database_name',
+          'schema',
+        ],
+        filters: [
+          { col: 'table_name', opr: exactMatch ? 'eq' : 'ct', value: search },
+        ],
+        page,
+        page_size: pageSize,
+        order_column: 'table_name',
+        order_direction: 'asc',
+      });
+      return SupersetClient.get({
+        endpoint: `/api/v1/dataset/?q=${query}`,
+      }).then((response: JsonResponse) => {
+        const list: {
+          id: number;
+          label: string | ReactNode;
+          value: string;
+          table_name: string;
+        }[] = response.json.result.map((item: Dataset) => ({
+          id: item.id,
+          value: `${item.id}__${item.datasource_type}`,
+          label: DatasetSelectLabel(item),
+          table_name: item.table_name,
+        }));
+        return {
+          data: list,
+          totalCount: response.json.count,
+        };
+      });
+    },
+    [],
+  );
 
-  render() {
-    const { theme } = this.props;
-    const isButtonDisabled = this.isBtnDisabled();
-    const VIEW_INSTRUCTIONS_TEXT = t('view instructions');
-    const datasetHelpText = this.state.canCreateDataset ? (
-      <span data-test="dataset-write">
-        <Link to="/dataset/add/" data-test="add-chart-new-dataset">
-          {t('Add a dataset')}
-        </Link>{' '}
-        {t('or')}{' '}
-        <a
-          href="https://superset.apache.org/docs/creating-charts-dashboards/creating-your-first-dashboard/#registering-a-new-table"
-          rel="noopener noreferrer"
-          target="_blank"
-          data-test="add-chart-new-dataset-instructions"
-        >
-          {`${VIEW_INSTRUCTIONS_TEXT} `}
-          <Icons.Full iconSize="m" iconColor={theme.colorPrimary} />
-        </a>
-        .
-      </span>
-    ) : (
-      <span data-test="no-dataset-write">
-        <a
-          href="https://superset.apache.org/docs/creating-charts-dashboards/creating-your-first-dashboard/#registering-a-new-table"
-          rel="noopener noreferrer"
-          target="_blank"
-        >
-          {`${VIEW_INSTRUCTIONS_TEXT} `}
-          <Icons.Full iconSize="m" iconColor={theme.colorPrimary} />
-        </a>
-        .
-      </span>
-    );
-
-    if (this.state.loading) {
-      return <Loading />;
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search).get('dataset');
+    if (params) {
+      loadDatasources(params, 0, 1, true)
+        .then(r => {
+          const newDatasource = r.data[0];
+          setDatasource(newDatasource);
+          setLoading(false);
+        })
+        .catch(() => {
+          setLoading(false);
+        });
+      addSuccessToast(t('The dataset has been saved'));
     }
+  }, [loadDatasources, addSuccessToast]);
 
-    return (
-      <StyledContainer>
-        <h3>{t('Create a new chart')}</h3>
-        <Steps direction="vertical" size="small">
-          <Steps.Step
-            title={<StyledStepTitle>{t('Choose a dataset')}</StyledStepTitle>}
-            status={this.state.datasource?.value ? 'finish' : 'process'}
-            description={
-              <StyledStepDescription className="dataset">
-                <AsyncSelect
-                  autoFocus
-                  ariaLabel={t('Dataset')}
-                  name="select-datasource"
-                  onChange={this.changeDatasource}
-                  options={this.loadDatasources}
-                  optionFilterProps={['id', 'table_name']}
-                  placeholder={t('Choose a dataset')}
-                  showSearch
-                  value={this.state.datasource}
-                />
-                {datasetHelpText}
-              </StyledStepDescription>
-            }
-          />
-          <Steps.Step
-            title={<StyledStepTitle>{t('Choose chart type')}</StyledStepTitle>}
-            status={this.state.vizType ? 'finish' : 'process'}
-            description={
-              <StyledStepDescription>
-                <VizTypeGallery
-                  denyList={denyList}
-                  className="viz-gallery"
-                  onChange={this.changeVizType}
-                  onDoubleClick={this.onVizTypeDoubleClick}
-                  selectedViz={this.state.vizType}
-                />
-              </StyledStepDescription>
-            }
-          />
-        </Steps>
-        <div className="footer">
-          {isButtonDisabled && (
-            <span>
-              {t('Please select both a Dataset and a Chart type to proceed')}
-            </span>
-          )}
-          <Button
-            buttonStyle="primary"
-            disabled={isButtonDisabled}
-            onClick={this.gotoSlice}
-          >
-            {t('Create new chart')}
-          </Button>
-        </div>
-      </StyledContainer>
-    );
+  const isButtonDisabled = isBtnDisabled();
+  const VIEW_INSTRUCTIONS_TEXT = t('view instructions');
+  const datasetHelpText = canCreateDataset ? (
+    <span data-test="dataset-write">
+      <Link to="/dataset/add/" data-test="add-chart-new-dataset">
+        {t('Add a dataset')}
+      </Link>{' '}
+      {t('or')}{' '}
+      <a
+        href="https://superset.apache.org/docs/creating-charts-dashboards/creating-your-first-dashboard/#registering-a-new-table"
+        rel="noopener noreferrer"
+        target="_blank"
+        data-test="add-chart-new-dataset-instructions"
+      >
+        {`${VIEW_INSTRUCTIONS_TEXT} `}
+        <Icons.Full iconSize="m" iconColor={theme.colorPrimary} />
+      </a>
+      .
+    </span>
+  ) : (
+    <span data-test="no-dataset-write">
+      <a
+        href="https://superset.apache.org/docs/creating-charts-dashboards/creating-your-first-dashboard/#registering-a-new-table"
+        rel="noopener noreferrer"
+        target="_blank"
+      >
+        {`${VIEW_INSTRUCTIONS_TEXT} `}
+        <Icons.Full iconSize="m" iconColor={theme.colorPrimary} />
+      </a>
+      .
+    </span>
+  );
+
+  if (loading) {
+    return <Loading />;
   }
-}
 
-export default withRouter(withToasts(withTheme(ChartCreation)));
+  return (
+    <StyledContainer>
+      <h3>{t('Create a new chart')}</h3>
+      <Steps direction="vertical" size="small">
+        <Steps.Step
+          title={<StyledStepTitle>{t('Choose a dataset')}</StyledStepTitle>}
+          status={datasource?.value ? 'finish' : 'process'}
+          description={
+            <StyledStepDescription className="dataset">
+              <AsyncSelect
+                autoFocus
+                ariaLabel={t('Dataset')}
+                name="select-datasource"
+                onChange={changeDatasource}
+                options={loadDatasources}
+                optionFilterProps={['id', 'table_name']}
+                placeholder={t('Choose a dataset')}
+                showSearch
+                value={datasource}
+              />
+              {datasetHelpText}
+            </StyledStepDescription>
+          }
+        />
+        <Steps.Step
+          title={<StyledStepTitle>{t('Choose chart type')}</StyledStepTitle>}
+          status={vizType ? 'finish' : 'process'}
+          description={
+            <StyledStepDescription>
+              <VizTypeGallery
+                denyList={denyList}
+                className="viz-gallery"
+                onChange={changeVizType}
+                onDoubleClick={onVizTypeDoubleClick}
+                selectedViz={vizType}
+              />
+            </StyledStepDescription>
+          }
+        />
+      </Steps>
+      <div className="footer">
+        {isButtonDisabled && (
+          <span>
+            {t('Please select both a Dataset and a Chart type to proceed')}
+          </span>
+        )}
+        <Button
+          buttonStyle="primary"
+          disabled={isButtonDisabled}
+          onClick={gotoSlice}
+        >
+          {t('Create new chart')}
+        </Button>
+      </div>
+    </StyledContainer>
+  );
+};
+
+export default withToasts(ChartCreation);

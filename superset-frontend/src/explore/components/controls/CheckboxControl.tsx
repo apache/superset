@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Component, type ReactNode } from 'react';
+import { useCallback, type ReactNode } from 'react';
 import { styled, css } from '@apache-superset/core/ui';
 import { Checkbox } from '@superset-ui/core/components';
 import ControlHeader from '../ControlHeader';
@@ -47,32 +47,29 @@ const CheckBoxControlWrapper = styled.div`
   `}
 `;
 
-export default class CheckboxControl extends Component<CheckboxControlProps> {
-  static defaultProps = {
-    value: false,
-    onChange: () => {},
-  };
+export default function CheckboxControl({
+  value = false,
+  label,
+  onChange = () => {},
+  ...restProps
+}: CheckboxControlProps): JSX.Element {
+  const handleChange = useCallback((): void => {
+    onChange(!value);
+  }, [onChange, value]);
 
-  onChange = (): void => {
-    this.props.onChange?.(!this.props.value);
-  };
+  const checkbox = <Checkbox onChange={handleChange} checked={!!value} />;
 
-  renderCheckbox(): ReactNode {
-    return <Checkbox onChange={this.onChange} checked={!!this.props.value} />;
+  if (label) {
+    return (
+      <CheckBoxControlWrapper>
+        <ControlHeader
+          {...restProps}
+          label={label}
+          leftNode={checkbox}
+          onClick={handleChange}
+        />
+      </CheckBoxControlWrapper>
+    );
   }
-
-  render(): ReactNode {
-    if (this.props.label) {
-      return (
-        <CheckBoxControlWrapper>
-          <ControlHeader
-            {...this.props}
-            leftNode={this.renderCheckbox()}
-            onClick={this.onChange}
-          />
-        </CheckBoxControlWrapper>
-      );
-    }
-    return this.renderCheckbox();
-  }
+  return checkbox;
 }

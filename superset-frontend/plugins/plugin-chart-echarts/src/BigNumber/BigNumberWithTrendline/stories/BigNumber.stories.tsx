@@ -17,6 +17,7 @@
  * under the License.
  */
 import { SuperChart, VizType } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/ui';
 import { BigNumberChartPlugin } from '@superset-ui/plugin-chart-echarts';
 import { withResizableChartDemo } from '@storybook-shared';
 import testData from './data';
@@ -99,6 +100,7 @@ export const BasicWithTrendline = ({
   yAxisFormat: string;
 }) => (
   <SuperChart
+    theme={supersetTheme}
     chartType="big-number"
     width={width}
     height={height}
@@ -116,6 +118,7 @@ export const BasicWithTrendline = ({
 
 export const weeklyTimeGranularity = () => (
   <SuperChart
+    theme={supersetTheme}
     chartType="big-number"
     width={400}
     height={400}
@@ -129,6 +132,7 @@ export const weeklyTimeGranularity = () => (
 
 export const nullInTheMiddle = () => (
   <SuperChart
+    theme={supersetTheme}
     chartType="big-number"
     width={400}
     height={400}
@@ -139,6 +143,7 @@ export const nullInTheMiddle = () => (
 
 export const fixedRange = () => (
   <SuperChart
+    theme={supersetTheme}
     chartType="big-number"
     width={400}
     height={400}
@@ -158,6 +163,7 @@ export const fixedRange = () => (
 
 export const noFixedRange = () => (
   <SuperChart
+    theme={supersetTheme}
     chartType="big-number"
     width={400}
     height={400}

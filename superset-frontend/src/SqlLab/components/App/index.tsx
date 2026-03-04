@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { PureComponent } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { connect } from 'react-redux';
 import { Redirect } from 'react-router-dom';
 import Mousetrap from 'mousetrap';
@@ -103,59 +103,85 @@ const SqlLabStyles = styled.div`
   `};
 `;
 
-type PureProps = {
-  // add this for testing componentDidUpdate spec
-  updated?: boolean;
-};
+type AppProps = ReturnType<typeof mergeProps>;
 
-type AppProps = ReturnType<typeof mergeProps> & PureProps;
+function App({
+  actions,
+  localStorageUsageInKilobytes,
+  queries,
+  queriesLastUpdate,
+}: AppProps) {
+  const [hash, setHash] = useState(window.location.hash);
+  const hasLoggedLocalStorageUsageRef = useRef(false);
 
-interface AppState {
-  hash: string;
-}
+  const showLocalStorageUsageWarning = useMemo(
+    () =>
+      throttle(
+        (currentUsage: number, queryCount: number) => {
+          actions.addDangerToast(
+            t(
+              "SQL Lab uses your browser's local storage to store queries and results." +
+                '\nCurrently, you are using %(currentUsage)s KB out of %(maxStorage)d KB storage space.' +
+                '\nTo keep SQL Lab from crashing, please delete some query tabs.' +
+                '\nYou can re-access these queries by using the Save feature before you delete the tab.' +
+                '\nNote that you will need to close other SQL Lab windows before you do this.',
+              {
+                currentUsage: currentUsage.toFixed(2),
+                maxStorage: LOCALSTORAGE_MAX_USAGE_KB,
+              },
+            ),
+          );
+          const eventData = {
+            current_usage: currentUsage,
+            query_count: queryCount,
+          };
+          actions.logEvent(
+            LOG_ACTIONS_SQLLAB_WARN_LOCAL_STORAGE_USAGE,
+            eventData,
+          );
+        },
+        LOCALSTORAGE_WARNING_MESSAGE_THROTTLE_MS,
+        { trailing: false },
+      ),
+    [actions],
+  );
 
-class App extends PureComponent<AppProps, AppState> {
-  hasLoggedLocalStorageUsage: boolean;
+  const onHashChanged = useCallback(() => {
+    setHash(window.location.hash);
+  }, []);
 
-  private boundOnHashChanged: () => void;
-
-  constructor(props: AppProps) {
-    super(props);
-    this.state = {
-      hash: window.location.hash,
-    };
-
-    this.boundOnHashChanged = this.onHashChanged.bind(this);
-
-    this.showLocalStorageUsageWarning = throttle(
-      this.showLocalStorageUsageWarning,
-      LOCALSTORAGE_WARNING_MESSAGE_THROTTLE_MS,
-      { trailing: false },
-    );
-  }
-
-  componentDidMount() {
-    window.addEventListener('hashchange', this.boundOnHashChanged);
+  // componentDidMount and componentWillUnmount
+  useEffect(() => {
+    window.addEventListener('hashchange', onHashChanged);
 
     // Horrible hack to disable side swipe navigation when in SQL Lab. Even though the
     // docs say setting this style on any div will prevent it, turns out it only works
     // when set on the body element.
     document.body.style.overscrollBehaviorX = 'none';
-  }
 
-  componentDidUpdate() {
-    const { localStorageUsageInKilobytes, actions, queries } = this.props;
+    return () => {
+      window.removeEventListener('hashchange', onHashChanged);
+
+      // And we need to reset the overscroll behavior back to the default.
+      document.body.style.overscrollBehaviorX = 'auto';
+
+      Mousetrap.reset();
+    };
+  }, [onHashChanged]);
+
+  // componentDidUpdate - check local storage usage
+  useEffect(() => {
     const queryCount = Object.keys(queries || {}).length || 0;
     if (
       localStorageUsageInKilobytes >=
       LOCALSTORAGE_WARNING_THRESHOLD * LOCALSTORAGE_MAX_USAGE_KB
     ) {
-      this.showLocalStorageUsageWarning(
-        localStorageUsageInKilobytes,
-        queryCount,
-      );
+      showLocalStorageUsageWarning(localStorageUsageInKilobytes, queryCount);
     }
-    if (localStorageUsageInKilobytes > 0 && !this.hasLoggedLocalStorageUsage) {
+    if (
+      localStorageUsageInKilobytes > 0 &&
+      !hasLoggedLocalStorageUsageRef.current
+    ) {
       const eventData = {
         current_usage: localStorageUsageInKilobytes,
         query_count: queryCount,
@@ -164,72 +190,38 @@ class App extends PureComponent<AppProps, AppState> {
         LOG_ACTIONS_SQLLAB_MONITOR_LOCAL_STORAGE_USAGE,
         eventData,
       );
-      this.hasLoggedLocalStorageUsage = true;
+      hasLoggedLocalStorageUsageRef.current = true;
     }
-  }
+  }, [
+    localStorageUsageInKilobytes,
+    queries,
+    actions,
+    showLocalStorageUsageWarning,
+  ]);
 
-  componentWillUnmount() {
-    window.removeEventListener('hashchange', this.boundOnHashChanged);
-
-    // And now we need to reset the overscroll behavior back to the default.
-    document.body.style.overscrollBehaviorX = 'auto';
-
-    Mousetrap.reset();
-  }
-
-  onHashChanged() {
-    this.setState({ hash: window.location.hash });
-  }
-
-  showLocalStorageUsageWarning(currentUsage: number, queryCount: number) {
-    this.props.actions.addDangerToast(
-      t(
-        "SQL Lab uses your browser's local storage to store queries and results." +
-          '\nCurrently, you are using %(currentUsage)s KB out of %(maxStorage)d KB storage space.' +
-          '\nTo keep SQL Lab from crashing, please delete some query tabs.' +
-          '\nYou can re-access these queries by using the Save feature before you delete the tab.' +
-          '\nNote that you will need to close other SQL Lab windows before you do this.',
-        {
-          currentUsage: currentUsage.toFixed(2),
-          maxStorage: LOCALSTORAGE_MAX_USAGE_KB,
-        },
-      ),
-    );
-    const eventData = {
-      current_usage: currentUsage,
-      query_count: queryCount,
-    };
-    this.props.actions.logEvent(
-      LOG_ACTIONS_SQLLAB_WARN_LOCAL_STORAGE_USAGE,
-      eventData,
-    );
-  }
-
-  render() {
-    const { queries, queriesLastUpdate } = this.props;
-    if (this.state.hash && this.state.hash === '#search') {
-      return (
-        <Redirect
-          to={{
-            pathname: '/sqllab/history/',
-          }}
-        />
-      );
-    }
+  if (hash && hash === '#search') {
     return (
-      <SqlLabStyles data-test="SqlLabApp" className="App SqlLab">
-        <QueryAutoRefresh
-          queries={queries}
-          queriesLastUpdate={queriesLastUpdate}
-        />
-        <PopEditorTab>
-          <AppLayout>
-            <TabbedSqlEditors />
-          </AppLayout>
-        </PopEditorTab>
-      </SqlLabStyles>
+      <Redirect
+        to={{
+          pathname: '/sqllab/history/',
+        }}
+      />
     );
   }
+
+  return (
+    <SqlLabStyles data-test="SqlLabApp" className="App SqlLab">
+      <QueryAutoRefresh
+        queries={queries}
+        queriesLastUpdate={queriesLastUpdate}
+      />
+      <PopEditorTab>
+        <AppLayout>
+          <TabbedSqlEditors />
+        </AppLayout>
+      </PopEditorTab>
+    </SqlLabStyles>
+  );
 }
 
 function mapStateToProps(state: SqlLabRootState) {
@@ -250,10 +242,8 @@ const mapDispatchToProps = {
 function mergeProps(
   stateProps: ReturnType<typeof mapStateToProps>,
   dispatchProps: typeof mapDispatchToProps,
-  state: PureProps,
 ) {
   return {
-    ...state,
     ...stateProps,
     actions: dispatchProps,
   };

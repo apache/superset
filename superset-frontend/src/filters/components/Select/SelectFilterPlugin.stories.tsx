@@ -19,6 +19,7 @@
 import { action } from '@storybook/addon-actions';
 import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
 import { mockQueryDataForCountries } from 'spec/fixtures/mockNativeFilters';
+import { supersetTheme } from '@apache-superset/core/ui';
 import SelectFilterPlugin from './index';
 import transformProps from './transformProps';
 
@@ -52,6 +53,7 @@ export const Select = ({
     chartType="filter_select"
     width={width}
     height={height}
+    theme={supersetTheme}
     queriesData={[{ data: mockQueryDataForCountries }]}
     formData={{
       adhoc_filters: [],

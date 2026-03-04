@@ -20,6 +20,7 @@
 /* eslint-disable sort-keys */
 /* eslint-disable no-magic-numbers */
 import { SuperChart } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/ui';
 import { useTheme } from '@apache-superset/core/ui';
 import { PathChartPlugin } from '@superset-ui/legacy-preset-chart-deckgl';
 import { withResizableChartDemo, dummyDatasource } from '@storybook-shared';
@@ -57,6 +58,7 @@ export const PathChartViz = ({
   const theme = useTheme();
   return (
     <SuperChart
+      theme={supersetTheme}
       chartType="deck_path"
       width={width}
       height={height}

@@ -16,7 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useEffect, FC, PureComponent, useMemo } from 'react';
+import {
+  useState,
+  useEffect,
+  FC,
+  useMemo,
+  ReactNode,
+  Component,
+  ErrorInfo,
+} from 'react';
 import rison from 'rison';
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
@@ -533,11 +541,11 @@ const RightMenu = ({
               style: { height: 'auto', minHeight: 'auto' },
               label: (
                 <div
-                  css={(theme: SupersetTheme) => css`
-                    font-size: ${theme.fontSizeSM}px;
-                    color: ${theme.colorTextSecondary || theme.colorText};
+                  css={(themeArg: SupersetTheme) => css`
+                    font-size: ${themeArg.fontSizeSM}px;
+                    color: ${themeArg.colorTextSecondary || themeArg.colorText};
                     white-space: pre-wrap;
-                    padding: ${theme.sizeUnit}px ${theme.sizeUnit * 2}px;
+                    padding: ${themeArg.sizeUnit}px ${themeArg.sizeUnit * 2}px;
                   `}
                 >
                   {[
@@ -780,23 +788,39 @@ const RightMenuWithQueryWrapper: FC<RightMenuProps> = props => {
 // Superset still has multiple entry points, and not all of them have
 // the same setup, and critically, not all of them have the QueryParamProvider.
 // This wrapper ensures the RightMenu renders regardless of the provider being present.
-class RightMenuErrorWrapper extends PureComponent<RightMenuProps> {
-  state = {
-    hasError: false,
-  };
+// Note: Error boundaries require class components in React - there is no hooks equivalent
+// for getDerivedStateFromError and componentDidCatch.
+interface RightMenuErrorWrapperState {
+  hasError: boolean;
+}
 
-  static getDerivedStateFromError() {
+// eslint-disable-next-line react-prefer-function-component/react-prefer-function-component -- componentDidCatch requires class component
+class RightMenuErrorWrapper extends Component<
+  RightMenuProps & { children?: ReactNode },
+  RightMenuErrorWrapperState
+> {
+  constructor(props: RightMenuProps & { children?: ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(): RightMenuErrorWrapperState {
     return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
+    console.error('RightMenu error caught:', error, errorInfo);
   }
 
   noop = () => {};
 
   render() {
+    const { children, ...rightMenuProps } = this.props;
     if (this.state.hasError) {
-      return <RightMenu setQuery={this.noop} {...this.props} />;
+      return <RightMenu setQuery={this.noop} {...rightMenuProps} />;
     }
 
-    return this.props.children;
+    return children;
   }
 }
 

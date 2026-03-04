@@ -24,6 +24,7 @@ import { triggerResizeObserver } from 'resize-observer-polyfill';
 import { ErrorBoundary } from 'react-error-boundary';
 
 import { promiseTimeout, SuperChart } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/ui';
 import { WrapperProps } from '../../../src/chart/components/SuperChart';
 
 import {
@@ -118,6 +119,7 @@ describe('SuperChart', () => {
           queriesData={[DEFAULT_QUERY_DATA]}
           width="200"
           height="200"
+          theme={supersetTheme}
         />,
       );
 
@@ -138,6 +140,7 @@ describe('SuperChart', () => {
           queriesData={[DEFAULT_QUERY_DATA]}
           width="200"
           height="200"
+          theme={supersetTheme}
           FallbackComponent={CustomFallbackComponent}
         />,
       );
@@ -154,6 +157,7 @@ describe('SuperChart', () => {
           queriesData={[DEFAULT_QUERY_DATA]}
           width="200"
           height="200"
+          theme={supersetTheme}
           onErrorBoundary={handleError}
         />,
       );
@@ -178,6 +182,7 @@ describe('SuperChart', () => {
             queriesData={[DEFAULT_QUERY_DATA]}
             width="200"
             height="200"
+            theme={supersetTheme}
             onErrorBoundary={inactiveErrorHandler}
           />
         </ErrorBoundary>,
@@ -205,6 +210,7 @@ describe('SuperChart', () => {
         queriesData={[DEFAULT_QUERY_DATA]}
         width={101}
         height={118}
+        theme={supersetTheme}
         formData={{ abc: 1 }}
       />,
     );
@@ -285,6 +291,7 @@ describe('SuperChart', () => {
         debounceTime={1}
         width="100%"
         height="100%"
+        theme={supersetTheme}
       />,
     );
 
@@ -332,6 +339,7 @@ describe('SuperChart', () => {
         queriesData={DEFAULT_QUERIES_DATA}
         width={101}
         height={118}
+        theme={supersetTheme}
         formData={{ abc: 1 }}
       />,
     );
@@ -347,7 +355,12 @@ describe('SuperChart', () => {
   describe('supports NoResultsComponent', () => {
     test('renders NoResultsComponent when queriesData is missing', () => {
       render(
-        <SuperChart chartType={ChartKeys.DILIGENT} width="200" height="200" />,
+        <SuperChart
+          chartType={ChartKeys.DILIGENT}
+          width="200"
+          height="200"
+          theme={supersetTheme}
+        />,
       );
 
       expect(screen.getByText('No Results')).toBeInTheDocument();
@@ -360,6 +373,7 @@ describe('SuperChart', () => {
           queriesData={[{ data: null }]}
           width="200"
           height="200"
+          theme={supersetTheme}
         />,
       );
 
@@ -387,6 +401,7 @@ describe('SuperChart', () => {
           queriesData={[DEFAULT_QUERY_DATA]}
           width={100}
           height={100}
+          theme={supersetTheme}
         />,
       );
 
@@ -411,6 +426,7 @@ describe('SuperChart', () => {
             debounceTime={1}
             width="100%"
             height="100%"
+            theme={supersetTheme}
             Wrapper={MyWrapper}
           />
         </div>,
@@ -475,6 +491,7 @@ describe('SuperChart', () => {
         chartType={ChartKeys.DILIGENT}
         width="200"
         height="200"
+        theme={supersetTheme}
         queriesData={[{ data: [] }]}
         enableNoResults
       />,
@@ -500,6 +517,7 @@ describe('SuperChart', () => {
         chartType={ChartKeys.DILIGENT}
         width="200"
         height="200"
+        theme={supersetTheme}
         queriesData={[{ data: null }]}
         enableNoResults
       />,
@@ -527,6 +545,7 @@ describe('SuperChart', () => {
         chartType={ChartKeys.DILIGENT}
         width="200"
         height="200"
+        theme={supersetTheme}
         queriesData={[{ data: [] }]}
         enableNoResults
         noResults={<CustomNoResults />}
@@ -556,6 +575,7 @@ describe('SuperChart', () => {
         chartType={ChartKeys.DILIGENT}
         width="200"
         height="200"
+        theme={supersetTheme}
         queriesData={[{ data: [] }]}
         enableNoResults
         onErrorBoundary={onErrorBoundary}

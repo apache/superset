@@ -92,7 +92,7 @@ describe('SqlLab App', () => {
       useRedux: true,
       store: storeExceedLocalStorage,
     });
-    rerender(<App updated />);
+    rerender(<App />);
     expect(storeExceedLocalStorage.getActions()).toContainEqual(
       expect.objectContaining({
         type: LOG_EVENT,
@@ -118,7 +118,7 @@ describe('SqlLab App', () => {
       useRedux: true,
       store: storeExceedLocalStorage,
     });
-    rerender(<App updated />);
+    rerender(<App />);
     expect(storeExceedLocalStorage.getActions()).toContainEqual(
       expect.objectContaining({
         type: LOG_EVENT,

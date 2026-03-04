@@ -25,6 +25,7 @@ import {
   VizType,
   getChartTransformPropsRegistry,
 } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/ui';
 import { simpleBubbleData } from './data';
 import { withResizableChartDemo } from '@storybook-shared';
 
@@ -109,6 +110,7 @@ export const BubbleChart = ({
   height: number;
 }) => (
   <SuperChart
+    theme={supersetTheme}
     chartType={VizType.Bubble}
     width={width}
     height={height}

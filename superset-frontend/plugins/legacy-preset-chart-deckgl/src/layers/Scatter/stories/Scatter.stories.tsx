@@ -20,6 +20,7 @@
 /* eslint-disable sort-keys */
 /* eslint-disable no-magic-numbers */
 import { SuperChart } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/ui';
 import { ScatterChartPlugin } from '@superset-ui/legacy-preset-chart-deckgl';
 import { withResizableChartDemo, dummyDatasource } from '@storybook-shared';
 import payload from './payload';
@@ -68,6 +69,7 @@ export const ScatterChartViz = ({
   height: number;
 }) => (
   <SuperChart
+    theme={supersetTheme}
     chartType="deck_scatter"
     width={width}
     height={height}

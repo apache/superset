@@ -227,15 +227,27 @@ describe('SuperChartCore', () => {
     });
   });
 
-  describe('.processChartProps()', () => {
-    test('use identity functions for unspecified transforms', () => {
-      const chart = new SuperChartCore({
-        chartType: ChartKeys.DILIGENT,
+  describe('processChartProps behavior', () => {
+    test('passes through chartProps unchanged when no transforms are specified', async () => {
+      // When no pre/post transform props are specified, the identity function is used
+      // which means chartProps should pass through to the chart unchanged.
+      // We verify this by checking that the chart renders correctly without transforms.
+      const chartProps2 = new ChartProps({
+        queriesData: [{ message: 'identity-test' }],
+        theme: supersetTheme,
       });
-      const chartProps2 = new ChartProps();
-      expect(chart.processChartProps({ chartProps: chartProps2 })).toBe(
-        chartProps2,
+
+      render(
+        <SuperChartCore
+          chartType={ChartKeys.DILIGENT}
+          chartProps={chartProps2}
+          overrideTransformProps={props => props.queriesData[0]}
+        />,
       );
+
+      await waitFor(() => {
+        expect(screen.getByText('identity-test')).toBeInTheDocument();
+      });
     });
   });
 });

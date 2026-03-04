@@ -17,7 +17,8 @@
  * under the License.
  */
 import { FC, useMemo } from 'react';
-import { t } from '@apache-superset/core';
+import { t, SupersetTheme } from '@apache-superset/core/ui';
+import { useTheme } from '@emotion/react';
 import {
   Behavior,
   SetDataMaskHook,
@@ -52,6 +53,7 @@ const DefaultValue: FC<DefaultValueProps> = ({
   formData,
   enableNoResults,
 }) => {
+  const theme = useTheme() as SupersetTheme;
   const formFilter = form.getFieldValue('filters')?.[filterId];
   const queriesData = formFilter?.defaultValueQueriesData;
   const chartType = formFilter?.filterType;
@@ -81,6 +83,7 @@ const DefaultValue: FC<DefaultValueProps> = ({
         validateMessage: isMissingRequiredValue && t('Value is required'),
         validateStatus: isMissingRequiredValue && 'error',
       }}
+      theme={theme}
     />
   );
 };

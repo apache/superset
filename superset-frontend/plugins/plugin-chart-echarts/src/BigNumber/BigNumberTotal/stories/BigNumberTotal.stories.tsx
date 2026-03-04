@@ -17,6 +17,7 @@
  * under the License.
  */
 import { SuperChart, VizType } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/ui';
 import { BigNumberTotalChartPlugin } from '@superset-ui/plugin-chart-echarts';
 import { withResizableChartDemo } from '@storybook-shared';
 import data from './data';
@@ -57,6 +58,7 @@ export const TotalBasic = ({
   height: number;
 }) => (
   <SuperChart
+    theme={supersetTheme}
     chartType="big-number-total"
     width={width}
     height={height}
@@ -79,6 +81,7 @@ export const TotalNoData = ({
   height: number;
 }) => (
   <SuperChart
+    theme={supersetTheme}
     chartType="big-number-total"
     width={width}
     height={height}

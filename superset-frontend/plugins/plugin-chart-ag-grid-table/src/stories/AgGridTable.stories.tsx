@@ -18,6 +18,7 @@
  */
 
 import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/ui';
 import AgGridTableChartPlugin from '../index';
 import transformProps from '../transformProps';
 import { basicFormData, basicData } from './data';
@@ -74,6 +75,7 @@ export const Basic = ({
   height: number;
 }) => (
   <SuperChart
+    theme={supersetTheme}
     chartType={VIZ_TYPE}
     width={width}
     height={height}

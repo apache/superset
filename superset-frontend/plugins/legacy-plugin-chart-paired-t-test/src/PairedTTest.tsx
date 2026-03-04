@@ -17,26 +17,18 @@
  * under the License.
  */
 /* eslint-disable react/no-array-index-key */
-import { PureComponent } from 'react';
 import { styled } from '@apache-superset/core/ui';
 import TTestTable, { DataEntry } from './TTestTable';
 
 interface PairedTTestProps {
-  alpha: number;
-  className: string;
+  alpha?: number;
+  className?: string;
   data: Record<string, DataEntry[]>;
   groups: string[];
-  liftValPrec: number;
+  liftValPrec?: number;
   metrics: string[];
-  pValPrec: number;
+  pValPrec?: number;
 }
-
-const defaultProps = {
-  alpha: 0.05,
-  className: '',
-  liftValPrec: 4,
-  pValPrec: 6,
-};
 
 const StyledDiv = styled.div`
   ${({ theme }) => `
@@ -114,35 +106,36 @@ const StyledDiv = styled.div`
   `}
 `;
 
-class PairedTTest extends PureComponent<PairedTTestProps> {
-  static defaultProps = defaultProps;
-
-  render() {
-    const { className, metrics, groups, data, alpha, pValPrec, liftValPrec } =
-      this.props;
-
-    return (
-      <StyledDiv>
-        <div className={`superset-legacy-chart-paired-t-test ${className}`}>
-          <div className="paired-ttest-table">
-            <div className="scrollbar-content">
-              {metrics.map((metric, i) => (
-                <TTestTable
-                  key={i}
-                  metric={metric}
-                  groups={groups}
-                  data={data[metric]}
-                  alpha={alpha}
-                  pValPrec={Math.min(pValPrec, 32)}
-                  liftValPrec={Math.min(liftValPrec, 32)}
-                />
-              ))}
-            </div>
+function PairedTTest({
+  alpha = 0.05,
+  className = '',
+  data,
+  groups,
+  liftValPrec = 4,
+  metrics,
+  pValPrec = 6,
+}: PairedTTestProps) {
+  return (
+    <StyledDiv>
+      <div className={`superset-legacy-chart-paired-t-test ${className}`}>
+        <div className="paired-ttest-table">
+          <div className="scrollbar-content">
+            {metrics.map((metric, i) => (
+              <TTestTable
+                key={i}
+                metric={metric}
+                groups={groups}
+                data={data[metric]}
+                alpha={alpha}
+                pValPrec={Math.min(pValPrec, 32)}
+                liftValPrec={Math.min(liftValPrec, 32)}
+              />
+            ))}
           </div>
         </div>
-      </StyledDiv>
-    );
-  }
+      </div>
+    </StyledDiv>
+  );
 }
 
 export default PairedTTest;

@@ -20,6 +20,7 @@
 /* eslint-disable sort-keys */
 /* eslint-disable no-magic-numbers */
 import { SuperChart } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/ui';
 import { GridChartPlugin } from '@superset-ui/legacy-preset-chart-deckgl';
 import { withResizableChartDemo, dummyDatasource } from '@storybook-shared';
 import payload from './payload';
@@ -61,6 +62,7 @@ export const GridChartViz = ({
   height: number;
 }) => (
   <SuperChart
+    theme={supersetTheme}
     chartType="deck_grid"
     width={width}
     height={height}

@@ -749,11 +749,11 @@ const Chart = (props: ChartProps) => {
             },
             slice.viz_type,
           )}
-          queriesResponse={chart.queriesResponse ?? undefined}
+          queriesResponse={chart.queriesResponse ?? null}
           timeout={timeout}
           triggerQuery={chart.triggerQuery}
           vizType={slice.viz_type}
-          setControlValue={props.setControlValue}
+          setControlValue={props.setControlValue ?? (() => {})}
           datasetsStatus={
             datasetsStatus as 'loading' | 'error' | 'complete' | undefined
           }

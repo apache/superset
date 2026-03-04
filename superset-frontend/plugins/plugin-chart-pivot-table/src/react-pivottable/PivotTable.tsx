@@ -17,16 +17,14 @@
  * under the License.
  */
 
-import { PureComponent } from 'react';
+import { memo } from 'react';
 import { TableRenderer } from './TableRenderers';
 import type { ComponentProps } from 'react';
 
 type PivotTableProps = ComponentProps<typeof TableRenderer>;
 
-class PivotTable extends PureComponent<PivotTableProps> {
-  render() {
-    return <TableRenderer {...this.props} />;
-  }
+function PivotTable(props: PivotTableProps) {
+  return <TableRenderer {...props} />;
 }
 
-export default PivotTable;
+export default memo(PivotTable);

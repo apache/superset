@@ -17,7 +17,7 @@
  * under the License.
  */
 import type React from 'react';
-import { createRef, Component, type RefObject } from 'react';
+import { useRef, useState, useCallback, useEffect } from 'react';
 import type { SupersetTheme } from '@apache-superset/core/ui';
 import { Button, Icons, Select } from '@superset-ui/core/components';
 import { ErrorBoundary } from 'src/components';
@@ -66,17 +66,6 @@ interface AdhocFilterEditPopoverProps {
   requireSave?: boolean;
 }
 
-interface AdhocFilterEditPopoverState {
-  adhocFilter: AdhocFilter;
-  width: number;
-  height: number;
-  activeKey: string;
-  isSimpleTabValid: boolean;
-  selectedLayers: LayerOption[];
-  layerOptions: LayerOption[];
-  hasLayerFilterScopeChanged: boolean;
-}
-
 const FilterPopoverContentContainer = styled.div`
   .adhoc-filter-edit-tabs > .nav-tabs {
     margin-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
@@ -114,369 +103,337 @@ const LayerSelectContainer = styled.div`
   margin-bottom: ${({ theme }) => theme.sizeUnit * 12}px;
 `;
 
-export default class AdhocFilterEditPopover extends Component<
-  AdhocFilterEditPopoverProps,
-  AdhocFilterEditPopoverState
-> {
-  popoverContentRef: RefObject<HTMLDivElement>;
+function AdhocFilterEditPopover({
+  adhocFilter: propsAdhocFilter,
+  onChange,
+  onClose,
+  onResize,
+  options,
+  datasource,
+  partitionColumn,
+  operators,
+  requireSave,
+  ...popoverProps
+}: AdhocFilterEditPopoverProps) {
+  const popoverContentRef = useRef<HTMLDivElement>(null);
 
-  dragStartX = 0;
+  const dragStartRef = useRef({
+    x: 0,
+    y: 0,
+    width: 0,
+    height: 0,
+  });
 
-  dragStartY = 0;
+  const [adhocFilter, setAdhocFilter] = useState<AdhocFilter>(propsAdhocFilter);
+  const [width, setWidth] = useState(POPOVER_INITIAL_WIDTH);
+  const [height, setHeight] = useState(POPOVER_INITIAL_HEIGHT);
+  const [isSimpleTabValid, setIsSimpleTabValid] = useState(true);
+  const [selectedLayers, setSelectedLayers] = useState<LayerOption[]>([
+    { id: null, value: -1, label: 'All' },
+  ]);
+  const [layerOptions, setLayerOptions] = useState<LayerOption[]>([]);
+  const [hasLayerFilterScopeChanged, setHasLayerFilterScopeChanged] =
+    useState(false);
 
-  dragStartWidth = 0;
+  const loadLayerOptions = useCallback(
+    (page: number, pageSize: number) => {
+      const query = rison.encode({
+        columns: ['id', 'slice_name', 'viz_type'],
+        filters: [{ col: 'viz_type', opr: 'sw', value: 'deck' }],
+        page,
+        page_size: pageSize,
+        order_column: 'slice_name',
+        order_direction: 'asc',
+      });
 
-  dragStartHeight = 0;
+      return SupersetClient.get({
+        endpoint: `/api/v1/chart/?q=${query}`,
+      }).then(response => {
+        if (!response?.json?.result) {
+          return {
+            data: [
+              {
+                id: null,
+                value: -1,
+                label: 'All',
+              },
+            ],
+            totalCount: 1,
+          };
+        }
 
-  constructor(props: AdhocFilterEditPopoverProps) {
-    super(props);
-    this.onSave = this.onSave.bind(this);
-    this.onDragDown = this.onDragDown.bind(this);
-    this.onMouseMove = this.onMouseMove.bind(this);
-    this.onMouseUp = this.onMouseUp.bind(this);
-    this.onAdhocFilterChange = this.onAdhocFilterChange.bind(this);
-    this.setSimpleTabIsValid = this.setSimpleTabIsValid.bind(this);
-    this.adjustHeight = this.adjustHeight.bind(this);
-    this.onTabChange = this.onTabChange.bind(this);
-    this.loadLayerOptions = this.loadLayerOptions.bind(this);
-    this.onLayerChange = this.onLayerChange.bind(this);
+        const deckSlices = (propsAdhocFilter?.deck_slices || []) as number[];
 
-    this.state = {
-      adhocFilter: this.props.adhocFilter,
-      width: POPOVER_INITIAL_WIDTH,
-      height: POPOVER_INITIAL_HEIGHT,
-      activeKey: this.props?.adhocFilter?.expressionType || 'SIMPLE',
-      isSimpleTabValid: true,
-      selectedLayers: [{ id: null, value: -1, label: 'All' }],
-      layerOptions: [],
-      hasLayerFilterScopeChanged: false,
-    };
+        const list = [
+          {
+            id: null,
+            value: -1,
+            label: 'All',
+          },
+          ...response.json.result
+            .map((item: { id: number; slice_name: string }) => {
+              const sliceIndex = deckSlices.indexOf(item.id);
+              return {
+                id: item.id,
+                value: sliceIndex >= 0 ? sliceIndex : item.id,
+                label: item.slice_name,
+                sliceIndex,
+              };
+            })
+            .filter((item: { sliceIndex: number }) => item.sliceIndex !== -1)
+            .map(
+              ({
+                sliceIndex,
+                ...item
+              }: {
+                sliceIndex: number;
+                id: number;
+                value: number;
+                label: string;
+              }) => item,
+            ),
+        ];
 
-    this.popoverContentRef = createRef();
-  }
+        return {
+          data: list,
+          totalCount: list.length,
+        };
+      });
+    },
+    [propsAdhocFilter?.deck_slices],
+  );
 
-  componentDidMount() {
-    document.addEventListener('mouseup', this.onMouseUp);
+  const onMouseMove = useCallback(
+    (e: MouseEvent) => {
+      onResize();
+      setWidth(
+        Math.max(
+          dragStartRef.current.width + (e.clientX - dragStartRef.current.x),
+          POPOVER_INITIAL_WIDTH,
+        ),
+      );
+      setHeight(
+        Math.max(
+          dragStartRef.current.height + (e.clientY - dragStartRef.current.y),
+          POPOVER_INITIAL_HEIGHT,
+        ),
+      );
+    },
+    [onResize],
+  );
+
+  const onMouseUp = useCallback(() => {
+    document.removeEventListener('mousemove', onMouseMove);
+  }, [onMouseMove]);
+
+  useEffect(() => {
+    document.addEventListener('mouseup', onMouseUp);
 
     // Load layer options if deck_slices exist
-    const deckSlices = this.props.adhocFilter?.deck_slices as
-      | number[]
-      | undefined;
+    const deckSlices = propsAdhocFilter?.deck_slices as number[] | undefined;
     if (deckSlices && deckSlices.length > 0) {
-      this.loadLayerOptions(0, 100).then(result => {
-        this.setState({ layerOptions: result.data });
-        const layerFilterScope = this.props.adhocFilter?.layerFilterScope as
+      loadLayerOptions(0, 100).then(result => {
+        setLayerOptions(result.data);
+        const layerFilterScope = propsAdhocFilter?.layerFilterScope as
           | number[]
           | undefined;
         if (layerFilterScope) {
-          const selectedLayers = layerFilterScope.map(item => {
-            const layerOption = result.data.find(
-              option => option.value === item,
-            );
-            return layerOption;
-          });
-          this.setState({
-            selectedLayers: selectedLayers.filter(Boolean) as LayerOption[],
-          });
+          const layers = layerFilterScope
+            .map(item => result.data.find(option => option.value === item))
+            .filter(Boolean) as LayerOption[];
+          setSelectedLayers(layers);
         }
       });
     }
-  }
 
-  componentWillUnmount() {
-    document.removeEventListener('mouseup', this.onMouseUp);
-    document.removeEventListener('mousemove', this.onMouseMove);
-  }
+    return () => {
+      document.removeEventListener('mouseup', onMouseUp);
+      document.removeEventListener('mousemove', onMouseMove);
+    };
+  }, [loadLayerOptions, onMouseMove, onMouseUp, propsAdhocFilter]);
 
-  onAdhocFilterChange(adhocFilter: AdhocFilter): void {
-    this.setState({ adhocFilter });
-  }
+  const onAdhocFilterChange = useCallback((filter: AdhocFilter) => {
+    setAdhocFilter(filter);
+  }, []);
 
-  setSimpleTabIsValid(isValid: boolean): void {
-    this.setState({ isSimpleTabValid: isValid });
-  }
+  const setSimpleTabIsValid = useCallback((isValid: boolean) => {
+    setIsSimpleTabValid(isValid);
+  }, []);
 
-  onSave() {
-    const deckSlices = this.state.adhocFilter.deck_slices as
-      | number[]
-      | undefined;
+  const onSave = useCallback(() => {
+    const deckSlices = adhocFilter.deck_slices as number[] | undefined;
     const hasDeckSlices = deckSlices && deckSlices.length > 0;
 
     if (!hasDeckSlices) {
-      this.props.onChange(this.state.adhocFilter);
-      this.props.onClose();
+      onChange(adhocFilter);
+      onClose();
       return;
     }
     // Update layer filter scope for deck multi
-    const selectedLayers = this.state.selectedLayers.map(item => {
+    const layers = selectedLayers.map(item => {
       if (isObject(item)) {
         return item.value;
       }
       return item;
     });
-    const correctedAdhocFilter = this.state.adhocFilter.duplicateWith({
-      layerFilterScope: selectedLayers,
+    const correctedAdhocFilter = adhocFilter.duplicateWith({
+      layerFilterScope: layers,
     });
-    this.setState({ hasLayerFilterScopeChanged: false });
-    this.props.onChange(correctedAdhocFilter);
-    this.props.onClose();
-  }
+    setHasLayerFilterScopeChanged(false);
+    onChange(correctedAdhocFilter);
+    onClose();
+  }, [adhocFilter, onChange, onClose, selectedLayers]);
 
-  onDragDown(e: React.MouseEvent): void {
-    this.dragStartX = e.clientX;
-    this.dragStartY = e.clientY;
-    this.dragStartWidth = this.state.width;
-    this.dragStartHeight = this.state.height;
-    document.addEventListener('mousemove', this.onMouseMove);
-  }
-
-  onMouseMove(e: MouseEvent): void {
-    this.props.onResize();
-    this.setState({
-      width: Math.max(
-        this.dragStartWidth + (e.clientX - this.dragStartX),
-        POPOVER_INITIAL_WIDTH,
-      ),
-      height: Math.max(
-        this.dragStartHeight + (e.clientY - this.dragStartY),
-        POPOVER_INITIAL_HEIGHT,
-      ),
-    });
-  }
-
-  onMouseUp() {
-    document.removeEventListener('mousemove', this.onMouseMove);
-  }
-
-  onTabChange(activeKey: string) {
-    this.setState({
-      activeKey,
-    });
-  }
-
-  adjustHeight(heightDifference: number) {
-    this.setState(state => ({ height: state.height + heightDifference }));
-  }
-
-  loadLayerOptions(page: number, pageSize: number) {
-    const query = rison.encode({
-      columns: ['id', 'slice_name', 'viz_type'],
-      filters: [{ col: 'viz_type', opr: 'sw', value: 'deck' }],
-      page,
-      page_size: pageSize,
-      order_column: 'slice_name',
-      order_direction: 'asc',
-    });
-
-    return SupersetClient.get({
-      endpoint: `/api/v1/chart/?q=${query}`,
-    }).then(response => {
-      if (!response?.json?.result) {
-        return {
-          data: [
-            {
-              id: null,
-              value: -1,
-              label: 'All',
-            },
-          ],
-          totalCount: 1,
-        };
-      }
-
-      const deckSlices = (this.props.adhocFilter?.deck_slices ||
-        []) as number[];
-
-      const list = [
-        {
-          id: null,
-          value: -1,
-          label: 'All',
-        },
-        ...response.json.result
-          .map((item: { id: number; slice_name: string }) => {
-            const sliceIndex = deckSlices.indexOf(item.id);
-            return {
-              id: item.id,
-              value: sliceIndex >= 0 ? sliceIndex : item.id,
-              label: item.slice_name,
-              sliceIndex,
-            };
-          })
-          .filter((item: { sliceIndex: number }) => item.sliceIndex !== -1)
-          .map(
-            ({
-              sliceIndex,
-              ...item
-            }: {
-              sliceIndex: number;
-              id: number;
-              value: number;
-              label: string;
-            }) => item,
-          ),
-      ];
-
-      return {
-        data: list,
-        totalCount: list.length,
+  const onDragDown = useCallback(
+    (e: React.MouseEvent) => {
+      dragStartRef.current = {
+        x: e.clientX,
+        y: e.clientY,
+        width,
+        height,
       };
-    });
-  }
+      document.addEventListener('mousemove', onMouseMove);
+    },
+    [width, height, onMouseMove],
+  );
 
-  onLayerChange(selectedValue: LayerOption[] | number[] | null) {
-    let updatedSelectedLayers: LayerOption[] =
-      (selectedValue as LayerOption[]) || [];
+  const adjustHeight = useCallback((heightDifference: number) => {
+    setHeight(prevHeight => prevHeight + heightDifference);
+  }, []);
 
-    if (!selectedValue || selectedValue.length === 0) {
-      updatedSelectedLayers = [{ id: null, value: -1, label: 'All' }];
-    } else if (
-      selectedValue.length > 1 &&
-      selectedValue.some(
-        (item: LayerOption | number) =>
-          (typeof item === 'object' && item.value === -1) || item === -1,
-      )
-    ) {
-      const lastItem = selectedValue[selectedValue.length - 1];
-      if (
-        (typeof lastItem === 'object' && lastItem.value === -1) ||
-        lastItem === -1
-      ) {
+  const onLayerChange = useCallback(
+    (selectedValue: LayerOption[] | number[] | null) => {
+      let updatedSelectedLayers: LayerOption[] =
+        (selectedValue as LayerOption[]) || [];
+
+      if (!selectedValue || selectedValue.length === 0) {
         updatedSelectedLayers = [{ id: null, value: -1, label: 'All' }];
-      } else {
-        updatedSelectedLayers = (selectedValue as LayerOption[]).filter(
-          (item: LayerOption) => item.value !== -1,
-        );
+      } else if (
+        selectedValue.length > 1 &&
+        selectedValue.some(
+          (item: LayerOption | number) =>
+            (typeof item === 'object' && item.value === -1) || item === -1,
+        )
+      ) {
+        const lastItem = selectedValue[selectedValue.length - 1];
+        if (
+          (typeof lastItem === 'object' && lastItem.value === -1) ||
+          lastItem === -1
+        ) {
+          updatedSelectedLayers = [{ id: null, value: -1, label: 'All' }];
+        } else {
+          updatedSelectedLayers = (selectedValue as LayerOption[]).filter(
+            (item: LayerOption) => item.value !== -1,
+          );
+        }
       }
-    }
 
-    this.setState({ selectedLayers: updatedSelectedLayers });
-    this.setState({ hasLayerFilterScopeChanged: true });
-  }
+      setSelectedLayers(updatedSelectedLayers);
+      setHasLayerFilterScopeChanged(true);
+    },
+    [],
+  );
 
-  render() {
-    const {
-      adhocFilter: propsAdhocFilter,
-      options,
-      onChange,
-      onClose,
-      onResize,
-      datasource,
-      partitionColumn,
-      theme,
-      operators,
-      requireSave,
-      ...popoverProps
-    } = this.props;
+  const stateIsValid = adhocFilter.isValid();
+  const hasUnsavedChanges =
+    requireSave ||
+    !adhocFilter.equals(propsAdhocFilter) ||
+    hasLayerFilterScopeChanged;
 
-    const { adhocFilter, selectedLayers, hasLayerFilterScopeChanged } =
-      this.state;
-    const stateIsValid = adhocFilter.isValid();
-    const hasUnsavedChanges =
-      requireSave ||
-      !adhocFilter.equals(propsAdhocFilter) ||
-      hasLayerFilterScopeChanged;
+  const renderDeckSlices = adhocFilter.deck_slices as number[] | undefined;
+  const hasDeckSlices = renderDeckSlices && renderDeckSlices.length > 0;
 
-    const renderDeckSlices = adhocFilter.deck_slices as number[] | undefined;
-    const hasDeckSlices = renderDeckSlices && renderDeckSlices.length > 0;
-
-    return (
-      <FilterPopoverContentContainer
-        id="filter-edit-popover"
-        {...popoverProps}
-        data-test="filter-edit-popover"
-        ref={this.popoverContentRef}
-      >
-        <Tabs
-          id="adhoc-filter-edit-tabs"
-          defaultActiveKey={adhocFilter.expressionType}
-          className="adhoc-filter-edit-tabs"
-          data-test="adhoc-filter-edit-tabs"
-          style={{ minHeight: this.state.height, width: this.state.width }}
-          allowOverflow
-          onChange={this.onTabChange}
-          items={[
-            {
-              key: ExpressionTypes.Simple,
-              label: t('Simple'),
-              children: (
-                <ErrorBoundary>
-                  <AdhocFilterEditPopoverSimpleTabContent
-                    operators={operators as Operators[] | undefined}
-                    adhocFilter={this.state.adhocFilter}
-                    onChange={this.onAdhocFilterChange}
-                    options={options as ColumnType[]}
-                    datasource={datasource as unknown as Dataset}
-                    onHeightChange={this.adjustHeight}
-                    partitionColumn={partitionColumn}
-                    popoverRef={this.popoverContentRef.current}
-                    validHandler={this.setSimpleTabIsValid}
-                  />
-                </ErrorBoundary>
-              ),
-            },
-            {
-              key: ExpressionTypes.Sql,
-              label: t('Custom SQL'),
-              children: (
-                <ErrorBoundary>
-                  <AdhocFilterEditPopoverSqlTabContent
-                    adhocFilter={this.state.adhocFilter}
-                    onChange={this.onAdhocFilterChange}
-                    options={this.props.options}
-                    height={this.state.height}
-                    datasource={datasource}
-                  />
-                </ErrorBoundary>
-              ),
-            },
-          ]}
-        />
-        {hasDeckSlices && (
-          <LayerSelectContainer>
-            <Select
-              options={this.state.layerOptions}
-              onChange={
-                this.onLayerChange as unknown as (value: unknown) => void
-              }
-              value={selectedLayers}
-              mode="multiple"
-            />
-          </LayerSelectContainer>
-        )}
-
-        <FilterActionsContainer>
-          <Button
-            buttonStyle="secondary"
-            buttonSize="small"
-            onClick={this.props.onClose}
-            cta
-          >
-            {t('Close')}
-          </Button>
-          <Button
-            data-test="adhoc-filter-edit-popover-save-button"
-            disabled={
-              !stateIsValid ||
-              !this.state.isSimpleTabValid ||
-              !hasUnsavedChanges
-            }
-            buttonStyle="primary"
-            buttonSize="small"
-            onClick={this.onSave}
-            cta
-          >
-            {t('Save')}
-          </Button>
-          <Icons.ArrowsAltOutlined
-            role="button"
-            aria-label={t('Resize')}
-            tabIndex={0}
-            onMouseDown={this.onDragDown}
-            className="edit-popover-resize"
+  return (
+    <FilterPopoverContentContainer
+      id="filter-edit-popover"
+      {...popoverProps}
+      data-test="filter-edit-popover"
+      ref={popoverContentRef}
+    >
+      <Tabs
+        id="adhoc-filter-edit-tabs"
+        defaultActiveKey={adhocFilter.expressionType}
+        className="adhoc-filter-edit-tabs"
+        data-test="adhoc-filter-edit-tabs"
+        style={{ minHeight: height, width }}
+        allowOverflow
+        items={[
+          {
+            key: ExpressionTypes.Simple,
+            label: t('Simple'),
+            children: (
+              <ErrorBoundary>
+                <AdhocFilterEditPopoverSimpleTabContent
+                  operators={operators as Operators[] | undefined}
+                  adhocFilter={adhocFilter}
+                  onChange={onAdhocFilterChange}
+                  options={options as ColumnType[]}
+                  datasource={datasource as unknown as Dataset}
+                  onHeightChange={adjustHeight}
+                  partitionColumn={partitionColumn}
+                  popoverRef={popoverContentRef.current}
+                  validHandler={setSimpleTabIsValid}
+                />
+              </ErrorBoundary>
+            ),
+          },
+          {
+            key: ExpressionTypes.Sql,
+            label: t('Custom SQL'),
+            children: (
+              <ErrorBoundary>
+                <AdhocFilterEditPopoverSqlTabContent
+                  adhocFilter={adhocFilter}
+                  onChange={onAdhocFilterChange}
+                  options={options}
+                  height={height}
+                  datasource={datasource}
+                />
+              </ErrorBoundary>
+            ),
+          },
+        ]}
+      />
+      {hasDeckSlices && (
+        <LayerSelectContainer>
+          <Select
+            options={layerOptions}
+            onChange={onLayerChange as unknown as (value: unknown) => void}
+            value={selectedLayers}
+            mode="multiple"
           />
-        </FilterActionsContainer>
-      </FilterPopoverContentContainer>
-    );
-  }
+        </LayerSelectContainer>
+      )}
+
+      <FilterActionsContainer>
+        <Button
+          buttonStyle="secondary"
+          buttonSize="small"
+          onClick={onClose}
+          cta
+        >
+          {t('Close')}
+        </Button>
+        <Button
+          data-test="adhoc-filter-edit-popover-save-button"
+          disabled={!stateIsValid || !isSimpleTabValid || !hasUnsavedChanges}
+          buttonStyle="primary"
+          buttonSize="small"
+          onClick={onSave}
+          cta
+        >
+          {t('Save')}
+        </Button>
+        <Icons.ArrowsAltOutlined
+          role="button"
+          aria-label={t('Resize')}
+          tabIndex={0}
+          onMouseDown={onDragDown}
+          className="edit-popover-resize"
+        />
+      </FilterActionsContainer>
+    </FilterPopoverContentContainer>
+  );
 }
+
+export default AdhocFilterEditPopover;

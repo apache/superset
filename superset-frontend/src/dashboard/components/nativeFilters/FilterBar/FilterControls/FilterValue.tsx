@@ -41,7 +41,8 @@ import {
   getClientErrorObject,
   isChartCustomization,
 } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { styled, SupersetTheme } from '@apache-superset/core/ui';
+import { useTheme } from '@emotion/react';
 import { useDispatch, useSelector } from 'react-redux';
 import { isEqual, isEqualWith } from 'lodash';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
@@ -112,6 +113,7 @@ const FilterValue: FC<FilterValueProps> = ({
   clearAllTrigger,
   onClearAllComplete,
 }) => {
+  const theme = useTheme() as SupersetTheme;
   const { id, targets, filterType } = filter;
   const isCustomization = isChartCustomization(filter);
   const adhocFilters = isCustomization ? undefined : filter.adhoc_filters;
@@ -416,6 +418,7 @@ const FilterValue: FC<FilterValueProps> = ({
           enableNoResults={metadata?.enableNoResults}
           isRefreshing={isRefreshing}
           hooks={hooks}
+          theme={theme}
         />
       )}
     </StyledDiv>
