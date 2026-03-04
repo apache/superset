@@ -45,6 +45,9 @@ export default function transformProps(chartProps: ChartProps) {
     pandasAggfunc,
     pointRadiusUnit,
     renderWhileDragging,
+    viewportLongitude,
+    viewportLatitude,
+    viewportZoom,
   } = formData;
 
   // Validate mapbox color
@@ -116,5 +119,8 @@ export default function transformProps(chartProps: ChartProps) {
     pointRadiusUnit,
     renderWhileDragging,
     rgb,
+    viewportLongitude,
+    viewportLatitude,
+    viewportZoom,
   };
 }
