@@ -21,6 +21,7 @@ Unit tests for save_sql_query MCP tool schemas and logic.
 
 import importlib
 import sys
+import types
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -125,6 +126,8 @@ def _force_passthrough_decorators():
     includes authentication middleware. For unit tests we want to bypass
     auth and test the tool logic directly, so we always replace the
     decorator with a passthrough regardless of installation state.
+
+    Returns a dict of original sys.modules entries so they can be restored.
     """
 
     def _passthrough_tool(func=None, **kwargs):
@@ -138,11 +141,11 @@ def _force_passthrough_decorators():
     mock_api = MagicMock()
     mock_api.mcp = mock_mcp
 
-    # Clear any cached superset_core modules first so Python doesn't
-    # use the real installed package instead of our mocks.
-    for key in list(sys.modules.keys()):
-        if key.startswith("superset_core"):
-            del sys.modules[key]
+    # Save original modules so we can restore them later
+    saved_modules: dict[str, types.ModuleType] = {}
+    superset_core_keys = [k for k in sys.modules if k.startswith("superset_core")]
+    for key in superset_core_keys:
+        saved_modules[key] = sys.modules.pop(key)
 
     # Mock all possible import paths for superset_core
     sys.modules["superset_core"] = MagicMock()
@@ -151,18 +154,36 @@ def _force_passthrough_decorators():
     sys.modules["superset_core.mcp"] = mock_mcp
     sys.modules.setdefault("superset_core.api.types", MagicMock())
 
+    return saved_modules
+
+
+def _restore_modules(saved_modules: dict[str, types.ModuleType]) -> None:
+    """Restore original sys.modules entries after passthrough mocking."""
+    # Remove mock entries
+    for key in list(sys.modules.keys()):
+        if key.startswith("superset_core"):
+            del sys.modules[key]
+    # Restore originals
+    sys.modules.update(saved_modules)
+
 
 def _get_tool_module():
-    """Import save_sql_query with passthrough decorators (no auth)."""
-    _force_passthrough_decorators()
+    """Import save_sql_query with passthrough decorators (no auth).
+
+    Returns (module, saved_modules) so callers can restore sys.modules.
+    """
+    saved_modules = _force_passthrough_decorators()
     # Clear cached module imports so we get a fresh import with mocked
     # decorators. This is necessary because in CI the real @tool decorator
     # may have been applied during a previous import.
     mod_name = "superset.mcp_service.sql_lab.tool.save_sql_query"
+    saved_tool_modules: dict[str, object] = {}
     for key in list(sys.modules.keys()):
         if key.startswith("superset.mcp_service.sql_lab.tool"):
-            del sys.modules[key]
-    return importlib.import_module(mod_name)
+            saved_tool_modules[key] = sys.modules.pop(key)
+    saved_modules.update(saved_tool_modules)
+    mod = importlib.import_module(mod_name)
+    return mod, saved_modules
 
 
 def _make_mock_ctx():
@@ -193,210 +214,230 @@ class TestSaveSqlQueryToolLogic:
     @pytest.mark.anyio
     async def test_save_query_creates_saved_query(self) -> None:
         """Verify the tool calls SavedQueryDAO.create with correct attrs."""
-        mod = _get_tool_module()
-        mock_ctx = _make_mock_ctx()
+        mod, saved = _get_tool_module()
+        try:
+            mock_ctx = _make_mock_ctx()
 
-        mock_db_obj = MagicMock()
-        mock_db_obj.id = 1
-        mock_db_obj.database_name = "test_db"
+            mock_db_obj = MagicMock()
+            mock_db_obj.id = 1
+            mock_db_obj.database_name = "test_db"
 
-        mock_sq = MagicMock()
-        mock_sq.id = 42
-        mock_sq.label = "Revenue Query"
-        mock_sq.sql = "SELECT SUM(revenue) FROM sales"
+            mock_sq = MagicMock()
+            mock_sq.id = 42
+            mock_sq.label = "Revenue Query"
+            mock_sq.sql = "SELECT SUM(revenue) FROM sales"
 
-        request = SaveSqlQueryRequest(
-            database_id=1,
-            label="Revenue Query",
-            sql="SELECT SUM(revenue) FROM sales",
-        )
+            request = SaveSqlQueryRequest(
+                database_id=1,
+                label="Revenue Query",
+                sql="SELECT SUM(revenue) FROM sales",
+            )
 
-        mock_db_session = MagicMock()
-        (
-            mock_db_session.session.query.return_value.filter_by.return_value.first.return_value
-        ) = mock_db_obj
+            mock_db_session = MagicMock()
+            (
+                mock_db_session.session.query.return_value.filter_by.return_value.first.return_value
+            ) = mock_db_obj
 
-        mock_sm = MagicMock()
-        mock_sm.can_access_database.return_value = True
+            mock_sm = MagicMock()
+            mock_sm.can_access_database.return_value = True
 
-        mock_dao = MagicMock()
-        mock_dao.create.return_value = mock_sq
+            mock_dao = MagicMock()
+            mock_dao.create.return_value = mock_sq
 
-        mock_g = MagicMock()
-        mock_g.user = Mock(id=1)
+            mock_g = MagicMock()
+            mock_g.user = Mock(id=1)
 
-        mock_event_logger = MagicMock()
-        mock_event_logger.log_context.return_value.__enter__ = Mock()
-        mock_event_logger.log_context.return_value.__exit__ = Mock(return_value=False)
+            mock_event_logger = MagicMock()
+            mock_event_logger.log_context.return_value.__enter__ = Mock()
+            mock_event_logger.log_context.return_value.__exit__ = Mock(
+                return_value=False
+            )
 
-        with (
-            patch(
-                "fastmcp.server.dependencies.get_context",
-                return_value=mock_ctx,
-            ),
-            patch("superset.db", mock_db_session),
-            patch("superset.security_manager", mock_sm),
-            patch("superset.daos.query.SavedQueryDAO", mock_dao),
-            patch(
-                "superset.mcp_service.utils.url_utils.get_superset_base_url",
-                return_value="http://localhost:8088",
-            ),
-            patch("flask.g", mock_g),
-            patch.object(mod, "event_logger", mock_event_logger),
-        ):
-            result = await mod.save_sql_query(request)
+            with (
+                patch(
+                    "fastmcp.server.dependencies.get_context",
+                    return_value=mock_ctx,
+                ),
+                patch("superset.db", mock_db_session),
+                patch("superset.security_manager", mock_sm),
+                patch("superset.daos.query.SavedQueryDAO", mock_dao),
+                patch(
+                    "superset.mcp_service.utils.url_utils.get_superset_base_url",
+                    return_value="http://localhost:8088",
+                ),
+                patch("flask.g", mock_g),
+                patch.object(mod, "event_logger", mock_event_logger),
+            ):
+                result = await mod.save_sql_query(request)
 
-            assert result.id == 42
-            assert result.label == "Revenue Query"
-            assert "savedQueryId=42" in result.url
-            mock_dao.create.assert_called_once()
-            call_attrs = mock_dao.create.call_args[1]["attributes"]
-            assert call_attrs["db_id"] == 1
-            assert call_attrs["label"] == "Revenue Query"
-            assert call_attrs["sql"] == "SELECT SUM(revenue) FROM sales"
-            assert call_attrs["user_id"] == 1
-            mock_db_session.session.commit.assert_called_once()
+                assert result.id == 42
+                assert result.label == "Revenue Query"
+                assert "savedQueryId=42" in result.url
+                mock_dao.create.assert_called_once()
+                call_attrs = mock_dao.create.call_args[1]["attributes"]
+                assert call_attrs["db_id"] == 1
+                assert call_attrs["label"] == "Revenue Query"
+                assert call_attrs["sql"] == "SELECT SUM(revenue) FROM sales"
+                assert call_attrs["user_id"] == 1
+                mock_db_session.session.commit.assert_called_once()
+        finally:
+            _restore_modules(saved)
 
     @pytest.mark.anyio
     async def test_save_query_database_not_found(self) -> None:
-        mod = _get_tool_module()
-        mock_ctx = _make_mock_ctx()
+        mod, saved = _get_tool_module()
+        try:
+            mock_ctx = _make_mock_ctx()
 
-        request = SaveSqlQueryRequest(
-            database_id=999,
-            label="Test",
-            sql="SELECT 1",
-        )
+            request = SaveSqlQueryRequest(
+                database_id=999,
+                label="Test",
+                sql="SELECT 1",
+            )
 
-        mock_db_session = MagicMock()
-        (
-            mock_db_session.session.query.return_value.filter_by.return_value.first.return_value
-        ) = None
+            mock_db_session = MagicMock()
+            (
+                mock_db_session.session.query.return_value.filter_by.return_value.first.return_value
+            ) = None
 
-        mock_g = MagicMock()
-        mock_g.user = Mock(id=1)
+            mock_g = MagicMock()
+            mock_g.user = Mock(id=1)
 
-        mock_event_logger = MagicMock()
-        mock_event_logger.log_context.return_value.__enter__ = Mock()
-        mock_event_logger.log_context.return_value.__exit__ = Mock(return_value=False)
+            mock_event_logger = MagicMock()
+            mock_event_logger.log_context.return_value.__enter__ = Mock()
+            mock_event_logger.log_context.return_value.__exit__ = Mock(
+                return_value=False
+            )
 
-        with (
-            patch(
-                "fastmcp.server.dependencies.get_context",
-                return_value=mock_ctx,
-            ),
-            patch("superset.db", mock_db_session),
-            patch("flask.g", mock_g),
-            patch.object(mod, "event_logger", mock_event_logger),
-        ):
-            from superset.exceptions import SupersetErrorException
+            with (
+                patch(
+                    "fastmcp.server.dependencies.get_context",
+                    return_value=mock_ctx,
+                ),
+                patch("superset.db", mock_db_session),
+                patch("flask.g", mock_g),
+                patch.object(mod, "event_logger", mock_event_logger),
+            ):
+                from superset.exceptions import SupersetErrorException
 
-            with pytest.raises(SupersetErrorException, match="not found"):
-                await mod.save_sql_query(request)
+                with pytest.raises(SupersetErrorException, match="not found"):
+                    await mod.save_sql_query(request)
+        finally:
+            _restore_modules(saved)
 
     @pytest.mark.anyio
     async def test_save_query_access_denied(self) -> None:
-        mod = _get_tool_module()
-        mock_ctx = _make_mock_ctx()
+        mod, saved = _get_tool_module()
+        try:
+            mock_ctx = _make_mock_ctx()
 
-        mock_db_obj = MagicMock()
-        mock_db_obj.id = 1
-        mock_db_obj.database_name = "test_db"
+            mock_db_obj = MagicMock()
+            mock_db_obj.id = 1
+            mock_db_obj.database_name = "test_db"
 
-        request = SaveSqlQueryRequest(
-            database_id=1,
-            label="Test",
-            sql="SELECT 1",
-        )
+            request = SaveSqlQueryRequest(
+                database_id=1,
+                label="Test",
+                sql="SELECT 1",
+            )
 
-        mock_db_session = MagicMock()
-        (
-            mock_db_session.session.query.return_value.filter_by.return_value.first.return_value
-        ) = mock_db_obj
+            mock_db_session = MagicMock()
+            (
+                mock_db_session.session.query.return_value.filter_by.return_value.first.return_value
+            ) = mock_db_obj
 
-        mock_sm = MagicMock()
-        mock_sm.can_access_database.return_value = False
+            mock_sm = MagicMock()
+            mock_sm.can_access_database.return_value = False
 
-        mock_g = MagicMock()
-        mock_g.user = Mock(id=1)
+            mock_g = MagicMock()
+            mock_g.user = Mock(id=1)
 
-        mock_event_logger = MagicMock()
-        mock_event_logger.log_context.return_value.__enter__ = Mock()
-        mock_event_logger.log_context.return_value.__exit__ = Mock(return_value=False)
+            mock_event_logger = MagicMock()
+            mock_event_logger.log_context.return_value.__enter__ = Mock()
+            mock_event_logger.log_context.return_value.__exit__ = Mock(
+                return_value=False
+            )
 
-        with (
-            patch(
-                "fastmcp.server.dependencies.get_context",
-                return_value=mock_ctx,
-            ),
-            patch("superset.db", mock_db_session),
-            patch("superset.security_manager", mock_sm),
-            patch("flask.g", mock_g),
-            patch.object(mod, "event_logger", mock_event_logger),
-        ):
-            from superset.exceptions import SupersetSecurityException
+            with (
+                patch(
+                    "fastmcp.server.dependencies.get_context",
+                    return_value=mock_ctx,
+                ),
+                patch("superset.db", mock_db_session),
+                patch("superset.security_manager", mock_sm),
+                patch("flask.g", mock_g),
+                patch.object(mod, "event_logger", mock_event_logger),
+            ):
+                from superset.exceptions import SupersetSecurityException
 
-            with pytest.raises(SupersetSecurityException, match="Access denied"):
-                await mod.save_sql_query(request)
+                with pytest.raises(SupersetSecurityException, match="Access denied"):
+                    await mod.save_sql_query(request)
+        finally:
+            _restore_modules(saved)
 
     @pytest.mark.anyio
     async def test_save_query_with_schema_and_description(self) -> None:
-        mod = _get_tool_module()
-        mock_ctx = _make_mock_ctx()
+        mod, saved = _get_tool_module()
+        try:
+            mock_ctx = _make_mock_ctx()
 
-        mock_db_obj = MagicMock()
-        mock_db_obj.id = 1
-        mock_db_obj.database_name = "test_db"
+            mock_db_obj = MagicMock()
+            mock_db_obj.id = 1
+            mock_db_obj.database_name = "test_db"
 
-        mock_sq = MagicMock()
-        mock_sq.id = 10
-        mock_sq.label = "Test"
-        mock_sq.sql = "SELECT 1"
+            mock_sq = MagicMock()
+            mock_sq.id = 10
+            mock_sq.label = "Test"
+            mock_sq.sql = "SELECT 1"
 
-        request = SaveSqlQueryRequest(
-            database_id=1,
-            label="Test",
-            sql="SELECT 1",
-            schema="public",
-            description="A test query",
-        )
+            request = SaveSqlQueryRequest(
+                database_id=1,
+                label="Test",
+                sql="SELECT 1",
+                schema="public",
+                description="A test query",
+            )
 
-        mock_db_session = MagicMock()
-        (
-            mock_db_session.session.query.return_value.filter_by.return_value.first.return_value
-        ) = mock_db_obj
+            mock_db_session = MagicMock()
+            (
+                mock_db_session.session.query.return_value.filter_by.return_value.first.return_value
+            ) = mock_db_obj
 
-        mock_sm = MagicMock()
-        mock_sm.can_access_database.return_value = True
+            mock_sm = MagicMock()
+            mock_sm.can_access_database.return_value = True
 
-        mock_dao = MagicMock()
-        mock_dao.create.return_value = mock_sq
+            mock_dao = MagicMock()
+            mock_dao.create.return_value = mock_sq
 
-        mock_g = MagicMock()
-        mock_g.user = Mock(id=1)
+            mock_g = MagicMock()
+            mock_g.user = Mock(id=1)
 
-        mock_event_logger = MagicMock()
-        mock_event_logger.log_context.return_value.__enter__ = Mock()
-        mock_event_logger.log_context.return_value.__exit__ = Mock(return_value=False)
+            mock_event_logger = MagicMock()
+            mock_event_logger.log_context.return_value.__enter__ = Mock()
+            mock_event_logger.log_context.return_value.__exit__ = Mock(
+                return_value=False
+            )
 
-        with (
-            patch(
-                "fastmcp.server.dependencies.get_context",
-                return_value=mock_ctx,
-            ),
-            patch("superset.db", mock_db_session),
-            patch("superset.security_manager", mock_sm),
-            patch("superset.daos.query.SavedQueryDAO", mock_dao),
-            patch(
-                "superset.mcp_service.utils.url_utils.get_superset_base_url",
-                return_value="http://localhost:8088",
-            ),
-            patch("flask.g", mock_g),
-            patch.object(mod, "event_logger", mock_event_logger),
-        ):
-            result = await mod.save_sql_query(request)
+            with (
+                patch(
+                    "fastmcp.server.dependencies.get_context",
+                    return_value=mock_ctx,
+                ),
+                patch("superset.db", mock_db_session),
+                patch("superset.security_manager", mock_sm),
+                patch("superset.daos.query.SavedQueryDAO", mock_dao),
+                patch(
+                    "superset.mcp_service.utils.url_utils.get_superset_base_url",
+                    return_value="http://localhost:8088",
+                ),
+                patch("flask.g", mock_g),
+                patch.object(mod, "event_logger", mock_event_logger),
+            ):
+                result = await mod.save_sql_query(request)
 
-            assert result.id == 10
-            call_attrs = mock_dao.create.call_args[1]["attributes"]
-            assert call_attrs["schema"] == "public"
-            assert call_attrs["description"] == "A test query"
+                assert result.id == 10
+                call_attrs = mock_dao.create.call_args[1]["attributes"]
+                assert call_attrs["schema"] == "public"
+                assert call_attrs["description"] == "A test query"
+        finally:
+            _restore_modules(saved)
