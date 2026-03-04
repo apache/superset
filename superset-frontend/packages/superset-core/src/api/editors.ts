@@ -40,7 +40,15 @@ import type { SupersetTheme } from '../ui';
 /**
  * Supported editor languages.
  */
-export type EditorLanguage = 'sql' | 'json' | 'yaml' | 'markdown' | 'css';
+export type EditorLanguage =
+  | 'sql'
+  | 'json'
+  | 'yaml'
+  | 'markdown'
+  | 'css'
+  | 'python'
+  | 'text'
+  | 'javascript';
 
 /**
  * Describes an editor that can be contributed to the application.
