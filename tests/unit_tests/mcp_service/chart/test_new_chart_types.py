@@ -909,3 +909,21 @@ class TestSchemaValidatorNewTypes:
         assert "pie" in (error.details or "").lower()
         assert "pivot_table" in (error.details or "").lower()
         assert "mixed_timeseries" in (error.details or "").lower()
+
+    @pytest.mark.parametrize(
+        "bad_chart_type",
+        [["xy"], {"type": "xy"}, 123, True],
+    )
+    def test_non_string_chart_type_rejected_gracefully(
+        self, bad_chart_type: object
+    ) -> None:
+        data = {
+            "dataset_id": 1,
+            "config": {
+                "chart_type": bad_chart_type,
+            },
+        }
+        is_valid, _, error = SchemaValidator.validate_request(data)
+        assert is_valid is False
+        assert error is not None
+        assert error.error_code == "INVALID_CHART_TYPE"

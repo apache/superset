@@ -153,7 +153,7 @@ class SchemaValidator:
             "mixed_timeseries": SchemaValidator._pre_validate_mixed_timeseries_config,
         }
 
-        if chart_type not in chart_type_validators:
+        if not isinstance(chart_type, str) or chart_type not in chart_type_validators:
             valid_types = ", ".join(chart_type_validators.keys())
             return False, ChartGenerationError(
                 error_type="invalid_chart_type",
