@@ -22,9 +22,12 @@ This module contains the FastMCP tool for listing dashboards using
 advanced filtering with clear, unambiguous request schema and metadata cache control.
 """
 
+from __future__ import annotations
+
 import logging
+from collections.abc import Callable
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
@@ -199,8 +202,8 @@ async def list_dashboards(
 
 def _list_dashboards_by_popularity(
     request: ListDashboardsRequest,
-    dao_class: type,
-    serializer: callable,
+    dao_class: Any,
+    serializer: Callable[..., dict[str, Any] | None],
     all_columns: list[str],
     ctx: Context,
 ) -> DashboardList:
@@ -228,10 +231,9 @@ def _list_dashboards_by_popularity(
     page_size = request.page_size
     start = page * page_size
     end = start + page_size
-    page_ids = sorted_ids[start:end]
 
     # Fetch full models for page IDs
-    if page_ids:
+    if page_ids := sorted_ids[start:end]:
         items = dao_class.find_by_ids(page_ids)
         id_to_item = {item.id: item for item in items}
         ordered_items = [id_to_item[pid] for pid in page_ids if pid in id_to_item]

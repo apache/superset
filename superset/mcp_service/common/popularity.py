@@ -25,7 +25,9 @@ relationships, certification, and recency.
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
+from typing import Any
 
 import sqlalchemy as sa
 
@@ -261,7 +263,7 @@ def compute_dataset_popularity(
     # Datasets use CertificationMixin where certification is in the extra JSON
     datasets = (
         db.session.query(SqlaTable.id, SqlaTable.extra, SqlaTable.changed_on)
-        .filter(SqlaTable.id.in_(dataset_ids))
+        .filter(SqlaTable.id.in_(dataset_ids))  # type: ignore[union-attr]
         .all()
     )
     for ds in datasets:
@@ -282,9 +284,9 @@ def compute_dataset_popularity(
 
 
 def get_popularity_sorted_ids(
-    compute_fn: callable,
-    dao_class: type,
-    filters: list | None,
+    compute_fn: Callable[..., dict[int, float]],
+    dao_class: Any,
+    filters: list[Any] | None,
     search: str | None,
     search_columns: list[str],
     order_direction: str = "desc",
@@ -323,8 +325,11 @@ def get_popularity_sorted_ids(
     if not all_items:
         return [], {}, 0
 
-    all_ids = [getattr(item, "id", None) for item in all_items]
-    all_ids = [i for i in all_ids if i is not None]
+    all_ids: list[int] = [
+        item_id
+        for item in all_items
+        if (item_id := getattr(item, "id", None)) is not None
+    ]
 
     if not all_ids:
         return [], {}, total_count

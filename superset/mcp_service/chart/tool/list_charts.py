@@ -19,9 +19,12 @@
 MCP tool: list_charts (advanced filtering with metadata cache control)
 """
 
+from __future__ import annotations
+
 import logging
+from collections.abc import Callable
 from datetime import datetime, timezone
-from typing import cast, TYPE_CHECKING
+from typing import Any, cast, TYPE_CHECKING
 
 from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
@@ -209,8 +212,8 @@ async def list_charts(request: ListChartsRequest, ctx: Context) -> ChartList:
 
 def _list_charts_by_popularity(
     request: ListChartsRequest,
-    dao_class: type,
-    serializer: callable,
+    dao_class: Any,
+    serializer: Callable[..., dict[str, Any] | None],
     all_columns: list[str],
     ctx: Context,
 ) -> ChartList:
@@ -236,10 +239,9 @@ def _list_charts_by_popularity(
     page_size = request.page_size
     start = page * page_size
     end = start + page_size
-    page_ids = sorted_ids[start:end]
 
     # Fetch full models for page IDs
-    if page_ids:
+    if page_ids := sorted_ids[start:end]:
         items = dao_class.find_by_ids(page_ids)
         # Preserve popularity sort order
         id_to_item = {item.id: item for item in items}
