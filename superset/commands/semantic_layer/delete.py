@@ -25,9 +25,11 @@ from superset.commands.base import BaseCommand
 from superset.commands.semantic_layer.exceptions import (
     SemanticLayerDeleteFailedError,
     SemanticLayerNotFoundError,
+    SemanticViewDeleteFailedError,
+    SemanticViewNotFoundError,
 )
-from superset.daos.semantic_layer import SemanticLayerDAO
-from superset.semantic_layers.models import SemanticLayer
+from superset.daos.semantic_layer import SemanticLayerDAO, SemanticViewDAO
+from superset.semantic_layers.models import SemanticLayer, SemanticView
 from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
@@ -54,3 +56,26 @@ class DeleteSemanticLayerCommand(BaseCommand):
         self._model = SemanticLayerDAO.find_by_uuid(self._uuid)
         if not self._model:
             raise SemanticLayerNotFoundError()
+
+
+class DeleteSemanticViewCommand(BaseCommand):
+    def __init__(self, pk: int):
+        self._pk = pk
+        self._model: SemanticView | None = None
+
+    @transaction(
+        on_error=partial(
+            on_error,
+            catches=(SQLAlchemyError,),
+            reraise=SemanticViewDeleteFailedError,
+        )
+    )
+    def run(self) -> None:
+        self.validate()
+        assert self._model
+        SemanticViewDAO.delete([self._model])
+
+    def validate(self) -> None:
+        self._model = SemanticViewDAO.find_by_id(self._pk, id_column="id")
+        if not self._model:
+            raise SemanticViewNotFoundError()

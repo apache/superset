@@ -35,3 +35,11 @@ class SemanticLayerPutSchema(Schema):
     description = fields.String(allow_none=True)
     configuration = fields.Dict()
     cache_timeout = fields.Integer(allow_none=True)
+
+
+class SemanticViewPostSchema(Schema):
+    name = fields.String(required=True)
+    semantic_layer_uuid = fields.String(required=True)
+    configuration = fields.Dict(load_default=dict)
+    description = fields.String(allow_none=True)
+    cache_timeout = fields.Integer(allow_none=True)
