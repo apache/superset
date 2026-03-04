@@ -41,6 +41,10 @@ Extensions can provide:
 - **REST API Endpoints**: Backend services under the `/api/v1/extensions/` namespace
 - **MCP Tools and Prompts**: AI agent capabilities for enhanced user assistance
 
+## UI Components for Extensions
+
+Extension developers have access to pre-built UI components via `@apache-superset/core/ui`. Browse all available components on the [UI Components](/docs/components/) page and filter by **Extension Compatible** to see components available to extensions.
+
 ## Next Steps
 
 - **[Quick Start](./quick-start)** - Build your first extension with a complete walkthrough
