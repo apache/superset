@@ -63,17 +63,21 @@ def _find_next_row_position(layout: Dict[str, Any]) -> str:
     return row_key
 
 
-def _find_tab_insert_target(layout: Dict[str, Any]) -> str | None:
+def _find_tab_insert_target(
+    layout: Dict[str, Any], target_tab: str | None = None
+) -> str | None:
     """
-    Detect if the dashboard uses tabs and return the first tab's ID.
+    Detect if the dashboard uses tabs and return the appropriate tab's ID.
 
-    If ``GRID_ID`` has children that are ``TABS`` components, this walks
-    into the first ``TAB`` child so that new rows are placed inside the
-    active tab rather than directly under GRID_ID.
+    If *target_tab* is provided the function first tries to match it against
+    tab ``meta.text`` (display name) or the raw component ID.  When no match
+    is found (or *target_tab* is ``None``) the first ``TAB`` child is used as
+    a fallback so that new rows are still placed inside the tab structure
+    rather than directly under ``GRID_ID``.
 
     Returns:
-        The ID of the first TAB component, or ``None`` if the dashboard
-        does not use top-level tabs.
+        The ID of the matched (or first) TAB component, or ``None`` if the
+        dashboard does not use top-level tabs.
     """
     grid = layout.get("GRID_ID")
     if not grid:
@@ -82,13 +86,25 @@ def _find_tab_insert_target(layout: Dict[str, Any]) -> str | None:
     for child_id in grid.get("children", []):
         child = layout.get(child_id)
         if child and child.get("type") == "TABS":
-            # Found a TABS component; use its first TAB child
             tabs_children = child.get("children", [])
-            if tabs_children:
-                first_tab_id = tabs_children[0]
-                first_tab = layout.get(first_tab_id)
-                if first_tab and first_tab.get("type") == "TAB":
-                    return first_tab_id
+            if not tabs_children:
+                continue
+
+            # When a target_tab is specified, try to resolve it by name or ID
+            if target_tab:
+                for tab_id in tabs_children:
+                    tab = layout.get(tab_id)
+                    if not tab or tab.get("type") != "TAB":
+                        continue
+                    tab_text = (tab.get("meta") or {}).get("text", "")
+                    if target_tab in (tab_id, tab_text):
+                        return tab_id
+
+            # Fallback: return the first TAB child
+            first_tab_id = tabs_children[0]
+            first_tab = layout.get(first_tab_id)
+            if first_tab and first_tab.get("type") == "TAB":
+                return first_tab_id
     return None
 
 
@@ -284,8 +300,10 @@ def add_chart_to_existing_dashboard(
             # Generate a unique ROW ID for the new row
             row_key = _find_next_row_position(current_layout)
 
-            # Detect tabbed dashboards: if GRID has TABS, target the first tab
-            tab_target = _find_tab_insert_target(current_layout)
+            # Detect tabbed dashboards and resolve target_tab by name or ID
+            tab_target = _find_tab_insert_target(
+                current_layout, target_tab=request.target_tab
+            )
             parent_id = tab_target if tab_target else "GRID_ID"
 
             # Add chart, column, and row to layout
