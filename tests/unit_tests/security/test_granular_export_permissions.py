@@ -15,9 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from unittest.mock import MagicMock
-
-import pytest
+from unittest.mock import MagicMock, patch
 
 from superset.security.manager import SupersetSecurityManager
 
@@ -102,10 +100,11 @@ def test_is_gamma_pvm_allows_copy_clipboard(app_context: None) -> None:
     pvm.permission.name = "can_copy_clipboard"
     pvm.view_menu.name = "Superset"
     # Ensure the pvm doesn't trigger other exclusion checks
-    sm._is_user_defined_permission = MagicMock(return_value=False)
-    sm._is_admin_only = MagicMock(return_value=False)
-    sm._is_alpha_only = MagicMock(return_value=False)
-    sm._is_sql_lab_only = MagicMock(return_value=False)
-    sm._is_accessible_to_all = MagicMock(return_value=False)
-
-    assert sm._is_gamma_pvm(pvm) is True
+    with (
+        patch.object(sm, "_is_user_defined_permission", return_value=False),
+        patch.object(sm, "_is_admin_only", return_value=False),
+        patch.object(sm, "_is_alpha_only", return_value=False),
+        patch.object(sm, "_is_sql_lab_only", return_value=False),
+        patch.object(sm, "_is_accessible_to_all", return_value=False),
+    ):
+        assert sm._is_gamma_pvm(pvm) is True

@@ -27,7 +27,6 @@ revision = "a1b2c3d4e5f6"
 down_revision = "4b2a8c9d3e1f"
 
 from alembic import op  # noqa: E402
-from sqlalchemy.exc import SQLAlchemyError  # noqa: E402
 from sqlalchemy.orm import Session  # noqa: E402
 
 from superset.migrations.shared.security_converge import (  # noqa: E402
@@ -68,25 +67,10 @@ def do_downgrade(session: Session) -> None:
 def upgrade():
     bind = op.get_bind()
     session = Session(bind=bind)
-
     do_upgrade(session)
-
-    try:
-        session.commit()
-    except SQLAlchemyError as ex:
-        session.rollback()
-        raise Exception(f"An error occurred while upgrading permissions: {ex}") from ex
 
 
 def downgrade():
     bind = op.get_bind()
     session = Session(bind=bind)
-
     do_downgrade(session)
-
-    try:
-        session.commit()
-    except SQLAlchemyError as ex:
-        print(f"An error occurred while downgrading permissions: {ex}")
-        session.rollback()
-    pass
