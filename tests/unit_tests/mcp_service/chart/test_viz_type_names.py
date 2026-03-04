@@ -20,8 +20,8 @@
 import pytest
 
 from superset.mcp_service.chart.viz_type_names import (
-    VIZ_TYPE_DISPLAY_NAMES,
     get_viz_type_display_name,
+    VIZ_TYPE_DISPLAY_NAMES,
 )
 
 
