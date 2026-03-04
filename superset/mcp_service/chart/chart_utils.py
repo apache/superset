@@ -27,6 +27,7 @@ from dataclasses import dataclass
 from typing import Any, Dict
 
 from superset.mcp_service.chart.schemas import (
+    BigNumberChartConfig,
     ChartCapabilities,
     ChartSemantics,
     ColumnRef,
@@ -308,7 +309,8 @@ def map_config_to_form_data(
     | XYChartConfig
     | PieChartConfig
     | PivotTableChartConfig
-    | MixedTimeseriesChartConfig,
+    | MixedTimeseriesChartConfig
+    | BigNumberChartConfig,
     dataset_id: int | str | None = None,
 ) -> Dict[str, Any]:
     """Map chart config to Superset form_data."""
@@ -322,6 +324,8 @@ def map_config_to_form_data(
         return map_pivot_table_config(config)
     elif isinstance(config, MixedTimeseriesChartConfig):
         return map_mixed_timeseries_config(config, dataset_id=dataset_id)
+    elif isinstance(config, BigNumberChartConfig):
+        return map_big_number_config(config)
     else:
         raise ValueError(f"Unsupported config type: {type(config)}")
 
@@ -622,6 +626,57 @@ def map_pie_config(config: PieChartConfig) -> Dict[str, Any]:
         "innerRadius": config.inner_radius,
         "date_format": "smart_date",
     }
+
+    time_range = getattr(config, "time_range", None)
+    if time_range:
+        form_data["time_range"] = time_range
+
+    if config.filters:
+        form_data["adhoc_filters"] = [
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": filter_config.column,
+                "operator": map_filter_operator(filter_config.op),
+                "comparator": filter_config.value,
+            }
+            for filter_config in config.filters
+            if filter_config is not None
+        ]
+
+    return form_data
+
+
+def map_big_number_config(config: BigNumberChartConfig) -> Dict[str, Any]:
+    """Map big number chart config to Superset form_data."""
+    # Determine viz_type: big_number (with trendline) or big_number_total
+    if config.show_trendline and config.temporal_column:
+        viz_type = "big_number"
+    else:
+        viz_type = "big_number_total"
+
+    metric = create_metric_object(config.metric)
+    form_data: Dict[str, Any] = {
+        "viz_type": viz_type,
+        "metric": metric,
+    }
+
+    if config.subheader:
+        form_data["subheader"] = config.subheader
+
+    if config.y_axis_format:
+        form_data["y_axis_format"] = config.y_axis_format
+
+    # Trendline-specific fields
+    if viz_type == "big_number":
+        form_data["x_axis"] = config.temporal_column
+        form_data["start_y_axis_at_zero"] = config.start_y_axis_at_zero
+
+        if config.time_grain:
+            form_data["time_grain_sqla"] = config.time_grain
+
+        if config.compare_lag is not None:
+            form_data["compare_lag"] = config.compare_lag
 
     if config.filters:
         form_data["adhoc_filters"] = [
@@ -924,12 +979,23 @@ def _mixed_timeseries_what(config: MixedTimeseriesChartConfig) -> str:
     return f"{primary} + {secondary}"
 
 
+def _big_number_chart_what(config: BigNumberChartConfig) -> str:
+    """Build the 'what' portion for a big number chart name."""
+    metric_label = (
+        config.metric.label or f"{config.metric.aggregate}({config.metric.name})"
+    )
+    if config.show_trendline:
+        return f"Big Number \u2013 {metric_label} (with trendline)"
+    return f"Big Number \u2013 {metric_label}"
+
+
 def generate_chart_name(
     config: TableChartConfig
     | XYChartConfig
     | PieChartConfig
     | PivotTableChartConfig
-    | MixedTimeseriesChartConfig,
+    | MixedTimeseriesChartConfig
+    | BigNumberChartConfig,
     dataset_name: str | None = None,
 ) -> str:
     """Generate a descriptive chart name following a standard format.
@@ -960,6 +1026,9 @@ def generate_chart_name(
     elif isinstance(config, MixedTimeseriesChartConfig):
         what = _mixed_timeseries_what(config)
         context = _summarize_filters(config.filters)
+    elif isinstance(config, BigNumberChartConfig):
+        what = _big_number_chart_what(config)
+        context = _summarize_filters(getattr(config, "filters", None))
     else:
         return "Chart"
 
@@ -967,6 +1036,35 @@ def generate_chart_name(
     if context:
         name = f"{what} \u2013 {context}"
     return _truncate(name)
+
+
+def _resolve_viz_type(config: Any) -> str:
+    """Resolve the Superset viz_type from a chart config object."""
+    chart_type = getattr(config, "chart_type", "unknown")
+    if chart_type == "xy":
+        kind = getattr(config, "kind", "line")
+        viz_type_map = {
+            "line": "echarts_timeseries_line",
+            "bar": "echarts_timeseries_bar",
+            "area": "echarts_area",
+            "scatter": "echarts_timeseries_scatter",
+        }
+        return viz_type_map.get(kind, "echarts_timeseries_line")
+    elif chart_type == "table":
+        return getattr(config, "viz_type", "table")
+    elif chart_type == "pie":
+        return "pie"
+    elif chart_type == "pivot_table":
+        return "pivot_table_v2"
+    elif chart_type == "mixed_timeseries":
+        return "mixed_timeseries"
+    elif chart_type == "big_number":
+        show_trendline = getattr(config, "show_trendline", False)
+        temporal_column = getattr(config, "temporal_column", None)
+        return (
+            "big_number" if show_trendline and temporal_column else "big_number_total"
+        )
+    return "unknown"
 
 
 def analyze_chart_capabilities(chart: Any | None, config: Any) -> ChartCapabilities:
@@ -1019,29 +1117,6 @@ def analyze_chart_capabilities(chart: Any | None, config: Any) -> ChartCapabilit
     )
 
 
-def _resolve_viz_type(config: Any) -> str:
-    """Resolve viz_type from a chart config object."""
-    chart_type = getattr(config, "chart_type", "unknown")
-    if chart_type == "xy":
-        kind = getattr(config, "kind", "line")
-        viz_type_map = {
-            "line": "echarts_timeseries_line",
-            "bar": "echarts_timeseries_bar",
-            "area": "echarts_area",
-            "scatter": "echarts_timeseries_scatter",
-        }
-        return viz_type_map.get(kind, "echarts_timeseries_line")
-    elif chart_type == "table":
-        return getattr(config, "viz_type", "table")
-    elif chart_type == "pie":
-        return "pie"
-    elif chart_type == "pivot_table":
-        return "pivot_table_v2"
-    elif chart_type == "mixed_timeseries":
-        return "mixed_timeseries"
-    return "unknown"
-
-
 def analyze_chart_semantics(chart: Any | None, config: Any) -> ChartSemantics:
     """Generate semantic understanding of the chart."""
     if chart:
@@ -1067,6 +1142,13 @@ def analyze_chart_semantics(chart: Any | None, config: Any) -> ChartSemantics:
         "mixed_timeseries": (
             "Combines two different chart types on the same time axis "
             "for comparing related metrics with different scales"
+        ),
+        "big_number": (
+            "Displays a key metric with a trendline showing "
+            "how the value changes over time"
+        ),
+        "big_number_total": (
+            "Highlights a single key metric value as a prominent number"
         ),
     }
 
