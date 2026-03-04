@@ -340,6 +340,35 @@ class TestGenerateDashboard:
             call_args = mock_create_command.call_args[0][0]
             assert call_args["dashboard_title"] == "Sales Revenue & Customer Count"
 
+    @patch("superset.commands.dashboard.create.CreateDashboardCommand")
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_generate_dashboard_empty_string_title_preserved(
+        self, mock_db_session, mock_create_command, mcp_server
+    ):
+        """Test that an explicit empty-string title is NOT replaced by auto-gen."""
+        mock_query = Mock()
+        mock_filter = Mock()
+        mock_query.filter.return_value = mock_filter
+        mock_filter.all.return_value = [
+            _mock_chart(id=1, slice_name="Sales Revenue"),
+        ]
+        mock_db_session.query.return_value = mock_query
+
+        mock_dashboard = _mock_dashboard(id=60, title="")
+        mock_create_command.return_value.run.return_value = mock_dashboard
+
+        # Explicit empty string title
+        request = {"chart_ids": [1], "dashboard_title": ""}
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("generate_dashboard", {"request": request})
+
+            assert result.structured_content["error"] is None
+
+            call_args = mock_create_command.call_args[0][0]
+            assert call_args["dashboard_title"] == ""
+
 
 class TestAddChartToExistingDashboard:
     """Tests for add_chart_to_existing_dashboard MCP tool."""

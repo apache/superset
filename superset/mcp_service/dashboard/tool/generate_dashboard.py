@@ -212,8 +212,10 @@ def generate_dashboard(
             layout = _create_dashboard_layout(chart_objects)
 
         # Resolve dashboard title: use provided title or derive from chart names
-        dashboard_title = request.dashboard_title or _generate_title_from_charts(
-            chart_objects
+        dashboard_title = (
+            request.dashboard_title
+            if request.dashboard_title is not None
+            else _generate_title_from_charts(chart_objects)
         )
 
         # Prepare dashboard data and create dashboard
