@@ -29,6 +29,15 @@ import chartQueries, {
 } from 'spec/fixtures/mockChartQueries';
 import Chart from './Chart';
 
+let capturedChartContainerProps: Record<string, unknown> = {};
+jest.mock('src/components/Chart/ChartContainer', () => {
+  const MockChartContainer = (props: Record<string, unknown>) => {
+    capturedChartContainerProps = props;
+    return <div data-test="chart-container" />;
+  };
+  return { __esModule: true, default: MockChartContainer };
+});
+
 const props = {
   id: queryId,
   width: 100,
@@ -451,4 +460,25 @@ test('should merge base ownState with converted chart state', () => {
   );
 
   expect(getByTestId('chart-container')).toBeInTheDocument();
+});
+
+test('should pass filterState from dataMask to ChartContainer', () => {
+  const mockFilterState = { value: ['bar'], selectedValues: ['bar'] };
+
+  setup(
+    {},
+    {
+      ...defaultState,
+      dataMask: {
+        [queryId]: {
+          filterState: mockFilterState,
+        },
+      },
+    },
+  );
+
+  expect(capturedChartContainerProps).toHaveProperty(
+    'filterState',
+    mockFilterState,
+  );
 });
