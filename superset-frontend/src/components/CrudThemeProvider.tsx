@@ -16,68 +16,45 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode, useEffect, useState } from 'react';
-import { useThemeContext } from 'src/theme/ThemeProvider';
+import { ReactNode, useMemo } from 'react';
+import { logging } from '@apache-superset/core';
 import { Theme } from '@apache-superset/core/ui';
-import { Loading } from '@superset-ui/core/components';
+import type { Dashboard } from 'src/types/Dashboard';
 
 interface CrudThemeProviderProps {
   children: ReactNode;
-  themeId?: number | null;
+  theme?: Dashboard['theme'];
 }
 
 /**
- * CrudThemeProvider asks the ThemeController for a dashboard theme provider.
- * Flow: Dashboard loads → asks controller → controller fetches theme →
- * returns provider → dashboard uses it.
- *
- * CRITICAL: This does NOT modify the global controller - it creates an isolated dashboard theme.
+ * CrudThemeProvider applies a dashboard-specific theme using theme data
+ * from the dashboard API response. Falls back to the global theme if
+ * the theme data is missing or invalid.
  */
 export default function CrudThemeProvider({
   children,
-  themeId,
+  theme,
 }: CrudThemeProviderProps) {
-  const globalThemeContext = useThemeContext();
-  const [dashboardTheme, setDashboardTheme] = useState<Theme | null>(null);
-
-  useEffect(() => {
-    if (themeId) {
-      // Ask the controller to create a SEPARATE dashboard theme provider
-      // This should NOT affect the global controller or navbar
-      const loadDashboardTheme = async () => {
-        try {
-          const dashboardThemeProvider =
-            await globalThemeContext.createDashboardThemeProvider(
-              String(themeId),
-            );
-          setDashboardTheme(dashboardThemeProvider);
-        } catch (error) {
-          console.error('Failed to load dashboard theme:', error);
-          setDashboardTheme(null);
-        }
-      };
-
-      loadDashboardTheme();
-    } else {
-      setDashboardTheme(null);
+  const dashboardTheme = useMemo(() => {
+    if (!theme?.json_data) {
+      return null;
     }
-  }, [themeId, globalThemeContext]);
+    try {
+      const themeConfig = JSON.parse(theme.json_data);
+      return Theme.fromConfig(themeConfig);
+    } catch (error) {
+      logging.warn('Failed to load dashboard theme:', error);
+      return null;
+    }
+  }, [theme?.json_data]);
 
-  // If no themeId, just render children (they use global theme)
-  if (!themeId) {
+  if (!dashboardTheme) {
     return <>{children}</>;
   }
 
-  // If themeId exists, but theme is not loaded yet, return null to prevent re-mounting children
-  if (!dashboardTheme) {
-    return <Loading />;
-  }
-
-  // Render children with the dashboard theme provider from controller
   return (
     <dashboardTheme.SupersetThemeProvider>
       {children}
     </dashboardTheme.SupersetThemeProvider>
   );
 }
-// test comment
