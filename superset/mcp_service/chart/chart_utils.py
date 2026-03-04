@@ -789,33 +789,115 @@ def map_filter_operator(op: str) -> str:
     return operator_map.get(op, op)
 
 
-def generate_chart_name(
-    config: TableChartConfig
-    | XYChartConfig
-    | PieChartConfig
-    | PivotTableChartConfig
-    | MixedTimeseriesChartConfig,
+def _humanize_column(col: ColumnRef) -> str:
+    """Return a human-readable label for a column reference."""
+    if col.label:
+        return col.label
+    name = col.name.replace("_", " ").title()
+    if col.aggregate:
+        return f"{col.aggregate.capitalize()}({name})"
+    return name
+
+
+def _summarize_filters(
+    filters: list[Any] | None,
+) -> str | None:
+    """Extract a short context string from filter configs."""
+    if not filters:
+        return None
+    parts: list[str] = []
+    for f in filters[:2]:
+        col = getattr(f, "column", "")
+        val = getattr(f, "value", "")
+        if isinstance(val, list):
+            val = ", ".join(str(v) for v in val[:3])
+        parts.append(f"{str(col).replace('_', ' ').title()} {val}")
+    return ", ".join(parts) if parts else None
+
+
+def _truncate(name: str, max_length: int = 60) -> str:
+    """Truncate to *max_length*, preserving the en-dash context portion."""
+    if len(name) <= max_length:
+        return name
+    if " \u2013 " in name:
+        what, _context = name.split(" \u2013 ", 1)
+        if len(what) <= max_length:
+            return what
+    return name[: max_length - 1] + "\u2026"
+
+
+def generate_chart_name(  # noqa: C901
+    config: TableChartConfig | XYChartConfig,
+    dataset_name: str | None = None,
 ) -> str:
-    """Generate a chart name based on the configuration."""
+    """Generate a descriptive chart name following a standard format.
+
+    Format conventions (by chart type):
+      Aggregated (bar/scatter with group_by): [Metric] by [Dimension]
+      Time-series (line/area, no group_by):   [Metric] Over Time
+      Table (no aggregates):                  [Dataset] Records
+      Table (with aggregates):                [Metric] Summary
+    An en-dash followed by context (filters / time grain) is appended
+    when such information is available.
+    """
+    context = None
     if isinstance(config, TableChartConfig):
-        return f"Table Chart - {', '.join(col.name for col in config.columns)}"
+        has_agg = any(col.aggregate for col in config.columns)
+        if has_agg:
+            metrics = [col for col in config.columns if col.aggregate]
+            what = ", ".join(_humanize_column(m) for m in metrics[:2])
+            what = f"{what} Summary"
+        else:
+            if dataset_name:
+                what = f"{dataset_name} Records"
+            else:
+                cols = ", ".join(_humanize_column(c) for c in config.columns[:3])
+                what = f"{cols} Table"
+        context = _summarize_filters(config.filters)
+
     elif isinstance(config, XYChartConfig):
-        chart_type = config.kind.capitalize()
-        x_col = config.x.name
-        y_cols = ", ".join(col.name for col in config.y)
-        return f"{chart_type} Chart - {x_col} vs {y_cols}"
-    elif isinstance(config, PieChartConfig):
-        metric_label = config.metric.label or config.metric.name
-        return f"Pie Chart - {config.dimension.name} by {metric_label}"
-    elif isinstance(config, PivotTableChartConfig):
-        rows = ", ".join(col.name for col in config.rows)
-        return f"Pivot Table - {rows}"
-    elif isinstance(config, MixedTimeseriesChartConfig):
-        primary = ", ".join(col.name for col in config.y)
-        secondary = ", ".join(col.name for col in config.y_secondary)
-        return f"Mixed Chart - {primary} + {secondary}"
+        primary_metric = _humanize_column(config.y[0]) if config.y else "Value"
+        dimension = _humanize_column(config.x)
+
+        is_timeseries = config.kind in ("line", "area")
+        has_groupby = config.group_by is not None
+
+        if is_timeseries and not has_groupby:
+            what = f"{primary_metric} Over Time"
+        elif has_groupby:
+            group_label = _humanize_column(config.group_by)  # type: ignore[arg-type]
+            what = f"{primary_metric} by {group_label}"
+        elif config.kind == "scatter":
+            y_label = primary_metric
+            what = f"{y_label} vs {dimension}"
+        else:
+            what = f"{primary_metric} by {dimension}"
+
+        # Build context from time grain or filters
+        parts: list[str] = []
+        if config.time_grain:
+            grain_map: dict[str, str] = {
+                "PT1H": "Hourly",
+                "P1D": "Daily",
+                "P1W": "Weekly",
+                "P1M": "Monthly",
+                "P3M": "Quarterly",
+                "P1Y": "Yearly",
+            }
+            grain_str = grain_map.get(str(config.time_grain), str(config.time_grain))
+            parts.append(grain_str)
+        filter_ctx = _summarize_filters(config.filters)
+        if filter_ctx:
+            parts.append(filter_ctx)
+        if parts:
+            context = ", ".join(parts)
     else:
         return "Chart"
+
+    name = what
+    if context:
+        name = f"{what} \u2013 {context}"
+    return _truncate(name)
 
 
 def analyze_chart_capabilities(chart: Any | None, config: Any) -> ChartCapabilities:
