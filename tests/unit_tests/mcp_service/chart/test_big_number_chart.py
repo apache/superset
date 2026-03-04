@@ -169,7 +169,7 @@ class TestMapBigNumberConfig:
         )
         form_data = map_big_number_config(config)
         assert form_data["viz_type"] == "big_number"
-        assert form_data["x_axis"] == "order_date"
+        assert "x_axis" not in form_data
         assert form_data["granularity_sqla"] == "order_date"
         assert form_data["start_y_axis_at_zero"] is True
 
