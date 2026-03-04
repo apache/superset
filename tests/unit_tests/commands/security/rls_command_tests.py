@@ -62,13 +62,20 @@ def app():
     return app
 
 
+@pytest.fixture(autouse=True)
+def mock_security_manager():
+    # Patch security_manager used in DAO filters to avoid g.user access
+    with patch("superset.views.base.security_manager") as mock_sm:
+        mock_sm.can_access_all_datasources.return_value = True
+        yield mock_sm
+
+
 def get_unwrapped_func(func):
     while hasattr(func, "__wrapped__"):
         func = func.__wrapped__
     return func
 
 
-# --- Helper Tests ---
 # --- Helper Tests ---
 def test_validate_rls_clause_subquery_detection():
     with patch("superset.models.helpers._", side_effect=lambda x: x):
@@ -145,6 +152,18 @@ def test_create_rls_command_run_success(
 
 
 @patch("superset.commands.security.create.DatasetDAO")
+@patch("superset.commands.security.create.db.session.query")
+def test_create_rls_command_duplicate_name(mock_query, mock_dataset_dao):
+    mock_query.return_value.filter_by.return_value.one_or_none.return_value = (
+        MagicMock()
+    )
+    mock_dataset_dao.find_by_ids.return_value = [MagicMock()]  # Found the table
+    command = CreateRLSRuleCommand({"name": "exists", "tables": [1]})
+    with pytest.raises(RLSRuleInvalidError):
+        command.validate()
+
+
+@patch("superset.commands.security.create.DatasetDAO")
 @patch("superset.commands.security.create.populate_roles")
 def test_create_command_validate_error_paths(mock_populate, mock_dataset_dao):
     # No tables found
@@ -173,6 +192,55 @@ def test_update_rls_command_run_success(
     command = UpdateRLSRuleCommand(1, data)
     get_unwrapped_func(command.run)(command)
     assert mock_rls_dao.update.called
+
+
+@patch("superset.commands.security.update.RLSDAO")
+def test_update_rls_command_not_found(mock_rls_dao):
+    mock_rls_dao.find_by_id.return_value = None
+    command = UpdateRLSRuleCommand(999, {"clause": "1=1"})
+    with pytest.raises(RLSRuleNotFoundError):
+        command.validate()
+
+
+@patch("superset.commands.security.update.DatasetDAO")
+@patch("superset.commands.security.update.db.session.query")
+@patch("superset.commands.security.update.RLSDAO")
+def test_update_rls_command_duplicate_name(mock_rls_dao, mock_query, mock_dataset_dao):
+    mock_model = MagicMock()
+    mock_model.id = 1
+    mock_rls_dao.find_by_id.return_value = mock_model
+    mock_dataset_dao.find_by_ids.return_value = [MagicMock()]  # Found the table
+
+    mock_existing = MagicMock()
+    mock_existing.id = 2
+    mock_query.return_value.filter_by.return_value.one_or_none.return_value = (
+        mock_existing
+    )
+
+    command = UpdateRLSRuleCommand(1, {"name": "exists", "tables": [1]})
+    with pytest.raises(RLSRuleInvalidError):
+        command.validate()
+
+
+@patch("superset.commands.security.update.RLSDAO")
+@patch("superset.commands.security.update.DatasetDAO")
+def test_update_rls_command_datasource_not_found(mock_dataset_dao, mock_rls_dao):
+    mock_rls_dao.find_by_id.return_value = MagicMock()
+    mock_dataset_dao.find_by_ids.return_value = []  # Found 0 instead of 1
+    command = UpdateRLSRuleCommand(1, {"tables": [1]})
+    with pytest.raises(DatasourceNotFoundValidationError):
+        command.validate()
+
+
+@patch("superset.commands.security.update.RLSDAO")
+def test_update_rls_command_baseline_validation(mock_rls_dao):
+    mock_model = MagicMock()
+    mock_model.tables = []
+    mock_rls_dao.find_by_id.return_value = mock_model
+    # Malicious clause should trigger baseline validation failure
+    command = UpdateRLSRuleCommand(1, {"clause": "id IN (SELECT 1)"})
+    with pytest.raises(RLSRuleInvalidError):
+        command.validate()
 
 
 @patch("superset.commands.security.delete.RLSDAO")
@@ -223,6 +291,23 @@ def test_api_post_error_paths(app):
                 assert res.status_code == 422
 
 
+def test_api_post_success(app):
+    api = RLSRestApi()
+    api.response = MagicMock(return_value=MagicMock(status_code=201))
+    post_func = get_unwrapped_func(api.post)
+
+    with app.test_request_context(json={"name": "test"}):
+        with patch.object(api.add_model_schema, "load", return_value={"name": "test"}):
+            with patch(
+                "superset.row_level_security.api.CreateRLSRuleCommand"
+            ) as mock_command:
+                mock_model = MagicMock()
+                mock_model.id = 123
+                mock_command.return_value.run.return_value = mock_model
+                res = post_func(api)
+                assert res.status_code == 201
+
+
 def test_api_put_error_paths(app):
     api = RLSRestApi()
     api.response_422 = MagicMock(return_value=MagicMock(status_code=422))
@@ -253,6 +338,23 @@ def test_api_put_error_paths(app):
                 mock_cmd_inst.run.side_effect = RLSRuleNotFoundError()
                 res = put_func(api, pk=1)
                 assert res.status_code == 404
+
+
+def test_api_put_success(app):
+    api = RLSRestApi()
+    api.response = MagicMock(return_value=MagicMock(status_code=200))
+    put_func = get_unwrapped_func(api.put)
+
+    with app.test_request_context(json={"clause": "1=1"}):
+        with patch.object(
+            api.edit_model_schema, "load", return_value={"clause": "1=1"}
+        ):
+            with patch(
+                "superset.row_level_security.api.UpdateRLSRuleCommand"
+            ) as mock_command:
+                mock_command.return_value.run.return_value = MagicMock()
+                res = put_func(api, pk=1)
+                assert res.status_code == 200
 
 
 def test_api_bulk_delete_coverage(app):

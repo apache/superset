@@ -51,11 +51,27 @@ class CreateRLSRuleCommand(BaseCommand):
         return RLSDAO.create(attributes=self._properties)
 
     def validate(self) -> None:
+        exceptions: list[ValidationError] = []
+        self._validate_name_uniqueness(exceptions)
+        roles = populate_roles(self._roles)
+        tables: list[SqlaTable] = DatasetDAO.find_by_ids(self._tables)
+
+        if len(tables) != len(self._tables):
+            raise DatasourceNotFoundValidationError()
+
+        self._validate_clause(tables, exceptions)
+
+        if exceptions:
+            raise RLSRuleInvalidError(exceptions=exceptions)
+
+        self._properties["roles"] = roles
+        self._properties["tables"] = tables
+
+    def _validate_name_uniqueness(self, exceptions: list[ValidationError]) -> None:
         from flask_babel import lazy_gettext as _
 
         from superset.connectors.sqla.models import RowLevelSecurityFilter
 
-        exceptions: list[ValidationError] = []
         if name := self._properties.get("name"):
             if (
                 db.session.query(RowLevelSecurityFilter)
@@ -66,25 +82,20 @@ class CreateRLSRuleCommand(BaseCommand):
                     ValidationError(_("Name must be unique"), field_name="name")
                 )
 
-        roles = populate_roles(self._roles)
-        tables: list[SqlaTable] = DatasetDAO.find_by_ids(self._tables)
+    def _validate_clause(
+        self, tables: list[SqlaTable], exceptions: list[ValidationError]
+    ) -> None:
+        from superset.exceptions import SupersetSecurityException
 
-        if len(tables) != len(self._tables):
-            raise DatasourceNotFoundValidationError()
-
-        if exceptions:
-            raise RLSRuleInvalidError(exceptions=exceptions)
-
-        self._properties["roles"] = roles
         if clause := self._properties.get("clause"):
-            # If no tables are associated, perform a baseline check
-            if not tables:
-                validate_rls_clause(clause, engine="base")
+            try:
+                if not tables:
+                    validate_rls_clause(clause, engine="base")
 
-            for table in tables:
-                validate_rls_clause(
-                    clause,
-                    engine=table.database.db_engine_spec.engine,
-                )
-
-        self._properties["tables"] = tables
+                for table in tables:
+                    validate_rls_clause(
+                        clause,
+                        engine=table.database.db_engine_spec.engine,
+                    )
+            except SupersetSecurityException as ex:
+                exceptions.append(ValidationError(ex.message, field_name="clause"))
