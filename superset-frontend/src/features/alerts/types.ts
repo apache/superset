@@ -227,6 +227,7 @@ export type NativeFilterObject = {
     rootPath: string[];
   };
   tabsInScope: string[];
+  adhoc_filters: any[];
   targets: Array<{
     column: {
       name: string;
@@ -234,4 +235,10 @@ export type NativeFilterObject = {
     datasetId: number;
   }>;
   type: string;
+};
+
+export type DashboardTabsResponse = {
+  tab_tree: TabNode[];
+  all_tabs: Record<string, string>;
+  native_filters: Partial<Record<string, NativeFilterObject[]>>;
 };

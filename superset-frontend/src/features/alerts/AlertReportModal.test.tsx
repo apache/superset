@@ -24,8 +24,10 @@ import {
   userEvent,
   waitFor,
   within,
+  createStore,
 } from 'spec/helpers/testing-library';
 import { VizType } from '@superset-ui/core';
+import reducerIndex from 'spec/helpers/reducerIndex';
 import { buildErrorTooltipMessage } from './buildErrorTooltipMessage';
 import AlertReportModal, { AlertReportModalProps } from './AlertReportModal';
 import { AlertObject, NotificationMethodOption } from './types';
@@ -110,8 +112,16 @@ const FETCH_REPORT_WITH_FILTERS_ENDPOINT = 'glob:*/api/v1/report/3';
 const FETCH_REPORT_NO_FILTER_NAME_ENDPOINT = 'glob:*/api/v1/report/4';
 const FETCH_REPORT_OVERWRITE_ENDPOINT = 'glob:*/api/v1/report/5';
 
-fetchMock.get(FETCH_DASHBOARD_ENDPOINT, { result: generateMockPayload(true) });
-fetchMock.get(FETCH_CHART_ENDPOINT, { result: generateMockPayload(false) });
+fetchMock.get(
+  FETCH_DASHBOARD_ENDPOINT,
+  { result: generateMockPayload(true) },
+  { name: FETCH_DASHBOARD_ENDPOINT },
+);
+fetchMock.get(
+  FETCH_CHART_ENDPOINT,
+  { result: generateMockPayload(false) },
+  { name: FETCH_CHART_ENDPOINT },
+);
 fetchMock.get(FETCH_REPORT_WITH_FILTERS_ENDPOINT, {
   result: {
     ...generateMockPayload(true),
@@ -213,6 +223,20 @@ const restoreDefaultTabsRoute = () => {
   fetchMock.get(tabsEndpoint, {
     result: { all_tabs: {}, tab_tree: [] },
   });
+};
+
+// Remove routes whose URL or name matches any of the given substrings.
+// fetch-mock v11 doesn't expose removeRoute(); we mutate the internal array.
+const removeRoutesByUrl = (...urlPatterns: string[]) => {
+  const fm = fetchMock as any;
+  fm.routes = fm.routes.filter(
+    (route: { url?: string; name?: string }) =>
+      !urlPatterns.some(
+        p =>
+          route.url?.toString().includes(p) ||
+          route.name?.toString().includes(p),
+      ),
+  );
 };
 
 afterEach(() => {
@@ -866,6 +890,427 @@ test('filter reappears in dropdown after clearing with X icon', async () => {
   });
 });
 
+const setupAnchorMocks = (
+  nativeFilters: Record<string, unknown>,
+  anchor = 'TAB-abc',
+  tabsOverride?: {
+    all_tabs: Record<string, string>;
+    tab_tree: { title: string; value: string }[];
+  },
+) => {
+  const payloadWithAnchor = {
+    ...generateMockPayload(true),
+    extra: { dashboard: { anchor } },
+  };
+
+  const defaultTabs = {
+    all_tabs: { [anchor]: `Tab ${anchor}` },
+    tab_tree: [{ title: `Tab ${anchor}`, value: anchor }],
+  };
+  const tabs = tabsOverride ?? defaultTabs;
+
+  // Clear call history so waitFor assertions don't match calls from prior tests.
+  fetchMock.resetHistory();
+
+  // Only replace the routes that need anchor-specific overrides;
+  // unnamed related-endpoint routes (owners, database, etc.) stay intact.
+  removeRoutesByUrl('/api/v1/report/1', '/api/v1/report/2', '/tabs');
+
+  fetchMock.get(FETCH_DASHBOARD_ENDPOINT, { result: payloadWithAnchor });
+  fetchMock.get(FETCH_CHART_ENDPOINT, {
+    result: generateMockPayload(false),
+  });
+  fetchMock.get(tabsEndpoint, {
+    result: {
+      ...tabs,
+      native_filters: nativeFilters,
+    },
+  });
+};
+
+const restoreAnchorMocks = () => {
+  removeRoutesByUrl('/api/v1/report/1', '/api/v1/report/2', '/tabs');
+  fetchMock.get(FETCH_DASHBOARD_ENDPOINT, {
+    result: generateMockPayload(true),
+  });
+  fetchMock.get(FETCH_CHART_ENDPOINT, {
+    result: generateMockPayload(false),
+  });
+  fetchMock.get(tabsEndpoint, {
+    result: { all_tabs: {}, tab_tree: [] },
+  });
+};
+
+test('no error toast when anchor tab has no scoped native filters', async () => {
+  setupAnchorMocks({
+    all: [
+      {
+        id: 'NATIVE_FILTER-1',
+        name: 'Filter 1',
+        filterType: 'filter_select',
+        targets: [{ column: { name: 'col' } }],
+        adhoc_filters: [],
+      },
+    ],
+  });
+
+  const store = createStore({}, reducerIndex);
+
+  try {
+    render(<AlertReportModal {...generateMockedProps(true, true)} />, {
+      store,
+    });
+
+    userEvent.click(screen.getByTestId('contents-panel'));
+    await screen.findByText(/test dashboard/i);
+
+    await waitFor(() => {
+      expect(
+        fetchMock
+          .calls()
+          .some(c => (c[0] as string).includes('/dashboard/1/tabs')),
+      ).toBe(true);
+    });
+
+    const toasts = (store.getState() as Record<string, unknown>)
+      .messageToasts as { text: string }[];
+    expect(
+      toasts.some(
+        (toast: { text: string }) =>
+          toast.text === 'There was an error retrieving dashboard tabs.',
+      ),
+    ).toBe(false);
+  } finally {
+    restoreAnchorMocks();
+  }
+});
+
+test('no error toast when anchor tab set and dashboard has zero native filters', async () => {
+  setupAnchorMocks({});
+
+  const store = createStore({}, reducerIndex);
+
+  try {
+    render(<AlertReportModal {...generateMockedProps(true, true)} />, {
+      store,
+    });
+
+    userEvent.click(screen.getByTestId('contents-panel'));
+    await screen.findByText(/test dashboard/i);
+
+    await waitFor(() => {
+      expect(
+        fetchMock
+          .calls()
+          .some(c => (c[0] as string).includes('/dashboard/1/tabs')),
+      ).toBe(true);
+    });
+
+    const toasts = (store.getState() as Record<string, unknown>)
+      .messageToasts as { text: string }[];
+    expect(
+      toasts.some(
+        (toast: { text: string }) =>
+          toast.text === 'There was an error retrieving dashboard tabs.',
+      ),
+    ).toBe(false);
+  } finally {
+    restoreAnchorMocks();
+  }
+});
+
+test('stale JSON array anchor is cleared without crash or toast', async () => {
+  const staleAnchor = JSON.stringify(['TAB-abc', 'TAB-missing']);
+  setupAnchorMocks(
+    {
+      all: [
+        {
+          id: 'NATIVE_FILTER-1',
+          name: 'Filter 1',
+          filterType: 'filter_select',
+          targets: [{ column: { name: 'col' } }],
+          adhoc_filters: [],
+        },
+      ],
+    },
+    staleAnchor,
+    {
+      all_tabs: { 'TAB-abc': 'Tab ABC' },
+      tab_tree: [{ title: 'Tab ABC', value: 'TAB-abc' }],
+    },
+  );
+
+  const store = createStore({}, reducerIndex);
+
+  try {
+    render(<AlertReportModal {...generateMockedProps(true, true)} />, {
+      store,
+    });
+
+    userEvent.click(screen.getByTestId('contents-panel'));
+    await screen.findByText(/test dashboard/i);
+
+    // Wait for the tabs useEffect to process the stale anchor
+    await waitFor(() => {
+      expect(
+        fetchMock
+          .calls()
+          .some(c => (c[0] as string).includes('/dashboard/1/tabs')),
+      ).toBe(true);
+    });
+
+    // No error toast dispatched (the .then() handler ran without crashing)
+    const toasts = (store.getState() as Record<string, unknown>)
+      .messageToasts as { text: string }[];
+    expect(
+      toasts.some(
+        (toast: { text: string }) =>
+          toast.text === 'There was an error retrieving dashboard tabs.',
+      ),
+    ).toBe(false);
+
+    // Verify anchor was cleared at the payload level: trigger save and
+    // inspect the PUT body to confirm extra.dashboard.anchor is undefined
+    const updateEndpoint = 'glob:*/api/v1/report/1';
+    fetchMock.put(updateEndpoint, { id: 1, result: {} });
+
+    const saveButton = screen.getByRole('button', { name: /save/i });
+    expect(saveButton).toBeEnabled();
+    userEvent.click(saveButton);
+
+    await waitFor(() => {
+      const putCalls = fetchMock
+        .calls()
+        .filter(
+          c =>
+            (c[0] as string).includes('/api/v1/report/') &&
+            (c[1]?.method as string)?.toUpperCase() === 'PUT',
+        );
+      expect(putCalls).toHaveLength(1);
+    });
+
+    const putCall = fetchMock
+      .calls()
+      .find(
+        c =>
+          (c[0] as string).includes('/api/v1/report/') &&
+          (c[1]?.method as string)?.toUpperCase() === 'PUT',
+      );
+    const body = JSON.parse(putCall![1]?.body as string);
+    expect(body.extra.dashboard.anchor).toBeUndefined();
+  } finally {
+    removeRoutesByUrl('/api/v1/report/1', '/api/v1/report/2');
+    restoreAnchorMocks();
+  }
+});
+
+test('tabs API failure shows danger toast via Redux store', async () => {
+  removeRoutesByUrl('/tabs');
+  fetchMock.get(tabsEndpoint, 500);
+
+  const store = createStore({}, reducerIndex);
+
+  try {
+    render(<AlertReportModal {...generateMockedProps(true, true)} />, {
+      store,
+    });
+
+    userEvent.click(screen.getByTestId('contents-panel'));
+
+    await waitFor(() => {
+      const toasts = (store.getState() as Record<string, unknown>)
+        .messageToasts as { text: string }[];
+      expect(
+        toasts.some(
+          (toast: { text: string }) =>
+            toast.text === 'There was an error retrieving dashboard tabs.',
+        ),
+      ).toBe(true);
+    });
+  } finally {
+    removeRoutesByUrl('/tabs');
+    fetchMock.get(tabsEndpoint, {
+      result: { all_tabs: {}, tab_tree: [] },
+    });
+  }
+});
+
+test('null all_tabs does not crash or show error toast', async () => {
+  setupAnchorMocks({
+    all: [
+      {
+        id: 'NATIVE_FILTER-1',
+        name: 'Filter 1',
+        filterType: 'filter_select',
+        targets: [{ column: { name: 'col' } }],
+        adhoc_filters: [],
+      },
+    ],
+  });
+
+  // Override tabs endpoint with null all_tabs
+  removeRoutesByUrl('/tabs');
+  fetchMock.get(tabsEndpoint, {
+    result: {
+      all_tabs: null,
+      tab_tree: [{ title: 'Tab ABC', value: 'TAB-abc' }],
+      native_filters: {
+        all: [
+          {
+            id: 'NATIVE_FILTER-1',
+            name: 'Filter 1',
+            filterType: 'filter_select',
+            targets: [{ column: { name: 'col' } }],
+            adhoc_filters: [],
+          },
+        ],
+      },
+    },
+  });
+
+  const store = createStore({}, reducerIndex);
+
+  try {
+    render(<AlertReportModal {...generateMockedProps(true, true)} />, {
+      store,
+    });
+
+    userEvent.click(screen.getByTestId('contents-panel'));
+    await screen.findByText(/test dashboard/i);
+
+    // Wait for tabs useEffect to complete
+    await waitFor(() => {
+      expect(
+        fetchMock
+          .calls()
+          .some(c => (c[0] as string).includes('/dashboard/1/tabs')),
+      ).toBe(true);
+    });
+
+    // No error toast dispatched
+    const toasts = (store.getState() as Record<string, unknown>)
+      .messageToasts as { text: string }[];
+    expect(
+      toasts.some(
+        (toast: { text: string }) =>
+          toast.text === 'There was an error retrieving dashboard tabs.',
+      ),
+    ).toBe(false);
+
+    // Component remains interactive
+    expect(
+      screen.getByRole('combobox', { name: /select filter/i }),
+    ).toBeInTheDocument();
+  } finally {
+    restoreAnchorMocks();
+  }
+});
+
+test('missing native_filters in tabs response does not crash or show error toast', async () => {
+  setupAnchorMocks({});
+
+  // Override tabs endpoint with no native_filters key
+  removeRoutesByUrl('/tabs');
+  fetchMock.get(tabsEndpoint, {
+    result: {
+      all_tabs: { 'TAB-abc': 'Tab ABC' },
+      tab_tree: [{ title: 'Tab ABC', value: 'TAB-abc' }],
+    },
+  });
+
+  const store = createStore({}, reducerIndex);
+
+  try {
+    render(<AlertReportModal {...generateMockedProps(true, true)} />, {
+      store,
+    });
+
+    userEvent.click(screen.getByTestId('contents-panel'));
+    await screen.findByText(/test dashboard/i);
+
+    // Wait for tabs useEffect to complete
+    await waitFor(() => {
+      expect(
+        fetchMock
+          .calls()
+          .some(c => (c[0] as string).includes('/dashboard/1/tabs')),
+      ).toBe(true);
+    });
+
+    // No error toast dispatched
+    const toasts = (store.getState() as Record<string, unknown>)
+      .messageToasts as { text: string }[];
+    expect(
+      toasts.some(
+        (toast: { text: string }) =>
+          toast.text === 'There was an error retrieving dashboard tabs.',
+      ),
+    ).toBe(false);
+  } finally {
+    restoreAnchorMocks();
+  }
+});
+
+test('anchor tab with scoped filters loads filter options correctly', async () => {
+  // Use JSON-parseable non-array anchor to exercise the scoped filter
+  // code path at line 1108 (JSON.parse('42') → 42, not an array)
+  setupAnchorMocks(
+    {
+      all: [
+        {
+          id: 'NATIVE_FILTER-1',
+          name: 'Global Filter',
+          filterType: 'filter_select',
+          targets: [{ column: { name: 'col' } }],
+          adhoc_filters: [],
+        },
+      ],
+      '42': [
+        {
+          id: 'NATIVE_FILTER-2',
+          name: 'Tab Scoped Filter',
+          filterType: 'filter_select',
+          targets: [{ column: { name: 'col2' } }],
+          adhoc_filters: [],
+        },
+      ],
+    },
+    '42',
+  );
+
+  const store = createStore({}, reducerIndex);
+
+  try {
+    render(<AlertReportModal {...generateMockedProps(true, true)} />, {
+      store,
+    });
+
+    userEvent.click(screen.getByTestId('contents-panel'));
+    await screen.findByText(/test dashboard/i);
+
+    const filterDropdown = screen.getByRole('combobox', {
+      name: /select filter/i,
+    });
+    userEvent.click(filterDropdown);
+
+    const filterOption = await screen.findByRole('option', {
+      name: /Tab Scoped Filter/,
+    });
+    expect(filterOption).toBeInTheDocument();
+
+    const toasts = (store.getState() as Record<string, unknown>)
+      .messageToasts as { text: string }[];
+    expect(
+      toasts.some(
+        (toast: { text: string }) =>
+          toast.text === 'There was an error retrieving dashboard tabs.',
+      ),
+    ).toBe(false);
+  } finally {
+    restoreAnchorMocks();
+  }
+});
+
 test('edit mode shows friendly filter names instead of raw IDs', async () => {
   const props = generateMockedProps(true, true);
   const editProps = {
@@ -878,6 +1323,7 @@ test('edit mode shows friendly filter names instead of raw IDs', async () => {
   });
 
   userEvent.click(screen.getByTestId('contents-panel'));
+  await screen.findByText(/test dashboard/i);
 
   await waitFor(() => {
     const selectionItem = document.querySelector(
@@ -905,6 +1351,7 @@ test('edit mode falls back to raw ID when filterName is missing', async () => {
   });
 
   userEvent.click(screen.getByTestId('contents-panel'));
+  await screen.findByText(/test dashboard/i);
 
   await waitFor(() => {
     const selectionItem = document.querySelector(
@@ -943,9 +1390,8 @@ test('tabs metadata overwrites seeded filter options', async () => {
   };
 
   // Replace only the tabs route with a deferred version
-  fetchMock.get(tabsEndpoint, () => deferredTabs.then(() => tabsResult), {
-    overwriteRoutes: true,
-  });
+  removeRoutesByUrl('/tabs');
+  fetchMock.get(tabsEndpoint, () => deferredTabs.then(() => tabsResult));
   fetchMock.post(chartDataEndpoint, { result: [{ data: [] }] });
 
   const props = generateMockedProps(true, true);
