@@ -22,7 +22,7 @@ import logging
 import platform
 
 from flask import current_app
-from superset_core.mcp import tool
+from superset_core.api.mcp import tool
 
 from superset.extensions import event_logger
 from superset.mcp_service.system.schemas import HealthCheckResponse

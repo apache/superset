@@ -23,7 +23,7 @@ import logging
 from typing import cast, TYPE_CHECKING
 
 from fastmcp import Context
-from superset_core.mcp import tool
+from superset_core.api.mcp import tool
 
 if TYPE_CHECKING:
     from superset.models.slice import Slice
