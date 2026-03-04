@@ -875,8 +875,7 @@ def _xy_chart_context(config: XYChartConfig) -> str | None:
         )
         grain_str = _GRAIN_MAP.get(grain_val, grain_val)
         parts.append(grain_str)
-    filter_ctx = _summarize_filters(config.filters)
-    if filter_ctx:
+    if filter_ctx := _summarize_filters(config.filters):
         parts.append(filter_ctx)
     return ", ".join(parts) if parts else None
 
