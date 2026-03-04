@@ -590,6 +590,15 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             if backend and backend.entrypoint:
                 try:
                     eager_import(backend.entrypoint)
+
+                    # Process all pending contributions (APIs, tools, prompts,
+                    # tasks, etc.) with proper manifest context
+                    from superset.extensions.contributions import (
+                        process_extension_contributions,
+                    )
+
+                    process_extension_contributions(extension.manifest)
+
                 except Exception as ex:  # pylint: disable=broad-except  # noqa: S110
                     # Surface exceptions during initialization of extensions
                     print(ex)
