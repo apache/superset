@@ -86,7 +86,11 @@ class ChartInfo(BaseModel):
 
     id: int | None = Field(None, description="Chart ID")
     slice_name: str | None = Field(None, description="Chart name")
-    viz_type: str | None = Field(None, description="Visualization type")
+    viz_type: str | None = Field(None, description="Visualization type (internal ID)")
+    chart_type_display_name: str | None = Field(
+        None,
+        description="User-friendly chart type name (e.g. 'Line Chart', 'Pie Chart')",
+    )
     datasource_name: str | None = Field(None, description="Datasource name")
     datasource_type: str | None = Field(None, description="Datasource type")
     url: str | None = Field(None, description="Chart explore page URL")
@@ -272,6 +276,7 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
         return None
 
     # Use the chart's native URL (explore URL) instead of screenshot URL
+    from superset.mcp_service.chart.viz_type_names import get_viz_type_display_name
     from superset.mcp_service.utils.url_utils import get_superset_base_url
 
     chart_id = getattr(chart, "id", None)
@@ -279,10 +284,13 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
     if chart_id:
         chart_url = f"{get_superset_base_url()}/explore/?slice_id={chart_id}"
 
+    raw_viz_type = getattr(chart, "viz_type", None)
+
     return ChartInfo(
         id=chart_id,
         slice_name=getattr(chart, "slice_name", None),
-        viz_type=getattr(chart, "viz_type", None),
+        viz_type=raw_viz_type,
+        chart_type_display_name=get_viz_type_display_name(raw_viz_type),
         datasource_name=getattr(chart, "datasource_name", None),
         datasource_type=getattr(chart, "datasource_type", None),
         url=chart_url,
