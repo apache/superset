@@ -129,10 +129,10 @@ The CLI generated a basic `backend/src/superset_extensions/my_org/hello_world/en
 ```python
 from flask import Response
 from flask_appbuilder.api import expose, protect, safe
-from superset_core.api.rest_api import RestApi, extension_api
+from superset_core.api.rest_api import RestApi, api
 
 
-@extension_api(
+@api(
     id="hello_world_api",
     name="Hello World API",
     description="API endpoints for the Hello World extension"
@@ -174,11 +174,11 @@ class HelloWorldAPI(RestApi):
 
 **Key points:**
 
-- Uses `@extension_api` decorator to register the API automatically
+- Uses [`@api`](superset-core/src/superset_core/api/rest_api.py:59) decorator with automatic context detection
 - Extends `RestApi` from `superset_core.api.rest_api`
 - Uses Flask-AppBuilder decorators (`@expose`, `@protect`, `@safe`)
 - Returns responses using `self.response(status_code, result=data)`
-- The endpoint will be accessible at `/extensions/my-org/hello-world/message`
+- The endpoint will be accessible at `/extensions/my-org/hello-world/message` (automatic extension context)
 - OpenAPI docstrings are crucial - Flask-AppBuilder uses them to automatically generate interactive API documentation at `/swagger/v1`, allowing developers to explore endpoints, understand schemas, and test the API directly from the browser
 
 **Update `backend/src/superset_extensions/my_org/hello_world/entrypoint.py`**
@@ -186,13 +186,13 @@ class HelloWorldAPI(RestApi):
 Replace the generated print statement with API import to trigger registration:
 
 ```python
-# Importing the API class triggers the @extension_api decorator registration
+# Importing the API class triggers the @api decorator registration
 from .api import HelloWorldAPI
 
 print("Hello World extension loaded successfully!")
 ```
 
-The `@extension_api` decorator automatically registers your API with Superset when the class is imported.
+The [`@api`](superset-core/src/superset_core/api/rest_api.py:59) decorator automatically detects extension context and registers your API with proper namespacing.
 
 ## Step 5: Create Frontend Component
 
@@ -497,7 +497,7 @@ Superset will extract and validate the extension metadata, load the assets, regi
 Here's what happens when your extension loads:
 
 1. **Superset starts**: Reads `extension.json` and loads the backend entrypoint
-2. **Backend registration**: `entrypoint.py` imports your API class, triggering the `@extension_api` decorator to register it automatically
+2. **Backend registration**: `entrypoint.py` imports your API class, triggering the [`@api`](superset-core/src/superset_core/api/rest_api.py:59) decorator to register it automatically
 3. **Frontend loads**: When SQL Lab opens, Superset fetches the remote entry file
 4. **Module Federation**: Webpack loads your extension module and resolves `@apache-superset/core` to `window.superset`
 5. **Registration**: The module executes at load time, calling `views.registerView` to register your panel

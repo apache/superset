@@ -26,7 +26,8 @@ to be used with direct imports while maintaining loose coupling.
 from typing import Any, Callable, TYPE_CHECKING, TypeVar
 
 from sqlalchemy.orm import scoped_session
-from superset_core.extensions.types import Manifest
+
+from superset.extensions.context import get_current_extension_context
 
 if TYPE_CHECKING:
     from superset_core.api.models import Database
@@ -151,69 +152,53 @@ def inject_rest_api_implementations() -> None:
         view = appbuilder.add_api(api)
         appbuilder._add_permission(view, True)
 
-    # Registry to track decorated APIs until extension loading
-    _pending_extension_apis: list[dict[str, Any]] = []
-
-    def extension_api_impl(
+    def api_impl(
         id: str,
         name: str,
         description: str | None = None,
         resource_name: str | None = None,
     ) -> Callable[[T], T]:
         def decorator(api_class: T) -> T:
-            # Store metadata for later processing during extension loading
-            api_metadata = {
-                "id": id,
+            # Check for ambient extension context
+            context = get_current_extension_context()
+
+            if context:
+                # EXTENSION CONTEXT
+                manifest = context.manifest
+                base_path = f"/extensions/{manifest.publisher}/{manifest.name}"
+                prefixed_id = f"extensions.{manifest.publisher}.{manifest.name}.{id}"
+
+            else:
+                # HOST CONTEXT
+                base_path = "/api/v1"
+                prefixed_id = id
+
+            # Add resource_name to path for both contexts
+            if resource_name:
+                base_path += f"/{resource_name}"
+
+            # Set route base and register immediately
+            api_class.route_base = base_path
+            api_class._api_id = prefixed_id
+            api_class._api_metadata = {
+                "id": prefixed_id,
                 "name": name,
                 "description": description,
                 "resource_name": resource_name,
-                "api_class": api_class,
+                "is_extension": context is not None,
+                "context": context,
             }
 
-            # Store in pending list - will be processed during extension loading
-            _pending_extension_apis.append(api_metadata)
-
-            # Mark the class so we can identify it during extension loading
-            api_class._extension_api_metadata = api_metadata  # type: ignore[attr-defined]
+            # Register with Flask-AppBuilder immediately
+            view = appbuilder.add_api(api_class)
+            appbuilder._add_permission(view, True)
 
             return api_class
 
         return decorator
 
-    # Expose the pending APIs for extension loading process
-    extension_api_impl._get_pending_apis = lambda: _pending_extension_apis.copy()  # type: ignore[attr-defined]
-    extension_api_impl._clear_pending_apis = lambda: _pending_extension_apis.clear()  # type: ignore[attr-defined]
-
-    def process_extension_apis(manifest: Manifest) -> None:
-        """Process pending extension APIs with proper publisher/name context
-        from manifest."""
-        nonlocal _pending_extension_apis
-
-        for api_metadata in _pending_extension_apis.copy():
-            api_class = api_metadata["api_class"]
-
-            # Generate route base path with proper extension context from manifest
-            base_path = f"/extensions/{manifest.publisher}/{manifest.name}"
-            if api_metadata["resource_name"]:
-                base_path += f"/{api_metadata['resource_name']}"
-
-            # Set the route base on the API class
-            api_class.route_base = base_path
-
-            # Register the API with Flask-AppBuilder
-            view = appbuilder.add_api(api_class)
-            appbuilder._add_permission(view, True)
-
-        # Clear all pending APIs since they've been processed
-        _pending_extension_apis.clear()
-
-    # Register this processor with the unified contribution system
-    from superset.extensions.contributions import register_contribution_processor
-
-    register_contribution_processor(process_extension_apis)
-
-    # Replace core implementations
-    core_rest_api_module.extension_api = extension_api_impl
+    # Replace core implementations with unified API decorator
+    core_rest_api_module.api = api_impl
 
 
 def inject_model_session_implementation() -> None:

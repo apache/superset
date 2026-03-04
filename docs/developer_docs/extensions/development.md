@@ -203,11 +203,10 @@ Extension endpoints are registered under a dedicated `/extensions` namespace to 
 ```python
 from superset_core.api.models import Database, get_session
 from superset_core.api.daos import DatabaseDAO
-from superset_core.api.rest_api import RestApi, extension_api
+from superset_core.api.rest_api import RestApi, api
 from flask_appbuilder.api import expose, protect
 
-# Register a new extension REST API using the @extension_api decorator
-@extension_api(
+@api(
     id="dataset_references_api",
     name="Dataset References API",
     description="API for managing dataset references"
@@ -242,6 +241,13 @@ class DatasetReferencesAPI(RestApi):
 
         return self.response(200, result={"databases": databases})
 ```
+
+### Automatic Context Detection
+
+The [`@api`](superset-core/src/superset_core/api/rest_api.py:59) decorator automatically detects whether it's being used in host or extension code:
+
+- **Extension APIs**: Registered under `/extensions/{publisher}/{name}/` with IDs prefixed as `extensions.{publisher}.{name}.{id}`
+- **Host APIs**: Registered under `/api/v1/` with original IDs
 
 In the future, we plan to expand the backend APIs to support configuring security models, database engines, SQL Alchemy dialects, etc.
 

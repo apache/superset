@@ -127,10 +127,10 @@ Extensions can register custom REST API endpoints under the `/api/v1/extensions/
 The entry point module imports the API class to register it with Superset:
 
 ```python
-from superset_core.api.rest_api import RestApi, extension_api
+from superset_core.api.rest_api import RestApi, api
 from flask_appbuilder.api import expose, protect
 
-@extension_api(
+@api(
     id="my_extension_api",
     name="My Extension API",
     description="Custom API endpoints for my extension"
@@ -145,7 +145,12 @@ class MyExtensionAPI(RestApi):
 from .api import MyExtensionAPI
 ```
 
-**Note**: The `@extension_api` decorator automatically generates API paths based on your extension's identity. For an extension with publisher `my-org` and name `dataset-tools`, the endpoint above would be accessible at:
+**Note**: The [`@api`](superset-core/src/superset_core/api/rest_api.py:59) decorator automatically detects context and generates appropriate paths:
+
+- **Extension context**: `/extensions/{publisher}/{name}/` with ID prefixed as `extensions.{publisher}.{name}.{id}`
+- **Host context**: `/api/v1/` with original ID
+
+For an extension with publisher `my-org` and name `dataset-tools`, the endpoint above would be accessible at:
 ```
 /extensions/my-org/dataset-tools/hello
 ```
@@ -153,7 +158,7 @@ from .api import MyExtensionAPI
 You can also specify a `resource_name` parameter to add an additional path segment:
 
 ```python
-@extension_api(
+@api(
     id="analytics_api",
     name="Analytics API",
     resource_name="analytics"  # Adds /analytics to the path

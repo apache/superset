@@ -22,18 +22,15 @@ Provides dependency-injected REST API utility functions and decorators that will
 replaced by host implementations during initialization.
 
 Usage:
-    from superset_core.api.rest_api import add_api, add_extension_api, extension_api
+    from superset_core.api.rest_api import api
 
-    add_api(MyCustomAPI)
-    add_extension_api(MyExtensionAPI)
-
-    # Or use the new decorator pattern
-    @extension_api(
+    # Unified decorator for both host and extension APIs
+    @api(
         id="main_api",
         name="Main API",
-        description="Primary extension endpoints"
+        description="Primary endpoints"
     )
-    class MyExtensionAPI(RestApi):
+    class MyAPI(RestApi):
         pass
 """
 
@@ -56,17 +53,18 @@ class RestApi(BaseApi):
     allow_browser_login = True
 
 
-def extension_api(
+def api(
     id: str,
     name: str,
     description: str | None = None,
     resource_name: str | None = None,
 ) -> Callable[[T], T]:
     """
-    Decorator to register an extension API class.
+    Unified API decorator for both host and extension APIs.
 
-    Automatically generates API paths under extension namespace:
-    `/api/v1/extensions/<publisher>/<extension_name>/[resource_name]/`
+    Automatically detects context:
+    - Host context: /api/v1/{resource_name}/
+    - Extension context: /extensions/{publisher}/{name}/{resource_name}/
 
     Host implementations will replace this function during initialization
     with a concrete implementation providing actual functionality.
@@ -84,7 +82,7 @@ def extension_api(
         NotImplementedError: If called before host implementation is initialized
 
     Example:
-        @extension_api(
+        @api(
             id="main_api",
             name="Main API",
             description="Primary extension endpoints"
@@ -93,10 +91,11 @@ def extension_api(
             @expose("/hello", methods=("GET",))
             @protect()
             def hello(self) -> Response:
-                # Available at: /api/v1/extensions/acme/tools/hello
+                # Available at: /extensions/acme/tools/hello (extension context)
+                # Available at: /api/v1/hello (host context)
                 return self.response(200, result={"message": "hello"})
 
-        @extension_api(
+        @api(
             id="analytics_api",
             name="Analytics API",
             resource_name="analytics"
@@ -105,13 +104,14 @@ def extension_api(
             @expose("/insights", methods=("GET",))
             @protect()
             def insights(self) -> Response:
-                # Available at: /api/v1/extensions/acme/tools/analytics/insights
+                # Available at: /extensions/acme/tools/analytics/insights (extension)
+                # Available at: /api/v1/analytics/insights (host)
                 return self.response(200, result={})
     """
     raise NotImplementedError(
-        "Extension API decorator not initialized. "
+        "API decorator not initialized. "
         "This decorator should be replaced during Superset startup."
     )
 
 
-__all__ = ["RestApi", "extension_api"]
+__all__ = ["RestApi", "api"]

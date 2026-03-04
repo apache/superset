@@ -59,6 +59,7 @@ from superset.extensions import (
     stats_logger_manager,
     talisman,
 )
+from superset.extensions.context import extension_context
 from superset.security import SupersetSecurityManager
 from superset.sql.parse import SQLGLOT_DIALECTS
 from superset.superset_typing import FlaskResponse
@@ -589,15 +590,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
             if backend and backend.entrypoint:
                 try:
-                    eager_import(backend.entrypoint)
-
-                    # Process all pending contributions (APIs, tools, prompts,
-                    # tasks, etc.) with proper manifest context
-                    from superset.extensions.contributions import (
-                        process_extension_contributions,
-                    )
-
-                    process_extension_contributions(extension.manifest)
+                    with extension_context(extension.manifest):
+                        eager_import(backend.entrypoint)
 
                 except Exception as ex:  # pylint: disable=broad-except  # noqa: S110
                     # Surface exceptions during initialization of extensions
