@@ -118,6 +118,9 @@ Chart Types You Can CREATE with generate_chart/generate_explore_link:
 - chart_type="xy", kind="scatter": Scatter plot for correlation analysis
 - chart_type="table": Data table for detailed views
 - chart_type="table", viz_type="ag-grid-table": Interactive AG Grid table
+- chart_type="pie": Pie chart for proportional data (set donut=True for donut)
+- chart_type="pivot_table": Interactive pivot table for cross-tabulation
+- chart_type="mixed_timeseries": Dual-series chart combining two chart types
 
 Time grain for temporal x-axis (time_grain parameter):
 - PT1H (hourly), P1D (daily), P1W (weekly), P1M (monthly), P1Y (yearly)
