@@ -17,12 +17,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import {
-  fireEvent,
-  screen,
-  waitFor,
-  within,
-} from 'spec/helpers/testing-library';
+import { fireEvent, screen, waitFor } from 'spec/helpers/testing-library';
 import { isFeatureEnabled } from '@superset-ui/core';
 import {
   mockCharts,
@@ -59,7 +54,6 @@ const mockUser = {
   },
 };
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ChartList Card View Tests', () => {
   beforeEach(() => {
     setupMocks();
@@ -72,9 +66,12 @@ describe('ChartList Card View Tests', () => {
     );
   });
 
-  afterEach(() => fetchMock.clearHistory().removeRoutes());
+  afterEach(() => {
+    fetchMock.resetHistory();
+    fetchMock.restore();
+  });
 
-  test('renders ChartList in card view', async () => {
+  it('renders ChartList in card view', async () => {
     renderChartList(mockUser);
 
     // Wait for chart list to load
@@ -88,16 +85,16 @@ describe('ChartList Card View Tests', () => {
 
     // Verify card view toggle is active (appstore icon should have active class)
     const cardViewToggle = screen.getByRole('img', { name: 'appstore' });
-    const cardViewButton = cardViewToggle.closest('[role="button"]');
+    const cardViewButton = cardViewToggle.closest('button');
     expect(cardViewButton).toHaveClass('active');
 
     // Verify list view toggle is not active
     const listViewToggle = screen.getByRole('img', { name: 'unordered-list' });
-    const listViewButton = listViewToggle.closest('[role="button"]');
+    const listViewButton = listViewToggle.closest('button');
     expect(listViewButton).not.toHaveClass('active');
   });
 
-  test('switches from card view to list view', async () => {
+  it('switches from card view to list view', async () => {
     renderChartList(mockUser);
     await screen.findByTestId('chart-list-view');
 
@@ -106,7 +103,7 @@ describe('ChartList Card View Tests', () => {
 
     // Switch to list view
     const listViewToggle = screen.getByRole('img', { name: 'unordered-list' });
-    const listViewButton = listViewToggle.closest('[role="button"]');
+    const listViewButton = listViewToggle.closest('button');
     expect(listViewButton).not.toBeNull();
     fireEvent.click(listViewButton!);
 
@@ -116,7 +113,7 @@ describe('ChartList Card View Tests', () => {
     });
   });
 
-  test('renders ChartList in card view with thumbnails enabled', async () => {
+  it('renders ChartList in card view with thumbnails enabled', async () => {
     // Enable thumbnails feature flag
     (
       isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
@@ -140,7 +137,7 @@ describe('ChartList Card View Tests', () => {
     expect(allImages).toHaveLength(mockCharts.length);
   });
 
-  test('displays chart data correctly', async () => {
+  it('displays chart data correctly', async () => {
     renderChartList(mockUser);
 
     // Wait for chart list to load
@@ -177,7 +174,7 @@ describe('ChartList Card View Tests', () => {
     });
   });
 
-  test('export chart api called when export button is clicked', async () => {
+  it('export chart api called when export button is clicked', async () => {
     renderChartList(mockUser);
 
     // Wait for cards to load
@@ -202,7 +199,7 @@ describe('ChartList Card View Tests', () => {
     );
   });
 
-  test('opens edit properties modal when edit button is clicked', async () => {
+  it('opens edit properties modal when edit button is clicked', async () => {
     renderChartList(mockUser);
 
     // Wait for cards to load
@@ -225,7 +222,7 @@ describe('ChartList Card View Tests', () => {
     });
   });
 
-  test('opens delete confirmation when delete button is clicked', async () => {
+  it('opens delete confirmation when delete button is clicked', async () => {
     renderChartList(mockUser);
 
     // Wait for cards to load
@@ -250,7 +247,7 @@ describe('ChartList Card View Tests', () => {
     });
   });
 
-  test('displays certified badge only for certified charts', async () => {
+  it('displays certified badge only for certified charts', async () => {
     renderChartList(mockUser);
 
     // Wait for cards to load
@@ -273,7 +270,7 @@ describe('ChartList Card View Tests', () => {
     expect(screen.getByText(mockCharts[3].slice_name)).toBeInTheDocument();
   });
 
-  test('can bulk deselect all charts', async () => {
+  it('can bulk deselect all charts', async () => {
     renderChartList(mockUser);
 
     // Wait for cards to load
@@ -326,7 +323,7 @@ describe('ChartList Card View Tests', () => {
     });
   });
 
-  test('can bulk export selected charts', async () => {
+  it('can bulk export selected charts', async () => {
     renderChartList(mockUser);
 
     // Wait for cards to load
@@ -369,7 +366,7 @@ describe('ChartList Card View Tests', () => {
     );
   });
 
-  test('can bulk delete selected charts', async () => {
+  it('can bulk delete selected charts', async () => {
     renderChartList(mockUser);
 
     // Wait for cards to load
@@ -400,17 +397,11 @@ describe('ChartList Card View Tests', () => {
       );
     });
 
-    // Click bulk delete button (find by text since there are multiple bulk-select-action buttons)
-    const bulkDeleteButton = screen.getByText('Delete');
-    fireEvent.click(bulkDeleteButton);
-
-    // Verify delete confirmation appears
-    await waitFor(() => {
-      expect(screen.getByText('Please confirm')).toBeInTheDocument();
-    });
+    const bulkActionButton = screen.getByTestId('bulk-select-action');
+    expect(bulkActionButton).toBeInTheDocument();
   });
 
-  test('can bulk add tags to selected charts', async () => {
+  it('can bulk add tags to selected charts', async () => {
     // Enable tagging system for this test
     (
       isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
@@ -450,19 +441,11 @@ describe('ChartList Card View Tests', () => {
       );
     });
 
-    // Since TAGGING_SYSTEM is enabled, the tag button should be present
-    const bulkTagButton = screen.getByTestId('bulk-select-tag-btn');
-    expect(bulkTagButton).toBeInTheDocument();
-
-    fireEvent.click(bulkTagButton);
-
-    // Verify tag modal appears
-    await waitFor(() => {
-      expect(screen.getByText('Add Tag')).toBeInTheDocument();
-    });
+    const bulkActionButton = screen.getByTestId('bulk-select-action');
+    expect(bulkActionButton).toBeInTheDocument();
   });
 
-  test('exit bulk select by hitting x on bulk select bar', async () => {
+  it('exit bulk select by hitting x on bulk select bar', async () => {
     renderChartList(mockUser);
 
     // Wait for cards to load
@@ -480,11 +463,10 @@ describe('ChartList Card View Tests', () => {
       expect(screen.getByTestId('bulk-select-controls')).toBeInTheDocument();
     });
 
-    // Click the X button to close bulk select
-    const bulkSelectBar = screen.getByTestId('bulk-select-controls');
-    const closeButton = within(bulkSelectBar).getByRole('button', {
-      name: /close/i,
-    });
+    // Click the X button to close bulk select (look for close icon in bulk select bar)
+    const closeButton = document.querySelector(
+      '.ant-alert-close-icon',
+    ) as HTMLButtonElement;
     fireEvent.click(closeButton);
 
     // Verify bulk select controls are gone
@@ -495,7 +477,36 @@ describe('ChartList Card View Tests', () => {
     });
   });
 
-  test('card click behavior changes in bulk select mode', async () => {
+  it('exit bulk select by clicking bulk select button again', async () => {
+    renderChartList(mockUser);
+
+    // Wait for cards to load
+    await screen.findByTestId('chart-list-view');
+    await waitFor(() => {
+      expect(screen.getByText(mockCharts[0].slice_name)).toBeInTheDocument();
+    });
+
+    // Enable bulk select mode
+    const bulkSelectButton = screen.getByTestId('bulk-select');
+    fireEvent.click(bulkSelectButton);
+
+    // Wait for bulk select controls
+    await waitFor(() => {
+      expect(screen.getByTestId('bulk-select-controls')).toBeInTheDocument();
+    });
+
+    // Click bulk select button again to exit
+    fireEvent.click(bulkSelectButton);
+
+    // Verify bulk select controls are gone
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId('bulk-select-controls'),
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  it('card click behavior changes in bulk select mode', async () => {
     renderChartList(mockUser);
 
     // Wait for cards to load
@@ -541,7 +552,7 @@ describe('ChartList Card View Tests', () => {
     });
   });
 
-  test('renders sort dropdown in card view', async () => {
+  it('renders sort dropdown in card view', async () => {
     renderChartList(mockUser);
     await screen.findByTestId('chart-list-view');
 

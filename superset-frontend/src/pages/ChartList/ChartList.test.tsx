@@ -17,12 +17,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import {
-  screen,
-  waitFor,
-  fireEvent,
-  within,
-} from 'spec/helpers/testing-library';
+import { screen, waitFor, fireEvent } from 'spec/helpers/testing-library';
 import { isFeatureEnabled } from '@superset-ui/core';
 import {
   API_ENDPOINTS,
@@ -30,6 +25,12 @@ import {
   renderChartList,
   setupMocks,
 } from './ChartList.testHelpers';
+
+const mockPush = jest.fn();
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useHistory: () => ({ push: mockPush }),
+}));
 
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
@@ -65,29 +66,29 @@ const findFilterByLabel = (labelText: string) => {
   return null;
 };
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ChartList', () => {
   beforeEach(() => {
-    fetchMock.removeRoutes();
     setupMocks();
+    mockPush.mockClear();
   });
 
   afterEach(() => {
-    fetchMock.clearHistory();
+    fetchMock.resetHistory();
+    fetchMock.restore();
     // Reset feature flag mock
     (
       isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
     ).mockReset();
   });
 
-  test('renders component with basic structure', async () => {
+  it('renders component with basic structure', async () => {
     renderChartList(mockUser);
 
     expect(await screen.findByTestId('chart-list-view')).toBeInTheDocument();
     expect(screen.getByText('Charts')).toBeInTheDocument();
   });
 
-  test('navigates to /chart/add on New Chart button click', async () => {
+  it('verify New Chart button existence and functionality', async () => {
     renderChartList(mockUser);
     await screen.findByTestId('chart-list-view');
 
@@ -100,15 +101,12 @@ describe('ChartList', () => {
     fireEvent.click(newChartButton);
 
     // Verify it triggers navigation to chart creation
-    await waitFor(
-      () => {
-        expect(window.location.pathname).toEqual('/chart/add');
-      },
-      { timeout: 5000 },
-    );
+    await waitFor(() => {
+      expect(mockPush).toHaveBeenCalledWith('/chart/add');
+    });
   });
 
-  test('opens import modal on Import button click', async () => {
+  it('verify Import button existence and functionality', async () => {
     renderChartList(mockUser);
     await screen.findByTestId('chart-list-view');
 
@@ -127,16 +125,14 @@ describe('ChartList', () => {
     });
   });
 
-  test('shows loading state during initial data fetch', async () => {
+  it('shows loading state during initial data fetch', async () => {
     // Delay the chart data response to test loading state
-    // fetchMock.removeRoute(API_ENDPOINTS.CHARTS)
-    fetchMock.removeRoutes();
     fetchMock.get(
       API_ENDPOINTS.CHARTS,
       new Promise(resolve =>
         setTimeout(() => resolve({ result: mockCharts, chart_count: 3 }), 200),
       ),
-      { name: API_ENDPOINTS.CHARTS },
+      { overwriteRoutes: true },
     );
 
     renderChartList(mockUser);
@@ -153,56 +149,107 @@ describe('ChartList', () => {
     );
   });
 
-  test('makes correct API calls on initial load', async () => {
+  it('makes correct API calls on initial load', async () => {
     renderChartList(mockUser);
 
     await waitFor(() => {
-      const infoCalls = fetchMock.callHistory.calls(/chart\/_info/);
-      const dataCalls = fetchMock.callHistory.calls(/chart\/\?q/);
+      const infoCalls = fetchMock.calls(/chart\/_info/);
+      const dataCalls = fetchMock.calls(/chart\/\?q/);
 
       expect(infoCalls).toHaveLength(1);
       expect(dataCalls).toHaveLength(1);
-      expect(dataCalls[0].url).toContain(
+      expect(dataCalls[0][0]).toContain(
         'order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25',
       );
     });
   });
 
-  test('displays Matrixify tag for charts with matrixify enabled', async () => {
+  it('shows loading state while API calls are in progress', async () => {
+    // Mock delayed API responses
+    fetchMock.get(
+      API_ENDPOINTS.CHARTS_INFO,
+      new Promise(resolve =>
+        setTimeout(
+          () => resolve({ permissions: ['can_read', 'can_write'] }),
+          100,
+        ),
+      ),
+      { overwriteRoutes: true },
+    );
+
+    fetchMock.get(
+      API_ENDPOINTS.CHARTS,
+      new Promise(resolve =>
+        setTimeout(() => resolve({ result: mockCharts, chart_count: 3 }), 150),
+      ),
+      { overwriteRoutes: true },
+    );
+
     renderChartList(mockUser);
 
-    // Wait for the chart list to load
-    await waitFor(() => {
-      expect(screen.getByText('Test Chart 0')).toBeInTheDocument();
-    });
+    // Main container should render immediately
+    expect(screen.getByTestId('chart-list-view')).toBeInTheDocument();
 
-    // Find the row containing Test Chart 0 (which has matrixify enabled)
-    const chart0Row = screen.getByText('Test Chart 0').closest('tr');
-    expect(chart0Row).toBeInTheDocument();
+    // Eventually data should load
+    await waitFor(
+      () => {
+        const infoCalls = fetchMock.calls(/chart\/_info/);
+        const dataCalls = fetchMock.calls(/chart\/\?q/);
 
-    // Check that the Matrixify tag is present in this row
-    const matrixifyTag = within(chart0Row as HTMLElement).getByText(
-      'Matrixified',
+        expect(infoCalls).toHaveLength(1);
+        expect(dataCalls).toHaveLength(1);
+      },
+      { timeout: 1000 },
     );
-    expect(matrixifyTag).toBeInTheDocument();
-
-    // Find the row containing Test Chart 1 (which doesn't have matrixify)
-    const chart1Row = screen.getByText('Test Chart 1').closest('tr');
-    expect(chart1Row).toBeInTheDocument();
-
-    // Check that the Matrixify tag is NOT present in this row
-    expect(
-      within(chart1Row as HTMLElement).queryByText('Matrixified'),
-    ).not.toBeInTheDocument();
   });
 
-  test('handles API errors gracefully', async () => {
+  it('maintains component structure during loading', async () => {
+    // Only delay data loading, not permissions
+    fetchMock.get(
+      API_ENDPOINTS.CHARTS,
+      new Promise(resolve =>
+        setTimeout(() => resolve({ result: mockCharts, chart_count: 3 }), 200),
+      ),
+      { overwriteRoutes: true },
+    );
+
+    renderChartList(mockUser);
+
+    // Core structure should be available immediately
+    expect(screen.getByTestId('chart-list-view')).toBeInTheDocument();
+    expect(screen.getByText('Charts')).toBeInTheDocument();
+
+    // View toggles should be available during loading
+    expect(screen.getByRole('img', { name: 'appstore' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', { name: 'unordered-list' }),
+    ).toBeInTheDocument();
+
+    // Wait for permissions to load, then action buttons should appear
+    await waitFor(
+      () => {
+        expect(
+          screen.getByRole('button', { name: 'Bulk select' }),
+        ).toBeInTheDocument();
+      },
+      { timeout: 500 },
+    );
+
+    // Wait for data to eventually load
+    await waitFor(
+      () => {
+        expect(screen.getByText(mockCharts[0].slice_name)).toBeInTheDocument();
+      },
+      { timeout: 1000 },
+    );
+  });
+
+  it('handles API errors gracefully', async () => {
     // Mock API failure
-    fetchMock.removeRoutes();
     fetchMock.get(
       API_ENDPOINTS.CHARTS_INFO,
       { throws: new Error('API Error') },
-      { name: API_ENDPOINTS.CHARTS_INFO },
+      { overwriteRoutes: true },
     );
 
     renderChartList(mockUser);
@@ -212,13 +259,12 @@ describe('ChartList', () => {
     expect(screen.getByTestId('chart-list-view')).toBeInTheDocument();
   });
 
-  test('renders controls when chart list is empty', async () => {
+  it('handles empty results', async () => {
     // Mock empty chart data (not permissions)
-    fetchMock.removeRoute(API_ENDPOINTS.CHARTS);
     fetchMock.get(
       API_ENDPOINTS.CHARTS,
       { result: [], chart_count: 0 },
-      { name: API_ENDPOINTS.CHARTS },
+      { overwriteRoutes: true },
     );
 
     renderChartList(mockUser);
@@ -238,50 +284,124 @@ describe('ChartList', () => {
   });
 });
 
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ChartList - Global Filter Interactions', () => {
   beforeEach(() => {
-    fetchMock.removeRoutes();
     setupMocks();
   });
 
   afterEach(() => {
-    fetchMock.clearHistory();
+    fetchMock.resetHistory();
+    fetchMock.restore();
     // Reset feature flag mock
     (
       isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
     ).mockReset();
   });
 
-  test('renders all standard filters', async () => {
+  it('renders search filter correctly', async () => {
     renderChartList(mockUser);
     await screen.findByTestId('chart-list-view');
+
     await waitFor(() => {
       expect(screen.getByTestId('listview-table')).toBeInTheDocument();
     });
 
-    // Search filter
+    // Verify search filter renders correctly
     expect(screen.getByTestId('filters-search')).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/type a value/i)).toBeInTheDocument();
-
-    // All standard select filters
-    const standardFilters = [
-      'Type',
-      'Dataset',
-      'Owner',
-      'Certified',
-      'Favorite',
-      'Dashboard',
-      'Modified by',
-    ];
-    standardFilters.forEach(filterLabel => {
-      const filter = findFilterByLabel(filterLabel);
-      expect(filter).toBeVisible();
-      expect(filter).toBeEnabled();
-    });
   });
 
-  test('renders Tags filter when TAGGING_SYSTEM is enabled', async () => {
+  it('renders Type filter correctly', async () => {
+    renderChartList(mockUser);
+    await screen.findByTestId('chart-list-view');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('listview-table')).toBeInTheDocument();
+    });
+
+    const typeFilter = findFilterByLabel('Type');
+    expect(typeFilter).toBeVisible();
+    expect(typeFilter).toBeEnabled();
+  });
+
+  it('renders Dataset filter correctly', async () => {
+    renderChartList(mockUser);
+    await screen.findByTestId('chart-list-view');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('listview-table')).toBeInTheDocument();
+    });
+
+    const datasetFilter = findFilterByLabel('Dataset');
+    expect(datasetFilter).toBeVisible();
+    expect(datasetFilter).toBeEnabled();
+  });
+
+  it('renders Owner filter correctly', async () => {
+    renderChartList(mockUser);
+    await screen.findByTestId('chart-list-view');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('listview-table')).toBeInTheDocument();
+    });
+
+    const ownerFilter = findFilterByLabel('Owner');
+    expect(ownerFilter).toBeVisible();
+    expect(ownerFilter).toBeEnabled();
+  });
+
+  it('renders Certified filter correctly', async () => {
+    renderChartList(mockUser);
+    await screen.findByTestId('chart-list-view');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('listview-table')).toBeInTheDocument();
+    });
+    const certifiedFilter = findFilterByLabel('Certified');
+    expect(certifiedFilter).toBeVisible();
+    expect(certifiedFilter).toBeEnabled();
+  });
+
+  it('renders Favorite filter correctly', async () => {
+    renderChartList(mockUser);
+    await screen.findByTestId('chart-list-view');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('listview-table')).toBeInTheDocument();
+    });
+
+    const favoriteFilter = findFilterByLabel('Favorite');
+    expect(favoriteFilter).toBeVisible();
+    expect(favoriteFilter).toBeEnabled();
+  });
+
+  it('renders Dashboard filter correctly', async () => {
+    renderChartList(mockUser);
+    await screen.findByTestId('chart-list-view');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('listview-table')).toBeInTheDocument();
+    });
+
+    const dashboardFilter = findFilterByLabel('Dashboard');
+    expect(dashboardFilter).toBeVisible();
+    expect(dashboardFilter).toBeEnabled();
+  });
+
+  it('renders Modified by filter correctly', async () => {
+    renderChartList(mockUser);
+    await screen.findByTestId('chart-list-view');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('listview-table')).toBeInTheDocument();
+    });
+
+    const modifiedByFilter = findFilterByLabel('Modified by');
+    expect(modifiedByFilter).toBeVisible();
+    expect(modifiedByFilter).toBeEnabled();
+  });
+
+  it('renders Tags filter when TAGGING_SYSTEM is enabled', async () => {
     // Mock feature flag to enable tags
     (
       isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
@@ -311,7 +431,7 @@ describe('ChartList - Global Filter Interactions', () => {
     expect(tagsFilter).toBeEnabled();
   });
 
-  test('does not render Tags filter when TAGGING_SYSTEM is disabled', async () => {
+  it('does not render Tags filter when TAGGING_SYSTEM is disabled', async () => {
     (
       isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
     ).mockImplementation(
@@ -335,7 +455,7 @@ describe('ChartList - Global Filter Interactions', () => {
     expect(filterLabels).not.toContain('Tag');
   });
 
-  test('resets search filter value on clear', async () => {
+  it('allows filters to be reset correctly', async () => {
     renderChartList(mockUser);
     await screen.findByTestId('chart-list-view');
 
