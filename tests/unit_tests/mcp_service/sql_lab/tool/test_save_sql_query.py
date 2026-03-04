@@ -118,15 +118,14 @@ class TestSaveSqlQueryResponse:
         assert resp.description == "A query"
 
 
-def _ensure_superset_core_mocked():
-    """Ensure superset_core.api.mcp is available in sys.modules.
+def _force_passthrough_decorators():
+    """Force superset_core.api.mcp.tool to be a passthrough decorator.
 
-    The superset_core package may be partially installed (base package
-    exists but api.mcp submodule does not). We inject mocks for the
-    missing submodules so the tool module can be loaded for unit testing.
+    In CI, superset_core is fully installed and the real @tool decorator
+    includes authentication middleware. For unit tests we want to bypass
+    auth and test the tool logic directly, so we always replace the
+    decorator with a passthrough regardless of installation state.
     """
-    if "superset_core.api.mcp" in sys.modules:
-        return
 
     def _passthrough_tool(func=None, **kwargs):
         if func is not None:
@@ -136,19 +135,26 @@ def _ensure_superset_core_mocked():
     mock_mcp = MagicMock()
     mock_mcp.tool = _passthrough_tool
 
-    mock_api = sys.modules.get("superset_core.api", MagicMock())
+    mock_api = MagicMock()
     mock_api.mcp = mock_mcp
 
-    sys.modules.setdefault("superset_core", MagicMock())
+    sys.modules["superset_core"] = MagicMock()
     sys.modules["superset_core.api"] = mock_api
     sys.modules["superset_core.api.mcp"] = mock_mcp
     sys.modules.setdefault("superset_core.api.types", MagicMock())
 
 
 def _get_tool_module():
-    """Import the save_sql_query module, mocking superset_core if needed."""
-    _ensure_superset_core_mocked()
-    return importlib.import_module("superset.mcp_service.sql_lab.tool.save_sql_query")
+    """Import save_sql_query with passthrough decorators (no auth)."""
+    _force_passthrough_decorators()
+    # Clear cached module imports so we get a fresh import with mocked
+    # decorators. This is necessary because in CI the real @tool decorator
+    # may have been applied during a previous import.
+    mod_name = "superset.mcp_service.sql_lab.tool.save_sql_query"
+    for key in list(sys.modules.keys()):
+        if key.startswith("superset.mcp_service.sql_lab.tool"):
+            del sys.modules[key]
+    return importlib.import_module(mod_name)
 
 
 def _make_mock_ctx():
