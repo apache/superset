@@ -63,19 +63,76 @@ def _find_next_row_position(layout: Dict[str, Any]) -> str:
     return row_key
 
 
+def _normalize_tab_text(text: str) -> str:
+    """Strip emoji and extra whitespace from tab text for flexible matching."""
+    import re
+
+    # Remove emoji characters (Unicode emoji ranges)
+    cleaned = re.sub(
+        r"[\U0001F300-\U0001F9FF\U00002600-\U000027BF\U0000FE00-\U0000FE0F"
+        r"\U0001FA00-\U0001FA6F\U0001FA70-\U0001FAFF\U00002702-\U000027B0"
+        r"\U0000200D\U0000FE0F]+",
+        "",
+        text,
+    )
+    return cleaned.strip().lower()
+
+
 def _match_tab_in_children(
     layout: Dict[str, Any],
     tabs_children: list[str],
     target_tab: str,
 ) -> str | None:
-    """Search tabs_children for a tab matching target_tab by ID or name."""
+    """Search tabs_children for a tab matching target_tab by ID or name.
+
+    Matching is flexible: exact ID match, exact text match, or
+    case-insensitive text match after stripping emoji characters.
+    """
+    target_normalized = _normalize_tab_text(target_tab)
     for tab_id in tabs_children:
         tab = layout.get(tab_id)
         if not tab or tab.get("type") != "TAB":
             continue
         tab_text = (tab.get("meta") or {}).get("text", "")
+        # Exact match on ID or text
         if target_tab in (tab_id, tab_text):
             return tab_id
+        # Flexible match: case-insensitive, emoji-stripped
+        if target_normalized and _normalize_tab_text(tab_text) == target_normalized:
+            return tab_id
+    return None
+
+
+def _collect_tabs_groups(layout: Dict[str, Any]) -> list[list[str]]:
+    """Collect all TABS groups from ROOT_ID and GRID_ID children.
+
+    Superset dashboards can place TABS under either ROOT_ID or GRID_ID
+    depending on how the layout was constructed.
+    """
+    groups: list[list[str]] = []
+    for parent_key in ("ROOT_ID", "GRID_ID"):
+        parent = layout.get(parent_key)
+        if not parent:
+            continue
+        for child_id in parent.get("children", []):
+            child = layout.get(child_id)
+            if not child or child.get("type") != "TABS":
+                continue
+            tabs_children = child.get("children", [])
+            if tabs_children:
+                groups.append(tabs_children)
+    return groups
+
+
+def _first_tab_from_groups(
+    layout: Dict[str, Any], groups: list[list[str]]
+) -> str | None:
+    """Return the first valid TAB ID from the collected groups."""
+    for tabs_children in groups:
+        first_tab_id = tabs_children[0]
+        first_tab = layout.get(first_tab_id)
+        if first_tab and first_tab.get("type") == "TAB":
+            return first_tab_id
     return None
 
 
@@ -95,33 +152,15 @@ def _find_tab_insert_target(
         The ID of the matched (or first) TAB component, or ``None`` if the
         dashboard does not use top-level tabs.
     """
-    grid = layout.get("GRID_ID")
-    if not grid:
-        return None
+    groups = _collect_tabs_groups(layout)
 
-    first_tab_fallback: str | None = None
-
-    for child_id in grid.get("children", []):
-        child = layout.get(child_id)
-        if not child or child.get("type") != "TABS":
-            continue
-        tabs_children = child.get("children", [])
-        if not tabs_children:
-            continue
-
-        if target_tab:
+    if target_tab:
+        for tabs_children in groups:
             matched = _match_tab_in_children(layout, tabs_children, target_tab)
             if matched:
                 return matched
 
-        # Remember the first TAB as fallback but keep searching
-        if first_tab_fallback is None:
-            first_tab_id = tabs_children[0]
-            first_tab = layout.get(first_tab_id)
-            if first_tab and first_tab.get("type") == "TAB":
-                first_tab_fallback = first_tab_id
-
-    return first_tab_fallback
+    return _first_tab_from_groups(layout, groups)
 
 
 def _add_chart_to_layout(
