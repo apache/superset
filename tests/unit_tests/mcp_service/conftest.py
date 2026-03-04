@@ -19,5 +19,22 @@
 MCP service test configuration.
 
 Tool imports are handled by app.py, not here.
-This conftest is empty to prevent test pollution.
 """
+
+from unittest.mock import patch
+
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def mock_rbac_permission_check():
+    """Allow all RBAC permission checks in MCP integration tests.
+
+    The RBAC permission logic is tested directly in test_auth_rbac.py,
+    which imports check_tool_permission and calls it without going
+    through mcp_auth_hook. This fixture patches the module-level name
+    so that mcp_auth_hook (same module) sees the mock, while direct
+    imports in test_auth_rbac.py still reference the real function.
+    """
+    with patch("superset.mcp_service.auth.check_tool_permission", return_value=True):
+        yield
