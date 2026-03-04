@@ -460,19 +460,20 @@ function FiltersConfigModal({
     return titles;
   }, [filterIds, chartCustomizationIds, modalSaveLogic, formValuesVersion]);
 
-  const debouncedErrorHandling = useMemo(
+  const debouncedHandleErroredItems = useMemo(
     () =>
       debounce(() => {
         setSaveAlertVisible(false);
         modalSaveLogic.handleErroredItems();
+        setFormValuesVersion(prev => prev + 1);
       }, Constants.SLOW_DEBOUNCE),
-    [modalSaveLogic],
+    [modalSaveLogic, setSaveAlertVisible],
   );
 
-  const handleValuesChange = useCallback(() => {
-    setFormValuesVersion(prev => prev + 1);
-    debouncedErrorHandling();
-  }, [debouncedErrorHandling]);
+  const handleValuesChange = useMemo(
+    () => debouncedHandleErroredItems,
+    [debouncedHandleErroredItems],
+  );
 
   const handleActiveFilterPanelChange = useCallback(
     (key: string | string[]) => setActiveFilterPanelKey(key),

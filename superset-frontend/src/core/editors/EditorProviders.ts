@@ -17,12 +17,12 @@
  * under the License.
  */
 
-import type { editors, contributions } from '@apache-superset/core';
+import type { editors } from '@apache-superset/core';
 import { Disposable } from '../models';
 
-type EditorLanguage = contributions.EditorLanguage;
+type EditorLanguage = editors.EditorLanguage;
 type EditorProvider = editors.EditorProvider;
-type EditorContribution = editors.EditorContribution;
+type Editor = editors.Editor;
 type EditorComponent = editors.EditorComponent;
 type EditorProviderRegisteredEvent = editors.EditorProviderRegisteredEvent;
 type EditorProviderUnregisteredEvent = editors.EditorProviderUnregisteredEvent;
@@ -114,15 +114,15 @@ class EditorProviders {
    * Register an editor provider.
    * When registered, the provider replaces the default editor for its supported languages.
    *
-   * @param contribution The editor contribution metadata.
+   * @param editor The editor descriptor.
    * @param component The React component implementing the editor.
    * @returns A Disposable to unregister the provider.
    */
   public registerProvider(
-    contribution: EditorContribution,
+    editor: Editor,
     component: EditorComponent,
   ): Disposable {
-    const { id, languages } = contribution;
+    const { id, languages } = editor;
 
     // Check if provider with this ID already exists
     if (this.providers.has(id)) {
@@ -132,7 +132,7 @@ class EditorProviders {
     }
 
     const provider: EditorProvider = {
-      contribution,
+      editor,
       component,
     };
 
@@ -163,10 +163,10 @@ class EditorProviders {
       return;
     }
 
-    const { contribution } = provider;
+    const { editor } = provider;
 
     // Remove language mappings for this provider
-    contribution.languages.forEach(language => {
+    editor.languages.forEach(language => {
       if (this.languageToProvider.get(language) === id) {
         this.languageToProvider.delete(language);
       }
@@ -176,7 +176,7 @@ class EditorProviders {
     this.providers.delete(id);
 
     // Fire unregistration event
-    this.unregisterEmitter.fire({ contribution });
+    this.unregisterEmitter.fire({ editor });
   }
 
   /**

@@ -67,6 +67,11 @@
 
     {% endblock %}
 
+    {{ css_bundle(assets_prefix, 'theme') }}
+    {% if entry %}
+      {{ css_bundle(assets_prefix, entry) }}
+    {% endif %}
+
     {{ js_bundle(assets_prefix, 'theme') }}
 
     {% block head_js %}

@@ -572,6 +572,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     oauth2_token_request_uri: str | None = None
     oauth2_token_request_type = "data"  # noqa: S105
 
+    # Driver-specific query params to be included in `get_oauth2_authorization_uri`
+    oauth2_additional_auth_uri_query_params: dict[str, Any] = {}
+    # Driver-specific params to be included in the `get_oauth2_token` request body
+    oauth2_additional_token_request_params: dict[str, Any] = {}
     # Driver-specific exception that should be mapped to OAuth2RedirectError
     oauth2_exception = OAuth2RedirectError
 
@@ -754,6 +758,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             "state": encode_oauth2_state(state),
             "redirect_uri": config["redirect_uri"],
             "client_id": config["id"],
+            **cls.oauth2_additional_auth_uri_query_params,
         }
 
         # Add PKCE parameters (RFC 7636) if code_verifier is provided
@@ -784,6 +789,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             "client_secret": config["secret"],
             "redirect_uri": config["redirect_uri"],
             "grant_type": "authorization_code",
+            **cls.oauth2_additional_token_request_params,
         }
         # Add PKCE code_verifier if present (RFC 7636)
         if code_verifier:
