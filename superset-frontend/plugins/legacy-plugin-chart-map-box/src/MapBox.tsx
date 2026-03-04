@@ -61,6 +61,9 @@ interface MapBoxProps {
   renderWhileDragging?: boolean;
   rgb?: (string | number)[];
   bounds?: [[number, number], [number, number]]; // May be undefined for empty datasets
+  viewportLongitude?: number;
+  viewportLatitude?: number;
+  viewportZoom?: number;
 }
 
 interface MapBoxState {
@@ -114,6 +117,34 @@ class MapBox extends Component<MapBoxProps, MapBoxState> {
     this.setState({ viewport });
     const { onViewportChange } = this.props;
     onViewportChange!(viewport);
+  }
+
+  componentDidUpdate(prevProps: MapBoxProps) {
+    const { viewportLongitude, viewportLatitude, viewportZoom } = this.props;
+    const { viewport } = this.state;
+
+    const longitudeChanged =
+      prevProps.viewportLongitude !== viewportLongitude &&
+      viewportLongitude !== undefined &&
+      viewportLongitude !== viewport.longitude;
+    const latitudeChanged =
+      prevProps.viewportLatitude !== viewportLatitude &&
+      viewportLatitude !== undefined &&
+      viewportLatitude !== viewport.latitude;
+    const zoomChanged =
+      prevProps.viewportZoom !== viewportZoom &&
+      viewportZoom !== undefined &&
+      viewportZoom !== viewport.zoom;
+
+    if (longitudeChanged || latitudeChanged || zoomChanged) {
+      this.setState({
+        viewport: {
+          longitude: longitudeChanged ? viewportLongitude : viewport.longitude,
+          latitude: latitudeChanged ? viewportLatitude : viewport.latitude,
+          zoom: zoomChanged ? viewportZoom : viewport.zoom,
+        },
+      });
+    }
   }
 
   render() {
