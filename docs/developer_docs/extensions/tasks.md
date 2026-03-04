@@ -369,8 +369,8 @@ The prune job only removes tasks in terminal states (`SUCCESS`, `FAILURE`, `ABOR
 
 See `superset/config.py` for a complete example configuration.
 
-:::tip Signal Cache for Faster Notifications
-By default, abort detection and sync join-and-wait use database polling. Configure `SIGNAL_CACHE_CONFIG` to enable Redis pub/sub for real-time notifications. See [Signal Cache Backend](/admin-docs/configuration/cache#signal-cache-backend) for configuration details.
+:::tip Distributed Coordination for Faster Notifications
+By default, abort detection and sync join-and-wait use database polling. Configure `DISTRIBUTED_COORDINATION_CONFIG` to enable Redis pub/sub for real-time notifications. See [Distributed Coordination Backend](/admin-docs/configuration/cache#signal-cache-backend) for configuration details.
 :::
 
 ## API Reference
