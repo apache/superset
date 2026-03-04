@@ -115,16 +115,7 @@ Backend contribution types allow extensions to extend Superset's server-side cap
 
 ### REST API Endpoints
 
-Extensions can register custom REST API endpoints under the `/api/v1/extensions/` namespace. This dedicated namespace prevents conflicts with built-in endpoints and provides a clear separation between core and extension functionality.
-
-```json
-"backend": {
-  "entryPoints": ["my_extension.entrypoint"],
-  "files": ["backend/src/my_extension/**/*.py"]
-}
-```
-
-The entry point module imports the API class to register it with Superset:
+Extensions can register custom REST API endpoints under the `/extensions/` namespace. This dedicated namespace prevents conflicts with built-in endpoints and provides a clear separation between core and extension functionality.
 
 ```python
 from superset_core.api.rest_api import RestApi, api
