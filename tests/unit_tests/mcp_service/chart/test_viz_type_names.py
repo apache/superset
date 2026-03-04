@@ -26,7 +26,7 @@ from superset.mcp_service.chart.viz_type_names import (
 
 
 @pytest.mark.parametrize(
-    "viz_type,expected",
+    ("viz_type", "expected"),
     [
         ("echarts_timeseries_line", "Line Chart"),
         ("echarts_timeseries_bar", "Bar Chart"),
