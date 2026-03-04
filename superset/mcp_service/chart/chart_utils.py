@@ -826,7 +826,57 @@ def _truncate(name: str, max_length: int = 60) -> str:
     return name[: max_length - 1] + "\u2026"
 
 
-def generate_chart_name(  # noqa: C901
+def _table_chart_what(config: TableChartConfig, dataset_name: str | None) -> str:
+    """Build the descriptive fragment for a table chart."""
+    has_agg = any(col.aggregate for col in config.columns)
+    if has_agg:
+        metrics = [col for col in config.columns if col.aggregate]
+        what = ", ".join(_humanize_column(m) for m in metrics[:2])
+        return f"{what} Summary"
+    if dataset_name:
+        return f"{dataset_name} Records"
+    cols = ", ".join(_humanize_column(c) for c in config.columns[:3])
+    return f"{cols} Table"
+
+
+def _xy_chart_what(config: XYChartConfig) -> str:
+    """Build the descriptive fragment for an XY chart."""
+    primary_metric = _humanize_column(config.y[0]) if config.y else "Value"
+    dimension = _humanize_column(config.x)
+
+    if config.kind in ("line", "area") and config.group_by is None:
+        return f"{primary_metric} Over Time"
+    if config.group_by is not None:
+        group_label = _humanize_column(config.group_by)
+        return f"{primary_metric} by {group_label}"
+    if config.kind == "scatter":
+        return f"{primary_metric} vs {dimension}"
+    return f"{primary_metric} by {dimension}"
+
+
+_GRAIN_MAP: dict[str, str] = {
+    "PT1H": "Hourly",
+    "P1D": "Daily",
+    "P1W": "Weekly",
+    "P1M": "Monthly",
+    "P3M": "Quarterly",
+    "P1Y": "Yearly",
+}
+
+
+def _xy_chart_context(config: XYChartConfig) -> str | None:
+    """Build context (time grain / filters) for an XY chart name."""
+    parts: list[str] = []
+    if config.time_grain:
+        grain_str = _GRAIN_MAP.get(str(config.time_grain), str(config.time_grain))
+        parts.append(grain_str)
+    filter_ctx = _summarize_filters(config.filters)
+    if filter_ctx:
+        parts.append(filter_ctx)
+    return ", ".join(parts) if parts else None
+
+
+def generate_chart_name(
     config: TableChartConfig | XYChartConfig,
     dataset_name: str | None = None,
 ) -> str:
@@ -840,57 +890,12 @@ def generate_chart_name(  # noqa: C901
     An en-dash followed by context (filters / time grain) is appended
     when such information is available.
     """
-    context = None
     if isinstance(config, TableChartConfig):
-        has_agg = any(col.aggregate for col in config.columns)
-        if has_agg:
-            metrics = [col for col in config.columns if col.aggregate]
-            what = ", ".join(_humanize_column(m) for m in metrics[:2])
-            what = f"{what} Summary"
-        else:
-            if dataset_name:
-                what = f"{dataset_name} Records"
-            else:
-                cols = ", ".join(_humanize_column(c) for c in config.columns[:3])
-                what = f"{cols} Table"
+        what = _table_chart_what(config, dataset_name)
         context = _summarize_filters(config.filters)
-
     elif isinstance(config, XYChartConfig):
-        primary_metric = _humanize_column(config.y[0]) if config.y else "Value"
-        dimension = _humanize_column(config.x)
-
-        is_timeseries = config.kind in ("line", "area")
-        has_groupby = config.group_by is not None
-
-        if is_timeseries and not has_groupby:
-            what = f"{primary_metric} Over Time"
-        elif has_groupby:
-            group_label = _humanize_column(config.group_by)  # type: ignore[arg-type]
-            what = f"{primary_metric} by {group_label}"
-        elif config.kind == "scatter":
-            y_label = primary_metric
-            what = f"{y_label} vs {dimension}"
-        else:
-            what = f"{primary_metric} by {dimension}"
-
-        # Build context from time grain or filters
-        parts: list[str] = []
-        if config.time_grain:
-            grain_map: dict[str, str] = {
-                "PT1H": "Hourly",
-                "P1D": "Daily",
-                "P1W": "Weekly",
-                "P1M": "Monthly",
-                "P3M": "Quarterly",
-                "P1Y": "Yearly",
-            }
-            grain_str = grain_map.get(str(config.time_grain), str(config.time_grain))
-            parts.append(grain_str)
-        filter_ctx = _summarize_filters(config.filters)
-        if filter_ctx:
-            parts.append(filter_ctx)
-        if parts:
-            context = ", ".join(parts)
+        what = _xy_chart_what(config)
+        context = _xy_chart_context(config)
     else:
         return "Chart"
 
