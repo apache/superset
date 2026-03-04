@@ -27,14 +27,22 @@ from marshmallow import ValidationError
 from pydantic import ValidationError as PydanticValidationError
 
 from superset import db, event_logger, is_feature_enabled
-from superset.commands.semantic_layer.create import CreateSemanticLayerCommand
-from superset.commands.semantic_layer.delete import DeleteSemanticLayerCommand
+from superset.commands.semantic_layer.create import (
+    CreateSemanticLayerCommand,
+    CreateSemanticViewCommand,
+)
+from superset.commands.semantic_layer.delete import (
+    DeleteSemanticLayerCommand,
+    DeleteSemanticViewCommand,
+)
 from superset.commands.semantic_layer.exceptions import (
     SemanticLayerCreateFailedError,
     SemanticLayerDeleteFailedError,
     SemanticLayerInvalidError,
     SemanticLayerNotFoundError,
     SemanticLayerUpdateFailedError,
+    SemanticViewCreateFailedError,
+    SemanticViewDeleteFailedError,
     SemanticViewForbiddenError,
     SemanticViewInvalidError,
     SemanticViewNotFoundError,
@@ -45,13 +53,14 @@ from superset.commands.semantic_layer.update import (
     UpdateSemanticViewCommand,
 )
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
-from superset.daos.semantic_layer import SemanticLayerDAO
+from superset.daos.semantic_layer import SemanticLayerDAO, SemanticViewDAO
 from superset.models.core import Database
 from superset.semantic_layers.models import SemanticLayer, SemanticView
 from superset.semantic_layers.registry import registry
 from superset.semantic_layers.schemas import (
     SemanticLayerPostSchema,
     SemanticLayerPutSchema,
+    SemanticViewPostSchema,
     SemanticViewPutSchema,
 )
 from superset.superset_typing import FlaskResponse
@@ -161,9 +170,89 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
     allow_browser_login = True
     class_permission_name = "SemanticView"
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
-    include_route_methods = {"put"}
+    include_route_methods = {"put", "post", "delete"}
 
     edit_model_schema = SemanticViewPutSchema()
+
+    @expose("/", methods=("POST",))
+    @protect()
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
+        log_to_statsd=False,
+    )
+    @requires_json
+    def post(self) -> Response:
+        """Bulk create semantic views.
+        ---
+        post:
+          summary: Create semantic views
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    views:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          name:
+                            type: string
+                          semantic_layer_uuid:
+                            type: string
+                          configuration:
+                            type: object
+                          description:
+                            type: string
+                          cache_timeout:
+                            type: integer
+          responses:
+            201:
+              description: Semantic views created
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            422:
+              $ref: '#/components/responses/422'
+        """
+        body = request.json or {}
+        views_data = body.get("views", [])
+        if not views_data:
+            return self.response_400(message="No views provided")
+
+        schema = SemanticViewPostSchema()
+        created = []
+        errors = []
+        for view_data in views_data:
+            try:
+                item = schema.load(view_data)
+            except ValidationError as error:
+                errors.append({"name": view_data.get("name"), "error": error.messages})
+                continue
+            try:
+                new_model = CreateSemanticViewCommand(item).run()
+                created.append({"uuid": str(new_model.uuid), "name": new_model.name})
+            except SemanticLayerNotFoundError:
+                errors.append(
+                    {"name": view_data.get("name"), "error": "Semantic layer not found"}
+                )
+            except SemanticViewCreateFailedError as ex:
+                logger.error(
+                    "Error creating semantic view: %s",
+                    str(ex),
+                    exc_info=True,
+                )
+                errors.append({"name": view_data.get("name"), "error": str(ex)})
+
+        result: dict[str, Any] = {"created": created}
+        if errors:
+            result["errors"] = errors
+        status = 201 if created else 422
+        return self.response(status, result=result)
 
     @expose("/<pk>", methods=("PUT",))
     @protect()
@@ -237,6 +326,46 @@ class SemanticViewRestApi(BaseSupersetModelRestApi):
             )
             response = self.response_422(message=str(ex))
         return response
+
+    @expose("/<pk>", methods=("DELETE",))
+    @protect()
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete",
+        log_to_statsd=False,
+    )
+    def delete(self, pk: int) -> Response:
+        """Delete a semantic view.
+        ---
+        delete:
+          summary: Delete a semantic view
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          responses:
+            200:
+              description: Semantic view deleted
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+        """
+        try:
+            DeleteSemanticViewCommand(pk).run()
+            return self.response(200, message="OK")
+        except SemanticViewNotFoundError:
+            return self.response_404()
+        except SemanticViewDeleteFailedError as ex:
+            logger.error(
+                "Error deleting semantic view: %s",
+                str(ex),
+                exc_info=True,
+            )
+            return self.response_422(message=str(ex))
 
 
 class SemanticLayerRestApi(BaseSupersetApi):
@@ -375,6 +504,67 @@ class SemanticLayerRestApi(BaseSupersetApi):
             return self.response_400(message=str(ex))
 
         return self.response(200, result=schema)
+
+    @expose("/<uuid>/views", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    def views(self, uuid: str) -> FlaskResponse:
+        """List available views from a semantic layer.
+        ---
+        post:
+          summary: List available views from a semantic layer
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: uuid
+          requestBody:
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    runtime_data:
+                      type: object
+          responses:
+            200:
+              description: Available views
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        layer = SemanticLayerDAO.find_by_uuid(uuid)
+        if not layer:
+            return self.response_404()
+
+        body = request.get_json(silent=True) or {}
+        runtime_data = body.get("runtime_data", {})
+
+        try:
+            views = layer.implementation.get_semantic_views(runtime_data)
+        except Exception as ex:  # pylint: disable=broad-except
+            return self.response_400(message=str(ex))
+
+        # Check which views already exist with the same runtime config
+        existing = SemanticViewDAO.find_by_semantic_layer(str(layer.uuid))
+        existing_keys: set[tuple[str, str]] = set()
+        for v in existing:
+            config = v.configuration
+            if isinstance(config, str):
+                config = json.loads(config)
+            existing_keys.add((v.name, json.dumps(config or {}, sort_keys=True)))
+        runtime_key = json.dumps(runtime_data or {}, sort_keys=True)
+
+        result = [
+            {
+                "name": v.name,
+                "already_added": (v.name, runtime_key) in existing_keys,
+            }
+            for v in sorted(views, key=lambda v: v.name)
+        ]
+        return self.response(200, result=result)
 
     @expose("/", methods=("POST",))
     @protect()
