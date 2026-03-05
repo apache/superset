@@ -76,7 +76,7 @@ describe('Scatter Chart X-axis Time Formatting', () => {
     expect(transformedProps.echartOptions.xAxis).toHaveProperty('axisLabel');
     const xAxis = transformedProps.echartOptions.xAxis as any;
     expect(xAxis.axisLabel).toHaveProperty('formatter');
-    expect(xAxis.axisLabel.formatter).toBeUndefined();
+    expect(typeof xAxis.axisLabel.formatter).toBe('function');
   });
 
   test.each(D3_TIME_FORMAT_OPTIONS.map(([id]) => id))(
@@ -96,10 +96,8 @@ describe('Scatter Chart X-axis Time Formatting', () => {
 
       const xAxis = transformedProps.echartOptions.xAxis as any;
       expect(xAxis.axisLabel).toHaveProperty('formatter');
-      if (format === SMART_DATE_ID) {
-        expect(xAxis.axisLabel.formatter).toBeUndefined();
-      } else {
-        expect(typeof xAxis.axisLabel.formatter).toBe('function');
+      expect(typeof xAxis.axisLabel.formatter).toBe('function');
+      if (format !== SMART_DATE_ID) {
         expect(xAxis.axisLabel.formatter.id).toBe(format);
       }
     },

@@ -20,7 +20,7 @@ System prompts for general guidance
 """
 
 from flask import current_app
-from superset_core.mcp import prompt
+from superset_core.api.mcp import prompt
 
 
 def _get_app_name() -> str:

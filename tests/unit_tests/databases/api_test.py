@@ -451,6 +451,76 @@ def test_import(
         ssh_tunnel_passwords=None,
         ssh_tunnel_private_keys=None,
         ssh_tunnel_priv_key_passwords=None,
+        encrypted_extra_secrets=None,
+    )
+
+
+def test_import_with_encrypted_extra_secrets(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test that encrypted_extra_secrets are passed to ImportDatabasesCommand.
+    """
+    contents = {
+        "metadata.yaml": yaml.safe_dump(
+            {
+                "version": "1.0.0",
+                "type": "Database",
+                "timestamp": "2021-01-01T00:00:00Z",
+            }
+        ),
+        "databases/test.yaml": yaml.safe_dump(
+            {
+                "database_name": "test",
+                "sqlalchemy_uri": "bigquery://gcp-project-id/",
+                "cache_timeout": 0,
+                "expose_in_sqllab": True,
+                "allow_run_async": False,
+                "allow_ctas": False,
+                "allow_cvas": False,
+                "allow_dml": False,
+                "allow_file_upload": False,
+                "masked_encrypted_extra": json.dumps(
+                    {"credentials_info": {"private_key": "XXXXXXXXXX"}}
+                ),
+                "extra": json.dumps({"allows_virtual_table_explore": True}),
+                "uuid": "00000000-0000-0000-0000-123456789001",
+            }
+        ),
+    }
+    mocker.patch("superset.databases.api.is_zipfile", return_value=True)
+    mocker.patch("superset.databases.api.ZipFile")
+    mocker.patch(
+        "superset.databases.api.get_contents_from_bundle",
+        return_value=contents,
+    )
+    command = mocker.patch("superset.databases.api.ImportDatabasesCommand")
+
+    secrets = {
+        "databases/test.yaml": {
+            "$.credentials_info.private_key": "-----BEGIN PRIVATE KEY-----"
+        }
+    }
+    form_data = {
+        "formData": (BytesIO(b"test"), "test.zip"),
+        "encrypted_extra_secrets": json.dumps(secrets),
+    }
+    client.post(
+        "/api/v1/database/import/",
+        data=form_data,
+        content_type="multipart/form-data",
+    )
+
+    command.assert_called_with(
+        contents,
+        passwords=None,
+        overwrite=False,
+        ssh_tunnel_passwords=None,
+        ssh_tunnel_private_keys=None,
+        ssh_tunnel_priv_key_passwords=None,
+        encrypted_extra_secrets=secrets,
     )
 
 

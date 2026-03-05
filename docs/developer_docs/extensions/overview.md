@@ -38,7 +38,7 @@ Extensions can provide:
 
 - **Custom UI Components**: New panels, views, and interactive elements
 - **Commands and Menus**: Custom actions accessible via menus and keyboard shortcuts
-- **REST API Endpoints**: Backend services under the `/api/v1/extensions/` namespace
+- **REST API Endpoints**: Backend services under the `/extensions/` namespace
 - **MCP Tools and Prompts**: AI agent capabilities for enhanced user assistance
 
 ## UI Components for Extensions
