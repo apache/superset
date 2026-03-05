@@ -53,7 +53,7 @@ export default function AdhocFilterEditPopoverSqlTabContent({
 
   useEffect(() => {
     // @ts-ignore
-    aceEditorRef?.current?.editor.resize();
+    aceEditorRef?.current?.editor?.resize?.();
   }, [adhocFilter]);
 
   const onSqlExpressionClauseChange = (clause: string) => {
