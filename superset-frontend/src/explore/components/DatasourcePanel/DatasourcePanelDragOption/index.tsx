@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { RefObject } from 'react';
-import { useDrag } from 'react-dnd';
+import { RefObject, useMemo } from 'react';
+import { useDraggable } from '@dnd-kit/core';
 import { Metric } from '@superset-ui/core';
 import { css, styled, useTheme } from '@apache-superset/core/ui';
 import { ColumnMeta } from '@superset-ui/chart-controls';
@@ -30,8 +30,8 @@ import { Icons } from '@superset-ui/core/components/Icons';
 
 import { DatasourcePanelDndItem } from '../types';
 
-const DatasourceItemContainer = styled.div`
-  ${({ theme }) => css`
+const DatasourceItemContainer = styled.div<{ isDragging?: boolean }>`
+  ${({ theme, isDragging }) => css`
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -44,6 +44,8 @@ const DatasourceItemContainer = styled.div`
     color: ${theme.colorText};
     background-color: ${theme.colorBgLayout};
     border-radius: 4px;
+    cursor: ${isDragging ? 'grabbing' : 'grab'};
+    opacity: ${isDragging ? 0.5 : 1};
 
     &:hover {
       background-color: ${theme.colorPrimaryBgHover};
@@ -70,14 +72,23 @@ export default function DatasourcePanelDragOption(
 ) {
   const { labelRef, showTooltip, type, value } = props;
   const theme = useTheme();
-  const [{ isDragging }, drag] = useDrag({
-    item: {
-      value: props.value,
-      type: props.type,
+
+  // Create a unique ID for this draggable item
+  const draggableId = useMemo(() => {
+    if (type === DndItemType.Column) {
+      const col = value as ColumnMeta;
+      return `datasource-${type}-${col.column_name || col.verbose_name}`;
+    }
+    const metric = value as MetricOption;
+    return `datasource-${type}-${metric.metric_name || metric.label}`;
+  }, [type, value]);
+
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: draggableId,
+    data: {
+      type,
+      value,
     },
-    collect: monitor => ({
-      isDragging: monitor.isDragging(),
-    }),
   });
 
   const optionProps = {
@@ -87,7 +98,13 @@ export default function DatasourcePanelDragOption(
   };
 
   return (
-    <DatasourceItemContainer data-test="DatasourcePanelDragOption" ref={drag}>
+    <DatasourceItemContainer
+      data-test="DatasourcePanelDragOption"
+      ref={setNodeRef}
+      isDragging={isDragging}
+      {...attributes}
+      {...listeners}
+    >
       {type === DndItemType.Column ? (
         <StyledColumnOption column={value as ColumnMeta} {...optionProps} />
       ) : (

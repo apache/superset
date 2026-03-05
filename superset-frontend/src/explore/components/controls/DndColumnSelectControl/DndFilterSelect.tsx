@@ -452,6 +452,8 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
         accept={DND_ACCEPTED_TYPES}
         ghostButtonText={t('Drop columns/metrics here or click')}
         onClickGhostButton={handleClickGhostButton}
+        sortableType={DndItemType.FilterOption}
+        itemCount={values.length}
         {...props}
       />
       <AdhocFilterPopoverTrigger

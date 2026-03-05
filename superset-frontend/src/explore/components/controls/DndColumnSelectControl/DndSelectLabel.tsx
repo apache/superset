@@ -17,7 +17,11 @@
  * under the License.
  */
 import { ReactNode, useCallback, useContext, useEffect, useMemo } from 'react';
-import { useDrop } from 'react-dnd';
+import { useDroppable } from '@dnd-kit/core';
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
 import { t } from '@apache-superset/core';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import {
@@ -45,6 +49,9 @@ export type DndSelectLabelProps = {
   displayGhostButton?: boolean;
   onClickGhostButton: () => void;
   isLoading?: boolean;
+  // For sortable items - the type string and count to generate sortable IDs
+  sortableType?: string;
+  itemCount?: number;
 };
 
 export default function DndSelectLabel({
@@ -52,10 +59,17 @@ export default function DndSelectLabel({
   accept,
   valuesRenderer,
   isLoading,
+  sortableType,
+  itemCount = 0,
   ...props
 }: DndSelectLabelProps) {
   const canDropProp = props.canDrop;
   const canDropValueProp = props.canDropValue;
+
+  const acceptTypes = useMemo(
+    () => (Array.isArray(accept) ? accept : [accept]),
+    [accept],
+  );
 
   const dropValidator = useCallback(
     (item: DatasourcePanelDndItem) =>
@@ -63,22 +77,26 @@ export default function DndSelectLabel({
     [canDropProp, canDropValueProp],
   );
 
-  const [{ isOver, canDrop }, datasourcePanelDrop] = useDrop({
-    accept: isLoading ? [] : accept,
-
-    drop: (item: DatasourcePanelDndItem) => {
-      props.onDrop(item);
-      props.onDropValue?.(item.value);
+  const { setNodeRef, isOver, active } = useDroppable({
+    id: `dropzone-${props.name}`,
+    disabled: isLoading,
+    data: {
+      accept: acceptTypes,
+      onDrop: props.onDrop,
+      onDropValue: props.onDropValue,
     },
-
-    canDrop: dropValidator,
-
-    collect: monitor => ({
-      isOver: monitor.isOver(),
-      canDrop: monitor.canDrop(),
-      type: monitor.getItemType(),
-    }),
   });
+
+  // Check if the active dragged item can be dropped here
+  const canDrop = useMemo(() => {
+    if (!active?.data.current) return false;
+    const activeData = active.data.current as { type: string; value: unknown };
+    if (!acceptTypes.includes(activeData.type as DndItemType)) return false;
+    return dropValidator({
+      type: activeData.type as DndItemType,
+      value: activeData.value as DndItemValue,
+    });
+  }, [active, acceptTypes, dropValidator]);
 
   const dispatch = useContext(DropzoneContext)[1];
 
@@ -93,6 +111,15 @@ export default function DndSelectLabel({
 
   const values = useMemo(() => valuesRenderer(), [valuesRenderer]);
 
+  // Generate sortable item IDs for SortableContext
+  const sortableItemIds = useMemo(() => {
+    if (!sortableType || itemCount === 0) return [];
+    return Array.from(
+      { length: itemCount },
+      (_, i) => `sortable-${sortableType}-${i}`,
+    );
+  }, [sortableType, itemCount]);
+
   function renderGhostButton() {
     return (
       <AddControlLabel
@@ -105,8 +132,31 @@ export default function DndSelectLabel({
     );
   }
 
+  // Handle drop events from dnd-kit
+  useEffect(() => {
+    if (isOver && active?.data.current && canDrop) {
+      // The actual drop is handled in ExploreDndContext's onDragEnd
+      // This effect is for any side effects needed during hover
+    }
+  }, [isOver, active, canDrop]);
+
+  // Wrap values in SortableContext if sortable
+  const renderSortableValues = () => {
+    if (sortableItemIds.length > 0) {
+      return (
+        <SortableContext
+          items={sortableItemIds}
+          strategy={verticalListSortingStrategy}
+        >
+          {values}
+        </SortableContext>
+      );
+    }
+    return values;
+  };
+
   return (
-    <div ref={datasourcePanelDrop}>
+    <div ref={setNodeRef}>
       <HeaderContainer>
         <ControlHeader {...props} />
       </HeaderContainer>
@@ -117,7 +167,7 @@ export default function DndSelectLabel({
         isDragging={isDragging}
         isLoading={isLoading}
       >
-        {values}
+        {renderSortableValues()}
         {displayGhostButton && renderGhostButton()}
       </DndLabelsContainer>
     </div>

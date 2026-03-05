@@ -37,6 +37,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
+import { DndContext } from '@dnd-kit/core';
 import reducerIndex from 'spec/helpers/reducerIndex';
 import { QueryParamProvider } from 'use-query-params';
 import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
@@ -47,6 +48,7 @@ import userEvent from '@testing-library/user-event';
 type Options = Omit<RenderOptions, 'queries'> & {
   useRedux?: boolean;
   useDnd?: boolean;
+  useDndKit?: boolean; // Use @dnd-kit instead of react-dnd
   useQueryParams?: boolean;
   useRouter?: boolean;
   useTheme?: boolean;
@@ -74,6 +76,7 @@ export const defaultStore = createStore();
 export function createWrapper(options?: Options) {
   const {
     useDnd,
+    useDndKit,
     useRedux,
     useQueryParams,
     useRouter,
@@ -94,6 +97,10 @@ export function createWrapper(options?: Options) {
           {result}
         </SupersetThemeProvider>
       );
+    }
+
+    if (useDndKit) {
+      result = <DndContext>{result}</DndContext>;
     }
 
     if (useDnd) {

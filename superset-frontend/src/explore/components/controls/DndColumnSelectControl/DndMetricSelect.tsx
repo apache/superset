@@ -377,6 +377,9 @@ const DndMetricSelect = (props: any) => {
     multi ? 2 : 1,
   );
 
+  // Generate sortable type that matches MetricDefinitionValue's type
+  const sortableType = `${DndItemType.AdhocMetricOption}_${props.name}_${props.label}`;
+
   return (
     <div className="metrics-select">
       <DndSelectLabel
@@ -387,6 +390,8 @@ const DndMetricSelect = (props: any) => {
         ghostButtonText={ghostButtonText}
         displayGhostButton={multi || value.length === 0}
         onClickGhostButton={handleClickGhostButton}
+        sortableType={sortableType}
+        itemCount={value.length}
         {...props}
       />
       <AdhocMetricPopoverTrigger

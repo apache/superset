@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useRef, ReactNode } from 'react';
-
-import { useDrag, useDrop, DropTargetMonitor } from 'react-dnd';
+import { useRef, ReactNode, useMemo } from 'react';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { t } from '@apache-superset/core';
 import { styled, useTheme, css, keyframes } from '@apache-superset/core/ui';
 import { InfoTooltip, Icons, Tooltip } from '@superset-ui/core/components';
@@ -233,9 +233,12 @@ export const AddIconButton = styled.button`
   }
 `;
 
-interface DragItem {
-  dragIndex: number;
+export interface SortableItemData {
   type: string;
+  dragIndex: number;
+  onMoveLabel?: (dragIndex: number, hoverIndex: number) => void;
+  onDropLabel?: () => void;
+  value?: savedMetricType | AdhocMetric;
 }
 
 export const OptionControlLabel = ({
@@ -272,72 +275,36 @@ export const OptionControlLabel = ({
   multi?: boolean;
 }) => {
   const theme = useTheme();
-  const ref = useRef<HTMLDivElement>(null);
   const labelRef = useRef<HTMLDivElement>(null);
   const hasMetricName = savedMetric?.metric_name;
-  const [, drop] = useDrop({
-    accept: type,
-    drop() {
-      if (!multi) {
-        return;
-      }
-      onDropLabel?.();
-    },
-    hover(item: DragItem, monitor: DropTargetMonitor) {
-      if (!multi) {
-        return;
-      }
-      if (!ref.current) {
-        return;
-      }
-      const { dragIndex } = item;
-      const hoverIndex = index;
-      // Don't replace items with themselves
-      if (dragIndex === hoverIndex) {
-        return;
-      }
-      // Determine rectangle on screen
-      const hoverBoundingRect = ref.current?.getBoundingClientRect();
-      // Get vertical middle
-      const hoverMiddleY =
-        (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
-      // Determine mouse position
-      const clientOffset = monitor.getClientOffset();
-      // Get pixels to the top
-      const hoverClientY = clientOffset?.y
-        ? clientOffset?.y - hoverBoundingRect.top
-        : 0;
-      // Only perform the move when the mouse has crossed half of the items height
-      // When dragging downwards, only move when the cursor is below 50%
-      // When dragging upwards, only move when the cursor is above 50%
-      // Dragging downwards
-      if (dragIndex < hoverIndex && hoverClientY < hoverMiddleY) {
-        return;
-      }
-      // Dragging upwards
-      if (dragIndex > hoverIndex && hoverClientY > hoverMiddleY) {
-        return;
-      }
-      // Time to actually perform the action
-      onMoveLabel?.(dragIndex, hoverIndex);
-      // Note: we're mutating the monitor item here!
-      // Generally it's better to avoid mutations,
-      // but it's good here for the sake of performance
-      // to avoid expensive index searches.
-      // eslint-disable-next-line no-param-reassign
-      item.dragIndex = hoverIndex;
-    },
-  });
-  const [{ isDragging }, drag] = useDrag({
-    item: {
+
+  // Create a unique sortable ID for this item
+  const sortableId = useMemo(() => `sortable-${type}-${index}`, [type, index]);
+
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: sortableId,
+    disabled: !multi,
+    data: {
       type,
       dragIndex: index,
+      onMoveLabel,
+      onDropLabel,
       value: savedMetric?.metric_name ? savedMetric : adhocMetric,
-    },
-    collect: monitor => ({
-      isDragging: monitor.isDragging(),
-    }),
+    } as SortableItemData,
   });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
 
   const getLabelContent = () => {
     const shouldShowTooltip =
@@ -423,6 +390,14 @@ export const OptionControlLabel = ({
     </OptionControlContainer>
   );
 
-  drag(drop(ref));
-  return <DragContainer ref={ref}>{getOptionControlContent()}</DragContainer>;
+  return (
+    <DragContainer
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+    >
+      {getOptionControlContent()}
+    </DragContainer>
+  );
 };
