@@ -18,7 +18,7 @@
  */
 
 import { SupersetClient } from '@superset-ui/core';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import rison from 'rison';
 import { SelectOption } from './types';
 

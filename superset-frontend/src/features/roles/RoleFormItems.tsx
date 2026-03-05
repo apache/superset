@@ -17,7 +17,7 @@
  * under the License.
  */
 import { FormItem, Input, AsyncSelect } from '@superset-ui/core/components';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { fetchUserOptions } from '../groups/utils';
 import { fetchGroupOptions, fetchPermissionOptions } from './utils';
 

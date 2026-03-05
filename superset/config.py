@@ -2485,28 +2485,30 @@ TASK_ABORT_POLLING_DEFAULT_INTERVAL = 10
 TASK_PROGRESS_UPDATE_THROTTLE_INTERVAL = 2  # seconds
 
 # ---------------------------------------------------
-# Signal Cache Configuration
+# Distributed Coordination Configuration
 # ---------------------------------------------------
-# Shared Redis/Valkey configuration for signaling features that require
-# Redis-specific primitives (pub/sub messaging, distributed locks).
+# Shared Redis/Valkey backend for distributed coordination primitives.
 #
 # Uses Flask-Caching style configuration for consistency with other cache backends.
 # Set CACHE_TYPE to 'RedisCache' for standard Redis or 'RedisSentinelCache' for
 # Sentinel.
 #
-# These features cannot use generic cache backends because they rely on:
+# These features require Redis primitives unavailable in generic cache backends:
 # - Pub/Sub: Real-time message broadcasting between workers
 # - SET NX EX: Atomic lock acquisition with automatic expiration
+# - Streams: Persistent ordered event logs (future)
 #
 # When configured, enables:
 # - Real-time abort/completion notifications for GTF tasks (vs database polling)
 # - Redis-based distributed locking (vs KeyValueDAO-backed DistributedLock)
 #
-# Future: This cache will also be used by Global Async Queries, consolidating
-# GLOBAL_ASYNC_QUERIES_CACHE_BACKEND into this unified configuration.
+# Future: This backend will power a higher-level coordination service exposing
+# standardized interfaces for distributed locks, pub/sub, and streams — consolidating
+# all advanced Redis primitives under a single connection. Global Async Queries
+# (GLOBAL_ASYNC_QUERIES_CACHE_BACKEND) will also be migrated to this configuration.
 #
 # Example with standard Redis:
-# SIGNAL_CACHE_CONFIG: CacheConfig = {
+# DISTRIBUTED_COORDINATION_CONFIG: CacheConfig = {
 #     "CACHE_TYPE": "RedisCache",
 #     "CACHE_REDIS_HOST": "localhost",
 #     "CACHE_REDIS_PORT": 6379,
@@ -2515,7 +2517,7 @@ TASK_PROGRESS_UPDATE_THROTTLE_INTERVAL = 2  # seconds
 # }
 #
 # Example with Redis Sentinel:
-# SIGNAL_CACHE_CONFIG: CacheConfig = {
+# DISTRIBUTED_COORDINATION_CONFIG: CacheConfig = {
 #     "CACHE_TYPE": "RedisSentinelCache",
 #     "CACHE_REDIS_SENTINELS": [("sentinel1", 26379), ("sentinel2", 26379)],
 #     "CACHE_REDIS_SENTINEL_MASTER": "mymaster",
@@ -2523,7 +2525,7 @@ TASK_PROGRESS_UPDATE_THROTTLE_INTERVAL = 2  # seconds
 #     "CACHE_REDIS_DB": 0,
 #     "CACHE_REDIS_PASSWORD": "",
 # }
-SIGNAL_CACHE_CONFIG: CacheConfig | None = None
+DISTRIBUTED_COORDINATION_CONFIG: CacheConfig | None = None
 
 # Default lock TTL (time-to-live) in seconds for distributed locks.
 # Can be overridden per-call via the `ttl_seconds` parameter.
