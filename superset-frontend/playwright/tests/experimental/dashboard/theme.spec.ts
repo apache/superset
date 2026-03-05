@@ -17,11 +17,16 @@
  * under the License.
  */
 
-import { test, expect } from '../../../helpers/fixtures/testAssets';
+import { test, expect } from '@playwright/test';
 import { AuthPage } from '../../../pages/AuthPage';
 import { DashboardPage } from '../../../pages/DashboardPage';
-import { apiPostTheme } from '../../../helpers/api/theme';
-import { apiPostDashboard } from '../../../helpers/api/dashboard';
+import { apiPostTheme, apiDeleteTheme } from '../../../helpers/api/theme';
+import {
+  apiPostDashboard,
+  apiPutDashboard,
+  apiDeleteDashboard,
+} from '../../../helpers/api/dashboard';
+import { apiGet } from '../../../helpers/api/requests';
 import { TIMEOUT } from '../../../utils/constants';
 
 /**
@@ -40,50 +45,68 @@ import { TIMEOUT } from '../../../utils/constants';
 const NONADMIN_USERNAME = process.env.PLAYWRIGHT_NONADMIN_USERNAME || 'gamma';
 const NONADMIN_PASSWORD = process.env.PLAYWRIGHT_NONADMIN_PASSWORD || 'general';
 
+// Clear storageState so the default page fixture starts unauthenticated.
+// Admin API calls use an explicit admin context with saved auth instead.
+test.use({ storageState: { cookies: [], origins: [] } });
+
 test('non-admin user can view a themed dashboard without 403 or infinite spinner', async ({
   page,
   browser,
-  testAssets,
 }) => {
   test.setTimeout(60_000);
 
-  // --- ADMIN SETUP (page is admin-authenticated via storageState) ---
-
-  // 1. Create a theme
-  const themeRes = await apiPostTheme(page, {
-    theme_name: `e2e_theme_test_${Date.now()}`,
-    json_data: '{}',
-  });
-  expect(themeRes.ok()).toBe(true);
-  const themeBody = await themeRes.json();
-  const themeId = themeBody.id;
-  expect(themeId).toBeTruthy();
-  testAssets.trackTheme(themeId);
-
-  // 2. Create a published dashboard with the theme assigned
-  const dashRes = await apiPostDashboard(page, {
-    dashboard_title: `E2E Theme Test ${Date.now()}`,
-    published: true,
-    theme_id: themeId,
-  });
-  expect(dashRes.ok()).toBe(true);
-  const dashBody = await dashRes.json();
-  const dashboardId = dashBody.id;
-  expect(dashboardId).toBeTruthy();
-  testAssets.trackDashboard(dashboardId);
-
-  // --- NON-ADMIN USER PHASE (separate browser context, no cached auth) ---
-
-  const userContext = await browser.newContext({
+  // --- ADMIN SETUP (explicit admin context with saved auth) ---
+  const adminContext = await browser.newContext({
     baseURL: test.info().project.use.baseURL,
+    storageState: 'playwright/.auth/user.json',
   });
-  const userPage = await userContext.newPage();
+  const adminPage = await adminContext.newPage();
+
+  let themeId: number | undefined;
+  let dashboardId: number | undefined;
 
   try {
-    // 3. Instrument network: track any /api/v1/theme/ requests and 403 responses
+    // 1. Create a theme
+    const themeRes = await apiPostTheme(adminPage, {
+      theme_name: `e2e_theme_test_${Date.now()}`,
+      json_data: '{}',
+    });
+    expect(themeRes.ok()).toBe(true);
+    const themeBody = await themeRes.json();
+    themeId = themeBody.id;
+    expect(themeId).toBeTruthy();
+
+    // 2. Create a published dashboard with the theme assigned
+    const dashRes = await apiPostDashboard(adminPage, {
+      dashboard_title: `E2E Theme Test ${Date.now()}`,
+      published: true,
+      theme_id: themeId,
+    });
+    expect(dashRes.ok()).toBe(true);
+    const dashBody = await dashRes.json();
+    dashboardId = dashBody.id;
+    expect(dashboardId).toBeTruthy();
+
+    // 3. Grant non-admin user access by adding them as a dashboard owner
+    const usersRes = await apiGet(
+      adminPage,
+      `api/v1/dashboard/related/owners?q=(filter:'${NONADMIN_USERNAME}')`,
+    );
+    expect(usersRes.ok()).toBe(true);
+    const usersBody = await usersRes.json();
+    const gammaUserId = usersBody.result?.[0]?.value;
+    expect(gammaUserId).toBeTruthy();
+    const putRes = await apiPutDashboard(adminPage, dashboardId!, {
+      owners: [gammaUserId],
+    });
+    expect(putRes.ok()).toBe(true);
+
+    // --- NON-ADMIN USER PHASE (page has no cached auth via test.use) ---
+
+    // 4. Instrument network: track any /api/v1/theme/ requests and 403 responses
     const themeApiRequests: string[] = [];
     const forbiddenResponses: string[] = [];
-    userPage.on('response', response => {
+    page.on('response', response => {
       const url = response.url();
       if (url.includes('/api/v1/theme/')) {
         themeApiRequests.push(url);
@@ -93,26 +116,37 @@ test('non-admin user can view a themed dashboard without 403 or infinite spinner
       }
     });
 
-    // 4. Login as non-admin user
-    const authPage = new AuthPage(userPage);
+    // 5. Login as non-admin user
+    const authPage = new AuthPage(page);
     await authPage.goto();
     await authPage.waitForLoginForm();
     await authPage.loginWithCredentials(NONADMIN_USERNAME, NONADMIN_PASSWORD);
     await authPage.waitForLoginSuccess();
 
-    // 5. Navigate to the themed dashboard
-    const dashboardPage = new DashboardPage(userPage);
-    await dashboardPage.gotoById(dashboardId);
+    // 6. Navigate to the themed dashboard
+    const dashboardPage = new DashboardPage(page);
+    await dashboardPage.gotoById(dashboardId!);
 
-    // 6. Assert dashboard fully loads (not stuck on infinite spinner)
+    // 7. Assert dashboard fully loads (not stuck on infinite spinner)
     await dashboardPage.waitForLoad({ timeout: TIMEOUT.PAGE_LOAD });
     await dashboardPage.waitForChartsToLoad();
 
-    // 7. Assert no /api/v1/theme/ requests were made (theme data comes from dashboard response)
+    // 8. Assert no /api/v1/theme/ requests were made (theme data comes from dashboard response)
     expect(themeApiRequests).toHaveLength(0);
     // Assert no 403 responses on /api/v1/theme/ (scoped to avoid login/unrelated 403 noise)
     expect(forbiddenResponses).toHaveLength(0);
   } finally {
-    await userContext.close();
+    // Cleanup: delete test resources using admin context
+    if (dashboardId) {
+      await apiDeleteDashboard(adminPage, dashboardId, {
+        failOnStatusCode: false,
+      }).catch(() => {});
+    }
+    if (themeId) {
+      await apiDeleteTheme(adminPage, themeId, {
+        failOnStatusCode: false,
+      }).catch(() => {});
+    }
+    await adminContext.close();
   }
 });

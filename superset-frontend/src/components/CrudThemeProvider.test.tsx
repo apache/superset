@@ -257,6 +257,34 @@ test('injects font URLs as CSS @import rules', () => {
   expect(fontStyle?.textContent).toContain(`@import url("${fontUrl}")`);
 });
 
+test('does not inject fonts when Theme.fromConfig throws even if fontUrls are present', () => {
+  (Theme.fromConfig as jest.Mock).mockImplementation(() => {
+    throw new Error('Invalid theme config');
+  });
+  jest.spyOn(logging, 'warn').mockImplementation();
+  const themeConfig = {
+    token: {
+      colorPrimary: '#ff0000',
+      fontUrls: ['https://fonts.example.com/custom.css'],
+    },
+  };
+  render(
+    <CrudThemeProvider
+      theme={{
+        id: 1,
+        theme_name: 'Bad Theme With Fonts',
+        json_data: JSON.stringify(themeConfig),
+      }}
+    >
+      <div>Dashboard Content</div>
+    </CrudThemeProvider>,
+  );
+
+  const fontStyle = document.querySelector('style[data-superset-fonts]');
+  expect(fontStyle).toBeNull();
+  expect(logging.warn).toHaveBeenCalled();
+});
+
 test('does not inject font style element when no fontUrls in config', () => {
   const themeConfig = { token: { colorPrimary: '#ff0000' } };
   render(

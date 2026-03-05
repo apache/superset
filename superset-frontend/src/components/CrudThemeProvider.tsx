@@ -41,9 +41,9 @@ export default function CrudThemeProvider({
   children,
   theme,
 }: CrudThemeProviderProps) {
-  const dashboardTheme = useMemo(() => {
+  const { dashboardTheme, fontUrls } = useMemo(() => {
     if (!theme?.json_data) {
-      return null;
+      return { dashboardTheme: null, fontUrls: undefined };
     }
     try {
       const themeConfig = JSON.parse(theme.json_data);
@@ -53,36 +53,34 @@ export default function CrudThemeProvider({
         common: { theme: bootstrapTheme },
       } = getBootstrapData();
       const baseTheme = isDark ? bootstrapTheme.dark : bootstrapTheme.default;
-      return Theme.fromConfig(normalizedConfig, baseTheme || undefined);
+      const createdTheme = Theme.fromConfig(
+        normalizedConfig,
+        baseTheme || undefined,
+      );
+      const urls = themeConfig?.token?.fontUrls as string[] | undefined;
+      return { dashboardTheme: createdTheme, fontUrls: urls };
     } catch (error) {
       logging.warn('Failed to load dashboard theme:', error);
-      return null;
+      return { dashboardTheme: null, fontUrls: undefined };
     }
   }, [theme?.json_data]);
 
   useEffect(() => {
-    if (!theme?.json_data) return undefined;
-    try {
-      const themeConfig = JSON.parse(theme.json_data);
-      const fontUrls = themeConfig?.token?.fontUrls as string[] | undefined;
-      if (!fontUrls?.length) return undefined;
+    if (!dashboardTheme || !fontUrls?.length) return undefined;
 
-      // JSON.stringify provides safe escaping to prevent CSS injection
-      const css = fontUrls
-        .map((url: string) => `@import url(${JSON.stringify(url)});`)
-        .join('\n');
-      const style = document.createElement('style');
-      style.setAttribute('data-superset-fonts', 'true');
-      style.textContent = css;
-      document.head.appendChild(style);
+    // JSON.stringify provides safe escaping to prevent CSS injection
+    const css = fontUrls
+      .map((url: string) => `@import url(${JSON.stringify(url)});`)
+      .join('\n');
+    const style = document.createElement('style');
+    style.setAttribute('data-superset-fonts', 'true');
+    style.textContent = css;
+    document.head.appendChild(style);
 
-      return () => {
-        style.remove();
-      };
-    } catch {
-      return undefined;
-    }
-  }, [theme?.json_data]);
+    return () => {
+      style.remove();
+    };
+  }, [dashboardTheme, fontUrls]);
 
   if (!dashboardTheme) {
     return <>{children}</>;
