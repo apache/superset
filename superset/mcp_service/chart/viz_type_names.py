@@ -16,15 +16,23 @@
 # under the License.
 
 """
-Mapping of internal viz_type identifiers to user-friendly display names.
+User-friendly display names for chart viz_type identifiers.
 
-This module provides human-readable chart type names for MCP responses,
-preventing internal implementation details from leaking to end users.
-The display names match those shown in the Superset UI.
+Legacy chart names are read from ``BaseViz.verbose_name`` in
+``superset/viz.py``, avoiding a duplicate hardcoded list.
+Modern frontend-only chart plugins define their names in TypeScript
+``ChartMetadata.name``, which is not accessible from the Python backend,
+so a small overrides dict is maintained here for those.
 """
 
-# Internal viz_type → user-facing display name
-VIZ_TYPE_DISPLAY_NAMES: dict[str, str] = {
+import logging
+
+logger = logging.getLogger(__name__)
+
+# Display names for modern chart plugins that exist only in the frontend
+# (TypeScript ChartMetadata.name) and have no BaseViz subclass in viz.py.
+# These take precedence over viz.py verbose_name when both exist.
+_FRONTEND_ONLY_NAMES: dict[str, str] = {
     # ECharts time-series variants
     "echarts_timeseries": "Generic Chart",
     "echarts_timeseries_line": "Line Chart",
@@ -58,52 +66,81 @@ VIZ_TYPE_DISPLAY_NAMES: dict[str, str] = {
     "table": "Table",
     "ag-grid-table": "Table V2",
     "pivot_table_v2": "Pivot Table",
-    # Word Cloud / Handlebars / Cartodiagram
+    # Other frontend-only plugins
     "word_cloud": "Word Cloud",
     "handlebars": "Handlebars",
     "cartodiagram": "Cartodiagram",
-    # deck.gl
-    "deck_grid": "deck.gl Grid",
-    "deck_scatter": "deck.gl Scatterplot",
-    "deck_arc": "deck.gl Arc",
-    "deck_hexbin": "deck.gl 3D Hexagon",
-    "deck_screengrid": "deck.gl Screen Grid",
-    "deck_path": "deck.gl Path",
-    "deck_heatmap": "deck.gl Heatmap",
-    "deck_geojson": "deck.gl GeoJSON",
-    "deck_polygon": "deck.gl Polygon",
-    "deck_contour": "deck.gl Contour",
-    "deck_multi": "deck.gl Multiple Layers",
-    # Legacy NVD3
-    "bubble": "Bubble Chart",
-    "bullet": "Bullet Chart",
-    "compare": "Time-series Percent Change",
-    "time_pivot": "Time-series Period Pivot",
-    # Legacy
-    "cal_heatmap": "Calendar Heatmap",
-    "chord": "Chord Diagram",
-    "country_map": "Country Map",
-    "horizon": "Horizon Chart",
-    "mapbox": "MapBox",
-    "paired_ttest": "Paired t-test Table",
-    "para": "Parallel Coordinates",
-    "partition": "Partition Chart",
-    "rose": "Nightingale Rose Chart",
-    "world_map": "World Map",
-    "time_table": "Time-series Table",
 }
+
+# Lazy cache for the merged display-names dict (legacy + frontend-only)
+_display_names_cache: dict[str, str] | None = None
+
+
+def _get_legacy_viz_names() -> dict[str, str]:
+    """Read display names from BaseViz subclasses in ``superset/viz.py``.
+
+    Iterates all ``BaseViz`` subclasses and collects their
+    ``viz_type`` → ``verbose_name`` mapping.  This runs lazily at
+    first call so the heavy ``viz.py`` import only happens at runtime
+    inside a Flask app context.
+    """
+    try:
+        from superset.viz import BaseViz
+
+        def _collect_subclasses(cls: type) -> set[type]:
+            return set(cls.__subclasses__()).union(
+                sc for c in cls.__subclasses__() for sc in _collect_subclasses(c)
+            )
+
+        return {
+            cls.viz_type: str(cls.verbose_name)  # type: ignore[attr-defined]
+            for cls in _collect_subclasses(BaseViz)
+            if cls.viz_type and cls.verbose_name  # type: ignore[attr-defined]
+        }
+    except (ImportError, RuntimeError):
+        logger.debug("Could not load legacy viz names from viz.py")
+        return {}
+
+
+def _build_display_names() -> dict[str, str]:
+    """Build the merged display-names dict.
+
+    Legacy ``verbose_name`` values from ``viz.py`` form the base layer.
+    Frontend-only overrides are applied on top so that modern chart
+    plugins (whose names exist only in TypeScript ``ChartMetadata``)
+    get correct display names.
+    """
+    names = _get_legacy_viz_names()
+    # Frontend-only names take precedence
+    names.update(_FRONTEND_ONLY_NAMES)
+    return names
+
+
+# Backward-compatible public alias used by tests.
+# Contains only the frontend-only overrides; the full merged dict
+# is built lazily by get_viz_type_display_name().
+VIZ_TYPE_DISPLAY_NAMES = _FRONTEND_ONLY_NAMES
 
 
 def get_viz_type_display_name(viz_type: str | None) -> str | None:
-    """Return the user-friendly display name for a viz_type.
+    """Return the user-friendly display name for a *viz_type*.
 
-    Falls back to a title-cased transformation of the raw identifier
-    when no explicit mapping exists, so new chart plugins still get
-    a reasonable label without a code change.
+    Resolution order:
+
+    1. Frontend-only overrides (modern plugins with no Python metadata)
+    2. ``BaseViz.verbose_name`` from ``superset/viz.py`` (legacy charts)
+    3. Title-cased transformation of the raw identifier (fallback)
     """
+    global _display_names_cache  # noqa: PLW0603
+
     if not viz_type:
         return None
-    if viz_type in VIZ_TYPE_DISPLAY_NAMES:
-        return VIZ_TYPE_DISPLAY_NAMES[viz_type]
+
+    if _display_names_cache is None:
+        _display_names_cache = _build_display_names()
+
+    if viz_type in _display_names_cache:
+        return _display_names_cache[viz_type]
+
     # Fallback: replace underscores/hyphens with spaces and title-case
     return viz_type.replace("_", " ").replace("-", " ").title()
