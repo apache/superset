@@ -137,7 +137,6 @@ export const fetchPermissionOptions = async (
   addDangerToast: (msg: string) => void,
 ) => {
   if (!filterValue) {
-    permissionSearchCache.clear();
     try {
       return await fetchPermissionPageRaw({ page, page_size: pageSize });
     } catch {
@@ -147,7 +146,7 @@ export const fetchPermissionOptions = async (
   }
 
   try {
-    const cacheKey = filterValue;
+    const cacheKey = filterValue.trim().toLowerCase();
     let cached = permissionSearchCache.get(cacheKey);
     if (!cached) {
       const [byViewMenu, byPermission] = await Promise.all([

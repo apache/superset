@@ -246,7 +246,12 @@ function RoleListEditModal({
         rolePermissions: allPermissions,
       });
     }
-  }, [loadingRolePermissions, rolePermissions, stablePermissionIds, addDangerToast]);
+  }, [
+    loadingRolePermissions,
+    rolePermissions,
+    stablePermissionIds,
+    addDangerToast,
+  ]);
 
   useEffect(() => {
     if (!loadingRoleGroups && formRef.current && stableGroupIds.length > 0) {

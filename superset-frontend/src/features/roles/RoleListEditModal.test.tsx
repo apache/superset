@@ -325,6 +325,100 @@ describe('RoleListEditModal', () => {
     });
   });
 
+  test('does not leak state when switching roles', async () => {
+    const mockGet = SupersetClient.get as jest.Mock;
+
+    // Role A: returns permission 10 with label
+    const roleA = {
+      id: 1,
+      name: 'RoleA',
+      permission_ids: [10],
+      user_ids: [],
+      group_ids: [],
+    };
+    // Role B: returns permission 30 with label
+    const roleB = {
+      id: 2,
+      name: 'RoleB',
+      permission_ids: [30],
+      user_ids: [],
+      group_ids: [],
+    };
+
+    mockGet.mockImplementation(({ endpoint }) => {
+      if (endpoint?.includes('/api/v1/security/permissions-resources/')) {
+        const query = rison.decode(endpoint.split('?q=')[1]) as Record<
+          string,
+          unknown
+        >;
+        const filters = query.filters as Array<{
+          col: string;
+          opr: string;
+          value: number[];
+        }>;
+        const ids = filters?.[0]?.value || [];
+        const result = ids.map((id: number) => ({
+          id,
+          permission: { name: `perm_${id}` },
+          view_menu: { name: `view_${id}` },
+        }));
+        return Promise.resolve({
+          json: { count: result.length, result },
+        });
+      }
+      return Promise.resolve({ json: { count: 0, result: [] } });
+    });
+
+    const { rerender, unmount } = render(
+      <RoleListEditModal
+        role={roleA}
+        show
+        onHide={jest.fn()}
+        onSave={jest.fn()}
+      />,
+    );
+
+    await waitFor(() => {
+      const permCall = mockGet.mock.calls.find(([c]) =>
+        c.endpoint.includes('/api/v1/security/permissions-resources/'),
+      );
+      expect(permCall).toBeTruthy();
+    });
+
+    mockGet.mockClear();
+    mockToasts.addDangerToast.mockClear();
+
+    // Switch to Role B
+    rerender(
+      <RoleListEditModal
+        role={roleB}
+        show
+        onHide={jest.fn()}
+        onSave={jest.fn()}
+      />,
+    );
+
+    await waitFor(() => {
+      const permCalls = mockGet.mock.calls.filter(([c]) =>
+        c.endpoint.includes('/api/v1/security/permissions-resources/'),
+      );
+      expect(permCalls.length).toBeGreaterThan(0);
+      // Should request role B's IDs, not role A's
+      const query = rison.decode(
+        permCalls[0][0].endpoint.split('?q=')[1],
+      ) as Record<string, unknown>;
+      const filters = query.filters as Array<{
+        col: string;
+        opr: string;
+        value: number[];
+      }>;
+      expect(filters[0].value).toEqual(roleB.permission_ids);
+    });
+
+    unmount();
+    mockGet.mockReset();
+  });
+
   test('fetches permissions and groups by id for hydration', async () => {
     const mockGet = SupersetClient.get as jest.Mock;
     mockGet.mockResolvedValue({
