@@ -41,7 +41,7 @@ import {
   ChartCustomization,
   ChartCustomizationDivider,
 } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import { Constants } from '@superset-ui/core/components';
 import { useHistory } from 'react-router-dom';
 import { updateDataMask, removeDataMask } from 'src/dataMask/actions';

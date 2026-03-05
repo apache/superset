@@ -30,7 +30,7 @@ import {
   ChartCustomization,
   ChartCustomizationDivider,
 } from '@superset-ui/core';
-import { logging } from '@apache-superset/core';
+import { logging } from '@apache-superset/core/utils';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import {
   ChartCustomizationsForm,

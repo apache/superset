@@ -17,8 +17,8 @@
  * under the License.
  */
 import { useState, useEffect } from 'react';
-import { t } from '@apache-superset/core';
-import { SupersetTheme, css } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { SupersetTheme, css } from '@apache-superset/core/theme';
 import {
   Input,
   Button,

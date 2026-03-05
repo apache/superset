@@ -18,7 +18,7 @@
  */
 import { FunctionComponent, useState, useEffect, useCallback } from 'react';
 import { useSelector } from 'react-redux';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   SupersetClient,
   getClientErrorObject,
@@ -26,7 +26,8 @@ import {
   isFeatureEnabled,
   FeatureFlag,
 } from '@superset-ui/core';
-import { styled, useTheme, css, Alert } from '@apache-superset/core/ui';
+import { Alert } from '@apache-superset/core/components';
+import { styled, useTheme, css } from '@apache-superset/core/theme';
 
 import {
   Icons,

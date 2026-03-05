@@ -25,8 +25,11 @@ import { Global } from '@emotion/react';
 import { css } from '@apache-superset/core/ui';
 import { t } from '@apache-superset/core';
 import { makeApi } from '@superset-ui/core';
-import { logging } from '@apache-superset/core';
-import { type SupersetThemeConfig, ThemeMode } from '@apache-superset/core/ui';
+import { logging } from '@apache-superset/core/utils';
+import {
+  type SupersetThemeConfig,
+  ThemeMode,
+} from '@apache-superset/core/theme';
 import Switchboard from '@superset-ui/switchboard';
 import getBootstrapData, { applicationRoot } from 'src/utils/getBootstrapData';
 import setupClient from 'src/setup/setupClient';

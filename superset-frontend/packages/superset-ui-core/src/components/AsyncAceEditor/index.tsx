@@ -32,7 +32,7 @@ import {
   AsyncEsmComponent,
   PlaceholderProps,
 } from '@superset-ui/core/components/AsyncEsmComponent';
-import { useTheme, css } from '@apache-superset/core/ui';
+import { useTheme, css } from '@apache-superset/core/theme';
 import { Global } from '@emotion/react';
 
 export { getTooltipHTML } from './Tooltip';
@@ -500,5 +500,11 @@ export const JsonEditor = AsyncAceEditor(['mode/json', 'theme/github']);
 export const ConfigEditor = AsyncAceEditor([
   'mode/json',
   'mode/yaml',
+  'theme/github',
+]);
+
+export const JSEditor = AsyncAceEditor([
+  'mode/javascript',
+  'mode/json',
   'theme/github',
 ]);

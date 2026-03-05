@@ -47,8 +47,8 @@ export default function buildQuery(formData: QueryFormData) {
         ...(timeColumn.length ? {} : { is_timeseries: true }),
         post_processing: [
           pivotOperator(formData, baseQueryObject),
-          rollingWindowOperator(formData, baseQueryObject),
           resampleOperator(formData, baseQueryObject),
+          rollingWindowOperator(formData, baseQueryObject),
           flattenOperator(formData, baseQueryObject),
         ].filter(Boolean),
       },
