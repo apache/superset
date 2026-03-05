@@ -59,6 +59,7 @@ from superset.extensions import (
     stats_logger_manager,
     talisman,
 )
+from superset.extensions.context import extension_context
 from superset.security import SupersetSecurityManager
 from superset.sql.parse import SQLGLOT_DIALECTS
 from superset.superset_typing import FlaskResponse
@@ -587,13 +588,14 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
             backend = extension.manifest.backend
 
-            if backend and (entrypoints := backend.entryPoints):
-                for entrypoint in entrypoints:
-                    try:
-                        eager_import(entrypoint)
-                    except Exception as ex:  # pylint: disable=broad-except  # noqa: S110
-                        # Surface exceptions during initialization of extensions
-                        print(ex)
+            if backend and backend.entrypoint:
+                try:
+                    with extension_context(extension.manifest):
+                        eager_import(backend.entrypoint)
+
+                except Exception as ex:  # pylint: disable=broad-except  # noqa: S110
+                    # Surface exceptions during initialization of extensions
+                    print(ex)
 
     def init_app_in_ctx(self) -> None:
         """

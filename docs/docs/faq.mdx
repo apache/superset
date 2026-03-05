@@ -107,11 +107,11 @@ multiple tables as long as your database account has access to the tables.
 ## How do I create my own visualization?
 
 We recommend reading the instructions in
-[Creating Visualization Plugins](/docs/contributing/howtos#creating-visualization-plugins).
+[Creating Visualization Plugins](/developer-docs/contributing/howtos#creating-visualization-plugins).
 
 ## Can I upload and visualize CSV data?
 
-Absolutely! Read the instructions [here](/docs/using-superset/exploring-data) to learn
+Absolutely! Read the instructions [here](/user-docs/using-superset/exploring-data) to learn
 how to enable and use CSV upload.
 
 ## Why are my queries timing out?
@@ -198,7 +198,7 @@ SQLALCHEMY_DATABASE_URI = 'sqlite:////new/location/superset.db?check_same_thread
 ```
 
 You can read more about customizing Superset using the configuration file
-[here](/docs/configuration/configuring-superset).
+[here](/admin-docs/configuration/configuring-superset).
 
 ## What if the table schema changed?
 
@@ -213,7 +213,7 @@ table afterwards to configure the Columns tab, check the appropriate boxes and s
 
 To clarify, the database backend is an OLTP database used by Superset to store its internal
 information like your list of users and dashboard definitions. While Superset supports a
-[variety of databases as data _sources_](/docs/databases#installing-database-drivers),
+[variety of databases as data _sources_](/user-docs/databases/#installing-database-drivers),
 only a few database engines are supported for use as the OLTP backend / metadata store.
 
 Superset is tested using MySQL, PostgreSQL, and SQLite backends. It’s recommended you install
@@ -246,7 +246,7 @@ second etc). Example:
 
 ## Does Superset work with [insert database engine here]?
 
-The [Connecting to Databases section](/docs/databases) provides the best
+The [Connecting to Databases section](/user-docs/databases/) provides the best
 overview for supported databases. Database engines not listed on that page may work too. We rely on
 the community to contribute to this knowledge base.
 
@@ -282,7 +282,7 @@ are typical in basic SQL:
 ## Does Superset offer a public API?
 
 Yes, a public REST API, and the surface of that API formal is expanding steadily. You can read more about this API and
-interact with it using Swagger [here](/docs/api).
+interact with it using Swagger [here](/developer-docs/api).
 
 Some of the
 original vision for the collection of endpoints under **/api/v1** was originally specified in
@@ -322,7 +322,7 @@ Superset uses [Scarf](https://about.scarf.sh/) by default to collect basic telem
 We use the [Scarf Gateway](https://docs.scarf.sh/gateway/) to sit in front of container registries, the [scarf-js](https://about.scarf.sh/package-sdks) package to track `npm` installations, and a Scarf pixel to gather anonymous analytics on Superset page views.
 Scarf purges PII and provides aggregated statistics. Superset users can easily opt out of analytics in various ways documented [here](https://docs.scarf.sh/gateway/#do-not-track) and [here](https://docs.scarf.sh/package-analytics/#as-a-user-of-a-package-using-scarf-js-how-can-i-opt-out-of-analytics).
 Superset maintainers can also opt out of telemetry data collection by setting the `SCARF_ANALYTICS` environment variable to `false` in the Superset container (or anywhere Superset/webpack are run).
-Additional opt-out instructions for Docker users are available on the [Docker Installation](/docs/installation/docker-compose) page.
+Additional opt-out instructions for Docker users are available on the [Docker Installation](/admin-docs/installation/docker-compose) page.
 
 ## Does Superset have an archive panel or trash bin from which a user can recover deleted assets?
 

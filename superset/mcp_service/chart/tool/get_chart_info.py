@@ -23,7 +23,7 @@ import logging
 
 from fastmcp import Context
 from sqlalchemy.orm import subqueryload
-from superset_core.mcp import tool
+from superset_core.api.mcp import tool
 
 from superset.commands.exceptions import CommandException
 from superset.commands.explore.form_data.parameters import CommandParameters

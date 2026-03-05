@@ -56,6 +56,7 @@ const findMatches = (undefinedParameters: string[], templateKeys: string[]) => {
 export function ParameterErrorMessage({
   error,
   subtitle,
+  closable,
 }: ErrorMessageComponentProps<ParameterErrorExtra>) {
   const { extra = { issue_codes: [] }, level, message } = error;
 
@@ -118,6 +119,7 @@ export function ParameterErrorMessage({
       message={message}
       description={subtitle}
       descriptionDetails={body}
+      closable={closable}
     />
   );
 }

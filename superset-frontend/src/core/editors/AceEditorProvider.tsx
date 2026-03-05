@@ -42,6 +42,7 @@ import {
   MarkdownEditor,
   CssEditor,
   ConfigEditor,
+  JSEditor,
   type AceCompleterKeyword,
 } from '@superset-ui/core/components';
 import { Disposable } from '../models';
@@ -70,6 +71,8 @@ const getEditorComponent = (language: string) => {
       return CssEditor;
     case 'yaml':
       return ConfigEditor;
+    case 'javascript':
+      return JSEditor;
     default:
       console.warn(
         `Unknown editor language "${language}", falling back to SQL editor`,
@@ -178,6 +181,10 @@ const createAceEditorHandle = (
     return new Disposable(() => {
       completionProviders.current.delete(provider.id);
     });
+  },
+
+  resize: () => {
+    aceEditorRef.current?.editor?.resize();
   },
 });
 

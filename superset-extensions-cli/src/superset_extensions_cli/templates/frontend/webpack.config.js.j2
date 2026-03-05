@@ -1,6 +1,7 @@
 const path = require("path");
 const { ModuleFederationPlugin } = require("webpack").container;
 const packageConfig = require("./package");
+const extensionConfig = require("../extension.json");
 
 module.exports = (env, argv) => {
   const isProd = argv.mode === "production";
@@ -19,7 +20,7 @@ module.exports = (env, argv) => {
       filename: isProd ? undefined : "[name].[contenthash].js",
       chunkFilename: "[name].[contenthash].js",
       path: path.resolve(__dirname, "dist"),
-      publicPath: `/api/v1/extensions/{{ publisher }}/{{ name }}/`,
+      publicPath: `/api/v1/extensions/${extensionConfig.publisher}/${extensionConfig.name}/`,
     },
     resolve: {
       extensions: [".ts", ".tsx", ".js", ".jsx"],

@@ -18,80 +18,18 @@
  */
 
 /**
- * @fileoverview Contributions API for Superset extension UI integration.
+ * @fileoverview Manifest schema for Superset extension contributions.
  *
- * This module defines the interfaces and types for extension contributions to the
- * Superset user interface. Extensions use these contribution types to register
- * commands, menu items, and custom views that integrate seamlessly with the
- * Superset platform. The contribution system allows extensions to extend the
- * application's functionality while maintaining a consistent user experience.
+ * This module defines the aggregate interfaces used by the extension.json
+ * manifest and the `superset-extensions` build command. Individual metadata
+ * types are defined in their respective namespace modules (commands, views,
+ * menus, editors) and re-exported here for the manifest schema.
  */
 
-/**
- * Describes a command that can be contributed to the application.
- */
-export interface CommandContribution {
-  /** The unique identifier for the command. */
-  command: string;
-  /** The icon associated with the command. */
-  icon: string;
-  /** The display title of the command. */
-  title: string;
-  /** A description of what the command does. */
-  description: string;
-}
-
-/**
- * Represents a menu item that links a view to a command.
- */
-export interface MenuItem {
-  /** The identifier of the view associated with this menu item. */
-  view: string;
-  /** The command to execute when this menu item is selected. */
-  command: string;
-}
-
-/**
- * Defines the structure of menu contributions, allowing for primary, secondary, and context menus.
- */
-export interface MenuContribution {
-  /** Items to appear in the primary menu. */
-  primary?: MenuItem[];
-  /** Items to appear in the secondary menu. */
-  secondary?: MenuItem[];
-  /** Items to appear in the context menu. */
-  context?: MenuItem[];
-}
-
-/**
- * Represents a contributed view in the application.
- */
-export interface ViewContribution {
-  /** The unique identifier for the view. */
-  id: string;
-  /** The display name of the view. */
-  name: string;
-}
-
-/**
- * Describes an editor that can be contributed to the application.
- * Extensions declare editor contributions in their extension.json manifest.
- */
-export interface EditorContribution {
-  /** Unique identifier for the editor (e.g., "acme.monaco-sql") */
-  id: string;
-  /** Display name of the editor */
-  name: string;
-  /** Languages this editor supports */
-  languages: EditorLanguage[];
-  /** Optional description of the editor */
-  description?: string;
-}
-
-/**
- * Supported editor languages.
- */
-export type EditorLanguage = 'sql' | 'json' | 'yaml' | 'markdown' | 'css';
+import { Command } from './commands';
+import { View } from './views';
+import { Menu } from './menus';
+import { Editor } from './editors';
 
 /**
  * Valid locations within SQL Lab.
@@ -116,7 +54,7 @@ export type SqlLabLocation =
  * }
  */
 export interface ViewContributions {
-  sqllab?: Partial<Record<SqlLabLocation, ViewContribution[]>>;
+  sqllab?: Partial<Record<SqlLabLocation, View[]>>;
 }
 
 /**
@@ -129,19 +67,19 @@ export interface ViewContributions {
  * }
  */
 export interface MenuContributions {
-  sqllab?: Partial<Record<SqlLabLocation, MenuContribution>>;
+  sqllab?: Partial<Record<SqlLabLocation, Menu>>;
 }
 
 /**
  * Aggregates all contributions (commands, menus, views, and editors) provided by an extension or module.
  */
 export interface Contributions {
-  /** List of command contributions. */
-  commands: CommandContribution[];
+  /** List of commands. */
+  commands: Command[];
   /** Nested mapping of menu contributions by scope and location. */
   menus: MenuContributions;
   /** Nested mapping of view contributions by scope and location. */
   views: ViewContributions;
-  /** List of editor contributions. */
-  editors?: EditorContribution[];
+  /** List of editors. */
+  editors?: Editor[];
 }

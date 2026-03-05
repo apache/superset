@@ -311,6 +311,8 @@ export const useExploreAdditionalActionsMenu = (
       actualRowCount = queriesResponse[1].data[0].rowcount;
     } else if (queriesResponse && queriesResponse[0]?.sql_rowcount != null) {
       actualRowCount = queriesResponse[0].sql_rowcount;
+    } else if (queriesResponse && queriesResponse[0]?.rowcount != null) {
+      actualRowCount = queriesResponse[0].rowcount;
     } else {
       actualRowCount = latestQueryFormData?.row_limit;
     }
