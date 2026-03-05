@@ -130,7 +130,7 @@ export default class AdhocMetricEditPopover extends PureComponent<
   // "Saved" is a default tab unless there are no saved metrics for dataset
   defaultActiveTabKey = this.getDefaultTab();
 
-  aceEditorRef: RefObject<editors.EditorHandle>;
+  editorRef: RefObject<editors.EditorHandle>;
 
   dragStartX = 0;
 
@@ -152,8 +152,8 @@ export default class AdhocMetricEditPopover extends PureComponent<
     this.onMouseMove = this.onMouseMove.bind(this);
     this.onMouseUp = this.onMouseUp.bind(this);
     this.onTabChange = this.onTabChange.bind(this);
-    this.aceEditorRef = createRef();
-    this.refreshAceEditor = this.refreshAceEditor.bind(this);
+    this.editorRef = createRef();
+    this.refreshEditor = this.refreshEditor.bind(this);
     this.getDefaultTab = this.getDefaultTab.bind(this);
 
     this.state = {
@@ -313,20 +313,13 @@ export default class AdhocMetricEditPopover extends PureComponent<
   }
 
   onTabChange(tab: string): void {
-    this.refreshAceEditor();
+    this.refreshEditor();
     this.props.getCurrentTab?.(tab);
   }
 
-  refreshAceEditor(): void {
+  refreshEditor(): void {
     setTimeout(() => {
-      if (this.aceEditorRef.current) {
-        // Cast to access ace editor API
-        (
-          this.aceEditorRef.current as unknown as {
-            editor?: { resize?: () => void };
-          }
-        ).editor?.resize?.();
-      }
+      this.editorRef.current?.resize();
     }, 0);
   }
 
@@ -549,7 +542,7 @@ export default class AdhocMetricEditPopover extends PureComponent<
               children: (
                 <SQLEditorWithValidation
                   data-test="sql-editor"
-                  ref={this.aceEditorRef}
+                  ref={this.editorRef}
                   keywords={keywords}
                   height={`${this.state.height - 120}px`}
                   onChange={this.onSqlExpressionChange}

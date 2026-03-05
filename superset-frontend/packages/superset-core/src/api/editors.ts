@@ -480,6 +480,18 @@ export interface EditorHandle {
    * @returns A Disposable that removes the provider when disposed
    */
   registerCompletionProvider(provider: CompletionProvider): Disposable;
+
+  /**
+   * Force the editor to recalculate its dimensions.
+   * Called when the container size changes or when the editor becomes
+   * visible after being hidden (e.g., in a tab).
+   *
+   * Each editor implementation maps this to their equivalent:
+   * - Ace: editor.resize()
+   * - Monaco: editor.layout()
+   * - CodeMirror: editor.requestMeasure()
+   */
+  resize(): void;
 }
 
 /**
