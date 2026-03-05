@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""add_user_auth_tokens
+"""add_upstream_oauth_tokens
 
 Revision ID: a1b2c3d4e5f6
 Revises: f5b5f88d8526
@@ -34,7 +34,7 @@ down_revision = "f5b5f88d8526"
 
 def upgrade() -> None:
     op.create_table(
-        "user_auth_tokens",
+        "upstream_oauth_tokens",
         sa.Column("id", sa.Integer, primary_key=True),
         sa.Column(
             "user_id",
@@ -52,12 +52,14 @@ def upgrade() -> None:
         sa.Column("changed_by_fk", sa.Integer, nullable=True),
     )
     op.create_index(
-        "idx_user_auth_tokens_user_provider",
-        "user_auth_tokens",
+        "idx_upstream_oauth_tokens_user_provider",
+        "upstream_oauth_tokens",
         ["user_id", "provider"],
     )
 
 
 def downgrade() -> None:
-    op.drop_index("idx_user_auth_tokens_user_provider", table_name="user_auth_tokens")
-    op.drop_table("user_auth_tokens")
+    op.drop_index(
+        "idx_upstream_oauth_tokens_user_provider", table_name="upstream_oauth_tokens"
+    )
+    op.drop_table("upstream_oauth_tokens")

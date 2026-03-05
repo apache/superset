@@ -344,11 +344,11 @@ def test_encode_decode_oauth2_state(
 
 def test_save_user_provider_token_creates_new(mocker: MockerFixture) -> None:
     """
-    save_user_provider_token should create a new UserAuthToken when none exists.
+    save_user_provider_token should create a new UpstreamOAuthToken when none exists.
     """
     db_mock = mocker.patch("superset.utils.oauth2.db")
     mock_token = mocker.MagicMock()
-    mocker.patch("superset.models.core.UserAuthToken", return_value=mock_token)
+    mocker.patch("superset.models.core.UpstreamOAuthToken", return_value=mock_token)
     db_mock.session.query().filter_by().one_or_none.return_value = None
 
     token_response = {
@@ -364,7 +364,7 @@ def test_save_user_provider_token_creates_new(mocker: MockerFixture) -> None:
 
 def test_save_user_provider_token_updates_existing(mocker: MockerFixture) -> None:
     """
-    save_user_provider_token should update an existing UserAuthToken in-place.
+    save_user_provider_token should update an existing UpstreamOAuthToken in-place.
     """
     db_mock = mocker.patch("superset.utils.oauth2.db")
     existing = mocker.MagicMock()

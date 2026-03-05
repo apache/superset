@@ -1367,14 +1367,14 @@ class DatabaseUserOAuth2Tokens(Model, AuditMixinNullable):
     refresh_token = Column(encrypted_field_factory.create(Text), nullable=True)
 
 
-class UserAuthToken(Model, AuditMixinNullable):
+class UpstreamOAuthToken(Model, AuditMixinNullable):
     """
     Store OAuth tokens from the Superset login provider, for forwarding to databases.
     """
 
-    __tablename__ = "user_auth_tokens"
+    __tablename__ = "upstream_oauth_tokens"
     __table_args__ = (
-        sqla.Index("idx_user_auth_tokens_user_provider", "user_id", "provider"),
+        sqla.Index("idx_upstream_oauth_tokens_user_provider", "user_id", "provider"),
     )
 
     id = Column(Integer, primary_key=True)

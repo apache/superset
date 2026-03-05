@@ -37,7 +37,7 @@ from superset.superset_typing import OAuth2ClientConfig, OAuth2State
 
 if TYPE_CHECKING:
     from superset.db_engine_specs.base import BaseEngineSpec
-    from superset.models.core import Database, DatabaseUserOAuth2Tokens, UserAuthToken
+    from superset.models.core import Database, DatabaseUserOAuth2Tokens, UpstreamOAuthToken
 
 JWT_EXPIRATION = timedelta(minutes=5)
 
@@ -182,21 +182,21 @@ def save_user_provider_token(
     token_response: dict[str, Any],
 ) -> None:
     """
-    Upsert a UserAuthToken record for the given user and login provider.
+    Upsert an UpstreamOAuthToken record for the given user and login provider.
 
     Called after a successful Superset OAuth login when the provider has
     ``save_token: True`` set in ``OAUTH_PROVIDERS``.
     """
     # pylint: disable=import-outside-toplevel
-    from superset.models.core import UserAuthToken
+    from superset.models.core import UpstreamOAuthToken
 
     token = (
-        db.session.query(UserAuthToken)
+        db.session.query(UpstreamOAuthToken)
         .filter_by(user_id=user_id, provider=provider)
         .one_or_none()
     )
     if token is None:
-        token = UserAuthToken(user_id=user_id, provider=provider)
+        token = UpstreamOAuthToken(user_id=user_id, provider=provider)
 
     token.access_token = token_response.get("access_token")
     expires_in = token_response.get("expires_in")
@@ -221,10 +221,10 @@ def get_upstream_provider_token(provider: str, user_id: int) -> str | None:
     token is found or when the token cannot be refreshed.
     """
     # pylint: disable=import-outside-toplevel
-    from superset.models.core import UserAuthToken
+    from superset.models.core import UpstreamOAuthToken
 
-    token: UserAuthToken | None = (
-        db.session.query(UserAuthToken)
+    token: UpstreamOAuthToken | None = (
+        db.session.query(UpstreamOAuthToken)
         .filter_by(user_id=user_id, provider=provider)
         .one_or_none()
     )
@@ -247,7 +247,7 @@ def get_upstream_provider_token(provider: str, user_id: int) -> str | None:
 
 
 def _refresh_upstream_provider_token(
-    token: "UserAuthToken",
+    token: "UpstreamOAuthToken",
     provider: str,
 ) -> str | None:
     """
