@@ -3012,7 +3012,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 except EmbeddedChartPermalinkNotFoundError:
                     raise
                 except (ExplorePermalinkGetFailedError, ValueError):
-                    raise EmbeddedChartPermalinkNotFoundError()
+                    raise EmbeddedChartPermalinkNotFoundError() from None
 
     def create_guest_access_token(
         self,

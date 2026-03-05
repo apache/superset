@@ -589,14 +589,6 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enables the tagging system for organizing assets
     # @lifecycle: development
     "TAGGING_SYSTEM": False,
-    "SQLLAB_BACKEND_PERSISTENCE": True,
-    "LISTVIEWS_DEFAULT_CARD_VIEW": False,
-    # When True, this escapes HTML (rather than rendering it) in Markdown components
-    "ESCAPE_MARKDOWN_HTML": False,
-    "DASHBOARD_VIRTUALIZATION": True,
-    # This feature flag is stil in beta and is not recommended for production use.
-    "GLOBAL_ASYNC_QUERIES": False,
-    "EMBEDDED_SUPERSET": False,
     # Enables Alerts and reports new implementation
     # =================================================================
     # IN TESTING
@@ -711,10 +703,6 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # @lifecycle: stable
     # @category: runtime_config
     "CACHE_QUERY_BY_USER": False,
-    "DRILL_TO_DETAIL": True,  # deprecated
-    "DRILL_BY": True,
-    "DATAPANEL_CLOSED_BY_DEFAULT": False,
-    # When you open the dashboard, the filter panel will be closed
     # Enables CSS Templates in Settings menu and dashboard forms
     # @lifecycle: stable
     # @category: runtime_config

@@ -150,6 +150,7 @@ def validate_timeseries_config(
         f"or 'granularity_sqla' to form_data with a datetime column name."
     )
 
+
 logger = logging.getLogger(__name__)
 
 

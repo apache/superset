@@ -291,7 +291,7 @@
       },
       {
         "name": "EMBEDDABLE_CHARTS",
-        "default": true,
+        "default": false,
         "lifecycle": "stable",
         "description": "Enable sharing charts with embedding",
         "category": "runtime_config"
