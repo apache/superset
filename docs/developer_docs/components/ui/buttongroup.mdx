@@ -1,0 +1,88 @@
+---
+title: ButtonGroup
+sidebar_label: ButtonGroup
+---
+
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+-->
+
+import { StoryWithControls } from '../../../src/components/StorybookWrapper';
+
+# ButtonGroup
+
+ButtonGroup is a container that groups multiple Button components together with consistent spacing and styling.
+
+## Live Example
+
+<StoryWithControls
+  component="ButtonGroup"
+  props={{
+  expand: false
+}}
+  controls={[
+  {
+    name: "expand",
+    label: "Expand",
+    type: "boolean",
+    description: "When true, buttons expand to fill available width."
+  },
+  {
+    name: "className",
+    label: "Class Name",
+    type: "text",
+    description: "CSS class name for custom styling."
+  }
+]}
+  sampleChildren={[{"component":"Button","props":{"buttonStyle":"tertiary","children":"Button 1"}},{"component":"Button","props":{"buttonStyle":"tertiary","children":"Button 2"}},{"component":"Button","props":{"buttonStyle":"tertiary","children":"Button 3"}}]}
+/>
+
+## Try It
+
+Edit the code below to experiment with the component:
+
+```tsx live
+function Demo() {
+  return (
+    <ButtonGroup>
+      <Button buttonStyle="tertiary">Button 1</Button>
+      <Button buttonStyle="tertiary">Button 2</Button>
+      <Button buttonStyle="tertiary">Button 3</Button>
+    </ButtonGroup>
+  );
+}
+```
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `expand` | `boolean` | `false` | When true, buttons expand to fill available width. |
+
+## Import
+
+```tsx
+import { ButtonGroup } from '@superset/components';
+```
+
+---
+
+:::tip[Improve this page]
+This documentation is auto-generated from the component's Storybook story.
+Help improve it by [editing the story file](https://github.com/apache/superset/edit/master/superset-frontend/packages/superset-ui-core/src/components/ButtonGroup/ButtonGroup.stories.tsx).
+:::

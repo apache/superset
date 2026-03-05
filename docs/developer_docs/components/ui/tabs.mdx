@@ -1,0 +1,223 @@
+---
+title: Tabs
+sidebar_label: Tabs
+---
+
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+-->
+
+import { StoryWithControls } from '../../../src/components/StorybookWrapper';
+
+# Tabs
+
+A tabs component for switching between different views or content sections. Supports multiple tab styles, positions, and sizes.
+
+## Live Example
+
+<StoryWithControls
+  component="Tabs"
+  props={{
+  defaultActiveKey: "1",
+  type: "line",
+  tabPosition: "top",
+  size: "middle",
+  animated: true,
+  centered: false,
+  tabBarGutter: 8,
+  items: [
+    {
+      key: "1",
+      label: "Tab 1",
+      children: "Content of Tab Pane 1"
+    },
+    {
+      key: "2",
+      label: "Tab 2",
+      children: "Content of Tab Pane 2"
+    },
+    {
+      key: "3",
+      label: "Tab 3",
+      children: "Content of Tab Pane 3"
+    }
+  ]
+}}
+  controls={[
+  {
+    name: "defaultActiveKey",
+    label: "Default Active Key",
+    type: "text"
+  },
+  {
+    name: "type",
+    label: "Type",
+    type: "inline-radio",
+    options: [
+      "line",
+      "card",
+      "editable-card"
+    ],
+    description: "The style of tabs. Options: line, card, editable-card."
+  },
+  {
+    name: "tabPosition",
+    label: "Tab Position",
+    type: "inline-radio",
+    options: [
+      "top",
+      "bottom",
+      "left",
+      "right"
+    ],
+    description: "Position of tabs. Options: top, bottom, left, right."
+  },
+  {
+    name: "size",
+    label: "Size",
+    type: "inline-radio",
+    options: [
+      "small",
+      "middle",
+      "large"
+    ],
+    description: "Size of the tabs."
+  },
+  {
+    name: "animated",
+    label: "Animated",
+    type: "boolean",
+    description: "Whether to animate tab transitions."
+  },
+  {
+    name: "centered",
+    label: "Centered",
+    type: "boolean",
+    description: "Whether to center the tabs."
+  },
+  {
+    name: "tabBarGutter",
+    label: "Tab Bar Gutter",
+    type: "number",
+    description: "The gap between tabs."
+  }
+]}
+/>
+
+## Try It
+
+Edit the code below to experiment with the component:
+
+```tsx live
+function Demo() {
+  return (
+    <Tabs
+      defaultActiveKey="1"
+      items={[
+        { key: '1', label: 'Tab 1', children: 'Content of Tab Pane 1' },
+        { key: '2', label: 'Tab 2', children: 'Content of Tab Pane 2' },
+        { key: '3', label: 'Tab 3', children: 'Content of Tab Pane 3' },
+      ]}
+    />
+  );
+}
+```
+
+## Card Style
+
+```tsx live
+function CardTabs() {
+  return (
+    <Tabs
+      type="card"
+      defaultActiveKey="1"
+      items={[
+        { key: '1', label: 'Dashboards', children: 'View and manage your dashboards.' },
+        { key: '2', label: 'Charts', children: 'Browse all saved charts.' },
+        { key: '3', label: 'Datasets', children: 'Explore available datasets.' },
+      ]}
+    />
+  );
+}
+```
+
+## Tab Positions
+
+```tsx live
+function TabPositions() {
+  const items = [
+    { key: '1', label: 'Tab 1', children: 'Content 1' },
+    { key: '2', label: 'Tab 2', children: 'Content 2' },
+    { key: '3', label: 'Tab 3', children: 'Content 3' },
+  ];
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+      {['top', 'bottom', 'left', 'right'].map(pos => (
+        <div key={pos}>
+          <h4>{pos}</h4>
+          <Tabs tabPosition={pos} defaultActiveKey="1" items={items} />
+        </div>
+      ))}
+    </div>
+  );
+}
+```
+
+## With Icons
+
+```tsx live
+function IconTabs() {
+  return (
+    <Tabs
+      defaultActiveKey="1"
+      items={[
+        { key: '1', label: <><Icons.DashboardOutlined /> Dashboards</>, children: 'Dashboard content here.' },
+        { key: '2', label: <><Icons.LineChartOutlined /> Charts</>, children: 'Chart content here.' },
+        { key: '3', label: <><Icons.DatabaseOutlined /> Datasets</>, children: 'Dataset content here.' },
+        { key: '4', label: <><Icons.ConsoleSqlOutlined /> SQL Lab</>, children: 'SQL Lab content here.' },
+      ]}
+    />
+  );
+}
+```
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `defaultActiveKey` | `string` | `"1"` | - |
+| `type` | `string` | `"line"` | The style of tabs. Options: line, card, editable-card. |
+| `tabPosition` | `string` | `"top"` | Position of tabs. Options: top, bottom, left, right. |
+| `size` | `string` | `"middle"` | Size of the tabs. |
+| `animated` | `boolean` | `true` | Whether to animate tab transitions. |
+| `centered` | `boolean` | `false` | Whether to center the tabs. |
+| `tabBarGutter` | `number` | `8` | The gap between tabs. |
+| `items` | `any` | `[{"key":"1","label":"Tab 1","children":"Content of Tab Pane 1"},{"key":"2","label":"Tab 2","children":"Content of Tab Pane 2"},{"key":"3","label":"Tab 3","children":"Content of Tab Pane 3"}]` | - |
+
+## Import
+
+```tsx
+import { Tabs } from '@superset/components';
+```
+
+---
+
+:::tip[Improve this page]
+This documentation is auto-generated from the component's Storybook story.
+Help improve it by [editing the story file](https://github.com/apache/superset/edit/master/superset-frontend/packages/superset-ui-core/src/components/Tabs/Tabs.stories.tsx).
+:::

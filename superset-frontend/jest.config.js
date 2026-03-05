@@ -42,6 +42,11 @@ module.exports = {
     '<rootDir>/packages/.*/lib',
     '<rootDir>/plugins/.*/esm',
     '<rootDir>/plugins/.*/lib',
+    // Ignore build artifacts that contain duplicate package.json or mock files
+    '<rootDir>/storybook-static',
+    // Ignore duplicate __mocks__ at package root level (e.g., packages/superset-ui-core/__mocks__)
+    // but not test __mocks__ directories (e.g., packages/superset-ui-core/test/__mocks/)
+    '<rootDir>/packages/[^/]+/__mocks__',
   ],
   setupFilesAfterEnv: ['<rootDir>/spec/helpers/setup.ts'],
   snapshotSerializers: ['@emotion/jest/serializer'],

@@ -60,6 +60,7 @@ import {
   Select,
   Switch,
   TreeSelect,
+  Button,
   type CheckboxChangeEvent,
 } from '@superset-ui/core/components';
 
@@ -86,6 +87,7 @@ import {
   ContentType,
   ExtraNativeFilter,
   NativeFilterObject,
+  DashboardTabsResponse,
 } from 'src/features/alerts/types';
 import { StatusMessage } from 'src/filters/components/common';
 import { useSelector } from 'react-redux';
@@ -377,15 +379,6 @@ export const StyledInputContainer = styled.div`
         display: 'flex';
         color: ${theme.colorIcon};
       }
-      .filters-add-container {
-        flex: '.25';
-        padding: '${theme.sizeUnit * 3} 0';
-
-        .filters-add-btn {
-          padding: ${theme.sizeUnit * 2}px;
-          color: ${theme.colorWhite};
-        }
-      }
     }
   `}
 `;
@@ -534,7 +527,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       label: string;
     }[]
   >([]);
-  const [tabNativeFilters, setTabNativeFilters] = useState<object>({});
+  const [tabNativeFilters, setTabNativeFilters] = useState<
+    Partial<Record<string, NativeFilterObject[]>>
+  >({});
   const [nativeFilterData, setNativeFilterData] = useState<ExtraNativeFilter[]>(
     [
       {
@@ -687,9 +682,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const fetchDashboardFilterValues = async (
     dashboardId: number | string | undefined,
     columnName: string,
-    datasetId: number | string,
+    datasetId: number | string | null,
     vizType = 'filter_select',
-    adhocFilters = [],
+    adhocFilters: any[] = [],
   ) => {
     if (vizType === 'filter_time') {
       return;
@@ -750,7 +745,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     nativeFilterData.map(nativeFilter => {
       if (!nativeFilter.nativeFilterId) return;
       const filter = nativeFilters.filter(
-        (f: any) => f.id === nativeFilter.nativeFilterId,
+        f => f.id === nativeFilter.nativeFilterId,
       )[0];
 
       const { datasetId } = filter.targets[0];
@@ -1087,10 +1082,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             tab_tree: tabTree,
             all_tabs: allTabs,
             native_filters: nativeFilters,
-          } = response.json.result;
-          const allTabsWithOrder = tabTree.map(
-            (tab: { value: string }) => tab.value,
-          );
+          }: DashboardTabsResponse = response.json.result;
+          const allTabsWithOrder = tabTree.map(tab => tab.value);
 
           // Only show all tabs when there are more than one tab
           if (allTabsWithOrder.length > 1) {
@@ -1102,14 +1095,14 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           }
 
           setTabOptions(tabTree);
-          setTabNativeFilters(nativeFilters);
+          setTabNativeFilters(nativeFilters ?? {});
 
-          if (isEditMode && nativeFilters.all) {
+          if (isEditMode && nativeFilters?.all) {
             // update options for all filters
             addNativeFilterOptions(nativeFilters.all);
             // Also set the available filter options for the add button
             setNativeFilterOptions(
-              nativeFilters.all.map((filter: any) => ({
+              nativeFilters.all.map(filter => ({
                 value: filter.id,
                 label: filter.name,
               })),
@@ -1121,8 +1114,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               const parsedAnchor = JSON.parse(anchor);
               if (!Array.isArray(parsedAnchor)) {
                 // only show filters scoped to anchor
+                const anchorFilters: NativeFilterObject[] =
+                  nativeFilters?.[anchor] ?? [];
                 setNativeFilterOptions(
-                  nativeFilters[anchor].map((filter: any) => ({
+                  anchorFilters.map(filter => ({
                     value: filter.id,
                     label: filter.name,
                   })),
@@ -1130,7 +1125,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               }
               if (Array.isArray(parsedAnchor)) {
                 // Check if all elements in parsedAnchor list are in allTabs
-                const isValidSubset = parsedAnchor.every(tab => tab in allTabs);
+                const isValidSubset =
+                  allTabs && parsedAnchor.every(tab => tab in allTabs);
                 if (!isValidSubset) {
                   updateAnchorState(undefined);
                 }
@@ -1138,13 +1134,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 throw new Error('Parsed value is not an array');
               }
             } catch (error) {
-              if (!(anchor in allTabs)) {
+              if (!allTabs || !(anchor in allTabs)) {
                 updateAnchorState(undefined);
               }
             }
-          } else if (nativeFilters.all) {
+          } else if (nativeFilters?.all) {
             setNativeFilterOptions(
-              nativeFilters.all.map((filter: any) => ({
+              nativeFilters.all.map(filter => ({
                 value: filter.id,
                 label: filter.name,
               })),
@@ -1446,8 +1442,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       return;
 
     // find specific filter tied to the selected filter
-    const filters = Object.values(tabNativeFilters).flat();
-    const filter = filters.filter((f: any) => f.id === nativeFilterId)[0];
+    const filters = Object.values(tabNativeFilters).flatMap(arr => arr ?? []);
+    const filter = filters.filter(f => f.id === nativeFilterId)[0];
 
     const { filterType, adhoc_filters: adhocFilters } = filter;
     const filterAlreadyExist = nativeFilterData.some(
@@ -2509,28 +2505,17 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                                   )}
                                 </div>
                               ))}
-                              <div className="filters-add-container">
-                                {filterNativeFilterOptions().length > 0 && (
-                                  // eslint-disable-next-line jsx-a11y/anchor-is-valid
-                                  <a
-                                    className="filters-add-btn"
-                                    role="button"
-                                    tabIndex={0}
-                                    onClick={() => {
-                                      handleAddFilterField();
-                                      add();
-                                    }}
-                                    onKeyDown={e => {
-                                      if (e.key === 'Enter' || e.key === ' ') {
-                                        handleAddFilterField();
-                                        add();
-                                      }
-                                    }}
-                                  >
-                                    + {t('Apply another dashboard filter')}
-                                  </a>
-                                )}
-                              </div>
+                              {filterNativeFilterOptions().length > 0 && (
+                                <Button
+                                  buttonStyle="link"
+                                  onClick={() => {
+                                    handleAddFilterField();
+                                    add();
+                                  }}
+                                >
+                                  + {t('Apply another dashboard filter')}
+                                </Button>
+                              )}
                             </div>
                           )}
                         </AntdForm.List>

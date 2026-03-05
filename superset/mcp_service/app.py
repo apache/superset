@@ -152,6 +152,10 @@ Input format:
 - When MCP_PARSE_REQUEST_ENABLED is True (default), string-serialized JSON is also
   accepted as input, which works around double-serialization bugs in some MCP clients
 
+Feature Availability:
+- Call get_instance_info to discover accessible menus for the current user.
+- Do NOT assume features exist; always check get_instance_info first.
+
 If you are unsure which tool to use, start with get_instance_info
 or use the quickstart prompt for an interactive guide.
 
@@ -302,7 +306,7 @@ def create_mcp_app(
 mcp = create_mcp_app()
 
 # Initialize MCP dependency injection BEFORE importing tools/prompts
-# This replaces the abstract @tool and @prompt decorators in superset_core.mcp
+# This replaces the abstract @tool and @prompt decorators in superset_core.api.mcp
 # with concrete implementations that can register with the mcp instance
 from superset.core.mcp.core_mcp_injection import (  # noqa: E402
     initialize_core_mcp_dependencies,

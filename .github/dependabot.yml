@@ -16,9 +16,12 @@ updates:
         update-types: ["version-update:semver-major", "version-update:semver-minor"]
       - dependency-name: "eslint-plugin-storybook"
       - dependency-name: "react-error-boundary"
+      - dependency-name: "@rjsf/*"
       # remark-gfm v4+ requires react-markdown v9+, which needs React 18
       - dependency-name: "remark-gfm"
       - dependency-name: "react-markdown"
+      # TODO: remove below entries until React >= 19.0.0
+      - dependency-name: "react-icons"
       # JSDOM v30 doesn't play well with Jest v30
       # Source: https://jestjs.io/blog#known-issues
       # GH thread: https://github.com/jsdom/jsdom/issues/3492
@@ -31,6 +34,9 @@ updates:
       # See https://github.com/geostyler/geostyler-openlayers-parser/pull/828
       # TODO: remove once the issue got fixed
       - dependency-name: "geostyler-openlayers-parser"
+      # `just-handlerbars-helpers` library in plugin-chart-handlebars requires `currencyformatter`` to be < 2
+      - dependency-name: "currencyformatter.js"
+        update-types: ["version-update:semver-major"]
     groups:
       storybook:
         applies-to: version-updates
@@ -304,6 +310,10 @@ updates:
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/plugin-chart-handlebars/"
+    ignore:
+      # `just-handlerbars-helpers` library in plugin-chart-handlebars requires `currencyformatter`` to be < 2
+      - dependency-name: "currencyformatter.js"
+        update-types: ["version-update:semver-major"]
     schedule:
       interval: "daily"
     labels:

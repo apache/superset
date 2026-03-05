@@ -1579,7 +1579,7 @@ const FiltersConfigForm = (
                                             prevErroredFilters => {
                                               if (
                                                 prevErroredFilters.length &&
-                                                !formValidationFields.find(
+                                                !formValidationFields.some(
                                                   f => f.errors.length > 0,
                                                 )
                                               ) {

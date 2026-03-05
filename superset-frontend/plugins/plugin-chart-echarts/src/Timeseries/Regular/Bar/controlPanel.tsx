@@ -41,6 +41,7 @@ import {
   xAxisLabelRotation,
   xAxisLabelInterval,
   forceMaxInterval,
+  colorByPrimaryAxisSection,
 } from '../../../controls';
 
 import { OrientationType } from '../../types';
@@ -328,6 +329,7 @@ const config: ControlPanelConfig = {
         ['color_scheme'],
         ['time_shift_color'],
         ...showValueSectionWithoutStream,
+        ...colorByPrimaryAxisSection,
         [
           {
             name: 'stackDimension',
@@ -372,6 +374,7 @@ const config: ControlPanelConfig = {
         ...richTooltipSection,
         [<ControlSubSectionHeader>{t('Y Axis')}</ControlSubSectionHeader>],
         ...createAxisControl('y'),
+        ['echart_options'],
       ],
     },
   ],

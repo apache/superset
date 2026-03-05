@@ -34,7 +34,7 @@ const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const SPEC_PATH = path.join(__dirname, '..', 'static', 'resources', 'openapi.json');
-const API_DOCS_DIR = path.join(__dirname, '..', 'docs', 'api');
+const API_DOCS_DIR = path.join(__dirname, '..', 'developer_docs', 'api');
 const SIDEBAR_PATH = path.join(API_DOCS_DIR, 'sidebar.js');
 
 function slugify(text) {

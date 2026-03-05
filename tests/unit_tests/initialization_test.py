@@ -15,11 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import os
 from unittest.mock import MagicMock, patch
 
 from sqlalchemy.exc import OperationalError
 
-from superset.app import SupersetApp
+from superset.app import AppRootMiddleware, create_app, SupersetApp
 from superset.initialization import SupersetAppInitializer
 
 
@@ -187,3 +188,72 @@ class TestSupersetAppInitializer:
             app_initializer._db_uri_cache
             == "postgresql://realuser:realpass@realhost:5432/realdb"
         )
+
+
+class TestCreateAppRoot:
+    """Test app root resolution precedence in create_app."""
+
+    @patch("superset.initialization.SupersetAppInitializer.init_app")
+    def test_default_app_root_no_middleware(self, mock_init_app):
+        """No param, no config, no env var: app_root is '/', no middleware."""
+        env = os.environ.copy()
+        env.pop("SUPERSET_APP_ROOT", None)
+        env.pop("SUPERSET_CONFIG", None)
+        with patch.dict(os.environ, env, clear=True):
+            app = create_app()
+
+        assert not isinstance(app.wsgi_app, AppRootMiddleware)
+
+    @patch("superset.initialization.SupersetAppInitializer.init_app")
+    def test_application_root_config_activates_middleware(self, mock_init_app):
+        """APPLICATION_ROOT in config activates AppRootMiddleware."""
+        env = os.environ.copy()
+        env.pop("SUPERSET_APP_ROOT", None)
+        env.pop("SUPERSET_CONFIG", None)
+        with (
+            patch.dict(os.environ, env, clear=True),
+            patch("superset.config.APPLICATION_ROOT", "/from-config", create=True),
+        ):
+            app = create_app()
+
+        assert isinstance(app.wsgi_app, AppRootMiddleware)
+        assert app.wsgi_app.app_root == "/from-config"
+
+    @patch("superset.initialization.SupersetAppInitializer.init_app")
+    def test_env_var_activates_middleware(self, mock_init_app):
+        """SUPERSET_APP_ROOT env var activates AppRootMiddleware."""
+        env = os.environ.copy()
+        env.pop("SUPERSET_CONFIG", None)
+        env["SUPERSET_APP_ROOT"] = "/from-env"
+        with patch.dict(os.environ, env, clear=True):
+            app = create_app()
+
+        assert isinstance(app.wsgi_app, AppRootMiddleware)
+        assert app.wsgi_app.app_root == "/from-env"
+
+    @patch("superset.initialization.SupersetAppInitializer.init_app")
+    def test_env_var_takes_precedence_over_config(self, mock_init_app):
+        """SUPERSET_APP_ROOT env var wins over APPLICATION_ROOT config."""
+        env = os.environ.copy()
+        env.pop("SUPERSET_CONFIG", None)
+        env["SUPERSET_APP_ROOT"] = "/from-env"
+        with (
+            patch.dict(os.environ, env, clear=True),
+            patch("superset.config.APPLICATION_ROOT", "/from-config", create=True),
+        ):
+            app = create_app()
+
+        assert isinstance(app.wsgi_app, AppRootMiddleware)
+        assert app.wsgi_app.app_root == "/from-env"
+
+    @patch("superset.initialization.SupersetAppInitializer.init_app")
+    def test_param_takes_precedence_over_env_var(self, mock_init_app):
+        """superset_app_root param wins over SUPERSET_APP_ROOT env var."""
+        env = os.environ.copy()
+        env.pop("SUPERSET_CONFIG", None)
+        env["SUPERSET_APP_ROOT"] = "/from-env"
+        with patch.dict(os.environ, env, clear=True):
+            app = create_app(superset_app_root="/from-param")
+
+        assert isinstance(app.wsgi_app, AppRootMiddleware)
+        assert app.wsgi_app.app_root == "/from-param"
