@@ -28,6 +28,7 @@ from pytest_mock import MockerFixture
 
 from superset.superset_typing import OAuth2ClientConfig
 from superset.utils.oauth2 import (
+    _refresh_upstream_provider_token,
     decode_oauth2_state,
     encode_oauth2_state,
     generate_code_challenge,
@@ -446,3 +447,47 @@ def test_get_upstream_provider_token_expired_calls_refresh(mocker: MockerFixture
 
     refresh_mock.assert_called_once_with(token, "keycloak")
     assert result == "fresh_token"
+
+
+def test_refresh_upstream_provider_token_success(mocker: MockerFixture) -> None:
+    """
+    _refresh_upstream_provider_token refreshes the token via oauth_remotes and persists it.
+    """
+    token = mocker.MagicMock()
+    token.refresh_token = "old_refresh"  # noqa: S105
+
+    # Patch app config
+    app_mock = mocker.patch("superset.utils.oauth2.app")
+    app_mock.config.get.side_effect = lambda key, default=None: {
+        "OAUTH_PROVIDERS": [
+            {
+                "name": "keycloak",
+                "remote_app": {"client_id": "cid", "client_secret": "csecret"},
+            }
+        ],
+        "DATABASE_OAUTH2_TIMEOUT": __import__("datetime").timedelta(seconds=30),
+    }.get(key, default)
+
+    # Patch flask_appbuilder.current_app (imported as fab_app inside the function)
+    remote_app_mock = mocker.MagicMock()
+    remote_app_mock.load_server_metadata.return_value = {
+        "token_endpoint": "https://auth.example.com/token"
+    }
+    fab_current_app_mock = mocker.patch("flask_appbuilder.current_app")
+    fab_current_app_mock.appbuilder.sm.oauth_remotes = {"keycloak": remote_app_mock}
+
+    # Patch requests.post
+    requests_mock = mocker.patch("superset.utils.oauth2.requests")
+    resp_mock = mocker.MagicMock()
+    resp_mock.json.return_value = {"access_token": "new_access", "expires_in": 3600}
+    requests_mock.post.return_value = resp_mock
+
+    # Patch db
+    db_mock = mocker.patch("superset.utils.oauth2.db")
+
+    result = _refresh_upstream_provider_token(token, "keycloak")
+
+    assert result == "new_access"
+    assert token.access_token == "new_access"
+    db_mock.session.add.assert_called_once_with(token)
+    db_mock.session.commit.assert_called_once()

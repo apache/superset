@@ -2101,11 +2101,11 @@ DATABASE_OAUTH2_JWT_ALGORITHM = "HS256"
 # by looking at the `default_redirect_uri` attribute in the OAuth2 state object.
 # DATABASE_OAUTH2_REDIRECT_URI = "http://localhost:8088/api/v1/database/oauth2/"
 
-# Map db_engine_spec engine names to OAUTH_PROVIDERS names.
-# For databases with matching engine names, the upstream login token will be used
+# Map Superset database_name values to OAUTH_PROVIDERS names.
+# For databases with a matching database_name, the upstream login token will be used
 # instead of triggering a separate database OAuth2 flow.
 # Requires `save_token: True` to be set in the corresponding OAUTH_PROVIDERS entry.
-# Example: {"trino": "my_keycloak_provider"}
+# Example: {"staging": "my_keycloak_provider"}
 DATABASE_OAUTH2_UPSTREAM_PROVIDERS: dict[str, str] = {}
 
 # Timeout when fetching access and refresh tokens.

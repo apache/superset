@@ -512,7 +512,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
 
         upstream_provider = app.config.get(
             "DATABASE_OAUTH2_UPSTREAM_PROVIDERS", {}
-        ).get(self.db_engine_spec.engine_name)
+        ).get(self.database_name)
         if upstream_provider and hasattr(g, "user") and hasattr(g.user, "id"):
             access_token = get_upstream_provider_token(upstream_provider, g.user.id)
         else:

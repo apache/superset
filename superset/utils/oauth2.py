@@ -274,7 +274,7 @@ def _refresh_upstream_provider_token(
     from flask_appbuilder import current_app as fab_app  # pylint: disable=import-outside-toplevel
 
     sm = fab_app.appbuilder.sm
-    remote_app = getattr(sm, "oauth_remoteapp", {}).get(provider)
+    remote_app = getattr(sm, "oauth_remotes", {}).get(provider)
     if remote_app is None:
         logger.warning(
             "Cannot refresh upstream token: remote app '%s' not registered", provider
