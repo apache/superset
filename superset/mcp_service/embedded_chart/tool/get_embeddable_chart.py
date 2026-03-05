@@ -29,6 +29,7 @@ from fastmcp import Context
 from flask import g
 from superset_core.mcp import tool
 
+from superset.commands.exceptions import CommandException
 from superset.mcp_service.chart.chart_utils import (
     map_config_to_form_data,
     resolve_dataset,
@@ -254,7 +255,7 @@ async def get_embeddable_chart(
 <script>
     // Send guest token to embedded chart iframe on load
     (function() {{
-        var iframe = document.currentScript.previousElementSibling;
+        const iframe = document.currentScript.previousElementSibling;
         iframe.addEventListener('load', function() {{
             iframe.contentWindow.postMessage({{
                 type: '__embedded_comms__',
@@ -275,8 +276,8 @@ async def get_embeddable_chart(
             expires_at=expires_at,
         )
 
-    except Exception as ex:
-        logger.exception("Failed to create embeddable chart: %s", ex)
+    except (CommandException, ValueError, KeyError, TypeError) as ex:
+        logger.warning("Failed to create embeddable chart: %s", ex)
         await ctx.error(f"Failed to create embeddable chart: {ex}")
         return GetEmbeddableChartResponse(
             success=False,

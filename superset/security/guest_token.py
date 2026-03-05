@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Optional, TypedDict, Union
+from typing import TypedDict
 
 from flask_appbuilder.security.sqla.models import Group, Role
 from flask_login import AnonymousUserMixin
@@ -35,14 +35,14 @@ class GuestTokenResourceType(StrEnum):
 
 class GuestTokenResource(TypedDict):
     type: GuestTokenResourceType
-    id: Union[str, int]
+    id: str | int
 
 
 GuestTokenResources = list[GuestTokenResource]
 
 
 class GuestTokenRlsRule(TypedDict):
-    dataset: Optional[str]
+    dataset: str | None
     clause: str
 
 

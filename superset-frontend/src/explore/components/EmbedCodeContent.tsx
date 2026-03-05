@@ -30,6 +30,12 @@ import { t } from '@apache-superset/core/translation';
 import { Input, Space, Typography } from '@superset-ui/core/components';
 import { CopyToClipboard } from 'src/components';
 
+interface EmbedData {
+  iframe_url: string;
+  guest_token: string;
+  expires_at?: string;
+}
+
 export interface EmbedCodeContentProps {
   formData?: LatestQueryFormData;
   addDangerToast?: (msg: string) => void;
@@ -41,7 +47,7 @@ const EmbedCodeContent: FC<EmbedCodeContentProps> = ({
 }) => {
   const [height, setHeight] = useState('400');
   const [width, setWidth] = useState('600');
-  const [embedData, setEmbedData] = useState<Record<string, any> | null>(null);
+  const [embedData, setEmbedData] = useState<EmbedData | null>(null);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -62,7 +68,14 @@ const EmbedCodeContent: FC<EmbedCodeContentProps> = ({
     setErrorMessage('');
 
     try {
-      const createEmbeddedChart = makeApi({
+      const createEmbeddedChart = makeApi<
+        {
+          form_data: LatestQueryFormData;
+          allowed_domains: string[];
+          ttl_minutes: number;
+        },
+        EmbedData
+      >({
         method: 'POST',
         endpoint: '/api/v1/embedded_chart/',
       });
@@ -80,11 +93,11 @@ const EmbedCodeContent: FC<EmbedCodeContentProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [addDangerToast, formData]);
+  }, [formData, addDangerToast]);
 
   useEffect(() => {
     generateEmbedCode();
-  }, []);
+  }, [generateEmbedCode]);
 
   const html = useMemo(() => {
     if (!embedData?.iframe_url || !embedData?.guest_token) return '';
@@ -137,7 +150,7 @@ const EmbedCodeContent: FC<EmbedCodeContentProps> = ({
           name="embedCode"
           disabled={!html}
           value={text}
-          rows={10}
+          rows={4}
           readOnly
           css={theme => css`
             resize: vertical;

@@ -78,7 +78,11 @@ const appMountPoint = document.getElementById('app')!;
 const MESSAGE_TYPE = '__embedded_comms__';
 
 function showFailureMessage(message: string) {
-  appMountPoint.innerHTML = `<div style="display: flex; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif;">${message}</div>`;
+  const div = document.createElement('div');
+  div.style.cssText =
+    'display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;';
+  div.textContent = message;
+  appMountPoint.replaceChildren(div);
 }
 
 if (!window.parent || window.parent === window) {

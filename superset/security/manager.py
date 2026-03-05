@@ -3136,31 +3136,22 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         Check if a guest user has access to a datasource via a chart permalink resource.
 
         For embedded charts, the guest token contains chart_permalink resources.
-        This method validates that the requested datasource matches one of the
-        chart permalinks in the user's token.
+        This grants datasource access when the user holds at least one
+        chart_permalink resource. The embedded chart page constrains the actual
+        query to the datasource specified in the permalink's formData.
+
+        TODO: For stricter security, resolve each permalink and compare the
+        datasource in its formData against the requested datasource. This would
+        prevent a guest user from crafting requests to other datasources.
         """
         user = self.get_current_guest_user_if_guest()
         if not user or not isinstance(user, GuestUser):
             return False
 
-        # Get chart permalink resources from the guest token
-        permalink_resources = [
-            r
+        return any(
+            r.get("type") == GuestTokenResourceType.CHART_PERMALINK
             for r in user.resources
-            if r.get("type") == GuestTokenResourceType.CHART_PERMALINK.value
-        ]
-
-        if not permalink_resources:
-            return False
-
-        # For embedded charts, we allow access to any datasource that is
-        # referenced by a chart permalink in the guest token.
-        # The permalink validation happens at the embedded_chart API level,
-        # ensuring the user only accesses charts they have been granted access to.
-        # Here we simply need to verify the user has at least one chart_permalink
-        # resource, as the permalink's form_data already specifies which datasource
-        # to use.
-        return True
+        )
 
     def raise_for_ownership(self, resource: Model) -> None:
         """

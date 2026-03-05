@@ -21,6 +21,7 @@ from typing import Any
 from flask import g, request, Response
 from flask_appbuilder.api import expose, protect, safe
 
+from superset.commands.exceptions import CommandException
 from superset.commands.explore.permalink.create import CreateExplorePermalinkCommand
 from superset.daos.key_value import KeyValueDAO
 from superset.embedded_chart.exceptions import (
@@ -162,8 +163,8 @@ class EmbeddedChartRestApi(BaseSupersetApi):
             return self.response_401()
         except EmbeddedChartPermalinkNotFoundError:
             return self.response_404()
-        except Exception:
-            logger.exception("Error fetching embedded chart")
+        except (ValueError, KeyError) as ex:
+            logger.warning("Error fetching embedded chart: %s", ex)
             return self.response_500()
 
     @expose("/", methods=("POST",))
@@ -241,6 +242,16 @@ class EmbeddedChartRestApi(BaseSupersetApi):
             if not form_data:
                 return self.response_400(message="form_data is required")
 
+            # Validate ttl_minutes bounds
+            if (
+                not isinstance(ttl_minutes, int)
+                or ttl_minutes < 1
+                or ttl_minutes > 10080
+            ):
+                return self.response_400(
+                    message="ttl_minutes must be between 1 and 10080"
+                )
+
             # Validate required form_data structure
             if not form_data.get("datasource"):
                 return self.response_400(
@@ -299,6 +310,9 @@ class EmbeddedChartRestApi(BaseSupersetApi):
                 expires_at=expires_at.isoformat(),
             )
 
-        except Exception:
-            logger.exception("Error creating embedded chart")
+        except (ValueError, KeyError, TypeError) as ex:
+            logger.warning("Error creating embedded chart: %s", ex)
+            return self.response_400(message=str(ex))
+        except CommandException:
+            logger.exception("Error creating embedded chart permalink")
             return self.response_500()

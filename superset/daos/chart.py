@@ -122,7 +122,7 @@ class EmbeddedChartDAO(BaseDAO[EmbeddedChart]):
     @classmethod
     def create(
         cls,
-        item: EmbeddedChartDAO | None = None,
+        item: EmbeddedChart | None = None,
         attributes: dict[str, Any] | None = None,
     ) -> Any:
         """

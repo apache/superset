@@ -84,8 +84,8 @@ class EmbeddedChartView(BaseSupersetView):
                 key,
                 codec,
             )
-        except Exception:
-            logger.exception("Error fetching permalink for referrer validation")
+        except (ValueError, KeyError) as ex:
+            logger.warning("Error fetching permalink for referrer validation: %s", ex)
             permalink_value = None
 
         # Validate request referrer against allowed domains (if configured)
