@@ -90,6 +90,8 @@ export type EchartsMixedTimeseriesFormData = QueryFormData & {
   yAxisIndexB?: number;
   groupby: QueryFormColumn[];
   groupbyB: QueryFormColumn[];
+  truncateMetric: boolean;
+  truncateMetricB: boolean;
 } & LegendFormData &
   TitleFormData;
 
@@ -136,6 +138,9 @@ export const DEFAULT_FORM_DATA: EchartsMixedTimeseriesFormData = {
   zoomable: TIMESERIES_DEFAULTS.zoomable,
   richTooltip: TIMESERIES_DEFAULTS.richTooltip,
   showQueryIdentifiers: false,
+  //new
+  truncateMetric: false,
+  truncateMetricB: false,
   xAxisLabelRotation: TIMESERIES_DEFAULTS.xAxisLabelRotation,
   xAxisLabelInterval: TIMESERIES_DEFAULTS.xAxisLabelInterval,
   ...DEFAULT_TITLE_FORM_DATA,
