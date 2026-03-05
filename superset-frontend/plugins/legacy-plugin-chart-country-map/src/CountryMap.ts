@@ -98,11 +98,15 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
 
   const container = element;
   const format = getNumberFormatter(numberFormat);
-
-  const linearColorScale = getSequentialSchemeRegistry()
-    .get(linearColorScheme)
-    .createLinearScale(d3Extent(data, v => v.metric));
-
+  const rawExtents = d3Extent(data, v => v.metric);
+  const extents: [number, number] =
+    rawExtents[0] != null && rawExtents[1] != null
+      ? [rawExtents[0], rawExtents[1]]
+      : [0, 1];
+  const colorSchemeObj = getSequentialSchemeRegistry().get(linearColorScheme);
+  const linearColorScale = colorSchemeObj
+    ? colorSchemeObj.createLinearScale(extents)
+    : () => '#ccc'; // fallback if scheme not found
   const colorScale = CategoricalColorNamespace.getScale(colorScheme);
 
   const colorMap: Record<string, string> = {};
