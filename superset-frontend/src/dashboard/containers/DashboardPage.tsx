@@ -120,6 +120,9 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     ({ dashboardInfo }) =>
       dashboardInfo && Object.keys(dashboardInfo).length > 0,
   );
+  const reduxTheme = useSelector(
+    (state: RootState) => state.dashboardInfo.theme,
+  );
   const { addDangerToast } = useToasts();
   const { result: dashboard, error: dashboardApiError } =
     useDashboard(idOrSlug);
@@ -291,7 +294,11 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
         <>
           <SyncDashboardState dashboardPageId={dashboardPageId} />
           <DashboardPageIdContext.Provider value={dashboardPageId}>
-            <CrudThemeProvider theme={dashboard?.theme}>
+            <CrudThemeProvider
+              theme={
+                reduxTheme !== undefined ? reduxTheme : dashboard?.theme
+              }
+            >
               <AutoRefreshProvider>
                 <DashboardContainer
                   activeFilters={activeFilters as ActiveFilters}

@@ -191,3 +191,66 @@ test('passes full theme object from dashboard API response to CrudThemeProvider'
   );
   expect(themeCalls).toHaveLength(0);
 });
+
+test('uses theme from Redux dashboardInfo when it differs from API response (Properties modal update)', async () => {
+  const reduxTheme = {
+    id: 99,
+    theme_name: 'Updated Theme',
+    json_data: '{"token":{"colorPrimary":"#ff0000"}}',
+  };
+
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        dashboardInfo: { id: 1, metadata: {}, theme: reduxTheme },
+        dashboardState: { sliceIds: [] },
+        nativeFilters: { filters: {} },
+        dataMask: {},
+      },
+    },
+  );
+
+  await waitFor(() => {
+    expect(screen.queryByText('loading')).not.toBeInTheDocument();
+  });
+
+  // Redux theme should take priority over API response theme
+  expect(MockCrudThemeProvider).toHaveBeenCalledWith(
+    expect.objectContaining({ theme: reduxTheme }),
+    expect.anything(),
+  );
+});
+
+test('passes null theme when Redux dashboardInfo.theme is explicitly null (theme removed)', async () => {
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        dashboardInfo: { id: 1, metadata: {}, theme: null },
+        dashboardState: { sliceIds: [] },
+        nativeFilters: { filters: {} },
+        dataMask: {},
+      },
+    },
+  );
+
+  await waitFor(() => {
+    expect(screen.queryByText('loading')).not.toBeInTheDocument();
+  });
+
+  // When theme is explicitly null in Redux (removed via Properties modal),
+  // CrudThemeProvider should receive null
+  expect(MockCrudThemeProvider).toHaveBeenCalledWith(
+    expect.objectContaining({ theme: null }),
+    expect.anything(),
+  );
+});
