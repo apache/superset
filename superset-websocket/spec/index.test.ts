@@ -488,18 +488,6 @@ describe('server', () => {
     });
   });
 
-  const setReadyState = (ws: WebSocket, value: typeof ws.readyState) => {
-    // workaround for not being able to do
-    // spyOn(instance,'readyState','get').and.returnValue(value);
-    // See for details: https://github.com/facebook/vi/issues/9675
-    Object.defineProperty(ws, 'readyState', {
-      configurable: true,
-      get() {
-        return value;
-      },
-    });
-  };
-
   describe('checkSockets', () => {
     let ws: WebSocket;
     let pingSpy: Mock<typeof ws.ping>;
@@ -514,7 +502,7 @@ describe('server', () => {
     });
 
     test('active sockets', () => {
-      setReadyState(ws, WebSocket.OPEN);
+      vi.spyOn(ws, 'readyState', 'get').mockReturnValue(WebSocket.OPEN)
       server.trackClient(channelId, socketInstance);
 
       server.checkSockets();
@@ -525,7 +513,7 @@ describe('server', () => {
     });
 
     test('stale sockets', () => {
-      setReadyState(ws, WebSocket.OPEN);
+      vi.spyOn(ws, 'readyState', 'get').mockReturnValue(WebSocket.OPEN)
       socketInstance.pongTs = Date.now() - 60000;
       server.trackClient(channelId, socketInstance);
 
@@ -537,7 +525,7 @@ describe('server', () => {
     });
 
     test('closed sockets', () => {
-      setReadyState(ws, WebSocket.CLOSED);
+      vi.spyOn(ws, 'readyState', 'get').mockReturnValue(WebSocket.CLOSED)
       server.trackClient(channelId, socketInstance);
 
       server.checkSockets();
@@ -563,7 +551,7 @@ describe('server', () => {
     });
 
     test('active sockets', () => {
-      setReadyState(ws, WebSocket.OPEN);
+      vi.spyOn(ws, 'readyState', 'get').mockReturnValue(WebSocket.OPEN)
       server.trackClient(channelId, socketInstance);
 
       server.cleanChannel(channelId);
@@ -572,7 +560,7 @@ describe('server', () => {
     });
 
     test('closing sockets', () => {
-      setReadyState(ws, WebSocket.CLOSING);
+      vi.spyOn(ws, 'readyState', 'get').mockReturnValue(WebSocket.CLOSING)
       server.trackClient(channelId, socketInstance);
 
       server.cleanChannel(channelId);
@@ -581,11 +569,11 @@ describe('server', () => {
     });
 
     test('multiple sockets', () => {
-      setReadyState(ws, WebSocket.OPEN);
+      vi.spyOn(ws, 'readyState', 'get').mockReturnValue(WebSocket.OPEN)
       server.trackClient(channelId, socketInstance);
 
       const ws2 = new wsMock('localhost');
-      setReadyState(ws2, WebSocket.OPEN);
+      vi.spyOn(ws2, 'readyState', 'get').mockReturnValue(WebSocket.OPEN)
       const socketInstance2 = {
         ws: ws2,
         channel: channelId,
@@ -597,7 +585,7 @@ describe('server', () => {
 
       expect(server.channels[channelId].sockets.length).toBe(2);
 
-      setReadyState(ws2, WebSocket.CLOSED);
+      vi.spyOn(ws2, 'readyState', 'get').mockReturnValue(WebSocket.CLOSED)
       server.cleanChannel(channelId);
 
       expect(server.channels[channelId].sockets.length).toBe(1);
