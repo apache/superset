@@ -27,7 +27,7 @@ from datetime import datetime, timedelta, timezone
 
 from fastmcp import Context
 from flask import g
-from superset_core.mcp import tool
+from superset_core.api.mcp import tool
 
 from superset.commands.exceptions import CommandException
 from superset.mcp_service.chart.chart_utils import (
