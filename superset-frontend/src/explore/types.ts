@@ -101,6 +101,50 @@ export interface ExploreResponsePayload {
   result: ExplorePageInitialData & { message: string };
 }
 
+export interface ExploreState {
+  can_add?: boolean;
+  can_download?: boolean;
+  can_overwrite?: boolean;
+  isDatasourceMetaLoading?: boolean;
+  isDatasourcesLoading?: boolean;
+  isStarred?: boolean;
+  triggerRender?: boolean;
+  // duplicate datasource in exploreState - it's needed by getControlsState
+  datasource?: Dataset;
+  controls: ControlStateMapping;
+  form_data: QueryFormData;
+  hiddenFormData?: Partial<QueryFormData>;
+  slice?: Slice | null;
+  sliceName?: string;
+  controlsTransferred?: string[];
+  standalone?: boolean;
+  force?: boolean;
+  common?: JsonObject;
+  metadata?: {
+    owners?: string[] | null;
+  };
+  saveAction?: SaveActionType | null;
+}
+
+// Type for hydration data before redux-undo wrapping
+export interface ExplorePageInitialState {
+  charts: { [key: number]: ChartState };
+  datasources: { [key: string]: Dataset };
+  explore: ExploreState;
+  saveModal?: {
+    dashboards: any[];
+    saveModalAlert: any;
+    isVisible: boolean;
+  };
+}
+
+// Type for the redux-undo wrapped explore state
+export interface UndoableExploreState {
+  past: ExploreState[];
+  present: ExploreState;
+  future: ExploreState[];
+}
+
 export interface ExplorePageState {
   user: UserWithPermissionsAndRoles;
   common: {
@@ -109,23 +153,11 @@ export interface ExplorePageState {
   };
   charts: { [key: number]: ChartState };
   datasources: { [key: string]: Dataset };
+  // explore is wrapped with redux-undo, so it has past/present/future structure
   explore: {
-    can_add: boolean;
-    can_download: boolean;
-    can_overwrite: boolean;
-    isDatasourceMetaLoading: boolean;
-    isStarred: boolean;
-    triggerRender: boolean;
-    // duplicate datasource in exploreState - it's needed by getControlsState
-    datasource: Dataset;
-    controls: ControlStateMapping;
-    form_data: QueryFormData;
-    hiddenFormData?: Partial<QueryFormData>;
-    slice: Slice;
-    controlsTransferred: string[];
-    standalone: boolean;
-    force: boolean;
-    common: JsonObject;
+    past: ExploreState[];
+    present: ExploreState;
+    future: ExploreState[];
   };
   sliceEntities?: JsonObject; // propagated from Dashboard view
 }

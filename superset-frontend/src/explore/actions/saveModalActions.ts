@@ -238,7 +238,7 @@ export const updateSlice =
   ) =>
   async (dispatch: Dispatch, getState: () => Partial<QueryFormData>) => {
     const { slice_id: sliceId, owners, form_data: formDataFromSlice } = slice;
-    const formData = getState().explore?.form_data;
+    const formData = getState().explore?.present?.form_data;
     try {
       const response = await SupersetClient.put({
         endpoint: `/api/v1/chart/${sliceId}`,
@@ -270,7 +270,7 @@ export const createSlice =
     },
   ) =>
   async (dispatch: Dispatch, getState: () => Partial<QueryFormData>) => {
-    const formData = getState().explore?.form_data;
+    const formData = getState().explore?.present?.form_data;
     try {
       const response = await SupersetClient.post({
         endpoint: `/api/v1/chart/`,

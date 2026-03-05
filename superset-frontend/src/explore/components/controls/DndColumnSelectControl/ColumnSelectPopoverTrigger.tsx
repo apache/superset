@@ -211,7 +211,7 @@ const ColumnSelectPopoverTriggerWrapper = (
   props: ColumnSelectPopoverTriggerProps,
 ) => {
   const datasource = useSelector(
-    (state: any) => state?.explore?.datasource || null,
+    (state: any) => state?.explore?.present?.datasource || null,
   );
 
   return <ColumnSelectPopoverTriggerInner {...props} datasource={datasource} />;

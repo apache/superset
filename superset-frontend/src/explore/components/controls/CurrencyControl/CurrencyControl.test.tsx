@@ -26,7 +26,7 @@ test('CurrencyControl renders position and symbol selects', () => {
       useRedux: true,
       initialState: {
         common: { currencies: ['USD', 'EUR'] },
-        explore: { datasource: {} },
+        explore: { present: { datasource: {} }, future: [], past: [] },
       },
     },
   );
@@ -48,7 +48,7 @@ test('CurrencyControl handles string currency value', async () => {
       useRedux: true,
       initialState: {
         common: { currencies: ['USD', 'EUR'] },
-        explore: { datasource: {} },
+        explore: { present: { datasource: {} }, future: [], past: [] },
       },
     },
   );
