@@ -295,9 +295,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
           <SyncDashboardState dashboardPageId={dashboardPageId} />
           <DashboardPageIdContext.Provider value={dashboardPageId}>
             <CrudThemeProvider
-              theme={
-                reduxTheme !== undefined ? reduxTheme : dashboard?.theme
-              }
+              theme={reduxTheme !== undefined ? reduxTheme : dashboard?.theme}
             >
               <AutoRefreshProvider>
                 <DashboardContainer
