@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ComponentType } from 'react';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import { render, screen, userEvent, waitFor } from 'spec/helpers/testing-library';
 import { MemoryRouter, Route } from 'react-router-dom';
 import FileHandler from './index';
 
@@ -108,7 +108,7 @@ type LaunchQueue = {
   ) => void;
 };
 
-let pendingTimerId: ReturnType<typeof setTimeout> | null = null;
+const pendingTimerIds = new Set<ReturnType<typeof setTimeout>>();
 
 const setupLaunchQueue = (fileHandle: MockFileHandle | null = null) => {
   let savedConsumer:
@@ -118,12 +118,13 @@ const setupLaunchQueue = (fileHandle: MockFileHandle | null = null) => {
     setConsumer: (consumer: (params: { files?: MockFileHandle[] }) => void) => {
       savedConsumer = consumer;
       if (fileHandle) {
-        pendingTimerId = setTimeout(() => {
-          pendingTimerId = null;
+        const id = setTimeout(() => {
+          pendingTimerIds.delete(id);
           consumer({
             files: [fileHandle],
           });
         }, 0);
+        pendingTimerIds.add(id);
       }
     },
   };
@@ -140,10 +141,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  if (pendingTimerId !== null) {
-    clearTimeout(pendingTimerId);
-    pendingTimerId = null;
-  }
+  pendingTimerIds.forEach(id => clearTimeout(id));
+  pendingTimerIds.clear();
   delete (window as any).launchQueue;
 });
 
@@ -356,8 +355,7 @@ test('modal close redirects to welcome page', async () => {
   expect(modal).toBeInTheDocument();
 
   // Click the close button in the mocked modal
-  const closeButton = screen.getByRole('button', { name: 'Close' });
-  closeButton.click();
+  await userEvent.click(screen.getByRole('button', { name: 'Close' }));
 
   await waitFor(() => {
     expect(mockHistoryPush).toHaveBeenCalledWith('/superset/welcome/');
