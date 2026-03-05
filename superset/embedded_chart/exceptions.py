@@ -14,22 +14,27 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from flask_babel import lazy_gettext as _
+
 from superset.exceptions import SupersetException
 
 
 class EmbeddedChartPermalinkNotFoundError(SupersetException):
     """Raised when an embedded chart permalink is not found or has expired."""
 
-    message = "The embedded chart permalink could not be found or has expired."
+    status = 404
+    message = _("The embedded chart permalink could not be found or has expired.")
 
 
 class EmbeddedChartAccessDeniedError(SupersetException):
     """Raised when access to an embedded chart is denied."""
 
-    message = "Access to this embedded chart is denied."
+    status = 401
+    message = _("Access to this embedded chart is denied.")
 
 
 class EmbeddedChartFeatureDisabledError(SupersetException):
     """Raised when the embeddable charts feature is disabled."""
 
-    message = "The embeddable charts feature is not enabled."
+    status = 403
+    message = _("The embeddable charts feature is not enabled.")

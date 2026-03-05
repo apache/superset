@@ -18,16 +18,15 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
       margin-bottom: 20px;
     }
-    textarea {
+    input[type="text"] {
       width: 100%;
-      height: 150px;
-      font-family: monospace;
-      font-size: 12px;
       padding: 10px;
+      font-family: monospace;
+      font-size: 13px;
       border: 1px solid #ddd;
       border-radius: 4px;
-      resize: vertical;
       box-sizing: border-box;
+      margin-bottom: 12px;
     }
     button {
       background: #20a7c9;
@@ -60,8 +59,12 @@
   <h1>Superset Embedded Chart Demo</h1>
 
   <div class="input-section">
-    <label for="iframe-input">Paste iframe_html response here:</label>
-    <textarea id="iframe-input" placeholder="Paste the iframe_html value from get_embeddable_chart response..."></textarea>
+    <label for="iframe-url-input">iframe_url (from get_embeddable_chart response):</label>
+    <input type="text" id="iframe-url-input" placeholder="http://localhost:8088/embedded/chart/?permalink_key=..." />
+
+    <label for="guest-token-input">guest_token (from get_embeddable_chart response):</label>
+    <input type="text" id="guest-token-input" placeholder="eyJ..." />
+
     <button onclick="embedChart()">Embed Chart</button>
   </div>
 
@@ -71,62 +74,48 @@
 
   <script>
     function embedChart() {
-      const input = document.getElementById('iframe-input').value.trim();
-      const container = document.getElementById('chart-container');
+      var iframeUrl = document.getElementById('iframe-url-input').value.trim();
+      var guestToken = document.getElementById('guest-token-input').value.trim().replace(/\s/g, '');
+      var container = document.getElementById('chart-container');
 
-      if (!input) {
-        alert('Please paste the iframe_html first');
+      if (!iframeUrl || !guestToken) {
+        container.textContent = 'Error: Both iframe_url and guest_token are required.';
         return;
       }
 
-      // Safely parse input and only allow iframe elements (prevent XSS)
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(input, 'text/html');
-      const parsedIframe = doc.querySelector('iframe');
-
-      if (!parsedIframe) {
-        container.textContent = 'Error: No iframe found in the pasted HTML.';
+      // Validate URL scheme to prevent javascript: or data: URIs
+      if (!iframeUrl.startsWith('http://') && !iframeUrl.startsWith('https://')) {
+        container.textContent = 'Error: iframe_url must use http:// or https://';
         return;
       }
 
-      // Create a clean iframe with only safe attributes
-      const iframe = document.createElement('iframe');
-      const safeAttrs = ['src', 'width', 'height', 'frameborder', 'data-guest-token'];
-      for (const attr of safeAttrs) {
-        const val = parsedIframe.getAttribute(attr);
-        if (val) iframe.setAttribute(attr, val);
-      }
-      // Validate src URL scheme to prevent javascript: or data: URIs
-      const srcVal = iframe.getAttribute('src') || '';
-      if (srcVal && !srcVal.startsWith('http://') && !srcVal.startsWith('https://')) {
-        container.textContent = 'Error: iframe src must use http:// or https://';
+      var targetOrigin;
+      try {
+        targetOrigin = new URL(iframeUrl).origin;
+      } catch (e) {
+        container.textContent = 'Error: Invalid iframe_url';
         return;
       }
+
+      // Build iframe programmatically (no HTML parsing)
+      var iframe = document.createElement('iframe');
+      iframe.setAttribute('src', iframeUrl);
+      iframe.setAttribute('width', '100%');
+      iframe.setAttribute('height', '400');
+      iframe.setAttribute('frameborder', '0');
       iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-popups');
 
       container.textContent = '';
       container.appendChild(iframe);
-      if (iframe) {
-        // Strip any whitespace/newlines that may have been introduced by copy-paste wrapping
-        const guestToken = (iframe.getAttribute('data-guest-token') || '').replace(/\s/g, '');
-        const iframeSrc = iframe.getAttribute('src');
 
-        if (guestToken && iframeSrc) {
-          const url = new URL(iframeSrc);
-          const targetOrigin = url.origin;
-
-          iframe.addEventListener('load', function() {
-            console.log('Iframe loaded, sending guest token to', targetOrigin);
-
-            // Embedded charts use direct postMessage (not MessageChannel)
-            // The embeddedChart entry point expects: { type: '__embedded_comms__', guestToken }
-            iframe.contentWindow.postMessage(
-              { type: '__embedded_comms__', guestToken: guestToken },
-              targetOrigin
-            );
-          });
-        }
-      }
+      iframe.addEventListener('load', function() {
+        // Embedded charts use direct postMessage (not MessageChannel)
+        // The embeddedChart entry point expects: { type: '__embedded_comms__', guestToken }
+        iframe.contentWindow.postMessage(
+          { type: '__embedded_comms__', guestToken: guestToken },
+          targetOrigin
+        );
+      });
     }
   </script>
 </body>

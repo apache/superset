@@ -55,4 +55,6 @@ class EmbeddedChart(Model, AuditMixinNullable):
         A list of domains which are allowed to embed the chart.
         An empty list means any domain can embed.
         """
-        return self.allow_domain_list.split(",") if self.allow_domain_list else []
+        if not self.allow_domain_list:
+            return []
+        return [d.strip() for d in self.allow_domain_list.split(",") if d.strip()]
