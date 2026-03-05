@@ -355,7 +355,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
       open={show}
       onOpenChange={toggleOverlay}
       overlayStyle={{ width: '600px' }}
-      destroyTooltipOnHide
+      destroyOnHidden
       getPopupContainer={nodeTrigger =>
         isOverflowingFilterBar
           ? (nodeTrigger.parentNode as HTMLElement)

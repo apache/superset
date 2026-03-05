@@ -155,19 +155,21 @@ export const PageHeaderWithActions = ({
               popupRender={() => additionalActionsMenu}
               {...menuDropdownProps}
             >
-              <Button
-                css={menuTriggerStyles}
-                buttonStyle="tertiary"
-                aria-label={t('Menu actions trigger')}
-                tooltip={tooltipProps?.text}
-                placement={tooltipProps?.placement}
-                data-test="actions-trigger"
-              >
-                <Icons.EllipsisOutlined
-                  iconColor={theme.colorPrimary}
-                  iconSize="l"
-                />
-              </Button>
+              <span>
+                <Button
+                  css={menuTriggerStyles}
+                  buttonStyle="tertiary"
+                  aria-label={t('Menu actions trigger')}
+                  tooltip={tooltipProps?.text}
+                  placement={tooltipProps?.placement}
+                  data-test="actions-trigger"
+                >
+                  <Icons.EllipsisOutlined
+                    iconColor={theme.colorPrimary}
+                    iconSize="l"
+                  />
+                </Button>
+              </span>
             </Dropdown>
           )}
         </div>

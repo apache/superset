@@ -100,7 +100,7 @@ const StyledNotificationMethod = styled.div`
       margin-left: ${theme.sizeUnit * 4}px;
     }
 
-    .ghost-button:first-child[style*='none'] + .ghost-button {
+    .ghost-button:first-of-type[style*='none'] + .ghost-button {
       margin-left: 0px; /* Remove margin when the first button is hidden */
     }
   `}

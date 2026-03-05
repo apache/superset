@@ -252,7 +252,7 @@ const DashboardContentWrapper = styled.div`
         width: 100%;
       }
 
-      & > .empty-droptarget:first-child:not(.empty-droptarget--full) {
+      & > .empty-droptarget:first-of-type:not(.empty-droptarget--full) {
         height: ${theme.sizeUnit * 4}px;
         top: 0;
       }
@@ -298,7 +298,7 @@ const StyledDashboardContent = styled.div<{
     `}
 
       /* this is the ParentSize wrapper */
-    & > div:first-child {
+    & > div:first-of-type {
         height: 100% !important;
       }
     }

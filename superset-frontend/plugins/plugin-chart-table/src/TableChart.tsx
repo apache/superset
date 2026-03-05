@@ -808,7 +808,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           th {
             border-right: 1px solid ${theme.colorSplit};
           }
-          th:first-child {
+          th:first-of-type {
             border-left: none;
           }
           th:last-child {

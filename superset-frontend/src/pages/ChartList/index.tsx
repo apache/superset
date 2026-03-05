@@ -665,7 +665,7 @@ function ChartList(props: ChartListProps) {
         unfilteredLabel: t('All'),
         fetchSelects: createFetchDatasets,
         paginate: true,
-        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
+        popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
       ...(isFeatureEnabled(FeatureFlag.TaggingSystem) && canReadTag
         ? [
@@ -701,7 +701,7 @@ function ChartList(props: ChartListProps) {
         ),
         optionFilterProps: OWNER_OPTION_FILTER_PROPS,
         paginate: true,
-        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
+        popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
       {
         Header: t('Dashboard'),
@@ -712,7 +712,7 @@ function ChartList(props: ChartListProps) {
         unfilteredLabel: t('All'),
         fetchSelects: fetchDashboards,
         paginate: true,
-        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
+        popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
       ...(userId ? [favoritesFilter] : []),
       {
@@ -747,7 +747,7 @@ function ChartList(props: ChartListProps) {
           props.user,
         ),
         paginate: true,
-        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
+        popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
     ] as ListViewFilters;
     return filtersList;
