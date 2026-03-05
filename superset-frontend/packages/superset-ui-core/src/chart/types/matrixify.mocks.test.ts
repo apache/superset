@@ -16,32 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DASHBOARD_LIST } from 'cypress/utils/urls';
-import { setGridMode, clearAllInputs } from 'cypress/utils';
-import { setFilter } from '../dashboard/utils';
 
-describe('Dashboards filters', () => {
-  before(() => {
-    cy.visit(DASHBOARD_LIST);
-    setGridMode('card');
-  });
+import { isMatrixifyEnabled, MatrixifyGridRenderer } from './matrixify.mocks';
 
-  beforeEach(() => {
-    clearAllInputs();
-  });
+test('isMatrixifyEnabled mock returns false by default', () => {
+  expect(isMatrixifyEnabled()).toBe(false);
+});
 
-  it('should allow filtering by "Owner" correctly', () => {
-    setFilter('Owner', 'alpha user');
-    setFilter('Owner', 'admin user');
-  });
-
-  it('should allow filtering by "Modified by" correctly', () => {
-    setFilter('Modified by', 'alpha user');
-    setFilter('Modified by', 'admin user');
-  });
-
-  it('should allow filtering by "Status" correctly', () => {
-    setFilter('Status', 'Published');
-    setFilter('Status', 'Draft');
-  });
+test('MatrixifyGridRenderer mock returns null by default', () => {
+  expect(MatrixifyGridRenderer()).toBeNull();
 });

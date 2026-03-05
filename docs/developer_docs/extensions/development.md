@@ -203,31 +203,51 @@ Extension endpoints are registered under a dedicated `/extensions` namespace to 
 ```python
 from superset_core.api.models import Database, get_session
 from superset_core.api.daos import DatabaseDAO
-from superset_core.api.rest_api import add_extension_api
-from .api import DatasetReferencesAPI
+from superset_core.api.rest_api import RestApi, api
+from flask_appbuilder.api import expose, protect
 
-# Register a new extension REST API
-add_extension_api(DatasetReferencesAPI)
-
-# Fetch Superset entities via the DAO to apply base filters that filter out entities
-# that the user doesn't have access to
-databases = DatabaseDAO.find_all()
-
-# ..or apply simple filters on top of base filters
-databases = DatabaseDAO.filter_by(uuid=database.uuid)
-if not databases:
-    raise Exception("Database not found")
-
-return databases[0]
-
-# Perform complex queries using SQLAlchemy Query, also filtering out
-# inaccessible entities
-session = get_session()
-databases_query = session.query(Database).filter(
-    Database.database_name.ilike("%abc%")
+@api(
+    id="dataset_references_api",
+    name="Dataset References API",
+    description="API for managing dataset references"
 )
-return DatabaseDAO.query(databases_query)
+class DatasetReferencesAPI(RestApi):
+    @expose("/datasets", methods=("GET",))
+    @protect()
+    def get_datasets(self) -> Response:
+        """Get all accessible datasets."""
+        # Fetch Superset entities via the DAO to apply base filters that filter out entities
+        # that the user doesn't have access to
+        databases = DatabaseDAO.find_all()
+
+        # ..or apply simple filters on top of base filters
+        databases = DatabaseDAO.filter_by(uuid=database.uuid)
+        if not databases:
+            raise Exception("Database not found")
+
+        return self.response(200, result={"databases": databases})
+
+    @expose("/search", methods=("GET",))
+    @protect()
+    def search_databases(self) -> Response:
+        """Search databases with complex queries."""
+        # Perform complex queries using SQLAlchemy Query, also filtering out
+        # inaccessible entities
+        session = get_session()
+        databases_query = session.query(Database).filter(
+            Database.database_name.ilike("%abc%")
+        )
+        databases = DatabaseDAO.query(databases_query)
+
+        return self.response(200, result={"databases": databases})
 ```
+
+### Automatic Context Detection
+
+The [`@api`](superset-core/src/superset_core/api/rest_api.py:59) decorator automatically detects whether it's being used in host or extension code:
+
+- **Extension APIs**: Registered under `/extensions/{publisher}/{name}/` with IDs prefixed as `extensions.{publisher}.{name}.{id}`
+- **Host APIs**: Registered under `/api/v1/` with original IDs
 
 In the future, we plan to expand the backend APIs to support configuring security models, database engines, SQL Alchemy dialects, etc.
 
@@ -309,7 +329,7 @@ InteractiveMyComponent.argTypes = {
 
 When the docs site is built (`yarn start` or `yarn build` in the `docs/` directory):
 
-1. The `generate-extension-components` script scans all stories in `superset-core`
+1. The `generate-superset-components` script scans all stories (including `superset-core`)
 2. For each story, it generates an MDX page with:
    - Component description
    - **Live interactive example** with controls extracted from `argTypes`

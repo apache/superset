@@ -25,7 +25,7 @@ import logging
 from urllib.parse import urlencode
 
 from fastmcp import Context
-from superset_core.mcp import tool
+from superset_core.api.mcp import tool
 
 from superset.extensions import event_logger
 from superset.mcp_service.sql_lab.schemas import (

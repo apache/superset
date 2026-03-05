@@ -115,22 +115,51 @@ Backend contribution types allow extensions to extend Superset's server-side cap
 
 ### REST API Endpoints
 
-Extensions can register custom REST API endpoints under the `/api/v1/extensions/` namespace. This dedicated namespace prevents conflicts with built-in endpoints and provides a clear separation between core and extension functionality.
-
-```json
-"backend": {
-  "entryPoints": ["my_extension.entrypoint"],
-  "files": ["backend/src/my_extension/**/*.py"]
-}
-```
-
-The entry point module registers the API with Superset:
+Extensions can register custom REST API endpoints under the `/extensions/` namespace. This dedicated namespace prevents conflicts with built-in endpoints and provides a clear separation between core and extension functionality.
 
 ```python
-from superset_core.api.rest_api import add_extension_api
-from .api import MyExtensionAPI
+from superset_core.api.rest_api import RestApi, api
+from flask_appbuilder.api import expose, protect
 
-add_extension_api(MyExtensionAPI)
+@api(
+    id="my_extension_api",
+    name="My Extension API",
+    description="Custom API endpoints for my extension"
+)
+class MyExtensionAPI(RestApi):
+    @expose("/hello", methods=("GET",))
+    @protect()
+    def hello(self) -> Response:
+        return self.response(200, result={"message": "Hello from extension!"})
+
+# Import the class in entrypoint.py to register it
+from .api import MyExtensionAPI
+```
+
+**Note**: The [`@api`](superset-core/src/superset_core/api/rest_api.py:59) decorator automatically detects context and generates appropriate paths:
+
+- **Extension context**: `/extensions/{publisher}/{name}/` with ID prefixed as `extensions.{publisher}.{name}.{id}`
+- **Host context**: `/api/v1/` with original ID
+
+For an extension with publisher `my-org` and name `dataset-tools`, the endpoint above would be accessible at:
+```
+/extensions/my-org/dataset-tools/hello
+```
+
+You can also specify a `resource_name` parameter to add an additional path segment:
+
+```python
+@api(
+    id="analytics_api",
+    name="Analytics API",
+    resource_name="analytics"  # Adds /analytics to the path
+)
+class AnalyticsAPI(RestApi):
+    @expose("/insights", methods=("GET",))
+    def insights(self):
+        # This endpoint will be available at:
+        # /extensions/my-org/dataset-tools/analytics/insights
+        return self.response(200, result={"insights": []})
 ```
 
 ### MCP Tools and Prompts
