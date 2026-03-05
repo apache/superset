@@ -494,9 +494,7 @@ class Superset(BaseSupersetView):
                 "can_export_data", "Superset"
             )
         else:
-            slice_download_perm = security_manager.can_access(
-                "can_csv", "Superset"
-            )
+            slice_download_perm = security_manager.can_access("can_csv", "Superset")
 
         form_data["datasource"] = str(datasource_id) + "__" + cast(str, datasource_type)
 
