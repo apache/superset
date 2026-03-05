@@ -58,17 +58,21 @@ export default function useDatabaseSelector(queryEditorId: string) {
   const { catalog, schema } = queryEditor;
 
   const onDbChange = useCallback(
-    ({ id: dbId }: { id: number }) => {
-      if (queryEditor) {
-        dispatch(queryEditorSetDb(queryEditor, dbId));
+    (db: DatabaseObject) => {
+      if (queryEditor?.id) {
+        dispatch(queryEditorSetDb(queryEditor, db.id));
       }
+      // Immediately update the local selection so the sidebar reflects
+      // the chosen database without waiting for the Redux databases map
+      // to be repopulated via getDbList.
+      setUserSelected(db);
     },
     [dispatch, queryEditor],
   );
 
   const handleCatalogChange = useCallback(
     (catalog?: string | null) => {
-      if (queryEditor) {
+      if (queryEditor?.id) {
         dispatch(queryEditorSetCatalog(queryEditor, catalog ?? null));
       }
     },
@@ -77,7 +81,7 @@ export default function useDatabaseSelector(queryEditorId: string) {
 
   const handleSchemaChange = useCallback(
     (schema: string) => {
-      if (queryEditor) {
+      if (queryEditor?.id) {
         dispatch(queryEditorSetSchema(queryEditor, schema));
       }
     },
