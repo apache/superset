@@ -20,7 +20,7 @@ from urllib.parse import urlparse
 
 from flask import abort, current_app, request
 from flask_appbuilder import expose
-from flask_login import AnonymousUserMixin, login_user
+from flask_login import AnonymousUserMixin, current_user, login_user
 
 from superset import event_logger
 from superset.daos.key_value import KeyValueDAO
@@ -107,10 +107,11 @@ class EmbeddedChartView(BaseSupersetView):
                     )
                     abort(403)
 
-        # Log in as anonymous user for page rendering
+        # Log in as anonymous user for page rendering only if not already authenticated.
         # This view needs to be visible to all users,
         # and building the page fails if g.user and/or ctx.user aren't present.
-        login_user(AnonymousUserMixin(), force=True)
+        if not current_user.is_authenticated:
+            login_user(AnonymousUserMixin(), force=True)
 
         add_extra_log_payload(
             embedded_type="chart",

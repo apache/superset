@@ -107,6 +107,10 @@ function EmbeddedChartsList({
 
   const copyToClipboard = useCallback(
     (text: string) => {
+      if (!navigator.clipboard?.writeText) {
+        addDangerToast(t('Failed to copy to clipboard'));
+        return;
+      }
       navigator.clipboard.writeText(text).then(
         () => addSuccessToast(t('UUID copied to clipboard')),
         () => addDangerToast(t('Failed to copy to clipboard')),

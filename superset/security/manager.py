@@ -3149,7 +3149,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return False
 
         return any(
-            r.get("type") == GuestTokenResourceType.CHART_PERMALINK
+            r.get("type") == GuestTokenResourceType.CHART_PERMALINK.value
             for r in user.resources
         )
 
