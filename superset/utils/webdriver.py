@@ -303,7 +303,7 @@ class WebDriverPlaywright(WebDriverProxy):
                     for loading_element in page.locator(".loading").all():
                         loading_element.wait_for(state="detached")
                 except PlaywrightTimeout:
-                    logger.exception(
+                    logger.warning(
                         "Timed out waiting for charts to load at url %s", url
                     )
                     raise
