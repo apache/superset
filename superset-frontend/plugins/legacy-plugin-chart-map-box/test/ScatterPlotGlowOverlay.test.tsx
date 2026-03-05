@@ -344,3 +344,155 @@ test('renders successfully with mixed extreme and negative radius values', () =>
     (global as any).mockRedraw(redrawParams);
   }).not.toThrow();
 });
+
+test('cluster radius is always >= individual point radius', () => {
+  const locations = [
+    createLocation([100, 100], {
+      cluster: true,
+      point_count: 2,
+      sum: 1,
+    }),
+    createLocation([200, 200], {
+      cluster: true,
+      point_count: 50,
+      sum: 100,
+    }),
+    createLocation([300, 300], { cluster: false }),
+  ];
+
+  render(
+    <ScatterPlotGlowOverlay
+      {...defaultProps}
+      locations={locations}
+      aggregation="sum"
+    />,
+  );
+  const redrawParams = createMockRedrawParams();
+  (global as any).mockRedraw(redrawParams);
+
+  const arcCalls = redrawParams.ctx.arc.mock.calls;
+  const singlePointRadius = defaultProps.dotRadius / 6;
+
+  // cluster with label=1 (index 0)
+  expect(arcCalls[0][2]).toBeGreaterThanOrEqual(singlePointRadius);
+  // cluster with label=100 (index 1)
+  expect(arcCalls[1][2]).toBeGreaterThanOrEqual(singlePointRadius);
+  // single point (index 2) gets defaultRadius
+  expect(arcCalls[2][2]).toBe(singlePointRadius);
+});
+
+test('largest cluster gets full dotRadius', () => {
+  const locations = [
+    createLocation([100, 100], {
+      cluster: true,
+      point_count: 10,
+      sum: 50,
+    }),
+    createLocation([200, 200], {
+      cluster: true,
+      point_count: 50,
+      sum: 100,
+    }),
+  ];
+
+  render(
+    <ScatterPlotGlowOverlay
+      {...defaultProps}
+      locations={locations}
+      aggregation="sum"
+    />,
+  );
+  const redrawParams = createMockRedrawParams();
+  (global as any).mockRedraw(redrawParams);
+
+  const arcCalls = redrawParams.ctx.arc.mock.calls;
+  // The largest cluster (label=100, maxLabel=100) should get full radius
+  expect(arcCalls[1][2]).toBe(defaultProps.dotRadius);
+});
+
+test('cluster radii preserve proportional ordering', () => {
+  const locations = [
+    createLocation([100, 100], {
+      cluster: true,
+      point_count: 5,
+      sum: 10,
+    }),
+    createLocation([200, 200], {
+      cluster: true,
+      point_count: 25,
+      sum: 50,
+    }),
+    createLocation([300, 300], {
+      cluster: true,
+      point_count: 50,
+      sum: 100,
+    }),
+  ];
+
+  render(
+    <ScatterPlotGlowOverlay
+      {...defaultProps}
+      locations={locations}
+      aggregation="sum"
+    />,
+  );
+  const redrawParams = createMockRedrawParams();
+  (global as any).mockRedraw(redrawParams);
+
+  const arcCalls = redrawParams.ctx.arc.mock.calls;
+  const r10 = arcCalls[0][2];
+  const r50 = arcCalls[1][2];
+  const r100 = arcCalls[2][2];
+
+  expect(r10).toBeLessThan(r50);
+  expect(r50).toBeLessThan(r100);
+});
+
+test('negative cluster label produces valid finite radius', () => {
+  const locations = [
+    createLocation([100, 100], {
+      cluster: true,
+      point_count: 3,
+      sum: -5,
+    }),
+  ];
+
+  render(
+    <ScatterPlotGlowOverlay
+      {...defaultProps}
+      locations={locations}
+      aggregation="sum"
+    />,
+  );
+  const redrawParams = createMockRedrawParams();
+  (global as any).mockRedraw(redrawParams);
+
+  const arcCalls = redrawParams.ctx.arc.mock.calls;
+  const radiusValue = arcCalls[0][2];
+  expect(Number.isFinite(radiusValue)).toBe(true);
+  expect(radiusValue).toBeGreaterThanOrEqual(defaultProps.dotRadius / 6);
+});
+
+test('single cluster with small maxLabel gets full dotRadius', () => {
+  const locations = [
+    createLocation([100, 100], {
+      cluster: true,
+      point_count: 1,
+      sum: 1,
+    }),
+  ];
+
+  render(
+    <ScatterPlotGlowOverlay
+      {...defaultProps}
+      locations={locations}
+      aggregation="sum"
+    />,
+  );
+  const redrawParams = createMockRedrawParams();
+  (global as any).mockRedraw(redrawParams);
+
+  const arcCalls = redrawParams.ctx.arc.mock.calls;
+  // When there's only one cluster, label=maxLabel, so it gets full radius
+  expect(arcCalls[0][2]).toBe(defaultProps.dotRadius);
+});
