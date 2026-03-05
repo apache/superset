@@ -88,6 +88,7 @@ from superset.utils.core import get_query_source_from_request, get_username
 from superset.utils.oauth2 import (
     check_for_oauth2,
     get_oauth2_access_token,
+    get_upstream_provider_token,
     OAuth2ClientConfigSchema,
 )
 
@@ -509,17 +510,23 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             if user and user.email:
                 effective_username = user.email.split("@")[0]
 
-        oauth2_config = self.get_oauth2_config()
-        access_token = (
-            get_oauth2_access_token(
-                oauth2_config,
-                self.id,
-                g.user.id,
-                self.db_engine_spec,
+        upstream_provider = app.config.get(
+            "DATABASE_OAUTH2_UPSTREAM_PROVIDERS", {}
+        ).get(self.db_engine_spec.engine_name)
+        if upstream_provider and hasattr(g, "user") and hasattr(g.user, "id"):
+            access_token = get_upstream_provider_token(upstream_provider, g.user.id)
+        else:
+            oauth2_config = self.get_oauth2_config()
+            access_token = (
+                get_oauth2_access_token(
+                    oauth2_config,
+                    self.id,
+                    g.user.id,
+                    self.db_engine_spec,
+                )
+                if oauth2_config and hasattr(g, "user") and hasattr(g.user, "id")
+                else None
             )
-            if oauth2_config and hasattr(g, "user") and hasattr(g.user, "id")
-            else None
-        )
         masked_url = self.get_password_masked_url(sqlalchemy_url)
         logger.debug("Database._get_sqla_engine(). Masked URL: %s", str(masked_url))
 
@@ -1355,6 +1362,29 @@ class DatabaseUserOAuth2Tokens(Model, AuditMixinNullable):
     )
     database = relationship("Database", foreign_keys=[database_id])
 
+    access_token = Column(encrypted_field_factory.create(Text), nullable=True)
+    access_token_expiration = Column(DateTime, nullable=True)
+    refresh_token = Column(encrypted_field_factory.create(Text), nullable=True)
+
+
+class UserAuthToken(Model, AuditMixinNullable):
+    """
+    Store OAuth tokens from the Superset login provider, for forwarding to databases.
+    """
+
+    __tablename__ = "user_auth_tokens"
+    __table_args__ = (
+        sqla.Index("idx_user_auth_tokens_user_provider", "user_id", "provider"),
+    )
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(
+        Integer,
+        ForeignKey("ab_user.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    user = relationship(security_manager.user_model, foreign_keys=[user_id])
+    provider = Column(String(256), nullable=False)
     access_token = Column(encrypted_field_factory.create(Text), nullable=True)
     access_token_expiration = Column(DateTime, nullable=True)
     refresh_token = Column(encrypted_field_factory.create(Text), nullable=True)

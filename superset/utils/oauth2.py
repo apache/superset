@@ -37,7 +37,7 @@ from superset.superset_typing import OAuth2ClientConfig, OAuth2State
 
 if TYPE_CHECKING:
     from superset.db_engine_specs.base import BaseEngineSpec
-    from superset.models.core import Database, DatabaseUserOAuth2Tokens
+    from superset.models.core import Database, DatabaseUserOAuth2Tokens, UserAuthToken
 
 JWT_EXPIRATION = timedelta(minutes=5)
 
@@ -172,6 +172,171 @@ def refresh_oauth2_token(
             token.refresh_token = new_refresh_token
 
         db.session.add(token)
+
+    return token.access_token
+
+
+def save_user_provider_token(
+    user_id: int,
+    provider: str,
+    token_response: dict[str, Any],
+) -> None:
+    """
+    Upsert a UserAuthToken record for the given user and login provider.
+
+    Called after a successful Superset OAuth login when the provider has
+    ``save_token: True`` set in ``OAUTH_PROVIDERS``.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset.models.core import UserAuthToken
+
+    token = (
+        db.session.query(UserAuthToken)
+        .filter_by(user_id=user_id, provider=provider)
+        .one_or_none()
+    )
+    if token is None:
+        token = UserAuthToken(user_id=user_id, provider=provider)
+
+    token.access_token = token_response.get("access_token")
+    expires_in = token_response.get("expires_in")
+    if expires_in is not None:
+        token.access_token_expiration = datetime.now() + timedelta(
+            seconds=int(expires_in)
+        )
+    else:
+        token.access_token_expiration = None
+    token.refresh_token = token_response.get("refresh_token")
+
+    db.session.add(token)
+    db.session.commit()
+
+
+def get_upstream_provider_token(provider: str, user_id: int) -> str | None:
+    """
+    Return a valid access token stored for the given login provider and user.
+
+    If the stored token is expired and a refresh token is available, the token
+    is refreshed and the new access token is returned.  Returns ``None`` when no
+    token is found or when the token cannot be refreshed.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset.models.core import UserAuthToken
+
+    token: UserAuthToken | None = (
+        db.session.query(UserAuthToken)
+        .filter_by(user_id=user_id, provider=provider)
+        .one_or_none()
+    )
+    if token is None:
+        return None
+
+    if token.access_token and (
+        token.access_token_expiration is None
+        or datetime.now() < token.access_token_expiration
+    ):
+        return token.access_token
+
+    if token.refresh_token:
+        return _refresh_upstream_provider_token(token, provider)
+
+    # Expired with no refresh token — discard stale record
+    db.session.delete(token)
+    db.session.commit()
+    return None
+
+
+def _refresh_upstream_provider_token(
+    token: "UserAuthToken",
+    provider: str,
+) -> str | None:
+    """
+    Refresh an upstream provider token using the stored refresh token.
+
+    Looks up the provider's token endpoint via Flask-AppBuilder's remote app
+    registry, issues a refresh-grant request, persists the new token, and
+    returns the new access token (or ``None`` if the refresh fails).
+    """
+    import requests  # pylint: disable=import-outside-toplevel
+
+    provider_configs: list[dict[str, Any]] = app.config.get("OAUTH_PROVIDERS", [])
+    provider_config = next(
+        (p for p in provider_configs if p.get("name") == provider), None
+    )
+    if not provider_config:
+        logger.warning(
+            "Cannot refresh upstream token: provider '%s' not found in OAUTH_PROVIDERS",
+            provider,
+        )
+        return None
+
+    # Retrieve the token endpoint from the registered remote app's server metadata
+    from flask_appbuilder import current_app as fab_app  # pylint: disable=import-outside-toplevel
+
+    sm = fab_app.appbuilder.sm
+    remote_app = getattr(sm, "oauth_remoteapp", {}).get(provider)
+    if remote_app is None:
+        logger.warning(
+            "Cannot refresh upstream token: remote app '%s' not registered", provider
+        )
+        return None
+
+    try:
+        server_metadata = remote_app.load_server_metadata()
+        token_endpoint = server_metadata.get("token_endpoint")
+    except Exception:  # pylint: disable=broad-except
+        logger.warning(
+            "Cannot refresh upstream token: failed to load server metadata for '%s'",
+            provider,
+            exc_info=True,
+        )
+        return None
+
+    if not token_endpoint:
+        logger.warning(
+            "Cannot refresh upstream token: no token_endpoint in metadata for '%s'",
+            provider,
+        )
+        return None
+
+    client_id = provider_config.get("remote_app", {}).get("client_id")
+    client_secret = provider_config.get("remote_app", {}).get("client_secret")
+
+    try:
+        resp = requests.post(  # noqa: S113
+            token_endpoint,
+            data={
+                "grant_type": "refresh_token",
+                "refresh_token": token.refresh_token,
+                "client_id": client_id,
+                "client_secret": client_secret,
+            },
+            timeout=app.config.get("DATABASE_OAUTH2_TIMEOUT", timedelta(seconds=30)).total_seconds(),
+        )
+        resp.raise_for_status()
+        token_response = resp.json()
+    except Exception:  # pylint: disable=broad-except
+        logger.warning(
+            "Failed to refresh upstream OAuth token for provider '%s'",
+            provider,
+            exc_info=True,
+        )
+        return None
+
+    if "access_token" not in token_response:
+        return None
+
+    token.access_token = token_response["access_token"]
+    expires_in = token_response.get("expires_in")
+    if expires_in is not None:
+        token.access_token_expiration = datetime.now() + timedelta(
+            seconds=int(expires_in)
+        )
+    if new_refresh_token := token_response.get("refresh_token"):
+        token.refresh_token = new_refresh_token
+
+    db.session.add(token)
+    db.session.commit()
 
     return token.access_token
 

@@ -23,7 +23,7 @@ import time
 from collections import defaultdict
 from typing import Any, Callable, cast, NamedTuple, Optional, TYPE_CHECKING
 
-from flask import current_app, Flask, g, Request
+from flask import current_app, Flask, g, Request, session
 from flask_appbuilder import Model
 from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.security.sqla.apis import RoleApi, UserApi
@@ -1529,6 +1529,41 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         # Exclude all other permissions not explicitly allowed
         return False
+
+    def auth_user_oauth(self, userinfo: dict[str, Any]) -> Any:
+        """
+        Override FAB's auth_user_oauth to persist the upstream login token when the
+        provider is configured with ``save_token: True`` in ``OAUTH_PROVIDERS``.
+
+        The token stored here can later be forwarded to database connections via
+        ``DATABASE_OAUTH2_UPSTREAM_PROVIDERS``, avoiding a separate database OAuth dance.
+        """
+        user = super().auth_user_oauth(userinfo)
+        if user:
+            provider = session.get("oauth_provider")
+            token = session.get("oauth")
+            if token and provider:
+                provider_configs: list[dict[str, Any]] = current_app.config.get(
+                    "OAUTH_PROVIDERS", []
+                )
+                provider_config = next(
+                    (p for p in provider_configs if p.get("name") == provider),
+                    None,
+                )
+                if provider_config and provider_config.get("save_token"):
+                    # pylint: disable=import-outside-toplevel
+                    from superset.utils.oauth2 import save_user_provider_token
+
+                    try:
+                        save_user_provider_token(user.id, provider, token)
+                    except Exception:  # pylint: disable=broad-except
+                        logger.warning(
+                            "Failed to save upstream OAuth token for user=%s provider=%s",
+                            user.id,
+                            provider,
+                            exc_info=True,
+                        )
+        return user
 
     def database_after_insert(
         self,
