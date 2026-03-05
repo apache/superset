@@ -27,7 +27,7 @@ import {
 import { LatestQueryFormData, makeApi } from '@superset-ui/core';
 import { css } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
-import { Input, Space, Typography } from '@superset-ui/core/components';
+import { Icons, Input, Space, Typography } from '@superset-ui/core/components';
 import { CopyToClipboard } from 'src/components';
 
 interface EmbedData {
