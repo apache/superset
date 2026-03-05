@@ -138,6 +138,7 @@ const PropertiesModal = ({
     Array<{
       id: number;
       theme_name: string;
+      json_data?: string;
     }>
   >([]);
   const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
@@ -386,6 +387,9 @@ const PropertiesModal = ({
       certifiedBy,
       certificationDetails,
       themeId: selectedThemeId,
+      theme: selectedThemeId
+        ? themes.find(t => t.id === selectedThemeId)
+        : null,
       css: customCss,
       ...moreOnSubmitProps,
     };
@@ -441,7 +445,7 @@ const PropertiesModal = ({
 
       // Fetch themes (excluding system themes)
       const themeQuery = rison.encode({
-        columns: ['id', 'theme_name', 'is_system'],
+        columns: ['id', 'theme_name', 'is_system', 'json_data'],
         filters: [
           {
             col: 'is_system',
