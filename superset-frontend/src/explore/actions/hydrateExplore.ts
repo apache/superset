@@ -144,9 +144,7 @@ export const hydrateExplore =
     if (colorSchemeKey) verifyColorScheme(ColorSchemeType.CATEGORICAL);
     if (linearColorSchemeKey) verifyColorScheme(ColorSchemeType.SEQUENTIAL);
 
-    const granularExport = isFeatureEnabled(
-      FeatureFlag.GranularExportControls,
-    );
+    const granularExport = isFeatureEnabled(FeatureFlag.GranularExportControls);
     const exploreState = {
       // note this will add `form_data` to state,
       // which will be manipulable by future reducers.
