@@ -31,7 +31,7 @@ import cx from 'classnames';
 import { t } from '@apache-superset/core/translation';
 import { FeatureFlag, isFeatureEnabled, JsonObject } from '@superset-ui/core';
 import { css, styled, SupersetTheme } from '@apache-superset/core/theme';
-import { Icons, Constants } from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components';
 import {
   Draggable,
   Droppable,
