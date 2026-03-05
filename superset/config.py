@@ -748,7 +748,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enable sharing charts with embedding
     # @lifecycle: stable
     # @category: runtime_config
-    "EMBEDDABLE_CHARTS": True,
+    "EMBEDDABLE_CHARTS": False,
     # Enable embedded Superset functionality
     # @lifecycle: stable
     # @category: runtime_config

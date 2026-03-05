@@ -130,8 +130,12 @@ function setupGuestClient(guestToken: string) {
 
 function validateMessageEvent(event: MessageEvent) {
   const { data } = event;
-  if (data == null || typeof data !== 'object' || data.type !== MESSAGE_TYPE) {
-    throw new Error(`Message type does not match type used for embedded comms`);
+  if (data == null || typeof data !== 'object') {
+    throw new Error('Message data is not an object');
+  }
+  // Accept messages with the correct type, or messages carrying guestToken/handshake
+  if (data.type !== MESSAGE_TYPE && !data.guestToken && !data.handshake) {
+    throw new Error('Message type does not match type used for embedded comms');
   }
 }
 

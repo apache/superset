@@ -61,7 +61,7 @@ const ButtonRow = styled.div`
 
 export const ChartEmbedControls = ({ chartId, onHide }: Props) => {
   const { addInfoToast, addDangerToast } = useToasts();
-  const [ready, setReady] = useState(true);
+  const [ready, setReady] = useState(false);
   const [loading, setLoading] = useState(false);
   const [embedded, setEmbedded] = useState<EmbeddedChart | null>(null);
   const [allowedDomains, setAllowedDomains] = useState<string>('');

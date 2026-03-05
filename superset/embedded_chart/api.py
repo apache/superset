@@ -278,7 +278,7 @@ class EmbeddedChartRestApi(BaseSupersetApi):
 
             resources: list[GuestTokenResource] = [
                 {
-                    "type": GuestTokenResourceType.CHART_PERMALINK,
+                    "type": GuestTokenResourceType.CHART_PERMALINK.value,
                     "id": permalink_key,
                 }
             ]
@@ -312,7 +312,9 @@ class EmbeddedChartRestApi(BaseSupersetApi):
 
         except (ValueError, KeyError, TypeError) as ex:
             logger.warning("Error creating embedded chart: %s", ex)
-            return self.response_400(message=str(ex))
+            return self.response_400(
+                message="Invalid request parameters for embedded chart"
+            )
         except CommandException:
             logger.exception("Error creating embedded chart permalink")
             return self.response_500()

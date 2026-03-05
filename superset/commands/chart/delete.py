@@ -81,4 +81,11 @@ class DeleteEmbeddedChartCommand(BaseCommand):
         return EmbeddedChartDAO.delete(self._chart.embedded)
 
     def validate(self) -> None:
-        pass
+        if not self._chart:
+            raise ChartNotFoundError()
+        if not self._chart.embedded:
+            raise ChartNotFoundError()
+        try:
+            security_manager.raise_for_ownership(self._chart)
+        except SupersetSecurityException as ex:
+            raise ChartForbiddenError() from ex

@@ -96,6 +96,13 @@
         const val = parsedIframe.getAttribute(attr);
         if (val) iframe.setAttribute(attr, val);
       }
+      // Validate src URL scheme to prevent javascript: or data: URIs
+      const srcVal = iframe.getAttribute('src') || '';
+      if (srcVal && !srcVal.startsWith('http://') && !srcVal.startsWith('https://')) {
+        container.textContent = 'Error: iframe src must use http:// or https://';
+        return;
+      }
+      iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-popups');
 
       container.textContent = '';
       container.appendChild(iframe);

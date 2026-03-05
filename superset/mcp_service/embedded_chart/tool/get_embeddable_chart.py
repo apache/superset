@@ -201,8 +201,9 @@ async def get_embeddable_chart(
 
         await ctx.debug(f"Created permalink: {permalink_key}")
 
-        # Calculate expiration
-        expires_at = datetime.now(timezone.utc) + timedelta(minutes=request.ttl_minutes)
+        # Calculate expiration (use safe default if ttl_minutes is missing)
+        ttl = request.ttl_minutes if request.ttl_minutes else 60
+        expires_at = datetime.now(timezone.utc) + timedelta(minutes=ttl)
 
         # Generate guest token
         username = g.user.username if hasattr(g, "user") and g.user else "anonymous"
@@ -214,7 +215,7 @@ async def get_embeddable_chart(
 
         resources: list[GuestTokenResource] = [
             {
-                "type": GuestTokenResourceType.CHART_PERMALINK,
+                "type": GuestTokenResourceType.CHART_PERMALINK.value,
                 "id": permalink_key,
             }
         ]
