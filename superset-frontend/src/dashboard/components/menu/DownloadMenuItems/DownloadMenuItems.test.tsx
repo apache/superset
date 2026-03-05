@@ -39,7 +39,7 @@ vi.mock('src/components/MessageToasts/withToasts', () => ({
   }),
 }));
 
-vi.mock('@superset-ui/core', async (importActual) => ({
+vi.mock('@superset-ui/core', async importActual => ({
   ...(await importActual()),
   SupersetClient: {
     get: vi.fn(),

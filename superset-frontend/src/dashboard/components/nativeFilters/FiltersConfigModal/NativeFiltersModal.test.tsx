@@ -33,7 +33,7 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 });
 
-vi.mock('@superset-ui/core', async (importActual) => ({
+vi.mock('@superset-ui/core', async importActual => ({
   ...(await importActual()),
   getChartMetadataRegistry: () => ({
     items: {

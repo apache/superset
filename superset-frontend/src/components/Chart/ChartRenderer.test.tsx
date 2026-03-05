@@ -36,7 +36,7 @@ interface MockSuperChartProps {
   [key: string]: unknown;
 }
 
-vi.mock('@superset-ui/core', async (importActual) => ({
+vi.mock('@superset-ui/core', async importActual => ({
   ...(await importActual()),
   SuperChart: ({
     postTransformProps = (x: JsonObject) => x,

@@ -321,9 +321,7 @@ describe('dashboardState actions', () => {
     vi.runAllTimers();
     await expect(promise).rejects.toThrow('refresh failed');
     vi.useRealTimers();
-    (refreshChart as Mock).mockImplementation(
-      () => () => Promise.resolve(),
-    );
+    (refreshChart as Mock).mockImplementation(() => () => Promise.resolve());
   });
 
   test('onRefresh dispatches success and filters refresh by default', async () => {

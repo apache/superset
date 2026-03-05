@@ -22,7 +22,7 @@ import { SupersetClient } from '@superset-ui/core';
 import DeckglLayerVisibilityCustomizationPlugin from './DeckglLayerVisibilityCustomizationPlugin';
 import { PluginDeckglLayerVisibilityProps } from './types';
 
-vi.mock('@superset-ui/core', async (importActual) => ({
+vi.mock('@superset-ui/core', async importActual => ({
   ...(await importActual()),
   SupersetClient: {
     get: vi.fn(),

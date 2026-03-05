@@ -32,7 +32,7 @@ import {
 vi.setConfig({ testTimeout: 30000 });
 
 // Mock the feature flag
-vi.mock('@superset-ui/core', async (importActual) => ({
+vi.mock('@superset-ui/core', async importActual => ({
   ...(await importActual()),
   isFeatureEnabled: vi.fn(),
 }));

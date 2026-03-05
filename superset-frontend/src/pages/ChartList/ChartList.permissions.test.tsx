@@ -30,7 +30,7 @@ import { API_ENDPOINTS, mockCharts, setupMocks } from './ChartList.testHelpers';
 // Increase default timeout for all tests
 vi.setConfig({ testTimeout: 30000 });
 
-vi.mock('@superset-ui/core', async (importActual) => ({
+vi.mock('@superset-ui/core', async importActual => ({
   ...(await importActual()),
   isFeatureEnabled: vi.fn(),
 }));

@@ -51,7 +51,7 @@ const mockSaveFavoriteStatus = vi.fn();
 const mockHandleBulkDashboardExport = vi.fn();
 const mockOnDelete = vi.fn();
 
-vi.mock('@superset-ui/core', async (importActual) => ({
+vi.mock('@superset-ui/core', async importActual => ({
   ...(await importActual()),
   isFeatureEnabled: vi.fn(),
 }));

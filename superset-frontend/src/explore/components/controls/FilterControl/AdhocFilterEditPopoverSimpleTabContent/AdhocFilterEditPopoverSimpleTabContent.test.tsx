@@ -138,7 +138,7 @@ function setup(overrides?: Record<string, unknown>) {
   return props;
 }
 
-vi.mock('@superset-ui/core', async (importActual) => ({
+vi.mock('@superset-ui/core', async importActual => ({
   ...(await importActual()),
   isFeatureEnabled: vi.fn(),
 }));

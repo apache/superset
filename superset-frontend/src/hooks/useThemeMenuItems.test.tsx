@@ -28,7 +28,7 @@ import { Menu } from '@superset-ui/core/components';
 import { ThemeSubMenuProps, useThemeMenuItems } from './useThemeMenuItems';
 
 // Mock the translation function
-vi.mock('@superset-ui/core', async (importActual) => ({
+vi.mock('@superset-ui/core', async importActual => ({
   ...(await importActual()),
   t: (key: string) => key,
 }));

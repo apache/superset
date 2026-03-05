@@ -39,7 +39,7 @@ import reducerIndex from 'spec/helpers/reducerIndex';
 import * as exploreActions from 'src/explore/actions/exploreActions';
 import ExploreViewContainer from '.';
 
-vi.mock('@superset-ui/core', async (importActual) => ({
+vi.mock('@superset-ui/core', async importActual => ({
   ...(await importActual()),
   isMatrixifyEnabled: vi.fn(() => false),
 }));

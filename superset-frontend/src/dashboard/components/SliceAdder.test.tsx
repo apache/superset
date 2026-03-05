@@ -28,7 +28,7 @@ import { configureStore } from '@reduxjs/toolkit';
 import SliceAdder, { SliceAdderProps, sortByComparator } from './SliceAdder';
 
 // Mock the Select component to avoid debounce issues
-vi.mock('@superset-ui/core', async (importActual) => ({
+vi.mock('@superset-ui/core', async importActual => ({
   ...(await importActual()),
   Select: ({ value, onChange, options }: any) => (
     <select

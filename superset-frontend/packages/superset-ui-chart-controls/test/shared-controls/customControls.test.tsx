@@ -23,7 +23,7 @@ import { checkColumnType } from '../../src/utils/checkColumnType';
 import type { ControlState } from '@superset-ui/chart-controls';
 
 vi.mock('../../src/utils/checkColumnType');
-vi.mock('@superset-ui/core', async (importActual) => ({
+vi.mock('@superset-ui/core', async importActual => ({
   ...(await importActual()),
   getColumnLabel: vi.fn((col: any) => col),
 }));

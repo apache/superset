@@ -22,7 +22,7 @@ import controlPanel from './controlPanel';
 
 const { __mockShiftMetric } = ChartControls as any;
 
-vi.mock('@superset-ui/core', async (importActual) => ({
+vi.mock('@superset-ui/core', async importActual => ({
   GenericDataType: { Numeric: 'numeric' },
   SMART_DATE_ID: 'SMART_DATE_ID',
   t: (str: string) => str,

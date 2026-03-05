@@ -124,7 +124,7 @@ function setup(props: HeaderReportProps, initialState = {}) {
   render(<MenuWrapper {...props} />, { useRedux: true, initialState });
 }
 
-vi.mock('@superset-ui/core', async (importActual) => ({
+vi.mock('@superset-ui/core', async importActual => ({
   ...(await importActual()),
   isFeatureEnabled: vi.fn(),
 }));

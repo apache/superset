@@ -27,7 +27,7 @@ import fetchMock from 'fetch-mock';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import PropertiesModal, { PropertiesModalProps } from '.';
 
-vi.mock('@superset-ui/core', async (importActual) => ({
+vi.mock('@superset-ui/core', async importActual => ({
   ...(await importActual()),
   isFeatureEnabled: vi.fn(),
 }));

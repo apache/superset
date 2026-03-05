@@ -35,7 +35,7 @@ import * as dataMaskActions from 'src/dataMask/actions';
 
 vi.useFakeTimers();
 
-vi.mock('@superset-ui/core', async (importActual) => ({
+vi.mock('@superset-ui/core', async importActual => ({
   ...(await importActual()),
   makeApi: vi.fn(),
 }));

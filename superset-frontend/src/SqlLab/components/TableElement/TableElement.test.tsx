@@ -25,7 +25,7 @@ import { render, waitFor, fireEvent } from 'spec/helpers/testing-library';
 import * as sqlLabActions from 'src/SqlLab/actions/sqlLab';
 import { QueryEditor } from 'src/SqlLab/types';
 
-vi.mock('@superset-ui/core', async (importActual) => ({
+vi.mock('@superset-ui/core', async importActual => ({
   ...(await importActual()),
   isFeatureEnabled: vi.fn(),
 }));
