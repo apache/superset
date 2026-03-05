@@ -123,6 +123,9 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
     return colorMap[iso] || '#d9d9d9';
   };
 
+  // Check if dashboard is in edit mode
+  const isEditMode = container.closest('.dashboard--editing') !== null;
+
   const path = d3.geo.path();
   const div = d3.select(container);
   div.classed('superset-legacy-chart-country-map', true);
@@ -133,8 +136,12 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
     .append('svg:svg')
     .attr('width', width)
     .attr('height', height)
-    .attr('preserveAspectRatio', 'xMidYMid meet')
-    .style('cursor', 'grab');
+    .attr('preserveAspectRatio', 'xMidYMid meet');
+  
+  // Only set grab cursor if not in edit mode
+  if (!isEditMode) {
+    svg.style('cursor', 'grab');
+  }
   const backgroundRect = svg
     .append('rect')
     .attr('class', 'background')
@@ -244,53 +251,56 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
     hoverPopup.style('display', 'none');
   };
 
-  // Zoom with panning bounds
-  const zoom = d3.behavior
-    .zoom()
-    .scaleExtent([1, 4])
-    .on('zoomstart', () => {
-      svg.style('cursor', 'grabbing');
-    })
-    .on('zoom', () => {
-      const { translate, scale } = d3.event;
-      let [tx, ty] = translate;
+  // Only enable zoom if not in edit mode
+  if (!isEditMode) {
+    // Zoom with panning bounds
+    const zoom = d3.behavior
+      .zoom()
+      .scaleExtent([1, 4])
+      .on('zoomstart', () => {
+        svg.style('cursor', 'grabbing');
+      })
+      .on('zoom', () => {
+        const { translate, scale } = d3.event;
+        let [tx, ty] = translate;
 
-      const scaledW = width * scale;
-      const scaledH = height * scale;
-      const minX = Math.min(0, width - scaledW);
-      const maxX = 0;
-      const minY = Math.min(0, height - scaledH);
-      const maxY = 0;
+        const scaledW = width * scale;
+        const scaledH = height * scale;
+        const minX = Math.min(0, width - scaledW);
+        const maxX = 0;
+        const minY = Math.min(0, height - scaledH);
+        const maxY = 0;
 
-      tx = Math.max(Math.min(tx, maxX), minX);
-      ty = Math.max(Math.min(ty, maxY), minY);
+        tx = Math.max(Math.min(tx, maxX), minX);
+        ty = Math.max(Math.min(ty, maxY), minY);
 
-      g.attr('transform', `translate(${tx}, ${ty}) scale(${scale})`);
-      const prev = zoomStates.get(element);
-      const changed =
-        !prev ||
-        prev.scale !== scale ||
-        prev.translate[0] !== tx ||
-        prev.translate[1] !== ty;
-      if (changed) {
-        zoomStates.set(element, { scale, translate: [tx, ty] });
-      }
-    })
-    .on('zoomend', () => {
-      svg.style('cursor', 'grab');
-    });
+        g.attr('transform', `translate(${tx}, ${ty}) scale(${scale})`);
+        const prev = zoomStates.get(element);
+        const changed =
+          !prev ||
+          prev.scale !== scale ||
+          prev.translate[0] !== tx ||
+          prev.translate[1] !== ty;
+        if (changed) {
+          zoomStates.set(element, { scale, translate: [tx, ty] });
+        }
+      })
+      .on('zoomend', () => {
+        svg.style('cursor', 'grab');
+      });
 
-  d3.select(svg.node()).call(zoom);
+    d3.select(svg.node()).call(zoom);
 
-  // Restore previous zoom state if it exists
-  const savedZoom = zoomStates.get(element);
-  if (savedZoom) {
-    const { scale, translate } = savedZoom;
-    zoom.scale(scale).translate(translate);
-    g.attr(
-      'transform',
-      `translate(${translate[0]}, ${translate[1]}) scale(${scale})`,
-    );
+    // Restore previous zoom state if it exists
+    const savedZoom = zoomStates.get(element);
+    if (savedZoom) {
+      const { scale, translate } = savedZoom;
+      zoom.scale(scale).translate(translate);
+      g.attr(
+        'transform',
+        `translate(${translate[0]}, ${translate[1]}) scale(${scale})`,
+      );
+    }
   }
 
   // Visual highlighting for selected regions
