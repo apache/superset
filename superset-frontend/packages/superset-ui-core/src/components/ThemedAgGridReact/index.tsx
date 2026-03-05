@@ -105,6 +105,9 @@ export const ThemedAgGridReact = forwardRef<
       borderColor: theme.colorSplit,
       columnBorderColor: theme.colorSplit,
 
+      // Checkbox tick color
+      checkboxCheckedShapeColor: theme.colorBgElevated,
+
       // Interactive elements
       accentColor: theme.colorPrimary,
       rangeSelectionBorderColor: theme.colorPrimary,

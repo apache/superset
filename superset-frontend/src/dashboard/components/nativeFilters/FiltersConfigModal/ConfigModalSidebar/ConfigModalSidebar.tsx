@@ -16,16 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FC, ReactNode, useCallback } from 'react';
+import { FC, ReactNode, useCallback, useState } from 'react';
 import { t } from '@apache-superset/core';
 import { NativeFilterType, ChartCustomizationType } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';
 import { Collapse, Flex } from '@superset-ui/core/components';
+import type { DragEndEvent } from '@dnd-kit/core';
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  closestCenter,
+} from '@dnd-kit/core';
 import NewItemDropdown from '../NewItemDropdown';
 import ItemSectionContent from './ItemSection';
 import { FilterRemoval } from '../types';
 import { FILTER_TYPE, CUSTOMIZATION_TYPE } from '../DraggableFilter';
-import { isFilterId, isChartCustomizationId } from '../utils';
+import { isFilterId, isChartCustomizationId, isDivider } from '../utils';
 
 const StyledSidebarFlex = styled(Flex)`
   min-width: 290px;
@@ -37,11 +46,16 @@ const StyledHeaderFlex = styled(Flex)`
   padding: ${({ theme }) => theme.sizeUnit * 3}px;
 `;
 
-const BaseStyledCollapse = styled(Collapse)`
+const BaseStyledCollapse = styled(Collapse)<{ isDragging: boolean }>`
   flex: 1;
   overflow: auto;
   .ant-collapse-content-box {
     padding: 0;
+    ${({ isDragging }) =>
+      isDragging &&
+      `
+      overflow: hidden;
+    `}
   }
 `;
 
@@ -78,6 +92,7 @@ export interface ConfigModalSidebarProps {
     targetType: 'filter' | 'customization',
   ) => void;
   itemTitles?: Record<string, string>;
+  formValuesVersion?: number;
 }
 
 const ConfigModalSidebar: FC<ConfigModalSidebarProps> = ({
@@ -101,11 +116,112 @@ const ConfigModalSidebar: FC<ConfigModalSidebarProps> = ({
   onCollapseChange,
   onCrossListDrop,
   itemTitles,
+  formValuesVersion,
 }) => {
   const getTitle = useCallback(
     (id: string) => itemTitles?.[id] ?? getItemTitle(id),
     [itemTitles, getItemTitle],
   );
+
+  const [isDragging, setIsDragging] = useState(false);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 10 },
+    }),
+    useSensor(KeyboardSensor),
+  );
+
+  const handleDragStart = useCallback(() => {
+    setIsDragging(true);
+  }, []);
+
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      setIsDragging(false);
+      const { active, over } = event;
+
+      if (!over || active.id === over.id) {
+        return;
+      }
+
+      const activeFilterIndex = filterOrderedIds.findIndex(
+        id => id === active.id,
+      );
+      const activeCustomizationIndex = customizationOrderedIds.findIndex(
+        id => id === active.id,
+      );
+      const overFilterIndex = filterOrderedIds.findIndex(id => id === over.id);
+      const overCustomizationIndex = customizationOrderedIds.findIndex(
+        id => id === over.id,
+      );
+
+      const activeData = active.data.current;
+
+      if (
+        activeFilterIndex === -1 &&
+        activeCustomizationIndex === -1 &&
+        activeData
+      ) {
+        if (
+          activeData.isDivider &&
+          activeData.dragType &&
+          onCrossListDrop &&
+          (overFilterIndex !== -1 || overCustomizationIndex !== -1)
+        ) {
+          const sourceType: 'filter' | 'customization' =
+            activeData.dragType === FILTER_TYPE ? 'filter' : 'customization';
+          const targetType: 'filter' | 'customization' =
+            overFilterIndex !== -1 ? 'filter' : 'customization';
+          const targetIndex =
+            overFilterIndex !== -1 ? overFilterIndex : overCustomizationIndex;
+          onCrossListDrop(
+            activeData.filterIds[0],
+            targetIndex,
+            sourceType,
+            targetType,
+          );
+        }
+        return;
+      }
+
+      if (
+        onCrossListDrop &&
+        typeof active.id === 'string' &&
+        isDivider(active.id) &&
+        ((activeFilterIndex !== -1 && overCustomizationIndex !== -1) ||
+          (activeCustomizationIndex !== -1 && overFilterIndex !== -1))
+      ) {
+        const sourceType: 'filter' | 'customization' =
+          activeFilterIndex !== -1 ? 'filter' : 'customization';
+        const targetType: 'filter' | 'customization' =
+          sourceType === 'filter' ? 'customization' : 'filter';
+        const targetIndex =
+          targetType === 'filter' ? overFilterIndex : overCustomizationIndex;
+
+        if (targetIndex !== -1) {
+          onCrossListDrop(active.id, targetIndex, sourceType, targetType);
+        }
+        return;
+      }
+
+      if (activeFilterIndex !== -1 && overFilterIndex !== -1) {
+        const itemId = filterOrderedIds[activeFilterIndex];
+        onRearrange(activeFilterIndex, overFilterIndex, itemId);
+        return;
+      }
+
+      if (activeCustomizationIndex !== -1 && overCustomizationIndex !== -1) {
+        const itemId = customizationOrderedIds[activeCustomizationIndex];
+        onRearrange(activeCustomizationIndex, overCustomizationIndex, itemId);
+      }
+    },
+    [filterOrderedIds, customizationOrderedIds, onRearrange, onCrossListDrop],
+  );
+
+  const handleDragCancel = useCallback(() => {
+    setIsDragging(false);
+  }, []);
 
   const handleFilterCrossListDrop = (
     sourceId: string,
@@ -139,60 +255,70 @@ const ConfigModalSidebar: FC<ConfigModalSidebarProps> = ({
   );
 
   return (
-    <StyledSidebarFlex vertical>
-      <StyledHeaderFlex align="center">
-        <NewItemDropdown
-          onAddFilter={onAddFilter}
-          onAddCustomization={onAddCustomization}
-        />
-      </StyledHeaderFlex>
-      <StyledCollapse
-        activeKey={activeCollapseKeys}
-        onChange={keys => onCollapseChange(keys as string[])}
-        ghost
-      >
-        <StyledCollapse.Panel key="filters" header={filtersHeader}>
-          <ItemSectionContent
-            currentItemId={currentItemId}
-            items={filterOrderedIds}
-            removedItems={filterRemovedItems}
-            erroredItems={filterErroredItems}
-            getItemTitle={getTitle}
-            onChange={onChange}
-            onRearrange={onRearrange}
-            onRemove={onRemove}
-            restoreItem={restoreItem}
-            dataTestId="filter-title-container"
-            deleteAltText="RemoveFilter"
-            dragType={FILTER_TYPE}
-            isCurrentSection={isFilterId(currentItemId)}
-            onCrossListDrop={handleFilterCrossListDrop}
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onDragCancel={handleDragCancel}
+    >
+      <StyledSidebarFlex vertical>
+        <StyledHeaderFlex align="center">
+          <NewItemDropdown
+            onAddFilter={onAddFilter}
+            onAddCustomization={onAddCustomization}
           />
-        </StyledCollapse.Panel>
-
-        <StyledCollapse.Panel
-          key="chartCustomizations"
-          header={customizationsHeader}
+        </StyledHeaderFlex>
+        <StyledCollapse
+          key={formValuesVersion}
+          activeKey={activeCollapseKeys}
+          onChange={keys => onCollapseChange(keys as string[])}
+          ghost
+          isDragging={isDragging}
         >
-          <ItemSectionContent
-            currentItemId={currentItemId}
-            items={customizationOrderedIds}
-            removedItems={customizationRemovedItems}
-            erroredItems={customizationErroredItems}
-            getItemTitle={getTitle}
-            onChange={onChange}
-            onRearrange={onRearrange}
-            onRemove={onRemove}
-            restoreItem={restoreItem}
-            dataTestId="customization-title-container"
-            deleteAltText="RemoveCustomization"
-            dragType={CUSTOMIZATION_TYPE}
-            isCurrentSection={isChartCustomizationId(currentItemId)}
-            onCrossListDrop={handleCustomizationCrossListDrop}
-          />
-        </StyledCollapse.Panel>
-      </StyledCollapse>
-    </StyledSidebarFlex>
+          <StyledCollapse.Panel key="filters" header={filtersHeader}>
+            <ItemSectionContent
+              currentItemId={currentItemId}
+              items={filterOrderedIds}
+              removedItems={filterRemovedItems}
+              erroredItems={filterErroredItems}
+              getItemTitle={getTitle}
+              onChange={onChange}
+              onRearrange={onRearrange}
+              onRemove={onRemove}
+              restoreItem={restoreItem}
+              dataTestId="filter-title-container"
+              deleteAltText={t('Remove filter')}
+              dragType={FILTER_TYPE}
+              isCurrentSection={isFilterId(currentItemId)}
+              onCrossListDrop={handleFilterCrossListDrop}
+            />
+          </StyledCollapse.Panel>
+
+          <StyledCollapse.Panel
+            key="chartCustomizations"
+            header={customizationsHeader}
+          >
+            <ItemSectionContent
+              currentItemId={currentItemId}
+              items={customizationOrderedIds}
+              removedItems={customizationRemovedItems}
+              erroredItems={customizationErroredItems}
+              getItemTitle={getTitle}
+              onChange={onChange}
+              onRearrange={onRearrange}
+              onRemove={onRemove}
+              restoreItem={restoreItem}
+              dataTestId="customization-title-container"
+              deleteAltText={t('Remove customization')}
+              dragType={CUSTOMIZATION_TYPE}
+              isCurrentSection={isChartCustomizationId(currentItemId)}
+              onCrossListDrop={handleCustomizationCrossListDrop}
+            />
+          </StyledCollapse.Panel>
+        </StyledCollapse>
+      </StyledSidebarFlex>
+    </DndContext>
   );
 };
 

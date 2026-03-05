@@ -46,6 +46,7 @@ import {
   convertChartStateToOwnState,
   hasChartStateConverter,
 } from '../../../util/chartStateConverter';
+import { useIsAutoRefreshing } from 'src/dashboard/contexts/AutoRefreshContext';
 
 import SliceHeader from '../../SliceHeader';
 import MissingChart from '../../MissingChart';
@@ -232,6 +233,7 @@ const Chart = (props: ChartProps) => {
       (state.dashboardInfo?.metadata as JsonObject)?.show_chart_timestamps ??
       false,
   );
+  const suppressLoadingSpinner = useIsAutoRefreshing();
 
   const isCached: boolean[] = useMemo(
     () =>
@@ -497,6 +499,8 @@ const Chart = (props: ChartProps) => {
       } else if ((queriesResponse?.[0] as JsonObject)?.sql_rowcount != null) {
         actualRowCount = (queriesResponse![0] as JsonObject)
           .sql_rowcount as number;
+      } else if ((queriesResponse?.[0] as JsonObject)?.rowcount != null) {
+        actualRowCount = (queriesResponse![0] as JsonObject).rowcount as number;
       } else {
         actualRowCount = (exportFormData as JsonObject)?.row_limit as
           | number
@@ -708,7 +712,7 @@ const Chart = (props: ChartProps) => {
         className={cx('dashboard-chart')}
         aria-label={slice.description}
       >
-        {isLoading && (
+        {isLoading && !suppressLoadingSpinner && (
           <ChartOverlay
             style={{
               width,
@@ -756,6 +760,7 @@ const Chart = (props: ChartProps) => {
           isInView={props.isInView}
           emitCrossFilters={emitCrossFilters}
           onChartStateChange={handleChartStateChange}
+          suppressLoadingSpinner={suppressLoadingSpinner}
         />
       </ChartWrapper>
 

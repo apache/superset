@@ -17,14 +17,11 @@
  * under the License.
  */
 import { t } from '@apache-superset/core';
-import { useTheme, css } from '@apache-superset/core/ui';
 import { FunctionComponent, useMemo } from 'react';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { ListView } from 'src/components';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { JsonModal } from 'src/components/JsonModal';
-import { safeJsonObjectParse } from 'src/components/JsonModal/utils';
 
 const PAGE_SIZE = 25;
 
@@ -43,8 +40,6 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
   addDangerToast,
   addSuccessToast,
 }) => {
-  const theme = useTheme();
-
   const {
     state: { loading, resourceCount, resourceCollection },
     fetchData,
@@ -67,30 +62,6 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
             original: { name },
           },
         }: any) => name,
-      },
-      {
-        Header: t('Contributions'),
-        accessor: 'contributions',
-        size: 'lg',
-        id: 'contributions',
-        Cell: ({
-          row: {
-            original: { contributions },
-          },
-        }: any) => (
-          <div
-            css={css`
-              color: ${theme.colorLink};
-              text-decoration: underline;
-            `}
-          >
-            <JsonModal
-              modalTitle={t('Contributions')}
-              jsonObject={safeJsonObjectParse(contributions)!}
-              jsonValue={t('View')}
-            />
-          </div>
-        ),
       },
     ],
     [loading], // We need to monitor loading to avoid stale state in actions

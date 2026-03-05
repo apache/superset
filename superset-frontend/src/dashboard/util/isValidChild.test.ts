@@ -145,7 +145,7 @@ describe('isValidChild', () => {
           const parentType = example[i - 1];
 
           if (typeof parentType !== 'string')
-            throw TypeError('parent must be string');
+            throw new TypeError('parent must be string');
 
           test(`(${exampleIdx})${getIndentation(
             childDepth,

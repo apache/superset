@@ -45,7 +45,7 @@ const dashboardFavoriteStatusEndpoint =
 const dashboardsEndpoint = 'glob:*/api/v1/dashboard/?*';
 const dashboardEndpoint = 'glob:*/api/v1/dashboard/*';
 
-vi.mock('@superset-ui/core', () => ({
+vi.mock('@superset-ui/core', async (importActual) => ({
   ...(await importActual()),
   isFeatureEnabled: vi.fn(),
 }));

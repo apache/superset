@@ -26,7 +26,7 @@ import fetchMock from 'fetch-mock';
 import { Column, JsonObject, getClientErrorObject } from '@superset-ui/core';
 import { ColumnSelect } from './ColumnSelect';
 
-vi.mock('@superset-ui/core', () => ({
+vi.mock('@superset-ui/core', async (importActual) => ({
   ...(await importActual()),
   getClientErrorObject: vi.fn(() => Promise.resolve({ error: 'Error' })),
 }));

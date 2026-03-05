@@ -39,7 +39,7 @@ vi.mock('../DeckGLContainer', () => ({
 }));
 
 // Mock SupersetClient
-vi.mock('@superset-ui/core', () => ({
+vi.mock('@superset-ui/core', async (importActual) => ({
   ...(await importActual()),
   SupersetClient: {
     get: vi.fn(),

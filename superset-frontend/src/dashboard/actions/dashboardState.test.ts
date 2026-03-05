@@ -24,7 +24,13 @@ import {
   SAVE_DASHBOARD_STARTED,
   saveDashboardRequest,
   SET_OVERRIDE_CONFIRM,
+  fetchCharts,
+  onRefresh,
+  ON_FILTERS_REFRESH,
+  ON_REFRESH,
+  ON_REFRESH_SUCCESS,
 } from 'src/dashboard/actions/dashboardState';
+import { refreshChart } from 'src/components/Chart/chartAction';
 import { UPDATE_COMPONENTS_PARENTS_LIST } from 'src/dashboard/actions/dashboardLayout';
 import {
   DASHBOARD_GRID_ID,
@@ -43,6 +49,10 @@ import { navigateTo } from 'src/utils/navigationUtils';
 vi.mock('@superset-ui/core', async importActual => ({
   ...(await importActual()),
   isFeatureEnabled: vi.fn(),
+}));
+
+vi.mock('src/components/Chart/chartAction', () => ({
+  refreshChart: vi.fn(() => () => Promise.resolve()),
 }));
 
 vi.mock('src/utils/navigationUtils', () => ({
@@ -236,5 +246,159 @@ describe('dashboardState actions', () => {
         `/superset/dashboard/${newDashboardId}/`,
       );
     });
+  });
+
+  test('fetchCharts returns a Promise that resolves after all refreshes', async () => {
+    (refreshChart as Mock).mockClear();
+    const { getState } = setup({
+      dashboardInfo: {
+        metadata: {},
+        common: { conf: { SUPERSET_WEBSERVER_TIMEOUT: 60 } },
+      },
+    });
+    const dispatch = (action: unknown): unknown => {
+      if (typeof action === 'function') {
+        return (action as Function)(dispatch, getState);
+      }
+      return action;
+    };
+    const chartIds = [1, 2];
+    const promise = fetchCharts(chartIds, false, 0, 10)(dispatch, getState);
+    await promise;
+
+    expect(refreshChart).toHaveBeenCalledTimes(chartIds.length);
+  });
+
+  test('fetchCharts resolves for staggered refreshes', async () => {
+    vi.useFakeTimers();
+    (refreshChart as Mock).mockClear();
+    const { getState } = setup({
+      dashboardInfo: {
+        metadata: { stagger_time: 1000, stagger_refresh: true },
+        common: { conf: { SUPERSET_WEBSERVER_TIMEOUT: 60 } },
+      },
+    });
+    const dispatch = (action: unknown): unknown => {
+      if (typeof action === 'function') {
+        return (action as Function)(dispatch, getState);
+      }
+      return action;
+    };
+    const chartIds = [1, 2, 3];
+    const promise = fetchCharts(chartIds, false, 1000, 10)(dispatch, getState);
+
+    vi.runAllTimers();
+    await promise;
+    vi.useRealTimers();
+
+    expect(refreshChart).toHaveBeenCalledTimes(chartIds.length);
+  });
+
+  test('fetchCharts rejects for staggered refreshes when any chart refresh fails', async () => {
+    vi.useFakeTimers();
+    (refreshChart as Mock).mockClear();
+    (refreshChart as Mock).mockImplementation(
+      (chartKey: number) => () =>
+        chartKey === 2
+          ? Promise.reject(new Error('refresh failed'))
+          : Promise.resolve(),
+    );
+    const { getState } = setup({
+      dashboardInfo: {
+        metadata: { stagger_time: 1000, stagger_refresh: true },
+        common: { conf: { SUPERSET_WEBSERVER_TIMEOUT: 60 } },
+      },
+    });
+    const dispatch = (action: unknown): unknown => {
+      if (typeof action === 'function') {
+        return (action as Function)(dispatch, getState);
+      }
+      return action;
+    };
+    const chartIds = [1, 2, 3];
+    const promise = fetchCharts(chartIds, false, 1000, 10)(dispatch, getState);
+
+    vi.runAllTimers();
+    await expect(promise).rejects.toThrow('refresh failed');
+    vi.useRealTimers();
+    (refreshChart as Mock).mockImplementation(
+      () => () => Promise.resolve(),
+    );
+  });
+
+  test('onRefresh dispatches success and filters refresh by default', async () => {
+    const { getState } = setup({
+      dashboardInfo: {
+        metadata: {},
+        common: { conf: { SUPERSET_WEBSERVER_TIMEOUT: 60 } },
+      },
+    });
+    const dispatched: { type: string }[] = [];
+    const dispatch = (action: unknown): unknown => {
+      if (typeof action === 'function') {
+        return (action as Function)(dispatch, getState);
+      }
+      dispatched.push(action as { type: string });
+      return action;
+    };
+
+    await onRefresh([1], true, 0, 10)(dispatch as never);
+
+    expect(dispatched.map(action => action.type)).toEqual(
+      expect.arrayContaining([
+        ON_REFRESH,
+        ON_REFRESH_SUCCESS,
+        ON_FILTERS_REFRESH,
+      ]),
+    );
+  });
+
+  test('onRefresh skips filter refresh when requested', async () => {
+    const { getState } = setup({
+      dashboardInfo: {
+        metadata: {},
+        common: { conf: { SUPERSET_WEBSERVER_TIMEOUT: 60 } },
+      },
+    });
+    const dispatched: { type: string }[] = [];
+    const dispatch = (action: unknown): unknown => {
+      if (typeof action === 'function') {
+        return (action as Function)(dispatch, getState);
+      }
+      dispatched.push(action as { type: string });
+      return action;
+    };
+
+    await onRefresh([1], true, 0, 10, true)(dispatch as never);
+
+    const dispatchedTypes = dispatched.map(action => action.type);
+    expect(dispatchedTypes).toEqual(
+      expect.arrayContaining([ON_REFRESH, ON_REFRESH_SUCCESS]),
+    );
+    expect(dispatchedTypes).not.toContain(ON_FILTERS_REFRESH);
+  });
+
+  test('onRefresh skips ON_REFRESH and filters refresh for lazy-loaded tabs', async () => {
+    const { getState } = setup({
+      dashboardInfo: {
+        metadata: {},
+        common: { conf: { SUPERSET_WEBSERVER_TIMEOUT: 60 } },
+      },
+    });
+    const dispatched: { type: string }[] = [];
+    const dispatch = (action: unknown): unknown => {
+      if (typeof action === 'function') {
+        return (action as Function)(dispatch, getState);
+      }
+      dispatched.push(action as { type: string });
+      return action;
+    };
+
+    await onRefresh([1], true, 0, 10, false, true)(dispatch as never);
+
+    const dispatchedTypes = dispatched.map(action => action.type);
+    expect(dispatchedTypes).toContain(ON_REFRESH_SUCCESS);
+    expect(dispatchedTypes).not.toContain(ON_REFRESH);
+    expect(dispatchedTypes).not.toContain(ON_FILTERS_REFRESH);
   });
 });

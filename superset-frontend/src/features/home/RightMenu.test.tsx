@@ -24,11 +24,27 @@ import {
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
+import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
+import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import RightMenu from './RightMenu';
 import { GlobalMenuDataOptions, RightMenuProps } from './types';
+import { Mock } from 'vitest';
 
-vi.mock('react-redux', () => ({
-  ...vi.requireActual('react-redux'),
+vi.mock('@superset-ui/core', async importActual => ({
+  ...(await importActual()),
+  isFeatureEnabled: vi.fn(),
+}));
+
+const mockIsFeatureEnabled = isFeatureEnabled as Mock<typeof isFeatureEnabled>;
+
+vi.mock('src/dashboard/util/isEmbedded', () => ({
+  isEmbedded: vi.fn(() => false),
+}));
+
+const mockIsEmbedded = isEmbedded as Mock<typeof isEmbedded>;
+
+vi.mock('react-redux', async importActual => ({
+  ...(await importActual()),
   useSelector: vi.fn(),
 }));
 
@@ -160,6 +176,8 @@ const getDatabaseWithNameFilterMockUrl =
   'glob:*api/v1/database/?q=(filters:!((col:database_name,opr:neq,value:examples)))';
 
 beforeEach(async () => {
+  mockIsFeatureEnabled.mockReturnValue(false);
+  mockIsEmbedded.mockReturnValue(false);
   useSelectorMock.mockReset();
   fetchMock.get(
     getDatabaseWithFileFiterMockUrl,
@@ -392,4 +410,68 @@ test('Logs out and clears local storage item redux', async () => {
     expect(localStorage.getItem('redux')).toBeNull();
     expect(sessionStorage.getItem('login_attempted')).toBeNull();
   });
+});
+
+test('shows logout button when not embedded', async () => {
+  mockIsEmbedded.mockReturnValue(false);
+  mockIsFeatureEnabled.mockReturnValue(false);
+  resetUseSelectorMock();
+  render(<RightMenu {...createProps()} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+    useTheme: true,
+  });
+
+  userEvent.hover(await screen.findByText(/Settings/i));
+  expect(await screen.findByText('Logout')).toBeInTheDocument();
+});
+
+test('shows logout button when embedded but flag is disabled', async () => {
+  mockIsEmbedded.mockReturnValue(true);
+  mockIsFeatureEnabled.mockReturnValue(false);
+  resetUseSelectorMock();
+  render(<RightMenu {...createProps()} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+    useTheme: true,
+  });
+
+  userEvent.hover(await screen.findByText(/Settings/i));
+  expect(await screen.findByText('Logout')).toBeInTheDocument();
+});
+
+test('shows logout button when not embedded even if flag is enabled', async () => {
+  mockIsEmbedded.mockReturnValue(false);
+  mockIsFeatureEnabled.mockImplementation(
+    (flag: FeatureFlag) => flag === FeatureFlag.DisableEmbeddedSupersetLogout,
+  );
+  resetUseSelectorMock();
+  render(<RightMenu {...createProps()} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+    useTheme: true,
+  });
+
+  userEvent.hover(await screen.findByText(/Settings/i));
+  expect(await screen.findByText('Logout')).toBeInTheDocument();
+});
+
+test('hides logout button when embedded and flag is enabled', async () => {
+  mockIsEmbedded.mockReturnValue(true);
+  mockIsFeatureEnabled.mockImplementation(
+    (flag: FeatureFlag) => flag === FeatureFlag.DisableEmbeddedSupersetLogout,
+  );
+  resetUseSelectorMock();
+  render(<RightMenu {...createProps()} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+    useTheme: true,
+  });
+
+  userEvent.hover(await screen.findByText(/Settings/i));
+  expect(screen.queryByText('Logout')).not.toBeInTheDocument();
 });

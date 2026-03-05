@@ -16,12 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import React from 'react';
 import { render, userEvent, waitFor } from 'spec/helpers/testing-library';
 import { initialState } from 'src/SqlLab/fixtures';
 import useStoredSidebarWidth from 'src/components/ResizableSidebar/useStoredSidebarWidth';
-import type { contributions, core } from '@apache-superset/core';
-import ExtensionsManager from 'src/extensions/ExtensionsManager';
+import { views } from 'src/core';
+import { ViewLocations } from 'src/SqlLab/contributions';
 import AppLayout from './index';
+import { Mock } from 'vitest';
 
 vi.mock('src/components/ResizableSidebar/useStoredSidebarWidth');
 vi.mock('src/components/Splitter', () => {
@@ -48,8 +50,8 @@ vi.mock('src/components/Splitter', () => {
   );
   return { Splitter };
 });
-vi.mock('@superset-ui/core/components/Grid', () => ({
-  ...vi.requireActual('@superset-ui/core/components/Grid'),
+vi.mock('@superset-ui/core/components/Grid', async importActual => ({
+  ...(await importActual()),
   useBreakpoint: vi.fn().mockReturnValue(true),
 }));
 
@@ -57,63 +59,9 @@ const defaultProps = {
   children: <div>Child</div>,
 };
 
-function createMockView(
-  id: string,
-  overrides: Partial<contributions.ViewContribution> = {},
-): contributions.ViewContribution {
-  return {
-    id,
-    name: `${id} View`,
-    ...overrides,
-  };
-}
-
-function setupActivatedExtension(
-  manager: ExtensionsManager,
-  extension: core.Extension,
-) {
-  const context = { disposables: [] };
-  (manager as any).contextIndex.set(extension.id, context);
-  (manager as any).extensionContributions.set(extension.id, {
-    commands: extension.contributions.commands,
-    menus: extension.contributions.menus,
-    views: extension.contributions.views,
-  });
-}
-
-async function createActivatedExtension(
-  manager: ExtensionsManager,
-  extensionOptions: Partial<core.Extension> = {},
-): Promise<core.Extension> {
-  const mockExtension: core.Extension = {
-    id: 'test-extension',
-    name: 'Test Extension',
-    description: 'A test extension',
-    version: '1.0.0',
-    dependencies: [],
-    remoteEntry: '',
-    exposedModules: [],
-    extensionDependencies: [],
-    contributions: {
-      commands: [],
-      menus: {},
-      views: {},
-    },
-    activate: vi.fn(),
-    deactivate: vi.fn(),
-    ...extensionOptions,
-  };
-
-  await manager.initializeExtension(mockExtension);
-  setupActivatedExtension(manager, mockExtension);
-
-  return mockExtension;
-}
-
 beforeEach(() => {
   vi.clearAllMocks();
-  (useStoredSidebarWidth as vi.Mock).mockReturnValue([250, vi.fn()]);
-  (ExtensionsManager as any).instance = undefined;
+  (useStoredSidebarWidth as Mock).mockReturnValue([250, vi.fn()]);
 });
 
 test('renders two panels', () => {
@@ -134,7 +82,7 @@ test('renders children', () => {
 
 test('calls setWidth on sidebar resize when not hidden', async () => {
   const setWidth = vi.fn();
-  (useStoredSidebarWidth as vi.Mock).mockReturnValue([250, setWidth]);
+  (useStoredSidebarWidth as Mock).mockReturnValue([250, setWidth]);
   const { getByRole } = render(<AppLayout {...defaultProps} />, {
     useRedux: true,
     initialState,
@@ -147,20 +95,12 @@ test('calls setWidth on sidebar resize when not hidden', async () => {
   await waitFor(() => expect(setWidth).toHaveBeenCalled());
 });
 
-test('renders right sidebar when RIGHT_SIDEBAR_VIEW_ID view is contributed', async () => {
-  const manager = ExtensionsManager.getInstance();
-  const viewId = 'test-right-sidebar-view';
-  await createActivatedExtension(manager, {
-    contributions: {
-      commands: [],
-      menus: {},
-      views: {
-        sqllab: {
-          rightSidebar: [createMockView(viewId)],
-        },
-      },
-    },
-  });
+test('renders right sidebar when view is contributed at rightSidebar location', () => {
+  views.registerView(
+    { id: 'test-right-sidebar-view', name: 'Test Right Sidebar View' },
+    ViewLocations.sqllab.rightSidebar,
+    () => React.createElement('div', null, 'Right Sidebar Content'),
+  );
 
   const { getByText, getAllByTestId } = render(
     <AppLayout {...defaultProps} />,

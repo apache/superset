@@ -26,7 +26,7 @@ import MatrixifyDimensionControl, {
 import { fetchTopNValues } from './MatrixifyControl/utils/fetchTopNValues';
 
 // Mock SupersetClient
-vi.mock('@superset-ui/core', () => ({
+vi.mock('@superset-ui/core', async (importActual) => ({
   ...(await importActual()),
   SupersetClient: {
     get: vi.fn(),

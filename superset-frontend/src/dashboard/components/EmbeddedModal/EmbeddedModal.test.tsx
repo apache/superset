@@ -34,7 +34,7 @@ const defaultResponse = {
   result: { uuid: 'uuid', dashboard_id: '1', allowed_domains: ['example.com'] },
 };
 
-vi.mock('@superset-ui/core', () => ({
+vi.mock('@superset-ui/core', async (importActual) => ({
   ...vi.requireActual<any>('@superset-ui/core'),
   makeApi: vi.fn(),
 }));

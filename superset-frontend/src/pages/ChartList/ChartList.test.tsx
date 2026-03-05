@@ -31,7 +31,7 @@ import {
   setupMocks,
 } from './ChartList.testHelpers';
 
-vi.mock('@superset-ui/core', () => ({
+vi.mock('@superset-ui/core', async (importActual) => ({
   ...(await importActual()),
   isFeatureEnabled: vi.fn(),
 }));

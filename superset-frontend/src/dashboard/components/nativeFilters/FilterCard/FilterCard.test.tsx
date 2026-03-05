@@ -193,7 +193,7 @@ const baseFilter: Filter = {
   description: '',
 };
 
-vi.mock('@superset-ui/core', () => ({
+vi.mock('@superset-ui/core', async (importActual) => ({
   ...(await importActual()),
   getChartMetadataRegistry: () => ({
     get: (type: string) => {

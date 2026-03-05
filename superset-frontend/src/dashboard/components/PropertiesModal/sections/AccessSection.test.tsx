@@ -21,7 +21,7 @@ import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import AccessSection from './AccessSection';
 
 // Mock feature flags
-vi.mock('@superset-ui/core', () => ({
+vi.mock('@superset-ui/core', async (importActual) => ({
   ...(await importActual()),
   isFeatureEnabled: vi.fn(),
 }));

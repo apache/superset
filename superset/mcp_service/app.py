@@ -152,6 +152,10 @@ Input format:
 - When MCP_PARSE_REQUEST_ENABLED is True (default), string-serialized JSON is also
   accepted as input, which works around double-serialization bugs in some MCP clients
 
+Feature Availability:
+- Call get_instance_info to discover accessible menus for the current user.
+- Do NOT assume features exist; always check get_instance_info first.
+
 If you are unsure which tool to use, start with get_instance_info
 or use the quickstart prompt for an interactive guide.
 

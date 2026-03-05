@@ -19,7 +19,7 @@
 import { SupersetClient } from '@superset-ui/core';
 import { postFormData, putFormData } from './formData';
 
-vi.mock('@superset-ui/core', () => ({
+vi.mock('@superset-ui/core', async (importActual) => ({
   SupersetClient: {
     post: vi.fn(),
     put: vi.fn(),

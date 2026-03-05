@@ -29,6 +29,8 @@ import reducerIndex from 'spec/helpers/reducerIndex';
 import Header from '.';
 import { DASHBOARD_HEADER_ID } from '../../util/constants';
 import { UPDATE_COMPONENTS } from '../../actions/dashboardLayout';
+import { AutoRefreshStatus } from '../../types/autoRefresh';
+import { Mock } from 'vitest';
 
 const initialState = {
   dashboardInfo: {
@@ -161,11 +163,36 @@ const setRefreshFrequency = vi.fn();
 const onRefresh = vi.fn();
 const dashboardInfoChanged = vi.fn();
 const dashboardTitleChanged = vi.fn();
+const startAutoRefresh = vi.fn();
+const endAutoRefresh = vi.fn();
+const setRefreshInFlight = vi.fn();
+const setStatus = vi.fn();
+const setFetchStartTime = vi.fn();
+const recordSuccess = vi.fn();
+const recordError = vi.fn();
+const setPaused = vi.fn();
+const setPausedByTab = vi.fn();
 
 vi.mock('src/hooks/useUnsavedChangesPrompt', () => ({
   useUnsavedChangesPrompt: vi.fn(),
 }));
+vi.mock('src/dashboard/contexts/AutoRefreshContext', () => ({
+  useAutoRefreshContext: vi.fn(),
+}));
+vi.mock('src/dashboard/hooks/useRealTimeDashboard', () => ({
+  useRealTimeDashboard: vi.fn(),
+}));
+vi.mock('src/dashboard/hooks/useAutoRefreshTabPause', () => ({
+  useAutoRefreshTabPause: vi.fn(),
+}));
 
+const { useAutoRefreshContext: useAutoRefreshContextMock } =
+  await vi.importMock('src/dashboard/contexts/AutoRefreshContext');
+const { useRealTimeDashboard: useRealTimeDashboardMock } = await vi.importMock(
+  'src/dashboard/hooks/useRealTimeDashboard',
+);
+const { useAutoRefreshTabPause: useAutoRefreshTabPauseMock } =
+  await vi.importMock('src/dashboard/hooks/useAutoRefreshTabPause');
 beforeAll(() => {
   vi.spyOn(redux, 'bindActionCreators').mockImplementation(() => ({
     addSuccessToast,
@@ -196,12 +223,29 @@ beforeAll(() => {
 beforeEach(() => {
   vi.clearAllMocks();
 
-  (useUnsavedChangesPrompt as vi.Mock).mockReturnValue({
+  (useUnsavedChangesPrompt as Mock).mockReturnValue({
     showModal: false,
     setShowModal: vi.fn(),
     handleConfirmNavigation: vi.fn(),
     handleSaveAndCloseModal: vi.fn(),
   });
+  (useAutoRefreshContextMock as Mock).mockReturnValue({
+    startAutoRefresh,
+    endAutoRefresh,
+    setRefreshInFlight,
+  });
+  (useRealTimeDashboardMock as Mock).mockReturnValue({
+    isPaused: false,
+    setStatus,
+    setPaused,
+    setPausedByTab,
+    recordSuccess,
+    recordError,
+    setFetchStartTime,
+  });
+  (useAutoRefreshTabPauseMock as Mock).mockImplementation(() => {});
+  fetchCharts.mockImplementation(() => undefined);
+  onRefresh.mockResolvedValue(undefined);
 
   window.history.pushState({}, 'Test page', '/dashboard?standalone=1');
 });
@@ -535,10 +579,91 @@ test('should render the dropdown icon', () => {
 });
 
 test('should refresh the charts', async () => {
-  setup();
+  setup({
+    dashboardState: {
+      ...initialState.dashboardState,
+      sliceIds: [1],
+    },
+    charts: {
+      1: { latestQueryFormData: { metric: 'value' } },
+    },
+  });
   await openActionsDropdown();
   userEvent.click(screen.getByText('Refresh dashboard'));
   expect(onRefresh).toHaveBeenCalledTimes(1);
+});
+
+test('auto-refresh uses onRefresh with skipped filters and toggles refresh state', async () => {
+  vi.useFakeTimers();
+  onRefresh.mockResolvedValue(undefined);
+
+  const originalRequestAnimationFrame = window.requestAnimationFrame;
+  window.requestAnimationFrame = callback => {
+    callback(0);
+    return 0;
+  };
+
+  try {
+    setup({
+      dashboardState: {
+        ...initialState.dashboardState,
+        refreshFrequency: 10,
+        sliceIds: [1, 2],
+      },
+      charts: {
+        1: { latestQueryFormData: { metric: 'a' }, chartStatus: 'success' },
+        2: { latestQueryFormData: { metric: 'b' }, chartStatus: 'success' },
+      },
+    });
+
+    vi.advanceTimersByTime(10000);
+    await waitFor(() =>
+      expect(onRefresh).toHaveBeenCalledWith([1, 2], true, 2000, 1, true),
+    );
+
+    expect(fetchCharts).not.toHaveBeenCalled();
+    expect(startAutoRefresh).toHaveBeenCalled();
+    expect(setStatus).toHaveBeenCalledWith(AutoRefreshStatus.Fetching);
+    expect(setRefreshInFlight).toHaveBeenCalledWith(true);
+    expect(setRefreshInFlight).toHaveBeenCalledWith(false);
+    expect(endAutoRefresh).toHaveBeenCalled();
+  } finally {
+    window.requestAnimationFrame = originalRequestAnimationFrame;
+    vi.useRealTimers();
+  }
+});
+
+test('resume clears tab pause flag', () => {
+  (useRealTimeDashboardMock as Mock).mockReturnValue({
+    isRealTimeDashboard: true,
+    isPaused: true,
+    isPausedByTab: true,
+    effectiveStatus: AutoRefreshStatus.Paused,
+    lastSuccessfulRefresh: null,
+    lastAutoRefreshTime: null,
+    refreshErrorCount: 0,
+    refreshFrequency: 10,
+    setStatus,
+    setPaused,
+    setPausedByTab,
+    recordSuccess,
+    recordError,
+    setFetchStartTime,
+    autoRefreshPauseOnInactiveTab: true,
+    setPauseOnInactiveTab: vi.fn(),
+  });
+
+  setup({
+    dashboardState: {
+      ...initialState.dashboardState,
+      refreshFrequency: 10,
+    },
+  });
+
+  userEvent.click(screen.getByTestId('auto-refresh-toggle'));
+
+  expect(setPaused).toHaveBeenCalledWith(false);
+  expect(setPausedByTab).toHaveBeenCalledWith(false);
 });
 
 test('should render an extension component if one is supplied', () => {
@@ -625,7 +750,7 @@ test('should render MetadataBar when not in edit mode and not embedded', () => {
 });
 
 test('should show UnsavedChangesModal when there are unsaved changes and user tries to navigate', async () => {
-  (useUnsavedChangesPrompt as vi.Mock).mockReturnValue({
+  (useUnsavedChangesPrompt as Mock).mockReturnValue({
     showModal: true,
     setShowModal: vi.fn(),
     handleConfirmNavigation: vi.fn(),
@@ -649,7 +774,7 @@ test('should show UnsavedChangesModal when there are unsaved changes and user tr
 test('should call handleSaveAndCloseModal when Save is clicked in UnsavedChangesModal', async () => {
   const handleSaveAndCloseModal = vi.fn();
 
-  (useUnsavedChangesPrompt as vi.Mock).mockReturnValue({
+  (useUnsavedChangesPrompt as Mock).mockReturnValue({
     showModal: true,
     setShowModal: vi.fn(),
     handleConfirmNavigation: vi.fn(),
@@ -671,7 +796,7 @@ test('should call handleSaveAndCloseModal when Save is clicked in UnsavedChanges
 test('should call handleConfirmNavigation when user confirms navigation in UnsavedChangesModal', async () => {
   const handleConfirmNavigation = vi.fn();
 
-  (useUnsavedChangesPrompt as vi.Mock).mockReturnValue({
+  (useUnsavedChangesPrompt as Mock).mockReturnValue({
     showModal: true,
     setShowModal: vi.fn(),
     handleConfirmNavigation,
@@ -693,7 +818,7 @@ test('should call handleConfirmNavigation when user confirms navigation in Unsav
 test('should call setShowUnsavedChangesModal(false) on cancel', async () => {
   const setShowModal = vi.fn();
 
-  (useUnsavedChangesPrompt as vi.Mock).mockReturnValue({
+  (useUnsavedChangesPrompt as Mock).mockReturnValue({
     showModal: true,
     setShowModal,
     handleConfirmNavigation: vi.fn(),

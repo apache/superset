@@ -55,7 +55,7 @@ vi.mock('@superset-ui/chart-controls', () => ({
   },
 }));
 
-vi.mock('@superset-ui/core', () => ({
+vi.mock('@superset-ui/core', async (importActual) => ({
   GenericDataType: { Temporal: 2, String: 1 },
   extractTimegrain: vi.fn(() => 'P1D'),
   getMetricLabel: vi.fn(metric => metric),

@@ -23,7 +23,7 @@ import handleResourceExport from './export';
 import { Mock } from 'vitest';
 
 // Mock dependencies
-vi.mock('@superset-ui/core', () => ({
+vi.mock('@superset-ui/core', async (importActual) => ({
   SupersetClient: {
     get: vi.fn(),
   },

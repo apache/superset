@@ -30,7 +30,7 @@ import { FacePile } from '.';
 import { getRandomColor } from './utils';
 
 // Mock the feature flag
-vi.mock('@superset-ui/core', () => ({
+vi.mock('@superset-ui/core', async (importActual) => ({
   ...(await importActual()),
   isFeatureEnabled: vi.fn(),
 }));

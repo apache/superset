@@ -591,7 +591,7 @@ export default class AdhocMetricEditPopover extends PureComponent<
           </Button>
           <Icons.ArrowsAltOutlined
             role="button"
-            aria-label="Resize"
+            aria-label={t('Resize')}
             tabIndex={0}
             onMouseDown={this.onDragDown}
             className="edit-popover-resize"

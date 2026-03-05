@@ -26,7 +26,7 @@ import { SupersetClient } from '@superset-ui/core';
 import { SqlExpressionType } from '../../types/SqlExpression';
 import SQLEditorWithValidation from './index';
 
-vi.mock('@superset-ui/core', () => ({
+vi.mock('@superset-ui/core', async (importActual) => ({
   ...(await importActual()),
   SupersetClient: {
     post: vi.fn(),

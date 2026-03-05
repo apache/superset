@@ -82,4 +82,17 @@ describe('ChartErrorMessage', () => {
     expect(screen.getByText('Test error')).toBeInTheDocument();
     expect(screen.getByText('Test subtitle')).toBeInTheDocument();
   });
+
+  test('chart error banner is not dismissible', () => {
+    mockUseChartOwnerNames.mockReturnValue({
+      result: null,
+      status: ResourceStatus.Loading,
+      error: null,
+    });
+    render(<ChartErrorMessage {...defaultProps} />);
+
+    expect(
+      screen.queryByRole('button', { name: /close/i }),
+    ).not.toBeInTheDocument();
+  });
 });

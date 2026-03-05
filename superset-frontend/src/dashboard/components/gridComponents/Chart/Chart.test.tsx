@@ -370,6 +370,31 @@ test('should fallback to formData state when runtime state not available', () =>
   expect(getByTestId('chart-container')).toBeInTheDocument();
 });
 
+test('should not show a close button on chart error banners', () => {
+  const { queryByRole } = setup(
+    {},
+    {
+      ...defaultState,
+      charts: {
+        ...defaultState.charts,
+        [queryId]: {
+          ...defaultState.charts[queryId],
+          chartStatus: 'failed',
+          chartAlert: 'Something went wrong',
+          queriesResponse: [
+            {
+              message: 'Something went wrong',
+              errors: [],
+            },
+          ],
+        },
+      },
+    },
+  );
+
+  expect(queryByRole('button', { name: /close/i })).not.toBeInTheDocument();
+});
+
 test('should handle chart state when no converter exists', () => {
   jest
     .spyOn(chartStateConverter, 'hasChartStateConverter')

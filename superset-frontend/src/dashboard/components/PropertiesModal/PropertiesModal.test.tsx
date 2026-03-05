@@ -32,7 +32,7 @@ import PropertiesModal from '.';
 // Increase timeout for CI environment
 vi.setConfig({ testTimeout: 60000 });
 
-vi.mock('@superset-ui/core', () => ({
+vi.mock('@superset-ui/core', async (importActual) => ({
   ...(await importActual()),
   isFeatureEnabled: vi.fn(),
   getCategoricalSchemeRegistry: vi.fn(() => ({
