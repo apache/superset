@@ -17,7 +17,7 @@
  * under the License.
  */
 import { FC } from 'react';
-import { t, tn } from '@apache-superset/core/ui';
+import { t, tn } from '@apache-superset/core/translation';
 import { AutoRefreshStatus } from '../../types/autoRefresh';
 
 export interface StatusTooltipContentProps {

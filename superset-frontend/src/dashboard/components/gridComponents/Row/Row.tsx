@@ -28,9 +28,9 @@ import {
   RefObject,
 } from 'react';
 import cx from 'classnames';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { FeatureFlag, isFeatureEnabled, JsonObject } from '@superset-ui/core';
-import { css, styled, SupersetTheme } from '@apache-superset/core/ui';
+import { css, styled, SupersetTheme } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components';
 import {
   Draggable,

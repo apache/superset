@@ -25,7 +25,7 @@
  * via keyboard shortcuts, menu items, programmatic calls, or other user interactions.
  */
 
-import { Disposable } from './core';
+import { Disposable } from '../common';
 
 /**
  * Describes a command that can be contributed to the application.

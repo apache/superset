@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useEffect, useRef, useState } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import Tabs from '@superset-ui/core/components/Tabs';
 import { RoleObject } from 'src/pages/RolesList';
 import {

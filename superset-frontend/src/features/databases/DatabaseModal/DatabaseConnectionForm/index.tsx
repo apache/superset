@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetTheme } from '@apache-superset/core/ui';
+import { SupersetTheme } from '@apache-superset/core/theme';
 import { Form } from '@superset-ui/core/components';
 import { FormFieldOrder, FORM_FIELD_MAP } from './constants';
 import { formScrollableStyles, validatedFormStyles } from '../styles';

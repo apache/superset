@@ -16,15 +16,11 @@
 # under the License.
 
 """
-REST API functions and decorators for superset-core.
-
-Provides dependency-injected REST API utility functions and decorators that will be
-replaced by host implementations during initialization.
+REST API decorator for superset-core.
 
 Usage:
-    from superset_core.api.rest_api import api
+    from superset_core.rest_api.decorators import api
 
-    # Unified decorator for both host and extension APIs
     @api(
         id="main_api",
         name="Main API",
@@ -34,23 +30,13 @@ Usage:
         pass
 """
 
-from typing import Callable, TypeVar
+from typing import Callable, TYPE_CHECKING, TypeVar
 
-from flask_appbuilder.api import BaseApi
+if TYPE_CHECKING:
+    from superset_core.rest_api.api import RestApi
 
 # Type variable for decorated API classes
 T = TypeVar("T", bound=type["RestApi"])
-
-
-class RestApi(BaseApi):
-    """
-    Base REST API class for Superset with browser login support.
-
-    This class extends Flask-AppBuilder's BaseApi and enables browser-based
-    authentication by default.
-    """
-
-    allow_browser_login = True
 
 
 def api(
@@ -114,4 +100,4 @@ def api(
     )
 
 
-__all__ = ["RestApi", "api"]
+__all__ = ["api"]

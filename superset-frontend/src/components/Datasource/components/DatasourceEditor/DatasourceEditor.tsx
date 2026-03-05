@@ -20,7 +20,7 @@ import rison from 'rison';
 import { PureComponent, useCallback, type ReactNode } from 'react';
 import { connect, ConnectedProps } from 'react-redux';
 import type { JsonObject } from '@superset-ui/core';
-import type { SupersetTheme } from '@apache-superset/core/ui';
+import { type SupersetTheme } from '@apache-superset/core/theme';
 import type { AnyAction } from 'redux';
 import type { ThunkDispatch } from 'redux-thunk';
 import { Radio } from '@superset-ui/core/components/Radio';
@@ -31,15 +31,15 @@ import {
   getClientErrorObject,
   getExtensionsRegistry,
 } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
+import { Alert } from '@apache-superset/core/components';
 import {
   css,
   styled,
   themeObject,
-  Alert,
   withTheme,
-  t,
-} from '@apache-superset/core/ui';
+} from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import Tabs from '@superset-ui/core/components/Tabs';
 import WarningIconWithTooltip from '@superset-ui/core/components/WarningIconWithTooltip';
 import TableSelector from 'src/components/TableSelector';

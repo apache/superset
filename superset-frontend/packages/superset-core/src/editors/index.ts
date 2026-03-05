@@ -34,8 +34,8 @@
  */
 
 import { ForwardRefExoticComponent, RefAttributes } from 'react';
-import { Disposable, Event } from './core';
-import type { SupersetTheme } from '../ui';
+import { Disposable, Event } from '../common';
+import type { SupersetTheme } from '../theme';
 
 /**
  * Supported editor languages.

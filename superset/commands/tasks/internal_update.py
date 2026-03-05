@@ -33,7 +33,7 @@ from functools import partial
 from typing import Any
 from uuid import UUID
 
-from superset_core.api.tasks import TaskProperties, TaskStatus
+from superset_core.tasks.types import TaskProperties, TaskStatus
 
 from superset.commands.base import BaseCommand
 from superset.commands.tasks.exceptions import TaskUpdateFailedError

@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { JsonObject, QueryFormData } from '@superset-ui/core';
 import { useMemo, memo } from 'react';
 import { HandlebarsRenderer } from './HandlebarsRenderer';

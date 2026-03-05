@@ -26,7 +26,7 @@
  * in the extension ecosystem.
  */
 
-import { Extension } from './core';
+import { Extension } from '../common';
 
 /**
  * Get an extension by its full identifier in the form of: `publisher.name`.

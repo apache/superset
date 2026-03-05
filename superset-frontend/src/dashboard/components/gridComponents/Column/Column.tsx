@@ -18,7 +18,8 @@
  */
 import { Fragment, useCallback, useState, useMemo, memo } from 'react';
 import cx from 'classnames';
-import { t, css, styled, SupersetTheme } from '@apache-superset/core/ui';
+import { css, styled, SupersetTheme } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import { Icons } from '@superset-ui/core/components/Icons';
 import type { LayoutItem } from 'src/dashboard/types';
 import type { DropResult } from 'src/dashboard/components/dnd/dragDroppableConfig';

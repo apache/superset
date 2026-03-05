@@ -30,8 +30,8 @@ from sqlalchemy.orm import scoped_session
 from superset.extensions.context import get_current_extension_context
 
 if TYPE_CHECKING:
-    from superset_core.api.models import Database
-    from superset_core.api.rest_api import RestApi
+    from superset_core.common.models import Database
+    from superset_core.rest_api.api import RestApi
 
 
 __all__ = ["initialize_core_api_dependencies"]
@@ -39,10 +39,12 @@ __all__ = ["initialize_core_api_dependencies"]
 
 def inject_dao_implementations() -> None:
     """
-    Replace abstract DAO classes in superset_core.api.daos with concrete
-    implementations from Superset.
+    Replace abstract DAO classes in superset_core common/queries/tasks daos with
+    concrete implementations from Superset.
     """
-    import superset_core.api.daos as core_dao_module
+    import superset_core.common.daos as core_common_dao_module
+    import superset_core.queries.daos as core_queries_dao_module
+    import superset_core.tasks.daos as core_tasks_dao_module
 
     from superset.daos.chart import ChartDAO as HostChartDAO
     from superset.daos.dashboard import DashboardDAO as HostDashboardDAO
@@ -57,27 +59,33 @@ def inject_dao_implementations() -> None:
     from superset.daos.tasks import TaskDAO as HostTaskDAO
     from superset.daos.user import UserDAO as HostUserDAO
 
-    # Replace abstract classes with concrete implementations
-    core_dao_module.DatasetDAO = HostDatasetDAO  # type: ignore[assignment,misc]
-    core_dao_module.DatabaseDAO = HostDatabaseDAO  # type: ignore[assignment,misc]
-    core_dao_module.ChartDAO = HostChartDAO  # type: ignore[assignment,misc]
-    core_dao_module.DashboardDAO = HostDashboardDAO  # type: ignore[assignment,misc]
-    core_dao_module.UserDAO = HostUserDAO  # type: ignore[assignment,misc]
-    core_dao_module.QueryDAO = HostQueryDAO  # type: ignore[assignment,misc]
-    core_dao_module.SavedQueryDAO = HostSavedQueryDAO  # type: ignore[assignment,misc]
-    core_dao_module.TagDAO = HostTagDAO  # type: ignore[assignment,misc]
-    core_dao_module.KeyValueDAO = HostKeyValueDAO  # type: ignore[assignment,misc]
-    core_dao_module.TaskDAO = HostTaskDAO  # type: ignore[assignment,misc]
+    # Replace abstract classes in common.daos with concrete implementations
+    core_common_dao_module.DatasetDAO = HostDatasetDAO  # type: ignore[assignment,misc]
+    core_common_dao_module.DatabaseDAO = HostDatabaseDAO  # type: ignore[assignment,misc]
+    core_common_dao_module.ChartDAO = HostChartDAO  # type: ignore[assignment,misc]
+    core_common_dao_module.DashboardDAO = HostDashboardDAO  # type: ignore[assignment,misc]
+    core_common_dao_module.UserDAO = HostUserDAO  # type: ignore[assignment,misc]
+    core_common_dao_module.TagDAO = HostTagDAO  # type: ignore[assignment,misc]
+    core_common_dao_module.KeyValueDAO = HostKeyValueDAO  # type: ignore[assignment,misc]
+
+    # Replace abstract classes in queries.daos
+    core_queries_dao_module.QueryDAO = HostQueryDAO  # type: ignore[assignment,misc]
+    core_queries_dao_module.SavedQueryDAO = HostSavedQueryDAO  # type: ignore[assignment,misc]
+
+    # Replace abstract classes in tasks.daos
+    core_tasks_dao_module.TaskDAO = HostTaskDAO  # type: ignore[assignment,misc]
 
 
 def inject_model_implementations() -> None:
     """
-    Replace abstract model classes in superset_core.api.models with concrete
-    implementations from Superset.
+    Replace abstract model classes in superset_core common/queries/tasks models with
+    concrete implementations from Superset.
 
     Uses in-place replacement to maintain single import location for extensions.
     """
-    import superset_core.api.models as core_models_module
+    import superset_core.common.models as core_common_models_module
+    import superset_core.queries.models as core_queries_models_module
+    import superset_core.tasks.models as core_tasks_models_module
     from flask_appbuilder.security.sqla.models import User as HostUser
 
     from superset.connectors.sqla.models import SqlaTable as HostDataset
@@ -89,25 +97,29 @@ def inject_model_implementations() -> None:
     from superset.models.tasks import Task as HostTask
     from superset.tags.models import Tag as HostTag
 
-    # In-place replacement - extensions will import concrete implementations
-    core_models_module.Database = HostDatabase  # type: ignore[misc]
-    core_models_module.Dataset = HostDataset  # type: ignore[misc]
-    core_models_module.Chart = HostChart  # type: ignore[misc]
-    core_models_module.Dashboard = HostDashboard  # type: ignore[misc]
-    core_models_module.User = HostUser  # type: ignore[misc]
-    core_models_module.Query = HostQuery  # type: ignore[misc]
-    core_models_module.SavedQuery = HostSavedQuery  # type: ignore[misc]
-    core_models_module.Tag = HostTag  # type: ignore[misc]
-    core_models_module.KeyValue = HostKeyValue  # type: ignore[misc]
-    core_models_module.Task = HostTask  # type: ignore[misc]
+    # In-place replacement in common.models
+    core_common_models_module.Database = HostDatabase  # type: ignore[misc]
+    core_common_models_module.Dataset = HostDataset  # type: ignore[misc]
+    core_common_models_module.Chart = HostChart  # type: ignore[misc]
+    core_common_models_module.Dashboard = HostDashboard  # type: ignore[misc]
+    core_common_models_module.User = HostUser  # type: ignore[misc]
+    core_common_models_module.Tag = HostTag  # type: ignore[misc]
+    core_common_models_module.KeyValue = HostKeyValue  # type: ignore[misc]
+
+    # In-place replacement in queries.models
+    core_queries_models_module.Query = HostQuery  # type: ignore[misc]
+    core_queries_models_module.SavedQuery = HostSavedQuery  # type: ignore[misc]
+
+    # In-place replacement in tasks.models
+    core_tasks_models_module.Task = HostTask  # type: ignore[misc]
 
 
 def inject_query_implementations() -> None:
     """
-    Replace abstract query functions in superset_core.api.query with concrete
+    Replace abstract query functions in superset_core.queries.query with concrete
     implementations from Superset.
     """
-    import superset_core.api.query as core_query_module
+    import superset_core.queries.query as core_query_module
 
     from superset.sql.parse import SQLGLOT_DIALECTS
 
@@ -122,27 +134,28 @@ def inject_query_implementations() -> None:
 
 def inject_task_implementations() -> None:
     """
-    Replace abstract task functions in superset_core.api.tasks with concrete
-    implementations from Superset.
+    Replace abstract task functions in superset_core tasks.types and tasks.decorators
+    with concrete implementations from Superset.
     """
-    import superset_core.api.tasks as core_tasks_module
+    import superset_core.tasks.decorators as core_tasks_decorators_module
+    import superset_core.tasks.types as core_tasks_types_module
 
     from superset.tasks.ambient_context import get_context
     from superset.tasks.context import TaskContext
     from superset.tasks.decorators import task
 
     # Replace abstract classes and functions with concrete implementations
-    core_tasks_module.TaskContext = TaskContext  # type: ignore[assignment,misc]
-    core_tasks_module.task = task  # type: ignore[assignment]
-    core_tasks_module.get_context = get_context
+    core_tasks_types_module.TaskContext = TaskContext  # type: ignore[assignment,misc]
+    core_tasks_decorators_module.task = task  # type: ignore[assignment]
+    core_tasks_decorators_module.get_context = get_context
 
 
 def inject_rest_api_implementations() -> None:
     """
-    Replace abstract REST API functions and decorators in superset_core.api.rest_api
+    Replace abstract REST API decorators in superset_core.rest_api.decorators
     with concrete implementations from Superset.
     """
-    import superset_core.api.rest_api as core_rest_api_module
+    import superset_core.rest_api.decorators as core_rest_api_module
 
     from superset.extensions import appbuilder
 
@@ -203,10 +216,10 @@ def inject_rest_api_implementations() -> None:
 
 def inject_model_session_implementation() -> None:
     """
-    Replace abstract get_session function in superset_core.api.models with concrete
+    Replace abstract get_session function in superset_core.common.models with concrete
     implementation from Superset.
     """
-    import superset_core.api.models as core_models_module
+    import superset_core.common.models as core_models_module
 
     def get_session() -> scoped_session:
         from superset import db

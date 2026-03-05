@@ -18,7 +18,7 @@
  */
 
 import { memo } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { Metric } from '@superset-ui/core';
 import { ColumnMeta } from '@superset-ui/chart-controls';
 import { FoldersEditorItemType } from '../../types';

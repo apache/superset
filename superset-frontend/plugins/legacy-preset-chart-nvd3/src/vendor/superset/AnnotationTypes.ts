@@ -17,7 +17,7 @@
  * under the License.
  */
 // @ts-nocheck -- vendor file; not fully typed
-import { t } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
 
 function extractTypes(metadata) {
   return Object.keys(metadata).reduce((prev, key) => {
