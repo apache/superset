@@ -26,12 +26,13 @@ import {
   commands,
   editors,
   extensions,
+  menus,
   sqlLab,
+  views,
 } from 'src/core';
 import { useSelector } from 'react-redux';
 import { RootState } from 'src/views/store';
-import { useExtensionsContext } from './ExtensionsContext';
-import ExtensionsManager from './ExtensionsManager';
+import ExtensionsLoader from './ExtensionsLoader';
 
 declare global {
   interface Window {
@@ -41,16 +42,16 @@ declare global {
       commands: typeof commands;
       editors: typeof editors;
       extensions: typeof extensions;
+      menus: typeof menus;
       sqlLab: typeof sqlLab;
+      views: typeof views;
     };
   }
 }
 
-const ExtensionsStartup = () => {
-  // Initialize the extensions context before initializing extensions
-  // This is a prerequisite for the ExtensionsManager to work correctly
-  useExtensionsContext();
-
+const ExtensionsStartup: React.FC<{ children?: React.ReactNode }> = ({
+  children,
+}) => {
   const [initialized, setInitialized] = useState(false);
 
   const userId = useSelector<RootState, number | undefined>(
@@ -58,8 +59,11 @@ const ExtensionsStartup = () => {
   );
 
   useEffect(() => {
-    // Skip initialization if already initialized or if user is not logged in
-    if (initialized || !userId) {
+    if (initialized) return;
+
+    if (!userId) {
+      // No user logged in — nothing to initialize
+      setInitialized(true);
       return;
     }
 
@@ -71,22 +75,31 @@ const ExtensionsStartup = () => {
       commands,
       editors,
       extensions,
+      menus,
       sqlLab,
+      views,
     };
 
-    // Initialize extensions
-    if (isFeatureEnabled(FeatureFlag.EnableExtensions)) {
-      try {
-        ExtensionsManager.getInstance().initializeExtensions();
-        supersetCore.logging.info('Extensions initialized successfully.');
-      } catch (error) {
-        supersetCore.logging.error('Error setting up extensions:', error);
+    const setup = async () => {
+      if (isFeatureEnabled(FeatureFlag.EnableExtensions)) {
+        try {
+          await ExtensionsLoader.getInstance().initializeExtensions();
+          supersetCore.logging.info('Extensions initialized successfully.');
+        } catch (error) {
+          supersetCore.logging.error('Error setting up extensions:', error);
+        }
       }
-    }
-    setInitialized(true);
+      setInitialized(true);
+    };
+
+    setup();
   }, [initialized, userId]);
 
-  return null;
+  if (!initialized) {
+    return null;
+  }
+
+  return <>{children}</>;
 };
 
 export default ExtensionsStartup;

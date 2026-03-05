@@ -170,6 +170,7 @@ export type InternalControlType =
   | 'FixedOrMetricControl'
   | 'ColorBreakpointsControl'
   | 'HiddenControl'
+  | 'JSEditorControl'
   | 'SelectAsyncControl'
   | 'SelectControl'
   | 'SliderControl'

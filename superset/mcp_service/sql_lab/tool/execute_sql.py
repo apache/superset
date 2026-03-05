@@ -28,8 +28,8 @@ import logging
 from typing import Any
 
 from fastmcp import Context
+from superset_core.api.mcp import tool
 from superset_core.api.types import CacheOptions, QueryOptions, QueryResult, QueryStatus
-from superset_core.mcp import tool
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetErrorException, SupersetSecurityException

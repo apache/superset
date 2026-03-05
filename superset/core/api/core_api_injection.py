@@ -23,9 +23,11 @@ into the abstract superset-core API modules. This allows the core API
 to be used with direct imports while maintaining loose coupling.
 """
 
-from typing import Any, TYPE_CHECKING
+from typing import Any, Callable, TYPE_CHECKING, TypeVar
 
 from sqlalchemy.orm import scoped_session
+
+from superset.extensions.context import get_current_extension_context
 
 if TYPE_CHECKING:
     from superset_core.api.models import Database
@@ -137,24 +139,66 @@ def inject_task_implementations() -> None:
 
 def inject_rest_api_implementations() -> None:
     """
-    Replace abstract REST API functions in superset_core.api.rest_api with concrete
-    implementations from Superset.
+    Replace abstract REST API functions and decorators in superset_core.api.rest_api
+    with concrete implementations from Superset.
     """
     import superset_core.api.rest_api as core_rest_api_module
 
     from superset.extensions import appbuilder
 
+    T = TypeVar("T", bound=type["RestApi"])
+
     def add_api(api: "type[RestApi]") -> None:
         view = appbuilder.add_api(api)
         appbuilder._add_permission(view, True)
 
-    def add_extension_api(api: "type[RestApi]") -> None:
-        api.route_base = "/extensions/" + (api.resource_name or "")
-        view = appbuilder.add_api(api)
-        appbuilder._add_permission(view, True)
+    def api_impl(
+        id: str,
+        name: str,
+        description: str | None = None,
+        resource_name: str | None = None,
+    ) -> Callable[[T], T]:
+        def decorator(api_class: T) -> T:
+            # Check for ambient extension context
+            context = get_current_extension_context()
 
-    core_rest_api_module.add_api = add_api
-    core_rest_api_module.add_extension_api = add_extension_api
+            if context:
+                # EXTENSION CONTEXT
+                manifest = context.manifest
+                base_path = f"/extensions/{manifest.publisher}/{manifest.name}"
+                prefixed_id = f"extensions.{manifest.publisher}.{manifest.name}.{id}"
+
+            else:
+                # HOST CONTEXT
+                base_path = "/api/v1"
+                prefixed_id = id
+
+            # Add resource_name to path for both contexts
+            if resource_name:
+                base_path += f"/{resource_name}"
+
+            # Set route base and register immediately
+            api_class.route_base = base_path
+            api_class._api_id = prefixed_id
+            api_class._api_metadata = {
+                "id": prefixed_id,
+                "name": name,
+                "description": description,
+                "resource_name": resource_name,
+                "is_extension": context is not None,
+                "context": context,
+            }
+
+            # Register with Flask-AppBuilder immediately
+            view = appbuilder.add_api(api_class)
+            appbuilder._add_permission(view, True)
+
+            return api_class
+
+        return decorator
+
+    # Replace core implementations with unified API decorator
+    core_rest_api_module.api = api_impl
 
 
 def inject_model_session_implementation() -> None:

@@ -112,6 +112,8 @@ export default class WithPopoverMenu extends PureComponent<
 
   menuRef: HTMLDivElement | null;
 
+  focusEvent: Event | null;
+
   static defaultProps = {
     children: null,
     disableClick: false,
@@ -136,6 +138,7 @@ export default class WithPopoverMenu extends PureComponent<
       isFocused: props.isFocused!,
     };
     this.menuRef = null;
+    this.focusEvent = null;
     this.setRef = this.setRef.bind(this);
     this.setMenuRef = this.setMenuRef.bind(this);
     this.handleClick = this.handleClick.bind(this);
@@ -181,6 +184,17 @@ export default class WithPopoverMenu extends PureComponent<
       return;
     }
 
+    // Skip if this is the same event that just triggered focus via onClick.
+    // The document-level listener registered during focus will see the same
+    // event bubble up; by that time a re-render may have detached the
+    // original event.target, causing shouldFocus to return false and
+    // immediately undoing the focus.
+    const nativeEvent = event.nativeEvent || event;
+    if (this.focusEvent === nativeEvent) {
+      this.focusEvent = null;
+      return;
+    }
+
     const {
       onChangeFocus,
       shouldFocus: shouldFocusFunc,
@@ -194,6 +208,7 @@ export default class WithPopoverMenu extends PureComponent<
     if (!disableClick && shouldFocus && !this.state.isFocused) {
       document.addEventListener('click', this.handleClick);
       document.addEventListener('drag', this.handleClick);
+      this.focusEvent = event.nativeEvent || event;
 
       this.setState(() => ({ isFocused: true }));
 

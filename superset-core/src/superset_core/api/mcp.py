@@ -22,7 +22,7 @@ This module provides a decorator interface to register MCP tools with the
 host application.
 
 Usage:
-    from superset_core.mcp import tool
+    from superset_core.api.mcp import tool
 
     @tool(name="my_tool", description="Custom business logic", tags=["extension"])
     def my_extension_tool(param: str) -> dict:

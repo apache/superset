@@ -324,12 +324,7 @@ const config = {
     menu: addPreamble('src/views/menu.tsx'),
     spa: addPreamble('src/views/index.tsx'),
     embedded: addPreamble('src/embedded/index.tsx'),
-    // Skip service-worker build in dev mode to avoid overwriting the placeholder
-    ...(isDevMode
-      ? {}
-      : {
-          'service-worker': path.join(APP_DIR, 'src/service-worker.ts'),
-        }),
+    'service-worker': path.join(APP_DIR, 'src/service-worker.ts'),
   },
   cache: {
     type: 'filesystem',

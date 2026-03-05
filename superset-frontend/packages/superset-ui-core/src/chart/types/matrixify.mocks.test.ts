@@ -17,11 +17,12 @@
  * under the License.
  */
 
-// Minimal service worker for PWA file handling support
-self.addEventListener('install', event => {
-  event.waitUntil(self.skipWaiting());
+import { isMatrixifyEnabled, MatrixifyGridRenderer } from './matrixify.mocks';
+
+test('isMatrixifyEnabled mock returns false by default', () => {
+  expect(isMatrixifyEnabled()).toBe(false);
 });
 
-self.addEventListener('activate', event => {
-  event.waitUntil(self.clients.claim());
+test('MatrixifyGridRenderer mock returns null by default', () => {
+  expect(MatrixifyGridRenderer()).toBeNull();
 });

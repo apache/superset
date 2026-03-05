@@ -34,12 +34,35 @@
  */
 
 import { ForwardRefExoticComponent, RefAttributes } from 'react';
-import { EditorContribution, EditorLanguage } from './contributions';
 import { Disposable, Event } from './core';
 import type { SupersetTheme } from '../ui';
 
-// Re-export contribution types for convenience
-export type { EditorContribution, EditorLanguage };
+/**
+ * Supported editor languages.
+ */
+export type EditorLanguage =
+  | 'sql'
+  | 'json'
+  | 'yaml'
+  | 'markdown'
+  | 'css'
+  | 'python'
+  | 'text'
+  | 'javascript';
+
+/**
+ * Describes an editor that can be contributed to the application.
+ */
+export interface Editor {
+  /** Unique identifier for the editor (e.g., "acme.monaco-sql") */
+  id: string;
+  /** Display name of the editor */
+  name: string;
+  /** Languages this editor supports */
+  languages: EditorLanguage[];
+  /** Optional description of the editor */
+  description?: string;
+}
 
 /**
  * Represents a position in the editor (line and column).
@@ -457,6 +480,18 @@ export interface EditorHandle {
    * @returns A Disposable that removes the provider when disposed
    */
   registerCompletionProvider(provider: CompletionProvider): Disposable;
+
+  /**
+   * Force the editor to recalculate its dimensions.
+   * Called when the container size changes or when the editor becomes
+   * visible after being hidden (e.g., in a tab).
+   *
+   * Each editor implementation maps this to their equivalent:
+   * - Ace: editor.resize()
+   * - Monaco: editor.layout()
+   * - CodeMirror: editor.requestMeasure()
+   */
+  resize(): void;
 }
 
 /**
@@ -468,11 +503,11 @@ export type EditorComponent = ForwardRefExoticComponent<
 >;
 
 /**
- * A registered editor provider with its contribution metadata and component.
+ * A registered editor provider with its descriptor and component.
  */
 export interface EditorProvider {
-  /** The editor contribution metadata */
-  contribution: EditorContribution;
+  /** The editor descriptor */
+  editor: Editor;
   /** The React component implementing the editor */
   component: EditorComponent;
 }
@@ -489,33 +524,29 @@ export interface EditorProviderRegisteredEvent {
  * Event fired when an editor provider is unregistered.
  */
 export interface EditorProviderUnregisteredEvent {
-  /** The contribution that was unregistered */
-  contribution: EditorContribution;
+  /** The descriptor of the editor that was unregistered */
+  editor: Editor;
 }
 
 /**
- * Register an editor provider for specific languages.
+ * Registers a custom editor provider as a module-level side effect.
+ *
  * When an extension registers an editor, it replaces the default for those languages.
  *
- * The contribution metadata (name, languages, description) is read from the
- * extension's manifest (extension.json), so only the contribution ID and
- * component are needed at registration time.
- *
- * @param id The editor contribution ID declared in extension.json
- * @param component The React component implementing EditorProps
- * @returns A Disposable to unregister the provider
+ * @param editor The editor descriptor including id, name, and languages.
+ * @param component The React component implementing the editor.
+ * @returns Disposable which unregisters this editor provider on disposal.
  *
  * @example
  * ```typescript
- * const disposable = registerEditorProvider(
- *   'acme.monaco-sql',
- *   MonacoSQLEditor
+ * editors.registerEditor(
+ *   { id: 'editors_bundle.monaco_sql', name: 'Monaco SQL Editor', languages: ['sql'] },
+ *   MonacoSQLEditor,
  * );
- * context.disposables.push(disposable);
  * ```
  */
-export declare function registerEditorProvider(
-  id: string,
+export declare function registerEditor(
+  editor: Editor,
   component: EditorComponent,
 ): Disposable;
 

@@ -43,7 +43,6 @@ import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import { configureStore, Store } from '@reduxjs/toolkit';
 import { api } from 'src/hooks/apiResources/queryApi';
 import userEvent from '@testing-library/user-event';
-import { ExtensionsProvider } from 'src/extensions/ExtensionsContext';
 
 type Options = Omit<RenderOptions, 'queries'> & {
   useRedux?: boolean;
@@ -86,9 +85,7 @@ export function createWrapper(options?: Options) {
 
   return ({ children }: { children?: ReactNode }) => {
     let result = (
-      <ThemeProvider theme={supersetTheme}>
-        <ExtensionsProvider>{children}</ExtensionsProvider>
-      </ThemeProvider>
+      <ThemeProvider theme={supersetTheme}>{children}</ThemeProvider>
     );
 
     if (useTheme) {
