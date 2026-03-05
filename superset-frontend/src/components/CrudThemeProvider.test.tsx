@@ -29,7 +29,7 @@ import CrudThemeProvider from './CrudThemeProvider';
 
 jest.mock('@apache-superset/core/ui', () => ({
   ...jest.requireActual('@apache-superset/core/ui'),
-  normalizeThemeConfig: jest.fn((config: any) => config),
+  normalizeThemeConfig: jest.fn((config: unknown) => config),
   isThemeConfigDark: jest.fn(() => false),
 }));
 
@@ -50,6 +50,17 @@ const mockIsThemeConfigDark = isThemeConfigDark as jest.MockedFunction<
   typeof isThemeConfigDark
 >;
 
+type BootstrapData = ReturnType<typeof getBootstrapData>;
+type BootstrapThemes = BootstrapData['common']['theme'];
+
+function mockBootstrap(themes: Partial<BootstrapThemes> = {}): BootstrapData {
+  return {
+    common: {
+      theme: { default: {}, dark: {}, ...themes },
+    },
+  } as unknown as BootstrapData;
+}
+
 const MockSupersetThemeProvider = ({ children }: { children: ReactNode }) => (
   <div data-test="dashboard-theme-provider">{children}</div>
 );
@@ -59,11 +70,11 @@ beforeEach(() => {
   jest.spyOn(Theme, 'fromConfig').mockReturnValue({
     SupersetThemeProvider: MockSupersetThemeProvider,
   } as unknown as Theme);
-  mockNormalizeThemeConfig.mockImplementation(config => config as any);
+  mockNormalizeThemeConfig.mockImplementation(
+    config => config as ReturnType<typeof normalizeThemeConfig>,
+  );
   mockIsThemeConfigDark.mockReturnValue(false);
-  mockGetBootstrapData.mockReturnValue({
-    common: { theme: { default: {}, dark: {} } },
-  } as any);
+  mockGetBootstrapData.mockReturnValue(mockBootstrap());
   // Clean up font style elements from previous tests
   document
     .querySelectorAll('style[data-superset-fonts]')
@@ -170,9 +181,9 @@ test('falls back to rendering children without theme wrapper when Theme.fromConf
 
 test('merges dashboard theme with default base theme from bootstrap data', () => {
   const bootstrapDefault = { token: { colorPrimary: '#base-default' } };
-  mockGetBootstrapData.mockReturnValue({
-    common: { theme: { default: bootstrapDefault, dark: {} } },
-  } as any);
+  mockGetBootstrapData.mockReturnValue(
+    mockBootstrap({ default: bootstrapDefault }),
+  );
   mockIsThemeConfigDark.mockReturnValue(false);
 
   const themeConfig = { token: { colorPrimary: '#custom' } };
@@ -202,9 +213,7 @@ test('uses dark base theme when dashboard theme config is dark', () => {
     algorithm: 'dark',
     token: { colorPrimary: '#base-dark' },
   };
-  mockGetBootstrapData.mockReturnValue({
-    common: { theme: { default: {}, dark: bootstrapDark } },
-  } as any);
+  mockGetBootstrapData.mockReturnValue(mockBootstrap({ dark: bootstrapDark }));
   mockIsThemeConfigDark.mockReturnValue(true);
 
   const themeConfig = {

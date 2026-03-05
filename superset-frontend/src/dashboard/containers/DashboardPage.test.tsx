@@ -135,6 +135,10 @@ const mockUseDashboardCharts = useDashboardCharts as jest.Mock;
 const mockUseDashboardDatasets = useDashboardDatasets as jest.Mock;
 const MockCrudThemeProvider = CrudThemeProvider as unknown as jest.Mock;
 
+afterEach(() => {
+  jest.restoreAllMocks();
+});
+
 beforeEach(() => {
   jest.clearAllMocks();
   mockUseDashboard.mockReturnValue({

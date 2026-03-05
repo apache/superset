@@ -80,20 +80,38 @@ test('non-admin user can view a themed dashboard without 403 or infinite spinner
   const userPage = await userContext.newPage();
 
   try {
-    // 3. Login as non-admin user
+    // 3. Instrument network: track any /api/v1/theme/ requests and 403 responses
+    const themeApiRequests: string[] = [];
+    const forbiddenResponses: string[] = [];
+    userPage.on('response', response => {
+      const url = response.url();
+      if (url.includes('/api/v1/theme/')) {
+        themeApiRequests.push(url);
+      }
+      if (response.status() === 403 && url.includes('/api/v1/theme/')) {
+        forbiddenResponses.push(url);
+      }
+    });
+
+    // 4. Login as non-admin user
     const authPage = new AuthPage(userPage);
     await authPage.goto();
     await authPage.waitForLoginForm();
     await authPage.loginWithCredentials(NONADMIN_USERNAME, NONADMIN_PASSWORD);
     await authPage.waitForLoginSuccess();
 
-    // 4. Navigate to the themed dashboard
+    // 5. Navigate to the themed dashboard
     const dashboardPage = new DashboardPage(userPage);
     await dashboardPage.gotoById(dashboardId);
 
-    // 5. Assert dashboard fully loads (not stuck on infinite spinner)
+    // 6. Assert dashboard fully loads (not stuck on infinite spinner)
     await dashboardPage.waitForLoad({ timeout: TIMEOUT.PAGE_LOAD });
     await dashboardPage.waitForChartsToLoad();
+
+    // 7. Assert no /api/v1/theme/ requests were made (theme data comes from dashboard response)
+    expect(themeApiRequests).toHaveLength(0);
+    // Assert no 403 responses on /api/v1/theme/ (scoped to avoid login/unrelated 403 noise)
+    expect(forbiddenResponses).toHaveLength(0);
   } finally {
     await userContext.close();
   }
