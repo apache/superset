@@ -17,7 +17,12 @@
  * under the License.
  */
 import { ComponentType } from 'react';
-import { render, screen, userEvent, waitFor } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import { MemoryRouter, Route } from 'react-router-dom';
 import FileHandler from './index';
 

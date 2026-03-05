@@ -55,16 +55,18 @@ beforeEach(() => {
 afterEach(() => {
   window.location = originalLocation;
 
-  const unmatched = fetchMock.callHistory.calls('unmatched');
-  if (unmatched.length > 0) {
-    const urls = unmatched.map(call => call.url).join(', ');
-    throw new Error(
-      `fetchMock: ${unmatched.length} unmatched call(s): ${urls}`,
-    );
+  try {
+    const unmatched = fetchMock.callHistory.calls('unmatched');
+    if (unmatched.length > 0) {
+      const urls = unmatched.map(call => call.url).join(', ');
+      throw new Error(
+        `fetchMock: ${unmatched.length} unmatched call(s): ${urls}`,
+      );
+    }
+  } finally {
+    fetchMock.clearHistory().removeRoutes();
+    jest.restoreAllMocks();
   }
-
-  fetchMock.clearHistory().removeRoutes();
-  jest.restoreAllMocks();
 });
 
 interface TestDatasource {
