@@ -26,9 +26,16 @@ under the License.
 
 # MCP Server Deployment & Authentication
 
-Superset includes a built-in [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that allows AI assistants like Claude, ChatGPT, and other MCP-compatible clients to interact with your Superset instance — listing dashboards, querying datasets, executing SQL, and more.
+Superset ships with a built-in [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that lets AI assistants — Claude, ChatGPT, and other MCP-compatible clients — interact with your Superset instance. Through MCP, clients can list dashboards, query datasets, execute SQL, create charts, and more.
 
-This guide covers how to deploy the MCP server and configure authentication for your Superset installation.
+This guide covers how to run, secure, and deploy the MCP server.
+
+```mermaid
+flowchart LR
+    A["AI Client\n(Claude, ChatGPT, etc.)"] -- "MCP protocol\n(HTTP + JSON-RPC)" --> B["MCP Server\n(:5008/mcp)"]
+    B -- "Superset context\n(app, db, RBAC)" --> C["Superset\n(:8088)"]
+    C --> D[("Database\n(Postgres)")]
+```
 
 ---
 
@@ -50,15 +57,15 @@ The MCP server runs as a separate process alongside your Superset instance:
 superset mcp run --host 127.0.0.1 --port 5008
 ```
 
-**Options:**
+**CLI flags:**
 
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--host` | `127.0.0.1` | Host to bind to |
 | `--port` | `5008` | Port to bind to |
-| `--debug` | `false` | Enable debug logging |
+| `--debug` | off | Enable debug logging |
 
-The MCP endpoint will be available at `http://<host>:<port>/mcp`.
+The MCP endpoint is available at `http://<host>:<port>/mcp`.
 
 ### 2. Configure a Development User
 
@@ -69,11 +76,15 @@ For local development and testing, set a default user in `superset_config.py`:
 MCP_DEV_USERNAME = "admin"
 ```
 
-This tells the MCP server which Superset user to run tool operations as when no JWT authentication is configured. The user must exist in your Superset database.
+This tells the MCP server which Superset user to impersonate when no JWT authentication is configured. The user must exist in your Superset database.
 
 ### 3. Connect an AI Client
 
-Once the server is running, connect an MCP client. For example, in Claude Desktop:
+Once the server is running, connect an MCP client. For example, with **Claude Desktop**, edit the config file:
+
+- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+- **Linux**: `~/.config/Claude/claude_desktop_config.json`
 
 ```json
 {
@@ -85,18 +96,35 @@ Once the server is running, connect an MCP client. For example, in Claude Deskto
 }
 ```
 
-**Config file locations for Claude Desktop:**
-- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
-- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
-- **Linux**: `~/.config/Claude/claude_desktop_config.json`
-
-After saving the config, restart Claude Desktop. Look for the hammer/tools icon to confirm the server is connected.
+After saving, restart Claude Desktop. The hammer icon in the chat bar confirms the server is connected.
 
 ---
 
 ## Authentication
 
-The MCP server supports multiple authentication methods to suit different deployment scenarios.
+The MCP server supports multiple authentication methods for different deployment scenarios.
+
+```mermaid
+flowchart TD
+    R["Incoming MCP Request"] --> F{"MCP_AUTH_FACTORY\nset?"}
+    F -- Yes --> CF["Custom Auth Provider"]
+    F -- No --> AE{"MCP_AUTH_ENABLED?"}
+    AE -- "True" --> JWT["JWT Validation"]
+    AE -- "False" --> DU["Dev Mode\n(MCP_DEV_USERNAME)"]
+
+    JWT --> ALG{"MCP_JWT_ALGORITHM"}
+    ALG -- "RS256 + JWKS" --> JWKS["Fetch keys from\nMCP_JWKS_URI"]
+    ALG -- "RS256 + static" --> PK["Use\nMCP_JWT_PUBLIC_KEY"]
+    ALG -- "HS256" --> SEC["Use\nMCP_JWT_SECRET"]
+
+    JWKS --> V["Validate token\n(exp, iss, aud, scopes)"]
+    PK --> V
+    SEC --> V
+    V --> UR["Resolve Superset user\nfrom token claims"]
+    UR --> OK["Authenticated request"]
+    CF --> OK
+    DU --> OK
+```
 
 ### Development Mode (No Auth)
 
@@ -108,7 +136,7 @@ MCP_AUTH_ENABLED = False
 MCP_DEV_USERNAME = "admin"
 ```
 
-The MCP server will execute all operations as the configured user. This is the simplest setup for getting started.
+The MCP server runs all operations as the configured user.
 
 :::warning
 Never use development mode in production. Always enable authentication for any internet-facing deployment.
@@ -116,11 +144,11 @@ Never use development mode in production. Always enable authentication for any i
 
 ### JWT Authentication
 
-For production deployments, enable JWT-based authentication. The MCP server validates Bearer tokens on every request.
+For production deployments, enable JWT-based authentication. The MCP server validates a Bearer token on every request.
 
 #### Option A: RS256 with JWKS Endpoint
 
-Use this when your identity provider publishes a JWKS (JSON Web Key Set) endpoint:
+Use this when your identity provider publishes a JWKS (JSON Web Key Set) endpoint — the most common setup for OAuth 2.0 / OIDC providers:
 
 ```python
 # superset_config.py
@@ -133,7 +161,7 @@ MCP_JWT_AUDIENCE = "your-superset-instance"
 
 #### Option B: RS256 with Static Public Key
 
-Use this when you have a fixed RSA public key:
+Use this when you have a fixed RSA public key (e.g., self-signed tokens):
 
 ```python
 # superset_config.py
@@ -167,72 +195,43 @@ MCP_JWT_SECRET = os.environ.get("MCP_JWT_SECRET")
 ```
 :::
 
-#### Required JWT Claims
+#### JWT Claims
 
-The MCP server validates these JWT claims:
+The MCP server validates these standard JWT claims:
 
 | Claim | Config Key | Description |
 |-------|-----------|-------------|
+| `exp` | — | Expiration time (always validated) |
 | `iss` | `MCP_JWT_ISSUER` | Token issuer (optional but recommended) |
 | `aud` | `MCP_JWT_AUDIENCE` | Token audience (optional but recommended) |
-| `exp` | — | Expiration time (always validated) |
-| `sub` | — | Subject — used to resolve the Superset user |
+| `sub` | — | Subject — primary claim used to resolve the Superset user |
 
 #### User Resolution
 
-When a JWT is validated, the MCP server resolves the Superset user from the token claims in this order:
+After validating the token, the MCP server resolves a Superset username from the token claims. It checks the following in order, using the first non-empty value:
 
-1. `sub` (subject) claim
-2. `client_id` claim
-3. `email` claim from the payload
-4. `username` claim from the payload
+1. `subject` — the standard `sub` claim (via the access token object)
+2. `client_id` — for machine-to-machine tokens
+3. `payload["sub"]` — fallback to raw payload
+4. `payload["email"]` — email-based lookup
+5. `payload["username"]` — explicit username claim
 
-The resolved value must match a username in your Superset database.
+The resolved value must match a `username` in the Superset `ab_user` table.
 
 #### Scoped Access
 
-You can require specific scopes in the JWT:
+Require specific scopes in the JWT to limit what MCP operations a token can perform:
 
 ```python
 # superset_config.py
 MCP_REQUIRED_SCOPES = ["mcp:read", "mcp:write"]
 ```
 
-Only tokens that include all required scopes will be accepted.
-
-### Connecting Clients with JWT
-
-To connect a client that sends JWT tokens, use `mcp-remote` with a Bearer token header:
-
-```json
-{
-  "mcpServers": {
-    "superset": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "mcp-remote@latest",
-        "http://your-superset-host:5008/mcp",
-        "--header",
-        "Authorization: Bearer YOUR_JWT_TOKEN"
-      ]
-    }
-  }
-}
-```
-
-You can also make direct HTTP requests with the token:
-
-```bash
-curl -X POST 'http://localhost:5008/mcp' \
-  --header 'Authorization: Bearer YOUR_JWT_TOKEN' \
-  --header 'Content-Type: application/json' \
-  --data '{"jsonrpc": "2.0", "method": "tools/list", "id": 1}'
-```
+Only tokens that include **all** required scopes are accepted.
 
 ### Custom Auth Provider
 
-For advanced authentication scenarios (e.g., integrating with your own auth system), provide a custom auth factory:
+For advanced scenarios (e.g., integrating with a proprietary auth system), provide a custom auth factory. This takes precedence over all built-in JWT configuration:
 
 ```python
 # superset_config.py
@@ -248,15 +247,13 @@ def my_custom_auth_factory(app):
 MCP_AUTH_FACTORY = my_custom_auth_factory
 ```
 
-The `MCP_AUTH_FACTORY` takes precedence over the built-in JWT configuration when set.
-
 ---
 
 ## Connecting AI Clients
 
 ### Claude Desktop
 
-**Option 1: Direct URL (Recommended for local)**
+**Direct URL (local development):**
 
 ```json
 {
@@ -268,7 +265,7 @@ The `MCP_AUTH_FACTORY` takes precedence over the built-in JWT configuration when
 }
 ```
 
-**Option 2: With authentication**
+**With JWT authentication:**
 
 ```json
 {
@@ -282,6 +279,37 @@ The `MCP_AUTH_FACTORY` takes precedence over the built-in JWT configuration when
         "--header",
         "Authorization: Bearer YOUR_TOKEN"
       ]
+    }
+  }
+}
+```
+
+### Claude Code (CLI)
+
+Add to your project's `.mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "superset": {
+      "type": "url",
+      "url": "http://localhost:5008/mcp"
+    }
+  }
+}
+```
+
+With authentication:
+
+```json
+{
+  "mcpServers": {
+    "superset": {
+      "type": "url",
+      "url": "http://localhost:5008/mcp",
+      "headers": {
+        "Authorization": "Bearer YOUR_TOKEN"
+      }
     }
   }
 }
@@ -309,96 +337,67 @@ Custom connectors on Claude Web require a Pro, Max, Team, or Enterprise plan.
 5. Click **I understand and continue**
 
 :::info
-ChatGPT connectors require a Pro, Team, Enterprise, or Edu plan.
+ChatGPT MCP connectors require a Pro, Team, Enterprise, or Edu plan.
 :::
 
-### Claude Code (CLI)
+### Direct HTTP Requests
 
-Add to your project's `.mcp.json`:
+You can call the MCP server directly with any HTTP client:
 
-```json
-{
-  "mcpServers": {
-    "superset": {
-      "type": "url",
-      "url": "http://localhost:5008/mcp"
-    }
-  }
-}
-```
-
-Or with authentication:
-
-```json
-{
-  "mcpServers": {
-    "superset": {
-      "type": "url",
-      "url": "http://localhost:5008/mcp",
-      "headers": {
-        "Authorization": "Bearer YOUR_TOKEN"
-      }
-    }
-  }
-}
+```bash
+curl -X POST http://localhost:5008/mcp \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer YOUR_JWT_TOKEN' \
+  -d '{"jsonrpc": "2.0", "method": "tools/list", "id": 1}'
 ```
 
 ---
 
 ## Deployment
 
-### Single-Pod Deployment (Simple)
+### Single Process
 
-The simplest production setup runs the MCP server as a single process alongside Superset:
+The simplest setup runs the MCP server as a separate process alongside Superset on the same host:
 
-```
-┌─────────────────────────────────┐
-│         Single Pod / VM         │
-│                                 │
-│  ┌───────────┐  ┌────────────┐  │
-│  │ Superset  │  │ MCP Server │  │
-│  │ (port     │  │ (port      │  │
-│  │  8088)    │  │  5008)     │  │
-│  └─────┬─────┘  └──────┬─────┘  │
-│        │               │        │
-│        └───────┬───────┘        │
-│                │                │
-│         ┌──────┴──────┐         │
-│         │  Database   │         │
-│         │ (Postgres)  │         │
-│         └─────────────┘         │
-└─────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph host["Host / VM"]
+        direction TB
+        S["Superset\n:8088"] --> DB[("Postgres")]
+        M["MCP Server\n:5008"] --> DB
+    end
+    C["AI Client"] -- "HTTPS" --> P["Reverse Proxy\n(Nginx / Caddy)"]
+    U["Browser"] -- "HTTPS" --> P
+    P -- ":8088" --> S
+    P -- ":5008/mcp" --> M
 ```
 
-**Steps:**
-
-1. Add the MCP configuration to `superset_config.py`:
+**superset_config.py:**
 
 ```python
-# superset_config.py
 MCP_SERVICE_HOST = "0.0.0.0"
 MCP_SERVICE_PORT = 5008
-MCP_DEV_USERNAME = "admin"  # or enable JWT auth (see above)
+MCP_DEV_USERNAME = "admin"  # or enable JWT auth
 ```
 
-2. Start the MCP server alongside Superset:
+**Start both processes:**
 
 ```bash
-# Start Superset (in one terminal or as a service)
+# Terminal 1 — Superset web server
 superset run -h 0.0.0.0 -p 8088
 
-# Start MCP server (in another terminal or as a service)
+# Terminal 2 — MCP server
 superset mcp run --host 0.0.0.0 --port 5008
 ```
 
-3. Place a reverse proxy (e.g., Nginx) in front to handle TLS termination:
+**Nginx reverse proxy with TLS termination:**
 
 ```nginx
 server {
     listen 443 ssl;
     server_name superset.example.com;
 
-    ssl_certificate /path/to/cert.pem;
+    ssl_certificate     /path/to/cert.pem;
     ssl_certificate_key /path/to/key.pem;
 
     # Superset web UI
@@ -418,9 +417,9 @@ server {
 }
 ```
 
-### Docker Deployment
+### Docker Compose
 
-Run both services in Docker:
+Run Superset and the MCP server as separate containers sharing the same config:
 
 ```yaml
 # docker-compose.yml
@@ -447,12 +446,26 @@ services:
       - superset
 ```
 
-### Multi-Pod Deployment (Kubernetes)
+### Multi-Pod (Kubernetes)
 
-For high-availability deployments with multiple MCP server replicas, configure Redis for shared session state:
+For high-availability deployments with multiple MCP server replicas, configure Redis so that replicas share session state:
+
+```mermaid
+flowchart TD
+    LB["Load Balancer"] --> M1["MCP Pod 1"]
+    LB --> M2["MCP Pod 2"]
+    LB --> M3["MCP Pod 3"]
+    M1 --> R[("Redis\n(session store)")]
+    M2 --> R
+    M3 --> R
+    M1 --> DB[("Postgres")]
+    M2 --> DB
+    M3 --> DB
+```
+
+**superset_config.py:**
 
 ```python
-# superset_config.py
 MCP_STORE_CONFIG = {
     "enabled": True,
     "CACHE_REDIS_URL": "redis://redis-host:6379/0",
@@ -461,91 +474,104 @@ MCP_STORE_CONFIG = {
 }
 ```
 
-When `CACHE_REDIS_URL` is set, the MCP server automatically uses Redis-backed EventStore for session management, allowing multiple replicas to share state.
-
-```
-┌──────────────────────────────────────────────┐
-│              Kubernetes Cluster               │
-│                                               │
-│  ┌─────────┐  ┌─────────┐  ┌─────────┐      │
-│  │ MCP Pod │  │ MCP Pod │  │ MCP Pod │      │
-│  │    1    │  │    2    │  │    3    │      │
-│  └────┬────┘  └────┬────┘  └────┬────┘      │
-│       │            │            │            │
-│       └────────────┼────────────┘            │
-│                    │                         │
-│             ┌──────┴──────┐                  │
-│             │    Redis    │                  │
-│             │  (sessions) │                  │
-│             └─────────────┘                  │
-└──────────────────────────────────────────────┘
-```
+When `CACHE_REDIS_URL` is set, the MCP server uses a Redis-backed EventStore for session management, allowing multiple replicas to share state. Without Redis, each pod manages its own in-memory sessions and stateful MCP interactions may fail when requests hit different replicas.
 
 ---
 
 ## Configuration Reference
 
-All MCP configuration is set in `superset_config.py`.
+All MCP settings go in `superset_config.py`. Defaults are defined in `superset/mcp_service/mcp_config.py`.
 
-### Core Settings
+### Core
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `MCP_SERVICE_HOST` | `"localhost"` | Host to bind the MCP server to |
-| `MCP_SERVICE_PORT` | `5008` | Port to bind the MCP server to |
+| `MCP_SERVICE_HOST` | `"localhost"` | Host the MCP server binds to |
+| `MCP_SERVICE_PORT` | `5008` | Port the MCP server binds to |
+| `MCP_SERVICE_URL` | `None` | Override the base URL for MCP-generated links (e.g., behind a reverse proxy) |
 | `MCP_DEBUG` | `False` | Enable debug logging |
 | `MCP_DEV_USERNAME` | — | Superset username for development mode (no auth) |
 
-### JWT Authentication
+### Authentication
 
 | Setting | Default | Description |
 |---------|---------|-------------|
 | `MCP_AUTH_ENABLED` | `False` | Enable JWT authentication |
-| `MCP_JWT_ALGORITHM` | `"RS256"` | JWT algorithm (`RS256` or `HS256`) |
-| `MCP_JWKS_URI` | `None` | JWKS endpoint URL (for RS256) |
-| `MCP_JWT_PUBLIC_KEY` | `None` | Static RSA public key (for RS256) |
-| `MCP_JWT_SECRET` | `None` | Shared secret (for HS256) |
+| `MCP_JWT_ALGORITHM` | `"RS256"` | JWT signing algorithm (`RS256` or `HS256`) |
+| `MCP_JWKS_URI` | `None` | JWKS endpoint URL (RS256) |
+| `MCP_JWT_PUBLIC_KEY` | `None` | Static RSA public key string (RS256) |
+| `MCP_JWT_SECRET` | `None` | Shared secret string (HS256) |
 | `MCP_JWT_ISSUER` | `None` | Expected `iss` claim |
 | `MCP_JWT_AUDIENCE` | `None` | Expected `aud` claim |
 | `MCP_REQUIRED_SCOPES` | `[]` | Required JWT scopes |
-| `MCP_JWT_DEBUG_ERRORS` | `False` | Enable detailed server-side JWT error logging |
-| `MCP_AUTH_FACTORY` | `None` | Custom auth provider factory function |
+| `MCP_JWT_DEBUG_ERRORS` | `False` | Log detailed JWT errors server-side (never exposed in HTTP responses per RFC 6750) |
+| `MCP_AUTH_FACTORY` | `None` | Custom auth provider factory `(flask_app) -> auth_provider`. Takes precedence over built-in JWT |
 
 ### Response Size Guard
 
-| Setting | Default | Description |
-|---------|---------|-------------|
-| `MCP_RESPONSE_SIZE_CONFIG` | See below | Controls response size limits for LLM clients |
+Limits response sizes to prevent exceeding LLM context windows:
 
 ```python
 MCP_RESPONSE_SIZE_CONFIG = {
     "enabled": True,
     "token_limit": 25000,
     "warn_threshold_pct": 80,
-    "excluded_tools": ["health_check", "get_chart_preview"],
+    "excluded_tools": [
+        "health_check",
+        "get_chart_preview",
+        "generate_explore_link",
+        "open_sql_lab_with_context",
+    ],
 }
 ```
 
+| Key | Default | Description |
+|-----|---------|-------------|
+| `enabled` | `True` | Enable response size checking |
+| `token_limit` | `25000` | Maximum estimated token count per response |
+| `warn_threshold_pct` | `80` | Warn when response exceeds this percentage of the limit |
+| `excluded_tools` | See above | Tools exempt from size checking (e.g., tools that return URLs, not data) |
+
 ### Caching
 
-| Setting | Default | Description |
-|---------|---------|-------------|
-| `MCP_CACHE_CONFIG` | See below | Response caching configuration |
+Optional response caching for read-heavy workloads. Requires Redis when used with multiple replicas.
 
 ```python
 MCP_CACHE_CONFIG = {
     "enabled": False,
-    "list_tools_ttl": 300,
+    "CACHE_KEY_PREFIX": None,
+    "list_tools_ttl": 300,       # 5 min
+    "list_resources_ttl": 300,
+    "list_prompts_ttl": 300,
+    "read_resource_ttl": 3600,   # 1 hour
+    "get_prompt_ttl": 3600,
     "call_tool_ttl": 3600,
-    "excluded_tools": ["execute_sql", "generate_dashboard"],
+    "max_item_size": 1048576,    # 1 MB
+    "excluded_tools": [
+        "execute_sql",
+        "generate_dashboard",
+        "generate_chart",
+        "update_chart",
+    ],
 }
 ```
 
+| Key | Default | Description |
+|-----|---------|-------------|
+| `enabled` | `False` | Enable response caching |
+| `CACHE_KEY_PREFIX` | `None` | Optional prefix for cache keys (useful for shared Redis) |
+| `list_tools_ttl` | `300` | Cache TTL in seconds for `tools/list` |
+| `list_resources_ttl` | `300` | Cache TTL for `resources/list` |
+| `list_prompts_ttl` | `300` | Cache TTL for `prompts/list` |
+| `read_resource_ttl` | `3600` | Cache TTL for `resources/read` |
+| `get_prompt_ttl` | `3600` | Cache TTL for `prompts/get` |
+| `call_tool_ttl` | `3600` | Cache TTL for `tools/call` |
+| `max_item_size` | `1048576` | Maximum cached item size in bytes (1 MB) |
+| `excluded_tools` | See above | Tools that are never cached (mutating or non-deterministic) |
+
 ### Redis Store (Multi-Pod)
 
-| Setting | Default | Description |
-|---------|---------|-------------|
-| `MCP_STORE_CONFIG` | See below | Redis store for multi-pod session management |
+Enables Redis-backed session and event storage for multi-replica deployments:
 
 ```python
 MCP_STORE_CONFIG = {
@@ -556,55 +582,85 @@ MCP_STORE_CONFIG = {
 }
 ```
 
+| Key | Default | Description |
+|-----|---------|-------------|
+| `enabled` | `False` | Enable Redis-backed store |
+| `CACHE_REDIS_URL` | `None` | Redis connection URL (e.g., `redis://redis-host:6379/0`) |
+| `event_store_max_events` | `100` | Maximum events retained per session |
+| `event_store_ttl` | `3600` | Event TTL in seconds |
+
+### Session & CSRF
+
+These are flat-merged into the Flask app config used by the MCP server process:
+
+```python
+MCP_SESSION_CONFIG = {
+    "SESSION_COOKIE_HTTPONLY": True,
+    "SESSION_COOKIE_SECURE": False,
+    "SESSION_COOKIE_SAMESITE": "Lax",
+    "SESSION_COOKIE_NAME": "superset_session",
+    "PERMANENT_SESSION_LIFETIME": 86400,
+}
+
+MCP_CSRF_CONFIG = {
+    "WTF_CSRF_ENABLED": True,
+    "WTF_CSRF_TIME_LIMIT": None,
+}
+```
+
 ---
 
 ## Troubleshooting
 
 ### Server Won't Start
 
-- Ensure `fastmcp` is installed: `pip install fastmcp`
-- Check that `MCP_DEV_USERNAME` is set if auth is disabled
-- Verify the configured port is not already in use
+- Verify `fastmcp` is installed: `pip install fastmcp`
+- Check that `MCP_DEV_USERNAME` is set if auth is disabled — the server requires a user identity
+- Confirm the port is not already in use: `lsof -i :5008`
 
 ### 401 Unauthorized
 
-- Verify your JWT token is not expired
-- Check that `MCP_JWT_ISSUER` and `MCP_JWT_AUDIENCE` match the token's claims
-- For RS256: confirm the JWKS URI is reachable or the public key is correct
-- For HS256: confirm the secret matches between issuer and MCP server
-- Enable `MCP_JWT_DEBUG_ERRORS = True` for detailed server-side logging
+- Verify your JWT token is not expired (`exp` claim)
+- Check that `MCP_JWT_ISSUER` and `MCP_JWT_AUDIENCE` match the token's `iss` and `aud` claims exactly
+- For RS256 with JWKS: confirm the JWKS URI is reachable from the MCP server
+- For RS256 with static key: confirm the public key string includes the `BEGIN`/`END` markers
+- For HS256: confirm the secret matches between the token issuer and `MCP_JWT_SECRET`
+- Enable `MCP_JWT_DEBUG_ERRORS = True` for detailed server-side error logging (errors are never leaked to the client)
 
 ### Tool Not Found
 
-- Ensure the MCP server is using the same `superset_config.py` as your Superset instance
-- Check server logs for tool registration errors on startup
+- Ensure the MCP server and Superset share the same `superset_config.py`
+- Check server logs at startup — tool registration errors are logged with the tool name and reason
 
 ### Client Can't Connect
 
-- Verify the MCP server URL is reachable from the client
-- For Claude Desktop: completely quit and restart after config changes
-- For remote access: ensure your firewall/reverse proxy allows traffic to the MCP port
-- Check that the URL path ends with `/mcp` (e.g., `http://localhost:5008/mcp`)
+- Verify the MCP server URL is reachable from the client machine
+- For Claude Desktop: fully quit the app (not just close the window) and restart after config changes
+- For remote access: ensure your firewall and reverse proxy allow traffic to the MCP port
+- Confirm the URL path ends with `/mcp` (e.g., `http://localhost:5008/mcp`)
 
 ### Permission Errors on Tool Calls
 
-- The MCP server uses Superset's RBAC system — the authenticated user must have the required roles and permissions
+- The MCP server enforces Superset's RBAC permissions — the authenticated user must have the required roles
 - In development mode, ensure `MCP_DEV_USERNAME` maps to a user with appropriate roles (e.g., Admin)
+- Check `superset/security/manager.py` for the specific permission tuples required by each tool domain (e.g., `("can_execute_sql_query", "SQLLab")`)
 
 ---
 
-## Security Notes
+## Security Best Practices
 
-- Always use TLS (HTTPS) for production MCP endpoints
-- Enable JWT authentication for any internet-facing deployment
-- The MCP server respects Superset's RBAC permissions — users can only access data their roles allow
-- Store secrets (`MCP_JWT_SECRET`, API keys) in environment variables, not in config files
-- Review the [Security documentation](./security) for extension-specific security guidance
+- **Use TLS** for all production MCP endpoints — place the server behind a reverse proxy with HTTPS
+- **Enable JWT authentication** for any internet-facing deployment
+- **RBAC enforcement** — The MCP server respects Superset's role-based access control. Users can only access data their roles permit
+- **Secrets management** — Store `MCP_JWT_SECRET`, database credentials, and API keys in environment variables or a secrets manager, never in config files committed to version control
+- **Scoped tokens** — Use `MCP_REQUIRED_SCOPES` to limit what operations a token can perform
+- **Network isolation** — In Kubernetes, restrict MCP pod network policies to only allow traffic from your AI client endpoints
+- Review the **[Security documentation](./security)** for additional extension security guidance
 
 ---
 
 ## Next Steps
 
-- **[MCP Integration](./mcp)** — Build custom MCP tools and prompts via extensions
+- **[MCP Integration](./mcp)** — Build custom MCP tools and prompts via Superset extensions
 - **[Security](./security)** — Security best practices for extensions
 - **[Deployment](./deployment)** — Package and deploy Superset extensions
