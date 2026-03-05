@@ -87,7 +87,7 @@ jobs:
           -v ${{ github.workspace }}/superset-frontend/coverage:/app/superset-frontend/coverage \
           --rm $TAG \
           bash -c \
-          "npm run test -- --coverage --shard=${{ matrix.shard }}/8 --coverage.reporter=json"
+          "npm run test -- --coverage.enabled --shard=${{ matrix.shard }}/8 --coverage.reporter=json"
 
       - name: Upload Coverage Artifact
         uses: actions/upload-artifact@v7
