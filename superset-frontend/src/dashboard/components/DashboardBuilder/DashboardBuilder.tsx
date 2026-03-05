@@ -509,9 +509,9 @@ const DashboardBuilder = () => {
     currentTopLevelTabs.current = topLevelTabs;
   }, [topLevelTabs]);
 
-  const renderDraggableContent = useCallback(
-    ({ dropIndicatorProps }: { dropIndicatorProps: JsonObject }) => (
-      <div>
+  const headerContent = useMemo(
+    () => (
+      <>
         {!hideDashboardHeader && <DashboardHeader />}
         {showFilterBar &&
           filterBarOrientation === FilterBarOrientation.Horizontal && (
@@ -520,6 +520,14 @@ const DashboardBuilder = () => {
               hidden={isReport}
             />
           )}
+      </>
+    ),
+    [hideDashboardHeader, showFilterBar, filterBarOrientation, isReport],
+  );
+
+  const renderDraggableContent = useCallback(
+    ({ dropIndicatorProps }: { dropIndicatorProps: JsonObject }) => (
+      <div>
         {dropIndicatorProps && <div {...dropIndicatorProps} />}
         {!isReport && topLevelTabs && !uiConfig.hideNav && (
           <WithPopoverMenu
@@ -549,12 +557,9 @@ const DashboardBuilder = () => {
       </div>
     ),
     [
-      nativeFiltersEnabled,
-      filterBarOrientation,
       editMode,
       handleChangeTab,
       handleDeleteTopLevelTabs,
-      hideDashboardHeader,
       isReport,
       topLevelTabs,
       uiConfig.hideNav,
@@ -629,7 +634,7 @@ const DashboardBuilder = () => {
         ref={headerRef}
         filterBarWidth={headerFilterBarWidth}
       >
-        {/* @ts-ignore */}
+        {headerContent}
         <Droppable
           data-test="top-level-tabs"
           className={cx(!topLevelTabs && editMode && 'empty-droptarget')}

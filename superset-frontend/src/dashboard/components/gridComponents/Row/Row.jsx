@@ -22,6 +22,7 @@ import {
   useCallback,
   useRef,
   useEffect,
+  useLayoutEffect,
   useMemo,
   memo,
 } from 'react';
@@ -34,8 +35,7 @@ import {
   styled,
   t,
 } from '@superset-ui/core';
-import { Icons, Constants } from '@superset-ui/core/components';
-
+import { Icons } from '@superset-ui/core/components';
 import {
   Draggable,
   Droppable,
@@ -53,7 +53,6 @@ import { BACKGROUND_TRANSPARENT } from 'src/dashboard/util/constants';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import { EMPTY_CONTAINER_Z_INDEX } from 'src/dashboard/constants';
 import { isCurrentUserBot } from 'src/utils/isBot';
-import { useDebouncedEffect } from '../../../../explore/exploreUtils';
 
 const propTypes = {
   id: PropTypes.string.isRequired,
@@ -216,20 +215,13 @@ const Row = props => {
     };
   }, []);
 
-  useDebouncedEffect(
-    () => {
-      const updatedHeight = containerRef.current?.clientHeight;
-      if (
-        editMode &&
-        containerRef.current &&
-        updatedHeight !== containerHeight
-      ) {
-        setContainerHeight(updatedHeight);
-      }
-    },
-    Constants.FAST_DEBOUNCE,
-    [editMode, containerHeight],
-  );
+  useLayoutEffect(() => {
+    if (!editMode) return;
+    const updatedHeight = containerRef.current?.clientHeight;
+    if (updatedHeight !== undefined && updatedHeight !== containerHeight) {
+      setContainerHeight(updatedHeight);
+    }
+  });
 
   const handleChangeFocus = useCallback(nextFocus => {
     setIsFocused(Boolean(nextFocus));

@@ -103,6 +103,8 @@ const ColumnStyles = styled.div`
       }
       &:first-child:not(.droptarget-edge) {
         position: absolute;
+        top: 0;
+        left: 0;
         z-index: ${EMPTY_CONTAINER_Z_INDEX};
         width: 100%;
         height: 100%;
