@@ -736,12 +736,11 @@ const transformProps = (
     | AgGridChartState
     | undefined;
   const chartStateHasFilter = !!(
-    chartState?.filterModel &&
-    Object.keys(chartState.filterModel).length > 0
+    chartState?.filterModel && Object.keys(chartState.filterModel).length > 0
   );
 
   if (chartStateHasFilter && savedFilterAppliedSet.has(slice_id)) {
-    chartState = { ...chartState, filterModel: {} as AgGridFilterModel };
+    chartState = { ...chartState!, filterModel: {} as AgGridFilterModel };
   } else if (chartStateHasFilter) {
     savedFilterAppliedSet.add(slice_id);
   }
