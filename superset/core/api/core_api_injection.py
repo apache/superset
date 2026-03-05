@@ -152,10 +152,10 @@ def inject_task_implementations() -> None:
 
 def inject_rest_api_implementations() -> None:
     """
-    Replace abstract REST API functions and decorators in superset_core.rest_api.api
+    Replace abstract REST API functions and decorators in superset_core.rest_api.decorators
     with concrete implementations from Superset.
     """
-    import superset_core.rest_api.api as core_rest_api_module
+    import superset_core.rest_api.decorators as core_rest_api_module
 
     from superset.extensions import appbuilder
 
