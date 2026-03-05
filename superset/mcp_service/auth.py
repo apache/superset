@@ -249,8 +249,8 @@ def get_user_from_request() -> User:
             f"JWT keys configured={jwt_configured})"
         )
         details.append("MCP_DEV_USERNAME is not configured")
-        prefixes = current_app.config.get("FAB_API_KEY_PREFIXES", ["sst_"])
-        prefix_example = prefixes[0] if prefixes else "sst_"
+        configured_prefixes = current_app.config.get("FAB_API_KEY_PREFIXES", ["sst_"])
+        prefix_example = configured_prefixes[0] if configured_prefixes else "sst_"
         raise ValueError(
             "No authenticated user found. Tried:\n"
             + "\n".join(f"  - {d}" for d in details)
