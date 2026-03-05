@@ -21,12 +21,12 @@ import fetchMock from 'fetch-mock';
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import setupCodeOverrides from 'src/setup/setupCodeOverrides';
 import { getExtensionsRegistry } from '@superset-ui/core';
-import * as CoreUI from '@apache-superset/core/ui';
+import * as CoreTheme from '@apache-superset/core/theme';
 import { Menu } from './Menu';
 import * as getBootstrapData from 'src/utils/getBootstrapData';
 
-jest.mock('@apache-superset/core/ui', () => ({
-  ...jest.requireActual('@apache-superset/core/ui'),
+jest.mock('@apache-superset/core/theme', () => ({
+  ...jest.requireActual('@apache-superset/core/theme'),
   useTheme: jest.fn(),
 }));
 
@@ -250,7 +250,7 @@ const staticAssetsPrefixMock = jest.spyOn(
   'staticAssetsPrefix',
 );
 const applicationRootMock = jest.spyOn(getBootstrapData, 'applicationRoot');
-const useThemeMock = CoreUI.useTheme as jest.Mock;
+const useThemeMock = CoreTheme.useTheme as jest.Mock;
 
 fetchMock.get(
   'glob:*api/v1/database/?q=(filters:!((col:allow_file_upload,opr:upload_is_enabled,value:!t)))',
@@ -264,7 +264,7 @@ beforeEach(() => {
   staticAssetsPrefixMock.mockReturnValue('');
   applicationRootMock.mockReturnValue('');
   // By default useTheme returns the real default theme (brandLogoUrl is falsy)
-  useThemeMock.mockReturnValue(CoreUI.supersetTheme);
+  useThemeMock.mockReturnValue(CoreTheme.supersetTheme);
 });
 
 test('should render', async () => {
@@ -690,7 +690,7 @@ test('should not render the brand text if not available', async () => {
 test('brand logo href should not be prefixed with app root when brandLogoHref is an absolute URL', async () => {
   applicationRootMock.mockReturnValue('/superset');
   useThemeMock.mockReturnValue({
-    ...CoreUI.supersetTheme,
+    ...CoreTheme.supersetTheme,
     brandLogoUrl: '/static/assets/images/custom-logo.png',
     brandLogoHref: 'https://external.example.com',
   });
@@ -712,7 +712,7 @@ test('brand logo href should not be prefixed with app root when brandLogoHref is
 test('brand logo href should not be prefixed with app root when brandLogoHref is protocol-relative', async () => {
   applicationRootMock.mockReturnValue('/superset');
   useThemeMock.mockReturnValue({
-    ...CoreUI.supersetTheme,
+    ...CoreTheme.supersetTheme,
     brandLogoUrl: '/static/assets/images/custom-logo.png',
     brandLogoHref: '//external.example.com',
   });
