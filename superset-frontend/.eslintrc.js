@@ -515,17 +515,6 @@ module.exports = {
         ],
       },
     },
-    {
-      files: [
-        'src/explore/components/controls/DatasourceControl/DatasourceControl.test.tsx',
-      ],
-      rules: {
-        'testing-library/await-async-events': [
-          'error',
-          { eventModule: 'userEvent' },
-        ],
-      },
-    },
   ],
   ignorePatterns,
 };

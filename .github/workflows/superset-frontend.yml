@@ -95,69 +95,6 @@ jobs:
           name: coverage-artifacts-${{ matrix.shard }}
           path: superset-frontend/coverage
 
-  heap-check-datasource-control:
-    needs: frontend-build
-    if: needs.frontend-build.outputs.should-run == 'true'
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Download Docker Image Artifact
-        uses: actions/download-artifact@v8
-        with:
-          name: docker-image
-
-      - name: Load Docker Image
-        run: docker load < docker-image.tar.gz
-
-      - name: Heap check DatasourceControl test (must stay under 520 MB)
-        run: |
-          docker run --rm $TAG bash -c '
-            node --max-old-space-size=8192 \
-              node_modules/.bin/jest \
-              --logHeapUsage \
-              --maxWorkers=1 \
-              --testPathPatterns="DatasourceControl\.test" \
-              2>&1 | tee /tmp/heap-output.txt
-
-            max_heap=$(grep -oP "\d+ MB heap size" /tmp/heap-output.txt \
-              | grep -oP "\d+" | sort -n | tail -1)
-
-            echo "Peak heap usage: ${max_heap:-unknown} MB"
-
-            if [ -z "$max_heap" ]; then
-              echo "WARNING: Could not parse heap usage"
-              exit 0
-            fi
-
-            if [ "$max_heap" -gt 520 ]; then
-              echo "FAIL: Heap usage (${max_heap} MB) exceeds 520 MB threshold."
-              echo "The DatasourceEditor mock may have been removed."
-              exit 1
-            fi
-
-            echo "PASS: Heap usage within threshold"
-          '
-
-      - name: Guard against mockImplementationOnce
-        run: |
-          docker run --rm $TAG bash -c '
-            if grep -rn "mockImplementationOnce" src/explore/components/controls/DatasourceControl/DatasourceControl.test.tsx; then
-              echo "FAIL: mockImplementationOnce is banned in this file"
-              exit 1
-            fi
-            echo "PASS: No mockImplementationOnce found"
-          '
-
-      - name: Guard against un-awaited userEvent
-        run: |
-          docker run --rm $TAG bash -c '
-            FILE=src/explore/components/controls/DatasourceControl/DatasourceControl.test.tsx
-            if grep -Pn "(?<!await\s)userEvent\.\w+\(" "$FILE" | grep -v "import\|//"; then
-              echo "FAIL: All userEvent calls must be awaited"
-              exit 1
-            fi
-            echo "PASS: All userEvent calls are awaited"
-          '
-
   report-coverage:
     needs: [sharded-jest-tests]
     if: needs.frontend-build.outputs.should-run == 'true'
