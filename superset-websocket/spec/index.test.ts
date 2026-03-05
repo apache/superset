@@ -378,7 +378,7 @@ describe('server', () => {
       expect(channelSockets.sockets).toHaveLength(1);
       const socketId = channelSockets.sockets[0];
       expect(server.sockets[socketId]).toEqual(socketInstanceExpected);
-      expect(mockRedisXrange).not.toHaveBeenCalledOnce();
+      expect(mockRedisXrange).not.toHaveBeenCalled();
       expect(wsEventMock).toHaveBeenCalledWith('pong', expect.any(Function));
     });
 
