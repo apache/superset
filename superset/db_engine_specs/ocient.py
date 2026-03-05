@@ -392,7 +392,13 @@ class OcientEngineSpec(BaseEngineSpec):
     def cancel_query(cls, cursor: Any, query: Query, cancel_query_id: str) -> bool:
         with OcientEngineSpec.query_id_mapping_lock:
             if query.id in OcientEngineSpec.query_id_mapping:
-                cursor.execute(f"CANCEL {OcientEngineSpec.query_id_mapping[query.id]}")
+                ocient_query_id = OcientEngineSpec.query_id_mapping[query.id]
+                # Validate query ID to prevent SQL injection (defense-in-depth)
+                # Ocient query IDs are typically numeric
+                if not cls.validate_cancel_query_id(str(ocient_query_id), r"^[\w\-]+$"):
+                    return False
+
+                cursor.execute(f"CANCEL {ocient_query_id}")
                 # Query has been cancelled, so we can safely remove the cursor from
                 # the cache
                 del OcientEngineSpec.query_id_mapping[query.id]
