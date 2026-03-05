@@ -30,10 +30,6 @@ updates:
       # See https://github.com/apache/superset/pull/37384#issuecomment-3793991389
       # TODO: remove the plugin once Lodash usage has been migrated to a more readily tree-shakeable alternative
       - dependency-name: "@swc/plugin-transform-imports"
-      # There's an issue with polygon color filling starting from geostyler-openlayers-parser 5.2.0
-      # See https://github.com/geostyler/geostyler-openlayers-parser/pull/828
-      # TODO: remove once the issue got fixed
-      - dependency-name: "geostyler-openlayers-parser"
       # `just-handlerbars-helpers` library in plugin-chart-handlebars requires `currencyformatter`` to be < 2
       - dependency-name: "currencyformatter.js"
         update-types: ["version-update:semver-major"]
@@ -285,11 +281,6 @@ updates:
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/plugin-chart-cartodiagram/"
-    ignore:
-      # There's an issue with polygon color filling starting from geostyler-openlayers-parser 5.2.0
-      # See https://github.com/geostyler/geostyler-openlayers-parser/pull/828
-      # TODO: remove once the issue got fixed
-      - dependency-name: "geostyler-openlayers-parser"
     schedule:
       interval: "daily"
     labels:
