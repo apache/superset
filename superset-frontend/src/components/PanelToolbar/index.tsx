@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useMemo } from 'react';
-import { css, useTheme } from '@apache-superset/core/ui';
+import { css, useTheme } from '@apache-superset/core/theme';
 import { Button, Divider, Dropdown } from '@superset-ui/core/components';
 import { Menu, MenuItemType } from '@superset-ui/core/components/Menu';
 import { Icons } from '@superset-ui/core/components/Icons';

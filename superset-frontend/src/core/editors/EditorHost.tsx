@@ -28,7 +28,7 @@
 
 import { useState, useEffect, forwardRef } from 'react';
 import type { editors } from '@apache-superset/core';
-import { useTheme } from '@apache-superset/core/ui';
+import { useTheme } from '@apache-superset/core/theme';
 import EditorProviders from './EditorProviders';
 import AceEditorProvider from './AceEditorProvider';
 

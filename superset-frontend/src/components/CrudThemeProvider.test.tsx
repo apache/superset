@@ -18,17 +18,17 @@
  */
 import { type ReactNode } from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
-import { logging } from '@apache-superset/core';
+import { logging } from '@apache-superset/core/utils';
 import {
   Theme,
   normalizeThemeConfig,
   isThemeConfigDark,
-} from '@apache-superset/core/ui';
+} from '@apache-superset/core/theme';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import CrudThemeProvider from './CrudThemeProvider';
 
-jest.mock('@apache-superset/core/ui', () => ({
-  ...jest.requireActual('@apache-superset/core/ui'),
+jest.mock('@apache-superset/core/theme', () => ({
+  ...jest.requireActual('@apache-superset/core/theme'),
   normalizeThemeConfig: jest.fn((config: unknown) => config),
   isThemeConfigDark: jest.fn(() => false),
 }));

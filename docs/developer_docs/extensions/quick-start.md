@@ -129,7 +129,7 @@ The CLI generated a basic `backend/src/superset_extensions/my_org/hello_world/en
 ```python
 from flask import Response
 from flask_appbuilder.api import expose, protect, safe
-from superset_core.api.rest_api import RestApi, api
+from superset_core.rest_api.api import RestApi, api
 
 
 @api(
@@ -175,7 +175,7 @@ class HelloWorldAPI(RestApi):
 **Key points:**
 
 - Uses [`@api`](superset-core/src/superset_core/api/rest_api.py:59) decorator with automatic context detection
-- Extends `RestApi` from `superset_core.api.rest_api`
+- Extends `RestApi` from `superset_core.rest_api.api`
 - Uses Flask-AppBuilder decorators (`@expose`, `@protect`, `@safe`)
 - Returns responses using `self.response(status_code, result=data)`
 - The endpoint will be accessible at `/extensions/my-org/hello-world/message` (automatic extension context)

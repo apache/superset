@@ -34,8 +34,8 @@
  */
 
 import { ForwardRefExoticComponent, RefAttributes } from 'react';
-import { Disposable, Event } from './core';
-import type { SupersetTheme } from '../ui';
+import { Disposable, Event } from '../common';
+import type { SupersetTheme } from '../theme';
 
 /**
  * Supported editor languages.
@@ -480,6 +480,18 @@ export interface EditorHandle {
    * @returns A Disposable that removes the provider when disposed
    */
   registerCompletionProvider(provider: CompletionProvider): Disposable;
+
+  /**
+   * Force the editor to recalculate its dimensions.
+   * Called when the container size changes or when the editor becomes
+   * visible after being hidden (e.g., in a tab).
+   *
+   * Each editor implementation maps this to their equivalent:
+   * - Ace: editor.resize()
+   * - Monaco: editor.layout()
+   * - CodeMirror: editor.requestMeasure()
+   */
+  resize(): void;
 }
 
 /**

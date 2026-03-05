@@ -30,7 +30,7 @@ import {
   TimeseriesDataRecord,
   ValueFormatter,
 } from '@superset-ui/core';
-import { SupersetTheme, isThemeDark } from '@apache-superset/core/ui';
+import { SupersetTheme, isThemeDark } from '@apache-superset/core/theme';
 import { getContrastingColor } from '@superset-ui/core';
 import type {
   CallbackDataParams,

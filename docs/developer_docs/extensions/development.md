@@ -201,9 +201,9 @@ Backend APIs (via `apache-superset-core`) follow a similar pattern, providing ac
 Extension endpoints are registered under a dedicated `/extensions` namespace to avoid conflicting with built-in endpoints and also because they don't share the same version constraints. By grouping all extension endpoints under `/extensions`, Superset establishes a clear boundary between core and extension functionality, making it easier to manage, document, and secure both types of APIs.
 
 ```python
-from superset_core.api.models import Database, get_session
-from superset_core.api.daos import DatabaseDAO
-from superset_core.api.rest_api import RestApi, api
+from superset_core.common.models import Database, get_session
+from superset_core.common.daos import DatabaseDAO
+from superset_core.rest_api.api import RestApi, api
 from flask_appbuilder.api import expose, protect
 
 @api(

@@ -22,7 +22,7 @@ Provides dependency-injected query utility functions that will be replaced by
 host implementations during initialization.
 
 Usage:
-    from superset_core.api.query import get_sqlglot_dialect
+    from superset_core.queries.query import get_sqlglot_dialect
 
     dialect = get_sqlglot_dialect(database)
 """
@@ -32,7 +32,7 @@ from typing import TYPE_CHECKING
 from sqlglot import Dialects
 
 if TYPE_CHECKING:
-    from superset_core.api.models import Database
+    from superset_core.common.models import Database
 
 
 def get_sqlglot_dialect(database: "Database") -> Dialects:

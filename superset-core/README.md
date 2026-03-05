@@ -48,8 +48,8 @@ The package is organized into logical modules, each providing specific functiona
 ```python
 from flask import request, Response
 from flask_appbuilder.api import expose, permission_name, protect, safe
-from superset_core.api import models, query, rest_api
-from superset_core.api.rest_api import RestApi
+from superset_core import common, queries, rest_api
+from superset_core.rest_api.api import RestApi
 
 class DatasetReferencesAPI(RestApi):
     """Example extension API demonstrating core functionality."""

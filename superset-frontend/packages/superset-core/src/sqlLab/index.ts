@@ -29,8 +29,8 @@
  * - Global APIs: Functions and events available across the entire SQL Lab interface
  */
 
-import { Event, Database, SupersetError, Column } from './core';
-import { EditorHandle } from './editors';
+import { Event, Database, SupersetError, Column } from '../common';
+import { EditorHandle } from '../editors';
 
 /**
  * Provides imperative control over the code editor component.

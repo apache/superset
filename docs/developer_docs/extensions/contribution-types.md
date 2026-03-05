@@ -118,7 +118,7 @@ Backend contribution types allow extensions to extend Superset's server-side cap
 Extensions can register custom REST API endpoints under the `/extensions/` namespace. This dedicated namespace prevents conflicts with built-in endpoints and provides a clear separation between core and extension functionality.
 
 ```python
-from superset_core.api.rest_api import RestApi, api
+from superset_core.rest_api.api import RestApi, api
 from flask_appbuilder.api import expose, protect
 
 @api(

@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(source .venv/bin/activate && pre-commit run --files superset-frontend/src/components/CrudThemeProvider.tsx superset-frontend/src/components/CrudThemeProvider.test.tsx superset-frontend/src/dashboard/containers/DashboardPage.tsx superset-frontend/src/dashboard/containers/DashboardPage.test.tsx 2>&1)",
+      "Bash(head:*)",
+      "Bash(cd /Users/joeli/.claudette/worktrees/fix-cannot-view-dashboard-if-no-theme-role && source .venv/bin/activate && pre-commit run --files superset-frontend/src/components/CrudThemeProvider.tsx superset-frontend/src/components/CrudThemeProvider.test.tsx superset-frontend/src/dashboard/containers/DashboardPage.tsx superset-frontend/src/dashboard/containers/DashboardPage.test.tsx 2>&1)",
+      "Bash(tail:*)",
+      "Bash(docker ps:*)",
+      "Bash(clo docker:*)",
+      "Bash(NODE_PORT=9010 docker compose:*)",
+      "Bash(grep:*)",
+      "Bash(docker compose:*)",
+      "Bash(docker exec:*)",
+      "Bash(cd /Users/joeli/.claudette/worktrees/fix-cannot-view-dashboard-if-no-theme-role/superset-frontend && INCLUDE_EXPERIMENTAL=true PLAYWRIGHT_BASE_URL=http://localhost:9010 npx playwright test tests/experimental/dashboard/theme.spec.ts --reporter=list 2>&1)",
+      "Bash(curl:*)",
+      "Bash(INCLUDE_EXPERIMENTAL=true PLAYWRIGHT_BASE_URL=http://localhost:9010 npx playwright:*)",
+      "Bash(cd /Users/joeli/.claudette/worktrees/fix-cannot-view-dashboard-if-no-theme-role/superset-frontend && INCLUDE_EXPERIMENTAL=true PLAYWRIGHT_BASE_URL=http://localhost:9010 PLAYWRIGHT_ADMIN_PASSWORD=general npx playwright test tests/experimental/dashboard/theme.spec.ts --reporter=list 2>&1)",
+      "Bash(grep URL after:*)",
+      "Bash(test:*)",
+      "Bash(grep error TS:*)",
+      "Bash(npx tscw:*)"
+    ]
+  }
+}

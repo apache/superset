@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, css } from '@apache-superset/core/ui';
+import { styled, css } from '@apache-superset/core/theme';
 import { calculateItemHeights } from './hooks/useItemHeights';
 
 export const FoldersContainer = styled.div`

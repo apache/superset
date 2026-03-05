@@ -17,12 +17,12 @@
  * under the License.
  */
 import { ReactNode, useEffect, useMemo } from 'react';
-import { logging } from '@apache-superset/core';
+import { logging } from '@apache-superset/core/utils';
 import {
   Theme,
   normalizeThemeConfig,
   isThemeConfigDark,
-} from '@apache-superset/core/ui';
+} from '@apache-superset/core/theme';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import type { Dashboard } from 'src/types/Dashboard';
 
