@@ -63,7 +63,7 @@ jobs:
           name: docker-image
           path: docker-image.tar.gz
 
-  sharded-jest-tests:
+  sharded-unit-tests:
     needs: frontend-build
     if: needs.frontend-build.outputs.should-run == 'true'
     strategy:
@@ -87,7 +87,7 @@ jobs:
           -v ${{ github.workspace }}/superset-frontend/coverage:/app/superset-frontend/coverage \
           --rm $TAG \
           bash -c \
-          "npm run test -- --coverage --shard=${{ matrix.shard }}/8 --coverageReporters=json"
+          "npm run test -- --coverage --shard=${{ matrix.shard }}/8 --coverage.reporter=json"
 
       - name: Upload Coverage Artifact
         uses: actions/upload-artifact@v7
@@ -96,7 +96,7 @@ jobs:
           path: superset-frontend/coverage
 
   report-coverage:
-    needs: [sharded-jest-tests]
+    needs: [sharded-unit-tests]
     if: needs.frontend-build.outputs.should-run == 'true'
     runs-on: ubuntu-24.04
     permissions:
