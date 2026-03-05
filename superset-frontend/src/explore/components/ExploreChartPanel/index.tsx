@@ -100,6 +100,7 @@ const MIN_SIZES: PanelSizes = [300, 65];
 const DEFAULT_SOUTH_PANE_HEIGHT_PERCENT = 40;
 
 const Styles = styled.div<{ showSplite: boolean }>`
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -107,22 +108,43 @@ const Styles = styled.div<{ showSplite: boolean }>`
   overflow: auto;
   box-shadow: none;
   height: 100%;
+  width: 100%;
+  min-height: 400px;
+  min-width: 300px;
 
   & > div {
     height: 100%;
+    min-height: 0;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .gutter {
     border-top: 1px solid ${({ theme }) => theme.colorSplit};
     border-bottom: 1px solid ${({ theme }) => theme.colorSplit};
     width: ${({ theme }) => theme.sizeUnit * 9}px;
-    margin: ${({ theme }) => theme.sizeUnit * GUTTER_SIZE_FACTOR}px auto;
+    margin: 0 auto;
+    box-sizing: border-box;
+    background-color: ${({ theme }) => theme.colorFillQuaternary};
   }
 
   .gutter.gutter-vertical {
     display: ${({ showSplite }) => (showSplite ? 'block' : 'none')};
     cursor: row-resize;
+    position: relative;
   }
+
+  .split-pane {
+    box-sizing: border-box;
+  }
+`;
+
+const ChartWrapper = styled.div`
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+  box-sizing: border-box;
 `;
 
 const ExploreChartPanel = ({
@@ -144,11 +166,9 @@ const ExploreChartPanel = ({
   can_download: canDownload,
 }: ExploreChartPanelProps) => {
   const theme = useTheme();
-  const gutterMargin = theme.sizeUnit * GUTTER_SIZE_FACTOR;
   const gutterHeight = theme.sizeUnit * GUTTER_SIZE_FACTOR;
   const {
     ref: chartPanelRef,
-    observerRef: resizeObserverRef,
     width: chartPanelWidth,
     height: chartPanelHeight,
   } = useResizeDetectorByObserver();
@@ -244,19 +264,22 @@ const ExploreChartPanel = ({
     setShowSplit(isOpen);
   }, []);
 
-  const renderChart = useCallback(
+  const renderChart = useMemo(
     () => (
       <div
         css={css`
-          min-height: 0;
-          flex: 1;
-          overflow: auto;
+          min-height: 260px;
+          min-width: 300px;
+          flex: 1 1 auto;
+          overflow: hidden;
+          position: relative;
+          box-sizing: border-box;
         `}
         ref={chartPanelRef}
       >
-        {chartPanelWidth && chartPanelHeight && (
+        {chartPanelWidth && chartPanelHeight ? (
           <ChartContainer
-            width={Math.floor(chartPanelWidth)}
+            width={chartPanelWidth}
             height={chartPanelHeight}
             ownState={ownState}
             annotationData={chart.annotationData}
@@ -282,7 +305,7 @@ const ExploreChartPanel = ({
             })}
             {...(chart.chartStatus && { chartStatus: chart.chartStatus })}
           />
-        )}
+        ) : null}
       </div>
     ),
     [
@@ -319,8 +342,11 @@ const ExploreChartPanel = ({
           display: flex;
           flex-direction: column;
           padding-top: ${theme.sizeUnit * 2}px;
+          min-height: 0;
+          width: 100%;
+          box-sizing: border-box;
+          overflow: auto;
         `}
-        ref={resizeObserverRef}
       >
         {vizTypeNeedsDataset && (
           <Alert
@@ -403,24 +429,26 @@ const ExploreChartPanel = ({
             formData={formData}
           />
         </ChartHeaderExtension>
-        {renderChart()}
-        {!chart.chartStatus || chart.chartStatus !== 'loading' ? (
+        {renderChart}
           <div
             css={css`
               display: flex;
               justify-content: flex-end;
               padding-top: ${theme.sizeUnit * 2}px;
+            flex-shrink: 0;
+            min-height: ${theme.sizeUnit * 6}px;
+            visibility: ${!chart.chartStatus || chart.chartStatus !== 'loading'
+              ? 'visible'
+              : 'hidden'};
             `}
           >
             <LastQueriedLabel
               queriedDttm={chart.queriesResponse?.[0]?.queried_dttm ?? null}
             />
           </div>
-        ) : null}
       </div>
     ),
     [
-      resizeObserverRef,
       showAlertBanner,
       errorMessage,
       onQuery,
@@ -434,10 +462,18 @@ const ExploreChartPanel = ({
       formData?.matrixify_enable_horizontal_layout,
       renderChart,
       theme.sizeUnit,
+      vizTypeNeedsDataset,
+      chart.id,
+      slice?.form_data,
+      formData,
+      chart.lastRendered,
+      chart.latestQueryFormData,
+      chart.queryController,
+      chart.triggerQuery,
     ],
   );
 
-  const standaloneChartBody = useMemo(() => renderChart(), [renderChart]);
+  const standaloneChartBody = useMemo(() => renderChart, [renderChart]);
 
   const [queryFormData, setQueryFormData] = useState(chart.latestQueryFormData);
 
@@ -459,9 +495,9 @@ const ExploreChartPanel = ({
       elementSize: number,
       gutterSize: number,
     ) => ({
-      [dimension]: `calc(${elementSize}% - ${gutterSize + gutterMargin}px)`,
+      [dimension]: `calc(${elementSize}% - ${gutterSize}px)`,
     }),
-    [gutterMargin],
+    [],
   );
 
   if (standalone) {
@@ -472,13 +508,14 @@ const ExploreChartPanel = ({
       document.body.className += ` ${standaloneClass}`;
     }
     return (
-      <div id="app" data-test="standalone-app" ref={resizeObserverRef}>
+      <ChartWrapper id="app" data-test="standalone-app">
         {standaloneChartBody}
-      </div>
+      </ChartWrapper>
     );
   }
 
   return (
+    <ChartWrapper>
     <Styles className="chart-container" showSplite={showSplite}>
       <Split
         sizes={splitSizes}
@@ -488,6 +525,8 @@ const ExploreChartPanel = ({
         onDragEnd={onDragEnd}
         elementStyle={elementStyle}
         expandToMin
+          snapOffset={0}
+          cursor="row-resize"
       >
         {panelBody}
         <DataTablesPane
@@ -514,6 +553,7 @@ const ExploreChartPanel = ({
         />
       )}
     </Styles>
+    </ChartWrapper>
   );
 };
 
