@@ -24,6 +24,7 @@ import {
   useDashboardCharts,
   useDashboardDatasets,
 } from 'src/hooks/apiResources';
+import { SupersetClient } from '@superset-ui/core';
 import CrudThemeProvider from 'src/components/CrudThemeProvider';
 import DashboardPage from './DashboardPage';
 
@@ -152,6 +153,8 @@ beforeEach(() => {
 });
 
 test('passes full theme object from dashboard API response to CrudThemeProvider', async () => {
+  const clientGetSpy = jest.spyOn(SupersetClient, 'get');
+
   render(
     <Suspense fallback="loading">
       <DashboardPage idOrSlug="1" />
@@ -176,4 +179,11 @@ test('passes full theme object from dashboard API response to CrudThemeProvider'
     expect.objectContaining({ theme: mockTheme }),
     expect.anything(),
   );
+
+  // Regression guard: theme data comes from the dashboard API response,
+  // not a separate /api/v1/theme/:id fetch (which would 403 for non-admin users)
+  const themeCalls = clientGetSpy.mock.calls.filter(
+    ([{ endpoint }]) => endpoint?.startsWith('/api/v1/theme/'),
+  );
+  expect(themeCalls).toHaveLength(0);
 });
