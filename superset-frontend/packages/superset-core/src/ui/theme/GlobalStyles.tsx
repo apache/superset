@@ -98,6 +98,23 @@ export const GlobalStyles = () => {
         [role='button'] {
           cursor: pointer;
         }
+
+        // Embedded dashboards: preserve spacing when Superset is embedded
+        // into host applications via DOM injection (non-iframe).
+        .superset-embed .dashboard-grid,
+        .superset-embed .grid,
+        .superset-embed .superset-dashboard {
+          display: grid;
+          gap: ${4 * (theme.gridUnit ?? 4)}px;
+          box-sizing: border-box;
+        }
+
+        .superset-embed .dashboard-grid > *,
+        .superset-embed .slice_container,
+        .superset-embed .chart-container {
+          min-width: 0;
+          width: 100%;
+        }
       `}
     />
   );
