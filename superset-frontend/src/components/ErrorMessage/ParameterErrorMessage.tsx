@@ -17,8 +17,8 @@
  * under the License.
  */
 import { ReactNode } from 'react';
-import { t } from '@apache-superset/core';
-import { tn } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
+import { tn } from '@apache-superset/core/translation';
 import levenshtein from 'js-levenshtein';
 
 import { List } from '@superset-ui/core/components';

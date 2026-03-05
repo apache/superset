@@ -33,7 +33,7 @@
  * control interface.
  */
 import { isEmpty } from 'lodash';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   getCategoricalSchemeRegistry,
   getSequentialSchemeRegistry,

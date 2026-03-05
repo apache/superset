@@ -22,7 +22,7 @@ import inspect
 import logging
 from typing import Any, Callable, cast, Generic, ParamSpec, TYPE_CHECKING, TypeVar
 
-from superset_core.api.tasks import TaskOptions, TaskScope, TaskStatus
+from superset_core.tasks.types import TaskOptions, TaskScope, TaskStatus
 
 from superset import is_feature_enabled
 from superset.commands.tasks.exceptions import GlobalTaskFrameworkDisabledError

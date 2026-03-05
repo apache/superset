@@ -22,7 +22,7 @@ Provides dependency-injected REST API utility functions and decorators that will
 replaced by host implementations during initialization.
 
 Usage:
-    from superset_core.api.rest_api import api
+    from superset_core.rest_api.api import api
 
     # Unified decorator for both host and extension APIs
     @api(

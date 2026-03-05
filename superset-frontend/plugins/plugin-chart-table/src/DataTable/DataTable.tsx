@@ -29,7 +29,7 @@ import {
   useMemo,
 } from 'react';
 import { typedMemo, usePrevious } from '@superset-ui/core';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   useTable,
   usePagination,

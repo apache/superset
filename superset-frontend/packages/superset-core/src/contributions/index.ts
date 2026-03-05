@@ -26,10 +26,10 @@
  * menus, editors) and re-exported here for the manifest schema.
  */
 
-import { Command } from './commands';
-import { View } from './views';
-import { Menu } from './menus';
-import { Editor } from './editors';
+import { Command } from '../commands';
+import { View } from '../views';
+import { Menu } from '../menus';
+import { Editor } from '../editors';
 
 /**
  * Valid locations within SQL Lab.

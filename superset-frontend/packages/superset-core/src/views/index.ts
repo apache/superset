@@ -36,7 +36,7 @@
  */
 
 import { ReactElement } from 'react';
-import { Disposable } from './core';
+import { Disposable } from '../common';
 
 /**
  * Represents a contributed view in the application.

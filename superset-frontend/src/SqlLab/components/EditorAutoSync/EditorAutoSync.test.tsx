@@ -38,7 +38,7 @@ import fetchMock from 'fetch-mock';
 import { render, act } from 'spec/helpers/testing-library';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import { initialState, defaultQueryEditor } from 'src/SqlLab/fixtures';
-import { logging } from '@apache-superset/core';
+import { logging } from '@apache-superset/core/utils';
 import EditorAutoSync, { INTERVAL } from '.';
 
 jest.mock('@apache-superset/core', () => ({

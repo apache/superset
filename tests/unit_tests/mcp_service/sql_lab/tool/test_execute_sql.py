@@ -30,7 +30,7 @@ import pandas as pd
 import pytest
 from fastmcp import Client
 from fastmcp.exceptions import ToolError
-from superset_core.api.types import QueryResult, QueryStatus, StatementResult
+from superset_core.queries.types import QueryResult, QueryStatus, StatementResult
 
 from superset.mcp_service.app import mcp
 

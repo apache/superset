@@ -18,7 +18,7 @@
  */
 import { useMemo } from 'react';
 import { Filter, ChartCustomization } from '@superset-ui/core';
-import { useTheme } from '@apache-superset/core/ui';
+import { useTheme } from '@apache-superset/core/theme';
 import { useSelector } from 'react-redux';
 import { RootState } from 'src/dashboard/types';
 import { useChartCustomizationFromRedux } from 'src/dashboard/components/nativeFilters/state';

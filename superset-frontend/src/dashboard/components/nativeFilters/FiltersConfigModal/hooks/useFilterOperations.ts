@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useCallback } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { Filter, Divider, NativeFilterType } from '@superset-ui/core';
 import type { FormInstance } from '@superset-ui/core/components';
 import { NativeFiltersForm } from '../types';

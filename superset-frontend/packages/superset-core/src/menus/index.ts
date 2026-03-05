@@ -37,7 +37,7 @@
  * ```
  */
 
-import { Disposable } from './core';
+import { Disposable } from '../common';
 
 /**
  * Represents a menu item that links a view to a command.
