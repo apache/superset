@@ -10,7 +10,8 @@
  *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
@@ -24,7 +25,6 @@ export default function transformProps(chartProps: ChartProps) {
     formData,
     queriesData,
     hooks = {},
-    inContextMenu,
     filterState,
     emitCrossFilters,
   } = chartProps;
@@ -50,7 +50,6 @@ export default function transformProps(chartProps: ChartProps) {
     sliceId,
     entity,
     onContextMenu,
-    inContextMenu,
     setDataMask,
     emitCrossFilters,
     filterState,

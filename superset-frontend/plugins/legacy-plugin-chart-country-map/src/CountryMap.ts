@@ -116,7 +116,7 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
       : (linearColorScale(d.metric) ?? '');
   });
 
-  const colorFn = (feature: GeoFeature) => {
+  const colorFn = (feature: GeoFeature): string => {
     if (!feature?.properties) return '#d9d9d9';
     const iso = feature.properties.ISO;
     return colorMap[iso] || '#d9d9d9';
@@ -155,7 +155,7 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
   let mousedownPos: { x: number; y: number } | null = null;
 
   // Cross-filter support
-  const getCrossFilterDataMask = (source: GeoFeature) => {
+  const getCrossFilterDataMask = (source: GeoFeature): { dataMask: any; isCurrentValueSelected: boolean } | undefined => {
     if (!entity) return undefined;
 
     const selected = filterState?.selectedValues || [];
@@ -182,7 +182,7 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
   };
 
   // Handle right-click context menu
-  const handleContextMenu = (feature: GeoFeature) => {
+  const handleContextMenu = (feature: GeoFeature): void => {
     const pointerEvent = d3.event;
 
     if (typeof onContextMenu === 'function') {
@@ -217,10 +217,10 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
     return '';
   };
 
-  const mouseenter = function mouseenter(this: SVGPathElement, d: GeoFeature) {
+  const mouseenter = function mouseenter(this: SVGPathElement, d: GeoFeature): void {
     // Darken color
     let c: string = colorFn(d);
-    if (c && c !== 'none') {
+    if (c) {
       c = d3.rgb(c).darker().toString();
     }
     d3.select(this).style('fill', c);
@@ -238,14 +238,14 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
   };
 
   // Mouse move handler to update tooltip position
-  const mousemove = function mousemove() {
+  const mousemove = function mousemove(): void {
     const position = d3.mouse(svg.node());
     hoverPopup
       .style('top', `${position[1] + 30}px`)
       .style('left', `${position[0]}px`);
   };
 
-  const mouseout = function mouseout(this: SVGPathElement) {
+  const mouseout = function mouseout(this: SVGPathElement): void {
     d3.select(this).style('fill', (d: GeoFeature) => colorFn(d));
     hoverPopup.style('display', 'none');
   };
@@ -303,7 +303,7 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
   }
 
   // Visual highlighting for selected regions
-  function highlightSelectedRegion(selectedValues: string[] | null = null) {
+  function highlightSelectedRegion(selectedValues: string[] | null = null): void {
     const selected = selectedValues || filterState?.selectedValues || [];
 
     mapLayer
@@ -323,7 +323,7 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
   }
 
   // Click handler for cross-filters
-  const handleClick = (feature: GeoFeature) => {
+  const handleClick = (feature: GeoFeature): void => {
     if (!entity || !emitCrossFilters || typeof setDataMask !== 'function') {
       return;
     }
@@ -351,7 +351,7 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
     highlightSelectedRegion(newSelection.length ? newSelection : []);
   };
 
-  function drawMap(mapData: GeoData) {
+  function drawMap(mapData: GeoData): void {
     const { features } = mapData;
     const center = d3.geo.centroid(mapData);
     const scale = 100;
