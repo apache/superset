@@ -182,8 +182,8 @@ test('passes full theme object from dashboard API response to CrudThemeProvider'
 
   // Regression guard: theme data comes from the dashboard API response,
   // not a separate /api/v1/theme/:id fetch (which would 403 for non-admin users)
-  const themeCalls = clientGetSpy.mock.calls.filter(
-    ([{ endpoint }]) => endpoint?.startsWith('/api/v1/theme/'),
+  const themeCalls = clientGetSpy.mock.calls.filter(([{ endpoint }]) =>
+    endpoint?.startsWith('/api/v1/theme/'),
   );
   expect(themeCalls).toHaveLength(0);
 });

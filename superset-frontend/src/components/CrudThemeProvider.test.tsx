@@ -19,8 +19,36 @@
 import { type ReactNode } from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import { logging } from '@apache-superset/core';
-import { Theme } from '@apache-superset/core/ui';
+import {
+  Theme,
+  normalizeThemeConfig,
+  isThemeConfigDark,
+} from '@apache-superset/core/ui';
+import getBootstrapData from 'src/utils/getBootstrapData';
 import CrudThemeProvider from './CrudThemeProvider';
+
+jest.mock('@apache-superset/core/ui', () => ({
+  ...jest.requireActual('@apache-superset/core/ui'),
+  normalizeThemeConfig: jest.fn((config: any) => config),
+  isThemeConfigDark: jest.fn(() => false),
+}));
+
+jest.mock('src/utils/getBootstrapData', () => ({
+  __esModule: true,
+  default: jest.fn(() => ({
+    common: { theme: { default: {}, dark: {} } },
+  })),
+}));
+
+const mockGetBootstrapData = getBootstrapData as jest.MockedFunction<
+  typeof getBootstrapData
+>;
+const mockNormalizeThemeConfig = normalizeThemeConfig as jest.MockedFunction<
+  typeof normalizeThemeConfig
+>;
+const mockIsThemeConfigDark = isThemeConfigDark as jest.MockedFunction<
+  typeof isThemeConfigDark
+>;
 
 const MockSupersetThemeProvider = ({ children }: { children: ReactNode }) => (
   <div data-test="dashboard-theme-provider">{children}</div>
@@ -31,6 +59,15 @@ beforeEach(() => {
   jest.spyOn(Theme, 'fromConfig').mockReturnValue({
     SupersetThemeProvider: MockSupersetThemeProvider,
   } as unknown as Theme);
+  mockNormalizeThemeConfig.mockImplementation(config => config as any);
+  mockIsThemeConfigDark.mockReturnValue(false);
+  mockGetBootstrapData.mockReturnValue({
+    common: { theme: { default: {}, dark: {} } },
+  } as any);
+  // Clean up font style elements from previous tests
+  document
+    .querySelectorAll('style[data-superset-fonts]')
+    .forEach(el => el.remove());
 });
 
 test('renders children directly when no theme is provided', () => {
@@ -74,7 +111,7 @@ test('wraps children with SupersetThemeProvider when valid theme data is provide
   );
   expect(screen.getByText('Dashboard Content')).toBeInTheDocument();
   expect(screen.getByTestId('dashboard-theme-provider')).toBeInTheDocument();
-  expect(Theme.fromConfig).toHaveBeenCalledWith(themeConfig);
+  expect(Theme.fromConfig).toHaveBeenCalledWith(themeConfig, expect.anything());
 });
 
 test('creates theme from inline json_data via Theme.fromConfig', () => {
@@ -93,7 +130,7 @@ test('creates theme from inline json_data via Theme.fromConfig', () => {
   expect(screen.getByText('Dashboard Content')).toBeInTheDocument();
   // No API call can happen — CrudThemeProvider has no fetch/SupersetClient imports.
   // Theme is created synchronously from the inline json_data prop.
-  expect(Theme.fromConfig).toHaveBeenCalledWith(themeConfig);
+  expect(Theme.fromConfig).toHaveBeenCalledWith(themeConfig, expect.anything());
 });
 
 test('falls back to rendering children without theme wrapper when json_data is invalid JSON', () => {
@@ -129,4 +166,102 @@ test('falls back to rendering children without theme wrapper when Theme.fromConf
     screen.queryByTestId('dashboard-theme-provider'),
   ).not.toBeInTheDocument();
   expect(logging.warn).toHaveBeenCalled();
+});
+
+test('merges dashboard theme with default base theme from bootstrap data', () => {
+  const bootstrapDefault = { token: { colorPrimary: '#base-default' } };
+  mockGetBootstrapData.mockReturnValue({
+    common: { theme: { default: bootstrapDefault, dark: {} } },
+  } as any);
+  mockIsThemeConfigDark.mockReturnValue(false);
+
+  const themeConfig = { token: { colorPrimary: '#custom' } };
+  render(
+    <CrudThemeProvider
+      theme={{
+        id: 1,
+        theme_name: 'Custom Theme',
+        json_data: JSON.stringify(themeConfig),
+      }}
+    >
+      <div>Dashboard Content</div>
+    </CrudThemeProvider>,
+  );
+
+  // Theme.fromConfig should be called with TWO args: normalized config + base theme
+  expect(Theme.fromConfig).toHaveBeenCalledWith(
+    expect.objectContaining({
+      token: expect.objectContaining({ colorPrimary: '#custom' }),
+    }),
+    bootstrapDefault,
+  );
+});
+
+test('uses dark base theme when dashboard theme config is dark', () => {
+  const bootstrapDark = {
+    algorithm: 'dark',
+    token: { colorPrimary: '#base-dark' },
+  };
+  mockGetBootstrapData.mockReturnValue({
+    common: { theme: { default: {}, dark: bootstrapDark } },
+  } as any);
+  mockIsThemeConfigDark.mockReturnValue(true);
+
+  const themeConfig = {
+    algorithm: 'dark',
+    token: { colorPrimary: '#custom-dark' },
+  };
+  render(
+    <CrudThemeProvider
+      theme={{
+        id: 1,
+        theme_name: 'Dark Theme',
+        json_data: JSON.stringify(themeConfig),
+      }}
+    >
+      <div>Dashboard Content</div>
+    </CrudThemeProvider>,
+  );
+
+  expect(Theme.fromConfig).toHaveBeenCalledWith(themeConfig, bootstrapDark);
+});
+
+test('injects font URLs as CSS @import rules', () => {
+  const fontUrl = 'https://fonts.example.com/custom.css';
+  const themeConfig = {
+    token: { colorPrimary: '#ff0000', fontUrls: [fontUrl] },
+  };
+  render(
+    <CrudThemeProvider
+      theme={{
+        id: 1,
+        theme_name: 'Font Theme',
+        json_data: JSON.stringify(themeConfig),
+      }}
+    >
+      <div>Dashboard Content</div>
+    </CrudThemeProvider>,
+  );
+
+  const fontStyle = document.querySelector('style[data-superset-fonts]');
+  expect(fontStyle).not.toBeNull();
+  expect(fontStyle?.textContent).toContain(`@import url("${fontUrl}")`);
+});
+
+test('does not inject font style element when no fontUrls in config', () => {
+  const themeConfig = { token: { colorPrimary: '#ff0000' } };
+  render(
+    <CrudThemeProvider
+      theme={{
+        id: 1,
+        theme_name: 'No Fonts',
+        json_data: JSON.stringify(themeConfig),
+      }}
+    >
+      <div>Dashboard Content</div>
+    </CrudThemeProvider>,
+  );
+
+  const fontStyle = document.querySelector('style[data-superset-fonts]');
+  expect(fontStyle).toBeNull();
 });

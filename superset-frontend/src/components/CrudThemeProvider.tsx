@@ -16,9 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode, useMemo } from 'react';
+import { ReactNode, useEffect, useMemo } from 'react';
 import { logging } from '@apache-superset/core';
-import { Theme } from '@apache-superset/core/ui';
+import {
+  Theme,
+  normalizeThemeConfig,
+  isThemeConfigDark,
+} from '@apache-superset/core/ui';
+import getBootstrapData from 'src/utils/getBootstrapData';
 import type { Dashboard } from 'src/types/Dashboard';
 
 interface CrudThemeProviderProps {
@@ -28,8 +33,9 @@ interface CrudThemeProviderProps {
 
 /**
  * CrudThemeProvider applies a dashboard-specific theme using theme data
- * from the dashboard API response. Falls back to the global theme if
- * the theme data is missing or invalid.
+ * from the dashboard API response. Merges with the system's base theme
+ * (light or dark) and loads custom fonts. Falls back to the global theme
+ * if the theme data is missing or invalid.
  */
 export default function CrudThemeProvider({
   children,
@@ -41,10 +47,40 @@ export default function CrudThemeProvider({
     }
     try {
       const themeConfig = JSON.parse(theme.json_data);
-      return Theme.fromConfig(themeConfig);
+      const normalizedConfig = normalizeThemeConfig(themeConfig);
+      const isDark = isThemeConfigDark(normalizedConfig);
+      const {
+        common: { theme: bootstrapTheme },
+      } = getBootstrapData();
+      const baseTheme = isDark ? bootstrapTheme.dark : bootstrapTheme.default;
+      return Theme.fromConfig(normalizedConfig, baseTheme || undefined);
     } catch (error) {
       logging.warn('Failed to load dashboard theme:', error);
       return null;
+    }
+  }, [theme?.json_data]);
+
+  useEffect(() => {
+    if (!theme?.json_data) return undefined;
+    try {
+      const themeConfig = JSON.parse(theme.json_data);
+      const fontUrls = themeConfig?.token?.fontUrls as string[] | undefined;
+      if (!fontUrls?.length) return undefined;
+
+      // JSON.stringify provides safe escaping to prevent CSS injection
+      const css = fontUrls
+        .map((url: string) => `@import url(${JSON.stringify(url)});`)
+        .join('\n');
+      const style = document.createElement('style');
+      style.setAttribute('data-superset-fonts', 'true');
+      style.textContent = css;
+      document.head.appendChild(style);
+
+      return () => {
+        style.remove();
+      };
+    } catch {
+      return undefined;
     }
   }, [theme?.json_data]);
 
