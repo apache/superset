@@ -24,9 +24,10 @@ from superset.extensions import csrf
     [{"WTF_CSRF_ENABLED": True}],
     indirect=True,
 )
-def test_csrf_not_exempt(app_context: None) -> None:
+def test_csrf_exempt_blueprints(app_context: None) -> None:
     """
-    Test that REST API is not exempt from CSRF.
+    Test that only FAB security API blueprints (which use token-based auth)
+    are exempt from CSRF protection.
     """
     assert {blueprint.name for blueprint in csrf._exempt_blueprints} == {
         "ApiKeyApi",
