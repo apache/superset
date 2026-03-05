@@ -32,9 +32,9 @@ This guide covers how to run, secure, and deploy the MCP server.
 
 ```mermaid
 flowchart LR
-    A["AI Client\n(Claude, ChatGPT, etc.)"] -- "MCP protocol\n(HTTP + JSON-RPC)" --> B["MCP Server\n(:5008/mcp)"]
-    B -- "Superset context\n(app, db, RBAC)" --> C["Superset\n(:8088)"]
-    C --> D[("Database\n(Postgres)")]
+    A["AI Client<br/>(Claude, ChatGPT, etc.)"] -- "MCP protocol<br/>(HTTP + JSON-RPC)" --> B["MCP Server<br/>(:5008/mcp)"]
+    B -- "Superset context<br/>(app, db, RBAC)" --> C["Superset<br/>(:8088)"]
+    C --> D[("Database<br/>(Postgres)")]
 ```
 
 ---
@@ -106,21 +106,21 @@ The MCP server supports multiple authentication methods depending on your deploy
 
 ```mermaid
 flowchart TD
-    R["Incoming MCP Request"] --> F{"MCP_AUTH_FACTORY\nset?"}
+    R["Incoming MCP Request"] --> F{"MCP_AUTH_FACTORY<br/>set?"}
     F -- Yes --> CF["Custom Auth Provider"]
     F -- No --> AE{"MCP_AUTH_ENABLED?"}
     AE -- "True" --> JWT["JWT Validation"]
-    AE -- "False" --> DU["Dev Mode\n(MCP_DEV_USERNAME)"]
+    AE -- "False" --> DU["Dev Mode<br/>(MCP_DEV_USERNAME)"]
 
     JWT --> ALG{"MCP_JWT_ALGORITHM"}
-    ALG -- "RS256 + JWKS" --> JWKS["Fetch keys from\nMCP_JWKS_URI"]
-    ALG -- "RS256 + static" --> PK["Use\nMCP_JWT_PUBLIC_KEY"]
-    ALG -- "HS256" --> SEC["Use\nMCP_JWT_SECRET"]
+    ALG -- "RS256 + JWKS" --> JWKS["Fetch keys from<br/>MCP_JWKS_URI"]
+    ALG -- "RS256 + static" --> PK["Use<br/>MCP_JWT_PUBLIC_KEY"]
+    ALG -- "HS256" --> SEC["Use<br/>MCP_JWT_SECRET"]
 
-    JWKS --> V["Validate token\n(exp, iss, aud, scopes)"]
+    JWKS --> V["Validate token<br/>(exp, iss, aud, scopes)"]
     PK --> V
     SEC --> V
-    V --> UR["Resolve Superset user\nfrom token claims"]
+    V --> UR["Resolve Superset user<br/>from token claims"]
     UR --> OK["Authenticated request"]
     CF --> OK
     DU --> OK
@@ -363,10 +363,10 @@ The simplest setup: run the MCP server alongside Superset on the same host.
 flowchart TD
     subgraph host["Host / VM"]
         direction TB
-        S["Superset\n:8088"] --> DB[("Postgres")]
-        M["MCP Server\n:5008"] --> DB
+        S["Superset<br/>:8088"] --> DB[("Postgres")]
+        M["MCP Server<br/>:5008"] --> DB
     end
-    C["AI Client"] -- "HTTPS" --> P["Reverse Proxy\n(Nginx / Caddy)"]
+    C["AI Client"] -- "HTTPS" --> P["Reverse Proxy<br/>(Nginx / Caddy)"]
     U["Browser"] -- "HTTPS" --> P
     P -- ":8088" --> S
     P -- ":5008/mcp" --> M
@@ -461,7 +461,7 @@ flowchart TD
     LB["Load Balancer"] --> M1["MCP Pod 1"]
     LB --> M2["MCP Pod 2"]
     LB --> M3["MCP Pod 3"]
-    M1 --> R[("Redis\n(session store)")]
+    M1 --> R[("Redis<br/>(session store)")]
     M2 --> R
     M3 --> R
     M1 --> DB[("Postgres")]
