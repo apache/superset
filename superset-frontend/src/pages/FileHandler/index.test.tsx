@@ -108,6 +108,8 @@ type LaunchQueue = {
   ) => void;
 };
 
+let pendingTimerId: ReturnType<typeof setTimeout> | null = null;
+
 const setupLaunchQueue = (fileHandle: MockFileHandle | null = null) => {
   let savedConsumer:
     | ((params: { files?: MockFileHandle[] }) => void | Promise<void>)
@@ -116,7 +118,8 @@ const setupLaunchQueue = (fileHandle: MockFileHandle | null = null) => {
     setConsumer: (consumer: (params: { files?: MockFileHandle[] }) => void) => {
       savedConsumer = consumer;
       if (fileHandle) {
-        setTimeout(() => {
+        pendingTimerId = setTimeout(() => {
+          pendingTimerId = null;
           consumer({
             files: [fileHandle],
           });
@@ -133,6 +136,14 @@ const setupLaunchQueue = (fileHandle: MockFileHandle | null = null) => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  delete (window as any).launchQueue;
+});
+
+afterEach(() => {
+  if (pendingTimerId !== null) {
+    clearTimeout(pendingTimerId);
+    pendingTimerId = null;
+  }
   delete (window as any).launchQueue;
 });
 
