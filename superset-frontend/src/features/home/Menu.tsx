@@ -18,6 +18,7 @@
  */
 import { useState, useEffect } from 'react';
 import { styled, css, useTheme } from '@superset-ui/core';
+import { ensureAppRoot } from 'src/utils/pathUtils';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { MainNav, MenuItem } from '@superset-ui/core/components/Menu';
 import { Tooltip, Grid, Row, Col, Image } from '@superset-ui/core/components';
@@ -290,7 +291,7 @@ export function Menu({
     if (theme.brandLogoUrl) {
       link = (
         <StyledBrandWrapper margin={theme.brandLogoMargin}>
-          <StyledBrandLink href={theme.brandLogoHref}>
+          <StyledBrandLink href={ensureAppRoot(theme.brandLogoHref)}>
             <StyledImage
               preview={false}
               src={theme.brandLogoUrl}
@@ -313,7 +314,7 @@ export function Menu({
       link = (
         <Typography.Link
           className="navbar-brand"
-          href={brand.path}
+          href={ensureAppRoot(brand.path)}
           tabIndex={-1}
         >
           <StyledImage preview={false} src={brand.icon} alt={brand.alt} />
