@@ -1,0 +1,1 @@
+{"schema":{"properties":{"orientation":{"description":"Should cell values be calculated across the row or column.","enum":["row","column"],"example":"row","type":"string"}},"required":["orientation"],"type":"object","title":"ChartDataContributionOptionsSchema"},"schemaType":"response"}

@@ -1,0 +1,1 @@
+{"parameters":[{"in":"query","name":"form_data_key","schema":{"type":"string"}},{"in":"query","name":"permalink_key","schema":{"type":"string"}},{"in":"query","name":"slice_id","schema":{"type":"integer"}},{"in":"query","name":"datasource_id","schema":{"type":"integer"}},{"in":"query","name":"datasource_type","schema":{"type":"string"}}]}

@@ -1,0 +1,1 @@
+{"parameters":[{"in":"query","name":"state","schema":{"type":"string"}},{"in":"query","name":"code","schema":{"type":"string"}},{"in":"query","name":"scope","schema":{"type":"string"}},{"in":"query","name":"error","schema":{"type":"string"}}]}

@@ -1,0 +1,1 @@
+{"schema":{"properties":{"username":{"maxLength":64,"type":"string"}},"required":["username"],"type":"object","title":"LogRestApi.get.User"},"schemaType":"response"}

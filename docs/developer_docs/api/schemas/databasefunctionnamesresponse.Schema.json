@@ -1,0 +1,1 @@
+{"schema":{"properties":{"function_names":{"items":{"type":"string"},"type":"array"}},"type":"object","title":"DatabaseFunctionNamesResponse"},"schemaType":"response"}

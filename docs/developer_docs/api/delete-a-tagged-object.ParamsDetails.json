@@ -1,0 +1,1 @@
+{"parameters":[{"in":"path","name":"tag","required":true,"schema":{"type":"string"}},{"in":"path","name":"object_type","required":true,"schema":{"type":"integer"}},{"in":"path","name":"object_id","required":true,"schema":{"type":"integer"}}]}

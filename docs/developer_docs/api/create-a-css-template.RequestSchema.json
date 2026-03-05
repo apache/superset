@@ -1,0 +1,1 @@
+{"title":"Body","body":{"content":{"application/json":{"schema":{"properties":{"css":{"nullable":true,"type":"string"},"template_name":{"maxLength":250,"nullable":true,"type":"string"}},"type":"object","title":"CssTemplateRestApi.post"},"example":{"css":"string","template_name":"string"}}},"description":"Model schema","required":true}}

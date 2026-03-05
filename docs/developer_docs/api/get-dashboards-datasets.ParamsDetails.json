@@ -1,0 +1,1 @@
+{"parameters":[{"description":"Either the id of the dashboard, or its slug","in":"path","name":"id_or_slug","required":true,"schema":{"type":"string"}}]}

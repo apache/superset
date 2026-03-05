@@ -24,7 +24,6 @@ import traceback
 from datetime import datetime
 from typing import Any, Callable, cast
 
-from babel.core import Locale
 from flask import (
     abort,
     current_app as app,
@@ -476,10 +475,8 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
         and bool(available_specs[GSheetsEngineSpec])
     )
 
-    if isinstance(locale, Locale):
-        language = locale.language
-    elif isinstance(locale, str):
-        language = locale.split("_")[0]
+    if isinstance(locale, str):
+        language = locale.replace("-", "_").split("_")[0]
     else:
         language = app.config.get("BABEL_DEFAULT_LOCALE", "en")
     auth_type = app.config["AUTH_TYPE"]

@@ -1,0 +1,1 @@
+{"parameters":[{"in":"path","name":"pk","required":true,"schema":{"type":"integer"}},{"description":"A hex digest that makes this chart unique","in":"path","name":"digest","required":true,"schema":{"type":"string"}}]}

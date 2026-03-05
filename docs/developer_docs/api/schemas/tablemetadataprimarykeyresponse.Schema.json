@@ -1,0 +1,1 @@
+{"schema":{"properties":{"column_names":{"items":{"description":"A list of column names that compose the primary key","type":"string"},"type":"array"},"name":{"description":"The primary key index name","type":"string"},"type":{"type":"string"}},"type":"object","title":"TableMetadataPrimaryKeyResponse"},"schemaType":"response"}

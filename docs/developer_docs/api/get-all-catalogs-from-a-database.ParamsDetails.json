@@ -1,0 +1,1 @@
+{"parameters":[{"description":"The database id","in":"path","name":"pk","required":true,"schema":{"type":"integer"}},{"content":{"application/json":{"schema":{"properties":{"force":{"type":"boolean"}},"type":"object","title":"database_catalogs_query_schema"}}},"in":"query","name":"q"}]}
