@@ -78,39 +78,19 @@ def test_extension_json_template_renders_with_both_frontend_and_backend(
     assert parsed["license"] == "Apache-2.0"
     assert parsed["permissions"] == []
 
-    # Verify frontend section exists
-    assert "frontend" in parsed
-    frontend = parsed["frontend"]
-    assert "contributions" in frontend
-    assert "moduleFederation" in frontend
-    assert frontend["contributions"] == {
-        "commands": [],
-        "views": {},
-        "menus": {},
-        "editors": [],
-    }
-    assert frontend["moduleFederation"] == {
-        "exposes": ["./index"],
-        "name": "testOrg_testExtension",
-    }
+    # Verify frontend section is not present (contributions are code-first)
+    assert "frontend" not in parsed
 
-    # Verify backend section exists
-    assert "backend" in parsed
-    backend = parsed["backend"]
-    assert backend["entryPoints"] == [
-        "superset_extensions.test_org.test_extension.entrypoint"
-    ]
-    assert backend["files"] == [
-        "backend/src/superset_extensions/test_org/test_extension/**/*.py"
-    ]
+    # Verify no backend section in extension.json (moved to pyproject.toml)
+    assert "backend" not in parsed
 
 
 @pytest.mark.unit
 @pytest.mark.parametrize(
     "include_frontend,include_backend,expected_sections",
     [
-        (True, False, ["frontend"]),
-        (False, True, ["backend"]),
+        (True, False, []),
+        (False, True, []),
         (False, False, []),
     ],
 )
@@ -233,12 +213,7 @@ def test_template_rendering_with_different_ids(
     assert parsed["publisher"] == publisher
     assert parsed["name"] == technical_name
     assert parsed["displayName"] == display_name
-    assert parsed["backend"]["entryPoints"] == [
-        f"superset_extensions.{publisher_snake}.{name_snake}.entrypoint"
-    ]
-    assert parsed["backend"]["files"] == [
-        f"backend/src/superset_extensions/{publisher_snake}/{name_snake}/**/*.py"
-    ]
+    assert "backend" not in parsed
 
     # Test package.json template
     template = jinja_env.get_template("frontend/package.json.j2")

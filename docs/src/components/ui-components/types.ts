@@ -16,32 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DASHBOARD_LIST } from 'cypress/utils/urls';
-import { setGridMode, clearAllInputs } from 'cypress/utils';
-import { setFilter } from '../dashboard/utils';
 
-describe('Dashboards filters', () => {
-  before(() => {
-    cy.visit(DASHBOARD_LIST);
-    setGridMode('card');
-  });
+export interface ComponentEntry {
+  name: string;
+  category: string;
+  categoryLabel: string;
+  description: string;
+  importPath: string;
+  package: string;
+  extensionCompatible: boolean;
+  propsCount: number;
+  controlsCount: number;
+  hasGallery: boolean;
+  hasLiveExample: boolean;
+  docPath: string;
+  storyFile: string;
+}
 
-  beforeEach(() => {
-    clearAllInputs();
-  });
+export interface ComponentStatistics {
+  totalComponents: number;
+  byCategory: Record<string, number>;
+  extensionCompatible: number;
+  withGallery: number;
+  withLiveExample: number;
+}
 
-  it('should allow filtering by "Owner" correctly', () => {
-    setFilter('Owner', 'alpha user');
-    setFilter('Owner', 'admin user');
-  });
-
-  it('should allow filtering by "Modified by" correctly', () => {
-    setFilter('Modified by', 'alpha user');
-    setFilter('Modified by', 'admin user');
-  });
-
-  it('should allow filtering by "Status" correctly', () => {
-    setFilter('Status', 'Published');
-    setFilter('Status', 'Draft');
-  });
-});
+export interface ComponentData {
+  generated: string;
+  statistics: ComponentStatistics;
+  components: ComponentEntry[];
+}

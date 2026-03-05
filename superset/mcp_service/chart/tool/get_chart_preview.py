@@ -23,7 +23,7 @@ import logging
 from typing import Any, Dict, List, Protocol
 
 from fastmcp import Context
-from superset_core.mcp import tool
+from superset_core.api.mcp import tool
 
 from superset.commands.exceptions import CommandException
 from superset.exceptions import SupersetException

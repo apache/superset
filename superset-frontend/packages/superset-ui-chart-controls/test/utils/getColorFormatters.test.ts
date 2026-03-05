@@ -506,6 +506,19 @@ test('getColorFunction IsNotNull', () => {
   expect(colorFunction(null)).toBeUndefined();
 });
 
+test('getColorFunction IsNotNull returns undefined for non-boolean value', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.IsNotNull,
+      targetValue: '',
+      colorScheme: '#FF0000',
+      column: 'isMember',
+    },
+    boolValues,
+  );
+  expect(colorFunction(50 as unknown as boolean)).toBeUndefined();
+});
+
 test('getColorFunction returns undefined for null values on numeric comparators', () => {
   const operators = [
     { operator: Comparator.LessThan, targetValue: 50 },
@@ -803,6 +816,34 @@ test('getColorFormatters with useGradient flag', () => {
   // Second formatter with useGradient: true should return gradient color
   expect(colorFormatters[1].column).toEqual('count');
   expect(colorFormatters[1].getColorFromValue(100)).toEqual('#00FF00FF');
+});
+
+test('getColorFunction NOT_EQUAL returns undefined when targetValue is non-numeric', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.NotEqual,
+      targetValue: 'not-a-number' as unknown as number,
+      colorScheme: '#FF0000',
+      column: 'count',
+    },
+    countValues,
+  );
+  expect(colorFunction(50)).toBeUndefined();
+  expect(colorFunction(100)).toBeUndefined();
+});
+
+test('getColorFormatters resolves colorScheme from theme when it starts with "color"', () => {
+  const theme = { colorPrimary: '#AABBCC' };
+  const columnConfig = [
+    {
+      operator: Comparator.None,
+      colorScheme: 'colorPrimary',
+      column: 'count',
+    },
+  ];
+  const colorFormatters = getColorFormatters(columnConfig, mockData, theme);
+  expect(colorFormatters).toHaveLength(1);
+  expect(colorFormatters[0].getColorFromValue(75)).toContain('#AABBCC');
 });
 
 test('correct column boolean config', () => {

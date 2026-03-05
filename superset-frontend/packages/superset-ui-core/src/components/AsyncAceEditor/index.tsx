@@ -502,3 +502,9 @@ export const ConfigEditor = AsyncAceEditor([
   'mode/yaml',
   'theme/github',
 ]);
+
+export const JSEditor = AsyncAceEditor([
+  'mode/javascript',
+  'mode/json',
+  'theme/github',
+]);
