@@ -54,6 +54,15 @@ beforeEach(() => {
 
 afterEach(() => {
   window.location = originalLocation;
+
+  const unmatched = fetchMock.callHistory.calls('unmatched');
+  if (unmatched.length > 0) {
+    const urls = unmatched.map(call => call.url).join(', ');
+    throw new Error(
+      `fetchMock: ${unmatched.length} unmatched call(s): ${urls}`,
+    );
+  }
+
   fetchMock.clearHistory().removeRoutes();
   jest.restoreAllMocks();
 });
@@ -284,7 +293,9 @@ test('Click on Edit dataset', async () => {
 
   await userEvent.click(screen.getByText('Edit dataset'));
 
-  expect(await screen.findByTestId('mock-datasource-editor')).toBeInTheDocument();
+  expect(
+    await screen.findByTestId('mock-datasource-editor'),
+  ).toBeInTheDocument();
 });
 
 test('Edit dataset should be disabled when user is not admin', async () => {

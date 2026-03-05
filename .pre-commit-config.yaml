@@ -67,6 +67,12 @@ repos:
         language: system
         pass_filenames: true
         files: ^superset-frontend/.*\.(js|jsx|ts|tsx|css|scss|sass|json)$
+      - id: no-mock-implementation-once-datasource
+        name: ban mockImplementationOnce in DatasourceControl tests
+        entry: bash -c 'for f in "$@"; do if echo "$f" | grep -q "DatasourceControl.test"; then if grep -n "mockImplementationOnce" "$f"; then echo "[ERROR] mockImplementationOnce is banned in DatasourceControl.test.tsx"; echo "Use scoped jest.spyOn(...).mockImplementation(...) instead."; exit 1; fi; fi; done'
+        language: system
+        pass_filenames: true
+        files: DatasourceControl\.test\.(ts|tsx)$
   - repo: local
     hooks:
       - id: oxlint-frontend
