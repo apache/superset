@@ -589,3 +589,88 @@ test('values ​​from the 3rd level of the hierarchy with a subtotal at the to
     },
   });
 });
+
+test('casts column header key to number before date formatting', () => {
+  const colDateFormatter = jest.fn().mockReturnValue('formatted-column-date');
+  tableRenderer = new TableRenderer({
+    ...mockProps,
+    cols: ['event_time'],
+    tableOptions: {
+      ...mockProps.tableOptions,
+      dateFormatters: {
+        event_time: colDateFormatter,
+      },
+    },
+  });
+
+  const pivotSettings = {
+    rowAttrs: [],
+    colAttrs: ['event_time'],
+    colKeys: [['1700000000000']],
+    visibleColKeys: [['1700000000000']],
+    colAttrSpans: [[1]],
+    rowTotals: false,
+    colSubtotalDisplay: {
+      enabled: false,
+      displayOnTop: false,
+      hideOnExpand: false,
+    },
+    maxColVisible: 1,
+    pivotData: {},
+    namesMapping: {},
+    allowRenderHtml: false,
+  } as Parameters<TableRenderer['renderColHeaderRow']>[2];
+
+  tableRenderer.renderColHeaderRow('event_time', 0, pivotSettings);
+
+  expect(colDateFormatter).toHaveBeenCalledWith(1700000000000);
+  expect(typeof colDateFormatter.mock.calls[0][0]).toBe('number');
+});
+
+test('casts row header key to number before date formatting', () => {
+  const rowDateFormatter = jest.fn().mockReturnValue('formatted-row-date');
+  tableRenderer = new TableRenderer({
+    ...mockProps,
+    rows: ['event_time'],
+    tableOptions: {
+      ...mockProps.tableOptions,
+      dateFormatters: {
+        event_time: rowDateFormatter,
+      },
+    },
+  });
+
+  const aggregator = {
+    value: jest.fn().mockReturnValue(1),
+    format: jest.fn().mockReturnValue('1'),
+    isSubtotal: false,
+  };
+  const pivotData = {
+    getAggregator: jest.fn().mockReturnValue(aggregator),
+  };
+
+  const pivotSettings = {
+    rowAttrs: ['event_time'],
+    colAttrs: [],
+    rowAttrSpans: [[1]],
+    visibleColKeys: [[]],
+    pivotData,
+    rowTotals: false,
+    rowSubtotalDisplay: {
+      enabled: false,
+      displayOnTop: false,
+      hideOnExpand: false,
+    },
+    arrowExpanded: null,
+    arrowCollapsed: null,
+    cellCallbacks: {},
+    rowTotalCallbacks: {},
+    namesMapping: {},
+    allowRenderHtml: false,
+  } as Parameters<TableRenderer['renderTableRow']>[2];
+
+  tableRenderer.renderTableRow(['1700000000000'], 0, pivotSettings);
+
+  expect(rowDateFormatter).toHaveBeenCalledWith(1700000000000);
+  expect(typeof rowDateFormatter.mock.calls[0][0]).toBe('number');
+});
