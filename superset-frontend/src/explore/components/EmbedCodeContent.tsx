@@ -102,7 +102,7 @@ const EmbedCodeContent: FC<EmbedCodeContentProps> = ({
   const html = useMemo(() => {
     if (!embedData?.iframe_url || !embedData?.guest_token) return '';
 
-    const origin = new URL(embedData.iframe_url).origin;
+    const { origin } = new URL(embedData.iframe_url);
 
     return `<!-- Superset Embedded Chart -->
 <iframe
@@ -140,9 +140,9 @@ const EmbedCodeContent: FC<EmbedCodeContentProps> = ({
           shouldShowText={false}
           text={html}
           copyNode={
-            <span role="button" aria-label={t('Copy to clipboard')}>
+            <button type="button" aria-label={t('Copy to clipboard')}>
               <Icons.CopyOutlined />
-            </span>
+            </button>
           }
         />
         <Input.TextArea
