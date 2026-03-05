@@ -418,35 +418,34 @@ export default function transformProps(
   const array = ensureIsArray(chartProps.rawFormData?.time_compare);
   const inverted = invert(verboseMap);
 
- rawSeriesA.forEach(entry => {
+ 
+
+rawSeriesA.forEach(entry => {
   const entryName = String(entry.name || '');
   const seriesName = inverted[entryName] || entryName;
   const colorScaleKey = getOriginalSeries(seriesName, array);
 
   let displayName: string;
 
-  if (truncateMetric) {
-    // Truncate metric: show only the group-by values (or nothing if no group-by)
-    if (groupby.length > 0) {
-      const groupbyValues = labelMap?.[seriesName] || [];
-      displayName = groupbyValues.join(', ');
-      console.log('Query A - entryName:', entryName, 'seriesName:', seriesName, 'groupbyValues:', groupbyValues, 'displayName:', displayName);
-    } else {
-      displayName = '';
-    }
+  if (truncateMetric && groupby.length > 0) {
+    // Truncate metric: show only the group-by values
+    const groupbyValues = labelMap?.[seriesName] || [];
+    displayName = groupbyValues.join(', ');
+    console.log(
+      'Query A - entryName:',
+      entryName,
+      'seriesName:',
+      seriesName,
+      'groupbyValues:',
+      groupbyValues,
+      'displayName:',
+      displayName,
+    );
   } else {
-    // Original logic (metric included, optional query identifier)
-    if (groupby.length > 0) {
-      const metricPart: string = showQueryIdentifiers
-        ? `${MetricDisplayNameA} (Query A)`
-        : MetricDisplayNameA;
-      displayName = entryName.includes(metricPart)
-        ? entryName
-        : `${metricPart}, ${entryName}`;
-
-      console.log('Query A (no trunc) - entryName:', entryName, 'displayName:', displayName);
-    } else {
-      displayName = showQueryIdentifiers ? `${entryName} (Query A)` : entryName;
+    // No truncation: use the original series name (already includes metric)
+    displayName = entryName;
+    if (showQueryIdentifiers) {
+      displayName += ' (Query A)';
     }
   }
 
@@ -502,34 +501,31 @@ export default function transformProps(
   }
 });
 
+
 rawSeriesB.forEach(entry => {
   const entryName = String(entry.name || '');
   const seriesEntry = inverted[entryName] || entryName;
-  const seriesName = `${seriesEntry} (1)`;
   const colorScaleKey = getOriginalSeries(seriesEntry, array);
 
   let displayName: string;
 
-  if (truncateMetricB) {
-    // Truncate metric: show only the group-by values (or nothing if no group-by)
-    if (groupbyB.length > 0) {
-      const groupbyValues = labelMapB?.[seriesName] || [];
-      displayName = groupbyValues.join(', ');
-      console.log('Query B - entryName:', entryName, 'seriesName:', seriesName, 'groupbyValues:', groupbyValues, 'displayName:', displayName);
-    } else {
-      displayName = '';
-    }
+  if (truncateMetricB && groupbyB.length > 0) {
+    // Truncate metric: show only the group-by values
+    const groupbyValues = labelMapB?.[entryName] || [];
+    displayName = groupbyValues.join(', ');
+    console.log(
+      'Query B - entryName:',
+      entryName,
+      'groupbyValues:',
+      groupbyValues,
+      'displayName:',
+      displayName,
+    );
   } else {
-    // Original logic (metric included, optional query identifier)
-    if (groupbyB.length > 0) {
-      const metricPart: string = showQueryIdentifiers
-        ? `${MetricDisplayNameB} (Query B)`
-        : MetricDisplayNameB;
-      displayName = entryName.includes(metricPart)
-        ? entryName
-        : `${metricPart}, ${entryName}`;
-    } else {
-      displayName = showQueryIdentifiers ? `${entryName} (Query B)` : entryName;
+    // No truncation: use the original series name
+    displayName = entryName;
+    if (showQueryIdentifiers) {
+      displayName += ' (Query B)';
     }
   }
 
@@ -537,7 +533,7 @@ rawSeriesB.forEach(entry => {
     customFormattersSecondary,
     formatterSecondary,
     metricsB,
-    labelMapB?.[seriesName]?.[0],
+    labelMapB?.[entryName]?.[0],
     !!contributionMode,
   );
 
