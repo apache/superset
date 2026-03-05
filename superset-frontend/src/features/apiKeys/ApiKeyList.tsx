@@ -65,7 +65,8 @@ export function ApiKeyList() {
 
   useEffect(() => {
     fetchApiKeys();
-  }, [fetchApiKeys]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleRevokeKey = useCallback(
     async (keyUuid: string) => {
