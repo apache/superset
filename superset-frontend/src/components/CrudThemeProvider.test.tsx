@@ -286,7 +286,9 @@ test('does not inject fonts when Theme.fromConfig throws even if fontUrls are pr
 });
 
 test('ignores non-array fontUrls in theme config without throwing', () => {
-  const themeConfig = { token: { colorPrimary: '#ff0000', fontUrls: 'not-an-array' } };
+  const themeConfig = {
+    token: { colorPrimary: '#ff0000', fontUrls: 'not-an-array' },
+  };
   render(
     <CrudThemeProvider
       theme={{

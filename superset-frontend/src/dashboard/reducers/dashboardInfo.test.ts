@@ -36,6 +36,35 @@ const stateWithTheme = {
   metadata: {},
 } as Partial<DashboardInfo>;
 
+const stateWithScopes = {
+  id: 1,
+  metadata: {
+    native_filter_configuration: [
+      {
+        id: 'FILTER-1',
+        name: 'Region',
+        chartsInScope: [10, 20, 30],
+        tabsInScope: ['TAB-A'],
+        targets: [{ datasetId: 1 }],
+      },
+      {
+        id: 'FILTER-2',
+        name: 'Date Range',
+        chartsInScope: [40],
+        tabsInScope: [],
+        targets: [{ datasetId: 2 }],
+      },
+    ],
+    chart_customization_config: [
+      {
+        id: 'CUSTOM-1',
+        chartsInScope: [100],
+        tabsInScope: ['TAB-X'],
+      },
+    ],
+  },
+} as unknown as Partial<DashboardInfo>;
+
 test('preserves existing theme when DASHBOARD_INFO_UPDATED payload omits theme key', () => {
   // Simulates the fixed Header behavior: conditional spread omits `theme`
   // key when PropertiesModal returns theme: undefined (theme not in fetched list).
@@ -75,4 +104,53 @@ test('overwrites theme when DASHBOARD_INFO_UPDATED payload has theme: undefined'
   expect(result.theme).toBeUndefined();
   const themeId = result.theme ? result.theme.id : null;
   expect(themeId).toBeNull();
+});
+
+test('preserves native_filter_configuration scopes during DASHBOARD_INFO_UPDATED metadata refresh', () => {
+  // Simulates the save flow: onUpdateSuccess → setDashboardMetadata(serverMetadata)
+  // → dashboardInfoChanged({ metadata: ... }) → DASHBOARD_INFO_UPDATED.
+  // The server response contains filters WITHOUT chartsInScope/tabsInScope (client-only).
+  const serverMetadata = {
+    native_filter_configuration: [
+      { id: 'FILTER-1', name: 'Region (updated)', targets: [{ datasetId: 1 }] },
+      { id: 'FILTER-2', name: 'Date Range', targets: [{ datasetId: 2 }] },
+    ],
+  } as unknown as DashboardInfo['metadata'];
+
+  const action = dashboardInfoChanged({ metadata: serverMetadata });
+  const result = dashboardInfoReducer(stateWithScopes, action);
+
+  const filters = result.metadata?.native_filter_configuration;
+  expect(filters).toHaveLength(2);
+
+  // FILTER-1: server updated the name, scopes preserved from existing state
+  expect(filters![0].name).toBe('Region (updated)');
+  expect(filters![0].chartsInScope).toEqual([10, 20, 30]);
+  expect(filters![0].tabsInScope).toEqual(['TAB-A']);
+
+  // FILTER-2: unchanged, scopes preserved
+  expect(filters![1].chartsInScope).toEqual([40]);
+  expect(filters![1].tabsInScope).toEqual([]);
+});
+
+test('preserves chart_customization_config scopes during DASHBOARD_INFO_UPDATED metadata refresh', () => {
+  const serverMetadata = {
+    chart_customization_config: [{ id: 'CUSTOM-1' }],
+  } as unknown as DashboardInfo['metadata'];
+
+  const action = dashboardInfoChanged({ metadata: serverMetadata });
+  const result = dashboardInfoReducer(stateWithScopes, action);
+
+  const customizations = result.metadata?.chart_customization_config;
+  expect(customizations).toHaveLength(1);
+  expect(customizations![0].chartsInScope).toEqual([100]);
+  expect(customizations![0].tabsInScope).toEqual(['TAB-X']);
+});
+
+test('does not affect metadata when DASHBOARD_INFO_UPDATED has no metadata key', () => {
+  const action = dashboardInfoChanged({ slug: 'new-slug' });
+  const result = dashboardInfoReducer(stateWithScopes, action);
+
+  // Metadata untouched — same reference
+  expect(result.metadata).toBe(stateWithScopes.metadata);
 });
