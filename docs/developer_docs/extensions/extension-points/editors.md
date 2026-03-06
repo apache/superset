@@ -41,7 +41,7 @@ Superset uses text editors in various places throughout the application:
 | `python` | Custom Python editor contexts |
 | `text` | Plain text editor contexts |
 
-By registering an editor provider for a language, your extension replaces the default Ace editor in **all** locations that use that language.
+By registering an editor for a language, your extension replaces the default Ace editor in **all** locations that use that language.
 
 ## Implementing an Editor
 
