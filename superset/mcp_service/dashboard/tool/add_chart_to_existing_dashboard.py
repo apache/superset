@@ -68,10 +68,11 @@ def _normalize_tab_text(text: str) -> str:
     import re
 
     # Remove emoji characters (Unicode emoji ranges)
+    # Note: using regular strings (not raw) so Python processes \U escapes
     cleaned = re.sub(
-        r"[\U0001F300-\U0001F9FF\U00002600-\U000027BF\U0000FE00-\U0000FE0F"
-        r"\U0001FA00-\U0001FA6F\U0001FA70-\U0001FAFF\U00002702-\U000027B0"
-        r"\U0000200D\U0000FE0F]+",
+        "[\U0001f300-\U0001f9ff\U00002600-\U000027bf\U0000fe00-\U0000fe0f"
+        "\U0001fa00-\U0001fa6f\U0001fa70-\U0001faff\U00002702-\U000027b0"
+        "\U0000200d\U0000fe0f]+",
         "",
         text,
     )
