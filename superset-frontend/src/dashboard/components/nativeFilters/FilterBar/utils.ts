@@ -61,9 +61,6 @@ export const checkIsApplyDisabled = (
     return true;
   }
 
-  const dataSelectedValues = Object.values(dataMaskSelected);
-  const dataAppliedValues = Object.values(dataMaskApplied);
-
   // Check if any required filter is missing a value
   // For filters that may have been auto-applied (e.g., requiredFirst filters),
   // check both selected and applied states to avoid false positives during initialization
@@ -73,10 +70,7 @@ export const checkIsApplyDisabled = (
     const appliedState = dataMaskApplied?.[filter?.id]?.filterState;
 
     // If filter has value in selected state, it's not missing
-    if (
-      selectedState?.value !== null &&
-      selectedState?.value !== undefined
-    ) {
+    if (selectedState?.value !== null && selectedState?.value !== undefined) {
       return false;
     }
 
@@ -103,10 +97,7 @@ export const checkIsApplyDisabled = (
     { ignoreUndefined: true },
   );
 
-  const result =
-    areEqual ||
-    dataSelectedValues.length !== dataAppliedValues.length ||
-    hasMissingRequiredFilter;
+  const result = areEqual || hasMissingRequiredFilter;
 
   return result;
 };

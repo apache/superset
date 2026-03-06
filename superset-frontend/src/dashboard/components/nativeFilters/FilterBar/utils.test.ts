@@ -326,7 +326,9 @@ describe('FilterBar Utils - Validation and Apply Logic', () => {
       ).toBe(true);
     });
 
-    test('should handle filter count mismatch', () => {
+    test('should enable Apply when new filter is selected', () => {
+      // User selects a new filter that hasn't been applied yet
+      // Apply should be ENABLED to allow applying the new selection
       const dataMaskSelected: DataMaskStateWithId = {
         'filter-1': {
           id: 'filter-1',
@@ -360,7 +362,7 @@ describe('FilterBar Utils - Validation and Apply Logic', () => {
             filters: [{ col: 'state', op: 'IN', val: ['CA'] }],
           },
         },
-        // Missing filter-2
+        // filter-2 not yet applied
       };
 
       const filters: Filter[] = [
@@ -370,7 +372,7 @@ describe('FilterBar Utils - Validation and Apply Logic', () => {
 
       expect(
         checkIsApplyDisabled(dataMaskSelected, dataMaskApplied, filters),
-      ).toBe(true);
+      ).toBe(false);
     });
 
     test('should handle validation status recalculation scenario', () => {
@@ -417,16 +419,16 @@ describe('FilterBar Utils - Validation and Apply Logic', () => {
 
     test('should not disable Apply when required filter is auto-applied (bug fix)', () => {
       // Bug scenario: Filter A has "required" + "select first by default"
-      // Filter A auto-applies to dataMaskApplied
-      // User changes Filter B
-      // Apply button should be ENABLED (changes exist and required filter has value in applied state)
+      // Filter A auto-applies and is synced to selected
+      // User changes Filter B (adds it to selected, not in applied yet)
+      // Apply button should be ENABLED (changes exist and required filter has value)
 
       const dataMaskSelected: DataMaskStateWithId = {
         'filter-country': {
           id: 'filter-country',
           filterState: {
             validateStatus: undefined,
-            value: ['USA'], // Auto-applied value
+            value: ['USA'], // Auto-applied value (synced from applied)
           },
           extraFormData: {
             filters: [{ col: 'country', op: 'IN', val: ['USA'] }],
