@@ -28,7 +28,7 @@ from __future__ import annotations
 import logging
 
 from fastmcp import Context
-from superset_core.api.mcp import tool
+from superset_core.mcp.decorators import tool
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetErrorException, SupersetSecurityException
