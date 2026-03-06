@@ -24,7 +24,7 @@ interface FormattedNumberProps {
   format?: string;
 }
 
-const FormattedNumber = ({ num = 0, format }: FormattedNumberProps) => {
+const FormattedNumber = ({ num = null, format }: FormattedNumberProps) => {
   const displayNum = num ?? 'null';
   const numericValue = parseToNumber(num);
 

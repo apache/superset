@@ -81,7 +81,7 @@ const TimeTable = ({
       const valueField = row.label || row.metric_name || '';
       const cellValues = columnConfigs.reduce<Record<string, ReactNode>>(
         (acc, columnConfig) => {
-          const { value } = calculateCellValue(
+          const { value, errorMsg } = calculateCellValue(
             valueField,
             columnConfig,
             reversedEntries,
@@ -108,9 +108,9 @@ const TimeTable = ({
             ...acc,
             [columnConfig.key]: (
               <ValueCell
-                valueField={valueField}
+                value={value}
                 column={columnConfig}
-                reversedEntries={reversedEntries}
+                errorMsg={errorMsg}
               />
             ),
             cellValues: {

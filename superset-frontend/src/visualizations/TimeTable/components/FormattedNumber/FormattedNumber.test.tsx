@@ -39,14 +39,9 @@ test('should render with thousands separator', () => {
   expect(screen.getByText('1,234,567')).toBeInTheDocument();
 });
 
-test('should render zero when num is undefined', () => {
+test('should render null when num is undefined', () => {
   render(<FormattedNumber format=".2f" />);
-  expect(screen.getByText('0.00')).toBeInTheDocument();
-});
-
-test('should render zero without format when num is undefined', () => {
-  render(<FormattedNumber />);
-  expect(screen.getByText('0')).toBeInTheDocument();
+  expect(screen.getByText('null')).toBeInTheDocument();
 });
 
 test('should have title attribute with original number when formatted', () => {
@@ -85,9 +80,13 @@ test('should handle very large numbers', () => {
   expect(screen.getByText('1.23T')).toBeInTheDocument();
 });
 
-test('should handle invalid string numbers with format', () => {
+test('should handle invalid string numbers', () => {
   render(<FormattedNumber num="invalid" format=".2f" />);
-  expect(screen.getByText('0.00')).toBeInTheDocument();
+
+  const span = screen.getByText('null');
+
+  expect(span).toBeInTheDocument();
+  expect(span).toHaveAttribute('title', 'invalid');
 });
 
 test('should handle null values', () => {
