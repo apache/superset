@@ -666,16 +666,18 @@ if (isDevMode) {
     liveReload: false,
     host: devserverHost,
     port: devserverPort,
-    allowedHosts: [
-      ...new Set([
-        devserverHost,
-        'localhost',
-        '.localhost',
-        '127.0.0.1',
-        '::1',
-        '.local',
-      ]),
-    ],
+    allowedHosts: process.env.WEBPACK_ALLOW_ALL_HOSTS
+      ? 'all'
+      : [
+          ...new Set([
+            devserverHost,
+            'localhost',
+            '.localhost',
+            '127.0.0.1',
+            '::1',
+            '.local',
+          ]),
+        ],
     proxy: [() => proxyConfig],
     client: {
       overlay: {

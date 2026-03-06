@@ -162,6 +162,7 @@ services:
       # Webpack dev server must bind to 0.0.0.0 to be accessible from outside the container
       WEBPACK_DEVSERVER_HOST: "${WEBPACK_DEVSERVER_HOST:-0.0.0.0}"
       WEBPACK_DEVSERVER_PORT: "${WEBPACK_DEVSERVER_PORT:-9000}"
+      WEBPACK_ALLOW_ALL_HOSTS: "${WEBPACK_ALLOW_ALL_HOSTS:-true}"
     ports:
       - "${NODE_PORT:-9001}:9000"  # Parameterized port, accessible on all interfaces
     command: ["/app/docker/docker-frontend.sh"]
