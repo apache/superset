@@ -738,13 +738,7 @@ def init(
         pyproject_toml = env.get_template("backend/pyproject.toml.j2").render(ctx)
         (backend_dir / "pyproject.toml").write_text(pyproject_toml)
 
-        # Namespace package __init__.py (empty for namespace)
-        (namespace_dir / "__init__.py").write_text("")
-        (publisher_dir / "__init__.py").write_text("")
-
         # Extension package files
-        init_py = env.get_template("backend/src/package/__init__.py.j2").render(ctx)
-        (extension_package_dir / "__init__.py").write_text(init_py)
         entrypoint_py = env.get_template("backend/src/package/entrypoint.py.j2").render(
             ctx
         )
