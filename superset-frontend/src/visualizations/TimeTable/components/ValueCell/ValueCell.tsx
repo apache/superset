@@ -16,15 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactElement, useMemo } from 'react';
-import { colorFromBounds, calculateCellValue } from '../../utils';
+import { ReactElement } from 'react';
+import { colorFromBounds } from '../../utils';
 import FormattedNumber from '../FormattedNumber';
-import type { ColumnConfig, Entry } from '../../types';
+import type { ColumnConfig } from '../../types';
 
 interface ValueCellProps {
-  valueField: string;
+  value: number | null;
   column: ColumnConfig;
-  reversedEntries: Entry[];
+  errorMsg?: string;
 }
 
 /**
@@ -32,21 +32,16 @@ interface ValueCellProps {
  * and applies color coding based on bounds
  */
 const ValueCell = ({
-  valueField,
+  value,
   column,
-  reversedEntries,
+  errorMsg,
 }: ValueCellProps): ReactElement => {
-  const { value: v, errorMsg } = useMemo(
-    () => calculateCellValue(valueField, column, reversedEntries),
-    [valueField, column, reversedEntries],
-  );
-
-  const color = colorFromBounds(v, column.bounds);
+  const color = colorFromBounds(value, column.bounds);
 
   return (
     <span
       key={column.key}
-      data-value={v}
+      data-value={value}
       css={theme =>
         color && {
           boxShadow: `inset 0px -2.5px 0px 0px ${color}`,
@@ -56,7 +51,7 @@ const ValueCell = ({
     >
       {errorMsg || (
         <span style={{ color: color || undefined }}>
-          <FormattedNumber num={v} format={column.d3format} />
+          <FormattedNumber num={value} format={column.d3format} />
         </span>
       )}
     </span>
