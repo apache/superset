@@ -68,7 +68,7 @@ Include backend? [Y/n]: Y
 - **NPM package**: `@my-org/hello-world` (scoped package for frontend distribution)
 - **Module Federation name**: `myOrg_helloWorld` (collision-safe JavaScript identifier)
 - **Backend package**: `my_org-hello_world` (collision-safe Python distribution name)
-- **Python namespace**: `superset_extensions.my_org.hello_world`
+- **Python namespace**: `my_org.hello_world`
 
 This approach ensures that extensions from different organizations cannot conflict, even if they use the same technical name (e.g., both `acme.dashboard-widgets` and `corp.dashboard-widgets` can coexist).
 
@@ -79,10 +79,9 @@ my-org.hello-world/
 ├── extension.json           # Extension metadata and configuration
 ├── backend/                 # Backend Python code
 │   ├── src/
-│   │   └── superset_extensions/
-│   │       └── my_org/
-│   │           └── hello_world/
-│   │               └── entrypoint.py  # Backend registration
+│   │   └── my_org/
+│   │       └── hello_world/
+│   │           └── entrypoint.py  # Backend registration
 │   └── pyproject.toml
 └── frontend/                # Frontend TypeScript/React code
     ├── src/
@@ -116,9 +115,9 @@ The generated `extension.json` contains the extension's metadata.
 
 ## Step 4: Create Backend API
 
-The CLI generated a basic `backend/src/superset_extensions/my_org/hello_world/entrypoint.py`. We'll create an API endpoint.
+The CLI generated a basic `backend/src/my_org/hello_world/entrypoint.py`. We'll create an API endpoint.
 
-**Create `backend/src/superset_extensions/my_org/hello_world/api.py`**
+**Create `backend/src/my_org/hello_world/api.py`**
 
 ```python
 from flask import Response
@@ -176,7 +175,7 @@ class HelloWorldAPI(RestApi):
 - The endpoint will be accessible at `/extensions/my-org/hello-world/message` (automatic extension context)
 - OpenAPI docstrings are crucial - Flask-AppBuilder uses them to automatically generate interactive API documentation at `/swagger/v1`, allowing developers to explore endpoints, understand schemas, and test the API directly from the browser
 
-**Update `backend/src/superset_extensions/my_org/hello_world/entrypoint.py`**
+**Update `backend/src/my_org/hello_world/entrypoint.py`**
 
 Replace the generated print statement with API import to trigger registration:
 
