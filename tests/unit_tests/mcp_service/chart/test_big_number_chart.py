@@ -450,7 +450,7 @@ class TestSchemaValidatorBigNumber:
         is_valid, error = SchemaValidator._pre_validate(
             {
                 "dataset_id": 1,
-                "config": {"chart_type": "pie"},
+                "config": {"chart_type": "nonexistent_chart"},
             }
         )
         assert is_valid is False
