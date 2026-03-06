@@ -19,7 +19,7 @@
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { t } from '@apache-superset/core';
-import { css, styled, useTheme } from '@apache-superset/core/ui';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import {
   Button,
   Card,
