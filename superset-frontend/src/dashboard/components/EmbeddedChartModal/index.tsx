@@ -21,8 +21,8 @@ import { makeApi, SupersetApiError } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
 import { styled, css } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
+import { Alert } from '@apache-superset/core/components';
 import {
-  Alert,
   Button,
   FormItem,
   InfoTooltip,
