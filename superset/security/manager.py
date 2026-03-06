@@ -480,6 +480,19 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return self.get_guest_user_from_request(request)
         return None
 
+    def set_oauth_session(self, provider: str, oauth_response: dict[str, Any]) -> None:
+        """
+        Override to persist the full OAuth token response before FAB reduces it to
+        ``session["oauth"] = (access_token, secret)`` tuple.
+        """
+        # pylint: disable=import-outside-toplevel
+        from flask import session
+
+        super().set_oauth_session(provider, oauth_response)
+        # FAB stores only (access_token, secret) in session["oauth"].
+        # We need the full response (expires_in, refresh_token, …) for upstream forwarding.
+        session["oauth_full_token"] = dict(oauth_response)
+
     def auth_user_oauth(self, userinfo: dict[str, Any]) -> Any:
         """
         Override to save the upstream OAuth token when a user logs in via OAuth.
@@ -495,7 +508,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         user = super().auth_user_oauth(userinfo)
         if user:
             provider = session.get("oauth_provider")
-            token = session.get("oauth")
+            # Use the full token dict saved by set_oauth_session, not the
+            # (access_token, secret) tuple that FAB stores in session["oauth"].
+            token = session.get("oauth_full_token")
             if token and provider:
                 provider_config = next(
                     (
