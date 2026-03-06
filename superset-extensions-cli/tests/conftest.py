@@ -137,7 +137,6 @@ def extension_setup_for_bundling():
             dist_dir
             / "backend"
             / "src"
-            / "superset_extensions"
             / "test_org"
             / "test_extension"
         )

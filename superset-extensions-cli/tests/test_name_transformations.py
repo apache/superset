@@ -378,11 +378,11 @@ def test_generate_extension_names_complete_flow(
     )  # Collision-safe
     assert (
         names["backend_path"]
-        == f"superset_extensions.{publisher.replace('-', '_')}.{expected_snake}"
+        == f"{publisher.replace('-', '_')}.{expected_snake}"
     )
     assert (
         names["backend_entry"]
-        == f"superset_extensions.{publisher.replace('-', '_')}.{expected_snake}.entrypoint"
+        == f"{publisher.replace('-', '_')}.{expected_snake}.entrypoint"
     )
 
 
@@ -476,8 +476,8 @@ def test_manual_technical_name_override():
     assert names["id"] == "acme.chart-builder"  # Composite ID
     assert names["mf_name"] == "acme_chartBuilder"  # Module Federation format
     assert names["backend_package"] == "acme-chart_builder"  # Collision-safe
-    assert names["backend_path"] == "superset_extensions.acme.chart_builder"
-    assert names["backend_entry"] == "superset_extensions.acme.chart_builder.entrypoint"
+    assert names["backend_path"] == "acme.chart_builder"
+    assert names["backend_entry"] == "acme.chart_builder.entrypoint"
 
 
 def test_generate_names_uses_suggested_technical_names():

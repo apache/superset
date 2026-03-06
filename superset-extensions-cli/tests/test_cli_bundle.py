@@ -56,7 +56,7 @@ def test_bundle_command_creates_zip_with_default_name(
         assert "frontend/dist/remoteEntry.abc123.js" in file_list
         assert "frontend/dist/main.js" in file_list
         assert (
-            "backend/src/superset_extensions/test_org/test_extension/__init__.py"
+            "backend/src/test_org/test_extension/__init__.py"
             in file_list
         )
 

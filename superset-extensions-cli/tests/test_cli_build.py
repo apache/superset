@@ -59,7 +59,6 @@ def extension_with_build_structure():
             backend_src_dir = (
                 backend_dir
                 / "src"
-                / "superset_extensions"
                 / "test_org"
                 / "test_extension"
             )
@@ -70,10 +69,7 @@ def extension_with_build_structure():
             (backend_src_dir / "__init__.py").write_text("")
 
             # Create parent __init__.py files for namespace packages
-            (backend_dir / "src" / "superset_extensions" / "__init__.py").write_text("")
-            (
-                backend_dir / "src" / "superset_extensions" / "test_org" / "__init__.py"
-            ).write_text("")
+            (backend_dir / "src" / "test_org" / "__init__.py").write_text("")
 
             # Create pyproject.toml matching the template structure
             pyproject_content = """[project]
@@ -84,7 +80,7 @@ license = "Apache-2.0"
 [tool.apache_superset_extensions.build]
 # Files to include in the extension build/bundle
 include = [
-    "src/superset_extensions/test_org/test_extension/**/*.py",
+    "src/test_org/test_extension/**/*.py",
 ]
 exclude = []
 """
@@ -135,7 +131,7 @@ def test_build_command_success_flow(
             "apache_superset_extensions": {
                 "build": {
                     "include": [
-                        "src/superset_extensions/test_org/test_extension/**/*.py"
+                        "src/test_org/test_extension/**/*.py"
                     ]
                 }
             }
@@ -180,7 +176,7 @@ def test_build_command_handles_frontend_build_failure(
             "apache_superset_extensions": {
                 "build": {
                     "include": [
-                        "src/superset_extensions/test_org/test_extension/**/*.py"
+                        "src/test_org/test_extension/**/*.py"
                     ]
                 }
             }
@@ -324,7 +320,7 @@ def test_build_manifest_creates_correct_manifest_structure(
     assert manifest.backend is not None
     assert (
         manifest.backend.entrypoint
-        == "superset_extensions.test_org.test_extension.entrypoint"
+        == "test_org.test_extension.entrypoint"
     )
 
 
@@ -477,7 +473,7 @@ def test_copy_backend_files_skips_non_files(isolated_filesystem):
     """Test copy_backend_files skips directories and non-files."""
     # Create backend structure with directory
     backend_dir = isolated_filesystem / "backend"
-    backend_src = backend_dir / "src" / "superset_extensions" / "test_org" / "test_ext"
+    backend_src = backend_dir / "src" / "test_org" / "test_ext"
     backend_src.mkdir(parents=True)
     (backend_src / "__init__.py").write_text("# init")
 
@@ -493,7 +489,7 @@ license = "Apache-2.0"
 
 [tool.apache_superset_extensions.build]
 include = [
-    "src/superset_extensions/test_org/test_ext/**/*",
+    "src/test_org/test_ext/**/*",
 ]
 exclude = []
 """
@@ -520,7 +516,6 @@ exclude = []
         dist_dir
         / "backend"
         / "src"
-        / "superset_extensions"
         / "test_org"
         / "test_ext"
         / "__init__.py"
@@ -531,7 +526,6 @@ exclude = []
         dist_dir
         / "backend"
         / "src"
-        / "superset_extensions"
         / "test_org"
         / "test_ext"
         / "subdir"
@@ -546,7 +540,7 @@ def test_copy_backend_files_copies_matched_files(isolated_filesystem):
     """Test copy_backend_files copies files matching patterns from pyproject.toml."""
     # Create backend source files
     backend_dir = isolated_filesystem / "backend"
-    backend_src = backend_dir / "src" / "superset_extensions" / "test_org" / "test_ext"
+    backend_src = backend_dir / "src" / "test_org" / "test_ext"
     backend_src.mkdir(parents=True)
     (backend_src / "__init__.py").write_text("# init")
     (backend_src / "main.py").write_text("# main")
@@ -559,7 +553,7 @@ license = "Apache-2.0"
 
 [tool.apache_superset_extensions.build]
 include = [
-    "src/superset_extensions/test_org/test_ext/**/*.py",
+    "src/test_org/test_ext/**/*.py",
 ]
 exclude = []
 """
@@ -586,7 +580,6 @@ exclude = []
         dist_dir
         / "backend"
         / "src"
-        / "superset_extensions"
         / "test_org"
         / "test_ext"
         / "__init__.py"
@@ -595,7 +588,6 @@ exclude = []
         dist_dir
         / "backend"
         / "src"
-        / "superset_extensions"
         / "test_org"
         / "test_ext"
         / "main.py"
@@ -607,7 +599,7 @@ def test_copy_backend_files_handles_various_glob_patterns(isolated_filesystem):
     """Test copy_backend_files correctly handles different glob pattern formats."""
     # Create backend structure with files in different locations
     backend_dir = isolated_filesystem / "backend"
-    backend_src = backend_dir / "src" / "superset_extensions" / "test_org" / "test_ext"
+    backend_src = backend_dir / "src" / "test_org" / "test_ext"
     backend_src.mkdir(parents=True)
 
     # Create files that should match different pattern types
@@ -628,9 +620,9 @@ license = "Apache-2.0"
 
 [tool.apache_superset_extensions.build]
 include = [
-    "config.py",                                           # No '/' - would break old logic
-    "**/*.py",                                             # Starts with '**' - would break old logic
-    "src/superset_extensions/test_org/test_ext/main.py",   # Specific file
+    "config.py",                                  # No '/' - would break old logic
+    "**/*.py",                                    # Starts with '**' - would break old logic
+    "src/test_org/test_ext/main.py",              # Specific file
 ]
 exclude = []
 """
@@ -662,7 +654,6 @@ exclude = []
         dist_dir
         / "backend"
         / "src"
-        / "superset_extensions"
         / "test_org"
         / "test_ext"
         / "__init__.py"
@@ -671,19 +662,17 @@ exclude = []
         dist_dir
         / "backend"
         / "src"
-        / "superset_extensions"
         / "test_org"
         / "test_ext"
         / "utils"
         / "helper.py"
     )
 
-    # Specific file (pattern: "src/superset_extensions/test_org/test_ext/main.py")
+    # Specific file (pattern: "src/test_org/test_ext/main.py")
     assert_file_exists(
         dist_dir
         / "backend"
         / "src"
-        / "superset_extensions"
         / "test_org"
         / "test_ext"
         / "main.py"
