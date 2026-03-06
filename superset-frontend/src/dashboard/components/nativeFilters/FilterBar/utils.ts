@@ -64,12 +64,30 @@ export const checkIsApplyDisabled = (
   const dataSelectedValues = Object.values(dataMaskSelected);
   const dataAppliedValues = Object.values(dataMaskApplied);
 
-  const hasMissingRequiredFilter = filters.some(filter =>
-    checkIsMissingRequiredValue(
-      filter,
-      dataMaskSelected?.[filter?.id]?.filterState,
-    ),
-  );
+  // Check if any required filter is missing a value
+  // For filters that may have been auto-applied (e.g., requiredFirst filters),
+  // check both selected and applied states to avoid false positives during initialization
+  const hasMissingRequiredFilter = filters.some(filter => {
+    const selectedState = dataMaskSelected?.[filter?.id]?.filterState;
+    const appliedState = dataMaskApplied?.[filter?.id]?.filterState;
+
+    // If filter has value in selected state, it's not missing
+    if (
+      selectedState?.value !== null &&
+      selectedState?.value !== undefined
+    ) {
+      return false;
+    }
+
+    // If filter was auto-applied and has value in applied state, it's not missing
+    // This handles the case where auto-applied filters haven't synced to selected yet
+    if (appliedState?.value !== null && appliedState?.value !== undefined) {
+      return false;
+    }
+
+    // Otherwise, check if it's actually a required filter with missing value
+    return checkIsMissingRequiredValue(filter, selectedState);
+  });
 
   const selectedExtraFormData = getOnlyExtraFormData(dataMaskSelected);
   const appliedExtraFormData = getOnlyExtraFormData(dataMaskApplied);
