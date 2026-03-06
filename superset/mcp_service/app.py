@@ -314,6 +314,24 @@ from superset.core.mcp.core_mcp_injection import (  # noqa: E402
 
 initialize_core_mcp_dependencies()
 
+# Suppress known third-party deprecation warnings that leak to MCP clients.
+# The MCP SDK captures Python warnings and forwards them to clients via
+# server log entries, wasting LLM tokens and causing clients to act on
+# irrelevant internal warnings. These warnings come from transitive imports
+# triggered by tool/schema registration below.
+import warnings  # noqa: E402
+
+warnings.filterwarnings(
+    "ignore",
+    category=DeprecationWarning,
+    module=r"marshmallow\..*",
+)
+warnings.filterwarnings(
+    "ignore",
+    category=FutureWarning,
+    module=r"google\..*",
+)
+
 # Import all MCP tools to register them with the mcp instance
 # NOTE: Always add new tool imports here when creating new MCP tools.
 # Tools use the @tool decorator from `superset-core` and register automatically
