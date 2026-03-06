@@ -44,7 +44,7 @@ attrs==25.3.0
     #   referencing
     #   requests-cache
     #   trio
-authlib==1.6.5
+authlib==1.6.7
     # via fastmcp
 babel==2.17.0
     # via
@@ -111,7 +111,7 @@ certifi==2025.6.15
     #   httpx
     #   requests
     #   selenium
-cffi==1.17.1
+cffi==2.0.0
     # via
     #   -c requirements/base.txt
     #   cryptography
@@ -169,7 +169,7 @@ croniter==6.0.0
     # via
     #   -c requirements/base.txt
     #   apache-superset
-cryptography==44.0.3
+cryptography==46.0.5
     # via
     #   -c requirements/base.txt
     #   apache-superset
@@ -512,7 +512,7 @@ markupsafe==3.0.2
     #   mako
     #   werkzeug
     #   wtforms
-marshmallow==3.26.1
+marshmallow==3.26.2
     # via
     #   -c requirements/base.txt
     #   apache-superset
@@ -686,7 +686,7 @@ proto-plus==1.25.0
     # via
     #   google-api-core
     #   google-cloud-bigquery-storage
-protobuf==4.25.5
+protobuf==4.25.8
     # via
     #   google-api-core
     #   google-cloud-bigquery-storage
@@ -758,11 +758,11 @@ pyjwt==2.10.1
     #   redis
 pylint==3.3.7
     # via apache-superset
-pynacl==1.5.0
+pynacl==1.6.2
     # via
     #   -c requirements/base.txt
     #   paramiko
-pyopenssl==25.1.0
+pyopenssl==25.3.0
     # via
     #   -c requirements/base.txt
     #   shillelagh
@@ -1067,7 +1067,7 @@ websocket-client==1.8.0
     #   selenium
 websockets==15.0.1
     # via fastmcp
-werkzeug==3.1.5
+werkzeug==3.1.6
     # via
     #   -c requirements/base.txt
     #   flask
