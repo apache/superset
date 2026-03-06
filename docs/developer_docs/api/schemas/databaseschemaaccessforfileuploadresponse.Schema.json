@@ -1,1 +1,0 @@
-{"schema":{"properties":{"schemas":{"description":"The list of schemas allowed for the database to upload information","items":{"type":"string"},"type":"array"}},"type":"object","title":"DatabaseSchemaAccessForFileUploadResponse"},"schemaType":"response"}

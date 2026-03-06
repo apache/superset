@@ -1,1 +1,0 @@
-{"schema":{"properties":{"user_ids":{"description":"List of user ids","items":{"type":"integer"},"type":"array"}},"required":["user_ids"],"type":"object","title":"RoleUserPutSchema"},"schemaType":"response"}

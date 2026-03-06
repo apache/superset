@@ -1,1 +1,0 @@
-{"schema":{"properties":{"permission_id":{"nullable":true,"type":"integer"},"view_menu_id":{"nullable":true,"type":"integer"}},"type":"object","title":"PermissionViewMenuApi.post"},"schemaType":"response"}

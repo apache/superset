@@ -1,1 +1,0 @@
-{"schema":{"properties":{"dashboard_title":{"maxLength":500,"nullable":true,"type":"string"},"id":{"type":"integer"},"json_metadata":{"nullable":true,"type":"string"}},"type":"object","title":"ChartRestApi.get.Dashboard"},"schemaType":"response"}

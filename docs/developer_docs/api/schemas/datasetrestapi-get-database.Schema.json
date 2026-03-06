@@ -1,1 +1,0 @@
-{"schema":{"properties":{"allow_multi_catalog":{"readOnly":true},"backend":{"readOnly":true},"database_name":{"maxLength":250,"type":"string"},"id":{"type":"integer"}},"required":["database_name"],"type":"object","title":"DatasetRestApi.get.Database"},"schemaType":"response"}

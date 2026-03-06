@@ -1,1 +1,0 @@
-{"title":"Body","body":{"content":{"application/json":{"schema":{"properties":{"permission_id":{"nullable":true,"type":"integer"},"view_menu_id":{"nullable":true,"type":"integer"}},"type":"object","title":"PermissionViewMenuApi.post"},"example":{"permission_id":1,"view_menu_id":1}}},"description":"Model schema","required":true}}

@@ -1,1 +1,0 @@
-{"schema":{"properties":{"uuid":{"format":"uuid","type":"string"}},"type":"object","title":"EmbeddedDashboardRestApi.post"},"schemaType":"response"}

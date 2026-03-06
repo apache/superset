@@ -1,1 +1,0 @@
-{"schema":{"properties":{"clustering":{"type":"object"},"metadata":{"type":"object"},"partitions":{"type":"object"}},"type":"object","title":"TableExtraMetadataResponseSchema"},"schemaType":"response"}

@@ -1,1 +1,0 @@
-{"schema":{"properties":{"last_updated_ms":{"type":"number"}},"required":["last_updated_ms"],"type":"object","title":"queries_get_updated_since_schema"},"schemaType":"response"}

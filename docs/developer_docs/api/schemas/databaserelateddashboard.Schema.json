@@ -1,1 +1,0 @@
-{"schema":{"properties":{"id":{"type":"integer"},"json_metadata":{"type":"object"},"slug":{"type":"string"},"title":{"type":"string"}},"type":"object","title":"DatabaseRelatedDashboard"},"schemaType":"response"}
