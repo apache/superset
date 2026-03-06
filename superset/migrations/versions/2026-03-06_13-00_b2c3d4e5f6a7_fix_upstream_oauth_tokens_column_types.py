@@ -14,11 +14,15 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""add_upstream_oauth_tokens
+"""fix_upstream_oauth_tokens_column_types
 
-Revision ID: a1b2c3d4e5f6
-Revises: f5b5f88d8526
-Create Date: 2026-03-06 12:00:00.000000
+Recreate upstream_oauth_tokens with EncryptedType columns instead of plain Text.
+The previous migration incorrectly used sa.Text() for access_token and
+refresh_token, causing a TypeError when SQLAlchemy tried to read them back.
+
+Revision ID: b2c3d4e5f6a7
+Revises: a1b2c3d4e5f6
+Create Date: 2026-03-06 13:00:00.000000
 
 """
 
@@ -27,11 +31,20 @@ from alembic import op
 from sqlalchemy_utils import EncryptedType
 
 # revision identifiers, used by Alembic.
-revision = "a1b2c3d4e5f6"
-down_revision = "f5b5f88d8526"
+revision = "b2c3d4e5f6a7"
+down_revision = "a1b2c3d4e5f6"
 
 
 def upgrade() -> None:
+    # Drop and recreate the table with correct EncryptedType columns.
+    # The table is empty at this point (token saves were failing due to the
+    # previous bug), so no data migration is needed.
+    op.drop_index(
+        "idx_upstream_oauth_tokens_user_provider",
+        table_name="upstream_oauth_tokens",
+    )
+    op.drop_table("upstream_oauth_tokens")
+
     op.create_table(
         "upstream_oauth_tokens",
         sa.Column("id", sa.Integer(), nullable=False),
@@ -44,14 +57,8 @@ def upgrade() -> None:
         sa.Column("changed_on", sa.DateTime(), nullable=True),
         sa.Column("created_by_fk", sa.Integer(), nullable=True),
         sa.Column("changed_by_fk", sa.Integer(), nullable=True),
-        sa.ForeignKeyConstraint(
-            ["created_by_fk"],
-            ["ab_user.id"],
-        ),
-        sa.ForeignKeyConstraint(
-            ["changed_by_fk"],
-            ["ab_user.id"],
-        ),
+        sa.ForeignKeyConstraint(["created_by_fk"], ["ab_user.id"]),
+        sa.ForeignKeyConstraint(["changed_by_fk"], ["ab_user.id"]),
         sa.ForeignKeyConstraint(
             ["user_id"],
             ["ab_user.id"],
