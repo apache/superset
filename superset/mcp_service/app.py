@@ -168,6 +168,23 @@ Feature Availability:
 - Call get_instance_info to discover accessible menus for the current user.
 - Do NOT assume features exist; always check get_instance_info first.
 
+Permission Awareness:
+- get_instance_info returns current_user.roles (e.g., ["Admin"], ["Alpha"], ["Viewer"]).
+- ALWAYS check the user's roles BEFORE suggesting write operations (creating datasets,
+  charts, dashboards, or running SQL).
+- Common roles and their typical capabilities:
+  - Admin: Full access to all features
+  - Alpha: Can create and modify charts, dashboards, datasets, and run SQL
+  - Gamma: Can view charts and dashboards they have been granted access to
+  - Viewer: Read-only access to shared dashboards and charts
+- If a user has a read-only role (Viewer, Gamma) and a listing tool returns 0 results,
+  do NOT suggest they create resources. Instead:
+  1. Explain that they may not have access to the requested resources
+  2. Suggest they ask a workspace admin to grant them access or share content with them
+  3. Offer to help with what they CAN do (e.g., viewing dashboards they have access to)
+- If you are unsure about a user's capabilities, check their accessible_menus in
+  feature_availability from get_instance_info.
+
 If you are unsure which tool to use, start with get_instance_info
 or use the quickstart prompt for an interactive guide.
 
