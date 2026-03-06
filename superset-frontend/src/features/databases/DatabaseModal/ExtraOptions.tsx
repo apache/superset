@@ -18,13 +18,13 @@
  */
 import { ChangeEvent, EventHandler, useState, useEffect } from 'react';
 import cx from 'classnames';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   DatabaseConnectionExtension,
   isFeatureEnabled,
   FeatureFlag,
 } from '@superset-ui/core';
-import { useTheme } from '@apache-superset/core/ui';
+import { useTheme } from '@apache-superset/core/theme';
 import {
   Input,
   Checkbox,

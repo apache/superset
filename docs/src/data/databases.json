@@ -1,5 +1,5 @@
 {
-  "generated": "2026-02-26T01:18:11.347Z",
+  "generated": "2026-02-24T20:28:17.222Z",
   "statistics": {
     "totalDatabases": 72,
     "withDocumentation": 72,
@@ -751,14 +751,14 @@
           "OPEN_SOURCE"
         ],
         "pypi_packages": [
-          "clickhouse-connect>=0.13.0"
+          "clickhouse-connect>=0.6.8"
         ],
         "connection_string": "clickhousedb://{username}:{password}@{host}:{port}/{database}",
         "default_port": 8123,
         "drivers": [
           {
             "name": "clickhouse-connect (Recommended)",
-            "pypi_package": "clickhouse-connect>=0.13.0",
+            "pypi_package": "clickhouse-connect>=0.6.8",
             "connection_string": "clickhousedb://{username}:{password}@{host}:{port}/{database}",
             "is_recommended": true,
             "notes": "Official ClickHouse Python driver with native protocol support."
@@ -781,7 +781,7 @@
             "connection_string": "clickhousedb://localhost/default"
           }
         ],
-        "install_instructions": "echo \"clickhouse-connect>=0.13.0\" >> ./docker/requirements-local.txt",
+        "install_instructions": "echo \"clickhouse-connect>=0.6.8\" >> ./docker/requirements-local.txt",
         "compatible_databases": [
           {
             "name": "ClickHouse Cloud",
@@ -794,7 +794,7 @@
               "HOSTED_OPEN_SOURCE"
             ],
             "pypi_packages": [
-              "clickhouse-connect>=0.13.0"
+              "clickhouse-connect>=0.6.8"
             ],
             "connection_string": "clickhousedb://{username}:{password}@{host}:8443/{database}?secure=true",
             "parameters": {
@@ -816,7 +816,7 @@
               "HOSTED_OPEN_SOURCE"
             ],
             "pypi_packages": [
-              "clickhouse-connect>=0.13.0"
+              "clickhouse-connect>=0.6.8"
             ],
             "connection_string": "clickhousedb://{username}:{password}@{host}/{database}?secure=true",
             "docs_url": "https://docs.altinity.com/"

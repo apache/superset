@@ -161,6 +161,13 @@ class UserInfo(BaseModel):
     last_name: str | None = None
     email: str | None = None
     active: bool | None = None
+    roles: List[str] = Field(
+        default_factory=list,
+        description=(
+            "Role names assigned to the user (e.g., Admin, Alpha, Gamma, Viewer). "
+            "Use this to determine what actions the user can perform."
+        ),
+    )
 
 
 class TagInfo(BaseModel):

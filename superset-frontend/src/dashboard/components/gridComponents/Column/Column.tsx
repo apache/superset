@@ -18,7 +18,8 @@
  */
 import { Fragment, useCallback, useState, useMemo, memo } from 'react';
 import cx from 'classnames';
-import { t, css, styled, SupersetTheme } from '@apache-superset/core/ui';
+import { css, styled, SupersetTheme } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import { Icons } from '@superset-ui/core/components/Icons';
 import type { LayoutItem } from 'src/dashboard/types';
 import type { DropResult } from 'src/dashboard/components/dnd/dragDroppableConfig';
@@ -109,6 +110,8 @@ const ColumnStyles = styled.div<{ editMode: boolean }>`
       }
       &:first-child:not(.droptarget-edge) {
         position: absolute;
+        top: 0;
+        left: 0;
         z-index: ${EMPTY_CONTAINER_Z_INDEX};
         width: 100%;
         height: 100%;

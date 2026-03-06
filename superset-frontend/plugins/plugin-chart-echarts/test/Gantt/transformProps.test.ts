@@ -17,7 +17,7 @@
  * under the License.
  */
 import { AxisType, ChartProps } from '@superset-ui/core';
-import { supersetTheme } from '@apache-superset/core/ui';
+import { supersetTheme } from '@apache-superset/core/theme';
 import {
   LegendOrientation,
   LegendType,

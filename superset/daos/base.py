@@ -41,8 +41,8 @@ from sqlalchemy.exc import SQLAlchemyError, StatementError
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.inspection import inspect
 from sqlalchemy.orm import ColumnProperty, joinedload, Query, RelationshipProperty
-from superset_core.api.daos import BaseDAO as CoreBaseDAO
-from superset_core.api.models import CoreModel
+from superset_core.common.daos import BaseDAO as CoreBaseDAO
+from superset_core.common.models import CoreModel
 
 from superset.daos.exceptions import (
     DAOFindFailedError,
