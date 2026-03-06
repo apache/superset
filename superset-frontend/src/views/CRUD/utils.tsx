@@ -17,14 +17,15 @@
  * under the License.
  */
 
-import { t, logging } from '@apache-superset/core';
+import { logging } from '@apache-superset/core/utils';
+import { t } from '@apache-superset/core/translation';
 import {
   SupersetClient,
   SupersetClientResponse,
   getClientErrorObject,
   lruCache,
 } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import Chart from 'src/types/Chart';
 import { intersection } from 'lodash';
 import rison from 'rison';
@@ -479,51 +480,41 @@ export const isAlreadyExists = (payload: any) =>
   payload.includes('already exists and `overwrite=true` was not passed');
 
 export const getPasswordsNeeded = (errors: Record<string, any>[]) =>
-  errors
-    .map(error =>
-      Object.entries(error.extra)
-        .filter(([, payload]) => isNeedsPassword(payload))
-        .map(([fileName]) => fileName),
-    )
-    .flat();
+  errors.flatMap(error =>
+    Object.entries(error.extra)
+      .filter(([, payload]) => isNeedsPassword(payload))
+      .map(([fileName]) => fileName),
+  );
 
 export const getSSHPasswordsNeeded = (errors: Record<string, any>[]) =>
-  errors
-    .map(error =>
-      Object.entries(error.extra)
-        .filter(([, payload]) => isNeedsSSHPassword(payload))
-        .map(([fileName]) => fileName),
-    )
-    .flat();
+  errors.flatMap(error =>
+    Object.entries(error.extra)
+      .filter(([, payload]) => isNeedsSSHPassword(payload))
+      .map(([fileName]) => fileName),
+  );
 
 export const getSSHPrivateKeysNeeded = (errors: Record<string, any>[]) =>
-  errors
-    .map(error =>
-      Object.entries(error.extra)
-        .filter(([, payload]) => isNeedsSSHPrivateKey(payload))
-        .map(([fileName]) => fileName),
-    )
-    .flat();
+  errors.flatMap(error =>
+    Object.entries(error.extra)
+      .filter(([, payload]) => isNeedsSSHPrivateKey(payload))
+      .map(([fileName]) => fileName),
+  );
 
 export const getSSHPrivateKeyPasswordsNeeded = (
   errors: Record<string, any>[],
 ) =>
-  errors
-    .map(error =>
-      Object.entries(error.extra)
-        .filter(([, payload]) => isNeedsSSHPrivateKeyPassword(payload))
-        .map(([fileName]) => fileName),
-    )
-    .flat();
+  errors.flatMap(error =>
+    Object.entries(error.extra)
+      .filter(([, payload]) => isNeedsSSHPrivateKeyPassword(payload))
+      .map(([fileName]) => fileName),
+  );
 
 export const getAlreadyExists = (errors: Record<string, any>[]) =>
-  errors
-    .map(error =>
-      Object.entries(error.extra)
-        .filter(([, payload]) => isAlreadyExists(payload))
-        .map(([fileName]) => fileName),
-    )
-    .flat();
+  errors.flatMap(error =>
+    Object.entries(error.extra)
+      .filter(([, payload]) => isAlreadyExists(payload))
+      .map(([fileName]) => fileName),
+  );
 
 export const hasTerminalValidation = (errors: Record<string, any>[]) =>
   errors.some(error => {

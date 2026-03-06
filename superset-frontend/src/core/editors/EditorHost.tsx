@@ -27,12 +27,12 @@
  */
 
 import { useState, useEffect, forwardRef } from 'react';
-import type { editors, contributions } from '@apache-superset/core';
-import { useTheme } from '@apache-superset/core/ui';
+import type { editors } from '@apache-superset/core';
+import { useTheme } from '@apache-superset/core/theme';
 import EditorProviders from './EditorProviders';
 import AceEditorProvider from './AceEditorProvider';
 
-type EditorLanguage = contributions.EditorLanguage;
+type EditorLanguage = editors.EditorLanguage;
 type EditorProps = editors.EditorProps;
 type EditorHandle = editors.EditorHandle;
 
@@ -61,13 +61,13 @@ const useEditorProvider = (language: EditorLanguage) => {
 
     // Subscribe to provider changes
     const registerDisposable = manager.onDidRegister(event => {
-      if (event.provider.contribution.languages.includes(language)) {
+      if (event.editor.languages.includes(language)) {
         updateProvider();
       }
     });
 
     const unregisterDisposable = manager.onDidUnregister(event => {
-      if (event.contribution.languages.includes(language)) {
+      if (event.editor.languages.includes(language)) {
         updateProvider();
       }
     });

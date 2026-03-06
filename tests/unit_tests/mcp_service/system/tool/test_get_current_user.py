@@ -60,6 +60,7 @@ def _make_instance_info(**kwargs):
     from superset.mcp_service.system.schemas import (
         DashboardBreakdown,
         DatabaseBreakdown,
+        FeatureAvailability,
         InstanceSummary,
         PopularContent,
         RecentActivity,
@@ -93,6 +94,7 @@ def _make_instance_info(**kwargs):
         ),
         "database_breakdown": DatabaseBreakdown(by_type={}),
         "popular_content": PopularContent(top_tags=[], top_creators=[]),
+        "feature_availability": FeatureAvailability(),
         "timestamp": datetime.now(timezone.utc),
     }
     defaults.update(kwargs)
@@ -211,12 +213,15 @@ class TestGetInstanceInfoCurrentUserViaMCP:
         # and breaks mock resolution on Python 3.10.
         from superset.mcp_service.mcp_core import InstanceInfoCore
 
+        mock_role = Mock()
+        mock_role.name = "Alpha"
         mock_g_user = Mock()
         mock_g_user.id = 5
         mock_g_user.username = "sophie"
         mock_g_user.first_name = "Sophie"
         mock_g_user.last_name = "Beaumont"
         mock_g_user.email = "sophie@preset.io"
+        mock_g_user.roles = [mock_role]
 
         with (
             patch.object(
@@ -239,6 +244,7 @@ class TestGetInstanceInfoCurrentUserViaMCP:
         assert cu["first_name"] == "Sophie"
         assert cu["last_name"] == "Beaumont"
         assert cu["email"] == "sophie@preset.io"
+        assert cu["roles"] == ["Alpha"]
 
     @pytest.mark.asyncio
     async def test_get_instance_info_no_user_returns_null(self, mcp_server):
@@ -293,6 +299,7 @@ class TestGetInstanceInfoCurrentUserViaMCP:
         assert cu["first_name"] is None
         assert cu["last_name"] is None
         assert cu["email"] is None
+        assert cu["roles"] == []
 
 
 # ---------------------------------------------------------------------------

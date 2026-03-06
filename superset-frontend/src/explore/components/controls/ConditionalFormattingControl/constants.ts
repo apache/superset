@@ -17,7 +17,7 @@
  * under the License.
  */
 import { Comparator, ObjectFormattingEnum } from '@superset-ui/chart-controls';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 
 export const operatorOptions = [
   { value: Comparator.None, label: t('None') },

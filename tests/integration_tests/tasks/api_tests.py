@@ -20,7 +20,7 @@ from contextlib import contextmanager
 from typing import Generator
 
 import prison
-from superset_core.api.tasks import TaskStatus
+from superset_core.tasks.types import TaskStatus
 
 from superset import db
 from superset.models.tasks import Task
@@ -49,7 +49,7 @@ class TestTaskApi(SupersetTestCase):
                 # Use tasks in test
                 # Cleanup happens automatically even if test fails
         """
-        from superset_core.api.tasks import TaskScope
+        from superset_core.tasks.types import TaskScope
 
         from superset.daos.tasks import TaskDAO
 

@@ -1,0 +1,268 @@
+---
+title: Tree
+sidebar_label: Tree
+---
+
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+-->
+
+import { StoryWithControls } from '../../../src/components/StorybookWrapper';
+
+# Tree
+
+The Tree component is used to display hierarchical data in a tree structure. It allows for features such as selection, expansion, and drag-and-drop functionality.
+
+## Live Example
+
+<StoryWithControls
+  component="Tree"
+  props={{
+  checkable: false,
+  defaultExpandAll: false,
+  disabled: false,
+  draggable: false,
+  multiple: false,
+  selectable: true,
+  showIcon: false,
+  showLine: false,
+  treeData: [
+    {
+      title: "parent 1",
+      key: "0-0",
+      children: [
+        {
+          title: "parent 1-0",
+          key: "0-0-0",
+          children: [
+            {
+              title: "leaf",
+              key: "0-0-0-0"
+            },
+            {
+              title: "leaf",
+              key: "0-0-0-1"
+            },
+            {
+              title: "leaf",
+              key: "0-0-0-2"
+            }
+          ]
+        },
+        {
+          title: "parent 1-1",
+          key: "0-0-1",
+          children: [
+            {
+              title: "leaf",
+              key: "0-0-1-0"
+            }
+          ]
+        },
+        {
+          title: "parent 1-2",
+          key: "0-0-2",
+          children: [
+            {
+              title: "leaf",
+              key: "0-0-2-0"
+            },
+            {
+              title: "leaf",
+              key: "0-0-2-1"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  defaultExpandedKeys: [
+    "0-0",
+    "0-0-0"
+  ]
+}}
+  controls={[
+  {
+    name: "checkable",
+    label: "Checkable",
+    type: "boolean",
+    description: "Add a Checkbox before the treeNodes"
+  },
+  {
+    name: "defaultExpandAll",
+    label: "Default Expand All",
+    type: "boolean",
+    description: "Whether to expand all treeNodes by default"
+  },
+  {
+    name: "disabled",
+    label: "Disabled",
+    type: "boolean",
+    description: "Whether disabled the tree"
+  },
+  {
+    name: "draggable",
+    label: "Draggable",
+    type: "boolean",
+    description: "Specifies whether this Tree or the node is draggable"
+  },
+  {
+    name: "multiple",
+    label: "Multiple",
+    type: "boolean",
+    description: "Allows selecting multiple treeNodes"
+  },
+  {
+    name: "selectable",
+    label: "Selectable",
+    type: "boolean",
+    description: "Whether can be selected"
+  },
+  {
+    name: "showIcon",
+    label: "Show Icon",
+    type: "boolean",
+    description: "Controls whether to display the icon node"
+  },
+  {
+    name: "showLine",
+    label: "Show Line",
+    type: "boolean",
+    description: "Shows a connecting line"
+  }
+]}
+/>
+
+## Try It
+
+Edit the code below to experiment with the component:
+
+```tsx live
+function Demo() {
+  const treeData = [
+    {
+      title: 'Databases',
+      key: 'databases',
+      children: [
+        { title: 'PostgreSQL', key: 'postgres' },
+        { title: 'MySQL', key: 'mysql' },
+        { title: 'SQLite', key: 'sqlite' },
+      ],
+    },
+    {
+      title: 'Charts',
+      key: 'charts',
+      children: [
+        { title: 'Bar Chart', key: 'bar' },
+        { title: 'Line Chart', key: 'line' },
+        { title: 'Pie Chart', key: 'pie' },
+      ],
+    },
+  ];
+  return <Tree treeData={treeData} defaultExpandAll />;
+}
+```
+
+## Checkable Tree
+
+```tsx live
+function CheckableTree() {
+  const [checkedKeys, setCheckedKeys] = React.useState(['postgres']);
+  const treeData = [
+    {
+      title: 'Databases',
+      key: 'databases',
+      children: [
+        { title: 'PostgreSQL', key: 'postgres' },
+        { title: 'MySQL', key: 'mysql' },
+      ],
+    },
+    {
+      title: 'Charts',
+      key: 'charts',
+      children: [
+        { title: 'Bar Chart', key: 'bar' },
+        { title: 'Line Chart', key: 'line' },
+      ],
+    },
+  ];
+  return (
+    <Tree
+      treeData={treeData}
+      checkable
+      defaultExpandAll
+      checkedKeys={checkedKeys}
+      onCheck={setCheckedKeys}
+    />
+  );
+}
+```
+
+## With Lines and Icons
+
+```tsx live
+function LinesAndIcons() {
+  const treeData = [
+    {
+      title: 'Dashboards',
+      key: 'dashboards',
+      children: [
+        { title: 'Sales Dashboard', key: 'sales' },
+        { title: 'Marketing Dashboard', key: 'marketing' },
+      ],
+    },
+    {
+      title: 'Reports',
+      key: 'reports',
+      children: [
+        { title: 'Weekly Report', key: 'weekly' },
+        { title: 'Monthly Report', key: 'monthly' },
+      ],
+    },
+  ];
+  return <Tree treeData={treeData} showLine showIcon defaultExpandAll />;
+}
+```
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `checkable` | `boolean` | `false` | Add a Checkbox before the treeNodes |
+| `defaultExpandAll` | `boolean` | `false` | Whether to expand all treeNodes by default |
+| `disabled` | `boolean` | `false` | Whether disabled the tree |
+| `draggable` | `boolean` | `false` | Specifies whether this Tree or the node is draggable |
+| `multiple` | `boolean` | `false` | Allows selecting multiple treeNodes |
+| `selectable` | `boolean` | `true` | Whether can be selected |
+| `showIcon` | `boolean` | `false` | Controls whether to display the icon node |
+| `showLine` | `boolean` | `false` | Shows a connecting line |
+| `treeData` | `any` | `[{"title":"parent 1","key":"0-0","children":[{"title":"parent 1-0","key":"0-0-0","children":[{"title":"leaf","key":"0-0-0-0"},{"title":"leaf","key":"0-0-0-1"},{"title":"leaf","key":"0-0-0-2"}]},{"title":"parent 1-1","key":"0-0-1","children":[{"title":"leaf","key":"0-0-1-0"}]},{"title":"parent 1-2","key":"0-0-2","children":[{"title":"leaf","key":"0-0-2-0"},{"title":"leaf","key":"0-0-2-1"}]}]}]` | - |
+| `defaultExpandedKeys` | `any` | `["0-0","0-0-0"]` | - |
+
+## Import
+
+```tsx
+import { Tree } from '@superset/components';
+```
+
+---
+
+:::tip[Improve this page]
+This documentation is auto-generated from the component's Storybook story.
+Help improve it by [editing the story file](https://github.com/apache/superset/edit/master/superset-frontend/packages/superset-ui-core/src/components/Tree/Tree.stories.tsx).
+:::

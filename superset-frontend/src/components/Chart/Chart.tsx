@@ -17,7 +17,8 @@
  * under the License.
  */
 import { PureComponent } from 'react';
-import { t, logging } from '@apache-superset/core';
+import { logging } from '@apache-superset/core/utils';
+import { t } from '@apache-superset/core/translation';
 import {
   ensureIsArray,
   FeatureFlag,
@@ -26,10 +27,11 @@ import {
   SqlaFormData,
   ClientErrorObject,
   DataRecordFilters,
+  type FilterState,
   type JsonObject,
   type AgGridChartState,
 } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import type { ChartState, Datasource, ChartStatus } from 'src/explore/types';
 import { PLACEHOLDER_DATASOURCE } from 'src/dashboard/constants';
 import { EmptyState, Loading } from '@superset-ui/core/components';
@@ -87,6 +89,9 @@ export interface ChartProps {
   isInView?: boolean;
   emitCrossFilters?: boolean;
   onChartStateChange?: (chartState: AgGridChartState) => void;
+  /** Whether to suppress the loading spinner (during auto-refresh) */
+  suppressLoadingSpinner?: boolean;
+  filterState?: FilterState;
 }
 
 export type Actions = {
@@ -359,6 +364,8 @@ class Chart extends PureComponent<ChartProps, {}> {
     const databaseName = datasource?.database?.name as string | undefined;
 
     const isLoading = chartStatus === 'loading';
+    // Suppress spinner during auto-refresh to avoid visual flicker
+    const showSpinner = isLoading && !this.props.suppressLoadingSpinner;
 
     if (chartStatus === 'failed') {
       return (
@@ -419,7 +426,7 @@ class Chart extends PureComponent<ChartProps, {}> {
           height={height}
           width={width}
         >
-          {isLoading
+          {showSpinner
             ? this.renderSpinner(databaseName)
             : this.renderChartContainer()}
         </Styles>

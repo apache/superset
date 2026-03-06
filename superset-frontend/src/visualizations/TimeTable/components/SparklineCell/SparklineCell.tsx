@@ -18,7 +18,7 @@
  */
 import { ReactElement, useMemo } from 'react';
 import { formatNumber, formatTime } from '@superset-ui/core';
-import { useTheme } from '@apache-superset/core/ui';
+import { useTheme } from '@apache-superset/core/theme';
 import { GridRows } from '@visx/grid';
 import { scaleLinear } from '@visx/scale';
 import {

@@ -16,9 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { getExtensionsRegistry } from '@superset-ui/core';
-import { styled, SupersetTheme, Alert } from '@apache-superset/core/ui';
+import { Alert } from '@apache-superset/core/components';
+import { styled, SupersetTheme } from '@apache-superset/core/theme';
 
 import {
   FunctionComponent,
@@ -114,13 +115,14 @@ const TABS_KEYS = {
 
 const engineSpecificAlertMapping = {
   [Engines.GSheet]: {
-    message: 'Why do I need to create a database?',
-    description:
+    message: t('Why do I need to create a database?'),
+    description: t(
       'To begin using your Google Sheets, you need to create a database first. ' +
-      'Databases are used as a way to identify ' +
-      'your data so that it can be queried and visualized. This ' +
-      'database will hold all of your individual Google Sheets ' +
-      'you choose to connect here.',
+        'Databases are used as a way to identify ' +
+        'your data so that it can be queried and visualized. This ' +
+        'database will hold all of your individual Google Sheets ' +
+        'you choose to connect here.',
+    ),
   },
 };
 

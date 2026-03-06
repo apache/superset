@@ -18,7 +18,7 @@
  */
 import { useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import Split from 'react-split';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   DatasourceType,
   ensureIsArray,
@@ -30,7 +30,8 @@ import {
   JsonObject,
   getExtensionsRegistry,
 } from '@superset-ui/core';
-import { css, styled, useTheme, Alert } from '@apache-superset/core/ui';
+import { Alert } from '@apache-superset/core/components';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import ChartContainer from 'src/components/Chart/ChartContainer';
 import {
   getItem,
