@@ -7,6 +7,6 @@ environment:
   nuke_command: >-
     docker compose -p {{worktree.name}} -f docker-compose-light.yml down -v
   health_check_url: 'http://localhost:{{add 9100 worktree.unique_id}}/health'
-  app_url: 'http://10.33.93.131:{{add 9100 worktree.unique_id}}'
+  app_url: 'http://localhost:{{add 9100 worktree.unique_id}}'
   logs_command: >-
     docker compose -p {{worktree.name}} -f docker-compose-light.yml logs --tail=100 superset-node-light
