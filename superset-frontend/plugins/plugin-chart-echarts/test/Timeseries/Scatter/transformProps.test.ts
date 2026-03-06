@@ -80,7 +80,7 @@ describe('Scatter Chart X-axis Time Formatting', () => {
     expect(transformedProps.echartOptions.xAxis).toHaveProperty('axisLabel');
     const xAxis = transformedProps.echartOptions.xAxis as any;
     expect(xAxis.axisLabel).toHaveProperty('formatter');
-    expect(xAxis.axisLabel.formatter).toBeUndefined();
+    expect(typeof xAxis.axisLabel.formatter).toBe('function');
   });
 
   test.each(
