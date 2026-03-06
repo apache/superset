@@ -285,6 +285,26 @@ test('does not inject fonts when Theme.fromConfig throws even if fontUrls are pr
   expect(logging.warn).toHaveBeenCalled();
 });
 
+test('ignores non-array fontUrls in theme config without throwing', () => {
+  const themeConfig = { token: { colorPrimary: '#ff0000', fontUrls: 'not-an-array' } };
+  render(
+    <CrudThemeProvider
+      theme={{
+        id: 1,
+        theme_name: 'Malformed Fonts',
+        json_data: JSON.stringify(themeConfig),
+      }}
+    >
+      <div>Dashboard Content</div>
+    </CrudThemeProvider>,
+  );
+
+  expect(screen.getByText('Dashboard Content')).toBeInTheDocument();
+  expect(screen.getByTestId('dashboard-theme-provider')).toBeInTheDocument();
+  const fontStyle = document.querySelector('style[data-superset-fonts]');
+  expect(fontStyle).toBeNull();
+});
+
 test('does not inject font style element when no fontUrls in config', () => {
   const themeConfig = { token: { colorPrimary: '#ff0000' } };
   render(

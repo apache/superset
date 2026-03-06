@@ -57,7 +57,8 @@ export default function CrudThemeProvider({
         normalizedConfig,
         baseTheme || undefined,
       );
-      const urls = themeConfig?.token?.fontUrls as string[] | undefined;
+      const rawUrls = themeConfig?.token?.fontUrls;
+      const urls = Array.isArray(rawUrls) ? (rawUrls as string[]) : undefined;
       return { dashboardTheme: createdTheme, fontUrls: urls };
     } catch (error) {
       logging.warn('Failed to load dashboard theme:', error);
