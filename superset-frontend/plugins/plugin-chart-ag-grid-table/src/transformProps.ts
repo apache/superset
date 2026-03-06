@@ -17,7 +17,7 @@
  * under the License.
  */
 import memoizeOne from 'memoize-one';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   ComparisonType,
   Currency,
@@ -37,7 +37,7 @@ import {
   AgGridChartState,
   AgGridFilterModel,
 } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { isEmpty, isEqual, merge } from 'lodash';
 import {
   ConditionalFormattingConfig,

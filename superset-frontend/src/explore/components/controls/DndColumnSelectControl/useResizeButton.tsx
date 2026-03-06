@@ -23,7 +23,7 @@ import {
   useState,
   MouseEvent as ReactMouseEvent,
 } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { throttle } from 'lodash';
 import {
   POPOVER_INITIAL_HEIGHT,

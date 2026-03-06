@@ -18,13 +18,14 @@
  */
 import { FC, Fragment, useEffect, useState } from 'react';
 
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   ensureIsArray,
   getClientErrorObject,
   QueryFormData,
 } from '@superset-ui/core';
-import { styled, Alert } from '@apache-superset/core/ui';
+import { Alert } from '@apache-superset/core/components';
+import { styled } from '@apache-superset/core/theme';
 import { Loading } from '@superset-ui/core/components';
 import { SupportedLanguage } from '@superset-ui/core/components/CodeSyntaxHighlighter';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';

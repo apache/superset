@@ -19,7 +19,7 @@
   "dependencies": {
     "cookie": "^1.1.1",
     "hot-shots": "^14.1.1",
-    "ioredis": "^5.9.3",
+    "ioredis": "^5.10.0",
     "jsonwebtoken": "^9.0.3",
     "lodash": "^4.17.23",
     "winston": "^3.19.0",
@@ -31,7 +31,7 @@
     "@types/jest": "^29.5.14",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/lodash": "^4.17.24",
-    "@types/node": "^25.3.2",
+    "@types/node": "^25.3.3",
     "@types/ws": "^8.18.1",
     "@typescript-eslint/eslint-plugin": "^8.55.0",
     "@typescript-eslint/parser": "^8.55.0",
