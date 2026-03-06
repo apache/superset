@@ -56,12 +56,7 @@ def extension_with_build_structure():
             backend_dir.mkdir()
 
             # Create conventional backend structure
-            backend_src_dir = (
-                backend_dir
-                / "src"
-                / "test_org"
-                / "test_extension"
-            )
+            backend_src_dir = backend_dir / "src" / "test_org" / "test_extension"
             backend_src_dir.mkdir(parents=True)
 
             # Create conventional entry point file
@@ -129,11 +124,7 @@ def test_build_command_success_flow(
         "project": {"name": "test"},
         "tool": {
             "apache_superset_extensions": {
-                "build": {
-                    "include": [
-                        "src/test_org/test_extension/**/*.py"
-                    ]
-                }
+                "build": {"include": ["src/test_org/test_extension/**/*.py"]}
             }
         },
     }
@@ -174,11 +165,7 @@ def test_build_command_handles_frontend_build_failure(
         "project": {"name": "test"},
         "tool": {
             "apache_superset_extensions": {
-                "build": {
-                    "include": [
-                        "src/test_org/test_extension/**/*.py"
-                    ]
-                }
+                "build": {"include": ["src/test_org/test_extension/**/*.py"]}
             }
         },
     }
@@ -318,10 +305,7 @@ def test_build_manifest_creates_correct_manifest_structure(
 
     # Verify backend section and conventional entrypoint
     assert manifest.backend is not None
-    assert (
-        manifest.backend.entrypoint
-        == "test_org.test_extension.entrypoint"
-    )
+    assert manifest.backend.entrypoint == "test_org.test_extension.entrypoint"
 
 
 @pytest.mark.unit
@@ -513,23 +497,11 @@ exclude = []
     # Verify only files were copied, not directories
     dist_dir = isolated_filesystem / "dist"
     assert_file_exists(
-        dist_dir
-        / "backend"
-        / "src"
-        / "test_org"
-        / "test_ext"
-        / "__init__.py"
+        dist_dir / "backend" / "src" / "test_org" / "test_ext" / "__init__.py"
     )
 
     # Directory should not be copied as a file
-    copied_subdir = (
-        dist_dir
-        / "backend"
-        / "src"
-        / "test_org"
-        / "test_ext"
-        / "subdir"
-    )
+    copied_subdir = dist_dir / "backend" / "src" / "test_org" / "test_ext" / "subdir"
     # The directory might exist but should be empty since we skip non-files
     if copied_subdir.exists():
         assert list(copied_subdir.iterdir()) == []
@@ -577,20 +549,10 @@ exclude = []
     # Verify files were copied
     dist_dir = isolated_filesystem / "dist"
     assert_file_exists(
-        dist_dir
-        / "backend"
-        / "src"
-        / "test_org"
-        / "test_ext"
-        / "__init__.py"
+        dist_dir / "backend" / "src" / "test_org" / "test_ext" / "__init__.py"
     )
     assert_file_exists(
-        dist_dir
-        / "backend"
-        / "src"
-        / "test_org"
-        / "test_ext"
-        / "main.py"
+        dist_dir / "backend" / "src" / "test_org" / "test_ext" / "main.py"
     )
 
 
@@ -651,31 +613,15 @@ exclude = []
 
     # All .py files should be included (pattern: "**/*.py")
     assert_file_exists(
-        dist_dir
-        / "backend"
-        / "src"
-        / "test_org"
-        / "test_ext"
-        / "__init__.py"
+        dist_dir / "backend" / "src" / "test_org" / "test_ext" / "__init__.py"
     )
     assert_file_exists(
-        dist_dir
-        / "backend"
-        / "src"
-        / "test_org"
-        / "test_ext"
-        / "utils"
-        / "helper.py"
+        dist_dir / "backend" / "src" / "test_org" / "test_ext" / "utils" / "helper.py"
     )
 
     # Specific file (pattern: "src/test_org/test_ext/main.py")
     assert_file_exists(
-        dist_dir
-        / "backend"
-        / "src"
-        / "test_org"
-        / "test_ext"
-        / "main.py"
+        dist_dir / "backend" / "src" / "test_org" / "test_ext" / "main.py"
     )
 
 

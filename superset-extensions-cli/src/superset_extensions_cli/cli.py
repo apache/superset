@@ -344,11 +344,7 @@ def validate() -> None:
         publisher_snake = kebab_to_snake_case(extension.publisher)
         name_snake = kebab_to_snake_case(extension.name)
         expected_entry_file = (
-            backend_dir
-            / "src"
-            / publisher_snake
-            / name_snake
-            / "entrypoint.py"
+            backend_dir / "src" / publisher_snake / name_snake / "entrypoint.py"
         )
 
         if not expected_entry_file.exists():

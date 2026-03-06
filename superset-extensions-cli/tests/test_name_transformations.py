@@ -376,10 +376,7 @@ def test_generate_extension_names_complete_flow(
     assert (
         names["backend_package"] == f"{publisher.replace('-', '_')}-{expected_snake}"
     )  # Collision-safe
-    assert (
-        names["backend_path"]
-        == f"{publisher.replace('-', '_')}.{expected_snake}"
-    )
+    assert names["backend_path"] == f"{publisher.replace('-', '_')}.{expected_snake}"
     assert (
         names["backend_entry"]
         == f"{publisher.replace('-', '_')}.{expected_snake}.entrypoint"
