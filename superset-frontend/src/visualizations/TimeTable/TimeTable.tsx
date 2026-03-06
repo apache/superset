@@ -98,7 +98,7 @@ const TimeTable = ({
                 />
               ),
               cellValues: {
-                ...(acc.cellValues as object),
+                ...((acc.cellValues as object) || {}),
                 [columnConfig.key]: value
               }
             };
@@ -114,7 +114,7 @@ const TimeTable = ({
               />
             ),
             cellValues: {
-              ...(acc.cellValues as object),
+              ...((acc.cellValues as object) || {}),
               [columnConfig.key]: value
             }
           };
