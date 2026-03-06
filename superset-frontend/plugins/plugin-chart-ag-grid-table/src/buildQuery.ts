@@ -494,8 +494,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
             m.aggregate &&
             m.column?.column_name
           ) {
-            sqlExpressionMap[label] =
-              `${m.aggregate}(${m.column.column_name})`;
+            sqlExpressionMap[label] = `${m.aggregate}(${m.column.column_name})`;
           }
         }
       });
