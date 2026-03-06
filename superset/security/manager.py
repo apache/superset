@@ -494,7 +494,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         session["oauth_full_token"] = dict(oauth_response)  # noqa: S105
 
     def auth_user_oauth(self, userinfo: dict[str, Any]) -> Any:
-    def auth_user_oauth(self, userinfo: dict[str, Any]) -> Any:
         """
         Override to save the upstream OAuth token when a user logs in via OAuth.
 
@@ -530,11 +529,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                         logger.warning(
                             "Failed to save upstream OAuth token for provider %s",
                             provider,
-                            exc_info=True,
                         )
-            # Once we've used the full OAuth token (or determined we don't need it),
-            # remove it from the session to avoid keeping sensitive data longer than necessary.
-            session.pop("oauth_full_token", None)
+                    finally:
+                        session.pop("oauth_full_token", None)
         return user
 
     def get_catalog_perm(
