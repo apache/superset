@@ -120,7 +120,7 @@ class TestSaveSqlQueryResponse:
 
 
 def _force_passthrough_decorators():
-    """Force superset_core.api.mcp.tool to be a passthrough decorator.
+    """Force superset_core MCP tool decorator to be a passthrough.
 
     In CI, superset_core is fully installed and the real @tool decorator
     includes authentication middleware. For unit tests we want to bypass
@@ -138,6 +138,9 @@ def _force_passthrough_decorators():
     mock_mcp = MagicMock()
     mock_mcp.tool = _passthrough_tool
 
+    mock_decorators = MagicMock()
+    mock_decorators.tool = _passthrough_tool
+
     mock_api = MagicMock()
     mock_api.mcp = mock_mcp
 
@@ -148,10 +151,12 @@ def _force_passthrough_decorators():
         saved_modules[key] = sys.modules.pop(key)
 
     # Mock all possible import paths for superset_core
+    # Both old (api.mcp) and new (mcp.decorators) paths are mocked
     sys.modules["superset_core"] = MagicMock()
     sys.modules["superset_core.api"] = mock_api
     sys.modules["superset_core.api.mcp"] = mock_mcp
     sys.modules["superset_core.mcp"] = mock_mcp
+    sys.modules["superset_core.mcp.decorators"] = mock_decorators
     sys.modules.setdefault("superset_core.api.types", MagicMock())
 
     return saved_modules
