@@ -22,9 +22,9 @@ import { t } from '@apache-superset/core';
 import { css, styled, useTheme } from '@apache-superset/core/ui';
 import {
   Button,
+  Card,
   Checkbox,
   Flex,
-  Result,
   Typography,
 } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -35,6 +35,27 @@ const PageContainer = styled(Flex)`
     height: calc(100vh - 64px);
     background-color: ${theme.colorBgLayout};
     padding: ${theme.padding}px;
+  `}
+`;
+
+const WarningCard = styled(Card)`
+  ${({ theme }) => css`
+    max-width: 520px;
+    width: 100%;
+    box-shadow: ${theme.boxShadowSecondary};
+  `}
+`;
+
+const WarningHeader = styled(Flex)`
+  ${({ theme }) => css`
+    padding: ${theme.paddingLG}px ${theme.paddingXL}px;
+    border-bottom: 1px solid ${theme.colorBorderSecondary};
+  `}
+`;
+
+const WarningBody = styled.div`
+  ${({ theme }) => css`
+    padding: ${theme.paddingXL}px;
   `}
 `;
 
@@ -53,6 +74,20 @@ const UrlText = styled(Typography.Text)`
     font-size: ${theme.fontSize}px;
     word-break: break-all;
   `}
+`;
+
+const WarningFooter = styled(Flex)`
+  ${({ theme }) => css`
+    padding: ${theme.padding}px ${theme.paddingXL}px;
+    background-color: ${theme.colorFillAlter};
+    border-top: 1px solid ${theme.colorBorderSecondary};
+  `}
+`;
+
+const WarningTitle = styled(Typography.Title)`
+  && {
+    margin: 0;
+  }
 `;
 
 export default function RedirectWarning() {
@@ -83,46 +118,58 @@ export default function RedirectWarning() {
   if (!targetUrl) {
     return (
       <PageContainer justify="center" align="center">
-        <Result status="error" title={t('Missing URL parameter')} />
+        <WarningCard>
+          <WarningBody>
+            <Typography.Text type="danger">
+              {t('Missing URL parameter')}
+            </Typography.Text>
+          </WarningBody>
+        </WarningCard>
       </PageContainer>
     );
   }
 
   return (
     <PageContainer justify="center" align="center">
-      <Result
-        status="warning"
-        title={t('External link warning')}
-        subTitle={t(
-          'This link will take you to an external website. We cannot guarantee the safety of external destinations.',
-        )}
-        extra={[
-          <Button key="return" onClick={handleReturn}>
-            {t('Return to Superset')}
-          </Button>,
-          <Button key="continue" type="primary" onClick={handleContinue}>
+      <WarningCard>
+        <WarningHeader align="center" gap="middle">
+          <Icons.WarningOutlined iconColor={theme.colorWarning} iconSize="xl" />
+          <WarningTitle level={4}>{t('External link warning')}</WarningTitle>
+        </WarningHeader>
+
+        <WarningBody>
+          <Typography.Paragraph type="secondary">
+            {t(
+              'This link will take you to an external website. We cannot guarantee the safety of external destinations.',
+            )}
+          </Typography.Paragraph>
+
+          <UrlDisplay align="center" gap="small">
+            <Icons.LinkOutlined iconColor={theme.colorTextTertiary} />
+            <UrlText>{targetUrl}</UrlText>
+          </UrlDisplay>
+
+          <Flex align="center" gap="small">
+            <Checkbox
+              checked={trustChecked}
+              onChange={e => setTrustChecked(e.target.checked)}
+            >
+              {t("Trust this URL and don't ask again")}
+            </Checkbox>
+          </Flex>
+
+          <Typography.Text type="secondary">
+            {t('Only proceed if you trust the destination or its source.')}
+          </Typography.Text>
+        </WarningBody>
+
+        <WarningFooter justify="flex-end" gap="small">
+          <Button onClick={handleReturn}>{t('Return to Superset')}</Button>
+          <Button type="primary" onClick={handleContinue}>
             {t('Continue')}
-          </Button>,
-        ]}
-      >
-        <UrlDisplay align="center" gap="small">
-          <Icons.LinkOutlined iconColor={theme.colorTextTertiary} />
-          <UrlText>{targetUrl}</UrlText>
-        </UrlDisplay>
-
-        <Checkbox
-          checked={trustChecked}
-          onChange={e => setTrustChecked(e.target.checked)}
-        >
-          {t("Trust this URL and don't ask again")}
-        </Checkbox>
-
-        <br />
-
-        <Typography.Text type="secondary">
-          {t('Only proceed if you trust the destination or its source.')}
-        </Typography.Text>
-      </Result>
+          </Button>
+        </WarningFooter>
+      </WarningCard>
     </PageContainer>
   );
 }
