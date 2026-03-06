@@ -113,6 +113,17 @@ generate_explore_link vs generate_chart:
 - Use generate_explore_link for exploration (no permanent chart created)
 - Use generate_chart with save_chart=True only when user wants to save permanently
 
+Chart Types You Can CREATE with generate_chart/generate_explore_link:
+- chart_type="xy", kind="line": Line chart for time series and trends
+- chart_type="xy", kind="bar": Bar chart for category comparison
+- chart_type="xy", kind="area": Area chart for volume visualization
+- chart_type="xy", kind="scatter": Scatter plot for correlation analysis
+- chart_type="table": Data table for detailed views
+- chart_type="table", viz_type="ag-grid-table": Interactive AG Grid table
+- chart_type="pie": Pie chart for proportional data (set donut=True for donut)
+- chart_type="pivot_table": Interactive pivot table for cross-tabulation
+- chart_type="mixed_timeseries": Dual-series chart combining two chart types
+
 Common Chart Types (viz_type) and Behaviors:
 
 Interactive Charts (support sorting, filtering, drill-down):
