@@ -146,13 +146,23 @@ def _force_passthrough_decorators():
 
     # Save original modules so we can restore them later
     saved_modules: dict[str, types.ModuleType] = {}
-    superset_core_keys = [k for k in sys.modules if k.startswith("superset_core")]
-    for key in superset_core_keys:
-        saved_modules[key] = sys.modules.pop(key)
 
-    # Mock all possible import paths for superset_core
-    # Both old (api.mcp) and new (mcp.decorators) paths are mocked
-    sys.modules["superset_core"] = MagicMock()
+    # Only mock the specific decorator submodules, NOT the top-level
+    # superset_core package. Replacing sys.modules["superset_core"] with
+    # a MagicMock causes 'superset_core' is not a package errors for
+    # other submodules (queries, common) that are imported by sibling
+    # tool files during test collection.
+    mock_keys = [
+        "superset_core.api",
+        "superset_core.api.mcp",
+        "superset_core.api.types",
+        "superset_core.mcp",
+        "superset_core.mcp.decorators",
+    ]
+    for key in mock_keys:
+        if key in sys.modules:
+            saved_modules[key] = sys.modules[key]
+
     sys.modules["superset_core.api"] = mock_api
     sys.modules["superset_core.api.mcp"] = mock_mcp
     sys.modules["superset_core.mcp"] = mock_mcp
@@ -164,11 +174,16 @@ def _force_passthrough_decorators():
 
 def _restore_modules(saved_modules: dict[str, types.ModuleType]) -> None:
     """Restore original sys.modules entries after passthrough mocking."""
-    # Remove mock entries and any tool modules imported under patched decorators
+    # Remove mock entries for decorator paths and tool modules imported
+    # under patched decorators. Do NOT remove the top-level superset_core
+    # package or unrelated submodules (queries, common, etc.).
+    mock_prefixes = (
+        "superset_core.api",
+        "superset_core.mcp",
+        "superset.mcp_service.sql_lab.tool",
+    )
     for key in list(sys.modules.keys()):
-        if key.startswith("superset_core") or key.startswith(
-            "superset.mcp_service.sql_lab.tool"
-        ):
+        if any(key.startswith(prefix) for prefix in mock_prefixes):
             del sys.modules[key]
     # Restore originals (including any previously-imported tool modules)
     sys.modules.update(saved_modules)
