@@ -22,7 +22,7 @@ import {
   ControlPanelConfig,
   sharedControls,
 } from '@superset-ui/chart-controls';
-import { DEFAULT_FORM_DATA } from './types';
+import { DEFAULT_FORM_DATA, SelectFilterOperatorType } from './types';
 
 const {
   enableEmptyFilter,
@@ -32,6 +32,7 @@ const {
   defaultToFirstItem,
   searchAllOptions,
   sortAscending,
+  operatorType,
 } = DEFAULT_FORM_DATA;
 
 const config: ControlPanelConfig = {
@@ -56,6 +57,36 @@ const config: ControlPanelConfig = {
       label: t('UI Configuration'),
       expanded: true,
       controlSetRows: [
+        [
+          {
+            name: 'operatorType',
+            config: {
+              type: 'SelectControl',
+              renderTrigger: true,
+              affectsDataMask: true,
+              label: t('Match type'),
+              default: operatorType,
+              choices: [
+                [SelectFilterOperatorType.Exact, t('Exact match (IN)')],
+                [
+                  SelectFilterOperatorType.Contains,
+                  t('Contains text (ILIKE %x%)'),
+                ],
+                [
+                  SelectFilterOperatorType.StartsWith,
+                  t('Starts with (ILIKE x%)'),
+                ],
+                [SelectFilterOperatorType.EndsWith, t('Ends with (ILIKE %x)')],
+              ],
+              description: t(
+                'Determines how the filter matches values. ' +
+                  '"Exact match" uses the IN operator (default). ' +
+                  'ILIKE options enable partial text matching with a free-text input. ' +
+                  'Warning: ILIKE queries may be slow on large datasets as they cannot use indexes effectively.',
+              ),
+            },
+          },
+        ],
         [
           {
             name: 'sortAscending',

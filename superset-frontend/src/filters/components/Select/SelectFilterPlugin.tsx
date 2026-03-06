@@ -39,6 +39,7 @@ import {
   Select,
   Space,
   Constants,
+  Input,
 } from '@superset-ui/core/components';
 import {
   hasOption,
@@ -47,7 +48,11 @@ import {
 import { FilterBarOrientation } from 'src/dashboard/types';
 import { getDataRecordFormatter, getSelectExtraFormData } from '../../utils';
 import { FilterPluginStyle, StatusMessage } from '../common';
-import { PluginFilterSelectProps, SelectValue } from './types';
+import {
+  PluginFilterSelectProps,
+  SelectFilterOperatorType,
+  SelectValue,
+} from './types';
 
 type DataMaskAction =
   | { type: 'ownState'; ownState: JsonObject }
@@ -142,7 +147,10 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     inverseSelection,
     defaultToFirstItem,
     searchAllOptions,
+    operatorType = SelectFilterOperatorType.Exact,
   } = formData;
+
+  const isLikeOperator = operatorType !== SelectFilterOperatorType.Exact;
 
   const groupby = useMemo(
     () => ensureIsArray(formData.groupby).map(getColumnLabel),
@@ -207,6 +215,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           values,
           emptyFilter,
           excludeFilterValues && inverseSelection,
+          operatorType,
         ),
         filterState: {
           ...filterState,
@@ -233,6 +242,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       enableEmptyFilter,
       inverseSelection,
       excludeFilterValues,
+      operatorType,
       JSON.stringify(filterState),
       labelFormatter,
     ],
@@ -465,6 +475,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           filterState.value,
           !filterState.value?.length,
           excludeFilterValues && inverseSelection,
+          operatorType,
         ),
         filterState: {
           ...(filterState as {
@@ -482,6 +493,38 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   const handleExclusionToggle = (value: string) => {
     setExcludeFilterValues(value === 'true');
   };
+
+  const debouncedLikeChange = useMemo(
+    () =>
+      debounce((text: string) => {
+        if (text) {
+          updateDataMask([text]);
+        } else {
+          updateDataMask(null);
+        }
+      }, Constants.SLOW_DEBOUNCE),
+    [updateDataMask],
+  );
+
+  const handleLikeInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      debouncedLikeChange(e.target.value);
+    },
+    [debouncedLikeChange],
+  );
+
+  const likeInputPlaceholder = useMemo(() => {
+    switch (operatorType) {
+      case SelectFilterOperatorType.Contains:
+        return t('Type to search (contains)...');
+      case SelectFilterOperatorType.StartsWith:
+        return t('Type to search (starts with)...');
+      case SelectFilterOperatorType.EndsWith:
+        return t('Type to search (ends with)...');
+      default:
+        return t('Type a value...');
+    }
+  }, [operatorType]);
 
   return (
     <FilterPluginStyle height={height} width={width}>
@@ -504,39 +547,57 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
               onChange={handleExclusionToggle}
             />
           )}
-          <Select
-            name={formData.nativeFilterId}
-            allowClear
-            allowNewOptions={!searchAllOptions && creatable !== false}
-            allowSelectAll={!searchAllOptions}
-            value={multiSelect ? filterState.value || [] : filterState.value}
-            disabled={isDisabled}
-            getPopupContainer={
-              showOverflow
-                ? () => (parentRef?.current as HTMLElement) || document.body
-                : (trigger: HTMLElement) =>
-                    (trigger?.parentNode as HTMLElement) || document.body
-            }
-            showSearch={showSearch}
-            mode={multiSelect ? 'multiple' : 'single'}
-            placeholder={placeholderText}
-            onClear={() => onSearch('')}
-            onSearch={onSearch}
-            onBlur={handleBlur}
-            onFocus={setFocusedFilter}
-            onMouseEnter={setHoveredFilter}
-            onMouseLeave={unsetHoveredFilter}
-            // @ts-expect-error
-            onChange={handleChange}
-            ref={inputRef}
-            loading={isRefreshing}
-            oneLine={filterBarOrientation === FilterBarOrientation.Horizontal}
-            invertSelection={inverseSelection && excludeFilterValues}
-            options={options}
-            sortComparator={sortComparator}
-            onOpenChange={setFilterActive}
-            className="select-container"
-          />
+          {isLikeOperator ? (
+            <Input
+              allowClear
+              placeholder={likeInputPlaceholder}
+              defaultValue={
+                filterState.value?.[0] != null
+                  ? String(filterState.value[0])
+                  : undefined
+              }
+              onChange={handleLikeInputChange}
+              onFocus={setFocusedFilter}
+              onBlur={unsetFocusedFilter}
+              onMouseEnter={setHoveredFilter}
+              onMouseLeave={unsetHoveredFilter}
+              disabled={isDisabled}
+            />
+          ) : (
+            <Select
+              name={formData.nativeFilterId}
+              allowClear
+              allowNewOptions={!searchAllOptions && creatable !== false}
+              allowSelectAll={!searchAllOptions}
+              value={multiSelect ? filterState.value || [] : filterState.value}
+              disabled={isDisabled}
+              getPopupContainer={
+                showOverflow
+                  ? () => (parentRef?.current as HTMLElement) || document.body
+                  : (trigger: HTMLElement) =>
+                      (trigger?.parentNode as HTMLElement) || document.body
+              }
+              showSearch={showSearch}
+              mode={multiSelect ? 'multiple' : 'single'}
+              placeholder={placeholderText}
+              onClear={() => onSearch('')}
+              onSearch={onSearch}
+              onBlur={handleBlur}
+              onFocus={setFocusedFilter}
+              onMouseEnter={setHoveredFilter}
+              onMouseLeave={unsetHoveredFilter}
+              // @ts-expect-error
+              onChange={handleChange}
+              ref={inputRef}
+              loading={isRefreshing}
+              oneLine={filterBarOrientation === FilterBarOrientation.Horizontal}
+              invertSelection={inverseSelection && excludeFilterValues}
+              options={options}
+              sortComparator={sortComparator}
+              onOpenChange={setFilterActive}
+              className="select-container"
+            />
+          )}
         </StyledSpace>
       </FormItem>
     </FilterPluginStyle>

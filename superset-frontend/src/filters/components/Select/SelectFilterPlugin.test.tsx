@@ -26,6 +26,7 @@ import {
 import { NULL_STRING } from 'src/utils/common';
 import SelectFilterPlugin from './SelectFilterPlugin';
 import transformProps from './transformProps';
+import { SelectFilterOperatorType } from './types';
 
 jest.useFakeTimers();
 
@@ -1248,4 +1249,134 @@ test('resets dependent filter to first item when value does not exist in data', 
       }),
     );
   });
+});
+
+test('renders text input instead of dropdown when operatorType is ILIKE contains', () => {
+  jest.useFakeTimers();
+  const setDataMaskMock = jest.fn();
+
+  render(
+    // @ts-expect-error
+    <SelectFilterPlugin
+      // @ts-expect-error
+      {...transformProps({
+        ...selectMultipleProps,
+        formData: {
+          ...selectMultipleProps.formData,
+          operatorType: SelectFilterOperatorType.Contains,
+        },
+        filterState: { value: undefined },
+      })}
+      setDataMask={setDataMaskMock}
+      showOverflow={false}
+    />,
+    {
+      useRedux: true,
+      initialState: {
+        nativeFilters: {
+          filters: {
+            'test-filter': { name: 'Test Filter' },
+          },
+        },
+        dataMask: {
+          'test-filter': {
+            extraFormData: {},
+            filterState: { value: undefined },
+          },
+        },
+      },
+    },
+  );
+
+  expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+  expect(
+    screen.getByPlaceholderText('Type to search (contains)...'),
+  ).toBeInTheDocument();
+});
+
+test('renders text input with starts-with placeholder', () => {
+  jest.useFakeTimers();
+  const setDataMaskMock = jest.fn();
+
+  render(
+    // @ts-expect-error
+    <SelectFilterPlugin
+      // @ts-expect-error
+      {...transformProps({
+        ...selectMultipleProps,
+        formData: {
+          ...selectMultipleProps.formData,
+          operatorType: SelectFilterOperatorType.StartsWith,
+        },
+        filterState: { value: undefined },
+      })}
+      setDataMask={setDataMaskMock}
+      showOverflow={false}
+    />,
+    {
+      useRedux: true,
+      initialState: {
+        nativeFilters: {
+          filters: {
+            'test-filter': { name: 'Test Filter' },
+          },
+        },
+        dataMask: {
+          'test-filter': {
+            extraFormData: {},
+            filterState: { value: undefined },
+          },
+        },
+      },
+    },
+  );
+
+  expect(
+    screen.getByPlaceholderText('Type to search (starts with)...'),
+  ).toBeInTheDocument();
+});
+
+test('renders standard Select dropdown when operatorType is Exact', () => {
+  jest.useFakeTimers();
+  const setDataMaskMock = jest.fn();
+
+  render(
+    // @ts-expect-error
+    <SelectFilterPlugin
+      // @ts-expect-error
+      {...transformProps({
+        ...selectMultipleProps,
+        formData: {
+          ...selectMultipleProps.formData,
+          operatorType: SelectFilterOperatorType.Exact,
+        },
+      })}
+      setDataMask={setDataMaskMock}
+      showOverflow={false}
+    />,
+    {
+      useRedux: true,
+      initialState: {
+        nativeFilters: {
+          filters: {
+            'test-filter': { name: 'Test Filter' },
+          },
+        },
+        dataMask: {
+          'test-filter': {
+            extraFormData: {
+              filters: [{ col: 'gender', op: 'IN', val: ['boy'] }],
+            },
+            filterState: {
+              value: ['boy'],
+              label: 'boy',
+              excludeFilterValues: true,
+            },
+          },
+        },
+      },
+    },
+  );
+
+  expect(screen.getAllByRole('combobox').length).toBeGreaterThan(0);
 });
