@@ -480,6 +480,44 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return self.get_guest_user_from_request(request)
         return None
 
+    def auth_user_oauth(self, userinfo: dict[str, Any]) -> Any:
+        """
+        Override to save the upstream OAuth token when a user logs in via OAuth.
+
+        If ``save_token: True`` is set in the matching OAUTH_PROVIDERS entry and
+        ``DATABASE_OAUTH2_UPSTREAM_PROVIDERS`` maps a database to this provider,
+        the token will be forwarded to that database instead of triggering a
+        separate OAuth2 dance.
+        """
+        # pylint: disable=import-outside-toplevel
+        from flask import current_app as flask_app, session
+
+        user = super().auth_user_oauth(userinfo)
+        if user:
+            provider = session.get("oauth_provider")
+            token = session.get("oauth")
+            if token and provider:
+                provider_config = next(
+                    (
+                        p
+                        for p in flask_app.config.get("OAUTH_PROVIDERS", [])
+                        if p.get("name") == provider
+                    ),
+                    None,
+                )
+                if provider_config and provider_config.get("save_token"):
+                    from superset.utils.oauth2 import save_user_provider_token
+
+                    try:
+                        save_user_provider_token(user.id, provider, token)
+                    except Exception:  # pylint: disable=broad-except
+                        logger.warning(
+                            "Failed to save upstream OAuth token for provider %s",
+                            provider,
+                            exc_info=True,
+                        )
+        return user
+
     def get_catalog_perm(
         self,
         database: str,
