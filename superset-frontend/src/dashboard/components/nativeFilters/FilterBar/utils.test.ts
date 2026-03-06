@@ -480,6 +480,7 @@ describe('FilterBar Utils - Validation and Apply Logic', () => {
 
     test('should not disable Apply when required filter is only in applied state during sync gap', () => {
       // Edge case: Required filter auto-applied but not yet synced to selected
+      // The filter is NOT in dataMaskSelected at all (key doesn't exist)
       // This can happen during the React state update cycle
       // Apply button should still be enabled if other filters have changes
 
@@ -494,7 +495,7 @@ describe('FilterBar Utils - Validation and Apply Logic', () => {
             filters: [{ col: 'product_line', op: 'IN', val: ['Product B'] }],
           },
         },
-        // filter-country not yet in selected (sync gap)
+        // filter-country not yet in selected (sync gap) - KEY DOESN'T EXIST
       };
 
       const dataMaskApplied: DataMaskStateWithId = {
@@ -525,11 +526,55 @@ describe('FilterBar Utils - Validation and Apply Logic', () => {
         } as unknown as Filter,
       ];
 
-      // Should be ENABLED - Required filter has value in applied state,
-      // and other filter has changes to apply
+      // Should be ENABLED - Required filter has value in applied state (auto-applied),
+      // and it's not in selected at all (not explicitly cleared by user)
       expect(
         checkIsApplyDisabled(dataMaskSelected, dataMaskApplied, filters),
       ).toBe(false);
+    });
+
+    test('should disable Apply when user explicitly clears a required filter value', () => {
+      // Different from sync gap: filter IS in selected state but with undefined value
+      // This means user explicitly cleared it
+      // Apply should be DISABLED because it's a required filter
+
+      const dataMaskSelected: DataMaskStateWithId = {
+        'filter-1': {
+          id: 'filter-1',
+          filterState: {
+            validateStatus: undefined,
+            value: undefined, // User explicitly cleared the value
+          },
+          extraFormData: {},
+        },
+      };
+
+      const dataMaskApplied: DataMaskStateWithId = {
+        'filter-1': {
+          id: 'filter-1',
+          filterState: {
+            value: ['CA'], // Previously had a value
+          },
+          extraFormData: {
+            filters: [{ col: 'state', op: 'IN', val: ['CA'] }],
+          },
+        },
+      };
+
+      const filters: Filter[] = [
+        {
+          id: 'filter-1',
+          controlValues: {
+            enableEmptyFilter: true, // Required filter
+          },
+        } as unknown as Filter,
+      ];
+
+      // Should be DISABLED - User cleared a required filter
+      // Even though it has value in applied state, the selected state shows user intent
+      expect(
+        checkIsApplyDisabled(dataMaskSelected, dataMaskApplied, filters),
+      ).toBe(true);
     });
 
     test('should enable Apply when filter has value but needs extraFormData update (PR #36927 regression test)', () => {

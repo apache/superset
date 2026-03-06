@@ -68,7 +68,8 @@ export const checkIsApplyDisabled = (
   // For filters that may have been auto-applied (e.g., requiredFirst filters),
   // check both selected and applied states to avoid false positives during initialization
   const hasMissingRequiredFilter = filters.some(filter => {
-    const selectedState = dataMaskSelected?.[filter?.id]?.filterState;
+    const selectedDataMask = dataMaskSelected?.[filter?.id];
+    const selectedState = selectedDataMask?.filterState;
     const appliedState = dataMaskApplied?.[filter?.id]?.filterState;
 
     // If filter has value in selected state, it's not missing
@@ -79,13 +80,17 @@ export const checkIsApplyDisabled = (
       return false;
     }
 
-    // If filter was auto-applied and has value in applied state, it's not missing
+    // If filter is not in selected state at all (not initialized yet),
+    // check if it was auto-applied and has value in applied state
     // This handles the case where auto-applied filters haven't synced to selected yet
-    if (appliedState?.value !== null && appliedState?.value !== undefined) {
-      return false;
+    if (!selectedDataMask) {
+      if (appliedState?.value !== null && appliedState?.value !== undefined) {
+        return false; // Not missing, it's auto-applied
+      }
     }
 
     // Otherwise, check if it's actually a required filter with missing value
+    // This includes cases where user explicitly cleared the value (selectedDataMask exists but value is undefined)
     return checkIsMissingRequiredValue(filter, selectedState);
   });
 
