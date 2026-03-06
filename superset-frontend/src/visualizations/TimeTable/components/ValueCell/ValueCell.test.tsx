@@ -81,7 +81,7 @@ describe('ValueCell', () => {
       <ValueCell value={300} column={columnWithBounds} />,
     );
 
-    const span = container.querySelector('span[data-value="300"]');
-    expect(span).toBeInTheDocument();
+    const span = container.querySelector('span[data-value="300"] span');
+    expect(span).toHaveAttribute('style', expect.stringMatching(/color: rgb\([0-9]{1,3}, [0-9]{1,3}, [0-9]{1,3}\)/));
   });
 });
