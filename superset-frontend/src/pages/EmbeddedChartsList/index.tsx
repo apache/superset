@@ -20,7 +20,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { SupersetClient } from '@superset-ui/core';
-import { styled, css, t } from '@apache-superset/core/ui';
+import { styled, css } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import { DeleteModal, Tooltip } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import withToasts from 'src/components/MessageToasts/withToasts';

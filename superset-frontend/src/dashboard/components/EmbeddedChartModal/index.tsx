@@ -18,9 +18,11 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 import { makeApi, SupersetApiError } from '@superset-ui/core';
-import { logging } from '@apache-superset/core';
-import { styled, css, Alert, t } from '@apache-superset/core/ui';
+import { logging } from '@apache-superset/core/utils';
+import { styled, css } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import {
+  Alert,
   Button,
   FormItem,
   InfoTooltip,
