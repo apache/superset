@@ -19,8 +19,8 @@
 
 /**
  * Safely parses a value to a numeric type
- * @param value - The value to parse (string, number, or null)
- * @returns The numeric value or 0 if invalid
+ * @param value - The value to parse (string, number, null, or undefined)
+ * @returns The numeric value or null if invalid or not parseable
  */
 export function parseToNumber(value?: string | number | null): number | null {
   const displayValue = value ?? null;
