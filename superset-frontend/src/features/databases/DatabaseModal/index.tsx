@@ -62,6 +62,7 @@ import {
   getConnectionAlert,
   useImportResource,
 } from 'src/views/CRUD/hooks';
+import { FileEncryptedExtraFields } from 'src/views/CRUD/types';
 import { useCommonConf } from 'src/features/databases/state';
 import { isEmpty, pick } from 'lodash';
 import { OnlyKeyWithType } from 'src/utils/types';
@@ -647,7 +648,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setSSHTunnelPrivateKeyPasswordFields,
   ] = useState<string[]>([]);
   const [encryptedExtraFields, setEncryptedExtraFields] = useState<
-    { fileName: string; fields: { path: string; label: string }[] }[]
+    FileEncryptedExtraFields[]
   >([]);
   const [encryptedExtraSecrets, setEncryptedExtraSecrets] = useState<
     Record<string, Record<string, string>>

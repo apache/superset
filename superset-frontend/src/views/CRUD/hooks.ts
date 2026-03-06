@@ -45,7 +45,11 @@ import copyTextToClipboard from 'src/utils/copy';
 import { ensureAppRoot } from 'src/utils/pathUtils';
 import SupersetText from 'src/utils/textUtils';
 import { DatabaseObject } from 'src/features/databases/types';
-import { FavoriteStatus, ImportResourceName } from './types';
+import {
+  FavoriteStatus,
+  FileEncryptedExtraFields,
+  ImportResourceName,
+} from './types';
 
 interface ListViewResourceState<D extends object = any> {
   loading: boolean;
@@ -440,10 +444,7 @@ interface ImportResourceState {
   sshPasswordNeeded: string[];
   sshPrivateKeyNeeded: string[];
   sshPrivateKeyPasswordNeeded: string[];
-  encryptedExtraFieldsNeeded: {
-    fileName: string;
-    fields: { path: string; label: string }[];
-  }[];
+  encryptedExtraFieldsNeeded: FileEncryptedExtraFields[];
   failed: boolean;
 }
 

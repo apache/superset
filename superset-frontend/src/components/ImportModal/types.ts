@@ -16,7 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ImportResourceName } from 'src/views/CRUD/types';
+import {
+  FileEncryptedExtraFields,
+  ImportResourceName,
+} from 'src/views/CRUD/types';
 
 export interface ImportModelsModalProps {
   resourceName: ImportResourceName;
@@ -38,14 +41,8 @@ export interface ImportModelsModalProps {
   setSSHTunnelPrivateKeyPasswordFields?: (
     sshTunnelPrivateKeyPasswordFields: string[],
   ) => void;
-  encryptedExtraFields?: {
-    fileName: string;
-    fields: { path: string; label: string }[];
-  }[];
+  encryptedExtraFields?: FileEncryptedExtraFields[];
   setEncryptedExtraFields?: (
-    encryptedExtraFields: {
-      fileName: string;
-      fields: { path: string; label: string }[];
-    }[],
+    encryptedExtraFields: FileEncryptedExtraFields[],
   ) => void;
 }

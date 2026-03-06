@@ -42,7 +42,13 @@ import {
   OWNER_TEXT_LABEL_PROP,
   OWNER_EMAIL_PROP,
 } from 'src/features/owners/OwnerSelectLabel';
-import { Dashboard, Filter, TableTab } from './types';
+import {
+  Dashboard,
+  EncryptedExtraField,
+  FileEncryptedExtraFields,
+  Filter,
+  TableTab,
+} from './types';
 
 // Modifies the rison encoding slightly to match the backend's rison encoding/decoding. Applies globally.
 // Code pulled from rison.js (https://github.com/Nanonid/rison), rison is licensed under the MIT license.
@@ -522,11 +528,6 @@ export const getAlreadyExists = (errors: Record<string, any>[]) =>
 const ENCRYPTED_EXTRA_FIELD_REGEX =
   /^Must provide value for masked_encrypted_extra field: (.+?)(?:\s+\((.+)\))?$/;
 
-export interface EncryptedExtraField {
-  path: string;
-  label: string;
-}
-
 export /* eslint-disable no-underscore-dangle */
 const isNeedsEncryptedExtraField = (payload: any) =>
   typeof payload === 'object' &&
@@ -535,25 +536,23 @@ const isNeedsEncryptedExtraField = (payload: any) =>
 
 export const getEncryptedExtraFieldsNeeded = (
   errors: Record<string, any>[],
-): { fileName: string; fields: EncryptedExtraField[] }[] =>
-  errors
-    .map(error =>
-      Object.entries(error.extra)
-        .filter(([, payload]) => isNeedsEncryptedExtraField(payload))
-        .map(([fileName, payload]) => ({
-          fileName,
-          fields: (payload as any)._schema
-            .filter((e: string) => ENCRYPTED_EXTRA_FIELD_REGEX.test(e))
-            .map((e: string) => {
-              const match = e.match(ENCRYPTED_EXTRA_FIELD_REGEX);
-              if (!match) return null;
-              const path = match[1];
-              return { path, label: match[2] || path };
-            })
-            .filter(Boolean) as EncryptedExtraField[],
-        })),
-    )
-    .flat();
+): FileEncryptedExtraFields[] =>
+  errors.flatMap(error =>
+    Object.entries(error.extra)
+      .filter(([, payload]) => isNeedsEncryptedExtraField(payload))
+      .map(([fileName, payload]) => ({
+        fileName,
+        fields: (payload as any)._schema
+          .filter((e: string) => ENCRYPTED_EXTRA_FIELD_REGEX.test(e))
+          .map((e: string) => {
+            const match = e.match(ENCRYPTED_EXTRA_FIELD_REGEX);
+            if (!match) return null;
+            const path = match[1];
+            return { path, label: match[2] || path };
+          })
+          .filter(Boolean) as EncryptedExtraField[],
+      })),
+  );
 
 export const hasTerminalValidation = (errors: Record<string, any>[]) =>
   errors.some(error => {
