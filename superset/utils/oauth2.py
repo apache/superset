@@ -324,7 +324,7 @@ def get_upstream_provider_token(provider: str, user_id: int) -> str | None:
         return None
 
     now = datetime.now()
-    if token.access_token_expiration and token.access_token_expiration > now:
+    if token.access_token_expiration is None or token.access_token_expiration > now:
         return token.access_token
 
     # Token is expired

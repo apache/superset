@@ -491,7 +491,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         super().set_oauth_session(provider, oauth_response)
         # FAB stores only (access_token, secret) in session["oauth"].
         # We need the full response (expires_in, refresh_token, …) for upstream forwarding.
-        session["oauth_full_token"] = dict(oauth_response)
+        session["oauth_full_token"] = dict(oauth_response)  # noqa: S105
 
     def auth_user_oauth(self, userinfo: dict[str, Any]) -> Any:
         """
@@ -529,8 +529,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                         logger.warning(
                             "Failed to save upstream OAuth token for provider %s",
                             provider,
-                            exc_info=True,
                         )
+                    finally:
+                        session.pop("oauth_full_token", None)
         return user
 
     def get_catalog_perm(

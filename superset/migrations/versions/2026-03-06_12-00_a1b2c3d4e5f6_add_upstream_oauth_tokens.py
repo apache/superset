@@ -24,7 +24,6 @@ Create Date: 2026-03-06 12:00:00.000000
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy_utils import EncryptedType
 
 # revision identifiers, used by Alembic.
 revision = "a1b2c3d4e5f6"
@@ -37,9 +36,9 @@ def upgrade() -> None:
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("user_id", sa.Integer(), nullable=False),
         sa.Column("provider", sa.String(256), nullable=False),
-        sa.Column("access_token", EncryptedType(), nullable=True),
+        sa.Column("access_token", sa.Text(), nullable=True),
         sa.Column("access_token_expiration", sa.DateTime(), nullable=True),
-        sa.Column("refresh_token", EncryptedType(), nullable=True),
+        sa.Column("refresh_token", sa.Text(), nullable=True),
         sa.Column("created_on", sa.DateTime(), nullable=True),
         sa.Column("changed_on", sa.DateTime(), nullable=True),
         sa.Column("created_by_fk", sa.Integer(), nullable=True),
