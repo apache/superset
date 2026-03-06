@@ -31,7 +31,7 @@ import {
 import { Tooltip } from '@superset-ui/core/components';
 import { StyledColumnOption } from 'src/explore/components/optionRenderers';
 import { isAdhocColumn } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import { ColumnMeta } from '@superset-ui/chart-controls';
 import Option from './Option';
 

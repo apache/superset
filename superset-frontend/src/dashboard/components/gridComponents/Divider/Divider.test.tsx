@@ -16,8 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import sinon from 'sinon';
-
 import newComponentFactory from 'src/dashboard/util/newComponentFactory';
 import {
   DIVIDER_TYPE,
@@ -71,9 +69,9 @@ describe('Divider', () => {
   });
 
   test('should call deleteComponent when deleted', () => {
-    const deleteComponent = sinon.spy();
+    const deleteComponent = jest.fn();
     setup({ editMode: true, deleteComponent });
     userEvent.click(screen.getByRole('button'));
-    expect(deleteComponent.callCount).toBe(1);
+    expect(deleteComponent).toHaveBeenCalledTimes(1);
   });
 });

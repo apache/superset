@@ -18,9 +18,10 @@
  */
 
 import { useCallback, useMemo, useState, useEffect } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { SupersetClient } from '@superset-ui/core';
-import { styled, Alert } from '@apache-superset/core/ui';
+import { Alert } from '@apache-superset/core/components';
+import { styled } from '@apache-superset/core/theme';
 import {
   Tag,
   DeleteModal,
@@ -386,14 +387,14 @@ function ThemesList({
                 </Tooltip>
               )}
               {original.is_system_default && (
-                <Tooltip title={t('This is the system default theme')}>
+                <Tooltip title={t('This is the default light theme')}>
                   <IconTag color="warning" icon={<Icons.SunOutlined />}>
                     {t('Default')}
                   </IconTag>
                 </Tooltip>
               )}
               {original.is_system_dark && (
-                <Tooltip title={t('This is the system dark theme')}>
+                <Tooltip title={t('This is the default dark theme')}>
                   <IconTag color="default" icon={<Icons.MoonOutlined />}>
                     {t('Dark')}
                   </IconTag>
@@ -439,32 +440,28 @@ function ThemesList({
           const handleExport = () => handleBulkThemeExport([original]);
 
           const actions = [
-            canApply
-              ? {
-                  label: 'apply-action',
-                  tooltip: t(
-                    'Set local theme. Will be applied to your session until unset.',
-                  ),
-                  placement: 'bottom',
-                  icon: 'ThunderboltOutlined',
-                  onClick: handleApply,
-                }
-              : null,
             canEdit
               ? {
                   label: 'edit-action',
-                  tooltip: original.is_system
-                    ? t('View theme')
-                    : t('Edit theme'),
+                  tooltip: original.is_system ? t('View') : t('Edit'),
                   placement: 'bottom',
                   icon: original.is_system ? 'EyeOutlined' : 'EditOutlined',
                   onClick: handleEdit,
                 }
               : null,
+            canApply
+              ? {
+                  label: 'apply-action',
+                  tooltip: t('Set local theme for testing'),
+                  placement: 'bottom',
+                  icon: 'ThunderboltOutlined',
+                  onClick: handleApply,
+                }
+              : null,
             canExport
               ? {
                   label: 'export-action',
-                  tooltip: t('Export theme'),
+                  tooltip: t('Export'),
                   placement: 'bottom',
                   icon: 'UploadOutlined',
                   onClick: handleExport,
@@ -473,7 +470,7 @@ function ThemesList({
             canSetSystemThemes && !original.is_system_default
               ? {
                   label: 'set-default-action',
-                  tooltip: t('Set as system default theme'),
+                  tooltip: t('Set as default light theme'),
                   placement: 'bottom',
                   icon: 'SunOutlined',
                   onClick: () => handleSetSystemDefault(original),
@@ -482,7 +479,7 @@ function ThemesList({
             canSetSystemThemes && original.is_system_default
               ? {
                   label: 'unset-default-action',
-                  tooltip: t('Remove as system default theme'),
+                  tooltip: t('Clear default light theme'),
                   placement: 'bottom',
                   icon: 'StopOutlined',
                   onClick: () => handleUnsetSystemDefault(),
@@ -491,7 +488,7 @@ function ThemesList({
             canSetSystemThemes && !original.is_system_dark
               ? {
                   label: 'set-dark-action',
-                  tooltip: t('Set as system dark theme'),
+                  tooltip: t('Set as default dark theme'),
                   placement: 'bottom',
                   icon: 'MoonOutlined',
                   onClick: () => handleSetSystemDark(original),
@@ -500,7 +497,7 @@ function ThemesList({
             canSetSystemThemes && original.is_system_dark
               ? {
                   label: 'unset-dark-action',
-                  tooltip: t('Remove as system dark theme'),
+                  tooltip: t('Clear default dark theme'),
                   placement: 'bottom',
                   icon: 'StopOutlined',
                   onClick: () => handleUnsetSystemDark(),

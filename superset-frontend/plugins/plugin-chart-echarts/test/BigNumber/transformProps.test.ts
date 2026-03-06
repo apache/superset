@@ -17,7 +17,7 @@
  * under the License.
  */
 import { DatasourceType, TimeGranularity, VizType } from '@superset-ui/core';
-import { supersetTheme } from '@apache-superset/core/ui';
+import { supersetTheme } from '@apache-superset/core/theme';
 import transformProps from '../../src/BigNumber/BigNumberWithTrendline/transformProps';
 import {
   BigNumberDatum,
@@ -35,6 +35,7 @@ const formData = {
     a: 1,
   },
   compareLag: 1,
+  xAxis: '__timestamp',
   timeGrainSqla: TimeGranularity.QUARTER,
   granularitySqla: 'ds',
   compareSuffix: 'over last quarter',
@@ -54,11 +55,13 @@ const rawFormData: BigNumberWithTrendlineFormData = {
     a: 1,
   },
   compare_lag: 1,
+  x_axis: '__timestamp',
   time_grain_sqla: TimeGranularity.QUARTER,
   granularity_sqla: 'ds',
   compare_suffix: 'over last quarter',
   viz_type: VizType.BigNumber,
   y_axis_format: '.3s',
+  xAxis: '__timestamp',
 };
 
 function generateProps(
@@ -116,7 +119,7 @@ describe('BigNumberWithTrendline', () => {
   );
 
   describe('transformProps()', () => {
-    it('should fallback and format time', () => {
+    test('should fallback and format time', () => {
       const transformed = transformProps(props);
       // the first item is the last item sorted by __timestamp
       const lastDatum = transformed.trendLineData?.pop();
@@ -131,13 +134,13 @@ describe('BigNumberWithTrendline', () => {
       expect(transformed.bigNumberFallback).toBeNull();
 
       // should successfully formatTime by granularity
-      // @ts-ignore
+      // @ts-expect-error
       expect(transformed.formatTime(new Date('2020-01-01'))).toStrictEqual(
         '2020-01-01 00:00:00',
       );
     });
 
-    it('should respect datasource d3 format', () => {
+    test('should respect datasource d3 format', () => {
       const propsWithDatasource = {
         ...props,
         datasource: {
@@ -153,13 +156,13 @@ describe('BigNumberWithTrendline', () => {
         },
       };
       const transformed = transformProps(propsWithDatasource);
-      // @ts-ignore
+      // @ts-expect-error
       expect(transformed.headerFormatter(transformed.bigNumber)).toStrictEqual(
         '1.23',
       );
     });
 
-    it('should format with datasource currency', () => {
+    test('should format with datasource currency', () => {
       const propsWithDatasource = {
         ...props,
         datasource: {
@@ -179,13 +182,13 @@ describe('BigNumberWithTrendline', () => {
         },
       };
       const transformed = transformProps(propsWithDatasource);
-      // @ts-ignore
+      // @ts-expect-error
       expect(transformed.headerFormatter(transformed.bigNumber)).toStrictEqual(
         '$ 1.23',
       );
     });
 
-    it('should show X axis when showXAxis is true', () => {
+    test('should show X axis when showXAxis is true', () => {
       const transformed = transformProps({
         ...props,
         formData: {
@@ -193,10 +196,12 @@ describe('BigNumberWithTrendline', () => {
           showXAxis: true,
         },
       });
-      expect((transformed.echartOptions?.xAxis as any).show).toBe(true);
+      expect((transformed.echartOptions!.xAxis as { show: boolean }).show).toBe(
+        true,
+      );
     });
 
-    it('should not show X axis when showXAxis is false', () => {
+    test('should not show X axis when showXAxis is false', () => {
       const transformed = transformProps({
         ...props,
         formData: {
@@ -204,10 +209,12 @@ describe('BigNumberWithTrendline', () => {
           showXAxis: false,
         },
       });
-      expect((transformed.echartOptions?.xAxis as any).show).toBe(false);
+      expect((transformed.echartOptions!.xAxis as { show: boolean }).show).toBe(
+        false,
+      );
     });
 
-    it('should show Y axis when showYAxis is true', () => {
+    test('should show Y axis when showYAxis is true', () => {
       const transformed = transformProps({
         ...props,
         formData: {
@@ -215,10 +222,12 @@ describe('BigNumberWithTrendline', () => {
           showYAxis: true,
         },
       });
-      expect((transformed.echartOptions?.yAxis as any).show).toBe(true);
+      expect((transformed.echartOptions!.yAxis as { show: boolean }).show).toBe(
+        true,
+      );
     });
 
-    it('should not show Y axis when showYAxis is false', () => {
+    test('should not show Y axis when showYAxis is false', () => {
       const transformed = transformProps({
         ...props,
         formData: {
@@ -226,11 +235,13 @@ describe('BigNumberWithTrendline', () => {
           showYAxis: false,
         },
       });
-      expect((transformed.echartOptions?.yAxis as any).show).toBe(false);
+      expect((transformed.echartOptions!.yAxis as { show: boolean }).show).toBe(
+        false,
+      );
     });
   });
 
-  it('should respect min/max label visibility settings', () => {
+  test('should respect min/max label visibility settings', () => {
     const transformed = transformProps({
       ...props,
       formData: {
@@ -248,7 +259,7 @@ describe('BigNumberWithTrendline', () => {
     expect(yAxis.axisLabel.showMaxLabel).toBe(true);
   });
 
-  it('should use minimal grid when both axes are hidden', () => {
+  test('should use minimal grid when both axes are hidden', () => {
     const transformed = transformProps({
       ...props,
       formData: {
@@ -266,7 +277,7 @@ describe('BigNumberWithTrendline', () => {
     });
   });
 
-  it('should use expanded grid when either axis is shown', () => {
+  test('should use expanded grid when either axis is shown', () => {
     const expandedGrid = {
       containLabel: true,
       bottom: TIMESERIES_CONSTANTS.gridOffsetBottom,
@@ -362,7 +373,7 @@ describe('BigNumberWithTrendline - Aggregation Tests', () => {
     ],
   } as unknown as BigNumberWithTrendlineChartProps;
 
-  it('should correctly calculate SUM', () => {
+  test('should correctly calculate SUM', () => {
     const props = {
       ...baseProps,
       formData: { ...baseProps.formData, aggregation: 'sum' },
@@ -380,7 +391,7 @@ describe('BigNumberWithTrendline - Aggregation Tests', () => {
     expect(transformed.bigNumber).toStrictEqual(150);
   });
 
-  it('should correctly calculate AVG', () => {
+  test('should correctly calculate AVG', () => {
     const props = {
       ...baseProps,
       formData: { ...baseProps.formData, aggregation: 'mean' },
@@ -398,7 +409,7 @@ describe('BigNumberWithTrendline - Aggregation Tests', () => {
     expect(transformed.bigNumber).toStrictEqual(37.5);
   });
 
-  it('should correctly calculate MIN', () => {
+  test('should correctly calculate MIN', () => {
     const props = {
       ...baseProps,
       formData: { ...baseProps.formData, aggregation: 'min' },
@@ -416,7 +427,7 @@ describe('BigNumberWithTrendline - Aggregation Tests', () => {
     expect(transformed.bigNumber).toStrictEqual(10);
   });
 
-  it('should correctly calculate MAX', () => {
+  test('should correctly calculate MAX', () => {
     const props = {
       ...baseProps,
       formData: { ...baseProps.formData, aggregation: 'max' },
@@ -434,7 +445,7 @@ describe('BigNumberWithTrendline - Aggregation Tests', () => {
     expect(transformed.bigNumber).toStrictEqual(60);
   });
 
-  it('should correctly calculate MEDIAN (odd count)', () => {
+  test('should correctly calculate MEDIAN (odd count)', () => {
     const oddCountProps = {
       ...baseProps,
       queriesData: [
@@ -469,7 +480,7 @@ describe('BigNumberWithTrendline - Aggregation Tests', () => {
     expect(transformed.bigNumber).toStrictEqual(30);
   });
 
-  it('should correctly calculate MEDIAN (even count)', () => {
+  test('should correctly calculate MEDIAN (even count)', () => {
     const props = {
       ...propsWithEvenData,
       formData: { ...propsWithEvenData.formData, aggregation: 'median' },
@@ -487,7 +498,7 @@ describe('BigNumberWithTrendline - Aggregation Tests', () => {
     expect(transformed.bigNumber).toStrictEqual(25);
   });
 
-  it('should return the LAST_VALUE correctly', () => {
+  test('should return the LAST_VALUE correctly', () => {
     const transformed = transformProps(baseProps);
     expect(transformed.bigNumber).toStrictEqual(10);
   });

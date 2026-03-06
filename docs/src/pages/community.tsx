@@ -218,7 +218,7 @@ const Community = () => {
             )}
           </ul>
         </StyledJoinCommunity>
-        <BlurredSection>
+        <BlurredSection id="superset-community-calendar">
           <SectionHeader
             level="h2"
             title="Superset Community Calendar"

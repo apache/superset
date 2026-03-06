@@ -17,8 +17,8 @@
  * under the License.
  */
 import { FunctionComponent, useEffect, useState, ChangeEvent } from 'react';
-import { t } from '@apache-superset/core';
-import { styled, css } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { styled, css } from '@apache-superset/core/theme';
 import { useImportResource } from 'src/views/CRUD/hooks';
 import {
   Upload,

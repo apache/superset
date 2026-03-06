@@ -378,4 +378,11 @@ class TagDAO(BaseDAO[Tag]):
                     object_id,
                     tag.name,
                 )
+            # After deleting tagged objects, we need to expire the tag's 'objects'
+            # relationship to clear references to deleted TaggedObject instances.
+            # This prevents SQLAlchemy errors when the tag is later added to the
+            # session, as it would otherwise still hold references to deleted objects.
+            if tagged_objects_to_delete:
+                db.session.expire(tag, ["objects"])
+
         db.session.add_all(tagged_objects)

@@ -27,6 +27,7 @@
     "access": "public"
   },
   "dependencies": {
+    "currencyformatter.js": "^1.0.5",
     "handlebars-group-by": "^1.0.1",
     "just-handlebars-helpers": "^1.0.19"
   },
@@ -44,7 +45,7 @@
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
-    "@types/lodash": "^4.17.23",
+    "@types/lodash": "^4.17.24",
     "jest": "^30.2.0"
   }
 }

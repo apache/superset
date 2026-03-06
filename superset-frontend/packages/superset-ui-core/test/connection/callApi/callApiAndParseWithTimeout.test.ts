@@ -30,20 +30,21 @@ import { LOGIN_GLOB } from '../fixtures/constants';
 const mockGetUrl = '/mock/get/url';
 const mockGetPayload = { get: 'payload' };
 
+beforeAll(() => fetchMock.mockGlobal());
+afterAll(() => fetchMock.hardReset());
+
 describe('callApiAndParseWithTimeout()', () => {
   beforeAll(() => fetchMock.get(LOGIN_GLOB, { result: '1234' }));
 
   beforeEach(() => fetchMock.get(mockGetUrl, mockGetPayload));
 
-  afterAll(() => fetchMock.restore());
-
   afterEach(() => {
-    fetchMock.reset();
+    fetchMock.removeRoutes().clearHistory();
     jest.useRealTimers();
   });
 
   describe('callApi', () => {
-    it('calls callApi()', () => {
+    test('calls callApi()', () => {
       const callApiSpy = jest.spyOn(callApi, 'default');
       callApiAndParseWithTimeout({ url: mockGetUrl, method: 'GET' });
 
@@ -53,7 +54,7 @@ describe('callApiAndParseWithTimeout()', () => {
   });
 
   describe('parseResponse', () => {
-    it('calls parseResponse()', async () => {
+    test('calls parseResponse()', async () => {
       const parseSpy = jest.spyOn(parseResponse, 'default');
 
       await callApiAndParseWithTimeout({
@@ -67,7 +68,7 @@ describe('callApiAndParseWithTimeout()', () => {
   });
 
   describe('timeout', () => {
-    it('does not create a rejection timer if no timeout passed', () => {
+    test('does not create a rejection timer if no timeout passed', () => {
       const rejectionSpy = jest.spyOn(rejectAfterTimeout, 'default');
       callApiAndParseWithTimeout({ url: mockGetUrl, method: 'GET' });
 
@@ -75,7 +76,7 @@ describe('callApiAndParseWithTimeout()', () => {
       rejectionSpy.mockClear();
     });
 
-    it('creates a rejection timer if a timeout passed', () => {
+    test('creates a rejection timer if a timeout passed', () => {
       jest.useFakeTimers(); // prevents the timeout from rejecting + failing test
       const rejectionSpy = jest.spyOn(rejectAfterTimeout, 'default');
       callApiAndParseWithTimeout({
@@ -88,7 +89,7 @@ describe('callApiAndParseWithTimeout()', () => {
       rejectionSpy.mockClear();
     });
 
-    it('rejects if the request exceeds the timeout', async () => {
+    test('rejects if the request exceeds the timeout', async () => {
       expect.assertions(2);
       jest.useFakeTimers();
 
@@ -108,7 +109,7 @@ describe('callApiAndParseWithTimeout()', () => {
       } catch (err) {
         error = err;
       } finally {
-        expect(fetchMock.calls(mockTimeoutUrl)).toHaveLength(1);
+        expect(fetchMock.callHistory.calls(mockTimeoutUrl)).toHaveLength(1);
         expect(error).toEqual({
           error: 'Request timed out',
           statusText: 'timeout',
@@ -117,7 +118,7 @@ describe('callApiAndParseWithTimeout()', () => {
       }
     });
 
-    it('resolves if the request does not exceed the timeout', async () => {
+    test('resolves if the request does not exceed the timeout', async () => {
       expect.assertions(1);
       const { json } = await callApiAndParseWithTimeout({
         url: mockGetUrl,

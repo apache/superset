@@ -20,18 +20,18 @@ import { createRef, useCallback, useMemo } from 'react';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { nanoid } from 'nanoid';
 import Tabs from '@superset-ui/core/components/Tabs';
-import { t } from '@apache-superset/core';
-import { css, styled, useTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 
 import { removeTables, setActiveSouthPaneTab } from 'src/SqlLab/actions/sqlLab';
 
 import { Flex, Label } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { SqlLabRootState } from 'src/SqlLab/types';
-import { ViewContribution } from 'src/SqlLab/contributions';
+import { ViewLocations } from 'src/SqlLab/contributions';
 import PanelToolbar from 'src/components/PanelToolbar';
-import { useExtensionsContext } from 'src/extensions/ExtensionsContext';
-import ExtensionsManager from 'src/extensions/ExtensionsManager';
+import { views } from 'src/core';
+import { resolveView } from 'src/core/views';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import useLogAction from 'src/logger/useLogAction';
 import { LOG_ACTIONS_SQLLAB_SWITCH_SOUTH_PANE_TAB } from 'src/logger/LogUtils';
@@ -104,11 +104,7 @@ const SouthPane = ({
   const editorId = tabViewId ?? id;
   const theme = useTheme();
   const dispatch = useDispatch();
-  const contributions =
-    ExtensionsManager.getInstance().getViewContributions(
-      ViewContribution.Panels,
-    ) || [];
-  const { getView } = useExtensionsContext();
+  const viewItems = views.getViews(ViewLocations.sqllab.panels) || [];
   const { offline, tables } = useSelector(
     ({ sqlLab: { offline, tables } }: SqlLabRootState) => ({
       offline,
@@ -212,9 +208,9 @@ const SouthPane = ({
         />
       ),
     })),
-    ...contributions.map(contribution => ({
-      key: contribution.id,
-      label: contribution.name,
+    ...viewItems.map(view => ({
+      key: view.id,
+      label: view.name,
       children: (
         <div
           css={css`
@@ -223,8 +219,8 @@ const SouthPane = ({
             }
           `}
         >
-          <PanelToolbar viewId={contribution.id} />
-          {getView(contribution.id)}
+          <PanelToolbar viewId={view.id} />
+          {resolveView(view.id)}
         </div>
       ),
       forceRender: true,
@@ -242,7 +238,7 @@ const SouthPane = ({
                 padding: 8px;
               `}
             >
-              <PanelToolbar viewId={ViewContribution.Panels} />
+              <PanelToolbar viewId={ViewLocations.sqllab.panels} />
             </Flex>
           ),
         }}

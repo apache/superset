@@ -656,6 +656,15 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # @lifecycle: testing
     # @docs: https://superset.apache.org/docs/configuration/setup-ssh-tunneling
     "SSH_TUNNELING": False,
+    # Enable AWS IAM authentication for database connections (Aurora, Redshift).
+    # Allows cross-account role assumption via STS AssumeRole.
+    # Security note: When enabled, ensure Superset's IAM role has restricted
+    # sts:AssumeRole permissions to prevent unauthorized access.
+    # @lifecycle: testing
+    "AWS_DATABASE_IAM_AUTH": False,
+    # Global Task Framework - unified task management with progress tracking,
+    # cancellation, and deduplication.
+    "GLOBAL_TASK_FRAMEWORK": False,
     # Use analogous colors in charts
     # @lifecycle: testing
     "USE_ANALOGOUS_COLORS": False,
@@ -697,10 +706,19 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # @category: runtime_config
     # @docs: https://superset.apache.org/docs/using-superset/creating-your-first-dashboard
     "DASHBOARD_RBAC": False,
+    # Supports simultaneous data and dashboard virtualization for backend performance
+    # @lifecycle: stable
+    # @category: runtime_config
+    "DASHBOARD_VIRTUALIZATION_DEFER_DATA": False,
     # Data panel closed by default in chart builder
     # @lifecycle: stable
     # @category: runtime_config
     "DATAPANEL_CLOSED_BY_DEFAULT": False,
+    # Hide the logout button in embedded contexts (e.g., when using SSO in iframes)
+    # @lifecycle: stable
+    # @category: runtime_config
+    # @docs: https://superset.apache.org/docs/configuration/networking-settings#hiding-the-logout-button-in-embedded-contexts
+    "DISABLE_EMBEDDED_SUPERSET_LOGOUT": False,
     # Enable drill-by functionality in charts
     # @lifecycle: stable
     # @category: runtime_config
@@ -923,7 +941,7 @@ THEME_DEFAULT: Theme = {
         # Fonts
         "fontUrls": [],
         "fontFamily": "Inter, Helvetica, Arial, sans-serif",
-        "fontFamilyCode": "'Fira Code', 'Courier New', monospace",
+        "fontFamilyCode": "'IBM Plex Mono', 'Courier New', monospace",
         # Extra tokens
         "transitionTiming": 0.3,
         "brandIconMaxWidth": 37,
@@ -932,6 +950,7 @@ THEME_DEFAULT: Theme = {
         "fontWeightNormal": "400",
         "fontWeightLight": "300",
         "fontWeightStrong": "500",
+        "fontWeightBold": "700",
         # Editor selection color (for SQL Lab text highlighting)
         "colorEditorSelection": "#fff5cf",
     },
@@ -1383,6 +1402,12 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         #     "schedule": crontab(minute="*", hour="*"),
         #     "kwargs": {"retention_period_days": 180, "max_rows_per_run": 10000},
         # },
+        # Uncomment to enable pruning of the tasks table
+        # "prune_tasks": {
+        #     "task": "prune_tasks",
+        #     "schedule": crontab(minute=0, hour=0),
+        #     "kwargs": {"retention_period_days": 90, "max_rows_per_run": 10000},
+        # },
         # Uncomment to enable Slack channel cache warm-up
         # "slack.cache_channels": {
         #     "task": "slack.cache_channels",
@@ -1798,6 +1823,34 @@ DISALLOWED_SQL_FUNCTIONS: dict[str, set[str]] = {
         "getOSInformation",
         "getMacro",
         "getSetting",
+    },
+}
+
+# Per-engine blocklist of system catalog tables/views that should not be queried.
+# Prevents information disclosure through system catalog access.
+DISALLOWED_SQL_TABLES: dict[str, set[str]] = {
+    "postgresql": {
+        "pg_stat_activity",
+        "pg_roles",
+        "pg_shadow",
+        "pg_authid",
+        "pg_settings",
+        "pg_config",
+        "pg_hba_file_rules",
+        "pg_stat_ssl",
+        "pg_stat_replication",
+        "pg_stat_wal_receiver",
+        "pg_user",
+    },
+    "mysql": {
+        "mysql.user",
+        "performance_schema.threads",
+        "performance_schema.processlist",
+    },
+    "mssql": {
+        "sys.server_principals",
+        "sys.sql_logins",
+        "sys.configurations",
     },
 }
 
@@ -2397,6 +2450,12 @@ EXTRA_DYNAMIC_QUERY_FILTERS: ExtraDynamicQueryFilters = {}
 # connection via the UI (without downtime).
 CATALOGS_SIMPLIFIED_MIGRATION: bool = False
 
+# Configure JWT subsystem to not enforce that the sub claim is a string
+# Set this variable to avoid breaking `/api/security` endpoints
+# TODO: remove this variable once pyjwt resolved the issue.
+# https://github.com/jpadilla/pyjwt/issues/1017
+# https://github.com/dpgaspar/Flask-AppBuilder/issues/2287
+JWT_VERIFY_SUB: bool = False
 
 # When updating a DB connection or manually triggering a perm sync, the command
 # happens in sync mode. If you have a celery worker configured, it's recommended
@@ -2417,6 +2476,64 @@ except ImportError:
 
 LOCAL_EXTENSIONS: list[str] = []
 EXTENSIONS_PATH: str | None = None
+
+# Default polling interval for tasks (seconds)
+TASK_ABORT_POLLING_DEFAULT_INTERVAL = 10
+
+# Minimum interval in seconds between database writes for task progress updates.
+# Set to 0 to disable throttling (write every update to DB).
+TASK_PROGRESS_UPDATE_THROTTLE_INTERVAL = 2  # seconds
+
+# ---------------------------------------------------
+# Distributed Coordination Configuration
+# ---------------------------------------------------
+# Shared Redis/Valkey backend for distributed coordination primitives.
+#
+# Uses Flask-Caching style configuration for consistency with other cache backends.
+# Set CACHE_TYPE to 'RedisCache' for standard Redis or 'RedisSentinelCache' for
+# Sentinel.
+#
+# These features require Redis primitives unavailable in generic cache backends:
+# - Pub/Sub: Real-time message broadcasting between workers
+# - SET NX EX: Atomic lock acquisition with automatic expiration
+# - Streams: Persistent ordered event logs (future)
+#
+# When configured, enables:
+# - Real-time abort/completion notifications for GTF tasks (vs database polling)
+# - Redis-based distributed locking (vs KeyValueDAO-backed DistributedLock)
+#
+# Future: This backend will power a higher-level coordination service exposing
+# standardized interfaces for distributed locks, pub/sub, and streams — consolidating
+# all advanced Redis primitives under a single connection. Global Async Queries
+# (GLOBAL_ASYNC_QUERIES_CACHE_BACKEND) will also be migrated to this configuration.
+#
+# Example with standard Redis:
+# DISTRIBUTED_COORDINATION_CONFIG: CacheConfig = {
+#     "CACHE_TYPE": "RedisCache",
+#     "CACHE_REDIS_HOST": "localhost",
+#     "CACHE_REDIS_PORT": 6379,
+#     "CACHE_REDIS_DB": 0,
+#     "CACHE_REDIS_PASSWORD": "",
+# }
+#
+# Example with Redis Sentinel:
+# DISTRIBUTED_COORDINATION_CONFIG: CacheConfig = {
+#     "CACHE_TYPE": "RedisSentinelCache",
+#     "CACHE_REDIS_SENTINELS": [("sentinel1", 26379), ("sentinel2", 26379)],
+#     "CACHE_REDIS_SENTINEL_MASTER": "mymaster",
+#     "CACHE_REDIS_SENTINEL_PASSWORD": None,
+#     "CACHE_REDIS_DB": 0,
+#     "CACHE_REDIS_PASSWORD": "",
+# }
+DISTRIBUTED_COORDINATION_CONFIG: CacheConfig | None = None
+
+# Default lock TTL (time-to-live) in seconds for distributed locks.
+# Can be overridden per-call via the `ttl_seconds` parameter.
+# After TTL expires, the lock is automatically released to prevent deadlocks.
+DISTRIBUTED_LOCK_DEFAULT_TTL = 30
+
+# Channel prefix for task abort pub/sub messages
+TASKS_ABORT_CHANNEL_PREFIX = "gtf:abort:"
 
 # -------------------------------------------------------------------
 # *                WARNING:  STOP EDITING  HERE                    *

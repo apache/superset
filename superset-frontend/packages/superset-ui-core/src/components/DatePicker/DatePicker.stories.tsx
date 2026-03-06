@@ -80,11 +80,51 @@ export const InteractiveDatePicker: any = (args: DatePickerProps) => (
 InteractiveDatePicker.args = {
   ...commonArgs,
   placeholder: 'Placeholder',
-  showToday: true,
+  showNow: true,
   showTime: { format: 'hh:mm a', needConfirm: false },
 };
 
-InteractiveDatePicker.argTypes = interactiveTypes;
+InteractiveDatePicker.argTypes = {
+  ...interactiveTypes,
+  showNow: {
+    description: 'Show "Now" button to select current date and time.',
+    control: 'boolean',
+  },
+};
+
+InteractiveDatePicker.parameters = {
+  actions: {
+    disable: true,
+  },
+  docs: {
+    description: {
+      story: 'A date picker component with time selection support.',
+    },
+    staticProps: {
+      allowClear: false,
+      autoFocus: true,
+      disabled: false,
+      format: 'YYYY-MM-DD hh:mm a',
+      inputReadOnly: false,
+      picker: 'date',
+      placement: 'bottomLeft',
+      size: 'middle',
+      showNow: true,
+      placeholder: 'Select date',
+      showTime: { format: 'hh:mm a', needConfirm: false },
+    },
+    liveExample: `function Demo() {
+  return (
+    <DatePicker
+      placeholder="Select date"
+      format="YYYY-MM-DD hh:mm a"
+      showNow
+      showTime={{ format: 'hh:mm a', needConfirm: false }}
+    />
+  );
+}`,
+  },
+};
 
 export const InteractiveRangePicker = (
   args: Omit<RangePickerProps, 'picker'> & {
