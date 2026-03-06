@@ -19,12 +19,12 @@
 
 import { useCallback, useMemo } from 'react';
 import { Tag } from 'src/components/Tag';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   BinaryQueryObjectFilterClause,
   isAdhocColumn,
 } from '@superset-ui/core';
-import { css, useTheme } from '@apache-superset/core/ui';
+import { css, useTheme } from '@apache-superset/core/theme';
 import RowCountLabel from 'src/components/RowCountLabel';
 import { Icons } from '@superset-ui/core/components/Icons';
 

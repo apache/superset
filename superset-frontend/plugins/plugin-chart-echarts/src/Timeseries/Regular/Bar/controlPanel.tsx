@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { ensureIsArray, JsonArray } from '@superset-ui/core';
 import {
   ControlPanelConfig,
@@ -374,6 +374,7 @@ const config: ControlPanelConfig = {
         ...richTooltipSection,
         [<ControlSubSectionHeader>{t('Y Axis')}</ControlSubSectionHeader>],
         ...createAxisControl('y'),
+        ['echart_options'],
       ],
     },
   ],

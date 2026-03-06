@@ -24,7 +24,7 @@ import {
   Theme,
   ThemeAlgorithm,
   ThemeMode,
-} from '@apache-superset/core/ui';
+} from '@apache-superset/core/theme';
 import type {
   BootstrapThemeDataConfig,
   CommonBootstrapData,

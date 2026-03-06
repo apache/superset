@@ -276,28 +276,24 @@ export function getMatrixifyValidationErrors(
   }
 
   // Must have at least one valid axis
-  if (hasRowMode || hasColumnMode) {
-    const hasRowData =
-      config.rows.mode === 'metrics'
-        ? config.rows.metrics && config.rows.metrics.length > 0
-        : config.rows.dimension?.dimension &&
-          (config.rows.selectionMode === 'topn' ||
-            (config.rows.dimension.values &&
-              config.rows.dimension.values.length > 0));
+  const hasAnyRowData =
+    config.rows.mode === 'metrics'
+      ? config.rows.metrics && config.rows.metrics.length > 0
+      : config.rows.dimension?.dimension &&
+        (config.rows.selectionMode === 'topn' ||
+          (config.rows.dimension.values &&
+            config.rows.dimension.values.length > 0));
 
-    const hasColumnData =
-      config.columns.mode === 'metrics'
-        ? config.columns.metrics && config.columns.metrics.length > 0
-        : config.columns.dimension?.dimension &&
-          (config.columns.selectionMode === 'topn' ||
-            (config.columns.dimension.values &&
-              config.columns.dimension.values.length > 0));
+  const hasAnyColumnData =
+    config.columns.mode === 'metrics'
+      ? config.columns.metrics && config.columns.metrics.length > 0
+      : config.columns.dimension?.dimension &&
+        (config.columns.selectionMode === 'topn' ||
+          (config.columns.dimension.values &&
+            config.columns.dimension.values.length > 0));
 
-    if (!hasRowData && !hasColumnData) {
-      errors.push('Configure at least one complete row or column axis');
-    }
-  } else {
-    errors.push('Please configure at least one row or column axis');
+  if (!hasAnyRowData && !hasAnyColumnData) {
+    errors.push('Configure at least one complete row or column axis');
   }
 
   return errors;

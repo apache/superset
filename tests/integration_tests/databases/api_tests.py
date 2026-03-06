@@ -67,6 +67,7 @@ from tests.integration_tests.fixtures.world_bank_dashboard import (
 )
 from tests.integration_tests.fixtures.importexport import (
     database_config,
+    database_config_with_masked_encrypted_extra,
     dataset_config,
     database_with_ssh_tunnel_config_password,
     database_with_ssh_tunnel_config_private_key,
@@ -3108,6 +3109,96 @@ class TestDatabaseApi(SupersetTestCase):
 
         database = db.session.query(Database).filter_by(uuid=db_config["uuid"]).one()
         assert database.extra == json.dumps({"schema_options": {"expand_rows": True}})
+
+        db.session.delete(database)
+        db.session.commit()
+
+    @mock.patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_database_masked_encrypted_extra_missing_field(
+        self, mock_add_permissions
+    ):
+        """
+        Database API: Test import database with masked_encrypted_extra containing
+        PASSWORD_MASK values for a new DB returns a validation error listing the
+        fields that need real values.
+        """
+        self.login(ADMIN_USERNAME)
+        uri = "api/v1/database/import/"
+
+        masked_config = database_config_with_masked_encrypted_extra.copy()
+        masked_config["masked_encrypted_extra"] = json.dumps(
+            {
+                "credentials_info": {
+                    "type": "service_account",
+                    "project_id": "test-project",
+                    "private_key": "XXXXXXXXXX",
+                }
+            }
+        )
+        # Use a UUID that doesn't exist in the DB so it's treated as a new database
+        masked_config["uuid"] = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+
+        buf = self.create_import_v1_zip_file("database", databases=[masked_config])
+        form_data = {
+            "formData": (buf, "database_export.zip"),
+        }
+        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 422
+        assert len(response["errors"]) == 1
+        error = response["errors"][0]
+        assert error["error_type"] == "GENERIC_COMMAND_ERROR"
+        assert "Must provide value for masked_encrypted_extra field" in str(
+            error["extra"]
+        )
+        assert "$.credentials_info.private_key" in str(error["extra"])
+
+    @mock.patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_database_with_encrypted_extra_secrets(self, mock_add_permissions):
+        """
+        Database API: Test import database with encrypted_extra_secrets in form data.
+        The secrets should replace PASSWORD_MASK values in the config before import.
+        """
+        self.login(ADMIN_USERNAME)
+        uri = "api/v1/database/import/"
+
+        masked_config = database_config_with_masked_encrypted_extra.copy()
+        masked_config["masked_encrypted_extra"] = json.dumps(
+            {
+                "credentials_info": {
+                    "type": "service_account",
+                    "project_id": "test-project",
+                    "private_key": "XXXXXXXXXX",
+                }
+            }
+        )
+
+        buf = self.create_import_v1_zip_file("database", databases=[masked_config])
+        form_data = {
+            "formData": (buf, "database_export.zip"),
+            "encrypted_extra_secrets": json.dumps(
+                {
+                    "databases/database_1.yaml": {
+                        "$.credentials_info.private_key": "-----BEGIN PRIVATE KEY-----\\nREAL_KEY\\n-----END PRIVATE KEY-----\\n",  # noqa: E501
+                    }
+                }
+            ),
+        }
+        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 200
+        assert response == {"message": "OK"}
+
+        database = (
+            db.session.query(Database).filter_by(uuid=masked_config["uuid"]).one()
+        )
+        assert database.encrypted_extra is not None
+        encrypted = json.loads(database.encrypted_extra)
+        assert encrypted["credentials_info"]["private_key"] == (
+            "-----BEGIN PRIVATE KEY-----\nREAL_KEY\n-----END PRIVATE KEY-----\n"
+        )
 
         db.session.delete(database)
         db.session.commit()
