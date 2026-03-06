@@ -28,7 +28,9 @@ export const getTimeOffset = (
       // offset is represented as <offset>, group by list
       series.name.includes(`${timeOffset},`) ||
       // offset is represented as <metric>__<offset>
-      series.name.includes(`__${timeOffset}`),
+      series.name.includes(`__${timeOffset}`) ||
+      // offset is represented as <metric>, <offset>
+      series.name.includes(`, ${timeOffset}`),
   );
 
 export const hasTimeOffset = (
@@ -49,6 +51,8 @@ export const getOriginalSeries = (
     result = result.replace(`${compare},`, '');
     // offset is represented as <metric>__<offset>
     result = result.replace(`__${compare}`, '');
+    // offset is represented as <metric>, <offset>
+    result = result.replace(`, ${compare}`, '');
   });
   return result.trim();
 };
