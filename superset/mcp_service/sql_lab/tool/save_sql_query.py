@@ -102,7 +102,7 @@ async def save_sql_query(
                     "description": request.description or "",
                 }
             )
-            db.session.commit()
+            db.session.commit()  # pylint: disable=consider-using-transaction
 
         # 3. Build response
         base_url = get_superset_base_url()
@@ -118,6 +118,7 @@ async def save_sql_query(
             sql=saved_query.sql,
             database_id=request.database_id,
             schema_name=request.schema_name,
+            catalog=getattr(saved_query, "catalog", None),
             description=request.description,
             url=saved_query_url,
         )

@@ -159,11 +159,13 @@ def _force_passthrough_decorators():
 
 def _restore_modules(saved_modules: dict[str, types.ModuleType]) -> None:
     """Restore original sys.modules entries after passthrough mocking."""
-    # Remove mock entries
+    # Remove mock entries and any tool modules imported under patched decorators
     for key in list(sys.modules.keys()):
-        if key.startswith("superset_core"):
+        if key.startswith("superset_core") or key.startswith(
+            "superset.mcp_service.sql_lab.tool"
+        ):
             del sys.modules[key]
-    # Restore originals
+    # Restore originals (including any previously-imported tool modules)
     sys.modules.update(saved_modules)
 
 
@@ -226,6 +228,7 @@ class TestSaveSqlQueryToolLogic:
             mock_sq.id = 42
             mock_sq.label = "Revenue Query"
             mock_sq.sql = "SELECT SUM(revenue) FROM sales"
+            mock_sq.catalog = None
 
             request = SaveSqlQueryRequest(
                 database_id=1,
@@ -389,6 +392,7 @@ class TestSaveSqlQueryToolLogic:
             mock_sq.id = 10
             mock_sq.label = "Test"
             mock_sq.sql = "SELECT 1"
+            mock_sq.catalog = None
 
             request = SaveSqlQueryRequest(
                 database_id=1,

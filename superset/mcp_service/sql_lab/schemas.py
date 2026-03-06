@@ -196,6 +196,7 @@ class SaveSqlQueryResponse(BaseModel):
     sql: str = Field(..., description="SQL query text")
     database_id: int = Field(..., description="Database ID")
     schema_name: str | None = Field(None, description="Schema name", alias="schema")
+    catalog: str | None = Field(None, description="Catalog name (if applicable)")
     description: str | None = Field(None, description="Query description")
     url: str = Field(
         ...,
