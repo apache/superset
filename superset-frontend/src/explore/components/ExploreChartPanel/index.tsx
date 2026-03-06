@@ -18,6 +18,7 @@
  */
 import { useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import Split from 'react-split';
+import { t } from '@apache-superset/core/translation';
 import {
   DatasourceType,
   ensureIsArray,
@@ -25,12 +26,12 @@ import {
   FeatureFlag,
   getChartMetadataRegistry,
   SupersetClient,
-  t,
   QueryFormData,
   JsonObject,
   getExtensionsRegistry,
 } from '@superset-ui/core';
-import { css, styled, useTheme, Alert } from '@apache-superset/core/ui';
+import { Alert } from '@apache-superset/core/components';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import ChartContainer from 'src/components/Chart/ChartContainer';
 import {
   getItem,
@@ -43,6 +44,7 @@ import { buildV1ChartDataPayload } from 'src/explore/exploreUtils';
 import { getChartRequiredFieldsMissingMessage } from 'src/utils/getChartRequiredFieldsMissingMessage';
 import type { ChartState, Datasource } from 'src/explore/types';
 import type { Slice } from 'src/types/Chart';
+import LastQueriedLabel from 'src/components/LastQueriedLabel';
 import { DataTablesPane } from '../DataTablesPane';
 import { ChartPills } from '../ChartPills';
 import { ExploreAlert } from '../ExploreAlert';
@@ -87,6 +89,7 @@ export interface ExploreChartPanelProps {
   errorMessage?: ReactNode;
   triggerRender?: boolean;
   chartAlert?: string;
+  exploreState?: JsonObject;
 }
 
 type PanelSizes = [number, number];
@@ -180,14 +183,14 @@ const ExploreChartPanel = ({
 
   const updateQueryContext = useCallback(
     async function fetchChartData() {
-      if (slice && slice.query_context === null) {
+      if (slice && slice.query_context === null && slice.form_data) {
         const queryContext = await buildV1ChartDataPayload({
           formData: slice.form_data,
           force,
           resultFormat: 'json',
           resultType: 'full',
-          setDataMask: null,
-          ownState: null,
+          setDataMask: undefined,
+          ownState: undefined,
         });
 
         await SupersetClient.put({
@@ -268,7 +271,9 @@ const ExploreChartPanel = ({
             onQuery={onQuery}
             queriesResponse={chart.queriesResponse}
             chartIsStale={chartIsStale}
-            setControlValue={actions.setControlValue}
+            setControlValue={(name, value) =>
+              actions.setControlValue(name, value, chart.id)
+            }
             timeout={timeout}
             triggerQuery={chart.triggerQuery}
             vizType={vizType}
@@ -396,9 +401,23 @@ const ExploreChartPanel = ({
               formData?.matrixify_enable_vertical_layout === true ||
               formData?.matrixify_enable_horizontal_layout === true
             }
+            formData={formData}
           />
         </ChartHeaderExtension>
         {renderChart()}
+        {!chart.chartStatus || chart.chartStatus !== 'loading' ? (
+          <div
+            css={css`
+              display: flex;
+              justify-content: flex-end;
+              padding-top: ${theme.sizeUnit * 2}px;
+            `}
+          >
+            <LastQueriedLabel
+              queriedDttm={chart.queriesResponse?.[0]?.queried_dttm ?? null}
+            />
+          </div>
+        ) : null}
       </div>
     ),
     [
@@ -415,6 +434,7 @@ const ExploreChartPanel = ({
       formData?.matrixify_enable_vertical_layout,
       formData?.matrixify_enable_horizontal_layout,
       renderChart,
+      theme.sizeUnit,
     ],
   );
 

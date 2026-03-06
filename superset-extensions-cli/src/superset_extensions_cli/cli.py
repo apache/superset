@@ -23,17 +23,34 @@ import sys
 import time
 import zipfile
 from pathlib import Path
-from typing import Any, Callable, cast
+from typing import Any, Callable
 
 import click
 import semver
 from jinja2 import Environment, FileSystemLoader
-from superset_core.extensions.types import Manifest, Metadata
+from superset_core.extensions.types import (
+    ExtensionConfig,
+    Manifest,
+    ManifestBackend,
+    ManifestFrontend,
+)
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
 from superset_extensions_cli.constants import MIN_NPM_VERSION
-from superset_extensions_cli.utils import read_json, read_toml
+from superset_extensions_cli.exceptions import ExtensionNameError
+from superset_extensions_cli.types import ExtensionNames
+from superset_extensions_cli.utils import (
+    generate_extension_names,
+    get_module_federation_name,
+    kebab_to_snake_case,
+    read_json,
+    read_toml,
+    suggest_technical_name,
+    validate_display_name,
+    validate_publisher,
+    validate_technical_name,
+)
 
 REMOTE_ENTRY_REGEX = re.compile(r"^remoteEntry\..+\.js$")
 FRONTEND_DIST_REGEX = re.compile(r"/frontend/dist")
@@ -125,40 +142,51 @@ def clean_dist_frontend(cwd: Path) -> None:
 
 
 def build_manifest(cwd: Path, remote_entry: str | None) -> Manifest:
-    extension: Metadata = cast(Metadata, read_json(cwd / "extension.json"))
-    if not extension:
+    extension_data = read_json(cwd / "extension.json")
+    if not extension_data:
         click.secho("❌ extension.json not found.", err=True, fg="red")
         sys.exit(1)
 
-    manifest: Manifest = {
-        "id": extension["id"],
-        "name": extension["name"],
-        "version": extension["version"],
-        "permissions": extension["permissions"],
-        "dependencies": extension.get("dependencies", []),
-    }
-    if (
-        (frontend := extension.get("frontend"))
-        and (contributions := frontend.get("contributions"))
-        and (module_federation := frontend.get("moduleFederation"))
-        and remote_entry
-    ):
-        manifest["frontend"] = {
-            "contributions": contributions,
-            "moduleFederation": module_federation,
-            "remoteEntry": remote_entry,
-        }
+    extension = ExtensionConfig.model_validate(extension_data)
 
-    if entry_points := extension.get("backend", {}).get("entryPoints"):
-        manifest["backend"] = {"entryPoints": entry_points}
+    # Generate composite ID from publisher and name
+    composite_id = f"{extension.publisher}.{extension.name}"
 
-    return manifest
+    frontend: ManifestFrontend | None = None
+    if remote_entry:
+        frontend = ManifestFrontend(
+            remoteEntry=remote_entry,
+            moduleFederationName=get_module_federation_name(
+                extension.publisher, extension.name
+            ),
+        )
+
+    backend: ManifestBackend | None = None
+    backend_dir = cwd / "backend"
+    if backend_dir.exists():
+        # Generate conventional entry point
+        publisher_snake = kebab_to_snake_case(extension.publisher)
+        name_snake = kebab_to_snake_case(extension.name)
+        entrypoint = f"superset_extensions.{publisher_snake}.{name_snake}.entrypoint"
+        backend = ManifestBackend(entrypoint=entrypoint)
+
+    return Manifest(
+        id=composite_id,
+        publisher=extension.publisher,
+        name=extension.name,
+        displayName=extension.displayName,
+        version=extension.version,
+        permissions=extension.permissions,
+        dependencies=extension.dependencies,
+        frontend=frontend,
+        backend=backend,
+    )
 
 
 def write_manifest(cwd: Path, manifest: Manifest) -> None:
     dist_dir = cwd / "dist"
     (dist_dir / "manifest.json").write_text(
-        json.dumps(manifest, indent=2, sort_keys=True)
+        manifest.model_dump_json(indent=2, exclude_none=True, by_alias=True)
     )
     click.secho("✅ Manifest updated", fg="green")
 
@@ -194,17 +222,34 @@ def copy_frontend_dist(cwd: Path) -> str:
 
 
 def copy_backend_files(cwd: Path) -> None:
+    """Copy backend files based on pyproject.toml build configuration (validation already passed)."""
     dist_dir = cwd / "dist"
-    extension = read_json(cwd / "extension.json")
-    if not extension:
-        click.secho("❌ No extension.json file found.", err=True, fg="red")
-        sys.exit(1)
+    backend_dir = cwd / "backend"
 
-    for pat in extension.get("backend", {}).get("files", []):
-        for f in cwd.glob(pat):
+    # Read build config from pyproject.toml
+    pyproject = read_toml(backend_dir / "pyproject.toml")
+    assert pyproject
+    build_config = (
+        pyproject.get("tool", {}).get("apache_superset_extensions", {}).get("build", {})
+    )
+    include_patterns = build_config.get("include", [])
+    exclude_patterns = build_config.get("exclude", [])
+
+    # Process include patterns
+    for pattern in include_patterns:
+        for f in backend_dir.glob(pattern):
             if not f.is_file():
                 continue
-            tgt = dist_dir / f.relative_to(cwd)
+
+            # Check exclude patterns
+            relative_path = f.relative_to(backend_dir)
+            should_exclude = any(
+                relative_path.match(excl_pattern) for excl_pattern in exclude_patterns
+            )
+            if should_exclude:
+                continue
+
+            tgt = dist_dir / "backend" / relative_path
             tgt.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(f, tgt)
 
@@ -248,6 +293,89 @@ def app() -> None:
 @app.command()
 def validate() -> None:
     validate_npm()
+
+    cwd = Path.cwd()
+
+    # Validate extension.json exists and is valid
+    extension_data = read_json(cwd / "extension.json")
+    if not extension_data:
+        click.secho("❌ extension.json not found.", err=True, fg="red")
+        sys.exit(1)
+
+    try:
+        extension = ExtensionConfig.model_validate(extension_data)
+    except Exception as e:
+        click.secho(f"❌ Invalid extension.json: {e}", err=True, fg="red")
+        sys.exit(1)
+
+    # Validate conventional backend structure if backend directory exists
+    backend_dir = cwd / "backend"
+    if backend_dir.exists():
+        # Check for pyproject.toml
+        pyproject_path = backend_dir / "pyproject.toml"
+        if not pyproject_path.exists():
+            click.secho(
+                "❌ Backend directory exists but pyproject.toml not found",
+                err=True,
+                fg="red",
+            )
+            sys.exit(1)
+
+        # Validate pyproject.toml has build configuration
+        pyproject = read_toml(pyproject_path)
+        if not pyproject:
+            click.secho("❌ Failed to read backend pyproject.toml", err=True, fg="red")
+            sys.exit(1)
+
+        build_config = (
+            pyproject.get("tool", {})
+            .get("apache_superset_extensions", {})
+            .get("build", {})
+        )
+        if not build_config.get("include"):
+            click.secho(
+                "❌ Missing [tool.apache_superset_extensions.build] section with 'include' patterns in pyproject.toml",
+                err=True,
+                fg="red",
+            )
+            sys.exit(1)
+
+        # Check conventional backend entry point
+        publisher_snake = kebab_to_snake_case(extension.publisher)
+        name_snake = kebab_to_snake_case(extension.name)
+        expected_entry_file = (
+            backend_dir
+            / "src"
+            / "superset_extensions"
+            / publisher_snake
+            / name_snake
+            / "entrypoint.py"
+        )
+
+        if not expected_entry_file.exists():
+            click.secho(
+                f"❌ Backend entry point not found at expected location: {expected_entry_file.relative_to(cwd)}",
+                err=True,
+                fg="red",
+            )
+            click.secho(
+                f"   Convention requires: backend/src/superset_extensions/{publisher_snake}/{name_snake}/entrypoint.py",
+                fg="yellow",
+            )
+            sys.exit(1)
+
+    # Validate conventional frontend entry point if frontend directory exists
+    frontend_dir = cwd / "frontend"
+    if frontend_dir.exists():
+        expected_frontend_entry = frontend_dir / "src" / "index.tsx"
+        if not expected_frontend_entry.exists():
+            click.secho(
+                f"❌ Frontend entry point not found at expected location: {expected_frontend_entry.relative_to(cwd)}",
+                err=True,
+                fg="red",
+            )
+            click.secho("   Convention requires: frontend/src/index.tsx", fg="yellow")
+            sys.exit(1)
 
     click.secho("✅ Validation successful", fg="green")
 
@@ -358,11 +486,6 @@ def dev(ctx: click.Context) -> None:
     def backend_watcher() -> None:
         if backend_dir.exists():
             rebuild_backend(cwd)
-            dist_dir = cwd / "dist"
-            manifest_path = dist_dir / "manifest.json"
-            if manifest_path.exists():
-                manifest = json.loads(manifest_path.read_text())
-                write_manifest(cwd, manifest)
 
     # Build watch message based on existing directories
     watch_dirs = []
@@ -403,14 +526,111 @@ def dev(ctx: click.Context) -> None:
         click.secho("❌ No directories to watch. Exiting.", fg="red")
 
 
+def prompt_for_extension_info(
+    display_name_opt: str | None,
+    publisher_opt: str | None,
+    technical_name_opt: str | None,
+) -> ExtensionNames:
+    """
+    Prompt for extension info with graceful validation and re-prompting.
+
+    Args:
+        display_name_opt: Display name provided via CLI option (if any)
+        publisher_opt: Publisher provided via CLI option (if any)
+        technical_name_opt: Technical name provided via CLI option (if any)
+
+    Returns:
+        ExtensionNames: Validated extension name variants
+    """
+
+    # Step 1: Get display name
+    if display_name_opt:
+        display_name = display_name_opt
+        try:
+            display_name = validate_display_name(display_name)
+        except ExtensionNameError as e:
+            click.secho(f"❌ {e}", fg="red")
+            sys.exit(1)
+    else:
+        while True:
+            display_name = click.prompt("Extension display name", type=str)
+            try:
+                display_name = validate_display_name(display_name)
+                break
+            except ExtensionNameError as e:
+                click.secho(f"❌ {e}", fg="red")
+
+    # Step 2: Get technical name (with suggestion from display name)
+    if technical_name_opt:
+        technical_name = technical_name_opt
+        try:
+            validate_technical_name(technical_name)
+        except ExtensionNameError as e:
+            click.secho(f"❌ {e}", fg="red")
+            sys.exit(1)
+    else:
+        # Suggest technical name from display name
+        try:
+            suggested_technical = suggest_technical_name(display_name)
+        except ExtensionNameError:
+            suggested_technical = "extension"
+
+        while True:
+            technical_name = click.prompt(
+                f"Extension name ({suggested_technical})",
+                default=suggested_technical,
+                type=str,
+            )
+            try:
+                validate_technical_name(technical_name)
+                break
+            except ExtensionNameError as e:
+                click.secho(f"❌ {e}", fg="red")
+
+    # Step 3: Get publisher
+    if publisher_opt:
+        publisher = publisher_opt
+        try:
+            validate_publisher(publisher)
+        except ExtensionNameError as e:
+            click.secho(f"❌ {e}", fg="red")
+            sys.exit(1)
+    else:
+        while True:
+            publisher = click.prompt("Publisher (e.g., my-org)", type=str)
+            try:
+                validate_publisher(publisher)
+                break
+            except ExtensionNameError as e:
+                click.secho(f"❌ {e}", fg="red")
+
+    # Generate all name variants
+    try:
+        return generate_extension_names(display_name, publisher, technical_name)
+    except ExtensionNameError as e:
+        click.secho(f"❌ {e}", fg="red")
+        sys.exit(1)
+
+
 @app.command()
 @click.option(
-    "--id",
-    "id_opt",
+    "--publisher",
+    "publisher_opt",
     default=None,
-    help="Extension ID (alphanumeric and underscores only)",
+    help="Publisher namespace (kebab-case, e.g. my-org)",
 )
-@click.option("--name", "name_opt", default=None, help="Extension display name")
+@click.option(
+    "--name",
+    "name_opt",
+    default=None,
+    help="Technical extension name (kebab-case, e.g. dashboard-widgets)",
+)
+@click.option(
+    "--display-name",
+    "display_name_opt",
+    default=None,
+    help="Extension display name (e.g. Dashboard Widgets)",
+)
 @click.option(
     "--version", "version_opt", default=None, help="Initial version (default: 0.1.0)"
 )
@@ -424,25 +644,17 @@ def dev(ctx: click.Context) -> None:
     "--backend/--no-backend", "backend_opt", default=None, help="Include backend"
 )
 def init(
-    id_opt: str | None,
+    publisher_opt: str | None,
     name_opt: str | None,
+    display_name_opt: str | None,
     version_opt: str | None,
     license_opt: str | None,
     frontend_opt: bool | None,
     backend_opt: bool | None,
 ) -> None:
-    id_ = id_opt or click.prompt(
-        "Extension ID (unique identifier, alphanumeric only)", type=str
-    )
-    if not re.match(r"^[a-zA-Z0-9_]+$", id_):
-        click.secho(
-            "❌ ID must be alphanumeric (letters, digits, underscore).", fg="red"
-        )
-        sys.exit(1)
+    # Get extension names with graceful validation
+    names = prompt_for_extension_info(display_name_opt, publisher_opt, name_opt)
 
-    name = name_opt or click.prompt(
-        "Extension name (human-readable display name)", type=str
-    )
     version = version_opt or click.prompt("Initial version", default="0.1.0")
     license_ = license_opt or click.prompt("License", default="Apache-2.0")
     include_frontend = (
@@ -456,7 +668,7 @@ def init(
         else click.confirm("Include backend?", default=True)
     )
 
-    target_dir = Path.cwd() / id_
+    target_dir = Path.cwd() / names["id"]
     if target_dir.exists():
         click.secho(f"❌ Directory {target_dir} already exists.", fg="red")
         sys.exit(1)
@@ -465,8 +677,7 @@ def init(
     templates_dir = Path(__file__).parent / "templates"
     env = Environment(loader=FileSystemLoader(templates_dir))  # noqa: S701
     ctx = {
-        "id": id_,
-        "name": name,
+        **names,  # Include all name variants
         "include_frontend": include_frontend,
         "include_backend": include_backend,
         "license": license_,
@@ -478,6 +689,11 @@ def init(
     extension_json = env.get_template("extension.json.j2").render(ctx)
     (target_dir / "extension.json").write_text(extension_json)
     click.secho("✅ Created extension.json", fg="green")
+
+    # Create .gitignore
+    gitignore = env.get_template(".gitignore.j2").render(ctx)
+    (target_dir / ".gitignore").write_text(gitignore)
+    click.secho("✅ Created .gitignore", fg="green")
 
     # Initialize frontend files
     if include_frontend:
@@ -497,29 +713,42 @@ def init(
         (frontend_src_dir / "index.tsx").write_text(index_tsx)
         click.secho("✅ Created frontend folder structure", fg="green")
 
-    # Initialize backend files
+    # Initialize backend files with superset_extensions.publisher.name structure
     if include_backend:
         backend_dir = target_dir / "backend"
         backend_dir.mkdir()
         backend_src_dir = backend_dir / "src"
         backend_src_dir.mkdir()
-        backend_src_package_dir = backend_src_dir / id_
-        backend_src_package_dir.mkdir()
+
+        # Create superset_extensions namespace directory
+        namespace_dir = backend_src_dir / "superset_extensions"
+        namespace_dir.mkdir()
+
+        # Create publisher directory (e.g., superset_extensions/my_org)
+        publisher_snake = kebab_to_snake_case(names["publisher"])
+        publisher_dir = namespace_dir / publisher_snake
+        publisher_dir.mkdir()
+
+        # Create extension package directory (e.g., superset_extensions/my_org/dashboard_widgets)
+        name_snake = kebab_to_snake_case(names["name"])
+        extension_package_dir = publisher_dir / name_snake
+        extension_package_dir.mkdir()
 
         # backend files
         pyproject_toml = env.get_template("backend/pyproject.toml.j2").render(ctx)
         (backend_dir / "pyproject.toml").write_text(pyproject_toml)
-        init_py = env.get_template("backend/src/package/__init__.py.j2").render(ctx)
-        (backend_src_package_dir / "__init__.py").write_text(init_py)
+
+        # Extension package files
         entrypoint_py = env.get_template("backend/src/package/entrypoint.py.j2").render(
             ctx
         )
-        (backend_src_package_dir / "entrypoint.py").write_text(entrypoint_py)
+        (extension_package_dir / "entrypoint.py").write_text(entrypoint_py)
 
         click.secho("✅ Created backend folder structure", fg="green")
 
     click.secho(
-        f"🎉 Extension {name} (ID: {id_}) initialized at {target_dir}", fg="cyan"
+        f"🎉 Extension {names['display_name']} (ID: {names['id']}) initialized at {target_dir}",
+        fg="cyan",
     )
 
 

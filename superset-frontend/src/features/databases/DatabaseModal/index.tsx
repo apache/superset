@@ -16,8 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, getExtensionsRegistry } from '@superset-ui/core';
-import { styled, SupersetTheme, Alert } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { getExtensionsRegistry } from '@superset-ui/core';
+import { Alert } from '@apache-superset/core/components';
+import { styled, SupersetTheme } from '@apache-superset/core/theme';
 
 import {
   FunctionComponent,
@@ -113,13 +115,14 @@ const TABS_KEYS = {
 
 const engineSpecificAlertMapping = {
   [Engines.GSheet]: {
-    message: 'Why do I need to create a database?',
-    description:
+    message: t('Why do I need to create a database?'),
+    description: t(
       'To begin using your Google Sheets, you need to create a database first. ' +
-      'Databases are used as a way to identify ' +
-      'your data so that it can be queried and visualized. This ' +
-      'database will hold all of your individual Google Sheets ' +
-      'you choose to connect here.',
+        'Databases are used as a way to identify ' +
+        'your data so that it can be queried and visualized. This ' +
+        'database will hold all of your individual Google Sheets ' +
+        'you choose to connect here.',
+    ),
   },
 };
 
@@ -711,6 +714,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     ) ||
     {};
 
+  const handleClearValidationErrors = useCallback(() => {
+    setValidationErrors(null);
+    setHasValidated(false);
+    clearError();
+  }, [setValidationErrors, setHasValidated, clearError]);
+
   // Test Connection logic
   const testConnection = () => {
     handleClearValidationErrors();
@@ -772,12 +781,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     [],
   );
 
-  const handleClearValidationErrors = useCallback(() => {
-    setValidationErrors(null);
-    setHasValidated(false);
-    clearError();
-  }, [setValidationErrors, setHasValidated]);
-
   const handleParametersChange = useCallback(
     ({ target }: { target: HTMLInputElement }) => {
       onChange(ActionType.ParametersChange, {
@@ -788,6 +791,17 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       });
     },
     [onChange],
+  );
+
+  const handleChangeWithValidation = useCallback(
+    (
+      actionType: ActionType,
+      payload: CustomTextType | DBReducerPayloadType,
+    ) => {
+      onChange(actionType, payload);
+      handleClearValidationErrors();
+    },
+    [onChange, handleClearValidationErrors],
   );
 
   const onClose = () => {
@@ -1757,13 +1771,13 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           setDB({ type: ActionType.AddTableCatalogSheet });
         }}
         onQueryChange={({ target }: { target: HTMLInputElement }) =>
-          onChange(ActionType.QueryChange, {
+          handleChangeWithValidation(ActionType.QueryChange, {
             name: target.name,
             value: target.value,
           })
         }
         onExtraInputChange={({ target }: { target: HTMLInputElement }) =>
-          onChange(ActionType.ExtraInputChange, {
+          handleChangeWithValidation(ActionType.ExtraInputChange, {
             name: target.name,
             value: target.value,
           })
@@ -1773,7 +1787,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         }: {
           target: HTMLInputElement;
         }) =>
-          onChange(ActionType.EncryptedExtraInputChange, {
+          handleChangeWithValidation(ActionType.EncryptedExtraInputChange, {
             name: target.name,
             value: target.value,
           })
@@ -1786,7 +1800,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         }}
         onParametersChange={handleParametersChange}
         onChange={({ target }: { target: HTMLInputElement }) =>
-          onChange(ActionType.TextChange, {
+          handleChangeWithValidation(ActionType.TextChange, {
             name: target.name,
             value: target.value,
           })
@@ -1812,7 +1826,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             e: CheckboxChangeEvent | React.ChangeEvent<HTMLInputElement>,
           ) => {
             const { target } = e;
-            onChange(ActionType.InputChange, {
+            handleChangeWithValidation(ActionType.InputChange, {
               type: target.type,
               name: target.name,
               checked: 'checked' in target ? target.checked : false,
@@ -1820,19 +1834,19 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             });
           }}
           onTextChange={({ target }: { target: HTMLTextAreaElement }) =>
-            onChange(ActionType.TextChange, {
+            handleChangeWithValidation(ActionType.TextChange, {
               name: target.name,
               value: target.value,
             })
           }
           onEditorChange={(payload: { name: string; json: any }) =>
-            onChange(ActionType.EditorChange, payload)
+            handleChangeWithValidation(ActionType.EditorChange, payload)
           }
           onExtraInputChange={(
             e: CheckboxChangeEvent | React.ChangeEvent<HTMLInputElement>,
           ) => {
             const { target } = e;
-            onChange(ActionType.ExtraInputChange, {
+            handleChangeWithValidation(ActionType.ExtraInputChange, {
               type: target.type,
               name: target.name,
               checked: 'checked' in target ? target.checked : false,
@@ -1840,7 +1854,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             });
           }}
           onExtraEditorChange={(payload: { name: string; json: any }) =>
-            onChange(ActionType.ExtraEditorChange, payload)
+            handleChangeWithValidation(ActionType.ExtraEditorChange, payload)
           }
         />
       );
@@ -2059,36 +2073,39 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 db={db as DatabaseObject}
                 onInputChange={(e: CheckboxChangeEvent) => {
                   const { target } = e;
-                  onChange(ActionType.InputChange, {
+                  handleChangeWithValidation(ActionType.InputChange, {
                     type: target.type,
                     name: target.name,
                     checked: target.checked,
                     value: target.value,
                   });
                 }}
-                onTextChange={({ target }: { target: HTMLTextAreaElement }) => {
-                  onChange(ActionType.TextChange, {
+                onTextChange={({ target }: { target: HTMLTextAreaElement }) =>
+                  handleChangeWithValidation(ActionType.TextChange, {
                     name: target.name,
                     value: target.value,
-                  });
-                }}
-                onEditorChange={(payload: { name: string; json: any }) => {
-                  onChange(ActionType.EditorChange, payload);
-                }}
+                  })
+                }
+                onEditorChange={(payload: { name: string; json: any }) =>
+                  handleChangeWithValidation(ActionType.EditorChange, payload)
+                }
                 onExtraInputChange={(
                   e: React.ChangeEvent<HTMLInputElement> | CheckboxChangeEvent,
                 ) => {
                   const { target } = e;
-                  onChange(ActionType.ExtraInputChange, {
+                  handleChangeWithValidation(ActionType.ExtraInputChange, {
                     type: target.type,
                     name: target.name,
                     checked: target.checked,
                     value: target.value,
                   });
                 }}
-                onExtraEditorChange={(payload: { name: string; json: any }) => {
-                  onChange(ActionType.ExtraEditorChange, payload);
-                }}
+                onExtraEditorChange={(payload: { name: string; json: any }) =>
+                  handleChangeWithValidation(
+                    ActionType.ExtraEditorChange,
+                    payload,
+                  )
+                }
               />
             ),
           },

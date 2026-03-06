@@ -1,0 +1,160 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+certification_details: null
+certified_by: null
+css: null
+dashboard_title: deck.gl Demo
+description: null
+metadata:
+  chart_configuration: {}
+  color_scheme: ''
+  color_scheme_domain: []
+  cross_filters_enabled: false
+  default_filters: '{}'
+  expanded_slices: {}
+  global_chart_configuration: {}
+  label_colors: {}
+  map_label_colors: {}
+  native_filter_configuration: []
+  refresh_frequency: 0
+  shared_label_colors: []
+  timed_refresh_immune_slices: []
+position:
+  CHART-201f7715:
+    children: []
+    id: CHART-201f7715
+    meta:
+      chartId: 155
+      height: 50
+      sliceName: Deck.gl Hexagons
+      uuid: 7487e265-39d8-4ccd-b8f4-51f8b32ce073
+      width: 6
+    type: CHART
+  CHART-2673431d:
+    children: []
+    id: CHART-2673431d
+    meta:
+      chartId: 157
+      height: 50
+      sliceName: Deck.gl Polygons
+      uuid: 1964e7e3-6836-42f5-9218-026fd194d6c2
+      width: 6
+    type: CHART
+  CHART-2b87513c:
+    children: []
+    id: CHART-2b87513c
+    meta:
+      chartId: 159
+      height: 50
+      sliceName: Deck.gl Path
+      uuid: e871563b-6b80-4629-b606-ab9054da1fbf
+      width: 6
+    type: CHART
+  CHART-2ee7fa5e:
+    children: []
+    id: CHART-2ee7fa5e
+    meta:
+      chartId: 154
+      height: 50
+      sliceName: Deck.gl Screen grid
+      uuid: f3adb73f-1c57-4a0c-86fb-8b1f81cfc427
+      width: 6
+    type: CHART
+  CHART-3afd9d70:
+    children: []
+    id: CHART-3afd9d70
+    meta:
+      chartId: 153
+      height: 50
+      sliceName: Deck.gl Scatterplot
+      uuid: 36706f55-dec0-46d8-9dab-50842690d8d8
+      width: 6
+    type: CHART
+  CHART-85265a60:
+    children: []
+    id: CHART-85265a60
+    meta:
+      chartId: 158
+      height: 50
+      sliceName: Deck.gl Arcs
+      uuid: 8663e6d2-5589-49f6-889a-335e8dc15119
+      width: 6
+    type: CHART
+  CHART-d02f6c40:
+    children: []
+    id: CHART-d02f6c40
+    meta:
+      chartId: 156
+      height: 50
+      sliceName: Deck.gl Grid
+      uuid: 5a42df97-80a7-49ee-8985-fcb7fc0bf281
+      width: 6
+    type: CHART
+  DASHBOARD_VERSION_KEY: v2
+  GRID_ID:
+    children:
+    - ROW-a7b16cb5
+    - ROW-72c218a5
+    - ROW-957ba55b
+    - ROW-af041bdd
+    id: GRID_ID
+    type: GRID
+  HEADER_ID:
+    id: HEADER_ID
+    meta:
+      text: deck.gl Demo
+    type: HEADER
+  ROOT_ID:
+    children:
+    - GRID_ID
+    id: ROOT_ID
+    type: ROOT
+  ROW-72c218a5:
+    children:
+    - CHART-d02f6c40
+    - CHART-201f7715
+    id: ROW-72c218a5
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    type: ROW
+  ROW-957ba55b:
+    children:
+    - CHART-2673431d
+    - CHART-85265a60
+    id: ROW-957ba55b
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    type: ROW
+  ROW-a7b16cb5:
+    children:
+    - CHART-3afd9d70
+    - CHART-2ee7fa5e
+    id: ROW-a7b16cb5
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    type: ROW
+  ROW-af041bdd:
+    children:
+    - CHART-2b87513c
+    id: ROW-af041bdd
+    meta:
+      background: BACKGROUND_TRANSPARENT
+    type: ROW
+published: true
+slug: deck
+uuid: aec4bc9e-0502-40b6-a189-850cd630410d
+version: 1.0.0

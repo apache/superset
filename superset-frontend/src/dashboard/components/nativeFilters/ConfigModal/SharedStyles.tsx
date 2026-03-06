@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, css } from '@apache-superset/core/ui';
+import { styled, css } from '@apache-superset/core/theme';
 import { Form, StyledModal } from '@superset-ui/core/components';
 
 const MODAL_MARGIN = 16;
@@ -41,7 +41,6 @@ export const BaseModalWrapper = styled(StyledModal)<BaseModalWrapperProps>`
 
   .ant-modal-body {
     padding: 0px;
-    overflow: auto;
   }
 
   ${({ expanded }) =>

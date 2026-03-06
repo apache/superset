@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { css, styled, useTheme } from '@apache-superset/core/ui';
+import type { FC } from 'react';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 
 // eslint-disable-next-line no-restricted-imports
 import { Tabs as AntdTabs, TabsProps as AntdTabsProps } from 'antd';
@@ -161,7 +162,9 @@ export const StyledLineEditableTabs = styled(EditableTabs)`
   }
 `;
 
-export const LineEditableTabs = Object.assign(StyledLineEditableTabs, {
+export const LineEditableTabs: FC<TabsProps> & {
+  TabPane: typeof StyledTabPane;
+} = Object.assign(StyledLineEditableTabs, {
   TabPane: StyledTabPane,
 });
 
