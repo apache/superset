@@ -18,8 +18,8 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 import { SupersetClient } from '@superset-ui/core';
-import { t } from '@apache-superset/core';
-import { css, useTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { css, useTheme } from '@apache-superset/core/theme';
 import {
   Button,
   Table,

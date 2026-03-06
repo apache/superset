@@ -18,8 +18,9 @@
  */
 import { useState } from 'react';
 import { SupersetClient } from '@superset-ui/core';
-import { t } from '@apache-superset/core';
-import { css, useTheme, Alert } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { css, useTheme } from '@apache-superset/core/theme';
+import { Alert } from '@apache-superset/core/components';
 import {
   FormModal,
   FormItem,
