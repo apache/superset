@@ -235,6 +235,20 @@ def alert_dynamic_minimal_interval(**kwargs) -> int:
 ALERT_MINIMUM_INTERVAL = alert_dynamic_minimal_interval
 ```
 
+## External Link Redirection
+
+For security, Superset rewrites external links in alert/report email HTML so
+they go through a warning page before the user is navigated to the external
+site.  Internal links (matching your configured base URL) are not affected.
+
+```python
+# Disable external link redirection entirely (default: True)
+ALERT_REPORTS_ENABLE_LINK_REDIRECT = False
+```
+
+The feature uses `WEBDRIVER_BASEURL_USER_FRIENDLY` (or `WEBDRIVER_BASEURL`)
+to determine which hosts are internal.
+
 ## Custom Dockerfile
 
 If you're running the dev version of a released Superset image, like `apache/superset:3.1.0-dev`, you should be set with the above.
