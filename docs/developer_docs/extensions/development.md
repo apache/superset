@@ -38,12 +38,14 @@ superset-extensions build: Builds extension assets.
 superset-extensions bundle: Packages the extension into a .supx file.
 
 superset-extensions dev: Automatically rebuilds the extension as files change.
+
+superset-extensions validate: Validates the extension structure and metadata.
 ```
 
 When creating a new extension with `superset-extensions init`, the CLI generates a standardized folder structure:
 
 ```
-dataset-references/
+my-org.dataset-references/
 ├── extension.json
 ├── frontend/
 │   ├── src/
@@ -53,8 +55,10 @@ dataset-references/
 ├── backend/
 │   ├── src/
 │   │    └── superset_extensions/
-│   │         └── dataset_references/
-│   ├── tests/
+│   │         └── my_org/
+│   │              └── dataset_references/
+│   │                   ├── api.py
+│   │                   └── entrypoint.py
 │   ├── pyproject.toml
 │   └── requirements.txt
 ├── dist/
@@ -65,19 +69,20 @@ dataset-references/
 │   │         └── 900.038b20cdff6d49cfa8d9.js
 │   └── backend
 │        └── superset_extensions/
-│             └── dataset_references/
-│                  ├── __init__.py
-│                  ├── api.py
-│                  └── entrypoint.py
-├── dataset-references-1.0.0.supx
+│             └── my_org/
+│                  └── dataset_references/
+│                       ├── api.py
+│                       └── entrypoint.py
+├── my-org.dataset-references-1.0.0.supx
 └── README.md
 ```
 
-**Note**: The extension ID (`dataset-references`) serves as the basis for all technical names:
-- Directory name: `dataset-references` (kebab-case)
-- Backend Python package: `dataset_references` (snake_case)
-- Frontend package name: `dataset-references` (kebab-case)
-- Module Federation name: `datasetReferences` (camelCase)
+**Note**: With publisher `my-org` and name `dataset-references`, the technical names are:
+- Directory name: `my-org.dataset-references` (kebab-case)
+- Backend Python namespace: `superset_extensions.my_org.dataset_references`
+- Backend distribution package: `my_org-dataset_references`
+- Frontend package name: `@my-org/dataset-references` (scoped)
+- Module Federation name: `myOrg_datasetReferences` (camelCase)
 
 The `extension.json` file serves as the declared metadata for the extension, containing the extension's name, version, author, description, and a list of capabilities. This file is essential for the host application to understand how to load and manage the extension.
 
@@ -203,7 +208,8 @@ Extension endpoints are registered under a dedicated `/extensions` namespace to 
 ```python
 from superset_core.common.models import Database, get_session
 from superset_core.common.daos import DatabaseDAO
-from superset_core.rest_api.api import RestApi, api
+from superset_core.rest_api.api import RestApi
+from superset_core.rest_api.decorators import api
 from flask_appbuilder.api import expose, protect
 
 @api(
@@ -244,7 +250,7 @@ class DatasetReferencesAPI(RestApi):
 
 ### Automatic Context Detection
 
-The [`@api`](superset-core/src/superset_core/api/rest_api.py:59) decorator automatically detects whether it's being used in host or extension code:
+The [`@api`](superset-core/src/superset_core/rest_api/decorators.py) decorator automatically detects whether it's being used in host or extension code:
 
 - **Extension APIs**: Registered under `/extensions/{publisher}/{name}/` with IDs prefixed as `extensions.{publisher}.{name}.{id}`
 - **Host APIs**: Registered under `/api/v1/` with original IDs
@@ -262,7 +268,7 @@ LOCAL_EXTENSIONS = [
 ]
 ```
 
-This instructs Superset to load and serve extensions directly from disk, so you can iterate quickly. Running `superset-extensions dev` watches for file changes and rebuilds assets automatically, while the Webpack development server (started separately with `npm run dev-server`) serves updated files as soon as they're modified. This enables immediate feedback for React components, styles, and other frontend code. Changes to backend files are also detected automatically and immediately synced, ensuring that both frontend and backend updates are reflected in your development environment.
+This instructs Superset to load and serve extensions directly from disk, so you can iterate quickly. Running `superset-extensions dev` watches for file changes and rebuilds assets automatically, while the Webpack development server (started separately with `npm run start`) serves updated files as soon as they're modified. This enables immediate feedback for React components, styles, and other frontend code. Changes to backend files are also detected automatically and immediately synced, ensuring that both frontend and backend updates are reflected in your development environment.
 
 Example output when running in development mode:
 
