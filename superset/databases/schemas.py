@@ -277,6 +277,20 @@ def extra_validator(value: str) -> str:
                         )
                     ]
                 )
+
+        metadata_cache_timeout = extra_.get("metadata_cache_timeout", {})
+        for key in ("schema_cache_timeout", "table_cache_timeout"):
+            timeout = metadata_cache_timeout.get(key)
+            if timeout is not None and (not isinstance(timeout, int) or timeout < 0):
+                raise ValidationError(
+                    [
+                        _(
+                            "The %(key)s in metadata_cache_timeout must be a "
+                            "non-negative integer.",
+                            key=key,
+                        )
+                    ]
+                )
     return value
 
 
@@ -851,7 +865,10 @@ class ImportV1DatabaseExtraSchema(Schema):
 
     metadata_params = fields.Dict(keys=fields.Str(), values=fields.Raw())
     engine_params = fields.Dict(keys=fields.Str(), values=fields.Raw())
-    metadata_cache_timeout = fields.Dict(keys=fields.Str(), values=fields.Integer())
+    metadata_cache_timeout = fields.Dict(
+        keys=fields.Str(),
+        values=fields.Integer(validate=Range(min=0)),
+    )
     schemas_allowed_for_csv_upload = fields.List(fields.String())
     cost_estimate_enabled = fields.Boolean()
     allows_virtual_table_explore = fields.Boolean(required=False)

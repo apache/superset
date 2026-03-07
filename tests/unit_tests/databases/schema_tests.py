@@ -347,6 +347,90 @@ def test_import_schema_rejects_masked_fields_for_new_db(
     assert "$.credentials_info.private_key" in error_messages
 
 
+def test_extra_validator_rejects_negative_schema_cache_timeout() -> None:
+    """
+    Test that extra_validator rejects negative schema_cache_timeout values.
+    """
+    from superset.databases.schemas import DatabasePostSchema
+
+    schema = DatabasePostSchema()
+    payload = {
+        "database_name": "test_db",
+        "extra": json.dumps(
+            {"metadata_cache_timeout": {"schema_cache_timeout": -1}}
+        ),
+    }
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load(payload)
+    assert "non-negative integer" in str(exc_info.value)
+
+
+def test_extra_validator_rejects_negative_table_cache_timeout() -> None:
+    """
+    Test that extra_validator rejects negative table_cache_timeout values.
+    """
+    from superset.databases.schemas import DatabasePostSchema
+
+    schema = DatabasePostSchema()
+    payload = {
+        "database_name": "test_db",
+        "extra": json.dumps(
+            {"metadata_cache_timeout": {"table_cache_timeout": -5}}
+        ),
+    }
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load(payload)
+    assert "non-negative integer" in str(exc_info.value)
+
+
+def test_extra_validator_accepts_zero_cache_timeout() -> None:
+    """
+    Test that extra_validator accepts zero as a valid cache timeout (cache never expires).
+    """
+    from superset.databases.schemas import DatabasePostSchema
+
+    schema = DatabasePostSchema()
+    payload = {
+        "database_name": "test_db",
+        "extra": json.dumps(
+            {
+                "metadata_cache_timeout": {
+                    "schema_cache_timeout": 0,
+                    "table_cache_timeout": 0,
+                }
+            }
+        ),
+    }
+    result = schema.load(payload)
+    extra = json.loads(result["extra"])
+    assert extra["metadata_cache_timeout"]["schema_cache_timeout"] == 0
+    assert extra["metadata_cache_timeout"]["table_cache_timeout"] == 0
+
+
+def test_extra_validator_accepts_positive_cache_timeout() -> None:
+    """
+    Test that extra_validator accepts positive cache timeout values.
+    """
+    from superset.databases.schemas import DatabasePostSchema
+
+    schema = DatabasePostSchema()
+    payload = {
+        "database_name": "test_db",
+        "extra": json.dumps(
+            {
+                "metadata_cache_timeout": {
+                    "schema_cache_timeout": 600,
+                    "table_cache_timeout": 1200,
+                }
+            }
+        ),
+    }
+    result = schema.load(payload)
+    extra = json.loads(result["extra"])
+    assert extra["metadata_cache_timeout"]["schema_cache_timeout"] == 600
+    assert extra["metadata_cache_timeout"]["table_cache_timeout"] == 1200
+
+
 def test_import_schema_allows_masked_fields_for_existing_db(
     mock_bq_engine: None,
     mocker: MockerFixture,
