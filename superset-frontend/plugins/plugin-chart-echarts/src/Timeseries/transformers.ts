@@ -364,8 +364,20 @@ export function transformSeries(
 
   return {
     ...series,
-    ...(Array.isArray(data) && seriesType === 'bar' && !stack
-      ? { data: transformNegativeLabelsPosition(series, isHorizontal) }
+    ...(Array.isArray(data)
+      ? colorByPrimaryAxis
+        ? {
+            data: applyColorByPrimaryAxis(
+              series,
+              colorScale,
+              sliceId,
+              opacity,
+              isHorizontal,
+            ),
+          }
+        : seriesType === 'bar' && !stack
+          ? { data: transformNegativeLabelsPosition(series, isHorizontal) }
+          : null
       : null),
     connectNulls,
     queryIndex,
