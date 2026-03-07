@@ -243,7 +243,7 @@ const config: Config = {
         useCssCascadeLayers: false,
       },
       experimental_faster: {
-        swcJsLoader: true,
+        swcJsLoader: false,
         swcJsMinimizer: true,
         swcHtmlMinimizer: true,
         lightningCssMinimizer: true,
