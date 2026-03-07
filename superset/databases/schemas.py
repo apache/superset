@@ -278,7 +278,16 @@ def extra_validator(value: str) -> str:
                     ]
                 )
 
-        metadata_cache_timeout = extra_.get("metadata_cache_timeout", {})
+        metadata_cache_timeout = extra_.get("metadata_cache_timeout") or {}
+        if not isinstance(metadata_cache_timeout, dict):
+            raise ValidationError(
+                [
+                    _(
+                        "The metadata_cache_timeout must be a mapping from "
+                        "string keys to non-negative integer values."
+                    )
+                ]
+            )
         for key in ("schema_cache_timeout", "table_cache_timeout"):
             timeout = metadata_cache_timeout.get(key)
             if timeout is not None and (not isinstance(timeout, int) or timeout < 0):

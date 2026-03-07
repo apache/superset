@@ -431,6 +431,22 @@ def test_extra_validator_accepts_positive_cache_timeout() -> None:
     assert extra["metadata_cache_timeout"]["table_cache_timeout"] == 1200
 
 
+def test_extra_validator_rejects_non_dict_metadata_cache_timeout() -> None:
+    """
+    Test that extra_validator rejects metadata_cache_timeout when it is not a dict.
+    """
+    from superset.databases.schemas import DatabasePostSchema
+
+    schema = DatabasePostSchema()
+    payload = {
+        "database_name": "test_db",
+        "extra": json.dumps({"metadata_cache_timeout": 600}),
+    }
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load(payload)
+    assert "metadata_cache_timeout must be a mapping" in str(exc_info.value)
+
+
 def test_import_schema_allows_masked_fields_for_existing_db(
     mock_bq_engine: None,
     mocker: MockerFixture,
