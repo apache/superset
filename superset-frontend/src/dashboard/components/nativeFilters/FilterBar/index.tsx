@@ -175,8 +175,10 @@ const FilterBar: FC<FiltersBarProps> = ({
       Object.keys(draft).forEach(filterId => {
         const mask = draft[filterId];
         if (mask?.filterState) {
-          const {value} = mask.filterState;
-          const hasValue = value !== null && value !== undefined &&
+          const { value } = mask.filterState;
+          const hasValue =
+            value !== null &&
+            value !== undefined &&
             !(Array.isArray(value) && value.length === 0) &&
             !(typeof value === 'string' && value.trim() === '');
 
