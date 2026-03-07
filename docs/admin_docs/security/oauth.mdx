@@ -18,7 +18,7 @@ It is important to clear the session in Superset first to avoid any issues with 
 This code correctly handles the case where a user successfully authenticates with Keycloak but does not belong to any of the mapped groups.
 In that situation, the user is simply redirected back to the login page.
 
-## The needed Secret should look like this:
+## The Secret
 ```yaml
 apiVersion: v1
 kind: Secret
@@ -46,6 +46,7 @@ extraSecretEnv:
   OIDC_ISSUER: https://myoauthprovider.youpi.fr/auth/realms/MYREALM
 ```
 
+## The config overrides
 ```yaml
 configOverrides:
   enable_oauth: |
