@@ -87,6 +87,8 @@ services:
         required: false
     image: postgres:17
     restart: unless-stopped
+    ports:
+      - "${DATABASE_PORT:-5432}:5432"  # Parameterized port, accessible on all interfaces
     volumes:
       - db_home_light:/var/lib/postgresql/data
       - ./docker/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
@@ -114,6 +116,8 @@ services:
     environment:
       DATABASE_HOST: db-light
       DATABASE_DB: superset_light
+      EXAMPLES_HOST: db-light
+      EXAMPLES_DB: examples
       POSTGRES_DB: superset_light
       SUPERSET_CONFIG_PATH: /app/docker/pythonpath_dev/superset_config_docker_light.py
       GITHUB_HEAD_REF: ${GITHUB_HEAD_REF:-}
@@ -136,6 +140,8 @@ services:
     environment:
       DATABASE_HOST: db-light
       DATABASE_DB: superset_light
+      EXAMPLES_HOST: db-light
+      EXAMPLES_DB: examples
       POSTGRES_DB: superset_light
       SUPERSET_CONFIG_PATH: /app/docker/pythonpath_dev/superset_config_docker_light.py
     healthcheck:
