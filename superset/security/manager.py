@@ -44,7 +44,7 @@ from flask_appbuilder.security.views import (
     PermissionViewModelView,
     ViewMenuModelView,
 )
-from flask_babel import lazy_gettext as _
+from flask_babel import gettext as _
 from flask_login import AnonymousUserMixin, LoginManager
 from jwt.api_jwt import _jwt_global_obj
 from sqlalchemy import and_, inspect, or_
@@ -873,9 +873,13 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :returns: The error message
         """
 
-        quoted_tables = [f"`{table}`" for table in tables]
-        return f"""You need access to the following tables: {", ".join(quoted_tables)},
-            `all_database_access` or `all_datasource_access` permission"""
+        quoted_tables = [f'"{table}"' for table in tables]
+        return _(
+            "You need access to the following tables: %(tables)s, "
+            "'all_database_access' or 'all_datasource_access' permission"
+        ) % {
+            "tables": ",".join(quoted_tables),
+        }
 
     def get_table_access_error_object(self, tables: set["Table"]) -> SupersetError:
         """
