@@ -115,25 +115,13 @@ jobs:
           pattern: coverage-artifacts-*
           path: coverage/
 
-      - name: Reorganize test result reports
-        run: |
-          find coverage/
-          for i in {1..8}; do
-            mv coverage/coverage-artifacts-${i}/coverage-final.json coverage/coverage-shard-${i}.json
-          done
-        shell: bash
-
-      - name: Merge Code Coverage
-        run: npx nyc merge coverage/ merged-output/coverage-summary.json
-
       - name: Upload Code Coverage
         uses: codecov/codecov-action@v5
         with:
           flags: javascript
           use_oidc: true
           verbose: true
-          disable_search: true
-          files: merged-output/coverage-summary.json
+          directory: coverage
           slug: apache/superset
 
   lint-frontend:
