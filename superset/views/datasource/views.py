@@ -173,6 +173,7 @@ class Datasource(BaseSupersetView):
         )
         try:
             if datasource is not None:
+                security_manager.raise_for_access(datasource=datasource)
                 # Get columns from Superset metadata
                 external_metadata = datasource.external_metadata()
             else:
@@ -182,6 +183,7 @@ class Datasource(BaseSupersetView):
                     .filter_by(database_name=params["database_name"])
                     .one()
                 )
+                security_manager.raise_for_access(database=database)
                 external_metadata = get_physical_table_metadata(
                     database=database,
                     table=Table(params["table_name"], params["schema_name"]),

@@ -214,6 +214,7 @@ def generate_dashboard(
 
             # Create the dashboard using Superset's command pattern
             command = CreateDashboardCommand(dashboard_data)
+            command.validate()
             dashboard = command.run()
 
         # Convert to our response format

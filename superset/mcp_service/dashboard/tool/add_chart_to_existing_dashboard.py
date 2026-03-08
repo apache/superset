@@ -312,6 +312,7 @@ def add_chart_to_existing_dashboard(
 
             # Update the dashboard
             command = UpdateDashboardCommand(request.dashboard_id, update_data)
+            command.validate()
             updated_dashboard = command.run()
 
         # Convert to response format

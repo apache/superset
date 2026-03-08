@@ -101,6 +101,7 @@ def _compile_chart(
         )
 
         command = ChartDataCommand(query_context)
+        command.validate()
         result = command.run()
 
         warnings: List[str] = []
@@ -355,6 +356,7 @@ async def generate_chart(  # noqa: C901
                         }
                     )
 
+                    command.validate()
                     chart = command.run()
                     chart_id = chart.id
 

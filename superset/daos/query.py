@@ -22,7 +22,7 @@ from superset import sql_lab
 from superset.common.db_query_status import QueryStatus
 from superset.daos.base import BaseDAO
 from superset.exceptions import QueryNotFoundException, SupersetCancelQueryException
-from superset.extensions import db
+from superset.extensions import db, security_manager
 from superset.models.sql_lab import Query, SavedQuery
 from superset.queries.filters import QueryFilter
 from superset.queries.saved_queries.filters import SavedQueryFilter
@@ -61,6 +61,8 @@ class QueryDAO(BaseDAO[Query]):
         query = db.session.query(Query).filter_by(client_id=client_id).one_or_none()
         if not query:
             raise QueryNotFoundException(f"Query with client_id {client_id} not found")
+
+        security_manager.raise_for_access(query=query)
 
         if query.status in [
             QueryStatus.FAILED,

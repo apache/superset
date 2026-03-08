@@ -22,7 +22,7 @@ from typing import Any, cast
 from flask import current_app as app
 from flask_babel import gettext as __
 
-from superset import db, results_backend, results_backend_use_msgpack
+from superset import db, results_backend, results_backend_use_msgpack, security_manager
 from superset.commands.base import BaseCommand
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SerializationError, SupersetErrorException
@@ -82,6 +82,8 @@ class SqlExecutionResultsCommand(BaseCommand):
                 ),
                 status=404,
             )
+
+        security_manager.raise_for_access(query=self._query)
 
         # Now fetch results from backend (query exists, so this is a valid request)
         read_from_results_backend_start = now_as_float()

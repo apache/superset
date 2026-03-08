@@ -40,14 +40,21 @@ from sqlalchemy import asc, cast, desc, or_, Text
 from sqlalchemy.exc import SQLAlchemyError, StatementError
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.inspection import inspect
-from sqlalchemy.orm import ColumnProperty, joinedload, Query, RelationshipProperty
+from sqlalchemy.orm import (
+    ColumnProperty,
+    joinedload,
+    Query as SaQuery,
+    RelationshipProperty,
+)
 from superset_core.common.daos import BaseDAO as CoreBaseDAO
 from superset_core.common.models import CoreModel
 
 from superset.daos.exceptions import (
     DAOFindFailedError,
 )
-from superset.extensions import db
+from superset.extensions import db, security_manager
+from superset.models.core import Database
+from superset.models.sql_lab import Query as SqllabQuery
 
 T = TypeVar("T", bound=CoreModel)
 
@@ -308,6 +315,52 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         return cls._find_by_column(column, model_id, skip_base_filter, query_options)
 
     @classmethod
+    def get_with_check(
+        cls,
+        model_id: str | int,
+        skip_base_filter: bool = False,
+        id_column: str | None = None,
+        query_options: list[Any] | None = None,
+    ) -> T:
+        """
+        Find a model by ID and perform a security check.
+
+        Args:
+            model_id: ID value to search for
+            skip_base_filter: Whether to skip base filtering
+            id_column: Column name to use (defaults to cls.id_column_name)
+            query_options: SQLAlchemy query options (e.g., joinedload,
+                subqueryload) to apply to the query for eager loading
+
+        Returns:
+            Model instance
+
+        Raises:
+            SupersetSecurityException: If the user is not authorized to access the model
+            DatasetNotFoundError: If the model is not found
+        """
+        from superset.commands.dataset.exceptions import DatasetNotFoundError
+
+        model = cls.find_by_id(model_id, skip_base_filter, id_column, query_options)
+        if not model:
+            raise DatasetNotFoundError()
+
+        # Perform the security check with specific keyword arguments
+        # as raise_for_access doesn't accept a generic 'model'
+        kwargs = {}
+        if isinstance(model, Database):
+            kwargs["database"] = model
+        elif isinstance(model, SqllabQuery):
+            kwargs["query"] = model
+        elif model.__class__.__name__ == "SqlaTable":
+            # Avoid circular import for SqlaTable
+            kwargs["datasource"] = model
+        # Add more mappings as needed for other OLA-protected models
+
+        security_manager.raise_for_access(**kwargs)
+        return model
+
+    @classmethod
     def find_by_ids(
         cls,
         model_ids: Sequence[str | int],
@@ -449,7 +502,7 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
             db.session.delete(item)
 
     @classmethod
-    def query(cls, query: Query) -> list[T]:
+    def query(cls, query: SaQuery) -> list[T]:
         """
         Get all that fit the `base_filter` based on a BaseQuery object
         """

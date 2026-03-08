@@ -51,6 +51,12 @@ def check_table_access(f: Callable[..., Any]) -> Callable[..., Any]:
                 f"database_not_found_{self.__class__.__name__}.select_star"
             )
             return self.response_404()
+
+        try:
+            self.appbuilder.sm.raise_for_access(database=database)
+        except Exception:  # pylint: disable=broad-except
+            return self.response_404()
+
         if not self.appbuilder.sm.can_access_table(
             database, Table(table_name_parsed, schema_name_parsed)
         ):

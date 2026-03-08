@@ -149,6 +149,7 @@ async def update_chart(
             }
 
             command = UpdateChartCommand(chart.id, update_payload)
+            command.validate()
             updated_chart = command.run()
 
         # Generate semantic analysis

@@ -26,7 +26,9 @@ from sqlalchemy.orm.exc import NoResultFound
 from werkzeug.security import generate_password_hash
 
 from superset import is_feature_enabled
+from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.daos.user import UserDAO
+from superset.exceptions import SupersetSecurityException
 from superset.extensions import db, event_logger
 from superset.utils.slack import get_user_avatar, SlackClientError
 from superset.views.base_api import BaseSupersetApi, requires_json, statsd_metrics
@@ -198,9 +200,11 @@ class UserRestApi(BaseSupersetApi):
         """
         avatar_url = None
         try:
-            user = UserDAO.get_by_id(user_id)
-        except NoResultFound:
+            user = UserDAO.get_with_check(user_id)
+        except (NoResultFound, DatasetNotFoundError):
             return self.response_404()
+        except SupersetSecurityException:
+            return self.response_403()
 
         if not user:
             return self.response_404()

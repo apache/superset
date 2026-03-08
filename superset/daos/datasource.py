@@ -19,7 +19,7 @@ import logging
 import uuid
 from typing import Union
 
-from superset import db
+from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.base import BaseDAO
 from superset.daos.exceptions import (
@@ -76,5 +76,7 @@ class DatasourceDAO(BaseDAO[Datasource]):
                 database_id_or_uuid,
             )
             raise DatasourceNotFound()
+
+        security_manager.raise_for_access(datasource=datasource)
 
         return datasource
