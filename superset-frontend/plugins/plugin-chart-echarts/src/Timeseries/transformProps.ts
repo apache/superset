@@ -18,7 +18,7 @@
  */
 /* eslint-disable camelcase */
 import { invert } from 'lodash';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   AnnotationLayer,
   AxisType,
@@ -42,7 +42,7 @@ import {
   TimeseriesDataRecord,
   NumberFormats,
 } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import {
   extractExtraMetrics,
   getOriginalSeries,

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { SupersetClient } from '@superset-ui/core';
-import { logging } from '@apache-superset/core';
+import { logging } from '@apache-superset/core/utils';
 import contentDisposition from 'content-disposition';
 import handleResourceExport from './export';
 import { Mock } from 'vitest';
@@ -29,7 +29,7 @@ vi.mock('@superset-ui/core', async importActual => ({
   },
 }));
 
-vi.mock('@apache-superset/core', () => ({
+vi.mock('@apache-superset/core/utils', () => ({
   logging: {
     warn: vi.fn(),
     error: vi.fn(),

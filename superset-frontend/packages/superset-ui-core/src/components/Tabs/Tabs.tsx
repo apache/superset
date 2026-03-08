@@ -17,7 +17,7 @@
  * under the License.
  */
 import type { FC } from 'react';
-import { css, styled, useTheme } from '@apache-superset/core/ui';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 
 // eslint-disable-next-line no-restricted-imports
 import { Tabs as AntdTabs, TabsProps as AntdTabsProps } from 'antd';

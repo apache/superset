@@ -23,7 +23,7 @@ import {
   screen,
   waitFor,
 } from 'spec/helpers/testing-library';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import * as ace from 'ace-builds';
 
 import ExtraOptions from './ExtraOptions';

@@ -109,6 +109,40 @@ def test_create_event_store_uses_default_config_values():
             )
 
 
+def test_suppress_third_party_warnings():
+    """Third-party deprecation warnings filters are installed."""
+    import re
+    import warnings
+
+    from superset.mcp_service.server import _suppress_third_party_warnings
+
+    _suppress_third_party_warnings()
+
+    # Verify marshmallow DeprecationWarning filter is installed
+    marshmallow_filters = [
+        f
+        for f in warnings.filters
+        if f[0] == "ignore"
+        and f[2] is DeprecationWarning
+        and isinstance(f[3], re.Pattern)
+        and f[3].pattern == r"marshmallow\..*"
+    ]
+    assert len(marshmallow_filters) >= 1, (
+        "Expected marshmallow DeprecationWarning filter"
+    )
+
+    # Verify google FutureWarning filter is installed
+    google_filters = [
+        f
+        for f in warnings.filters
+        if f[0] == "ignore"
+        and f[2] is FutureWarning
+        and isinstance(f[3], re.Pattern)
+        and f[3].pattern == r"google\..*"
+    ]
+    assert len(google_filters) >= 1, "Expected google FutureWarning filter"
+
+
 def test_create_event_store_returns_none_when_redis_store_fails():
     """EventStore returns None when Redis store creation fails."""
     config = {

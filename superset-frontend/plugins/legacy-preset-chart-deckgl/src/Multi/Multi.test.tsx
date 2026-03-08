@@ -18,7 +18,7 @@
  */
 import { render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { supersetTheme, ThemeProvider } from '@apache-superset/core/ui';
+import { supersetTheme, ThemeProvider } from '@apache-superset/core/theme';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import { DatasourceType, SupersetClient } from '@superset-ui/core';

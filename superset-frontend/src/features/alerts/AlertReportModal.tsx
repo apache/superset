@@ -26,7 +26,7 @@ import {
   ReactNode,
 } from 'react';
 
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   isFeatureEnabled,
   FeatureFlag,
@@ -34,7 +34,12 @@ import {
   VizType,
   getExtensionsRegistry,
 } from '@superset-ui/core';
-import { css, styled, SupersetTheme, useTheme } from '@apache-superset/core/ui';
+import {
+  css,
+  styled,
+  SupersetTheme,
+  useTheme,
+} from '@apache-superset/core/theme';
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import withToasts from 'src/components/MessageToasts/withToasts';

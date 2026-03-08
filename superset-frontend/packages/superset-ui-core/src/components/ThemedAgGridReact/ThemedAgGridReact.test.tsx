@@ -19,13 +19,14 @@
 import { render, screen } from '@superset-ui/core/spec';
 import { AgGridReact } from 'ag-grid-react';
 import { createRef } from 'react';
-import { ThemeProvider, supersetTheme } from '@apache-superset/core';
-import * as uiModule from '@apache-superset/core/ui';
+import { ThemeProvider, supersetTheme } from '@apache-superset/core/theme';
+import * as uiModule from '@apache-superset/core/theme';
 import { ThemedAgGridReact } from './index';
+import { Mock } from 'vitest';
 
 // Mock useThemeMode hook
-vi.mock('@apache-superset/core/ui', () => ({
-  ...vi.requireActual('@apache-superset/core/ui'),
+vi.mock('@apache-superset/core/theme', async (importActual) => ({
+  ...(await importActual()),
   useThemeMode: vi.fn(() => false), // Default to light mode
 }));
 
@@ -68,7 +69,7 @@ const mockColumnDefs = [
 beforeEach(() => {
   vi.clearAllMocks();
   // Reset to light mode by default
-  (uiModule.useThemeMode as vi.Mock).mockReturnValue(false);
+  (uiModule.useThemeMode as Mock).mockReturnValue(false);
 });
 
 test('renders the AgGridReact component', () => {
@@ -101,7 +102,7 @@ test('applies light theme when background is light', () => {
 
 test('applies dark theme when background is dark', () => {
   // Mock dark mode
-  (uiModule.useThemeMode as vi.Mock).mockReturnValue(true);
+  (uiModule.useThemeMode as Mock).mockReturnValue(true);
 
   const darkTheme = {
     ...supersetTheme,

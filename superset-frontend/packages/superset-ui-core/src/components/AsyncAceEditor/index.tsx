@@ -32,7 +32,7 @@ import {
   AsyncEsmComponent,
   PlaceholderProps,
 } from '@superset-ui/core/components/AsyncEsmComponent';
-import { useTheme, css } from '@apache-superset/core/ui';
+import { useTheme, css } from '@apache-superset/core/theme';
 import { Global } from '@emotion/react';
 
 export { getTooltipHTML } from './Tooltip';

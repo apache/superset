@@ -204,10 +204,7 @@ test('fires onDidRegister event when provider is registered', () => {
 
   expect(listener).toHaveBeenCalledTimes(1);
   expect(listener).toHaveBeenCalledWith({
-    provider: {
-      editor,
-      component,
-    },
+    editor,
   });
 });
 

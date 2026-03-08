@@ -17,8 +17,8 @@
  * under the License.
  */
 import { CategoricalColorScale, ChartProps } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
-import { supersetTheme } from '@apache-superset/core/ui';
+import { GenericDataType } from '@apache-superset/core/common';
+import { supersetTheme } from '@apache-superset/core/theme';
 import type { SeriesOption } from 'echarts';
 import { EchartsTimeseriesSeriesType } from '../../src';
 import { TIMESERIES_CONSTANTS } from '../../src/constants';

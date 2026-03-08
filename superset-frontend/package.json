@@ -175,7 +175,7 @@
     "geostyler-openlayers-parser": "^4.3.0",
     "geostyler-style": "7.5.0",
     "geostyler-wfs-parser": "^2.0.3",
-    "google-auth-library": "^10.5.0",
+    "google-auth-library": "^10.6.1",
     "immer": "^11.1.4",
     "interweave": "^13.1.1",
     "jquery": "^4.0.0",
@@ -312,7 +312,7 @@
     "copy-webpack-plugin": "^13.0.1",
     "cross-env": "^10.1.0",
     "css-loader": "^7.1.4",
-    "css-minimizer-webpack-plugin": "^7.0.4",
+    "css-minimizer-webpack-plugin": "^8.0.0",
     "eslint": "^8.56.0",
     "eslint-config-prettier": "^7.2.0",
     "eslint-import-resolver-alias": "^1.1.2",
@@ -388,7 +388,7 @@
     "regenerator-runtime": "^0.14.1"
   },
   "engines": {
-    "node": "^20.18.1",
+    "node": "^22.22.0",
     "npm": "^10.8.1"
   },
   "overrides": {

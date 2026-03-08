@@ -38,11 +38,11 @@ import fetchMock from 'fetch-mock';
 import { render, act } from 'spec/helpers/testing-library';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import { initialState, defaultQueryEditor } from 'src/SqlLab/fixtures';
-import { logging } from '@apache-superset/core';
+import { logging } from '@apache-superset/core/utils';
 import EditorAutoSync, { INTERVAL } from '.';
 
-vi.mock('@apache-superset/core', () => ({
-  ...vi.requireActual('@apache-superset/core'),
+vi.mock('@apache-superset/core/utils', async (importActual) => ({
+  ...(await importActual()),
   logging: {
     warn: vi.fn(),
   },
