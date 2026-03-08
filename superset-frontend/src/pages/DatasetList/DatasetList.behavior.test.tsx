@@ -116,7 +116,7 @@ test('typing in search triggers debounced API call with search filter', async ()
   // Verify the latest API call includes search filter in URL
   const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
   const latestCall = calls[calls.length - 1];
-  const url = latestCall.url;
+  const { url } = latestCall;
 
   // URL should contain filters parameter with search term
   expect(url).toContain('filters');

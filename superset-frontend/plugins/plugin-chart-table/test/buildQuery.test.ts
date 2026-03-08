@@ -49,7 +49,7 @@ const extraQueryFormData: TableChartFormData = {
 };
 describe('plugin-chart-table', () => {
   describe('buildQuery', () => {
-    it('should add post-processing and ignore duplicate metrics', () => {
+    test('should add post-processing and ignore duplicate metrics', () => {
       const query = buildQuery({
         ...basicFormData,
         query_mode: QueryMode.Aggregate,
@@ -68,7 +68,7 @@ describe('plugin-chart-table', () => {
       ]);
     });
 
-    it('should not add metrics in raw records mode', () => {
+    test('should not add metrics in raw records mode', () => {
       const query = buildQuery({
         ...basicFormData,
         query_mode: QueryMode.Raw,
@@ -80,7 +80,7 @@ describe('plugin-chart-table', () => {
       expect(query.post_processing).toEqual([]);
     });
 
-    it('should not add post-processing when there is no percent metric', () => {
+    test('should not add post-processing when there is no percent metric', () => {
       const query = buildQuery({
         ...basicFormData,
         query_mode: QueryMode.Aggregate,
@@ -91,7 +91,7 @@ describe('plugin-chart-table', () => {
       expect(query.post_processing).toEqual([]);
     });
 
-    it('should not add post-processing in raw records mode', () => {
+    test('should not add post-processing in raw records mode', () => {
       const query = buildQuery({
         ...basicFormData,
         query_mode: QueryMode.Raw,
@@ -103,7 +103,7 @@ describe('plugin-chart-table', () => {
       expect(query.columns).toEqual(['rawcol']);
       expect(query.post_processing).toEqual([]);
     });
-    it('should prefer extra_form_data.time_grain_sqla over formData.time_grain_sqla', () => {
+    test('should prefer extra_form_data.time_grain_sqla over formData.time_grain_sqla', () => {
       const query = buildQuery({
         ...basicFormData,
         groupby: ['col1'],
@@ -120,7 +120,7 @@ describe('plugin-chart-table', () => {
         expressionType: 'SQL',
       });
     });
-    it('should fallback to formData.time_grain_sqla if extra_form_data.time_grain_sqla is not set', () => {
+    test('should fallback to formData.time_grain_sqla if extra_form_data.time_grain_sqla is not set', () => {
       const query = buildQuery({
         ...basicFormData,
         time_grain_sqla: TimeGranularity.MONTH,
@@ -136,7 +136,7 @@ describe('plugin-chart-table', () => {
         expressionType: 'SQL',
       });
     });
-    it('should include time_grain_sqla in extras if temporal colum is used and keep the rest', () => {
+    test('should include time_grain_sqla in extras if temporal colum is used and keep the rest', () => {
       const { queries } = buildQuery({
         ...extraQueryFormData,
         temporal_columns_lookup: { col1: true },
@@ -158,7 +158,7 @@ describe('plugin-chart-table', () => {
         groupby: ['category'],
       };
 
-      it('should default to row_limit mode with single query', () => {
+      test('should default to row_limit mode with single query', () => {
         const { queries } = buildQuery(baseFormDataWithPercents);
 
         expect(queries).toHaveLength(1);
@@ -174,7 +174,7 @@ describe('plugin-chart-table', () => {
         ]);
       });
 
-      it('should create extra query in all_records mode', () => {
+      test('should create extra query in all_records mode', () => {
         const formData = {
           ...baseFormDataWithPercents,
           percent_metric_calculation: 'all_records',
@@ -205,7 +205,7 @@ describe('plugin-chart-table', () => {
         });
       });
 
-      it('should work with show_totals in all_records mode', () => {
+      test('should work with show_totals in all_records mode', () => {
         const formData = {
           ...baseFormDataWithPercents,
           percent_metric_calculation: 'all_records',
@@ -219,7 +219,7 @@ describe('plugin-chart-table', () => {
         expect(queries[2].metrics).toEqual(['count', 'sum_sales']);
       });
 
-      it('should handle empty percent_metrics in all_records mode', () => {
+      test('should handle empty percent_metrics in all_records mode', () => {
         const formData = {
           ...basicFormData,
           query_mode: QueryMode.Aggregate,
@@ -251,7 +251,7 @@ describe('plugin-chart-table', () => {
         searchColumn: 'category',
       };
 
-      it('includes search filter in query payload when server pagination is enabled', () => {
+      test('includes search filter in query payload when server pagination is enabled', () => {
         const { queries } = buildQuery(baseFormDataWithServerPagination, {
           ownState,
         });
@@ -267,7 +267,7 @@ describe('plugin-chart-table', () => {
         );
       });
 
-      it('does not include search filter when not provided', () => {
+      test('does not include search filter when not provided', () => {
         const { queries } = buildQuery(
           {
             ...baseFormDataWithServerPagination,

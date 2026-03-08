@@ -123,15 +123,15 @@ describe('nvd3/utils', () => {
   });
 
   describe('getTimeOrNumberFormatter(format)', () => {
-    it('is a function', () => {
+    test('is a function', () => {
       expect(typeof getTimeOrNumberFormatter).toBe('function');
     });
-    it('returns a date formatter if format is smart_date', () => {
+    test('returns a date formatter if format is smart_date', () => {
       const time = new Date(Date.UTC(2018, 10, 21, 22, 11));
       // @ts-expect-error -- getTimeOrNumberFormatter doesn't distinguish return types; accepts Date at runtime
       expect(getTimeOrNumberFormatter('smart_date')(time)).toBe('10:11');
     });
-    it('returns a number formatter otherwise', () => {
+    test('returns a number formatter otherwise', () => {
       expect(getTimeOrNumberFormatter('.3s')(3000000)).toBe('3.00M');
       expect(getTimeOrNumberFormatter(undefined)(3000100)).toBe('3M');
     });
@@ -143,12 +143,12 @@ describe('nvd3/utils', () => {
       bar: 'Bar',
     };
 
-    it('formats simple labels', () => {
+    test('formats simple labels', () => {
       expect(formatLabel('foo')).toBe('foo');
       expect(formatLabel(['foo'])).toBe('foo');
       expect(formatLabel(['foo', 'bar'])).toBe('foo, bar');
     });
-    it('formats simple labels with lookups', () => {
+    test('formats simple labels with lookups', () => {
       expect(formatLabel('foo', verboseMap)).toBe('Foo');
       expect(formatLabel('baz', verboseMap)).toBe('baz');
       expect(formatLabel(['foo'], verboseMap)).toBe('Foo');
@@ -156,7 +156,7 @@ describe('nvd3/utils', () => {
         'Foo, Bar, baz',
       );
     });
-    it('deals with time shift properly', () => {
+    test('deals with time shift properly', () => {
       expect(formatLabel(['foo', '1 hour offset'], verboseMap)).toBe(
         'Foo, 1 hour offset',
       );
@@ -167,15 +167,15 @@ describe('nvd3/utils', () => {
   });
 
   describe('computeYDomain()', () => {
-    it('works with invalid data', () => {
+    test('works with invalid data', () => {
       expect(computeYDomain('foo')).toEqual([0, 1]);
     });
 
-    it('works with all series enabled', () => {
+    test('works with all series enabled', () => {
       expect(computeYDomain(DATA)).toEqual([572036107.0, 1034767718.0]);
     });
 
-    it('works with some series disabled', () => {
+    test('works with some series disabled', () => {
       expect(computeYDomain(DATA_WITH_DISABLED_SERIES)).toEqual([
         660881033.0, 668526708.0,
       ]);

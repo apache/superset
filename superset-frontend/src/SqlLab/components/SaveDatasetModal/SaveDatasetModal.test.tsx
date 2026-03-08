@@ -372,8 +372,7 @@ describe('SaveDatasetModal', () => {
   });
 
   test('clearDatasetCache is imported and available', () => {
-    const clearDatasetCache =
-      require('src/utils/cachedSupersetGet').clearDatasetCache;
+    const { clearDatasetCache } = require('src/utils/cachedSupersetGet');
 
     expect(clearDatasetCache).toBeDefined();
     expect(typeof clearDatasetCache).toBe('function');

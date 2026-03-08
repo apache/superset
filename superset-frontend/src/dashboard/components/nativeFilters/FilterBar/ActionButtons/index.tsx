@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useMemo } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   DataMaskState,
   DataMaskStateWithId,
@@ -25,7 +25,7 @@ import {
   ChartCustomization,
   ChartCustomizationDivider,
 } from '@superset-ui/core';
-import { css, SupersetTheme, styled } from '@apache-superset/core/ui';
+import { css, SupersetTheme, styled } from '@apache-superset/core/theme';
 import { Button } from '@superset-ui/core/components';
 import { OPEN_FILTER_BAR_WIDTH } from 'src/dashboard/constants';
 import tinycolor from 'tinycolor2';

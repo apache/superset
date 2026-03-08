@@ -22,7 +22,7 @@ import {
 } from '../../src/utils/tokenize';
 
 describe('tokenizeToNumericArray', () => {
-  it('evals numeric strings properly', () => {
+  test('evals numeric strings properly', () => {
     expect(tokenizeToNumericArray('1')).toStrictEqual([1]);
     expect(tokenizeToNumericArray('1,2,3,4')).toStrictEqual([1, 2, 3, 4]);
     expect(tokenizeToNumericArray('1.1,2.2,3.0,4')).toStrictEqual([
@@ -33,22 +33,22 @@ describe('tokenizeToNumericArray', () => {
     ]);
   });
 
-  it('evals undefined to null', () => {
+  test('evals undefined to null', () => {
     expect(tokenizeToNumericArray(undefined)).toBeNull();
   });
 
-  it('evals empty strings to null', () => {
+  test('evals empty strings to null', () => {
     expect(tokenizeToNumericArray('')).toBeNull();
     expect(tokenizeToNumericArray('    ')).toBeNull();
   });
 
-  it('throws error on incorrect string', () => {
+  test('throws error on incorrect string', () => {
     expect(() => tokenizeToNumericArray('qwerty,1,2,3')).toThrow(Error);
   });
 });
 
 describe('tokenizeToStringArray', () => {
-  it('evals numeric strings properly', () => {
+  test('evals numeric strings properly', () => {
     expect(tokenizeToStringArray('a')).toStrictEqual(['a']);
     expect(tokenizeToStringArray('1.1 , 2.2, 3.0 ,4')).toStrictEqual([
       '1.1',
@@ -65,11 +65,11 @@ describe('tokenizeToStringArray', () => {
     ]);
   });
 
-  it('evals undefined to null', () => {
+  test('evals undefined to null', () => {
     expect(tokenizeToStringArray(undefined)).toBeNull();
   });
 
-  it('evals empty string to null', () => {
+  test('evals empty string to null', () => {
     expect(tokenizeToStringArray('')).toBeNull();
     expect(tokenizeToStringArray('    ')).toBeNull();
   });

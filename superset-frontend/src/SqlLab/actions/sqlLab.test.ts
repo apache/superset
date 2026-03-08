@@ -449,6 +449,7 @@ describe('async actions', () => {
       });
     });
 
+    /* oxlint-disable-next-line jest/no-disabled-tests */
     test.skip('parses large number result without losing precision', () =>
       makeRequest().then(() => {
         expect(fetchMock.callHistory.calls(fetchQueryEndpoint)).toHaveLength(1);

@@ -21,12 +21,12 @@ import { legacyValidateInteger } from '@superset-ui/core';
 import './setup';
 
 describe('legacyValidateInteger()', () => {
-  it('returns the warning message if invalid', () => {
+  test('returns the warning message if invalid', () => {
     expect(legacyValidateInteger(10.1)).toBeTruthy();
     expect(legacyValidateInteger('abc')).toBeTruthy();
     expect(legacyValidateInteger(Infinity)).toBeTruthy();
   });
-  it('returns false if the input is valid', () => {
+  test('returns false if the input is valid', () => {
     // superset seems to operate on this incorrect behavior at the moment
     expect(legacyValidateInteger(NaN)).toBeFalsy();
     expect(legacyValidateInteger(undefined)).toBeFalsy();

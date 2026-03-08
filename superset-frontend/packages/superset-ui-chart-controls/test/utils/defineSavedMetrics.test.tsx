@@ -25,7 +25,7 @@ import {
 import { defineSavedMetrics } from '@superset-ui/chart-controls';
 
 describe('defineSavedMetrics', () => {
-  it('defines saved metrics if source is a Dataset', () => {
+  test('defines saved metrics if source is a Dataset', () => {
     const dataset = {
       id: 1,
       metrics: [
@@ -55,7 +55,7 @@ describe('defineSavedMetrics', () => {
     expect(defineSavedMetrics({ ...dataset, metrics: undefined })).toEqual([]);
   });
 
-  it('returns default saved metrics if source is a Query', () => {
+  test('returns default saved metrics if source is a Query', () => {
     expect(defineSavedMetrics(testQuery as QueryResponse)).toEqual(
       DEFAULT_METRICS,
     );

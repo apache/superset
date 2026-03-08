@@ -35,7 +35,7 @@ const defaultProps: LabeledErrorBoundInputProps = {
 };
 
 describe('LabeledErrorBoundInput', () => {
-  it('renders a LabeledErrorBoundInput normally, without an error', () => {
+  test('renders a LabeledErrorBoundInput normally, without an error', () => {
     render(<LabeledErrorBoundInput {...defaultProps} />);
 
     const label = screen.getByText(/username/i);
@@ -47,7 +47,7 @@ describe('LabeledErrorBoundInput', () => {
     expect(helperText).toBeVisible();
   });
 
-  it('renders a LabeledErrorBoundInput with an error', () => {
+  test('renders a LabeledErrorBoundInput with an error', () => {
     // Pass an error into props, causing errorText to replace helperText
     defaultProps.errorMessage = 'Example error message';
     render(<LabeledErrorBoundInput {...defaultProps} />);
@@ -60,7 +60,7 @@ describe('LabeledErrorBoundInput', () => {
     expect(textboxInput).toBeVisible();
     expect(errorText).toBeVisible();
   });
-  it('renders a LabeledErrorBoundInput with a InfoTooltip', async () => {
+  test('renders a LabeledErrorBoundInput with a InfoTooltip', async () => {
     defaultProps.hasTooltip = true;
     render(<LabeledErrorBoundInput {...defaultProps} />);
 
@@ -76,14 +76,14 @@ describe('LabeledErrorBoundInput', () => {
     expect(await screen.findByText('This is a tooltip')).toBeInTheDocument();
   });
 
-  it('becomes a password input if visibilityToggle prop is passed in', async () => {
+  test('becomes a password input if visibilityToggle prop is passed in', async () => {
     defaultProps.visibilityToggle = true;
     render(<LabeledErrorBoundInput {...defaultProps} />);
 
     expect(await screen.findByTestId('icon-eye')).toBeVisible();
   });
 
-  it('becomes a password input if props.name === password (backwards compatibility)', async () => {
+  test('becomes a password input if props.name === password (backwards compatibility)', async () => {
     defaultProps.name = 'password';
     render(<LabeledErrorBoundInput {...defaultProps} />);
 

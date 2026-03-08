@@ -24,11 +24,6 @@ import getDropPositionOriginal, {
   DROP_FORBIDDEN,
 } from 'src/dashboard/util/getDropPosition';
 
-// Cast to accept partial mock data in tests
-const getDropPosition = getDropPositionOriginal as (
-  ...args: any[]
-) => string | null;
-
 import {
   CHART_TYPE,
   DASHBOARD_GRID_TYPE,
@@ -37,6 +32,11 @@ import {
   ROW_TYPE,
   TAB_TYPE,
 } from 'src/dashboard/util/componentTypes';
+
+// Cast to accept partial mock data in tests
+const getDropPosition = getDropPositionOriginal as (
+  ...args: any[]
+) => string | null;
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('getDropPosition', () => {

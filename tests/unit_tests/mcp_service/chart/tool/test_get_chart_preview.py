@@ -258,7 +258,6 @@ class TestGetChartPreview:
         # Additional fields that may be present for backward compatibility
         _ = [
             "format",
-            "preview_url",
             "ascii_chart",
             "table_data",
             "width",

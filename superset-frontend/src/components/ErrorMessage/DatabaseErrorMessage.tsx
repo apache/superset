@@ -17,8 +17,8 @@
  * under the License.
  */
 import { ReactNode } from 'react';
-import { t } from '@apache-superset/core';
-import { tn } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
+import { tn } from '@apache-superset/core/translation';
 
 import type { ErrorMessageComponentProps } from './types';
 import { IssueCode } from './IssueCode';
@@ -39,6 +39,7 @@ interface DatabaseErrorExtra {
 export function DatabaseErrorMessage({
   error,
   source,
+  closable,
 }: ErrorMessageComponentProps<DatabaseErrorExtra | null>) {
   const { extra, level, message } = error;
 
@@ -101,6 +102,7 @@ export function DatabaseErrorMessage({
       description={alertDescription}
       type={level}
       descriptionDetails={body}
+      closable={closable}
     />
   );
 }

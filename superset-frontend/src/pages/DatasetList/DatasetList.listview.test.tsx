@@ -298,7 +298,7 @@ test('sorting by Name column updates API call with sort parameter', async () => 
   // Verify latest call includes sort parameter
   const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
   const latestCall = calls[calls.length - 1];
-  const url = latestCall.url;
+  const { url } = latestCall;
 
   // URL should contain order_column for sorting
   expect(url).toMatch(/order_column|sort/);
@@ -328,7 +328,7 @@ test('sorting by Database column updates sort parameter', async () => {
   });
 
   const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
-  const url = calls[calls.length - 1].url;
+  const { url } = calls[calls.length - 1];
   expect(url).toMatch(/order_column|sort/);
 });
 
@@ -356,7 +356,7 @@ test('sorting by Last modified column updates sort parameter', async () => {
   });
 
   const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
-  const url = calls[calls.length - 1].url;
+  const { url } = calls[calls.length - 1];
   expect(url).toMatch(/order_column|sort/);
 });
 

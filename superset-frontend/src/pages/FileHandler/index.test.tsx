@@ -17,7 +17,12 @@
  * under the License.
  */
 import { ComponentType } from 'react';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import { MemoryRouter, Route } from 'react-router-dom';
 import FileHandler from './index';
 
@@ -68,7 +73,9 @@ jest.mock('src/features/databases/UploadDataModel', () => ({
       <div data-test="modal-type">{type}</div>
       <div data-test="modal-extensions">{allowedExtensions.join(',')}</div>
       <div data-test="modal-file">{fileListOverride?.[0]?.name ?? ''}</div>
-      <button onClick={onHide}>Close</button>
+      <button onClick={onHide} type="button">
+        Close
+      </button>
     </div>
   ),
 }));
@@ -106,6 +113,8 @@ type LaunchQueue = {
   ) => void;
 };
 
+const pendingTimerIds = new Set<ReturnType<typeof setTimeout>>();
+
 const setupLaunchQueue = (fileHandle: MockFileHandle | null = null) => {
   let savedConsumer:
     | ((params: { files?: MockFileHandle[] }) => void | Promise<void>)
@@ -114,11 +123,13 @@ const setupLaunchQueue = (fileHandle: MockFileHandle | null = null) => {
     setConsumer: (consumer: (params: { files?: MockFileHandle[] }) => void) => {
       savedConsumer = consumer;
       if (fileHandle) {
-        setTimeout(() => {
+        const id = setTimeout(() => {
+          pendingTimerIds.delete(id);
           consumer({
             files: [fileHandle],
           });
         }, 0);
+        pendingTimerIds.add(id);
       }
     },
   };
@@ -131,6 +142,12 @@ const setupLaunchQueue = (fileHandle: MockFileHandle | null = null) => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  delete (window as any).launchQueue;
+});
+
+afterEach(() => {
+  pendingTimerIds.forEach(id => clearTimeout(id));
+  pendingTimerIds.clear();
   delete (window as any).launchQueue;
 });
 
@@ -343,8 +360,7 @@ test('modal close redirects to welcome page', async () => {
   expect(modal).toBeInTheDocument();
 
   // Click the close button in the mocked modal
-  const closeButton = screen.getByRole('button', { name: 'Close' });
-  closeButton.click();
+  await userEvent.click(screen.getByRole('button', { name: 'Close' }));
 
   await waitFor(() => {
     expect(mockHistoryPush).toHaveBeenCalledWith('/superset/welcome/');

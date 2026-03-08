@@ -42,7 +42,7 @@ describe('OptionDescription', () => {
     render(<OptionDescription {...props} />);
   });
 
-  it('renders an InfoTooltip', () => {
+  test('renders an InfoTooltip', () => {
     const tooltipTrigger = screen.getByLabelText('Show info tooltip');
     expect(tooltipTrigger).toBeInTheDocument();
 
@@ -55,7 +55,7 @@ describe('OptionDescription', () => {
     expect(tooltip).toHaveTextContent('Description for some option');
   });
 
-  it('renders a span with the label', () => {
+  test('renders a span with the label', () => {
     expect(
       screen.getByText('Some option', { selector: 'span' }),
     ).toBeInTheDocument();

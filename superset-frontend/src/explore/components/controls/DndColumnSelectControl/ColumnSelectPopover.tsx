@@ -27,7 +27,8 @@ import {
   useState,
 } from 'react';
 import { useSelector } from 'react-redux';
-import { t, editors } from '@apache-superset/core';
+import { editors } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   AdhocColumn,
   isAdhocColumn,
@@ -35,7 +36,7 @@ import {
   Metric,
   QueryFormMetric,
 } from '@superset-ui/core';
-import { styled, css } from '@apache-superset/core/ui';
+import { styled, css } from '@apache-superset/core/theme';
 import { ColumnMeta, isSavedExpression } from '@superset-ui/chart-controls';
 import Tabs from '@superset-ui/core/components/Tabs';
 import {
@@ -427,8 +428,12 @@ const ColumnSelectPopover = ({
                                   />
                                 ),
                                 key: calculatedColumn.column_name,
+                                column_name: calculatedColumn.column_name,
+                                verbose_name:
+                                  calculatedColumn.verbose_name ?? '',
                               }),
                             )}
+                            optionFilterProps={['column_name', 'verbose_name']}
                           />
                         </FormItem>
                       ) : datasourceType === DatasourceType.Table ? (
@@ -544,6 +549,8 @@ const ColumnSelectPopover = ({
                             />
                           ),
                           key: `column-${simpleColumn.column_name}`,
+                          column_name: simpleColumn.column_name,
+                          verbose_name: simpleColumn.verbose_name ?? '',
                         })),
                         ...availableMetrics.map(metric => ({
                           value: metric.metric_name,
@@ -556,7 +563,14 @@ const ColumnSelectPopover = ({
                             </MetricOptionContainer>
                           ),
                           key: `metric-${metric.metric_name}`,
+                          metric_name: metric.metric_name,
+                          verbose_name: metric.verbose_name ?? '',
                         })),
+                      ]}
+                      optionFilterProps={[
+                        'column_name',
+                        'verbose_name',
+                        'metric_name',
                       ]}
                     />
                   </FormItem>
@@ -583,9 +597,7 @@ const ColumnSelectPopover = ({
                   height={`${height - 120}px`}
                   lineNumbers={false}
                   wordWrap
-                  keywords={keywords.map((k: any) =>
-                    typeof k === 'string' ? k : k.value || k.name || k,
-                  )}
+                  keywords={keywords}
                   showValidation
                   expressionType="column"
                   datasourceId={datasource?.id}

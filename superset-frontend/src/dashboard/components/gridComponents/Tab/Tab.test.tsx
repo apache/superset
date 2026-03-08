@@ -578,6 +578,7 @@ test('Should refresh charts when tab becomes active after dashboard refresh', as
     true, // Force refresh
     0, // Interval
     23, // Dashboard ID
+    false, // skipFiltersRefresh
     true, // isLazyLoad flag
   );
 });
@@ -667,7 +668,7 @@ test('Should not cause infinite refresh loop with nested tabs - regression test'
 
   // REGRESSION TEST: Multiple re-renders should NOT trigger additional refreshes
   // This simulates the infinite loop scenario that was happening with nested tabs
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 5; i += 1) {
     rerender(<Tab {...props} isComponentVisible />);
     await new Promise(resolve => setTimeout(resolve, 20));
   }
@@ -718,6 +719,7 @@ test('Should use isLazyLoad flag for tab refreshes', async () => {
     true, // force
     0, // interval
     42, // dashboardId
+    false, // skipFiltersRefresh
     true, // isLazyLoad should be true to prevent infinite loops
   );
 });

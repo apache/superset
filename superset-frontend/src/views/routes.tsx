@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import {
   lazy,
@@ -138,6 +139,10 @@ const RowLevelSecurityList = lazy(
     ),
 );
 
+const TaskList = lazy(
+  () => import(/* webpackChunkName: "TaskList" */ 'src/pages/TaskList'),
+);
+
 const RolesList = lazy(
   () => import(/* webpackChunkName: "RolesList" */ 'src/pages/RolesList'),
 );
@@ -175,6 +180,13 @@ const FileHandler = lazy(
   () => import(/* webpackChunkName: "FileHandler" */ 'src/pages/FileHandler'),
 );
 
+const RedirectWarning = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "RedirectWarning" */ 'src/pages/RedirectWarning'
+    ),
+);
+
 type Routes = {
   path: string;
   Component: ComponentType;
@@ -183,6 +195,10 @@ type Routes = {
 }[];
 
 export const routes: Routes = [
+  {
+    path: '/redirect/',
+    Component: RedirectWarning,
+  },
   {
     path: '/login/',
     Component: Login,
@@ -296,6 +312,10 @@ export const routes: Routes = [
   {
     path: '/rowlevelsecurity/list',
     Component: RowLevelSecurityList,
+  },
+  {
+    path: '/tasks/list/',
+    Component: TaskList,
   },
   {
     path: '/sqllab/',

@@ -35,7 +35,7 @@ function getThemeWrapper() {
 
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { themeObject } = require('@apache-superset/core/ui');
+    const { themeObject } = require('@apache-superset/core/theme');
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { App } = require('antd');
 

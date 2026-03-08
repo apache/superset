@@ -176,6 +176,7 @@ test('should render a DeleteComponentButton in editMode', () => {
   expect(getByTestId('mock-delete-component-button')).toBeInTheDocument();
 });
 
+/* oxlint-disable-next-line jest/no-disabled-tests */
 test.skip('should render a BackgroundStyleDropdown when focused', () => {
   let wrapper: ReturnType<typeof setup> = setup({
     component: columnWithoutChildren,
@@ -206,6 +207,7 @@ test('should pass its own width as availableColumnCount to children', () => {
   );
 });
 
+/* oxlint-disable-next-line jest/no-disabled-tests */
 test.skip('should pass appropriate dimensions to ResizableContainer', () => {
   const { container } = setup({ component: columnWithoutChildren });
   const columnWidth = columnWithoutChildren.meta.width;
@@ -222,6 +224,16 @@ test.skip('should pass appropriate dimensions to ResizableContainer', () => {
   // expect(resizableProps.maxWidthMultiple).toBe(
   //   props.availableColumnCount + columnWidth,
   // );
+});
+
+test('should render between-items Droppables for each child in editMode', () => {
+  const { getAllByTestId } = setup({ editMode: true });
+  // 1 top-edge droptarget + 1 after-child droptarget = 2 total
+  const droppables = getAllByTestId('mock-droppable');
+  expect(droppables).toHaveLength(2);
+  droppables.forEach(droppable => {
+    expect(droppable).toHaveAttribute('data-depth', `${props.depth}`);
+  });
 });
 
 test('should increment the depth of its children', () => {

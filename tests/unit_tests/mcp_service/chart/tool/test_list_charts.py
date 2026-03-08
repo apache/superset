@@ -201,12 +201,12 @@ class TestChartDefaultColumnFiltering:
     def test_explicit_select_columns(self):
         """Test that explicit select_columns can include non-default columns."""
         request = ListChartsRequest(
-            select_columns=["id", "slice_name", "description", "form_data"]
+            select_columns=["id", "slice_name", "description", "cache_timeout"]
         )
         # Verify exact columns are present - explicit request should match exactly
         assert set(request.select_columns) == {
             "id",
             "slice_name",
             "description",
-            "form_data",
+            "cache_timeout",
         }

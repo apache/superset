@@ -24,13 +24,6 @@ import DashboardComponent from 'src/dashboard/components/Dashboard';
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
 import newComponentFactory from 'src/dashboard/util/newComponentFactory';
 
-// Test mock data doesn't perfectly match strict component prop types,
-// so we use a loosely-typed wrapper for test rendering
-const Dashboard = DashboardComponent as unknown as React.FC<
-  Record<string, unknown>
->;
-
-// mock data
 import chartQueries from 'spec/fixtures/mockChartQueries';
 import datasources from 'spec/fixtures/mockDatasource';
 import {
@@ -44,6 +37,13 @@ import { sliceEntitiesForChart as sliceEntities } from 'spec/fixtures/mockSliceE
 import { getAllActiveFilters } from 'src/dashboard/util/activeAllDashboardFilters';
 import { getRelatedCharts } from 'src/dashboard/util/getRelatedCharts';
 
+// Test mock data doesn't perfectly match strict component prop types,
+// so we use a loosely-typed wrapper for test rendering
+const Dashboard = DashboardComponent as unknown as React.FC<
+  Record<string, unknown>
+>;
+
+// mock data
 jest.mock('src/dashboard/util/getRelatedCharts');
 
 const mockGetRelatedCharts = getRelatedCharts as jest.Mock;

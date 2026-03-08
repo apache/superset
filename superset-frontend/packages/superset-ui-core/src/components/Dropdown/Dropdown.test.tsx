@@ -24,14 +24,14 @@ const props = {
   overlay: <div>Test Overlay</div>,
 };
 describe('NoAnimationDropdown', () => {
-  it('requires children', () => {
+  test('requires children', () => {
     expect(() => {
       // @ts-expect-error need to test the error case
       render(<NoAnimationDropdown {...props} />);
     }).toThrow();
   });
 
-  it('renders its children', () => {
+  test('renders its children', () => {
     render(
       <NoAnimationDropdown {...props}>
         <button type="button">Test Button</button>
@@ -40,7 +40,7 @@ describe('NoAnimationDropdown', () => {
     expect(screen.getByText('Test Button')).toBeInTheDocument();
   });
 
-  it('calls onBlur when it loses focus', () => {
+  test('calls onBlur when it loses focus', () => {
     const onBlur = jest.fn();
     render(
       <NoAnimationDropdown {...props} onBlur={onBlur}>
@@ -51,7 +51,7 @@ describe('NoAnimationDropdown', () => {
     expect(onBlur).toHaveBeenCalled();
   });
 
-  it('calls onKeyDown when a key is pressed', () => {
+  test('calls onKeyDown when a key is pressed', () => {
     const onKeyDown = jest.fn();
     render(
       <NoAnimationDropdown {...props} onKeyDown={onKeyDown}>

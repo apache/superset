@@ -1131,3 +1131,121 @@ test('Clear boolean TRUE value', async () => {
     });
   });
 });
+
+test('preserves dependent filter value restored from URL when it exists in data', async () => {
+  const setDataMaskMock = jest.fn();
+  const testProps = {
+    ...selectMultipleProps,
+    formData: {
+      ...selectMultipleProps.formData,
+      defaultToFirstItem: true,
+      multiSelect: false,
+      // Non-empty extraFormData indicates parent filter dependency
+      extraFormData: {
+        filters: [{ col: 'region', op: 'IN', val: ['North America'] }],
+      },
+    },
+    // 'girl' is NOT the first item but exists in data — simulates a
+    // value restored from URL/permalink for a dependent filter
+    filterState: { value: ['girl'] },
+  };
+
+  render(
+    // @ts-expect-error
+    <SelectFilterPlugin
+      // @ts-expect-error
+      {...transformProps(testProps)}
+      setDataMask={setDataMaskMock}
+      showOverflow={false}
+    />,
+    {
+      useRedux: true,
+      initialState: {
+        nativeFilters: {
+          filters: {
+            'test-filter': {
+              name: 'Test Filter',
+            },
+          },
+        },
+        dataMask: {
+          'test-filter': {
+            extraFormData: {},
+            filterState: {
+              value: ['girl'],
+            },
+          },
+        },
+      },
+    },
+  );
+
+  await waitFor(() => {
+    expect(setDataMaskMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        filterState: expect.objectContaining({
+          value: ['girl'],
+        }),
+      }),
+    );
+  });
+});
+
+test('resets dependent filter to first item when value does not exist in data', async () => {
+  const setDataMaskMock = jest.fn();
+  const testProps = {
+    ...selectMultipleProps,
+    formData: {
+      ...selectMultipleProps.formData,
+      defaultToFirstItem: true,
+      multiSelect: false,
+      extraFormData: {
+        filters: [{ col: 'region', op: 'IN', val: ['North America'] }],
+      },
+    },
+    // 'unknown' does NOT exist in data — simulates a stale value after
+    // parent filter changed to a different selection
+    filterState: { value: ['unknown'] },
+  };
+
+  render(
+    // @ts-expect-error
+    <SelectFilterPlugin
+      // @ts-expect-error
+      {...transformProps(testProps)}
+      setDataMask={setDataMaskMock}
+      showOverflow={false}
+    />,
+    {
+      useRedux: true,
+      initialState: {
+        nativeFilters: {
+          filters: {
+            'test-filter': {
+              name: 'Test Filter',
+            },
+          },
+        },
+        dataMask: {
+          'test-filter': {
+            extraFormData: {},
+            filterState: {
+              value: ['unknown'],
+            },
+          },
+        },
+      },
+    },
+  );
+
+  await waitFor(() => {
+    expect(setDataMaskMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        filterState: expect.objectContaining({
+          // Should reset to first item ('boy') since 'unknown' is not in data
+          value: ['boy'],
+        }),
+      }),
+    );
+  });
+});

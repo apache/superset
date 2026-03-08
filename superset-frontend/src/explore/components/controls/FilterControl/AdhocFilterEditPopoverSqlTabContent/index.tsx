@@ -17,9 +17,10 @@
  * under the License.
  */
 import { useEffect, useRef, useMemo } from 'react';
+import type { editors } from '@apache-superset/core';
 import { Select } from '@superset-ui/core/components';
-import { t } from '@apache-superset/core';
-import { css, styled, useTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import { getColumnKeywords } from 'src/explore/controlUtils/getColumnKeywords';
 import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
@@ -49,12 +50,11 @@ export default function AdhocFilterEditPopoverSqlTabContent({
   height: number;
   datasource?: any;
 }) {
-  const aceEditorRef = useRef(null);
+  const editorRef = useRef<editors.EditorHandle>(null);
   const theme = useTheme();
 
   useEffect(() => {
-    // @ts-expect-error - AceEditor ref type doesn't expose editor.resize()
-    aceEditorRef?.current?.editor.resize();
+    editorRef.current?.resize();
   }, [adhocFilter]);
 
   const onSqlExpressionClauseChange = (clause: string) => {
@@ -125,10 +125,8 @@ export default function AdhocFilterEditPopoverSqlTabContent({
         `}
       >
         <SQLEditorWithValidation
-          ref={aceEditorRef}
-          keywords={keywords.map((k: any) =>
-            typeof k === 'string' ? k : k.value || k.name || k,
-          )}
+          ref={editorRef}
+          keywords={keywords}
           height={`${height - 130}px`}
           onChange={onSqlExpressionChange}
           width="100%"

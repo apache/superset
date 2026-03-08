@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { JsonValue, TimeGranularity } from '@superset-ui/core';
 import { ReactNode } from 'react';
 import {
@@ -75,6 +75,14 @@ export const AreaChartStackControlOptions: [
   JsonValue,
   Exclude<ReactNode, null | undefined | boolean>,
 ][] = [...StackControlOptions, [StackControlsValue.Expand, t('Expand')]];
+
+export const StackControlOptionsWithoutStream: [
+  JsonValue,
+  Exclude<ReactNode, null | undefined | boolean>,
+][] = [
+  [null, t('None')],
+  [StackControlsValue.Stack, t('Stack')],
+];
 
 export const TIMEGRAIN_TO_TIMESTAMP = {
   [TimeGranularity.HOUR]: 3600 * 1000,
