@@ -231,6 +231,36 @@ describe('ExtraOptions Component', () => {
     expect(onExtraInputChange).not.toHaveBeenCalled();
   });
 
+  test('chart cache timeout input has min=-1', () => {
+    renderComponent();
+    const performanceHeader = screen.getByText(t('Performance'));
+    fireEvent.click(performanceHeader);
+    const input = screen.getByTestId('cache-timeout-test');
+    expect(input).toHaveAttribute('min', '-1');
+  });
+
+  test('chart cache timeout allows -1 (bypass cache)', () => {
+    renderComponent();
+    const performanceHeader = screen.getByText(t('Performance'));
+    fireEvent.click(performanceHeader);
+    const input = screen.getByTestId('cache-timeout-test');
+    fireEvent.change(input, {
+      target: { value: '-1', name: 'cache_timeout' },
+    });
+    expect(onInputChange).toHaveBeenCalled();
+  });
+
+  test('chart cache timeout rejects values less than -1', () => {
+    renderComponent();
+    const performanceHeader = screen.getByText(t('Performance'));
+    fireEvent.click(performanceHeader);
+    const input = screen.getByTestId('cache-timeout-test');
+    fireEvent.change(input, {
+      target: { value: '-5', name: 'cache_timeout' },
+    });
+    expect(onInputChange).not.toHaveBeenCalled();
+  });
+
   test('renders the collaps tab correctly and resets to default tab after closing', () => {
     const { rerender } = renderComponent();
     const sqlLabTab = screen.getByRole('tab', {

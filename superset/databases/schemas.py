@@ -89,8 +89,8 @@ database_name_description = "A database name to identify this connection."
 port_description = "Port number for the database connection."
 cache_timeout_description = (
     "Duration (in seconds) of the caching timeout for charts of this database. "
-    "A timeout of 0 indicates that the cache never expires. "
-    "Note this defaults to the global timeout if undefined."
+    "A timeout of 0 indicates that the cache never expires, and -1 bypasses the "
+    "cache. Note this defaults to the global timeout if undefined."
 )
 expose_in_sqllab_description = "Expose this database to SQLLab"
 allow_run_async_description = (
@@ -514,7 +514,9 @@ class DatabasePostSchema(DatabaseParametersSchemaMixin, Schema):
         validate=Length(1, 250),
     )
     cache_timeout = fields.Integer(
-        metadata={"description": cache_timeout_description}, allow_none=True
+        metadata={"description": cache_timeout_description},
+        allow_none=True,
+        validate=Range(min=-1),
     )
     expose_in_sqllab = fields.Boolean(
         metadata={"description": expose_in_sqllab_description}
@@ -571,7 +573,9 @@ class DatabasePutSchema(DatabaseParametersSchemaMixin, Schema):
         validate=Length(1, 250),
     )
     cache_timeout = fields.Integer(
-        metadata={"description": cache_timeout_description}, allow_none=True
+        metadata={"description": cache_timeout_description},
+        allow_none=True,
+        validate=Range(min=-1),
     )
     expose_in_sqllab = fields.Boolean(
         metadata={"description": expose_in_sqllab_description}
@@ -913,7 +917,7 @@ class ImportV1DatabaseSchema(Schema):
     masked_encrypted_extra = fields.String(
         allow_none=False, validate=masked_encrypted_extra_validator
     )
-    cache_timeout = fields.Integer(allow_none=True)
+    cache_timeout = fields.Integer(allow_none=True, validate=Range(min=-1))
     expose_in_sqllab = fields.Boolean()
     allow_run_async = fields.Boolean()
     allow_ctas = fields.Boolean()
@@ -1115,7 +1119,9 @@ class DatabaseConnectionSchema(Schema):
         allow_none=True, metadata={"description": "SQLAlchemy engine to use"}
     )
     cache_timeout = fields.Integer(
-        metadata={"description": cache_timeout_description}, allow_none=True
+        metadata={"description": cache_timeout_description},
+        allow_none=True,
+        validate=Range(min=-1),
     )
     configuration_method = fields.String(
         metadata={"description": configuration_method_description},

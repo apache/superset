@@ -447,6 +447,67 @@ def test_extra_validator_rejects_non_dict_metadata_cache_timeout() -> None:
     assert "metadata_cache_timeout must be a mapping" in str(exc_info.value)
 
 
+def test_cache_timeout_rejects_values_below_minus_one() -> None:
+    """
+    Test that cache_timeout rejects values less than -1.
+    """
+    from superset.databases.schemas import DatabasePostSchema
+
+    schema = DatabasePostSchema()
+    payload = {
+        "database_name": "test_db",
+        "cache_timeout": -5,
+    }
+    with pytest.raises(ValidationError):
+        schema.load(payload)
+
+
+def test_cache_timeout_allows_minus_one() -> None:
+    """
+    Test that cache_timeout allows -1 (bypass cache).
+    """
+    from superset.databases.schemas import DatabasePostSchema
+
+    schema = DatabasePostSchema()
+    payload = {
+        "database_name": "test_db",
+        "cache_timeout": -1,
+    }
+    result = schema.load(payload)
+    assert result["cache_timeout"] == -1
+
+
+def test_cache_timeout_allows_zero_and_positive() -> None:
+    """
+    Test that cache_timeout allows 0 and positive values.
+    """
+    from superset.databases.schemas import DatabasePostSchema
+
+    schema = DatabasePostSchema()
+    for value in (0, 300, 86400):
+        payload = {
+            "database_name": "test_db",
+            "cache_timeout": value,
+        }
+        result = schema.load(payload)
+        assert result["cache_timeout"] == value
+
+
+def test_cache_timeout_allows_none() -> None:
+    """
+    Test that cache_timeout allows None (use global default).
+    """
+    from superset.databases.schemas import DatabasePostSchema
+
+    schema = DatabasePostSchema()
+    payload = {
+        "database_name": "test_db",
+        "cache_timeout": None,
+    }
+    result = schema.load(payload)
+    assert result["cache_timeout"] is None
+
+
 def test_import_schema_allows_masked_fields_for_existing_db(
     mock_bq_engine: None,
     mocker: MockerFixture,

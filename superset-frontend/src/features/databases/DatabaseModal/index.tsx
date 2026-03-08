@@ -371,6 +371,15 @@ export function dbReducer(
           [action.payload.name]: action.payload.checked,
         };
       }
+      if (action.payload.name === 'cache_timeout') {
+        const val = Number(action.payload.value);
+        return {
+          ...trimmedState,
+          cache_timeout: Number.isNaN(val)
+            ? undefined
+            : String(Math.max(-1, val)),
+        };
+      }
       return {
         ...trimmedState,
         [action.payload.name]: action.payload.value,
