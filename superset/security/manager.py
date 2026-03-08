@@ -878,7 +878,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             "You need access to the following tables: %(tables)s, "
             "'all_database_access' or 'all_datasource_access' permission"
         ) % {
-            "tables": ",".join(quoted_tables),
+            "tables": ", ".join(quoted_tables),
         }
 
     def get_table_access_error_object(self, tables: set["Table"]) -> SupersetError:
