@@ -41,12 +41,12 @@ def get_default_lock_ttl() -> int:
 
 def get_redis_client() -> "redis.Redis[Any] | None":
     """
-    Get Redis client from signal cache if available.
+    Get Redis client from distributed coordination if available.
 
-    Returns None if SIGNAL_CACHE_CONFIG is not configured,
+    Returns None if DISTRIBUTED_COORDINATION_CONFIG is not configured,
     allowing fallback to database-backed locking.
     """
-    backend = cache_manager.signal_cache
+    backend = cache_manager.distributed_coordination
     return backend._cache if backend else None
 
 

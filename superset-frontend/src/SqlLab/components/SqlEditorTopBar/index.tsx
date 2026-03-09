@@ -17,7 +17,7 @@
  * under the License.
  */
 import { Flex } from '@superset-ui/core/components';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import { MenuItemType } from '@superset-ui/core/components/Menu';
 import { ViewLocations } from 'src/SqlLab/contributions';
 import PanelToolbar from 'src/components/PanelToolbar';

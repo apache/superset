@@ -18,7 +18,7 @@
  */
 import { ReactNode } from 'react';
 import { Collapse, CollapseLabelInModal } from '@superset-ui/core/components';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 
 interface CollapsibleModalSectionProps {
   sectionKey: string;

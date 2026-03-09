@@ -81,7 +81,7 @@ class InMemoryFinder(importlib.abc.MetaPathFinder):
             self.modules[mod_name] = (content, is_package, full_path)
 
         # Create namespace packages for all parent modules
-        # This ensures 'superset_extensions' namespace package exists
+        # This ensures publisher namespace packages exist
         namespace_packages: set[str] = set()
         for mod_name in list(self.modules.keys()):
             parts = mod_name.split(".")
@@ -241,7 +241,6 @@ def build_extension_data(extension: LoadedExtension) -> dict[str, Any]:
     }
     if manifest.frontend:
         frontend = manifest.frontend
-        module_federation = frontend.moduleFederation
         remote_entry_url = (
             f"/api/v1/extensions/{manifest.publisher}/"
             f"{manifest.name}/{frontend.remoteEntry}"
@@ -249,9 +248,7 @@ def build_extension_data(extension: LoadedExtension) -> dict[str, Any]:
         extension_data.update(
             {
                 "remoteEntry": remote_entry_url,
-                "exposedModules": module_federation.exposes,
-                "moduleFederationName": module_federation.name,
-                "contributions": frontend.contributions.model_dump(),
+                "moduleFederationName": frontend.moduleFederationName,
             }
         )
     return extension_data

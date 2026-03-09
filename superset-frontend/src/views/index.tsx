@@ -19,7 +19,7 @@
 import 'src/public-path';
 
 import ReactDOM from 'react-dom';
-import { logging } from '@apache-superset/core';
+import { logging } from '@apache-superset/core/utils';
 import initPreamble from 'src/preamble';
 
 const appMountPoint = document.getElementById('app');

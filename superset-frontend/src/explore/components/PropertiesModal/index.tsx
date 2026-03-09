@@ -26,7 +26,7 @@ import {
   type SelectValue,
 } from '@superset-ui/core/components';
 import rison from 'rison';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   SupersetClient,
   isFeatureEnabled,

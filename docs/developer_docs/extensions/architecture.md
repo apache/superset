@@ -33,13 +33,15 @@ The extension architecture is built on six core principles that guide all techni
 ### 1. Lean Core
 
 Superset's core should remain minimal, with many features delegated to extensions. Built-in features use the same APIs and extension mechanisms available to external developers. This approach:
+
 - Reduces maintenance burden and complexity
 - Encourages modularity
 - Allows the community to innovate independently of the main codebase
 
 ### 2. Explicit Contribution Points
 
-All extension points are clearly defined and documented. Extension authors know exactly where and how they can interact with the host system. Each extension declares its capabilities in a metadata file, enabling the host to:
+All extension points are clearly defined and documented. Extension authors know exactly where and how they can interact with the host system. Both backend and frontend contributions are registered directly in code — backend contributions via classes decorated with `@api` (and other decorators) imported from the auto-discovered entrypoint, frontend contributions via calls like `views.registerView` and `commands.registerCommand` executed at module load time in `index.tsx`. This gives the host clear visibility into what each extension provides:
+
 - Manage the extension lifecycle
 - Provide a consistent user experience
 - Validate extension compatibility
@@ -47,6 +49,7 @@ All extension points are clearly defined and documented. Extension authors know 
 ### 3. Versioned and Stable APIs
 
 Public interfaces for extensions follow semantic versioning, allowing for:
+
 - Safe evolution of the platform
 - Backward compatibility
 - Clear upgrade paths for extension authors
@@ -54,6 +57,7 @@ Public interfaces for extensions follow semantic versioning, allowing for:
 ### 4. Lazy Loading and Activation
 
 Extensions are loaded and activated only when needed, which:
+
 - Minimizes performance overhead
 - Reduces resource consumption
 - Improves startup time
@@ -61,6 +65,7 @@ Extensions are loaded and activated only when needed, which:
 ### 5. Composability and Reuse
 
 The architecture encourages reusing extension points and patterns across different modules, promoting:
+
 - Consistency across extensions
 - Reduced duplication
 - Shared best practices
@@ -80,6 +85,7 @@ Two core packages provide the foundation for extension development:
 **Frontend: `@apache-superset/core`**
 
 This package provides essential building blocks for frontend extensions and the host application:
+
 - Shared UI components
 - Utility functions
 - APIs and hooks
@@ -90,6 +96,7 @@ By centralizing these resources, both extensions and built-in features use the s
 **Backend: `apache-superset-core`**
 
 This package exposes key classes and APIs for backend extensions:
+
 - Database connectors
 - API extensions
 - Security manager customization
@@ -102,6 +109,7 @@ It includes dependencies on critical libraries like Flask-AppBuilder and SQLAlch
 **`apache-superset-extensions-cli`**
 
 The CLI provides comprehensive commands for extension development:
+
 - Project scaffolding
 - Code generation
 - Building and bundling
@@ -114,6 +122,7 @@ By standardizing these processes, the CLI ensures extensions are built consisten
 The Superset host application serves as the runtime environment for extensions:
 
 **Extension Management**
+
 - Exposes `/api/v1/extensions` endpoint for registration and management
 - Provides a dedicated UI for managing extensions
 - Stores extension metadata in the `extensions` database table
@@ -121,8 +130,8 @@ The Superset host application serves as the runtime environment for extensions:
 **Extension Storage**
 
 The extensions table contains:
+
 - Extension name, version, and author
-- Contributed features and exposed modules
 - Metadata and configuration
 - Built frontend and/or backend code
 
@@ -133,6 +142,7 @@ The following diagram illustrates how these components work together:
 <img width="955" height="586" alt="Extension System Architecture" src="https://github.com/user-attachments/assets/cc2a41df-55a4-48c8-b056-35f7a1e567c6" />
 
 The diagram shows:
+
 1. **Extension projects** depend on core packages for development
 2. **Core packages** provide APIs and type definitions
 3. **The host application** implements the APIs and manages extensions
@@ -152,28 +162,30 @@ The architecture leverages Webpack's Module Federation to enable dynamic loading
 
 Extensions configure Webpack to expose their entry points:
 
-``` typescript
-new ModuleFederationPlugin({
-  name: 'my_extension',
-  filename: 'remoteEntry.[contenthash].js',
-  exposes: {
-    './index': './src/index.tsx',
-  },
-  externalsType: 'window',
-  externals: {
-    '@apache-superset/core': 'superset',
-  },
-  shared: {
-    react: { singleton: true },
-    'react-dom': { singleton: true },
-    'antd-v5': { singleton: true }
-  }
-})
+```javascript
+externalsType: 'window',
+externals: {
+  '@apache-superset/core': 'superset',
+},
+plugins: [
+  new ModuleFederationPlugin({
+    name: 'my_extension',
+    filename: 'remoteEntry.[contenthash].js',
+    exposes: {
+      './index': './src/index.tsx',
+    },
+    shared: {
+      react: { singleton: true, import: false },
+      'react-dom': { singleton: true, import: false },
+      antd: { singleton: true, import: false },
+    },
+  }),
+]
 ```
 
 This configuration does several important things:
 
-**`exposes`** - Declares which modules are available to the host application. The extension makes `./index` available as its entry point.
+**`exposes`** - Declares which modules are available to the host application. Superset always loads extensions by requesting the `./index` module from the remote container — this is a fixed convention, not a configurable value. Extensions must expose exactly `'./index': './src/index.tsx'` and place all API registrations (views, commands, menus, editors, event listeners) in that file. The module is executed as a side effect when the extension loads, so any call to `views.registerView`, `commands.registerCommand`, etc. made at the top level of `index.tsx` will run automatically.
 
 **`externals` and `externalsType`** - Tell Webpack that when the extension imports `@apache-superset/core`, it should use `window.superset` at runtime instead of bundling its own copy. This ensures extensions use the host's implementation of shared packages.
 
@@ -196,24 +208,12 @@ Here's what happens at runtime:
 
 On the Superset side, the APIs are mapped to `window.superset` during application bootstrap:
 
-``` typescript
+```typescript
 import * as supersetCore from '@apache-superset/core';
-import {
-  authentication,
-  core,
-  commands,
-  extensions,
-  sqlLab,
-} from 'src/extensions';
 
 export default function setupExtensionsAPI() {
   window.superset = {
     ...supersetCore,
-    authentication,
-    core,
-    commands,
-    extensions,
-    sqlLab,
   };
 }
 ```

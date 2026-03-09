@@ -17,7 +17,12 @@
  * under the License.
  */
 import { ComponentType } from 'react';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import { MemoryRouter, Route } from 'react-router-dom';
 import FileHandler from './index';
 
@@ -128,6 +133,12 @@ const setupLaunchQueue = () => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  delete (window as any).launchQueue;
+});
+
+afterEach(() => {
+  pendingTimerIds.forEach(id => clearTimeout(id));
+  pendingTimerIds.clear();
   delete (window as any).launchQueue;
 });
 
@@ -352,8 +363,7 @@ test('modal close redirects to welcome page', async () => {
   expect(modal).toBeInTheDocument();
 
   // Click the close button in the mocked modal
-  const closeButton = screen.getByRole('button', { name: 'Close' });
-  closeButton.click();
+  await userEvent.click(screen.getByRole('button', { name: 'Close' }));
 
   await waitFor(() => {
     expect(mockHistoryPush).toHaveBeenCalledWith('/superset/welcome/');
