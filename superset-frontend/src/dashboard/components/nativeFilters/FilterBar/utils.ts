@@ -61,15 +61,32 @@ export const checkIsApplyDisabled = (
     return true;
   }
 
-  const dataSelectedValues = Object.values(dataMaskSelected);
-  const dataAppliedValues = Object.values(dataMaskApplied);
+  // Check if any required filter is missing a value
+  // For filters that may have been auto-applied (e.g., requiredFirst filters),
+  // check both selected and applied states to avoid false positives during initialization
+  const hasMissingRequiredFilter = filters.some(filter => {
+    const selectedDataMask = dataMaskSelected?.[filter?.id];
+    const selectedState = selectedDataMask?.filterState;
+    const appliedState = dataMaskApplied?.[filter?.id]?.filterState;
 
-  const hasMissingRequiredFilter = filters.some(filter =>
-    checkIsMissingRequiredValue(
-      filter,
-      dataMaskSelected?.[filter?.id]?.filterState,
-    ),
-  );
+    // If filter has value in selected state, it's not missing
+    if (selectedState?.value !== null && selectedState?.value !== undefined) {
+      return false;
+    }
+
+    // If filter is not in selected state at all (not initialized yet),
+    // check if it was auto-applied and has value in applied state
+    // This handles the case where auto-applied filters haven't synced to selected yet
+    if (!selectedDataMask) {
+      if (appliedState?.value !== null && appliedState?.value !== undefined) {
+        return false; // Not missing, it's auto-applied
+      }
+    }
+
+    // Otherwise, check if it's actually a required filter with missing value
+    // This includes cases where user explicitly cleared the value (selectedDataMask exists but value is undefined)
+    return checkIsMissingRequiredValue(filter, selectedState);
+  });
 
   const selectedExtraFormData = getOnlyExtraFormData(dataMaskSelected);
   const appliedExtraFormData = getOnlyExtraFormData(dataMaskApplied);
@@ -80,10 +97,7 @@ export const checkIsApplyDisabled = (
     { ignoreUndefined: true },
   );
 
-  const result =
-    areEqual ||
-    dataSelectedValues.length !== dataAppliedValues.length ||
-    hasMissingRequiredFilter;
+  const result = areEqual || hasMissingRequiredFilter;
 
   return result;
 };
