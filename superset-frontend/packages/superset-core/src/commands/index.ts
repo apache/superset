@@ -38,7 +38,7 @@ export interface Command {
   /** The icon associated with the command. */
   icon?: string;
   /** A description of what the command does. */
-  description: string;
+  description?: string;
 }
 
 /**
