@@ -126,6 +126,9 @@ async def save_sql_query(
     except (SupersetErrorException, SupersetSecurityException):
         raise
     except Exception as e:
+        from superset import db
+
+        db.session.rollback()
         await ctx.error(
             "Failed to save SQL query: error=%s, database_id=%s"
             % (str(e), request.database_id)
