@@ -75,6 +75,7 @@ interface GetExploreUrlParams {
   requestParams?: Record<string, string>;
   allowDomainSharding?: boolean;
   method?: 'GET' | 'POST';
+  relative?: boolean;
 }
 
 interface BuildV1ChartDataPayloadParams {
@@ -221,6 +222,7 @@ export function getExploreUrl({
   requestParams = {},
   allowDomainSharding = false,
   method = 'POST',
+  relative = false,
 }: GetExploreUrlParams): string | null {
   if (!formData.datasource) {
     return null;
@@ -230,10 +232,12 @@ export function getExploreUrl({
   // eslint-disable-next-line no-param-reassign
   delete formData.label_colors;
 
-  let uri = getChartDataUri({
-    path: '/',
-    allowDomainSharding,
-  });
+  let uri = relative
+    ? new URI('/')
+    : getChartDataUri({
+        path: '/',
+        allowDomainSharding,
+      });
   if (curUrl) {
     uri = URI(URI(curUrl).search());
   }
@@ -360,16 +364,13 @@ export const exportChart = async ({
   const [useLegacyApi] = getQuerySettings(formData);
   if (useLegacyApi) {
     const endpointType = getLegacyEndpointType({ resultFormat, resultType });
-    const directory = getURIDirectory(endpointType);
-    const searchParams = new URLSearchParams();
-    if (endpointType === 'csv') searchParams.set('csv', 'true');
-    if (endpointType === 'xlsx') searchParams.set('xlsx', 'true');
-    if (endpointType === 'results') searchParams.set('results', 'true');
-    if (endpointType === 'query') searchParams.set('query', 'true');
-    if (endpointType === 'samples') searchParams.set('samples', 'true');
-    if (force) searchParams.set('force', 'true');
-    const qs = searchParams.toString();
-    url = qs ? `${directory}?${qs}` : directory;
+    url = getExploreUrl({
+      formData,
+      endpointType,
+      force,
+      allowDomainSharding: false,
+      relative: true,
+    });
     payload = formData;
   } else {
     url = ensureAppRoot('/api/v1/chart/data');
