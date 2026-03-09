@@ -36,6 +36,32 @@ from superset.mcp_service.storage import _create_redis_store
 logger = logging.getLogger(__name__)
 
 
+def _suppress_third_party_warnings() -> None:
+    """Suppress known third-party deprecation warnings from MCP responses.
+
+    The MCP SDK captures Python warnings and forwards them to clients via
+    ``mcp.server.lowlevel.server:Warning:`` log entries.  This wastes LLM
+    tokens and causes clients to try to "fix" irrelevant internal warnings.
+
+    Suppressed warnings:
+    - marshmallow ``RemovedInMarshmallow4Warning`` (triggered during
+      database engine schema instantiation)
+    - google.api_core ``FutureWarning`` (Python version support notices)
+    """
+    import warnings
+
+    warnings.filterwarnings(
+        "ignore",
+        category=DeprecationWarning,
+        module=r"marshmallow\..*",
+    )
+    warnings.filterwarnings(
+        "ignore",
+        category=FutureWarning,
+        module=r"google\..*",
+    )
+
+
 def configure_logging(debug: bool = False) -> None:
     """Configure logging for the MCP service."""
     import sys
@@ -179,6 +205,7 @@ def run_server(
     """
 
     configure_logging(debug)
+    _suppress_third_party_warnings()
 
     # DO NOT IMPORT TOOLS HERE!! IMPORT THEM IN app.py!!!!!
 

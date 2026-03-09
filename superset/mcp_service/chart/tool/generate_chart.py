@@ -20,10 +20,12 @@ MCP tool: generate_chart (simplified schema)
 
 import logging
 import time
+from dataclasses import dataclass, field
+from typing import Any, Dict, List
 from urllib.parse import parse_qs, urlparse
 
 from fastmcp import Context
-from superset_core.api.mcp import tool
+from superset_core.mcp.decorators import tool
 
 from superset.commands.exceptions import CommandException
 from superset.extensions import event_logger
@@ -46,6 +48,73 @@ from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class CompileResult:
+    """Result of a chart compile check (test query execution)."""
+
+    success: bool
+    error: str | None = None
+    warnings: List[str] = field(default_factory=list)
+    row_count: int | None = None
+
+
+def _compile_chart(
+    form_data: Dict[str, Any],
+    dataset_id: int,
+) -> CompileResult:
+    """Execute the chart's query to verify it renders without errors.
+
+    Builds a ``QueryContext`` from *form_data* and runs it through
+    ``ChartDataCommand``.  A small ``row_limit`` is used so the check is
+    fast — we only need to know the query compiles and returns data, not
+    fetch the full result set.
+
+    Returns a :class:`CompileResult` with ``success=True`` when the
+    query executes cleanly.
+    """
+    from superset.commands.chart.data.get_data_command import ChartDataCommand
+    from superset.commands.chart.exceptions import (
+        ChartDataCacheLoadError,
+        ChartDataQueryFailedError,
+    )
+    from superset.common.query_context_factory import QueryContextFactory
+    from superset.mcp_service.chart.preview_utils import _build_query_columns
+
+    try:
+        columns = _build_query_columns(form_data)
+        factory = QueryContextFactory()
+        query_context = factory.create(
+            datasource={"id": dataset_id, "type": "table"},
+            queries=[
+                {
+                    "columns": columns,
+                    "metrics": form_data.get("metrics", []),
+                    "orderby": form_data.get("orderby", []),
+                    "row_limit": 2,
+                    "filters": form_data.get("adhoc_filters", []),
+                    "time_range": form_data.get("time_range", "No filter"),
+                }
+            ],
+            form_data=form_data,
+        )
+
+        command = ChartDataCommand(query_context)
+        result = command.run()
+
+        warnings: List[str] = []
+        row_count = 0
+        for query in result.get("queries", []):
+            if query.get("error"):
+                return CompileResult(success=False, error=str(query["error"]))
+            row_count += len(query.get("data", []))
+
+        return CompileResult(success=True, warnings=warnings, row_count=row_count)
+    except (ChartDataQueryFailedError, ChartDataCacheLoadError) as exc:
+        return CompileResult(success=False, error=str(exc))
+    except (CommandException, ValueError, KeyError) as exc:
+        return CompileResult(success=False, error=str(exc))
 
 
 @tool(tags=["mutate"])
@@ -321,6 +390,62 @@ async def generate_chart(  # noqa: C901
                 # Add any validation warnings (e.g., virtual dataset warnings)
                 response_warnings.extend(dataset_check.warnings)
 
+                # Compile check: execute the chart query to catch runtime errors
+                await ctx.report_progress(3, 5, "Running compile check (test query)")
+                with event_logger.log_context(
+                    action="mcp.generate_chart.compile_check"
+                ):
+                    compile_result = _compile_chart(form_data, dataset.id)
+                if not compile_result.success:
+                    # Query failed — delete the broken chart and return an error
+                    logger.warning(
+                        "Compile check failed for chart %s: %s",
+                        chart.id,
+                        compile_result.error,
+                    )
+                    await ctx.error(
+                        "Chart compile check failed: error=%s" % (compile_result.error,)
+                    )
+                    from superset.daos.chart import ChartDAO
+
+                    ChartDAO.delete([chart])
+                    from superset.mcp_service.common.error_schemas import (
+                        ChartGenerationError,
+                    )
+
+                    execution_time = int((time.time() - start_time) * 1000)
+                    error = ChartGenerationError(
+                        error_type="compile_error",
+                        message=(
+                            "Chart query failed to execute. The chart was not saved."
+                        ),
+                        details=str(compile_result.error) or "",
+                        suggestions=[
+                            "Check that all columns exist in the dataset",
+                            "Verify aggregate functions are compatible "
+                            "with column types",
+                            "Ensure filters reference valid columns",
+                            "Try simplifying the chart configuration",
+                        ],
+                        error_code="CHART_COMPILE_FAILED",
+                    )
+                    return GenerateChartResponse.model_validate(
+                        {
+                            "chart": None,
+                            "error": error.model_dump(),
+                            "form_data": form_data,
+                            "performance": {
+                                "query_duration_ms": execution_time,
+                                "cache_status": "error",
+                                "optimization_suggestions": [],
+                            },
+                            "success": False,
+                            "schema_version": "2.0",
+                            "api_version": "v1",
+                        }
+                    )
+                response_warnings.extend(compile_result.warnings)
+
             except CommandException as e:
                 logger.error("Chart creation failed: %s", e)
                 await ctx.error("Chart creation failed: error=%s" % (str(e),))
@@ -383,6 +508,75 @@ async def generate_chart(  # noqa: C901
                 form_data_key_list = query_params.get("form_data_key", [])
                 if form_data_key_list:
                     form_data_key = form_data_key_list[0]
+
+            # Compile check for preview-only mode
+            # Validate dataset existence and user access before running queries
+            await ctx.report_progress(3, 5, "Running compile check (test query)")
+            numeric_dataset_id: int | None = None
+            from superset.daos.dataset import DatasetDAO
+
+            if isinstance(request.dataset_id, int) or (
+                isinstance(request.dataset_id, str) and request.dataset_id.isdigit()
+            ):
+                candidate_id = (
+                    int(request.dataset_id)
+                    if isinstance(request.dataset_id, str)
+                    else request.dataset_id
+                )
+                ds = DatasetDAO.find_by_id(candidate_id)
+                if ds and has_dataset_access(ds):
+                    numeric_dataset_id = ds.id
+            else:
+                ds = DatasetDAO.find_by_id(request.dataset_id, id_column="uuid")
+                if ds and has_dataset_access(ds):
+                    numeric_dataset_id = ds.id
+
+            if numeric_dataset_id is not None:
+                with event_logger.log_context(
+                    action="mcp.generate_chart.compile_check"
+                ):
+                    compile_result = _compile_chart(form_data, numeric_dataset_id)
+                if not compile_result.success:
+                    await ctx.error(
+                        "Chart compile check failed: error=%s" % (compile_result.error,)
+                    )
+                    from superset.mcp_service.common.error_schemas import (
+                        ChartGenerationError,
+                    )
+
+                    execution_time = int((time.time() - start_time) * 1000)
+                    error = ChartGenerationError(
+                        error_type="compile_error",
+                        message=(
+                            "Chart query failed to execute. "
+                            "The chart configuration is invalid."
+                        ),
+                        details=str(compile_result.error) or "",
+                        suggestions=[
+                            "Check that all columns exist in the dataset",
+                            "Verify aggregate functions are compatible "
+                            "with column types",
+                            "Ensure filters reference valid columns",
+                            "Try simplifying the chart configuration",
+                        ],
+                        error_code="CHART_COMPILE_FAILED",
+                    )
+                    return GenerateChartResponse.model_validate(
+                        {
+                            "chart": None,
+                            "error": error.model_dump(),
+                            "form_data": form_data,
+                            "performance": {
+                                "query_duration_ms": execution_time,
+                                "cache_status": "error",
+                                "optimization_suggestions": [],
+                            },
+                            "success": False,
+                            "schema_version": "2.0",
+                            "api_version": "v1",
+                        }
+                    )
+                response_warnings.extend(compile_result.warnings)
 
         # Generate semantic analysis
         capabilities = analyze_chart_capabilities(chart, request.config)

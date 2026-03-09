@@ -19,7 +19,8 @@
 import { PureComponent, ChangeEvent, type ReactElement } from 'react';
 import cx from 'classnames';
 import { Button, Input } from '@superset-ui/core/components';
-import { css, styled, t } from '@apache-superset/core/ui';
+import { css, styled } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 
 import buildFilterScopeTreeEntry from 'src/dashboard/util/buildFilterScopeTreeEntry';
 import getFilterScopeNodesTree from 'src/dashboard/util/getFilterScopeNodesTree';

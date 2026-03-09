@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { getExtensionsRegistry, SupersetClient } from '@superset-ui/core';
-import { styled, useTheme, css } from '@apache-superset/core/ui';
+import { styled, useTheme, css } from '@apache-superset/core/theme';
 import { FunctionComponent, useState, useMemo, useCallback, Key } from 'react';
 import { Link, useHistory } from 'react-router-dom';
 import rison from 'rison';
