@@ -59,7 +59,8 @@ def test_upgrade_mapbox():
 
     params = json.loads(slc.params)
     assert params["viz_type"] == "map_gl"
-    assert params["map_style"] == "https://tiles.openfreemap.org/styles/liberty"
+    assert params["map_style"] == "mapbox://styles/mapbox/streets-v11"
+    assert params["map_provider"] == "mapbox"
     assert params["map_label"] == ["name"]
     assert params["map_color"] == "#ff0000"
     assert "mapbox_style" not in params
@@ -69,7 +70,28 @@ def test_upgrade_mapbox():
 
     query_context = json.loads(slc.query_context)
     assert query_context["form_data"]["viz_type"] == "map_gl"
-    assert (
-        query_context["form_data"]["map_style"]
-        == "https://tiles.openfreemap.org/styles/liberty"
+    assert query_context["form_data"]["map_style"] == "mapbox://styles/mapbox/streets-v11"
+
+
+@pytest.mark.usefixtures("app_context")
+def test_upgrade_mapbox_with_non_mapbox_style():
+    """Charts with non-mapbox:// style URLs should not get map_provider=mapbox."""
+    slc = Slice(
+        slice_name="Test Mapbox Open Style",
+        viz_type="mapbox",
+        params=json.dumps(
+            {
+                "viz_type": "mapbox",
+                "mapbox_style": "https://tiles.openfreemap.org/styles/liberty",
+                "other_param": "value",
+            }
+        ),
+        query_context=json.dumps({}),
     )
+
+    MigrateMapBox.upgrade_slice(slc)
+
+    assert slc.viz_type == "map_gl"
+    params = json.loads(slc.params)
+    assert params["map_style"] == "https://tiles.openfreemap.org/styles/liberty"
+    assert "map_provider" not in params

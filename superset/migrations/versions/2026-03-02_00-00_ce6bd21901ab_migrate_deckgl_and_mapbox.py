@@ -63,6 +63,14 @@ class MigrateMapBox(MigrateViz):
     }
     remove_keys = set()
 
+    def _post_action(self) -> None:
+        # If the style URL is a mapbox:// URL, the chart was using Mapbox GL.
+        # Set map_provider so the new chart continues to use the Mapbox renderer,
+        # which will pick up MAPBOX_API_KEY from the server config.
+        map_style = self.data.get("map_style", "")
+        if isinstance(map_style, str) and map_style.startswith("mapbox://"):
+            self.data["map_provider"] = "mapbox"
+
     @classmethod
     def upgrade_slice(cls, slc: Slice) -> None:
         try:
