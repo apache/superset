@@ -544,12 +544,17 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.core.api.core_api_injection import (
             initialize_core_api_dependencies,
         )
-        from superset.core.mcp.core_mcp_injection import (
-            initialize_core_mcp_dependencies,
-        )
 
         initialize_core_api_dependencies()
-        initialize_core_mcp_dependencies()
+
+        try:
+            from superset.core.mcp.core_mcp_injection import (
+                initialize_core_mcp_dependencies,
+            )
+
+            initialize_core_mcp_dependencies()
+        except ImportError:
+            logger.info("MCP dependencies not available, skipping MCP initialization")
 
     def init_all_dependencies_and_extensions(self) -> None:
         """

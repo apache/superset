@@ -252,22 +252,33 @@ def initialize_core_mcp_dependencies() -> None:
     Also imports MCP service app to register all host tools BEFORE extension loading.
     """
     try:
-        # Replace the abstract decorators with concrete implementations
-
         import superset_core.mcp.decorators
+    except ImportError:
+        logger.info(
+            "superset-core MCP module not available, skipping MCP initialization"
+        )
+        return
 
-        superset_core.mcp.decorators.tool = create_tool_decorator
-        superset_core.mcp.decorators.prompt = create_prompt_decorator
+    try:
+        from fastmcp.tools import Tool  # noqa: F401
+    except ImportError:
+        logger.info(
+            "fastmcp is not installed, skipping MCP initialization. "
+            "Install it with: pip install 'apache-superset[fastmcp]'"
+        )
+        return
 
-        logger.info("MCP dependency injection initialized successfully")
+    # Replace the abstract decorators with concrete implementations
+    superset_core.mcp.decorators.tool = create_tool_decorator
+    superset_core.mcp.decorators.prompt = create_prompt_decorator
 
+    logger.info("MCP dependency injection initialized successfully")
+
+    try:
         # Import MCP service app to register host tools BEFORE extension loading
         # This prevents host tools from being registered during extension context
-
         from superset.mcp_service import app  # noqa: F401
 
         logger.info("MCP service app imported - host tools registered")
-
     except Exception as e:
-        logger.error("Failed to initialize MCP dependencies: %s", e)
-        raise
+        logger.error("Failed to register MCP host tools: %s", e)
