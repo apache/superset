@@ -26,7 +26,6 @@ import CalendarChartPlugin from '@superset-ui/legacy-plugin-chart-calendar';
 import ChordChartPlugin from '@superset-ui/legacy-plugin-chart-chord';
 import CountryMapChartPlugin from '@superset-ui/legacy-plugin-chart-country-map';
 import HorizonChartPlugin from '@superset-ui/legacy-plugin-chart-horizon';
-import MapBoxChartPlugin from '@superset-ui/legacy-plugin-chart-map-box';
 import PairedTTestChartPlugin from '@superset-ui/legacy-plugin-chart-paired-t-test';
 import ParallelCoordinatesChartPlugin from '@superset-ui/legacy-plugin-chart-parallel-coordinates';
 import PartitionChartPlugin from '@superset-ui/legacy-plugin-chart-partition';
@@ -132,7 +131,6 @@ export default class MainPreset extends Preset {
           key: VizType.MixedTimeseries,
         }),
         new HorizonChartPlugin().configure({ key: VizType.Horizon }),
-        new MapBoxChartPlugin().configure({ key: VizType.MapBox }),
         new MapLibreChartPlugin().configure({ key: VizType.MapLibre }),
         new PairedTTestChartPlugin().configure({ key: VizType.PairedTTest }),
         new ParallelCoordinatesChartPlugin().configure({
