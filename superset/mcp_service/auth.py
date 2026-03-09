@@ -39,7 +39,7 @@ API Key Authentication:
 - Keys inherit the user's roles and permissions via FAB's RBAC
 
 Configuration:
-- FAB_API_KEY_ENABLED: Enable API key auth (default: False)
+- FAB_API_KEY_ENABLED: Feature flag to enable API key auth (default: False)
 - FAB_API_KEY_PREFIXES: Key prefixes (default: ["sst_"])
 - MCP_DEV_USERNAME: Fallback username for development
 """
@@ -214,9 +214,13 @@ def get_user_from_request() -> User:
     # like tool discovery that run with only an application context)
     from flask import has_request_context
 
-    api_key_enabled = current_app.config.get("FAB_API_KEY_ENABLED", False)
-    if api_key_enabled and has_request_context():
+    from superset import is_feature_enabled
+
+    if is_feature_enabled("FAB_API_KEY_ENABLED") and has_request_context():
         sm = current_app.appbuilder.sm
+        # _extract_api_key_from_request is FAB's internal method for reading
+        # the Bearer token from the Authorization header and matching prefixes.
+        # No public API is exposed for this; see FAB SecurityManager.
         api_key_string = sm._extract_api_key_from_request()
         if api_key_string is not None:
             user = sm.validate_api_key(api_key_string)
