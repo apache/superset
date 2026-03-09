@@ -370,20 +370,32 @@ export default function transformProps(
           metricLabel,
         );
         const paramsValue = params.value as (string | number)[];
-        const x = paramsValue?.[0];
-        const y = paramsValue?.[1];
+        // paramsValue contains [xIndex, yIndex, metricValue, rankValue?]
+        // We need to look up the actual axis values from the sorted arrays
+        const xIndex = paramsValue?.[0] as number;
+        const yIndex = paramsValue?.[1] as number;
         const value = paramsValue?.[2] as number | null | undefined;
-        const formattedX = xAxisFormatter(x);
-        const formattedY = yAxisFormatter(y);
+        const xValue = sortedXAxisValues[xIndex];
+        const yValue = sortedYAxisValues[yIndex];
+        // Format the axis values for display (handle null/undefined with empty string fallback)
+        // Convert to string/number for formatter compatibility
+        const formattedX =
+          xValue !== null && xValue !== undefined
+            ? xAxisFormatter(xValue as string | number)
+            : '';
+        const formattedY =
+          yValue !== null && yValue !== undefined
+            ? yAxisFormatter(yValue as string | number)
+            : '';
         const formattedValue = valueFormatter(value);
         let percentage = 0;
         let suffix = 'heatmap';
         if (typeof value === 'number') {
           if (normalizeAcross === 'x') {
-            percentage = value / totals.x[x];
+            percentage = value / totals.x[String(xValue)];
             suffix = formattedX;
           } else if (normalizeAcross === 'y') {
-            percentage = value / totals.y[y];
+            percentage = value / totals.y[String(yValue)];
             suffix = formattedY;
           } else {
             percentage = value / totals.total;
