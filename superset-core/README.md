@@ -56,7 +56,7 @@ from superset_core.rest_api.decorators import api
 
 @api(id="dataset_references", name="Dataset References API")
 class DatasetReferencesAPI(RestApi):
-    
+
     @expose("/metadata", methods=("POST",))
     @protect()
     @safe
