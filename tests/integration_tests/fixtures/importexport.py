@@ -17,6 +17,8 @@
 from copy import deepcopy
 from typing import Any
 
+from superset.utils import json
+
 # example V0 import/export format
 dataset_ui_export: list[dict[str, Any]] = [
     {
@@ -399,6 +401,30 @@ database_config_no_creds: dict[str, Any] = {
     "version": "1.0.0",
 }
 
+database_config_with_masked_encrypted_extra: dict[str, Any] = {
+    "allow_csv_upload": False,
+    "allow_ctas": False,
+    "allow_cvas": False,
+    "allow_dml": False,
+    "allow_run_async": False,
+    "cache_timeout": None,
+    "database_name": "imported_database_encrypted",
+    "expose_in_sqllab": True,
+    "extra": {},
+    "sqlalchemy_uri": "bigquery://test-project/",
+    "uuid": "c9a1dde3-889e-5bc0-9ae9-0bc229e8fa90",
+    "masked_encrypted_extra": json.dumps(
+        {
+            "credentials_info": {
+                "type": "service_account",
+                "project_id": "test-project",
+                "private_key": "-----BEGIN PRIVATE KEY-----\nMyPriVaTeKeY\n-----END PRIVATE KEY-----\n",  # noqa: E501
+            }
+        }
+    ),
+    "version": "1.0.0",
+}
+
 database_with_ssh_tunnel_config_private_key: dict[str, Any] = {
     "allow_csv_upload": True,
     "allow_ctas": True,
@@ -509,6 +535,7 @@ database_with_ssh_tunnel_config_private_pass_only: dict[str, Any] = {
 dataset_config: dict[str, Any] = {
     "table_name": "imported_dataset",
     "main_dttm_col": None,
+    "currency_code_column": "currency",
     "description": "This is a dataset that was exported",
     "default_endpoint": "",
     "offset": 66,

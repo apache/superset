@@ -18,9 +18,9 @@
  */
 import { ComponentProps, RefObject } from 'react';
 import copyTextToClipboard from 'src/utils/copy';
+import { logging } from '@apache-superset/core/utils';
+import { t } from '@apache-superset/core/translation';
 import {
-  t,
-  logging,
   FeatureFlag,
   isFeatureEnabled,
   LatestQueryFormData,

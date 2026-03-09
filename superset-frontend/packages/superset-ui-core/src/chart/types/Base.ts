@@ -25,6 +25,7 @@ export type HandlerFunction = (...args: unknown[]) => void;
 export enum Behavior {
   InteractiveChart = 'INTERACTIVE_CHART',
   NativeFilter = 'NATIVE_FILTER',
+  ChartCustomization = 'CHART_CUSTOMIZATION',
 
   /**
    * Include `DRILL_TO_DETAIL` behavior if plugin handles `contextmenu` event

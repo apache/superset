@@ -26,11 +26,12 @@ import logging
 from typing import TYPE_CHECKING
 
 from fastmcp import Context
-from superset_core.mcp import tool
+from superset_core.mcp.decorators import tool
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
 
+from superset.extensions import event_logger
 from superset.mcp_service.dataset.schemas import (
     DatasetFilter,
     DatasetInfo,
@@ -129,15 +130,16 @@ async def list_datasets(request: ListDatasetsRequest, ctx: Context) -> DatasetLi
             logger=logger,
         )
 
-        result = tool.run_tool(
-            filters=request.filters,
-            search=request.search,
-            select_columns=request.select_columns,
-            order_column=request.order_column,
-            order_direction=request.order_direction,
-            page=max(request.page - 1, 0),
-            page_size=request.page_size,
-        )
+        with event_logger.log_context(action="mcp.list_datasets.query"):
+            result = tool.run_tool(
+                filters=request.filters,
+                search=request.search,
+                select_columns=request.select_columns,
+                order_column=request.order_column,
+                order_direction=request.order_direction,
+                page=max(request.page - 1, 0),
+                page_size=request.page_size,
+            )
 
         await ctx.info(
             "Datasets listed successfully: count=%s, total_count=%s, total_pages=%s"
@@ -149,16 +151,18 @@ async def list_datasets(request: ListDatasetsRequest, ctx: Context) -> DatasetLi
         )
 
         # Apply field filtering via serialization context
-        # Use columns_requested from result (already resolved by ModelListCore)
+        # Always use columns_requested (either explicit select_columns or defaults)
+        # This triggers DatasetInfo._filter_fields_by_context for each dataset
         columns_to_filter = result.columns_requested
         await ctx.debug(
-            "Applying field filtering via serialization context: select_columns=%s"
+            "Applying field filtering via serialization context: columns=%s"
             % (columns_to_filter,)
         )
-        filtered = result.model_dump(
-            mode="json", context={"select_columns": columns_to_filter}
-        )
-        return DatasetList.model_validate(filtered)
+        with event_logger.log_context(action="mcp.list_datasets.serialization"):
+            return result.model_dump(
+                mode="json",
+                context={"select_columns": columns_to_filter},
+            )
 
     except Exception as e:
         await ctx.error(

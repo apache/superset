@@ -147,6 +147,13 @@ class ImportExportRestApi(BaseSupersetApi):
                         the private_key should be provided in the following format:
                         `{"databases/MyDatabase.yaml": "my_private_key_password"}`.
                       type: string
+                    encrypted_extra_secrets:
+                      description: >-
+                        JSON map of secret values for masked encrypted_extra fields.
+                        Each key is a database file path and the value is a map of
+                        JSONPath expressions to secret values. For example:
+                        `{"databases/db.yaml": {"$.credentials_info.secret": "foo"}}`.
+                      type: string
                     sparse:
                       description: allow sparse update of resources
                       type: boolean
@@ -202,6 +209,11 @@ class ImportExportRestApi(BaseSupersetApi):
             if "ssh_tunnel_private_key_passwords" in request.form
             else None
         )
+        encrypted_extra_secrets = (
+            json.loads(request.form["encrypted_extra_secrets"])
+            if "encrypted_extra_secrets" in request.form
+            else None
+        )
 
         command = ImportAssetsCommand(
             contents,
@@ -210,6 +222,7 @@ class ImportExportRestApi(BaseSupersetApi):
             ssh_tunnel_passwords=ssh_tunnel_passwords,
             ssh_tunnel_private_keys=ssh_tunnel_private_keys,
             ssh_tunnel_priv_key_passwords=ssh_tunnel_priv_key_passwords,
+            encrypted_extra_secrets=encrypted_extra_secrets,
         )
         command.run()
         return self.response(200, message="OK")

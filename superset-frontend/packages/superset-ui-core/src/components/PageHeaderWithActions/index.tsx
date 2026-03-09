@@ -17,8 +17,8 @@
  * under the License.
  */
 import { ReactNode, ReactElement } from 'react';
-import { t } from '@superset-ui/core';
-import { css, SupersetTheme, useTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { css, SupersetTheme, useTheme } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
 import type { DropdownProps } from '../Dropdown/types';
 import type { TooltipPlacement } from '../Tooltip/types';

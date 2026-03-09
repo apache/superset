@@ -17,13 +17,13 @@
  * under the License.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { logging } from '@apache-superset/core/utils';
+import { t } from '@apache-superset/core/translation';
 import {
-  logging,
   Metric,
   QueryFormData,
   QueryFormMetric,
   SupersetClient,
-  t,
 } from '@superset-ui/core';
 import {
   ColumnMeta,

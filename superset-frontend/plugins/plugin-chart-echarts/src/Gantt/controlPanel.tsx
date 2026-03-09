@@ -22,8 +22,8 @@ import {
   sections,
   sharedControls,
 } from '@superset-ui/chart-controls';
-import { t } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { t } from '@apache-superset/core/translation';
+import { GenericDataType } from '@apache-superset/core/common';
 import {
   legendSection,
   showExtraControls,

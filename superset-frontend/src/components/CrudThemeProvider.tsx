@@ -18,7 +18,7 @@
  */
 import { ReactNode, useEffect, useState } from 'react';
 import { useThemeContext } from 'src/theme/ThemeProvider';
-import { Theme } from '@apache-superset/core/ui';
+import { Theme } from '@apache-superset/core/theme';
 import { Loading } from '@superset-ui/core/components';
 
 interface CrudThemeProviderProps {

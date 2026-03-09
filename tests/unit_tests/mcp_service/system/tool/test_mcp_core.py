@@ -69,7 +69,7 @@ class DummyDAO:
         return [SimpleNamespace(id=1, name="foo"), SimpleNamespace(id=2, name="bar")], 2
 
     @classmethod
-    def find_by_id(cls, id):
+    def find_by_id(cls, id, **kwargs):
         if id == 1:
             return SimpleNamespace(id=1, name="foo")
         return None
@@ -196,7 +196,7 @@ def test_model_get_info_tool_not_found():
 def test_model_get_info_tool_exception():
     class FailingDAO:
         @classmethod
-        def find_by_id(cls, id):
+        def find_by_id(cls, id, **kwargs):
             raise Exception("fail")
 
     tool = ModelGetInfoCore(

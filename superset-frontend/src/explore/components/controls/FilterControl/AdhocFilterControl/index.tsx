@@ -17,13 +17,12 @@
  * under the License.
  */
 import { Component, ReactNode } from 'react';
-import PropTypes from 'prop-types';
-import { t, logging, SupersetClient, ensureIsArray } from '@superset-ui/core';
-import { withTheme, type SupersetTheme } from '@apache-superset/core/ui';
+import { SupersetClient, ensureIsArray } from '@superset-ui/core';
+import { logging } from '@apache-superset/core/utils';
+import { t } from '@apache-superset/core/translation';
+import { withTheme, type SupersetTheme } from '@apache-superset/core/theme';
 
 import ControlHeader from 'src/explore/components/ControlHeader';
-import adhocMetricType from 'src/explore/components/controls/MetricControl/adhocMetricType';
-import savedMetricType from 'src/explore/components/controls/MetricControl/savedMetricType';
 import AdhocMetric, {
   isDictionaryForAdhocMetric,
 } from 'src/explore/components/controls/MetricControl/AdhocMetric';
@@ -44,8 +43,6 @@ import AdhocFilterOption from 'src/explore/components/controls/FilterControl/Adh
 import AdhocFilter, {
   isDictionaryForAdhocFilter,
 } from 'src/explore/components/controls/FilterControl/AdhocFilter';
-import adhocFilterType from 'src/explore/components/controls/FilterControl/adhocFilterType';
-import columnType from 'src/explore/components/controls/FilterControl/columnType';
 import { toQueryString } from 'src/utils/urlUtils';
 import { Clauses, ExpressionTypes } from '../types';
 
@@ -107,29 +104,6 @@ interface AdhocFilterControlState {
 
 const { warning } = Modal;
 
-const selectedMetricType = PropTypes.oneOfType([
-  PropTypes.string,
-  adhocMetricType,
-]);
-
-const propTypes = {
-  label: PropTypes.oneOfType([PropTypes.object, PropTypes.string]),
-  name: PropTypes.string,
-  sections: PropTypes.arrayOf(PropTypes.string),
-  operators: PropTypes.arrayOf(PropTypes.string),
-  onChange: PropTypes.func,
-  value: PropTypes.arrayOf(adhocFilterType),
-  datasource: PropTypes.object,
-  columns: PropTypes.arrayOf(columnType),
-  savedMetrics: PropTypes.arrayOf(savedMetricType),
-  selectedMetrics: PropTypes.oneOfType([
-    selectedMetricType,
-    PropTypes.arrayOf(selectedMetricType),
-  ]),
-  isLoading: PropTypes.bool,
-  canDelete: PropTypes.func,
-};
-
 const defaultProps = {
   name: '',
   onChange: () => {},
@@ -154,15 +128,16 @@ function optionsForSelect(props: AdhocFilterControlProps): FilterOption[] {
 
   return options
     .reduce<FilterOption[]>((results, option) => {
-      if ((option as FilterOption).saved_metric_name) {
+      const filterOption = option as FilterOption;
+      if (filterOption.saved_metric_name) {
         results.push({
-          ...(option as FilterOption),
-          filterOptionName: (option as FilterOption).saved_metric_name,
+          ...filterOption,
+          filterOptionName: filterOption.saved_metric_name,
         });
-      } else if ((option as FilterOption).column_name) {
+      } else if (filterOption.column_name) {
         results.push({
-          ...(option as FilterOption),
-          filterOptionName: `_col_${(option as FilterOption).column_name}`,
+          ...filterOption,
+          filterOptionName: `_col_${filterOption.column_name}`,
         });
       } else if (option instanceof AdhocMetric) {
         results.push({
@@ -438,10 +413,7 @@ class AdhocFilterControl extends Component<
   }
 }
 
-// Static properties are defined in the class using static keyword
-// @ts-expect-error - propTypes are defined for runtime validation but TypeScript handles type checking
-AdhocFilterControl.propTypes = propTypes;
-// @ts-expect-error - defaultProps for backward compatibility with PropTypes
+// @ts-expect-error - defaultProps for backward compatibility
 AdhocFilterControl.defaultProps = defaultProps;
 
 export default withTheme(AdhocFilterControl);

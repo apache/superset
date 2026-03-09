@@ -119,6 +119,63 @@ def _get_sqlalchemy_type_name(col_type: Any) -> str:
         return "str"  # Default fallback
 
 
+# Descriptions for common model columns that SQLAlchemy models don't document.
+# Used as a fallback when the model column has no doc/comment attribute.
+_COLUMN_DESCRIPTIONS: dict[str, str] = {
+    # Common across models
+    "id": "Unique integer identifier",
+    "uuid": "Unique UUID identifier",
+    "created_on": "Timestamp when the resource was created",
+    "changed_on": "Timestamp when the resource was last modified",
+    "created_by_fk": "User ID of the creator",
+    "changed_by_fk": "User ID of the last modifier",
+    "description": "User-provided description text",
+    "cache_timeout": "Cache timeout override in seconds",
+    "perm": "Permission string for access control",
+    "schema_perm": "Schema-level permission string",
+    "catalog_perm": "Catalog-level permission string",
+    "is_managed_externally": "Whether managed by an external system",
+    "external_url": "URL of the external management system",
+    "certified_by": "Name of the person who certified this resource",
+    "certification_details": "Details about the certification",
+    # Chart-specific
+    "slice_name": "Chart display name",
+    "datasource_id": "ID of the underlying dataset",
+    "datasource_type": "Type of data source (e.g., table)",
+    "viz_type": "Visualization type (e.g., echarts_timeseries_line, table)",
+    "params": "JSON string of chart parameters/configuration",
+    "query_context": "JSON string of the query context for data fetching",
+    "last_saved_at": "Timestamp of the last explicit save",
+    "last_saved_by_fk": "User ID who last saved this chart",
+    # Dataset-specific
+    "table_name": "Name of the database table or view",
+    "schema": "Database schema name",
+    "catalog": "Database catalog name",
+    "database_id": "ID of the database connection",
+    "sql": "Custom SQL expression (for virtual datasets)",
+    "main_dttm_col": "Primary datetime column for time-series queries",
+    "is_sqllab_view": "Whether this dataset was created from SQL Lab",
+    "template_params": "Jinja template parameters as JSON",
+    "extra": "Extra configuration as JSON",
+    "filter_select_enabled": "Whether filter select is enabled",
+    "normalize_columns": "Whether to normalize column names",
+    "always_filter_main_dttm": "Whether to always filter on the main datetime column",
+    "fetch_values_predicate": "SQL predicate for fetching filter values",
+    "default_endpoint": "Default endpoint URL",
+    "offset": "Row offset for queries",
+    "is_featured": "Whether this dataset is featured",
+    "currency_code_column": "Column containing currency codes",
+    # Dashboard-specific
+    "dashboard_title": "Dashboard display title",
+    "slug": "URL-friendly identifier for the dashboard",
+    "published": "Whether the dashboard is published and visible",
+    "position_json": "JSON layout of dashboard components",
+    "json_metadata": "JSON metadata including filters and settings",
+    "css": "Custom CSS for the dashboard",
+    "theme_id": "Theme ID for dashboard styling",
+}
+
+
 def get_columns_from_model(
     model_cls: Type[Any],
     default_columns: list[str],
@@ -141,8 +198,12 @@ def get_columns_from_model(
     for col in mapper.columns:
         col_name = col.key
         col_type = _get_sqlalchemy_type_name(col.type)
-        # Get description from column doc or comment
-        description = getattr(col, "doc", None) or getattr(col, "comment", None)
+        # Get description from column doc, comment, or fallback mapping
+        description = (
+            getattr(col, "doc", None)
+            or getattr(col, "comment", None)
+            or _COLUMN_DESCRIPTIONS.get(col_name)
+        )
 
         columns.append(
             ColumnMetadata(

@@ -18,12 +18,15 @@
  */
 import fetchMock from 'fetch-mock';
 import {
+  act,
   render,
   screen,
   userEvent,
   waitFor,
   within,
+  createStore,
 } from 'spec/helpers/testing-library';
+import reducerIndex from 'spec/helpers/reducerIndex';
 import { buildErrorTooltipMessage } from './buildErrorTooltipMessage';
 import AlertReportModal, { AlertReportModalProps } from './AlertReportModal';
 import { AlertObject, NotificationMethodOption } from './types';
@@ -104,9 +107,82 @@ const generateMockPayload = (dashboard = true) => {
 // mocking resource endpoints
 const FETCH_DASHBOARD_ENDPOINT = 'glob:*/api/v1/report/1';
 const FETCH_CHART_ENDPOINT = 'glob:*/api/v1/report/2';
+const FETCH_REPORT_WITH_FILTERS_ENDPOINT = 'glob:*/api/v1/report/3';
+const FETCH_REPORT_NO_FILTER_NAME_ENDPOINT = 'glob:*/api/v1/report/4';
+const FETCH_REPORT_OVERWRITE_ENDPOINT = 'glob:*/api/v1/report/5';
 
-fetchMock.get(FETCH_DASHBOARD_ENDPOINT, { result: generateMockPayload(true) });
-fetchMock.get(FETCH_CHART_ENDPOINT, { result: generateMockPayload(false) });
+fetchMock.get(
+  FETCH_DASHBOARD_ENDPOINT,
+  { result: generateMockPayload(true) },
+  { name: FETCH_DASHBOARD_ENDPOINT },
+);
+fetchMock.get(
+  FETCH_CHART_ENDPOINT,
+  { result: generateMockPayload(false) },
+  { name: FETCH_CHART_ENDPOINT },
+);
+fetchMock.get(FETCH_REPORT_WITH_FILTERS_ENDPOINT, {
+  result: {
+    ...generateMockPayload(true),
+    id: 3,
+    type: 'Report',
+    extra: {
+      dashboard: {
+        nativeFilters: [
+          {
+            nativeFilterId: 'NATIVE_FILTER-abc123',
+            filterName: 'Country',
+            filterType: 'filter_select',
+            columnName: 'country',
+            columnLabel: 'Country',
+            filterValues: ['USA'],
+          },
+        ],
+      },
+    },
+  },
+});
+fetchMock.get(FETCH_REPORT_NO_FILTER_NAME_ENDPOINT, {
+  result: {
+    ...generateMockPayload(true),
+    id: 4,
+    type: 'Report',
+    extra: {
+      dashboard: {
+        nativeFilters: [
+          {
+            nativeFilterId: 'NATIVE_FILTER-xyz789',
+            filterType: 'filter_select',
+            columnName: 'region',
+            columnLabel: 'Region',
+            filterValues: ['West'],
+          },
+        ],
+      },
+    },
+  },
+});
+fetchMock.get(FETCH_REPORT_OVERWRITE_ENDPOINT, {
+  result: {
+    ...generateMockPayload(true),
+    id: 5,
+    type: 'Report',
+    extra: {
+      dashboard: {
+        nativeFilters: [
+          {
+            nativeFilterId: 'NATIVE_FILTER-abc123',
+            filterName: 'Country',
+            filterType: 'filter_select',
+            columnName: 'country',
+            columnLabel: 'Country',
+            filterValues: ['USA'],
+          },
+        ],
+      },
+    },
+  },
+});
 
 // Related mocks
 const ownersEndpoint = 'glob:*/api/v1/alert/related/owners?*';
@@ -119,16 +195,52 @@ fetchMock.get(ownersEndpoint, { result: [] });
 fetchMock.get(databaseEndpoint, { result: [] });
 fetchMock.get(dashboardEndpoint, { result: [] });
 fetchMock.get(chartEndpoint, { result: [{ text: 'table chart', value: 1 }] });
-fetchMock.get(tabsEndpoint, {
-  result: {
-    all_tabs: {},
-    tab_tree: [],
+fetchMock.get(
+  tabsEndpoint,
+  {
+    result: {
+      all_tabs: {},
+      tab_tree: [],
+    },
   },
+  { name: tabsEndpoint },
+);
+
+// Restore the default tabs route and remove any test-specific overrides.
+// Called in afterEach so cleanup runs even when a test fails mid-way.
+const restoreDefaultTabsRoute = () => {
+  for (const name of [
+    'clear-icon-tabs',
+    'clear-icon-chart-data',
+    'deferred-tabs',
+    'overwrite-chart-data',
+  ]) {
+    try {
+      fetchMock.removeRoute(name);
+    } catch {
+      // route may not exist if the test that adds it didn't run
+    }
+  }
+  // Re-add the default empty tabs route if it was replaced
+  try {
+    fetchMock.removeRoute(tabsEndpoint);
+  } catch {
+    // already removed
+  }
+  fetchMock.get(
+    tabsEndpoint,
+    { result: { all_tabs: {}, tab_tree: [] } },
+    { name: tabsEndpoint },
+  );
+};
+
+afterEach(() => {
+  restoreDefaultTabsRoute();
 });
 
 // Create a valid alert with all required fields entered for validation check
 
-// @ts-ignore will add id in factory function
+// @ts-expect-error will add id in factory function
 const validAlert: AlertObject = {
   active: false,
   changed_on_delta_humanized: 'now',
@@ -524,6 +636,30 @@ test('does not show screenshot width when csv is selected', async () => {
   expect(screen.queryByRole('spinbutton')).not.toBeInTheDocument();
 });
 
+test('shows screenshot width when PDF is selected', async () => {
+  render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {
+    useRedux: true,
+  });
+  userEvent.click(screen.getByTestId('contents-panel'));
+  await screen.findByText(/test chart/i);
+  const contentTypeSelector = screen.getByRole('combobox', {
+    name: /select content type/i,
+  });
+  await comboboxSelect(contentTypeSelector, 'Chart', () =>
+    screen.getByText(/select chart/i),
+  );
+  const reportFormatSelector = screen.getByRole('combobox', {
+    name: /select format/i,
+  });
+  await comboboxSelect(
+    reportFormatSelector,
+    'PDF',
+    () => screen.getAllByText(/Send as PDF/i)[0],
+  );
+  expect(screen.getByText(/screenshot width/i)).toBeInTheDocument();
+  expect(screen.getByRole('spinbutton')).toBeInTheDocument();
+});
+
 // Schedule Section
 test('opens Schedule Section on click', async () => {
   render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {
@@ -543,7 +679,8 @@ test('renders default Schedule fields', async () => {
   const scheduleType = screen.getByRole('combobox', {
     name: /schedule type/i,
   });
-  const timezone = screen.getByRole('combobox', {
+  // Wait for timezone selector to render after delay
+  const timezone = await screen.findByRole('combobox', {
     name: /timezone selector/i,
   });
   const logRetention = screen.getByRole('combobox', {
@@ -681,11 +818,11 @@ test('renders dashboard filter dropdowns', async () => {
 });
 
 test('filter reappears in dropdown after clearing with X icon', async () => {
-  const tabsWithFiltersEndpoint = 'glob:*/api/v1/dashboard/1/tabs';
   const chartDataEndpoint = 'glob:*/api/v1/chart/data*';
 
+  fetchMock.removeRoute(tabsEndpoint);
   fetchMock.get(
-    tabsWithFiltersEndpoint,
+    tabsEndpoint,
     {
       result: {
         all_tabs: { tab1: 'Tab 1' },
@@ -712,13 +849,15 @@ test('filter reappears in dropdown after clearing with X icon', async () => {
         },
       },
     },
-    { overwriteRoutes: true },
+    { name: tabsEndpoint },
   );
 
   fetchMock.post(
     chartDataEndpoint,
     { result: [{ data: [] }] },
-    { overwriteRoutes: true },
+    {
+      name: 'clear-icon-chart-data',
+    },
   );
 
   render(<AlertReportModal {...generateMockedProps(true, true)} />, {
@@ -771,4 +910,581 @@ test('filter reappears in dropdown after clearing with X icon', async () => {
       within(virtualList as HTMLElement).getByText('Test Filter 1'),
     ).toBeInTheDocument();
   });
+});
+
+const setupAnchorMocks = (
+  nativeFilters: Record<string, unknown>,
+  anchor = 'TAB-abc',
+  tabsOverride?: {
+    all_tabs: Record<string, string>;
+    tab_tree: { title: string; value: string }[];
+  },
+) => {
+  const payloadWithAnchor = {
+    ...generateMockPayload(true),
+    extra: { dashboard: { anchor } },
+  };
+
+  const defaultTabs = {
+    all_tabs: { [anchor]: `Tab ${anchor}` },
+    tab_tree: [{ title: `Tab ${anchor}`, value: anchor }],
+  };
+  const tabs = tabsOverride ?? defaultTabs;
+
+  // Clear call history so waitFor assertions don't match calls from prior tests.
+  fetchMock.callHistory.clear();
+
+  // Only replace the named routes that need anchor-specific overrides;
+  // unnamed related-endpoint routes (owners, database, etc.) stay intact.
+  fetchMock.removeRoute(FETCH_DASHBOARD_ENDPOINT);
+  fetchMock.removeRoute(FETCH_CHART_ENDPOINT);
+  fetchMock.removeRoute(tabsEndpoint);
+
+  fetchMock.get(
+    FETCH_DASHBOARD_ENDPOINT,
+    { result: payloadWithAnchor },
+    { name: FETCH_DASHBOARD_ENDPOINT },
+  );
+  fetchMock.get(
+    FETCH_CHART_ENDPOINT,
+    { result: generateMockPayload(false) },
+    { name: FETCH_CHART_ENDPOINT },
+  );
+  fetchMock.get(
+    tabsEndpoint,
+    {
+      result: {
+        ...tabs,
+        native_filters: nativeFilters,
+      },
+    },
+    { name: tabsEndpoint },
+  );
+};
+
+const restoreAnchorMocks = () => {
+  fetchMock.removeRoute(FETCH_DASHBOARD_ENDPOINT);
+  fetchMock.get(
+    FETCH_DASHBOARD_ENDPOINT,
+    { result: generateMockPayload(true) },
+    { name: FETCH_DASHBOARD_ENDPOINT },
+  );
+  fetchMock.removeRoute(FETCH_CHART_ENDPOINT);
+  fetchMock.get(
+    FETCH_CHART_ENDPOINT,
+    { result: generateMockPayload(false) },
+    { name: FETCH_CHART_ENDPOINT },
+  );
+  fetchMock.removeRoute(tabsEndpoint);
+  fetchMock.get(
+    tabsEndpoint,
+    { result: { all_tabs: {}, tab_tree: [] } },
+    { name: tabsEndpoint },
+  );
+};
+
+test('no error toast when anchor tab has no scoped native filters', async () => {
+  setupAnchorMocks({
+    all: [
+      {
+        id: 'NATIVE_FILTER-1',
+        name: 'Filter 1',
+        filterType: 'filter_select',
+        targets: [{ column: { name: 'col' } }],
+        adhoc_filters: [],
+      },
+    ],
+  });
+
+  const store = createStore({}, reducerIndex);
+
+  try {
+    render(<AlertReportModal {...generateMockedProps(true, true)} />, {
+      store,
+    });
+
+    userEvent.click(screen.getByTestId('contents-panel'));
+    await screen.findByText(/test dashboard/i);
+
+    await waitFor(() => {
+      expect(
+        fetchMock.callHistory
+          .calls()
+          .some(c => c.url.includes('/dashboard/1/tabs')),
+      ).toBe(true);
+    });
+
+    const toasts = (store.getState() as Record<string, unknown>)
+      .messageToasts as { text: string }[];
+    expect(
+      toasts.some(
+        (toast: { text: string }) =>
+          toast.text === 'There was an error retrieving dashboard tabs.',
+      ),
+    ).toBe(false);
+  } finally {
+    restoreAnchorMocks();
+  }
+});
+
+test('no error toast when anchor tab set and dashboard has zero native filters', async () => {
+  setupAnchorMocks({});
+
+  const store = createStore({}, reducerIndex);
+
+  try {
+    render(<AlertReportModal {...generateMockedProps(true, true)} />, {
+      store,
+    });
+
+    userEvent.click(screen.getByTestId('contents-panel'));
+    await screen.findByText(/test dashboard/i);
+
+    await waitFor(() => {
+      expect(
+        fetchMock.callHistory
+          .calls()
+          .some(c => c.url.includes('/dashboard/1/tabs')),
+      ).toBe(true);
+    });
+
+    const toasts = (store.getState() as Record<string, unknown>)
+      .messageToasts as { text: string }[];
+    expect(
+      toasts.some(
+        (toast: { text: string }) =>
+          toast.text === 'There was an error retrieving dashboard tabs.',
+      ),
+    ).toBe(false);
+  } finally {
+    restoreAnchorMocks();
+  }
+});
+
+test('stale JSON array anchor is cleared without crash or toast', async () => {
+  const staleAnchor = JSON.stringify(['TAB-abc', 'TAB-missing']);
+  setupAnchorMocks(
+    {
+      all: [
+        {
+          id: 'NATIVE_FILTER-1',
+          name: 'Filter 1',
+          filterType: 'filter_select',
+          targets: [{ column: { name: 'col' } }],
+          adhoc_filters: [],
+        },
+      ],
+    },
+    staleAnchor,
+    {
+      all_tabs: { 'TAB-abc': 'Tab ABC' },
+      tab_tree: [{ title: 'Tab ABC', value: 'TAB-abc' }],
+    },
+  );
+
+  const store = createStore({}, reducerIndex);
+
+  try {
+    render(<AlertReportModal {...generateMockedProps(true, true)} />, {
+      store,
+    });
+
+    userEvent.click(screen.getByTestId('contents-panel'));
+    await screen.findByText(/test dashboard/i);
+
+    // Wait for the tabs useEffect to process the stale anchor
+    await waitFor(() => {
+      expect(
+        fetchMock.callHistory
+          .calls()
+          .some(c => c.url.includes('/dashboard/1/tabs')),
+      ).toBe(true);
+    });
+
+    // No error toast dispatched (the .then() handler ran without crashing)
+    const toasts = (store.getState() as Record<string, unknown>)
+      .messageToasts as { text: string }[];
+    expect(
+      toasts.some(
+        (toast: { text: string }) =>
+          toast.text === 'There was an error retrieving dashboard tabs.',
+      ),
+    ).toBe(false);
+
+    // Verify anchor was cleared at the payload level: trigger save and
+    // inspect the PUT body to confirm extra.dashboard.anchor is undefined
+    const updateEndpoint = 'glob:*/api/v1/report/1';
+    fetchMock.put(
+      updateEndpoint,
+      { id: 1, result: {} },
+      { name: 'put-report-1' },
+    );
+
+    const saveButton = screen.getByRole('button', { name: /save/i });
+    expect(saveButton).not.toBeDisabled();
+    userEvent.click(saveButton);
+
+    await waitFor(() => {
+      const putCalls = fetchMock.callHistory
+        .calls()
+        .filter(
+          c => c.url.includes('/api/v1/report/') && c.options?.method === 'put',
+        );
+      expect(putCalls).toHaveLength(1);
+    });
+
+    const putCall = fetchMock.callHistory
+      .calls()
+      .find(
+        c => c.url.includes('/api/v1/report/') && c.options?.method === 'put',
+      );
+    const body = JSON.parse(putCall!.options?.body as string);
+    expect(body.extra.dashboard.anchor).toBeUndefined();
+  } finally {
+    fetchMock.removeRoute('put-report-1');
+    restoreAnchorMocks();
+  }
+});
+
+test('tabs API failure shows danger toast via Redux store', async () => {
+  fetchMock.removeRoute(tabsEndpoint);
+  fetchMock.get(tabsEndpoint, 500, { name: tabsEndpoint });
+
+  const store = createStore({}, reducerIndex);
+
+  try {
+    render(<AlertReportModal {...generateMockedProps(true, true)} />, {
+      store,
+    });
+
+    userEvent.click(screen.getByTestId('contents-panel'));
+
+    await waitFor(() => {
+      const toasts = (store.getState() as Record<string, unknown>)
+        .messageToasts as { text: string }[];
+      expect(
+        toasts.some(
+          (toast: { text: string }) =>
+            toast.text === 'There was an error retrieving dashboard tabs.',
+        ),
+      ).toBe(true);
+    });
+  } finally {
+    fetchMock.removeRoute(tabsEndpoint);
+    fetchMock.get(
+      tabsEndpoint,
+      { result: { all_tabs: {}, tab_tree: [] } },
+      { name: tabsEndpoint },
+    );
+  }
+});
+
+test('null all_tabs does not crash or show error toast', async () => {
+  setupAnchorMocks({
+    all: [
+      {
+        id: 'NATIVE_FILTER-1',
+        name: 'Filter 1',
+        filterType: 'filter_select',
+        targets: [{ column: { name: 'col' } }],
+        adhoc_filters: [],
+      },
+    ],
+  });
+
+  // Override tabs endpoint with null all_tabs
+  fetchMock.removeRoute(tabsEndpoint);
+  fetchMock.get(
+    tabsEndpoint,
+    {
+      result: {
+        all_tabs: null,
+        tab_tree: [{ title: 'Tab ABC', value: 'TAB-abc' }],
+        native_filters: {
+          all: [
+            {
+              id: 'NATIVE_FILTER-1',
+              name: 'Filter 1',
+              filterType: 'filter_select',
+              targets: [{ column: { name: 'col' } }],
+              adhoc_filters: [],
+            },
+          ],
+        },
+      },
+    },
+    { name: tabsEndpoint },
+  );
+
+  const store = createStore({}, reducerIndex);
+
+  try {
+    render(<AlertReportModal {...generateMockedProps(true, true)} />, {
+      store,
+    });
+
+    userEvent.click(screen.getByTestId('contents-panel'));
+    await screen.findByText(/test dashboard/i);
+
+    // Wait for tabs useEffect to complete
+    await waitFor(() => {
+      expect(
+        fetchMock.callHistory
+          .calls()
+          .some(c => c.url.includes('/dashboard/1/tabs')),
+      ).toBe(true);
+    });
+
+    // No error toast dispatched
+    const toasts = (store.getState() as Record<string, unknown>)
+      .messageToasts as { text: string }[];
+    expect(
+      toasts.some(
+        (toast: { text: string }) =>
+          toast.text === 'There was an error retrieving dashboard tabs.',
+      ),
+    ).toBe(false);
+
+    // Component remains interactive
+    expect(
+      screen.getByRole('combobox', { name: /select filter/i }),
+    ).toBeInTheDocument();
+  } finally {
+    restoreAnchorMocks();
+  }
+});
+
+test('missing native_filters in tabs response does not crash or show error toast', async () => {
+  setupAnchorMocks({});
+
+  // Override tabs endpoint with no native_filters key
+  fetchMock.removeRoute(tabsEndpoint);
+  fetchMock.get(
+    tabsEndpoint,
+    {
+      result: {
+        all_tabs: { 'TAB-abc': 'Tab ABC' },
+        tab_tree: [{ title: 'Tab ABC', value: 'TAB-abc' }],
+      },
+    },
+    { name: tabsEndpoint },
+  );
+
+  const store = createStore({}, reducerIndex);
+
+  try {
+    render(<AlertReportModal {...generateMockedProps(true, true)} />, {
+      store,
+    });
+
+    userEvent.click(screen.getByTestId('contents-panel'));
+    await screen.findByText(/test dashboard/i);
+
+    // Wait for tabs useEffect to complete
+    await waitFor(() => {
+      expect(
+        fetchMock.callHistory
+          .calls()
+          .some(c => c.url.includes('/dashboard/1/tabs')),
+      ).toBe(true);
+    });
+
+    // No error toast dispatched
+    const toasts = (store.getState() as Record<string, unknown>)
+      .messageToasts as { text: string }[];
+    expect(
+      toasts.some(
+        (toast: { text: string }) =>
+          toast.text === 'There was an error retrieving dashboard tabs.',
+      ),
+    ).toBe(false);
+  } finally {
+    restoreAnchorMocks();
+  }
+});
+
+test('anchor tab with scoped filters loads filter options correctly', async () => {
+  // Use JSON-parseable non-array anchor to exercise the scoped filter
+  // code path at line 1108 (JSON.parse('42') → 42, not an array)
+  setupAnchorMocks(
+    {
+      all: [
+        {
+          id: 'NATIVE_FILTER-1',
+          name: 'Global Filter',
+          filterType: 'filter_select',
+          targets: [{ column: { name: 'col' } }],
+          adhoc_filters: [],
+        },
+      ],
+      '42': [
+        {
+          id: 'NATIVE_FILTER-2',
+          name: 'Tab Scoped Filter',
+          filterType: 'filter_select',
+          targets: [{ column: { name: 'col2' } }],
+          adhoc_filters: [],
+        },
+      ],
+    },
+    '42',
+  );
+
+  const store = createStore({}, reducerIndex);
+
+  try {
+    render(<AlertReportModal {...generateMockedProps(true, true)} />, {
+      store,
+    });
+
+    userEvent.click(screen.getByTestId('contents-panel'));
+    await screen.findByText(/test dashboard/i);
+
+    const filterDropdown = screen.getByRole('combobox', {
+      name: /select filter/i,
+    });
+    userEvent.click(filterDropdown);
+
+    const filterOption = await screen.findByRole('option', {
+      name: /Tab Scoped Filter/,
+    });
+    expect(filterOption).toBeInTheDocument();
+
+    const toasts = (store.getState() as Record<string, unknown>)
+      .messageToasts as { text: string }[];
+    expect(
+      toasts.some(
+        (toast: { text: string }) =>
+          toast.text === 'There was an error retrieving dashboard tabs.',
+      ),
+    ).toBe(false);
+  } finally {
+    restoreAnchorMocks();
+  }
+});
+
+test('edit mode shows friendly filter names instead of raw IDs', async () => {
+  const props = generateMockedProps(true, true);
+  const editProps = {
+    ...props,
+    alert: { ...validAlert, id: 3 },
+  };
+
+  render(<AlertReportModal {...editProps} />, {
+    useRedux: true,
+  });
+
+  userEvent.click(screen.getByTestId('contents-panel'));
+
+  await waitFor(() => {
+    const selectionItem = document.querySelector(
+      '.ant-select-selection-item[title="Country"]',
+    );
+    expect(selectionItem).toBeInTheDocument();
+  });
+
+  expect(
+    document.querySelector(
+      '.ant-select-selection-item[title="NATIVE_FILTER-abc123"]',
+    ),
+  ).not.toBeInTheDocument();
+});
+
+test('edit mode falls back to raw ID when filterName is missing', async () => {
+  const props = generateMockedProps(true, true);
+  const editProps = {
+    ...props,
+    alert: { ...validAlert, id: 4 },
+  };
+
+  render(<AlertReportModal {...editProps} />, {
+    useRedux: true,
+  });
+
+  userEvent.click(screen.getByTestId('contents-panel'));
+
+  await waitFor(() => {
+    const selectionItem = document.querySelector(
+      '.ant-select-selection-item[title="NATIVE_FILTER-xyz789"]',
+    );
+    expect(selectionItem).toBeInTheDocument();
+  });
+});
+
+test('tabs metadata overwrites seeded filter options', async () => {
+  const chartDataEndpoint = 'glob:*/api/v1/chart/data*';
+
+  // Deferred promise to control when the tabs response resolves
+  let resolveTabsResponse!: (value: unknown) => void;
+  const deferredTabs = new Promise(resolve => {
+    resolveTabsResponse = resolve;
+  });
+
+  const tabsResult = {
+    result: {
+      all_tabs: { tab1: 'Tab 1' },
+      tab_tree: [{ title: 'Tab 1', value: 'tab1' }],
+      native_filters: {
+        all: [
+          {
+            id: 'NATIVE_FILTER-abc123',
+            name: 'Country (All Filters)',
+            filterType: 'filter_select',
+            targets: [{ column: { name: 'country' }, datasetId: 1 }],
+            adhoc_filters: [],
+          },
+        ],
+        tab1: [],
+      },
+    },
+  };
+
+  // Replace only the tabs route with a deferred version
+  fetchMock.removeRoute(tabsEndpoint);
+  fetchMock.get(tabsEndpoint, () => deferredTabs.then(() => tabsResult), {
+    name: 'deferred-tabs',
+  });
+  fetchMock.post(
+    chartDataEndpoint,
+    { result: [{ data: [] }] },
+    {
+      name: 'overwrite-chart-data',
+    },
+  );
+
+  const props = generateMockedProps(true, true);
+  const editProps = {
+    ...props,
+    alert: { ...validAlert, id: 5 },
+  };
+
+  render(<AlertReportModal {...editProps} />, {
+    useRedux: true,
+  });
+
+  userEvent.click(screen.getByTestId('contents-panel'));
+
+  // Seeded label from saved data appears before tabs respond
+  const filterSelect = screen.getByRole('combobox', {
+    name: /select filter/i,
+  });
+  const selectContainer = filterSelect.closest('.ant-select') as HTMLElement;
+  await waitFor(() => {
+    expect(within(selectContainer).getByTitle('Country')).toBeInTheDocument();
+  });
+
+  // Resolve the deferred tabs response
+  await act(async () => {
+    resolveTabsResponse(undefined);
+  });
+
+  // Tabs metadata overwrites the seeded label
+  await waitFor(() => {
+    expect(
+      within(selectContainer).getByTitle('Country (All Filters)'),
+    ).toBeInTheDocument();
+  });
+  expect(
+    within(selectContainer).queryByTitle('Country'),
+  ).not.toBeInTheDocument();
 });

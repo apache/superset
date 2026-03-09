@@ -17,8 +17,8 @@
  * under the License.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import PropTypes from 'prop-types';
-import { ensureIsArray, t, usePrevious } from '@superset-ui/core';
+import { ensureIsArray, usePrevious } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import { isEqual } from 'lodash';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -28,27 +28,9 @@ import {
   HeaderContainer,
   LabelsContainer,
 } from 'src/explore/components/controls/OptionControls';
-import columnType from './columnType';
 import MetricDefinitionValue from './MetricDefinitionValue';
 import AdhocMetric from './AdhocMetric';
-import savedMetricType from './savedMetricType';
-import adhocMetricType from './adhocMetricType';
 import AdhocMetricPopoverTrigger from './AdhocMetricPopoverTrigger';
-
-const propTypes = {
-  name: PropTypes.string.isRequired,
-  onChange: PropTypes.func,
-  value: PropTypes.oneOfType([
-    PropTypes.arrayOf(PropTypes.oneOfType([PropTypes.string, adhocMetricType])),
-    PropTypes.oneOfType([PropTypes.string, adhocMetricType]),
-  ]),
-  columns: PropTypes.arrayOf(columnType),
-  savedMetrics: PropTypes.arrayOf(savedMetricType),
-  isLoading: PropTypes.bool,
-  multi: PropTypes.bool,
-  clearable: PropTypes.bool,
-  datasource: PropTypes.object,
-};
 
 const defaultProps = {
   onChange: () => {},
@@ -369,7 +351,6 @@ const MetricsControl = ({
   );
 };
 
-MetricsControl.propTypes = propTypes;
 MetricsControl.defaultProps = defaultProps;
 
 export default MetricsControl;

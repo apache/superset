@@ -34,7 +34,7 @@ from flask import current_app as app
 from flask_babel import gettext as __, lazy_gettext as _
 from packaging.version import Version
 from sqlalchemy import Column, literal_column, types
-from sqlalchemy.engine.base import Engine
+from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.result import Row as ResultRow
 from sqlalchemy.engine.url import URL
@@ -44,7 +44,7 @@ from sqlalchemy.sql.expression import ColumnClause, Select
 from superset import cache_manager, db, is_feature_enabled
 from superset.common.db_query_status import QueryStatus
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 from superset.db_engine_specs.exceptions import SupersetDBAPIProgrammingError
 from superset.errors import SupersetErrorType
 from superset.exceptions import SupersetTemplateException
@@ -896,6 +896,30 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
     engine_name = "Presto"
     allows_alias_to_source_column = False
 
+    metadata = {
+        "description": "Presto is a distributed SQL query engine for big data.",
+        "logo": "presto-og.png",
+        "homepage_url": "https://prestodb.io/",
+        "categories": [DatabaseCategory.QUERY_ENGINES, DatabaseCategory.OPEN_SOURCE],
+        "pypi_packages": ["pyhive"],
+        "install_instructions": 'pip install "apache-superset[presto]"',
+        "connection_string": "presto://{hostname}:{port}/{database}",
+        "default_port": 8080,
+        "parameters": {
+            "hostname": "Presto coordinator hostname",
+            "port": "Presto coordinator port (default 8080)",
+            "database": "Catalog name",
+        },
+        "drivers": [
+            {
+                "name": "PyHive",
+                "pypi_package": "pyhive",
+                "connection_string": "presto://{hostname}:{port}/{database}",
+                "is_recommended": True,
+            },
+        ],
+    }
+
     custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = {
         COLUMN_DOES_NOT_EXIST_REGEX: (
             __(
@@ -1100,7 +1124,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         cls,
         database: Database,
         table: Table,
-        engine: Engine,
+        dialect: Dialect,
         limit: int = 100,
         show_cols: bool = False,
         indent: bool = True,
@@ -1124,7 +1148,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         return super().select_star(
             database,
             table,
-            engine,
+            dialect,
             limit,
             show_cols,
             indent,
