@@ -19,7 +19,11 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { SupersetClient, FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+import {
+  SupersetClient,
+  FeatureFlag,
+  isFeatureEnabled,
+} from '@superset-ui/core';
 import { css, useTheme, styled } from '@apache-superset/core/theme';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
