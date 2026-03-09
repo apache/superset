@@ -414,7 +414,11 @@ const FilterBar: FC<FiltersBarProps> = ({
   ]);
 
   const handleClearAll = useCallback(() => {
+    dispatch(logEvent(LOG_ACTIONS_CHANGE_DASHBOARD_FILTER, {}));
+    setUpdateKey(1);
     const newClearAllTriggers = { ...clearAllTriggers };
+    // Clear all native filters, not just those in scope
+    const updates: Record<string, DataMaskWithId> = {};
     nativeFilterValues.forEach(filter => {
       const { id, filterType } = filter;
       // Range filters use [null, null] as the cleared value; others use undefined
@@ -425,6 +429,14 @@ const FilterBar: FC<FiltersBarProps> = ({
         extraFormData: {},
       };
       if (dataMaskSelected[id]) {
+        updates[id] = {
+          ...dataMaskSelected[id],
+          filterState: {
+            ...dataMaskSelected[id].filterState,
+            value: null,
+          },
+          extraFormData: {},
+        };
         dispatch(updateDataMask(id, clearedDataMask));
         setDataMaskSelected(draft => {
           if (draft[id].filterState?.value !== undefined) {
@@ -435,6 +447,18 @@ const FilterBar: FC<FiltersBarProps> = ({
         newClearAllTriggers[id] = true;
       }
     });
+
+    setDataMaskSelected(draft => {
+      Object.entries(updates).forEach(([id, mask]) => {
+        draft[id] = mask;
+      });
+    });
+
+    Object.entries(updates).forEach(([id, mask]) => {
+      dispatch(updateDataMask(id, mask));
+    });
+
+    let hasChartCustomizationsToClear = false;
 
     const allDataMasks = { ...dataMaskSelected, ...dataMaskApplied };
     const hasCustomizationDataMasks = Object.keys(allDataMasks).some(key =>
@@ -461,6 +485,16 @@ const FilterBar: FC<FiltersBarProps> = ({
       dispatch(clearAllPendingChartCustomizations());
       setPendingCustomizationDataMasks({});
       setHasClearedChartCustomizations(true);
+
+      const clearedChartCustomizations = chartCustomizationItems.map(item => ({
+        ...item,
+        customization: {
+          ...item.customization,
+          column: null,
+        },
+      }));
+
+      dispatch(saveChartCustomization(clearedChartCustomizations));
     }
 
     setClearAllTriggers(newClearAllTriggers);
