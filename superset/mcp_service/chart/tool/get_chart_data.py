@@ -48,7 +48,9 @@ from superset.mcp_service.utils.schema_utils import parse_request
 logger = logging.getLogger(__name__)
 
 
-def _apply_extra_form_data(form_data: dict, extra_form_data: dict | None) -> None:
+def _apply_extra_form_data(
+    form_data: dict[str, Any], extra_form_data: dict[str, Any] | None
+) -> None:
     """Merge dashboard native filters into chart form_data in-place."""
     if not extra_form_data:
         return
