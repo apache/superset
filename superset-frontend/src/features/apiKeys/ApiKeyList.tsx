@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { SupersetClient } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import { css, useTheme } from '@apache-superset/core/theme';
@@ -49,7 +49,7 @@ export function ApiKeyList() {
   const [loading, setLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
-  const fetchApiKeys = useCallback(async () => {
+  async function fetchApiKeys() {
     setLoading(true);
     try {
       const response = await SupersetClient.get({
@@ -61,38 +61,35 @@ export function ApiKeyList() {
     } finally {
       setLoading(false);
     }
-  }, [addDangerToast]);
+  }
 
   useEffect(() => {
     fetchApiKeys();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleRevokeKey = useCallback(
-    async (keyUuid: string) => {
-      Modal.confirm({
-        title: t('Revoke API Key'),
-        content: t(
-          'Are you sure you want to revoke this API key? This action cannot be undone.',
-        ),
-        okText: t('Revoke'),
-        okType: 'danger',
-        cancelText: t('Cancel'),
-        onOk: async () => {
-          try {
-            await SupersetClient.delete({
-              endpoint: `/api/v1/security/api_keys/${keyUuid}`,
-            });
-            addSuccessToast(t('API key revoked successfully'));
-            fetchApiKeys();
-          } catch (error) {
-            addDangerToast(t('Failed to revoke API key'));
-          }
-        },
-      });
-    },
-    [addDangerToast, addSuccessToast, fetchApiKeys],
-  );
+  function handleRevokeKey(keyUuid: string) {
+    Modal.confirm({
+      title: t('Revoke API Key'),
+      content: t(
+        'Are you sure you want to revoke this API key? This action cannot be undone.',
+      ),
+      okText: t('Revoke'),
+      okType: 'danger',
+      cancelText: t('Cancel'),
+      onOk: async () => {
+        try {
+          await SupersetClient.delete({
+            endpoint: `/api/v1/security/api_keys/${keyUuid}`,
+          });
+          addSuccessToast(t('API key revoked successfully'));
+          fetchApiKeys();
+        } catch (error) {
+          addDangerToast(t('Failed to revoke API key'));
+        }
+      },
+    });
+  }
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return '-';
