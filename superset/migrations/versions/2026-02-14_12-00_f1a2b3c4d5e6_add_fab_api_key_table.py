@@ -17,7 +17,7 @@
 """add FAB api key table
 
 Revision ID: f1a2b3c4d5e6
-Revises: 4b2a8c9d3e1f
+Revises: a1b2c3d4e5f6
 Create Date: 2026-02-14 12:00:00.000000
 
 """
@@ -27,10 +27,10 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "f1a2b3c4d5e6"
-down_revision = "4b2a8c9d3e1f"
+down_revision = "a1b2c3d4e5f6"
 
 
-def upgrade():
+def upgrade() -> None:
     """Create ab_api_key table for FAB API key authentication.
 
     This table is managed by FAB's SecurityManager. For fresh installs,
@@ -68,6 +68,6 @@ def upgrade():
         batch_op.create_index("idx_api_key_user_id", ["user_id"])
 
 
-def downgrade():
+def downgrade() -> None:
     """Drop ab_api_key table."""
     op.drop_table("ab_api_key")

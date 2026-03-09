@@ -48,7 +48,7 @@ import logging
 from contextlib import AbstractContextManager
 from typing import Any, Callable, TYPE_CHECKING, TypeVar
 
-from flask import g
+from flask import g, has_request_context
 from flask_appbuilder.security.sqla.models import Group, User
 
 if TYPE_CHECKING:
@@ -212,8 +212,8 @@ def get_user_from_request() -> User:
     # Try API key authentication via FAB SecurityManager
     # Only attempt when in a request context (not for MCP internal operations
     # like tool discovery that run with only an application context)
-    from flask import has_request_context
-
+    # Avoid circular import: superset/__init__.py imports create_app which
+    # depends on the MCP service module tree during app initialization.
     from superset import is_feature_enabled
 
     if is_feature_enabled("FAB_API_KEY_ENABLED") and has_request_context():
