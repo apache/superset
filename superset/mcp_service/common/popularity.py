@@ -339,6 +339,10 @@ def get_popularity_sorted_ids(
         if (item_id := getattr(item, "id", None)) is not None
     ]
 
+    # Cap total_count to the number of IDs actually loaded to keep pagination
+    # consistent when the result set exceeds MAX_POPULARITY_SORT_PAGE_SIZE
+    total_count = len(all_ids)
+
     if not all_ids:
         return [], {}, total_count
 
