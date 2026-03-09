@@ -345,13 +345,13 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         if not model:
             raise DatasetNotFoundError()
 
-        from flask import g
+        from flask import g, has_app_context, has_request_context
 
         # Perform the security check with specific keyword arguments
         # as raise_for_access doesn't accept a generic 'model'
         # We only perform the check if there's a user context (g.user) to avoid
-        # breaking standalone unit tests.
-        if hasattr(g, "user") and g.user:
+        # breaking standalone unit tests and async background tasks.
+        if (has_app_context() or has_request_context()) and getattr(g, "user", None):
             kwargs = {}
             if isinstance(model, Database):
                 kwargs["database"] = model

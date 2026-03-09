@@ -2215,7 +2215,7 @@ class TestDatabaseApi(SupersetTestCase):
         rv = self.client.get(uri)
         assert rv.status_code == 404
         logger_mock.warning.assert_called_once_with(
-            "Database not found.", exc_info=True
+            "Dataset does not exist", exc_info=True
         )
 
     def test_database_tables_invalid_query(self):
