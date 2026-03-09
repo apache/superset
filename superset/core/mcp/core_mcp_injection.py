@@ -251,13 +251,7 @@ def initialize_core_mcp_dependencies() -> None:
 
     Also imports MCP service app to register all host tools BEFORE extension loading.
     """
-    try:
-        import superset_core.mcp.decorators
-    except ImportError:
-        logger.info(
-            "superset-core MCP module not available, skipping MCP initialization"
-        )
-        return
+    import superset_core.mcp.decorators
 
     try:
         from fastmcp.tools import Tool  # noqa: F401
