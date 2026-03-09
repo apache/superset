@@ -1743,3 +1743,116 @@ def test_orderby_adhoc_column(database: Database) -> None:
     # Verify the SQL contains the expression from the adhoc column
     sql = str(result.sqla_query)
     assert "ORDER BY" in sql.upper()
+
+
+def test_extras_where_is_parenthesized(
+    database: Database,
+) -> None:
+    """
+    Test that extras.where is wrapped in parentheses when composed with other
+    filters.
+
+    Without parentheses, an extras.where containing OR operators combined
+    with other filters via AND could produce unexpected evaluation order due
+    to SQL operator precedence (AND binds tighter than OR). Wrapping in
+    parentheses ensures the expression is treated as a single logical unit.
+    """
+    from unittest.mock import patch
+
+    from sqlalchemy import text as sa_text
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a", type="INTEGER"),
+            TableColumn(column_name="b", type="TEXT"),
+        ],
+    )
+
+    with (
+        patch.object(
+            table,
+            "get_sqla_row_level_filters",
+            return_value=[sa_text("(b = 'restricted')")],
+        ),
+        patch.object(
+            table,
+            "_process_select_expression",
+            return_value="1 = 1 OR 1 = 1",
+        ),
+    ):
+        sqla_query = table.get_sqla_query(
+            columns=["a"],
+            extras={"where": "1=1 OR 1=1"},
+            is_timeseries=False,
+            metrics=[],
+        )
+
+        with database.get_sqla_engine() as engine:
+            sql = str(
+                sqla_query.sqla_query.compile(
+                    dialect=engine.dialect,
+                    compile_kwargs={"literal_binds": True},
+                )
+            )
+
+        assert "(1 = 1 OR 1 = 1)" in sql, (
+            f"extras.where should be wrapped in parentheses. Generated SQL: {sql}"
+        )
+
+        assert "b = 'restricted'" in sql, (
+            f"Additional filters should be present in query. Generated SQL: {sql}"
+        )
+
+
+def test_extras_having_is_parenthesized(
+    database: Database,
+) -> None:
+    """
+    Test that extras.having is wrapped in parentheses when composed with
+    other HAVING filters, to ensure correct evaluation order.
+    """
+    from unittest.mock import patch
+
+    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a", type="INTEGER"),
+            TableColumn(column_name="b", type="TEXT"),
+        ],
+        metrics=[
+            SqlMetric(metric_name="cnt", expression="COUNT(*)"),
+        ],
+    )
+
+    with patch.object(
+        table,
+        "_process_select_expression",
+        return_value="COUNT(*) > 0 OR 1 = 1",
+    ):
+        sqla_query = table.get_sqla_query(
+            groupby=["b"],
+            metrics=["cnt"],
+            extras={"having": "COUNT(*) > 0 OR 1=1"},
+            is_timeseries=False,
+        )
+
+        with database.get_sqla_engine() as engine:
+            sql = str(
+                sqla_query.sqla_query.compile(
+                    dialect=engine.dialect,
+                    compile_kwargs={"literal_binds": True},
+                )
+            )
+
+        assert "(COUNT(*) > 0 OR 1 = 1)" in sql, (
+            f"extras.having should be wrapped in parentheses. Generated SQL: {sql}"
+        )
