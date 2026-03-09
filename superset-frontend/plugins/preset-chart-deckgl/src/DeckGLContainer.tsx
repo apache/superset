@@ -28,7 +28,9 @@ import {
   isValidElement,
 } from 'react';
 import { isEqual } from 'lodash';
-import { Map } from 'react-map-gl/maplibre';
+import { Map as MapLibreMap } from 'react-map-gl/maplibre';
+import { Map as MapboxMap } from 'react-map-gl/mapbox';
+import mapboxgl from 'mapbox-gl';
 import type { Layer } from '@deck.gl/core';
 import { JsonObject, JsonValue, usePrevious } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';
@@ -46,6 +48,8 @@ export type DeckGLContainerProps = {
   viewport: Viewport;
   setControlValue?: (control: string, value: JsonValue) => void;
   mapStyle?: string;
+  mapProvider?: 'maplibre' | 'mapbox';
+  mapboxApiKey?: string;
   children?: ReactNode;
   width: number;
   height: number;
@@ -115,6 +119,12 @@ export const DeckGLContainer = memo(
     };
 
     const { children = null, height, width } = props;
+    const isMapbox = props.mapProvider === 'mapbox';
+    const mapStyle = props.mapStyle || DEFAULT_MAP_STYLE;
+
+    if (isMapbox && props.mapboxApiKey) {
+      mapboxgl.accessToken = props.mapboxApiKey;
+    }
 
     return (
       <>
@@ -125,14 +135,25 @@ export const DeckGLContainer = memo(
             e.stopPropagation();
           }}
         >
-          <Map
-            {...viewState}
-            onMove={onMove}
-            mapStyle={props.mapStyle || DEFAULT_MAP_STYLE}
-            style={{ width, height }}
-          >
-            <DeckGLOverlay layers={layers()} />
-          </Map>
+          {isMapbox ? (
+            <MapboxMap
+              {...viewState}
+              onMove={onMove}
+              mapStyle={mapStyle}
+              style={{ width, height }}
+            >
+              <DeckGLOverlay layers={layers()} />
+            </MapboxMap>
+          ) : (
+            <MapLibreMap
+              {...viewState}
+              onMove={onMove}
+              mapStyle={mapStyle}
+              style={{ width, height }}
+            >
+              <DeckGLOverlay layers={layers()} />
+            </MapLibreMap>
+          )}
           {children}
         </div>
         {renderTooltip(tooltip)}

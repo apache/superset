@@ -347,7 +347,7 @@ const DeckGLPolygon = (props: DeckGLPolygonProps) => {
         viewport={viewport}
         layers={getLayers()}
         setControlValue={setControlValue}
-        mapStyle={formData.maplibre_style}
+        mapStyle={formData.map_style}
         width={props.width}
         height={props.height}
       />

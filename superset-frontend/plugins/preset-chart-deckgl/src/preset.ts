@@ -34,19 +34,17 @@ export default class DeckGLChartPreset extends Preset {
     super({
       name: 'deck.gl charts',
       plugins: [
-        new ArcChartPlugin().configure({ key: 'deck_arc_maplibre' }),
-        new GeoJsonChartPlugin().configure({ key: 'deck_geojson_maplibre' }),
-        new GridChartPlugin().configure({ key: 'deck_grid_maplibre' }),
-        new HexChartPlugin().configure({ key: 'deck_hex_maplibre' }),
-        new HeatmapChartPlugin().configure({ key: 'deck_heatmap_maplibre' }),
-        new MultiChartPlugin().configure({ key: 'deck_multi_maplibre' }),
-        new PathChartPlugin().configure({ key: 'deck_path_maplibre' }),
-        new PolygonChartPlugin().configure({ key: 'deck_polygon_maplibre' }),
-        new ScatterChartPlugin().configure({ key: 'deck_scatter_maplibre' }),
-        new ScreengridChartPlugin().configure({
-          key: 'deck_screengrid_maplibre',
-        }),
-        new ContourChartPlugin().configure({ key: 'deck_contour_maplibre' }),
+        new ArcChartPlugin().configure({ key: 'deck_arc' }),
+        new GeoJsonChartPlugin().configure({ key: 'deck_geojson' }),
+        new GridChartPlugin().configure({ key: 'deck_grid' }),
+        new HexChartPlugin().configure({ key: 'deck_hex' }),
+        new HeatmapChartPlugin().configure({ key: 'deck_heatmap' }),
+        new MultiChartPlugin().configure({ key: 'deck_multi' }),
+        new PathChartPlugin().configure({ key: 'deck_path' }),
+        new PolygonChartPlugin().configure({ key: 'deck_polygon' }),
+        new ScatterChartPlugin().configure({ key: 'deck_scatter' }),
+        new ScreengridChartPlugin().configure({ key: 'deck_screengrid' }),
+        new ContourChartPlugin().configure({ key: 'deck_contour' }),
       ],
     });
   }

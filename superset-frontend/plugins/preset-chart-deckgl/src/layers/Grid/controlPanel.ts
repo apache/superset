@@ -34,6 +34,7 @@ import {
   viewport,
   spatial,
   mapboxStyle,
+  mapProvider,
   tooltipContents,
   tooltipTemplate,
   legendPosition,
@@ -59,6 +60,7 @@ const config: ControlPanelConfig = {
     {
       label: t('Map'),
       controlSetRows: [
+        [mapProvider],
         [mapboxStyle],
         [viewport],
         ...generateDeckGLColorSchemeControls({

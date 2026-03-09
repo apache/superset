@@ -34,6 +34,7 @@ import {
   viewport,
   spatial,
   mapboxStyle,
+  mapProvider,
   deckGLFixedColor,
   deckGLCategoricalColorSchemeSelect,
   deckGLCategoricalColorSchemeTypeSelect,
@@ -59,7 +60,7 @@ const config: ControlPanelConfig = {
     },
     {
       label: t('Map'),
-      controlSetRows: [[mapboxStyle], [autozoom, viewport]],
+      controlSetRows: [[mapProvider], [mapboxStyle], [autozoom, viewport]],
     },
     {
       label: t('Grid'),

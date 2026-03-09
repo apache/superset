@@ -1530,14 +1530,14 @@ class MapLibreViz(MapboxViz):
 
     @deprecated(deprecated_in="3.0")
     def query_obj(self) -> QueryObjectDict:
-        self.form_data["mapbox_label"] = self.form_data.get("maplibre_label")
+        self.form_data["mapbox_label"] = self.form_data.get("map_label")
         return super().query_obj()
 
     @deprecated(deprecated_in="3.0")
     def get_data(self, df: pd.DataFrame) -> VizData:
-        self.form_data["mapbox_label"] = self.form_data.get("maplibre_label")
-        self.form_data["mapbox_style"] = self.form_data.get("maplibre_style")
-        self.form_data["mapbox_color"] = self.form_data.get("maplibre_color")
+        self.form_data["mapbox_label"] = self.form_data.get("map_label")
+        self.form_data["mapbox_style"] = self.form_data.get("map_style")
+        self.form_data["mapbox_color"] = self.form_data.get("map_color")
         data = super().get_data(df)
         if data:
             data.pop("mapboxApiKey", None)

@@ -16,12 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useControl } from 'react-map-gl';
-import { MapboxOverlay } from '@deck.gl/mapbox';
-import type { MapboxOverlayProps } from '@deck.gl/mapbox';
 
-export default function DeckGLOverlay(props: MapboxOverlayProps) {
-  const overlay = useControl<MapboxOverlay>(() => new MapboxOverlay(props));
-  overlay.setProps(props);
-  return null;
+export function getMapboxApiKey(): string {
+  if (typeof document === 'undefined') {
+    return '';
+  }
+  try {
+    const appContainer = document.getElementById('app');
+    const dataBootstrap = appContainer?.getAttribute('data-bootstrap');
+    if (dataBootstrap) {
+      const bootstrapData = JSON.parse(dataBootstrap);
+      return bootstrapData?.common?.conf?.MAPBOX_API_KEY || '';
+    }
+  } catch {
+    // If bootstrap data is unavailable or malformed, return empty string
+  }
+  return '';
 }

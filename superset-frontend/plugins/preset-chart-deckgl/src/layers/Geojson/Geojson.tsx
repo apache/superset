@@ -417,7 +417,7 @@ const DeckGLGeoJson = (props: DeckGLGeoJsonProps) => {
       ref={containerRef}
       viewport={viewport}
       layers={[layer]}
-      mapStyle={formData.maplibre_style}
+      mapStyle={formData.map_style}
       setControlValue={setControlValue}
       height={height}
       width={width}

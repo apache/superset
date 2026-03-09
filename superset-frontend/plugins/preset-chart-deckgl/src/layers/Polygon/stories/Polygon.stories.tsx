@@ -104,7 +104,7 @@ export const PolygonChartViz = ({
       row_limit: 10000,
       reverse_long_lat: false,
       filter_nulls: true,
-      maplibre_style:
+      map_style:
         'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
       viewport: {
         altitude: 1.5,
@@ -182,7 +182,7 @@ export const GeojsonPolygonViz = ({
       row_limit: 10000,
       reverse_long_lat: false,
       filter_nulls: true,
-      maplibre_style:
+      map_style:
         'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
       viewport: {
         longitude: 6.85236157047845,

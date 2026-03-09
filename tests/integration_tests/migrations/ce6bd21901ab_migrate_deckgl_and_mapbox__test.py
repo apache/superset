@@ -27,8 +27,6 @@ migrate_deckgl_and_mapbox = import_module(
 
 Slice = migrate_deckgl_and_mapbox.Slice
 MigrateMapBox = migrate_deckgl_and_mapbox.MigrateMapBox
-DECKGL_MAPPINGS = migrate_deckgl_and_mapbox.DECKGL_MAPPINGS
-_get_migrate_class = migrate_deckgl_and_mapbox._get_migrate_class
 
 
 @pytest.mark.usefixtures("app_context")
@@ -57,48 +55,21 @@ def test_upgrade_mapbox():
 
     MigrateMapBox.upgrade_slice(slc)
 
-    assert slc.viz_type == "maplibre"
+    assert slc.viz_type == "map_gl"
 
     params = json.loads(slc.params)
-    assert params["viz_type"] == "maplibre"
-    assert params["maplibre_style"] == "https://tiles.openfreemap.org/styles/liberty"
-    assert params["maplibre_label"] == ["name"]
-    assert params["maplibre_color"] == "#ff0000"
+    assert params["viz_type"] == "map_gl"
+    assert params["map_style"] == "https://tiles.openfreemap.org/styles/liberty"
+    assert params["map_label"] == ["name"]
+    assert params["map_color"] == "#ff0000"
     assert "mapbox_style" not in params
     assert "mapbox_label" not in params
     assert "mapbox_color" not in params
     assert params["other_param"] == "value"
 
     query_context = json.loads(slc.query_context)
-    assert query_context["form_data"]["viz_type"] == "maplibre"
+    assert query_context["form_data"]["viz_type"] == "map_gl"
     assert (
-        query_context["form_data"]["maplibre_style"]
+        query_context["form_data"]["map_style"]
         == "https://tiles.openfreemap.org/styles/liberty"
     )
-
-
-@pytest.mark.usefixtures("app_context")
-def test_upgrade_deckgl():
-    for source_viz, target_viz in DECKGL_MAPPINGS.items():
-        slc = Slice(
-            slice_name=f"Test {source_viz}",
-            viz_type=source_viz,
-            params=json.dumps(
-                {
-                    "viz_type": source_viz,
-                    "deckgl_param": "value",
-                    "mapbox_style": "mapbox://styles/mapbox/dark-v9",
-                }
-            ),
-        )
-
-        migrator_class = _get_migrate_class(source_viz, target_viz)
-        migrator_class.upgrade_slice(slc)
-
-        assert slc.viz_type == target_viz
-
-        params = json.loads(slc.params)
-        assert params["viz_type"] == target_viz
-        assert params["deckgl_param"] == "value"
-        # DeckGL migration uses DynamicMigrateViz which does not map Mapbox styles keys
-        assert params["mapbox_style"] == "https://tiles.openfreemap.org/styles/dark"

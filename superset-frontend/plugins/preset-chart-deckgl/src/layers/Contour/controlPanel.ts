@@ -30,6 +30,7 @@ import {
   jsOnclickHref,
   jsTooltip,
   mapboxStyle,
+  mapProvider,
   spatial,
   viewport,
   tooltipContents,
@@ -55,6 +56,7 @@ const config: ControlPanelConfig = {
       label: t('Map'),
       expanded: true,
       controlSetRows: [
+        [mapProvider],
         [mapboxStyle],
         [autozoom, viewport],
         [

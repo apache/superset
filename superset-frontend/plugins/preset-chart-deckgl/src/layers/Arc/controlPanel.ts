@@ -39,6 +39,7 @@ import {
   legendPosition,
   viewport,
   mapboxStyle,
+  mapProvider,
   tooltipContents,
   tooltipTemplate,
   deckGLCategoricalColor,
@@ -86,7 +87,7 @@ const config: ControlPanelConfig = {
     },
     {
       label: t('Map'),
-      controlSetRows: [[mapboxStyle], [autozoom, viewport]],
+      controlSetRows: [[mapProvider], [mapboxStyle], [autozoom, viewport]],
     },
     {
       label: t('Arc'),

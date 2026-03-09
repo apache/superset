@@ -28,19 +28,19 @@ import {
 export interface MapLibreFormData extends SqlaFormData {
   all_columns_x?: string;
   all_columns_y?: string;
-  maplibre_label?: string[];
+  map_label?: string[];
   point_radius?: string;
   clustering_radius?: string;
   pandas_aggfunc?: string;
   global_opacity?: number;
-  maplibre_style?: string;
-  maplibre_color?: string;
+  map_style?: string;
+  map_color?: string;
   render_while_dragging?: boolean;
   point_radius_unit?: string;
 }
 
 export default function buildQuery(formData: MapLibreFormData) {
-  const { all_columns_x, all_columns_y, maplibre_label, point_radius } =
+  const { all_columns_x, all_columns_y, map_label, point_radius } =
     formData;
 
   if (!all_columns_x || !all_columns_y) {
@@ -56,11 +56,11 @@ export default function buildQuery(formData: MapLibreFormData) {
 
     // Add label column if specified and not 'count'
     const hasCustomMetric =
-      maplibre_label &&
-      maplibre_label.length > 0 &&
-      maplibre_label[0] !== 'count';
+      map_label &&
+      map_label.length > 0 &&
+      map_label[0] !== 'count';
     if (hasCustomMetric) {
-      columns.push(maplibre_label[0]);
+      columns.push(map_label[0]);
     }
 
     // Add point radius column if not "Auto"

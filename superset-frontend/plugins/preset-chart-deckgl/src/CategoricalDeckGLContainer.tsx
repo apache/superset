@@ -38,6 +38,7 @@ import {
 import type { Layer } from '@deck.gl/core';
 import Legend from './components/Legend';
 import { hexToRGB } from './utils/colors';
+import { getMapboxApiKey } from './utils/mapbox';
 import sandboxedEval from './utils/sandbox';
 import fitViewport, { Viewport } from './utils/fitViewport';
 import {
@@ -324,7 +325,9 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
         viewport={viewport}
         layers={getLayers()}
         setControlValue={props.setControlValue}
-        mapStyle={props.formData.maplibre_style}
+        mapStyle={props.formData.map_style}
+        mapProvider={props.formData.map_provider}
+        mapboxApiKey={getMapboxApiKey()}
         width={props.width}
         height={props.height}
       />

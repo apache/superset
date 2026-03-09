@@ -79,7 +79,7 @@ export const HexChartViz = ({
       row_limit: 5000,
       filter_nulls: true,
       adhoc_filters: [],
-      maplibre_style:
+      map_style:
         'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
       viewport: {
         bearing: -2.3984797349335167,

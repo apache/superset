@@ -58,7 +58,7 @@ const baseMockProps = {
     viz_type: 'deck_multi',
     deck_slices: [1, 2],
     autozoom: false,
-    maplibre_style: 'mapbox://styles/mapbox/light-v9',
+    map_style: 'mapbox://styles/mapbox/light-v9',
   },
   payload: {
     data: {

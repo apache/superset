@@ -18,7 +18,12 @@
  */
 import { t } from '@apache-superset/core';
 import { validateNonEmpty } from '@superset-ui/core';
-import { viewport, mapboxStyle, autozoom } from '../utilities/Shared_DeckGL';
+import {
+  viewport,
+  mapboxStyle,
+  mapProvider,
+  autozoom,
+} from '../utilities/Shared_DeckGL';
 
 export default {
   controlPanelSections: [
@@ -26,6 +31,7 @@ export default {
       label: t('Map'),
       expanded: true,
       controlSetRows: [
+        [mapProvider],
         [mapboxStyle],
         [viewport],
         [autozoom],

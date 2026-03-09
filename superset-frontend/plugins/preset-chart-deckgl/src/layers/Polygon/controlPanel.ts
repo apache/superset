@@ -44,6 +44,7 @@ import {
   lineType,
   reverseLongLat,
   mapboxStyle,
+  mapProvider,
   deckGLCategoricalColorSchemeTypeSelect,
   deckGLLinearColorSchemeSelect,
   deckGLColorBreakpointsSelect,
@@ -98,7 +99,7 @@ const config: ControlPanelConfig = {
     {
       label: t('Map'),
       expanded: true,
-      controlSetRows: [[mapboxStyle], [viewport], [autozoom]],
+      controlSetRows: [[mapProvider], [mapboxStyle], [viewport], [autozoom]],
     },
     {
       label: t('Polygon Settings'),

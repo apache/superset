@@ -144,7 +144,7 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         [
           {
-            name: 'maplibre_label',
+            name: 'map_label',
             config: {
               type: 'SelectControl',
               multi: true,
@@ -194,7 +194,7 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         [
           {
-            name: 'maplibre_style',
+            name: 'map_style',
             config: {
               type: 'SelectControl',
               label: t('Map Style'),
@@ -264,7 +264,7 @@ const config: ControlPanelConfig = {
         ],
         [
           {
-            name: 'maplibre_color',
+            name: 'map_color',
             config: {
               type: 'SelectControl',
               freeForm: true,

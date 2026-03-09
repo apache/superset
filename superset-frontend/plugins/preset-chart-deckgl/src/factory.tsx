@@ -19,6 +19,7 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { isEqual } from 'lodash';
 import type { Layer } from '@deck.gl/core';
+import { getMapboxApiKey } from './utils/mapbox';
 import {
   Datasource,
   QueryFormData,
@@ -190,7 +191,9 @@ export function createDeckGLComponent(
           ref={containerRef}
           viewport={viewport}
           layers={layers}
-          mapStyle={formData.maplibre_style}
+          mapStyle={formData.map_style}
+          mapProvider={formData.map_provider}
+          mapboxApiKey={getMapboxApiKey()}
           setControlValue={setControlValue}
           width={width}
           height={height}

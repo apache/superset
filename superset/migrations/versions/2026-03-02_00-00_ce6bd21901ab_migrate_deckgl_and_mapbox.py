@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""migrate deckgl and mapbox to maplibre
+"""migrate mapbox chart to maplibre
 
 Revision ID: ce6bd21901ab
 Revises: 4b2a8c9d3e1f
@@ -24,7 +24,6 @@ Create Date: 2026-03-02 00:00:00.000000
 
 import copy
 import logging
-import re
 from typing import Any
 
 from alembic import op
@@ -46,18 +45,23 @@ revision = "ce6bd21901ab"
 down_revision = "4b2a8c9d3e1f"
 
 
-class PassThroughMigrateViz(MigrateViz):
-    has_x_axis_control = False
+class MigrateMapBox(MigrateViz):
+    """Migrate the legacy standalone Mapbox chart to the new MapLibre chart plugin.
 
-    def _pre_action(self) -> None:
-        style = self.data.get("mapbox_style")
-        if isinstance(style, str):
-            if re.match(r"^mapbox://styles/mapbox/dark-v\d+$", style):
-                self.data["mapbox_style"] = "https://tiles.openfreemap.org/styles/dark"
-            elif re.match(r"^mapbox://styles/mapbox/streets-v\d+$", style):
-                self.data["mapbox_style"] = (
-                    "https://tiles.openfreemap.org/styles/liberty"
-                )
+    Existing deck.gl charts (deck_arc, deck_scatter, etc.) are left untouched —
+    backward compatibility is handled in the frontend by reading the legacy
+    mapbox_style field and inferring the map provider from the style URL.
+    """
+
+    has_x_axis_control = False
+    source_viz_type = "mapbox"
+    target_viz_type = "map_gl"
+    rename_keys = {
+        "mapbox_style": "map_style",
+        "mapbox_label": "map_label",
+        "mapbox_color": "map_color",
+    }
+    remove_keys = set()
 
     @classmethod
     def upgrade_slice(cls, slc: Slice) -> None:
@@ -69,8 +73,6 @@ class PassThroughMigrateViz(MigrateViz):
             clz._migrate()
             clz._post_action()
 
-            # viz_type depends on the migration and should be set after its execution
-            # because a source viz can be mapped to different target viz types
             slc.viz_type = clz.target_viz_type
 
             backup: Any | dict[str, Any] = {FORM_DATA_BAK_FIELD_NAME: form_data_bak}
@@ -95,59 +97,13 @@ class PassThroughMigrateViz(MigrateViz):
             logger.warning("Failed to migrate slice %s: %s", slc.id, e)
 
 
-class MigrateMapBox(PassThroughMigrateViz):
-    source_viz_type = "mapbox"
-    target_viz_type = "maplibre"
-    rename_keys = {
-        "mapbox_style": "maplibre_style",
-        "mapbox_label": "maplibre_label",
-        "mapbox_color": "maplibre_color",
-    }
-    remove_keys = set()
-
-
-DECKGL_MAPPINGS = {
-    "deck_arc": "deck_arc_maplibre",
-    "deck_geojson": "deck_geojson_maplibre",
-    "deck_grid": "deck_grid_maplibre",
-    "deck_hex": "deck_hex_maplibre",
-    "deck_heatmap": "deck_heatmap_maplibre",
-    "deck_multi": "deck_multi_maplibre",
-    "deck_path": "deck_path_maplibre",
-    "deck_polygon": "deck_polygon_maplibre",
-    "deck_scatter": "deck_scatter_maplibre",
-    "deck_screengrid": "deck_screengrid_maplibre",
-    "deck_contour": "deck_contour_maplibre",
-}
-
-
-def _get_migrate_class(source: str, target: str) -> type[MigrateViz]:
-    class DynamicMigrateViz(PassThroughMigrateViz):
-        source_viz_type = source
-        target_viz_type = target
-        rename_keys = {}
-        remove_keys = set()
-
-    return DynamicMigrateViz
-
-
-def upgrade():
+def upgrade() -> None:
     bind = op.get_bind()
     session = db.Session(bind=bind)
-
-    for old_viz, new_viz in DECKGL_MAPPINGS.items():
-        cls = _get_migrate_class(old_viz, new_viz)
-        cls.upgrade(session)
-
     MigrateMapBox.upgrade(session)
 
 
-def downgrade():
+def downgrade() -> None:
     bind = op.get_bind()
     session = db.Session(bind=bind)
-
-    for old_viz, new_viz in DECKGL_MAPPINGS.items():
-        cls = _get_migrate_class(old_viz, new_viz)
-        cls.downgrade(session)
-
     MigrateMapBox.downgrade(session)

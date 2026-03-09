@@ -50,6 +50,7 @@ import {
 import { getExploreLongUrl } from '../utils/explore';
 import layerGenerators from '../layers';
 import fitViewport, { Viewport } from '../utils/fitViewport';
+import { getMapboxApiKey } from '../utils/mapbox';
 import { TooltipProps } from '../components/Tooltip';
 
 import { getPoints as getPointsArc } from '../layers/Arc/Arc';
@@ -401,7 +402,9 @@ const DeckMulti = (props: DeckMultiProps) => {
         ref={containerRef}
         viewport={viewport}
         layers={layers}
-        mapStyle={formData.maplibre_style}
+        mapStyle={formData.map_style}
+        mapProvider={formData.map_provider}
+        mapboxApiKey={getMapboxApiKey()}
         setControlValue={setControlValue}
         onViewportChange={setViewport}
         height={height}

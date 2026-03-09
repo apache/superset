@@ -64,6 +64,15 @@ export const DEFAULT_DECKGL_TILES = [
   ['https://tiles.openfreemap.org/styles/liberty', 'Liberty (OpenFreeMap)'],
 ];
 
+export const DEFAULT_MAPBOX_TILES = [
+  ['mapbox://styles/mapbox/streets-v9', 'Streets (Mapbox)'],
+  ['mapbox://styles/mapbox/dark-v9', 'Dark (Mapbox)'],
+  ['mapbox://styles/mapbox/light-v9', 'Light (Mapbox)'],
+  ['mapbox://styles/mapbox/satellite-streets-v9', 'Satellite Streets (Mapbox)'],
+  ['mapbox://styles/mapbox/satellite-v9', 'Satellite (Mapbox)'],
+  ['mapbox://styles/mapbox/outdoors-v9', 'Outdoors (Mapbox)'],
+];
+
 const getDeckGLTiles = () => {
   if (!deckglTiles) {
     const appContainer = document.getElementById('app');
@@ -409,8 +418,27 @@ export const reverseLongLat = {
   },
 };
 
+export const mapProvider = {
+  name: 'map_provider',
+  config: {
+    type: 'SelectControl',
+    label: t('Map Provider'),
+    clearable: false,
+    renderTrigger: true,
+    choices: [
+      ['maplibre', t('MapLibre (open-source)')],
+      ['mapbox', t('Mapbox (API key required)')],
+    ],
+    default: 'maplibre',
+    description: t(
+      'Select the map tile provider. MapLibre is open-source and requires no API key. ' +
+        'Mapbox requires MAPBOX_API_KEY to be configured in Superset.',
+    ),
+  },
+};
+
 export const mapboxStyle = {
-  name: 'maplibre_style',
+  name: 'map_style',
   config: {
     type: 'SelectControl',
     label: t('Map Style'),
@@ -422,6 +450,12 @@ export const mapboxStyle = {
     description: t(
       'Base layer map style. Accepts a MapLibre-compatible style URL or a tile server URL.',
     ),
+    mapStateToProps: (state: ControlPanelState) => {
+      const isMapbox = state.controls?.map_provider?.value === 'mapbox';
+      return {
+        choices: isMapbox ? DEFAULT_MAPBOX_TILES : getDeckGLTiles(),
+      };
+    },
   },
 };
 
