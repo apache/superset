@@ -34,7 +34,8 @@ import mapboxgl from 'mapbox-gl';
 import type { Layer } from '@deck.gl/core';
 import { JsonObject, JsonValue, usePrevious } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/ui';
-import DeckGLOverlay from './components/DeckGLOverlay';
+import DeckGLOverlayMapLibre from './components/DeckGLOverlayMapLibre';
+import DeckGLOverlayMapbox from './components/DeckGLOverlayMapbox';
 import Tooltip, { TooltipProps } from './components/Tooltip';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { Viewport } from './utils/fitViewport';
@@ -142,7 +143,7 @@ export const DeckGLContainer = memo(
               mapStyle={mapStyle}
               style={{ width, height }}
             >
-              <DeckGLOverlay layers={layers()} />
+              <DeckGLOverlayMapbox layers={layers()} />
             </MapboxMap>
           ) : (
             <MapLibreMap
@@ -151,7 +152,7 @@ export const DeckGLContainer = memo(
               mapStyle={mapStyle}
               style={{ width, height }}
             >
-              <DeckGLOverlay layers={layers()} />
+              <DeckGLOverlayMapLibre layers={layers()} />
             </MapLibreMap>
           )}
           {children}
