@@ -29,7 +29,7 @@ import {
 } from 'react';
 import { useSelector } from 'react-redux';
 
-import { styled, useTheme } from '@apache-superset/core/ui';
+import { styled, useTheme } from '@apache-superset/core/theme';
 import { use, init, EChartsType, registerLocale } from 'echarts/core';
 import {
   SankeyChart,

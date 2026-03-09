@@ -21,7 +21,7 @@ from unittest.mock import MagicMock, patch
 from uuid import UUID
 
 import pytest
-from superset_core.api.tasks import TaskOptions, TaskScope
+from superset_core.tasks.types import TaskOptions, TaskScope
 
 from superset.tasks.context import TaskContext
 from superset.tasks.decorators import TaskWrapper

@@ -1968,6 +1968,8 @@ ALERT_REPORTS_QUERY_EXECUTION_MAX_TRIES = 1
 # Custom width for screenshots
 ALERT_REPORTS_MIN_CUSTOM_SCREENSHOT_WIDTH = 600
 ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH = 2400
+# Rewrite external links in alert/report emails to go through a warning page
+ALERT_REPORTS_ENABLE_LINK_REDIRECT = True
 # Set a minimum interval threshold between executions (for each Alert/Report)
 # Value should be an integer i.e. int(timedelta(minutes=5).total_seconds())
 # You can also assign a function to the config that returns the expected integer

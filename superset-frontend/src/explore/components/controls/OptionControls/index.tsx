@@ -19,8 +19,8 @@
 import { useRef, ReactNode } from 'react';
 
 import { useDrag, useDrop, DropTargetMonitor } from 'react-dnd';
-import { t } from '@apache-superset/core';
-import { styled, useTheme, css, keyframes } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { styled, useTheme, css, keyframes } from '@apache-superset/core/theme';
 import { InfoTooltip, Icons, Tooltip } from '@superset-ui/core/components';
 import { savedMetricType } from 'src/explore/components/controls/MetricControl/types';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
