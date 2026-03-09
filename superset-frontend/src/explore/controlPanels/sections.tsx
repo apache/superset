@@ -19,6 +19,7 @@
 import { t } from '@apache-superset/core/translation';
 import {
   ControlPanelSectionConfig,
+  ControlSetRow,
   ControlSubSectionHeader,
 } from '@superset-ui/chart-controls';
 
@@ -277,16 +278,13 @@ export const NVD3TimeSeries: ControlPanelSectionConfig[] = [
 function buildMatrixifySection(
   axis: 'columns' | 'rows',
 ): ControlPanelSectionConfig {
-  const baseControls: string[][] = [[`matrixify_mode_${axis}`]];
+  const showControl =
+    axis === 'rows'
+      ? 'matrixify_show_row_labels'
+      : 'matrixify_show_column_headers';
 
-  // Add axis-specific display controls
-  if (axis === 'rows') {
-    baseControls.push(['matrixify_show_row_labels']);
-  } else if (axis === 'columns') {
-    baseControls.push(['matrixify_show_column_headers']);
-  }
-
-  baseControls.push(
+  const baseControls: ControlSetRow[] = [
+    [`matrixify_mode_${axis}`],
     [`matrixify_${axis}`],
     [`matrixify_dimension_selection_mode_${axis}`],
     [`matrixify_dimension_${axis}`],
@@ -294,7 +292,13 @@ function buildMatrixifySection(
     [`matrixify_topn_value_${axis}`],
     [`matrixify_topn_metric_${axis}`],
     [`matrixify_topn_order_${axis}`],
-  );
+    [
+      <ControlSubSectionHeader>
+        {t('Customization and styling')}
+      </ControlSubSectionHeader>,
+    ],
+    [showControl],
+  ];
 
   return {
     label:
