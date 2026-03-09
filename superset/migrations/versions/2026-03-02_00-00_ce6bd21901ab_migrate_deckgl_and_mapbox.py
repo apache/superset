@@ -14,11 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""migrate mapbox chart to maplibre
+"""migrate mapbox and deckgl charts to map_gl
 
 Revision ID: ce6bd21901ab
 Revises: 4b2a8c9d3e1f
 Create Date: 2026-03-02 00:00:00.000000
+
 
 """
 
@@ -27,6 +28,7 @@ import logging
 from typing import Any
 
 from alembic import op
+from sqlalchemy.orm import Session
 
 from superset import db
 from superset.migrations.shared.migrate_viz.base import (
@@ -44,14 +46,23 @@ logger = logging.getLogger("alembic.env")
 revision = "ce6bd21901ab"
 down_revision = "4b2a8c9d3e1f"
 
+DECKGL_VIZ_TYPES = [
+    "deck_arc",
+    "deck_contour",
+    "deck_geojson",
+    "deck_grid",
+    "deck_heatmap",
+    "deck_hex",
+    "deck_multi",
+    "deck_path",
+    "deck_polygon",
+    "deck_scatter",
+    "deck_screengrid",
+]
+
 
 class MigrateMapBox(MigrateViz):
-    """Migrate the legacy standalone Mapbox chart to the new MapLibre chart plugin.
-
-    Existing deck.gl charts (deck_arc, deck_scatter, etc.) are left untouched —
-    backward compatibility is handled in the frontend by reading the legacy
-    mapbox_style field and inferring the map provider from the style URL.
-    """
+    """Migrate the legacy standalone Mapbox scatter chart to the new map_gl plugin."""
 
     has_x_axis_control = False
     source_viz_type = "mapbox"
@@ -105,13 +116,61 @@ class MigrateMapBox(MigrateViz):
             logger.warning("Failed to migrate slice %s: %s", slc.id, e)
 
 
+def _migrate_deckgl_slice(slc: Slice) -> bool:
+    """Rename mapbox_style → map_style and set map_provider for a deck.gl slice.
+
+    Returns True if the slice was modified.
+    """
+    params = try_load_json(slc.params)
+    if not params or "mapbox_style" not in params:
+        return False
+
+    params["map_style"] = params.pop("mapbox_style")
+    if isinstance(params["map_style"], str) and params["map_style"].startswith(
+        "mapbox://"
+    ):
+        params["map_provider"] = "mapbox"
+
+    slc.params = json.dumps(params)
+    return True
+
+
+def _downgrade_deckgl_slice(slc: Slice) -> bool:
+    """Reverse _migrate_deckgl_slice. Returns True if the slice was modified."""
+    params = try_load_json(slc.params)
+    if not params or "map_style" not in params:
+        return False
+
+    params["mapbox_style"] = params.pop("map_style")
+    params.pop("map_provider", None)
+    slc.params = json.dumps(params)
+    return True
+
+
+def _migrate_deckgl_slices(session: Session, *, upgrade: bool) -> None:
+    fn = _migrate_deckgl_slice if upgrade else _downgrade_deckgl_slice
+    slices = (
+        session.query(Slice)
+        .filter(Slice.viz_type.in_(DECKGL_VIZ_TYPES))
+        .all()
+    )
+    for slc in slices:
+        try:
+            fn(slc)
+        except Exception as e:
+            logger.warning("Failed to migrate deck.gl slice %s: %s", slc.id, e)
+    session.commit()
+
+
 def upgrade() -> None:
     bind = op.get_bind()
     session = db.Session(bind=bind)
     MigrateMapBox.upgrade(session)
+    _migrate_deckgl_slices(session, upgrade=True)
 
 
 def downgrade() -> None:
     bind = op.get_bind()
     session = db.Session(bind=bind)
     MigrateMapBox.downgrade(session)
+    _migrate_deckgl_slices(session, upgrade=False)

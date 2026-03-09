@@ -192,7 +192,7 @@ export function createDeckGLComponent(
           viewport={viewport}
           layers={layers}
           mapStyle={formData.map_style}
-          mapProvider={formData.map_provider}
+          mapProvider={formData.map_provider === 'mapbox' ? 'mapbox' : 'maplibre'}
           mapboxApiKey={getMapboxApiKey()}
           setControlValue={setControlValue}
           width={width}

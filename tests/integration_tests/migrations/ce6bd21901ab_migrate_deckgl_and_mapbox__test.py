@@ -27,6 +27,8 @@ migrate_deckgl_and_mapbox = import_module(
 
 Slice = migrate_deckgl_and_mapbox.Slice
 MigrateMapBox = migrate_deckgl_and_mapbox.MigrateMapBox
+_migrate_deckgl_slice = migrate_deckgl_and_mapbox._migrate_deckgl_slice
+_downgrade_deckgl_slice = migrate_deckgl_and_mapbox._downgrade_deckgl_slice
 
 
 @pytest.mark.usefixtures("app_context")
@@ -95,3 +97,87 @@ def test_upgrade_mapbox_with_non_mapbox_style():
     params = json.loads(slc.params)
     assert params["map_style"] == "https://tiles.openfreemap.org/styles/liberty"
     assert "map_provider" not in params
+
+
+def test_migrate_deckgl_slice_mapbox_style():
+    slc = Slice(
+        slice_name="Test Arc",
+        viz_type="deck_arc",
+        params=json.dumps(
+            {
+                "viz_type": "deck_arc",
+                "mapbox_style": "mapbox://styles/mapbox/dark-v9",
+                "other_param": "value",
+            }
+        ),
+    )
+
+    modified = _migrate_deckgl_slice(slc)
+
+    assert modified is True
+    params = json.loads(slc.params)
+    assert params["map_style"] == "mapbox://styles/mapbox/dark-v9"
+    assert params["map_provider"] == "mapbox"
+    assert "mapbox_style" not in params
+    assert params["viz_type"] == "deck_arc"  # viz_type unchanged
+    assert params["other_param"] == "value"
+
+
+def test_migrate_deckgl_slice_open_style():
+    slc = Slice(
+        slice_name="Test Scatter",
+        viz_type="deck_scatter",
+        params=json.dumps(
+            {
+                "viz_type": "deck_scatter",
+                "mapbox_style": "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
+            }
+        ),
+    )
+
+    modified = _migrate_deckgl_slice(slc)
+
+    assert modified is True
+    params = json.loads(slc.params)
+    assert params["map_style"] == "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json"
+    assert "map_provider" not in params
+    assert "mapbox_style" not in params
+
+
+def test_migrate_deckgl_slice_no_mapbox_style():
+    """Slices without mapbox_style are not modified."""
+    original_params = json.dumps({"viz_type": "deck_arc", "other_param": "value"})
+    slc = Slice(
+        slice_name="Test Arc No Style",
+        viz_type="deck_arc",
+        params=original_params,
+    )
+
+    modified = _migrate_deckgl_slice(slc)
+
+    assert modified is False
+    assert slc.params == original_params
+
+
+def test_downgrade_deckgl_slice():
+    slc = Slice(
+        slice_name="Test Arc",
+        viz_type="deck_arc",
+        params=json.dumps(
+            {
+                "viz_type": "deck_arc",
+                "map_style": "mapbox://styles/mapbox/dark-v9",
+                "map_provider": "mapbox",
+                "other_param": "value",
+            }
+        ),
+    )
+
+    modified = _downgrade_deckgl_slice(slc)
+
+    assert modified is True
+    params = json.loads(slc.params)
+    assert params["mapbox_style"] == "mapbox://styles/mapbox/dark-v9"
+    assert "map_style" not in params
+    assert "map_provider" not in params
+    assert params["other_param"] == "value"
