@@ -17,19 +17,19 @@
 """merge_heads_tasks_and_embedded_charts
 
 Revision ID: 0c6f1ccfedd9
-Revises: ('4b2a8c9d3e1f', '50aff65919a0')
+Revises: ('a1b2c3d4e5f6', '50aff65919a0')
 Create Date: 2026-02-10 16:07:27.216135
 
 """
 
 # revision identifiers, used by Alembic.
 revision = "0c6f1ccfedd9"
-down_revision = ("4b2a8c9d3e1f", "50aff65919a0")
+down_revision = ("a1b2c3d4e5f6", "50aff65919a0")
 
 
-def upgrade():
+def upgrade() -> None:
     pass
 
 
-def downgrade():
+def downgrade() -> None:
     pass
