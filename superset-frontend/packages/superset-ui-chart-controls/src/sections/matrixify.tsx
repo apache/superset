@@ -25,6 +25,17 @@ export const matrixifyEnableSection: ControlPanelSectionConfig = {
   controlSetRows: [
     [
       {
+        name: 'matrixify_enable',
+        config: {
+          type: 'SwitchControl',
+          label: t('Enable matrixify'),
+          default: false,
+          renderTrigger: true,
+        },
+      },
+    ],
+    [
+      {
         name: 'matrixify_enable_horizontal_layout',
         config: {
           type: 'CheckboxControl',

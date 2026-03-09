@@ -312,6 +312,8 @@ function buildMatrixifySection(
         : t('Vertical layout (rows)'),
     expanded: true,
     tabOverride: 'matrixify',
+    visibility: ({ controls }) =>
+      controls?.matrixify_enable?.value === true,
     controlSetRows: baseControls,
   };
 }
@@ -319,13 +321,33 @@ function buildMatrixifySection(
 export const matrixifyRows = buildMatrixifySection('rows');
 export const matrixifyColumns = buildMatrixifySection('columns');
 
+export const matrixifyEnableSection: ControlPanelSectionConfig = {
+  label: t('Matrixify'),
+  expanded: true,
+  tabOverride: 'matrixify',
+  controlSetRows: [
+    [
+      {
+        name: 'matrixify_enable',
+        config: {
+          type: 'SwitchControl',
+          label: t('Enable matrixify'),
+          default: false,
+          renderTrigger: true,
+        },
+      },
+    ],
+  ],
+};
+
 export const matrixifyCells: ControlPanelSectionConfig = {
   label: t('Cell layout & styling'),
   expanded: true,
   tabOverride: 'matrixify',
   visibility: ({ controls }) =>
-    controls?.matrixify_enable_vertical_layout?.value === true ||
-    controls?.matrixify_enable_horizontal_layout?.value === true,
+    controls?.matrixify_enable?.value === true &&
+    (controls?.matrixify_enable_vertical_layout?.value === true ||
+      controls?.matrixify_enable_horizontal_layout?.value === true),
   controlSetRows: [
     ['matrixify_row_height', 'matrixify_fit_columns_dynamically'],
     ['matrixify_charts_per_row'],
