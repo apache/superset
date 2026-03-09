@@ -88,7 +88,12 @@ const config: ControlPanelConfig = {
     },
     {
       label: t('Map'),
-      controlSetRows: [[mapProvider], [mapboxStyle], [autozoom, viewport]],
+      controlSetRows: [
+        [mapProvider],
+        [mapboxStyle],
+        [maplibreStyle],
+        [autozoom, viewport],
+      ],
     },
     {
       label: t('Arc'),

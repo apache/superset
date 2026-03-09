@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useCallback, useEffect, useRef } from 'react';
-import { useMap } from 'react-map-gl/maplibre';
+import { useMap as useMapLibre } from 'react-map-gl/maplibre';
+import { useMap as useMapbox } from 'react-map-gl/mapbox';
 
 export interface RedrawParams {
   width: number;
@@ -32,7 +33,9 @@ interface CanvasOverlayProps {
 }
 
 export default function CanvasOverlay({ redraw }: CanvasOverlayProps) {
-  const { current: mapRef } = useMap();
+  const mapLibreContext = useMapLibre();
+  const mapboxContext = useMapbox();
+  const mapRef = (mapLibreContext.current ?? mapboxContext.current) as any;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const isDraggingRef = useRef(false);
 
