@@ -450,6 +450,15 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                     order[0].get("sqlExpression")
                 )
 
+        series_limit_metric = cache_dict.get("series_limit_metric")
+        if (
+            isinstance(series_limit_metric, dict)
+            and series_limit_metric.get("expressionType") == "SQL"
+        ):
+            series_limit_metric["sqlExpression"] = _normalize_sql(
+                series_limit_metric.get("sqlExpression")
+            )
+
         # NOTE: Only normalize ad-hoc SQL expressions here.
         # where and having clauses are already sanitized in validate() during
         # the query execution lifecycle.
