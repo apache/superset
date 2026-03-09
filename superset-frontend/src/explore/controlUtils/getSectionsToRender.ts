@@ -62,6 +62,8 @@ const getMemoizedSectionsToRender = memoizeOne(
       datasourceAndVizType,
       matrixifyRows = null,
       matrixifyColumns = null,
+      matrixifyRowsCustomization = null,
+      matrixifyColumnsCustomization = null,
       matrixifyCells = null,
       matrixifyEnableSection = null,
     } = sections;
@@ -76,7 +78,9 @@ const getMemoizedSectionsToRender = memoizeOne(
       datasourceAndVizType as ControlPanelSectionConfig,
       matrixifyEnableSection as ControlPanelSectionConfig,
       matrixifyColumns as ControlPanelSectionConfig,
+      matrixifyColumnsCustomization as ControlPanelSectionConfig,
       matrixifyRows as ControlPanelSectionConfig,
+      matrixifyRowsCustomization as ControlPanelSectionConfig,
       matrixifyCells as ControlPanelSectionConfig,
     ]
       .filter(Boolean) // Filter out null/undefined sections
