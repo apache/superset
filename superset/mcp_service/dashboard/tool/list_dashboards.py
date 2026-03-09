@@ -117,6 +117,8 @@ async def list_dashboards(
         )
     )
 
+    # Avoid circular imports: DAO and schema_discovery depend on models
+    # that import from mcp_service during app initialization
     from superset.daos.dashboard import DashboardDAO
     from superset.mcp_service.common.schema_discovery import (
         DASHBOARD_SORTABLE_COLUMNS,

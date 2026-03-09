@@ -122,6 +122,8 @@ async def list_charts(request: ListChartsRequest, ctx: Context) -> ChartList:
         )
     )
 
+    # Avoid circular imports: DAO and schema_discovery depend on models
+    # that import from mcp_service during app initialization
     from superset.daos.chart import ChartDAO
     from superset.mcp_service.common.schema_discovery import (
         CHART_SORTABLE_COLUMNS,

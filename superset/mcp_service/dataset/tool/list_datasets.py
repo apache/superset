@@ -127,6 +127,8 @@ async def list_datasets(request: ListDatasetsRequest, ctx: Context) -> DatasetLi
     )
 
     try:
+        # Avoid circular imports: DAO and schema_discovery depend on models
+        # that import from mcp_service during app initialization
         from superset.daos.dataset import DatasetDAO
         from superset.mcp_service.common.schema_discovery import (
             DATASET_SORTABLE_COLUMNS,
