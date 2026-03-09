@@ -74,12 +74,6 @@ export const checkIsApplyDisabled = (
   const selectedExtraFormData = getOnlyExtraFormData(dataMaskSelected);
   const appliedExtraFormData = getOnlyExtraFormData(dataMaskApplied);
 
-  // Check counts first
-  const selectedCount = Object.keys(selectedExtraFormData).length;
-  const appliedCount = Object.keys(appliedExtraFormData).length;
-
-  if (selectedCount !== appliedCount) return true;
-
   // Check for changes
   const dataEqual = areObjectsEqual(
     selectedExtraFormData,

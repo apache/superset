@@ -299,7 +299,9 @@ test('checkIsApplyDisabled returns true when required filter is missing value in
   );
 });
 
-test('checkIsApplyDisabled handles filter count mismatch', () => {
+test('checkIsApplyDisabled enables Apply when new filter is selected (count mismatch)', () => {
+  // User selects a new filter that hasn't been applied yet
+  // Apply should be ENABLED to allow applying the new selection
   const dataMaskSelected: DataMaskStateWithId = {
     'filter-1': {
       id: 'filter-1',
@@ -322,7 +324,7 @@ test('checkIsApplyDisabled handles filter count mismatch', () => {
   const filters = [createFilter('filter-1'), createFilter('filter-2')];
 
   expect(checkIsApplyDisabled(dataMaskSelected, dataMaskApplied, filters)).toBe(
-    true,
+    false,
   );
 });
 
@@ -661,6 +663,119 @@ test('checkIsApplyDisabled enabled when user sets value for out-of-scope require
     allFilters,
   );
   expect(result).toBe(false);
+});
+
+// Bug fix tests: Apply button with auto-applied required filters (#38479)
+test('checkIsApplyDisabled does not disable Apply when required filter is auto-applied', () => {
+  // Bug scenario: Filter A has "required" + "select first by default"
+  // Filter A auto-applies and is synced to selected
+  // User changes Filter B (adds it to selected, not in applied yet)
+  // Apply button should be ENABLED (changes exist and required filter has value)
+  const dataMaskSelected: DataMaskStateWithId = {
+    'filter-country': {
+      id: 'filter-country',
+      filterState: { validateStatus: undefined, value: ['USA'] },
+      extraFormData: createExtraFormDataWithFilter('country', ['USA']),
+    },
+    'filter-product': {
+      id: 'filter-product',
+      filterState: { validateStatus: undefined, value: ['Product A'] },
+      extraFormData: createExtraFormDataWithFilter('product_line', [
+        'Product A',
+      ]),
+    },
+  };
+  const dataMaskApplied: DataMaskStateWithId = {
+    'filter-country': {
+      id: 'filter-country',
+      filterState: { value: ['USA'] },
+      extraFormData: createExtraFormDataWithFilter('country', ['USA']),
+    },
+    // filter-product not yet applied
+  };
+  const filters = [
+    createFilter('filter-country', { enableEmptyFilter: true }),
+    createFilter('filter-product'),
+  ];
+
+  expect(checkIsApplyDisabled(dataMaskSelected, dataMaskApplied, filters)).toBe(
+    false,
+  );
+});
+
+test('checkIsApplyDisabled does not disable Apply when required filter is only in applied state during sync gap', () => {
+  // Edge case: Required filter auto-applied but not yet synced to selected
+  // The filter is NOT in dataMaskSelected at all (key doesn't exist)
+  const dataMaskSelected: DataMaskStateWithId = {
+    'filter-product': {
+      id: 'filter-product',
+      filterState: { validateStatus: undefined, value: ['Product B'] },
+      extraFormData: createExtraFormDataWithFilter('product_line', [
+        'Product B',
+      ]),
+    },
+    // filter-country not yet in selected (sync gap)
+  };
+  const dataMaskApplied: DataMaskStateWithId = {
+    'filter-country': {
+      id: 'filter-country',
+      filterState: { value: ['USA'] },
+      extraFormData: createExtraFormDataWithFilter('country', ['USA']),
+    },
+    // filter-product not yet applied
+  };
+  const filters = [
+    createFilter('filter-country', { enableEmptyFilter: true }),
+    createFilter('filter-product'),
+  ];
+
+  expect(checkIsApplyDisabled(dataMaskSelected, dataMaskApplied, filters)).toBe(
+    false,
+  );
+});
+
+test('checkIsApplyDisabled disables Apply when user explicitly clears a required filter value', () => {
+  // Filter IS in selected state but with undefined value (user cleared it)
+  const dataMaskSelected: DataMaskStateWithId = {
+    'filter-1': createDataMaskEntry('filter-1', { value: undefined }),
+  };
+  const dataMaskApplied: DataMaskStateWithId = {
+    'filter-1': {
+      id: 'filter-1',
+      filterState: { value: ['CA'] },
+      extraFormData: createExtraFormDataWithFilter('state', ['CA']),
+    },
+  };
+  const filters = [createFilter('filter-1', { enableEmptyFilter: true })];
+
+  expect(checkIsApplyDisabled(dataMaskSelected, dataMaskApplied, filters)).toBe(
+    true,
+  );
+});
+
+test('checkIsApplyDisabled enables Apply when filter has value but needs extraFormData update', () => {
+  // PR #36927 regression: defaultDataMask has value but empty extraFormData
+  const dataMaskSelected: DataMaskStateWithId = {
+    'filter-1': {
+      id: 'filter-1',
+      filterState: { validateStatus: undefined, value: ['value1', 'value2'] },
+      extraFormData: {
+        filters: [{ col: 'test_column', op: 'IN', val: ['value1', 'value2'] }],
+      },
+    },
+  };
+  const dataMaskApplied: DataMaskStateWithId = {
+    'filter-1': {
+      id: 'filter-1',
+      filterState: { value: ['value1', 'value2'] },
+      extraFormData: {}, // Empty - the bug scenario
+    },
+  };
+  const filters = [createFilter('filter-1', { enableEmptyFilter: true })];
+
+  expect(checkIsApplyDisabled(dataMaskSelected, dataMaskApplied, filters)).toBe(
+    false,
+  );
 });
 
 // getFiltersToApply tests
