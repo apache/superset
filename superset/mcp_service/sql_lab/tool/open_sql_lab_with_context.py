@@ -28,12 +28,12 @@ from fastmcp import Context
 from superset_core.mcp.decorators import tool
 
 from superset.extensions import event_logger
-from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.mcp_service.sql_lab.schemas import (
     OpenSqlLabRequest,
     SqlLabResponse,
 )
 from superset.mcp_service.utils.schema_utils import parse_request
+from superset.mcp_service.utils.url_utils import get_superset_base_url
 
 logger = logging.getLogger(__name__)
 
