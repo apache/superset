@@ -62,6 +62,7 @@ import {
   getConnectionAlert,
   useImportResource,
 } from 'src/views/CRUD/hooks';
+import { FileEncryptedExtraFields } from 'src/views/CRUD/types';
 import { useCommonConf } from 'src/features/databases/state';
 import { isEmpty, pick } from 'lodash';
 import { OnlyKeyWithType } from 'src/utils/types';
@@ -656,6 +657,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     sshTunnelPrivateKeyPasswordFields,
     setSSHTunnelPrivateKeyPasswordFields,
   ] = useState<string[]>([]);
+  const [encryptedExtraFields, setEncryptedExtraFields] = useState<
+    FileEncryptedExtraFields[]
+  >([]);
+  const [encryptedExtraSecrets, setEncryptedExtraSecrets] = useState<
+    Record<string, Record<string, string>>
+  >({});
   const [extraExtensionComponentState, setExtraExtensionComponentState] =
     useState<object>({});
 
@@ -831,6 +838,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setSSHTunnelPasswords({});
     setSSHTunnelPrivateKeys({});
     setSSHTunnelPrivateKeyPasswords({});
+    setEncryptedExtraFields([]);
+    setEncryptedExtraSecrets({});
     setConfirmedOverwrite(false);
     setUseSSHTunneling(undefined);
     onHide();
@@ -848,6 +857,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       sshPasswordNeeded,
       sshPrivateKeyNeeded,
       sshPrivateKeyPasswordNeeded,
+      encryptedExtraFieldsNeeded,
       loading: importLoading,
       failed: importErrored,
     },
@@ -1036,6 +1046,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         sshTunnelPasswords,
         sshTunnelPrivateKeys,
         sshTunnelPrivateKeyPasswords,
+        encryptedExtraSecrets,
         confirmedOverwrite,
       );
       if (dbId) {
@@ -1240,16 +1251,24 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       setSSHTunnelPasswordFields([]);
       setSSHTunnelPrivateKeyFields([]);
       setSSHTunnelPrivateKeyPasswordFields([]);
+      setEncryptedExtraFields([]);
       setPasswords({});
       setSSHTunnelPasswords({});
       setSSHTunnelPrivateKeys({});
       setSSHTunnelPrivateKeyPasswords({});
+      setEncryptedExtraSecrets({});
     }
     setDB({ type: ActionType.Reset });
     setFileList([]);
   };
 
   const handleDisableOnImport = () => {
+    // Check if any encrypted extra field is missing a secret
+    const hasEmptyEncryptedExtraSecrets = encryptedExtraFields.some(
+      ({ fileName, fields }) =>
+        fields.some(field => !encryptedExtraSecrets[fileName]?.[field.path]),
+    );
+
     if (
       importLoading ||
       (alreadyExists.length && !confirmedOverwrite) ||
@@ -1259,7 +1278,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       (sshPrivateKeyNeeded.length &&
         JSON.stringify(sshTunnelPrivateKeys) === '{}') ||
       (sshPrivateKeyPasswordNeeded.length &&
-        JSON.stringify(sshTunnelPrivateKeyPasswords) === '{}')
+        JSON.stringify(sshTunnelPrivateKeyPasswords) === '{}') ||
+      (encryptedExtraFields.length && hasEmptyEncryptedExtraSecrets)
     )
       return true;
     return false;
@@ -1379,6 +1399,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       !sshPasswordNeeded.length &&
       !sshPrivateKeyNeeded.length &&
       !sshPrivateKeyPasswordNeeded.length &&
+      !encryptedExtraFieldsNeeded.length &&
       !isLoading && // This prevents a double toast for non-related imports
       !importErrored // This prevents a success toast on error
     ) {
@@ -1393,6 +1414,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     sshPasswordNeeded,
     sshPrivateKeyNeeded,
     sshPrivateKeyPasswordNeeded,
+    encryptedExtraFieldsNeeded,
   ]);
 
   useEffect(() => {
@@ -1434,7 +1456,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     if (importingModal) {
       document
         ?.getElementsByClassName('ant-upload-list-item-name')[0]
-        .scrollIntoView();
+        ?.scrollIntoView();
     }
   }, [importingModal]);
 
@@ -1455,6 +1477,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   }, [sshPrivateKeyPasswordNeeded]);
 
   useEffect(() => {
+    setEncryptedExtraFields([...encryptedExtraFieldsNeeded]);
+  }, [encryptedExtraFieldsNeeded]);
+
+  useEffect(() => {
     if (db?.parameters?.ssh !== undefined) {
       setUseSSHTunneling(db.parameters.ssh);
     }
@@ -1466,10 +1492,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setSSHTunnelPasswordFields([]);
     setSSHTunnelPrivateKeyFields([]);
     setSSHTunnelPrivateKeyPasswordFields([]);
+    setEncryptedExtraFields([]);
     setPasswords({});
     setSSHTunnelPasswords({});
     setSSHTunnelPrivateKeys({});
     setSSHTunnelPrivateKeyPasswords({});
+    setEncryptedExtraSecrets({});
     setImportingModal(true);
     setFileList([
       {
@@ -1485,6 +1513,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       sshTunnelPasswords,
       sshTunnelPrivateKeys,
       sshTunnelPrivateKeyPasswords,
+      encryptedExtraSecrets,
       confirmedOverwrite,
     );
     if (dbId) onDatabaseAdd?.();
@@ -1518,7 +1547,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             showIcon
             message="Database passwords"
             description={t(
-              `The passwords for the databases below are needed in order to import them. Please note that the "Secure Extra" and "Certificate" sections of the database configuration are not present in explore files and should be added manually after the import if they are needed.`,
+              `The passwords for the databases below are needed in order to import them.`,
             )}
           />
         </StyledAlertMargin>
@@ -1598,6 +1627,50 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           />
         )}
       </>
+    ));
+  };
+
+  const encryptedExtraNeededField = () => {
+    if (!encryptedExtraFields.length) return null;
+
+    return encryptedExtraFields.map(({ fileName, fields }) => (
+      <div key={fileName}>
+        <StyledAlertMargin>
+          <Alert
+            closable={false}
+            css={(theme: SupersetTheme) => antDAlertStyles(theme)}
+            type="info"
+            showIcon
+            message={t('Encrypted extra fields')}
+            description={t(
+              `The following fields contain sensitive information that was masked during export. Please provide the values to import this database.`,
+            )}
+          />
+        </StyledAlertMargin>
+        {fields.map(field => (
+          <ValidatedInput
+            key={`${fileName}-${field.path}`}
+            id={`encrypted_extra_${field.path}`}
+            name={`encrypted_extra_${field.path}`}
+            required
+            visibilityToggle
+            value={encryptedExtraSecrets[fileName]?.[field.path] || ''}
+            onChange={(event: ChangeEvent<HTMLInputElement>) =>
+              setEncryptedExtraSecrets({
+                ...encryptedExtraSecrets,
+                [fileName]: {
+                  ...encryptedExtraSecrets[fileName],
+                  [field.path]: event.target.value,
+                },
+              })
+            }
+            isValidating={isValidating}
+            validationMethods={{ onBlur: () => {} }}
+            label={t('%s %s', fileName.slice(10), field.label)}
+            css={formScrollableStyles}
+          />
+        ))}
+      </div>
     ));
   };
 
@@ -1878,7 +1951,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       passwordFields.length ||
       sshTunnelPasswordFields.length ||
       sshTunnelPrivateKeyFields.length ||
-      sshTunnelPrivateKeyPasswordFields.length)
+      sshTunnelPrivateKeyPasswordFields.length ||
+      encryptedExtraFields.length)
   ) {
     return (
       <Modal
@@ -1917,6 +1991,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         {confirmOverwriteField()}
         {importingErrorAlert()}
         {passwordNeededField()}
+        {encryptedExtraNeededField()}
       </Modal>
     );
   }
