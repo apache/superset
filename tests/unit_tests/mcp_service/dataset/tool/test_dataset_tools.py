@@ -1425,10 +1425,11 @@ class TestDatasetSortableColumns:
 
     def test_dataset_sortable_columns_definition(self):
         """Test that dataset sortable columns are properly defined."""
-        from superset.mcp_service.dataset.tool.list_datasets import (
-            SORTABLE_DATASET_COLUMNS,
+        from superset.mcp_service.common.schema_discovery import (
+            DATASET_SORTABLE_COLUMNS,
         )
 
+        SORTABLE_DATASET_COLUMNS = DATASET_SORTABLE_COLUMNS
         assert SORTABLE_DATASET_COLUMNS == [
             "id",
             "table_name",
@@ -1473,10 +1474,14 @@ class TestDatasetSortableColumns:
 
     def test_sortable_columns_in_docstring(self):
         """Test that sortable columns are documented in tool docstring."""
+        from superset.mcp_service.common.schema_discovery import (
+            DATASET_SORTABLE_COLUMNS,
+        )
         from superset.mcp_service.dataset.tool.list_datasets import (
             list_datasets,
-            SORTABLE_DATASET_COLUMNS,
         )
+
+        SORTABLE_DATASET_COLUMNS = DATASET_SORTABLE_COLUMNS
 
         # Check list_datasets docstring for sortable columns documentation
         assert list_datasets.__doc__ is not None

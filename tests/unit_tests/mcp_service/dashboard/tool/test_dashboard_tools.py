@@ -613,10 +613,11 @@ class TestDashboardSortableColumns:
 
     def test_dashboard_sortable_columns_definition(self):
         """Test that dashboard sortable columns are properly defined."""
-        from superset.mcp_service.dashboard.tool.list_dashboards import (
-            SORTABLE_DASHBOARD_COLUMNS,
+        from superset.mcp_service.common.schema_discovery import (
+            DASHBOARD_SORTABLE_COLUMNS,
         )
 
+        SORTABLE_DASHBOARD_COLUMNS = DASHBOARD_SORTABLE_COLUMNS
         assert SORTABLE_DASHBOARD_COLUMNS == [
             "id",
             "dashboard_title",
@@ -658,10 +659,14 @@ class TestDashboardSortableColumns:
 
     def test_sortable_columns_in_docstring(self):
         """Test that sortable columns are documented in tool docstring."""
+        from superset.mcp_service.common.schema_discovery import (
+            DASHBOARD_SORTABLE_COLUMNS,
+        )
         from superset.mcp_service.dashboard.tool.list_dashboards import (
             list_dashboards,
-            SORTABLE_DASHBOARD_COLUMNS,
         )
+
+        SORTABLE_DASHBOARD_COLUMNS = DASHBOARD_SORTABLE_COLUMNS
 
         # Check list_dashboards docstring for sortable columns documentation
         assert list_dashboards.__doc__ is not None
