@@ -17,8 +17,8 @@
  * under the License.
  */
 /* eslint-disable no-param-reassign */
-import { t } from '@apache-superset/core';
-import { css, styled } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { css, styled } from '@apache-superset/core/theme';
 import { memo, FC } from 'react';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Button } from '@superset-ui/core/components';

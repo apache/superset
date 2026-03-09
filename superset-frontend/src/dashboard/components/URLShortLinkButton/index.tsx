@@ -17,9 +17,9 @@
  * under the License.
  */
 import { useState } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { getClientErrorObject } from '@superset-ui/core';
-import { useTheme } from '@apache-superset/core/ui';
+import { useTheme } from '@apache-superset/core/theme';
 import {
   Button,
   Icons,

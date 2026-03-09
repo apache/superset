@@ -54,10 +54,9 @@ import {
   css,
   useTheme,
   SupersetTheme,
-  t,
-  tn,
-} from '@apache-superset/core/ui';
-import { GenericDataType } from '@apache-superset/core/api/core';
+} from '@apache-superset/core/theme';
+import { t, tn } from '@apache-superset/core/translation';
+import { GenericDataType } from '@apache-superset/core/common';
 import {
   Input,
   Space,

@@ -25,8 +25,8 @@ import {
   TextAreaEditor,
   ModalTrigger,
 } from '@superset-ui/core/components';
-import { t } from '@apache-superset/core';
-import { withTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { withTheme } from '@apache-superset/core/theme';
 
 import 'ace-builds/src-min-noconflict/mode-handlebars';
 

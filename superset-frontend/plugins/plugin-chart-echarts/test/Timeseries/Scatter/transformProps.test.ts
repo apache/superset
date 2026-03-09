@@ -25,12 +25,12 @@ import {
   EchartsTimeseriesFormData,
   EchartsTimeseriesChartProps,
 } from '../../../src/Timeseries/types';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import {
   D3_FORMAT_OPTIONS,
   D3_TIME_FORMAT_OPTIONS,
 } from '@superset-ui/chart-controls';
-import { supersetTheme } from '@apache-superset/core/ui';
+import { supersetTheme } from '@apache-superset/core/theme';
 
 describe('Scatter Chart X-axis Time Formatting', () => {
   const baseFormData: EchartsTimeseriesFormData = {
