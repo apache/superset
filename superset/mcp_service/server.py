@@ -30,7 +30,11 @@ import uvicorn
 
 from superset.mcp_service.app import create_mcp_app, init_fastmcp_server
 from superset.mcp_service.mcp_config import get_mcp_factory_config, MCP_STORE_CONFIG
-from superset.mcp_service.middleware import create_response_size_guard_middleware
+from superset.mcp_service.middleware import (
+    create_response_size_guard_middleware,
+    GlobalErrorHandlerMiddleware,
+    LoggingMiddleware,
+)
 from superset.mcp_service.storage import _create_redis_store
 
 logger = logging.getLogger(__name__)
@@ -225,6 +229,12 @@ def run_server(
 
         # Build middleware list
         middleware_list = []
+
+        # Add global error handler (outermost - catches all exceptions)
+        middleware_list.append(GlobalErrorHandlerMiddleware())
+
+        # Add logging middleware (logs all tool calls with duration tracking)
+        middleware_list.append(LoggingMiddleware())
 
         # Add response size guard (protects LLM clients from huge responses)
         if size_guard_middleware := create_response_size_guard_middleware():
