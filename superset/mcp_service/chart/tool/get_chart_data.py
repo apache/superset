@@ -48,6 +48,16 @@ from superset.mcp_service.utils.schema_utils import parse_request
 logger = logging.getLogger(__name__)
 
 
+def _apply_extra_form_data(form_data: dict, extra_form_data: dict | None) -> None:
+    """Merge dashboard native filters into chart form_data in-place."""
+    if not extra_form_data:
+        return
+    form_data["extra_form_data"] = extra_form_data
+    from superset.utils.core import merge_extra_filters
+
+    merge_extra_filters(form_data)
+
+
 def _get_cached_form_data(form_data_key: str) -> str | None:
     """Retrieve form_data from cache using form_data_key.
 
@@ -249,6 +259,8 @@ async def get_chart_data(  # noqa: C901
                     cached_metrics = cached_form_data_dict.get("metrics", [])
                     cached_groupby = cached_form_data_dict.get("groupby", [])
 
+                _apply_extra_form_data(cached_form_data_dict, request.extra_form_data)
+
                 query_context = factory.create(
                     datasource={
                         "id": datasource_id,
@@ -417,6 +429,8 @@ async def get_chart_data(  # noqa: C901
                         error_type="MissingQueryContext",
                     )
 
+                _apply_extra_form_data(form_data, request.extra_form_data)
+
                 query_context = factory.create(
                     datasource={
                         "id": chart.datasource_id,
@@ -442,6 +456,12 @@ async def get_chart_data(  # noqa: C901
                 if request.limit:
                     for query in query_context_json.get("queries", []):
                         query["row_limit"] = request.limit
+
+                # Merge dashboard native filters into query_context's form_data
+                if request.extra_form_data:
+                    qc_form_data = query_context_json.setdefault("form_data", {})
+                    _apply_extra_form_data(qc_form_data, request.extra_form_data)
+                    query_context_json["form_data"] = qc_form_data
 
                 # Create QueryContext from the saved context using the schema
                 # This is exactly how the API does it
