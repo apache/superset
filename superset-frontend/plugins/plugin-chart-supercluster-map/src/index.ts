@@ -34,7 +34,7 @@ const metadata = new ChartMetadata({
     { url: example1, urlDark: example1Dark, caption: t('Light mode') },
     { url: example2, urlDark: example2Dark, caption: t('Dark mode') },
   ],
-  name: t('MapLibre'),
+  name: t('Supercluster Map'),
   tags: [
     t('Business'),
     t('Intensity'),
@@ -46,7 +46,7 @@ const metadata = new ChartMetadata({
   thumbnailDark,
 });
 
-export default class MapLibreChartPlugin extends ChartPlugin {
+export default class ScatterMapChartPlugin extends ChartPlugin {
   constructor() {
     super({
       loadChart: () => import('./MapLibre'),

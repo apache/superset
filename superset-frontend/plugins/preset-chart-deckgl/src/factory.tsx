@@ -191,8 +191,8 @@ export function createDeckGLComponent(
           ref={containerRef}
           viewport={viewport}
           layers={layers}
-          mapStyle={formData.map_provider === 'mapbox' ? formData.mapbox_style : (formData.maplibre_style || formData.mapbox_style)}
-          mapProvider={formData.map_provider === 'mapbox' ? 'mapbox' : 'maplibre'}
+          mapStyle={formData.map_renderer === 'mapbox' ? formData.mapbox_style : (formData.maplibre_style || formData.mapbox_style)}
+          mapProvider={formData.map_renderer === 'mapbox' ? 'mapbox' : 'maplibre'}
           mapboxApiKey={getMapboxApiKey()}
           setControlValue={setControlValue}
           width={width}

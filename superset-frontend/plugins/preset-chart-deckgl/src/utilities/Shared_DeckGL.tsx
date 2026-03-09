@@ -419,10 +419,10 @@ export const reverseLongLat = {
 };
 
 export const mapProvider = {
-  name: 'map_provider',
+  name: 'map_renderer',
   config: {
     type: 'SelectControl',
-    label: t('Map Provider'),
+    label: t('Map Renderer'),
     clearable: false,
     renderTrigger: true,
     choices: [
@@ -451,7 +451,7 @@ export const maplibreStyle = {
       'Base layer map style. Accepts a MapLibre-compatible style URL.',
     ),
     visibility: ({ controls }: ControlPanelState) =>
-      controls?.map_provider?.value !== 'mapbox',
+      controls?.map_renderer?.value !== 'mapbox',
   },
 };
 
@@ -469,7 +469,7 @@ export const mapboxStyle = {
       'Base layer map style. Accepts a Mapbox style URL (mapbox://styles/...).',
     ),
     visibility: ({ controls }: ControlPanelState) =>
-      controls?.map_provider?.value === 'mapbox',
+      controls?.map_renderer?.value === 'mapbox',
   },
 };
 

@@ -40,7 +40,7 @@ import {
   TimePivotChartPlugin,
 } from '@superset-ui/legacy-preset-chart-nvd3';
 import { DeckGLChartPreset } from '@superset-ui/preset-chart-deckgl';
-import MapLibreChartPlugin from '@superset-ui/plugin-chart-maplibre';
+import ScatterMapChartPlugin from '@superset-ui/plugin-chart-supercluster-map';
 import { CartodiagramPlugin } from '@superset-ui/plugin-chart-cartodiagram';
 import {
   BigNumberChartPlugin,
@@ -131,7 +131,7 @@ export default class MainPreset extends Preset {
           key: VizType.MixedTimeseries,
         }),
         new HorizonChartPlugin().configure({ key: VizType.Horizon }),
-        new MapLibreChartPlugin().configure({ key: VizType.MapLibre }),
+        new ScatterMapChartPlugin().configure({ key: VizType.MapLibre }),
         new PairedTTestChartPlugin().configure({ key: VizType.PairedTTest }),
         new ParallelCoordinatesChartPlugin().configure({
           key: VizType.ParallelCoordinates,

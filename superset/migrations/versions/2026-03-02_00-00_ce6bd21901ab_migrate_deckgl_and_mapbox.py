@@ -75,11 +75,11 @@ class MigrateMapBox(MigrateViz):
 
     def _post_action(self) -> None:
         # If the style URL is a mapbox:// URL, the chart was using Mapbox GL.
-        # Set map_provider so the new chart continues to use the Mapbox renderer,
+        # Set map_renderer so the new chart continues to use the Mapbox renderer,
         # which will pick up MAPBOX_API_KEY from the server config.
         mapbox_style = self.data.get("mapbox_style", "")
         if isinstance(mapbox_style, str) and mapbox_style.startswith("mapbox://"):
-            self.data["map_provider"] = "mapbox"
+            self.data["map_renderer"] = "mapbox"
 
     @classmethod
     def upgrade_slice(cls, slc: Slice) -> None:
@@ -116,7 +116,7 @@ class MigrateMapBox(MigrateViz):
 
 
 def _migrate_deckgl_slice(slc: Slice) -> bool:
-    """Set map_provider for a deck.gl slice based on mapbox_style URL.
+    """Set map_renderer for a deck.gl slice based on mapbox_style URL.
 
     Returns True if the slice was modified.
     """
@@ -126,7 +126,7 @@ def _migrate_deckgl_slice(slc: Slice) -> bool:
 
     mapbox_style = params.get("mapbox_style", "")
     if isinstance(mapbox_style, str) and mapbox_style.startswith("mapbox://"):
-        params["map_provider"] = "mapbox"
+        params["map_renderer"] = "mapbox"
         slc.params = json.dumps(params)
         return True
 
@@ -136,10 +136,10 @@ def _migrate_deckgl_slice(slc: Slice) -> bool:
 def _downgrade_deckgl_slice(slc: Slice) -> bool:
     """Reverse _migrate_deckgl_slice. Returns True if the slice was modified."""
     params = try_load_json(slc.params)
-    if not params or "map_provider" not in params:
+    if not params or "map_renderer" not in params:
         return False
 
-    params.pop("map_provider", None)
+    params.pop("map_renderer", None)
     slc.params = json.dumps(params)
     return True
 

@@ -118,7 +118,7 @@ export default function transformProps(chartProps: ChartProps) {
     global_opacity: globalOpacity,
     map_color: maplibreColor,
     map_label: maplibreLabel,
-    map_provider: mapProvider,
+    map_renderer: mapProvider,
     maplibre_style: maplibreStyle,
     mapbox_style: mapboxStyle = '',
     pandas_aggfunc: pandasAggfunc,

@@ -194,10 +194,10 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         [
           {
-            name: 'map_provider',
+            name: 'map_renderer',
             config: {
               type: 'SelectControl',
-              label: t('Map Provider'),
+              label: t('Map Renderer'),
               clearable: false,
               renderTrigger: true,
               choices: [
@@ -244,7 +244,7 @@ const config: ControlPanelConfig = {
                 'https://maplibre.org/maplibre-style-spec/',
               ),
               visibility: ({ controls }: any) =>
-                controls?.map_provider?.value !== 'mapbox',
+                controls?.map_renderer?.value !== 'mapbox',
             },
           },
         ],
@@ -273,7 +273,7 @@ const config: ControlPanelConfig = {
                 'Base layer map style. Accepts a Mapbox style URL (mapbox://styles/...).',
               ),
               visibility: ({ controls }: any) =>
-                controls?.map_provider?.value === 'mapbox',
+                controls?.map_renderer?.value === 'mapbox',
             },
           },
         ],

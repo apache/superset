@@ -93,7 +93,7 @@
     { "path": "./plugins/plugin-chart-cartodiagram" },
     { "path": "./plugins/preset-chart-deckgl" },
     { "path": "./plugins/plugin-chart-echarts" },
-    { "path": "./plugins/plugin-chart-maplibre" },
+    { "path": "./plugins/plugin-chart-supercluster-map" },
     { "path": "./plugins/plugin-chart-handlebars" },
     { "path": "./plugins/plugin-chart-pivot-table" },
     { "path": "./plugins/plugin-chart-table" },
