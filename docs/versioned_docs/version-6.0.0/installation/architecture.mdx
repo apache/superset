@@ -24,10 +24,10 @@ A Superset installation is made up of these components:
 
 The optional components above are necessary to enable these features:
 
-- [Alerts and Reports](/docs/configuration/alerts-reports)
-- [Caching](/docs/configuration/cache)
-- [Async Queries](/docs/configuration/async-queries-celery/)
-- [Dashboard Thumbnails](/docs/configuration/cache/#caching-thumbnails)
+- [Alerts and Reports](/docs/6.0.0/configuration/alerts-reports)
+- [Caching](/docs/6.0.0/configuration/cache)
+- [Async Queries](/docs/6.0.0/configuration/async-queries-celery/)
+- [Dashboard Thumbnails](/docs/6.0.0/configuration/cache/#caching-thumbnails)
 
 If you install with Kubernetes or Docker Compose, all of these components will be created.
 
@@ -59,7 +59,7 @@ The caching layer serves two main functions:
 - Store the results of queries to your data warehouse so that when a chart is loaded twice, it pulls from the cache the second time, speeding up the application and reducing load on your data warehouse.
 - Act as a message broker for the worker, enabling the Alerts & Reports, async queries, and thumbnail caching features.
 
-Most people use Redis for their cache, but Superset supports other options too. See the [cache docs](/docs/configuration/cache/) for more.
+Most people use Redis for their cache, but Superset supports other options too. See the [cache docs](/docs/6.0.0/configuration/cache/) for more.
 
 ### Worker and Beat
 
@@ -67,6 +67,6 @@ This is one or more workers who execute tasks like run async queries or take sna
 
 ## Other components
 
-Other components can be incorporated into Superset. The best place to learn about additional configurations is the [Configuration page](/docs/configuration/configuring-superset). For instance, you could set up a load balancer or reverse proxy to implement HTTPS in front of your Superset application, or specify a Mapbox URL to enable geospatial charts, etc.
+Other components can be incorporated into Superset. The best place to learn about additional configurations is the [Configuration page](/docs/6.0.0/configuration/configuring-superset). For instance, you could set up a load balancer or reverse proxy to implement HTTPS in front of your Superset application, or specify a Mapbox URL to enable geospatial charts, etc.
 
 Superset won't even start without certain configuration settings established, so it's essential to review that page.

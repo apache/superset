@@ -40,7 +40,7 @@ import {
   SupersetClient,
   usePrevious,
 } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import { Layer } from '@deck.gl/core';
 
 import {

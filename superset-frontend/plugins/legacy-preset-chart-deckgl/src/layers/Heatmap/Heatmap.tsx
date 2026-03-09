@@ -18,7 +18,7 @@
  */
 import { HeatmapLayer } from '@deck.gl/aggregation-layers';
 import { Position } from '@deck.gl/core';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   getSequentialSchemeRegistry,
   JsonObject,

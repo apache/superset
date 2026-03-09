@@ -19,7 +19,7 @@
 
 import { useMemo, useState } from 'react';
 import rison from 'rison';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { SupersetClient } from '@superset-ui/core';
 import { Link, useHistory } from 'react-router-dom';
 import { useListViewResource } from 'src/views/CRUD/hooks';

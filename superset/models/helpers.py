@@ -58,7 +58,7 @@ from sqlalchemy import and_, Column, or_, UniqueConstraint
 from sqlalchemy.exc import MultipleResultsFound
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import Mapper, validates
-from sqlalchemy.sql.elements import ColumnElement, literal_column, TextClause
+from sqlalchemy.sql.elements import ColumnElement, Grouping, literal_column, TextClause
 from sqlalchemy.sql.expression import Label, Select, TextAsFrom
 from sqlalchemy.sql.selectable import Alias, TableClause
 from sqlalchemy_utils import UUIDType
@@ -2414,7 +2414,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     self.dttm_sql_literal(end_dttm, time_col)
                 )
             )
-        return and_(*l)
+        return and_(True, *l)
 
     def values_for_column(  # pylint: disable=too-many-locals
         self,
@@ -2800,6 +2800,21 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 col = self.convert_tbl_column_to_sqla_col(
                     columns_by_name[col], template_processor=template_processor
                 )
+            elif isinstance(col, str) and columns:
+                # Check if this is a label reference to an adhoc column
+                adhoc_col = next(
+                    (
+                        c
+                        for c in columns
+                        if utils.is_adhoc_column(c) and c.get("label") == col
+                    ),
+                    None,
+                )
+                if adhoc_col:
+                    col = self.adhoc_column_to_sqla(
+                        col=adhoc_col,
+                        template_processor=template_processor,
+                    )
 
             if isinstance(col, ColumnElement):
                 orderby_exprs.append(col)
@@ -2965,7 +2980,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         where_clause_and: list[ColumnElement] = []
         having_clause_and: list[ColumnElement] = []
 
-        for flt in filter:  # type: ignore
+        for flt in filter or []:
             if not all(flt.get(s) for s in ["col", "op"]):
                 continue
             flt_col = flt["col"]
@@ -3206,7 +3221,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     schema=self.schema,
                     template_processor=template_processor,
                 )
-                where_clause_and += [self.text(where)]
+                where_clause_and += [Grouping(self.text(where))]
             having = extras.get("having")
             if having:
                 having = self._process_select_expression(
@@ -3216,7 +3231,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     schema=self.schema,
                     template_processor=template_processor,
                 )
-                having_clause_and += [self.text(having)]
+                having_clause_and += [Grouping(self.text(having))]
 
         if apply_fetch_values_predicate and self.fetch_values_predicate:
             qry = qry.where(

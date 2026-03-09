@@ -416,7 +416,7 @@ If versions don't appear in dropdown:
 
 - [Docusaurus Documentation](https://docusaurus.io/docs)
 - [MDX Documentation](https://mdxjs.com/)
-- [Superset Developer Portal](https://superset.apache.org/developer_portal/)
+- [Superset Developer Docs](https://superset.apache.org/developer-docs/)
 - [Main Superset Documentation](https://superset.apache.org/docs/intro)
 
 ## 📖 Real Examples and Patterns

@@ -17,10 +17,12 @@
 """Tests for subdirectory deployment features."""
 
 from unittest.mock import MagicMock
+from urllib.parse import parse_qs, urlparse
 
 from werkzeug.test import EnvironBuilder
 
 from superset.app import AppRootMiddleware
+from superset.views.utils import redirect_to_login
 from tests.integration_tests.base_tests import SupersetTestCase
 
 
@@ -99,3 +101,57 @@ class TestSubdirectoryDeployments(SupersetTestCase):
         assert called_environ["PATH_INFO"] == ""
         # SCRIPT_NAME should be set to the prefix
         assert called_environ["SCRIPT_NAME"] == "/superset"
+
+    def test_redirect_to_login_with_app_root(self):
+        """Test that redirect_to_login includes app root in next parameter."""
+        with self.app.test_request_context(
+            "/superset/welcome/",
+            environ_overrides={"SCRIPT_NAME": "/analytics"},
+        ):
+            response = redirect_to_login()
+            parsed_url = urlparse(response.location)
+            query_params = parse_qs(parsed_url.query)
+
+            # The next parameter should include the app root prefix
+            assert "next" in query_params
+            assert query_params["next"][0] == "/analytics/superset/welcome/"
+
+    def test_redirect_to_login_with_query_string_and_app_root(self):
+        """Test that redirect_to_login preserves query string with app root."""
+        with self.app.test_request_context(
+            "/superset/welcome/?foo=bar",
+            environ_overrides={"SCRIPT_NAME": "/analytics"},
+        ):
+            response = redirect_to_login()
+            parsed_url = urlparse(response.location)
+            query_params = parse_qs(parsed_url.query)
+
+            # The next parameter should include both app root and query string
+            assert "next" in query_params
+            assert query_params["next"][0] == "/analytics/superset/welcome/?foo=bar"
+
+    def test_redirect_to_login_without_app_root(self):
+        """Test that redirect_to_login works without app root (no regression)."""
+        with self.app.test_request_context("/superset/welcome/"):
+            response = redirect_to_login()
+            parsed_url = urlparse(response.location)
+            query_params = parse_qs(parsed_url.query)
+
+            # The next parameter should be the path without any prefix
+            assert "next" in query_params
+            assert query_params["next"][0] == "/superset/welcome/"
+
+    def test_redirect_to_login_with_custom_target_and_app_root(self):
+        """Test that redirect_to_login respects custom target parameter."""
+        with self.app.test_request_context(
+            "/some/other/path",
+            environ_overrides={"SCRIPT_NAME": "/analytics"},
+        ):
+            # When next_target is explicitly provided, it should be used as-is
+            custom_target = "/custom/target"
+            response = redirect_to_login(next_target=custom_target)
+            parsed_url = urlparse(response.location)
+            query_params = parse_qs(parsed_url.query)
+
+            assert "next" in query_params
+            assert query_params["next"][0] == custom_target
