@@ -30,6 +30,7 @@ import {
   lineType,
   reverseLongLat,
   mapboxStyle,
+  maplibreStyle,
   mapProvider,
   tooltipContents,
   tooltipTemplate,
@@ -68,6 +69,7 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         [mapProvider],
         [mapboxStyle],
+        [maplibreStyle],
         [viewport],
         ['color_picker'],
         [lineWidth],

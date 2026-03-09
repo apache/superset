@@ -68,7 +68,6 @@ class MigrateMapBox(MigrateViz):
     source_viz_type = "mapbox"
     target_viz_type = "map_gl"
     rename_keys = {
-        "mapbox_style": "map_style",
         "mapbox_label": "map_label",
         "mapbox_color": "map_color",
     }
@@ -78,8 +77,8 @@ class MigrateMapBox(MigrateViz):
         # If the style URL is a mapbox:// URL, the chart was using Mapbox GL.
         # Set map_provider so the new chart continues to use the Mapbox renderer,
         # which will pick up MAPBOX_API_KEY from the server config.
-        map_style = self.data.get("map_style", "")
-        if isinstance(map_style, str) and map_style.startswith("mapbox://"):
+        mapbox_style = self.data.get("mapbox_style", "")
+        if isinstance(mapbox_style, str) and mapbox_style.startswith("mapbox://"):
             self.data["map_provider"] = "mapbox"
 
     @classmethod
@@ -117,7 +116,7 @@ class MigrateMapBox(MigrateViz):
 
 
 def _migrate_deckgl_slice(slc: Slice) -> bool:
-    """Rename mapbox_style → map_style and set map_provider for a deck.gl slice.
+    """Set map_provider for a deck.gl slice based on mapbox_style URL.
 
     Returns True if the slice was modified.
     """
@@ -125,23 +124,21 @@ def _migrate_deckgl_slice(slc: Slice) -> bool:
     if not params or "mapbox_style" not in params:
         return False
 
-    params["map_style"] = params.pop("mapbox_style")
-    if isinstance(params["map_style"], str) and params["map_style"].startswith(
-        "mapbox://"
-    ):
+    mapbox_style = params.get("mapbox_style", "")
+    if isinstance(mapbox_style, str) and mapbox_style.startswith("mapbox://"):
         params["map_provider"] = "mapbox"
+        slc.params = json.dumps(params)
+        return True
 
-    slc.params = json.dumps(params)
-    return True
+    return False
 
 
 def _downgrade_deckgl_slice(slc: Slice) -> bool:
     """Reverse _migrate_deckgl_slice. Returns True if the slice was modified."""
     params = try_load_json(slc.params)
-    if not params or "map_style" not in params:
+    if not params or "map_provider" not in params:
         return False
 
-    params["mapbox_style"] = params.pop("map_style")
     params.pop("map_provider", None)
     slc.params = json.dumps(params)
     return True

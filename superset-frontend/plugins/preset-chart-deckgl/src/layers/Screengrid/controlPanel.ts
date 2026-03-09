@@ -34,6 +34,7 @@ import {
   viewport,
   spatial,
   mapboxStyle,
+  maplibreStyle,
   mapProvider,
   deckGLFixedColor,
   deckGLCategoricalColorSchemeSelect,

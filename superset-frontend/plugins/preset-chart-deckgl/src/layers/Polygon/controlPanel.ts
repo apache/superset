@@ -44,6 +44,7 @@ import {
   lineType,
   reverseLongLat,
   mapboxStyle,
+  maplibreStyle,
   mapProvider,
   deckGLCategoricalColorSchemeTypeSelect,
   deckGLLinearColorSchemeSelect,

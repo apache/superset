@@ -32,6 +32,7 @@ import {
   jsOnclickHref,
   jsTooltip,
   mapboxStyle,
+  maplibreStyle,
   mapProvider,
   spatial,
   viewport,
@@ -60,6 +61,7 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         [mapProvider],
         [mapboxStyle],
+        [maplibreStyle],
         ...generateDeckGLColorSchemeControls({
           defaultSchemeType: COLOR_SCHEME_TYPES.categorical_palette,
           disableCategoricalColumn: true,

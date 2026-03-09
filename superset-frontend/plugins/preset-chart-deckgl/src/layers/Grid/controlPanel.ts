@@ -34,6 +34,7 @@ import {
   viewport,
   spatial,
   mapboxStyle,
+  maplibreStyle,
   mapProvider,
   tooltipContents,
   tooltipTemplate,
@@ -62,6 +63,7 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         [mapProvider],
         [mapboxStyle],
+        [maplibreStyle],
         [viewport],
         ...generateDeckGLColorSchemeControls({
           defaultSchemeType: COLOR_SCHEME_TYPES.categorical_palette,

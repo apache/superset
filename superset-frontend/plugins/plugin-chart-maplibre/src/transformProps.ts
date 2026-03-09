@@ -119,7 +119,8 @@ export default function transformProps(chartProps: ChartProps) {
     map_color: maplibreColor,
     map_label: maplibreLabel,
     map_provider: mapProvider,
-    map_style: maplibreStyle,
+    maplibre_style: maplibreStyle,
+    mapbox_style: mapboxStyle = '',
     pandas_aggfunc: pandasAggfunc,
     point_radius: pointRadius,
     point_radius_unit: pointRadiusUnit,
@@ -196,7 +197,7 @@ export default function transformProps(chartProps: ChartProps) {
     globalOpacity,
     hasCustomMetric,
     mapProvider,
-    mapStyle: maplibreStyle,
+    mapStyle: mapProvider === 'mapbox' ? (mapboxStyle as string) : (maplibreStyle as string),
     onViewportChange({
       latitude,
       longitude,

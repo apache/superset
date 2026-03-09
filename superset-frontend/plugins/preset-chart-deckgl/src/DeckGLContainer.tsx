@@ -123,6 +123,25 @@ export const DeckGLContainer = memo(
     const isMapbox = props.mapProvider === 'mapbox';
     const mapStyle = props.mapStyle || DEFAULT_MAP_STYLE;
 
+    if (isMapbox && !props.mapboxApiKey) {
+      return (
+        <div
+          style={{
+            width,
+            height,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 16,
+            textAlign: 'center',
+            color: '#666',
+          }}
+        >
+          Mapbox requires a MAPBOX_API_KEY to be configured on the server.
+        </div>
+      );
+    }
+
     if (isMapbox && props.mapboxApiKey) {
       mapboxgl.accessToken = props.mapboxApiKey;
     }

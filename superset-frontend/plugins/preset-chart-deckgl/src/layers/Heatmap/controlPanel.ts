@@ -37,6 +37,7 @@ import {
   jsOnclickHref,
   jsTooltip,
   mapboxStyle,
+  maplibreStyle,
   mapProvider,
   spatial,
   viewport,
@@ -108,6 +109,7 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         [mapProvider],
         [mapboxStyle],
+        [maplibreStyle],
         [viewport],
         [
           {

@@ -39,6 +39,7 @@ import {
   legendPosition,
   viewport,
   mapboxStyle,
+  maplibreStyle,
   mapProvider,
   tooltipContents,
   tooltipTemplate,

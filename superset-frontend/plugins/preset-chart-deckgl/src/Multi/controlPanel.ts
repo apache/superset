@@ -21,6 +21,7 @@ import { validateNonEmpty } from '@superset-ui/core';
 import {
   viewport,
   mapboxStyle,
+  maplibreStyle,
   mapProvider,
   autozoom,
 } from '../utilities/Shared_DeckGL';
@@ -33,6 +34,7 @@ export default {
       controlSetRows: [
         [mapProvider],
         [mapboxStyle],
+        [maplibreStyle],
         [viewport],
         [autozoom],
         [

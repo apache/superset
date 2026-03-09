@@ -213,7 +213,7 @@ const config: ControlPanelConfig = {
         ],
         [
           {
-            name: 'map_style',
+            name: 'maplibre_style',
             config: {
               type: 'SelectControl',
               label: t('Map Style'),
@@ -243,6 +243,37 @@ const config: ControlPanelConfig = {
                 'Base layer map style. See MapLibre documentation: %s',
                 'https://maplibre.org/maplibre-style-spec/',
               ),
+              visibility: ({ controls }: any) =>
+                controls?.map_provider?.value !== 'mapbox',
+            },
+          },
+        ],
+        [
+          {
+            name: 'mapbox_style',
+            config: {
+              type: 'SelectControl',
+              label: t('Map Style'),
+              clearable: false,
+              renderTrigger: true,
+              freeForm: true,
+              choices: [
+                ['mapbox://styles/mapbox/streets-v12', t('Streets')],
+                ['mapbox://styles/mapbox/outdoors-v12', t('Outdoors')],
+                ['mapbox://styles/mapbox/light-v11', t('Light')],
+                ['mapbox://styles/mapbox/dark-v11', t('Dark')],
+                ['mapbox://styles/mapbox/satellite-v9', t('Satellite')],
+                [
+                  'mapbox://styles/mapbox/satellite-streets-v12',
+                  t('Satellite Streets'),
+                ],
+              ],
+              default: 'mapbox://styles/mapbox/light-v11',
+              description: t(
+                'Base layer map style. Accepts a Mapbox style URL (mapbox://styles/...).',
+              ),
+              visibility: ({ controls }: any) =>
+                controls?.map_provider?.value === 'mapbox',
             },
           },
         ],

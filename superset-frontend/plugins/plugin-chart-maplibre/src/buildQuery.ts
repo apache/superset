@@ -33,7 +33,8 @@ export interface MapLibreFormData extends SqlaFormData {
   clustering_radius?: string;
   pandas_aggfunc?: string;
   global_opacity?: number;
-  map_style?: string;
+  maplibre_style?: string;
+  mapbox_style?: string;
   map_color?: string;
   render_while_dragging?: boolean;
   point_radius_unit?: string;

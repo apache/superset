@@ -437,8 +437,8 @@ export const mapProvider = {
   },
 };
 
-export const mapboxStyle = {
-  name: 'map_style',
+export const maplibreStyle = {
+  name: 'maplibre_style',
   config: {
     type: 'SelectControl',
     label: t('Map Style'),
@@ -448,14 +448,28 @@ export const mapboxStyle = {
     choices: getDeckGLTiles(),
     default: getDeckGLTiles()[0][0],
     description: t(
-      'Base layer map style. Accepts a MapLibre-compatible style URL or a tile server URL.',
+      'Base layer map style. Accepts a MapLibre-compatible style URL.',
     ),
-    mapStateToProps: (state: ControlPanelState) => {
-      const isMapbox = state.controls?.map_provider?.value === 'mapbox';
-      return {
-        choices: isMapbox ? DEFAULT_MAPBOX_TILES : getDeckGLTiles(),
-      };
-    },
+    visibility: ({ controls }: ControlPanelState) =>
+      controls?.map_provider?.value !== 'mapbox',
+  },
+};
+
+export const mapboxStyle = {
+  name: 'mapbox_style',
+  config: {
+    type: 'SelectControl',
+    label: t('Map Style'),
+    clearable: false,
+    renderTrigger: true,
+    freeForm: true,
+    choices: DEFAULT_MAPBOX_TILES,
+    default: DEFAULT_MAPBOX_TILES[0][0],
+    description: t(
+      'Base layer map style. Accepts a Mapbox style URL (mapbox://styles/...).',
+    ),
+    visibility: ({ controls }: ControlPanelState) =>
+      controls?.map_provider?.value === 'mapbox',
   },
 };
 
@@ -539,7 +553,7 @@ export const tooltipTemplate = {
     default: '',
     description: '',
     placeholder: '',
-    mapStateToProps: (state: any, control: any) => ({
+    mapStateToProps: (_state: any, control: any) => ({
       value: control.value,
     }),
   },

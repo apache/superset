@@ -126,11 +126,30 @@ function MapLibre({
   const clusters = clusterer.getClusters(bbox, Math.round(viewport.zoom));
 
   const resolvedMapStyle = mapStyle || DEFAULT_MAP_STYLE;
+  const mapboxApiKey = mapProvider === 'mapbox' ? getMapboxApiKey() : '';
+
+  if (mapProvider === 'mapbox' && !mapboxApiKey) {
+    return (
+      <div
+        style={{
+          width,
+          height,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 16,
+          textAlign: 'center',
+          color: '#666',
+        }}
+      >
+        Mapbox requires a MAPBOX_API_KEY to be configured on the server.
+      </div>
+    );
+  }
+
   const MapComponent = mapProvider === 'mapbox' ? MapboxMap : MapLibreMap;
   const mapboxProps =
-    mapProvider === 'mapbox'
-      ? { mapboxAccessToken: getMapboxApiKey() }
-      : {};
+    mapProvider === 'mapbox' ? { mapboxAccessToken: mapboxApiKey } : {};
 
   return (
     <MapComponent
