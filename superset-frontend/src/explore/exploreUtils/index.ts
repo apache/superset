@@ -262,6 +262,9 @@ export function getExploreUrl({
   if (endpointType === 'csv') {
     search.csv = 'true';
   }
+  if (endpointType === 'xlsx') {
+    search.xlsx = 'true';
+  }
   if (endpointType === URL_PARAMS.standalone.name) {
     search.standalone = '1';
   }
