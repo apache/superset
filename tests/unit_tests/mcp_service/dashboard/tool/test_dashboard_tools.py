@@ -617,8 +617,8 @@ class TestDashboardSortableColumns:
             DASHBOARD_SORTABLE_COLUMNS,
         )
 
-        SORTABLE_DASHBOARD_COLUMNS = DASHBOARD_SORTABLE_COLUMNS
-        assert SORTABLE_DASHBOARD_COLUMNS == [
+        sortable_dashboard_columns = DASHBOARD_SORTABLE_COLUMNS
+        assert sortable_dashboard_columns == [
             "id",
             "dashboard_title",
             "slug",
@@ -628,9 +628,9 @@ class TestDashboardSortableColumns:
             "popularity_score",
         ]
         # Ensure no computed properties are included
-        assert "changed_on_delta_humanized" not in SORTABLE_DASHBOARD_COLUMNS
-        assert "changed_by_name" not in SORTABLE_DASHBOARD_COLUMNS
-        assert "uuid" not in SORTABLE_DASHBOARD_COLUMNS
+        assert "changed_on_delta_humanized" not in sortable_dashboard_columns
+        assert "changed_by_name" not in sortable_dashboard_columns
+        assert "uuid" not in sortable_dashboard_columns
 
     @patch("superset.daos.dashboard.DashboardDAO.list")
     @pytest.mark.asyncio
@@ -666,10 +666,10 @@ class TestDashboardSortableColumns:
             list_dashboards,
         )
 
-        SORTABLE_DASHBOARD_COLUMNS = DASHBOARD_SORTABLE_COLUMNS
+        sortable_dashboard_columns = DASHBOARD_SORTABLE_COLUMNS
 
         # Check list_dashboards docstring for sortable columns documentation
         assert list_dashboards.__doc__ is not None
         assert "Sortable columns for order_column:" in list_dashboards.__doc__
-        for col in SORTABLE_DASHBOARD_COLUMNS:
+        for col in sortable_dashboard_columns:
             assert col in list_dashboards.__doc__

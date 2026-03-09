@@ -1429,8 +1429,8 @@ class TestDatasetSortableColumns:
             DATASET_SORTABLE_COLUMNS,
         )
 
-        SORTABLE_DATASET_COLUMNS = DATASET_SORTABLE_COLUMNS
-        assert SORTABLE_DATASET_COLUMNS == [
+        sortable_dataset_columns = DATASET_SORTABLE_COLUMNS
+        assert sortable_dataset_columns == [
             "id",
             "table_name",
             "schema",
@@ -1439,10 +1439,10 @@ class TestDatasetSortableColumns:
             "popularity_score",
         ]
         # Ensure no computed properties are included
-        assert "changed_on_delta_humanized" not in SORTABLE_DATASET_COLUMNS
-        assert "changed_by_name" not in SORTABLE_DATASET_COLUMNS
-        assert "database_name" not in SORTABLE_DATASET_COLUMNS
-        assert "uuid" not in SORTABLE_DATASET_COLUMNS
+        assert "changed_on_delta_humanized" not in sortable_dataset_columns
+        assert "changed_by_name" not in sortable_dataset_columns
+        assert "database_name" not in sortable_dataset_columns
+        assert "uuid" not in sortable_dataset_columns
 
     @patch("superset.daos.dataset.DatasetDAO.list")
     @pytest.mark.asyncio
@@ -1481,12 +1481,12 @@ class TestDatasetSortableColumns:
             list_datasets,
         )
 
-        SORTABLE_DATASET_COLUMNS = DATASET_SORTABLE_COLUMNS
+        sortable_dataset_columns = DATASET_SORTABLE_COLUMNS
 
         # Check list_datasets docstring for sortable columns documentation
         assert list_datasets.__doc__ is not None
         assert "Sortable columns for order_column:" in list_datasets.__doc__
-        for col in SORTABLE_DATASET_COLUMNS:
+        for col in sortable_dataset_columns:
             assert col in list_datasets.__doc__
 
     @patch("superset.daos.dataset.DatasetDAO.list")
