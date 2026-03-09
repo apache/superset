@@ -17,7 +17,7 @@
 
 [project]
 name = "apache-superset-extensions-cli"
-version = "0.0.1rc2"
+version = "0.1.0rc1"
 description = "Official command-line interface for building, bundling, and managing Apache Superset extensions"
 readme = "README.md"
 authors = [

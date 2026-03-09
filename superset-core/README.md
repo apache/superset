@@ -31,70 +31,70 @@ The official core package for building Apache Superset backend extensions and in
 pip install apache-superset-core
 ```
 
-## 🏗️ Architecture
+## 🏗️ Package Structure
 
-The package is organized into logical modules, each providing specific functionality:
-
-- **`api`** - REST API base classes, models access, query utilities, and registration
-- **`api.models`** - Access to Superset's database models (datasets, databases, etc.)
-- **`api.query`** - Database query utilities and SQL dialect handling
-- **`api.rest_api`** - Extension API registration and management
-- **`api.types.rest_api`** - REST API base classes and type definitions
+```
+src/superset_core/
+├── common/
+├── extensions/
+├── mcp/
+├── queries/
+├── rest_api/
+├── tasks/
+└── __init__.py
+```
 
 ## 🚀 Quick Start
 
-### Basic Extension Structure
+### Basic Extension API
 
 ```python
-from flask import request, Response
 from flask_appbuilder.api import expose, permission_name, protect, safe
-from superset_core import common, queries, rest_api
 from superset_core.rest_api.api import RestApi
+from superset_core.rest_api.decorators import api
 
+
+@api(id="dataset_references", name="Dataset References API")
 class DatasetReferencesAPI(RestApi):
-    """Example extension API demonstrating core functionality."""
-
-    resource_name = "dataset_references"
-    openapi_spec_tag = "Dataset references"
-    class_permission_name = "dataset_references"
 
     @expose("/metadata", methods=("POST",))
     @protect()
     @safe
     @permission_name("read")
     def metadata(self) -> Response:
-        """Get dataset metadata for tables referenced in SQL."""
-        sql: str = request.json.get("sql")
-        database_id: int = request.json.get("databaseId")
-
-        # Access Superset's models using core APIs
-        databases = models.get_databases(id=database_id)
-        if not databases:
-            return self.response_404()
-
-        database = databases[0]
-        dialect = query.get_sqlglot_dialect(database)
-
-        # Access datasets to get owner information
-        datasets = models.get_datasets()
-        owners_map = {
-            dataset.table_name: [
-                f"{owner.first_name} {owner.last_name}"
-                for owner in dataset.owners
-            ]
-            for dataset in datasets
-        }
-
-        # Process SQL and return dataset metadata
-        return self.response(200, result=owners_map)
-
-# Register the extension API
-rest_api.add_extension_api(DatasetReferencesAPI)
+        # ... endpoint implementation
 ```
 
-## 🤝 Contributing
+### Background Tasks
 
-We welcome contributions! Please see the [Developer Portal](https://superset.apache.org/developer_portal/) for details.
+```python
+from superset_core.tasks.decorators import task
+from superset_core.tasks.types import TaskScope
+
+@task(name="generate_report", scope=TaskScope.SHARED)
+def generate_report(chart_id: int) -> None:
+    # ... task implementation
+```
+
+### MCP Tools
+
+```python
+from superset_core.mcp.decorators import tool
+
+@tool(name="my_tool", description="Custom business logic", tags=["extension"])
+def my_extension_tool(param: str) -> dict:
+    # ... tool implementation
+```
+
+### MCP Prompts
+
+```python
+from superset_core.mcp.decorators import prompt
+
+@prompt(name="my_prompt", title="My Prompt", description="Interactive prompt", tags={"extension"})
+async def my_prompt_handler(ctx: Context) -> str:
+    # ... prompt implementation
+```
 
 ## 📄 License
 
@@ -102,12 +102,6 @@ Licensed under the Apache License, Version 2.0. See [LICENSE](https://github.com
 
 ## 🔗 Links
 
-- [Apache Superset](https://superset.apache.org/)
-- [Documentation](https://superset.apache.org/docs/)
 - [Community](https://superset.apache.org/community/)
 - [GitHub Repository](https://github.com/apache/superset)
-- [Extension Development Guide](https://superset.apache.org/docs/extensions/)
-
----
-
-**Note**: This package is currently in release candidate status. APIs may change before the 1.0.0 release. Please check the [changelog](CHANGELOG.md) for breaking changes between versions.
+- [Extensions Documentation](https://superset.apache.org/developer-docs/extensions/overview)
