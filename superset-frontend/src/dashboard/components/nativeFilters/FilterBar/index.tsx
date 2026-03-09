@@ -238,7 +238,19 @@ const FilterBar: FC<FiltersBarProps> = ({
             needsAutoApply);
 
         if (shouldDispatch) {
-          dispatch(updateDataMask(filter.id, dataMask));
+          // Strip validateStatus before dispatching to Redux
+          // validateStatus is UI-only state and shouldn't persist in Redux
+          const { filterState, ...restDataMask } = dataMask;
+          const dataMaskForRedux = filterState
+            ? {
+                ...restDataMask,
+                filterState: {
+                  ...filterState,
+                  validateStatus: undefined,
+                },
+              }
+            : dataMask;
+          dispatch(updateDataMask(filter.id, dataMaskForRedux));
         }
 
         // Mark filter as initialized after getting its first value WITH extraFormData
