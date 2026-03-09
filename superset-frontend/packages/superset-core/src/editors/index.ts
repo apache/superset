@@ -513,17 +513,17 @@ export interface EditorProvider {
 }
 
 /**
- * Event fired when an editor provider is registered.
+ * Event fired when an editor is registered.
  */
-export interface EditorProviderRegisteredEvent {
-  /** The registered provider */
-  provider: EditorProvider;
+export interface EditorRegisteredEvent {
+  /** The descriptor of the editor that was registered */
+  editor: Editor;
 }
 
 /**
- * Event fired when an editor provider is unregistered.
+ * Event fired when an editor is unregistered.
  */
-export interface EditorProviderUnregisteredEvent {
+export interface EditorUnregisteredEvent {
   /** The descriptor of the editor that was unregistered */
   editor: Editor;
 }
@@ -557,7 +557,7 @@ export declare function registerEditor(
  * @param language The language to get an editor for
  * @returns The editor provider or undefined if no extension provides one
  */
-export declare function getEditorProvider(
+export declare function getEditor(
   language: EditorLanguage,
 ): EditorProvider | undefined;
 
@@ -567,21 +567,21 @@ export declare function getEditorProvider(
  * @param language The language to check
  * @returns True if an extension provides an editor for this language
  */
-export declare function hasEditorProvider(language: EditorLanguage): boolean;
+export declare function hasEditor(language: EditorLanguage): boolean;
 
 /**
  * Get all registered editor providers.
  *
  * @returns Array of all registered editor providers
  */
-export declare function getAllEditorProviders(): EditorProvider[];
+export declare function getAllEditors(): EditorProvider[];
 
 /**
- * Event fired when an editor provider is registered.
+ * Event fired when an editor is registered.
  */
-export declare const onDidRegisterEditorProvider: Event<EditorProviderRegisteredEvent>;
+export declare const onDidRegisterEditor: Event<EditorRegisteredEvent>;
 
 /**
- * Event fired when an editor provider is unregistered.
+ * Event fired when an editor is unregistered.
  */
-export declare const onDidUnregisterEditorProvider: Event<EditorProviderUnregisteredEvent>;
+export declare const onDidUnregisterEditor: Event<EditorUnregisteredEvent>;
