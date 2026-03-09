@@ -441,9 +441,8 @@ test.each(doublePrefixTestCases)(
     const expectedEndpoint = `/api/v1/${resource}/export/?q=!(${ids.join(',')})`;
 
     // Explicitly verify no prefix in endpoint - this will fail if ensureAppRoot is used
-    const callArgs = (SupersetClient.get as jest.Mock).mock.calls.slice(
-      -1,
-    )[0][0];
+    const [lastCall] = (SupersetClient.get as jest.Mock).mock.calls.slice(-1);
+    const [callArgs] = lastCall;
     expect(callArgs.endpoint).not.toContain(appRoot);
     expect(callArgs.endpoint).toBe(expectedEndpoint);
 

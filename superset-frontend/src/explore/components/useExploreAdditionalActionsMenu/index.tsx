@@ -129,7 +129,7 @@ function getExportScreenshotMenuItems({
   chartId?: number;
   theme: ReturnType<typeof useTheme>;
   setIsDropdownVisible: (visible: boolean) => void;
-  dispatch: Dispatch;
+  dispatch: Dispatch<any>;
 }) {
   return [
     {
@@ -928,7 +928,7 @@ export const useExploreAdditionalActionsMenu = (
         },
       },
       {
-        type: 'submenu',
+        type: 'submenu' as const,
         key: 'export_current_png_submenu',
         label: t('Export screenshot (png)'),
         icon: <Icons.FileImageOutlined />,
@@ -936,7 +936,7 @@ export const useExploreAdditionalActionsMenu = (
           {
             key: MENU_KEYS.EXPORT_CURRENT_PNG_TRANSPARENT,
             label: t('Transparent background'),
-            onClick: e => {
+            onClick: (e: { domEvent: React.MouseEvent | React.KeyboardEvent }) => {
               downloadAsImage(
                 '.panel-body .chart-container',
                 slice?.slice_name ?? t('New chart'),
@@ -957,7 +957,7 @@ export const useExploreAdditionalActionsMenu = (
           {
             key: MENU_KEYS.EXPORT_CURRENT_PNG_SOLID,
             label: t('Solid background'),
-            onClick: e => {
+            onClick: (e: { domEvent: React.MouseEvent | React.KeyboardEvent }) => {
               downloadAsImage(
                 '.panel-body .chart-container',
                 slice?.slice_name ?? t('New chart'),
@@ -981,7 +981,7 @@ export const useExploreAdditionalActionsMenu = (
         key: MENU_KEYS.EXPORT_CURRENT_PDF,
         label: t('Export as PDF'),
         icon: <Icons.FileOutlined />,
-        onClick: e => {
+        onClick: (e: { domEvent: React.MouseEvent | React.KeyboardEvent }) => {
           downloadAsPdf(
             '.panel-body .chart-container',
             slice?.slice_name ?? t('New chart'),
