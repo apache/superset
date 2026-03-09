@@ -485,6 +485,183 @@ class FilterConfig(BaseModel):
 
 
 # Actual chart types
+class PieChartConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    chart_type: Literal["pie"] = Field(
+        ...,
+        description=(
+            "Chart type discriminator - MUST be 'pie' for pie/donut charts. "
+            "This field is REQUIRED and tells Superset which chart "
+            "configuration schema to use."
+        ),
+    )
+    dimension: ColumnRef = Field(
+        ..., description="Category column that defines the pie slices"
+    )
+    metric: ColumnRef = Field(
+        ...,
+        description=(
+            "Value metric that determines slice sizes. "
+            "Must include an aggregate function (e.g., SUM, COUNT)."
+        ),
+    )
+    donut: bool = Field(False, description="Render as a donut chart with a center hole")
+    show_labels: bool = Field(True, description="Display labels on slices")
+    label_type: Literal[
+        "key",
+        "value",
+        "percent",
+        "key_value",
+        "key_percent",
+        "key_value_percent",
+        "value_percent",
+    ] = Field("key_value_percent", description="Type of labels to show on slices")
+    sort_by_metric: bool = Field(True, description="Sort slices by metric value")
+    show_legend: bool = Field(True, description="Whether to show legend")
+    filters: List[FilterConfig] | None = Field(None, description="Filters to apply")
+    row_limit: int = Field(
+        100,
+        description="Maximum number of slices to display",
+        ge=1,
+        le=10000,
+    )
+    number_format: str = Field(
+        "SMART_NUMBER",
+        description="Number format string",
+        max_length=50,
+    )
+    show_total: bool = Field(False, description="Display aggregate count in center")
+    labels_outside: bool = Field(True, description="Place labels outside the pie")
+    outer_radius: int = Field(
+        70,
+        description="Outer edge radius as a percentage (1-100)",
+        ge=1,
+        le=100,
+    )
+    inner_radius: int = Field(
+        30,
+        description="Inner radius as a percentage for donut (1-100)",
+        ge=1,
+        le=100,
+    )
+
+
+class PivotTableChartConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    chart_type: Literal["pivot_table"] = Field(
+        ...,
+        description=(
+            "Chart type discriminator - MUST be 'pivot_table' for interactive "
+            "pivot tables. This field is REQUIRED."
+        ),
+    )
+    rows: List[ColumnRef] = Field(
+        ...,
+        min_length=1,
+        description="Row grouping columns (at least one required)",
+    )
+    columns: List[ColumnRef] | None = Field(
+        None,
+        description="Column grouping columns (optional, for cross-tabulation)",
+    )
+    metrics: List[ColumnRef] = Field(
+        ...,
+        min_length=1,
+        description=(
+            "Metrics to aggregate. Each must have an aggregate function "
+            "(e.g., SUM, COUNT, AVG)."
+        ),
+    )
+    aggregate_function: Literal[
+        "Sum",
+        "Average",
+        "Median",
+        "Sample Variance",
+        "Sample Standard Deviation",
+        "Minimum",
+        "Maximum",
+        "Count",
+        "Count Unique Values",
+        "First",
+        "Last",
+    ] = Field("Sum", description="Default aggregation function for the pivot table")
+    show_row_totals: bool = Field(True, description="Show row totals")
+    show_column_totals: bool = Field(True, description="Show column totals")
+    transpose: bool = Field(False, description="Swap rows and columns")
+    combine_metric: bool = Field(
+        False,
+        description="Display metrics side by side within columns",
+    )
+    filters: List[FilterConfig] | None = Field(None, description="Filters to apply")
+    row_limit: int = Field(
+        10000,
+        description="Maximum number of cells",
+        ge=1,
+        le=50000,
+    )
+    value_format: str = Field(
+        "SMART_NUMBER",
+        description="Value format string",
+        max_length=50,
+    )
+
+
+class MixedTimeseriesChartConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    chart_type: Literal["mixed_timeseries"] = Field(
+        ...,
+        description=(
+            "Chart type discriminator - MUST be 'mixed_timeseries' for charts "
+            "that combine two different series types (e.g., line + bar). "
+            "This field is REQUIRED."
+        ),
+    )
+    x: ColumnRef = Field(..., description="X-axis temporal column (shared)")
+    time_grain: TimeGrain | None = Field(
+        None,
+        description=(
+            "Time granularity for the x-axis. "
+            "Common values: PT1H (hourly), P1D (daily), P1W (weekly), "
+            "P1M (monthly), P1Y (yearly)."
+        ),
+    )
+    # Primary series (Query A)
+    y: List[ColumnRef] = Field(
+        ...,
+        min_length=1,
+        description="Primary Y-axis metrics (Query A)",
+    )
+    primary_kind: Literal["line", "bar", "area", "scatter"] = Field(
+        "line", description="Primary series chart type"
+    )
+    group_by: ColumnRef | None = Field(
+        None, description="Group by column for primary series"
+    )
+    # Secondary series (Query B)
+    y_secondary: List[ColumnRef] = Field(
+        ...,
+        min_length=1,
+        description="Secondary Y-axis metrics (Query B)",
+    )
+    secondary_kind: Literal["line", "bar", "area", "scatter"] = Field(
+        "bar", description="Secondary series chart type"
+    )
+    group_by_secondary: ColumnRef | None = Field(
+        None, description="Group by column for secondary series"
+    )
+    # Display options
+    show_legend: bool = Field(True, description="Whether to show legend")
+    x_axis: AxisConfig | None = Field(None, description="X-axis configuration")
+    y_axis: AxisConfig | None = Field(None, description="Primary Y-axis configuration")
+    y_axis_secondary: AxisConfig | None = Field(
+        None, description="Secondary Y-axis configuration"
+    )
+    filters: List[FilterConfig] | None = Field(None, description="Filters to apply")
+
+
 class TableChartConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -631,10 +808,17 @@ class XYChartConfig(BaseModel):
 
 # Discriminated union entry point with custom error handling
 ChartConfig = Annotated[
-    XYChartConfig | TableChartConfig,
+    XYChartConfig
+    | TableChartConfig
+    | PieChartConfig
+    | PivotTableChartConfig
+    | MixedTimeseriesChartConfig,
     Field(
         discriminator="chart_type",
-        description="Chart configuration - specify chart_type as 'xy' or 'table'",
+        description=(
+            "Chart configuration - specify chart_type as 'xy', 'table', "
+            "'pie', 'pivot_table', or 'mixed_timeseries'"
+        ),
     ),
 ]
 

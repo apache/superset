@@ -118,6 +118,9 @@ Chart Types You Can CREATE with generate_chart/generate_explore_link:
 - chart_type="xy", kind="scatter": Scatter plot for correlation analysis
 - chart_type="table": Data table for detailed views
 - chart_type="table", viz_type="ag-grid-table": Interactive AG Grid table
+- chart_type="pie": Pie chart for proportional data (set donut=True for donut)
+- chart_type="pivot_table": Interactive pivot table for cross-tabulation
+- chart_type="mixed_timeseries": Dual-series chart combining two chart types
 
 Time grain for temporal x-axis (time_grain parameter):
 - PT1H (hourly), P1D (daily), P1W (weekly), P1M (monthly), P1Y (yearly)
@@ -139,6 +142,20 @@ Query Examples:
 - My dashboards:
   filters=[{{"col": "created_by_fk", "opr": "eq", "value": <user_id>}}]
 
+To modify an existing chart (add filters, change metrics, change dimensions, etc.):
+1. get_chart_info(chart_id) -> examine current configuration
+2. update_chart(chart_id, config) -> apply changes (filters, metrics, dimensions)
+Do NOT use execute_sql for chart modifications. Use update_chart instead.
+
+CRITICAL RULES - NEVER VIOLATE:
+- NEVER fabricate or invent URLs. ALL URLs must come from tool call results.
+  If you need a link, call the appropriate tool (generate_explore_link, generate_chart,
+  open_sql_lab_with_context, etc.) and use the URL it returns.
+- To modify an existing chart's filters, metrics, or dimensions, use update_chart.
+  Do NOT use execute_sql for chart modifications.
+- Parameter name reminders: open_sql_lab_with_context uses "sql" (not "query"),
+  execute_sql uses "sql" (not "query").
+
 General usage tips:
 - All listing tools use 1-based pagination (first page is 1)
 - Use get_schema to discover filterable columns, sortable columns, and default columns
@@ -155,6 +172,23 @@ Input format:
 Feature Availability:
 - Call get_instance_info to discover accessible menus for the current user.
 - Do NOT assume features exist; always check get_instance_info first.
+
+Permission Awareness:
+- get_instance_info returns current_user.roles (e.g., ["Admin"], ["Alpha"], ["Viewer"]).
+- ALWAYS check the user's roles BEFORE suggesting write operations (creating datasets,
+  charts, dashboards, or running SQL).
+- Common roles and their typical capabilities:
+  - Admin: Full access to all features
+  - Alpha: Can create and modify charts, dashboards, datasets, and run SQL
+  - Gamma: Can view charts and dashboards they have been granted access to
+  - Viewer: Read-only access to shared dashboards and charts
+- If a user has a read-only role (Viewer, Gamma) and a listing tool returns 0 results,
+  do NOT suggest they create resources. Instead:
+  1. Explain that they may not have access to the requested resources
+  2. Suggest they ask a workspace admin to grant them access or share content with them
+  3. Offer to help with what they CAN do (e.g., viewing dashboards they have access to)
+- If you are unsure about a user's capabilities, check their accessible_menus in
+  feature_availability from get_instance_info.
 
 If you are unsure which tool to use, start with get_instance_info
 or use the quickstart prompt for an interactive guide.

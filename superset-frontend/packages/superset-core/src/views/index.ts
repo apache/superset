@@ -46,6 +46,8 @@ export interface View {
   id: string;
   /** The display name of the view. */
   name: string;
+  /** Optional description of the view, for display in contribution manifests. */
+  description?: string;
 }
 
 /**
