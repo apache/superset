@@ -74,7 +74,7 @@ def _make_tool_func(
 # -- MCPPermissionDeniedError --
 
 
-def test_permission_denied_error_message_basic():
+def test_permission_denied_error_message_basic() -> None:
     err = MCPPermissionDeniedError(
         permission_name="can_read",
         view_name="Chart",
@@ -85,7 +85,7 @@ def test_permission_denied_error_message_basic():
     assert err.view_name == "Chart"
 
 
-def test_permission_denied_error_message_with_user_and_tool():
+def test_permission_denied_error_message_with_user_and_tool() -> None:
     err = MCPPermissionDeniedError(
         permission_name="can_write",
         view_name="Dashboard",
@@ -100,21 +100,21 @@ def test_permission_denied_error_message_with_user_and_tool():
 # -- check_tool_permission --
 
 
-def test_check_tool_permission_no_class_permission_allows(app_context):
+def test_check_tool_permission_no_class_permission_allows(app_context) -> None:
     """Tools without class_permission_name should be allowed by default."""
     g.user = MagicMock(username="admin")
     func = _make_tool_func()  # no class_permission_name
     assert check_tool_permission(func) is True
 
 
-def test_check_tool_permission_no_user_denies(app_context):
+def test_check_tool_permission_no_user_denies(app_context) -> None:
     """If no g.user, permission check should deny."""
     g.user = None
     func = _make_tool_func(class_perm="Chart")
     assert check_tool_permission(func) is False
 
 
-def test_check_tool_permission_granted(app_context):
+def test_check_tool_permission_granted(app_context) -> None:
     """When security_manager.can_access returns True, permission is granted."""
     g.user = MagicMock(username="admin")
     func = _make_tool_func(class_perm="Chart", method_perm="read")
@@ -127,7 +127,7 @@ def test_check_tool_permission_granted(app_context):
     mock_sm.can_access.assert_called_once_with("can_read", "Chart")
 
 
-def test_check_tool_permission_denied(app_context):
+def test_check_tool_permission_denied(app_context) -> None:
     """When security_manager.can_access returns False, permission is denied."""
     g.user = MagicMock(username="viewer")
     func = _make_tool_func(class_perm="Dashboard", method_perm="write")
@@ -140,7 +140,7 @@ def test_check_tool_permission_denied(app_context):
     mock_sm.can_access.assert_called_once_with("can_write", "Dashboard")
 
 
-def test_check_tool_permission_default_method_is_read(app_context):
+def test_check_tool_permission_default_method_is_read(app_context) -> None:
     """When no method_permission_name is set, defaults to 'read'."""
     g.user = MagicMock(username="admin")
     func = _make_tool_func(class_perm="Dataset")
@@ -154,7 +154,7 @@ def test_check_tool_permission_default_method_is_read(app_context):
     mock_sm.can_access.assert_called_once_with("can_read", "Dataset")
 
 
-def test_check_tool_permission_disabled_via_config(app_context, app):
+def test_check_tool_permission_disabled_via_config(app_context, app) -> None:
     """When MCP_RBAC_ENABLED is False, permission checks are skipped."""
     g.user = MagicMock(username="viewer")
     func = _make_tool_func(class_perm="Chart", method_perm="read")
@@ -169,43 +169,43 @@ def test_check_tool_permission_disabled_via_config(app_context, app):
 # -- Permission constants --
 
 
-def test_permission_prefix():
+def test_permission_prefix() -> None:
     assert PERMISSION_PREFIX == "can_"
 
 
-def test_class_permission_attr():
+def test_class_permission_attr() -> None:
     assert CLASS_PERMISSION_ATTR == "_class_permission_name"
 
 
-def test_method_permission_attr():
+def test_method_permission_attr() -> None:
     assert METHOD_PERMISSION_ATTR == "_method_permission_name"
 
 
 # -- create_tool_decorator permission metadata --
 
 
-def test_permission_attrs_read_tag():
+def test_permission_attrs_read_tag() -> None:
     """Tags with class_permission_name set method_permission to read."""
     func = _make_tool_func(class_perm="Chart", method_perm="read")
     assert getattr(func, CLASS_PERMISSION_ATTR) == "Chart"
     assert getattr(func, METHOD_PERMISSION_ATTR) == "read"
 
 
-def test_permission_attrs_write_tag():
+def test_permission_attrs_write_tag() -> None:
     """mutate tag convention → method_permission = 'write'."""
     func = _make_tool_func(class_perm="Chart", method_perm="write")
     assert getattr(func, CLASS_PERMISSION_ATTR) == "Chart"
     assert getattr(func, METHOD_PERMISSION_ATTR) == "write"
 
 
-def test_permission_attrs_custom_method():
+def test_permission_attrs_custom_method() -> None:
     """Explicit method_permission_name overrides tag-based default."""
     func = _make_tool_func(class_perm="SQLLab", method_perm="execute_sql")
     assert getattr(func, CLASS_PERMISSION_ATTR) == "SQLLab"
     assert getattr(func, METHOD_PERMISSION_ATTR) == "execute_sql"
 
 
-def test_no_class_permission_means_no_attrs():
+def test_no_class_permission_means_no_attrs() -> None:
     """Without class_permission_name, no permission attrs are set."""
     func = _make_tool_func()
     assert not hasattr(func, CLASS_PERMISSION_ATTR)
