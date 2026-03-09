@@ -32,6 +32,8 @@ from superset_core.mcp.decorators import tool
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetErrorException, SupersetSecurityException
+from sqlalchemy.exc import SQLAlchemyError
+
 from superset.extensions import event_logger
 from superset.mcp_service.sql_lab.schemas import (
     SaveSqlQueryRequest,
@@ -125,7 +127,7 @@ async def save_sql_query(
 
     except (SupersetErrorException, SupersetSecurityException):
         raise
-    except Exception as e:
+    except SQLAlchemyError as e:
         from superset import db
 
         db.session.rollback()
