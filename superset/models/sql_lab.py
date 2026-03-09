@@ -408,14 +408,32 @@ class Query(
         :rtype: sqlalchemy.sql.column
         """
         label = get_column_name(col)
+        sql_expression = col["sqlExpression"]
+        time_grain = col.get("timeGrain")
+        has_timegrain = col.get("columnType") == "BASE_AXIS" and time_grain
+        is_dttm = False
+        pdf = None
+
+        if col_in_metadata := self.get_column(sql_expression):
+            is_dttm = col_in_metadata.is_temporal
+            pdf = col_in_metadata.python_date_format
+
         expression = self._process_sql_expression(
-            expression=col["sqlExpression"],
+            expression=sql_expression,
             database_id=self.database_id,
             engine=self.database.backend,
             schema=self.schema,
             template_processor=template_processor,
         )
         sqla_column = literal_column(expression)
+
+        if is_dttm and has_timegrain:
+            sqla_column = self.db_engine_spec.get_timestamp_expr(
+                col=sqla_column,
+                pdf=pdf,
+                time_grain=time_grain,
+            )
+
         return self.make_sqla_column_compatible(sqla_column, label)
 
 
