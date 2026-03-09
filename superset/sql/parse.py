@@ -553,6 +553,9 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
     This class is used for all engines with dialects that can be parsed using sqlglot.
     """
 
+    # Optimizer hints have the form /*+ ... */
+    _OPTIMIZER_HINT_PATTERN = re.compile(r"/\*\+")
+
     def __init__(
         self,
         statement: str | None = None,
@@ -560,6 +563,8 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         ast: exp.Expression | None = None,
     ):
         self._dialect = SQLGLOT_DIALECTS.get(engine)
+        # Store original statement to detect optimizer hints
+        self._original_statement: str | None = statement
         super().__init__(statement, engine, ast)
 
     @classmethod
@@ -721,11 +726,25 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
     def format(self, comments: bool = True) -> str:
         """
         Pretty-format the SQL statement.
+
+        When optimizer hints (/*+ ... */) are present in the original SQL,
+        comment preservation is disabled because sqlglot incorrectly
+        repositions comments inside optimizer hint blocks, breaking syntax.
         """
+        # Detect optimizer hints in the original statement
+        has_optimizer_hints = (
+            self._original_statement
+            and self._OPTIMIZER_HINT_PATTERN.search(self._original_statement)
+        )
+
+        # Disable comment preservation if optimizer hints are present
+        # to prevent sqlglot from injecting comments inside hint blocks
+        effective_comments = comments and not has_optimizer_hints
+
         return Dialect.get_or_raise(self._dialect).generate(
             self._parsed,
             copy=True,
-            comments=comments,
+            comments=effective_comments,
             pretty=True,
         )
 

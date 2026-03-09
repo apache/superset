@@ -3134,3 +3134,66 @@ def test_backtick_invalid_sql_still_fails() -> None:
     sql = "SELECT * FROM `table` WHERE"
     with pytest.raises(SupersetParseError):
         SQLScript(sql, "base")
+
+
+def test_optimizer_hint_with_comment() -> None:
+    """
+    Test that optimizer hints are not corrupted by inline comments.
+
+    This is a regression test for issue #38189 where sqlglot incorrectly
+    injects converted inline comments (--) inside optimizer hint blocks
+    (/*+ ... */), breaking StarRocks/MySQL syntax.
+
+    The fix detects optimizer hints and disables comment preservation
+    to prevent sqlglot from corrupting the hint syntax.
+    """
+    # SQL with optimizer hint and inline comment
+    sql = """SELECT /*+ SET_VAR(query_timeout = 3000) */ col1, col2
+FROM my_table
+LIMIT 100
+
+-- increase timeout for large scans"""
+
+    script = SQLScript(sql, "mysql")
+    formatted = script.format(comments=True)
+
+    # The optimizer hint should remain intact, not have comments injected inside
+    assert "/*+ SET_VAR(query_timeout = 3000) */" in formatted
+    # The inline comment should be stripped (not converted to /* */ inside hint)
+    assert "query_timeout /* increase timeout" not in formatted
+    assert "3000) */" in formatted  # Hint closing should be intact
+
+
+def test_optimizer_hint_disabled_comments() -> None:
+    """
+    Test that comments are disabled when optimizer hints are present.
+    """
+    sql = "SELECT /*+ SET_VAR(query_timeout = 3000) */ col FROM t"
+
+    script = SQLScript(sql, "mysql")
+    statement = script.statements[0]
+
+    # Check that the optimizer hint pattern is detected
+    assert statement._original_statement is not None
+    assert "/*+ SET_VAR(query_timeout = 3000) */" in statement._original_statement
+
+    # When formatting with comments=True, it should still disable comments
+    # due to optimizer hint detection
+    formatted = statement.format(comments=True)
+    assert "/*+ SET_VAR(query_timeout = 3000) */" in formatted
+
+
+def test_no_optimizer_hint_preserves_comments() -> None:
+    """
+    Test that comments are preserved when no optimizer hints are present.
+    """
+    sql = """SELECT col1, col2
+FROM my_table
+-- this is a comment
+LIMIT 100"""
+
+    script = SQLScript(sql, "mysql")
+    formatted = script.format(comments=True)
+
+    # Comments should be preserved when no optimizer hints are present
+    assert "/* this is a comment */" in formatted
