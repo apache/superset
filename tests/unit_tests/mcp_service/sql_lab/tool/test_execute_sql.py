@@ -699,7 +699,7 @@ class TestExecuteSql:
     @pytest.mark.asyncio
     async def test_execute_sql_multi_statement_preserves_all_data(
         self, mock_db, mock_security_manager, mcp_server
-    ):
+    ) -> None:
         """Test that multi-statement SQL returns per-statement data for ALL results.
 
         Regression test: previously, running two SELECT statements would only
