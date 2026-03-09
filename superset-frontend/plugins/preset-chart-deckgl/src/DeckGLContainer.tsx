@@ -33,7 +33,7 @@ import { Map as MapboxMap } from 'react-map-gl/mapbox';
 import mapboxgl from 'mapbox-gl';
 import type { Layer } from '@deck.gl/core';
 import { JsonObject, JsonValue, usePrevious } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import DeckGLOverlayMapLibre from './components/DeckGLOverlayMapLibre';
 import DeckGLOverlayMapbox from './components/DeckGLOverlayMapbox';
 import Tooltip, { TooltipProps } from './components/Tooltip';
