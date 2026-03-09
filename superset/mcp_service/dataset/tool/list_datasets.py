@@ -36,6 +36,11 @@ if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
 
 from superset.extensions import event_logger
+from superset.mcp_service.common.popularity import (
+    attach_popularity_scores,
+    compute_dataset_popularity,
+    get_popularity_sorted_ids,
+)
 from superset.mcp_service.dataset.schemas import (
     DatasetFilter,
     DatasetInfo,
@@ -44,6 +49,8 @@ from superset.mcp_service.dataset.schemas import (
     serialize_dataset_object,
 )
 from superset.mcp_service.mcp_core import ModelListCore
+from superset.mcp_service.system.schemas import PaginationInfo
+from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
@@ -62,15 +69,6 @@ DEFAULT_DATASET_COLUMNS = [
     "certification_details",
     "changed_on",
     "changed_on_humanized",
-]
-
-SORTABLE_DATASET_COLUMNS = [
-    "id",
-    "table_name",
-    "schema",
-    "changed_on",
-    "created_on",
-    "popularity_score",
 ]
 
 DATASET_SEARCH_COLUMNS = ["schema", "sql", "table_name", "uuid"]
@@ -180,14 +178,9 @@ async def list_datasets(request: ListDatasetsRequest, ctx: Context) -> DatasetLi
 
             # Attach popularity scores if requested in select_columns
             if request.select_columns and "popularity_score" in request.select_columns:
-                from superset.mcp_service.common.popularity import (
-                    compute_dataset_popularity,
-                )
-
-                ds_ids = [d.id for d in result.datasets if d.id is not None]
-                if ds_ids:
+                if ds_ids := [d.id for d in result.datasets if d.id is not None]:
                     scores = compute_dataset_popularity(ds_ids)
-                    _attach_popularity_scores(result.datasets, scores)
+                    attach_popularity_scores(result.datasets, scores)
 
         await ctx.info(
             "Datasets listed successfully: count=%s, total_count=%s, total_pages=%s"
@@ -231,12 +224,7 @@ def _list_datasets_by_popularity(
     ctx: Context,
 ) -> DatasetList:
     """Two-pass listing: sort all matching datasets by popularity score."""
-    from superset.mcp_service.common.popularity import (
-        compute_dataset_popularity,
-        get_popularity_sorted_ids,
-    )
     from superset.mcp_service.common.schema_discovery import DATASET_SORTABLE_COLUMNS
-    from superset.mcp_service.system.schemas import PaginationInfo
 
     sorted_ids, scores, total_count = get_popularity_sorted_ids(
         compute_fn=compute_dataset_popularity,
@@ -272,7 +260,7 @@ def _list_datasets_by_popularity(
         if obj is not None:
             ds_objs.append(obj)
 
-    _attach_popularity_scores(ds_objs, scores)
+    attach_popularity_scores(ds_objs, scores)
 
     total_pages = (total_count + page_size - 1) // page_size if page_size > 0 else 0
     pagination_info = PaginationInfo(

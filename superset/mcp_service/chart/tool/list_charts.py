@@ -41,7 +41,14 @@ from superset.mcp_service.chart.schemas import (
     ListChartsRequest,
     serialize_chart_object,
 )
+from superset.mcp_service.common.popularity import (
+    attach_popularity_scores,
+    compute_chart_popularity,
+    get_popularity_sorted_ids,
+)
 from superset.mcp_service.mcp_core import ModelListCore
+from superset.mcp_service.system.schemas import PaginationInfo
+from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
@@ -56,17 +63,6 @@ DEFAULT_CHART_COLUMNS = [
     "url",
     "changed_on",
     "changed_on_humanized",
-]
-
-SORTABLE_CHART_COLUMNS = [
-    "id",
-    "slice_name",
-    "viz_type",
-    "datasource_name",
-    "description",
-    "changed_on",
-    "created_on",
-    "popularity_score",
 ]
 
 CHART_SEARCH_COLUMNS = [
@@ -177,14 +173,9 @@ async def list_charts(request: ListChartsRequest, ctx: Context) -> ChartList:
 
             # Attach popularity scores if requested in select_columns
             if request.select_columns and "popularity_score" in request.select_columns:
-                from superset.mcp_service.common.popularity import (
-                    compute_chart_popularity,
-                )
-
-                chart_ids = [c.id for c in result.charts if c.id is not None]
-                if chart_ids:
+                if chart_ids := [c.id for c in result.charts if c.id is not None]:
                     scores = compute_chart_popularity(chart_ids)
-                    _attach_popularity_scores(result.charts, scores)
+                    attach_popularity_scores(result.charts, scores)
 
         count = len(result.charts) if hasattr(result, "charts") else 0
         total_pages = getattr(result, "total_pages", None)
@@ -216,12 +207,7 @@ def _list_charts_by_popularity(
     ctx: Context,
 ) -> ChartList:
     """Two-pass listing: sort all matching charts by popularity score."""
-    from superset.mcp_service.common.popularity import (
-        compute_chart_popularity,
-        get_popularity_sorted_ids,
-    )
     from superset.mcp_service.common.schema_discovery import CHART_SORTABLE_COLUMNS
-    from superset.mcp_service.system.schemas import PaginationInfo
 
     sorted_ids, scores, total_count = get_popularity_sorted_ids(
         compute_fn=compute_chart_popularity,
@@ -260,7 +246,7 @@ def _list_charts_by_popularity(
             chart_objs.append(obj)
 
     # Attach scores
-    _attach_popularity_scores(chart_objs, scores)
+    attach_popularity_scores(chart_objs, scores)
 
     total_pages = (total_count + page_size - 1) // page_size if page_size > 0 else 0
     pagination_info = PaginationInfo(

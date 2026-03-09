@@ -36,6 +36,11 @@ if TYPE_CHECKING:
     from superset.models.dashboard import Dashboard
 
 from superset.extensions import event_logger
+from superset.mcp_service.common.popularity import (
+    attach_popularity_scores,
+    compute_dashboard_popularity,
+    get_popularity_sorted_ids,
+)
 from superset.mcp_service.dashboard.schemas import (
     DashboardFilter,
     DashboardInfo,
@@ -44,6 +49,8 @@ from superset.mcp_service.dashboard.schemas import (
     serialize_dashboard_object,
 )
 from superset.mcp_service.mcp_core import ModelListCore
+from superset.mcp_service.system.schemas import PaginationInfo
+from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
@@ -58,16 +65,6 @@ DEFAULT_DASHBOARD_COLUMNS = [
     "url",
     "changed_on",
     "changed_on_humanized",
-]
-
-SORTABLE_DASHBOARD_COLUMNS = [
-    "id",
-    "dashboard_title",
-    "slug",
-    "published",
-    "changed_on",
-    "created_on",
-    "popularity_score",
 ]
 
 DASHBOARD_SEARCH_COLUMNS = [
@@ -170,14 +167,9 @@ async def list_dashboards(
 
         # Attach popularity scores if requested in select_columns
         if request.select_columns and "popularity_score" in request.select_columns:
-            from superset.mcp_service.common.popularity import (
-                compute_dashboard_popularity,
-            )
-
-            dash_ids = [d.id for d in result.dashboards if d.id is not None]
-            if dash_ids:
+            if dash_ids := [d.id for d in result.dashboards if d.id is not None]:
                 scores = compute_dashboard_popularity(dash_ids)
-                _attach_popularity_scores(result.dashboards, scores)
+                attach_popularity_scores(result.dashboards, scores)
 
     count = len(result.dashboards) if hasattr(result, "dashboards") else 0
     total_pages = getattr(result, "total_pages", None)
@@ -206,14 +198,9 @@ def _list_dashboards_by_popularity(
     ctx: Context,
 ) -> DashboardList:
     """Two-pass listing: sort all matching dashboards by popularity score."""
-    from superset.mcp_service.common.popularity import (
-        compute_dashboard_popularity,
-        get_popularity_sorted_ids,
-    )
     from superset.mcp_service.common.schema_discovery import (
         DASHBOARD_SORTABLE_COLUMNS,
     )
-    from superset.mcp_service.system.schemas import PaginationInfo
 
     sorted_ids, scores, total_count = get_popularity_sorted_ids(
         compute_fn=compute_dashboard_popularity,
@@ -249,7 +236,7 @@ def _list_dashboards_by_popularity(
         if obj is not None:
             dash_objs.append(obj)
 
-    _attach_popularity_scores(dash_objs, scores)
+    attach_popularity_scores(dash_objs, scores)
 
     total_pages = (total_count + page_size - 1) // page_size if page_size > 0 else 0
     pagination_info = PaginationInfo(
