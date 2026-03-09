@@ -459,10 +459,8 @@ async def get_chart_data(  # noqa: C901
                         query["row_limit"] = request.limit
 
                 # Merge dashboard native filters into query_context's form_data
-                if request.extra_form_data:
-                    qc_form_data = query_context_json.setdefault("form_data", {})
-                    _apply_extra_form_data(qc_form_data, request.extra_form_data)
-                    query_context_json["form_data"] = qc_form_data
+                qc_form_data = query_context_json.setdefault("form_data", {})
+                _apply_extra_form_data(qc_form_data, request.extra_form_data)
 
                 # Create QueryContext from the saved context using the schema
                 # This is exactly how the API does it
