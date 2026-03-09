@@ -167,30 +167,6 @@ const FilterBar: FC<FiltersBarProps> = ({
 
   const [dataMaskSelected, setDataMaskSelected] =
     useImmer<DataMaskStateWithId>(dataMaskApplied);
-
-  // Clean up stale validation errors on mount
-  // If a filter has a value, it shouldn't have validateStatus: 'error'
-  useEffect(() => {
-    setDataMaskSelected(draft => {
-      Object.keys(draft).forEach(filterId => {
-        const mask = draft[filterId];
-        if (mask?.filterState) {
-          const { value } = mask.filterState;
-          const hasValue =
-            value !== null &&
-            value !== undefined &&
-            !(Array.isArray(value) && value.length === 0) &&
-            !(typeof value === 'string' && value.trim() === '');
-
-          // Clear error status if filter has a value
-          if (hasValue && mask.filterState.validateStatus === 'error') {
-            mask.filterState.validateStatus = undefined;
-          }
-        }
-      });
-    });
-  }, [setDataMaskSelected]);
-
   const [pendingCustomizationDataMasks, setPendingCustomizationDataMasks] =
     useState<Record<string, DataMask>>(EMPTY_DATA_MASK_RECORD);
   const chartCustomizationValues = useChartCustomizationConfiguration();
