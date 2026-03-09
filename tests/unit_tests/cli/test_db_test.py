@@ -47,15 +47,11 @@ def test_collect_connection_info_malformed_uri():
 
     with patch("builtins.input", return_value="n"):
         with console.capture() as capture:
-            # We expect an exception later in collect_connection_info
-            # but the print happens first
-            try:
-                collect_connection_info(console, uri)
-            except Exception:  # noqa: S110
-                pass
+            info = collect_connection_info(console, uri)
 
         output = capture.get()
         assert "<invalid database URI>" in output
+        assert info == {}
 
 
 def test_collect_connection_info_database_invalid_error():

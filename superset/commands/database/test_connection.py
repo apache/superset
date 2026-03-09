@@ -18,7 +18,7 @@ import logging
 from typing import Any, Optional
 
 from flask_babel import gettext as _
-from sqlalchemy.exc import ArgumentError, DBAPIError, NoSuchModuleError
+from sqlalchemy.exc import DBAPIError, NoSuchModuleError
 
 from superset import is_feature_enabled
 from superset.commands.base import BaseCommand
@@ -148,7 +148,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
                         safe_uri = make_url_safe(
                             str(database.sqlalchemy_uri)
                         ).render_as_string(hide_password=True)
-                    except (ArgumentError, DatabaseInvalidError):
+                    except DatabaseInvalidError:
                         safe_uri = "<invalid database URI>"
                     raise SupersetTimeoutException(
                         error_type=SupersetErrorType.CONNECTION_DATABASE_TIMEOUT,
