@@ -138,6 +138,7 @@ def _create_dashboard_layout(chart_objects: List[Any]) -> Dict[str, Any]:
     return layout
 
 
+_DEFAULT_DASHBOARD_TITLE = "Dashboard"
 _MAX_TITLE_LENGTH = 150
 
 
@@ -159,7 +160,7 @@ def _generate_title_from_charts(chart_objects: List[Any]) -> str:
         if getattr(c, "slice_name", None)
     ]
     if not names:
-        return "Dashboard"
+        return _DEFAULT_DASHBOARD_TITLE
 
     if len(names) == 1:
         title = names[0]
