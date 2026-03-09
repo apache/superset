@@ -31,9 +31,32 @@ from typing import Any
 
 import sqlalchemy as sa
 
+from superset.connectors.sqla.models import SqlaTable
 from superset.extensions import db
+from superset.models.core import FavStar, Log
+from superset.models.dashboard import Dashboard, dashboard_slices
+from superset.models.slice import Slice
+from superset.utils import json as json_utils
 
 logger = logging.getLogger(__name__)
+
+# Scoring weights
+VIEW_WEIGHT = 3
+FAV_WEIGHT = 5
+DASHBOARD_COUNT_WEIGHT = 2
+CHART_COUNT_WEIGHT_DASHBOARD = 1
+CHART_COUNT_WEIGHT_DATASET = 3
+CERTIFICATION_BONUS = 10
+PUBLISHED_BONUS = 3
+
+# Recency thresholds and bonuses
+RECENCY_RECENT_DAYS = 7
+RECENCY_MODERATE_DAYS = 30
+RECENCY_RECENT_BONUS = 5.0
+RECENCY_MODERATE_BONUS = 2.0
+
+# Two-pass query limit
+MAX_POPULARITY_SORT_PAGE_SIZE = 100_000
 
 
 def _recency_bonus(changed_on: datetime | None) -> float:
@@ -45,10 +68,10 @@ def _recency_bonus(changed_on: datetime | None) -> float:
     if changed_on.tzinfo is None:
         changed_on = changed_on.replace(tzinfo=timezone.utc)
     delta = now - changed_on
-    if delta <= timedelta(days=7):
-        return 5.0
-    if delta <= timedelta(days=30):
-        return 2.0
+    if delta <= timedelta(days=RECENCY_RECENT_DAYS):
+        return RECENCY_RECENT_BONUS
+    if delta <= timedelta(days=RECENCY_MODERATE_DAYS):
+        return RECENCY_MODERATE_BONUS
     return 0.0
 
 
@@ -66,8 +89,6 @@ def _add_view_scores(
     weight: int,
 ) -> None:
     """Add view count scores from the logs table."""
-    from superset.models.core import Log
-
     view_counts = (
         db.session.query(id_column, sa.func.count(Log.id).label("view_count"))
         .filter(Log.action == action, id_column.in_(entity_ids), Log.dttm >= cutoff)
@@ -87,8 +108,6 @@ def _add_fav_scores(
     weight: int,
 ) -> None:
     """Add favorite count scores from the favstar table."""
-    from superset.models.core import FavStar
-
     fav_counts = (
         db.session.query(FavStar.obj_id, sa.func.count(FavStar.id).label("fav_count"))
         .filter(FavStar.class_name == class_name, FavStar.obj_id.in_(entity_ids))
@@ -116,15 +135,13 @@ def compute_chart_popularity(chart_ids: list[int], days: int = 30) -> dict[int, 
     if not chart_ids:
         return {}
 
-    from superset.models.core import Log
-    from superset.models.dashboard import dashboard_slices
-    from superset.models.slice import Slice
-
     scores = _init_scores(chart_ids)
     cutoff = datetime.now(timezone.utc) - timedelta(days=days)
 
-    _add_view_scores(scores, "mount_explorer", Log.slice_id, chart_ids, cutoff, 3)
-    _add_fav_scores(scores, "slice", chart_ids, 5)
+    _add_view_scores(
+        scores, "mount_explorer", Log.slice_id, chart_ids, cutoff, VIEW_WEIGHT
+    )
+    _add_fav_scores(scores, "slice", chart_ids, FAV_WEIGHT)
 
     # Dashboard count (how many dashboards contain each chart)
     dash_counts = (
@@ -138,7 +155,7 @@ def compute_chart_popularity(chart_ids: list[int], days: int = 30) -> dict[int, 
     )
     for row in dash_counts:
         if row.slice_id in scores:
-            scores[row.slice_id] += row.dash_count * 2
+            scores[row.slice_id] += row.dash_count * DASHBOARD_COUNT_WEIGHT
 
     # Certification and recency from chart objects
     charts = (
@@ -149,7 +166,7 @@ def compute_chart_popularity(chart_ids: list[int], days: int = 30) -> dict[int, 
     for chart in charts:
         if chart.id in scores:
             if chart.certified_by:
-                scores[chart.id] += 10
+                scores[chart.id] += CERTIFICATION_BONUS
             scores[chart.id] += _recency_bonus(chart.changed_on)
 
     return scores
@@ -173,16 +190,13 @@ def compute_dashboard_popularity(
     if not dashboard_ids:
         return {}
 
-    from superset.models.core import Log
-    from superset.models.dashboard import Dashboard, dashboard_slices
-
     scores = _init_scores(dashboard_ids)
     cutoff = datetime.now(timezone.utc) - timedelta(days=days)
 
     _add_view_scores(
-        scores, "mount_dashboard", Log.dashboard_id, dashboard_ids, cutoff, 3
+        scores, "mount_dashboard", Log.dashboard_id, dashboard_ids, cutoff, VIEW_WEIGHT
     )
-    _add_fav_scores(scores, "Dashboard", dashboard_ids, 5)
+    _add_fav_scores(scores, "Dashboard", dashboard_ids, FAV_WEIGHT)
 
     # Chart count per dashboard
     chart_counts = (
@@ -196,9 +210,9 @@ def compute_dashboard_popularity(
     )
     for row in chart_counts:
         if row.dashboard_id in scores:
-            scores[row.dashboard_id] += row.chart_count * 1
+            scores[row.dashboard_id] += row.chart_count * CHART_COUNT_WEIGHT_DASHBOARD
 
-    # 4. Published, certification, and recency from dashboard objects
+    # Published, certification, and recency from dashboard objects
     dashboards = (
         db.session.query(
             Dashboard.id,
@@ -212,9 +226,9 @@ def compute_dashboard_popularity(
     for dash in dashboards:
         if dash.id in scores:
             if dash.published:
-                scores[dash.id] += 3
+                scores[dash.id] += PUBLISHED_BONUS
             if dash.certified_by:
-                scores[dash.id] += 10
+                scores[dash.id] += CERTIFICATION_BONUS
             scores[dash.id] += _recency_bonus(dash.changed_on)
 
     return scores
@@ -237,9 +251,6 @@ def compute_dataset_popularity(
     if not dataset_ids:
         return {}
 
-    from superset.connectors.sqla.models import SqlaTable
-    from superset.models.slice import Slice
-
     scores = _init_scores(dataset_ids)
 
     # 1. Chart count per dataset (how many charts use each dataset)
@@ -257,7 +268,7 @@ def compute_dataset_popularity(
     )
     for row in chart_counts:
         if row.datasource_id in scores:
-            scores[row.datasource_id] += row.chart_count * 3
+            scores[row.datasource_id] += row.chart_count * CHART_COUNT_WEIGHT_DATASET
 
     # 2. Certification and recency from dataset objects
     # Datasets use CertificationMixin where certification is in the extra JSON
@@ -270,12 +281,10 @@ def compute_dataset_popularity(
         if ds.id in scores:
             # Check certification from extra JSON
             if ds.extra:
-                from superset.utils import json as json_utils
-
                 try:
                     extra_dict = json_utils.loads(ds.extra)
                     if extra_dict.get("certification"):
-                        scores[ds.id] += 10
+                        scores[ds.id] += CERTIFICATION_BONUS
                 except (TypeError, ValueError):
                     pass
             scores[ds.id] += _recency_bonus(ds.changed_on)
@@ -310,13 +319,12 @@ def get_popularity_sorted_ids(
         Tuple of (sorted_ids, scores_dict, total_count)
     """
     # Use a large page_size to get all matching IDs in one query
-    max_page_size = 100_000
     all_items, total_count = dao_class.list(
         column_operators=filters,
         order_column="changed_on",
         order_direction="desc",
         page=0,
-        page_size=max_page_size,
+        page_size=MAX_POPULARITY_SORT_PAGE_SIZE,
         search=search,
         search_columns=search_columns,
         columns=["id"],
@@ -342,3 +350,10 @@ def get_popularity_sorted_ids(
     sorted_ids = sorted(all_ids, key=lambda x: scores.get(x, 0.0), reverse=reverse)
 
     return sorted_ids, scores, total_count
+
+
+def attach_popularity_scores(items: list[Any], scores: dict[int, float]) -> None:
+    """Attach popularity scores to serialized objects in-place."""
+    for item in items:
+        if item.id is not None and item.id in scores:
+            item.popularity_score = scores[item.id]
