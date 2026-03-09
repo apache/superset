@@ -22,6 +22,7 @@ This tool adds a chart to an existing dashboard with automatic layout positionin
 """
 
 import logging
+import re
 from typing import Any, Dict
 
 from fastmcp import Context
@@ -44,6 +45,15 @@ from superset.utils import json
 
 logger = logging.getLogger(__name__)
 
+# Compiled regex for stripping common emoji Unicode ranges from tab text.
+# Not exhaustive (omits flags, skin-tone modifiers, etc.) but sufficient for
+# flexible matching of dashboard tab labels.
+_EMOJI_RE = re.compile(
+    "[\U0001f300-\U0001f9ff\U00002600-\U000027bf\U0000fe00-\U0000fe0f"
+    "\U0001fa00-\U0001fa6f\U0001fa70-\U0001faff\U00002702-\U000027b0"
+    "\U0000200d\U0000fe0f]+"
+)
+
 
 def _find_next_row_position(layout: Dict[str, Any]) -> str:
     """
@@ -65,17 +75,7 @@ def _find_next_row_position(layout: Dict[str, Any]) -> str:
 
 def _normalize_tab_text(text: str) -> str:
     """Strip emoji and extra whitespace from tab text for flexible matching."""
-    import re
-
-    # Remove emoji characters (Unicode emoji ranges)
-    # Note: using regular strings (not raw) so Python processes \U escapes
-    cleaned = re.sub(
-        "[\U0001f300-\U0001f9ff\U00002600-\U000027bf\U0000fe00-\U0000fe0f"
-        "\U0001fa00-\U0001fa6f\U0001fa70-\U0001faff\U00002702-\U000027b0"
-        "\U0000200d\U0000fe0f]+",
-        "",
-        text,
-    )
+    cleaned = _EMOJI_RE.sub("", text)
     return cleaned.strip().lower()
 
 
