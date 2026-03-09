@@ -55,6 +55,9 @@ RECENCY_MODERATE_DAYS = 30
 RECENCY_RECENT_BONUS = 5.0
 RECENCY_MODERATE_BONUS = 2.0
 
+# Default time window for view counts
+DEFAULT_VIEW_WINDOW_DAYS = 30
+
 # Two-pass query limit
 MAX_POPULARITY_SORT_PAGE_SIZE = 100_000
 
@@ -119,7 +122,9 @@ def _add_fav_scores(
             scores[row.obj_id] += row.fav_count * weight
 
 
-def compute_chart_popularity(chart_ids: list[int], days: int = 30) -> dict[int, float]:
+def compute_chart_popularity(
+    chart_ids: list[int], days: int = DEFAULT_VIEW_WINDOW_DAYS
+) -> dict[int, float]:
     """Compute popularity scores for charts.
 
     Formula: view_count_30d * 3 + fav_count * 5 + dashboard_count * 2
@@ -173,7 +178,7 @@ def compute_chart_popularity(chart_ids: list[int], days: int = 30) -> dict[int, 
 
 
 def compute_dashboard_popularity(
-    dashboard_ids: list[int], days: int = 30
+    dashboard_ids: list[int], days: int = DEFAULT_VIEW_WINDOW_DAYS
 ) -> dict[int, float]:
     """Compute popularity scores for dashboards.
 
@@ -235,7 +240,7 @@ def compute_dashboard_popularity(
 
 
 def compute_dataset_popularity(
-    dataset_ids: list[int], days: int = 30
+    dataset_ids: list[int], days: int = DEFAULT_VIEW_WINDOW_DAYS
 ) -> dict[int, float]:
     """Compute popularity scores for datasets.
 
@@ -299,7 +304,7 @@ def get_popularity_sorted_ids(
     search: str | None,
     search_columns: list[str],
     order_direction: str = "desc",
-    days: int = 30,
+    days: int = DEFAULT_VIEW_WINDOW_DAYS,
 ) -> tuple[list[int], dict[int, float], int]:
     """Fetch all matching IDs, compute popularity scores, return sorted IDs.
 
