@@ -907,5 +907,5 @@ test('colorLink is preserved in setConfig when explicitly set', () => {
   });
 
   expect(theme.theme.colorPrimary).toBe('#f759ab');
-  expect(theme.theme.colorLink).toBe('#ff0000')
+  expect(theme.theme.colorLink).toBe('#ff0000');
 });
