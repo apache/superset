@@ -84,25 +84,20 @@ def test_user_avatar_idor_mitigation():
 
 
 def test_query_estimation_idor_mitigation():
-    # Scenario: Verify QueryEstimationCommand.validate calls raise_for_access
-    with patch("superset.commands.sql_lab.estimate.db.session.query") as mock_query:
+    # Scenario: Verify QueryEstimationCommand.validate calls DatabaseDAO.get_with_check
+    with patch("superset.daos.database.DatabaseDAO.get_with_check") as mock_get:
         mock_db = MagicMock()
-        mock_query.return_value.get.return_value = mock_db
+        mock_get.return_value = mock_db
 
         params = {"database_id": 1, "sql": "SELECT 1"}
         command = QueryEstimationCommand(params)
 
-        with (
-            patch(
-                "superset.commands.sql_lab.estimate.security_manager.raise_for_access"
-            ) as mock_raise,
-            patch("flask.g") as mock_g,
-        ):
+        with patch("flask.g") as mock_g:
             mock_g.user = MagicMock()
             mock_g.user.is_anonymous = False
             command.validate()
-            # Verification: raise_for_access was called with the database
-            mock_raise.assert_called_with(database=mock_db)
+            # Verification: get_with_check was called to enforce IDOR protection
+            mock_get.assert_called_with(1)
 
 
 def test_sql_results_idor_mitigation():

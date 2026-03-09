@@ -22,7 +22,6 @@ from typing import Any, TypedDict
 from flask import current_app as app
 from flask_babel import gettext as __
 
-from superset import db, security_manager
 from superset.commands.base import BaseCommand
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetErrorException, SupersetTimeoutException
@@ -57,8 +56,12 @@ class QueryEstimationCommand(BaseCommand):
         self._catalog = params.get("catalog")
 
     def validate(self) -> None:
-        self._database = db.session.query(Database).get(self._database_id)
-        if not self._database:
+        from superset.commands.dataset.exceptions import DatasetNotFoundError
+        from superset.daos.database import DatabaseDAO
+
+        try:
+            self._database = DatabaseDAO.get_with_check(self._database_id)
+        except DatasetNotFoundError:
             raise SupersetErrorException(
                 SupersetError(
                     message=__("The database could not be found"),
@@ -66,12 +69,7 @@ class QueryEstimationCommand(BaseCommand):
                     level=ErrorLevel.ERROR,
                 ),
                 status=404,
-            )
-
-        from flask import g
-
-        if getattr(g, "user", None) and not g.user.is_anonymous:
-            security_manager.raise_for_access(database=self._database)
+            ) from None
 
     def run(
         self,
