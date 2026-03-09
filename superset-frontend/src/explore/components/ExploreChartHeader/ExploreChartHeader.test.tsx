@@ -549,7 +549,6 @@ describe('ExploreChartHeader', () => {
     const props = createProps({
       formData: {
         ...createProps().chart.latestQueryFormData,
-        matrixify_enable_vertical_layout: true,
         matrixify_mode_rows: 'metrics',
         matrixify_rows: [{ label: 'COUNT(*)', expressionType: 'SIMPLE' }],
       },

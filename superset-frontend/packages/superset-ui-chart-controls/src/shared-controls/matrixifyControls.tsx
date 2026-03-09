@@ -36,17 +36,16 @@ const isMatrixifyVisible = (
   mode?: 'metrics' | 'dimensions',
   selectionMode?: 'members' | 'topn',
 ) => {
-  const layoutControl = `matrixify_enable_${axis === 'rows' ? 'vertical' : 'horizontal'}_layout`;
   const modeControl = `matrixify_mode_${axis}`;
   const selectionModeControl = `matrixify_dimension_selection_mode_${axis}`;
 
-  const isLayoutEnabled = controls?.[layoutControl]?.value === true;
+  const modeValue = controls?.[modeControl]?.value;
+  const isLayoutEnabled = modeValue === 'metrics' || modeValue === 'dimensions';
 
   if (!isLayoutEnabled) return false;
 
   if (mode) {
-    const isModeMatch = controls?.[modeControl]?.value === mode;
-    if (!isModeMatch) return false;
+    if (modeValue !== mode) return false;
 
     if (selectionMode && mode === 'dimensions') {
       return controls?.[selectionModeControl]?.value === selectionMode;
@@ -66,22 +65,20 @@ const matrixifyControls: Record<string, SharedControlConfig<any>> = {};
 
   matrixifyControls[`matrixify_mode_${axis}`] = {
     type: 'RadioButtonControl',
-    label: t(`Metrics / Dimensions`),
-    default: axis === 'columns' ? 'metrics' : 'dimensions',
+    default: 'disabled',
     renderTrigger: true,
     tabOverride: 'matrixify',
-    visibility: ({ controls }) => isMatrixifyVisible(controls, axis),
     mapStateToProps: ({ controls }) => {
       const otherAxisControlName = `matrixify_mode_${otherAxis}`;
 
       const otherAxisValue =
-        controls?.[otherAxisControlName]?.value ??
-        (otherAxis === 'columns' ? 'metrics' : 'dimensions');
+        controls?.[otherAxisControlName]?.value ?? 'disabled';
 
       const isMetricsDisabled = otherAxisValue === 'metrics';
 
       return {
         options: [
+          { value: 'disabled', label: t('Disabled') },
           {
             value: 'metrics',
             label: t('Metrics'),
@@ -92,7 +89,7 @@ const matrixifyControls: Record<string, SharedControlConfig<any>> = {};
                 )
               : undefined,
           },
-          { value: 'dimensions', label: t('Dimension members') },
+          { value: 'dimensions', label: t('Dimensions') },
         ],
       };
     },
@@ -317,24 +314,6 @@ matrixifyControls.matrixify_charts_per_row = {
     !controls?.matrixify_fit_columns_dynamically?.value,
 };
 
-matrixifyControls.matrixify_enable_vertical_layout = {
-  type: 'CheckboxControl',
-  label: t('Enable vertical layout (rows)'),
-  description: t('Create matrix rows by stacking charts vertically'),
-  default: false,
-  renderTrigger: true,
-  tabOverride: 'matrixify',
-};
-
-matrixifyControls.matrixify_enable_horizontal_layout = {
-  type: 'CheckboxControl',
-  label: t('Enable horizontal layout (columns)'),
-  description: t('Create matrix columns by placing charts side-by-side'),
-  default: false,
-  renderTrigger: true,
-  tabOverride: 'matrixify',
-};
-
 // Cell title control for Matrixify
 matrixifyControls.matrixify_cell_title_template = {
   type: 'TextControl',
@@ -345,8 +324,8 @@ matrixifyControls.matrixify_cell_title_template = {
   default: '',
   renderTrigger: true,
   visibility: ({ controls }) =>
-    controls?.matrixify_enable_vertical_layout?.value === true ||
-    controls?.matrixify_enable_horizontal_layout?.value === true,
+    isMatrixifyVisible(controls, 'rows') ||
+    isMatrixifyVisible(controls, 'columns'),
 };
 
 // Matrix display controls
@@ -357,8 +336,7 @@ matrixifyControls.matrixify_show_row_labels = {
   default: true,
   renderTrigger: true,
   tabOverride: 'matrixify',
-  visibility: ({ controls }) =>
-    controls?.matrixify_enable_vertical_layout?.value === true,
+  visibility: ({ controls }) => isMatrixifyVisible(controls, 'rows'),
 };
 
 matrixifyControls.matrixify_show_column_headers = {
@@ -368,8 +346,7 @@ matrixifyControls.matrixify_show_column_headers = {
   default: true,
   renderTrigger: true,
   tabOverride: 'matrixify',
-  visibility: ({ controls }) =>
-    controls?.matrixify_enable_horizontal_layout?.value === true,
+  visibility: ({ controls }) => isMatrixifyVisible(controls, 'columns'),
 };
 
 export { matrixifyControls };

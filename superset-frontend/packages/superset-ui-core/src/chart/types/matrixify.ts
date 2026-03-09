@@ -46,7 +46,7 @@ export const MatrixifyFilterConstants = {
 /**
  * Mode for selecting matrix axis values
  */
-export type MatrixifyMode = 'metrics' | 'dimensions';
+export type MatrixifyMode = 'disabled' | 'metrics' | 'dimensions';
 
 /**
  * Selection method for dimension values
@@ -96,11 +96,7 @@ export interface MatrixifyAxisConfig {
  * Complete Matrixify configuration in form data
  */
 export interface MatrixifyFormData {
-  // Layout enable controls
-  matrixify_enable_vertical_layout?: boolean;
-  matrixify_enable_horizontal_layout?: boolean;
-
-  // Row axis configuration
+  // Row axis configuration (mode 'disabled' means axis is off)
   matrixify_mode_rows?: MatrixifyMode;
   matrixify_rows?: AdhocMetric[];
   matrixify_dimension_selection_mode_rows?: MatrixifySelectionMode;
@@ -145,16 +141,16 @@ export interface MatrixifyConfig {
 export function getMatrixifyConfig(
   formData: MatrixifyFormData & any,
 ): MatrixifyConfig | null {
-  const hasRowConfig = formData.matrixify_mode_rows;
-  const hasColumnConfig = formData.matrixify_mode_columns;
+  const rowEnabled = isAxisEnabled(formData.matrixify_mode_rows);
+  const colEnabled = isAxisEnabled(formData.matrixify_mode_columns);
 
-  if (!hasRowConfig && !hasColumnConfig) {
+  if (!rowEnabled && !colEnabled) {
     return null;
   }
 
   return {
     rows: {
-      mode: formData.matrixify_mode_rows || 'metrics',
+      mode: formData.matrixify_mode_rows || 'disabled',
       metrics: formData.matrixify_rows,
       selectionMode: formData.matrixify_dimension_selection_mode_rows,
       dimension: formData.matrixify_dimension_rows,
@@ -163,7 +159,7 @@ export function getMatrixifyConfig(
       topnOrder: formData.matrixify_topn_order_rows,
     },
     columns: {
-      mode: formData.matrixify_mode_columns || 'metrics',
+      mode: formData.matrixify_mode_columns || 'disabled',
       metrics: formData.matrixify_columns,
       selectionMode: formData.matrixify_dimension_selection_mode_columns,
       dimension: formData.matrixify_dimension_columns,
@@ -177,37 +173,43 @@ export function getMatrixifyConfig(
 /**
  * Check if Matrixify is enabled and properly configured
  */
-export function isMatrixifyEnabled(formData: MatrixifyFormData): boolean {
-  // Check if either vertical or horizontal layout is enabled
-  const hasVerticalLayout = formData.matrixify_enable_vertical_layout === true;
-  const hasHorizontalLayout =
-    formData.matrixify_enable_horizontal_layout === true;
+/**
+ * Check if a given axis mode is active (not disabled)
+ */
+function isAxisEnabled(mode?: MatrixifyMode): boolean {
+  return mode === 'metrics' || mode === 'dimensions';
+}
 
-  if (!hasVerticalLayout && !hasHorizontalLayout) {
+export function isMatrixifyEnabled(formData: MatrixifyFormData): boolean {
+  const rowEnabled = isAxisEnabled(formData.matrixify_mode_rows);
+  const colEnabled = isAxisEnabled(formData.matrixify_mode_columns);
+
+  if (!rowEnabled && !colEnabled) {
     return false;
   }
 
-  // Then validate that we have proper configuration
   const config = getMatrixifyConfig(formData);
   if (!config) {
     return false;
   }
 
   const hasRowData =
-    config.rows.mode === 'metrics'
+    rowEnabled &&
+    (config.rows.mode === 'metrics'
       ? config.rows.metrics && config.rows.metrics.length > 0
       : config.rows.dimension?.dimension &&
         (config.rows.selectionMode === 'topn' ||
           (config.rows.dimension.values &&
-            config.rows.dimension.values.length > 0));
+            config.rows.dimension.values.length > 0)));
 
   const hasColumnData =
-    config.columns.mode === 'metrics'
+    colEnabled &&
+    (config.columns.mode === 'metrics'
       ? config.columns.metrics && config.columns.metrics.length > 0
       : config.columns.dimension?.dimension &&
         (config.columns.selectionMode === 'topn' ||
           (config.columns.dimension.values &&
-            config.columns.dimension.values.length > 0));
+            config.columns.dimension.values.length > 0)));
 
   return Boolean(hasRowData || hasColumnData);
 }
@@ -220,12 +222,10 @@ export function getMatrixifyValidationErrors(
 ): string[] {
   const errors: string[] = [];
 
-  // Only validate if matrixify is enabled
-  const hasVerticalLayout = formData.matrixify_enable_vertical_layout === true;
-  const hasHorizontalLayout =
-    formData.matrixify_enable_horizontal_layout === true;
+  const rowEnabled = isAxisEnabled(formData.matrixify_mode_rows);
+  const colEnabled = isAxisEnabled(formData.matrixify_mode_columns);
 
-  if (!hasVerticalLayout && !hasHorizontalLayout) {
+  if (!rowEnabled && !colEnabled) {
     return errors;
   }
 
