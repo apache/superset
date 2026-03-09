@@ -68,7 +68,7 @@ export class Theme {
       );
 
       // In Ant Design v5, colorLink derives from colorInfo, not colorPrimary.
-      // Currently we links to follow the brand/primary color. When the user
+      // Currently we expectlinks to follow the brand/primary color. When the user
       // overrides colorPrimary without explicitly setting colorLink, update the
       // merged colorLink so links match the new primary palette.
       if (config.token?.colorPrimary && !config.token?.colorLink) {
