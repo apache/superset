@@ -1,16 +1,46 @@
-/* ============================================================================
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ *
  * Swizzled from docusaurus-theme-openapi-docs to fix SSG crash.
  *
  * The original component calls useTypedSelector (Redux) at the top level,
  * which fails during static site generation because no Redux store is
  * available. This version moves the hook into a browser-only child component
  * so SSG can render the page without a store context.
- * ========================================================================== */
+ */
 
 import React from "react";
 
 import BrowserOnly from "@docusaurus/BrowserOnly";
-import { useTypedSelector } from "@theme/ApiItem/hooks";
+import { useSelector } from "react-redux";
+
+interface ServerVariable {
+  default?: string;
+}
+
+interface ServerValue {
+  url: string;
+  variables?: Record<string, ServerVariable>;
+}
+
+interface StoreState {
+  server: { value: ServerValue | null };
+}
 
 function colorForMethod(method: string) {
   switch (method.toLowerCase()) {
@@ -39,13 +69,9 @@ export interface Props {
   context?: "endpoint" | "callback";
 }
 
-interface ServerState {
-  server: { value: { url: string; variables?: Record<string, { default?: string }> } | null };
-}
-
 // Inner component rendered only in the browser, where the Redux store exists.
 function ServerUrl() {
-  const serverValue = useTypedSelector((state: ServerState) => state.server.value);
+  const serverValue = useSelector((state: StoreState) => state.server.value);
 
   if (serverValue && serverValue.variables) {
     let serverUrlWithVariables = serverValue.url.replace(/\/$/, "");
