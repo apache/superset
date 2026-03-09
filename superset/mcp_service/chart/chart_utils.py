@@ -880,8 +880,36 @@ def _xy_chart_context(config: XYChartConfig) -> str | None:
     return ", ".join(parts) if parts else None
 
 
+def _pie_chart_what(config: PieChartConfig) -> str:
+    """Build the 'what' portion for a pie chart name."""
+    dim = config.dimension.name
+    metric_label = config.metric.label or config.metric.name
+    return f"{dim} by {metric_label}"
+
+
+def _pivot_table_what(config: PivotTableChartConfig) -> str:
+    """Build the 'what' portion for a pivot table chart name."""
+    row_names = ", ".join(r.name for r in config.rows)
+    return f"Pivot Table \u2013 {row_names}"
+
+
+def _mixed_timeseries_what(config: MixedTimeseriesChartConfig) -> str:
+    """Build the 'what' portion for a mixed timeseries chart name."""
+    primary = config.y[0].label or config.y[0].name if config.y else "primary"
+    secondary = (
+        config.y_secondary[0].label or config.y_secondary[0].name
+        if config.y_secondary
+        else "secondary"
+    )
+    return f"{primary} + {secondary}"
+
+
 def generate_chart_name(
-    config: TableChartConfig | XYChartConfig,
+    config: TableChartConfig
+    | XYChartConfig
+    | PieChartConfig
+    | PivotTableChartConfig
+    | MixedTimeseriesChartConfig,
     dataset_name: str | None = None,
 ) -> str:
     """Generate a descriptive chart name following a standard format.
@@ -891,6 +919,9 @@ def generate_chart_name(
       Time-series (line/area, no group_by):   [Metric] Over Time
       Table (no aggregates):                  [Dataset] Records
       Table (with aggregates):                [Metric] Summary
+      Pie:                                    [Dimension] by [Metric]
+      Pivot Table:                            Pivot Table – [Row1, Row2]
+      Mixed Timeseries:                       [Primary] + [Secondary]
     An en-dash followed by context (filters / time grain) is appended
     when such information is available.
     """
@@ -900,6 +931,15 @@ def generate_chart_name(
     elif isinstance(config, XYChartConfig):
         what = _xy_chart_what(config)
         context = _xy_chart_context(config)
+    elif isinstance(config, PieChartConfig):
+        what = _pie_chart_what(config)
+        context = _summarize_filters(config.filters)
+    elif isinstance(config, PivotTableChartConfig):
+        what = _pivot_table_what(config)
+        context = _summarize_filters(config.filters)
+    elif isinstance(config, MixedTimeseriesChartConfig):
+        what = _mixed_timeseries_what(config)
+        context = _summarize_filters(config.filters)
     else:
         return "Chart"
 
