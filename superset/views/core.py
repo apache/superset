@@ -489,7 +489,12 @@ class Superset(BaseSupersetView):
         # slc perms
         slice_add_perm = security_manager.can_access("can_write", "Chart")
         slice_overwrite_perm = security_manager.is_owner(slc) if slc else False
-        slice_download_perm = security_manager.can_access("can_csv", "Superset")
+        if is_feature_enabled("GRANULAR_EXPORT_CONTROLS"):
+            slice_download_perm = security_manager.can_access(
+                "can_export_data", "Superset"
+            )
+        else:
+            slice_download_perm = security_manager.can_access("can_csv", "Superset")
 
         form_data["datasource"] = str(datasource_id) + "__" + cast(str, datasource_type)
 
