@@ -153,9 +153,15 @@ export function getURIDirectory(
   includeAppRoot = true,
 ): string {
   // Building the directory part of the URI
-  const uri = ['full', 'json', 'csv', 'query', 'results', 'samples'].includes(
-    endpointType,
-  )
+  const uri = [
+    'full',
+    'json',
+    'csv',
+    'xlsx',
+    'query',
+    'results',
+    'samples',
+  ].includes(endpointType)
     ? '/superset/explore_json/'
     : '/explore/';
   return includeAppRoot ? ensureAppRoot(uri) : uri;
@@ -335,7 +341,8 @@ export const getLegacyEndpointType = ({
 }: {
   resultType: string;
   resultFormat: string;
-}): string => (resultFormat === 'csv' ? resultFormat : resultType);
+}): string =>
+  resultFormat === 'csv' || resultFormat === 'xlsx' ? resultFormat : resultType;
 
 export const exportChart = async ({
   formData,
@@ -350,11 +357,16 @@ export const exportChart = async ({
   const [useLegacyApi] = getQuerySettings(formData);
   if (useLegacyApi) {
     const endpointType = getLegacyEndpointType({ resultFormat, resultType });
-    url = getExploreUrl({
-      formData,
-      endpointType,
-      allowDomainSharding: false,
-    });
+    const directory = getURIDirectory(endpointType);
+    const searchParams = new URLSearchParams();
+    if (endpointType === 'csv') searchParams.set('csv', 'true');
+    if (endpointType === 'xlsx') searchParams.set('xlsx', 'true');
+    if (endpointType === 'results') searchParams.set('results', 'true');
+    if (endpointType === 'query') searchParams.set('query', 'true');
+    if (endpointType === 'samples') searchParams.set('samples', 'true');
+    if (force) searchParams.set('force', 'true');
+    const qs = searchParams.toString();
+    url = qs ? `${directory}?${qs}` : directory;
     payload = formData;
   } else {
     url = ensureAppRoot('/api/v1/chart/data');

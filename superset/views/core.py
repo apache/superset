@@ -99,6 +99,7 @@ from superset.views.base import (
     generate_download_headers,
     json_error_response,
     json_success,
+    XlsxResponse,
 )
 from superset.views.error_handling import handle_api_exception
 from superset.views.utils import (
@@ -194,6 +195,9 @@ class Superset(BaseSupersetView):
                 viz_obj.get_csv(), headers=generate_download_headers("csv")
             )
 
+        if response_type == ChartDataResultFormat.XLSX:
+            return self._generate_xlsx(viz_obj)
+
         if response_type == ChartDataResultType.QUERY:
             return self.get_query_string_response(viz_obj)
 
@@ -205,6 +209,15 @@ class Superset(BaseSupersetView):
 
         payload = viz_obj.get_payload()
         return self.send_data_payload_response(viz_obj, payload)
+
+    @staticmethod
+    def _generate_xlsx(viz_obj: BaseViz) -> FlaskResponse:
+        from superset.utils.excel import df_to_excel
+
+        payload = viz_obj.get_df_payload()
+        df = payload["df"]
+        xlsx_data = df_to_excel(df, index=False)
+        return XlsxResponse(xlsx_data, headers=generate_download_headers("xlsx"))
 
     @event_logger.log_this
     @api
@@ -290,13 +303,13 @@ class Superset(BaseSupersetView):
                 response_type = response_option
                 break
 
-        # Verify user has permission to export CSV file
-        if (
-            response_type == ChartDataResultFormat.CSV
-            and not security_manager.can_access("can_csv", "Superset")
-        ):
+        # Verify user has permission to export data files
+        if response_type in (
+            ChartDataResultFormat.CSV,
+            ChartDataResultFormat.XLSX,
+        ) and not security_manager.can_access("can_csv", "Superset"):
             return json_error_response(
-                _("You don't have the rights to download as csv"),
+                _("You don't have the rights to export data"),
                 status=403,
             )
 
