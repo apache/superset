@@ -475,7 +475,7 @@ def add_orientation_config(form_data: Dict[str, Any], config: XYChartConfig) -> 
     When orientation is None (the default), Superset uses its own default
     (vertical bars).
     """
-    if config.kind == "bar" and getattr(config, "orientation", None):
+    if config.kind == "bar" and config.orientation:
         form_data["orientation"] = config.orientation
 
 
