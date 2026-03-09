@@ -78,7 +78,14 @@ def create_tool_decorator(
             else:
                 wrapped_func = func
 
-            from fastmcp.tools import Tool
+            try:
+                from fastmcp.tools import Tool
+            except ImportError:
+                logger.warning(
+                    "fastmcp is not installed, MCP tool '%s' will not be registered.",
+                    tool_name,
+                )
+                return wrapped_func
 
             tool = Tool.from_function(
                 wrapped_func,
@@ -86,6 +93,7 @@ def create_tool_decorator(
                 description=tool_description,
                 tags=tool_tags,
             )
+
             mcp.add_tool(tool)
 
             protected_status = "protected" if protect else "public"
