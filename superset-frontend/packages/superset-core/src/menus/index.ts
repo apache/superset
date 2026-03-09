@@ -47,6 +47,8 @@ export interface MenuItem {
   view: string;
   /** The command to execute when this menu item is selected. */
   command: string;
+  /** Optional description of the menu item, for display in contribution manifests. */
+  description?: string;
 }
 
 /**
