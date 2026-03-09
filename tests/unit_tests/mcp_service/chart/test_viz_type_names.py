@@ -17,10 +17,11 @@
 
 """Tests for viz_type display name mapping."""
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
+from superset.mcp_service.chart.schemas import serialize_chart_object
 from superset.mcp_service.chart.viz_type_names import (
     _FRONTEND_ONLY_NAMES,
     get_viz_type_display_name,
@@ -149,10 +150,6 @@ def test_legacy_import_failure_gracefully_handled() -> None:
 
 def test_serialize_chart_object_populates_display_name() -> None:
     """serialize_chart_object should populate chart_type_display_name."""
-    from unittest.mock import MagicMock
-
-    from superset.mcp_service.chart.schemas import serialize_chart_object
-
     chart = MagicMock()
     chart.id = 1
     chart.slice_name = "Test Chart"
@@ -183,10 +180,6 @@ def test_serialize_chart_object_populates_display_name() -> None:
 
 def test_serialize_chart_object_none_viz_type() -> None:
     """chart_type_display_name is None when viz_type is None."""
-    from unittest.mock import MagicMock
-
-    from superset.mcp_service.chart.schemas import serialize_chart_object
-
     chart = MagicMock()
     chart.id = 2
     chart.slice_name = "Unknown Type"
