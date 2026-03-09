@@ -44,6 +44,7 @@ from superset.mcp_service.chart.schemas import (
 )
 from superset.mcp_service.utils.cache_utils import get_cache_status_from_result
 from superset.mcp_service.utils.schema_utils import parse_request
+from superset.utils.core import merge_extra_filters
 
 logger = logging.getLogger(__name__)
 
@@ -55,8 +56,6 @@ def _apply_extra_form_data(
     if not extra_form_data:
         return
     form_data["extra_form_data"] = extra_form_data
-    from superset.utils.core import merge_extra_filters
-
     merge_extra_filters(form_data)
 
 
