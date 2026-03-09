@@ -41,6 +41,8 @@ import { SaveActionType } from 'src/explore/types';
 export interface ExploreState {
   can_add?: boolean;
   can_download?: boolean;
+  can_export_image?: boolean;
+  can_copy_clipboard?: boolean;
   can_overwrite?: boolean;
   isDatasourceMetaLoading?: boolean;
   isDatasourcesLoading?: boolean;
