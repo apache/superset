@@ -153,7 +153,11 @@ def _generate_title_from_charts(chart_objects: List[Any]) -> str:
     Returns ``"Dashboard"`` when *chart_objects* is empty or no chart has
     a usable name.
     """
-    names = [c.slice_name for c in chart_objects if getattr(c, "slice_name", None)]
+    names = [
+        c.slice_name
+        for c in sorted(chart_objects, key=lambda c: getattr(c, "id", 0))
+        if getattr(c, "slice_name", None)
+    ]
     if not names:
         return "Dashboard"
 
