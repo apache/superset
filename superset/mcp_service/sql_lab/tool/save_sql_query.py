@@ -28,12 +28,11 @@ from __future__ import annotations
 import logging
 
 from fastmcp import Context
+from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetErrorException, SupersetSecurityException
-from sqlalchemy.exc import SQLAlchemyError
-
 from superset.extensions import event_logger
 from superset.mcp_service.sql_lab.schemas import (
     SaveSqlQueryRequest,
