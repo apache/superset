@@ -61,7 +61,7 @@ const useEditorProvider = (language: EditorLanguage) => {
 
     // Subscribe to provider changes
     const registerDisposable = manager.onDidRegister(event => {
-      if (event.provider.editor.languages.includes(language)) {
+      if (event.editor.languages.includes(language)) {
         updateProvider();
       }
     });
