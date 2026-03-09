@@ -141,7 +141,9 @@ function getExportScreenshotMenuItems({
         {
           key: MENU_KEYS.EXPORT_ALL_PNG_TRANSPARENT,
           label: t('Transparent background'),
-          onClick: (e: { domEvent: React.MouseEvent | React.KeyboardEvent }) => {
+          onClick: (e: {
+            domEvent: React.MouseEvent | React.KeyboardEvent;
+          }) => {
             downloadAsImage(chartSelector, sliceName, true, theme, {
               format: 'png',
               backgroundType: 'transparent',
@@ -159,7 +161,9 @@ function getExportScreenshotMenuItems({
         {
           key: MENU_KEYS.EXPORT_ALL_PNG_SOLID,
           label: t('Solid background'),
-          onClick: (e: { domEvent: React.MouseEvent | React.KeyboardEvent }) => {
+          onClick: (e: {
+            domEvent: React.MouseEvent | React.KeyboardEvent;
+          }) => {
             downloadAsImage(chartSelector, sliceName, true, theme, {
               format: 'png',
               backgroundType: 'solid',
@@ -936,7 +940,9 @@ export const useExploreAdditionalActionsMenu = (
           {
             key: MENU_KEYS.EXPORT_CURRENT_PNG_TRANSPARENT,
             label: t('Transparent background'),
-            onClick: (e: { domEvent: React.MouseEvent | React.KeyboardEvent }) => {
+            onClick: (e: {
+              domEvent: React.MouseEvent | React.KeyboardEvent;
+            }) => {
               downloadAsImage(
                 '.panel-body .chart-container',
                 slice?.slice_name ?? t('New chart'),
@@ -957,7 +963,9 @@ export const useExploreAdditionalActionsMenu = (
           {
             key: MENU_KEYS.EXPORT_CURRENT_PNG_SOLID,
             label: t('Solid background'),
-            onClick: (e: { domEvent: React.MouseEvent | React.KeyboardEvent }) => {
+            onClick: (e: {
+              domEvent: React.MouseEvent | React.KeyboardEvent;
+            }) => {
               downloadAsImage(
                 '.panel-body .chart-container',
                 slice?.slice_name ?? t('New chart'),

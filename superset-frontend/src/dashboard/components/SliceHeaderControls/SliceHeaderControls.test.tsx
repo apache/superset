@@ -634,7 +634,9 @@ test('Download submenu shows standardized export screenshot and PDF labels', asy
   renderWrapper(props);
   openMenu();
   userEvent.hover(screen.getByText('Download'));
-  expect(await screen.findByText('Export screenshot (jpeg)')).toBeInTheDocument();
+  expect(
+    await screen.findByText('Export screenshot (jpeg)'),
+  ).toBeInTheDocument();
   expect(screen.getByText('Export screenshot (PNG)')).toBeInTheDocument();
   expect(screen.getByText('Export as PDF')).toBeInTheDocument();
 });
