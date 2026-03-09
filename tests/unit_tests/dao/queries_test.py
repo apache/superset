@@ -192,7 +192,8 @@ def test_query_dao_stop_query_not_running(
 
     from superset.daos.query import QueryDAO
 
-    QueryDAO.stop_query(query_obj.client_id)
+    with mocker.patch("superset.daos.query.security_manager.raise_for_access"):
+        QueryDAO.stop_query(query_obj.client_id)
     query = db.session.query(Query).one()
     assert query.status == QueryStatus.FAILED
 
@@ -233,7 +234,10 @@ def test_query_dao_stop_query_failed(
 
     from superset.daos.query import QueryDAO
 
-    with pytest.raises(SupersetCancelQueryException):
+    with (
+        mocker.patch("superset.daos.query.security_manager.raise_for_access"),
+        pytest.raises(SupersetCancelQueryException),
+    ):
         QueryDAO.stop_query(query_obj.client_id)
 
     query = db.session.query(Query).one()
@@ -276,6 +280,7 @@ def test_query_dao_stop_query(
 
     from superset.daos.query import QueryDAO
 
-    QueryDAO.stop_query(query_obj.client_id)
+    with mocker.patch("superset.daos.query.security_manager.raise_for_access"):
+        QueryDAO.stop_query(query_obj.client_id)
     query = db.session.query(Query).one()
     assert query.status == QueryStatus.STOPPED

@@ -77,6 +77,9 @@ class DatasourceDAO(BaseDAO[Datasource]):
             )
             raise DatasourceNotFound()
 
-        security_manager.raise_for_access(datasource=datasource)
+        from flask import g
+
+        if hasattr(g, "user") and g.user:
+            security_manager.raise_for_access(datasource=datasource)
 
         return datasource

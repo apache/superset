@@ -1866,7 +1866,9 @@ def test_table_metadata_happy_path(
     """
     database = mocker.MagicMock()
     database.db_engine_spec.get_table_metadata.return_value = {"hello": "world"}
-    mocker.patch("superset.databases.api.DatabaseDAO.find_by_id", return_value=database)
+    mocker.patch(
+        "superset.databases.api.DatabaseDAO.get_with_check", return_value=database
+    )
     mocker.patch("superset.databases.api.security_manager.raise_for_access")
 
     response = client.get("/api/v1/database/1/table_metadata/?name=t")
@@ -1906,7 +1908,9 @@ def test_table_metadata_no_table(
     Test the `table_metadata` endpoint when no table name is passed.
     """
     database = mocker.MagicMock()
-    mocker.patch("superset.databases.api.DatabaseDAO.find_by_id", return_value=database)
+    mocker.patch(
+        "superset.databases.api.DatabaseDAO.get_with_check", return_value=database
+    )
 
     response = client.get("/api/v1/database/1/table_metadata/?schema=s&catalog=c")
     assert response.status_code == 422
@@ -1940,7 +1944,9 @@ def test_table_metadata_slashes(
     """
     database = mocker.MagicMock()
     database.db_engine_spec.get_table_metadata.return_value = {"hello": "world"}
-    mocker.patch("superset.databases.api.DatabaseDAO.find_by_id", return_value=database)
+    mocker.patch(
+        "superset.databases.api.DatabaseDAO.get_with_check", return_value=database
+    )
     mocker.patch("superset.databases.api.security_manager.raise_for_access")
 
     client.get("/api/v1/database/1/table_metadata/?name=foo/bar")
@@ -1958,8 +1964,12 @@ def test_table_metadata_invalid_database(
     """
     Test the `table_metadata` endpoint when the database is invalid.
     """
-    mocker.patch("superset.databases.api.DatabaseDAO.find_by_id", return_value=None)
+    from superset.commands.database.exceptions import DatabaseNotFoundError
 
+    mocker.patch(
+        "superset.databases.api.DatabaseDAO.get_with_check",
+        side_effect=DatabaseNotFoundError(),
+    )
     response = client.get("/api/v1/database/1/table_metadata/?name=t")
     assert response.status_code == 404
     assert response.json == {
@@ -1994,7 +2004,9 @@ def test_table_metadata_unauthorized(
     Test the `table_metadata` endpoint when the user is unauthorized.
     """
     database = mocker.MagicMock()
-    mocker.patch("superset.databases.api.DatabaseDAO.find_by_id", return_value=database)
+    mocker.patch(
+        "superset.databases.api.DatabaseDAO.get_with_check", return_value=database
+    )
     mocker.patch(
         "superset.databases.api.security_manager.raise_for_access",
         side_effect=SupersetSecurityException(
@@ -2030,7 +2042,9 @@ def test_table_extra_metadata_happy_path(
     """
     database = mocker.MagicMock()
     database.db_engine_spec.get_extra_table_metadata.return_value = {"hello": "world"}
-    mocker.patch("superset.databases.api.DatabaseDAO.find_by_id", return_value=database)
+    mocker.patch(
+        "superset.databases.api.DatabaseDAO.get_with_check", return_value=database
+    )
     mocker.patch("superset.databases.api.security_manager.raise_for_access")
 
     response = client.get("/api/v1/database/1/table_metadata/extra/?name=t")
@@ -2070,7 +2084,9 @@ def test_table_extra_metadata_no_table(
     Test the `table_extra_metadata` endpoint when no table name is passed.
     """
     database = mocker.MagicMock()
-    mocker.patch("superset.databases.api.DatabaseDAO.find_by_id", return_value=database)
+    mocker.patch(
+        "superset.databases.api.DatabaseDAO.get_with_check", return_value=database
+    )
 
     response = client.get("/api/v1/database/1/table_metadata/extra/?schema=s&catalog=c")
     assert response.status_code == 422
@@ -2104,7 +2120,9 @@ def test_table_extra_metadata_slashes(
     """
     database = mocker.MagicMock()
     database.db_engine_spec.get_extra_table_metadata.return_value = {"hello": "world"}
-    mocker.patch("superset.databases.api.DatabaseDAO.find_by_id", return_value=database)
+    mocker.patch(
+        "superset.databases.api.DatabaseDAO.get_with_check", return_value=database
+    )
     mocker.patch("superset.databases.api.security_manager.raise_for_access")
 
     client.get("/api/v1/database/1/table_metadata/extra/?name=foo/bar")
@@ -2122,8 +2140,12 @@ def test_table_extra_metadata_invalid_database(
     """
     Test the `table_extra_metadata` endpoint when the database is invalid.
     """
-    mocker.patch("superset.databases.api.DatabaseDAO.find_by_id", return_value=None)
+    from superset.commands.database.exceptions import DatabaseNotFoundError
 
+    mocker.patch(
+        "superset.databases.api.DatabaseDAO.get_with_check",
+        side_effect=DatabaseNotFoundError(),
+    )
     response = client.get("/api/v1/database/1/table_metadata/extra/?name=t")
     assert response.status_code == 404
     assert response.json == {
@@ -2158,7 +2180,9 @@ def test_table_extra_metadata_unauthorized(
     Test the `table_extra_metadata` endpoint when the user is unauthorized.
     """
     database = mocker.MagicMock()
-    mocker.patch("superset.databases.api.DatabaseDAO.find_by_id", return_value=database)
+    mocker.patch(
+        "superset.databases.api.DatabaseDAO.get_with_check", return_value=database
+    )
     mocker.patch(
         "superset.databases.api.security_manager.raise_for_access",
         side_effect=SupersetSecurityException(
@@ -2195,7 +2219,7 @@ def test_catalogs(
     database = mocker.MagicMock()
     database.get_all_catalog_names.return_value = {"db1", "db2"}
     DatabaseDAO = mocker.patch("superset.databases.api.DatabaseDAO")  # noqa: N806
-    DatabaseDAO.find_by_id.return_value = database
+    DatabaseDAO.get_with_check.return_value = database
 
     security_manager = mocker.patch(
         "superset.databases.api.security_manager",
@@ -2239,7 +2263,7 @@ def test_catalogs_with_oauth2(
         "redirect_uri",
     )
     DatabaseDAO = mocker.patch("superset.databases.api.DatabaseDAO")  # noqa: N806
-    DatabaseDAO.find_by_id.return_value = database
+    DatabaseDAO.get_with_check.return_value = database
 
     security_manager = mocker.patch(
         "superset.databases.api.security_manager",
@@ -2273,12 +2297,12 @@ def test_schemas(
     """
     Test the `schemas` endpoint.
     """
-    from superset.databases.api import DatabaseRestApi
 
     database = mocker.MagicMock()
     database.get_all_schema_names.return_value = {"schema1", "schema2"}
-    datamodel = mocker.patch.object(DatabaseRestApi, "datamodel")
-    datamodel.get.return_value = database
+    mocker.patch(
+        "superset.databases.api.DatabaseDAO.get_with_check", return_value=database
+    )
 
     security_manager = mocker.patch(
         "superset.databases.api.security_manager",
@@ -2331,7 +2355,6 @@ def test_schemas_with_oauth2(
     """
     Test the `schemas` endpoint when OAuth2 is needed.
     """
-    from superset.databases.api import DatabaseRestApi
 
     database = mocker.MagicMock()
     database.get_all_schema_names.side_effect = OAuth2RedirectError(
@@ -2339,8 +2362,9 @@ def test_schemas_with_oauth2(
         "tab_id",
         "redirect_uri",
     )
-    datamodel = mocker.patch.object(DatabaseRestApi, "datamodel")
-    datamodel.get.return_value = database
+    mocker.patch(
+        "superset.databases.api.DatabaseDAO.get_with_check", return_value=database
+    )
 
     security_manager = mocker.patch(
         "superset.databases.api.security_manager",
@@ -2440,7 +2464,7 @@ def test_import_includes_configuration_method(
         return db.session.query(Database).filter_by(id=db_id).first()
 
     DatabaseDAO = mocker.patch("superset.databases.api.DatabaseDAO")  # noqa: N806
-    DatabaseDAO.find_by_id.side_effect = find_by_id_side_effect
+    DatabaseDAO.get_with_check.side_effect = find_by_id_side_effect
 
     metadata = {
         "version": "1.0.0",

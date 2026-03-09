@@ -1,3 +1,20 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
 from unittest.mock import MagicMock, patch
 
 from superset.commands.sql_lab.estimate import QueryEstimationCommand
@@ -14,9 +31,13 @@ def test_datasource_dao_idor_mitigation():
         mock_ds = MagicMock()
         mock_query.return_value.filter.return_value.one_or_none.return_value = mock_ds
 
-        with patch(
-            "superset.daos.datasource.security_manager.raise_for_access"
-        ) as mock_raise:
+        with (
+            patch(
+                "superset.daos.datasource.security_manager.raise_for_access"
+            ) as mock_raise,
+            patch("flask.g") as mock_g,
+        ):
+            mock_g.user = MagicMock()
             DatasourceDAO.get_datasource("table", 1)
             # Verification: raise_for_access was called with the datasource
             mock_raise.assert_called_with(datasource=mock_ds)
@@ -38,7 +59,9 @@ def test_database_dao_idor_mitigation():
                 "superset.daos.base.security_manager.can_access_all_databases",
                 return_value=True,
             ),
+            patch("flask.g") as mock_g,
         ):
+            mock_g.user = MagicMock()
             DatabaseDAO.get_with_check(1)
             # Verification: raise_for_access was called with the database keyword
             mock_raise.assert_called_with(database=mock_db)
@@ -67,9 +90,13 @@ def test_query_estimation_idor_mitigation():
         params = {"database_id": 1, "sql": "SELECT 1"}
         command = QueryEstimationCommand(params)
 
-        with patch(
-            "superset.commands.sql_lab.estimate.security_manager.raise_for_access"
-        ) as mock_raise:
+        with (
+            patch(
+                "superset.commands.sql_lab.estimate.security_manager.raise_for_access"
+            ) as mock_raise,
+            patch("flask.g") as mock_g,
+        ):
+            mock_g.user = MagicMock()
             command.validate()
             # Verification: raise_for_access was called with the database
             mock_raise.assert_called_with(database=mock_db)
@@ -89,9 +116,13 @@ def test_sql_results_idor_mitigation():
             mock_backend.get.return_value = b"blob"
             command = SqlExecutionResultsCommand(key="some_key")
 
-            with patch(
-                "superset.commands.sql_lab.results.security_manager.raise_for_access"
-            ) as mock_raise:
+            with (
+                patch(
+                    "superset.commands.sql_lab.results.security_manager.raise_for_access"
+                ) as mock_raise,
+                patch("flask.g") as mock_g,
+            ):
+                mock_g.user = MagicMock()
                 command.validate()
                 # Verification: raise_for_access was called with the query
                 mock_raise.assert_called_with(query=mock_query_obj)

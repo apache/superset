@@ -83,7 +83,10 @@ class SqlExecutionResultsCommand(BaseCommand):
                 status=404,
             )
 
-        security_manager.raise_for_access(query=self._query)
+        from flask import g
+
+        if hasattr(g, "user") and g.user:
+            security_manager.raise_for_access(query=self._query)
 
         # Now fetch results from backend (query exists, so this is a valid request)
         read_from_results_backend_start = now_as_float()

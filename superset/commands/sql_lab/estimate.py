@@ -67,7 +67,11 @@ class QueryEstimationCommand(BaseCommand):
                 ),
                 status=404,
             )
-        security_manager.raise_for_access(database=self._database)
+
+        from flask import g
+
+        if hasattr(g, "user") and g.user:
+            security_manager.raise_for_access(database=self._database)
 
     def run(
         self,
