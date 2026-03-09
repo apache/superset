@@ -49,7 +49,7 @@ TIMESERIES_VIZ_TYPES = {
     "echarts_timeseries",
     "echarts_timeseries_line",
     "echarts_timeseries_bar",
-    "echarts_timeseries_area",
+    "echarts_area",
     "echarts_timeseries_scatter",
     "echarts_timeseries_smooth",
     "echarts_timeseries_step",
