@@ -142,6 +142,20 @@ Query Examples:
 - My dashboards:
   filters=[{{"col": "created_by_fk", "opr": "eq", "value": <user_id>}}]
 
+To modify an existing chart (add filters, change metrics, change dimensions, etc.):
+1. get_chart_info(chart_id) -> examine current configuration
+2. update_chart(chart_id, config) -> apply changes (filters, metrics, dimensions)
+Do NOT use execute_sql for chart modifications. Use update_chart instead.
+
+CRITICAL RULES - NEVER VIOLATE:
+- NEVER fabricate or invent URLs. ALL URLs must come from tool call results.
+  If you need a link, call the appropriate tool (generate_explore_link, generate_chart,
+  open_sql_lab_with_context, etc.) and use the URL it returns.
+- To modify an existing chart's filters, metrics, or dimensions, use update_chart.
+  Do NOT use execute_sql for chart modifications.
+- Parameter name reminders: open_sql_lab_with_context uses "sql" (not "query"),
+  execute_sql uses "sql" (not "query").
+
 General usage tips:
 - All listing tools use 1-based pagination (first page is 1)
 - Use get_schema to discover filterable columns, sortable columns, and default columns
