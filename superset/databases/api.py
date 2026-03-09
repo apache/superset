@@ -683,7 +683,36 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     )
     def catalogs(self, pk: int, **kwargs: Any) -> FlaskResponse:
         """Get all catalogs from a database.
-        ... (omitted docstring for brevity) ...
+        ---
+        get:
+          summary: Get all catalogs from a database
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The database id
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/database_catalogs_query_schema'
+          responses:
+            200:
+              description: A List of all catalogs from the database
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/CatalogsResponseSchema"
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
         """
         database = DatabaseDAO.get_with_check(pk)
 
@@ -718,7 +747,36 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     )
     def schemas(self, pk: int, **kwargs: Any) -> FlaskResponse:
         """Get all schemas from a database.
-        ... (omitted docstring for brevity) ...
+        ---
+        get:
+          summary: Get all schemas from a database
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The database id
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/database_schemas_query_schema'
+          responses:
+            200:
+              description: A List of all schemas from the database
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/SchemasResponseSchema"
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
         """
         database = DatabaseDAO.get_with_check(pk)
 
@@ -773,7 +831,47 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     )
     def tables(self, pk: int, **kwargs: Any) -> FlaskResponse:
         """Get a list of tables for given database.
-        ... (omitted docstring for brevity) ...
+        ---
+        get:
+          summary: Get a list of tables for given database
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The database id
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/database_tables_query_schema'
+          responses:
+            200:
+              description: Tables list
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      count:
+                        type: integer
+                      result:
+                        description: >-
+                          A List of tables for given database
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/DatabaseTablesResponse'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
         """
         DatabaseDAO.get_with_check(pk)
 
@@ -1199,7 +1297,27 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     )
     def related_objects(self, pk: int) -> Response:
         """Get charts and dashboards count associated to a database.
-        ... (omitted docstring for brevity) ...
+        ---
+        get:
+          summary: Get charts and dashboards count associated to a database
+          parameters:
+          - in: path
+            name: pk
+            schema:
+              type: integer
+          responses:
+            200:
+              description: Query result
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/DatabaseRelatedObjectsResponse"
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
         """
         DatabaseDAO.get_with_check(pk)
 
@@ -1284,12 +1402,13 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        DatabaseDAO.get_with_check(pk)
-
         try:
             sql_request = ValidateSQLRequest().load(request.json)
         except ValidationError as error:
             return self.response_400(message=error.messages)
+
+        DatabaseDAO.get_with_check(pk)
+
         try:
             validator_errors = ValidateSQLCommand(pk, sql_request).run()
             return self.response(200, result=validator_errors)

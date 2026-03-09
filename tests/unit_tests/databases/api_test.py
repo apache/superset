@@ -1869,7 +1869,7 @@ def test_table_metadata_happy_path(
     mocker.patch(
         "superset.databases.api.DatabaseDAO.get_with_check", return_value=database
     )
-    mocker.patch("superset.databases.api.security_manager.raise_for_access")
+    mocker.patch("superset.security_manager.raise_for_access")
 
     response = client.get("/api/v1/database/1/table_metadata/?name=t")
     assert response.json == {"hello": "world"}
@@ -1947,7 +1947,7 @@ def test_table_metadata_slashes(
     mocker.patch(
         "superset.databases.api.DatabaseDAO.get_with_check", return_value=database
     )
-    mocker.patch("superset.databases.api.security_manager.raise_for_access")
+    mocker.patch("superset.security_manager.raise_for_access")
 
     client.get("/api/v1/database/1/table_metadata/?name=foo/bar")
     database.db_engine_spec.get_table_metadata.assert_called_with(
@@ -2008,11 +2008,11 @@ def test_table_metadata_unauthorized(
         "superset.databases.api.DatabaseDAO.get_with_check", return_value=database
     )
     mocker.patch(
-        "superset.databases.api.security_manager.raise_for_access",
+        "superset.security_manager.raise_for_access",
         side_effect=SupersetSecurityException(
             SupersetError(
                 error_type=SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR,
-                message="You don't have access to the table",
+                message="Dataset does not exist",
                 level=ErrorLevel.ERROR,
             )
         ),
@@ -2045,7 +2045,7 @@ def test_table_extra_metadata_happy_path(
     mocker.patch(
         "superset.databases.api.DatabaseDAO.get_with_check", return_value=database
     )
-    mocker.patch("superset.databases.api.security_manager.raise_for_access")
+    mocker.patch("superset.security_manager.raise_for_access")
 
     response = client.get("/api/v1/database/1/table_metadata/extra/?name=t")
     assert response.json == {"hello": "world"}
@@ -2123,7 +2123,7 @@ def test_table_extra_metadata_slashes(
     mocker.patch(
         "superset.databases.api.DatabaseDAO.get_with_check", return_value=database
     )
-    mocker.patch("superset.databases.api.security_manager.raise_for_access")
+    mocker.patch("superset.security_manager.raise_for_access")
 
     client.get("/api/v1/database/1/table_metadata/extra/?name=foo/bar")
     database.db_engine_spec.get_extra_table_metadata.assert_called_with(
@@ -2184,11 +2184,11 @@ def test_table_extra_metadata_unauthorized(
         "superset.databases.api.DatabaseDAO.get_with_check", return_value=database
     )
     mocker.patch(
-        "superset.databases.api.security_manager.raise_for_access",
+        "superset.security_manager.raise_for_access",
         side_effect=SupersetSecurityException(
             SupersetError(
                 error_type=SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR,
-                message="You don't have access to the table",
+                message="Dataset does not exist",
                 level=ErrorLevel.ERROR,
             )
         ),

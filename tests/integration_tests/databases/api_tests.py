@@ -4114,9 +4114,7 @@ class TestDatabaseApi(SupersetTestCase):
             f"api/v1/database/{self.get_nonexistent_numeric_id(Database)}/validate_sql/"
         )
         rv = self.client.post(uri, json=request_payload)
-        response = json.loads(rv.data.decode("utf-8"))
-        assert rv.status_code == 400
-        assert response == {"message": {"sql": ["Field may not be null."]}}
+        assert rv.status_code == 404
 
     @mock.patch.dict(
         "superset.config.SQL_VALIDATORS_BY_ENGINE",

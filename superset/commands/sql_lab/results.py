@@ -83,9 +83,9 @@ class SqlExecutionResultsCommand(BaseCommand):
                 status=404,
             )
 
-        from flask import g, has_app_context, has_request_context
+        from flask import g
 
-        if (has_app_context() or has_request_context()) and getattr(g, "user", None):
+        if getattr(g, "user", None) and not g.user.is_anonymous:
             security_manager.raise_for_access(query=self._query)
 
         # Now fetch results from backend (query exists, so this is a valid request)

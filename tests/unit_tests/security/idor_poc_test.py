@@ -38,6 +38,7 @@ def test_datasource_dao_idor_mitigation():
             patch("flask.g") as mock_g,
         ):
             mock_g.user = MagicMock()
+            mock_g.user.is_anonymous = False
             DatasourceDAO.get_datasource("table", 1)
             # Verification: raise_for_access was called with the datasource
             mock_raise.assert_called_with(datasource=mock_ds)
@@ -62,6 +63,7 @@ def test_database_dao_idor_mitigation():
             patch("flask.g") as mock_g,
         ):
             mock_g.user = MagicMock()
+            mock_g.user.is_anonymous = False
             DatabaseDAO.get_with_check(1)
             # Verification: raise_for_access was called with the database keyword
             mock_raise.assert_called_with(database=mock_db)
@@ -97,6 +99,7 @@ def test_query_estimation_idor_mitigation():
             patch("flask.g") as mock_g,
         ):
             mock_g.user = MagicMock()
+            mock_g.user.is_anonymous = False
             command.validate()
             # Verification: raise_for_access was called with the database
             mock_raise.assert_called_with(database=mock_db)
@@ -123,6 +126,7 @@ def test_sql_results_idor_mitigation():
                 patch("flask.g") as mock_g,
             ):
                 mock_g.user = MagicMock()
+                mock_g.user.is_anonymous = False
                 command.validate()
                 # Verification: raise_for_access was called with the query
                 mock_raise.assert_called_with(query=mock_query_obj)

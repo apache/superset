@@ -37,6 +37,9 @@ from superset.commands.sql_lab.streaming_export_command import (
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from superset.daos.database import DatabaseDAO
 from superset.daos.query import QueryDAO
+from superset.exceptions import (
+    SupersetSecurityException,
+)
 from superset.extensions import event_logger
 from superset.jinja_context import get_template_processor
 from superset.models.sql_lab import Query
@@ -481,7 +484,10 @@ class SqlLabRestApi(BaseSupersetApi):
         params = kwargs["rison"]
         key = params.get("key")
         rows = params.get("rows")
-        result = SqlExecutionResultsCommand(key=key, rows=rows).run()
+        try:
+            result = SqlExecutionResultsCommand(key=key, rows=rows).run()
+        except SupersetSecurityException:
+            return self.response_403()
 
         # Using pessimistic json serialization since some database drivers can return
         # unserializeable types at times
