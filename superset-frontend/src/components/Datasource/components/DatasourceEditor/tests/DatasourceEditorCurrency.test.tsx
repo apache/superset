@@ -23,7 +23,7 @@ import {
   userEvent,
   selectOption,
 } from 'spec/helpers/testing-library';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import type { DatasetObject } from 'src/features/datasets/types';
 import {
   createProps,

@@ -17,8 +17,8 @@
  * under the License.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { t } from '@apache-superset/core';
-import { css, useTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { css, useTheme } from '@apache-superset/core/theme';
 import { Tooltip } from '@superset-ui/core/components';
 import { usePluginContext } from 'src/components';
 import { VizTileProps } from './types';
