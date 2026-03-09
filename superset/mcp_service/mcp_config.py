@@ -323,6 +323,7 @@ def get_mcp_config(app_config: Dict[str, Any] | None = None) -> Dict[str, Any]:
         "MCP_SERVICE_HOST": MCP_SERVICE_HOST,
         "MCP_SERVICE_PORT": MCP_SERVICE_PORT,
         "MCP_DEBUG": MCP_DEBUG,
+        "MCP_RBAC_ENABLED": MCP_RBAC_ENABLED,
         **MCP_SESSION_CONFIG,
         **MCP_CSRF_CONFIG,
     }

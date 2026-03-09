@@ -123,7 +123,7 @@ def check_tool_permission(func: Callable[..., Any]) -> bool:
 
         return has_permission
 
-    except Exception as e:
+    except (AttributeError, ValueError, RuntimeError) as e:
         logger.warning("Error checking tool permission: %s", e)
         return False
 
@@ -352,10 +352,9 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
 
                 # RBAC permission check
                 if not check_tool_permission(tool_func):
+                    method_name = getattr(tool_func, METHOD_PERMISSION_ATTR, "read")
                     raise MCPPermissionDeniedError(
-                        permission_name=getattr(
-                            tool_func, METHOD_PERMISSION_ATTR, "read"
-                        ),
+                        permission_name=f"{PERMISSION_PREFIX}{method_name}",
                         view_name=getattr(tool_func, CLASS_PERMISSION_ATTR, "unknown"),
                         user=user.username,
                         tool_name=tool_func.__name__,
@@ -393,10 +392,9 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
 
                 # RBAC permission check
                 if not check_tool_permission(tool_func):
+                    method_name = getattr(tool_func, METHOD_PERMISSION_ATTR, "read")
                     raise MCPPermissionDeniedError(
-                        permission_name=getattr(
-                            tool_func, METHOD_PERMISSION_ATTR, "read"
-                        ),
+                        permission_name=f"{PERMISSION_PREFIX}{method_name}",
                         view_name=getattr(tool_func, CLASS_PERMISSION_ATTR, "unknown"),
                         user=user.username,
                         tool_name=tool_func.__name__,
